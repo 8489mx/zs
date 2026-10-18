@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 import { Navigate, useParams } from 'react-router-dom';
 import { ActionConfirmDialog } from '@/shared/components/action-confirm-dialog';
@@ -12,8 +13,11 @@ import type { BackupSnapshotRecord } from '@/features/settings/components/Settin
 import { useAuthStore } from '@/stores/auth-store';
 import { isPlatformAdmin, isDesktopOfflineApp } from '@/app/router/access';
 import { resolveCurrentVertical, isRouteAllowedInVertical } from '@/shared/verticals/vertical-scope';
+import { translateUiText } from '@/lib/auto-translator';
 
 export function SettingsPage() {
+  const { t, i18n } = useTranslation();
+  const isEn = i18n.language === 'en';
   const { section } = useParams<{ section?: string }>();
   const resolvedSection: SettingsSectionKey = isSettingsSection(section) ? section : 'core';
   const page = useSettingsPageController(resolvedSection);
@@ -46,9 +50,9 @@ export function SettingsPage() {
 
   return (
     <SettingsPageShell
-      title={page.setupMode ? 'تهيئة البرنامج' : 'إعدادات النشاط'}
-      description={page.setupMode ? 'اتبع الخطوات بالترتيب حتى يصبح التشغيل الأول واضحًا وآمنًا.' : getSettingsSectionDescription(resolvedSection, currentVertical)}
-      badgeLabel={page.setupMode ? 'تجهيز البداية' : page.sectionMeta.label}
+      title={page.setupMode ? t('settings.settings_page.s0', "تهيئة البرنامج") : t('settings.settings_page.s1', "إعدادات النشاط")}
+      description={page.setupMode ? t('settings.settings_page.s2', "اتبع الخطوات بالترتيب حتى يصبح التشغيل الأول واضحًا وآمنًا.") : getSettingsSectionDescription(resolvedSection, currentVertical)}
+      badgeLabel={page.setupMode ? t('settings.settings_page.s3', "تجهيز البداية") : (isEn ? (translateUiText(page.sectionMeta.label) || page.sectionMeta.label) : page.sectionMeta.label)}
       setupMode={page.setupMode}
       currentSection={resolvedSection}
       currentUserRole={page.currentUserRole}

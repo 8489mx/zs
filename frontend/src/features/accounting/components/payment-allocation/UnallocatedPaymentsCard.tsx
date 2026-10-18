@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
 import { formatCurrency } from '@/lib/format';
@@ -26,6 +27,7 @@ export const UnallocatedPaymentsCard: React.FC<UnallocatedPaymentsCardProps> = (
   saving,
   hasOpenInvoices,
 }) => {
+  const { t } = useTranslation();
   return (
     <div
       style={{
@@ -39,20 +41,20 @@ export const UnallocatedPaymentsCard: React.FC<UnallocatedPaymentsCardProps> = (
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
         <div>
           <h3 style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a', margin: 0 }}>
-            سندات {partnerType === 'customer' ? 'القبض والتحصيل' : 'الصرف والسداد'} المتاحة
+            {t('accounting.payment_allocation.unallocated_payments_card.s0', "سندات")} {partnerType === 'customer' ? t('accounting.payment_allocation.unallocated_payments_card.s1', "القبض والتحصيل") : t('accounting.payment_allocation.unallocated_payments_card.s2', "الصرف والسداد")} {t('accounting.payment_allocation.unallocated_payments_card.s3', "المتاحة")}
           </h3>
           <div style={{ fontSize: '12px', color: '#64748b', marginTop: '3px' }}>
-            السندات غير المخصصة كلياً أو جزئياً
+            {t('accounting.payment_allocation.unallocated_payments_card.s4', "السندات غير المخصصة كلياً أو جزئياً")}
           </div>
         </div>
         <span className="badge" style={{ backgroundColor: '#eff6ff', color: '#1d4ed8' }}>
-          {payments.length} سند
+          {payments.length} {t('accounting.payment_allocation.unallocated_payments_card.s5', "سند")}
         </span>
       </div>
 
       {payments.length === 0 ? (
         <div style={{ padding: '30px 10px', textAlign: 'center', color: '#94a3b8', fontSize: '13px' }}>
-          لا توجد سندات نقدية أو بنكية غير مخصصة لهذا {partnerType === 'customer' ? 'العميل' : 'المورد'}.
+          {t('accounting.payment_allocation.unallocated_payments_card.s6', "لا توجد سندات نقدية أو بنكية غير مخصصة لهذا")} {partnerType === 'customer' ? t('accounting.payment_allocation.unallocated_payments_card.s7', "العميل") : t('accounting.payment_allocation.unallocated_payments_card.s8', "المورد")}.
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -79,7 +81,7 @@ export const UnallocatedPaymentsCard: React.FC<UnallocatedPaymentsCardProps> = (
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px' }}>
                   <span style={{ color: '#475569' }}>
-                    المبلغ الكلي: <strong>{formatCurrency(p.amount)}</strong>
+                    {t('accounting.payment_allocation.unallocated_payments_card.s9', "المبلغ الكلي:")} <strong>{formatCurrency(p.amount)}</strong>
                   </span>
                   <span
                     style={{
@@ -90,7 +92,7 @@ export const UnallocatedPaymentsCard: React.FC<UnallocatedPaymentsCardProps> = (
                       fontWeight: 700,
                     }}
                   >
-                    المتاح للتخصيص: {formatCurrency(p.unallocatedAmount)}
+                    {t('accounting.payment_allocation.unallocated_payments_card.s10', "المتاح للتخصيص:")} {formatCurrency(p.unallocatedAmount)}
                   </span>
                 </div>
                 {p.note && (
@@ -114,15 +116,15 @@ export const UnallocatedPaymentsCard: React.FC<UnallocatedPaymentsCardProps> = (
                 }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '4px' }}>
-                  <span style={{ color: '#64748b' }}>السند المختار:</span>
+                  <span style={{ color: '#64748b' }}>{t('accounting.payment_allocation.unallocated_payments_card.s11', "السند المختار:")}</span>
                   <strong>{selectedPayment.docNo}</strong>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '4px' }}>
-                  <span style={{ color: '#64748b' }}>المبلغ المتاح:</span>
+                  <span style={{ color: '#64748b' }}>{t('accounting.payment_allocation.unallocated_payments_card.s12', "المبلغ المتاح:")}</span>
                   <strong style={{ color: '#059669' }}>{formatCurrency(selectedPayment.unallocatedAmount)}</strong>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
-                  <span style={{ color: '#64748b' }}>المتبقي بعد التخصيص:</span>
+                  <span style={{ color: '#64748b' }}>{t('accounting.payment_allocation.unallocated_payments_card.s13', "المتبقي بعد التخصيص:")}</span>
                   <strong style={{ color: remainingPaymentBalance < 0 ? '#dc2626' : '#1e293b' }}>
                     {formatCurrency(remainingPaymentBalance)}
                   </strong>
@@ -150,7 +152,7 @@ export const UnallocatedPaymentsCard: React.FC<UnallocatedPaymentsCardProps> = (
                 }}
               >
                 <AppIcons.Refresh size={16} />
-                تسوية آلية وفق أسبقية الاستحقاق (FIFO Auto-Reconcile)
+                {t('accounting.payment_allocation.unallocated_payments_card.s14', "تسوية آلية وفق أسبقية الاستحقاق (FIFO Auto-Reconcile)")}
               </button>
             </div>
           )}

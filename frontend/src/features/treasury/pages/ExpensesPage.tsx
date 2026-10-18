@@ -17,6 +17,7 @@ import { TreasuryExpensesRegisterCard } from '@/features/treasury/components/Tre
 import { SINGLE_STORE_MODE } from '@/config/product-scope';
 
 export function ExpensesPage() {
+  const { t: __t } = useTranslation();
   const { t } = useTranslation();
   const { printMatchingExpenses, exportExpenses: exportExpenseRows } = useTreasuryPageActions();
   const [expenseSearch, setExpenseSearch] = useState('');
@@ -94,7 +95,7 @@ export function ExpensesPage() {
           open={isCreateOpen}
           onClose={() => setIsCreateOpen(false)}
           width="min(680px, 95vw)"
-          ariaLabel="تسجيل مصروف جديد"
+          ariaLabel={__t('treasury.expenses_page.s0', "تسجيل مصروف جديد")}
           showCloseButton={true}
         >
           <div className="dialog-card">

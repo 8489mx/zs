@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { FormSection } from '@/shared/components/form-section';
 import { Button } from '@/shared/ui/button';
 import { AlertTriangleIcon, CheckCircleIcon } from '@/shared/components/icons/AppIcons';
@@ -32,10 +33,11 @@ export function PricingSimulationSection({
   marginAfter,
   marginDiff,
 }: PricingSimulationSectionProps) {
+  const { t } = useTranslation();
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       <FormSection
-        title="المحاكاة المالية الفورية"
+        title={t('pricing_center.pricing_simulation_section.s0', "المحاكاة المالية الفورية")}
         className="h-full"
         bodyClassName="flex-1 flex flex-col justify-between"
       >
@@ -44,7 +46,7 @@ export function PricingSimulationSection({
           {/* 1. Inventory Value Comparative */}
           <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '8px 10px' }}>
             <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 600, marginBottom: '2px' }}>
-              قيمة المخزون (بسعر البيع)
+              {t('pricing_center.pricing_simulation_section.s1', "قيمة المخزون (بسعر البيع)")}
             </div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '4px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -73,7 +75,7 @@ export function PricingSimulationSection({
           {/* 2. Profit Margin Comparative */}
           <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '8px 10px' }}>
             <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 600, marginBottom: '2px' }}>
-              هامش الربح الإجمالي للمخزون
+              {t('pricing_center.pricing_simulation_section.s2', "هامش الربح الإجمالي للمخزون")}
             </div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '4px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -102,19 +104,19 @@ export function PricingSimulationSection({
           {/* 3. Direct Impact Breakdown */}
           <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '8px 10px' }}>
             <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 600, marginBottom: '6px' }}>
-              تفصيل نطاق الأصناف المتأثرة
+              {t('pricing_center.pricing_simulation_section.s3', "تفصيل نطاق الأصناف المتأثرة")}
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px', textAlign: 'center' }}>
               <div style={{ background: '#ffffff', padding: '4px 6px', borderRadius: '4px', border: '1px solid #e2e8f0' }}>
-                <div style={{ fontSize: '0.7rem', color: '#64748b' }}>المشمول</div>
+                <div style={{ fontSize: '0.7rem', color: '#64748b' }}>{t('pricing_center.pricing_simulation_section.s4', "المشمول")}</div>
                 <strong style={{ fontSize: '0.92rem', color: '#0f172a', fontWeight: 700 }}>{matchedTotal}</strong>
               </div>
               <div style={{ background: '#ffffff', padding: '4px 6px', borderRadius: '4px', border: '1px solid #e2e8f0' }}>
-                <div style={{ fontSize: '0.7rem', color: '#16a34a' }}>سيتأثر</div>
+                <div style={{ fontSize: '0.7rem', color: '#16a34a' }}>{t('pricing_center.pricing_simulation_section.s5', "سيتأثر")}</div>
                 <strong style={{ fontSize: '0.92rem', color: '#16a34a', fontWeight: 700 }}>{affectedTotal}</strong>
               </div>
               <div style={{ background: '#ffffff', padding: '4px 6px', borderRadius: '4px', border: '1px solid #e2e8f0' }}>
-                <div style={{ fontSize: '0.7rem', color: '#b45309' }}>مستثنى</div>
+                <div style={{ fontSize: '0.7rem', color: '#b45309' }}>{t('pricing_center.pricing_simulation_section.s6', "مستثنى")}</div>
                 <strong style={{ fontSize: '0.92rem', color: '#b45309', fontWeight: 700 }}>{skippedTotal}</strong>
               </div>
             </div>
@@ -146,12 +148,12 @@ export function PricingSimulationSection({
                 {summary.belowCostCount > 0 ? (
                   <>
                     <AlertTriangleIcon size={14} color="#d97706" />
-                    <span>{summary.belowCostCount} صنف سينخفض عن سعر الشراء والتكلفة!</span>
+                    <span>{summary.belowCostCount} {t('pricing_center.pricing_simulation_section.s7', "صنف سينخفض عن سعر الشراء والتكلفة!")}</span>
                   </>
                 ) : (
                   <>
                     <CheckCircleIcon size={14} color="#16a34a" />
-                    <span>جميع الأسعار المعدلة أعلى من سعر التكلفة</span>
+                    <span>{t('pricing_center.pricing_simulation_section.s8', "جميع الأسعار المعدلة أعلى من سعر التكلفة")}</span>
                   </>
                 )}
               </span>
@@ -169,7 +171,7 @@ export function PricingSimulationSection({
               }}
             >
               <span style={{ fontSize: '0.76rem', color: '#64748b', fontWeight: 600 }}>
-                اضغط على تحديث المعاينة لاحتساب الأثر وفحص التكلفة
+                {t('pricing_center.pricing_simulation_section.s9', "اضغط على تحديث المعاينة لاحتساب الأثر وفحص التكلفة")}
               </span>
             </div>
           )}
@@ -180,7 +182,7 @@ export function PricingSimulationSection({
             disabled={previewLoading}
             style={{ width: '100%', minHeight: '38px', fontSize: '0.86rem', fontWeight: 700, marginTop: 'auto' }}
           >
-            {previewLoading ? 'جاري الحساب...' : 'تحديث المعاينة الآن'}
+            {previewLoading ? t('pricing_center.pricing_simulation_section.s10', "جاري الحساب...") : t('pricing_center.pricing_simulation_section.s11', "تحديث المعاينة الآن")}
           </Button>
 
         </div>

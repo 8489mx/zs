@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useMemo, type FC } from 'react';
 import { commercialSubscriptionsApi, type CommercialSubscription } from '../api/commercial-subscriptions.api';
 import { CreateSubscriptionModal } from '../components/CreateSubscriptionModal';
@@ -11,6 +12,8 @@ import {
 } from '@/shared/components/icons/AppIcons';
 
 export const SubscriptionsListPage: FC = () => {
+  const { t, i18n } = useTranslation();
+  const isEn = i18n.language === 'en';
   const [subscriptions, setSubscriptions] = useState<CommercialSubscription[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -104,13 +107,13 @@ export const SubscriptionsListPage: FC = () => {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'active':
-        return <span style={{ padding: '3px 8px', borderRadius: '6px', fontSize: '12px', fontWeight: 600, background: '#dcfce7', color: '#15803d' }}>نشط ومفعل</span>;
+        return <span style={{ padding: '3px 8px', borderRadius: '6px', fontSize: '12px', fontWeight: 600, background: '#dcfce7', color: '#15803d' }}>{t('sales.subscriptions_list_page.s0', "نشط ومفعل")}</span>;
       case 'paused':
-        return <span style={{ padding: '3px 8px', borderRadius: '6px', fontSize: '12px', fontWeight: 600, background: '#fef3c7', color: '#b45309' }}>موقوف مؤقتاً</span>;
+        return <span style={{ padding: '3px 8px', borderRadius: '6px', fontSize: '12px', fontWeight: 600, background: '#fef3c7', color: '#b45309' }}>{t('sales.subscriptions_list_page.s1', "موقوف مؤقتاً")}</span>;
       case 'cancelled':
-        return <span style={{ padding: '3px 8px', borderRadius: '6px', fontSize: '12px', fontWeight: 600, background: '#fee2e2', color: '#b91c1c' }}>ملغي</span>;
+        return <span style={{ padding: '3px 8px', borderRadius: '6px', fontSize: '12px', fontWeight: 600, background: '#fee2e2', color: '#b91c1c' }}>{t('sales.subscriptions_list_page.s2', "ملغي")}</span>;
       case 'expired':
-        return <span style={{ padding: '3px 8px', borderRadius: '6px', fontSize: '12px', fontWeight: 600, background: '#f1f5f9', color: '#64748b' }}>منتهي</span>;
+        return <span style={{ padding: '3px 8px', borderRadius: '6px', fontSize: '12px', fontWeight: 600, background: '#f1f5f9', color: '#64748b' }}>{t('sales.subscriptions_list_page.s3', "منتهي")}</span>;
       default:
         return <span>{status}</span>;
     }
@@ -132,10 +135,10 @@ export const SubscriptionsListPage: FC = () => {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
         <div>
           <h1 style={{ margin: '0 0 6px 0', fontSize: '1.25rem', fontWeight: 800, color: '#0f172a' }}>
-            عقود الاشتراكات والفوترة الدورية (B2B Recurring Invoicing)
+            {t('sales.subscriptions_list_page.s4', "عقود الاشتراكات والفوترة الدورية (B2B Recurring Invoicing)")}
           </h1>
           <p style={{ margin: 0, fontSize: '0.8125rem', color: '#64748b' }}>
-            إدارة العقود التجارية المتكررة، الاشتراكات الشهرية والسنوية، والأتمتة الكاملة لإصدار الفواتير
+            {t('sales.subscriptions_list_page.s5', "إدارة العقود التجارية المتكررة، الاشتراكات الشهرية والسنوية، والأتمتة الكاملة لإصدار الفواتير")}
           </p>
         </div>
         <div style={{ display: 'flex', gap: '10px' }}>
@@ -157,7 +160,7 @@ export const SubscriptionsListPage: FC = () => {
             }}
           >
             <PlayIcon size={15} />
-            {isGenerating ? 'جاري الفحص والتوليد...' : 'تشغيل محرك الفوترة الدورية'}
+            {isGenerating ? t('sales.subscriptions_list_page.s6', "جاري الفحص والتوليد...") : t('sales.subscriptions_list_page.s7', "تشغيل محرك الفوترة الدورية")}
           </button>
           <button
             onClick={() => setIsCreateModalOpen(true)}
@@ -176,7 +179,7 @@ export const SubscriptionsListPage: FC = () => {
             }}
           >
             <PlusIcon size={16} />
-            عقد اشتراك جديد
+            {t('sales.subscriptions_list_page.s8', "عقد اشتراك جديد")}
           </button>
         </div>
       </div>
@@ -184,19 +187,19 @@ export const SubscriptionsListPage: FC = () => {
       {/* KPI Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px', marginBottom: '20px' }}>
         <div style={{ background: '#ffffff', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-          <div style={{ fontSize: '12.5px', color: '#64748b', marginBottom: '4px' }}>العقود النشطة</div>
+          <div style={{ fontSize: '12.5px', color: '#64748b', marginBottom: '4px' }}>{t('sales.subscriptions_list_page.s9', "العقود النشطة")}</div>
           <div style={{ fontSize: '22px', fontWeight: 800, color: '#0f172a' }}>{kpis.activeCount}</div>
         </div>
         <div style={{ background: '#ffffff', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-          <div style={{ fontSize: '12.5px', color: '#64748b', marginBottom: '4px' }}>الإيراد الشهري المتكرر التقريبي (MRR)</div>
+          <div style={{ fontSize: '12.5px', color: '#64748b', marginBottom: '4px' }}>{t('sales.subscriptions_list_page.s10', "الإيراد الشهري المتكرر التقريبي (MRR)")}</div>
           <div style={{ fontSize: '22px', fontWeight: 800, color: '#16a34a' }}>{formatCurrency(kpis.mrr)}</div>
         </div>
         <div style={{ background: '#ffffff', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-          <div style={{ fontSize: '12.5px', color: '#64748b', marginBottom: '4px' }}>إجمالي الفواتير المولدة آلياً</div>
+          <div style={{ fontSize: '12.5px', color: '#64748b', marginBottom: '4px' }}>{t('sales.subscriptions_list_page.s11', "إجمالي الفواتير المولدة آلياً")}</div>
           <div style={{ fontSize: '22px', fontWeight: 800, color: '#2563eb' }}>{kpis.totalInvoices}</div>
         </div>
         <div style={{ background: '#ffffff', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-          <div style={{ fontSize: '12.5px', color: '#64748b', marginBottom: '4px' }}>عقود مستحقة للفوترة اليوم</div>
+          <div style={{ fontSize: '12.5px', color: '#64748b', marginBottom: '4px' }}>{t('sales.subscriptions_list_page.s12', "عقود مستحقة للفوترة اليوم")}</div>
           <div style={{ fontSize: '22px', fontWeight: 800, color: kpis.dueCount > 0 ? '#ea580c' : '#0f172a' }}>
             {kpis.dueCount}
           </div>
@@ -207,10 +210,10 @@ export const SubscriptionsListPage: FC = () => {
       <div style={{ background: '#ffffff', padding: '14px 18px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
         <div style={{ display: 'flex', gap: '8px' }}>
           {[
-            { id: 'all', label: 'الكل' },
-            { id: 'active', label: 'النشطة' },
-            { id: 'paused', label: 'الموقوفة' },
-            { id: 'expired', label: 'المنتهية' },
+            { id: 'all', label: t('sales.subscriptions_list_page.s13', "الكل") },
+            { id: 'active', label: t('sales.subscriptions_list_page.s14', "النشطة") },
+            { id: 'paused', label: t('sales.subscriptions_list_page.s15', "الموقوفة") },
+            { id: 'expired', label: t('sales.subscriptions_list_page.s16', "المنتهية") },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -235,7 +238,7 @@ export const SubscriptionsListPage: FC = () => {
         <form onSubmit={handleSearchSubmit} style={{ display: 'flex', gap: '8px' }}>
           <input
             type="text"
-            placeholder="بحث برقم العقد، اسم العميل..."
+            placeholder={t('sales.subscriptions_list_page.s17', "بحث برقم العقد، اسم العميل...")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             style={{ width: '240px', height: '34px', padding: '4px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px' }}
@@ -252,26 +255,26 @@ export const SubscriptionsListPage: FC = () => {
       {/* Subscriptions Table */}
       <div style={{ background: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
         {loading ? (
-          <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>جاري تحميل العقود والاشتراكات...</div>
+          <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>{t('sales.subscriptions_list_page.s18', "جاري تحميل العقود والاشتراكات...")}</div>
         ) : subscriptions.length === 0 ? (
           <div style={{ padding: '50px 20px', textAlign: 'center', color: '#64748b' }}>
             <FileTextIcon size={40} style={{ opacity: 0.3, marginBottom: '12px' }} />
-            <div style={{ fontWeight: 600, fontSize: '14px' }}>لا توجد عقود اشتراكات مسجلة حالياً</div>
-            <div style={{ fontSize: '12.5px', marginTop: '4px' }}>اضغط على "عقد اشتراك جديد" لإضافة أول اشتراك تعاقدي</div>
+            <div style={{ fontWeight: 600, fontSize: '14px' }}>{t('sales.subscriptions_list_page.s19', "لا توجد عقود اشتراكات مسجلة حالياً")}</div>
+            <div style={{ fontSize: '12.5px', marginTop: '4px' }}>{t('sales.subscriptions_list_page.s20', "اضغط على \"عقد اشتراك جديد\" لإضافة أول اشتراك تعاقدي")}</div>
           </div>
         ) : (
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
               <thead>
                 <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', textAlign: 'right' }}>
-                  <th style={{ padding: '12px 16px', fontWeight: 600 }}>رقم العقد</th>
-                  <th style={{ padding: '12px 16px', fontWeight: 600 }}>العميل التعاقدي</th>
-                  <th style={{ padding: '12px 16px', fontWeight: 600 }}>الدورية</th>
-                  <th style={{ padding: '12px 16px', fontWeight: 600 }}>المبلغ الدوري</th>
-                  <th style={{ padding: '12px 16px', fontWeight: 600 }}>الفاتورة القادمة</th>
-                  <th style={{ padding: '12px 16px', fontWeight: 600 }}>الفواتير المصدرة</th>
-                  <th style={{ padding: '12px 16px', fontWeight: 600 }}>الحالة</th>
-                  <th style={{ padding: '12px 16px', fontWeight: 600, textAlign: 'center' }}>الإجراءات</th>
+                  <th style={{ padding: '12px 16px', fontWeight: 600 }}>{t('sales.subscriptions_list_page.s21', "رقم العقد")}</th>
+                  <th style={{ padding: '12px 16px', fontWeight: 600 }}>{t('sales.subscriptions_list_page.s22', "العميل التعاقدي")}</th>
+                  <th style={{ padding: '12px 16px', fontWeight: 600 }}>{t('sales.subscriptions_list_page.s23', "الدورية")}</th>
+                  <th style={{ padding: '12px 16px', fontWeight: 600 }}>{t('sales.subscriptions_list_page.s24', "المبلغ الدوري")}</th>
+                  <th style={{ padding: '12px 16px', fontWeight: 600 }}>{t('sales.subscriptions_list_page.s25', "الفاتورة القادمة")}</th>
+                  <th style={{ padding: '12px 16px', fontWeight: 600 }}>{t('sales.subscriptions_list_page.s26', "الفواتير المصدرة")}</th>
+                  <th style={{ padding: '12px 16px', fontWeight: 600 }}>{t('sales.subscriptions_list_page.s27', "الحالة")}</th>
+                  <th style={{ padding: '12px 16px', fontWeight: 600, textAlign: 'center' }}>{t('sales.subscriptions_list_page.s28', "الإجراءات")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -310,7 +313,7 @@ export const SubscriptionsListPage: FC = () => {
                             onClick={() => handleStatusChange(sub.id, 'paused')}
                             style={{ padding: '4px 8px', fontSize: '11.5px', borderRadius: '6px', border: '1px solid #fde047', background: '#fef9c3', color: '#854d0e', cursor: 'pointer' }}
                           >
-                            إيقاف مؤقت
+                            {t('sales.subscriptions_list_page.s29', "إيقاف مؤقت")}
                           </button>
                         )}
                         {sub.status === 'paused' && (
@@ -318,7 +321,7 @@ export const SubscriptionsListPage: FC = () => {
                             onClick={() => handleStatusChange(sub.id, 'active')}
                             style={{ padding: '4px 8px', fontSize: '11.5px', borderRadius: '6px', border: '1px solid #bbf7d0', background: '#dcfce7', color: '#166534', cursor: 'pointer' }}
                           >
-                            استئناف
+                            {t('sales.subscriptions_list_page.s30', "استئناف")}
                           </button>
                         )}
                         {sub.status !== 'cancelled' && (
@@ -326,7 +329,7 @@ export const SubscriptionsListPage: FC = () => {
                             onClick={() => handleStatusChange(sub.id, 'cancelled')}
                             style={{ padding: '4px 8px', fontSize: '11.5px', borderRadius: '6px', border: '1px solid #fecaca', background: '#fee2e2', color: '#991b1b', cursor: 'pointer' }}
                           >
-                            إلغاء
+                            {t('sales.subscriptions_list_page.s31', "إلغاء")}
                           </button>
                         )}
                       </div>

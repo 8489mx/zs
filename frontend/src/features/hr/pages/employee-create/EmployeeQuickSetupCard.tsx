@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { FormSection } from '@/shared/components/form-section';
 import { Button } from '@/shared/ui/button';
 
@@ -28,33 +29,34 @@ export function EmployeeQuickSetupCard({
   onQuickJobTitleNameChange,
   onCreateQuickMaster,
 }: EmployeeQuickSetupCardProps) {
+  const { t } = useTranslation();
   if (!missingSetup && !setupError && !setupSuccess) return null;
   return (
-    <FormSection title="تجهيز سريع قبل الإضافة" description="حتى لا تضطر للخروج من الصفحة، يمكنك إضافة قسم أو مسمى وظيفي سريعًا ثم استخدامه في بيانات الموظف.">
+    <FormSection title={t('hr.employee_create.employee_quick_setup_card.s0', "تجهيز سريع قبل الإضافة")} description={t('hr.employee_create.employee_quick_setup_card.s1', "حتى لا تضطر للخروج من الصفحة، يمكنك إضافة قسم أو مسمى وظيفي سريعًا ثم استخدامه في بيانات الموظف.")}>
       {missingSetup ? (
         <div className="notice-box" style={{ marginBottom: 12 }}>
-          لا توجد أقسام أو مسميات وظيفية كافية حتى الآن. الأفضل تجهيزها قبل حفظ الموظف، أو إضافتها سريعًا من هنا.
+          {t('hr.employee_create.employee_quick_setup_card.s2', "لا توجد أقسام أو مسميات وظيفية كافية حتى الآن. الأفضل تجهيزها قبل حفظ الموظف، أو إضافتها سريعًا من هنا.")}
         </div>
       ) : null}
       <div className="form-grid">
         <label className="field" style={{ gridColumn: 'auto' }}>
-          <span>إضافة قسم سريع</span>
+          <span>{t('hr.employee_create.employee_quick_setup_card.s3', "إضافة قسم سريع")}</span>
           <div style={{ display: 'flex', gap: 8 }}>
             <input 
               value={quickDepartmentName} 
               onChange={(event) => onQuickDepartmentNameChange(event.target.value)} 
-              placeholder="مثال: المبيعات" 
+              placeholder={t('hr.employee_create.employee_quick_setup_card.s4', "مثال: المبيعات")} 
               disabled={isBusy}
               onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); onCreateQuickMaster('departments', quickDepartmentName); } }}
             />
-            <Button type="button" variant="secondary" onClick={() => onCreateQuickMaster('departments', quickDepartmentName)} disabled={isBusy}>إضافة</Button>
+            <Button type="button" variant="secondary" onClick={() => onCreateQuickMaster('departments', quickDepartmentName)} disabled={isBusy}>{t('hr.employee_create.employee_quick_setup_card.s5', "إضافة")}</Button>
           </div>
         </label>
         <label className="field" style={{ gridColumn: 'auto' }}>
-          <span>إضافة مسمى وظيفي جديد</span>
+          <span>{t('hr.employee_create.employee_quick_setup_card.s6', "إضافة مسمى وظيفي جديد")}</span>
           <div style={{ display: 'flex', gap: 8 }}>
-            <input value={quickJobTitleName} onChange={(e) => onQuickJobTitleNameChange(e.target.value)} placeholder="مثال: محاسب" disabled={isBusy} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); onCreateQuickMaster('job-titles', quickJobTitleName); } }} />
-            <Button type="button" variant="secondary" onClick={() => onCreateQuickMaster('job-titles', quickJobTitleName)} disabled={isBusy}>إضافة</Button>
+            <input value={quickJobTitleName} onChange={(e) => onQuickJobTitleNameChange(e.target.value)} placeholder={t('hr.employee_create.employee_quick_setup_card.s7', "مثال: محاسب")} disabled={isBusy} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); onCreateQuickMaster('job-titles', quickJobTitleName); } }} />
+            <Button type="button" variant="secondary" onClick={() => onCreateQuickMaster('job-titles', quickJobTitleName)} disabled={isBusy}>{t('hr.employee_create.employee_quick_setup_card.s8', "إضافة")}</Button>
           </div>
         </label>
       </div>

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { XIcon, ArrowRightIcon } from '@/shared/components/icons/AppIcons';
@@ -41,6 +42,7 @@ export function RestaurantOperationsDialog({
   zIndex = 10050,
   ariaLabel,
 }: RestaurantOperationsDialogProps) {
+  const { t } = useTranslation();
   return (
     <DialogShell
       open={open}
@@ -179,7 +181,7 @@ export function RestaurantOperationsDialog({
             <button
               type="button"
               onClick={onClose}
-              aria-label="إغلاق النافذة"
+              aria-label={t('pos.pos_workspace.restaurant_operations_dialog.s0', "إغلاق النافذة")}
               style={{
                 width: '30px',
                 height: '30px',
@@ -269,7 +271,7 @@ export function RestaurantOperationsDialog({
                 textOverflow: 'ellipsis',
               }}
             >
-              {footerNote || 'نظام تشغيل المطاعم المتقدم · Z-Systems Restaurant Operations Hub'}
+              {footerNote || t('pos.pos_workspace.restaurant_operations_dialog.s1', "نظام تشغيل المطاعم المتقدم · Z-Systems Restaurant Operations Hub")}
             </span>
           </div>
 
@@ -292,7 +294,7 @@ export function RestaurantOperationsDialog({
               onMouseEnter={(e) => (e.currentTarget.style.background = '#f1f5f9')}
               onMouseLeave={(e) => (e.currentTarget.style.background = '#ffffff')}
             >
-              إغلاق
+              {t('pos.pos_workspace.restaurant_operations_dialog.s2', "إغلاق")}
             </button>
           </div>
         </div>

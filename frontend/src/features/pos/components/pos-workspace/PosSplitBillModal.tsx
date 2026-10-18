@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { Card } from '@/shared/ui/card';
@@ -31,6 +32,7 @@ interface EvenSplitGuest {
 }
 
 export function PosSplitBillModal({ open, pos, onClose, onSplitCompleted }: PosSplitBillModalProps) {
+  const { t } = useTranslation();
   const [splitMode, setSplitMode] = useState<'items' | 'even'>('items');
 
   // Mode 1: Split by Items state
@@ -490,10 +492,10 @@ export function PosSplitBillModal({ open, pos, onClose, onSplitCompleted }: PosS
       onClose={onClose}
       width="min(1080px, calc(100vw - 32px))"
       zIndex={90}
-      ariaLabel="تجزئة وتقسيم الفاتورة والشيكات"
+      ariaLabel={t('pos.pos_workspace.pos_split_bill_modal.s0', "تجزئة وتقسيم الفاتورة والشيكات")}
     >
       <Card
-        title="تجزئة وتقسيم الفاتورة والشيكات (Split Bill)"
+        title={t('pos.pos_workspace.pos_split_bill_modal.s1', "تجزئة وتقسيم الفاتورة والشيكات (Split Bill)")}
         className="dialog-card"
         style={{
           maxHeight: 'calc(100vh - 32px)',
@@ -512,10 +514,10 @@ export function PosSplitBillModal({ open, pos, onClose, onSplitCompleted }: PosS
               </div>
               <div>
                 <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>
-                  تقسيم الفاتورة {pos.tableNumber ? `(طاولة ${pos.tableNumber})` : ''}
+                  {t('pos.pos_workspace.pos_split_bill_modal.s2', "تقسيم الفاتورة")} {pos.tableNumber ? `(طاولة ${pos.tableNumber})` : ''}
                 </h3>
                 <span style={{ fontSize: '12px', color: '#64748b' }}>
-                  إجمالي الطلب: <strong style={{ color: '#170e5e' }}>{formatCurrency(totalAmount)}</strong> • {pos.cart.length} أصناف بالسلة
+                  {t('pos.pos_workspace.pos_split_bill_modal.s3', "إجمالي الطلب:")} <strong style={{ color: '#170e5e' }}>{formatCurrency(totalAmount)}</strong> • {pos.cart.length} {t('pos.pos_workspace.pos_split_bill_modal.s4', "أصناف بالسلة")}
                 </span>
               </div>
             </div>
@@ -537,7 +539,7 @@ export function PosSplitBillModal({ open, pos, onClose, onSplitCompleted }: PosS
                   transition: 'all 0.15s ease',
                 }}
               >
-                تجزئة حسب الأصناف
+                {t('pos.pos_workspace.pos_split_bill_modal.s5', "تجزئة حسب الأصناف")}
               </button>
               <button
                 type="button"
@@ -554,7 +556,7 @@ export function PosSplitBillModal({ open, pos, onClose, onSplitCompleted }: PosS
                   transition: 'all 0.15s ease',
                 }}
               >
-                تقسيم بالتساوي (ضيوف)
+                {t('pos.pos_workspace.pos_split_bill_modal.s6', "تقسيم بالتساوي (ضيوف)")}
               </button>
               <button
                 type="button"
@@ -572,10 +574,10 @@ export function PosSplitBillModal({ open, pos, onClose, onSplitCompleted }: PosS
                   alignItems: 'center',
                   gap: '6px',
                 }}
-                title="توزيع فوري لأصناف السلة على شيكات مستقلة حسب مقعد كل ضيف"
+                title={t('pos.pos_workspace.pos_split_bill_modal.s7', "توزيع فوري لأصناف السلة على شيكات مستقلة حسب مقعد كل ضيف")}
               >
                 <UsersIcon size={14} color="#1e40af" />
-                توزيع فوري حسب المقاعد (Seat Split)
+                {t('pos.pos_workspace.pos_split_bill_modal.s8', "توزيع فوري حسب المقاعد (Seat Split)")}
               </button>
             </div>
           </div>
@@ -602,7 +604,7 @@ export function PosSplitBillModal({ open, pos, onClose, onSplitCompleted }: PosS
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
                 <span style={{ fontSize: '12.5px', color: '#475569', fontWeight: 600 }}>
-                  وزّع الأصناف والكميات على الشيكات المستقلة بالضغط على أزرار النقل، ثم حصّل كل شيك على حدة:
+                  {t('pos.pos_workspace.pos_split_bill_modal.s9', "وزّع الأصناف والكميات على الشيكات المستقلة بالضغط على أزرار النقل، ثم حصّل كل شيك على حدة:")}
                 </span>
                 <Button
                   type="button"
@@ -611,7 +613,7 @@ export function PosSplitBillModal({ open, pos, onClose, onSplitCompleted }: PosS
                   style={{ fontSize: '12px', minHeight: '30px', padding: '0 12px', display: 'flex', alignItems: 'center', gap: '6px' }}
                 >
                   <PlusIcon size={14} />
-                  <span>إضافة شيك إضافي</span>
+                  <span>{t('pos.pos_workspace.pos_split_bill_modal.s10', "إضافة شيك إضافي")}</span>
                 </Button>
               </div>
 
@@ -653,14 +655,14 @@ export function PosSplitBillModal({ open, pos, onClose, onSplitCompleted }: PosS
                               {bill.name}
                             </strong>
                             <span style={{ fontSize: '11px', background: '#f1f5f9', color: '#475569', padding: '1px 6px', borderRadius: '10px', fontWeight: 600 }}>
-                              {bill.items.reduce((s, i) => s + i.qty, 0)} قطعة
+                              {bill.items.reduce((s, i) => s + i.qty, 0)} {t('pos.pos_workspace.pos_split_bill_modal.s11', "قطعة")}
                             </span>
                           </div>
 
                           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                             {bill.isPaid ? (
                               <span style={{ fontSize: '11px', background: '#16a34a', color: '#fff', padding: '2px 8px', borderRadius: '4px', fontWeight: 700 }}>
-                                تم السداد ({bill.paymentMethod === 'card' ? 'شبكة' : 'نقد'})
+                                {t('pos.pos_workspace.pos_split_bill_modal.s12', "تم السداد (")}{bill.paymentMethod === 'card' ? t('pos.pos_workspace.pos_split_bill_modal.s13', "شبكة") : t('pos.pos_workspace.pos_split_bill_modal.s14', "نقد")})
                               </span>
                             ) : (
                               <span style={{ fontSize: '13px', fontWeight: 800, color: '#170e5e' }}>
@@ -673,7 +675,7 @@ export function PosSplitBillModal({ open, pos, onClose, onSplitCompleted }: PosS
                               <button
                                 type="button"
                                 onClick={() => handleRemoveBill(bill.id)}
-                                title="حذف هذا الشيك الفارغ"
+                                title={t('pos.pos_workspace.pos_split_bill_modal.s15', "حذف هذا الشيك الفارغ")}
                                 style={{
                                   background: 'transparent',
                                   border: 'none',
@@ -708,7 +710,7 @@ export function PosSplitBillModal({ open, pos, onClose, onSplitCompleted }: PosS
                                 width: '100%',
                               }}
                             >
-                              نقل جميع الأصناف إلى {otherBills[0].name}
+                              {t('pos.pos_workspace.pos_split_bill_modal.s16', "نقل جميع الأصناف إلى")} {otherBills[0].name}
                             </button>
                           </div>
                         )}
@@ -717,8 +719,8 @@ export function PosSplitBillModal({ open, pos, onClose, onSplitCompleted }: PosS
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '220px', overflowY: 'auto' }}>
                           {bill.items.length === 0 ? (
                             <div style={{ textAlign: 'center', padding: '32px 12px', background: '#f8fafc', borderRadius: '8px', border: '1px dashed #cbd5e1', color: '#94a3b8', fontSize: '12px' }}>
-                              <p style={{ margin: '0 0 4px 0', fontWeight: 700, color: '#64748b' }}>هذا الشيك فارغ</p>
-                              <span>اضغط على أزرار النقل بجوار الأصناف في الشيكات الأخرى لنقلها هنا</span>
+                              <p style={{ margin: '0 0 4px 0', fontWeight: 700, color: '#64748b' }}>{t('pos.pos_workspace.pos_split_bill_modal.s17', "هذا الشيك فارغ")}</p>
+                              <span>{t('pos.pos_workspace.pos_split_bill_modal.s18', "اضغط على أزرار النقل بجوار الأصناف في الشيكات الأخرى لنقلها هنا")}</span>
                             </div>
                           ) : (
                             bill.items.map((item) => (
@@ -771,7 +773,7 @@ export function PosSplitBillModal({ open, pos, onClose, onSplitCompleted }: PosS
                                                   cursor: 'pointer',
                                                 }}
                                               >
-                                                نقل 1 {otherBills.length > 1 ? `← #${target.name.replace('الشيك ', '')}` : `← ${target.name}`}
+                                                {t('pos.pos_workspace.pos_split_bill_modal.s19', "نقل 1")} {otherBills.length > 1 ? `← #${target.name.replace(t('pos.pos_workspace.pos_split_bill_modal.s20', "الشيك "), '')}` : `← ${target.name}`}
                                               </button>
                                               <button
                                                 type="button"
@@ -788,7 +790,7 @@ export function PosSplitBillModal({ open, pos, onClose, onSplitCompleted }: PosS
                                                   cursor: 'pointer',
                                                 }}
                                               >
-                                                الكل ({item.qty})
+                                                {t('pos.pos_workspace.pos_split_bill_modal.s21', "الكل (")}{item.qty})
                                               </button>
                                             </>
                                           ) : (
@@ -807,7 +809,7 @@ export function PosSplitBillModal({ open, pos, onClose, onSplitCompleted }: PosS
                                                 cursor: 'pointer',
                                               }}
                                             >
-                                              نقل {otherBills.length > 1 ? `← #${target.name.replace('الشيك ', '')}` : `← ${target.name}`}
+                                              {t('pos.pos_workspace.pos_split_bill_modal.s22', "نقل")} {otherBills.length > 1 ? `← #${target.name.replace(t('pos.pos_workspace.pos_split_bill_modal.s23', "الشيك "), '')}` : `← ${target.name}`}
                                             </button>
                                           )}
                                         </div>
@@ -818,11 +820,11 @@ export function PosSplitBillModal({ open, pos, onClose, onSplitCompleted }: PosS
                                   {/* Fractional Item Splitting */}
                                   {!bill.isPaid && (
                                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '4px', marginTop: '4px' }}>
-                                      <span style={{ fontSize: '9.5px', color: '#64748b' }}>تجزئة الصنف:</span>
+                                      <span style={{ fontSize: '9.5px', color: '#64748b' }}>{t('pos.pos_workspace.pos_split_bill_modal.s24', "تجزئة الصنف:")}</span>
                                       <button
                                         type="button"
                                         onClick={() => handleFractionalSplit(bill.id, item.lineKey, 2)}
-                                        title="تجزئة هذا الصنف إلى نصفين (50% / 50%) وتوزيعهما على شيكين"
+                                        title={t('pos.pos_workspace.pos_split_bill_modal.s25', "تجزئة هذا الصنف إلى نصفين (50% / 50%) وتوزيعهما على شيكين")}
                                         style={{
                                           background: '#eff6ff',
                                           border: '1px solid #bfdbfe',
@@ -834,12 +836,12 @@ export function PosSplitBillModal({ open, pos, onClose, onSplitCompleted }: PosS
                                           cursor: 'pointer',
                                         }}
                                       >
-                                        ½ نصفين
+                                        {t('pos.pos_workspace.pos_split_bill_modal.s26', "½ نصفين")}
                                       </button>
                                       <button
                                         type="button"
                                         onClick={() => handleFractionalSplit(bill.id, item.lineKey, 3)}
-                                        title="تجزئة هذا الصنف إلى 3 أثلاث متساوية وتوزيعها على الشيكات"
+                                        title={t('pos.pos_workspace.pos_split_bill_modal.s27', "تجزئة هذا الصنف إلى 3 أثلاث متساوية وتوزيعها على الشيكات")}
                                         style={{
                                           background: '#eff6ff',
                                           border: '1px solid #bfdbfe',
@@ -851,12 +853,12 @@ export function PosSplitBillModal({ open, pos, onClose, onSplitCompleted }: PosS
                                           cursor: 'pointer',
                                         }}
                                       >
-                                        ⅓ أثلاث
+                                        {t('pos.pos_workspace.pos_split_bill_modal.s28', "⅓ أثلاث")}
                                       </button>
                                       <button
                                         type="button"
                                         onClick={() => handleFractionalSplit(bill.id, item.lineKey, 4)}
-                                        title="تجزئة هذا الصنف إلى 4 أرباع متساوية وتوزيعها على الشيكات"
+                                        title={t('pos.pos_workspace.pos_split_bill_modal.s29', "تجزئة هذا الصنف إلى 4 أرباع متساوية وتوزيعها على الشيكات")}
                                         style={{
                                           background: '#eff6ff',
                                           border: '1px solid #bfdbfe',
@@ -868,7 +870,7 @@ export function PosSplitBillModal({ open, pos, onClose, onSplitCompleted }: PosS
                                           cursor: 'pointer',
                                         }}
                                       >
-                                        ¼ أرباع
+                                        {t('pos.pos_workspace.pos_split_bill_modal.s30', "¼ أرباع")}
                                       </button>
                                     </div>
                                   )}
@@ -890,7 +892,7 @@ export function PosSplitBillModal({ open, pos, onClose, onSplitCompleted }: PosS
                               onClick={() => void handlePayBill(bill.id, 'cash')}
                               style={{ flex: 1, minHeight: '32px', fontSize: '12px', padding: '0 4px' }}
                             >
-                              تحصيل نقد
+                              {t('pos.pos_workspace.pos_split_bill_modal.s31', "تحصيل نقد")}
                             </Button>
                             <Button
                               type="button"
@@ -899,7 +901,7 @@ export function PosSplitBillModal({ open, pos, onClose, onSplitCompleted }: PosS
                               onClick={() => void handlePayBill(bill.id, 'card')}
                               style={{ flex: 1, minHeight: '32px', fontSize: '12px', padding: '0 4px', borderColor: '#170e5e', color: '#170e5e' }}
                             >
-                              تحصيل شبكة
+                              {t('pos.pos_workspace.pos_split_bill_modal.s32', "تحصيل شبكة")}
                             </Button>
                           </div>
                         </div>
@@ -919,16 +921,16 @@ export function PosSplitBillModal({ open, pos, onClose, onSplitCompleted }: PosS
                     disabled={isProcessingPayment || bills.filter((b) => !b.isPaid && b.items.length > 0).length < 2}
                     style={{ fontSize: '12px' }}
                   >
-                    حفظ الشيكات كطلبات معلقة منفصلة في الصالة
+                    {t('pos.pos_workspace.pos_split_bill_modal.s33', "حفظ الشيكات كطلبات معلقة منفصلة في الصالة")}
                   </Button>
 
                   <span style={{ fontSize: '12px', color: '#64748b' }}>
-                    المجموع الموزع: <strong style={{ color: '#0f172a' }}>{formatCurrency(totalSplitSum)}</strong> من أصل <strong style={{ color: '#170e5e' }}>{formatCurrency(totalAmount)}</strong>
+                    {t('pos.pos_workspace.pos_split_bill_modal.s34', "المجموع الموزع:")} <strong style={{ color: '#0f172a' }}>{formatCurrency(totalSplitSum)}</strong> {t('pos.pos_workspace.pos_split_bill_modal.s35', "من أصل")} <strong style={{ color: '#170e5e' }}>{formatCurrency(totalAmount)}</strong>
                   </span>
                 </div>
 
                 <Button type="button" variant="secondary" onClick={onClose} disabled={isProcessingPayment}>
-                  إغلاق
+                  {t('pos.pos_workspace.pos_split_bill_modal.s36', "إغلاق")}
                 </Button>
               </div>
             </div>
@@ -942,7 +944,7 @@ export function PosSplitBillModal({ open, pos, onClose, onSplitCompleted }: PosS
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <UsersIcon size={18} color="#170e5e" />
                   <span style={{ fontSize: '13px', fontWeight: 700, color: '#334155' }}>
-                    عدد الضيوف للتقسيم:
+                    {t('pos.pos_workspace.pos_split_bill_modal.s37', "عدد الضيوف للتقسيم:")}
                   </span>
                 </div>
                 <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
@@ -962,12 +964,12 @@ export function PosSplitBillModal({ open, pos, onClose, onSplitCompleted }: PosS
                         cursor: 'pointer',
                       }}
                     >
-                      {num} ضيوف
+                      {num} {t('pos.pos_workspace.pos_split_bill_modal.s38', "ضيوف")}
                     </button>
                   ))}
                 </div>
                 <div style={{ marginInlineStart: 'auto', fontSize: '13px', color: '#64748b' }}>
-                  نصيب كل ضيف: <strong style={{ color: '#0f172a', fontSize: '14px' }}>{formatCurrency(evenGuests[0]?.amount || 0)}</strong>
+                  {t('pos.pos_workspace.pos_split_bill_modal.s39', "نصيب كل ضيف:")} <strong style={{ color: '#0f172a', fontSize: '14px' }}>{formatCurrency(evenGuests[0]?.amount || 0)}</strong>
                 </div>
               </div>
 
@@ -1006,7 +1008,7 @@ export function PosSplitBillModal({ open, pos, onClose, onSplitCompleted }: PosS
                       <div>
                         <strong style={{ fontSize: '13.5px', color: '#0f172a' }}>{guest.name}</strong>
                         <div style={{ fontSize: '12px', color: '#64748b' }}>
-                          المبلغ المطلوب: <strong style={{ color: '#170e5e' }}>{formatCurrency(guest.amount)}</strong>
+                          {t('pos.pos_workspace.pos_split_bill_modal.s40', "المبلغ المطلوب:")} <strong style={{ color: '#170e5e' }}>{formatCurrency(guest.amount)}</strong>
                         </div>
                       </div>
                     </div>
@@ -1015,7 +1017,7 @@ export function PosSplitBillModal({ open, pos, onClose, onSplitCompleted }: PosS
                       {guest.paid ? (
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#166534', fontWeight: 800, fontSize: '12.5px' }}>
                           <CheckIcon size={16} />
-                          <span>تم السداد ({guest.method === 'card' ? 'شبكة' : guest.method === 'transfer' ? 'تحويل' : 'نقد'})</span>
+                          <span>{t('pos.pos_workspace.pos_split_bill_modal.s41', "تم السداد (")}{guest.method === 'card' ? t('pos.pos_workspace.pos_split_bill_modal.s42', "شبكة") : guest.method === 'transfer' ? t('pos.pos_workspace.pos_split_bill_modal.s43', "تحويل") : t('pos.pos_workspace.pos_split_bill_modal.s44', "نقد")})</span>
                         </div>
                       ) : (
                         <div style={{ display: 'flex', gap: '8px' }}>
@@ -1026,7 +1028,7 @@ export function PosSplitBillModal({ open, pos, onClose, onSplitCompleted }: PosS
                             onClick={() => void handlePayGuest(guest.id, 'cash')}
                             style={{ minHeight: '32px', fontSize: '12px', padding: '0 14px' }}
                           >
-                            سداد نقد
+                            {t('pos.pos_workspace.pos_split_bill_modal.s45', "سداد نقد")}
                           </Button>
                           <Button
                             type="button"
@@ -1035,7 +1037,7 @@ export function PosSplitBillModal({ open, pos, onClose, onSplitCompleted }: PosS
                             onClick={() => void handlePayGuest(guest.id, 'card')}
                             style={{ minHeight: '32px', fontSize: '12px', padding: '0 14px', borderColor: '#170e5e', color: '#170e5e' }}
                           >
-                            سداد شبكة
+                            {t('pos.pos_workspace.pos_split_bill_modal.s46', "سداد شبكة")}
                           </Button>
                         </div>
                       )}
@@ -1047,13 +1049,13 @@ export function PosSplitBillModal({ open, pos, onClose, onSplitCompleted }: PosS
               {/* Progress Summary */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #f1f5f9', paddingTop: '10px' }}>
                 <div style={{ fontSize: '12.5px', color: '#475569' }}>
-                  تم تحصيل: <strong style={{ color: '#16a34a' }}>
+                  {t('pos.pos_workspace.pos_split_bill_modal.s47', "تم تحصيل:")} <strong style={{ color: '#16a34a' }}>
                     {formatCurrency(evenGuests.filter((g) => g.paid).reduce((s, g) => s + g.amount, 0))}
-                  </strong> من أصل <strong style={{ color: '#0f172a' }}>{formatCurrency(totalAmount)}</strong>
+                  </strong> {t('pos.pos_workspace.pos_split_bill_modal.s48', "من أصل")} <strong style={{ color: '#0f172a' }}>{formatCurrency(totalAmount)}</strong>
                 </div>
 
                 <Button type="button" variant="secondary" onClick={onClose} disabled={isProcessingPayment}>
-                  إغلاق
+                  {t('pos.pos_workspace.pos_split_bill_modal.s49', "إغلاق")}
                 </Button>
               </div>
             </div>

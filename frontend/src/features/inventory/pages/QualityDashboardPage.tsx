@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect, type FC } from 'react';
 import {
   qualityAssuranceApi,
@@ -17,6 +18,7 @@ import {
 } from '@/shared/components/icons/AppIcons';
 
 export const QualityDashboardPage: FC = () => {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<'inspections' | 'ncrs' | 'points'>('inspections');
   const [summary, setSummary] = useState<any>(null);
   const [inspections, setInspections] = useState<QCInspectionRecord[]>([]);
@@ -66,18 +68,18 @@ export const QualityDashboardPage: FC = () => {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'passed':
-        return <span style={{ padding: '3px 8px', borderRadius: '6px', fontSize: '11.5px', fontWeight: 600, background: '#dcfce7', color: '#15803d' }}>مطابق (Pass)</span>;
+        return <span style={{ padding: '3px 8px', borderRadius: '6px', fontSize: '11.5px', fontWeight: 600, background: '#dcfce7', color: '#15803d' }}>{t('inventory.quality_dashboard_page.s0', "مطابق (Pass)")}</span>;
       case 'failed':
-        return <span style={{ padding: '3px 8px', borderRadius: '6px', fontSize: '11.5px', fontWeight: 600, background: '#fee2e2', color: '#b91c1c' }}>غير مطابق (Fail)</span>;
+        return <span style={{ padding: '3px 8px', borderRadius: '6px', fontSize: '11.5px', fontWeight: 600, background: '#fee2e2', color: '#b91c1c' }}>{t('inventory.quality_dashboard_page.s1', "غير مطابق (Fail)")}</span>;
       case 'conditional':
-        return <span style={{ padding: '3px 8px', borderRadius: '6px', fontSize: '11.5px', fontWeight: 600, background: '#fef3c7', color: '#b45309' }}>قبول مشروط</span>;
+        return <span style={{ padding: '3px 8px', borderRadius: '6px', fontSize: '11.5px', fontWeight: 600, background: '#fef3c7', color: '#b45309' }}>{t('inventory.quality_dashboard_page.s2', "قبول مشروط")}</span>;
       case 'open':
-        return <span style={{ padding: '3px 8px', borderRadius: '6px', fontSize: '11.5px', fontWeight: 600, background: '#fee2e2', color: '#b91c1c' }}>مفتوح</span>;
+        return <span style={{ padding: '3px 8px', borderRadius: '6px', fontSize: '11.5px', fontWeight: 600, background: '#fee2e2', color: '#b91c1c' }}>{t('inventory.quality_dashboard_page.s3', "مفتوح")}</span>;
       case 'investigating':
-        return <span style={{ padding: '3px 8px', borderRadius: '6px', fontSize: '11.5px', fontWeight: 600, background: '#fef3c7', color: '#b45309' }}>قيد التحقيق</span>;
+        return <span style={{ padding: '3px 8px', borderRadius: '6px', fontSize: '11.5px', fontWeight: 600, background: '#fef3c7', color: '#b45309' }}>{t('inventory.quality_dashboard_page.s4', "قيد التحقيق")}</span>;
       case 'resolved':
       case 'closed':
-        return <span style={{ padding: '3px 8px', borderRadius: '6px', fontSize: '11.5px', fontWeight: 600, background: '#f1f5f9', color: '#475569' }}>مغلق ومعالج</span>;
+        return <span style={{ padding: '3px 8px', borderRadius: '6px', fontSize: '11.5px', fontWeight: 600, background: '#f1f5f9', color: '#475569' }}>{t('inventory.quality_dashboard_page.s5', "مغلق ومعالج")}</span>;
       default:
         return <span>{status}</span>;
     }
@@ -86,11 +88,11 @@ export const QualityDashboardPage: FC = () => {
   const getSeverityBadge = (sev: string) => {
     switch (sev) {
       case 'critical':
-        return <span style={{ padding: '2px 6px', borderRadius: '4px', fontSize: '11px', fontWeight: 700, background: '#7f1d1d', color: '#ffffff' }}>حرج</span>;
+        return <span style={{ padding: '2px 6px', borderRadius: '4px', fontSize: '11px', fontWeight: 700, background: '#7f1d1d', color: '#ffffff' }}>{t('inventory.quality_dashboard_page.s6', "حرج")}</span>;
       case 'major':
-        return <span style={{ padding: '2px 6px', borderRadius: '4px', fontSize: '11px', fontWeight: 600, background: '#fed7aa', color: '#9a3412' }}>جوهري</span>;
+        return <span style={{ padding: '2px 6px', borderRadius: '4px', fontSize: '11px', fontWeight: 600, background: '#fed7aa', color: '#9a3412' }}>{t('inventory.quality_dashboard_page.s7', "جوهري")}</span>;
       default:
-        return <span style={{ padding: '2px 6px', borderRadius: '4px', fontSize: '11px', fontWeight: 600, background: '#f1f5f9', color: '#475569' }}>بسيط</span>;
+        return <span style={{ padding: '2px 6px', borderRadius: '4px', fontSize: '11px', fontWeight: 600, background: '#f1f5f9', color: '#475569' }}>{t('inventory.quality_dashboard_page.s8', "بسيط")}</span>;
     }
   };
 
@@ -100,10 +102,10 @@ export const QualityDashboardPage: FC = () => {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
         <div>
           <h1 style={{ margin: '0 0 6px 0', fontSize: '1.25rem', fontWeight: 800, color: '#0f172a' }}>
-            إدارة الجودة والامتثال وتقارير عدم المطابقة (Quality Control & NCR)
+            {t('inventory.quality_dashboard_page.s9', "إدارة الجودة والامتثال وتقارير عدم المطابقة (Quality Control & NCR)")}
           </h1>
           <p style={{ margin: 0, fontSize: '0.8125rem', color: '#64748b' }}>
-            معايير الفحص الإلزامية للمشتريات والتصنيع، رصد حدود التسامح، ومعالجة تقارير عدم المطابقة
+            {t('inventory.quality_dashboard_page.s10', "معايير الفحص الإلزامية للمشتريات والتصنيع، رصد حدود التسامح، ومعالجة تقارير عدم المطابقة")}
           </p>
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
@@ -124,7 +126,7 @@ export const QualityDashboardPage: FC = () => {
             }}
           >
             <CheckShieldIcon size={15} />
-            معيار فحص جديد
+            {t('inventory.quality_dashboard_page.s11', "معيار فحص جديد")}
           </button>
           <button
             onClick={() => setIsInspectionModalOpen(true)}
@@ -143,7 +145,7 @@ export const QualityDashboardPage: FC = () => {
             }}
           >
             <PlusIcon size={15} />
-            تسجيل فحص عينة
+            {t('inventory.quality_dashboard_page.s12', "تسجيل فحص عينة")}
           </button>
           <button
             onClick={() => setIsNcrModalOpen(true)}
@@ -162,7 +164,7 @@ export const QualityDashboardPage: FC = () => {
             }}
           >
             <AlertTriangleIcon size={15} />
-            فتح تقرير NCR
+            {t('inventory.quality_dashboard_page.s13', "فتح تقرير NCR")}
           </button>
         </div>
       </div>
@@ -170,25 +172,25 @@ export const QualityDashboardPage: FC = () => {
       {/* KPI Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px', marginBottom: '20px' }}>
         <div style={{ background: '#ffffff', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-          <div style={{ fontSize: '12.5px', color: '#64748b', marginBottom: '4px' }}>معدل القبول العام للجودة</div>
+          <div style={{ fontSize: '12.5px', color: '#64748b', marginBottom: '4px' }}>{t('inventory.quality_dashboard_page.s14', "معدل القبول العام للجودة")}</div>
           <div style={{ fontSize: '22px', fontWeight: 800, color: '#16a34a' }}>
             {summary?.rates?.acceptanceRatePercent ?? 100}%
           </div>
         </div>
         <div style={{ background: '#ffffff', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-          <div style={{ fontSize: '12.5px', color: '#64748b', marginBottom: '4px' }}>إجمالي الفحوصات المنفذة</div>
+          <div style={{ fontSize: '12.5px', color: '#64748b', marginBottom: '4px' }}>{t('inventory.quality_dashboard_page.s15', "إجمالي الفحوصات المنفذة")}</div>
           <div style={{ fontSize: '22px', fontWeight: 800, color: '#0f172a' }}>
             {summary?.totalInspections ?? 0}
           </div>
         </div>
         <div style={{ background: '#ffffff', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-          <div style={{ fontSize: '12.5px', color: '#64748b', marginBottom: '4px' }}>تقارير عدم المطابقة المفتوحة (Open NCRs)</div>
+          <div style={{ fontSize: '12.5px', color: '#64748b', marginBottom: '4px' }}>{t('inventory.quality_dashboard_page.s16', "تقارير عدم المطابقة المفتوحة (Open NCRs)")}</div>
           <div style={{ fontSize: '22px', fontWeight: 800, color: (summary?.openNCRs ?? 0) > 0 ? '#ea580c' : '#0f172a' }}>
             {summary?.openNCRs ?? 0}
           </div>
         </div>
         <div style={{ background: '#ffffff', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-          <div style={{ fontSize: '12.5px', color: '#64748b', marginBottom: '4px' }}>عيوب ومخالفات حرجة نشطة</div>
+          <div style={{ fontSize: '12.5px', color: '#64748b', marginBottom: '4px' }}>{t('inventory.quality_dashboard_page.s17', "عيوب ومخالفات حرجة نشطة")}</div>
           <div style={{ fontSize: '22px', fontWeight: 800, color: (summary?.criticalDefects ?? 0) > 0 ? '#dc2626' : '#16a34a' }}>
             {summary?.criticalDefects ?? 0}
           </div>
@@ -224,27 +226,27 @@ export const QualityDashboardPage: FC = () => {
       {/* Tab Content */}
       <div style={{ background: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
         {loading ? (
-          <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>جاري تحميل البيانات...</div>
+          <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>{t('inventory.quality_dashboard_page.s18', "جاري تحميل البيانات...")}</div>
         ) : activeTab === 'inspections' ? (
           inspections.length === 0 ? (
             <div style={{ padding: '50px 20px', textAlign: 'center', color: '#64748b' }}>
               <CheckShieldIcon size={40} style={{ opacity: 0.3, marginBottom: '12px' }} />
-              <div style={{ fontWeight: 600, fontSize: '14px' }}>لا توجد فحوصات جودة مسجلة</div>
-              <div style={{ fontSize: '12.5px', marginTop: '4px' }}>اضغط على "تسجيل فحص عينة" لمعاينة شحنة أو دفعة إنتاج</div>
+              <div style={{ fontWeight: 600, fontSize: '14px' }}>{t('inventory.quality_dashboard_page.s19', "لا توجد فحوصات جودة مسجلة")}</div>
+              <div style={{ fontSize: '12.5px', marginTop: '4px' }}>{t('inventory.quality_dashboard_page.s20', "اضغط على \"تسجيل فحص عينة\" لمعاينة شحنة أو دفعة إنتاج")}</div>
             </div>
           ) : (
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
                 <thead>
                   <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', textAlign: 'right' }}>
-                    <th style={{ padding: '12px 16px', fontWeight: 600 }}>المستند المرجعي</th>
-                    <th style={{ padding: '12px 16px', fontWeight: 600 }}>الصنف</th>
-                    <th style={{ padding: '12px 16px', fontWeight: 600 }}>معيار الفحص</th>
-                    <th style={{ padding: '12px 16px', fontWeight: 600, textAlign: 'center' }}>الكمية المفحوصة</th>
-                    <th style={{ padding: '12px 16px', fontWeight: 600, textAlign: 'center' }}>المقبول</th>
-                    <th style={{ padding: '12px 16px', fontWeight: 600, textAlign: 'center' }}>المرفوض</th>
-                    <th style={{ padding: '12px 16px', fontWeight: 600 }}>النتيجة والحالة</th>
-                    <th style={{ padding: '12px 16px', fontWeight: 600 }}>التاريخ</th>
+                    <th style={{ padding: '12px 16px', fontWeight: 600 }}>{t('inventory.quality_dashboard_page.s21', "المستند المرجعي")}</th>
+                    <th style={{ padding: '12px 16px', fontWeight: 600 }}>{t('inventory.quality_dashboard_page.s22', "الصنف")}</th>
+                    <th style={{ padding: '12px 16px', fontWeight: 600 }}>{t('inventory.quality_dashboard_page.s23', "معيار الفحص")}</th>
+                    <th style={{ padding: '12px 16px', fontWeight: 600, textAlign: 'center' }}>{t('inventory.quality_dashboard_page.s24', "الكمية المفحوصة")}</th>
+                    <th style={{ padding: '12px 16px', fontWeight: 600, textAlign: 'center' }}>{t('inventory.quality_dashboard_page.s25', "المقبول")}</th>
+                    <th style={{ padding: '12px 16px', fontWeight: 600, textAlign: 'center' }}>{t('inventory.quality_dashboard_page.s26', "المرفوض")}</th>
+                    <th style={{ padding: '12px 16px', fontWeight: 600 }}>{t('inventory.quality_dashboard_page.s27', "النتيجة والحالة")}</th>
+                    <th style={{ padding: '12px 16px', fontWeight: 600 }}>{t('inventory.quality_dashboard_page.s28', "التاريخ")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -259,7 +261,7 @@ export const QualityDashboardPage: FC = () => {
                         {insp.product_code && <div style={{ fontSize: '11px', color: '#64748b' }}>{insp.product_code}</div>}
                       </td>
                       <td style={{ padding: '12px 16px', color: '#475569' }}>
-                        {insp.point_name || 'فحص عام'}
+                        {insp.point_name || t('inventory.quality_dashboard_page.s29', "فحص عام")}
                       </td>
                       <td style={{ padding: '12px 16px', textAlign: 'center', fontWeight: 600 }}>
                         {insp.inspected_qty}
@@ -286,21 +288,21 @@ export const QualityDashboardPage: FC = () => {
           ncrs.length === 0 ? (
             <div style={{ padding: '50px 20px', textAlign: 'center', color: '#64748b' }}>
               <CheckCircleIcon size={40} style={{ color: '#16a34a', opacity: 0.5, marginBottom: '12px' }} />
-              <div style={{ fontWeight: 600, fontSize: '14px' }}>لا توجد تقارير عدم مطابقة مفتوحة</div>
-              <div style={{ fontSize: '12.5px', marginTop: '4px' }}>كافة الدفعات والمنتجات مطابقة للمعايير المعتمدة</div>
+              <div style={{ fontWeight: 600, fontSize: '14px' }}>{t('inventory.quality_dashboard_page.s30', "لا توجد تقارير عدم مطابقة مفتوحة")}</div>
+              <div style={{ fontSize: '12.5px', marginTop: '4px' }}>{t('inventory.quality_dashboard_page.s31', "كافة الدفعات والمنتجات مطابقة للمعايير المعتمدة")}</div>
             </div>
           ) : (
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
                 <thead>
                   <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', textAlign: 'right' }}>
-                    <th style={{ padding: '12px 16px', fontWeight: 600 }}>رقم الـ NCR</th>
-                    <th style={{ padding: '12px 16px', fontWeight: 600 }}>الصنف</th>
-                    <th style={{ padding: '12px 16px', fontWeight: 600 }}>الخطورة</th>
-                    <th style={{ padding: '12px 16px', fontWeight: 600 }}>وصف العيب</th>
-                    <th style={{ padding: '12px 16px', fontWeight: 600 }}>الإجراء المتخذ</th>
-                    <th style={{ padding: '12px 16px', fontWeight: 600 }}>الحالة</th>
-                    <th style={{ padding: '12px 16px', fontWeight: 600, textAlign: 'center' }}>الإجراءات</th>
+                    <th style={{ padding: '12px 16px', fontWeight: 600 }}>{t('inventory.quality_dashboard_page.s32', "رقم الـ NCR")}</th>
+                    <th style={{ padding: '12px 16px', fontWeight: 600 }}>{t('inventory.quality_dashboard_page.s33', "الصنف")}</th>
+                    <th style={{ padding: '12px 16px', fontWeight: 600 }}>{t('inventory.quality_dashboard_page.s34', "الخطورة")}</th>
+                    <th style={{ padding: '12px 16px', fontWeight: 600 }}>{t('inventory.quality_dashboard_page.s35', "وصف العيب")}</th>
+                    <th style={{ padding: '12px 16px', fontWeight: 600 }}>{t('inventory.quality_dashboard_page.s36', "الإجراء المتخذ")}</th>
+                    <th style={{ padding: '12px 16px', fontWeight: 600 }}>{t('inventory.quality_dashboard_page.s37', "الحالة")}</th>
+                    <th style={{ padding: '12px 16px', fontWeight: 600, textAlign: 'center' }}>{t('inventory.quality_dashboard_page.s38', "الإجراءات")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -319,7 +321,7 @@ export const QualityDashboardPage: FC = () => {
                         {ncr.defect_description}
                       </td>
                       <td style={{ padding: '12px 16px', color: '#170e5e', fontWeight: 600 }}>
-                        {ncr.disposition_action === 'quarantine_scrap' ? 'حجر وإتلاف' : ncr.disposition_action === 'return_to_vendor' ? 'إرجاع للمورد' : ncr.disposition_action === 'rework' ? 'إصلاح داخلي' : 'قبول مشروط'}
+                        {ncr.disposition_action === 'quarantine_scrap' ? t('inventory.quality_dashboard_page.s39', "حجر وإتلاف") : ncr.disposition_action === 'return_to_vendor' ? t('inventory.quality_dashboard_page.s40', "إرجاع للمورد") : ncr.disposition_action === 'rework' ? t('inventory.quality_dashboard_page.s41', "إصلاح داخلي") : t('inventory.quality_dashboard_page.s42', "قبول مشروط")}
                       </td>
                       <td style={{ padding: '12px 16px' }}>
                         {getStatusBadge(ncr.status)}
@@ -331,7 +333,7 @@ export const QualityDashboardPage: FC = () => {
                               onClick={() => handleUpdateNcrStatus(ncr.id, 'investigating')}
                               style={{ padding: '4px 8px', fontSize: '11.5px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', cursor: 'pointer' }}
                             >
-                              بدء التحقيق
+                              {t('inventory.quality_dashboard_page.s43', "بدء التحقيق")}
                             </button>
                           )}
                           {ncr.status !== 'closed' && (
@@ -339,7 +341,7 @@ export const QualityDashboardPage: FC = () => {
                               onClick={() => handleUpdateNcrStatus(ncr.id, 'closed')}
                               style={{ padding: '4px 8px', fontSize: '11.5px', borderRadius: '6px', border: '1px solid #86efac', background: '#f0fdf4', color: '#15803d', cursor: 'pointer' }}
                             >
-                              إغلاق ومعالجة
+                              {t('inventory.quality_dashboard_page.s44', "إغلاق ومعالجة")}
                             </button>
                           )}
                         </div>
@@ -353,20 +355,20 @@ export const QualityDashboardPage: FC = () => {
         ) : (
           points.length === 0 ? (
             <div style={{ padding: '50px 20px', textAlign: 'center', color: '#64748b' }}>
-              <div style={{ fontWeight: 600, fontSize: '14px' }}>لا توجد نقاط ومعايير جودة معرفة</div>
-              <div style={{ fontSize: '12.5px', marginTop: '4px' }}>اضغط على "معيار فحص جديد" لتعريف متطلبات الفحص وحدود التسامح</div>
+              <div style={{ fontWeight: 600, fontSize: '14px' }}>{t('inventory.quality_dashboard_page.s45', "لا توجد نقاط ومعايير جودة معرفة")}</div>
+              <div style={{ fontSize: '12.5px', marginTop: '4px' }}>{t('inventory.quality_dashboard_page.s46', "اضغط على \"معيار فحص جديد\" لتعريف متطلبات الفحص وحدود التسامح")}</div>
             </div>
           ) : (
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
                 <thead>
                   <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', textAlign: 'right' }}>
-                    <th style={{ padding: '12px 16px', fontWeight: 600 }}>اسم المعيار</th>
-                    <th style={{ padding: '12px 16px', fontWeight: 600 }}>المرحلة</th>
-                    <th style={{ padding: '12px 16px', fontWeight: 600 }}>نوع الاختبار</th>
-                    <th style={{ padding: '12px 16px', fontWeight: 600 }}>الصنف المحدد</th>
-                    <th style={{ padding: '12px 16px', fontWeight: 600 }}>حدود التسامح</th>
-                    <th style={{ padding: '12px 16px', fontWeight: 600 }}>إلزامي</th>
+                    <th style={{ padding: '12px 16px', fontWeight: 600 }}>{t('inventory.quality_dashboard_page.s47', "اسم المعيار")}</th>
+                    <th style={{ padding: '12px 16px', fontWeight: 600 }}>{t('inventory.quality_dashboard_page.s48', "المرحلة")}</th>
+                    <th style={{ padding: '12px 16px', fontWeight: 600 }}>{t('inventory.quality_dashboard_page.s49', "نوع الاختبار")}</th>
+                    <th style={{ padding: '12px 16px', fontWeight: 600 }}>{t('inventory.quality_dashboard_page.s50', "الصنف المحدد")}</th>
+                    <th style={{ padding: '12px 16px', fontWeight: 600 }}>{t('inventory.quality_dashboard_page.s51', "حدود التسامح")}</th>
+                    <th style={{ padding: '12px 16px', fontWeight: 600 }}>{t('inventory.quality_dashboard_page.s52', "إلزامي")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -376,22 +378,22 @@ export const QualityDashboardPage: FC = () => {
                         {p.name}
                       </td>
                       <td style={{ padding: '12px 16px', color: '#475569' }}>
-                        {p.trigger_stage === 'receipt' ? 'استلام مشتريات' : p.trigger_stage === 'manufacturing' ? 'إنتاج تصنيعي' : p.trigger_stage === 'delivery' ? 'تسليم مبيعات' : 'فحص داخلي'}
+                        {p.trigger_stage === 'receipt' ? t('inventory.quality_dashboard_page.s53', "استلام مشتريات") : p.trigger_stage === 'manufacturing' ? t('inventory.quality_dashboard_page.s54', "إنتاج تصنيعي") : p.trigger_stage === 'delivery' ? t('inventory.quality_dashboard_page.s55', "تسليم مبيعات") : t('inventory.quality_dashboard_page.s56', "فحص داخلي")}
                       </td>
                       <td style={{ padding: '12px 16px' }}>
-                        {p.test_type === 'pass_fail' ? 'مطابق / غير مطابق' : p.test_type === 'measure' ? 'قياس كمي' : 'قائمة متطلبات'}
+                        {p.test_type === 'pass_fail' ? t('inventory.quality_dashboard_page.s57', "مطابق / غير مطابق") : p.test_type === 'measure' ? t('inventory.quality_dashboard_page.s58', "قياس كمي") : t('inventory.quality_dashboard_page.s59', "قائمة متطلبات")}
                       </td>
                       <td style={{ padding: '12px 16px', color: '#334155' }}>
-                        {p.product_name || 'عام على كافة الأصناف'}
+                        {p.product_name || t('inventory.quality_dashboard_page.s60', "عام على كافة الأصناف")}
                       </td>
                       <td style={{ padding: '12px 16px', color: '#0f172a', fontWeight: 600 }}>
                         {p.test_type === 'measure' ? `[${p.norm_measure_min ?? '—'} إلى ${p.norm_measure_max ?? '—'}] ${p.measure_unit || ''}` : '—'}
                       </td>
                       <td style={{ padding: '12px 16px' }}>
                         {p.is_mandatory ? (
-                          <span style={{ color: '#dc2626', fontWeight: 600 }}>إلزامي</span>
+                          <span style={{ color: '#dc2626', fontWeight: 600 }}>{t('inventory.quality_dashboard_page.s61', "إلزامي")}</span>
                         ) : (
-                          <span style={{ color: '#64748b' }}>اختياري</span>
+                          <span style={{ color: '#64748b' }}>{t('inventory.quality_dashboard_page.s62', "اختياري")}</span>
                         )}
                       </td>
                     </tr>

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { TaxIntegrationSection } from '@/shared/components/TaxIntegrationSection';
@@ -19,6 +20,7 @@ import { DialogShell } from '@/shared/components/dialog-shell';
 import { XIcon, DownloadIcon, ShieldCheckIcon } from '@/shared/components/icons/AppIcons';
 
 export function TaxDispatcherPage() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<'zatca' | 'eta' | 'settings'>('zatca');
 
@@ -167,14 +169,14 @@ export function TaxDispatcherPage() {
             className="badge"
             style={{ background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe' }}
           >
-            ضريبية (B2B Clearance)
+            {t('sales.tax_dispatcher_page.s0', "ضريبية (B2B Clearance)")}
           </span>
         ) : (
           <span
             className="badge"
             style={{ background: '#f8fafc', color: '#475569', border: '1px solid #e2e8f0' }}
           >
-            مبسطة (B2C Reporting)
+            {t('sales.tax_dispatcher_page.s1', "مبسطة (B2C Reporting)")}
           </span>
         ),
     },
@@ -186,7 +188,7 @@ export function TaxDispatcherPage() {
         <div>
           <div style={{ fontWeight: 700 }}>{formatCurrency(inv.total)}</div>
           <small style={{ color: '#64748b', fontSize: '11px' }}>
-            الضريبة: {formatCurrency(inv.tax_amount)}
+            {t('sales.tax_dispatcher_page.s2', "الضريبة:")} {formatCurrency(inv.tax_amount)}
           </small>
         </div>
       ),
@@ -203,7 +205,7 @@ export function TaxDispatcherPage() {
               className="badge"
               style={{ background: '#ecfdf5', color: '#047857', border: '1px solid #a7f3d0' }}
             >
-              معتمدة (CLEARED)
+              {t('sales.tax_dispatcher_page.s3', "معتمدة (CLEARED)")}
             </span>
           );
         }
@@ -213,7 +215,7 @@ export function TaxDispatcherPage() {
               className="badge"
               style={{ background: '#ecfdf5', color: '#047857', border: '1px solid #a7f3d0' }}
             >
-              مُبلغة (REPORTED)
+              {t('sales.tax_dispatcher_page.s4', "مُبلغة (REPORTED)")}
             </span>
           );
         }
@@ -223,7 +225,7 @@ export function TaxDispatcherPage() {
               className="badge"
               style={{ background: '#fffbeb', color: '#b45309', border: '1px solid #fde68a' }}
             >
-              تحذير (WARNING)
+              {t('sales.tax_dispatcher_page.s5', "تحذير (WARNING)")}
             </span>
           );
         }
@@ -233,7 +235,7 @@ export function TaxDispatcherPage() {
               className="badge"
               style={{ background: '#fef2f2', color: '#b91c1c', border: '1px solid #fecaca' }}
             >
-              مرفوضة (REJECTED)
+              {t('sales.tax_dispatcher_page.s6', "مرفوضة (REJECTED)")}
             </span>
           );
         }
@@ -243,7 +245,7 @@ export function TaxDispatcherPage() {
               className="badge"
               style={{ background: '#fef2f2', color: '#b91c1c', border: '1px solid #fecaca' }}
             >
-              فشل الاتصال
+              {t('sales.tax_dispatcher_page.s7', "فشل الاتصال")}
             </span>
           );
         }
@@ -253,7 +255,7 @@ export function TaxDispatcherPage() {
               className="badge"
               style={{ background: '#f0f9ff', color: '#0369a1', border: '1px solid #bae6fd' }}
             >
-              تم التوليد (جاهزة)
+              {t('sales.tax_dispatcher_page.s8', "تم التوليد (جاهزة)")}
             </span>
           );
         }
@@ -262,7 +264,7 @@ export function TaxDispatcherPage() {
             className="badge"
             style={{ background: '#f1f5f9', color: '#64748b', border: '1px solid #cbd5e1' }}
           >
-            غير مرسلة
+            {t('sales.tax_dispatcher_page.s9', "غير مرسلة")}
           </span>
         );
       },
@@ -279,7 +281,7 @@ export function TaxDispatcherPage() {
             onClick={() => handleInspectZatca(inv.id, inv.doc_no)}
             style={{ height: '30px', fontSize: '11.5px', padding: '0 8px' }}
           >
-            فحص الحزمة
+            {t('sales.tax_dispatcher_page.s10', "فحص الحزمة")}
           </Button>
           <Button
             type="button"
@@ -287,7 +289,7 @@ export function TaxDispatcherPage() {
             onClick={() => handleSingleZatcaSubmit(inv.id)}
             style={{ height: '30px', fontSize: '11.5px', padding: '0 10px', background: '#170e5e' }}
           >
-            إرسال / تخليص
+            {t('sales.tax_dispatcher_page.s11', "إرسال / تخليص")}
           </Button>
         </div>
       ),
@@ -324,7 +326,7 @@ export function TaxDispatcherPage() {
       key: 'status',
       header: 'حالة الإرسال',
       className: 'text-center',
-      cell: () => <span className="badge badge-warning">معلقة (Pending)</span>,
+      cell: () => <span className="badge badge-warning">{t('sales.tax_dispatcher_page.s12', "معلقة (Pending)")}</span>,
     },
     {
       key: 'actions',
@@ -337,7 +339,7 @@ export function TaxDispatcherPage() {
           onClick={() => handleInspectZatca(inv.id, inv.doc_no)}
           style={{ height: '30px', fontSize: '11px', padding: '0 8px' }}
         >
-          فحص UBL
+          {t('sales.tax_dispatcher_page.s13', "فحص UBL")}
         </Button>
       ),
     },
@@ -347,8 +349,8 @@ export function TaxDispatcherPage() {
     <div className="page-stack page-shell" dir="rtl">
       <main className="document-prototype-column" style={{ paddingBottom: '100px', maxWidth: '1280px' }}>
         <PageHeader
-          title="لوحة الإرسال والربط الضريبي والفوترة الإلكترونية (ZATCA / ETA)"
-          description="الربط السحابي المباشر، الإبلاغ والتخليص اللحظي مع هيئة الزكاة والضريبة والجمارك السعودية ومصلحة الضرائب المصرية."
+          title={t('sales.tax_dispatcher_page.s14', "لوحة الإرسال والربط الضريبي والفوترة الإلكترونية (ZATCA / ETA)")}
+          description={t('sales.tax_dispatcher_page.s15', "الربط السحابي المباشر، الإبلاغ والتخليص اللحظي مع هيئة الزكاة والضريبة والجمارك السعودية ومصلحة الضرائب المصرية.")}
           actions={
             <div className="actions compact-actions">
               {activeTab === 'zatca' && (
@@ -359,7 +361,7 @@ export function TaxDispatcherPage() {
                 >
                   <ShieldCheckIcon size={15} style={{ marginLeft: '6px' }} />
                   {zatcaSubmitMutation.isPending
-                    ? 'جاري الاعتماد والإبلاغ...'
+                    ? t('sales.tax_dispatcher_page.s16', "جاري الاعتماد والإبلاغ...")
                     : `إرسال وإبلاغ هيئة الزكاة (${selectedZatcaIds.size})`}
                 </Button>
               )}
@@ -369,7 +371,7 @@ export function TaxDispatcherPage() {
                   onClick={handleSendEta}
                 >
                   {etaSubmitMutation.isPending
-                    ? 'جاري الإرسال...'
+                    ? t('sales.tax_dispatcher_page.s17', "جاري الإرسال...")
                     : `إرسال (${selectedEtaIds.size}) للضرائب (ETA)`}
                 </Button>
               )}
@@ -383,27 +385,27 @@ export function TaxDispatcherPage() {
             onClick={() => setActiveTab('zatca')}
             style={activeTab === 'zatca' ? { background: '#170e5e', color: '#ffffff' } : {}}
           >
-            المملكة العربية السعودية (ZATCA Phase 2)
+            {t('sales.tax_dispatcher_page.s18', "المملكة العربية السعودية (ZATCA Phase 2)")}
           </Button>
           <Button
             variant={activeTab === 'eta' ? 'primary' : 'secondary'}
             onClick={() => setActiveTab('eta')}
             style={activeTab === 'eta' ? { background: '#170e5e', color: '#ffffff' } : {}}
           >
-            جمهورية مصر العربية (ETA)
+            {t('sales.tax_dispatcher_page.s19', "جمهورية مصر العربية (ETA)")}
           </Button>
           <Button
             variant={activeTab === 'settings' ? 'primary' : 'secondary'}
             onClick={() => setActiveTab('settings')}
             style={activeTab === 'settings' ? { background: '#170e5e', color: '#ffffff' } : {}}
           >
-            إعدادات وحدات الربط وأجهزة EGS
+            {t('sales.tax_dispatcher_page.s20', "إعدادات وحدات الربط وأجهزة EGS")}
           </Button>
         </div>
 
         {activeTab === 'zatca' ? (
           <FormSection
-            title="فواتير المبيعات غير المعتمدة / بانتظار الإرسال لهيئة الزكاة السعودية"
+            title={t('sales.tax_dispatcher_page.s21', "فواتير المبيعات غير المعتمدة / بانتظار الإرسال لهيئة الزكاة السعودية")}
             className="workspace-panel p-0"
           >
             <QueryFeedback
@@ -415,15 +417,15 @@ export function TaxDispatcherPage() {
                 columns={zatcaColumns}
                 rows={zatcaInvoices}
                 rowKey={(inv) => inv.id}
-                rowTitle={() => 'تفاصيل الفاتورة'}
+                rowTitle={() => t('sales.tax_dispatcher_page.s22', "تفاصيل الفاتورة")}
                 selection={{
                   selectedKeys: Array.from(selectedZatcaIds),
                   onChange: (keys) => setSelectedZatcaIds(new Set(keys)),
                 }}
                 empty={
                   <EmptyState
-                    title="لا توجد فواتير معلقة لهيئة الزكاة"
-                    hint="جميع فواتيرك تم تشفيرها وإبلاغها أو تخليصها بنجاح مع هيئة الزكاة والضريبة والجمارك (ZATCA)."
+                    title={t('sales.tax_dispatcher_page.s23', "لا توجد فواتير معلقة لهيئة الزكاة")}
+                    hint={t('sales.tax_dispatcher_page.s24', "جميع فواتيرك تم تشفيرها وإبلاغها أو تخليصها بنجاح مع هيئة الزكاة والضريبة والجمارك (ZATCA).")}
                   />
                 }
               />
@@ -431,7 +433,7 @@ export function TaxDispatcherPage() {
           </FormSection>
         ) : activeTab === 'eta' ? (
           <FormSection
-            title="قائمة الفواتير غير المرسلة لمصلحة الضرائب المصرية"
+            title={t('sales.tax_dispatcher_page.s25', "قائمة الفواتير غير المرسلة لمصلحة الضرائب المصرية")}
             className="workspace-panel p-0"
           >
             <QueryFeedback
@@ -443,15 +445,15 @@ export function TaxDispatcherPage() {
                 columns={etaColumns}
                 rows={etaInvoices}
                 rowKey={(inv) => inv.id}
-                rowTitle={() => 'تفاصيل الفاتورة'}
+                rowTitle={() => t('sales.tax_dispatcher_page.s26', "تفاصيل الفاتورة")}
                 selection={{
                   selectedKeys: Array.from(selectedEtaIds),
                   onChange: (keys) => setSelectedEtaIds(new Set(keys)),
                 }}
                 empty={
                   <EmptyState
-                    title="لا توجد فواتير معلقة"
-                    hint="جميع فواتيرك تم إرسالها لمصلحة الضرائب المصرية بنجاح."
+                    title={t('sales.tax_dispatcher_page.s27', "لا توجد فواتير معلقة")}
+                    hint={t('sales.tax_dispatcher_page.s28', "جميع فواتيرك تم إرسالها لمصلحة الضرائب المصرية بنجاح.")}
                   />
                 }
               />
@@ -476,7 +478,7 @@ export function TaxDispatcherPage() {
           open={selectedZatcaModal.open}
           onClose={() => setSelectedZatcaModal({ open: false, loading: false })}
           width="min(850px, 95vw)"
-          ariaLabel="فحص حزمة الفاتورة ZATCA"
+          ariaLabel={t('sales.tax_dispatcher_page.s29', "فحص حزمة الفاتورة ZATCA")}
         >
           <div
             style={{
@@ -500,7 +502,7 @@ export function TaxDispatcherPage() {
               }}
             >
               <h3 style={{ margin: 0, fontSize: '16.5px', fontWeight: 800, color: '#170e5e' }}>
-                فحص حزمة الفاتورة التشفيرية (ZATCA Phase 2) - #{selectedZatcaModal.invoiceNo}
+                {t('sales.tax_dispatcher_page.s30', "فحص حزمة الفاتورة التشفيرية (ZATCA Phase 2) - #")}{selectedZatcaModal.invoiceNo}
               </h3>
               <button
                 type="button"
@@ -517,7 +519,7 @@ export function TaxDispatcherPage() {
                   justifyContent: 'center',
                   color: '#64748b',
                 }}
-                aria-label="إغلاق"
+                aria-label={t('sales.tax_dispatcher_page.s31', "إغلاق")}
               >
                 <XIcon size={16} />
               </button>
@@ -525,7 +527,7 @@ export function TaxDispatcherPage() {
 
             {selectedZatcaModal.loading ? (
               <div style={{ padding: '30px', textAlign: 'center', color: '#64748b' }}>
-                جاري تشفير وتوليد حزمة زاتكا (UBL 2.1 والختم الرقمي وسلاسل الـ PIH)...
+                {t('sales.tax_dispatcher_page.s32', "جاري تشفير وتوليد حزمة زاتكا (UBL 2.1 والختم الرقمي وسلاسل الـ PIH)...")}
               </div>
             ) : selectedZatcaModal.error ? (
               <div
@@ -549,7 +551,7 @@ export function TaxDispatcherPage() {
                   }}
                 >
                   <div style={{ fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
-                    بصمة الفاتورة الرقمية (Invoice SHA-256 Hash):
+                    {t('sales.tax_dispatcher_page.s33', "بصمة الفاتورة الرقمية (Invoice SHA-256 Hash):")}
                   </div>
                   <code style={{ fontSize: '11px', wordBreak: 'break-all', color: '#0284c7' }}>
                     {selectedZatcaModal.data.invoiceHash}
@@ -565,7 +567,7 @@ export function TaxDispatcherPage() {
                   }}
                 >
                   <div style={{ fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
-                    التوقيع الرقمي بجهاز الـ EGS (ECDSA Cryptographic Signature):
+                    {t('sales.tax_dispatcher_page.s34', "التوقيع الرقمي بجهاز الـ EGS (ECDSA Cryptographic Signature):")}
                   </div>
                   <code style={{ fontSize: '11px', wordBreak: 'break-all', color: '#16a34a' }}>
                     {selectedZatcaModal.data.digitalSignature}
@@ -581,7 +583,7 @@ export function TaxDispatcherPage() {
                   }}
                 >
                   <div style={{ fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
-                    رمز الاستجابة السريع المرحلة الثانية (Phase 2 TLV 8-Tags QR):
+                    {t('sales.tax_dispatcher_page.s35', "رمز الاستجابة السريع المرحلة الثانية (Phase 2 TLV 8-Tags QR):")}
                   </div>
                   <code style={{ fontSize: '11px', wordBreak: 'break-all', color: '#475569' }}>
                     {selectedZatcaModal.data.qrCodeBase64.substring(0, 100)}...
@@ -596,14 +598,14 @@ export function TaxDispatcherPage() {
                     style={{ background: '#170e5e', color: '#ffffff' }}
                   >
                     <DownloadIcon size={14} style={{ marginLeft: '6px' }} />
-                    تحميل ملف XML (UBL 2.1)
+                    {t('sales.tax_dispatcher_page.s36', "تحميل ملف XML (UBL 2.1)")}
                   </Button>
                   <Button
                     type="button"
                     variant="secondary"
                     onClick={() => setSelectedZatcaModal({ open: false, loading: false })}
                   >
-                    إغلاق
+                    {t('sales.tax_dispatcher_page.s37', "إغلاق")}
                   </Button>
                 </div>
               </div>

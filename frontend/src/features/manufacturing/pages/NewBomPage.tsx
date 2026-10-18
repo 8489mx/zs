@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/shared/ui/button';
@@ -18,6 +19,7 @@ import { BomLinesTable } from '@/features/manufacturing/components/boms/BomLines
 import { BomCostSummaryCard } from '@/features/manufacturing/components/boms/BomCostSummaryCard';
 
 export default function NewBomPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [productQuery, setProductQuery] = useState('');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -147,12 +149,12 @@ export default function NewBomPage() {
   return (
     <ManufacturingLayout
       breadcrumbs={[
-        { label: 'التصنيع', to: '/manufacturing/boms' },
-        { label: 'قوائم المكونات', to: '/manufacturing/boms' },
-        { label: 'تركيبة منتج جديدة' }
+        { label: t('manufacturing.new_bom_page.s0', "التصنيع"), to: '/manufacturing/boms' },
+        { label: t('manufacturing.new_bom_page.s1', "قوائم المكونات"), to: '/manufacturing/boms' },
+        { label: t('manufacturing.new_bom_page.s2', "تركيبة منتج جديدة") }
       ]}
-      title="إنشاء تركيبة منتج (BOM)"
-      statusBadge={<span className="document-prototype-status-badge is-draft">مسودة</span>}
+      title={t('manufacturing.new_bom_page.s3', "إنشاء تركيبة منتج (BOM)")}
+      statusBadge={<span className="document-prototype-status-badge is-draft">{t('manufacturing.new_bom_page.s4', "مسودة")}</span>}
       actions={
         <>
           <Button 
@@ -162,7 +164,7 @@ export default function NewBomPage() {
             style={{ color: 'var(--danger-color)', borderColor: 'rgba(239, 68, 68, 0.3)' }}
             onClick={() => navigate('/manufacturing/boms')}
           >
-            إلغاء
+            {t('manufacturing.new_bom_page.s5', "إلغاء")}
           </Button>
           <Button 
             variant="primary" 
@@ -171,14 +173,14 @@ export default function NewBomPage() {
             onClick={handleSave}
             disabled={isSaving}
           >
-            {isSaving ? 'جاري الحفظ...' : 'حفظ التركيبة'}
+            {isSaving ? t('manufacturing.new_bom_page.s6', "جاري الحفظ...") : t('manufacturing.new_bom_page.s7', "حفظ التركيبة")}
           </Button>
         </>
       }
     >
-      <FormSection title="المنتج التام (الناتج)">
+      <FormSection title={t('manufacturing.new_bom_page.s8', "المنتج التام (الناتج)")}>
         <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '16px', alignItems: 'end' }}>
-          <Field label="اختر المنتج">
+          <Field label={t('manufacturing.new_bom_page.s9', "اختر المنتج")}>
             <AsyncSearchableCombobox<Product>
               value={productQuery}
               onChange={setProductQuery}
@@ -196,10 +198,10 @@ export default function NewBomPage() {
                 setProductQuery(p.name);
               }}
               createLabel={(q) => `إضافة منتج جديد: "${q}"`}
-              placeholder="ابحث عن منتج أو اكتب اسماً جديداً..."
+              placeholder={t('manufacturing.new_bom_page.s10', "ابحث عن منتج أو اكتب اسماً جديداً...")}
             />
           </Field>
-          <Field label="كمية الإنتاج (الافتراضية)">
+          <Field label={t('manufacturing.new_bom_page.s11', "كمية الإنتاج (الافتراضية)")}>
             <input
               type="number"
               min="1"
@@ -208,7 +210,7 @@ export default function NewBomPage() {
               onChange={(e) => setQuantity(Number(e.target.value))}
             />
           </Field>
-          <Field label="تكلفة التشغيل (الإجمالية للكمية)">
+          <Field label={t('manufacturing.new_bom_page.s12', "تكلفة التشغيل (الإجمالية للكمية)")}>
             <input
               type="number"
               min="0"

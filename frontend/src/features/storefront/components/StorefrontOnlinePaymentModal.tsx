@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { getCurrencySymbol, getGlobalSystemCurrency, isThreeDecimalCurrency, isKuwait, isSaudi } from '@/lib/currencies';
 import { useState } from 'react';
 import { CreateOnlineOrderResponse, StorefrontPaymentSessionResponse } from '../types/storefront.types';
@@ -21,6 +22,7 @@ export function StorefrontOnlinePaymentModal({
   onSuccess,
   onClose,
 }: StorefrontOnlinePaymentModalProps) {
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [cardNumber, setCardNumber] = useState('4111 2222 3333 4242');
@@ -148,7 +150,7 @@ export function StorefrontOnlinePaymentModal({
                 {isLiveIframe ? `بوابة الدفع الآمنة (${providerLabel})` : `بوابة الدفع الإلكتروني (${providerLabel} - تجريبي)`}
               </div>
               <div style={{ fontSize: '11px', opacity: 0.85 }}>
-                طلب رقم: #{session.orderNumber} • الإجمالي: {formattedTotal} {currencyLabel}
+                {t('storefront.storefront_online_payment_modal.s0', "طلب رقم: #")}{session.orderNumber} {t('storefront.storefront_online_payment_modal.s1', "• الإجمالي:")} {formattedTotal} {currencyLabel}
               </div>
             </div>
           </div>
@@ -229,10 +231,10 @@ export function StorefrontOnlinePaymentModal({
                   }}
                 >
                   {loading ? (
-                    'جاري التحقق...'
+                    t('storefront.storefront_online_payment_modal.s2', "جاري التحقق...")
                   ) : (
                     <>
-                      <span>تأكيد إتمام السداد الآن</span>
+                      <span>{t('storefront.storefront_online_payment_modal.s3', "تأكيد إتمام السداد الآن")}</span>
                       <CheckIcon size={16} />
                     </>
                   )}
@@ -252,7 +254,7 @@ export function StorefrontOnlinePaymentModal({
                     whiteSpace: 'nowrap',
                   }}
                 >
-                  فتح بنافذة مستقلة ↗
+                  {t('storefront.storefront_online_payment_modal.s4', "فتح بنافذة مستقلة ↗")}
                 </button>
               </div>
             </div>
@@ -274,12 +276,12 @@ export function StorefrontOnlinePaymentModal({
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '22px' }}>
                   <span style={{ fontSize: '13px', fontWeight: 800, letterSpacing: '1px', opacity: 0.9 }}>
                     {session.provider === 'tap'
-                      ? 'TAP GCC • تجريبي'
+                      ? t('storefront.storefront_online_payment_modal.s5', "TAP GCC • تجريبي")
                       : session.provider === 'stripe'
-                      ? 'STRIPE • تجريبي'
+                      ? t('storefront.storefront_online_payment_modal.s6', "STRIPE • تجريبي")
                       : session.provider === 'xpay'
-                      ? 'XPAY • تجريبي'
-                      : 'BANK CARD • تجريبي'}
+                      ? t('storefront.storefront_online_payment_modal.s7', "XPAY • تجريبي")
+                      : t('storefront.storefront_online_payment_modal.s8', "BANK CARD • تجريبي")}
                   </span>
                   <span style={{ fontSize: '14px', fontWeight: 900, fontStyle: 'italic', letterSpacing: '1px' }}>
                     {session.provider === 'tap' ? 'MADA / KNET / APPLE' : session.provider === 'stripe' ? 'VISA / MC / APPLE' : 'VISA'}
@@ -322,7 +324,7 @@ export function StorefrontOnlinePaymentModal({
                       type="button"
                       onClick={() => {
                         setCardNumber('4588 5233 4411 9660');
-                        setCardHolder('حامل بطاقة مدى');
+                        setCardHolder(t('storefront.storefront_online_payment_modal.s9', "حامل بطاقة مدى"));
                         setCardExpiry('08/29');
                       }}
                       style={{
@@ -336,7 +338,7 @@ export function StorefrontOnlinePaymentModal({
                         cursor: 'pointer',
                       }}
                     >
-                      مدى (Mada)
+                      {t('storefront.storefront_online_payment_modal.s10', "مدى (Mada)")}
                     </button>
                   )}
                   {isKwd && (
@@ -344,7 +346,7 @@ export function StorefrontOnlinePaymentModal({
                       type="button"
                       onClick={() => {
                         setCardNumber('5210 8822 7733 9650');
-                        setCardHolder('عميل كي نت الكويت');
+                        setCardHolder(t('storefront.storefront_online_payment_modal.s11', "عميل كي نت الكويت"));
                         setCardExpiry('11/28');
                       }}
                       style={{
@@ -358,7 +360,7 @@ export function StorefrontOnlinePaymentModal({
                         cursor: 'pointer',
                       }}
                     >
-                      كي نت (KNET)
+                      {t('storefront.storefront_online_payment_modal.s12', "كي نت (KNET)")}
                     </button>
                   )}
                   <button
@@ -408,7 +410,7 @@ export function StorefrontOnlinePaymentModal({
                     }}
                   >
                     <CreditCardIcon size={14} />
-                    <span>بطاقة سترايب تجريبية (4242)</span>
+                    <span>{t('storefront.storefront_online_payment_modal.s13', "بطاقة سترايب تجريبية (4242)")}</span>
                   </button>
                 </div>
               )}
@@ -425,14 +427,14 @@ export function StorefrontOnlinePaymentModal({
                   lineHeight: '1.4',
                 }}
               >
-                <strong>محاكي السداد الإلكتروني:</strong> يمكنك الضغط فوراً على زر الدفع التجريبي لاختبار تأكيد الطلب وتحديث حالة الفاتورة تلقائياً.
+                <strong>{t('storefront.storefront_online_payment_modal.s14', "محاكي السداد الإلكتروني:")}</strong> {t('storefront.storefront_online_payment_modal.s15', "يمكنك الضغط فوراً على زر الدفع التجريبي لاختبار تأكيد الطلب وتحديث حالة الفاتورة تلقائياً.")}
               </div>
 
               {/* Card Inputs */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                    رقم البطاقة (Card Number)
+                    {t('storefront.storefront_online_payment_modal.s16', "رقم البطاقة (Card Number)")}
                   </label>
                   <input
                     type="text"
@@ -454,7 +456,7 @@ export function StorefrontOnlinePaymentModal({
                 <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '10px' }}>
                   <div>
                     <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                      الاسم على البطاقة
+                      {t('storefront.storefront_online_payment_modal.s17', "الاسم على البطاقة")}
                     </label>
                     <input
                       type="text"
@@ -474,7 +476,7 @@ export function StorefrontOnlinePaymentModal({
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
                     <div>
                       <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                        الانتهاء
+                        {t('storefront.storefront_online_payment_modal.s18', "الانتهاء")}
                       </label>
                       <input
                         type="text"
@@ -539,10 +541,10 @@ export function StorefrontOnlinePaymentModal({
                 }}
               >
                 {loading ? (
-                  'جاري معالجة الدفع...'
+                  t('storefront.storefront_online_payment_modal.s19', "جاري معالجة الدفع...")
                 ) : (
                   <>
-                    <span>دفع فوري تجريبي ({formattedTotal} {currencyLabel})</span>
+                    <span>{t('storefront.storefront_online_payment_modal.s20', "دفع فوري تجريبي (")}{formattedTotal} {currencyLabel})</span>
                     <CheckIcon size={16} />
                   </>
                 )}

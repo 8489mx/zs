@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, memo } from 'react';
 import { Link } from 'react-router-dom';
 import type { UseFormReturn } from 'react-hook-form';
@@ -305,6 +306,7 @@ const premiumCheckboxInputStyle = {
 };
 
 export const ModulesSettingsTab = memo(function ModulesSettingsTab({ form, disabled, activeTab }: ModulesTabProps) {
+  const { t } = useTranslation();
   const user = useAuthStore((s) => s.user);
   const tenant = useAuthStore((s) => s.tenant);
   const isSuperAdmin = isPlatformAdmin(user) || (user?.role === 'super_admin' && String(user?.username || '').trim().toLowerCase() === 'zs');
@@ -441,11 +443,11 @@ export const ModulesSettingsTab = memo(function ModulesSettingsTab({ form, disab
               <ContractingBuildingIcon size={20} />
             </span>
             <span>
-              <strong>باقة المقاولات الشاملة (All-Inclusive Suite):</strong> تم تفعيل كافة الموديولات التشغيلية للمقاولات تلقائياً (المشاريع والمقايسات، مشتريات ومقاولو الباطن، مستودعات المواقع، مراكز التكلفة والمحاسبة، والموارد البشرية) بكامل صلاحيات المنظومة دون قيود باقات.
+              <strong>{t('settings.forms.tabs.modules_settings_tab.s0', "باقة المقاولات الشاملة (All-Inclusive Suite):")}</strong> {t('settings.forms.tabs.modules_settings_tab.s1', "تم تفعيل كافة الموديولات التشغيلية للمقاولات تلقائياً (المشاريع والمقايسات، مشتريات ومقاولو الباطن، مستودعات المواقع، مراكز التكلفة والمحاسبة، والموارد البشرية) بكامل صلاحيات المنظومة دون قيود باقات.")}
             </span>
           </div>
           <span style={{ fontSize: '0.72rem', background: '#dcfce7', color: '#15803d', padding: '3px 10px', borderRadius: '6px', fontWeight: 800, border: '1px solid #86efac', flexShrink: 0 }}>
-            باقة متكاملة شاملة
+            {t('settings.forms.tabs.modules_settings_tab.s2', "باقة متكاملة شاملة")}
           </span>
         </div>
       )}
@@ -469,11 +471,11 @@ export const ModulesSettingsTab = memo(function ModulesSettingsTab({ form, disab
               <CargoShipIcon size={20} />
             </span>
             <span>
-              <strong>باقة الشحن واللوجستيات الشاملة (All-Inclusive Suite):</strong> تم تفعيل كافة الموديولات التشغيلية للشحن تلقائياً (أوامر تشغيل الشحنات، تتبع الحاويات، الخطوط الملاحية والموردين، عروض الأسعار والعملاء، محاسبة الشحن، والموارد البشرية) بكامل صلاحيات المنظومة دون قيود باقات.
+              <strong>{t('settings.forms.tabs.modules_settings_tab.s3', "باقة الشحن واللوجستيات الشاملة (All-Inclusive Suite):")}</strong> {t('settings.forms.tabs.modules_settings_tab.s4', "تم تفعيل كافة الموديولات التشغيلية للشحن تلقائياً (أوامر تشغيل الشحنات، تتبع الحاويات، الخطوط الملاحية والموردين، عروض الأسعار والعملاء، محاسبة الشحن، والموارد البشرية) بكامل صلاحيات المنظومة دون قيود باقات.")}
             </span>
           </div>
           <span style={{ fontSize: '0.72rem', background: '#dcfce7', color: '#15803d', padding: '3px 10px', borderRadius: '6px', fontWeight: 800, border: '1px solid #86efac', flexShrink: 0 }}>
-            باقة متكاملة شاملة
+            {t('settings.forms.tabs.modules_settings_tab.s5', "باقة متكاملة شاملة")}
           </span>
         </div>
       )}
@@ -497,11 +499,11 @@ export const ModulesSettingsTab = memo(function ModulesSettingsTab({ form, disab
               <FactoryIcon size={20} />
             </span>
             <span>
-              <strong>باقة التصنيع والإنتاج الصناعي الشاملة (All-Inclusive Suite):</strong> تم تفعيل كافة الموديولات التشغيلية للمصانع تلقائياً (أوامر الإنتاج، قوائم المكونات BOM، مشتريات المواد الخام والتوريد، مستودعات المواد والمنتج التام، مراكز التكلفة والمحاسبة، CRM، والموارد البشرية) بكامل صلاحيات المنظومة دون قيود باقات.
+              <strong>{t('settings.forms.tabs.modules_settings_tab.s6', "باقة التصنيع والإنتاج الصناعي الشاملة (All-Inclusive Suite):")}</strong> {t('settings.forms.tabs.modules_settings_tab.s7', "تم تفعيل كافة الموديولات التشغيلية للمصانع تلقائياً (أوامر الإنتاج، قوائم المكونات BOM، مشتريات المواد الخام والتوريد، مستودعات المواد والمنتج التام، مراكز التكلفة والمحاسبة، CRM، والموارد البشرية) بكامل صلاحيات المنظومة دون قيود باقات.")}
             </span>
           </div>
           <span style={{ fontSize: '0.72rem', background: '#dcfce7', color: '#15803d', padding: '3px 10px', borderRadius: '6px', fontWeight: 800, border: '1px solid #86efac', flexShrink: 0 }}>
-            باقة متكاملة شاملة
+            {t('settings.forms.tabs.modules_settings_tab.s8', "باقة متكاملة شاملة")}
           </span>
         </div>
       )}
@@ -522,10 +524,10 @@ export const ModulesSettingsTab = memo(function ModulesSettingsTab({ form, disab
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px', flexWrap: 'wrap', gap: '8px' }}>
             <div>
               <strong style={{ fontSize: '0.95rem', color: '#0f172a', fontWeight: 800, display: 'block' }}>
-                نمط تشغيل المنشأة ونطاق العمل (Operation Mode)
+                {t('settings.forms.tabs.modules_settings_tab.s9', "نمط تشغيل المنشأة ونطاق العمل (Operation Mode)")}
               </strong>
               <span style={{ fontSize: '0.78rem', color: '#64748b' }}>
-                اختر النمط المناسب لحجم نشاطك لضبط القوائم والواجهات؛ يتم تدوين القيود المحاسبية في الخلفية تلقائياً في كلا النمطين.
+                {t('settings.forms.tabs.modules_settings_tab.s10', "اختر النمط المناسب لحجم نشاطك لضبط القوائم والواجهات؛ يتم تدوين القيود المحاسبية في الخلفية تلقائياً في كلا النمطين.")}
               </span>
             </div>
             <span style={{
@@ -537,7 +539,7 @@ export const ModulesSettingsTab = memo(function ModulesSettingsTab({ form, disab
               padding: '3px 10px',
               borderRadius: '6px',
             }}>
-              {form.watch('enableEnterpriseFeatures') ? 'النمط المؤسسي المتقدم' : 'النمط التجاري المبسط'}
+              {form.watch('enableEnterpriseFeatures') ? t('settings.forms.tabs.modules_settings_tab.s11', "النمط المؤسسي المتقدم") : t('settings.forms.tabs.modules_settings_tab.s12', "النمط التجاري المبسط")}
             </span>
           </div>
 
@@ -573,15 +575,15 @@ export const ModulesSettingsTab = memo(function ModulesSettingsTab({ form, disab
                     flexShrink: 0,
                   }} />
                   <strong style={{ fontSize: '0.9rem', color: '#0f172a', fontWeight: 800 }}>
-                    محل تجاري ونقاط بيع مبسطة (Simple Retail)
+                    {t('settings.forms.tabs.modules_settings_tab.s13', "محل تجاري ونقاط بيع مبسطة (Simple Retail)")}
                   </strong>
                 </div>
                 <span style={{ fontSize: '0.7rem', background: '#dcfce7', color: '#15803d', padding: '2px 8px', borderRadius: '4px', fontWeight: 700 }}>
-                  موصى به للمحلات
+                  {t('settings.forms.tabs.modules_settings_tab.s14', "موصى به للمحلات")}
                 </span>
               </div>
               <p style={{ fontSize: '0.78rem', color: '#64748b', margin: 0, lineHeight: 1.5 }}>
-                واجهة رشيقة وسريعة للكاشير ونقاط البيع والفواتير المباشرة والمخزون، مع الخزينة والمصروفات اليومية. تخفي الشيكات والبنوك وقيود اليومية وأوامر الشراء والأرفف لمنع التشتيت وسرعة الإنجاز.
+                {t('settings.forms.tabs.modules_settings_tab.s15', "واجهة رشيقة وسريعة للكاشير ونقاط البيع والفواتير المباشرة والمخزون، مع الخزينة والمصروفات اليومية. تخفي الشيكات والبنوك وقيود اليومية وأوامر الشراء والأرفف لمنع التشتيت وسرعة الإنجاز.")}
               </p>
             </div>
 
@@ -616,15 +618,15 @@ export const ModulesSettingsTab = memo(function ModulesSettingsTab({ form, disab
                     flexShrink: 0,
                   }} />
                   <strong style={{ fontSize: '0.9rem', color: '#0f172a', fontWeight: 800 }}>
-                    مؤسسة تجارية متقدمة (Enterprise Trading)
+                    {t('settings.forms.tabs.modules_settings_tab.s16', "مؤسسة تجارية متقدمة (Enterprise Trading)")}
                   </strong>
                 </div>
                 <span style={{ fontSize: '0.7rem', background: '#eff6ff', color: '#1d4ed8', padding: '2px 8px', borderRadius: '4px', fontWeight: 700 }}>
-                  محاسبة متقدمة
+                  {t('settings.forms.tabs.modules_settings_tab.s17', "محاسبة متقدمة")}
                 </span>
               </div>
               <p style={{ fontSize: '0.78rem', color: '#64748b', margin: 0, lineHeight: 1.5 }}>
-                تفعيل الدورة المستندية الكاملة: أوامر الشراء والبيع، عروض الأسعار (RFQ)، شجرة المخازن والأرفف، المحاسبة العامة، شجرة الحسابات، قيود اليومية، حافظة الشيكات (PDC)، والتسويات البنكية ومراكز التكلفة.
+                {t('settings.forms.tabs.modules_settings_tab.s18', "تفعيل الدورة المستندية الكاملة: أوامر الشراء والبيع، عروض الأسعار (RFQ)، شجرة المخازن والأرفف، المحاسبة العامة، شجرة الحسابات، قيود اليومية، حافظة الشيكات (PDC)، والتسويات البنكية ومراكز التكلفة.")}
               </p>
             </div>
           </div>
@@ -647,10 +649,10 @@ export const ModulesSettingsTab = memo(function ModulesSettingsTab({ form, disab
       }}>
         <div>
           <strong style={{ fontSize: '0.92rem', color: '#0f172a', display: 'block', marginBottom: '3px', fontWeight: 800 }}>
-            متجر التطبيقات والموديولات (Apps Store)
+            {t('settings.forms.tabs.modules_settings_tab.s19', "متجر التطبيقات والموديولات (Apps Store)")}
           </strong>
           <span style={{ fontSize: '0.8rem', color: '#64748b', lineHeight: 1.5 }}>
-            الواجهة المعتمدة لاستعراض موديولات وتطبيقات النظام وتفاصيلها التشغيلية وفق باقة الاشتراك المعتمدة ونشاط المنشأة.
+            {t('settings.forms.tabs.modules_settings_tab.s20', "الواجهة المعتمدة لاستعراض موديولات وتطبيقات النظام وتفاصيلها التشغيلية وفق باقة الاشتراك المعتمدة ونشاط المنشأة.")}
           </span>
         </div>
         <Link
@@ -668,7 +670,7 @@ export const ModulesSettingsTab = memo(function ModulesSettingsTab({ form, disab
             gap: '8px',
           }}
         >
-          فتح متجر التطبيقات
+          {t('settings.forms.tabs.modules_settings_tab.s21', "فتح متجر التطبيقات")}
         </Link>
       </div>
 
@@ -695,7 +697,7 @@ export const ModulesSettingsTab = memo(function ModulesSettingsTab({ form, disab
             }}
           >
             <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span>خيارات التفعيل اليدوي المتقدمة للموديولات (خاص بالسوبر أدمن فقط)</span>
+              <span>{t('settings.forms.tabs.modules_settings_tab.s22', "خيارات التفعيل اليدوي المتقدمة للموديولات (خاص بالسوبر أدمن فقط)")}</span>
             </span>
             <span style={{ transform: showManualSwitches ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s ease', display: 'flex' }}>
               <ChevronDownIcon size={18} />
@@ -703,7 +705,7 @@ export const ModulesSettingsTab = memo(function ModulesSettingsTab({ form, disab
           </button>
 
         <div style={{ display: showManualSwitches ? 'block' : 'none', marginTop: '14px' }}>
-          <FormSection title="خيارات التفعيل اليدوي للموديولات" description={<>شغّل الأجزاء التي تحتاجها لنشاطك يدوياً إذا رغبت، وسيتم ضبط وتحديث القوائم والشاشات تلقائياً.</>}>
+          <FormSection title={t('settings.forms.tabs.modules_settings_tab.s23', "خيارات التفعيل اليدوي للموديولات")} description={<>{t('settings.forms.tabs.modules_settings_tab.s24', "شغّل الأجزاء التي تحتاجها لنشاطك يدوياً إذا رغبت، وسيتم ضبط وتحديث القوائم والشاشات تلقائياً.")}</>}>
         <div className="document-prototype-grid compact-grid-2" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(420px, 1fr))', gap: '14px' }}>
           
           {/* نقاط البيع السريعة والكاشير */}
@@ -715,18 +717,18 @@ export const ModulesSettingsTab = memo(function ModulesSettingsTab({ form, disab
                 </div>
                 <div style={premiumCardTextStyle}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>نقاط البيع السريعة والكاشير (POS)</strong>
+                    <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>{t('settings.forms.tabs.modules_settings_tab.s25', "نقاط البيع السريعة والكاشير (POS)")}</strong>
                     {isContractingVertical ? (
                       <span style={{ fontSize: '0.7rem', background: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1', padding: '1px 6px', borderRadius: '4px', fontWeight: 600 }}>
-                        معطل تلقائياً (غير مخصص للمقاولات)
+                        {t('settings.forms.tabs.modules_settings_tab.s26', "معطل تلقائياً (غير مخصص للمقاولات)")}
                       </span>
                     ) : isMaritimeVertical ? (
                       <span style={{ fontSize: '0.7rem', background: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1', padding: '1px 6px', borderRadius: '4px', fontWeight: 600 }}>
-                        معطل تلقائياً (غير مخصص للشحن)
+                        {t('settings.forms.tabs.modules_settings_tab.s27', "معطل تلقائياً (غير مخصص للشحن)")}
                       </span>
                     ) : null}
                   </div>
-                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>شاشات البيع السريع بالباركود والورديات (يمكن إيقافها لشركات الجملة والخدمات والمشاريع)</small>
+                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>{t('settings.forms.tabs.modules_settings_tab.s28', "شاشات البيع السريع بالباركود والورديات (يمكن إيقافها لشركات الجملة والخدمات والمشاريع)")}</small>
                 </div>
               </div>
               <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('posModuleEnabled')} checked={Boolean(isPosActive)} disabled={disabled || isContractingVertical || isMaritimeVertical} />
@@ -742,9 +744,9 @@ export const ModulesSettingsTab = memo(function ModulesSettingsTab({ form, disab
                 if (!hasInventoryFeature) {
                   e.preventDefault();
                   handleLockedCardClick(
-                    'المخازن والمستودعات المتقدمة',
-                    'باقة النمو (الاحترافية)',
-                    'يتيح لك هذا الموديول إدارة المستودعات المتعددة، التحويلات المخزنية، أذون الإضافة والصرف، ومحاضر الجرد الدوري.'
+                    t('settings.forms.tabs.modules_settings_tab.s29', "المخازن والمستودعات المتقدمة"),
+                    t('settings.forms.tabs.modules_settings_tab.s30', "باقة النمو (الاحترافية)"),
+                    t('settings.forms.tabs.modules_settings_tab.s31', "يتيح لك هذا الموديول إدارة المستودعات المتعددة، التحويلات المخزنية، أذون الإضافة والصرف، ومحاضر الجرد الدوري.")
                   );
                 }
               }}
@@ -755,22 +757,22 @@ export const ModulesSettingsTab = memo(function ModulesSettingsTab({ form, disab
                 </div>
                 <div style={premiumCardTextStyle}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>المخازن والمستودعات المتقدمة</strong>
+                    <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>{t('settings.forms.tabs.modules_settings_tab.s32', "المخازن والمستودعات المتقدمة")}</strong>
                     {isContractingVertical ? (
                       <span style={{ fontSize: '0.7rem', background: '#f0fdf4', color: '#166534', border: '1px solid #bbf7d0', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
-                        مفعل تلقائياً لمستودعات ومخازن المواقع
+                        {t('settings.forms.tabs.modules_settings_tab.s33', "مفعل تلقائياً لمستودعات ومخازن المواقع")}
                       </span>
                     ) : isMaritimeVertical ? (
                       <span style={{ fontSize: '0.7rem', background: '#f8fafc', color: '#64748b', border: '1px solid #e2e8f0', padding: '1px 6px', borderRadius: '4px', fontWeight: 600 }}>
-                        غير مخصص للشحن (يعتمد على الحاويات)
+                        {t('settings.forms.tabs.modules_settings_tab.s34', "غير مخصص للشحن (يعتمد على الحاويات)")}
                       </span>
                     ) : !hasInventoryFeature ? (
                       <span style={{ fontSize: '0.7rem', background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', padding: '1px 6px', borderRadius: '4px', fontWeight: 700, display: 'inline-flex', alignItems: 'center' }}>
-                        <LockIcon size={11} /> باقة النمو
+                        <LockIcon size={11} /> {t('settings.forms.tabs.modules_settings_tab.s35', "باقة النمو")}
                       </span>
                     ) : null}
                   </div>
-                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>التحويلات بين المخازن، أذون الصرف، والجرد (يمكن إيقافه للأنشطة الخدمية)</small>
+                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>{t('settings.forms.tabs.modules_settings_tab.s36', "التحويلات بين المخازن، أذون الصرف، والجرد (يمكن إيقافه للأنشطة الخدمية)")}</small>
                 </div>
               </div>
               <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('inventoryModuleEnabled')} checked={Boolean(isInventoryActive)} disabled={disabled || isContractingVertical || isMaritimeVertical || !hasInventoryFeature} />
@@ -785,9 +787,9 @@ export const ModulesSettingsTab = memo(function ModulesSettingsTab({ form, disab
               if (!hasPurchasesFeature) {
                 e.preventDefault();
                 handleLockedCardClick(
-                  'المشتريات وإدارة الموردين',
-                  'باقة النمو (الاحترافية)',
-                  'يتيح لك هذا الموديول إصدار أوامر وفواتير الشراء، إدارة حسابات ومستحقات الموردين، ومتابعة سندات الصرف.'
+                  t('settings.forms.tabs.modules_settings_tab.s37', "المشتريات وإدارة الموردين"),
+                  t('settings.forms.tabs.modules_settings_tab.s38', "باقة النمو (الاحترافية)"),
+                  t('settings.forms.tabs.modules_settings_tab.s39', "يتيح لك هذا الموديول إصدار أوامر وفواتير الشراء، إدارة حسابات ومستحقات الموردين، ومتابعة سندات الصرف.")
                 );
               }
             }}
@@ -798,22 +800,22 @@ export const ModulesSettingsTab = memo(function ModulesSettingsTab({ form, disab
               </div>
               <div style={premiumCardTextStyle}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>المشتريات وإدارة الموردين</strong>
+                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>{t('settings.forms.tabs.modules_settings_tab.s40', "المشتريات وإدارة الموردين")}</strong>
                   {isContractingVertical ? (
                     <span style={{ fontSize: '0.7rem', background: '#f0fdf4', color: '#166534', border: '1px solid #bbf7d0', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
-                      مفعل تلقائياً لمشتريات ومقاولي الباطن
+                      {t('settings.forms.tabs.modules_settings_tab.s41', "مفعل تلقائياً لمشتريات ومقاولي الباطن")}
                     </span>
                   ) : isMaritimeVertical ? (
                     <span style={{ fontSize: '0.7rem', background: '#f0fdf4', color: '#166534', border: '1px solid #bbf7d0', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
-                      مفعل تلقائياً للخطوط الملاحية ومصاريف الشحن
+                      {t('settings.forms.tabs.modules_settings_tab.s42', "مفعل تلقائياً للخطوط الملاحية ومصاريف الشحن")}
                     </span>
                   ) : !hasPurchasesFeature ? (
                     <span style={{ fontSize: '0.7rem', background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', padding: '1px 6px', borderRadius: '4px', fontWeight: 700, display: 'inline-flex', alignItems: 'center' }}>
-                      <LockIcon size={11} /> باقة النمو
+                      <LockIcon size={11} /> {t('settings.forms.tabs.modules_settings_tab.s43', "باقة النمو")}
                     </span>
                   ) : null}
                 </div>
-                <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>فواتير الشراء، مرتجعات المشتريات، وحسابات الموردين وسندات الصرف</small>
+                <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>{t('settings.forms.tabs.modules_settings_tab.s44', "فواتير الشراء، مرتجعات المشتريات، وحسابات الموردين وسندات الصرف")}</small>
               </div>
             </div>
             <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('purchasesModuleEnabled')} checked={Boolean(isPurchasesActive)} disabled={disabled || isContractingVertical || isMaritimeVertical || !hasPurchasesFeature} />
@@ -827,9 +829,9 @@ export const ModulesSettingsTab = memo(function ModulesSettingsTab({ form, disab
               if (!hasHrFeature) {
                 e.preventDefault();
                 handleLockedCardClick(
-                  'الموارد البشرية والرواتب (HR)',
-                  'الباقة المتكاملة (Ultimate ERP)',
-                  'يتيح لك هذا الموديول إدارة شؤون الموظفين، مسير الرواتب الآلي، تسجيل الحضور والانصراف، السلف، ونهاية الخدمة.'
+                  t('settings.forms.tabs.modules_settings_tab.s45', "الموارد البشرية والرواتب (HR)"),
+                  t('settings.forms.tabs.modules_settings_tab.s46', "الباقة المتكاملة (Ultimate ERP)"),
+                  t('settings.forms.tabs.modules_settings_tab.s47', "يتيح لك هذا الموديول إدارة شؤون الموظفين، مسير الرواتب الآلي، تسجيل الحضور والانصراف، السلف، ونهاية الخدمة.")
                 );
               }
             }}
@@ -840,22 +842,22 @@ export const ModulesSettingsTab = memo(function ModulesSettingsTab({ form, disab
               </div>
               <div style={premiumCardTextStyle}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>الموارد البشرية والرواتب (HR)</strong>
+                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>{t('settings.forms.tabs.modules_settings_tab.s48', "الموارد البشرية والرواتب (HR)")}</strong>
                   {isContractingVertical ? (
                     <span style={{ fontSize: '0.7rem', background: '#f0fdf4', color: '#166534', border: '1px solid #bbf7d0', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
-                      مفعل تلقائياً لعمالة ومهندسي المشاريع
+                      {t('settings.forms.tabs.modules_settings_tab.s49', "مفعل تلقائياً لعمالة ومهندسي المشاريع")}
                     </span>
                   ) : isMaritimeVertical ? (
                     <span style={{ fontSize: '0.7rem', background: '#f0fdf4', color: '#166534', border: '1px solid #bbf7d0', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
-                      مفعل تلقائياً لموظفي وعمليات الشحن
+                      {t('settings.forms.tabs.modules_settings_tab.s50', "مفعل تلقائياً لموظفي وعمليات الشحن")}
                     </span>
                   ) : !hasHrFeature ? (
                     <span style={{ fontSize: '0.7rem', background: '#f5f3ff', color: '#6d28d9', border: '1px solid #ddd6fe', padding: '1px 6px', borderRadius: '4px', fontWeight: 700, display: 'inline-flex', alignItems: 'center' }}>
-                      <LockIcon size={11} /> الباقة المتكاملة
+                      <LockIcon size={11} /> {t('settings.forms.tabs.modules_settings_tab.s51', "الباقة المتكاملة")}
                     </span>
                   ) : null}
                 </div>
-                <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>مسير الرواتب، تسجيل الحضور، السلف، وملفات الموظفين (يمكن إيقافه للمتاجر الفردية)</small>
+                <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>{t('settings.forms.tabs.modules_settings_tab.s52', "مسير الرواتب، تسجيل الحضور، السلف، وملفات الموظفين (يمكن إيقافه للمتاجر الفردية)")}</small>
               </div>
             </div>
             <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('hrModuleEnabled')} checked={Boolean(isHrActive)} disabled={disabled || isContractingVertical || isMaritimeVertical || !hasHrFeature} />
@@ -869,9 +871,9 @@ export const ModulesSettingsTab = memo(function ModulesSettingsTab({ form, disab
                 if (!hasManufacturingFeature) {
                   e.preventDefault();
                   handleLockedCardClick(
-                    'التصنيع والإنتاج',
-                    'الباقة المتكاملة (Ultimate ERP)',
-                    'يتيح لك هذا الموديول تعريف شجرة وقوائم المكونات (BOM)، أوامر الإنتاج، ومراكز العمل وحساب التكاليف.'
+                    t('settings.forms.tabs.modules_settings_tab.s53', "التصنيع والإنتاج"),
+                    t('settings.forms.tabs.modules_settings_tab.s54', "الباقة المتكاملة (Ultimate ERP)"),
+                    t('settings.forms.tabs.modules_settings_tab.s55', "يتيح لك هذا الموديول تعريف شجرة وقوائم المكونات (BOM)، أوامر الإنتاج، ومراكز العمل وحساب التكاليف.")
                   );
                 }
               }}
@@ -882,14 +884,14 @@ export const ModulesSettingsTab = memo(function ModulesSettingsTab({ form, disab
                 </div>
                 <div style={premiumCardTextStyle}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>التصنيع والإنتاج</strong>
+                    <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>{t('settings.forms.tabs.modules_settings_tab.s56', "التصنيع والإنتاج")}</strong>
                     {!hasManufacturingFeature && (
                       <span style={{ fontSize: '0.7rem', background: '#f5f3ff', color: '#6d28d9', border: '1px solid #ddd6fe', padding: '1px 6px', borderRadius: '4px', fontWeight: 700, display: 'inline-flex', alignItems: 'center' }}>
-                        <LockIcon size={11} /> الباقة المتكاملة
+                        <LockIcon size={11} /> {t('settings.forms.tabs.modules_settings_tab.s57', "الباقة المتكاملة")}
                       </span>
                     )}
                   </div>
-                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>يضيف خيارات المكونات، وصفات الإنتاج، وأوامر التصنيع</small>
+                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>{t('settings.forms.tabs.modules_settings_tab.s58', "يضيف خيارات المكونات، وصفات الإنتاج، وأوامر التصنيع")}</small>
                 </div>
               </div>
               <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('manufacturingModuleEnabled')} checked={Boolean(isManufacturingActive)} disabled={disabled || !hasManufacturingFeature} />
@@ -904,8 +906,8 @@ export const ModulesSettingsTab = memo(function ModulesSettingsTab({ form, disab
                   <ComboPackageIcon size={20} />
                 </div>
                 <div style={premiumCardTextStyle}>
-                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>العروض المجمعة والوجبات</strong>
-                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>يفعّل العروض المكوّنة من عدة أصناف (Combo)</small>
+                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>{t('settings.forms.tabs.modules_settings_tab.s59', "العروض المجمعة والوجبات")}</strong>
+                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>{t('settings.forms.tabs.modules_settings_tab.s60', "يفعّل العروض المكوّنة من عدة أصناف (Combo)")}</small>
                 </div>
               </div>
               <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('comboModuleEnabled')} checked={Boolean(isComboActive)} disabled={disabled} />
@@ -920,9 +922,9 @@ export const ModulesSettingsTab = memo(function ModulesSettingsTab({ form, disab
                 if (!hasImportFeature) {
                   e.preventDefault();
                   handleLockedCardClick(
-                    'موديول الاستيراد والشراكة',
-                    'الباقة المتكاملة (Ultimate ERP)',
-                    'يتيح لك هذا الموديول إدارة ومتابعة الحاويات والشحنات الدولية، وتوزيع أرباح وتكاليف الشركاء.'
+                    t('settings.forms.tabs.modules_settings_tab.s61', "موديول الاستيراد والشراكة"),
+                    t('settings.forms.tabs.modules_settings_tab.s62', "الباقة المتكاملة (Ultimate ERP)"),
+                    t('settings.forms.tabs.modules_settings_tab.s63', "يتيح لك هذا الموديول إدارة ومتابعة الحاويات والشحنات الدولية، وتوزيع أرباح وتكاليف الشركاء.")
                   );
                 }
               }}
@@ -933,14 +935,14 @@ export const ModulesSettingsTab = memo(function ModulesSettingsTab({ form, disab
                 </div>
                 <div style={premiumCardTextStyle}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>موديول الاستيراد والشراكة</strong>
+                    <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>{t('settings.forms.tabs.modules_settings_tab.s64', "موديول الاستيراد والشراكة")}</strong>
                     {!hasImportFeature && (
                       <span style={{ fontSize: '0.7rem', background: '#f5f3ff', color: '#6d28d9', border: '1px solid #ddd6fe', padding: '1px 6px', borderRadius: '4px', fontWeight: 700, display: 'inline-flex', alignItems: 'center' }}>
-                        <LockIcon size={11} /> الباقة المتكاملة
+                        <LockIcon size={11} /> {t('settings.forms.tabs.modules_settings_tab.s65', "الباقة المتكاملة")}
                       </span>
                     )}
                   </div>
-                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>يفعّل إدارة الحاويات، مسير الشحن، وتوزيع الأرباح</small>
+                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>{t('settings.forms.tabs.modules_settings_tab.s66', "يفعّل إدارة الحاويات، مسير الشحن، وتوزيع الأرباح")}</small>
                 </div>
               </div>
               <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('importModuleEnabled')} checked={Boolean(isImportActive)} disabled={disabled || !hasImportFeature} />
@@ -956,9 +958,9 @@ export const ModulesSettingsTab = memo(function ModulesSettingsTab({ form, disab
                 if (!hasMaritimeFreightFeature) {
                   e.preventDefault();
                   handleLockedCardClick(
-                    'موديول الشحن واللوجستيات',
-                    'الباقة المتكاملة (Ultimate ERP)',
-                    'يتيح لك هذا الموديول إدارة طلبات تسعير الشحن، مقارنة عروض الأسعار، إصدار عروض أسعار العملاء، أوامر الشحن والعمليات، وتتبع الحاويات.'
+                    t('settings.forms.tabs.modules_settings_tab.s67', "موديول الشحن واللوجستيات"),
+                    t('settings.forms.tabs.modules_settings_tab.s68', "الباقة المتكاملة (Ultimate ERP)"),
+                    t('settings.forms.tabs.modules_settings_tab.s69', "يتيح لك هذا الموديول إدارة طلبات تسعير الشحن، مقارنة عروض الأسعار، إصدار عروض أسعار العملاء، أوامر الشحن والعمليات، وتتبع الحاويات.")
                   );
                 }
               }}
@@ -969,18 +971,18 @@ export const ModulesSettingsTab = memo(function ModulesSettingsTab({ form, disab
                 </div>
                 <div style={premiumCardTextStyle}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>موديول الشحن واللوجستيات</strong>
+                    <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>{t('settings.forms.tabs.modules_settings_tab.s70', "موديول الشحن واللوجستيات")}</strong>
                     {isMaritimeVertical ? (
                       <span style={{ fontSize: '0.7rem', background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
-                        الموديول السيادي الأساسي للنشاط
+                        {t('settings.forms.tabs.modules_settings_tab.s71', "الموديول السيادي الأساسي للنشاط")}
                       </span>
                     ) : !hasMaritimeFreightFeature ? (
                       <span style={{ fontSize: '0.7rem', background: '#f5f3ff', color: '#6d28d9', border: '1px solid #ddd6fe', padding: '1px 6px', borderRadius: '4px', fontWeight: 700, display: 'inline-flex', alignItems: 'center' }}>
-                        <LockIcon size={11} /> الباقة المتكاملة
+                        <LockIcon size={11} /> {t('settings.forms.tabs.modules_settings_tab.s72', "الباقة المتكاملة")}
                       </span>
                     ) : null}
                   </div>
-                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>يفعّل إدارة طلبات التسعير، عروض الأسعار، أوامر الشحن والعمليات، وتتبع الحاويات</small>
+                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>{t('settings.forms.tabs.modules_settings_tab.s73', "يفعّل إدارة طلبات التسعير، عروض الأسعار، أوامر الشحن والعمليات، وتتبع الحاويات")}</small>
                 </div>
               </div>
               <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('maritimeFreightModuleEnabled')} checked={Boolean(isMaritimeFreightActive)} disabled={disabled || isMaritimeVertical || !hasMaritimeFreightFeature} />
@@ -996,9 +998,9 @@ export const ModulesSettingsTab = memo(function ModulesSettingsTab({ form, disab
                 if (!hasContractingFeature) {
                   e.preventDefault();
                   handleLockedCardClick(
-                    'موديول المقاولات والمشاريع',
-                    'الباقة المتكاملة (Ultimate ERP)',
-                    'يتيح لك هذا الموديول إدارة مشاريع المقاولات، جداول الكميات SOV/BOQ، الأوامر التغييرية، مستخلصات الدفع الدورية AIA G702/G703، ومقاولي الباطن واليوميات الميدانية.'
+                    t('settings.forms.tabs.modules_settings_tab.s74', "موديول المقاولات والمشاريع"),
+                    t('settings.forms.tabs.modules_settings_tab.s75', "الباقة المتكاملة (Ultimate ERP)"),
+                    t('settings.forms.tabs.modules_settings_tab.s76', "يتيح لك هذا الموديول إدارة مشاريع المقاولات، جداول الكميات SOV/BOQ، الأوامر التغييرية، مستخلصات الدفع الدورية AIA G702/G703، ومقاولي الباطن واليوميات الميدانية.")
                   );
                 }
               }}
@@ -1009,18 +1011,18 @@ export const ModulesSettingsTab = memo(function ModulesSettingsTab({ form, disab
                 </div>
                 <div style={premiumCardTextStyle}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>موديول المقاولات والمشاريع</strong>
+                    <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>{t('settings.forms.tabs.modules_settings_tab.s77', "موديول المقاولات والمشاريع")}</strong>
                     {isContractingVertical ? (
                       <span style={{ fontSize: '0.7rem', background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
-                        الموديول السيادي الأساسي للنشاط
+                        {t('settings.forms.tabs.modules_settings_tab.s78', "الموديول السيادي الأساسي للنشاط")}
                       </span>
                     ) : !hasContractingFeature ? (
                       <span style={{ fontSize: '0.7rem', background: '#f5f3ff', color: '#6d28d9', border: '1px solid #ddd6fe', padding: '1px 6px', borderRadius: '4px', fontWeight: 700, display: 'inline-flex', alignItems: 'center' }}>
-                        <LockIcon size={11} /> الباقة المتكاملة
+                        <LockIcon size={11} /> {t('settings.forms.tabs.modules_settings_tab.s79', "الباقة المتكاملة")}
                       </span>
                     ) : null}
                   </div>
-                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>إدارة المشاريع، جداول الكميات، الأوامر التغييرية، المستخلصات الجارية، ومقاولو الباطن</small>
+                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>{t('settings.forms.tabs.modules_settings_tab.s80', "إدارة المشاريع، جداول الكميات، الأوامر التغييرية، المستخلصات الجارية، ومقاولو الباطن")}</small>
                 </div>
               </div>
               <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('contractingModuleEnabled')} checked={Boolean(isContractingActive)} disabled={disabled || isContractingVertical || !hasContractingFeature} />
@@ -1035,9 +1037,9 @@ export const ModulesSettingsTab = memo(function ModulesSettingsTab({ form, disab
                 if (!hasRestaurantFeature) {
                   e.preventDefault();
                   handleLockedCardClick(
-                    'موديول المطاعم والكافيهات',
-                    'الباقة المتكاملة (Ultimate ERP)',
-                    'يتيح لك هذا الموديول إدارة الطاولات، شاشات المطبخ KDS، إضافات الوجبات، وتوزيع طلبات الصالة والدليفري.'
+                    t('settings.forms.tabs.modules_settings_tab.s81', "موديول المطاعم والكافيهات"),
+                    t('settings.forms.tabs.modules_settings_tab.s82', "الباقة المتكاملة (Ultimate ERP)"),
+                    t('settings.forms.tabs.modules_settings_tab.s83', "يتيح لك هذا الموديول إدارة الطاولات، شاشات المطبخ KDS، إضافات الوجبات، وتوزيع طلبات الصالة والدليفري.")
                   );
                 }
               }}
@@ -1048,14 +1050,14 @@ export const ModulesSettingsTab = memo(function ModulesSettingsTab({ form, disab
                 </div>
                 <div style={premiumCardTextStyle}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>موديول المطاعم والكافيهات</strong>
+                    <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>{t('settings.forms.tabs.modules_settings_tab.s84', "موديول المطاعم والكافيهات")}</strong>
                     {!hasRestaurantFeature && (
                       <span style={{ fontSize: '0.7rem', background: '#f5f3ff', color: '#6d28d9', border: '1px solid #ddd6fe', padding: '1px 6px', borderRadius: '4px', fontWeight: 700, display: 'inline-flex', alignItems: 'center' }}>
-                        <LockIcon size={11} /> الباقة المتكاملة
+                        <LockIcon size={11} /> {t('settings.forms.tabs.modules_settings_tab.s85', "الباقة المتكاملة")}
                       </span>
                     )}
                   </div>
-                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>يفعّل نظام الطاولات والمطبخ وأنواع الطلبات</small>
+                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>{t('settings.forms.tabs.modules_settings_tab.s86', "يفعّل نظام الطاولات والمطبخ وأنواع الطلبات")}</small>
                 </div>
               </div>
               <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('restaurantModuleEnabled')} checked={Boolean(isRestaurantActive)} disabled={disabled || !hasRestaurantFeature} />
@@ -1073,9 +1075,9 @@ export const ModulesSettingsTab = memo(function ModulesSettingsTab({ form, disab
                 </div>
                 <div style={premiumCardTextStyle}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>مكتب طلبات الهاتف والتوصيل السريع (Call Center)</strong>
+                    <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>{t('settings.forms.tabs.modules_settings_tab.s87', "مكتب طلبات الهاتف والتوصيل السريع (Call Center)")}</strong>
                   </div>
-                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>يفعّل نافذة طلبات التوصيل وكاشف المتصل (Caller ID) واختصار F7 في نقاط البيع</small>
+                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>{t('settings.forms.tabs.modules_settings_tab.s88', "يفعّل نافذة طلبات التوصيل وكاشف المتصل (Caller ID) واختصار F7 في نقاط البيع")}</small>
                 </div>
               </div>
               <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('phoneOrdersModuleEnabled')} checked={Boolean(isPhoneOrdersActive)} disabled={disabled} />
@@ -1090,9 +1092,9 @@ export const ModulesSettingsTab = memo(function ModulesSettingsTab({ form, disab
                 if (!hasPosMetaFeature) {
                   e.preventDefault();
                   handleLockedCardClick(
-                    'اختيار الطاولة والعميل بالكاشير',
-                    'الباقة المتكاملة (Ultimate ERP)',
-                    'يتيح لك هذا الخيار إظهار حقول العميل ورقم الطاولة أعلى السلة مباشرة لتسريع الفوترة وتوزيع الطلبات والخدمة السريعة.'
+                    t('settings.forms.tabs.modules_settings_tab.s89', "اختيار الطاولة والعميل بالكاشير"),
+                    t('settings.forms.tabs.modules_settings_tab.s90', "الباقة المتكاملة (Ultimate ERP)"),
+                    t('settings.forms.tabs.modules_settings_tab.s91', "يتيح لك هذا الخيار إظهار حقول العميل ورقم الطاولة أعلى السلة مباشرة لتسريع الفوترة وتوزيع الطلبات والخدمة السريعة.")
                   );
                 }
               }}
@@ -1103,14 +1105,14 @@ export const ModulesSettingsTab = memo(function ModulesSettingsTab({ form, disab
                 </div>
                 <div style={premiumCardTextStyle}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>اختيار الطاولة والعميل بالكاشير</strong>
+                    <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>{t('settings.forms.tabs.modules_settings_tab.s92', "اختيار الطاولة والعميل بالكاشير")}</strong>
                     {!hasPosMetaFeature && (
                       <span style={{ fontSize: '0.7rem', background: '#f5f3ff', color: '#6d28d9', border: '1px solid #ddd6fe', padding: '1px 6px', borderRadius: '4px', fontWeight: 700, display: 'inline-flex', alignItems: 'center' }}>
-                        <LockIcon size={11} /> الباقة المتكاملة
+                        <LockIcon size={11} /> {t('settings.forms.tabs.modules_settings_tab.s93', "الباقة المتكاملة")}
                       </span>
                     )}
                   </div>
-                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>يظهر حقول العميل والطاولة أعلى السلة لتسهيل الاختيار قبل الدفع</small>
+                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>{t('settings.forms.tabs.modules_settings_tab.s94', "يظهر حقول العميل والطاولة أعلى السلة لتسهيل الاختيار قبل الدفع")}</small>
                 </div>
               </div>
               <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('posShowCartMeta')} checked={Boolean(isPosMetaActive)} disabled={disabled || !hasPosMetaFeature} />
@@ -1125,9 +1127,9 @@ export const ModulesSettingsTab = memo(function ModulesSettingsTab({ form, disab
                 if (!hasMaintenanceFeature) {
                   e.preventDefault();
                   handleLockedCardClick(
-                    'موديول إدارة الصيانة والأجهزة',
-                    'الباقة المتكاملة (Ultimate ERP)',
-                    'يتيح لك هذا الموديول إدارة كروت الصيانة، تتبع السيريال IMEI، فحص الضمان، وحساب أجور الفنيين.'
+                    t('settings.forms.tabs.modules_settings_tab.s95', "موديول إدارة الصيانة والأجهزة"),
+                    t('settings.forms.tabs.modules_settings_tab.s96', "الباقة المتكاملة (Ultimate ERP)"),
+                    t('settings.forms.tabs.modules_settings_tab.s97', "يتيح لك هذا الموديول إدارة كروت الصيانة، تتبع السيريال IMEI، فحص الضمان، وحساب أجور الفنيين.")
                   );
                 }
               }}
@@ -1138,14 +1140,14 @@ export const ModulesSettingsTab = memo(function ModulesSettingsTab({ form, disab
                 </div>
                 <div style={premiumCardTextStyle}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>موديول إدارة الصيانة والأجهزة</strong>
+                    <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>{t('settings.forms.tabs.modules_settings_tab.s98', "موديول إدارة الصيانة والأجهزة")}</strong>
                     {!hasMaintenanceFeature && (
                       <span style={{ fontSize: '0.7rem', background: '#f5f3ff', color: '#6d28d9', border: '1px solid #ddd6fe', padding: '1px 6px', borderRadius: '4px', fontWeight: 700, display: 'inline-flex', alignItems: 'center' }}>
-                        <LockIcon size={11} /> الباقة المتكاملة
+                        <LockIcon size={11} /> {t('settings.forms.tabs.modules_settings_tab.s99', "الباقة المتكاملة")}
                       </span>
                     )}
                   </div>
-                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>يفعّل تتبع السيريال، استلام الأجهزة، فحص الضمان، وحساب المصنعية</small>
+                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>{t('settings.forms.tabs.modules_settings_tab.s100', "يفعّل تتبع السيريال، استلام الأجهزة، فحص الضمان، وحساب المصنعية")}</small>
                 </div>
               </div>
               <input
@@ -1175,9 +1177,9 @@ export const ModulesSettingsTab = memo(function ModulesSettingsTab({ form, disab
                 if (!hasPharmacyFeature) {
                   e.preventDefault();
                   handleLockedCardClick(
-                    'موديول الصيدليات والأدوية',
-                    'الباقة المتكاملة (Ultimate ERP)',
-                    'يتيح لك هذا الموديول إدارة دليل الأدوية والمواد الفعالة، تتبع التشغيلات والصلاحيات، وإدارة النواقص.'
+                    t('settings.forms.tabs.modules_settings_tab.s101', "موديول الصيدليات والأدوية"),
+                    t('settings.forms.tabs.modules_settings_tab.s102', "الباقة المتكاملة (Ultimate ERP)"),
+                    t('settings.forms.tabs.modules_settings_tab.s103', "يتيح لك هذا الموديول إدارة دليل الأدوية والمواد الفعالة، تتبع التشغيلات والصلاحيات، وإدارة النواقص.")
                   );
                 }
               }}
@@ -1188,14 +1190,14 @@ export const ModulesSettingsTab = memo(function ModulesSettingsTab({ form, disab
                 </div>
                 <div style={premiumCardTextStyle}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>موديول الصيدليات والأدوية</strong>
+                    <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>{t('settings.forms.tabs.modules_settings_tab.s104', "موديول الصيدليات والأدوية")}</strong>
                     {!hasPharmacyFeature && (
                       <span style={{ fontSize: '0.7rem', background: '#f5f3ff', color: '#6d28d9', border: '1px solid #ddd6fe', padding: '1px 6px', borderRadius: '4px', fontWeight: 700, display: 'inline-flex', alignItems: 'center' }}>
-                        <LockIcon size={11} /> الباقة المتكاملة
+                        <LockIcon size={11} /> {t('settings.forms.tabs.modules_settings_tab.s105', "الباقة المتكاملة")}
                       </span>
                     )}
                   </div>
-                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>دليل الأدوية، المواد الفعالة والمثائل، الروشتات والتأمين، الصلاحيات ونواقص الأدوية</small>
+                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>{t('settings.forms.tabs.modules_settings_tab.s106', "دليل الأدوية، المواد الفعالة والمثائل، الروشتات والتأمين، الصلاحيات ونواقص الأدوية")}</small>
                 </div>
               </div>
               <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('enablePharmacyModule')} checked={Boolean(isPharmacyActive)} disabled={disabled || !hasPharmacyFeature} />
@@ -1210,9 +1212,9 @@ export const ModulesSettingsTab = memo(function ModulesSettingsTab({ form, disab
                 if (!hasClothingFeature) {
                   e.preventDefault();
                   handleLockedCardClick(
-                    'موديول المتغيرات والأصناف المتعددة',
-                    'الباقة المتكاملة (Ultimate ERP)',
-                    'يتيح لك هذا الموديول إدارة مصفوفة المقاسات والألوان وطباعة باركودات الأصناف المتعددة.'
+                    t('settings.forms.tabs.modules_settings_tab.s107', "موديول المتغيرات والأصناف المتعددة"),
+                    t('settings.forms.tabs.modules_settings_tab.s108', "الباقة المتكاملة (Ultimate ERP)"),
+                    t('settings.forms.tabs.modules_settings_tab.s109', "يتيح لك هذا الموديول إدارة مصفوفة المقاسات والألوان وطباعة باركودات الأصناف المتعددة.")
                   );
                 }
               }}
@@ -1223,14 +1225,14 @@ export const ModulesSettingsTab = memo(function ModulesSettingsTab({ form, disab
                 </div>
                 <div style={premiumCardTextStyle}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>موديول المتغيرات والأصناف المتعددة</strong>
+                    <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>{t('settings.forms.tabs.modules_settings_tab.s110', "موديول المتغيرات والأصناف المتعددة")}</strong>
                     {!hasClothingFeature && (
                       <span style={{ fontSize: '0.7rem', background: '#f5f3ff', color: '#6d28d9', border: '1px solid #ddd6fe', padding: '1px 6px', borderRadius: '4px', fontWeight: 700, display: 'inline-flex', alignItems: 'center' }}>
-                        <LockIcon size={11} /> الباقة المتكاملة
+                        <LockIcon size={11} /> {t('settings.forms.tabs.modules_settings_tab.s111', "الباقة المتكاملة")}
                       </span>
                     )}
                   </div>
-                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>يفعّل إدارة الأصناف ذات الخصائص المتعددة (مقاسات، ألوان، نكهات، أحجام، روائح...)</small>
+                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>{t('settings.forms.tabs.modules_settings_tab.s112', "يفعّل إدارة الأصناف ذات الخصائص المتعددة (مقاسات، ألوان، نكهات، أحجام، روائح...)")}</small>
                 </div>
               </div>
               <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('clothingModuleEnabled')} checked={Boolean(isClothingActive)} disabled={disabled || !hasClothingFeature} />
@@ -1245,9 +1247,9 @@ export const ModulesSettingsTab = memo(function ModulesSettingsTab({ form, disab
                 if (!hasServicesFeature) {
                   e.preventDefault();
                   handleLockedCardClick(
-                    'الخدمات والمصنعيات',
-                    'باقة النمو (الاحترافية)',
-                    'يتيح لك هذا الموديول إدارة الخدمات السريعة، مصنعيات الصيانة البسيطة، وإصدار فواتير الخدمات غير المخزنية وعمولات الفنيين.'
+                    t('settings.forms.tabs.modules_settings_tab.s113', "الخدمات والمصنعيات"),
+                    t('settings.forms.tabs.modules_settings_tab.s114', "باقة النمو (الاحترافية)"),
+                    t('settings.forms.tabs.modules_settings_tab.s115', "يتيح لك هذا الموديول إدارة الخدمات السريعة، مصنعيات الصيانة البسيطة، وإصدار فواتير الخدمات غير المخزنية وعمولات الفنيين.")
                   );
                 }
               }}
@@ -1258,14 +1260,14 @@ export const ModulesSettingsTab = memo(function ModulesSettingsTab({ form, disab
                 </div>
                 <div style={premiumCardTextStyle}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>الخدمات والمصنعيات</strong>
+                    <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>{t('settings.forms.tabs.modules_settings_tab.s116', "الخدمات والمصنعيات")}</strong>
                     {!hasServicesFeature && (
                       <span style={{ fontSize: '0.7rem', background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', padding: '1px 6px', borderRadius: '4px', fontWeight: 700, display: 'inline-flex', alignItems: 'center' }}>
-                        <LockIcon size={11} /> باقة النمو
+                        <LockIcon size={11} /> {t('settings.forms.tabs.modules_settings_tab.s117', "باقة النمو")}
                       </span>
                     )}
                   </div>
-                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>يفعّل تابة إدارة الخدمات السريعة، المصنعيات، والخدمات غير المخزنية</small>
+                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>{t('settings.forms.tabs.modules_settings_tab.s118', "يفعّل تابة إدارة الخدمات السريعة، المصنعيات، والخدمات غير المخزنية")}</small>
                 </div>
               </div>
               <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('servicesModuleEnabled')} checked={Boolean(isServicesActive)} disabled={disabled || !hasServicesFeature} />
@@ -1280,8 +1282,8 @@ export const ModulesSettingsTab = memo(function ModulesSettingsTab({ form, disab
                   <ScaleIcon size={20} />
                 </div>
                 <div style={premiumCardTextStyle}>
-                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>باركود الميزان</strong>
-                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>باركود مضمّن فيه الوزن أو السعر مباشرةً للأوزان</small>
+                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>{t('settings.forms.tabs.modules_settings_tab.s119', "باركود الميزان")}</strong>
+                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>{t('settings.forms.tabs.modules_settings_tab.s120', "باركود مضمّن فيه الوزن أو السعر مباشرةً للأوزان")}</small>
                 </div>
               </div>
               <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('weightedBarcodeEnabled')} checked={Boolean(isWeightedActive)} disabled={disabled} />
@@ -1296,9 +1298,9 @@ export const ModulesSettingsTab = memo(function ModulesSettingsTab({ form, disab
               if (!hasEnterpriseFeature) {
                 e.preventDefault();
                 handleLockedCardClick(
-                  'موديول الشركات والمحاسبة المتقدمة',
-                  'الباقة المتكاملة (Ultimate ERP)',
-                  'يتيح لك هذا الموديول دليل الحسابات الشجري، ميزان المراجعة، مراكز التكلفة، القيود اليومية، والقوائم المالية.'
+                  t('settings.forms.tabs.modules_settings_tab.s121', "موديول الشركات والمحاسبة المتقدمة"),
+                  t('settings.forms.tabs.modules_settings_tab.s122', "الباقة المتكاملة (Ultimate ERP)"),
+                  t('settings.forms.tabs.modules_settings_tab.s123', "يتيح لك هذا الموديول دليل الحسابات الشجري، ميزان المراجعة، مراكز التكلفة، القيود اليومية، والقوائم المالية.")
                 );
               }
             }}
@@ -1309,22 +1311,22 @@ export const ModulesSettingsTab = memo(function ModulesSettingsTab({ form, disab
               </div>
               <div style={premiumCardTextStyle}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>موديول الشركات والمحاسبة المتقدمة</strong>
+                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>{t('settings.forms.tabs.modules_settings_tab.s124', "موديول الشركات والمحاسبة المتقدمة")}</strong>
                   {isContractingVertical ? (
                     <span style={{ fontSize: '0.7rem', background: '#f0fdf4', color: '#166534', border: '1px solid #bbf7d0', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
-                      مفعل تلقائياً لمراكز تكلفة المشاريع
+                      {t('settings.forms.tabs.modules_settings_tab.s125', "مفعل تلقائياً لمراكز تكلفة المشاريع")}
                     </span>
                   ) : isMaritimeVertical ? (
                     <span style={{ fontSize: '0.7rem', background: '#f0fdf4', color: '#166534', border: '1px solid #bbf7d0', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
-                      مفعل تلقائياً لمحاسبة الشحن ومراكز التكلفة
+                      {t('settings.forms.tabs.modules_settings_tab.s126', "مفعل تلقائياً لمحاسبة الشحن ومراكز التكلفة")}
                     </span>
                   ) : !hasEnterpriseFeature ? (
                     <span style={{ fontSize: '0.7rem', background: '#f5f3ff', color: '#6d28d9', border: '1px solid #ddd6fe', padding: '1px 6px', borderRadius: '4px', fontWeight: 700, display: 'inline-flex', alignItems: 'center' }}>
-                      <LockIcon size={11} /> الباقة المتكاملة
+                      <LockIcon size={11} /> {t('settings.forms.tabs.modules_settings_tab.s127', "الباقة المتكاملة")}
                     </span>
                   ) : null}
                 </div>
-                <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>يفعّل مراكز التكلفة، ربط الفواتير بالمشاريع أو الشحنات، وشروط التعاقد</small>
+                <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>{t('settings.forms.tabs.modules_settings_tab.s128', "يفعّل مراكز التكلفة، ربط الفواتير بالمشاريع أو الشحنات، وشروط التعاقد")}</small>
               </div>
             </div>
             <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('enableEnterpriseFeatures')} checked={Boolean(isEnterpriseActive)} disabled={disabled || isContractingVertical || isMaritimeVertical || !hasEnterpriseFeature} />
@@ -1338,9 +1340,9 @@ export const ModulesSettingsTab = memo(function ModulesSettingsTab({ form, disab
                 if (!hasStorefrontFeature) {
                   e.preventDefault();
                   handleLockedCardClick(
-                    'المتجر الإلكتروني وطلبات الأونلاين',
-                    'باقة التجارة الشاملة (Omnichannel Enterprise)',
-                    'يتيح لك هذا الموديول ربط متجرك بمتجر إلكتروني متكامل للعملاء، واستقبال الطلبات أونلاين وتأكيد السداد ببوابات الدفع الإلكتروني وتتبع المناديب.'
+                    t('settings.forms.tabs.modules_settings_tab.s129', "المتجر الإلكتروني وطلبات الأونلاين"),
+                    t('settings.forms.tabs.modules_settings_tab.s130', "باقة التجارة الشاملة (Omnichannel Enterprise)"),
+                    t('settings.forms.tabs.modules_settings_tab.s131', "يتيح لك هذا الموديول ربط متجرك بمتجر إلكتروني متكامل للعملاء، واستقبال الطلبات أونلاين وتأكيد السداد ببوابات الدفع الإلكتروني وتتبع المناديب.")
                   );
                 }
               }}
@@ -1351,14 +1353,14 @@ export const ModulesSettingsTab = memo(function ModulesSettingsTab({ form, disab
                 </div>
                 <div style={premiumCardTextStyle}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>المتجر الإلكتروني وطلبات الأونلاين</strong>
+                    <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>{t('settings.forms.tabs.modules_settings_tab.s132', "المتجر الإلكتروني وطلبات الأونلاين")}</strong>
                     {!hasStorefrontFeature && (
                       <span style={{ fontSize: '0.7rem', background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', padding: '1px 6px', borderRadius: '4px', fontWeight: 800, display: 'inline-flex', alignItems: 'center' }}>
-                        <LockIcon size={11} /> باقة التجارة الشاملة
+                        <LockIcon size={11} /> {t('settings.forms.tabs.modules_settings_tab.s133', "باقة التجارة الشاملة")}
                       </span>
                     )}
                   </div>
-                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>يفعّل المتجر الإلكتروني، بوابات الدفع بالبطاقات (Paymob)، واستقبال ومتابعة طلبات الأونلاين</small>
+                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>{t('settings.forms.tabs.modules_settings_tab.s134', "يفعّل المتجر الإلكتروني، بوابات الدفع بالبطاقات (Paymob)، واستقبال ومتابعة طلبات الأونلاين")}</small>
                 </div>
               </div>
               <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('storefrontModuleEnabled')} checked={Boolean(isStorefrontActive)} disabled={disabled || !hasStorefrontFeature} />
@@ -1373,9 +1375,9 @@ export const ModulesSettingsTab = memo(function ModulesSettingsTab({ form, disab
                 if (!hasInstallmentsFeature) {
                   e.preventDefault();
                   handleLockedCardClick(
-                    'مبيعات وجدولة التقسيط',
-                    'الباقة المتكاملة (Ultimate ERP)',
-                    'يتيح لك هذا الموديول إدارة عقود وأقساط العملاء، احتساب نسب الفوائد، وجدولة وتنبيهات الأقساط المستحقة والمتأخرة.'
+                    t('settings.forms.tabs.modules_settings_tab.s135', "مبيعات وجدولة التقسيط"),
+                    t('settings.forms.tabs.modules_settings_tab.s136', "الباقة المتكاملة (Ultimate ERP)"),
+                    t('settings.forms.tabs.modules_settings_tab.s137', "يتيح لك هذا الموديول إدارة عقود وأقساط العملاء، احتساب نسب الفوائد، وجدولة وتنبيهات الأقساط المستحقة والمتأخرة.")
                   );
                 }
               }}
@@ -1386,14 +1388,14 @@ export const ModulesSettingsTab = memo(function ModulesSettingsTab({ form, disab
                 </div>
                 <div style={premiumCardTextStyle}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>مبيعات وجدولة التقسيط</strong>
+                    <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>{t('settings.forms.tabs.modules_settings_tab.s138', "مبيعات وجدولة التقسيط")}</strong>
                     {!hasInstallmentsFeature && (
                       <span style={{ fontSize: '0.7rem', background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a', padding: '1px 6px', borderRadius: '4px', fontWeight: 700, display: 'inline-flex', alignItems: 'center' }}>
-                        <LockIcon size={11} /> الباقة المتكاملة
+                        <LockIcon size={11} /> {t('settings.forms.tabs.modules_settings_tab.s139', "الباقة المتكاملة")}
                       </span>
                     )}
                   </div>
-                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>إدارة خطط التقسيط، عقود الأقساط، تتبع الأقساط المسددة والمتأخرة، وإشعارات الاستحقاق</small>
+                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>{t('settings.forms.tabs.modules_settings_tab.s140', "إدارة خطط التقسيط، عقود الأقساط، تتبع الأقساط المسددة والمتأخرة، وإشعارات الاستحقاق")}</small>
                 </div>
               </div>
               <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('installmentsModuleEnabled')} checked={Boolean(isInstallmentsActive)} disabled={disabled || !hasInstallmentsFeature} />
@@ -1408,9 +1410,9 @@ export const ModulesSettingsTab = memo(function ModulesSettingsTab({ form, disab
               if (!hasFixedAssetsFeature) {
                 e.preventDefault();
                 handleLockedCardClick(
-                  'إدارة وإهلاك الأصول الثابتة',
-                  'الباقة المتكاملة (Ultimate ERP)',
-                  'يتيح لك هذا الموديول تسجيل الأصول والمعدات، احتساب الإهلاك التلقائي وقيود اليومية التلقائية في الحسابات العامة.'
+                  t('settings.forms.tabs.modules_settings_tab.s141', "إدارة وإهلاك الأصول الثابتة"),
+                  t('settings.forms.tabs.modules_settings_tab.s142', "الباقة المتكاملة (Ultimate ERP)"),
+                  t('settings.forms.tabs.modules_settings_tab.s143', "يتيح لك هذا الموديول تسجيل الأصول والمعدات، احتساب الإهلاك التلقائي وقيود اليومية التلقائية في الحسابات العامة.")
                 );
               }
             }}
@@ -1421,22 +1423,22 @@ export const ModulesSettingsTab = memo(function ModulesSettingsTab({ form, disab
               </div>
               <div style={premiumCardTextStyle}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>إدارة وإهلاك الأصول الثابتة</strong>
+                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>{t('settings.forms.tabs.modules_settings_tab.s144', "إدارة وإهلاك الأصول الثابتة")}</strong>
                   {isContractingVertical ? (
                     <span style={{ fontSize: '0.7rem', background: '#f0fdf4', color: '#166534', border: '1px solid #bbf7d0', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
-                      مفعل تلقائياً لمعدات وأصول المقاولات
+                      {t('settings.forms.tabs.modules_settings_tab.s145', "مفعل تلقائياً لمعدات وأصول المقاولات")}
                     </span>
                   ) : isMaritimeVertical ? (
                     <span style={{ fontSize: '0.7rem', background: '#f0fdf4', color: '#166534', border: '1px solid #bbf7d0', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
-                      مفعل تلقائياً لأصول وتجهيزات الشحن
+                      {t('settings.forms.tabs.modules_settings_tab.s146', "مفعل تلقائياً لأصول وتجهيزات الشحن")}
                     </span>
                   ) : !hasFixedAssetsFeature ? (
                     <span style={{ fontSize: '0.7rem', background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a', padding: '1px 6px', borderRadius: '4px', fontWeight: 700, display: 'inline-flex', alignItems: 'center' }}>
-                      <LockIcon size={11} /> الباقة المتكاملة
+                      <LockIcon size={11} /> {t('settings.forms.tabs.modules_settings_tab.s147', "الباقة المتكاملة")}
                     </span>
                   ) : null}
                 </div>
-                <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>سجل الأصول، احتساب الإهلاك المحاسبي، والقيمة التخريدية والدفترية ومواقع الأصول</small>
+                <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>{t('settings.forms.tabs.modules_settings_tab.s148', "سجل الأصول، احتساب الإهلاك المحاسبي، والقيمة التخريدية والدفترية ومواقع الأصول")}</small>
               </div>
             </div>
             <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('fixedAssetsModuleEnabled')} checked={Boolean(isFixedAssetsActive)} disabled={disabled || isContractingVertical || isMaritimeVertical || !hasFixedAssetsFeature} />
@@ -1450,9 +1452,9 @@ export const ModulesSettingsTab = memo(function ModulesSettingsTab({ form, disab
               if (!hasTaxDeclarationFeature) {
                 e.preventDefault();
                 handleLockedCardClick(
-                  'نموذج الإقرار الضريبي وهيئة الزكاة',
-                  'الباقة المتكاملة (Ultimate ERP)',
-                  'يتيح لك هذا الموديول توليد إقرارات القيمة المضافة (نموذج 10 ومطابقة ZATCA) وحساب الفوارق الضريبية بدقة.'
+                  t('settings.forms.tabs.modules_settings_tab.s149', "نموذج الإقرار الضريبي وهيئة الزكاة"),
+                  t('settings.forms.tabs.modules_settings_tab.s150', "الباقة المتكاملة (Ultimate ERP)"),
+                  t('settings.forms.tabs.modules_settings_tab.s151', "يتيح لك هذا الموديول توليد إقرارات القيمة المضافة (نموذج 10 ومطابقة ZATCA) وحساب الفوارق الضريبية بدقة.")
                 );
               }
             }}
@@ -1463,18 +1465,18 @@ export const ModulesSettingsTab = memo(function ModulesSettingsTab({ form, disab
               </div>
               <div style={premiumCardTextStyle}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>الإقرار الضريبي والربط الإلكتروني</strong>
+                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>{t('settings.forms.tabs.modules_settings_tab.s152', "الإقرار الضريبي والربط الإلكتروني")}</strong>
                   {isContractingVertical || isMaritimeVertical ? (
                     <span style={{ fontSize: '0.7rem', background: '#f0fdf4', color: '#166534', border: '1px solid #bbf7d0', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
-                      مفعل تلقائياً للإقرار الضريبي
+                      {t('settings.forms.tabs.modules_settings_tab.s153', "مفعل تلقائياً للإقرار الضريبي")}
                     </span>
                   ) : !hasTaxDeclarationFeature ? (
                     <span style={{ fontSize: '0.7rem', background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a', padding: '1px 6px', borderRadius: '4px', fontWeight: 700, display: 'inline-flex', alignItems: 'center' }}>
-                      <LockIcon size={11} /> الباقة المتكاملة
+                      <LockIcon size={11} /> {t('settings.forms.tabs.modules_settings_tab.s154', "الباقة المتكاملة")}
                     </span>
                   ) : null}
                 </div>
-                <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>توليد نموذج الإقرار الضريبي (ن10)، إقرارات هيئة الزكاة (ZATCA)، وتقارير ضريبة المخرجات والمدخلات</small>
+                <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>{t('settings.forms.tabs.modules_settings_tab.s155', "توليد نموذج الإقرار الضريبي (ن10)، إقرارات هيئة الزكاة (ZATCA)، وتقارير ضريبة المخرجات والمدخلات")}</small>
               </div>
             </div>
             <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('taxDeclarationModuleEnabled')} checked={Boolean(isTaxDeclarationActive)} disabled={disabled || isContractingVertical || isMaritimeVertical || !hasTaxDeclarationFeature} />
@@ -1488,9 +1490,9 @@ export const ModulesSettingsTab = memo(function ModulesSettingsTab({ form, disab
                 if (!hasDeliveryFleetFeature) {
                   e.preventDefault();
                   handleLockedCardClick(
-                    'أسطول وتتبع المناديب',
-                    'الباقة المتكاملة (Ultimate ERP)',
-                    'يتيح لك هذا الموديول إدارة مناديب التوصيل، توزيع خطوط السير، تسوية العهد النقدية، وتتبع المناديب مباشرة.'
+                    t('settings.forms.tabs.modules_settings_tab.s156', "أسطول وتتبع المناديب"),
+                    t('settings.forms.tabs.modules_settings_tab.s157', "الباقة المتكاملة (Ultimate ERP)"),
+                    t('settings.forms.tabs.modules_settings_tab.s158', "يتيح لك هذا الموديول إدارة مناديب التوصيل، توزيع خطوط السير، تسوية العهد النقدية، وتتبع المناديب مباشرة.")
                   );
                 }
               }}
@@ -1501,14 +1503,14 @@ export const ModulesSettingsTab = memo(function ModulesSettingsTab({ form, disab
                 </div>
                 <div style={premiumCardTextStyle}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>أسطول وتتبع المناديب</strong>
+                    <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>{t('settings.forms.tabs.modules_settings_tab.s159', "أسطول وتتبع المناديب")}</strong>
                     {!hasDeliveryFleetFeature && (
                       <span style={{ fontSize: '0.7rem', background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a', padding: '1px 6px', borderRadius: '4px', fontWeight: 700, display: 'inline-flex', alignItems: 'center' }}>
-                        <LockIcon size={11} /> الباقة المتكاملة
+                        <LockIcon size={11} /> {t('settings.forms.tabs.modules_settings_tab.s160', "الباقة المتكاملة")}
                       </span>
                     )}
                   </div>
-                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>إسناد الطلبات للمناديب، تتبع تسليم الشحنات، وعمولات مناديب التوصيل</small>
+                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>{t('settings.forms.tabs.modules_settings_tab.s161', "إسناد الطلبات للمناديب، تتبع تسليم الشحنات، وعمولات مناديب التوصيل")}</small>
                 </div>
               </div>
               <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('deliveryFleetModuleEnabled')} checked={Boolean(isDeliveryFleetActive)} disabled={disabled || !hasDeliveryFleetFeature} />
@@ -1537,7 +1539,7 @@ export const ModulesSettingsTab = memo(function ModulesSettingsTab({ form, disab
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <div style={{ fontWeight: 800, fontSize: '0.96rem', color: '#0f172a' }}>{currentProfile.title}</div>
-                    <span style={{ fontSize: '0.7rem', background: '#dbeafe', color: '#1d4ed8', padding: '2px 8px', borderRadius: '12px', fontWeight: 800 }}>نشط الآن</span>
+                    <span style={{ fontSize: '0.7rem', background: '#dbeafe', color: '#1d4ed8', padding: '2px 8px', borderRadius: '12px', fontWeight: 800 }}>{t('settings.forms.tabs.modules_settings_tab.s162', "نشط الآن")}</span>
                   </div>
                   <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '2px' }}>{currentProfile.subtitle}</div>
                 </div>
@@ -1562,7 +1564,7 @@ export const ModulesSettingsTab = memo(function ModulesSettingsTab({ form, disab
                   transition: 'all 0.15s ease'
                 }}
               >
-                <span>تغيير نشاط الصيانة والقالب</span>
+                <span>{t('settings.forms.tabs.modules_settings_tab.s163', "تغيير نشاط الصيانة والقالب")}</span>
                 <ChevronDownIcon size={14} color="#64748b" />
               </button>
             </div>
@@ -1570,7 +1572,7 @@ export const ModulesSettingsTab = memo(function ModulesSettingsTab({ form, disab
             <div className="document-prototype-grid compact-grid-2">
               <div className="field">
                 <label style={{ fontWeight: 700, color: '#0f172a', marginBottom: '4px', display: 'block', fontSize: '0.82rem' }}>
-                  نسبة عمولة فني الصيانة من صافي المصنعية (%)
+                  {t('settings.forms.tabs.modules_settings_tab.s164', "نسبة عمولة فني الصيانة من صافي المصنعية (%)")}
                 </label>
                 <input
                   type="number"
@@ -1583,12 +1585,12 @@ export const ModulesSettingsTab = memo(function ModulesSettingsTab({ form, disab
                   placeholder="30"
                   style={{ fontWeight: 700, background: '#ffffff' }}
                 />
-                <small className="muted">تُحسب العمولة تلقائيًا كنسبة مئوية من صافي ربح المصنعية بعد خصم سعر قطع الغيار.</small>
+                <small className="muted">{t('settings.forms.tabs.modules_settings_tab.s165', "تُحسب العمولة تلقائيًا كنسبة مئوية من صافي ربح المصنعية بعد خصم سعر قطع الغيار.")}</small>
               </div>
 
               <div className="field">
                 <label style={{ fontWeight: 700, color: '#0f172a', marginBottom: '4px', display: 'block', fontSize: '0.82rem' }}>
-                  الملحقات الافتراضية للفحص والاستلام السريع
+                  {t('settings.forms.tabs.modules_settings_tab.s166', "الملحقات الافتراضية للفحص والاستلام السريع")}
                 </label>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '6px' }}>
                   {currentProfile.defaultAccessories.map((acc) => (
@@ -1597,7 +1599,7 @@ export const ModulesSettingsTab = memo(function ModulesSettingsTab({ form, disab
                     </span>
                   ))}
                 </div>
-                <small className="muted">تظهر هذه الملحقات كأزرار سريعة بضغطة زر داخل شاشة تذاكر الصيانة.</small>
+                <small className="muted">{t('settings.forms.tabs.modules_settings_tab.s167', "تظهر هذه الملحقات كأزرار سريعة بضغطة زر داخل شاشة تذاكر الصيانة.")}</small>
               </div>
             </div>
           </div>
@@ -1608,7 +1610,7 @@ export const ModulesSettingsTab = memo(function ModulesSettingsTab({ form, disab
           open={profileModalOpen}
           onClose={() => setProfileModalOpen(false)}
           width="min(960px, 96vw)"
-          ariaLabel="تخصيص نوع نشاط الصيانة والأجهزة"
+          ariaLabel={t('settings.forms.tabs.modules_settings_tab.s168', "تخصيص نوع نشاط الصيانة والأجهزة")}
         >
           <div style={{ padding: '14px 10px 18px' }}>
             <style>{`
@@ -1631,14 +1633,14 @@ export const ModulesSettingsTab = memo(function ModulesSettingsTab({ form, disab
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                     <h3 style={{ margin: 0, fontSize: '1.18rem', fontWeight: 900, color: '#0f172a', letterSpacing: '-0.01em' }}>
-                      تخصيص نوع نشاط الصيانة والأجهزة
+                      {t('settings.forms.tabs.modules_settings_tab.s169', "تخصيص نوع نشاط الصيانة والأجهزة")}
                     </h3>
                     <span style={{ fontSize: '0.72rem', background: '#eff6ff', border: '1px solid #bfdbfe', color: '#1d4ed8', padding: '2px 8px', borderRadius: '12px', fontWeight: 800 }}>
-                      9 أنشطة ذكية
+                      {t('settings.forms.tabs.modules_settings_tab.s170', "9 أنشطة ذكية")}
                     </span>
                   </div>
                   <p style={{ margin: 0, fontSize: '0.84rem', color: '#64748b', fontWeight: 500, lineHeight: 1.4 }}>
-                    اختر النشاط التجاري لتكييف حقول الفحص، المسميات، وإيصالات الاستلام فوراً
+                    {t('settings.forms.tabs.modules_settings_tab.s171', "اختر النشاط التجاري لتكييف حقول الفحص، المسميات، وإيصالات الاستلام فوراً")}
                   </p>
                 </div>
               </div>
@@ -1747,7 +1749,7 @@ export const ModulesSettingsTab = memo(function ModulesSettingsTab({ form, disab
 
             <div style={{ marginTop: '14px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '8px 14px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.78rem', color: '#475569' }}>
               <LightbulbIcon size={16} color="#2563eb" />
-              <span>يمكنك التبديل بين أنشطة الصيانة في أي وقت لتكييف الواجهات بما يلائم عملك دون التأثير على التذاكر والسجلات السابقة.</span>
+              <span>{t('settings.forms.tabs.modules_settings_tab.s172', "يمكنك التبديل بين أنشطة الصيانة في أي وقت لتكييف الواجهات بما يلائم عملك دون التأثير على التذاكر والسجلات السابقة.")}</span>
             </div>
           </div>
         </DialogShell>
@@ -1755,10 +1757,10 @@ export const ModulesSettingsTab = memo(function ModulesSettingsTab({ form, disab
         {clothingModuleEnabled && ((!isContractingVertical && !isMaritimeVertical) || isSuperAdmin) ? (
           <div className="document-prototype-grid compact-grid-2" style={{ marginTop: 16 }}>
             <div className="field">
-              <label>النمط الافتراضي عند إضافة صنف</label>
+              <label>{t('settings.forms.tabs.modules_settings_tab.s173', "النمط الافتراضي عند إضافة صنف")}</label>
               <select className="purchase-prototype-field-input" {...form.register('defaultProductKind')} disabled={disabled}>
-                <option value="standard">صنف عادي (بسيط بدون متغيرات)</option>
-                <option value="fashion">صنف بمتغيرات (أحجام / روائح / مقاسات)</option>
+                <option value="standard">{t('settings.forms.tabs.modules_settings_tab.s174', "صنف عادي (بسيط بدون متغيرات)")}</option>
+                <option value="fashion">{t('settings.forms.tabs.modules_settings_tab.s175', "صنف بمتغيرات (أحجام / روائح / مقاسات)")}</option>
               </select>
             </div>
           </div>
@@ -1767,26 +1769,26 @@ export const ModulesSettingsTab = memo(function ModulesSettingsTab({ form, disab
         {weightedBarcodeEnabled && ((!isContractingVertical && !isMaritimeVertical) || isSuperAdmin) ? (
           <div className="document-prototype-grid compact-grid-2" style={{ marginTop: 16 }}>
             <div className="field">
-              <label>بداية باركود الميزان</label>
+              <label>{t('settings.forms.tabs.modules_settings_tab.s176', "بداية باركود الميزان")}</label>
               <input className="purchase-prototype-field-input" inputMode="numeric" {...form.register('weightedBarcodePrefix')} disabled={disabled} placeholder="21" />
             </div>
             <div className="field">
-              <label>أرقام كود الصنف</label>
+              <label>{t('settings.forms.tabs.modules_settings_tab.s177', "أرقام كود الصنف")}</label>
               <input className="purchase-prototype-field-input" type="number" min="3" max="8" {...form.register('weightedBarcodeProductCodeLength')} disabled={disabled} />
             </div>
             <div className="field">
-              <label>أرقام الوزن</label>
+              <label>{t('settings.forms.tabs.modules_settings_tab.s178', "أرقام الوزن")}</label>
               <input className="purchase-prototype-field-input" type="number" min="3" max="8" {...form.register('weightedBarcodeWeightDigits')} disabled={disabled} />
             </div>
             <div className="field">
-              <label>دقة الوزن (خانات عشرية)</label>
+              <label>{t('settings.forms.tabs.modules_settings_tab.s179', "دقة الوزن (خانات عشرية)")}</label>
               <input className="purchase-prototype-field-input" type="number" min="0" max="3" {...form.register('weightedBarcodeWeightDecimals')} disabled={disabled} />
             </div>
             <div className="field">
-              <label>محتوى باركود الميزان</label>
+              <label>{t('settings.forms.tabs.modules_settings_tab.s180', "محتوى باركود الميزان")}</label>
               <select className="purchase-prototype-field-input" {...form.register('weightedBarcodeValueMode')} disabled={disabled}>
-                <option value="weight">وزن الصنف</option>
-                <option value="price">السعر الإجمالي بالصغرى (قرشان / هللتان)</option>
+                <option value="weight">{t('settings.forms.tabs.modules_settings_tab.s181', "وزن الصنف")}</option>
+                <option value="price">{t('settings.forms.tabs.modules_settings_tab.s182', "السعر الإجمالي بالصغرى (قرشان / هللتان)")}</option>
               </select>
             </div>
           </div>
@@ -1801,9 +1803,9 @@ export const ModulesSettingsTab = memo(function ModulesSettingsTab({ form, disab
         open={Boolean(upgradeModalInfo?.open)}
         onClose={() => setUpgradeModalInfo(null)}
         width="min(540px, 94vw)"
-        ariaLabel="ترقية الباقة لتفعيل الموديول"
+        ariaLabel={t('settings.forms.tabs.modules_settings_tab.s183', "ترقية الباقة لتفعيل الموديول")}
       >
-        <div style={{ padding: '24px 20px', textAlign: 'center' }} dir="rtl">
+        <div style={{ padding: '24px 20px', textAlign: 'center' }}>
           <div style={{
             width: '56px',
             height: '56px',
@@ -1822,12 +1824,12 @@ export const ModulesSettingsTab = memo(function ModulesSettingsTab({ form, disab
           </div>
 
           <h3 style={{ fontSize: '1.2rem', fontWeight: 900, color: '#0f172a', margin: '0 0 8px' }}>
-            موديول {upgradeModalInfo?.title}
+            {t('settings.forms.tabs.modules_settings_tab.s184', "موديول")} {upgradeModalInfo?.title}
           </h3>
 
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#dbeafe', color: '#1e40af', padding: '4px 12px', borderRadius: '20px', fontSize: '0.8rem', fontWeight: 800, marginBottom: '14px' }}>
             <StarIcon size={14} color="#1e40af" />
-            <span>متاح حصرياً في {upgradeModalInfo?.planName}</span>
+            <span>{t('settings.forms.tabs.modules_settings_tab.s185', "متاح حصرياً في")} {upgradeModalInfo?.planName}</span>
           </div>
 
           <p style={{ fontSize: '0.86rem', color: '#475569', lineHeight: 1.6, margin: '0 0 24px', textAlign: 'center' }}>
@@ -1855,7 +1857,7 @@ export const ModulesSettingsTab = memo(function ModulesSettingsTab({ form, disab
                 }}
               >
                 <StarIcon size={14} color="#ffffff" />
-                <span>ترقية الباقة الآن</span>
+                <span>{t('settings.forms.tabs.modules_settings_tab.s186', "ترقية الباقة الآن")}</span>
               </button>
             </Link>
             )}
@@ -1873,7 +1875,7 @@ export const ModulesSettingsTab = memo(function ModulesSettingsTab({ form, disab
                 cursor: 'pointer'
               }}
             >
-              إغلاق
+              {t('settings.forms.tabs.modules_settings_tab.s187', "إغلاق")}
             </button>
           </div>
         </div>

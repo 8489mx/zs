@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useEffect, useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { formatCurrency } from '@/lib/format';
@@ -25,6 +26,7 @@ interface PosDraftSwitcherOverlayProps {
 }
 
 export function PosDraftSwitcherOverlay({ drafts, onRecall }: PosDraftSwitcherOverlayProps) {
+  const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
 
@@ -125,9 +127,9 @@ export function PosDraftSwitcherOverlay({ drafts, onRecall }: PosDraftSwitcherOv
         }}>
           <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600, color: '#1e293b', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <ClockIcon style={{ width: '18px', height: '18px', color: '#64748b' }} />
-            تبديل سريع للفواتير المعلقة
+            {t('pos.pos_workspace.pos_draft_switcher_overlay.s0', "تبديل سريع للفواتير المعلقة")}
           </h3>
-          <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: '#64748b' }}>افلت زراير Ctrl + Alt لاختيار الفاتورة</p>
+          <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: '#64748b' }}>{t('pos.pos_workspace.pos_draft_switcher_overlay.s1', "افلت زراير Ctrl + Alt لاختيار الفاتورة")}</p>
         </div>
         <div style={{ padding: '12px', maxHeight: '60vh', overflowY: 'auto' }}>
           {drafts.map((draft, idx) => {
@@ -164,7 +166,7 @@ export function PosDraftSwitcherOverlay({ drafts, onRecall }: PosDraftSwitcherOv
                       color: isSelected ? '#fff' : '#475569',
                       borderColor: isSelected ? '#170c5c' : '#e2e8f0',
                     }}>
-                      فاتورة #{idx + 1}
+                      {t('pos.pos_workspace.pos_draft_switcher_overlay.s2', "فاتورة #")}{idx + 1}
                     </span>
                     <span style={{
                       fontSize: '0.75rem',
@@ -177,7 +179,7 @@ export function PosDraftSwitcherOverlay({ drafts, onRecall }: PosDraftSwitcherOv
                       {new Date(draft.savedAt).toLocaleString('ar-EG', { year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                     </span>
                   </div>
-                  <span style={{ fontSize: '0.85rem', color: '#64748b' }}>عدد العناصر: {draft.itemsCount}</span>
+                  <span style={{ fontSize: '0.85rem', color: '#64748b' }}>{t('pos.pos_workspace.pos_draft_switcher_overlay.s3', "عدد العناصر:")} {draft.itemsCount}</span>
                 </div>
                 <div style={{ fontWeight: 700, fontSize: '1.2rem', color: isSelected ? '#170c5c' : '#334155' }}>
                   {formatCurrency(draft.total)}

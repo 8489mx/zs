@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { PageHeader } from '@/shared/components/page-header';
@@ -23,6 +24,7 @@ import { EmployeeAttendancePolicySection } from './employee-edit/EmployeeAttenda
 import { EmployeeBankDetailsSection } from './employee-edit/EmployeeBankDetailsSection';
 
 export function EmployeeEditPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const profile = useHrProfile(id);
@@ -166,18 +168,18 @@ export function EmployeeEditPage() {
     <div className="page-stack page-shell" dir="rtl">
       <main className="document-prototype-column" style={{ paddingBottom: '20px' }}>
         <PageHeader
-          title="تعديل بيانات الموظف"
-          description="تعديل بيانات الموظف الأساسية، الوظيفية، والدوام في صفحة واحدة مدمجة ومنظمة."
+          title={t('hr.employee_edit_page.s0', "تعديل بيانات الموظف")}
+          description={t('hr.employee_edit_page.s1', "تعديل بيانات الموظف الأساسية، الوظيفية، والدوام في صفحة واحدة مدمجة ومنظمة.")}
           actions={(
             <div className="compact-actions">
-              <Button type="button" variant="secondary" onClick={goToProfile} disabled={isBusy}>إلغاء</Button>
-              <Button type="button" onClick={() => { const formEl = document.getElementById('employee-edit-form') as HTMLFormElement; formEl?.requestSubmit(); }} disabled={isBusy}>{isBusy ? 'جاري الحفظ...' : 'حفظ التعديلات'}</Button>
-              <Button variant="secondary" onClick={() => navigate('/hr/employees')}>رجوع للموظفين</Button>
+              <Button type="button" variant="secondary" onClick={goToProfile} disabled={isBusy}>{t('hr.employee_edit_page.s2', "إلغاء")}</Button>
+              <Button type="button" onClick={() => { const formEl = document.getElementById('employee-edit-form') as HTMLFormElement; formEl?.requestSubmit(); }} disabled={isBusy}>{isBusy ? t('hr.employee_edit_page.s3', "جاري الحفظ...") : t('hr.employee_edit_page.s4', "حفظ التعديلات")}</Button>
+              <Button variant="secondary" onClick={() => navigate('/hr/employees')}>{t('hr.employee_edit_page.s5', "رجوع للموظفين")}</Button>
             </div>
           )}
         />
 
-        <QueryFeedback isLoading={profile.isLoading} isError={profile.isError} error={profile.error} isEmpty={!employee} loadingText="جاري تحميل بيانات الموظف..." errorTitle="تعذر تحميل بيانات الموظف" emptyTitle="لم يتم العثور على الموظف.">
+        <QueryFeedback isLoading={profile.isLoading} isError={profile.isError} error={profile.error} isEmpty={!employee} loadingText={t('hr.employee_edit_page.s6', "جاري تحميل بيانات الموظف...")} errorTitle={t('hr.employee_edit_page.s7', "تعذر تحميل بيانات الموظف")} emptyTitle={t('hr.employee_edit_page.s8', "لم يتم العثور على الموظف.")}>
           <form id="employee-edit-form" onSubmit={(event) => { void handleSubmit(event); }}>
             <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.04)', display: 'flex', flexDirection: 'column', gap: '16px' }}>
               

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
 import { Button } from '@/shared/ui/button';
 import { SearchableCombobox } from '@/shared/ui/searchable-combobox';
@@ -14,6 +15,7 @@ type LocationOption = {
 };
 
 export default function ManufacturingSettingsPage() {
+  const { t } = useTranslation();
   const [locations, setLocations] = useState<LocationOption[]>([]);
   
   const [locationQuery, setLocationQuery] = useState('');
@@ -94,16 +96,16 @@ export default function ManufacturingSettingsPage() {
   return (
     <ManufacturingLayout
       breadcrumbs={[
-        { label: 'التصنيع', to: '/manufacturing/work-orders' },
-        { label: 'الإعدادات' }
+        { label: t('manufacturing.manufacturing_settings_page.s0', "التصنيع"), to: '/manufacturing/work-orders' },
+        { label: t('manufacturing.manufacturing_settings_page.s1', "الإعدادات") }
       ]}
-      title="إعدادات التصنيع"
+      title={t('manufacturing.manufacturing_settings_page.s2', "إعدادات التصنيع")}
     >
-        <FormSection title="المخازن الافتراضية للتصنيع" description="اختر المخزن الافتراضي الذي ستتم عليه عمليات التصنيع وصرف المواد الخام بشكل آلي ما لم يتم تحديد مخزن آخر في أمر الإنتاج.">
+        <FormSection title={t('manufacturing.manufacturing_settings_page.s3', "المخازن الافتراضية للتصنيع")} description={t('manufacturing.manufacturing_settings_page.s4', "اختر المخزن الافتراضي الذي ستتم عليه عمليات التصنيع وصرف المواد الخام بشكل آلي ما لم يتم تحديد مخزن آخر في أمر الإنتاج.")}>
           <div style={{ maxWidth: '400px', marginBottom: '24px' }}>
             <SearchableCombobox
-              label="المخزن الافتراضي لصالة الإنتاج"
-              placeholder="اختر المخزن الافتراضي..."
+              label={t('manufacturing.manufacturing_settings_page.s5', "المخزن الافتراضي لصالة الإنتاج")}
+              placeholder={t('manufacturing.manufacturing_settings_page.s6', "اختر المخزن الافتراضي...")}
               value={locationQuery}
               onChange={setLocationQuery}
               options={locations}
@@ -115,7 +117,7 @@ export default function ManufacturingSettingsPage() {
           </div>
 
           <Button type="button" variant="primary" onClick={handleSave} disabled={isSaving}>
-             {isSaving ? 'جاري الحفظ...' : 'حفظ الإعدادات'}
+             {isSaving ? t('manufacturing.manufacturing_settings_page.s7', "جاري الحفظ...") : t('manufacturing.manufacturing_settings_page.s8', "حفظ الإعدادات")}
           </Button>
         </FormSection>
     </ManufacturingLayout>

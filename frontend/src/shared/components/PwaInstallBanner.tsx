@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
 import { SmartphoneIcon , XIcon } from '@/shared/components/icons/AppIcons';
 
@@ -7,6 +8,7 @@ interface BeforeInstallPromptEvent extends Event {
 }
 
 export function PwaInstallBanner() {
+  const { t } = useTranslation();
   const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [dismissed, setDismissed] = useState(() => {
     return localStorage.getItem('zs_pwa_dismissed') === 'true';
@@ -96,12 +98,12 @@ export function PwaInstallBanner() {
 
       <div style={{ flex: 1, minWidth: 0 }}>
         <strong style={{ fontSize: '12.5px', color: '#0f172a', display: 'block', fontWeight: 800 }}>
-          تثبيت تطبيق Z-Systems على الهاتف
+          {t('shared.pwa_install_banner.s0', "تثبيت تطبيق Z-Systems على الهاتف")}
         </strong>
         <span style={{ fontSize: '11px', color: '#64748b' }}>
           {isIOS
-            ? 'لتشغيل شاشات الكاشير والمتابعة بكامل الشاشة كالبرامج الأصلية'
-            : 'يعمل بكامل الشاشة بدون شريط متصفح وبسرعة فائقة'}
+            ? t('shared.pwa_install_banner.s1', "لتشغيل شاشات الكاشير والمتابعة بكامل الشاشة كالبرامج الأصلية")
+            : t('shared.pwa_install_banner.s2', "يعمل بكامل الشاشة بدون شريط متصفح وبسرعة فائقة")}
         </span>
       </div>
 
@@ -122,7 +124,7 @@ export function PwaInstallBanner() {
               whiteSpace: 'nowrap',
             }}
           >
-            تثبيت الآن
+            {t('shared.pwa_install_banner.s3', "تثبيت الآن")}
           </button>
         )}
 
@@ -142,7 +144,7 @@ export function PwaInstallBanner() {
               whiteSpace: 'nowrap',
             }}
           >
-            كيفية التثبيت؟
+            {t('shared.pwa_install_banner.s4', "كيفية التثبيت؟")}
           </button>
         )}
 
@@ -178,7 +180,7 @@ export function PwaInstallBanner() {
             boxShadow: '0 4px 12px rgba(0,0,0,0.06)',
           }}
         >
-          على أجهزة آبل: اضغط على زر المشاركة <strong>(Share)</strong> أسفل المتصفح، ثم اختر <strong>"إضافة إلى الشاشة الرئيسية (Add to Home Screen)"</strong>.
+          {t('shared.pwa_install_banner.s5', "على أجهزة آبل: اضغط على زر المشاركة")} <strong>(Share)</strong> {t('shared.pwa_install_banner.s6', "أسفل المتصفح، ثم اختر")} <strong>{t('shared.pwa_install_banner.s7', "\"إضافة إلى الشاشة الرئيسية (Add to Home Screen)\"")}</strong>.
         </div>
       )}
     </div>

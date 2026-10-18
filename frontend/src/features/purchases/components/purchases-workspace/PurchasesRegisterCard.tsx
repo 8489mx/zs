@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/shared/ui/button';
 import { SearchToolbar } from '@/shared/components/search-toolbar';
 import { QueryFeedback } from '@/shared/components/query-feedback';
@@ -37,45 +38,46 @@ interface Props {
 }
 
 export function PurchasesRegisterCard(props: Props) {
+  const { t } = useTranslation();
   const queryState = props.purchasesQuery.purchasesQuery;
   const selectedLabel = props.selectedPurchase ? (props.selectedPurchase.docNo || props.selectedPurchase.id) : null;
 
   return (
     <section className="document-prototype-section workspace-panel purchases-register-card">
       <div className="section-header-compact-row">
-        <h3 className="document-prototype-section-title">سجل فواتير الشراء</h3>
+        <h3 className="document-prototype-section-title">{t('purchases.purchases_workspace.purchases_register_card.s0', "سجل فواتير الشراء")}</h3>
         {selectedLabel ? (
           <div className="section-header-actions-group">
-            <span className="nav-pill" style={{ fontSize: '11px', padding: '2px 8px' }}>المحدد: {selectedLabel}</span>
+            <span className="nav-pill" style={{ fontSize: '11px', padding: '2px 8px' }}>{t('purchases.purchases_workspace.purchases_register_card.s1', "المحدد:")} {selectedLabel}</span>
           </div>
         ) : null}
       </div>
       <p className="muted small section-header-subtitle">
-        راجع الفواتير بسرعة، فلتر النتائج، وافتح التفاصيل من نفس المكان.
+        {t('purchases.purchases_workspace.purchases_register_card.s2', "راجع الفواتير بسرعة، فلتر النتائج، وافتح التفاصيل من نفس المكان.")}
       </p>
       <SearchToolbar
         search={props.search}
         onSearchChange={props.setSearch}
-        searchPlaceholder="ابحث بالرقم أو المورد أو الحالة"
-        title="البحث والتصفية"
-        description="ابدأ بالبحث، ثم اختر نوع الفواتير المطلوب عرضه."
+        searchPlaceholder={t('purchases.purchases_workspace.purchases_register_card.s3', "ابحث بالرقم أو المورد أو الحالة")}
+        title={t('purchases.purchases_workspace.purchases_register_card.s4', "البحث والتصفية")}
+        description={t('purchases.purchases_workspace.purchases_register_card.s5', "ابدأ بالبحث، ثم اختر نوع الفواتير المطلوب عرضه.")}
         actions={<span className="nav-pill">{props.activeFilterLabel}</span>}
         meta={
           <div className="purchases-register-meta-grid">
-            <span className="toolbar-meta-pill">النتائج: {props.totalItems}</span>
-            <span className="toolbar-meta-pill">الإجمالي: {formatCurrency(props.summary?.totalAmount || 0)}</span>
-            <span className="toolbar-meta-pill">المعروض: {props.rangeStart}-{props.rangeEnd}</span>
+            <span className="toolbar-meta-pill">{t('purchases.purchases_workspace.purchases_register_card.s6', "النتائج:")} {props.totalItems}</span>
+            <span className="toolbar-meta-pill">{t('purchases.purchases_workspace.purchases_register_card.s7', "الإجمالي:")} {formatCurrency(props.summary?.totalAmount || 0)}</span>
+            <span className="toolbar-meta-pill">{t('purchases.purchases_workspace.purchases_register_card.s8', "المعروض:")} {props.rangeStart}-{props.rangeEnd}</span>
           </div>
         }
         className="purchases-register-toolbar"
         onReset={props.resetPurchasesView}
-        resetLabel="تفريغ"
+        resetLabel={t('purchases.purchases_workspace.purchases_register_card.s9', "تفريغ")}
       >
         <div className="filter-chip-row toolbar-chip-row purchases-filter-row">
-          <Button variant={props.viewFilter === 'all' ? 'primary' : 'secondary'} onClick={() => props.setViewFilter('all')}>الكل</Button>
-          <Button variant={props.viewFilter === 'cash' ? 'primary' : 'secondary'} onClick={() => props.setViewFilter('cash')}>نقدي</Button>
-          <Button variant={props.viewFilter === 'credit' ? 'primary' : 'secondary'} onClick={() => props.setViewFilter('credit')}>آجل</Button>
-          <Button variant={props.viewFilter === 'cancelled' ? 'primary' : 'secondary'} onClick={() => props.setViewFilter('cancelled')}>ملغاة</Button>
+          <Button variant={props.viewFilter === 'all' ? 'primary' : 'secondary'} onClick={() => props.setViewFilter('all')}>{t('purchases.purchases_workspace.purchases_register_card.s10', "الكل")}</Button>
+          <Button variant={props.viewFilter === 'cash' ? 'primary' : 'secondary'} onClick={() => props.setViewFilter('cash')}>{t('purchases.purchases_workspace.purchases_register_card.s11', "نقدي")}</Button>
+          <Button variant={props.viewFilter === 'credit' ? 'primary' : 'secondary'} onClick={() => props.setViewFilter('credit')}>{t('purchases.purchases_workspace.purchases_register_card.s12', "آجل")}</Button>
+          <Button variant={props.viewFilter === 'cancelled' ? 'primary' : 'secondary'} onClick={() => props.setViewFilter('cancelled')}>{t('purchases.purchases_workspace.purchases_register_card.s13', "ملغاة")}</Button>
         </div>
       </SearchToolbar>
 
@@ -84,9 +86,9 @@ export function PurchasesRegisterCard(props: Props) {
         isError={queryState.isError}
         error={queryState.error}
         isEmpty={!props.rows.length && !queryState.isLoading}
-        loadingText="جاري تحميل فواتير الشراء..."
-        emptyTitle="لا توجد فواتير شراء مطابقة"
-        emptyHint="أضف أول فاتورة من نموذج الإنشاء أو غيّر البحث الحالي."
+        loadingText={t('purchases.purchases_workspace.purchases_register_card.s14', "جاري تحميل فواتير الشراء...")}
+        emptyTitle={t('purchases.purchases_workspace.purchases_register_card.s15', "لا توجد فواتير شراء مطابقة")}
+        emptyHint={t('purchases.purchases_workspace.purchases_register_card.s16', "أضف أول فاتورة من نموذج الإنشاء أو غيّر البحث الحالي.")}
       >
         <PurchasesTable
           rows={props.rows}
@@ -110,7 +112,7 @@ export function PurchasesRegisterCard(props: Props) {
             props.setPageSize(nextPageSize);
             props.setPage(1);
           }}
-          itemLabel="فاتورة"
+          itemLabel={t('purchases.purchases_workspace.purchases_register_card.s17', "فاتورة")}
         />
       </QueryFeedback>
     </section>

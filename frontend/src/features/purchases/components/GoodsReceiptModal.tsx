@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React, { useState, useEffect } from 'react';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { goodsReceiptsApi } from '../api/goods-receipts.api';
@@ -51,6 +52,7 @@ export const GoodsReceiptModal: React.FC<GoodsReceiptModalProps> = ({
   initialItems,
   onSuccess,
 }) => {
+  const { t } = useTranslation();
   const [deliveryRef, setDeliveryRef] = useState('');
   const [notes, setNotes] = useState('');
   const [autoPost, setAutoPost] = useState(true);
@@ -175,20 +177,20 @@ export const GoodsReceiptModal: React.FC<GoodsReceiptModalProps> = ({
     <StandardDialog
       open={open}
       onClose={onClose}
-      title={poDocNo ? `إذن استلام مخزني رسمي (GRN) — أمر الشراء #${poDocNo}` : 'إذن استلام مخزني رسمي (GRN)'}
-      subtitle="إثبات استلام الأصناف بالمستودع، فحص الجودة، وحساب وسيط التوريدات غير المفوترة (GRNI)"
+      title={poDocNo ? `إذن استلام مخزني رسمي (GRN) — أمر الشراء #${poDocNo}` : t('purchases.goods_receipt_modal.s0', "إذن استلام مخزني رسمي (GRN)")}
+      subtitle={t('purchases.goods_receipt_modal.s1', "إثبات استلام الأصناف بالمستودع، فحص الجودة، وحساب وسيط التوريدات غير المفوترة (GRNI)")}
       maxWidth="min(1080px, 96vw)"
       footerActions={
         <StandardDialogFooter
           onCancel={onClose}
-          cancelLabel="إلغاء"
+          cancelLabel={t('purchases.goods_receipt_modal.s2', "إلغاء")}
           onSubmit={handleSubmit}
           submitLabel={
             isSubmitting
-              ? 'جاري التسجيل...'
+              ? t('purchases.goods_receipt_modal.s3', "جاري التسجيل...")
               : autoPost
-              ? 'تأكيد وترحيل فوري (تغذية المخزن وقيد GRNI)'
-              : 'حفظ إذن الاستلام كمسودة'
+              ? t('purchases.goods_receipt_modal.s4', "تأكيد وترحيل فوري (تغذية المخزن وقيد GRNI)")
+              : t('purchases.goods_receipt_modal.s5', "حفظ إذن الاستلام كمسودة")
           }
           isSubmitting={isSubmitting}
         />
@@ -209,20 +211,20 @@ export const GoodsReceiptModal: React.FC<GoodsReceiptModalProps> = ({
           }}
         >
           <div>
-            <span style={{ color: '#64748b', display: 'block', fontSize: '11px' }}>المورد</span>
+            <span style={{ color: '#64748b', display: 'block', fontSize: '11px' }}>{t('purchases.goods_receipt_modal.s6', "المورد")}</span>
             <strong style={{ color: '#0f172a' }}>{supplierName}</strong>
           </div>
           {poDocNo && (
             <div>
-              <span style={{ color: '#64748b', display: 'block', fontSize: '11px' }}>أمر الشراء المرجعي</span>
+              <span style={{ color: '#64748b', display: 'block', fontSize: '11px' }}>{t('purchases.goods_receipt_modal.s7', "أمر الشراء المرجعي")}</span>
               <strong style={{ color: '#0284c7' }}>#{poDocNo}</strong>
             </div>
           )}
           <div>
-            <span style={{ color: '#64748b', display: 'block', fontSize: '11px' }}>رقم إذن تسليم المورد (DN Ref)</span>
+            <span style={{ color: '#64748b', display: 'block', fontSize: '11px' }}>{t('purchases.goods_receipt_modal.s8', "رقم إذن تسليم المورد (DN Ref)")}</span>
             <input
               type="text"
-              placeholder="مثال: DN-98421"
+              placeholder={t('purchases.goods_receipt_modal.s9', "مثال: DN-98421")}
               value={deliveryRef}
               onChange={(e) => setDeliveryRef(e.target.value)}
               style={{
@@ -237,8 +239,8 @@ export const GoodsReceiptModal: React.FC<GoodsReceiptModalProps> = ({
             />
           </div>
           <div>
-            <span style={{ color: '#64748b', display: 'block', fontSize: '11px' }}>قيمة البضاعة المقبولة المتوقعة</span>
-            <strong style={{ color: '#166534', fontSize: '13px' }}>{totalAcceptedAmount.toLocaleString()} ج.م</strong>
+            <span style={{ color: '#64748b', display: 'block', fontSize: '11px' }}>{t('purchases.goods_receipt_modal.s10', "قيمة البضاعة المقبولة المتوقعة")}</span>
+            <strong style={{ color: '#166534', fontSize: '13px' }}>{totalAcceptedAmount.toLocaleString()} {t('purchases.goods_receipt_modal.s11', "ج.م")}</strong>
           </div>
         </div>
 
@@ -273,14 +275,14 @@ export const GoodsReceiptModal: React.FC<GoodsReceiptModalProps> = ({
               }}
             >
               <tr>
-                <th style={{ padding: '8px 10px' }}>الصنف</th>
-                <th style={{ padding: '8px 10px', textAlign: 'center', width: '70px' }}>المطلوب</th>
-                <th style={{ padding: '8px 10px', textAlign: 'center', width: '80px' }}>المستلم</th>
-                <th style={{ padding: '8px 10px', textAlign: 'center', width: '80px', color: '#166534' }}>المقبول</th>
-                <th style={{ padding: '8px 10px', textAlign: 'center', width: '80px', color: '#b91c1c' }}>المرفوض</th>
-                <th style={{ padding: '8px 10px', width: '140px' }}>سبب الرفض</th>
-                <th style={{ padding: '8px 10px', width: '100px' }}>رقم التشغيلة</th>
-                <th style={{ padding: '8px 10px', width: '110px' }}>الصلاحية</th>
+                <th style={{ padding: '8px 10px' }}>{t('purchases.goods_receipt_modal.s12', "الصنف")}</th>
+                <th style={{ padding: '8px 10px', textAlign: 'center', width: '70px' }}>{t('purchases.goods_receipt_modal.s13', "المطلوب")}</th>
+                <th style={{ padding: '8px 10px', textAlign: 'center', width: '80px' }}>{t('purchases.goods_receipt_modal.s14', "المستلم")}</th>
+                <th style={{ padding: '8px 10px', textAlign: 'center', width: '80px', color: '#166534' }}>{t('purchases.goods_receipt_modal.s15', "المقبول")}</th>
+                <th style={{ padding: '8px 10px', textAlign: 'center', width: '80px', color: '#b91c1c' }}>{t('purchases.goods_receipt_modal.s16', "المرفوض")}</th>
+                <th style={{ padding: '8px 10px', width: '140px' }}>{t('purchases.goods_receipt_modal.s17', "سبب الرفض")}</th>
+                <th style={{ padding: '8px 10px', width: '100px' }}>{t('purchases.goods_receipt_modal.s18', "رقم التشغيلة")}</th>
+                <th style={{ padding: '8px 10px', width: '110px' }}>{t('purchases.goods_receipt_modal.s19', "الصلاحية")}</th>
               </tr>
             </thead>
             <tbody>
@@ -295,7 +297,7 @@ export const GoodsReceiptModal: React.FC<GoodsReceiptModalProps> = ({
                   <td style={{ padding: '8px 10px', fontWeight: 600, color: '#0f172a' }}>
                     <div>{l.productName}</div>
                     <span style={{ fontSize: '11px', color: '#64748b' }}>
-                      {l.unitCost.toLocaleString()} ج.م / {l.unitName || 'قطعة'}
+                      {l.unitCost.toLocaleString()} {t('purchases.goods_receipt_modal.s20', "ج.م /")} {l.unitName || t('purchases.goods_receipt_modal.s21', "قطعة")}
                     </span>
                   </td>
                   <td style={{ padding: '8px 10px', textAlign: 'center', fontWeight: 700, color: '#475569' }}>
@@ -363,7 +365,7 @@ export const GoodsReceiptModal: React.FC<GoodsReceiptModalProps> = ({
                   <td style={{ padding: '6px 8px' }}>
                     <input
                       type="text"
-                      placeholder={l.rejectedQty > 0 ? 'سبب الرفض إلزامي' : 'ملاحظات الرفض'}
+                      placeholder={l.rejectedQty > 0 ? t('purchases.goods_receipt_modal.s22', "سبب الرفض إلزامي") : t('purchases.goods_receipt_modal.s23', "ملاحظات الرفض")}
                       value={l.rejectionReason}
                       onChange={(e) => handleLineChange(idx, 'rejectionReason', e.target.value)}
                       disabled={l.rejectedQty === 0}
@@ -446,13 +448,13 @@ export const GoodsReceiptModal: React.FC<GoodsReceiptModalProps> = ({
               onChange={(e) => setAutoPost(e.target.checked)}
               style={{ width: '16px', height: '16px', cursor: 'pointer' }}
             />
-            <span>ترحيل فوري للمخزن وتوليد قيد GRNI (Dr. مخزون 1140 / Cr. وسيط التوريدات 2125)</span>
+            <span>{t('purchases.goods_receipt_modal.s24', "ترحيل فوري للمخزن وتوليد قيد GRNI (Dr. مخزون 1140 / Cr. وسيط التوريدات 2125)")}</span>
           </label>
 
           <div style={{ flex: 1, minWidth: '220px' }}>
             <input
               type="text"
-              placeholder="ملاحظات إضافية على إذن الاستلام..."
+              placeholder={t('purchases.goods_receipt_modal.s25', "ملاحظات إضافية على إذن الاستلام...")}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               style={{

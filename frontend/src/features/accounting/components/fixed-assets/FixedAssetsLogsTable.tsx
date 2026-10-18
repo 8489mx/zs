@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 import { formatCurrency } from '@/lib/format';
 
@@ -6,35 +7,36 @@ interface FixedAssetsLogsTableProps {
 }
 
 export const FixedAssetsLogsTable: React.FC<FixedAssetsLogsTableProps> = ({ logs }) => {
+  const { t } = useTranslation();
   return (
     <section className="document-prototype-section">
       <div className="section-header-compact-row">
-        <h3 className="document-prototype-section-title">سجل عمليات الإهلاك والقيود اليومية الآلية</h3>
+        <h3 className="document-prototype-section-title">{t('accounting.fixed_assets.fixed_assets_logs_table.s0', "سجل عمليات الإهلاك والقيود اليومية الآلية")}</h3>
         <div className="section-header-actions-group">
-          <span className="nav-pill">{logs.length} قيد محاسبي</span>
+          <span className="nav-pill">{logs.length} {t('accounting.fixed_assets.fixed_assets_logs_table.s1', "قيد محاسبي")}</span>
         </div>
       </div>
       <p className="muted small section-header-subtitle">
-        سجل القيود المحاسبية المولدة آلياً في شجرة الحسابات مع أرقام القيود ومجمعات الإهلاك.
+        {t('accounting.fixed_assets.fixed_assets_logs_table.s2', "سجل القيود المحاسبية المولدة آلياً في شجرة الحسابات مع أرقام القيود ومجمعات الإهلاك.")}
       </p>
       <div style={{ overflowX: 'auto', marginTop: '14px' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right', fontSize: '13.5px' }}>
           <thead>
             <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0', color: '#475569' }}>
-              <th style={{ padding: '10px 12px' }}>تاريخ العملية</th>
-              <th style={{ padding: '10px 12px' }}>الأصل</th>
-              <th style={{ padding: '10px 12px' }}>قيمة الإهلاك</th>
-              <th style={{ padding: '10px 12px' }}>مجمع الإهلاك الجديد</th>
-              <th style={{ padding: '10px 12px' }}>القيمة الدفترية المتبقية</th>
-              <th style={{ padding: '10px 12px' }}>رقم القيد المحاسبي</th>
-              <th style={{ padding: '10px 12px' }}>البيان / الملاحظة</th>
+              <th style={{ padding: '10px 12px' }}>{t('accounting.fixed_assets.fixed_assets_logs_table.s3', "تاريخ العملية")}</th>
+              <th style={{ padding: '10px 12px' }}>{t('accounting.fixed_assets.fixed_assets_logs_table.s4', "الأصل")}</th>
+              <th style={{ padding: '10px 12px' }}>{t('accounting.fixed_assets.fixed_assets_logs_table.s5', "قيمة الإهلاك")}</th>
+              <th style={{ padding: '10px 12px' }}>{t('accounting.fixed_assets.fixed_assets_logs_table.s6', "مجمع الإهلاك الجديد")}</th>
+              <th style={{ padding: '10px 12px' }}>{t('accounting.fixed_assets.fixed_assets_logs_table.s7', "القيمة الدفترية المتبقية")}</th>
+              <th style={{ padding: '10px 12px' }}>{t('accounting.fixed_assets.fixed_assets_logs_table.s8', "رقم القيد المحاسبي")}</th>
+              <th style={{ padding: '10px 12px' }}>{t('accounting.fixed_assets.fixed_assets_logs_table.s9', "البيان / الملاحظة")}</th>
             </tr>
           </thead>
           <tbody>
             {logs.length === 0 ? (
               <tr>
                 <td colSpan={7} style={{ textAlign: 'center', padding: '40px', color: '#94a3b8' }}>
-                  لا توجد قيود إهلاك مسجلة حتى الآن.
+                  {t('accounting.fixed_assets.fixed_assets_logs_table.s10', "لا توجد قيود إهلاك مسجلة حتى الآن.")}
                 </td>
               </tr>
             ) : (

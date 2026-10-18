@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { XIcon } from '@/shared/components/icons/AppIcons';
 import { useState, useEffect } from 'react';
@@ -24,6 +25,7 @@ export function GenericSubstitutesModal({
   originalTradeName,
   onSelectSubstitute,
 }: Props) {
+  const { t } = useTranslation();
   const [substitutes, setSubstitutes] = useState<PharmacyDrug[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -41,16 +43,16 @@ export function GenericSubstitutesModal({
   if (!open) return null;
 
   return (
-    <DialogShell open={open} onClose={onClose} width="min(720px, 95vw)" ariaLabel="بدائل ومثائل الدواء">
+    <DialogShell open={open} onClose={onClose} width="min(720px, 95vw)" ariaLabel={t('pharmacy.generic_substitutes_modal.s0', "بدائل ومثائل الدواء")}>
       <div dir="rtl" style={{ background: '#ffffff', borderRadius: '10px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0', paddingBottom: '12px' }}>
           <div>
             <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: '#0f172a' }}>
-              بدائل ومثائل الدواء (Generic Substitutes)
+              {t('pharmacy.generic_substitutes_modal.s1', "بدائل ومثائل الدواء (Generic Substitutes)")}
             </h3>
             <p style={{ margin: '2px 0 0', fontSize: '0.78rem', color: '#64748b' }}>
-              المادة الفعالة: <strong style={{ color: 'var(--primary, #1e1b4b)' }}>{activeIngredient}</strong> {strength ? ('(' + strength + ')') : ''}
-              {originalTradeName ? (' • الدواء المطلوب: ' + originalTradeName) : ''}
+              {t('pharmacy.generic_substitutes_modal.s2', "المادة الفعالة:")} <strong style={{ color: 'var(--primary, #1e1b4b)' }}>{activeIngredient}</strong> {strength ? ('(' + strength + ')') : ''}
+              {originalTradeName ? (t('pharmacy.generic_substitutes_modal.s3', " • الدواء المطلوب: ") + originalTradeName) : ''}
             </p>
           </div>
           <button
@@ -62,15 +64,15 @@ export function GenericSubstitutesModal({
 
         <div style={{ maxHeight: '420px', overflowY: 'auto' }}>
           {loading ? (
-            <div style={{ padding: '36px', textAlign: 'center', color: '#64748b' }}>جاري البحث عن البدائل والمثائل المتوفرة...</div>
+            <div style={{ padding: '36px', textAlign: 'center', color: '#64748b' }}>{t('pharmacy.generic_substitutes_modal.s4', "جاري البحث عن البدائل والمثائل المتوفرة...")}</div>
           ) : substitutes.length === 0 ? (
             <div style={{ padding: '36px', textAlign: 'center', background: '#f8fafc', borderRadius: '8px', border: '1px dashed #cbd5e1' }}>
               <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '8px' }}>
                 <IconPill size={32} color="#94a3b8" />
               </div>
-              <strong style={{ color: '#334155' }}>لم يتم العثور على بدائل مسجلة بنفس المادة الفعالة</strong>
+              <strong style={{ color: '#334155' }}>{t('pharmacy.generic_substitutes_modal.s5', "لم يتم العثور على بدائل مسجلة بنفس المادة الفعالة")}</strong>
               <p style={{ margin: '6px 0 0 0', fontSize: '0.78rem', color: '#64748b' }}>
-                يمكنك تسجيل بدائل أخرى من دليل الأدوية أو البحث بتركيز مختلف.
+                {t('pharmacy.generic_substitutes_modal.s6', "يمكنك تسجيل بدائل أخرى من دليل الأدوية أو البحث بتركيز مختلف.")}
               </p>
             </div>
           ) : (
@@ -95,12 +97,12 @@ export function GenericSubstitutesModal({
                       {drug.controlled_level !== 'none' && (
                         <span style={{ fontSize: '0.7rem', background: '#fee2e2', color: '#dc2626', border: '1px solid #fca5a5', padding: '1px 6px', borderRadius: '4px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
                           <IconShield size={12} />
-                          <span>جدول أدوية</span>
+                          <span>{t('pharmacy.generic_substitutes_modal.s7', "جدول أدوية")}</span>
                         </span>
                       )}
                     </div>
                     <div style={{ fontSize: '0.76rem', color: '#64748b', marginTop: '3px' }}>
-                      {drug.dosage_form} • {drug.manufacturer || 'شركة عامة'} • {drug.units_per_box} {drug.unit_name}/علبة
+                      {drug.dosage_form} • {drug.manufacturer || t('pharmacy.generic_substitutes_modal.s8', "شركة عامة")} • {drug.units_per_box} {drug.unit_name}{t('pharmacy.generic_substitutes_modal.s9', "/علبة")}
                     </div>
                   </div>
 
@@ -125,7 +127,7 @@ export function GenericSubstitutesModal({
                           onClose();
                         }}
                       >
-                        اختيار
+                        {t('pharmacy.generic_substitutes_modal.s10', "اختيار")}
                       </Button>
                     )}
                   </div>
@@ -137,7 +139,7 @@ export function GenericSubstitutesModal({
 
         <div style={{ display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid #f1f5f9', paddingTop: '12px' }}>
           <Button variant="secondary" onClick={onClose}>
-            إغلاق
+            {t('pharmacy.generic_substitutes_modal.s11', "إغلاق")}
           </Button>
         </div>
       </div>

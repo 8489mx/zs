@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useMemo, useEffect } from 'react';
 import { StorefrontCategory } from '../types/storefront.types';
 import { getAutoProductPhoto, generatePremiumProductSvg } from '../lib/storefront-photo-matcher';
@@ -73,6 +74,7 @@ export function StorefrontCategoriesModal({
   selectedCategoryId,
   onSelectCategory,
 }: StorefrontCategoriesModalProps) {
+  const { t } = useTranslation();
   const [modalSearch, setModalSearch] = useState('');
   const [activeGroup, setActiveGroup] = useState<string>('');
 
@@ -140,7 +142,7 @@ export function StorefrontCategoriesModal({
       width="min(1240px, 95vw)"
       maxHeight="min(88vh, 780px)"
       shellClassName="storefront-cat-modal-shell"
-      ariaLabel="جميع أقسام وتصنيفات المتجر"
+      ariaLabel={t('storefront.storefront_categories_modal.s0', "جميع أقسام وتصنيفات المتجر")}
     >
       <div className="full-bleed storefront-cat-modal-root">
         {/* Top Header Bar: Clean & Integrated */}
@@ -164,10 +166,10 @@ export function StorefrontCategoriesModal({
             </div>
             <div>
               <h2 style={{ margin: 0, fontSize: '14.5px', fontWeight: 900, color: '#0f172a', lineHeight: 1.2 }}>
-                تصفح أقسام المتجر
+                {t('storefront.storefront_categories_modal.s1', "تصفح أقسام المتجر")}
               </h2>
               <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>
-                {categories.length} قسماً وتصنيفاً معتمداً
+                {categories.length} {t('storefront.storefront_categories_modal.s2', "قسماً وتصنيفاً معتمداً")}
               </span>
             </div>
           </div>
@@ -178,7 +180,7 @@ export function StorefrontCategoriesModal({
               type="text"
               value={modalSearch}
               onChange={(e) => setModalSearch(e.target.value)}
-              placeholder="ابحث عن اسم القسم أو الماركة..."
+              placeholder={t('storefront.storefront_categories_modal.s3', "ابحث عن اسم القسم أو الماركة...")}
               style={{
                 width: '100%',
                 padding: '8px 36px 8px 12px',
@@ -224,7 +226,7 @@ export function StorefrontCategoriesModal({
                   fontWeight: 700,
                 }}
               >
-                مسح
+                {t('storefront.storefront_categories_modal.s4', "مسح")}
               </button>
             )}
           </div>
@@ -234,7 +236,7 @@ export function StorefrontCategoriesModal({
             type="button"
             onClick={onClose}
             className="storefront-cat-modal-close-btn"
-            title="إغلاق (Esc)"
+            title={t('storefront.storefront_categories_modal.s5', "إغلاق (Esc)")}
           >
             <IconClose size={15} strokeWidth={2.2} />
           </button>
@@ -255,10 +257,10 @@ export function StorefrontCategoriesModal({
               background: '#ffffff',
             }}
             className="storefront-cat-modal-chip"
-            title="عرض جميع أصناف المتجر بدون فلترة"
+            title={t('storefront.storefront_categories_modal.s6', "عرض جميع أصناف المتجر بدون فلترة")}
           >
             <IconShoppingBag size={11} strokeWidth={2.2} />
-            <span>الكل</span>
+            <span>{t('storefront.storefront_categories_modal.s7', "الكل")}</span>
             <span className="storefront-cat-modal-chip-badge">{totalAllCount}</span>
           </button>
 
@@ -367,7 +369,7 @@ export function StorefrontCategoriesModal({
                     <IconShoppingBag size={14} color="#ffffff" strokeWidth={2.2} />
                   </div>
                   <span style={{ fontSize: '12.5px', fontWeight: 800 }}>
-                    جميع المنتجات
+                    {t('storefront.storefront_categories_modal.s8', "جميع المنتجات")}
                   </span>
                 </div>
                 <span
@@ -397,7 +399,7 @@ export function StorefrontCategoriesModal({
                 }}
               >
                 <span style={{ width: '3px', height: '10px', backgroundColor: '#94a3b8', borderRadius: '2px', display: 'inline-block' }} />
-                <span>فئات وأقسام المتجر</span>
+                <span>{t('storefront.storefront_categories_modal.s9', "فئات وأقسام المتجر")}</span>
               </div>
 
               {/* Category Families or Categories List */}
@@ -554,7 +556,7 @@ export function StorefrontCategoriesModal({
                       ? `نتائج البحث عن «${modalSearch}»`
                       : hasMultipleFamilies
                         ? activeGroup
-                        : 'أقسام وتصنيفات المتجر'}
+                        : t('storefront.storefront_categories_modal.s10', "أقسام وتصنيفات المتجر")}
                   </span>
                 </h3>
                 <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 500, marginTop: '2px', display: 'block' }}>
@@ -562,8 +564,8 @@ export function StorefrontCategoriesModal({
                     `تم العثور على ${displayedCategories.length} قسماً مطابقاً للبحث`
                   ) : (
                     <>
-                      <span>اختر القسم لتصفح الأصناف المعروضة</span>{' '}
-                      <span style={{ whiteSpace: 'nowrap' }}>({displayedCategories.length} متاح)</span>
+                      <span>{t('storefront.storefront_categories_modal.s11', "اختر القسم لتصفح الأصناف المعروضة")}</span>{' '}
+                      <span style={{ whiteSpace: 'nowrap' }}>({displayedCategories.length} {t('storefront.storefront_categories_modal.s12', "متاح)")}</span>
                     </>
                   )}
                 </span>
@@ -583,7 +585,7 @@ export function StorefrontCategoriesModal({
                     flexShrink: 0,
                   }}
                 >
-                  إجمالي {currentFamilyObj.totalCount} صنف
+                  {t('storefront.storefront_categories_modal.s13', "إجمالي")} {currentFamilyObj.totalCount} {t('storefront.storefront_categories_modal.s14', "صنف")}
                 </span>
               )}
             </div>
@@ -659,7 +661,7 @@ export function StorefrontCategoriesModal({
                             boxShadow: '0 1px 2px rgba(15, 23, 42, 0.05)',
                           }}
                         >
-                          {count} {count === 1 ? 'صنف' : count === 2 ? 'صنفان' : count <= 10 ? 'أصناف' : 'صنف'}
+                          {count} {count === 1 ? t('storefront.storefront_categories_modal.s15', "صنف") : count === 2 ? t('storefront.storefront_categories_modal.s16', "صنفان") : count <= 10 ? t('storefront.storefront_categories_modal.s17', "أصناف") : t('storefront.storefront_categories_modal.s18', "صنف")}
                         </span>
                       </div>
 
@@ -728,10 +730,10 @@ export function StorefrontCategoriesModal({
               >
                 <IconFolder size={40} color="#cbd5e1" style={{ marginBottom: '10px' }} />
                 <div style={{ fontSize: '14.5px', fontWeight: 800, color: '#334155' }}>
-                  لا توجد أقسام تطابق «{modalSearch}»
+                  {t('storefront.storefront_categories_modal.s19', "لا توجد أقسام تطابق «")}{modalSearch}»
                 </div>
                 <div style={{ fontSize: '12px', marginTop: '4px', color: '#94a3b8' }}>
-                  تأكد من كتابة الكلمة بشكل صحيح أو اضغط على «مسح» للعودة.
+                  {t('storefront.storefront_categories_modal.s20', "تأكد من كتابة الكلمة بشكل صحيح أو اضغط على «مسح» للعودة.")}
                 </div>
               </div>
             )}

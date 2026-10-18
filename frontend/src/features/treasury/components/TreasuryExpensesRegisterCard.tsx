@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { DataTable } from '@/shared/ui/data-table';
 import { Button } from '@/shared/ui/button';
 import { SearchToolbar } from '@/shared/components/search-toolbar';
@@ -21,37 +22,38 @@ export function TreasuryExpensesRegisterCard({ expenseSearch, onExpenseSearchCha
   setExpensePageSize: (pageSize: number) => void;
   onOpenCreate?: () => void;
 }) {
+  const { t } = useTranslation();
   return (
     <section className="document-prototype-section expenses-register-section">
       <div className="section-header-compact-row">
-        <h3 className="document-prototype-section-title">سجل المصروفات</h3>
+        <h3 className="document-prototype-section-title">{t('treasury.treasury_expenses_register_card.s0', "سجل المصروفات")}</h3>
         <div className="section-header-actions-group">
           {onOpenCreate && (
             <Button variant="primary" onClick={onOpenCreate} className="section-header-action-btn">
-              + مصروف جديد
+              {t('treasury.treasury_expenses_register_card.s1', "+ مصروف جديد")}
             </Button>
           )}
           <Button variant="secondary" onClick={onReset} className="section-header-action-btn" style={{ marginInlineStart: '6px' }}>
-            إلغاء الفلاتر
+            {t('treasury.treasury_expenses_register_card.s2', "إلغاء الفلاتر")}
           </Button>
         </div>
       </div>
       <SearchToolbar
-        title="بحث وتصفية"
-        actions={<span className="nav-pill">العدد: {expenseSummary.totalItems}</span>}
+        title={t('treasury.treasury_expenses_register_card.s3', "بحث وتصفية")}
+        actions={<span className="nav-pill">{t('treasury.treasury_expenses_register_card.s4', "العدد:")} {expenseSummary.totalItems}</span>}
         search={expenseSearch}
         onSearchChange={onExpenseSearchChange}
-        searchPlaceholder={SINGLE_STORE_MODE ? 'ابحث باسم المصروف أو الملاحظات أو المخزن' : 'ابحث باسم المصروف أو الملاحظات أو الفرع'}
+        searchPlaceholder={SINGLE_STORE_MODE ? t('treasury.treasury_expenses_register_card.s5', "ابحث باسم المصروف أو الملاحظات أو المخزن") : t('treasury.treasury_expenses_register_card.s6', "ابحث باسم المصروف أو الملاحظات أو الفرع")}
         onReset={onReset}
-        resetLabel="تفريغ"
+        resetLabel={t('treasury.treasury_expenses_register_card.s7', "تفريغ")}
       />
-      <QueryFeedback isLoading={expensesQuery.isLoading} isError={expensesQuery.isError} error={expensesQuery.error} isEmpty={!expenseSummary.totalItems} loadingText="جاري تحميل المصروفات..." errorTitle="تعذر تحميل المصروفات" emptyTitle="لا توجد مصروفات مسجلة حاليًا" emptyHint="سجل أول مصروف من النموذج أعلاه وسيظهر هنا مباشرة.">
+      <QueryFeedback isLoading={expensesQuery.isLoading} isError={expensesQuery.isError} error={expensesQuery.error} isEmpty={!expenseSummary.totalItems} loadingText={t('treasury.treasury_expenses_register_card.s8', "جاري تحميل المصروفات...")} errorTitle={t('treasury.treasury_expenses_register_card.s9', "تعذر تحميل المصروفات")} emptyTitle={t('treasury.treasury_expenses_register_card.s10', "لا توجد مصروفات مسجلة حاليًا")} emptyHint={t('treasury.treasury_expenses_register_card.s11', "سجل أول مصروف من النموذج أعلاه وسيظهر هنا مباشرة.")}>
           <DataTable 
             rows={expenses} 
             columns={[
               { 
                 key: 'title', 
-                header: 'المصروف', 
+                header: t('treasury.treasury_expenses_register_card.s12', "المصروف"), 
                 cell: (row: ExpenseRecord) => (
                   <strong style={{ color: '#0f172a', fontWeight: 700, fontSize: '0.86rem', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={row.title}>
                     {row.title}
@@ -60,7 +62,7 @@ export function TreasuryExpensesRegisterCard({ expenseSearch, onExpenseSearchCha
               },
               { 
                 key: 'amount', 
-                header: 'المبلغ', 
+                header: t('treasury.treasury_expenses_register_card.s13', "المبلغ"), 
                 cell: (row: ExpenseRecord) => (
                   <span style={{ color: '#dc2626', fontWeight: 800, fontSize: '0.88rem', direction: 'ltr', display: 'inline-block' }}>
                     {formatCurrency(row.amount)}
@@ -69,7 +71,7 @@ export function TreasuryExpensesRegisterCard({ expenseSearch, onExpenseSearchCha
               },
               { 
                 key: 'note', 
-                header: 'ملاحظات', 
+                header: t('treasury.treasury_expenses_register_card.s14', "ملاحظات"), 
                 cell: (row: ExpenseRecord) => (
                   <div 
                     title={row.note || ''}
@@ -93,7 +95,7 @@ export function TreasuryExpensesRegisterCard({ expenseSearch, onExpenseSearchCha
               },
               { 
                 key: 'scope', 
-                header: SINGLE_STORE_MODE ? 'المخزن' : 'الفرع/المخزن', 
+                header: SINGLE_STORE_MODE ? t('treasury.treasury_expenses_register_card.s15', "المخزن") : t('treasury.treasury_expenses_register_card.s16', "الفرع/المخزن"), 
                 cell: (row: ExpenseRecord) => (
                   <span style={{ fontSize: '0.8rem', color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'block' }} title={formatScopeLabel(row)}>
                     {formatScopeLabel(row)}
@@ -102,7 +104,7 @@ export function TreasuryExpensesRegisterCard({ expenseSearch, onExpenseSearchCha
               },
               { 
                 key: 'user', 
-                header: 'المنفذ', 
+                header: t('treasury.treasury_expenses_register_card.s17', "المنفذ"), 
                 cell: (row: ExpenseRecord) => (
                   <span style={{ fontSize: '0.78rem', color: '#334155', fontWeight: 600, background: '#f1f5f9', padding: '2px 7px', borderRadius: '4px', display: 'inline-block', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={row.createdBy || ''}>
                     {row.createdBy || '—'}
@@ -111,7 +113,7 @@ export function TreasuryExpensesRegisterCard({ expenseSearch, onExpenseSearchCha
               },
               { 
                 key: 'date', 
-                header: 'التاريخ والوقت', 
+                header: t('treasury.treasury_expenses_register_card.s18', "التاريخ والوقت"), 
                 cell: (row: ExpenseRecord) => (
                   <span style={{ fontSize: '0.82rem', color: '#64748b', whiteSpace: 'nowrap', display: 'inline-block', minWidth: '150px', paddingInlineEnd: '12px' }}>
                     {formatDate(row.date)}
@@ -120,7 +122,7 @@ export function TreasuryExpensesRegisterCard({ expenseSearch, onExpenseSearchCha
               }
             ]} 
           />
-          <PaginationControls page={expensePagination?.page || 1} totalPages={expensePagination?.totalPages || 1} pageSize={expensePagination?.pageSize || expensePageSize} pageSizeOptions={[10,20,50,100]} totalItems={expensePagination?.totalItems || 0} rangeStart={expensePagination?.rangeStart || 0} rangeEnd={expensePagination?.rangeEnd || 0} onPageChange={setExpensePage} onPageSizeChange={(value) => { setExpensePageSize(value); setExpensePage(1); }} itemLabel="مصروف" />
+          <PaginationControls page={expensePagination?.page || 1} totalPages={expensePagination?.totalPages || 1} pageSize={expensePagination?.pageSize || expensePageSize} pageSizeOptions={[10,20,50,100]} totalItems={expensePagination?.totalItems || 0} rangeStart={expensePagination?.rangeStart || 0} rangeEnd={expensePagination?.rangeEnd || 0} onPageChange={setExpensePage} onPageSizeChange={(value) => { setExpensePageSize(value); setExpensePage(1); }} itemLabel={t('treasury.treasury_expenses_register_card.s19', "مصروف")} />
         </QueryFeedback>
     </section>
   );

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { StandardDialog } from '@/shared/components/StandardDialog';
@@ -35,6 +36,7 @@ export function PosTableReservationsModal({
   tablesCount = 30,
   onSeatGuest,
 }: PosTableReservationsModalProps) {
+  const { t: __t } = useTranslation();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<'reservations' | 'waitlist'>('reservations');
   const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().slice(0, 10));
@@ -146,8 +148,8 @@ export function PosTableReservationsModal({
     <StandardDialog
       open={open}
       onClose={onClose}
-      title="إدارة وتدفق حجوزات الطاولات (Table Reservations)"
-      subtitle="تنظيم حجوزات الصالة، إجلاس الضيوف، ومطابقة الطاولات اللحظية لمنع التضارب"
+      title={__t('pos.pos_workspace.pos_table_reservations_modal.s0', __t('pos.pos_workspace.pos_table_reservations_modal.s0', "إدارة وتدفق حجوزات الطاولات (Table Reservations)"))}
+      subtitle={__t('pos.pos_workspace.pos_table_reservations_modal.s1', __t('pos.pos_workspace.pos_table_reservations_modal.s1', "تنظيم حجوزات الصالة، إجلاس الضيوف، ومطابقة الطاولات اللحظية لمنع التضارب"))}
       width="1060px"
       bodyStyle={{ padding: '16px 20px', minHeight: '520px', maxHeight: '82vh', overflowY: 'auto' }}
     >
@@ -173,7 +175,7 @@ export function PosTableReservationsModal({
             }}
           >
             <CalendarIcon size={14} color={activeTab === 'reservations' ? '#170e5e' : '#64748b'} />
-            <span>حجوزات الصالة المسبقة</span>
+            <span>{__t('pos.pos_workspace.pos_table_reservations_modal.s2', __t('pos.pos_workspace.pos_table_reservations_modal.s2', "حجوزات الصالة المسبقة"))}</span>
             <span style={{
               background: activeTab === 'reservations' ? '#170e5e' : '#e2e8f0',
               color: activeTab === 'reservations' ? '#ffffff' : '#475569',
@@ -204,7 +206,7 @@ export function PosTableReservationsModal({
             }}
           >
             <ClockIcon size={14} color={activeTab === 'waitlist' ? '#170e5e' : '#64748b'} />
-            <span>قائمة الانتظار اللحظية (Waitlist)</span>
+            <span>{__t('pos.pos_workspace.pos_table_reservations_modal.s3', __t('pos.pos_workspace.pos_table_reservations_modal.s3', "قائمة الانتظار اللحظية (Waitlist)"))}</span>
             <span style={{
               background: activeTab === 'waitlist' ? '#ea580c' : '#e2e8f0',
               color: activeTab === 'waitlist' ? '#ffffff' : '#475569',
@@ -222,19 +224,19 @@ export function PosTableReservationsModal({
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
           <div style={{ display: 'flex', gap: '8px' }}>
             <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '8px 14px', minWidth: '110px' }}>
-              <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>إجمالي {activeTab === 'reservations' ? 'الحجوزات' : 'الانتظار'}</div>
+              <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>{__t('pos.pos_workspace.pos_table_reservations_modal.s4', __t('pos.pos_workspace.pos_table_reservations_modal.s4', "إجمالي"))} {activeTab === 'reservations' ? __t('pos.pos_workspace.pos_table_reservations_modal.s5', __t('pos.pos_workspace.pos_table_reservations_modal.s5', "الحجوزات")) : __t('pos.pos_workspace.pos_table_reservations_modal.s6', __t('pos.pos_workspace.pos_table_reservations_modal.s6', "الانتظار"))}</div>
               <div style={{ fontSize: '18px', fontWeight: 800, color: '#0f172a' }}>{displayedList.length}</div>
             </div>
             <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '10px', padding: '8px 14px', minWidth: '110px' }}>
-              <div style={{ fontSize: '11px', color: '#1d4ed8', fontWeight: 600 }}>{activeTab === 'reservations' ? 'مؤكدة (بانتظار الوصول)' : 'بانتظار طاولة'}</div>
+              <div style={{ fontSize: '11px', color: '#1d4ed8', fontWeight: 600 }}>{activeTab === 'reservations' ? __t('pos.pos_workspace.pos_table_reservations_modal.s7', __t('pos.pos_workspace.pos_table_reservations_modal.s7', "مؤكدة (بانتظار الوصول)")) : __t('pos.pos_workspace.pos_table_reservations_modal.s8', __t('pos.pos_workspace.pos_table_reservations_modal.s8', "بانتظار طاولة"))}</div>
               <div style={{ fontSize: '18px', fontWeight: 800, color: '#1e40af' }}>{confirmedCount}</div>
             </div>
             <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '10px', padding: '8px 14px', minWidth: '110px' }}>
-              <div style={{ fontSize: '11px', color: '#15803d', fontWeight: 600 }}>تم الإجلاس (بالصالة)</div>
+              <div style={{ fontSize: '11px', color: '#15803d', fontWeight: 600 }}>{__t('pos.pos_workspace.pos_table_reservations_modal.s9', __t('pos.pos_workspace.pos_table_reservations_modal.s9', "تم الإجلاس (بالصالة)"))}</div>
               <div style={{ fontSize: '18px', fontWeight: 800, color: '#166534' }}>{seatedCount}</div>
             </div>
             <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '10px', padding: '8px 14px', minWidth: '110px' }}>
-              <div style={{ fontSize: '11px', color: '#b91c1c', fontWeight: 600 }}>ملغية / مغادرة</div>
+              <div style={{ fontSize: '11px', color: '#b91c1c', fontWeight: 600 }}>{__t('pos.pos_workspace.pos_table_reservations_modal.s10', __t('pos.pos_workspace.pos_table_reservations_modal.s10', "ملغية / مغادرة"))}</div>
               <div style={{ fontSize: '18px', fontWeight: 800, color: '#991b1b' }}>{cancelledCount}</div>
             </div>
           </div>
@@ -271,10 +273,10 @@ export function PosTableReservationsModal({
               <PlusCircleIcon size={15} color="#ffffff" />
               <span>
                 {isAddingNew
-                  ? 'إلغاء النموذج'
+                  ? __t('pos.pos_workspace.pos_table_reservations_modal.s11', __t('pos.pos_workspace.pos_table_reservations_modal.s11', "إلغاء النموذج"))
                   : activeTab === 'waitlist'
-                  ? 'إضافة ضيف لقائمة الانتظار'
-                  : 'تسجيل حجز جديد'}
+                  ? __t('pos.pos_workspace.pos_table_reservations_modal.s12', __t('pos.pos_workspace.pos_table_reservations_modal.s12', "إضافة ضيف لقائمة الانتظار"))
+                  : __t('pos.pos_workspace.pos_table_reservations_modal.s13', __t('pos.pos_workspace.pos_table_reservations_modal.s13', "تسجيل حجز جديد"))}
               </span>
             </button>
           </div>
@@ -296,19 +298,19 @@ export function PosTableReservationsModal({
           >
             <div style={{ fontSize: '13px', fontWeight: 800, color: '#170e5e', display: 'flex', alignItems: 'center', gap: '6px' }}>
               <SlidersIcon size={14} color="#170e5e" />
-              <span>{activeTab === 'waitlist' ? 'بيانات إضافة ضيف لقائمة الانتظار اللحظية' : 'بيانات حجز الطاولة المسبق'}</span>
+              <span>{activeTab === 'waitlist' ? __t('pos.pos_workspace.pos_table_reservations_modal.s14', __t('pos.pos_workspace.pos_table_reservations_modal.s14', "بيانات إضافة ضيف لقائمة الانتظار اللحظية")) : __t('pos.pos_workspace.pos_table_reservations_modal.s15', __t('pos.pos_workspace.pos_table_reservations_modal.s15', "بيانات حجز الطاولة المسبق"))}</span>
             </div>
 
             {activeTab === 'waitlist' ? (
               <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 140px 1.5fr auto', gap: '12px', alignItems: 'flex-end' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
-                    اسم الضيف *
+                    {__t('pos.pos_workspace.pos_table_reservations_modal.s16', __t('pos.pos_workspace.pos_table_reservations_modal.s16', "اسم الضيف *"))}
                   </label>
                   <input
                     type="text"
                     required
-                    placeholder="مثال: تركي الشمري"
+                    placeholder={__t('pos.pos_workspace.pos_table_reservations_modal.s17', __t('pos.pos_workspace.pos_table_reservations_modal.s17', "مثال: تركي الشمري"))}
                     value={guestName}
                     onChange={(e) => setGuestName(e.target.value)}
                     style={{ width: '100%', height: '35px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '12.5px' }}
@@ -317,7 +319,7 @@ export function PosTableReservationsModal({
 
                 <div>
                   <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
-                    رقم الجوال
+                    {__t('pos.pos_workspace.pos_table_reservations_modal.s18', __t('pos.pos_workspace.pos_table_reservations_modal.s18', "رقم الجوال"))}
                   </label>
                   <input
                     type="tel"
@@ -330,7 +332,7 @@ export function PosTableReservationsModal({
 
                 <div>
                   <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
-                    عدد الأفراد
+                    {__t('pos.pos_workspace.pos_table_reservations_modal.s19', __t('pos.pos_workspace.pos_table_reservations_modal.s19', "عدد الأفراد"))}
                   </label>
                   <div style={{ display: 'inline-flex', alignItems: 'center', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', height: '35px', width: '100%', justifyContent: 'space-between' }}>
                     <button
@@ -355,11 +357,11 @@ export function PosTableReservationsModal({
 
                 <div>
                   <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
-                    تفضيل الجلسة / ملاحظات
+                    {__t('pos.pos_workspace.pos_table_reservations_modal.s20', __t('pos.pos_workspace.pos_table_reservations_modal.s20', "تفضيل الجلسة / ملاحظات"))}
                   </label>
                   <input
                     type="text"
-                    placeholder="مثال: جلسة عائلية / أطفال / كراسي أطفال"
+                    placeholder={__t('pos.pos_workspace.pos_table_reservations_modal.s21', __t('pos.pos_workspace.pos_table_reservations_modal.s21', "مثال: جلسة عائلية / أطفال / كراسي أطفال"))}
                     value={specialRequests}
                     onChange={(e) => setSpecialRequests(e.target.value)}
                     style={{ width: '100%', height: '35px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '12.5px' }}
@@ -382,7 +384,7 @@ export function PosTableReservationsModal({
                     whiteSpace: 'nowrap',
                   }}
                 >
-                  {createMutation.isPending ? 'جاري الإضافة...' : 'تسجيل بالانتظار'}
+                  {createMutation.isPending ? __t('pos.pos_workspace.pos_table_reservations_modal.s22', __t('pos.pos_workspace.pos_table_reservations_modal.s22', "جاري الإضافة...")) : __t('pos.pos_workspace.pos_table_reservations_modal.s23', __t('pos.pos_workspace.pos_table_reservations_modal.s23', "تسجيل بالانتظار"))}
                 </button>
               </div>
             ) : (
@@ -390,7 +392,7 @@ export function PosTableReservationsModal({
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1.2fr', gap: '12px' }}>
                   <div>
                     <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
-                      رقم الطاولة
+                      {__t('pos.pos_workspace.pos_table_reservations_modal.s24', __t('pos.pos_workspace.pos_table_reservations_modal.s24', "رقم الطاولة"))}
                     </label>
                     <select
                       value={tableNumber}
@@ -398,19 +400,19 @@ export function PosTableReservationsModal({
                       style={{ width: '100%', height: '35px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 8px', fontSize: '12.5px', fontWeight: 700 }}
                     >
                       {Array.from({ length: tablesCount }, (_, i) => String(i + 1)).map((t) => (
-                        <option key={t} value={t}>طاولة رقم {t}</option>
+                        <option key={t} value={t}>{__t('pos.pos_workspace.pos_table_reservations_modal.s25', __t('pos.pos_workspace.pos_table_reservations_modal.s25', "طاولة رقم"))} {t}</option>
                       ))}
                     </select>
                   </div>
 
                   <div>
                     <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
-                      اسم الضيف / العميل *
+                      {__t('pos.pos_workspace.pos_table_reservations_modal.s26', __t('pos.pos_workspace.pos_table_reservations_modal.s26', "اسم الضيف / العميل *"))}
                     </label>
                     <input
                       type="text"
                       required
-                      placeholder="مثال: أحمد عبد الله"
+                      placeholder={__t('pos.pos_workspace.pos_table_reservations_modal.s27', __t('pos.pos_workspace.pos_table_reservations_modal.s27', "مثال: أحمد عبد الله"))}
                       value={guestName}
                       onChange={(e) => setGuestName(e.target.value)}
                       style={{ width: '100%', height: '35px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '12.5px' }}
@@ -419,7 +421,7 @@ export function PosTableReservationsModal({
 
                   <div>
                     <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
-                      رقم الجوال
+                      {__t('pos.pos_workspace.pos_table_reservations_modal.s28', __t('pos.pos_workspace.pos_table_reservations_modal.s28', "رقم الجوال"))}
                     </label>
                     <input
                       type="tel"
@@ -432,7 +434,7 @@ export function PosTableReservationsModal({
 
                   <div>
                     <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
-                      موعد الحجز (التاريخ والوقت) *
+                      {__t('pos.pos_workspace.pos_table_reservations_modal.s29', __t('pos.pos_workspace.pos_table_reservations_modal.s29', "موعد الحجز (التاريخ والوقت) *"))}
                     </label>
                     <input
                       type="datetime-local"
@@ -447,7 +449,7 @@ export function PosTableReservationsModal({
                 <div style={{ display: 'grid', gridTemplateColumns: '220px 1fr auto', gap: '12px', alignItems: 'flex-end' }}>
                   <div>
                     <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
-                      عدد الضيوف (Covers)
+                      {__t('pos.pos_workspace.pos_table_reservations_modal.s30', __t('pos.pos_workspace.pos_table_reservations_modal.s30', "عدد الضيوف (Covers)"))}
                     </label>
                     <div style={{ display: 'inline-flex', alignItems: 'center', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', height: '35px' }}>
                       <button
@@ -472,11 +474,11 @@ export function PosTableReservationsModal({
 
                   <div>
                     <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
-                      المناسبة / طلبات خاصة (اختياري)
+                      {__t('pos.pos_workspace.pos_table_reservations_modal.s31', __t('pos.pos_workspace.pos_table_reservations_modal.s31', "المناسبة / طلبات خاصة (اختياري)"))}
                     </label>
                     <input
                       type="text"
-                      placeholder="مثال: عشاء عمل / طاولة هادئة جانبية / عيد ميلاد"
+                      placeholder={__t('pos.pos_workspace.pos_table_reservations_modal.s32', __t('pos.pos_workspace.pos_table_reservations_modal.s32', "مثال: عشاء عمل / طاولة هادئة جانبية / عيد ميلاد"))}
                       value={specialRequests}
                       onChange={(e) => setSpecialRequests(e.target.value)}
                       style={{ width: '100%', height: '35px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '12.5px' }}
@@ -498,7 +500,7 @@ export function PosTableReservationsModal({
                       cursor: 'pointer',
                     }}
                   >
-                    {createMutation.isPending ? 'جاري الحفظ...' : 'تأكيد الحجز'}
+                    {createMutation.isPending ? __t('pos.pos_workspace.pos_table_reservations_modal.s33', __t('pos.pos_workspace.pos_table_reservations_modal.s33', "جاري الحفظ...")) : __t('pos.pos_workspace.pos_table_reservations_modal.s34', __t('pos.pos_workspace.pos_table_reservations_modal.s34', "تأكيد الحجز"))}
                   </button>
                 </div>
               </>
@@ -512,18 +514,18 @@ export function PosTableReservationsModal({
             <thead style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
               <tr>
                 <th style={{ padding: '10px 12px', fontWeight: 700, color: '#475569' }}>
-                  {activeTab === 'waitlist' ? 'الأسبقية' : 'الطاولة'}
+                  {activeTab === 'waitlist' ? __t('pos.pos_workspace.pos_table_reservations_modal.s35', __t('pos.pos_workspace.pos_table_reservations_modal.s35', "الأسبقية")) : __t('pos.pos_workspace.pos_table_reservations_modal.s36', __t('pos.pos_workspace.pos_table_reservations_modal.s36', "الطاولة"))}
                 </th>
-                <th style={{ padding: '10px 12px', fontWeight: 700, color: '#475569' }}>الضيف</th>
-                <th style={{ padding: '10px 12px', fontWeight: 700, color: '#475569' }}>الهاتف</th>
-                <th style={{ padding: '10px 12px', fontWeight: 700, color: '#475569' }}>الأفراد</th>
+                <th style={{ padding: '10px 12px', fontWeight: 700, color: '#475569' }}>{__t('pos.pos_workspace.pos_table_reservations_modal.s37', __t('pos.pos_workspace.pos_table_reservations_modal.s37', "الضيف"))}</th>
+                <th style={{ padding: '10px 12px', fontWeight: 700, color: '#475569' }}>{__t('pos.pos_workspace.pos_table_reservations_modal.s38', __t('pos.pos_workspace.pos_table_reservations_modal.s38', "الهاتف"))}</th>
+                <th style={{ padding: '10px 12px', fontWeight: 700, color: '#475569' }}>{__t('pos.pos_workspace.pos_table_reservations_modal.s39', __t('pos.pos_workspace.pos_table_reservations_modal.s39', "الأفراد"))}</th>
                 <th style={{ padding: '10px 12px', fontWeight: 700, color: '#475569' }}>
-                  {activeTab === 'waitlist' ? 'وقت التسجيل والانتظار' : 'التوقيت'}
+                  {activeTab === 'waitlist' ? __t('pos.pos_workspace.pos_table_reservations_modal.s40', __t('pos.pos_workspace.pos_table_reservations_modal.s40', "وقت التسجيل والانتظار")) : __t('pos.pos_workspace.pos_table_reservations_modal.s41', __t('pos.pos_workspace.pos_table_reservations_modal.s41', "التوقيت"))}
                 </th>
-                <th style={{ padding: '10px 12px', fontWeight: 700, color: '#475569' }}>الحالة</th>
-                <th style={{ padding: '10px 12px', fontWeight: 700, color: '#475569' }}>ملاحظات</th>
+                <th style={{ padding: '10px 12px', fontWeight: 700, color: '#475569' }}>{__t('pos.pos_workspace.pos_table_reservations_modal.s42', __t('pos.pos_workspace.pos_table_reservations_modal.s42', "الحالة"))}</th>
+                <th style={{ padding: '10px 12px', fontWeight: 700, color: '#475569' }}>{__t('pos.pos_workspace.pos_table_reservations_modal.s43', __t('pos.pos_workspace.pos_table_reservations_modal.s43', "ملاحظات"))}</th>
                 <th style={{ padding: '10px 12px', fontWeight: 700, color: '#475569', textAlign: 'center' }}>
-                  {activeTab === 'waitlist' ? 'تسكين الطاولة والإجراءات' : 'الإجراءات'}
+                  {activeTab === 'waitlist' ? __t('pos.pos_workspace.pos_table_reservations_modal.s44', __t('pos.pos_workspace.pos_table_reservations_modal.s44', "تسكين الطاولة والإجراءات")) : __t('pos.pos_workspace.pos_table_reservations_modal.s45', __t('pos.pos_workspace.pos_table_reservations_modal.s45', "الإجراءات"))}
                 </th>
               </tr>
             </thead>
@@ -531,14 +533,14 @@ export function PosTableReservationsModal({
               {isLoading ? (
                 <tr>
                   <td colSpan={8} style={{ padding: '36px', textAlign: 'center', color: '#64748b' }}>
-                    جاري تحميل البيانات...
+                    {__t('pos.pos_workspace.pos_table_reservations_modal.s46', __t('pos.pos_workspace.pos_table_reservations_modal.s46', "جاري تحميل البيانات..."))}
                   </td>
                 </tr>
               ) : displayedList.length === 0 ? (
                 <tr>
                   <td colSpan={8} style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
                     {activeTab === 'waitlist'
-                      ? 'لا يوجد ضيوف بقائمة الانتظار حالياً.'
+                      ? __t('pos.pos_workspace.pos_table_reservations_modal.s47', __t('pos.pos_workspace.pos_table_reservations_modal.s47', "لا يوجد ضيوف بقائمة الانتظار حالياً."))
                       : `لا توجد حجوزات مسجلة لهذا التاريخ (${selectedDate}). اضغط على "تسجيل حجز جديد" لإضافة حجز.`}
                   </td>
                 </tr>
@@ -550,25 +552,25 @@ export function PosTableReservationsModal({
 
                   let statusBadge = (
                     <span style={{ background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', padding: '2px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: 700 }}>
-                      {activeTab === 'waitlist' ? 'قيد الانتظار' : 'مؤكد'}
+                      {activeTab === 'waitlist' ? __t('pos.pos_workspace.pos_table_reservations_modal.s48', __t('pos.pos_workspace.pos_table_reservations_modal.s48', "قيد الانتظار")) : __t('pos.pos_workspace.pos_table_reservations_modal.s49', __t('pos.pos_workspace.pos_table_reservations_modal.s49', "مؤكد"))}
                     </span>
                   );
                   if (r.status === 'seated') {
                     statusBadge = (
                       <span style={{ background: '#f0fdf4', color: '#15803d', border: '1px solid #bbf7d0', padding: '2px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: 700 }}>
-                        جالس بالصالة
+                        {__t('pos.pos_workspace.pos_table_reservations_modal.s50', __t('pos.pos_workspace.pos_table_reservations_modal.s50', "جالس بالصالة"))}
                       </span>
                     );
                   } else if (r.status === 'cancelled') {
                     statusBadge = (
                       <span style={{ background: '#fef2f2', color: '#b91c1c', border: '1px solid #fecaca', padding: '2px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: 700 }}>
-                        {activeTab === 'waitlist' ? 'غادر' : 'ملغي'}
+                        {activeTab === 'waitlist' ? __t('pos.pos_workspace.pos_table_reservations_modal.s51', __t('pos.pos_workspace.pos_table_reservations_modal.s51', "غادر")) : __t('pos.pos_workspace.pos_table_reservations_modal.s52', __t('pos.pos_workspace.pos_table_reservations_modal.s52', "ملغي"))}
                       </span>
                     );
                   } else if (r.status === 'no_show') {
                     statusBadge = (
                       <span style={{ background: '#fff7ed', color: '#c2410c', border: '1px solid #fed7aa', padding: '2px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: 700 }}>
-                        لم يحضر
+                        {__t('pos.pos_workspace.pos_table_reservations_modal.s53', __t('pos.pos_workspace.pos_table_reservations_modal.s53', "لم يحضر"))}
                       </span>
                     );
                   }
@@ -601,7 +603,7 @@ export function PosTableReservationsModal({
                       <td style={{ padding: '10px 12px', fontWeight: 700, color: '#334155' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                           <UsersIcon size={13} color="#64748b" />
-                          <span>{r.guest_count} فرد</span>
+                          <span>{r.guest_count} {__t('pos.pos_workspace.pos_table_reservations_modal.s54', __t('pos.pos_workspace.pos_table_reservations_modal.s54', "فرد"))}</span>
                         </div>
                       </td>
                       <td style={{ padding: '10px 12px', fontWeight: 700, color: '#0f172a' }}>
@@ -617,7 +619,7 @@ export function PosTableReservationsModal({
                                 fontSize: '11px',
                                 fontWeight: 800,
                               }}>
-                                منذ {waitMinutes} د
+                                {__t('pos.pos_workspace.pos_table_reservations_modal.s55', __t('pos.pos_workspace.pos_table_reservations_modal.s55', "منذ"))} {waitMinutes} {__t('pos.pos_workspace.pos_table_reservations_modal.s56', __t('pos.pos_workspace.pos_table_reservations_modal.s56', "د"))}
                               </span>
                             )}
                           </div>
@@ -651,7 +653,7 @@ export function PosTableReservationsModal({
                                 }}
                               >
                                 {Array.from({ length: tablesCount }, (_, i) => String(i + 1)).map((t) => (
-                                  <option key={t} value={t}>طاولة {t}</option>
+                                  <option key={t} value={t}>{__t('pos.pos_workspace.pos_table_reservations_modal.s57', __t('pos.pos_workspace.pos_table_reservations_modal.s57', "طاولة"))} {t}</option>
                                 ))}
                               </select>
                               <button
@@ -671,10 +673,10 @@ export function PosTableReservationsModal({
                                   gap: '4px',
                                   whiteSpace: 'nowrap',
                                 }}
-                                title="إجلاس الضيف على الطاولة المحددة فوراً"
+                                title={__t('pos.pos_workspace.pos_table_reservations_modal.s58', __t('pos.pos_workspace.pos_table_reservations_modal.s58', "إجلاس الضيف على الطاولة المحددة فوراً"))}
                               >
                                 <CheckCircleIcon size={12} color="#ffffff" />
-                                <span>إجلاس بالطاولة</span>
+                                <span>{__t('pos.pos_workspace.pos_table_reservations_modal.s59', __t('pos.pos_workspace.pos_table_reservations_modal.s59', "إجلاس بالطاولة"))}</span>
                               </button>
                             </div>
                           )}
@@ -696,10 +698,10 @@ export function PosTableReservationsModal({
                                 alignItems: 'center',
                                 gap: '4px',
                               }}
-                              title="إجلاس الضيف وفتح الطاولة فورياً في شاشة البيع"
+                              title={__t('pos.pos_workspace.pos_table_reservations_modal.s60', __t('pos.pos_workspace.pos_table_reservations_modal.s60', "إجلاس الضيف وفتح الطاولة فورياً في شاشة البيع"))}
                             >
                               <CheckCircleIcon size={12} color="#ffffff" />
-                              <span>إجلاس الضيف</span>
+                              <span>{__t('pos.pos_workspace.pos_table_reservations_modal.s61', __t('pos.pos_workspace.pos_table_reservations_modal.s61', "إجلاس الضيف"))}</span>
                             </button>
                           )}
 
@@ -717,9 +719,9 @@ export function PosTableReservationsModal({
                                 fontWeight: 700,
                                 cursor: 'pointer',
                               }}
-                              title={activeTab === 'waitlist' ? 'مغادرة الانتظار' : 'إلغاء الحجز'}
+                              title={activeTab === 'waitlist' ? __t('pos.pos_workspace.pos_table_reservations_modal.s62', __t('pos.pos_workspace.pos_table_reservations_modal.s62', "مغادرة الانتظار")) : __t('pos.pos_workspace.pos_table_reservations_modal.s63', __t('pos.pos_workspace.pos_table_reservations_modal.s63', "إلغاء الحجز"))}
                             >
-                              {activeTab === 'waitlist' ? 'مغادرة' : 'إلغاء'}
+                              {activeTab === 'waitlist' ? __t('pos.pos_workspace.pos_table_reservations_modal.s64', __t('pos.pos_workspace.pos_table_reservations_modal.s64', "مغادرة")) : __t('pos.pos_workspace.pos_table_reservations_modal.s65', __t('pos.pos_workspace.pos_table_reservations_modal.s65', "إلغاء"))}
                             </button>
                           )}
 
@@ -733,7 +735,7 @@ export function PosTableReservationsModal({
                               cursor: 'pointer',
                               padding: '4px',
                             }}
-                            title="حذف السجل"
+                            title={__t('pos.pos_workspace.pos_table_reservations_modal.s66', __t('pos.pos_workspace.pos_table_reservations_modal.s66', "حذف السجل"))}
                           >
                             <TrashIcon size={13} color="#94a3b8" />
                           </button>

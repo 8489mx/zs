@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
 import { StandardDialog } from '@/shared/components/StandardDialog';
 import { Button } from '@/shared/ui/button';
@@ -23,6 +24,7 @@ interface ApplyMarginModalProps {
 }
 
 export function ApplyMarginModal({ open, rfq, bid, onClose, onSuccess }: ApplyMarginModalProps) {
+  const { t } = useTranslation();
   const { currencySymbol } = useSystemCurrency();
   const [customerName, setCustomerName] = useState(rfq?.customer_name || '');
   const [customerPhone, setCustomerPhone] = useState(rfq?.customer_phone || '');
@@ -126,7 +128,7 @@ export function ApplyMarginModal({ open, rfq, bid, onClose, onSuccess }: ApplyMa
     <StandardDialog
       open={open}
       onClose={onClose}
-      title="تطبيق الهامش الربحي وإصدار عرض السعر"
+      title={t('maritime_freight.apply_margin_modal.s0', "تطبيق الهامش الربحي وإصدار عرض السعر")}
       subtitle={`إصدار عرض سعر رسمي للعميل مبني على تسعيرة ${bid.shipping_line_name}`}
       width="min(800px, 95vw)"
       footerActions={
@@ -138,7 +140,7 @@ export function ApplyMarginModal({ open, rfq, bid, onClose, onSuccess }: ApplyMa
             disabled={isSubmitting}
             style={{ minWidth: '100px' }}
           >
-            إلغاء
+            {t('maritime_freight.apply_margin_modal.s1', "إلغاء")}
           </Button>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             {customerPhone && (
@@ -163,7 +165,7 @@ export function ApplyMarginModal({ open, rfq, bid, onClose, onSuccess }: ApplyMa
                 }}
               >
                 <MessageSquareIcon size={16} />
-                <span>حفظ ومشاركة فورية عبر واتساب</span>
+                <span>{t('maritime_freight.apply_margin_modal.s2', "حفظ ومشاركة فورية عبر واتساب")}</span>
               </button>
             )}
             <button
@@ -187,7 +189,7 @@ export function ApplyMarginModal({ open, rfq, bid, onClose, onSuccess }: ApplyMa
               }}
             >
               <CheckCircleIcon size={16} />
-              <span>{isSubmitting ? 'جارٍ إصدار العرض...' : 'حفظ وتوليد عرض السعر'}</span>
+              <span>{isSubmitting ? t('maritime_freight.apply_margin_modal.s3', "جارٍ إصدار العرض...") : t('maritime_freight.apply_margin_modal.s4', "حفظ وتوليد عرض السعر")}</span>
             </button>
           </div>
         </div>
@@ -243,7 +245,7 @@ export function ApplyMarginModal({ open, rfq, bid, onClose, onSuccess }: ApplyMa
                 <ShipIcon size={18} />
               </div>
               <div>
-                <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 600 }}>الخط الملاحي المعتمد</div>
+                <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 600 }}>{t('maritime_freight.apply_margin_modal.s5', "الخط الملاحي المعتمد")}</div>
                 <div style={{ fontSize: '0.98rem', fontWeight: 800, color: '#0f172a' }}>
                   {bid.shipping_line_name}
                 </div>
@@ -275,7 +277,7 @@ export function ApplyMarginModal({ open, rfq, bid, onClose, onSuccess }: ApplyMa
                   color: '#047857',
                 }}
               >
-                التكلفة الأصلية: ${baseCost.toLocaleString()} {bid.currency}
+                {t('maritime_freight.apply_margin_modal.s6', "التكلفة الأصلية: $")}{baseCost.toLocaleString()} {bid.currency}
               </span>
             </div>
           </div>
@@ -292,24 +294,24 @@ export function ApplyMarginModal({ open, rfq, bid, onClose, onSuccess }: ApplyMa
             }}
           >
             <div>
-              <span style={{ color: '#94a3b8' }}>المسار: </span>
+              <span style={{ color: '#94a3b8' }}>{t('maritime_freight.apply_margin_modal.s7', "المسار:")} </span>
               <strong>{rfq.pol_name}</strong> ← <strong>{rfq.pod_name}</strong>
             </div>
             <div>
-              <span style={{ color: '#94a3b8' }}>الحمولة: </span>
+              <span style={{ color: '#94a3b8' }}>{t('maritime_freight.apply_margin_modal.s8', "الحمولة:")} </span>
               <strong>{rfq.container_count}x {rfq.container_type}</strong>
             </div>
             <div>
-              <span style={{ color: '#94a3b8' }}>النولون البحري: </span>
+              <span style={{ color: '#94a3b8' }}>{t('maritime_freight.apply_margin_modal.s9', "النولون البحري:")} </span>
               <strong>${Number(bid.ocean_freight || 0).toLocaleString()}</strong>
             </div>
             <div>
-              <span style={{ color: '#94a3b8' }}>مصاريف الموانئ THC: </span>
+              <span style={{ color: '#94a3b8' }}>{t('maritime_freight.apply_margin_modal.s10', "مصاريف الموانئ THC:")} </span>
               <strong>${(Number(bid.thc_origin || 0) + Number(bid.thc_destination || 0)).toLocaleString()}</strong>
             </div>
             <div>
-              <span style={{ color: '#94a3b8' }}>فترة السماح: </span>
-              <strong>{bid.free_days || 0} يوم</strong>
+              <span style={{ color: '#94a3b8' }}>{t('maritime_freight.apply_margin_modal.s11', "فترة السماح:")} </span>
+              <strong>{bid.free_days || 0} {t('maritime_freight.apply_margin_modal.s12', "يوم")}</strong>
             </div>
           </div>
         </div>
@@ -324,15 +326,15 @@ export function ApplyMarginModal({ open, rfq, bid, onClose, onSuccess }: ApplyMa
           }}
         >
           <div style={{ fontSize: '0.84rem', fontWeight: 700, color: '#1e293b', marginBottom: '12px' }}>
-            بيانات العميل المستلم لعرض السعر
+            {t('maritime_freight.apply_margin_modal.s13', "بيانات العميل المستلم لعرض السعر")}
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '12px' }}>
-            <Field label="اسم العميل أو المنشأة *">
+            <Field label={t('maritime_freight.apply_margin_modal.s14', "اسم العميل أو المنشأة *")}>
               <input
                 type="text"
                 value={customerName}
                 onChange={(e) => setCustomerName(e.target.value)}
-                placeholder="مثال: شركة النور للاستيراد والتصدير"
+                placeholder={t('maritime_freight.apply_margin_modal.s15', "مثال: شركة النور للاستيراد والتصدير")}
                 style={{
                   width: '100%',
                   height: '38px',
@@ -346,7 +348,7 @@ export function ApplyMarginModal({ open, rfq, bid, onClose, onSuccess }: ApplyMa
               />
             </Field>
 
-            <Field label="رقم هاتف / واتساب العميل">
+            <Field label={t('maritime_freight.apply_margin_modal.s16', "رقم هاتف / واتساب العميل")}>
               <input
                 type="tel"
                 value={customerPhone}
@@ -367,7 +369,7 @@ export function ApplyMarginModal({ open, rfq, bid, onClose, onSuccess }: ApplyMa
               />
             </Field>
 
-            <Field label="البريد الإلكتروني للعميل">
+            <Field label={t('maritime_freight.apply_margin_modal.s17', "البريد الإلكتروني للعميل")}>
               <input
                 type="email"
                 value={customerEmail}
@@ -411,20 +413,20 @@ export function ApplyMarginModal({ open, rfq, bid, onClose, onSuccess }: ApplyMa
             }}
           >
             <TrendingUpIcon size={16} color="#170e5e" />
-            <span>محرك احتساب الهامش الربحي والتسعير</span>
+            <span>{t('maritime_freight.apply_margin_modal.s18', "محرك احتساب الهامش الربحي والتسعير")}</span>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '14px' }}>
-            <Field label="طريقة تطبيق الهامش">
+            <Field label={t('maritime_freight.apply_margin_modal.s19', "طريقة تطبيق الهامش")}>
               <CustomSelect
                 value={marginType}
                 onChange={(val) => setMarginType(val as 'fixed' | 'percentage')}
                 options={marginOptions}
-                placeholder="اختر طريقة الهامش..."
+                placeholder={t('maritime_freight.apply_margin_modal.s20', "اختر طريقة الهامش...")}
               />
             </Field>
 
-            <Field label={marginType === 'fixed' ? 'قيمة الهامش الربحي ($)' : 'نسبة الهامش المضافة (%)'}>
+            <Field label={marginType === 'fixed' ? t('maritime_freight.apply_margin_modal.s21', "قيمة الهامش الربحي ($)") : t('maritime_freight.apply_margin_modal.s22', "نسبة الهامش المضافة (%)")}>
               <input
                 type="number"
                 min={0}
@@ -443,7 +445,7 @@ export function ApplyMarginModal({ open, rfq, bid, onClose, onSuccess }: ApplyMa
               />
             </Field>
 
-            <Field label="سعر صرف العملة المرجعي">
+            <Field label={t('maritime_freight.apply_margin_modal.s23', "سعر صرف العملة المرجعي")}>
               <input
                 type="number"
                 step="0.01"
@@ -464,12 +466,12 @@ export function ApplyMarginModal({ open, rfq, bid, onClose, onSuccess }: ApplyMa
           </div>
 
           <div style={{ marginTop: '12px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '14px' }}>
-            <Field label="شرط ومحدد سعر الصرف (ROE Clause)">
+            <Field label={t('maritime_freight.apply_margin_modal.s24', "شرط ومحدد سعر الصرف (ROE Clause)")}>
               <input
                 type="text"
                 value={roeClause}
                 onChange={(e) => setRoeClause(e.target.value)}
-                placeholder="تُحاسب الرسوم بسعر صرف البنك المركزي..."
+                placeholder={t('maritime_freight.apply_margin_modal.s25', "تُحاسب الرسوم بسعر صرف البنك المركزي...")}
                 style={{
                   width: '100%',
                   height: '38px',
@@ -483,12 +485,12 @@ export function ApplyMarginModal({ open, rfq, bid, onClose, onSuccess }: ApplyMa
               />
             </Field>
 
-            <Field label="رقم القيد الجمركي المسبق نافذة (ACID)">
+            <Field label={t('maritime_freight.apply_margin_modal.s26', "رقم القيد الجمركي المسبق نافذة (ACID)")}>
               <input
                 type="text"
                 value={acidNumber}
                 onChange={(e) => setAcidNumber(e.target.value)}
-                placeholder="19 رقماً (لشحنات الوارد لمصر)"
+                placeholder={t('maritime_freight.apply_margin_modal.s27', "19 رقماً (لشحنات الوارد لمصر)")}
                 style={{
                   width: '100%',
                   height: '38px',
@@ -524,33 +526,33 @@ export function ApplyMarginModal({ open, rfq, bid, onClose, onSuccess }: ApplyMa
           {/* 1. التكلفة الأصلية */}
           <div style={{ borderInlineEnd: '1px solid #f1f5f9', paddingInlineEnd: '10px' }}>
             <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 600 }}>
-              تكلفة الخط الملاحي (Base Cost)
+              {t('maritime_freight.apply_margin_modal.s28', "تكلفة الخط الملاحي (Base Cost)")}
             </div>
             <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#1e293b', marginTop: '6px' }}>
               ${Math.round(baseCost).toLocaleString()}
             </div>
             <div style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: '2px' }}>
-              تكلفة نولون وموانئ رسمية
+              {t('maritime_freight.apply_margin_modal.s29', "تكلفة نولون وموانئ رسمية")}
             </div>
           </div>
 
           {/* 2. هامش الربح */}
           <div style={{ borderInlineEnd: '1px solid #f1f5f9', paddingInlineEnd: '10px' }}>
             <div style={{ fontSize: '0.74rem', color: '#059669', fontWeight: 700 }}>
-              هامش الربح المستهدف (Margin Markup)
+              {t('maritime_freight.apply_margin_modal.s30', "هامش الربح المستهدف (Margin Markup)")}
             </div>
             <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#059669', marginTop: '6px' }}>
               +${Math.round(profitAmount).toLocaleString()}
             </div>
             <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '2px' }}>
-              {marginType === 'percentage' ? `(${marginValue}% من التكلفة)` : 'مبلغ مقطوع مضاف'}
+              {marginType === 'percentage' ? `(${marginValue}% من التكلفة)` : t('maritime_freight.apply_margin_modal.s31', "مبلغ مقطوع مضاف")}
             </div>
           </div>
 
           {/* 3. الإجمالي النهائي للعميل */}
           <div>
             <div style={{ fontSize: '0.76rem', color: '#170e5e', fontWeight: 800 }}>
-              إجمالي عرض السعر للعميل (Total Price)
+              {t('maritime_freight.apply_margin_modal.s32', "إجمالي عرض السعر للعميل (Total Price)")}
             </div>
             <div style={{ fontSize: '1.38rem', fontWeight: 900, color: '#170e5e', marginTop: '6px' }}>
               ${Math.round(finalTotal).toLocaleString()}

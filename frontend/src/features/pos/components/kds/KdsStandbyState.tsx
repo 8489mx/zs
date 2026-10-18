@@ -1,7 +1,9 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 import { CheckShieldIcon, UtensilsIcon, CheckIcon } from '@/shared/components/icons/AppIcons';
 
 export const KdsStandbyState: React.FC = () => {
+  const { t } = useTranslation();
   return (
     <div
       style={{
@@ -63,11 +65,11 @@ export const KdsStandbyState: React.FC = () => {
               display: 'inline-block',
             }}
           />
-          <span>جميع محطات المطبخ متصلة وبوضع الجاهزية التامة</span>
+          <span>{t('pos.kds.kds_standby_state.s0', "جميع محطات المطبخ متصلة وبوضع الجاهزية التامة")}</span>
         </div>
 
         <h2 style={{ margin: '0 0 8px', fontSize: '20px', fontWeight: 900, color: '#0f172a' }}>
-          لا توجد طلبات معلقة بالمطبخ في الوقت الراهن
+          {t('pos.kds.kds_standby_state.s1', "لا توجد طلبات معلقة بالمطبخ في الوقت الراهن")}
         </h2>
         <p
           style={{
@@ -78,17 +80,17 @@ export const KdsStandbyState: React.FC = () => {
             lineHeight: 1.6,
           }}
         >
-          بمجرد تأكيد فواتير البيع من الكاشير أو إرسال الزبائن لطلبات الطاولات عبر رمز الـ QR، ستظهر تذاكر الوجبات هنا فورياً بالصوت والصورة لتوزيعها على المحطات.
+          {t('pos.kds.kds_standby_state.s2', "بمجرد تأكيد فواتير البيع من الكاشير أو إرسال الزبائن لطلبات الطاولات عبر رمز الـ QR، ستظهر تذاكر الوجبات هنا فورياً بالصوت والصورة لتوزيعها على المحطات.")}
         </p>
       </div>
 
       {/* Live Stations Monitor Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px' }}>
         {[
-          { name: 'المطبخ الساخن', status: 'جاهز ونشط', icon: <UtensilsIcon size={16} color="#170e5e" /> },
-          { name: 'المشويات والشواية', status: 'جاهز ونشط', icon: <UtensilsIcon size={16} color="#170e5e" /> },
-          { name: 'المشروبات والبار', status: 'جاهز ونشط', icon: <UtensilsIcon size={16} color="#170e5e" /> },
-          { name: 'المخبوزات والحلويات', status: 'جاهز ونشط', icon: <CheckIcon size={16} color="#170e5e" strokeWidth={2.5} /> },
+          { name: t('pos.kds.kds_standby_state.s3', "المطبخ الساخن"), status: t('pos.kds.kds_standby_state.s4', "جاهز ونشط"), icon: <UtensilsIcon size={16} color="#170e5e" /> },
+          { name: t('pos.kds.kds_standby_state.s5', "المشويات والشواية"), status: t('pos.kds.kds_standby_state.s6', "جاهز ونشط"), icon: <UtensilsIcon size={16} color="#170e5e" /> },
+          { name: t('pos.kds.kds_standby_state.s7', "المشروبات والبار"), status: t('pos.kds.kds_standby_state.s8', "جاهز ونشط"), icon: <UtensilsIcon size={16} color="#170e5e" /> },
+          { name: t('pos.kds.kds_standby_state.s9', "المخبوزات والحلويات"), status: t('pos.kds.kds_standby_state.s10', "جاهز ونشط"), icon: <CheckIcon size={16} color="#170e5e" strokeWidth={2.5} /> },
         ].map((st, idx) => (
           <div
             key={idx}

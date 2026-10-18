@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { getGlobalCurrencySymbol } from '@/lib/currencies';
 import React from 'react';
 import { DialogShell } from '@/shared/components/dialog-shell';
@@ -27,6 +28,7 @@ export const PrescriptionModal: React.FC<PrescriptionModalProps> = ({
   onSave,
   isPending,
 }) => {
+  const { t } = useTranslation();
   const handleApplyCopayPreset = (percent: number) => {
     const tot = Number(editingRx.total_amount || 0);
     const pat = tot * (percent / 100);
@@ -39,11 +41,11 @@ export const PrescriptionModal: React.FC<PrescriptionModalProps> = ({
   };
 
   return (
-    <DialogShell open={isOpen} onClose={onClose} width="min(760px, 95vw)" ariaLabel="صرف روشتة طبية وحساب التأمين الصحي">
+    <DialogShell open={isOpen} onClose={onClose} width="min(760px, 95vw)" ariaLabel={t('pharmacy.prescriptions.prescription_modal.s0', "صرف روشتة طبية وحساب التأمين الصحي")}>
       <div dir="rtl" style={{ background: '#ffffff', borderRadius: '10px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0', paddingBottom: '12px' }}>
           <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: '#0f172a' }}>
-            صرف روشتة طبية وحساب التأمين الصحي
+            {t('pharmacy.prescriptions.prescription_modal.s1', "صرف روشتة طبية وحساب التأمين الصحي")}
           </h3>
           <button
             type="button"
@@ -57,7 +59,7 @@ export const PrescriptionModal: React.FC<PrescriptionModalProps> = ({
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
             <div>
               <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '4px' }}>
-                اسم المريض <span style={{ color: '#dc2626' }}>*</span>
+                {t('pharmacy.prescriptions.prescription_modal.s2', "اسم المريض")} <span style={{ color: '#dc2626' }}>*</span>
               </label>
               <input
                 type="text"
@@ -65,14 +67,14 @@ export const PrescriptionModal: React.FC<PrescriptionModalProps> = ({
                 className="purchase-prototype-field-input"
                 value={editingRx.customer_name || ''}
                 onChange={(e) => setEditingRx({ ...editingRx, customer_name: e.target.value })}
-                placeholder="اسم المريض بالكامل..."
+                placeholder={t('pharmacy.prescriptions.prescription_modal.s3', "اسم المريض بالكامل...")}
                 style={{ width: '100%', boxSizing: 'border-box' }}
               />
             </div>
 
             <div>
               <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '4px' }}>
-                هاتف المريض
+                {t('pharmacy.prescriptions.prescription_modal.s4', "هاتف المريض")}
               </label>
               <input
                 type="text"
@@ -86,35 +88,35 @@ export const PrescriptionModal: React.FC<PrescriptionModalProps> = ({
 
             <div>
               <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '4px' }}>
-                اسم الطبيب المعالج
+                {t('pharmacy.prescriptions.prescription_modal.s5', "اسم الطبيب المعالج")}
               </label>
               <input
                 type="text"
                 className="purchase-prototype-field-input"
                 value={editingRx.doctor_name || ''}
                 onChange={(e) => setEditingRx({ ...editingRx, doctor_name: e.target.value })}
-                placeholder="د. أحمد..."
+                placeholder={t('pharmacy.prescriptions.prescription_modal.s6', "د. أحمد...")}
                 style={{ width: '100%', boxSizing: 'border-box' }}
               />
             </div>
 
             <div>
               <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '4px' }}>
-                التخصص الطبي
+                {t('pharmacy.prescriptions.prescription_modal.s7', "التخصص الطبي")}
               </label>
               <input
                 type="text"
                 className="purchase-prototype-field-input"
                 value={editingRx.doctor_specialty || ''}
                 onChange={(e) => setEditingRx({ ...editingRx, doctor_specialty: e.target.value })}
-                placeholder="باطنة / أطفال / عظام..."
+                placeholder={t('pharmacy.prescriptions.prescription_modal.s8', "باطنة / أطفال / عظام...")}
                 style={{ width: '100%', boxSizing: 'border-box' }}
               />
             </div>
 
             <div>
               <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '4px' }}>
-                شركة التأمين / التعاقد
+                {t('pharmacy.prescriptions.prescription_modal.s9', "شركة التأمين / التعاقد")}
               </label>
               <CustomSelect
                 value={editingRx.insurance_provider || INSURANCE_PROVIDERS[0]}
@@ -125,7 +127,7 @@ export const PrescriptionModal: React.FC<PrescriptionModalProps> = ({
 
             <div>
               <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '4px' }}>
-                كود الموافقة
+                {t('pharmacy.prescriptions.prescription_modal.s10', "كود الموافقة")}
               </label>
               <input
                 type="text"
@@ -141,7 +143,7 @@ export const PrescriptionModal: React.FC<PrescriptionModalProps> = ({
           {/* Quick Copay presets */}
           <div style={{ background: '#f8fafc', padding: '10px 14px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
             <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '6px' }}>
-              نسبة تحمل المريض (Co-Pay %):
+              {t('pharmacy.prescriptions.prescription_modal.s11', "نسبة تحمل المريض (Co-Pay %):")}
             </label>
             <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
               {COPAY_PRESETS.map((p) => (
@@ -152,7 +154,7 @@ export const PrescriptionModal: React.FC<PrescriptionModalProps> = ({
                   className={'btn btn-sm ' + (editingRx.patient_copay_percent === p ? 'btn-primary' : 'btn-secondary')}
                   style={{ padding: '3px 10px', fontSize: '0.75rem' }}
                 >
-                  {p === 0 ? '0% (كاش كامل)' : p === 100 ? '100% (تأمين كامل)' : p + '%'}
+                  {p === 0 ? t('pharmacy.prescriptions.prescription_modal.s12', "0% (كاش كامل)") : p === 100 ? t('pharmacy.prescriptions.prescription_modal.s13', "100% (تأمين كامل)") : p + '%'}
                 </button>
               ))}
             </div>
@@ -161,7 +163,7 @@ export const PrescriptionModal: React.FC<PrescriptionModalProps> = ({
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
             <div>
               <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '4px' }}>
-                إجمالي قيمة الأدوية ({getGlobalCurrencySymbol()}) <span style={{ color: '#dc2626' }}>*</span>
+                {t('pharmacy.prescriptions.prescription_modal.s14', "إجمالي قيمة الأدوية (")}{getGlobalCurrencySymbol()}) <span style={{ color: '#dc2626' }}>*</span>
               </label>
               <input
                 type="number"
@@ -186,7 +188,7 @@ export const PrescriptionModal: React.FC<PrescriptionModalProps> = ({
 
             <div>
               <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '4px' }}>
-                المطلوب سداده من المريض
+                {t('pharmacy.prescriptions.prescription_modal.s15', "المطلوب سداده من المريض")}
               </label>
               <input
                 type="number"
@@ -200,7 +202,7 @@ export const PrescriptionModal: React.FC<PrescriptionModalProps> = ({
 
             <div>
               <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '4px' }}>
-                مطالبة التأمين
+                {t('pharmacy.prescriptions.prescription_modal.s16', "مطالبة التأمين")}
               </label>
               <input
                 type="number"
@@ -214,10 +216,10 @@ export const PrescriptionModal: React.FC<PrescriptionModalProps> = ({
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '16px', borderTop: '1px solid #f1f5f9', paddingTop: '12px' }}>
-            <Button variant="secondary" onClick={onClose}>إلغاء</Button>
+            <Button variant="secondary" onClick={onClose}>{t('pharmacy.prescriptions.prescription_modal.s17', "إلغاء")}</Button>
             <Button variant="primary" type="submit" disabled={isPending} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
               <IconSave size={15} />
-              <span>{isPending ? 'جاري الحفظ...' : 'حفظ وصرف الروشتة'}</span>
+              <span>{isPending ? t('pharmacy.prescriptions.prescription_modal.s18', "جاري الحفظ...") : t('pharmacy.prescriptions.prescription_modal.s19', "حفظ وصرف الروشتة")}</span>
             </Button>
           </div>
         </form>

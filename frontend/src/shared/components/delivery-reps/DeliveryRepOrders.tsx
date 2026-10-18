@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { deliveryRepsApi } from '@/shared/api/delivery-reps.api';
@@ -17,6 +18,7 @@ function getLocalDateStr(date: Date = new Date()): string {
 }
 
 export function DeliveryRepOrders({ repId }: { repId: number | null }) {
+  const { t: __t } = useTranslation();
   const queryClient = useQueryClient();
   const [filterDateFrom, setFilterDateFrom] = useState('');
   const [filterDateTo, setFilterDateTo] = useState('');
@@ -76,7 +78,7 @@ export function DeliveryRepOrders({ repId }: { repId: number | null }) {
   if (!repId) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#64748b', padding: '40px' }}>
-        اختر مندوب من القائمة لعرض طلباته وتسويتها
+        {__t('shared.delivery_reps.delivery_rep_orders.s0', "اختر مندوب من القائمة لعرض طلباته وتسويتها")}
       </div>
     );
   }
@@ -88,27 +90,27 @@ export function DeliveryRepOrders({ repId }: { repId: number | null }) {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
         <div style={{ display: 'flex', gap: '16px', fontSize: '14px', color: '#475569', background: '#ffffff', padding: '12px 18px', borderRadius: '10px', border: '1px solid #cbd5e1', boxShadow: '0 2px 6px rgba(15, 23, 42, 0.03)' }}>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-            <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>إجمالي الطلبات</span>
+            <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>{__t('shared.delivery_reps.delivery_rep_orders.s1', "إجمالي الطلبات")}</span>
             <strong style={{ fontWeight: 800, color: '#0f172a', fontSize: '16px' }}>{summaryQuery.data?.totalOrders || 0}</strong>
           </div>
           <div style={{ width: '1px', background: '#e2e8f0' }}></div>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-            <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>تم تحصيله</span>
+            <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>{__t('shared.delivery_reps.delivery_rep_orders.s2', "تم تحصيله")}</span>
             <strong style={{ fontWeight: 800, color: '#15803d', fontSize: '16px' }}>{formatCurrency(summaryQuery.data?.collectedAmount || 0)}</strong>
           </div>
           <div style={{ width: '1px', background: '#e2e8f0' }}></div>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-            <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>متبقي للتحصيل (العهدة)</span>
+            <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>{__t('shared.delivery_reps.delivery_rep_orders.s3', "متبقي للتحصيل (العهدة)")}</span>
             <strong style={{ fontWeight: 800, color: '#dc2626', fontSize: '17px' }}>{formatCurrency(summaryQuery.data?.pendingAmount || 0)}</strong>
           </div>
         </div>
 
         <div style={{ background: '#fef2f2', padding: '12px 16px', borderRadius: '10px', border: '1px solid #fecaca', display: 'flex', flexDirection: 'column', gap: '6px', flex: '1 1 300px' }}>
-          <h4 style={{ margin: 0, fontSize: '13px', fontWeight: 800, color: '#991b1b' }}>تسوية سريعة لكل الطلبات المعلقة</h4>
+          <h4 style={{ margin: 0, fontSize: '13px', fontWeight: 800, color: '#991b1b' }}>{__t('shared.delivery_reps.delivery_rep_orders.s4', "تسوية سريعة لكل الطلبات المعلقة")}</h4>
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
             <input 
               type="number" 
-              placeholder="المبلغ المستلم من المندوب"
+              placeholder={__t('shared.delivery_reps.delivery_rep_orders.s5', "المبلغ المستلم من المندوب")}
               value={expectedAmountInput}
               onChange={(e) => setExpectedAmountInput(e.target.value)}
               style={{ padding: '6px 12px', border: '1px solid #fca5a5', borderRadius: '8px', flex: '1 1 160px', minHeight: '36px', background: '#ffffff', fontSize: '13px' }}
@@ -119,7 +121,7 @@ export function DeliveryRepOrders({ repId }: { repId: number | null }) {
               disabled={!expectedAmountInput || settleAllMutation.isPending || !summaryQuery.data?.pendingAmount}
               style={{ minHeight: '36px', padding: '0 16px', fontSize: '13px', fontWeight: 700, flexShrink: 0 }}
             >
-              {settleAllMutation.isPending ? 'جاري التسوية...' : 'تسوية الكل'}
+              {settleAllMutation.isPending ? __t('shared.delivery_reps.delivery_rep_orders.s6', "جاري التسوية...") : __t('shared.delivery_reps.delivery_rep_orders.s7', "تسوية الكل")}
             </Button>
           </div>
         </div>
@@ -141,7 +143,7 @@ export function DeliveryRepOrders({ repId }: { repId: number | null }) {
         }}
       >
         <span style={{ fontWeight: 700, color: '#475569', fontSize: '12px', whiteSpace: 'nowrap', flexShrink: 0 }}>
-          فلترة الطلبات:
+          {__t('shared.delivery_reps.delivery_rep_orders.s8', "فلترة الطلبات:")}
         </span>
         
         <input 
@@ -151,7 +153,7 @@ export function DeliveryRepOrders({ repId }: { repId: number | null }) {
           style={{ width: '135px', minWidth: '125px', padding: '4px 8px', border: '1px solid #cbd5e1', borderRadius: '7px', fontSize: '12px', background: '#ffffff', minHeight: '34px', flexShrink: 0 }} 
         />
 
-        <span style={{ color: '#64748b', fontSize: '12px', whiteSpace: 'nowrap', flexShrink: 0 }}>إلى</span>
+        <span style={{ color: '#64748b', fontSize: '12px', whiteSpace: 'nowrap', flexShrink: 0 }}>{__t('shared.delivery_reps.delivery_rep_orders.s9', "إلى")}</span>
 
         <input 
           type="date" 
@@ -165,9 +167,9 @@ export function DeliveryRepOrders({ repId }: { repId: number | null }) {
           onChange={(e) => setFilterStatus(e.target.value)} 
           style={{ width: '130px', minWidth: '110px', padding: '4px 8px', border: '1px solid #cbd5e1', borderRadius: '7px', fontSize: '12px', background: '#ffffff', minHeight: '34px', cursor: 'pointer', flexShrink: 0 }}
         >
-          <option value="">كل الحالات</option>
-          <option value="settled">تمت التسوية</option>
-          <option value="unsettled">معلق (لم يسدد)</option>
+          <option value="">{__t('shared.delivery_reps.delivery_rep_orders.s10', "كل الحالات")}</option>
+          <option value="settled">{__t('shared.delivery_reps.delivery_rep_orders.s11', "تمت التسوية")}</option>
+          <option value="unsettled">{__t('shared.delivery_reps.delivery_rep_orders.s12', "معلق (لم يسدد)")}</option>
         </select>
 
         <div style={{ marginInlineStart: 'auto', display: 'flex', gap: '6px', flexWrap: 'wrap', flexShrink: 0 }}>
@@ -185,7 +187,7 @@ export function DeliveryRepOrders({ repId }: { repId: number | null }) {
               fontWeight: 700
             }}
           >
-            الطلبات المعلقة
+            {__t('shared.delivery_reps.delivery_rep_orders.s13', "الطلبات المعلقة")}
           </Button>
           <Button 
             variant="secondary" 
@@ -200,7 +202,7 @@ export function DeliveryRepOrders({ repId }: { repId: number | null }) {
               whiteSpace: 'nowrap' 
             }}
           >
-            طلبات اليوم
+            {__t('shared.delivery_reps.delivery_rep_orders.s14', "طلبات اليوم")}
           </Button>
           {(filterDateFrom || filterDateTo || filterStatus) && (
             <Button 
@@ -208,7 +210,7 @@ export function DeliveryRepOrders({ repId }: { repId: number | null }) {
               onClick={() => { setFilterDateFrom(''); setFilterDateTo(''); setFilterStatus(''); }} 
               style={{ fontSize: '11px', minHeight: '32px', padding: '0 10px', whiteSpace: 'nowrap' }}
             >
-              عرض الكل (مسح الفلاتر)
+              {__t('shared.delivery_reps.delivery_rep_orders.s15', "عرض الكل (مسح الفلاتر)")}
             </Button>
           )}
         </div>
@@ -219,19 +221,19 @@ export function DeliveryRepOrders({ repId }: { repId: number | null }) {
         <table className="table" style={{ width: '100%', minWidth: '700px', margin: 0, fontSize: '13px' }}>
           <thead style={{ background: '#f8fafc' }}>
             <tr>
-              <th style={{ padding: '8px 4px', whiteSpace: 'nowrap' }}>رقم الطلب</th>
-              <th style={{ padding: '8px 4px', whiteSpace: 'nowrap' }}>التاريخ</th>
-              <th style={{ padding: '8px 4px' }}>العميل</th>
-              <th style={{ padding: '8px 4px', whiteSpace: 'nowrap' }}>الكاشير</th>
-              <th style={{ padding: '8px 4px' }}>حالة التحصيل</th>
-              <th style={{ padding: '8px 4px' }}>الإجمالي</th>
-              <th style={{ padding: '8px 4px' }}>مستلم المبلغ</th>
-              <th style={{ padding: '8px 4px', textAlign: 'center', whiteSpace: 'nowrap' }}>إجراء التسوية</th>
+              <th style={{ padding: '8px 4px', whiteSpace: 'nowrap' }}>{__t('shared.delivery_reps.delivery_rep_orders.s16', "رقم الطلب")}</th>
+              <th style={{ padding: '8px 4px', whiteSpace: 'nowrap' }}>{__t('shared.delivery_reps.delivery_rep_orders.s17', "التاريخ")}</th>
+              <th style={{ padding: '8px 4px' }}>{__t('shared.delivery_reps.delivery_rep_orders.s18', "العميل")}</th>
+              <th style={{ padding: '8px 4px', whiteSpace: 'nowrap' }}>{__t('shared.delivery_reps.delivery_rep_orders.s19', "الكاشير")}</th>
+              <th style={{ padding: '8px 4px' }}>{__t('shared.delivery_reps.delivery_rep_orders.s20', "حالة التحصيل")}</th>
+              <th style={{ padding: '8px 4px' }}>{__t('shared.delivery_reps.delivery_rep_orders.s21', "الإجمالي")}</th>
+              <th style={{ padding: '8px 4px' }}>{__t('shared.delivery_reps.delivery_rep_orders.s22', "مستلم المبلغ")}</th>
+              <th style={{ padding: '8px 4px', textAlign: 'center', whiteSpace: 'nowrap' }}>{__t('shared.delivery_reps.delivery_rep_orders.s23', "إجراء التسوية")}</th>
             </tr>
           </thead>
           <tbody>
-            {ordersQuery.isLoading && <tr><td colSpan={8} style={{ padding: '8px', textAlign: 'center', color: '#64748b' }}>جاري التحميل...</td></tr>}
-            {ordersQuery.data?.length === 0 && <tr><td colSpan={8} style={{ padding: '8px', textAlign: 'center', color: '#64748b' }}>لا يوجد طلبات مطابقة</td></tr>}
+            {ordersQuery.isLoading && <tr><td colSpan={8} style={{ padding: '8px', textAlign: 'center', color: '#64748b' }}>{__t('shared.delivery_reps.delivery_rep_orders.s24', "جاري التحميل...")}</td></tr>}
+            {ordersQuery.data?.length === 0 && <tr><td colSpan={8} style={{ padding: '8px', textAlign: 'center', color: '#64748b' }}>{__t('shared.delivery_reps.delivery_rep_orders.s25', "لا يوجد طلبات مطابقة")}</td></tr>}
             {ordersQuery.data?.map(order => {
               const isSettled = order.deliveryStatus === 'settled';
               return (
@@ -250,42 +252,42 @@ export function DeliveryRepOrders({ repId }: { repId: number | null }) {
                         textDecoration: 'underline',
                         fontSize: '13px'
                       }}
-                      title="انقر لعرض تفاصيل وأصناف الفاتورة"
+                      title={__t('shared.delivery_reps.delivery_rep_orders.s26', "انقر لعرض تفاصيل وأصناف الفاتورة")}
                     >
                       {order.docNo}
                     </button>
                   </td>
                   <td style={{ padding: '8px 4px', whiteSpace: 'nowrap' }}>{formatDateTimeArabic(order.createdAt)}</td>
-                  <td style={{ padding: '8px 4px' }}>{order.customerName || 'عميل نقدي'}</td>
+                  <td style={{ padding: '8px 4px' }}>{order.customerName || __t('shared.delivery_reps.delivery_rep_orders.s27', "عميل نقدي")}</td>
                   <td style={{ padding: '8px 4px', color: '#334155', fontWeight: 600, fontSize: '12px', whiteSpace: 'nowrap' }}>
-                    {order.createdByName || 'غير معروف'}
+                    {order.createdByName || __t('shared.delivery_reps.delivery_rep_orders.s28', "غير معروف")}
                   </td>
                   <td style={{ padding: '8px 4px' }}>
-                    {order.collectionStatus === 'cod' ? 'تحصيل من العميل' : 
-                     order.collectionStatus === 'prepaid_by_rep' ? 'خالص من المندوب' : 
-                     order.collectionStatus === 'prepaid_online' ? 'خالص أونلاين' : '-'}
+                    {order.collectionStatus === 'cod' ? __t('shared.delivery_reps.delivery_rep_orders.s29', "تحصيل من العميل") : 
+                     order.collectionStatus === 'prepaid_by_rep' ? __t('shared.delivery_reps.delivery_rep_orders.s30', "خالص من المندوب") : 
+                     order.collectionStatus === 'prepaid_online' ? __t('shared.delivery_reps.delivery_rep_orders.s31', "خالص أونلاين") : '-'}
                   </td>
                   <td style={{ padding: '8px 4px', whiteSpace: 'nowrap' }}>
                     <div style={{ fontWeight: 'bold', fontSize: '13px', color: '#0f172a' }}>{formatCurrency(order.total)}</div>
                     {Number(order.deliveryFee || 0) > 0 ? (
                       <div style={{ fontSize: '11px', color: '#059669', fontWeight: 600 }}>
-                        أجرة: {formatCurrency(Number(order.deliveryFee))}
+                        {__t('shared.delivery_reps.delivery_rep_orders.s32', "أجرة:")} {formatCurrency(Number(order.deliveryFee))}
                       </div>
                     ) : null}
                   </td>
                   <td style={{ padding: '8px 4px', color: '#64748b', fontSize: '12px' }}>
                     {order.collectionStatus === 'prepaid_online' || order.collectionStatus === 'prepaid_by_rep'
-                      ? (order.createdByName || 'كاشير البيع')
-                      : (isSettled ? (order.settledByName || 'غير معروف') : '-')}
+                      ? (order.createdByName || __t('shared.delivery_reps.delivery_rep_orders.s33', "كاشير البيع"))
+                      : (isSettled ? (order.settledByName || __t('shared.delivery_reps.delivery_rep_orders.s34', "غير معروف")) : '-')}
                   </td>
                   <td style={{ padding: '8px 4px', textAlign: 'center', whiteSpace: 'nowrap' }}>
                     {isSettled ? (
                       <span style={{ color: '#16a34a', fontSize: '13px', fontWeight: 'bold', background: '#dcfce7', padding: '4px 8px', borderRadius: '4px' }}>
-                        تم السداد
+                        {__t('shared.delivery_reps.delivery_rep_orders.s35', "تم السداد")}
                       </span>
                     ) : order.collectionStatus !== 'cod' ? (
                       <span style={{ color: '#64748b', fontSize: '13px' }}>
-                        مدفوع مسبقاً
+                        {__t('shared.delivery_reps.delivery_rep_orders.s36', "مدفوع مسبقاً")}
                       </span>
                     ) : (
                       <Button 
@@ -296,7 +298,7 @@ export function DeliveryRepOrders({ repId }: { repId: number | null }) {
                         disabled={settleOrderMutation.isPending}
                         style={{ fontSize: '12px', padding: '4px 12px' }}
                       >
-                        {settleOrderMutation.isPending ? '...' : 'تأكيد السداد'}
+                        {settleOrderMutation.isPending ? '...' : __t('shared.delivery_reps.delivery_rep_orders.s37', "تأكيد السداد")}
                       </Button>
                     )}
                   </td>
@@ -313,10 +315,10 @@ export function DeliveryRepOrders({ repId }: { repId: number | null }) {
           open={true}
           onClose={() => setViewingSaleId(null)}
           width="700px"
-          ariaLabel="تفاصيل الفاتورة"
+          ariaLabel={__t('shared.delivery_reps.delivery_rep_orders.s38', "تفاصيل الفاتورة")}
         >
           <Card
-            title={viewingSaleQuery.data ? `تفاصيل الفاتورة #${viewingSaleQuery.data.docNo || viewingSaleQuery.data.id}` : 'جاري التحميل...'}
+            title={viewingSaleQuery.data ? `تفاصيل الفاتورة #${viewingSaleQuery.data.docNo || viewingSaleQuery.data.id}` : __t('shared.delivery_reps.delivery_rep_orders.s39', "جاري التحميل...")}
             actions={
               <div style={{ display: 'flex', gap: '8px' }}>
                 {viewingSaleQuery.data && (
@@ -327,24 +329,24 @@ export function DeliveryRepOrders({ repId }: { repId: number | null }) {
                     }}
                     style={{ fontSize: '12px', padding: '4px 12px' }}
                   >
-                    طباعة الفاتورة
+                    {__t('shared.delivery_reps.delivery_rep_orders.s40', "طباعة الفاتورة")}
                   </Button>
                 )}
                 <Button variant="secondary" onClick={() => setViewingSaleId(null)} style={{ fontSize: '12px', padding: '4px 12px' }}>
-                  إغلاق
+                  {__t('shared.delivery_reps.delivery_rep_orders.s41', "إغلاق")}
                 </Button>
               </div>
             }
           >
             {viewingSaleQuery.isLoading ? (
-              <div style={{ padding: '30px', textAlign: 'center', color: '#64748b' }}>جاري تحميل تفاصيل الفاتورة...</div>
+              <div style={{ padding: '30px', textAlign: 'center', color: '#64748b' }}>{__t('shared.delivery_reps.delivery_rep_orders.s42', "جاري تحميل تفاصيل الفاتورة...")}</div>
             ) : viewingSaleQuery.data ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', fontSize: '13px' }}>
                 {/* Meta Grid */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '8px', background: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
                   <div>
-                    <span style={{ color: '#64748b', fontSize: '11px', display: 'block' }}>العميل</span>
-                    <strong>{viewingSaleQuery.data.customerName || 'عميل نقدي'}</strong>
+                    <span style={{ color: '#64748b', fontSize: '11px', display: 'block' }}>{__t('shared.delivery_reps.delivery_rep_orders.s43', "العميل")}</span>
+                    <strong>{viewingSaleQuery.data.customerName || __t('shared.delivery_reps.delivery_rep_orders.s44', "عميل نقدي")}</strong>
                     {viewingSaleQuery.data.customerPhone && (
                       <div style={{ fontSize: '11px', color: '#475569', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
                         <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -364,15 +366,15 @@ export function DeliveryRepOrders({ repId }: { repId: number | null }) {
                     )}
                   </div>
                   <div>
-                    <span style={{ color: '#64748b', fontSize: '11px', display: 'block' }}>الكاشير</span>
+                    <span style={{ color: '#64748b', fontSize: '11px', display: 'block' }}>{__t('shared.delivery_reps.delivery_rep_orders.s45', "الكاشير")}</span>
                     <strong>{viewingSaleQuery.data.cashierName || viewingSaleQuery.data.createdByName || '-'}</strong>
                   </div>
                   <div>
-                    <span style={{ color: '#64748b', fontSize: '11px', display: 'block' }}>المندوب</span>
+                    <span style={{ color: '#64748b', fontSize: '11px', display: 'block' }}>{__t('shared.delivery_reps.delivery_rep_orders.s46', "المندوب")}</span>
                     <strong>{viewingSaleQuery.data.deliveryRepName || '-'}</strong>
                   </div>
                   <div>
-                    <span style={{ color: '#64748b', fontSize: '11px', display: 'block' }}>التاريخ والوقت</span>
+                    <span style={{ color: '#64748b', fontSize: '11px', display: 'block' }}>{__t('shared.delivery_reps.delivery_rep_orders.s47', "التاريخ والوقت")}</span>
                     <strong style={{ direction: 'ltr', display: 'inline-block' }}>{formatDate(viewingSaleQuery.data.createdAt || viewingSaleQuery.data.date)}</strong>
                   </div>
                 </div>
@@ -382,10 +384,10 @@ export function DeliveryRepOrders({ repId }: { repId: number | null }) {
                   <table className="table" style={{ width: '100%', margin: 0, fontSize: '12px' }}>
                     <thead style={{ background: '#f1f5f9' }}>
                       <tr>
-                        <th style={{ padding: '6px 8px' }}>الصنف</th>
-                        <th style={{ padding: '6px 8px', textAlign: 'center' }}>الكمية</th>
-                        <th style={{ padding: '6px 8px', textAlign: 'center' }}>السعر</th>
-                        <th style={{ padding: '6px 8px', textAlign: 'left' }}>الإجمالي</th>
+                        <th style={{ padding: '6px 8px' }}>{__t('shared.delivery_reps.delivery_rep_orders.s48', "الصنف")}</th>
+                        <th style={{ padding: '6px 8px', textAlign: 'center' }}>{__t('shared.delivery_reps.delivery_rep_orders.s49', "الكمية")}</th>
+                        <th style={{ padding: '6px 8px', textAlign: 'center' }}>{__t('shared.delivery_reps.delivery_rep_orders.s50', "السعر")}</th>
+                        <th style={{ padding: '6px 8px', textAlign: 'left' }}>{__t('shared.delivery_reps.delivery_rep_orders.s51', "الإجمالي")}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -405,24 +407,24 @@ export function DeliveryRepOrders({ repId }: { repId: number | null }) {
                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '16px', background: '#f8fafc', padding: '10px 14px', borderRadius: '6px', border: '1px solid #e2e8f0', flexWrap: 'wrap' }}>
                   {Number(viewingSaleQuery.data.deliveryFee || 0) > 0 && (
                     <div style={{ color: '#059669', fontWeight: 600 }}>
-                      <span>أجرة التوصيل: </span>
+                      <span>{__t('shared.delivery_reps.delivery_rep_orders.s52', "أجرة التوصيل:")} </span>
                       <strong>{formatCurrency(Number(viewingSaleQuery.data.deliveryFee))}</strong>
                     </div>
                   )}
                   {Number(viewingSaleQuery.data.discount || 0) > 0 && (
                     <div style={{ color: '#dc2626', fontWeight: 600 }}>
-                      <span>الخصم: </span>
+                      <span>{__t('shared.delivery_reps.delivery_rep_orders.s53', "الخصم:")} </span>
                       <strong>{formatCurrency(Number(viewingSaleQuery.data.discount))}</strong>
                     </div>
                   )}
                   <div>
-                    <span style={{ fontWeight: 700, color: '#0f172a' }}>الإجمالي النهائي: </span>
+                    <span style={{ fontWeight: 700, color: '#0f172a' }}>{__t('shared.delivery_reps.delivery_rep_orders.s54', "الإجمالي النهائي:")} </span>
                     <strong style={{ fontSize: '15px', color: '#170c5c', fontWeight: 900 }}>{formatCurrency(Number(viewingSaleQuery.data.total || 0))}</strong>
                   </div>
                 </div>
               </div>
             ) : (
-              <div style={{ padding: '20px', textAlign: 'center', color: '#dc2626' }}>تعذر تحميل بيانات الفاتورة</div>
+              <div style={{ padding: '20px', textAlign: 'center', color: '#dc2626' }}>{__t('shared.delivery_reps.delivery_rep_orders.s55', "تعذر تحميل بيانات الفاتورة")}</div>
             )}
           </Card>
         </DialogShell>
@@ -438,38 +440,38 @@ export function DeliveryRepOrders({ repId }: { repId: number | null }) {
             {feedbackPopup.message}
           </div>
           <div style={{ display: 'flex', justifyContent: 'center', paddingBottom: '24px' }}>
-            <Button variant="primary" onClick={() => setFeedbackPopup(null)}>موافق</Button>
+            <Button variant="primary" onClick={() => setFeedbackPopup(null)}>{__t('shared.delivery_reps.delivery_rep_orders.s56', "موافق")}</Button>
           </div>
         </DialogShell>
       )}
 
       <ActionConfirmDialog
         open={Boolean(orderToSettle)}
-        title="تأكيد التحصيل"
+        title={__t('shared.delivery_reps.delivery_rep_orders.s57', "تأكيد التحصيل")}
         description={orderToSettle ? (
           <div>
-            <p>هل أنت متأكد من تحصيل هذا المبلغ وإغلاق العهدة الخاصة بهذا الطلب؟</p>
+            <p>{__t('shared.delivery_reps.delivery_rep_orders.s58', "هل أنت متأكد من تحصيل هذا المبلغ وإغلاق العهدة الخاصة بهذا الطلب؟")}</p>
             <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '8px', marginTop: '16px', border: '1px solid #e2e8f0', fontSize: '0.95rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                <span style={{ color: '#64748b' }}>رقم الطلب:</span>
+                <span style={{ color: '#64748b' }}>{__t('shared.delivery_reps.delivery_rep_orders.s59', "رقم الطلب:")}</span>
                 <strong style={{ color: '#0f172a' }}>{orderToSettle.docNo}</strong>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                <span style={{ color: '#64748b' }}>تاريخ الطلب:</span>
+                <span style={{ color: '#64748b' }}>{__t('shared.delivery_reps.delivery_rep_orders.s60', "تاريخ الطلب:")}</span>
                 <strong style={{ color: '#0f172a', direction: 'ltr' }}>{formatDate(orderToSettle.createdAt)}</strong>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                <span style={{ color: '#64748b' }}>اسم العميل:</span>
-                <strong style={{ color: '#0f172a' }}>{orderToSettle.customerName || 'عميل نقدي'}</strong>
+                <span style={{ color: '#64748b' }}>{__t('shared.delivery_reps.delivery_rep_orders.s61', "اسم العميل:")}</span>
+                <strong style={{ color: '#0f172a' }}>{orderToSettle.customerName || __t('shared.delivery_reps.delivery_rep_orders.s62', "عميل نقدي")}</strong>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '16px', paddingTop: '16px', borderTop: '1px dashed #cbd5e1' }}>
-                <span style={{ color: '#64748b', alignSelf: 'center' }}>المبلغ المطلوب تحصيله:</span>
+                <span style={{ color: '#64748b', alignSelf: 'center' }}>{__t('shared.delivery_reps.delivery_rep_orders.s63', "المبلغ المطلوب تحصيله:")}</span>
                 <strong style={{ color: '#dc2626', fontSize: '1.2rem' }}>{formatCurrency(orderToSettle.total)}</strong>
               </div>
             </div>
           </div>
         ) : ''}
-        confirmLabel="تأكيد السداد"
+        confirmLabel={__t('shared.delivery_reps.delivery_rep_orders.s64', "تأكيد السداد")}
         isBusy={settleOrderMutation.isPending}
         onCancel={() => setOrderToSettle(null)}
         onConfirm={async () => {

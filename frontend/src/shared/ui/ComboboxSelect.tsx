@@ -1,5 +1,7 @@
+import { useTranslation } from 'react-i18next';
 import React, { useEffect, useMemo, useState } from 'react';
 import { normalizeArabicSearchKey } from '@/lib/arabic-normalization';
+import { translateUiText } from '@/lib/auto-translator';
 
 const normalizeLookupText = (value: unknown) => normalizeArabicSearchKey(value);
 
@@ -26,6 +28,16 @@ export function ComboboxSelect({
   createLabel,
   isPending,
 }: ComboboxSelectProps) {
+  const { t, i18n } = useTranslation();
+  const isEn = i18n.language === 'en';
+
+  const getOptionLabel = (label: string) => {
+    if (!isEn || !label) return label;
+    return translateUiText(label) || label;
+  };
+
+  const resolvedPlaceholder = isEn && placeholder === 'ابحث...' ? 'Search...' : (isEn && placeholder ? (translateUiText(placeholder) || placeholder) : placeholder);
+  const resolvedEmptyLabel = isEn && emptyLabel === 'بدون' ? 'None' : (isEn && emptyLabel ? (translateUiText(emptyLabel) || emptyLabel) : emptyLabel);
   const [query, setQuery] = useState('');
   const [isOpen, setIsOpen] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(0);
@@ -34,9 +46,9 @@ export function ComboboxSelect({
 
   useEffect(() => {
     if (!isOpen) {
-      setQuery(selectedOption ? selectedOption.label : '');
+      setQuery(selectedOption ? getOptionLabel(selectedOption.label) : '');
     }
-  }, [isOpen, selectedOption]);
+  }, [isOpen, selectedOption, isEn]);
 
   const filteredOptions = useMemo(() => {
     const q = normalizeLookupText(query);
@@ -128,7 +140,7 @@ export function ComboboxSelect({
           }}
           onBlur={handleBlur}
           onKeyDown={handleKeyDown}
-          placeholder={placeholder}
+          placeholder={resolvedPlaceholder}
           disabled={disabled}
           style={{ border: 'none', background: 'transparent', boxShadow: 'none', flex: 1, padding: '7px 8px' }}
         />
@@ -137,7 +149,7 @@ export function ComboboxSelect({
             type="button"
             onClick={() => { onChange(''); setQuery(''); }}
             style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#9ca3af', padding: '0 4px', fontSize: 13 }}
-            title="إلغاء الاختيار"
+            title={t('shared.ui.combobox_select.s0', "إلغاء الاختيار")}
           >
             ×
           </button>
@@ -166,12 +178,12 @@ export function ComboboxSelect({
         >
           <button
             type="button"
-            style={{ width: '100%', textAlign: 'right', background: highlightedIndex === 0 ? '#f1f5f9' : 'transparent', border: 'none', padding: '7px 10px', borderRadius: 6, cursor: 'pointer', color: '#64748b', fontSize: '0.84rem' }}
+            style={{ width: '100%', textAlign: isEn ? 'left' : 'right', background: highlightedIndex === 0 ? '#f1f5f9' : 'transparent', border: 'none', padding: '7px 10px', borderRadius: 6, cursor: 'pointer', color: '#64748b', fontSize: '0.84rem' }}
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => handleSelect('')}
             onMouseEnter={() => setHighlightedIndex(0)}
           >
-            {emptyLabel}
+            {resolvedEmptyLabel}
           </button>
           {filteredOptions.map((opt, i) => (
             <button
@@ -179,7 +191,7 @@ export function ComboboxSelect({
               type="button"
               style={{
                 width: '100%',
-                textAlign: 'right',
+                textAlign: isEn ? 'left' : 'right',
                 background: highlightedIndex === i + 1 ? '#f1f5f9' : 'transparent',
                 border: 'none',
                 padding: '7px 10px',
@@ -194,18 +206,18 @@ export function ComboboxSelect({
               onClick={() => handleSelect(opt.id)}
               onMouseEnter={() => setHighlightedIndex(i + 1)}
             >
-              {opt.label}
+              {getOptionLabel(opt.label)}
             </button>
           ))}
           {filteredOptions.length === 0 && !showCreateOption && (
-            <div style={{ padding: '8px 10px', color: '#94a3b8', textAlign: 'center', fontSize: '0.82rem' }}>لا توجد نتائج</div>
+            <div style={{ padding: '8px 10px', color: '#94a3b8', textAlign: 'center', fontSize: '0.82rem' }}>{t('shared.ui.combobox_select.s1', "لا توجد نتائج")}</div>
           )}
           {showCreateOption && (
             <button
               type="button"
               style={{
                 width: '100%',
-                textAlign: 'right',
+                textAlign: isEn ? 'left' : 'right',
                 background: '#eff6ff',
                 border: '1px solid #bfdbfe',
                 padding: '7px 10px',
@@ -220,7 +232,7 @@ export function ComboboxSelect({
               onClick={() => { onCreateNew?.(query.trim()); setIsOpen(false); }}
               onMouseEnter={() => setHighlightedIndex(filteredOptions.length + 1)}
             >
-              + {createLabel || 'إضافة'}: "{query.trim()}"
+              + {createLabel || t('shared.ui.combobox_select.s2', "إضافة")}: "{query.trim()}"
             </button>
           )}
         </div>

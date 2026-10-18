@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { ContractingMaterialRequisition } from '../contracting.types';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
@@ -23,6 +24,7 @@ export function ContractingMaterialsTab({
   onNewRequisition,
   onRequisitionDeleted,
 }: ContractingMaterialsTabProps) {
+  const { t } = useTranslation();
   const { formatCurrency } = useSystemCurrency();
   const [isSupplierReturnsOpen, setIsSupplierReturnsOpen] = useState(false);
   const totalCost = requisitions.reduce((sum, r) => sum + Number(r.totalCost || 0), 0);
@@ -60,10 +62,10 @@ export function ContractingMaterialsTab({
       >
         <div style={{ minWidth: '280px', flex: '1 1 auto' }}>
           <h2 style={{ fontSize: 'var(--font-section-title)', fontWeight: 700, color: '#1e293b', margin: 0 }}>
-            أذون صرف وتخصيص الخامات للمشروع (Site Material Requisitions)
+            {t('contracting.contracting_materials_tab.s0', "أذون صرف وتخصيص الخامات للمشروع (Site Material Requisitions)")}
           </h2>
           <p style={{ fontSize: 'var(--font-subtitle)', color: '#64748b', margin: '4px 0 0' }}>
-            {projectName ? `المشروع: ${projectName}` : 'حصر الخامات والمواد المنصرفة من المخازن وتحميل تكلفتها على بنود المقايسة'}
+            {projectName ? `المشروع: ${projectName}` : t('contracting.contracting_materials_tab.s1', "حصر الخامات والمواد المنصرفة من المخازن وتحميل تكلفتها على بنود المقايسة")}
           </p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
@@ -87,7 +89,7 @@ export function ContractingMaterialsTab({
             }}
           >
             <AppIcons.RefreshCw size={15} />
-            <span>مرتجع الخامات للموردين (Credit Notes)</span>
+            <span>{t('contracting.contracting_materials_tab.s2', "مرتجع الخامات للموردين (Credit Notes)")}</span>
           </button>
 
           <button
@@ -111,7 +113,7 @@ export function ContractingMaterialsTab({
             }}
           >
             <AppIcons.Plus size={15} />
-            <span>إصدار إذن صرف خامات للموقع</span>
+            <span>{t('contracting.contracting_materials_tab.s3', "إصدار إذن صرف خامات للموقع")}</span>
           </button>
         </div>
       </div>
@@ -120,7 +122,7 @@ export function ContractingMaterialsTab({
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '14px' }}>
         <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px 18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <div style={{ fontSize: 'var(--font-table-head)', color: '#64748b' }}>إجمالي تكلفة الخامات المنصرفة</div>
+            <div style={{ fontSize: 'var(--font-table-head)', color: '#64748b' }}>{t('contracting.contracting_materials_tab.s4', "إجمالي تكلفة الخامات المنصرفة")}</div>
             <div style={{ fontSize: '1.35rem', fontWeight: 800, color: '#170e5e', marginTop: '2px' }}>
               {formatCurrency(totalCost)}
             </div>
@@ -132,9 +134,9 @@ export function ContractingMaterialsTab({
 
         <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px 18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <div style={{ fontSize: 'var(--font-table-head)', color: '#64748b' }}>عدد أذون الصرف المسجلة</div>
+            <div style={{ fontSize: 'var(--font-table-head)', color: '#64748b' }}>{t('contracting.contracting_materials_tab.s5', "عدد أذون الصرف المسجلة")}</div>
             <div style={{ fontSize: '1.35rem', fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>
-              {totalItemsCount} <span style={{ fontSize: 'var(--font-micro)', fontWeight: 600, color: '#64748b' }}>إذن صرف</span>
+              {totalItemsCount} <span style={{ fontSize: 'var(--font-micro)', fontWeight: 600, color: '#64748b' }}>{t('contracting.contracting_materials_tab.s6', "إذن صرف")}</span>
             </div>
           </div>
           <div style={{ width: '40px', height: '40px', borderRadius: '8px', background: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#475569' }}>
@@ -147,7 +149,7 @@ export function ContractingMaterialsTab({
       <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', overflow: 'hidden' }}>
         {loading ? (
           <div style={{ padding: '40px', textAlign: 'center', color: '#64748b', fontSize: 'var(--font-body)' }}>
-            جاري تحميل أذون صرف الخامات...
+            {t('contracting.contracting_materials_tab.s7', "جاري تحميل أذون صرف الخامات...")}
           </div>
         ) : requisitions.length === 0 ? (
           <div style={{ padding: '48px 24px', textAlign: 'center' }}>
@@ -155,10 +157,10 @@ export function ContractingMaterialsTab({
               <AppIcons.Box size={24} />
             </div>
             <h3 style={{ fontSize: 'var(--font-section-title)', fontWeight: 700, color: '#1e293b', margin: '0 0 6px' }}>
-              لا توجد أذون صرف مواد مسجلة لهذا المشروع
+              {t('contracting.contracting_materials_tab.s8', "لا توجد أذون صرف مواد مسجلة لهذا المشروع")}
             </h3>
             <p style={{ fontSize: 'var(--font-body)', color: '#64748b', margin: '0 0 16px' }}>
-              يمكنك صرف الخامات والمواد مباشرة من المستودع وتحميل تكلفتها على بنود المقايسة ومركز تكلفة المشروع.
+              {t('contracting.contracting_materials_tab.s9', "يمكنك صرف الخامات والمواد مباشرة من المستودع وتحميل تكلفتها على بنود المقايسة ومركز تكلفة المشروع.")}
             </p>
             <button
               type="button"
@@ -175,7 +177,7 @@ export function ContractingMaterialsTab({
                 fontSize: 'var(--font-body)',
               }}
             >
-              تسجيل أول إذن صرف مواد
+              {t('contracting.contracting_materials_tab.s10', "تسجيل أول إذن صرف مواد")}
             </button>
           </div>
         ) : (
@@ -183,13 +185,13 @@ export function ContractingMaterialsTab({
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right' }}>
               <thead>
                 <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
-                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155' }}>رقم الإذن والتاريخ</th>
-                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155' }}>بيان المادة أو الخامة</th>
-                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155' }}>الكمية المصروفة</th>
-                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155' }}>تكلفة الوحدة</th>
-                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155' }}>إجمالي التكلفة الفعلي</th>
-                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155' }}>المستلم بالموقع</th>
-                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155', textAlign: 'center' }}>إجراءات</th>
+                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155' }}>{t('contracting.contracting_materials_tab.s11', "رقم الإذن والتاريخ")}</th>
+                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155' }}>{t('contracting.contracting_materials_tab.s12', "بيان المادة أو الخامة")}</th>
+                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155' }}>{t('contracting.contracting_materials_tab.s13', "الكمية المصروفة")}</th>
+                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155' }}>{t('contracting.contracting_materials_tab.s14', "تكلفة الوحدة")}</th>
+                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155' }}>{t('contracting.contracting_materials_tab.s15', "إجمالي التكلفة الفعلي")}</th>
+                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155' }}>{t('contracting.contracting_materials_tab.s16', "المستلم بالموقع")}</th>
+                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155', textAlign: 'center' }}>{t('contracting.contracting_materials_tab.s17', "إجراءات")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -229,7 +231,7 @@ export function ContractingMaterialsTab({
                       <button
                         type="button"
                         onClick={() => handleDelete(req.id)}
-                        title="إلغاء إذن الصرف"
+                        title={t('contracting.contracting_materials_tab.s18', "إلغاء إذن الصرف")}
                         style={{
                           background: 'transparent',
                           border: 'none',

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useCallback } from 'react';
 import { StandardDialog } from '@/shared/components/StandardDialog';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
@@ -37,6 +38,7 @@ const ESCALATION_STATUS_CONFIG: Record<MaterialEscalationStatus, { bg: string; c
 };
 
 export function MaterialPriceEscalationModal({ open, onClose, projectId, projectName }: MaterialPriceEscalationModalProps) {
+  const { t } = useTranslation();
   const [escalations, setEscalations] = useState<ContractingMaterialEscalation[]>([]);
   const [invoices, setInvoices] = useState<ContractingInvoice[]>([]);
   const [loading, setLoading] = useState(true);
@@ -155,7 +157,7 @@ export function MaterialPriceEscalationModal({ open, onClose, projectId, project
     <StandardDialog
       open={open}
       onClose={onClose}
-      title="حاسبة ومطالبات فروق أسعار الخامات والتعويضات (Material Price Escalation Claims)"
+      title={t('contracting.material_price_escalation_modal.s0', "حاسبة ومطالبات فروق أسعار الخامات والتعويضات (Material Price Escalation Claims)")}
       subtitle={`حساب التعويضات الرسمية لفروق أسعار الحديد والأسمنت والخرسانة وتوليد ملاحق المطالبات — ${projectName || ''}`}
       maxWidth="1100px"
     >
@@ -177,7 +179,7 @@ export function MaterialPriceEscalationModal({ open, onClose, projectId, project
                 cursor: 'pointer',
               }}
             >
-              سجل المطالبات ({escalations.length})
+              {t('contracting.material_price_escalation_modal.s1', "سجل المطالبات (")}{escalations.length})
             </button>
             <button
               type="button"
@@ -193,14 +195,14 @@ export function MaterialPriceEscalationModal({ open, onClose, projectId, project
                 cursor: 'pointer',
               }}
             >
-              حساب مطالبة تعويض جديدة
+              {t('contracting.material_price_escalation_modal.s2', "حساب مطالبة تعويض جديدة")}
             </button>
           </div>
 
           <div style={{ fontSize: 'var(--font-table-head)', color: '#475569' }}>
-            إجمالي التعويضات المستحقة المعتمدة:{' '}
+            {t('contracting.material_price_escalation_modal.s3', "إجمالي التعويضات المستحقة المعتمدة:")}{' '}
             <strong style={{ color: '#15803d', fontSize: '1.1rem' }}>
-              {totalApprovedCompensation.toLocaleString('en-US', { minimumFractionDigits: 2 })} ج.م
+              {totalApprovedCompensation.toLocaleString('en-US', { minimumFractionDigits: 2 })} {t('contracting.material_price_escalation_modal.s4', "ج.م")}
             </strong>
           </div>
         </div>
@@ -209,7 +211,7 @@ export function MaterialPriceEscalationModal({ open, onClose, projectId, project
         {activeTab === 'calculate' && (
           <form onSubmit={handleCreateClaim} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '12px' }}>
-              <Field label="نوع الخامة الأساسية">
+              <Field label={t('contracting.material_price_escalation_modal.s5', "نوع الخامة الأساسية")}>
                 <CustomSelect
                   value={materialType}
                   onChange={(val) => handlePresetChange((val as MaterialEscalationType) || 'rebar_steel')}
@@ -220,7 +222,7 @@ export function MaterialPriceEscalationModal({ open, onClose, projectId, project
                 />
               </Field>
 
-              <Field label="مسمى وتوصيف الخامة">
+              <Field label={t('contracting.material_price_escalation_modal.s6', "مسمى وتوصيف الخامة")}>
                 <input
                   type="text"
                   value={materialName}
@@ -259,7 +261,7 @@ export function MaterialPriceEscalationModal({ open, onClose, projectId, project
                 />
               </Field>
 
-              <Field label="وحدة القياس">
+              <Field label={t('contracting.material_price_escalation_modal.s7', "وحدة القياس")}>
                 <input
                   type="text"
                   value={unit}
@@ -269,12 +271,12 @@ export function MaterialPriceEscalationModal({ open, onClose, projectId, project
               </Field>
             </div>
 
-            <Field label="مرجع وسند النشرة الرسمية (Official Price Bulletin)">
+            <Field label={t('contracting.material_price_escalation_modal.s8', "مرجع وسند النشرة الرسمية (Official Price Bulletin)")}>
               <input
                 type="text"
                 value={bulletinSourceReference}
                 onChange={(e) => setBulletinSourceReference(e.target.value)}
-                placeholder="مثال: نشرة الجهاز المركزي للتعبئة والإحصاء / نشرة وزارة الإسكان والمجتمعات العمرانية رقم 24"
+                placeholder={t('contracting.material_price_escalation_modal.s9', "مثال: نشرة الجهاز المركزي للتعبئة والإحصاء / نشرة وزارة الإسكان والمجتمعات العمرانية رقم 24")}
                 style={{ width: '100%', height: '36px', padding: '0 10px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
               />
             </Field>
@@ -293,21 +295,21 @@ export function MaterialPriceEscalationModal({ open, onClose, projectId, project
               }}
             >
               <div>
-                <div style={{ fontSize: 'var(--font-micro)', fontWeight: 600, color: '#166534' }}>فرق السعر للوحدة الواحدة (ΔP)</div>
+                <div style={{ fontSize: 'var(--font-micro)', fontWeight: 600, color: '#166534' }}>{t('contracting.material_price_escalation_modal.s10', "فرق السعر للوحدة الواحدة (ΔP)")}</div>
                 <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#15803d', marginTop: '4px' }}>
-                  {calculatedDifference.toLocaleString('en-US', { minimumFractionDigits: 2 })} ج.م
+                  {calculatedDifference.toLocaleString('en-US', { minimumFractionDigits: 2 })} {t('contracting.material_price_escalation_modal.s11', "ج.م")}
                 </div>
               </div>
               <div>
-                <div style={{ fontSize: 'var(--font-micro)', fontWeight: 600, color: '#166534' }}>إجمالي الكمية المنفذة المطالب بها</div>
+                <div style={{ fontSize: 'var(--font-micro)', fontWeight: 600, color: '#166534' }}>{t('contracting.material_price_escalation_modal.s12', "إجمالي الكمية المنفذة المطالب بها")}</div>
                 <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#15803d', marginTop: '4px' }}>
                   {executedQuantity} {unit}
                 </div>
               </div>
               <div>
-                <div style={{ fontSize: 'var(--font-micro)', fontWeight: 600, color: '#166534' }}>إجمالي قيمة التعويض المستحق المطلوب</div>
+                <div style={{ fontSize: 'var(--font-micro)', fontWeight: 600, color: '#166534' }}>{t('contracting.material_price_escalation_modal.s13', "إجمالي قيمة التعويض المستحق المطلوب")}</div>
                 <div style={{ fontSize: '1.3rem', fontWeight: 800, color: '#170e5e', marginTop: '4px' }}>
-                  {calculatedTotalCompensation.toLocaleString('en-US', { minimumFractionDigits: 2 })} ج.م
+                  {calculatedTotalCompensation.toLocaleString('en-US', { minimumFractionDigits: 2 })} {t('contracting.material_price_escalation_modal.s14', "ج.م")}
                 </div>
               </div>
             </div>
@@ -318,14 +320,14 @@ export function MaterialPriceEscalationModal({ open, onClose, projectId, project
                 onClick={() => setActiveTab('list')}
                 style={{ height: '36px', padding: '0 16px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#475569', cursor: 'pointer', fontWeight: 600 }}
               >
-                إلغاء
+                {t('contracting.material_price_escalation_modal.s15', "إلغاء")}
               </button>
               <button
                 type="submit"
                 disabled={isSubmitting || calculatedTotalCompensation <= 0}
                 style={{ height: '36px', padding: '0 20px', borderRadius: '6px', border: 'none', background: '#170e5e', color: '#ffffff', cursor: 'pointer', fontWeight: 700 }}
               >
-                {isSubmitting ? 'جارٍ الحفظ...' : 'تثبيت وتوثيق مطالبة فروق الأسعار'}
+                {isSubmitting ? t('contracting.material_price_escalation_modal.s16', "جارٍ الحفظ...") : t('contracting.material_price_escalation_modal.s17', "تثبيت وتوثيق مطالبة فروق الأسعار")}
               </button>
             </div>
           </form>
@@ -335,25 +337,25 @@ export function MaterialPriceEscalationModal({ open, onClose, projectId, project
         {activeTab === 'list' && (
           <div style={{ maxHeight: '420px', overflowY: 'auto', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
             {loading ? (
-              <div style={{ padding: '30px', textAlign: 'center', color: '#64748b' }}>جارٍ تحميل سجل المطالبات...</div>
+              <div style={{ padding: '30px', textAlign: 'center', color: '#64748b' }}>{t('contracting.material_price_escalation_modal.s18', "جارٍ تحميل سجل المطالبات...")}</div>
             ) : escalations.length === 0 ? (
               <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
                 <AppIcons.Receipt size={36} style={{ color: '#94a3b8', margin: '0 auto 8px' }} />
-                <div style={{ fontWeight: 700, color: '#334155' }}>لا توجد مطالبات فروق أسعار مسجلة بعد</div>
-                <div style={{ fontSize: 'var(--font-subtitle)', marginTop: '4px' }}>اضغط على "حساب مطالبة تعويض جديدة" لإثبات فروق أسعار الحديد والأسمنت</div>
+                <div style={{ fontWeight: 700, color: '#334155' }}>{t('contracting.material_price_escalation_modal.s19', "لا توجد مطالبات فروق أسعار مسجلة بعد")}</div>
+                <div style={{ fontSize: 'var(--font-subtitle)', marginTop: '4px' }}>{t('contracting.material_price_escalation_modal.s20', "اضغط على \"حساب مطالبة تعويض جديدة\" لإثبات فروق أسعار الحديد والأسمنت")}</div>
               </div>
             ) : (
               <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right', fontSize: 'var(--font-body)' }}>
                 <thead style={{ background: '#f8fafc', borderBottom: '1.5px solid #e2e8f0', position: 'sticky', top: 0 }}>
                   <tr>
-                    <th style={{ padding: '10px 12px', fontWeight: 700, color: '#334155' }}>رقم المطالبة</th>
-                    <th style={{ padding: '10px 12px', fontWeight: 700, color: '#334155' }}>الخامة</th>
-                    <th style={{ padding: '10px 12px', fontWeight: 700, color: '#334155' }}>سعر العقد</th>
-                    <th style={{ padding: '10px 12px', fontWeight: 700, color: '#334155' }}>السعر الحالي</th>
-                    <th style={{ padding: '10px 12px', fontWeight: 700, color: '#334155' }}>الكمية</th>
-                    <th style={{ padding: '10px 12px', fontWeight: 700, color: '#334155' }}>مبلغ التعويض</th>
-                    <th style={{ padding: '10px 12px', fontWeight: 700, color: '#334155' }}>الحالة</th>
-                    <th style={{ padding: '10px 12px', fontWeight: 700, color: '#334155', textAlign: 'center' }}>الإجراءات</th>
+                    <th style={{ padding: '10px 12px', fontWeight: 700, color: '#334155' }}>{t('contracting.material_price_escalation_modal.s21', "رقم المطالبة")}</th>
+                    <th style={{ padding: '10px 12px', fontWeight: 700, color: '#334155' }}>{t('contracting.material_price_escalation_modal.s22', "الخامة")}</th>
+                    <th style={{ padding: '10px 12px', fontWeight: 700, color: '#334155' }}>{t('contracting.material_price_escalation_modal.s23', "سعر العقد")}</th>
+                    <th style={{ padding: '10px 12px', fontWeight: 700, color: '#334155' }}>{t('contracting.material_price_escalation_modal.s24', "السعر الحالي")}</th>
+                    <th style={{ padding: '10px 12px', fontWeight: 700, color: '#334155' }}>{t('contracting.material_price_escalation_modal.s25', "الكمية")}</th>
+                    <th style={{ padding: '10px 12px', fontWeight: 700, color: '#334155' }}>{t('contracting.material_price_escalation_modal.s26', "مبلغ التعويض")}</th>
+                    <th style={{ padding: '10px 12px', fontWeight: 700, color: '#334155' }}>{t('contracting.material_price_escalation_modal.s27', "الحالة")}</th>
+                    <th style={{ padding: '10px 12px', fontWeight: 700, color: '#334155', textAlign: 'center' }}>{t('contracting.material_price_escalation_modal.s28', "الإجراءات")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -363,11 +365,11 @@ export function MaterialPriceEscalationModal({ open, onClose, projectId, project
                       <tr key={esc.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                         <td style={{ padding: '10px 12px', fontWeight: 700, color: '#170e5e' }}>{esc.claimNumber}</td>
                         <td style={{ padding: '10px 12px', fontWeight: 600, color: '#0f172a' }}>{esc.materialName}</td>
-                        <td style={{ padding: '10px 12px', color: '#64748b' }}>{esc.basePriceContract.toLocaleString('en-US')} ج.م</td>
-                        <td style={{ padding: '10px 12px', fontWeight: 700, color: '#b91c1c' }}>{esc.currentMarketPrice.toLocaleString('en-US')} ج.م</td>
+                        <td style={{ padding: '10px 12px', color: '#64748b' }}>{esc.basePriceContract.toLocaleString('en-US')} {t('contracting.material_price_escalation_modal.s29', "ج.م")}</td>
+                        <td style={{ padding: '10px 12px', fontWeight: 700, color: '#b91c1c' }}>{esc.currentMarketPrice.toLocaleString('en-US')} {t('contracting.material_price_escalation_modal.s30', "ج.م")}</td>
                         <td style={{ padding: '10px 12px' }}>{esc.executedQuantity} {esc.unit}</td>
                         <td style={{ padding: '10px 12px', fontWeight: 800, color: '#15803d' }}>
-                          {esc.totalCompensationAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })} ج.م
+                          {esc.totalCompensationAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })} {t('contracting.material_price_escalation_modal.s31', "ج.م")}
                         </td>
                         <td style={{ padding: '10px 12px' }}>
                           <span
@@ -404,7 +406,7 @@ export function MaterialPriceEscalationModal({ open, onClose, projectId, project
                               cursor: 'pointer',
                             }}
                           >
-                            تعديل الحالة
+                            {t('contracting.material_price_escalation_modal.s32', "تعديل الحالة")}
                           </button>
                         </td>
                       </tr>
@@ -420,29 +422,29 @@ export function MaterialPriceEscalationModal({ open, onClose, projectId, project
         {updatingEscalation && (
           <div style={{ background: '#f8fafc', border: '1.5px solid #cbd5e1', borderRadius: '10px', padding: '16px' }}>
             <h4 style={{ margin: '0 0 10px', fontSize: 'var(--font-section-title)', fontWeight: 700, color: '#170e5e' }}>
-              تعديل حالة المطالبة والربط بالمستخلص: [{updatingEscalation.claimNumber}] {updatingEscalation.materialName}
+              {t('contracting.material_price_escalation_modal.s33', "تعديل حالة المطالبة والربط بالمستخلص: [")}{updatingEscalation.claimNumber}] {updatingEscalation.materialName}
             </h4>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '10px' }}>
-              <Field label="الحالة الجديدة للمطالبة">
+              <Field label={t('contracting.material_price_escalation_modal.s34', "الحالة الجديدة للمطالبة")}>
                 <CustomSelect
                   value={selectedStatus}
                   onChange={(val) => setSelectedStatus((val as MaterialEscalationStatus) || 'approved_by_consultant')}
                   options={[
-                    { value: 'draft', label: 'مسودة قيد الإعداد' },
-                    { value: 'submitted_to_client', label: 'مرفوعة لجهة الإسناد / المالك' },
-                    { value: 'approved_by_consultant', label: 'معتمدة رسمياً من الاستشاري' },
-                    { value: 'settled_in_ipc', label: 'مسواة ومدرجة بالمستخلص الجاري' },
-                    { value: 'rejected', label: 'مرفوضة / غير مطابقة' },
+                    { value: 'draft', label: t('contracting.material_price_escalation_modal.s35', "مسودة قيد الإعداد") },
+                    { value: 'submitted_to_client', label: t('contracting.material_price_escalation_modal.s36', "مرفوعة لجهة الإسناد / المالك") },
+                    { value: 'approved_by_consultant', label: t('contracting.material_price_escalation_modal.s37', "معتمدة رسمياً من الاستشاري") },
+                    { value: 'settled_in_ipc', label: t('contracting.material_price_escalation_modal.s38', "مسواة ومدرجة بالمستخلص الجاري") },
+                    { value: 'rejected', label: t('contracting.material_price_escalation_modal.s39', "مرفوضة / غير مطابقة") },
                   ]}
                 />
               </Field>
 
-              <Field label="ربط بمستخلص المالك الجاري (IPC Invoice)">
+              <Field label={t('contracting.material_price_escalation_modal.s40', "ربط بمستخلص المالك الجاري (IPC Invoice)")}>
                 <CustomSelect
                   value={selectedIpcId}
                   onChange={(val) => setSelectedIpcId(val || '')}
                   options={[
-                    { value: '', label: '— اختياري: غير مربوط بمستخلص محدد —' },
+                    { value: '', label: t('contracting.material_price_escalation_modal.s41', "— اختياري: غير مربوط بمستخلص محدد —") },
                     ...invoices.map((inv) => ({
                       value: inv.id,
                       label: `[${inv.ipcNumber || (inv as any).invoiceNumber || ''}] المستخلص رقم ${inv.ipcNumber || (inv as any).invoiceNumber || ''} (${Number(inv.netPayable || (inv as any).netPayableAmount || 0).toLocaleString('en-US')} ج.م)`,
@@ -458,7 +460,7 @@ export function MaterialPriceEscalationModal({ open, onClose, projectId, project
                 onClick={() => setUpdatingEscalation(null)}
                 style={{ height: '32px', padding: '0 14px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#475569', cursor: 'pointer', fontWeight: 600 }}
               >
-                إلغاء
+                {t('contracting.material_price_escalation_modal.s42', "إلغاء")}
               </button>
               <button
                 type="button"
@@ -466,7 +468,7 @@ export function MaterialPriceEscalationModal({ open, onClose, projectId, project
                 disabled={isSubmitting}
                 style={{ height: '32px', padding: '0 18px', borderRadius: '6px', border: 'none', background: '#15803d', color: '#ffffff', cursor: 'pointer', fontWeight: 700 }}
               >
-                {isSubmitting ? 'جارٍ الحفظ...' : 'حفظ التحديث'}
+                {isSubmitting ? t('contracting.material_price_escalation_modal.s43', "جارٍ الحفظ...") : t('contracting.material_price_escalation_modal.s44', "حفظ التحديث")}
               </button>
             </div>
           </div>

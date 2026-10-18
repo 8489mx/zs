@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 import { formatCurrency } from '@/lib/format';
 import { InstallmentPlanItem } from '@/features/sales/api/installments.api';
@@ -14,33 +15,34 @@ export const InstallmentPlansTable: React.FC<InstallmentPlansTableProps> = ({
   plans,
   onViewDetails,
 }) => {
+  const { t } = useTranslation();
   return (
     <div style={{ overflowX: 'auto' }}>
       <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right', fontSize: '13px' }}>
         <thead>
           <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>
-            <th style={{ padding: '12px 16px' }}>رقم العقد</th>
-            <th style={{ padding: '12px 16px' }}>العميل</th>
-            <th style={{ padding: '12px 16px' }}>إجمالي الفاتورة</th>
-            <th style={{ padding: '12px 16px' }}>المقدم</th>
-            <th style={{ padding: '12px 16px' }}>الممول + الفائدة</th>
-            <th style={{ padding: '12px 16px' }}>الأقساط</th>
-            <th style={{ padding: '12px 16px' }}>نسبة السداد</th>
-            <th style={{ padding: '12px 16px' }}>الحالة</th>
-            <th style={{ padding: '12px 16px', textAlign: 'center' }}>تفاصيل</th>
+            <th style={{ padding: '12px 16px' }}>{t('sales.installment_plans_table.s0', "رقم العقد")}</th>
+            <th style={{ padding: '12px 16px' }}>{t('sales.installment_plans_table.s1', "العميل")}</th>
+            <th style={{ padding: '12px 16px' }}>{t('sales.installment_plans_table.s2', "إجمالي الفاتورة")}</th>
+            <th style={{ padding: '12px 16px' }}>{t('sales.installment_plans_table.s3', "المقدم")}</th>
+            <th style={{ padding: '12px 16px' }}>{t('sales.installment_plans_table.s4', "الممول + الفائدة")}</th>
+            <th style={{ padding: '12px 16px' }}>{t('sales.installment_plans_table.s5', "الأقساط")}</th>
+            <th style={{ padding: '12px 16px' }}>{t('sales.installment_plans_table.s6', "نسبة السداد")}</th>
+            <th style={{ padding: '12px 16px' }}>{t('sales.installment_plans_table.s7', "الحالة")}</th>
+            <th style={{ padding: '12px 16px', textAlign: 'center' }}>{t('sales.installment_plans_table.s8', "تفاصيل")}</th>
           </tr>
         </thead>
         <tbody>
           {isLoading ? (
             <tr>
               <td colSpan={9} style={{ padding: '32px', textAlign: 'center', color: '#64748b' }}>
-                جاري تحميل خطط التقسيط...
+                {t('sales.installment_plans_table.s9', "جاري تحميل خطط التقسيط...")}
               </td>
             </tr>
           ) : plans.length === 0 ? (
             <tr>
               <td colSpan={9} style={{ padding: '32px', textAlign: 'center', color: '#64748b' }}>
-                لا توجد خطط تقسيط مسجلة
+                {t('sales.installment_plans_table.s10', "لا توجد خطط تقسيط مسجلة")}
               </td>
             </tr>
           ) : (
@@ -69,14 +71,14 @@ export const InstallmentPlansTable: React.FC<InstallmentPlansTableProps> = ({
                     </div>
                     {Number(plan.interest_rate_percent) > 0 && (
                       <div style={{ fontSize: '11px', color: '#d97706' }}>
-                        فائدة {plan.interest_rate_percent}% ({formatCurrency(plan.interest_amount)})
+                        {t('sales.installment_plans_table.s11', "فائدة")} {plan.interest_rate_percent}% ({formatCurrency(plan.interest_amount)})
                       </div>
                     )}
                   </td>
                   <td style={{ padding: '12px 16px' }}>
-                    <div>{plan.installment_count} شهور</div>
+                    <div>{plan.installment_count} {t('sales.installment_plans_table.s12', "شهور")}</div>
                     <div style={{ fontSize: '11px', color: '#64748b' }}>
-                      {formatCurrency(plan.monthly_amount)} / شهر
+                      {formatCurrency(plan.monthly_amount)} {t('sales.installment_plans_table.s13', "/ شهر")}
                     </div>
                   </td>
                   <td style={{ padding: '12px 16px', minWidth: '140px' }}>
@@ -95,7 +97,7 @@ export const InstallmentPlansTable: React.FC<InstallmentPlansTableProps> = ({
                       </span>
                     </div>
                     <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>
-                      المسدد: {formatCurrency(plan.paid_amount || 0)}
+                      {t('sales.installment_plans_table.s14', "المسدد:")} {formatCurrency(plan.paid_amount || 0)}
                     </div>
                   </td>
                   <td style={{ padding: '12px 16px' }}>
@@ -126,7 +128,7 @@ export const InstallmentPlansTable: React.FC<InstallmentPlansTableProps> = ({
                         cursor: 'pointer',
                       }}
                     >
-                      عرض الجدول
+                      {t('sales.installment_plans_table.s15', "عرض الجدول")}
                     </button>
                   </td>
                 </tr>

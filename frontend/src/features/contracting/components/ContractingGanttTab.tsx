@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useMemo } from 'react';
 import { ContractingScheduleTask } from '../contracting.types';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
@@ -56,6 +57,7 @@ export function ContractingGanttTab({
   onNewTask,
   onTaskUpdated,
 }: ContractingGanttTabProps) {
+  const { t: __t } = useTranslation();
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [showGeneratorModal, setShowGeneratorModal] = useState(false);
   const [showResourceLoadingModal, setShowResourceLoadingModal] = useState(false);
@@ -171,15 +173,15 @@ export function ContractingGanttTab({
 
   const getStatusBadge = (status: string, progress: number) => {
     if (status === 'completed' || progress >= 100) {
-      return <span style={{ padding: '3px 8px', borderRadius: '6px', fontSize: 'var(--font-badge)', fontWeight: 600, background: '#dcfce7', color: '#15803d', border: '1px solid #bbf7d0' }}>مكتملة بنجاح</span>;
+      return <span style={{ padding: '3px 8px', borderRadius: '6px', fontSize: 'var(--font-badge)', fontWeight: 600, background: '#dcfce7', color: '#15803d', border: '1px solid #bbf7d0' }}>{__t('contracting.contracting_gantt_tab.s0', "مكتملة بنجاح")}</span>;
     }
     if (status === 'in_progress' || progress > 0) {
-      return <span style={{ padding: '3px 8px', borderRadius: '6px', fontSize: 'var(--font-badge)', fontWeight: 600, background: '#e0e7ff', color: '#3730a3', border: '1px solid #c7d2fe' }}>قيد التنفيذ ({progress}%)</span>;
+      return <span style={{ padding: '3px 8px', borderRadius: '6px', fontSize: 'var(--font-badge)', fontWeight: 600, background: '#e0e7ff', color: '#3730a3', border: '1px solid #c7d2fe' }}>{__t('contracting.contracting_gantt_tab.s1', "قيد التنفيذ (")}{progress}%)</span>;
     }
     if (status === 'delayed') {
-      return <span style={{ padding: '3px 8px', borderRadius: '6px', fontSize: 'var(--font-badge)', fontWeight: 600, background: '#fee2e2', color: '#991b1b', border: '1px solid #fecaca' }}>متأخرة عن الجدول</span>;
+      return <span style={{ padding: '3px 8px', borderRadius: '6px', fontSize: 'var(--font-badge)', fontWeight: 600, background: '#fee2e2', color: '#991b1b', border: '1px solid #fecaca' }}>{__t('contracting.contracting_gantt_tab.s2', "متأخرة عن الجدول")}</span>;
     }
-    return <span style={{ padding: '3px 8px', borderRadius: '6px', fontSize: 'var(--font-badge)', fontWeight: 600, background: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0' }}>لم تبدأ</span>;
+    return <span style={{ padding: '3px 8px', borderRadius: '6px', fontSize: 'var(--font-badge)', fontWeight: 600, background: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0' }}>{__t('contracting.contracting_gantt_tab.s3', "لم تبدأ")}</span>;
   };
 
   return (
@@ -188,10 +190,10 @@ export function ContractingGanttTab({
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
           <h2 style={{ fontSize: 'var(--font-section-title)', fontWeight: 700, color: '#1e293b', margin: 0 }}>
-            الجدول الزمني ومخطط جانت للمسار الحرج (Gantt Schedule & CPM)
+            {__t('contracting.contracting_gantt_tab.s4', "الجدول الزمني ومخطط جانت للمسار الحرج (Gantt Schedule & CPM)")}
           </h2>
           <p style={{ fontSize: 'var(--font-subtitle)', color: '#64748b', margin: '4px 0 0' }}>
-            {projectName ? `المشروع: ${projectName}` : 'متابعة مراحل التنفيذ، الأنشطة الحرجة، والمدد الزمنية المعتمدة'}
+            {projectName ? `المشروع: ${projectName}` : __t('contracting.contracting_gantt_tab.s5', "متابعة مراحل التنفيذ، الأنشطة الحرجة، والمدد الزمنية المعتمدة")}
           </p>
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
@@ -216,7 +218,7 @@ export function ContractingGanttTab({
               }}
             >
               <AppIcons.Calendar size={15} />
-              <span>توليد الجدول الزمني الذكي للأدوار</span>
+              <span>{__t('contracting.contracting_gantt_tab.s6', "توليد الجدول الزمني الذكي للأدوار")}</span>
             </button>
           )}
           {projectId && (
@@ -240,7 +242,7 @@ export function ContractingGanttTab({
               }}
             >
               <AppIcons.Users size={15} />
-              <span>تحميل الموارد الأسبوعي</span>
+              <span>{__t('contracting.contracting_gantt_tab.s7', "تحميل الموارد الأسبوعي")}</span>
             </button>
           )}
           <button
@@ -264,7 +266,7 @@ export function ContractingGanttTab({
             }}
           >
             <AppIcons.Plus size={15} />
-            <span>إضافة نشاط ومرحلة جديدة</span>
+            <span>{__t('contracting.contracting_gantt_tab.s8', "إضافة نشاط ومرحلة جديدة")}</span>
           </button>
         </div>
       </div>
@@ -287,8 +289,8 @@ export function ContractingGanttTab({
           }}
         >
           <div>
-            <div style={{ fontSize: 'var(--font-table-head)', color: '#64748b', fontWeight: 600 }}>إجمالي أنشطة الجدول</div>
-            <div style={{ fontSize: '1.3rem', fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>{totalTasks} نشاط</div>
+            <div style={{ fontSize: 'var(--font-table-head)', color: '#64748b', fontWeight: 600 }}>{__t('contracting.contracting_gantt_tab.s9', "إجمالي أنشطة الجدول")}</div>
+            <div style={{ fontSize: '1.3rem', fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>{totalTasks} {__t('contracting.contracting_gantt_tab.s10', "نشاط")}</div>
           </div>
           <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: filter === 'all' ? '#170e5e' : '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: filter === 'all' ? '#ffffff' : '#1e40af' }}>
             <AppIcons.Calendar size={18} />
@@ -311,8 +313,8 @@ export function ContractingGanttTab({
           }}
         >
           <div>
-            <div style={{ fontSize: 'var(--font-table-head)', color: filter === 'critical' ? '#991b1b' : '#64748b', fontWeight: 600 }}>أنشطة المسار الحرج (CPM)</div>
-            <div style={{ fontSize: '1.3rem', fontWeight: 800, color: '#dc2626', marginTop: '2px' }}>{criticalPathTasks} نشاط حرج</div>
+            <div style={{ fontSize: 'var(--font-table-head)', color: filter === 'critical' ? '#991b1b' : '#64748b', fontWeight: 600 }}>{__t('contracting.contracting_gantt_tab.s11', "أنشطة المسار الحرج (CPM)")}</div>
+            <div style={{ fontSize: '1.3rem', fontWeight: 800, color: '#dc2626', marginTop: '2px' }}>{criticalPathTasks} {__t('contracting.contracting_gantt_tab.s12', "نشاط حرج")}</div>
           </div>
           <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: filter === 'critical' ? '#dc2626' : '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'center', color: filter === 'critical' ? '#ffffff' : '#dc2626' }}>
             <AppIcons.AlertCircle size={18} />
@@ -335,8 +337,8 @@ export function ContractingGanttTab({
           }}
         >
           <div>
-            <div style={{ fontSize: 'var(--font-table-head)', color: filter === 'in_progress' ? '#1e3a8a' : '#64748b', fontWeight: 600 }}>أنشطة قيد التنفيذ</div>
-            <div style={{ fontSize: '1.3rem', fontWeight: 800, color: '#1e40af', marginTop: '2px' }}>{inProgressTasks} نشاط</div>
+            <div style={{ fontSize: 'var(--font-table-head)', color: filter === 'in_progress' ? '#1e3a8a' : '#64748b', fontWeight: 600 }}>{__t('contracting.contracting_gantt_tab.s13', "أنشطة قيد التنفيذ")}</div>
+            <div style={{ fontSize: '1.3rem', fontWeight: 800, color: '#1e40af', marginTop: '2px' }}>{inProgressTasks} {__t('contracting.contracting_gantt_tab.s14', "نشاط")}</div>
           </div>
           <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: filter === 'in_progress' ? '#1e40af' : '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: filter === 'in_progress' ? '#ffffff' : '#1e40af' }}>
             <AppIcons.Clock size={18} />
@@ -359,8 +361,8 @@ export function ContractingGanttTab({
           }}
         >
           <div>
-            <div style={{ fontSize: 'var(--font-table-head)', color: filter === 'completed' ? '#14532d' : '#64748b', fontWeight: 600 }}>الأنشطة المكتملة</div>
-            <div style={{ fontSize: '1.3rem', fontWeight: 800, color: '#15803d', marginTop: '2px' }}>{completedTasks} نشاط</div>
+            <div style={{ fontSize: 'var(--font-table-head)', color: filter === 'completed' ? '#14532d' : '#64748b', fontWeight: 600 }}>{__t('contracting.contracting_gantt_tab.s15', "الأنشطة المكتملة")}</div>
+            <div style={{ fontSize: '1.3rem', fontWeight: 800, color: '#15803d', marginTop: '2px' }}>{completedTasks} {__t('contracting.contracting_gantt_tab.s16', "نشاط")}</div>
           </div>
           <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: filter === 'completed' ? '#15803d' : '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'center', color: filter === 'completed' ? '#ffffff' : '#15803d' }}>
             <AppIcons.CheckCircle size={18} />
@@ -402,7 +404,7 @@ export function ContractingGanttTab({
               gap: '6px',
             }}
           >
-            <span>كافة الأنشطة</span>
+            <span>{__t('contracting.contracting_gantt_tab.s17', "كافة الأنشطة")}</span>
             <span style={{ fontSize: '10.5px', padding: '1px 6px', borderRadius: '10px', background: filter === 'all' ? 'rgba(255,255,255,0.2)' : '#f1f5f9', fontWeight: 700 }}>
               {totalTasks}
             </span>
@@ -427,7 +429,7 @@ export function ContractingGanttTab({
             }}
           >
             <AppIcons.AlertCircle size={14} color={filter === 'critical' ? '#ffffff' : '#dc2626'} />
-            <span>المسار الحرج CPM فقط</span>
+            <span>{__t('contracting.contracting_gantt_tab.s18', "المسار الحرج CPM فقط")}</span>
             <span style={{ fontSize: '10.5px', padding: '1px 6px', borderRadius: '10px', background: filter === 'critical' ? 'rgba(255,255,255,0.25)' : '#fee2e2', fontWeight: 700 }}>
               {criticalPathTasks}
             </span>
@@ -451,7 +453,7 @@ export function ContractingGanttTab({
               gap: '6px',
             }}
           >
-            <span>قيد التنفيذ</span>
+            <span>{__t('contracting.contracting_gantt_tab.s19', "قيد التنفيذ")}</span>
             <span style={{ fontSize: '10.5px', padding: '1px 6px', borderRadius: '10px', background: filter === 'in_progress' ? 'rgba(255,255,255,0.2)' : '#f1f5f9', fontWeight: 700 }}>
               {inProgressTasks}
             </span>
@@ -475,7 +477,7 @@ export function ContractingGanttTab({
               gap: '6px',
             }}
           >
-            <span>المكتملة</span>
+            <span>{__t('contracting.contracting_gantt_tab.s20', "المكتملة")}</span>
             <span style={{ fontSize: '10.5px', padding: '1px 6px', borderRadius: '10px', background: filter === 'completed' ? 'rgba(255,255,255,0.2)' : '#f1f5f9', fontWeight: 700 }}>
               {completedTasks}
             </span>
@@ -491,7 +493,7 @@ export function ContractingGanttTab({
             </span>
             <input
               type="text"
-              placeholder="ابحث بكود المهمة أو الاسم..."
+              placeholder={__t('contracting.contracting_gantt_tab.s21', "ابحث بكود المهمة أو الاسم...")}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               style={{
@@ -508,7 +510,7 @@ export function ContractingGanttTab({
 
           {/* محدد الترتيب */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 600 }}>الترتيب:</span>
+            <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 600 }}>{__t('contracting.contracting_gantt_tab.s22', "الترتيب:")}</span>
             <select
               value={sortType}
               onChange={(e) => setSortType(e.target.value as SortType)}
@@ -525,10 +527,10 @@ export function ContractingGanttTab({
                 outline: 'none',
               }}
             >
-              <option value="chronological">الترتيب الزمني والتنفيذي (الأسبق أولاً)</option>
-              <option value="cpm_first">المسار الحرج أولاً (CPM First)</option>
-              <option value="wbs">تسلسل هيكل الأعمال (WBS)</option>
-              <option value="progress">نسبة الإنجاز (الأعلى أولاً)</option>
+              <option value="chronological">{__t('contracting.contracting_gantt_tab.s23', "الترتيب الزمني والتنفيذي (الأسبق أولاً)")}</option>
+              <option value="cpm_first">{__t('contracting.contracting_gantt_tab.s24', "المسار الحرج أولاً (CPM First)")}</option>
+              <option value="wbs">{__t('contracting.contracting_gantt_tab.s25', "تسلسل هيكل الأعمال (WBS)")}</option>
+              <option value="progress">{__t('contracting.contracting_gantt_tab.s26', "نسبة الإنجاز (الأعلى أولاً)")}</option>
             </select>
           </div>
         </div>
@@ -538,7 +540,7 @@ export function ContractingGanttTab({
       <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', overflow: 'hidden' }}>
         {loading ? (
           <div style={{ padding: '40px', textAlign: 'center', color: '#64748b', fontSize: 'var(--font-body)' }}>
-            جاري تحميل الجدول الزمني للمشروع...
+            {__t('contracting.contracting_gantt_tab.s27', "جاري تحميل الجدول الزمني للمشروع...")}
           </div>
         ) : tasks.length === 0 ? (
           <div style={{ padding: '48px 24px', textAlign: 'center' }}>
@@ -546,10 +548,10 @@ export function ContractingGanttTab({
               <AppIcons.Calendar size={24} />
             </div>
             <h3 style={{ fontSize: 'var(--font-section-title)', fontWeight: 700, color: '#1e293b', margin: '0 0 6px' }}>
-              لا توجد أنشطة مجدولة للمشروع حتى الآن
+              {__t('contracting.contracting_gantt_tab.s28', "لا توجد أنشطة مجدولة للمشروع حتى الآن")}
             </h3>
             <p style={{ fontSize: 'var(--font-body)', color: '#64748b', margin: '0 0 16px' }}>
-              قم بإضافة مراحل وأنشطة التنفيذ وتحديد تواريخ البدء والنهاية لإنشاء الجدول الزمني ومخطط جانت.
+              {__t('contracting.contracting_gantt_tab.s29', "قم بإضافة مراحل وأنشطة التنفيذ وتحديد تواريخ البدء والنهاية لإنشاء الجدول الزمني ومخطط جانت.")}
             </p>
             <button
               type="button"
@@ -566,7 +568,7 @@ export function ContractingGanttTab({
                 fontSize: 'var(--font-body)',
               }}
             >
-              إضافة أول نشاط بالجدول
+              {__t('contracting.contracting_gantt_tab.s30', "إضافة أول نشاط بالجدول")}
             </button>
           </div>
         ) : filteredTasks.length === 0 ? (
@@ -575,10 +577,10 @@ export function ContractingGanttTab({
               <AppIcons.Filter size={24} />
             </div>
             <h3 style={{ fontSize: 'var(--font-section-title)', fontWeight: 700, color: '#1e293b', margin: '0 0 6px' }}>
-              لا توجد أنشطة مطابقة للفلتر المحدد
+              {__t('contracting.contracting_gantt_tab.s31', "لا توجد أنشطة مطابقة للفلتر المحدد")}
             </h3>
             <p style={{ fontSize: 'var(--font-body)', color: '#64748b', margin: '0 0 16px' }}>
-              لم يتم العثور على أنشطة تتطابق مع معايير البحث أو التصفية الحالية.
+              {__t('contracting.contracting_gantt_tab.s32', "لم يتم العثور على أنشطة تتطابق مع معايير البحث أو التصفية الحالية.")}
             </p>
             <button
               type="button"
@@ -598,7 +600,7 @@ export function ContractingGanttTab({
                 fontSize: 'var(--font-body)',
               }}
             >
-              إعادة ضبط الفلاتر والبحث
+              {__t('contracting.contracting_gantt_tab.s33', "إعادة ضبط الفلاتر والبحث")}
             </button>
           </div>
         ) : (
@@ -615,13 +617,13 @@ export function ContractingGanttTab({
               </colgroup>
               <thead>
                 <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>الكود و WBS</th>
-                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>النشاط أو المرحلة</th>
-                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>البداية والنهاية</th>
-                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>المدة</th>
-                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>مخطط التقدم الزمني (Gantt)</th>
-                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>الحالة</th>
-                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569', textAlign: 'center' }}>إجراءات</th>
+                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>{__t('contracting.contracting_gantt_tab.s34', "الكود و WBS")}</th>
+                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>{__t('contracting.contracting_gantt_tab.s35', "النشاط أو المرحلة")}</th>
+                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>{__t('contracting.contracting_gantt_tab.s36', "البداية والنهاية")}</th>
+                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>{__t('contracting.contracting_gantt_tab.s37', "المدة")}</th>
+                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>{__t('contracting.contracting_gantt_tab.s38', "مخطط التقدم الزمني (Gantt)")}</th>
+                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>{__t('contracting.contracting_gantt_tab.s39', "الحالة")}</th>
+                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569', textAlign: 'center' }}>{__t('contracting.contracting_gantt_tab.s40', "إجراءات")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -647,24 +649,24 @@ export function ContractingGanttTab({
                           <span style={{ wordBreak: 'break-word' }}>{task.taskName || (task as any).task_name}</span>
                           {isCritical && (
                             <span style={{ fontSize: 'var(--font-micro)', background: '#fee2e2', color: '#991b1b', border: '1px solid #fca5a5', padding: '1px 6px', borderRadius: '4px', fontWeight: 700, whiteSpace: 'nowrap', flexShrink: 0 }}>
-                              مسار حرج CPM
+                              {__t('contracting.contracting_gantt_tab.s41', "مسار حرج CPM")}
                             </span>
                           )}
                         </div>
                         {(task.assignedTeam || (task as any).assigned_team) && (
                           <div style={{ fontSize: 'var(--font-micro)', color: '#64748b', marginTop: '2px', wordBreak: 'break-word' }}>
-                            المسؤول: {task.assignedTeam || (task as any).assigned_team}
+                            {__t('contracting.contracting_gantt_tab.s42', "المسؤول:")} {task.assignedTeam || (task as any).assigned_team}
                           </div>
                         )}
                       </td>
 
                       <td style={{ padding: '12px 14px', fontSize: 'var(--font-body)', color: '#475569', whiteSpace: 'nowrap' }}>
                         <div style={{ fontWeight: 600 }}>{task.startDate || (task as any).start_date || '-'}</div>
-                        <div style={{ fontSize: 'var(--font-micro)', color: '#94a3b8', marginTop: '2px' }}>إلى {task.endDate || (task as any).end_date || '-'}</div>
+                        <div style={{ fontSize: 'var(--font-micro)', color: '#94a3b8', marginTop: '2px' }}>{__t('contracting.contracting_gantt_tab.s43', "إلى")} {task.endDate || (task as any).end_date || '-'}</div>
                       </td>
 
                       <td style={{ padding: '12px 14px', fontSize: 'var(--font-body)', fontWeight: 600, color: '#0f172a', whiteSpace: 'nowrap' }}>
-                        {task.durationDays ?? (task as any).duration_days ?? 1} يوم
+                        {task.durationDays ?? (task as any).duration_days ?? 1} {__t('contracting.contracting_gantt_tab.s44', "يوم")}
                       </td>
 
                       {/* شريط جانت الزمني المباشر */}
@@ -710,7 +712,7 @@ export function ContractingGanttTab({
                             onClick={() => handleUpdateProgress(task, 100)}
                             style={{ fontSize: '10px', padding: '1px 6px', background: '#dcfce7', border: '1px solid #bbf7d0', borderRadius: '4px', cursor: 'pointer', color: '#15803d', fontWeight: 600 }}
                           >
-                            إتمام
+                            {__t('contracting.contracting_gantt_tab.s45', "إتمام")}
                           </button>
                         </div>
                       </td>
@@ -724,7 +726,7 @@ export function ContractingGanttTab({
                           <button
                             type="button"
                             onClick={() => setSelectedDelayTask(task)}
-                            title="إثبات تأخير وتمديد المدة وترحيل المواعيد"
+                            title={__t('contracting.contracting_gantt_tab.s46', "إثبات تأخير وتمديد المدة وترحيل المواعيد")}
                             style={{
                               display: 'inline-flex',
                               alignItems: 'center',
@@ -742,13 +744,13 @@ export function ContractingGanttTab({
                             }}
                           >
                             <AppIcons.Clock size={13} />
-                            <span>ترحيل / تأخير</span>
+                            <span>{__t('contracting.contracting_gantt_tab.s47', "ترحيل / تأخير")}</span>
                           </button>
 
                           <button
                             type="button"
                             onClick={() => handleDeleteTask(task.id)}
-                            title="حذف المهمة"
+                            title={__t('contracting.contracting_gantt_tab.s48', "حذف المهمة")}
                             style={{
                               background: 'transparent',
                               border: 'none',

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { DialogShell } from '@/shared/components/dialog-shell';
@@ -14,6 +15,7 @@ interface WipeTenantDataModalProps {
 }
 
 export function WipeTenantDataModal({ tenant, onClose, onSuccess }: WipeTenantDataModalProps) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -38,7 +40,7 @@ export function WipeTenantDataModal({ tenant, onClose, onSuccess }: WipeTenantDa
       open={true}
       onClose={onClose}
       width="540px"
-      ariaLabel="تصفير قاعدة بيانات المشترك"
+      ariaLabel={t('saas_admin.wipe_tenant_data_modal.s0', "تصفير قاعدة بيانات المشترك")}
     >
       <div className="dialog-card" dir="rtl" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
         {/* Header */}
@@ -49,10 +51,10 @@ export function WipeTenantDataModal({ tenant, onClose, onSuccess }: WipeTenantDa
             </div>
             <div>
               <h3 style={{ margin: 0, fontSize: '17px', fontWeight: 800, color: '#991b1b' }}>
-                تصفير قاعدة بيانات المشترك (Factory Reset)
+                {t('saas_admin.wipe_tenant_data_modal.s1', "تصفير قاعدة بيانات المشترك (Factory Reset)")}
               </h3>
               <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>
-                النسخة: <strong style={{ color: '#0f172a' }}>{tenant.businessName || tenant.slug}</strong> ({tenant.slug})
+                {t('saas_admin.wipe_tenant_data_modal.s2', "النسخة:")} <strong style={{ color: '#0f172a' }}>{tenant.businessName || tenant.slug}</strong> ({tenant.slug})
               </div>
             </div>
           </div>
@@ -76,25 +78,25 @@ export function WipeTenantDataModal({ tenant, onClose, onSuccess }: WipeTenantDa
         <div style={{ background: '#fffbeb', border: '1px solid #fef3c7', borderRadius: '10px', padding: '14px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
           <strong style={{ fontSize: '13px', color: '#92400e', display: 'flex', alignItems: 'center', gap: '6px' }}>
             <ShieldCheckIcon size={16} />
-            تأكيد التصفير النهائي للبدء الفعلي بالمتجر
+            {t('saas_admin.wipe_tenant_data_modal.s3', "تأكيد التصفير النهائي للبدء الفعلي بالمتجر")}
           </strong>
           <p style={{ margin: 0, fontSize: '12px', color: '#b45309', lineHeight: 1.6 }}>
-            سيتم مسح وتصفير كافة البيانات التشغيلية (الأصناف، المبيعات، المشتريات، حركات المخزون، ديون العملاء والموردين، والورديات) وإعادة المتجر أبيض نظيف 100% ليقوم العميل بإدخال بياناته الحقيقية.
+            {t('saas_admin.wipe_tenant_data_modal.s4', "سيتم مسح وتصفير كافة البيانات التشغيلية (الأصناف، المبيعات، المشتريات، حركات المخزون، ديون العملاء والموردين، والورديات) وإعادة المتجر أبيض نظيف 100% ليقوم العميل بإدخال بياناته الحقيقية.")}
           </p>
           <div style={{ fontSize: '11.5px', color: '#78350f', marginTop: '4px', fontWeight: 600 }}>
-            ملاحظة: سيتم الاحتفاظ بحساب المالك، بيانات الفرع، وخطة الاشتراك كما هي دون أي مساس.
+            {t('saas_admin.wipe_tenant_data_modal.s5', "ملاحظة: سيتم الاحتفاظ بحساب المالك، بيانات الفرع، وخطة الاشتراك كما هي دون أي مساس.")}
           </div>
         </div>
 
         {/* Super Admin Password Field */}
         <div>
-          <Field label="أدخل كلمة مرور السوبر أدمن لتأكيد الإجراء *">
+          <Field label={t('saas_admin.wipe_tenant_data_modal.s6', "أدخل كلمة مرور السوبر أدمن لتأكيد الإجراء *")}>
             <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
               <input
                 type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="كلمة مرور حساب السوبر أدمن للمنصة"
+                placeholder={t('saas_admin.wipe_tenant_data_modal.s7', "كلمة مرور حساب السوبر أدمن للمنصة")}
                 required
                 style={{
                   width: '100%',
@@ -118,7 +120,7 @@ export function WipeTenantDataModal({ tenant, onClose, onSuccess }: WipeTenantDa
                   fontWeight: 600,
                 }}
               >
-                {showPassword ? 'إخفاء' : 'إظهار'}
+                {showPassword ? t('saas_admin.wipe_tenant_data_modal.s8', "إخفاء") : t('saas_admin.wipe_tenant_data_modal.s9', "إظهار")}
               </button>
             </div>
           </Field>
@@ -127,7 +129,7 @@ export function WipeTenantDataModal({ tenant, onClose, onSuccess }: WipeTenantDa
         {/* Actions */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '10px', paddingTop: '12px', borderTop: '1px solid #e2e8f0' }}>
           <Button type="button" variant="secondary" onClick={onClose} disabled={wipeMutation.isPending}>
-            إلغاء
+            {t('saas_admin.wipe_tenant_data_modal.s10', "إلغاء")}
           </Button>
           <Button
             type="button"
@@ -135,7 +137,7 @@ export function WipeTenantDataModal({ tenant, onClose, onSuccess }: WipeTenantDa
             disabled={wipeMutation.isPending || !password.trim()}
             style={{ background: '#dc2626', color: '#ffffff', fontWeight: 800 }}
           >
-            {wipeMutation.isPending ? 'جاري تصفير البيانات...' : 'تأكيد تصفير المتجر'}
+            {wipeMutation.isPending ? t('saas_admin.wipe_tenant_data_modal.s11', "جاري تصفير البيانات...") : t('saas_admin.wipe_tenant_data_modal.s12', "تأكيد تصفير المتجر")}
           </Button>
         </div>
       </div>

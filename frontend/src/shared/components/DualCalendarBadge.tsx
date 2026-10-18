@@ -1,8 +1,10 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useRef, useEffect } from 'react';
 import { getDualDate } from '@/lib/hijri';
 import { CalendarIcon, CheckCircleIcon, CopyIcon } from '@/shared/components/icons/AppIcons';
 
 export function DualCalendarBadge() {
+  const { t } = useTranslation();
   const [dualDate] = useState(() => getDualDate());
   const [isOpen, setIsOpen] = useState(false);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
@@ -51,11 +53,11 @@ export function DualCalendarBadge() {
           whiteSpace: 'nowrap',
           userSelect: 'none',
         }}
-        title="التقويم المزدوج (أم القرى والميلادي) — اضغط لعرض التفاصيل"
+        title={t('shared.dual_calendar_badge.s0', "التقويم المزدوج (أم القرى والميلادي) — اضغط لعرض التفاصيل")}
       >
         <CalendarIcon size={15} color="#170e5e" strokeWidth={2.2} style={{ flexShrink: 0 }} />
         <span style={{ fontWeight: 700, color: '#0f172a' }}>
-          {dualDate.dayName}، {dualDate.gregorian.day} {dualDate.gregorian.monthName} {dualDate.gregorian.year}
+          {dualDate.dayName}{t('shared.dual_calendar_badge.s1', "،")} {dualDate.gregorian.day} {dualDate.gregorian.monthName} {dualDate.gregorian.year}
         </span>
       </button>
 
@@ -83,12 +85,12 @@ export function DualCalendarBadge() {
                 <CalendarIcon size={16} color="#170e5e" strokeWidth={2.2} />
               </div>
               <div>
-                <h4 style={{ margin: 0, fontSize: '13px', fontWeight: 800, color: '#0f172a' }}>التقويم المزدوج</h4>
-                <p style={{ margin: 0, fontSize: '11px', color: '#64748b' }}>اليوم: {dualDate.dayName}</p>
+                <h4 style={{ margin: 0, fontSize: '13px', fontWeight: 800, color: '#0f172a' }}>{t('shared.dual_calendar_badge.s2', "التقويم المزدوج")}</h4>
+                <p style={{ margin: 0, fontSize: '11px', color: '#64748b' }}>{t('shared.dual_calendar_badge.s3', "اليوم:")} {dualDate.dayName}</p>
               </div>
             </div>
             <span style={{ fontSize: '10px', fontWeight: 700, backgroundColor: '#ecfdf5', color: '#059669', border: '1px solid #a7f3d0', padding: '2px 8px', borderRadius: '6px' }}>
-              أم القرى الرسمي
+              {t('shared.dual_calendar_badge.s4', "أم القرى الرسمي")}
             </span>
           </div>
 
@@ -96,14 +98,14 @@ export function DualCalendarBadge() {
             {/* Hijri Card */}
             <div style={{ padding: '10px 12px', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div>
-                <span style={{ fontSize: '11px', fontWeight: 600, color: '#64748b', display: 'block' }}>التاريخ الهجري (أم القرى)</span>
+                <span style={{ fontSize: '11px', fontWeight: 600, color: '#64748b', display: 'block' }}>{t('shared.dual_calendar_badge.s5', "التاريخ الهجري (أم القرى)")}</span>
                 <span style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a' }}>{dualDate.hijri.formatted}</span>
               </div>
               <button
                 type="button"
                 onClick={() => handleCopy(dualDate.hijri.formatted, 'hijri')}
                 style={{ padding: '6px', borderRadius: '6px', border: 'none', background: 'transparent', cursor: 'pointer', color: '#64748b' }}
-                title="نسخ التاريخ الهجري"
+                title={t('shared.dual_calendar_badge.s6', "نسخ التاريخ الهجري")}
               >
                 {copiedKey === 'hijri' ? (
                   <CheckCircleIcon size={15} color="#059669" />
@@ -116,14 +118,14 @@ export function DualCalendarBadge() {
             {/* Gregorian Card */}
             <div style={{ padding: '10px 12px', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div>
-                <span style={{ fontSize: '11px', fontWeight: 600, color: '#64748b', display: 'block' }}>التاريخ الميلادي</span>
+                <span style={{ fontSize: '11px', fontWeight: 600, color: '#64748b', display: 'block' }}>{t('shared.dual_calendar_badge.s7', "التاريخ الميلادي")}</span>
                 <span style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a' }}>{dualDate.gregorian.formatted}</span>
               </div>
               <button
                 type="button"
                 onClick={() => handleCopy(dualDate.gregorian.formatted, 'gregorian')}
                 style={{ padding: '6px', borderRadius: '6px', border: 'none', background: 'transparent', cursor: 'pointer', color: '#64748b' }}
-                title="نسخ التاريخ الميلادي"
+                title={t('shared.dual_calendar_badge.s8', "نسخ التاريخ الميلادي")}
               >
                 {copiedKey === 'gregorian' ? (
                   <CheckCircleIcon size={15} color="#059669" />
@@ -135,13 +137,13 @@ export function DualCalendarBadge() {
           </div>
 
           <div style={{ marginTop: '12px', paddingTop: '10px', borderTop: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '11px', color: '#64748b' }}>
-            <span>السنة المالية: <strong>{dualDate.gregorian.year}</strong></span>
+            <span>{t('shared.dual_calendar_badge.s9', "السنة المالية:")} <strong>{dualDate.gregorian.year}</strong></span>
             <button
               type="button"
               onClick={() => handleCopy(dualDate.combined, 'combined')}
               style={{ border: 'none', background: 'transparent', color: '#170e5e', fontWeight: 700, cursor: 'pointer', padding: 0, textDecoration: 'underline' }}
             >
-              {copiedKey === 'combined' ? 'تم النسخ!' : 'نسخ التاريخين معاً'}
+              {copiedKey === 'combined' ? t('shared.dual_calendar_badge.s10', "تم النسخ!") : t('shared.dual_calendar_badge.s11', "نسخ التاريخين معاً")}
             </button>
           </div>
         </div>

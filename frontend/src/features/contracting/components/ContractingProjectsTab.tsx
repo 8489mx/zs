@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useMemo } from 'react';
 import { ContractingProject } from '../contracting.types';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
@@ -36,6 +37,7 @@ export function ContractingProjectsTab({
   onNewProject,
   onRefresh,
 }: ContractingProjectsTabProps) {
+  const { t } = useTranslation();
   const { formatCurrency } = useSystemCurrency();
   const [activeTab, setActiveTab] = useState<PipelineTab>('active');
 
@@ -82,43 +84,43 @@ export function ContractingProjectsTab({
       case 'active':
         return (
           <span style={{ padding: '3px 8px', borderRadius: '6px', fontSize: 'var(--font-badge)', fontWeight: 600, background: '#dcfce7', color: '#15803d', border: '1px solid #bbf7d0' }}>
-            قيد التنفيذ
+            {t('contracting.contracting_projects_tab.s0', "قيد التنفيذ")}
           </span>
         );
       case 'completed':
         return (
           <span style={{ padding: '3px 8px', borderRadius: '6px', fontSize: 'var(--font-badge)', fontWeight: 600, background: '#f8fafc', color: '#0f172a', border: '1px solid #cbd5e1' }}>
-            مكتمل ومسلّم
+            {t('contracting.contracting_projects_tab.s1', "مكتمل ومسلّم")}
           </span>
         );
       case 'suspended':
         return (
           <span style={{ padding: '3px 8px', borderRadius: '6px', fontSize: 'var(--font-badge)', fontWeight: 600, background: '#f8fafc', color: '#64748b', border: '1px solid #e2e8f0' }}>
-            معلق مؤقتاً
+            {t('contracting.contracting_projects_tab.s2', "معلق مؤقتاً")}
           </span>
         );
       case 'submitted':
         return (
           <span style={{ padding: '3px 8px', borderRadius: '6px', fontSize: 'var(--font-badge)', fontWeight: 600, background: '#f8fafc', color: '#334155', border: '1px solid #cbd5e1' }}>
-            بانتظار رد العميل
+            {t('contracting.contracting_projects_tab.s3', "بانتظار رد العميل")}
           </span>
         );
       case 'negotiation':
         return (
           <span style={{ padding: '3px 8px', borderRadius: '6px', fontSize: 'var(--font-badge)', fontWeight: 600, background: '#f8fafc', color: '#334155', border: '1px solid #cbd5e1' }}>
-            تحت التفاوض (مراجعة)
+            {t('contracting.contracting_projects_tab.s4', "تحت التفاوض (مراجعة)")}
           </span>
         );
       case 'lost':
         return (
           <span style={{ padding: '3px 8px', borderRadius: '6px', fontSize: 'var(--font-badge)', fontWeight: 600, background: '#f8fafc', color: '#64748b', border: '1px solid #e2e8f0' }}>
-            أرشيف (لم يُرسَ)
+            {t('contracting.contracting_projects_tab.s5', "أرشيف (لم يُرسَ)")}
           </span>
         );
       case 'cancelled':
         return (
           <span style={{ padding: '3px 8px', borderRadius: '6px', fontSize: 'var(--font-badge)', fontWeight: 600, background: '#f8fafc', color: '#64748b', border: '1px solid #e2e8f0' }}>
-            ملغي
+            {t('contracting.contracting_projects_tab.s6', "ملغي")}
           </span>
         );
       case 'draft':
@@ -126,7 +128,7 @@ export function ContractingProjectsTab({
       default:
         return (
           <span style={{ padding: '3px 8px', borderRadius: '6px', fontSize: 'var(--font-badge)', fontWeight: 600, background: '#f8fafc', color: '#170e5e', border: '1px solid #cbd5e1' }}>
-            عطاء قيد الدراسة
+            {t('contracting.contracting_projects_tab.s7', "عطاء قيد الدراسة")}
           </span>
         );
     }
@@ -176,10 +178,10 @@ export function ContractingProjectsTab({
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
         <div>
           <h2 style={{ fontSize: 'var(--font-section-title)', fontWeight: 700, color: '#1e293b', margin: 0 }}>
-            سجل المشاريع الإنشائية والعطاءات (Projects & Bidding Register)
+            {t('contracting.contracting_projects_tab.s8', "سجل المشاريع الإنشائية والعطاءات (Projects & Bidding Register)")}
           </h2>
           <p style={{ fontSize: 'var(--font-subtitle)', color: '#64748b', margin: '4px 0 0' }}>
-            فصل هندسي صارم بين مسار دراسة العطاءات والمناقصات، وبين المشاريع التنفيذية السارية
+            {t('contracting.contracting_projects_tab.s9', "فصل هندسي صارم بين مسار دراسة العطاءات والمناقصات، وبين المشاريع التنفيذية السارية")}
           </p>
         </div>
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
@@ -203,7 +205,7 @@ export function ContractingProjectsTab({
             }}
           >
             <AppIcons.Sliders size={15} />
-            <span>دراسة وتسعير عطاء جديد</span>
+            <span>{t('contracting.contracting_projects_tab.s10', "دراسة وتسعير عطاء جديد")}</span>
           </button>
           <button
             type="button"
@@ -226,7 +228,7 @@ export function ContractingProjectsTab({
             }}
           >
             <AppIcons.Plus size={15} />
-            <span>مشروع تعاقدي مباشر</span>
+            <span>{t('contracting.contracting_projects_tab.s11', "مشروع تعاقدي مباشر")}</span>
           </button>
         </div>
       </div>
@@ -253,7 +255,7 @@ export function ContractingProjectsTab({
           }}
         >
           <AppIcons.Building size={15} />
-          <span>المشاريع التنفيذية السارية</span>
+          <span>{t('contracting.contracting_projects_tab.s12', "المشاريع التنفيذية السارية")}</span>
           <span style={{ fontSize: '11px', padding: '1px 6px', borderRadius: '10px', background: activeTab === 'active' ? '#f1f5f9' : '#e2e8f0', color: activeTab === 'active' ? '#170e5e' : '#64748b', fontWeight: 700 }}>
             {activeProjects.length}
           </span>
@@ -279,7 +281,7 @@ export function ContractingProjectsTab({
           }}
         >
           <AppIcons.Sliders size={15} />
-          <span>مسار العطاءات والمناقصات</span>
+          <span>{t('contracting.contracting_projects_tab.s13', "مسار العطاءات والمناقصات")}</span>
           <span style={{ fontSize: '11px', padding: '1px 6px', borderRadius: '10px', background: activeTab === 'tenders' ? '#f1f5f9' : '#e2e8f0', color: activeTab === 'tenders' ? '#170e5e' : '#64748b', fontWeight: 700 }}>
             {tenderProjects.length}
           </span>
@@ -305,7 +307,7 @@ export function ContractingProjectsTab({
           }}
         >
           <AppIcons.Archive size={15} />
-          <span>أرشيف العطاءات غير المرسّاة (المرجع التاريخي)</span>
+          <span>{t('contracting.contracting_projects_tab.s14', "أرشيف العطاءات غير المرسّاة (المرجع التاريخي)")}</span>
           <span style={{ fontSize: '11px', padding: '1px 6px', borderRadius: '10px', background: activeTab === 'lost' ? '#f1f5f9' : '#e2e8f0', color: activeTab === 'lost' ? '#170e5e' : '#64748b', fontWeight: 700 }}>
             {lostProjects.length}
           </span>
@@ -316,7 +318,7 @@ export function ContractingProjectsTab({
       <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
         {loading ? (
           <div style={{ padding: '40px', textAlign: 'center', color: '#64748b', fontSize: 'var(--font-body)' }}>
-            جاري تحميل سجل المشاريع والعطاءات...
+            {t('contracting.contracting_projects_tab.s15', "جاري تحميل سجل المشاريع والعطاءات...")}
           </div>
         ) : displayedProjects.length === 0 ? (
           <div style={{ padding: '48px 24px', textAlign: 'center' }}>
@@ -325,17 +327,17 @@ export function ContractingProjectsTab({
             </div>
             <div style={{ fontSize: 'var(--font-section-title)', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
               {activeTab === 'tenders'
-                ? 'لا توجد عطاءات قيد الدراسة أو التفاوض حالياً'
+                ? t('contracting.contracting_projects_tab.s16', "لا توجد عطاءات قيد الدراسة أو التفاوض حالياً")
                 : activeTab === 'lost'
-                ? 'أرشيف العطاءات غير المرسّاة فارغ'
-                : 'لا توجد مشاريع إنشائية تنفيذية مسجلة بعد'}
+                ? t('contracting.contracting_projects_tab.s17', "أرشيف العطاءات غير المرسّاة فارغ")
+                : t('contracting.contracting_projects_tab.s18', "لا توجد مشاريع إنشائية تنفيذية مسجلة بعد")}
             </div>
             <div style={{ fontSize: 'var(--font-subtitle)', color: '#64748b', maxWidth: '440px', margin: '0 auto 16px' }}>
               {activeTab === 'tenders'
-                ? 'قم باستيراد مقايسة العميل وتسعيرها وتفكيك الكود لحساب تكاليف الخامات والمصنعيات واستخراج عروض الأسعار.'
+                ? t('contracting.contracting_projects_tab.s19', "قم باستيراد مقايسة العميل وتسعيرها وتفكيك الكود لحساب تكاليف الخامات والمصنعيات واستخراج عروض الأسعار.")
                 : activeTab === 'lost'
-                ? 'أي عطاء لم يوفق فيه سيُحفظ هنا كمرجع تسعيري دائم للاستفادة من حسابات التكلفة في العمليات القادمة.'
-                : 'قم بترسية أحد العطاءات أو إضافة مشروع تعاقدي جديد لبدء التوريدات واليوميات وإصدار المستخلصات.'}
+                ? t('contracting.contracting_projects_tab.s20', "أي عطاء لم يوفق فيه سيُحفظ هنا كمرجع تسعيري دائم للاستفادة من حسابات التكلفة في العمليات القادمة.")
+                : t('contracting.contracting_projects_tab.s21', "قم بترسية أحد العطاءات أو إضافة مشروع تعاقدي جديد لبدء التوريدات واليوميات وإصدار المستخلصات.")}
             </div>
             {activeTab === 'tenders' ? (
               <button
@@ -353,7 +355,7 @@ export function ContractingProjectsTab({
                   fontSize: 'var(--font-body)',
                 }}
               >
-                بدء دراسة وتسعير عطاء الآن
+                {t('contracting.contracting_projects_tab.s22', "بدء دراسة وتسعير عطاء الآن")}
               </button>
             ) : null}
           </div>
@@ -374,24 +376,24 @@ export function ContractingProjectsTab({
               <thead>
                 <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
                   <th style={{ padding: '12px 6px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155', textAlign: 'center' }}>
-                    {activeTab === 'tenders' ? 'كود العطاء' : activeTab === 'lost' ? 'كود العطاء' : 'كود المشروع'}
+                    {activeTab === 'tenders' ? t('contracting.contracting_projects_tab.s23', "كود العطاء") : activeTab === 'lost' ? t('contracting.contracting_projects_tab.s24', "كود العطاء") : t('contracting.contracting_projects_tab.s25', "كود المشروع")}
                   </th>
                   <th style={{ padding: '12px 8px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155', textAlign: 'center' }}>
-                    {activeTab === 'tenders' ? 'اسم العطاء المقترح' : activeTab === 'lost' ? 'اسم العطاء وسبب الرفض' : 'المشروع والموقع'}
+                    {activeTab === 'tenders' ? t('contracting.contracting_projects_tab.s26', "اسم العطاء المقترح") : activeTab === 'lost' ? t('contracting.contracting_projects_tab.s27', "اسم العطاء وسبب الرفض") : t('contracting.contracting_projects_tab.s28', "المشروع والموقع")}
                   </th>
-                  <th style={{ padding: '12px 8px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155', textAlign: 'center' }}>العميل</th>
+                  <th style={{ padding: '12px 8px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155', textAlign: 'center' }}>{t('contracting.contracting_projects_tab.s29', "العميل")}</th>
                   <th style={{ padding: '12px 8px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155', textAlign: 'center' }}>
-                    {activeTab === 'tenders' ? 'المراجعة' : activeTab === 'lost' ? 'سعر المنافس' : 'المدير المسؤول'}
+                    {activeTab === 'tenders' ? t('contracting.contracting_projects_tab.s30', "المراجعة") : activeTab === 'lost' ? t('contracting.contracting_projects_tab.s31', "سعر المنافس") : t('contracting.contracting_projects_tab.s32', "المدير المسؤول")}
                   </th>
                   <th style={{ padding: '12px 6px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155', textAlign: 'center' }}>
-                    {activeTab === 'tenders' ? 'القيمة التقديرية' : activeTab === 'lost' ? 'القيمة المدروسة' : 'التعاقد الأصلي'}
+                    {activeTab === 'tenders' ? t('contracting.contracting_projects_tab.s33', "القيمة التقديرية") : activeTab === 'lost' ? t('contracting.contracting_projects_tab.s34', "القيمة المدروسة") : t('contracting.contracting_projects_tab.s35', "التعاقد الأصلي")}
                   </th>
                   <th style={{ padding: '12px 6px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155', textAlign: 'center' }}>
-                    {activeTab === 'active' ? 'القيمة المعدلة' : 'الدفعة المقدمة'}
+                    {activeTab === 'active' ? t('contracting.contracting_projects_tab.s36', "القيمة المعدلة") : t('contracting.contracting_projects_tab.s37', "الدفعة المقدمة")}
                   </th>
-                  <th style={{ padding: '12px 6px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155', textAlign: 'center' }}>الحالة</th>
-                  <th style={{ padding: '12px 4px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155', textAlign: 'center' }}>الصحة</th>
-                  <th style={{ padding: '12px 6px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155', textAlign: 'center' }}>الإجراءات</th>
+                  <th style={{ padding: '12px 6px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155', textAlign: 'center' }}>{t('contracting.contracting_projects_tab.s38', "الحالة")}</th>
+                  <th style={{ padding: '12px 4px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155', textAlign: 'center' }}>{t('contracting.contracting_projects_tab.s39', "الصحة")}</th>
+                  <th style={{ padding: '12px 6px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155', textAlign: 'center' }}>{t('contracting.contracting_projects_tab.s40', "الإجراءات")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -406,7 +408,7 @@ export function ContractingProjectsTab({
                         <button
                           type="button"
                           onClick={() => onSelectProject(prj.id, isTender || isLost ? 'tender' : 'boq')}
-                          title={isTender || isLost ? 'فتح دراسة وتسعير العطاء' : 'فتح مقايسة المشروع'}
+                          title={isTender || isLost ? t('contracting.contracting_projects_tab.s41', "فتح دراسة وتسعير العطاء") : t('contracting.contracting_projects_tab.s42', "فتح مقايسة المشروع")}
                           style={{
                             fontFamily: 'monospace',
                             fontWeight: 700,
@@ -434,7 +436,7 @@ export function ContractingProjectsTab({
                         </div>
                         {isLost && prj.lossReason ? (
                           <div style={{ fontSize: 'var(--font-micro)', color: '#b91c1c', fontWeight: 600, marginTop: '2px' }}>
-                            السبب: {LOSS_REASON_LABELS[prj.lossReason] || prj.lossReason}
+                            {t('contracting.contracting_projects_tab.s43', "السبب:")} {LOSS_REASON_LABELS[prj.lossReason] || prj.lossReason}
                           </div>
                         ) : prj.locationAddress ? (
                           <div style={{ fontSize: 'var(--font-micro)', color: '#94a3b8', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: '2px' }} title={prj.locationAddress}>
@@ -456,7 +458,7 @@ export function ContractingProjectsTab({
                           </span>
                         ) : isLost ? (
                           <span style={{ color: '#0f172a', fontWeight: 600 }}>
-                            {(prj as any).competitorPrice ? formatCurrency(Number((prj as any).competitorPrice)) : 'غير محدد'}
+                            {(prj as any).competitorPrice ? formatCurrency(Number((prj as any).competitorPrice)) : t('contracting.contracting_projects_tab.s44', "غير محدد")}
                           </span>
                         ) : (
                           prj.projectManager || '—'
@@ -513,13 +515,13 @@ export function ContractingProjectsTab({
                                   transition: 'all 0.15s ease',
                                 }}
                               >
-                                دراسة العطاء
+                                {t('contracting.contracting_projects_tab.s45', "دراسة العطاء")}
                               </button>
                               <div style={{ display: 'flex', gap: '3px' }}>
                                 <button
                                   type="button"
                                   onClick={() => handleCreateRevision(prj)}
-                                  title="إنشاء مراجعة تفاوضية جديدة"
+                                  title={t('contracting.contracting_projects_tab.s46', "إنشاء مراجعة تفاوضية جديدة")}
                                   style={{
                                     width: '42px',
                                     height: '21px',
@@ -533,12 +535,12 @@ export function ContractingProjectsTab({
                                     padding: 0,
                                   }}
                                 >
-                                  مراجعة
+                                  {t('contracting.contracting_projects_tab.s47', "مراجعة")}
                                 </button>
                                 <button
                                   type="button"
                                   onClick={() => setAwardModal({ open: true, project: prj })}
-                                  title="اعتماد وترسية العطاء كمشروع ساري"
+                                  title={t('contracting.contracting_projects_tab.s48', "اعتماد وترسية العطاء كمشروع ساري")}
                                   style={{
                                     width: '43px',
                                     height: '21px',
@@ -552,7 +554,7 @@ export function ContractingProjectsTab({
                                     padding: 0,
                                   }}
                                 >
-                                  ترسية
+                                  {t('contracting.contracting_projects_tab.s49', "ترسية")}
                                 </button>
                               </div>
                               <button
@@ -571,7 +573,7 @@ export function ContractingProjectsTab({
                                   padding: 0,
                                 }}
                               >
-                                أرشفة (لم يُرسَ)
+                                {t('contracting.contracting_projects_tab.s50', "أرشفة (لم يُرسَ)")}
                               </button>
                             </>
                           ) : isLost ? (
@@ -596,7 +598,7 @@ export function ContractingProjectsTab({
                                   padding: 0,
                                 }}
                               >
-                                استعراض المقايسة
+                                {t('contracting.contracting_projects_tab.s51', "استعراض المقايسة")}
                               </button>
                               <button
                                 type="button"
@@ -614,7 +616,7 @@ export function ContractingProjectsTab({
                                   padding: 0,
                                 }}
                               >
-                                إعادة للتفاوض
+                                {t('contracting.contracting_projects_tab.s52', "إعادة للتفاوض")}
                               </button>
                             </>
                           ) : (
@@ -640,7 +642,7 @@ export function ContractingProjectsTab({
                                   transition: 'all 0.15s ease',
                                 }}
                               >
-                                المقايسة (SOV)
+                                {t('contracting.contracting_projects_tab.s53', "المقايسة (SOV)")}
                               </button>
                               <button
                                 type="button"
@@ -663,7 +665,7 @@ export function ContractingProjectsTab({
                                   transition: 'all 0.15s ease',
                                 }}
                               >
-                                المستخلصات
+                                {t('contracting.contracting_projects_tab.s54', "المستخلصات")}
                               </button>
                               <button
                                 type="button"
@@ -686,7 +688,7 @@ export function ContractingProjectsTab({
                                   transition: 'all 0.15s ease',
                                 }}
                               >
-                                تراخيص
+                                {t('contracting.contracting_projects_tab.s55', "تراخيص")}
                               </button>
                             </>
                           )}

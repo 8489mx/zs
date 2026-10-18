@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { Button } from '@/shared/ui/button';
 import { PlusIcon } from '@/shared/components/icons/AppIcons';
@@ -20,6 +21,7 @@ export function RfqComparisonMatrixModal({
   onSelectWinner,
   submitting,
 }: RfqComparisonMatrixModalProps) {
+  const { t } = useTranslation();
   if (!isOpen || !activeRfq) return null;
 
   const isConverted = activeRfq.status === 'converted_to_po';
@@ -36,12 +38,12 @@ export function RfqComparisonMatrixModal({
       open={isOpen}
       onClose={onClose}
       title={`مصفوفة المقارنة والمفاضلة: ${activeRfq.title} (${activeRfq.rfq_number})`}
-      subtitle="المقارنة التفصيلية لأسعار وشروط الموردين واختيار العرض الفائز"
+      subtitle={t('purchases.rfq.rfq_comparison_matrix_modal.s0', "المقارنة التفصيلية لأسعار وشروط الموردين واختيار العرض الفائز")}
       maxWidth="1200px"
       footerActions={
         <StandardDialogFooter
           onCancel={onClose}
-          cancelLabel="إغلاق"
+          cancelLabel={t('purchases.rfq.rfq_comparison_matrix_modal.s1', "إغلاق")}
         />
       }
     >
@@ -60,7 +62,7 @@ export function RfqComparisonMatrixModal({
         >
           <div>
             <span style={{ fontSize: 'var(--font-subtitle)', color: '#64748b' }}>
-              عدد الموردين المتنافسين: <strong>{activeRfq.bids?.length || 0}</strong> | الأصناف: <strong>{activeRfq.items?.length || 0}</strong>
+              {t('purchases.rfq.rfq_comparison_matrix_modal.s2', "عدد الموردين المتنافسين:")} <strong>{activeRfq.bids?.length || 0}</strong> {t('purchases.rfq.rfq_comparison_matrix_modal.s3', "| الأصناف:")} <strong>{activeRfq.items?.length || 0}</strong>
             </span>
           </div>
 
@@ -78,7 +80,7 @@ export function RfqComparisonMatrixModal({
               }}
             >
               <PlusIcon size={14} />
-              تسجيل عرض سعر مورد
+              {t('purchases.rfq.rfq_comparison_matrix_modal.s4', "تسجيل عرض سعر مورد")}
             </Button>
           )}
         </div>
@@ -86,14 +88,14 @@ export function RfqComparisonMatrixModal({
         {/* Matrix comparison table */}
         {(bids.length === 0) ? (
           <div style={{ textAlign: 'center', padding: '40px', color: '#94a3b8' }}>
-            لم يتم تسجيل أي عروض أسعار من الموردين لهذا الطلب حتى الآن.
+            {t('purchases.rfq.rfq_comparison_matrix_modal.s5', "لم يتم تسجيل أي عروض أسعار من الموردين لهذا الطلب حتى الآن.")}
           </div>
         ) : (
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right', fontSize: 'var(--font-body)' }}>
               <thead>
                 <tr style={{ backgroundColor: '#f1f5f9', borderBottom: '2px solid #cbd5e1' }}>
-                  <th style={{ padding: '12px', borderInlineEnd: '1px solid #e2e8f0' }}>الصنف / الكمية المطلوبة</th>
+                  <th style={{ padding: '12px', borderInlineEnd: '1px solid #e2e8f0' }}>{t('purchases.rfq.rfq_comparison_matrix_modal.s6', "الصنف / الكمية المطلوبة")}</th>
                   {bids.map((bid: any) => {
                     const isWinner = isConverted && bid.supplier_id === activeRfq.awarded_supplier_id;
                     const isBestPrice = !isConverted && lowestTotalBid && bid.id === lowestTotalBid.id;
@@ -111,16 +113,16 @@ export function RfqComparisonMatrixModal({
                       >
                         <div style={{ fontWeight: 800, color: '#0f172a' }}>{bid.supplier_name}</div>
                         <div style={{ fontSize: 'var(--font-micro)', color: '#64748b', marginTop: '2px' }}>
-                          مدة التوريد: {bid.delivery_lead_days} أيام | {bid.payment_terms}
+                          {t('purchases.rfq.rfq_comparison_matrix_modal.s7', "مدة التوريد:")} {bid.delivery_lead_days} {t('purchases.rfq.rfq_comparison_matrix_modal.s8', "أيام |")} {bid.payment_terms}
                         </div>
                         {isWinner && (
                           <div style={{ color: '#166534', fontWeight: 700, fontSize: 'var(--font-micro)', marginTop: '4px' }}>
-                            العرض الفائز المعتمد
+                            {t('purchases.rfq.rfq_comparison_matrix_modal.s9', "العرض الفائز المعتمد")}
                           </div>
                         )}
                         {isBestPrice && (
                           <div style={{ color: '#1d4ed8', fontWeight: 700, fontSize: 'var(--font-micro)', marginTop: '4px' }}>
-                            أفضل سعر إجمالي
+                            {t('purchases.rfq.rfq_comparison_matrix_modal.s10', "أفضل سعر إجمالي")}
                           </div>
                         )}
                       </th>
@@ -134,7 +136,7 @@ export function RfqComparisonMatrixModal({
                     <td style={{ padding: '10px 12px', fontWeight: 700, backgroundColor: '#fdfdfd', borderInlineEnd: '1px solid #e2e8f0' }}>
                       <div>{item.product_name}</div>
                       <div style={{ fontSize: 'var(--font-micro)', color: '#64748b' }}>
-                        الكمية: {item.target_quantity} {item.unit_name}
+                        {t('purchases.rfq.rfq_comparison_matrix_modal.s11', "الكمية:")} {item.target_quantity} {item.unit_name}
                       </div>
                     </td>
 
@@ -153,14 +155,14 @@ export function RfqComparisonMatrixModal({
                           {itemBid ? (
                             <div>
                               <div style={{ fontWeight: 700, color: '#0f172a' }}>
-                                {itemBid.quoted_unit_cost.toLocaleString()} ج.م
+                                {itemBid.quoted_unit_cost.toLocaleString()} {t('purchases.rfq.rfq_comparison_matrix_modal.s12', "ج.م")}
                               </div>
                               <div style={{ fontSize: 'var(--font-micro)', color: '#64748b' }}>
-                                الإجمالي: {(itemBid.quoted_unit_cost * item.target_quantity).toLocaleString()} ج.م
+                                {t('purchases.rfq.rfq_comparison_matrix_modal.s13', "الإجمالي:")} {(itemBid.quoted_unit_cost * item.target_quantity).toLocaleString()} {t('purchases.rfq.rfq_comparison_matrix_modal.s14', "ج.م")}
                               </div>
                             </div>
                           ) : (
-                            <span style={{ color: '#94a3b8' }}>غير مسعر</span>
+                            <span style={{ color: '#94a3b8' }}>{t('purchases.rfq.rfq_comparison_matrix_modal.s15', "غير مسعر")}</span>
                           )}
                         </td>
                       );
@@ -171,7 +173,7 @@ export function RfqComparisonMatrixModal({
                 {/* Total Row */}
                 <tr style={{ backgroundColor: '#f8fafc', borderTop: '2px solid #cbd5e1', fontWeight: 800 }}>
                   <td style={{ padding: '14px 12px', borderInlineEnd: '1px solid #e2e8f0' }}>
-                    إجمالي قيمة العرض (شامل الضريبة)
+                    {t('purchases.rfq.rfq_comparison_matrix_modal.s16', "إجمالي قيمة العرض (شامل الضريبة)")}
                   </td>
                   {bids.map((bid: any) => (
                     <td
@@ -185,7 +187,7 @@ export function RfqComparisonMatrixModal({
                         fontFamily: 'monospace',
                       }}
                     >
-                      {bid.total_amount.toLocaleString()} ج.م
+                      {bid.total_amount.toLocaleString()} {t('purchases.rfq.rfq_comparison_matrix_modal.s17', "ج.م")}
                     </td>
                   ))}
                 </tr>
@@ -194,7 +196,7 @@ export function RfqComparisonMatrixModal({
                 {!isConverted && (
                   <tr style={{ backgroundColor: '#ffffff' }}>
                     <td style={{ padding: '14px 12px', borderInlineEnd: '1px solid #e2e8f0', fontWeight: 700 }}>
-                      قرار الترسية والتحويل لأمر شراء
+                      {t('purchases.rfq.rfq_comparison_matrix_modal.s18', "قرار الترسية والتحويل لأمر شراء")}
                     </td>
                     {bids.map((bid: any) => (
                       <td key={bid.id} style={{ padding: '14px 12px', textAlign: 'center', borderInlineEnd: '1px solid #e2e8f0' }}>
@@ -210,7 +212,7 @@ export function RfqComparisonMatrixModal({
                             padding: '6px 12px',
                           }}
                         >
-                          اعتماد العرض وتوليد PO
+                          {t('purchases.rfq.rfq_comparison_matrix_modal.s19', "اعتماد العرض وتوليد PO")}
                         </Button>
                       </td>
                     ))}

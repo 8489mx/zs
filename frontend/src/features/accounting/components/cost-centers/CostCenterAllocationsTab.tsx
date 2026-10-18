@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/shared/ui/button';
@@ -15,6 +16,7 @@ interface CostCenterAllocationsTabProps {
 }
 
 export const CostCenterAllocationsTab: React.FC<CostCenterAllocationsTabProps> = ({ costCenters }) => {
+  const { t } = useTranslation();
   const { currencySymbol } = useSystemCurrency();
   const queryClient = useQueryClient();
   const [modalOpen, setModalOpen] = useState(false);
@@ -123,21 +125,21 @@ export const CostCenterAllocationsTab: React.FC<CostCenterAllocationsTabProps> =
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
           <h3 style={{ fontSize: 'var(--font-section-title)', fontWeight: 700, margin: 0, color: '#0f172a' }}>
-            قوالب ومصفوفات توزيع مراكز التكلفة (Cost Center Allocation Matrices)
+            {t('accounting.cost_centers.cost_center_allocations_tab.s0', "قوالب ومصفوفات توزيع مراكز التكلفة (Cost Center Allocation Matrices)")}
           </h3>
           <p style={{ fontSize: 'var(--font-subtitle)', color: '#64748b', margin: '4px 0 0' }}>
-            تمكين تقسيم المصروف الواحد تلقائياً بنسب مئوية دقيقة على أكثر من مركز تكلفة (IFRS / Analytical Accounting).
+            {t('accounting.cost_centers.cost_center_allocations_tab.s1', "تمكين تقسيم المصروف الواحد تلقائياً بنسب مئوية دقيقة على أكثر من مركز تكلفة (IFRS / Analytical Accounting).")}
           </p>
         </div>
         <Button variant="primary" onClick={handleOpenCreate}>
           <PlusIcon size={16} />
-          إضافة قالب توزيع نسبي جديد
+          {t('accounting.cost_centers.cost_center_allocations_tab.s2', "إضافة قالب توزيع نسبي جديد")}
         </Button>
       </div>
 
       {/* Allocations Cards Grid */}
       {isLoading ? (
-        <div style={{ padding: '32px', textAlign: 'center', color: '#64748b' }}>جاري تحميل المصفوفات...</div>
+        <div style={{ padding: '32px', textAlign: 'center', color: '#64748b' }}>{t('accounting.cost_centers.cost_center_allocations_tab.s3', "جاري تحميل المصفوفات...")}</div>
       ) : allocations.length === 0 ? (
         <div
           style={{
@@ -149,7 +151,7 @@ export const CostCenterAllocationsTab: React.FC<CostCenterAllocationsTabProps> =
             color: '#94a3b8',
           }}
         >
-          لم يتم إنشاء أي مصفوفات توزيع بعد. يمكنك إنشاء قالب لتوزيع المصروفات المشتركة بنسب مئوية.
+          {t('accounting.cost_centers.cost_center_allocations_tab.s4', "لم يتم إنشاء أي مصفوفات توزيع بعد. يمكنك إنشاء قالب لتوزيع المصروفات المشتركة بنسب مئوية.")}
         </div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(420px, 1fr))', gap: '16px' }}>
@@ -199,7 +201,7 @@ export const CostCenterAllocationsTab: React.FC<CostCenterAllocationsTabProps> =
                     onClick={() => handleOpenEdit(alloc)}
                     style={{ padding: '4px 10px', fontSize: 'var(--font-micro)' }}
                   >
-                    تعديل
+                    {t('accounting.cost_centers.cost_center_allocations_tab.s5', "تعديل")}
                   </Button>
                   <button
                     type="button"
@@ -215,7 +217,7 @@ export const CostCenterAllocationsTab: React.FC<CostCenterAllocationsTabProps> =
                       cursor: 'pointer',
                       padding: '4px',
                     }}
-                    title="حذف"
+                    title={t('accounting.cost_centers.cost_center_allocations_tab.s6', "حذف")}
                   >
                     <TrashIcon size={16} />
                   </button>
@@ -303,7 +305,7 @@ export const CostCenterAllocationsTab: React.FC<CostCenterAllocationsTabProps> =
                     padding: 0,
                   }}
                 >
-                  {selectedSimulateId === alloc.id ? 'إخفاء المحاكي' : 'تجربة محاكي المبالغ'}
+                  {selectedSimulateId === alloc.id ? t('accounting.cost_centers.cost_center_allocations_tab.s7', "إخفاء المحاكي") : t('accounting.cost_centers.cost_center_allocations_tab.s8', "تجربة محاكي المبالغ")}
                 </button>
               </div>
 
@@ -322,7 +324,7 @@ export const CostCenterAllocationsTab: React.FC<CostCenterAllocationsTabProps> =
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <label style={{ fontSize: 'var(--font-micro)', fontWeight: 600, color: '#475569' }}>
-                      مبلغ التجربة:
+                      {t('accounting.cost_centers.cost_center_allocations_tab.s9', "مبلغ التجربة:")}
                     </label>
                     <input
                       type="number"
@@ -369,8 +371,8 @@ export const CostCenterAllocationsTab: React.FC<CostCenterAllocationsTabProps> =
       <StandardDialog
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
-        title={editingAllocation ? 'تعديل مصفوفة توزيع مراكز التكلفة' : 'إنشاء مصفوفة وقالب توزيع نسبي جديد'}
-        subtitle="حدد مراكز التكلفة المستفيدة ونسبة كل مركز بحيث يكون المجموع الإجمالي 100% بالضبط."
+        title={editingAllocation ? t('accounting.cost_centers.cost_center_allocations_tab.s10', "تعديل مصفوفة توزيع مراكز التكلفة") : t('accounting.cost_centers.cost_center_allocations_tab.s11', "إنشاء مصفوفة وقالب توزيع نسبي جديد")}
+        subtitle={t('accounting.cost_centers.cost_center_allocations_tab.s12', "حدد مراكز التكلفة المستفيدة ونسبة كل مركز بحيث يكون المجموع الإجمالي 100% بالضبط.")}
         width="620px"
       >
         <div dir="rtl" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
@@ -395,10 +397,10 @@ export const CostCenterAllocationsTab: React.FC<CostCenterAllocationsTabProps> =
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '12px' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <label style={{ fontSize: 'var(--font-body)', fontWeight: 600, color: '#334155' }}>الكود:</label>
+              <label style={{ fontSize: 'var(--font-body)', fontWeight: 600, color: '#334155' }}>{t('accounting.cost_centers.cost_center_allocations_tab.s13', "الكود:")}</label>
               <input
                 type="text"
-                placeholder="مثال: ALLOC-HQ"
+                placeholder={t('accounting.cost_centers.cost_center_allocations_tab.s14', "مثال: ALLOC-HQ")}
                 value={code}
                 onChange={(e) => setCode(e.target.value)}
                 style={{
@@ -412,10 +414,10 @@ export const CostCenterAllocationsTab: React.FC<CostCenterAllocationsTabProps> =
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <label style={{ fontSize: 'var(--font-body)', fontWeight: 600, color: '#334155' }}>اسم المصفوفة:</label>
+              <label style={{ fontSize: 'var(--font-body)', fontWeight: 600, color: '#334155' }}>{t('accounting.cost_centers.cost_center_allocations_tab.s15', "اسم المصفوفة:")}</label>
               <input
                 type="text"
-                placeholder="مثال: توزيع مصروفات المقر الرئيسي والمرافق"
+                placeholder={t('accounting.cost_centers.cost_center_allocations_tab.s16', "مثال: توزيع مصروفات المقر الرئيسي والمرافق")}
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 style={{
@@ -430,10 +432,10 @@ export const CostCenterAllocationsTab: React.FC<CostCenterAllocationsTabProps> =
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            <label style={{ fontSize: 'var(--font-body)', fontWeight: 600, color: '#334155' }}>الوصف (اختياري):</label>
+            <label style={{ fontSize: 'var(--font-body)', fontWeight: 600, color: '#334155' }}>{t('accounting.cost_centers.cost_center_allocations_tab.s17', "الوصف (اختياري):")}</label>
             <input
               type="text"
-              placeholder="مثال: تقسيم فواتير الإيجار والكهرباء والإنترنت بين الفروع"
+              placeholder={t('accounting.cost_centers.cost_center_allocations_tab.s18', "مثال: تقسيم فواتير الإيجار والكهرباء والإنترنت بين الفروع")}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               style={{
@@ -450,7 +452,7 @@ export const CostCenterAllocationsTab: React.FC<CostCenterAllocationsTabProps> =
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '6px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ fontWeight: 700, fontSize: 'var(--font-body)', color: '#0f172a' }}>
-                مراكز التكلفة ونسب التوزيع:
+                {t('accounting.cost_centers.cost_center_allocations_tab.s19', "مراكز التكلفة ونسب التوزيع:")}
               </span>
               <button
                 type="button"
@@ -464,7 +466,7 @@ export const CostCenterAllocationsTab: React.FC<CostCenterAllocationsTabProps> =
                   cursor: 'pointer',
                 }}
               >
-                + إضافة مركز تكلفة
+                {t('accounting.cost_centers.cost_center_allocations_tab.s20', "+ إضافة مركز تكلفة")}
               </button>
             </div>
 
@@ -557,9 +559,9 @@ export const CostCenterAllocationsTab: React.FC<CostCenterAllocationsTabProps> =
                 fontSize: 'var(--font-body)',
               }}
             >
-              <span>إجمالي النسب المئوية:</span>
+              <span>{t('accounting.cost_centers.cost_center_allocations_tab.s21', "إجمالي النسب المئوية:")}</span>
               <span>
-                {currentTotal}% {isValidTotal ? '✓ (متطابق 100%)' : `(مطلوب 100% - الفارق ${100 - currentTotal}%)`}
+                {currentTotal}% {isValidTotal ? t('accounting.cost_centers.cost_center_allocations_tab.s22', "✓ (متطابق 100%)") : `(مطلوب 100% - الفارق ${100 - currentTotal}%)`}
               </span>
             </div>
           </div>
@@ -575,7 +577,7 @@ export const CostCenterAllocationsTab: React.FC<CostCenterAllocationsTabProps> =
             }}
           >
             <Button variant="secondary" onClick={() => setModalOpen(false)} disabled={saveMutation.isPending}>
-              إلغاء
+              {t('accounting.cost_centers.cost_center_allocations_tab.s23', "إلغاء")}
             </Button>
             <Button
               variant="primary"
@@ -583,7 +585,7 @@ export const CostCenterAllocationsTab: React.FC<CostCenterAllocationsTabProps> =
               disabled={saveMutation.isPending || !isValidTotal}
             >
               <CheckIcon size={16} />
-              حفظ القالب
+              {t('accounting.cost_centers.cost_center_allocations_tab.s24', "حفظ القالب")}
             </Button>
           </div>
         </div>

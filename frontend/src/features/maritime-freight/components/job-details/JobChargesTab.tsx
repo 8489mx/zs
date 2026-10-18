@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
 import { toast } from '@/shared/components/system-alert';
@@ -23,6 +24,7 @@ const PRESET_CHARGES = [
 ];
 
 export function JobChargesTab({ job, onUpdated }: Props) {
+  const { t } = useTranslation();
   const [charges, setCharges] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -126,10 +128,10 @@ export function JobChargesTab({ job, onUpdated }: Props) {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc', padding: '12px 16px', borderRadius: '10px', border: '1px solid #e2e8f0', flexWrap: 'wrap', gap: '10px' }}>
         <div>
           <div style={{ fontSize: '0.92rem', fontWeight: 800, color: '#170e5e' }}>
-            شبكة تفصيل بنود التكلفة والإيراد والضرائب (Itemized Freight Charges Grid)
+            {t('maritime_freight.job_details.job_charges_tab.s0', "شبكة تفصيل بنود التكلفة والإيراد والضرائب (Itemized Freight Charges Grid)")}
           </div>
           <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '2px' }}>
-            تفكيك تكلفة النولون البحري/الجوي عن الرسوم المحلية بالميناء وضبط المعاملة الضريبية لكل بند
+            {t('maritime_freight.job_details.job_charges_tab.s1', "تفكيك تكلفة النولون البحري/الجوي عن الرسوم المحلية بالميناء وضبط المعاملة الضريبية لكل بند")}
           </div>
         </div>
 
@@ -152,35 +154,35 @@ export function JobChargesTab({ job, onUpdated }: Props) {
           }}
         >
           <AppIcons.Plus size={15} />
-          <span>إضافة بند رسوم جديد</span>
+          <span>{t('maritime_freight.job_details.job_charges_tab.s2', "إضافة بند رسوم جديد")}</span>
         </button>
       </div>
 
       {/* KPI Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px' }}>
         <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 14px' }}>
-          <div style={{ fontSize: '0.72rem', color: '#64748b' }}>إجمالي التكلفة المباشرة (للخط والميناء)</div>
+          <div style={{ fontSize: '0.72rem', color: '#64748b' }}>{t('maritime_freight.job_details.job_charges_tab.s3', "إجمالي التكلفة المباشرة (للخط والميناء)")}</div>
           <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#b91c1c', marginTop: '2px', fontFamily: 'monospace' }}>
             ${totalCost.toLocaleString()}
           </div>
         </div>
 
         <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 14px' }}>
-          <div style={{ fontSize: '0.72rem', color: '#64748b' }}>إجمالي سعر البيع (المفوتر للعميل)</div>
+          <div style={{ fontSize: '0.72rem', color: '#64748b' }}>{t('maritime_freight.job_details.job_charges_tab.s4', "إجمالي سعر البيع (المفوتر للعميل)")}</div>
           <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#15803d', marginTop: '2px', fontFamily: 'monospace' }}>
             ${totalSell.toLocaleString()}
           </div>
         </div>
 
         <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 14px' }}>
-          <div style={{ fontSize: '0.72rem', color: '#64748b' }}>صافي ربح البنود (Gross Profit)</div>
+          <div style={{ fontSize: '0.72rem', color: '#64748b' }}>{t('maritime_freight.job_details.job_charges_tab.s5', "صافي ربح البنود (Gross Profit)")}</div>
           <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#170e5e', marginTop: '2px', fontFamily: 'monospace' }}>
             ${totalProfit.toLocaleString()}
           </div>
         </div>
 
         <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 14px' }}>
-          <div style={{ fontSize: '0.72rem', color: '#64748b' }}>نسبة هامش الربح</div>
+          <div style={{ fontSize: '0.72rem', color: '#64748b' }}>{t('maritime_freight.job_details.job_charges_tab.s6', "نسبة هامش الربح")}</div>
           <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0284c7', marginTop: '2px', fontFamily: 'monospace' }}>
             {marginPct}%
           </div>
@@ -192,27 +194,27 @@ export function JobChargesTab({ job, onUpdated }: Props) {
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.78rem', textAlign: 'right' }}>
           <thead>
             <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-              <th style={{ padding: '8px 12px', fontWeight: 700 }}>كود الرسم</th>
-              <th style={{ padding: '8px 12px', fontWeight: 700 }}>بيان الخدمة</th>
-              <th style={{ padding: '8px 12px', fontWeight: 700 }}>العملة</th>
-              <th style={{ padding: '8px 12px', fontWeight: 700 }}>التكلفة (Cost)</th>
-              <th style={{ padding: '8px 12px', fontWeight: 700 }}>البيع (Sell)</th>
-              <th style={{ padding: '8px 12px', fontWeight: 700 }}>الربح (Profit)</th>
-              <th style={{ padding: '8px 12px', fontWeight: 700 }}>الضريبة %</th>
-              <th style={{ padding: '8px 12px', fontWeight: 700, textAlign: 'center' }}>إجراء</th>
+              <th style={{ padding: '8px 12px', fontWeight: 700 }}>{t('maritime_freight.job_details.job_charges_tab.s7', "كود الرسم")}</th>
+              <th style={{ padding: '8px 12px', fontWeight: 700 }}>{t('maritime_freight.job_details.job_charges_tab.s8', "بيان الخدمة")}</th>
+              <th style={{ padding: '8px 12px', fontWeight: 700 }}>{t('maritime_freight.job_details.job_charges_tab.s9', "العملة")}</th>
+              <th style={{ padding: '8px 12px', fontWeight: 700 }}>{t('maritime_freight.job_details.job_charges_tab.s10', "التكلفة (Cost)")}</th>
+              <th style={{ padding: '8px 12px', fontWeight: 700 }}>{t('maritime_freight.job_details.job_charges_tab.s11', "البيع (Sell)")}</th>
+              <th style={{ padding: '8px 12px', fontWeight: 700 }}>{t('maritime_freight.job_details.job_charges_tab.s12', "الربح (Profit)")}</th>
+              <th style={{ padding: '8px 12px', fontWeight: 700 }}>{t('maritime_freight.job_details.job_charges_tab.s13', "الضريبة %")}</th>
+              <th style={{ padding: '8px 12px', fontWeight: 700, textAlign: 'center' }}>{t('maritime_freight.job_details.job_charges_tab.s14', "إجراء")}</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
                 <td colSpan={8} style={{ padding: '30px', textAlign: 'center', color: '#64748b' }}>
-                  جاري تحميل بنود الرسوم...
+                  {t('maritime_freight.job_details.job_charges_tab.s15', "جاري تحميل بنود الرسوم...")}
                 </td>
               </tr>
             ) : charges.length === 0 ? (
               <tr>
                 <td colSpan={8} style={{ padding: '30px', textAlign: 'center', color: '#64748b' }}>
-                  لم يتم تسجيل بنود تفصيلية بعد. انقر على "إضافة بند رسوم جديد" لتفكيك التكلفة والإيراد.
+                  {t('maritime_freight.job_details.job_charges_tab.s16', "لم يتم تسجيل بنود تفصيلية بعد. انقر على \"إضافة بند رسوم جديد\" لتفكيك التكلفة والإيراد.")}
                 </td>
               </tr>
             ) : (
@@ -238,7 +240,7 @@ export function JobChargesTab({ job, onUpdated }: Props) {
                     ${Number(chg.profit_amount || chg.profitAmount || 0).toLocaleString()}
                   </td>
                   <td style={{ padding: '8px 12px', color: '#64748b' }}>
-                    {Number(chg.tax_rate_percent || chg.taxRatePercent || 0) > 0 ? `${chg.tax_rate_percent || chg.taxRatePercent}%` : 'معفى'}
+                    {Number(chg.tax_rate_percent || chg.taxRatePercent || 0) > 0 ? `${chg.tax_rate_percent || chg.taxRatePercent}%` : t('maritime_freight.job_details.job_charges_tab.s17', "معفى")}
                   </td>
                   <td style={{ padding: '8px 12px', textAlign: 'center' }}>
                     <button
@@ -246,7 +248,7 @@ export function JobChargesTab({ job, onUpdated }: Props) {
                       onClick={() => handleDeleteCharge(idx)}
                       style={{ padding: '2px 6px', background: '#fee2e2', color: '#b91c1c', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.7rem' }}
                     >
-                      حذف
+                      {t('maritime_freight.job_details.job_charges_tab.s18', "حذف")}
                     </button>
                   </td>
                 </tr>
@@ -260,12 +262,12 @@ export function JobChargesTab({ job, onUpdated }: Props) {
       <StandardDialog
         open={showAddModal}
         onClose={() => setShowAddModal(false)}
-        title="إضافة بند رسوم وتكلفة جديد للشحنة"
-        subtitle="تحديد التكلفة وسعر البيع والمعاملة الضريبية للرسم الملاحي أو المحلي"
+        title={t('maritime_freight.job_details.job_charges_tab.s19', "إضافة بند رسوم وتكلفة جديد للشحنة")}
+        subtitle={t('maritime_freight.job_details.job_charges_tab.s20', "تحديد التكلفة وسعر البيع والمعاملة الضريبية للرسم الملاحي أو المحلي")}
         width="540px"
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          <Field label="اختر من الرسوم الشائعة أو حدد مخصصاً">
+          <Field label={t('maritime_freight.job_details.job_charges_tab.s21', "اختر من الرسوم الشائعة أو حدد مخصصاً")}>
             <select
               onChange={(e) => {
                 const found = PRESET_CHARGES.find((p) => p.code === e.target.value);
@@ -282,7 +284,7 @@ export function JobChargesTab({ job, onUpdated }: Props) {
               }}
               style={{ width: '100%', height: '36px', padding: '0 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
             >
-              <option value="">قوالب الرسوم الملاحية المعتمدة...</option>
+              <option value="">{t('maritime_freight.job_details.job_charges_tab.s22', "قوالب الرسوم الملاحية المعتمدة...")}</option>
               {PRESET_CHARGES.map((p) => (
                 <option key={p.code} value={p.code}>{p.code} - {p.nameAr}</option>
               ))}
@@ -290,7 +292,7 @@ export function JobChargesTab({ job, onUpdated }: Props) {
           </Field>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '10px' }}>
-            <Field label="كود الرسم">
+            <Field label={t('maritime_freight.job_details.job_charges_tab.s23', "كود الرسم")}>
               <input
                 type="text"
                 value={form.chargeCode}
@@ -299,7 +301,7 @@ export function JobChargesTab({ job, onUpdated }: Props) {
               />
             </Field>
 
-            <Field label="اسم الرسم بالعربية">
+            <Field label={t('maritime_freight.job_details.job_charges_tab.s24', "اسم الرسم بالعربية")}>
               <input
                 type="text"
                 value={form.chargeNameAr}
@@ -310,7 +312,7 @@ export function JobChargesTab({ job, onUpdated }: Props) {
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
-            <Field label="التكلفة المباشرة (Cost)">
+            <Field label={t('maritime_freight.job_details.job_charges_tab.s25', "التكلفة المباشرة (Cost)")}>
               <input
                 type="number"
                 placeholder="0.00"
@@ -320,7 +322,7 @@ export function JobChargesTab({ job, onUpdated }: Props) {
               />
             </Field>
 
-            <Field label="سعر البيع للعميل (Sell)">
+            <Field label={t('maritime_freight.job_details.job_charges_tab.s26', "سعر البيع للعميل (Sell)")}>
               <input
                 type="number"
                 placeholder="0.00"
@@ -330,7 +332,7 @@ export function JobChargesTab({ job, onUpdated }: Props) {
               />
             </Field>
 
-            <Field label="الضريبة %">
+            <Field label={t('maritime_freight.job_details.job_charges_tab.s27', "الضريبة %")}>
               <input
                 type="number"
                 placeholder="0"
@@ -348,7 +350,7 @@ export function JobChargesTab({ job, onUpdated }: Props) {
             onClick={() => setShowAddModal(false)}
             style={{ padding: '8px 16px', background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '6px', cursor: 'pointer', fontWeight: 600 }}
           >
-            إلغاء
+            {t('maritime_freight.job_details.job_charges_tab.s28', "إلغاء")}
           </button>
           <button
             type="button"
@@ -356,7 +358,7 @@ export function JobChargesTab({ job, onUpdated }: Props) {
             disabled={isSaving}
             style={{ padding: '8px 20px', background: '#170e5e', color: '#ffffff', border: 'none', borderRadius: '6px', cursor: isSaving ? 'not-allowed' : 'pointer', fontWeight: 700 }}
           >
-            {isSaving ? 'جاري الحفظ...' : 'إضافة البند'}
+            {isSaving ? t('maritime_freight.job_details.job_charges_tab.s29', "جاري الحفظ...") : t('maritime_freight.job_details.job_charges_tab.s30', "إضافة البند")}
           </button>
         </StandardDialogFooter>
       </StandardDialog>

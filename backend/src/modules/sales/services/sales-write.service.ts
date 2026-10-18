@@ -1049,7 +1049,7 @@ export class SalesWriteService {
       const productRows = productIds.length > 0
         ? await trx.selectFrom('products as p')
             .leftJoin('manufacturing_boms as b', (join) => join.onRef('b.product_id', '=', 'p.id').onRef('b.tenant_id', '=', 'p.tenant_id').on('b.is_active', '=', true))
-            .select(['p.id', 'p.name', 'p.stock_qty', 'p.reserved_qty', 'p.retail_price', 'p.wholesale_price', 'p.cost_price', 'p.min_selling_price', 'p.item_type', 'b.id as bom_id'])
+            .select(['p.id', 'p.name', 'p.name_en', 'p.stock_qty', 'p.reserved_qty', 'p.retail_price', 'p.wholesale_price', 'p.cost_price', 'p.min_selling_price', 'p.item_type', 'b.id as bom_id'])
             .where('p.id', 'in', productIds)
             .where(sql<boolean>`p.tenant_id = ${scope.tenantId}`)
             .where('p.is_active', '=', true)
@@ -1524,6 +1524,7 @@ export class SalesWriteService {
             sale_id: id,
             product_id: item.productId,
             product_name: item.productName,
+            product_name_en: item.productNameEn || null,
             qty: item.qty,
             unit_price: item.unitPrice,
             line_total: item.lineTotal,

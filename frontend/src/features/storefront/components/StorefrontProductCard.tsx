@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { getProductVariants } from '../lib/storefront-variant-pricing';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import React, { useState } from 'react';
@@ -49,6 +50,7 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
   onToggleFavorite: onToggleFavoriteProp,
   onQuickView,
 }: StorefrontProductCardProps) {
+  const { t } = useTranslation();
   const isOutOfStock = product.inStock !== undefined ? !product.inStock : product.stockQty <= 0;
   const isZeroPrice = product.price <= 0;
   // A product with variants has no single price to add blindly: open the quick view so the
@@ -306,7 +308,7 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
                 pointerEvents: 'none',
               }}
             >
-              صورة توضيحية
+              {t('storefront.storefront_product_card.s0', "صورة توضيحية")}
             </span>
           )}
 
@@ -339,7 +341,7 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
                 }}
               >
                 <ClockIcon size={11} color="#64748b" />
-                <span>ستتوفر قريباً</span>
+                <span>{t('storefront.storefront_product_card.s1', "ستتوفر قريباً")}</span>
               </span>
             ) : (
               <>
@@ -360,7 +362,7 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
                       gap: '3px',
                     }}
                   >
-                    <span>متبقي {product.stockQty} فقط</span>
+                    <span>{t('storefront.storefront_product_card.s2', "متبقي")} {product.stockQty} {t('storefront.storefront_product_card.s3', "فقط")}</span>
                   </span>
                 ) : (
                   <span
@@ -379,7 +381,7 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
                     }}
                   >
                     <IconCheckCircle size={11} strokeWidth={2.2} color="#16a34a" />
-                    <span>متوفر</span>
+                    <span>{t('storefront.storefront_product_card.s4', "متوفر")}</span>
                   </span>
                 )}
                 {Boolean(product.rating && product.rating >= 4.5 && (product.reviewCount || 0) >= 2) && (
@@ -397,7 +399,7 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
                       gap: '3px',
                     }}
                   >
-                    <span>الأكثر مبيعاً</span>
+                    <span>{t('storefront.storefront_product_card.s5', "الأكثر مبيعاً")}</span>
                   </span>
                 )}
                 {(hasDiscount || hasQuantityOffer) && (
@@ -428,8 +430,8 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
             className="storefront-product-fav-btn"
             type="button"
             onClick={toggleFavorite}
-            aria-label="إضافة للمفضلة"
-            title={isFavorite ? 'محفوظ في المفضلة' : 'إضافة إلى المفضلة'}
+            aria-label={t('storefront.storefront_product_card.s6', "إضافة للمفضلة")}
+            title={isFavorite ? t('storefront.storefront_product_card.s7', "محفوظ في المفضلة") : t('storefront.storefront_product_card.s8', "إضافة إلى المفضلة")}
             style={{
               position: 'absolute',
               top: '8px',
@@ -512,7 +514,7 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
               textOverflow: 'ellipsis',
               display: 'inline-block',
             }}
-            title={product.categoryName || 'عام'}
+            title={product.categoryName || t('storefront.storefront_product_card.s9', "عام")}
           >
             {formatSmartCategoryName(product.categoryName)}
           </span>
@@ -523,7 +525,7 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
               e.stopPropagation();
               onOpenReviewModal?.(product);
             }}
-            title="عرض وكتابة تقييم للمنتج"
+            title={t('storefront.storefront_product_card.s10', "عرض وكتابة تقييم للمنتج")}
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -557,7 +559,7 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
                 <span style={{ fontSize: '10px', color: '#94a3b8', fontWeight: 700 }}>({product.reviewCount})</span>
               </>
             ) : (
-              <span style={{ color: '#64748b', fontSize: '10.5px', fontWeight: 700 }}>جديد (قيم)</span>
+              <span style={{ color: '#64748b', fontSize: '10.5px', fontWeight: 700 }}>{t('storefront.storefront_product_card.s11', "جديد (قيم)")}</span>
             )}
           </button>
         </div>
@@ -607,7 +609,7 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
                 letterSpacing: '-0.2px',
               }}
             >
-              السعر عند التواصل
+              {t('storefront.storefront_product_card.s12', "السعر عند التواصل")}
             </span>
           </div>
         ) : (
@@ -669,7 +671,7 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
                     whiteSpace: 'nowrap',
                   }}
                 >
-                  وفر {Math.round((oldPrice - product.price) * 100) / 100} <CurrencySymbol />
+                  {t('storefront.storefront_product_card.s13', "وفر")} {Math.round((oldPrice - product.price) * 100) / 100} <CurrencySymbol />
                 </span>
               </div>
             )}
@@ -704,7 +706,7 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
             }}
           >
             <ClockIcon size={14} color="#64748b" />
-            <span>ستتوفر قريباً</span>
+            <span>{t('storefront.storefront_product_card.s14', "ستتوفر قريباً")}</span>
           </button>
         ) : isZeroPrice ? (
           <a
@@ -757,7 +759,7 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
             >
               <path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0 0 12.04 2m.01 1.67c2.2 0 4.26.86 5.82 2.42a8.225 8.225 0 0 1 2.41 5.83c0 4.54-3.7 8.23-8.24 8.23-1.48 0-2.93-.39-4.19-1.15l-.3-.17-3.12.82.83-3.04-.2-.31a8.216 8.216 0 0 1-1.26-4.38c0-4.54 3.7-8.24 8.25-8.24m4.52 11.64c-.25-.13-1.47-.72-1.7-.81-.23-.08-.39-.13-.56.13-.17.25-.64.81-.79.97-.14.17-.29.19-.54.06-.25-.13-1.06-.39-2.02-1.25-.75-.67-1.26-1.5-1.41-1.75-.15-.25-.02-.39.11-.51.11-.11.25-.29.38-.44.13-.14.17-.25.25-.42.08-.17.04-.31-.02-.44s-.56-1.35-.77-1.85c-.2-.48-.41-.42-.56-.43h-.48c-.17 0-.44.06-.67.31-.23.25-.88.86-.88 2.1 0 1.24.9 2.44 1.03 2.61.13.17 1.77 2.71 4.3 3.8 2.52 1.09 2.52.73 2.98.68.45-.04 1.47-.6 1.68-1.18.21-.58.21-1.07.15-1.18-.06-.11-.23-.17-.48-.3" />
             </svg>
-            <span>استفسر عن السعر</span>
+            <span>{t('storefront.storefront_product_card.s15', "استفسر عن السعر")}</span>
           </a>
         ) : cartQuantity > 0 ? (
           /* Dynamic Stepper Counter: [+ count -] in RTL */
@@ -780,7 +782,7 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
               className="storefront-product-stepper-btn"
               type="button"
               onClick={() => onUpdateQuantity(product.id, cartQuantity + 1)}
-              title="زيادة الكمية"
+              title={t('storefront.storefront_product_card.s16', "زيادة الكمية")}
               style={{
                 width: '34px',
                 height: '34px',
@@ -824,7 +826,7 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
               className="storefront-product-stepper-btn"
               type="button"
               onClick={() => onUpdateQuantity(product.id, cartQuantity - 1)}
-              title="تقليل الكمية"
+              title={t('storefront.storefront_product_card.s17', "تقليل الكمية")}
               style={{
                 width: '34px',
                 height: '34px',
@@ -887,7 +889,7 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
             }}
           >
             <IconShoppingCart size={15} strokeWidth={2.2} />
-            <span>أضف للسلة</span>
+            <span>{t('storefront.storefront_product_card.s18', "أضف للسلة")}</span>
           </button>
         )}
       </div>

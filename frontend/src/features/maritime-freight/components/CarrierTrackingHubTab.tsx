@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
 import { maritimeApi } from '../api/maritime-freight.api';
@@ -14,6 +15,7 @@ const SUPPORTED_CARRIERS = [
 ];
 
 export function CarrierTrackingHubTab() {
+  const { t } = useTranslation();
   const [carrierCode, setCarrierCode] = useState('MSCU');
   const [trackingNumber, setTrackingNumber] = useState('');
   const [isSyncing, setIsSyncing] = useState(false);
@@ -46,10 +48,10 @@ export function CarrierTrackingHubTab() {
         <div>
           <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#170e5e', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <AppIcons.Globe size={20} />
-            <span>بوابة وتكامل التتبع اللحظي للنواقل والخطوط الملاحية (Carrier Live Tracking Hub)</span>
+            <span>{t('maritime_freight.carrier_tracking_hub_tab.s0', "بوابة وتكامل التتبع اللحظي للنواقل والخطوط الملاحية (Carrier Live Tracking Hub)")}</span>
           </div>
           <div style={{ fontSize: '0.8125rem', color: '#64748b', marginTop: '4px' }}>
-            الربط المباشر مع واجهات API وأنظمة تتبع كبرى الخطوط الملاحية العالمية وفق معايير DCSA Track & Trace
+            {t('maritime_freight.carrier_tracking_hub_tab.s1', "الربط المباشر مع واجهات API وأنظمة تتبع كبرى الخطوط الملاحية العالمية وفق معايير DCSA Track & Trace")}
           </div>
         </div>
 
@@ -64,7 +66,7 @@ export function CarrierTrackingHubTab() {
       {/* 2. Interactive Carrier Selector & Query Box */}
       <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '18px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
         <div style={{ fontSize: '0.875rem', fontWeight: 800, color: '#170e5e' }}>
-          اختر الخط الملاحي وأدخل رقم الحاوية أو البوليصة (Container / B/L Number)
+          {t('maritime_freight.carrier_tracking_hub_tab.s2', "اختر الخط الملاحي وأدخل رقم الحاوية أو البوليصة (Container / B/L Number)")}
         </div>
 
         {/* Carrier Badges */}
@@ -117,7 +119,7 @@ export function CarrierTrackingHubTab() {
         <div style={{ display: 'flex', gap: '10px', marginTop: '6px' }}>
           <input
             type="text"
-            placeholder="أدخل رقم الحاوية (مثال: MSCU9284710) أو رقم البوليصة Master B/L..."
+            placeholder={t('maritime_freight.carrier_tracking_hub_tab.s3', "أدخل رقم الحاوية (مثال: MSCU9284710) أو رقم البوليصة Master B/L...")}
             value={trackingNumber}
             onChange={(e) => setTrackingNumber(e.target.value.toUpperCase())}
             onKeyDown={(e) => e.key === 'Enter' && handleSyncTracking()}
@@ -155,7 +157,7 @@ export function CarrierTrackingHubTab() {
             }}
           >
             <AppIcons.RefreshCw size={16} />
-            <span>{isSyncing ? 'جاري الاتصال بالسيرفر...' : 'مزامنة لحظية من الخط'}</span>
+            <span>{isSyncing ? t('maritime_freight.carrier_tracking_hub_tab.s4', "جاري الاتصال بالسيرفر...") : t('maritime_freight.carrier_tracking_hub_tab.s5', "مزامنة لحظية من الخط")}</span>
           </button>
         </div>
       </div>
@@ -166,14 +168,14 @@ export function CarrierTrackingHubTab() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>
             <div>
               <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#170e5e' }}>
-                سجل الأحداث والمحطات اللوجستية للحاوية: <span style={{ fontFamily: 'monospace' }}>{trackingNumber}</span>
+                {t('maritime_freight.carrier_tracking_hub_tab.s6', "سجل الأحداث والمحطات اللوجستية للحاوية:")} <span style={{ fontFamily: 'monospace' }}>{trackingNumber}</span>
               </div>
               <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '2px' }}>
-                الخط الملاحي الناقل: {SUPPORTED_CARRIERS.find((c) => c.code === carrierCode)?.name} | معيار DCSA v2.2
+                {t('maritime_freight.carrier_tracking_hub_tab.s7', "الخط الملاحي الناقل:")} {SUPPORTED_CARRIERS.find((c) => c.code === carrierCode)?.name} {t('maritime_freight.carrier_tracking_hub_tab.s8', "| معيار DCSA v2.2")}
               </div>
             </div>
             <span style={{ padding: '3px 8px', borderRadius: '6px', background: '#eff6ff', color: '#1d4ed8', fontWeight: 700, fontSize: '0.75rem' }}>
-              تم استلام {trackingEvents.length} أحداث
+              {t('maritime_freight.carrier_tracking_hub_tab.s9', "تم استلام")} {trackingEvents.length} {t('maritime_freight.carrier_tracking_hub_tab.s10', "أحداث")}
             </span>
           </div>
 
@@ -198,11 +200,11 @@ export function CarrierTrackingHubTab() {
                 <div style={{ flex: 1, background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 14px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#0f172a' }}>
-                      {evt.event_type === 'BOOK' ? 'تأكيد الحجز الملاحي (Booking Confirmed)'
-                        : evt.event_type === 'GTI' ? 'دخول الحاوية محطة الميناء (Gate-in at POL)'
-                        : evt.event_type === 'LOAD' ? 'تحميل الحاوية على السفينة (Vessel Loaded)'
-                        : evt.event_type === 'DEPT' ? 'إبحار السفينة (Vessel Departed)'
-                        : evt.event_type === 'ARRI' ? 'وصول السفينة لميناء الوصول (Vessel Arrived)'
+                      {evt.event_type === 'BOOK' ? t('maritime_freight.carrier_tracking_hub_tab.s11', "تأكيد الحجز الملاحي (Booking Confirmed)")
+                        : evt.event_type === 'GTI' ? t('maritime_freight.carrier_tracking_hub_tab.s12', "دخول الحاوية محطة الميناء (Gate-in at POL)")
+                        : evt.event_type === 'LOAD' ? t('maritime_freight.carrier_tracking_hub_tab.s13', "تحميل الحاوية على السفينة (Vessel Loaded)")
+                        : evt.event_type === 'DEPT' ? t('maritime_freight.carrier_tracking_hub_tab.s14', "إبحار السفينة (Vessel Departed)")
+                        : evt.event_type === 'ARRI' ? t('maritime_freight.carrier_tracking_hub_tab.s15', "وصول السفينة لميناء الوصول (Vessel Arrived)")
                         : evt.event_type}
                     </span>
                     <span style={{ fontSize: '0.72rem', color: '#64748b', fontFamily: 'monospace' }}>
@@ -210,7 +212,7 @@ export function CarrierTrackingHubTab() {
                     </span>
                   </div>
                   <div style={{ fontSize: '0.75rem', color: '#475569', marginTop: '4px' }}>
-                    الموقع: <strong>{evt.event_location || 'Terminal Area'}</strong> | الناقل: <strong>{evt.carrier_code}</strong>
+                    {t('maritime_freight.carrier_tracking_hub_tab.s16', "الموقع:")} <strong>{evt.event_location || 'Terminal Area'}</strong> {t('maritime_freight.carrier_tracking_hub_tab.s17', "| الناقل:")} <strong>{evt.carrier_code}</strong>
                   </div>
                 </div>
               </div>

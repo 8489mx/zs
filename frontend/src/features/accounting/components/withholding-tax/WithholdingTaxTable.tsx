@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { formatCurrencyWithSymbol } from '@/lib/format';
 import { SearchIcon, FileTextIcon, Trash2Icon } from '@/shared/components/icons/AppIcons';
 import type { WithholdingTaxRecord } from '@/features/accounting/api/accounting.api';
@@ -28,18 +29,19 @@ export function WithholdingTaxTable({
   onUpdateStatus,
   onDelete,
 }: WithholdingTaxTableProps) {
+  const { t: __t } = useTranslation();
   return (
     <section className="document-prototype-section workspace-panel">
       <div className="section-header-compact-row">
-        <h3 className="document-prototype-section-title">سجل معاملات نموذج 41 ضرائب</h3>
+        <h3 className="document-prototype-section-title">{__t('accounting.withholding_tax.withholding_tax_table.s0', "سجل معاملات نموذج 41 ضرائب")}</h3>
         <div className="section-header-actions-group">
           <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 500 }}>
-            الربع {selectedQuarter} لسنة {selectedYear} ({transactions.length} حركة)
+            {__t('accounting.withholding_tax.withholding_tax_table.s1', "الربع")} {selectedQuarter} {__t('accounting.withholding_tax.withholding_tax_table.s2', "لسنة")} {selectedYear} ({transactions.length} {__t('accounting.withholding_tax.withholding_tax_table.s3', "حركة)")}
           </span>
         </div>
       </div>
       <p className="muted small section-header-subtitle">
-        بيانات الخصم والتحصيل المعتمدة لمصلحة الضرائب المصرية وتصنيف الأوعية الضريبية.
+        {__t('accounting.withholding_tax.withholding_tax_table.s4', "بيانات الخصم والتحصيل المعتمدة لمصلحة الضرائب المصرية وتصنيف الأوعية الضريبية.")}
       </p>
 
       {/* Filter Bar */}
@@ -53,7 +55,7 @@ export function WithholdingTaxTable({
               type="text"
               value={search}
               onChange={(e) => onSearchChange(e.target.value)}
-              placeholder="بحث باسم الممول/المورد، رقم الفاتورة، أو الرقم الضريبي..."
+              placeholder={__t('accounting.withholding_tax.withholding_tax_table.s5', "بحث باسم الممول/المورد، رقم الفاتورة، أو الرقم الضريبي...")}
               style={{
                 width: '100%',
                 paddingRight: '36px',
@@ -88,10 +90,10 @@ export function WithholdingTaxTable({
                 boxSizing: 'border-box',
               }}
             >
-              <option value="all">كافة الحالات</option>
-              <option value="draft">مسودة</option>
-              <option value="declared">مقدم بالإقرار</option>
-              <option value="paid">تم السداد والتوريد</option>
+              <option value="all">{__t('accounting.withholding_tax.withholding_tax_table.s6', "كافة الحالات")}</option>
+              <option value="draft">{__t('accounting.withholding_tax.withholding_tax_table.s7', "مسودة")}</option>
+              <option value="declared">{__t('accounting.withholding_tax.withholding_tax_table.s8', "مقدم بالإقرار")}</option>
+              <option value="paid">{__t('accounting.withholding_tax.withholding_tax_table.s9', "تم السداد والتوريد")}</option>
             </select>
           </div>
         </div>
@@ -101,7 +103,7 @@ export function WithholdingTaxTable({
       <div style={{ border: '1px solid #e2e8f0', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', backgroundColor: '#ffffff' }}>
         {isLoading ? (
           <div style={{ padding: '48px', textAlign: 'center', color: '#94a3b8', fontSize: '13px' }}>
-            جاري تحميل بيانات إقرار نموذج 41...
+            {__t('accounting.withholding_tax.withholding_tax_table.s10', "جاري تحميل بيانات إقرار نموذج 41...")}
           </div>
         ) : transactions.length === 0 ? (
           <div style={{ padding: '64px 20px', textAlign: 'center' }}>
@@ -109,10 +111,10 @@ export function WithholdingTaxTable({
               <FileTextIcon size={24} />
             </div>
             <h3 style={{ fontSize: '14px', fontWeight: 600, color: '#334155', margin: '0 0 4px' }}>
-              لا توجد معاملات خصم وإضافة مسجلة في {selectedQuarter} {selectedYear}
+              {__t('accounting.withholding_tax.withholding_tax_table.s11', "لا توجد معاملات خصم وإضافة مسجلة في")} {selectedQuarter} {selectedYear}
             </h3>
             <p style={{ fontSize: '12px', color: '#94a3b8', margin: 0 }}>
-              يمكنك إضافة معاملة يدوية أو استخدام زر الاستيراد الآلي من فواتير الشراء أعلاه
+              {__t('accounting.withholding_tax.withholding_tax_table.s12', "يمكنك إضافة معاملة يدوية أو استخدام زر الاستيراد الآلي من فواتير الشراء أعلاه")}
             </p>
           </div>
         ) : (
@@ -120,16 +122,16 @@ export function WithholdingTaxTable({
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right', fontSize: '13px' }}>
               <thead>
                 <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>
-                  <th style={{ padding: '10px 16px', fontWeight: 600, fontSize: '12.5px' }}>م</th>
-                  <th style={{ padding: '10px 16px', fontWeight: 600, fontSize: '12.5px' }}>اسم الممول / المورد</th>
-                  <th style={{ padding: '10px 16px', fontWeight: 600, fontSize: '12.5px' }}>الرقم الضريبي / الملف</th>
-                  <th style={{ padding: '10px 16px', fontWeight: 600, fontSize: '12.5px' }}>رقم الفاتورة</th>
-                  <th style={{ padding: '10px 16px', fontWeight: 600, fontSize: '12.5px' }}>تاريخ التعامل</th>
-                  <th style={{ padding: '10px 16px', fontWeight: 600, fontSize: '12.5px' }}>نوع التعامل والنسبة</th>
-                  <th style={{ padding: '10px 16px', fontWeight: 600, fontSize: '12.5px' }}>الوعاء الخاضع للضريبة</th>
-                  <th style={{ padding: '10px 16px', fontWeight: 600, fontSize: '12.5px' }}>الضريبة المخصومة</th>
-                  <th style={{ padding: '10px 16px', fontWeight: 600, fontSize: '12.5px', textAlign: 'center' }}>الحالة</th>
-                  <th style={{ padding: '10px 16px', fontWeight: 600, fontSize: '12.5px', textAlign: 'center' }}>الإجراءات</th>
+                  <th style={{ padding: '10px 16px', fontWeight: 600, fontSize: '12.5px' }}>{__t('accounting.withholding_tax.withholding_tax_table.s13', "م")}</th>
+                  <th style={{ padding: '10px 16px', fontWeight: 600, fontSize: '12.5px' }}>{__t('accounting.withholding_tax.withholding_tax_table.s14', "اسم الممول / المورد")}</th>
+                  <th style={{ padding: '10px 16px', fontWeight: 600, fontSize: '12.5px' }}>{__t('accounting.withholding_tax.withholding_tax_table.s15', "الرقم الضريبي / الملف")}</th>
+                  <th style={{ padding: '10px 16px', fontWeight: 600, fontSize: '12.5px' }}>{__t('accounting.withholding_tax.withholding_tax_table.s16', "رقم الفاتورة")}</th>
+                  <th style={{ padding: '10px 16px', fontWeight: 600, fontSize: '12.5px' }}>{__t('accounting.withholding_tax.withholding_tax_table.s17', "تاريخ التعامل")}</th>
+                  <th style={{ padding: '10px 16px', fontWeight: 600, fontSize: '12.5px' }}>{__t('accounting.withholding_tax.withholding_tax_table.s18', "نوع التعامل والنسبة")}</th>
+                  <th style={{ padding: '10px 16px', fontWeight: 600, fontSize: '12.5px' }}>{__t('accounting.withholding_tax.withholding_tax_table.s19', "الوعاء الخاضع للضريبة")}</th>
+                  <th style={{ padding: '10px 16px', fontWeight: 600, fontSize: '12.5px' }}>{__t('accounting.withholding_tax.withholding_tax_table.s20', "الضريبة المخصومة")}</th>
+                  <th style={{ padding: '10px 16px', fontWeight: 600, fontSize: '12.5px', textAlign: 'center' }}>{__t('accounting.withholding_tax.withholding_tax_table.s21', "الحالة")}</th>
+                  <th style={{ padding: '10px 16px', fontWeight: 600, fontSize: '12.5px', textAlign: 'center' }}>{__t('accounting.withholding_tax.withholding_tax_table.s22', "الإجراءات")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -147,10 +149,10 @@ export function WithholdingTaxTable({
                         )}
                       </td>
                       <td style={{ padding: '12px 16px', fontFamily: 'monospace', color: '#334155' }}>
-                        <div>{t.tax_id_number || 'غير مسجل'}</div>
+                        <div>{t.tax_id_number || __t('accounting.withholding_tax.withholding_tax_table.s23', "غير مسجل")}</div>
                         {t.tax_office_code && (
                           <span style={{ fontSize: '10px', color: '#94a3b8', fontFamily: 'sans-serif' }}>
-                            مأمورية: {t.tax_office_code}
+                            {__t('accounting.withholding_tax.withholding_tax_table.s24', "مأمورية:")} {t.tax_office_code}
                           </span>
                         )}
                       </td>
@@ -181,7 +183,7 @@ export function WithholdingTaxTable({
                           backgroundColor: t.status === 'paid' ? '#d1fae5' : t.status === 'declared' ? '#dbeafe' : '#f1f5f9',
                           color: t.status === 'paid' ? '#065f46' : t.status === 'declared' ? '#1e40af' : '#475569',
                         }}>
-                          {t.status === 'paid' ? 'تم السداد' : t.status === 'declared' ? 'مقدم بالإقرار' : 'مسودة'}
+                          {t.status === 'paid' ? __t('accounting.withholding_tax.withholding_tax_table.s25', "تم السداد") : t.status === 'declared' ? __t('accounting.withholding_tax.withholding_tax_table.s26', "مقدم بالإقرار") : __t('accounting.withholding_tax.withholding_tax_table.s27', "مسودة")}
                         </span>
                       </td>
                       <td style={{ padding: '12px 16px', textAlign: 'center' }}>
@@ -191,9 +193,9 @@ export function WithholdingTaxTable({
                               type="button"
                               onClick={() => onUpdateStatus(t.id, 'declared')}
                               style={{ padding: '4px 8px', borderRadius: '6px', backgroundColor: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', fontSize: '11px', cursor: 'pointer' }}
-                              title="تضمين في الإقرار النهائي"
+                              title={__t('accounting.withholding_tax.withholding_tax_table.s28', "تضمين في الإقرار النهائي")}
                             >
-                              اعتماد بالإقرار
+                              {__t('accounting.withholding_tax.withholding_tax_table.s29', "اعتماد بالإقرار")}
                             </button>
                           )}
                           {t.status === 'declared' && (
@@ -201,9 +203,9 @@ export function WithholdingTaxTable({
                               type="button"
                               onClick={() => onUpdateStatus(t.id, 'paid')}
                               style={{ padding: '4px 8px', borderRadius: '6px', backgroundColor: '#ecfdf5', color: '#047857', border: '1px solid #a7f3d0', fontSize: '11px', cursor: 'pointer' }}
-                              title="تأكيد التوريد والسداد لمصلحة الضرائب"
+                              title={__t('accounting.withholding_tax.withholding_tax_table.s30', "تأكيد التوريد والسداد لمصلحة الضرائب")}
                             >
-                              تأكيد التوريد
+                              {__t('accounting.withholding_tax.withholding_tax_table.s31', "تأكيد التوريد")}
                             </button>
                           )}
                           {t.status !== 'paid' && (
@@ -211,7 +213,7 @@ export function WithholdingTaxTable({
                               type="button"
                               onClick={() => onDelete(t.id, t.invoice_number)}
                               style={{ padding: '4px', borderRadius: '6px', border: 'none', backgroundColor: 'transparent', color: '#94a3b8', cursor: 'pointer' }}
-                              title="حذف"
+                              title={__t('accounting.withholding_tax.withholding_tax_table.s32', "حذف")}
                             >
                               <Trash2Icon size={14} />
                             </button>

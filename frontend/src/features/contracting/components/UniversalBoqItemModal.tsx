@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { Field } from '@/shared/ui/field';
@@ -182,6 +183,7 @@ export function UniversalBoqItemModal({
   existingItems = EMPTY_ITEMS,
   initialTradeCategory,
 }: UniversalBoqItemModalProps) {
+  const { t: __t } = useTranslation();
   const { currencySymbol } = useSystemCurrency();
   const [internalTrades, setInternalTrades] = useState<MasterBoqTrade[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -498,7 +500,7 @@ export function UniversalBoqItemModal({
         <StandardDialogFooter
           onCancel={onClose}
           onSubmit={handleSubmit}
-          submitText={initialItem ? 'حفظ التعديلات' : mode === 'project' ? 'إضافة البند للمقايسة' : 'إضافة إلى بنك البنود'}
+          submitText={initialItem ? __t('contracting.universal_boq_item_modal.s0', "حفظ التعديلات") : mode === 'project' ? __t('contracting.universal_boq_item_modal.s1', "إضافة البند للمقايسة") : __t('contracting.universal_boq_item_modal.s2', "إضافة إلى بنك البنود")}
           isSubmitting={isSubmitting}
         />
       }
@@ -572,11 +574,11 @@ export function UniversalBoqItemModal({
         <div style={{ background: '#f8fafc', padding: '9px 13px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
             <AppIcons.Layers size={15} />
-            <span>1. التخصص الإنشائي وكود البند (Trade & Item Coding)</span>
+            <span>{__t('contracting.universal_boq_item_modal.s3', "1. التخصص الإنشائي وكود البند (Trade & Item Coding)")}</span>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '10px', alignItems: 'start' }}>
-            <Field label="التخصص الإنشائي / التصنيف *">
+            <Field label={__t('contracting.universal_boq_item_modal.s4', "التخصص الإنشائي / التصنيف *")}>
               <CustomSelect
                 value={formData.tradeCategory}
                 options={tradeOptions}
@@ -584,13 +586,13 @@ export function UniversalBoqItemModal({
               />
             </Field>
 
-            <Field label={!initialItem ? "كود البند (توليد تلقائي)" : "كود البند"}>
+            <Field label={!initialItem ? __t('contracting.universal_boq_item_modal.s5', "كود البند (توليد تلقائي)") : __t('contracting.universal_boq_item_modal.s6', "كود البند")}>
               <input
                 type="text"
                 value={formData.itemCode}
                 disabled={Boolean(initialItem)}
                 onChange={(e) => setFormData({ ...formData, itemCode: e.target.value.toUpperCase() })}
-                placeholder="مثال: MAS-007"
+                placeholder={__t('contracting.universal_boq_item_modal.s7', "مثال: MAS-007")}
                 dir="ltr"
                 style={{
                   fontFamily: 'monospace',
@@ -607,23 +609,23 @@ export function UniversalBoqItemModal({
         <div style={{ background: '#f8fafc', padding: '9px 13px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
             <AppIcons.FileText size={15} />
-            <span>2. توصيف الأعمال والمواصفة التعاقدية (Scope & Technical Specs)</span>
+            <span>{__t('contracting.universal_boq_item_modal.s8', "2. توصيف الأعمال والمواصفة التعاقدية (Scope & Technical Specs)")}</span>
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <div style={{ display: 'grid', gridTemplateColumns: mode === 'project' ? '2.2fr 1fr 1fr' : '2.5fr 1fr', gap: '10px', alignItems: 'start' }}>
-              <Field label="مسمى البند والمواصفة الفنية التعاقدية *">
+              <Field label={__t('contracting.universal_boq_item_modal.s9', "مسمى البند والمواصفة الفنية التعاقدية *")}>
                 <input
                   dir="auto"
                   type="text"
                   required
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="مثال: مباني من الطوب الأسمنتي المصمت سمك 25 سم لقصية الردم"
+                  placeholder={__t('contracting.universal_boq_item_modal.s10', "مثال: مباني من الطوب الأسمنتي المصمت سمك 25 سم لقصية الردم")}
                 />
               </Field>
 
-              <Field label="وحدة القياس *">
+              <Field label={__t('contracting.universal_boq_item_modal.s11', "وحدة القياس *")}>
                 <CustomSelect
                   value={formData.unit}
                   options={UNIT_OPTIONS}
@@ -632,7 +634,7 @@ export function UniversalBoqItemModal({
               </Field>
 
               {mode === 'project' && (
-                <Field label="الكمية التعاقدية *">
+                <Field label={__t('contracting.universal_boq_item_modal.s12', "الكمية التعاقدية *")}>
                   <input
                     type="text"
                     inputMode="decimal"
@@ -655,13 +657,13 @@ export function UniversalBoqItemModal({
               )}
             </div>
 
-            <Field label="بيان الأعمال والشروط والمواصفات المعتمدة (اختياري)">
+            <Field label={__t('contracting.universal_boq_item_modal.s13', "بيان الأعمال والشروط والمواصفات المعتمدة (اختياري)")}>
               <textarea
                 dir="auto"
                 rows={2}
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="بيان تفصيلي بالأعمال والاشتراطات والمواد المستعملة وطريقة التنفيذ والاختبار..."
+                placeholder={__t('contracting.universal_boq_item_modal.s14', "بيان تفصيلي بالأعمال والاشتراطات والمواد المستعملة وطريقة التنفيذ والاختبار...")}
               />
             </Field>
           </div>
@@ -672,7 +674,7 @@ export function UniversalBoqItemModal({
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#15803d', fontWeight: 700, fontSize: '0.84rem' }}>
               <AppIcons.Calculator size={15} />
-              <span>3. التسعير وهامش الربح للوحدة (Pricing & Margin Engine)</span>
+              <span>{__t('contracting.universal_boq_item_modal.s15', "3. التسعير وهامش الربح للوحدة (Pricing & Margin Engine)")}</span>
             </div>
             <span
               style={{
@@ -685,7 +687,7 @@ export function UniversalBoqItemModal({
                 border: '1px solid #86efac',
               }}
             >
-              احتساب فوري ديناميكي
+              {__t('contracting.universal_boq_item_modal.s16', "احتساب فوري ديناميكي")}
             </span>
           </div>
 
@@ -755,7 +757,7 @@ export function UniversalBoqItemModal({
             >
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '6px' }}>
                 <span style={{ color: '#475569' }}>
-                  صافي ربح الوحدة: <strong style={{ color: '#170e5e', fontSize: '0.82rem' }}>{(price - cost).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong> {currencySymbol} / {formData.unit}
+                  {__t('contracting.universal_boq_item_modal.s17', "صافي ربح الوحدة:")} <strong style={{ color: '#170e5e', fontSize: '0.82rem' }}>{(price - cost).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong> {currencySymbol} / {formData.unit}
                 </span>
                 <span
                   style={{
@@ -767,7 +769,7 @@ export function UniversalBoqItemModal({
                     fontSize: '0.72rem',
                   }}
                 >
-                  الهامش الفعلي: {effectiveMargin}%
+                  {__t('contracting.universal_boq_item_modal.s18', "الهامش الفعلي:")} {effectiveMargin}%
                 </span>
               </div>
 
@@ -785,10 +787,10 @@ export function UniversalBoqItemModal({
                   }}
                 >
                   <span style={{ color: '#475569' }}>
-                    إجمالي قيمة البند للمشروع: <strong style={{ color: '#170e5e', fontSize: '0.82rem' }}>{totalContractVal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</strong> {currencySymbol}
+                    {__t('contracting.universal_boq_item_modal.s19', "إجمالي قيمة البند للمشروع:")} <strong style={{ color: '#170e5e', fontSize: '0.82rem' }}>{totalContractVal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</strong> {currencySymbol}
                   </span>
                   <span style={{ color: '#059669', fontWeight: 700, fontSize: '0.82rem' }}>
-                    إجمالي أرباح البند: +{totalProfitVal.toLocaleString('en-US', { minimumFractionDigits: 2 })} {currencySymbol}
+                    {__t('contracting.universal_boq_item_modal.s20', "إجمالي أرباح البند: +")}{totalProfitVal.toLocaleString('en-US', { minimumFractionDigits: 2 })} {currencySymbol}
                   </span>
                 </div>
               )}
@@ -801,14 +803,14 @@ export function UniversalBoqItemModal({
           <div style={{ background: '#f8fafc', padding: '9px 13px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
               <AppIcons.Tag size={14} />
-              <span>4. الملاحظات والاشتراطات الخاصة (Terms & Notes)</span>
+              <span>{__t('contracting.universal_boq_item_modal.s21', "4. الملاحظات والاشتراطات الخاصة (Terms & Notes)")}</span>
             </div>
-            <Field label="ملاحظات وشروط إضافية (اختياري)">
+            <Field label={__t('contracting.universal_boq_item_modal.s22', "ملاحظات وشروط إضافية (اختياري)")}>
               <input
                 type="text"
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                placeholder="أي اشتراطات خاصة بالاستلام أو الدفعات..."
+                placeholder={__t('contracting.universal_boq_item_modal.s23', "أي اشتراطات خاصة بالاستلام أو الدفعات...")}
               />
             </Field>
           </div>

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/shared/ui/button';
@@ -23,6 +24,7 @@ import { PdcChequesFilterToolbar } from '../components/PdcChequesFilterToolbar';
 import { PdcChequesTable, STATUS_LABELS } from '../components/PdcChequesTable';
 
 export function PdcChequesPage() {
+  const { t } = useTranslation();
   useAppToolbar([{ label: 'المالية والمحاسبة', to: '/accounting' }, { label: 'حافظة الشيكات (PDC)' }]);
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<'receivable' | 'payable' | 'alerts'>('receivable');
@@ -160,9 +162,9 @@ export function PdcChequesPage() {
     <div className="page-stack page-shell pdc-cheques-page" dir="rtl">
       <main className="document-prototype-column" style={{ paddingBottom: '100px', width: '100%' }}>
         <PageHeader
-          title="حافظة الشيكات وأوراق القبض والدفع (PDC)"
-          description="إدارة دورة أوراق القبض والدفع، الإيداع البنكي برسم التحصيل، الصرف، الارتداد، والتظهير."
-          badge={<span className="nav-pill">{(stats?.receivables.totalCount || 0) + (stats?.payables.totalCount || 0)} شيك</span>}
+          title={t('accounting.pdc_cheques_page.s0', "حافظة الشيكات وأوراق القبض والدفع (PDC)")}
+          description={t('accounting.pdc_cheques_page.s1', "إدارة دورة أوراق القبض والدفع، الإيداع البنكي برسم التحصيل، الصرف، الارتداد، والتظهير.")}
+          badge={<span className="nav-pill">{(stats?.receivables.totalCount || 0) + (stats?.payables.totalCount || 0)} {t('accounting.pdc_cheques_page.s2', "شيك")}</span>}
           actions={(
             <div className="actions compact-actions page-header-actions">
               <Button
@@ -171,7 +173,7 @@ export function PdcChequesPage() {
                 style={{ backgroundColor: '#170e5e', color: '#ffffff' }}
               >
                 <PlusIcon size={15} />
-                <span>+ تسجيل ورقة قبض</span>
+                <span>{t('accounting.pdc_cheques_page.s3', "+ تسجيل ورقة قبض")}</span>
               </Button>
 
               <Button
@@ -180,17 +182,17 @@ export function PdcChequesPage() {
                 className="flex items-center gap-1.5"
               >
                 <PlusIcon size={15} />
-                <span>+ تحرير ورقة دفع</span>
+                <span>{t('accounting.pdc_cheques_page.s4', "+ تحرير ورقة دفع")}</span>
               </Button>
 
               <Button
                 onClick={handleExportCsv}
                 variant="secondary"
                 className="flex items-center gap-1"
-                title="تصدير إلى CSV"
+                title={t('accounting.pdc_cheques_page.s5', "تصدير إلى CSV")}
               >
                 <DownloadIcon size={14} />
-                <span>تصدير</span>
+                <span>{t('accounting.pdc_cheques_page.s6', "تصدير")}</span>
               </Button>
 
               <Button
@@ -200,10 +202,10 @@ export function PdcChequesPage() {
                 }}
                 variant="secondary"
                 className="flex items-center gap-1"
-                title="تحديث البيانات"
+                title={t('accounting.pdc_cheques_page.s7', "تحديث البيانات")}
               >
                 <RefreshCwIcon size={14} />
-                <span>تحديث</span>
+                <span>{t('accounting.pdc_cheques_page.s8', "تحديث")}</span>
               </Button>
             </div>
           )}
@@ -215,22 +217,22 @@ export function PdcChequesPage() {
             items={[
               {
                 key: 'rec',
-                label: 'أوراق القبض (عملاء)',
+                label: t('accounting.pdc_cheques_page.s9', "أوراق القبض (عملاء)"),
                 value: `${formatCurrency(stats?.receivables.totalAmount || 0)} (${stats?.receivables.totalCount || 0})`,
               },
               {
                 key: 'safe',
-                label: 'في الخزينة (جاهزة للإيداع)',
+                label: t('accounting.pdc_cheques_page.s10', "في الخزينة (جاهزة للإيداع)"),
                 value: `${formatCurrency(stats?.receivables.inSafeAmount || 0)} (${stats?.receivables.inSafeCount || 0})`,
               },
               {
                 key: 'col',
-                label: 'برسم التحصيل بالبنك',
+                label: t('accounting.pdc_cheques_page.s11', "برسم التحصيل بالبنك"),
                 value: `${formatCurrency(stats?.receivables.underCollectionAmount || 0)} (${stats?.receivables.underCollectionCount || 0})`,
               },
               {
                 key: 'pay',
-                label: 'أوراق الدفع (موردين)',
+                label: t('accounting.pdc_cheques_page.s12', "أوراق الدفع (موردين)"),
                 value: `${formatCurrency(stats?.payables.totalAmount || 0)} (${stats?.payables.issuedCount || 0})`,
               },
             ]}
@@ -240,13 +242,13 @@ export function PdcChequesPage() {
         {/* Main Workspace Panel & Table */}
         <section className="document-prototype-section workspace-panel">
           <div className="section-header-compact-row">
-            <h3 className="document-prototype-section-title">حافظة وسجل الشيكات البنكية</h3>
+            <h3 className="document-prototype-section-title">{t('accounting.pdc_cheques_page.s13', "حافظة وسجل الشيكات البنكية")}</h3>
             <div className="section-header-actions-group">
-              <span className="text-xs text-slate-500 font-medium">عرض {displayedCheques.length} شيك</span>
+              <span className="text-xs text-slate-500 font-medium">{t('accounting.pdc_cheques_page.s14', "عرض")} {displayedCheques.length} {t('accounting.pdc_cheques_page.s15', "شيك")}</span>
             </div>
           </div>
           <p className="muted small section-header-subtitle">
-            متابعة استحقاق الشيكات، الإيداع، الصرف البنكي، والارتداد والتظهير المحاسبي.
+            {t('accounting.pdc_cheques_page.s16', "متابعة استحقاق الشيكات، الإيداع، الصرف البنكي، والارتداد والتظهير المحاسبي.")}
           </p>
 
           <PdcChequesFilterToolbar

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/shared/ui/button';
@@ -25,6 +26,7 @@ import { ManufacturingLayout } from '@/features/manufacturing/components/Manufac
 import { systemAlert } from '@/shared/components/system-alert';
 
 export default function NewWorkOrderPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   
   const [boms, setBoms] = useState<BomOption[]>([]);
@@ -89,12 +91,12 @@ export default function NewWorkOrderPage() {
   return (
     <ManufacturingLayout
       breadcrumbs={[
-        { label: 'التصنيع', to: '/manufacturing/work-orders' },
-        { label: 'أوامر الإنتاج', to: '/manufacturing/work-orders' },
-        { label: 'أمر إنتاج جديد' }
+        { label: t('manufacturing.new_work_order_page.s0', "التصنيع"), to: '/manufacturing/work-orders' },
+        { label: t('manufacturing.new_work_order_page.s1', "أوامر الإنتاج"), to: '/manufacturing/work-orders' },
+        { label: t('manufacturing.new_work_order_page.s2', "أمر إنتاج جديد") }
       ]}
-      title="أمر إنتاج جديد"
-      statusBadge={<span className="document-prototype-status-badge is-draft">مسودة</span>}
+      title={t('manufacturing.new_work_order_page.s3', "أمر إنتاج جديد")}
+      statusBadge={<span className="document-prototype-status-badge is-draft">{t('manufacturing.new_work_order_page.s4', "مسودة")}</span>}
       actions={
         <>
           <Button 
@@ -110,7 +112,7 @@ export default function NewWorkOrderPage() {
                 <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
               </svg>
             </span>
-            <span>إلغاء المسودة</span>
+            <span>{t('manufacturing.new_work_order_page.s5', "إلغاء المسودة")}</span>
           </Button>
           <Button 
             variant="secondary" 
@@ -124,7 +126,7 @@ export default function NewWorkOrderPage() {
                   <path d="M8 20.25v-5.4h8v5.4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
                 </svg>
               </span>
-              <span>حفظ كمسودة</span>
+              <span>{t('manufacturing.new_work_order_page.s6', "حفظ كمسودة")}</span>
           </Button>
           <Button 
             type="button" 
@@ -132,18 +134,18 @@ export default function NewWorkOrderPage() {
             onClick={handleSave} 
             disabled={isSaving}
           >
-            <span>{isSaving ? 'جاري الحفظ...' : 'تأكيد أمر الإنتاج'}</span>
+            <span>{isSaving ? t('manufacturing.new_work_order_page.s7', "جاري الحفظ...") : t('manufacturing.new_work_order_page.s8', "تأكيد أمر الإنتاج")}</span>
           </Button>
         </>
       }
       onBack={() => navigate('/manufacturing/work-orders')}
       onSearchChange={() => {}}
     >
-        <FormSection title="التفاصيل الأساسية">
+        <FormSection title={t('manufacturing.new_work_order_page.s9', "التفاصيل الأساسية")}>
           <div className="form-grid">
             <SearchableCombobox
-              label="التركيبة (BOM)"
-              placeholder="اختر التركيبة..."
+              label={t('manufacturing.new_work_order_page.s10', "التركيبة (BOM)")}
+              placeholder={t('manufacturing.new_work_order_page.s11', "اختر التركيبة...")}
               value={bomQuery}
               onChange={setBomQuery}
               options={boms}
@@ -152,7 +154,7 @@ export default function NewWorkOrderPage() {
               onSelect={(o) => { setSelectedBom(o); setBomQuery(o.name); }}
               createLabel={(q) => `إضافة ${q}`}
             />
-            <Field label="الكمية المراد إنتاجها">
+            <Field label={t('manufacturing.new_work_order_page.s12', "الكمية المراد إنتاجها")}>
               <input
                 type="number"
                 min="0.001"
@@ -166,11 +168,11 @@ export default function NewWorkOrderPage() {
           </div>
         </FormSection>
 
-        <FormSection title="توجيهات المخازن">
+        <FormSection title={t('manufacturing.new_work_order_page.s13', "توجيهات المخازن")}>
           <div className="form-grid">
             <SearchableCombobox
-              label="مخزن السحب (المواد الخام)"
-              placeholder="اختر المخزن..."
+              label={t('manufacturing.new_work_order_page.s14', "مخزن السحب (المواد الخام)")}
+              placeholder={t('manufacturing.new_work_order_page.s15', "اختر المخزن...")}
               value={sourceQuery}
               onChange={setSourceQuery}
               options={locations}
@@ -180,8 +182,8 @@ export default function NewWorkOrderPage() {
               createLabel={(q) => `إضافة ${q}`}
             />
             <SearchableCombobox
-              label="مخزن الإضافة (المنتج التام)"
-              placeholder="اختر المخزن..."
+              label={t('manufacturing.new_work_order_page.s16', "مخزن الإضافة (المنتج التام)")}
+              placeholder={t('manufacturing.new_work_order_page.s17', "اختر المخزن...")}
               value={destQuery}
               onChange={setDestQuery}
               options={locations}
@@ -193,13 +195,13 @@ export default function NewWorkOrderPage() {
           </div>
         </FormSection>
 
-        <FormSection title="ملاحظات">
+        <FormSection title={t('manufacturing.new_work_order_page.s18', "ملاحظات")}>
           <textarea
             className="purchase-prototype-input"
             rows={4}
             value={note}
             onChange={(e) => setNote(e.target.value)}
-            placeholder="اكتب ملاحظات حول أمر الإنتاج..."
+            placeholder={t('manufacturing.new_work_order_page.s19', "اكتب ملاحظات حول أمر الإنتاج...")}
             style={{ width: '100%', padding: '12px', border: '1px solid #d1d5db', borderRadius: '4px', resize: 'vertical' }}
           />
         </FormSection>

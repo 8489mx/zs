@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 import { LineItem } from './types';
 import { AsyncSearchableCombobox } from '@/shared/ui/async-searchable-combobox';
@@ -30,18 +31,19 @@ export const IssueOrderItemsTable: React.FC<IssueOrderItemsTableProps> = ({
   onRemoveLine,
   onQtyKeyDown,
 }) => {
+  const { t } = useTranslation();
   return (
     <div className="purchase-prototype-desktop-table">
       <div className="purchase-prototype-items-table-wrapper" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', border: '1px solid var(--border-color)', borderRadius: '8px' }}>
         <table className="purchase-prototype-items-table" style={{ width: '100%', minWidth: '780px', borderCollapse: 'collapse', textAlign: 'right' }}>
           <thead style={{ backgroundColor: 'var(--surface-color)', borderBottom: '1px solid var(--border-color)' }}>
             <tr>
-              <th style={{ padding: '10px 14px', color: 'var(--text-secondary)', fontWeight: 600, width: '280px' }}>الصنف (بحث بالاسم أو الباركود)</th>
+              <th style={{ padding: '10px 14px', color: 'var(--text-secondary)', fontWeight: 600, width: '280px' }}>{t('inventory.issue_order.issue_order_items_table.s0', "الصنف (بحث بالاسم أو الباركود)")}</th>
               {fromLocationId === 'all' && (
-                <th style={{ padding: '10px 14px', color: 'var(--text-secondary)', fontWeight: 600, width: '180px' }}>مخزن الصرف</th>
+                <th style={{ padding: '10px 14px', color: 'var(--text-secondary)', fontWeight: 600, width: '180px' }}>{t('inventory.issue_order.issue_order_items_table.s1', "مخزن الصرف")}</th>
               )}
-              <th style={{ padding: '10px 14px', color: 'var(--text-secondary)', fontWeight: 600, width: '130px' }}>الكمية المتاحة (بالمخزن)</th>
-              <th style={{ padding: '10px 14px', color: 'var(--text-secondary)', fontWeight: 600, width: '120px' }}>الكمية المصروفة</th>
+              <th style={{ padding: '10px 14px', color: 'var(--text-secondary)', fontWeight: 600, width: '130px' }}>{t('inventory.issue_order.issue_order_items_table.s2', "الكمية المتاحة (بالمخزن)")}</th>
+              <th style={{ padding: '10px 14px', color: 'var(--text-secondary)', fontWeight: 600, width: '120px' }}>{t('inventory.issue_order.issue_order_items_table.s3', "الكمية المصروفة")}</th>
               <th style={{ padding: '10px 14px', width: '50px' }}></th>
             </tr>
           </thead>
@@ -79,7 +81,7 @@ export const IssueOrderItemsTable: React.FC<IssueOrderItemsTableProps> = ({
                       getLabel={(p) => p.name}
                       fetchOptions={fetchProductOptions}
                       createLabel={(q) => `إضافة "${q}"`}
-                      placeholder="بحث عن صنف..."
+                      placeholder={t('inventory.issue_order.issue_order_items_table.s4', "بحث عن صنف...")}
                       inline={true}
                       inputClassName="purchase-prototype-field-input"
                     />
@@ -94,7 +96,7 @@ export const IssueOrderItemsTable: React.FC<IssueOrderItemsTableProps> = ({
                         getLabel={(l) => l.name}
                         search={(l, q) => l.searchTerms.includes(q.toLowerCase())}
                         createLabel={(q) => `إضافة "${q}"`}
-                        placeholder="اختر المخزن..."
+                        placeholder={t('inventory.issue_order.issue_order_items_table.s5', "اختر المخزن...")}
                         inline={true}
                         inputClassName="purchase-prototype-field-input"
                       />

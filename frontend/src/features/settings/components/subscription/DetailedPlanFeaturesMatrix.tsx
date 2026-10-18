@@ -1,15 +1,12 @@
+import { useTranslation } from 'react-i18next';
 import { CheckIcon, XIcon, InfoIcon } from '@/shared/components/icons/AppIcons';
 import { getCurrencySymbol } from '@/lib/currencies';
+import { translateUiText } from '@/lib/auto-translator';
 import type { ResolvedPricing } from '../../api/tenant-subscription.api';
 
-/**
- * مصفوفة مقارنة مستويات الباقة — مبنية على ما يرسله الخادم وحده.
- *
- * كانت هذه المصفوفة تعدّ نحو عشر مجموعات ميزات **لكل الباقات** بأسماء مكتوبة في
- * الكود، فمنشأة مقاولات ترى أن المنظومة تضم مطاعم وصيدليات وملابس — مخالفة مباشرة
- * لـ PRICE-P2 و PRICE-S1 (البند C11). الآن لا تُعرض إلا مجموعات نطاق المنشأة نفسها.
- */
 export function DetailedPlanFeaturesMatrix({ pricing }: { pricing: ResolvedPricing }) {
+  const { t, i18n } = useTranslation();
+  const isEn = i18n.language === 'en';
   const { levels } = pricing;
   if (levels.length === 0) return null;
 
@@ -32,14 +29,17 @@ export function DetailedPlanFeaturesMatrix({ pricing }: { pricing: ResolvedPrici
   const levelHasItem = (levelIndex: number, groupName: string): boolean =>
     levels[levelIndex].featureGroups.some((g) => g.name === groupName);
 
-  // حساب نسب الأعمدة: تقريب أعمدة المقارنة من بعضها بنسب متراصة ومريحة
+  // حساب نسب الأعمدة
   const levelCount = levels.length;
   const totalLevelsWidth = levelCount <= 3 ? 36 : 42;
   const levelColPercent = levelCount > 0 ? `${(totalLevelsWidth / levelCount).toFixed(1)}%` : '12%';
   const firstColPercent = levelCount > 0 ? `${(100 - (totalLevelsWidth / levelCount) * levelCount).toFixed(1)}%` : '64%';
 
+  const productName = isEn ? translateUiText(pricing.product.name) : pricing.product.name;
+
   return (
     <div
+      dir={isEn ? 'ltr' : 'rtl'}
       style={{
         background: '#ffffff',
         border: '1px solid #e2e8f0',
@@ -52,10 +52,12 @@ export function DetailedPlanFeaturesMatrix({ pricing }: { pricing: ResolvedPrici
       {/* 1. Header */}
       <div style={{ marginBottom: '20px' }}>
         <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#0f172a', margin: '0 0 6px' }}>
-          مقارنة تفصيلية بين مستويات {pricing.product.name}
+          {isEn ? `Detailed Tier Comparison for ${productName}` : `${t('settings.subscription.detailed_plan_features_matrix.s0', "مقارنة تفصيلية بين مستويات")} ${pricing.product.name}`}
         </h3>
         <p style={{ fontSize: '13px', color: '#64748b', margin: 0 }}>
-          ما يضيفه كل مستوى على الذي قبله لمساعدتك في اختيار الباقة الأنسب لاحتياجاتك التشغيلية.
+          {isEn
+            ? 'What each tier adds on top of the previous one to help you select the ideal plan for your operations.'
+            : t('settings.subscription.detailed_plan_features_matrix.s1', "ما يضيفه كل مستوى على الذي قبله لمساعدتك في اختيار الباقة الأنسب لاحتياجاتك التشغيلية.")}
         </p>
       </div>
 
@@ -81,21 +83,23 @@ export function DetailedPlanFeaturesMatrix({ pricing }: { pricing: ResolvedPrici
             <tr style={{ background: '#f8fafc' }}>
               <th
                 style={{
-                  textAlign: 'start',
+                  textAlign: isEn ? 'left' : 'right',
                   padding: '16px 20px',
                   color: '#475569',
                   fontWeight: 800,
                   fontSize: '13px',
                   borderBottom: '2px solid #e2e8f0',
-                  borderTopRightRadius: '11px',
+                  borderTopRightRadius: isEn ? undefined : '11px',
+                  borderTopLeftRadius: isEn ? '11px' : undefined,
                   whiteSpace: 'normal',
                 }}
               >
-                المجموعة وبيان الميزات
+                {isEn ? 'Category & Feature List' : t('settings.subscription.detailed_plan_features_matrix.s2', "المجموعة وبيان الميزات")}
               </th>
               {levels.map((level, idx) => {
                 const isLast = idx === levels.length - 1;
                 const isMiddle = levels.length === 3 && idx === 1;
+                const levelName = isEn ? translateUiText(level.name) : level.name;
                 return (
                   <th
                     key={level.id}
@@ -103,7 +107,8 @@ export function DetailedPlanFeaturesMatrix({ pricing }: { pricing: ResolvedPrici
                       textAlign: 'center',
                       padding: '14px 10px',
                       borderBottom: '2px solid #e2e8f0',
-                      borderTopLeftRadius: isLast ? '11px' : undefined,
+                      borderTopLeftRadius: !isEn && isLast ? '11px' : undefined,
+                      borderTopRightRadius: isEn && isLast ? '11px' : undefined,
                       whiteSpace: 'normal',
                     }}
                   >
@@ -116,7 +121,7 @@ export function DetailedPlanFeaturesMatrix({ pricing }: { pricing: ResolvedPrici
                         whiteSpace: 'normal',
                       }}
                     >
-                      {level.name}
+                      {levelName}
                     </div>
                     {isLast ? (
                       <span
@@ -132,7 +137,7 @@ export function DetailedPlanFeaturesMatrix({ pricing }: { pricing: ResolvedPrici
                           whiteSpace: 'nowrap',
                         }}
                       >
-                        الأشمل والأعلى
+                        {isEn ? 'Most Comprehensive' : t('settings.subscription.detailed_plan_features_matrix.s3', "الأشمل والأعلى")}
                       </span>
                     ) : isMiddle ? (
                       <span
@@ -148,7 +153,7 @@ export function DetailedPlanFeaturesMatrix({ pricing }: { pricing: ResolvedPrici
                           whiteSpace: 'nowrap',
                         }}
                       >
-                        الأكثر توازناً
+                        {isEn ? 'Most Balanced' : t('settings.subscription.detailed_plan_features_matrix.s4', "الأكثر توازناً")}
                       </span>
                     ) : (
                       <span
@@ -164,7 +169,7 @@ export function DetailedPlanFeaturesMatrix({ pricing }: { pricing: ResolvedPrici
                           whiteSpace: 'nowrap',
                         }}
                       >
-                        الأساس
+                        {isEn ? 'Core' : t('settings.subscription.detailed_plan_features_matrix.s5', "الأساس")}
                       </span>
                     )}
                   </th>
@@ -176,6 +181,9 @@ export function DetailedPlanFeaturesMatrix({ pricing }: { pricing: ResolvedPrici
             {groupNames.map((groupName, rIdx) => {
               const isEven = rIdx % 2 === 1;
               const items = itemsOfGroup(groupName);
+              const groupLabel = isEn ? translateUiText(groupName) : groupName;
+              const itemsText = items.map((it) => (isEn ? translateUiText(it) : it)).join(' · ');
+
               return (
                 <tr
                   key={groupName}
@@ -215,25 +223,26 @@ export function DetailedPlanFeaturesMatrix({ pricing }: { pricing: ResolvedPrici
                           flexShrink: 0,
                         }}
                       />
-                      <span>{groupName}</span>
+                      <span>{groupLabel}</span>
                     </div>
                     <div
                       style={{
                         color: '#64748b',
                         fontSize: '11.5px',
                         lineHeight: 1.65,
-                        textAlign: 'start',
+                        textAlign: isEn ? 'left' : 'right',
                         whiteSpace: 'normal',
                         wordBreak: 'break-word',
                         overflowWrap: 'break-word',
                         paddingInlineStart: '9px',
                       }}
                     >
-                      {items.join(' · ')}
+                      {itemsText}
                     </div>
                   </td>
                   {levels.map((level, idx) => {
                     const hasItem = levelHasItem(idx, groupName);
+                    const levelName = isEn ? translateUiText(level.name) : level.name;
                     return (
                       <td
                         key={level.id}
@@ -259,7 +268,7 @@ export function DetailedPlanFeaturesMatrix({ pricing }: { pricing: ResolvedPrici
                               border: '1px solid #a7f3d0',
                               boxShadow: '0 1px 2px rgba(5, 150, 105, 0.06)',
                             }}
-                            title={`مشمول في ${level.name}`}
+                            title={isEn ? `Included in ${levelName}` : `مشمول في ${level.name}`}
                           >
                             <CheckIcon size={15} strokeWidth={2.8} />
                           </span>
@@ -276,7 +285,7 @@ export function DetailedPlanFeaturesMatrix({ pricing }: { pricing: ResolvedPrici
                               color: '#94a3b8',
                               border: '1px solid #e2e8f0',
                             }}
-                            title={`غير مشمول في ${level.name}`}
+                            title={isEn ? `Not included in ${levelName}` : `غير مشمول في ${level.name}`}
                           >
                             <XIcon size={12} strokeWidth={2.2} />
                           </span>
@@ -296,10 +305,12 @@ export function DetailedPlanFeaturesMatrix({ pricing }: { pricing: ResolvedPrici
         <div style={{ marginTop: '28px', paddingTop: '20px', borderTop: '1px solid #e2e8f0' }}>
           <div style={{ marginBottom: '16px' }}>
             <h4 style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a', margin: '0 0 4px' }}>
-              طوابق وإضافات مخصصة (تُضاف على المستويين الأول والثاني)
+              {isEn ? 'Custom Add-on Floors (Available for Tier 1 & 2)' : t('settings.subscription.detailed_plan_features_matrix.s6', "طوابق وإضافات مخصصة (تُضاف على المستويين الأول والثاني)")}
             </h4>
             <p style={{ fontSize: '12.5px', color: '#64748b', margin: 0 }}>
-              باقات ووحدات وظيفية متقدمة يمكنك إضافتها لاشتراكك، مع العلم أنها مضمّنة تلقائياً في المستوى الشامل (الأعلى).
+              {isEn
+                ? 'Advanced functional modules you can attach to your subscription, already included automatically in the comprehensive top tier.'
+                : t('settings.subscription.detailed_plan_features_matrix.s7', "باقات ووحدات وظيفية متقدمة يمكنك إضافتها لاشتراكك، مع العلم أنها مضمّنة تلقائياً في المستوى الشامل (الأعلى).")}
             </p>
           </div>
 
@@ -316,6 +327,9 @@ export function DetailedPlanFeaturesMatrix({ pricing }: { pricing: ResolvedPrici
                 ? levels.find((l) => l.id === floor.includedFromLevel)
                 : null;
               const currencyLabel = getCurrencySymbol(levels[0]?.currency);
+              const floorName = isEn ? translateUiText(floor.name) : floor.name;
+              const pricingRule = floor.pricingRule ? (isEn ? translateUiText(floor.pricingRule) : floor.pricingRule) : null;
+              const includedLevelName = includedLevel ? (isEn ? translateUiText(includedLevel.name) : includedLevel.name) : '';
 
               return (
                 <div
@@ -344,7 +358,7 @@ export function DetailedPlanFeaturesMatrix({ pricing }: { pricing: ResolvedPrici
                         wordBreak: 'break-word',
                       }}
                     >
-                      {floor.name}
+                      {floorName}
                     </div>
                   </div>
 
@@ -376,7 +390,7 @@ export function DetailedPlanFeaturesMatrix({ pricing }: { pricing: ResolvedPrici
                           }}
                         >
                           <CheckIcon size={12} strokeWidth={2.5} />
-                          <span>مضمّن في {includedLevel.name}</span>
+                          <span>{isEn ? `Included in ${includedLevelName}` : `${t('settings.subscription.detailed_plan_features_matrix.s8', "مضمّن في")} ${includedLevel.name}`}</span>
                         </span>
                       ) : (
                         <span
@@ -392,7 +406,7 @@ export function DetailedPlanFeaturesMatrix({ pricing }: { pricing: ResolvedPrici
                             padding: '2px 8px',
                           }}
                         >
-                          طابق إضافي اختياري
+                          {isEn ? 'Optional Add-on' : t('settings.subscription.detailed_plan_features_matrix.s9', "طابق إضافي اختياري")}
                         </span>
                       )}
                     </div>
@@ -411,11 +425,11 @@ export function DetailedPlanFeaturesMatrix({ pricing }: { pricing: ResolvedPrici
                     >
                       {floor.contactForPrice ? (
                         <span style={{ fontSize: '12px', fontWeight: 800, color: '#170e5e', whiteSpace: 'nowrap' }}>
-                          تواصل للتسعير
+                          {isEn ? 'Contact for Pricing' : t('settings.subscription.detailed_plan_features_matrix.s10', "تواصل للتسعير")}
                         </span>
-                      ) : floor.pricingRule ? (
+                      ) : pricingRule ? (
                         <span style={{ fontSize: '11.5px', fontWeight: 800, color: '#170e5e', whiteSpace: 'nowrap' }}>
-                          {floor.pricingRule}
+                          {pricingRule}
                         </span>
                       ) : (
                         <div
@@ -432,7 +446,7 @@ export function DetailedPlanFeaturesMatrix({ pricing }: { pricing: ResolvedPrici
                           <span style={{ fontSize: '11.5px', fontWeight: 700, color: '#475569' }}>
                             {currencyLabel}
                           </span>
-                          <span style={{ fontSize: '11px', color: '#94a3b8' }}>/ شهرياً</span>
+                          <span style={{ fontSize: '11px', color: '#94a3b8' }}>{isEn ? '/ mo' : t('settings.subscription.detailed_plan_features_matrix.s11', "/ شهرياً")}</span>
                         </div>
                       )}
                     </div>
@@ -458,7 +472,9 @@ export function DetailedPlanFeaturesMatrix({ pricing }: { pricing: ResolvedPrici
           >
             <InfoIcon size={15} color="#64748b" />
             <span>
-              كافة الطوابق الموسومة بـ «مضمّن في...» تكون مفعّلة تلقائياً بدون أي تكلفة إضافية عند ترقية الاشتراك للمستوى الشامل.
+              {isEn
+                ? 'All add-on floors marked as "Included in..." are automatically enabled at no extra cost when upgrading to the comprehensive tier.'
+                : t('settings.subscription.detailed_plan_features_matrix.s12', "كافة الطوابق الموسومة بـ «مضمّن في...» تكون مفعّلة تلقائياً بدون أي تكلفة إضافية عند ترقية الاشتراك للمستوى الشامل.")}
             </span>
           </div>
         </div>

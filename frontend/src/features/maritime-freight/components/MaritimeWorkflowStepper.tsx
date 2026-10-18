@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 import {
   FileTextIcon,
@@ -74,6 +75,7 @@ interface MaritimeWorkflowStepperProps {
 }
 
 export function MaritimeWorkflowStepper({ currentStepId = 'inquiry', onStepClick }: MaritimeWorkflowStepperProps) {
+  const { t } = useTranslation();
   const currentStepIndex = STEPS.findIndex((s) => s.id === currentStepId);
 
   return (
@@ -90,14 +92,14 @@ export function MaritimeWorkflowStepper({ currentStepId = 'inquiry', onStepClick
       <div className="maritime-stepper-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
           <span style={{ fontSize: '0.74rem', fontWeight: 800, color: '#170e5e', background: '#eff6ff', border: '1px solid #bfdbfe', padding: '3px 8px', borderRadius: '6px', whiteSpace: 'nowrap' }}>
-            <span className="desktop-only-inline">مسار العمل المؤتمت (Automated Pipeline)</span>
-            <span className="mobile-only-inline">مسار العمل المؤتمت</span>
+            <span className="desktop-only-inline">{t('maritime_freight.maritime_workflow_stepper.s0', "مسار العمل المؤتمت (Automated Pipeline)")}</span>
+            <span className="mobile-only-inline">{t('maritime_freight.maritime_workflow_stepper.s1', "مسار العمل المؤتمت")}</span>
           </span>
           <span className="desktop-only-inline" style={{ fontSize: '0.78rem', color: '#64748b' }}>
-            دورة الشحن المتكاملة من طلب العميل حتى التسليم النهائي بالمستودع واسترداد التأمين
+            {t('maritime_freight.maritime_workflow_stepper.s2', "دورة الشحن المتكاملة من طلب العميل حتى التسليم النهائي بالمستودع واسترداد التأمين")}
           </span>
           <span className="mobile-only-inline" style={{ fontSize: '0.72rem', color: '#64748b' }}>
-            من طلب العميل وحتى التسليم النهائي والتخليص
+            {t('maritime_freight.maritime_workflow_stepper.s3', "من طلب العميل وحتى التسليم النهائي والتخليص")}
           </span>
         </div>
       </div>

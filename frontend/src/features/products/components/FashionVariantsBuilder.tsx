@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { getGlobalCurrencySymbol } from '@/lib/currencies';
 import { useState, useMemo } from 'react';
 import { Button } from '@/shared/ui/button';
@@ -116,6 +117,7 @@ export function FashionVariantsBuilder({
   onBarcodePrefixChange,
   onRowsChange,
 }: FashionVariantsBuilderProps) {
+  const { t } = useTranslation();
   const [activeTemplate, setActiveTemplate] = useState<VariantTemplateType>(mode === 'fashion' ? 'fashion' : 'scents');
   const [customPrimaryLabel, setCustomPrimaryLabel] = useState('الخاصية الأولى');
   const [customSecondaryLabel, setCustomSecondaryLabel] = useState('الخاصية الثانية');
@@ -269,7 +271,7 @@ export function FashionVariantsBuilder({
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px', borderBottom: '1px solid #f1f5f9', paddingBottom: '12px' }}>
           <div>
             <h4 style={{ margin: 0, fontSize: '0.94rem', fontWeight: 800, color: '#0f172a' }}>
-              مُنشئ المتغيرات والأصناف الفرعية
+              {t('products.fashion_variants_builder.s0', "مُنشئ المتغيرات والأصناف الفرعية")}
             </h4>
             <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '2px' }}>{templateConfig.hint}</div>
           </div>
@@ -298,7 +300,7 @@ export function FashionVariantsBuilder({
               }}
             >
               <ScentDropletIcon size={14} />
-              <span>روائح ونكهات</span>
+              <span>{t('products.fashion_variants_builder.s1', "روائح ونكهات")}</span>
             </button>
             <button
               type="button"
@@ -323,7 +325,7 @@ export function FashionVariantsBuilder({
               }}
             >
               <FashionShirtIcon size={14} />
-              <span>ملابس وأحذية</span>
+              <span>{t('products.fashion_variants_builder.s2', "ملابس وأحذية")}</span>
             </button>
             <button
               type="button"
@@ -348,7 +350,7 @@ export function FashionVariantsBuilder({
               }}
             >
               <PackageBoxIcon size={14} />
-              <span>أحجام وعبوات</span>
+              <span>{t('products.fashion_variants_builder.s3', "أحجام وعبوات")}</span>
             </button>
             <button
               type="button"
@@ -373,7 +375,7 @@ export function FashionVariantsBuilder({
               }}
             >
               <SlidersConfigIcon size={14} />
-              <span>مخصص</span>
+              <span>{t('products.fashion_variants_builder.s4', "مخصص")}</span>
             </button>
           </div>
         </div>
@@ -381,22 +383,22 @@ export function FashionVariantsBuilder({
         {/* Custom Labels Inputs if custom mode is chosen */}
         {activeTemplate === 'custom' && (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '10px', background: '#f8fafc', padding: '10px 14px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-            <Field label="مسمى الخاصية الأولى (مثل: القدرة، اللون، الخامة)">
+            <Field label={t('products.fashion_variants_builder.s5', "مسمى الخاصية الأولى (مثل: القدرة، اللون، الخامة)")}>
               <input
                 className="purchase-prototype-field-input"
                 value={customPrimaryLabel}
                 onChange={(e) => setCustomPrimaryLabel(e.target.value)}
                 disabled={disabled}
-                placeholder="مثال: القدرة"
+                placeholder={t('products.fashion_variants_builder.s6', "مثال: القدرة")}
               />
             </Field>
-            <Field label="مسمى الخاصية الثانية (مثل: لون الإضاءة، المقاس)">
+            <Field label={t('products.fashion_variants_builder.s7', "مسمى الخاصية الثانية (مثل: لون الإضاءة، المقاس)")}>
               <input
                 className="purchase-prototype-field-input"
                 value={customSecondaryLabel}
                 onChange={(e) => setCustomSecondaryLabel(e.target.value)}
                 disabled={disabled}
-                placeholder="مثال: لون الإضاءة"
+                placeholder={t('products.fashion_variants_builder.s8', "مثال: لون الإضاءة")}
               />
             </Field>
           </div>
@@ -524,7 +526,7 @@ export function FashionVariantsBuilder({
           {/* Quick Settings: Stock & Barcode prefix + Summary Chips */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-              <span style={{ fontSize: '0.76rem', fontWeight: 700, color: '#475569', whiteSpace: 'nowrap' }}>مخزون افتراضي:</span>
+              <span style={{ fontSize: '0.76rem', fontWeight: 700, color: '#475569', whiteSpace: 'nowrap' }}>{t('products.fashion_variants_builder.s9', "مخزون افتراضي:")}</span>
               <input
                 type="number"
                 value={Number(defaultStock || 0)}
@@ -545,7 +547,7 @@ export function FashionVariantsBuilder({
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-              <span style={{ fontSize: '0.76rem', fontWeight: 700, color: '#475569', whiteSpace: 'nowrap' }}>بادئة الباركود:</span>
+              <span style={{ fontSize: '0.76rem', fontWeight: 700, color: '#475569', whiteSpace: 'nowrap' }}>{t('products.fashion_variants_builder.s10', "بادئة الباركود:")}</span>
               <input
                 type="text"
                 value={barcodePrefix}
@@ -569,13 +571,13 @@ export function FashionVariantsBuilder({
             {/* Chips */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
               <span className="cashier-chip" style={{ fontWeight: 800, color: '#1e40af', background: '#dbeafe', fontSize: '0.72rem', padding: '2px 6px' }}>
-                {rows.length} صنف فرعي
+                {rows.length} {t('products.fashion_variants_builder.s11', "صنف فرعي")}
               </span>
               <span className="cashier-chip" style={{ fontSize: '0.72rem', padding: '2px 6px' }}>{colors.length || 0} {templateConfig.primarySingleLabel}</span>
               {sizes.length ? <span className="cashier-chip" style={{ fontSize: '0.72rem', padding: '2px 6px' }}>{sizes.length} {templateConfig.secondarySingleLabel}</span> : null}
               {rows.length > 0 && (
                 <span className="cashier-chip" style={{ color: '#166534', background: '#dcfce7', fontSize: '0.72rem', padding: '2px 6px', fontWeight: 700 }}>
-                  إجمالي المخزون: {totalStock}
+                  {t('products.fashion_variants_builder.s12', "إجمالي المخزون:")} {totalStock}
                 </span>
               )}
             </div>
@@ -601,19 +603,19 @@ export function FashionVariantsBuilder({
               }}
             >
               <span style={{ fontSize: '1rem', lineHeight: 1, fontWeight: 900 }}>+</span>
-              <span>إضافة صنف فرعي</span>
+              <span>{t('products.fashion_variants_builder.s13', "إضافة صنف فرعي")}</span>
             </Button>
             <Button type="button" variant="secondary" disabled={disabled || !rows.length} onClick={applyDefaultStockToAll} style={{ fontSize: '0.74rem', height: '28px', padding: '0 8px' }}>
-              تطبيق المخزون
+              {t('products.fashion_variants_builder.s14', "تطبيق المخزون")}
             </Button>
             <Button type="button" variant="secondary" disabled={disabled || !rows.length || !suggestedPrefix} onClick={generateSequentialBarcodes} style={{ fontSize: '0.74rem', height: '28px', padding: '0 8px' }}>
-              توليد باركودات
+              {t('products.fashion_variants_builder.s15', "توليد باركودات")}
             </Button>
             <Button type="button" variant="secondary" disabled={disabled || !rows.length} onClick={generateSequentialSkus} style={{ fontSize: '0.74rem', height: '28px', padding: '0 8px' }}>
-              توليد SKU
+              {t('products.fashion_variants_builder.s16', "توليد SKU")}
             </Button>
             <Button type="button" variant="secondary" disabled={disabled || !rows.length} onClick={clearBarcodes} style={{ fontSize: '0.74rem', height: '28px', padding: '0 8px', color: '#b91c1c' }}>
-              مسح الباركودات
+              {t('products.fashion_variants_builder.s17', "مسح الباركودات")}
             </Button>
           </div>
         </div>
@@ -622,7 +624,7 @@ export function FashionVariantsBuilder({
         {!rows.length ? (
           <div style={{ textAlign: 'center', padding: '16px', background: '#ffffff', border: '1px dashed #cbd5e1', borderRadius: '8px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
             <div style={{ color: '#64748b', fontSize: '0.82rem' }}>
-              أدخل قيم <strong>{templateConfig.primaryLabel}</strong> في الأعلى لتوليد الشبكة تلقائياً، أو أضف أصنافاً يدوياً مباشرة:
+              {t('products.fashion_variants_builder.s18', "أدخل قيم")} <strong>{templateConfig.primaryLabel}</strong> {t('products.fashion_variants_builder.s19', "في الأعلى لتوليد الشبكة تلقائياً، أو أضف أصنافاً يدوياً مباشرة:")}
             </div>
             <button
               type="button"
@@ -643,7 +645,7 @@ export function FashionVariantsBuilder({
               }}
             >
               <span style={{ fontSize: '1.1rem', lineHeight: 1, fontWeight: 900 }}>+</span>
-              <span>إضافة صنف فرعي يدوياً (سطر جديد)</span>
+              <span>{t('products.fashion_variants_builder.s20', "إضافة صنف فرعي يدوياً (سطر جديد)")}</span>
             </button>
           </div>
         ) : (
@@ -654,12 +656,12 @@ export function FashionVariantsBuilder({
                   <th style={{ padding: '8px 8px', width: '32px', textAlign: 'center', verticalAlign: 'middle' }}>#</th>
                   <th style={{ padding: '8px 6px', width: '15%', verticalAlign: 'middle' }}>{templateConfig.primarySingleLabel}</th>
                   <th style={{ padding: '8px 6px', width: '13%', verticalAlign: 'middle' }}>{templateConfig.secondarySingleLabel}</th>
-                  <th style={{ padding: '8px 6px', width: '15%', verticalAlign: 'middle' }}>رمز SKU</th>
-                  <th style={{ padding: '8px 6px', width: '17%', verticalAlign: 'middle' }}>الباركود</th>
-                  <th style={{ padding: '8px 6px', width: '13%', verticalAlign: 'middle' }}>سعر البيع ({getGlobalCurrencySymbol()})</th>
-                  <th style={{ padding: '8px 6px', width: '13%', verticalAlign: 'middle' }}>سعر التكلفة ({getGlobalCurrencySymbol()})</th>
-                  <th style={{ padding: '8px 6px', width: '10%', textAlign: 'center', verticalAlign: 'middle' }}>الرصيد</th>
-                  <th style={{ padding: '8px 4px', width: '36px', textAlign: 'center', verticalAlign: 'middle' }}>حذف</th>
+                  <th style={{ padding: '8px 6px', width: '15%', verticalAlign: 'middle' }}>{t('products.fashion_variants_builder.s21', "رمز SKU")}</th>
+                  <th style={{ padding: '8px 6px', width: '17%', verticalAlign: 'middle' }}>{t('products.fashion_variants_builder.s22', "الباركود")}</th>
+                  <th style={{ padding: '8px 6px', width: '13%', verticalAlign: 'middle' }}>{t('products.fashion_variants_builder.s23', "سعر البيع (")}{getGlobalCurrencySymbol()})</th>
+                  <th style={{ padding: '8px 6px', width: '13%', verticalAlign: 'middle' }}>{t('products.fashion_variants_builder.s24', "سعر التكلفة (")}{getGlobalCurrencySymbol()})</th>
+                  <th style={{ padding: '8px 6px', width: '10%', textAlign: 'center', verticalAlign: 'middle' }}>{t('products.fashion_variants_builder.s25', "الرصيد")}</th>
+                  <th style={{ padding: '8px 4px', width: '36px', textAlign: 'center', verticalAlign: 'middle' }}>{t('products.fashion_variants_builder.s26', "حذف")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -697,7 +699,7 @@ export function FashionVariantsBuilder({
                         value={row.sku || ''}
                         onChange={(event) => updateRow(index, { sku: event.target.value })}
                         disabled={disabled}
-                        placeholder="اختياري SKU..."
+                        placeholder={t('products.fashion_variants_builder.s27', "اختياري SKU...")}
                         style={{ height: '30px', fontSize: '0.76rem', padding: '4px 8px' }}
                       />
                     </td>
@@ -707,7 +709,7 @@ export function FashionVariantsBuilder({
                         value={row.barcode}
                         onChange={(event) => updateRow(index, { barcode: event.target.value })}
                         disabled={disabled}
-                        placeholder="الباركود الدولي..."
+                        placeholder={t('products.fashion_variants_builder.s28', "الباركود الدولي...")}
                         style={{ height: '30px', fontSize: '0.76rem', fontFamily: 'monospace', padding: '4px 8px' }}
                       />
                     </td>
@@ -753,7 +755,7 @@ export function FashionVariantsBuilder({
                         type="button"
                         onClick={() => deleteRow(index)}
                         disabled={disabled}
-                        title="حذف هذا الصنف الفرعي"
+                        title={t('products.fashion_variants_builder.s29', "حذف هذا الصنف الفرعي")}
                         style={{
                           border: 'none',
                           background: '#fee2e2',
@@ -797,10 +799,10 @@ export function FashionVariantsBuilder({
                 }}
               >
                 <span style={{ fontSize: '1rem', lineHeight: 1, fontWeight: 900 }}>+</span>
-                <span>إضافة سطر / صنف فرعي جديد</span>
+                <span>{t('products.fashion_variants_builder.s30', "إضافة سطر / صنف فرعي جديد")}</span>
               </button>
               <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
-                يمكنك الكتابة في الحقول بالأعلى لتوليد المقاسات، أو الضغط على (+) لإدخال الأصناف يدوياً سطراً بسطر
+                {t('products.fashion_variants_builder.s31', "يمكنك الكتابة في الحقول بالأعلى لتوليد المقاسات، أو الضغط على (+) لإدخال الأصناف يدوياً سطراً بسطر")}
               </span>
             </div>
           </div>
@@ -808,7 +810,7 @@ export function FashionVariantsBuilder({
 
         {duplicateBarcodeCount ? (
           <div style={{ padding: '8px 12px', background: '#fee2e2', border: '1px solid #ef4444', borderRadius: '8px', color: '#b91c1c', fontSize: '0.82rem', fontWeight: 700 }}>
-            يوجد {duplicateBarcodeCount} باركود مكرر داخل نفس المجموعة. يجب أن يكون لكل صنف فرعي باركود مختلف لتجنب التضارب.
+            {t('products.fashion_variants_builder.s32', "يوجد")} {duplicateBarcodeCount} {t('products.fashion_variants_builder.s33', "باركود مكرر داخل نفس المجموعة. يجب أن يكون لكل صنف فرعي باركود مختلف لتجنب التضارب.")}
           </div>
         ) : null}
       </div>

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCreateQuotationForm, type CreateQuotationPayload, type QuotationItem } from '../hooks/useCreateQuotationForm';
@@ -31,6 +32,7 @@ interface QuotationFormItem extends QuotationItem {
 }
 
 export function CreateQuotationPage() {
+  const { t } = useTranslation();
   useAppToolbar([
     { label: 'المبيعات', to: '/sales' },
     { label: 'عروض الأسعار', to: '/quotations' },
@@ -352,13 +354,13 @@ export function CreateQuotationPage() {
       <div className="document-prototype-column" style={{ maxWidth: '1280px', margin: '0 auto', width: '100%', paddingBottom: '40px' }}>
         {/* Universal Page Header */}
         <PageHeader
-          title="إنشاء عرض سعر جديد (Quotation)"
-          description="تجهيز وتسعير عروض الأسعار الرسمية للعملاء، حساب الضرائب والخصومات، وتوثيق الشروط التعاقدية وفترة الصلاحية."
+          title={t('sales.create_quotation_page.s0', "إنشاء عرض سعر جديد (Quotation)")}
+          description={t('sales.create_quotation_page.s1', "تجهيز وتسعير عروض الأسعار الرسمية للعملاء، حساب الضرائب والخصومات، وتوثيق الشروط التعاقدية وفترة الصلاحية.")}
           badge={
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <span className="badge is-draft" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                 <ClockIcon size={12} />
-                مسودة عرض سعر
+                {t('sales.create_quotation_page.s2', "مسودة عرض سعر")}
               </span>
               <span className="badge" style={{ backgroundColor: '#f1f5f9', color: '#1e293b', fontWeight: 700 }}>
                 {formatCurrencyWithSymbol(calculations.grandTotal, currency)}
@@ -371,9 +373,9 @@ export function CreateQuotationPage() {
                 variant="secondary"
                 onClick={async () => {
                   const ok = await systemConfirm({
-                    title: 'إلغاء المسودة',
-                    message: 'هل أنت متأكد من إلغاء المسودة والعودة؟',
-                    confirmText: 'إلغاء المسودة',
+                    title: t('sales.create_quotation_page.s3', "إلغاء المسودة"),
+                    message: t('sales.create_quotation_page.s4', "هل أنت متأكد من إلغاء المسودة والعودة؟"),
+                    confirmText: t('sales.create_quotation_page.s5', "إلغاء المسودة"),
                     variant: 'danger',
                   });
                   if (ok) {
@@ -383,14 +385,14 @@ export function CreateQuotationPage() {
                 }}
                 style={{ color: '#dc2626', borderColor: '#fecaca' }}
               >
-                إلغاء المسودة
+                {t('sales.create_quotation_page.s6', "إلغاء المسودة")}
               </Button>
               <Button
                 variant="secondary"
                 onClick={handleSubmit}
                 disabled={isSubmitting}
               >
-                حفظ كمسودة
+                {t('sales.create_quotation_page.s7', "حفظ كمسودة")}
               </Button>
               <Button
                 variant="primary"
@@ -398,7 +400,7 @@ export function CreateQuotationPage() {
                 disabled={isSubmitting}
                 style={{ backgroundColor: '#170e5e', color: '#ffffff', minWidth: '130px' }}
               >
-                {isSubmitting ? 'جاري الحفظ...' : 'اعتماد عرض السعر'}
+                {isSubmitting ? t('sales.create_quotation_page.s8', "جاري الحفظ...") : t('sales.create_quotation_page.s9', "اعتماد عرض السعر")}
               </Button>
             </div>
           }
@@ -408,30 +410,30 @@ export function CreateQuotationPage() {
         <section className="document-prototype-section" style={{ marginTop: '12px' }}>
           <div className="document-prototype-section-title">
             <UsersIcon size={16} color="#170e5e" />
-            <span>بيانات العميل وفترة الصلاحية</span>
+            <span>{t('sales.create_quotation_page.s10', "بيانات العميل وفترة الصلاحية")}</span>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '16px' }}>
-            <Field label="اسم العميل *">
+            <Field label={t('sales.create_quotation_page.s11', "اسم العميل *")}>
               <div style={{ display: 'flex', gap: '8px' }}>
                 <div style={{ flex: 1 }}>
                   <CustomSelect
                     value={selectedCustomerId ? String(selectedCustomerId) : ''}
                     onChange={(val) => handleCustomerSelect(val)}
                     options={[
-                      { value: '', label: 'عميل نقدي / اختيار من القائمة...' },
+                      { value: '', label: t('sales.create_quotation_page.s12', "عميل نقدي / اختيار من القائمة...") },
                       ...customers.map((c: any) => ({
                         value: String(c.id),
                         label: `${c.name} ${c.phone ? `(${c.phone})` : ''}`,
                         hint: c.taxNumber || c.code,
                       })),
                     ]}
-                    placeholder="اختر عميل مسجل..."
+                    placeholder={t('sales.create_quotation_page.s13', "اختر عميل مسجل...")}
                   />
                 </div>
                 <input
                   type="text"
-                  placeholder="أو اكتب اسم العميل مباشرة"
+                  placeholder={t('sales.create_quotation_page.s14', "أو اكتب اسم العميل مباشرة")}
                   value={customerName}
                   onChange={(e) => {
                     setCustomerName(e.target.value);
@@ -448,7 +450,7 @@ export function CreateQuotationPage() {
               </div>
             </Field>
 
-            <Field label="رقم هاتف العميل">
+            <Field label={t('sales.create_quotation_page.s15', "رقم هاتف العميل")}>
               <input
                 type="tel"
                 placeholder="010XXXXXXXX"
@@ -464,10 +466,10 @@ export function CreateQuotationPage() {
               />
             </Field>
 
-            <Field label="عنوان العميل">
+            <Field label={t('sales.create_quotation_page.s16', "عنوان العميل")}>
               <input
                 type="text"
-                placeholder="المدينة، الحي، اسم الشارع..."
+                placeholder={t('sales.create_quotation_page.s17', "المدينة، الحي، اسم الشارع...")}
                 value={customerAddress}
                 onChange={(e) => setCustomerAddress(e.target.value)}
                 style={{
@@ -480,7 +482,7 @@ export function CreateQuotationPage() {
               />
             </Field>
 
-            <Field label="تاريخ عرض السعر">
+            <Field label={t('sales.create_quotation_page.s18', "تاريخ عرض السعر")}>
               <input
                 type="date"
                 value={quotationDate}
@@ -495,7 +497,7 @@ export function CreateQuotationPage() {
               />
             </Field>
 
-            <Field label="ساري حتى تاريخ (Validity Period)">
+            <Field label={t('sales.create_quotation_page.s19', "ساري حتى تاريخ (Validity Period)")}>
               <input
                 type="date"
                 value={validUntil}
@@ -510,16 +512,16 @@ export function CreateQuotationPage() {
               />
             </Field>
 
-            <Field label="العملة">
+            <Field label={t('sales.create_quotation_page.s20', "العملة")}>
               <CustomSelect
                 value={currency}
                 onChange={(val) => setCurrency(val)}
                 options={[
-                  { value: 'EGP', label: 'جنيه مصري (EGP)' },
-                  { value: 'SAR', label: 'ريال سعودي (SAR)' },
-                  { value: 'AED', label: 'درهم إماراتي (AED)' },
-                  { value: 'USD', label: 'دولار أمريكي (USD)' },
-                  { value: 'EUR', label: 'يورو أوروبي (EUR)' },
+                  { value: 'EGP', label: t('sales.create_quotation_page.s21', "جنيه مصري (EGP)") },
+                  { value: 'SAR', label: t('sales.create_quotation_page.s22', "ريال سعودي (SAR)") },
+                  { value: 'AED', label: t('sales.create_quotation_page.s23', "درهم إماراتي (AED)") },
+                  { value: 'USD', label: t('sales.create_quotation_page.s24', "دولار أمريكي (USD)") },
+                  { value: 'EUR', label: t('sales.create_quotation_page.s25', "يورو أوروبي (EUR)") },
                 ]}
               />
             </Field>
@@ -531,7 +533,7 @@ export function CreateQuotationPage() {
           <div className="section-header-compact-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div className="document-prototype-section-title" style={{ margin: 0 }}>
               <SlidersIcon size={16} color="#170e5e" />
-              <span>بنود عرض السعر (Line Items)</span>
+              <span>{t('sales.create_quotation_page.s26', "بنود عرض السعر (Line Items)")}</span>
             </div>
 
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
@@ -542,7 +544,7 @@ export function CreateQuotationPage() {
                 style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}
               >
                 <PlusIcon size={14} />
-                + صنف
+                {t('sales.create_quotation_page.s27', "+ صنف")}
               </Button>
               <Button
                 variant="secondary"
@@ -551,21 +553,21 @@ export function CreateQuotationPage() {
                 style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}
               >
                 <PlusIcon size={14} />
-                + خدمة
+                {t('sales.create_quotation_page.s28', "+ خدمة")}
               </Button>
               <Button
                 variant={activeQuickAction === 'tax' ? 'primary' : 'secondary'}
                 size="sm"
                 onClick={() => setActiveQuickAction(activeQuickAction === 'tax' ? null : 'tax')}
               >
-                % ضريبة
+                {t('sales.create_quotation_page.s29', "% ضريبة")}
               </Button>
               <Button
                 variant={activeQuickAction === 'discount' ? 'primary' : 'secondary'}
                 size="sm"
                 onClick={() => setActiveQuickAction(activeQuickAction === 'discount' ? null : 'discount')}
               >
-                خصم إجمالي
+                {t('sales.create_quotation_page.s30', "خصم إجمالي")}
               </Button>
             </div>
           </div>
@@ -585,7 +587,7 @@ export function CreateQuotationPage() {
               }}
             >
               <span style={{ fontSize: '13px', fontWeight: 600, color: '#334155' }}>
-                تطبيق ضريبة قيمة مضافة إجمالية:
+                {t('sales.create_quotation_page.s31', "تطبيق ضريبة قيمة مضافة إجمالية:")}
               </span>
               <div style={{ display: 'flex', gap: '8px' }}>
                 {[0, 5, 14, 15].map((rate) => (
@@ -634,7 +636,7 @@ export function CreateQuotationPage() {
                 gap: '12px',
               }}
             >
-              <span style={{ fontSize: '13px', fontWeight: 600, color: '#334155' }}>تطبيق خصم إجمالي:</span>
+              <span style={{ fontSize: '13px', fontWeight: 600, color: '#334155' }}>{t('sales.create_quotation_page.s32', "تطبيق خصم إجمالي:")}</span>
               <div style={{ display: 'flex', gap: '6px' }}>
                 <button
                   type="button"
@@ -650,7 +652,7 @@ export function CreateQuotationPage() {
                     cursor: 'pointer',
                   }}
                 >
-                  مبلغ ثابت
+                  {t('sales.create_quotation_page.s33', "مبلغ ثابت")}
                 </button>
                 <button
                   type="button"
@@ -666,7 +668,7 @@ export function CreateQuotationPage() {
                     cursor: 'pointer',
                   }}
                 >
-                  نسبة مئوية %
+                  {t('sales.create_quotation_page.s34', "نسبة مئوية %")}
                 </button>
               </div>
               <input
@@ -689,13 +691,13 @@ export function CreateQuotationPage() {
               <thead>
                 <tr>
                   <th style={{ width: '40px', textAlign: 'center' }}>#</th>
-                  <th style={{ textAlign: 'right', minWidth: '220px' }}>الصنف / الوصف</th>
-                  <th style={{ width: '110px', textAlign: 'center' }}>الوحدة</th>
-                  <th style={{ width: '100px', textAlign: 'center' }}>الكمية</th>
-                  <th style={{ width: '120px', textAlign: 'center' }}>سعر الوحدة</th>
-                  <th style={{ width: '100px', textAlign: 'center' }}>الخصم</th>
-                  <th style={{ width: '90px', textAlign: 'center' }}>الضريبة %</th>
-                  <th style={{ width: '130px', textAlign: 'center' }}>الإجمالي</th>
+                  <th style={{ textAlign: 'right', minWidth: '220px' }}>{t('sales.create_quotation_page.s35', "الصنف / الوصف")}</th>
+                  <th style={{ width: '110px', textAlign: 'center' }}>{t('sales.create_quotation_page.s36', "الوحدة")}</th>
+                  <th style={{ width: '100px', textAlign: 'center' }}>{t('sales.create_quotation_page.s37', "الكمية")}</th>
+                  <th style={{ width: '120px', textAlign: 'center' }}>{t('sales.create_quotation_page.s38', "سعر الوحدة")}</th>
+                  <th style={{ width: '100px', textAlign: 'center' }}>{t('sales.create_quotation_page.s39', "الخصم")}</th>
+                  <th style={{ width: '90px', textAlign: 'center' }}>{t('sales.create_quotation_page.s40', "الضريبة %")}</th>
+                  <th style={{ width: '130px', textAlign: 'center' }}>{t('sales.create_quotation_page.s41', "الإجمالي")}</th>
                   <th style={{ width: '50px', textAlign: 'center' }}></th>
                 </tr>
               </thead>
@@ -709,7 +711,7 @@ export function CreateQuotationPage() {
                           inline
                           className="purchase-prototype-inline-combobox"
                           inputClassName="purchase-prototype-field-input purchase-prototype-combobox-input purchase-prototype-combobox-input-inline"
-                          placeholder="ابحث عن صنف بالاسم أو الباركود..."
+                          placeholder={t('sales.create_quotation_page.s42', "ابحث عن صنف بالاسم أو الباركود...")}
                           value={item.productName || item.product_name || ''}
                           onChange={(value) => handleUpdateItem(item.id, { productName: value, product_name: value })}
                           options={productOptions}
@@ -722,11 +724,11 @@ export function CreateQuotationPage() {
                           }
                           onSelect={(option) => handleProductSelect(item.id, option)}
                           showDropdownOnEmpty={true}
-                          emptyLabel="صنف جديد (يمكنك المتابعة بالاسم المدخل)"
+                          emptyLabel={t('sales.create_quotation_page.s43', "صنف جديد (يمكنك المتابعة بالاسم المدخل)")}
                         />
                         <input
                           type="text"
-                          placeholder="أو اكتب وصف البند / الصنف يدوياً..."
+                          placeholder={t('sales.create_quotation_page.s44', "أو اكتب وصف البند / الصنف يدوياً...")}
                           value={item.productName || item.product_name || ''}
                           onChange={(e) => handleUpdateItem(item.id, { productName: e.target.value })}
                           style={{
@@ -741,15 +743,15 @@ export function CreateQuotationPage() {
                     </td>
                     <td>
                       <CustomSelect
-                        value={item.unitName || 'قطعة'}
+                        value={item.unitName || t('sales.create_quotation_page.s45', "قطعة")}
                         onChange={(val) => handleUpdateItem(item.id, { unitName: val })}
                         options={[
-                          { value: 'قطعة', label: 'قطعة' },
-                          { value: 'كرتونة', label: 'كرتونة' },
-                          { value: 'كيلو', label: 'كيلو' },
-                          { value: 'متر', label: 'متر' },
-                          { value: 'خدمة', label: 'خدمة' },
-                          { value: 'طقم', label: 'طقم' },
+                          { value: t('sales.create_quotation_page.s46', "قطعة"), label: t('sales.create_quotation_page.s47', "قطعة") },
+                          { value: t('sales.create_quotation_page.s48', "كرتونة"), label: t('sales.create_quotation_page.s49', "كرتونة") },
+                          { value: t('sales.create_quotation_page.s50', "كيلو"), label: t('sales.create_quotation_page.s51', "كيلو") },
+                          { value: t('sales.create_quotation_page.s52', "متر"), label: t('sales.create_quotation_page.s53', "متر") },
+                          { value: t('sales.create_quotation_page.s54', "خدمة"), label: t('sales.create_quotation_page.s55', "خدمة") },
+                          { value: t('sales.create_quotation_page.s56', "طقم"), label: t('sales.create_quotation_page.s57', "طقم") },
                         ]}
                       />
                     </td>
@@ -837,7 +839,7 @@ export function CreateQuotationPage() {
                           color: items.length <= 1 ? '#cbd5e1' : '#ef4444',
                           padding: '4px',
                         }}
-                        title="حذف البند"
+                        title={t('sales.create_quotation_page.s58', "حذف البند")}
                       >
                         <Trash2Icon size={16} />
                       </button>
@@ -875,7 +877,7 @@ export function CreateQuotationPage() {
                 }}
               >
                 <PlusIcon size={14} />
-                + إضافة بند صنف جديد
+                {t('sales.create_quotation_page.s59', "+ إضافة بند صنف جديد")}
               </button>
               <button
                 type="button"
@@ -895,7 +897,7 @@ export function CreateQuotationPage() {
                 }}
               >
                 <PlusIcon size={14} />
-                + إضافة بند خدمة
+                {t('sales.create_quotation_page.s60', "+ إضافة بند خدمة")}
               </button>
             </div>
           </div>
@@ -908,11 +910,11 @@ export function CreateQuotationPage() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-                  ملاحظات إضافية على عرض السعر
+                  {t('sales.create_quotation_page.s61', "ملاحظات إضافية على عرض السعر")}
                 </label>
                 <textarea
                   rows={3}
-                  placeholder="أدخل أي ملاحظات خاصة بالعميل أو بالمواصفات الفنية..."
+                  placeholder={t('sales.create_quotation_page.s62', "أدخل أي ملاحظات خاصة بالعميل أو بالمواصفات الفنية...")}
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   style={{
@@ -928,7 +930,7 @@ export function CreateQuotationPage() {
 
               <div>
                 <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-                  الشروط والأحكام والضمانات التعاقدية
+                  {t('sales.create_quotation_page.s63', "الشروط والأحكام والضمانات التعاقدية")}
                 </label>
                 <textarea
                   rows={4}
@@ -949,7 +951,7 @@ export function CreateQuotationPage() {
               {/* Attachments */}
               <div>
                 <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-                  المرفقات والمستندات
+                  {t('sales.create_quotation_page.s64', "المرفقات والمستندات")}
                 </label>
                 <div
                   style={{
@@ -964,7 +966,7 @@ export function CreateQuotationPage() {
                 >
                   <UploadIcon size={20} color="#64748b" style={{ margin: '0 auto 6px' }} />
                   <div style={{ fontSize: '12.5px', color: '#475569', fontWeight: 600 }}>
-                    انقر لإرفاق عروض مواصفات أو كتالوجات أو مستندات
+                    {t('sales.create_quotation_page.s65', "انقر لإرفاق عروض مواصفات أو كتالوجات أو مستندات")}
                   </div>
                   <input
                     id="quotation-file-input"
@@ -1018,27 +1020,27 @@ export function CreateQuotationPage() {
                     marginBottom: '16px',
                   }}
                 >
-                  ملخص القيمة الإجمالية
+                  {t('sales.create_quotation_page.s66', "ملخص القيمة الإجمالية")}
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#475569' }}>
-                    <span>المجموع قبل الخصم:</span>
+                    <span>{t('sales.create_quotation_page.s67', "المجموع قبل الخصم:")}</span>
                     <span style={{ fontWeight: 600 }}>{formatCurrencyWithSymbol(calculations.rawSubtotal, currency)}</span>
                   </div>
 
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#16a34a' }}>
-                    <span>إجمالي الخصومات:</span>
+                    <span>{t('sales.create_quotation_page.s68', "إجمالي الخصومات:")}</span>
                     <span style={{ fontWeight: 600 }}>- {formatCurrencyWithSymbol(calculations.totalDiscount, currency)}</span>
                   </div>
 
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#475569' }}>
-                    <span>الصافي الخاضع للضريبة:</span>
+                    <span>{t('sales.create_quotation_page.s69', "الصافي الخاضع للضريبة:")}</span>
                     <span style={{ fontWeight: 600 }}>{formatCurrencyWithSymbol(calculations.netTaxable, currency)}</span>
                   </div>
 
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#475569' }}>
-                    <span>ضريبة القيمة المضافة:</span>
+                    <span>{t('sales.create_quotation_page.s70', "ضريبة القيمة المضافة:")}</span>
                     <span style={{ fontWeight: 600 }}>+ {formatCurrencyWithSymbol(calculations.taxTotal, currency)}</span>
                   </div>
 
@@ -1052,7 +1054,7 @@ export function CreateQuotationPage() {
                       alignItems: 'baseline',
                     }}
                   >
-                    <span style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>الإجمالي النهائي:</span>
+                    <span style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>{t('sales.create_quotation_page.s71', "الإجمالي النهائي:")}</span>
                     <span style={{ fontSize: '20px', fontWeight: 900, color: '#170e5e' }}>
                       {formatCurrencyWithSymbol(calculations.grandTotal, currency)}
                     </span>
@@ -1075,7 +1077,7 @@ export function CreateQuotationPage() {
                     fontWeight: 700,
                   }}
                 >
-                  {isSubmitting ? 'جاري الحفظ...' : 'اعتماد وحفظ عرض السعر'}
+                  {isSubmitting ? t('sales.create_quotation_page.s72', "جاري الحفظ...") : t('sales.create_quotation_page.s73', "اعتماد وحفظ عرض السعر")}
                 </Button>
                 <Button
                   variant="secondary"
@@ -1085,7 +1087,7 @@ export function CreateQuotationPage() {
                   }}
                   style={{ width: '100%', fontSize: '13px' }}
                 >
-                  العودة لقائمة عروض الأسعار
+                  {t('sales.create_quotation_page.s74', "العودة لقائمة عروض الأسعار")}
                 </Button>
               </div>
             </div>

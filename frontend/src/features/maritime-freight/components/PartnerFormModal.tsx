@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { Field } from '@/shared/ui/field';
@@ -50,6 +51,7 @@ export function PartnerFormModal({
   partner,
   defaultType = 'shipping_line',
 }: PartnerFormModalProps) {
+  const { t } = useTranslation();
   const [carrierType, setCarrierType] = useState<'shipping_line' | 'overseas_agent' | 'airline' | 'trucking'>(defaultType);
   const [code, setCode] = useState('');
   const [nameAr, setNameAr] = useState('');
@@ -191,17 +193,17 @@ export function PartnerFormModal({
         isEditing
           ? `تعديل بيانات: ${partner?.name_ar}`
           : carrierType === 'shipping_line'
-          ? 'إضافة خط ملاحي / توكيل معتمد (New Shipping Line)'
-          : 'إضافة وكيل شحن خارجي شريك (New Overseas Partner Agent)'
+          ? t('maritime_freight.partner_form_modal.s0', "إضافة خط ملاحي / توكيل معتمد (New Shipping Line)")
+          : t('maritime_freight.partner_form_modal.s1', "إضافة وكيل شحن خارجي شريك (New Overseas Partner Agent)")
       }
-      subtitle="إدارة جهات الاتصال ومكاتب تسعير الشحنات لربطها بالإرسال الآلي لطلبات التسعير"
+      subtitle={t('maritime_freight.partner_form_modal.s2', "إدارة جهات الاتصال ومكاتب تسعير الشحنات لربطها بالإرسال الآلي لطلبات التسعير")}
       width="min(980px, 96vw)"
       minHeight="min(540px, 85vh)"
       footerActions={
         <StandardDialogFooter
           onCancel={onClose}
           onSubmit={handleSubmit}
-          submitText={isEditing ? 'تحديث البيانات' : 'حفظ الشريك في الدليل'}
+          submitText={isEditing ? t('maritime_freight.partner_form_modal.s3', "تحديث البيانات") : t('maritime_freight.partner_form_modal.s4', "حفظ الشريك في الدليل")}
           isSubmitting={isSubmitting}
         />
       }
@@ -267,7 +269,7 @@ export function PartnerFormModal({
               type="button"
               onClick={() => {
                 setCarrierType('shipping_line');
-                setCountryName('مصر');
+                setCountryName(t('maritime_freight.partner_form_modal.s5', "مصر"));
                 setCountryCode('EG');
               }}
               style={{
@@ -288,13 +290,13 @@ export function PartnerFormModal({
               }}
             >
               <AppIcons.Ship size={14} />
-              <span>خط ملاحي / توكيل معتمد (Shipping Line)</span>
+              <span>{t('maritime_freight.partner_form_modal.s6', "خط ملاحي / توكيل معتمد (Shipping Line)")}</span>
             </button>
             <button
               type="button"
               onClick={() => {
                 setCarrierType('overseas_agent');
-                setCountryName('الصين');
+                setCountryName(t('maritime_freight.partner_form_modal.s7', "الصين"));
                 setCountryCode('CN');
               }}
               style={{
@@ -315,33 +317,33 @@ export function PartnerFormModal({
               }}
             >
               <AppIcons.Users size={14} />
-              <span>وكيل شحن خارجي بالخارج (Overseas Forwarding Agent)</span>
+              <span>{t('maritime_freight.partner_form_modal.s8', "وكيل شحن خارجي بالخارج (Overseas Forwarding Agent)")}</span>
             </button>
           </div>
         )}
 
         {/* 2. الصف الأول: الهوية الأساسية ومسؤول الاتصال */}
         <div style={{ display: 'grid', gridTemplateColumns: '130px 1.4fr 1.4fr 1.2fr', gap: '8px' }}>
-          <Field label={carrierType === 'shipping_line' ? 'كود الخط (SCAC) *' : 'كود الوكيل *'}>
+          <Field label={carrierType === 'shipping_line' ? t('maritime_freight.partner_form_modal.s9', "كود الخط (SCAC) *") : t('maritime_freight.partner_form_modal.s10', "كود الوكيل *")}>
             <input
               type="text"
               value={code}
               onChange={(e) => setCode(e.target.value.toUpperCase())}
               disabled={isEditing}
-              placeholder={carrierType === 'shipping_line' ? 'مثال: MAEU' : 'مثال: AGT-SHA01'}
+              placeholder={carrierType === 'shipping_line' ? t('maritime_freight.partner_form_modal.s11', "مثال: MAEU") : t('maritime_freight.partner_form_modal.s12', "مثال: AGT-SHA01")}
             />
           </Field>
 
-          <Field label="الاسم الرسمي بالعربية *">
+          <Field label={t('maritime_freight.partner_form_modal.s13', "الاسم الرسمي بالعربية *")}>
             <input
               type="text"
               value={nameAr}
               onChange={(e) => setNameAr(e.target.value)}
-              placeholder={carrierType === 'shipping_line' ? 'ميرسك لاين - توكيل مصر' : 'شنغهاي العالمية للوجستيات'}
+              placeholder={carrierType === 'shipping_line' ? t('maritime_freight.partner_form_modal.s14', "ميرسك لاين - توكيل مصر") : t('maritime_freight.partner_form_modal.s15', "شنغهاي العالمية للوجستيات")}
             />
           </Field>
 
-          <Field label="الاسم بالإنجليزية (Commercial Name)">
+          <Field label={t('maritime_freight.partner_form_modal.s16', "الاسم بالإنجليزية (Commercial Name)")}>
             <input
               type="text"
               value={nameEn}
@@ -350,19 +352,19 @@ export function PartnerFormModal({
             />
           </Field>
 
-          <Field label="مسؤول الاتصال (Contact Person)">
+          <Field label={t('maritime_freight.partner_form_modal.s17', "مسؤول الاتصال (Contact Person)")}>
             <input
               type="text"
               value={contactPerson}
               onChange={(e) => setContactPerson(e.target.value)}
-              placeholder="David Wang / م. أحمد سالم"
+              placeholder={t('maritime_freight.partner_form_modal.s18', "David Wang / م. أحمد سالم")}
             />
           </Field>
         </div>
 
         {/* 3. الصف الثاني: الدولة والموقع والخدمات والموانئ */}
         <div style={{ display: 'grid', gridTemplateColumns: '130px 120px 1.1fr 1.3fr 1.4fr', gap: '8px' }}>
-          <Field label="الدولة (Country)">
+          <Field label={t('maritime_freight.partner_form_modal.s19', "الدولة (Country)")}>
             <CustomSelect
               value={countryCode}
               onChange={(val) => handleCountrySelect(val || 'CN')}
@@ -373,25 +375,25 @@ export function PartnerFormModal({
             />
           </Field>
 
-          <Field label="اسم الدولة المخصص">
+          <Field label={t('maritime_freight.partner_form_modal.s20', "اسم الدولة المخصص")}>
             <input
               type="text"
               value={countryName}
               onChange={(e) => setCountryName(e.target.value)}
-              placeholder="الصين، مصر..."
+              placeholder={t('maritime_freight.partner_form_modal.s21', "الصين، مصر...")}
             />
           </Field>
 
-          <Field label="المدينة / المركز اللوجستي">
+          <Field label={t('maritime_freight.partner_form_modal.s22', "المدينة / المركز اللوجستي")}>
             <input
               type="text"
               value={cityName}
               onChange={(e) => setCityName(e.target.value)}
-              placeholder="شنغهاي، إسطنبول، الإسكندرية..."
+              placeholder={t('maritime_freight.partner_form_modal.s23', "شنغهاي، إسطنبول، الإسكندرية...")}
             />
           </Field>
 
-          <Field label="الخدمات المتاحة (Services)">
+          <Field label={t('maritime_freight.partner_form_modal.s24', "الخدمات المتاحة (Services)")}>
             <input
               type="text"
               value={servicesOffered}
@@ -400,7 +402,7 @@ export function PartnerFormModal({
             />
           </Field>
 
-          <Field label="الموانئ المدعومة (UN/LOCODEs)">
+          <Field label={t('maritime_freight.partner_form_modal.s25', "الموانئ المدعومة (UN/LOCODEs)")}>
             <input
               type="text"
               value={supportedPorts}
@@ -414,20 +416,20 @@ export function PartnerFormModal({
         <div style={{ background: '#f8fafc', padding: '8px 10px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
           <div style={{ fontWeight: 700, fontSize: '0.76rem', color: '#170e5e', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
             <AppIcons.Mail size={13} />
-            <span>عناوين البريد الإلكتروني للربط مع الأتمتة وأرقام التواصل (Email Desks & Communication)</span>
+            <span>{t('maritime_freight.partner_form_modal.s26', "عناوين البريد الإلكتروني للربط مع الأتمتة وأرقام التواصل (Email Desks & Communication)")}</span>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 1fr', gap: '8px' }}>
-            <Field label="إيميل طلبات التسعير (RFQ Rates Email) *">
+            <Field label={t('maritime_freight.partner_form_modal.s27', "إيميل طلبات التسعير (RFQ Rates Email) *")}>
               <input
                 type="email"
                 value={rfqEmail}
                 onChange={(e) => setRfqEmail(e.target.value)}
-                placeholder="rates@carrier.com أو quotes@agent.cn"
+                placeholder={t('maritime_freight.partner_form_modal.s28', "rates@carrier.com أو quotes@agent.cn")}
               />
             </Field>
 
-            <Field label="إيميل الحجوزات والعمليات (Booking / Operations Email)">
+            <Field label={t('maritime_freight.partner_form_modal.s29', "إيميل الحجوزات والعمليات (Booking / Operations Email)")}>
               <input
                 type="email"
                 value={bookingEmail}
@@ -436,7 +438,7 @@ export function PartnerFormModal({
               />
             </Field>
 
-            <Field label="البريد العام / الدعم الفني (General Support)">
+            <Field label={t('maritime_freight.partner_form_modal.s30', "البريد العام / الدعم الفني (General Support)")}>
               <input
                 type="email"
                 value={email}
@@ -447,7 +449,7 @@ export function PartnerFormModal({
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', marginTop: '6px' }}>
-            <Field label="رقم الهاتف المباشر (Direct Phone)">
+            <Field label={t('maritime_freight.partner_form_modal.s31', "رقم الهاتف المباشر (Direct Phone)")}>
               <input
                 type="text"
                 value={phone}
@@ -456,7 +458,7 @@ export function PartnerFormModal({
               />
             </Field>
 
-            <Field label="رقم الواتساب (WhatsApp)">
+            <Field label={t('maritime_freight.partner_form_modal.s32', "رقم الواتساب (WhatsApp)")}>
               <input
                 type="text"
                 value={whatsapp}
@@ -465,7 +467,7 @@ export function PartnerFormModal({
               />
             </Field>
 
-            <Field label="معرف وي شات (WeChat ID)">
+            <Field label={t('maritime_freight.partner_form_modal.s33', "معرف وي شات (WeChat ID)")}>
               <input
                 type="text"
                 value={wechat}
@@ -479,7 +481,7 @@ export function PartnerFormModal({
         {/* 5. الممرات الملاحية المغطاة (3 أعمدة × صفين) */}
         <div>
           <div style={{ fontWeight: 700, fontSize: '0.76rem', color: '#170e5e', marginBottom: '5px' }}>
-            الممرات الملاحية وقطاعات التسعير المغطاة (Trade Lanes)
+            {t('maritime_freight.partner_form_modal.s34', "الممرات الملاحية وقطاعات التسعير المغطاة (Trade Lanes)")}
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px' }}>
             {TRADE_LANE_OPTIONS.map((lane) => {
@@ -519,12 +521,12 @@ export function PartnerFormModal({
 
         {/* 6. ملاحظات وشروط خاصة */}
         <div>
-          <Field label="شروط واتفاقيات خاصة أو ملاحظات (Special Terms / Notes)">
+          <Field label={t('maritime_freight.partner_form_modal.s35', "شروط واتفاقيات خاصة أو ملاحظات (Special Terms / Notes)")}>
             <input
               type="text"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="مواعيد دوام مكتب الصين، شروط سداد النولون، اتفاقيات أسعار خاصة..."
+              placeholder={t('maritime_freight.partner_form_modal.s36', "مواعيد دوام مكتب الصين، شروط سداد النولون، اتفاقيات أسعار خاصة...")}
             />
           </Field>
         </div>

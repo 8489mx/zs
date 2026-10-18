@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { Field } from '@/shared/ui/field';
@@ -40,6 +41,7 @@ export function CreateIpcInvoiceModal({
   onCreated,
   onSuccess,
 }: CreateIpcInvoiceModalProps) {
+  const { t } = useTranslation();
   const { currencySymbol } = useSystemCurrency();
   const [ipcType, setIpcType] = useState<'client' | 'subcontractor'>(initialIpcType);
   const [subcontracts, setSubcontracts] = useState<ContractingSubcontract[]>([]);
@@ -204,14 +206,14 @@ export function CreateIpcInvoiceModal({
       open={open}
       onClose={onClose}
       title={`إعداد مستخلص جاري للأعمال (AIA G702/G703) - ${project.name}`}
-      subtitle="حصر الكميات الحالية، احتساب تشوينات المواد بالموقع، وخصم الدفعة المقدمة وضمان حسن التنفيذ"
+      subtitle={t('contracting.create_ipc_invoice_modal.s0', "حصر الكميات الحالية، احتساب تشوينات المواد بالموقع، وخصم الدفعة المقدمة وضمان حسن التنفيذ")}
       width="min(1240px, 98vw)"
       minHeight="auto"
       footerActions={(
         <StandardDialogFooter
           onCancel={onClose}
           onSubmit={() => handleSubmit()}
-          submitText={isSubmitting ? 'جاري الحفظ...' : 'حفظ المستخلص ومراجعة البنود'}
+          submitText={isSubmitting ? t('contracting.create_ipc_invoice_modal.s1', "جاري الحفظ...") : t('contracting.create_ipc_invoice_modal.s2', "حفظ المستخلص ومراجعة البنود")}
           isSubmitting={isSubmitting}
         />
       )}
@@ -280,7 +282,7 @@ export function CreateIpcInvoiceModal({
               transition: 'all 0.15s ease',
             }}
           >
-            مستخلص المالك / العميل (إيراد معتمد)
+            {t('contracting.create_ipc_invoice_modal.s3', "مستخلص المالك / العميل (إيراد معتمد)")}
           </button>
           <button
             type="button"
@@ -298,7 +300,7 @@ export function CreateIpcInvoiceModal({
               transition: 'all 0.15s ease',
             }}
           >
-            مستخلص مقاول باطن (تكلفة ومستحق مورد)
+            {t('contracting.create_ipc_invoice_modal.s4', "مستخلص مقاول باطن (تكلفة ومستحق مورد)")}
           </button>
         </div>
 
@@ -307,30 +309,30 @@ export function CreateIpcInvoiceModal({
           <div style={{ background: '#f0f9ff', padding: '10px 14px', borderRadius: '8px', border: '1px solid #bae6fd' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px', color: '#0369a1', fontWeight: 700, fontSize: '0.84rem' }}>
               <AppIcons.Building size={15} />
-              <span>تحديد عقد مقاول الباطن التابع للمشروع</span>
+              <span>{t('contracting.create_ipc_invoice_modal.s5', "تحديد عقد مقاول الباطن التابع للمشروع")}</span>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: '10px', alignItems: 'end' }}>
-              <Field label="عقد مقاول الباطن *">
+              <Field label={t('contracting.create_ipc_invoice_modal.s6', "عقد مقاول الباطن *")}>
                 <CustomSelect
                   value={selectedSubcontractId}
                   onChange={handleSubcontractSelect}
-                  placeholder="اختر عقد مقاولة الباطن..."
+                  placeholder={t('contracting.create_ipc_invoice_modal.s7', "اختر عقد مقاولة الباطن...")}
                   options={subcontracts.map((sub) => ({
                     value: sub.id,
-                    label: `${sub.contractNumber} - ${sub.subcontractorName || 'مقاول باطن'} (${sub.scopeOfWork.slice(0, 30)}...)`,
+                    label: `${sub.contractNumber} - ${sub.subcontractorName || t('contracting.create_ipc_invoice_modal.s8', "مقاول باطن")} (${sub.scopeOfWork.slice(0, 30)}...)`,
                   }))}
                 />
               </Field>
 
               <div style={{ background: '#ffffff', padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1' }}>
-                <span style={{ fontSize: '0.72rem', color: '#64748b', display: 'block' }}>قيمة العقد الإجمالية:</span>
+                <span style={{ fontSize: '0.72rem', color: '#64748b', display: 'block' }}>{t('contracting.create_ipc_invoice_modal.s9', "قيمة العقد الإجمالية:")}</span>
                 <strong style={{ fontSize: '0.82rem', color: '#0f172a' }}>
                   {selectedSubcontract ? Number(selectedSubcontract.totalAmount || 0).toLocaleString('ar-EG') : '—'} {currencySymbol}
                 </strong>
               </div>
 
               <div style={{ background: '#ffffff', padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1' }}>
-                <span style={{ fontSize: '0.72rem', color: '#64748b', display: 'block' }}>المتبقي من الالتزام:</span>
+                <span style={{ fontSize: '0.72rem', color: '#64748b', display: 'block' }}>{t('contracting.create_ipc_invoice_modal.s10', "المتبقي من الالتزام:")}</span>
                 <strong style={{ fontSize: '0.82rem', color: '#15803d' }}>
                   {selectedSubcontract && selectedSubcontract.remainingCommitment !== undefined
                     ? Number(selectedSubcontract.remainingCommitment).toLocaleString('ar-EG')
@@ -345,11 +347,11 @@ export function CreateIpcInvoiceModal({
         <div style={{ background: '#f8fafc', padding: '9px 13px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
             <AppIcons.Calendar size={15} />
-            <span>1. فترة المستخلص ونسب الاستقطاع التعاقدي (Billing Period & Retentions)</span>
+            <span>{t('contracting.create_ipc_invoice_modal.s11', "1. فترة المستخلص ونسب الاستقطاع التعاقدي (Billing Period & Retentions)")}</span>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1.2fr 1.6fr 1fr', gap: '10px', alignItems: 'start' }}>
-            <Field label="عن الفترة من">
+            <Field label={t('contracting.create_ipc_invoice_modal.s12', "عن الفترة من")}>
               <input
                 type="date"
                 value={periodStart}
@@ -357,7 +359,7 @@ export function CreateIpcInvoiceModal({
               />
             </Field>
 
-            <Field label="إلى تاريخ">
+            <Field label={t('contracting.create_ipc_invoice_modal.s13', "إلى تاريخ")}>
               <input
                 type="date"
                 value={periodEnd}
@@ -368,7 +370,7 @@ export function CreateIpcInvoiceModal({
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '3px' }}>
                 <span style={{ fontSize: '0.74rem', fontWeight: 600, color: '#334155' }}>
-                  استرداد الدفعة المقدمة
+                  {t('contracting.create_ipc_invoice_modal.s14', "استرداد الدفعة المقدمة")}
                 </span>
                 <label style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.7rem', color: '#170e5e', cursor: 'pointer', fontWeight: 600 }}>
                   <input
@@ -377,7 +379,7 @@ export function CreateIpcInvoiceModal({
                     onChange={(e) => setEnableAdvRecoveryOverride(e.target.checked)}
                     style={{ width: '13px', height: '13px', cursor: 'pointer' }}
                   />
-                  <span>تجاوز يدوي</span>
+                  <span>{t('contracting.create_ipc_invoice_modal.s15', "تجاوز يدوي")}</span>
                 </label>
               </div>
               {enableAdvRecoveryOverride ? (
@@ -389,7 +391,7 @@ export function CreateIpcInvoiceModal({
                   dir="ltr"
                   value={advRecoveryPercent}
                   onChange={(e) => setAdvRecoveryPercent(e.target.value)}
-                  placeholder="نسبة يدوية %"
+                  placeholder={t('contracting.create_ipc_invoice_modal.s16', "نسبة يدوية %")}
                   style={{ fontWeight: 600, borderColor: '#170e5e' }}
                 />
               ) : (
@@ -407,13 +409,13 @@ export function CreateIpcInvoiceModal({
                   whiteSpace: 'nowrap',
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
-                }} title="يُحسب آلياً وفق نافذة العقد التعاقدية (Bounded Window)">
-                  آلياً وفق نافذة العقد التعاقدية
+                }} title={t('contracting.create_ipc_invoice_modal.s17', "يُحسب آلياً وفق نافذة العقد التعاقدية (Bounded Window)")}>
+                  {t('contracting.create_ipc_invoice_modal.s18', "آلياً وفق نافذة العقد التعاقدية")}
                 </div>
               )}
             </div>
 
-            <Field label="استقطاع ضمان أعمال %">
+            <Field label={t('contracting.create_ipc_invoice_modal.s19', "استقطاع ضمان أعمال %")}>
               <input
                 type="number"
                 min="0"
@@ -432,10 +434,10 @@ export function CreateIpcInvoiceModal({
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
               <AppIcons.FileText size={15} />
-              <span>2. حصر كميات الإنجاز والتشوينات بالموقع (Schedule of Values - SOV)</span>
+              <span>{t('contracting.create_ipc_invoice_modal.s20', "2. حصر كميات الإنجاز والتشوينات بالموقع (Schedule of Values - SOV)")}</span>
             </div>
             <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>
-              عدد البنود: {items.length} بند مقايسة
+              {t('contracting.create_ipc_invoice_modal.s21', "عدد البنود:")} {items.length} {t('contracting.create_ipc_invoice_modal.s22', "بند مقايسة")}
             </span>
           </div>
 
@@ -473,22 +475,22 @@ export function CreateIpcInvoiceModal({
               </colgroup>
               <thead>
                 <tr style={{ backgroundColor: '#f1f5f9', borderBottom: '1px solid #e2e8f0', color: '#334155' }}>
-                  <th style={{ padding: '8px 10px', textAlign: 'center' }}>كود</th>
-                  <th style={{ padding: '8px 10px', textAlign: 'right' }}>بيان بند المقايسة</th>
-                  <th style={{ padding: '8px 6px', textAlign: 'center' }}>الوحدة</th>
-                  <th style={{ padding: '8px 6px', textAlign: 'center' }}>الفئة ({currencySymbol})</th>
-                  <th style={{ padding: '8px 6px', textAlign: 'center' }}>التعاقدي</th>
-                  <th style={{ padding: '8px 6px', textAlign: 'center' }}>المنفذ سابقاً</th>
-                  <th style={{ padding: '8px 6px', textAlign: 'center', color: '#170e5e', backgroundColor: '#e0e7ff' }}>كمية الحالي *</th>
-                  <th style={{ padding: '8px 6px', textAlign: 'center', color: '#0369a1', backgroundColor: '#e0f2fe' }}>تشوينات موقع</th>
-                  <th style={{ padding: '8px 10px', textAlign: 'center' }}>إجمالي المستحق</th>
+                  <th style={{ padding: '8px 10px', textAlign: 'center' }}>{t('contracting.create_ipc_invoice_modal.s23', "كود")}</th>
+                  <th style={{ padding: '8px 10px', textAlign: 'right' }}>{t('contracting.create_ipc_invoice_modal.s24', "بيان بند المقايسة")}</th>
+                  <th style={{ padding: '8px 6px', textAlign: 'center' }}>{t('contracting.create_ipc_invoice_modal.s25', "الوحدة")}</th>
+                  <th style={{ padding: '8px 6px', textAlign: 'center' }}>{t('contracting.create_ipc_invoice_modal.s26', "الفئة (")}{currencySymbol})</th>
+                  <th style={{ padding: '8px 6px', textAlign: 'center' }}>{t('contracting.create_ipc_invoice_modal.s27', "التعاقدي")}</th>
+                  <th style={{ padding: '8px 6px', textAlign: 'center' }}>{t('contracting.create_ipc_invoice_modal.s28', "المنفذ سابقاً")}</th>
+                  <th style={{ padding: '8px 6px', textAlign: 'center', color: '#170e5e', backgroundColor: '#e0e7ff' }}>{t('contracting.create_ipc_invoice_modal.s29', "كمية الحالي *")}</th>
+                  <th style={{ padding: '8px 6px', textAlign: 'center', color: '#0369a1', backgroundColor: '#e0f2fe' }}>{t('contracting.create_ipc_invoice_modal.s30', "تشوينات موقع")}</th>
+                  <th style={{ padding: '8px 10px', textAlign: 'center' }}>{t('contracting.create_ipc_invoice_modal.s31', "إجمالي المستحق")}</th>
                 </tr>
               </thead>
               <tbody>
                 {items.length === 0 ? (
                   <tr>
                     <td colSpan={9} style={{ textAlign: 'center', padding: '32px', color: '#64748b', fontSize: '0.84rem' }}>
-                      لا توجد بنود مقايسة مسجلة في هذا المشروع حتى الآن
+                      {t('contracting.create_ipc_invoice_modal.s32', "لا توجد بنود مقايسة مسجلة في هذا المشروع حتى الآن")}
                     </td>
                   </tr>
                 ) : (
@@ -593,7 +595,7 @@ export function CreateIpcInvoiceModal({
         <div style={{ background: '#f8fafc', padding: '9px 13px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
             <AppIcons.Calculator size={15} />
-            <span>3. التسوية المالية وصافي المستحق للصرف (Financial Settlement)</span>
+            <span>{t('contracting.create_ipc_invoice_modal.s33', "3. التسوية المالية وصافي المستحق للصرف (Financial Settlement)")}</span>
           </div>
 
           <div
@@ -610,28 +612,28 @@ export function CreateIpcInvoiceModal({
             }}
           >
             <div>
-              <span style={{ fontSize: '0.72rem', color: '#64748b', display: 'block' }}>إجمالي أعمال الفترة:</span>
+              <span style={{ fontSize: '0.72rem', color: '#64748b', display: 'block' }}>{t('contracting.create_ipc_invoice_modal.s34', "إجمالي أعمال الفترة:")}</span>
               <strong style={{ fontSize: '0.88rem', color: '#1e293b' }}>
                 {periodGrossTotal.toLocaleString('ar-EG')} {currencySymbol}
               </strong>
             </div>
 
             <div>
-              <span style={{ fontSize: '0.72rem', color: '#64748b', display: 'block' }}>استقطاع دفعة مقدمة:</span>
+              <span style={{ fontSize: '0.72rem', color: '#64748b', display: 'block' }}>{t('contracting.create_ipc_invoice_modal.s35', "استقطاع دفعة مقدمة:")}</span>
               <span style={{ fontSize: '0.84rem', color: estimatedAdvDeduction > 0 ? '#dc2626' : '#64748b', fontWeight: 700 }}>
                 {estimatedAdvDeduction > 0 ? `- ${estimatedAdvDeduction.toLocaleString('ar-EG')}` : '0'} {currencySymbol}
               </span>
             </div>
 
             <div>
-              <span style={{ fontSize: '0.72rem', color: '#64748b', display: 'block' }}>ضمان حسن تنفيذ:</span>
+              <span style={{ fontSize: '0.72rem', color: '#64748b', display: 'block' }}>{t('contracting.create_ipc_invoice_modal.s36', "ضمان حسن تنفيذ:")}</span>
               <span style={{ fontSize: '0.84rem', color: retDeduction > 0 ? '#dc2626' : '#64748b', fontWeight: 700 }}>
                 {retDeduction > 0 ? `- ${retDeduction.toLocaleString('ar-EG')}` : '0'} {currencySymbol}
               </span>
             </div>
 
             <div>
-              <span style={{ fontSize: '0.72rem', color: '#64748b', display: 'block' }}>استقطاعات أخرى:</span>
+              <span style={{ fontSize: '0.72rem', color: '#64748b', display: 'block' }}>{t('contracting.create_ipc_invoice_modal.s37', "استقطاعات أخرى:")}</span>
               <input
                 type="number"
                 min="0"
@@ -644,7 +646,7 @@ export function CreateIpcInvoiceModal({
             </div>
 
             <div style={{ backgroundColor: '#f0fdf4', padding: '6px 8px', borderRadius: '6px', border: '1px solid #bbf7d0' }}>
-              <span style={{ fontSize: '0.72rem', color: '#166534', display: 'block', fontWeight: 700 }}>صافي المستحق للصرف:</span>
+              <span style={{ fontSize: '0.72rem', color: '#166534', display: 'block', fontWeight: 700 }}>{t('contracting.create_ipc_invoice_modal.s38', "صافي المستحق للصرف:")}</span>
               <strong style={{ fontSize: '1rem', color: '#15803d', fontWeight: 800 }}>
                 {netPayable.toLocaleString('ar-EG')} {currencySymbol}
               </strong>
@@ -656,15 +658,15 @@ export function CreateIpcInvoiceModal({
         <div style={{ background: '#f8fafc', padding: '9px 13px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
             <AppIcons.Tag size={14} />
-            <span>4. الاعتمادات والملاحظات الاستشارية (Consultant Notes & Approvals)</span>
+            <span>{t('contracting.create_ipc_invoice_modal.s39', "4. الاعتمادات والملاحظات الاستشارية (Consultant Notes & Approvals)")}</span>
           </div>
 
-          <Field label="ملاحظات واستدراكات المستخلص (اختياري)">
+          <Field label={t('contracting.create_ipc_invoice_modal.s40', "ملاحظات واستدراكات المستخلص (اختياري)")}>
             <input
               type="text"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="ملاحظات مهندس الموقع أو الاستشاري على قياسات الأعمال المنجزة..."
+              placeholder={t('contracting.create_ipc_invoice_modal.s41', "ملاحظات مهندس الموقع أو الاستشاري على قياسات الأعمال المنجزة...")}
             />
           </Field>
         </div>

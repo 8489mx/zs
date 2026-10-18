@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { DeliveryOrder } from '../api/delivery-reps.api';
@@ -24,6 +25,7 @@ export const DriverOrderCard: React.FC<DriverOrderCardProps> = ({
   onOpenMap,
   onSettle,
 }) => {
+  const { t } = useTranslation();
   const isSettled = Boolean(order.settledAt) || order.deliveryStatus === 'settled';
 
   return (
@@ -44,22 +46,22 @@ export const DriverOrderCard: React.FC<DriverOrderCardProps> = ({
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <strong style={{ fontSize: '14px', color: '#0f172a' }}>
-              طلب #{order.docNo || order.id}
+              {t('delivery_reps.driver_order_card.s0', "طلب #")}{order.docNo || order.id}
             </strong>
             {isSettled ? (
               <span style={{ fontSize: '10px', fontWeight: 800, background: '#dcfce7', color: '#16a34a', padding: '2px 6px', borderRadius: '4px', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
                 <CheckIcon size={11} color="#16a34a" strokeWidth={2.5} />
-                <span>تم التسليم</span>
+                <span>{t('delivery_reps.driver_order_card.s1', "تم التسليم")}</span>
               </span>
             ) : (
               <span style={{ fontSize: '10px', fontWeight: 800, background: '#ffedd5', color: '#ea580c', padding: '2px 6px', borderRadius: '4px' }}>
-                قيد التوصيل
+                {t('delivery_reps.driver_order_card.s2', "قيد التوصيل")}
               </span>
             )}
           </div>
           <div style={{ fontSize: '12.5px', fontWeight: 700, color: '#1e293b', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '5px' }}>
             <UserIcon size={13} color="#64748b" />
-            <span>{order.customerName || 'عميل نقدي'}</span>
+            <span>{order.customerName || t('delivery_reps.driver_order_card.s3', "عميل نقدي")}</span>
           </div>
           {order.customerPhone && (
             <div style={{ fontSize: '12px', color: '#64748b', direction: 'ltr', textAlign: 'right', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '5px' }}>
@@ -76,7 +78,7 @@ export const DriverOrderCard: React.FC<DriverOrderCardProps> = ({
         </div>
 
         <div style={{ textAlign: 'left' }}>
-          <div style={{ fontSize: '11px', color: '#64748b' }}>المطلوب:</div>
+          <div style={{ fontSize: '11px', color: '#64748b' }}>{t('delivery_reps.driver_order_card.s4', "المطلوب:")}</div>
           <div style={{ fontSize: '16px', fontWeight: 900, color: '#170e5e' }}>
             {Number(order.total || 0).toLocaleString('ar-EG')} <CurrencySymbol />
           </div>
@@ -106,7 +108,7 @@ export const DriverOrderCard: React.FC<DriverOrderCardProps> = ({
           }}
         >
           <SmartphoneIcon size={13} color="#0369a1" />
-          <span>اتصال</span>
+          <span>{t('delivery_reps.driver_order_card.s5', "اتصال")}</span>
         </button>
         <button
           type="button"
@@ -129,7 +131,7 @@ export const DriverOrderCard: React.FC<DriverOrderCardProps> = ({
           }}
         >
           <MessageSquareIcon size={13} color="#15803d" />
-          <span>واتساب</span>
+          <span>{t('delivery_reps.driver_order_card.s6', "واتساب")}</span>
         </button>
         <button
           type="button"
@@ -152,7 +154,7 @@ export const DriverOrderCard: React.FC<DriverOrderCardProps> = ({
           }}
         >
           <MapPinIcon size={13} color="#c2410c" />
-          <span>الخريطة</span>
+          <span>{t('delivery_reps.driver_order_card.s7', "الخريطة")}</span>
         </button>
       </div>
 
@@ -178,7 +180,7 @@ export const DriverOrderCard: React.FC<DriverOrderCardProps> = ({
             gap: '6px',
           }}
         >
-          <span>تأكيد التسليم مع إثبات وتوقيع العميل</span>
+          <span>{t('delivery_reps.driver_order_card.s8', "تأكيد التسليم مع إثبات وتوقيع العميل")}</span>
         </button>
       )}
 
@@ -186,9 +188,9 @@ export const DriverOrderCard: React.FC<DriverOrderCardProps> = ({
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '11px', color: '#16a34a', background: '#f0fdf4', padding: '6px 10px', borderRadius: '6px' }}>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
             <CheckIcon size={12} color="#16a34a" strokeWidth={2.5} />
-            <span>تم تسليمها وتحصيل {Number(order.total || 0).toLocaleString('ar-EG')} <CurrencySymbol /></span>
+            <span>{t('delivery_reps.driver_order_card.s9', "تم تسليمها وتحصيل")} {Number(order.total || 0).toLocaleString('ar-EG')} <CurrencySymbol /></span>
           </span>
-          {order.deliverySignature && <span>موقّع</span>}
+          {order.deliverySignature && <span>{t('delivery_reps.driver_order_card.s10', "موقّع")}</span>}
         </div>
       )}
     </div>

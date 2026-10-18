@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
 import { MaritimeMailConfig, maritimeApi } from '../api/maritime-freight.api';
 import { useAuthStore } from '@/stores/auth-store';
@@ -48,6 +49,7 @@ const DEFAULT_CONFIG: MaritimeMailConfig = {
 };
 
 export function MaritimeSettingsTab() {
+  const { t: __t } = useTranslation();
   const { tenant, storeName } = useAuthStore();
   const [companyProfile, setCompanyProfile] = useState<{
     name: string;
@@ -351,7 +353,7 @@ export function MaritimeSettingsTab() {
   if (loading) {
     return (
       <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '40px', textAlign: 'center', color: '#64748b' }}>
-        جاري تحميل إعدادات بريد الشحن والربط الآلي...
+        {__t('maritime_freight.maritime_settings_tab.s0', "جاري تحميل إعدادات بريد الشحن والربط الآلي...")}
       </div>
     );
   }
@@ -365,19 +367,19 @@ export function MaritimeSettingsTab() {
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <SettingsIcon size={18} color="#170e5e" />
               <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#0f172a' }}>
-                إعدادات خوادم البريد ومراسلات طلبات التسعير (Mail & Freight RFQ Automation)
+                {__t('maritime_freight.maritime_settings_tab.s1', "إعدادات خوادم البريد ومراسلات طلبات التسعير (Mail & Freight RFQ Automation)")}
               </h3>
             </div>
             <p style={{ margin: '4px 0 0 0', fontSize: '0.8125rem', color: '#64748b' }}>
-              ربط حساب البريد المخصص لشركتك لإرسال طلبات التسعير (RFQs) آلياً للناقلين والخطوط الملاحية وشركات الطيران وقراءة عروض الأسعار الواردة بالذكاء الاصطناعي
+              {__t('maritime_freight.maritime_settings_tab.s2', "ربط حساب البريد المخصص لشركتك لإرسال طلبات التسعير (RFQs) آلياً للناقلين والخطوط الملاحية وشركات الطيران وقراءة عروض الأسعار الواردة بالذكاء الاصطناعي")}
             </p>
             {companyProfile.name && (
               <div style={{ marginTop: '8px', padding: '8px 12px', background: '#f0f4ff', border: '1px solid #c7d2fe', borderRadius: '8px', fontSize: '0.78rem', color: '#3730a3', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span style={{ fontWeight: 700 }}>هوية شركتك المرتبطة تلقائياً:</span>
+                <span style={{ fontWeight: 700 }}>{__t('maritime_freight.maritime_settings_tab.s3', "هوية شركتك المرتبطة تلقائياً:")}</span>
                 <span style={{ fontWeight: 600 }}>{companyProfile.name}</span>
                 {companyProfile.email && <span style={{ color: '#6366f1' }}>— {companyProfile.email}</span>}
                 <span style={{ color: '#64748b', marginInlineStart: 'auto', fontSize: '0.72rem' }}>
-                  يتم استيراد هذه البيانات تلقائياً من إعدادات المنشأة العامة
+                  {__t('maritime_freight.maritime_settings_tab.s4', "يتم استيراد هذه البيانات تلقائياً من إعدادات المنشأة العامة")}
                 </span>
               </div>
             )}
@@ -405,7 +407,7 @@ export function MaritimeSettingsTab() {
               }}
             >
               <CheckIcon size={15} />
-              <span>{saving ? 'جاري الحفظ...' : 'حفظ الإعدادات'}</span>
+              <span>{saving ? __t('maritime_freight.maritime_settings_tab.s5', "جاري الحفظ...") : __t('maritime_freight.maritime_settings_tab.s6', "حفظ الإعدادات")}</span>
             </button>
           </div>
         </div>
@@ -437,10 +439,10 @@ export function MaritimeSettingsTab() {
       <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '14px 20px', display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: '#170e5e' }}>
-            الضبط المسبق لخوادم البريد الشائعة:
+            {__t('maritime_freight.maritime_settings_tab.s7', "الضبط المسبق لخوادم البريد الشائعة:")}
           </span>
           <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
-            (اختر نوع السيرفر لتعبئة المنافذ والعناوين القياسية تلقائياً)
+            {__t('maritime_freight.maritime_settings_tab.s8', "(اختر نوع السيرفر لتعبئة المنافذ والعناوين القياسية تلقائياً)")}
           </span>
         </div>
 
@@ -459,7 +461,7 @@ export function MaritimeSettingsTab() {
               cursor: 'pointer',
             }}
           >
-            سيرفر خاص مخصص (Custom SMTP / Private Server)
+            {__t('maritime_freight.maritime_settings_tab.s9', "سيرفر خاص مخصص (Custom SMTP / Private Server)")}
           </button>
           <button
             type="button"
@@ -501,16 +503,16 @@ export function MaritimeSettingsTab() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px', marginBottom: '14px' }}>
           <MailIcon size={17} color="#170e5e" />
           <div>
-            <h4 style={{ margin: 0, fontSize: '0.94rem', fontWeight: 800, color: '#0f172a' }}>البريد الإلكتروني الرسمي للشركة</h4>
+            <h4 style={{ margin: 0, fontSize: '0.94rem', fontWeight: 800, color: '#0f172a' }}>{__t('maritime_freight.maritime_settings_tab.s10', "البريد الإلكتروني الرسمي للشركة")}</h4>
             <p style={{ margin: '2px 0 0 0', fontSize: '0.75rem', color: '#64748b' }}>
-              هذا البريد يُستخدم في توقيع الرسائل والقوالب عبر متغير <span dir="ltr" style={{ fontFamily: 'monospace', background: '#f1f5f9', padding: '1px 5px', borderRadius: '4px', fontSize: '0.72rem', color: '#4f46e5' }}>{'{{company_email}}'}</span> — يختلف عن بيانات الدخول لخادم البريد أدناه
+              {__t('maritime_freight.maritime_settings_tab.s11', "هذا البريد يُستخدم في توقيع الرسائل والقوالب عبر متغير")} <span dir="ltr" style={{ fontFamily: 'monospace', background: '#f1f5f9', padding: '1px 5px', borderRadius: '4px', fontSize: '0.72rem', color: '#4f46e5' }}>{'{{company_email}}'}</span> {__t('maritime_freight.maritime_settings_tab.s12', "— يختلف عن بيانات الدخول لخادم البريد أدناه")}
             </p>
           </div>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '8px', alignItems: 'flex-end' }}>
           <div>
             <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-              البريد الرسمي للمراسلات *
+              {__t('maritime_freight.maritime_settings_tab.s13', "البريد الرسمي للمراسلات *")}
             </label>
             <input
               type="email"
@@ -531,11 +533,11 @@ export function MaritimeSettingsTab() {
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <SendIcon size={18} color="#170e5e" />
               <h4 style={{ margin: 0, fontSize: '0.94rem', fontWeight: 800, color: '#0f172a' }}>
-                خادم البريد الصادر (SMTP Outgoing)
+                {__t('maritime_freight.maritime_settings_tab.s14', "خادم البريد الصادر (SMTP Outgoing)")}
               </h4>
               {smtpCardLocked && (
                 <span style={{ fontSize: '0.7rem', color: '#64748b', background: '#f1f5f9', padding: '2px 8px', borderRadius: '12px', fontWeight: 600 }}>
-                  محمي
+                  {__t('maritime_freight.maritime_settings_tab.s15', "محمي")}
                 </span>
               )}
             </div>
@@ -553,14 +555,14 @@ export function MaritimeSettingsTab() {
                 cursor: 'pointer',
               }}
             >
-              {smtpCardLocked ? 'تغيير' : 'قفل الحماية'}
+              {smtpCardLocked ? __t('maritime_freight.maritime_settings_tab.s16', "تغيير") : __t('maritime_freight.maritime_settings_tab.s17', "قفل الحماية")}
             </button>
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <div>
               <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                عنوان خادم الإرسال (SMTP Host) *
+                {__t('maritime_freight.maritime_settings_tab.s18', "عنوان خادم الإرسال (SMTP Host) *")}
               </label>
               {smtpCardLocked ? (
                 <div style={{ padding: '7px 10px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '0.8125rem', background: '#f8fafc', color: '#475569', direction: 'ltr', textAlign: 'left' }}>
@@ -571,7 +573,7 @@ export function MaritimeSettingsTab() {
                   type="text"
                   value={config.smtpHost}
                   onChange={(e) => setConfig({ ...config, smtpHost: e.target.value })}
-                  placeholder="مثال: mail.yourcompany.com"
+                  placeholder={__t('maritime_freight.maritime_settings_tab.s19', "مثال: mail.yourcompany.com")}
                   style={{ width: '100%', padding: '7px 10px', border: '1px solid #c7d2fe', borderRadius: '6px', fontSize: '0.8125rem' }}
                 />
               )}
@@ -580,7 +582,7 @@ export function MaritimeSettingsTab() {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                  المنفذ (Port) *
+                  {__t('maritime_freight.maritime_settings_tab.s20', "المنفذ (Port) *")}
                 </label>
                 {smtpCardLocked ? (
                   <div style={{ padding: '7px 10px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '0.8125rem', background: '#f8fafc', color: '#475569', direction: 'ltr', textAlign: 'left' }}>
@@ -598,7 +600,7 @@ export function MaritimeSettingsTab() {
 
               <div>
                 <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                  نوع التشفير
+                  {__t('maritime_freight.maritime_settings_tab.s21', "نوع التشفير")}
                 </label>
                 {smtpCardLocked ? (
                   <div style={{ padding: '7px 10px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '0.8125rem', background: '#f8fafc', color: '#475569' }}>
@@ -619,7 +621,7 @@ export function MaritimeSettingsTab() {
 
             <div>
               <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                اسم المرسل المعروض (From Name)
+                {__t('maritime_freight.maritime_settings_tab.s22', "اسم المرسل المعروض (From Name)")}
               </label>
               {smtpCardLocked ? (
                 <div style={{ padding: '7px 10px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '0.8125rem', background: '#f8fafc', color: '#475569' }}>
@@ -630,7 +632,7 @@ export function MaritimeSettingsTab() {
                   type="text"
                   value={config.fromName}
                   onChange={(e) => setConfig({ ...config, fromName: e.target.value })}
-                  placeholder="مثال: شركة النجم للشحن الدولي"
+                  placeholder={__t('maritime_freight.maritime_settings_tab.s23', "مثال: شركة النجم للشحن الدولي")}
                   style={{ width: '100%', padding: '7px 10px', border: '1px solid #c7d2fe', borderRadius: '6px', fontSize: '0.8125rem' }}
                 />
               )}
@@ -639,11 +641,11 @@ export function MaritimeSettingsTab() {
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
                 <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155' }}>
-                  عنوان البريد الإلكتروني للمرسل (From Email / Username) *
+                  {__t('maritime_freight.maritime_settings_tab.s24', "عنوان البريد الإلكتروني للمرسل (From Email / Username) *")}
                 </label>
                 {isCredLocked('smtpUser', config.smtpUser) && (
                   <button type="button" onClick={() => unlockField('smtpUser')} style={{ fontSize: '0.72rem', fontWeight: 700, color: '#170e5e', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '5px', padding: '2px 9px', cursor: 'pointer' }}>
-                    تغيير
+                    {__t('maritime_freight.maritime_settings_tab.s25', "تغيير")}
                   </button>
                 )}
               </div>
@@ -673,11 +675,11 @@ export function MaritimeSettingsTab() {
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
                 <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155' }}>
-                  كلمة المرور / رمز التطبيق (App Password)
+                  {__t('maritime_freight.maritime_settings_tab.s26', "كلمة المرور / رمز التطبيق (App Password)")}
                 </label>
                 {isCredLocked('smtpPassword', config.smtpPassword) && (
                   <button type="button" onClick={() => unlockField('smtpPassword')} style={{ fontSize: '0.72rem', fontWeight: 700, color: '#170e5e', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '5px', padding: '2px 9px', cursor: 'pointer' }}>
-                    تغيير
+                    {__t('maritime_freight.maritime_settings_tab.s27', "تغيير")}
                   </button>
                 )}
               </div>
@@ -690,13 +692,13 @@ export function MaritimeSettingsTab() {
                   type="password"
                   value={config.smtpPassword || ''}
                   onChange={(e) => setConfig({ ...config, smtpPassword: e.target.value })}
-                  placeholder="أدخل كلمة المرور أو رمز التطبيق"
+                  placeholder={__t('maritime_freight.maritime_settings_tab.s28', "أدخل كلمة المرور أو رمز التطبيق")}
                   style={{ width: '100%', padding: '7px 10px', border: '1px solid #c7d2fe', borderRadius: '6px', fontSize: '0.8125rem' }}
                 />
               )}
 
               <span style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '2px', display: 'block' }}>
-                ملاحظة: إذا كان حساب Outlook أو Gmail مفعلاً عليه التحقق بخطوتين (2FA)، يرجى استخدام "رمز تطبيق" (App Password).
+                {__t('maritime_freight.maritime_settings_tab.s29', "ملاحظة: إذا كان حساب Outlook أو Gmail مفعلاً عليه التحقق بخطوتين (2FA)، يرجى استخدام \"رمز تطبيق\" (App Password).")}
               </span>
             </div>
           </div>
@@ -708,11 +710,11 @@ export function MaritimeSettingsTab() {
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <MailIcon size={18} color="#170e5e" />
               <h4 style={{ margin: 0, fontSize: '0.94rem', fontWeight: 800, color: '#0f172a' }}>
-                خادم البريد الوارد للقراءة الآلية (IMAP Inbound)
+                {__t('maritime_freight.maritime_settings_tab.s30', "خادم البريد الوارد للقراءة الآلية (IMAP Inbound)")}
               </h4>
               {imapCardLocked && (
                 <span style={{ fontSize: '0.7rem', color: '#64748b', background: '#f1f5f9', padding: '2px 8px', borderRadius: '12px', fontWeight: 600 }}>
-                  محمي
+                  {__t('maritime_freight.maritime_settings_tab.s31', "محمي")}
                 </span>
               )}
             </div>
@@ -730,14 +732,14 @@ export function MaritimeSettingsTab() {
                 cursor: 'pointer',
               }}
             >
-              {imapCardLocked ? 'تغيير' : 'قفل الحماية'}
+              {imapCardLocked ? __t('maritime_freight.maritime_settings_tab.s32', "تغيير") : __t('maritime_freight.maritime_settings_tab.s33', "قفل الحماية")}
             </button>
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <div>
               <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                عنوان خادم الاستقبال (IMAP Host) *
+                {__t('maritime_freight.maritime_settings_tab.s34', "عنوان خادم الاستقبال (IMAP Host) *")}
               </label>
               {imapCardLocked ? (
                 <div style={{ padding: '7px 10px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '0.8125rem', background: '#f8fafc', color: '#475569', direction: 'ltr', textAlign: 'left' }}>
@@ -748,7 +750,7 @@ export function MaritimeSettingsTab() {
                   type="text"
                   value={config.imapHost}
                   onChange={(e) => setConfig({ ...config, imapHost: e.target.value })}
-                  placeholder="مثال: mail.yourcompany.com"
+                  placeholder={__t('maritime_freight.maritime_settings_tab.s35', "مثال: mail.yourcompany.com")}
                   style={{ width: '100%', padding: '7px 10px', border: '1px solid #c7d2fe', borderRadius: '6px', fontSize: '0.8125rem' }}
                 />
               )}
@@ -757,7 +759,7 @@ export function MaritimeSettingsTab() {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                  المنفذ (Port) *
+                  {__t('maritime_freight.maritime_settings_tab.s36', "المنفذ (Port) *")}
                 </label>
                 {imapCardLocked ? (
                   <div style={{ padding: '7px 10px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '0.8125rem', background: '#f8fafc', color: '#475569', direction: 'ltr', textAlign: 'left' }}>
@@ -775,19 +777,19 @@ export function MaritimeSettingsTab() {
 
               <div>
                 <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                  تشفير الاتصال
+                  {__t('maritime_freight.maritime_settings_tab.s37', "تشفير الاتصال")}
                 </label>
                 {imapCardLocked ? (
                   <div style={{ padding: '7px 10px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '0.8125rem', background: '#f8fafc', color: '#475569' }}>
-                    {config.imapSecure ? 'SSL / TLS (الافتراضي المنفذ 993)' : 'غير مشفر (منفذ 143)'}
+                    {config.imapSecure ? __t('maritime_freight.maritime_settings_tab.s38', "SSL / TLS (الافتراضي المنفذ 993)") : __t('maritime_freight.maritime_settings_tab.s39', "غير مشفر (منفذ 143)")}
                   </div>
                 ) : (
                   <CustomSelect
                     value={config.imapSecure ? 'ssl' : 'plain'}
                     onChange={(val) => setConfig({ ...config, imapSecure: val === 'ssl' })}
                     options={[
-                      { value: 'ssl', label: 'SSL / TLS (الافتراضي المنفذ 993)' },
-                      { value: 'plain', label: 'غير مشفر (منفذ 143)' },
+                      { value: 'ssl', label: __t('maritime_freight.maritime_settings_tab.s40', "SSL / TLS (الافتراضي المنفذ 993)") },
+                      { value: 'plain', label: __t('maritime_freight.maritime_settings_tab.s41', "غير مشفر (منفذ 143)") },
                     ]}
                   />
                 )}
@@ -797,11 +799,11 @@ export function MaritimeSettingsTab() {
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
                 <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155' }}>
-                  اسم المستخدم للبريد الوارد (IMAP User) *
+                  {__t('maritime_freight.maritime_settings_tab.s42', "اسم المستخدم للبريد الوارد (IMAP User) *")}
                 </label>
                 {isCredLocked('imapUser', config.imapUser) && (
                   <button type="button" onClick={() => unlockField('imapUser')} style={{ fontSize: '0.72rem', fontWeight: 700, color: '#170e5e', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '5px', padding: '2px 9px', cursor: 'pointer' }}>
-                    تغيير
+                    {__t('maritime_freight.maritime_settings_tab.s43', "تغيير")}
                   </button>
                 )}
               </div>
@@ -823,11 +825,11 @@ export function MaritimeSettingsTab() {
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
                 <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155' }}>
-                  كلمة المرور للبريد الوارد (IMAP Password)
+                  {__t('maritime_freight.maritime_settings_tab.s44', "كلمة المرور للبريد الوارد (IMAP Password)")}
                 </label>
                 {isCredLocked('imapPassword', config.imapPassword) && (
                   <button type="button" onClick={() => unlockField('imapPassword')} style={{ fontSize: '0.72rem', fontWeight: 700, color: '#170e5e', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '5px', padding: '2px 9px', cursor: 'pointer' }}>
-                    تغيير
+                    {__t('maritime_freight.maritime_settings_tab.s45', "تغيير")}
                   </button>
                 )}
               </div>
@@ -840,7 +842,7 @@ export function MaritimeSettingsTab() {
                   type="password"
                   value={config.imapPassword || ''}
                   onChange={(e) => setConfig({ ...config, imapPassword: e.target.value })}
-                  placeholder="نفس كلمة مرور البريد أو رمز التطبيق"
+                  placeholder={__t('maritime_freight.maritime_settings_tab.s46', "نفس كلمة مرور البريد أو رمز التطبيق")}
                   style={{ width: '100%', padding: '7px 10px', border: '1px solid #c7d2fe', borderRadius: '6px', fontSize: '0.8125rem' }}
                 />
               )}
@@ -856,11 +858,11 @@ export function MaritimeSettingsTab() {
                   style={{ width: '16px', height: '16px', cursor: imapCardLocked ? 'not-allowed' : 'pointer' }}
                 />
                 <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: '#1e293b' }}>
-                  تفعيل القراءة الذاتية لرسائل عروض الأسعار الواردة من الناقلين والخطوط
+                  {__t('maritime_freight.maritime_settings_tab.s47', "تفعيل القراءة الذاتية لرسائل عروض الأسعار الواردة من الناقلين والخطوط")}
                 </span>
               </label>
               <p style={{ margin: '4px 0 0 24px', fontSize: '0.72rem', color: '#64748b' }}>
-                يقوم النظام بالبحث التلقائي عن الرسائل التي تحتوي على أكواد طلبات التسعير (مثل RFQ-) واستخراج الأسعار وإدراجها فورياً في مصفوفة المقارنة
+                {__t('maritime_freight.maritime_settings_tab.s48', "يقوم النظام بالبحث التلقائي عن الرسائل التي تحتوي على أكواد طلبات التسعير (مثل RFQ-) واستخراج الأسعار وإدراجها فورياً في مصفوفة المقارنة")}
               </p>
             </div>
           </div>
@@ -872,10 +874,10 @@ export function MaritimeSettingsTab() {
         <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '12px', borderBottom: '1px solid #f1f5f9', paddingBottom: '12px', marginBottom: '14px' }}>
           <div>
             <h4 style={{ margin: 0, fontSize: '0.94rem', fontWeight: 800, color: '#0f172a' }}>
-              مركز الفحص والاختبار والتشغيل المباشر (Diagnostic & Action Center)
+              {__t('maritime_freight.maritime_settings_tab.s49', "مركز الفحص والاختبار والتشغيل المباشر (Diagnostic & Action Center)")}
             </h4>
             <p style={{ margin: '3px 0 0 0', fontSize: '0.75rem', color: '#64748b' }}>
-              تأكيد نجاح الاتصال بكلا الخادمين (SMTP & IMAP) ومزامنة صندوق الوارد الآن
+              {__t('maritime_freight.maritime_settings_tab.s50', "تأكيد نجاح الاتصال بكلا الخادمين (SMTP & IMAP) ومزامنة صندوق الوارد الآن")}
             </p>
           </div>
 
@@ -899,7 +901,7 @@ export function MaritimeSettingsTab() {
               }}
             >
               <RefreshCwIcon size={14} />
-              <span>{testing ? 'جاري فحص الاتصال...' : 'فحص واختبار الاتصال'}</span>
+              <span>{testing ? __t('maritime_freight.maritime_settings_tab.s51', "جاري فحص الاتصال...") : __t('maritime_freight.maritime_settings_tab.s52', "فحص واختبار الاتصال")}</span>
             </button>
 
             <button
@@ -920,7 +922,7 @@ export function MaritimeSettingsTab() {
               }}
             >
               <SendIcon size={14} />
-              <span>إرسال بريد تجريبي</span>
+              <span>{__t('maritime_freight.maritime_settings_tab.s53', "إرسال بريد تجريبي")}</span>
             </button>
 
             <button
@@ -943,7 +945,7 @@ export function MaritimeSettingsTab() {
               }}
             >
               <RefreshCwIcon size={14} />
-              <span>{syncing ? 'جاري المزامنة...' : 'مزامنة البريد واستيراد العروض الآن'}</span>
+              <span>{syncing ? __t('maritime_freight.maritime_settings_tab.s54', "جاري المزامنة...") : __t('maritime_freight.maritime_settings_tab.s55', "مزامنة البريد واستيراد العروض الآن")}</span>
             </button>
           </div>
         </div>
@@ -952,7 +954,7 @@ export function MaritimeSettingsTab() {
         {showTestEmailInput && (
           <div style={{ background: '#f8fafc', padding: '12px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', marginBottom: '14px', display: 'flex', flexWrap: 'wrap', gap: '10px', alignItems: 'center' }}>
             <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155' }}>
-              البريد الإلكتروني المستلم:
+              {__t('maritime_freight.maritime_settings_tab.s56', "البريد الإلكتروني المستلم:")}
             </span>
             <input
               type="email"
@@ -976,7 +978,7 @@ export function MaritimeSettingsTab() {
                 cursor: 'pointer',
               }}
             >
-              {sendingTest ? 'جاري الإرسال...' : 'إرسال الرسالة الآن'}
+              {sendingTest ? __t('maritime_freight.maritime_settings_tab.s57', "جاري الإرسال...") : __t('maritime_freight.maritime_settings_tab.s58', "إرسال الرسالة الآن")}
             </button>
           </div>
         )}
@@ -994,7 +996,7 @@ export function MaritimeSettingsTab() {
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700, fontSize: '0.8125rem', color: testResult.smtpSuccess ? '#166534' : '#991b1b' }}>
                 {testResult.smtpSuccess ? <CheckCircleIcon size={16} /> : <AlertTriangleIcon size={16} />}
-                <span>خادم الإرسال (SMTP): {testResult.smtpSuccess ? 'متصل بنجاح ومصادق' : 'فشل الاتصال'}</span>
+                <span>{__t('maritime_freight.maritime_settings_tab.s59', "خادم الإرسال (SMTP):")} {testResult.smtpSuccess ? __t('maritime_freight.maritime_settings_tab.s60', "متصل بنجاح ومصادق") : __t('maritime_freight.maritime_settings_tab.s61', "فشل الاتصال")}</span>
               </div>
               <div style={{ fontSize: '0.74rem', color: '#475569', marginTop: '4px' }}>
                 {testResult.smtpMessage}
@@ -1011,7 +1013,7 @@ export function MaritimeSettingsTab() {
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700, fontSize: '0.8125rem', color: testResult.imapSuccess ? '#166534' : '#991b1b' }}>
                 {testResult.imapSuccess ? <CheckCircleIcon size={16} /> : <AlertTriangleIcon size={16} />}
-                <span>خادم الاستقبال (IMAP): {testResult.imapSuccess ? 'متصل بنجاح وجاهز للقراءة' : 'فشل الاتصال'}</span>
+                <span>{__t('maritime_freight.maritime_settings_tab.s62', "خادم الاستقبال (IMAP):")} {testResult.imapSuccess ? __t('maritime_freight.maritime_settings_tab.s63', "متصل بنجاح وجاهز للقراءة") : __t('maritime_freight.maritime_settings_tab.s64', "فشل الاتصال")}</span>
               </div>
               <div style={{ fontSize: '0.74rem', color: '#475569', marginTop: '4px' }}>
                 {testResult.imapMessage}
@@ -1024,13 +1026,13 @@ export function MaritimeSettingsTab() {
         {syncResult && (
           <div style={{ padding: '12px 14px', borderRadius: '8px', background: '#f8fafc', border: '1px solid #e2e8f0', marginBottom: '14px' }}>
             <div style={{ fontWeight: 700, fontSize: '0.8125rem', color: '#1e293b' }}>
-              نتيجة فحص البريد الوارد: {syncResult.message}
+              {__t('maritime_freight.maritime_settings_tab.s65', "نتيجة فحص البريد الوارد:")} {syncResult.message}
             </div>
             {syncResult.details && syncResult.details.length > 0 ? (
               <ul style={{ margin: '6px 0 0 0', paddingInlineStart: '20px', fontSize: '0.75rem', color: '#475569' }}>
                 {syncResult.details.map((item, idx) => (
                   <li key={idx}>
-                    عرض مستلم للطلب #{item.rfqNumber}: الخط الملاحي {item.carrier} بسعر ${item.price} ({item.freeDays} أيام سماح)
+                    {__t('maritime_freight.maritime_settings_tab.s66', "عرض مستلم للطلب #")}{item.rfqNumber}{__t('maritime_freight.maritime_settings_tab.s67', ": الخط الملاحي")} {item.carrier} {__t('maritime_freight.maritime_settings_tab.s68', "بسعر $")}{item.price} ({item.freeDays} {__t('maritime_freight.maritime_settings_tab.s69', "أيام سماح)")}
                   </li>
                 ))}
               </ul>
@@ -1041,22 +1043,22 @@ export function MaritimeSettingsTab() {
         {/* معلومات آخر عملية مزامنة مسجلة */}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', fontSize: '0.75rem', color: '#64748b' }}>
           <div>
-            <strong>تاريخ آخر مزامنة:</strong>{' '}
-            {config.lastSyncAt ? new Date(config.lastSyncAt).toLocaleString('ar-EG') : 'لم تتم المزامنة بعد'}
+            <strong>{__t('maritime_freight.maritime_settings_tab.s70', "تاريخ آخر مزامنة:")}</strong>{' '}
+            {config.lastSyncAt ? new Date(config.lastSyncAt).toLocaleString('ar-EG') : __t('maritime_freight.maritime_settings_tab.s71', "لم تتم المزامنة بعد")}
           </div>
           <div>
-            <strong>حالة آخر فحص:</strong>{' '}
+            <strong>{__t('maritime_freight.maritime_settings_tab.s72', "حالة آخر فحص:")}</strong>{' '}
             {config.lastSyncStatus === 'success' ? (
-              <span style={{ color: '#16a34a', fontWeight: 700 }}>ناجحة</span>
+              <span style={{ color: '#16a34a', fontWeight: 700 }}>{__t('maritime_freight.maritime_settings_tab.s73', "ناجحة")}</span>
             ) : config.lastSyncStatus === 'failed' ? (
-              <span style={{ color: '#dc2626', fontWeight: 700 }}>فشلت</span>
+              <span style={{ color: '#dc2626', fontWeight: 700 }}>{__t('maritime_freight.maritime_settings_tab.s74', "فشلت")}</span>
             ) : (
-              'لا يوجد'
+              __t('maritime_freight.maritime_settings_tab.s75', "لا يوجد")
             )}
           </div>
           {config.lastSyncDetails && (
             <div>
-              <strong>تفاصيل:</strong> {config.lastSyncDetails}
+              <strong>{__t('maritime_freight.maritime_settings_tab.s76', "تفاصيل:")}</strong> {config.lastSyncDetails}
             </div>
           )}
         </div>
@@ -1069,10 +1071,10 @@ export function MaritimeSettingsTab() {
             <MailIcon size={18} color="#170e5e" />
             <div>
               <h4 style={{ margin: 0, fontSize: '0.94rem', fontWeight: 800, color: '#0f172a' }}>
-                نص الرسالة والتوقيع المعتمد لطلبات الأسعار (RFQ Email Template & Signature)
+                {__t('maritime_freight.maritime_settings_tab.s77', "نص الرسالة والتوقيع المعتمد لطلبات الأسعار (RFQ Email Template & Signature)")}
               </h4>
               <p style={{ margin: '3px 0 0 0', fontSize: '0.75rem', color: '#64748b' }}>
-                الرسالة الفعلية باللغة الإنجليزية التي يستلمها الناقل أو الخط الملاحي في بريده مع المعاينة الحية المباشرة
+                {__t('maritime_freight.maritime_settings_tab.s78', "الرسالة الفعلية باللغة الإنجليزية التي يستلمها الناقل أو الخط الملاحي في بريده مع المعاينة الحية المباشرة")}
               </p>
             </div>
           </div>
@@ -1091,7 +1093,7 @@ export function MaritimeSettingsTab() {
               cursor: 'pointer',
             }}
           >
-            استعادة النص النموذجي المعتمد
+            {__t('maritime_freight.maritime_settings_tab.s79', "استعادة النص النموذجي المعتمد")}
           </button>
         </div>
 
@@ -1100,26 +1102,26 @@ export function MaritimeSettingsTab() {
           <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 14px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '6px' }}>
               <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#170e5e' }}>
-                إدراج بيانات الشحنة بنقرة واحدة في الحقل النشط ({activeField === 'subject' ? 'الموضوع' : activeField === 'intro' ? 'المقدمة' : 'التوقيع'}):
+                {__t('maritime_freight.maritime_settings_tab.s80', "إدراج بيانات الشحنة بنقرة واحدة في الحقل النشط (")}{activeField === 'subject' ? __t('maritime_freight.maritime_settings_tab.s81', "الموضوع") : activeField === 'intro' ? __t('maritime_freight.maritime_settings_tab.s82', "المقدمة") : __t('maritime_freight.maritime_settings_tab.s83', "التوقيع")}):
               </span>
               <span style={{ fontSize: '0.7rem', color: '#64748b' }}>
-                يقوم النظام بالتعويض عن هذه العناصر تلقائياً ببيانات كل شحنة فعلية
+                {__t('maritime_freight.maritime_settings_tab.s84', "يقوم النظام بالتعويض عن هذه العناصر تلقائياً ببيانات كل شحنة فعلية")}
               </span>
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
               {[
-                { tag: '{{rfq_number}}', label: 'رقم طلب التسعير' },
-                { tag: '{{carrier_name}}', label: 'اسم الناقل / الخط' },
-                { tag: '{{pol_name}}', label: 'ميناء / مطار الشحن' },
-                { tag: '{{pod_name}}', label: 'ميناء / مطار الوصول' },
-                { tag: '{{container_count}}', label: 'عدد الحاويات / الطرود' },
-                { tag: '{{container_type}}', label: 'نوع الحاوية / الشحنة' },
-                { tag: '{{commodity}}', label: 'نوع البضاعة' },
-                { tag: '{{target_free_days}}', label: 'فترة السماح' },
-                { tag: '{{incoterm}}', label: 'شرط الشحن (Incoterm)' },
-                { tag: '{{company_name}}', label: 'اسم شركتك' },
-                { tag: '{{company_email}}', label: 'بريد شركتك' },
-                { tag: '{{company_phone}}', label: 'هاتف شركتك' },
+                { tag: '{{rfq_number}}', label: __t('maritime_freight.maritime_settings_tab.s85', "رقم طلب التسعير") },
+                { tag: '{{carrier_name}}', label: __t('maritime_freight.maritime_settings_tab.s86', "اسم الناقل / الخط") },
+                { tag: '{{pol_name}}', label: __t('maritime_freight.maritime_settings_tab.s87', "ميناء / مطار الشحن") },
+                { tag: '{{pod_name}}', label: __t('maritime_freight.maritime_settings_tab.s88', "ميناء / مطار الوصول") },
+                { tag: '{{container_count}}', label: __t('maritime_freight.maritime_settings_tab.s89', "عدد الحاويات / الطرود") },
+                { tag: '{{container_type}}', label: __t('maritime_freight.maritime_settings_tab.s90', "نوع الحاوية / الشحنة") },
+                { tag: '{{commodity}}', label: __t('maritime_freight.maritime_settings_tab.s91', "نوع البضاعة") },
+                { tag: '{{target_free_days}}', label: __t('maritime_freight.maritime_settings_tab.s92', "فترة السماح") },
+                { tag: '{{incoterm}}', label: __t('maritime_freight.maritime_settings_tab.s93', "شرط الشحن (Incoterm)") },
+                { tag: '{{company_name}}', label: __t('maritime_freight.maritime_settings_tab.s94', "اسم شركتك") },
+                { tag: '{{company_email}}', label: __t('maritime_freight.maritime_settings_tab.s95', "بريد شركتك") },
+                { tag: '{{company_phone}}', label: __t('maritime_freight.maritime_settings_tab.s96', "هاتف شركتك") },
               ].map((t) => (
                 <button
                   key={t.tag}
@@ -1151,10 +1153,10 @@ export function MaritimeSettingsTab() {
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
               <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155' }}>
-                عنوان وموضوع الرسالة (Email Subject)
+                {__t('maritime_freight.maritime_settings_tab.s97', "عنوان وموضوع الرسالة (Email Subject)")}
               </label>
               <span style={{ fontSize: '0.7rem', color: '#166534', fontWeight: 600 }}>
-                تأكد دائماً من بقاء [{'{'}{'{'}rfq_number{'}'}{'}'}] ليتعرف النظام على الردود الواردة آلياً
+                {__t('maritime_freight.maritime_settings_tab.s98', "تأكد دائماً من بقاء [")}{'{'}{'{'}rfq_number{'}'}{'}'}{__t('maritime_freight.maritime_settings_tab.s99', "] ليتعرف النظام على الردود الواردة آلياً")}
               </span>
             </div>
             <input
@@ -1184,7 +1186,7 @@ export function MaritimeSettingsTab() {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
             <div>
               <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                الافتتاحية والطلب الموجه للناقل (Intro & Opening Greeting)
+                {__t('maritime_freight.maritime_settings_tab.s100', "الافتتاحية والطلب الموجه للناقل (Intro & Opening Greeting)")}
               </label>
               <textarea
                 rows={4}
@@ -1209,13 +1211,13 @@ export function MaritimeSettingsTab() {
                 }}
               />
               <span style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '3px', display: 'block' }}>
-                النص الترحيبي أعلى جدول بيانات الشحنة مباشرة.
+                {__t('maritime_freight.maritime_settings_tab.s101', "النص الترحيبي أعلى جدول بيانات الشحنة مباشرة.")}
               </span>
             </div>
 
             <div>
               <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                التوقيع المذيل للرسالة (Email Signature)
+                {__t('maritime_freight.maritime_settings_tab.s102', "التوقيع المذيل للرسالة (Email Signature)")}
               </label>
               <textarea
                 rows={4}
@@ -1240,7 +1242,7 @@ export function MaritimeSettingsTab() {
                 }}
               />
               <span style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '3px', display: 'block' }}>
-                بيانات التواصل الرسمية أسفل الرسالة ورابط تقديم العرض.
+                {__t('maritime_freight.maritime_settings_tab.s103', "بيانات التواصل الرسمية أسفل الرسالة ورابط تقديم العرض.")}
               </span>
             </div>
           </div>
@@ -1253,11 +1255,11 @@ export function MaritimeSettingsTab() {
                 <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#cbd5e1' }} />
                 <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#cbd5e1' }} />
                 <span style={{ fontSize: '0.76rem', fontWeight: 700, color: '#334155', marginInlineStart: '6px' }}>
-                  معاينة حية للإيميل الفعلي كما يستلمه الناقل في بريده
+                  {__t('maritime_freight.maritime_settings_tab.s104', "معاينة حية للإيميل الفعلي كما يستلمه الناقل في بريده")}
                 </span>
               </div>
               <span style={{ fontSize: '0.7rem', color: '#15803d', fontWeight: 700, background: '#dcfce7', padding: '2px 8px', borderRadius: '10px' }}>
-                يتحدث في الوقت الفعلي مع كتابتك
+                {__t('maritime_freight.maritime_settings_tab.s105', "يتحدث في الوقت الفعلي مع كتابتك")}
               </span>
             </div>
 
@@ -1292,10 +1294,10 @@ export function MaritimeSettingsTab() {
               {/* زر تقديم السعر التفاعلي */}
               <div style={{ margin: '14px 0' }}>
                 <span style={{ display: 'inline-block', background: '#170e5e', color: '#ffffff', padding: '8px 18px', borderRadius: '6px', fontWeight: 'bold', fontSize: '12px' }}>
-                  Submit Your Rate Online / تقديم عرض السعر إلكترونياً
+                  {__t('maritime_freight.maritime_settings_tab.s106', "Submit Your Rate Online / تقديم عرض السعر إلكترونياً")}
                 </span>
                 <span style={{ display: 'block', fontSize: '11px', color: '#64748b', marginTop: '4px' }}>
-                  * رابط إلكتروني مشفر وآمن مخصص للتوكيل لتقديم السعر ومصاريف DTHC والتفريغ مباشرة بنقرة واحدة
+                  {__t('maritime_freight.maritime_settings_tab.s107', "* رابط إلكتروني مشفر وآمن مخصص للتوكيل لتقديم السعر ومصاريف DTHC والتفريغ مباشرة بنقرة واحدة")}
                 </span>
               </div>
 

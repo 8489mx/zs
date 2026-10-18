@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React, { useState, useEffect } from 'react';
 import { StandardDialog } from '@/shared/components/StandardDialog';
 import { Button } from '@/shared/ui/button';
@@ -16,6 +17,7 @@ export const GoodsReceiptsListModal: React.FC<GoodsReceiptsListModalProps> = ({
   onClose,
   supplierId,
 }) => {
+  const { t } = useTranslation();
   const [receipts, setReceipts] = useState<GoodsReceiptRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -76,8 +78,8 @@ export const GoodsReceiptsListModal: React.FC<GoodsReceiptsListModalProps> = ({
     <StandardDialog
       open={open}
       onClose={onClose}
-      title="سجل أذون الاستلام المخزني (Goods Receipt Notes - GRN)"
-      subtitle="متابعة استلام البضائع وفحص الجودة وقيود وسيط التوريد غير المفوتر (GRNI)"
+      title={t('purchases.goods_receipts_list_modal.s0', "سجل أذون الاستلام المخزني (Goods Receipt Notes - GRN)")}
+      subtitle={t('purchases.goods_receipts_list_modal.s1', "متابعة استلام البضائع وفحص الجودة وقيود وسيط التوريد غير المفوتر (GRNI)")}
       maxWidth="min(1140px, 96vw)"
     >
       <div dir="rtl" style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%' }}>
@@ -85,7 +87,7 @@ export const GoodsReceiptsListModal: React.FC<GoodsReceiptsListModalProps> = ({
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
           <input
             type="text"
-            placeholder="ابحث برقم الإذن أو المورد أو إذن تسليم المورد..."
+            placeholder={t('purchases.goods_receipts_list_modal.s2', "ابحث برقم الإذن أو المورد أو إذن تسليم المورد...")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && fetchReceipts()}
@@ -99,7 +101,7 @@ export const GoodsReceiptsListModal: React.FC<GoodsReceiptsListModalProps> = ({
             }}
           />
           <Button variant="secondary" onClick={fetchReceipts}>
-            بحث
+            {t('purchases.goods_receipts_list_modal.s3', "بحث")}
           </Button>
         </div>
 
@@ -124,9 +126,9 @@ export const GoodsReceiptsListModal: React.FC<GoodsReceiptsListModalProps> = ({
             className="thin-scrollbar"
           >
             {isLoading ? (
-              <div style={{ textAlign: 'center', padding: '40px', color: '#64748b' }}>جاري التحميل...</div>
+              <div style={{ textAlign: 'center', padding: '40px', color: '#64748b' }}>{t('purchases.goods_receipts_list_modal.s4', "جاري التحميل...")}</div>
             ) : receipts.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '40px', color: '#64748b' }}>لا توجد أذون استلام مسجلة</div>
+              <div style={{ textAlign: 'center', padding: '40px', color: '#64748b' }}>{t('purchases.goods_receipts_list_modal.s5', "لا توجد أذون استلام مسجلة")}</div>
             ) : (
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', textAlign: 'right' }}>
                 <thead
@@ -140,11 +142,11 @@ export const GoodsReceiptsListModal: React.FC<GoodsReceiptsListModalProps> = ({
                   }}
                 >
                   <tr>
-                    <th style={{ padding: '8px 10px' }}>رقم الإذن</th>
-                    <th style={{ padding: '8px 10px' }}>المورد</th>
-                    <th style={{ padding: '8px 10px' }}>أمر الشراء</th>
-                    <th style={{ padding: '8px 10px', textAlign: 'center' }}>الحالة</th>
-                    <th style={{ padding: '8px 10px', textAlign: 'center' }}>إجراءات</th>
+                    <th style={{ padding: '8px 10px' }}>{t('purchases.goods_receipts_list_modal.s6', "رقم الإذن")}</th>
+                    <th style={{ padding: '8px 10px' }}>{t('purchases.goods_receipts_list_modal.s7', "المورد")}</th>
+                    <th style={{ padding: '8px 10px' }}>{t('purchases.goods_receipts_list_modal.s8', "أمر الشراء")}</th>
+                    <th style={{ padding: '8px 10px', textAlign: 'center' }}>{t('purchases.goods_receipts_list_modal.s9', "الحالة")}</th>
+                    <th style={{ padding: '8px 10px', textAlign: 'center' }}>{t('purchases.goods_receipts_list_modal.s10', "إجراءات")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -175,7 +177,7 @@ export const GoodsReceiptsListModal: React.FC<GoodsReceiptsListModalProps> = ({
                             color: r.status === 'posted' ? '#166534' : '#92400e',
                           }}
                         >
-                          {r.status === 'posted' ? 'مرحل' : 'مسودة'}
+                          {r.status === 'posted' ? t('purchases.goods_receipts_list_modal.s11', "مرحل") : t('purchases.goods_receipts_list_modal.s12', "مسودة")}
                         </span>
                       </td>
                       <td style={{ padding: '8px 10px', textAlign: 'center' }}>
@@ -188,7 +190,7 @@ export const GoodsReceiptsListModal: React.FC<GoodsReceiptsListModalProps> = ({
                               handleViewDetails(r.id);
                             }}
                           >
-                            عرض
+                            {t('purchases.goods_receipts_list_modal.s13', "عرض")}
                           </Button>
                           {r.status === 'draft' && (
                             <Button
@@ -200,7 +202,7 @@ export const GoodsReceiptsListModal: React.FC<GoodsReceiptsListModalProps> = ({
                                 handlePost(r.id);
                               }}
                             >
-                              {isPosting === r.id ? '...' : 'ترحيل'}
+                              {isPosting === r.id ? '...' : t('purchases.goods_receipts_list_modal.s14', "ترحيل")}
                             </Button>
                           )}
                         </div>
@@ -229,7 +231,7 @@ export const GoodsReceiptsListModal: React.FC<GoodsReceiptsListModalProps> = ({
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <h4 style={{ margin: 0, fontSize: '13px', fontWeight: 800, color: '#170e5e' }}>
-                  تفاصيل الإذن {selectedReceipt.docNo}
+                  {t('purchases.goods_receipts_list_modal.s15', "تفاصيل الإذن")} {selectedReceipt.docNo}
                 </h4>
                 <span
                   style={{
@@ -241,15 +243,15 @@ export const GoodsReceiptsListModal: React.FC<GoodsReceiptsListModalProps> = ({
                     color: selectedReceipt.status === 'posted' ? '#166534' : '#92400e',
                   }}
                 >
-                  {selectedReceipt.status === 'posted' ? 'مرحل ومقيد محاسبياً' : 'مسودة غير مرحلة'}
+                  {selectedReceipt.status === 'posted' ? t('purchases.goods_receipts_list_modal.s16', "مرحل ومقيد محاسبياً") : t('purchases.goods_receipts_list_modal.s17', "مسودة غير مرحلة")}
                 </span>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '11.5px' }}>
-                <div><strong>المورد:</strong> {selectedReceipt.supplierName}</div>
-                <div><strong>تاريخ الاستلام:</strong> {formatDate(selectedReceipt.receivedAt)}</div>
-                <div><strong>إذن تسليم المورد:</strong> {selectedReceipt.supplierDeliveryNoteRef || '—'}</div>
-                <div><strong>رقم قيد GRNI:</strong> {selectedReceipt.grniJournalEntryId ? `#${selectedReceipt.grniJournalEntryId}` : 'لم يرحل بعد'}</div>
+                <div><strong>{t('purchases.goods_receipts_list_modal.s18', "المورد:")}</strong> {selectedReceipt.supplierName}</div>
+                <div><strong>{t('purchases.goods_receipts_list_modal.s19', "تاريخ الاستلام:")}</strong> {formatDate(selectedReceipt.receivedAt)}</div>
+                <div><strong>{t('purchases.goods_receipts_list_modal.s20', "إذن تسليم المورد:")}</strong> {selectedReceipt.supplierDeliveryNoteRef || '—'}</div>
+                <div><strong>{t('purchases.goods_receipts_list_modal.s21', "رقم قيد GRNI:")}</strong> {selectedReceipt.grniJournalEntryId ? `#${selectedReceipt.grniJournalEntryId}` : t('purchases.goods_receipts_list_modal.s22', "لم يرحل بعد")}</div>
               </div>
 
               {/* Lines in Details */}
@@ -257,11 +259,11 @@ export const GoodsReceiptsListModal: React.FC<GoodsReceiptsListModalProps> = ({
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11.5px', textAlign: 'right' }}>
                   <thead style={{ backgroundColor: '#f1f5f9', color: '#475569' }}>
                     <tr>
-                      <th style={{ padding: '6px 8px' }}>الصنف</th>
-                      <th style={{ padding: '6px 8px', textAlign: 'center' }}>المستلم</th>
-                      <th style={{ padding: '6px 8px', textAlign: 'center', color: '#166534' }}>المقبول</th>
-                      <th style={{ padding: '6px 8px', textAlign: 'center', color: '#b91c1c' }}>المرفوض</th>
-                      <th style={{ padding: '6px 8px' }}>التشغيلة</th>
+                      <th style={{ padding: '6px 8px' }}>{t('purchases.goods_receipts_list_modal.s23', "الصنف")}</th>
+                      <th style={{ padding: '6px 8px', textAlign: 'center' }}>{t('purchases.goods_receipts_list_modal.s24', "المستلم")}</th>
+                      <th style={{ padding: '6px 8px', textAlign: 'center', color: '#166534' }}>{t('purchases.goods_receipts_list_modal.s25', "المقبول")}</th>
+                      <th style={{ padding: '6px 8px', textAlign: 'center', color: '#b91c1c' }}>{t('purchases.goods_receipts_list_modal.s26', "المرفوض")}</th>
+                      <th style={{ padding: '6px 8px' }}>{t('purchases.goods_receipts_list_modal.s27', "التشغيلة")}</th>
                     </tr>
                   </thead>
                   <tbody>

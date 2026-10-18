@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 import { CalendarIcon, CheckIcon } from '@/shared/components/icons/AppIcons';
 
@@ -55,6 +56,7 @@ export const CustomerVisitDaysPicker: React.FC<CustomerVisitDaysPickerProps> = (
   onChange,
   disabled = false,
 }) => {
+  const { t } = useTranslation();
   // Resolve selected keys from either array value or singleValue fallback
   const rawList = Array.isArray(value) && value.length > 0
     ? value
@@ -104,7 +106,7 @@ export const CustomerVisitDaysPicker: React.FC<CustomerVisitDaysPickerProps> = (
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#64748b' }}>
           <CalendarIcon size={13} color="#170e5e" />
-          <span>حدد الأيام التي يزور فيها المندوب هذا المحل:</span>
+          <span>{t('customers.customer_visit_days_picker.s0', "حدد الأيام التي يزور فيها المندوب هذا المحل:")}</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <button
@@ -122,7 +124,7 @@ export const CustomerVisitDaysPicker: React.FC<CustomerVisitDaysPickerProps> = (
               textDecoration: 'underline',
             }}
           >
-            كل الأيام
+            {t('customers.customer_visit_days_picker.s1', "كل الأيام")}
           </button>
           <span style={{ color: '#cbd5e1' }}>•</span>
           <button
@@ -139,7 +141,7 @@ export const CustomerVisitDaysPicker: React.FC<CustomerVisitDaysPickerProps> = (
               cursor: disabled ? 'not-allowed' : 'pointer',
             }}
           >
-            إلغاء التحديد
+            {t('customers.customer_visit_days_picker.s2', "إلغاء التحديد")}
           </button>
         </div>
       </div>
@@ -215,20 +217,20 @@ export const CustomerVisitDaysPicker: React.FC<CustomerVisitDaysPickerProps> = (
         }}
       >
         {selectedCount === 0 ? (
-          <span>متاح يومياً (خط سير مفتوح - يظهر للمندوب في كافة الأيام)</span>
+          <span>{t('customers.customer_visit_days_picker.s3', "متاح يومياً (خط سير مفتوح - يظهر للمندوب في كافة الأيام)")}</span>
         ) : isAllSelected ? (
-          <span>مجدول يومياً طوال أيام الأسبوع (السبت إلى الجمعة)</span>
+          <span>{t('customers.customer_visit_days_picker.s4', "مجدول يومياً طوال أيام الأسبوع (السبت إلى الجمعة)")}</span>
         ) : selectedCount === 1 ? (
           <span>
-            <strong>مجدول حصرياً:</strong> يظهر للمندوب فقط في يوم (
+            <strong>{t('customers.customer_visit_days_picker.s5', "مجدول حصرياً:")}</strong> {t('customers.customer_visit_days_picker.s6', "يظهر للمندوب فقط في يوم (")}
             {ALL_WEEK_DAYS.filter((d) => selectedKeys.has(normalizeDayKey(d)))[0]}
-            ) ولن يظهر في باقي الأيام.
+            {t('customers.customer_visit_days_picker.s7', ") ولن يظهر في باقي الأيام.")}
           </span>
         ) : (
           <span>
-            <strong>مجدول في {selectedCount} أيام:</strong> (
-            {ALL_WEEK_DAYS.filter((d) => selectedKeys.has(normalizeDayKey(d))).join(' ، ')}
-            ) ولن يظهر في الأيام غير المحددة.
+            <strong>{t('customers.customer_visit_days_picker.s8', "مجدول في")} {selectedCount} {t('customers.customer_visit_days_picker.s9', "أيام:")}</strong> (
+            {ALL_WEEK_DAYS.filter((d) => selectedKeys.has(normalizeDayKey(d))).join(t('customers.customer_visit_days_picker.s10', " ، "))}
+            {t('customers.customer_visit_days_picker.s11', ") ولن يظهر في الأيام غير المحددة.")}
           </span>
         )}
       </div>

@@ -20,6 +20,7 @@ export function BarcodeScanDialog({
   onScan: (barcode: string) => void;
   onOpenQuickCreate: (barcode: string) => void;
 }) {
+  const { t: __t } = useTranslation();
   const { t } = useTranslation();
   const [barcode, setBarcode] = useState(query);
   const [showCamera, setShowCamera] = useState(false);
@@ -72,7 +73,7 @@ export function BarcodeScanDialog({
                     <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
                     <circle cx="12" cy="13" r="4"></circle>
                   </svg>
-                  <span>كاميرا</span>
+                  <span>{__t('purchases.new_purchase_order.barcode_scan_dialog.s0', "كاميرا")}</span>
                 </Button>
               </div>
             </Field>
@@ -98,7 +99,7 @@ export function BarcodeScanDialog({
           setShowCamera(false);
           onScan(scannedCode);
         }}
-        title="مسح باركود الصنف بكاميرا الهاتف"
+        title={__t('purchases.new_purchase_order.barcode_scan_dialog.s1', "مسح باركود الصنف بكاميرا الهاتف")}
       />
     </>
   );

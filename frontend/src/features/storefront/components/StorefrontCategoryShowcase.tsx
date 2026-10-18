@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useRef, useEffect } from 'react';
 import { StorefrontCategory } from '../types/storefront.types';
 import { getAutoProductPhoto, generatePremiumProductSvg } from '../lib/storefront-photo-matcher';
@@ -36,6 +37,7 @@ export function StorefrontCategoryShowcase({
   onOpenCategoriesModal,
   categoryCounts,
 }: StorefrontCategoryShowcaseProps) {
+  const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement | null>(null);
   const selectedItemRef = useRef<HTMLDivElement | null>(null);
 
@@ -155,7 +157,7 @@ export function StorefrontCategoryShowcase({
               textAlign: 'center',
             }}
           >
-            الكل ({categoryCounts.get('all') || 0})
+            {t('storefront.storefront_category_showcase.s0', "الكل (")}{categoryCounts.get('all') || 0})
           </span>
         </div>
 
@@ -235,7 +237,7 @@ export function StorefrontCategoryShowcase({
                 {formatSmartCategoryName(cat.name)}
               </span>
               <span className="storefront-cat-count" style={{ fontSize: '11px', fontWeight: 600, color: '#64748b', marginTop: '1px' }}>
-                {count} صنف
+                {count} {t('storefront.storefront_category_showcase.s1', "صنف")}
               </span>
             </div>
           );
@@ -284,10 +286,10 @@ export function StorefrontCategoryShowcase({
                 textAlign: 'center',
               }}
             >
-              باقي الأقسام
+              {t('storefront.storefront_category_showcase.s2', "باقي الأقسام")}
             </span>
             <span className="storefront-cat-count" style={{ fontSize: '11px', fontWeight: 600, color: '#64748b', marginTop: '1px' }}>
-              +{remainingCount} قسم
+              +{remainingCount} {t('storefront.storefront_category_showcase.s3', "قسم")}
             </span>
           </div>
         )}

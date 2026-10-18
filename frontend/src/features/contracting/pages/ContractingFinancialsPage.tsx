@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useContracting } from '../context/ContractingContext';
@@ -20,6 +21,7 @@ interface ContractingFinancialsPageProps {
 }
 
 export function ContractingFinancialsPage({ initialSubTab }: ContractingFinancialsPageProps) {
+  const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
   const subParam = (searchParams.get('sub') as 'invoices' | 'change-orders') || initialSubTab || 'invoices';
   const [activeSubTab, setActiveSubTab] = useState<'invoices' | 'change-orders'>(subParam);
@@ -164,7 +166,7 @@ export function ContractingFinancialsPage({ initialSubTab }: ContractingFinancia
               transition: 'all 0.15s ease',
             }}
           >
-            مستخلصات المالك وشهادات الدفع (IPC)
+            {t('contracting.contracting_financials_page.s0', "مستخلصات المالك وشهادات الدفع (IPC)")}
           </button>
 
           <button
@@ -183,7 +185,7 @@ export function ContractingFinancialsPage({ initialSubTab }: ContractingFinancia
               transition: 'all 0.15s ease',
             }}
           >
-            الأوامر التغييرية والمطالبات التعاقدية
+            {t('contracting.contracting_financials_page.s1', "الأوامر التغييرية والمطالبات التعاقدية")}
           </button>
         </div>
 
@@ -209,7 +211,7 @@ export function ContractingFinancialsPage({ initialSubTab }: ContractingFinancia
             }}
           >
             <AppIcons.TrendingUp size={15} />
-            <span>القيمة المكتسبة (EVM & S-Curve)</span>
+            <span>{t('contracting.contracting_financials_page.s2', "القيمة المكتسبة (EVM & S-Curve)")}</span>
           </button>
 
           <button
@@ -232,7 +234,7 @@ export function ContractingFinancialsPage({ initialSubTab }: ContractingFinancia
             }}
           >
             <AppIcons.Receipt size={15} />
-            <span>خصومات مقاولي الباطن (Back-Charges)</span>
+            <span>{t('contracting.contracting_financials_page.s3', "خصومات مقاولي الباطن (Back-Charges)")}</span>
           </button>
 
           <button
@@ -255,7 +257,7 @@ export function ContractingFinancialsPage({ initialSubTab }: ContractingFinancia
             }}
           >
             <AppIcons.BarChart size={15} />
-            <span>تحليل التكاليف وميزانية المقايسة</span>
+            <span>{t('contracting.contracting_financials_page.s4', "تحليل التكاليف وميزانية المقايسة")}</span>
           </button>
         </div>
       </div>

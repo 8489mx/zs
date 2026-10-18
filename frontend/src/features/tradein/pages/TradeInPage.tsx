@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { PageHeader } from '@/shared/components/page-header';
@@ -15,6 +16,7 @@ import { TradeInTable } from '../components/TradeInTable';
 import { CreateTradeInModal } from '../components/CreateTradeInModal';
 
 export function TradeInPage() {
+  const { t: __t } = useTranslation();
   const queryClient = useQueryClient();
   const settingsQuery = useSettingsQuery();
   const maintenanceProfile = getMaintenanceProfile(settingsQuery.data?.maintenanceProfile);
@@ -121,13 +123,13 @@ export function TradeInPage() {
   };
 
   return (
-    <FeatureGate feature="maintenance" featureName="الصيانة وشراء واستبدال الأجهزة">
+    <FeatureGate feature="maintenance" featureName={__t('tradein.trade_in_page.s0', "الصيانة وشراء واستبدال الأجهزة")}>
       <div className="page-stack page-shell" dir="rtl">
         <main className="document-prototype-column" style={{ paddingBottom: '80px', maxWidth: '1280px', margin: '0 auto', width: '100%' }}>
           <PageHeader
-            title="شراء واستبدال الأجهزة (شراء من الأفراد)"
-            description="تسجيل شراء أجهزة جديدة، كسر زيرو، مستعملة، أو قطع غيار من العملاء، إدراجها بالمخزن، وطباعة إقرار التنازل الأمني."
-            badge={<span className="nav-pill" style={{ background: '#f8fafc', color: '#475569', border: '1px solid #e2e8f0' }}>{totalItems} عملية شراء/استبدال</span>}
+            title={__t('tradein.trade_in_page.s1', "شراء واستبدال الأجهزة (شراء من الأفراد)")}
+            description={__t('tradein.trade_in_page.s2', "تسجيل شراء أجهزة جديدة، كسر زيرو، مستعملة، أو قطع غيار من العملاء، إدراجها بالمخزن، وطباعة إقرار التنازل الأمني.")}
+            badge={<span className="nav-pill" style={{ background: '#f8fafc', color: '#475569', border: '1px solid #e2e8f0' }}>{totalItems} {__t('tradein.trade_in_page.s3', "عملية شراء/استبدال")}</span>}
             actions={
               <div className="actions compact-actions" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                 <Button
@@ -155,7 +157,7 @@ export function TradeInPage() {
                   style={{ background: '#170e5e', color: '#ffffff', display: 'flex', alignItems: 'center', gap: '6px' }}
                 >
                   <TradeInIcons.Plus />
-                  <span>تسجيل شراء جهاز</span>
+                  <span>{__t('tradein.trade_in_page.s4', "تسجيل شراء جهاز")}</span>
                 </Button>
 
                 <Button
@@ -165,7 +167,7 @@ export function TradeInPage() {
                   style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
                 >
                   <TradeInIcons.Refresh />
-                  <span>تحديث</span>
+                  <span>{__t('tradein.trade_in_page.s5', "تحديث")}</span>
                 </Button>
               </div>
             }
@@ -189,7 +191,7 @@ export function TradeInPage() {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="بحث باسم العميل، الهاتف، الرقم القومي، الموديل، أو السيريال..."
+                placeholder={__t('tradein.trade_in_page.s6', "بحث باسم العميل، الهاتف، الرقم القومي، الموديل، أو السيريال...")}
                 style={{ width: '100%', paddingRight: '32px', paddingLeft: '10px', paddingTop: '7px', paddingBottom: '7px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '12px', outline: 'none', boxSizing: 'border-box' }}
               />
             </div>
@@ -212,7 +214,7 @@ export function TradeInPage() {
                     boxShadow: conditionFilter === cond ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
                   }}
                 >
-                  {cond === 'all' ? 'الكل' : cond === 'new_sealed' ? 'متبرشم' : cond === 'like_new' ? 'كسر زيرو' : cond === 'used' ? 'مستعمل' : 'قطع غيار'}
+                  {cond === 'all' ? __t('tradein.trade_in_page.s7', "الكل") : cond === 'new_sealed' ? __t('tradein.trade_in_page.s8', "متبرشم") : cond === 'like_new' ? __t('tradein.trade_in_page.s9', "كسر زيرو") : cond === 'used' ? __t('tradein.trade_in_page.s10', "مستعمل") : __t('tradein.trade_in_page.s11', "قطع غيار")}
                 </button>
               ))}
             </div>

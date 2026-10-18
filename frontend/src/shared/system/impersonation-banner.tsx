@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/stores/auth-store';
@@ -7,6 +8,7 @@ import { setLocalSessionFallback, clearLocalSessionFallback } from '@/lib/http';
 import { EyeIcon } from '@/shared/components/icons/AppIcons';
 
 export function ImpersonationBanner() {
+  const { t } = useTranslation();
   const user = useAuthStore((state) => state.user);
   const tenant = useAuthStore((state) => state.tenant);
   const clearSession = useAuthStore((state) => state.clearSession);
@@ -85,10 +87,10 @@ export function ImpersonationBanner() {
           }}
         >
           <EyeIcon size={14} color="#4338ca" />
-          <span>وضع تصفح المستأجر</span>
+          <span>{t('shared.system.impersonation_banner.s0', "وضع تصفح المستأجر")}</span>
         </span>
         <span style={{ fontSize: '12.5px', color: '#475569', fontWeight: 500 }}>
-          أنت تتصفح حالياً منشأة <strong style={{ color: '#0f172a', fontWeight: 700 }}>{targetName}</strong> بصلاحية المالك <strong style={{ color: '#0f172a', fontWeight: 700 }}>({ownerName})</strong>
+          {t('shared.system.impersonation_banner.s1', "أنت تتصفح حالياً منشأة")} <strong style={{ color: '#0f172a', fontWeight: 700 }}>{targetName}</strong> {t('shared.system.impersonation_banner.s2', "بصلاحية المالك")} <strong style={{ color: '#0f172a', fontWeight: 700 }}>({ownerName})</strong>
         </span>
       </div>
 
@@ -115,7 +117,7 @@ export function ImpersonationBanner() {
         onMouseEnter={(e) => { if (!isExiting) e.currentTarget.style.background = '#1e293b'; }}
         onMouseLeave={(e) => { if (!isExiting) e.currentTarget.style.background = '#0f172a'; }}
       >
-        <span>{isExiting ? 'جاري العودة...' : 'العودة إلى لوحة المنصة (Super Admin)'}</span>
+        <span>{isExiting ? t('shared.system.impersonation_banner.s3', "جاري العودة...") : t('shared.system.impersonation_banner.s4', "العودة إلى لوحة المنصة (Super Admin)")}</span>
       </button>
     </div>
   );

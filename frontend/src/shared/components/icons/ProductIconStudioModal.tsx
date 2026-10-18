@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { XIcon } from '@/shared/components/icons/AppIcons';
 import { useState, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
@@ -27,6 +28,7 @@ export function ProductIconStudioModal({
   onBulkClearIcons,
   isBulkLoading = false,
 }: ProductIconStudioModalProps) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const settings = useProductIconSettings();
   const [activeTab, setActiveTab] = useState<'theme' | 'manage'>('theme');
@@ -148,7 +150,7 @@ export function ProductIconStudioModal({
     <DialogShell
       open={open}
       onClose={onClose}
-      ariaLabel="استوديو وتخصيص أيقونات الأصناف"
+      ariaLabel={t('shared.icons.product_icon_studio_modal.s0', "استوديو وتخصيص أيقونات الأصناف")}
       width="min(660px, 95vw)"
     >
       {/* Luxury Header */}
@@ -186,10 +188,10 @@ export function ProductIconStudioModal({
           </div>
           <div>
             <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: '#0f172a', letterSpacing: '-0.01em' }}>
-              استوديو ومظهر أيقونات الأصناف
+              {t('shared.icons.product_icon_studio_modal.s1', "استوديو ومظهر أيقونات الأصناف")}
             </h3>
             <p style={{ margin: '2px 0 0', fontSize: '0.76rem', color: '#64748b' }}>
-              التحكم الشامل في ألوان الهوية البصرية وخيارات الإسناد الذكي والتفريغ
+              {t('shared.icons.product_icon_studio_modal.s2', "التحكم الشامل في ألوان الهوية البصرية وخيارات الإسناد الذكي والتفريغ")}
             </p>
           </div>
         </div>
@@ -229,15 +231,15 @@ export function ProductIconStudioModal({
             }}
           >
             <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 600 }}>إجمالي الأصناف</div>
+              <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 600 }}>{t('shared.icons.product_icon_studio_modal.s3', "إجمالي الأصناف")}</div>
               <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0f172a' }}>{stats.total}</div>
             </div>
             <div style={{ textAlign: 'center', borderInlineStart: '1px solid #e2e8f0', borderInlineEnd: '1px solid #e2e8f0' }}>
-              <div style={{ fontSize: '0.7rem', color: '#16a34a', fontWeight: 600 }}>مُعيّن لها أيقونة</div>
+              <div style={{ fontSize: '0.7rem', color: '#16a34a', fontWeight: 600 }}>{t('shared.icons.product_icon_studio_modal.s4', "مُعيّن لها أيقونة")}</div>
               <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#15803d' }}>{stats.withIcon}</div>
             </div>
             <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 600 }}>بدون أيقونة</div>
+              <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 600 }}>{t('shared.icons.product_icon_studio_modal.s5', "بدون أيقونة")}</div>
               <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#475569' }}>{stats.withoutIcon}</div>
             </div>
           </div>
@@ -304,7 +306,7 @@ export function ProductIconStudioModal({
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <circle cx="12" cy="12" r="10"/><path d="M12 2a7 7 0 0 0 0 14v6"/>
             </svg>
-            <span>ألوان وسمات الأيقونات</span>
+            <span>{t('shared.icons.product_icon_studio_modal.s6', "ألوان وسمات الأيقونات")}</span>
           </button>
           <button
             type="button"
@@ -332,7 +334,7 @@ export function ProductIconStudioModal({
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
             </svg>
-            <span>إدارة وضبط الأيقونات</span>
+            <span>{t('shared.icons.product_icon_studio_modal.s7', "إدارة وضبط الأيقونات")}</span>
           </button>
         </div>
 
@@ -352,7 +354,7 @@ export function ProductIconStudioModal({
               }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '0.76rem', fontWeight: 700, color: '#475569' }}>معاينة مباشرة لهوية الأيقونات في المنظومة:</span>
+                <span style={{ fontSize: '0.76rem', fontWeight: 700, color: '#475569' }}>{t('shared.icons.product_icon_studio_modal.s8', "معاينة مباشرة لهوية الأيقونات في المنظومة:")}</span>
                 <span style={{ fontSize: '0.72rem', fontWeight: 700, color: currentColor, background: '#ffffff', padding: '2px 8px', borderRadius: '5px', border: '1px solid #cbd5e1', fontFamily: 'monospace' }}>
                   {currentColor}
                 </span>
@@ -390,7 +392,7 @@ export function ProductIconStudioModal({
             {/* Presets Grid */}
             <div>
               <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#0f172a', marginBottom: '8px' }}>
-                اختر سمة ولون الأيقونات لجميع الشاشات:
+                {t('shared.icons.product_icon_studio_modal.s9', "اختر سمة ولون الأيقونات لجميع الشاشات:")}
               </label>
               <div
                 style={{
@@ -469,7 +471,7 @@ export function ProductIconStudioModal({
                   }}
                 />
                 <div>
-                  <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#0f172a' }}>كود اللون المخصص:</div>
+                  <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#0f172a' }}>{t('shared.icons.product_icon_studio_modal.s10', "كود اللون المخصص:")}</div>
                   <input
                     type="text"
                     value={settings.customColor}
@@ -501,9 +503,9 @@ export function ProductIconStudioModal({
               }}
             >
               <div>
-                <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#0f172a' }}>إظهار الأيقونات في الشاشات</div>
+                <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#0f172a' }}>{t('shared.icons.product_icon_studio_modal.s11', "إظهار الأيقونات في الشاشات")}</div>
                 <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '1px' }}>
-                  إمكانية إخفاء الأيقونات من شاشات الكاشير وجداول الأصناف بنقرة واحدة
+                  {t('shared.icons.product_icon_studio_modal.s12', "إمكانية إخفاء الأيقونات من شاشات الكاشير وجداول الأصناف بنقرة واحدة")}
                 </div>
               </div>
               <label style={{ position: 'relative', display: 'inline-block', width: '40px', height: '22px', cursor: 'pointer', flexShrink: 0 }}>
@@ -583,9 +585,9 @@ export function ProductIconStudioModal({
                   </svg>
                 </div>
                 <div>
-                  <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#0f172a' }}>الضبط والتعيين الذكي للأصناف</div>
+                  <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#0f172a' }}>{t('shared.icons.product_icon_studio_modal.s13', "الضبط والتعيين الذكي للأصناف")}</div>
                   <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '2px' }}>
-                    تحليل أسماء الأصناف وتعيين الأيقونة المتوافقة تلقائياً لكافة الأصناف
+                    {t('shared.icons.product_icon_studio_modal.s14', "تحليل أسماء الأصناف وتعيين الأيقونة المتوافقة تلقائياً لكافة الأصناف")}
                   </div>
                 </div>
               </div>
@@ -615,7 +617,7 @@ export function ProductIconStudioModal({
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72Z"/>
                 </svg>
-                <span>{isLoading ? 'جارٍ الضبط...' : 'بدء الضبط الذكي'}</span>
+                <span>{isLoading ? t('shared.icons.product_icon_studio_modal.s15', "جارٍ الضبط...") : t('shared.icons.product_icon_studio_modal.s16', "بدء الضبط الذكي")}</span>
               </button>
             </div>
 
@@ -653,9 +655,9 @@ export function ProductIconStudioModal({
                     </svg>
                   </div>
                   <div>
-                    <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#991b1b' }}>تفريغ وإلغاء جميع الأيقونات</div>
+                    <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#991b1b' }}>{t('shared.icons.product_icon_studio_modal.s17', "تفريغ وإلغاء جميع الأيقونات")}</div>
                     <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '2px' }}>
-                      مسح الأيقونات المعينة لجميع المنتجات والعودة للحالة النقية بدون أيقونات
+                      {t('shared.icons.product_icon_studio_modal.s18', "مسح الأيقونات المعينة لجميع المنتجات والعودة للحالة النقية بدون أيقونات")}
                     </div>
                   </div>
                 </div>
@@ -685,7 +687,7 @@ export function ProductIconStudioModal({
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                       <path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
                     </svg>
-                    <span>إلغاء وتفريغ الكل</span>
+                    <span>{t('shared.icons.product_icon_studio_modal.s19', "إلغاء وتفريغ الكل")}</span>
                   </button>
                 )}
               </div>
@@ -705,7 +707,7 @@ export function ProductIconStudioModal({
                   }}
                 >
                   <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#991b1b' }}>
-                    تأكيد: هل ترغب بالتأكيد في تفريغ وإزالة الأيقونات من كافة الأصناف؟
+                    {t('shared.icons.product_icon_studio_modal.s20', "تأكيد: هل ترغب بالتأكيد في تفريغ وإزالة الأيقونات من كافة الأصناف؟")}
                   </span>
                   <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
                     <button
@@ -726,7 +728,7 @@ export function ProductIconStudioModal({
                         cursor: isLoading ? 'not-allowed' : 'pointer',
                       }}
                     >
-                      {isLoading ? 'جارٍ المسح...' : 'نعم، أفرغ الآن'}
+                      {isLoading ? t('shared.icons.product_icon_studio_modal.s21', "جارٍ المسح...") : t('shared.icons.product_icon_studio_modal.s22', "نعم، أفرغ الآن")}
                     </button>
                     <button
                       type="button"
@@ -742,7 +744,7 @@ export function ProductIconStudioModal({
                         cursor: 'pointer',
                       }}
                     >
-                      تراجع
+                      {t('shared.icons.product_icon_studio_modal.s23', "تراجع")}
                     </button>
                   </div>
                 </div>

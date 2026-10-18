@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React, { useState } from 'react';
 import { StandardDialog } from '@/shared/components/StandardDialog';
 import { Button } from '@/shared/ui/button';
@@ -30,6 +31,7 @@ export const VanTripPackagingModal: React.FC<VanTripPackagingModalProps> = ({
   defaultCustomerId,
   onSuccess,
 }) => {
+  const { t } = useTranslation();
   const [selectedCustomerId, setSelectedCustomerId] = useState<number | ''>(defaultCustomerId || '');
   const [packagingType, setPackagingType] = useState<string>('plastic_crate');
   const [qtyOut, setQtyOut] = useState<string>('0');
@@ -81,9 +83,9 @@ export const VanTripPackagingModal: React.FC<VanTripPackagingModalProps> = ({
     <StandardDialog
       open={open}
       onClose={onClose}
-      title="تسجيل حركة فوارغ وصناديق"
-      subtitle="إثبات تسليم أو استرجاع الصناديق والبالتات والأسطوانات على ذمة العميل"
-      badge="ذمة الفوارغ"
+      title={t('delivery_reps.van_trip_packaging_modal.s0', "تسجيل حركة فوارغ وصناديق")}
+      subtitle={t('delivery_reps.van_trip_packaging_modal.s1', "إثبات تسليم أو استرجاع الصناديق والبالتات والأسطوانات على ذمة العميل")}
+      badge={t('delivery_reps.van_trip_packaging_modal.s2', "ذمة الفوارغ")}
       width="min(500px, 95vw)"
       footer={
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', width: '100%', gap: '10px' }}>
@@ -94,7 +96,7 @@ export const VanTripPackagingModal: React.FC<VanTripPackagingModalProps> = ({
             disabled={isSubmitting}
             style={{ minHeight: '38px', fontSize: '12.5px', padding: '0 16px' }}
           >
-            إلغاء
+            {t('delivery_reps.van_trip_packaging_modal.s3', "إلغاء")}
           </Button>
           <Button
             type="button"
@@ -114,7 +116,7 @@ export const VanTripPackagingModal: React.FC<VanTripPackagingModalProps> = ({
             }}
           >
             <CheckCircleIcon size={15} color="#ffffff" />
-            <span>{isSubmitting ? 'جاري التسجيل...' : 'تأكيد حركة الفوارغ'}</span>
+            <span>{isSubmitting ? t('delivery_reps.van_trip_packaging_modal.s4', "جاري التسجيل...") : t('delivery_reps.van_trip_packaging_modal.s5', "تأكيد حركة الفوارغ")}</span>
           </Button>
         </div>
       }
@@ -143,7 +145,7 @@ export const VanTripPackagingModal: React.FC<VanTripPackagingModalProps> = ({
         {/* Customer Select */}
         <div>
           <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-            العميل / المحل:
+            {t('delivery_reps.van_trip_packaging_modal.s6', "العميل / المحل:")}
           </label>
           <select
             value={selectedCustomerId}
@@ -159,7 +161,7 @@ export const VanTripPackagingModal: React.FC<VanTripPackagingModalProps> = ({
               boxSizing: 'border-box',
             }}
           >
-            <option value="">-- حركة عامة بدون تحديد عميل --</option>
+            <option value="">{t('delivery_reps.van_trip_packaging_modal.s7', "-- حركة عامة بدون تحديد عميل --")}</option>
             {customers.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.name}
@@ -171,7 +173,7 @@ export const VanTripPackagingModal: React.FC<VanTripPackagingModalProps> = ({
         {/* Packaging Type */}
         <div>
           <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-            نوع الفارغ:
+            {t('delivery_reps.van_trip_packaging_modal.s8', "نوع الفارغ:")}
           </label>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '6px' }}>
             {packagingTypes.map((type) => (
@@ -202,7 +204,7 @@ export const VanTripPackagingModal: React.FC<VanTripPackagingModalProps> = ({
           {/* Delivered to Customer (Out) */}
           <div style={{ backgroundColor: '#fff7ed', border: '1px solid #fed7aa', borderRadius: '8px', padding: '10px' }}>
             <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 800, color: '#c2410c', marginBottom: '6px', textAlign: 'center' }}>
-              المسلم للعميل (صادر)
+              {t('delivery_reps.van_trip_packaging_modal.s9', "المسلم للعميل (صادر)")}
             </label>
             <div dir="rtl" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
               <button
@@ -264,7 +266,7 @@ export const VanTripPackagingModal: React.FC<VanTripPackagingModalProps> = ({
           {/* Returned from Customer (In) */}
           <div style={{ backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', padding: '10px' }}>
             <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 800, color: '#15803d', marginBottom: '6px', textAlign: 'center' }}>
-              المستلم من العميل (مرتجع)
+              {t('delivery_reps.van_trip_packaging_modal.s10', "المستلم من العميل (مرتجع)")}
             </label>
             <div dir="rtl" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
               <button
@@ -327,13 +329,13 @@ export const VanTripPackagingModal: React.FC<VanTripPackagingModalProps> = ({
         {/* Notes */}
         <div>
           <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-            ملاحظات:
+            {t('delivery_reps.van_trip_packaging_modal.s11', "ملاحظات:")}
           </label>
           <input
             type="text"
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            placeholder="مثال: فوارغ بحالة جيدة / استبدال فارغ بتالف"
+            placeholder={t('delivery_reps.van_trip_packaging_modal.s12', "مثال: فوارغ بحالة جيدة / استبدال فارغ بتالف")}
             style={{
               width: '100%',
               height: '36px',

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 import { Quotation } from '@/features/sales/api/quotations.api';
 import { Trash2Icon } from '@/shared/components/icons/AppIcons';
@@ -20,18 +21,20 @@ export function QuotationsTable({
   onDelete,
   isConvertPending,
 }: QuotationsTableProps) {
+  const { t, i18n } = useTranslation();
+  const isEn = i18n.language === 'en';
   return (
     <div style={{ overflowX: 'auto' }}>
       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
         <thead>
           <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', textAlign: 'start' }}>
-            <th style={{ padding: '12px 16px', fontWeight: 800 }}>رقم العرض</th>
-            <th style={{ padding: '12px 16px', fontWeight: 800 }}>العميل</th>
-            <th style={{ padding: '12px 16px', fontWeight: 800 }}>الهاتف</th>
-            <th style={{ padding: '12px 16px', fontWeight: 800 }}>الإجمالي</th>
-            <th style={{ padding: '12px 16px', fontWeight: 800 }}>الحالة</th>
-            <th style={{ padding: '12px 16px', fontWeight: 800 }}>التاريخ</th>
-            <th style={{ padding: '12px 16px', fontWeight: 800, textAlign: 'center' }}>الإجراءات</th>
+            <th style={{ padding: '12px 16px', fontWeight: 800 }}>{t('sales.quotations.quotations_table.s0', "رقم العرض")}</th>
+            <th style={{ padding: '12px 16px', fontWeight: 800 }}>{t('sales.quotations.quotations_table.s1', "العميل")}</th>
+            <th style={{ padding: '12px 16px', fontWeight: 800 }}>{t('sales.quotations.quotations_table.s2', "الهاتف")}</th>
+            <th style={{ padding: '12px 16px', fontWeight: 800 }}>{t('sales.quotations.quotations_table.s3', "الإجمالي")}</th>
+            <th style={{ padding: '12px 16px', fontWeight: 800 }}>{t('sales.quotations.quotations_table.s4', "الحالة")}</th>
+            <th style={{ padding: '12px 16px', fontWeight: 800 }}>{t('sales.quotations.quotations_table.s5', "التاريخ")}</th>
+            <th style={{ padding: '12px 16px', fontWeight: 800, textAlign: 'center' }}>{t('sales.quotations.quotations_table.s6', "الإجراءات")}</th>
           </tr>
         </thead>
         <tbody>
@@ -41,18 +44,18 @@ export function QuotationsTable({
               <td style={{ padding: '12px 16px', fontWeight: 700 }}>{q.customer_name}</td>
               <td style={{ padding: '12px 16px', color: '#64748b' }}>{q.customer_phone || '-'}</td>
               <td style={{ padding: '12px 16px', fontWeight: 800, color: '#0f172a' }}>
-                {Number(q.total_amount).toLocaleString('ar-EG')} {getGlobalCurrencySymbol()}
+                {Number(q.total_amount).toLocaleString(isEn ? 'en-US' : 'ar-EG')} {getGlobalCurrencySymbol()}
               </td>
               <td style={{ padding: '12px 16px' }}>{getStatusBadge(q.status, q.sale_id ?? undefined)}</td>
               <td style={{ padding: '12px 16px', color: '#64748b', fontSize: '12px' }}>
-                {new Date(q.created_at).toLocaleDateString('ar-EG')}
+                {new Date(q.created_at).toLocaleDateString(isEn ? 'en-US' : 'ar-EG')}
               </td>
               <td style={{ padding: '12px 16px', textAlign: 'center' }}>
                 <div style={{ display: 'flex', justifyContent: 'center', gap: '6px', flexWrap: 'wrap' }}>
                   <button
                     type="button"
                     onClick={() => onPrint(q)}
-                    title="طباعة / تصدير PDF"
+                    title={t('sales.quotations.quotations_table.s7', "طباعة / تصدير PDF")}
                     style={{
                       background: '#f8fafc',
                       border: '1px solid #cbd5e1',
@@ -64,7 +67,7 @@ export function QuotationsTable({
                       color: '#0f172a',
                     }}
                   >
-                    طباعة
+                    {t('sales.quotations.quotations_table.s8', "طباعة")}
                   </button>
 
                   {q.status !== 'converted' && (
@@ -76,7 +79,7 @@ export function QuotationsTable({
                           onConvert(q.id);
                         }
                       }}
-                      title="تحويل إلى فاتورة بيع"
+                      title={t('sales.quotations.quotations_table.s9', "تحويل إلى فاتورة بيع")}
                       style={{
                         background: '#eff6ff',
                         border: '1px solid #bfdbfe',
@@ -88,7 +91,7 @@ export function QuotationsTable({
                         color: '#1d4ed8',
                       }}
                     >
-                      تحويل لفاتورة
+                      {t('sales.quotations.quotations_table.s10', "تحويل لفاتورة")}
                     </button>
                   )}
 
@@ -96,11 +99,11 @@ export function QuotationsTable({
                     <button
                       type="button"
                       onClick={() => {
-                        if (confirm('هل تريد حذف عرض السعر؟')) {
+                        if (confirm(t('sales.quotations.quotations_table.s11', "هل تريد حذف عرض السعر؟"))) {
                           onDelete(q.id);
                         }
                       }}
-                      title="حذف"
+                      title={t('sales.quotations.quotations_table.s12', "حذف")}
                       style={{
                         background: '#fff1f2',
                         border: '1px solid #fecdd3',

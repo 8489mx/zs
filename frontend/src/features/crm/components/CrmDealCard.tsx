@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { formatCurrency } from '@/lib/format';
 import type { CrmDeal, DealStage } from '../api/crm.api';
 import { STAGES, PRIORITIES } from './CrmConstants';
@@ -10,6 +11,7 @@ export interface CrmDealCardProps {
 }
 
 export function CrmDealCard({ deal, onClick, onStageChange, stageIndex }: CrmDealCardProps) {
+  const { t } = useTranslation();
   const priorityConfig = PRIORITIES[deal.priority] || PRIORITIES.medium;
 
   return (
@@ -58,7 +60,7 @@ export function CrmDealCard({ deal, onClick, onStageChange, stageIndex }: CrmDea
 
       {/* Customer / Company */}
       <div style={{ fontSize: '11px', color: '#64748b', marginTop: '4px' }}>
-        {deal.companyName || deal.contactName || 'بدون جهة اتصال'}
+        {deal.companyName || deal.contactName || t('crm.crm_deal_card.s0', "بدون جهة اتصال")}
       </div>
 
       {/* Amount & Probability */}
@@ -102,7 +104,7 @@ export function CrmDealCard({ deal, onClick, onStageChange, stageIndex }: CrmDea
             cursor: stageIndex === 0 ? 'not-allowed' : 'pointer',
             color: '#475569',
           }}
-          title="المرحلة السابقة"
+          title={t('crm.crm_deal_card.s1', "المرحلة السابقة")}
         >
           →
         </button>
@@ -121,7 +123,7 @@ export function CrmDealCard({ deal, onClick, onStageChange, stageIndex }: CrmDea
             borderRadius: '4px',
             cursor: stageIndex === STAGES.length - 1 ? 'not-allowed' : 'pointer',
           }}
-          title="المرحلة التالية"
+          title={t('crm.crm_deal_card.s2', "المرحلة التالية")}
         >
           ←
         </button>

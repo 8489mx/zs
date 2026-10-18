@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -46,6 +47,7 @@ export function AccountingAccountForm({
   parentAccount,
   editAccount,
 }: AccountingAccountFormProps) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
 
   const { register, handleSubmit, reset, setValue, control, formState: { errors } } = useForm<FormValues>({
@@ -138,13 +140,13 @@ export function AccountingAccountForm({
       open={open}
       onClose={onClose}
       title={dialogTitle}
-      subtitle="تحديد الكود المحاسبي والاسم والتصنيف في الدليل المحاسبي"
+      subtitle={t('accounting.accounting_account_form.s0', "تحديد الكود المحاسبي والاسم والتصنيف في الدليل المحاسبي")}
       size="md"
     >
       <form id="accounting-account-form" onSubmit={handleSubmit(onSubmit)} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
         {error && (
           <div style={{ padding: '10px 14px', backgroundColor: '#fef2f2', color: '#991b1b', border: '1px solid #fecaca', borderRadius: '8px', fontSize: '12.5px' }}>
-            {error instanceof Error ? error.message : 'حدث خطأ غير متوقع.'}
+            {error instanceof Error ? error.message : t('accounting.accounting_account_form.s1', "حدث خطأ غير متوقع.")}
           </div>
         )}
 
@@ -160,13 +162,13 @@ export function AccountingAccountForm({
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid #e2e8f0', paddingBottom: '6px' }}>
             <FileTextIcon size={15} style={{ color: '#170e5e' }} />
-            <span style={{ fontSize: '12px', fontWeight: 700, color: '#1e293b' }}>بيانات الحساب والرمز</span>
+            <span style={{ fontSize: '12px', fontWeight: 700, color: '#1e293b' }}>{t('accounting.accounting_account_form.s2', "بيانات الحساب والرمز")}</span>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '12px' }}>
             <div>
               <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                كود الحساب <span style={{ color: '#e11d48' }}>*</span>
+                {t('accounting.accounting_account_form.s3', "كود الحساب")} <span style={{ color: '#e11d48' }}>*</span>
               </label>
               <input
                 type="text"
@@ -176,17 +178,17 @@ export function AccountingAccountForm({
                 style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '12.5px', fontFamily: 'monospace', backgroundColor: '#ffffff', boxSizing: 'border-box' }}
               />
               {errors.code && <div style={{ color: '#dc2626', fontSize: '11px', marginTop: '2px' }}>{errors.code.message}</div>}
-              {generateCodeQuery.isFetching && <div style={{ color: '#64748b', fontSize: '11px', marginTop: '2px' }}>جاري توليد الكود...</div>}
+              {generateCodeQuery.isFetching && <div style={{ color: '#64748b', fontSize: '11px', marginTop: '2px' }}>{t('accounting.accounting_account_form.s4', "جاري توليد الكود...")}</div>}
             </div>
 
             <div>
               <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                اسم الحساب (عربي) <span style={{ color: '#e11d48' }}>*</span>
+                {t('accounting.accounting_account_form.s5', "اسم الحساب (عربي)")} <span style={{ color: '#e11d48' }}>*</span>
               </label>
               <input
                 type="text"
                 {...register('nameAr', { required: 'مطلوب' })}
-                placeholder="مثال: البنك الأهلي المصري، مصروفات الصيانة..."
+                placeholder={t('accounting.accounting_account_form.s6', "مثال: البنك الأهلي المصري، مصروفات الصيانة...")}
                 style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '12.5px', backgroundColor: '#ffffff', boxSizing: 'border-box' }}
               />
               {errors.nameAr && <div style={{ color: '#dc2626', fontSize: '11px', marginTop: '2px' }}>{errors.nameAr.message}</div>}
@@ -195,7 +197,7 @@ export function AccountingAccountForm({
 
           <div>
             <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-              الاسم (إنجليزي) - اختياري
+              {t('accounting.accounting_account_form.s7', "الاسم (إنجليزي) - اختياري")}
             </label>
             <input
               type="text"
@@ -219,14 +221,14 @@ export function AccountingAccountForm({
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid #e2e8f0', paddingBottom: '6px' }}>
             <LayersIcon size={15} style={{ color: '#170e5e' }} />
-            <span style={{ fontSize: '12px', fontWeight: 700, color: '#1e293b' }}>التصنيف المحاسبي والرصيد</span>
+            <span style={{ fontSize: '12px', fontWeight: 700, color: '#1e293b' }}>{t('accounting.accounting_account_form.s8', "التصنيف المحاسبي والرصيد")}</span>
           </div>
 
           {mode === 'create' && !parentAccount && (
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                  نوع الحساب
+                  {t('accounting.accounting_account_form.s9', "نوع الحساب")}
                 </label>
                 <Controller
                   name="accountType"
@@ -243,7 +245,7 @@ export function AccountingAccountForm({
 
               <div>
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                  الرصيد الطبيعي
+                  {t('accounting.accounting_account_form.s10', "الرصيد الطبيعي")}
                 </label>
                 <Controller
                   name="normalBalance"
@@ -268,7 +270,7 @@ export function AccountingAccountForm({
               style={{ width: '16px', height: '16px', accentColor: '#170e5e' }}
             />
             <label htmlFor="accountIsActive" style={{ fontSize: '12.5px', fontWeight: 600, color: '#334155', cursor: 'pointer' }}>
-              حساب نشط ومتاح لإدراج القيود
+              {t('accounting.accounting_account_form.s11', "حساب نشط ومتاح لإدراج القيود")}
             </label>
           </div>
         </div>
@@ -276,7 +278,7 @@ export function AccountingAccountForm({
 
       <StandardDialogFooter>
         <Button type="button" variant="secondary" onClick={onClose} disabled={isPending} style={{ padding: '8px 18px', fontSize: '13px', borderRadius: '8px' }}>
-          إلغاء
+          {t('accounting.accounting_account_form.s12', "إلغاء")}
         </Button>
         <Button
           type="submit"
@@ -294,7 +296,7 @@ export function AccountingAccountForm({
             opacity: isPending ? 0.6 : 1,
           }}
         >
-          {isPending ? 'جاري الحفظ...' : 'حفظ الحساب'}
+          {isPending ? t('accounting.accounting_account_form.s13', "جاري الحفظ...") : t('accounting.accounting_account_form.s14', "حفظ الحساب")}
         </Button>
       </StandardDialogFooter>
     </StandardDialog>

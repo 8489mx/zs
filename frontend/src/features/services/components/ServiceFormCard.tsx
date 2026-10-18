@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { Button } from '@/shared/ui/button';
@@ -53,6 +54,7 @@ export function ServiceFormCard({
   onSaved?: () => void;
   suggestions?: ServiceSuggestionOption[];
 }) {
+  const { t } = useTranslation();
   const form = useForm<ServiceFormValues>({ defaultValues: buildDefaultValues() });
   const mutation = useSaveServiceMutation(service?.id, () => {
     form.reset(buildDefaultValues());
@@ -115,16 +117,16 @@ export function ServiceFormCard({
     <form className="form-grid service-form-grid" onSubmit={form.handleSubmit((values) => mutation.mutate(values))}>
       <DraftStateNotice
         visible={form.formState.isDirty && !mutation.isPending}
-        title={service ? 'تعديلات الخدمة الحالية غير محفوظة' : 'بيانات الخدمة الجديدة لم تُحفظ بعد'}
-        hint={service ? 'يمكنك حفظ التعديل أو إعادة القيم الأصلية قبل تغيير التحديد.' : 'يمكنك تفريغ النموذج سريعًا قبل إدخال خدمة جديدة أخرى.'}
+        title={service ? t('services.service_form_card.s0', "تعديلات الخدمة الحالية غير محفوظة") : t('services.service_form_card.s1', "بيانات الخدمة الجديدة لم تُحفظ بعد")}
+        hint={service ? t('services.service_form_card.s2', "يمكنك حفظ التعديل أو إعادة القيم الأصلية قبل تغيير التحديد.") : t('services.service_form_card.s3', "يمكنك تفريغ النموذج سريعًا قبل إدخال خدمة جديدة أخرى.")}
       />
 
-      <Field label="اسم الخدمة" className="field-full-span">
+      <Field label={t('services.service_form_card.s4', "اسم الخدمة")} className="field-full-span">
         <div ref={wrapperRef} style={{ position: 'relative' }}>
           <input
             {...form.register('name', { required: true })}
             disabled={mutation.isPending}
-            placeholder="اكتب اسم الخدمة"
+            placeholder={t('services.service_form_card.s5', "اكتب اسم الخدمة")}
             autoComplete="off"
             onFocus={() => setIsMenuOpen(true)}
             onChange={(event) => {
@@ -186,22 +188,22 @@ export function ServiceFormCard({
         </div>
       </Field>
 
-      <Field label="القيمة">
+      <Field label={t('services.service_form_card.s6', "القيمة")}>
         <input type="number" step="0.01" {...form.register('amount', { valueAsNumber: true })} disabled={mutation.isPending} />
       </Field>
 
-      <Field label="طريقة التحصيل">
+      <Field label={t('services.service_form_card.s7', "طريقة التحصيل")}>
         <select {...form.register('paymentChannel')} disabled={mutation.isPending}>
-          <option value="cash">نقدي - يدخل الخزينة والدرج</option>
-          <option value="card">فيزا - يظهر في التقارير ولا يدخل درج النقدية</option>
+          <option value="cash">{t('services.service_form_card.s8', "نقدي - يدخل الخزينة والدرج")}</option>
+          <option value="card">{t('services.service_form_card.s9', "فيزا - يظهر في التقارير ولا يدخل درج النقدية")}</option>
         </select>
       </Field>
 
-      <Field label="التاريخ" className="field-full-span">
+      <Field label={t('services.service_form_card.s10', "التاريخ")} className="field-full-span">
         <input type="datetime-local" {...form.register('date')} disabled={mutation.isPending} />
       </Field>
 
-      <Field label="ملاحظات" className="field-full-span">
+      <Field label={t('services.service_form_card.s11', "ملاحظات")} className="field-full-span">
         <textarea rows={3} {...form.register('notes')} disabled={mutation.isPending} />
       </Field>
 
@@ -209,22 +211,22 @@ export function ServiceFormCard({
         isError={mutation.isError}
         isSuccess={mutation.isSuccess}
         error={mutation.error}
-        errorFallback={service ? 'تعذر تحديث الخدمة' : 'تعذر حفظ الخدمة'}
-        successText={service ? 'تم تحديث الخدمة بنجاح.' : 'تم حفظ الخدمة بنجاح.'}
+        errorFallback={service ? t('services.service_form_card.s12', "تعذر تحديث الخدمة") : t('services.service_form_card.s13', "تعذر حفظ الخدمة")}
+        successText={service ? t('services.service_form_card.s14', "تم تحديث الخدمة بنجاح.") : t('services.service_form_card.s15', "تم حفظ الخدمة بنجاح.")}
       />
 
       <div className="actions sticky-form-actions">
-        <FormResetButton onReset={handleReset} disabled={mutation.isPending || !form.formState.isDirty}>{service ? 'إعادة القيم' : 'تفريغ النموذج'}</FormResetButton>
+        <FormResetButton onReset={handleReset} disabled={mutation.isPending || !form.formState.isDirty}>{service ? t('services.service_form_card.s16', "إعادة القيم") : t('services.service_form_card.s17', "تفريغ النموذج")}</FormResetButton>
         {service ? (
           <Button type="button" variant="secondary" onClick={() => onSaved?.()} disabled={mutation.isPending}>
-            إلغاء التحديد
+            {t('services.service_form_card.s18', "إلغاء التحديد")}
           </Button>
         ) : null}
         <SubmitButton
           type="submit"
           isPending={mutation.isPending}
-          idleText={service ? 'حفظ التعديل' : 'إضافة الخدمة'}
-          pendingText="جاري الحفظ..."
+          idleText={service ? t('services.service_form_card.s19', "حفظ التعديل") : t('services.service_form_card.s20', "إضافة الخدمة")}
+          pendingText={t('services.service_form_card.s21', "جاري الحفظ...")}
         />
       </div>
     </form>

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { StandardDialog } from '@/shared/components/StandardDialog';
 import { Button } from '@/shared/ui/button';
@@ -16,6 +17,7 @@ interface ZatcaOnboardingWizardModalProps {
 }
 
 export function ZatcaOnboardingWizardModal({ open, onClose }: ZatcaOnboardingWizardModalProps) {
+  const { t } = useTranslation();
   const [step, setStep] = useState<Step>('create');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -95,16 +97,16 @@ export function ZatcaOnboardingWizardModal({ open, onClose }: ZatcaOnboardingWiz
     <StandardDialog
       open={open}
       onClose={handleClose}
-      title="معالج ربط ZATCA Phase 2 – هيئة الزكاة والضريبة"
-      subtitle="اتبع الخطوات لتسجيل جهاز الفاتورة الإلكترونية والحصول على شهادات CSID"
+      title={t('tax_integration.zatca_onboarding_wizard_modal.s0', "معالج ربط ZATCA Phase 2 – هيئة الزكاة والضريبة")}
+      subtitle={t('tax_integration.zatca_onboarding_wizard_modal.s1', "اتبع الخطوات لتسجيل جهاز الفاتورة الإلكترونية والحصول على شهادات CSID")}
       width="min(680px, 96vw)"
       footerActions={
         <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-start' }}>
-          {step === 'create' && <Button onClick={createUnit} disabled={loading} style={{ background: '#170e5e', color: '#fff' }}>{loading ? 'جار الإنشاء...' : 'إنشاء وحدة EGS'}</Button>}
-          {step === 'compliance' && <Button onClick={requestCompliance} disabled={loading} style={{ background: '#170e5e', color: '#fff' }}>{loading ? 'جار الطلب...' : 'طلب شهادة الامتثال'}</Button>}
-          {step === 'production' && <Button onClick={requestProduction} disabled={loading} style={{ background: '#170e5e', color: '#fff' }}>{loading ? 'جار التفعيل...' : 'تفعيل شهادة الإنتاج'}</Button>}
-          {step === 'done' && <Button onClick={handleClose} style={{ background: '#170e5e', color: '#fff' }}>إغلاق</Button>}
-          <Button variant="secondary" onClick={handleClose}>إلغاء</Button>
+          {step === 'create' && <Button onClick={createUnit} disabled={loading} style={{ background: '#170e5e', color: '#fff' }}>{loading ? t('tax_integration.zatca_onboarding_wizard_modal.s2', "جار الإنشاء...") : t('tax_integration.zatca_onboarding_wizard_modal.s3', "إنشاء وحدة EGS")}</Button>}
+          {step === 'compliance' && <Button onClick={requestCompliance} disabled={loading} style={{ background: '#170e5e', color: '#fff' }}>{loading ? t('tax_integration.zatca_onboarding_wizard_modal.s4', "جار الطلب...") : t('tax_integration.zatca_onboarding_wizard_modal.s5', "طلب شهادة الامتثال")}</Button>}
+          {step === 'production' && <Button onClick={requestProduction} disabled={loading} style={{ background: '#170e5e', color: '#fff' }}>{loading ? t('tax_integration.zatca_onboarding_wizard_modal.s6', "جار التفعيل...") : t('tax_integration.zatca_onboarding_wizard_modal.s7', "تفعيل شهادة الإنتاج")}</Button>}
+          {step === 'done' && <Button onClick={handleClose} style={{ background: '#170e5e', color: '#fff' }}>{t('tax_integration.zatca_onboarding_wizard_modal.s8', "إغلاق")}</Button>}
+          <Button variant="secondary" onClick={handleClose}>{t('tax_integration.zatca_onboarding_wizard_modal.s9', "إلغاء")}</Button>
         </div>
       }
     >
@@ -128,30 +130,30 @@ export function ZatcaOnboardingWizardModal({ open, onClose }: ZatcaOnboardingWiz
 
         {step === 'create' && (
           <div style={{ display: 'grid', gap: 16 }}>
-            <div><label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, marginBottom: 6, color: '#1e293b' }}>اسم الجهاز / نقطة البيع</label><input value={form.deviceName} onChange={e => setForm(f => ({ ...f, deviceName: e.target.value }))} placeholder="مثال: POS-01 فرع الرياض" style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid #e2e8f0', fontSize: '0.8125rem', boxSizing: 'border-box' }} /></div>
-            <div><label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, marginBottom: 6, color: '#1e293b' }}>المعرف المخصص (اختياري)</label><input value={form.customId} onChange={e => setForm(f => ({ ...f, customId: e.target.value }))} placeholder="مثال: ZS-POS-001" style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid #e2e8f0', fontSize: '0.8125rem', boxSizing: 'border-box' }} /></div>
-            <div><label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, marginBottom: 6, color: '#1e293b' }}>بيئة التشغيل</label><select value={form.environment} onChange={e => setForm(f => ({ ...f, environment: e.target.value as any }))} style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid #e2e8f0', fontSize: '0.8125rem', boxSizing: 'border-box' }}><option value="sandbox">Sandbox (اختبار)</option><option value="simulation">Simulation (محاكاة)</option><option value="production">Production (إنتاج)</option></select></div>
+            <div><label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, marginBottom: 6, color: '#1e293b' }}>{t('tax_integration.zatca_onboarding_wizard_modal.s10', "اسم الجهاز / نقطة البيع")}</label><input value={form.deviceName} onChange={e => setForm(f => ({ ...f, deviceName: e.target.value }))} placeholder={t('tax_integration.zatca_onboarding_wizard_modal.s11', "مثال: POS-01 فرع الرياض")} style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid #e2e8f0', fontSize: '0.8125rem', boxSizing: 'border-box' }} /></div>
+            <div><label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, marginBottom: 6, color: '#1e293b' }}>{t('tax_integration.zatca_onboarding_wizard_modal.s12', "المعرف المخصص (اختياري)")}</label><input value={form.customId} onChange={e => setForm(f => ({ ...f, customId: e.target.value }))} placeholder={t('tax_integration.zatca_onboarding_wizard_modal.s13', "مثال: ZS-POS-001")} style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid #e2e8f0', fontSize: '0.8125rem', boxSizing: 'border-box' }} /></div>
+            <div><label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, marginBottom: 6, color: '#1e293b' }}>{t('tax_integration.zatca_onboarding_wizard_modal.s14', "بيئة التشغيل")}</label><select value={form.environment} onChange={e => setForm(f => ({ ...f, environment: e.target.value as any }))} style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid #e2e8f0', fontSize: '0.8125rem', boxSizing: 'border-box' }}><option value="sandbox">{t('tax_integration.zatca_onboarding_wizard_modal.s15', "Sandbox (اختبار)")}</option><option value="simulation">{t('tax_integration.zatca_onboarding_wizard_modal.s16', "Simulation (محاكاة)")}</option><option value="production">{t('tax_integration.zatca_onboarding_wizard_modal.s17', "Production (إنتاج)")}</option></select></div>
           </div>
         )}
 
         {step === 'compliance' && (
           <div style={{ display: 'grid', gap: 16 }}>
-            <p style={{ color: '#64748b', fontSize: '0.8125rem', margin: 0 }}>يرجى تسجيل الدخول إلى <strong>بوابة فاتورة (fatoora.zatca.gov.sa)</strong> والحصول على رمز OTP مكون من 6 أرقام.</p>
-            <div><label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, marginBottom: 6, color: '#1e293b' }}>رمز OTP (6 أرقام) من بوابة هيئة الزكاة</label><input value={otp} onChange={e => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))} placeholder="123456" maxLength={6} style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid #e2e8f0', fontSize: '1rem', letterSpacing: 4, textAlign: 'center', boxSizing: 'border-box' }} /></div>
+            <p style={{ color: '#64748b', fontSize: '0.8125rem', margin: 0 }}>{t('tax_integration.zatca_onboarding_wizard_modal.s18', "يرجى تسجيل الدخول إلى")} <strong>{t('tax_integration.zatca_onboarding_wizard_modal.s19', "بوابة فاتورة (fatoora.zatca.gov.sa)")}</strong> {t('tax_integration.zatca_onboarding_wizard_modal.s20', "والحصول على رمز OTP مكون من 6 أرقام.")}</p>
+            <div><label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, marginBottom: 6, color: '#1e293b' }}>{t('tax_integration.zatca_onboarding_wizard_modal.s21', "رمز OTP (6 أرقام) من بوابة هيئة الزكاة")}</label><input value={otp} onChange={e => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))} placeholder="123456" maxLength={6} style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid #e2e8f0', fontSize: '1rem', letterSpacing: 4, textAlign: 'center', boxSizing: 'border-box' }} /></div>
           </div>
         )}
 
         {step === 'production' && (
           <div>
-            <p style={{ color: '#64748b', fontSize: '0.8125rem' }}>تمت مرحلة الامتثال بنجاح. اضغط لتفعيل شهادة الإنتاج وبدء إصدار الفواتير الحية.</p>
+            <p style={{ color: '#64748b', fontSize: '0.8125rem' }}>{t('tax_integration.zatca_onboarding_wizard_modal.s22', "تمت مرحلة الامتثال بنجاح. اضغط لتفعيل شهادة الإنتاج وبدء إصدار الفواتير الحية.")}</p>
           </div>
         )}
 
         {step === 'done' && (
           <div style={{ textAlign: 'center', padding: '24px 0' }}>
             <div style={{ fontSize: '2rem', marginBottom: 12 }}>&#10003;</div>
-            <p style={{ color: '#15803d', fontSize: '1rem', fontWeight: 700 }}>تم ربط وحدة EGS بهيئة الزكاة والضريبة بنجاح!</p>
-            <p style={{ color: '#64748b', fontSize: '0.8125rem' }}>الوحدة الآن في وضع الإنتاج وجاهزة لتوقيع الفواتير الإلكترونية وإرسالها.</p>
+            <p style={{ color: '#15803d', fontSize: '1rem', fontWeight: 700 }}>{t('tax_integration.zatca_onboarding_wizard_modal.s23', "تم ربط وحدة EGS بهيئة الزكاة والضريبة بنجاح!")}</p>
+            <p style={{ color: '#64748b', fontSize: '0.8125rem' }}>{t('tax_integration.zatca_onboarding_wizard_modal.s24', "الوحدة الآن في وضع الإنتاج وجاهزة لتوقيع الفواتير الإلكترونية وإرسالها.")}</p>
           </div>
         )}
       </div>

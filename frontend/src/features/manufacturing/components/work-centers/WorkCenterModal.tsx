@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { getGlobalCurrencySymbol } from '@/lib/currencies';
 import React from 'react';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
@@ -53,6 +54,7 @@ export function WorkCenterModal({
   onSubmit,
   isSubmitting,
 }: WorkCenterModalProps) {
+  const { t } = useTranslation();
   const handleSubmit = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     onSubmit(e as any);
@@ -62,15 +64,15 @@ export function WorkCenterModal({
     <StandardDialog
       isOpen={open}
       onClose={onClose}
-      title={editingId ? 'تعديل مركز العمل' : 'إضافة مركز عمل / ماكينة جديدة'}
-      subtitle="تحديد تكلفة التشغيل بالساعة والطاقة الإنتاجية ومؤشرات الكفاءة"
+      title={editingId ? t('manufacturing.work_centers.work_center_modal.s0', "تعديل مركز العمل") : t('manufacturing.work_centers.work_center_modal.s1', "إضافة مركز عمل / ماكينة جديدة")}
+      subtitle={t('manufacturing.work_centers.work_center_modal.s2', "تحديد تكلفة التشغيل بالساعة والطاقة الإنتاجية ومؤشرات الكفاءة")}
       maxWidth="620px"
       footer={
         <StandardDialogFooter
           onClose={onClose}
-          closeLabel="إلغاء"
+          closeLabel={t('manufacturing.work_centers.work_center_modal.s3', "إلغاء")}
           primaryButton={{
-            label: isSubmitting ? 'جاري الحفظ...' : editingId ? 'حفظ التعديلات' : 'إضافة مركز العمل',
+            label: isSubmitting ? t('manufacturing.work_centers.work_center_modal.s4', "جاري الحفظ...") : editingId ? t('manufacturing.work_centers.work_center_modal.s5', "حفظ التعديلات") : t('manufacturing.work_centers.work_center_modal.s6', "إضافة مركز العمل"),
             onClick: () => handleSubmit(),
             disabled: isSubmitting,
           }}
@@ -91,17 +93,17 @@ export function WorkCenterModal({
           }}
         >
           <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#170e5e', borderBottom: '1px solid #e2e8f0', paddingBottom: 6 }}>
-            بيانات وهوية مركز العمل
+            {t('manufacturing.work_centers.work_center_modal.s7', "بيانات وهوية مركز العمل")}
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '12px' }}>
-            <Field label="رمز المركز (الكود) *">
+            <Field label={t('manufacturing.work_centers.work_center_modal.s8', "رمز المركز (الكود) *")}>
               <input
                 type="text"
                 required
                 value={formCode}
                 onChange={(e) => setFormCode(e.target.value)}
-                placeholder="مثال: WC-101"
+                placeholder={t('manufacturing.work_centers.work_center_modal.s9', "مثال: WC-101")}
                 style={{
                   width: '100%',
                   padding: '8px 12px',
@@ -113,13 +115,13 @@ export function WorkCenterModal({
               />
             </Field>
 
-            <Field label="اسم مركز العمل / الماكينة *">
+            <Field label={t('manufacturing.work_centers.work_center_modal.s10', "اسم مركز العمل / الماكينة *")}>
               <input
                 type="text"
                 required
                 value={formName}
                 onChange={(e) => setFormName(e.target.value)}
-                placeholder="مثال: ماكينة تعبئة وتغليف آلي"
+                placeholder={t('manufacturing.work_centers.work_center_modal.s11', "مثال: ماكينة تعبئة وتغليف آلي")}
                 style={{
                   width: '100%',
                   padding: '8px 12px',
@@ -133,7 +135,7 @@ export function WorkCenterModal({
           </div>
 
           <div>
-            <Field label="الحالة التشغيلية *">
+            <Field label={t('manufacturing.work_centers.work_center_modal.s12', "الحالة التشغيلية *")}>
               <CustomSelect
                 value={formStatus}
                 onChange={(val) => setFormStatus(val as any)}
@@ -156,7 +158,7 @@ export function WorkCenterModal({
           }}
         >
           <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#170e5e', borderBottom: '1px solid #e2e8f0', paddingBottom: 6 }}>
-            المعايير المالية ومؤشرات الطاقة
+            {t('manufacturing.work_centers.work_center_modal.s13', "المعايير المالية ومؤشرات الطاقة")}
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
@@ -180,7 +182,7 @@ export function WorkCenterModal({
               />
             </Field>
 
-            <Field label="طاقة الإنتاج/ساعة">
+            <Field label={t('manufacturing.work_centers.work_center_modal.s14', "طاقة الإنتاج/ساعة")}>
               <input
                 type="number"
                 min="0.1"
@@ -200,7 +202,7 @@ export function WorkCenterModal({
               />
             </Field>
 
-            <Field label="كفاءة التشغيل (%)">
+            <Field label={t('manufacturing.work_centers.work_center_modal.s15', "كفاءة التشغيل (%)")}>
               <input
                 type="number"
                 min="10"
@@ -222,12 +224,12 @@ export function WorkCenterModal({
           </div>
 
           <div>
-            <Field label="ملاحظات أو مواصفات فنية">
+            <Field label={t('manufacturing.work_centers.work_center_modal.s16', "ملاحظات أو مواصفات فنية")}>
               <textarea
                 rows={2}
                 value={formNotes}
                 onChange={(e) => setFormNotes(e.target.value)}
-                placeholder="مواصفات الماكينة أو أي تعليمات تشغيل وتبريد..."
+                placeholder={t('manufacturing.work_centers.work_center_modal.s17', "مواصفات الماكينة أو أي تعليمات تشغيل وتبريد...")}
                 style={{
                   width: '100%',
                   padding: '8px 12px',

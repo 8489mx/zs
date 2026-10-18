@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { FormSection } from '@/shared/components/form-section';
 import { DataTable } from '@/shared/ui/data-table';
 import { formatCurrency } from '@/lib/format';
@@ -12,11 +13,12 @@ export function PricingPreviewTableSection({
   previewRows,
   previewLoading,
 }: PricingPreviewTableSectionProps) {
+  const { t } = useTranslation();
   return (
     <FormSection
-      title="نتائج المعاينة التفصيلية"
-      description="تفاصيل الأسعار قبل وبعد والتنبيهات والاستثناءات لكل صنف مشمول في نطاق التسعير المحدد."
-      actions={previewRows.length ? <span className="nav-pill">{previewRows.length} صنف</span> : undefined}
+      title={t('pricing_center.pricing_preview_table_section.s0', "نتائج المعاينة التفصيلية")}
+      description={t('pricing_center.pricing_preview_table_section.s1', "تفاصيل الأسعار قبل وبعد والتنبيهات والاستثناءات لكل صنف مشمول في نطاق التسعير المحدد.")}
+      actions={previewRows.length ? <span className="nav-pill">{previewRows.length} {t('pricing_center.pricing_preview_table_section.s2', "صنف")}</span> : undefined}
     >
       <DataTable
         density="compact"
@@ -26,13 +28,13 @@ export function PricingPreviewTableSection({
           previewLoading ? (
             <div className="empty-state" style={{ padding: '36px 16px', textAlign: 'center' }}>
               <p style={{ margin: 0, color: '#170e5e', fontSize: '0.9rem', fontWeight: 600 }}>
-                جاري احتساب ومحاكاة الأثر على الأصناف...
+                {t('pricing_center.pricing_preview_table_section.s3', "جاري احتساب ومحاكاة الأثر على الأصناف...")}
               </p>
             </div>
           ) : (
             <div className="empty-state" style={{ padding: '24px 16px', textAlign: 'center' }}>
               <p style={{ margin: 0, color: '#64748b', fontSize: '0.86rem' }}>
-                لا توجد نتائج معاينة بعد. حدد النطاق واضغط على زر <strong>“معاينة الأثر”</strong>.
+                {t('pricing_center.pricing_preview_table_section.s4', "لا توجد نتائج معاينة بعد. حدد النطاق واضغط على زر")} <strong>{t('pricing_center.pricing_preview_table_section.s5', "“معاينة الأثر”")}</strong>.
               </p>
             </div>
           )
@@ -40,7 +42,7 @@ export function PricingPreviewTableSection({
         columns={[
           {
             key: 'name',
-            header: 'الصنف والباركود',
+            header: t('pricing_center.pricing_preview_table_section.s6', "الصنف والباركود"),
             cell: (row: PricingPreviewRow) => (
               <div>
                 <strong style={{ fontSize: '0.84rem', color: '#0f172a' }}>{row.name}</strong>
@@ -50,16 +52,16 @@ export function PricingPreviewTableSection({
           },
           {
             key: 'kind',
-            header: 'النوع',
+            header: t('pricing_center.pricing_preview_table_section.s7', "النوع"),
             cell: (row: PricingPreviewRow) => (
               <span style={{ fontSize: '0.76rem', color: '#475569' }}>
-                {row.itemKind === 'fashion' ? `ملابس${row.styleCode ? ` / ${row.styleCode}` : ''}` : 'عادي'}
+                {row.itemKind === 'fashion' ? `ملابس${row.styleCode ? ` / ${row.styleCode}` : ''}` : t('pricing_center.pricing_preview_table_section.s8', "عادي")}
               </span>
             ),
           },
           {
             key: 'cost',
-            header: 'سعر التكلفة',
+            header: t('pricing_center.pricing_preview_table_section.s9', "سعر التكلفة"),
             cell: (row: PricingPreviewRow) => (
               <span style={{ fontSize: '0.8rem', color: '#475569' }}>
                 {formatCurrency(row.costPrice)}
@@ -68,14 +70,14 @@ export function PricingPreviewTableSection({
           },
           {
             key: 'stock',
-            header: 'المخزون',
+            header: t('pricing_center.pricing_preview_table_section.s10', "المخزون"),
             cell: (row: PricingPreviewRow) => (
               <span style={{ fontWeight: 700, fontSize: '0.82rem' }}>{row.stockQty}</span>
             ),
           },
           {
             key: 'retail',
-            header: 'قطاعي (قبل ← بعد)',
+            header: t('pricing_center.pricing_preview_table_section.s11', "قطاعي (قبل ← بعد)"),
             cell: (row: PricingPreviewRow) => (
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem' }}>
                 <span style={{ color: '#64748b' }}>{formatCurrency(row.retailPriceBefore)}</span>
@@ -88,7 +90,7 @@ export function PricingPreviewTableSection({
           },
           {
             key: 'wholesale',
-            header: 'جملة (قبل ← بعد)',
+            header: t('pricing_center.pricing_preview_table_section.s12', "جملة (قبل ← بعد)"),
             cell: (row: PricingPreviewRow) => (
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem' }}>
                 <span style={{ color: '#64748b' }}>{formatCurrency(row.wholesalePriceBefore)}</span>
@@ -101,12 +103,12 @@ export function PricingPreviewTableSection({
           },
           {
             key: 'flags',
-            header: 'تنبيهات',
+            header: t('pricing_center.pricing_preview_table_section.s13', "تنبيهات"),
             cell: (row: PricingPreviewRow) => {
               const flags = [
-                row.hasActiveOffer ? 'عرض' : '',
-                row.hasCustomerPrice ? 'سعر خاص' : '',
-                row.belowCostAfter ? 'أقل من الشراء' : '',
+                row.hasActiveOffer ? t('pricing_center.pricing_preview_table_section.s14', "عرض") : '',
+                row.hasCustomerPrice ? t('pricing_center.pricing_preview_table_section.s15', "سعر خاص") : '',
+                row.belowCostAfter ? t('pricing_center.pricing_preview_table_section.s16', "أقل من الشراء") : '',
               ].filter(Boolean);
 
               if (!flags.length) return <span style={{ color: '#94a3b8' }}>—</span>;
@@ -135,25 +137,25 @@ export function PricingPreviewTableSection({
           },
           {
             key: 'status',
-            header: 'الحالة',
+            header: t('pricing_center.pricing_preview_table_section.s17', "الحالة"),
             cell: (row: PricingPreviewRow) => {
               if (row.skipped) {
                 return (
                   <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#b45309', background: '#fef3c7', padding: '2px 8px', borderRadius: '999px', border: '1px solid #fde68a' }}>
-                    مستثنى ({row.skipReasons.join(' + ')})
+                    {t('pricing_center.pricing_preview_table_section.s18', "مستثنى (")}{row.skipReasons.join(' + ')})
                   </span>
                 );
               }
               if (row.changed) {
                 return (
                   <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#16a34a', background: '#f0fdf4', padding: '2px 8px', borderRadius: '999px', border: '1px solid #bbf7d0' }}>
-                    سيتغير
+                    {t('pricing_center.pricing_preview_table_section.s19', "سيتغير")}
                   </span>
                 );
               }
               return (
                 <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
-                  بدون تغيير
+                  {t('pricing_center.pricing_preview_table_section.s20', "بدون تغيير")}
                 </span>
               );
             },

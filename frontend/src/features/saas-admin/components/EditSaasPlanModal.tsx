@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { SaasPlan } from '@/features/saas-admin/api/saas-admin.api';
@@ -27,6 +28,7 @@ export function EditSaasPlanModal({
   isPending,
   featurePlans,
 }: EditSaasPlanModalProps) {
+  const { t } = useTranslation();
   if (!editingPlan) return null;
 
   return (
@@ -34,7 +36,7 @@ export function EditSaasPlanModal({
       open={Boolean(editingPlan)}
       onClose={() => setEditingPlan(null)}
       width="640px"
-      ariaLabel="تعديل باقة الاشتراك"
+      ariaLabel={t('saas_admin.edit_saas_plan_modal.s0', "تعديل باقة الاشتراك")}
     >
       <div className="dialog-card" style={{ padding: '6px 0' }} dir="rtl">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '18px', borderBottom: '1px solid #f1f5f9', paddingBottom: '14px' }}>
@@ -47,10 +49,10 @@ export function EditSaasPlanModal({
             </div>
             <div>
               <h3 style={{ margin: 0, fontSize: '17px', fontWeight: 900, color: '#0f172a' }}>
-                تعديل باقة الاشتراك: {editingPlan.name}
+                {t('saas_admin.edit_saas_plan_modal.s1', "تعديل باقة الاشتراك:")} {editingPlan.name}
               </h3>
               <p style={{ margin: '3px 0 0 0', fontSize: '12px', color: '#64748b' }}>
-                تحديث التسعير وفترة الفوترة وحدود النسخ الشاغلة.
+                {t('saas_admin.edit_saas_plan_modal.s2', "تحديث التسعير وفترة الفوترة وحدود النسخ الشاغلة.")}
               </p>
             </div>
           </div>
@@ -58,7 +60,7 @@ export function EditSaasPlanModal({
             type="button"
             className="dialog-shell-close-btn"
             onClick={() => setEditingPlan(null)}
-            title="إغلاق"
+            title={t('saas_admin.edit_saas_plan_modal.s3', "إغلاق")}
             style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#64748b', display: 'flex', alignItems: 'center' }}
           >
             <XIcon size={16} />
@@ -68,25 +70,25 @@ export function EditSaasPlanModal({
         <form onSubmit={onSubmit}>
           <div className="saas-modal-card" style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px', marginBottom: '14px' }}>
             <div className="saas-modal-card-title" style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a', marginBottom: '10px' }}>
-              <span>1. بيانات الباقة الأساسية</span>
+              <span>{t('saas_admin.edit_saas_plan_modal.s4', "1. بيانات الباقة الأساسية")}</span>
             </div>
             <div className="saas-modal-grid-2" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
-              <Field label="كود الباقة (إنجليزي) *">
+              <Field label={t('saas_admin.edit_saas_plan_modal.s5', "كود الباقة (إنجليزي) *")}>
                 <input 
                   required 
                   value={editingPlan.code} 
                   onChange={(e) => setEditingPlan({ ...editingPlan, code: e.target.value })} 
                   dir="ltr"
-                  placeholder="مثال: BASIC, PRO"
+                  placeholder={t('saas_admin.edit_saas_plan_modal.s6', "مثال: BASIC, PRO")}
                   style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px' }}
                 />
               </Field>
-              <Field label="اسم الباقة بالعربية *">
+              <Field label={t('saas_admin.edit_saas_plan_modal.s7', "اسم الباقة بالعربية *")}>
                 <input 
                   required 
                   value={editingPlan.name} 
                   onChange={(e) => setEditingPlan({ ...editingPlan, name: e.target.value })} 
-                  placeholder="مثال: الباقة الأساسية"
+                  placeholder={t('saas_admin.edit_saas_plan_modal.s8', "مثال: الباقة الأساسية")}
                   style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px' }}
                 />
               </Field>
@@ -95,10 +97,10 @@ export function EditSaasPlanModal({
 
           <div className="saas-modal-card" style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px', marginBottom: '14px' }}>
             <div className="saas-modal-card-title" style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a', marginBottom: '10px' }}>
-              <span>2. التسعير وفترة الفوترة</span>
+              <span>{t('saas_admin.edit_saas_plan_modal.s9', "2. التسعير وفترة الفوترة")}</span>
             </div>
             <div className="saas-modal-grid-3" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
-              <Field label="السعر *">
+              <Field label={t('saas_admin.edit_saas_plan_modal.s10', "السعر *")}>
                 <input 
                   required 
                   type="number"
@@ -109,29 +111,29 @@ export function EditSaasPlanModal({
                   style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px' }}
                 />
               </Field>
-              <Field label="العملة">
+              <Field label={t('saas_admin.edit_saas_plan_modal.s11', "العملة")}>
                 <select 
                   value={editingPlan.currency} 
                   onChange={(e) => setEditingPlan({ ...editingPlan, currency: e.target.value })}
                   style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px' }}
                 >
-                  <option value="EGP">EGP (جنيه)</option>
-                  <option value="USD">USD (دولار)</option>
-                  <option value="SAR">SAR (ريال)</option>
-                  <option value="AED">AED (درهم)</option>
+                  <option value="EGP">{t('saas_admin.edit_saas_plan_modal.s12', "EGP (جنيه)")}</option>
+                  <option value="USD">{t('saas_admin.edit_saas_plan_modal.s13', "USD (دولار)")}</option>
+                  <option value="SAR">{t('saas_admin.edit_saas_plan_modal.s14', "SAR (ريال)")}</option>
+                  <option value="AED">{t('saas_admin.edit_saas_plan_modal.s15', "AED (درهم)")}</option>
                 </select>
               </Field>
-              <Field label="فترة الفوترة (أشهر)">
+              <Field label={t('saas_admin.edit_saas_plan_modal.s16', "فترة الفوترة (أشهر)")}>
                 <select
                   value={editingPlan.billing_period_months}
                   onChange={(e) => setEditingPlan({ ...editingPlan, billing_period_months: Number(e.target.value) })}
                   style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px' }}
                 >
-                  <option value={1}>شهر واحد (1)</option>
-                  <option value={3}>3 أشهر</option>
-                  <option value={6}>6 أشهر</option>
-                  <option value={12}>سنة كاملة (12)</option>
-                  <option value={24}>سنتان (24)</option>
+                  <option value={1}>{t('saas_admin.edit_saas_plan_modal.s17', "شهر واحد (1)")}</option>
+                  <option value={3}>{t('saas_admin.edit_saas_plan_modal.s18', "3 أشهر")}</option>
+                  <option value={6}>{t('saas_admin.edit_saas_plan_modal.s19', "6 أشهر")}</option>
+                  <option value={12}>{t('saas_admin.edit_saas_plan_modal.s20', "سنة كاملة (12)")}</option>
+                  <option value={24}>{t('saas_admin.edit_saas_plan_modal.s21', "سنتان (24)")}</option>
                 </select>
               </Field>
             </div>
@@ -139,38 +141,38 @@ export function EditSaasPlanModal({
 
           <div className="saas-modal-card" style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px', marginBottom: '14px' }}>
             <div className="saas-modal-card-title" style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a', marginBottom: '10px' }}>
-              <span>3. الحدود والميزات والخطة</span>
+              <span>{t('saas_admin.edit_saas_plan_modal.s22', "3. الحدود والميزات والخطة")}</span>
             </div>
             <div className="saas-modal-grid-2" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
-              <Field label="أقصى عدد مستخدمين (0 = غير محدود)">
+              <Field label={t('saas_admin.edit_saas_plan_modal.s23', "أقصى عدد مستخدمين (0 = غير محدود)")}>
                 <input 
                   type="number"
                   min="0"
                   value={editingPlan.max_users || 0} 
                   onChange={(e) => setEditingPlan({ ...editingPlan, max_users: Number(e.target.value) })} 
-                  placeholder="0 لغير محدود"
+                  placeholder={t('saas_admin.edit_saas_plan_modal.s24', "0 لغير محدود")}
                   style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px' }}
                 />
               </Field>
-              <Field label="أقصى عدد فروع (0 = غير محدود)">
+              <Field label={t('saas_admin.edit_saas_plan_modal.s25', "أقصى عدد فروع (0 = غير محدود)")}>
                 <input 
                   type="number"
                   min="0"
                   value={editingPlan.max_branches || 0} 
                   onChange={(e) => setEditingPlan({ ...editingPlan, max_branches: Number(e.target.value) })} 
-                  placeholder="0 لغير محدود"
+                  placeholder={t('saas_admin.edit_saas_plan_modal.s26', "0 لغير محدود")}
                   style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px' }}
                 />
               </Field>
             </div>
             <div style={{ marginTop: '10px' }}>
-              <Field label="باقة الميزات المرتبطة">
+              <Field label={t('saas_admin.edit_saas_plan_modal.s27', "باقة الميزات المرتبطة")}>
                 <select
                   value={editingPlan.feature_plan_id || ''}
                   onChange={(e) => setEditingPlan({ ...editingPlan, feature_plan_id: e.target.value || null })}
                   style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px' }}
                 >
-                  <option value="">-- بدون ربط --</option>
+                  <option value="">{t('saas_admin.edit_saas_plan_modal.s28', "-- بدون ربط --")}</option>
                   {featurePlans.map((p: any) => (
                     <option key={p.id} value={p.id}>{p.name} ({p.code})</option>
                   ))}
@@ -186,7 +188,7 @@ export function EditSaasPlanModal({
                 style={{ width: '16px', height: '16px', cursor: 'pointer' }}
               />
               <label htmlFor="edit_is_active" style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a', cursor: 'pointer' }}>
-                مفعلة ومتاحة لاشتراكات العملاء
+                {t('saas_admin.edit_saas_plan_modal.s29', "مفعلة ومتاحة لاشتراكات العملاء")}
               </label>
             </div>
           </div>
@@ -198,7 +200,7 @@ export function EditSaasPlanModal({
               onClick={() => setEditingPlan(null)}
               style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#0f172a', fontWeight: 700 }}
             >
-              إلغاء
+              {t('saas_admin.edit_saas_plan_modal.s30', "إلغاء")}
             </button>
             <button
               type="submit"
@@ -214,7 +216,7 @@ export function EditSaasPlanModal({
               }}
               disabled={isPending || !editingPlan.code || !editingPlan.name}
             >
-              {isPending ? 'جاري الحفظ...' : 'حفظ التعديلات'}
+              {isPending ? t('saas_admin.edit_saas_plan_modal.s31', "جاري الحفظ...") : t('saas_admin.edit_saas_plan_modal.s32', "حفظ التعديلات")}
             </button>
           </div>
         </form>

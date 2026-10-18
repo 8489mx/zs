@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
 import { StandardDialog } from '@/shared/components/StandardDialog';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
@@ -232,6 +233,7 @@ export function ScheduleGeneratorModal({
   onClose,
   onSuccess,
 }: ScheduleGeneratorModalProps) {
+  const { t: __t } = useTranslation();
   const [activeTab, setActiveTab] = useState<'wizard' | 'excel'>('wizard');
   const [projectScope, setProjectScope] = useState<ProjectScope>('full_turnkey');
   const [selectedTrades, setSelectedTrades] = useState<string[]>(PRESET_TRADE_MAP['full_turnkey']);
@@ -1329,16 +1331,16 @@ export function ScheduleGeneratorModal({
     <StandardDialog
       open={open}
       onClose={onClose}
-      title="محرك التوليد الزمني الذكي للإنشاءات (Universal Construction Schedule Builder)"
-      subtitle={projectName ? `المشروع: ${projectName}` : 'توليد مسارات تنفيذية ذكية لكافة المقاولين والتخصصات والحزم المستقلة بنقرة واحدة'}
+      title={__t('contracting.schedule_generator_modal.s0', "محرك التوليد الزمني الذكي للإنشاءات (Universal Construction Schedule Builder)")}
+      subtitle={projectName ? `المشروع: ${projectName}` : __t('contracting.schedule_generator_modal.s1', "توليد مسارات تنفيذية ذكية لكافة المقاولين والتخصصات والحزم المستقلة بنقرة واحدة")}
       maxWidth="1100px"
       footer={
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
           <div style={{ fontSize: 'var(--font-micro)', color: '#64748b' }}>
-            سيتم إنشاء {previewTasks.length} نشاط ومرحلة تنفيذية مع التواريخ والمسار الحرج CPM.
+            {__t('contracting.schedule_generator_modal.s2', "سيتم إنشاء")} {previewTasks.length} {__t('contracting.schedule_generator_modal.s3', "نشاط ومرحلة تنفيذية مع التواريخ والمسار الحرج CPM.")}
             {generating && progressCount > 0 && (
               <span style={{ marginInlineStart: '8px', color: '#170e5e', fontWeight: 700 }}>
-                (تم إنشاء {progressCount} من {previewTasks.length})
+                {__t('contracting.schedule_generator_modal.s4', "(تم إنشاء")} {progressCount} {__t('contracting.schedule_generator_modal.s5', "من")} {previewTasks.length})
               </span>
             )}
           </div>
@@ -1357,7 +1359,7 @@ export function ScheduleGeneratorModal({
                 cursor: 'pointer',
               }}
             >
-              إلغاء
+              {__t('contracting.schedule_generator_modal.s6', "إلغاء")}
             </button>
             <button
               type="button"
@@ -1379,7 +1381,7 @@ export function ScheduleGeneratorModal({
               }}
             >
               <AppIcons.Calendar size={16} />
-              <span>{generating ? `جارٍ توليد الجدول (${progressCount}/${previewTasks.length})...` : 'تثبيت واعتماد الجدول الزمني'}</span>
+              <span>{generating ? `جارٍ توليد الجدول (${progressCount}/${previewTasks.length})...` : __t('contracting.schedule_generator_modal.s7', "تثبيت واعتماد الجدول الزمني")}</span>
             </button>
           </div>
         </div>
@@ -1408,7 +1410,7 @@ export function ScheduleGeneratorModal({
               cursor: 'pointer',
             }}
           >
-            معالج التوليد السريع للأدوار والمراحل (Wizard)
+            {__t('contracting.schedule_generator_modal.s8', "معالج التوليد السريع للأدوار والمراحل (Wizard)")}
           </button>
           <button
             type="button"
@@ -1424,7 +1426,7 @@ export function ScheduleGeneratorModal({
               cursor: 'pointer',
             }}
           >
-            استيراد من إكسيل (Excel)
+            {__t('contracting.schedule_generator_modal.s9', "استيراد من إكسيل (Excel)")}
           </button>
         </div>
 
@@ -1432,10 +1434,10 @@ export function ScheduleGeneratorModal({
           <div style={{ padding: '24px', backgroundColor: '#f8fafc', borderRadius: '10px', border: '1px dashed #cbd5e1', textAlign: 'center' }}>
             <AppIcons.FileText size={40} style={{ color: '#170e5e', margin: '0 auto 12px' }} />
             <h3 style={{ fontSize: 'var(--font-section-title)', fontWeight: 700, color: '#1e293b', margin: '0 0 6px' }}>
-              استيراد بيانات الجدول الزمني من ملف إكسيل
+              {__t('contracting.schedule_generator_modal.s10', "استيراد بيانات الجدول الزمني من ملف إكسيل")}
             </h3>
             <p style={{ fontSize: 'var(--font-body)', color: '#64748b', maxWidth: '540px', margin: '0 auto 16px' }}>
-              يمكنك استيراد ملف إكسيل للجدول الزمني أو تطبيق القالب الإنشائي الميداني القياسي (حفر وأساسات + هيكل خرساني + تشطيبات متكاملة).
+              {__t('contracting.schedule_generator_modal.s11', "يمكنك استيراد ملف إكسيل للجدول الزمني أو تطبيق القالب الإنشائي الميداني القياسي (حفر وأساسات + هيكل خرساني + تشطيبات متكاملة).")}
             </p>
             <div style={{ display: 'flex', justifyContent: 'center', gap: '10px' }}>
               <button
@@ -1452,7 +1454,7 @@ export function ScheduleGeneratorModal({
                   cursor: 'pointer',
                 }}
               >
-                تطبيق القالب الإنشائي القياسي
+                {__t('contracting.schedule_generator_modal.s12', "تطبيق القالب الإنشائي القياسي")}
               </button>
             </div>
           </div>
@@ -1462,7 +1464,7 @@ export function ScheduleGeneratorModal({
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '12px 14px', backgroundColor: '#f8fafc', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
                 <label style={{ fontSize: 'var(--font-body)', fontWeight: 700, color: '#170e5e' }}>
-                  نطاق المشروع الإنشائي المطلوب توليده:
+                  {__t('contracting.schedule_generator_modal.s13', "نطاق المشروع الإنشائي المطلوب توليده:")}
                 </label>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   {/* زر المزامنة مع المقايسة */}
@@ -1471,7 +1473,7 @@ export function ScheduleGeneratorModal({
                       type="button"
                       onClick={handleSyncFromBoq}
                       disabled={isSyncingBoq}
-                      title="فحص بنود مقايسة هذا المشروع وتحديد حزم الجدول الزمني تلقائياً"
+                      title={__t('contracting.schedule_generator_modal.s14', "فحص بنود مقايسة هذا المشروع وتحديد حزم الجدول الزمني تلقائياً")}
                       style={{
                         height: '30px',
                         padding: '0 10px',
@@ -1488,7 +1490,7 @@ export function ScheduleGeneratorModal({
                       }}
                     >
                       <AppIcons.RefreshCw size={12} />
-                      <span>{isSyncingBoq ? 'جارٍ قراءة المقايسة...' : 'تحديد الحزم آلياً من مقايسة المشروع'}</span>
+                      <span>{isSyncingBoq ? __t('contracting.schedule_generator_modal.s15', "جارٍ قراءة المقايسة...") : __t('contracting.schedule_generator_modal.s16', "تحديد الحزم آلياً من مقايسة المشروع")}</span>
                     </button>
                   )}
 
@@ -1512,7 +1514,7 @@ export function ScheduleGeneratorModal({
                     }}
                   >
                     <AppIcons.Sliders size={12} />
-                    <span>تخصيص الحزم ({selectedTrades.length} من {MODULAR_TRADES.length})</span>
+                    <span>{__t('contracting.schedule_generator_modal.s17', "تخصيص الحزم (")}{selectedTrades.length} {__t('contracting.schedule_generator_modal.s18', "من")} {MODULAR_TRADES.length})</span>
                   </button>
                 </div>
               </div>
@@ -1521,7 +1523,7 @@ export function ScheduleGeneratorModal({
                 options={SCOPE_OPTIONS}
                 value={projectScope}
                 onChange={(val) => handleScopeChange(val as ProjectScope)}
-                placeholder="اختر نطاق تنفيذ المشروع..."
+                placeholder={__t('contracting.schedule_generator_modal.s19', "اختر نطاق تنفيذ المشروع...")}
               />
             </div>
 
@@ -1531,10 +1533,10 @@ export function ScheduleGeneratorModal({
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
                   <div>
                     <div style={{ fontSize: 'var(--font-section-title)', fontWeight: 700, color: '#0f172a' }}>
-                      حزم وتخصصات الأعمال المشمولة في الجدول الزمني
+                      {__t('contracting.schedule_generator_modal.s20', "حزم وتخصصات الأعمال المشمولة في الجدول الزمني")}
                     </div>
                     <div style={{ fontSize: 'var(--font-micro)', color: '#64748b', marginTop: '2px' }}>
-                      حدد الحزم التي يشملها عقدك؛ سيقوم المحرك بحصر الجدول الزمني عليها فقط وضبط التواريخ والاعتماديات بدقة.
+                      {__t('contracting.schedule_generator_modal.s21', "حدد الحزم التي يشملها عقدك؛ سيقوم المحرك بحصر الجدول الزمني عليها فقط وضبط التواريخ والاعتماديات بدقة.")}
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
@@ -1546,7 +1548,7 @@ export function ScheduleGeneratorModal({
                       }}
                       style={{ padding: '4px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#f8fafc', fontSize: '11px', fontWeight: 600, cursor: 'pointer' }}
                     >
-                      تحديد الكل
+                      {__t('contracting.schedule_generator_modal.s22', "تحديد الكل")}
                     </button>
                     <button
                       type="button"
@@ -1556,7 +1558,7 @@ export function ScheduleGeneratorModal({
                       }}
                       style={{ padding: '4px 10px', borderRadius: '6px', border: '1px solid #bfdbfe', background: '#eff6ff', color: '#1d4ed8', fontSize: '11px', fontWeight: 700, cursor: 'pointer' }}
                     >
-                      كهرباء فقط
+                      {__t('contracting.schedule_generator_modal.s23', "كهرباء فقط")}
                     </button>
                     <button
                       type="button"
@@ -1566,7 +1568,7 @@ export function ScheduleGeneratorModal({
                       }}
                       style={{ padding: '4px 10px', borderRadius: '6px', border: '1px solid #a7f3d0', background: '#ecfdf5', color: '#047857', fontSize: '11px', fontWeight: 700, cursor: 'pointer' }}
                     >
-                      سباكة وصحي فقط
+                      {__t('contracting.schedule_generator_modal.s24', "سباكة وصحي فقط")}
                     </button>
                     <button
                       type="button"
@@ -1576,7 +1578,7 @@ export function ScheduleGeneratorModal({
                       }}
                       style={{ padding: '4px 10px', borderRadius: '6px', border: '1px solid #fde68a', background: '#fffbeb', color: '#b45309', fontSize: '11px', fontWeight: 700, cursor: 'pointer' }}
                     >
-                      كهروميكانيك MEP
+                      {__t('contracting.schedule_generator_modal.s25', "كهروميكانيك MEP")}
                     </button>
                     <button
                       type="button"
@@ -1586,7 +1588,7 @@ export function ScheduleGeneratorModal({
                       }}
                       style={{ padding: '4px 10px', borderRadius: '6px', border: '1px solid #e9d5ff', background: '#faf5ff', color: '#7e22ce', fontSize: '11px', fontWeight: 700, cursor: 'pointer' }}
                     >
-                      تشطيبات معمارية
+                      {__t('contracting.schedule_generator_modal.s26', "تشطيبات معمارية")}
                     </button>
                     <button
                       type="button"
@@ -1596,7 +1598,7 @@ export function ScheduleGeneratorModal({
                       }}
                       style={{ padding: '4px 10px', borderRadius: '6px', border: '1px solid #fee2e2', background: '#fef2f2', color: '#b91c1c', fontSize: '11px', fontWeight: 600, cursor: 'pointer' }}
                     >
-                      إلغاء الكل
+                      {__t('contracting.schedule_generator_modal.s27', "إلغاء الكل")}
                     </button>
                   </div>
                 </div>
@@ -1661,7 +1663,7 @@ export function ScheduleGeneratorModal({
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px' }}>
               <div>
                 <label style={{ display: 'block', fontSize: 'var(--font-micro)', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                  تاريخ بدء أعمال المشروع *
+                  {__t('contracting.schedule_generator_modal.s28', "تاريخ بدء أعمال المشروع *")}
                 </label>
                 <input
                   type="date"
@@ -1682,7 +1684,7 @@ export function ScheduleGeneratorModal({
 
               <div>
                 <label style={{ display: 'block', fontSize: 'var(--font-micro)', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                  عدد الأدوار المتكررة
+                  {__t('contracting.schedule_generator_modal.s29', "عدد الأدوار المتكررة")}
                 </label>
                 <input
                   type="number"
@@ -1705,7 +1707,7 @@ export function ScheduleGeneratorModal({
 
               <div>
                 <label style={{ display: 'block', fontSize: 'var(--font-micro)', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                  مدة خرسانة الدور (أيام)
+                  {__t('contracting.schedule_generator_modal.s30', "مدة خرسانة الدور (أيام)")}
                 </label>
                 <input
                   type="number"
@@ -1726,7 +1728,7 @@ export function ScheduleGeneratorModal({
 
               <div>
                 <label style={{ display: 'block', fontSize: 'var(--font-micro)', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                  مدة مباني الدور (أيام)
+                  {__t('contracting.schedule_generator_modal.s31', "مدة مباني الدور (أيام)")}
                 </label>
                 <input
                   type="number"
@@ -1754,7 +1756,7 @@ export function ScheduleGeneratorModal({
                   checked={includeBasement}
                   onChange={(e) => setIncludeBasement(e.target.checked)}
                 />
-                <span>يشمل دور بدروم</span>
+                <span>{__t('contracting.schedule_generator_modal.s32', "يشمل دور بدروم")}</span>
               </label>
 
               <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: 'var(--font-body)', cursor: 'pointer', fontWeight: 600, color: '#334155' }}>
@@ -1763,7 +1765,7 @@ export function ScheduleGeneratorModal({
                   checked={includeRoof}
                   onChange={(e) => setIncludeRoof(e.target.checked)}
                 />
-                <span>يشمل دور سطح (روف) وغرف خدمات</span>
+                <span>{__t('contracting.schedule_generator_modal.s33', "يشمل دور سطح (روف) وغرف خدمات")}</span>
               </label>
             </div>
 
@@ -1772,13 +1774,13 @@ export function ScheduleGeneratorModal({
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                   <h4 style={{ fontSize: 'var(--font-section-title)', fontWeight: 700, color: '#1e293b', margin: 0 }}>
-                    معاينة الجدول الزمني المولد ({previewTasks.length} نشاط ومرحلة)
+                    {__t('contracting.schedule_generator_modal.s34', "معاينة الجدول الزمني المولد (")}{previewTasks.length} {__t('contracting.schedule_generator_modal.s35', "نشاط ومرحلة)")}
                   </h4>
                   {customTasks !== null && (
                     <button
                       type="button"
                       onClick={() => setCustomTasks(null)}
-                      title="استعادة مدد وتواريخ القالب القياسي الافتراضية"
+                      title={__t('contracting.schedule_generator_modal.s36', "استعادة مدد وتواريخ القالب القياسي الافتراضية")}
                       style={{
                         fontSize: 'var(--font-micro)',
                         color: '#170e5e',
@@ -1794,12 +1796,12 @@ export function ScheduleGeneratorModal({
                       }}
                     >
                       <AppIcons.RefreshCw size={11} />
-                      <span>إعادة ضبط المدد للقالب</span>
+                      <span>{__t('contracting.schedule_generator_modal.s37', "إعادة ضبط المدد للقالب")}</span>
                     </button>
                   )}
                 </div>
                 <span style={{ fontSize: 'var(--font-micro)', color: '#64748b' }}>
-                  تاريخ الانتهاء المتوقع للمشروع: <strong style={{ color: '#170e5e', fontSize: '13px' }}>{previewTasks[previewTasks.length - 1]?.endDate || '-'}</strong>
+                  {__t('contracting.schedule_generator_modal.s38', "تاريخ الانتهاء المتوقع للمشروع:")} <strong style={{ color: '#170e5e', fontSize: '13px' }}>{previewTasks[previewTasks.length - 1]?.endDate || '-'}</strong>
                 </span>
               </div>
 
@@ -1807,10 +1809,10 @@ export function ScheduleGeneratorModal({
                 <div style={{ border: '1px dashed #cbd5e1', borderRadius: '8px', padding: '32px', textAlign: 'center', backgroundColor: '#f8fafc' }}>
                   <AppIcons.AlertTriangle size={32} style={{ color: '#b45309', margin: '0 auto 8px' }} />
                   <div style={{ fontSize: 'var(--font-body)', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                    لم يتم تحديد أي حزمة أعمال حالياً
+                    {__t('contracting.schedule_generator_modal.s39', "لم يتم تحديد أي حزمة أعمال حالياً")}
                   </div>
                   <div style={{ fontSize: 'var(--font-micro)', color: '#64748b', marginBottom: '12px' }}>
-                    يرجى اختيار أحد القوالب التخصصية من القائمة أعلاه، أو تفعيل حزمة واحدة على الأقل لتوليد جدولها الزمني.
+                    {__t('contracting.schedule_generator_modal.s40', "يرجى اختيار أحد القوالب التخصصية من القائمة أعلاه، أو تفعيل حزمة واحدة على الأقل لتوليد جدولها الزمني.")}
                   </div>
                   <button
                     type="button"
@@ -1826,7 +1828,7 @@ export function ScheduleGeneratorModal({
                       cursor: 'pointer',
                     }}
                   >
-                    استعادة القالب المتكامل (تسليم مفتاح)
+                    {__t('contracting.schedule_generator_modal.s41', "استعادة القالب المتكامل (تسليم مفتاح)")}
                   </button>
                 </div>
               ) : (
@@ -1835,12 +1837,12 @@ export function ScheduleGeneratorModal({
                     <thead style={{ position: 'sticky', top: 0, background: '#f8fafc', zIndex: 1 }}>
                       <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
                         <th style={{ padding: '8px 10px', fontSize: 'var(--font-table-head)', color: '#475569', width: '80px', textAlign: 'center' }}>WBS</th>
-                        <th style={{ padding: '8px 10px', fontSize: 'var(--font-table-head)', color: '#475569', width: '170px' }}>الحزمة الإنشائية</th>
-                        <th style={{ padding: '8px 10px', fontSize: 'var(--font-table-head)', color: '#475569' }}>بيان النشاط والمرحلة</th>
-                        <th style={{ padding: '8px 10px', fontSize: 'var(--font-table-head)', color: '#475569', width: '95px', textAlign: 'center' }}>البداية</th>
-                        <th style={{ padding: '8px 10px', fontSize: 'var(--font-table-head)', color: '#475569', width: '95px', textAlign: 'center' }}>النهاية</th>
-                        <th style={{ padding: '8px 6px', fontSize: 'var(--font-table-head)', color: '#170e5e', width: '100px', textAlign: 'center' }}>المدة (تعديل)</th>
-                        <th style={{ padding: '8px 10px', fontSize: 'var(--font-table-head)', color: '#475569', width: '80px', textAlign: 'center' }}>المسار</th>
+                        <th style={{ padding: '8px 10px', fontSize: 'var(--font-table-head)', color: '#475569', width: '170px' }}>{__t('contracting.schedule_generator_modal.s42', "الحزمة الإنشائية")}</th>
+                        <th style={{ padding: '8px 10px', fontSize: 'var(--font-table-head)', color: '#475569' }}>{__t('contracting.schedule_generator_modal.s43', "بيان النشاط والمرحلة")}</th>
+                        <th style={{ padding: '8px 10px', fontSize: 'var(--font-table-head)', color: '#475569', width: '95px', textAlign: 'center' }}>{__t('contracting.schedule_generator_modal.s44', "البداية")}</th>
+                        <th style={{ padding: '8px 10px', fontSize: 'var(--font-table-head)', color: '#475569', width: '95px', textAlign: 'center' }}>{__t('contracting.schedule_generator_modal.s45', "النهاية")}</th>
+                        <th style={{ padding: '8px 6px', fontSize: 'var(--font-table-head)', color: '#170e5e', width: '100px', textAlign: 'center' }}>{__t('contracting.schedule_generator_modal.s46', "المدة (تعديل)")}</th>
+                        <th style={{ padding: '8px 10px', fontSize: 'var(--font-table-head)', color: '#475569', width: '80px', textAlign: 'center' }}>{__t('contracting.schedule_generator_modal.s47', "المسار")}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1859,7 +1861,7 @@ export function ScheduleGeneratorModal({
                               type="text"
                               value={t.taskName}
                               onChange={(e) => handleTaskNameChange(idx, e.target.value)}
-                              title="انقر لتعديل مسمى النشاط"
+                              title={__t('contracting.schedule_generator_modal.s48', "انقر لتعديل مسمى النشاط")}
                               style={{
                                 width: '100%',
                                 height: '28px',
@@ -1902,7 +1904,7 @@ export function ScheduleGeneratorModal({
                                     handleTaskDurationChange(idx, val);
                                   }
                                 }}
-                                title="انقر لتعديل مدة النشاط باليوم وترحيل باقي تواريخ الجدول تلقائياً"
+                                title={__t('contracting.schedule_generator_modal.s49', "انقر لتعديل مدة النشاط باليوم وترحيل باقي تواريخ الجدول تلقائياً")}
                                 style={{
                                   width: '50px',
                                   height: '28px',
@@ -1918,16 +1920,16 @@ export function ScheduleGeneratorModal({
                                   boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.03)',
                                 }}
                               />
-                              <span style={{ fontSize: 'var(--font-micro)', fontWeight: 600, color: '#64748b' }}>يوم</span>
+                              <span style={{ fontSize: 'var(--font-micro)', fontWeight: 600, color: '#64748b' }}>{__t('contracting.schedule_generator_modal.s50', "يوم")}</span>
                             </div>
                           </td>
                           <td style={{ padding: '8px 10px', fontSize: 'var(--font-micro)', textAlign: 'center' }}>
                             {t.isCriticalPath ? (
                               <span style={{ padding: '2px 6px', borderRadius: '4px', backgroundColor: '#fee2e2', color: '#991b1b', fontWeight: 700 }}>
-                                حرج CPM
+                                {__t('contracting.schedule_generator_modal.s51', "حرج CPM")}
                               </span>
                             ) : (
-                              <span style={{ color: '#94a3b8' }}>عادي</span>
+                              <span style={{ color: '#94a3b8' }}>{__t('contracting.schedule_generator_modal.s52', "عادي")}</span>
                             )}
                           </td>
                         </tr>

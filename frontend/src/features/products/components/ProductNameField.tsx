@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React, { useMemo, useState } from 'react';
 import type { Product } from '@/types/domain';
 import { AlertTriangleIcon } from '@/shared/components/icons/AppIcons';
@@ -26,6 +27,7 @@ export function ProductNameField({
   error,
   iconPicker,
 }: ProductNameFieldProps) {
+  const { t } = useTranslation();
   const [showSuggestions, setShowSuggestions] = useState(false);
 
   const similarProducts = useMemo(() => {
@@ -70,7 +72,7 @@ export function ProductNameField({
               padding: 4,
             }}>
               <div style={{ padding: '6px 10px', fontSize: 12, color: '#92400e', background: '#fffbeb', borderRadius: 6, marginBottom: 4, display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <AlertTriangleIcon size={14} color="#d97706" /> أصناف مشابهة موجودة مسبقاً:
+                <AlertTriangleIcon size={14} color="#d97706" /> {t('products.product_name_field.s0', "أصناف مشابهة موجودة مسبقاً:")}
               </div>
               {similarProducts.map((p) => (
                 <div key={p.id} style={{ padding: '6px 10px', fontSize: 13, color: '#374151', borderRadius: 6 }}>

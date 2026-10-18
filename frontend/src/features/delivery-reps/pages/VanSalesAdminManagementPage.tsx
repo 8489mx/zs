@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -38,6 +39,7 @@ import { vanSalesApi } from '../api/van-sales.api';
 type VanAdminTabKey = 'trips' | 'financial_ledger' | 'requisitions' | 'presales' | 'routes_kpis' | 'returns' | 'radar' | 'targets' | 'promotions' | 'visits_tracking' | 'fleet' | 'drivers';
 
 export default function VanSalesAdminManagementPage() {
+  const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get('tab') as VanAdminTabKey | null;
 
@@ -200,8 +202,8 @@ export default function VanSalesAdminManagementPage() {
       }}
     >
       <PageHeader
-        title="مركز إدارة سيارات التوزيع وأسطول الفان (Van Sales & Fleet)"
-        description="المنظومة المؤسسية لإدارة سيارات التوزيع، ورديات البيع الميداني، وجرد المستودعات المتنقلة"
+        title={t('delivery_reps.van_sales_admin_management_page.s0', "مركز إدارة سيارات التوزيع وأسطول الفان (Van Sales & Fleet)")}
+        description={t('delivery_reps.van_sales_admin_management_page.s1', "المنظومة المؤسسية لإدارة سيارات التوزيع، ورديات البيع الميداني، وجرد المستودعات المتنقلة")}
         actions={
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Button
@@ -219,7 +221,7 @@ export default function VanSalesAdminManagementPage() {
               }}
             >
               <SlidersIcon size={15} color="#170e5e" />
-              إعدادات التصفية والرقابة
+              {t('delivery_reps.van_sales_admin_management_page.s2', "إعدادات التصفية والرقابة")}
             </Button>
             {activeTab === 'drivers' && (
               <Button
@@ -230,7 +232,7 @@ export default function VanSalesAdminManagementPage() {
                   setIsUpsertRepOpen(true);
                 }}
               >
-                + إضافة مندوب فان جديد
+                {t('delivery_reps.van_sales_admin_management_page.s3', "+ إضافة مندوب فان جديد")}
               </Button>
             )}
           </div>
@@ -264,12 +266,12 @@ export default function VanSalesAdminManagementPage() {
           {[
             {
               key: 'trips' as const,
-              label: 'رحلات التوزيع',
+              label: t('delivery_reps.van_sales_admin_management_page.s4', "رحلات التوزيع"),
               icon: <SlidersIcon size={14} />,
             },
             {
               key: 'financial_ledger' as const,
-              label: 'تسويات وحسابات المناديب',
+              label: t('delivery_reps.van_sales_admin_management_page.s5', "تسويات وحسابات المناديب"),
               count: pendingShortagesCount > 0 ? pendingShortagesCount : undefined,
               badgeBg: '#fee2e2',
               badgeColor: '#dc2626',
@@ -277,7 +279,7 @@ export default function VanSalesAdminManagementPage() {
             },
             {
               key: 'requisitions' as const,
-              label: 'أذونات التحميل',
+              label: t('delivery_reps.van_sales_admin_management_page.s6', "أذونات التحميل"),
               count: pendingRequisitions.length > 0 ? pendingRequisitions.length : undefined,
               badgeBg: '#fef3c7',
               badgeColor: '#b45309',
@@ -285,12 +287,12 @@ export default function VanSalesAdminManagementPage() {
             },
             {
               key: 'presales' as const,
-              label: 'طلبيات وحجوزات الميدان',
+              label: t('delivery_reps.van_sales_admin_management_page.s7', "طلبيات وحجوزات الميدان"),
               icon: <FileTextIcon size={14} />,
             },
             {
               key: 'returns' as const,
-              label: 'مرتجعات الميدان',
+              label: t('delivery_reps.van_sales_admin_management_page.s8', "مرتجعات الميدان"),
               count: pendingReturns.length > 0 ? pendingReturns.length : undefined,
               badgeBg: '#fee2e2',
               badgeColor: '#b91c1c',
@@ -298,7 +300,7 @@ export default function VanSalesAdminManagementPage() {
             },
             {
               key: 'routes_kpis' as const,
-              label: 'خطوط السير والرقابة',
+              label: t('delivery_reps.van_sales_admin_management_page.s9', "خطوط السير والرقابة"),
               icon: <MapPinIcon size={14} />,
             },
           ].map((tab) => {
@@ -395,7 +397,7 @@ export default function VanSalesAdminManagementPage() {
           {[
             {
               key: 'radar' as const,
-              label: 'رادار الشبهات والأمان',
+              label: t('delivery_reps.van_sales_admin_management_page.s10', "رادار الشبهات والأمان"),
               count: suspicionEventsCount > 0 ? suspicionEventsCount : undefined,
               badgeBg: '#fee2e2',
               badgeColor: '#dc2626',
@@ -403,27 +405,27 @@ export default function VanSalesAdminManagementPage() {
             },
             {
               key: 'visits_tracking' as const,
-              label: 'التتبع والميدان Live',
+              label: t('delivery_reps.van_sales_admin_management_page.s11', "التتبع والميدان Live"),
               icon: <MapPinIcon size={14} />,
             },
             {
               key: 'targets' as const,
-              label: 'مستهدفات البيع والتارجت',
+              label: t('delivery_reps.van_sales_admin_management_page.s12', "مستهدفات البيع والتارجت"),
               icon: <CheckCircleIcon size={14} />,
             },
             {
               key: 'promotions' as const,
-              label: 'عروض وخلطات الأسعار',
+              label: t('delivery_reps.van_sales_admin_management_page.s13', "عروض وخلطات الأسعار"),
               icon: <SlidersIcon size={14} />,
             },
             {
               key: 'fleet' as const,
-              label: 'أسطول وسيارات الفان',
+              label: t('delivery_reps.van_sales_admin_management_page.s14', "أسطول وسيارات الفان"),
               icon: <TruckIcon size={14} />,
             },
             {
               key: 'drivers' as const,
-              label: 'بيانات مناديب التوزيع',
+              label: t('delivery_reps.van_sales_admin_management_page.s15', "بيانات مناديب التوزيع"),
               count: vanDrivers.length,
               badgeBg: '#e2e8f0',
               badgeColor: '#334155',
@@ -576,10 +578,10 @@ export default function VanSalesAdminManagementPage() {
               </div>
               <div>
                 <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 800, color: '#0f172a' }}>
-                  سائقي ومناديب التوزيع الميداني (Van Drivers)
+                  {t('delivery_reps.van_sales_admin_management_page.s16', "سائقي ومناديب التوزيع الميداني (Van Drivers)")}
                 </h4>
                 <span style={{ fontSize: '12px', color: '#64748b' }}>
-                  تسجيل بيانات المناديب، ربطهم بسيارات التوزيع، وتفعيل بوابة البيع الميداني (/van-sales) برمز PIN.
+                  {t('delivery_reps.van_sales_admin_management_page.s17', "تسجيل بيانات المناديب، ربطهم بسيارات التوزيع، وتفعيل بوابة البيع الميداني (/van-sales) برمز PIN.")}
                 </span>
               </div>
             </div>
@@ -588,16 +590,16 @@ export default function VanSalesAdminManagementPage() {
               <Button
                 variant="secondary"
                 style={{ fontSize: '12px', padding: '6px 12px' }}
-                onClick={() => copyUrl('/van-sales', 'بوابة مبيعات الفان')}
+                onClick={() => copyUrl('/van-sales', t('delivery_reps.van_sales_admin_management_page.s18', "بوابة مبيعات الفان"))}
               >
-                <CopyIcon size={12} /> نسخ رابط البوابة (/van-sales)
+                <CopyIcon size={12} /> {t('delivery_reps.van_sales_admin_management_page.s19', "نسخ رابط البوابة (/van-sales)")}
               </Button>
               <Button
                 variant="secondary"
                 style={{ fontSize: '12px', padding: '6px 12px', background: '#170e5e', color: '#ffffff', borderColor: '#170e5e' }}
                 onClick={() => window.open('/van-sales', '_blank')}
               >
-                فتح البوابة ↗
+                {t('delivery_reps.van_sales_admin_management_page.s20', "فتح البوابة ↗")}
               </Button>
             </div>
           </div>
@@ -619,7 +621,7 @@ export default function VanSalesAdminManagementPage() {
             <div style={{ position: 'relative', flex: '1', minWidth: '240px' }}>
               <input
                 type="text"
-                placeholder="بحث باسم المندوب أو رقم الهاتف أو لوحة السيارة..."
+                placeholder={t('delivery_reps.van_sales_admin_management_page.s21', "بحث باسم المندوب أو رقم الهاتف أو لوحة السيارة...")}
                 value={driverSearch}
                 onChange={(e) => setDriverSearch(e.target.value)}
                 style={{
@@ -637,7 +639,7 @@ export default function VanSalesAdminManagementPage() {
             </div>
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
               <span style={{ fontSize: '12px', color: '#94a3b8', fontWeight: 600 }}>
-                مناديب الفان المسجلين: {vanDrivers.length}
+                {t('delivery_reps.van_sales_admin_management_page.s22', "مناديب الفان المسجلين:")} {vanDrivers.length}
               </span>
               <Button
                 variant="secondary"
@@ -651,14 +653,14 @@ export default function VanSalesAdminManagementPage() {
                   opacity: isRefreshingDrivers ? 0.75 : 1,
                 }}
                 onClick={handleRefreshDrivers}
-                title="تحديث قائمة المناديب من السيرفر"
+                title={t('delivery_reps.van_sales_admin_management_page.s23', "تحديث قائمة المناديب من السيرفر")}
               >
                 <RefreshCwIcon
                   size={13}
                   className={isRefreshingDrivers ? 'spin-animation' : undefined}
                   style={isRefreshingDrivers ? { animation: 'spin 0.75s linear infinite' } : undefined}
                 />
-                {isRefreshingDrivers ? 'جارٍ التحديث...' : 'تحديث'}
+                {isRefreshingDrivers ? t('delivery_reps.van_sales_admin_management_page.s24', "جارٍ التحديث...") : t('delivery_reps.van_sales_admin_management_page.s25', "تحديث")}
               </Button>
             </div>
           </div>
@@ -675,23 +677,23 @@ export default function VanSalesAdminManagementPage() {
           >
             {isRepsLoading ? (
               <div style={{ padding: '60px', textAlign: 'center', color: '#64748b', fontWeight: 700 }}>
-                جاري تحميل بيانات المناديب...
+                {t('delivery_reps.van_sales_admin_management_page.s26', "جاري تحميل بيانات المناديب...")}
               </div>
             ) : filteredDrivers.length === 0 ? (
               <div style={{ padding: '60px', textAlign: 'center', color: '#64748b', fontWeight: 600 }}>
-                لا يوجد مناديب توزيع فان مسجلين حالياً. انقر على "+ إضافة مندوب فان جديد" لإنشاء حساب ميداني.
+                {t('delivery_reps.van_sales_admin_management_page.s27', "لا يوجد مناديب توزيع فان مسجلين حالياً. انقر على \"+ إضافة مندوب فان جديد\" لإنشاء حساب ميداني.")}
               </div>
             ) : (
               <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right', fontSize: '12.5px' }}>
                 <thead>
                   <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>
-                    <th style={{ padding: '10px 14px', fontWeight: 700 }}>اسم المندوب</th>
-                    <th style={{ padding: '10px 14px', fontWeight: 700 }}>نوع التكليف</th>
-                    <th style={{ padding: '10px 14px', fontWeight: 700 }}>رقم الهاتف</th>
-                    <th style={{ padding: '10px 14px', fontWeight: 700 }}>المركبة الحالية</th>
-                    <th style={{ padding: '10px 14px', fontWeight: 700 }}>رمز الدخول (PIN)</th>
-                    <th style={{ padding: '10px 14px', fontWeight: 700 }}>الحالة</th>
-                    <th style={{ padding: '10px 14px', fontWeight: 700, textAlign: 'center' }}>الإجراءات</th>
+                    <th style={{ padding: '10px 14px', fontWeight: 700 }}>{t('delivery_reps.van_sales_admin_management_page.s28', "اسم المندوب")}</th>
+                    <th style={{ padding: '10px 14px', fontWeight: 700 }}>{t('delivery_reps.van_sales_admin_management_page.s29', "نوع التكليف")}</th>
+                    <th style={{ padding: '10px 14px', fontWeight: 700 }}>{t('delivery_reps.van_sales_admin_management_page.s30', "رقم الهاتف")}</th>
+                    <th style={{ padding: '10px 14px', fontWeight: 700 }}>{t('delivery_reps.van_sales_admin_management_page.s31', "المركبة الحالية")}</th>
+                    <th style={{ padding: '10px 14px', fontWeight: 700 }}>{t('delivery_reps.van_sales_admin_management_page.s32', "رمز الدخول (PIN)")}</th>
+                    <th style={{ padding: '10px 14px', fontWeight: 700 }}>{t('delivery_reps.van_sales_admin_management_page.s33', "الحالة")}</th>
+                    <th style={{ padding: '10px 14px', fontWeight: 700, textAlign: 'center' }}>{t('delivery_reps.van_sales_admin_management_page.s34', "الإجراءات")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -708,24 +710,24 @@ export default function VanSalesAdminManagementPage() {
                         <td style={{ padding: '12px 14px' }}>
                           {isBoth ? (
                             <span style={{ fontSize: '11px', color: '#6d28d9', background: '#ede9fe', padding: '2px 8px', borderRadius: '6px', border: '1px solid #ddd6fe', fontWeight: 700 }}>
-                              شامل (فان ودليفري)
+                              {t('delivery_reps.van_sales_admin_management_page.s35', "شامل (فان ودليفري)")}
                             </span>
                           ) : (
                             <span style={{ fontSize: '11px', color: '#0369a1', background: '#e0f2fe', padding: '2px 8px', borderRadius: '6px', border: '1px solid #bae6fd', fontWeight: 700 }}>
-                              توزيع فان حصري
+                              {t('delivery_reps.van_sales_admin_management_page.s36', "توزيع فان حصري")}
                             </span>
                           )}
                         </td>
                         <td style={{ padding: '12px 14px', direction: 'ltr', textAlign: 'right', fontFamily: 'monospace', fontSize: '12px' }}>
-                          {d.phone || <span style={{ color: '#dc2626' }}>غير مسجل</span>}
+                          {d.phone || <span style={{ color: '#dc2626' }}>{t('delivery_reps.van_sales_admin_management_page.s37', "غير مسجل")}</span>}
                         </td>
                         <td style={{ padding: '12px 14px' }}>
                           {d.vehicle_plate ? (
                             <span style={{ fontSize: '11px', background: '#f1f5f9', color: '#334155', padding: '2px 7px', borderRadius: '4px', border: '1px solid #e2e8f0', fontWeight: 700 }}>
-                              لوحة: {d.vehicle_plate}
+                              {t('delivery_reps.van_sales_admin_management_page.s38', "لوحة:")} {d.vehicle_plate}
                             </span>
                           ) : (
-                            <span style={{ fontSize: '11px', color: '#94a3b8' }}>بدون لوحة مسندة</span>
+                            <span style={{ fontSize: '11px', color: '#94a3b8' }}>{t('delivery_reps.van_sales_admin_management_page.s39', "بدون لوحة مسندة")}</span>
                           )}
                         </td>
                         <td style={{ padding: '12px 14px' }}>
@@ -745,7 +747,7 @@ export default function VanSalesAdminManagementPage() {
                                   fontSize: '11.5px',
                                 }}
                               >
-                                {hasPin ? '•••• مفعل' : 'بدون رمز'}
+                                {hasPin ? t('delivery_reps.van_sales_admin_management_page.s40', "•••• مفعل") : t('delivery_reps.van_sales_admin_management_page.s41', "بدون رمز")}
                               </span>
                             );
                           })()}
@@ -765,7 +767,7 @@ export default function VanSalesAdminManagementPage() {
                               border: `1px solid ${d.is_active ? '#a7f3d0' : '#fecaca'}`,
                             }}
                           >
-                            {d.is_active ? 'نشط' : 'موقوف'}
+                            {d.is_active ? t('delivery_reps.van_sales_admin_management_page.s42', "نشط") : t('delivery_reps.van_sales_admin_management_page.s43', "موقوف")}
                           </span>
                         </td>
                         <td style={{ padding: '12px 14px', textAlign: 'center' }}>
@@ -778,15 +780,15 @@ export default function VanSalesAdminManagementPage() {
                                 setIsUpsertRepOpen(true);
                               }}
                             >
-                              تعديل البيانات
+                              {t('delivery_reps.van_sales_admin_management_page.s44', "تعديل البيانات")}
                             </Button>
                             <Button
                               variant="secondary"
-                              title="نسخ بيانات الدخول لإرسالها للمندوب عبر الواتساب"
+                              title={t('delivery_reps.van_sales_admin_management_page.s45', "نسخ بيانات الدخول لإرسالها للمندوب عبر الواتساب")}
                               style={{ fontSize: '11px', padding: '4px 8px', background: '#f8fafc', color: '#1e293b' }}
                               onClick={() => copyCredentials(d)}
                             >
-                              <CopyIcon size={12} /> نسخ بيانات الدخول
+                              <CopyIcon size={12} /> {t('delivery_reps.van_sales_admin_management_page.s46', "نسخ بيانات الدخول")}
                             </Button>
                             <Button
                               variant="secondary"
@@ -800,7 +802,7 @@ export default function VanSalesAdminManagementPage() {
                               }}
                               onClick={() => handleToggleActive(d)}
                             >
-                              {d.is_active ? 'إيقاف' : 'تفعيل'}
+                              {d.is_active ? t('delivery_reps.van_sales_admin_management_page.s47', "إيقاف") : t('delivery_reps.van_sales_admin_management_page.s48', "تفعيل")}
                             </Button>
                           </div>
                         </td>
@@ -831,8 +833,8 @@ export default function VanSalesAdminManagementPage() {
         <StandardDialog
           open={isSettingsModalOpen}
           onClose={() => setIsSettingsModalOpen(false)}
-          title="إعدادات الرقابة وتصفية رحلات الفان"
-          subtitle="التحكم في اشتراط رمز المشرف (PIN) لتصفية ورديات المناديب والرمز السري المعتمد"
+          title={t('delivery_reps.van_sales_admin_management_page.s49', "إعدادات الرقابة وتصفية رحلات الفان")}
+          subtitle={t('delivery_reps.van_sales_admin_management_page.s50', "التحكم في اشتراط رمز المشرف (PIN) لتصفية ورديات المناديب والرمز السري المعتمد")}
           width="540px"
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', padding: '4px 0' }} dir="rtl">
@@ -851,12 +853,12 @@ export default function VanSalesAdminManagementPage() {
             >
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a', marginBottom: '3px' }}>
-                  إلزامية رمز المشرف (PIN) لتصفية الوردية
+                  {t('delivery_reps.van_sales_admin_management_page.s51', "إلزامية رمز المشرف (PIN) لتصفية الوردية")}
                 </div>
                 <div style={{ fontSize: '11px', color: '#64748b', lineHeight: 1.5 }}>
                   {requireSupervisorPinDraft
-                    ? 'مفعل: يلزم إدخال رمز المشرف (PIN) على هاتف المندوب لإبراء ذمته واستلام الكاش.'
-                    : 'معطل: يقفل المندوب ورديته مباشرة وتتم مراجعة واستلام النقدية من لوحة الإدارة.'}
+                    ? t('delivery_reps.van_sales_admin_management_page.s52', "مفعل: يلزم إدخال رمز المشرف (PIN) على هاتف المندوب لإبراء ذمته واستلام الكاش.")
+                    : t('delivery_reps.van_sales_admin_management_page.s53', "معطل: يقفل المندوب ورديته مباشرة وتتم مراجعة واستلام النقدية من لوحة الإدارة.")}
                 </div>
               </div>
               <input
@@ -882,12 +884,12 @@ export default function VanSalesAdminManagementPage() {
             >
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a', marginBottom: '3px' }}>
-                  إلزام التوريد والجرد العمياني (Blind Cash Settlement)
+                  {t('delivery_reps.van_sales_admin_management_page.s54', "إلزام التوريد والجرد العمياني (Blind Cash Settlement)")}
                 </div>
                 <div style={{ fontSize: '11px', color: '#64748b', lineHeight: 1.5 }}>
                   {blindSettlementDraft
-                    ? 'مفعل: إخفاء صافي النقدية المتوقعة وزر المطابقة؛ يُلزم المندوب بعدّ الكاش الفعلي واحتساب الفروقات رقابياً بالخزينة.'
-                    : 'معطل: يظهر صافي النقدية المتوقعة وزر المطابقة أمام المندوب بشفافية لتسريع التصفية.'}
+                    ? t('delivery_reps.van_sales_admin_management_page.s55', "مفعل: إخفاء صافي النقدية المتوقعة وزر المطابقة؛ يُلزم المندوب بعدّ الكاش الفعلي واحتساب الفروقات رقابياً بالخزينة.")
+                    : t('delivery_reps.van_sales_admin_management_page.s56', "معطل: يظهر صافي النقدية المتوقعة وزر المطابقة أمام المندوب بشفافية لتسريع التصفية.")}
                 </div>
               </div>
               <input
@@ -911,17 +913,17 @@ export default function VanSalesAdminManagementPage() {
               }}
             >
               <label style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a' }}>
-                الرمز السري العام للمشرفين (Manager Approval PIN):
+                {t('delivery_reps.van_sales_admin_management_page.s57', "الرمز السري العام للمشرفين (Manager Approval PIN):")}
               </label>
               <div style={{ fontSize: '10.5px', color: '#64748b' }}>
-                يستخدم لاعتماد التصفية الميدانية أو تجاوز سقف الائتمان الاستثنائي
+                {t('delivery_reps.van_sales_admin_management_page.s58', "يستخدم لاعتماد التصفية الميدانية أو تجاوز سقف الائتمان الاستثنائي")}
               </div>
               <input
                 type="password"
                 maxLength={6}
                 value={managerPinDraft}
                 onChange={(e) => setManagerPinDraft(e.target.value)}
-                placeholder="مثال: 1234"
+                placeholder={t('delivery_reps.van_sales_admin_management_page.s59', "مثال: 1234")}
                 style={{
                   width: '140px',
                   height: '36px',
@@ -945,7 +947,7 @@ export default function VanSalesAdminManagementPage() {
                 onClick={() => setIsSettingsModalOpen(false)}
                 disabled={isSavingSettings}
               >
-                إلغاء
+                {t('delivery_reps.van_sales_admin_management_page.s60', "إلغاء")}
               </Button>
               <Button
                 variant="primary"
@@ -959,10 +961,10 @@ export default function VanSalesAdminManagementPage() {
                     });
                     await queryClient.invalidateQueries({ queryKey: ['van-settlement-settings'] });
                     await queryClient.invalidateQueries({ queryKey: ['van-sales-active-trip'] });
-                    toast.success('تم حفظ إعدادات تصفية الفان والرقابة بنجاح');
+                    toast.success(t('delivery_reps.van_sales_admin_management_page.s61', "تم حفظ إعدادات تصفية الفان والرقابة بنجاح"));
                     setIsSettingsModalOpen(false);
                   } catch (err: any) {
-                    toast.error(err?.message || 'حدث خطأ أثناء حفظ الإعدادات');
+                    toast.error(err?.message || t('delivery_reps.van_sales_admin_management_page.s62', "حدث خطأ أثناء حفظ الإعدادات"));
                   } finally {
                     setIsSavingSettings(false);
                   }
@@ -970,7 +972,7 @@ export default function VanSalesAdminManagementPage() {
                 disabled={isSavingSettings}
                 style={{ backgroundColor: '#170e5e', color: '#ffffff', fontWeight: 800 }}
               >
-                {isSavingSettings ? 'جاري الحفظ...' : 'حفظ الإعدادات'}
+                {isSavingSettings ? t('delivery_reps.van_sales_admin_management_page.s63', "جاري الحفظ...") : t('delivery_reps.van_sales_admin_management_page.s64', "حفظ الإعدادات")}
               </Button>
             </div>
           </div>

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
@@ -28,6 +29,7 @@ export function FiscalYearCloseWizardModal({
   fiscalYear,
   onClosed,
 }: FiscalYearCloseWizardModalProps) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [notes, setNotes] = useState('');
@@ -149,7 +151,7 @@ export function FiscalYearCloseWizardModal({
           >
             1
           </span>
-          <span>1. التدقيق والفحص المالي</span>
+          <span>{t('accounting.fiscal_years.fiscal_year_close_wizard_modal.s0', "1. التدقيق والفحص المالي")}</span>
         </div>
 
         <div
@@ -182,7 +184,7 @@ export function FiscalYearCloseWizardModal({
           >
             2
           </span>
-          <span>2. محاكاة قيد الإقفال والتصفير</span>
+          <span>{t('accounting.fiscal_years.fiscal_year_close_wizard_modal.s1', "2. محاكاة قيد الإقفال والتصفير")}</span>
         </div>
 
         <div
@@ -215,7 +217,7 @@ export function FiscalYearCloseWizardModal({
           >
             3
           </span>
-          <span>3. التأكيد النهائي وقفل الفترة</span>
+          <span>{t('accounting.fiscal_years.fiscal_year_close_wizard_modal.s2', "3. التأكيد النهائي وقفل الفترة")}</span>
         </div>
       </div>
 
@@ -242,11 +244,11 @@ export function FiscalYearCloseWizardModal({
 
         {isLoading ? (
           <div style={{ textAlign: 'center', padding: '60px 20px', color: '#64748b' }}>
-            <div style={{ fontSize: '14px', fontWeight: 600 }}>جاري فحص وتدقيق الحسابات والقيود اليومية للسنة المالية...</div>
+            <div style={{ fontSize: '14px', fontWeight: 600 }}>{t('accounting.fiscal_years.fiscal_year_close_wizard_modal.s3', "جاري فحص وتدقيق الحسابات والقيود اليومية للسنة المالية...")}</div>
           </div>
         ) : !preview ? (
           <div style={{ textAlign: 'center', padding: '40px 20px', color: '#b91c1c' }}>
-            تعذر تحميل بيانات معاينة الإقفال للسنة المالية.
+            {t('accounting.fiscal_years.fiscal_year_close_wizard_modal.s4', "تعذر تحميل بيانات معاينة الإقفال للسنة المالية.")}
           </div>
         ) : (
           <>
@@ -263,7 +265,7 @@ export function FiscalYearCloseWizardModal({
                   }}
                 >
                   <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1e293b', marginBottom: '12px' }}>
-                    نتائج الفحص والتدقيق المالي قبل الإقفال
+                    {t('accounting.fiscal_years.fiscal_year_close_wizard_modal.s5', "نتائج الفحص والتدقيق المالي قبل الإقفال")}
                   </h3>
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -287,11 +289,11 @@ export function FiscalYearCloseWizardModal({
                         )}
                         <div>
                           <div style={{ fontSize: '13px', fontWeight: 700, color: preview.unpostedEntriesCount === 0 ? '#166534' : '#991b1b' }}>
-                            حالة القيود اليومية (مسودات vs مرحلة)
+                            {t('accounting.fiscal_years.fiscal_year_close_wizard_modal.s6', "حالة القيود اليومية (مسودات vs مرحلة)")}
                           </div>
                           <div style={{ fontSize: '12px', color: '#475569' }}>
                             {preview.unpostedEntriesCount === 0
-                              ? 'جميع القيود اليومية في هذه السنة مرحلة بالكامل ولا توجد مسودات معلقة.'
+                              ? t('accounting.fiscal_years.fiscal_year_close_wizard_modal.s7', "جميع القيود اليومية في هذه السنة مرحلة بالكامل ولا توجد مسودات معلقة.")
                               : `يوجد عدد ${preview.unpostedEntriesCount} قيد مسودة غير مرحل. يجب ترحيل جميع القيود أو حذفها قبل المتابعة.`}
                           </div>
                         </div>
@@ -306,7 +308,7 @@ export function FiscalYearCloseWizardModal({
                           color: preview.unpostedEntriesCount === 0 ? '#15803d' : '#b91c1c',
                         }}
                       >
-                        {preview.unpostedEntriesCount === 0 ? 'سليم جاهز' : 'مطلوب إجراء'}
+                        {preview.unpostedEntriesCount === 0 ? t('accounting.fiscal_years.fiscal_year_close_wizard_modal.s8', "سليم جاهز") : t('accounting.fiscal_years.fiscal_year_close_wizard_modal.s9', "مطلوب إجراء")}
                       </span>
                     </div>
 
@@ -330,12 +332,12 @@ export function FiscalYearCloseWizardModal({
                         )}
                         <div>
                           <div style={{ fontSize: '13px', fontWeight: 700, color: preview.retainedEarningsAccount ? '#166534' : '#991b1b' }}>
-                            حساب الأرباح المحتجزة / المبقاة للترحيل
+                            {t('accounting.fiscal_years.fiscal_year_close_wizard_modal.s10', "حساب الأرباح المحتجزة / المبقاة للترحيل")}
                           </div>
                           <div style={{ fontSize: '12px', color: '#475569' }}>
                             {preview.retainedEarningsAccount
                               ? `تم تحديد الحساب [${preview.retainedEarningsAccount.code} - ${preview.retainedEarningsAccount.name_ar}] لاستقبال صافي الربح/الخسارة.`
-                              : 'لم يتم العثور على حساب أرباح محتجزة (3200) في شجرة الحسابات.'}
+                              : t('accounting.fiscal_years.fiscal_year_close_wizard_modal.s11', "لم يتم العثور على حساب أرباح محتجزة (3200) في شجرة الحسابات.")}
                           </div>
                         </div>
                       </div>
@@ -349,7 +351,7 @@ export function FiscalYearCloseWizardModal({
                           color: preview.retainedEarningsAccount ? '#15803d' : '#b91c1c',
                         }}
                       >
-                        {preview.retainedEarningsAccount ? 'معتمد' : 'غير متوفر'}
+                        {preview.retainedEarningsAccount ? t('accounting.fiscal_years.fiscal_year_close_wizard_modal.s12', "معتمد") : t('accounting.fiscal_years.fiscal_year_close_wizard_modal.s13', "غير متوفر")}
                       </span>
                     </div>
                   </div>
@@ -367,13 +369,13 @@ export function FiscalYearCloseWizardModal({
                     }}
                   >
                     <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 600, marginBottom: '6px' }}>
-                      إجمالي الإيرادات (المبيعات والإيرادات الأخرى)
+                      {t('accounting.fiscal_years.fiscal_year_close_wizard_modal.s14', "إجمالي الإيرادات (المبيعات والإيرادات الأخرى)")}
                     </div>
                     <div style={{ fontSize: '18px', fontWeight: 800, color: '#15803d' }}>
                       {formatCurrency(preview.totalRevenue)}
                     </div>
                     <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '4px' }}>
-                      {preview.revenueAccounts.length} حساب إيرادات نشط
+                      {preview.revenueAccounts.length} {t('accounting.fiscal_years.fiscal_year_close_wizard_modal.s15', "حساب إيرادات نشط")}
                     </div>
                   </div>
 
@@ -387,13 +389,13 @@ export function FiscalYearCloseWizardModal({
                     }}
                   >
                     <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 600, marginBottom: '6px' }}>
-                      إجمالي المصروفات (التشغيلية وتكلفة البضاعة)
+                      {t('accounting.fiscal_years.fiscal_year_close_wizard_modal.s16', "إجمالي المصروفات (التشغيلية وتكلفة البضاعة)")}
                     </div>
                     <div style={{ fontSize: '18px', fontWeight: 800, color: '#b91c1c' }}>
                       {formatCurrency(preview.totalExpense)}
                     </div>
                     <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '4px' }}>
-                      {preview.expenseAccounts.length} حساب مصروفات نشط
+                      {preview.expenseAccounts.length} {t('accounting.fiscal_years.fiscal_year_close_wizard_modal.s17', "حساب مصروفات نشط")}
                     </div>
                   </div>
 
@@ -407,13 +409,13 @@ export function FiscalYearCloseWizardModal({
                     }}
                   >
                     <div style={{ fontSize: '12px', color: preview.isProfit ? '#166534' : '#991b1b', fontWeight: 600, marginBottom: '6px' }}>
-                      {preview.isProfit ? 'صافي أرباح السنة المالية' : 'صافي خسائر السنة المالية'}
+                      {preview.isProfit ? t('accounting.fiscal_years.fiscal_year_close_wizard_modal.s18', "صافي أرباح السنة المالية") : t('accounting.fiscal_years.fiscal_year_close_wizard_modal.s19', "صافي خسائر السنة المالية")}
                     </div>
                     <div style={{ fontSize: '20px', fontWeight: 800, color: preview.isProfit ? '#15803d' : '#b91c1c' }}>
                       {formatCurrency(Math.abs(preview.netProfitLoss))}
                     </div>
                     <div style={{ fontSize: '11px', color: preview.isProfit ? '#166534' : '#991b1b', marginTop: '4px' }}>
-                      {preview.isProfit ? 'ترحيل دائن للأرباح المحتجزة' : 'ترحيل مدين (تخفيض) للأرباح المحتجزة'}
+                      {preview.isProfit ? t('accounting.fiscal_years.fiscal_year_close_wizard_modal.s20', "ترحيل دائن للأرباح المحتجزة") : t('accounting.fiscal_years.fiscal_year_close_wizard_modal.s21', "ترحيل مدين (تخفيض) للأرباح المحتجزة")}
                     </div>
                   </div>
                 </div>
@@ -439,11 +441,11 @@ export function FiscalYearCloseWizardModal({
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <ScaleIcon size={18} color="#1d4ed8" />
                     <span>
-                      معاينة قيد الإقفال السنوي المتزن: سيتم تصفير جميع أرصدة حسابات النتيجة (قائمة الدخل) وترحيل الفارق إلى حساب الأرباح المحتجزة.
+                      {t('accounting.fiscal_years.fiscal_year_close_wizard_modal.s22', "معاينة قيد الإقفال السنوي المتزن: سيتم تصفير جميع أرصدة حسابات النتيجة (قائمة الدخل) وترحيل الفارق إلى حساب الأرباح المحتجزة.")}
                     </span>
                   </div>
                   <span style={{ fontWeight: 700, backgroundColor: '#dbeafe', padding: '2px 8px', borderRadius: '4px' }}>
-                    عدد الأسطر: {preview.proposedClosingLines.length}
+                    {t('accounting.fiscal_years.fiscal_year_close_wizard_modal.s23', "عدد الأسطر:")} {preview.proposedClosingLines.length}
                   </span>
                 </div>
 
@@ -461,11 +463,11 @@ export function FiscalYearCloseWizardModal({
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', textAlign: 'right' }}>
                     <thead>
                       <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-                        <th style={{ padding: '10px 12px', color: '#475569', fontWeight: 700 }}>كود الحساب</th>
-                        <th style={{ padding: '10px 12px', color: '#475569', fontWeight: 700 }}>اسم الحساب</th>
-                        <th style={{ padding: '10px 12px', color: '#475569', fontWeight: 700 }}>البيان والتوجيه المحاسبي</th>
-                        <th style={{ padding: '10px 12px', color: '#475569', fontWeight: 700, textAlign: 'left' }}>مدين (Debit)</th>
-                        <th style={{ padding: '10px 12px', color: '#475569', fontWeight: 700, textAlign: 'left' }}>دائن (Credit)</th>
+                        <th style={{ padding: '10px 12px', color: '#475569', fontWeight: 700 }}>{t('accounting.fiscal_years.fiscal_year_close_wizard_modal.s24', "كود الحساب")}</th>
+                        <th style={{ padding: '10px 12px', color: '#475569', fontWeight: 700 }}>{t('accounting.fiscal_years.fiscal_year_close_wizard_modal.s25', "اسم الحساب")}</th>
+                        <th style={{ padding: '10px 12px', color: '#475569', fontWeight: 700 }}>{t('accounting.fiscal_years.fiscal_year_close_wizard_modal.s26', "البيان والتوجيه المحاسبي")}</th>
+                        <th style={{ padding: '10px 12px', color: '#475569', fontWeight: 700, textAlign: 'left' }}>{t('accounting.fiscal_years.fiscal_year_close_wizard_modal.s27', "مدين (Debit)")}</th>
+                        <th style={{ padding: '10px 12px', color: '#475569', fontWeight: 700, textAlign: 'left' }}>{t('accounting.fiscal_years.fiscal_year_close_wizard_modal.s28', "دائن (Credit)")}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -498,7 +500,7 @@ export function FiscalYearCloseWizardModal({
                     <tfoot>
                       <tr style={{ backgroundColor: '#f1f5f9', borderTop: '2px solid #cbd5e1', fontWeight: 800 }}>
                         <td colSpan={3} style={{ padding: '10px 12px', color: '#0f172a' }}>
-                          إجمالي طرفي القيد (تطابق تام بنسبة 100%)
+                          {t('accounting.fiscal_years.fiscal_year_close_wizard_modal.s29', "إجمالي طرفي القيد (تطابق تام بنسبة 100%)")}
                         </td>
                         <td style={{ padding: '10px 12px', textAlign: 'left', color: '#0f172a' }}>
                           {formatCurrency(preview.proposedClosingLines.reduce((sum, l) => sum + l.debit, 0))}
@@ -529,15 +531,15 @@ export function FiscalYearCloseWizardModal({
                   <LockIcon size={24} color="#b45309" style={{ flexShrink: 0, marginTop: '2px' }} />
                   <div>
                     <div style={{ fontSize: '14px', fontWeight: 800, color: '#78350f', marginBottom: '6px' }}>
-                      التأكيد النهائي وتأمين الفترة المحاسبية
+                      {t('accounting.fiscal_years.fiscal_year_close_wizard_modal.s30', "التأكيد النهائي وتأمين الفترة المحاسبية")}
                     </div>
                     <div style={{ fontSize: '13px', color: '#92400e', lineHeight: 1.6 }}>
-                      عند الضغط على زر «تنفيذ الإقفال النهائي»، سيقوم النظام بالآتي:
+                      {t('accounting.fiscal_years.fiscal_year_close_wizard_modal.s31', "عند الضغط على زر «تنفيذ الإقفال النهائي»، سيقوم النظام بالآتي:")}
                       <ol style={{ margin: '6px 0 0 0', paddingInlineStart: '20px' }}>
-                        <li>توليد وترحيل قيد الإقفال السنوي وتصفير أرصدة الإيرادات والمصروفات.</li>
-                        <li>ترحيل صافي {preview.isProfit ? 'الأرباح' : 'الخسائر'} البالغ <strong>{formatCurrency(Math.abs(preview.netProfitLoss))}</strong> إلى حساب الأرباح المحتجزة.</li>
-                        <li>تحويل حالة السنة المالية {fiscalYear.name} إلى <strong>«مقفلة»</strong>.</li>
-                        <li>تحديث تاريخ القفل الشامل للنظام تلقائياً إلى تاريخ <strong>{fiscalYear.end_date}</strong> لحظر أي إضافة أو تعديل لقيود محاسبية بأثر رجعي.</li>
+                        <li>{t('accounting.fiscal_years.fiscal_year_close_wizard_modal.s32', "توليد وترحيل قيد الإقفال السنوي وتصفير أرصدة الإيرادات والمصروفات.")}</li>
+                        <li>{t('accounting.fiscal_years.fiscal_year_close_wizard_modal.s33', "ترحيل صافي")} {preview.isProfit ? t('accounting.fiscal_years.fiscal_year_close_wizard_modal.s34', "الأرباح") : t('accounting.fiscal_years.fiscal_year_close_wizard_modal.s35', "الخسائر")} {t('accounting.fiscal_years.fiscal_year_close_wizard_modal.s36', "البالغ")} <strong>{formatCurrency(Math.abs(preview.netProfitLoss))}</strong> {t('accounting.fiscal_years.fiscal_year_close_wizard_modal.s37', "إلى حساب الأرباح المحتجزة.")}</li>
+                        <li>{t('accounting.fiscal_years.fiscal_year_close_wizard_modal.s38', "تحويل حالة السنة المالية")} {fiscalYear.name} {t('accounting.fiscal_years.fiscal_year_close_wizard_modal.s39', "إلى")} <strong>{t('accounting.fiscal_years.fiscal_year_close_wizard_modal.s40', "«مقفلة»")}</strong>.</li>
+                        <li>{t('accounting.fiscal_years.fiscal_year_close_wizard_modal.s41', "تحديث تاريخ القفل الشامل للنظام تلقائياً إلى تاريخ")} <strong>{fiscalYear.end_date}</strong> {t('accounting.fiscal_years.fiscal_year_close_wizard_modal.s42', "لحظر أي إضافة أو تعديل لقيود محاسبية بأثر رجعي.")}</li>
                       </ol>
                     </div>
                   </div>
@@ -545,13 +547,13 @@ export function FiscalYearCloseWizardModal({
 
                 <div>
                   <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-                    ملاحظات الإقفال ومحضر الجرد السنوي (اختياري)
+                    {t('accounting.fiscal_years.fiscal_year_close_wizard_modal.s43', "ملاحظات الإقفال ومحضر الجرد السنوي (اختياري)")}
                   </label>
                   <textarea
                     rows={3}
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
-                    placeholder="أدخل أي ملاحظات إدارية أو إشارات لمحضر الجرد واعتماد الجمعية العمومية..."
+                    placeholder={t('accounting.fiscal_years.fiscal_year_close_wizard_modal.s44', "أدخل أي ملاحظات إدارية أو إشارات لمحضر الجرد واعتماد الجمعية العمومية...")}
                     style={{
                       width: '100%',
                       padding: '10px 12px',
@@ -583,14 +585,14 @@ export function FiscalYearCloseWizardModal({
               style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
             >
               <ArrowRightIcon size={16} />
-              <span>السابق</span>
+              <span>{t('accounting.fiscal_years.fiscal_year_close_wizard_modal.s45', "السابق")}</span>
             </Button>
           )}
         </div>
 
         <div style={{ display: 'flex', gap: '8px' }}>
           <Button type="button" variant="secondary" onClick={onClose} disabled={closeMutation.isPending}>
-            إلغاء
+            {t('accounting.fiscal_years.fiscal_year_close_wizard_modal.s46', "إلغاء")}
           </Button>
 
           {step < 3 ? (
@@ -607,7 +609,7 @@ export function FiscalYearCloseWizardModal({
                 gap: '6px',
               }}
             >
-              <span>المتابعة للخطوة التالية</span>
+              <span>{t('accounting.fiscal_years.fiscal_year_close_wizard_modal.s47', "المتابعة للخطوة التالية")}</span>
               <ArrowLeftIcon size={16} />
             </Button>
           ) : (
@@ -626,7 +628,7 @@ export function FiscalYearCloseWizardModal({
               }}
             >
               <LockIcon size={16} />
-              <span>{closeMutation.isPending ? 'جاري تنفيذ الإقفال والتأمين...' : 'تنفيذ الإقفال النهائي وتأمين الفترة'}</span>
+              <span>{closeMutation.isPending ? t('accounting.fiscal_years.fiscal_year_close_wizard_modal.s48', "جاري تنفيذ الإقفال والتأمين...") : t('accounting.fiscal_years.fiscal_year_close_wizard_modal.s49', "تنفيذ الإقفال النهائي وتأمين الفترة")}</span>
             </Button>
           )}
         </div>

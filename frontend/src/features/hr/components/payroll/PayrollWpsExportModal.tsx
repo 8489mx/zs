@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useEffect, useState } from 'react';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { Button } from '@/shared/ui/button';
@@ -14,6 +15,7 @@ interface PayrollWpsExportModalProps {
 type WpsResult = Awaited<ReturnType<typeof hrApi.generatePayrollWps>>;
 
 export function PayrollWpsExportModal({ runId, runMonth, runName, onClose }: PayrollWpsExportModalProps) {
+  const { t } = useTranslation();
   const [payerCrNo, setPayerCrNo] = useState('');
   const [payerBankRoutingCode, setPayerBankRoutingCode] = useState('RIBL');
   const [payerName, setPayerName] = useState('');
@@ -95,7 +97,7 @@ export function PayrollWpsExportModal({ runId, runMonth, runName, onClose }: Pay
       <div dir="rtl" style={{ display: 'flex', flexDirection: 'column', gap: '16px', color: '#0f172a' }}>
         <div style={{ paddingBottom: '10px', borderBottom: '1px solid #e2e8f0' }}>
           <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 700, color: '#0f172a' }}>
-            تصدير ملف حماية الأجور والتحويلات البنكية (WPS / SIF)
+            {t('hr.payroll.payroll_wps_export_modal.s0', "تصدير ملف حماية الأجور والتحويلات البنكية (WPS / SIF)")}
           </h3>
         </div>
         
@@ -103,10 +105,10 @@ export function PayrollWpsExportModal({ runId, runMonth, runName, onClose }: Pay
         <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
             <div style={{ fontWeight: 700, fontSize: '0.95rem' }}>
-              مسير الرواتب: {runName || `مسير رقم #${runId}`} {runMonth ? `(شهر ${runMonth})` : ''}
+              {t('hr.payroll.payroll_wps_export_modal.s1', "مسير الرواتب:")} {runName || `مسير رقم #${runId}`} {runMonth ? `(شهر ${runMonth})` : ''}
             </div>
             <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '2px' }}>
-              الملف المعتمد متوافق مع نظام حماية الأجور السعودي (مدد / GOSI / مسار) وبنوك الخليج ومصر (SIF Standard Interchange Format).
+              {t('hr.payroll.payroll_wps_export_modal.s2', "الملف المعتمد متوافق مع نظام حماية الأجور السعودي (مدد / GOSI / مسار) وبنوك الخليج ومصر (SIF Standard Interchange Format).")}
             </div>
           </div>
         </div>
@@ -115,42 +117,42 @@ export function PayrollWpsExportModal({ runId, runMonth, runName, onClose }: Pay
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px', background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '14px' }}>
           <div>
             <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-              رقم المنشأة / السجل التجاري
+              {t('hr.payroll.payroll_wps_export_modal.s3', "رقم المنشأة / السجل التجاري")}
             </label>
             <input
               value={payerCrNo}
               onChange={(e) => setPayerCrNo(e.target.value)}
-              placeholder="مثال: 7001234567"
+              placeholder={t('hr.payroll.payroll_wps_export_modal.s4', "مثال: 7001234567")}
               dir="ltr"
               style={{ width: '100%', padding: '7px 10px', fontSize: '0.85rem', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box' }}
             />
           </div>
           <div>
             <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-              رمز بنك المنشأة (Routing / SWIFT)
+              {t('hr.payroll.payroll_wps_export_modal.s5', "رمز بنك المنشأة (Routing / SWIFT)")}
             </label>
             <input
               value={payerBankRoutingCode}
               onChange={(e) => setPayerBankRoutingCode(e.target.value.toUpperCase())}
-              placeholder="مثال: RIBL / RJHI / NCBK"
+              placeholder={t('hr.payroll.payroll_wps_export_modal.s6', "مثال: RIBL / RJHI / NCBK")}
               dir="ltr"
               style={{ width: '100%', padding: '7px 10px', fontSize: '0.85rem', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box' }}
             />
           </div>
           <div>
             <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-              اسم المنشأة في البنك
+              {t('hr.payroll.payroll_wps_export_modal.s7', "اسم المنشأة في البنك")}
             </label>
             <input
               value={payerName}
               onChange={(e) => setPayerName(e.target.value)}
-              placeholder="اسم الشركة / المؤسسة"
+              placeholder={t('hr.payroll.payroll_wps_export_modal.s8', "اسم الشركة / المؤسسة")}
               style={{ width: '100%', padding: '7px 10px', fontSize: '0.85rem', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box' }}
             />
           </div>
           <div>
             <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-              العملة
+              {t('hr.payroll.payroll_wps_export_modal.s9', "العملة")}
             </label>
             <input
               value={currency}
@@ -168,7 +170,7 @@ export function PayrollWpsExportModal({ runId, runMonth, runName, onClose }: Pay
               disabled={isLoading}
               style={{ width: '100%', height: '36px', fontSize: '0.85rem' }}
             >
-              {isLoading ? 'جاري التحديث...' : 'إعادة توليد الملف'}
+              {isLoading ? t('hr.payroll.payroll_wps_export_modal.s10', "جاري التحديث...") : t('hr.payroll.payroll_wps_export_modal.s11', "إعادة توليد الملف")}
             </Button>
           </div>
         </div>
@@ -184,32 +186,32 @@ export function PayrollWpsExportModal({ runId, runMonth, runName, onClose }: Pay
             {/* KPI Summary Bar */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '10px' }}>
               <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '12px' }}>
-                <span style={{ fontSize: '0.75rem', color: '#64748b', display: 'block' }}>إجمالي صافي الرواتب</span>
+                <span style={{ fontSize: '0.75rem', color: '#64748b', display: 'block' }}>{t('hr.payroll.payroll_wps_export_modal.s12', "إجمالي صافي الرواتب")}</span>
                 <strong style={{ fontSize: '1.2rem', color: '#10b981' }}>
                   {summary.totalNetPay.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {summary.currency}
                 </strong>
               </div>
               <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '12px' }}>
-                <span style={{ fontSize: '0.75rem', color: '#64748b', display: 'block' }}>عدد الموظفين المشمولين</span>
-                <strong style={{ fontSize: '1.2rem', color: '#0f172a' }}>{summary.totalEmployees} موظف</strong>
+                <span style={{ fontSize: '0.75rem', color: '#64748b', display: 'block' }}>{t('hr.payroll.payroll_wps_export_modal.s13', "عدد الموظفين المشمولين")}</span>
+                <strong style={{ fontSize: '1.2rem', color: '#0f172a' }}>{summary.totalEmployees} {t('hr.payroll.payroll_wps_export_modal.s14', "موظف")}</strong>
               </div>
               <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '12px' }}>
-                <span style={{ fontSize: '0.75rem', color: '#64748b', display: 'block' }}>إجمالي الأساسي</span>
+                <span style={{ fontSize: '0.75rem', color: '#64748b', display: 'block' }}>{t('hr.payroll.payroll_wps_export_modal.s15', "إجمالي الأساسي")}</span>
                 <strong style={{ fontSize: '1rem', color: '#334155' }}>
                   {summary.totalBaseSalary.toLocaleString('en-US', { minimumFractionDigits: 2 })} {summary.currency}
                 </strong>
               </div>
               <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '12px' }}>
-                <span style={{ fontSize: '0.75rem', color: '#64748b', display: 'block' }}>إجمالي البدلات والخصومات</span>
+                <span style={{ fontSize: '0.75rem', color: '#64748b', display: 'block' }}>{t('hr.payroll.payroll_wps_export_modal.s16', "إجمالي البدلات والخصومات")}</span>
                 <strong style={{ fontSize: '0.9rem', color: '#64748b' }}>
                   +{summary.totalAllowances.toFixed(2)} / -{summary.totalDeductions.toFixed(2)}
                 </strong>
               </div>
               {summary.missingIbanCount > 0 ? (
                 <div style={{ background: '#fffbeb', border: '1px solid #fef3c7', borderRadius: '8px', padding: '12px' }}>
-                  <span style={{ fontSize: '0.75rem', color: '#92400e', display: 'block' }}>تنبيه الحسابات البنكية</span>
+                  <span style={{ fontSize: '0.75rem', color: '#92400e', display: 'block' }}>{t('hr.payroll.payroll_wps_export_modal.s17', "تنبيه الحسابات البنكية")}</span>
                   <strong style={{ fontSize: '0.9rem', color: '#b45309' }}>
-                    {summary.missingIbanCount} موظف بدون آيبان
+                    {summary.missingIbanCount} {t('hr.payroll.payroll_wps_export_modal.s18', "موظف بدون آيبان")}
                   </strong>
                 </div>
               ) : null}
@@ -223,7 +225,7 @@ export function PayrollWpsExportModal({ runId, runMonth, runName, onClose }: Pay
                   onClick={handleDownloadSif}
                   style={{ background: '#170e5e', color: '#ffffff', fontWeight: 600, fontSize: '0.85rem' }}
                 >
-                  تحميل ملف حماية الأجور (.sif)
+                  {t('hr.payroll.payroll_wps_export_modal.s19', "تحميل ملف حماية الأجور (.sif)")}
                 </Button>
                 <Button
                   type="button"
@@ -231,7 +233,7 @@ export function PayrollWpsExportModal({ runId, runMonth, runName, onClose }: Pay
                   onClick={handleDownloadCsv}
                   style={{ fontSize: '0.85rem' }}
                 >
-                  تحميل جدول التحويلات (.csv)
+                  {t('hr.payroll.payroll_wps_export_modal.s20', "تحميل جدول التحويلات (.csv)")}
                 </Button>
               </div>
 
@@ -242,7 +244,7 @@ export function PayrollWpsExportModal({ runId, runMonth, runName, onClose }: Pay
                   onClick={() => void handleCopySif()}
                   style={{ fontSize: '0.8rem' }}
                 >
-                  {copied ? 'تم النسخ إلى الحافظة' : 'نسخ كود SIF'}
+                  {copied ? t('hr.payroll.payroll_wps_export_modal.s21', "تم النسخ إلى الحافظة") : t('hr.payroll.payroll_wps_export_modal.s22', "نسخ كود SIF")}
                 </Button>
               </div>
             </div>
@@ -252,12 +254,12 @@ export function PayrollWpsExportModal({ runId, runMonth, runName, onClose }: Pay
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.825rem', textAlign: 'right' }}>
                 <thead style={{ background: '#f1f5f9', position: 'sticky', top: 0, zIndex: 1 }}>
                   <tr>
-                    <th style={{ padding: '8px 10px', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>الكود</th>
-                    <th style={{ padding: '8px 10px', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>اسم الموظف</th>
-                    <th style={{ padding: '8px 10px', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>الهوية / الإقامة</th>
-                    <th style={{ padding: '8px 10px', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>البنك</th>
-                    <th style={{ padding: '8px 10px', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>الآيبان / الحساب</th>
-                    <th style={{ padding: '8px 10px', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>الصافي</th>
+                    <th style={{ padding: '8px 10px', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>{t('hr.payroll.payroll_wps_export_modal.s23', "الكود")}</th>
+                    <th style={{ padding: '8px 10px', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>{t('hr.payroll.payroll_wps_export_modal.s24', "اسم الموظف")}</th>
+                    <th style={{ padding: '8px 10px', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>{t('hr.payroll.payroll_wps_export_modal.s25', "الهوية / الإقامة")}</th>
+                    <th style={{ padding: '8px 10px', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>{t('hr.payroll.payroll_wps_export_modal.s26', "البنك")}</th>
+                    <th style={{ padding: '8px 10px', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>{t('hr.payroll.payroll_wps_export_modal.s27', "الآيبان / الحساب")}</th>
+                    <th style={{ padding: '8px 10px', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>{t('hr.payroll.payroll_wps_export_modal.s28', "الصافي")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -287,7 +289,7 @@ export function PayrollWpsExportModal({ runId, runMonth, runName, onClose }: Pay
         {/* Footer */}
         <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: '8px', borderTop: '1px solid #e2e8f0' }}>
           <Button type="button" variant="secondary" onClick={onClose}>
-            إغلاق
+            {t('hr.payroll.payroll_wps_export_modal.s29', "إغلاق")}
           </Button>
         </div>
 

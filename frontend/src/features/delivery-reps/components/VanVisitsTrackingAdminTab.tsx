@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { vanSalesApi } from '../api/van-sales.api';
@@ -14,6 +15,7 @@ import { StandardDialog, StandardDialogFooter } from '@/shared/components/Standa
 import { Button } from '@/shared/ui/button';
 
 export const VanVisitsTrackingAdminTab: React.FC = () => {
+  const { t: __t } = useTranslation();
   const [selectedSubTab, setSelectedSubTab] = useState<'visits' | 'surveys' | 'breadcrumbs'>('visits');
   const [filterDate, setFilterDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [filterNoSaleOnly, setFilterNoSaleOnly] = useState(false);
@@ -102,7 +104,7 @@ export const VanVisitsTrackingAdminTab: React.FC = () => {
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-            <span style={{ fontSize: '11.5px', color: '#64748b', fontWeight: 600 }}>معدل ضرب الزيارات (Strike Rate)</span>
+            <span style={{ fontSize: '11.5px', color: '#64748b', fontWeight: 600 }}>{__t('delivery_reps.van_visits_tracking_admin_tab.s0', __t('delivery_reps.van_visits_tracking_admin_tab.s0', "معدل ضرب الزيارات (Strike Rate)"))}</span>
             <div style={{ width: '28px', height: '28px', borderRadius: '8px', backgroundColor: '#eef2ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <CheckCircleIcon size={15} color="#170e5e" />
             </div>
@@ -111,7 +113,7 @@ export const VanVisitsTrackingAdminTab: React.FC = () => {
             {metrics.strikeRatePercentage}%
           </div>
           <div style={{ fontSize: '11px', color: '#16a34a', fontWeight: 600, marginTop: '2px' }}>
-            {metrics.productiveVisits} زيارة ببيع من أصل {metrics.totalVisits}
+            {metrics.productiveVisits} {__t('delivery_reps.van_visits_tracking_admin_tab.s1', __t('delivery_reps.van_visits_tracking_admin_tab.s1', "زيارة ببيع من أصل"))} {metrics.totalVisits}
           </div>
         </div>
 
@@ -126,7 +128,7 @@ export const VanVisitsTrackingAdminTab: React.FC = () => {
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-            <span style={{ fontSize: '11.5px', color: '#64748b', fontWeight: 600 }}>إجمالي الزيارات الميدانية</span>
+            <span style={{ fontSize: '11.5px', color: '#64748b', fontWeight: 600 }}>{__t('delivery_reps.van_visits_tracking_admin_tab.s2', __t('delivery_reps.van_visits_tracking_admin_tab.s2', "إجمالي الزيارات الميدانية"))}</span>
             <div style={{ width: '28px', height: '28px', borderRadius: '8px', backgroundColor: '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <MapPinIcon size={15} color="#16a34a" />
             </div>
@@ -135,7 +137,7 @@ export const VanVisitsTrackingAdminTab: React.FC = () => {
             {metrics.totalVisits}
           </div>
           <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>
-            {metrics.nonProductiveVisits} محطة لم تشترِ (سلبية)
+            {metrics.nonProductiveVisits} {__t('delivery_reps.van_visits_tracking_admin_tab.s3', __t('delivery_reps.van_visits_tracking_admin_tab.s3', "محطة لم تشترِ (سلبية)"))}
           </div>
         </div>
 
@@ -150,7 +152,7 @@ export const VanVisitsTrackingAdminTab: React.FC = () => {
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-            <span style={{ fontSize: '11.5px', color: '#64748b', fontWeight: 600 }}>مبيعات الزيارات المنفذة</span>
+            <span style={{ fontSize: '11.5px', color: '#64748b', fontWeight: 600 }}>{__t('delivery_reps.van_visits_tracking_admin_tab.s4', __t('delivery_reps.van_visits_tracking_admin_tab.s4', "مبيعات الزيارات المنفذة"))}</span>
             <div style={{ width: '28px', height: '28px', borderRadius: '8px', backgroundColor: '#ecfdf5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <CheckShieldIcon size={15} color="#059669" />
             </div>
@@ -159,7 +161,7 @@ export const VanVisitsTrackingAdminTab: React.FC = () => {
             {metrics.totalSalesAmount.toLocaleString('en-US')} <span style={{ fontSize: '13px' }}><CurrencySymbol /></span>
           </div>
           <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>
-            تحصيلات: {metrics.totalCollectionsAmount.toLocaleString('en-US')} <CurrencySymbol />
+            {__t('delivery_reps.van_visits_tracking_admin_tab.s5', __t('delivery_reps.van_visits_tracking_admin_tab.s5', "تحصيلات:"))} {metrics.totalCollectionsAmount.toLocaleString('en-US')} <CurrencySymbol />
           </div>
         </div>
 
@@ -174,16 +176,16 @@ export const VanVisitsTrackingAdminTab: React.FC = () => {
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-            <span style={{ fontSize: '11.5px', color: '#64748b', fontWeight: 600 }}>متوسط وقت الزيارة بالمحل</span>
+            <span style={{ fontSize: '11.5px', color: '#64748b', fontWeight: 600 }}>{__t('delivery_reps.van_visits_tracking_admin_tab.s6', __t('delivery_reps.van_visits_tracking_admin_tab.s6', "متوسط وقت الزيارة بالمحل"))}</span>
             <div style={{ width: '28px', height: '28px', borderRadius: '8px', backgroundColor: '#fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <ClockIcon size={15} color="#d97706" />
             </div>
           </div>
           <div style={{ fontSize: '20px', fontWeight: 800, color: '#d97706' }}>
-            {metrics.avgDwellTimeMinutes} <span style={{ fontSize: '13px' }}>دقيقة</span>
+            {metrics.avgDwellTimeMinutes} <span style={{ fontSize: '13px' }}>{__t('delivery_reps.van_visits_tracking_admin_tab.s7', __t('delivery_reps.van_visits_tracking_admin_tab.s7', "دقيقة"))}</span>
           </div>
           <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>
-            من تسجيل الـ Check-In للمغادرة
+            {__t('delivery_reps.van_visits_tracking_admin_tab.s8', __t('delivery_reps.van_visits_tracking_admin_tab.s8', "من تسجيل الـ Check-In للمغادرة"))}
           </div>
         </div>
       </div>
@@ -215,7 +217,7 @@ export const VanVisitsTrackingAdminTab: React.FC = () => {
               cursor: 'pointer',
             }}
           >
-            سجل الزيارات والإنتاجية ({visits.length})
+            {__t('delivery_reps.van_visits_tracking_admin_tab.s9', __t('delivery_reps.van_visits_tracking_admin_tab.s9', "سجل الزيارات والإنتاجية ("))}{visits.length})
           </button>
           <button
             type="button"
@@ -231,7 +233,7 @@ export const VanVisitsTrackingAdminTab: React.FC = () => {
               cursor: 'pointer',
             }}
           >
-            تفتيش الثلاجات والمنافسين ({surveys.length})
+            {__t('delivery_reps.van_visits_tracking_admin_tab.s10', __t('delivery_reps.van_visits_tracking_admin_tab.s10', "تفتيش الثلاجات والمنافسين ("))}{surveys.length})
           </button>
           <button
             type="button"
@@ -247,7 +249,7 @@ export const VanVisitsTrackingAdminTab: React.FC = () => {
               cursor: 'pointer',
             }}
           >
-            خريطة التتبع الحي ومسار اليوم
+            {__t('delivery_reps.van_visits_tracking_admin_tab.s11', __t('delivery_reps.van_visits_tracking_admin_tab.s11', "خريطة التتبع الحي ومسار اليوم"))}
           </button>
         </div>
 
@@ -281,7 +283,7 @@ export const VanVisitsTrackingAdminTab: React.FC = () => {
               cursor: 'pointer',
             }}
           >
-            {filterNoSaleOnly ? 'عرض كل الزيارات' : 'الزيارات السلبية فقط'}
+            {filterNoSaleOnly ? __t('delivery_reps.van_visits_tracking_admin_tab.s12', __t('delivery_reps.van_visits_tracking_admin_tab.s12', "عرض كل الزيارات")) : __t('delivery_reps.van_visits_tracking_admin_tab.s13', __t('delivery_reps.van_visits_tracking_admin_tab.s13', "الزيارات السلبية فقط"))}
           </button>
           <Button
             variant="secondary"
@@ -292,7 +294,7 @@ export const VanVisitsTrackingAdminTab: React.FC = () => {
             style={{ height: '32px', padding: '0 10px', fontSize: '11.5px' }}
           >
             <RefreshCwIcon size={13} style={{ marginInlineEnd: '4px' }} />
-            تحديث
+            {__t('delivery_reps.van_visits_tracking_admin_tab.s14', __t('delivery_reps.van_visits_tracking_admin_tab.s14', "تحديث"))}
           </Button>
         </div>
       </div>
@@ -311,26 +313,26 @@ export const VanVisitsTrackingAdminTab: React.FC = () => {
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', textAlign: 'start' }}>
               <thead>
                 <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>
-                  <th style={{ padding: '10px 14px', fontWeight: 700 }}>المحل والعميل</th>
-                  <th style={{ padding: '10px 14px', fontWeight: 700 }}>وقت الوصول Check-In</th>
-                  <th style={{ padding: '10px 14px', fontWeight: 700 }}>مدة الزيارة</th>
-                  <th style={{ padding: '10px 14px', fontWeight: 700 }}>النطاق الجغرافي</th>
-                  <th style={{ padding: '10px 14px', fontWeight: 700 }}>حالة الإنتاجية</th>
-                  <th style={{ padding: '10px 14px', fontWeight: 700 }}>المبيعات والتحصيل</th>
-                  <th style={{ padding: '10px 14px', fontWeight: 700 }}>جرد الرف</th>
+                  <th style={{ padding: '10px 14px', fontWeight: 700 }}>{__t('delivery_reps.van_visits_tracking_admin_tab.s15', __t('delivery_reps.van_visits_tracking_admin_tab.s15', "المحل والعميل"))}</th>
+                  <th style={{ padding: '10px 14px', fontWeight: 700 }}>{__t('delivery_reps.van_visits_tracking_admin_tab.s16', __t('delivery_reps.van_visits_tracking_admin_tab.s16', "وقت الوصول Check-In"))}</th>
+                  <th style={{ padding: '10px 14px', fontWeight: 700 }}>{__t('delivery_reps.van_visits_tracking_admin_tab.s17', __t('delivery_reps.van_visits_tracking_admin_tab.s17', "مدة الزيارة"))}</th>
+                  <th style={{ padding: '10px 14px', fontWeight: 700 }}>{__t('delivery_reps.van_visits_tracking_admin_tab.s18', __t('delivery_reps.van_visits_tracking_admin_tab.s18', "النطاق الجغرافي"))}</th>
+                  <th style={{ padding: '10px 14px', fontWeight: 700 }}>{__t('delivery_reps.van_visits_tracking_admin_tab.s19', __t('delivery_reps.van_visits_tracking_admin_tab.s19', "حالة الإنتاجية"))}</th>
+                  <th style={{ padding: '10px 14px', fontWeight: 700 }}>{__t('delivery_reps.van_visits_tracking_admin_tab.s20', __t('delivery_reps.van_visits_tracking_admin_tab.s20', "المبيعات والتحصيل"))}</th>
+                  <th style={{ padding: '10px 14px', fontWeight: 700 }}>{__t('delivery_reps.van_visits_tracking_admin_tab.s21', __t('delivery_reps.van_visits_tracking_admin_tab.s21', "جرد الرف"))}</th>
                 </tr>
               </thead>
               <tbody>
                 {isVisitsLoading ? (
                   <tr>
                     <td colSpan={7} style={{ padding: '36px', textAlign: 'center', color: '#64748b' }}>
-                      جاري تحميل سجل الزيارات الميدانية...
+                      {__t('delivery_reps.van_visits_tracking_admin_tab.s22', __t('delivery_reps.van_visits_tracking_admin_tab.s22', "جاري تحميل سجل الزيارات الميدانية..."))}
                     </td>
                   </tr>
                 ) : visits.length === 0 ? (
                   <tr>
                     <td colSpan={7} style={{ padding: '36px', textAlign: 'center', color: '#94a3b8' }}>
-                      لا توجد زيارات مسجلة في هذا التاريخ المحدد
+                      {__t('delivery_reps.van_visits_tracking_admin_tab.s23', __t('delivery_reps.van_visits_tracking_admin_tab.s23', "لا توجد زيارات مسجلة في هذا التاريخ المحدد"))}
                     </td>
                   </tr>
                 ) : (
@@ -341,39 +343,39 @@ export const VanVisitsTrackingAdminTab: React.FC = () => {
                         <td style={{ padding: '10px 14px', fontWeight: 700, color: '#0f172a' }}>
                           <div>{v.customerName || `عميل #${v.customerId}`}</div>
                           <div style={{ fontSize: '10.5px', color: '#64748b', fontWeight: 500 }}>
-                            رحلة #{v.tripId || '—'}
+                            {__t('delivery_reps.van_visits_tracking_admin_tab.s24', __t('delivery_reps.van_visits_tracking_admin_tab.s24', "رحلة #"))}{v.tripId || '—'}
                           </div>
                         </td>
                         <td style={{ padding: '10px 14px', color: '#334155' }}>
                           {v.checkInAt ? new Date(v.checkInAt).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }) : '—'}
                         </td>
                         <td style={{ padding: '10px 14px', color: '#334155' }}>
-                          <span style={{ fontWeight: 700 }}>{dwellMins}</span> دقيقة
+                          <span style={{ fontWeight: 700 }}>{dwellMins}</span> {__t('delivery_reps.van_visits_tracking_admin_tab.s25', __t('delivery_reps.van_visits_tracking_admin_tab.s25', "دقيقة"))}
                         </td>
                         <td style={{ padding: '10px 14px' }}>
                           {v.isGeofenceValid ? (
                             <span style={{ backgroundColor: '#ecfdf5', color: '#065f46', padding: '2px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 700 }}>
-                              مطابق ({v.geofenceDistanceMeters}م)
+                              {__t('delivery_reps.van_visits_tracking_admin_tab.s26', __t('delivery_reps.van_visits_tracking_admin_tab.s26', "مطابق ("))}{v.geofenceDistanceMeters}{__t('delivery_reps.van_visits_tracking_admin_tab.s27', __t('delivery_reps.van_visits_tracking_admin_tab.s27', "م)"))}
                             </span>
                           ) : (
                             <span style={{ backgroundColor: '#fef2f2', color: '#991b1b', padding: '2px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 700 }}>
-                              كسر نطاق ({v.geofenceDistanceMeters}م)
+                              {__t('delivery_reps.van_visits_tracking_admin_tab.s28', __t('delivery_reps.van_visits_tracking_admin_tab.s28', "كسر نطاق ("))}{v.geofenceDistanceMeters}{__t('delivery_reps.van_visits_tracking_admin_tab.s29', __t('delivery_reps.van_visits_tracking_admin_tab.s29', "م)"))}
                             </span>
                           )}
                         </td>
                         <td style={{ padding: '10px 14px' }}>
                           {v.hasSale ? (
                             <span style={{ backgroundColor: '#dcfce7', color: '#166534', padding: '3px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 700 }}>
-                              ✓ تم البيع بنجاح
+                              {__t('delivery_reps.van_visits_tracking_admin_tab.s30', __t('delivery_reps.van_visits_tracking_admin_tab.s30', "✓ تم البيع بنجاح"))}
                             </span>
                           ) : (
                             <div>
                               <span style={{ backgroundColor: '#fee2e2', color: '#991b1b', padding: '3px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 700 }}>
-                                ✕ زيارة سلبية (لم يشترِ)
+                                {__t('delivery_reps.van_visits_tracking_admin_tab.s31', __t('delivery_reps.van_visits_tracking_admin_tab.s31', "✕ زيارة سلبية (لم يشترِ)"))}
                               </span>
                               {v.noSaleReason && (
                                 <div style={{ fontSize: '10.5px', color: '#b91c1c', marginTop: '3px', fontWeight: 600 }}>
-                                  السبب: {v.noSaleReason}
+                                  {__t('delivery_reps.van_visits_tracking_admin_tab.s32', __t('delivery_reps.van_visits_tracking_admin_tab.s32', "السبب:"))} {v.noSaleReason}
                                 </div>
                               )}
                             </div>
@@ -404,10 +406,10 @@ export const VanVisitsTrackingAdminTab: React.FC = () => {
                                 color: '#1e293b',
                               }}
                             >
-                              عرض ({v.storeInventory.length} صنف)
+                              {__t('delivery_reps.van_visits_tracking_admin_tab.s33', __t('delivery_reps.van_visits_tracking_admin_tab.s33', "عرض ("))}{v.storeInventory.length} {__t('delivery_reps.van_visits_tracking_admin_tab.s34', __t('delivery_reps.van_visits_tracking_admin_tab.s34', "صنف)"))}
                             </button>
                           ) : (
-                            <span style={{ color: '#cbd5e1', fontSize: '11px' }}>تم التخطي</span>
+                            <span style={{ color: '#cbd5e1', fontSize: '11px' }}>{__t('delivery_reps.van_visits_tracking_admin_tab.s35', __t('delivery_reps.van_visits_tracking_admin_tab.s35', "تم التخطي"))}</span>
                           )}
                         </td>
                       </tr>
@@ -434,26 +436,26 @@ export const VanVisitsTrackingAdminTab: React.FC = () => {
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', textAlign: 'start' }}>
               <thead>
                 <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>
-                  <th style={{ padding: '10px 14px', fontWeight: 700 }}>نوع التفتيش</th>
-                  <th style={{ padding: '10px 14px', fontWeight: 700 }}>المحل / العميل</th>
-                  <th style={{ padding: '10px 14px', fontWeight: 700 }}>بيانات الأصل / الثلاجة</th>
-                  <th style={{ padding: '10px 14px', fontWeight: 700 }}>النظافة والتبريد</th>
-                  <th style={{ padding: '10px 14px', fontWeight: 700 }}>منتجات منافسة؟</th>
-                  <th style={{ padding: '10px 14px', fontWeight: 700 }}>رصد المنافس وسعره</th>
-                  <th style={{ padding: '10px 14px', fontWeight: 700 }}>التاريخ</th>
+                  <th style={{ padding: '10px 14px', fontWeight: 700 }}>{__t('delivery_reps.van_visits_tracking_admin_tab.s36', __t('delivery_reps.van_visits_tracking_admin_tab.s36', "نوع التفتيش"))}</th>
+                  <th style={{ padding: '10px 14px', fontWeight: 700 }}>{__t('delivery_reps.van_visits_tracking_admin_tab.s37', __t('delivery_reps.van_visits_tracking_admin_tab.s37', "المحل / العميل"))}</th>
+                  <th style={{ padding: '10px 14px', fontWeight: 700 }}>{__t('delivery_reps.van_visits_tracking_admin_tab.s38', __t('delivery_reps.van_visits_tracking_admin_tab.s38', "بيانات الأصل / الثلاجة"))}</th>
+                  <th style={{ padding: '10px 14px', fontWeight: 700 }}>{__t('delivery_reps.van_visits_tracking_admin_tab.s39', __t('delivery_reps.van_visits_tracking_admin_tab.s39', "النظافة والتبريد"))}</th>
+                  <th style={{ padding: '10px 14px', fontWeight: 700 }}>{__t('delivery_reps.van_visits_tracking_admin_tab.s40', __t('delivery_reps.van_visits_tracking_admin_tab.s40', "منتجات منافسة؟"))}</th>
+                  <th style={{ padding: '10px 14px', fontWeight: 700 }}>{__t('delivery_reps.van_visits_tracking_admin_tab.s41', __t('delivery_reps.van_visits_tracking_admin_tab.s41', "رصد المنافس وسعره"))}</th>
+                  <th style={{ padding: '10px 14px', fontWeight: 700 }}>{__t('delivery_reps.van_visits_tracking_admin_tab.s42', __t('delivery_reps.van_visits_tracking_admin_tab.s42', "التاريخ"))}</th>
                 </tr>
               </thead>
               <tbody>
                 {isSurveysLoading ? (
                   <tr>
                     <td colSpan={7} style={{ padding: '36px', textAlign: 'center', color: '#64748b' }}>
-                      جاري تحميل استطلاعات الميرشندايز والتفتيش...
+                      {__t('delivery_reps.van_visits_tracking_admin_tab.s43', __t('delivery_reps.van_visits_tracking_admin_tab.s43', "جاري تحميل استطلاعات الميرشندايز والتفتيش..."))}
                     </td>
                   </tr>
                 ) : surveys.length === 0 ? (
                   <tr>
                     <td colSpan={7} style={{ padding: '36px', textAlign: 'center', color: '#94a3b8' }}>
-                      لا توجد استطلاعات تفتيش مسجلة حالياً
+                      {__t('delivery_reps.van_visits_tracking_admin_tab.s44', __t('delivery_reps.van_visits_tracking_admin_tab.s44', "لا توجد استطلاعات تفتيش مسجلة حالياً"))}
                     </td>
                   </tr>
                 ) : (
@@ -470,17 +472,17 @@ export const VanVisitsTrackingAdminTab: React.FC = () => {
                             fontWeight: 700,
                           }}
                         >
-                          {s.surveyType === 'cooler_inspection' ? 'تفتيش ثلاجة وأصل' : 'استطلاع منافسين'}
+                          {s.surveyType === 'cooler_inspection' ? __t('delivery_reps.van_visits_tracking_admin_tab.s45', __t('delivery_reps.van_visits_tracking_admin_tab.s45', "تفتيش ثلاجة وأصل")) : __t('delivery_reps.van_visits_tracking_admin_tab.s46', __t('delivery_reps.van_visits_tracking_admin_tab.s46', "استطلاع منافسين"))}
                         </span>
                       </td>
                       <td style={{ padding: '10px 14px', fontWeight: 700, color: '#0f172a' }}>
-                        عميل #{s.customerId}
+                        {__t('delivery_reps.van_visits_tracking_admin_tab.s47', __t('delivery_reps.van_visits_tracking_admin_tab.s47', "عميل #"))}{s.customerId}
                       </td>
                       <td style={{ padding: '10px 14px', color: '#334155' }}>
                         {s.assetName || s.assetId ? (
                           <div>
-                            <div style={{ fontWeight: 700 }}>{s.assetName || 'ثلاجة عرض'}</div>
-                            <div style={{ fontSize: '10.5px', color: '#64748b' }}>كود: {s.assetId || '—'}</div>
+                            <div style={{ fontWeight: 700 }}>{s.assetName || __t('delivery_reps.van_visits_tracking_admin_tab.s48', __t('delivery_reps.van_visits_tracking_admin_tab.s48', "ثلاجة عرض"))}</div>
+                            <div style={{ fontSize: '10.5px', color: '#64748b' }}>{__t('delivery_reps.van_visits_tracking_admin_tab.s49', __t('delivery_reps.van_visits_tracking_admin_tab.s49', "كود:"))} {s.assetId || '—'}</div>
                           </div>
                         ) : (
                           <span style={{ color: '#94a3b8' }}>—</span>
@@ -488,17 +490,17 @@ export const VanVisitsTrackingAdminTab: React.FC = () => {
                       </td>
                       <td style={{ padding: '10px 14px', color: '#334155' }}>
                         {s.temperatureCelsius != null && (
-                          <div>حرارة: <b>{s.temperatureCelsius}°م</b></div>
+                          <div>{__t('delivery_reps.van_visits_tracking_admin_tab.s50', __t('delivery_reps.van_visits_tracking_admin_tab.s50', "حرارة:"))} <b>{s.temperatureCelsius}{__t('delivery_reps.van_visits_tracking_admin_tab.s51', __t('delivery_reps.van_visits_tracking_admin_tab.s51', "°م"))}</b></div>
                         )}
                         {s.cleanlinessRating && (
-                          <div style={{ fontSize: '11px', color: '#d97706' }}>نظافة: {s.cleanlinessRating} / 5</div>
+                          <div style={{ fontSize: '11px', color: '#d97706' }}>{__t('delivery_reps.van_visits_tracking_admin_tab.s52', __t('delivery_reps.van_visits_tracking_admin_tab.s52', "نظافة:"))} {s.cleanlinessRating} / 5</div>
                         )}
                       </td>
                       <td style={{ padding: '10px 14px' }}>
                         {s.isPureCompanyProducts ? (
-                          <span style={{ color: '#16a34a', fontWeight: 700, fontSize: '11.5px' }}>✓ نقية (منتجاتنا فقط)</span>
+                          <span style={{ color: '#16a34a', fontWeight: 700, fontSize: '11.5px' }}>{__t('delivery_reps.van_visits_tracking_admin_tab.s53', __t('delivery_reps.van_visits_tracking_admin_tab.s53', "✓ نقية (منتجاتنا فقط)"))}</span>
                         ) : (
-                          <span style={{ color: '#dc2626', fontWeight: 700, fontSize: '11.5px' }}>✕ مخالفة (يوجد منافس)</span>
+                          <span style={{ color: '#dc2626', fontWeight: 700, fontSize: '11.5px' }}>{__t('delivery_reps.van_visits_tracking_admin_tab.s54', __t('delivery_reps.van_visits_tracking_admin_tab.s54', "✕ مخالفة (يوجد منافس)"))}</span>
                         )}
                       </td>
                       <td style={{ padding: '10px 14px', color: '#334155' }}>
@@ -506,7 +508,7 @@ export const VanVisitsTrackingAdminTab: React.FC = () => {
                           <div>
                             <div style={{ fontWeight: 700 }}>{s.competitorName} ({s.competitorProduct || ''})</div>
                             {s.competitorPrice && (
-                              <div style={{ color: '#059669', fontSize: '11px' }}>السعر: {s.competitorPrice} ج.م</div>
+                              <div style={{ color: '#059669', fontSize: '11px' }}>{__t('delivery_reps.van_visits_tracking_admin_tab.s55', __t('delivery_reps.van_visits_tracking_admin_tab.s55', "السعر:"))} {s.competitorPrice} {__t('delivery_reps.van_visits_tracking_admin_tab.s56', __t('delivery_reps.van_visits_tracking_admin_tab.s56', "ج.م"))}</div>
                             )}
                           </div>
                         ) : (
@@ -541,14 +543,14 @@ export const VanVisitsTrackingAdminTab: React.FC = () => {
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div>
               <h4 style={{ margin: '0 0 4px', fontSize: '14px', fontWeight: 800, color: '#0f172a' }}>
-                المسار الجغرافي الحي لحركة السيارة (GPS Breadcrumb Trail)
+                {__t('delivery_reps.van_visits_tracking_admin_tab.s57', __t('delivery_reps.van_visits_tracking_admin_tab.s57', "المسار الجغرافي الحي لحركة السيارة (GPS Breadcrumb Trail)"))}
               </h4>
               <p style={{ margin: 0, fontSize: '11.5px', color: '#64748b' }}>
-                رسم المسار الفعلي المتصل للسيارة طوال اليوم مع نقاط التوقف والمحطات المنفذة
+                {__t('delivery_reps.van_visits_tracking_admin_tab.s58', __t('delivery_reps.van_visits_tracking_admin_tab.s58', "رسم المسار الفعلي المتصل للسيارة طوال اليوم مع نقاط التوقف والمحطات المنفذة"))}
               </p>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-              <span style={{ fontSize: '12px', fontWeight: 600, color: '#475569' }}>اختر رحلة التوزيع:</span>
+              <span style={{ fontSize: '12px', fontWeight: 600, color: '#475569' }}>{__t('delivery_reps.van_visits_tracking_admin_tab.s59', __t('delivery_reps.van_visits_tracking_admin_tab.s59', "اختر رحلة التوزيع:"))}</span>
               <select
                 value={selectedTripIdForTrail || ''}
                 onChange={(e) => setSelectedTripIdForTrail(e.target.value ? Number(e.target.value) : null)}
@@ -565,10 +567,10 @@ export const VanVisitsTrackingAdminTab: React.FC = () => {
                   cursor: 'pointer',
                 }}
               >
-                <option value="">-- اختر الرحلة --</option>
+                <option value="">{__t('delivery_reps.van_visits_tracking_admin_tab.s60', __t('delivery_reps.van_visits_tracking_admin_tab.s60', "-- اختر الرحلة --"))}</option>
                 {adminTrips.map((t) => (
                   <option key={t.id} value={t.id}>
-                    رحلة #{t.id} • {t.repName} ({t.status === 'open' ? 'نشطة الآن' : 'مغلقة'})
+                    {__t('delivery_reps.van_visits_tracking_admin_tab.s61', __t('delivery_reps.van_visits_tracking_admin_tab.s61', "رحلة #"))}{t.id} • {t.repName} ({t.status === 'open' ? __t('delivery_reps.van_visits_tracking_admin_tab.s62', __t('delivery_reps.van_visits_tracking_admin_tab.s62', "نشطة الآن")) : __t('delivery_reps.van_visits_tracking_admin_tab.s63', __t('delivery_reps.van_visits_tracking_admin_tab.s63', "مغلقة"))})
                   </option>
                 ))}
               </select>
@@ -594,22 +596,22 @@ export const VanVisitsTrackingAdminTab: React.FC = () => {
               <div>
                 <MapPinIcon size={36} color="#94a3b8" style={{ margin: '0 auto 10px' }} />
                 <h5 style={{ margin: '0 0 4px', fontSize: '13px', fontWeight: 700, color: '#475569' }}>
-                  يرجى تحديد رقم رحلة لعرض مسار الـ GPS
+                  {__t('delivery_reps.van_visits_tracking_admin_tab.s64', __t('delivery_reps.van_visits_tracking_admin_tab.s64', "يرجى تحديد رقم رحلة لعرض مسار الـ GPS"))}
                 </h5>
                 <p style={{ margin: 0, fontSize: '11.5px', color: '#94a3b8' }}>
-                  سيتم رسم خط السير الفعلي لنقاط حركة المندوب والتوقفات عند المحلات
+                  {__t('delivery_reps.van_visits_tracking_admin_tab.s65', __t('delivery_reps.van_visits_tracking_admin_tab.s65', "سيتم رسم خط السير الفعلي لنقاط حركة المندوب والتوقفات عند المحلات"))}
                 </p>
               </div>
             ) : isBreadcrumbsLoading ? (
-              <div style={{ color: '#64748b', fontSize: '12.5px' }}>جاري استرجاع إحداثيات المسار الحي...</div>
+              <div style={{ color: '#64748b', fontSize: '12.5px' }}>{__t('delivery_reps.van_visits_tracking_admin_tab.s66', __t('delivery_reps.van_visits_tracking_admin_tab.s66', "جاري استرجاع إحداثيات المسار الحي..."))}</div>
             ) : breadcrumbs.length === 0 ? (
               <div>
                 <AlertTriangleIcon size={32} color="#f59e0b" style={{ margin: '0 auto 8px' }} />
                 <div style={{ fontSize: '13px', fontWeight: 700, color: '#b45309' }}>
-                  لا توجد نقاط تتبع مسجلة لهذه الرحلة حتى الآن
+                  {__t('delivery_reps.van_visits_tracking_admin_tab.s67', __t('delivery_reps.van_visits_tracking_admin_tab.s67', "لا توجد نقاط تتبع مسجلة لهذه الرحلة حتى الآن"))}
                 </div>
                 <div style={{ fontSize: '11.5px', color: '#64748b', marginTop: '4px' }}>
-                  تأكد من بدء الرحلة وتفعيل صلاحية الموقع الجغرافي بهاتف المندوب
+                  {__t('delivery_reps.van_visits_tracking_admin_tab.s68', __t('delivery_reps.van_visits_tracking_admin_tab.s68', "تأكد من بدء الرحلة وتفعيل صلاحية الموقع الجغرافي بهاتف المندوب"))}
                 </div>
               </div>
             ) : (() => {
@@ -621,14 +623,14 @@ export const VanVisitsTrackingAdminTab: React.FC = () => {
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <span style={{ fontSize: '13px', fontWeight: 800, color: '#166534' }}>
-                        تم تسجيل {breadcrumbs.length} نقطة مسار جغرافي للرحلة #{selectedTripIdForTrail}
+                        {__t('delivery_reps.van_visits_tracking_admin_tab.s69', __t('delivery_reps.van_visits_tracking_admin_tab.s69', "تم تسجيل"))} {breadcrumbs.length} {__t('delivery_reps.van_visits_tracking_admin_tab.s70', __t('delivery_reps.van_visits_tracking_admin_tab.s70', "نقطة مسار جغرافي للرحلة #"))}{selectedTripIdForTrail}
                       </span>
                       <span style={{ fontSize: '11.5px', color: '#475569', backgroundColor: '#e2e8f0', padding: '2px 8px', borderRadius: '4px' }}>
-                        النقطة المعروضة: #{activeIndex + 1}
+                        {__t('delivery_reps.van_visits_tracking_admin_tab.s71', __t('delivery_reps.van_visits_tracking_admin_tab.s71', "النقطة المعروضة: #"))}{activeIndex + 1}
                       </span>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '11.5px', color: '#64748b' }}>
-                      <span>آخر تحديث: {new Date(breadcrumbs[breadcrumbs.length - 1].recordedAt).toLocaleTimeString('ar-EG')}</span>
+                      <span>{__t('delivery_reps.van_visits_tracking_admin_tab.s72', __t('delivery_reps.van_visits_tracking_admin_tab.s72', "آخر تحديث:"))} {new Date(breadcrumbs[breadcrumbs.length - 1].recordedAt).toLocaleTimeString('ar-EG')}</span>
                       <a
                         href={`https://www.google.com/maps?q=${activePoint.latitude},${activePoint.longitude}`}
                         target="_blank"
@@ -642,7 +644,7 @@ export const VanVisitsTrackingAdminTab: React.FC = () => {
                           textDecoration: 'none',
                         }}
                       >
-                        فتح في خرائط Google ↗
+                        {__t('delivery_reps.van_visits_tracking_admin_tab.s73', __t('delivery_reps.van_visits_tracking_admin_tab.s73', "فتح في خرائط Google ↗"))}
                       </a>
                     </div>
                   </div>
@@ -691,13 +693,13 @@ export const VanVisitsTrackingAdminTab: React.FC = () => {
                       }}
                     >
                       <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#16a34a', display: 'inline-block' }} />
-                      <span>محطة #{activeIndex + 1}</span>
+                      <span>{__t('delivery_reps.van_visits_tracking_admin_tab.s74', __t('delivery_reps.van_visits_tracking_admin_tab.s74', "محطة #"))}{activeIndex + 1}</span>
                       {activePoint.customerName && (
                         <span style={{ color: '#0f172a' }}>• {activePoint.customerName}</span>
                       )}
                       {activePoint.saleAmount != null && activePoint.saleAmount > 0 && (
                         <span style={{ color: '#166534', backgroundColor: '#dcfce7', padding: '2px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 800 }}>
-                          فاتورة #{activePoint.docNo}: {activePoint.saleAmount} ج.م ({activePoint.paymentType === 'cash' ? 'نقدي' : 'آجل'})
+                          {__t('delivery_reps.van_visits_tracking_admin_tab.s75', __t('delivery_reps.van_visits_tracking_admin_tab.s75', "فاتورة #"))}{activePoint.docNo}: {activePoint.saleAmount} {__t('delivery_reps.van_visits_tracking_admin_tab.s76', __t('delivery_reps.van_visits_tracking_admin_tab.s76', "ج.م ("))}{activePoint.paymentType === 'cash' ? __t('delivery_reps.van_visits_tracking_admin_tab.s77', __t('delivery_reps.van_visits_tracking_admin_tab.s77', "نقدي")) : __t('delivery_reps.van_visits_tracking_admin_tab.s78', __t('delivery_reps.van_visits_tracking_admin_tab.s78', "آجل"))})
                         </span>
                       )}
                     </div>
@@ -706,7 +708,7 @@ export const VanVisitsTrackingAdminTab: React.FC = () => {
                   {/* Waypoints Timeline List */}
                   <div>
                     <h5 style={{ margin: '0 0 8px', fontSize: '12.5px', fontWeight: 800, color: '#1e293b' }}>
-                      سجل نقاط ومحطات المسار الفعلي وتفاصيل العمليات (اضغط على أي محطة لإظهارها على الخريطة):
+                      {__t('delivery_reps.van_visits_tracking_admin_tab.s79', __t('delivery_reps.van_visits_tracking_admin_tab.s79', "سجل نقاط ومحطات المسار الفعلي وتفاصيل العمليات (اضغط على أي محطة لإظهارها على الخريطة):"))}
                     </h5>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '250px', overflowY: 'auto' }}>
                       {breadcrumbs.map((b: any, idx: number) => {
@@ -755,23 +757,23 @@ export const VanVisitsTrackingAdminTab: React.FC = () => {
                                   </span>
                                   {b.saleAmount != null && b.saleAmount > 0 && (
                                     <span style={{ fontSize: '11px', backgroundColor: '#dcfce7', color: '#166534', padding: '1px 8px', borderRadius: '4px', fontWeight: 800 }}>
-                                      فاتورة بيع #{b.docNo} • {b.saleAmount.toFixed(2)} ج.م ({b.paymentType === 'cash' ? 'كاش' : b.paymentType === 'credit' ? 'آجل' : 'مجزء'})
+                                      {__t('delivery_reps.van_visits_tracking_admin_tab.s80', __t('delivery_reps.van_visits_tracking_admin_tab.s80', "فاتورة بيع #"))}{b.docNo} • {b.saleAmount.toFixed(2)} {__t('delivery_reps.van_visits_tracking_admin_tab.s81', __t('delivery_reps.van_visits_tracking_admin_tab.s81', "ج.م ("))}{b.paymentType === 'cash' ? __t('delivery_reps.van_visits_tracking_admin_tab.s82', __t('delivery_reps.van_visits_tracking_admin_tab.s82', "كاش")) : b.paymentType === 'credit' ? __t('delivery_reps.van_visits_tracking_admin_tab.s83', __t('delivery_reps.van_visits_tracking_admin_tab.s83', "آجل")) : __t('delivery_reps.van_visits_tracking_admin_tab.s84', __t('delivery_reps.van_visits_tracking_admin_tab.s84', "مجزء"))})
                                     </span>
                                   )}
                                   {isCurrentActive && (
                                     <span style={{ fontSize: '10.5px', backgroundColor: '#e0f2fe', color: '#0369a1', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
-                                      معروضة على الخريطة أعلاه
+                                      {__t('delivery_reps.van_visits_tracking_admin_tab.s85', __t('delivery_reps.van_visits_tracking_admin_tab.s85', "معروضة على الخريطة أعلاه"))}
                                     </span>
                                   )}
                                 </div>
                                 <span style={{ fontSize: '11px', color: '#64748b' }}>
-                                  الموقع: {b.latitude.toFixed(5)}, {b.longitude.toFixed(5)} {b.customerPhone ? `• هاتف: ${b.customerPhone}` : ''} {b.notes ? `• ملاحظات: ${b.notes}` : ''}
+                                  {__t('delivery_reps.van_visits_tracking_admin_tab.s86', __t('delivery_reps.van_visits_tracking_admin_tab.s86', "الموقع:"))} {b.latitude.toFixed(5)}, {b.longitude.toFixed(5)} {b.customerPhone ? `• هاتف: ${b.customerPhone}` : ''} {b.notes ? `• ملاحظات: ${b.notes}` : ''}
                                 </span>
                               </div>
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '16px', color: '#64748b', flexShrink: 0 }}>
-                              <span>السرعة: {b.speedKmh} كم/س</span>
-                              <span>البطارية: {b.batteryLevel}%</span>
+                              <span>{__t('delivery_reps.van_visits_tracking_admin_tab.s87', __t('delivery_reps.van_visits_tracking_admin_tab.s87', "السرعة:"))} {b.speedKmh} {__t('delivery_reps.van_visits_tracking_admin_tab.s88', __t('delivery_reps.van_visits_tracking_admin_tab.s88', "كم/س"))}</span>
+                              <span>{__t('delivery_reps.van_visits_tracking_admin_tab.s89', __t('delivery_reps.van_visits_tracking_admin_tab.s89', "البطارية:"))} {b.batteryLevel}%</span>
                               <span style={{ fontWeight: 700, color: '#0f172a', fontSize: '12px' }}>
                                 {new Date(b.recordedAt).toLocaleTimeString('ar-EG')}
                               </span>
@@ -794,13 +796,13 @@ export const VanVisitsTrackingAdminTab: React.FC = () => {
           open={true}
           onClose={() => setSelectedInventoryVisit(null)}
           title={`جرد رصيد رف العميل: ${selectedInventoryVisit.customerName}`}
-          subtitle="الأصناف والكميات المتبقية على رف المحل أثناء الزيارة"
-          badge="جرد الرف"
+          subtitle={__t('delivery_reps.van_visits_tracking_admin_tab.s90', __t('delivery_reps.van_visits_tracking_admin_tab.s90', "الأصناف والكميات المتبقية على رف المحل أثناء الزيارة"))}
+          badge={__t('delivery_reps.van_visits_tracking_admin_tab.s91', __t('delivery_reps.van_visits_tracking_admin_tab.s91', "جرد الرف"))}
           width="min(560px, 96vw)"
           footerActions={
             <StandardDialogFooter
               onClose={() => setSelectedInventoryVisit(null)}
-              cancelText="إغلاق"
+              cancelText={__t('delivery_reps.van_visits_tracking_admin_tab.s92', __t('delivery_reps.van_visits_tracking_admin_tab.s92', "إغلاق"))}
             />
           }
         >
@@ -808,9 +810,9 @@ export const VanVisitsTrackingAdminTab: React.FC = () => {
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
               <thead>
                 <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>
-                  <th style={{ padding: '8px 12px', textAlign: 'start' }}>الصنف</th>
-                  <th style={{ padding: '8px 12px', textAlign: 'center' }}>الكمية على الرف</th>
-                  <th style={{ padding: '8px 12px', textAlign: 'center' }}>تاريخ الصلاحية</th>
+                  <th style={{ padding: '8px 12px', textAlign: 'start' }}>{__t('delivery_reps.van_visits_tracking_admin_tab.s93', __t('delivery_reps.van_visits_tracking_admin_tab.s93', "الصنف"))}</th>
+                  <th style={{ padding: '8px 12px', textAlign: 'center' }}>{__t('delivery_reps.van_visits_tracking_admin_tab.s94', __t('delivery_reps.van_visits_tracking_admin_tab.s94', "الكمية على الرف"))}</th>
+                  <th style={{ padding: '8px 12px', textAlign: 'center' }}>{__t('delivery_reps.van_visits_tracking_admin_tab.s95', __t('delivery_reps.van_visits_tracking_admin_tab.s95', "تاريخ الصلاحية"))}</th>
                 </tr>
               </thead>
               <tbody>

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useCallback } from 'react';
 import { StandardDialog } from '@/shared/components/StandardDialog';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
@@ -24,6 +25,7 @@ export function GuaranteesDirectoryModal({
   onClose,
   onChanged,
 }: GuaranteesDirectoryModalProps) {
+  const { t } = useTranslation();
   const { currencySymbol } = useSystemCurrency();
 
   const [guarantees, setGuarantees] = useState<ContractingGuarantee[]>([]);
@@ -98,31 +100,31 @@ export function GuaranteesDirectoryModal({
       case 'active':
         return (
           <span style={{ padding: '3px 8px', borderRadius: '6px', fontSize: 'var(--font-badge)', fontWeight: 600, background: '#dcfce7', color: '#15803d', border: '1px solid #bbf7d0' }}>
-            سارٍ ونافذ
+            {t('contracting.guarantees_directory_modal.s0', "سارٍ ونافذ")}
           </span>
         );
       case 'expired':
         return (
           <span style={{ padding: '3px 8px', borderRadius: '6px', fontSize: 'var(--font-badge)', fontWeight: 600, background: '#fee2e2', color: '#991b1b', border: '1px solid #fecaca' }}>
-            منتهي الصلاحية
+            {t('contracting.guarantees_directory_modal.s1', "منتهي الصلاحية")}
           </span>
         );
       case 'released':
         return (
           <span style={{ padding: '3px 8px', borderRadius: '6px', fontSize: 'var(--font-badge)', fontWeight: 600, background: '#e0e7ff', color: '#3730a3', border: '1px solid #c7d2fe' }}>
-            مفرج عنه ومسترد
+            {t('contracting.guarantees_directory_modal.s2', "مفرج عنه ومسترد")}
           </span>
         );
       case 'confiscated_invoked':
         return (
           <span style={{ padding: '3px 8px', borderRadius: '6px', fontSize: 'var(--font-badge)', fontWeight: 600, background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a' }}>
-            مسيّل / مصادر
+            {t('contracting.guarantees_directory_modal.s3', "مسيّل / مصادر")}
           </span>
         );
       default:
         return (
           <span style={{ padding: '3px 8px', borderRadius: '6px', fontSize: 'var(--font-badge)', fontWeight: 600, background: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0' }}>
-            ملغى
+            {t('contracting.guarantees_directory_modal.s4', "ملغى")}
           </span>
         );
     }
@@ -132,34 +134,34 @@ export function GuaranteesDirectoryModal({
     if (tier === 'expired') {
       return (
         <span style={{ padding: '2px 8px', borderRadius: '6px', fontSize: 'var(--font-micro)', fontWeight: 700, background: '#fee2e2', color: '#b91c1c', border: '1px solid #fca5a5' }}>
-          منتهي منذ {Math.abs(daysRemaining || 0)} يوم
+          {t('contracting.guarantees_directory_modal.s5', "منتهي منذ")} {Math.abs(daysRemaining || 0)} {t('contracting.guarantees_directory_modal.s6', "يوم")}
         </span>
       );
     }
     if (tier === 'critical_t7') {
       return (
         <span style={{ padding: '2px 8px', borderRadius: '6px', fontSize: 'var(--font-micro)', fontWeight: 700, background: '#fee2e2', color: '#b91c1c', border: '1px solid #f87171' }}>
-          تحذير حرج T-7 ({daysRemaining} أيام)
+          {t('contracting.guarantees_directory_modal.s7', "تحذير حرج T-7 (")}{daysRemaining} {t('contracting.guarantees_directory_modal.s8', "أيام)")}
         </span>
       );
     }
     if (tier === 'warning_t30') {
       return (
         <span style={{ padding: '2px 8px', borderRadius: '6px', fontSize: 'var(--font-micro)', fontWeight: 700, background: '#ffedd5', color: '#c2410c', border: '1px solid #fdba74' }}>
-          إنذار T-30 ({daysRemaining} يوماً)
+          {t('contracting.guarantees_directory_modal.s9', "إنذار T-30 (")}{daysRemaining} {t('contracting.guarantees_directory_modal.s10', "يوماً)")}
         </span>
       );
     }
     if (tier === 'info_t60') {
       return (
         <span style={{ padding: '2px 8px', borderRadius: '6px', fontSize: 'var(--font-micro)', fontWeight: 700, background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe' }}>
-          إشعار T-60 ({daysRemaining} يوماً)
+          {t('contracting.guarantees_directory_modal.s11', "إشعار T-60 (")}{daysRemaining} {t('contracting.guarantees_directory_modal.s12', "يوماً)")}
         </span>
       );
     }
     return (
       <span style={{ padding: '2px 8px', borderRadius: '6px', fontSize: 'var(--font-micro)', fontWeight: 600, background: '#f8fafc', color: '#64748b', border: '1px solid #e2e8f0' }}>
-        آمن ({daysRemaining} يوم)
+        {t('contracting.guarantees_directory_modal.s13', "آمن (")}{daysRemaining} {t('contracting.guarantees_directory_modal.s14', "يوم)")}
       </span>
     );
   };
@@ -214,7 +216,7 @@ export function GuaranteesDirectoryModal({
     <StandardDialog
       open={open}
       onClose={onClose}
-      title="سجل خطابات الضمان البنكية والبوابة الرقابية G1"
+      title={t('contracting.guarantees_directory_modal.s15', "سجل خطابات الضمان البنكية والبوابة الرقابية G1")}
       subtitle={`المشروع: ${projectName || projectId} | إدارة خطابات الدفعة المقدمة وحسن التنفيذ والمحتجزات والتنبيهات المبكرة`}
       maxWidth="1180px"
     >
@@ -222,52 +224,52 @@ export function GuaranteesDirectoryModal({
         {/* شريط الإحصائيات وبطاقات التنبيه المبكر */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '10px' }}>
           <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '10px 14px' }}>
-            <div style={{ fontSize: 'var(--font-micro)', color: '#64748b', fontWeight: 600 }}>إجمالي الغطاء الساري</div>
+            <div style={{ fontSize: 'var(--font-micro)', color: '#64748b', fontWeight: 600 }}>{t('contracting.guarantees_directory_modal.s16', "إجمالي الغطاء الساري")}</div>
             <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#170e5e', marginTop: '2px' }}>
               {loading ? '—' : `${totalActiveValue.toLocaleString()} ${currencySymbol}`}
             </div>
             <div style={{ fontSize: 'var(--font-micro)', color: '#94a3b8', marginTop: '2px' }}>
-              {guarantees.filter((g) => g.status === 'active').length} خطابات سارية
+              {guarantees.filter((g) => g.status === 'active').length} {t('contracting.guarantees_directory_modal.s17', "خطابات سارية")}
             </div>
           </div>
 
           <div style={{ background: expiredCount > 0 ? '#fef2f2' : '#f8fafc', border: `1px solid ${expiredCount > 0 ? '#fecaca' : '#e2e8f0'}`, borderRadius: '10px', padding: '10px 14px' }}>
-            <div style={{ fontSize: 'var(--font-micro)', color: expiredCount > 0 ? '#991b1b' : '#64748b', fontWeight: 600 }}>منتهية الصلاحية (موجب حجب)</div>
+            <div style={{ fontSize: 'var(--font-micro)', color: expiredCount > 0 ? '#991b1b' : '#64748b', fontWeight: 600 }}>{t('contracting.guarantees_directory_modal.s18', "منتهية الصلاحية (موجب حجب)")}</div>
             <div style={{ fontSize: '1.1rem', fontWeight: 800, color: expiredCount > 0 ? '#dc2626' : '#64748b', marginTop: '2px' }}>
               {loading ? '—' : expiredCount}
             </div>
             <div style={{ fontSize: 'var(--font-micro)', color: expiredCount > 0 ? '#b91c1c' : '#94a3b8', marginTop: '2px' }}>
-              {expiredCount > 0 ? 'يتطلب تمديداً فورياً' : 'لا يوجد متأخرات'}
+              {expiredCount > 0 ? t('contracting.guarantees_directory_modal.s19', "يتطلب تمديداً فورياً") : t('contracting.guarantees_directory_modal.s20', "لا يوجد متأخرات")}
             </div>
           </div>
 
           <div style={{ background: t7Count > 0 ? '#fef2f2' : '#f8fafc', border: `1px solid ${t7Count > 0 ? '#fca5a5' : '#e2e8f0'}`, borderRadius: '10px', padding: '10px 14px' }}>
-            <div style={{ fontSize: 'var(--font-micro)', color: t7Count > 0 ? '#b91c1c' : '#64748b', fontWeight: 600 }}>إنذار حرج T-7 (خلال أسبوع)</div>
+            <div style={{ fontSize: 'var(--font-micro)', color: t7Count > 0 ? '#b91c1c' : '#64748b', fontWeight: 600 }}>{t('contracting.guarantees_directory_modal.s21', "إنذار حرج T-7 (خلال أسبوع)")}</div>
             <div style={{ fontSize: '1.1rem', fontWeight: 800, color: t7Count > 0 ? '#b91c1c' : '#64748b', marginTop: '2px' }}>
               {loading ? '—' : t7Count}
             </div>
             <div style={{ fontSize: 'var(--font-micro)', color: t7Count > 0 ? '#ef4444' : '#94a3b8', marginTop: '2px' }}>
-              خطر التسييل أو الإلغاء
+              {t('contracting.guarantees_directory_modal.s22', "خطر التسييل أو الإلغاء")}
             </div>
           </div>
 
           <div style={{ background: t30Count > 0 ? '#fffbeb' : '#f8fafc', border: `1px solid ${t30Count > 0 ? '#fde68a' : '#e2e8f0'}`, borderRadius: '10px', padding: '10px 14px' }}>
-            <div style={{ fontSize: 'var(--font-micro)', color: t30Count > 0 ? '#b45309' : '#64748b', fontWeight: 600 }}>تحذير T-30 (خلال شهر)</div>
+            <div style={{ fontSize: 'var(--font-micro)', color: t30Count > 0 ? '#b45309' : '#64748b', fontWeight: 600 }}>{t('contracting.guarantees_directory_modal.s23', "تحذير T-30 (خلال شهر)")}</div>
             <div style={{ fontSize: '1.1rem', fontWeight: 800, color: t30Count > 0 ? '#d97706' : '#64748b', marginTop: '2px' }}>
               {loading ? '—' : t30Count}
             </div>
             <div style={{ fontSize: 'var(--font-micro)', color: t30Count > 0 ? '#b45309' : '#94a3b8', marginTop: '2px' }}>
-              بدء إجراءات التمديد
+              {t('contracting.guarantees_directory_modal.s24', "بدء إجراءات التمديد")}
             </div>
           </div>
 
           <div style={{ background: t60Count > 0 ? '#eff6ff' : '#f8fafc', border: `1px solid ${t60Count > 0 ? '#bfdbfe' : '#e2e8f0'}`, borderRadius: '10px', padding: '10px 14px' }}>
-            <div style={{ fontSize: 'var(--font-micro)', color: t60Count > 0 ? '#1d4ed8' : '#64748b', fontWeight: 600 }}>إشعار T-60 (خلال شهرين)</div>
+            <div style={{ fontSize: 'var(--font-micro)', color: t60Count > 0 ? '#1d4ed8' : '#64748b', fontWeight: 600 }}>{t('contracting.guarantees_directory_modal.s25', "إشعار T-60 (خلال شهرين)")}</div>
             <div style={{ fontSize: '1.1rem', fontWeight: 800, color: t60Count > 0 ? '#2563eb' : '#64748b', marginTop: '2px' }}>
               {loading ? '—' : t60Count}
             </div>
             <div style={{ fontSize: 'var(--font-micro)', color: t60Count > 0 ? '#1d4ed8' : '#94a3b8', marginTop: '2px' }}>
-              متابعة استباقية
+              {t('contracting.guarantees_directory_modal.s26', "متابعة استباقية")}
             </div>
           </div>
         </div>
@@ -276,11 +278,11 @@ export function GuaranteesDirectoryModal({
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0', paddingBottom: '10px' }}>
           <div style={{ display: 'flex', gap: '6px' }}>
             {[
-              { key: 'all', label: 'كافة الخطابات', count: guarantees.length },
-              { key: 'advance_payment', label: 'دفعات مقدمة (G1)', count: guarantees.filter((g) => g.guaranteeType === 'advance_payment').length },
-              { key: 'performance', label: 'حسن تنفيذ', count: guarantees.filter((g) => g.guaranteeType === 'performance').length },
-              { key: 'retention', label: 'محتجز الضمان', count: guarantees.filter((g) => g.guaranteeType === 'retention').length },
-              { key: 'alerts', label: 'تنبيهات الانتهاء', count: expiredCount + t7Count + t30Count + t60Count },
+              { key: 'all', label: t('contracting.guarantees_directory_modal.s27', "كافة الخطابات"), count: guarantees.length },
+              { key: 'advance_payment', label: t('contracting.guarantees_directory_modal.s28', "دفعات مقدمة (G1)"), count: guarantees.filter((g) => g.guaranteeType === 'advance_payment').length },
+              { key: 'performance', label: t('contracting.guarantees_directory_modal.s29', "حسن تنفيذ"), count: guarantees.filter((g) => g.guaranteeType === 'performance').length },
+              { key: 'retention', label: t('contracting.guarantees_directory_modal.s30', "محتجز الضمان"), count: guarantees.filter((g) => g.guaranteeType === 'retention').length },
+              { key: 'alerts', label: t('contracting.guarantees_directory_modal.s31', "تنبيهات الانتهاء"), count: expiredCount + t7Count + t30Count + t60Count },
             ].map((tab) => (
               <button
                 key={tab.key}
@@ -339,7 +341,7 @@ export function GuaranteesDirectoryModal({
             }}
           >
             <AppIcons.Plus size={15} />
-            <span>تسجيل خطاب ضمان جديد</span>
+            <span>{t('contracting.guarantees_directory_modal.s32', "تسجيل خطاب ضمان جديد")}</span>
           </button>
         </div>
 
@@ -347,27 +349,27 @@ export function GuaranteesDirectoryModal({
         <div style={{ height: '335px', minHeight: '335px', maxHeight: '335px', overflowY: 'auto', border: '1px solid #e2e8f0', borderRadius: '8px', background: '#ffffff' }}>
           {loading ? (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', minHeight: '335px', color: '#64748b', fontSize: 'var(--font-body)' }}>
-              جاري تحميل سجل الضمانات البنكية...
+              {t('contracting.guarantees_directory_modal.s33', "جاري تحميل سجل الضمانات البنكية...")}
             </div>
           ) : filteredGuarantees.length === 0 ? (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', minHeight: '335px', gap: '8px', color: '#64748b' }}>
               <AppIcons.ShieldCheck size={36} />
-              <div style={{ fontSize: 'var(--font-section-title)', fontWeight: 700, color: '#1e293b' }}>لا توجد خطابات ضمان مسجلة</div>
+              <div style={{ fontSize: 'var(--font-section-title)', fontWeight: 700, color: '#1e293b' }}>{t('contracting.guarantees_directory_modal.s34', "لا توجد خطابات ضمان مسجلة")}</div>
               <div style={{ fontSize: 'var(--font-subtitle)', color: '#94a3b8' }}>
-                اضغط على "تسجيل خطاب ضمان جديد" لإدراج وتفعيل الغطاء البنكي
+                {t('contracting.guarantees_directory_modal.s35', "اضغط على \"تسجيل خطاب ضمان جديد\" لإدراج وتفعيل الغطاء البنكي")}
               </div>
             </div>
           ) : (
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right' }}>
               <thead>
                 <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-                  <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>رقم الخطاب / البنك</th>
-                  <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>النوع والغطاء</th>
-                  <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>قيمة الضمان</th>
-                  <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>سريان الضمان والتنبيه</th>
-                  <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>العقد / المقاول</th>
-                  <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>الحالة</th>
-                  <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569', textAlign: 'center' }}>الإجراءات</th>
+                  <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>{t('contracting.guarantees_directory_modal.s36', "رقم الخطاب / البنك")}</th>
+                  <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>{t('contracting.guarantees_directory_modal.s37', "النوع والغطاء")}</th>
+                  <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>{t('contracting.guarantees_directory_modal.s38', "قيمة الضمان")}</th>
+                  <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>{t('contracting.guarantees_directory_modal.s39', "سريان الضمان والتنبيه")}</th>
+                  <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>{t('contracting.guarantees_directory_modal.s40', "العقد / المقاول")}</th>
+                  <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>{t('contracting.guarantees_directory_modal.s41', "الحالة")}</th>
+                  <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569', textAlign: 'center' }}>{t('contracting.guarantees_directory_modal.s42', "الإجراءات")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -399,11 +401,11 @@ export function GuaranteesDirectoryModal({
 
                     <td style={{ padding: '10px 12px' }}>
                       <div style={{ fontSize: 'var(--font-body)', color: '#1e293b' }}>
-                        {g.subcontractorName || 'مشروع عام'}
+                        {g.subcontractorName || t('contracting.guarantees_directory_modal.s43', "مشروع عام")}
                       </div>
                       {g.subcontractNumber && (
                         <div style={{ fontSize: 'var(--font-micro)', color: '#64748b' }}>
-                          عقد: {g.subcontractNumber}
+                          {t('contracting.guarantees_directory_modal.s44', "عقد:")} {g.subcontractNumber}
                         </div>
                       )}
                     </td>
@@ -424,7 +426,7 @@ export function GuaranteesDirectoryModal({
                                 setNewExpiryDate(g.expiryDate);
                                 setActionNotes('');
                               }}
-                              title="تمديد بنكي"
+                              title={t('contracting.guarantees_directory_modal.s45', "تمديد بنكي")}
                               style={{
                                 height: '28px',
                                 padding: '0 8px',
@@ -437,7 +439,7 @@ export function GuaranteesDirectoryModal({
                                 cursor: 'pointer',
                               }}
                             >
-                              تمديد
+                              {t('contracting.guarantees_directory_modal.s46', "تمديد")}
                             </button>
 
                             <button
@@ -448,7 +450,7 @@ export function GuaranteesDirectoryModal({
                                 setActionDate(new Date().toISOString().split('T')[0]);
                                 setActionNotes('');
                               }}
-                              title="إفراج ورد أصل الخطاب"
+                              title={t('contracting.guarantees_directory_modal.s47', "إفراج ورد أصل الخطاب")}
                               style={{
                                 height: '28px',
                                 padding: '0 8px',
@@ -461,7 +463,7 @@ export function GuaranteesDirectoryModal({
                                 cursor: 'pointer',
                               }}
                             >
-                              إفراج
+                              {t('contracting.guarantees_directory_modal.s48', "إفراج")}
                             </button>
 
                             <button
@@ -474,7 +476,7 @@ export function GuaranteesDirectoryModal({
                                 setActionReason('');
                                 setActionNotes('');
                               }}
-                              title="تسييل أو مصادرة الخطاب"
+                              title={t('contracting.guarantees_directory_modal.s49', "تسييل أو مصادرة الخطاب")}
                               style={{
                                 height: '28px',
                                 padding: '0 8px',
@@ -487,11 +489,11 @@ export function GuaranteesDirectoryModal({
                                 cursor: 'pointer',
                               }}
                             >
-                              تسييل
+                              {t('contracting.guarantees_directory_modal.s50', "تسييل")}
                             </button>
                           </>
                         ) : (
-                          <span style={{ fontSize: 'var(--font-micro)', color: '#94a3b8' }}>لا إجراء</span>
+                          <span style={{ fontSize: 'var(--font-micro)', color: '#94a3b8' }}>{t('contracting.guarantees_directory_modal.s51', "لا إجراء")}</span>
                         )}
                       </div>
                     </td>
@@ -526,7 +528,7 @@ export function GuaranteesDirectoryModal({
                 onClick={() => { setActionType(null); setSelectedGuaranteeForAction(null); }}
                 style={{ background: 'transparent', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: '12px' }}
               >
-                إلغاء الإجراء
+                {t('contracting.guarantees_directory_modal.s52', "إلغاء الإجراء")}
               </button>
             </div>
 
@@ -534,7 +536,7 @@ export function GuaranteesDirectoryModal({
               {actionType === 'extend' && (
                 <div>
                   <label style={{ display: 'block', fontSize: 'var(--font-micro)', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                    تاريخ انتهاء السريان الجديد
+                    {t('contracting.guarantees_directory_modal.s53', "تاريخ انتهاء السريان الجديد")}
                   </label>
                   <input
                     type="date"
@@ -548,7 +550,7 @@ export function GuaranteesDirectoryModal({
               {(actionType === 'release' || actionType === 'invoke') && (
                 <div>
                   <label style={{ display: 'block', fontSize: 'var(--font-micro)', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                    تاريخ المعاملة البنكية
+                    {t('contracting.guarantees_directory_modal.s54', "تاريخ المعاملة البنكية")}
                   </label>
                   <input
                     type="date"
@@ -562,13 +564,13 @@ export function GuaranteesDirectoryModal({
               {actionType === 'invoke' && (
                 <div>
                   <label style={{ display: 'block', fontSize: 'var(--font-micro)', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                    المبلغ المصادر/المسيّل
+                    {t('contracting.guarantees_directory_modal.s55', "المبلغ المصادر/المسيّل")}
                   </label>
                   <input
                     type="number"
                     value={actionAmount}
                     onChange={(e) => setActionAmount(e.target.value)}
-                    placeholder="كامل المبلغ أو جزء منه"
+                    placeholder={t('contracting.guarantees_directory_modal.s56', "كامل المبلغ أو جزء منه")}
                     style={{ width: '100%', height: '34px', padding: '0 10px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }}
                   />
                 </div>
@@ -576,13 +578,13 @@ export function GuaranteesDirectoryModal({
 
               <div style={{ gridColumn: actionType === 'invoke' ? 'span 1' : 'span 2' }}>
                 <label style={{ display: 'block', fontSize: 'var(--font-micro)', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                  {actionType === 'invoke' ? 'سبب التسييل / المصادرة الإلزامي' : 'ملاحظات وتفاصيل المعاملة'}
+                  {actionType === 'invoke' ? t('contracting.guarantees_directory_modal.s57', "سبب التسييل / المصادرة الإلزامي") : t('contracting.guarantees_directory_modal.s58', "ملاحظات وتفاصيل المعاملة")}
                 </label>
                 <input
                   type="text"
                   value={actionType === 'invoke' ? actionReason : actionNotes}
                   onChange={(e) => actionType === 'invoke' ? setActionReason(e.target.value) : setActionNotes(e.target.value)}
-                  placeholder={actionType === 'invoke' ? 'مثال: إخلال جسيم بالجدول الزمني وسحب الأعمال' : 'رقم الخطاب الوارد من البنك أو ملاحظات'}
+                  placeholder={actionType === 'invoke' ? t('contracting.guarantees_directory_modal.s59', "مثال: إخلال جسيم بالجدول الزمني وسحب الأعمال") : t('contracting.guarantees_directory_modal.s60', "رقم الخطاب الوارد من البنك أو ملاحظات")}
                   style={{ width: '100%', height: '34px', padding: '0 10px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }}
                 />
               </div>
@@ -594,7 +596,7 @@ export function GuaranteesDirectoryModal({
                 onClick={() => { setActionType(null); setSelectedGuaranteeForAction(null); }}
                 style={{ height: '32px', padding: '0 12px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#475569', fontSize: 'var(--font-badge)', cursor: 'pointer' }}
               >
-                إلغاء
+                {t('contracting.guarantees_directory_modal.s61', "إلغاء")}
               </button>
               <button
                 type="button"
@@ -612,7 +614,7 @@ export function GuaranteesDirectoryModal({
                   cursor: isSubmittingAction ? 'not-allowed' : 'pointer',
                 }}
               >
-                {isSubmittingAction ? 'جاري المعالجة...' : 'تأكيد وحفظ الإجراء'}
+                {isSubmittingAction ? t('contracting.guarantees_directory_modal.s62', "جاري المعالجة...") : t('contracting.guarantees_directory_modal.s63', "تأكيد وحفظ الإجراء")}
               </button>
             </div>
           </div>

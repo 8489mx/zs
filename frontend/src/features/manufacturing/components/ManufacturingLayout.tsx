@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { type ReactNode } from 'react';
 import { useAppToolbar } from '@/stores/toolbar-store';
 import { PageHeader } from '@/shared/components/page-header';
@@ -31,6 +32,7 @@ export function ManufacturingLayout({
   searchQuery: _searchQuery = '',
   onSearchChange: _onSearchChange,
 }: ManufacturingLayoutProps) {
+  const { t } = useTranslation();
   useAppToolbar(breadcrumbs);
 
   return (
@@ -47,7 +49,7 @@ export function ManufacturingLayout({
             </>
           } 
         />
-        <FeatureGate feature="manufacturing" featureName="التصنيع">
+        <FeatureGate feature="manufacturing" featureName={t('manufacturing.manufacturing_layout.s0', "التصنيع")}>
           {children}
         </FeatureGate>
       </main>

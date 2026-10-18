@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import type { StorefrontProduct, StorefrontCategory, StorefrontInfo } from '../types/storefront.types';
 import { StorefrontShelfSection } from './StorefrontShelfSection';
 import { IconFolder } from './StorefrontIcons';
@@ -42,13 +43,14 @@ export function StorefrontMultiRowHome({
   onSelectCategory,
   onOpenCategoriesModal,
 }: StorefrontMultiRowHomeProps) {
+  const { t } = useTranslation();
   return (
     <div className="storefront-homepage-sections">
       {/* Row 1: Deals Spotlight */}
       {dealsProducts.length > 0 && (
         <StorefrontShelfSection
-          badge="عروض وتخفيضات حصرية"
-          subtitle="أقوى الخصومات والأسعار المخفضة"
+          badge={t('storefront.storefront_multi_row_home.s0', "عروض وتخفيضات حصرية")}
+          subtitle={t('storefront.storefront_multi_row_home.s1', "أقوى الخصومات والأسعار المخفضة")}
           viewAllLabel={`عرض كل العروض (${dealsProducts.length})`}
           products={dealsProducts.slice(0, 12)}
           cartMap={cartMap}
@@ -114,7 +116,7 @@ export function StorefrontMultiRowHome({
           }}
         >
           <span style={{ display: 'inline-block', whiteSpace: 'nowrap' }}>
-            استكشف باقي أقسام المتجر
+            {t('storefront.storefront_multi_row_home.s2', "استكشف باقي أقسام المتجر")}
           </span>
           <span
             style={{
@@ -125,11 +127,11 @@ export function StorefrontMultiRowHome({
               fontWeight: 700,
             }}
           >
-            ({categories.length} قسم متاح)
+            ({categories.length} {t('storefront.storefront_multi_row_home.s3', "قسم متاح)")}
           </span>
         </h4>
         <p style={{ margin: '0 0 16px', fontSize: '13px', color: '#64748b' }}>
-          {info?.bio || 'تصفح كافة الأقسام والمنتجات المتاحة واطلب ما تحتاجه بكل سهولة مع خدمة التوصيل المباشر'}
+          {info?.bio || t('storefront.storefront_multi_row_home.s4', "تصفح كافة الأقسام والمنتجات المتاحة واطلب ما تحتاجه بكل سهولة مع خدمة التوصيل المباشر")}
         </p>
         <button
           type="button"
@@ -159,7 +161,7 @@ export function StorefrontMultiRowHome({
           }}
         >
           <IconFolder size={16} strokeWidth={2} />
-          <span>تصفح جميع الأقسام والمنتجات</span>
+          <span>{t('storefront.storefront_multi_row_home.s5', "تصفح جميع الأقسام والمنتجات")}</span>
         </button>
       </div>
     </div>

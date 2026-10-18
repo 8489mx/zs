@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
 import { maritimeApi, ShippingLine } from '../api/maritime-freight.api';
@@ -6,6 +7,7 @@ import { StandardDialog, StandardDialogFooter } from '@/shared/components/Standa
 import { Field } from '@/shared/ui/field';
 
 export function MaritimeAgentsTab() {
+  const { t } = useTranslation();
   const [agents, setAgents] = useState<ShippingLine[]>([]);
   const [settlements, setSettlements] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -151,10 +153,10 @@ export function MaritimeAgentsTab() {
         <div>
           <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#170e5e', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <AppIcons.Globe size={20} />
-            <span>حسابات ومقاصة شبكة الوكلاء بالخارج (Overseas Agents Reciprocal Accounting & SOA)</span>
+            <span>{t('maritime_freight.maritime_agents_tab.s0', "حسابات ومقاصة شبكة الوكلاء بالخارج (Overseas Agents Reciprocal Accounting & SOA)")}</span>
           </div>
           <div style={{ fontSize: '0.8125rem', color: '#64748b', marginTop: '4px' }}>
-            إدارة إشعارات الخصم والإضافة (Debit/Credit Notes)، مناصفة الأرباح (50/50 Profit Sharing)، والمقاصة الدورية المتبادلة
+            {t('maritime_freight.maritime_agents_tab.s1', "إدارة إشعارات الخصم والإضافة (Debit/Credit Notes)، مناصفة الأرباح (50/50 Profit Sharing)، والمقاصة الدورية المتبادلة")}
           </div>
         </div>
 
@@ -178,7 +180,7 @@ export function MaritimeAgentsTab() {
             }}
           >
             <AppIcons.Plus size={16} />
-            <span>تسجيل إشعار / مناصفة أرباح</span>
+            <span>{t('maritime_freight.maritime_agents_tab.s2', "تسجيل إشعار / مناصفة أرباح")}</span>
           </button>
         </div>
       </div>
@@ -187,11 +189,11 @@ export function MaritimeAgentsTab() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
         <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '12px 16px', minHeight: '88px', boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
           <div>
-            <div style={{ fontSize: '0.76rem', fontWeight: 600, color: '#64748b' }}>إجمالي إشعارات المدين (لنا بالخارج)</div>
+            <div style={{ fontSize: '0.76rem', fontWeight: 600, color: '#64748b' }}>{t('maritime_freight.maritime_agents_tab.s3', "إجمالي إشعارات المدين (لنا بالخارج)")}</div>
             <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#0f172a', marginTop: '3px', lineHeight: 1.2 }}>
               $ {totalDebitUsd.toLocaleString(undefined, { minimumFractionDigits: 2 })}
             </div>
-            <div style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '3px' }}>شحنات Collect ومناصفات مستحقة لنا</div>
+            <div style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '3px' }}>{t('maritime_freight.maritime_agents_tab.s4', "شحنات Collect ومناصفات مستحقة لنا")}</div>
           </div>
           <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#f0fdf4', border: '1px solid #dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#15803d', flexShrink: 0 }}>
             <AppIcons.FileText size={18} />
@@ -200,11 +202,11 @@ export function MaritimeAgentsTab() {
 
         <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '12px 16px', minHeight: '88px', boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
           <div>
-            <div style={{ fontSize: '0.76rem', fontWeight: 600, color: '#64748b' }}>إجمالي إشعارات الدائن (علينا للوكلاء)</div>
+            <div style={{ fontSize: '0.76rem', fontWeight: 600, color: '#64748b' }}>{t('maritime_freight.maritime_agents_tab.s5', "إجمالي إشعارات الدائن (علينا للوكلاء)")}</div>
             <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#0f172a', marginTop: '3px', lineHeight: 1.2 }}>
               $ {totalCreditUsd.toLocaleString(undefined, { minimumFractionDigits: 2 })}
             </div>
-            <div style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '3px' }}>مصاريف منشأ وشحنات Prepaid للوكلاء</div>
+            <div style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '3px' }}>{t('maritime_freight.maritime_agents_tab.s6', "مصاريف منشأ وشحنات Prepaid للوكلاء")}</div>
           </div>
           <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#fef2f2', border: '1px solid #fecaca', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#dc2626', flexShrink: 0 }}>
             <AppIcons.Receipt size={18} />
@@ -214,15 +216,15 @@ export function MaritimeAgentsTab() {
         <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '12px 16px', minHeight: '88px', boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span style={{ fontSize: '0.76rem', fontWeight: 600, color: '#64748b' }}>صافي الرصيد المتبادل (Net Balance)</span>
+              <span style={{ fontSize: '0.76rem', fontWeight: 600, color: '#64748b' }}>{t('maritime_freight.maritime_agents_tab.s7', "صافي الرصيد المتبادل (Net Balance)")}</span>
               <span style={{ padding: '1px 6px', borderRadius: '4px', background: netBalanceUsd >= 0 ? '#dcfce7' : '#fef3c7', color: netBalanceUsd >= 0 ? '#15803d' : '#b45309', fontSize: '0.68rem', fontWeight: 700 }}>
-                {netBalanceUsd >= 0 ? 'مدين لنا' : 'دائن علينا'}
+                {netBalanceUsd >= 0 ? t('maritime_freight.maritime_agents_tab.s8', "مدين لنا") : t('maritime_freight.maritime_agents_tab.s9', "دائن علينا")}
               </span>
             </div>
             <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#0f172a', marginTop: '3px', lineHeight: 1.2 }}>
               $ {Math.abs(netBalanceUsd).toLocaleString(undefined, { minimumFractionDigits: 2 })}
             </div>
-            <div style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '3px' }}>رصيد المقاصة الإجمالي الصافي</div>
+            <div style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '3px' }}>{t('maritime_freight.maritime_agents_tab.s10', "رصيد المقاصة الإجمالي الصافي")}</div>
           </div>
           <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#eff6ff', border: '1px solid #dbeafe', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#170e5e', flexShrink: 0 }}>
             <AppIcons.Coins size={18} />
@@ -231,11 +233,11 @@ export function MaritimeAgentsTab() {
 
         <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '12px 16px', minHeight: '88px', boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
           <div>
-            <div style={{ fontSize: '0.76rem', fontWeight: 600, color: '#64748b' }}>شبكة الوكلاء المعتمدين بالدليل</div>
+            <div style={{ fontSize: '0.76rem', fontWeight: 600, color: '#64748b' }}>{t('maritime_freight.maritime_agents_tab.s11', "شبكة الوكلاء المعتمدين بالدليل")}</div>
             <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#0f172a', marginTop: '3px', lineHeight: 1.2 }}>
-              {agents.length} <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>وكيل دولي</span>
+              {agents.length} <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>{t('maritime_freight.maritime_agents_tab.s12', "وكيل دولي")}</span>
             </div>
-            <div style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '3px' }}>شبكات WCA و FIATA حول العالم</div>
+            <div style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '3px' }}>{t('maritime_freight.maritime_agents_tab.s13', "شبكات WCA و FIATA حول العالم")}</div>
           </div>
           <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#eff6ff', border: '1px solid #dbeafe', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#0284c7', flexShrink: 0 }}>
             <AppIcons.Globe size={18} />
@@ -248,7 +250,7 @@ export function MaritimeAgentsTab() {
         <div style={{ flex: '1', minWidth: '180px' }}>
           <input
             type="text"
-            placeholder="بحث برقم الإشعار أو أمر الشغل أو اسم الوكيل..."
+            placeholder={t('maritime_freight.maritime_agents_tab.s14', "بحث برقم الإشعار أو أمر الشغل أو اسم الوكيل...")}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && fetchSettlements()}
@@ -262,7 +264,7 @@ export function MaritimeAgentsTab() {
             onChange={(e) => setSelectedAgentId(e.target.value)}
             style={{ width: '100%', height: '34px', padding: '0 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.8125rem' }}
           >
-            <option value="all">كافة الوكلاء الخارجيين</option>
+            <option value="all">{t('maritime_freight.maritime_agents_tab.s15', "كافة الوكلاء الخارجيين")}</option>
             {agents.map((a) => (
               <option key={a.id} value={a.id}>{a.name_ar} ({a.country_name || a.code})</option>
             ))}
@@ -275,11 +277,11 @@ export function MaritimeAgentsTab() {
             onChange={(e) => setStatusFilter(e.target.value)}
             style={{ width: '100%', height: '34px', padding: '0 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.8125rem' }}
           >
-            <option value="all">كافة الحالات</option>
-            <option value="pending">قيد المراجعة</option>
-            <option value="approved">معتمد</option>
-            <option value="cleared">تمت المقاصة</option>
-            <option value="disputed">محل نزاع</option>
+            <option value="all">{t('maritime_freight.maritime_agents_tab.s16', "كافة الحالات")}</option>
+            <option value="pending">{t('maritime_freight.maritime_agents_tab.s17', "قيد المراجعة")}</option>
+            <option value="approved">{t('maritime_freight.maritime_agents_tab.s18', "معتمد")}</option>
+            <option value="cleared">{t('maritime_freight.maritime_agents_tab.s19', "تمت المقاصة")}</option>
+            <option value="disputed">{t('maritime_freight.maritime_agents_tab.s20', "محل نزاع")}</option>
           </select>
         </div>
 
@@ -288,7 +290,7 @@ export function MaritimeAgentsTab() {
           onClick={fetchSettlements}
           style={{ height: '34px', padding: '0 12px', background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '6px', cursor: 'pointer', fontSize: '0.8125rem', fontWeight: 600 }}
         >
-          تحديث
+          {t('maritime_freight.maritime_agents_tab.s21', "تحديث")}
         </button>
       </div>
 
@@ -297,27 +299,27 @@ export function MaritimeAgentsTab() {
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8125rem', textAlign: 'right' }}>
           <thead>
             <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-              <th style={{ padding: '10px 14px', fontWeight: 700, color: '#475569' }}>رقم الإشعار / المرجع</th>
-              <th style={{ padding: '10px 14px', fontWeight: 700, color: '#475569' }}>الوكيل الخارجي</th>
-              <th style={{ padding: '10px 14px', fontWeight: 700, color: '#475569' }}>أمر الشغل</th>
-              <th style={{ padding: '10px 14px', fontWeight: 700, color: '#475569' }}>نوع المعاملة</th>
-              <th style={{ padding: '10px 14px', fontWeight: 700, color: '#475569' }}>المبلغ بالدولار</th>
-              <th style={{ padding: '10px 14px', fontWeight: 700, color: '#475569' }}>المعادل بالجنيه</th>
-              <th style={{ padding: '10px 14px', fontWeight: 700, color: '#475569' }}>الحالة</th>
-              <th style={{ padding: '10px 14px', fontWeight: 700, color: '#475569', textAlign: 'center' }}>الإجراءات</th>
+              <th style={{ padding: '10px 14px', fontWeight: 700, color: '#475569' }}>{t('maritime_freight.maritime_agents_tab.s22', "رقم الإشعار / المرجع")}</th>
+              <th style={{ padding: '10px 14px', fontWeight: 700, color: '#475569' }}>{t('maritime_freight.maritime_agents_tab.s23', "الوكيل الخارجي")}</th>
+              <th style={{ padding: '10px 14px', fontWeight: 700, color: '#475569' }}>{t('maritime_freight.maritime_agents_tab.s24', "أمر الشغل")}</th>
+              <th style={{ padding: '10px 14px', fontWeight: 700, color: '#475569' }}>{t('maritime_freight.maritime_agents_tab.s25', "نوع المعاملة")}</th>
+              <th style={{ padding: '10px 14px', fontWeight: 700, color: '#475569' }}>{t('maritime_freight.maritime_agents_tab.s26', "المبلغ بالدولار")}</th>
+              <th style={{ padding: '10px 14px', fontWeight: 700, color: '#475569' }}>{t('maritime_freight.maritime_agents_tab.s27', "المعادل بالجنيه")}</th>
+              <th style={{ padding: '10px 14px', fontWeight: 700, color: '#475569' }}>{t('maritime_freight.maritime_agents_tab.s28', "الحالة")}</th>
+              <th style={{ padding: '10px 14px', fontWeight: 700, color: '#475569', textAlign: 'center' }}>{t('maritime_freight.maritime_agents_tab.s29', "الإجراءات")}</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
                 <td colSpan={8} style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
-                  جاري تحميل معاملات الوكلاء...
+                  {t('maritime_freight.maritime_agents_tab.s30', "جاري تحميل معاملات الوكلاء...")}
                 </td>
               </tr>
             ) : settlements.length === 0 ? (
               <tr>
                 <td colSpan={8} style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
-                  لا توجد إشعارات أو تسويات مسجلة حالياً
+                  {t('maritime_freight.maritime_agents_tab.s31', "لا توجد إشعارات أو تسويات مسجلة حالياً")}
                 </td>
               </tr>
             ) : (
@@ -358,19 +360,19 @@ export function MaritimeAgentsTab() {
                       }}
                     >
                       {item.settlement_type === 'debit_note'
-                        ? 'إشعار مدين (Debit Note)'
+                        ? t('maritime_freight.maritime_agents_tab.s32', "إشعار مدين (Debit Note)")
                         : item.settlement_type === 'credit_note'
-                        ? 'إشعار دائن (Credit Note)'
+                        ? t('maritime_freight.maritime_agents_tab.s33', "إشعار دائن (Credit Note)")
                         : item.settlement_type === 'profit_share'
                         ? `مناصفة أرباح (${item.profit_share_percent}%)`
-                        : 'مقاصة متبادلة (Offset)'}
+                        : t('maritime_freight.maritime_agents_tab.s34', "مقاصة متبادلة (Offset)")}
                     </span>
                   </td>
                   <td style={{ padding: '10px 14px', fontWeight: 800, fontFamily: 'monospace', color: item.settlement_type === 'credit_note' ? '#b91c1c' : '#166534' }}>
                     $ {Number(item.amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                   </td>
                   <td style={{ padding: '10px 14px', fontFamily: 'monospace', color: '#475569' }}>
-                    {Number(item.local_equivalent_amount || 0).toLocaleString()} ج.م
+                    {Number(item.local_equivalent_amount || 0).toLocaleString()} {t('maritime_freight.maritime_agents_tab.s35', "ج.م")}
                   </td>
                   <td style={{ padding: '10px 14px' }}>
                     <span
@@ -398,12 +400,12 @@ export function MaritimeAgentsTab() {
                       }}
                     >
                       {item.status === 'cleared'
-                        ? 'تمت المقاصة'
+                        ? t('maritime_freight.maritime_agents_tab.s36', "تمت المقاصة")
                         : item.status === 'approved'
-                        ? 'معتمد'
+                        ? t('maritime_freight.maritime_agents_tab.s37', "معتمد")
                         : item.status === 'disputed'
-                        ? 'نزاع'
-                        : 'قيد المراجعة'}
+                        ? t('maritime_freight.maritime_agents_tab.s38', "نزاع")
+                        : t('maritime_freight.maritime_agents_tab.s39', "قيد المراجعة")}
                     </span>
                   </td>
                   <td style={{ padding: '10px 14px', textAlign: 'center' }}>
@@ -414,7 +416,7 @@ export function MaritimeAgentsTab() {
                           onClick={() => handleUpdateStatus(item.id, 'approved')}
                           style={{ padding: '3px 8px', background: '#166534', color: '#ffffff', border: 'none', borderRadius: '4px', fontSize: '0.72rem', cursor: 'pointer' }}
                         >
-                          اعتماد
+                          {t('maritime_freight.maritime_agents_tab.s40', "اعتماد")}
                         </button>
                       )}
                       {item.status === 'approved' && (
@@ -423,7 +425,7 @@ export function MaritimeAgentsTab() {
                           onClick={() => handleUpdateStatus(item.id, 'cleared')}
                           style={{ padding: '3px 8px', background: '#1d4ed8', color: '#ffffff', border: 'none', borderRadius: '4px', fontSize: '0.72rem', cursor: 'pointer' }}
                         >
-                          إتمام المقاصة
+                          {t('maritime_freight.maritime_agents_tab.s41', "إتمام المقاصة")}
                         </button>
                       )}
                       {item.agent_id && (
@@ -432,7 +434,7 @@ export function MaritimeAgentsTab() {
                           onClick={() => handleOpenSoa(item.agent_id)}
                           style={{ padding: '3px 8px', background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '0.72rem', cursor: 'pointer' }}
                         >
-                          كشف الحساب SOA
+                          {t('maritime_freight.maritime_agents_tab.s42', "كشف الحساب SOA")}
                         </button>
                       )}
                     </div>
@@ -448,12 +450,12 @@ export function MaritimeAgentsTab() {
       <StandardDialog
         open={showCreateModal}
         onClose={() => setShowCreateModal(false)}
-        title="تسجيل إشعار خصم/إضافة أو مناصفة أرباح للوكيل الخارجي"
-        subtitle="توثيق المعاملات المالية المتبادلة مع شبكة وكلاء الشحن حول العالم"
+        title={t('maritime_freight.maritime_agents_tab.s43', "تسجيل إشعار خصم/إضافة أو مناصفة أرباح للوكيل الخارجي")}
+        subtitle={t('maritime_freight.maritime_agents_tab.s44', "توثيق المعاملات المالية المتبادلة مع شبكة وكلاء الشحن حول العالم")}
         width="620px"
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          <Field label="الوكيل الخارجي">
+          <Field label={t('maritime_freight.maritime_agents_tab.s45', "الوكيل الخارجي")}>
             <select
               value={formData.agentId}
               onChange={(e) => {
@@ -466,7 +468,7 @@ export function MaritimeAgentsTab() {
               }}
               style={{ width: '100%', height: '36px', padding: '0 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
             >
-              <option value="">اختر الوكيل من الدليل...</option>
+              <option value="">{t('maritime_freight.maritime_agents_tab.s46', "اختر الوكيل من الدليل...")}</option>
               {agents.map((a) => (
                 <option key={a.id} value={a.id}>{a.name_ar} ({a.country_name || a.code})</option>
               ))}
@@ -474,10 +476,10 @@ export function MaritimeAgentsTab() {
           </Field>
 
           {!formData.agentId && (
-            <Field label="أو أدخل اسم الوكيل يدوياً">
+            <Field label={t('maritime_freight.maritime_agents_tab.s47', "أو أدخل اسم الوكيل يدوياً")}>
               <input
                 type="text"
-                placeholder="اسم وكيل الشحن بالخارج..."
+                placeholder={t('maritime_freight.maritime_agents_tab.s48', "اسم وكيل الشحن بالخارج...")}
                 value={formData.agentName}
                 onChange={(e) => setFormData({ ...formData, agentName: e.target.value })}
                 style={{ width: '100%', height: '36px', padding: '0 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
@@ -486,23 +488,23 @@ export function MaritimeAgentsTab() {
           )}
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-            <Field label="نوع الإشعار / المعاملة">
+            <Field label={t('maritime_freight.maritime_agents_tab.s49', "نوع الإشعار / المعاملة")}>
               <select
                 value={formData.settlementType}
                 onChange={(e) => setFormData({ ...formData, settlementType: e.target.value })}
                 style={{ width: '100%', height: '36px', padding: '0 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
               >
-                <option value="profit_share">مناصفة أرباح (Profit Share)</option>
-                <option value="debit_note">إشعار مدين لنا (Debit Note)</option>
-                <option value="credit_note">إشعار دائن علينا (Credit Note)</option>
-                <option value="offset_clearing">تسوية مقاصة (Offset Clearing)</option>
+                <option value="profit_share">{t('maritime_freight.maritime_agents_tab.s50', "مناصفة أرباح (Profit Share)")}</option>
+                <option value="debit_note">{t('maritime_freight.maritime_agents_tab.s51', "إشعار مدين لنا (Debit Note)")}</option>
+                <option value="credit_note">{t('maritime_freight.maritime_agents_tab.s52', "إشعار دائن علينا (Credit Note)")}</option>
+                <option value="offset_clearing">{t('maritime_freight.maritime_agents_tab.s53', "تسوية مقاصة (Offset Clearing)")}</option>
               </select>
             </Field>
 
-            <Field label="رقم أمر الشغل (Job #)">
+            <Field label={t('maritime_freight.maritime_agents_tab.s54', "رقم أمر الشغل (Job #)")}>
               <input
                 type="text"
-                placeholder="مثال: JOB-261007-0001"
+                placeholder={t('maritime_freight.maritime_agents_tab.s55', "مثال: JOB-261007-0001")}
                 value={formData.jobNumber}
                 onChange={(e) => setFormData({ ...formData, jobNumber: e.target.value })}
                 style={{ width: '100%', height: '36px', padding: '0 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
@@ -511,7 +513,7 @@ export function MaritimeAgentsTab() {
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
-            <Field label="المبلغ بالدولار ($)">
+            <Field label={t('maritime_freight.maritime_agents_tab.s56', "المبلغ بالدولار ($)")}>
               <input
                 type="number"
                 placeholder="0.00"
@@ -521,7 +523,7 @@ export function MaritimeAgentsTab() {
               />
             </Field>
 
-            <Field label="نسبة المناصفة %">
+            <Field label={t('maritime_freight.maritime_agents_tab.s57', "نسبة المناصفة %")}>
               <input
                 type="number"
                 placeholder="50"
@@ -531,7 +533,7 @@ export function MaritimeAgentsTab() {
               />
             </Field>
 
-            <Field label="سعر الصرف (EGP/USD)">
+            <Field label={t('maritime_freight.maritime_agents_tab.s58', "سعر الصرف (EGP/USD)")}>
               <input
                 type="number"
                 placeholder="49.0"
@@ -542,10 +544,10 @@ export function MaritimeAgentsTab() {
             </Field>
           </div>
 
-          <Field label="ملاحظات وبيان المعاملة">
+          <Field label={t('maritime_freight.maritime_agents_tab.s59', "ملاحظات وبيان المعاملة")}>
             <textarea
               rows={2}
-              placeholder="شحنة Collect، مصاريف ميناء المنشأ، أو تسوية رصيد سنوي..."
+              placeholder={t('maritime_freight.maritime_agents_tab.s60', "شحنة Collect، مصاريف ميناء المنشأ، أو تسوية رصيد سنوي...")}
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
@@ -559,7 +561,7 @@ export function MaritimeAgentsTab() {
             onClick={() => setShowCreateModal(false)}
             style={{ padding: '8px 16px', background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '6px', cursor: 'pointer', fontWeight: 600 }}
           >
-            إلغاء
+            {t('maritime_freight.maritime_agents_tab.s61', "إلغاء")}
           </button>
           <button
             type="button"
@@ -567,7 +569,7 @@ export function MaritimeAgentsTab() {
             disabled={isSubmitting}
             style={{ padding: '8px 20px', background: '#170e5e', color: '#ffffff', border: 'none', borderRadius: '6px', cursor: isSubmitting ? 'not-allowed' : 'pointer', fontWeight: 700 }}
           >
-            {isSubmitting ? 'جاري الحفظ...' : 'حفظ الإشعار'}
+            {isSubmitting ? t('maritime_freight.maritime_agents_tab.s62', "جاري الحفظ...") : t('maritime_freight.maritime_agents_tab.s63', "حفظ الإشعار")}
           </button>
         </StandardDialogFooter>
       </StandardDialog>
@@ -576,27 +578,27 @@ export function MaritimeAgentsTab() {
       <StandardDialog
         open={showSoaModal}
         onClose={() => setShowSoaModal(false)}
-        title="كشف حساب ومقاصة الوكيل الخارجي (Statement of Account - SOA)"
-        subtitle="مطابقة الأرصدة المتبادلة وحساب صافي التسوية (Receivable vs Payable)"
+        title={t('maritime_freight.maritime_agents_tab.s64', "كشف حساب ومقاصة الوكيل الخارجي (Statement of Account - SOA)")}
+        subtitle={t('maritime_freight.maritime_agents_tab.s65', "مطابقة الأرصدة المتبادلة وحساب صافي التسوية (Receivable vs Payable)")}
         width="680px"
       >
         {loadingSoa ? (
-          <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>جاري استخراج كشف الحساب...</div>
+          <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>{t('maritime_freight.maritime_agents_tab.s66', "جاري استخراج كشف الحساب...")}</div>
         ) : soaData ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
             {/* SOA Summary Box */}
             <div style={{ background: '#f8fafc', border: '2px solid #170e5e', borderRadius: '10px', padding: '14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
                 <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#170e5e' }}>
-                  صافي الرصيد النهائي للمقاصة (NET CLEARING BALANCE)
+                  {t('maritime_freight.maritime_agents_tab.s67', "صافي الرصيد النهائي للمقاصة (NET CLEARING BALANCE)")}
                 </div>
                 <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '2px' }}>
-                  إجمالي المدين: ${soaData.summary.totalDebitUsd.toLocaleString()} | إجمالي الدائن: ${soaData.summary.totalCreditUsd.toLocaleString()}
+                  {t('maritime_freight.maritime_agents_tab.s68', "إجمالي المدين: $")}{soaData.summary.totalDebitUsd.toLocaleString()} {t('maritime_freight.maritime_agents_tab.s69', "| إجمالي الدائن: $")}{soaData.summary.totalCreditUsd.toLocaleString()}
                 </div>
               </div>
               <div style={{ fontSize: '1.4rem', fontWeight: 900, fontFamily: 'monospace', color: soaData.summary.position === 'receivable' ? '#166534' : '#b91c1c' }}>
                 $ {Math.abs(soaData.summary.netBalanceUsd).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                <span style={{ fontSize: '0.75rem', marginRight: '6px' }}>{soaData.summary.position === 'receivable' ? '(مستحق لنا)' : '(مستحق للوكيل)'}</span>
+                <span style={{ fontSize: '0.75rem', marginRight: '6px' }}>{soaData.summary.position === 'receivable' ? t('maritime_freight.maritime_agents_tab.s70', "(مستحق لنا)") : t('maritime_freight.maritime_agents_tab.s71', "(مستحق للوكيل)")}</span>
               </div>
             </div>
 
@@ -605,11 +607,11 @@ export function MaritimeAgentsTab() {
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.78rem', textAlign: 'right' }}>
                 <thead>
                   <tr style={{ background: '#f1f5f9', borderBottom: '1px solid #cbd5e1' }}>
-                    <th style={{ padding: '8px 10px' }}>المرجع</th>
-                    <th style={{ padding: '8px 10px' }}>النوع</th>
-                    <th style={{ padding: '8px 10px' }}>أمر الشغل</th>
-                    <th style={{ padding: '8px 10px' }}>المبلغ ($)</th>
-                    <th style={{ padding: '8px 10px' }}>الحالة</th>
+                    <th style={{ padding: '8px 10px' }}>{t('maritime_freight.maritime_agents_tab.s72', "المرجع")}</th>
+                    <th style={{ padding: '8px 10px' }}>{t('maritime_freight.maritime_agents_tab.s73', "النوع")}</th>
+                    <th style={{ padding: '8px 10px' }}>{t('maritime_freight.maritime_agents_tab.s74', "أمر الشغل")}</th>
+                    <th style={{ padding: '8px 10px' }}>{t('maritime_freight.maritime_agents_tab.s75', "المبلغ ($)")}</th>
+                    <th style={{ padding: '8px 10px' }}>{t('maritime_freight.maritime_agents_tab.s76', "الحالة")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -634,7 +636,7 @@ export function MaritimeAgentsTab() {
             onClick={() => setShowSoaModal(false)}
             style={{ padding: '8px 18px', background: '#170e5e', color: '#ffffff', border: 'none', borderRadius: '6px', fontWeight: 700, cursor: 'pointer' }}
           >
-            إغلاق
+            {t('maritime_freight.maritime_agents_tab.s77', "إغلاق")}
           </button>
         </StandardDialogFooter>
       </StandardDialog>

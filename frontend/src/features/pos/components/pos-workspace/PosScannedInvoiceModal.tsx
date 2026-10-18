@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import type { AppSettings, Sale } from '@/types/domain';
 import { DialogShell } from '@/shared/components/dialog-shell';
@@ -21,6 +22,7 @@ export function PosScannedInvoiceModal({
   settings,
   onOpenReturns,
 }: PosScannedInvoiceModalProps) {
+  const { t } = useTranslation();
   const [printSuccess, setPrintSuccess] = useState(false);
 
   if (!sale) return null;
@@ -48,7 +50,7 @@ export function PosScannedInvoiceModal({
       onClose={onClose}
       width="min(820px, calc(100vw - 32px))"
       showCloseButton={true}
-      ariaLabel="تفاصيل الفاتورة الممسوحة بالباركود"
+      ariaLabel={t('pos.pos_workspace.pos_scanned_invoice_modal.s0', "تفاصيل الفاتورة الممسوحة بالباركود")}
     >
       <div
         style={{
@@ -75,7 +77,7 @@ export function PosScannedInvoiceModal({
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
               <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: '#0f172a' }}>
-                فاتورة مبيعات: <span style={{ color: 'var(--primary-color, #0284c7)', fontFamily: 'monospace' }}>{sale.docNo || `Z-${sale.id}`}</span>
+                {t('pos.pos_workspace.pos_scanned_invoice_modal.s1', "فاتورة مبيعات:")} <span style={{ color: 'var(--primary-color, #0284c7)', fontFamily: 'monospace' }}>{sale.docNo || `Z-${sale.id}`}</span>
               </h3>
               <span
                 style={{
@@ -88,11 +90,11 @@ export function PosScannedInvoiceModal({
                   border: isCancelled ? '1px solid #fecaca' : '1px solid #bbf7d0',
                 }}
               >
-                {isCancelled ? 'ملغاة' : 'مكتملة'}
+                {isCancelled ? t('pos.pos_workspace.pos_scanned_invoice_modal.s2', "ملغاة") : t('pos.pos_workspace.pos_scanned_invoice_modal.s3', "مكتملة")}
               </span>
             </div>
             <p style={{ margin: '6px 0 0', fontSize: '12.5px', color: '#64748b' }}>
-              تم العثور على الفاتورة بنجاح. يمكنك استعراض الأصناف، إعادة طباعة الإيصال، أو تحويلها لمرتجع.
+              {t('pos.pos_workspace.pos_scanned_invoice_modal.s4', "تم العثور على الفاتورة بنجاح. يمكنك استعراض الأصناف، إعادة طباعة الإيصال، أو تحويلها لمرتجع.")}
             </p>
           </div>
         </div>
@@ -106,25 +108,25 @@ export function PosScannedInvoiceModal({
           }}
         >
           <div style={{ background: '#f8fafc', padding: '12px 14px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
-            <div style={{ fontSize: '11.5px', color: '#64748b', fontWeight: 600 }}>العميل</div>
+            <div style={{ fontSize: '11.5px', color: '#64748b', fontWeight: 600 }}>{t('pos.pos_workspace.pos_scanned_invoice_modal.s5', "العميل")}</div>
             <div style={{ fontSize: '14px', fontWeight: 700, color: '#1e293b', marginTop: '3px' }}>
-              {sale.customerName || 'عميل نقدي'}
+              {sale.customerName || t('pos.pos_workspace.pos_scanned_invoice_modal.s6', "عميل نقدي")}
             </div>
           </div>
           <div style={{ background: '#f8fafc', padding: '12px 14px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
-            <div style={{ fontSize: '11.5px', color: '#64748b', fontWeight: 600 }}>التاريخ والوقت</div>
+            <div style={{ fontSize: '11.5px', color: '#64748b', fontWeight: 600 }}>{t('pos.pos_workspace.pos_scanned_invoice_modal.s7', "التاريخ والوقت")}</div>
             <div style={{ fontSize: '13.5px', fontWeight: 700, color: '#1e293b', marginTop: '3px' }}>
               {sale.date ? formatDate(sale.date) : '—'}
             </div>
           </div>
           <div style={{ background: '#f8fafc', padding: '12px 14px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
-            <div style={{ fontSize: '11.5px', color: '#64748b', fontWeight: 600 }}>طريقة الدفع</div>
+            <div style={{ fontSize: '11.5px', color: '#64748b', fontWeight: 600 }}>{t('pos.pos_workspace.pos_scanned_invoice_modal.s8', "طريقة الدفع")}</div>
             <div style={{ fontSize: '13.5px', fontWeight: 700, color: '#1e293b', marginTop: '3px' }}>
               {paymentLabel((sale.paymentType || 'cash') as 'cash' | 'credit', sale.paymentChannel || 'cash')}
             </div>
           </div>
           <div style={{ background: '#f8fafc', padding: '12px 14px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
-            <div style={{ fontSize: '11.5px', color: '#64748b', fontWeight: 600 }}>الكاشير / الفرع</div>
+            <div style={{ fontSize: '11.5px', color: '#64748b', fontWeight: 600 }}>{t('pos.pos_workspace.pos_scanned_invoice_modal.s9', "الكاشير / الفرع")}</div>
             <div style={{ fontSize: '13.5px', fontWeight: 700, color: '#1e293b', marginTop: '3px' }}>
               {sale.createdBy || sale.branchName || '—'}
             </div>
@@ -136,10 +138,10 @@ export function PosScannedInvoiceModal({
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', textAlign: 'right' }}>
             <thead>
               <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>
-                <th style={{ padding: '10px 14px', fontWeight: 700 }}>الصنف</th>
-                <th style={{ padding: '10px 14px', textAlign: 'center', fontWeight: 700 }}>الكمية</th>
-                <th style={{ padding: '10px 14px', textAlign: 'center', fontWeight: 700 }}>السعر</th>
-                <th style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 700 }}>الإجمالي</th>
+                <th style={{ padding: '10px 14px', fontWeight: 700 }}>{t('pos.pos_workspace.pos_scanned_invoice_modal.s10', "الصنف")}</th>
+                <th style={{ padding: '10px 14px', textAlign: 'center', fontWeight: 700 }}>{t('pos.pos_workspace.pos_scanned_invoice_modal.s11', "الكمية")}</th>
+                <th style={{ padding: '10px 14px', textAlign: 'center', fontWeight: 700 }}>{t('pos.pos_workspace.pos_scanned_invoice_modal.s12', "السعر")}</th>
+                <th style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 700 }}>{t('pos.pos_workspace.pos_scanned_invoice_modal.s13', "الإجمالي")}</th>
               </tr>
             </thead>
             <tbody>
@@ -158,7 +160,7 @@ export function PosScannedInvoiceModal({
                       ) : null}
                     </td>
                     <td style={{ padding: '10px 14px', textAlign: 'center', fontWeight: 600 }}>
-                      {item.qty} {item.unitName || 'قطعة'}
+                      {item.qty} {item.unitName || t('pos.pos_workspace.pos_scanned_invoice_modal.s14', "قطعة")}
                     </td>
                     <td style={{ padding: '10px 14px', textAlign: 'center' }}>
                       <div style={{ fontWeight: 700, color: '#0f172a' }}>{formatCurrency(item.price)}</div>
@@ -193,16 +195,16 @@ export function PosScannedInvoiceModal({
           }}
         >
           <div style={{ display: 'flex', gap: '16px', fontSize: '13px', color: '#64748b', flexWrap: 'wrap' }}>
-            <div>عدد البنود: <strong style={{ color: '#1e293b' }}>{(sale.items || []).length}</strong></div>
+            <div>{t('pos.pos_workspace.pos_scanned_invoice_modal.s15', "عدد البنود:")} <strong style={{ color: '#1e293b' }}>{(sale.items || []).length}</strong></div>
             {Number(sale.discount || 0) > 0 ? (
-              <div style={{ color: '#059669' }}>الخصم: <strong>{formatCurrency(sale.discount)}</strong></div>
+              <div style={{ color: '#059669' }}>{t('pos.pos_workspace.pos_scanned_invoice_modal.s16', "الخصم:")} <strong>{formatCurrency(sale.discount)}</strong></div>
             ) : null}
             {Number(sale.taxAmount || 0) > 0 ? (
-              <div>الضريبة: <strong style={{ color: '#1e293b' }}>{formatCurrency(sale.taxAmount)}</strong></div>
+              <div>{t('pos.pos_workspace.pos_scanned_invoice_modal.s17', "الضريبة:")} <strong style={{ color: '#1e293b' }}>{formatCurrency(sale.taxAmount)}</strong></div>
             ) : null}
           </div>
           <div style={{ textAlign: 'left', display: 'flex', alignItems: 'baseline', gap: '8px' }}>
-            <span style={{ fontSize: '13px', color: '#64748b', fontWeight: 600 }}>الإجمالي النهائي:</span>
+            <span style={{ fontSize: '13px', color: '#64748b', fontWeight: 600 }}>{t('pos.pos_workspace.pos_scanned_invoice_modal.s18', "الإجمالي النهائي:")}</span>
             <strong style={{ fontSize: '1.35rem', color: 'var(--primary-color, #0284c7)', fontWeight: 800 }}>
               {formatCurrency(sale.total)}
             </strong>
@@ -211,7 +213,7 @@ export function PosScannedInvoiceModal({
 
         {printSuccess ? (
           <div style={{ padding: '10px 14px', borderRadius: '8px', background: '#dcfce7', color: '#15803d', fontSize: '13.5px', fontWeight: 700, textAlign: 'center', border: '1px solid #bbf7d0' }}>
-            تم إرسال أمر طباعة الإيصال بنجاح!
+            {t('pos.pos_workspace.pos_scanned_invoice_modal.s19', "تم إرسال أمر طباعة الإيصال بنجاح!")}
           </div>
         ) : null}
 
@@ -233,7 +235,7 @@ export function PosScannedInvoiceModal({
             onClick={onClose}
             style={{ padding: '9px 18px', fontWeight: 600 }}
           >
-            إغلاق (Esc)
+            {t('pos.pos_workspace.pos_scanned_invoice_modal.s20', "إغلاق (Esc)")}
           </Button>
 
           {sale.status !== 'cancelled' ? (
@@ -251,7 +253,7 @@ export function PosScannedInvoiceModal({
                 background: '#fff',
               }}
             >
-              <span>إنشاء مرتجع لهذه الفاتورة</span>
+              <span>{t('pos.pos_workspace.pos_scanned_invoice_modal.s21', "إنشاء مرتجع لهذه الفاتورة")}</span>
             </Button>
           ) : null}
 
@@ -268,7 +270,7 @@ export function PosScannedInvoiceModal({
               boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
             }}
           >
-            <span>إعادة طباعة الإيصال</span>
+            <span>{t('pos.pos_workspace.pos_scanned_invoice_modal.s22', "إعادة طباعة الإيصال")}</span>
           </Button>
         </div>
       </div>

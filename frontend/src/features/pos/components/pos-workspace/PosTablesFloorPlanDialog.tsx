@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React, { useEffect, useState, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { DialogShell } from '@/shared/components/dialog-shell';
@@ -68,6 +69,7 @@ export function PosTablesFloorPlanDialog({
   onPrintGuestCheck,
   onSeatReservation,
 }: PosTablesFloorPlanDialogProps) {
+  const { t: __t } = useTranslation();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<'floor' | 'list'>(initialTab);
   const [floorViewMode, setFloorViewMode] = useState<'canvas' | 'grid'>('canvas');
@@ -464,7 +466,7 @@ export function PosTablesFloorPlanDialog({
     <DialogShell
       open={open}
       onClose={onClose}
-      ariaLabel="خريطة الصالة وإدارة الطاولات والطلبات المعلقة"
+      ariaLabel={__t('pos.pos_workspace.pos_tables_floor_plan_dialog.s0', __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s0', "خريطة الصالة وإدارة الطاولات والطلبات المعلقة"))}
       width="880px"
       zIndex={87}
     >
@@ -474,7 +476,7 @@ export function PosTablesFloorPlanDialog({
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <h3 style={{ margin: 0, fontSize: '17px', fontWeight: 900, color: '#0f172a' }}>
-                خريطة الصالة وإدارة الطاولات والطلبات
+                {__t('pos.pos_workspace.pos_tables_floor_plan_dialog.s1', __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s1', "خريطة الصالة وإدارة الطاولات والطلبات"))}
               </h3>
               {currentTableNumber && (
                 <span
@@ -491,7 +493,7 @@ export function PosTablesFloorPlanDialog({
                     gap: '6px',
                   }}
                 >
-                  <span>الطاولة الحالية بالسلة: {currentTableNumber}</span>
+                  <span>{__t('pos.pos_workspace.pos_tables_floor_plan_dialog.s2', __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s2', "الطاولة الحالية بالسلة:"))} {currentTableNumber}</span>
                   {currentCartItemsCount > 0 && (
                     <span
                       style={{
@@ -503,14 +505,14 @@ export function PosTablesFloorPlanDialog({
                         fontWeight: 900,
                       }}
                     >
-                      {formatCurrency(currentCartTotal)} ({currentCartItemsCount} صنف بالسلة)
+                      {formatCurrency(currentCartTotal)} ({currentCartItemsCount} {__t('pos.pos_workspace.pos_tables_floor_plan_dialog.s3', __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s3', "صنف بالسلة)"))}
                     </span>
                   )}
                 </span>
               )}
             </div>
             <p style={{ margin: '3px 0 0', fontSize: '12px', color: '#64748b' }}>
-              إدارة شاملة لطاولات الصالة وجلسات الطعام والطلبات المعلقة والتيك أواي
+              {__t('pos.pos_workspace.pos_tables_floor_plan_dialog.s4', __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s4', "إدارة شاملة لطاولات الصالة وجلسات الطعام والطلبات المعلقة والتيك أواي"))}
             </p>
           </div>
 
@@ -527,7 +529,7 @@ export function PosTablesFloorPlanDialog({
               padding: '6px',
               borderRadius: '6px',
             }}
-            title="إغلاق"
+            title={__t('pos.pos_workspace.pos_tables_floor_plan_dialog.s5', __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s5', "إغلاق"))}
           >
             <XIcon size={16} />
           </button>
@@ -550,7 +552,7 @@ export function PosTablesFloorPlanDialog({
               transition: 'all 0.15s ease',
             }}
           >
-            خريطة الصالة والطاولات
+            {__t('pos.pos_workspace.pos_tables_floor_plan_dialog.s6', __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s6', "خريطة الصالة والطاولات"))}
           </button>
           <button
             type="button"
@@ -570,7 +572,7 @@ export function PosTablesFloorPlanDialog({
               gap: '6px',
             }}
           >
-            <span>قائمة الطلبات المعلقة والتيك أواي</span>
+            <span>{__t('pos.pos_workspace.pos_tables_floor_plan_dialog.s7', __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s7', "قائمة الطلبات المعلقة والتيك أواي"))}</span>
             <span
               style={{
                 background: activeTab === 'list' ? '#ffffff' : '#f1f5f9',
@@ -593,28 +595,28 @@ export function PosTablesFloorPlanDialog({
               <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
                 <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', padding: '6px 12px', fontSize: '12px', color: '#166534', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                   <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#16a34a', display: 'inline-block' }} />
-                  <span>طاولات شاغرة: <strong>{availableCount}</strong></span>
+                  <span>{__t('pos.pos_workspace.pos_tables_floor_plan_dialog.s8', __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s8', "طاولات شاغرة:"))} <strong>{availableCount}</strong></span>
                 </div>
                 <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', padding: '6px 12px', fontSize: '12px', color: '#991b1b', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                   <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#dc2626', display: 'inline-block' }} />
-                  <span>طاولات مشغولة: <strong>{occupiedCount}</strong> ({formatCurrency(totalOccupiedMoney)})</span>
+                  <span>{__t('pos.pos_workspace.pos_tables_floor_plan_dialog.s9', __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s9', "طاولات مشغولة:"))} <strong>{occupiedCount}</strong> ({formatCurrency(totalOccupiedMoney)})</span>
                 </div>
                 {qrOrdersMap.size > 0 && (
                   <div style={{ background: '#faf5ff', border: '1px solid #e9d5ff', borderRadius: '8px', padding: '6px 12px', fontSize: '12px', color: '#7e22ce', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                     <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#9333ea', display: 'inline-block' }} />
-                    <span>طلبات QR نشطة: <strong>{qrOrdersMap.size}</strong></span>
+                    <span>{__t('pos.pos_workspace.pos_tables_floor_plan_dialog.s10', __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s10', "طلبات QR نشطة:"))} <strong>{qrOrdersMap.size}</strong></span>
                   </div>
                 )}
                 {pendingCalls.length > 0 && (
                   <div style={{ background: '#fef3c7', border: '1px solid #fde68a', borderRadius: '8px', padding: '6px 12px', fontSize: '12px', color: '#92400e', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                     <BellIcon size={14} color="#b45309" />
-                    <span>نداءات واستدعاءات نشطة: <strong>{pendingCalls.length}</strong></span>
+                    <span>{__t('pos.pos_workspace.pos_tables_floor_plan_dialog.s11', __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s11', "نداءات واستدعاءات نشطة:"))} <strong>{pendingCalls.length}</strong></span>
                   </div>
                 )}
                 {nonTableDrafts.length > 0 && (
                   <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '8px', padding: '6px 12px', fontSize: '12px', color: '#1e40af', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                     <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#2563eb', display: 'inline-block' }} />
-                    <span>تيك أواي معلق: <strong>{nonTableDrafts.length}</strong></span>
+                    <span>{__t('pos.pos_workspace.pos_tables_floor_plan_dialog.s12', __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s12', "تيك أواي معلق:"))} <strong>{nonTableDrafts.length}</strong></span>
                   </div>
                 )}
               </div>
@@ -638,14 +640,14 @@ export function PosTablesFloorPlanDialog({
                     gap: '5px',
                     transition: 'all 0.15s ease',
                   }}
-                  title="طباعة وتجهيز ستيكرات وستاندات كروت الـ QR لطاولات الصالة"
+                  title={__t('pos.pos_workspace.pos_tables_floor_plan_dialog.s13', __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s13', "طباعة وتجهيز ستيكرات وستاندات كروت الـ QR لطاولات الصالة"))}
                 >
                   <QrCodeIcon size={14} color="#170e5e" />
-                  <span>طباعة كروت الـ QR</span>
+                  <span>{__t('pos.pos_workspace.pos_tables_floor_plan_dialog.s14', __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s14', "طباعة كروت الـ QR"))}</span>
                 </button>
                 {isEditingCount ? (
                   <form onSubmit={handleSaveTablesCount} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#f8fafc', border: '1.5px solid #170e5e', borderRadius: '8px', padding: '3px 8px' }}>
-                    <span style={{ fontSize: '11.5px', fontWeight: 700, color: '#334155' }}>عدد الطاولات:</span>
+                    <span style={{ fontSize: '11.5px', fontWeight: 700, color: '#334155' }}>{__t('pos.pos_workspace.pos_tables_floor_plan_dialog.s15', __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s15', "عدد الطاولات:"))}</span>
                     <input
                       type="number"
                       min="1"
@@ -657,10 +659,10 @@ export function PosTablesFloorPlanDialog({
                       style={{ width: '55px', height: '28px', textAlign: 'center', fontWeight: 800, fontSize: '13px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
                     />
                     <Button type="submit" variant="primary" style={{ minHeight: '28px', height: '28px', padding: '0 8px', fontSize: '11px', borderRadius: '4px' }} disabled={isSavingCount}>
-                      {isSavingCount ? '...' : 'حفظ'}
+                      {isSavingCount ? '...' : __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s16', __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s16', "حفظ"))}
                     </Button>
                     <Button type="button" variant="secondary" onClick={() => setIsEditingCount(false)} style={{ minHeight: '28px', height: '28px', padding: '0 8px', fontSize: '11px', borderRadius: '4px' }}>
-                      إلغاء
+                      {__t('pos.pos_workspace.pos_tables_floor_plan_dialog.s17', __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s17', "إلغاء"))}
                     </Button>
                   </form>
                 ) : (
@@ -681,10 +683,10 @@ export function PosTablesFloorPlanDialog({
                       gap: '5px',
                       transition: 'all 0.15s ease',
                     }}
-                    title="تعديل عدد طاولات الصالة المعروضة"
+                    title={__t('pos.pos_workspace.pos_tables_floor_plan_dialog.s18', __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s18', "تعديل عدد طاولات الصالة المعروضة"))}
                   >
                     <SlidersIcon size={13} color="#170e5e" />
-                    <span>تخصيص الصالة: <strong>{tablesCount} طاولة</strong></span>
+                    <span>{__t('pos.pos_workspace.pos_tables_floor_plan_dialog.s19', __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s19', "تخصيص الصالة:"))} <strong>{tablesCount} {__t('pos.pos_workspace.pos_tables_floor_plan_dialog.s20', __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s20', "طاولة"))}</strong></span>
                   </button>
                 )}
 
@@ -705,10 +707,10 @@ export function PosTablesFloorPlanDialog({
                     gap: '5px',
                     transition: 'all 0.15s ease',
                   }}
-                  title="إدارة وتدفق حجوزات الطاولات والضيوف لليوم"
+                  title={__t('pos.pos_workspace.pos_tables_floor_plan_dialog.s21', __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s21', "إدارة وتدفق حجوزات الطاولات والضيوف لليوم"))}
                 >
                   <CalendarIcon size={13} color="#1d4ed8" />
-                  <span>حجوزات اليوم {confirmedReservationsMap.size > 0 && <strong>({confirmedReservationsMap.size})</strong>}</span>
+                  <span>{__t('pos.pos_workspace.pos_tables_floor_plan_dialog.s22', __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s22', "حجوزات اليوم"))} {confirmedReservationsMap.size > 0 && <strong>({confirmedReservationsMap.size})</strong>}</span>
                 </button>
 
                 <button
@@ -728,10 +730,10 @@ export function PosTablesFloorPlanDialog({
                     gap: '5px',
                     transition: 'all 0.15s ease',
                   }}
-                  title="توجيه بونات التحضير وطابعات المطبخ والبار الشبكية"
+                  title={__t('pos.pos_workspace.pos_tables_floor_plan_dialog.s23', __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s23', "توجيه بونات التحضير وطابعات المطبخ والبار الشبكية"))}
                 >
                   <PrinterIcon size={13} color="#170e5e" />
-                  <span>طابعات المطبخ والبار</span>
+                  <span>{__t('pos.pos_workspace.pos_tables_floor_plan_dialog.s24', __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s24', "طابعات المطبخ والبار"))}</span>
                 </button>
 
                 {currentTableNumber && (
@@ -749,7 +751,7 @@ export function PosTablesFloorPlanDialog({
                       cursor: 'pointer',
                     }}
                   >
-                    {isTransferring ? 'إلغاء وضع النقل' : 'نقل الطلب إلى طاولة أخرى'}
+                    {isTransferring ? __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s25', __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s25', "إلغاء وضع النقل")) : __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s26', __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s26', "نقل الطلب إلى طاولة أخرى"))}
                   </button>
                 )}
 
@@ -768,7 +770,7 @@ export function PosTablesFloorPlanDialog({
                       cursor: 'pointer',
                     }}
                   >
-                    نقل أصناف محددة
+                    {__t('pos.pos_workspace.pos_tables_floor_plan_dialog.s27', __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s27', "نقل أصناف محددة"))}
                   </button>
                 )}
               </div>
@@ -777,7 +779,7 @@ export function PosTablesFloorPlanDialog({
             {isTransferring && (
               <div style={{ background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: '8px', padding: '8px 12px', fontSize: '12px', color: '#c2410c', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <AlertTriangleIcon size={14} color="#c2410c" />
-                <span>وضع النقل نشط: اضغط الآن على الطاولة الجديدة التي ترغب في نقل طلب الطاولة ({currentTableNumber}) إليها.</span>
+                <span>{__t('pos.pos_workspace.pos_tables_floor_plan_dialog.s28', __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s28', "وضع النقل نشط: اضغط الآن على الطاولة الجديدة التي ترغب في نقل طلب الطاولة ("))}{currentTableNumber}{__t('pos.pos_workspace.pos_tables_floor_plan_dialog.s29', __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s29', ") إليها."))}</span>
               </div>
             )}
 
@@ -786,7 +788,7 @@ export function PosTablesFloorPlanDialog({
               <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '8px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 700, color: '#334155' }}>
                   <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#3b82f6' }} />
-                  <span>طلبات تيك أواي / معلقة بدون طاولة ({nonTableDrafts.length}):</span>
+                  <span>{__t('pos.pos_workspace.pos_tables_floor_plan_dialog.s30', __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s30', "طلبات تيك أواي / معلقة بدون طاولة ("))}{nonTableDrafts.length}):</span>
                 </div>
                 <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                   {nonTableDrafts.map((d) => (
@@ -809,13 +811,13 @@ export function PosTablesFloorPlanDialog({
                         gap: '6px',
                         transition: 'all 0.15s',
                       }}
-                      title="استرجاع هذا الطلب للسلة فوراً"
+                      title={__t('pos.pos_workspace.pos_tables_floor_plan_dialog.s31', __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s31', "استرجاع هذا الطلب للسلة فوراً"))}
                     >
-                      <span>{d.label || 'طلب تيك أواي'}</span>
+                      <span>{d.label || __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s32', __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s32', "طلب تيك أواي"))}</span>
                       <strong style={{ color: '#16a34a' }}>{formatCurrency(d.total)}</strong>
-                      <span style={{ color: '#64748b' }}>({d.itemsCount} صنف)</span>
+                      <span style={{ color: '#64748b' }}>({d.itemsCount} {__t('pos.pos_workspace.pos_tables_floor_plan_dialog.s33', __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s33', "صنف)"))}</span>
                       <span style={{ color: '#170e5e', fontWeight: 800 }}>
-                        {pendingRecallId === d.id ? 'جارٍ الفتح...' : 'استرجاع'}
+                        {pendingRecallId === d.id ? __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s34', __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s34', "جارٍ الفتح...")) : __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s35', __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s35', "استرجاع"))}
                       </span>
                     </button>
                   ))}
@@ -826,7 +828,7 @@ export function PosTablesFloorPlanDialog({
             {/* Multi-Zone Dining Tabs & View Mode Switcher */}
             <div style={{ display: 'flex', gap: '6px', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', padding: '4px 0', borderBottom: '1px solid #f1f5f9' }}>
               <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
-                <span style={{ fontSize: '11px', fontWeight: 800, color: '#475569', marginLeft: '4px' }}>أجنحة الصالة:</span>
+                <span style={{ fontSize: '11px', fontWeight: 800, color: '#475569', marginLeft: '4px' }}>{__t('pos.pos_workspace.pos_tables_floor_plan_dialog.s36', __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s36', "أجنحة الصالة:"))}</span>
                 <button
                   type="button"
                   onClick={() => setSelectedZone('all')}
@@ -841,7 +843,7 @@ export function PosTablesFloorPlanDialog({
                     cursor: 'pointer',
                   }}
                 >
-                  كافة الطاولات ({defaultTables.length})
+                  {__t('pos.pos_workspace.pos_tables_floor_plan_dialog.s37', __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s37', "كافة الطاولات ("))}{defaultTables.length})
                 </button>
                 {zones.map((z) => (
                   <button
@@ -880,7 +882,7 @@ export function PosTablesFloorPlanDialog({
                     cursor: 'pointer',
                   }}
                 >
-                  مخطط الصالة 2D
+                  {__t('pos.pos_workspace.pos_tables_floor_plan_dialog.s38', __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s38', "مخطط الصالة 2D"))}
                 </button>
                 <button
                   type="button"
@@ -896,7 +898,7 @@ export function PosTablesFloorPlanDialog({
                     cursor: 'pointer',
                   }}
                 >
-                  شبكة الطاولات
+                  {__t('pos.pos_workspace.pos_tables_floor_plan_dialog.s39', __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s39', "شبكة الطاولات"))}
                 </button>
               </div>
             </div>
@@ -997,7 +999,7 @@ export function PosTablesFloorPlanDialog({
                   >
                     {/* Table Header */}
                     <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
-                      <strong style={{ fontSize: '13px', color: '#0f172a' }}>طاولة {tableNum}</strong>
+                      <strong style={{ fontSize: '13px', color: '#0f172a' }}>{__t('pos.pos_workspace.pos_tables_floor_plan_dialog.s40', __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s40', "طاولة"))} {tableNum}</strong>
                       {hasLiveCart ? (
                         <span
                           style={{
@@ -1009,7 +1011,7 @@ export function PosTablesFloorPlanDialog({
                             fontWeight: 800,
                           }}
                         >
-                          نشطة
+                          {__t('pos.pos_workspace.pos_tables_floor_plan_dialog.s41', __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s41', "نشطة"))}
                         </span>
                       ) : qrOrder && !occupied ? (
                         <span
@@ -1022,7 +1024,7 @@ export function PosTablesFloorPlanDialog({
                             fontWeight: 800,
                           }}
                         >
-                          طلب QR
+                          {__t('pos.pos_workspace.pos_tables_floor_plan_dialog.s42', __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s42', "طلب QR"))}
                         </span>
                       ) : confirmedReservationsMap.has(tableNum) && !occupied ? (
                         <span
@@ -1035,7 +1037,7 @@ export function PosTablesFloorPlanDialog({
                             fontWeight: 800,
                           }}
                         >
-                          حجز
+                          {__t('pos.pos_workspace.pos_tables_floor_plan_dialog.s43', __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s43', "حجز"))}
                         </span>
                       ) : (
                         <span
@@ -1057,7 +1059,7 @@ export function PosTablesFloorPlanDialog({
                           {formatCurrency(currentCartTotal)}
                         </div>
                         <div style={{ fontSize: '10.5px', color: '#475569', marginTop: '1px' }}>
-                          {currentCartItemsCount} أصناف • بالسلة النشطة
+                          {currentCartItemsCount} {__t('pos.pos_workspace.pos_tables_floor_plan_dialog.s44', __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s44', "أصناف • بالسلة النشطة"))}
                         </div>
                       </div>
                     ) : occupied ? (
@@ -1066,7 +1068,7 @@ export function PosTablesFloorPlanDialog({
                           {formatCurrency(occupied.total)}
                         </div>
                         <div style={{ fontSize: '10.5px', color: '#64748b', marginTop: '1px' }}>
-                          {occupied.itemsCount} أصناف • معلقة
+                          {occupied.itemsCount} {__t('pos.pos_workspace.pos_tables_floor_plan_dialog.s45', __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s45', "أصناف • معلقة"))}
                         </div>
                         <button
                           type="button"
@@ -1085,9 +1087,9 @@ export function PosTablesFloorPlanDialog({
                             fontWeight: 700,
                             cursor: 'pointer',
                           }}
-                          title="نقل أصناف محددة من هذه الطاولة إلى طاولة أخرى"
+                          title={__t('pos.pos_workspace.pos_tables_floor_plan_dialog.s46', __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s46', "نقل أصناف محددة من هذه الطاولة إلى طاولة أخرى"))}
                         >
-                          نقل أصناف
+                          {__t('pos.pos_workspace.pos_tables_floor_plan_dialog.s47', __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s47', "نقل أصناف"))}
                         </button>
                       </div>
                     ) : qrOrder ? (
@@ -1096,13 +1098,13 @@ export function PosTablesFloorPlanDialog({
                           {formatCurrency(qrOrder.totalAmount)}
                         </div>
                         <div style={{ fontSize: '10.5px', color: '#7e22ce', marginTop: '1px' }}>
-                          {qrOrder.items?.length || 1} أصناف • طلب QR
+                          {qrOrder.items?.length || 1} {__t('pos.pos_workspace.pos_tables_floor_plan_dialog.s48', __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s48', "أصناف • طلب QR"))}
                         </div>
                       </div>
                     ) : confirmedReservationsMap.has(tableNum) ? (
                       <div style={{ textAlign: 'center', width: '100%' }}>
                         <div style={{ fontSize: '11px', color: '#1d4ed8', fontWeight: 800 }}>
-                          محجوزة ({new Date(confirmedReservationsMap.get(tableNum)!.reservation_time).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })})
+                          {__t('pos.pos_workspace.pos_tables_floor_plan_dialog.s49', __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s49', "محجوزة ("))}{new Date(confirmedReservationsMap.get(tableNum)!.reservation_time).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })})
                         </div>
                         <div style={{ fontSize: '10px', color: '#64748b', marginTop: '1px' }}>
                           {confirmedReservationsMap.get(tableNum)!.guest_name}
@@ -1110,7 +1112,7 @@ export function PosTablesFloorPlanDialog({
                       </div>
                     ) : (
                       <div style={{ fontSize: '11px', color: isCurrent ? '#475569' : '#16a34a', fontWeight: 700 }}>
-                        {isCurrent ? 'شاغرة (محددة)' : 'شاغرة (متاحة)'}
+                        {isCurrent ? __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s50', __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s50', "شاغرة (محددة)")) : __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s51', __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s51', "شاغرة (متاحة)"))}
                       </div>
                     )}
 
@@ -1145,7 +1147,7 @@ export function PosTablesFloorPlanDialog({
                           ) : (
                             <BellIcon size={10} color={isBillPaidCall ? '#15803d' : isBillCall ? '#991b1b' : '#92400e'} />
                           )}
-                          <span>{isRescueCall ? 'إنقاذ ضيف (Rescue)!' : isBillPaidCall ? 'مسدد إلكترونياً!' : isBillCall ? 'طلب الحساب!' : 'استدعاء ويتر!'}</span>
+                          <span>{isRescueCall ? __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s52', __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s52', "إنقاذ ضيف (Rescue)!")) : isBillPaidCall ? __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s53', __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s53', "مسدد إلكترونياً!")) : isBillCall ? __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s54', __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s54', "طلب الحساب!")) : __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s55', __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s55', "استدعاء ويتر!"))}</span>
                         </span>
                         <button
                           type="button"
@@ -1160,9 +1162,9 @@ export function PosTablesFloorPlanDialog({
                             border: 'none',
                             cursor: 'pointer',
                           }}
-                          title="تأكيد تلبية واستجابة النداء"
+                          title={__t('pos.pos_workspace.pos_tables_floor_plan_dialog.s56', __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s56', "تأكيد تلبية واستجابة النداء"))}
                         >
-                          تم
+                          {__t('pos.pos_workspace.pos_tables_floor_plan_dialog.s57', __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s57', "تم"))}
                         </button>
                       </div>
                     )}
@@ -1189,7 +1191,7 @@ export function PosTablesFloorPlanDialog({
                             color: kdsTicket.course === 'appetizer' ? '#92400e' : kdsTicket.course === 'main' ? '#1e40af' : '#6b21a8',
                           }}
                         >
-                          {kdsTicket.course === 'appetizer' ? 'مقبلات' : kdsTicket.course === 'main' ? 'طبق رئيسي' : kdsTicket.course === 'dessert' ? 'حلوى' : 'مشروب'}
+                          {kdsTicket.course === 'appetizer' ? __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s58', __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s58', "مقبلات")) : kdsTicket.course === 'main' ? __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s59', __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s59', "طبق رئيسي")) : kdsTicket.course === 'dessert' ? __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s60', __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s60', "حلوى")) : __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s61', __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s61', "مشروب"))}
                         </span>
                         {kdsTicket.course !== 'dessert' && (
                           <button
@@ -1206,9 +1208,9 @@ export function PosTablesFloorPlanDialog({
                               border: 'none',
                               cursor: 'pointer',
                             }}
-                            title={`إطلاق مسار ${kdsTicket.course === 'appetizer' ? 'الأطباق الرئيسية' : 'الحلويات'} للمطبخ فوراً`}
+                            title={`إطلاق مسار ${kdsTicket.course === 'appetizer' ? __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s62', __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s62', "الأطباق الرئيسية")) : __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s63', __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s63', "الحلويات"))} للمطبخ فوراً`}
                           >
-                            {firingTable === tableNum ? '...' : `إطلاق ${kdsTicket.course === 'appetizer' ? 'الرئيسي' : 'الحلوى'}`}
+                            {firingTable === tableNum ? '...' : `إطلاق ${kdsTicket.course === 'appetizer' ? __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s64', __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s64', "الرئيسي")) : __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s65', __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s65', "الحلوى"))}`}
                           </button>
                         )}
                       </div>
@@ -1229,7 +1231,7 @@ export function PosTablesFloorPlanDialog({
                               fontWeight: 800,
                             }}
                           >
-                            تم تسليم الشيك
+                            {__t('pos.pos_workspace.pos_tables_floor_plan_dialog.s66', __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s66', "تم تسليم الشيك"))}
                           </span>
                         )}
                         {onPrintGuestCheck && (
@@ -1249,9 +1251,9 @@ export function PosTablesFloorPlanDialog({
                               border: Boolean(occupied?.guestCheckPrintedAt || (hasLiveCart && isCurrentCheckPrinted)) ? '1px solid #fed7aa' : '1px solid #cbd5e1',
                               cursor: 'pointer',
                             }}
-                            title="طباعة شيك حساب الطاولة غير المسدد للزبون"
+                            title={__t('pos.pos_workspace.pos_tables_floor_plan_dialog.s67', __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s67', "طباعة شيك حساب الطاولة غير المسدد للزبون"))}
                           >
-                            {Boolean(occupied?.guestCheckPrintedAt || (hasLiveCart && isCurrentCheckPrinted)) ? 'إعادة طباعة الشيك' : 'طباعة شيك'}
+                            {Boolean(occupied?.guestCheckPrintedAt || (hasLiveCart && isCurrentCheckPrinted)) ? __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s68', __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s68', "إعادة طباعة الشيك")) : __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s69', __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s69', "طباعة شيك"))}
                           </button>
                         )}
                       </div>
@@ -1266,16 +1268,16 @@ export function PosTablesFloorPlanDialog({
                       }}
                     >
                       {hasLiveCart
-                        ? 'العودة للطلب ↵'
+                        ? __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s70', __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s70', "العودة للطلب ↵"))
                         : occupied
                         ? pendingRecallId === occupied.id
-                          ? 'جاري الفتح...'
-                          : 'فتح الشيك'
+                          ? __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s71', __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s71', "جاري الفتح..."))
+                          : __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s72', __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s72', "فتح الشيك"))
                         : qrOrder
-                        ? 'استدعاء للطلب ↵'
+                        ? __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s73', __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s73', "استدعاء للطلب ↵"))
                         : isSubmittingTable
-                        ? 'جارٍ الفتح...'
-                        : 'بدء طلب +'}
+                        ? __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s74', __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s74', "جارٍ الفتح..."))
+                        : __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s75', __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s75', "بدء طلب +"))}
                     </div>
                   </button>
                 );
@@ -1286,21 +1288,21 @@ export function PosTablesFloorPlanDialog({
             {/* Footer: Custom table number input */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #f1f5f9', paddingTop: '10px', flexWrap: 'wrap', gap: '10px' }}>
               <form onSubmit={handleCustomSubmit} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span style={{ fontSize: '12px', color: '#475569', fontWeight: 700 }}>رقم طاولة أو مكان إضافي:</span>
+                <span style={{ fontSize: '12px', color: '#475569', fontWeight: 700 }}>{__t('pos.pos_workspace.pos_tables_floor_plan_dialog.s76', __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s76', "رقم طاولة أو مكان إضافي:"))}</span>
                 <input
                   type="text"
-                  placeholder="مثال: VIP 2 أو ركن 5"
+                  placeholder={__t('pos.pos_workspace.pos_tables_floor_plan_dialog.s77', __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s77', "مثال: VIP 2 أو ركن 5"))}
                   value={customInput}
                   onChange={(e) => setCustomInput(e.target.value)}
                   style={{ width: '130px', padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '12px' }}
                 />
                 <Button variant="secondary" type="submit" style={{ padding: '6px 10px', fontSize: '12px' }}>
-                  اختيار
+                  {__t('pos.pos_workspace.pos_tables_floor_plan_dialog.s78', __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s78', "اختيار"))}
                 </Button>
               </form>
 
               <Button variant="secondary" onClick={onClose} style={{ padding: '6px 16px', fontSize: '12.5px' }}>
-                إغلاق
+                {__t('pos.pos_workspace.pos_tables_floor_plan_dialog.s79', __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s79', "إغلاق"))}
               </Button>
             </div>
           </>
@@ -1320,12 +1322,12 @@ export function PosTablesFloorPlanDialog({
               border: '1px solid #e2e8f0',
               flexWrap: 'wrap',
             }}>
-              <span><kbd style={{ background: '#fff', border: '1px solid #cbd5e1', padding: '1px 5px', borderRadius: 4, fontWeight: 700, color: '#334155' }}>↑ ↓</kbd> للتنقل</span>
+              <span><kbd style={{ background: '#fff', border: '1px solid #cbd5e1', padding: '1px 5px', borderRadius: 4, fontWeight: 700, color: '#334155' }}>↑ ↓</kbd> {__t('pos.pos_workspace.pos_tables_floor_plan_dialog.s80', __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s80', "للتنقل"))}</span>
               <span>•</span>
-              <span><kbd style={{ background: '#fff', border: '1px solid #cbd5e1', padding: '1px 5px', borderRadius: 4, fontWeight: 700, color: '#334155' }}>Enter</kbd> للاسترجاع</span>
+              <span><kbd style={{ background: '#fff', border: '1px solid #cbd5e1', padding: '1px 5px', borderRadius: 4, fontWeight: 700, color: '#334155' }}>Enter</kbd> {__t('pos.pos_workspace.pos_tables_floor_plan_dialog.s81', __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s81', "للاسترجاع"))}</span>
               <span>•</span>
-              <span><kbd style={{ background: '#fff', border: '1px solid #cbd5e1', padding: '1px 5px', borderRadius: 4, fontWeight: 700, color: '#334155' }}>Del</kbd> للحذف</span>
-              <span style={{ marginInlineStart: 'auto', color: '#94a3b8' }}>أو انقر نقراً مزدوجاً بالماوس</span>
+              <span><kbd style={{ background: '#fff', border: '1px solid #cbd5e1', padding: '1px 5px', borderRadius: 4, fontWeight: 700, color: '#334155' }}>Del</kbd> {__t('pos.pos_workspace.pos_tables_floor_plan_dialog.s82', __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s82', "للحذف"))}</span>
+              <span style={{ marginInlineStart: 'auto', color: '#94a3b8' }}>{__t('pos.pos_workspace.pos_tables_floor_plan_dialog.s83', __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s83', "أو انقر نقراً مزدوجاً بالماوس"))}</span>
             </div>
 
             {/* Drafts List */}
@@ -1361,7 +1363,7 @@ export function PosTablesFloorPlanDialog({
                             #{idx + 1}
                           </span>
                           <strong style={{ fontSize: '0.92rem', color: '#0f172a', fontWeight: 700 }}>
-                            {draft.label || 'عميل نقدي'}
+                            {draft.label || __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s84', __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s84', "عميل نقدي"))}
                           </strong>
                           <span style={{
                             background: draft.tableNumber ? '#f0fdf4' : '#eff6ff',
@@ -1372,14 +1374,14 @@ export function PosTablesFloorPlanDialog({
                             padding: '2px 8px',
                             borderRadius: '4px',
                           }}>
-                            {draft.tableNumber ? `طاولة: ${draft.tableNumber}` : draft.orderType === 'delivery' ? 'دليفري' : 'تيك أواي'}
+                            {draft.tableNumber ? `طاولة: ${draft.tableNumber}` : draft.orderType === 'delivery' ? __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s85', __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s85', "دليفري")) : __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s86', __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s86', "تيك أواي"))}
                           </span>
                         </div>
 
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8rem', color: '#64748b' }}>
-                          <span>{draft.itemsCount} {draft.itemsCount === 1 ? 'صنف' : 'أصناف'}</span>
+                          <span>{draft.itemsCount} {draft.itemsCount === 1 ? __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s87', __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s87', "صنف")) : __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s88', __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s88', "أصناف"))}</span>
                           <span>•</span>
-                          <span>الإجمالي: <strong style={{ color: '#0f172a', fontWeight: 800 }}>{formatCurrency(draft.total)}</strong></span>
+                          <span>{__t('pos.pos_workspace.pos_tables_floor_plan_dialog.s89', __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s89', "الإجمالي:"))} <strong style={{ color: '#0f172a', fontWeight: 800 }}>{formatCurrency(draft.total)}</strong></span>
                         </div>
                       </div>
 
@@ -1403,7 +1405,7 @@ export function PosTablesFloorPlanDialog({
                             fontSize: '12px',
                           }}
                         >
-                          {isPending ? 'جاري الاسترجاع...' : 'استرجاع'}
+                          {isPending ? __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s90', __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s90', "جاري الاسترجاع...")) : __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s91', __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s91', "استرجاع"))}
                         </Button>
                         {onDeleteDraft && (
                           <Button
@@ -1421,7 +1423,7 @@ export function PosTablesFloorPlanDialog({
                               borderColor: '#fca5a5',
                             }}
                           >
-                            حذف
+                            {__t('pos.pos_workspace.pos_tables_floor_plan_dialog.s92', __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s92', "حذف"))}
                           </Button>
                         )}
                       </div>
@@ -1432,7 +1434,7 @@ export function PosTablesFloorPlanDialog({
             ) : (
               <div style={{ textAlign: 'center', padding: '36px 20px', background: '#f8fafc', borderRadius: '10px', border: '1px dashed #e2e8f0' }}>
                 <p style={{ margin: 0, fontSize: '0.92rem', color: '#64748b', fontWeight: 600 }}>
-                  لا توجد طلبات معلقة حالياً.
+                  {__t('pos.pos_workspace.pos_tables_floor_plan_dialog.s93', __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s93', "لا توجد طلبات معلقة حالياً."))}
                 </p>
               </div>
             )}
@@ -1451,11 +1453,11 @@ export function PosTablesFloorPlanDialog({
                     fontSize: '12px',
                   }}
                 >
-                  حذف الكل
+                  {__t('pos.pos_workspace.pos_tables_floor_plan_dialog.s94', __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s94', "حذف الكل"))}
                 </Button>
               )}
               <Button variant="secondary" onClick={onClose} style={{ padding: '6px 16px', fontSize: '12.5px' }}>
-                إغلاق
+                {__t('pos.pos_workspace.pos_tables_floor_plan_dialog.s95', __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s95', "إغلاق"))}
               </Button>
             </div>
           </div>

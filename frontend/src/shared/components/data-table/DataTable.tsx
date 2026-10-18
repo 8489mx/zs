@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next';
+import { translateUiText } from '@/lib/auto-translator';
 import { useMemo, useState, type CSSProperties, type KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { PaginationControls } from '@/shared/components/pagination-controls';
 import type { DataTableColumn, DataTableSortState, SharedDataTableProps } from './DataTable.types';
@@ -58,6 +60,8 @@ export function DataTable<T>({
   empty,
   selection,
 }: SharedDataTableProps<T>) {
+  const { t, i18n } = useTranslation();
+  const isEn = i18n.language === 'en';
   const [internalSort, setInternalSort] = useState<DataTableSortState | null>(defaultSort || null);
   const currentSort = sortState === undefined ? internalSort : sortState;
   const collator = useMemo(() => new Intl.Collator(['ar', 'en'], { numeric: true, sensitivity: 'base' }), []);
@@ -126,7 +130,7 @@ export function DataTable<T>({
                 <th>
                   <input
                     type="checkbox"
-                    aria-label="تحديد كل الصفوف الظاهرة"
+                    aria-label={t('shared.data_table.data_table.s0', "تحديد كل الصفوف الظاهرة")}
                     checked={Boolean(visibleRows.length) && visibleRows.every((row, i) => selection.selectedKeys.includes(rowKeyReader(row, pagination ? (rangeStart - 1) + i : i)))}
                     ref={(node) => {
                       if (!node) return;
@@ -190,9 +194,9 @@ export function DataTable<T>({
                             : { columnId: column.id, direction: 'asc' as const };
                           updateSort(next);
                         }}
-                        aria-label={`ترتيب حسب ${typeof column.header === 'string' ? column.header : 'العمود'}`}
+                        aria-label={`ترتيب حسب ${typeof column.header === 'string' ? column.header : t('shared.data_table.data_table.s1', "العمود")}`}
                       >
-                        <span>{column.header}</span>
+                        <span>{typeof column.header === 'string' && isEn ? (translateUiText(column.header) || column.header) : (typeof column.header === 'string' && isEn ? (translateUiText(column.header) || column.header) : column.header)}</span>
                         <span
                           className="muted"
                           aria-hidden
@@ -220,11 +224,11 @@ export function DataTable<T>({
               </tr>
             ) : loading ? (
               <tr>
-                <td colSpan={normalizedColumns.length + (selection ? 1 : 0)}>{loadingMessage}</td>
+                <td colSpan={normalizedColumns.length + (selection ? 1 : 0)}>{typeof loadingMessage === 'string' && isEn ? (translateUiText(loadingMessage) || loadingMessage) : loadingMessage}</td>
               </tr>
             ) : !visibleRows.length ? (
               <tr>
-                <td colSpan={normalizedColumns.length + (selection ? 1 : 0)}>{empty ?? emptyMessage}</td>
+                <td colSpan={normalizedColumns.length + (selection ? 1 : 0)}>{empty ? (typeof empty === 'string' && isEn ? (translateUiText(empty) || empty) : empty) : (isEn ? (translateUiText(emptyMessage) || 'No data available.') : emptyMessage)}</td>
               </tr>
             ) : visibleRows.map((row, visibleRowIndex) => {
               const absoluteRowIndex = pagination ? (rangeStart - 1) + visibleRowIndex : visibleRowIndex;
@@ -255,7 +259,7 @@ export function DataTable<T>({
                     <td onClick={(event) => event.stopPropagation()}>
                       <input
                         type="checkbox"
-                        aria-label={selection.checkboxLabel?.(row, absoluteRowIndex) || 'تحديد الصف'}
+                        aria-label={selection.checkboxLabel?.(row, absoluteRowIndex) || t('shared.data_table.data_table.s2', "تحديد الصف")}
                         checked={selection.selectedKeys.includes(key)}
                         onChange={(event) => {
                           const nextSelected = new Set(selection.selectedKeys);

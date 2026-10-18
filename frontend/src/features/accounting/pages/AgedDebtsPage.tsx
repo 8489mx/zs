@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { PageHeader } from '@/shared/components/page-header';
@@ -12,6 +13,7 @@ import {
 } from '@/features/accounting/api/accounting.api';
 
 export function AgedDebtsPage() {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<'receivables' | 'payables'>('receivables');
   const [asOfDate, setAsOfDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [page, setPage] = useState(1);
@@ -65,15 +67,15 @@ export function AgedDebtsPage() {
   const getRiskBadge = (level: AgedPartnerRow['riskLevel']) => {
     switch (level) {
       case 'critical':
-        return <span style={{ backgroundColor: '#fef2f2', color: '#991b1b', border: '1px solid #fecaca', padding: '2px 8px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 700 }}>حرج (+90)</span>;
+        return <span style={{ backgroundColor: '#fef2f2', color: '#991b1b', border: '1px solid #fecaca', padding: '2px 8px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 700 }}>{t('accounting.aged_debts_page.s0', "حرج (+90)")}</span>;
       case 'high':
-        return <span style={{ backgroundColor: '#fff7ed', color: '#c2410c', border: '1px solid #fed7aa', padding: '2px 8px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 700 }}>عالي (61-90)</span>;
+        return <span style={{ backgroundColor: '#fff7ed', color: '#c2410c', border: '1px solid #fed7aa', padding: '2px 8px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 700 }}>{t('accounting.aged_debts_page.s1', "عالي (61-90)")}</span>;
       case 'medium':
-        return <span style={{ backgroundColor: '#fefce8', color: '#854d0e', border: '1px solid #fef08a', padding: '2px 8px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 700 }}>متوسط (31-60)</span>;
+        return <span style={{ backgroundColor: '#fefce8', color: '#854d0e', border: '1px solid #fef08a', padding: '2px 8px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 700 }}>{t('accounting.aged_debts_page.s2', "متوسط (31-60)")}</span>;
       case 'low':
-        return <span style={{ backgroundColor: '#f0fdf4', color: '#166534', border: '1px solid #bbf7d0', padding: '2px 8px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 700 }}>منخفض (1-30)</span>;
+        return <span style={{ backgroundColor: '#f0fdf4', color: '#166534', border: '1px solid #bbf7d0', padding: '2px 8px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 700 }}>{t('accounting.aged_debts_page.s3', "منخفض (1-30)")}</span>;
       default:
-        return <span style={{ backgroundColor: '#f8fafc', color: '#475569', border: '1px solid #e2e8f0', padding: '2px 8px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 600 }}>حالي (ساري)</span>;
+        return <span style={{ backgroundColor: '#f8fafc', color: '#475569', border: '1px solid #e2e8f0', padding: '2px 8px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 600 }}>{t('accounting.aged_debts_page.s4', "حالي (ساري)")}</span>;
     }
   };
 
@@ -81,12 +83,12 @@ export function AgedDebtsPage() {
     <div className="page-stack page-shell aged-debts-workspace" dir="rtl">
       <main className="document-prototype-column" style={{ paddingBottom: '32px' }}>
         <PageHeader
-          title="تقرير أعمار الديون التحليلي"
-          description="Aged Partner Balances — تحليل فترات الاستحقاق والتأخير للعملاء والموردين لتعزيز التدفقات والتحصيل."
+          title={t('accounting.aged_debts_page.s5', "تقرير أعمار الديون التحليلي")}
+          description={t('accounting.aged_debts_page.s6', "Aged Partner Balances — تحليل فترات الاستحقاق والتأخير للعملاء والموردين لتعزيز التدفقات والتحصيل.")}
           badge={
             data ? (
               <span className="nav-pill">
-                {data.totalPartnersCount} {activeTab === 'receivables' ? 'عميل' : 'مورد'}
+                {data.totalPartnersCount} {activeTab === 'receivables' ? t('accounting.aged_debts_page.s7', "عميل") : t('accounting.aged_debts_page.s8', "مورد")}
               </span>
             ) : null
           }
@@ -108,15 +110,15 @@ export function AgedDebtsPage() {
                 }}
               >
                 <ClockIcon size={14} color="#ffffff" />
-                <span>مركز تصعيد التحصيلات (Dunning Hub)</span>
+                <span>{t('accounting.aged_debts_page.s9', "مركز تصعيد التحصيلات (Dunning Hub)")}</span>
               </a>
               <Button type="button" variant="secondary" onClick={handleExportCsv} disabled={!data || data.filteredPartnersCount > data.partners.length}>
                 <DownloadIcon size={14} style={{ marginInlineEnd: '6px' }} />
-                تصدير CSV
+                {t('accounting.aged_debts_page.s10', "تصدير CSV")}
               </Button>
               <Button type="button" variant="secondary" onClick={() => window.print()} disabled={!data || data.filteredPartnersCount > data.partners.length}>
                 <PrinterIcon size={14} style={{ marginInlineEnd: '6px' }} />
-                طباعة
+                {t('accounting.aged_debts_page.s11', "طباعة")}
               </Button>
             </div>
           }
@@ -129,7 +131,7 @@ export function AgedDebtsPage() {
             variant={activeTab === 'receivables' ? 'primary' : 'secondary'}
             onClick={() => { setPage(1); setActiveTab('receivables'); }}
           >
-            أعمار ديون العملاء (المدينون - Receivables)
+            {t('accounting.aged_debts_page.s12', "أعمار ديون العملاء (المدينون - Receivables)")}
           </Button>
 
           <Button
@@ -137,7 +139,7 @@ export function AgedDebtsPage() {
             variant={activeTab === 'payables' ? 'primary' : 'secondary'}
             onClick={() => { setPage(1); setActiveTab('payables'); }}
           >
-            أعمار ديون الموردين (الدائنون - Payables)
+            {t('accounting.aged_debts_page.s13', "أعمار ديون الموردين (الدائنون - Payables)")}
           </Button>
         </div>
 
@@ -146,7 +148,7 @@ export function AgedDebtsPage() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px', alignItems: 'flex-end' }}>
           <div>
             <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#475569', marginBottom: '6px' }}>
-              احتساب الأعمار حتى تاريخ
+              {t('accounting.aged_debts_page.s14', "احتساب الأعمار حتى تاريخ")}
             </label>
             <input
               type="date"
@@ -158,12 +160,12 @@ export function AgedDebtsPage() {
 
           <div>
             <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#475569', marginBottom: '6px' }}>
-              البحث بالاسم أو رقم الهاتف
+              {t('accounting.aged_debts_page.s15', "البحث بالاسم أو رقم الهاتف")}
             </label>
             <div style={{ position: 'relative' }}>
               <input
                 type="text"
-                placeholder="ابحث..."
+                placeholder={t('accounting.aged_debts_page.s16', "ابحث...")}
                 value={search}
                 onChange={(e) => { setPage(1); setSearch(e.target.value); }}
                 style={{ width: '100%', height: '36px', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '0 32px 0 10px', fontSize: '0.875rem' }}
@@ -176,19 +178,19 @@ export function AgedDebtsPage() {
 
           <div>
             <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#475569', marginBottom: '6px' }}>
-              تصفية حسب شريحة المخاطرة
+              {t('accounting.aged_debts_page.s17', "تصفية حسب شريحة المخاطرة")}
             </label>
             <select
               value={riskFilter}
               onChange={(e) => { setPage(1); setRiskFilter(e.target.value as typeof riskFilter); }}
               style={{ width: '100%', height: '36px', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '0 10px', fontSize: '0.875rem' }}
             >
-              <option value="all">كافة الشرائح</option>
-              <option value="critical">الحرجة فقط (+90 يوم)</option>
-              <option value="high">عالية التأخير (61-90 يوم)</option>
-              <option value="medium">متوسطة التأخير (31-60 يوم)</option>
-              <option value="low">منخفضة (1-30 يوم)</option>
-              <option value="current">الحالية (غير متأخرة)</option>
+              <option value="all">{t('accounting.aged_debts_page.s18', "كافة الشرائح")}</option>
+              <option value="critical">{t('accounting.aged_debts_page.s19', "الحرجة فقط (+90 يوم)")}</option>
+              <option value="high">{t('accounting.aged_debts_page.s20', "عالية التأخير (61-90 يوم)")}</option>
+              <option value="medium">{t('accounting.aged_debts_page.s21', "متوسطة التأخير (31-60 يوم)")}</option>
+              <option value="low">{t('accounting.aged_debts_page.s22', "منخفضة (1-30 يوم)")}</option>
+              <option value="current">{t('accounting.aged_debts_page.s23', "الحالية (غير متأخرة)")}</option>
             </select>
           </div>
 
@@ -199,7 +201,7 @@ export function AgedDebtsPage() {
               onClick={() => void activeQuery.refetch()}
               style={{ height: '36px', width: '100%', backgroundColor: '#170e5e', color: '#fff', fontWeight: 700 }}
             >
-              تحديث البيانات
+              {t('accounting.aged_debts_page.s24', "تحديث البيانات")}
             </Button>
           </div>
         </div>
@@ -208,7 +210,7 @@ export function AgedDebtsPage() {
       {/* Loading & Error feedback */}
       {activeQuery.isLoading && (
         <Card style={{ padding: '32px', textAlign: 'center', color: '#64748b' }}>
-          جاري احتساب أعمار الديون وتقسيم الشرائح الزمنية...
+          {t('accounting.aged_debts_page.s25', "جاري احتساب أعمار الديون وتقسيم الشرائح الزمنية...")}
         </Card>
       )}
 
@@ -217,17 +219,17 @@ export function AgedDebtsPage() {
           {/* 6 Aging Bucket Highlight Cards */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px', marginBottom: '16px' }}>
             <Card style={{ padding: '14px', backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px' }}>
-              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b' }}>إجمالي المديونيات</span>
+              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b' }}>{t('accounting.aged_debts_page.s26', "إجمالي المديونيات")}</span>
               <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a', marginTop: '4px' }}>
                 {formatCurrency(data.totalBalance)}
               </div>
               <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '4px' }}>
-                عدد: {data.totalPartnersCount} {activeTab === 'receivables' ? 'عميل' : 'مورد'}
+                {t('accounting.aged_debts_page.s27', "عدد:")} {data.totalPartnersCount} {activeTab === 'receivables' ? t('accounting.aged_debts_page.s28', "عميل") : t('accounting.aged_debts_page.s29', "مورد")}
               </div>
             </Card>
 
             <Card style={{ padding: '14px', backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px' }}>
-              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#166534' }}>حالي (ساري / غير متأخر)</span>
+              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#166534' }}>{t('accounting.aged_debts_page.s30', "حالي (ساري / غير متأخر)")}</span>
               <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#16a34a', marginTop: '4px' }}>
                 {formatCurrency(data.totalCurrent)}
               </div>
@@ -237,7 +239,7 @@ export function AgedDebtsPage() {
             </Card>
 
             <Card style={{ padding: '14px', backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px' }}>
-              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#0369a1' }}>1 - 30 يوماً</span>
+              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#0369a1' }}>{t('accounting.aged_debts_page.s31', "1 - 30 يوماً")}</span>
               <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0284c7', marginTop: '4px' }}>
                 {formatCurrency(data.total1To30)}
               </div>
@@ -247,7 +249,7 @@ export function AgedDebtsPage() {
             </Card>
 
             <Card style={{ padding: '14px', backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px' }}>
-              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#854d0e' }}>31 - 60 يوماً</span>
+              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#854d0e' }}>{t('accounting.aged_debts_page.s32', "31 - 60 يوماً")}</span>
               <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#ca8a04', marginTop: '4px' }}>
                 {formatCurrency(data.total31To60)}
               </div>
@@ -257,7 +259,7 @@ export function AgedDebtsPage() {
             </Card>
 
             <Card style={{ padding: '14px', backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px' }}>
-              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#c2410c' }}>61 - 90 يوماً</span>
+              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#c2410c' }}>{t('accounting.aged_debts_page.s33', "61 - 90 يوماً")}</span>
               <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#ea580c', marginTop: '4px' }}>
                 {formatCurrency(data.total61To90)}
               </div>
@@ -267,7 +269,7 @@ export function AgedDebtsPage() {
             </Card>
 
             <Card style={{ padding: '14px', backgroundColor: '#fff5f5', border: '1px solid #fecaca', borderRadius: '12px' }}>
-              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#991b1b' }}>+90 يوماً (حرجة / متعثرة)</span>
+              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#991b1b' }}>{t('accounting.aged_debts_page.s34', "+90 يوماً (حرجة / متعثرة)")}</span>
               <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#dc2626', marginTop: '4px' }}>
                 {formatCurrency(data.total91Plus)}
               </div>
@@ -281,22 +283,22 @@ export function AgedDebtsPage() {
           <Card style={{ padding: '0', backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', overflowX: 'auto' }}>
             {filteredPartners.length === 0 ? (
               <div style={{ padding: '32px', textAlign: 'center', color: '#94a3b8' }}>
-                لا توجد مديونيات مطابقة لمعايير البحث الحالية
+                {t('accounting.aged_debts_page.s35', "لا توجد مديونيات مطابقة لمعايير البحث الحالية")}
               </div>
             ) : (
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
                 <thead>
                   <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0', textAlign: 'right' }}>
-                    <th style={{ padding: '12px 14px' }}>{activeTab === 'receivables' ? 'اسم العميل' : 'اسم المورد'}</th>
-                    <th style={{ padding: '12px 10px', textAlign: 'left' }}>إجمالي الرصيد</th>
-                    <th style={{ padding: '12px 10px', textAlign: 'left' }}>حالي</th>
-                    <th style={{ padding: '12px 10px', textAlign: 'left' }}>1-30 يوم</th>
-                    <th style={{ padding: '12px 10px', textAlign: 'left' }}>31-60 يوم</th>
-                    <th style={{ padding: '12px 10px', textAlign: 'left' }}>61-90 يوم</th>
-                    <th style={{ padding: '12px 10px', textAlign: 'left', color: '#dc2626' }}>+90 يوم</th>
-                    <th style={{ padding: '12px 10px', textAlign: 'center' }}>أقدم حركة</th>
-                    <th style={{ padding: '12px 10px', textAlign: 'center' }}>مستوى المخاطرة</th>
-                    <th style={{ padding: '12px 14px', textAlign: 'center' }}>إجراءات التحصيل</th>
+                    <th style={{ padding: '12px 14px' }}>{activeTab === 'receivables' ? t('accounting.aged_debts_page.s36', "اسم العميل") : t('accounting.aged_debts_page.s37', "اسم المورد")}</th>
+                    <th style={{ padding: '12px 10px', textAlign: 'left' }}>{t('accounting.aged_debts_page.s38', "إجمالي الرصيد")}</th>
+                    <th style={{ padding: '12px 10px', textAlign: 'left' }}>{t('accounting.aged_debts_page.s39', "حالي")}</th>
+                    <th style={{ padding: '12px 10px', textAlign: 'left' }}>{t('accounting.aged_debts_page.s40', "1-30 يوم")}</th>
+                    <th style={{ padding: '12px 10px', textAlign: 'left' }}>{t('accounting.aged_debts_page.s41', "31-60 يوم")}</th>
+                    <th style={{ padding: '12px 10px', textAlign: 'left' }}>{t('accounting.aged_debts_page.s42', "61-90 يوم")}</th>
+                    <th style={{ padding: '12px 10px', textAlign: 'left', color: '#dc2626' }}>{t('accounting.aged_debts_page.s43', "+90 يوم")}</th>
+                    <th style={{ padding: '12px 10px', textAlign: 'center' }}>{t('accounting.aged_debts_page.s44', "أقدم حركة")}</th>
+                    <th style={{ padding: '12px 10px', textAlign: 'center' }}>{t('accounting.aged_debts_page.s45', "مستوى المخاطرة")}</th>
+                    <th style={{ padding: '12px 14px', textAlign: 'center' }}>{t('accounting.aged_debts_page.s46', "إجراءات التحصيل")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -335,7 +337,7 @@ export function AgedDebtsPage() {
                           <>
                             <div>{row.oldestInvoiceDate}</div>
                             <span style={{ color: (row.oldestInvoiceDays || 0) > 60 ? '#dc2626' : '#475569' }}>
-                              ({row.oldestInvoiceDays} يوم)
+                              ({row.oldestInvoiceDays} {t('accounting.aged_debts_page.s47', "يوم)")}
                             </span>
                           </>
                         ) : (
@@ -363,7 +365,7 @@ export function AgedDebtsPage() {
                               color: '#ffffff',
                             }}
                           >
-                            تذكير واتساب
+                            {t('accounting.aged_debts_page.s48', "تذكير واتساب")}
                           </a>
                         ) : (
                           <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>—</span>
@@ -377,9 +379,9 @@ export function AgedDebtsPage() {
           </Card>
           {data && data.filteredPartnersCount > data.pageSize && (
             <div style={{ display: 'flex', gap: 12, alignItems: 'center', justifyContent: 'center', marginTop: 16 }}>
-              <Button type="button" variant="secondary" disabled={page <= 1} onClick={() => setPage((current) => current - 1)}>السابق</Button>
-              <span>صفحة {page} من {Math.ceil(data.filteredPartnersCount / data.pageSize)}</span>
-              <Button type="button" variant="secondary" disabled={page * data.pageSize >= data.filteredPartnersCount} onClick={() => setPage((current) => current + 1)}>التالي</Button>
+              <Button type="button" variant="secondary" disabled={page <= 1} onClick={() => setPage((current) => current - 1)}>{t('accounting.aged_debts_page.s49', "السابق")}</Button>
+              <span>{t('accounting.aged_debts_page.s50', "صفحة")} {page} {t('accounting.aged_debts_page.s51', "من")} {Math.ceil(data.filteredPartnersCount / data.pageSize)}</span>
+              <Button type="button" variant="secondary" disabled={page * data.pageSize >= data.filteredPartnersCount} onClick={() => setPage((current) => current + 1)}>{t('accounting.aged_debts_page.s52', "التالي")}</Button>
             </div>
           )}
         </>

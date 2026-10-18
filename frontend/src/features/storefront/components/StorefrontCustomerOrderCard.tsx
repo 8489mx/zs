@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { useState } from 'react';
 import { isThreeDecimalCurrency, getGlobalSystemCurrency } from '@/lib/currencies';
@@ -46,20 +47,20 @@ function getStepIndex(status: string): number {
   }
 }
 
-function getStatusBadge(status: string) {
+function getStatusBadge(status: string, isEn = false) {
   switch (status) {
     case 'pending':
-      return { label: 'قيد الانتظار', bg: '#fef3c7', text: '#92400e', border: '#fde68a' };
+      return { label: isEn ? 'Pending' : 'قيد الانتظار', bg: '#fef3c7', text: '#92400e', border: '#fde68a' };
     case 'confirmed':
-      return { label: 'تم الاعتماد', bg: '#eff6ff', text: '#1e40af', border: '#bfdbfe' };
+      return { label: isEn ? 'Confirmed' : 'تم الاعتماد', bg: '#eff6ff', text: '#1e40af', border: '#bfdbfe' };
     case 'processing':
-      return { label: 'جاري التجهيز', bg: '#e0f2fe', text: '#0369a1', border: '#bae6fd' };
+      return { label: isEn ? 'Processing' : 'جاري التجهيز', bg: '#e0f2fe', text: '#0369a1', border: '#bae6fd' };
     case 'shipped':
-      return { label: 'مع المندوب', bg: '#faf5ff', text: '#6b21a8', border: '#d8b4fe' };
+      return { label: isEn ? 'With Courier' : 'مع المندوب', bg: '#faf5ff', text: '#6b21a8', border: '#d8b4fe' };
     case 'delivered':
-      return { label: 'تم التسليم', bg: '#ecfdf5', text: '#065f46', border: '#a7f3d0' };
+      return { label: isEn ? 'Delivered' : 'تم التسليم', bg: '#ecfdf5', text: '#065f46', border: '#a7f3d0' };
     case 'cancelled':
-      return { label: 'ملغي', bg: '#fef2f2', text: '#991b1b', border: '#fecaca' };
+      return { label: isEn ? 'Cancelled' : 'ملغي', bg: '#fef2f2', text: '#991b1b', border: '#fecaca' };
     default:
       return { label: status, bg: '#f1f5f9', text: '#475569', border: '#e2e8f0' };
   }
@@ -73,8 +74,10 @@ export function StorefrontCustomerOrderCard({
   onCancelOrder,
   isCancelling = false,
 }: StorefrontCustomerOrderCardProps) {
+  const { t, i18n } = useTranslation();
+  const isEn = i18n.language === 'en';
   const [showDetails, setShowDetails] = useState(false);
-  const badge = getStatusBadge(order.status);
+  const badge = getStatusBadge(order.status, isEn);
   const isPending = order.status === 'pending' && !order.saleId;
   const currentStepIndex = getStepIndex(order.status);
 
@@ -87,7 +90,7 @@ export function StorefrontCustomerOrderCard({
     return num.toFixed(2);
   };
 
-  const orderTimeStr = new Date(order.createdAt).toLocaleTimeString('ar-EG', {
+  const orderTimeStr = new Date(order.createdAt).toLocaleTimeString(isEn ? 'en-US' : 'ar-EG', {
     hour: '2-digit',
     minute: '2-digit',
     hour12: true,
@@ -161,7 +164,7 @@ export function StorefrontCustomerOrderCard({
                 whiteSpace: 'nowrap',
               }}
             >
-              مدفوع
+              {t('storefront.storefront_customer_order_card.s0', "مدفوع")}
             </span>
           )}
           <span
@@ -309,7 +312,7 @@ export function StorefrontCustomerOrderCard({
                 }}
               />
               <div style={{ fontSize: '11.5px', color: '#334155', minWidth: 0, lineHeight: 1.4 }}>
-                <strong style={{ color: '#0f172a', fontWeight: 800, marginInlineEnd: '4px' }}>الحالة:</strong>
+                <strong style={{ color: '#0f172a', fontWeight: 800, marginInlineEnd: '4px' }}>{t('storefront.storefront_customer_order_card.s1', "الحالة:")}</strong>
                 <span>{TRACKING_STEPS[currentStepIndex]?.desc}</span>
               </div>
             </div>
@@ -319,7 +322,7 @@ export function StorefrontCustomerOrderCard({
                 href={storeInquiryUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                title="استفسار عبر واتساب المتجر"
+                title={t('storefront.storefront_customer_order_card.s2', "استفسار عبر واتساب المتجر")}
                 style={{
                   color: '#16a34a',
                   textDecoration: 'none',
@@ -337,7 +340,7 @@ export function StorefrontCustomerOrderCard({
                 }}
               >
                 <MessageSquareIcon size={12} />
-                <span>استفسار</span>
+                <span>{t('storefront.storefront_customer_order_card.s3', "استفسار")}</span>
               </a>
             )}
           </div>
@@ -357,7 +360,7 @@ export function StorefrontCustomerOrderCard({
           }}
         >
           <XIcon size={15} />
-          <span>تم إلغاء هذا الطلب. للتفاصيل يرجى التواصل مع المتجر.</span>
+          <span>{t('storefront.storefront_customer_order_card.s4', "تم إلغاء هذا الطلب. للتفاصيل يرجى التواصل مع المتجر.")}</span>
         </div>
       )}
 
@@ -394,10 +397,10 @@ export function StorefrontCustomerOrderCard({
             </div>
             <div style={{ minWidth: 0 }}>
               <div style={{ fontSize: '10.5px', color: '#7e22ce', fontWeight: 800 }}>
-                طلبك في الطريق مع المندوب
+                {t('storefront.storefront_customer_order_card.s5', "طلبك في الطريق مع المندوب")}
               </div>
               <div style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                {order.deliveryRepName || 'مندوب توصيل المتجر'}
+                {order.deliveryRepName || t('storefront.storefront_customer_order_card.s6', "مندوب توصيل المتجر")}
               </div>
             </div>
           </div>
@@ -421,7 +424,7 @@ export function StorefrontCustomerOrderCard({
                 }}
               >
                 <SmartphoneIcon size={12} />
-                <span>اتصال</span>
+                <span>{t('storefront.storefront_customer_order_card.s7', "اتصال")}</span>
               </a>
               <a
                 href={`https://wa.me/${repPhoneClean}?text=${encodeURIComponent(
@@ -443,7 +446,7 @@ export function StorefrontCustomerOrderCard({
                 }}
               >
                 <MessageSquareIcon size={12} />
-                <span>واتساب</span>
+                <span>{t('storefront.storefront_customer_order_card.s8', "واتساب")}</span>
               </a>
             </div>
           )}
@@ -469,7 +472,7 @@ export function StorefrontCustomerOrderCard({
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: '6px' }}>
               <MapPinIcon size={13} color="#170e5e" style={{ flexShrink: 0, marginTop: '2px' }} />
               <div style={{ flex: 1, minWidth: 0, lineHeight: 1.4 }}>
-                <span style={{ fontWeight: 700, color: '#334155', marginInlineEnd: '4px' }}>العنوان:</span>
+                <span style={{ fontWeight: 700, color: '#334155', marginInlineEnd: '4px' }}>{t('storefront.storefront_customer_order_card.s9', "العنوان:")}</span>
                 <span style={{ color: '#0f172a' }}>{order.customerAddress}</span>
                 {order.deliveryZoneName && (
                   <span
@@ -496,7 +499,7 @@ export function StorefrontCustomerOrderCard({
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: '6px' }}>
               <MessageSquareIcon size={13} color="#64748b" style={{ flexShrink: 0, marginTop: '2px' }} />
               <div style={{ flex: 1, minWidth: 0, lineHeight: 1.4 }}>
-                <span style={{ fontWeight: 700, color: '#334155', marginInlineEnd: '4px' }}>ملاحظاتك:</span>
+                <span style={{ fontWeight: 700, color: '#334155', marginInlineEnd: '4px' }}>{t('storefront.storefront_customer_order_card.s10', "ملاحظاتك:")}</span>
                 <span style={{ color: '#0f172a' }}>{order.customerNotes}</span>
               </div>
             </div>
@@ -528,10 +531,10 @@ export function StorefrontCustomerOrderCard({
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <ShoppingCartIcon size={13} color="#170e5e" />
-            <span>تفاصيل الأصناف ({order.items.length})</span>
+            <span>{t('storefront.storefront_customer_order_card.s11', "تفاصيل الأصناف (")}{order.items.length})</span>
           </div>
           <span style={{ fontSize: '11px', color: '#64748b', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-            <span>{showDetails ? 'إخفاء' : 'عرض'}</span>
+            <span>{showDetails ? t('storefront.storefront_customer_order_card.s12', "إخفاء") : t('storefront.storefront_customer_order_card.s13', "عرض")}</span>
             {showDetails ? <ChevronUpIcon size={12} /> : <ChevronDownIcon size={12} />}
           </span>
         </button>
@@ -583,8 +586,8 @@ export function StorefrontCustomerOrderCard({
                   fontWeight: 700,
                 }}
               >
-                <span>خدمة التوصيل {order.deliveryZoneName ? `(${order.deliveryZoneName})` : ''}:</span>
-                <span>مجاناً</span>
+                <span>{t('storefront.storefront_customer_order_card.s14', "خدمة التوصيل")} {order.deliveryZoneName ? `(${order.deliveryZoneName})` : ''}:</span>
+                <span>{t('storefront.storefront_customer_order_card.s15', "مجاناً")}</span>
               </div>
             ) : (
               <div
@@ -595,7 +598,7 @@ export function StorefrontCustomerOrderCard({
                   color: '#64748b',
                 }}
               >
-                <span>خدمة التوصيل {order.deliveryZoneName ? `(${order.deliveryZoneName})` : ''}:</span>
+                <span>{t('storefront.storefront_customer_order_card.s16', "خدمة التوصيل")} {order.deliveryZoneName ? `(${order.deliveryZoneName})` : ''}:</span>
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
                   <span>{formatPriceNumber(order.deliveryFee)}</span>
                   <CurrencySymbol currency={currCode} />
@@ -613,7 +616,7 @@ export function StorefrontCustomerOrderCard({
                   fontWeight: 700,
                 }}
               >
-                <span>خصم الكوبون {order.couponCode ? `(${order.couponCode})` : ''}:</span>
+                <span>{t('storefront.storefront_customer_order_card.s17', "خصم الكوبون")} {order.couponCode ? `(${order.couponCode})` : ''}:</span>
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
                   <span>-{formatPriceNumber(order.discountAmount)}</span>
                   <CurrencySymbol currency={currCode} />
@@ -637,7 +640,7 @@ export function StorefrontCustomerOrderCard({
         }}
       >
         <div style={{ fontSize: '12px', display: 'flex', alignItems: 'center', gap: '4px', minWidth: 0, whiteSpace: 'nowrap' }}>
-          <span style={{ color: '#64748b' }}>إجمالي الفاتورة:</span>
+          <span style={{ color: '#64748b' }}>{t('storefront.storefront_customer_order_card.s18', "إجمالي الفاتورة:")}</span>
           <strong style={{ fontWeight: 800, color: '#170e5e', fontSize: '14.5px', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
             <span>{formatPriceNumber(order.totalAmount)}</span>
             <CurrencySymbol currency={currCode} />
@@ -667,7 +670,7 @@ export function StorefrontCustomerOrderCard({
                 whiteSpace: 'nowrap',
               }}
             >
-              <span>تعديل الطلب</span>
+              <span>{t('storefront.storefront_customer_order_card.s19', "تعديل الطلب")}</span>
             </button>
 
             <button
@@ -691,17 +694,17 @@ export function StorefrontCustomerOrderCard({
                 whiteSpace: 'nowrap',
               }}
             >
-              <span>إلغاء</span>
+              <span>{t('storefront.storefront_customer_order_card.s20', "إلغاء")}</span>
             </button>
           </div>
         ) : (
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0, justifyContent: 'flex-end' }}>
             <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 600, whiteSpace: 'nowrap' }}>
               {order.status === 'cancelled'
-                ? 'الطلب ملغي'
+                ? t('storefront.storefront_customer_order_card.s21', "الطلب ملغي")
                 : order.status === 'delivered'
-                ? 'اكتمل التوصيل بنجاح'
-                : 'الطلب معتمد'}
+                ? t('storefront.storefront_customer_order_card.s22', "اكتمل التوصيل بنجاح")
+                : t('storefront.storefront_customer_order_card.s23', "الطلب معتمد")}
             </span>
             {onReorder && (order.status === 'delivered' || order.status === 'cancelled') && (
               <button
@@ -724,7 +727,7 @@ export function StorefrontCustomerOrderCard({
                   whiteSpace: 'nowrap',
                 }}
               >
-                اطلب تاني
+                {t('storefront.storefront_customer_order_card.s24', "اطلب تاني")}
               </button>
             )}
           </div>

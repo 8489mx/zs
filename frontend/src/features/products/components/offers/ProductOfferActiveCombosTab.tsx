@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/shared/ui/button';
 import { formatCurrency } from '@/lib/format';
 import { systemConfirm } from '@/shared/components/system-alert';
@@ -28,6 +29,7 @@ export function ProductOfferActiveCombosTab({
   onDeleteCombo,
   isDeletingCombo,
 }: ProductOfferActiveCombosTabProps) {
+  const { t } = useTranslation();
   return (
     <div style={{
       background: '#ffffff',
@@ -56,7 +58,7 @@ export function ProductOfferActiveCombosTab({
               type="text"
               value={comboSearchQuery}
               onChange={(e) => setComboSearchQuery(e.target.value)}
-              placeholder="ابحث في العروض المجمعة (الاسم أو الباركود)..."
+              placeholder={t('products.offers.product_offer_active_combos_tab.s0', "ابحث في العروض المجمعة (الاسم أو الباركود)...")}
               style={{
                 width: '100%',
                 height: 36,
@@ -100,7 +102,7 @@ export function ProductOfferActiveCombosTab({
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>
-            {filteredComboProducts.length} عرض متاح
+            {filteredComboProducts.length} {t('products.offers.product_offer_active_combos_tab.s1', "عرض متاح")}
           </span>
           <Button
             type="button"
@@ -120,7 +122,7 @@ export function ProductOfferActiveCombosTab({
               <line x1="12" y1="5" x2="12" y2="19" />
               <line x1="5" y1="12" x2="19" y2="12" />
             </svg>
-            <span>+ إنشاء عرض مجمع جديد</span>
+            <span>{t('products.offers.product_offer_active_combos_tab.s2', "+ إنشاء عرض مجمع جديد")}</span>
           </Button>
         </div>
       </div>
@@ -138,7 +140,7 @@ export function ProductOfferActiveCombosTab({
       }}>
         {isLoadingAllProducts ? (
           <div style={{ gridColumn: '1 / -1', padding: '40px 0', textAlign: 'center', color: '#94a3b8', fontSize: '0.85rem' }}>
-            جارٍ تحميل العروض المجمعة...
+            {t('products.offers.product_offer_active_combos_tab.s3', "جارٍ تحميل العروض المجمعة...")}
           </div>
         ) : filteredComboProducts.length > 0 ? (
           filteredComboProducts.map((prod) => {
@@ -205,7 +207,7 @@ export function ProductOfferActiveCombosTab({
                       fontSize: '0.72rem',
                       fontWeight: 700
                     }}>
-                      كومبو
+                      {t('products.offers.product_offer_active_combos_tab.s4', "كومبو")}
                     </span>
                     {prod.barcode && (
                       <span style={{
@@ -227,7 +229,7 @@ export function ProductOfferActiveCombosTab({
                     <button
                       type="button"
                       onClick={() => onEditCombo(prod)}
-                      title="تعديل العرض ومكوناته"
+                      title={t('products.offers.product_offer_active_combos_tab.s5', "تعديل العرض ومكوناته")}
                       style={{
                         background: '#eff6ff',
                         border: '1px solid #bfdbfe',
@@ -252,10 +254,10 @@ export function ProductOfferActiveCombosTab({
                       type="button"
                       onClick={async () => {
                         const confirmed = await systemConfirm({
-                          title: 'تأكيد حذف العرض',
+                          title: t('products.offers.product_offer_active_combos_tab.s6', "تأكيد حذف العرض"),
                           message: `هل أنت متأكد من حذف العرض المجمع "${prod.name}" نهائياً؟`,
-                          confirmText: 'حذف',
-                          cancelText: 'إلغاء',
+                          confirmText: t('products.offers.product_offer_active_combos_tab.s7', "حذف"),
+                          cancelText: t('products.offers.product_offer_active_combos_tab.s8', "إلغاء"),
                           variant: 'danger',
                         });
                         if (confirmed) {
@@ -263,7 +265,7 @@ export function ProductOfferActiveCombosTab({
                         }
                       }}
                       disabled={isDeletingCombo}
-                      title="حذف العرض"
+                      title={t('products.offers.product_offer_active_combos_tab.s9', "حذف العرض")}
                       style={{
                         background: '#fee2e2',
                         border: '1px solid #fecaca',
@@ -319,7 +321,7 @@ export function ProductOfferActiveCombosTab({
                       ))
                     ) : (
                       <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
-                        {prod.notes || 'عرض ترويجي مركب'}
+                        {prod.notes || t('products.offers.product_offer_active_combos_tab.s10', "عرض ترويجي مركب")}
                       </span>
                     )}
                   </div>
@@ -354,7 +356,7 @@ export function ProductOfferActiveCombosTab({
                       fontSize: '0.72rem',
                       fontWeight: 700
                     }}>
-                      وفرت {savingsPct}%
+                      {t('products.offers.product_offer_active_combos_tab.s11', "وفرت")} {savingsPct}%
                     </span>
                   ) : null}
                 </div>
@@ -388,10 +390,10 @@ export function ProductOfferActiveCombosTab({
             </div>
             <div>
               <strong style={{ fontSize: '0.95rem', color: '#1e293b', display: 'block', marginBottom: 4 }}>
-                {comboSearchQuery ? 'لا توجد عروض مجمعة مطابقة لبحثك' : 'لا توجد عروض مجمعة (كومبو) نشطة حالياً'}
+                {comboSearchQuery ? t('products.offers.product_offer_active_combos_tab.s12', "لا توجد عروض مجمعة مطابقة لبحثك") : t('products.offers.product_offer_active_combos_tab.s13', "لا توجد عروض مجمعة (كومبو) نشطة حالياً")}
               </strong>
               <span style={{ fontSize: '0.8rem', color: '#64748b' }}>
-                يمكنك إنشاء باقات ووجبات ترويجية تجمع عدة أصناف بسعر موحد خاص
+                {t('products.offers.product_offer_active_combos_tab.s14', "يمكنك إنشاء باقات ووجبات ترويجية تجمع عدة أصناف بسعر موحد خاص")}
               </span>
             </div>
             <Button
@@ -406,7 +408,7 @@ export function ProductOfferActiveCombosTab({
                 marginTop: 6
               }}
             >
-              + إنشاء أول عرض مجمع الآن
+              {t('products.offers.product_offer_active_combos_tab.s15', "+ إنشاء أول عرض مجمع الآن")}
             </Button>
           </div>
         )}

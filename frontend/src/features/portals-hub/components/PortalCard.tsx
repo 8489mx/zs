@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { QrCodeIcon, CompassIcon } from '@/shared/components/icons/AppIcons';
 import type { PortalItem } from './portals-data';
@@ -8,6 +9,7 @@ interface PortalCardProps {
 }
 
 export function PortalCard({ portal, onOpenQr }: PortalCardProps) {
+  const { t } = useTranslation();
   return (
     <div
       style={{
@@ -84,7 +86,7 @@ export function PortalCard({ portal, onOpenQr }: PortalCardProps) {
               fontWeight: 700,
               cursor: 'pointer',
             }}
-            title="عرض رمز QR ومشاركة الرابط"
+            title={t('portals_hub.portal_card.s0', "عرض رمز QR ومشاركة الرابط")}
           >
             <QrCodeIcon size={14} color="#170e5e" />
             <span>QR</span>
@@ -108,7 +110,7 @@ export function PortalCard({ portal, onOpenQr }: PortalCardProps) {
               backgroundColor: '#170e5e',
             }}
           >
-            <span>فتح</span>
+            <span>{t('portals_hub.portal_card.s1', "فتح")}</span>
             <CompassIcon size={12} color="#ffffff" />
           </Link>
         </div>

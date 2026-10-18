@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useMemo, type ReactNode } from 'react';
 import { getGlobalCurrencySymbol } from '@/lib/currencies';
 import { Button } from '@/shared/ui/button';
@@ -24,6 +25,7 @@ const statusColors: Record<string, string> = {
 };
 
 export default function WorkCentersPage() {
+  const { t } = useTranslation();
   const [workCenters, setWorkCenters] = useState<WorkCenterRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -163,7 +165,7 @@ export default function WorkCentersPage() {
     {
       key: 'capacity',
       header: 'الطاقة بالساعة',
-      cell: (row) => <span>{row.capacity} وحدة</span>,
+      cell: (row) => <span>{row.capacity} {t('manufacturing.work_centers_page.s0', "وحدة")}</span>,
     },
     {
       key: 'efficiency',
@@ -201,14 +203,14 @@ export default function WorkCentersPage() {
       cell: (row) => (
         <div style={{ display: 'flex', gap: '6px' }}>
           <Button variant="secondary" onClick={() => openEditModal(row)} style={{ padding: '4px 8px', fontSize: '12px' }}>
-            تعديل
+            {t('manufacturing.work_centers_page.s1', "تعديل")}
           </Button>
           <Button
             variant="secondary"
             onClick={() => handleDelete(row.id)}
             style={{ padding: '4px 8px', fontSize: '12px', color: '#ef4444', borderColor: '#fecaca' }}
           >
-            حذف
+            {t('manufacturing.work_centers_page.s2', "حذف")}
           </Button>
         </div>
       ),
@@ -218,10 +220,10 @@ export default function WorkCentersPage() {
   return (
     <ManufacturingLayout
       breadcrumbs={[
-        { label: 'التصنيع', to: '/manufacturing/work-orders' },
-        { label: 'مراكز العمل' },
+        { label: t('manufacturing.work_centers_page.s3', "التصنيع"), to: '/manufacturing/work-orders' },
+        { label: t('manufacturing.work_centers_page.s4', "مراكز العمل") },
       ]}
-      title="مراكز العمل وخطوط الإنتاج (Work Centers)"
+      title={t('manufacturing.work_centers_page.s5', "مراكز العمل وخطوط الإنتاج (Work Centers)")}
       actions={
         <Button
           variant="primary"
@@ -229,7 +231,7 @@ export default function WorkCentersPage() {
           style={{ backgroundColor: '#170e5e', color: '#ffffff', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}
         >
           <PlusIcon size={16} />
-          <span>إضافة مركز عمل</span>
+          <span>{t('manufacturing.work_centers_page.s6', "إضافة مركز عمل")}</span>
         </Button>
       }
     >
@@ -241,10 +243,10 @@ export default function WorkCentersPage() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', background: '#ffffff', padding: '12px 16px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '16px' }}>
         <div style={{ display: 'flex', gap: '8px' }}>
           {[
-            { key: 'all', label: 'الكل' },
-            { key: 'active', label: 'النشطة' },
-            { key: 'maintenance', label: 'تحت الصيانة' },
-            { key: 'inactive', label: 'المعطلة' },
+            { key: 'all', label: t('manufacturing.work_centers_page.s7', "الكل") },
+            { key: 'active', label: t('manufacturing.work_centers_page.s8', "النشطة") },
+            { key: 'maintenance', label: t('manufacturing.work_centers_page.s9', "تحت الصيانة") },
+            { key: 'inactive', label: t('manufacturing.work_centers_page.s10', "المعطلة") },
           ].map((tab) => (
             <button
               key={tab.key}
@@ -270,7 +272,7 @@ export default function WorkCentersPage() {
           <SearchIcon size={16} style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
           <input
             type="text"
-            placeholder="بحث بالرمز أو الاسم..."
+            placeholder={t('manufacturing.work_centers_page.s11', "بحث بالرمز أو الاسم...")}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             style={{ width: '100%', padding: '6px 32px 6px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px' }}
@@ -284,7 +286,7 @@ export default function WorkCentersPage() {
           columns={columns}
           rows={filteredWorkCenters}
           rowKey={(row) => String(row.id)}
-          empty={isLoading ? 'جاري التحميل...' : 'لا توجد مراكز عمل مطابقة للبحث.'}
+          empty={isLoading ? t('manufacturing.work_centers_page.s12', "جاري التحميل...") : t('manufacturing.work_centers_page.s13', "لا توجد مراكز عمل مطابقة للبحث.")}
         />
       </div>
 

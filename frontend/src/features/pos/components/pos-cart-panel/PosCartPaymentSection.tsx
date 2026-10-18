@@ -41,6 +41,7 @@ export function PosCartPaymentSection(props: Pick<PosCartPanelProps,
   'canApplyDiscount' | 'discountApprovalGranted' | 'isDiscountAuthorizationPending' | 'hasDiscountPermissionViolation' |
   'onPaymentPresetChange' | 'onCashAmountChange' | 'onCardAmountChange' | 'onTransferAmountChange' | 'onDiscountChange' | 'onDeliveryFeeChange' | 'onFillPaidAmount' | 'onRequestDiscountAuthorization'
 >) {
+  const { t: __t } = useTranslation();
   const { t } = useTranslation();
   const balance = getBalanceState(props, t);
   const isCreditSale = props.paymentType === 'credit';
@@ -71,7 +72,7 @@ export function PosCartPaymentSection(props: Pick<PosCartPanelProps,
           {transferSelected ? (
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px', marginTop: '4px' }}>
               <Button type="button" variant={props.paymentChannel === 'instapay' ? 'primary' : 'secondary'} onClick={() => selectPaymentPreset('instapay')} style={{ minHeight: '28px', fontSize: '11.5px', fontWeight: 800 }}>InstaPay</Button>
-              <Button type="button" variant={props.paymentChannel === 'wallet' ? 'primary' : 'secondary'} onClick={() => selectPaymentPreset('wallet')} style={{ minHeight: '28px', fontSize: '11px', fontWeight: 700 }}>محافظ إلكترونية</Button>
+              <Button type="button" variant={props.paymentChannel === 'wallet' ? 'primary' : 'secondary'} onClick={() => selectPaymentPreset('wallet')} style={{ minHeight: '28px', fontSize: '11px', fontWeight: 700 }}>{__t('pos.pos_cart_panel.pos_cart_payment_section.s0', __t('pos.pos_cart_panel.pos_cart_payment_section.s0', "محافظ إلكترونية"))}</Button>
             </div>
           ) : null}
         </div>

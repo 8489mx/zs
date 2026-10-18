@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 import { RestaurantOperationsDialog } from './RestaurantOperationsDialog';
 import {
@@ -38,6 +39,7 @@ interface DisplayCardProps {
 }
 
 function DisplayCard({ tile }: DisplayCardProps) {
+  const { t } = useTranslation();
   const [hovered, setHovered] = React.useState(false);
 
   return (
@@ -169,7 +171,7 @@ function DisplayCard({ tile }: DisplayCardProps) {
           }}
         >
           <Maximize2Icon size={12} color={hovered ? '#ffffff' : '#170e5e'} />
-          <span>تشغيل الشاشة</span>
+          <span>{t('pos.pos_workspace.pos_displays_modal.s0', "تشغيل الشاشة")}</span>
         </span>
       </div>
     </div>
@@ -177,6 +179,7 @@ function DisplayCard({ tile }: DisplayCardProps) {
 }
 
 export function PosDisplaysModal({ open, onClose, isRestaurantActive }: PosDisplaysModalProps) {
+  const { t: __t } = useTranslation();
   const handleLaunch = (name: string, fn: () => void) => {
     fn();
     toast.success(`تم فتح ${name} بنجاح`);
@@ -258,10 +261,10 @@ export function PosDisplaysModal({ open, onClose, isRestaurantActive }: PosDispl
     <RestaurantOperationsDialog
       open={open}
       onClose={onClose}
-      title="مركز شاشات العرض ومحطات العمل التفاعلية"
-      subtitle="إطلاق وتشغيل شاشات العرض الخارجية للعملاء، التلفزيون، المطبخ KDS، ومحطات الخدمة المحمولة"
+      title={__t('pos.pos_workspace.pos_displays_modal.s1', __t('pos.pos_workspace.pos_displays_modal.s0', "مركز شاشات العرض ومحطات العمل التفاعلية"))}
+      subtitle={__t('pos.pos_workspace.pos_displays_modal.s2', __t('pos.pos_workspace.pos_displays_modal.s1', "إطلاق وتشغيل شاشات العرض الخارجية للعملاء، التلفزيون، المطبخ KDS، ومحطات الخدمة المحمولة"))}
       icon={<MonitorIcon size={18} color="#170e5e" />}
-      footerNote="تعمل الشاشات في نوافذ مستقلة متعددة وتتزامن لحظياً مع نقطة البيع والصالة عبر مسبح أحداث Z-Systems"
+      footerNote={__t('pos.pos_workspace.pos_displays_modal.s3', __t('pos.pos_workspace.pos_displays_modal.s2', "تعمل الشاشات في نوافذ مستقلة متعددة وتتزامن لحظياً مع نقطة البيع والصالة عبر مسبح أحداث Z-Systems"))}
       scrollableBody={false}
       bodyStyle={{
         padding: '16px 20px',

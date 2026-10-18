@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useMemo, useCallback } from 'react';
 import { systemAlert } from '@/shared/components/system-alert';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -26,6 +27,7 @@ const SORT_OPTIONS = [
 ];
 
 export function InventoryTreePage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
@@ -285,15 +287,15 @@ export function InventoryTreePage() {
       <main className="document-prototype-column" style={{ maxWidth: '1280px', paddingBottom: '32px' }}>
         {/* Header */}
         <PageHeader
-          title="شجرة المخازن الشاملة"
-          description="عرض تفصيلي لأرصدة الأصناف وتوزيعها على أماكن التخزين وإجراء عمليات المناقلة والتعيين الجماعية"
+          title={t('inventory.inventory_tree_page.s0', "شجرة المخازن الشاملة")}
+          description={t('inventory.inventory_tree_page.s1', "عرض تفصيلي لأرصدة الأصناف وتوزيعها على أماكن التخزين وإجراء عمليات المناقلة والتعيين الجماعية")}
           actions={(
             <div className="actions compact-actions page-header-actions">
               <Button variant="primary" onClick={() => navigate('/inventory/issue-order/new')}>
-                + إذن صرف جديد
+                {t('inventory.inventory_tree_page.s2', "+ إذن صرف جديد")}
               </Button>
               <Button variant="secondary" onClick={() => navigate('/inventory/warehouses')} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                <WarehouseIcon size={16} /> أماكن المخزون
+                <WarehouseIcon size={16} /> {t('inventory.inventory_tree_page.s3', "أماكن المخزون")}
               </Button>
             </div>
           )}
@@ -318,7 +320,7 @@ export function InventoryTreePage() {
         <div style={{ position: 'relative', flex: '1 1 220px' }}>
           <input
             type="text"
-            placeholder="ابحث باسم الصنف أو الباركود..."
+            placeholder={t('inventory.inventory_tree_page.s4', "ابحث باسم الصنف أو الباركود...")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             style={{
@@ -336,7 +338,7 @@ export function InventoryTreePage() {
             value={filterLocationId}
             onChange={(val) => { setFilterLocationId(val); setShowUnassigned(false); }}
             options={locationOptions}
-            placeholder="كل المخازن"
+            placeholder={t('inventory.inventory_tree_page.s5', "كل المخازن")}
           />
         </div>
         <div style={{ flex: '1 1 170px', minWidth: '150px' }}>
@@ -344,7 +346,7 @@ export function InventoryTreePage() {
             value={sortMode}
             onChange={(val) => setSortMode(val as SortMode)}
             options={SORT_OPTIONS}
-            placeholder="ترتيب افتراضي"
+            placeholder={t('inventory.inventory_tree_page.s6', "ترتيب افتراضي")}
           />
         </div>
         <div className="inventory-tree-checkboxes-row" style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
@@ -355,7 +357,7 @@ export function InventoryTreePage() {
               onChange={(e) => { setShowOnlyWithStock(e.target.checked); if (e.target.checked) setShowUnassigned(false); }}
               style={{ width: '15px', height: '15px', accentColor: 'var(--primary, #170c5c)' }}
             />
-            بها رصيد فقط
+            {t('inventory.inventory_tree_page.s7', "بها رصيد فقط")}
           </label>
           <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '12px', whiteSpace: 'nowrap', userSelect: 'none', color: '#334155' }}>
             <input
@@ -365,7 +367,7 @@ export function InventoryTreePage() {
               style={{ width: '15px', height: '15px', accentColor: 'var(--primary, #170c5c)' }}
             />
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-              غير مربوطة بمخزن <AlertTriangleIcon size={13} color="#d97706" />
+              {t('inventory.inventory_tree_page.s8', "غير مربوطة بمخزن")} <AlertTriangleIcon size={13} color="#d97706" />
             </span>
           </label>
         </div>
@@ -382,7 +384,7 @@ export function InventoryTreePage() {
             }}
             style={{ fontSize: '11px', height: '28px', padding: '2px 10px' }}
           >
-            تفريغ الفلاتر
+            {t('inventory.inventory_tree_page.s9', "تفريغ الفلاتر")}
           </Button>
         )}
       </div>
@@ -390,21 +392,21 @@ export function InventoryTreePage() {
       {/* List Sub-header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', flexWrap: 'wrap', gap: '10px' }}>
         <div style={{ fontSize: '13px', color: '#64748b' }}>
-          عرض <strong style={{ color: '#0f172a' }}>{filteredRows.length}</strong> صنف من أصل {productRows.length}
-          {selectedIds.size > 0 && <span style={{ marginInlineStart: '8px', color: 'var(--primary, #170c5c)', fontWeight: 800 }}>— ({selectedIds.size} صنف محدد)</span>}
+          {t('inventory.inventory_tree_page.s10', "عرض")} <strong style={{ color: '#0f172a' }}>{filteredRows.length}</strong> {t('inventory.inventory_tree_page.s11', "صنف من أصل")} {productRows.length}
+          {selectedIds.size > 0 && <span style={{ marginInlineStart: '8px', color: 'var(--primary, #170c5c)', fontWeight: 800 }}>— ({selectedIds.size} {t('inventory.inventory_tree_page.s12', "صنف محدد)")}</span>}
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
           <Button
             variant={allSelected ? 'primary' : 'secondary'}
             onClick={handleSelectAll}
           >
-            {allSelected ? 'إلغاء التحديد' : 'تحديد الكل'}
+            {allSelected ? t('inventory.inventory_tree_page.s13', "إلغاء التحديد") : t('inventory.inventory_tree_page.s14', "تحديد الكل")}
           </Button>
           <Button
             variant="secondary"
             onClick={toggleExpandCollapseAll}
           >
-            {isAllExpanded ? 'ضم كافة الأقسام ◀' : 'فرد كافة الأقسام ▼'}
+            {isAllExpanded ? t('inventory.inventory_tree_page.s15', "ضم كافة الأقسام ◀") : t('inventory.inventory_tree_page.s16', "فرد كافة الأقسام ▼")}
           </Button>
         </div>
       </div>
@@ -412,12 +414,12 @@ export function InventoryTreePage() {
       {/* Tree */}
       {isLoading ? (
         <div style={{ textAlign: 'center', padding: '60px', color: 'var(--text-secondary, #888)' }}>
-          جاري التحميل...
+          {t('inventory.inventory_tree_page.s17', "جاري التحميل...")}
         </div>
       ) : filteredRows.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '60px', color: 'var(--text-secondary, #888)' }}>
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '12px' }}><SearchIcon size={40} color="#94a3b8" /></div>
-          لا توجد نتائج
+          {t('inventory.inventory_tree_page.s18', "لا توجد نتائج")}
         </div>
       ) : (
         <div style={{ paddingBottom: selectedIds.size > 0 ? '80px' : '0' }}>

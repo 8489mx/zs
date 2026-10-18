@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -15,6 +16,7 @@ import { useAuthStore } from '@/stores/auth-store';
 import { resolveCurrentVertical } from '@/shared/verticals/vertical-scope';
 
 export function LocationForm({ branches, canManageSettings, setupMode = false, onSetupAdvance, initialValues, onCreated }: LocationFormProps) {
+  const { t } = useTranslation();
   const tenant = useAuthStore((s) => s.tenant);
   const vertical = resolveCurrentVertical(tenant);
   const isMaritime = vertical === 'maritime';
@@ -85,12 +87,12 @@ export function LocationForm({ branches, canManageSettings, setupMode = false, o
         <input {...form.register('name')} disabled={mutation.isPending || !canManageSettings} />
       </Field>
       <Field label={codeLabel}>
-        <input {...form.register('code')} disabled={mutation.isPending || !canManageSettings} placeholder={isMaritime ? 'مثال: EGALY, EGPSD' : ''} />
+        <input {...form.register('code')} disabled={mutation.isPending || !canManageSettings} placeholder={isMaritime ? t('settings.forms.location_form.s0', "مثال: EGALY, EGPSD") : ''} />
       </Field>
       {!SINGLE_STORE_MODE ? (
         <Field label={branchLabel}>
           <select {...form.register('branchId')} disabled={mutation.isPending || !canManageSettings}>
-            <option value="">بدون ربط</option>
+            <option value="">{t('settings.forms.location_form.s1', "بدون ربط")}</option>
             {branches.map((branch) => (
               <option key={branch.id} value={branch.id}>
                 {branch.name}
@@ -99,22 +101,22 @@ export function LocationForm({ branches, canManageSettings, setupMode = false, o
           </select>
         </Field>
       ) : null}
-      <Field label={isMaritime ? 'طبيعة الموقع الملاحي' : isContracting ? 'نوع موقع التشوين' : 'نوع المخزن'}>
+      <Field label={isMaritime ? t('settings.forms.location_form.s2', "طبيعة الموقع الملاحي") : isContracting ? t('settings.forms.location_form.s3', "نوع موقع التشوين") : t('settings.forms.location_form.s4', "نوع المخزن")}>
         <select {...form.register('locationType')} disabled={mutation.isPending || !canManageSettings}>
           {isMaritime ? (
             <>
-              <option value="internal_warehouse">محطة / ساحة تخزين حاويات ومستودع لوجستي</option>
-              <option value="branch_stock">ميناء بحري / رصيف شحن وتفريغ</option>
+              <option value="internal_warehouse">{t('settings.forms.location_form.s5', "محطة / ساحة تخزين حاويات ومستودع لوجستي")}</option>
+              <option value="branch_stock">{t('settings.forms.location_form.s6', "ميناء بحري / رصيف شحن وتفريغ")}</option>
             </>
           ) : isContracting ? (
             <>
-              <option value="internal_warehouse">موقع تشوين رئيسي</option>
-              <option value="branch_stock">تشوين فرعي للمشروع</option>
+              <option value="internal_warehouse">{t('settings.forms.location_form.s7', "موقع تشوين رئيسي")}</option>
+              <option value="branch_stock">{t('settings.forms.location_form.s8', "تشوين فرعي للمشروع")}</option>
             </>
           ) : (
             <>
-              <option value="internal_warehouse">مخزن داخلي (لا يظهر كأرصدة فروع)</option>
-              <option value="branch_stock">رصيد فرع (متاح للبيع)</option>
+              <option value="internal_warehouse">{t('settings.forms.location_form.s9', "مخزن داخلي (لا يظهر كأرصدة فروع)")}</option>
+              <option value="branch_stock">{t('settings.forms.location_form.s10', "رصيد فرع (متاح للبيع)")}</option>
             </>
           )}
         </select>
@@ -122,8 +124,8 @@ export function LocationForm({ branches, canManageSettings, setupMode = false, o
 
       <DraftStateNotice
         visible={form.formState.isDirty && !mutation.isPending}
-        title={isMaritime ? 'بيانات الموقع الملاحي غير محفوظة' : SINGLE_STORE_MODE ? 'بيانات المخزن الأساسي غير محفوظة' : 'بيانات المخزن الجديد غير محفوظة'}
-        hint={isMaritime ? 'احفظ بيانات الموقع الملاحي أو أعد ضبط الحقول.' : SINGLE_STORE_MODE ? 'احفظ بيانات المخزن الأساسي قبل مغادرة هذه الشاشة.' : 'احفظ المخزن أو أعد ضبط الحقول قبل مغادرة هذا النموذج.'}
+        title={isMaritime ? t('settings.forms.location_form.s11', "بيانات الموقع الملاحي غير محفوظة") : SINGLE_STORE_MODE ? t('settings.forms.location_form.s12', "بيانات المخزن الأساسي غير محفوظة") : t('settings.forms.location_form.s13', "بيانات المخزن الجديد غير محفوظة")}
+        hint={isMaritime ? t('settings.forms.location_form.s14', "احفظ بيانات الموقع الملاحي أو أعد ضبط الحقول.") : SINGLE_STORE_MODE ? t('settings.forms.location_form.s15', "احفظ بيانات المخزن الأساسي قبل مغادرة هذه الشاشة.") : t('settings.forms.location_form.s16', "احفظ المخزن أو أعد ضبط الحقول قبل مغادرة هذا النموذج.")}
       />
 
       <div className="actions compact-actions sticky-form-actions">
@@ -135,7 +137,7 @@ export function LocationForm({ branches, canManageSettings, setupMode = false, o
           }}
           disabled={mutation.isPending || !form.formState.isDirty}
         >
-          تفريغ
+          {t('settings.forms.location_form.s17', "تفريغ")}
         </button>
       </div>
 
@@ -143,7 +145,7 @@ export function LocationForm({ branches, canManageSettings, setupMode = false, o
         isError={mutation.isError}
         isSuccess={mutation.isSuccess}
         error={mutation.error}
-        errorFallback="هذا الاسم أو الكود مستخدم بالفعل."
+        errorFallback={t('settings.forms.location_form.s18', "هذا الاسم أو الكود مستخدم بالفعل.")}
         successText={successMessage}
       />
 
@@ -157,7 +159,7 @@ export function LocationForm({ branches, canManageSettings, setupMode = false, o
           void handleSaveWarehouse();
         }}
         idleText={idleButtonText}
-        pendingText="جارٍ الحفظ..."
+        pendingText={t('settings.forms.location_form.s19', "جارٍ الحفظ...")}
       />
     </div>
   );

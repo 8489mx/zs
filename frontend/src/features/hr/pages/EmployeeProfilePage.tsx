@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { FormEvent, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { PageHeader } from '@/shared/components/page-header';
@@ -37,6 +38,7 @@ import {
 } from '@/features/hr/components/employee-profile/employee-profile-page.helpers';
 
 export function EmployeeProfilePage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const profile = useHrProfile(id);
@@ -154,18 +156,18 @@ export function EmployeeProfilePage() {
     <div className="page-stack page-shell hr-employee-profile-workspace" dir="rtl">
       <main className="document-prototype-column" style={{ maxWidth: '1280px', paddingBottom: '60px' }}>
         <PageHeader
-          title={employee ? employeeName(employee) : 'الملف الوظيفي للموظف'}
-          description="الملف المركزي الشامل للموظف: العقود، البدلات، المستندات، العُهد، والأرصدة"
+          title={employee ? employeeName(employee) : t('hr.employee_profile_page.s0', "الملف الوظيفي للموظف")}
+          description={t('hr.employee_profile_page.s1', "الملف المركزي الشامل للموظف: العقود، البدلات، المستندات، العُهد، والأرصدة")}
           badge={<span className="nav-pill">{employee ? (employee.status || '—') : '—'}</span>}
           actions={
             <div className="compact-actions">
-              <Button variant="secondary" onClick={() => navigate('/hr/employees')}>قائمة الموظفين</Button>
+              <Button variant="secondary" onClick={() => navigate('/hr/employees')}>{t('hr.employee_profile_page.s2', "قائمة الموظفين")}</Button>
               {canManageEmployees && id && (
-                <Button variant="secondary" onClick={() => navigate(`/hr/employees/${id}/edit`)}>تعديل البيانات</Button>
+                <Button variant="secondary" onClick={() => navigate(`/hr/employees/${id}/edit`)}>{t('hr.employee_profile_page.s3', "تعديل البيانات")}</Button>
               )}
               {canManageEmployees && employee && (
                 <Button variant="secondary" onClick={() => setShowEndOfServiceModal(true)} style={{ color: '#dc2626', borderColor: '#fecaca' }}>
-                  مستحقات نهاية الخدمة
+                  {t('hr.employee_profile_page.s4', "مستحقات نهاية الخدمة")}
                 </Button>
               )}
             </div>
@@ -177,9 +179,9 @@ export function EmployeeProfilePage() {
           isError={profile.isError}
           error={profile.error}
           isEmpty={!profile.data?.employee}
-          loadingText="جاري تحميل بيانات الموظف..."
-          errorTitle="تعذر تحميل ملف الموظف"
-          emptyTitle="الموظف غير موجود"
+          loadingText={t('hr.employee_profile_page.s5', "جاري تحميل بيانات الموظف...")}
+          errorTitle={t('hr.employee_profile_page.s6', "تعذر تحميل ملف الموظف")}
+          emptyTitle={t('hr.employee_profile_page.s7', "الموظف غير موجود")}
         >
           {/* Top Quick Navigation Pills */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px', background: '#ffffff', padding: '8px 12px', borderRadius: '10px', border: '1px solid #e2e8f0', marginBottom: '14px' }}>
@@ -207,10 +209,10 @@ export function EmployeeProfilePage() {
             </div>
 
             <div style={{ display: 'flex', gap: '6px' }}>
-              <Button type="button" variant="secondary" onClick={() => navigate('/hr/attendance')} style={{ padding: '3px 8px', fontSize: '0.75rem' }}>الحضور</Button>
-              <Button type="button" variant="secondary" onClick={() => navigate('/hr/leaves')} style={{ padding: '3px 8px', fontSize: '0.75rem' }}>الإجازات</Button>
-              {canViewLoans ? <Button type="button" variant="secondary" onClick={() => navigate('/hr/loans')} style={{ padding: '3px 8px', fontSize: '0.75rem' }}>السلف</Button> : null}
-              {canViewSalary ? <Button type="button" variant="secondary" onClick={() => navigate('/hr/payroll')} style={{ padding: '3px 8px', fontSize: '0.75rem' }}>المرتبات</Button> : null}
+              <Button type="button" variant="secondary" onClick={() => navigate('/hr/attendance')} style={{ padding: '3px 8px', fontSize: '0.75rem' }}>{t('hr.employee_profile_page.s8', "الحضور")}</Button>
+              <Button type="button" variant="secondary" onClick={() => navigate('/hr/leaves')} style={{ padding: '3px 8px', fontSize: '0.75rem' }}>{t('hr.employee_profile_page.s9', "الإجازات")}</Button>
+              {canViewLoans ? <Button type="button" variant="secondary" onClick={() => navigate('/hr/loans')} style={{ padding: '3px 8px', fontSize: '0.75rem' }}>{t('hr.employee_profile_page.s10', "السلف")}</Button> : null}
+              {canViewSalary ? <Button type="button" variant="secondary" onClick={() => navigate('/hr/payroll')} style={{ padding: '3px 8px', fontSize: '0.75rem' }}>{t('hr.employee_profile_page.s11', "المرتبات")}</Button> : null}
             </div>
           </div>
 
@@ -257,19 +259,19 @@ export function EmployeeProfilePage() {
           {shouldShowProfileSection(activeSection, 'documents') ? (
             <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                <strong style={{ fontSize: '0.9rem', color: '#0f172a' }}>مستندات الموظف</strong>
-                <Button variant="secondary" onClick={() => navigate('/hr/documents')} style={{ padding: '2px 8px', fontSize: '0.75rem' }}>عرض المستندات</Button>
+                <strong style={{ fontSize: '0.9rem', color: '#0f172a' }}>{t('hr.employee_profile_page.s12', "مستندات الموظف")}</strong>
+                <Button variant="secondary" onClick={() => navigate('/hr/documents')} style={{ padding: '2px 8px', fontSize: '0.75rem' }}>{t('hr.employee_profile_page.s13', "عرض المستندات")}</Button>
               </div>
 
               <form onSubmit={(event) => { void handleAddDocument(event); }} style={{ marginBottom: '14px', background: '#fff', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '8px', marginBottom: '8px' }}>
-                  <div><label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '2px' }}>اسم المستند *</label><input value={documentDraft.title} onChange={(e) => setDocumentDraft((current) => ({ ...current, title: e.target.value }))} style={{ width: '100%', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }} /></div>
-                  <div><label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '2px' }}>نوع المستند</label><input value={documentDraft.documentType} onChange={(e) => setDocumentDraft((current) => ({ ...current, documentType: e.target.value }))} style={{ width: '100%', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }} /></div>
-                  <div><label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '2px' }}>تاريخ الانتهاء</label><input type="date" value={documentDraft.expiryDate} onChange={(e) => setDocumentDraft((current) => ({ ...current, expiryDate: e.target.value }))} style={{ width: '100%', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }} /></div>
-                  <div><label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '2px' }}>ملاحظات</label><input value={documentDraft.notes} onChange={(e) => setDocumentDraft((current) => ({ ...current, notes: e.target.value }))} style={{ width: '100%', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }} /></div>
+                  <div><label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '2px' }}>{t('hr.employee_profile_page.s14', "اسم المستند *")}</label><input value={documentDraft.title} onChange={(e) => setDocumentDraft((current) => ({ ...current, title: e.target.value }))} style={{ width: '100%', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }} /></div>
+                  <div><label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '2px' }}>{t('hr.employee_profile_page.s15', "نوع المستند")}</label><input value={documentDraft.documentType} onChange={(e) => setDocumentDraft((current) => ({ ...current, documentType: e.target.value }))} style={{ width: '100%', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }} /></div>
+                  <div><label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '2px' }}>{t('hr.employee_profile_page.s16', "تاريخ الانتهاء")}</label><input type="date" value={documentDraft.expiryDate} onChange={(e) => setDocumentDraft((current) => ({ ...current, expiryDate: e.target.value }))} style={{ width: '100%', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }} /></div>
+                  <div><label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '2px' }}>{t('hr.employee_profile_page.s17', "ملاحظات")}</label><input value={documentDraft.notes} onChange={(e) => setDocumentDraft((current) => ({ ...current, notes: e.target.value }))} style={{ width: '100%', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }} /></div>
                 </div>
                 {documentError ? <div style={{ color: '#dc2626', fontSize: '0.8rem', marginBottom: '8px' }}>{documentError}</div> : null}
-                <div><Button type="submit" disabled={isSavingDocument} style={{ padding: '4px 12px', fontSize: '0.8rem' }}>{isSavingDocument ? 'جاري الحفظ...' : 'إضافة مستند'}</Button></div>
+                <div><Button type="submit" disabled={isSavingDocument} style={{ padding: '4px 12px', fontSize: '0.8rem' }}>{isSavingDocument ? t('hr.employee_profile_page.s18', "جاري الحفظ...") : t('hr.employee_profile_page.s19', "إضافة مستند")}</Button></div>
               </form>
 
               {documents.length ? (
@@ -278,22 +280,22 @@ export function EmployeeProfilePage() {
                   rows={documents}
                   rowKey={(row) => String(row.id)}
                   columns={[
-                    { key: 'title', header: 'اسم المستند', cell: (row: HrDocument) => fallbackText(row.title) },
-                    { key: 'documentType', header: 'نوع المستند', cell: (row: HrDocument) => fallbackText(row.documentType) },
-                    { key: 'expiryDate', header: 'تاريخ الانتهاء', cell: (row: HrDocument) => fallbackText(row.expiryDate) || 'بدون تاريخ انتهاء' },
-                    { key: 'status', header: 'الحالة', cell: (row: HrDocument) => documentStatusLabel(row.expiryDate) },
-                    { key: 'notes', header: 'ملاحظات', cell: (row: HrDocument) => fallbackText(row.notes) },
+                    { key: 'title', header: t('hr.employee_profile_page.s20', "اسم المستند"), cell: (row: HrDocument) => fallbackText(row.title) },
+                    { key: 'documentType', header: t('hr.employee_profile_page.s21', "نوع المستند"), cell: (row: HrDocument) => fallbackText(row.documentType) },
+                    { key: 'expiryDate', header: t('hr.employee_profile_page.s22', "تاريخ الانتهاء"), cell: (row: HrDocument) => fallbackText(row.expiryDate) || t('hr.employee_profile_page.s23', "بدون تاريخ انتهاء") },
+                    { key: 'status', header: t('hr.employee_profile_page.s24', "الحالة"), cell: (row: HrDocument) => documentStatusLabel(row.expiryDate) },
+                    { key: 'notes', header: t('hr.employee_profile_page.s25', "ملاحظات"), cell: (row: HrDocument) => fallbackText(row.notes) },
                   ]}
                 />
-              ) : <p className="muted" style={{ margin: 0, fontSize: '0.85rem' }}>لا توجد مستندات مسجلة.</p>}
+              ) : <p className="muted" style={{ margin: 0, fontSize: '0.85rem' }}>{t('hr.employee_profile_page.s26', "لا توجد مستندات مسجلة.")}</p>}
             </div>
           ) : null}
 
           {shouldShowProfileSection(activeSection, 'assets') ? (
             <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                <strong style={{ fontSize: '0.9rem', color: '#0f172a' }}>العُهد والأصول</strong>
-                <Button variant="secondary" onClick={() => navigate('/hr/assets')} style={{ padding: '2px 8px', fontSize: '0.75rem' }}>عرض العُهد</Button>
+                <strong style={{ fontSize: '0.9rem', color: '#0f172a' }}>{t('hr.employee_profile_page.s27', "العُهد والأصول")}</strong>
+                <Button variant="secondary" onClick={() => navigate('/hr/assets')} style={{ padding: '2px 8px', fontSize: '0.75rem' }}>{t('hr.employee_profile_page.s28', "عرض العُهد")}</Button>
               </div>
               {employeeAssets.length ? (
                 <DataTable<HrEmployeeAsset>
@@ -301,22 +303,22 @@ export function EmployeeProfilePage() {
                   rows={employeeAssets}
                   rowKey={(row) => String(row.id)}
                   columns={[
-                    { key: 'assetName', header: 'اسم العهدة', cell: (row: HrEmployeeAsset) => fallbackText(row.assetName) },
-                    { key: 'assetCode', header: 'الكود/التسلسلي', cell: (row: HrEmployeeAsset) => fallbackText(row.assetCode || row.serialNo) },
-                    { key: 'assignedAt', header: 'تاريخ التسليم', cell: (row: HrEmployeeAsset) => fallbackText(row.assignedAt) },
-                    { key: 'returnedAt', header: 'تاريخ الاسترجاع', cell: (row: HrEmployeeAsset) => fallbackText(row.returnedAt) },
-                    { key: 'status', header: 'الحالة', cell: (row: HrEmployeeAsset) => assetStatusLabel(row.status) },
+                    { key: 'assetName', header: t('hr.employee_profile_page.s29', "اسم العهدة"), cell: (row: HrEmployeeAsset) => fallbackText(row.assetName) },
+                    { key: 'assetCode', header: t('hr.employee_profile_page.s30', "الكود/التسلسلي"), cell: (row: HrEmployeeAsset) => fallbackText(row.assetCode || row.serialNo) },
+                    { key: 'assignedAt', header: t('hr.employee_profile_page.s31', "تاريخ التسليم"), cell: (row: HrEmployeeAsset) => fallbackText(row.assignedAt) },
+                    { key: 'returnedAt', header: t('hr.employee_profile_page.s32', "تاريخ الاسترجاع"), cell: (row: HrEmployeeAsset) => fallbackText(row.returnedAt) },
+                    { key: 'status', header: t('hr.employee_profile_page.s33', "الحالة"), cell: (row: HrEmployeeAsset) => assetStatusLabel(row.status) },
                   ]}
                 />
-              ) : <p className="muted" style={{ margin: 0, fontSize: '0.85rem' }}>لا توجد عُهد مسجلة لهذا الموظف.</p>}
+              ) : <p className="muted" style={{ margin: 0, fontSize: '0.85rem' }}>{t('hr.employee_profile_page.s34', "لا توجد عُهد مسجلة لهذا الموظف.")}</p>}
             </div>
           ) : null}
 
           {shouldShowProfileSection(activeSection, 'leaves') ? (
             <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                <strong style={{ fontSize: '0.9rem', color: '#0f172a' }}>الإجازات</strong>
-                <Button variant="secondary" onClick={() => navigate('/hr/leaves')} style={{ padding: '2px 8px', fontSize: '0.75rem' }}>عرض الإجازات</Button>
+                <strong style={{ fontSize: '0.9rem', color: '#0f172a' }}>{t('hr.employee_profile_page.s35', "الإجازات")}</strong>
+                <Button variant="secondary" onClick={() => navigate('/hr/leaves')} style={{ padding: '2px 8px', fontSize: '0.75rem' }}>{t('hr.employee_profile_page.s36', "عرض الإجازات")}</Button>
               </div>
               {leaveRequests.length ? (
                 <DataTable<HrLeaveRequest>
@@ -324,14 +326,14 @@ export function EmployeeProfilePage() {
                   rows={leaveRequests.slice(0, 8)}
                   rowKey={(row) => String(row.id)}
                   columns={[
-                    { key: 'leaveTypeName', header: 'نوع الإجازة', cell: (row: HrLeaveRequest) => fallbackText(row.leaveTypeName || row.leaveType) },
-                    { key: 'startDate', header: 'من تاريخ', cell: (row: HrLeaveRequest) => fallbackText(row.startDate) },
-                    { key: 'endDate', header: 'إلى تاريخ', cell: (row: HrLeaveRequest) => fallbackText(row.endDate) },
-                    { key: 'daysCount', header: 'عدد الأيام', cell: (row: HrLeaveRequest) => fallbackText(row.daysCount) },
-                    { key: 'status', header: 'الحالة', cell: (row: HrLeaveRequest) => leaveStatusLabel(row.status) },
+                    { key: 'leaveTypeName', header: t('hr.employee_profile_page.s37', "نوع الإجازة"), cell: (row: HrLeaveRequest) => fallbackText(row.leaveTypeName || row.leaveType) },
+                    { key: 'startDate', header: t('hr.employee_profile_page.s38', "من تاريخ"), cell: (row: HrLeaveRequest) => fallbackText(row.startDate) },
+                    { key: 'endDate', header: t('hr.employee_profile_page.s39', "إلى تاريخ"), cell: (row: HrLeaveRequest) => fallbackText(row.endDate) },
+                    { key: 'daysCount', header: t('hr.employee_profile_page.s40', "عدد الأيام"), cell: (row: HrLeaveRequest) => fallbackText(row.daysCount) },
+                    { key: 'status', header: t('hr.employee_profile_page.s41', "الحالة"), cell: (row: HrLeaveRequest) => leaveStatusLabel(row.status) },
                   ]}
                 />
-              ) : <p className="muted" style={{ margin: 0, fontSize: '0.85rem' }}>لا توجد طلبات إجازة حالية.</p>}
+              ) : <p className="muted" style={{ margin: 0, fontSize: '0.85rem' }}>{t('hr.employee_profile_page.s42', "لا توجد طلبات إجازة حالية.")}</p>}
             </div>
           ) : null}
 
@@ -339,29 +341,29 @@ export function EmployeeProfilePage() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
               <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                  <strong style={{ fontSize: '0.9rem', color: '#0f172a' }}>السلف والأقساط</strong>
+                  <strong style={{ fontSize: '0.9rem', color: '#0f172a' }}>{t('hr.employee_profile_page.s43', "السلف والأقساط")}</strong>
                   <div className="compact-actions">
-                    {canViewSalary ? <Button variant="secondary" onClick={() => navigate('/hr/payroll')} style={{ padding: '2px 8px', fontSize: '0.75rem' }}>عرض المرتبات</Button> : null}
-                    {canViewLoans ? <Button variant="secondary" onClick={() => navigate('/hr/loans')} style={{ padding: '2px 8px', fontSize: '0.75rem' }}>إدارة السلف</Button> : null}
+                    {canViewSalary ? <Button variant="secondary" onClick={() => navigate('/hr/payroll')} style={{ padding: '2px 8px', fontSize: '0.75rem' }}>{t('hr.employee_profile_page.s44', "عرض المرتبات")}</Button> : null}
+                    {canViewLoans ? <Button variant="secondary" onClick={() => navigate('/hr/loans')} style={{ padding: '2px 8px', fontSize: '0.75rem' }}>{t('hr.employee_profile_page.s45', "إدارة السلف")}</Button> : null}
                   </div>
                 </div>
                 {!canViewSalary && !canViewLoans ? (
-                  <p className="muted" style={{ margin: 0, fontSize: '0.85rem' }}>لا تملك صلاحية عرض هذه البيانات.</p>
+                  <p className="muted" style={{ margin: 0, fontSize: '0.85rem' }}>{t('hr.employee_profile_page.s46', "لا تملك صلاحية عرض هذه البيانات.")}</p>
                 ) : loans.length ? (
                   <DataTable<HrLoan>
                     density="compact"
                     rows={loans}
                     rowKey={(row) => String(row.id)}
                     columns={[
-                      { key: 'loanNo', header: 'رقم السلفة', cell: (row: HrLoan) => fallbackText(row.loanNo) },
-                      { key: 'loanType', header: 'النوع', cell: (row: HrLoan) => loanTypeLabel(row.loanType) },
-                      { key: 'repaymentMode', header: 'طريقة السداد', cell: (row: HrLoan) => repaymentModeLabel(row.repaymentMode) },
-                      { key: 'principalAmount', header: 'قيمة السلفة', cell: (row: HrLoan) => canViewLoans ? money(row.principalAmount) : '—' },
-                      { key: 'remainingAmount', header: 'المتبقي', cell: (row: HrLoan) => canViewLoans ? money(row.remainingAmount) : '—' },
-                      { key: 'status', header: 'الحالة', cell: (row: HrLoan) => loanStatusLabel(row.status) },
+                      { key: 'loanNo', header: t('hr.employee_profile_page.s47', "رقم السلفة"), cell: (row: HrLoan) => fallbackText(row.loanNo) },
+                      { key: 'loanType', header: t('hr.employee_profile_page.s48', "النوع"), cell: (row: HrLoan) => loanTypeLabel(row.loanType) },
+                      { key: 'repaymentMode', header: t('hr.employee_profile_page.s49', "طريقة السداد"), cell: (row: HrLoan) => repaymentModeLabel(row.repaymentMode) },
+                      { key: 'principalAmount', header: t('hr.employee_profile_page.s50', "قيمة السلفة"), cell: (row: HrLoan) => canViewLoans ? money(row.principalAmount) : '—' },
+                      { key: 'remainingAmount', header: t('hr.employee_profile_page.s51', "المتبقي"), cell: (row: HrLoan) => canViewLoans ? money(row.remainingAmount) : '—' },
+                      { key: 'status', header: t('hr.employee_profile_page.s52', "الحالة"), cell: (row: HrLoan) => loanStatusLabel(row.status) },
                     ]}
                   />
-                ) : <p className="muted" style={{ margin: 0, fontSize: '0.85rem' }}>لا توجد سلف أو قروض مسجلة لهذا الموظف.</p>}
+                ) : <p className="muted" style={{ margin: 0, fontSize: '0.85rem' }}>{t('hr.employee_profile_page.s53', "لا توجد سلف أو قروض مسجلة لهذا الموظف.")}</p>}
               </div>
 
               {id ? (

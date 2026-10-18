@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useCallback } from 'react';
 import { StandardDialog } from '@/shared/components/StandardDialog';
 import { CustomSelect } from '@/shared/ui/custom-select';
@@ -18,6 +19,7 @@ export function PaymentHoldsModal({
   projectId,
   projectName,
 }: PaymentHoldsModalProps) {
+  const { t } = useTranslation();
   const [holds, setHolds] = useState<ContractingPaymentHold[]>([]);
   const [loading, setLoading] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
@@ -110,17 +112,17 @@ export function PaymentHoldsModal({
     <StandardDialog
       isOpen={isOpen}
       onClose={onClose}
-      title="حجز الدفعات والملاحظات الفنية (Payment Holds & Defect Clearance)"
+      title={t('contracting.payment_holds_modal.s0', "حجز الدفعات والملاحظات الفنية (Payment Holds & Defect Clearance)")}
       maxWidth="900px"
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }} dir="rtl">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
             <div style={{ fontSize: 'var(--font-section-title)', fontWeight: 700, color: '#1e293b' }}>
-              سجل استقطاعات وحجز مستحقات المقاولين والموردين
+              {t('contracting.payment_holds_modal.s1', "سجل استقطاعات وحجز مستحقات المقاولين والموردين")}
             </div>
             <div style={{ fontSize: 'var(--font-subtitle)', color: '#64748b' }}>
-              {projectName ? `المشروع: ${projectName}` : 'وقف صرف الدفعات لوجود ملاحظات هندسية حتى اعتماد الاستلام'}
+              {projectName ? `المشروع: ${projectName}` : t('contracting.payment_holds_modal.s2', "وقف صرف الدفعات لوجود ملاحظات هندسية حتى اعتماد الاستلام")}
             </div>
           </div>
           {!isAdding && (
@@ -143,7 +145,7 @@ export function PaymentHoldsModal({
               }}
             >
               <AppIcons.AlertTriangle size={14} />
-              <span>تسجيل حجز دفعة لملاحظة فنية</span>
+              <span>{t('contracting.payment_holds_modal.s3', "تسجيل حجز دفعة لملاحظة فنية")}</span>
             </button>
           )}
         </div>
@@ -157,13 +159,13 @@ export function PaymentHoldsModal({
         {/* KPIs */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
           <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', padding: '12px 14px' }}>
-            <div style={{ fontSize: 'var(--font-micro)', color: '#991b1b', fontWeight: 600 }}>إجمالي الدفعات المحجوزة حالياً (قيد المعالجة الفنية)</div>
+            <div style={{ fontSize: 'var(--font-micro)', color: '#991b1b', fontWeight: 600 }}>{t('contracting.payment_holds_modal.s4', "إجمالي الدفعات المحجوزة حالياً (قيد المعالجة الفنية)")}</div>
             <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#991b1b', marginTop: '2px' }}>
               {totalActiveHolds.toLocaleString('en-US', { minimumFractionDigits: 2 })}
             </div>
           </div>
           <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', padding: '12px 14px' }}>
-            <div style={{ fontSize: 'var(--font-micro)', color: '#15803d', fontWeight: 600 }}>إجمالي الدفعات المفرج عنها بعد تلافي الملاحظات</div>
+            <div style={{ fontSize: 'var(--font-micro)', color: '#15803d', fontWeight: 600 }}>{t('contracting.payment_holds_modal.s5', "إجمالي الدفعات المفرج عنها بعد تلافي الملاحظات")}</div>
             <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#15803d', marginTop: '2px' }}>
               {totalReleasedHolds.toLocaleString('en-US', { minimumFractionDigits: 2 })}
             </div>
@@ -185,40 +187,40 @@ export function PaymentHoldsModal({
             }}
           >
             <div style={{ fontSize: 'var(--font-body)', fontWeight: 700, color: '#9f1239' }}>
-              تسجيل أمر حجز دفعة / استقطاع تأديبي لملاحظات هندسية
+              {t('contracting.payment_holds_modal.s6', "تسجيل أمر حجز دفعة / استقطاع تأديبي لملاحظات هندسية")}
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
               <div>
                 <label style={{ display: 'block', fontSize: 'var(--font-micro)', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                  نوع الطرف المحجوز عليه
+                  {t('contracting.payment_holds_modal.s7', "نوع الطرف المحجوز عليه")}
                 </label>
                 <CustomSelect
                   value={targetType}
                   onChange={(val) => setTargetType(val as any)}
                   options={[
-                    { value: 'subcontractor', label: 'مقاول باطن' },
-                    { value: 'supplier', label: 'مورد مواد' },
-                    { value: 'boq_item', label: 'بند أعمال (BOQ)' },
+                    { value: 'subcontractor', label: t('contracting.payment_holds_modal.s8', "مقاول باطن") },
+                    { value: 'supplier', label: t('contracting.payment_holds_modal.s9', "مورد مواد") },
+                    { value: 'boq_item', label: t('contracting.payment_holds_modal.s10', "بند أعمال (BOQ)") },
                   ]}
-                  placeholder="اختر نوع الطرف..."
+                  placeholder={t('contracting.payment_holds_modal.s11', "اختر نوع الطرف...")}
                 />
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: 'var(--font-micro)', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                  اسم الطرف / المقاول
+                  {t('contracting.payment_holds_modal.s12', "اسم الطرف / المقاول")}
                 </label>
                 <input
                   type="text"
                   required
                   value={targetName}
                   onChange={(e) => setTargetName(e.target.value)}
-                  placeholder="مثال: مقاول المحارة والتشطيبات"
+                  placeholder={t('contracting.payment_holds_modal.s13', "مثال: مقاول المحارة والتشطيبات")}
                   style={{ width: '100%', height: '36px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 8px', fontSize: 'var(--font-body)', background: '#fff' }}
                 />
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: 'var(--font-micro)', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                  المبلغ المحجوز من المستخلص
+                  {t('contracting.payment_holds_modal.s14', "المبلغ المحجوز من المستخلص")}
                 </label>
                 <input
                   type="number"
@@ -234,14 +236,14 @@ export function PaymentHoldsModal({
             </div>
             <div>
               <label style={{ display: 'block', fontSize: 'var(--font-micro)', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                سبب الحجز الفني وتوصيات المهندس المشرف
+                {t('contracting.payment_holds_modal.s15', "سبب الحجز الفني وتوصيات المهندس المشرف")}
               </label>
               <textarea
                 rows={2}
                 required
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
-                placeholder="مثال: وجود شروخ وترييح في لياسة الطابق الثاني، تم حجز الدفعة لحين التكسير وإعادة الصنفرة والتسليم للاستشاري"
+                placeholder={t('contracting.payment_holds_modal.s16', "مثال: وجود شروخ وترييح في لياسة الطابق الثاني، تم حجز الدفعة لحين التكسير وإعادة الصنفرة والتسليم للاستشاري")}
                 style={{ width: '100%', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '8px', fontSize: 'var(--font-body)', background: '#fff', resize: 'vertical' }}
               />
             </div>
@@ -251,14 +253,14 @@ export function PaymentHoldsModal({
                 onClick={() => setIsAdding(false)}
                 style={{ height: '32px', padding: '0 12px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#fff', color: '#475569', cursor: 'pointer', fontSize: 'var(--font-body)' }}
               >
-                إلغاء
+                {t('contracting.payment_holds_modal.s17', "إلغاء")}
               </button>
               <button
                 type="submit"
                 disabled={saving}
                 style={{ height: '32px', padding: '0 14px', borderRadius: '6px', border: 'none', background: '#b91c1c', color: '#fff', fontWeight: 700, cursor: 'pointer', fontSize: 'var(--font-body)' }}
               >
-                {saving ? 'جاري التسجيل...' : 'تأكيد أمر الحجز'}
+                {saving ? t('contracting.payment_holds_modal.s18', "جاري التسجيل...") : t('contracting.payment_holds_modal.s19', "تأكيد أمر الحجز")}
               </button>
             </div>
           </form>
@@ -267,19 +269,19 @@ export function PaymentHoldsModal({
         {/* جدول الحجوزات */}
         <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden' }}>
           {loading ? (
-            <div style={{ padding: '30px', textAlign: 'center', color: '#64748b' }}>جاري تحميل سجل الحجوزات...</div>
+            <div style={{ padding: '30px', textAlign: 'center', color: '#64748b' }}>{t('contracting.payment_holds_modal.s20', "جاري تحميل سجل الحجوزات...")}</div>
           ) : holds.length === 0 ? (
-            <div style={{ padding: '32px', textAlign: 'center', color: '#64748b' }}>لا توجد حجوزات دفعات مسجلة (كافة الأعمال مقبولة ومستوفية للمواصفات)</div>
+            <div style={{ padding: '32px', textAlign: 'center', color: '#64748b' }}>{t('contracting.payment_holds_modal.s21', "لا توجد حجوزات دفعات مسجلة (كافة الأعمال مقبولة ومستوفية للمواصفات)")}</div>
           ) : (
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right' }}>
               <thead>
                 <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-                  <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>المقاول / الطرف</th>
-                  <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>المبلغ المحجوز</th>
-                  <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>سبب الحجز والملاحظة الفنية</th>
-                  <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>تاريخ الحجز</th>
-                  <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>الحالة</th>
-                  <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569', textAlign: 'center' }}>الإجراء</th>
+                  <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>{t('contracting.payment_holds_modal.s22', "المقاول / الطرف")}</th>
+                  <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>{t('contracting.payment_holds_modal.s23', "المبلغ المحجوز")}</th>
+                  <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>{t('contracting.payment_holds_modal.s24', "سبب الحجز والملاحظة الفنية")}</th>
+                  <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>{t('contracting.payment_holds_modal.s25', "تاريخ الحجز")}</th>
+                  <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>{t('contracting.payment_holds_modal.s26', "الحالة")}</th>
+                  <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569', textAlign: 'center' }}>{t('contracting.payment_holds_modal.s27', "الإجراء")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -291,7 +293,7 @@ export function PaymentHoldsModal({
                       <td style={{ padding: '10px 12px', fontSize: 'var(--font-body)', fontWeight: 600, color: '#1e293b' }}>
                         <div>{h.targetName}</div>
                         <span style={{ fontSize: 'var(--font-micro)', color: '#64748b' }}>
-                          {h.targetType === 'subcontractor' ? 'مقاول باطن' : h.targetType === 'supplier' ? 'مورد' : 'بند تعاقدي'}
+                          {h.targetType === 'subcontractor' ? t('contracting.payment_holds_modal.s28', "مقاول باطن") : h.targetType === 'supplier' ? t('contracting.payment_holds_modal.s29', "مورد") : t('contracting.payment_holds_modal.s30', "بند تعاقدي")}
                         </span>
                       </td>
                       <td style={{ padding: '10px 12px', fontSize: 'var(--font-body)', fontWeight: 700, color: '#b91c1c' }}>
@@ -301,7 +303,7 @@ export function PaymentHoldsModal({
                         <div style={{ color: '#334155' }}>{h.reason}</div>
                         {h.releaseNotes && (
                           <div style={{ fontSize: 'var(--font-micro)', color: '#15803d', marginTop: '4px', background: '#f0fdf4', padding: '2px 6px', borderRadius: '4px' }}>
-                            تم الفك: {h.releaseNotes}
+                            {t('contracting.payment_holds_modal.s31', "تم الفك:")} {h.releaseNotes}
                           </div>
                         )}
                       </td>
@@ -319,7 +321,7 @@ export function PaymentHoldsModal({
                             color: h.status === 'active' ? '#991b1b' : '#15803d',
                           }}
                         >
-                          {h.status === 'active' ? 'محجوز حالياً' : 'مفكوك ومفرج عنه'}
+                          {h.status === 'active' ? t('contracting.payment_holds_modal.s32', "محجوز حالياً") : t('contracting.payment_holds_modal.s33', "مفكوك ومفرج عنه")}
                         </span>
                       </td>
                       <td style={{ padding: '10px 12px', textAlign: 'center' }}>
@@ -330,7 +332,7 @@ export function PaymentHoldsModal({
                                 type="text"
                                 value={releaseNotes}
                                 onChange={(e) => setReleaseNotes(e.target.value)}
-                                placeholder="بيان الاستلام وتلافي الملاحظة"
+                                placeholder={t('contracting.payment_holds_modal.s34', "بيان الاستلام وتلافي الملاحظة")}
                                 style={{ height: '28px', borderRadius: '4px', border: '1px solid #cbd5e1', padding: '0 6px', fontSize: 'var(--font-micro)' }}
                               />
                               <div style={{ display: 'flex', gap: '4px', justifyContent: 'center' }}>
@@ -340,14 +342,14 @@ export function PaymentHoldsModal({
                                   disabled={saving}
                                   style={{ height: '26px', padding: '0 8px', borderRadius: '4px', background: '#15803d', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 'var(--font-micro)', fontWeight: 600 }}
                                 >
-                                  تأكيد الفك
+                                  {t('contracting.payment_holds_modal.s35', "تأكيد الفك")}
                                 </button>
                                 <button
                                   type="button"
                                   onClick={() => setReleasingId(null)}
                                   style={{ height: '26px', padding: '0 8px', borderRadius: '4px', background: '#e2e8f0', color: '#334155', border: 'none', cursor: 'pointer', fontSize: 'var(--font-micro)' }}
                                 >
-                                  إلغاء
+                                  {t('contracting.payment_holds_modal.s36', "إلغاء")}
                                 </button>
                               </div>
                             </div>
@@ -367,12 +369,12 @@ export function PaymentHoldsModal({
                                 fontWeight: 600,
                               }}
                             >
-                              إفراج وتلافي
+                              {t('contracting.payment_holds_modal.s37', "إفراج وتلافي")}
                             </button>
                           )
                         ) : (
                           <span style={{ fontSize: 'var(--font-micro)', color: '#15803d' }}>
-                            {h.releasedAt || (h as any).releaseDate ? new Date(h.releasedAt || (h as any).releaseDate).toLocaleDateString('ar-EG') : 'تم الفك'}
+                            {h.releasedAt || (h as any).releaseDate ? new Date(h.releasedAt || (h as any).releaseDate).toLocaleDateString('ar-EG') : t('contracting.payment_holds_modal.s38', "تم الفك")}
                           </span>
                         )}
                       </td>

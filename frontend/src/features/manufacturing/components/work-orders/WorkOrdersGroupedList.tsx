@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { CalendarIcon } from '@/shared/components/icons/AppIcons';
 import { DataTable } from '@/shared/ui/data-table';
 import { Button } from '@/shared/ui/button';
@@ -19,6 +20,7 @@ export function WorkOrdersGroupedList({
   currentUserName,
   onCompleteOrder,
 }: WorkOrdersGroupedListProps) {
+  const { t } = useTranslation();
   const columns: Column<WorkOrderRecord>[] = [
     {
       key: 'doc_no',
@@ -33,7 +35,7 @@ export function WorkOrdersGroupedList({
         return (
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span>{row.product_name}</span>
-            {isAuto && <span style={{ fontSize: '11px', background: '#f3f4f6', color: '#4b5563', padding: '2px 6px', borderRadius: '4px' }}>آلي</span>}
+            {isAuto && <span style={{ fontSize: '11px', background: '#f3f4f6', color: '#4b5563', padding: '2px 6px', borderRadius: '4px' }}>{t('manufacturing.work_orders.work_orders_grouped_list.s0', "آلي")}</span>}
           </div>
         );
       },
@@ -94,7 +96,7 @@ export function WorkOrdersGroupedList({
             variant="secondary"
             onClick={() => onCompleteOrder(row)}
           >
-            إنهاء وتأكيد
+            {t('manufacturing.work_orders.work_orders_grouped_list.s1', "إنهاء وتأكيد")}
           </Button>
         );
       },
@@ -106,7 +108,7 @@ export function WorkOrdersGroupedList({
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
       {Object.entries(groupedOrders).map(([dateLabel, orders]) => {
-        const autoCount = orders.filter((o) => String((o as any).note || o.notes || '').includes('إنتاج تلقائي')).length;
+        const autoCount = orders.filter((o) => String((o as any).note || o.notes || '').includes(t('manufacturing.work_orders.work_orders_grouped_list.s2', "إنتاج تلقائي"))).length;
         const manualCount = orders.length - autoCount;
         return (
           <details
@@ -120,9 +122,9 @@ export function WorkOrdersGroupedList({
                 <span>{dateLabel}</span>
               </div>
               <div style={{ display: 'flex', gap: '8px', fontSize: '13px', fontWeight: 'normal', color: '#6b7280' }}>
-                {autoCount > 0 && <span>{autoCount} آلي</span>}
-                {manualCount > 0 && <span>{manualCount} يدوي</span>}
-                <span>({orders.length} إجمالي)</span>
+                {autoCount > 0 && <span>{autoCount} {t('manufacturing.work_orders.work_orders_grouped_list.s3', "آلي")}</span>}
+                {manualCount > 0 && <span>{manualCount} {t('manufacturing.work_orders.work_orders_grouped_list.s4', "يدوي")}</span>}
+                <span>({orders.length} {t('manufacturing.work_orders.work_orders_grouped_list.s5', "إجمالي)")}</span>
               </div>
             </summary>
             <div style={{ padding: '8px' }}>

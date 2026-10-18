@@ -29,6 +29,7 @@ void productsWorkspaceRegressionLabels;
 
 
 export function ProductsWorkspace() {
+  const { t: __t } = useTranslation();
   const controller = useProductsWorkspaceController();
   const settingsQuery = useSettingsQuery();
   const clothingEnabled = settingsQuery.data?.clothingModuleEnabled === true;
@@ -173,7 +174,7 @@ export function ProductsWorkspace() {
         </Suspense>
 
         {(controller.offerDialogProduct || controller.barcodeDialogProduct || controller.printDialogState) ? (
-          <Suspense fallback={<div className="loading-card">جاري تحميل الأدوات الإضافية...</div>}>
+          <Suspense fallback={<div className="loading-card">{__t('products.products_workspace.s0', "جاري تحميل الأدوات الإضافية...")}</div>}>
             <LazyProductOfferDialog
               open={Boolean(controller.offerDialogProduct)}
               product={controller.offerDialogProduct}
@@ -203,9 +204,9 @@ export function ProductsWorkspace() {
 
         <ActionConfirmDialog
           open={Boolean(controller.productToDelete)}
-          title="تأكيد حذف الصنف"
+          title={__t('products.products_workspace.s1', "تأكيد حذف الصنف")}
           description={controller.productToDelete ? `سيتم حذف الصنف ${controller.productToDelete.name}. لو كنت تريد تعديل الكمية فقط فاستخدم تبويب المخزون بدل حذف master data.` : ''}
-          confirmLabel="نعم، حذف الصنف"
+          confirmLabel={__t('products.products_workspace.s2', "نعم، حذف الصنف")}
           isBusy={controller.deleteMutation.isPending}
           onCancel={() => controller.setProductToDelete(null)}
           onConfirm={async () => {
@@ -228,9 +229,9 @@ export function ProductsWorkspace() {
 
         <ActionConfirmDialog
           open={controller.bulkDeleteOpen}
-          title="تأكيد حذف الأصناف المحددة"
-          description={controller.selectedProducts.length ? `سيتم محاولة حذف ${controller.selectedProducts.length} صنفًا دفعة واحدة. أي صنف مرتبط بحركات بيع أو شراء أو مخزون سيرفضه الخادم وسيظهر السبب بعد المحاولة.` : 'لا يوجد أصناف محددة.'}
-          confirmLabel="نعم، حذف المحدد"
+          title={__t('products.products_workspace.s3', "تأكيد حذف الأصناف المحددة")}
+          description={controller.selectedProducts.length ? `سيتم محاولة حذف ${controller.selectedProducts.length} صنفًا دفعة واحدة. أي صنف مرتبط بحركات بيع أو شراء أو مخزون سيرفضه الخادم وسيظهر السبب بعد المحاولة.` : __t('products.products_workspace.s4', "لا يوجد أصناف محددة.")}
+          confirmLabel={__t('products.products_workspace.s5', "نعم، حذف المحدد")}
           isBusy={controller.bulkDeleteMutation.isPending}
           onCancel={() => controller.setBulkDeleteOpen(false)}
           onConfirm={async () => {

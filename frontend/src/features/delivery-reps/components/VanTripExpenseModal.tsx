@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React, { useState } from 'react';
 import { StandardDialog } from '@/shared/components/StandardDialog';
 import { Button } from '@/shared/ui/button';
@@ -23,6 +24,7 @@ export const VanTripExpenseModal: React.FC<VanTripExpenseModalProps> = ({
   tripId,
   onSuccess,
 }) => {
+  const { t } = useTranslation();
   const [expenseType, setExpenseType] = useState<string>('fuel');
   const [amount, setAmount] = useState<string>('');
   const [description, setDescription] = useState<string>('');
@@ -98,9 +100,9 @@ export const VanTripExpenseModal: React.FC<VanTripExpenseModalProps> = ({
     <StandardDialog
       open={open}
       onClose={onClose}
-      title="تسجيل مصروف رحلة ميداني"
-      subtitle="يتم خصم المصروف تلقائياً من الكاش المطلوب توريده وترحيله محاسبياً"
-      badge="مصروفات الرحلة"
+      title={t('delivery_reps.van_trip_expense_modal.s0', "تسجيل مصروف رحلة ميداني")}
+      subtitle={t('delivery_reps.van_trip_expense_modal.s1', "يتم خصم المصروف تلقائياً من الكاش المطلوب توريده وترحيله محاسبياً")}
+      badge={t('delivery_reps.van_trip_expense_modal.s2', "مصروفات الرحلة")}
       width="min(500px, 95vw)"
       footer={
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', width: '100%', gap: '10px' }}>
@@ -111,7 +113,7 @@ export const VanTripExpenseModal: React.FC<VanTripExpenseModalProps> = ({
             disabled={isSubmitting}
             style={{ minHeight: '38px', fontSize: '12.5px', padding: '0 16px' }}
           >
-            إلغاء
+            {t('delivery_reps.van_trip_expense_modal.s3', "إلغاء")}
           </Button>
           <Button
             type="button"
@@ -131,7 +133,7 @@ export const VanTripExpenseModal: React.FC<VanTripExpenseModalProps> = ({
             }}
           >
             <CheckCircleIcon size={15} color="#ffffff" />
-            <span>{isSubmitting ? 'جاري الحفظ...' : 'حفظ وخصم المصروف'}</span>
+            <span>{isSubmitting ? t('delivery_reps.van_trip_expense_modal.s4', "جاري الحفظ...") : t('delivery_reps.van_trip_expense_modal.s5', "حفظ وخصم المصروف")}</span>
           </Button>
         </div>
       }
@@ -160,7 +162,7 @@ export const VanTripExpenseModal: React.FC<VanTripExpenseModalProps> = ({
         {/* Expense Category */}
         <div>
           <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-            نوع المصروف:
+            {t('delivery_reps.van_trip_expense_modal.s6', "نوع المصروف:")}
           </label>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '6px' }}>
             {expenseTypes.map((type) => (
@@ -190,7 +192,7 @@ export const VanTripExpenseModal: React.FC<VanTripExpenseModalProps> = ({
         {/* Amount Input */}
         <div>
           <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-            المبلغ المصروف (<CurrencySymbol />):
+            {t('delivery_reps.van_trip_expense_modal.s7', "المبلغ المصروف (")}<CurrencySymbol />):
           </label>
           <input
             type="number"
@@ -215,13 +217,13 @@ export const VanTripExpenseModal: React.FC<VanTripExpenseModalProps> = ({
         {/* Description / Reason (Mandatory) */}
         <div>
           <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-            البيان التفصيلي ورقم الإيصال (إلزامي):
+            {t('delivery_reps.van_trip_expense_modal.s8', "البيان التفصيلي ورقم الإيصال (إلزامي):")}
           </label>
           <input
             type="text"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder="مثال: بنزين 92 محطة وطنية إيصال #412 / كارتة الطريق الدائري"
+            placeholder={t('delivery_reps.van_trip_expense_modal.s9', "مثال: بنزين 92 محطة وطنية إيصال #412 / كارتة الطريق الدائري")}
             style={{
               width: '100%',
               height: '36px',
@@ -251,11 +253,11 @@ export const VanTripExpenseModal: React.FC<VanTripExpenseModalProps> = ({
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: '11.5px', fontWeight: 700, color: requiresPinByRule ? '#c2410c' : '#334155' }}>
               {requiresPinByRule
-                ? 'رمز اعتماد المشرف (PIN) إلزامي لهذا المصروف:'
-                : 'رمز اعتماد المشرف (عند تجاوز السقف التراكمي 400):'}
+                ? t('delivery_reps.van_trip_expense_modal.s10', "رمز اعتماد المشرف (PIN) إلزامي لهذا المصروف:")
+                : t('delivery_reps.van_trip_expense_modal.s11', "رمز اعتماد المشرف (عند تجاوز السقف التراكمي 400):")}
             </div>
             <div style={{ fontSize: '10.5px', color: '#64748b' }}>
-              المصروفات غير الوقود/الكارتات أو التي تتجاوز 250 تتطلب موافقة المشرف
+              {t('delivery_reps.van_trip_expense_modal.s12', "المصروفات غير الوقود/الكارتات أو التي تتجاوز 250 تتطلب موافقة المشرف")}
             </div>
           </div>
           <input
@@ -263,7 +265,7 @@ export const VanTripExpenseModal: React.FC<VanTripExpenseModalProps> = ({
             maxLength={6}
             value={supervisorPin}
             onChange={(e) => setSupervisorPin(e.target.value)}
-            placeholder="PIN المشرف"
+            placeholder={t('delivery_reps.van_trip_expense_modal.s13', "PIN المشرف")}
             style={{
               width: '110px',
               height: '34px',
@@ -281,7 +283,7 @@ export const VanTripExpenseModal: React.FC<VanTripExpenseModalProps> = ({
         {/* Receipt Photo Attachment */}
         <div>
           <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-            صورة إيصال المصروف / الفاتورة (اختياري):
+            {t('delivery_reps.van_trip_expense_modal.s14', "صورة إيصال المصروف / الفاتورة (اختياري):")}
           </label>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <label
@@ -300,12 +302,12 @@ export const VanTripExpenseModal: React.FC<VanTripExpenseModalProps> = ({
               }}
             >
               <CameraIcon size={14} color="#170e5e" />
-              <span>{receiptPhoto ? 'تغيير صورة الإيصال' : 'تصوير أو إرفاق إيصال'}</span>
+              <span>{receiptPhoto ? t('delivery_reps.van_trip_expense_modal.s15', "تغيير صورة الإيصال") : t('delivery_reps.van_trip_expense_modal.s16', "تصوير أو إرفاق إيصال")}</span>
               <input type="file" accept="image/*" capture="environment" onChange={handlePhotoUpload} style={{ display: 'none' }} />
             </label>
             {receiptPhoto && (
               <span style={{ fontSize: '11px', color: '#059669', fontWeight: 700 }}>
-                تم إرفاق الصورة بنجاح
+                {t('delivery_reps.van_trip_expense_modal.s17', "تم إرفاق الصورة بنجاح")}
               </span>
             )}
           </div>

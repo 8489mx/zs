@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect, type FC } from 'react';
 import { PageHeader } from '@/shared/components/page-header';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
@@ -12,6 +13,7 @@ import { ModifierGroupModal } from '@/features/products/components/modifiers/Mod
 import { systemConfirm, toast } from '@/shared/components/system-alert';
 
 export const ProductModifiersPage: FC = () => {
+  const { t } = useTranslation();
   const [groups, setGroups] = useState<ModifierGroup[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -159,23 +161,23 @@ export const ProductModifiersPage: FC = () => {
     <div className="page-stack page-shell" dir="rtl">
       <div className="document-prototype-column" style={{ paddingBottom: '32px' }}>
         <PageHeader
-          title="مجموعات خيارات وإضافات الأصناف (Item Modifiers & Add-ons)"
-          description="إدارة مصفوفة الخيارات والإضافات ودرجات الطهي والوجبات الكومبو المدمجة فورياً مع شاشة الكاشير والمطبخ (KDS) والإيصال الحراري."
-          badge={<span className="nav-pill">المطاعم ونقاط البيع</span>}
+          title={t('products.product_modifiers_page.s0', "مجموعات خيارات وإضافات الأصناف (Item Modifiers & Add-ons)")}
+          description={t('products.product_modifiers_page.s1', "إدارة مصفوفة الخيارات والإضافات ودرجات الطهي والوجبات الكومبو المدمجة فورياً مع شاشة الكاشير والمطبخ (KDS) والإيصال الحراري.")}
+          badge={<span className="nav-pill">{t('products.product_modifiers_page.s2', "المطاعم ونقاط البيع")}</span>}
           actions={
             <Button
               variant="primary"
               onClick={handleOpenCreate}
             >
               <AppIcons.Plus size={16} />
-              إضافة مجموعة خيارات جديدة
+              {t('products.product_modifiers_page.s3', "إضافة مجموعة خيارات جديدة")}
             </Button>
           }
         />
 
         {loading ? (
           <div style={{ textAlign: 'center', padding: '50px', color: '#64748b' }}>
-            جاري تحميل مجموعات الإضافات والخيارات...
+            {t('products.product_modifiers_page.s4', "جاري تحميل مجموعات الإضافات والخيارات...")}
           </div>
         ) : groups.length === 0 ? (
           <div
@@ -190,10 +192,10 @@ export const ProductModifiersPage: FC = () => {
           >
             <AppIcons.Layers size={42} color="#94a3b8" />
             <div style={{ marginTop: '12px', fontSize: '15px', fontWeight: 700, color: '#334155' }}>
-              لا توجد مجموعات خيارات معرفة حتى الآن
+              {t('products.product_modifiers_page.s5', "لا توجد مجموعات خيارات معرفة حتى الآن")}
             </div>
             <div style={{ marginTop: '4px', fontSize: '13px', color: '#94a3b8' }}>
-              يمكنك إضافة مجموعات مثل "درجة الطهي"، "الصوصات"، "إضافات إكسترا"، أو "مكونات الوجبة الكومبو".
+              {t('products.product_modifiers_page.s6', "يمكنك إضافة مجموعات مثل \"درجة الطهي\"، \"الصوصات\"، \"إضافات إكسترا\"، أو \"مكونات الوجبة الكومبو\".")}
             </div>
           </div>
         ) : (

@@ -1,9 +1,11 @@
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { reportsApi, DemandForecastingItem } from '@/features/reports/api/reports.api';
 import { Button } from '@/shared/ui/button';
 
 export function DemandForecastingReportSection() {
+  const { t } = useTranslation();
   const [filter, setFilter] = useState<'all' | 'critical' | 'warning' | 'out_of_stock'>('all');
   const [search, setSearch] = useState('');
 
@@ -16,7 +18,7 @@ export function DemandForecastingReportSection() {
   if (isLoading) {
     return (
       <div style={{ padding: '24px', textAlign: 'center', color: '#64748b' }}>
-        جاري تحليل معدلات الاستهلاك والتنبؤ بطلبات المخزون...
+        {t('reports.sections.demand_forecasting_report_section.s0', "جاري تحليل معدلات الاستهلاك والتنبؤ بطلبات المخزون...")}
       </div>
     );
   }
@@ -24,7 +26,7 @@ export function DemandForecastingReportSection() {
   if (isError || !data) {
     return (
       <div style={{ padding: '24px', textAlign: 'center', color: '#dc2626' }}>
-        تعذر تحميل تقرير التنبؤ بالطلب. <Button variant="secondary" onClick={() => refetch()}>إعادة المحاولة</Button>
+        {t('reports.sections.demand_forecasting_report_section.s1', "تعذر تحميل تقرير التنبؤ بالطلب.")} <Button variant="secondary" onClick={() => refetch()}>{t('reports.sections.demand_forecasting_report_section.s2', "إعادة المحاولة")}</Button>
       </div>
     );
   }
@@ -51,31 +53,31 @@ export function DemandForecastingReportSection() {
       case 'out_of_stock':
         return (
           <span style={{ padding: '3px 8px', borderRadius: '6px', fontSize: '11.5px', fontWeight: 700, background: '#fee2e2', color: '#991b1b' }}>
-            نفد تماماً (0 متبقي)
+            {t('reports.sections.demand_forecasting_report_section.s3', "نفد تماماً (0 متبقي)")}
           </span>
         );
       case 'critical':
         return (
           <span style={{ padding: '3px 8px', borderRadius: '6px', fontSize: '11.5px', fontWeight: 700, background: '#fee2e2', color: '#b91c1c' }}>
-            حرج ({runwayDays} يوم ويكمل)
+            {t('reports.sections.demand_forecasting_report_section.s4', "حرج (")}{runwayDays} {t('reports.sections.demand_forecasting_report_section.s5', "يوم ويكمل)")}
           </span>
         );
       case 'warning':
         return (
           <span style={{ padding: '3px 8px', borderRadius: '6px', fontSize: '11.5px', fontWeight: 700, background: '#fef3c7', color: '#92400e' }}>
-            تنبيه ({runwayDays} يوم)
+            {t('reports.sections.demand_forecasting_report_section.s6', "تنبيه (")}{runwayDays} {t('reports.sections.demand_forecasting_report_section.s7', "يوم)")}
           </span>
         );
       case 'healthy':
         return (
           <span style={{ padding: '3px 8px', borderRadius: '6px', fontSize: '11.5px', fontWeight: 700, background: '#dcfce7', color: '#166534' }}>
-            مستقر ({runwayDays} يوم)
+            {t('reports.sections.demand_forecasting_report_section.s8', "مستقر (")}{runwayDays} {t('reports.sections.demand_forecasting_report_section.s9', "يوم)")}
           </span>
         );
       case 'overstocked':
         return (
           <span style={{ padding: '3px 8px', borderRadius: '6px', fontSize: '11.5px', fontWeight: 700, background: '#e0f2fe', color: '#0369a1' }}>
-            فائض (+{runwayDays} يوم)
+            {t('reports.sections.demand_forecasting_report_section.s10', "فائض (+")}{runwayDays} {t('reports.sections.demand_forecasting_report_section.s11', "يوم)")}
           </span>
         );
     }
@@ -90,35 +92,35 @@ export function DemandForecastingReportSection() {
         gap: '12px',
       }}>
         <div style={{ background: '#ffffff', padding: '16px', borderRadius: '14px', border: '1px solid #e2e8f0' }}>
-          <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 600 }}>إجمالي الأصناف المراقبة</span>
+          <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 600 }}>{t('reports.sections.demand_forecasting_report_section.s12', "إجمالي الأصناف المراقبة")}</span>
           <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#0f172a', marginTop: '4px' }}>
             {summary.totalMonitoredProducts}
           </div>
         </div>
 
         <div style={{ background: '#ffffff', padding: '16px', borderRadius: '14px', border: '1px solid #e2e8f0' }}>
-          <span style={{ fontSize: '12px', color: '#991b1b', fontWeight: 600 }}>نافد من المخزن (Out of Stock)</span>
+          <span style={{ fontSize: '12px', color: '#991b1b', fontWeight: 600 }}>{t('reports.sections.demand_forecasting_report_section.s13', "نافد من المخزن (Out of Stock)")}</span>
           <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#991b1b', marginTop: '4px' }}>
             {summary.outOfStockCount}
           </div>
         </div>
 
         <div style={{ background: '#ffffff', padding: '16px', borderRadius: '14px', border: '1px solid #e2e8f0' }}>
-          <span style={{ fontSize: '12px', color: '#dc2626', fontWeight: 600 }}>أصناف حرجة (خلال 7 أيام)</span>
+          <span style={{ fontSize: '12px', color: '#dc2626', fontWeight: 600 }}>{t('reports.sections.demand_forecasting_report_section.s14', "أصناف حرجة (خلال 7 أيام)")}</span>
           <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#dc2626', marginTop: '4px' }}>
             {summary.criticalCount}
           </div>
         </div>
 
         <div style={{ background: '#ffffff', padding: '16px', borderRadius: '14px', border: '1px solid #e2e8f0' }}>
-          <span style={{ fontSize: '12px', color: '#b45309', fontWeight: 600 }}>تنبيه إعادة طلب (خلال 15 يوم)</span>
+          <span style={{ fontSize: '12px', color: '#b45309', fontWeight: 600 }}>{t('reports.sections.demand_forecasting_report_section.s15', "تنبيه إعادة طلب (خلال 15 يوم)")}</span>
           <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#b45309', marginTop: '4px' }}>
             {summary.warningCount}
           </div>
         </div>
 
         <div style={{ background: '#ffffff', padding: '16px', borderRadius: '14px', border: '1px solid #e2e8f0' }}>
-          <span style={{ fontSize: '12px', color: '#166534', fontWeight: 600 }}>مخزون صحي ومستقر</span>
+          <span style={{ fontSize: '12px', color: '#166534', fontWeight: 600 }}>{t('reports.sections.demand_forecasting_report_section.s16', "مخزون صحي ومستقر")}</span>
           <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#166534', marginTop: '4px' }}>
             {summary.healthyCount}
           </div>
@@ -152,7 +154,7 @@ export function DemandForecastingReportSection() {
               color: filter === 'all' ? '#ffffff' : '#334155',
             }}
           >
-            جميع الأصناف
+            {t('reports.sections.demand_forecasting_report_section.s17', "جميع الأصناف")}
           </button>
           <button
             type="button"
@@ -168,7 +170,7 @@ export function DemandForecastingReportSection() {
               color: filter === 'critical' ? '#ffffff' : '#334155',
             }}
           >
-            أصناف حرجة ({summary.criticalCount})
+            {t('reports.sections.demand_forecasting_report_section.s18', "أصناف حرجة (")}{summary.criticalCount})
           </button>
           <button
             type="button"
@@ -184,7 +186,7 @@ export function DemandForecastingReportSection() {
               color: filter === 'out_of_stock' ? '#ffffff' : '#334155',
             }}
           >
-            نافدة ({summary.outOfStockCount})
+            {t('reports.sections.demand_forecasting_report_section.s19', "نافدة (")}{summary.outOfStockCount})
           </button>
           <button
             type="button"
@@ -200,14 +202,14 @@ export function DemandForecastingReportSection() {
               color: filter === 'warning' ? '#ffffff' : '#334155',
             }}
           >
-            تنبيه طلب ({summary.warningCount})
+            {t('reports.sections.demand_forecasting_report_section.s20', "تنبيه طلب (")}{summary.warningCount})
           </button>
         </div>
 
         <div>
           <input
             type="text"
-            placeholder="بحث بالصنف أو الباركود..."
+            placeholder={t('reports.sections.demand_forecasting_report_section.s21', "بحث بالصنف أو الباركود...")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             style={{
@@ -231,7 +233,7 @@ export function DemandForecastingReportSection() {
       }}>
         <div style={{ padding: '14px 18px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <h4 style={{ margin: 0, fontSize: '14.5px', fontWeight: 800, color: '#0f172a' }}>
-            قائمة التنبؤ بمخزون الأصناف المقترحة لإعادة الطلب ({filteredItems.length})
+            {t('reports.sections.demand_forecasting_report_section.s22', "قائمة التنبؤ بمخزون الأصناف المقترحة لإعادة الطلب (")}{filteredItems.length})
           </h4>
         </div>
 
@@ -239,20 +241,20 @@ export function DemandForecastingReportSection() {
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', textAlign: 'right' }}>
             <thead>
               <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>
-                <th style={{ padding: '12px 16px' }}>الصنف</th>
-                <th style={{ padding: '12px 16px' }}>الباركود</th>
-                <th style={{ padding: '12px 16px' }}>المخزون الحالي</th>
-                <th style={{ padding: '12px 16px' }}>مبيعات آخر 30 يوم</th>
-                <th style={{ padding: '12px 16px' }}>المعدل اليومي</th>
-                <th style={{ padding: '12px 16px' }}>الحالة والأيام المتبقية</th>
-                <th style={{ padding: '12px 16px', color: '#0284c7' }}>الكمية المقترحة للشراء</th>
+                <th style={{ padding: '12px 16px' }}>{t('reports.sections.demand_forecasting_report_section.s23', "الصنف")}</th>
+                <th style={{ padding: '12px 16px' }}>{t('reports.sections.demand_forecasting_report_section.s24', "الباركود")}</th>
+                <th style={{ padding: '12px 16px' }}>{t('reports.sections.demand_forecasting_report_section.s25', "المخزون الحالي")}</th>
+                <th style={{ padding: '12px 16px' }}>{t('reports.sections.demand_forecasting_report_section.s26', "مبيعات آخر 30 يوم")}</th>
+                <th style={{ padding: '12px 16px' }}>{t('reports.sections.demand_forecasting_report_section.s27', "المعدل اليومي")}</th>
+                <th style={{ padding: '12px 16px' }}>{t('reports.sections.demand_forecasting_report_section.s28', "الحالة والأيام المتبقية")}</th>
+                <th style={{ padding: '12px 16px', color: '#0284c7' }}>{t('reports.sections.demand_forecasting_report_section.s29', "الكمية المقترحة للشراء")}</th>
               </tr>
             </thead>
             <tbody>
               {filteredItems.length === 0 ? (
                 <tr>
                   <td colSpan={7} style={{ padding: '32px', textAlign: 'center', color: '#94a3b8' }}>
-                    لا توجد أصناف مطابقة.
+                    {t('reports.sections.demand_forecasting_report_section.s30', "لا توجد أصناف مطابقة.")}
                   </td>
                 </tr>
               ) : (
@@ -271,13 +273,13 @@ export function DemandForecastingReportSection() {
                       {item.soldLast30Days}
                     </td>
                     <td style={{ padding: '12px 16px', color: '#64748b' }}>
-                      {item.dailyBurnRate} / يوم
+                      {item.dailyBurnRate} {t('reports.sections.demand_forecasting_report_section.s31', "/ يوم")}
                     </td>
                     <td style={{ padding: '12px 16px' }}>
                       {getUrgencyBadge(item.urgency, item.runwayDays)}
                     </td>
                     <td style={{ padding: '12px 16px', fontWeight: 800, color: item.suggestedReorderQty > 0 ? '#0284c7' : '#64748b' }}>
-                      {item.suggestedReorderQty > 0 ? `+${item.suggestedReorderQty} وحدة` : 'كافٍ حالياً'}
+                      {item.suggestedReorderQty > 0 ? `+${item.suggestedReorderQty} وحدة` : t('reports.sections.demand_forecasting_report_section.s32', "كافٍ حالياً")}
                     </td>
                   </tr>
                 ))

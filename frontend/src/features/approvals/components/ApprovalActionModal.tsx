@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React, { useState, useEffect } from 'react';
 import { StandardDialog } from '@/shared/components/StandardDialog';
 import { Button } from '@/shared/ui/button';
@@ -23,6 +24,7 @@ export const ApprovalActionModal: React.FC<ApprovalActionModalProps> = ({
   request,
   onSuccess,
 }) => {
+  const { t } = useTranslation();
   const [logs, setLogs] = useState<ApprovalRequestLog[]>([]);
   const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
@@ -135,7 +137,7 @@ export const ApprovalActionModal: React.FC<ApprovalActionModalProps> = ({
               cursor: 'pointer',
             }}
           >
-            بيانات الطلب
+            {t('approvals.approval_action_modal.s0', "بيانات الطلب")}
           </button>
           <button
             type="button"
@@ -155,7 +157,7 @@ export const ApprovalActionModal: React.FC<ApprovalActionModalProps> = ({
             }}
           >
             <ClockIcon size={14} />
-            سجل الاعتمادات ({logs.length})
+            {t('approvals.approval_action_modal.s1', "سجل الاعتمادات (")}{logs.length})
           </button>
         </div>
 
@@ -174,27 +176,27 @@ export const ApprovalActionModal: React.FC<ApprovalActionModalProps> = ({
               }}
             >
               <div>
-                <span style={{ fontSize: 'var(--font-micro)', color: '#64748b' }}>المعاملة المرجعية</span>
+                <span style={{ fontSize: 'var(--font-micro)', color: '#64748b' }}>{t('approvals.approval_action_modal.s2', "المعاملة المرجعية")}</span>
                 <div style={{ fontWeight: 700, fontSize: 'var(--font-body)', color: '#0f172a' }}>
                   {request.record_ref}
                 </div>
               </div>
               <div>
-                <span style={{ fontSize: 'var(--font-micro)', color: '#64748b' }}>إجمالي القيمة المالية</span>
+                <span style={{ fontSize: 'var(--font-micro)', color: '#64748b' }}>{t('approvals.approval_action_modal.s3', "إجمالي القيمة المالية")}</span>
                 <div style={{ fontWeight: 700, fontSize: 'var(--font-body)', color: '#170e5e' }}>
                   {Number(request.amount).toLocaleString('ar-EG')} {request.currency}
                 </div>
               </div>
               <div>
-                <span style={{ fontSize: 'var(--font-micro)', color: '#64748b' }}>مقدم الطلب</span>
+                <span style={{ fontSize: 'var(--font-micro)', color: '#64748b' }}>{t('approvals.approval_action_modal.s4', "مقدم الطلب")}</span>
                 <div style={{ fontWeight: 600, fontSize: 'var(--font-body)', color: '#334155' }}>
-                  {request.requested_by_name || 'مستخدم النظام'}
+                  {request.requested_by_name || t('approvals.approval_action_modal.s5', "مستخدم النظام")}
                 </div>
               </div>
               <div>
-                <span style={{ fontSize: 'var(--font-micro)', color: '#64748b' }}>مرحلة الاعتماد</span>
+                <span style={{ fontSize: 'var(--font-micro)', color: '#64748b' }}>{t('approvals.approval_action_modal.s6', "مرحلة الاعتماد")}</span>
                 <div style={{ fontWeight: 600, fontSize: 'var(--font-body)', color: '#2563eb' }}>
-                  المستوى {request.current_tier} من إجمالي {request.max_tier}
+                  {t('approvals.approval_action_modal.s7', "المستوى")} {request.current_tier} {t('approvals.approval_action_modal.s8', "من إجمالي")} {request.max_tier}
                 </div>
               </div>
             </div>
@@ -208,7 +210,7 @@ export const ApprovalActionModal: React.FC<ApprovalActionModalProps> = ({
                   borderRadius: '6px',
                 }}
               >
-                <span style={{ fontSize: 'var(--font-micro)', color: '#64748b' }}>ملاحظات الطلب:</span>
+                <span style={{ fontSize: 'var(--font-micro)', color: '#64748b' }}>{t('approvals.approval_action_modal.s9', "ملاحظات الطلب:")}</span>
                 <p style={{ margin: '4px 0 0', fontSize: 'var(--font-body)', color: '#334155' }}>
                   {request.notes}
                 </p>
@@ -218,13 +220,13 @@ export const ApprovalActionModal: React.FC<ApprovalActionModalProps> = ({
             {isPending && !showRejectBox && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                 <label style={{ fontSize: 'var(--font-body)', fontWeight: 600, color: '#334155' }}>
-                  ملاحظات الاعتماد (اختياري):
+                  {t('approvals.approval_action_modal.s10', "ملاحظات الاعتماد (اختياري):")}
                 </label>
                 <input
                   type="text"
                   value={approveNotes}
                   onChange={(e) => setApproveNotes(e.target.value)}
-                  placeholder="أدخل أي توجيهات أو ملاحظات إضافية..."
+                  placeholder={t('approvals.approval_action_modal.s11', "أدخل أي توجيهات أو ملاحظات إضافية...")}
                   style={{
                     padding: '8px 12px',
                     borderRadius: '6px',
@@ -249,12 +251,12 @@ export const ApprovalActionModal: React.FC<ApprovalActionModalProps> = ({
                 }}
               >
                 <label style={{ fontSize: 'var(--font-body)', fontWeight: 700, color: '#9f1239' }}>
-                  سبب رفض الطلب (إلزامي):
+                  {t('approvals.approval_action_modal.s12', "سبب رفض الطلب (إلزامي):")}
                 </label>
                 <textarea
                   value={rejectReason}
                   onChange={(e) => setRejectReason(e.target.value)}
-                  placeholder="يرجى كتابة سبب رفض المعاملة لتسجيله في سجل المراجعة..."
+                  placeholder={t('approvals.approval_action_modal.s13', "يرجى كتابة سبب رفض المعاملة لتسجيله في سجل المراجعة...")}
                   rows={3}
                   style={{
                     padding: '8px 12px',
@@ -273,9 +275,9 @@ export const ApprovalActionModal: React.FC<ApprovalActionModalProps> = ({
         {activeTab === 'logs' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             {loading ? (
-              <div style={{ padding: '24px', textAlign: 'center', color: '#64748b' }}>جاري تحميل السجل...</div>
+              <div style={{ padding: '24px', textAlign: 'center', color: '#64748b' }}>{t('approvals.approval_action_modal.s14', "جاري تحميل السجل...")}</div>
             ) : logs.length === 0 ? (
-              <div style={{ padding: '24px', textAlign: 'center', color: '#94a3b8' }}>لا توجد حركات مسجلة بعد.</div>
+              <div style={{ padding: '24px', textAlign: 'center', color: '#94a3b8' }}>{t('approvals.approval_action_modal.s15', "لا توجد حركات مسجلة بعد.")}</div>
             ) : (
               logs.map((log) => (
                 <div
@@ -292,14 +294,14 @@ export const ApprovalActionModal: React.FC<ApprovalActionModalProps> = ({
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span style={{ fontWeight: 700, fontSize: 'var(--font-body)', color: '#0f172a' }}>
-                      {log.action_by_name || 'مسؤول'} ({log.action_role || 'إدارة'})
+                      {log.action_by_name || t('approvals.approval_action_modal.s16', "مسؤول")} ({log.action_role || t('approvals.approval_action_modal.s17', "إدارة")})
                     </span>
                     <span style={{ fontSize: 'var(--font-micro)', color: '#64748b' }}>
                       {new Date(log.created_at).toLocaleString('ar-EG')}
                     </span>
                   </div>
                   <div style={{ fontSize: 'var(--font-body)', color: '#475569' }}>
-                    {log.notes || (log.action === 'approved' ? 'تمت الموافقة' : 'تم الرفض')}
+                    {log.notes || (log.action === 'approved' ? t('approvals.approval_action_modal.s18', "تمت الموافقة") : t('approvals.approval_action_modal.s19', "تم الرفض"))}
                   </div>
                 </div>
               ))
@@ -319,7 +321,7 @@ export const ApprovalActionModal: React.FC<ApprovalActionModalProps> = ({
           }}
         >
           <Button variant="secondary" onClick={onClose} disabled={actionLoading}>
-            إغلاق
+            {t('approvals.approval_action_modal.s20', "إغلاق")}
           </Button>
 
           {isPending && (
@@ -331,7 +333,7 @@ export const ApprovalActionModal: React.FC<ApprovalActionModalProps> = ({
                     onClick={() => setShowRejectBox(true)}
                     disabled={actionLoading}
                   >
-                    رفض الطلب
+                    {t('approvals.approval_action_modal.s21', "رفض الطلب")}
                   </Button>
                   <Button
                     variant="primary"
@@ -341,7 +343,7 @@ export const ApprovalActionModal: React.FC<ApprovalActionModalProps> = ({
                     <CheckIcon size={16} />
                     {request.current_tier < request.max_tier
                       ? `اعتماد المستوى ${request.current_tier} والتصعيد`
-                      : 'اعتماد نهائي وتمرير المعاملة'}
+                      : t('approvals.approval_action_modal.s22', "اعتماد نهائي وتمرير المعاملة")}
                   </Button>
                 </>
               ) : (
@@ -351,7 +353,7 @@ export const ApprovalActionModal: React.FC<ApprovalActionModalProps> = ({
                     onClick={() => setShowRejectBox(false)}
                     disabled={actionLoading}
                   >
-                    تراجع
+                    {t('approvals.approval_action_modal.s23', "تراجع")}
                   </Button>
                   <Button
                     variant="danger"
@@ -359,7 +361,7 @@ export const ApprovalActionModal: React.FC<ApprovalActionModalProps> = ({
                     disabled={actionLoading}
                   >
                     <XIcon size={16} />
-                    تأكيد الرفض الرسمي
+                    {t('approvals.approval_action_modal.s24', "تأكيد الرفض الرسمي")}
                   </Button>
                 </>
               )}

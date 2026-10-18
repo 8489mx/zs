@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 /**
  * First paint of the public storefront while /info and /catalog load.
  *
@@ -18,11 +19,12 @@ const shimmer: React.CSSProperties = {
 };
 
 export function StorefrontSkeleton({ brandColor = '#170e5e', cards = 8 }: StorefrontSkeletonProps) {
+  const { t } = useTranslation();
   return (
     <div
       dir="rtl"
       aria-busy="true"
-      aria-label="جاري تحميل المتجر"
+      aria-label={t('storefront.storefront_skeleton.s0', "جاري تحميل المتجر")}
       style={{ minHeight: '100vh', background: '#f8fafc', display: 'flex', flexDirection: 'column', width: '100%', overflowX: 'hidden' }}
     >
       <style>{`@keyframes sf-skeleton-shimmer { 0% { background-position: 100% 0; } 100% { background-position: -100% 0; } }

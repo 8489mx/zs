@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React, { useState, useMemo } from 'react';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { getGlobalCurrencySymbol } from '@/lib/currencies';
@@ -106,6 +107,7 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
   requireSupervisorPin = false,
   isBlindSettlement = false,
 }) => {
+  const { t } = useTranslation();
   const [activeSection, setActiveSection] = useState<'settle' | 'activity'>('settle');
   const [activeSubTab, setActiveSubTab] = useState<'sales' | 'collections' | 'returns' | 'expenses' | 'packaging' | 'inventory'>('sales');
   const [supervisorPin, setSupervisorPin] = useState<string>('');
@@ -274,7 +276,7 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
             textAlign: 'center',
           }}
         >
-          تصفية ومطابقة العهدة
+          {t('delivery_reps.van_settle_tab.s0', "تصفية ومطابقة العهدة")}
         </button>
         <button
           type="button"
@@ -295,7 +297,7 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
             textAlign: 'center',
           }}
         >
-          حركة وسجل اليوم ({totalActivities})
+          {t('delivery_reps.van_settle_tab.s1', "حركة وسجل اليوم (")}{totalActivities})
         </button>
       </div>
 
@@ -320,10 +322,10 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
             </div>
             <div>
               <h3 style={{ margin: 0, fontSize: '14px', fontWeight: 800, color: '#0f172a' }}>
-                تصفية اليومية ومطابقة العهدة النقدية
+                {t('delivery_reps.van_settle_tab.s2', "تصفية اليومية ومطابقة العهدة النقدية")}
               </h3>
               <p style={{ margin: '1px 0 0', fontSize: '11px', color: '#64748b' }}>
-                بيان تسليم النقدية ومطابقة مبيعات وتحصيلات ومرتجعات السيارة
+                {t('delivery_reps.van_settle_tab.s3', "بيان تسليم النقدية ومطابقة مبيعات وتحصيلات ومرتجعات السيارة")}
               </p>
             </div>
           </div>
@@ -346,7 +348,7 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
             >
               <ClockIcon size={16} color="#2563eb" />
               <span>
-                توجد زيارة جارية للعميل <strong>"{activeVisit.customerName}"</strong>. سيتم إنهاء وتوثيق الزيارة تلقائياً فور تأكيد تصفية اليومية.
+                {t('delivery_reps.van_settle_tab.s4', "توجد زيارة جارية للعميل")} <strong>"{activeVisit.customerName}"</strong>{t('delivery_reps.van_settle_tab.s5', ". سيتم إنهاء وتوثيق الزيارة تلقائياً فور تأكيد تصفية اليومية.")}
               </span>
             </div>
           )}
@@ -376,7 +378,7 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
             }}
           >
             <span style={{ color: '#475569', fontWeight: 700, fontSize: '12px' }}>
-              إجمالي مبيعات اليوم المحققة:
+              {t('delivery_reps.van_settle_tab.s6', "إجمالي مبيعات اليوم المحققة:")}
             </span>
             <span style={{ fontWeight: 800, color: '#0f172a', fontSize: '13px' }}>
               {salesAmount.toFixed(2)} <CurrencySymbol />
@@ -399,10 +401,10 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
               }}
             >
               <span style={{ color: '#15803d', fontWeight: 700, fontSize: 'clamp(10px, 2.7vw, 11px)', whiteSpace: 'nowrap' }}>
-                • كاش:
+                {t('delivery_reps.van_settle_tab.s7', "• كاش:")}
               </span>
               <span style={{ fontWeight: 800, color: isBlindSettlement ? '#64748b' : '#15803d', fontSize: 'clamp(10.5px, 2.9vw, 12px)', whiteSpace: 'nowrap' }}>
-                {isBlindSettlement ? 'محجوب (عمياني)' : `+${cashSales.toFixed(2)}`} {!isBlindSettlement && <CurrencySymbol />}
+                {isBlindSettlement ? t('delivery_reps.van_settle_tab.s8', "محجوب (عمياني)") : `+${cashSales.toFixed(2)}`} {!isBlindSettlement && <CurrencySymbol />}
               </span>
             </div>
 
@@ -420,7 +422,7 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
               }}
             >
               <span style={{ color: '#b45309', fontWeight: 700, fontSize: 'clamp(10px, 2.7vw, 11px)', whiteSpace: 'nowrap' }}>
-                • آجل:
+                {t('delivery_reps.van_settle_tab.s9', "• آجل:")}
               </span>
               <span style={{ fontWeight: 800, color: '#b45309', fontSize: 'clamp(10.5px, 2.9vw, 12px)', whiteSpace: 'nowrap' }}>
                 {creditSales.toFixed(2)} <CurrencySymbol />
@@ -441,10 +443,10 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
               }}
             >
               <span style={{ color: '#0284c7', fontWeight: 700, fontSize: 'clamp(10px, 2.7vw, 11px)', whiteSpace: 'nowrap' }}>
-                • تحصيلات:
+                {t('delivery_reps.van_settle_tab.s10', "• تحصيلات:")}
               </span>
               <span style={{ fontWeight: 800, color: isBlindSettlement ? '#64748b' : '#0284c7', fontSize: 'clamp(10.5px, 2.9vw, 12px)', whiteSpace: 'nowrap' }}>
-                {isBlindSettlement ? 'محجوب (عمياني)' : `+${collectionsTotal.toFixed(2)}`} {!isBlindSettlement && <CurrencySymbol />}
+                {isBlindSettlement ? t('delivery_reps.van_settle_tab.s11', "محجوب (عمياني)") : `+${collectionsTotal.toFixed(2)}`} {!isBlindSettlement && <CurrencySymbol />}
               </span>
             </div>
 
@@ -462,7 +464,7 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
               }}
             >
               <span style={{ color: '#64748b', fontWeight: 700, fontSize: 'clamp(10px, 2.7vw, 11px)', whiteSpace: 'nowrap' }}>
-                • مرتجعات:
+                {t('delivery_reps.van_settle_tab.s12', "• مرتجعات:")}
               </span>
               <span style={{ fontWeight: 800, color: returnsAmount > 0 ? '#dc2626' : '#64748b', fontSize: 'clamp(10.5px, 2.9vw, 12px)', whiteSpace: 'nowrap' }}>
                 {returnsAmount > 0 ? `-${returnsAmount.toFixed(2)}` : '0.00'} <CurrencySymbol />
@@ -485,7 +487,7 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <span style={{ color: '#6d28d9', fontWeight: 700, fontSize: '11px' }}>
-                    • تحويلات إنستاباي ومحافظ (معزولة عن كاش المندوب للبنك):
+                    {t('delivery_reps.van_settle_tab.s13', "• تحويلات إنستاباي ومحافظ (معزولة عن كاش المندوب للبنك):")}
                   </span>
                 </div>
                 <span style={{ fontWeight: 800, color: '#7c3aed', fontSize: '11.5px' }}>
@@ -509,22 +511,22 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
             >
               {cashRefunds > 0 && (
                 <div style={{ color: '#dc2626', fontWeight: 600 }}>
-                  مرتجع كاش سُدد: <strong>{isBlindSettlement ? 'محجوب رقابياً' : `-${cashRefunds.toFixed(2)}`}</strong> {!isBlindSettlement && <CurrencySymbol />}
+                  {t('delivery_reps.van_settle_tab.s14', "مرتجع كاش سُدد:")} <strong>{isBlindSettlement ? t('delivery_reps.van_settle_tab.s15', "محجوب رقابياً") : `-${cashRefunds.toFixed(2)}`}</strong> {!isBlindSettlement && <CurrencySymbol />}
                 </div>
               )}
               {creditReturns > 0 && (
                 <div style={{ color: '#64748b', fontWeight: 600 }}>
-                  مرتجع آجل: <strong>{creditReturns.toFixed(2)}</strong> <CurrencySymbol />
+                  {t('delivery_reps.van_settle_tab.s16', "مرتجع آجل:")} <strong>{creditReturns.toFixed(2)}</strong> <CurrencySymbol />
                 </div>
               )}
               {totalTripExpenses > 0 && (
                 <div style={{ color: '#b91c1c', fontWeight: 600 }}>
-                  مصروفات رحلة: <strong>-{totalTripExpenses.toFixed(2)}</strong> <CurrencySymbol />
+                  {t('delivery_reps.van_settle_tab.s17', "مصروفات رحلة:")} <strong>-{totalTripExpenses.toFixed(2)}</strong> <CurrencySymbol />
                 </div>
               )}
               {totalDiscounts > 0 && (
                 <div style={{ color: '#64748b', fontWeight: 600 }}>
-                  خصومات ممنوحة: <strong>{totalDiscounts.toFixed(2)}</strong> <CurrencySymbol />
+                  {t('delivery_reps.van_settle_tab.s18', "خصومات ممنوحة:")} <strong>{totalDiscounts.toFixed(2)}</strong> <CurrencySymbol />
                 </div>
               )}
             </div>
@@ -545,10 +547,10 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
             >
               <div>
                 <span style={{ fontSize: '11.5px', fontWeight: 800, color: '#166534', display: 'block' }}>
-                  صافي النقدية المتوقع تسليمها (كاش الدرج):
+                  {t('delivery_reps.van_settle_tab.s19', "صافي النقدية المتوقع تسليمها (كاش الدرج):")}
                 </span>
                 <span style={{ fontSize: '10px', color: '#15803d' }}>
-                  = كاش المبيعات ({cashSales.toFixed(0)}) + التحصيلات ({collectionsTotal.toFixed(0)}) - المنصرف ({(cashRefunds + totalTripExpenses).toFixed(0)})
+                  {t('delivery_reps.van_settle_tab.s20', "= كاش المبيعات (")}{cashSales.toFixed(0)}{t('delivery_reps.van_settle_tab.s21', ") + التحصيلات (")}{collectionsTotal.toFixed(0)}{t('delivery_reps.van_settle_tab.s22', ") - المنصرف (")}{(cashRefunds + totalTripExpenses).toFixed(0)})
                 </span>
               </div>
               <span style={{ fontSize: '15px', fontWeight: 900, color: '#166534' }}>
@@ -583,10 +585,10 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <span style={{ fontSize: '11.5px', fontWeight: 800, color: '#170e5e', display: 'block' }}>
-                  نظام التوريد والجرد العمياني (Blind Cash Settlement)
+                  {t('delivery_reps.van_settle_tab.s23', "نظام التوريد والجرد العمياني (Blind Cash Settlement)")}
                 </span>
                 <span style={{ fontSize: '10px', color: '#64748b', display: 'block', marginTop: '2px', lineHeight: 1.4 }}>
-                  تم حجب صافي النقدية المتوقعة رقابياً. يرجى عدّ كامل النقدية الفعلية الموجودة بالدرج وتوريدها بدقة.
+                  {t('delivery_reps.van_settle_tab.s24', "تم حجب صافي النقدية المتوقعة رقابياً. يرجى عدّ كامل النقدية الفعلية الموجودة بالدرج وتوريدها بدقة.")}
                 </span>
               </div>
             </div>
@@ -622,7 +624,7 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
               }}
             >
               <ReceiptIcon size={14} color="#170e5e" style={{ flexShrink: 0 }} />
-              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>تسجيل مصروف</span>
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{t('delivery_reps.van_settle_tab.s25', "تسجيل مصروف")}</span>
             </button>
           )}
           {onOpenPackagingModal && (
@@ -652,7 +654,7 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
               }}
             >
               <PackageIcon size={14} color="#047857" style={{ flexShrink: 0 }} />
-              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>حركة فوارغ</span>
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{t('delivery_reps.van_settle_tab.s26', "حركة فوارغ")}</span>
             </button>
           )}
         </div>
@@ -686,7 +688,7 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
                 minWidth: 0,
               }}
             >
-              <span>الكاش الفعلي للتوريد</span>
+              <span>{t('delivery_reps.van_settle_tab.s27', "الكاش الفعلي للتوريد")}</span>
               <span style={{ color: '#64748b', fontWeight: 600, fontSize: '0.9em' }}>
                 ({getGlobalCurrencySymbol()}):
               </span>
@@ -709,7 +711,7 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
                   boxSizing: 'border-box',
                 }}
               >
-                مطابقة ({cashCollected.toFixed(2)})
+                {t('delivery_reps.van_settle_tab.s28', "مطابقة (")}{cashCollected.toFixed(2)})
               </button>
             ) : (
               <span
@@ -730,7 +732,7 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
                 }}
               >
                 <LockIcon size={11} color="#64748b" />
-                <span>جرد إلزامي</span>
+                <span>{t('delivery_reps.van_settle_tab.s29', "جرد إلزامي")}</span>
               </span>
             )}
           </div>
@@ -747,8 +749,8 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
             onChange={(e) => onCountedCashChange(e.target.value)}
             placeholder={
               isBlindSettlement
-                ? 'قم بعدّ الأوراق النقدية وأدخل المبلغ الفعلي للتوريد...'
-                : 'أدخل المبلغ بعد العد الفعلي للأوراق النقدية...'
+                ? t('delivery_reps.van_settle_tab.s30', "قم بعدّ الأوراق النقدية وأدخل المبلغ الفعلي للتوريد...")
+                : t('delivery_reps.van_settle_tab.s31', "أدخل المبلغ بعد العد الفعلي للأوراق النقدية...")
             }
             style={{
               width: '100%',
@@ -801,20 +803,20 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
               {countedNum === cashCollected ? (
                 <>
                   <CheckIcon size={14} color="#15803d" strokeWidth={2.5} />
-                  <span>الكاش مطابق تماماً للعهدة النقدية بنسبة 100% (لا يوجد عجز).</span>
+                  <span>{t('delivery_reps.van_settle_tab.s32', "الكاش مطابق تماماً للعهدة النقدية بنسبة 100% (لا يوجد عجز).")}</span>
                 </>
               ) : countedNum < cashCollected ? (
                 <>
                   <AlertTriangleIcon size={14} color="#b91c1c" strokeWidth={2} />
                   <span>
-                    يوجد عجز نقدي بقيمة {(cashCollected - countedNum).toFixed(2)} <CurrencySymbol /> (سيتم تقييده على عهدة المندوب).
+                    {t('delivery_reps.van_settle_tab.s33', "يوجد عجز نقدي بقيمة")} {(cashCollected - countedNum).toFixed(2)} <CurrencySymbol /> {t('delivery_reps.van_settle_tab.s34', "(سيتم تقييده على عهدة المندوب).")}
                   </span>
                 </>
               ) : (
                 <>
                   <CheckIcon size={14} color="#0369a1" strokeWidth={2} />
                   <span>
-                    يوجد فائض نقدي بقيمة {(countedNum - cashCollected).toFixed(2)} <CurrencySymbol /> (سيتم توريده لحساب المنشأة).
+                    {t('delivery_reps.van_settle_tab.s35', "يوجد فائض نقدي بقيمة")} {(countedNum - cashCollected).toFixed(2)} <CurrencySymbol /> {t('delivery_reps.van_settle_tab.s36', "(سيتم توريده لحساب المنشأة).")}
                   </span>
                 </>
               )}
@@ -839,7 +841,7 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <PackageIcon size={16} color="#170e5e" />
                 <span style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a' }}>
-                  جرد وتدقيق بضاعة السيارة المتبقية ({inventory.length} صنف)
+                  {t('delivery_reps.van_settle_tab.s37', "جرد وتدقيق بضاعة السيارة المتبقية (")}{inventory.length} {t('delivery_reps.van_settle_tab.s38', "صنف)")}
                 </span>
                 {stockAuditSummary.shortageCount > 0 && (
                   <span
@@ -853,7 +855,7 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
                       border: '1px solid #fca5a5',
                     }}
                   >
-                    عجز {stockAuditSummary.shortageCount} صنف (-{stockAuditSummary.totalShortageCost.toFixed(2)} ج.م)
+                    {t('delivery_reps.van_settle_tab.s39', "عجز")} {stockAuditSummary.shortageCount} {t('delivery_reps.van_settle_tab.s40', "صنف (-")}{stockAuditSummary.totalShortageCost.toFixed(2)} {t('delivery_reps.van_settle_tab.s41', "ج.م)")}
                   </span>
                 )}
               </div>
@@ -871,7 +873,7 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
                   cursor: 'pointer',
                 }}
               >
-                {showStockAudit ? 'إخفاء الجرد' : 'بدء الجرد الفعلي'}
+                {showStockAudit ? t('delivery_reps.van_settle_tab.s42', "إخفاء الجرد") : t('delivery_reps.van_settle_tab.s43', "بدء الجرد الفعلي")}
               </button>
             </div>
 
@@ -882,7 +884,7 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
                     type="text"
                     value={stockAuditSearch}
                     onChange={(e) => setStockAuditSearch(e.target.value)}
-                    placeholder="بحث باسم الصنف أو الباركود..."
+                    placeholder={t('delivery_reps.van_settle_tab.s44', "بحث باسم الصنف أو الباركود...")}
                     style={{
                       flex: 1,
                       height: '32px',
@@ -909,7 +911,7 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
                       whiteSpace: 'nowrap',
                     }}
                   >
-                    مطابقة الكل دفترياً
+                    {t('delivery_reps.van_settle_tab.s45', "مطابقة الكل دفترياً")}
                   </button>
                 </div>
 
@@ -943,7 +945,7 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
                             {item.productName}
                           </div>
                           <div style={{ fontSize: '10px', color: '#64748b', display: 'flex', gap: '6px', alignItems: 'center' }}>
-                            <span>دفتري بالسيارة: <b>{sysQty}</b></span>
+                            <span>{t('delivery_reps.van_settle_tab.s46', "دفتري بالسيارة:")} <b>{sysQty}</b></span>
                             {item.barcode && <span>• {item.barcode}</span>}
                           </div>
                         </div>
@@ -1018,7 +1020,7 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
                         <div style={{ width: '60px', textAlign: 'center', flexShrink: 0 }}>
                           {isShort ? (
                             <span style={{ fontSize: '9.5px', fontWeight: 800, color: '#b91c1c', backgroundColor: '#fee2e2', padding: '1px 4px', borderRadius: '4px', display: 'block' }}>
-                              عجز {sysQty - countedNum}
+                              {t('delivery_reps.van_settle_tab.s47', "عجز")} {sysQty - countedNum}
                             </span>
                           ) : isOver ? (
                             <span style={{ fontSize: '9.5px', fontWeight: 800, color: '#0369a1', backgroundColor: '#e0f2fe', padding: '1px 4px', borderRadius: '4px', display: 'block' }}>
@@ -1026,10 +1028,10 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
                             </span>
                           ) : isExact ? (
                             <span style={{ fontSize: '9.5px', fontWeight: 800, color: '#15803d', backgroundColor: '#dcfce7', padding: '1px 4px', borderRadius: '4px', display: 'block' }}>
-                              مطابق
+                              {t('delivery_reps.van_settle_tab.s48', "مطابق")}
                             </span>
                           ) : (
-                            <span style={{ fontSize: '9.5px', color: '#94a3b8' }}>دفتري</span>
+                            <span style={{ fontSize: '9.5px', color: '#94a3b8' }}>{t('delivery_reps.van_settle_tab.s49', "دفتري")}</span>
                           )}
                         </div>
                       </div>
@@ -1061,7 +1063,7 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
                       style={{ accentColor: '#170e5e', cursor: 'pointer' }}
                     />
                     <label htmlFor="chargeStockVariance" style={{ cursor: 'pointer' }}>
-                      تحميل تكلفة عجز المخزون ({stockAuditSummary.totalShortageCost.toFixed(2)} ج.م) على عهدة المندوب المالية
+                      {t('delivery_reps.van_settle_tab.s50', "تحميل تكلفة عجز المخزون (")}{stockAuditSummary.totalShortageCost.toFixed(2)} {t('delivery_reps.van_settle_tab.s51', "ج.م) على عهدة المندوب المالية")}
                     </label>
                   </div>
                 )}
@@ -1090,7 +1092,7 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
             style={{ width: '16px', height: '16px', cursor: 'pointer', accentColor: '#170e5e' }}
           />
           <label htmlFor="unloadCheck" style={{ fontSize: '11.5px', fontWeight: 700, color: '#334155', cursor: 'pointer' }}>
-            تفريغ البضاعة المتبقية في السيارة ({inventory.length} صنف) وإعادتها للمستودع تلقائياً
+            {t('delivery_reps.van_settle_tab.s52', "تفريغ البضاعة المتبقية في السيارة (")}{inventory.length} {t('delivery_reps.van_settle_tab.s53', "صنف) وإعادتها للمستودع تلقائياً")}
           </label>
         </div>
 
@@ -1126,10 +1128,10 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
               </div>
               <div>
                 <div style={{ fontSize: '11.5px', fontWeight: 800, color: '#170e5e' }}>
-                  رمز اعتماد المشرف أو أمين الخزينة (Supervisor PIN):
+                  {t('delivery_reps.van_settle_tab.s54', "رمز اعتماد المشرف أو أمين الخزينة (Supervisor PIN):")}
                 </div>
                 <div style={{ fontSize: '10px', color: '#64748b' }}>
-                  إلزامي لإبراء العهدة واستلام الكاش طبقاً لمبدأ فصل المهام الرقابي (Maker-Checker)
+                  {t('delivery_reps.van_settle_tab.s55', "إلزامي لإبراء العهدة واستلام الكاش طبقاً لمبدأ فصل المهام الرقابي (Maker-Checker)")}
                 </div>
               </div>
             </div>
@@ -1146,7 +1148,7 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
                 setSupervisorPin(e.target.value);
                 if (pinError) setPinError('');
               }}
-              placeholder="PIN المشرف"
+              placeholder={t('delivery_reps.van_settle_tab.s56', "PIN المشرف")}
               style={{
                 width: '120px',
                 height: '36px',
@@ -1186,7 +1188,7 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
           variant="primary"
           onClick={() => {
             if (requireSupervisorPin && !supervisorPin.trim()) {
-              setPinError('يرجى إدخال الرمز السري للمشرف أو أمين الخزينة (PIN) لاعتماد تصفية اليومية واستلام الكاش');
+              setPinError(t('delivery_reps.van_settle_tab.s57', "يرجى إدخال الرمز السري للمشرف أو أمين الخزينة (PIN) لاعتماد تصفية اليومية واستلام الكاش"));
               return;
             }
             setPinError('');
@@ -1213,10 +1215,10 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
           }}
         >
           {isSubmitting
-            ? 'جاري التصفية والتوريد...'
+            ? t('delivery_reps.van_settle_tab.s58', "جاري التصفية والتوريد...")
             : requireSupervisorPin
-            ? 'تأكيد التصفية واعتماد الـ PIN وتوريد الكاش'
-            : 'تأكيد التصفية وإغلاق اليومية وتوريد الكاش'}
+            ? t('delivery_reps.van_settle_tab.s59', "تأكيد التصفية واعتماد الـ PIN وتوريد الكاش")
+            : t('delivery_reps.van_settle_tab.s60', "تأكيد التصفية وإغلاق اليومية وتوريد الكاش")}
         </Button>
       </div>
       ) : (
@@ -1240,10 +1242,10 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
           </div>
           <div>
             <h3 style={{ margin: 0, fontSize: '14px', fontWeight: 800, color: '#0f172a' }}>
-              حركة رحلة اليوم وسجل العمليات
+              {t('delivery_reps.van_settle_tab.s61', "حركة رحلة اليوم وسجل العمليات")}
             </h3>
             <p style={{ margin: '1px 0 0', fontSize: '11px', color: '#64748b' }}>
-              مراجعة الفواتير والتحصيلات والمرتجعات ومخزون السيارة
+              {t('delivery_reps.van_settle_tab.s62', "مراجعة الفواتير والتحصيلات والمرتجعات ومخزون السيارة")}
             </p>
           </div>
         </div>
@@ -1276,12 +1278,12 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
           }}
         >
           {[
-            { key: 'sales', label: 'فواتير', count: sales.length },
-            { key: 'collections', label: 'تحصيلات', count: collections.length },
-            { key: 'returns', label: 'مرتجعات', count: returns.length },
-            { key: 'expenses', label: 'مصروفات', count: safeExpenses.length },
-            { key: 'packaging', label: 'فوارغ', count: safePackaging.length },
-            { key: 'inventory', label: 'المخزون', count: inventory.length },
+            { key: 'sales', label: t('delivery_reps.van_settle_tab.s63', "فواتير"), count: sales.length },
+            { key: 'collections', label: t('delivery_reps.van_settle_tab.s64', "تحصيلات"), count: collections.length },
+            { key: 'returns', label: t('delivery_reps.van_settle_tab.s65', "مرتجعات"), count: returns.length },
+            { key: 'expenses', label: t('delivery_reps.van_settle_tab.s66', "مصروفات"), count: safeExpenses.length },
+            { key: 'packaging', label: t('delivery_reps.van_settle_tab.s67', "فوارغ"), count: safePackaging.length },
+            { key: 'inventory', label: t('delivery_reps.van_settle_tab.s68', "المخزون"), count: inventory.length },
           ].map((tab) => {
             const isActive = activeSubTab === tab.key;
             return (
@@ -1335,7 +1337,7 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
             sales.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '24px 0', color: '#94a3b8' }}>
                 <ReceiptIcon size={28} color="#cbd5e1" style={{ margin: '0 auto 6px', display: 'block' }} />
-                <span style={{ fontSize: '12px', fontWeight: 600 }}>لم تصدر أي فواتير بيع في هذه الرحلة حتى الآن</span>
+                <span style={{ fontSize: '12px', fontWeight: 600 }}>{t('delivery_reps.van_settle_tab.s69', "لم تصدر أي فواتير بيع في هذه الرحلة حتى الآن")}</span>
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -1356,7 +1358,7 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
                     >
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <span style={{ fontSize: '12.5px', fontWeight: 800, color: '#170e5e' }}>
-                          فاتورة #{sale.docNo}
+                          {t('delivery_reps.van_settle_tab.s70', "فاتورة #")}{sale.docNo}
                         </span>
                         <span style={{ fontSize: '13.5px', fontWeight: 900, color: '#0f172a' }}>
                           {Number(sale.total || 0).toFixed(2)} <CurrencySymbol />
@@ -1364,7 +1366,7 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '6px', fontSize: '11.5px' }}>
                         <span style={{ color: '#334155', fontWeight: 700 }}>
-                          العميل: {sale.customerName || 'عميل نقدي سريع'}
+                          {t('delivery_reps.van_settle_tab.s71', "العميل:")} {sale.customerName || t('delivery_reps.van_settle_tab.s72', "عميل نقدي سريع")}
                         </span>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                           <span
@@ -1397,7 +1399,7 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
             collections.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '24px 0', color: '#94a3b8' }}>
                 <DollarSignIcon size={28} color="#cbd5e1" style={{ margin: '0 auto 6px', display: 'block' }} />
-                <span style={{ fontSize: '12px', fontWeight: 600 }}>لا توجد سندات قبض أو تحصيلات نقدية مسجلة</span>
+                <span style={{ fontSize: '12px', fontWeight: 600 }}>{t('delivery_reps.van_settle_tab.s73', "لا توجد سندات قبض أو تحصيلات نقدية مسجلة")}</span>
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -1423,7 +1425,7 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
                       </span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11px', color: '#64748b' }}>
-                      <span>سند قبض نقدي من مديونية عميل</span>
+                      <span>{t('delivery_reps.van_settle_tab.s74', "سند قبض نقدي من مديونية عميل")}</span>
                       <span style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
                         <ClockIcon size={12} color="#94a3b8" />
                         {formatTime(col.createdAt)}
@@ -1431,7 +1433,7 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
                     </div>
                     {col.note && (
                       <div style={{ fontSize: '10.5px', color: '#475569', backgroundColor: '#ffffff', padding: '4px 8px', borderRadius: '4px', border: '1px dashed #cbd5e1' }}>
-                        ملاحظة: {col.note}
+                        {t('delivery_reps.van_settle_tab.s75', "ملاحظة:")} {col.note}
                       </div>
                     )}
                   </div>
@@ -1445,7 +1447,7 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
             returns.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '24px 0', color: '#94a3b8' }}>
                 <PackageIcon size={28} color="#cbd5e1" style={{ margin: '0 auto 6px', display: 'block' }} />
-                <span style={{ fontSize: '12px', fontWeight: 600 }}>لا توجد أذونات مرتجعات بضاعة مسجلة اليوم</span>
+                <span style={{ fontSize: '12px', fontWeight: 600 }}>{t('delivery_reps.van_settle_tab.s76', "لا توجد أذونات مرتجعات بضاعة مسجلة اليوم")}</span>
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -1467,7 +1469,7 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
                     >
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <span style={{ fontSize: '12.5px', fontWeight: 800, color: '#170e5e' }}>
-                          إذن مرتجع #{ret.docNo}
+                          {t('delivery_reps.van_settle_tab.s77', "إذن مرتجع #")}{ret.docNo}
                         </span>
                         <span style={{ fontSize: '13.5px', fontWeight: 900, color: '#dc2626' }}>
                           {Number(ret.totalAmount).toFixed(2)} <CurrencySymbol />
@@ -1475,7 +1477,7 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '6px', fontSize: '11.5px' }}>
                         <span style={{ color: '#334155', fontWeight: 700 }}>
-                          العميل: {ret.customerName || 'عميل مباشر'}
+                          {t('delivery_reps.van_settle_tab.s78', "العميل:")} {ret.customerName || t('delivery_reps.van_settle_tab.s79', "عميل مباشر")}
                         </span>
                         <span
                           style={{
@@ -1487,11 +1489,11 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
                             fontSize: '10.5px',
                           }}
                         >
-                          {isCashRefund ? 'دفع نقدي كاش من السيارة' : 'خصم من رصيد العميل (آجل)'}
+                          {isCashRefund ? t('delivery_reps.van_settle_tab.s80', "دفع نقدي كاش من السيارة") : t('delivery_reps.van_settle_tab.s81', "خصم من رصيد العميل (آجل)")}
                         </span>
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11px', color: '#64748b' }}>
-                        <span>السبب: {ret.returnReason || 'بضاعة راكدة / استبدال'}</span>
+                        <span>{t('delivery_reps.van_settle_tab.s82', "السبب:")} {ret.returnReason || t('delivery_reps.van_settle_tab.s83', "بضاعة راكدة / استبدال")}</span>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                           <span
                             style={{
@@ -1522,7 +1524,7 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
             safeExpenses.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '24px 0', color: '#94a3b8' }}>
                 <ReceiptIcon size={28} color="#cbd5e1" style={{ margin: '0 auto 6px', display: 'block' }} />
-                <span style={{ fontSize: '12px', fontWeight: 600 }}>لا توجد مصروفات مسجلة لهذه الرحلة</span>
+                <span style={{ fontSize: '12px', fontWeight: 600 }}>{t('delivery_reps.van_settle_tab.s84', "لا توجد مصروفات مسجلة لهذه الرحلة")}</span>
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -1542,10 +1544,10 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                         <span style={{ fontSize: '12.5px', fontWeight: 800, color: '#0f172a' }}>
-                          {exp.expenseType === 'fuel' ? 'وقود وبنزين' :
-                           exp.expenseType === 'toll' ? 'كارتات وبوابات' :
-                           exp.expenseType === 'maintenance' ? 'صيانة طارئة' :
-                           exp.expenseType === 'food_allowance' ? 'بدل وجبة' : 'مصروف نثري'}
+                          {exp.expenseType === 'fuel' ? t('delivery_reps.van_settle_tab.s85', "وقود وبنزين") :
+                           exp.expenseType === 'toll' ? t('delivery_reps.van_settle_tab.s86', "كارتات وبوابات") :
+                           exp.expenseType === 'maintenance' ? t('delivery_reps.van_settle_tab.s87', "صيانة طارئة") :
+                           exp.expenseType === 'food_allowance' ? t('delivery_reps.van_settle_tab.s88', "بدل وجبة") : t('delivery_reps.van_settle_tab.s89', "مصروف نثري")}
                         </span>
                         <span style={{ color: '#94a3b8', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '3px' }}>
                           <ClockIcon size={12} color="#94a3b8" />
@@ -1572,7 +1574,7 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
             safePackaging.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '24px 0', color: '#94a3b8' }}>
                 <PackageIcon size={28} color="#cbd5e1" style={{ margin: '0 auto 6px', display: 'block' }} />
-                <span style={{ fontSize: '12px', fontWeight: 600 }}>لا توجد حركات فوارغ أو صناديق مسجلة في هذه الرحلة</span>
+                <span style={{ fontSize: '12px', fontWeight: 600 }}>{t('delivery_reps.van_settle_tab.s90', "لا توجد حركات فوارغ أو صناديق مسجلة في هذه الرحلة")}</span>
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -1596,9 +1598,9 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
                       <div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                           <span style={{ fontSize: '12.5px', fontWeight: 800, color: '#0f172a' }}>
-                            {pType === 'crate_plastic' || pType === 'plastic_crate' ? 'صناديق بلاستيك' :
-                             pType === 'wooden_pallet' || pType === 'pallet' || pType === 'box_wooden' ? 'طبالي خشبية (بالتات)' :
-                             pType === 'cylinder_gas' || pType === 'gas_cylinder' ? 'أسطوانات غاز' : 'فوارغ أخرى'}
+                            {pType === 'crate_plastic' || pType === 'plastic_crate' ? t('delivery_reps.van_settle_tab.s91', "صناديق بلاستيك") :
+                             pType === 'wooden_pallet' || pType === 'pallet' || pType === 'box_wooden' ? t('delivery_reps.van_settle_tab.s92', "طبالي خشبية (بالتات)") :
+                             pType === 'cylinder_gas' || pType === 'gas_cylinder' ? t('delivery_reps.van_settle_tab.s93', "أسطوانات غاز") : t('delivery_reps.van_settle_tab.s94', "فوارغ أخرى")}
                           </span>
                           {pkg.customerName && (
                             <span style={{ fontSize: '11px', color: '#475569', fontWeight: 600 }}>
@@ -1621,12 +1623,12 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 800 }}>
                         {delivered > 0 && (
                           <span style={{ color: '#c2410c', backgroundColor: '#fff7ed', padding: '2px 6px', borderRadius: '4px' }}>
-                            صادر: {delivered}
+                            {t('delivery_reps.van_settle_tab.s95', "صادر:")} {delivered}
                           </span>
                         )}
                         {returned > 0 && (
                           <span style={{ color: '#15803d', backgroundColor: '#f0fdf4', padding: '2px 6px', borderRadius: '4px' }}>
-                            وارد: {returned}
+                            {t('delivery_reps.van_settle_tab.s96', "وارد:")} {returned}
                           </span>
                         )}
                       </div>
@@ -1642,7 +1644,7 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
             inventory.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '24px 0', color: '#94a3b8' }}>
                 <PackageIcon size={28} color="#cbd5e1" style={{ margin: '0 auto 6px', display: 'block' }} />
-                <span style={{ fontSize: '12px', fontWeight: 600 }}>السيارة فارغة حالياً (تم بيع أو تفريغ كافة البضاعة)</span>
+                <span style={{ fontSize: '12px', fontWeight: 600 }}>{t('delivery_reps.van_settle_tab.s97', "السيارة فارغة حالياً (تم بيع أو تفريغ كافة البضاعة)")}</span>
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -1666,7 +1668,7 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
                           {item.productName}
                         </span>
                         <span style={{ fontSize: '11px', color: '#64748b' }}>
-                          كود: {item.barcode || '—'} {item.unitName && `• ${item.unitName}`}
+                          {t('delivery_reps.van_settle_tab.s98', "كود:")} {item.barcode || '—'} {item.unitName && `• ${item.unitName}`}
                         </span>
                       </div>
                       <div style={{ textAlign: 'left' }}>
@@ -1681,10 +1683,10 @@ export const VanSettleTab: React.FC<VanSettleTabProps> = ({
                             display: 'inline-block',
                           }}
                         >
-                          {item.qty} {item.unitName || 'قطعة'}
+                          {item.qty} {item.unitName || t('delivery_reps.van_settle_tab.s99', "قطعة")}
                         </span>
                         <span style={{ display: 'block', fontSize: '10.5px', color: '#64748b', marginTop: '2px' }}>
-                          بقيمة {lineTotal.toFixed(2)} <CurrencySymbol />
+                          {t('delivery_reps.van_settle_tab.s100', "بقيمة")} {lineTotal.toFixed(2)} <CurrencySymbol />
                         </span>
                       </div>
                     </div>

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 
 interface PatternLockWidgetProps {
@@ -6,6 +7,7 @@ interface PatternLockWidgetProps {
 }
 
 export function PatternLockWidget({ value = '', onChange }: PatternLockWidgetProps) {
+  const { t } = useTranslation();
   const isPatternInitially = value.startsWith('نمط:') || value.startsWith('pattern:');
   const [mode, setMode] = useState<'text' | 'pattern'>(isPatternInitially ? 'pattern' : 'text');
   const [selectedDots, setSelectedDots] = useState<number[]>(() => {
@@ -36,7 +38,7 @@ export function PatternLockWidget({ value = '', onChange }: PatternLockWidgetPro
             <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
             <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
           </svg>
-          رمز أو قفل الشاشة (Screen Lock)
+          {t('maintenance.pattern_lock_widget.s0', "رمز أو قفل الشاشة (Screen Lock)")}
         </span>
         
         {/* Clean Segmented Switch */}
@@ -57,7 +59,7 @@ export function PatternLockWidget({ value = '', onChange }: PatternLockWidgetPro
               transition: 'all 0.15s ease',
             }}
           >
-            كلمة المرور / PIN
+            {t('maintenance.pattern_lock_widget.s1', "كلمة المرور / PIN")}
           </button>
           <button
             type="button"
@@ -75,7 +77,7 @@ export function PatternLockWidget({ value = '', onChange }: PatternLockWidgetPro
               transition: 'all 0.15s ease',
             }}
           >
-            نمط الشاشة (Pattern)
+            {t('maintenance.pattern_lock_widget.s2', "نمط الشاشة (Pattern)")}
           </button>
         </div>
       </div>
@@ -86,9 +88,9 @@ export function PatternLockWidget({ value = '', onChange }: PatternLockWidgetPro
             type="text"
             dir="ltr"
             className="purchase-prototype-field-input"
-            value={value.startsWith('نمط:') ? '' : value}
+            value={value.startsWith(t('maintenance.pattern_lock_widget.s3', "نمط:")) ? '' : value}
             onChange={(e) => onChange(e.target.value)}
-            placeholder="مثال: 1234 أو Passcode أو لا يوجد قفل..."
+            placeholder={t('maintenance.pattern_lock_widget.s4', "مثال: 1234 أو Passcode أو لا يوجد قفل...")}
             style={{
               width: '100%',
               fontSize: '0.9rem',
@@ -103,7 +105,7 @@ export function PatternLockWidget({ value = '', onChange }: PatternLockWidgetPro
       ) : (
         <div style={{ background: '#fff', padding: '10px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
           <div style={{ fontSize: '0.75rem', color: '#64748b', textAlign: 'center', marginBottom: '6px' }}>
-            اضغط على النقاط بالتتابع لرسم النمط المطلوب:
+            {t('maintenance.pattern_lock_widget.s5', "اضغط على النقاط بالتتابع لرسم النمط المطلوب:")}
           </div>
 
           <div
@@ -154,9 +156,9 @@ export function PatternLockWidget({ value = '', onChange }: PatternLockWidgetPro
 
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #f1f5f9', paddingTop: '6px' }}>
             <span style={{ fontSize: '0.8rem', color: '#334155' }}>
-              النمط المسجل:{' '}
+              {t('maintenance.pattern_lock_widget.s6', "النمط المسجل:")}{' '}
               <strong dir="ltr" style={{ color: selectedDots.length ? '#2563eb' : '#94a3b8' }}>
-                {selectedDots.length ? `[ ${selectedDots.join(' → ')} ]` : 'لم يتم تحديد نمط'}
+                {selectedDots.length ? `[ ${selectedDots.join(' → ')} ]` : t('maintenance.pattern_lock_widget.s7', "لم يتم تحديد نمط")}
               </strong>
             </span>
             <button
@@ -165,7 +167,7 @@ export function PatternLockWidget({ value = '', onChange }: PatternLockWidgetPro
               onClick={handleClear}
               style={{ fontSize: '0.7rem', padding: '2px 8px' }}
             >
-              إعادة ضبط
+              {t('maintenance.pattern_lock_widget.s8', "إعادة ضبط")}
             </button>
           </div>
         </div>

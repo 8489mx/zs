@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { formatCurrency } from '@/lib/format';
@@ -18,6 +19,7 @@ export function PosOfflineQueueModal({
   isSyncing,
   onRetrySync,
 }: PosOfflineQueueModalProps) {
+  const { t } = useTranslation();
   const [expandedSaleId, setExpandedSaleId] = useState<string | null>(null);
   const [copyStatus, setCopyStatus] = useState<string | null>(null);
 
@@ -57,7 +59,7 @@ export function PosOfflineQueueModal({
     <DialogShell
       open={open}
       onClose={onClose}
-      ariaLabel="سجل الفواتير المحفوظة بدون إنترنت (Offline Queue)"
+      ariaLabel={t('pos.pos_workspace.pos_offline_queue_modal.s0', "سجل الفواتير المحفوظة بدون إنترنت (Offline Queue)")}
       width="min(720px, 100%)"
     >
       <div dir="rtl" style={{ display: 'flex', flexDirection: 'column', gap: '16px', padding: '4px 0' }}>
@@ -74,9 +76,9 @@ export function PosOfflineQueueModal({
           gap: '12px'
         }}>
           <div>
-            <div style={{ fontSize: '13px', color: '#64748b' }}>إجمالي الفواتير المعلقة محلياً</div>
+            <div style={{ fontSize: '13px', color: '#64748b' }}>{t('pos.pos_workspace.pos_offline_queue_modal.s1', "إجمالي الفواتير المعلقة محلياً")}</div>
             <div style={{ fontSize: '20px', fontWeight: 800, color: '#0f172a' }}>
-              {offlineQueue.length} فواتير ({formatCurrency(totalAmount)})
+              {offlineQueue.length} {t('pos.pos_workspace.pos_offline_queue_modal.s2', "فواتير (")}{formatCurrency(totalAmount)})
             </div>
           </div>
           <div style={{ display: 'flex', gap: '8px' }}>
@@ -99,7 +101,7 @@ export function PosOfflineQueueModal({
                 gap: '6px'
               }}
             >
-              <span>{isSyncing ? 'جاري المزامنة...' : 'إعادة محاولة المزامنة الآن'}</span>
+              <span>{isSyncing ? t('pos.pos_workspace.pos_offline_queue_modal.s3', "جاري المزامنة...") : t('pos.pos_workspace.pos_offline_queue_modal.s4', "إعادة محاولة المزامنة الآن")}</span>
             </button>
             <button
               type="button"
@@ -117,7 +119,7 @@ export function PosOfflineQueueModal({
                 opacity: offlineQueue.length === 0 ? 0.6 : 1,
               }}
             >
-              نسخ البيانات (JSON)
+              {t('pos.pos_workspace.pos_offline_queue_modal.s5', "نسخ البيانات (JSON)")}
             </button>
           </div>
         </div>
@@ -147,8 +149,8 @@ export function PosOfflineQueueModal({
                 <path d="M20 6L9 17l-5-5" />
               </svg>
             </div>
-            <div style={{ fontSize: '15px', fontWeight: 700, color: '#334155' }}>لا توجد فواتير معلقة حالياً</div>
-            <div style={{ fontSize: '13px' }}>جميع فواتير الكاشير رُحّلت واعتمدت على الخادم بنجاح.</div>
+            <div style={{ fontSize: '15px', fontWeight: 700, color: '#334155' }}>{t('pos.pos_workspace.pos_offline_queue_modal.s6', "لا توجد فواتير معلقة حالياً")}</div>
+            <div style={{ fontSize: '13px' }}>{t('pos.pos_workspace.pos_offline_queue_modal.s7', "جميع فواتير الكاشير رُحّلت واعتمدت على الخادم بنجاح.")}</div>
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '50vh', overflowY: 'auto' }}>
@@ -163,16 +165,16 @@ export function PosOfflineQueueModal({
 
               let statusBg = '#fef3c7';
               let statusColor = '#92400e';
-              let statusLabel = 'في انتظار المزامنة';
+              let statusLabel = t('pos.pos_workspace.pos_offline_queue_modal.s8', "في انتظار المزامنة");
 
               if (item.status === 'syncing') {
                 statusBg = '#dbeafe';
                 statusColor = '#1e40af';
-                statusLabel = 'جاري الترحيل...';
+                statusLabel = t('pos.pos_workspace.pos_offline_queue_modal.s9', "جاري الترحيل...");
               } else if (item.status === 'failed') {
                 statusBg = '#fee2e2';
                 statusColor = '#991b1b';
-                statusLabel = 'فشلت المزامنة مؤقتاً';
+                statusLabel = t('pos.pos_workspace.pos_offline_queue_modal.s10', "فشلت المزامنة مؤقتاً");
               }
 
               return (
@@ -195,7 +197,7 @@ export function PosOfflineQueueModal({
                       </span>
                       <div>
                         <div style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a' }}>
-                          فاتورة {formatCurrency(total)} ({itemsCount} أصناف)
+                          {t('pos.pos_workspace.pos_offline_queue_modal.s11', "فاتورة")} {formatCurrency(total)} ({itemsCount} {t('pos.pos_workspace.pos_offline_queue_modal.s12', "أصناف)")}
                         </div>
                         <div style={{ fontSize: '11px', color: '#64748b' }}>{dateFormatted}</div>
                       </div>
@@ -215,7 +217,7 @@ export function PosOfflineQueueModal({
                       <button
                         type="button"
                         onClick={(e) => handleRemoveSingle(item.id, e)}
-                        title="حذف من الطابور المحلي"
+                        title={t('pos.pos_workspace.pos_offline_queue_modal.s13', "حذف من الطابور المحلي")}
                         style={{
                           background: '#fef2f2',
                           border: '1px solid #fee2e2',
@@ -227,7 +229,7 @@ export function PosOfflineQueueModal({
                           borderRadius: '6px',
                         }}
                       >
-                        حذف
+                        {t('pos.pos_workspace.pos_offline_queue_modal.s14', "حذف")}
                       </button>
                     </div>
                   </div>
@@ -242,21 +244,21 @@ export function PosOfflineQueueModal({
                       fontSize: '11px',
                       borderRight: '3px solid #ef4444',
                     }}>
-                      سبب تعثر الترحيل: {item.error}
+                      {t('pos.pos_workspace.pos_offline_queue_modal.s15', "سبب تعثر الترحيل:")} {item.error}
                     </div>
                   )}
 
                   {/* Expanded Items */}
                   {isExpanded && (
                     <div style={{ marginTop: '12px', borderTop: '1px solid #f1f5f9', paddingTop: '10px' }}>
-                      <div style={{ fontSize: '12px', fontWeight: 700, color: '#475569', marginBottom: '6px' }}>الأصناف في الفاتورة:</div>
+                      <div style={{ fontSize: '12px', fontWeight: 700, color: '#475569', marginBottom: '6px' }}>{t('pos.pos_workspace.pos_offline_queue_modal.s16', "الأصناف في الفاتورة:")}</div>
                       <table style={{ width: '100%', fontSize: '12px', borderCollapse: 'collapse' }}>
                         <thead>
                           <tr style={{ background: '#f8fafc', textAlign: 'right', color: '#64748b' }}>
-                            <th style={{ padding: '6px 8px' }}>الصنف</th>
-                            <th style={{ padding: '6px 8px' }}>الكمية</th>
-                            <th style={{ padding: '6px 8px' }}>السعر</th>
-                            <th style={{ padding: '6px 8px' }}>الإجمالي</th>
+                            <th style={{ padding: '6px 8px' }}>{t('pos.pos_workspace.pos_offline_queue_modal.s17', "الصنف")}</th>
+                            <th style={{ padding: '6px 8px' }}>{t('pos.pos_workspace.pos_offline_queue_modal.s18', "الكمية")}</th>
+                            <th style={{ padding: '6px 8px' }}>{t('pos.pos_workspace.pos_offline_queue_modal.s19', "السعر")}</th>
+                            <th style={{ padding: '6px 8px' }}>{t('pos.pos_workspace.pos_offline_queue_modal.s20', "الإجمالي")}</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -293,7 +295,7 @@ export function PosOfflineQueueModal({
                 cursor: 'pointer',
               }}
             >
-              حذف الكل
+              {t('pos.pos_workspace.pos_offline_queue_modal.s21', "حذف الكل")}
             </button>
           ) : <div />}
 
@@ -311,7 +313,7 @@ export function PosOfflineQueueModal({
               cursor: 'pointer',
             }}
           >
-            إغلاق
+            {t('pos.pos_workspace.pos_offline_queue_modal.s22', "إغلاق")}
           </button>
         </div>
       </div>

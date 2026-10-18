@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { buildStorePublicUrl, storePublicUrlParts } from '@/lib/store-public-url';
 import { getGlobalCurrencySymbol } from '@/lib/currencies';
 import React, { useState, useEffect, useRef } from 'react';
@@ -39,6 +40,7 @@ function parsePosition(posStr?: string): { x: number; y: number } {
 }
 
 export function StorefrontSettingsTab() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<'settings' | 'coupons' | 'zones' | 'payments' | 'images' | 'bosta' | 'gcc-shipping'>('settings');
   const [copySuccess, setCopySuccess] = useState(false);
@@ -402,7 +404,7 @@ export function StorefrontSettingsTab() {
   };
 
   if (settingsQuery.isLoading) {
-    return <div style={{ padding: '30px', textAlign: 'center', color: '#64748b', fontSize: '13px' }}>جاري تحميل إعدادات المتجر...</div>;
+    return <div style={{ padding: '30px', textAlign: 'center', color: '#64748b', fontSize: '13px' }}>{t('storefront.storefront_settings_tab.s0', "جاري تحميل إعدادات المتجر...")}</div>;
   }
 
   return (
@@ -427,7 +429,7 @@ export function StorefrontSettingsTab() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
             <span style={{ fontSize: '12.5px', fontWeight: 800, color: '#0f172a' }}>
-              رابط المتجر الإلكتروني الخاص بنشاطك:
+              {t('storefront.storefront_settings_tab.s1', "رابط المتجر الإلكتروني الخاص بنشاطك:")}
             </span>
             <span
               style={{
@@ -440,7 +442,7 @@ export function StorefrontSettingsTab() {
                 border: '1px solid #d8e0fc',
               }}
             >
-              مباشر ومفعل
+              {t('storefront.storefront_settings_tab.s2', "مباشر ومفعل")}
             </span>
             <span
               style={{
@@ -453,7 +455,7 @@ export function StorefrontSettingsTab() {
                 border: '1px solid #e2e8f0',
               }}
             >
-              معرّف النسخة (Slug): <strong style={{ color: '#170e5e', fontFamily: 'monospace' }}>{storeSlug}</strong>
+              {t('storefront.storefront_settings_tab.s3', "معرّف النسخة (Slug):")} <strong style={{ color: '#170e5e', fontFamily: 'monospace' }}>{storeSlug}</strong>
             </span>
           </div>
           <div className="storefront-link-url" style={{ fontSize: '13px', fontFamily: 'monospace', direction: 'ltr', color: '#170e5e', fontWeight: 700, wordBreak: 'break-all' }}>
@@ -479,10 +481,10 @@ export function StorefrontSettingsTab() {
               cursor: 'pointer',
               transition: 'background 0.1s',
             }}
-            title="طباعة وتجهيز ستيكرات وستاندات كروت الـ QR لطاولات الصالة"
+            title={t('storefront.storefront_settings_tab.s4', "طباعة وتجهيز ستيكرات وستاندات كروت الـ QR لطاولات الصالة")}
           >
             <QrCodeIcon size={13} color="#ffffff" />
-            <span>طباعة QR للطاولات</span>
+            <span>{t('storefront.storefront_settings_tab.s5', "طباعة QR للطاولات")}</span>
           </button>
           <button
             type="button"
@@ -499,7 +501,7 @@ export function StorefrontSettingsTab() {
               transition: 'background 0.1s',
             }}
           >
-            {copySuccess ? 'تم النسخ' : 'نسخ الرابط'}
+            {copySuccess ? t('storefront.storefront_settings_tab.s6', "تم النسخ") : t('storefront.storefront_settings_tab.s7', "نسخ الرابط")}
           </button>
           <a
             href={storeUrl}
@@ -519,7 +521,7 @@ export function StorefrontSettingsTab() {
               textDecoration: 'none',
             }}
           >
-            <span>معاينة المتجر ↗</span>
+            <span>{t('storefront.storefront_settings_tab.s8', "معاينة المتجر ↗")}</span>
           </a>
         </div>
       </div>
@@ -556,8 +558,8 @@ export function StorefrontSettingsTab() {
             transition: 'background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease',
           }}
         >
-          <span className="sf-tab-full">بيانات المتجر والبنر</span>
-          <span className="sf-tab-short">البيانات والبنر</span>
+          <span className="sf-tab-full">{t('storefront.storefront_settings_tab.s9', "بيانات المتجر والبنر")}</span>
+          <span className="sf-tab-short">{t('storefront.storefront_settings_tab.s10', "البيانات والبنر")}</span>
         </button>
         <button
           type="button"
@@ -577,8 +579,8 @@ export function StorefrontSettingsTab() {
             transition: 'background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease',
           }}
         >
-          <span className="sf-tab-full">كوبونات الخصم والعروض</span>
-          <span className="sf-tab-short">الكوبونات والعروض</span>
+          <span className="sf-tab-full">{t('storefront.storefront_settings_tab.s11', "كوبونات الخصم والعروض")}</span>
+          <span className="sf-tab-short">{t('storefront.storefront_settings_tab.s12', "الكوبونات والعروض")}</span>
         </button>
         <button
           type="button"
@@ -598,8 +600,8 @@ export function StorefrontSettingsTab() {
             transition: 'background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease',
           }}
         >
-          <span className="sf-tab-full">مناطق وأسعار التوصيل</span>
-          <span className="sf-tab-short">مناطق التوصيل</span>
+          <span className="sf-tab-full">{t('storefront.storefront_settings_tab.s13', "مناطق وأسعار التوصيل")}</span>
+          <span className="sf-tab-short">{t('storefront.storefront_settings_tab.s14', "مناطق التوصيل")}</span>
         </button>
         <button
           type="button"
@@ -619,8 +621,8 @@ export function StorefrontSettingsTab() {
             transition: 'background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease',
           }}
         >
-          <span className="sf-tab-full">بوابات الدفع الإلكتروني</span>
-          <span className="sf-tab-short">بوابات الدفع</span>
+          <span className="sf-tab-full">{t('storefront.storefront_settings_tab.s15', "بوابات الدفع الإلكتروني")}</span>
+          <span className="sf-tab-short">{t('storefront.storefront_settings_tab.s16', "بوابات الدفع")}</span>
         </button>
         <button
           type="button"
@@ -640,8 +642,8 @@ export function StorefrontSettingsTab() {
             transition: 'background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease',
           }}
         >
-          <span className="sf-tab-full">استوديو صور الأصناف</span>
-          <span className="sf-tab-short">صور المنتجات</span>
+          <span className="sf-tab-full">{t('storefront.storefront_settings_tab.s17', "استوديو صور الأصناف")}</span>
+          <span className="sf-tab-short">{t('storefront.storefront_settings_tab.s18', "صور المنتجات")}</span>
         </button>
         <button
           type="button"
@@ -661,7 +663,7 @@ export function StorefrontSettingsTab() {
             transition: 'background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease',
           }}
         >
-          شحن بوسطة
+          {t('storefront.storefront_settings_tab.s19', "شحن بوسطة")}
         </button>
         <button
           type="button"
@@ -681,8 +683,8 @@ export function StorefrontSettingsTab() {
             transition: 'background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease',
           }}
         >
-          <span className="sf-tab-full">شحن خليجي (أرامكس / سمسا)</span>
-          <span className="sf-tab-short">شحن خليجي</span>
+          <span className="sf-tab-full">{t('storefront.storefront_settings_tab.s20', "شحن خليجي (أرامكس / سمسا)")}</span>
+          <span className="sf-tab-short">{t('storefront.storefront_settings_tab.s21', "شحن خليجي")}</span>
         </button>
       </div>
 
@@ -705,7 +707,7 @@ export function StorefrontSettingsTab() {
           }}
         >
           <CheckIcon size={16} />
-          <span>تم حفظ وتحديث إعدادات المتجر الإلكتروني بنجاح!</span>
+          <span>{t('storefront.storefront_settings_tab.s22', "تم حفظ وتحديث إعدادات المتجر الإلكتروني بنجاح!")}</span>
         </div>
       )}
 
@@ -736,23 +738,23 @@ export function StorefrontSettingsTab() {
             >
               <div style={{ borderBottom: '1px solid #f1f5f9', paddingBottom: '8px' }}>
                 <h3 style={{ margin: 0, fontSize: '13.5px', fontWeight: 800, color: '#0f172a' }}>
-                  الهوية وبيانات المتجر
+                  {t('storefront.storefront_settings_tab.s23', "الهوية وبيانات المتجر")}
                 </h3>
                 <span style={{ fontSize: '11px', color: '#64748b' }}>
-                  الاسم والشعار والوصف الظاهر لزبائنك
+                  {t('storefront.storefront_settings_tab.s24', "الاسم والشعار والوصف الظاهر لزبائنك")}
                 </span>
               </div>
 
               {/* Store Title (Brand Name) */}
               <div>
                 <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                  اسم المتجر (البراند التجاري):
+                  {t('storefront.storefront_settings_tab.s25', "اسم المتجر (البراند التجاري):")}
                 </label>
                 <input
                   type="text"
                   value={formState.title}
                   onChange={(e) => setFormState({ ...formState, title: e.target.value })}
-                  placeholder="مثال: المهندس"
+                  placeholder={t('storefront.storefront_settings_tab.s26', "مثال: المهندس")}
                   style={{
                     width: '100%',
                     padding: '6px 10px',
@@ -796,7 +798,7 @@ export function StorefrontSettingsTab() {
                   {formState.logoUrl ? (
                     <img
                       src={formState.logoUrl}
-                      alt="شعار المتجر"
+                      alt={t('storefront.storefront_settings_tab.s27', "شعار المتجر")}
                       style={{ width: '100%', height: '100%', objectFit: 'contain' }}
                     />
                   ) : (
@@ -813,7 +815,7 @@ export function StorefrontSettingsTab() {
                         fontSize: '20px',
                       }}
                     >
-                      {formState.title.trim().charAt(0) || 'م'}
+                      {formState.title.trim().charAt(0) || t('storefront.storefront_settings_tab.s28', "م")}
                     </div>
                   )}
                 </div>
@@ -821,7 +823,7 @@ export function StorefrontSettingsTab() {
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
                     <label style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a' }}>
-                      شعار المتجر (اللوجو):
+                      {t('storefront.storefront_settings_tab.s29', "شعار المتجر (اللوجو):")}
                     </label>
                     {formState.logoUrl && (
                       <button
@@ -837,7 +839,7 @@ export function StorefrontSettingsTab() {
                           padding: '0 4px',
                         }}
                       >
-                        إزالة الشعار
+                        {t('storefront.storefront_settings_tab.s30', "إزالة الشعار")}
                       </button>
                     )}
                   </div>
@@ -864,10 +866,10 @@ export function StorefrontSettingsTab() {
                         disabled={isCompressingLogo}
                         onChange={handleLogoFileChange}
                       />
-                      <span>{isCompressingLogo ? 'جاري المعالجة...' : (formState.logoUrl ? 'تغيير الشعار' : 'رفع الشعار +')}</span>
+                      <span>{isCompressingLogo ? t('storefront.storefront_settings_tab.s31', "جاري المعالجة...") : (formState.logoUrl ? t('storefront.storefront_settings_tab.s32', "تغيير الشعار") : t('storefront.storefront_settings_tab.s33', "رفع الشعار +"))}</span>
                     </label>
                     <span style={{ fontSize: '10.5px', color: '#64748b' }}>
-                      صورة مربعة (PNG أو WebP) بخلفية بيضاء أو شفافة
+                      {t('storefront.storefront_settings_tab.s34', "صورة مربعة (PNG أو WebP) بخلفية بيضاء أو شفافة")}
                     </span>
                   </div>
                   {logoCompressFeedback && (
@@ -882,15 +884,15 @@ export function StorefrontSettingsTab() {
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', marginBottom: '4px', gap: '6px' }}>
                   <label style={{ fontSize: '11.5px', fontWeight: 700, color: '#334155' }}>
-                    عنوان أو مقر المتجر:
+                    {t('storefront.storefront_settings_tab.s35', "عنوان أو مقر المتجر:")}
                   </label>
-                  <span style={{ fontSize: '10.5px', color: '#64748b', fontWeight: 500 }}>(سطر فرعي بالهيدر)</span>
+                  <span style={{ fontSize: '10.5px', color: '#64748b', fontWeight: 500 }}>{t('storefront.storefront_settings_tab.s36', "(سطر فرعي بالهيدر)")}</span>
                 </div>
                 <input
                   type="text"
                   value={formState.address}
                   onChange={(e) => setFormState({ ...formState, address: e.target.value })}
-                  placeholder="مثال: تعاونيات الزهور - عمارة الفسطاط"
+                  placeholder={t('storefront.storefront_settings_tab.s37', "مثال: تعاونيات الزهور - عمارة الفسطاط")}
                   style={{
                     width: '100%',
                     padding: '6px 10px',
@@ -906,7 +908,7 @@ export function StorefrontSettingsTab() {
               {/* Store Slug */}
               <div>
                 <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                  معرّف المتجر في الرابط (Slug):
+                  {t('storefront.storefront_settings_tab.s38', "معرّف المتجر في الرابط (Slug):")}
                 </label>
                 <div style={{ display: 'flex', alignItems: 'center', direction: 'ltr', background: '#ffffff', border: '1.5px solid #cbd5e1', borderRadius: '6px', overflow: 'hidden' }}>
                   <span className="storefront-slug-prefix" style={{ padding: '6px 12px', background: '#f8fafc', color: '#170e5e', fontSize: '13px', borderRight: '1.5px solid #cbd5e1', fontWeight: 800, userSelect: 'none', whiteSpace: 'nowrap', flexShrink: 0, fontFamily: 'monospace' }}>
@@ -940,20 +942,20 @@ export function StorefrontSettingsTab() {
                   )}
                 </div>
                 <span style={{ display: 'block', fontSize: '10.5px', color: '#64748b', marginTop: '3px' }}>
-                  يُستخدم في رابط متجرك المباشر (أحرف إنجليزية وأرقام فقط)
+                  {t('storefront.storefront_settings_tab.s39', "يُستخدم في رابط متجرك المباشر (أحرف إنجليزية وأرقام فقط)")}
                 </span>
               </div>
 
               {/* Store Bio */}
               <div>
                 <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                  نبذة تعريفية بالمتجر (الوصف):
+                  {t('storefront.storefront_settings_tab.s40', "نبذة تعريفية بالمتجر (الوصف):")}
                 </label>
                 <input
                   type="text"
                   value={formState.bio}
                   onChange={(e) => setFormState({ ...formState, bio: e.target.value })}
-                  placeholder="مثال: أفضل منتجات العطارة والزيوت الطبيعية 100%"
+                  placeholder={t('storefront.storefront_settings_tab.s41', "مثال: أفضل منتجات العطارة والزيوت الطبيعية 100%")}
                   style={{
                     width: '100%',
                     padding: '6px 10px',
@@ -969,13 +971,13 @@ export function StorefrontSettingsTab() {
               {/* Announcement Bar */}
               <div>
                 <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                  الشريط الإعلاني العلوي (رسالة العروض):
+                  {t('storefront.storefront_settings_tab.s42', "الشريط الإعلاني العلوي (رسالة العروض):")}
                 </label>
                 <input
                   type="text"
                   value={formState.announcement}
                   onChange={(e) => setFormState({ ...formState, announcement: e.target.value })}
-                  placeholder="مثال: توصيل سريع • شحن مجاني للطلبات فوق 500 جنيه"
+                  placeholder={t('storefront.storefront_settings_tab.s43', "مثال: توصيل سريع • شحن مجاني للطلبات فوق 500 جنيه")}
                   style={{
                     width: '100%',
                     padding: '6px 10px',
@@ -991,13 +993,13 @@ export function StorefrontSettingsTab() {
               {/* WhatsApp Phone */}
               <div>
                 <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                  رقم واتساب المخصص لاستقبال الطلبات:
+                  {t('storefront.storefront_settings_tab.s44', "رقم واتساب المخصص لاستقبال الطلبات:")}
                 </label>
                 <input
                   type="tel"
                   value={formState.whatsappPhone}
                   onChange={(e) => setFormState({ ...formState, whatsappPhone: e.target.value })}
-                  placeholder="مثال: 01012345678"
+                  placeholder={t('storefront.storefront_settings_tab.s45', "مثال: 01012345678")}
                   style={{
                     width: '100%',
                     padding: '6px 10px',
@@ -1026,10 +1028,10 @@ export function StorefrontSettingsTab() {
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
                   <div>
                     <h3 style={{ fontSize: '13.5px', fontWeight: 800, color: '#0f172a', margin: 0 }}>
-                      تخصيص هوية وألوان المتجر البريميوم (3-Color Luxury Identity)
+                      {t('storefront.storefront_settings_tab.s46', "تخصيص هوية وألوان المتجر البريميوم (3-Color Luxury Identity)")}
                     </h3>
                     <p style={{ fontSize: '11.5px', color: '#64748b', margin: '3px 0 0 0' }}>
-                      اختر لوحة ألوان متناسقة جاهزة بنقرة واحدة، أو خصص الألوان الثلاثة (الأساسي، العروض، الأسطح) لتعكس هويتك التجارية بدقة وفخامة.
+                      {t('storefront.storefront_settings_tab.s47', "اختر لوحة ألوان متناسقة جاهزة بنقرة واحدة، أو خصص الألوان الثلاثة (الأساسي، العروض، الأسطح) لتعكس هويتك التجارية بدقة وفخامة.")}
                     </p>
                   </div>
                   <span
@@ -1043,55 +1045,55 @@ export function StorefrontSettingsTab() {
                       borderRadius: '20px',
                     }}
                   >
-                    النمط المختار: {formState.themePreset || 'custom'}
+                    {t('storefront.storefront_settings_tab.s48', "النمط المختار:")} {formState.themePreset || 'custom'}
                   </span>
                 </div>
 
                 {/* 1. Curated Luxury Palettes (One-Click) */}
                 <div style={{ marginBottom: '16px' }}>
                   <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#475569', marginBottom: '8px' }}>
-                    لوحات ألوان بريميوم جاهزة ومعتمدة:
+                    {t('storefront.storefront_settings_tab.s49', "لوحات ألوان بريميوم جاهزة ومعتمدة:")}
                   </label>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '8px' }}>
                     {[
                       {
                         id: 'royal_navy',
-                        name: 'الكحلي الملكي',
+                        name: t('storefront.storefront_settings_tab.s50', "الكحلي الملكي"),
                         primary: '#170e5e',
                         secondary: '#f59e0b',
                         surface: '#f8fafc',
                       },
                       {
                         id: 'imperial_emerald',
-                        name: 'الزمردي الإمبراطوري',
+                        name: t('storefront.storefront_settings_tab.s51', "الزمردي الإمبراطوري"),
                         primary: '#065f46',
                         secondary: '#d97706',
                         surface: '#f0fdf4',
                       },
                       {
                         id: 'velvet_boutique',
-                        name: 'البوتيك المخملي',
+                        name: t('storefront.storefront_settings_tab.s52', "البوتيك المخملي"),
                         primary: '#881337',
                         secondary: '#e11d48',
                         surface: '#fff1f2',
                       },
                       {
                         id: 'italian_roast',
-                        name: 'القهوة الإيطالية',
+                        name: t('storefront.storefront_settings_tab.s53', "القهوة الإيطالية"),
                         primary: '#451a03',
                         secondary: '#d97706',
                         surface: '#faf8f5',
                       },
                       {
                         id: 'modern_obsidian',
-                        name: 'الفحمي العصري',
+                        name: t('storefront.storefront_settings_tab.s54', "الفحمي العصري"),
                         primary: '#0f172a',
                         secondary: '#2563eb',
                         surface: '#f1f5f9',
                       },
                       {
                         id: 'royal_amethyst',
-                        name: 'الأرجواني الفاخر',
+                        name: t('storefront.storefront_settings_tab.s55', "الأرجواني الفاخر"),
                         primary: '#581c87',
                         secondary: '#06b6d4',
                         surface: '#faf5ff',
@@ -1148,10 +1150,10 @@ export function StorefrontSettingsTab() {
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#ffffff', padding: '8px 12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
                       <div>
                         <span style={{ display: 'block', fontSize: '11.5px', fontWeight: 800, color: '#0f172a' }}>
-                          1. اللون الأساسي (Primary Color):
+                          {t('storefront.storefront_settings_tab.s56', "1. اللون الأساسي (Primary Color):")}
                         </span>
                         <span style={{ fontSize: '10.5px', color: '#64748b' }}>
-                          للهيدر، أزرار الشراء وسلة التسوق
+                          {t('storefront.storefront_settings_tab.s57', "للهيدر، أزرار الشراء وسلة التسوق")}
                         </span>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -1174,10 +1176,10 @@ export function StorefrontSettingsTab() {
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#ffffff', padding: '8px 12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
                       <div>
                         <span style={{ display: 'block', fontSize: '11.5px', fontWeight: 800, color: '#0f172a' }}>
-                          2. لون التمييز والعروض (Accent / Deals):
+                          {t('storefront.storefront_settings_tab.s58', "2. لون التمييز والعروض (Accent / Deals):")}
                         </span>
                         <span style={{ fontSize: '10.5px', color: '#64748b' }}>
-                          شارات الخصومات وأشرطة التوفير
+                          {t('storefront.storefront_settings_tab.s59', "شارات الخصومات وأشرطة التوفير")}
                         </span>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -1200,10 +1202,10 @@ export function StorefrontSettingsTab() {
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#ffffff', padding: '8px 12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
                       <div>
                         <span style={{ display: 'block', fontSize: '11.5px', fontWeight: 800, color: '#0f172a' }}>
-                          3. لون الأسطح والخلفيات (Surface Tint):
+                          {t('storefront.storefront_settings_tab.s60', "3. لون الأسطح والخلفيات (Surface Tint):")}
                         </span>
                         <span style={{ fontSize: '10.5px', color: '#64748b' }}>
-                          خلفيات المتجر وبطاقات التصنيفات
+                          {t('storefront.storefront_settings_tab.s61', "خلفيات المتجر وبطاقات التصنيفات")}
                         </span>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -1238,7 +1240,7 @@ export function StorefrontSettingsTab() {
                   >
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <span style={{ fontSize: '10.5px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                        معاينة المتجر الحية (Live Preview)
+                        {t('storefront.storefront_settings_tab.s62', "معاينة المتجر الحية (Live Preview)")}
                       </span>
                       <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#22c55e' }} />
                     </div>
@@ -1256,7 +1258,7 @@ export function StorefrontSettingsTab() {
                       }}
                     >
                       <span style={{ fontSize: '11.5px', fontWeight: 900 }}>
-                        {formState.title || 'متجري الإلكتروني'}
+                        {formState.title || t('storefront.storefront_settings_tab.s63', "متجري الإلكتروني")}
                       </span>
                       <span
                         style={{
@@ -1268,7 +1270,7 @@ export function StorefrontSettingsTab() {
                           borderRadius: '12px',
                         }}
                       >
-                        السلة (1)
+                        {t('storefront.storefront_settings_tab.s64', "السلة (1)")}
                       </span>
                     </div>
 
@@ -1288,7 +1290,7 @@ export function StorefrontSettingsTab() {
                       <div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
                           <span style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a' }}>
-                            منتج تجريبي
+                            {t('storefront.storefront_settings_tab.s65', "منتج تجريبي")}
                           </span>
                           <span
                             style={{
@@ -1300,15 +1302,15 @@ export function StorefrontSettingsTab() {
                               borderRadius: '4px',
                             }}
                           >
-                            خصم 20%
+                            {t('storefront.storefront_settings_tab.s66', "خصم 20%")}
                           </span>
                         </div>
                         <div style={{ fontSize: '11.5px', marginTop: '2px' }}>
                           <strong style={{ color: formState.brandColor || '#170e5e', fontWeight: 900 }}>
-                            160 ج
+                            {t('storefront.storefront_settings_tab.s67', "160 ج")}
                           </strong>{' '}
                           <span style={{ fontSize: '10px', color: '#94a3b8', textDecoration: 'line-through' }}>
-                            200 ج
+                            {t('storefront.storefront_settings_tab.s68', "200 ج")}
                           </span>
                         </div>
                       </div>
@@ -1322,7 +1324,7 @@ export function StorefrontSettingsTab() {
                           borderRadius: '6px',
                         }}
                       >
-                        أضف للسلة
+                        {t('storefront.storefront_settings_tab.s69', "أضف للسلة")}
                       </span>
                     </div>
                   </div>
@@ -1345,10 +1347,10 @@ export function StorefrontSettingsTab() {
               >
                 <div style={{ minWidth: 0, flex: 1 }}>
                   <span style={{ fontSize: '12px', fontWeight: 700, color: '#0f172a', display: 'block' }}>
-                    تفعيل استلام الطلبات من الفرع (Click & Collect)
+                    {t('storefront.storefront_settings_tab.s70', "تفعيل استلام الطلبات من الفرع (Click & Collect)")}
                   </span>
                   <span style={{ fontSize: '10.5px', color: '#64748b' }}>
-                    يتيح للزبائن اختيار استلام طلبهم ذاتياً من مقركم بدون مصاريف توصيل
+                    {t('storefront.storefront_settings_tab.s71', "يتيح للزبائن اختيار استلام طلبهم ذاتياً من مقركم بدون مصاريف توصيل")}
                   </span>
                 </div>
                 <input
@@ -1363,17 +1365,17 @@ export function StorefrontSettingsTab() {
               <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '12px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
                   <label style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a' }}>
-                    الدومين المخصص لمتجرك (Custom Domain):
+                    {t('storefront.storefront_settings_tab.s72', "الدومين المخصص لمتجرك (Custom Domain):")}
                   </label>
                   <span style={{ fontSize: '10.5px', background: '#dbeafe', color: '#1e40af', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
-                    ميزة متقدمة
+                    {t('storefront.storefront_settings_tab.s73', "ميزة متقدمة")}
                   </span>
                 </div>
                 <input
                   type="text"
                   value={formState.customDomain}
                   onChange={(e) => setFormState({ ...formState, customDomain: e.target.value })}
-                  placeholder="مثال: store.mybrand.com"
+                  placeholder={t('storefront.storefront_settings_tab.s74', "مثال: store.mybrand.com")}
                   style={{
                     width: '100%',
                     padding: '6px 10px',
@@ -1389,7 +1391,7 @@ export function StorefrontSettingsTab() {
                   }}
                 />
                 <div style={{ fontSize: '11px', color: '#64748b', lineHeight: 1.5 }}>
-                  لربط دومينك الخاص، أضف سجل <strong>CNAME</strong> في لوحة تحكم نطاقك يوجه إلى:
+                  {t('storefront.storefront_settings_tab.s75', "لربط دومينك الخاص، أضف سجل")} <strong>CNAME</strong> {t('storefront.storefront_settings_tab.s76', "في لوحة تحكم نطاقك يوجه إلى:")}
                   <code style={{ background: '#e2e8f0', padding: '2px 5px', borderRadius: '4px', margin: '0 4px', color: '#0f172a' }}>
                     92-5-178-54.sslip.io
                   </code>
@@ -1412,10 +1414,10 @@ export function StorefrontSettingsTab() {
             >
               <div style={{ borderBottom: '1px solid #f1f5f9', paddingBottom: '8px' }}>
                 <h3 style={{ margin: 0, fontSize: '13.5px', fontWeight: 800, color: '#0f172a' }}>
-                  التشغيل والتوصيل وبنر الواجهة
+                  {t('storefront.storefront_settings_tab.s77', "التشغيل والتوصيل وبنر الواجهة")}
                 </h3>
                 <span style={{ fontSize: '11px', color: '#64748b' }}>
-                  إعدادات التوصيل وتخصيص البنر
+                  {t('storefront.storefront_settings_tab.s78', "إعدادات التوصيل وتخصيص البنر")}
                 </span>
               </div>
 
@@ -1435,10 +1437,10 @@ export function StorefrontSettingsTab() {
               >
                 <div style={{ minWidth: 0, flex: 1 }}>
                   <span style={{ fontSize: '12px', fontWeight: 700, color: '#0f172a', display: 'block' }}>
-                    تفعيل استقبال الطلبات أونلاين
+                    {t('storefront.storefront_settings_tab.s79', "تفعيل استقبال الطلبات أونلاين")}
                   </span>
                   <span style={{ fontSize: '11px', color: '#64748b' }}>
-                    إتاحة أو إيقاف استقبال طلبات الشراء
+                    {t('storefront.storefront_settings_tab.s80', "إتاحة أو إيقاف استقبال طلبات الشراء")}
                   </span>
                 </div>
                 <input
@@ -1466,10 +1468,10 @@ export function StorefrontSettingsTab() {
               >
                 <div style={{ minWidth: 0, flex: 1 }}>
                   <span style={{ fontSize: '12px', fontWeight: 700, color: '#0f172a', display: 'block' }}>
-                    تفعيل العروض التسويقية الذكية (Smart Deals)
+                    {t('storefront.storefront_settings_tab.s81', "تفعيل العروض التسويقية الذكية (Smart Deals)")}
                   </span>
                   <span style={{ fontSize: '11px', color: '#64748b' }}>
-                    توليد شارات وتخفيضات شكلية على الأصناف المميزة لإعطاء مظهر تسويقي جذاب للمتجر
+                    {t('storefront.storefront_settings_tab.s82', "توليد شارات وتخفيضات شكلية على الأصناف المميزة لإعطاء مظهر تسويقي جذاب للمتجر")}
                   </span>
                 </div>
                 <input
@@ -1497,10 +1499,10 @@ export function StorefrontSettingsTab() {
               >
                 <div style={{ minWidth: 0, flex: 1 }}>
                   <span style={{ fontSize: '12px', fontWeight: 700, color: '#0f172a', display: 'block' }}>
-                    إظهار المنتجات المنتهية من المخزون (بوسم "ستتوفر قريباً")
+                    {t('storefront.storefront_settings_tab.s83', "إظهار المنتجات المنتهية من المخزون (بوسم \"ستتوفر قريباً\")")}
                   </span>
                   <span style={{ fontSize: '11px', color: '#64748b' }}>
-                    عند التفعيل: تظهر الأصناف المنتهية بشارة "ستتوفر قريباً" وزر غير متاح للطلب. عند التعطيل: تُخفى تلقائياً من المتجر لتسهيل تجربة الشراء (موصى به).
+                    {t('storefront.storefront_settings_tab.s84', "عند التفعيل: تظهر الأصناف المنتهية بشارة \"ستتوفر قريباً\" وزر غير متاح للطلب. عند التعطيل: تُخفى تلقائياً من المتجر لتسهيل تجربة الشراء (موصى به).")}
                   </span>
                 </div>
                 <input
@@ -1528,10 +1530,10 @@ export function StorefrontSettingsTab() {
               >
                 <div style={{ minWidth: 0, flex: 1 }}>
                   <span style={{ fontSize: '12px', fontWeight: 700, color: '#0f172a', display: 'block' }}>
-                    السماح بالطلب دون التقيد بالرصيد المخزني (مناسب للمطاعم وتجهيز الوجبات)
+                    {t('storefront.storefront_settings_tab.s85', "السماح بالطلب دون التقيد بالرصيد المخزني (مناسب للمطاعم وتجهيز الوجبات)")}
                   </span>
                   <span style={{ fontSize: '11px', color: '#64748b' }}>
-                    إظهار الوجبات والأصناف بحالة "متوفر" وزر "أضف للسلة" مفعل دائماً حتى لو كان رصيد المخزن 0
+                    {t('storefront.storefront_settings_tab.s86', "إظهار الوجبات والأصناف بحالة \"متوفر\" وزر \"أضف للسلة\" مفعل دائماً حتى لو كان رصيد المخزن 0")}
                   </span>
                 </div>
                 <input
@@ -1546,7 +1548,7 @@ export function StorefrontSettingsTab() {
               <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: '10px', minWidth: 0 }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                    رسوم التوصيل ({getGlobalCurrencySymbol()}):
+                    {t('storefront.storefront_settings_tab.s87', "رسوم التوصيل (")}{getGlobalCurrencySymbol()}):
                   </label>
                   <input
                     type="number"
@@ -1567,7 +1569,7 @@ export function StorefrontSettingsTab() {
 
                 <div>
                   <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                    الحد الأدنى للطلب ({getGlobalCurrencySymbol()}):
+                    {t('storefront.storefront_settings_tab.s88', "الحد الأدنى للطلب (")}{getGlobalCurrencySymbol()}):
                   </label>
                   <input
                     type="number"
@@ -1605,7 +1607,7 @@ export function StorefrontSettingsTab() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0, flex: '1 1 180px' }}>
                   <LightbulbIcon size={14} color="#170e5e" />
                   <span style={{ fontSize: '11px', color: '#170e5e', fontWeight: 600 }}>
-                    هل تريد تحديد أسعار دليفري مختلفة لكل حي أو محافظة تخدمها؟
+                    {t('storefront.storefront_settings_tab.s89', "هل تريد تحديد أسعار دليفري مختلفة لكل حي أو محافظة تخدمها؟")}
                   </span>
                 </div>
                 <button
@@ -1624,7 +1626,7 @@ export function StorefrontSettingsTab() {
                     flexShrink: 0,
                   }}
                 >
-                  إدارة مصفوفة المناطق ↗
+                  {t('storefront.storefront_settings_tab.s90', "إدارة مصفوفة المناطق ↗")}
                 </button>
               </div>
 
@@ -1646,10 +1648,10 @@ export function StorefrontSettingsTab() {
                   <div style={{ minWidth: 0, flex: 1 }}>
                     <span style={{ fontSize: '12px', fontWeight: 700, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap' }}>
                       <TruckIcon size={15} color="#170e5e" />
-                      <span>تفعيل الشحن المجاني التلقائي (Free Shipping Rule)</span>
+                      <span>{t('storefront.storefront_settings_tab.s91', "تفعيل الشحن المجاني التلقائي (Free Shipping Rule)")}</span>
                     </span>
                     <span style={{ fontSize: '11px', color: '#64748b', display: 'block', marginTop: '1px' }}>
-                      إلغاء رسوم التوصيل تلقائياً عندما يتجاوز إجمالي مشتريات الزبون حداً معيناً
+                      {t('storefront.storefront_settings_tab.s92', "إلغاء رسوم التوصيل تلقائياً عندما يتجاوز إجمالي مشتريات الزبون حداً معيناً")}
                     </span>
                   </div>
                   <input
@@ -1673,7 +1675,7 @@ export function StorefrontSettingsTab() {
                     }}
                   >
                     <label style={{ fontSize: '11.5px', fontWeight: 700, color: '#166534' }}>
-                      شحن مجاني عند الطلب بمبلغ ({getGlobalCurrencySymbol()}) أو أكثر:
+                      {t('storefront.storefront_settings_tab.s93', "شحن مجاني عند الطلب بمبلغ (")}{getGlobalCurrencySymbol()}{t('storefront.storefront_settings_tab.s94', ") أو أكثر:")}
                     </label>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <input
@@ -1696,7 +1698,7 @@ export function StorefrontSettingsTab() {
                         }}
                       />
                       <span style={{ fontSize: '11px', color: '#15803d' }}>
-                        (مثال: 500 جنيه)
+                        {t('storefront.storefront_settings_tab.s95', "(مثال: 500 جنيه)")}
                       </span>
                     </div>
                   </div>
@@ -1715,10 +1717,10 @@ export function StorefrontSettingsTab() {
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                   <div>
                     <span style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a', display: 'block' }}>
-                      سلايدر بنرات العروض (متحرك تلقائياً):
+                      {t('storefront.storefront_settings_tab.s96', "سلايدر بنرات العروض (متحرك تلقائياً):")}
                     </span>
                     <span style={{ fontSize: '11px', color: '#64748b' }}>
-                      أضف صورة أو أكثر لتقلب تلقائياً كـ GIF في واجهة المتجر
+                      {t('storefront.storefront_settings_tab.s97', "أضف صورة أو أكثر لتقلب تلقائياً كـ GIF في واجهة المتجر")}
                     </span>
                   </div>
                   {formState.bannerUrls.length > 0 && (
@@ -1739,7 +1741,7 @@ export function StorefrontSettingsTab() {
                       }}
                     >
                       <Trash2Icon size={12} color="#ef4444" />
-                      <span>حذف الكل</span>
+                      <span>{t('storefront.storefront_settings_tab.s98', "حذف الكل")}</span>
                     </button>
                   )}
                 </div>
@@ -1748,7 +1750,7 @@ export function StorefrontSettingsTab() {
                 {formState.bannerUrls.length > 1 && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px', flexWrap: 'wrap' }}>
                     <span style={{ fontSize: '11px', fontWeight: 700, color: '#475569' }}>
-                      اختر الشريحة لتعديل موضعها:
+                      {t('storefront.storefront_settings_tab.s99', "اختر الشريحة لتعديل موضعها:")}
                     </span>
                     {formState.bannerUrls.map((_, idx) => (
                       <button
@@ -1767,7 +1769,7 @@ export function StorefrontSettingsTab() {
                           transition: 'all 0.15s ease',
                         }}
                       >
-                        شريحة #{idx + 1}
+                        {t('storefront.storefront_settings_tab.s100', "شريحة #")}{idx + 1}
                       </button>
                     ))}
                   </div>
@@ -1821,7 +1823,7 @@ export function StorefrontSettingsTab() {
                       {/* Foreground Image Layer with Object Position */}
                       <img
                         src={formState.bannerUrls[previewSlideIndex] || formState.bannerUrls[0]}
-                        alt="معاينة حية للبنر"
+                        alt={t('storefront.storefront_settings_tab.s101', "معاينة حية للبنر")}
                         draggable={false}
                         style={{
                           position: 'relative',
@@ -1868,7 +1870,7 @@ export function StorefrontSettingsTab() {
                               boxShadow: '0 1px 4px rgba(0,0,0,0.2)',
                             }}
                           >
-                            <span>اسحب الصورة بالماوس لضبط موضع الظهور</span>
+                            <span>{t('storefront.storefront_settings_tab.s102', "اسحب الصورة بالماوس لضبط موضع الظهور")}</span>
                           </div>
 
                           <div
@@ -1883,10 +1885,10 @@ export function StorefrontSettingsTab() {
                               transition: 'background 0.2s',
                             }}
                           >
-                            {isDragging ? 'جاري التحريك...' : (
+                            {isDragging ? t('storefront.storefront_settings_tab.s103', "جاري التحريك...") : (
                               formState.bannerUrls.length > 1
                                 ? `شريحة ${previewSlideIndex + 1} من ${formState.bannerUrls.length}`
-                                : 'شريحة رئيسية'
+                                : t('storefront.storefront_settings_tab.s104', "شريحة رئيسية")
                             )}
                           </div>
                         </div>
@@ -1906,7 +1908,7 @@ export function StorefrontSettingsTab() {
                               backdropFilter: 'blur(4px)',
                             }}
                           >
-                            الموضع: أفقي {Math.round(currentCoords.x)}% | رأسي {Math.round(currentCoords.y)}%
+                            {t('storefront.storefront_settings_tab.s105', "الموضع: أفقي")} {Math.round(currentCoords.x)}{t('storefront.storefront_settings_tab.s106', "% | رأسي")} {Math.round(currentCoords.y)}%
                           </div>
                         </div>
                       </div>
@@ -1929,12 +1931,12 @@ export function StorefrontSettingsTab() {
                             cursor: 'pointer',
                           }}
                         >
-                          ⟲ توسيط للمنتصف (50% 50%)
+                          {t('storefront.storefront_settings_tab.s107', "⟲ توسيط للمنتصف (50% 50%)")}
                         </button>
                       </div>
 
                       <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <span style={{ fontSize: '10px', color: '#64748b', fontWeight: 600 }}>محاذاة سريعة:</span>
+                        <span style={{ fontSize: '10px', color: '#64748b', fontWeight: 600 }}>{t('storefront.storefront_settings_tab.s108', "محاذاة سريعة:")}</span>
                         <button
                           type="button"
                           onClick={() => handleSetExactPosition('50% 0%')}
@@ -1949,7 +1951,7 @@ export function StorefrontSettingsTab() {
                             cursor: 'pointer',
                           }}
                         >
-                          أعلى
+                          {t('storefront.storefront_settings_tab.s109', "أعلى")}
                         </button>
                         <button
                           type="button"
@@ -1965,7 +1967,7 @@ export function StorefrontSettingsTab() {
                             cursor: 'pointer',
                           }}
                         >
-                          أسفل
+                          {t('storefront.storefront_settings_tab.s110', "أسفل")}
                         </button>
                         <button
                           type="button"
@@ -1981,7 +1983,7 @@ export function StorefrontSettingsTab() {
                             cursor: 'pointer',
                           }}
                         >
-                          يمين
+                          {t('storefront.storefront_settings_tab.s111', "يمين")}
                         </button>
                         <button
                           type="button"
@@ -1997,7 +1999,7 @@ export function StorefrontSettingsTab() {
                             cursor: 'pointer',
                           }}
                         >
-                          يسار
+                          {t('storefront.storefront_settings_tab.s112', "يسار")}
                         </button>
                       </div>
                     </div>
@@ -2021,10 +2023,10 @@ export function StorefrontSettingsTab() {
                 >
                   <div>
                     <span style={{ fontSize: '11.5px', fontWeight: 800, color: '#0f172a', display: 'block' }}>
-                      سرعة تقليب الشرائح تلقائياً:
+                      {t('storefront.storefront_settings_tab.s113', "سرعة تقليب الشرائح تلقائياً:")}
                     </span>
                     <span style={{ fontSize: '10.5px', color: '#64748b' }}>
-                      يقف التقليب تلقائياً بمجرد وقوف الماوس فوق البنر
+                      {t('storefront.storefront_settings_tab.s114', "يقف التقليب تلقائياً بمجرد وقوف الماوس فوق البنر")}
                     </span>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap', minWidth: 0 }}>
@@ -2044,7 +2046,7 @@ export function StorefrontSettingsTab() {
                           cursor: 'pointer',
                         }}
                       >
-                        {sec} ث
+                        {sec} {t('storefront.storefront_settings_tab.s115', "ث")}
                       </button>
                     ))}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '3px', marginInlineStart: '4px' }}>
@@ -2070,7 +2072,7 @@ export function StorefrontSettingsTab() {
                           direction: 'ltr',
                         }}
                       />
-                      <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 700 }}>ث</span>
+                      <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 700 }}>{t('storefront.storefront_settings_tab.s116', "ث")}</span>
                     </div>
                   </div>
                 </div>
@@ -2093,7 +2095,7 @@ export function StorefrontSettingsTab() {
                     }}
                   >
                     <span style={{ fontSize: '11px', fontWeight: 700, color: '#475569' }}>
-                      طريقة ملء إطار البنر:
+                      {t('storefront.storefront_settings_tab.s117', "طريقة ملء إطار البنر:")}
                     </span>
                     <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', minWidth: 0 }}>
                       <button
@@ -2110,8 +2112,8 @@ export function StorefrontSettingsTab() {
                           cursor: 'pointer',
                         }}
                       >
-                        <span className="banner-fit-full">ملء كامل الإطار (Cover - مفضل للسحب)</span>
-                        <span className="banner-fit-short">ملء الإطار (Cover)</span>
+                        <span className="banner-fit-full">{t('storefront.storefront_settings_tab.s118', "ملء كامل الإطار (Cover - مفضل للسحب)")}</span>
+                        <span className="banner-fit-short">{t('storefront.storefront_settings_tab.s119', "ملء الإطار (Cover)")}</span>
                       </button>
                       <button
                         type="button"
@@ -2127,8 +2129,8 @@ export function StorefrontSettingsTab() {
                           cursor: 'pointer',
                         }}
                       >
-                        <span className="banner-fit-full">احتواء كامل (Contain)</span>
-                        <span className="banner-fit-short">احتواء (Contain)</span>
+                        <span className="banner-fit-full">{t('storefront.storefront_settings_tab.s120', "احتواء كامل (Contain)")}</span>
+                        <span className="banner-fit-short">{t('storefront.storefront_settings_tab.s121', "احتواء (Contain)")}</span>
                       </button>
                     </div>
                   </div>
@@ -2138,7 +2140,7 @@ export function StorefrontSettingsTab() {
                 {formState.bannerUrls.length > 0 && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '12px' }}>
                     <span style={{ fontSize: '11px', fontWeight: 700, color: '#334155' }}>
-                      الشرائح المضافة ({formState.bannerUrls.length}):
+                      {t('storefront.storefront_settings_tab.s122', "الشرائح المضافة (")}{formState.bannerUrls.length}):
                     </span>
                     {formState.bannerUrls.map((url, idx) => (
                       <div
@@ -2167,7 +2169,7 @@ export function StorefrontSettingsTab() {
                             }}
                           />
                           <span style={{ fontSize: '11.5px', fontWeight: 700, color: '#0f172a' }}>
-                            شريحة #{idx + 1} {idx === 0 ? '(الرئيسية الأولى)' : ''}
+                            {t('storefront.storefront_settings_tab.s123', "شريحة #")}{idx + 1} {idx === 0 ? t('storefront.storefront_settings_tab.s124', "(الرئيسية الأولى)") : ''}
                           </span>
                         </div>
 
@@ -2176,7 +2178,7 @@ export function StorefrontSettingsTab() {
                             <button
                               type="button"
                               onClick={() => handleMoveBanner(idx, 'up')}
-                              title="نقل للأعلى"
+                              title={t('storefront.storefront_settings_tab.s125', "نقل للأعلى")}
                               style={{
                                 padding: '2px 6px',
                                 fontSize: '11px',
@@ -2193,7 +2195,7 @@ export function StorefrontSettingsTab() {
                             <button
                               type="button"
                               onClick={() => handleMoveBanner(idx, 'down')}
-                              title="نقل للأسفل"
+                              title={t('storefront.storefront_settings_tab.s126', "نقل للأسفل")}
                               style={{
                                 padding: '2px 6px',
                                 fontSize: '11px',
@@ -2209,7 +2211,7 @@ export function StorefrontSettingsTab() {
                           <button
                             type="button"
                             onClick={() => handleRemoveBanner(idx)}
-                            title="حذف هذه الشريحة"
+                            title={t('storefront.storefront_settings_tab.s127', "حذف هذه الشريحة")}
                             style={{
                               padding: '2px 6px',
                               fontSize: '11px',
@@ -2246,18 +2248,18 @@ export function StorefrontSettingsTab() {
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 800, color: '#0f172a', marginBottom: '6px' }}>
                     <LightbulbIcon size={14} color="#f59e0b" />
-                    <span>دليل التصميم الاحترافي للبنر بالذكاء الاصطناعي (ChatGPT / Midjourney / DALL-E):</span>
+                    <span>{t('storefront.storefront_settings_tab.s128', "دليل التصميم الاحترافي للبنر بالذكاء الاصطناعي (ChatGPT / Midjourney / DALL-E):")}</span>
                   </div>
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', marginBottom: '10px' }}>
                     <div>
-                      • <strong>المقاس الذهبي المعتمد:</strong> <strong>1600 × 400</strong> بكسل (أو <strong>1920 × 480</strong> فائقة الجودة أو <strong>1280 × 320</strong>). النسبة الهندسية الثابتة هي <strong>4:1</strong> شريطي بانورامي (العرض أربعة أضعاف الارتفاع تماماً).
+                      • <strong>{t('storefront.storefront_settings_tab.s129', "المقاس الذهبي المعتمد:")}</strong> <strong>1600 × 400</strong> {t('storefront.storefront_settings_tab.s130', "بكسل (أو")} <strong>1920 × 480</strong> {t('storefront.storefront_settings_tab.s131', "فائقة الجودة أو")} <strong>1280 × 320</strong>{t('storefront.storefront_settings_tab.s132', "). النسبة الهندسية الثابتة هي")} <strong>4:1</strong> {t('storefront.storefront_settings_tab.s133', "شريطي بانورامي (العرض أربعة أضعاف الارتفاع تماماً).")}
                     </div>
                     <div>
-                      • <strong>قاعدة منطقة الأمان (60% بالمنتصف):</strong> اطلب دائماً حصر اسم المتجر والشعار والمنتجات والنصوص في الـ <strong>60% الوسطى فقط</strong> من الكادر، مع ترك الـ 20% يميناً ويساراً كخلفية ممتدة ناعمة بدون عناصر مقطوعة حتى يملأ البنر الشاشة 100% بدون أي قص للحروف.
+                      • <strong>{t('storefront.storefront_settings_tab.s134', "قاعدة منطقة الأمان (60% بالمنتصف):")}</strong> {t('storefront.storefront_settings_tab.s135', "اطلب دائماً حصر اسم المتجر والشعار والمنتجات والنصوص في الـ")} <strong>{t('storefront.storefront_settings_tab.s136', "60% الوسطى فقط")}</strong> {t('storefront.storefront_settings_tab.s137', "من الكادر، مع ترك الـ 20% يميناً ويساراً كخلفية ممتدة ناعمة بدون عناصر مقطوعة حتى يملأ البنر الشاشة 100% بدون أي قص للحروف.")}
                     </div>
                     <div>
-                      • <strong>ملء الشاشة مع نمط الاحتواء الكامل (Contain):</strong> عند استخدام مقاس 1600×400 ونمط "احتواء كامل"، سيملأ البنر كامل عرض الحاوية دون أي فراغات ودون قطع أي طرف من التصميم.
+                      • <strong>{t('storefront.storefront_settings_tab.s138', "ملء الشاشة مع نمط الاحتواء الكامل (Contain):")}</strong> {t('storefront.storefront_settings_tab.s139', "عند استخدام مقاس 1600×400 ونمط \"احتواء كامل\"، سيملأ البنر كامل عرض الحاوية دون أي فراغات ودون قطع أي طرف من التصميم.")}
                     </div>
                   </div>
 
@@ -2271,7 +2273,7 @@ export function StorefrontSettingsTab() {
                       padding: '8px 10px',
                     }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
-                        <span style={{ fontSize: '11px', fontWeight: 800, color: '#170e5e' }}>صيغة شات جي بي تي (ChatGPT / DALL-E بالعربية):</span>
+                        <span style={{ fontSize: '11px', fontWeight: 800, color: '#170e5e' }}>{t('storefront.storefront_settings_tab.s140', "صيغة شات جي بي تي (ChatGPT / DALL-E بالعربية):")}</span>
                         <button
                           type="button"
                           onClick={() => handleCopyPrompt('ar')}
@@ -2291,7 +2293,7 @@ export function StorefrontSettingsTab() {
                           }}
                         >
                           {copiedPromptKey === 'ar' ? <CheckIcon size={12} color="#059669" /> : <CopyIcon size={12} color="#475569" />}
-                          <span>{copiedPromptKey === 'ar' ? 'تم نسخ الصيغة العربية!' : 'نسخ برومبت ChatGPT'}</span>
+                          <span>{copiedPromptKey === 'ar' ? t('storefront.storefront_settings_tab.s141', "تم نسخ الصيغة العربية!") : t('storefront.storefront_settings_tab.s142', "نسخ برومبت ChatGPT")}</span>
                         </button>
                       </div>
                       <div style={{
@@ -2317,7 +2319,7 @@ export function StorefrontSettingsTab() {
                       padding: '8px 10px',
                     }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
-                        <span style={{ fontSize: '11px', fontWeight: 800, color: '#170e5e' }}>صيغة Midjourney / FLUX (باللغة الإنجليزية للأبعاد الدقيقة):</span>
+                        <span style={{ fontSize: '11px', fontWeight: 800, color: '#170e5e' }}>{t('storefront.storefront_settings_tab.s143', "صيغة Midjourney / FLUX (باللغة الإنجليزية للأبعاد الدقيقة):")}</span>
                         <button
                           type="button"
                           onClick={() => handleCopyPrompt('en')}
@@ -2337,7 +2339,7 @@ export function StorefrontSettingsTab() {
                           }}
                         >
                           {copiedPromptKey === 'en' ? <CheckIcon size={12} color="#059669" /> : <CopyIcon size={12} color="#475569" />}
-                          <span>{copiedPromptKey === 'en' ? 'Copied Prompt!' : 'نسخ برومبت Midjourney'}</span>
+                          <span>{copiedPromptKey === 'en' ? 'Copied Prompt!' : t('storefront.storefront_settings_tab.s144', "نسخ برومبت Midjourney")}</span>
                         </button>
                       </div>
                       <div style={{
@@ -2400,10 +2402,10 @@ export function StorefrontSettingsTab() {
                   />
                   <span>
                     {isCompressingBanner
-                      ? 'جاري الضغط والمعالجة...'
+                      ? t('storefront.storefront_settings_tab.s145', "جاري الضغط والمعالجة...")
                       : formState.bannerUrls.length > 0
-                      ? 'إضافة صورة شريحة أخرى +'
-                      : 'رفع صورة بنر أولى +'}
+                      ? t('storefront.storefront_settings_tab.s146', "إضافة صورة شريحة أخرى +")
+                      : t('storefront.storefront_settings_tab.s147', "رفع صورة بنر أولى +")}
                   </span>
                 </label>
               </div>
@@ -2426,14 +2428,14 @@ export function StorefrontSettingsTab() {
               <div style={{ borderBottom: '1px solid #f1f5f9', paddingBottom: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div>
                   <h3 style={{ margin: 0, fontSize: '13.5px', fontWeight: 800, color: '#0f172a' }}>
-                    أكواد البيكسل والتتبع الإعلاني (Marketing & Conversion Pixels)
+                    {t('storefront.storefront_settings_tab.s148', "أكواد البيكسل والتتبع الإعلاني (Marketing & Conversion Pixels)")}
                   </h3>
                   <span style={{ fontSize: '11px', color: '#64748b' }}>
-                    تتبع الزيارات وإتمام عمليات الشراء تلقائياً على المنصات الإعلانية العالمية
+                    {t('storefront.storefront_settings_tab.s149', "تتبع الزيارات وإتمام عمليات الشراء تلقائياً على المنصات الإعلانية العالمية")}
                   </span>
                 </div>
                 <span style={{ fontSize: '10.5px', background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', padding: '2px 8px', borderRadius: '4px', fontWeight: 700 }}>
-                  تتبع تلقائي للأحداث
+                  {t('storefront.storefront_settings_tab.s150', "تتبع تلقائي للأحداث")}
                 </span>
               </div>
 
@@ -2441,13 +2443,13 @@ export function StorefrontSettingsTab() {
                 {/* Meta / Facebook Pixel */}
                 <div>
                   <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                    معرف بيكسل فيسبوك / ميتا (Meta Pixel ID):
+                    {t('storefront.storefront_settings_tab.s151', "معرف بيكسل فيسبوك / ميتا (Meta Pixel ID):")}
                   </label>
                   <input
                     type="text"
                     value={formState.metaPixelId}
                     onChange={(e) => setFormState({ ...formState, metaPixelId: e.target.value.trim() })}
-                    placeholder="مثال: 123456789012345"
+                    placeholder={t('storefront.storefront_settings_tab.s152', "مثال: 123456789012345")}
                     style={{
                       width: '100%',
                       padding: '6px 10px',
@@ -2459,19 +2461,19 @@ export function StorefrontSettingsTab() {
                       textAlign: 'left',
                     }}
                   />
-                  <span style={{ fontSize: '10px', color: '#64748b' }}>يتتبع أحداث ViewContent و InitiateCheckout و Purchase</span>
+                  <span style={{ fontSize: '10px', color: '#64748b' }}>{t('storefront.storefront_settings_tab.s153', "يتتبع أحداث ViewContent و InitiateCheckout و Purchase")}</span>
                 </div>
 
                 {/* Google Analytics 4 */}
                 <div>
                   <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                    معرف جوجل أناليتكس 4 (GA4 Measurement ID):
+                    {t('storefront.storefront_settings_tab.s154', "معرف جوجل أناليتكس 4 (GA4 Measurement ID):")}
                   </label>
                   <input
                     type="text"
                     value={formState.ga4Id}
                     onChange={(e) => setFormState({ ...formState, ga4Id: e.target.value.trim().toUpperCase() })}
-                    placeholder="مثال: G-XXXXXXXXXX"
+                    placeholder={t('storefront.storefront_settings_tab.s155', "مثال: G-XXXXXXXXXX")}
                     style={{
                       width: '100%',
                       padding: '6px 10px',
@@ -2483,19 +2485,19 @@ export function StorefrontSettingsTab() {
                       textAlign: 'left',
                     }}
                   />
-                  <span style={{ fontSize: '10px', color: '#64748b' }}>إحصائيات متقدمة لحركة الزوار والتجارة الإلكترونية</span>
+                  <span style={{ fontSize: '10px', color: '#64748b' }}>{t('storefront.storefront_settings_tab.s156', "إحصائيات متقدمة لحركة الزوار والتجارة الإلكترونية")}</span>
                 </div>
 
                 {/* TikTok Pixel */}
                 <div>
                   <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                    معرف بيكسل تيك توك (TikTok Pixel ID):
+                    {t('storefront.storefront_settings_tab.s157', "معرف بيكسل تيك توك (TikTok Pixel ID):")}
                   </label>
                   <input
                     type="text"
                     value={formState.tiktokPixelId}
                     onChange={(e) => setFormState({ ...formState, tiktokPixelId: e.target.value.trim() })}
-                    placeholder="مثال: C9XXXXXX123456"
+                    placeholder={t('storefront.storefront_settings_tab.s158', "مثال: C9XXXXXX123456")}
                     style={{
                       width: '100%',
                       padding: '6px 10px',
@@ -2507,19 +2509,19 @@ export function StorefrontSettingsTab() {
                       textAlign: 'left',
                     }}
                   />
-                  <span style={{ fontSize: '10px', color: '#64748b' }}>تتبع حملات تيك توك الإعلانية ومعدل التحويل</span>
+                  <span style={{ fontSize: '10px', color: '#64748b' }}>{t('storefront.storefront_settings_tab.s159', "تتبع حملات تيك توك الإعلانية ومعدل التحويل")}</span>
                 </div>
 
                 {/* Snapchat Pixel */}
                 <div>
                   <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                    معرف بيكسل سناب شات (Snapchat Pixel ID):
+                    {t('storefront.storefront_settings_tab.s160', "معرف بيكسل سناب شات (Snapchat Pixel ID):")}
                   </label>
                   <input
                     type="text"
                     value={formState.snapchatPixelId}
                     onChange={(e) => setFormState({ ...formState, snapchatPixelId: e.target.value.trim() })}
-                    placeholder="مثال: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+                    placeholder={t('storefront.storefront_settings_tab.s161', "مثال: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx")}
                     style={{
                       width: '100%',
                       padding: '6px 10px',
@@ -2531,7 +2533,7 @@ export function StorefrontSettingsTab() {
                       textAlign: 'left',
                     }}
                   />
-                  <span style={{ fontSize: '10px', color: '#64748b' }}>تتبع حملات سناب شات الإعلانية ومشتريات المتجر</span>
+                  <span style={{ fontSize: '10px', color: '#64748b' }}>{t('storefront.storefront_settings_tab.s162', "تتبع حملات سناب شات الإعلانية ومشتريات المتجر")}</span>
                 </div>
               </div>
             </div>
@@ -2558,7 +2560,7 @@ export function StorefrontSettingsTab() {
               onMouseEnter={(e) => (e.currentTarget.style.background = '#110a47')}
               onMouseLeave={(e) => (e.currentTarget.style.background = '#170e5e')}
             >
-              {updateMutation.isPending ? 'جاري الحفظ...' : 'حفظ إعدادات المتجر'}
+              {updateMutation.isPending ? t('storefront.storefront_settings_tab.s163', "جاري الحفظ...") : t('storefront.storefront_settings_tab.s164', "حفظ إعدادات المتجر")}
             </button>
           </div>
         </form>

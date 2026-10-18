@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { CustomSelect } from '@/shared/ui/custom-select';
 
 interface SmartReorderFiltersProps {
@@ -55,6 +56,7 @@ export function SmartReorderFilters({
   search,
   setSearch,
 }: SmartReorderFiltersProps) {
+  const { t } = useTranslation();
   return (
     <section
       className="workspace-panel"
@@ -70,7 +72,7 @@ export function SmartReorderFilters({
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px', alignItems: 'flex-end', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', alignItems: 'flex-end' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', minWidth: '160px' }}>
-            <label style={{ fontSize: '12px', fontWeight: 600, color: '#475569' }}>فترة تحليل المبيعات:</label>
+            <label style={{ fontSize: '12px', fontWeight: 600, color: '#475569' }}>{t('purchases.smart_reorder.smart_reorder_filters.s0', "فترة تحليل المبيعات:")}</label>
             <CustomSelect
               value={daysAnalysis}
               onChange={(val) => setDaysAnalysis(Number(val))}
@@ -80,7 +82,7 @@ export function SmartReorderFilters({
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', minWidth: '160px' }}>
-            <label style={{ fontSize: '12px', fontWeight: 600, color: '#475569' }}>أيام التغطية المستهدفة:</label>
+            <label style={{ fontSize: '12px', fontWeight: 600, color: '#475569' }}>{t('purchases.smart_reorder.smart_reorder_filters.s1', "أيام التغطية المستهدفة:")}</label>
             <CustomSelect
               value={targetCoverageDays}
               onChange={(val) => setTargetCoverageDays(Number(val))}
@@ -90,7 +92,7 @@ export function SmartReorderFilters({
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', minWidth: '150px' }}>
-            <label style={{ fontSize: '12px', fontWeight: 600, color: '#475569' }}>فترة التوريد الافتراضية:</label>
+            <label style={{ fontSize: '12px', fontWeight: 600, color: '#475569' }}>{t('purchases.smart_reorder.smart_reorder_filters.s2', "فترة التوريد الافتراضية:")}</label>
             <CustomSelect
               value={defaultLeadTimeDays}
               onChange={(val) => setDefaultLeadTimeDays(Number(val))}
@@ -100,7 +102,7 @@ export function SmartReorderFilters({
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', minWidth: '180px' }}>
-            <label style={{ fontSize: '12px', fontWeight: 600, color: '#475569' }}>مستوى الإلحاح:</label>
+            <label style={{ fontSize: '12px', fontWeight: 600, color: '#475569' }}>{t('purchases.smart_reorder.smart_reorder_filters.s3', "مستوى الإلحاح:")}</label>
             <CustomSelect
               value={urgencyFilter}
               onChange={(val) => setUrgencyFilter(val as any)}
@@ -111,10 +113,10 @@ export function SmartReorderFilters({
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', minWidth: '260px' }}>
-          <label style={{ fontSize: '12px', fontWeight: 600, color: '#475569' }}>بحث سريع بالصنف أو الباركود:</label>
+          <label style={{ fontSize: '12px', fontWeight: 600, color: '#475569' }}>{t('purchases.smart_reorder.smart_reorder_filters.s4', "بحث سريع بالصنف أو الباركود:")}</label>
           <input
             type="text"
-            placeholder="ابحث بالاسم أو الباركود..."
+            placeholder={t('purchases.smart_reorder.smart_reorder_filters.s5', "ابحث بالاسم أو الباركود...")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             style={{

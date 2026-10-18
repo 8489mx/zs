@@ -49,6 +49,7 @@ export function isRootLandingRoute(pathname: string): boolean {
 }
 
 export function GlobalAppToolbar() {
+  const { t: __t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
   const { t, i18n } = useTranslation();
@@ -170,8 +171,8 @@ export function GlobalAppToolbar() {
               e.currentTarget.style.borderColor = '#94a3b8';
               e.currentTarget.style.color = '#170e5e';
             }}
-            title={isLtr ? "Go back (Alt + Backspace)" : "رجوع للصفحة السابقة (Alt + Backspace)"}
-            aria-label={isLtr ? "Go back" : "رجوع للصفحة السابقة"}
+            title={isLtr ? "Go back (Alt + Backspace)" : __t('shared.layout.global_app_toolbar.s0', "رجوع للصفحة السابقة (Alt + Backspace)")}
+            aria-label={isLtr ? "Go back" : __t('shared.layout.global_app_toolbar.s1', "رجوع للصفحة السابقة")}
           >
             <ArrowRightIcon size={20} strokeWidth={2.8} color="currentColor" style={{ transform: isLtr ? 'scaleX(-1)' : 'none' }} />
           </button>
@@ -255,7 +256,7 @@ export function GlobalAppToolbar() {
               title={`يتوفر تحديث جديد للمنظومة (v${updateInfo.latestVersion}) — اضغط للترقية`}
             >
               <span className="system-update-pulse-dot" />
-              <span>تحديث متوفر: v{updateInfo.latestVersion}</span>
+              <span>{__t('shared.layout.global_app_toolbar.s2', "تحديث متوفر: v")}{updateInfo.latestVersion}</span>
             </button>
           )}
           {/* Mobile compact search button */}
@@ -263,8 +264,8 @@ export function GlobalAppToolbar() {
             type="button"
             className="mobile-search-icon-btn"
             onClick={() => setGlobalSearchOpen(true)}
-            aria-label="بحث سريع"
-            title="بحث شامل"
+            aria-label={__t('shared.layout.global_app_toolbar.s3', "بحث سريع")}
+            title={__t('shared.layout.global_app_toolbar.s4', "بحث شامل")}
           >
             <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="11" cy="11" r="8"></circle>
@@ -332,7 +333,7 @@ export function GlobalAppToolbar() {
             }}
           >
             <AiRobotIcon size={17} />
-            <span className="desktop-only-toolbar-item">زاد AI</span>
+            <span className="desktop-only-toolbar-item">{__t('shared.layout.global_app_toolbar.s5', "زاد AI")}</span>
           </button>
 
           {/* Multi-language Switcher Menu */}

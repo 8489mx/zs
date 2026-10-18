@@ -1,3 +1,4 @@
+import i18n from '@/lib/i18n';
 import type { Product } from '@/types/domain';
 import { formatCurrency } from '@/lib/format';
 import { resolveProductStatus, type StockStatus } from '@/lib/domain/inventory';
@@ -38,22 +39,28 @@ export function buildInventorySummary(products: Product[], includeSensitivePrici
 }
 
 export function getInventoryColumns(includeSensitivePricing = true) {
+  const isEn = i18n.language === 'en';
   const columns = [
-    { key: 'name', header: 'الصنف', cell: (product: Product) => product.name },
-    { key: 'barcode', header: 'الباركود', cell: (product: Product) => product.barcode || '—' },
-    { key: 'stock', header: 'الرصيد', cell: (product: Product) => product.stock },
-    { key: 'minStock', header: 'الحد الأدنى', cell: (product: Product) => product.minStock },
+    { key: 'name', header: isEn ? 'Product' : 'الصنف', cell: (product: Product) => product.name },
+    { key: 'barcode', header: isEn ? 'Barcode' : 'الباركود', cell: (product: Product) => product.barcode || '—' },
+    { key: 'stock', header: isEn ? 'Balance' : 'الرصيد', cell: (product: Product) => product.stock },
+    { key: 'minStock', header: isEn ? 'Min. Stock' : 'الحد الأدنى', cell: (product: Product) => product.minStock },
     {
       key: 'status',
-      header: 'الحالة',
+      header: isEn ? 'Status' : 'الحالة',
       cell: (product: Product) => {
         const status = resolveProductStatus(product);
-        return <span className={`status-badge ${status === 'out' ? 'status-draft' : status === 'low' ? 'status-warning' : 'status-posted'}`}>{status === 'out' ? 'نافد' : status === 'low' ? 'منخفض' : 'سليم'}</span>;
+        const label = status === 'out'
+          ? (isEn ? 'Out of Stock' : 'نافد')
+          : status === 'low'
+          ? (isEn ? 'Low Stock' : 'منخفض')
+          : (isEn ? 'Normal' : 'سليم');
+        return <span className={`status-badge ${status === 'out' ? 'status-draft' : status === 'low' ? 'status-warning' : 'status-posted'}`}>{label}</span>;
       }
     }
   ];
   if (includeSensitivePricing) {
-    columns.splice(4, 0, { key: 'costPrice', header: 'التكلفة', cell: (product: Product) => formatCurrency(product.costPrice) });
+    columns.splice(4, 0, { key: 'costPrice', header: isEn ? 'Cost' : 'التكلفة', cell: (product: Product) => formatCurrency(product.costPrice) });
   }
   return columns;
 }

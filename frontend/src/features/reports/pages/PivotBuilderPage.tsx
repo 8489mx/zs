@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React, { useState, useEffect, useCallback } from 'react';
 import { toast } from '@/shared/components/system-alert';
 import { Button } from '@/shared/ui/button';
@@ -20,6 +21,7 @@ import { PivotGridTable } from '../components/pivot/PivotGridTable';
 import { SavePivotTemplateModal } from '../components/pivot/SavePivotTemplateModal';
 
 export const PivotBuilderPage: React.FC = () => {
+  const { t } = useTranslation();
   // Core Configuration
   const [dataset, setDataset] = useState<'sales' | 'purchases' | 'inventory' | 'expenses'>('sales');
   const [rowDimension, setRowDimension] = useState('branch');
@@ -228,7 +230,7 @@ export const PivotBuilderPage: React.FC = () => {
               margin: '0 0 4px 0',
             }}
           >
-            منشئ ومحلل التقارير المحورية المرنة (Dynamic BI Pivot Builder)
+            {t('reports.pivot_builder_page.s0', "منشئ ومحلل التقارير المحورية المرنة (Dynamic BI Pivot Builder)")}
           </h1>
           <p
             style={{
@@ -237,7 +239,7 @@ export const PivotBuilderPage: React.FC = () => {
               margin: 0,
             }}
           >
-            تجميع واستقراء البيانات عبر أبعاد حرة ومتعددة المستويات، تحليل الربحية والكميات، وتصدير التقارير المخصصة.
+            {t('reports.pivot_builder_page.s1', "تجميع واستقراء البيانات عبر أبعاد حرة ومتعددة المستويات، تحليل الربحية والكميات، وتصدير التقارير المخصصة.")}
           </p>
         </div>
 
@@ -249,7 +251,7 @@ export const PivotBuilderPage: React.FC = () => {
             style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12.5px' }}
           >
             <SlidersIcon size={15} color="#170e5e" />
-            <span>حفظ كقالب مخصص</span>
+            <span>{t('reports.pivot_builder_page.s2', "حفظ كقالب مخصص")}</span>
           </Button>
 
           <Button
@@ -260,7 +262,7 @@ export const PivotBuilderPage: React.FC = () => {
             style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12.5px' }}
           >
             <DownloadIcon size={15} color="#475569" />
-            <span>تصدير CSV</span>
+            <span>{t('reports.pivot_builder_page.s3', "تصدير CSV")}</span>
           </Button>
 
           <Button
@@ -271,7 +273,7 @@ export const PivotBuilderPage: React.FC = () => {
             style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12.5px' }}
           >
             <PrinterIcon size={15} color="#475569" />
-            <span>طباعة</span>
+            <span>{t('reports.pivot_builder_page.s4', "طباعة")}</span>
           </Button>
 
           <Button
@@ -288,7 +290,7 @@ export const PivotBuilderPage: React.FC = () => {
             }}
           >
             <RefreshCwIcon size={15} color="#ffffff" className={loading ? 'animate-spin' : ''} />
-            <span>{loading ? 'جاري التحليل...' : 'تحديث وتحليل البيانات'}</span>
+            <span>{loading ? t('reports.pivot_builder_page.s5', "جاري التحليل...") : t('reports.pivot_builder_page.s6', "تحديث وتحليل البيانات")}</span>
           </Button>
         </div>
       </div>
@@ -310,7 +312,7 @@ export const PivotBuilderPage: React.FC = () => {
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 700, color: '#170e5e', whiteSpace: 'nowrap' }}>
             <LayersIcon size={14} color="#170e5e" />
-            <span>القوالب المحفوظة:</span>
+            <span>{t('reports.pivot_builder_page.s7', "القوالب المحفوظة:")}</span>
           </div>
 
           {savedTemplates.map((tmpl) => (
@@ -346,7 +348,7 @@ export const PivotBuilderPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => handleDeleteTemplate(tmpl.id, tmpl.name)}
-                title="حذف القالب"
+                title={t('reports.pivot_builder_page.s8', "حذف القالب")}
                 style={{
                   border: 'none',
                   backgroundColor: 'transparent',
@@ -380,7 +382,7 @@ export const PivotBuilderPage: React.FC = () => {
         {/* Dataset */}
         <div>
           <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#170e5e', marginBottom: '4px' }}>
-            مصدر البيانات الأساسي *
+            {t('reports.pivot_builder_page.s9', "مصدر البيانات الأساسي *")}
           </label>
           <CustomSelect
             options={datasetOptions}
@@ -392,7 +394,7 @@ export const PivotBuilderPage: React.FC = () => {
         {/* Row Dimension */}
         <div>
           <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#170e5e', marginBottom: '4px' }}>
-            بُعد الصفوف (Rows) *
+            {t('reports.pivot_builder_page.s10', "بُعد الصفوف (Rows) *")}
           </label>
           <CustomSelect
             options={getRowDimensionOptions()}
@@ -404,7 +406,7 @@ export const PivotBuilderPage: React.FC = () => {
         {/* Col Dimension */}
         <div>
           <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#170e5e', marginBottom: '4px' }}>
-            بُعد الأعمدة (Columns)
+            {t('reports.pivot_builder_page.s11', "بُعد الأعمدة (Columns)")}
           </label>
           <CustomSelect
             options={getColDimensionOptions()}
@@ -416,7 +418,7 @@ export const PivotBuilderPage: React.FC = () => {
         {/* Metric */}
         <div>
           <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#170e5e', marginBottom: '4px' }}>
-            المؤشر المحسوب (Metric) *
+            {t('reports.pivot_builder_page.s12', "المؤشر المحسوب (Metric) *")}
           </label>
           <CustomSelect
             options={metricOptions}
@@ -428,7 +430,7 @@ export const PivotBuilderPage: React.FC = () => {
         {/* Date From */}
         <div>
           <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-            من تاريخ
+            {t('reports.pivot_builder_page.s13', "من تاريخ")}
           </label>
           <input
             type="date"
@@ -448,7 +450,7 @@ export const PivotBuilderPage: React.FC = () => {
         {/* Date To */}
         <div>
           <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-            إلى تاريخ
+            {t('reports.pivot_builder_page.s14', "إلى تاريخ")}
           </label>
           <input
             type="date"
@@ -480,13 +482,13 @@ export const PivotBuilderPage: React.FC = () => {
           <div style={{ fontSize: '13px', fontWeight: 700, color: '#1e293b', display: 'flex', alignItems: 'center', gap: '6px' }}>
             <FileTextIcon size={16} color="#170e5e" />
             <span>
-              جدول التحليل المحوري: {getRowLabel()} {getColLabel() ? `× ${getColLabel()}` : ''} ({getMetricLabel()})
+              {t('reports.pivot_builder_page.s15', "جدول التحليل المحوري:")} {getRowLabel()} {getColLabel() ? `× ${getColLabel()}` : ''} ({getMetricLabel()})
             </span>
           </div>
 
           {pivotResult && pivotResult.rowKeys.length > 0 && (
             <div style={{ fontSize: '12px', color: '#64748b' }}>
-              إجمالي الصفوف: <strong>{pivotResult.rowKeys.length}</strong> | إجمالي الأعمدة: <strong>{pivotResult.colKeys.length}</strong>
+              {t('reports.pivot_builder_page.s16', "إجمالي الصفوف:")} <strong>{pivotResult.rowKeys.length}</strong> {t('reports.pivot_builder_page.s17', "| إجمالي الأعمدة:")} <strong>{pivotResult.colKeys.length}</strong>
             </div>
           )}
         </div>

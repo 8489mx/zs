@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { formatCurrency } from '@/lib/format';
 import type { CrmDeal, DealStage } from '../api/crm.api';
 import { STAGES } from './CrmConstants';
@@ -16,6 +17,7 @@ export function CrmStageRow({
   onSelectDeal,
   onStageChange,
 }: CrmStageRowProps) {
+  const { t } = useTranslation();
   const stageDeals = deals.filter((d) => d.stage === stage.key);
   const stageTotalAmount = stageDeals.reduce((sum, d) => sum + Number(d.expectedAmount || 0), 0);
 
@@ -70,7 +72,7 @@ export function CrmStageRow({
               borderRadius: '999px',
             }}
           >
-            {stageDeals.length} صفقة
+            {stageDeals.length} {t('crm.crm_stage_row.s0', "صفقة")}
           </span>
         </div>
         <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '5px', fontWeight: 500 }}>
@@ -115,7 +117,7 @@ export function CrmStageRow({
               background: '#ffffff',
             }}
           >
-            لا توجد صفقات في هذه المرحلة
+            {t('crm.crm_stage_row.s1', "لا توجد صفقات في هذه المرحلة")}
           </div>
         )}
       </div>

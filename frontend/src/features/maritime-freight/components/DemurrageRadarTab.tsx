@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useMemo } from 'react';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
 import { MaritimeContainer } from '../api/maritime-freight.api';
@@ -18,6 +19,7 @@ export function DemurrageRadarTab({
   onOpenReturnModal,
   onRefresh,
 }: DemurrageRadarTabProps) {
+  const { t } = useTranslation();
   const [filterType, setFilterType] = useState<RadarFilterType>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedMilestoneContainer, setSelectedMilestoneContainer] = useState<MaritimeContainer | null>(null);
@@ -98,10 +100,10 @@ export function DemurrageRadarTab({
       return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
           <span style={{ padding: '2px 8px', borderRadius: '10px', background: '#f1f5f9', color: '#475569', fontSize: '0.72rem', fontWeight: 700, width: 'fit-content' }}>
-            تم الإرجاع بنجاح
+            {t('maritime_freight.demurrage_radar_tab.s0', "تم الإرجاع بنجاح")}
           </span>
           <span style={{ fontSize: '0.68rem', color: '#64748b' }}>
-            تاريخ الإرجاع: {String(container.empty_returned_at).split('T')[0]}
+            {t('maritime_freight.demurrage_radar_tab.s1', "تاريخ الإرجاع:")} {String(container.empty_returned_at).split('T')[0]}
           </span>
         </div>
       );
@@ -111,7 +113,7 @@ export function DemurrageRadarTab({
     const totalDays = container.free_days || 14;
 
     if (days === null || days === undefined) {
-      return <span style={{ color: '#94a3b8' }}>غير محدد</span>;
+      return <span style={{ color: '#94a3b8' }}>{t('maritime_freight.demurrage_radar_tab.s2', "غير محدد")}</span>;
     }
 
     const elapsed = Math.max(0, totalDays - days);
@@ -153,7 +155,7 @@ export function DemurrageRadarTab({
           />
         </div>
         <div style={{ fontSize: '0.68rem', color: '#64748b', display: 'flex', justifyContent: 'space-between' }}>
-          <span>مهلة الإعادة: {container.return_deadline ? String(container.return_deadline).split('T')[0] : '—'}</span>
+          <span>{t('maritime_freight.demurrage_radar_tab.s3', "مهلة الإعادة:")} {container.return_deadline ? String(container.return_deadline).split('T')[0] : '—'}</span>
         </div>
       </div>
     );
@@ -185,13 +187,13 @@ export function DemurrageRadarTab({
         >
           <div>
             <div style={{ fontSize: '0.76rem', fontWeight: 600, color: '#64748b' }}>
-              حاويات متأخرة تحت الغرامة (Overdue)
+              {t('maritime_freight.demurrage_radar_tab.s4', "حاويات متأخرة تحت الغرامة (Overdue)")}
             </div>
             <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#0f172a', marginTop: '3px', lineHeight: 1.2 }}>
-              {overdueCount} <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>حاوية</span>
+              {overdueCount} <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>{t('maritime_freight.demurrage_radar_tab.s5', "حاوية")}</span>
             </div>
             <div style={{ fontSize: '0.68rem', color: overdueCount > 0 ? '#b91c1c' : '#64748b', fontWeight: overdueCount > 0 ? 700 : 500, marginTop: '3px' }}>
-              غرامات متراكمة: ${totalAccruedDemurrage.toLocaleString()}
+              {t('maritime_freight.demurrage_radar_tab.s6', "غرامات متراكمة: $")}{totalAccruedDemurrage.toLocaleString()}
             </div>
           </div>
           <div
@@ -228,13 +230,13 @@ export function DemurrageRadarTab({
         >
           <div>
             <div style={{ fontSize: '0.76rem', fontWeight: 600, color: '#64748b' }}>
-              حاويات حرجة (Critical &le; 3 أيام)
+              {t('maritime_freight.demurrage_radar_tab.s7', "حاويات حرجة (Critical ≤ 3 أيام)")}
             </div>
             <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#0f172a', marginTop: '3px', lineHeight: 1.2 }}>
-              {criticalCount} <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>حاوية</span>
+              {criticalCount} <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>{t('maritime_freight.demurrage_radar_tab.s8', "حاوية")}</span>
             </div>
             <div style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '3px' }}>
-              مهلة السماح توشك على النفاد
+              {t('maritime_freight.demurrage_radar_tab.s9', "مهلة السماح توشك على النفاد")}
             </div>
           </div>
           <div
@@ -271,13 +273,13 @@ export function DemurrageRadarTab({
         >
           <div>
             <div style={{ fontSize: '0.76rem', fontWeight: 600, color: '#64748b' }}>
-              أمانات محتجزة لدى الخطوط (Deposits)
+              {t('maritime_freight.demurrage_radar_tab.s10', "أمانات محتجزة لدى الخطوط (Deposits)")}
             </div>
             <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#0f172a', marginTop: '3px', lineHeight: 1.2 }}>
-              {depositHeldCount} <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>حاوية</span>
+              {depositHeldCount} <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>{t('maritime_freight.demurrage_radar_tab.s11', "حاوية")}</span>
             </div>
             <div style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '3px' }}>
-              قيمة التأمينات: ${depositHeldTotal.toLocaleString()}
+              {t('maritime_freight.demurrage_radar_tab.s12', "قيمة التأمينات: $")}{depositHeldTotal.toLocaleString()}
             </div>
           </div>
           <div
@@ -314,10 +316,10 @@ export function DemurrageRadarTab({
         >
           <div>
             <div style={{ fontSize: '0.76rem', fontWeight: 600, color: '#64748b' }}>
-              حاويات أعيدت بسلام (Returned)
+              {t('maritime_freight.demurrage_radar_tab.s13', "حاويات أعيدت بسلام (Returned)")}
             </div>
             <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#0f172a', marginTop: '3px', lineHeight: 1.2 }}>
-              {returnedCount} <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>من {totalContainers}</span>
+              {returnedCount} <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>{t('maritime_freight.demurrage_radar_tab.s14', "من")} {totalContainers}</span>
             </div>
             <div style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '3px' }}>
               {totalContainers > 0 ? `${Math.round((returnedCount / totalContainers) * 100)}% معدل الإعادة المكتملة` : '0%'}
@@ -363,10 +365,10 @@ export function DemurrageRadarTab({
             </div>
             <div>
               <div style={{ fontSize: '0.84rem', fontWeight: 800, color: overdueCount > 0 ? '#991b1b' : '#92400e' }}>
-                تنبيه رادار الغرامات التشغيلي: يوجد ({overdueCount}) حاوية متأخرة تحت الغرامات، و({criticalCount}) حاوية حرجة توشك فترات سماحها على النفاد!
+                {t('maritime_freight.demurrage_radar_tab.s15', "تنبيه رادار الغرامات التشغيلي: يوجد (")}{overdueCount}{t('maritime_freight.demurrage_radar_tab.s16', ") حاوية متأخرة تحت الغرامات، و(")}{criticalCount}{t('maritime_freight.demurrage_radar_tab.s17', ") حاوية حرجة توشك فترات سماحها على النفاد!")}
               </div>
               <div style={{ fontSize: '0.74rem', color: overdueCount > 0 ? '#b91c1c' : '#b45309', marginTop: '2px' }}>
-                إجمالي الغرامات اليومية المقدرة يتصاعد. يرجى التنسيق الفوري مع سائقي الشاحنات والمخلصين لإرجاع الحاويات الفارغة إلى ساحات الخطوط.
+                {t('maritime_freight.demurrage_radar_tab.s18', "إجمالي الغرامات اليومية المقدرة يتصاعد. يرجى التنسيق الفوري مع سائقي الشاحنات والمخلصين لإرجاع الحاويات الفارغة إلى ساحات الخطوط.")}
               </div>
             </div>
           </div>
@@ -384,7 +386,7 @@ export function DemurrageRadarTab({
               cursor: 'pointer',
             }}
           >
-            عرض الحاويات المتأخرة فوراً
+            {t('maritime_freight.demurrage_radar_tab.s19', "عرض الحاويات المتأخرة فوراً")}
           </button>
         </div>
       )}
@@ -406,7 +408,7 @@ export function DemurrageRadarTab({
       >
         <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
           {[
-            { id: 'all', label: 'كافة الحاويات' },
+            { id: 'all', label: t('maritime_freight.demurrage_radar_tab.s20', "كافة الحاويات") },
             { id: 'critical', label: `حرجة (${criticalCount})` },
             { id: 'overdue', label: `متأخرة تحت الغرامة (${overdueCount})` },
             { id: 'held_deposit', label: `أمانات محتجزة (${depositHeldCount})` },
@@ -440,7 +442,7 @@ export function DemurrageRadarTab({
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
           <input
             type="text"
-            placeholder="بحث برقم الحاوية، الشحنة، العميل، الخط..."
+            placeholder={t('maritime_freight.demurrage_radar_tab.s21', "بحث برقم الحاوية، الشحنة، العميل، الخط...")}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             style={{
@@ -469,7 +471,7 @@ export function DemurrageRadarTab({
                 display: 'inline-flex',
                 alignItems: 'center',
               }}
-              title="تحديث بيانات الرادار"
+              title={t('maritime_freight.demurrage_radar_tab.s22', "تحديث بيانات الرادار")}
             >
               <AppIcons.RefreshCw size={14} />
             </button>
@@ -499,10 +501,10 @@ export function DemurrageRadarTab({
         >
           <div>
             <h3 style={{ margin: 0, fontSize: '0.94rem', fontWeight: 800, color: '#0f172a' }}>
-              رادار تتبع الحاويات وفترات السماح وغرامات الأرضيات (Demurrage & Detention Radar)
+              {t('maritime_freight.demurrage_radar_tab.s23', "رادار تتبع الحاويات وفترات السماح وغرامات الأرضيات (Demurrage & Detention Radar)")}
             </h3>
             <p style={{ margin: '3px 0 0 0', fontSize: '0.78rem', color: '#64748b' }}>
-              رصد حي للحاويات المفرغة بالموانئ، عداد تنازلي لمهلة السماح المجانية، واحتساب آلي للغرامات المتراكمة لحماية المنشأة والعميل
+              {t('maritime_freight.demurrage_radar_tab.s24', "رصد حي للحاويات المفرغة بالموانئ، عداد تنازلي لمهلة السماح المجانية، واحتساب آلي للغرامات المتراكمة لحماية المنشأة والعميل")}
             </p>
           </div>
           <span
@@ -516,7 +518,7 @@ export function DemurrageRadarTab({
               borderRadius: '12px',
             }}
           >
-            {filteredContainers.length} حاوية
+            {filteredContainers.length} {t('maritime_freight.demurrage_radar_tab.s25', "حاوية")}
           </span>
         </div>
 
@@ -524,26 +526,26 @@ export function DemurrageRadarTab({
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8125rem', textAlign: 'right' }}>
             <thead>
               <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', fontWeight: 700 }}>
-                <th style={{ padding: '10px 14px' }}>رقم الحاوية ونوعها</th>
-                <th style={{ padding: '10px 14px' }}>أمر التشغيل والعميل</th>
-                <th style={{ padding: '10px 14px' }}>الخط الملاحي والرصاصة</th>
-                <th style={{ padding: '10px 14px', minWidth: '160px' }}>عداد السماح والرادار</th>
-                <th style={{ padding: '10px 14px' }}>معدل الغرامة اليومية</th>
-                <th style={{ padding: '10px 14px' }}>تأمين الحاوية</th>
-                <th style={{ padding: '10px 14px', textAlign: 'center' }}>الإجراءات</th>
+                <th style={{ padding: '10px 14px' }}>{t('maritime_freight.demurrage_radar_tab.s26', "رقم الحاوية ونوعها")}</th>
+                <th style={{ padding: '10px 14px' }}>{t('maritime_freight.demurrage_radar_tab.s27', "أمر التشغيل والعميل")}</th>
+                <th style={{ padding: '10px 14px' }}>{t('maritime_freight.demurrage_radar_tab.s28', "الخط الملاحي والرصاصة")}</th>
+                <th style={{ padding: '10px 14px', minWidth: '160px' }}>{t('maritime_freight.demurrage_radar_tab.s29', "عداد السماح والرادار")}</th>
+                <th style={{ padding: '10px 14px' }}>{t('maritime_freight.demurrage_radar_tab.s30', "معدل الغرامة اليومية")}</th>
+                <th style={{ padding: '10px 14px' }}>{t('maritime_freight.demurrage_radar_tab.s31', "تأمين الحاوية")}</th>
+                <th style={{ padding: '10px 14px', textAlign: 'center' }}>{t('maritime_freight.demurrage_radar_tab.s32', "الإجراءات")}</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
                   <td colSpan={7} style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
-                    جاري فحص رادار فترات السماح والغرامات...
+                    {t('maritime_freight.demurrage_radar_tab.s33', "جاري فحص رادار فترات السماح والغرامات...")}
                   </td>
                 </tr>
               ) : filteredContainers.length === 0 ? (
                 <tr>
                   <td colSpan={7} style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
-                    لا توجد حاويات مطابقة لمعايير التصفية.
+                    {t('maritime_freight.demurrage_radar_tab.s34', "لا توجد حاويات مطابقة لمعايير التصفية.")}
                   </td>
                 </tr>
               ) : (
@@ -575,9 +577,9 @@ export function DemurrageRadarTab({
                         <div style={{ fontSize: '0.72rem', color: '#475569', marginTop: '2px' }}>{c.customer_name}</div>
                       </td>
                       <td style={{ padding: '10px 14px' }}>
-                        <div style={{ fontWeight: 700, color: '#0f172a' }}>{c.shipping_line_name || 'غير محدد'}</div>
+                        <div style={{ fontWeight: 700, color: '#0f172a' }}>{c.shipping_line_name || t('maritime_freight.demurrage_radar_tab.s35', "غير محدد")}</div>
                         <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '2px' }}>
-                          رقم الرصاصة: <span style={{ fontFamily: 'monospace' }}>{c.seal_number || '—'}</span>
+                          {t('maritime_freight.demurrage_radar_tab.s36', "رقم الرصاصة:")} <span style={{ fontFamily: 'monospace' }}>{c.seal_number || '—'}</span>
                         </div>
                       </td>
                       <td style={{ padding: '10px 14px' }}>
@@ -585,11 +587,11 @@ export function DemurrageRadarTab({
                       </td>
                       <td style={{ padding: '10px 14px' }}>
                         <div style={{ fontWeight: 700, color: isOverdue ? '#dc2626' : '#475569' }}>
-                          ${ratePerDay} / يوم
+                          ${ratePerDay} {t('maritime_freight.demurrage_radar_tab.s37', "/ يوم")}
                         </div>
                         {isOverdue && (
                           <div style={{ fontSize: '0.72rem', color: '#b91c1c', fontWeight: 800, marginTop: '2px' }}>
-                            إجمالي الغرامة: ${((Math.abs(Number(c.daysRemaining || 0))) * ratePerDay).toLocaleString()}
+                            {t('maritime_freight.demurrage_radar_tab.s38', "إجمالي الغرامة: $")}{((Math.abs(Number(c.daysRemaining || 0))) * ratePerDay).toLocaleString()}
                           </div>
                         )}
                       </td>
@@ -610,12 +612,12 @@ export function DemurrageRadarTab({
                                   color: c.deposit_status === 'refunded_to_treasury' ? '#15803d' : '#b45309',
                                 }}
                               >
-                                {c.deposit_status === 'refunded_to_treasury' ? 'مسترد بالكامل' : 'محتجز لدى الخط'}
+                                {c.deposit_status === 'refunded_to_treasury' ? t('maritime_freight.demurrage_radar_tab.s39', "مسترد بالكامل") : t('maritime_freight.demurrage_radar_tab.s40', "محتجز لدى الخط")}
                               </span>
                             </div>
                           </div>
                         ) : (
-                          <span style={{ color: '#94a3b8' }}>بدون تأمين</span>
+                          <span style={{ color: '#94a3b8' }}>{t('maritime_freight.demurrage_radar_tab.s41', "بدون تأمين")}</span>
                         )}
                       </td>
                       <td style={{ padding: '10px 14px', textAlign: 'center' }}>
@@ -635,11 +637,11 @@ export function DemurrageRadarTab({
                                 cursor: 'pointer',
                               }}
                             >
-                              إرجاع فارغ
+                              {t('maritime_freight.demurrage_radar_tab.s42', "إرجاع فارغ")}
                             </button>
                           ) : (
                             <span style={{ fontSize: '0.7rem', color: '#15803d', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
-                              <AppIcons.CheckCircle size={12} /> تم الإرجاع
+                              <AppIcons.CheckCircle size={12} /> {t('maritime_freight.demurrage_radar_tab.s43', "تم الإرجاع")}
                             </span>
                           )}
 
@@ -657,9 +659,9 @@ export function DemurrageRadarTab({
                                 fontWeight: 700,
                                 cursor: 'pointer',
                               }}
-                              title="إرسال تنبيه واتساب مباشر للعميل"
+                              title={t('maritime_freight.demurrage_radar_tab.s44', "إرسال تنبيه واتساب مباشر للعميل")}
                             >
-                              واتساب
+                              {t('maritime_freight.demurrage_radar_tab.s45', "واتساب")}
                             </button>
                           )}
 
@@ -677,7 +679,7 @@ export function DemurrageRadarTab({
                               cursor: 'pointer',
                             }}
                           >
-                            تحديث المحطة
+                            {t('maritime_freight.demurrage_radar_tab.s46', "تحديث المحطة")}
                           </button>
                         </div>
                       </td>

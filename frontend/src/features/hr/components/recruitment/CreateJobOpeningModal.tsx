@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, type FC, type FormEvent } from 'react';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { CustomSelect } from '@/shared/ui/custom-select';
@@ -15,6 +16,7 @@ export const CreateJobOpeningModal: FC<CreateJobOpeningModalProps> = ({
   onClose,
   onSuccess,
 }) => {
+  const { t } = useTranslation();
   const [title, setTitle] = useState('');
   const [department, setDepartment] = useState('المبيعات والتسويق');
   const [headcount, setHeadcount] = useState('1');
@@ -67,21 +69,21 @@ export const CreateJobOpeningModal: FC<CreateJobOpeningModalProps> = ({
     <StandardDialog
       open={open}
       onClose={onClose}
-      title="فتح وظيفة شاغرة جديدة (Create Job Opening)"
-      subtitle="تحديد متطلبات الوظيفة، سنوات الخبرة، والعدد المستهدف للتوظيف"
+      title={t('hr.recruitment.create_job_opening_modal.s0', "فتح وظيفة شاغرة جديدة (Create Job Opening)")}
+      subtitle={t('hr.recruitment.create_job_opening_modal.s1', "تحديد متطلبات الوظيفة، سنوات الخبرة، والعدد المستهدف للتوظيف")}
       size="md"
     >
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
         <div>
           <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 600, color: '#334155' }}>
-            المسمى الوظيفي *
+            {t('hr.recruitment.create_job_opening_modal.s2', "المسمى الوظيفي *")}
           </label>
           <input
             type="text"
             required
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="مثال: محاسب عام أول / مندوب مبيعات ميداني"
+            placeholder={t('hr.recruitment.create_job_opening_modal.s3', "مثال: محاسب عام أول / مندوب مبيعات ميداني")}
             style={{ width: '100%', height: '36px', padding: '6px 10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
           />
         </div>
@@ -89,7 +91,7 @@ export const CreateJobOpeningModal: FC<CreateJobOpeningModalProps> = ({
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
           <div>
             <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 600, color: '#334155' }}>
-              القسم / الإدارة *
+              {t('hr.recruitment.create_job_opening_modal.s4', "القسم / الإدارة *")}
             </label>
             <CustomSelect
               value={department}
@@ -100,7 +102,7 @@ export const CreateJobOpeningModal: FC<CreateJobOpeningModalProps> = ({
 
           <div>
             <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 600, color: '#334155' }}>
-              العدد المطلوب توظيفه (Headcount) *
+              {t('hr.recruitment.create_job_opening_modal.s5', "العدد المطلوب توظيفه (Headcount) *")}
             </label>
             <input
               type="number"
@@ -115,7 +117,7 @@ export const CreateJobOpeningModal: FC<CreateJobOpeningModalProps> = ({
 
         <div>
           <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 600, color: '#334155' }}>
-            الحد الأدنى لسنوات الخبرة
+            {t('hr.recruitment.create_job_opening_modal.s6', "الحد الأدنى لسنوات الخبرة")}
           </label>
           <input
             type="number"
@@ -129,26 +131,26 @@ export const CreateJobOpeningModal: FC<CreateJobOpeningModalProps> = ({
 
         <div>
           <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 600, color: '#334155' }}>
-            الوصف الوظيفي والمسؤوليات
+            {t('hr.recruitment.create_job_opening_modal.s7', "الوصف الوظيفي والمسؤوليات")}
           </label>
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             rows={2}
-            placeholder="المهام اليومية، أهداف الأداء، والمسؤوليات المباشرة..."
+            placeholder={t('hr.recruitment.create_job_opening_modal.s8', "المهام اليومية، أهداف الأداء، والمسؤوليات المباشرة...")}
             style={{ width: '100%', padding: '8px', borderRadius: '8px', border: '1px solid #cbd5e1', resize: 'vertical' }}
           />
         </div>
 
         <div>
           <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 600, color: '#334155' }}>
-            المؤهلات والشروط المطلوبة
+            {t('hr.recruitment.create_job_opening_modal.s9', "المؤهلات والشروط المطلوبة")}
           </label>
           <textarea
             value={requirements}
             onChange={(e) => setRequirements(e.target.value)}
             rows={2}
-            placeholder="المؤهل العلمي، الدورات والشهادات التخصصية، والمهارات الفنية..."
+            placeholder={t('hr.recruitment.create_job_opening_modal.s10', "المؤهل العلمي، الدورات والشهادات التخصصية، والمهارات الفنية...")}
             style={{ width: '100%', padding: '8px', borderRadius: '8px', border: '1px solid #cbd5e1', resize: 'vertical' }}
           />
         </div>
@@ -156,7 +158,7 @@ export const CreateJobOpeningModal: FC<CreateJobOpeningModalProps> = ({
         <StandardDialogFooter
           onClose={onClose}
           primaryButton={{
-            label: isSubmitting ? 'جاري الفتح...' : 'نشر واعتماد الوظيفة',
+            label: isSubmitting ? t('hr.recruitment.create_job_opening_modal.s11', "جاري الفتح...") : t('hr.recruitment.create_job_opening_modal.s12', "نشر واعتماد الوظيفة"),
             disabled: isSubmitting,
             onClick: () => handleSubmit(),
           }}

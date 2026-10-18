@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { Button } from '@/shared/ui/button';
 import { PrinterIcon, XIcon } from '@/shared/components/icons/AppIcons';
@@ -27,6 +28,7 @@ export function CustomerReceiptVoucherModal({
   receipt,
   onClose,
 }: CustomerReceiptVoucherModalProps) {
+  const { t } = useTranslation();
   const storeName = useAuthStore((s) => s.storeName) || 'المنشأة';
   if (!open || !receipt) return null;
 
@@ -50,15 +52,15 @@ export function CustomerReceiptVoucherModal({
       open={open}
       onClose={onClose}
       width='min(680px, 95vw)'
-      ariaLabel='سند قبض مالي'
+      ariaLabel={t('accounts.customer_receipt_voucher_modal.s0', "سند قبض مالي")}
     >
       <div className='standard-dialog-header'>
         <div>
           <h2 className='standard-dialog-title' style={{ fontSize: '1.1rem', fontWeight: 800, color: '#170c5c' }}>
-            سند قبض مالي معتمد
+            {t('accounts.customer_receipt_voucher_modal.s1', "سند قبض مالي معتمد")}
           </h2>
           <p className='standard-dialog-subtitle'>
-            معاينة وطباعة السند المالي الرسمي لحساب العميل
+            {t('accounts.customer_receipt_voucher_modal.s2', "معاينة وطباعة السند المالي الرسمي لحساب العميل")}
           </p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -77,13 +79,13 @@ export function CustomerReceiptVoucherModal({
             }}
           >
             <PrinterIcon size={14} />
-            <span>طباعة السند</span>
+            <span>{t('accounts.customer_receipt_voucher_modal.s3', "طباعة السند")}</span>
           </Button>
           <button
             type='button'
             onClick={onClose}
             className='standard-dialog-close-btn'
-            aria-label='إغلاق'
+            aria-label={t('accounts.customer_receipt_voucher_modal.s4', "إغلاق")}
           >
             <XIcon size={18} />
           </button>
@@ -113,12 +115,12 @@ export function CustomerReceiptVoucherModal({
                 {storeName}
               </h3>
               <p style={{ fontSize: '11px', color: '#64748b', margin: 0 }}>
-                إدارة الشؤون المالية والحسابات
+                {t('accounts.customer_receipt_voucher_modal.s5', "إدارة الشؤون المالية والحسابات")}
               </p>
             </div>
             <div style={{ textAlign: 'left', fontFamily: 'monospace', fontSize: '12px', color: '#1e293b' }}>
-              <div style={{ fontWeight: 800, color: '#170e5e', fontSize: '13px' }}>رقم السند: {docNumber}</div>
-              <div style={{ color: '#64748b', fontSize: '11px' }}>التاريخ: {displayDate}</div>
+              <div style={{ fontWeight: 800, color: '#170e5e', fontSize: '13px' }}>{t('accounts.customer_receipt_voucher_modal.s6', "رقم السند:")} {docNumber}</div>
+              <div style={{ color: '#64748b', fontSize: '11px' }}>{t('accounts.customer_receipt_voucher_modal.s7', "التاريخ:")} {displayDate}</div>
             </div>
           </div>
 
@@ -131,7 +133,7 @@ export function CustomerReceiptVoucherModal({
             justifyContent: 'space-between',
             alignItems: 'center',
           }}>
-            <span style={{ fontWeight: 600, color: '#475569' }}>نوع القيد المالي:</span>
+            <span style={{ fontWeight: 600, color: '#475569' }}>{t('accounts.customer_receipt_voucher_modal.s8', "نوع القيد المالي:")}</span>
             <span style={{
               backgroundColor: isAdvance ? '#e0f2fe' : '#dcfce7',
               color: isAdvance ? '#0369a1' : '#166534',
@@ -146,33 +148,33 @@ export function CustomerReceiptVoucherModal({
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', padding: '8px 0' }}>
             <div>
-              <span style={{ color: '#64748b', display: 'block', fontSize: '11px', marginBottom: '4px' }}>استلمنا من السيد / السادة:</span>
+              <span style={{ color: '#64748b', display: 'block', fontSize: '11px', marginBottom: '4px' }}>{t('accounts.customer_receipt_voucher_modal.s9', "استلمنا من السيد / السادة:")}</span>
               <span style={{ fontWeight: 800, fontSize: '15px', color: '#0f172a' }}>{receipt.customerName}</span>
             </div>
             <div>
-              <span style={{ color: '#64748b', display: 'block', fontSize: '11px', marginBottom: '4px' }}>المبلغ المحصل وقدره:</span>
+              <span style={{ color: '#64748b', display: 'block', fontSize: '11px', marginBottom: '4px' }}>{t('accounts.customer_receipt_voucher_modal.s10', "المبلغ المحصل وقدره:")}</span>
               <span style={{ fontWeight: 900, fontSize: '18px', color: '#166534' }}>
                 {formatCurrency(receipt.amount)}
               </span>
             </div>
             <div>
-              <span style={{ color: '#64748b', display: 'block', fontSize: '11px', marginBottom: '4px' }}>الرصيد السابق قبل السند:</span>
+              <span style={{ color: '#64748b', display: 'block', fontSize: '11px', marginBottom: '4px' }}>{t('accounts.customer_receipt_voucher_modal.s11', "الرصيد السابق قبل السند:")}</span>
               <span style={{ fontWeight: 700, fontSize: '13px', color: (receipt.balanceBefore ?? 0) > 0 ? '#b91c1c' : '#475569' }}>
                 {formatCurrency(receipt.balanceBefore ?? 0)}
               </span>
             </div>
             <div>
-              <span style={{ color: '#64748b', display: 'block', fontSize: '11px', marginBottom: '4px' }}>الرصيد بعد قيد السند:</span>
+              <span style={{ color: '#64748b', display: 'block', fontSize: '11px', marginBottom: '4px' }}>{t('accounts.customer_receipt_voucher_modal.s12', "الرصيد بعد قيد السند:")}</span>
               <span style={{ fontWeight: 800, fontSize: '13px', color: (receipt.balanceAfter ?? 0) < 0 ? '#0284c7' : '#0f172a' }}>
                 {formatCurrency(receipt.balanceAfter ?? 0)}
-                {(receipt.balanceAfter ?? 0) < 0 && ' (رصيد دائن / لصالح العميل)'}
+                {(receipt.balanceAfter ?? 0) < 0 && t('accounts.customer_receipt_voucher_modal.s13', " (رصيد دائن / لصالح العميل)")}
               </span>
             </div>
           </div>
 
           {receipt.note && (
             <div style={{ backgroundColor: '#f8fafc', padding: '10px 14px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-              <span style={{ color: '#64748b', display: 'block', fontSize: '11px', marginBottom: '2px' }}>البيان / تفاصيل الشحنة والملاحظات:</span>
+              <span style={{ color: '#64748b', display: 'block', fontSize: '11px', marginBottom: '2px' }}>{t('accounts.customer_receipt_voucher_modal.s14', "البيان / تفاصيل الشحنة والملاحظات:")}</span>
               <span style={{ color: '#1e293b', fontWeight: 600 }}>{receipt.note}</span>
             </div>
           )}
@@ -186,11 +188,11 @@ export function CustomerReceiptVoucherModal({
             textAlign: 'center',
           }}>
             <div>
-              <span style={{ fontSize: '11px', color: '#64748b', display: 'block', marginBottom: '32px' }}>توقيع المستلم / أمين الخزينة</span>
+              <span style={{ fontSize: '11px', color: '#64748b', display: 'block', marginBottom: '32px' }}>{t('accounts.customer_receipt_voucher_modal.s15', "توقيع المستلم / أمين الخزينة")}</span>
               <div style={{ borderBottom: '1px solid #cbd5e1', width: '140px', margin: '0 auto' }} />
             </div>
             <div>
-              <span style={{ fontSize: '11px', color: '#64748b', display: 'block', marginBottom: '32px' }}>توقيع المحاسب / الإدارة المالية</span>
+              <span style={{ fontSize: '11px', color: '#64748b', display: 'block', marginBottom: '32px' }}>{t('accounts.customer_receipt_voucher_modal.s16', "توقيع المحاسب / الإدارة المالية")}</span>
               <div style={{ borderBottom: '1px solid #cbd5e1', width: '140px', margin: '0 auto' }} />
             </div>
           </div>

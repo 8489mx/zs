@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { StarIcon } from '@/shared/components/icons/AppIcons';
 import { deliveryRepsApi } from '../api/delivery-reps.api';
@@ -12,6 +13,7 @@ function formatDuration(totalMins: number) {
 }
 
 export function DeliveryRepPerformance({ repId }: { repId: number | null }) {
+  const { t } = useTranslation();
   const kpiQuery = useQuery({
     queryKey: ['delivery-rep-kpis', repId],
     queryFn: () => deliveryRepsApi.getKPIs(repId!),
@@ -27,7 +29,7 @@ export function DeliveryRepPerformance({ repId }: { repId: number | null }) {
   if (!repId) return null;
 
   if (kpiQuery.isLoading) {
-    return <div style={{ padding: '24px', textAlign: 'center', color: '#64748b' }}>جاري تحميل لوحة الأداء...</div>;
+    return <div style={{ padding: '24px', textAlign: 'center', color: '#64748b' }}>{t('delivery_reps.delivery_rep_performance.s0', "جاري تحميل لوحة الأداء...")}</div>;
   }
 
   const kpis = kpiQuery.data;
@@ -37,7 +39,7 @@ export function DeliveryRepPerformance({ repId }: { repId: number | null }) {
     if (kpis.successfulOrders === 0 && kpis.returnedOrders === 0) {
       return (
         <div style={{ display: 'flex', alignItems: 'center', height: '36px' }}>
-          <span style={{ fontSize: '15px', fontWeight: 'bold', color: '#94a3b8', background: '#f1f5f9', padding: '4px 12px', borderRadius: '16px' }}>لم يُقيّم بعد</span>
+          <span style={{ fontSize: '15px', fontWeight: 'bold', color: '#94a3b8', background: '#f1f5f9', padding: '4px 12px', borderRadius: '16px' }}>{t('delivery_reps.delivery_rep_performance.s1', "لم يُقيّم بعد")}</span>
         </div>
       );
     }
@@ -84,39 +86,39 @@ export function DeliveryRepPerformance({ repId }: { repId: number | null }) {
           gap: '8px' 
         }}
       >
-        <h3 style={{ margin: 0, color: '#0f172a', fontSize: '15px', fontWeight: 800 }}>التقييم العام للمندوب</h3>
+        <h3 style={{ margin: 0, color: '#0f172a', fontSize: '15px', fontWeight: 800 }}>{t('delivery_reps.delivery_rep_performance.s2', "التقييم العام للمندوب")}</h3>
         {renderStars(kpis.rating)}
         <p style={{ margin: 0, color: '#64748b', fontSize: '12px' }}>
-          يتم احتساب التقييم بناءً على سرعة التوريد المالي ومعدلات المرتجعات تلقائياً.
+          {t('delivery_reps.delivery_rep_performance.s3', "يتم احتساب التقييم بناءً على سرعة التوريد المالي ومعدلات المرتجعات تلقائياً.")}
         </p>
       </div>
 
       {/* Rep Identity & Guarantee Card */}
       {(currentRep?.full_name || currentRep?.national_id || currentRep?.address || currentRep?.vehicle_plate) && (
         <div style={{ background: '#f8fafc', padding: '12px 16px', borderRadius: '10px', border: '1px solid #cbd5e1', display: 'flex', flexDirection: 'column', gap: '8px', boxShadow: '0 2px 6px rgba(15, 23, 42, 0.03)' }}>
-          <span style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a' }}>بيانات التوثيق والضمان الرسمية للمندوب</span>
+          <span style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a' }}>{t('delivery_reps.delivery_rep_performance.s4', "بيانات التوثيق والضمان الرسمية للمندوب")}</span>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px', fontSize: '12px' }}>
             {currentRep.full_name && (
               <div>
-                <span style={{ color: '#64748b', display: 'block', fontSize: '11px' }}>الاسم بالكامل (من البطاقة):</span>
+                <span style={{ color: '#64748b', display: 'block', fontSize: '11px' }}>{t('delivery_reps.delivery_rep_performance.s5', "الاسم بالكامل (من البطاقة):")}</span>
                 <strong style={{ color: '#0f172a' }}>{currentRep.full_name}</strong>
               </div>
             )}
             {currentRep.national_id && (
               <div>
-                <span style={{ color: '#64748b', display: 'block', fontSize: '11px' }}>الرقم القومي:</span>
+                <span style={{ color: '#64748b', display: 'block', fontSize: '11px' }}>{t('delivery_reps.delivery_rep_performance.s6', "الرقم القومي:")}</span>
                 <strong style={{ color: '#0f172a', direction: 'ltr', display: 'inline-block' }}>{currentRep.national_id}</strong>
               </div>
             )}
             {currentRep.vehicle_plate && (
               <div>
-                <span style={{ color: '#64748b', display: 'block', fontSize: '11px' }}>لوحة المركبة / المكنة:</span>
+                <span style={{ color: '#64748b', display: 'block', fontSize: '11px' }}>{t('delivery_reps.delivery_rep_performance.s7', "لوحة المركبة / المكنة:")}</span>
                 <strong style={{ color: '#0f172a' }}>{currentRep.vehicle_plate}</strong>
               </div>
             )}
             {currentRep.address && (
               <div style={{ gridColumn: '1 / -1' }}>
-                <span style={{ color: '#64748b', display: 'block', fontSize: '11px' }}>محل الإقامة / العنوان:</span>
+                <span style={{ color: '#64748b', display: 'block', fontSize: '11px' }}>{t('delivery_reps.delivery_rep_performance.s8', "محل الإقامة / العنوان:")}</span>
                 <span style={{ color: '#334155', fontWeight: 600 }}>{currentRep.address}</span>
               </div>
             )}
@@ -134,40 +136,40 @@ export function DeliveryRepPerformance({ repId }: { repId: number | null }) {
       >
         {/* Card 1: Total Orders */}
         <div className="delivery-rep-kpi-card" style={{ padding: '16px', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '10px', boxShadow: '0 2px 6px rgba(15, 23, 42, 0.03)', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-          <span style={{ color: '#64748b', fontSize: '12px', fontWeight: 700 }}>إجمالي الطلبات المسندة</span>
+          <span style={{ color: '#64748b', fontSize: '12px', fontWeight: 700 }}>{t('delivery_reps.delivery_rep_performance.s9', "إجمالي الطلبات المسندة")}</span>
           <span style={{ fontSize: '24px', fontWeight: 800, color: '#0f172a' }}>{kpis.totalOrders}</span>
-          <span style={{ fontSize: '11px', color: '#94a3b8' }}>إجمالي رحلات التوصيل</span>
+          <span style={{ fontSize: '11px', color: '#94a3b8' }}>{t('delivery_reps.delivery_rep_performance.s10', "إجمالي رحلات التوصيل")}</span>
         </div>
         
         {/* Card 2: Success Rate */}
         <div className="delivery-rep-kpi-card" style={{ padding: '16px', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '10px', boxShadow: '0 2px 6px rgba(15, 23, 42, 0.03)', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-          <span style={{ color: '#64748b', fontSize: '12px', fontWeight: 700 }}>معدل التوصيل الناجح</span>
+          <span style={{ color: '#64748b', fontSize: '12px', fontWeight: 700 }}>{t('delivery_reps.delivery_rep_performance.s11', "معدل التوصيل الناجح")}</span>
           <span style={{ fontSize: '24px', fontWeight: 800, color: kpis.successRate >= 90 ? '#15803d' : kpis.successRate >= 75 ? '#d97706' : '#dc2626' }}>
             {kpis.successRate}%
           </span>
           <span style={{ fontSize: '11px', color: '#15803d', fontWeight: 600, background: '#f0fdf4', padding: '1px 6px', borderRadius: '4px', alignSelf: 'flex-start', border: '1px solid #bbf7d0' }}>
-            {kpis.successfulOrders} طلب ناجح
+            {kpis.successfulOrders} {t('delivery_reps.delivery_rep_performance.s12', "طلب ناجح")}
           </span>
         </div>
 
         {/* Card 3: Returns */}
         <div className="delivery-rep-kpi-card" style={{ padding: '16px', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '10px', boxShadow: '0 2px 6px rgba(15, 23, 42, 0.03)', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-          <span style={{ color: '#64748b', fontSize: '12px', fontWeight: 700 }}>معدل المرتجعات</span>
+          <span style={{ color: '#64748b', fontSize: '12px', fontWeight: 700 }}>{t('delivery_reps.delivery_rep_performance.s13', "معدل المرتجعات")}</span>
           <span style={{ fontSize: '24px', fontWeight: 800, color: kpis.returnedOrders === 0 ? '#15803d' : '#dc2626' }}>
-            {kpis.returnedOrders} <span style={{ fontSize: '14px', fontWeight: 600, color: '#64748b' }}>طلب</span>
+            {kpis.returnedOrders} <span style={{ fontSize: '14px', fontWeight: 600, color: '#64748b' }}>{t('delivery_reps.delivery_rep_performance.s14', "طلب")}</span>
           </span>
           <span style={{ fontSize: '11px', color: kpis.returnedOrders === 0 ? '#15803d' : '#dc2626' }}>
-            {kpis.returnedOrders === 0 ? 'سجل نظيف بدون مرتجعات' : 'يحتاج مراجعة مع المندوب'}
+            {kpis.returnedOrders === 0 ? t('delivery_reps.delivery_rep_performance.s15', "سجل نظيف بدون مرتجعات") : t('delivery_reps.delivery_rep_performance.s16', "يحتاج مراجعة مع المندوب")}
           </span>
         </div>
 
         {/* Card 4: Average Delay */}
         <div className="delivery-rep-kpi-card" style={{ padding: '16px', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '10px', boxShadow: '0 2px 6px rgba(15, 23, 42, 0.03)', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-          <span style={{ color: '#64748b', fontSize: '12px', fontWeight: 700 }}>متوسط سرعة التوريد</span>
+          <span style={{ color: '#64748b', fontSize: '12px', fontWeight: 700 }}>{t('delivery_reps.delivery_rep_performance.s17', "متوسط سرعة التوريد")}</span>
           <span style={{ fontSize: '20px', fontWeight: 800, color: (kpis.averageDelayHours || 0) < 1 ? '#15803d' : (kpis.averageDelayHours || 0) < 24 ? '#ea580c' : '#dc2626' }}>
             {formatDuration(totalMinutes)}
           </span>
-          <span style={{ fontSize: '11px', color: '#94a3b8' }}>متوسط وقت التوريد لكل طلب</span>
+          <span style={{ fontSize: '11px', color: '#94a3b8' }}>{t('delivery_reps.delivery_rep_performance.s18', "متوسط وقت التوريد لكل طلب")}</span>
         </div>
       </div>
     </div>

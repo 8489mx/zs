@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useMemo, useRef } from 'react';
 import { getGlobalCurrencySymbol } from '@/lib/currencies';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -49,6 +50,7 @@ export function VanSaleNewInvoiceModal({
   repName,
   onSuccess,
 }: VanSaleNewInvoiceModalProps) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
 
   // Mode: form or success
@@ -356,14 +358,14 @@ export function VanSaleNewInvoiceModal({
       open={open}
       onClose={handleResetModal}
       width="min(640px, 98vw)"
-      title={completedSale ? 'تم إصدار الفاتورة وحفظها بنجاح' : 'فاتورة بيع مباشر من السيارة (Van Sale)'}
-      subtitle={completedSale ? `رقم الفاتورة: #${completedSale.docNo}` : `المندوب: ${repName || 'المندوب الحسابي'}`}
-      badge="مبيعات الفان"
+      title={completedSale ? t('delivery_reps.van_sale_new_invoice_modal.s0', "تم إصدار الفاتورة وحفظها بنجاح") : t('delivery_reps.van_sale_new_invoice_modal.s1', "فاتورة بيع مباشر من السيارة (Van Sale)")}
+      subtitle={completedSale ? `رقم الفاتورة: #${completedSale.docNo}` : `المندوب: ${repName || t('delivery_reps.van_sale_new_invoice_modal.s2', "المندوب الحسابي")}`}
+      badge={t('delivery_reps.van_sale_new_invoice_modal.s3', "مبيعات الفان")}
       footerActions={
         completedSale ? (
           <StandardDialogFooter
             onClose={handleResetModal}
-            cancelText="إغلاق"
+            cancelText={t('delivery_reps.van_sale_new_invoice_modal.s4', "إغلاق")}
             extraActions={
               <div style={{ display: 'inline-flex', gap: '8px' }}>
                 <Button
@@ -371,7 +373,7 @@ export function VanSaleNewInvoiceModal({
                   style={{ background: '#170e5e', color: '#fff', padding: '6px 14px', fontSize: '12.5px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
                 >
                   <PrinterIcon size={16} color="#fff" />
-                  <span>طباعة الإيصال (بلوتوث)</span>
+                  <span>{t('delivery_reps.van_sale_new_invoice_modal.s5', "طباعة الإيصال (بلوتوث)")}</span>
                 </Button>
                 {completedSale.customerPhone && (
                   <Button
@@ -379,7 +381,7 @@ export function VanSaleNewInvoiceModal({
                     style={{ background: '#16a34a', color: '#fff', padding: '6px 14px', fontSize: '12.5px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
                   >
                     <MessageSquareIcon size={16} color="#fff" />
-                    <span>واتساب</span>
+                    <span>{t('delivery_reps.van_sale_new_invoice_modal.s6', "واتساب")}</span>
                   </Button>
                 )}
               </div>
@@ -388,9 +390,9 @@ export function VanSaleNewInvoiceModal({
         ) : (
           <StandardDialogFooter
             onClose={handleResetModal}
-            cancelText="إلغاء"
+            cancelText={t('delivery_reps.van_sale_new_invoice_modal.s7', "إلغاء")}
             onSubmit={() => createSaleMutation.mutate()}
-            submitText={createSaleMutation.isPending ? 'جاري الحفظ...' : 'تأكيد وحفظ الفاتورة'}
+            submitText={createSaleMutation.isPending ? t('delivery_reps.van_sale_new_invoice_modal.s8', "جاري الحفظ...") : t('delivery_reps.van_sale_new_invoice_modal.s9', "تأكيد وحفظ الفاتورة")}
             isSubmitting={createSaleMutation.isPending}
             submitDisabled={cart.length === 0}
           />
@@ -405,25 +407,25 @@ export function VanSaleNewInvoiceModal({
               <CheckCircleIcon size={48} color="#16a34a" />
             </div>
             <h3 style={{ margin: '0 0 6px 0', color: '#166534', fontWeight: 'bold', fontSize: '16px' }}>
-              تم حفظ وترحيل الفاتورة بنجاح!
+              {t('delivery_reps.van_sale_new_invoice_modal.s10', "تم حفظ وترحيل الفاتورة بنجاح!")}
             </h3>
             <p className="muted small" style={{ margin: '0 0 12px 0' }}>
-              رقم الفاتورة: <strong>#{completedSale.docNo}</strong> بمبلغ{' '}
+              {t('delivery_reps.van_sale_new_invoice_modal.s11', "رقم الفاتورة:")} <strong>#{completedSale.docNo}</strong> {t('delivery_reps.van_sale_new_invoice_modal.s12', "بمبلغ")}{' '}
               <strong>{formatCurrency(completedSale.total)}</strong>
             </p>
 
             <div style={{ display: 'inline-flex', gap: '16px', background: '#f8fafc', padding: '8px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', margin: '0 auto 14px auto', fontSize: '12px' }}>
-              <span>البنود: <b>{completedSale.totalLines ?? completedSale.items.length}</b></span>
-              <span>القطع: <b>{completedSale.totalUnits ?? completedSale.items.reduce((s, i) => s + i.qty, 0)}</b></span>
-              <span>الكراتين: <b>{completedSale.totalCartons ?? 0}</b></span>
+              <span>{t('delivery_reps.van_sale_new_invoice_modal.s13', "البنود:")} <b>{completedSale.totalLines ?? completedSale.items.length}</b></span>
+              <span>{t('delivery_reps.van_sale_new_invoice_modal.s14', "القطع:")} <b>{completedSale.totalUnits ?? completedSale.items.reduce((s, i) => s + i.qty, 0)}</b></span>
+              <span>{t('delivery_reps.van_sale_new_invoice_modal.s15', "الكراتين:")} <b>{completedSale.totalCartons ?? 0}</b></span>
             </div>
 
             {completedSale.deliveryImage && (
               <div style={{ margin: '0 auto 12px auto', textAlign: 'center' }}>
-                <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '4px' }}>صورة إثبات التسليم المرفقة:</div>
+                <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '4px' }}>{t('delivery_reps.van_sale_new_invoice_modal.s16', "صورة إثبات التسليم المرفقة:")}</div>
                 <img
                   src={completedSale.deliveryImage}
-                  alt="إثبات التسليم"
+                  alt={t('delivery_reps.van_sale_new_invoice_modal.s17', "إثبات التسليم")}
                   style={{ maxHeight: '110px', maxWidth: '200px', objectFit: 'cover', borderRadius: '8px', border: '1px solid #cbd5e1' }}
                 />
               </div>
@@ -440,27 +442,27 @@ export function VanSaleNewInvoiceModal({
                   onClick={() => setIsCashCustomer(true)}
                   style={isCashCustomer ? { background: '#170e5e', color: '#fff' } : undefined}
                 >
-                  عميل نقدي / طيار
+                  {t('delivery_reps.van_sale_new_invoice_modal.s18', "عميل نقدي / طيار")}
                 </Button>
                 <Button
                   variant={!isCashCustomer ? 'primary' : 'secondary'}
                   onClick={() => setIsCashCustomer(false)}
                   style={!isCashCustomer ? { background: '#170e5e', color: '#fff' } : undefined}
                 >
-                  عميل مسجل بالقائمة
+                  {t('delivery_reps.van_sale_new_invoice_modal.s19', "عميل مسجل بالقائمة")}
                 </Button>
               </div>
 
               {isCashCustomer ? (
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                  <Field label="اسم العميل (اختياري)">
+                  <Field label={t('delivery_reps.van_sale_new_invoice_modal.s20', "اسم العميل (اختياري)")}>
                     <input
                       value={customerName}
                       onChange={(e) => setCustomerName(e.target.value)}
-                      placeholder="عميل نقدي"
+                      placeholder={t('delivery_reps.van_sale_new_invoice_modal.s21', "عميل نقدي")}
                     />
                   </Field>
-                  <Field label="هاتف العميل (لواتساب)">
+                  <Field label={t('delivery_reps.van_sale_new_invoice_modal.s22', "هاتف العميل (لواتساب)")}>
                     <input
                       value={customerPhone}
                       onChange={(e) => setCustomerPhone(e.target.value)}
@@ -469,11 +471,11 @@ export function VanSaleNewInvoiceModal({
                   </Field>
                 </div>
               ) : (
-                <Field label="اختر العميل">
+                <Field label={t('delivery_reps.van_sale_new_invoice_modal.s23', "اختر العميل")}>
                   <CustomSelect
                     value={selectedCustomerId}
                     onChange={(val) => setSelectedCustomerId(val)}
-                    placeholder="-- اختر من قائمة العملاء --"
+                    placeholder={t('delivery_reps.van_sale_new_invoice_modal.s24', "-- اختر من قائمة العملاء --")}
                     options={customers.map((c) => ({
                       value: String(c.id),
                       label: c.name,
@@ -490,7 +492,7 @@ export function VanSaleNewInvoiceModal({
                 <input
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="ابحث عن صنف أو كود بالسيارة..."
+                  placeholder={t('delivery_reps.van_sale_new_invoice_modal.s25', "ابحث عن صنف أو كود بالسيارة...")}
                   style={{ width: '100%', padding: '9px 12px', border: '1px solid #cbd5e1', borderRadius: '8px' }}
                 />
               </div>
@@ -500,7 +502,7 @@ export function VanSaleNewInvoiceModal({
                 style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '9px 14px' }}
               >
                 <BarcodeIcon size={16} />
-                <span>مسح باركود</span>
+                <span>{t('delivery_reps.van_sale_new_invoice_modal.s26', "مسح باركود")}</span>
               </Button>
             </div>
 
@@ -537,7 +539,7 @@ export function VanSaleNewInvoiceModal({
             <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden', maxHeight: '200px', overflowY: 'auto' }}>
               {cart.length === 0 ? (
                 <div className="muted small" style={{ padding: '20px', textAlign: 'center' }}>
-                  لم يتم إضافة أصناف بعد. ابحث عن صنف أو امسح الباركود لإضافته للفاتورة.
+                  {t('delivery_reps.van_sale_new_invoice_modal.s27', "لم يتم إضافة أصناف بعد. ابحث عن صنف أو امسح الباركود لإضافته للفاتورة.")}
                 </div>
               ) : (
                 cart.map((item, idx) => (
@@ -555,10 +557,10 @@ export function VanSaleNewInvoiceModal({
                     <div style={{ flex: 1 }}>
                       <div style={{ fontWeight: 'bold', fontSize: '0.9em', color: '#0f172a' }}>{item.product.name}</div>
                       <div style={{ fontSize: '0.8em', color: '#64748b', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                        <span>{formatCurrency(item.price)} للوحدة</span>
+                        <span>{formatCurrency(item.price)} {t('delivery_reps.van_sale_new_invoice_modal.s28', "للوحدة")}</span>
                         {item.consumerPrice && item.consumerPrice > 0 ? (
                           <span style={{ color: '#2563eb', fontWeight: 600 }}>
-                            (سعر المستهلك: {formatCurrency(item.consumerPrice)})
+                            {t('delivery_reps.van_sale_new_invoice_modal.s29', "(سعر المستهلك:")} {formatCurrency(item.consumerPrice)})
                           </span>
                         ) : null}
                       </div>
@@ -569,7 +571,7 @@ export function VanSaleNewInvoiceModal({
                           type="button"
                           onClick={() => handleUpdateQty(idx, 1)}
                           style={{ border: 'none', background: 'transparent', cursor: 'pointer', fontWeight: 'bold', padding: '0 4px', color: '#170e5e' }}
-                          title="زيادة الكمية"
+                          title={t('delivery_reps.van_sale_new_invoice_modal.s30', "زيادة الكمية")}
                         >
                           +
                         </button>
@@ -578,7 +580,7 @@ export function VanSaleNewInvoiceModal({
                           type="button"
                           onClick={() => handleUpdateQty(idx, -1)}
                           style={{ border: 'none', background: 'transparent', cursor: 'pointer', fontWeight: 'bold', padding: '0 4px' }}
-                          title="إنقاص الكمية"
+                          title={t('delivery_reps.van_sale_new_invoice_modal.s31', "إنقاص الكمية")}
                         >
                           -
                         </button>
@@ -590,7 +592,7 @@ export function VanSaleNewInvoiceModal({
                         type="button"
                         onClick={() => handleRemoveItem(idx)}
                         style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#ef4444', display: 'flex', alignItems: 'center' }}
-                        title="حذف الصنف"
+                        title={t('delivery_reps.van_sale_new_invoice_modal.s32', "حذف الصنف")}
                       >
                         <Trash2Icon size={14} color="#ef4444" />
                       </button>
@@ -618,17 +620,17 @@ export function VanSaleNewInvoiceModal({
               <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
                 <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#334155' }}>
                   <PackageIcon size={14} color="#170e5e" />
-                  <span>عدد البنود:</span>
+                  <span>{t('delivery_reps.van_sale_new_invoice_modal.s33', "عدد البنود:")}</span>
                   <b style={{ color: '#170e5e' }}>{totalLines}</b>
                 </div>
 
                 <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#334155' }}>
-                  <span>إجمالي القطع:</span>
+                  <span>{t('delivery_reps.van_sale_new_invoice_modal.s34', "إجمالي القطع:")}</span>
                   <b style={{ color: '#170e5e' }}>{totalUnits}</b>
                 </div>
 
                 <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: '#334155' }}>
-                  <span>إجمالي الكراتين:</span>
+                  <span>{t('delivery_reps.van_sale_new_invoice_modal.s35', "إجمالي الكراتين:")}</span>
                   <input
                     type="number"
                     min="0"
@@ -647,9 +649,9 @@ export function VanSaleNewInvoiceModal({
                       textAlign: 'center',
                       background: '#fff',
                     }}
-                    title="يمكنك تعديل إجمالي عدد الكراتين يدوياً أو تركه للحساب التلقائي"
+                    title={t('delivery_reps.van_sale_new_invoice_modal.s36', "يمكنك تعديل إجمالي عدد الكراتين يدوياً أو تركه للحساب التلقائي")}
                   />
-                  <span style={{ fontSize: '11px', color: '#64748b' }}>كرتونة</span>
+                  <span style={{ fontSize: '11px', color: '#64748b' }}>{t('delivery_reps.van_sale_new_invoice_modal.s37', "كرتونة")}</span>
                 </div>
               </div>
 
@@ -678,10 +680,10 @@ export function VanSaleNewInvoiceModal({
                       border: '1px dashed #94a3b8',
                       color: '#1e293b',
                     }}
-                    title="التقاط صورة بضاعة التسليم بالكاميرا أو إرفاق صورة"
+                    title={t('delivery_reps.van_sale_new_invoice_modal.s38', "التقاط صورة بضاعة التسليم بالكاميرا أو إرفاق صورة")}
                   >
                     <CameraIcon size={14} color="#170e5e" />
-                    <span>تصوير البضاعة المسلّمة</span>
+                    <span>{t('delivery_reps.van_sale_new_invoice_modal.s39', "تصوير البضاعة المسلّمة")}</span>
                   </Button>
                 ) : (
                   <div
@@ -697,10 +699,10 @@ export function VanSaleNewInvoiceModal({
                   >
                     <img
                       src={deliveryImage}
-                      alt="البضاعة"
+                      alt={t('delivery_reps.van_sale_new_invoice_modal.s40', "البضاعة")}
                       style={{ width: '24px', height: '24px', objectFit: 'cover', borderRadius: '4px' }}
                     />
-                    <span style={{ fontSize: '11px', color: '#166534', fontWeight: 600 }}>تم إرفاق صورة</span>
+                    <span style={{ fontSize: '11px', color: '#166534', fontWeight: 600 }}>{t('delivery_reps.van_sale_new_invoice_modal.s41', "تم إرفاق صورة")}</span>
                     <button
                       type="button"
                       onClick={() => setDeliveryImage(null)}
@@ -713,7 +715,7 @@ export function VanSaleNewInvoiceModal({
                         display: 'flex',
                         alignItems: 'center',
                       }}
-                      title="حذف الصورة"
+                      title={t('delivery_reps.van_sale_new_invoice_modal.s42', "حذف الصورة")}
                     >
                       <XIcon size={12} color="#ef4444" />
                     </button>
@@ -736,13 +738,13 @@ export function VanSaleNewInvoiceModal({
                   }}
                 >
                   <DollarSignIcon size={14} />
-                  <span>كاش نقدي</span>
+                  <span>{t('delivery_reps.van_sale_new_invoice_modal.s43', "كاش نقدي")}</span>
                 </Button>
                 <Button
                   variant={paymentMethod === 'credit' ? 'primary' : 'secondary'}
                   onClick={() => {
                     if (isCashCustomer && !selectedCustomerId) {
-                      toast.warning('البيع الآجل يتطلب اختيار عميل مسجل من القائمة لتقييد المديونية على حسابه.');
+                      toast.warning(t('delivery_reps.van_sale_new_invoice_modal.s44', "البيع الآجل يتطلب اختيار عميل مسجل من القائمة لتقييد المديونية على حسابه."));
                       setIsCashCustomer(false);
                     }
                     handlePaymentMethodChange('credit');
@@ -755,12 +757,12 @@ export function VanSaleNewInvoiceModal({
                   }}
                 >
                   <FileTextIcon size={14} />
-                  <span>آجل (حساب)</span>
+                  <span>{t('delivery_reps.van_sale_new_invoice_modal.s45', "آجل (حساب)")}</span>
                 </Button>
               </div>
 
               <div style={{ textAlign: 'left' }}>
-                <div style={{ fontSize: '0.8em', color: '#64748b' }}>إجمالي الفاتورة</div>
+                <div style={{ fontSize: '0.8em', color: '#64748b' }}>{t('delivery_reps.van_sale_new_invoice_modal.s46', "إجمالي الفاتورة")}</div>
                 <div style={{ fontSize: '1.4em', fontWeight: 'bold', color: '#170e5e' }}>
                   {formatCurrency(totalAmount)}
                 </div>

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { XIcon } from '@/shared/components/icons/AppIcons';
 import { useEffect, useState } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
@@ -136,6 +137,7 @@ export const STANDARD_TIER_FEATURES: Record<string, string[]> = {
 };
 
 export function DeveloperActivationPanel() {
+  const { t } = useTranslation();
   const user = useAuthStore((s) => s.user);
   const tenant = useAuthStore((s) => s.tenant);
   const canAccessDeveloperPanel = Boolean(user);
@@ -229,14 +231,14 @@ export function DeveloperActivationPanel() {
   };
 
   return (
-    <DialogShell open={open} onClose={() => setOpen(false)} width="min(760px, 95vw)" zIndex={9999} ariaLabel="إعدادات ترخيص النظام">
+    <DialogShell open={open} onClose={() => setOpen(false)} width="min(760px, 95vw)" zIndex={9999} ariaLabel={t('shared.system.developer_activation_panel.s0', "إعدادات ترخيص النظام")}>
       <div style={{ padding: '24px 28px', direction: 'rtl', background: '#ffffff', borderRadius: '16px' }}>
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', paddingBottom: '16px', borderBottom: '1px solid #f1f5f9' }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: '#0f172a', letterSpacing: '-0.01em' }}>
-                إعدادات ترخيص النظام
+                {t('shared.system.developer_activation_panel.s1', "إعدادات ترخيص النظام")}
               </h2>
               <span style={{
                 background: '#0f172a',
@@ -251,7 +253,7 @@ export function DeveloperActivationPanel() {
               </span>
             </div>
             <p style={{ margin: '4px 0 0', fontSize: '0.82rem', color: '#64748b' }}>
-              التحكم في الباقات وتفعيل / تعطيل الوحدات والميزات للمستأجر الحالي
+              {t('shared.system.developer_activation_panel.s2', "التحكم في الباقات وتفعيل / تعطيل الوحدات والميزات للمستأجر الحالي")}
             </p>
             {!isDesktopOfflineApp() && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '10px' }}>
@@ -278,7 +280,7 @@ export function DeveloperActivationPanel() {
                     <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
                     <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
                   </svg>
-                  <span>إدارة المشتركين والنسخ</span>
+                  <span>{t('shared.system.developer_activation_panel.s3', "إدارة المشتركين والنسخ")}</span>
                 </a>
                 <a
                   href="/saas-admin/plans"
@@ -300,7 +302,7 @@ export function DeveloperActivationPanel() {
                   <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
                   </svg>
-                  <span>باقات الاشتراكات والأسعار</span>
+                  <span>{t('shared.system.developer_activation_panel.s4', "باقات الاشتراكات والأسعار")}</span>
                 </a>
               </div>
             )}
@@ -344,7 +346,7 @@ export function DeveloperActivationPanel() {
           {/* Master Password Input */}
           <div style={{ background: '#f8fafc', padding: '14px 16px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
             <label style={{ display: 'block', fontSize: '0.84rem', fontWeight: 800, color: '#0f172a', marginBottom: '6px' }}>
-              كلمة مرور المطور (Master Password) <span style={{ color: '#ef4444' }}>*</span>
+              {t('shared.system.developer_activation_panel.s5', "كلمة مرور المطور (Master Password)")} <span style={{ color: '#ef4444' }}>*</span>
             </label>
             <input 
               type="text" 
@@ -359,7 +361,7 @@ export function DeveloperActivationPanel() {
               data-form-type="other"
               value={masterPassword} 
               onChange={(e) => setMasterPassword(e.target.value)} 
-              placeholder="أدخل كلمة المرور السرية لتأكيد التعديلات..." 
+              placeholder={t('shared.system.developer_activation_panel.s6', "أدخل كلمة المرور السرية لتأكيد التعديلات...")} 
               style={{
                 width: '100%',
                 padding: '9px 14px',
@@ -379,7 +381,7 @@ export function DeveloperActivationPanel() {
           {/* Segmented Plan Selector */}
           <div>
             <label style={{ display: 'block', fontSize: '0.84rem', fontWeight: 800, color: '#0f172a', marginBottom: '8px' }}>
-              باقة الترخيص الأساسية:
+              {t('shared.system.developer_activation_panel.s7', "باقة الترخيص الأساسية:")}
             </label>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
               <button
@@ -410,14 +412,14 @@ export function DeveloperActivationPanel() {
                   transition: 'all 0.15s ease',
                 }}
               >
-                بدون باقة (مخصص)
+                {t('shared.system.developer_activation_panel.s8', "بدون باقة (مخصص)")}
               </button>
 
               {(featurePlans.length > 0 ? featurePlans : [
-                { id: 'plan_basic', name: 'الأساسية' },
-                { id: 'plan_pro', name: 'الاحترافية' },
-                { id: 'plan_ultimate', name: 'المتكاملة' },
-                { id: 'plan_omnichannel', name: 'باقة التجارة الشاملة (Omnichannel Enterprise)' },
+                { id: 'plan_basic', name: t('shared.system.developer_activation_panel.s9', "الأساسية") },
+                { id: 'plan_pro', name: t('shared.system.developer_activation_panel.s10', "الاحترافية") },
+                { id: 'plan_ultimate', name: t('shared.system.developer_activation_panel.s11', "المتكاملة") },
+                { id: 'plan_omnichannel', name: t('shared.system.developer_activation_panel.s12', "باقة التجارة الشاملة (Omnichannel Enterprise)") },
               ]).map((p: any) => {
                 const isActive = String(p.id) === planId;
                 return (
@@ -452,10 +454,10 @@ export function DeveloperActivationPanel() {
           <div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
               <span style={{ fontSize: '0.84rem', fontWeight: 800, color: '#0f172a' }}>
-                تخصيص الوحدات البرمجية المتاحة:
+                {t('shared.system.developer_activation_panel.s13', "تخصيص الوحدات البرمجية المتاحة:")}
               </span>
               <span style={{ fontSize: '0.76rem', color: '#64748b' }}>
-                اضغط على أي وحدة للتبديل بين التفعيل والإيقاف
+                {t('shared.system.developer_activation_panel.s14', "اضغط على أي وحدة للتبديل بين التفعيل والإيقاف")}
               </span>
             </div>
 
@@ -511,12 +513,12 @@ export function DeveloperActivationPanel() {
                       </span>
                       {isBaseIncluded && isExcluded && (
                         <span style={{ background: '#fef2f2', color: '#dc2626', fontSize: '0.66rem', fontWeight: 700, padding: '1px 5px', borderRadius: '4px', border: '1px solid #fee2e2' }}>
-                          مستثناة
+                          {t('shared.system.developer_activation_panel.s15', "مستثناة")}
                         </span>
                       )}
                       {!isBaseIncluded && isExtraIncluded && (
                         <span style={{ background: '#eff6ff', color: '#1d4ed8', fontSize: '0.66rem', fontWeight: 700, padding: '1px 5px', borderRadius: '4px', border: '1px solid #dbeafe' }}>
-                          إضافية
+                          {t('shared.system.developer_activation_panel.s16', "إضافية")}
                         </span>
                       )}
                     </div>
@@ -570,7 +572,7 @@ export function DeveloperActivationPanel() {
             onMouseEnter={(e) => { e.currentTarget.style.background = '#f1f5f9'; }}
             onMouseLeave={(e) => { e.currentTarget.style.background = '#f8fafc'; }}
           >
-            إغلاق
+            {t('shared.system.developer_activation_panel.s17', "إغلاق")}
           </button>
           <button
             type="button"
@@ -600,7 +602,7 @@ export function DeveloperActivationPanel() {
               }
             }}
           >
-            {updateMutation.isPending ? 'جاري التفعيل...' : 'تفعيل الترخيص'}
+            {updateMutation.isPending ? t('shared.system.developer_activation_panel.s18', "جاري التفعيل...") : t('shared.system.developer_activation_panel.s19', "تفعيل الترخيص")}
           </button>
         </div>
       </div>

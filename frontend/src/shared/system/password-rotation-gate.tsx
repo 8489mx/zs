@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { authApi } from '@/shared/api/auth';
 import { useAuthStore } from '@/stores/auth-store';
@@ -37,6 +38,7 @@ const labelStyle: React.CSSProperties = {
 };
 
 export function PasswordRotationGate() {
+  const { t } = useTranslation();
   const user = useAuthStore((state) => state.user);
   const updateUser = useAuthStore((state) => state.updateUser);
   const [currentPassword, setCurrentPassword] = useState('');
@@ -162,7 +164,7 @@ export function PasswordRotationGate() {
             <ShieldLockIcon size={24} />
           </div>
           <h3 id="password-rotation-title" style={{ margin: '0 0 8px 0', fontSize: '1.15rem', color: '#0f172a', fontWeight: 800 }}>
-            تم تأمين الحساب بنجاح
+            {t('shared.system.password_rotation_gate.s0', "تم تأمين الحساب بنجاح")}
           </h3>
           <p style={{ margin: 0, fontSize: '0.84rem', color: '#166534', background: '#f0fdf4', padding: '10px 14px', borderRadius: '8px', border: '1px solid #bbf7d0' }}>
             {success}
@@ -220,7 +222,7 @@ export function PasswordRotationGate() {
           </div>
           <div>
             <h3 id="password-rotation-title" style={{ margin: 0, fontSize: '1.08rem', fontWeight: 800, color: '#0f172a' }}>
-              تغيير كلمة المرور قبل المتابعة
+              {t('shared.system.password_rotation_gate.s1', "تغيير كلمة المرور قبل المتابعة")}
             </h3>
             <span style={{ fontSize: '0.76rem', color: '#64748b', display: 'block', marginTop: '2px' }}>
               {helperText}
@@ -230,10 +232,10 @@ export function PasswordRotationGate() {
 
         <form onSubmit={handleSubmit} autoComplete="off" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           <div>
-            <label htmlFor="currentPasswordInput" style={labelStyle}>كلمة المرور الحالية</label>
+            <label htmlFor="currentPasswordInput" style={labelStyle}>{t('shared.system.password_rotation_gate.s2', "كلمة المرور الحالية")}</label>
             <input
               id="currentPasswordInput"
-              aria-label="كلمة المرور الحالية"
+              aria-label={t('shared.system.password_rotation_gate.s3', "كلمة المرور الحالية")}
               type="text"
               className="secure-password-field"
               style={inputControlStyle}
@@ -251,10 +253,10 @@ export function PasswordRotationGate() {
           </div>
 
           <div>
-            <label htmlFor="newPasswordInput" style={labelStyle}>كلمة المرور الجديدة</label>
+            <label htmlFor="newPasswordInput" style={labelStyle}>{t('shared.system.password_rotation_gate.s4', "كلمة المرور الجديدة")}</label>
             <input
               id="newPasswordInput"
-              aria-label="كلمة المرور الجديدة"
+              aria-label={t('shared.system.password_rotation_gate.s5', "كلمة المرور الجديدة")}
               type="text"
               className="secure-password-field"
               style={inputControlStyle}
@@ -272,10 +274,10 @@ export function PasswordRotationGate() {
           </div>
 
           <div>
-            <label htmlFor="confirmPasswordInput" style={labelStyle}>تأكيد كلمة المرور الجديدة</label>
+            <label htmlFor="confirmPasswordInput" style={labelStyle}>{t('shared.system.password_rotation_gate.s6', "تأكيد كلمة المرور الجديدة")}</label>
             <input
               id="confirmPasswordInput"
-              aria-label="تأكيد كلمة المرور الجديدة"
+              aria-label={t('shared.system.password_rotation_gate.s7', "تأكيد كلمة المرور الجديدة")}
               type="text"
               className="secure-password-field"
               style={inputControlStyle}
@@ -320,7 +322,7 @@ export function PasswordRotationGate() {
                 borderRadius: '8px',
               }}
             >
-              {isSubmitting ? 'جارٍ التحديث...' : 'تحديث كلمة المرور'}
+              {isSubmitting ? t('shared.system.password_rotation_gate.s8', "جارٍ التحديث...") : t('shared.system.password_rotation_gate.s9', "تحديث كلمة المرور")}
             </Button>
 
             <button
@@ -340,7 +342,7 @@ export function PasswordRotationGate() {
                 transition: 'all 0.15s ease',
               }}
             >
-              {isDismissing ? 'جارٍ المتابعة...' : 'المتابعة بكلمة المرور الحالية (تخطي)'}
+              {isDismissing ? t('shared.system.password_rotation_gate.s10', "جارٍ المتابعة...") : t('shared.system.password_rotation_gate.s11', "المتابعة بكلمة المرور الحالية (تخطي)")}
             </button>
           </div>
         </form>

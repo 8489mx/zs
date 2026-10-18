@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Field } from '@/shared/ui/field';
@@ -109,6 +110,7 @@ export function LedgerPanel({
   onPageSizeChange: (pageSize: number) => void;
   summary?: LedgerSummary | null;
 }) {
+  const { t } = useTranslation();
   const selectedOption = useMemo(() => options.find((option) => String(option.id) === String(value)) || null, [options, value]);
   const [selectedDocument, setSelectedDocument] = useState<SelectedLedgerDocument | null>(null);
 
@@ -143,34 +145,34 @@ export function LedgerPanel({
             {options.map((option) => <option key={option.id} value={option.id}>{option.name}</option>)}
           </select>
         </Field>
-        <Field label="بحث داخل الكشف">
-          <input value={search} onChange={(event) => onSearchChange(event.target.value)} placeholder="رقم مستند أو ملاحظة" disabled={!value} />
+        <Field label={t('accounts.ledger_panel.s0', "بحث داخل الكشف")}>
+          <input value={search} onChange={(event) => onSearchChange(event.target.value)} placeholder={t('accounts.ledger_panel.s1', "رقم مستند أو ملاحظة")} disabled={!value} />
         </Field>
       </div>
       {selectedOption ? (
         <div className="stats-grid compact-grid">
-          <div className="stat-card"><span>الاسم</span><strong>{selectedOption.name}</strong></div>
-          <div className="stat-card"><span>عدد القيود</span><strong>{summary?.totalItems ?? entries.length}</strong></div>
-          <div className="stat-card"><span>إجمالي المدين</span><strong>{formatCurrency(summary?.debitTotal || 0)}</strong></div>
-          <div className="stat-card"><span>إجمالي الدائن</span><strong>{formatCurrency(summary?.creditTotal || 0)}</strong></div>
-          <div className="stat-card"><span>آخر رصيد</span><strong>{formatCurrency(summary?.lastBalance || 0)}</strong></div>
+          <div className="stat-card"><span>{t('accounts.ledger_panel.s2', "الاسم")}</span><strong>{selectedOption.name}</strong></div>
+          <div className="stat-card"><span>{t('accounts.ledger_panel.s3', "عدد القيود")}</span><strong>{summary?.totalItems ?? entries.length}</strong></div>
+          <div className="stat-card"><span>{t('accounts.ledger_panel.s4', "إجمالي المدين")}</span><strong>{formatCurrency(summary?.debitTotal || 0)}</strong></div>
+          <div className="stat-card"><span>{t('accounts.ledger_panel.s5', "إجمالي الدائن")}</span><strong>{formatCurrency(summary?.creditTotal || 0)}</strong></div>
+          <div className="stat-card"><span>{t('accounts.ledger_panel.s6', "آخر رصيد")}</span><strong>{formatCurrency(summary?.lastBalance || 0)}</strong></div>
         </div>
       ) : null}
       <DataTable
         ariaLabel={title}
         density="compact"
         rows={entries}
-        empty={<div className="muted small">{value ? 'لا توجد قيود مطابقة لهذا الكشف.' : 'اختر عنصرًا لعرض الكشف.'}</div>}
+        empty={<div className="muted small">{value ? t('accounts.ledger_panel.s7', "لا توجد قيود مطابقة لهذا الكشف.") : t('accounts.ledger_panel.s8', "اختر عنصرًا لعرض الكشف.")}</div>}
         columns={[
-          { key: 'type', header: 'النوع', cell: (entry) => formatLedgerEntryType(readEntryText(entry, ['entry_type', 'entryType', 'type']), readEntryText(entry, ['note', 'description'])) },
-          { key: 'note', header: 'الملاحظة', cell: (entry) => readEntryText(entry, ['note', 'description']) || '—' },
-          { key: 'date', header: 'التاريخ', cell: (entry) => formatDate(readEntryText(entry, ['created_at', 'createdAt', 'date'])) },
-          { key: 'debit', header: 'مدين', className: 'numeric-cell', cell: (entry) => formatCurrency(Number((entry as Entry & Record<string, unknown>).debit || 0)) },
-          { key: 'credit', header: 'دائن', className: 'numeric-cell', cell: (entry) => formatCurrency(Number((entry as Entry & Record<string, unknown>).credit || 0)) },
-          { key: 'balance', header: 'الرصيد', className: 'numeric-cell', cell: (entry) => formatCurrency(Number((entry as Entry & Record<string, unknown>).balance_after || (entry as Entry & Record<string, unknown>).balanceAfter || 0)) },
+          { key: 'type', header: t('accounts.ledger_panel.s9', "النوع"), cell: (entry) => formatLedgerEntryType(readEntryText(entry, ['entry_type', 'entryType', 'type']), readEntryText(entry, ['note', 'description'])) },
+          { key: 'note', header: t('accounts.ledger_panel.s10', "الملاحظة"), cell: (entry) => readEntryText(entry, ['note', 'description']) || '—' },
+          { key: 'date', header: t('accounts.ledger_panel.s11', "التاريخ"), cell: (entry) => formatDate(readEntryText(entry, ['created_at', 'createdAt', 'date'])) },
+          { key: 'debit', header: t('accounts.ledger_panel.s12', "مدين"), className: 'numeric-cell', cell: (entry) => formatCurrency(Number((entry as Entry & Record<string, unknown>).debit || 0)) },
+          { key: 'credit', header: t('accounts.ledger_panel.s13', "دائن"), className: 'numeric-cell', cell: (entry) => formatCurrency(Number((entry as Entry & Record<string, unknown>).credit || 0)) },
+          { key: 'balance', header: t('accounts.ledger_panel.s14', "الرصيد"), className: 'numeric-cell', cell: (entry) => formatCurrency(Number((entry as Entry & Record<string, unknown>).balance_after || (entry as Entry & Record<string, unknown>).balanceAfter || 0)) },
           {
             key: 'document',
-            header: 'الفاتورة',
+            header: t('accounts.ledger_panel.s15', "الفاتورة"),
             cell: (entry) => {
               const document = getDocumentReference(entry);
               if (!document) return <span className="muted small">—</span>;
@@ -183,7 +185,7 @@ export function LedgerPanel({
                     toggleDocument(entry);
                   }}
                 >
-                  {selectedDocument?.key === document.key ? 'إخفاء التفاصيل' : 'عرض التفاصيل'}
+                  {selectedDocument?.key === document.key ? t('accounts.ledger_panel.s16', "إخفاء التفاصيل") : t('accounts.ledger_panel.s17', "عرض التفاصيل")}
                 </Button>
               );
             },
@@ -196,14 +198,14 @@ export function LedgerPanel({
           if (!document) return undefined;
           return selectedDocument?.key === document.key ? 'table-row-selected table-row-clickable' : 'table-row-clickable';
         }}
-        rowTitle={(entry) => getDocumentReference(entry) ? 'اضغط لعرض تفاصيل الفاتورة' : undefined}
+        rowTitle={(entry) => getDocumentReference(entry) ? t('accounts.ledger_panel.s18', "اضغط لعرض تفاصيل الفاتورة") : undefined}
         pagination={value ? {
           page: pagination?.page || 1,
           pageSize: pagination?.pageSize || 10,
           totalItems: pagination?.totalItems || entries.length,
           onPageChange,
           onPageSizeChange,
-          itemLabel: 'قيد'
+          itemLabel: t('accounts.ledger_panel.s19', "قيد")
         } : undefined}
       />
       <div className="page-stack" style={{ marginTop: 12 }}>

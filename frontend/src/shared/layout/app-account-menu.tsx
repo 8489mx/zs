@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
@@ -73,6 +74,7 @@ function resolveThemeClass(theme: string, isPrototypeDark: boolean) {
 }
 
 export function AppAccountMenu() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
   const queryClient = useQueryClient();
@@ -171,11 +173,11 @@ export function AppAccountMenu() {
       <button
         type="button"
         className="app-account-menu-trigger"
-        aria-label="قائمة الحساب"
+        aria-label={t('shared.layout.app_account_menu.s0', "قائمة الحساب")}
         aria-haspopup="menu"
         aria-expanded={isOpen}
         aria-controls="app-account-menu-panel"
-        title="قائمة الحساب"
+        title={t('shared.layout.app_account_menu.s1', "قائمة الحساب")}
         onClick={() => setIsOpen((current) => !current)}
       >
         <span className="app-account-menu-avatar" aria-hidden="true">{avatarInitial}</span>
@@ -186,7 +188,7 @@ export function AppAccountMenu() {
           id="app-account-menu-panel"
           className="app-account-menu-panel"
           role="menu"
-          aria-label="قائمة الحساب"
+          aria-label={t('shared.layout.app_account_menu.s2', "قائمة الحساب")}
           ref={menuRef}
         >
           <div className="app-account-menu-identity">
@@ -203,12 +205,12 @@ export function AppAccountMenu() {
           <div className="app-account-menu-items">
             <Link className="app-account-menu-item" role="menuitem" to="/profile" onClick={() => setIsOpen(false)}>
               <span className="app-account-menu-item-icon" aria-hidden="true"><UserIcon /></span>
-              <span>الملف الشخصي</span>
+              <span>{t('shared.layout.app_account_menu.s3', "الملف الشخصي")}</span>
             </Link>
 
             <Link className="app-account-menu-item" role="menuitem" to="/settings/overview" onClick={() => setIsOpen(false)}>
               <span className="app-account-menu-item-icon" aria-hidden="true"><SlidersIcon /></span>
-              <span>الإعدادات</span>
+              <span>{t('shared.layout.app_account_menu.s4', "الإعدادات")}</span>
             </Link>
 
             <button
@@ -217,11 +219,11 @@ export function AppAccountMenu() {
               role="menuitem"
               aria-disabled="true"
               disabled
-              title="قريبًا"
+              title={t('shared.layout.app_account_menu.s5', "قريبًا")}
             >
               <span className="app-account-menu-item-icon" aria-hidden="true"><PortalIcon /></span>
-              <span>بوابتي</span>
-              <span className="app-account-menu-item-badge">قريبًا</span>
+              <span>{t('shared.layout.app_account_menu.s6', "بوابتي")}</span>
+              <span className="app-account-menu-item-badge">{t('shared.layout.app_account_menu.s7', "قريبًا")}</span>
             </button>
 
             <button
@@ -231,7 +233,7 @@ export function AppAccountMenu() {
               onClick={() => void handleLogout()}
             >
               <span className="app-account-menu-item-icon" aria-hidden="true"><LogoutIcon /></span>
-              <span>تسجيل الخروج</span>
+              <span>{t('shared.layout.app_account_menu.s8', "تسجيل الخروج")}</span>
             </button>
           </div>
         </div>

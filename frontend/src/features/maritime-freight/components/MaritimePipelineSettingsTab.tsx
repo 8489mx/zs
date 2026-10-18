@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
 import {
   maritimeApi,
@@ -42,6 +43,7 @@ const DEFAULT_CONFIG: MaritimePipelineConfig = {
 };
 
 export function MaritimePipelineSettingsTab() {
+  const { t } = useTranslation();
   const [config, setConfig] = useState<MaritimePipelineConfig>(DEFAULT_CONFIG);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -110,7 +112,7 @@ export function MaritimePipelineSettingsTab() {
   if (loading) {
     return (
       <div style={{ background: '#ffffff', padding: '40px', borderRadius: '12px', border: '1px solid #e2e8f0', textAlign: 'center', color: '#64748b' }}>
-        جاري تحميل إعدادات وسياسات الشحن...
+        {t('maritime_freight.maritime_pipeline_settings_tab.s0', "جاري تحميل إعدادات وسياسات الشحن...")}
       </div>
     );
   }
@@ -161,11 +163,11 @@ export function MaritimePipelineSettingsTab() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '14px' }}>
           <div>
             <h2 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#170e5e', margin: 0 }}>
-              إعدادات وسياسات تشغيل الشحن
+              {t('maritime_freight.maritime_pipeline_settings_tab.s1', "إعدادات وسياسات تشغيل الشحن")}
               <span className="desktop-only-inline"> (Freight Settings & Policies)</span>
             </h2>
             <p style={{ fontSize: '0.8rem', color: '#64748b', margin: '4px 0 0 0' }}>
-              تحديد وسائط الشحن المعتمدة للمنشأة، درجة الأتمتة، ضبط هوامش الربح الافتراضية، مؤقت مهل عروض الأسعار، وخوادم المراسلات.
+              {t('maritime_freight.maritime_pipeline_settings_tab.s2', "تحديد وسائط الشحن المعتمدة للمنشأة، درجة الأتمتة، ضبط هوامش الربح الافتراضية، مؤقت مهل عروض الأسعار، وخوادم المراسلات.")}
             </p>
           </div>
 
@@ -188,16 +190,16 @@ export function MaritimePipelineSettingsTab() {
                 gap: '6px',
                 fontSize: '0.8rem',
               }}
-              title="فحص فوري لجميع طلبات التسعير المفتوحة وترسية المكتمل منها حالاً"
+              title={t('maritime_freight.maritime_pipeline_settings_tab.s3', "فحص فوري لجميع طلبات التسعير المفتوحة وترسية المكتمل منها حالاً")}
             >
               <RefreshCwIcon size={15} style={{ animation: runningTrigger ? 'spin 1s linear infinite' : 'none', flexShrink: 0 }} />
               <span>
                 {runningTrigger ? (
-                  'جاري الفحص...'
+                  t('maritime_freight.maritime_pipeline_settings_tab.s4', "جاري الفحص...")
                 ) : (
                   <>
-                    <span className="desktop-only-inline">تشغيل فحص الأتمتة الآن (Run Pipeline)</span>
-                    <span className="mobile-only-inline">فحص الأتمتة</span>
+                    <span className="desktop-only-inline">{t('maritime_freight.maritime_pipeline_settings_tab.s5', "تشغيل فحص الأتمتة الآن (Run Pipeline)")}</span>
+                    <span className="mobile-only-inline">{t('maritime_freight.maritime_pipeline_settings_tab.s6', "فحص الأتمتة")}</span>
                   </>
                 )}
               </span>
@@ -226,11 +228,11 @@ export function MaritimePipelineSettingsTab() {
               <CheckIcon size={16} style={{ flexShrink: 0 }} />
               <span>
                 {saving ? (
-                  'جاري الحفظ...'
+                  t('maritime_freight.maritime_pipeline_settings_tab.s7', "جاري الحفظ...")
                 ) : (
                   <>
-                    <span className="desktop-only-inline">حفظ إعدادات وسياسات الشحن</span>
-                    <span className="mobile-only-inline">حفظ الإعدادات</span>
+                    <span className="desktop-only-inline">{t('maritime_freight.maritime_pipeline_settings_tab.s8', "حفظ إعدادات وسياسات الشحن")}</span>
+                    <span className="mobile-only-inline">{t('maritime_freight.maritime_pipeline_settings_tab.s9', "حفظ الإعدادات")}</span>
                   </>
                 )}
               </span>
@@ -265,12 +267,12 @@ export function MaritimePipelineSettingsTab() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px', color: '#170e5e', fontWeight: 700, fontSize: '0.92rem' }}>
           <AppIcons.Sliders size={18} />
           <span>
-            أنماط ووسائل الشحن المعتمدة للمنشأة
+            {t('maritime_freight.maritime_pipeline_settings_tab.s10', "أنماط ووسائل الشحن المعتمدة للمنشأة")}
             <span className="desktop-only-inline"> (Active Transport Modes)</span>
           </span>
         </div>
         <p style={{ fontSize: '0.78rem', color: '#64748b', margin: '0 0 16px 0' }}>
-          تحديد خدمات وأنماط الشحن التي تقدمها منشأتكم؛ إيقاف أي نمط يُخفيه تلقائياً من نماذج طلبات الشحن وعروض الأسعار والدليل القياسي لتفادي أي تشتيت لموظفيكم.
+          {t('maritime_freight.maritime_pipeline_settings_tab.s11', "تحديد خدمات وأنماط الشحن التي تقدمها منشأتكم؛ إيقاف أي نمط يُخفيه تلقائياً من نماذج طلبات الشحن وعروض الأسعار والدليل القياسي لتفادي أي تشتيت لموظفيكم.")}
         </p>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '14px' }}>
@@ -278,7 +280,7 @@ export function MaritimePipelineSettingsTab() {
           <div
             onClick={() => {
               if (config.enableSeaFreight !== false && !config.enableAirFreight && !config.enableRoadFreight) {
-                toast.warning('يجب الإبقاء على نمط شحن واحد على الأقل مفعلاً');
+                toast.warning(t('maritime_freight.maritime_pipeline_settings_tab.s12', "يجب الإبقاء على نمط شحن واحد على الأقل مفعلاً"));
                 return;
               }
               setConfig({ ...config, enableSeaFreight: config.enableSeaFreight === false });
@@ -300,7 +302,7 @@ export function MaritimePipelineSettingsTab() {
                   <AppIcons.Ship size={16} />
                 </div>
                 <div style={{ fontWeight: 800, fontSize: '0.88rem', color: '#1e293b' }}>
-                  الشحن البحري
+                  {t('maritime_freight.maritime_pipeline_settings_tab.s13', "الشحن البحري")}
                   <span className="desktop-only-inline"> (Ocean Freight)</span>
                 </div>
               </div>
@@ -312,7 +314,7 @@ export function MaritimePipelineSettingsTab() {
               />
             </div>
             <div style={{ fontSize: '0.78rem', color: '#64748b', lineHeight: 1.5 }}>
-              خطوط الملاحة البحرية، تتبع الحاويات (FCL / LCL)، الموانئ البحرية، وشروط الـ Incoterms البحرية.
+              {t('maritime_freight.maritime_pipeline_settings_tab.s14', "خطوط الملاحة البحرية، تتبع الحاويات (FCL / LCL)، الموانئ البحرية، وشروط الـ Incoterms البحرية.")}
             </div>
           </div>
 
@@ -320,7 +322,7 @@ export function MaritimePipelineSettingsTab() {
           <div
             onClick={() => {
               if (!config.enableSeaFreight && config.enableAirFreight && !config.enableRoadFreight) {
-                toast.warning('يجب الإبقاء على نمط شحن واحد على الأقل مفعلاً');
+                toast.warning(t('maritime_freight.maritime_pipeline_settings_tab.s15', "يجب الإبقاء على نمط شحن واحد على الأقل مفعلاً"));
                 return;
               }
               setConfig({ ...config, enableAirFreight: !config.enableAirFreight });
@@ -342,7 +344,7 @@ export function MaritimePipelineSettingsTab() {
                   <AppIcons.Plane size={16} />
                 </div>
                 <div style={{ fontWeight: 800, fontSize: '0.88rem', color: '#1e293b' }}>
-                  الشحن الجوي
+                  {t('maritime_freight.maritime_pipeline_settings_tab.s16', "الشحن الجوي")}
                   <span className="desktop-only-inline"> (Air Freight)</span>
                 </div>
               </div>
@@ -354,7 +356,7 @@ export function MaritimePipelineSettingsTab() {
               />
             </div>
             <div style={{ fontSize: '0.78rem', color: '#64748b', lineHeight: 1.5 }}>
-              مطارات الشحن الدولية، شركات الطيران، بوالص الشحن الجوي AWB، وحساب الوزن الحجمي IATA.
+              {t('maritime_freight.maritime_pipeline_settings_tab.s17', "مطارات الشحن الدولية، شركات الطيران، بوالص الشحن الجوي AWB، وحساب الوزن الحجمي IATA.")}
             </div>
           </div>
 
@@ -362,7 +364,7 @@ export function MaritimePipelineSettingsTab() {
           <div
             onClick={() => {
               if (!config.enableSeaFreight && !config.enableAirFreight && config.enableRoadFreight) {
-                toast.warning('يجب الإبقاء على نمط شحن واحد على الأقل مفعلاً');
+                toast.warning(t('maritime_freight.maritime_pipeline_settings_tab.s18', "يجب الإبقاء على نمط شحن واحد على الأقل مفعلاً"));
                 return;
               }
               setConfig({ ...config, enableRoadFreight: !config.enableRoadFreight });
@@ -384,7 +386,7 @@ export function MaritimePipelineSettingsTab() {
                   <AppIcons.Truck size={16} />
                 </div>
                 <div style={{ fontWeight: 800, fontSize: '0.88rem', color: '#1e293b' }}>
-                  الشحن البري
+                  {t('maritime_freight.maritime_pipeline_settings_tab.s19', "الشحن البري")}
                   <span className="desktop-only-inline"> (Road Freight)</span>
                 </div>
               </div>
@@ -396,7 +398,7 @@ export function MaritimePipelineSettingsTab() {
               />
             </div>
             <div style={{ fontSize: '0.78rem', color: '#64748b', lineHeight: 1.5 }}>
-              شاحنات النقل البري (FTL / LTL)، المنافذ والمحطات البرية، وبوالص النقل الداخلي والدولي.
+              {t('maritime_freight.maritime_pipeline_settings_tab.s20', "شاحنات النقل البري (FTL / LTL)، المنافذ والمحطات البرية، وبوالص النقل الداخلي والدولي.")}
             </div>
           </div>
         </div>
@@ -407,7 +409,7 @@ export function MaritimePipelineSettingsTab() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px', color: '#170e5e', fontWeight: 700, fontSize: '0.92rem' }}>
           <ShieldCheckIcon size={18} />
           <span>
-            1. النمط التشغيلي العام للمنشأة
+            {t('maritime_freight.maritime_pipeline_settings_tab.s21', "1. النمط التشغيلي العام للمنشأة")}
             <span className="desktop-only-inline"> (Master Automation Mode)</span>
           </span>
         </div>
@@ -418,12 +420,12 @@ export function MaritimePipelineSettingsTab() {
               id: 'full_autonomous',
               title: (
                 <span>
-                  أتمتة كاملة ذاتية
+                  {t('maritime_freight.maritime_pipeline_settings_tab.s22', "أتمتة كاملة ذاتية")}
                   <span className="desktop-only-inline"> (Full Zero-Touch)</span>
                 </span>
               ),
-              desc: 'الدورة تدور ذاتياً بنسبة 100%: جمع العروض، فرز أفضل قيمة، تطبيق الهامش الافتراضي، وإصدار وإرسال العرض للعميل دون أي تدخل يدوي.',
-              badge: 'أقصى سرعة',
+              desc: t('maritime_freight.maritime_pipeline_settings_tab.s23', "الدورة تدور ذاتياً بنسبة 100%: جمع العروض، فرز أفضل قيمة، تطبيق الهامش الافتراضي، وإصدار وإرسال العرض للعميل دون أي تدخل يدوي."),
+              badge: t('maritime_freight.maritime_pipeline_settings_tab.s24', "أقصى سرعة"),
               badgeBg: '#f1f5f9',
               badgeColor: '#334155',
             },
@@ -431,12 +433,12 @@ export function MaritimePipelineSettingsTab() {
               id: 'hybrid',
               title: (
                 <span>
-                  هجين ذكي
+                  {t('maritime_freight.maritime_pipeline_settings_tab.s25', "هجين ذكي")}
                   <span className="desktop-only-inline"> (Smart Hybrid)</span>
                 </span>
               ),
-              desc: 'السستم يجمع العروض ويرتبها آلياً، لكنه يقف عند محطة اعتماد الهامش أو مراجعة العرض النهائي لإعطاء الموظف القرار الأخير.',
-              badge: 'الموصى به',
+              desc: t('maritime_freight.maritime_pipeline_settings_tab.s26', "السستم يجمع العروض ويرتبها آلياً، لكنه يقف عند محطة اعتماد الهامش أو مراجعة العرض النهائي لإعطاء الموظف القرار الأخير."),
+              badge: t('maritime_freight.maritime_pipeline_settings_tab.s27', "الموصى به"),
               badgeBg: '#eff6ff',
               badgeColor: '#170e5e',
             },
@@ -444,12 +446,12 @@ export function MaritimePipelineSettingsTab() {
               id: 'manual',
               title: (
                 <span>
-                  تحكم يدوي كلاسيكي
+                  {t('maritime_freight.maritime_pipeline_settings_tab.s28', "تحكم يدوي كلاسيكي")}
                   <span className="desktop-only-inline"> (Manual Control)</span>
                 </span>
               ),
-              desc: 'إيقاف الأتمتة الذاتية بالكامل، وتتطلب كل خطوة ضغطات يدوية منفصلة من موظف العمليات والمبيعات.',
-              badge: 'تقليدي',
+              desc: t('maritime_freight.maritime_pipeline_settings_tab.s29', "إيقاف الأتمتة الذاتية بالكامل، وتتطلب كل خطوة ضغطات يدوية منفصلة من موظف العمليات والمبيعات."),
+              badge: t('maritime_freight.maritime_pipeline_settings_tab.s30', "تقليدي"),
               badgeBg: '#f1f5f9',
               badgeColor: '#64748b',
             },
@@ -515,24 +517,24 @@ export function MaritimePipelineSettingsTab() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px', color: '#170e5e', fontWeight: 700, fontSize: '0.92rem' }}>
           <TrendingUpIcon size={18} />
           <span>
-            2. قواعد هامش الربح الآلي
+            {t('maritime_freight.maritime_pipeline_settings_tab.s31', "2. قواعد هامش الربح الآلي")}
             <span className="desktop-only-inline"> (Autonomous Margin & Markup Engine)</span>
           </span>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px' }}>
-          <Field label="نوع الهامش الافتراضي المطبق آلياً *">
+          <Field label={t('maritime_freight.maritime_pipeline_settings_tab.s32', "نوع الهامش الافتراضي المطبق آلياً *")}>
             <CustomSelect
               value={config.defaultMarginType}
               onChange={(val) => setConfig({ ...config, defaultMarginType: (val || 'fixed') as any })}
               options={[
-                { value: 'fixed', label: 'مبلغ مقطوع ثابت لكل حاوية ($ Fixed per Container)' },
-                { value: 'percentage', label: 'نسبة مئوية مضافة من النولون (% Markup Rate)' },
+                { value: 'fixed', label: t('maritime_freight.maritime_pipeline_settings_tab.s33', "مبلغ مقطوع ثابت لكل حاوية ($ Fixed per Container)") },
+                { value: 'percentage', label: t('maritime_freight.maritime_pipeline_settings_tab.s34', "نسبة مئوية مضافة من النولون (% Markup Rate)") },
               ]}
             />
           </Field>
 
-          <Field label={config.defaultMarginType === 'fixed' ? 'قيمة الربح الثابت للحاوية ($ USD) *' : 'نسبة الربح المئوية المضافة (%) *'}>
+          <Field label={config.defaultMarginType === 'fixed' ? t('maritime_freight.maritime_pipeline_settings_tab.s35', "قيمة الربح الثابت للحاوية ($ USD) *") : t('maritime_freight.maritime_pipeline_settings_tab.s36', "نسبة الربح المئوية المضافة (%) *")}>
             <input
               type="number"
               min={1}
@@ -544,7 +546,7 @@ export function MaritimePipelineSettingsTab() {
 
           <Field label={(
             <span>
-              الحد الأدنى للأمان الربحي للحاوية
+              {t('maritime_freight.maritime_pipeline_settings_tab.s37', "الحد الأدنى للأمان الربحي للحاوية")}
               <span className="desktop-only-inline"> ($ Margin Floor)</span> *
             </span>
           )}>
@@ -559,7 +561,7 @@ export function MaritimePipelineSettingsTab() {
 
           <Field label={(
             <span>
-              سعر الصرف الافتراضي
+              {t('maritime_freight.maritime_pipeline_settings_tab.s38', "سعر الصرف الافتراضي")}
               <span className="desktop-only-inline"> (USD / EGP)</span> *
             </span>
           )}>
@@ -575,7 +577,7 @@ export function MaritimePipelineSettingsTab() {
         </div>
 
         <div style={{ marginTop: '12px', background: '#f8fafc', padding: '12px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '0.78rem', color: '#475569' }}>
-          <strong>معادلة التسعير الآلية:</strong> إذا جاء أفضل عرض نولون بحري بـ <strong>$1,800</strong>، سيتم تطبيق هامش {config.defaultMarginType === 'fixed' ? `$${config.defaultMarginValue}` : `${config.defaultMarginValue}%`} ليصبح السعر النهائي المعروض للعميل هو <strong>${config.defaultMarginType === 'fixed' ? (1800 + config.defaultMarginValue).toLocaleString() : (1800 * (1 + config.defaultMarginValue / 100)).toLocaleString()}</strong> (مع ضمان ألا يقل صافي ربحكم عن ${config.marginFloor}$).
+          <strong>{t('maritime_freight.maritime_pipeline_settings_tab.s39', "معادلة التسعير الآلية:")}</strong> {t('maritime_freight.maritime_pipeline_settings_tab.s40', "إذا جاء أفضل عرض نولون بحري بـ")} <strong>$1,800</strong>{t('maritime_freight.maritime_pipeline_settings_tab.s41', "، سيتم تطبيق هامش")} {config.defaultMarginType === 'fixed' ? `$${config.defaultMarginValue}` : `${config.defaultMarginValue}%`} {t('maritime_freight.maritime_pipeline_settings_tab.s42', "ليصبح السعر النهائي المعروض للعميل هو")} <strong>${config.defaultMarginType === 'fixed' ? (1800 + config.defaultMarginValue).toLocaleString() : (1800 * (1 + config.defaultMarginValue / 100)).toLocaleString()}</strong> {t('maritime_freight.maritime_pipeline_settings_tab.s43', "(مع ضمان ألا يقل صافي ربحكم عن $")}{config.marginFloor}$).
         </div>
       </div>
 
@@ -584,13 +586,13 @@ export function MaritimePipelineSettingsTab() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px', color: '#170e5e', fontWeight: 700, fontSize: '0.92rem' }}>
           <ClockIcon size={18} />
           <span>
-            3. مؤقت مهل عروض الأسعار وقواعد الترسية المبكرة
+            {t('maritime_freight.maritime_pipeline_settings_tab.s44', "3. مؤقت مهل عروض الأسعار وقواعد الترسية المبكرة")}
             <span className="desktop-only-inline"> (Cut-off & Early Awarding)</span>
           </span>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '16px' }}>
-          <Field label="مهلة انتظار عروض الشحنات العادية (بالساعات) *">
+          <Field label={t('maritime_freight.maritime_pipeline_settings_tab.s45', "مهلة انتظار عروض الشحنات العادية (بالساعات) *")}>
             <input
               type="number"
               min={1}
@@ -601,7 +603,7 @@ export function MaritimePipelineSettingsTab() {
             />
           </Field>
 
-          <Field label="مهلة انتظار عروض الشحنات العاجلة Spot (بالساعات) *">
+          <Field label={t('maritime_freight.maritime_pipeline_settings_tab.s46', "مهلة انتظار عروض الشحنات العاجلة Spot (بالساعات) *")}>
             <input
               type="number"
               min={1}
@@ -612,7 +614,7 @@ export function MaritimePipelineSettingsTab() {
             />
           </Field>
 
-          <Field label="الحد الأدنى لأيام السماح للترسية المبكرة (أيام)">
+          <Field label={t('maritime_freight.maritime_pipeline_settings_tab.s47', "الحد الأدنى لأيام السماح للترسية المبكرة (أيام)")}>
             <input
               type="number"
               min={7}
@@ -633,8 +635,8 @@ export function MaritimePipelineSettingsTab() {
             style={{ width: '18px', height: '18px', flexShrink: 0, marginTop: '2px', accentColor: '#170e5e', cursor: 'pointer' }}
           />
           <label htmlFor="earlyAwardingToggle" style={{ fontSize: '0.8125rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer', flex: 1, minWidth: 0, lineHeight: 1.5 }}>
-            تفعيل ميزة الترسية الفورية المبكرة
-            <span className="desktop-only-inline"> (Early Awarding)</span>: في حال ورد عرض سعر من خط ملاحي يحقق سقف السعر المستهدف للعميل مع أيام سماح لا تقل عن {config.earlyAwardingMinFreeDays} يوماً، تتم الترسية فوراً دون انتظار انقضاء ساعات التايمر.
+            {t('maritime_freight.maritime_pipeline_settings_tab.s48', "تفعيل ميزة الترسية الفورية المبكرة")}
+            <span className="desktop-only-inline"> (Early Awarding)</span>{t('maritime_freight.maritime_pipeline_settings_tab.s49', ": في حال ورد عرض سعر من خط ملاحي يحقق سقف السعر المستهدف للعميل مع أيام سماح لا تقل عن")} {config.earlyAwardingMinFreeDays} {t('maritime_freight.maritime_pipeline_settings_tab.s50', "يوماً، تتم الترسية فوراً دون انتظار انقضاء ساعات التايمر.")}
           </label>
         </div>
       </div>
@@ -644,7 +646,7 @@ export function MaritimePipelineSettingsTab() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px', color: '#170e5e', fontWeight: 700, fontSize: '0.92rem' }}>
           <UsersIcon size={18} />
           <span>
-            4. محطات التوقف والمراجعة البشرية
+            {t('maritime_freight.maritime_pipeline_settings_tab.s51', "4. محطات التوقف والمراجعة البشرية")}
             <span className="desktop-only-inline"> (Human-in-the-Loop Checkpoints)</span>
           </span>
         </div>
@@ -666,10 +668,10 @@ export function MaritimePipelineSettingsTab() {
           >
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontWeight: 700, fontSize: '0.84rem', color: '#1e293b' }}>
-                المحطة 1: مراجعة طلب الـ RFQ يدوياً قبل الإرسال للخطوط الملاحية
+                {t('maritime_freight.maritime_pipeline_settings_tab.s52', "المحطة 1: مراجعة طلب الـ RFQ يدوياً قبل الإرسال للخطوط الملاحية")}
               </div>
               <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px', lineHeight: 1.45 }}>
-                عند التفعيل: يحفظ طلب التسعير كـ مسودة (Draft) ولا يرسل للخطوط الملاحية إلا بعد مراجعة الموظف والضغط على زر الإرسال.
+                {t('maritime_freight.maritime_pipeline_settings_tab.s53', "عند التفعيل: يحفظ طلب التسعير كـ مسودة (Draft) ولا يرسل للخطوط الملاحية إلا بعد مراجعة الموظف والضغط على زر الإرسال.")}
               </div>
             </div>
             <input
@@ -696,10 +698,10 @@ export function MaritimePipelineSettingsTab() {
           >
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontWeight: 700, fontSize: '0.84rem', color: '#1e293b' }}>
-                المحطة 2: التوقف لمراجعة أفضل عرض واعتماد الهامش يدوياً
+                {t('maritime_freight.maritime_pipeline_settings_tab.s54', "المحطة 2: التوقف لمراجعة أفضل عرض واعتماد الهامش يدوياً")}
               </div>
               <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px', lineHeight: 1.45 }}>
-                عند التفعيل: عند اكتمال العروض أو انتهاء المهلة، لا يتم إصدار العرض آلياً، بل يُرسل إشعار للموظف ليفتح تبويب المصفوفة ويضغط "اعتماد السعر وتحديد الهامش".
+                {t('maritime_freight.maritime_pipeline_settings_tab.s55', "عند التفعيل: عند اكتمال العروض أو انتهاء المهلة، لا يتم إصدار العرض آلياً، بل يُرسل إشعار للموظف ليفتح تبويب المصفوفة ويضغط \"اعتماد السعر وتحديد الهامش\".")}
               </div>
             </div>
             <input
@@ -726,10 +728,10 @@ export function MaritimePipelineSettingsTab() {
           >
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontWeight: 700, fontSize: '0.84rem', color: '#1e293b' }}>
-                المحطة 3: مراجعة عرض السعر النهائي قبل إرساله للعميل
+                {t('maritime_freight.maritime_pipeline_settings_tab.s56', "المحطة 3: مراجعة عرض السعر النهائي قبل إرساله للعميل")}
               </div>
               <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px', lineHeight: 1.45 }}>
-                عند التفعيل: يصدر العرض بحالة "مسودة (Draft Quote)" ولا يتم إرساله لواتساب أو إيميل العميل إلا بعد موافقة مدير المبيعات.
+                {t('maritime_freight.maritime_pipeline_settings_tab.s57', "عند التفعيل: يصدر العرض بحالة \"مسودة (Draft Quote)\" ولا يتم إرساله لواتساب أو إيميل العميل إلا بعد موافقة مدير المبيعات.")}
               </div>
             </div>
             <input
@@ -747,7 +749,7 @@ export function MaritimePipelineSettingsTab() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px', color: '#170e5e', fontWeight: 700, fontSize: '0.92rem' }}>
           <SendIcon size={18} />
           <span>
-            5. قنوات الإرسال التلقائي للعميل
+            {t('maritime_freight.maritime_pipeline_settings_tab.s58', "5. قنوات الإرسال التلقائي للعميل")}
             <span className="desktop-only-inline"> (Instant Client Quotation Dispatch)</span>
           </span>
         </div>
@@ -776,12 +778,12 @@ export function MaritimePipelineSettingsTab() {
               <div style={{ fontWeight: 700, fontSize: '0.84rem', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
                 <MessageSquareIcon size={16} style={{ color: '#170e5e', flexShrink: 0 }} />
                 <span>
-                  إرسال العرض فورياً بالواتساب
+                  {t('maritime_freight.maritime_pipeline_settings_tab.s59', "إرسال العرض فورياً بالواتساب")}
                   <span className="desktop-only-inline"> (WhatsApp Gateway)</span>
                 </span>
               </div>
               <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '2px', lineHeight: 1.45 }}>
-                إرسال ملخص تفاصيل الشحنة والسعر الإجمالي وفترة السماح لرقم هاتف العميل فور توليد العرض.
+                {t('maritime_freight.maritime_pipeline_settings_tab.s60', "إرسال ملخص تفاصيل الشحنة والسعر الإجمالي وفترة السماح لرقم هاتف العميل فور توليد العرض.")}
               </div>
             </div>
           </label>
@@ -809,12 +811,12 @@ export function MaritimePipelineSettingsTab() {
               <div style={{ fontWeight: 700, fontSize: '0.84rem', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
                 <MailIcon size={16} style={{ color: '#170e5e', flexShrink: 0 }} />
                 <span>
-                  إرسال العرض فورياً بالبريد الإلكتروني
+                  {t('maritime_freight.maritime_pipeline_settings_tab.s61', "إرسال العرض فورياً بالبريد الإلكتروني")}
                   <span className="desktop-only-inline"> (Email Quote Dispatch)</span>
                 </span>
               </div>
               <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '2px', lineHeight: 1.45 }}>
-                إرسال ملف PDF رسمي لعرض السعر إلى إيميل العميل المسجل.
+                {t('maritime_freight.maritime_pipeline_settings_tab.s62', "إرسال ملف PDF رسمي لعرض السعر إلى إيميل العميل المسجل.")}
               </div>
             </div>
           </label>

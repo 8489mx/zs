@@ -1,5 +1,6 @@
 import { ReactNode, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { translateUiText } from '@/lib/auto-translator';
 import { Button } from '@/shared/ui/button';
 import { Card } from '@/shared/ui/card';
 import { DialogShell } from '@/shared/components/dialog-shell';
@@ -58,10 +59,14 @@ export function ActionConfirmDialog({
   onConfirm,
   onCancel
 }: ActionConfirmDialogProps) {
+  const { t: __t, i18n } = useTranslation();
   const { t } = useTranslation();
+  const isEn = i18n.language === 'en';
 
-  const resolvedConfirmLabel = confirmLabel || t('common.confirm', 'تأكيد');
-  const resolvedCancelLabel = cancelLabel || t('common.cancel', 'إلغاء');
+  const displayTitle = isEn ? (translateUiText(title) || title) : title;
+  const displayDescription = typeof description === 'string' && isEn ? (translateUiText(description) || description) : description;
+  const resolvedConfirmLabel = isEn ? (confirmLabel ? (translateUiText(confirmLabel) || confirmLabel) : 'Confirm') : (confirmLabel || t('common.confirm', 'تأكيد'));
+  const resolvedCancelLabel = isEn ? (cancelLabel ? (translateUiText(cancelLabel) || cancelLabel) : 'Cancel') : (cancelLabel || t('common.cancel', 'إلغاء'));
   const [confirmationValue, setConfirmationValue] = useState('');
   const [managerPin, setManagerPin] = useState('');
   const [reason, setReason] = useState('');
@@ -166,11 +171,11 @@ export function ActionConfirmDialog({
                 setManagerPin(event.target.value);
                 if (submitError) setSubmitError('');
               }}
-              type={managerPinInputType || (String(managerPinHint || '').includes('كلمة مرور') || managerPinLabel?.includes('كلمة مرور') ? 'password' : 'text')}
+              type={managerPinInputType || (String(managerPinHint || '').includes(__t('shared.action_confirm_dialog.s0', "كلمة مرور")) || managerPinLabel?.includes(__t('shared.action_confirm_dialog.s1', "كلمة مرور")) ? 'password' : 'text')}
               id="pin_verification_entry"
               name="pin_verification_entry"
-              placeholder={managerPinPlaceholder || (String(managerPinHint || '').includes('كلمة مرور') || managerPinLabel?.includes('كلمة مرور') ? 'أدخل كلمة المرور الحالية' : 'أدخل الرمز')}
-              inputMode={managerPinInputType === 'password' || String(managerPinHint || '').includes('كلمة مرور') || managerPinLabel?.includes('كلمة مرور') ? undefined : 'numeric'}
+              placeholder={managerPinPlaceholder || (String(managerPinHint || '').includes(__t('shared.action_confirm_dialog.s2', "كلمة مرور")) || managerPinLabel?.includes(__t('shared.action_confirm_dialog.s3', "كلمة مرور")) ? __t('shared.action_confirm_dialog.s4', "أدخل كلمة المرور الحالية") : __t('shared.action_confirm_dialog.s5', "أدخل الرمز"))}
+              inputMode={managerPinInputType === 'password' || String(managerPinHint || '').includes(__t('shared.action_confirm_dialog.s6', "كلمة مرور")) || managerPinLabel?.includes(__t('shared.action_confirm_dialog.s7', "كلمة مرور")) ? undefined : 'numeric'}
               autoComplete="current-password"
               data-lpignore="true"
               data-1p-ignore="true"
@@ -196,7 +201,7 @@ export function ActionConfirmDialog({
               }}
             />
             <div className="muted small" style={{ marginTop: 4, color: '#64748b', fontSize: 12 }}>
-              {managerPinHint || 'أدخل رمز اعتماد المدير لإتمام هذه العملية.'}
+              {managerPinHint || __t('shared.action_confirm_dialog.s8', "أدخل رمز اعتماد المدير لإتمام هذه العملية.")}
             </div>
           </div>
         ) : null}

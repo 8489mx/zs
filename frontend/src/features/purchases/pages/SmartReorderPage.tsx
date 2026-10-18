@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -17,6 +18,7 @@ import { SmartReorderConfirmModal } from '../components/smart-reorder/SmartReord
 import { SmartReorderSuccessModal } from '../components/smart-reorder/SmartReorderSuccessModal';
 
 export function SmartReorderPage() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
 
   // Filters state
@@ -169,8 +171,8 @@ export function SmartReorderPage() {
       <main className="document-prototype-column" style={{ paddingBottom: '32px' }}>
         {/* 1. Header */}
         <PageHeader
-          title="مقترح إعادة الطلب والتوريد الذكي"
-          description="حساب نقطة إعادة الطلب وتوليد مسودات أوامر شراء مجمعة تلقائياً حسب الموردين استناداً إلى سرعة الاستهلاك وأيام التغطية."
+          title={t('purchases.smart_reorder_page.s0', "مقترح إعادة الطلب والتوريد الذكي")}
+          description={t('purchases.smart_reorder_page.s1', "حساب نقطة إعادة الطلب وتوليد مسودات أوامر شراء مجمعة تلقائياً حسب الموردين استناداً إلى سرعة الاستهلاك وأيام التغطية.")}
           badge={
             <span className="nav-pill">
               {summary?.outOfStockCount ? `${summary.outOfStockCount} صنف نافد` : `${summary?.totalMonitoredProducts || 0} صنف مراقب`}
@@ -183,13 +185,13 @@ export function SmartReorderPage() {
                 onClick={handleOpenAllConfirm}
                 disabled={isLoading || totalSelectedItemsCount === 0 || generateMutation.isPending}
               >
-                توليد أوامر شراء لجميع المحددين ({totalSelectedItemsCount})
+                {t('purchases.smart_reorder_page.s2', "توليد أوامر شراء لجميع المحددين (")}{totalSelectedItemsCount})
               </Button>
               <Button variant="secondary" onClick={() => void refetch()} disabled={isLoading}>
-                تحديث التحليل
+                {t('purchases.smart_reorder_page.s3', "تحديث التحليل")}
               </Button>
               <Link to="/purchases">
-                <Button variant="secondary">سجل المشتريات</Button>
+                <Button variant="secondary">{t('purchases.smart_reorder_page.s4', "سجل المشتريات")}</Button>
               </Link>
             </div>
           }
@@ -215,11 +217,11 @@ export function SmartReorderPage() {
         {/* 4. Loading / Error / Empty States */}
         {isLoading ? (
           <div style={{ padding: '60px', textAlign: 'center', color: '#64748b' }}>
-            <div style={{ fontSize: '16px', fontWeight: 600 }}>جاري تحليل معدلات الاستهلاك وحساب نقاط إعادة الطلب...</div>
+            <div style={{ fontSize: '16px', fontWeight: 600 }}>{t('purchases.smart_reorder_page.s5', "جاري تحليل معدلات الاستهلاك وحساب نقاط إعادة الطلب...")}</div>
           </div>
         ) : isError ? (
           <div style={{ padding: '40px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '12px', margin: '20px 0', color: '#dc2626' }}>
-            <strong>تعذر جلب مقترحات إعادة الطلب:</strong> {(error as any)?.message || 'خطأ غير معروف'}
+            <strong>{t('purchases.smart_reorder_page.s6', "تعذر جلب مقترحات إعادة الطلب:")}</strong> {(error as any)?.message || t('purchases.smart_reorder_page.s7', "خطأ غير معروف")}
           </div>
         ) : supplierGroups.length === 0 ? (
           <div
@@ -236,10 +238,10 @@ export function SmartReorderPage() {
               <CheckCircleIcon size={44} color="#16a34a" />
             </div>
             <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#1e293b', marginBottom: '8px' }}>
-              المخزون في حالة ممتازة ومستقرة!
+              {t('purchases.smart_reorder_page.s8', "المخزون في حالة ممتازة ومستقرة!")}
             </h3>
             <p style={{ color: '#64748b', fontSize: '14px', maxWidth: '500px', margin: '0 auto' }}>
-              لا توجد أصناف توشك على النفاد وفق إعدادات التحليل الحالية. يمكنك تغيير فلتر مستوى الإلحاح إلى "جميع الأصناف" إذا أردت معاينة باقي المنتجات.
+              {t('purchases.smart_reorder_page.s9', "لا توجد أصناف توشك على النفاد وفق إعدادات التحليل الحالية. يمكنك تغيير فلتر مستوى الإلحاح إلى \"جميع الأصناف\" إذا أردت معاينة باقي المنتجات.")}
             </p>
           </div>
         ) : (

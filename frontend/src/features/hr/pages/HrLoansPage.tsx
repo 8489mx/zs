@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '@/shared/components/page-header';
@@ -59,6 +60,7 @@ function matchesQuickFilter(row: HrLoan, filter: LoanQuickFilter) {
 }
 
 export function HrLoansPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const mutations = useHrMutations();
   const canViewLoans = useHasAnyPermission('hrLoans');
@@ -183,15 +185,15 @@ export function HrLoansPage() {
     <div className="page-stack page-shell" dir="rtl">
       <main className="document-prototype-column" style={{ paddingBottom: '20px' }}>
         <PageHeader
-          title="السلف والخصومات"
-          description="إدارة سلف الموظفين، خطط الأقساط الشهرية، والمتابعة المباشرة قبل مسير الرواتب."
+          title={t('hr.hr_loans_page.s0', "السلف والخصومات")}
+          description={t('hr.hr_loans_page.s1', "إدارة سلف الموظفين، خطط الأقساط الشهرية، والمتابعة المباشرة قبل مسير الرواتب.")}
           actions={
             <div className="actions compact-actions">
               <Button type="button" onClick={() => setShowCreate((current) => !current)}>
-                {showCreate ? 'إغلاق النموذج' : '+ سلفة جديدة'}
+                {showCreate ? t('hr.hr_loans_page.s2', "إغلاق النموذج") : t('hr.hr_loans_page.s3', "+ سلفة جديدة")}
               </Button>
-              <Button variant="secondary" onClick={() => navigate('/hr/payroll')}>المرتبات</Button>
-              <Button variant="secondary" onClick={() => navigate('/hr/employees')}>الموظفون</Button>
+              <Button variant="secondary" onClick={() => navigate('/hr/payroll')}>{t('hr.hr_loans_page.s4', "المرتبات")}</Button>
+              <Button variant="secondary" onClick={() => navigate('/hr/employees')}>{t('hr.hr_loans_page.s5', "الموظفون")}</Button>
             </div>
           }
         />
@@ -199,7 +201,7 @@ export function HrLoansPage() {
 
           {!canViewLoans ? (
             <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '10px', textAlign: 'center', color: '#64748b' }}>
-              <p style={{ margin: 0 }}>ليس لديك صلاحية للوصول إلى بيانات السلف والخصومات.</p>
+              <p style={{ margin: 0 }}>{t('hr.hr_loans_page.s6', "ليس لديك صلاحية للوصول إلى بيانات السلف والخصومات.")}</p>
             </div>
           ) : (
             <>
@@ -212,20 +214,20 @@ export function HrLoansPage() {
               {/* Compact Single-Row KPI Summary Bar */}
               <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 14px', marginBottom: '16px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                  <span style={{ fontSize: '0.825rem', fontWeight: 800, color: '#0f172a' }}>ملخص السلف والخصومات</span>
-                  <span style={{ fontSize: '0.725rem', color: '#64748b' }}>اضغط على أي مؤشر لتصفية القائمة فوراً</span>
+                  <span style={{ fontSize: '0.825rem', fontWeight: 800, color: '#0f172a' }}>{t('hr.hr_loans_page.s7', "ملخص السلف والخصومات")}</span>
+                  <span style={{ fontSize: '0.725rem', color: '#64748b' }}>{t('hr.hr_loans_page.s8', "اضغط على أي مؤشر لتصفية القائمة فوراً")}</span>
                 </div>
                 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8, minmax(0, 1fr))', gap: '8px' }}>
                   {[
-                    { label: 'إجمالي السلف', value: summary.total, onClick: () => { setQuickFilter('all'); setPage(1); }, isAlert: false, active: quickFilter === 'all' },
-                    { label: 'سلف نشطة', value: summary.active, onClick: () => { setQuickFilter('active'); setPage(1); }, isAlert: false, active: quickFilter === 'active' },
-                    { label: 'أقساط مستحقة', value: summary.due, onClick: () => { setQuickFilter('due'); setPage(1); }, isAlert: summary.due > 0, active: quickFilter === 'due' },
-                    { label: 'تحتاج اعتماد/صرف', value: summary.pending, onClick: () => { setQuickFilter('pending'); setPage(1); }, isAlert: summary.pending > 0, active: quickFilter === 'pending' },
-                    { label: 'مغلقة/مسددة', value: summary.closed, onClick: () => { setQuickFilter('closed'); setPage(1); }, isAlert: false, active: quickFilter === 'closed' },
-                    { label: 'مستحق الشهر', value: canViewSalaryAmounts ? money(summary.dueAmount) : '—', onClick: () => {}, isAlert: false, active: false },
-                    { label: 'إجمالي المتبقي', value: canViewSalaryAmounts ? money(summary.remainingAmount) : '—', onClick: () => {}, isAlert: false, active: false },
-                    { label: 'ظاهر حالياً', value: summary.visible, onClick: () => {}, isAlert: false, active: false },
+                    { label: t('hr.hr_loans_page.s9', "إجمالي السلف"), value: summary.total, onClick: () => { setQuickFilter('all'); setPage(1); }, isAlert: false, active: quickFilter === 'all' },
+                    { label: t('hr.hr_loans_page.s10', "سلف نشطة"), value: summary.active, onClick: () => { setQuickFilter('active'); setPage(1); }, isAlert: false, active: quickFilter === 'active' },
+                    { label: t('hr.hr_loans_page.s11', "أقساط مستحقة"), value: summary.due, onClick: () => { setQuickFilter('due'); setPage(1); }, isAlert: summary.due > 0, active: quickFilter === 'due' },
+                    { label: t('hr.hr_loans_page.s12', "تحتاج اعتماد/صرف"), value: summary.pending, onClick: () => { setQuickFilter('pending'); setPage(1); }, isAlert: summary.pending > 0, active: quickFilter === 'pending' },
+                    { label: t('hr.hr_loans_page.s13', "مغلقة/مسددة"), value: summary.closed, onClick: () => { setQuickFilter('closed'); setPage(1); }, isAlert: false, active: quickFilter === 'closed' },
+                    { label: t('hr.hr_loans_page.s14', "مستحق الشهر"), value: canViewSalaryAmounts ? money(summary.dueAmount) : '—', onClick: () => {}, isAlert: false, active: false },
+                    { label: t('hr.hr_loans_page.s15', "إجمالي المتبقي"), value: canViewSalaryAmounts ? money(summary.remainingAmount) : '—', onClick: () => {}, isAlert: false, active: false },
+                    { label: t('hr.hr_loans_page.s16', "ظاهر حالياً"), value: summary.visible, onClick: () => {}, isAlert: false, active: false },
                   ].map((stat, idx) => (
                     <div
                       key={idx}
@@ -263,50 +265,50 @@ export function HrLoansPage() {
                   type="text"
                   value={search}
                   onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-                  placeholder="بحث باسم الموظف أو رقم السلفة..."
+                  placeholder={t('hr.hr_loans_page.s17', "بحث باسم الموظف أو رقم السلفة...")}
                   style={{ width: '220px', minWidth: '170px', padding: '5px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.825rem', background: '#fff', boxSizing: 'border-box' }}
                 />
 
                 <div style={{ display: 'flex', gap: '4px', alignItems: 'center', flexWrap: 'wrap' }}>
-                  <Button type="button" variant={quickFilter === 'active' ? 'primary' : 'secondary'} onClick={() => { setQuickFilter('active'); setPage(1); }} style={{ padding: '4px 10px', fontSize: '0.8rem' }}>نشطة</Button>
-                  <Button type="button" variant={quickFilter === 'due' ? 'primary' : 'secondary'} onClick={() => { setQuickFilter('due'); setPage(1); }} style={{ padding: '4px 10px', fontSize: '0.8rem' }}>أقساط مستحقة</Button>
-                  <Button type="button" variant={quickFilter === 'pending' ? 'primary' : 'secondary'} onClick={() => { setQuickFilter('pending'); setPage(1); }} style={{ padding: '4px 10px', fontSize: '0.8rem' }}>تحتاج اعتماد/صرف</Button>
-                  <Button type="button" variant={quickFilter === 'closed' ? 'primary' : 'secondary'} onClick={() => { setQuickFilter('closed'); setPage(1); }} style={{ padding: '4px 10px', fontSize: '0.8rem' }}>مغلقة/مسددة</Button>
-                  <Button type="button" variant={quickFilter === 'all' ? 'primary' : 'secondary'} onClick={() => { setQuickFilter('all'); setPage(1); }} style={{ padding: '4px 10px', fontSize: '0.8rem' }}>كل السلف</Button>
+                  <Button type="button" variant={quickFilter === 'active' ? 'primary' : 'secondary'} onClick={() => { setQuickFilter('active'); setPage(1); }} style={{ padding: '4px 10px', fontSize: '0.8rem' }}>{t('hr.hr_loans_page.s18', "نشطة")}</Button>
+                  <Button type="button" variant={quickFilter === 'due' ? 'primary' : 'secondary'} onClick={() => { setQuickFilter('due'); setPage(1); }} style={{ padding: '4px 10px', fontSize: '0.8rem' }}>{t('hr.hr_loans_page.s19', "أقساط مستحقة")}</Button>
+                  <Button type="button" variant={quickFilter === 'pending' ? 'primary' : 'secondary'} onClick={() => { setQuickFilter('pending'); setPage(1); }} style={{ padding: '4px 10px', fontSize: '0.8rem' }}>{t('hr.hr_loans_page.s20', "تحتاج اعتماد/صرف")}</Button>
+                  <Button type="button" variant={quickFilter === 'closed' ? 'primary' : 'secondary'} onClick={() => { setQuickFilter('closed'); setPage(1); }} style={{ padding: '4px 10px', fontSize: '0.8rem' }}>{t('hr.hr_loans_page.s21', "مغلقة/مسددة")}</Button>
+                  <Button type="button" variant={quickFilter === 'all' ? 'primary' : 'secondary'} onClick={() => { setQuickFilter('all'); setPage(1); }} style={{ padding: '4px 10px', fontSize: '0.8rem' }}>{t('hr.hr_loans_page.s22', "كل السلف")}</Button>
                 </div>
               </div>
 
-              <QueryFeedback isLoading={workspace.loans.isLoading} isError={workspace.loans.isError} error={workspace.loans.error} isEmpty={!visibleLoans.length} loadingText="جاري تحميل السلف..." errorTitle="تعذر تحميل بيانات السلف" emptyTitle={search || quickFilter !== 'all' ? 'لا توجد سلف مطابقة للفلاتر الحالية.' : 'لا توجد سلف مسجلة حتى الآن.'} emptyHint={search || quickFilter !== 'all' ? 'جرّب تغيير الفلتر أو البحث.' : 'ابدأ بتسجيل سلفة جديدة من زر أعلى الصفحة.'}>
+              <QueryFeedback isLoading={workspace.loans.isLoading} isError={workspace.loans.isError} error={workspace.loans.error} isEmpty={!visibleLoans.length} loadingText={t('hr.hr_loans_page.s23', "جاري تحميل السلف...")} errorTitle={t('hr.hr_loans_page.s24', "تعذر تحميل بيانات السلف")} emptyTitle={search || quickFilter !== 'all' ? t('hr.hr_loans_page.s25', "لا توجد سلف مطابقة للفلاتر الحالية.") : t('hr.hr_loans_page.s26', "لا توجد سلف مسجلة حتى الآن.")} emptyHint={search || quickFilter !== 'all' ? t('hr.hr_loans_page.s27', "جرّب تغيير الفلتر أو البحث.") : t('hr.hr_loans_page.s28', "ابدأ بتسجيل سلفة جديدة من زر أعلى الصفحة.")}>
                 <DataTable
                   rows={visibleLoans}
                   rowKey={(row) => String(row.id)}
                   density="compact"
-                  pagination={{ page, pageSize, totalItems, onPageChange: setPage, onPageSizeChange: (next) => { setPageSize(next); setPage(1); }, itemLabel: 'سلفة' }}
+                  pagination={{ page, pageSize, totalItems, onPageChange: setPage, onPageSizeChange: (next) => { setPageSize(next); setPage(1); }, itemLabel: t('hr.hr_loans_page.s29', "سلفة") }}
                   columns={[
-                    { key: 'loanNo', header: 'رقم السلفة', cell: (row) => fallbackText(row.loanNo || row.id) },
-                    { key: 'employee', header: 'الموظف', cell: (row) => fallbackText(row.employeeName) },
-                    { key: 'loanType', header: 'النوع', cell: (row) => loanTypeLabel(row.loanType) },
-                    { key: 'principalAmount', header: 'قيمة السلفة', cell: (row) => canViewSalaryAmounts ? money(row.principalAmount) : '—' },
-                    { key: 'remainingAmount', header: 'المتبقي', cell: (row) => canViewSalaryAmounts ? money(row.remainingAmount) : '—' },
-                    { key: 'dueInstallmentsAmount', header: 'مستحق الشهر', cell: (row) => canViewSalaryAmounts ? money(row.dueInstallmentsAmount || 0) : '—' },
-                    { key: 'repaymentMode', header: 'طريقة السداد', cell: (row) => repaymentModeLabel(row.repaymentMode) },
-                    { key: 'status', header: 'الحالة', cell: (row) => statusLabel(row.status) },
-                    { key: 'issueDate', header: 'تاريخ السلفة', cell: (row) => fallbackText(row.issueDate) },
+                    { key: 'loanNo', header: t('hr.hr_loans_page.s30', "رقم السلفة"), cell: (row) => fallbackText(row.loanNo || row.id) },
+                    { key: 'employee', header: t('hr.hr_loans_page.s31', "الموظف"), cell: (row) => fallbackText(row.employeeName) },
+                    { key: 'loanType', header: t('hr.hr_loans_page.s32', "النوع"), cell: (row) => loanTypeLabel(row.loanType) },
+                    { key: 'principalAmount', header: t('hr.hr_loans_page.s33', "قيمة السلفة"), cell: (row) => canViewSalaryAmounts ? money(row.principalAmount) : '—' },
+                    { key: 'remainingAmount', header: t('hr.hr_loans_page.s34', "المتبقي"), cell: (row) => canViewSalaryAmounts ? money(row.remainingAmount) : '—' },
+                    { key: 'dueInstallmentsAmount', header: t('hr.hr_loans_page.s35', "مستحق الشهر"), cell: (row) => canViewSalaryAmounts ? money(row.dueInstallmentsAmount || 0) : '—' },
+                    { key: 'repaymentMode', header: t('hr.hr_loans_page.s36', "طريقة السداد"), cell: (row) => repaymentModeLabel(row.repaymentMode) },
+                    { key: 'status', header: t('hr.hr_loans_page.s37', "الحالة"), cell: (row) => statusLabel(row.status) },
+                    { key: 'issueDate', header: t('hr.hr_loans_page.s38', "تاريخ السلفة"), cell: (row) => fallbackText(row.issueDate) },
                     {
                       key: 'plan',
-                      header: 'خطة السداد',
+                      header: t('hr.hr_loans_page.s39', "خطة السداد"),
                       cell: (row) => {
-                        return <Button variant="secondary" onClick={() => setSelectedLoanForPlan(row)} style={{ padding: '2px 8px', fontSize: '0.75rem' }}>التفاصيل والسداد</Button>;
+                        return <Button variant="secondary" onClick={() => setSelectedLoanForPlan(row)} style={{ padding: '2px 8px', fontSize: '0.75rem' }}>{t('hr.hr_loans_page.s40', "التفاصيل والسداد")}</Button>;
                       },
                     },
                     {
                       key: 'actions',
-                      header: 'إجراءات',
+                      header: t('hr.hr_loans_page.s41', "إجراءات"),
                       cell: (row) => {
                         const status = normalize(row.status);
                         const canApprove = canManageLoans && (!status || status === 'pending' || status === 'draft' || status === 'new');
                         const canDisburse = canManageLoans && status === 'approved';
-                        return <div className="actions compact-actions">{canApprove ? <Button variant="secondary" onClick={() => { void mutations.approveLoan.mutateAsync(String(row.id)); }} style={{ padding: '2px 8px', fontSize: '0.75rem' }}>اعتماد</Button> : null}{canDisburse ? <Button variant="secondary" onClick={() => { void mutations.disburseLoan.mutateAsync(String(row.id)); }} style={{ padding: '2px 8px', fontSize: '0.75rem' }}>صرف</Button> : null}</div>;
+                        return <div className="actions compact-actions">{canApprove ? <Button variant="secondary" onClick={() => { void mutations.approveLoan.mutateAsync(String(row.id)); }} style={{ padding: '2px 8px', fontSize: '0.75rem' }}>{t('hr.hr_loans_page.s42', "اعتماد")}</Button> : null}{canDisburse ? <Button variant="secondary" onClick={() => { void mutations.disburseLoan.mutateAsync(String(row.id)); }} style={{ padding: '2px 8px', fontSize: '0.75rem' }}>{t('hr.hr_loans_page.s43', "صرف")}</Button> : null}</div>;
                       },
                     },
                   ]}
@@ -316,30 +318,30 @@ export function HrLoansPage() {
                   <DialogShell open={true} onClose={() => setSelectedLoanForPlan(null)} width="850px">
                     <div style={{ padding: '24px' }}>
                       <h3 style={{ marginBottom: '24px', fontSize: '1.25rem' }}>
-                        السلفة رقم {fallbackText(selectedLoanForPlan.loanNo || selectedLoanForPlan.id)} - {fallbackText(selectedLoanForPlan.employeeName)}
+                        {t('hr.hr_loans_page.s44', "السلفة رقم")} {fallbackText(selectedLoanForPlan.loanNo || selectedLoanForPlan.id)} - {fallbackText(selectedLoanForPlan.employeeName)}
                       </h3>
 
                       {/* Section 1: Repayment Form (if applicable) */}
                       {(canManageLoans && Number(selectedLoanForPlan.remainingAmount || 0) > 0) ? (
                         <div style={{ marginBottom: '32px', backgroundColor: '#f8fafc', padding: '20px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                          <h4 style={{ marginBottom: '8px', fontSize: '0.95rem' }}>تسجيل سداد يدوي</h4>
+                          <h4 style={{ marginBottom: '8px', fontSize: '0.95rem' }}>{t('hr.hr_loans_page.s45', "تسجيل سداد يدوي")}</h4>
                           <HrLoanRepaymentForm selectedLoanLabel={fallbackText(selectedLoanForPlan.loanNo || selectedLoanForPlan.id)} remainingAmountText={canViewSalaryAmounts ? money(selectedLoanForPlan.remainingAmount) : '—'} repaymentDraft={repaymentDraft} repaymentError={repaymentError} isPending={mutations.repayLoan.isPending} onChange={(patch) => setRepaymentDraft((current) => ({ ...current, ...patch }))} onSubmit={() => { void handleRepay(); }} onCancel={() => { setRepaymentDraft({ amount: '', method: 'manual_cash', notes: '' }); setSelectedLoanForPlan(null); }} />
                         </div>
                       ) : null}
 
                       {/* Section 2: Installments Table */}
                       <div style={{ marginBottom: '24px' }}>
-                        <h4 style={{ marginBottom: '16px', fontSize: '0.95rem' }}>جدول الأقساط</h4>
+                        <h4 style={{ marginBottom: '16px', fontSize: '0.95rem' }}>{t('hr.hr_loans_page.s46', "جدول الأقساط")}</h4>
                         {Array.isArray(selectedLoanForPlan.installments) && selectedLoanForPlan.installments.length ? (
                           <div className="table-wrap">
                             <table className="data-table">
                               <thead>
                                 <tr>
-                                  <th>رقم القسط</th>
-                                  <th>شهر الاستحقاق</th>
-                                  <th>قيمة القسط</th>
-                                  <th>الحالة</th>
-                                  <th>تاريخ الخصم</th>
+                                  <th>{t('hr.hr_loans_page.s47', "رقم القسط")}</th>
+                                  <th>{t('hr.hr_loans_page.s48', "شهر الاستحقاق")}</th>
+                                  <th>{t('hr.hr_loans_page.s49', "قيمة القسط")}</th>
+                                  <th>{t('hr.hr_loans_page.s50', "الحالة")}</th>
+                                  <th>{t('hr.hr_loans_page.s51', "تاريخ الخصم")}</th>
                                 </tr>
                               </thead>
                               <tbody>
@@ -356,12 +358,12 @@ export function HrLoansPage() {
                             </table>
                           </div>
                         ) : (
-                          <p style={{ color: '#64748b', fontSize: '0.85rem' }}>طريقة السداد لهذه السلفة: {repaymentModeLabel(selectedLoanForPlan.repaymentMode)} (لا توجد خطة أقساط)</p>
+                          <p style={{ color: '#64748b', fontSize: '0.85rem' }}>{t('hr.hr_loans_page.s52', "طريقة السداد لهذه السلفة:")} {repaymentModeLabel(selectedLoanForPlan.repaymentMode)} {t('hr.hr_loans_page.s53', "(لا توجد خطة أقساط)")}</p>
                         )}
                       </div>
 
                       <div className="actions" style={{ marginTop: '16px', justifyContent: 'flex-end' }}>
-                        <Button variant="secondary" onClick={() => setSelectedLoanForPlan(null)}>إغلاق</Button>
+                        <Button variant="secondary" onClick={() => setSelectedLoanForPlan(null)}>{t('hr.hr_loans_page.s54', "إغلاق")}</Button>
                       </div>
                     </div>
                   </DialogShell>

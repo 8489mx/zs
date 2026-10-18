@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { Button } from '@/shared/ui/button';
@@ -46,12 +47,13 @@ export const AddFixedAssetModal: React.FC<AddFixedAssetModalProps> = ({
   isPending,
   onSubmit,
 }) => {
+  const { t } = useTranslation();
   return (
     <StandardDialog
       open={isOpen}
       onClose={onClose}
-      title="إضافة أصل ثابت جديد"
-      subtitle="تسجيل الأصل وتحديد القيمة الدفترية وطريقة الإهلاك المحاسبي"
+      title={t('accounting.fixed_assets.add_fixed_asset_modal.s0', "إضافة أصل ثابت جديد")}
+      subtitle={t('accounting.fixed_assets.add_fixed_asset_modal.s1', "تسجيل الأصل وتحديد القيمة الدفترية وطريقة الإهلاك المحاسبي")}
       size="lg"
     >
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
@@ -67,16 +69,16 @@ export const AddFixedAssetModal: React.FC<AddFixedAssetModalProps> = ({
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px' }}>
             <LayersIcon size={16} style={{ color: '#170e5e' }} />
-            <h4 style={{ fontSize: '13px', fontWeight: 700, color: '#1e293b', margin: 0 }}>بيانات الأصل والتعريف</h4>
+            <h4 style={{ fontSize: '13px', fontWeight: 700, color: '#1e293b', margin: 0 }}>{t('accounting.fixed_assets.add_fixed_asset_modal.s2', "بيانات الأصل والتعريف")}</h4>
           </div>
 
           <div>
             <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-              كود الأصل <span style={{ color: '#e11d48' }}>*</span>
+              {t('accounting.fixed_assets.add_fixed_asset_modal.s3', "كود الأصل")} <span style={{ color: '#e11d48' }}>*</span>
             </label>
             <input
               type="text"
-              placeholder="مثال: AST-001"
+              placeholder={t('accounting.fixed_assets.add_fixed_asset_modal.s4', "مثال: AST-001")}
               value={asset.code}
               onChange={(e) => setAsset({ ...asset, code: e.target.value })}
               style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '12.5px', fontFamily: 'monospace', boxSizing: 'border-box' }}
@@ -85,11 +87,11 @@ export const AddFixedAssetModal: React.FC<AddFixedAssetModalProps> = ({
 
           <div>
             <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-              اسم الأصل <span style={{ color: '#e11d48' }}>*</span>
+              {t('accounting.fixed_assets.add_fixed_asset_modal.s5', "اسم الأصل")} <span style={{ color: '#e11d48' }}>*</span>
             </label>
             <input
               type="text"
-              placeholder="مثال: سيارة نقل تويوتا"
+              placeholder={t('accounting.fixed_assets.add_fixed_asset_modal.s6', "مثال: سيارة نقل تويوتا")}
               value={asset.name}
               onChange={(e) => setAsset({ ...asset, name: e.target.value })}
               style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '12.5px', boxSizing: 'border-box' }}
@@ -98,7 +100,7 @@ export const AddFixedAssetModal: React.FC<AddFixedAssetModalProps> = ({
 
           <div>
             <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-              التصنيف
+              {t('accounting.fixed_assets.add_fixed_asset_modal.s7', "التصنيف")}
             </label>
             <CustomSelect
               value={asset.category}
@@ -109,7 +111,7 @@ export const AddFixedAssetModal: React.FC<AddFixedAssetModalProps> = ({
 
           <div>
             <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-              تاريخ الشراء
+              {t('accounting.fixed_assets.add_fixed_asset_modal.s8', "تاريخ الشراء")}
             </label>
             <input
               type="date"
@@ -132,12 +134,12 @@ export const AddFixedAssetModal: React.FC<AddFixedAssetModalProps> = ({
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px' }}>
             <DollarSignIcon size={16} style={{ color: '#170e5e' }} />
-            <h4 style={{ fontSize: '13px', fontWeight: 700, color: '#1e293b', margin: 0 }}>التقييم المالي والإهلاك</h4>
+            <h4 style={{ fontSize: '13px', fontWeight: 700, color: '#1e293b', margin: 0 }}>{t('accounting.fixed_assets.add_fixed_asset_modal.s9', "التقييم المالي والإهلاك")}</h4>
           </div>
 
           <div>
             <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-              تكلفة الشراء الأصلية <span style={{ color: '#e11d48' }}>*</span>
+              {t('accounting.fixed_assets.add_fixed_asset_modal.s10', "تكلفة الشراء الأصلية")} <span style={{ color: '#e11d48' }}>*</span>
             </label>
             <input
               type="number"
@@ -150,7 +152,7 @@ export const AddFixedAssetModal: React.FC<AddFixedAssetModalProps> = ({
 
           <div>
             <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-              القيمة التخريدية (الخردة)
+              {t('accounting.fixed_assets.add_fixed_asset_modal.s11', "القيمة التخريدية (الخردة)")}
             </label>
             <input
               type="number"
@@ -163,11 +165,11 @@ export const AddFixedAssetModal: React.FC<AddFixedAssetModalProps> = ({
 
           <div>
             <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-              العمر الإنتاجي (بالأشهر)
+              {t('accounting.fixed_assets.add_fixed_asset_modal.s12', "العمر الإنتاجي (بالأشهر)")}
             </label>
             <input
               type="number"
-              placeholder="60 (5 سنوات)"
+              placeholder={t('accounting.fixed_assets.add_fixed_asset_modal.s13', "60 (5 سنوات)")}
               value={asset.usefulLifeMonths}
               onChange={(e) => setAsset({ ...asset, usefulLifeMonths: e.target.value })}
               style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '12.5px', boxSizing: 'border-box' }}
@@ -176,7 +178,7 @@ export const AddFixedAssetModal: React.FC<AddFixedAssetModalProps> = ({
 
           <div>
             <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-              طريقة الإهلاك المحاسبي
+              {t('accounting.fixed_assets.add_fixed_asset_modal.s14', "طريقة الإهلاك المحاسبي")}
             </label>
             <CustomSelect
               value={asset.depreciationMethod}
@@ -189,7 +191,7 @@ export const AddFixedAssetModal: React.FC<AddFixedAssetModalProps> = ({
 
       <StandardDialogFooter>
         <Button type="button" variant="secondary" onClick={onClose} style={{ padding: '8px 18px', fontSize: '13px', borderRadius: '8px' }}>
-          إلغاء
+          {t('accounting.fixed_assets.add_fixed_asset_modal.s15', "إلغاء")}
         </Button>
         <Button
           type="button"
@@ -207,7 +209,7 @@ export const AddFixedAssetModal: React.FC<AddFixedAssetModalProps> = ({
             opacity: !asset.code || !asset.name || !Number(asset.purchaseCost) || isPending ? 0.6 : 1,
           }}
         >
-          {isPending ? 'جاري الحفظ...' : 'حفظ الأصل'}
+          {isPending ? t('accounting.fixed_assets.add_fixed_asset_modal.s16', "جاري الحفظ...") : t('accounting.fixed_assets.add_fixed_asset_modal.s17', "حفظ الأصل")}
         </Button>
       </StandardDialogFooter>
     </StandardDialog>

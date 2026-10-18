@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 type Props = {
   healthSummary: {
     departments: number;
@@ -10,18 +11,19 @@ type Props = {
 };
 
 export function HrSettingsHealthSummaryCard({ healthSummary }: Props) {
+  const { t } = useTranslation();
   return (
     <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 14px', marginBottom: '16px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-        <span style={{ fontSize: '0.825rem', fontWeight: 800, color: '#0f172a' }}>ملخص صحة الإعدادات والهيكل</span>
-        <span style={{ fontSize: '0.725rem', color: '#64748b' }}>إجمالي العناصر المعرفة في النظام</span>
+        <span style={{ fontSize: '0.825rem', fontWeight: 800, color: '#0f172a' }}>{t('hr.settings.hr_settings_health_summary_card.s0', "ملخص صحة الإعدادات والهيكل")}</span>
+        <span style={{ fontSize: '0.725rem', color: '#64748b' }}>{t('hr.settings.hr_settings_health_summary_card.s1', "إجمالي العناصر المعرفة في النظام")}</span>
       </div>
       
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '8px' }}>
         {[
-          { label: 'إجمالي الأقسام', value: healthSummary.departments },
-          { label: 'المسميات الوظيفية', value: healthSummary.jobTitles },
-          { label: 'أنواع الإجازات', value: healthSummary.leaveTypes },
+          { label: t('hr.settings.hr_settings_health_summary_card.s2', "إجمالي الأقسام"), value: healthSummary.departments },
+          { label: t('hr.settings.hr_settings_health_summary_card.s3', "المسميات الوظيفية"), value: healthSummary.jobTitles },
+          { label: t('hr.settings.hr_settings_health_summary_card.s4', "أنواع الإجازات"), value: healthSummary.leaveTypes },
         ].map((stat, idx) => (
           <div
             key={idx}

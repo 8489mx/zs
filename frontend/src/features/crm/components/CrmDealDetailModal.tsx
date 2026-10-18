@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
@@ -28,6 +29,7 @@ export function CrmDealDetailModal({
   onStageChange,
   onFeedback,
 }: CrmDealDetailModalProps) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
@@ -118,23 +120,23 @@ export function CrmDealDetailModal({
           </span>
         </div>
       }
-      subtitle={`${activeDealDetail.deal.companyName ? `${activeDealDetail.deal.companyName} • ` : ''}${activeDealDetail.deal.contactName || 'بدون جهة اتصال'}${activeDealDetail.deal.contactPhone ? ` (${activeDealDetail.deal.contactPhone})` : ''}`}
+      subtitle={`${activeDealDetail.deal.companyName ? `${activeDealDetail.deal.companyName} • ` : ''}${activeDealDetail.deal.contactName || t('crm.crm_deal_detail_modal.s0', "بدون جهة اتصال")}${activeDealDetail.deal.contactPhone ? ` (${activeDealDetail.deal.contactPhone})` : ''}`}
       width="min(880px, 95vw)"
       minHeight="auto"
       footerActions={(
         <StandardDialogFooter
           onCancel={onClose}
-          cancelText="إغلاق"
+          cancelText={t('crm.crm_deal_detail_modal.s1', "إغلاق")}
           extraActions={(
             <Button
               variant="secondary"
               style={{ color: '#dc2626', borderColor: '#fecaca', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
               onClick={async () => {
                 const confirmed = await systemConfirm({
-                  title: 'حذف الفرصة البيعية',
+                  title: t('crm.crm_deal_detail_modal.s2', "حذف الفرصة البيعية"),
                   message: `هل أنت متأكد من رغبتك في حذف فرصة "${activeDealDetail.deal.title}" نهائياً؟ لا يمكن التراجع عن هذا الإجراء.`,
-                  confirmText: 'تأكيد الحذف',
-                  cancelText: 'إلغاء',
+                  confirmText: t('crm.crm_deal_detail_modal.s3', "تأكيد الحذف"),
+                  cancelText: t('crm.crm_deal_detail_modal.s4', "إلغاء"),
                   variant: 'danger',
                 });
                 if (confirmed) {
@@ -144,7 +146,7 @@ export function CrmDealDetailModal({
               disabled={deleteDealMutation.isPending}
             >
               <Trash2Icon size={14} />
-              <span>{deleteDealMutation.isPending ? 'جاري الحذف...' : 'حذف الفرصة'}</span>
+              <span>{deleteDealMutation.isPending ? t('crm.crm_deal_detail_modal.s5', "جاري الحذف...") : t('crm.crm_deal_detail_modal.s6', "حذف الفرصة")}</span>
             </Button>
           )}
         />
@@ -217,7 +219,7 @@ export function CrmDealDetailModal({
                 }}
               >
                 <CheckIcon size={14} color="#16a34a" />
-                عميل مسجل بالمنظومة (رقم #{activeDealDetail.deal.customerId})
+                {t('crm.crm_deal_detail_modal.s7', "عميل مسجل بالمنظومة (رقم #")}{activeDealDetail.deal.customerId})
               </span>
             ) : (
               <Button
@@ -226,7 +228,7 @@ export function CrmDealDetailModal({
                 onClick={() => convertCustomerMutation.mutate(activeDealDetail.deal.id)}
                 disabled={convertCustomerMutation.isPending}
               >
-                {convertCustomerMutation.isPending ? 'جاري التحويل...' : 'تحويل إلى عميل مسجل'}
+                {convertCustomerMutation.isPending ? t('crm.crm_deal_detail_modal.s8', "جاري التحويل...") : t('crm.crm_deal_detail_modal.s9', "تحويل إلى عميل مسجل")}
               </Button>
             )}
 
@@ -244,7 +246,7 @@ export function CrmDealDetailModal({
                   );
                 }}
               >
-                مراسلة واتساب
+                {t('crm.crm_deal_detail_modal.s10', "مراسلة واتساب")}
               </Button>
             )}
 
@@ -253,22 +255,22 @@ export function CrmDealDetailModal({
               style={{ fontSize: '0.78rem', height: '32px' }}
               onClick={() => navigate('/pos')}
             >
-              فتح نقطة البيع (POS)
+              {t('crm.crm_deal_detail_modal.s11', "فتح نقطة البيع (POS)")}
             </Button>
           </div>
 
           {/* Stage advancement dropdown */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: '220px' }}>
-            <span style={{ fontSize: '0.76rem', fontWeight: 600, color: '#64748b', whiteSpace: 'nowrap' }}>نقل المرحلة:</span>
+            <span style={{ fontSize: '0.76rem', fontWeight: 600, color: '#64748b', whiteSpace: 'nowrap' }}>{t('crm.crm_deal_detail_modal.s12', "نقل المرحلة:")}</span>
             <div style={{ flex: 1 }}>
               <CustomSelect
                 value={activeDealDetail.deal.stage}
                 onChange={(val) => onStageChange?.(activeDealDetail.deal, val as DealStage)}
                 options={[
                   ...STAGES.map((s) => ({ value: s.key, label: s.label })),
-                  { value: 'lost', label: 'صفقة خاسرة' },
+                  { value: 'lost', label: t('crm.crm_deal_detail_modal.s13', "صفقة خاسرة") },
                 ]}
-                placeholder="اختر المرحلة..."
+                placeholder={t('crm.crm_deal_detail_modal.s14', "اختر المرحلة...")}
               />
             </div>
           </div>
@@ -278,7 +280,7 @@ export function CrmDealDetailModal({
         <div style={{ background: '#f8fafc', padding: '12px 14px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
             <AppIcons.DollarSign size={15} />
-            <span>بيانات القيمة والأولوية والجدول الزمني</span>
+            <span>{t('crm.crm_deal_detail_modal.s15', "بيانات القيمة والأولوية والجدول الزمني")}</span>
           </div>
 
           <div
@@ -289,28 +291,28 @@ export function CrmDealDetailModal({
             }}
           >
             <div style={{ background: '#ffffff', padding: '8px 12px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-              <span style={{ fontSize: '0.72rem', color: '#64748b' }}>القيمة المتوقعة</span>
+              <span style={{ fontSize: '0.72rem', color: '#64748b' }}>{t('crm.crm_deal_detail_modal.s16', "القيمة المتوقعة")}</span>
               <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#170e5e', marginTop: '2px' }}>
                 {formatCurrency(activeDealDetail.deal.expectedAmount)}
               </div>
             </div>
 
             <div style={{ background: '#ffffff', padding: '8px 12px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-              <span style={{ fontSize: '0.72rem', color: '#64748b' }}>نسبة الفوز المتوقعة</span>
+              <span style={{ fontSize: '0.72rem', color: '#64748b' }}>{t('crm.crm_deal_detail_modal.s17', "نسبة الفوز المتوقعة")}</span>
               <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0284c7', marginTop: '2px' }}>
                 {activeDealDetail.deal.probability}%
               </div>
             </div>
 
             <div style={{ background: '#ffffff', padding: '8px 12px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-              <span style={{ fontSize: '0.72rem', color: '#64748b' }}>مستوى الأولوية</span>
+              <span style={{ fontSize: '0.72rem', color: '#64748b' }}>{t('crm.crm_deal_detail_modal.s18', "مستوى الأولوية")}</span>
               <div style={{ fontSize: '0.84rem', fontWeight: 700, marginTop: '3px' }}>
                 {PRIORITIES[activeDealDetail.deal.priority]?.label || activeDealDetail.deal.priority}
               </div>
             </div>
 
             <div style={{ background: '#ffffff', padding: '8px 12px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-              <span style={{ fontSize: '0.72rem', color: '#64748b' }}>تاريخ الإغلاق المتوقع</span>
+              <span style={{ fontSize: '0.72rem', color: '#64748b' }}>{t('crm.crm_deal_detail_modal.s19', "تاريخ الإغلاق المتوقع")}</span>
               <div style={{ fontSize: '0.84rem', fontWeight: 700, color: '#334155', marginTop: '3px' }}>
                 {activeDealDetail.deal.expectedCloseDate ? formatDateOnly(activeDealDetail.deal.expectedCloseDate) : '—'}
               </div>
@@ -330,7 +332,7 @@ export function CrmDealDetailModal({
                 color: '#92400e',
               }}
             >
-              <strong style={{ display: 'block', marginBottom: '2px' }}>ملاحظات الصفقة:</strong>
+              <strong style={{ display: 'block', marginBottom: '2px' }}>{t('crm.crm_deal_detail_modal.s20', "ملاحظات الصفقة:")}</strong>
               <div>{activeDealDetail.deal.notes}</div>
             </div>
           )}
@@ -340,7 +342,7 @@ export function CrmDealDetailModal({
         <div style={{ background: '#f8fafc', padding: '12px 14px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
             <AppIcons.Clock size={15} />
-            <span>سجل المتابعات والأنشطة (Activity Timeline)</span>
+            <span>{t('crm.crm_deal_detail_modal.s21', "سجل المتابعات والأنشطة (Activity Timeline)")}</span>
           </div>
 
           {/* Add Activity Form */}
@@ -358,17 +360,17 @@ export function CrmDealDetailModal({
                 value={newActivityType}
                 onChange={(val) => setNewActivityType(val)}
                 options={[
-                  { value: 'call', label: 'مكالمة هاتفية' },
-                  { value: 'meeting', label: 'اجتماع عمل' },
-                  { value: 'task', label: 'مهمة متابعة' },
-                  { value: 'note', label: 'ملاحظة' },
+                  { value: 'call', label: t('crm.crm_deal_detail_modal.s22', "مكالمة هاتفية") },
+                  { value: 'meeting', label: t('crm.crm_deal_detail_modal.s23', "اجتماع عمل") },
+                  { value: 'task', label: t('crm.crm_deal_detail_modal.s24', "مهمة متابعة") },
+                  { value: 'note', label: t('crm.crm_deal_detail_modal.s25', "ملاحظة") },
                 ]}
-                placeholder="نوع النشاط..."
+                placeholder={t('crm.crm_deal_detail_modal.s26', "نوع النشاط...")}
               />
 
               <input
                 type="text"
-                placeholder="ملخص المتابعة أو المهمة المطلوبة..."
+                placeholder={t('crm.crm_deal_detail_modal.s27', "ملخص المتابعة أو المهمة المطلوبة...")}
                 value={newActivitySummary}
                 onChange={(e) => setNewActivitySummary(e.target.value)}
               />
@@ -384,7 +386,7 @@ export function CrmDealDetailModal({
                 style={{ background: '#170e5e', color: '#ffffff', fontSize: '0.78rem', height: '33px' }}
                 onClick={() => {
                   if (!newActivitySummary.trim()) {
-                    toast.warning('يرجى كتابة ملخص النشاط.');
+                    toast.warning(t('crm.crm_deal_detail_modal.s28', "يرجى كتابة ملخص النشاط."));
                     return;
                   }
                   addActivityMutation.mutate({
@@ -398,7 +400,7 @@ export function CrmDealDetailModal({
                 }}
                 disabled={addActivityMutation.isPending}
               >
-                إضافة نشاط
+                {t('crm.crm_deal_detail_modal.s29', "إضافة نشاط")}
               </Button>
             </div>
           </div>
@@ -465,7 +467,7 @@ export function CrmDealDetailModal({
 
             {(!activeDealDetail.activities || activeDealDetail.activities.length === 0) && (
               <div style={{ textAlign: 'center', padding: '16px', color: '#94a3b8', fontSize: '0.78rem' }}>
-                لا توجد أنشطة مسجلة حتى الآن
+                {t('crm.crm_deal_detail_modal.s30', "لا توجد أنشطة مسجلة حتى الآن")}
               </div>
             )}
           </div>

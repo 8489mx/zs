@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
 import { StandardDialog } from '@/shared/components/StandardDialog';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
@@ -20,6 +21,7 @@ export function BoqTakeoffSheetModal({
   onClose,
   onSuccess,
 }: BoqTakeoffSheetModalProps) {
+  const { t: __t } = useTranslation();
   const { formatCurrency } = useSystemCurrency();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -191,7 +193,7 @@ export function BoqTakeoffSheetModal({
                 onChange={(e) => setSyncToBoq(e.target.checked)}
                 style={{ width: '16px', height: '16px', accentColor: '#170e5e', cursor: 'pointer' }}
               />
-              <span>تحديث وتثبيت الكمية التعاقدية في المقايسة تلقائياً ({roundedTotalCalculated} {boqItem.unit})</span>
+              <span>{__t('contracting.boq_takeoff_sheet_modal.s0', "تحديث وتثبيت الكمية التعاقدية في المقايسة تلقائياً (")}{roundedTotalCalculated} {boqItem.unit})</span>
             </label>
           </div>
 
@@ -210,7 +212,7 @@ export function BoqTakeoffSheetModal({
                 cursor: 'pointer',
               }}
             >
-              إلغاء
+              {__t('contracting.boq_takeoff_sheet_modal.s1', "إلغاء")}
             </button>
             <button
               type="button"
@@ -230,7 +232,7 @@ export function BoqTakeoffSheetModal({
                 gap: '6px',
               }}
             >
-              {saving ? 'جارٍ الحفظ...' : 'حفظ واعتماد شيت الحصر'}
+              {saving ? __t('contracting.boq_takeoff_sheet_modal.s2', "جارٍ الحفظ...") : __t('contracting.boq_takeoff_sheet_modal.s3', "حفظ واعتماد شيت الحصر")}
             </button>
           </div>
         </div>
@@ -241,7 +243,7 @@ export function BoqTakeoffSheetModal({
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '400px', gap: '12px' }}>
             <div style={{ width: '28px', height: '28px', border: '3px solid #e2e8f0', borderTopColor: '#170e5e', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
             <span style={{ fontSize: 'var(--font-body)', color: '#64748b' }}>
-              جارٍ تحميل شيت الحصر الهندسي للبند من لوحات الكاد...
+              {__t('contracting.boq_takeoff_sheet_modal.s4', "جارٍ تحميل شيت الحصر الهندسي للبند من لوحات الكاد...")}
             </span>
           </div>
         ) : (
@@ -255,28 +257,28 @@ export function BoqTakeoffSheetModal({
             {/* Header Summary KPI Strip */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px' }}>
           <div style={{ padding: '10px 14px', borderRadius: '8px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0' }}>
-            <span style={{ fontSize: 'var(--font-micro)', color: '#64748b', fontWeight: 600 }}>الكمية الحالية في المقايسة</span>
+            <span style={{ fontSize: 'var(--font-micro)', color: '#64748b', fontWeight: 600 }}>{__t('contracting.boq_takeoff_sheet_modal.s5', "الكمية الحالية في المقايسة")}</span>
             <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#1e293b', marginTop: '2px' }}>
               {Number(boqItem.contractQty || 0).toLocaleString()} {boqItem.unit}
             </div>
           </div>
 
           <div style={{ padding: '10px 14px', borderRadius: '8px', backgroundColor: '#eef2ff', border: '1px solid #c7d2fe' }}>
-            <span style={{ fontSize: 'var(--font-micro)', color: '#4338ca', fontWeight: 600 }}>إجمالي حصر الكاد المحسوب</span>
+            <span style={{ fontSize: 'var(--font-micro)', color: '#4338ca', fontWeight: 600 }}>{__t('contracting.boq_takeoff_sheet_modal.s6', "إجمالي حصر الكاد المحسوب")}</span>
             <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#170e5e', marginTop: '2px' }}>
               {roundedTotalCalculated.toLocaleString()} {boqItem.unit}
             </div>
           </div>
 
           <div style={{ padding: '10px 14px', borderRadius: '8px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0' }}>
-            <span style={{ fontSize: 'var(--font-micro)', color: '#64748b', fontWeight: 600 }}>عدد سطور/أجزاء الحصر</span>
+            <span style={{ fontSize: 'var(--font-micro)', color: '#64748b', fontWeight: 600 }}>{__t('contracting.boq_takeoff_sheet_modal.s7', "عدد سطور/أجزاء الحصر")}</span>
             <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>
-              {takeoffs.length} سطر حصر
+              {takeoffs.length} {__t('contracting.boq_takeoff_sheet_modal.s8', "سطر حصر")}
             </div>
           </div>
 
           <div style={{ padding: '10px 14px', borderRadius: '8px', backgroundColor: '#ecfdf5', border: '1px solid #a7f3d0' }}>
-            <span style={{ fontSize: 'var(--font-micro)', color: '#065f46', fontWeight: 600 }}>سعر الفئة التعاقدي</span>
+            <span style={{ fontSize: 'var(--font-micro)', color: '#065f46', fontWeight: 600 }}>{__t('contracting.boq_takeoff_sheet_modal.s9', "سعر الفئة التعاقدي")}</span>
             <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#047857', marginTop: '2px' }}>
               {formatCurrency(boqItem.unitPrice)}
             </div>
@@ -289,18 +291,18 @@ export function BoqTakeoffSheetModal({
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--font-subtitle)' }}>
               <thead>
                 <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0', position: 'sticky', top: 0, zIndex: 1 }}>
-                  <th style={{ padding: '8px 6px', textAlign: 'center', color: '#475569', fontWeight: 600, width: '35px' }}>م</th>
-                  <th style={{ padding: '8px 8px', textAlign: 'right', color: '#475569', fontWeight: 600, width: '110px' }}>رقم اللوحة</th>
-                  <th style={{ padding: '8px 8px', textAlign: 'right', color: '#475569', fontWeight: 600, width: '100px' }}>المحاور</th>
-                  <th style={{ padding: '8px 10px', textAlign: 'right', color: '#475569', fontWeight: 600 }}>بيان الجزء المحصور</th>
-                  <th style={{ padding: '8px 6px', textAlign: 'center', color: '#475569', fontWeight: 600, width: '70px' }}>الطول (م)</th>
-                  <th style={{ padding: '8px 6px', textAlign: 'center', color: '#475569', fontWeight: 600, width: '70px' }}>العرض (م)</th>
-                  <th style={{ padding: '8px 6px', textAlign: 'center', color: '#475569', fontWeight: 600, width: '70px' }}>الارتفاع (م)</th>
-                  <th style={{ padding: '8px 6px', textAlign: 'center', color: '#475569', fontWeight: 600, width: '60px' }}>العدد</th>
-                  <th style={{ padding: '8px 6px', textAlign: 'center', color: '#475569', fontWeight: 600, width: '70px' }}>فراغات (-)</th>
-                  <th style={{ padding: '8px 6px', textAlign: 'center', color: '#475569', fontWeight: 600, width: '65px' }}>الهالك %</th>
-                  <th style={{ padding: '8px 8px', textAlign: 'center', color: '#170e5e', fontWeight: 700, width: '90px' }}>الإجمالي</th>
-                  <th style={{ padding: '8px 6px', textAlign: 'center', color: '#475569', fontWeight: 600, width: '70px' }}>إجراءات</th>
+                  <th style={{ padding: '8px 6px', textAlign: 'center', color: '#475569', fontWeight: 600, width: '35px' }}>{__t('contracting.boq_takeoff_sheet_modal.s10', "م")}</th>
+                  <th style={{ padding: '8px 8px', textAlign: 'right', color: '#475569', fontWeight: 600, width: '110px' }}>{__t('contracting.boq_takeoff_sheet_modal.s11', "رقم اللوحة")}</th>
+                  <th style={{ padding: '8px 8px', textAlign: 'right', color: '#475569', fontWeight: 600, width: '100px' }}>{__t('contracting.boq_takeoff_sheet_modal.s12', "المحاور")}</th>
+                  <th style={{ padding: '8px 10px', textAlign: 'right', color: '#475569', fontWeight: 600 }}>{__t('contracting.boq_takeoff_sheet_modal.s13', "بيان الجزء المحصور")}</th>
+                  <th style={{ padding: '8px 6px', textAlign: 'center', color: '#475569', fontWeight: 600, width: '70px' }}>{__t('contracting.boq_takeoff_sheet_modal.s14', "الطول (م)")}</th>
+                  <th style={{ padding: '8px 6px', textAlign: 'center', color: '#475569', fontWeight: 600, width: '70px' }}>{__t('contracting.boq_takeoff_sheet_modal.s15', "العرض (م)")}</th>
+                  <th style={{ padding: '8px 6px', textAlign: 'center', color: '#475569', fontWeight: 600, width: '70px' }}>{__t('contracting.boq_takeoff_sheet_modal.s16', "الارتفاع (م)")}</th>
+                  <th style={{ padding: '8px 6px', textAlign: 'center', color: '#475569', fontWeight: 600, width: '60px' }}>{__t('contracting.boq_takeoff_sheet_modal.s17', "العدد")}</th>
+                  <th style={{ padding: '8px 6px', textAlign: 'center', color: '#475569', fontWeight: 600, width: '70px' }}>{__t('contracting.boq_takeoff_sheet_modal.s18', "فراغات (-)")}</th>
+                  <th style={{ padding: '8px 6px', textAlign: 'center', color: '#475569', fontWeight: 600, width: '65px' }}>{__t('contracting.boq_takeoff_sheet_modal.s19', "الهالك %")}</th>
+                  <th style={{ padding: '8px 8px', textAlign: 'center', color: '#170e5e', fontWeight: 700, width: '90px' }}>{__t('contracting.boq_takeoff_sheet_modal.s20', "الإجمالي")}</th>
+                  <th style={{ padding: '8px 6px', textAlign: 'center', color: '#475569', fontWeight: 600, width: '70px' }}>{__t('contracting.boq_takeoff_sheet_modal.s21', "إجراءات")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -329,7 +331,7 @@ export function BoqTakeoffSheetModal({
                       <input
                         type="text"
                         value={row.description}
-                        placeholder="وصف وتحديد الجزء"
+                        placeholder={__t('contracting.boq_takeoff_sheet_modal.s22', "وصف وتحديد الجزء")}
                         onChange={(e) => handleRowChange(idx, 'description', e.target.value)}
                         style={{ width: '100%', padding: '4px 6px', borderRadius: '5px', border: '1px solid #cbd5e1', fontSize: 'var(--font-micro)', fontWeight: 600 }}
                       />
@@ -398,7 +400,7 @@ export function BoqTakeoffSheetModal({
                       <div style={{ display: 'inline-flex', gap: '4px' }}>
                         <button
                           type="button"
-                          title="تكرار السطر"
+                          title={__t('contracting.boq_takeoff_sheet_modal.s23', "تكرار السطر")}
                           onClick={() => handleDuplicateRow(idx)}
                           style={{ border: 'none', background: '#f1f5f9', color: '#170e5e', borderRadius: '4px', padding: '3px 6px', cursor: 'pointer' }}
                         >
@@ -406,7 +408,7 @@ export function BoqTakeoffSheetModal({
                         </button>
                         <button
                           type="button"
-                          title="حذف السطر"
+                          title={__t('contracting.boq_takeoff_sheet_modal.s24', "حذف السطر")}
                           disabled={takeoffs.length <= 1}
                           onClick={() => handleRemoveRow(idx)}
                           style={{ border: 'none', background: '#fef2f2', color: '#b91c1c', borderRadius: '4px', padding: '3px 6px', cursor: takeoffs.length <= 1 ? 'not-allowed' : 'pointer' }}
@@ -441,11 +443,11 @@ export function BoqTakeoffSheetModal({
               }}
             >
               <AppIcons.Plus size={13} />
-              <span>إضافة سطر حصر جديد</span>
+              <span>{__t('contracting.boq_takeoff_sheet_modal.s25', "إضافة سطر حصر جديد")}</span>
             </button>
 
             <div style={{ fontSize: 'var(--font-body)', fontWeight: 800, color: '#170e5e' }}>
-              إجمالي الحصر الهندسي للبند: {roundedTotalCalculated.toLocaleString()} {boqItem.unit}
+              {__t('contracting.boq_takeoff_sheet_modal.s26', "إجمالي الحصر الهندسي للبند:")} {roundedTotalCalculated.toLocaleString()} {boqItem.unit}
             </div>
           </div>
         </div>

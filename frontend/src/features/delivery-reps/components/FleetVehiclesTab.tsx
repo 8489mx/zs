@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/shared/ui/button';
@@ -28,6 +29,7 @@ import { SendToMaintenanceModal } from './SendToMaintenanceModal';
 import { CompleteMaintenanceModal } from './CompleteMaintenanceModal';
 
 export function FleetVehiclesTab() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [vehicleSearch, setVehicleSearch] = useState('');
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -151,9 +153,9 @@ export function FleetVehiclesTab() {
             cursor: 'pointer',
           }}
         >
-          <span style={{ fontSize: '12px', fontWeight: 700, color: '#64748b', display: 'block' }}>إجمالي أسطول الشركة</span>
+          <span style={{ fontSize: '12px', fontWeight: 700, color: '#64748b', display: 'block' }}>{t('delivery_reps.fleet_vehicles_tab.s0', "إجمالي أسطول الشركة")}</span>
           <span style={{ fontSize: '22px', fontWeight: 800, color: '#0f172a', display: 'block', marginTop: '4px' }}>
-            {totalVehiclesCount} <span style={{ fontSize: '12px', color: '#94a3b8', fontWeight: 600 }}>مركبة</span>
+            {totalVehiclesCount} <span style={{ fontSize: '12px', color: '#94a3b8', fontWeight: 600 }}>{t('delivery_reps.fleet_vehicles_tab.s1', "مركبة")}</span>
           </span>
         </div>
 
@@ -168,9 +170,9 @@ export function FleetVehiclesTab() {
             cursor: 'pointer',
           }}
         >
-          <span style={{ fontSize: '12px', fontWeight: 700, color: '#0284c7', display: 'block' }}>مركبات مسندة بسائق</span>
+          <span style={{ fontSize: '12px', fontWeight: 700, color: '#0284c7', display: 'block' }}>{t('delivery_reps.fleet_vehicles_tab.s2', "مركبات مسندة بسائق")}</span>
           <span style={{ fontSize: '22px', fontWeight: 800, color: '#0369a1', display: 'block', marginTop: '4px' }}>
-            {assignedVehiclesCount} <span style={{ fontSize: '12px', color: '#7dd3fc', fontWeight: 600 }}>في الخدمة</span>
+            {assignedVehiclesCount} <span style={{ fontSize: '12px', color: '#7dd3fc', fontWeight: 600 }}>{t('delivery_reps.fleet_vehicles_tab.s3', "في الخدمة")}</span>
           </span>
         </div>
 
@@ -185,9 +187,9 @@ export function FleetVehiclesTab() {
             cursor: 'pointer',
           }}
         >
-          <span style={{ fontSize: '12px', fontWeight: 700, color: '#16a34a', display: 'block' }}>مركبات متاحة للتشغيل</span>
+          <span style={{ fontSize: '12px', fontWeight: 700, color: '#16a34a', display: 'block' }}>{t('delivery_reps.fleet_vehicles_tab.s4', "مركبات متاحة للتشغيل")}</span>
           <span style={{ fontSize: '22px', fontWeight: 800, color: '#15803d', display: 'block', marginTop: '4px' }}>
-            {availableVehiclesCount} <span style={{ fontSize: '12px', color: '#86efac', fontWeight: 600 }}>جاهزة</span>
+            {availableVehiclesCount} <span style={{ fontSize: '12px', color: '#86efac', fontWeight: 600 }}>{t('delivery_reps.fleet_vehicles_tab.s5', "جاهزة")}</span>
           </span>
         </div>
 
@@ -203,15 +205,15 @@ export function FleetVehiclesTab() {
           }}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '12px', fontWeight: 700, color: '#ea580c', display: 'block' }}>تحت الصيانة والإصلاح</span>
+            <span style={{ fontSize: '12px', fontWeight: 700, color: '#ea580c', display: 'block' }}>{t('delivery_reps.fleet_vehicles_tab.s6', "تحت الصيانة والإصلاح")}</span>
             {allAlerts.length > 0 && (
               <span style={{ fontSize: '10.5px', background: '#fee2e2', color: '#dc2626', fontWeight: 800, padding: '1px 6px', borderRadius: '10px' }}>
-                {allAlerts.length} تنبيه
+                {allAlerts.length} {t('delivery_reps.fleet_vehicles_tab.s7', "تنبيه")}
               </span>
             )}
           </div>
           <span style={{ fontSize: '22px', fontWeight: 800, color: '#c2410c', display: 'block', marginTop: '4px' }}>
-            {maintenanceVehiclesCount} <span style={{ fontSize: '12px', color: '#fdba74', fontWeight: 600 }}>بالورشة</span>
+            {maintenanceVehiclesCount} <span style={{ fontSize: '12px', color: '#fdba74', fontWeight: 600 }}>{t('delivery_reps.fleet_vehicles_tab.s8', "بالورشة")}</span>
           </span>
         </div>
       </div>
@@ -235,7 +237,7 @@ export function FleetVehiclesTab() {
             <div style={{ position: 'relative', flex: '1' }}>
               <input
                 type="text"
-                placeholder="بحث برقم اللوحة، الموديل، أو اسم السائق..."
+                placeholder={t('delivery_reps.fleet_vehicles_tab.s9', "بحث برقم اللوحة، الموديل، أو اسم السائق...")}
                 value={vehicleSearch}
                 onChange={(e) => setVehicleSearch(e.target.value)}
                 style={{
@@ -293,7 +295,7 @@ export function FleetVehiclesTab() {
               }}
             >
               <ToolIcon size={14} />
-              + إدخال سيارة للصيانة بالورشة
+              {t('delivery_reps.fleet_vehicles_tab.s10', "+ إدخال سيارة للصيانة بالورشة")}
             </Button>
           ) : (
             <Button
@@ -304,7 +306,7 @@ export function FleetVehiclesTab() {
                 setIsUpsertVehicleOpen(true);
               }}
             >
-              + إضافة سيارة للأسطول
+              {t('delivery_reps.fleet_vehicles_tab.s11', "+ إضافة سيارة للأسطول")}
             </Button>
           )}
 
@@ -320,14 +322,14 @@ export function FleetVehiclesTab() {
               opacity: isRefreshing ? 0.75 : 1,
             }}
             onClick={refreshAll}
-            title="تحديث بيانات أسطول السيارات من السيرفر"
+            title={t('delivery_reps.fleet_vehicles_tab.s12', "تحديث بيانات أسطول السيارات من السيرفر")}
           >
             <RefreshCwIcon
               size={14}
               className={isRefreshing ? 'spin-animation' : undefined}
               style={isRefreshing ? { animation: 'spin 0.75s linear infinite' } : undefined}
             />
-            {isRefreshing ? 'جارٍ التحديث...' : 'تحديث'}
+            {isRefreshing ? t('delivery_reps.fleet_vehicles_tab.s13', "جارٍ التحديث...") : t('delivery_reps.fleet_vehicles_tab.s14', "تحديث")}
           </Button>
         </div>
       </div>
@@ -344,10 +346,10 @@ export function FleetVehiclesTab() {
                 </div>
                 <div>
                   <h3 style={{ margin: 0, fontSize: '14px', fontWeight: 800, color: '#0f172a' }}>
-                    المركبات تحت الصيانة والإصلاح بالورشة حالياً ({maintenanceVehiclesCount})
+                    {t('delivery_reps.fleet_vehicles_tab.s15', "المركبات تحت الصيانة والإصلاح بالورشة حالياً (")}{maintenanceVehiclesCount})
                   </h3>
                   <span style={{ fontSize: '11.5px', color: '#64748b' }}>
-                    السيارات المحولة للورش ومسجل لها أعمال فحص أو إصلاح ومستبعدة مؤقتاً من خطوط التوزيع
+                    {t('delivery_reps.fleet_vehicles_tab.s16', "السيارات المحولة للورش ومسجل لها أعمال فحص أو إصلاح ومستبعدة مؤقتاً من خطوط التوزيع")}
                   </span>
                 </div>
               </div>
@@ -361,7 +363,7 @@ export function FleetVehiclesTab() {
                 style={{ background: '#ea580c', color: '#ffffff', fontWeight: 700, fontSize: '12px', display: 'flex', alignItems: 'center', gap: '4px' }}
               >
                 <PlusIcon size={13} />
-                + إدخال سيارة للصيانة
+                {t('delivery_reps.fleet_vehicles_tab.s17', "+ إدخال سيارة للصيانة")}
               </Button>
             </div>
 
@@ -376,10 +378,10 @@ export function FleetVehiclesTab() {
                 }}
               >
                 <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '13.5px', marginBottom: '4px' }}>
-                  جميع سيارات أسطول الشركة جاهزة للتشغيل وفي الخدمة
+                  {t('delivery_reps.fleet_vehicles_tab.s18', "جميع سيارات أسطول الشركة جاهزة للتشغيل وفي الخدمة")}
                 </div>
                 <div style={{ color: '#64748b', fontSize: '12px', marginBottom: '12px' }}>
-                  لا توجد أي مركبات متوقفة بالورشة حالياً. يمكنك إدخال أي مركبة تحتاج صيانة أو إصلاح مباشرة من الزر أعلاه.
+                  {t('delivery_reps.fleet_vehicles_tab.s19', "لا توجد أي مركبات متوقفة بالورشة حالياً. يمكنك إدخال أي مركبة تحتاج صيانة أو إصلاح مباشرة من الزر أعلاه.")}
                 </div>
               </div>
             ) : (
@@ -387,11 +389,11 @@ export function FleetVehiclesTab() {
                 <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right', fontSize: '12.5px' }}>
                   <thead>
                     <tr style={{ background: '#fff7ed', borderBottom: '1px solid #ffedd5', color: '#9a3412' }}>
-                      <th style={{ padding: '8px 12px', fontWeight: 700 }}>لوحة المركبة والطراز</th>
-                      <th style={{ padding: '8px 12px', fontWeight: 700 }}>السائق المسند</th>
-                      <th style={{ padding: '8px 12px', fontWeight: 700 }}>قراءة العداد</th>
-                      <th style={{ padding: '8px 12px', fontWeight: 700 }}>بيان العطل والورشة</th>
-                      <th style={{ padding: '8px 12px', fontWeight: 700, textAlign: 'center' }}>الإجراءات</th>
+                      <th style={{ padding: '8px 12px', fontWeight: 700 }}>{t('delivery_reps.fleet_vehicles_tab.s20', "لوحة المركبة والطراز")}</th>
+                      <th style={{ padding: '8px 12px', fontWeight: 700 }}>{t('delivery_reps.fleet_vehicles_tab.s21', "السائق المسند")}</th>
+                      <th style={{ padding: '8px 12px', fontWeight: 700 }}>{t('delivery_reps.fleet_vehicles_tab.s22', "قراءة العداد")}</th>
+                      <th style={{ padding: '8px 12px', fontWeight: 700 }}>{t('delivery_reps.fleet_vehicles_tab.s23', "بيان العطل والورشة")}</th>
+                      <th style={{ padding: '8px 12px', fontWeight: 700, textAlign: 'center' }}>{t('delivery_reps.fleet_vehicles_tab.s24', "الإجراءات")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -401,16 +403,16 @@ export function FleetVehiclesTab() {
                         <tr key={v.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                           <td style={{ padding: '10px 12px', fontWeight: 800, color: '#0f172a' }}>
                             <div>{v.plateNumber}</div>
-                            <div style={{ fontSize: '11px', color: '#64748b' }}>{v.modelName || 'بدون موديل'}</div>
+                            <div style={{ fontSize: '11px', color: '#64748b' }}>{v.modelName || t('delivery_reps.fleet_vehicles_tab.s25', "بدون موديل")}</div>
                           </td>
                           <td style={{ padding: '10px 12px', color: '#334155' }}>
-                            {v.assignedRepName || '-- بدون سائق --'}
+                            {v.assignedRepName || t('delivery_reps.fleet_vehicles_tab.s26', "-- بدون سائق --")}
                           </td>
                           <td style={{ padding: '10px 12px', fontFamily: 'monospace', fontWeight: 700 }}>
-                            {Number(v.currentOdometer || 0).toLocaleString()} كم
+                            {Number(v.currentOdometer || 0).toLocaleString()} {t('delivery_reps.fleet_vehicles_tab.s27', "كم")}
                           </td>
                           <td style={{ padding: '10px 12px', fontSize: '11.5px', color: '#475569' }}>
-                            {v.notes || 'تحت الصيانة والإصلاح بالورشة'}
+                            {v.notes || t('delivery_reps.fleet_vehicles_tab.s28', "تحت الصيانة والإصلاح بالورشة")}
                           </td>
                           <td style={{ padding: '10px 12px', textAlign: 'center' }}>
                             <div style={{ display: 'inline-flex', gap: '6px' }}>
@@ -432,7 +434,7 @@ export function FleetVehiclesTab() {
                                 }}
                               >
                                 <CheckCircleIcon size={13} />
-                                إتمام الصيانة وإعادة للخدمة
+                                {t('delivery_reps.fleet_vehicles_tab.s29', "إتمام الصيانة وإعادة للخدمة")}
                               </Button>
                               <Button
                                 variant="secondary"
@@ -442,7 +444,7 @@ export function FleetVehiclesTab() {
                                 }}
                                 style={{ fontSize: '11.5px', padding: '4px 8px' }}
                               >
-                                الوقود والصيانة
+                                {t('delivery_reps.fleet_vehicles_tab.s30', "الوقود والصيانة")}
                               </Button>
                             </div>
                           </td>
@@ -463,10 +465,10 @@ export function FleetVehiclesTab() {
                 </div>
                 <div>
                   <h3 style={{ margin: 0, fontSize: '14px', fontWeight: 800, color: '#0f172a' }}>
-                    تنبيهات الصيانة الوقائية النشطة لأسطول الشركة ({allAlerts.length})
+                    {t('delivery_reps.fleet_vehicles_tab.s31', "تنبيهات الصيانة الوقائية النشطة لأسطول الشركة (")}{allAlerts.length})
                   </h3>
                   <span style={{ fontSize: '11.5px', color: '#64748b' }}>
-                    التنبيهات المجدولة لغيارات الزيت المستحقة، اقتراب انتهاء التراخيص، والفحص الدوري
+                    {t('delivery_reps.fleet_vehicles_tab.s32', "التنبيهات المجدولة لغيارات الزيت المستحقة، اقتراب انتهاء التراخيص، والفحص الدوري")}
                   </span>
                 </div>
               </div>
@@ -487,7 +489,7 @@ export function FleetVehiclesTab() {
                 }}
               >
                 <CheckCircleIcon size={16} color="#059669" />
-                <span>حالة أسطول الشركة ممتازة: لا توجد أي تنبيهات صيانة متأخرة أو رخص منتهية حالياً.</span>
+                <span>{t('delivery_reps.fleet_vehicles_tab.s33', "حالة أسطول الشركة ممتازة: لا توجد أي تنبيهات صيانة متأخرة أو رخص منتهية حالياً.")}</span>
               </div>
             ) : (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '10px' }}>
@@ -520,7 +522,7 @@ export function FleetVehiclesTab() {
                             color: '#ffffff',
                           }}
                         >
-                          {alt.severity === 'critical' ? 'عاجل جداً' : 'تنبيه موعد'}
+                          {alt.severity === 'critical' ? t('delivery_reps.fleet_vehicles_tab.s34', "عاجل جداً") : t('delivery_reps.fleet_vehicles_tab.s35', "تنبيه موعد")}
                         </span>
                       </div>
                       <div style={{ fontSize: '12.5px', fontWeight: 700, color: '#334155' }}>{alt.title}</div>
@@ -536,7 +538,7 @@ export function FleetVehiclesTab() {
                           }}
                           style={{ fontSize: '11.5px', padding: '3px 8px', background: '#ffffff' }}
                         >
-                          تنفيذ الصيانة الآن ←
+                          {t('delivery_reps.fleet_vehicles_tab.s36', "تنفيذ الصيانة الآن ←")}
                         </Button>
                       </div>
                     </div>
@@ -551,10 +553,10 @@ export function FleetVehiclesTab() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
               <div>
                 <h3 style={{ margin: 0, fontSize: '14px', fontWeight: 800, color: '#0f172a' }}>
-                  سجل غيارات الزيت الدورية للأسطول ({allOilChanges.length})
+                  {t('delivery_reps.fleet_vehicles_tab.s37', "سجل غيارات الزيت الدورية للأسطول (")}{allOilChanges.length})
                 </h3>
                 <span style={{ fontSize: '11.5px', color: '#64748b' }}>
-                  بيان بكافة غيارات الزيت المنفذة لجميع سيارات الشركة ومواعيد الغيار القادم
+                  {t('delivery_reps.fleet_vehicles_tab.s38', "بيان بكافة غيارات الزيت المنفذة لجميع سيارات الشركة ومواعيد الغيار القادم")}
                 </span>
               </div>
               <Button
@@ -568,31 +570,31 @@ export function FleetVehiclesTab() {
                 }}
                 style={{ background: '#16a34a', color: '#ffffff', fontWeight: 700, fontSize: '12px' }}
               >
-                + تسجيل غيار زيت لسيارة
+                {t('delivery_reps.fleet_vehicles_tab.s39', "+ تسجيل غيار زيت لسيارة")}
               </Button>
             </div>
 
             {isOilLoading ? (
-              <div style={{ padding: '30px', textAlign: 'center', color: '#94a3b8' }}>جاري تحميل غيارات الزيت...</div>
+              <div style={{ padding: '30px', textAlign: 'center', color: '#94a3b8' }}>{t('delivery_reps.fleet_vehicles_tab.s40', "جاري تحميل غيارات الزيت...")}</div>
             ) : allOilChanges.length === 0 ? (
               <div style={{ padding: '24px', textAlign: 'center', color: '#64748b', fontSize: '12.5px' }}>
-                لا توجد غيارات زيت مسجلة لأسطول الشركة حتى الآن.
+                {t('delivery_reps.fleet_vehicles_tab.s41', "لا توجد غيارات زيت مسجلة لأسطول الشركة حتى الآن.")}
               </div>
             ) : (
               <div style={{ overflowX: 'auto' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right', fontSize: '12px' }}>
                   <thead>
                     <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>
-                      <th style={{ padding: '8px 10px', fontWeight: 700 }}>لوحة المركبة</th>
-                      <th style={{ padding: '8px 10px', fontWeight: 700 }}>نوع ومواصفة الزيت</th>
-                      <th style={{ padding: '8px 10px', fontWeight: 700 }}>العداد عند التغيير</th>
-                      <th style={{ padding: '8px 10px', fontWeight: 700 }}>الفلتر</th>
-                      <th style={{ padding: '8px 10px', fontWeight: 700 }}>تنبيه قبل</th>
-                      <th style={{ padding: '8px 10px', fontWeight: 700 }}>الغيّار القادم عند</th>
-                      <th style={{ padding: '8px 10px', fontWeight: 700 }}>مركز الصيانة</th>
-                      <th style={{ padding: '8px 10px', fontWeight: 700 }}>التكلفة</th>
-                      <th style={{ padding: '8px 10px', fontWeight: 700, textAlign: 'center' }}>الحالة</th>
-                      <th style={{ padding: '8px 10px', fontWeight: 700 }}>التاريخ</th>
+                      <th style={{ padding: '8px 10px', fontWeight: 700 }}>{t('delivery_reps.fleet_vehicles_tab.s42', "لوحة المركبة")}</th>
+                      <th style={{ padding: '8px 10px', fontWeight: 700 }}>{t('delivery_reps.fleet_vehicles_tab.s43', "نوع ومواصفة الزيت")}</th>
+                      <th style={{ padding: '8px 10px', fontWeight: 700 }}>{t('delivery_reps.fleet_vehicles_tab.s44', "العداد عند التغيير")}</th>
+                      <th style={{ padding: '8px 10px', fontWeight: 700 }}>{t('delivery_reps.fleet_vehicles_tab.s45', "الفلتر")}</th>
+                      <th style={{ padding: '8px 10px', fontWeight: 700 }}>{t('delivery_reps.fleet_vehicles_tab.s46', "تنبيه قبل")}</th>
+                      <th style={{ padding: '8px 10px', fontWeight: 700 }}>{t('delivery_reps.fleet_vehicles_tab.s47', "الغيّار القادم عند")}</th>
+                      <th style={{ padding: '8px 10px', fontWeight: 700 }}>{t('delivery_reps.fleet_vehicles_tab.s48', "مركز الصيانة")}</th>
+                      <th style={{ padding: '8px 10px', fontWeight: 700 }}>{t('delivery_reps.fleet_vehicles_tab.s49', "التكلفة")}</th>
+                      <th style={{ padding: '8px 10px', fontWeight: 700, textAlign: 'center' }}>{t('delivery_reps.fleet_vehicles_tab.s50', "الحالة")}</th>
+                      <th style={{ padding: '8px 10px', fontWeight: 700 }}>{t('delivery_reps.fleet_vehicles_tab.s51', "التاريخ")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -602,23 +604,23 @@ export function FleetVehiclesTab() {
                           {oc.plateNumber}
                         </td>
                         <td style={{ padding: '8px 10px', color: '#0f172a', fontWeight: 600 }}>
-                          {oc.oilType} ({oc.ratedKm} كم)
+                          {oc.oilType} ({oc.ratedKm} {t('delivery_reps.fleet_vehicles_tab.s52', "كم)")}
                         </td>
                         <td style={{ padding: '8px 10px', fontFamily: 'monospace' }}>
-                          {Number(oc.odometerAtChange).toLocaleString()} كم
+                          {Number(oc.odometerAtChange).toLocaleString()} {t('delivery_reps.fleet_vehicles_tab.s53', "كم")}
                         </td>
                         <td style={{ padding: '8px 10px' }}>
                           {oc.withFilter ? (
-                            <span style={{ color: '#16a34a', fontWeight: 700 }}>مع فلتر جديد</span>
+                            <span style={{ color: '#16a34a', fontWeight: 700 }}>{t('delivery_reps.fleet_vehicles_tab.s54', "مع فلتر جديد")}</span>
                           ) : (
-                            <span style={{ color: '#64748b' }}>بدون فلتر</span>
+                            <span style={{ color: '#64748b' }}>{t('delivery_reps.fleet_vehicles_tab.s55', "بدون فلتر")}</span>
                           )}
                         </td>
                         <td style={{ padding: '8px 10px', color: '#0284c7', fontWeight: 700 }}>
-                          {oc.alertKmBefore} كم مسبقاً
+                          {oc.alertKmBefore} {t('delivery_reps.fleet_vehicles_tab.s56', "كم مسبقاً")}
                         </td>
                         <td style={{ padding: '8px 10px', fontFamily: 'monospace', fontWeight: 800, color: '#170e5e' }}>
-                          {Number(oc.nextDueOdometer).toLocaleString()} كم
+                          {Number(oc.nextDueOdometer).toLocaleString()} {t('delivery_reps.fleet_vehicles_tab.s57', "كم")}
                         </td>
                         <td style={{ padding: '8px 10px', fontSize: '11px', color: '#64748b' }}>
                           {oc.performedBy || '—'}
@@ -637,7 +639,7 @@ export function FleetVehiclesTab() {
                               color: oc.status === 'active' ? '#15803d' : oc.status === 'overdue' ? '#b91c1c' : '#475569',
                             }}
                           >
-                            {oc.status === 'active' ? 'ساري' : oc.status === 'overdue' ? 'مستحق التغيير' : 'مكتمل'}
+                            {oc.status === 'active' ? t('delivery_reps.fleet_vehicles_tab.s58', "ساري") : oc.status === 'overdue' ? t('delivery_reps.fleet_vehicles_tab.s59', "مستحق التغيير") : t('delivery_reps.fleet_vehicles_tab.s60', "مكتمل")}
                           </span>
                         </td>
                         <td style={{ padding: '8px 10px', fontSize: '11px', color: '#64748b' }}>
@@ -656,10 +658,10 @@ export function FleetVehiclesTab() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
               <div>
                 <h3 style={{ margin: 0, fontSize: '14px', fontWeight: 800, color: '#0f172a' }}>
-                  سجل استهلاك وتفويل الوقود للأسطول ({allFuelLogs.length})
+                  {t('delivery_reps.fleet_vehicles_tab.s61', "سجل استهلاك وتفويل الوقود للأسطول (")}{allFuelLogs.length})
                 </h3>
                 <span style={{ fontSize: '11.5px', color: '#64748b' }}>
-                  معدلات الحرق (كم/لتر) وتكلفة المحروقات لسيارات الشركة
+                  {t('delivery_reps.fleet_vehicles_tab.s62', "معدلات الحرق (كم/لتر) وتكلفة المحروقات لسيارات الشركة")}
                 </span>
               </div>
               <Button
@@ -673,29 +675,29 @@ export function FleetVehiclesTab() {
                 }}
                 style={{ background: '#0284c7', color: '#ffffff', fontWeight: 700, fontSize: '12px' }}
               >
-                + تسجيل تفويل وقود لسيارة
+                {t('delivery_reps.fleet_vehicles_tab.s63', "+ تسجيل تفويل وقود لسيارة")}
               </Button>
             </div>
 
             {isFuelLoading ? (
-              <div style={{ padding: '30px', textAlign: 'center', color: '#94a3b8' }}>جاري تحميل سجلات الوقود...</div>
+              <div style={{ padding: '30px', textAlign: 'center', color: '#94a3b8' }}>{t('delivery_reps.fleet_vehicles_tab.s64', "جاري تحميل سجلات الوقود...")}</div>
             ) : allFuelLogs.length === 0 ? (
               <div style={{ padding: '24px', textAlign: 'center', color: '#64748b', fontSize: '12.5px' }}>
-                لا توجد سجلات تفويل مسجلة لأسطول الشركة حتى الآن.
+                {t('delivery_reps.fleet_vehicles_tab.s65', "لا توجد سجلات تفويل مسجلة لأسطول الشركة حتى الآن.")}
               </div>
             ) : (
               <div style={{ overflowX: 'auto' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right', fontSize: '12px' }}>
                   <thead>
                     <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>
-                      <th style={{ padding: '8px 10px', fontWeight: 700 }}>لوحة المركبة</th>
-                      <th style={{ padding: '8px 10px', fontWeight: 700 }}>قراءة العداد</th>
-                      <th style={{ padding: '8px 10px', fontWeight: 700 }}>الكمية</th>
-                      <th style={{ padding: '8px 10px', fontWeight: 700 }}>سعر اللتر</th>
-                      <th style={{ padding: '8px 10px', fontWeight: 700 }}>الإجمالي</th>
-                      <th style={{ padding: '8px 10px', fontWeight: 700 }}>المسافة المقطوعة</th>
-                      <th style={{ padding: '8px 10px', fontWeight: 700 }}>معدل الاستهلاك</th>
-                      <th style={{ padding: '8px 10px', fontWeight: 700 }}>المحطة / التاريخ</th>
+                      <th style={{ padding: '8px 10px', fontWeight: 700 }}>{t('delivery_reps.fleet_vehicles_tab.s66', "لوحة المركبة")}</th>
+                      <th style={{ padding: '8px 10px', fontWeight: 700 }}>{t('delivery_reps.fleet_vehicles_tab.s67', "قراءة العداد")}</th>
+                      <th style={{ padding: '8px 10px', fontWeight: 700 }}>{t('delivery_reps.fleet_vehicles_tab.s68', "الكمية")}</th>
+                      <th style={{ padding: '8px 10px', fontWeight: 700 }}>{t('delivery_reps.fleet_vehicles_tab.s69', "سعر اللتر")}</th>
+                      <th style={{ padding: '8px 10px', fontWeight: 700 }}>{t('delivery_reps.fleet_vehicles_tab.s70', "الإجمالي")}</th>
+                      <th style={{ padding: '8px 10px', fontWeight: 700 }}>{t('delivery_reps.fleet_vehicles_tab.s71', "المسافة المقطوعة")}</th>
+                      <th style={{ padding: '8px 10px', fontWeight: 700 }}>{t('delivery_reps.fleet_vehicles_tab.s72', "معدل الاستهلاك")}</th>
+                      <th style={{ padding: '8px 10px', fontWeight: 700 }}>{t('delivery_reps.fleet_vehicles_tab.s73', "المحطة / التاريخ")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -705,10 +707,10 @@ export function FleetVehiclesTab() {
                           {fl.plateNumber || `#${fl.vehicleId}`}
                         </td>
                         <td style={{ padding: '8px 10px', fontFamily: 'monospace', fontWeight: 700 }}>
-                          {Number(fl.odometer).toLocaleString()} كم
+                          {Number(fl.odometer).toLocaleString()} {t('delivery_reps.fleet_vehicles_tab.s74', "كم")}
                         </td>
                         <td style={{ padding: '8px 10px', fontWeight: 700, color: '#0f172a' }}>
-                          {fl.liters} لتر
+                          {fl.liters} {t('delivery_reps.fleet_vehicles_tab.s75', "لتر")}
                         </td>
                         <td style={{ padding: '8px 10px' }}>
                           {fl.pricePerLiter} <CurrencySymbol />
@@ -723,7 +725,7 @@ export function FleetVehiclesTab() {
                           {fl.consumptionRate > 0 ? `${fl.consumptionRate} كم/لتر` : '—'}
                         </td>
                         <td style={{ padding: '8px 10px', fontSize: '11px', color: '#64748b' }}>
-                          <div>{fl.stationName || 'محطة وقود'}</div>
+                          <div>{fl.stationName || t('delivery_reps.fleet_vehicles_tab.s76', "محطة وقود")}</div>
                           <div>{new Date(fl.createdAt).toLocaleDateString('ar-EG')}</div>
                         </td>
                       </tr>
@@ -747,31 +749,31 @@ export function FleetVehiclesTab() {
         >
           {isVehiclesLoading ? (
             <div style={{ padding: '60px', textAlign: 'center', color: '#64748b', fontWeight: 700 }}>
-              جاري تحميل أسطول السيارات...
+              {t('delivery_reps.fleet_vehicles_tab.s77', "جاري تحميل أسطول السيارات...")}
             </div>
           ) : filteredVehicles.length === 0 ? (
             <div style={{ padding: '60px', textAlign: 'center', color: '#64748b', fontWeight: 600 }}>
               {vehicles.length === 0
-                ? 'لا توجد مركبات مسجلة في الأسطول حالياً. انقر على "+ إضافة سيارة للأسطول" لإضافة أول سيارة لأسطول الشركة.'
+                ? t('delivery_reps.fleet_vehicles_tab.s78', "لا توجد مركبات مسجلة في الأسطول حالياً. انقر على \"+ إضافة سيارة للأسطول\" لإضافة أول سيارة لأسطول الشركة.")
                 : vehicleSearch
                 ? `لا توجد مركبات تطابق بحثك: "${vehicleSearch}"`
                 : vehicleStatusFilter === 'assigned'
-                ? 'لا توجد مركبات مسندة لسائقين حالياً.'
+                ? t('delivery_reps.fleet_vehicles_tab.s79', "لا توجد مركبات مسندة لسائقين حالياً.")
                 : vehicleStatusFilter === 'available'
-                ? 'لا توجد مركبات متاحة بدون إسناد حالياً.'
-                : 'لا توجد مركبات تطابق التصفية المحددة.'}
+                ? t('delivery_reps.fleet_vehicles_tab.s80', "لا توجد مركبات متاحة بدون إسناد حالياً.")
+                : t('delivery_reps.fleet_vehicles_tab.s81', "لا توجد مركبات تطابق التصفية المحددة.")}
             </div>
           ) : (
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right', fontSize: '12.5px' }}>
               <thead>
                 <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>
-                  <th style={{ padding: '10px 14px', fontWeight: 700 }}>لوحة المركبة والطراز</th>
-                  <th style={{ padding: '10px 14px', fontWeight: 700 }}>نوع المركبة والوقود</th>
-                  <th style={{ padding: '10px 14px', fontWeight: 700 }}>مستودع الفان المتنقل</th>
-                  <th style={{ padding: '10px 14px', fontWeight: 700 }}>السائق المسند</th>
-                  <th style={{ padding: '10px 14px', fontWeight: 700 }}>قراءة العداد</th>
-                  <th style={{ padding: '10px 14px', fontWeight: 700 }}>الحالة</th>
-                  <th style={{ padding: '10px 14px', fontWeight: 700, textAlign: 'center' }}>الإجراءات</th>
+                  <th style={{ padding: '10px 14px', fontWeight: 700 }}>{t('delivery_reps.fleet_vehicles_tab.s82', "لوحة المركبة والطراز")}</th>
+                  <th style={{ padding: '10px 14px', fontWeight: 700 }}>{t('delivery_reps.fleet_vehicles_tab.s83', "نوع المركبة والوقود")}</th>
+                  <th style={{ padding: '10px 14px', fontWeight: 700 }}>{t('delivery_reps.fleet_vehicles_tab.s84', "مستودع الفان المتنقل")}</th>
+                  <th style={{ padding: '10px 14px', fontWeight: 700 }}>{t('delivery_reps.fleet_vehicles_tab.s85', "السائق المسند")}</th>
+                  <th style={{ padding: '10px 14px', fontWeight: 700 }}>{t('delivery_reps.fleet_vehicles_tab.s86', "قراءة العداد")}</th>
+                  <th style={{ padding: '10px 14px', fontWeight: 700 }}>{t('delivery_reps.fleet_vehicles_tab.s87', "الحالة")}</th>
+                  <th style={{ padding: '10px 14px', fontWeight: 700, textAlign: 'center' }}>{t('delivery_reps.fleet_vehicles_tab.s88', "الإجراءات")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -800,7 +802,7 @@ export function FleetVehiclesTab() {
                               {v.plateNumber}
                             </div>
                             <div style={{ fontSize: '11px', color: '#64748b' }}>
-                              {v.modelName || 'بدون موديل محدد'}
+                              {v.modelName || t('delivery_reps.fleet_vehicles_tab.s89', "بدون موديل محدد")}
                             </div>
                           </div>
                         </div>
@@ -808,15 +810,15 @@ export function FleetVehiclesTab() {
                       <td style={{ padding: '12px 14px' }}>
                         <div style={{ fontWeight: 600, color: '#334155' }}>
                           {v.vehicleType === 'van'
-                            ? 'سيارة فان توزيع'
+                            ? t('delivery_reps.fleet_vehicles_tab.s90', "سيارة فان توزيع")
                             : v.vehicleType === 'truck'
-                            ? 'شاحنة نقل بضائع'
+                            ? t('delivery_reps.fleet_vehicles_tab.s91', "شاحنة نقل بضائع")
                             : v.vehicleType === 'motorcycle'
-                            ? 'دراجة نارية (موتوسيكل)'
-                            : 'سيارة أخرى'}
+                            ? t('delivery_reps.fleet_vehicles_tab.s92', "دراجة نارية (موتوسيكل)")
+                            : t('delivery_reps.fleet_vehicles_tab.s93', "سيارة أخرى")}
                         </div>
                         <div style={{ fontSize: '11px', color: '#94a3b8' }}>
-                          وقود: {v.fuelType === 'gasoline' ? 'بنزين' : v.fuelType === 'diesel' ? 'سولار / ديزل' : v.fuelType === 'hybrid' ? 'هايبرد' : 'كهربائي'}
+                          {t('delivery_reps.fleet_vehicles_tab.s94', "وقود:")} {v.fuelType === 'gasoline' ? t('delivery_reps.fleet_vehicles_tab.s95', "بنزين") : v.fuelType === 'diesel' ? t('delivery_reps.fleet_vehicles_tab.s96', "سولار / ديزل") : v.fuelType === 'hybrid' ? t('delivery_reps.fleet_vehicles_tab.s97', "هايبرد") : t('delivery_reps.fleet_vehicles_tab.s98', "كهربائي")}
                         </div>
                       </td>
                       <td style={{ padding: '12px 14px' }}>
@@ -847,12 +849,12 @@ export function FleetVehiclesTab() {
                           </div>
                         ) : (
                           <span style={{ fontSize: '11.5px', color: '#94a3b8', fontStyle: 'italic' }}>
-                            -- بدون سائق مسند --
+                            {t('delivery_reps.fleet_vehicles_tab.s99', "-- بدون سائق مسند --")}
                           </span>
                         )}
                       </td>
                       <td style={{ padding: '12px 14px', fontFamily: 'monospace', fontWeight: 700, color: '#0f172a' }}>
-                        {Number(v.currentOdometer || 0).toLocaleString()} كم
+                        {Number(v.currentOdometer || 0).toLocaleString()} {t('delivery_reps.fleet_vehicles_tab.s100', "كم")}
                       </td>
                       <td style={{ padding: '12px 14px' }}>
                         <span
@@ -890,12 +892,12 @@ export function FleetVehiclesTab() {
                           }}
                         >
                           {v.status === 'assigned'
-                            ? 'مسندة بالخدمة'
+                            ? t('delivery_reps.fleet_vehicles_tab.s101', "مسندة بالخدمة")
                             : v.status === 'available'
-                            ? 'متاحة للتشغيل'
+                            ? t('delivery_reps.fleet_vehicles_tab.s102', "متاحة للتشغيل")
                             : v.status === 'maintenance'
-                            ? 'تحت الصيانة'
-                            : 'مستبعدة'}
+                            ? t('delivery_reps.fleet_vehicles_tab.s103', "تحت الصيانة")
+                            : t('delivery_reps.fleet_vehicles_tab.s104', "مستبعدة")}
                         </span>
                       </td>
                       <td style={{ padding: '12px 14px', textAlign: 'center' }}>
@@ -909,7 +911,7 @@ export function FleetVehiclesTab() {
                             }}
                           >
                             <SlidersIcon size={12} />
-                            الوقود والصيانة
+                            {t('delivery_reps.fleet_vehicles_tab.s105', "الوقود والصيانة")}
                           </Button>
 
                           {v.status === 'maintenance' ? (
@@ -931,7 +933,7 @@ export function FleetVehiclesTab() {
                               }}
                             >
                               <CheckCircleIcon size={12} />
-                              إتمام الصيانة
+                              {t('delivery_reps.fleet_vehicles_tab.s106', "إتمام الصيانة")}
                             </Button>
                           ) : (
                             <Button
@@ -951,7 +953,7 @@ export function FleetVehiclesTab() {
                               }}
                             >
                               <ToolIcon size={12} />
-                              تحويل للورشة
+                              {t('delivery_reps.fleet_vehicles_tab.s107', "تحويل للورشة")}
                             </Button>
                           )}
 
@@ -963,7 +965,7 @@ export function FleetVehiclesTab() {
                               setIsAssignDriverOpen(true);
                             }}
                           >
-                            {isAssigned ? 'إدارة السائقين والورديات' : 'تخصيص سائق'}
+                            {isAssigned ? t('delivery_reps.fleet_vehicles_tab.s108', "إدارة السائقين والورديات") : t('delivery_reps.fleet_vehicles_tab.s109', "تخصيص سائق")}
                           </Button>
                           <Button
                             variant="secondary"
@@ -973,7 +975,7 @@ export function FleetVehiclesTab() {
                               setIsUpsertVehicleOpen(true);
                             }}
                           >
-                            تعديل
+                            {t('delivery_reps.fleet_vehicles_tab.s110', "تعديل")}
                           </Button>
                         </div>
                       </td>

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import type { FormEventHandler, ReactNode } from 'react';
 import { QueryFeedback } from '@/shared/components/query-feedback';
 import { Button } from '@/shared/ui/button';
@@ -47,6 +48,7 @@ export function AccountsPartyCard({
   permissionHint: string;
   children: ReactNode;
 }) {
+  const { t } = useTranslation();
   return (
     <section className="document-prototype-section">
       <div className="section-header-compact-row">
@@ -67,8 +69,8 @@ export function AccountsPartyCard({
             <Field label={quickLabel}>
               <input value={quickName} onChange={(event) => onQuickNameChange(event.target.value)} placeholder={quickLabel} disabled={quickPending || !canManageParty} />
             </Field>
-            <Field label="الهاتف">
-              <input value={quickPhone} onChange={(event) => onQuickPhoneChange(event.target.value)} placeholder="اختياري" disabled={quickPending || !canManageParty} />
+            <Field label={t('accounts.accounts_party_card.s0', "الهاتف")}>
+              <input value={quickPhone} onChange={(event) => onQuickPhoneChange(event.target.value)} placeholder={t('accounts.accounts_party_card.s1', "اختياري")} disabled={quickPending || !canManageParty} />
             </Field>
           </div>
           <div className="actions compact-actions">

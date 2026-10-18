@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
@@ -28,6 +29,7 @@ export function VehicleMaintenanceModal({
   onClose,
   vehicle,
 }: VehicleMaintenanceModalProps) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<'alerts' | 'oil' | 'fuel' | 'add_oil' | 'add_fuel'>('alerts');
 
@@ -119,7 +121,7 @@ export function VehicleMaintenanceModal({
       open={open}
       onClose={onClose}
       title={`صيانة ووقود المركبة: ${vehicle.plateNumber}`}
-      subtitle={`${vehicle.modelName || 'سيارة توزيع'} • العداد الحالي: ${Number(vehicle.currentOdometer || 0).toLocaleString()} كم`}
+      subtitle={`${vehicle.modelName || t('delivery_reps.vehicle_maintenance_modal.s0', "سيارة توزيع")} • العداد الحالي: ${Number(vehicle.currentOdometer || 0).toLocaleString()} كم`}
       maxWidth="820px"
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }} dir="rtl">
@@ -154,7 +156,7 @@ export function VehicleMaintenanceModal({
             }}
           >
             <AlertTriangleIcon size={14} />
-            التنبيهات النشطة ({vehicleAlerts.length})
+            {t('delivery_reps.vehicle_maintenance_modal.s1', "التنبيهات النشطة (")}{vehicleAlerts.length})
           </button>
           <button
             type="button"
@@ -170,7 +172,7 @@ export function VehicleMaintenanceModal({
               fontWeight: 600,
             }}
           >
-            سجل غيارات الزيت ({oilChanges.length})
+            {t('delivery_reps.vehicle_maintenance_modal.s2', "سجل غيارات الزيت (")}{oilChanges.length})
           </button>
           <button
             type="button"
@@ -186,7 +188,7 @@ export function VehicleMaintenanceModal({
               fontWeight: 600,
             }}
           >
-            سجل التفويل والوقود ({fuelLogs.length})
+            {t('delivery_reps.vehicle_maintenance_modal.s3', "سجل التفويل والوقود (")}{fuelLogs.length})
           </button>
           <button
             type="button"
@@ -210,7 +212,7 @@ export function VehicleMaintenanceModal({
             }}
           >
             <PlusIcon size={13} />
-            + تسجيل غيار زيت
+            {t('delivery_reps.vehicle_maintenance_modal.s4', "+ تسجيل غيار زيت")}
           </button>
           <button
             type="button"
@@ -234,7 +236,7 @@ export function VehicleMaintenanceModal({
             }}
           >
             <PlusIcon size={13} />
-            + تسجيل تفويل وقود
+            {t('delivery_reps.vehicle_maintenance_modal.s5', "+ تسجيل تفويل وقود")}
           </button>
         </div>
 
@@ -256,9 +258,9 @@ export function VehicleMaintenanceModal({
                 }}
               >
                 <div>
-                  <strong style={{ color: '#0f172a' }}>رخصة تسيير المركبة:</strong>
+                  <strong style={{ color: '#0f172a' }}>{t('delivery_reps.vehicle_maintenance_modal.s6', "رخصة تسيير المركبة:")}</strong>
                   <span style={{ color: '#64748b', marginRight: '6px' }}>
-                    تنتهي بتاريخ: {new Date(vehicle.licenseExpiresAt).toLocaleDateString('ar-EG')}
+                    {t('delivery_reps.vehicle_maintenance_modal.s7', "تنتهي بتاريخ:")} {new Date(vehicle.licenseExpiresAt).toLocaleDateString('ar-EG')}
                   </span>
                 </div>
                 <span
@@ -271,7 +273,7 @@ export function VehicleMaintenanceModal({
                     fontWeight: 700,
                   }}
                 >
-                  تنبيه تلقائي قبل 30 يوم من الانتهاء
+                  {t('delivery_reps.vehicle_maintenance_modal.s8', "تنبيه تلقائي قبل 30 يوم من الانتهاء")}
                 </span>
               </div>
             )}
@@ -288,9 +290,9 @@ export function VehicleMaintenanceModal({
                 }}
               >
                 <CheckCircleIcon size={28} color="#16a34a" style={{ margin: '0 auto 8px', display: 'block' }} />
-                <strong style={{ fontSize: '13.5px', display: 'block' }}>حالة المركبة ممتازة ولا توجد تنبيهات نشطة</strong>
+                <strong style={{ fontSize: '13.5px', display: 'block' }}>{t('delivery_reps.vehicle_maintenance_modal.s9', "حالة المركبة ممتازة ولا توجد تنبيهات نشطة")}</strong>
                 <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#166534' }}>
-                  غيار الزيت ساري ورخصة المركبة مجددة وصالحة.
+                  {t('delivery_reps.vehicle_maintenance_modal.s10', "غيار الزيت ساري ورخصة المركبة مجددة وصالحة.")}
                 </p>
               </div>
             ) : (
@@ -331,7 +333,7 @@ export function VehicleMaintenanceModal({
                       fontWeight: 700,
                     }}
                   >
-                    {alt.severity === 'critical' ? 'عاجل جداً' : 'تنبيه موعد'}
+                    {alt.severity === 'critical' ? t('delivery_reps.vehicle_maintenance_modal.s11', "عاجل جداً") : t('delivery_reps.vehicle_maintenance_modal.s12', "تنبيه موعد")}
                   </span>
                 </div>
               ))
@@ -344,7 +346,7 @@ export function VehicleMaintenanceModal({
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ fontSize: '12.5px', fontWeight: 700, color: '#334155' }}>
-                سجل دورات غيار الزيت والفلاتر
+                {t('delivery_reps.vehicle_maintenance_modal.s13', "سجل دورات غيار الزيت والفلاتر")}
               </span>
               <Button
                 variant="primary"
@@ -364,50 +366,50 @@ export function VehicleMaintenanceModal({
                 }}
               >
                 <PlusIcon size={13} />
-                + تسجيل غيار زيت
+                {t('delivery_reps.vehicle_maintenance_modal.s14', "+ تسجيل غيار زيت")}
               </Button>
             </div>
             <div style={{ overflowX: 'auto' }}>
               {isOilLoading ? (
-                <div style={{ padding: '30px', textAlign: 'center', color: '#94a3b8' }}>جاري تحميل غيارات الزيت...</div>
+                <div style={{ padding: '30px', textAlign: 'center', color: '#94a3b8' }}>{t('delivery_reps.vehicle_maintenance_modal.s15', "جاري تحميل غيارات الزيت...")}</div>
               ) : oilChanges.length === 0 ? (
                 <div style={{ padding: '30px', textAlign: 'center', color: '#64748b', fontSize: '12.5px' }}>
-                  لا يوجد سجل غيارات زيت مسجل لهذه المركبة حتى الآن.
+                  {t('delivery_reps.vehicle_maintenance_modal.s16', "لا يوجد سجل غيارات زيت مسجل لهذه المركبة حتى الآن.")}
                 </div>
               ) : (
                 <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right', fontSize: '12px' }}>
                   <thead>
                     <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>
-                      <th style={{ padding: '8px 10px', fontWeight: 700 }}>نوع الزيت</th>
-                      <th style={{ padding: '8px 10px', fontWeight: 700 }}>العداد عند التغيير</th>
-                      <th style={{ padding: '8px 10px', fontWeight: 700 }}>الفلتر</th>
-                      <th style={{ padding: '8px 10px', fontWeight: 700 }}>تنبيه قبل</th>
-                      <th style={{ padding: '8px 10px', fontWeight: 700 }}>الغيّار القادم عند</th>
-                      <th style={{ padding: '8px 10px', fontWeight: 700, textAlign: 'center' }}>الحالة</th>
-                      <th style={{ padding: '8px 10px', fontWeight: 700 }}>التاريخ</th>
+                      <th style={{ padding: '8px 10px', fontWeight: 700 }}>{t('delivery_reps.vehicle_maintenance_modal.s17', "نوع الزيت")}</th>
+                      <th style={{ padding: '8px 10px', fontWeight: 700 }}>{t('delivery_reps.vehicle_maintenance_modal.s18', "العداد عند التغيير")}</th>
+                      <th style={{ padding: '8px 10px', fontWeight: 700 }}>{t('delivery_reps.vehicle_maintenance_modal.s19', "الفلتر")}</th>
+                      <th style={{ padding: '8px 10px', fontWeight: 700 }}>{t('delivery_reps.vehicle_maintenance_modal.s20', "تنبيه قبل")}</th>
+                      <th style={{ padding: '8px 10px', fontWeight: 700 }}>{t('delivery_reps.vehicle_maintenance_modal.s21', "الغيّار القادم عند")}</th>
+                      <th style={{ padding: '8px 10px', fontWeight: 700, textAlign: 'center' }}>{t('delivery_reps.vehicle_maintenance_modal.s22', "الحالة")}</th>
+                      <th style={{ padding: '8px 10px', fontWeight: 700 }}>{t('delivery_reps.vehicle_maintenance_modal.s23', "التاريخ")}</th>
                     </tr>
                   </thead>
                   <tbody>
                     {oilChanges.map((oc) => (
                       <tr key={oc.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                         <td style={{ padding: '8px 10px', fontWeight: 700, color: '#0f172a' }}>
-                          {oc.oilType} ({oc.ratedKm} كم)
+                          {oc.oilType} ({oc.ratedKm} {t('delivery_reps.vehicle_maintenance_modal.s24', "كم)")}
                         </td>
                         <td style={{ padding: '8px 10px', fontFamily: 'monospace' }}>
-                          {Number(oc.odometerAtChange).toLocaleString()} كم
+                          {Number(oc.odometerAtChange).toLocaleString()} {t('delivery_reps.vehicle_maintenance_modal.s25', "كم")}
                         </td>
                         <td style={{ padding: '8px 10px' }}>
                           {oc.withFilter ? (
-                            <span style={{ color: '#16a34a', fontWeight: 700 }}>مع فلتر جديد</span>
+                            <span style={{ color: '#16a34a', fontWeight: 700 }}>{t('delivery_reps.vehicle_maintenance_modal.s26', "مع فلتر جديد")}</span>
                           ) : (
-                            <span style={{ color: '#64748b' }}>بدون فلتر</span>
+                            <span style={{ color: '#64748b' }}>{t('delivery_reps.vehicle_maintenance_modal.s27', "بدون فلتر")}</span>
                           )}
                         </td>
                         <td style={{ padding: '8px 10px', color: '#0284c7', fontWeight: 700 }}>
-                          {oc.alertKmBefore} كم مسبقاً
+                          {oc.alertKmBefore} {t('delivery_reps.vehicle_maintenance_modal.s28', "كم مسبقاً")}
                         </td>
                         <td style={{ padding: '8px 10px', fontFamily: 'monospace', fontWeight: 800, color: '#170e5e' }}>
-                          {Number(oc.nextDueOdometer).toLocaleString()} كم
+                          {Number(oc.nextDueOdometer).toLocaleString()} {t('delivery_reps.vehicle_maintenance_modal.s29', "كم")}
                         </td>
                         <td style={{ padding: '8px 10px', textAlign: 'center' }}>
                           <span
@@ -420,7 +422,7 @@ export function VehicleMaintenanceModal({
                               color: oc.status === 'active' ? '#15803d' : oc.status === 'overdue' ? '#b91c1c' : '#475569',
                             }}
                           >
-                            {oc.status === 'active' ? 'ساري' : oc.status === 'overdue' ? 'مستحق التغيير' : 'مكتمل'}
+                            {oc.status === 'active' ? t('delivery_reps.vehicle_maintenance_modal.s30', "ساري") : oc.status === 'overdue' ? t('delivery_reps.vehicle_maintenance_modal.s31', "مستحق التغيير") : t('delivery_reps.vehicle_maintenance_modal.s32', "مكتمل")}
                           </span>
                         </td>
                         <td style={{ padding: '8px 10px', fontSize: '11px', color: '#64748b' }}>
@@ -440,7 +442,7 @@ export function VehicleMaintenanceModal({
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ fontSize: '12.5px', fontWeight: 700, color: '#334155' }}>
-                سجل التفويل ومعدل استهلاك الوقود (كم/لتر)
+                {t('delivery_reps.vehicle_maintenance_modal.s33', "سجل التفويل ومعدل استهلاك الوقود (كم/لتر)")}
               </span>
               <Button
                 variant="primary"
@@ -460,37 +462,37 @@ export function VehicleMaintenanceModal({
                 }}
               >
                 <PlusIcon size={13} />
-                + تسجيل تفويل وقود
+                {t('delivery_reps.vehicle_maintenance_modal.s34', "+ تسجيل تفويل وقود")}
               </Button>
             </div>
             <div style={{ overflowX: 'auto' }}>
               {isFuelLoading ? (
-                <div style={{ padding: '30px', textAlign: 'center', color: '#94a3b8' }}>جاري تحميل سجلات الوقود...</div>
+                <div style={{ padding: '30px', textAlign: 'center', color: '#94a3b8' }}>{t('delivery_reps.vehicle_maintenance_modal.s35', "جاري تحميل سجلات الوقود...")}</div>
               ) : fuelLogs.length === 0 ? (
                 <div style={{ padding: '30px', textAlign: 'center', color: '#64748b', fontSize: '12.5px' }}>
-                  لا توجد سجلات تفويل مسجلة لهذه المركبة.
+                  {t('delivery_reps.vehicle_maintenance_modal.s36', "لا توجد سجلات تفويل مسجلة لهذه المركبة.")}
                 </div>
               ) : (
                 <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right', fontSize: '12px' }}>
                   <thead>
                     <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>
-                      <th style={{ padding: '8px 10px', fontWeight: 700 }}>قراءة العداد</th>
-                      <th style={{ padding: '8px 10px', fontWeight: 700 }}>الكمية</th>
-                      <th style={{ padding: '8px 10px', fontWeight: 700 }}>سعر اللتر</th>
-                      <th style={{ padding: '8px 10px', fontWeight: 700 }}>الإجمالي</th>
-                      <th style={{ padding: '8px 10px', fontWeight: 700 }}>المسافة المقطوعة</th>
-                      <th style={{ padding: '8px 10px', fontWeight: 700 }}>معدل الاستهلاك</th>
-                      <th style={{ padding: '8px 10px', fontWeight: 700 }}>المحطة / التاريخ</th>
+                      <th style={{ padding: '8px 10px', fontWeight: 700 }}>{t('delivery_reps.vehicle_maintenance_modal.s37', "قراءة العداد")}</th>
+                      <th style={{ padding: '8px 10px', fontWeight: 700 }}>{t('delivery_reps.vehicle_maintenance_modal.s38', "الكمية")}</th>
+                      <th style={{ padding: '8px 10px', fontWeight: 700 }}>{t('delivery_reps.vehicle_maintenance_modal.s39', "سعر اللتر")}</th>
+                      <th style={{ padding: '8px 10px', fontWeight: 700 }}>{t('delivery_reps.vehicle_maintenance_modal.s40', "الإجمالي")}</th>
+                      <th style={{ padding: '8px 10px', fontWeight: 700 }}>{t('delivery_reps.vehicle_maintenance_modal.s41', "المسافة المقطوعة")}</th>
+                      <th style={{ padding: '8px 10px', fontWeight: 700 }}>{t('delivery_reps.vehicle_maintenance_modal.s42', "معدل الاستهلاك")}</th>
+                      <th style={{ padding: '8px 10px', fontWeight: 700 }}>{t('delivery_reps.vehicle_maintenance_modal.s43', "المحطة / التاريخ")}</th>
                     </tr>
                   </thead>
                   <tbody>
                     {fuelLogs.map((fl) => (
                       <tr key={fl.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                         <td style={{ padding: '8px 10px', fontFamily: 'monospace', fontWeight: 700 }}>
-                          {Number(fl.odometer).toLocaleString()} كم
+                          {Number(fl.odometer).toLocaleString()} {t('delivery_reps.vehicle_maintenance_modal.s44', "كم")}
                         </td>
                         <td style={{ padding: '8px 10px', fontWeight: 700, color: '#0f172a' }}>
-                          {fl.liters} لتر
+                          {fl.liters} {t('delivery_reps.vehicle_maintenance_modal.s45', "لتر")}
                         </td>
                         <td style={{ padding: '8px 10px' }}>
                           {fl.pricePerLiter} <CurrencySymbol />
@@ -505,7 +507,7 @@ export function VehicleMaintenanceModal({
                           {fl.consumptionRate > 0 ? `${fl.consumptionRate} كم/لتر` : '—'}
                         </td>
                         <td style={{ padding: '8px 10px', fontSize: '11px', color: '#64748b' }}>
-                          <div>{fl.stationName || 'محطة وقود'}</div>
+                          <div>{fl.stationName || t('delivery_reps.vehicle_maintenance_modal.s46', "محطة وقود")}</div>
                           <div>{new Date(fl.createdAt).toLocaleDateString('ar-EG')}</div>
                         </td>
                       </tr>
@@ -526,18 +528,18 @@ export function VehicleMaintenanceModal({
               const rKm = parseFloat(ratedKm);
               const alertBefore = parseFloat(alertKmBefore) || 500;
               if (!odo || odo <= 0) {
-                toast.warning('يرجى إدخال قراءة العداد عند الغيار');
+                toast.warning(t('delivery_reps.vehicle_maintenance_modal.s47', "يرجى إدخال قراءة العداد عند الغيار"));
                 return;
               }
               if (!rKm || rKm <= 0) {
-                toast.warning('يرجى تحديد مسافة صلاحية الزيت');
+                toast.warning(t('delivery_reps.vehicle_maintenance_modal.s48', "يرجى تحديد مسافة صلاحية الزيت"));
                 return;
               }
 
               recordOilMutation.mutate({
                 vehicleId: vehicle.id,
                 odometerAtChange: odo,
-                oilType: oilType.trim() || 'زيت محرك',
+                oilType: oilType.trim() || t('delivery_reps.vehicle_maintenance_modal.s49', "زيت محرك"),
                 ratedKm: rKm,
                 withFilter,
                 alertKmBefore: alertBefore,
@@ -551,7 +553,7 @@ export function VehicleMaintenanceModal({
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                  قراءة العداد عند التغيير (كم) <span style={{ color: '#dc2626' }}>*</span>
+                  {t('delivery_reps.vehicle_maintenance_modal.s50', "قراءة العداد عند التغيير (كم)")} <span style={{ color: '#dc2626' }}>*</span>
                 </label>
                 <input
                   type="number"
@@ -571,13 +573,13 @@ export function VehicleMaintenanceModal({
 
               <div>
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                  نوع ومواصفة الزيت
+                  {t('delivery_reps.vehicle_maintenance_modal.s51', "نوع ومواصفة الزيت")}
                 </label>
                 <input
                   type="text"
                   value={oilType}
                   onChange={(e) => setOilType(e.target.value)}
-                  placeholder="مثال: شيل هيلكس 5W-40 تخليقي"
+                  placeholder={t('delivery_reps.vehicle_maintenance_modal.s52', "مثال: شيل هيلكس 5W-40 تخليقي")}
                   style={{
                     width: '100%',
                     padding: '8px 10px',
@@ -593,7 +595,7 @@ export function VehicleMaintenanceModal({
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                  صلاحية الزيت (كم) <span style={{ color: '#dc2626' }}>*</span>
+                  {t('delivery_reps.vehicle_maintenance_modal.s53', "صلاحية الزيت (كم)")} <span style={{ color: '#dc2626' }}>*</span>
                 </label>
                 <select
                   value={ratedKm}
@@ -608,16 +610,16 @@ export function VehicleMaintenanceModal({
                     background: '#ffffff',
                   }}
                 >
-                  <option value="3000">3,000 كم</option>
-                  <option value="5000">5,000 كم</option>
-                  <option value="7000">7,000 كم</option>
-                  <option value="10000">10,000 كم</option>
+                  <option value="3000">{t('delivery_reps.vehicle_maintenance_modal.s54', "3,000 كم")}</option>
+                  <option value="5000">{t('delivery_reps.vehicle_maintenance_modal.s55', "5,000 كم")}</option>
+                  <option value="7000">{t('delivery_reps.vehicle_maintenance_modal.s56', "7,000 كم")}</option>
+                  <option value="10000">{t('delivery_reps.vehicle_maintenance_modal.s57', "10,000 كم")}</option>
                 </select>
               </div>
 
               <div>
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                  تغيير الفلتر
+                  {t('delivery_reps.vehicle_maintenance_modal.s58', "تغيير الفلتر")}
                 </label>
                 <select
                   value={withFilter ? 'yes' : 'no'}
@@ -632,15 +634,15 @@ export function VehicleMaintenanceModal({
                     background: '#ffffff',
                   }}
                 >
-                  <option value="yes">نعم (مع فلتر زيت جديد)</option>
-                  <option value="no">لا (زيت فقط بدون فلتر)</option>
+                  <option value="yes">{t('delivery_reps.vehicle_maintenance_modal.s59', "نعم (مع فلتر زيت جديد)")}</option>
+                  <option value="no">{t('delivery_reps.vehicle_maintenance_modal.s60', "لا (زيت فقط بدون فلتر)")}</option>
                 </select>
               </div>
 
               {/* Custom alert km written by user */}
               <div>
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#170e5e', marginBottom: '4px' }}>
-                  تنبيه قبل الميعاد بـ (كم) <span style={{ color: '#dc2626' }}>*</span>
+                  {t('delivery_reps.vehicle_maintenance_modal.s61', "تنبيه قبل الميعاد بـ (كم)")} <span style={{ color: '#dc2626' }}>*</span>
                 </label>
                 <input
                   type="number"
@@ -648,7 +650,7 @@ export function VehicleMaintenanceModal({
                   step="50"
                   value={alertKmBefore}
                   onChange={(e) => setAlertKmBefore(e.target.value)}
-                  placeholder="مثال: 500"
+                  placeholder={t('delivery_reps.vehicle_maintenance_modal.s62', "مثال: 500")}
                   style={{
                     width: '100%',
                     padding: '8px 10px',
@@ -666,7 +668,7 @@ export function VehicleMaintenanceModal({
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                  التكلفة الإجمالية للغيّار
+                  {t('delivery_reps.vehicle_maintenance_modal.s63', "التكلفة الإجمالية للغيّار")}
                 </label>
                 <input
                   type="number"
@@ -687,13 +689,13 @@ export function VehicleMaintenanceModal({
 
               <div>
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                  مركز الصيانة / القائم بالعمل
+                  {t('delivery_reps.vehicle_maintenance_modal.s64', "مركز الصيانة / القائم بالعمل")}
                 </label>
                 <input
                   type="text"
                   value={performedBy}
                   onChange={(e) => setPerformedBy(e.target.value)}
-                  placeholder="مثال: ورشة الشركة المركزية، بنزينة موبيل..."
+                  placeholder={t('delivery_reps.vehicle_maintenance_modal.s65', "مثال: ورشة الشركة المركزية، بنزينة موبيل...")}
                   style={{
                     width: '100%',
                     padding: '8px 10px',
@@ -708,7 +710,7 @@ export function VehicleMaintenanceModal({
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '10px' }}>
               <Button variant="secondary" onClick={() => setActiveTab('oil')}>
-                إلغاء
+                {t('delivery_reps.vehicle_maintenance_modal.s66', "إلغاء")}
               </Button>
               <Button
                 variant="primary"
@@ -716,7 +718,7 @@ export function VehicleMaintenanceModal({
                 disabled={recordOilMutation.isPending}
                 style={{ backgroundColor: '#170e5e', color: '#ffffff', fontWeight: 700 }}
               >
-                {recordOilMutation.isPending ? 'جاري الحفظ...' : 'حفظ غيار الزيت وجدولة التنبيه'}
+                {recordOilMutation.isPending ? t('delivery_reps.vehicle_maintenance_modal.s67', "جاري الحفظ...") : t('delivery_reps.vehicle_maintenance_modal.s68', "حفظ غيار الزيت وجدولة التنبيه")}
               </Button>
             </div>
           </form>
@@ -731,15 +733,15 @@ export function VehicleMaintenanceModal({
               const lit = parseFloat(fuelLiters);
               const ppl = parseFloat(fuelPricePerLiter);
               if (!odo || odo <= 0) {
-                toast.warning('يرجى إدخال قراءة العداد عند التفويل');
+                toast.warning(t('delivery_reps.vehicle_maintenance_modal.s69', "يرجى إدخال قراءة العداد عند التفويل"));
                 return;
               }
               if (!lit || lit <= 0) {
-                toast.warning('يرجى إدخال كمية الوقود باللتر');
+                toast.warning(t('delivery_reps.vehicle_maintenance_modal.s70', "يرجى إدخال كمية الوقود باللتر"));
                 return;
               }
               if (!ppl || ppl <= 0) {
-                toast.warning('يرجى إدخال سعر اللتر');
+                toast.warning(t('delivery_reps.vehicle_maintenance_modal.s71', "يرجى إدخال سعر اللتر"));
                 return;
               }
 
@@ -757,14 +759,14 @@ export function VehicleMaintenanceModal({
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                  قراءة العداد عند التفويل (كم) <span style={{ color: '#dc2626' }}>*</span>
+                  {t('delivery_reps.vehicle_maintenance_modal.s72', "قراءة العداد عند التفويل (كم)")} <span style={{ color: '#dc2626' }}>*</span>
                 </label>
                 <input
                   type="number"
                   required
                   value={fuelOdometer}
                   onChange={(e) => setFuelOdometer(e.target.value)}
-                  placeholder="مثال: 45200"
+                  placeholder={t('delivery_reps.vehicle_maintenance_modal.s73', "مثال: 45200")}
                   style={{
                     width: '100%',
                     padding: '8px 10px',
@@ -778,7 +780,7 @@ export function VehicleMaintenanceModal({
 
               <div>
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                  كمية الوقود (لتر) <span style={{ color: '#dc2626' }}>*</span>
+                  {t('delivery_reps.vehicle_maintenance_modal.s74', "كمية الوقود (لتر)")} <span style={{ color: '#dc2626' }}>*</span>
                 </label>
                 <input
                   type="number"
@@ -786,7 +788,7 @@ export function VehicleMaintenanceModal({
                   required
                   value={fuelLiters}
                   onChange={(e) => setFuelLiters(e.target.value)}
-                  placeholder="مثال: 45.5"
+                  placeholder={t('delivery_reps.vehicle_maintenance_modal.s75', "مثال: 45.5")}
                   style={{
                     width: '100%',
                     padding: '8px 10px',
@@ -802,7 +804,7 @@ export function VehicleMaintenanceModal({
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                  سعر اللتر الواحد <span style={{ color: '#dc2626' }}>*</span>
+                  {t('delivery_reps.vehicle_maintenance_modal.s76', "سعر اللتر الواحد")} <span style={{ color: '#dc2626' }}>*</span>
                 </label>
                 <input
                   type="number"
@@ -810,7 +812,7 @@ export function VehicleMaintenanceModal({
                   required
                   value={fuelPricePerLiter}
                   onChange={(e) => setFuelPricePerLiter(e.target.value)}
-                  placeholder="مثال: 2.33"
+                  placeholder={t('delivery_reps.vehicle_maintenance_modal.s77', "مثال: 2.33")}
                   style={{
                     width: '100%',
                     padding: '8px 10px',
@@ -824,7 +826,7 @@ export function VehicleMaintenanceModal({
 
               <div>
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#0f172a', marginBottom: '4px' }}>
-                  إجمالي المبلغ (محسوب تلقائياً)
+                  {t('delivery_reps.vehicle_maintenance_modal.s78', "إجمالي المبلغ (محسوب تلقائياً)")}
                 </label>
                 <div
                   style={{
@@ -851,13 +853,13 @@ export function VehicleMaintenanceModal({
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                  اسم محطة الوقود
+                  {t('delivery_reps.vehicle_maintenance_modal.s79', "اسم محطة الوقود")}
                 </label>
                 <input
                   type="text"
                   value={fuelStationName}
                   onChange={(e) => setFuelStationName(e.target.value)}
-                  placeholder="مثال: محطة الدريس، ساسكو، وطنية..."
+                  placeholder={t('delivery_reps.vehicle_maintenance_modal.s80', "مثال: محطة الدريس، ساسكو، وطنية...")}
                   style={{
                     width: '100%',
                     padding: '8px 10px',
@@ -871,13 +873,13 @@ export function VehicleMaintenanceModal({
 
               <div>
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                  ملاحظات أو رقم الإيصال
+                  {t('delivery_reps.vehicle_maintenance_modal.s81', "ملاحظات أو رقم الإيصال")}
                 </label>
                 <input
                   type="text"
                   value={fuelNotes}
                   onChange={(e) => setFuelNotes(e.target.value)}
-                  placeholder="ملاحظات تفويل إضافية..."
+                  placeholder={t('delivery_reps.vehicle_maintenance_modal.s82', "ملاحظات تفويل إضافية...")}
                   style={{
                     width: '100%',
                     padding: '8px 10px',
@@ -892,7 +894,7 @@ export function VehicleMaintenanceModal({
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '10px' }}>
               <Button variant="secondary" onClick={() => setActiveTab('fuel')}>
-                إلغاء
+                {t('delivery_reps.vehicle_maintenance_modal.s83', "إلغاء")}
               </Button>
               <Button
                 variant="primary"
@@ -900,7 +902,7 @@ export function VehicleMaintenanceModal({
                 disabled={recordFuelMutation.isPending}
                 style={{ backgroundColor: '#0284c7', color: '#ffffff', fontWeight: 700 }}
               >
-                {recordFuelMutation.isPending ? 'جاري الحفظ...' : 'حفظ تفويل الوقود واحتساب الاستهلاك'}
+                {recordFuelMutation.isPending ? t('delivery_reps.vehicle_maintenance_modal.s84', "جاري الحفظ...") : t('delivery_reps.vehicle_maintenance_modal.s85', "حفظ تفويل الوقود واحتساب الاستهلاك")}
               </Button>
             </div>
           </form>
@@ -908,7 +910,7 @@ export function VehicleMaintenanceModal({
 
         <div style={{ display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid #e2e8f0', paddingTop: '10px' }}>
           <Button variant="secondary" onClick={onClose}>
-            إغلاق النافذة
+            {t('delivery_reps.vehicle_maintenance_modal.s86', "إغلاق النافذة")}
           </Button>
         </div>
       </div>

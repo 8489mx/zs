@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { XIcon } from '@/shared/components/icons/AppIcons';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
@@ -18,6 +19,7 @@ export function TenantSubscriptionsModal({
   onRenew,
   onRecordPayment,
 }: TenantSubscriptionsModalProps) {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<'subscriptions' | 'payments'>('subscriptions');
 
   const { data, isLoading, refetch } = useQuery({
@@ -197,7 +199,7 @@ export function TenantSubscriptionsModal({
       open={true}
       onClose={onClose}
       width="820px"
-      ariaLabel="سجل الاشتراكات والمدفوعات"
+      ariaLabel={t('saas_admin.tenant_subscriptions_modal.s0', "سجل الاشتراكات والمدفوعات")}
     >
       <div className="dialog-card" dir="rtl" style={{ padding: '22px' }}>
         {/* Header */}
@@ -230,10 +232,10 @@ export function TenantSubscriptionsModal({
             </div>
             <div>
               <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: '#0f172a' }}>
-                سجل الاشتراكات والمدفوعات
+                {t('saas_admin.tenant_subscriptions_modal.s1', "سجل الاشتراكات والمدفوعات")}
               </h3>
               <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>
-                المنشأة: <strong style={{ color: '#0f172a' }}>{tenant.businessName || tenant.slug}</strong> • المعرف: <span className="tenant-slug-badge" style={{ margin: 0 }}>{tenant.slug}</span>
+                {t('saas_admin.tenant_subscriptions_modal.s2', "المنشأة:")} <strong style={{ color: '#0f172a' }}>{tenant.businessName || tenant.slug}</strong> {t('saas_admin.tenant_subscriptions_modal.s3', "• المعرف:")} <span className="tenant-slug-badge" style={{ margin: 0 }}>{tenant.slug}</span>
               </div>
             </div>
           </div>
@@ -249,7 +251,7 @@ export function TenantSubscriptionsModal({
                 <line x1="12" y1="5" x2="12" y2="19"/>
                 <line x1="5" y1="12" x2="19" y2="12"/>
               </svg>
-              <span>تسجيل دفعة</span>
+              <span>{t('saas_admin.tenant_subscriptions_modal.s4', "تسجيل دفعة")}</span>
             </button>
             <button
               type="button"
@@ -260,13 +262,13 @@ export function TenantSubscriptionsModal({
               <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M21 2v6h-6M3 12a9 9 0 0 1 15-6.7L21 8M3 22v-6h6M21 12a9 9 0 0 1-15 6.7L3 16"/>
               </svg>
-              <span>تجديد الاشتراك</span>
+              <span>{t('saas_admin.tenant_subscriptions_modal.s5', "تجديد الاشتراك")}</span>
             </button>
             <button
               type="button"
               className="dialog-shell-close-btn"
               onClick={onClose}
-              title="إغلاق"
+              title={t('saas_admin.tenant_subscriptions_modal.s6', "إغلاق")}
               style={{ width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '8px', border: 'none', background: '#f1f5f9', cursor: 'pointer', color: '#64748b', fontSize: '16px' }}
             ><XIcon size={15} /></button>
           </div>
@@ -297,7 +299,7 @@ export function TenantSubscriptionsModal({
               transition: 'all 0.15s ease',
             }}
           >
-            سجل فترات الاشتراك ({subscriptions.length})
+            {t('saas_admin.tenant_subscriptions_modal.s7', "سجل فترات الاشتراك (")}{subscriptions.length})
           </button>
           <button
             type="button"
@@ -315,7 +317,7 @@ export function TenantSubscriptionsModal({
               transition: 'all 0.15s ease',
             }}
           >
-            سجل المدفوعات والإيصالات ({payments.length})
+            {t('saas_admin.tenant_subscriptions_modal.s8', "سجل المدفوعات والإيصالات (")}{payments.length})
           </button>
         </div>
 
@@ -323,7 +325,7 @@ export function TenantSubscriptionsModal({
         {isLoading ? (
           <div style={{ padding: '40px 20px', textAlign: 'center', color: '#64748b', fontSize: '13.5px' }}>
             <div style={{ display: 'inline-block', width: '26px', height: '26px', border: '3px solid #e2e8f0', borderTopColor: '#312e81', borderRadius: '50%', animation: 'spin 0.8s linear infinite', marginBottom: '10px' }} />
-            <div>جاري تحميل سجل الاشتراكات والمدفوعات...</div>
+            <div>{t('saas_admin.tenant_subscriptions_modal.s9', "جاري تحميل سجل الاشتراكات والمدفوعات...")}</div>
           </div>
         ) : activeTab === 'subscriptions' ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -336,8 +338,8 @@ export function TenantSubscriptionsModal({
                   </svg>
                 </div>
                 <div>
-                  <strong style={{ display: 'block', fontSize: '14px', color: '#334155', marginBottom: '4px' }}>لا توجد اشتراكات مسجلة بعد</strong>
-                  <span style={{ fontSize: '12px' }}>يمكنك تفعيل أول اشتراك أو تجديد النسخة مباشرة من الزر بالأسفل.</span>
+                  <strong style={{ display: 'block', fontSize: '14px', color: '#334155', marginBottom: '4px' }}>{t('saas_admin.tenant_subscriptions_modal.s10', "لا توجد اشتراكات مسجلة بعد")}</strong>
+                  <span style={{ fontSize: '12px' }}>{t('saas_admin.tenant_subscriptions_modal.s11', "يمكنك تفعيل أول اشتراك أو تجديد النسخة مباشرة من الزر بالأسفل.")}</span>
                 </div>
                 <button
                   type="button"
@@ -345,7 +347,7 @@ export function TenantSubscriptionsModal({
                   onClick={() => onRenew(tenant)}
                   style={{ fontSize: '12px', fontWeight: 700, marginTop: '4px' }}
                 >
-                  + تفعيل أو تجديد الاشتراك الآن
+                  {t('saas_admin.tenant_subscriptions_modal.s12', "+ تفعيل أو تجديد الاشتراك الآن")}
                 </button>
               </div>
             ) : (
@@ -353,12 +355,12 @@ export function TenantSubscriptionsModal({
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12.5px' }}>
                   <thead>
                     <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', textAlign: 'right' }}>
-                      <th style={{ padding: '10px 12px' }}>الباقة</th>
-                      <th style={{ padding: '10px 12px' }}>تاريخ البدء</th>
-                      <th style={{ padding: '10px 12px' }}>تاريخ الانتهاء</th>
-                      <th style={{ padding: '10px 12px' }}>المدة</th>
-                      <th style={{ padding: '10px 12px' }}>الحالة</th>
-                      <th style={{ padding: '10px 12px', textAlign: 'center' }}>إجراءات</th>
+                      <th style={{ padding: '10px 12px' }}>{t('saas_admin.tenant_subscriptions_modal.s13', "الباقة")}</th>
+                      <th style={{ padding: '10px 12px' }}>{t('saas_admin.tenant_subscriptions_modal.s14', "تاريخ البدء")}</th>
+                      <th style={{ padding: '10px 12px' }}>{t('saas_admin.tenant_subscriptions_modal.s15', "تاريخ الانتهاء")}</th>
+                      <th style={{ padding: '10px 12px' }}>{t('saas_admin.tenant_subscriptions_modal.s16', "المدة")}</th>
+                      <th style={{ padding: '10px 12px' }}>{t('saas_admin.tenant_subscriptions_modal.s17', "الحالة")}</th>
+                      <th style={{ padding: '10px 12px', textAlign: 'center' }}>{t('saas_admin.tenant_subscriptions_modal.s18', "إجراءات")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -369,13 +371,13 @@ export function TenantSubscriptionsModal({
                       return (
                         <tr key={sub.id || idx} style={{ borderBottom: '1px solid #f1f5f9', background: isActive ? '#f0fdf4' : '#ffffff' }}>
                           <td style={{ padding: '10px 12px', fontWeight: 800, color: '#0f172a' }}>
-                            {sub.plan_name || sub.plan_code || 'باقة مخصصة'}
+                            {sub.plan_name || sub.plan_code || t('saas_admin.tenant_subscriptions_modal.s19', "باقة مخصصة")}
                           </td>
                           <td style={{ padding: '10px 12px', color: '#475569' }}>
                             <bdi dir="ltr">{sub.starts_at ? formatDate(sub.starts_at) : '-'}</bdi>
                           </td>
                           <td style={{ padding: '10px 12px', color: isExpired ? '#dc2626' : '#15803d', fontWeight: 700 }}>
-                            <bdi dir="ltr">{sub.ends_at ? formatDate(sub.ends_at) : 'مدى الحياة'}</bdi>
+                            <bdi dir="ltr">{sub.ends_at ? formatDate(sub.ends_at) : t('saas_admin.tenant_subscriptions_modal.s20', "مدى الحياة")}</bdi>
                           </td>
                           <td style={{ padding: '10px 12px', color: '#475569' }}>
                             {sub.billing_period_months ? `${sub.billing_period_months} شهر` : '-'}
@@ -391,7 +393,7 @@ export function TenantSubscriptionsModal({
                               background: isActive ? '#dcfce7' : '#fee2e2',
                               color: isActive ? '#166534' : '#991b1b',
                             }}>
-                              {isActive ? 'ساري نشط' : 'منتهي'}
+                              {isActive ? t('saas_admin.tenant_subscriptions_modal.s21', "ساري نشط") : t('saas_admin.tenant_subscriptions_modal.s22', "منتهي")}
                             </span>
                           </td>
                           <td style={{ padding: '10px 12px', textAlign: 'center' }}>
@@ -417,7 +419,7 @@ export function TenantSubscriptionsModal({
                                 <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
                                 <rect x="6" y="14" width="12" height="8"/>
                               </svg>
-                              <span>إيصال اشتراك</span>
+                              <span>{t('saas_admin.tenant_subscriptions_modal.s23', "إيصال اشتراك")}</span>
                             </button>
                           </td>
                         </tr>
@@ -439,8 +441,8 @@ export function TenantSubscriptionsModal({
                   </svg>
                 </div>
                 <div>
-                  <strong style={{ display: 'block', fontSize: '14px', color: '#334155', marginBottom: '4px' }}>لا توجد مدفوعات مسجلة حتى الآن</strong>
-                  <span style={{ fontSize: '12px' }}>يمكنك تسجيل دفعة سداد جديدة لهذه النسخة في أي وقت.</span>
+                  <strong style={{ display: 'block', fontSize: '14px', color: '#334155', marginBottom: '4px' }}>{t('saas_admin.tenant_subscriptions_modal.s24', "لا توجد مدفوعات مسجلة حتى الآن")}</strong>
+                  <span style={{ fontSize: '12px' }}>{t('saas_admin.tenant_subscriptions_modal.s25', "يمكنك تسجيل دفعة سداد جديدة لهذه النسخة في أي وقت.")}</span>
                 </div>
                 <button
                   type="button"
@@ -448,7 +450,7 @@ export function TenantSubscriptionsModal({
                   onClick={() => onRecordPayment(tenant)}
                   style={{ fontSize: '12px', fontWeight: 700, marginTop: '4px' }}
                 >
-                  + تسجيل دفعة جديدة
+                  {t('saas_admin.tenant_subscriptions_modal.s26', "+ تسجيل دفعة جديدة")}
                 </button>
               </div>
             ) : (
@@ -456,11 +458,11 @@ export function TenantSubscriptionsModal({
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12.5px' }}>
                   <thead>
                     <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', textAlign: 'right' }}>
-                      <th style={{ padding: '10px 12px' }}>المبلغ</th>
-                      <th style={{ padding: '10px 12px' }}>طريقة الدفع</th>
-                      <th style={{ padding: '10px 12px' }}>تاريخ السداد</th>
-                      <th style={{ padding: '10px 12px' }}>رقم المرجع / الإيصال</th>
-                      <th style={{ padding: '10px 12px', textAlign: 'center' }}>طباعة</th>
+                      <th style={{ padding: '10px 12px' }}>{t('saas_admin.tenant_subscriptions_modal.s27', "المبلغ")}</th>
+                      <th style={{ padding: '10px 12px' }}>{t('saas_admin.tenant_subscriptions_modal.s28', "طريقة الدفع")}</th>
+                      <th style={{ padding: '10px 12px' }}>{t('saas_admin.tenant_subscriptions_modal.s29', "تاريخ السداد")}</th>
+                      <th style={{ padding: '10px 12px' }}>{t('saas_admin.tenant_subscriptions_modal.s30', "رقم المرجع / الإيصال")}</th>
+                      <th style={{ padding: '10px 12px', textAlign: 'center' }}>{t('saas_admin.tenant_subscriptions_modal.s31', "طباعة")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -470,7 +472,7 @@ export function TenantSubscriptionsModal({
                           {pay.amount} {pay.currency || 'EGP'}
                         </td>
                         <td style={{ padding: '10px 12px', color: '#334155' }}>
-                          {pay.method === 'cash' ? 'نقدي' : pay.method === 'transfer' ? 'تحويل بنكي / محفظة' : pay.method === 'card' ? 'فيزا / بطاقة' : (pay.method || 'يدوي')}
+                          {pay.method === 'cash' ? t('saas_admin.tenant_subscriptions_modal.s32', "نقدي") : pay.method === 'transfer' ? t('saas_admin.tenant_subscriptions_modal.s33', "تحويل بنكي / محفظة") : pay.method === 'card' ? t('saas_admin.tenant_subscriptions_modal.s34', "فيزا / بطاقة") : (pay.method || t('saas_admin.tenant_subscriptions_modal.s35', "يدوي"))}
                         </td>
                         <td style={{ padding: '10px 12px', color: '#64748b' }}>
                           <bdi dir="ltr">{pay.paid_at ? formatDate(pay.paid_at) : '-'}</bdi>
@@ -501,7 +503,7 @@ export function TenantSubscriptionsModal({
                               <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
                               <rect x="6" y="14" width="12" height="8"/>
                             </svg>
-                            <span>طباعة إيصال سداد</span>
+                            <span>{t('saas_admin.tenant_subscriptions_modal.s36', "طباعة إيصال سداد")}</span>
                           </button>
                         </td>
                       </tr>
@@ -526,7 +528,7 @@ export function TenantSubscriptionsModal({
             <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M21 2v6h-6M3 12a9 9 0 0 1 15-6.7L21 8M3 22v-6h6M21 12a9 9 0 0 1-15 6.7L3 16"/>
             </svg>
-            <span>تحديث البيانات</span>
+            <span>{t('saas_admin.tenant_subscriptions_modal.s37', "تحديث البيانات")}</span>
           </button>
           <button
             type="button"
@@ -534,7 +536,7 @@ export function TenantSubscriptionsModal({
             style={{ background: '#0f172a', color: '#ffffff', padding: '6px 18px', fontWeight: 700, borderRadius: '7px' }}
             onClick={onClose}
           >
-            إغلاق
+            {t('saas_admin.tenant_subscriptions_modal.s38', "إغلاق")}
           </button>
         </div>
       </div>

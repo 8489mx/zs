@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useRef, useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { QueryCard } from '@/shared/components/query-card';
@@ -38,6 +39,7 @@ function errorPayload(error: unknown): { code?: string; message: string; tenants
 }
 
 export function TenantTransferCard({ canManage }: { canManage: boolean }) {
+  const { t: __t } = useTranslation();
   const infoQuery = useQuery({ queryKey: ['tenant-transfer-info'], queryFn: settingsApi.tenantTransferInfo, enabled: canManage, staleTime: Infinity });
   const isDesktop = infoQuery.data?.mode === 'desktop';
   const fileInput = useRef<HTMLInputElement>(null);
@@ -99,40 +101,40 @@ export function TenantTransferCard({ canManage }: { canManage: boolean }) {
     <>
       <QueryCard
         className="settings-admin-card"
-        title="نقل البيانات بين السحابة ونسخة الديسكتوب"
-        actions={<span className="nav-pill">{isDesktop ? 'نسخة الديسكتوب' : 'النسخة السحابية'}</span>}
+        title={__t('settings.workspace_sections.tenant_transfer_card.s0', "نقل البيانات بين السحابة ونسخة الديسكتوب")}
+        actions={<span className="nav-pill">{isDesktop ? __t('settings.workspace_sections.tenant_transfer_card.s1', "نسخة الديسكتوب") : __t('settings.workspace_sections.tenant_transfer_card.s2', "النسخة السحابية")}</span>}
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
           <p style={{ margin: 0, fontSize: '0.82rem', color: '#64748b', lineHeight: 1.6 }}>
             {isDesktop
-              ? 'استورد بيانات منشأتك من السحابة لتعمل على هذا الجهاز بدون إنترنت، ثم صدّرها عند العودة لترفعها للسحابة كما هي. كل سجل ينتقل برقمه الأصلي فتبقى الفواتير والقيود والأرصدة مترابطة.'
-              : 'صدّر بيانات منشأتك كاملة لتشغيلها على نسخة الديسكتوب عند انقطاع الإنترنت أو توقف الخادم، ثم استوردها هنا عند العودة. كل سجل ينتقل برقمه الأصلي فتبقى الفواتير والقيود والأرصدة مترابطة.'}
+              ? __t('settings.workspace_sections.tenant_transfer_card.s3', "استورد بيانات منشأتك من السحابة لتعمل على هذا الجهاز بدون إنترنت، ثم صدّرها عند العودة لترفعها للسحابة كما هي. كل سجل ينتقل برقمه الأصلي فتبقى الفواتير والقيود والأرصدة مترابطة.")
+              : __t('settings.workspace_sections.tenant_transfer_card.s4', "صدّر بيانات منشأتك كاملة لتشغيلها على نسخة الديسكتوب عند انقطاع الإنترنت أو توقف الخادم، ثم استوردها هنا عند العودة. كل سجل ينتقل برقمه الأصلي فتبقى الفواتير والقيود والأرصدة مترابطة.")}
           </p>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '14px' }}>
             <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              <strong style={{ fontSize: '0.9rem', color: '#0f172a', fontWeight: 800 }}>تصدير بيانات المنشأة</strong>
+              <strong style={{ fontSize: '0.9rem', color: '#0f172a', fontWeight: 800 }}>{__t('settings.workspace_sections.tenant_transfer_card.s5', "تصدير بيانات المنشأة")}</strong>
               <span style={{ fontSize: '0.78rem', color: '#64748b', lineHeight: 1.5 }}>
-                ملف واحد (.zsbak) فيه كل بيانات المنشأة: الأصناف والفواتير والقيود والعملاء والموظفين والمستخدمين.
+                {__t('settings.workspace_sections.tenant_transfer_card.s6', "ملف واحد (.zsbak) فيه كل بيانات المنشأة: الأصناف والفواتير والقيود والعملاء والموظفين والمستخدمين.")}
               </span>
               <Button type="button" onClick={() => { setFeedback(null); exportMutation.mutate(); }} disabled={exportMutation.isPending}
                 style={{ background: '#170e5e', color: '#ffffff', fontWeight: 700, alignSelf: 'flex-start', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                 <DownloadIcon size={16} />
-                {exportMutation.isPending ? 'جاري التجهيز...' : 'تنزيل حزمة البيانات'}
+                {exportMutation.isPending ? __t('settings.workspace_sections.tenant_transfer_card.s7', "جاري التجهيز...") : __t('settings.workspace_sections.tenant_transfer_card.s8', "تنزيل حزمة البيانات")}
               </Button>
             </div>
 
             <div style={{ background: '#ffffff', border: '1px solid #fecdd3', borderRadius: '10px', padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              <strong style={{ fontSize: '0.9rem', color: '#991b1b', fontWeight: 800 }}>استيراد بيانات منشأة</strong>
+              <strong style={{ fontSize: '0.9rem', color: '#991b1b', fontWeight: 800 }}>{__t('settings.workspace_sections.tenant_transfer_card.s9', "استيراد بيانات منشأة")}</strong>
               <span style={{ fontSize: '0.78rem', color: '#64748b', lineHeight: 1.5 }}>
-                يقبل حزمة منشأة (.zsbak) أو نسخة الخادم الليلية (.zip / .zip.enc) ويختار منها المنشأة. <strong>يستبدل كل بيانات هذه المنشأة الحالية.</strong>
+                {__t('settings.workspace_sections.tenant_transfer_card.s10', "يقبل حزمة منشأة (.zsbak) أو نسخة الخادم الليلية (.zip / .zip.enc) ويختار منها المنشأة.")} <strong>{__t('settings.workspace_sections.tenant_transfer_card.s11', "يستبدل كل بيانات هذه المنشأة الحالية.")}</strong>
               </span>
               <input ref={fileInput} type="file" accept=".zsbak,.zip,.enc" style={{ display: 'none' }}
                 onChange={(event) => { setFeedback(null); setFile(event.target.files?.[0] ?? null); }} />
               <Button type="button" variant="secondary" onClick={() => fileInput.current?.click()} disabled={importMutation.isPending}
                 style={{ alignSelf: 'flex-start', display: 'inline-flex', alignItems: 'center', gap: '6px', color: '#be123c', border: '1px solid #fecdd3' }}>
                 <UploadIcon size={16} />
-                اختيار ملف للاستيراد
+                {__t('settings.workspace_sections.tenant_transfer_card.s12', "اختيار ملف للاستيراد")}
               </Button>
             </div>
           </div>
@@ -153,35 +155,35 @@ export function TenantTransferCard({ canManage }: { canManage: boolean }) {
       <StandardDialog
         open={dialogOpen}
         onClose={() => { if (!importMutation.isPending) closeDialog(); }}
-        title="تأكيد استيراد بيانات منشأة"
+        title={__t('settings.workspace_sections.tenant_transfer_card.s13', "تأكيد استيراد بيانات منشأة")}
         subtitle={file?.name}
         maxWidth="520px"
         loading={importMutation.isPending}
-        loadingText="جاري الاستيراد والتحقق من سلامة البيانات..."
+        loadingText={__t('settings.workspace_sections.tenant_transfer_card.s14', "جاري الاستيراد والتحقق من سلامة البيانات...")}
         footerActions={
           <>
-            <Button type="button" variant="secondary" onClick={closeDialog} disabled={importMutation.isPending}>إلغاء</Button>
+            <Button type="button" variant="secondary" onClick={closeDialog} disabled={importMutation.isPending}>{__t('settings.workspace_sections.tenant_transfer_card.s15', "إلغاء")}</Button>
             <Button type="button" onClick={() => { setFeedback(null); importMutation.mutate(); }} disabled={!canSubmit}
               style={{ background: '#be123c', color: '#ffffff', fontWeight: 700 }}>
-              استبدال البيانات بالملف
+              {__t('settings.workspace_sections.tenant_transfer_card.s16', "استبدال البيانات بالملف")}
             </Button>
           </>
         }
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
           <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '10px', padding: '12px 14px', fontSize: '0.8rem', color: '#7f1d1d', lineHeight: 1.6 }}>
-            كل بيانات هذه المنشأة الحالية ستُستبدل بمحتوى الملف، وسيتم تسجيل خروج كل المستخدمين. لو ظهرت أي مشكلة في سلامة البيانات يُلغى الاستيراد بالكامل ولا يتغير شيء.
+            {__t('settings.workspace_sections.tenant_transfer_card.s17', "كل بيانات هذه المنشأة الحالية ستُستبدل بمحتوى الملف، وسيتم تسجيل خروج كل المستخدمين. لو ظهرت أي مشكلة في سلامة البيانات يُلغى الاستيراد بالكامل ولا يتغير شيء.")}
           </div>
 
           {tenantOptions && (
             <div>
               <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 800, color: '#0f172a', marginBottom: '6px' }}>
-                الملف فيه أكثر من منشأة: اختر المنشأة المطلوبة
+                {__t('settings.workspace_sections.tenant_transfer_card.s18', "الملف فيه أكثر من منشأة: اختر المنشأة المطلوبة")}
               </label>
               <CustomSelect
                 value={pick}
                 onChange={setPick}
-                placeholder="اختر المنشأة"
+                placeholder={__t('settings.workspace_sections.tenant_transfer_card.s19', "اختر المنشأة")}
                 options={tenantOptions.map((t) => ({ value: t.slug, label: t.businessName || t.slug, hint: `${t.slug} · ${t.rows} سجل` }))}
               />
             </div>
@@ -190,7 +192,7 @@ export function TenantTransferCard({ canManage }: { canManage: boolean }) {
           {(needsPassphrase || /\.enc$/i.test(file?.name || '')) && (
             <div>
               <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 800, color: '#0f172a', marginBottom: '6px' }}>
-                كلمة سر النسخ الاحتياطي
+                {__t('settings.workspace_sections.tenant_transfer_card.s20', "كلمة سر النسخ الاحتياطي")}
               </label>
               <input type="password" value={passphrase} onChange={(e) => setPassphrase(e.target.value)} autoComplete="off"
                 style={{ width: '100%', padding: '9px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '0.88rem', direction: 'ltr' }} />
@@ -199,7 +201,7 @@ export function TenantTransferCard({ canManage }: { canManage: boolean }) {
 
           <div>
             <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 800, color: '#0f172a', marginBottom: '6px' }}>
-              للتأكيد اكتب: <span style={{ direction: 'ltr', display: 'inline-block', fontFamily: 'monospace' }}>{CONFIRMATION}</span>
+              {__t('settings.workspace_sections.tenant_transfer_card.s21', "للتأكيد اكتب:")} <span style={{ direction: 'ltr', display: 'inline-block', fontFamily: 'monospace' }}>{CONFIRMATION}</span>
             </label>
             <input value={confirmation} onChange={(e) => setConfirmation(e.target.value)} autoComplete="off"
               style={{ width: '100%', padding: '9px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '0.88rem', direction: 'ltr' }} />

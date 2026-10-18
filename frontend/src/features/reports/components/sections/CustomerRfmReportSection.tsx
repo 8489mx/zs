@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { reportsApi, type CustomerRfmItem, type CustomerRfmSegment } from '@/features/reports/api/reports.api';
@@ -17,6 +18,7 @@ const segmentBadges: Record<CustomerRfmSegment, { label: string; bg: string; col
 };
 
 export function CustomerRfmReportSection() {
+  const { t } = useTranslation();
   const [segmentFilter, setSegmentFilter] = useState<'all' | CustomerRfmSegment>('all');
   const [search, setSearch] = useState('');
 
@@ -93,7 +95,7 @@ export function CustomerRfmReportSection() {
   if (isLoading) {
     return (
       <div style={{ padding: '32px', textAlign: 'center', color: '#64748b' }}>
-        جاري تحليل سلوك العملاء ومصفوفة RFM...
+        {t('reports.sections.customer_rfm_report_section.s0', "جاري تحليل سلوك العملاء ومصفوفة RFM...")}
       </div>
     );
   }
@@ -101,7 +103,7 @@ export function CustomerRfmReportSection() {
   if (isError || !data) {
     return (
       <div style={{ padding: '32px', textAlign: 'center', color: '#dc2626' }}>
-        تعذر تحميل تقرير سلوك العملاء. <Button variant="secondary" onClick={() => refetch()}>إعادة المحاولة</Button>
+        {t('reports.sections.customer_rfm_report_section.s1', "تعذر تحميل تقرير سلوك العملاء.")} <Button variant="secondary" onClick={() => refetch()}>{t('reports.sections.customer_rfm_report_section.s2', "إعادة المحاولة")}</Button>
       </div>
     );
   }
@@ -121,10 +123,10 @@ export function CustomerRfmReportSection() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
           <div>
             <h2 style={{ margin: 0, fontSize: '1.25rem', color: '#0f172a', fontWeight: 'bold' }}>
-              تحليل سلوك العملاء ومصفوفة الولاء (Customer RFM Analysis)
+              {t('reports.sections.customer_rfm_report_section.s3', "تحليل سلوك العملاء ومصفوفة الولاء (Customer RFM Analysis)")}
             </h2>
             <p className="muted small" style={{ margin: '4px 0 0 0' }}>
-              تصنيف العملاء تلقائياً استناداً لمعدل التكرار (Frequency)، الحداثة (Recency)، والقيمة المنفقة (Monetary) لاستهدافهم تسويقياً.
+              {t('reports.sections.customer_rfm_report_section.s4', "تصنيف العملاء تلقائياً استناداً لمعدل التكرار (Frequency)، الحداثة (Recency)، والقيمة المنفقة (Monetary) لاستهدافهم تسويقياً.")}
             </p>
           </div>
           <div className="actions compact-actions">
@@ -134,7 +136,7 @@ export function CustomerRfmReportSection() {
               style={{ background: '#170e5e', color: '#ffffff', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
             >
               <DownloadIcon size={14} color="#ffffff" />
-              <span>تصدير بيانات الحملات (Excel)</span>
+              <span>{t('reports.sections.customer_rfm_report_section.s5', "تصدير بيانات الحملات (Excel)")}</span>
             </Button>
           </div>
         </div>
@@ -149,36 +151,36 @@ export function CustomerRfmReportSection() {
           }}
         >
           <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px' }}>
-            <div style={{ fontSize: '0.8em', color: '#64748b' }}>إجمالي العملاء المشترين</div>
+            <div style={{ fontSize: '0.8em', color: '#64748b' }}>{t('reports.sections.customer_rfm_report_section.s6', "إجمالي العملاء المشترين")}</div>
             <div style={{ fontSize: '1.35em', fontWeight: 'bold', color: '#0f172a' }}>{summary?.totalCustomers || 0}</div>
             <div style={{ fontSize: '0.75em', color: '#16a34a', marginTop: '2px' }}>
-              معدل التكرار: {summary?.repeatRate || 0}%
+              {t('reports.sections.customer_rfm_report_section.s7', "معدل التكرار:")} {summary?.repeatRate || 0}%
             </div>
           </div>
 
           <div style={{ background: '#fef3c7', border: '1px solid #fde68a', borderRadius: '10px', padding: '12px' }}>
-            <div style={{ fontSize: '0.8em', color: '#92400e' }}>أبطال و VIP</div>
+            <div style={{ fontSize: '0.8em', color: '#92400e' }}>{t('reports.sections.customer_rfm_report_section.s8', "أبطال و VIP")}</div>
             <div style={{ fontSize: '1.35em', fontWeight: 'bold', color: '#78350f' }}>{summary?.championsCount || 0}</div>
-            <div style={{ fontSize: '0.75em', color: '#92400e', marginTop: '2px' }}>أعلى قيمة وتكرار</div>
+            <div style={{ fontSize: '0.75em', color: '#92400e', marginTop: '2px' }}>{t('reports.sections.customer_rfm_report_section.s9', "أعلى قيمة وتكرار")}</div>
           </div>
 
           <div style={{ background: '#e0f2fe', border: '1px solid #bae6fd', borderRadius: '10px', padding: '12px' }}>
-            <div style={{ fontSize: '0.8em', color: '#0369a1' }}>عملاء مخلصون</div>
+            <div style={{ fontSize: '0.8em', color: '#0369a1' }}>{t('reports.sections.customer_rfm_report_section.s10', "عملاء مخلصون")}</div>
             <div style={{ fontSize: '1.35em', fontWeight: 'bold', color: '#075985' }}>{summary?.loyalCount || 0}</div>
-            <div style={{ fontSize: '0.75em', color: '#0369a1', marginTop: '2px' }}>شراء دوري ثابت</div>
+            <div style={{ fontSize: '0.75em', color: '#0369a1', marginTop: '2px' }}>{t('reports.sections.customer_rfm_report_section.s11', "شراء دوري ثابت")}</div>
           </div>
 
           <div style={{ background: '#fee2e2', border: '1px solid #fecaca', borderRadius: '10px', padding: '12px' }}>
-            <div style={{ fontSize: '0.8em', color: '#991b1b' }}>في خطر الفقدان</div>
+            <div style={{ fontSize: '0.8em', color: '#991b1b' }}>{t('reports.sections.customer_rfm_report_section.s12', "في خطر الفقدان")}</div>
             <div style={{ fontSize: '1.35em', fontWeight: 'bold', color: '#7f1d1d' }}>{summary?.atRiskCount || 0}</div>
-            <div style={{ fontSize: '0.75em', color: '#991b1b', marginTop: '2px' }}>انقطعوا لأكثر من شهرين</div>
+            <div style={{ fontSize: '0.75em', color: '#991b1b', marginTop: '2px' }}>{t('reports.sections.customer_rfm_report_section.s13', "انقطعوا لأكثر من شهرين")}</div>
           </div>
 
           <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px' }}>
-            <div style={{ fontSize: '0.8em', color: '#64748b' }}>متوسط الفاتورة (AOV)</div>
+            <div style={{ fontSize: '0.8em', color: '#64748b' }}>{t('reports.sections.customer_rfm_report_section.s14', "متوسط الفاتورة (AOV)")}</div>
             <div style={{ fontSize: '1.35em', fontWeight: 'bold', color: '#170e5e' }}>{formatCurrency(summary?.averageAov || 0)}</div>
             <div style={{ fontSize: '0.75em', color: '#64748b', marginTop: '2px' }}>
-              إجمالي المبيعات: {formatCurrency(summary?.totalRevenue || 0)}
+              {t('reports.sections.customer_rfm_report_section.s15', "إجمالي المبيعات:")} {formatCurrency(summary?.totalRevenue || 0)}
             </div>
           </div>
         </div>
@@ -191,73 +193,73 @@ export function CustomerRfmReportSection() {
           onClick={() => setSegmentFilter('all')}
           style={segmentFilter === 'all' ? { background: '#170e5e', color: '#fff' } : undefined}
         >
-          الكل ({items.length})
+          {t('reports.sections.customer_rfm_report_section.s16', "الكل (")}{items.length})
         </Button>
         <Button
           variant={segmentFilter === 'champions' ? 'primary' : 'secondary'}
           onClick={() => setSegmentFilter('champions')}
           style={segmentFilter === 'champions' ? { background: '#170e5e', color: '#fff' } : undefined}
         >
-          أبطال / VIP ({summary?.championsCount || 0})
+          {t('reports.sections.customer_rfm_report_section.s17', "أبطال / VIP (")}{summary?.championsCount || 0})
         </Button>
         <Button
           variant={segmentFilter === 'loyal' ? 'primary' : 'secondary'}
           onClick={() => setSegmentFilter('loyal')}
           style={segmentFilter === 'loyal' ? { background: '#170e5e', color: '#fff' } : undefined}
         >
-          مخلصون ({summary?.loyalCount || 0})
+          {t('reports.sections.customer_rfm_report_section.s18', "مخلصون (")}{summary?.loyalCount || 0})
         </Button>
         <Button
           variant={segmentFilter === 'promising' ? 'primary' : 'secondary'}
           onClick={() => setSegmentFilter('promising')}
           style={segmentFilter === 'promising' ? { background: '#170e5e', color: '#fff' } : undefined}
         >
-          جدد / واعدون ({summary?.promisingCount || 0})
+          {t('reports.sections.customer_rfm_report_section.s19', "جدد / واعدون (")}{summary?.promisingCount || 0})
         </Button>
         <Button
           variant={segmentFilter === 'at_risk' ? 'primary' : 'secondary'}
           onClick={() => setSegmentFilter('at_risk')}
           style={segmentFilter === 'at_risk' ? { background: '#170e5e', color: '#fff' } : undefined}
         >
-          في خطر الفقدان ({summary?.atRiskCount || 0})
+          {t('reports.sections.customer_rfm_report_section.s20', "في خطر الفقدان (")}{summary?.atRiskCount || 0})
         </Button>
         <Button
           variant={segmentFilter === 'lost' ? 'primary' : 'secondary'}
           onClick={() => setSegmentFilter('lost')}
           style={segmentFilter === 'lost' ? { background: '#170e5e', color: '#fff' } : undefined}
         >
-          منقطعون ({summary?.lostCount || 0})
+          {t('reports.sections.customer_rfm_report_section.s21', "منقطعون (")}{summary?.lostCount || 0})
         </Button>
       </div>
 
       {/* Search Bar */}
       <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px' }}>
-        <Field label="بحث عن عميل">
+        <Field label={t('reports.sections.customer_rfm_report_section.s22', "بحث عن عميل")}>
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="البحث بالاسم أو رقم الهاتف..."
+            placeholder={t('reports.sections.customer_rfm_report_section.s23', "البحث بالاسم أو رقم الهاتف...")}
           />
         </Field>
       </div>
 
       {/* Customers Data Table */}
       <DataTable
-        ariaLabel="جدول تحليل سلوك العملاء"
+        ariaLabel={t('reports.sections.customer_rfm_report_section.s24', "جدول تحليل سلوك العملاء")}
         columns={[
           {
             key: 'name',
-            header: 'العميل',
+            header: t('reports.sections.customer_rfm_report_section.s25', "العميل"),
             cell: (r) => (
               <div>
                 <div style={{ fontWeight: 'bold', color: '#0f172a' }}>{r.name}</div>
-                <div style={{ fontSize: '11px', color: '#64748b' }}>{r.phone || 'بدون هاتف'}</div>
+                <div style={{ fontSize: '11px', color: '#64748b' }}>{r.phone || t('reports.sections.customer_rfm_report_section.s26', "بدون هاتف")}</div>
               </div>
             ),
           },
           {
             key: 'segment',
-            header: 'الشريحة',
+            header: t('reports.sections.customer_rfm_report_section.s27', "الشريحة"),
             cell: (r) => {
               const badge = segmentBadges[r.segment] || { label: r.segment, bg: '#f1f5f9', color: '#334155' };
               return (
@@ -280,11 +282,11 @@ export function CustomerRfmReportSection() {
           },
           {
             key: 'recency',
-            header: 'آخر زيارة',
+            header: t('reports.sections.customer_rfm_report_section.s28', "آخر زيارة"),
             cell: (r) => (
               <div>
                 <div style={{ fontWeight: 600, color: r.recencyDays > 90 ? '#b91c1c' : '#0f172a' }}>
-                  {r.recencyDays === 0 ? 'اليوم' : `منذ ${r.recencyDays} يوم`}
+                  {r.recencyDays === 0 ? t('reports.sections.customer_rfm_report_section.s29', "اليوم") : `منذ ${r.recencyDays} يوم`}
                 </div>
                 <div style={{ fontSize: '10px', color: '#94a3b8' }}>
                   {r.lastSaleDate ? new Date(r.lastSaleDate).toLocaleDateString('ar-EG') : '—'}
@@ -294,27 +296,27 @@ export function CustomerRfmReportSection() {
           },
           {
             key: 'frequency',
-            header: 'عدد الفواتير',
+            header: t('reports.sections.customer_rfm_report_section.s30', "عدد الفواتير"),
             cell: (r) => <strong>{r.frequency}</strong>,
           },
           {
             key: 'monetary',
-            header: 'إجمالي المشتريات',
+            header: t('reports.sections.customer_rfm_report_section.s31', "إجمالي المشتريات"),
             cell: (r) => <span style={{ fontWeight: 'bold', color: '#170e5e' }}>{formatCurrency(r.monetary)}</span>,
           },
           {
             key: 'aov',
-            header: 'متوسط الفاتورة',
+            header: t('reports.sections.customer_rfm_report_section.s32', "متوسط الفاتورة"),
             cell: (r) => formatCurrency(r.aov),
           },
           {
             key: 'loyalty',
-            header: 'نقاط الولاء',
-            cell: (r) => <span className="nav-pill">{r.loyaltyPoints} نقطة</span>,
+            header: t('reports.sections.customer_rfm_report_section.s33', "نقاط الولاء"),
+            cell: (r) => <span className="nav-pill">{r.loyaltyPoints} {t('reports.sections.customer_rfm_report_section.s34', "نقطة")}</span>,
           },
           {
             key: 'actions',
-            header: 'إجراءات',
+            header: t('reports.sections.customer_rfm_report_section.s35', "إجراءات"),
             cell: (r) => (
               <Button
                 variant="secondary"
@@ -323,13 +325,13 @@ export function CustomerRfmReportSection() {
                 disabled={!r.phone}
               >
                 <MessageSquareIcon size={12} color="#16a34a" />
-                <span>واتساب</span>
+                <span>{t('reports.sections.customer_rfm_report_section.s36', "واتساب")}</span>
               </Button>
             ),
           },
         ]}
         rows={filteredItems}
-        empty={<div className="muted small" style={{ padding: '24px', textAlign: 'center' }}>لا يوجد عملاء يطابقون الفرز والبحث.</div>}
+        empty={<div className="muted small" style={{ padding: '24px', textAlign: 'center' }}>{t('reports.sections.customer_rfm_report_section.s37', "لا يوجد عملاء يطابقون الفرز والبحث.")}</div>}
       />
     </div>
   );

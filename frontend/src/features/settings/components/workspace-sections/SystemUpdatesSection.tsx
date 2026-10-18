@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useRef, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { resolveRequestUrl, http } from '@/lib/http';
@@ -22,6 +23,7 @@ export function formatGregorianDate(dateInput?: string | number | Date | null, w
 }
 
 export function SystemUpdatesSection({ deploymentMode }: { deploymentMode?: string; isSuperAdmin?: boolean }) {
+  const { t } = useTranslation();
   const authDeploymentMode = useAuthStore((state) => state.activationStatus?.deploymentMode);
   const effectiveDeploymentMode = deploymentMode ?? authDeploymentMode;
 
@@ -242,10 +244,10 @@ export function SystemUpdatesSection({ deploymentMode }: { deploymentMode?: stri
             </div>
             <div className="system-update-hero-text">
               <div className="system-update-title-row">
-                <span className="system-update-hero-title">مركز إدارة وتحديثات النظام</span>
+                <span className="system-update-hero-title">{t('settings.workspace_sections.system_updates_section.s0', "مركز إدارة وتحديثات النظام")}</span>
                 <span className="system-update-version-chip">
                   <span className="system-update-pulse-dot" />
-                  الإصدار الحالي: v{currentVersion}
+                  {t('settings.workspace_sections.system_updates_section.s1', "الإصدار الحالي: v")}{currentVersion}
                 </span>
                 <span style={{ 
                   display: 'inline-flex', 
@@ -260,18 +262,18 @@ export function SystemUpdatesSection({ deploymentMode }: { deploymentMode?: stri
                   fontWeight: 700 
                 }}>
                   <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#10b981' }} />
-                  تحديث سحابي مباشر متصل
+                  {t('settings.workspace_sections.system_updates_section.s2', "تحديث سحابي مباشر متصل")}
                 </span>
               </div>
               <div className="system-update-hero-meta">
                 <div className="system-update-hero-meta-item">
                   <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
-                  <span>آخر فحص: {dataUpdatedAt ? formatGregorianDate(dataUpdatedAt, true) : 'اليوم، مستقر'}</span>
+                  <span>{t('settings.workspace_sections.system_updates_section.s3', "آخر فحص:")} {dataUpdatedAt ? formatGregorianDate(dataUpdatedAt, true) : t('settings.workspace_sections.system_updates_section.s4', "اليوم، مستقر")}</span>
                 </div>
                 <span>•</span>
                 <div className="system-update-hero-meta-item">
                   <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>
-                  <span>القناة: الإصدارات المستقرة للمؤسسات (Enterprise LTS)</span>
+                  <span>{t('settings.workspace_sections.system_updates_section.s5', "القناة: الإصدارات المستقرة للمؤسسات (Enterprise LTS)")}</span>
                 </div>
               </div>
             </div>
@@ -284,7 +286,7 @@ export function SystemUpdatesSection({ deploymentMode }: { deploymentMode?: stri
               onClick={() => fileInputRef.current?.click()}
             >
               <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></svg>
-              <span>تحديث يدوي من ملف ZIP</span>
+              <span>{t('settings.workspace_sections.system_updates_section.s6', "تحديث يدوي من ملف ZIP")}</span>
             </button>
             <button 
               type="button" 
@@ -293,7 +295,7 @@ export function SystemUpdatesSection({ deploymentMode }: { deploymentMode?: stri
               disabled={isCheckingUpdates}
             >
               <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" style={{ animation: isCheckingUpdates ? 'spin 1s linear infinite' : 'none' }}><polyline points="23 4 23 10 17 10" /><polyline points="1 20 1 14 7 14" /><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" /></svg>
-              <span>{isCheckingUpdates ? 'جارِ الفحص...' : 'فحص التحديثات الآن'}</span>
+              <span>{isCheckingUpdates ? t('settings.workspace_sections.system_updates_section.s7', "جارِ الفحص...") : t('settings.workspace_sections.system_updates_section.s8', "فحص التحديثات الآن")}</span>
             </button>
           </div>
         </div>
@@ -305,9 +307,9 @@ export function SystemUpdatesSection({ deploymentMode }: { deploymentMode?: stri
             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /><polyline points="9 12 11 14 15 10" /></svg>
           </div>
           <div className="system-update-metric-body">
-            <span className="system-update-metric-label">الحماية والنسخ الاحتياطي</span>
-            <strong className="system-update-metric-val">نسخ احتياطي تلقائي مُفعّل</strong>
-            <span className="system-update-metric-desc">إنشاء نقطة استعادة آمنة لقاعدة البيانات والملفات تلقائياً قبل أي ترقية.</span>
+            <span className="system-update-metric-label">{t('settings.workspace_sections.system_updates_section.s9', "الحماية والنسخ الاحتياطي")}</span>
+            <strong className="system-update-metric-val">{t('settings.workspace_sections.system_updates_section.s10', "نسخ احتياطي تلقائي مُفعّل")}</strong>
+            <span className="system-update-metric-desc">{t('settings.workspace_sections.system_updates_section.s11', "إنشاء نقطة استعادة آمنة لقاعدة البيانات والملفات تلقائياً قبل أي ترقية.")}</span>
           </div>
         </div>
 
@@ -316,9 +318,9 @@ export function SystemUpdatesSection({ deploymentMode }: { deploymentMode?: stri
             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="2" width="20" height="8" rx="2" ry="2" /><rect x="2" y="14" width="20" height="8" rx="2" ry="2" /><line x1="6" y1="6" x2="6.01" y2="6" /><line x1="6" y1="18" x2="6.01" y2="18" /></svg>
           </div>
           <div className="system-update-metric-body">
-            <span className="system-update-metric-label">بيئة تشغيل السيرفر</span>
+            <span className="system-update-metric-label">{t('settings.workspace_sections.system_updates_section.s12', "بيئة تشغيل السيرفر")}</span>
             <strong className="system-update-metric-val">Node.js + PostgreSQL Engine</strong>
-            <span className="system-update-metric-desc">بيئة تشغيل عالية الاستقرار تدعم التحديثات الساخنة والإقلاع الفوري.</span>
+            <span className="system-update-metric-desc">{t('settings.workspace_sections.system_updates_section.s13', "بيئة تشغيل عالية الاستقرار تدعم التحديثات الساخنة والإقلاع الفوري.")}</span>
           </div>
         </div>
 
@@ -327,9 +329,9 @@ export function SystemUpdatesSection({ deploymentMode }: { deploymentMode?: stri
             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><line x1="2" y1="12" x2="22" y2="12" /><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" /></svg>
           </div>
           <div className="system-update-metric-body">
-            <span className="system-update-metric-label">وضع النشر والاتصال</span>
-            <strong className="system-update-metric-val">{effectiveDeploymentMode === 'server' ? 'سيرفر شبكي (Server Mode)' : 'مكتبي محلي (Desktop Mode)'}</strong>
-            <span className="system-update-metric-desc">يدعم استلام الترقيات السحابية والتثبيت دون الحاجة لإنترنت مستمر.</span>
+            <span className="system-update-metric-label">{t('settings.workspace_sections.system_updates_section.s14', "وضع النشر والاتصال")}</span>
+            <strong className="system-update-metric-val">{effectiveDeploymentMode === 'server' ? t('settings.workspace_sections.system_updates_section.s15', "سيرفر شبكي (Server Mode)") : t('settings.workspace_sections.system_updates_section.s16', "مكتبي محلي (Desktop Mode)")}</strong>
+            <span className="system-update-metric-desc">{t('settings.workspace_sections.system_updates_section.s17', "يدعم استلام الترقيات السحابية والتثبيت دون الحاجة لإنترنت مستمر.")}</span>
           </div>
         </div>
       </div>
@@ -342,10 +344,10 @@ export function SystemUpdatesSection({ deploymentMode }: { deploymentMode?: stri
             </div>
             <div>
               <div style={{ fontWeight: 800, fontSize: '15px', color: '#92400e', marginBottom: '2px' }}>
-                يتوفر إصدار جديد معتمد للنظام: <span style={{ textDecoration: 'underline' }}>v{updateInfo.latestVersion}</span>
+                {t('settings.workspace_sections.system_updates_section.s18', "يتوفر إصدار جديد معتمد للنظام:")} <span style={{ textDecoration: 'underline' }}>v{updateInfo.latestVersion}</span>
               </div>
               <div style={{ fontSize: '12px', color: '#b45309' }}>
-                يتضمن هذا التحديث سجل تغييرات تراكمي لكافة الإصدارات السابقة وميزات تشغيلية جديدة.
+                {t('settings.workspace_sections.system_updates_section.s19', "يتضمن هذا التحديث سجل تغييرات تراكمي لكافة الإصدارات السابقة وميزات تشغيلية جديدة.")}
               </div>
             </div>
           </div>
@@ -356,7 +358,7 @@ export function SystemUpdatesSection({ deploymentMode }: { deploymentMode?: stri
             }} 
             style={{ background: '#d97706', borderColor: '#b45309', color: '#ffffff', fontWeight: 800, padding: '8px 20px', borderRadius: '8px' }}
           >
-            تطبيق الترقية الآن
+            {t('settings.workspace_sections.system_updates_section.s20', "تطبيق الترقية الآن")}
           </Button>
         </div>
       )}
@@ -365,15 +367,15 @@ export function SystemUpdatesSection({ deploymentMode }: { deploymentMode?: stri
         <div className="system-releases-header">
           <div className="system-releases-title">
             <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><polyline points="10 9 9 9 8 9" /></svg>
-            <span>سجل الإصدارات المعتمدة وقوائم التغييرات</span>
-            <span className="system-releases-badge-count">{updateHistory.length} إصدارات مسجلة</span>
+            <span>{t('settings.workspace_sections.system_updates_section.s21', "سجل الإصدارات المعتمدة وقوائم التغييرات")}</span>
+            <span className="system-releases-badge-count">{updateHistory.length} {t('settings.workspace_sections.system_updates_section.s22', "إصدارات مسجلة")}</span>
           </div>
         </div>
 
         <div className="system-releases-list">
           {isHistoryLoading && (!updateHistory || updateHistory.length === 0) ? (
             <div style={{ padding: '36px', textAlign: 'center', color: '#64748b', fontSize: '13px' }}>
-              جارِ فحص وتحديث سجل الإصدارات من السيرفر...
+              {t('settings.workspace_sections.system_updates_section.s23', "جارِ فحص وتحديث سجل الإصدارات من السيرفر...")}
             </div>
           ) : updateHistory && updateHistory.length > 0 ? (
             (() => {
@@ -392,15 +394,15 @@ export function SystemUpdatesSection({ deploymentMode }: { deploymentMode?: stri
                         </div>
                         <div className="system-release-details">
                           <div className="system-release-version-row">
-                            <span className="system-release-version-num">الإصدار {currentRelease.version}</span>
+                            <span className="system-release-version-num">{t('settings.workspace_sections.system_updates_section.s24', "الإصدار")} {currentRelease.version}</span>
                             <span className="system-release-tag-active" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                               <CheckIcon size={12} />
-                              <span>الإصدار الحالي المستقر</span>
+                              <span>{t('settings.workspace_sections.system_updates_section.s25', "الإصدار الحالي المستقر")}</span>
                             </span>
                           </div>
                           <div className="system-release-date">
                             <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>
-                            <span>تاريخ الاعتماد: {formatGregorianDate(currentRelease.promotedAt || (currentRelease as any).createdAt, true)}</span>
+                            <span>{t('settings.workspace_sections.system_updates_section.s26', "تاريخ الاعتماد:")} {formatGregorianDate(currentRelease.promotedAt || (currentRelease as any).createdAt, true)}</span>
                           </div>
                         </div>
                       </div>
@@ -413,7 +415,7 @@ export function SystemUpdatesSection({ deploymentMode }: { deploymentMode?: stri
                             style={{ fontWeight: 700, fontSize: '12px', padding: '6px 12px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}
                           >
                             <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="8" cy="15" r="4" /><line x1="10.85" y1="12.15" x2="19" y2="4" /><line x1="18" y1="5" x2="20" y2="7" /><line x1="15" y1="8" x2="17" y2="10" /></svg>
-                            <span>كود التفعيل</span>
+                            <span>{t('settings.workspace_sections.system_updates_section.s27', "كود التفعيل")}</span>
                           </Button>
                         )}
 
@@ -422,7 +424,7 @@ export function SystemUpdatesSection({ deploymentMode }: { deploymentMode?: stri
                           onClick={() => setSelectedReleaseIndex(currentReleaseIdx >= 0 ? currentReleaseIdx : 0)}
                           style={{ fontWeight: 700, fontSize: '12px', padding: '6px 14px', borderRadius: '8px' }}
                         >
-                          عرض التفاصيل وسجل التغييرات
+                          {t('settings.workspace_sections.system_updates_section.s28', "عرض التفاصيل وسجل التغييرات")}
                         </Button>
                       </div>
                     </div>
@@ -452,7 +454,7 @@ export function SystemUpdatesSection({ deploymentMode }: { deploymentMode?: stri
                       >
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#64748b" strokeWidth="2"><polyline points="21 8 21 21 3 21 3 8" /><rect x="1" y="3" width="22" height="5" /><line x1="10" y1="12" x2="14" y2="12" /></svg>
-                          <span>أرشيف الإصدارات السابقة ({archivedReleases.length} إصدارات مؤرشفة)</span>
+                          <span>{t('settings.workspace_sections.system_updates_section.s29', "أرشيف الإصدارات السابقة (")}{archivedReleases.length} {t('settings.workspace_sections.system_updates_section.s30', "إصدارات مؤرشفة)")}</span>
                         </div>
                         <span style={{ fontSize: '12px', color: '#64748b', transform: showArchive ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease', display: 'inline-block' }}>
                           ▼
@@ -471,12 +473,12 @@ export function SystemUpdatesSection({ deploymentMode }: { deploymentMode?: stri
                                   </div>
                                   <div className="system-release-details">
                                     <div className="system-release-version-row">
-                                      <span className="system-release-version-num">الإصدار {release.version}</span>
-                                      <span className="system-release-tag-available">سجل معتمد ومؤرشف</span>
+                                      <span className="system-release-version-num">{t('settings.workspace_sections.system_updates_section.s31', "الإصدار")} {release.version}</span>
+                                      <span className="system-release-tag-available">{t('settings.workspace_sections.system_updates_section.s32', "سجل معتمد ومؤرشف")}</span>
                                     </div>
                                     <div className="system-release-date">
                                       <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>
-                                      <span>تاريخ الاعتماد: {formatGregorianDate(release.promotedAt || (release as any).createdAt, true)}</span>
+                                      <span>{t('settings.workspace_sections.system_updates_section.s33', "تاريخ الاعتماد:")} {formatGregorianDate(release.promotedAt || (release as any).createdAt, true)}</span>
                                     </div>
                                   </div>
                                 </div>
@@ -489,7 +491,7 @@ export function SystemUpdatesSection({ deploymentMode }: { deploymentMode?: stri
                                       style={{ fontWeight: 700, fontSize: '12px', padding: '6px 12px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}
                                     >
                                       <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="8" cy="15" r="4" /><line x1="10.85" y1="12.15" x2="19" y2="4" /><line x1="18" y1="5" x2="20" y2="7" /><line x1="15" y1="8" x2="17" y2="10" /></svg>
-                                      <span>كود التفعيل</span>
+                                      <span>{t('settings.workspace_sections.system_updates_section.s34', "كود التفعيل")}</span>
                                     </Button>
                                   )}
 
@@ -498,7 +500,7 @@ export function SystemUpdatesSection({ deploymentMode }: { deploymentMode?: stri
                                     onClick={() => setSelectedReleaseIndex(originalIdx >= 0 ? originalIdx : 0)}
                                     style={{ fontWeight: 700, fontSize: '12px', padding: '6px 14px', borderRadius: '8px' }}
                                   >
-                                    عرض التفاصيل وسجل التغييرات
+                                    {t('settings.workspace_sections.system_updates_section.s35', "عرض التفاصيل وسجل التغييرات")}
                                   </Button>
                                 </div>
                               </div>
@@ -513,7 +515,7 @@ export function SystemUpdatesSection({ deploymentMode }: { deploymentMode?: stri
             })()
           ) : (
             <div style={{ padding: '36px', textAlign: 'center', color: '#64748b', fontSize: '13px' }}>
-              لا توجد إصدارات سابقة مسجلة في هذا النشاط.
+              {t('settings.workspace_sections.system_updates_section.s36', "لا توجد إصدارات سابقة مسجلة في هذا النشاط.")}
             </div>
           )}
         </div>
@@ -522,20 +524,20 @@ export function SystemUpdatesSection({ deploymentMode }: { deploymentMode?: stri
       {/* 1. Admin Passcode Reveal Modal */}
       {revealedPasscode && (
         <ClientPortal targetId="root">
-          <DialogShell open={true} showCloseButton={true} onClose={() => { setRevealedPasscode(null); setCopiedPasscode(false); }} width="min(460px, 100%)" ariaLabel="كود التفعيل">
+          <DialogShell open={true} showCloseButton={true} onClose={() => { setRevealedPasscode(null); setCopiedPasscode(false); }} width="min(460px, 100%)" ariaLabel={t('settings.workspace_sections.system_updates_section.s37', "كود التفعيل")}>
             <div className="system-update-modal-header">
               <h3 className="system-update-modal-title">
                 <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="8" cy="15" r="4" /><line x1="10.85" y1="12.15" x2="19" y2="4" /><line x1="18" y1="5" x2="20" y2="7" /><line x1="15" y1="8" x2="17" y2="10" /></svg>
-                <span>كود تفعيل التحديث المعتمد</span>
+                <span>{t('settings.workspace_sections.system_updates_section.s38', "كود تفعيل التحديث المعتمد")}</span>
               </h3>
             </div>
             <div className="system-update-modal-body stack gap-16" style={{ textAlign: 'center' }}>
               <div style={{ fontSize: '13px', color: '#475569', lineHeight: 1.6 }}>
-                هذا هو كود الترخيص المشفر المخصص للإصدار <strong>v{revealedPasscode.version}</strong>. يمكنك إعطاؤه للعميل بعد التحصيل والمحاسبة ليتمكن من فك وتطبيق التحديث.
+                {t('settings.workspace_sections.system_updates_section.s39', "هذا هو كود الترخيص المشفر المخصص للإصدار")} <strong>v{revealedPasscode.version}</strong>{t('settings.workspace_sections.system_updates_section.s40', ". يمكنك إعطاؤه للعميل بعد التحصيل والمحاسبة ليتمكن من فك وتطبيق التحديث.")}
               </div>
 
               <div style={{ padding: '16px', background: '#f8fafc', border: '1.5px dashed #cbd5e1', borderRadius: '12px', margin: '4px 0 10px' }}>
-                <div style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: 6 }}>كود الترخيص الفريد</div>
+                <div style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: 6 }}>{t('settings.workspace_sections.system_updates_section.s41', "كود الترخيص الفريد")}</div>
                 <div style={{ fontFamily: 'monospace', fontSize: '18px', fontWeight: 900, letterSpacing: '2px', color: '#0f172a' }}>
                   {revealedPasscode.passcode}
                 </div>
@@ -551,9 +553,9 @@ export function SystemUpdatesSection({ deploymentMode }: { deploymentMode?: stri
                     setTimeout(() => setCopiedPasscode(false), 2000);
                   }}
                 >
-                  {copiedPasscode ? 'تم النسخ بنجاح' : 'نسخ كود التفعيل'}
+                  {copiedPasscode ? t('settings.workspace_sections.system_updates_section.s42', "تم النسخ بنجاح") : t('settings.workspace_sections.system_updates_section.s43', "نسخ كود التفعيل")}
                 </Button>
-                <Button variant="secondary" onClick={() => { setRevealedPasscode(null); setCopiedPasscode(false); }}>إغلاق</Button>
+                <Button variant="secondary" onClick={() => { setRevealedPasscode(null); setCopiedPasscode(false); }}>{t('settings.workspace_sections.system_updates_section.s44', "إغلاق")}</Button>
               </div>
             </div>
           </DialogShell>
@@ -563,32 +565,32 @@ export function SystemUpdatesSection({ deploymentMode }: { deploymentMode?: stri
       {/* 2. Release Details Modal */}
       {selectedRelease && (
         <ClientPortal targetId="root">
-          <DialogShell open={true} showCloseButton={true} onClose={() => setSelectedReleaseIndex(null)} width="min(640px, 100%)" ariaLabel="تفاصيل الإصدار">
+          <DialogShell open={true} showCloseButton={true} onClose={() => setSelectedReleaseIndex(null)} width="min(640px, 100%)" ariaLabel={t('settings.workspace_sections.system_updates_section.s45', "تفاصيل الإصدار")}>
             <div className="system-update-modal-header">
               <h3 className="system-update-modal-title">
                 <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><polyline points="10 9 9 9 8 9" /></svg>
-                <span>سجل التغييرات والميزات • الإصدار v{selectedRelease.version}</span>
+                <span>{t('settings.workspace_sections.system_updates_section.s46', "سجل التغييرات والميزات • الإصدار v")}{selectedRelease.version}</span>
               </h3>
             </div>
             <div className="system-update-modal-body stack gap-16">
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: '#f8fafc', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
-                <span style={{ fontSize: '13px', color: '#475569' }}>تاريخ الإصدار الرسمي:</span>
+                <span style={{ fontSize: '13px', color: '#475569' }}>{t('settings.workspace_sections.system_updates_section.s47', "تاريخ الإصدار الرسمي:")}</span>
                 <strong style={{ fontSize: '13px', color: '#0f172a' }}>
-                  {selectedRelease.promotedAt ? formatGregorianDate(selectedRelease.promotedAt, true) : 'مؤرشف'}
+                  {selectedRelease.promotedAt ? formatGregorianDate(selectedRelease.promotedAt, true) : t('settings.workspace_sections.system_updates_section.s48', "مؤرشف")}
                 </strong>
               </div>
 
               <div>
-                <div style={{ fontWeight: 800, fontSize: '13px', marginBottom: '8px', color: '#0f172a' }}>ملاحظات وسجل التحسينات:</div>
+                <div style={{ fontWeight: 800, fontSize: '13px', marginBottom: '8px', color: '#0f172a' }}>{t('settings.workspace_sections.system_updates_section.s49', "ملاحظات وسجل التحسينات:")}</div>
                 <div style={{ padding: '16px', background: '#f8fafc', borderRadius: '10px', fontSize: '13px', whiteSpace: 'pre-wrap', maxHeight: 260, overflowY: 'auto', lineHeight: 1.7, border: '1px solid #e2e8f0', color: '#334155' }}>
-                  {selectedRelease.changelog || 'لا توجد ملاحظات مسجلة لهذا الإصدار.'}
+                  {selectedRelease.changelog || t('settings.workspace_sections.system_updates_section.s50', "لا توجد ملاحظات مسجلة لهذا الإصدار.")}
                 </div>
               </div>
 
               {selectedRelease.passcode && (
                 <div style={{ padding: '14px 16px', background: '#f8fafc', borderRadius: '10px', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <div>
-                    <div style={{ fontSize: '11.5px', color: '#64748b', fontWeight: 700 }}>كود تفعيل هذا الإصدار (وضع المطور):</div>
+                    <div style={{ fontSize: '11.5px', color: '#64748b', fontWeight: 700 }}>{t('settings.workspace_sections.system_updates_section.s51', "كود تفعيل هذا الإصدار (وضع المطور):")}</div>
                     <div style={{ fontFamily: 'monospace', fontSize: '15px', fontWeight: 900, color: '#0f172a', marginTop: '3px' }}>{selectedRelease.passcode}</div>
                   </div>
                   <Button 
@@ -600,19 +602,19 @@ export function SystemUpdatesSection({ deploymentMode }: { deploymentMode?: stri
                       setTimeout(() => setCopiedReleaseVersion(null), 2000);
                     }}
                   >
-                    {copiedReleaseVersion === selectedRelease.version ? 'تم النسخ' : 'نسخ الكود'}
+                    {copiedReleaseVersion === selectedRelease.version ? t('settings.workspace_sections.system_updates_section.s52', "تم النسخ") : t('settings.workspace_sections.system_updates_section.s53', "نسخ الكود")}
                   </Button>
                 </div>
               )}
 
               <div style={{ marginTop: 14, display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-                <Button variant="secondary" onClick={() => setSelectedReleaseIndex(null)}>إغلاق</Button>
+                <Button variant="secondary" onClick={() => setSelectedReleaseIndex(null)}>{t('settings.workspace_sections.system_updates_section.s54', "إغلاق")}</Button>
                 {selectedRelease.version !== currentVersion && (
                   <Button variant="primary" onClick={() => {
                     if (selectedRelease.version && selectedRelease.patchUrl) {
                       handleApplyOnlineUpdate(selectedRelease.version, selectedRelease.patchUrl, selectedRelease.changelog ?? undefined);
                     }
-                  }}>تطبيق هذا الإصدار</Button>
+                  }}>{t('settings.workspace_sections.system_updates_section.s55', "تطبيق هذا الإصدار")}</Button>
                 )}
               </div>
             </div>
@@ -626,7 +628,7 @@ export function SystemUpdatesSection({ deploymentMode }: { deploymentMode?: stri
           open={Boolean(updateCheckResult && updateCheckResult.open)}
           onClose={() => setUpdateCheckResult(null)}
           width="min(540px, 95vw)"
-          ariaLabel="نتيجة فحص التحديثات"
+          ariaLabel={t('settings.workspace_sections.system_updates_section.s56', "نتيجة فحص التحديثات")}
         >
           <div style={{
             width: '100%',
@@ -648,7 +650,7 @@ export function SystemUpdatesSection({ deploymentMode }: { deploymentMode?: stri
                     />
                     <div>
                       <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: '#0f172a' }}>
-                        مركز ترقية وتحديث المنظومة
+                        {t('settings.workspace_sections.system_updates_section.s57', "مركز ترقية وتحديث المنظومة")}
                       </h3>
                       <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>ZSystems Enterprise Release Manager</div>
                     </div>
@@ -669,7 +671,7 @@ export function SystemUpdatesSection({ deploymentMode }: { deploymentMode?: stri
                       justifyContent: 'center',
                       transition: 'all 0.15s ease'
                     }}
-                    title="إغلاق"
+                    title={t('settings.workspace_sections.system_updates_section.s58', "إغلاق")}
                   >
                     <XIcon size={14} />
                   </button>
@@ -678,8 +680,8 @@ export function SystemUpdatesSection({ deploymentMode }: { deploymentMode?: stri
                 {updateCheckResult.type === 'checking' && (
                   <div style={{ padding: '28px 0', textAlign: 'center' }}>
                     <div style={{ width: '48px', height: '48px', border: '3px solid #e2e8f0', borderTopColor: '#2563eb', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 16px' }} />
-                    <h4 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: '#0f172a' }}>جارِ الاتصال بسيرفر التحديثات المعتمد...</h4>
-                    <p style={{ margin: '6px 0 0', fontSize: '13px', color: '#64748b' }}>يتم فحص وجود ترقيات جديدة وسجلات تغييرات تراكمية.</p>
+                    <h4 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: '#0f172a' }}>{t('settings.workspace_sections.system_updates_section.s59', "جارِ الاتصال بسيرفر التحديثات المعتمد...")}</h4>
+                    <p style={{ margin: '6px 0 0', fontSize: '13px', color: '#64748b' }}>{t('settings.workspace_sections.system_updates_section.s60', "يتم فحص وجود ترقيات جديدة وسجلات تغييرات تراكمية.")}</p>
                   </div>
                 )}
 
@@ -688,13 +690,13 @@ export function SystemUpdatesSection({ deploymentMode }: { deploymentMode?: stri
                     <div style={{ width: '56px', height: '56px', borderRadius: '16px', background: '#ecfdf5', color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', border: '1px solid #a7f3d0' }}>
                       <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
                     </div>
-                    <h4 style={{ margin: 0, fontSize: '17px', fontWeight: 800, color: '#0f172a' }}>أنت تعمل على أحدث إصدار معتمد!</h4>
+                    <h4 style={{ margin: 0, fontSize: '17px', fontWeight: 800, color: '#0f172a' }}>{t('settings.workspace_sections.system_updates_section.s61', "أنت تعمل على أحدث إصدار معتمد!")}</h4>
                     <p style={{ margin: '8px auto 0', fontSize: '13px', color: '#64748b', lineHeight: 1.6, maxWidth: '380px' }}>
-                      نظامك يعمل حالياً بالإصدار المستقر <strong>v{currentVersion}</strong>، ولم تصدر أي تحديثات جديدة بعد.
+                      {t('settings.workspace_sections.system_updates_section.s62', "نظامك يعمل حالياً بالإصدار المستقر")} <strong>v{currentVersion}</strong>{t('settings.workspace_sections.system_updates_section.s63', "، ولم تصدر أي تحديثات جديدة بعد.")}
                     </p>
                     <div style={{ marginTop: '22px' }}>
                       <Button variant="primary" onClick={() => setUpdateCheckResult(null)} style={{ minWidth: '130px', height: '42px', fontWeight: 800, borderRadius: '10px', background: 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%)', border: 'none' }}>
-                        تمام
+                        {t('settings.workspace_sections.system_updates_section.s64', "تمام")}
                       </Button>
                     </div>
                   </div>
@@ -705,12 +707,12 @@ export function SystemUpdatesSection({ deploymentMode }: { deploymentMode?: stri
                     <div style={{ width: '56px', height: '56px', borderRadius: '16px', background: '#fee2e2', color: '#dc2626', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', border: '1px solid #fecaca' }}>
                       <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
                     </div>
-                    <h4 style={{ margin: 0, fontSize: '17px', fontWeight: 800, color: '#991b1b' }}>تعذر الاتصال بسيرفر التحديثات</h4>
+                    <h4 style={{ margin: 0, fontSize: '17px', fontWeight: 800, color: '#991b1b' }}>{t('settings.workspace_sections.system_updates_section.s65', "تعذر الاتصال بسيرفر التحديثات")}</h4>
                     <p style={{ margin: '8px auto 0', fontSize: '13px', color: '#64748b', lineHeight: 1.6, maxWidth: '380px' }}>
-                      يرجى التحقق من اتصال الإنترنت، أو استخدام خاصية التحديث اليدوي من ملف ZIP.
+                      {t('settings.workspace_sections.system_updates_section.s66', "يرجى التحقق من اتصال الإنترنت، أو استخدام خاصية التحديث اليدوي من ملف ZIP.")}
                     </p>
                     <div style={{ marginTop: '22px' }}>
-                      <Button variant="secondary" onClick={() => setUpdateCheckResult(null)} style={{ minWidth: '110px', height: '40px', borderRadius: '10px' }}>إغلاق</Button>
+                      <Button variant="secondary" onClick={() => setUpdateCheckResult(null)} style={{ minWidth: '110px', height: '40px', borderRadius: '10px' }}>{t('settings.workspace_sections.system_updates_section.s67', "إغلاق")}</Button>
                     </div>
                   </div>
                 )}
@@ -729,14 +731,14 @@ export function SystemUpdatesSection({ deploymentMode }: { deploymentMode?: stri
                       marginBottom: '16px'
                     }}>
                       <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontSize: '11.5px', color: '#64748b', fontWeight: 600 }}>الإصدار الحالي:</div>
+                        <div style={{ fontSize: '11.5px', color: '#64748b', fontWeight: 600 }}>{t('settings.workspace_sections.system_updates_section.s68', "الإصدار الحالي:")}</div>
                         <div style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>v{currentVersion}</div>
                       </div>
                       <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#eff6ff', color: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="15 18 9 12 15 6" /></svg>
                       </div>
                       <div style={{ textAlign: 'left' }}>
-                        <div style={{ fontSize: '11.5px', color: '#059669', fontWeight: 700 }}>الإصدار الجديد المتوفر:</div>
+                        <div style={{ fontSize: '11.5px', color: '#059669', fontWeight: 700 }}>{t('settings.workspace_sections.system_updates_section.s69', "الإصدار الجديد المتوفر:")}</div>
                         <div style={{ fontSize: '15px', fontWeight: 800, color: '#059669', marginTop: '2px' }}>v{updateCheckResult.data.latestVersion}</div>
                       </div>
                     </div>
@@ -745,7 +747,7 @@ export function SystemUpdatesSection({ deploymentMode }: { deploymentMode?: stri
                     {(updateCheckResult.data.cumulativeChangelog || updateCheckResult.data.changelog) && (
                       <div style={{ marginBottom: '16px' }}>
                         <div style={{ fontSize: '12.5px', fontWeight: 700, marginBottom: '6px', color: '#334155' }}>
-                          سجل التغييرات والتحسينات المعتمدة:
+                          {t('settings.workspace_sections.system_updates_section.s70', "سجل التغييرات والتحسينات المعتمدة:")}
                         </div>
                         <div style={{ padding: '12px 14px', background: '#f8fafc', borderRadius: '10px', fontSize: '12px', whiteSpace: 'pre-wrap', maxHeight: '130px', overflowY: 'auto', border: '1px solid #e2e8f0', lineHeight: 1.6, color: '#334155' }}>
                           {updateCheckResult.data.cumulativeChangelog || updateCheckResult.data.changelog}
@@ -756,7 +758,7 @@ export function SystemUpdatesSection({ deploymentMode }: { deploymentMode?: stri
                     {/* Passcode Input */}
                     <div style={{ marginBottom: '16px' }}>
                       <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-                        كود تفعيل التحديث المعتمد:
+                        {t('settings.workspace_sections.system_updates_section.s71', "كود تفعيل التحديث المعتمد:")}
                       </label>
                       <input
                         type="text"
@@ -797,7 +799,7 @@ export function SystemUpdatesSection({ deploymentMode }: { deploymentMode?: stri
                       alignItems: 'center'
                     }}>
                       <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#16a34a" strokeWidth="2.2" style={{ flexShrink: 0 }}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>
-                      <span><strong>إجراء الأمان</strong>: سيتم أخذ نسخة احتياطية آمنة لقاعدة البيانات والملفات تلقائياً قبل الترقية.</span>
+                      <span><strong>{t('settings.workspace_sections.system_updates_section.s72', "إجراء الأمان")}</strong>{t('settings.workspace_sections.system_updates_section.s73', ": سيتم أخذ نسخة احتياطية آمنة لقاعدة البيانات والملفات تلقائياً قبل الترقية.")}</span>
                     </div>
 
                     {/* Action Buttons */}
@@ -824,10 +826,10 @@ export function SystemUpdatesSection({ deploymentMode }: { deploymentMode?: stri
                           }
                         }}
                       >
-                        تطبيق الترقية الآن
+                        {t('settings.workspace_sections.system_updates_section.s74', "تطبيق الترقية الآن")}
                       </Button>
                       <Button variant="secondary" style={{ height: '44px', borderRadius: '10px' }} onClick={() => setUpdateCheckResult(null)}>
-                        لاحقاً
+                        {t('settings.workspace_sections.system_updates_section.s75', "لاحقاً")}
                       </Button>
                     </div>
                   </div>
@@ -843,7 +845,7 @@ export function SystemUpdatesSection({ deploymentMode }: { deploymentMode?: stri
           open={localUpdateState.open}
           onClose={() => localUpdateState.status !== 'uploading' && setLocalUpdateState(s => ({ ...s, open: false }))}
           width="min(540px, 95vw)"
-          ariaLabel="تطبيق حزمة التحديث"
+          ariaLabel={t('settings.workspace_sections.system_updates_section.s76', "تطبيق حزمة التحديث")}
         >
           <div style={{
             width: '100%',
@@ -865,9 +867,9 @@ export function SystemUpdatesSection({ deploymentMode }: { deploymentMode?: stri
                     />
                     <div>
                       <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: '#0f172a' }}>
-                        تطبيق حزمة التحديث (.ZIP)
+                        {t('settings.workspace_sections.system_updates_section.s77', "تطبيق حزمة التحديث (.ZIP)")}
                       </h3>
-                      <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>تثبيت وترقية المنظومة محلياً من ملف معتمد</div>
+                      <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>{t('settings.workspace_sections.system_updates_section.s78', "تثبيت وترقية المنظومة محلياً من ملف معتمد")}</div>
                     </div>
                   </div>
                   {localUpdateState.status !== 'uploading' && localUpdateState.status !== 'success' && (
@@ -887,7 +889,7 @@ export function SystemUpdatesSection({ deploymentMode }: { deploymentMode?: stri
                         justifyContent: 'center',
                         transition: 'all 0.15s ease'
                       }}
-                      title="إغلاق"
+                      title={t('settings.workspace_sections.system_updates_section.s79', "إغلاق")}
                     >
                       <XIcon size={14} />
                     </button>
@@ -914,19 +916,19 @@ export function SystemUpdatesSection({ deploymentMode }: { deploymentMode?: stri
                         <div>
                           <div style={{ fontWeight: 800, fontSize: '14px', color: '#0f172a' }}>{localUpdateState.file.name}</div>
                           <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>
-                            حجم الحزمة: {(localUpdateState.file.size / 1024 / 1024).toFixed(2)} ميجابايت
+                            {t('settings.workspace_sections.system_updates_section.s80', "حجم الحزمة:")} {(localUpdateState.file.size / 1024 / 1024).toFixed(2)} {t('settings.workspace_sections.system_updates_section.s81', "ميجابايت")}
                           </div>
                         </div>
                       </div>
                       <span style={{ fontSize: '11px', fontWeight: 700, padding: '4px 10px', borderRadius: '20px', background: '#ecfdf5', color: '#059669', border: '1px solid #a7f3d0' }}>
-                        جاهز للتثبيت
+                        {t('settings.workspace_sections.system_updates_section.s82', "جاهز للتثبيت")}
                       </span>
                     </div>
 
                     {/* Passcode Input */}
                     <div style={{ marginBottom: '16px' }}>
                       <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-                        كود تفعيل التحديث المعتمد:
+                        {t('settings.workspace_sections.system_updates_section.s83', "كود تفعيل التحديث المعتمد:")}
                       </label>
                       <input
                         type="text"
@@ -967,7 +969,7 @@ export function SystemUpdatesSection({ deploymentMode }: { deploymentMode?: stri
                       alignItems: 'center'
                     }}>
                       <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#16a34a" strokeWidth="2.2" style={{ flexShrink: 0 }}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>
-                      <span><strong>إجراء الأمان</strong>: سيتم أخذ نسخة احتياطية آمنة لقاعدة البيانات والملفات تلقائياً قبل الترقية.</span>
+                      <span><strong>{t('settings.workspace_sections.system_updates_section.s84', "إجراء الأمان")}</strong>{t('settings.workspace_sections.system_updates_section.s85', ": سيتم أخذ نسخة احتياطية آمنة لقاعدة البيانات والملفات تلقائياً قبل الترقية.")}</span>
                     </div>
 
                     {/* Action Buttons */}
@@ -985,10 +987,10 @@ export function SystemUpdatesSection({ deploymentMode }: { deploymentMode?: stri
                         }}
                         onClick={handleApplyLocalUpdate}
                       >
-                        تأكيد وبدء التثبيت
+                        {t('settings.workspace_sections.system_updates_section.s86', "تأكيد وبدء التثبيت")}
                       </Button>
                       <Button variant="secondary" style={{ height: '44px', borderRadius: '10px' }} onClick={() => setLocalUpdateState(s => ({ ...s, open: false }))}>
-                        إلغاء
+                        {t('settings.workspace_sections.system_updates_section.s87', "إلغاء")}
                       </Button>
                     </div>
                   </>
@@ -1017,19 +1019,19 @@ export function SystemUpdatesSection({ deploymentMode }: { deploymentMode?: stri
                     </div>
 
                     <h3 style={{ margin: '0 0 6px', fontSize: '19px', fontWeight: 800, color: '#0f172a' }}>
-                      {progressInfo.stepTitle || 'جاري تطبيق الترقية البرمجية...'}
+                      {progressInfo.stepTitle || t('settings.workspace_sections.system_updates_section.s88', "جاري تطبيق الترقية البرمجية...")}
                     </h3>
                     <p style={{ margin: '0 auto 22px', fontSize: '13px', color: '#64748b', lineHeight: 1.5, maxWidth: '420px' }}>
-                      {progressInfo.stepDesc || 'يرجى الانتظار حتى اكتمال الترقية بأمان'}
+                      {progressInfo.stepDesc || t('settings.workspace_sections.system_updates_section.s89', "يرجى الانتظار حتى اكتمال الترقية بأمان")}
                     </p>
 
                     {/* 4 Step Badges */}
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px', marginBottom: '22px' }}>
                       {[
-                        { stepNum: 1, label: 'تنزيل الحزمة' },
-                        { stepNum: 2, label: 'نقطة استعادة' },
-                        { stepNum: 3, label: 'تثبيت وترقية' },
-                        { stepNum: 4, label: 'إعادة التشغيل' },
+                        { stepNum: 1, label: t('settings.workspace_sections.system_updates_section.s90', "تنزيل الحزمة") },
+                        { stepNum: 2, label: t('settings.workspace_sections.system_updates_section.s91', "نقطة استعادة") },
+                        { stepNum: 3, label: t('settings.workspace_sections.system_updates_section.s92', "تثبيت وترقية") },
+                        { stepNum: 4, label: t('settings.workspace_sections.system_updates_section.s93', "إعادة التشغيل") },
                       ].map((st) => {
                         const isDone = (progressInfo.step || 1) > st.stepNum || progressInfo.percent === 100;
                         const isActive = (progressInfo.step || 1) === st.stepNum && progressInfo.percent < 100;
@@ -1075,7 +1077,7 @@ export function SystemUpdatesSection({ deploymentMode }: { deploymentMode?: stri
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px', color: '#64748b', fontWeight: 700, marginBottom: '20px' }}>
                       <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                         <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#10b981', display: 'inline-block' }} />
-                        التقدم العام للترقية
+                        {t('settings.workspace_sections.system_updates_section.s94', "التقدم العام للترقية")}
                       </span>
                       <span style={{ fontSize: '15px', fontWeight: 900, color: '#0f172a', fontFamily: 'monospace' }}>{progressInfo.percent}%</span>
                     </div>
@@ -1094,7 +1096,7 @@ export function SystemUpdatesSection({ deploymentMode }: { deploymentMode?: stri
                       gap: '8px'
                     }}>
                       <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#10b981" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>
-                      <span>حماية البيانات نشطة: تم تأمين قاعدة البيانات والملفات تلقائياً.</span>
+                      <span>{t('settings.workspace_sections.system_updates_section.s95', "حماية البيانات نشطة: تم تأمين قاعدة البيانات والملفات تلقائياً.")}</span>
                     </div>
                   </div>
                 )}
@@ -1104,11 +1106,11 @@ export function SystemUpdatesSection({ deploymentMode }: { deploymentMode?: stri
                     <div style={{ width: '56px', height: '56px', borderRadius: '16px', background: '#fee2e2', color: '#dc2626', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', border: '1px solid #fecaca' }}>
                       <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
                     </div>
-                    <h4 style={{ margin: 0, fontSize: '17px', fontWeight: 800, color: '#991b1b' }}>تعذر تطبيق التحديث</h4>
+                    <h4 style={{ margin: 0, fontSize: '17px', fontWeight: 800, color: '#991b1b' }}>{t('settings.workspace_sections.system_updates_section.s96', "تعذر تطبيق التحديث")}</h4>
                     <p style={{ margin: '8px auto 0', fontSize: '13px', color: '#64748b', lineHeight: 1.5 }}>{localUpdateState.error}</p>
                     <div style={{ marginTop: '20px' }}>
                       <Button variant="secondary" style={{ borderRadius: '10px' }} onClick={() => setLocalUpdateState(s => ({ ...s, open: false }))}>
-                        إغلاق
+                        {t('settings.workspace_sections.system_updates_section.s97', "إغلاق")}
                       </Button>
                     </div>
                   </div>

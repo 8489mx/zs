@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { VanStockItem } from '../api/van-sales.api';
@@ -35,6 +36,7 @@ export const VanInventoryTab: React.FC<VanInventoryTabProps> = ({
   onRequestRequisition,
   pendingTransfersCount = 0,
 }) => {
+  const { t } = useTranslation();
   const totalPiecesInCart = cart.reduce((sum, it) => sum + it.qty, 0);
 
   return (
@@ -44,7 +46,7 @@ export const VanInventoryTab: React.FC<VanInventoryTabProps> = ({
           type="text"
           value={stockSearch}
           onChange={(e) => onSearchChange(e.target.value)}
-          placeholder="بحث باسم الصنف أو الباركود..."
+          placeholder={t('delivery_reps.van_inventory_tab.s0', "بحث باسم الصنف أو الباركود...")}
           style={{
             flex: 1,
             minWidth: 0,
@@ -78,7 +80,7 @@ export const VanInventoryTab: React.FC<VanInventoryTabProps> = ({
               whiteSpace: 'nowrap',
             }}
           >
-            <span>مناقلة سيارات</span>
+            <span>{t('delivery_reps.van_inventory_tab.s1', "مناقلة سيارات")}</span>
             {pendingTransfersCount > 0 && (
               <span
                 style={{
@@ -127,10 +129,10 @@ export const VanInventoryTab: React.FC<VanInventoryTabProps> = ({
               <SearchIcon size={22} color="#64748b" />
             </div>
             <h4 style={{ margin: 0, fontSize: '13.5px', fontWeight: 800, color: '#0f172a' }}>
-              لا توجد أصناف مطابقة للبحث
+              {t('delivery_reps.van_inventory_tab.s2', "لا توجد أصناف مطابقة للبحث")}
             </h4>
             <p style={{ margin: 0, fontSize: '11.5px', color: '#64748b' }}>
-              لم يتم العثور على أي صنف بالاسم أو الباركود &ldquo;{stockSearch}&rdquo;
+              {t('delivery_reps.van_inventory_tab.s3', "لم يتم العثور على أي صنف بالاسم أو الباركود “")}{stockSearch}&rdquo;
             </p>
             <button
               type="button"
@@ -147,7 +149,7 @@ export const VanInventoryTab: React.FC<VanInventoryTabProps> = ({
                 cursor: 'pointer',
               }}
             >
-              مسح البحث
+              {t('delivery_reps.van_inventory_tab.s4', "مسح البحث")}
             </button>
           </div>
         ) : (
@@ -181,10 +183,10 @@ export const VanInventoryTab: React.FC<VanInventoryTabProps> = ({
             </div>
             <div>
               <h4 style={{ margin: '0 0 4px', fontSize: '14px', fontWeight: 800, color: '#0f172a' }}>
-                لا توجد بضاعة في سيارة التوزيع حالياً
+                {t('delivery_reps.van_inventory_tab.s5', "لا توجد بضاعة في سيارة التوزيع حالياً")}
               </h4>
               <p style={{ margin: 0, fontSize: '11.5px', color: '#64748b', maxWidth: '300px', lineHeight: 1.5 }}>
-                يمكنك إنشاء إذن شحن وتحميل بضاعة من المستودع الرئيسي للانطلاق وبدء البيع الميداني
+                {t('delivery_reps.van_inventory_tab.s6', "يمكنك إنشاء إذن شحن وتحميل بضاعة من المستودع الرئيسي للانطلاق وبدء البيع الميداني")}
               </p>
             </div>
             {onRequestRequisition && (
@@ -208,7 +210,7 @@ export const VanInventoryTab: React.FC<VanInventoryTabProps> = ({
                 }}
               >
                 <PlusIcon size={14} color="#ffffff" />
-                <span>+ طلب تحميل بضاعة من المستودع</span>
+                <span>{t('delivery_reps.van_inventory_tab.s7', "+ طلب تحميل بضاعة من المستودع")}</span>
               </button>
             )}
           </div>
@@ -289,7 +291,7 @@ export const VanInventoryTab: React.FC<VanInventoryTabProps> = ({
                           whiteSpace: 'nowrap',
                         }}
                       >
-                        مضاف: {inCartQty}
+                        {t('delivery_reps.van_inventory_tab.s8', "مضاف:")} {inCartQty}
                       </span>
                     )}
                   </div>
@@ -307,9 +309,9 @@ export const VanInventoryTab: React.FC<VanInventoryTabProps> = ({
                     flexShrink: 0,
                     whiteSpace: 'nowrap',
                   }}
-                  title="الكمية المحملة داخل سيارة التوزيع"
+                  title={t('delivery_reps.van_inventory_tab.s9', "الكمية المحملة داخل سيارة التوزيع")}
                 >
-                  السيارة: {item.qty} {item.unitName || 'قطعة'}
+                  {t('delivery_reps.van_inventory_tab.s10', "السيارة:")} {item.qty} {item.unitName || t('delivery_reps.van_inventory_tab.s11', "قطعة")}
                 </span>
               </div>
 
@@ -330,9 +332,9 @@ export const VanInventoryTab: React.FC<VanInventoryTabProps> = ({
                       whiteSpace: 'nowrap',
                       border: '1px solid #e2e8f0',
                     }}
-                    title="الكمية المتاحة حالياً في المستودع الرئيسي"
+                    title={t('delivery_reps.van_inventory_tab.s12', "الكمية المتاحة حالياً في المستودع الرئيسي")}
                   >
-                    المستودع: {item.mainWarehouseQty ?? 0}
+                    {t('delivery_reps.van_inventory_tab.s13', "المستودع:")} {item.mainWarehouseQty ?? 0}
                   </span>
                 </div>
 
@@ -359,7 +361,7 @@ export const VanInventoryTab: React.FC<VanInventoryTabProps> = ({
                           justifyContent: 'center',
                           boxSizing: 'border-box',
                         }}
-                        title={isMaxReached ? 'تم بلوغ أقصى كمية بالسيارة' : 'زيادة صنف في الفاتورة'}
+                        title={isMaxReached ? t('delivery_reps.van_inventory_tab.s14', "تم بلوغ أقصى كمية بالسيارة") : t('delivery_reps.van_inventory_tab.s15', "زيادة صنف في الفاتورة")}
                       >
                         <span style={{ fontSize: '15px', fontWeight: 800, lineHeight: 1, color: isMaxReached ? '#94a3b8' : '#ffffff' }}>+</span>
                       </button>
@@ -385,7 +387,7 @@ export const VanInventoryTab: React.FC<VanInventoryTabProps> = ({
                           justifyContent: 'center',
                           boxSizing: 'border-box',
                         }}
-                        title="إنقاص صنف من الفاتورة"
+                        title={t('delivery_reps.van_inventory_tab.s16', "إنقاص صنف من الفاتورة")}
                       >
                         <span style={{ fontSize: '15px', fontWeight: 800, lineHeight: 1, color: '#0f172a' }}>−</span>
                       </button>
@@ -415,7 +417,7 @@ export const VanInventoryTab: React.FC<VanInventoryTabProps> = ({
                       }}
                     >
                       <PlusIcon size={12} color="#ffffff" />
-                      <span>إضافة</span>
+                      <span>{t('delivery_reps.van_inventory_tab.s17', "إضافة")}</span>
                     </button>
                   )}
                 </div>
@@ -466,10 +468,10 @@ export const VanInventoryTab: React.FC<VanInventoryTabProps> = ({
             </div>
             <div style={{ minWidth: 0, flex: 1 }}>
               <div style={{ fontSize: '11.5px', fontWeight: 800, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                الفاتورة: {cart.length} {cart.length === 1 ? 'صنف' : cart.length === 2 ? 'صنفان' : cart.length <= 10 ? 'أصناف' : 'صنف'} ({totalPiecesInCart} {totalPiecesInCart === 1 ? 'قطعة' : totalPiecesInCart === 2 ? 'قطعتان' : totalPiecesInCart <= 10 ? 'قطع' : 'قطعة'})
+                {t('delivery_reps.van_inventory_tab.s18', "الفاتورة:")} {cart.length} {cart.length === 1 ? t('delivery_reps.van_inventory_tab.s19', "صنف") : cart.length === 2 ? t('delivery_reps.van_inventory_tab.s20', "صنفان") : cart.length <= 10 ? t('delivery_reps.van_inventory_tab.s21', "أصناف") : t('delivery_reps.van_inventory_tab.s22', "صنف")} ({totalPiecesInCart} {totalPiecesInCart === 1 ? t('delivery_reps.van_inventory_tab.s23', "قطعة") : totalPiecesInCart === 2 ? t('delivery_reps.van_inventory_tab.s24', "قطعتان") : totalPiecesInCart <= 10 ? t('delivery_reps.van_inventory_tab.s25', "قطع") : t('delivery_reps.van_inventory_tab.s26', "قطعة")})
               </div>
               <div style={{ fontSize: '12.5px', fontWeight: 900, color: '#170e5e', whiteSpace: 'nowrap', marginTop: '1px' }}>
-                الإجمالي: {cartTotal.toFixed(2)} <CurrencySymbol />
+                {t('delivery_reps.van_inventory_tab.s27', "الإجمالي:")} {cartTotal.toFixed(2)} <CurrencySymbol />
               </div>
             </div>
           </div>
@@ -495,7 +497,7 @@ export const VanInventoryTab: React.FC<VanInventoryTabProps> = ({
               transition: 'transform 0.15s ease',
             }}
           >
-            <span>متابعة الفاتورة</span>
+            <span>{t('delivery_reps.van_inventory_tab.s28', "متابعة الفاتورة")}</span>
             <span style={{ fontSize: '13px' }}>←</span>
           </button>
         </div>

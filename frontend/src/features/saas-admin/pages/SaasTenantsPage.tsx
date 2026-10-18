@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Navigate } from 'react-router-dom';
 import { FormSection } from '@/shared/components/form-section';
 import { Field } from '@/shared/ui/field';
@@ -12,6 +13,7 @@ import { systemConfirm } from '@/shared/components/system-alert';
 import { useSaasTenants } from '../hooks/useSaasTenants';
 
 export function SaasTenantsPage() {
+  const { t } = useTranslation();
   const vm = useSaasTenants();
 
   if (!vm.canAccess) return <Navigate to="/" replace />;
@@ -20,8 +22,8 @@ export function SaasTenantsPage() {
     <div className="page-stack page-shell saas-tenants-page" dir="rtl">
       <main className="document-prototype-column" style={{ paddingBottom: '32px' }}>
         <PageHeader
-          title="إدارة النسخ والمستأجرين"
-          description="لوحة التحكم المركزية لإنشاء ومتابعة واشتراكات نسخ العملاء السحابية."
+          title={t('saas_admin.saas_tenants_page.s0', "إدارة النسخ والمستأجرين")}
+          description={t('saas_admin.saas_tenants_page.s1', "لوحة التحكم المركزية لإنشاء ومتابعة واشتراكات نسخ العملاء السحابية.")}
           badge={<span className="nav-pill" style={{ background: '#ede9fe', color: '#6d28d9', borderColor: '#c4b5fd' }}>SaaS Admin</span>}
           actions={
             <button 
@@ -39,13 +41,13 @@ export function SaasTenantsPage() {
               onClick={() => vm.setIsCreateOpen(true)}
             >
               <span>+</span>
-              <span>إنشاء نسخة تجريبية</span>
+              <span>{t('saas_admin.saas_tenants_page.s2', "إنشاء نسخة تجريبية")}</span>
             </button>
           }
         />
 
         {vm.feedback ? <div className={vm.isForbiddenByApi ? 'warning-box' : 'success-box'}>{vm.feedback}</div> : null}
-        {vm.isForbiddenByApi ? <div className="warning-box">هذه الصفحة مخصّصة لإدارة المنصة فقط.</div> : null}
+        {vm.isForbiddenByApi ? <div className="warning-box">{t('saas_admin.saas_tenants_page.s3', "هذه الصفحة مخصّصة لإدارة المنصة فقط.")}</div> : null}
 
         <TenantCredentialsHero
           result={vm.ownerResetResult}
@@ -53,19 +55,19 @@ export function SaasTenantsPage() {
           onCopy={vm.copyToClipboard}
         />
 
-        <FormSection title="نسخ العملاء المسجلة">
+        <FormSection title={t('saas_admin.saas_tenants_page.s4', "نسخ العملاء المسجلة")}>
           <SearchToolbar
             search={vm.search}
             onSearchChange={vm.setSearch}
-            searchPlaceholder="ابحث بالاسم أو slug أو المالك أو رقم الهاتف..."
+            searchPlaceholder={t('saas_admin.saas_tenants_page.s5', "ابحث بالاسم أو slug أو المالك أو رقم الهاتف...")}
           >
-            <Field label="فلترة حسب الحالة">
+            <Field label={t('saas_admin.saas_tenants_page.s6', "فلترة حسب الحالة")}>
               <select value={vm.status} onChange={(event) => vm.setStatus(event.target.value as any)}>
-                <option value="all">جميع الحالات (الكل)</option>
-                <option value="trial">تجريبية (Trial)</option>
-                <option value="active">مفعلة (Active)</option>
-                <option value="expired">منتهية (Expired)</option>
-                <option value="suspended">موقوفة (Suspended)</option>
+                <option value="all">{t('saas_admin.saas_tenants_page.s7', "جميع الحالات (الكل)")}</option>
+                <option value="trial">{t('saas_admin.saas_tenants_page.s8', "تجريبية (Trial)")}</option>
+                <option value="active">{t('saas_admin.saas_tenants_page.s9', "مفعلة (Active)")}</option>
+                <option value="expired">{t('saas_admin.saas_tenants_page.s10', "منتهية (Expired)")}</option>
+                <option value="suspended">{t('saas_admin.saas_tenants_page.s11', "موقوفة (Suspended)")}</option>
               </select>
             </Field>
           </SearchToolbar>
@@ -79,7 +81,7 @@ export function SaasTenantsPage() {
               className={`saas-filter-tab-btn ${vm.tabFilter === 'all' ? 'is-active' : ''}`}
               onClick={() => vm.setTabFilter('all')}
             >
-              <span>جميع النسخ</span>
+              <span>{t('saas_admin.saas_tenants_page.s12', "جميع النسخ")}</span>
               <span className="saas-filter-badge">{vm.allTenants.length}</span>
             </button>
             <button
@@ -87,7 +89,7 @@ export function SaasTenantsPage() {
               className={`saas-filter-tab-btn ${vm.tabFilter === 'active' ? 'is-active' : ''}`}
               onClick={() => vm.setTabFilter('active')}
             >
-              <span>مفعلة (نشطة)</span>
+              <span>{t('saas_admin.saas_tenants_page.s13', "مفعلة (نشطة)")}</span>
               <span className="saas-filter-badge">{vm.allTenants.filter((r) => r.status === 'active').length}</span>
             </button>
             <button
@@ -95,7 +97,7 @@ export function SaasTenantsPage() {
               className={`saas-filter-tab-btn ${vm.tabFilter === 'trial' ? 'is-active' : ''}`}
               onClick={() => vm.setTabFilter('trial')}
             >
-              <span>تجريبية</span>
+              <span>{t('saas_admin.saas_tenants_page.s14', "تجريبية")}</span>
               <span className="saas-filter-badge">{vm.allTenants.filter((r) => r.status === 'trial').length}</span>
             </button>
             <button
@@ -109,7 +111,7 @@ export function SaasTenantsPage() {
                 <line x1="12" y1="9" x2="12" y2="13"/>
                 <line x1="12" y1="17" x2="12.01" y2="17"/>
               </svg>
-              <span>تنتهي قريباً (≤ 7 أيام)</span>
+              <span>{t('saas_admin.saas_tenants_page.s15', "تنتهي قريباً (≤ 7 أيام)")}</span>
               <span className="saas-filter-badge" style={{ background: '#ffedd5', color: '#9a3412' }}>
                 {vm.allTenants.filter((r) => vm.isExpiringSoon(r)).length}
               </span>
@@ -119,7 +121,7 @@ export function SaasTenantsPage() {
               className={`saas-filter-tab-btn ${vm.tabFilter === 'blocked' ? 'is-active' : ''}`}
               onClick={() => vm.setTabFilter('blocked')}
             >
-              <span>منتهية / موقوفة</span>
+              <span>{t('saas_admin.saas_tenants_page.s16', "منتهية / موقوفة")}</span>
               <span className="saas-filter-badge">
                 {vm.allTenants.filter((r) => r.status === 'expired' || r.status === 'suspended' || vm.isExpiringSoon(r) === false && r.subscriptionEndDate && new Date(r.subscriptionEndDate).getTime() < Date.now()).length}
               </span>
@@ -131,10 +133,10 @@ export function SaasTenantsPage() {
             isError={vm.tenantsQuery.isError}
             error={vm.tenantsQuery.error}
             isEmpty={!vm.filteredTenants.length}
-            loadingText="جاري تحميل قائمة النسخ والمستأجرين..."
-            errorTitle={vm.isForbiddenByApi ? 'غير مسموح' : 'تعذر تحميل نسخ العملاء'}
-            emptyTitle="لا توجد نسخ مطابقة"
-            emptyHint="جرّب تعديل معايير البحث أو أنشئ نسخة تجريبية جديدة."
+            loadingText={t('saas_admin.saas_tenants_page.s17', "جاري تحميل قائمة النسخ والمستأجرين...")}
+            errorTitle={vm.isForbiddenByApi ? t('saas_admin.saas_tenants_page.s18', "غير مسموح") : t('saas_admin.saas_tenants_page.s19', "تعذر تحميل نسخ العملاء")}
+            emptyTitle={t('saas_admin.saas_tenants_page.s20', "لا توجد نسخ مطابقة")}
+            emptyHint={t('saas_admin.saas_tenants_page.s21', "جرّب تعديل معايير البحث أو أنشئ نسخة تجريبية جديدة.")}
           >
             <TenantDataTable
               tenants={vm.filteredTenants}
@@ -143,11 +145,11 @@ export function SaasTenantsPage() {
               isImpersonating={vm.impersonateMutation.isPending}
               onImpersonate={async (id, name) => {
                 const confirmed = await systemConfirm({
-                  title: 'تسجيل الدخول كمالك للنسخة',
+                  title: t('saas_admin.saas_tenants_page.s22', "تسجيل الدخول كمالك للنسخة"),
                   message: `هل تريد تسجيل الدخول وتصفح نسخة (${name}) كمالك؟`,
                   variant: 'info',
-                  confirmText: 'تصفح كمالك',
-                  cancelText: 'إلغاء',
+                  confirmText: t('saas_admin.saas_tenants_page.s23', "تصفح كمالك"),
+                  cancelText: t('saas_admin.saas_tenants_page.s24', "إلغاء"),
                 });
                 if (confirmed) {
                   vm.impersonateMutation.mutate(id);

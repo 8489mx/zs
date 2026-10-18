@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
 import {
   BuildingIcon,
@@ -149,6 +150,7 @@ const COMMERCE_SUB_VERTICALS: SubVerticalConfig[] = [
 ];
 
 export function Step3Industry({ extraData, updateExtra, onNext, onBack }: Step3Props) {
+  const { t } = useTranslation();
   const currentVal = String(extraData.industry || 'retail_general').trim().toLowerCase();
 
   const initialPillar: PillarKey =
@@ -210,10 +212,10 @@ export function Step3Industry({ extraData, updateExtra, onNext, onBack }: Step3P
     <div className="wizard-step-content" dir="rtl">
       <div className="wizard-header" style={{ marginBottom: '14px', textAlign: 'right' }}>
         <h2 style={{ fontSize: '1.18rem', fontWeight: 800, color: '#0f172a', margin: '0 0 4px' }}>
-          اختر قطاع وطبيعة نشاط المنشأة
+          {t('activation.onboarding.step3_industry.s0', "اختر قطاع وطبيعة نشاط المنشأة")}
         </h2>
         <p style={{ fontSize: '0.8rem', color: '#64748b', margin: 0 }}>
-          يتم تجهيز المنظومة بكامل الموديولات والمحركات المحاسبية الملائمة لنشاطك فورياً.
+          {t('activation.onboarding.step3_industry.s1', "يتم تجهيز المنظومة بكامل الموديولات والمحركات المحاسبية الملائمة لنشاطك فورياً.")}
         </p>
       </div>
 
@@ -353,10 +355,10 @@ export function Step3Industry({ extraData, updateExtra, onNext, onBack }: Step3P
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
               <strong style={{ fontSize: '0.82rem', color: '#0f172a', fontWeight: 800 }}>
-                تخصص نشاط التجارة والمخازن (8 قطاعات مدعومة):
+                {t('activation.onboarding.step3_industry.s2', "تخصص نشاط التجارة والمخازن (8 قطاعات مدعومة):")}
               </strong>
               <span style={{ fontSize: '0.7rem', color: '#64748b' }}>
-                تفعيل المحركات والخصائص التخصصية لنوعية بضاعتك
+                {t('activation.onboarding.step3_industry.s3', "تفعيل المحركات والخصائص التخصصية لنوعية بضاعتك")}
               </span>
             </div>
           </div>
@@ -495,7 +497,7 @@ export function Step3Industry({ extraData, updateExtra, onNext, onBack }: Step3P
           }}
         >
           <span>&rarr;</span>
-          <span>رجوع</span>
+          <span>{t('activation.onboarding.step3_industry.s4', "رجوع")}</span>
         </button>
 
         <button
@@ -517,7 +519,7 @@ export function Step3Industry({ extraData, updateExtra, onNext, onBack }: Step3P
             transition: 'all 0.15s ease',
           }}
         >
-          <span>تأكيد واكتمال التهيئة</span>
+          <span>{t('activation.onboarding.step3_industry.s5', "تأكيد واكتمال التهيئة")}</span>
           <CheckCircleIcon size={16} color="#ffffff" />
         </button>
       </div>

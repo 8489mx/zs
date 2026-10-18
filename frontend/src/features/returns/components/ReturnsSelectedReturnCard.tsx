@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { EmptyState } from '@/shared/ui/empty-state';
 import { Button } from '@/shared/ui/button';
 import { formatCurrency, formatDate } from '@/lib/format';
@@ -13,8 +14,10 @@ export function ReturnsSelectedReturnCard({
   onPrint: () => void;
   onCopy: () => void;
 }) {
+  const { t } = useTranslation();
+
   return (
-    <div className="workspace-panel returns-detail-card-shell" dir="rtl" style={{ background: '#ffffff', borderRadius: '12px', padding: '16px' }}>
+    <div className="workspace-panel returns-detail-card-shell" style={{ background: '#ffffff', borderRadius: '12px', padding: '16px' }}>
       {/* 1. Header with Title and Type Badge */}
       <div className="returns-detail-header" style={{
         display: 'flex',
@@ -30,7 +33,7 @@ export function ReturnsSelectedReturnCard({
           <div style={{ width: '4px', height: '18px', background: '#2563eb', borderRadius: '2px' }} />
           <div>
             <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: '#0f172a' }}>
-              تفاصيل المرتجع المحدد
+              {t('returns.selected_return_title', 'تفاصيل المرتجع المحدد')}
             </h3>
           </div>
         </div>
@@ -47,7 +50,7 @@ export function ReturnsSelectedReturnCard({
             color: '#1d4ed8',
             border: '1px solid #bfdbfe',
           }}>
-            {returnTypeLabel(selectedReturn)}
+            {returnTypeLabel(selectedReturn, t)}
           </span>
         )}
       </div>
@@ -61,10 +64,10 @@ export function ReturnsSelectedReturnCard({
           marginBottom: '14px',
         }}>
           <Button variant="secondary" onClick={onPrint} style={{ fontSize: '12.5px', padding: '7px 10px', justifyContent: 'center' }}>
-            طباعة
+            {t('common.print', 'طباعة')}
           </Button>
           <Button variant="secondary" onClick={onCopy} style={{ fontSize: '12.5px', padding: '7px 10px', justifyContent: 'center' }}>
-            نسخ التفاصيل
+            {t('returns.copy_details', 'نسخ التفاصيل')}
           </Button>
         </div>
       )}
@@ -82,31 +85,31 @@ export function ReturnsSelectedReturnCard({
             gap: '8px',
           }}>
             <div style={{ fontSize: '12px', fontWeight: 800, color: '#334155', borderBottom: '1px solid #f1f5f9', paddingBottom: '6px' }}>
-              بيانات المستند والصنف
+              {t('returns.doc_item_data', 'بيانات المستند والصنف')}
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '8px 12px' }}>
               <div>
-                <span style={{ fontSize: '11px', color: '#64748b', display: 'block', fontWeight: 600 }}>رقم المستند</span>
+                <span style={{ fontSize: '11px', color: '#64748b', display: 'block', fontWeight: 600 }}>{t('returns.col_doc_no', 'رقم المستند')}</span>
                 <strong style={{ fontSize: '12.5px', color: '#0f172a', fontWeight: 700 }} className="doc-tag">{selectedReturn.docNo || selectedReturn.id}</strong>
               </div>
               <div>
-                <span style={{ fontSize: '11px', color: '#64748b', display: 'block', fontWeight: 600 }}>النوع</span>
-                <strong style={{ fontSize: '12.5px', color: '#0f172a' }}>{returnTypeLabel(selectedReturn)}</strong>
+                <span style={{ fontSize: '11px', color: '#64748b', display: 'block', fontWeight: 600 }}>{t('returns.col_type', 'النوع')}</span>
+                <strong style={{ fontSize: '12.5px', color: '#0f172a' }}>{returnTypeLabel(selectedReturn, t)}</strong>
               </div>
               {selectedReturn.invoiceDocNo || selectedReturn.invoiceId ? (
                 <div>
-                  <span style={{ fontSize: '11px', color: '#64748b', display: 'block', fontWeight: 600 }}>مرجع الفاتورة</span>
+                  <span style={{ fontSize: '11px', color: '#64748b', display: 'block', fontWeight: 600 }}>{t('returns.ref_invoice', 'مرجع الفاتورة')}</span>
                   <strong style={{ fontSize: '12.5px', color: '#2563eb' }} className="ref-tag">
                     {selectedReturn.invoiceDocNo || (selectedReturn.returnType === 'purchase' ? `PO-${selectedReturn.invoiceId}` : `Z-${selectedReturn.invoiceId}`)}
                   </strong>
                 </div>
               ) : null}
               <div>
-                <span style={{ fontSize: '11px', color: '#64748b', display: 'block', fontWeight: 600 }}>الكمية</span>
+                <span style={{ fontSize: '11px', color: '#64748b', display: 'block', fontWeight: 600 }}>{t('returns.col_qty', 'الكمية')}</span>
                 <strong style={{ fontSize: '12.5px', color: '#0f172a', fontWeight: 700 }}>{selectedReturn.qty || 0}</strong>
               </div>
               <div style={{ gridColumn: '1 / -1' }}>
-                <span style={{ fontSize: '11px', color: '#64748b', display: 'block', fontWeight: 600 }}>الصنف</span>
+                <span style={{ fontSize: '11px', color: '#64748b', display: 'block', fontWeight: 600 }}>{t('returns.col_product', 'الصنف')}</span>
                 <strong style={{ fontSize: '13px', color: '#0f172a', fontWeight: 800 }}>{selectedReturn.productName || '—'}</strong>
               </div>
             </div>
@@ -123,25 +126,25 @@ export function ReturnsSelectedReturnCard({
             gap: '8px',
           }}>
             <div style={{ fontSize: '12px', fontWeight: 800, color: '#334155', borderBottom: '1px solid #f1f5f9', paddingBottom: '6px' }}>
-              البيانات المالية والطرف الآخر
+              {t('returns.financial_data', 'البيانات المالية والطرف الآخر')}
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '8px 12px' }}>
               <div>
-                <span style={{ fontSize: '11px', color: '#64748b', display: 'block', fontWeight: 600 }}>الجهة / العميل</span>
-                <strong style={{ fontSize: '12.5px', color: '#0f172a' }}>{selectedReturn.partyName || selectedReturn.customerName || 'عميل نقدي'}</strong>
+                <span style={{ fontSize: '11px', color: '#64748b', display: 'block', fontWeight: 600 }}>{t('returns.col_party', 'الجهة / العميل')}</span>
+                <strong style={{ fontSize: '12.5px', color: '#0f172a' }}>{selectedReturn.partyName || selectedReturn.customerName || t('returns.cash_customer', 'عميل نقدي')}</strong>
               </div>
               <div>
-                <span style={{ fontSize: '11px', color: '#64748b', display: 'block', fontWeight: 600 }}>بواسطة</span>
-                <strong style={{ fontSize: '12.5px', color: '#0f172a' }}>{selectedReturn.createdByName || selectedReturn.createdBy || 'كاشير عام'}</strong>
+                <span style={{ fontSize: '11px', color: '#64748b', display: 'block', fontWeight: 600 }}>{t('returns.created_by', 'بواسطة')}</span>
+                <strong style={{ fontSize: '12.5px', color: '#0f172a' }}>{selectedReturn.createdByName || selectedReturn.createdBy || t('returns.general_cashier', 'كاشير عام')}</strong>
               </div>
               <div>
-                <span style={{ fontSize: '11px', color: '#64748b', display: 'block', fontWeight: 600 }}>طريقة الرد</span>
+                <span style={{ fontSize: '11px', color: '#64748b', display: 'block', fontWeight: 600 }}>{t('returns.refund_method_label', 'طريقة الرد')}</span>
                 <strong style={{ fontSize: '12.5px', color: '#0f172a' }}>
-                  {selectedReturn.refundMethod === 'card' ? 'بطاقة / فيزا' : selectedReturn.settlementMode === 'store_credit' ? 'رصيد عميل' : 'نقدي (من الدرج)'}
+                  {selectedReturn.refundMethod === 'card' ? t('returns.method_card_full', 'بطاقة / فيزا') : selectedReturn.settlementMode === 'store_credit' ? t('returns.customer_credit', 'رصيد عميل') : t('returns.cash_drawer', 'نقدي (من الدرج)')}
                 </strong>
               </div>
               <div>
-                <span style={{ fontSize: '11px', color: '#64748b', display: 'block', fontWeight: 600 }}>التاريخ</span>
+                <span style={{ fontSize: '11px', color: '#64748b', display: 'block', fontWeight: 600 }}>{t('returns.col_date', 'التاريخ')}</span>
                 <strong style={{ fontSize: '11.5px', color: '#0f172a' }}><bdi dir="ltr">{formatDate(getReturnDateValue(selectedReturn))}</bdi></strong>
               </div>
               <div style={{
@@ -155,7 +158,7 @@ export function ReturnsSelectedReturnCard({
                 alignItems: 'center',
                 marginTop: '4px',
               }}>
-                <span style={{ fontSize: '12.5px', fontWeight: 700, color: '#334155' }}>الإجمالي المسترد:</span>
+                <span style={{ fontSize: '12.5px', fontWeight: 700, color: '#334155' }}>{t('returns.total_refunded', 'الإجمالي المسترد:')}</span>
                 <strong style={{ fontSize: '1.1rem', fontWeight: 800, color: '#2563eb' }}>{formatCurrency(Number(selectedReturn.total || 0))}</strong>
               </div>
             </div>
@@ -172,13 +175,13 @@ export function ReturnsSelectedReturnCard({
               gap: '6px',
               fontSize: '12.5px',
             }}>
-              <span style={{ fontWeight: 800, color: '#92400e', flexShrink: 0 }}>ملاحظات:</span>
+              <span style={{ fontWeight: 800, color: '#92400e', flexShrink: 0 }}>{t('returns.col_note', 'ملاحظات')}:</span>
               <span style={{ color: '#78350f' }}>{selectedReturn.note}</span>
             </div>
           ) : null}
         </div>
       ) : (
-        <EmptyState title="اختر مرتجعًا من الجدول" hint="ستظهر التفاصيل هنا بعد الاختيار." />
+        <EmptyState title={t('returns.empty_selected_title', 'اختر مرتجعًا من الجدول')} hint={t('returns.empty_selected_hint', 'ستظهر التفاصيل هنا بعد الاختيار.')} />
       )}
     </div>
   );

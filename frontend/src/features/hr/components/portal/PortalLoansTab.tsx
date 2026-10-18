@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { formatCurrency } from '@/lib/format';
 import type { LoansAndCustodyData } from '../../api/employee-portal.api';
 import { PlusIcon } from '@/shared/components/icons/AppIcons';
@@ -8,15 +9,16 @@ export interface PortalLoansTabProps {
 }
 
 export function PortalLoansTab({ loansData, onRequestAdvance }: PortalLoansTabProps) {
+  const { t } = useTranslation();
   return (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
             <div className="portal-section-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
               <div>
                 <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 900, color: '#0f172a' }}>
-                  السلف النقدية والعهد العينية
+                  {t('hr.portal.portal_loans_tab.s0', "السلف النقدية والعهد العينية")}
                 </h2>
                 <p style={{ margin: '4px 0 0', fontSize: '13px', color: '#64748b' }}>
-                  متابعة أرصدة السلف المستحقة والأصول والعهد المسلمة بعهدتك.
+                  {t('hr.portal.portal_loans_tab.s1', "متابعة أرصدة السلف المستحقة والأصول والعهد المسلمة بعهدتك.")}
                 </p>
               </div>
 
@@ -39,7 +41,7 @@ export function PortalLoansTab({ loansData, onRequestAdvance }: PortalLoansTabPr
                 }}
               >
                 <PlusIcon size={16} color="#ffffff" />
-                <span>طلب سلفة جديدة</span>
+                <span>{t('hr.portal.portal_loans_tab.s2', "طلب سلفة جديدة")}</span>
               </button>
             </div>
 
@@ -54,24 +56,24 @@ export function PortalLoansTab({ loansData, onRequestAdvance }: PortalLoansTabPr
               }}
             >
               <h3 style={{ margin: '0 0 16px', fontSize: '16px', fontWeight: 800, color: '#0f172a' }}>
-                سجل السلف المالية
+                {t('hr.portal.portal_loans_tab.s3', "سجل السلف المالية")}
               </h3>
 
               {!loansData?.loans || loansData.loans.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '24px', color: '#94a3b8', fontSize: '13px' }}>
-                  لا توجد أي سلف مالية مسجلة بعهدتك.
+                  {t('hr.portal.portal_loans_tab.s4', "لا توجد أي سلف مالية مسجلة بعهدتك.")}
                 </div>
               ) : (
                 <div style={{ overflowX: 'auto' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', textAlign: 'right' }}>
                     <thead>
                       <tr style={{ borderBottom: '2px solid #e2e8f0', color: '#64748b' }}>
-                        <th style={{ padding: '10px 12px' }}>رقم السلفة</th>
-                        <th style={{ padding: '10px 12px' }}>المبلغ الإجمالي</th>
-                        <th style={{ padding: '10px 12px' }}>المسدد</th>
-                        <th style={{ padding: '10px 12px' }}>المتبقي</th>
-                        <th style={{ padding: '10px 12px' }}>القسط الشهري</th>
-                        <th style={{ padding: '10px 12px' }}>الحالة</th>
+                        <th style={{ padding: '10px 12px' }}>{t('hr.portal.portal_loans_tab.s5', "رقم السلفة")}</th>
+                        <th style={{ padding: '10px 12px' }}>{t('hr.portal.portal_loans_tab.s6', "المبلغ الإجمالي")}</th>
+                        <th style={{ padding: '10px 12px' }}>{t('hr.portal.portal_loans_tab.s7', "المسدد")}</th>
+                        <th style={{ padding: '10px 12px' }}>{t('hr.portal.portal_loans_tab.s8', "المتبقي")}</th>
+                        <th style={{ padding: '10px 12px' }}>{t('hr.portal.portal_loans_tab.s9', "القسط الشهري")}</th>
+                        <th style={{ padding: '10px 12px' }}>{t('hr.portal.portal_loans_tab.s10', "الحالة")}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -84,7 +86,7 @@ export function PortalLoansTab({ loansData, onRequestAdvance }: PortalLoansTabPr
                             {formatCurrency(l.remainingAmount)}
                           </td>
                           <td style={{ padding: '12px', color: '#64748b' }}>
-                            {formatCurrency(l.installmentAmount)} ({l.installmentCount} شهر)
+                            {formatCurrency(l.installmentAmount)} ({l.installmentCount} {t('hr.portal.portal_loans_tab.s11', "شهر)")}
                           </td>
                           <td style={{ padding: '12px' }}>
                             <span
@@ -98,7 +100,7 @@ export function PortalLoansTab({ loansData, onRequestAdvance }: PortalLoansTabPr
                                 border: '1px solid #e2e8f0',
                               }}
                             >
-                              {l.status === 'draft' ? 'قيد المراجعة' : l.status === 'approved' ? 'معتمدة' : l.status}
+                              {l.status === 'draft' ? t('hr.portal.portal_loans_tab.s12', "قيد المراجعة") : l.status === 'approved' ? t('hr.portal.portal_loans_tab.s13', "معتمدة") : l.status}
                             </span>
                           </td>
                         </tr>
@@ -120,23 +122,23 @@ export function PortalLoansTab({ loansData, onRequestAdvance }: PortalLoansTabPr
               }}
             >
               <h3 style={{ margin: '0 0 16px', fontSize: '16px', fontWeight: 800, color: '#0f172a' }}>
-                العهد العينية المسلمة للموظف
+                {t('hr.portal.portal_loans_tab.s14', "العهد العينية المسلمة للموظف")}
               </h3>
 
               {!loansData?.assets || loansData.assets.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '24px', color: '#94a3b8', fontSize: '13px' }}>
-                  لا توجد أجهزة أو عهد عينية مسجلة باسمك حالياً.
+                  {t('hr.portal.portal_loans_tab.s15', "لا توجد أجهزة أو عهد عينية مسجلة باسمك حالياً.")}
                 </div>
               ) : (
                 <div style={{ overflowX: 'auto' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', textAlign: 'right' }}>
                     <thead>
                       <tr style={{ borderBottom: '2px solid #e2e8f0', color: '#64748b' }}>
-                        <th style={{ padding: '10px 12px' }}>اسم العهدة</th>
-                        <th style={{ padding: '10px 12px' }}>النوع</th>
-                        <th style={{ padding: '10px 12px' }}>كود الأصل / السيريال</th>
-                        <th style={{ padding: '10px 12px' }}>تاريخ التسليم</th>
-                        <th style={{ padding: '10px 12px' }}>الحالة</th>
+                        <th style={{ padding: '10px 12px' }}>{t('hr.portal.portal_loans_tab.s16', "اسم العهدة")}</th>
+                        <th style={{ padding: '10px 12px' }}>{t('hr.portal.portal_loans_tab.s17', "النوع")}</th>
+                        <th style={{ padding: '10px 12px' }}>{t('hr.portal.portal_loans_tab.s18', "كود الأصل / السيريال")}</th>
+                        <th style={{ padding: '10px 12px' }}>{t('hr.portal.portal_loans_tab.s19', "تاريخ التسليم")}</th>
+                        <th style={{ padding: '10px 12px' }}>{t('hr.portal.portal_loans_tab.s20', "الحالة")}</th>
                       </tr>
                     </thead>
                     <tbody>

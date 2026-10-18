@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 ﻿import { ActionConfirmDialog } from '@/shared/components/action-confirm-dialog';
 import type { PosWorkspaceState } from '@/features/pos/components/pos-workspace/posWorkspace.helpers';
 
@@ -14,16 +15,17 @@ export function PosWorkspaceDiscountDialog({
   onClose,
   onFocusBarcodeEntry,
 }: PosWorkspaceDiscountDialogProps) {
+  const { t } = useTranslation();
   return (
     <ActionConfirmDialog
       open={open}
-      title="اعتماد خصم الفاتورة"
-      description="أدخل رمز المدير أو كلمة مرور حساب المدير لفتح الخصم لهذه الفاتورة فقط. سيتم قفل الخصم تلقائيًا مع أي فاتورة جديدة."
-      confirmLabel="اعتماد الخصم"
+      title={t('pos.pos_workspace.pos_workspace_discount_dialog.s0', "اعتماد خصم الفاتورة")}
+      description={t('pos.pos_workspace.pos_workspace_discount_dialog.s1', "أدخل رمز المدير أو كلمة مرور حساب المدير لفتح الخصم لهذه الفاتورة فقط. سيتم قفل الخصم تلقائيًا مع أي فاتورة جديدة.")}
+      confirmLabel={t('pos.pos_workspace.pos_workspace_discount_dialog.s2', "اعتماد الخصم")}
       confirmVariant="primary"
       managerPinRequired
-      managerPinLabel="رمز المدير أو كلمة المرور"
-      managerPinHint="سيتم إخفاء القيمة أثناء الكتابة، ولن يظل الاعتماد مفتوحًا إلا للفواتير الحالية فقط."
+      managerPinLabel={t('pos.pos_workspace.pos_workspace_discount_dialog.s3', "رمز المدير أو كلمة المرور")}
+      managerPinHint={t('pos.pos_workspace.pos_workspace_discount_dialog.s4', "سيتم إخفاء القيمة أثناء الكتابة، ولن يظل الاعتماد مفتوحًا إلا للفواتير الحالية فقط.")}
       isBusy={Boolean(pos.discountAuthorizationMutation.isPending)}
       onCancel={() => {
         pos.setDiscountApprovalSecret('');
@@ -34,7 +36,7 @@ export function PosWorkspaceDiscountDialog({
           await pos.discountAuthorizationMutation.mutateAsync(managerPin);
           pos.setDiscountApprovalGranted(true);
           pos.setDiscountApprovalSecret(managerPin);
-          pos.setSubmitMessage('تم اعتماد الخصم لهذه الفاتورة فقط.');
+          pos.setSubmitMessage(t('pos.pos_workspace.pos_workspace_discount_dialog.s5', "تم اعتماد الخصم لهذه الفاتورة فقط."));
           onClose();
           onFocusBarcodeEntry();
         } catch (error) {

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React, { useState, useMemo } from 'react';
 import { StandardDialog } from '@/shared/components/StandardDialog';
 import { Button } from '@/shared/ui/button';
@@ -44,6 +45,7 @@ export const VanDamagedSwapModal: React.FC<VanDamagedSwapModalProps> = ({
   defaultCustomerId,
   onSwapSuccess,
 }) => {
+  const { t } = useTranslation();
   const [customerId, setCustomerId] = useState<number | undefined>(
     defaultCustomerId ? Number(defaultCustomerId) : undefined,
   );
@@ -127,9 +129,9 @@ export const VanDamagedSwapModal: React.FC<VanDamagedSwapModalProps> = ({
     <StandardDialog
       open={open}
       onClose={onClose}
-      title="استبدال فوري للبضاعة التالفة والمعيبة"
-      subtitle="صرف بضاعة سليمة من سيارة التوزيع مقابل استلام التالف فورياً مع تسوية الفارق السعري"
-      badge="استبدال ميداني"
+      title={t('delivery_reps.van_damaged_swap_modal.s0', "استبدال فوري للبضاعة التالفة والمعيبة")}
+      subtitle={t('delivery_reps.van_damaged_swap_modal.s1', "صرف بضاعة سليمة من سيارة التوزيع مقابل استلام التالف فورياً مع تسوية الفارق السعري")}
+      badge={t('delivery_reps.van_damaged_swap_modal.s2', "استبدال ميداني")}
       compact={true}
       width="min(540px, 96vw)"
       bodyStyle={{ padding: '12px 16px' }}
@@ -164,7 +166,7 @@ export const VanDamagedSwapModal: React.FC<VanDamagedSwapModalProps> = ({
             }}
           >
             <XIcon size={14} color="#475569" />
-            <span>إلغاء</span>
+            <span>{t('delivery_reps.van_damaged_swap_modal.s3', "إلغاء")}</span>
           </Button>
 
           <Button
@@ -189,7 +191,7 @@ export const VanDamagedSwapModal: React.FC<VanDamagedSwapModalProps> = ({
             }}
           >
             <CheckCircleIcon size={15} color="#ffffff" />
-            <span>{isSubmitting ? 'جاري الاستبدال...' : 'تأكيد وصرف الاستبدال الفوري'}</span>
+            <span>{isSubmitting ? t('delivery_reps.van_damaged_swap_modal.s4', "جاري الاستبدال...") : t('delivery_reps.van_damaged_swap_modal.s5', "تأكيد وصرف الاستبدال الفوري")}</span>
           </Button>
         </div>
       }
@@ -198,7 +200,7 @@ export const VanDamagedSwapModal: React.FC<VanDamagedSwapModalProps> = ({
         {/* Customer Select */}
         <div>
           <label style={{ fontSize: '11px', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '4px' }}>
-            العميل / المحل (اختياري لتسجيل الفارق السعري على كشف حسابه):
+            {t('delivery_reps.van_damaged_swap_modal.s6', "العميل / المحل (اختياري لتسجيل الفارق السعري على كشف حسابه):")}
           </label>
           <select
             value={customerId || ''}
@@ -214,7 +216,7 @@ export const VanDamagedSwapModal: React.FC<VanDamagedSwapModalProps> = ({
               boxSizing: 'border-box',
             }}
           >
-            <option value="">عميل نقدي عام / في الشارع (بدون حساب)</option>
+            <option value="">{t('delivery_reps.van_damaged_swap_modal.s7', "عميل نقدي عام / في الشارع (بدون حساب)")}</option>
             {customers.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.name} {c.phone ? `(${c.phone})` : ''}
@@ -234,12 +236,12 @@ export const VanDamagedSwapModal: React.FC<VanDamagedSwapModalProps> = ({
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
             <AlertTriangleIcon size={14} color="#e11d48" />
-            <span style={{ fontSize: '12px', fontWeight: 800, color: '#9f1239' }}>1. الصنف التالف / المكسور المستلم:</span>
+            <span style={{ fontSize: '12px', fontWeight: 800, color: '#9f1239' }}>{t('delivery_reps.van_damaged_swap_modal.s8', "1. الصنف التالف / المكسور المستلم:")}</span>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '8px', marginBottom: '8px' }}>
             <div>
-              <label style={{ fontSize: '10.5px', color: '#881337', display: 'block', marginBottom: '2px' }}>الصنف التالف:</label>
+              <label style={{ fontSize: '10.5px', color: '#881337', display: 'block', marginBottom: '2px' }}>{t('delivery_reps.van_damaged_swap_modal.s9', "الصنف التالف:")}</label>
               <select
                 value={damagedProductId || ''}
                 onChange={(e) => {
@@ -259,14 +261,14 @@ export const VanDamagedSwapModal: React.FC<VanDamagedSwapModalProps> = ({
               >
                 {inventory.map((item) => (
                   <option key={item.productId} value={item.productId}>
-                    {item.productName} ({item.retailPrice.toFixed(2)} ج.م)
+                    {item.productName} ({item.retailPrice.toFixed(2)} {t('delivery_reps.van_damaged_swap_modal.s10', "ج.م)")}
                   </option>
                 ))}
               </select>
             </div>
 
             <div>
-              <label style={{ fontSize: '10.5px', color: '#881337', display: 'block', marginBottom: '2px' }}>الكمية المستلمة:</label>
+              <label style={{ fontSize: '10.5px', color: '#881337', display: 'block', marginBottom: '2px' }}>{t('delivery_reps.van_damaged_swap_modal.s11', "الكمية المستلمة:")}</label>
               {/* RTL Stepper: [+] Right, [-] Left */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                 <button
@@ -322,7 +324,7 @@ export const VanDamagedSwapModal: React.FC<VanDamagedSwapModalProps> = ({
           </div>
 
           <div>
-            <label style={{ fontSize: '10.5px', color: '#881337', display: 'block', marginBottom: '4px' }}>سبب التلف أو الكسر:</label>
+            <label style={{ fontSize: '10.5px', color: '#881337', display: 'block', marginBottom: '4px' }}>{t('delivery_reps.van_damaged_swap_modal.s12', "سبب التلف أو الكسر:")}</label>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
               {DAMAGE_REASONS.map((reason) => {
                 const active = damageReason === reason;
@@ -362,18 +364,18 @@ export const VanDamagedSwapModal: React.FC<VanDamagedSwapModalProps> = ({
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               <PackageIcon size={14} color="#16a34a" />
-              <span style={{ fontSize: '12px', fontWeight: 800, color: '#166534' }}>2. الصنف البديل السليم المنصرف من السيارة:</span>
+              <span style={{ fontSize: '12px', fontWeight: 800, color: '#166534' }}>{t('delivery_reps.van_damaged_swap_modal.s13', "2. الصنف البديل السليم المنصرف من السيارة:")}</span>
             </div>
             {replacementProduct && (
               <span style={{ fontSize: '11px', fontWeight: 700, color: availableVanStock > 0 ? '#15803d' : '#dc2626' }}>
-                المتاح بالسيارة: {availableVanStock} قطعة
+                {t('delivery_reps.van_damaged_swap_modal.s14', "المتاح بالسيارة:")} {availableVanStock} {t('delivery_reps.van_damaged_swap_modal.s15', "قطعة")}
               </span>
             )}
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '8px' }}>
             <div>
-              <label style={{ fontSize: '10.5px', color: '#14532d', display: 'block', marginBottom: '2px' }}>الصنف البديل:</label>
+              <label style={{ fontSize: '10.5px', color: '#14532d', display: 'block', marginBottom: '2px' }}>{t('delivery_reps.van_damaged_swap_modal.s16', "الصنف البديل:")}</label>
               <select
                 value={replacementProductId || ''}
                 onChange={(e) => setReplacementProductId(Number(e.target.value))}
@@ -389,14 +391,14 @@ export const VanDamagedSwapModal: React.FC<VanDamagedSwapModalProps> = ({
               >
                 {inventory.map((item) => (
                   <option key={item.productId} value={item.productId}>
-                    {item.productName} ({item.retailPrice.toFixed(2)} ج.م) — متاح: {item.qty}
+                    {item.productName} ({item.retailPrice.toFixed(2)} {t('delivery_reps.van_damaged_swap_modal.s17', "ج.م) — متاح:")} {item.qty}
                   </option>
                 ))}
               </select>
             </div>
 
             <div>
-              <label style={{ fontSize: '10.5px', color: '#14532d', display: 'block', marginBottom: '2px' }}>الكمية المصروفة:</label>
+              <label style={{ fontSize: '10.5px', color: '#14532d', display: 'block', marginBottom: '2px' }}>{t('delivery_reps.van_damaged_swap_modal.s18', "الكمية المصروفة:")}</label>
               {/* RTL Stepper: [+] Right, [-] Left */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                 <button
@@ -466,11 +468,11 @@ export const VanDamagedSwapModal: React.FC<VanDamagedSwapModalProps> = ({
         >
           <div>
             <span style={{ fontSize: '10.5px', color: '#64748b', display: 'block' }}>
-              قيمة التالف ({damagedTotalValue.toFixed(2)}) ↔ قيمة البديل ({replacementTotalValue.toFixed(2)})
+              {t('delivery_reps.van_damaged_swap_modal.s19', "قيمة التالف (")}{damagedTotalValue.toFixed(2)}{t('delivery_reps.van_damaged_swap_modal.s20', ") ↔ قيمة البديل (")}{replacementTotalValue.toFixed(2)})
             </span>
             <span style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a' }}>
               {isEvenSwap
-                ? 'استبدال متكافئ 1 لـ 1 (بدون فارق سعري)'
+                ? t('delivery_reps.van_damaged_swap_modal.s21', "استبدال متكافئ 1 لـ 1 (بدون فارق سعري)")
                 : priceDifference > 0
                 ? `فارق مستحق على العميل: +${priceDifference.toFixed(2)} ج.م`
                 : `فارق مستحق لصالح العميل: ${priceDifference.toFixed(2)} ج.م`}
@@ -488,7 +490,7 @@ export const VanDamagedSwapModal: React.FC<VanDamagedSwapModalProps> = ({
               border: isEvenSwap ? '1px solid #a7f3d0' : '1px solid #fde68a',
             }}
           >
-            {isEvenSwap ? 'متطابق' : 'فارق سعر'}
+            {isEvenSwap ? t('delivery_reps.van_damaged_swap_modal.s22', "متطابق") : t('delivery_reps.van_damaged_swap_modal.s23', "فارق سعر")}
           </div>
         </div>
 
@@ -497,7 +499,7 @@ export const VanDamagedSwapModal: React.FC<VanDamagedSwapModalProps> = ({
           type="text"
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
-          placeholder="ملاحظات تشغيلية على الاستبدال (اختياري)..."
+          placeholder={t('delivery_reps.van_damaged_swap_modal.s24', "ملاحظات تشغيلية على الاستبدال (اختياري)...")}
           style={{
             width: '100%',
             height: '32px',

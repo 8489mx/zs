@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { StandardDialog } from '@/shared/components/StandardDialog';
 import { CustomSelect } from '@/shared/ui/custom-select';
@@ -6,11 +7,12 @@ import type { ProductRow } from './inventoryTree.types';
 
 // ─── Shared modal backdrop ────────────────────────────────────────────────────
 function ModalBackdrop({ children, onClose, title }: { children: React.ReactNode; onClose: () => void; title?: string }) {
+  const { t } = useTranslation();
   return (
     <StandardDialog
       open={true}
       onClose={onClose}
-      title={title || 'إدارة المخزون'}
+      title={title || t('inventory.inventory_tree.inventory_tree_modals.s0', "إدارة المخزون")}
       size="md"
     >
       <div dir="rtl" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
@@ -50,6 +52,7 @@ function QuickAssignModal({
   onClose: () => void;
   onDone: () => void;
 }) {
+  const { t } = useTranslation();
   const [toLocationId, setToLocationId] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -98,24 +101,24 @@ function QuickAssignModal({
         </div>
       )}
 
-      <FieldLabel>المخزن المستهدف</FieldLabel>
+      <FieldLabel>{t('inventory.inventory_tree.inventory_tree_modals.s1', "المخزن المستهدف")}</FieldLabel>
       <CustomSelect
         value={toLocationId}
         onChange={(val) => setToLocationId(val)}
         options={[
-          { value: '', label: 'اختر المخزن...' },
+          { value: '', label: t('inventory.inventory_tree.inventory_tree_modals.s2', "اختر المخزن...") },
           ...validLocations.map((l) => ({ value: String(l.id), label: l.name })),
         ]}
-        placeholder="اختر المخزن..."
+        placeholder={t('inventory.inventory_tree.inventory_tree_modals.s3', "اختر المخزن...")}
       />
 
       {error && <ErrorBox msg={error} />}
 
       <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
         <button onClick={handle} disabled={loading} style={{ flex: 1, padding: '12px', borderRadius: '8px', border: 'none', cursor: 'pointer', background: 'var(--primary, #170c5c)', color: '#fff', fontWeight: 700, fontSize: '14px', opacity: loading ? 0.7 : 1 }}>
-          {loading ? 'جاري الربط...' : 'تأكيد الربط'}
+          {loading ? t('inventory.inventory_tree.inventory_tree_modals.s4', "جاري الربط...") : t('inventory.inventory_tree.inventory_tree_modals.s5', "تأكيد الربط")}
         </button>
-        <button onClick={onClose} style={{ padding: '12px 20px', borderRadius: '8px', border: '1px solid var(--border-color, #ddd)', background: 'transparent', cursor: 'pointer', fontSize: '14px' }}>إلغاء</button>
+        <button onClick={onClose} style={{ padding: '12px 20px', borderRadius: '8px', border: '1px solid var(--border-color, #ddd)', background: 'transparent', cursor: 'pointer', fontSize: '14px' }}>{t('inventory.inventory_tree.inventory_tree_modals.s6', "إلغاء")}</button>
       </div>
     </ModalBackdrop>
   );
@@ -133,6 +136,7 @@ function QuickTransferModal({
   onClose: () => void;
   onDone: () => void;
 }) {
+  const { t } = useTranslation();
   const isSingle = products.length === 1;
   const [fromLocationId, setFromLocationId] = useState('');
   const [toLocationId, setToLocationId] = useState('');
@@ -222,35 +226,35 @@ function QuickTransferModal({
 
       {!isSingle && (
         <div style={{ background: '#f3f0ff', borderRadius: '8px', padding: '10px 14px', marginBottom: '14px', fontSize: '13px', color: '#170c5c' }}>
-          سيتم نقل رصيد هذه الأصناف من كافة المخازن إلى المخزن الهدف
+          {t('inventory.inventory_tree.inventory_tree_modals.s7', "سيتم نقل رصيد هذه الأصناف من كافة المخازن إلى المخزن الهدف")}
         </div>
       )}
 
       {isSingle && (
         <div style={{ marginBottom: '10px' }}>
-          <FieldLabel>من مخزن</FieldLabel>
+          <FieldLabel>{t('inventory.inventory_tree.inventory_tree_modals.s8', "من مخزن")}</FieldLabel>
           <CustomSelect
             value={fromLocationId}
             onChange={(val) => setFromLocationId(val)}
             options={[
-              { value: '', label: 'اختر مخزن المصدر...' },
-              ...availableFrom.map((s) => ({ value: String(s.locationId || '-1'), label: `${s.locationName || 'رصيد غير مربوط'} (${s.qty})` })),
+              { value: '', label: t('inventory.inventory_tree.inventory_tree_modals.s9', "اختر مخزن المصدر...") },
+              ...availableFrom.map((s) => ({ value: String(s.locationId || '-1'), label: `${s.locationName || t('inventory.inventory_tree.inventory_tree_modals.s10', "رصيد غير مربوط")} (${s.qty})` })),
             ]}
-            placeholder="اختر مخزن المصدر..."
+            placeholder={t('inventory.inventory_tree.inventory_tree_modals.s11', "اختر مخزن المصدر...")}
           />
         </div>
       )}
 
       <div style={{ marginBottom: '10px' }}>
-        <FieldLabel>إلى مخزن</FieldLabel>
+        <FieldLabel>{t('inventory.inventory_tree.inventory_tree_modals.s12', "إلى مخزن")}</FieldLabel>
         <CustomSelect
           value={toLocationId}
           onChange={(val) => setToLocationId(val)}
           options={[
-            { value: '', label: 'اختر مخزن الوجهة...' },
+            { value: '', label: t('inventory.inventory_tree.inventory_tree_modals.s13', "اختر مخزن الوجهة...") },
             ...validTo.map((l) => ({ value: String(l.id), label: l.name })),
           ]}
-          placeholder="اختر مخزن الوجهة..."
+          placeholder={t('inventory.inventory_tree.inventory_tree_modals.s14', "اختر مخزن الوجهة...")}
         />
       </div>
 
@@ -258,7 +262,7 @@ function QuickTransferModal({
         <div style={{ marginTop: '12px' }}>
           <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', cursor: 'pointer', marginBottom: '8px' }}>
             <input type="checkbox" checked={transferAll} onChange={(e) => setTransferAll(e.target.checked)} style={{ width: '16px', height: '16px', accentColor: 'var(--primary, #170c5c)' }} />
-            نقل كل الرصيد المتاح ({maxQty})
+            {t('inventory.inventory_tree.inventory_tree_modals.s15', "نقل كل الرصيد المتاح (")}{maxQty})
           </label>
           {!transferAll && (
             <input
@@ -277,9 +281,9 @@ function QuickTransferModal({
 
       <div style={{ display: 'flex', gap: '10px' }}>
         <button onClick={handle} disabled={loading} style={{ flex: 1, padding: '12px', borderRadius: '8px', border: 'none', cursor: 'pointer', background: 'var(--primary, #170c5c)', color: '#fff', fontWeight: 700, fontSize: '14px', opacity: loading ? 0.7 : 1 }}>
-          {loading ? 'جاري النقل...' : 'تنفيذ النقل'}
+          {loading ? t('inventory.inventory_tree.inventory_tree_modals.s16', "جاري النقل...") : t('inventory.inventory_tree.inventory_tree_modals.s17', "تنفيذ النقل")}
         </button>
-        <button onClick={onClose} style={{ padding: '12px 20px', borderRadius: '8px', border: '1px solid var(--border-color, #ddd)', background: 'transparent', cursor: 'pointer', fontSize: '14px' }}>إلغاء</button>
+        <button onClick={onClose} style={{ padding: '12px 20px', borderRadius: '8px', border: '1px solid var(--border-color, #ddd)', background: 'transparent', cursor: 'pointer', fontSize: '14px' }}>{t('inventory.inventory_tree.inventory_tree_modals.s18', "إلغاء")}</button>
       </div>
     </ModalBackdrop>
   );
@@ -299,6 +303,7 @@ function QuickConsolidateModal({
   onClose: () => void;
   onDone: () => void;
 }) {
+  const { t } = useTranslation();
   const isSingle = products.length === 1;
   const [toLocationId, setToLocationId] = useState('');
   const [loading, setLoading] = useState(false);
@@ -374,27 +379,27 @@ function QuickConsolidateModal({
       <ModalHeader title={isSingle ? `توحيد مخازن — ${products[0].name}` : `توحيد ${products.length} أصناف`} onClose={onClose} />
 
       <div style={{ background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: '8px', padding: '10px 14px', marginBottom: '14px', fontSize: '13px', color: '#dc2626' }}>
-        <strong>تنبيه:</strong> سيتم نقل كل رصيد هذه الأصناف إلى المخزن الذي ستختاره الآن، وسيتم <strong>حذف</strong> هذه الأصناف من كافة المخازن الأخرى نهائياً.
+        <strong>{t('inventory.inventory_tree.inventory_tree_modals.s19', "تنبيه:")}</strong> {t('inventory.inventory_tree.inventory_tree_modals.s20', "سيتم نقل كل رصيد هذه الأصناف إلى المخزن الذي ستختاره الآن، وسيتم")} <strong>{t('inventory.inventory_tree.inventory_tree_modals.s21', "حذف")}</strong> {t('inventory.inventory_tree.inventory_tree_modals.s22', "هذه الأصناف من كافة المخازن الأخرى نهائياً.")}
       </div>
 
-      <FieldLabel>المخزن الموحد (الهدف)</FieldLabel>
+      <FieldLabel>{t('inventory.inventory_tree.inventory_tree_modals.s23', "المخزن الموحد (الهدف)")}</FieldLabel>
       <CustomSelect
         value={toLocationId}
         onChange={(val) => setToLocationId(val)}
         options={[
-          { value: '', label: 'اختر المخزن...' },
+          { value: '', label: t('inventory.inventory_tree.inventory_tree_modals.s24', "اختر المخزن...") },
           ...validTo.map((l) => ({ value: String(l.id), label: l.name })),
         ]}
-        placeholder="اختر المخزن..."
+        placeholder={t('inventory.inventory_tree.inventory_tree_modals.s25', "اختر المخزن...")}
       />
 
       {error && <ErrorBox msg={error} />}
 
       <div style={{ display: 'flex', gap: '10px', marginTop: '16px' }}>
         <button onClick={handle} disabled={loading} style={{ flex: 1, padding: '12px', borderRadius: '8px', border: 'none', cursor: 'pointer', background: '#dc2626', color: '#fff', fontWeight: 700, fontSize: '14px', opacity: loading ? 0.7 : 1 }}>
-          {loading ? 'جاري التوحيد...' : 'تأكيد التوحيد'}
+          {loading ? t('inventory.inventory_tree.inventory_tree_modals.s26', "جاري التوحيد...") : t('inventory.inventory_tree.inventory_tree_modals.s27', "تأكيد التوحيد")}
         </button>
-        <button onClick={onClose} style={{ padding: '12px 20px', borderRadius: '8px', border: '1px solid var(--border-color, #ddd)', background: 'transparent', cursor: 'pointer', fontSize: '14px' }}>إلغاء</button>
+        <button onClick={onClose} style={{ padding: '12px 20px', borderRadius: '8px', border: '1px solid var(--border-color, #ddd)', background: 'transparent', cursor: 'pointer', fontSize: '14px' }}>{t('inventory.inventory_tree.inventory_tree_modals.s28', "إلغاء")}</button>
       </div>
     </ModalBackdrop>
   );
@@ -413,6 +418,7 @@ function CategoryTransferModal({
   onClose: () => void;
   onDone: () => void;
 }) {
+  const { t } = useTranslation();
   const [fromLocationId, setFromLocationId] = useState('');
   const [toLocationId, setToLocationId] = useState('');
   const [loading, setLoading] = useState(false);
@@ -455,15 +461,15 @@ function CategoryTransferModal({
       <ModalHeader title={`نقل قسم: ${categoryName}`} onClose={onClose} />
 
       <div style={{ marginBottom: '10px' }}>
-        <FieldLabel>من مخزن</FieldLabel>
+        <FieldLabel>{t('inventory.inventory_tree.inventory_tree_modals.s29', "من مخزن")}</FieldLabel>
         <CustomSelect
           value={fromLocationId}
           onChange={(val) => setFromLocationId(val)}
           options={[
-            { value: '', label: 'اختر مخزن المصدر...' },
+            { value: '', label: t('inventory.inventory_tree.inventory_tree_modals.s30', "اختر مخزن المصدر...") },
             ...validLocations.map((l) => ({ value: String(l.id), label: l.name })),
           ]}
-          placeholder="اختر مخزن المصدر..."
+          placeholder={t('inventory.inventory_tree.inventory_tree_modals.s31', "اختر مخزن المصدر...")}
         />
       </div>
 
@@ -471,20 +477,20 @@ function CategoryTransferModal({
         <div style={{ background: affectedProducts.length > 0 ? '#f0fdf4' : '#fef2f2', border: `1px solid ${affectedProducts.length > 0 ? '#86efac' : '#fca5a5'}`, borderRadius: '8px', padding: '10px 14px', marginBottom: '14px', fontSize: '13px', color: affectedProducts.length > 0 ? '#166534' : '#dc2626' }}>
           {affectedProducts.length > 0
             ? `سيتم نقل ${affectedProducts.length} صنف من هذا القسم`
-            : 'لا توجد أصناف بها رصيد في هذا المخزن'}
+            : t('inventory.inventory_tree.inventory_tree_modals.s32', "لا توجد أصناف بها رصيد في هذا المخزن")}
         </div>
       )}
 
       <div style={{ marginBottom: '10px' }}>
-        <FieldLabel>إلى مخزن</FieldLabel>
+        <FieldLabel>{t('inventory.inventory_tree.inventory_tree_modals.s33', "إلى مخزن")}</FieldLabel>
         <CustomSelect
           value={toLocationId}
           onChange={(val) => setToLocationId(val)}
           options={[
-            { value: '', label: 'اختر مخزن الوجهة...' },
+            { value: '', label: t('inventory.inventory_tree.inventory_tree_modals.s34', "اختر مخزن الوجهة...") },
             ...validTo.map((l) => ({ value: String(l.id), label: l.name })),
           ]}
-          placeholder="اختر مخزن الوجهة..."
+          placeholder={t('inventory.inventory_tree.inventory_tree_modals.s35', "اختر مخزن الوجهة...")}
         />
       </div>
 
@@ -492,9 +498,9 @@ function CategoryTransferModal({
 
       <div style={{ display: 'flex', gap: '10px' }}>
         <button onClick={handle} disabled={loading || affectedProducts.length === 0} style={{ flex: 1, padding: '12px', borderRadius: '8px', border: 'none', cursor: 'pointer', background: 'var(--primary, #170c5c)', color: '#fff', fontWeight: 700, fontSize: '14px', opacity: (loading || affectedProducts.length === 0) ? 0.5 : 1 }}>
-          {loading ? 'جاري النقل...' : `نقل ${affectedProducts.length} صنف`}
+          {loading ? t('inventory.inventory_tree.inventory_tree_modals.s36', "جاري النقل...") : `نقل ${affectedProducts.length} صنف`}
         </button>
-        <button onClick={onClose} style={{ padding: '12px 20px', borderRadius: '8px', border: '1px solid var(--border-color, #ddd)', background: 'transparent', cursor: 'pointer', fontSize: '14px' }}>إلغاء</button>
+        <button onClick={onClose} style={{ padding: '12px 20px', borderRadius: '8px', border: '1px solid var(--border-color, #ddd)', background: 'transparent', cursor: 'pointer', fontSize: '14px' }}>{t('inventory.inventory_tree.inventory_tree_modals.s37', "إلغاء")}</button>
       </div>
     </ModalBackdrop>
   );

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 import { SignagePromoItem } from './types';
 import { TagIcon, AwardIcon, TruckIcon, PackageIcon } from '@/shared/components/icons/AppIcons';
@@ -15,6 +16,7 @@ export const SignageHeroCard: React.FC<SignageHeroCardProps> = ({
   totalItems,
   currencyCode,
 }) => {
+  const { t } = useTranslation();
   return (
     <div
       style={{
@@ -80,7 +82,7 @@ export const SignageHeroCard: React.FC<SignageHeroCardProps> = ({
                   borderRadius: '12px',
                 }}
               >
-                خصم {activeItem.discountPercent}%
+                {t('pos.signage.signage_hero_card.s0', "خصم")} {activeItem.discountPercent}%
               </div>
             )}
 
@@ -95,7 +97,7 @@ export const SignageHeroCard: React.FC<SignageHeroCardProps> = ({
                 fontWeight: 800,
               }}
             >
-              {currentIndex + 1} من {totalItems}
+              {currentIndex + 1} {t('pos.signage.signage_hero_card.s1', "من")} {totalItems}
             </div>
           </div>
         </div>
@@ -162,7 +164,7 @@ export const SignageHeroCard: React.FC<SignageHeroCardProps> = ({
                   border: '1px solid #e2e8f0',
                 }}
               >
-                كود الصنف: {activeItem.barcode}
+                {t('pos.signage.signage_hero_card.s2', "كود الصنف:")} {activeItem.barcode}
               </div>
             )}
 
@@ -183,7 +185,7 @@ export const SignageHeroCard: React.FC<SignageHeroCardProps> = ({
                 }}
               >
                 <AwardIcon size={12} color="#170e5e" />
-                <span>منتج أصلي ومضمون 100%</span>
+                <span>{t('pos.signage.signage_hero_card.s3', "منتج أصلي ومضمون 100%")}</span>
               </span>
 
               <span
@@ -201,7 +203,7 @@ export const SignageHeroCard: React.FC<SignageHeroCardProps> = ({
                 }}
               >
                 <TruckIcon size={12} color="#170e5e" />
-                <span>تسليم فوري من صالة العرض</span>
+                <span>{t('pos.signage.signage_hero_card.s4', "تسليم فوري من صالة العرض")}</span>
               </span>
             </div>
           </div>
@@ -222,7 +224,7 @@ export const SignageHeroCard: React.FC<SignageHeroCardProps> = ({
         }}
       >
         <div>
-          <span style={{ fontSize: '13px', color: '#64748b', fontWeight: 700 }}>السعر السابق</span>
+          <span style={{ fontSize: '13px', color: '#64748b', fontWeight: 700 }}>{t('pos.signage.signage_hero_card.s5', "السعر السابق")}</span>
           <div
             style={{
               fontSize: '22px',
@@ -248,7 +250,7 @@ export const SignageHeroCard: React.FC<SignageHeroCardProps> = ({
               borderRadius: '20px',
             }}
           >
-            وفر {activeItem.savingAmount.toFixed(2)} {currencyCode}
+            {t('pos.signage.signage_hero_card.s6', "وفر")} {activeItem.savingAmount.toFixed(2)} {currencyCode}
           </span>
           <div
             style={{
@@ -280,7 +282,7 @@ export const SignageHeroCard: React.FC<SignageHeroCardProps> = ({
             }}
           >
             <PackageIcon size={16} color="#ffffff" />
-            <span>متوفر بصالة العرض</span>
+            <span>{t('pos.signage.signage_hero_card.s7', "متوفر بصالة العرض")}</span>
           </span>
         </div>
       </div>

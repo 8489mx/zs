@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import {
   ClockIcon,
@@ -19,11 +20,12 @@ export function MaintenanceTicketsKpiCards({
   deliveredCount,
   totalRemainingSum,
 }: MaintenanceTicketsKpiCardsProps) {
+  const { t } = useTranslation();
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px', marginBottom: '14px' }}>
       <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}>
         <div>
-          <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>أجهزة قيد العمل والفحص</div>
+          <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>{t('maintenance.tickets.maintenance_tickets_kpi_cards.s0', "أجهزة قيد العمل والفحص")}</div>
           <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>{inProgressCount}</div>
         </div>
         <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: '#f8fafc', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
@@ -33,7 +35,7 @@ export function MaintenanceTicketsKpiCards({
 
       <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}>
         <div>
-          <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>أجهزة جاهزة للتسليم</div>
+          <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>{t('maintenance.tickets.maintenance_tickets_kpi_cards.s1', "أجهزة جاهزة للتسليم")}</div>
           <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>{readyCount}</div>
         </div>
         <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: '#f8fafc', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
@@ -43,7 +45,7 @@ export function MaintenanceTicketsKpiCards({
 
       <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}>
         <div>
-          <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>تم تسليمها للعملاء</div>
+          <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>{t('maintenance.tickets.maintenance_tickets_kpi_cards.s2', "تم تسليمها للعملاء")}</div>
           <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>{deliveredCount}</div>
         </div>
         <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: '#f8fafc', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
@@ -53,7 +55,7 @@ export function MaintenanceTicketsKpiCards({
 
       <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}>
         <div>
-          <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>مبالغ متبقية للتحصيل</div>
+          <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>{t('maintenance.tickets.maintenance_tickets_kpi_cards.s3', "مبالغ متبقية للتحصيل")}</div>
           <div style={{ fontSize: '1.3rem', fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>
             {totalRemainingSum.toFixed(2)} <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}><CurrencySymbol /></span>
           </div>

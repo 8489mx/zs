@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useEffect, useRef, useState, MouseEvent as ReactMouseEvent } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 
@@ -15,6 +16,7 @@ const HR_SECTIONS = [
 ];
 
 export function HrSectionNav() {
+  const { t: __t } = useTranslation();
   const location = useLocation();
   const navRef = useRef<HTMLDivElement | null>(null);
   const activeLinkRef = useRef<HTMLAnchorElement | null>(null);
@@ -92,7 +94,7 @@ export function HrSectionNav() {
           type="button"
           className="hr-nav-arrow-btn hr-nav-arrow-right"
           onClick={() => scrollByAmount(160)}
-          aria-label="تمرير لليمين"
+          aria-label={__t('hr.hr_section_nav.s0', "تمرير لليمين")}
           style={{
             position: 'absolute',
             right: '-4px',
@@ -119,7 +121,7 @@ export function HrSectionNav() {
       <nav
         ref={navRef}
         className="hr-section-nav"
-        aria-label="تنقل الموارد البشرية"
+        aria-label={__t('hr.hr_section_nav.s1', "تنقل الموارد البشرية")}
         onScroll={checkScroll}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
@@ -167,7 +169,7 @@ export function HrSectionNav() {
           type="button"
           className="hr-nav-arrow-btn hr-nav-arrow-left"
           onClick={() => scrollByAmount(-160)}
-          aria-label="تمرير لليسار"
+          aria-label={__t('hr.hr_section_nav.s2', "تمرير لليسار")}
           style={{
             position: 'absolute',
             left: '-4px',

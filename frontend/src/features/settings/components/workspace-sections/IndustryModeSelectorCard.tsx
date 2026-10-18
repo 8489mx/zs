@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useTransition } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import {
@@ -41,67 +42,85 @@ type CommerceSubVertical =
 interface PillarConfig {
   key: PillarKey;
   labelAr: string;
+  labelEn: string;
   badge: string;
   descriptionAr: string;
+  descriptionEn: string;
   icon: typeof BuildingIcon;
   color: string;
   accentBg: string;
   landingRoute: string;
   featuresSummary: string;
+  featuresSummaryEn: string;
 }
 
 const PILLARS: PillarConfig[] = [
   {
     key: 'contracting',
     labelAr: 'قطاع المقاولات وإدارة المشاريع',
+    labelEn: 'Contracting & Project Management',
     badge: 'Contracting ERP',
     descriptionAr: 'إدارة متكاملة للمشاريع الإنشائية، جداول الكميات (BOQ)، الأوامر التغييرية، المستخلصات (IPC)، عقود مقاولي الباطن واليوميات الميدانية.',
+    descriptionEn: 'Integrated management of construction projects, Bills of Quantities (BOQ), change orders, interim payment certificates (IPC), subcontractor contracts, and field daily logs.',
     icon: BuildingIcon,
     color: '#0284c7',
     accentBg: '#f0f9ff',
     landingRoute: '/contracting',
     featuresSummary: 'المشاريع • المقايسات • المستخلصات • مقاولو الباطن • الحسابات العامة • الموارد البشرية',
+    featuresSummaryEn: 'Projects • BOQ • IPCs • Subcontractors • General Accounting • HR',
   },
   {
     key: 'maritime_freight',
     labelAr: 'قطاع الشحن البحري واللوجستيات',
+    labelEn: 'Maritime Freight & Logistics',
     badge: 'Freight Forwarding',
     descriptionAr: 'منظومة الخطوط الملاحية والموانئ، مقارنة أسعار النولون (RFQ)، عروض أسعار العملاء، أوامر تشغيل الشحنات، وتتبع الحاويات وفترات السماح.',
+    descriptionEn: 'Shipping lines & ports system, freight rate comparisons (RFQ), customer quotations, shipment operation orders, and container demurrage tracking.',
     icon: ShipIcon,
     color: '#0d9488',
     accentBg: '#f0fdfa',
     landingRoute: '/maritime',
     featuresSummary: 'استفسارات الشحن • تسعير النولون • أوامر التشغيل • الحاويات والغرامات • الشجرة المحاسبية',
+    featuresSummaryEn: 'Freight Inquiries • Ocean Freight RFQ • Operation Orders • Containers & Demurrage • Chart of Accounts',
   },
   {
     key: 'manufacturing',
     labelAr: 'قطاع التصنيع والإنتاج الصناعي',
+    labelEn: 'Manufacturing & Industrial Production',
     badge: 'Industrial Production',
     descriptionAr: 'منظومة المصانع وإدارة خطوط الإنتاج، أوامر التشغيل، قوائم المكونات (BOM)، تكاليف الإنتاج ومخازن المواد الخام والمنتج التام.',
+    descriptionEn: 'Factory system and production line management, work orders, bills of materials (BOM), production costing, raw materials and finished goods warehouses.',
     icon: LayersIcon,
     color: '#4338ca',
     accentBg: '#e0e7ff',
     landingRoute: '/manufacturing/work-orders',
     featuresSummary: 'أوامر الإنتاج • قوائم المكونات BOM • مخازن المواد الخام • مراكز التكلفة • مشتريات التوريد • CRM',
+    featuresSummaryEn: 'Work Orders • BOM • Raw Material Warehouses • Cost Centers • Supply Procurement • CRM',
   },
   {
     key: 'commerce',
     labelAr: 'قطاع التجارة وإدارة الأعمال',
+    labelEn: 'Commerce & Retail Business',
     badge: 'Commerce & Retail',
     descriptionAr: 'منظومة التجارة المتكاملة لنقاط البيع السريعة، المخازن والمستودعات، المشتريات والموردين، مع تخصيصات فرعية دقيقة لطبيعة النشاط.',
+    descriptionEn: 'Integrated commerce system for fast POS, warehouses & inventory, purchasing & suppliers, with sub-vertical configurations tailored to your business.',
     icon: ShoppingBagIcon,
     color: '#170e5e',
     accentBg: '#eef2ff',
     landingRoute: '/',
     featuresSummary: 'نقاط البيع • المخازن والباركود • المشتريات • الحسابات • الخزينة • الفاتورة الإلكترونية',
+    featuresSummaryEn: 'POS • Warehouses & Barcode • Purchasing • Accounting • Treasury • E-Invoicing',
   },
 ];
 
 interface SubVerticalConfig {
   key: CommerceSubVertical;
   labelAr: string;
+  labelEn: string;
   tag: string;
+  tagEn: string;
   descriptionAr: string;
+  descriptionEn: string;
   icon: typeof PackageIcon;
 }
 
@@ -109,36 +128,51 @@ const PRIMARY_COMMERCE_SUB_VERTICALS: SubVerticalConfig[] = [
   {
     key: 'retail_general',
     labelAr: 'التجزئة والتجارة العامة',
+    labelEn: 'Retail & General Trade',
     tag: 'عام وافتراضي',
+    tagEn: 'Default & General',
     descriptionAr: 'محلات التجزئة، الجملة، السوبرماركت، والأنشطة التجارية المتنوعة بمخزون وباركود قياسي.',
+    descriptionEn: 'Retail shops, wholesale, supermarkets, and diverse commercial activities with standard stock & barcodes.',
     icon: PackageIcon,
   },
   {
     key: 'wholesale_van',
     labelAr: 'تجارة وتوزيع الجملة وأسطول الفان',
+    labelEn: 'Wholesale & Van Fleet Sales',
     tag: 'مخازن وسيارات ومناديب',
+    tagEn: 'Warehouses, Vans & Reps',
     descriptionAr: 'شركات التوزيع، تجارة الجملة، أسطول سيارات الفان، خطوط السير، والمخازن المتنقلة مع إلغاء نقاط البيع والكاشير.',
+    descriptionEn: 'Distribution companies, wholesale trade, van sales fleet, delivery routes, and mobile warehouses.',
     icon: TruckIcon,
   },
   {
     key: 'pharmacy',
     labelAr: 'الصيدليات والمستلزمات الطبية',
+    labelEn: 'Pharmacies & Medical Supplies',
     tag: 'FEFO الرقابي',
+    tagEn: 'FEFO Regulatory',
     descriptionAr: 'تتبع التشغيلات وتواريخ انتهاء الصلاحية، دليل الأدوية والبدائل، الروشتات، وكشكول النواقص.',
+    descriptionEn: 'Batch tracking and expiry dates, drug dictionary & alternatives, prescriptions, and shortage register.',
     icon: ShieldCheckIcon,
   },
   {
     key: 'restaurant',
     labelAr: 'المطاعم والكافيهات والأغذية',
+    labelEn: 'Restaurants, Cafes & Food Services',
     tag: 'KDS والمطبخ',
+    tagEn: 'KDS & Kitchen',
     descriptionAr: 'شاشة المطبخ KDS، الطاولات والصالات، خيارات وإضافات الأصناف، والطلبات السريعة.',
+    descriptionEn: 'Kitchen Display System (KDS), dining tables, item variations & modifiers, and fast takeaway orders.',
     icon: ReceiptIcon,
   },
   {
     key: 'maintenance',
     labelAr: 'مراكز الصيانة وخدمة الأجهزة',
+    labelEn: 'Service & Device Repair Centers',
     tag: 'كروت الصيانة و IMEI',
+    tagEn: 'Repair Cards & IMEI',
     descriptionAr: 'استلام الأجهزة، كروت الصيانة والضمان، تتبع أرقام السيريال IMEI، وفحص واستبدال المستعمل.',
+    descriptionEn: 'Device intake, repair cards & warranty, IMEI serial tracking, and device trade-in valuation.',
     icon: ToolIcon,
   },
 ];
@@ -147,22 +181,31 @@ const EXTENDED_COMMERCE_SUB_VERTICALS: SubVerticalConfig[] = [
   {
     key: 'import_export',
     labelAr: 'الاستيراد والتجارة الدولية',
+    labelEn: 'Import & International Trade',
     tag: 'شحنات وجمارك وشركاء',
+    tagEn: 'Shipments & Customs',
     descriptionAr: 'إدارة الشحنات والحاويات الجمركية، مديونية المصانع والموردين الخارجيين، وأرباح الشركاء الممولين.',
+    descriptionEn: 'Customs shipments, overseas factory & vendor payables, and investor/financier profit shares.',
     icon: GlobeIcon,
   },
   {
     key: 'auto_parts',
     labelAr: 'قطع غيار السيارات والمعدات',
+    labelEn: 'Auto Parts & Machinery',
     tag: 'أرقام OEM وتوافق السيارات',
+    tagEn: 'OEM Numbers & Fitment',
     descriptionAr: 'دليل قطع الغيار، أرقام القطع الأصلية OEM، وتوافق موديلات وماركات وسنوات صنع المركبات.',
+    descriptionEn: 'Parts directory, OEM numbers, vehicle make/model/year compatibility and cross-reference.',
     icon: TruckIcon,
   },
   {
     key: 'clothing',
     labelAr: 'الملابس والأزياء والأحذية',
+    labelEn: 'Fashion, Apparel & Footwear',
     tag: 'مصفوفة المقاسات والألوان',
+    tagEn: 'Size & Color Matrix',
     descriptionAr: 'إدارة المقاسات والألوان المتعددة للأصناف، توليد باركود الفاشون، وتصنيفات الموديلات والمواسم.',
+    descriptionEn: 'Multi-variant size and color matrices, fashion barcode generation, seasonal styles and collections.',
     icon: TagIcon,
   },
 ];
@@ -175,6 +218,8 @@ const ALL_COMMERCE_SUB_VERTICALS: SubVerticalConfig[] = [
 const COMMERCE_SUB_VERTICALS = ALL_COMMERCE_SUB_VERTICALS;
 
 export function IndustryModeSelectorCard({ settings, canManageSettings }: IndustryModeSelectorCardProps) {
+  const { t, i18n } = useTranslation();
+  const isEn = i18n.language === 'en';
   const queryClient = useQueryClient();
   const tenant = useAuthStore((s) => s.tenant);
   const updateSessionMeta = useAuthStore((s) => s.updateSessionMeta);
@@ -312,7 +357,7 @@ export function IndustryModeSelectorCard({ settings, canManageSettings }: Indust
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <strong style={{ fontSize: '1.05rem', color: '#0f172a', fontWeight: 900 }}>
-              نمط المنظومة ونشاط المنشأة التشغيلي
+              {t('settings.workspace_sections.industry_mode_selector_card.s0', "نمط المنظومة ونشاط المنشأة التشغيلي")}
             </strong>
             <span
               style={{
@@ -324,11 +369,11 @@ export function IndustryModeSelectorCard({ settings, canManageSettings }: Indust
                 fontWeight: 800,
               }}
             >
-              عزل قطاعي شامل
+              {t('settings.workspace_sections.industry_mode_selector_card.s1', "عزل قطاعي شامل")}
             </span>
           </div>
           <span style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '3px', display: 'block' }}>
-            اختر القطاع الرئيسي وطبيعة العمل لتهيئة القوائم، شاشات التشغيل، والمعاملات المالية تلقائياً.
+            {t('settings.workspace_sections.industry_mode_selector_card.s2', "اختر القطاع الرئيسي وطبيعة العمل لتهيئة القوائم، شاشات التشغيل، والمعاملات المالية تلقائياً.")}
           </span>
         </div>
 
@@ -344,11 +389,11 @@ export function IndustryModeSelectorCard({ settings, canManageSettings }: Indust
               fontWeight: 700,
             }}
           >
-            النمط الحالي: <strong style={{ color: '#170e5e' }}>{PILLARS.find((p) => p.key === currentPillar)?.labelAr}</strong>
+            {t('settings.workspace_sections.industry_mode_selector_card.s3', "النمط الحالي:")} <strong style={{ color: '#170e5e' }}>{isEn ? (PILLARS.find((p) => p.key === currentPillar)?.labelEn || PILLARS.find((p) => p.key === currentPillar)?.labelAr) : PILLARS.find((p) => p.key === currentPillar)?.labelAr}</strong>
             {currentPillar === 'commerce' && (
               <span style={{ color: '#047857' }}>
                 {' '}
-                ({COMMERCE_SUB_VERTICALS.find((v) => v.key === currentSubVertical)?.labelAr})
+                ({isEn ? (COMMERCE_SUB_VERTICALS.find((v) => v.key === currentSubVertical)?.labelEn || COMMERCE_SUB_VERTICALS.find((v) => v.key === currentSubVertical)?.labelAr) : COMMERCE_SUB_VERTICALS.find((v) => v.key === currentSubVertical)?.labelAr})
               </span>
             )}
           </span>
@@ -386,7 +431,7 @@ export function IndustryModeSelectorCard({ settings, canManageSettings }: Indust
                 if (pillar.key === 'commerce') {
                   if (!isPillarActive) {
                     const targetSub = currentSubVertical || 'retail_general';
-                    const targetLabel = COMMERCE_SUB_VERTICALS.find((s) => s.key === targetSub)?.labelAr || 'التجزئة والتجارة العامة';
+                    const targetLabel = COMMERCE_SUB_VERTICALS.find((s) => s.key === targetSub)?.labelAr || t('settings.workspace_sections.industry_mode_selector_card.s4', "التجزئة والتجارة العامة");
                     handleSelectMode(targetSub, `قطاع التجارة - ${targetLabel}`);
                   }
                 } else {
@@ -429,7 +474,7 @@ export function IndustryModeSelectorCard({ settings, canManageSettings }: Indust
                   </div>
                   <div style={{ minWidth: 0 }}>
                     <strong style={{ fontSize: '0.86rem', color: '#0f172a', fontWeight: 800, display: 'block', lineHeight: 1.25 }}>
-                      {pillar.labelAr}
+                      {isEn ? pillar.labelEn : pillar.labelAr}
                     </strong>
                     <span style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 600 }}>{pillar.badge}</span>
                   </div>
@@ -452,7 +497,7 @@ export function IndustryModeSelectorCard({ settings, canManageSettings }: Indust
                     }}
                   >
                     <CheckCircleIcon size={12} color={pillar.color} />
-                    مفعل
+                    {t('settings.workspace_sections.industry_mode_selector_card.s5', "مفعل")}
                   </span>
                 )}
               </div>
@@ -468,7 +513,7 @@ export function IndustryModeSelectorCard({ settings, canManageSettings }: Indust
                   textJustify: 'inter-word',
                 }}
               >
-                {pillar.descriptionAr}
+                {isEn ? pillar.descriptionEn : pillar.descriptionAr}
               </p>
 
               {/* Features Pill Footer */}
@@ -483,7 +528,7 @@ export function IndustryModeSelectorCard({ settings, canManageSettings }: Indust
                   lineHeight: 1.4,
                 }}
               >
-                {pillar.featuresSummary}
+                {isEn ? pillar.featuresSummaryEn : pillar.featuresSummary}
               </div>
 
               {isTargetUpdating && (
@@ -501,7 +546,7 @@ export function IndustryModeSelectorCard({ settings, canManageSettings }: Indust
                     color: '#170e5e',
                   }}
                 >
-                  جاري تحويل النمط...
+                  {t('settings.workspace_sections.industry_mode_selector_card.s6', "جاري تحويل النمط...")}
                 </div>
               )}
             </div>
@@ -526,10 +571,10 @@ export function IndustryModeSelectorCard({ settings, canManageSettings }: Indust
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
             <div>
               <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>
-                التخصص الفرعي لقطاع التجارة ({showAllSubVerticals ? '7 تخصصات متاحة' : '4 تخصصات رئيسية'})
+                {t('settings.workspace_sections.industry_mode_selector_card.s7', "التخصص الفرعي لقطاع التجارة (")}{showAllSubVerticals ? t('settings.workspace_sections.industry_mode_selector_card.s8', "7 تخصصات متاحة") : t('settings.workspace_sections.industry_mode_selector_card.s9', "4 تخصصات رئيسية")})
               </strong>
               <span style={{ fontSize: '0.74rem', color: '#64748b', display: 'block', marginTop: '2px' }}>
-                حدد التخصص الدقيق لنشاطك لتفعيل الأدوات المتخصصة دون تداخل مع الأنشطة الأخرى:
+                {t('settings.workspace_sections.industry_mode_selector_card.s10', "حدد التخصص الدقيق لنشاطك لتفعيل الأدوات المتخصصة دون تداخل مع الأنشطة الأخرى:")}
               </span>
             </div>
 
@@ -552,7 +597,7 @@ export function IndustryModeSelectorCard({ settings, canManageSettings }: Indust
               }}
             >
               <SlidersIcon size={14} color={showAllSubVerticals ? '#170e5e' : '#475569'} />
-              <span>{showAllSubVerticals ? 'إخفاء الأنشطة الإضافية' : 'عرض باقي التخصصات والأنشطة (3)'}</span>
+              <span>{showAllSubVerticals ? t('settings.workspace_sections.industry_mode_selector_card.s11', "إخفاء الأنشطة الإضافية") : t('settings.workspace_sections.industry_mode_selector_card.s12', "عرض باقي التخصصات والأنشطة (3)")}</span>
             </button>
           </div>
 
@@ -606,7 +651,7 @@ export function IndustryModeSelectorCard({ settings, canManageSettings }: Indust
                         <SubIcon size={15} />
                       </div>
                       <strong style={{ fontSize: '0.82rem', color: isSubActive ? '#170e5e' : '#0f172a', fontWeight: 800 }}>
-                        {sub.labelAr}
+                        {isEn ? sub.labelEn : sub.labelAr}
                       </strong>
                     </div>
 
@@ -622,7 +667,7 @@ export function IndustryModeSelectorCard({ settings, canManageSettings }: Indust
                       textAlign: 'justify',
                     }}
                   >
-                    {sub.descriptionAr}
+                    {isEn ? sub.descriptionEn : sub.descriptionAr}
                   </p>
 
                   <span
@@ -633,7 +678,7 @@ export function IndustryModeSelectorCard({ settings, canManageSettings }: Indust
                       marginTop: '4px',
                     }}
                   >
-                    {sub.tag}
+                    {isEn ? sub.tagEn : sub.tag}
                   </span>
 
                   {isSubUpdating && (
@@ -651,7 +696,7 @@ export function IndustryModeSelectorCard({ settings, canManageSettings }: Indust
                         color: '#170e5e',
                       }}
                     >
-                      جارٍ التفعيل...
+                      {t('settings.workspace_sections.industry_mode_selector_card.s13', "جارٍ التفعيل...")}
                     </div>
                   )}
                 </div>
@@ -677,7 +722,7 @@ export function IndustryModeSelectorCard({ settings, canManageSettings }: Indust
       >
         <AlertCircleIcon size={16} color="#64748b" />
         <span>
-          <strong>ملاحظة أمان:</strong> تغيير نمط المنظومة يعيد ضبط واجهات القوائم والصلاحيات التشغيلية دون حذف أي بيانات سابقة. تظل كافة الفواتير والقيود المحاسبية ومشاريعك محفوظة بأمان تام في قاعدة البيانات.
+          <strong>{t('settings.workspace_sections.industry_mode_selector_card.s14', "ملاحظة أمان:")}</strong> {t('settings.workspace_sections.industry_mode_selector_card.s15', "تغيير نمط المنظومة يعيد ضبط واجهات القوائم والصلاحيات التشغيلية دون حذف أي بيانات سابقة. تظل كافة الفواتير والقيود المحاسبية ومشاريعك محفوظة بأمان تام في قاعدة البيانات.")}
         </span>
       </div>
     </div>

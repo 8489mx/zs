@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { getGlobalCurrencySymbol } from '@/lib/currencies';
 import { Button } from '@/shared/ui/button';
@@ -51,6 +52,7 @@ export function ProductOfferComboCreatorTab({
   saveComboMutation,
   onCancel,
 }: ProductOfferComboCreatorTabProps) {
+  const { t } = useTranslation();
   return (
     <div style={{
       background: '#ffffff',
@@ -86,10 +88,10 @@ export function ProductOfferComboCreatorTab({
                 </div>
                 <div>
                   <strong style={{ fontSize: '0.92rem', color: '#0f172a', display: 'block' }}>
-                    {editingComboId ? `تعديل العرض المجمع: ${comboName || 'عرض'}` : 'إعداد عرض مجمع جديد (كومبو)'}
+                    {editingComboId ? `تعديل العرض المجمع: ${comboName || t('products.offers.product_offer_combo_creator_tab.s0', "عرض")}` : t('products.offers.product_offer_combo_creator_tab.s1', "إعداد عرض مجمع جديد (كومبو)")}
                   </strong>
                   <span style={{ fontSize: '0.74rem', color: '#64748b' }}>
-                    {editingComboId ? 'تعديل السعر أو إضافة وحذف المكونات' : 'أنشئ باقة أو وجبة مركبة بسعر خاص ومخفض للزبائن'}
+                    {editingComboId ? t('products.offers.product_offer_combo_creator_tab.s2', "تعديل السعر أو إضافة وحذف المكونات") : t('products.offers.product_offer_combo_creator_tab.s3', "أنشئ باقة أو وجبة مركبة بسعر خاص ومخفض للزبائن")}
                   </span>
                 </div>
               </div>
@@ -115,18 +117,18 @@ export function ProductOfferComboCreatorTab({
                   <line x1="19" y1="12" x2="5" y2="12" />
                   <polyline points="12 19 5 12 12 5" />
                 </svg>
-                العودة للعروض
+                {t('products.offers.product_offer_combo_creator_tab.s4', "العودة للعروض")}
               </button>
             </div>
 
             <div className="page-stack" style={{ gap: 10 }}>
-              <Field label="اسم العرض المجمع / الباقة *">
+              <Field label={t('products.offers.product_offer_combo_creator_tab.s5', "اسم العرض المجمع / الباقة *")}>
                 <input
                   type="text"
                   autoFocus
                   value={comboName}
                   onChange={(e) => setComboName(e.target.value)}
-                  placeholder="مثال: عرض التوفير العائلي / وجبة كومبو ميكس"
+                  placeholder={t('products.offers.product_offer_combo_creator_tab.s6', "مثال: عرض التوفير العائلي / وجبة كومبو ميكس")}
                   disabled={saveComboMutation.isPending}
                   style={{ fontWeight: 600 }}
                 />
@@ -140,26 +142,26 @@ export function ProductOfferComboCreatorTab({
                     min="0"
                     value={comboPrice}
                     onChange={(e) => setComboPrice(e.target.value)}
-                    placeholder="مثال: 99.00"
+                    placeholder={t('products.offers.product_offer_combo_creator_tab.s7', "مثال: 99.00")}
                     disabled={saveComboMutation.isPending}
                     style={{ fontWeight: 700, color: '#16a34a', fontSize: '1rem' }}
                   />
                 </Field>
 
-                <Field label="الباركود (اختياري)">
+                <Field label={t('products.offers.product_offer_combo_creator_tab.s8', "الباركود (اختياري)")}>
                   <div style={{ display: 'flex', gap: 4 }}>
                     <input
                       type="text"
                       value={comboBarcode}
                       onChange={(e) => setComboBarcode(e.target.value)}
-                      placeholder="توليد أو مسح"
+                      placeholder={t('products.offers.product_offer_combo_creator_tab.s9', "توليد أو مسح")}
                       disabled={saveComboMutation.isPending}
                       style={{ flex: 1, fontFamily: 'monospace' }}
                     />
                     <button
                       type="button"
                       onClick={() => setComboBarcode(String(Date.now()).slice(-8))}
-                      title="توليد باركود تلقائي"
+                      title={t('products.offers.product_offer_combo_creator_tab.s10', "توليد باركود تلقائي")}
                       style={{
                         background: '#f1f5f9',
                         border: '1px solid #cbd5e1',
@@ -170,7 +172,7 @@ export function ProductOfferComboCreatorTab({
                         fontWeight: 600
                       }}
                     >
-                      توليد
+                      {t('products.offers.product_offer_combo_creator_tab.s11', "توليد")}
                     </button>
                   </div>
                 </Field>
@@ -185,7 +187,7 @@ export function ProductOfferComboCreatorTab({
                 marginTop: 4
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.8rem', color: '#475569', marginBottom: 6 }}>
-                  <span>إجمالي أسعار المكونات منفردة:</span>
+                  <span>{t('products.offers.product_offer_combo_creator_tab.s12', "إجمالي أسعار المكونات منفردة:")}</span>
                   <strong style={{
                     color: '#0f172a',
                     fontSize: '0.88rem',
@@ -196,7 +198,7 @@ export function ProductOfferComboCreatorTab({
                 </div>
 
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.8rem', color: '#64748b', marginBottom: 6 }}>
-                  <span>تكلفة المكونات:</span>
+                  <span>{t('products.offers.product_offer_combo_creator_tab.s13', "تكلفة المكونات:")}</span>
                   <span style={{ fontWeight: 600 }}>{formatCurrency(comboTotalCost)} <CurrencySymbol /></span>
                 </div>
 
@@ -211,7 +213,7 @@ export function ProductOfferComboCreatorTab({
                   marginTop: 4,
                   borderTop: '1px dashed #cbd5e1'
                 }}>
-                  <span>سعر العرض الترويجي:</span>
+                  <span>{t('products.offers.product_offer_combo_creator_tab.s14', "سعر العرض الترويجي:")}</span>
                   <span style={{ color: '#16a34a', fontSize: '1.15rem', fontWeight: 800 }}>
                     {formatCurrency(numericComboPrice)} <CurrencySymbol />
                   </span>
@@ -232,10 +234,10 @@ export function ProductOfferComboCreatorTab({
                     fontWeight: 700
                   }}>
                     <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                      <span>توفير للزبون:</span> <strong>{formatCurrency(comboSavings)} <CurrencySymbol /></strong>
+                      <span>{t('products.offers.product_offer_combo_creator_tab.s15', "توفير للزبون:")}</span> <strong>{formatCurrency(comboSavings)} <CurrencySymbol /></strong>
                     </span>
                     <span style={{ background: '#059669', color: '#ffffff', padding: '1px 8px', borderRadius: 12, fontSize: '0.74rem' }}>
-                      خصم {comboSavingsPercent}%
+                      {t('products.offers.product_offer_combo_creator_tab.s16', "خصم")} {comboSavingsPercent}%
                     </span>
                   </div>
                 )}
@@ -250,7 +252,7 @@ export function ProductOfferComboCreatorTab({
                     color: '#475569',
                     paddingTop: 4
                   }}>
-                    <span>هامش ربح التاجر:</span>
+                    <span>{t('products.offers.product_offer_combo_creator_tab.s17', "هامش ربح التاجر:")}</span>
                     <strong style={{ color: '#047857' }}>
                       {formatCurrency(numericComboPrice - comboTotalCost)} <CurrencySymbol /> ({comboTotalCost > 0 ? (((numericComboPrice - comboTotalCost) / numericComboPrice) * 100).toFixed(0) : 100}%)
                     </strong>
@@ -271,7 +273,7 @@ export function ProductOfferComboCreatorTab({
                     alignItems: 'center',
                     gap: 6
                   }}>
-                    <span>تنبيه: سعر العرض أقل من تكلفة المكونات بخسارة قدرها {formatCurrency(comboTotalCost - numericComboPrice)} {getGlobalCurrencySymbol()}</span>
+                    <span>{t('products.offers.product_offer_combo_creator_tab.s18', "تنبيه: سعر العرض أقل من تكلفة المكونات بخسارة قدرها")} {formatCurrency(comboTotalCost - numericComboPrice)} {getGlobalCurrencySymbol()}</span>
                   </div>
                 )}
               </div>
@@ -279,7 +281,7 @@ export function ProductOfferComboCreatorTab({
           </div>
 
           <div style={{ marginTop: 14 }}>
-            <MutationFeedback isError={saveComboMutation.isError} error={saveComboMutation.error} errorFallback="تعذر حفظ العرض المجمع" />
+            <MutationFeedback isError={saveComboMutation.isError} error={saveComboMutation.error} errorFallback={t('products.offers.product_offer_combo_creator_tab.s19', "تعذر حفظ العرض المجمع")} />
             <div style={{ display: 'flex', gap: 8 }}>
               <Button
                 type="button"
@@ -287,7 +289,7 @@ export function ProductOfferComboCreatorTab({
                 disabled={saveComboMutation.isPending || !comboName.trim() || comboComponents.length === 0 || !numericComboPrice}
                 style={{ flex: 1, background: '#db2777', borderColor: '#be185d' }}
               >
-                {saveComboMutation.isPending ? 'جارٍ الحفظ...' : editingComboId ? 'حفظ تعديلات العرض' : 'حفظ وتفعيل العرض المجمع'}
+                {saveComboMutation.isPending ? t('products.offers.product_offer_combo_creator_tab.s20', "جارٍ الحفظ...") : editingComboId ? t('products.offers.product_offer_combo_creator_tab.s21', "حفظ تعديلات العرض") : t('products.offers.product_offer_combo_creator_tab.s22', "حفظ وتفعيل العرض المجمع")}
               </Button>
               <Button
                 type="button"
@@ -295,7 +297,7 @@ export function ProductOfferComboCreatorTab({
                 onClick={onCancel}
                 disabled={saveComboMutation.isPending}
               >
-                إلغاء
+                {t('products.offers.product_offer_combo_creator_tab.s23', "إلغاء")}
               </Button>
             </div>
           </div>
@@ -328,10 +330,10 @@ export function ProductOfferComboCreatorTab({
                   <line x1="3" y1="6" x2="21" y2="6" />
                   <path d="M16 10a4 4 0 0 1-8 0" />
                 </svg>
-                أصناف المتجر (اضغط للإضافة)
+                {t('products.offers.product_offer_combo_creator_tab.s24', "أصناف المتجر (اضغط للإضافة)")}
               </strong>
               <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
-                {availableCatalogProducts.length} صنف متاح
+                {availableCatalogProducts.length} {t('products.offers.product_offer_combo_creator_tab.s25', "صنف متاح")}
               </span>
             </div>
 
@@ -341,7 +343,7 @@ export function ProductOfferComboCreatorTab({
                 type="text"
                 value={componentSearchQuery}
                 onChange={(e) => setComponentSearchQuery(e.target.value)}
-                placeholder="ابحث باسم الصنف أو امسح الباركود..."
+                placeholder={t('products.offers.product_offer_combo_creator_tab.s26', "ابحث باسم الصنف أو امسح الباركود...")}
                 style={{
                   width: '100%',
                   height: 32,
@@ -387,7 +389,7 @@ export function ProductOfferComboCreatorTab({
             <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 4 }}>
               {isLoadingCatalog ? (
                 <div style={{ padding: '20px 0', textAlign: 'center', color: '#94a3b8', fontSize: '0.78rem' }}>
-                  جارٍ جلب الأصناف...
+                  {t('products.offers.product_offer_combo_creator_tab.s27', "جارٍ جلب الأصناف...")}
                 </div>
               ) : availableCatalogProducts.length > 0 ? (
                 availableCatalogProducts.map((prod) => {
@@ -429,7 +431,7 @@ export function ProductOfferComboCreatorTab({
                           {prod.name}
                         </div>
                         <div style={{ fontSize: '0.7rem', color: '#64748b' }}>
-                          {prod.barcode ? `باركود: ${prod.barcode}` : 'صنف أساسي'}
+                          {prod.barcode ? `باركود: ${prod.barcode}` : t('products.offers.product_offer_combo_creator_tab.s28', "صنف أساسي")}
                         </div>
                       </div>
 
@@ -443,7 +445,7 @@ export function ProductOfferComboCreatorTab({
                             fontSize: '0.68rem',
                             fontWeight: 700
                           }}>
-                            مضاف ({addedItem?.quantity})
+                            {t('products.offers.product_offer_combo_creator_tab.s29', "مضاف (")}{addedItem?.quantity})
                           </span>
                         )}
                         <span style={{ fontWeight: 700, fontSize: '0.82rem', color: isAdded ? '#15803d' : '#2563eb' }}>
@@ -469,7 +471,7 @@ export function ProductOfferComboCreatorTab({
                 })
               ) : (
                 <div style={{ padding: '20px 0', textAlign: 'center', color: '#94a3b8', fontSize: '0.78rem' }}>
-                  لا توجد أصناف مطابقة للبحث
+                  {t('products.offers.product_offer_combo_creator_tab.s30', "لا توجد أصناف مطابقة للبحث")}
                 </div>
               )}
             </div>
@@ -491,10 +493,10 @@ export function ProductOfferComboCreatorTab({
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                   <polyline points="20 6 9 17 4 12" />
                 </svg>
-                مكونات الباقة المحددة ({comboComponents.length})
+                {t('products.offers.product_offer_combo_creator_tab.s31', "مكونات الباقة المحددة (")}{comboComponents.length})
               </strong>
               <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
-                إجمالي المكونات: {comboComponents.reduce((s, c) => s + c.quantity, 0)} قطعة
+                {t('products.offers.product_offer_combo_creator_tab.s32', "إجمالي المكونات:")} {comboComponents.reduce((s, c) => s + c.quantity, 0)} {t('products.offers.product_offer_combo_creator_tab.s33', "قطعة")}
               </span>
             </div>
 
@@ -576,7 +578,7 @@ export function ProductOfferComboCreatorTab({
                             alignItems: 'center',
                             justifyContent: 'center'
                           }}
-                          title="حذف المكون"
+                          title={t('products.offers.product_offer_combo_creator_tab.s34', "حذف المكون")}
                         >
                           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                             <line x1="18" y1="6" x2="6" y2="18" />
@@ -589,8 +591,8 @@ export function ProductOfferComboCreatorTab({
                 })
               ) : (
                 <div style={{ padding: '24px 8px', textAlign: 'center', color: '#94a3b8', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                  <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>لم يتم اختيار أي مكونات بعد</div>
-                  <div style={{ fontSize: '0.72rem', marginTop: 2 }}>اضغط على أي صنف من القائمة بالأعلى لإضافته للباقة</div>
+                  <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>{t('products.offers.product_offer_combo_creator_tab.s35', "لم يتم اختيار أي مكونات بعد")}</div>
+                  <div style={{ fontSize: '0.72rem', marginTop: 2 }}>{t('products.offers.product_offer_combo_creator_tab.s36', "اضغط على أي صنف من القائمة بالأعلى لإضافته للباقة")}</div>
                 </div>
               )}
             </div>

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { PageHeader } from '@/shared/components/page-header';
@@ -13,6 +14,7 @@ import { ClockIcon, RefreshCwIcon } from '@/shared/components/icons/AppIcons';
 import { systemConfirm } from '@/shared/components/system-alert';
 
 export function AccountingFixedAssetsPage() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<'assets' | 'logs'>('assets');
   const [addModalOpen, setAddModalOpen] = useState(false);
@@ -187,9 +189,9 @@ export function AccountingFixedAssetsPage() {
       <main className="document-prototype-column" style={{ paddingBottom: '32px' }}>
         {/* Header */}
         <PageHeader
-          title="الأصول الثابتة والإهلاك المحاسبي"
-          description="تسجيل وإدارة الأصول الرأسمالية واحتساب قسط الإهلاك وتوليد القيود الآلية في شجرة الحسابات."
-          badge={<span className="nav-pill">{summary.activeCount} أصل نشط</span>}
+          title={t('accounting.accounting_fixed_assets_page.s0', "الأصول الثابتة والإهلاك المحاسبي")}
+          description={t('accounting.accounting_fixed_assets_page.s1', "تسجيل وإدارة الأصول الرأسمالية واحتساب قسط الإهلاك وتوليد القيود الآلية في شجرة الحسابات.")}
+          badge={<span className="nav-pill">{summary.activeCount} {t('accounting.accounting_fixed_assets_page.s2', "أصل نشط")}</span>}
           actions={
             <div className="actions compact-actions">
               <Button
@@ -199,7 +201,7 @@ export function AccountingFixedAssetsPage() {
                 style={{ borderColor: '#f59e0b', color: '#b45309', fontWeight: 700 }}
                 disabled={summary.activeCount === 0}
               >
-                إهلاك شهري عام
+                {t('accounting.accounting_fixed_assets_page.s3', "إهلاك شهري عام")}
               </Button>
               <Button
                 type="button"
@@ -207,7 +209,7 @@ export function AccountingFixedAssetsPage() {
                 onClick={() => setAddModalOpen(true)}
                 style={{ backgroundColor: '#170e5e', color: '#ffffff' }}
               >
-                + إضافة أصل جديد
+                {t('accounting.accounting_fixed_assets_page.s4', "+ إضافة أصل جديد")}
               </Button>
             </div>
           }
@@ -248,7 +250,7 @@ export function AccountingFixedAssetsPage() {
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span style={{ fontWeight: 700, fontSize: 'var(--font-section-title)', color: '#0f172a' }}>
-                  الجدولة المؤتمتة للإهلاك الشهري (Automated Monthly Depreciation)
+                  {t('accounting.accounting_fixed_assets_page.s5', "الجدولة المؤتمتة للإهلاك الشهري (Automated Monthly Depreciation)")}
                 </span>
                 <span
                   style={{
@@ -260,14 +262,14 @@ export function AccountingFixedAssetsPage() {
                     color: schedulerQuery.data?.enabled ? '#15803d' : '#64748b',
                   }}
                 >
-                  {schedulerQuery.data?.enabled ? 'مفعلة وتعمل تلقائياً' : 'معطلة (يدوي فقط)'}
+                  {schedulerQuery.data?.enabled ? t('accounting.accounting_fixed_assets_page.s6', "مفعلة وتعمل تلقائياً") : t('accounting.accounting_fixed_assets_page.s7', "معطلة (يدوي فقط)")}
                 </span>
               </div>
               <div style={{ fontSize: 'var(--font-subtitle)', color: '#64748b', marginTop: '2px' }}>
-                موعد الإهلاك الآلي القادم: <strong>{schedulerQuery.data?.nextScheduledDate || 'نهاية الشهر'}</strong>
+                {t('accounting.accounting_fixed_assets_page.s8', "موعد الإهلاك الآلي القادم:")} <strong>{schedulerQuery.data?.nextScheduledDate || t('accounting.accounting_fixed_assets_page.s9', "نهاية الشهر")}</strong>
                 {schedulerQuery.data?.lastRunMonth && (
                   <span style={{ marginInlineStart: '12px' }}>
-                    | آخر إهلاك مجدول تم بنجاح: <strong>{schedulerQuery.data.lastRunMonth}</strong>
+                    {t('accounting.accounting_fixed_assets_page.s10', "| آخر إهلاك مجدول تم بنجاح:")} <strong>{schedulerQuery.data.lastRunMonth}</strong>
                   </span>
                 )}
               </div>
@@ -283,7 +285,7 @@ export function AccountingFixedAssetsPage() {
               style={{ fontSize: 'var(--font-body)', fontWeight: 600 }}
             >
               <RefreshCwIcon size={14} />
-              {triggerAutoMutation.isPending ? 'جاري التنفيذ وتوليد القيود...' : 'تشغيل الإهلاك الآن'}
+              {triggerAutoMutation.isPending ? t('accounting.accounting_fixed_assets_page.s11', "جاري التنفيذ وتوليد القيود...") : t('accounting.accounting_fixed_assets_page.s12', "تشغيل الإهلاك الآن")}
             </Button>
 
             <Button
@@ -293,7 +295,7 @@ export function AccountingFixedAssetsPage() {
               disabled={toggleAutoMutation.isPending}
               style={{ fontSize: 'var(--font-body)', fontWeight: 600 }}
             >
-              {schedulerQuery.data?.enabled ? 'تعطيل الجدولة الآلية' : 'تفعيل الجدولة الآلية'}
+              {schedulerQuery.data?.enabled ? t('accounting.accounting_fixed_assets_page.s13', "تعطيل الجدولة الآلية") : t('accounting.accounting_fixed_assets_page.s14', "تفعيل الجدولة الآلية")}
             </Button>
           </div>
         </div>
@@ -319,7 +321,7 @@ export function AccountingFixedAssetsPage() {
               color: activeTab === 'assets' ? '#ffffff' : '#475569',
             }}
           >
-            سجل الأصول الرأسمالية ({assets.length})
+            {t('accounting.accounting_fixed_assets_page.s15', "سجل الأصول الرأسمالية (")}{assets.length})
           </Button>
           <Button
             type="button"
@@ -331,7 +333,7 @@ export function AccountingFixedAssetsPage() {
               color: activeTab === 'logs' ? '#ffffff' : '#475569',
             }}
           >
-            سجل قيود الإهلاك المحاسبي ({logs.length})
+            {t('accounting.accounting_fixed_assets_page.s16', "سجل قيود الإهلاك المحاسبي (")}{logs.length})
           </Button>
         </div>
 
@@ -346,9 +348,9 @@ export function AccountingFixedAssetsPage() {
             onDepreciate={(asset) => setDepreciateModalAsset(asset)}
             onDelete={async (asset) => {
               const ok = await systemConfirm({
-                title: 'تأكيد استبعاد الأصل',
+                title: t('accounting.accounting_fixed_assets_page.s17', "تأكيد استبعاد الأصل"),
                 message: `هل أنت متأكد من حذف أو استبعاد الأصل: ${asset.name}؟`,
-                confirmText: 'استبعاد الأصل',
+                confirmText: t('accounting.accounting_fixed_assets_page.s18', "استبعاد الأصل"),
                 variant: 'danger',
               });
               if (ok) {

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { CartItem, StorefrontInfo, StorefrontProduct } from '../types/storefront.types';
@@ -43,6 +44,7 @@ export function StorefrontLiveCartDock({
   suggestedProducts = [],
   onAddToCart,
 }: StorefrontLiveCartDockProps) {
+  const { t } = useTranslation();
   const [isDismissed, setIsDismissed] = useState(false);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const clearConfirmRef = useRef<HTMLDivElement>(null);
@@ -303,7 +305,7 @@ export function StorefrontLiveCartDock({
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
               <h3 style={{ margin: 0, fontSize: '15px', color: '#0f172a', fontWeight: 800, whiteSpace: 'nowrap' }}>
-                سلة المشتريات
+                {t('storefront.storefront_live_cart_dock.s0', "سلة المشتريات")}
               </h3>
               <span
                 style={{
@@ -329,8 +331,8 @@ export function StorefrontLiveCartDock({
               type="button"
               className="live-cart-ctrl-btn live-cart-clear-btn"
               onClick={() => setShowClearConfirm((prev) => !prev)}
-              title="تفريغ السلة بالكامل"
-              aria-label="تفريغ السلة بالكامل"
+              title={t('storefront.storefront_live_cart_dock.s1', "تفريغ السلة بالكامل")}
+              aria-label={t('storefront.storefront_live_cart_dock.s2', "تفريغ السلة بالكامل")}
               style={{
                 background: showClearConfirm ? '#fef2f2' : '#f8fafc',
                 borderColor: showClearConfirm ? '#fca5a5' : '#e2e8f0',
@@ -344,8 +346,8 @@ export function StorefrontLiveCartDock({
               type="button"
               className="live-cart-ctrl-btn live-cart-close-btn"
               onClick={onClose}
-              title="تصغير ومتابعة التسوق"
-              aria-label="تصغير ومتابعة التسوق"
+              title={t('storefront.storefront_live_cart_dock.s3', "تصغير ومتابعة التسوق")}
+              aria-label={t('storefront.storefront_live_cart_dock.s4', "تصغير ومتابعة التسوق")}
             >
               <XIcon size={16} />
             </button>
@@ -371,10 +373,10 @@ export function StorefrontLiveCartDock({
               }}
             >
               <div style={{ fontSize: '12.5px', fontWeight: 800, color: '#0f172a', marginBottom: '4px' }}>
-                تفريغ السلة بالكامل؟
+                {t('storefront.storefront_live_cart_dock.s5', "تفريغ السلة بالكامل؟")}
               </div>
               <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '10px', lineHeight: 1.4 }}>
-                هل تريد إزالة كافة المنتجات ({cartItems.length}) من سلتك؟
+                {t('storefront.storefront_live_cart_dock.s6', "هل تريد إزالة كافة المنتجات (")}{cartItems.length}{t('storefront.storefront_live_cart_dock.s7', ") من سلتك؟")}
               </div>
               <div style={{ display: 'flex', gap: '6px' }}>
                 <button
@@ -398,7 +400,7 @@ export function StorefrontLiveCartDock({
                   onMouseEnter={(e) => (e.currentTarget.style.background = '#dc2626')}
                   onMouseLeave={(e) => (e.currentTarget.style.background = '#ef4444')}
                 >
-                  تأكيد التفريغ
+                  {t('storefront.storefront_live_cart_dock.s8', "تأكيد التفريغ")}
                 </button>
                 <button
                   type="button"
@@ -418,7 +420,7 @@ export function StorefrontLiveCartDock({
                   onMouseEnter={(e) => (e.currentTarget.style.background = '#e2e8f0')}
                   onMouseLeave={(e) => (e.currentTarget.style.background = '#f1f5f9')}
                 >
-                  إلغاء
+                  {t('storefront.storefront_live_cart_dock.s9', "إلغاء")}
                 </button>
               </div>
             </div>
@@ -440,11 +442,11 @@ export function StorefrontLiveCartDock({
                 <TruckIcon size={12.5} color={isFreeShippingQualified ? '#16a34a' : 'var(--storefront-primary-color, #170e5e)'} />
                 {isFreeShippingQualified ? (
                   <span style={{ fontWeight: 800, color: '#15803d' }}>
-                    مبروك! حصلت على توصيل مجاني لطلبك!
+                    {t('storefront.storefront_live_cart_dock.s10', "مبروك! حصلت على توصيل مجاني لطلبك!")}
                   </span>
                 ) : (
                   <span style={{ color: '#334155' }}>
-                    أضف بـ <strong style={{ color: 'var(--storefront-primary-color, #170e5e)' }}>{formatPriceNumber(freeShippingRemaining)} <CurrencySymbol /></strong> للشحن المجاني
+                    {t('storefront.storefront_live_cart_dock.s11', "أضف بـ")} <strong style={{ color: 'var(--storefront-primary-color, #170e5e)' }}>{formatPriceNumber(freeShippingRemaining)} <CurrencySymbol /></strong> {t('storefront.storefront_live_cart_dock.s12', "للشحن المجاني")}
                   </span>
                 )}
               </div>
@@ -506,7 +508,7 @@ export function StorefrontLiveCartDock({
             }}
           >
             <div style={{ fontSize: '11.5px', fontWeight: 700, color: '#475569', marginBottom: '8px' }}>
-              قد يعجبك أيضاً (إضافة سريعة للسلة):
+              {t('storefront.storefront_live_cart_dock.s13', "قد يعجبك أيضاً (إضافة سريعة للسلة):")}
             </div>
             <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '4px' }}>
               {crossSellProducts.map((p) => (
@@ -550,7 +552,7 @@ export function StorefrontLiveCartDock({
                       }}
                     >
                       <PlusIcon size={12} />
-                      <span>إضافة</span>
+                      <span>{t('storefront.storefront_live_cart_dock.s14', "إضافة")}</span>
                     </button>
                   </div>
                 </div>
@@ -585,19 +587,19 @@ export function StorefrontLiveCartDock({
             }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11.5px', color: '#64748b' }}>
-              <span>قيمة الأصناف ({cartItems.length}):</span>
+              <span>{t('storefront.storefront_live_cart_dock.s15', "قيمة الأصناف (")}{cartItems.length}):</span>
               <span style={{ fontWeight: 700, color: '#0f172a' }}>{formatPriceNumber(subtotal)} <CurrencySymbol /></span>
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11.5px', color: '#64748b' }}>
-              <span>مصاريف التوصيل:</span>
+              <span>{t('storefront.storefront_live_cart_dock.s16', "مصاريف التوصيل:")}</span>
               <span style={{ fontWeight: 700, color: effectiveDeliveryFee > 0 ? '#0f172a' : '#166534', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                 {effectiveDeliveryFee === 0 && baseDeliveryFee > 0 && (
                   <span style={{ textDecoration: 'line-through', color: '#94a3b8', fontSize: '11px' }}>
                     {formatPriceNumber(baseDeliveryFee)} <CurrencySymbol />
                   </span>
                 )}
-                <span>{effectiveDeliveryFee > 0 ? <>{formatPriceNumber(effectiveDeliveryFee)} <CurrencySymbol /></> : 'توصيل مجاني'}</span>
+                <span>{effectiveDeliveryFee > 0 ? <>{formatPriceNumber(effectiveDeliveryFee)} <CurrencySymbol /></> : t('storefront.storefront_live_cart_dock.s17', "توصيل مجاني")}</span>
               </span>
             </div>
 
@@ -614,7 +616,7 @@ export function StorefrontLiveCartDock({
                 color: '#0f172a',
               }}
             >
-              <span>المبلغ الإجمالي:</span>
+              <span>{t('storefront.storefront_live_cart_dock.s18', "المبلغ الإجمالي:")}</span>
               <span style={{ fontSize: '15px', color: '#166534' }}>{formatPriceNumber(total)} <CurrencySymbol /></span>
             </div>
           </div>
@@ -636,7 +638,7 @@ export function StorefrontLiveCartDock({
               }}
             >
               <AlertTriangleIcon size={12} color="#c2410c" />
-              <span>الحد الأدنى للطلب هو {minOrder} <CurrencySymbol /> (متبقي {formatPriceNumber(minOrder - subtotal)} <CurrencySymbol />)</span>
+              <span>{t('storefront.storefront_live_cart_dock.s19', "الحد الأدنى للطلب هو")} {minOrder} <CurrencySymbol /> {t('storefront.storefront_live_cart_dock.s20', "(متبقي")} {formatPriceNumber(minOrder - subtotal)} <CurrencySymbol />)</span>
             </div>
           )}
 
@@ -673,7 +675,7 @@ export function StorefrontLiveCartDock({
                 whiteSpace: 'nowrap',
               }}
             >
-              <span>إتمام الطلب</span>
+              <span>{t('storefront.storefront_live_cart_dock.s21', "إتمام الطلب")}</span>
               <span style={{ fontSize: '14px', lineHeight: 1 }}>←</span>
             </button>
 
@@ -706,7 +708,7 @@ export function StorefrontLiveCartDock({
                 e.currentTarget.style.color = '#475569';
               }}
             >
-              متابعة التسوق
+              {t('storefront.storefront_live_cart_dock.s22', "متابعة التسوق")}
             </button>
           </div>
         </div>

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useMemo, useRef } from 'react';
 import type { Branch } from '@/types/domain';
 import { SINGLE_STORE_MODE } from '@/config/product-scope';
@@ -56,6 +57,7 @@ export function UserManagementEditorCard({
   onDraftChange: (updater: (current: ManagedUserRecord) => ManagedUserRecord) => void;
   onApplyRolePermissions: (role: 'super_admin' | 'admin' | 'cashier') => void;
 }) {
+  const { t } = useTranslation();
   const disableReasonLabel = selectedDraftDisableProtection === 'super_admin'
     ? 'سوبر أدمن'
     : selectedDraftDisableProtection === 'current_user'
@@ -185,8 +187,8 @@ export function UserManagementEditorCard({
               {draft.name || draft.username}
             </strong>
             <span style={{ fontSize: '0.70rem', color: '#64748b' }}>
-              (آخر دخول: {formatDateTime(draft.lastLoginAt)})
-              {isCurrentUserSelected ? ' · حسابك الحالي' : ''}
+              {t('settings.user_management_panels.user_management_editor_card.s0', "(آخر دخول:")} {formatDateTime(draft.lastLoginAt)})
+              {isCurrentUserSelected ? t('settings.user_management_panels.user_management_editor_card.s1', " · حسابك الحالي") : ''}
             </span>
           </div>
 
@@ -199,7 +201,7 @@ export function UserManagementEditorCard({
             color: draft.isActive !== false ? '#166534' : '#991b1b',
             border: `1px solid ${draft.isActive !== false ? '#bbf7d0' : '#fecaca'}`,
           }}>
-            {draft.isActive !== false ? 'نشط ومفعّل' : 'حساب موقوف'}
+            {draft.isActive !== false ? t('settings.user_management_panels.user_management_editor_card.s2', "نشط ومفعّل") : t('settings.user_management_panels.user_management_editor_card.s3', "حساب موقوف")}
           </span>
         </div>
       ) : null}
@@ -208,28 +210,28 @@ export function UserManagementEditorCard({
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '6px' }}>
         {/* 1. Username */}
         <div>
-          <label style={labelStyle}>اسم المستخدم (Login ID)</label>
+          <label style={labelStyle}>{t('settings.user_management_panels.user_management_editor_card.s4', "اسم المستخدم (Login ID)")}</label>
           <input
             style={inputStyle}
             value={draft.username}
             onChange={(e) => onDraftChange((current) => ({ ...current, username: e.target.value }))}
-            placeholder={isMaritime ? 'مثال: ahmed_ops' : isContracting ? 'مثال: eng_ahmed' : 'مثال: ahmed_pos'}
+            placeholder={isMaritime ? t('settings.user_management_panels.user_management_editor_card.s5', "مثال: ahmed_ops") : isContracting ? t('settings.user_management_panels.user_management_editor_card.s6', "مثال: eng_ahmed") : t('settings.user_management_panels.user_management_editor_card.s7', "مثال: ahmed_pos")}
           />
         </div>
 
         {/* 2. Display Name */}
         <div>
-          <label style={labelStyle}>الاسم المعروض (Display Name)</label>
+          <label style={labelStyle}>{t('settings.user_management_panels.user_management_editor_card.s8', "الاسم المعروض (Display Name)")}</label>
           <input
             style={inputStyle}
             value={draft.name}
             onChange={(e) => onDraftChange((current) => ({ ...current, name: e.target.value }))}
             placeholder={
               isMaritime
-                ? 'مثال: أحمد محمد (عمليات شحن)'
+                ? t('settings.user_management_panels.user_management_editor_card.s9', "مثال: أحمد محمد (عمليات شحن)")
                 : isContracting
-                ? 'مثال: م. أحمد محمد (مدير مشروع)'
-                : 'مثال: أحمد محمد (كاشير)'
+                ? t('settings.user_management_panels.user_management_editor_card.s10', "مثال: م. أحمد محمد (مدير مشروع)")
+                : t('settings.user_management_panels.user_management_editor_card.s11', "مثال: أحمد محمد (كاشير)")
             }
           />
         </div>
@@ -237,7 +239,7 @@ export function UserManagementEditorCard({
         {/* 3. Unified Mobile Phone Input with Custom Floating Combobox on the LEFT */}
         <div ref={countryDropdownRef} style={{ position: 'relative' }}>
           <label style={labelStyle} dir="rtl">
-            <span>رقم الهاتف المحمول</span>
+            <span>{t('settings.user_management_panels.user_management_editor_card.s12', "رقم الهاتف المحمول")}</span>
             <span style={{ color: '#dc2626', marginInlineStart: '2px' }}>*</span>
             <span style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 500, marginInlineStart: '4px' }} dir="ltr">(Mobile)</span>
           </label>
@@ -283,7 +285,7 @@ export function UserManagementEditorCard({
                 flexShrink: 0,
                 outline: 'none',
               }}
-              title="اختر الدولة"
+              title={t('settings.user_management_panels.user_management_editor_card.s13', "اختر الدولة")}
             >
               <span style={{ fontSize: '0.74rem', fontWeight: 800, color: '#0f172a' }}>
                 {currentCountryDef.code === 'OTHER' ? 'INTL' : currentCountryDef.code}
@@ -416,7 +418,7 @@ export function UserManagementEditorCard({
 
         {/* 4. Role */}
         <div>
-          <label style={labelStyle}>مستوى النظام الأساسي (Role)</label>
+          <label style={labelStyle}>{t('settings.user_management_panels.user_management_editor_card.s14', "مستوى النظام الأساسي (Role)")}</label>
           <select
             style={{ ...inputStyle, cursor: 'pointer', paddingInlineEnd: '20px' }}
             value={draft.role}
@@ -425,23 +427,23 @@ export function UserManagementEditorCard({
           >
             <option value="cashier">
               {isMaritime
-                ? 'مسؤول عمليات شحن وتتبع (Ops)'
+                ? t('settings.user_management_panels.user_management_editor_card.s15', "مسؤول عمليات شحن وتتبع (Ops)")
                 : isContracting
-                ? 'مهندس موقع / مسؤول مشاريع'
-                : 'كاشير (مبيعات وتشغيل)'}
+                ? t('settings.user_management_panels.user_management_editor_card.s16', "مهندس موقع / مسؤول مشاريع")
+                : t('settings.user_management_panels.user_management_editor_card.s17', "كاشير (مبيعات وتشغيل)")}
             </option>
             <option value="admin">
               {isMaritime
-                ? 'مدير / مالك المكتب الملاحي'
+                ? t('settings.user_management_panels.user_management_editor_card.s18', "مدير / مالك المكتب الملاحي")
                 : isContracting
-                ? 'مدير مشاريع / مالك المنشأة'
-                : 'مدير / مالك المنشأة'}
+                ? t('settings.user_management_panels.user_management_editor_card.s19', "مدير مشاريع / مالك المنشأة")
+                : t('settings.user_management_panels.user_management_editor_card.s20', "مدير / مالك المنشأة")}
             </option>
             {isPlatformUser ? (
-              <option value="super_admin">سوبر أدمن (إدارة المنصة)</option>
+              <option value="super_admin">{t('settings.user_management_panels.user_management_editor_card.s21', "سوبر أدمن (إدارة المنصة)")}</option>
             ) : draft.role === 'super_admin' ? (
               <option value="super_admin" disabled>
-                سوبر أدمن (إدارة المنصة)
+                {t('settings.user_management_panels.user_management_editor_card.s22', "سوبر أدمن (إدارة المنصة)")}
               </option>
             ) : null}
           </select>
@@ -449,14 +451,14 @@ export function UserManagementEditorCard({
 
         {/* 5. Password */}
         <div>
-          <label style={labelStyle}>كلمة المرور</label>
+          <label style={labelStyle}>{t('settings.user_management_panels.user_management_editor_card.s23', "كلمة المرور")}</label>
           <input
             type="text"
             className="secure-password-field"
             style={inputStyle}
             value={draft.password || ''}
             onChange={(e) => onDraftChange((current) => ({ ...current, password: e.target.value }))}
-            placeholder={draft.id ? 'اتركها فارغة للتخطي' : 'مطلوبة للمستخدم الجديد'}
+            placeholder={draft.id ? t('settings.user_management_panels.user_management_editor_card.s24', "اتركها فارغة للتخطي") : t('settings.user_management_panels.user_management_editor_card.s25', "مطلوبة للمستخدم الجديد")}
             autoComplete="new-password"
             data-lpignore="true"
             data-1p-ignore="true"
@@ -472,7 +474,7 @@ export function UserManagementEditorCard({
         {!SINGLE_STORE_MODE ? (
           <div>
             <label style={labelStyle}>
-              {isMaritime ? 'المكتب الملاحي الافتراضي' : isContracting ? 'المقر / موقع العمل الافتراضي' : 'الفرع الافتراضي'}
+              {isMaritime ? t('settings.user_management_panels.user_management_editor_card.s26', "المكتب الملاحي الافتراضي") : isContracting ? t('settings.user_management_panels.user_management_editor_card.s27', "المقر / موقع العمل الافتراضي") : t('settings.user_management_panels.user_management_editor_card.s28', "الفرع الافتراضي")}
             </label>
             <select
               style={{ ...inputStyle, cursor: 'pointer', paddingInlineEnd: '20px' }}
@@ -480,7 +482,7 @@ export function UserManagementEditorCard({
               onChange={(e) => onDraftChange((current) => ({ ...current, defaultBranchId: e.target.value }))}
             >
               <option value="">
-                {isMaritime ? 'بدون مقر افتراضي' : isContracting ? 'بدون موقع افتراضي' : 'بدون افتراضي'}
+                {isMaritime ? t('settings.user_management_panels.user_management_editor_card.s29', "بدون مقر افتراضي") : isContracting ? t('settings.user_management_panels.user_management_editor_card.s30', "بدون موقع افتراضي") : t('settings.user_management_panels.user_management_editor_card.s31', "بدون افتراضي")}
               </option>
               {branches.filter((branch) => draft.branchIds.includes(branch.id)).map((branch) => (
                 <option key={branch.id} value={branch.id}>{branch.name}</option>
@@ -493,7 +495,7 @@ export function UserManagementEditorCard({
 
         {/* 7. Account Status & Security (Spans 2 columns) */}
         <div style={{ gridColumn: 'span 2' }}>
-          <label style={labelStyle}>حالة الحساب والأمان</label>
+          <label style={labelStyle}>{t('settings.user_management_panels.user_management_editor_card.s32', "حالة الحساب والأمان")}</label>
           <div style={{
             display: 'flex',
             alignItems: 'center',
@@ -513,7 +515,7 @@ export function UserManagementEditorCard({
                 onChange={(e) => onDraftChange((current) => ({ ...current, isActive: e.target.checked }))}
                 style={{ accentColor: '#0f172a', width: '14px', height: '14px', margin: 0 }}
               />
-              <span>نشط ومفعّل</span>
+              <span>{t('settings.user_management_panels.user_management_editor_card.s33', "نشط ومفعّل")}</span>
             </label>
 
             <label style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 600 }}>
@@ -523,11 +525,11 @@ export function UserManagementEditorCard({
                 onChange={(e) => onDraftChange((current) => ({ ...current, mustChangePassword: e.target.checked }))}
                 style={{ accentColor: '#0f172a', width: '14px', height: '14px', margin: 0 }}
               />
-              <span>إلزام تغيير كلمة المرور</span>
+              <span>{t('settings.user_management_panels.user_management_editor_card.s34', "إلزام تغيير كلمة المرور")}</span>
             </label>
             {!canDirectlyDisableSelected ? (
               <span style={{ fontSize: '0.68rem', color: '#dc2626', marginInlineStart: 'auto' }}>
-                محمي: {disableReasonLabel}
+                {t('settings.user_management_panels.user_management_editor_card.s35', "محمي:")} {disableReasonLabel}
               </span>
             ) : null}
           </div>

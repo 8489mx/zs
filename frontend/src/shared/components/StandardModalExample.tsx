@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { Field } from '@/shared/ui/field';
@@ -17,6 +18,7 @@ import { AppIcons } from '@/shared/components/icons/AppIcons';
  * 7. استخدام StandardDialog و StandardDialogFooter حصرياً لضمان عدم وجود حواف متآكلة وثبات الأبعاد ومنع السكرول الخارجي.
  */
 export function StandardModalExample() {
+  const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
@@ -44,14 +46,14 @@ export function StandardModalExample() {
         className="btn btn-primary"
         onClick={() => setIsOpen(true)}
       >
-        فتح النافذة النموذجية المرجعية
+        {t('shared.standard_modal_example.s0', "فتح النافذة النموذجية المرجعية")}
       </button>
 
       <StandardDialog
         open={isOpen}
         onClose={() => setIsOpen(false)}
-        title="نموذج إضافة بيان مرجعي جديد"
-        subtitle="توثيق المدخلات وتنظيم البيانات التشغيلية ضمن مجموعات عمل مترابطة"
+        title={t('shared.standard_modal_example.s1', "نموذج إضافة بيان مرجعي جديد")}
+        subtitle={t('shared.standard_modal_example.s2', "توثيق المدخلات وتنظيم البيانات التشغيلية ضمن مجموعات عمل مترابطة")}
         width="min(880px, 95vw)"
         minHeight="auto"
         footerActions={(
@@ -59,8 +61,8 @@ export function StandardModalExample() {
             onCancel={() => setIsOpen(false)}
             onSubmit={handleSave}
             isSubmitting={isSubmitting}
-            submitText="حفظ البيانات"
-            cancelText="إلغاء"
+            submitText={t('shared.standard_modal_example.s3', "حفظ البيانات")}
+            cancelText={t('shared.standard_modal_example.s4', "إلغاء")}
           />
         )}
       >
@@ -119,11 +121,11 @@ export function StandardModalExample() {
           <div style={{ background: '#fbfcfd', padding: '11px 14px', borderRadius: '10px', border: '1px solid #edf2f7' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '7px', marginBottom: '8px', color: '#170e5e', fontWeight: 700, fontSize: '0.85rem' }}>
               <AppIcons.Layers size={15} />
-              <span>1. البيانات الأساسية والتعريفية (General Information)</span>
+              <span>{t('shared.standard_modal_example.s5', "1. البيانات الأساسية والتعريفية (General Information)")}</span>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 2fr', gap: '10px' }}>
-              <Field label="الكود التعريفي (تلقائي)">
+              <Field label={t('shared.standard_modal_example.s6', "الكود التعريفي (تلقائي)")}>
                 <input
                   type="text"
                   value={formData.code}
@@ -138,13 +140,13 @@ export function StandardModalExample() {
                 />
               </Field>
 
-              <Field label="الاسم / البيان *">
+              <Field label={t('shared.standard_modal_example.s7', "الاسم / البيان *")}>
                 <input
                   type="text"
                   required
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="أدخل الاسم بوضوح..."
+                  placeholder={t('shared.standard_modal_example.s8', "أدخل الاسم بوضوح...")}
                 />
               </Field>
             </div>
@@ -154,35 +156,35 @@ export function StandardModalExample() {
           <div style={{ background: '#fbfcfd', padding: '11px 14px', borderRadius: '10px', border: '1px solid #edf2f7' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '7px', marginBottom: '8px', color: '#170e5e', fontWeight: 700, fontSize: '0.85rem' }}>
               <AppIcons.Package size={15} />
-              <span>2. التصنيف والبيانات التشغيلية (Operational Specs)</span>
+              <span>{t('shared.standard_modal_example.s9', "2. التصنيف والبيانات التشغيلية (Operational Specs)")}</span>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
-              <Field label="التصنيف الرئيسي *">
+              <Field label={t('shared.standard_modal_example.s10', "التصنيف الرئيسي *")}>
                 <CustomSelect
                   value={formData.category}
                   options={[
-                    { value: 'operations', label: 'العمليات والتشغيل' },
-                    { value: 'finance', label: 'الشؤون المالية' },
-                    { value: 'admin', label: 'الإدارة العامة' },
+                    { value: 'operations', label: t('shared.standard_modal_example.s11', "العمليات والتشغيل") },
+                    { value: 'finance', label: t('shared.standard_modal_example.s12', "الشؤون المالية") },
+                    { value: 'admin', label: t('shared.standard_modal_example.s13', "الإدارة العامة") },
                   ]}
                   onChange={(val) => setFormData({ ...formData, category: val })}
                 />
               </Field>
 
-              <Field label="مستوى الأولوية">
+              <Field label={t('shared.standard_modal_example.s14', "مستوى الأولوية")}>
                 <CustomSelect
                   value={formData.priority}
                   options={[
-                    { value: 'normal', label: 'عادي (Normal)' },
-                    { value: 'high', label: 'عالي (High)' },
-                    { value: 'urgent', label: 'عاجل (Urgent)' },
+                    { value: 'normal', label: t('shared.standard_modal_example.s15', "عادي (Normal)") },
+                    { value: 'high', label: t('shared.standard_modal_example.s16', "عالي (High)") },
+                    { value: 'urgent', label: t('shared.standard_modal_example.s17', "عاجل (Urgent)") },
                   ]}
                   onChange={(val) => setFormData({ ...formData, priority: val })}
                 />
               </Field>
 
-              <Field label="الكمية المستهدفة">
+              <Field label={t('shared.standard_modal_example.s18', "الكمية المستهدفة")}>
                 <input
                   type="number"
                   dir="ltr"
@@ -198,15 +200,15 @@ export function StandardModalExample() {
           <div style={{ background: '#fbfcfd', padding: '11px 14px', borderRadius: '10px', border: '1px solid #edf2f7' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '7px', marginBottom: '8px', color: '#170e5e', fontWeight: 700, fontSize: '0.85rem' }}>
               <AppIcons.Tag size={14} />
-              <span>3. الملاحظات والاشتراطات الإضافية (Terms & Notes)</span>
+              <span>{t('shared.standard_modal_example.s19', "3. الملاحظات والاشتراطات الإضافية (Terms & Notes)")}</span>
             </div>
 
-            <Field label="ملاحظات توضيحية (اختياري)">
+            <Field label={t('shared.standard_modal_example.s20', "ملاحظات توضيحية (اختياري)")}>
               <textarea
                 rows={3}
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                placeholder="أدخل أي ملاحظات إدارية أو اشتراطات تشغيلية إضافية..."
+                placeholder={t('shared.standard_modal_example.s21', "أدخل أي ملاحظات إدارية أو اشتراطات تشغيلية إضافية...")}
               />
             </Field>
           </div>

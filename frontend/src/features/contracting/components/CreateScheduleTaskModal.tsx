@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { Field } from '@/shared/ui/field';
@@ -26,6 +27,7 @@ export function CreateScheduleTaskModal({
   onClose,
   onCreated,
 }: CreateScheduleTaskModalProps) {
+  const { t: __t } = useTranslation();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -129,15 +131,15 @@ export function CreateScheduleTaskModal({
     <StandardDialog
       open={open}
       onClose={onClose}
-      title="إضافة مهمة جدولية ومرحلة تنفيذية (Schedule Task)"
-      subtitle={projectName ? `المشروع: ${projectName}` : 'جدولة الأعمال وتحديد مدد التنفيذ والمسار الحرج (CPM)'}
+      title={__t('contracting.create_schedule_task_modal.s0', "إضافة مهمة جدولية ومرحلة تنفيذية (Schedule Task)")}
+      subtitle={projectName ? `المشروع: ${projectName}` : __t('contracting.create_schedule_task_modal.s1', "جدولة الأعمال وتحديد مدد التنفيذ والمسار الحرج (CPM)")}
       width="min(880px, 95vw)"
       minHeight="auto"
       footerActions={(
         <StandardDialogFooter
           onCancel={onClose}
           onSubmit={() => handleSubmit()}
-          submitText="إضافة المهمة للجدول الزمني"
+          submitText={__t('contracting.create_schedule_task_modal.s2', "إضافة المهمة للجدول الزمني")}
           isSubmitting={isSubmitting}
         />
       )}
@@ -204,52 +206,52 @@ export function CreateScheduleTaskModal({
         <div style={{ background: '#f8fafc', padding: '9px 13px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
             <AppIcons.Layers size={15} />
-            <span>1. توصيف النشاط التنفيذي ومستوى WBS (Task Scope & Breakdown)</span>
+            <span>{__t('contracting.create_schedule_task_modal.s3', "1. توصيف النشاط التنفيذي ومستوى WBS (Task Scope & Breakdown)")}</span>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 2fr 1.5fr', gap: '10px', alignItems: 'start' }}>
-            <Field label="كود هيكل الأعمال (WBS)">
+            <Field label={__t('contracting.create_schedule_task_modal.s4', "كود هيكل الأعمال (WBS)")}>
               <input
                 type="text"
                 value={formData.wbsCode}
                 onChange={(e) => setFormData({ ...formData, wbsCode: e.target.value })}
-                placeholder="مثال: 1.1.2"
+                placeholder={__t('contracting.create_schedule_task_modal.s5', "مثال: 1.1.2")}
                 style={{ fontFamily: 'monospace', fontWeight: 600 }}
               />
             </Field>
 
-            <Field label="كود المهمة">
+            <Field label={__t('contracting.create_schedule_task_modal.s6', "كود المهمة")}>
               <input
                 type="text"
                 value={formData.taskCode}
                 onChange={(e) => setFormData({ ...formData, taskCode: e.target.value })}
-                placeholder="تلقائي: TSK-001"
+                placeholder={__t('contracting.create_schedule_task_modal.s7', "تلقائي: TSK-001")}
                 style={{ fontFamily: 'monospace', fontWeight: 600 }}
               />
             </Field>
 
-            <Field label="اسم المهمة أو النشاط التنفيذي *">
+            <Field label={__t('contracting.create_schedule_task_modal.s8', "اسم المهمة أو النشاط التنفيذي *")}>
               <input
                 type="text"
                 value={formData.taskName}
                 onChange={(e) => setFormData({ ...formData, taskName: e.target.value })}
-                placeholder="مثال: أعمال الحفر والإحلال للموقع العام"
+                placeholder={__t('contracting.create_schedule_task_modal.s9', "مثال: أعمال الحفر والإحلال للموقع العام")}
                 required
               />
             </Field>
 
-            <Field label="الفريق أو المقاول المسؤول">
+            <Field label={__t('contracting.create_schedule_task_modal.s10', "الفريق أو المقاول المسؤول")}>
               <input
                 type="text"
                 value={formData.assignedTeam}
                 onChange={(e) => setFormData({ ...formData, assignedTeam: e.target.value })}
-                placeholder="مثال: طاقم الخرسانات..."
+                placeholder={__t('contracting.create_schedule_task_modal.s11', "مثال: طاقم الخرسانات...")}
               />
             </Field>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1.4fr', gap: '10px', marginTop: '8px' }}>
-            <Field label="عدد العمالة المخططة">
+            <Field label={__t('contracting.create_schedule_task_modal.s12', "عدد العمالة المخططة")}>
               <input
                 type="number"
                 min={0}
@@ -258,7 +260,7 @@ export function CreateScheduleTaskModal({
                 placeholder="0"
               />
             </Field>
-            <Field label="عدد المعدات المخططة">
+            <Field label={__t('contracting.create_schedule_task_modal.s13', "عدد المعدات المخططة")}>
               <input
                 type="number"
                 min={0}
@@ -267,12 +269,12 @@ export function CreateScheduleTaskModal({
                 placeholder="0"
               />
             </Field>
-            <Field label="التخصص/الحرفة (لتقرير تحميل الموارد)">
+            <Field label={__t('contracting.create_schedule_task_modal.s14', "التخصص/الحرفة (لتقرير تحميل الموارد)")}>
               <input
                 type="text"
                 value={formData.resourceTrade}
                 onChange={(e) => setFormData({ ...formData, resourceTrade: e.target.value })}
-                placeholder="مثال: حدادة مسلحة، تشطيبات..."
+                placeholder={__t('contracting.create_schedule_task_modal.s15', "مثال: حدادة مسلحة، تشطيبات...")}
               />
             </Field>
           </div>
@@ -282,11 +284,11 @@ export function CreateScheduleTaskModal({
         <div style={{ background: '#f8fafc', padding: '9px 13px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
             <AppIcons.Calendar size={15} />
-            <span>2. المواعيد الزمنية والمسار الحرج (Timeline & Critical Path)</span>
+            <span>{__t('contracting.create_schedule_task_modal.s16', "2. المواعيد الزمنية والمسار الحرج (Timeline & Critical Path)")}</span>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1.2fr 1fr 1.5fr', gap: '10px', alignItems: 'center' }}>
-            <Field label="تاريخ البداية *">
+            <Field label={__t('contracting.create_schedule_task_modal.s17', "تاريخ البداية *")}>
               <input
                 type="date"
                 value={formData.startDate}
@@ -295,7 +297,7 @@ export function CreateScheduleTaskModal({
               />
             </Field>
 
-            <Field label="تاريخ النهاية *">
+            <Field label={__t('contracting.create_schedule_task_modal.s18', "تاريخ النهاية *")}>
               <input
                 type="date"
                 value={formData.endDate}
@@ -304,7 +306,7 @@ export function CreateScheduleTaskModal({
               />
             </Field>
 
-            <Field label="مدة التنفيذ (أيام)">
+            <Field label={__t('contracting.create_schedule_task_modal.s19', "مدة التنفيذ (أيام)")}>
               <input
                 type="number"
                 min="1"
@@ -323,7 +325,7 @@ export function CreateScheduleTaskModal({
                   onChange={(e) => setFormData({ ...formData, isCriticalPath: e.target.checked })}
                   style={{ width: '16px', height: '16px', accentColor: '#dc2626' }}
                 />
-                <span>نشاط مسار حرج (Critical Path CPM)</span>
+                <span>{__t('contracting.create_schedule_task_modal.s20', "نشاط مسار حرج (Critical Path CPM)")}</span>
               </label>
             </div>
           </div>
@@ -333,11 +335,11 @@ export function CreateScheduleTaskModal({
         <div style={{ background: '#f8fafc', padding: '9px 13px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
             <AppIcons.Tag size={14} />
-            <span>3. الاعتماديات وبنود المقايسة والملاحظات (Dependencies & Allocation)</span>
+            <span>{__t('contracting.create_schedule_task_modal.s21', "3. الاعتماديات وبنود المقايسة والملاحظات (Dependencies & Allocation)")}</span>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', alignItems: 'start', marginBottom: '8px' }}>
-            <Field label="ربط ببند المقايسة (BOQ Item)">
+            <Field label={__t('contracting.create_schedule_task_modal.s22', "ربط ببند المقايسة (BOQ Item)")}>
               <CustomSelect
                 value={formData.boqItemId}
                 options={boqSelectOptions}
@@ -345,7 +347,7 @@ export function CreateScheduleTaskModal({
               />
             </Field>
 
-            <Field label="المهمة السابقة المعتمدة عليها (Predecessor)">
+            <Field label={__t('contracting.create_schedule_task_modal.s23', "المهمة السابقة المعتمدة عليها (Predecessor)")}>
               <CustomSelect
                 value={formData.predecessorId}
                 options={predecessorSelectOptions}
@@ -354,12 +356,12 @@ export function CreateScheduleTaskModal({
             </Field>
           </div>
 
-          <Field label="ملاحظات ومتطلبات التنفيذ (اختياري)">
+          <Field label={__t('contracting.create_schedule_task_modal.s24', "ملاحظات ومتطلبات التنفيذ (اختياري)")}>
             <input
               type="text"
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              placeholder="ملاحظات مهندس التخطيط، اعتمادات الاستشاري المطلوبة قبل البدء..."
+              placeholder={__t('contracting.create_schedule_task_modal.s25', "ملاحظات مهندس التخطيط، اعتمادات الاستشاري المطلوبة قبل البدء...")}
             />
           </Field>
         </div>

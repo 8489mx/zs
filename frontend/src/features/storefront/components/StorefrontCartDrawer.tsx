@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useEffect } from 'react';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { getCurrencySymbol, isThreeDecimalCurrency } from '@/lib/currencies';
@@ -31,6 +32,7 @@ export function StorefrontCartDrawer({
   onClearCart,
   onProceedToCheckout,
 }: StorefrontCartDrawerProps) {
+  const { t } = useTranslation();
   useEffect(() => {
     if (!isOpen) return;
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -115,7 +117,7 @@ export function StorefrontCartDrawer({
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <h2 style={{ margin: 0, fontSize: '17px', fontWeight: 800, color: '#0f172a' }}>
-              سلة المشتريات
+              {t('storefront.storefront_cart_drawer.s0', "سلة المشتريات")}
             </h2>
             <span
               style={{
@@ -127,7 +129,7 @@ export function StorefrontCartDrawer({
                 borderRadius: '999px',
               }}
             >
-              {cartItems.reduce((acc, i) => acc + i.quantity, 0)} منتج
+              {cartItems.reduce((acc, i) => acc + i.quantity, 0)} {t('storefront.storefront_cart_drawer.s1', "منتج")}
             </span>
           </div>
           <button
@@ -211,10 +213,10 @@ export function StorefrontCartDrawer({
                 </svg>
               </div>
               <p style={{ margin: 0, fontSize: '15px', fontWeight: 600, color: '#334155' }}>
-                سلة التسوق فارغة
+                {t('storefront.storefront_cart_drawer.s2', "سلة التسوق فارغة")}
               </p>
               <p style={{ margin: '6px 0 0', fontSize: '13px', color: '#94a3b8' }}>
-                تصفح المنتجات وأضف ما ترغب لطلبك الآن
+                {t('storefront.storefront_cart_drawer.s3', "تصفح المنتجات وأضف ما ترغب لطلبك الآن")}
               </p>
             </div>
           ) : (
@@ -315,7 +317,7 @@ export function StorefrontCartDrawer({
                   <button
                     type="button"
                     onClick={() => onUpdateQuantity(item.product.id, item.quantity + 1)}
-                    title="زيادة الكمية"
+                    title={t('storefront.storefront_cart_drawer.s4', "زيادة الكمية")}
                     style={{
                       width: '26px',
                       height: '26px',
@@ -347,7 +349,7 @@ export function StorefrontCartDrawer({
                   <button
                     type="button"
                     onClick={() => onUpdateQuantity(item.product.id, item.quantity - 1)}
-                    title="تقليل الكمية"
+                    title={t('storefront.storefront_cart_drawer.s5', "تقليل الكمية")}
                     style={{
                       width: '26px',
                       height: '26px',
@@ -394,31 +396,31 @@ export function StorefrontCartDrawer({
                   textAlign: 'center',
                 }}
               >
-                الحد الأدنى للطلب هو {minOrder} <CurrencySymbol /> (متبقي {formatPriceNumber(minOrder - subtotal)} {activeCurrencySymbol})
+                {t('storefront.storefront_cart_drawer.s6', "الحد الأدنى للطلب هو")} {minOrder} <CurrencySymbol /> {t('storefront.storefront_cart_drawer.s7', "(متبقي")} {formatPriceNumber(minOrder - subtotal)} {activeCurrencySymbol})
               </div>
             )}
 
             {/* Calculations Breakdown */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '14px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#64748b' }}>
-                <span>مجموع الأصناف:</span>
+                <span>{t('storefront.storefront_cart_drawer.s8', "مجموع الأصناف:")}</span>
                 <span style={{ fontWeight: 600, color: '#0f172a' }}>{formatPriceNumber(subtotal)} <CurrencySymbol /></span>
               </div>
               {totalSavings > 0 && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: 'var(--storefront-secondary-color, #e11d48)' }}>
-                  <span style={{ fontWeight: 700 }}>وفرت من العروض:</span>
+                  <span style={{ fontWeight: 700 }}>{t('storefront.storefront_cart_drawer.s9', "وفرت من العروض:")}</span>
                   <span style={{ fontWeight: 800 }}>- {formatPriceNumber(totalSavings)} <CurrencySymbol /></span>
                 </div>
               )}
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#64748b' }}>
-                <span>رسوم التوصيل:</span>
+                <span>{t('storefront.storefront_cart_drawer.s10', "رسوم التوصيل:")}</span>
                 <span style={{ fontWeight: 600, color: deliveryFee > 0 ? '#0f172a' : '#166534', display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
                   {deliveryFee === 0 && baseDeliveryFee > 0 && (
                     <span style={{ textDecoration: 'line-through', color: '#94a3b8', fontSize: '12px' }}>
                       {formatPriceNumber(baseDeliveryFee)} <CurrencySymbol />
                     </span>
                   )}
-                  <span>{deliveryFee > 0 ? `${formatPriceNumber(deliveryFee)} ${activeCurrencySymbol}` : 'مجاناً'}</span>
+                  <span>{deliveryFee > 0 ? `${formatPriceNumber(deliveryFee)} ${activeCurrencySymbol}` : t('storefront.storefront_cart_drawer.s11', "مجاناً")}</span>
                 </span>
               </div>
               <div
@@ -432,7 +434,7 @@ export function StorefrontCartDrawer({
                   borderTop: '1px dashed #cbd5e1',
                 }}
               >
-                <span>المبلغ الإجمالي:</span>
+                <span>{t('storefront.storefront_cart_drawer.s12', "المبلغ الإجمالي:")}</span>
                 <span>{formatPriceNumber(total)} <CurrencySymbol /></span>
               </div>
             </div>
@@ -457,12 +459,12 @@ export function StorefrontCartDrawer({
                   transition: 'all 0.15s ease',
                 }}
               >
-                إتمام الطلب الآن ({formatPriceNumber(total)} {activeCurrencySymbol})
+                {t('storefront.storefront_cart_drawer.s13', "إتمام الطلب الآن (")}{formatPriceNumber(total)} {activeCurrencySymbol})
               </button>
               <button
                 type="button"
                 onClick={onClearCart}
-                title="تفريغ السلة"
+                title={t('storefront.storefront_cart_drawer.s14', "تفريغ السلة")}
                 style={{
                   padding: '12px',
                   borderRadius: '10px',
@@ -473,7 +475,7 @@ export function StorefrontCartDrawer({
                   fontSize: '13px',
                 }}
               >
-                مسح
+                {t('storefront.storefront_cart_drawer.s15', "مسح")}
               </button>
             </div>
           </div>

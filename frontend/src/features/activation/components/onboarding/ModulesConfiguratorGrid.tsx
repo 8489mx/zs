@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import {
   SYSTEM_MODULES,
 } from '@/features/settings/components/modular-configurator/modular-presets';
@@ -16,6 +17,7 @@ export function ModulesConfiguratorGrid({
   selectedCategory,
   onSelectCategory,
 }: ModulesConfiguratorGridProps) {
+  const { t } = useTranslation();
   const displayedGroups =
     selectedCategory === 'all'
       ? MODULE_GROUPS
@@ -34,13 +36,13 @@ export function ModulesConfiguratorGrid({
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '16px', flexWrap: 'wrap', marginBottom: '18px' }}>
         <div>
           <span style={{ fontSize: '12px', fontWeight: 800, color: '#170e5e', display: 'block', marginBottom: '4px' }}>
-            الخطوة 2 من 2: خصص الميزات والموديولات
+            {t('activation.onboarding.modules_configurator_grid.s0', "الخطوة 2 من 2: خصص الميزات والموديولات")}
           </span>
           <h2 style={{ fontSize: '18px', fontWeight: 800, color: '#0f172a', margin: 0 }}>
-            تفعيل وإلغاء ميزات النظام
+            {t('activation.onboarding.modules_configurator_grid.s1', "تفعيل وإلغاء ميزات النظام")}
           </h2>
           <p style={{ fontSize: '13px', color: '#64748b', margin: '4px 0 0' }}>
-            تم تفعيل الموديولات المقترحة لنشاطك، ويمكنك تفعيل أو إيقاف أي موديول إضافي بحرية.
+            {t('activation.onboarding.modules_configurator_grid.s2', "تم تفعيل الموديولات المقترحة لنشاطك، ويمكنك تفعيل أو إيقاف أي موديول إضافي بحرية.")}
           </p>
         </div>
 

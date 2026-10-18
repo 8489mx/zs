@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { QueryFeedback } from '@/shared/components/query-feedback';
 import { SettingsMainForm } from '@/features/settings/components/SettingsForms';
 import type { Branch, Location, AppSettings } from '@/types/domain';
@@ -15,6 +16,7 @@ interface SettingsCoreSectionProps {
 }
 
 export function SettingsCoreSection({ settings, branches, locations, settingsQuery, canManageSettings, setupMode = false, onSetupAdvance, onUpdateBranch }: SettingsCoreSectionProps) {
+  const { t } = useTranslation();
   return (
     <div className="settings-main-grid">
       <QueryFeedback
@@ -22,9 +24,9 @@ export function SettingsCoreSection({ settings, branches, locations, settingsQue
         isError={settingsQuery.isError}
         error={settingsQuery.error}
         isEmpty={!settings}
-        loadingText="جاري تحميل الإعدادات..."
-        emptyTitle="لا توجد إعدادات حالية"
-        emptyHint="يمكنك حفظ الإعدادات الأساسية من هذه الشاشة."
+        loadingText={t('settings.workspace_sections.settings_core_section.s0', "جاري تحميل الإعدادات...")}
+        emptyTitle={t('settings.workspace_sections.settings_core_section.s1', "لا توجد إعدادات حالية")}
+        emptyHint={t('settings.workspace_sections.settings_core_section.s2', "يمكنك حفظ الإعدادات الأساسية من هذه الشاشة.")}
       >
         <SettingsMainForm settings={settings} branches={branches} locations={locations} canManageSettings={canManageSettings} setupMode={setupMode} onSetupAdvance={onSetupAdvance} onUpdateBranch={onUpdateBranch} />
       </QueryFeedback>

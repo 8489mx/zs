@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { DialogShell } from '@/shared/components/dialog-shell';
@@ -22,6 +23,7 @@ export function UpsertFleetVehicleModal({
   reps,
   onSuccess,
 }: UpsertFleetVehicleModalProps) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
 
   const [plateNumber, setPlateNumber] = useState('');
@@ -114,7 +116,7 @@ export function UpsertFleetVehicleModal({
       open={open}
       onClose={onClose}
       width="min(640px, 95vw)"
-      ariaLabel={vehicle ? 'تعديل بيانات المركبة' : 'تسجيل مركبة جديدة في الأسطول'}
+      ariaLabel={vehicle ? t('delivery_reps.upsert_fleet_vehicle_modal.s0', "تعديل بيانات المركبة") : t('delivery_reps.upsert_fleet_vehicle_modal.s1', "تسجيل مركبة جديدة في الأسطول")}
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: '18px', padding: '20px 24px' }} dir="rtl">
         {/* Header */}
@@ -136,10 +138,10 @@ export function UpsertFleetVehicleModal({
             </div>
             <div>
               <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: '#0f172a' }}>
-                {vehicle ? `تعديل مركبة: ${vehicle.plateNumber}` : 'إضافة سيارة جديدة لأسطول الشركة'}
+                {vehicle ? `تعديل مركبة: ${vehicle.plateNumber}` : t('delivery_reps.upsert_fleet_vehicle_modal.s2', "إضافة سيارة جديدة لأسطول الشركة")}
               </h3>
               <p style={{ margin: '2px 0 0 0', fontSize: '12px', color: '#64748b' }}>
-                سيتم تلقائياً ربط المركبة بمستودع مخزني متنقل (Van Stock) للتحميل والبيع الميداني
+                {t('delivery_reps.upsert_fleet_vehicle_modal.s3', "سيتم تلقائياً ربط المركبة بمستودع مخزني متنقل (Van Stock) للتحميل والبيع الميداني")}
               </p>
             </div>
           </div>
@@ -169,11 +171,11 @@ export function UpsertFleetVehicleModal({
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: '12px' }}>
             <div>
               <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-                رقم اللوحة المعدنية *
+                {t('delivery_reps.upsert_fleet_vehicle_modal.s4', "رقم اللوحة المعدنية *")}
               </label>
               <input
                 type="text"
-                placeholder="مثال: 5678 ن و ر"
+                placeholder={t('delivery_reps.upsert_fleet_vehicle_modal.s5', "مثال: 5678 ن و ر")}
                 value={plateNumber}
                 onChange={(e) => setPlateNumber(e.target.value)}
                 style={{
@@ -189,11 +191,11 @@ export function UpsertFleetVehicleModal({
 
             <div>
               <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-                موديل وطراز المركبة
+                {t('delivery_reps.upsert_fleet_vehicle_modal.s6', "موديل وطراز المركبة")}
               </label>
               <input
                 type="text"
-                placeholder="مثال: تويوتا هايس 2024 / شيفروليه جامبو"
+                placeholder={t('delivery_reps.upsert_fleet_vehicle_modal.s7', "مثال: تويوتا هايس 2024 / شيفروليه جامبو")}
                 value={modelName}
                 onChange={(e) => setModelName(e.target.value)}
                 style={{
@@ -212,7 +214,7 @@ export function UpsertFleetVehicleModal({
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
             <div>
               <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-                نوع المركبة والتجهيز
+                {t('delivery_reps.upsert_fleet_vehicle_modal.s8', "نوع المركبة والتجهيز")}
               </label>
               <select
                 value={vehicleType}
@@ -227,16 +229,16 @@ export function UpsertFleetVehicleModal({
                   background: '#ffffff',
                 }}
               >
-                <option value="van">سيارة فان مغلقة (توزيع منتجات)</option>
-                <option value="pickup">سيارة ربع نقل / بيك أب</option>
-                <option value="truck">شاحنة توزيع متوسطة (جامبو)</option>
-                <option value="tricycle">تروسيكل / مركبة ثلاثية</option>
+                <option value="van">{t('delivery_reps.upsert_fleet_vehicle_modal.s9', "سيارة فان مغلقة (توزيع منتجات)")}</option>
+                <option value="pickup">{t('delivery_reps.upsert_fleet_vehicle_modal.s10', "سيارة ربع نقل / بيك أب")}</option>
+                <option value="truck">{t('delivery_reps.upsert_fleet_vehicle_modal.s11', "شاحنة توزيع متوسطة (جامبو)")}</option>
+                <option value="tricycle">{t('delivery_reps.upsert_fleet_vehicle_modal.s12', "تروسيكل / مركبة ثلاثية")}</option>
               </select>
             </div>
 
             <div>
               <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-                نوع الوقود
+                {t('delivery_reps.upsert_fleet_vehicle_modal.s13', "نوع الوقود")}
               </label>
               <select
                 value={fuelType}
@@ -251,10 +253,10 @@ export function UpsertFleetVehicleModal({
                   background: '#ffffff',
                 }}
               >
-                <option value="gasoline">بنزين (Gasoline)</option>
-                <option value="diesel">سولار / ديزل (Diesel)</option>
-                <option value="natural_gas">غاز طبيعي (CNG)</option>
-                <option value="electric">كهرباء (Electric)</option>
+                <option value="gasoline">{t('delivery_reps.upsert_fleet_vehicle_modal.s14', "بنزين (Gasoline)")}</option>
+                <option value="diesel">{t('delivery_reps.upsert_fleet_vehicle_modal.s15', "سولار / ديزل (Diesel)")}</option>
+                <option value="natural_gas">{t('delivery_reps.upsert_fleet_vehicle_modal.s16', "غاز طبيعي (CNG)")}</option>
+                <option value="electric">{t('delivery_reps.upsert_fleet_vehicle_modal.s17', "كهرباء (Electric)")}</option>
               </select>
             </div>
           </div>
@@ -263,7 +265,7 @@ export function UpsertFleetVehicleModal({
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
             <div>
               <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-                قراءة العداد الحالية (كم)
+                {t('delivery_reps.upsert_fleet_vehicle_modal.s18', "قراءة العداد الحالية (كم)")}
               </label>
               <input
                 type="number"
@@ -285,11 +287,11 @@ export function UpsertFleetVehicleModal({
 
             <div>
               <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-                رقم الشاسيه (VIN)
+                {t('delivery_reps.upsert_fleet_vehicle_modal.s19', "رقم الشاسيه (VIN)")}
               </label>
               <input
                 type="text"
-                placeholder="رقم الشاسيه من واقع الرخصة"
+                placeholder={t('delivery_reps.upsert_fleet_vehicle_modal.s20', "رقم الشاسيه من واقع الرخصة")}
                 value={vinChassis}
                 onChange={(e) => setVinChassis(e.target.value)}
                 style={{
@@ -310,7 +312,7 @@ export function UpsertFleetVehicleModal({
           <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '12px' }}>
             <div>
               <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-                المندوب / السائق المسند له المركبة
+                {t('delivery_reps.upsert_fleet_vehicle_modal.s21', "المندوب / السائق المسند له المركبة")}
               </label>
               <select
                 value={assignedRepId}
@@ -325,10 +327,10 @@ export function UpsertFleetVehicleModal({
                   background: '#ffffff',
                 }}
               >
-                <option value="">-- بدون سائق حالياً (متاحة) --</option>
+                <option value="">{t('delivery_reps.upsert_fleet_vehicle_modal.s22', "-- بدون سائق حالياً (متاحة) --")}</option>
                 {reps.map((rep) => (
                   <option key={rep.id} value={rep.id}>
-                    {rep.name} {rep.phone ? `(${rep.phone})` : ''} - {rep.is_van_rep ? 'مندوب فان' : 'مندوب دليفري'}
+                    {rep.name} {rep.phone ? `(${rep.phone})` : ''} - {rep.is_van_rep ? t('delivery_reps.upsert_fleet_vehicle_modal.s23', "مندوب فان") : t('delivery_reps.upsert_fleet_vehicle_modal.s24', "مندوب دليفري")}
                   </option>
                 ))}
               </select>
@@ -336,7 +338,7 @@ export function UpsertFleetVehicleModal({
 
             <div>
               <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-                تاريخ انتهاء رخصة التسيير
+                {t('delivery_reps.upsert_fleet_vehicle_modal.s25', "تاريخ انتهاء رخصة التسيير")}
               </label>
               <input
                 type="date"
@@ -358,7 +360,7 @@ export function UpsertFleetVehicleModal({
           {vehicle && (
             <div>
               <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-                حالة المركبة التشغيلية
+                {t('delivery_reps.upsert_fleet_vehicle_modal.s26', "حالة المركبة التشغيلية")}
               </label>
               <select
                 value={status}
@@ -373,21 +375,21 @@ export function UpsertFleetVehicleModal({
                   background: '#ffffff',
                 }}
               >
-                <option value="available">متاحة وجاهزة للتشغيل (Available)</option>
-                <option value="assigned">مسندة لسائق وفي الخدمة (Assigned)</option>
-                <option value="maintenance">تحت الصيانة والإصلاح (Maintenance)</option>
-                <option value="retired">مستبعدة من الخدمة (Retired)</option>
+                <option value="available">{t('delivery_reps.upsert_fleet_vehicle_modal.s27', "متاحة وجاهزة للتشغيل (Available)")}</option>
+                <option value="assigned">{t('delivery_reps.upsert_fleet_vehicle_modal.s28', "مسندة لسائق وفي الخدمة (Assigned)")}</option>
+                <option value="maintenance">{t('delivery_reps.upsert_fleet_vehicle_modal.s29', "تحت الصيانة والإصلاح (Maintenance)")}</option>
+                <option value="retired">{t('delivery_reps.upsert_fleet_vehicle_modal.s30', "مستبعدة من الخدمة (Retired)")}</option>
               </select>
             </div>
           )}
 
           <div>
             <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-              ملاحظات إضافية
+              {t('delivery_reps.upsert_fleet_vehicle_modal.s31', "ملاحظات إضافية")}
             </label>
             <textarea
               rows={2}
-              placeholder="مثال: موعد الصيانة الدورية، حالة الإطارات، تعليمات السائق..."
+              placeholder={t('delivery_reps.upsert_fleet_vehicle_modal.s32', "مثال: موعد الصيانة الدورية، حالة الإطارات، تعليمات السائق...")}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               style={{
@@ -406,7 +408,7 @@ export function UpsertFleetVehicleModal({
         {/* Footer Actions */}
         <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', borderTop: '1px solid #e2e8f0', paddingTop: '14px' }}>
           <Button variant="secondary" onClick={onClose} style={{ minHeight: '38px', padding: '0 18px' }}>
-            إلغاء
+            {t('delivery_reps.upsert_fleet_vehicle_modal.s33', "إلغاء")}
           </Button>
           <Button
             variant="primary"
@@ -414,7 +416,7 @@ export function UpsertFleetVehicleModal({
             disabled={!plateNumber.trim() || isSaving}
             style={{ minHeight: '38px', padding: '0 24px', fontWeight: 700, background: '#170e5e' }}
           >
-            {isSaving ? 'جاري الحفظ...' : vehicle ? 'تحديث بيانات المركبة' : 'تسجيل المركبة بالأسطول'}
+            {isSaving ? t('delivery_reps.upsert_fleet_vehicle_modal.s34', "جاري الحفظ...") : vehicle ? t('delivery_reps.upsert_fleet_vehicle_modal.s35', "تحديث بيانات المركبة") : t('delivery_reps.upsert_fleet_vehicle_modal.s36', "تسجيل المركبة بالأسطول")}
           </Button>
         </div>
       </div>

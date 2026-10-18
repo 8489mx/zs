@@ -1,4 +1,5 @@
 import type { AuditLog } from '@/types/domain';
+import { translateUiText } from '@/lib/auto-translator';
 
 export type AuditActivityType =
   | 'auth'
@@ -19,105 +20,105 @@ type ActivityMeta = {
   badgeClass: string;
 };
 
-const ACTION_PATTERNS: Array<{ pattern: RegExp; label: string }> = [
-  { pattern: /(login|user login|تسجيل دخول)/i, label: 'تسجيل دخول' },
-  { pattern: /(logout|تسجيل خروج)/i, label: 'تسجيل خروج' },
-  { pattern: /(failed login|تسجيل دخول فاشل)/i, label: 'تسجيل دخول فاشل' },
-  { pattern: /(password change|change password|تغيير كلمة المرور)/i, label: 'تغيير كلمة المرور' },
+const ACTION_PATTERNS: Array<{ pattern: RegExp; label: string; labelEn: string }> = [
+  { pattern: /(login|user login|تسجيل دخول)/i, label: 'تسجيل دخول', labelEn: 'User Login' },
+  { pattern: /(logout|تسجيل خروج)/i, label: 'تسجيل خروج', labelEn: 'User Logout' },
+  { pattern: /(failed login|تسجيل دخول فاشل)/i, label: 'تسجيل دخول فاشل', labelEn: 'Failed Login' },
+  { pattern: /(password change|change password|تغيير كلمة المرور)/i, label: 'تغيير كلمة المرور', labelEn: 'Password Change' },
   
   // Maintenance tickets
-  { pattern: /(update ticket status|تحديث حالة التذكرة|تحديث حالة تذكرة)/i, label: 'تحديث حالة تذكرة الصيانة' },
-  { pattern: /(create maintenance ticket|إنشاء تذكرة صيانة|إضافة تذكرة صيانة)/i, label: 'إنشاء تذكرة صيانة' },
-  { pattern: /(update maintenance ticket|تعديل تذكرة صيانة)/i, label: 'تعديل تذكرة صيانة' },
-  { pattern: /(delete maintenance ticket|حذف تذكرة صيانة)/i, label: 'حذف تذكرة صيانة' },
-  { pattern: /(add ticket part|إضافة قطعة غيار)/i, label: 'إضافة قطعة غيار لتذكرة' },
-  { pattern: /(remove ticket part|حذف قطعة غيار من تذكرة)/i, label: 'حذف قطعة غيار من تذكرة' },
+  { pattern: /(update ticket status|تحديث حالة التذكرة|تحديث حالة تذكرة)/i, label: 'تحديث حالة تذكرة الصيانة', labelEn: 'Update Ticket Status' },
+  { pattern: /(create maintenance ticket|إنشاء تذكرة صيانة|إضافة تذكرة صيانة)/i, label: 'إنشاء تذكرة صيانة', labelEn: 'Create Maintenance Ticket' },
+  { pattern: /(update maintenance ticket|تعديل تذكرة صيانة)/i, label: 'تعديل تذكرة صيانة', labelEn: 'Update Maintenance Ticket' },
+  { pattern: /(delete maintenance ticket|حذف تذكرة صيانة)/i, label: 'حذف تذكرة صيانة', labelEn: 'Delete Maintenance Ticket' },
+  { pattern: /(add ticket part|إضافة قطعة غيار)/i, label: 'إضافة قطعة غيار لتذكرة', labelEn: 'Add Spare Part to Ticket' },
+  { pattern: /(remove ticket part|حذف قطعة غيار من تذكرة)/i, label: 'حذف قطعة غيار من تذكرة', labelEn: 'Remove Spare Part from Ticket' },
 
   // Addons
-  { pattern: /(create addon|إضافة ملحق)/i, label: 'إضافة ملحق' },
-  { pattern: /(update addon|تعديل ملحق)/i, label: 'تعديل ملحق' },
-  { pattern: /(delete addon|حذف ملحق)/i, label: 'حذف ملحق' },
+  { pattern: /(create addon|إضافة ملحق)/i, label: 'إضافة ملحق', labelEn: 'Create Addon' },
+  { pattern: /(update addon|تعديل ملحق)/i, label: 'تعديل ملحق', labelEn: 'Update Addon' },
+  { pattern: /(delete addon|حذف ملحق)/i, label: 'حذف ملحق', labelEn: 'Delete Addon' },
 
   // HR & Attendance
-  { pattern: /(bulk import hr attendance|استيراد حضور جماعي)/i, label: 'استيراد حضور جماعي' },
-  { pattern: /(upsert hr attendance record|attendance record|حضور موظف)/i, label: 'تسجيل أو تعديل حضور موظف' },
-  { pattern: /(save hr attendance day|حفظ حضور)/i, label: 'حفظ حضور اليوم' },
-  { pattern: /(cancel hr attendance checkout|إلغاء انصراف)/i, label: 'إلغاء تسجيل انصراف' },
-  { pattern: /(new attendance session for hr employee|جلسة حضور)/i, label: 'جلسة حضور جديدة' },
-  { pattern: /(create quick cash advance|quick cash advance|سلفة نقدية سريعة)/i, label: 'سلفة نقدية سريعة' },
-  { pattern: /(create hr employee loan|إنشاء سلفة)/i, label: 'إنشاء سلفة موظف' },
-  { pattern: /(update hr employee loan|تعديل سلفة)/i, label: 'تعديل سلفة موظف' },
-  { pattern: /(approve hr employee loan|اعتماد سلفة)/i, label: 'اعتماد سلفة موظف' },
-  { pattern: /(pay hr employee loan|صرف سلفة)/i, label: 'صرف سلفة موظف' },
-  { pattern: /(repay hr employee loan|سداد سلفة)/i, label: 'سداد سلفة موظف' },
-  { pattern: /(create hr payroll run|إعداد مسير)/i, label: 'إعداد مسير الرواتب' },
-  { pattern: /(recalculate hr payroll run|إعادة احتساب مسير)/i, label: 'إعادة احتساب مسير الرواتب' },
-  { pattern: /(apply hr attendance deductions|تطبيق خصومات)/i, label: 'تطبيق خصومات الحضور' },
-  { pattern: /(review hr payroll run|مراجعة مسير)/i, label: 'مراجعة مسير الرواتب' },
-  { pattern: /(approve hr payroll run|اعتماد مسير)/i, label: 'اعتماد مسير الرواتب' },
-  { pattern: /(pay hr payroll run|صرف مسير)/i, label: 'صرف مسير الرواتب' },
-  { pattern: /(cancel hr payroll run|إلغاء مسير)/i, label: 'إلغاء مسير الرواتب' },
-  { pattern: /(update hr payroll item|تعديل بند مسير)/i, label: 'تعديل بند مسير' },
-  { pattern: /(create hr payroll adjustment|إضافة تسوية مسير)/i, label: 'إضافة تسوية لمسير الرواتب' },
-  { pattern: /(delete hr payroll adjustment|حذف تسوية مسير)/i, label: 'حذف تسوية مسير الرواتب' },
-  { pattern: /(create hr leave request|طلب إجازة)/i, label: 'تقديم طلب إجازة' },
-  { pattern: /(approve hr leave request|اعتماد إجازة)/i, label: 'الموافقة على الإجازة' },
-  { pattern: /(reject hr leave request|رفض إجازة)/i, label: 'رفض طلب الإجازة' },
-  { pattern: /(cancel hr leave request|إلغاء إجازة)/i, label: 'إلغاء طلب الإجازة' },
-  { pattern: /(create hr employee|إضافة موظف)/i, label: 'إضافة موظف جديد' },
-  { pattern: /(update hr employee|تعديل موظف)/i, label: 'تعديل بيانات موظف' },
-  { pattern: /(deactivate hr employee|تعطيل حساب موظف|تعطيل موظف)/i, label: 'تعطيل حساب موظف' },
-  { pattern: /(end of service|إنهاء خدمة)/i, label: 'إنهاء خدمة موظف' },
-  { pattern: /(hr employee contact|بيانات اتصال)/i, label: 'تحديث بيانات اتصال موظف' },
-  { pattern: /(hr employee document|مستندات موظف)/i, label: 'تحديث وثائق موظف' },
-  { pattern: /(hr employment contract|عقد عمل)/i, label: 'تحديث عقد عمل' },
-  { pattern: /(hr compensation|بيانات راتب)/i, label: 'تحديث راتب موظف' },
-  { pattern: /(hr employee adjustment|تسوية موظف)/i, label: 'تسوية لموظف' },
-  { pattern: /(hr employee asset|عهدة موظف)/i, label: 'تحديث عهدة موظف' },
-  { pattern: /(hr leave type|نوع إجازة)/i, label: 'تحديث نوع إجازة' },
+  { pattern: /(bulk import hr attendance|استيراد حضور جماعي)/i, label: 'استيراد حضور جماعي', labelEn: 'Bulk Import Attendance' },
+  { pattern: /(upsert hr attendance record|attendance record|حضور موظف)/i, label: 'تسجيل أو تعديل حضور موظف', labelEn: 'Record/Update Attendance' },
+  { pattern: /(save hr attendance day|حفظ حضور)/i, label: 'حفظ حضور اليوم', labelEn: 'Save Daily Attendance' },
+  { pattern: /(cancel hr attendance checkout|إلغاء انصراف)/i, label: 'إلغاء تسجيل انصراف', labelEn: 'Cancel Checkout' },
+  { pattern: /(new attendance session for hr employee|جلسة حضور)/i, label: 'جلسة حضور جديدة', labelEn: 'New Attendance Session' },
+  { pattern: /(create quick cash advance|quick cash advance|سلفة نقدية سريعة)/i, label: 'سلفة نقدية سريعة', labelEn: 'Quick Cash Advance' },
+  { pattern: /(create hr employee loan|إنشاء سلفة)/i, label: 'إنشاء سلفة موظف', labelEn: 'Create Employee Loan' },
+  { pattern: /(update hr employee loan|تعديل سلفة)/i, label: 'تعديل سلفة موظف', labelEn: 'Update Employee Loan' },
+  { pattern: /(approve hr employee loan|اعتماد سلفة)/i, label: 'اعتماد سلفة موظف', labelEn: 'Approve Employee Loan' },
+  { pattern: /(pay hr employee loan|صرف سلفة)/i, label: 'صرف سلفة موظف', labelEn: 'Disburse Employee Loan' },
+  { pattern: /(repay hr employee loan|سداد سلفة)/i, label: 'سداد سلفة موظف', labelEn: 'Repay Employee Loan' },
+  { pattern: /(create hr payroll run|إعداد مسير)/i, label: 'إعداد مسير الرواتب', labelEn: 'Create Payroll Run' },
+  { pattern: /(recalculate hr payroll run|إعادة احتساب مسير)/i, label: 'إعادة احتساب مسير الرواتب', labelEn: 'Recalculate Payroll Run' },
+  { pattern: /(apply hr attendance deductions|تطبيق خصومات)/i, label: 'تطبيق خصومات الحضور', labelEn: 'Apply Attendance Deductions' },
+  { pattern: /(review hr payroll run|مراجعة مسير)/i, label: 'مراجعة مسير الرواتب', labelEn: 'Review Payroll Run' },
+  { pattern: /(approve hr payroll run|اعتماد مسير)/i, label: 'اعتماد مسير الرواتب', labelEn: 'Approve Payroll Run' },
+  { pattern: /(pay hr payroll run|صرف مسير)/i, label: 'صرف مسير الرواتب', labelEn: 'Disburse Payroll Run' },
+  { pattern: /(cancel hr payroll run|إلغاء مسير)/i, label: 'إلغاء مسير الرواتب', labelEn: 'Cancel Payroll Run' },
+  { pattern: /(update hr payroll item|تعديل بند مسير)/i, label: 'تعديل بند مسير', labelEn: 'Update Payroll Item' },
+  { pattern: /(create hr payroll adjustment|إضافة تسوية مسير)/i, label: 'إضافة تسوية لمسير الرواتب', labelEn: 'Add Payroll Adjustment' },
+  { pattern: /(delete hr payroll adjustment|حذف تسوية مسير)/i, label: 'حذف تسوية مسير الرواتب', labelEn: 'Delete Payroll Adjustment' },
+  { pattern: /(create hr leave request|طلب إجازة)/i, label: 'تقديم طلب إجازة', labelEn: 'Submit Leave Request' },
+  { pattern: /(approve hr leave request|اعتماد إجازة)/i, label: 'الموافقة على الإجازة', labelEn: 'Approve Leave Request' },
+  { pattern: /(reject hr leave request|رفض إجازة)/i, label: 'رفض طلب الإجازة', labelEn: 'Reject Leave Request' },
+  { pattern: /(cancel hr leave request|إلغاء إجازة)/i, label: 'إلغاء طلب الإجازة', labelEn: 'Cancel Leave Request' },
+  { pattern: /(create hr employee|إضافة موظف)/i, label: 'إضافة موظف جديد', labelEn: 'Create Employee' },
+  { pattern: /(update hr employee|تعديل موظف)/i, label: 'تعديل بيانات موظف', labelEn: 'Update Employee' },
+  { pattern: /(deactivate hr employee|تعطيل حساب موظف|تعطيل موظف)/i, label: 'تعطيل حساب موظف', labelEn: 'Deactivate Employee' },
+  { pattern: /(end of service|إنهاء خدمة)/i, label: 'إنهاء خدمة موظف', labelEn: 'End Employee Service' },
+  { pattern: /(hr employee contact|بيانات اتصال)/i, label: 'تحديث بيانات اتصال موظف', labelEn: 'Update Employee Contact' },
+  { pattern: /(hr employee document|مستندات موظف)/i, label: 'تحديث وثائق موظف', labelEn: 'Update Employee Document' },
+  { pattern: /(hr employment contract|عقد عمل)/i, label: 'تحديث عقد عمل', labelEn: 'Update Employment Contract' },
+  { pattern: /(hr compensation|بيانات راتب)/i, label: 'تحديث راتب موظف', labelEn: 'Update Employee Compensation' },
+  { pattern: /(hr employee adjustment|تسوية موظف)/i, label: 'تسوية لموظف', labelEn: 'Employee Adjustment' },
+  { pattern: /(hr employee asset|عهدة موظف)/i, label: 'تحديث عهدة موظف', labelEn: 'Update Employee Asset Custody' },
+  { pattern: /(hr leave type|نوع إجازة)/i, label: 'تحديث نوع إجازة', labelEn: 'Update Leave Type' },
 
   // Import
-  { pattern: /(import.+products|استيراد.+أصناف|استيراد أصناف)/i, label: 'استيراد أصناف' },
-  { pattern: /(import.+customers|استيراد.+عملاء|استيراد عملاء)/i, label: 'استيراد عملاء' },
-  { pattern: /(import.+suppliers|استيراد.+موردين|استيراد موردين)/i, label: 'استيراد موردين' },
-  { pattern: /(opening stock|opening inventory|استيراد.+افتتاحي|استيراد مخزون افتتاحي)/i, label: 'استيراد مخزون افتتاحي' },
-  { pattern: /(import.+employees|استيراد.+موظفين|استيراد موظفين)/i, label: 'استيراد موظفين' },
+  { pattern: /(import.+products|استيراد.+أصناف|استيراد أصناف)/i, label: 'استيراد أصناف', labelEn: 'Import Products' },
+  { pattern: /(import.+customers|استيراد.+عملاء|استيراد عملاء)/i, label: 'استيراد عملاء', labelEn: 'Import Customers' },
+  { pattern: /(import.+suppliers|استيراد.+موردين|استيراد موردين)/i, label: 'استيراد موردين', labelEn: 'Import Suppliers' },
+  { pattern: /(opening stock|opening inventory|استيراد.+افتتاحي|استيراد مخزون افتتاحي)/i, label: 'استيراد مخزون افتتاحي', labelEn: 'Import Opening Stock' },
+  { pattern: /(import.+employees|استيراد.+موظفين|استيراد موظفين)/i, label: 'استيراد موظفين', labelEn: 'Import Employees' },
 
   // Categories & Inventory
-  { pattern: /(إضافة تصنيف|create category)/i, label: 'إضافة تصنيف' },
-  { pattern: /(تعديل تصنيف|update category)/i, label: 'تعديل تصنيف' },
-  { pattern: /(حذف تصنيف|delete category)/i, label: 'حذف تصنيف' },
-  { pattern: /(نقل أصناف|transfer products)/i, label: 'نقل أصناف بين التصنيفات' },
-  { pattern: /(إضافة صنف|create product)/i, label: 'إضافة صنف' },
-  { pattern: /(تعديل صنف|update product)/i, label: 'تعديل صنف' },
-  { pattern: /(حذف صنف|delete product)/i, label: 'حذف صنف' },
-  { pattern: /(جلسة جرد مخزون|inventory session)/i, label: 'جلسة جرد مخزون' },
-  { pattern: /(اعتماد جلسة جرد|post inventory)/i, label: 'اعتماد جلسة جرد' },
-  { pattern: /(تسجيل تالف|damaged stock)/i, label: 'تسجيل تالف' },
-  { pattern: /(نقل قسم|transfer department)/i, label: 'نقل أرصدة قسم' },
+  { pattern: /(إضافة تصنيف|create category)/i, label: 'إضافة تصنيف', labelEn: 'Create Category' },
+  { pattern: /(تعديل تصنيف|update category)/i, label: 'تعديل تصنيف', labelEn: 'Update Category' },
+  { pattern: /(حذف تصنيف|delete category)/i, label: 'حذف تصنيف', labelEn: 'Delete Category' },
+  { pattern: /(نقل أصناف|transfer products)/i, label: 'نقل أصناف بين التصنيفات', labelEn: 'Transfer Products' },
+  { pattern: /(إضافة صنف|create product)/i, label: 'إضافة صنف', labelEn: 'Create Product' },
+  { pattern: /(تعديل صنف|update product)/i, label: 'تعديل صنف', labelEn: 'Update Product' },
+  { pattern: /(حذف صنف|delete product)/i, label: 'حذف صنف', labelEn: 'Delete Product' },
+  { pattern: /(جلسة جرد مخزون|inventory session)/i, label: 'جلسة جرد مخزون', labelEn: 'Inventory Session' },
+  { pattern: /(اعتماد جلسة جرد|post inventory)/i, label: 'اعتماد جلسة جرد', labelEn: 'Post Inventory Session' },
+  { pattern: /(تسجيل تالف|damaged stock)/i, label: 'تسجيل تالف', labelEn: 'Record Damaged Stock' },
+  { pattern: /(نقل قسم|transfer department)/i, label: 'نقل أرصدة قسم', labelEn: 'Transfer Department' },
 
   // Delivery
-  { pattern: /(إضافة مندوب توصيل|create delivery rep)/i, label: 'إضافة مندوب توصيل' },
-  { pattern: /(تعديل مندوب توصيل|update delivery rep)/i, label: 'تعديل مندوب توصيل' },
-  { pattern: /(حذف مندوب توصيل|delete delivery rep)/i, label: 'حذف مندوب توصيل' },
-  { pattern: /(تسوية طلب توصيل|settle delivery order)/i, label: 'تسوية طلب توصيل' },
-  { pattern: /(تسوية كل الطلبات|settle all delivery orders)/i, label: 'تسوية كل طلبات التوصيل' },
+  { pattern: /(إضافة مندوب توصيل|create delivery rep)/i, label: 'إضافة مندوب توصيل', labelEn: 'Create Delivery Rep' },
+  { pattern: /(تعديل مندوب توصيل|update delivery rep)/i, label: 'تعديل مندوب توصيل', labelEn: 'Update Delivery Rep' },
+  { pattern: /(حذف مندوب توصيل|delete delivery rep)/i, label: 'حذف مندوب توصيل', labelEn: 'Delete Delivery Rep' },
+  { pattern: /(تسوية طلب توصيل|settle delivery order)/i, label: 'تسوية طلب توصيل', labelEn: 'Settle Delivery Order' },
+  { pattern: /(تسوية كل الطلبات|settle all delivery orders)/i, label: 'تسوية كل طلبات التوصيل', labelEn: 'Settle All Delivery Orders' },
 
   // SaaS & Tenants & Passwords
-  { pattern: /(إعادة كلمة مرور|reset owner password|reset password|كلمة مرور)/i, label: 'إعادة كلمة المرور' },
-  { pattern: /(إنشاء نسخة تجريبية|create trial tenant|create tenant|إنشاء نسخة)/i, label: 'إنشاء نسخة تجريبية' },
-  { pattern: /(تعديل خطة اشتراك|update plan|تحديث باقة)/i, label: 'تعديل باقة الاشتراك' },
-  { pattern: /(تجديد اشتراك|renew tenant)/i, label: 'تجديد اشتراك' },
-  { pattern: /(تسجيل دفعة|record payment)/i, label: 'تسجيل دفعة مالية' },
-  { pattern: /(تمديد تجربة|extend trial)/i, label: 'تمديد الفترة التجريبية' },
-  { pattern: /(إيقاف نسخة|suspend tenant)/i, label: 'إيقاف النسخة مؤقتاً' },
-  { pattern: /(حذف نسخة|delete tenant)/i, label: 'حذف نسخة سحابية' },
+  { pattern: /(إعادة كلمة مرور|reset owner password|reset password|كلمة مرور)/i, label: 'إعادة كلمة المرور', labelEn: 'Reset Password' },
+  { pattern: /(إنشاء نسخة تجريبية|create trial tenant|create tenant|إنشاء نسخة)/i, label: 'إنشاء نسخة تجريبية', labelEn: 'Create Trial Tenant' },
+  { pattern: /(تعديل خطة اشتراك|update plan|تحديث باقة)/i, label: 'تعديل باقة الاشتراك', labelEn: 'Update Subscription Plan' },
+  { pattern: /(تجديد اشتراك|renew tenant)/i, label: 'تجديد اشتراك', labelEn: 'Renew Subscription' },
+  { pattern: /(تسجيل دفعة|record payment)/i, label: 'تسجيل دفعة مالية', labelEn: 'Record Payment' },
+  { pattern: /(تمديد تجربة|extend trial)/i, label: 'تمديد الفترة التجريبية', labelEn: 'Extend Trial' },
+  { pattern: /(إيقاف نسخة|suspend tenant)/i, label: 'إيقاف النسخة مؤقتاً', labelEn: 'Suspend Tenant' },
+  { pattern: /(حذف نسخة|delete tenant)/i, label: 'حذف نسخة سحابية', labelEn: 'Delete Tenant' },
 
   // System & Settings
-  { pattern: /(backup created|نسخ احتياطي|backup)/i, label: 'نسخة احتياطية' },
-  { pattern: /(branch created|إضافة فرع)/i, label: 'إضافة فرع' },
-  { pattern: /(location created|إضافة مخزن)/i, label: 'إضافة مخزن' },
-  { pattern: /(settings updated|تعديل الإعدادات|update settings)/i, label: 'تعديل الإعدادات' },
+  { pattern: /(backup created|نسخ احتياطي|backup)/i, label: 'نسخة احتياطية', labelEn: 'Backup Created' },
+  { pattern: /(branch created|إضافة فرع)/i, label: 'إضافة فرع', labelEn: 'Create Branch' },
+  { pattern: /(location created|إضافة مخزن)/i, label: 'إضافة مخزن', labelEn: 'Create Location' },
+  { pattern: /(settings updated|تعديل الإعدادات|update settings)/i, label: 'تعديل الإعدادات', labelEn: 'Update Settings' },
 ];
 
 const TYPE_META: Record<AuditActivityType, ActivityMeta> = {
@@ -132,6 +133,20 @@ const TYPE_META: Record<AuditActivityType, ActivityMeta> = {
   backup: { type: 'backup', label: 'نسخ احتياطي', badgeClass: 'audit-badge-backup' },
   sensitive: { type: 'sensitive', label: 'عمليات حساسة', badgeClass: 'audit-badge-sensitive' },
   general: { type: 'general', label: 'عام', badgeClass: 'audit-badge-general' },
+};
+
+const TYPE_META_EN: Record<AuditActivityType, ActivityMeta> = {
+  auth: { type: 'auth', label: 'Security & Auth', badgeClass: 'audit-badge-auth' },
+  maintenance: { type: 'maintenance', label: 'Maintenance', badgeClass: 'audit-badge-maintenance' },
+  import: { type: 'import', label: 'Data Import', badgeClass: 'audit-badge-import' },
+  inventory: { type: 'inventory', label: 'Inventory', badgeClass: 'audit-badge-inventory' },
+  sales: { type: 'sales', label: 'Sales & Payments', badgeClass: 'audit-badge-sales' },
+  purchases: { type: 'purchases', label: 'Purchases', badgeClass: 'audit-badge-purchases' },
+  hr: { type: 'hr', label: 'Human Resources', badgeClass: 'audit-badge-hr' },
+  settings: { type: 'settings', label: 'System & Settings', badgeClass: 'audit-badge-settings' },
+  backup: { type: 'backup', label: 'Backups', badgeClass: 'audit-badge-backup' },
+  sensitive: { type: 'sensitive', label: 'Critical Actions', badgeClass: 'audit-badge-sensitive' },
+  general: { type: 'general', label: 'General', badgeClass: 'audit-badge-general' },
 };
 
 const STATUS_DICTIONARY: Record<string, string> = {
@@ -149,10 +164,14 @@ function readCombinedText(row: AuditLog): string {
   return `${String(row.action || '')} ${String(row.detailsSummary || '')} ${String(row.details || '')}`.toLowerCase();
 }
 
-export function getAuditActionLabel(action: string): string {
+export function getAuditActionLabel(action: string, isEn = false): string {
   const raw = String(action || '').trim();
-  if (!raw) return 'عملية';
+  if (!raw) return isEn ? 'Operation' : 'عملية';
   const mapped = ACTION_PATTERNS.find((entry) => entry.pattern.test(raw));
+  if (isEn) {
+    if (mapped?.labelEn) return mapped.labelEn;
+    return translateUiText(mapped?.label || raw);
+  }
   return mapped?.label || raw;
 }
 
@@ -172,11 +191,11 @@ function detectType(row: AuditLog): AuditActivityType {
   return 'general';
 }
 
-export function getAuditActivityMeta(row: AuditLog): ActivityMeta {
-  return TYPE_META[detectType(row)];
+export function getAuditActivityMeta(row: AuditLog, isEn = false): ActivityMeta {
+  return (isEn ? TYPE_META_EN : TYPE_META)[detectType(row)];
 }
 
-export function normalizeAuditDetailText(detailText: string): string {
+export function normalizeAuditDetailText(detailText: string, isEn = false): string {
   let raw = String(detailText || '').trim();
   if (!raw) return '—';
 
@@ -185,6 +204,87 @@ export function normalizeAuditDetailText(detailText: string): string {
   raw = raw.replace(/\s*\([0-9a-fA-F-]{36}\)/g, '');
   raw = raw.replace(/\s*بواسطة:\s*[a-zA-Z0-9_.-]+$/gi, '');
   raw = raw.trim();
+
+  if (isEn) {
+    // 1. Maintenance ticket status change
+    const ticketStatusMatch = raw.match(/Updated ticket\s+([A-Za-z0-9_-]+)\s+status to\s+([A-Za-z0-9_]+)/i);
+    if (ticketStatusMatch) {
+      const [, ticketNo, status] = ticketStatusMatch;
+      return `Ticket ${ticketNo} status changed to "${status}"`;
+    }
+
+    // 2. Maintenance ticket created
+    const ticketCreateMatch = raw.match(/Created ticket\s+([A-Za-z0-9_-]+)\s+for\s+(.+)/i);
+    if (ticketCreateMatch) {
+      const [, ticketNo, customer] = ticketCreateMatch;
+      return `Created maintenance ticket ${ticketNo} for customer: ${customer}`;
+    }
+
+    // 3. Maintenance ticket updated
+    const ticketUpdateMatch = raw.match(/Updated ticket\s+([A-Za-z0-9_-]+)$/i);
+    if (ticketUpdateMatch) {
+      const [, ticketNo] = ticketUpdateMatch;
+      return `Updated maintenance ticket ${ticketNo}`;
+    }
+
+    // 4. Maintenance ticket deleted
+    const ticketDeleteMatch = raw.match(/Deleted ticket ID\s+(\d+)\s+and restored\s+(\d+)\s+parts to stock/i);
+    if (ticketDeleteMatch) {
+      const [, id, count] = ticketDeleteMatch;
+      return `Deleted maintenance ticket #${id} and restored ${count} parts to stock`;
+    }
+
+    // 5. Addon operations
+    const addonCreatedMatch = raw.match(/Created addon\s+(.+)/i);
+    if (addonCreatedMatch) return `Created addon: ${addonCreatedMatch[1]}`;
+    const addonUpdatedMatch = raw.match(/Updated addon\s+(.+)/i);
+    if (addonUpdatedMatch) return `Updated addon #${addonUpdatedMatch[1]}`;
+    const addonDeletedMatch = raw.match(/Deleted addon\s+(.+)/i);
+    if (addonDeletedMatch) return `Deleted addon #${addonDeletedMatch[1]}`;
+
+    // 6. HR Attendance record saved
+    const attendanceMatch = raw.match(/attendance record saved for employee\s*#?(\d+)\s*on\s*([0-9-]+)\s*by\s*([A-Za-z0-9_.-]+)/i);
+    if (attendanceMatch) {
+      const [, employeeId, date, actor] = attendanceMatch;
+      return `Attendance recorded for employee #${employeeId} on ${date} by ${actor}`;
+    }
+
+    // 7. HR Loans
+    const loanMatch = raw.match(/Employee loan\s*#?(\d+)\s*(created|updated|approved|disbursed|repayment recorded)\s*by\s*(.+)/i);
+    if (loanMatch) {
+      const [, id, action, actor] = loanMatch;
+      return `Employee loan #${id} ${action} by ${actor}`;
+    }
+
+    // 8. Quick cash advance
+    const advanceMatch = raw.match(/Cash advance of\s*([\d.]+)\s*for employee\s*#?(\d+)\s*by\s*(.+)/i);
+    if (advanceMatch) {
+      const [, amount, empId, actor] = advanceMatch;
+      return `Cash advance of ${amount} for employee #${empId} by ${actor}`;
+    }
+
+    // 9. HR Leaves
+    const leaveMatch = raw.match(/Leave request\s*#?(\d+)\s*(created|approved|rejected|cancelled)\s*by\s*(.+)/i);
+    if (leaveMatch) {
+      const [, id, action, actor] = leaveMatch;
+      return `Leave request #${id} ${action} by ${actor}`;
+    }
+
+    // 10. HR Payroll run
+    const payrollPrepMatch = raw.match(/Payroll run\s*(\S+)\s*prepared by\s*(.+)/i);
+    if (payrollPrepMatch) {
+      const [, period, actor] = payrollPrepMatch;
+      return `Payroll run for period ${period} prepared by ${actor}`;
+    }
+
+    const payrollMatch = raw.match(/Payroll run\s*#?(\d+)\s*(recalculated|reviewed|approved|paid|cancelled)\s*by\s*(.+)/i);
+    if (payrollMatch) {
+      const [, id, action, actor] = payrollMatch;
+      return `Payroll run #${id} ${action} by ${actor}`;
+    }
+
+    return translateUiText(raw);
+  }
 
   // 1. Maintenance ticket status change
   const ticketStatusMatch = raw.match(/Updated ticket\s+([A-Za-z0-9_-]+)\s+status to\s+([A-Za-z0-9_]+)/i);
@@ -308,4 +408,3 @@ export function normalizeAuditUserDisplay(row: AuditLog): string {
   const display = String(row.createdByName || row.createdBy || '').trim();
   return display || '—';
 }
-

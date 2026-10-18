@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { storefrontApi } from '../api/storefront.api';
@@ -12,6 +13,7 @@ import {
 } from '@/shared/components/icons/AppIcons';
 
 export function StorefrontPaymentGatewaysManager() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [copySuccess, setCopySuccess] = useState(false);
   const [copyXPaySuccess, setCopyXPaySuccess] = useState(false);
@@ -183,10 +185,10 @@ export function StorefrontPaymentGatewaysManager() {
           </div>
           <div>
             <h3 style={{ margin: '0 0 4px', fontSize: '17px', fontWeight: 800, color: '#0f172a' }}>
-              بوابات الدفع الإلكتروني التلقائية للمتجر (Payment Gateways)
+              {t('storefront.storefront_payment_gateways_manager.s0', "بوابات الدفع الإلكتروني التلقائية للمتجر (Payment Gateways)")}
             </h3>
             <p style={{ margin: 0, fontSize: '13px', color: '#64748b' }}>
-              ربط مباشر لخصم البطاقات البنكية (Visa / MasterCard / Meeza) وتأكيد سداد الفواتير تلقائياً عبر الـ Webhooks
+              {t('storefront.storefront_payment_gateways_manager.s1', "ربط مباشر لخصم البطاقات البنكية (Visa / MasterCard / Meeza) وتأكيد سداد الفواتير تلقائياً عبر الـ Webhooks")}
             </p>
           </div>
         </div>
@@ -212,7 +214,7 @@ export function StorefrontPaymentGatewaysManager() {
               style={{ width: '18px', height: '18px', accentColor: '#16a34a', cursor: 'pointer' }}
             />
             <span style={{ fontSize: '13px', fontWeight: 700, color: formState.onlinePaymentEnabled ? '#15803d' : '#475569' }}>
-              {formState.onlinePaymentEnabled ? 'الدفع الإلكتروني مفعّل' : 'الدفع الإلكتروني معطّل'}
+              {formState.onlinePaymentEnabled ? t('storefront.storefront_payment_gateways_manager.s2', "الدفع الإلكتروني مفعّل") : t('storefront.storefront_payment_gateways_manager.s3', "الدفع الإلكتروني معطّل")}
             </span>
           </label>
 
@@ -235,7 +237,7 @@ export function StorefrontPaymentGatewaysManager() {
               opacity: updateMutation.isPending ? 0.7 : 1,
             }}
           >
-            {updateMutation.isPending ? 'جاري الحفظ...' : 'حفظ الإعدادات'}
+            {updateMutation.isPending ? t('storefront.storefront_payment_gateways_manager.s4', "جاري الحفظ...") : t('storefront.storefront_payment_gateways_manager.s5', "حفظ الإعدادات")}
           </button>
         </div>
       </div>
@@ -256,7 +258,7 @@ export function StorefrontPaymentGatewaysManager() {
           }}
         >
           <CheckCircleIcon size={18} color="#15803d" />
-          <span>تم حفظ إعدادات بوابة الدفع الإلكتروني بنجاح!</span>
+          <span>{t('storefront.storefront_payment_gateways_manager.s6', "تم حفظ إعدادات بوابة الدفع الإلكتروني بنجاح!")}</span>
         </div>
       )}
 
@@ -297,16 +299,16 @@ export function StorefrontPaymentGatewaysManager() {
         >
           <div style={{ borderBottom: '1px solid #f1f5f9', paddingBottom: '12px' }}>
             <h4 style={{ margin: '0 0 4px', fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>
-              اختيار مزود الخدمة ووضع التشغيل
+              {t('storefront.storefront_payment_gateways_manager.s7', "اختيار مزود الخدمة ووضع التشغيل")}
             </h4>
             <span style={{ fontSize: '12px', color: '#64748b' }}>
-              حدد بوابة الدفع المعتمدة وطور التشغيل (تجريبي أو إنتاجي مباشر)
+              {t('storefront.storefront_payment_gateways_manager.s8', "حدد بوابة الدفع المعتمدة وطور التشغيل (تجريبي أو إنتاجي مباشر)")}
             </span>
           </div>
 
           <div>
             <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: '#334155', marginBottom: '8px' }}>
-              مزود بوابة الدفع المعتمد
+              {t('storefront.storefront_payment_gateways_manager.s9', "مزود بوابة الدفع المعتمد")}
             </label>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: '8px' }}>
               {/* Tap Payments (GCC) */}
@@ -328,8 +330,8 @@ export function StorefrontPaymentGatewaysManager() {
               >
                 <CreditCardIcon size={22} color={formState.onlinePaymentProvider === 'tap' ? '#15803d' : '#64748b'} />
                 <div>
-                  <div style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a' }}>تاب (Tap GCC)</div>
-                  <div style={{ fontSize: '10px', color: '#16a34a', fontWeight: 700 }}>مدى / KNET / Apple Pay</div>
+                  <div style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a' }}>{t('storefront.storefront_payment_gateways_manager.s10', "تاب (Tap GCC)")}</div>
+                  <div style={{ fontSize: '10px', color: '#16a34a', fontWeight: 700 }}>{t('storefront.storefront_payment_gateways_manager.s11', "مدى / KNET / Apple Pay")}</div>
                 </div>
               </div>
 
@@ -352,8 +354,8 @@ export function StorefrontPaymentGatewaysManager() {
               >
                 <GlobeIcon size={22} color={formState.onlinePaymentProvider === 'stripe' ? '#2563eb' : '#64748b'} />
                 <div>
-                  <div style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a' }}>سترايب (Stripe)</div>
-                  <div style={{ fontSize: '10px', color: '#2563eb', fontWeight: 700 }}>بطاقات عالمية & Apple</div>
+                  <div style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a' }}>{t('storefront.storefront_payment_gateways_manager.s12', "سترايب (Stripe)")}</div>
+                  <div style={{ fontSize: '10px', color: '#2563eb', fontWeight: 700 }}>{t('storefront.storefront_payment_gateways_manager.s13', "بطاقات عالمية & Apple")}</div>
                 </div>
               </div>
 
@@ -377,7 +379,7 @@ export function StorefrontPaymentGatewaysManager() {
                 <BuildingIcon size={22} color={formState.onlinePaymentProvider === 'paymob' ? '#170e5e' : '#64748b'} />
                 <div>
                   <div style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a' }}>Paymob</div>
-                  <div style={{ fontSize: '10px', color: '#64748b' }}>فيزا / ماستركارد</div>
+                  <div style={{ fontSize: '10px', color: '#64748b' }}>{t('storefront.storefront_payment_gateways_manager.s14', "فيزا / ماستركارد")}</div>
                 </div>
               </div>
 
@@ -400,8 +402,8 @@ export function StorefrontPaymentGatewaysManager() {
               >
                 <CreditCardIcon size={22} color={formState.onlinePaymentProvider === 'xpay' ? '#170e5e' : '#64748b'} />
                 <div>
-                  <div style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a' }}>إكس باي (XPay)</div>
-                  <div style={{ fontSize: '10px', color: '#64748b' }}>بطاقات وفوري</div>
+                  <div style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a' }}>{t('storefront.storefront_payment_gateways_manager.s15', "إكس باي (XPay)")}</div>
+                  <div style={{ fontSize: '10px', color: '#64748b' }}>{t('storefront.storefront_payment_gateways_manager.s16', "بطاقات وفوري")}</div>
                 </div>
               </div>
 
@@ -425,7 +427,7 @@ export function StorefrontPaymentGatewaysManager() {
                 <CreditCardIcon size={22} color={formState.onlinePaymentProvider === 'mock' ? '#170e5e' : '#64748b'} />
                 <div>
                   <div style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a' }}>Sandbox Mock</div>
-                  <div style={{ fontSize: '10px', color: '#64748b' }}>محاكي تجريبي</div>
+                  <div style={{ fontSize: '10px', color: '#64748b' }}>{t('storefront.storefront_payment_gateways_manager.s17', "محاكي تجريبي")}</div>
                 </div>
               </div>
             </div>
@@ -445,9 +447,9 @@ export function StorefrontPaymentGatewaysManager() {
               }}
             >
               <div>
-                <div style={{ fontSize: '13.5px', fontWeight: 800, color: '#0f172a' }}>وضع التجربة (Tap Sandbox Mode)</div>
+                <div style={{ fontSize: '13.5px', fontWeight: 800, color: '#0f172a' }}>{t('storefront.storefront_payment_gateways_manager.s18', "وضع التجربة (Tap Sandbox Mode)")}</div>
                 <div style={{ fontSize: '11.5px', color: '#64748b', marginTop: '2px' }}>
-                  اختبار كامل دورة الدفع الخليجي (مدى، KNET، Apple Pay) ببيئة الاختبار
+                  {t('storefront.storefront_payment_gateways_manager.s19', "اختبار كامل دورة الدفع الخليجي (مدى، KNET، Apple Pay) ببيئة الاختبار")}
                 </div>
               </div>
               <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
@@ -474,9 +476,9 @@ export function StorefrontPaymentGatewaysManager() {
               }}
             >
               <div>
-                <div style={{ fontSize: '13.5px', fontWeight: 800, color: '#0f172a' }}>وضع التجربة (Stripe Test Mode)</div>
+                <div style={{ fontSize: '13.5px', fontWeight: 800, color: '#0f172a' }}>{t('storefront.storefront_payment_gateways_manager.s20', "وضع التجربة (Stripe Test Mode)")}</div>
                 <div style={{ fontSize: '11.5px', color: '#64748b', marginTop: '2px' }}>
-                  اختبار البطاقات الدولية عبر مفاتيح الاختبار بدون خصم أموال حقيقية
+                  {t('storefront.storefront_payment_gateways_manager.s21', "اختبار البطاقات الدولية عبر مفاتيح الاختبار بدون خصم أموال حقيقية")}
                 </div>
               </div>
               <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
@@ -503,9 +505,9 @@ export function StorefrontPaymentGatewaysManager() {
               }}
             >
               <div>
-                <div style={{ fontSize: '13.5px', fontWeight: 800, color: '#0f172a' }}>وضع التجربة (Paymob Sandbox)</div>
+                <div style={{ fontSize: '13.5px', fontWeight: 800, color: '#0f172a' }}>{t('storefront.storefront_payment_gateways_manager.s22', "وضع التجربة (Paymob Sandbox)")}</div>
                 <div style={{ fontSize: '11.5px', color: '#64748b', marginTop: '2px' }}>
-                  اختبار كامل دورة الدفع ببطاقات تجريبية دون سحب أموال حقيقية
+                  {t('storefront.storefront_payment_gateways_manager.s23', "اختبار كامل دورة الدفع ببطاقات تجريبية دون سحب أموال حقيقية")}
                 </div>
               </div>
               <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
@@ -532,9 +534,9 @@ export function StorefrontPaymentGatewaysManager() {
               }}
             >
               <div>
-                <div style={{ fontSize: '13.5px', fontWeight: 800, color: '#0f172a' }}>وضع التجربة (XPay Staging Mode)</div>
+                <div style={{ fontSize: '13.5px', fontWeight: 800, color: '#0f172a' }}>{t('storefront.storefront_payment_gateways_manager.s24', "وضع التجربة (XPay Staging Mode)")}</div>
                 <div style={{ fontSize: '11.5px', color: '#64748b', marginTop: '2px' }}>
-                  استخدام خوادم الاختبار (staging.xpay.app) لاختبار الدفع
+                  {t('storefront.storefront_payment_gateways_manager.s25', "استخدام خوادم الاختبار (staging.xpay.app) لاختبار الدفع")}
                 </div>
               </div>
               <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
@@ -564,11 +566,11 @@ export function StorefrontPaymentGatewaysManager() {
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <LinkIcon size={16} color="#15803d" />
                 <div style={{ fontSize: '13px', fontWeight: 800, color: '#15803d' }}>
-                  رابط إشعار العمليات الفوري (Tap Webhook URL)
+                  {t('storefront.storefront_payment_gateways_manager.s26', "رابط إشعار العمليات الفوري (Tap Webhook URL)")}
                 </div>
               </div>
               <div style={{ fontSize: '11.5px', color: '#166534', lineHeight: '1.5' }}>
-                قم بنسخ هذا الرابط ووضعه في لوحة تحكم Tap (Developers &gt; Webhooks):
+                {t('storefront.storefront_payment_gateways_manager.s27', "قم بنسخ هذا الرابط ووضعه في لوحة تحكم Tap (Developers > Webhooks):")}
               </div>
               <div
                 style={{
@@ -600,7 +602,7 @@ export function StorefrontPaymentGatewaysManager() {
                     transition: 'all 0.15s ease',
                   }}
                 >
-                  {copyTapSuccess ? 'تم النسخ!' : 'نسخ الرابط'}
+                  {copyTapSuccess ? t('storefront.storefront_payment_gateways_manager.s28', "تم النسخ!") : t('storefront.storefront_payment_gateways_manager.s29', "نسخ الرابط")}
                 </button>
               </div>
             </div>
@@ -622,11 +624,11 @@ export function StorefrontPaymentGatewaysManager() {
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <LinkIcon size={16} color="#1d4ed8" />
                 <div style={{ fontSize: '13px', fontWeight: 800, color: '#1d4ed8' }}>
-                  رابط إشعار العمليات الفوري (Stripe Webhook URL)
+                  {t('storefront.storefront_payment_gateways_manager.s30', "رابط إشعار العمليات الفوري (Stripe Webhook URL)")}
                 </div>
               </div>
               <div style={{ fontSize: '11.5px', color: '#1e40af', lineHeight: '1.5' }}>
-                قم بنسخ هذا الرابط ووضعه في لوحة تحكم سترايب (Developers &gt; Webhooks &gt; Add Endpoint):
+                {t('storefront.storefront_payment_gateways_manager.s31', "قم بنسخ هذا الرابط ووضعه في لوحة تحكم سترايب (Developers > Webhooks > Add Endpoint):")}
               </div>
               <div
                 style={{
@@ -658,7 +660,7 @@ export function StorefrontPaymentGatewaysManager() {
                     transition: 'all 0.15s ease',
                   }}
                 >
-                  {copyStripeSuccess ? 'تم النسخ!' : 'نسخ الرابط'}
+                  {copyStripeSuccess ? t('storefront.storefront_payment_gateways_manager.s32', "تم النسخ!") : t('storefront.storefront_payment_gateways_manager.s33', "نسخ الرابط")}
                 </button>
               </div>
             </div>
@@ -680,11 +682,11 @@ export function StorefrontPaymentGatewaysManager() {
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <LinkIcon size={16} color="#0369a1" />
                 <div style={{ fontSize: '13px', fontWeight: 800, color: '#0369a1' }}>
-                  رابط إشعار العمليات الفوري (Paymob Webhook URL)
+                  {t('storefront.storefront_payment_gateways_manager.s34', "رابط إشعار العمليات الفوري (Paymob Webhook URL)")}
                 </div>
               </div>
               <div style={{ fontSize: '11.5px', color: '#0c4a6e', lineHeight: '1.5' }}>
-                قم بنسخ هذا الرابط ووضعه في لوحة تحكم Paymob تحت (Transaction Processed Callback):
+                {t('storefront.storefront_payment_gateways_manager.s35', "قم بنسخ هذا الرابط ووضعه في لوحة تحكم Paymob تحت (Transaction Processed Callback):")}
               </div>
               <div
                 style={{
@@ -716,7 +718,7 @@ export function StorefrontPaymentGatewaysManager() {
                     transition: 'all 0.15s ease',
                   }}
                 >
-                  {copySuccess ? 'تم النسخ!' : 'نسخ الرابط'}
+                  {copySuccess ? t('storefront.storefront_payment_gateways_manager.s36', "تم النسخ!") : t('storefront.storefront_payment_gateways_manager.s37', "نسخ الرابط")}
                 </button>
               </div>
             </div>
@@ -738,11 +740,11 @@ export function StorefrontPaymentGatewaysManager() {
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <LinkIcon size={16} color="#15803d" />
                 <div style={{ fontSize: '13px', fontWeight: 800, color: '#15803d' }}>
-                  رابط إشعار العمليات الفوري (XPay Webhook URL)
+                  {t('storefront.storefront_payment_gateways_manager.s38', "رابط إشعار العمليات الفوري (XPay Webhook URL)")}
                 </div>
               </div>
               <div style={{ fontSize: '11.5px', color: '#166534', lineHeight: '1.5' }}>
-                قم بنسخ هذا الرابط ووضعه في لوحة تحكم إكس باي تحت (Webhooks / Payment Notification URL):
+                {t('storefront.storefront_payment_gateways_manager.s39', "قم بنسخ هذا الرابط ووضعه في لوحة تحكم إكس باي تحت (Webhooks / Payment Notification URL):")}
               </div>
               <div
                 style={{
@@ -774,7 +776,7 @@ export function StorefrontPaymentGatewaysManager() {
                     transition: 'all 0.15s ease',
                   }}
                 >
-                  {copyXPaySuccess ? 'تم النسخ!' : 'نسخ الرابط'}
+                  {copyXPaySuccess ? t('storefront.storefront_payment_gateways_manager.s40', "تم النسخ!") : t('storefront.storefront_payment_gateways_manager.s41', "نسخ الرابط")}
                 </button>
               </div>
             </div>
@@ -800,23 +802,23 @@ export function StorefrontPaymentGatewaysManager() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
                   <CreditCardIcon size={18} color="#170e5e" />
                   <h4 style={{ margin: 0, fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>
-                    مفاتيح بوابة تاب للمدفوعات (Tap Payments GCC)
+                    {t('storefront.storefront_payment_gateways_manager.s42', "مفاتيح بوابة تاب للمدفوعات (Tap Payments GCC)")}
                   </h4>
                 </div>
                 <span style={{ fontSize: '12px', color: '#64748b' }}>
-                  تدعم بطاقات مدى السعودية، شبكة كي نت الكويتية، بطاقات ناباس القطرية، وبطاقات بنفت، وApple Pay بالكامل.
+                  {t('storefront.storefront_payment_gateways_manager.s43', "تدعم بطاقات مدى السعودية، شبكة كي نت الكويتية، بطاقات ناباس القطرية، وبطاقات بنفت، وApple Pay بالكامل.")}
                 </span>
               </div>
 
               <div>
                 <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-                  المفتاح السري (Tap Secret Key)
+                  {t('storefront.storefront_payment_gateways_manager.s44', "المفتاح السري (Tap Secret Key)")}
                 </label>
                 <input
                   type="password"
                   value={formState.tapSecretKey}
                   onChange={(e) => setFormState({ ...formState, tapSecretKey: e.target.value })}
-                  placeholder="sk_test_... أو sk_live_..."
+                  placeholder={t('storefront.storefront_payment_gateways_manager.s45', "sk_test_... أو sk_live_...")}
                   style={{
                     width: '100%',
                     padding: '10px 14px',
@@ -829,19 +831,19 @@ export function StorefrontPaymentGatewaysManager() {
                   }}
                 />
                 <span style={{ fontSize: '11px', color: '#64748b', marginTop: '4px', display: 'block' }}>
-                  المفتاح السري لإنشاء جلسات الدفع وخصم الفواتير عبر خوادم Tap.
+                  {t('storefront.storefront_payment_gateways_manager.s46', "المفتاح السري لإنشاء جلسات الدفع وخصم الفواتير عبر خوادم Tap.")}
                 </span>
               </div>
 
               <div>
                 <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-                  المفتاح العام (Tap Publishable Key)
+                  {t('storefront.storefront_payment_gateways_manager.s47', "المفتاح العام (Tap Publishable Key)")}
                 </label>
                 <input
                   type="text"
                   value={formState.tapPublishableKey}
                   onChange={(e) => setFormState({ ...formState, tapPublishableKey: e.target.value })}
-                  placeholder="pk_test_... أو pk_live_..."
+                  placeholder={t('storefront.storefront_payment_gateways_manager.s48', "pk_test_... أو pk_live_...")}
                   style={{
                     width: '100%',
                     padding: '10px 14px',
@@ -854,7 +856,7 @@ export function StorefrontPaymentGatewaysManager() {
                   }}
                 />
                 <span style={{ fontSize: '11px', color: '#64748b', marginTop: '4px', display: 'block' }}>
-                  المفتاح العام المخصص للواجهة الأمامية وتوثيق عمليات Apple Pay المباشرة.
+                  {t('storefront.storefront_payment_gateways_manager.s49', "المفتاح العام المخصص للواجهة الأمامية وتوثيق عمليات Apple Pay المباشرة.")}
                 </span>
               </div>
             </>
@@ -866,23 +868,23 @@ export function StorefrontPaymentGatewaysManager() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
                   <GlobeIcon size={18} color="#170e5e" />
                   <h4 style={{ margin: 0, fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>
-                    مفاتيح بوابة سترايب (Stripe Global Payments)
+                    {t('storefront.storefront_payment_gateways_manager.s50', "مفاتيح بوابة سترايب (Stripe Global Payments)")}
                   </h4>
                 </div>
                 <span style={{ fontSize: '12px', color: '#64748b' }}>
-                  تدعم بطاقات فيزا، ماستركارد، أمريكان إكسبريس، وApple Pay وGoogle Pay عالمياً بكل العملات.
+                  {t('storefront.storefront_payment_gateways_manager.s51', "تدعم بطاقات فيزا، ماستركارد، أمريكان إكسبريس، وApple Pay وGoogle Pay عالمياً بكل العملات.")}
                 </span>
               </div>
 
               <div>
                 <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-                  المفتاح السري (Stripe Secret Key)
+                  {t('storefront.storefront_payment_gateways_manager.s52', "المفتاح السري (Stripe Secret Key)")}
                 </label>
                 <input
                   type="password"
                   value={formState.stripeSecretKey}
                   onChange={(e) => setFormState({ ...formState, stripeSecretKey: e.target.value })}
-                  placeholder="sk_test_... أو sk_live_..."
+                  placeholder={t('storefront.storefront_payment_gateways_manager.s53', "sk_test_... أو sk_live_...")}
                   style={{
                     width: '100%',
                     padding: '10px 14px',
@@ -898,13 +900,13 @@ export function StorefrontPaymentGatewaysManager() {
 
               <div>
                 <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-                  المفتاح العام (Stripe Publishable Key)
+                  {t('storefront.storefront_payment_gateways_manager.s54', "المفتاح العام (Stripe Publishable Key)")}
                 </label>
                 <input
                   type="text"
                   value={formState.stripePublishableKey}
                   onChange={(e) => setFormState({ ...formState, stripePublishableKey: e.target.value })}
-                  placeholder="pk_test_... أو pk_live_..."
+                  placeholder={t('storefront.storefront_payment_gateways_manager.s55', "pk_test_... أو pk_live_...")}
                   style={{
                     width: '100%',
                     padding: '10px 14px',
@@ -920,7 +922,7 @@ export function StorefrontPaymentGatewaysManager() {
 
               <div>
                 <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-                  مفتاح توقيع الويب هوك (Webhook Signing Secret)
+                  {t('storefront.storefront_payment_gateways_manager.s56', "مفتاح توقيع الويب هوك (Webhook Signing Secret)")}
                 </label>
                 <input
                   type="password"
@@ -939,7 +941,7 @@ export function StorefrontPaymentGatewaysManager() {
                   }}
                 />
                 <span style={{ fontSize: '11px', color: '#64748b', marginTop: '4px', display: 'block' }}>
-                  للتحقق من صحة أحداث سترايب عند استلام إشعارات الدفع التلقائية (checkout.session.completed).
+                  {t('storefront.storefront_payment_gateways_manager.s57', "للتحقق من صحة أحداث سترايب عند استلام إشعارات الدفع التلقائية (checkout.session.completed).")}
                 </span>
               </div>
             </>
@@ -949,22 +951,22 @@ export function StorefrontPaymentGatewaysManager() {
             <>
               <div style={{ borderBottom: '1px solid #f1f5f9', paddingBottom: '12px' }}>
                 <h4 style={{ margin: '0 0 4px', fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>
-                  مفاتيح الربط والاعتماد (Paymob API Keys)
+                  {t('storefront.storefront_payment_gateways_manager.s58', "مفاتيح الربط والاعتماد (Paymob API Keys)")}
                 </h4>
                 <span style={{ fontSize: '12px', color: '#64748b' }}>
-                  يمكنك استخراج هذه المفاتيح مباشرة من لوحة حسابك في Paymob
+                  {t('storefront.storefront_payment_gateways_manager.s59', "يمكنك استخراج هذه المفاتيح مباشرة من لوحة حسابك في Paymob")}
                 </span>
               </div>
 
               <div>
                 <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-                  مفتاح الـ API العام (API Key)
+                  {t('storefront.storefront_payment_gateways_manager.s60', "مفتاح الـ API العام (API Key)")}
                 </label>
                 <input
                   type="password"
                   value={formState.paymobApiKey}
                   onChange={(e) => setFormState({ ...formState, paymobApiKey: e.target.value })}
-                  placeholder="مثال: ZXlKaGJHY2lPaUpJVXpVe..."
+                  placeholder={t('storefront.storefront_payment_gateways_manager.s61', "مثال: ZXlKaGJHY2lPaUpJVXpVe...")}
                   style={{
                     width: '100%',
                     padding: '10px 14px',
@@ -981,13 +983,13 @@ export function StorefrontPaymentGatewaysManager() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-                    معرف التكامل (Integration ID)
+                    {t('storefront.storefront_payment_gateways_manager.s62', "معرف التكامل (Integration ID)")}
                   </label>
                   <input
                     type="text"
                     value={formState.paymobIntegrationId}
                     onChange={(e) => setFormState({ ...formState, paymobIntegrationId: e.target.value })}
-                    placeholder="مثال: 456789"
+                    placeholder={t('storefront.storefront_payment_gateways_manager.s63', "مثال: 456789")}
                     style={{
                       width: '100%',
                       padding: '10px 14px',
@@ -1003,13 +1005,13 @@ export function StorefrontPaymentGatewaysManager() {
 
                 <div>
                   <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-                    معرف الإطار (Iframe ID)
+                    {t('storefront.storefront_payment_gateways_manager.s64', "معرف الإطار (Iframe ID)")}
                   </label>
                   <input
                     type="text"
                     value={formState.paymobIframeId}
                     onChange={(e) => setFormState({ ...formState, paymobIframeId: e.target.value })}
-                    placeholder="مثال: 812345"
+                    placeholder={t('storefront.storefront_payment_gateways_manager.s65', "مثال: 812345")}
                     style={{
                       width: '100%',
                       padding: '10px 14px',
@@ -1026,13 +1028,13 @@ export function StorefrontPaymentGatewaysManager() {
 
               <div>
                 <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-                  المفتاح السري للتحقق الأمني (HMAC Secret)
+                  {t('storefront.storefront_payment_gateways_manager.s66', "المفتاح السري للتحقق الأمني (HMAC Secret)")}
                 </label>
                 <input
                   type="password"
                   value={formState.paymobHmacSecret}
                   onChange={(e) => setFormState({ ...formState, paymobHmacSecret: e.target.value })}
-                  placeholder="مثال: A8B4F12E99..."
+                  placeholder={t('storefront.storefront_payment_gateways_manager.s67', "مثال: A8B4F12E99...")}
                   style={{
                     width: '100%',
                     padding: '10px 14px',
@@ -1045,7 +1047,7 @@ export function StorefrontPaymentGatewaysManager() {
                   }}
                 />
                 <span style={{ fontSize: '11px', color: '#64748b', marginTop: '4px', display: 'block' }}>
-                  يُستخدم لتأكيد صحة التوقيع الرقمي للـ Webhook ومنع تزوير عمليات الدفع نهائياً.
+                  {t('storefront.storefront_payment_gateways_manager.s68', "يُستخدم لتأكيد صحة التوقيع الرقمي للـ Webhook ومنع تزوير عمليات الدفع نهائياً.")}
                 </span>
               </div>
             </>
@@ -1055,22 +1057,22 @@ export function StorefrontPaymentGatewaysManager() {
             <>
               <div style={{ borderBottom: '1px solid #f1f5f9', paddingBottom: '12px' }}>
                 <h4 style={{ margin: '0 0 4px', fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>
-                  مفاتيح الربط والاعتماد (XPay API Credentials)
+                  {t('storefront.storefront_payment_gateways_manager.s69', "مفاتيح الربط والاعتماد (XPay API Credentials)")}
                 </h4>
                 <span style={{ fontSize: '12px', color: '#64748b' }}>
-                  يمكنك استخراج هذه المفاتيح من لوحة حساب التاجر في منصة إكس باي (XPay Dashboard)
+                  {t('storefront.storefront_payment_gateways_manager.s70', "يمكنك استخراج هذه المفاتيح من لوحة حساب التاجر في منصة إكس باي (XPay Dashboard)")}
                 </span>
               </div>
 
               <div>
                 <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-                  مفتاح API السري (x-api-key)
+                  {t('storefront.storefront_payment_gateways_manager.s71', "مفتاح API السري (x-api-key)")}
                 </label>
                 <input
                   type="password"
                   value={formState.xpayApiKey}
                   onChange={(e) => setFormState({ ...formState, xpayApiKey: e.target.value })}
-                  placeholder="مثال: xpay_sec_key_..."
+                  placeholder={t('storefront.storefront_payment_gateways_manager.s72', "مثال: xpay_sec_key_...")}
                   style={{
                     width: '100%',
                     padding: '10px 14px',
@@ -1083,19 +1085,19 @@ export function StorefrontPaymentGatewaysManager() {
                   }}
                 />
                 <span style={{ fontSize: '11px', color: '#64748b', marginTop: '4px', display: 'block' }}>
-                  يُرسل في الترويسة (Header) الخاصة بالطلب للتحقق من هوية التاجر.
+                  {t('storefront.storefront_payment_gateways_manager.s73', "يُرسل في الترويسة (Header) الخاصة بالطلب للتحقق من هوية التاجر.")}
                 </span>
               </div>
 
               <div>
                 <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-                  معرف المجتمع في إكس باي (Community ID)
+                  {t('storefront.storefront_payment_gateways_manager.s74', "معرف المجتمع في إكس باي (Community ID)")}
                 </label>
                 <input
                   type="text"
                   value={formState.xpayCommunityId}
                   onChange={(e) => setFormState({ ...formState, xpayCommunityId: e.target.value })}
-                  placeholder="مثال: cm_987654..."
+                  placeholder={t('storefront.storefront_payment_gateways_manager.s75', "مثال: cm_987654...")}
                   style={{
                     width: '100%',
                     padding: '10px 14px',
@@ -1108,7 +1110,7 @@ export function StorefrontPaymentGatewaysManager() {
                   }}
                 />
                 <span style={{ fontSize: '11px', color: '#64748b', marginTop: '4px', display: 'block' }}>
-                  المعرّف الخاص بمنشأتك أو متجرك في منصة إكس باي لتوجيه العمليات المالية.
+                  {t('storefront.storefront_payment_gateways_manager.s76', "المعرّف الخاص بمنشأتك أو متجرك في منصة إكس باي لتوجيه العمليات المالية.")}
                 </span>
               </div>
             </>
@@ -1118,10 +1120,10 @@ export function StorefrontPaymentGatewaysManager() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', padding: '16px 0' }}>
               <div style={{ fontSize: '14px', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <CreditCardIcon size={16} color="#64748b" />
-                <span>وضع المحاكاة التجريبي نشط</span>
+                <span>{t('storefront.storefront_payment_gateways_manager.s77', "وضع المحاكاة التجريبي نشط")}</span>
               </div>
               <p style={{ fontSize: '12.5px', color: '#64748b', lineHeight: '1.6', margin: 0 }}>
-                هذا الوضع مخصص لتجربة ومحاكاة عمليات الدفع بالبطاقات محلياً بدون إدخال أي مفاتيح بنكية حقيقية. سيتمكن زوار المتجر من تجربة إدخال بطاقة وهمية والحصول على تأكيد السداد وإشعار الواتساب التلقائي فوراً.
+                {t('storefront.storefront_payment_gateways_manager.s78', "هذا الوضع مخصص لتجربة ومحاكاة عمليات الدفع بالبطاقات محلياً بدون إدخال أي مفاتيح بنكية حقيقية. سيتمكن زوار المتجر من تجربة إدخال بطاقة وهمية والحصول على تأكيد السداد وإشعار الواتساب التلقائي فوراً.")}
               </p>
             </div>
           )}
@@ -1142,7 +1144,7 @@ export function StorefrontPaymentGatewaysManager() {
           >
             <LightbulbIcon size={16} color="#d97706" style={{ flexShrink: 0, marginTop: '2px' }} />
             <div>
-              في حال تفعيل <strong>وضع التجربة (Sandbox / Staging)</strong> وعدم إدخال مفاتيح حية، سيوفر المتجر تلقائياً تجربة دفع بطاقة تجريبية متكاملة لضمان فحص دورة الشراء بالكامل.
+              {t('storefront.storefront_payment_gateways_manager.s79', "في حال تفعيل")} <strong>{t('storefront.storefront_payment_gateways_manager.s80', "وضع التجربة (Sandbox / Staging)")}</strong> {t('storefront.storefront_payment_gateways_manager.s81', "وعدم إدخال مفاتيح حية، سيوفر المتجر تلقائياً تجربة دفع بطاقة تجريبية متكاملة لضمان فحص دورة الشراء بالكامل.")}
             </div>
           </div>
         </div>

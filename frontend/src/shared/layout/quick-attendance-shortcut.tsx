@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { XIcon } from '@/shared/components/icons/AppIcons';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
@@ -89,6 +90,7 @@ function getTenantNowEpoch(nowDate: Date, timezone: string): number {
 }
 
 export function QuickAttendanceShortcut({ onClose }: QuickAttendanceShortcutProps) {
+  const { t } = useTranslation();
   const mutations = useHrMutations();
   const [shortcutOpen, setShortcutOpen] = useState(false);
   const [search, setSearch] = useState('');
@@ -351,7 +353,7 @@ export function QuickAttendanceShortcut({ onClose }: QuickAttendanceShortcutProp
   const workedDuration = calculateWorkedTime(selectedAttendance?.checkInAt, selectedAttendance?.checkOutAt);
 
   return (
-    <DialogShell open={shortcutOpen} onClose={handleClose} width="min(880px, calc(100vw - 40px))" ariaLabel="تسجيل حضور أو انصراف سريع">
+    <DialogShell open={shortcutOpen} onClose={handleClose} width="min(880px, calc(100vw - 40px))" ariaLabel={t('shared.layout.quick_attendance_shortcut.s0', "تسجيل حضور أو انصراف سريع")}>
       <div
         dir="rtl"
         style={{
@@ -368,10 +370,10 @@ export function QuickAttendanceShortcut({ onClose }: QuickAttendanceShortcutProp
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f1f5f9', paddingBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
           <div>
             <h3 style={{ fontSize: '1.15rem', fontWeight: 800, margin: 0, color: '#0f172a', letterSpacing: '-0.2px' }}>
-              نافذة تسجيل الحضور والانصراف السريع
+              {t('shared.layout.quick_attendance_shortcut.s1', "نافذة تسجيل الحضور والانصراف السريع")}
             </h3>
             <p style={{ margin: '3px 0 0', fontSize: '0.78rem', color: '#64748b' }}>
-              تسجيل الحضور والانصراف والورديات المتعددة ومتابعة ساعات العمل اللحظية.
+              {t('shared.layout.quick_attendance_shortcut.s2', "تسجيل الحضور والانصراف والورديات المتعددة ومتابعة ساعات العمل اللحظية.")}
             </p>
           </div>
 
@@ -415,7 +417,7 @@ export function QuickAttendanceShortcut({ onClose }: QuickAttendanceShortcutProp
                   color: '#cbd5e1',
                 }}
               >
-                توقيت السيرفر
+                {t('shared.layout.quick_attendance_shortcut.s3', "توقيت السيرفر")}
               </span>
             </div>
 
@@ -470,7 +472,7 @@ export function QuickAttendanceShortcut({ onClose }: QuickAttendanceShortcutProp
               data-autofocus
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="اكتب اسم الموظف أو الكود أو القسم للبحث السريع..."
+              placeholder={t('shared.layout.quick_attendance_shortcut.s4', "اكتب اسم الموظف أو الكود أو القسم للبحث السريع...")}
               style={{
                 width: '100%',
                 padding: '8px 34px 8px 34px',
@@ -494,7 +496,7 @@ export function QuickAttendanceShortcut({ onClose }: QuickAttendanceShortcutProp
           {topQuickEmployees.length > 0 && !search && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', overflow: 'hidden' }}>
               <span style={{ fontSize: '0.72rem', fontWeight: 600, color: '#64748b', display: 'inline-flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
-                <ClockIcon size={13} style={{ color: '#475569' }} /> اختيار سريع:
+                <ClockIcon size={13} style={{ color: '#475569' }} /> {t('shared.layout.quick_attendance_shortcut.s5', "اختيار سريع:")}
               </span>
               <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', flexWrap: 'nowrap', paddingBottom: '2px', scrollbarWidth: 'none' }}>
                 {topQuickEmployees.map((e) => {
@@ -550,7 +552,7 @@ export function QuickAttendanceShortcut({ onClose }: QuickAttendanceShortcutProp
         {/* Error state */}
         {employeesQuery.isError || attendanceQuery.isError ? (
           <div style={{ background: '#fef2f2', color: '#b91c1c', padding: '10px', borderRadius: '6px', fontSize: '0.8rem', border: '1px solid #fca5a5' }}>
-            {getErrorMessage(employeesQuery.error || attendanceQuery.error, 'تعذر تحميل بيانات الموظفين.')}
+            {getErrorMessage(employeesQuery.error || attendanceQuery.error, t('shared.layout.quick_attendance_shortcut.s6', "تعذر تحميل بيانات الموظفين."))}
           </div>
         ) : null}
 
@@ -562,14 +564,14 @@ export function QuickAttendanceShortcut({ onClose }: QuickAttendanceShortcutProp
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', borderBottom: '1px solid #f1f5f9', paddingBottom: '12px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                   <div style={{ width: '42px', height: '42px', borderRadius: '8px', background: '#0f172a', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem', fontWeight: 800, flexShrink: 0 }}>
-                    {(selectedEmployee.displayName || selectedEmployee.firstName || 'م').slice(0, 2)}
+                    {(selectedEmployee.displayName || selectedEmployee.firstName || t('shared.layout.quick_attendance_shortcut.s7', "م")).slice(0, 2)}
                   </div>
                   <div>
                     <h4 style={{ fontSize: '0.98rem', fontWeight: 800, margin: 0, color: '#0f172a' }}>
                       {selectedEmployee.displayName || `${selectedEmployee.firstName || ''} ${selectedEmployee.lastName || ''}`.trim()}
                     </h4>
                     <span style={{ fontSize: '0.76rem', color: '#64748b', marginTop: '2px', display: 'block' }}>
-                      كود الموظف: <strong style={{ color: '#334155' }}>{selectedEmployee.employeeNo || '—'}</strong>
+                      {t('shared.layout.quick_attendance_shortcut.s8', "كود الموظف:")} <strong style={{ color: '#334155' }}>{selectedEmployee.employeeNo || '—'}</strong>
                       {selectedEmployee.departmentName ? ` · ${selectedEmployee.departmentName}` : ''}
                       {selectedEmployee.jobTitleName ? ` · ${selectedEmployee.jobTitleName}` : ''}
                     </span>
@@ -592,7 +594,7 @@ export function QuickAttendanceShortcut({ onClose }: QuickAttendanceShortcutProp
                       cursor: 'pointer',
                     }}
                   >
-                    ترك الموظف
+                    {t('shared.layout.quick_attendance_shortcut.s9', "ترك الموظف")}
                   </button>
                 </div>
               </div>
@@ -600,24 +602,24 @@ export function QuickAttendanceShortcut({ onClose }: QuickAttendanceShortcutProp
               {/* 3 KPI Status Boxes */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '10px' }}>
                 <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                  <span style={{ fontSize: '0.72rem', fontWeight: 600, color: '#64748b' }}>وقت الحضور اليوم</span>
+                  <span style={{ fontSize: '0.72rem', fontWeight: 600, color: '#64748b' }}>{t('shared.layout.quick_attendance_shortcut.s10', "وقت الحضور اليوم")}</span>
                   <strong style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0f172a' }}>
                     {formatTimeText(selectedAttendance?.checkInAt)}
                   </strong>
                 </div>
 
                 <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                  <span style={{ fontSize: '0.72rem', fontWeight: 600, color: '#64748b' }}>وقت الانصراف اليوم</span>
+                  <span style={{ fontSize: '0.72rem', fontWeight: 600, color: '#64748b' }}>{t('shared.layout.quick_attendance_shortcut.s11', "وقت الانصراف اليوم")}</span>
                   <strong style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0f172a' }}>
                     {formatTimeText(selectedAttendance?.checkOutAt)}
                   </strong>
                 </div>
 
                 <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                  <span style={{ fontSize: '0.72rem', fontWeight: 600, color: '#64748b' }}>حالة الدوام</span>
+                  <span style={{ fontSize: '0.72rem', fontWeight: 600, color: '#64748b' }}>{t('shared.layout.quick_attendance_shortcut.s12', "حالة الدوام")}</span>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <strong style={{ fontSize: '0.84rem', fontWeight: 800, color: !hasCheckIn ? '#64748b' : !hasCheckOut ? '#047857' : '#1e40af' }}>
-                      {!hasCheckIn ? 'لم يسجل' : !hasCheckOut ? 'حاضر بالعمل' : 'اكتملت الجلسة'}
+                      {!hasCheckIn ? t('shared.layout.quick_attendance_shortcut.s13', "لم يسجل") : !hasCheckOut ? t('shared.layout.quick_attendance_shortcut.s14', "حاضر بالعمل") : t('shared.layout.quick_attendance_shortcut.s15', "اكتملت الجلسة")}
                     </strong>
                     {workedDuration && (
                       <span style={{ fontSize: '0.7rem', color: '#64748b', background: '#ffffff', padding: '1px 6px', borderRadius: '4px', border: '1px solid #e2e8f0' }}>
@@ -631,7 +633,7 @@ export function QuickAttendanceShortcut({ onClose }: QuickAttendanceShortcutProp
               {/* Notes / Multi-session info if present */}
               {selectedAttendance?.notes && (
                 <div style={{ fontSize: '0.72rem', color: '#64748b', background: '#f8fafc', padding: '6px 10px', borderRadius: '6px', border: '1px solid #f1f5f9' }}>
-                  سجل الورديات السابقة: <strong style={{ color: '#0f172a' }}>{selectedAttendance.notes}</strong>
+                  {t('shared.layout.quick_attendance_shortcut.s16', "سجل الورديات السابقة:")} <strong style={{ color: '#0f172a' }}>{selectedAttendance.notes}</strong>
                 </div>
               )}
 
@@ -640,17 +642,17 @@ export function QuickAttendanceShortcut({ onClose }: QuickAttendanceShortcutProp
                 <div>
                   <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#0f172a', display: 'block' }}>
                     {!hasCheckIn
-                      ? 'تسجيل بصمة الحضور الآن'
+                      ? t('shared.layout.quick_attendance_shortcut.s17', "تسجيل بصمة الحضور الآن")
                       : !hasCheckOut
-                      ? 'تسجيل بصمة الانصراف الآن'
-                      : 'اكتملت الجلسة الحالية'}
+                      ? t('shared.layout.quick_attendance_shortcut.s18', "تسجيل بصمة الانصراف الآن")
+                      : t('shared.layout.quick_attendance_shortcut.s19', "اكتملت الجلسة الحالية")}
                   </span>
                   <small style={{ fontSize: '0.72rem', color: '#64748b' }}>
                     {!hasCheckIn
-                      ? 'سيتم اعتماد الوقت الحالي كبداية الوردية الفعلية.'
+                      ? t('shared.layout.quick_attendance_shortcut.s20', "سيتم اعتماد الوقت الحالي كبداية الوردية الفعلية.")
                       : !hasCheckOut
-                      ? 'سيتم احتساب ساعات العمل الفعلي حتى هذه اللحظة.'
-                      : 'يمكنك بدء وردية ثانية جديدة للموظف أو التراجع عن الانصراف.'}
+                      ? t('shared.layout.quick_attendance_shortcut.s21', "سيتم احتساب ساعات العمل الفعلي حتى هذه اللحظة.")
+                      : t('shared.layout.quick_attendance_shortcut.s22', "يمكنك بدء وردية ثانية جديدة للموظف أو التراجع عن الانصراف.")}
                   </small>
                 </div>
 
@@ -676,7 +678,7 @@ export function QuickAttendanceShortcut({ onClose }: QuickAttendanceShortcutProp
                       }}
                     >
                       <ClockIcon size={16} />
-                      <span>{mutations.saveAttendanceRecord.isPending ? 'جارٍ الحفظ...' : `تسجيل حضور (${timeFormatted})`}</span>
+                      <span>{mutations.saveAttendanceRecord.isPending ? t('shared.layout.quick_attendance_shortcut.s23', "جارٍ الحفظ...") : `تسجيل حضور (${timeFormatted})`}</span>
                     </button>
                   ) : !hasCheckOut ? (
                     <button
@@ -699,7 +701,7 @@ export function QuickAttendanceShortcut({ onClose }: QuickAttendanceShortcutProp
                       }}
                     >
                       <ClockIcon size={16} />
-                      <span>{mutations.saveAttendanceRecord.isPending ? 'جارٍ الحفظ...' : `تسجيل انصراف (${timeFormatted})`}</span>
+                      <span>{mutations.saveAttendanceRecord.isPending ? t('shared.layout.quick_attendance_shortcut.s24', "جارٍ الحفظ...") : `تسجيل انصراف (${timeFormatted})`}</span>
                     </button>
                   ) : (
                     <>
@@ -723,7 +725,7 @@ export function QuickAttendanceShortcut({ onClose }: QuickAttendanceShortcutProp
                         }}
                       >
                         <ClockIcon size={15} />
-                        <span>{mutations.saveAttendanceRecord.isPending ? 'جارٍ الحفظ...' : '+ بدء وردية / جلسة جديدة'}</span>
+                        <span>{mutations.saveAttendanceRecord.isPending ? t('shared.layout.quick_attendance_shortcut.s25', "جارٍ الحفظ...") : t('shared.layout.quick_attendance_shortcut.s26', "+ بدء وردية / جلسة جديدة")}</span>
                       </button>
 
                       <button
@@ -741,7 +743,7 @@ export function QuickAttendanceShortcut({ onClose }: QuickAttendanceShortcutProp
                           cursor: 'pointer',
                         }}
                       >
-                        تراجع عن الانصراف
+                        {t('shared.layout.quick_attendance_shortcut.s27', "تراجع عن الانصراف")}
                       </button>
                     </>
                   )}
@@ -753,9 +755,9 @@ export function QuickAttendanceShortcut({ onClose }: QuickAttendanceShortcutProp
               <div style={{ width: '48px', height: '48px', borderRadius: '8px', background: '#0f172a', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '12px' }}>
                 <ClockIcon size={24} />
               </div>
-              <h4 style={{ fontSize: '0.98rem', fontWeight: 800, color: '#0f172a', margin: '0 0 4px' }}>اختر موظفاً لبدء تسجيل الحضور أو الانصراف</h4>
+              <h4 style={{ fontSize: '0.98rem', fontWeight: 800, color: '#0f172a', margin: '0 0 4px' }}>{t('shared.layout.quick_attendance_shortcut.s28', "اختر موظفاً لبدء تسجيل الحضور أو الانصراف")}</h4>
               <p style={{ fontSize: '0.78rem', color: '#64748b', maxWidth: '440px', margin: 0 }}>
-                يمكنك كتابة اسم الموظف أو الكود في مربع البحث بالأعلى، أو التصفية بالضغط على التبويبات لعرض كرت الموظف وتسجيل البصمة فوراً.
+                {t('shared.layout.quick_attendance_shortcut.s29', "يمكنك كتابة اسم الموظف أو الكود في مربع البحث بالأعلى، أو التصفية بالضغط على التبويبات لعرض كرت الموظف وتسجيل البصمة فوراً.")}
               </p>
             </div>
           )}
@@ -764,7 +766,7 @@ export function QuickAttendanceShortcut({ onClose }: QuickAttendanceShortcutProp
         {/* Footer Bar */}
         <div style={{ display: 'flex', justifyContent: 'flex-start', borderTop: '1px solid #f1f5f9', paddingTop: '12px', marginTop: 'auto' }}>
           <Button type="button" variant="secondary" onClick={handleClose} style={{ padding: '5px 16px', fontSize: '0.82rem' }}>
-            إغلاق النافذة
+            {t('shared.layout.quick_attendance_shortcut.s30', "إغلاق النافذة")}
           </Button>
         </div>
       </div>

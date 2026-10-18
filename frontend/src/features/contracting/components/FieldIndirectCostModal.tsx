@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useCallback } from 'react';
 import { StandardDialog } from '@/shared/components/StandardDialog';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
@@ -43,6 +44,7 @@ export function FieldIndirectCostModal({
   onClose,
   onChanged,
 }: FieldIndirectCostModalProps) {
+  const { t } = useTranslation();
   const { currencySymbol, formatCurrency } = useSystemCurrency();
 
   const [activeTab, setActiveTab] = useState<'pools' | 'expenses' | 'run' | 'history'>('pools');
@@ -226,15 +228,15 @@ export function FieldIndirectCostModal({
     <StandardDialog
       open={open}
       onClose={onClose}
-      title="محرك توزيع المصاريف غير المباشرة للموقع (Field Indirects Engine)"
-      subtitle={projectName ? `المشروع: ${projectName} — معايير AACE RP 10S-90 / 34R-05 للتوزيع القائم على الأنشطة` : 'توزيع مصاريف السكن والمعدات المشتركة وإشراف الموقع على بنود المقايسة'}
+      title={t('contracting.field_indirect_cost_modal.s0', "محرك توزيع المصاريف غير المباشرة للموقع (Field Indirects Engine)")}
+      subtitle={projectName ? `المشروع: ${projectName} — معايير AACE RP 10S-90 / 34R-05 للتوزيع القائم على الأنشطة` : t('contracting.field_indirect_cost_modal.s1', "توزيع مصاريف السكن والمعدات المشتركة وإشراف الموقع على بنود المقايسة")}
       width="min(1180px, 96vw)"
       minHeight="min(580px, 85vh)"
       compact={true}
       footer={
         <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
           <div style={{ fontSize: 'var(--font-micro)', color: '#64748b' }}>
-            معايير AACE الدولية: حظر استخدام تكلفة المواد كمحرك توزيع | جبر كسور السنتات بنسبة 100%
+            {t('contracting.field_indirect_cost_modal.s2', "معايير AACE الدولية: حظر استخدام تكلفة المواد كمحرك توزيع | جبر كسور السنتات بنسبة 100%")}
           </div>
           <button
             type="button"
@@ -250,7 +252,7 @@ export function FieldIndirectCostModal({
               cursor: 'pointer',
             }}
           >
-            إغلاق
+            {t('contracting.field_indirect_cost_modal.s3', "إغلاق")}
           </button>
         </div>
       }
@@ -259,28 +261,28 @@ export function FieldIndirectCostModal({
         {/* ملخص المؤشرات العلوية */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px' }}>
           <div style={{ padding: '10px 14px', borderRadius: '8px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0' }}>
-            <span style={{ fontSize: 'var(--font-micro)', color: '#64748b' }}>إجمالي المصاريف المسجلة</span>
+            <span style={{ fontSize: 'var(--font-micro)', color: '#64748b' }}>{t('contracting.field_indirect_cost_modal.s4', "إجمالي المصاريف المسجلة")}</span>
             <strong style={{ display: 'block', fontSize: '1.05rem', color: '#1e293b', marginTop: '2px' }}>
               {loading ? '—' : formatCurrency(totalGrossIncurred)}
             </strong>
           </div>
 
           <div style={{ padding: '10px 14px', borderRadius: '8px', backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0' }}>
-            <span style={{ fontSize: 'var(--font-micro)', color: '#166534' }}>مسترد من مقاولي الباطن (Backcharges)</span>
+            <span style={{ fontSize: 'var(--font-micro)', color: '#166534' }}>{t('contracting.field_indirect_cost_modal.s5', "مسترد من مقاولي الباطن (Backcharges)")}</span>
             <strong style={{ display: 'block', fontSize: '1.05rem', color: '#15803d', marginTop: '2px' }}>
               {loading ? '—' : formatCurrency(totalBackchargesRecovered)}
             </strong>
           </div>
 
           <div style={{ padding: '10px 14px', borderRadius: '8px', backgroundColor: '#eff6ff', border: '1px solid #bfdbfe' }}>
-            <span style={{ fontSize: 'var(--font-micro)', color: '#1e40af' }}>صافي التكلفة الموزعة (Net Pool Cost)</span>
+            <span style={{ fontSize: 'var(--font-micro)', color: '#1e40af' }}>{t('contracting.field_indirect_cost_modal.s6', "صافي التكلفة الموزعة (Net Pool Cost)")}</span>
             <strong style={{ display: 'block', fontSize: '1.05rem', color: '#1d4ed8', marginTop: '2px' }}>
               {loading ? '—' : formatCurrency(totalNetDistributable)}
             </strong>
           </div>
 
           <div style={{ padding: '10px 14px', borderRadius: '8px', backgroundColor: '#faf5ff', border: '1px solid #e9d5ff' }}>
-            <span style={{ fontSize: 'var(--font-micro)', color: '#6b21a8' }}>المرحل للبنود في الدفعات</span>
+            <span style={{ fontSize: 'var(--font-micro)', color: '#6b21a8' }}>{t('contracting.field_indirect_cost_modal.s7', "المرحل للبنود في الدفعات")}</span>
             <strong style={{ display: 'block', fontSize: '1.05rem', color: '#7e22ce', marginTop: '2px' }}>
               {loading ? '—' : formatCurrency(totalBatchesAllocated)}
             </strong>
@@ -308,7 +310,7 @@ export function FieldIndirectCostModal({
             }}
           >
             <AppIcons.Layers size={15} />
-            أوعية التكاليف الأربعة ({pools.length})
+            {t('contracting.field_indirect_cost_modal.s8', "أوعية التكاليف الأربعة (")}{pools.length})
           </button>
 
           <button
@@ -330,7 +332,7 @@ export function FieldIndirectCostModal({
             }}
           >
             <AppIcons.PlusCircle size={15} />
-            المصاريف الميدانية المسجلة ({expenses.length})
+            {t('contracting.field_indirect_cost_modal.s9', "المصاريف الميدانية المسجلة (")}{expenses.length})
           </button>
 
           <button
@@ -352,7 +354,7 @@ export function FieldIndirectCostModal({
             }}
           >
             <AppIcons.Sliders size={15} />
-            تشغيل دورة توزيع دورية
+            {t('contracting.field_indirect_cost_modal.s10', "تشغيل دورة توزيع دورية")}
           </button>
 
           <button
@@ -374,7 +376,7 @@ export function FieldIndirectCostModal({
             }}
           >
             <AppIcons.CheckShield size={15} />
-            سجل الدفعات المرحلة ({batches.length})
+            {t('contracting.field_indirect_cost_modal.s11', "سجل الدفعات المرحلة (")}{batches.length})
           </button>
         </div>
 
@@ -415,7 +417,7 @@ export function FieldIndirectCostModal({
                       <div>
                         <span style={{ fontWeight: 700, fontSize: '0.92rem', color: '#170e5e' }}>{p.poolName}</span>
                         <small style={{ display: 'block', fontSize: 'var(--font-micro)', color: '#64748b' }}>
-                          نوع الوعاء: {POOL_TYPE_LABELS[p.poolType] || p.poolType}
+                          {t('contracting.field_indirect_cost_modal.s12', "نوع الوعاء:")} {POOL_TYPE_LABELS[p.poolType] || p.poolType}
                         </small>
                       </div>
                       <span
@@ -433,11 +435,11 @@ export function FieldIndirectCostModal({
                     </div>
 
                     <p style={{ margin: 0, fontSize: 'var(--font-subtitle)', color: '#64748b', lineHeight: 1.4 }}>
-                      {p.description || 'وعاء تكلفة ميداني معتمد'}
+                      {p.description || t('contracting.field_indirect_cost_modal.s13', "وعاء تكلفة ميداني معتمد")}
                     </p>
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: 'auto' }}>
-                      <span style={{ fontSize: 'var(--font-micro)', color: '#475569' }}>المحرك الحاكم:</span>
+                      <span style={{ fontSize: 'var(--font-micro)', color: '#475569' }}>{t('contracting.field_indirect_cost_modal.s14', "المحرك الحاكم:")}</span>
                       <span
                         style={{
                           fontSize: 'var(--font-micro)',
@@ -464,9 +466,9 @@ export function FieldIndirectCostModal({
                         fontSize: 'var(--font-micro)',
                       }}
                     >
-                      <span>المسجل: <strong>{formatCurrency(poolGross)}</strong></span>
-                      <span>استرداد باطن: <strong style={{ color: '#16a34a' }}>{formatCurrency(poolRec)}</strong></span>
-                      <span>الصافي: <strong style={{ color: '#2563eb' }}>{formatCurrency(poolNet)}</strong></span>
+                      <span>{t('contracting.field_indirect_cost_modal.s15', "المسجل:")} <strong>{formatCurrency(poolGross)}</strong></span>
+                      <span>{t('contracting.field_indirect_cost_modal.s16', "استرداد باطن:")} <strong style={{ color: '#16a34a' }}>{formatCurrency(poolRec)}</strong></span>
+                      <span>{t('contracting.field_indirect_cost_modal.s17', "الصافي:")} <strong style={{ color: '#2563eb' }}>{formatCurrency(poolNet)}</strong></span>
                     </div>
                   </div>
                 );
@@ -491,30 +493,30 @@ export function FieldIndirectCostModal({
                 }}
               >
                 <span style={{ fontWeight: 700, fontSize: '0.88rem', color: '#170e5e', borderBottom: '1px solid #e2e8f0', paddingBottom: '4px' }}>
-                  تسجيل مصروف غير مباشر جديد
+                  {t('contracting.field_indirect_cost_modal.s18', "تسجيل مصروف غير مباشر جديد")}
                 </span>
 
                 <div>
                   <label style={{ display: 'block', fontSize: 'var(--font-micro)', color: '#475569', marginBottom: '2px' }}>
-                    وعاء التكلفة المستهدف
+                    {t('contracting.field_indirect_cost_modal.s19', "وعاء التكلفة المستهدف")}
                   </label>
                   <CustomSelect
                     value={selectedPoolId}
                     onChange={(val) => setSelectedPoolId(val)}
                     options={poolOptions}
-                    placeholder="اختر وعاء التكلفة"
+                    placeholder={t('contracting.field_indirect_cost_modal.s20', "اختر وعاء التكلفة")}
                   />
                 </div>
 
                 <div>
                   <label style={{ display: 'block', fontSize: 'var(--font-micro)', color: '#475569', marginBottom: '2px' }}>
-                    بيان المصروف
+                    {t('contracting.field_indirect_cost_modal.s21', "بيان المصروف")}
                   </label>
                   <input
                     type="text"
                     value={expenseTitle}
                     onChange={(e) => setExpenseTitle(e.target.value)}
-                    placeholder="مثال: إيجار سكن العمال شهر يوليو"
+                    placeholder={t('contracting.field_indirect_cost_modal.s22', "مثال: إيجار سكن العمال شهر يوليو")}
                     style={{
                       width: '100%',
                       padding: '6px 10px',
@@ -529,7 +531,7 @@ export function FieldIndirectCostModal({
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
                   <div>
                     <label style={{ display: 'block', fontSize: 'var(--font-micro)', color: '#475569', marginBottom: '2px' }}>
-                      المبلغ الإجمالي ({currencySymbol})
+                      {t('contracting.field_indirect_cost_modal.s23', "المبلغ الإجمالي (")}{currencySymbol})
                     </label>
                     <input
                       type="number"
@@ -551,7 +553,7 @@ export function FieldIndirectCostModal({
 
                   <div>
                     <label style={{ display: 'block', fontSize: 'var(--font-micro)', color: '#166534', marginBottom: '2px' }}>
-                      استرداد مقاول باطن
+                      {t('contracting.field_indirect_cost_modal.s24', "استرداد مقاول باطن")}
                     </label>
                     <input
                       type="number"
@@ -575,7 +577,7 @@ export function FieldIndirectCostModal({
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
                   <div>
                     <label style={{ display: 'block', fontSize: 'var(--font-micro)', color: '#475569', marginBottom: '2px' }}>
-                      تاريخ المصروف
+                      {t('contracting.field_indirect_cost_modal.s25', "تاريخ المصروف")}
                     </label>
                     <input
                       type="date"
@@ -594,13 +596,13 @@ export function FieldIndirectCostModal({
 
                   <div>
                     <label style={{ display: 'block', fontSize: 'var(--font-micro)', color: '#475569', marginBottom: '2px' }}>
-                      رقم الإذن / الإيصال
+                      {t('contracting.field_indirect_cost_modal.s26', "رقم الإذن / الإيصال")}
                     </label>
                     <input
                       type="text"
                       value={voucherRef}
                       onChange={(e) => setVoucherRef(e.target.value)}
-                      placeholder="رقم السند"
+                      placeholder={t('contracting.field_indirect_cost_modal.s27', "رقم السند")}
                       style={{
                         width: '100%',
                         padding: '6px 8px',
@@ -628,7 +630,7 @@ export function FieldIndirectCostModal({
                     cursor: submitting ? 'not-allowed' : 'pointer',
                   }}
                 >
-                  {submitting ? 'جاري الحفظ...' : 'حفظ المصروف الميداني'}
+                  {submitting ? t('contracting.field_indirect_cost_modal.s28', "جاري الحفظ...") : t('contracting.field_indirect_cost_modal.s29', "حفظ المصروف الميداني")}
                 </button>
               </form>
 
@@ -637,19 +639,19 @@ export function FieldIndirectCostModal({
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--font-body)' }}>
                   <thead>
                     <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', fontSize: 'var(--font-micro)' }}>
-                      <th style={{ padding: '8px', textAlign: 'right' }}>البيان</th>
-                      <th style={{ padding: '8px', textAlign: 'right' }}>الوعاء</th>
-                      <th style={{ padding: '8px', textAlign: 'center' }}>الإجمالي</th>
-                      <th style={{ padding: '8px', textAlign: 'center' }}>المسترد</th>
-                      <th style={{ padding: '8px', textAlign: 'center' }}>الصافي</th>
-                      <th style={{ padding: '8px', textAlign: 'center' }}>الحالة</th>
+                      <th style={{ padding: '8px', textAlign: 'right' }}>{t('contracting.field_indirect_cost_modal.s30', "البيان")}</th>
+                      <th style={{ padding: '8px', textAlign: 'right' }}>{t('contracting.field_indirect_cost_modal.s31', "الوعاء")}</th>
+                      <th style={{ padding: '8px', textAlign: 'center' }}>{t('contracting.field_indirect_cost_modal.s32', "الإجمالي")}</th>
+                      <th style={{ padding: '8px', textAlign: 'center' }}>{t('contracting.field_indirect_cost_modal.s33', "المسترد")}</th>
+                      <th style={{ padding: '8px', textAlign: 'center' }}>{t('contracting.field_indirect_cost_modal.s34', "الصافي")}</th>
+                      <th style={{ padding: '8px', textAlign: 'center' }}>{t('contracting.field_indirect_cost_modal.s35', "الحالة")}</th>
                     </tr>
                   </thead>
                   <tbody>
                     {expenses.length === 0 ? (
                       <tr>
                         <td colSpan={6} style={{ padding: '30px', textAlign: 'center', color: '#94a3b8' }}>
-                          لا توجد مصاريف مسجلة حتى الآن
+                          {t('contracting.field_indirect_cost_modal.s36', "لا توجد مصاريف مسجلة حتى الآن")}
                         </td>
                       </tr>
                     ) : (
@@ -657,7 +659,7 @@ export function FieldIndirectCostModal({
                         <tr key={e.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                           <td style={{ padding: '8px', fontWeight: 500 }}>
                             {e.expenseTitle}
-                            {e.voucherRef && <small style={{ display: 'block', color: '#94a3b8' }}>سند: {e.voucherRef}</small>}
+                            {e.voucherRef && <small style={{ display: 'block', color: '#94a3b8' }}>{t('contracting.field_indirect_cost_modal.s37', "سند:")} {e.voucherRef}</small>}
                           </td>
                           <td style={{ padding: '8px', fontSize: 'var(--font-micro)', color: '#475569' }}>
                             {e.poolName}
@@ -682,7 +684,7 @@ export function FieldIndirectCostModal({
                                 fontWeight: 600,
                               }}
                             >
-                              {e.batchId ? 'مرحل بدفعة' : 'غير موزع'}
+                              {e.batchId ? t('contracting.field_indirect_cost_modal.s38', "مرحل بدفعة") : t('contracting.field_indirect_cost_modal.s39', "غير موزع")}
                             </span>
                           </td>
                         </tr>
@@ -712,7 +714,7 @@ export function FieldIndirectCostModal({
               >
                 <div>
                   <label style={{ display: 'block', fontSize: 'var(--font-micro)', color: '#475569', marginBottom: '2px' }}>
-                    بداية الفترة
+                    {t('contracting.field_indirect_cost_modal.s40', "بداية الفترة")}
                   </label>
                   <input
                     type="date"
@@ -724,7 +726,7 @@ export function FieldIndirectCostModal({
 
                 <div>
                   <label style={{ display: 'block', fontSize: 'var(--font-micro)', color: '#475569', marginBottom: '2px' }}>
-                    نهاية الفترة
+                    {t('contracting.field_indirect_cost_modal.s41', "نهاية الفترة")}
                   </label>
                   <input
                     type="date"
@@ -736,7 +738,7 @@ export function FieldIndirectCostModal({
 
                 <div>
                   <label style={{ display: 'block', fontSize: 'var(--font-micro)', color: '#475569', marginBottom: '2px' }}>
-                    رصيد مرحل من فترة سابقة
+                    {t('contracting.field_indirect_cost_modal.s42', "رصيد مرحل من فترة سابقة")}
                   </label>
                   <input
                     type="number"
@@ -750,13 +752,13 @@ export function FieldIndirectCostModal({
 
                 <div>
                   <label style={{ display: 'block', fontSize: 'var(--font-micro)', color: '#475569', marginBottom: '2px' }}>
-                    ملاحظات الدفعة
+                    {t('contracting.field_indirect_cost_modal.s43', "ملاحظات الدفعة")}
                   </label>
                   <input
                     type="text"
                     value={batchNotes}
                     onChange={(e) => setBatchNotes(e.target.value)}
-                    placeholder="مثال: تسوية مصاريف التأسيس للشهر الأول"
+                    placeholder={t('contracting.field_indirect_cost_modal.s44', "مثال: تسوية مصاريف التأسيس للشهر الأول")}
                     style={{ width: '100%', padding: '6px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: 'var(--font-body)', boxSizing: 'border-box' }}
                   />
                 </div>
@@ -778,7 +780,7 @@ export function FieldIndirectCostModal({
                     height: '34px',
                   }}
                 >
-                  {isPreviewing ? 'جاري الحساب...' : 'معاينة التوزيع'}
+                  {isPreviewing ? t('contracting.field_indirect_cost_modal.s45', "جاري الحساب...") : t('contracting.field_indirect_cost_modal.s46', "معاينة التوزيع")}
                 </button>
               </div>
 
@@ -798,18 +800,18 @@ export function FieldIndirectCostModal({
                       fontSize: 'var(--font-micro)',
                     }}
                   >
-                    <div>إجمالي المصروف: <strong>{formatCurrency(previewSummary.totalGrossExpense)}</strong></div>
-                    <div>مسترد باطن: <strong style={{ color: '#16a34a' }}>{formatCurrency(previewSummary.totalRecoveredBackcharge)}</strong></div>
-                    <div>رصيد مرحل للدفعة: <strong>{formatCurrency(previewSummary.totalDeferredIn)}</strong></div>
-                    <div>الصافي للتوزيع: <strong style={{ color: '#1d4ed8' }}>{formatCurrency(previewSummary.totalNetCost)}</strong></div>
+                    <div>{t('contracting.field_indirect_cost_modal.s47', "إجمالي المصروف:")} <strong>{formatCurrency(previewSummary.totalGrossExpense)}</strong></div>
+                    <div>{t('contracting.field_indirect_cost_modal.s48', "مسترد باطن:")} <strong style={{ color: '#16a34a' }}>{formatCurrency(previewSummary.totalRecoveredBackcharge)}</strong></div>
+                    <div>{t('contracting.field_indirect_cost_modal.s49', "رصيد مرحل للدفعة:")} <strong>{formatCurrency(previewSummary.totalDeferredIn)}</strong></div>
+                    <div>{t('contracting.field_indirect_cost_modal.s50', "الصافي للتوزيع:")} <strong style={{ color: '#1d4ed8' }}>{formatCurrency(previewSummary.totalNetCost)}</strong></div>
                     <div>
                       {previewSummary.totalDeferredOut > 0 ? (
                         <span style={{ color: '#b45309', fontWeight: 700 }}>
-                          مرحل لفترة قادمة (صفرية): {formatCurrency(previewSummary.totalDeferredOut)}
+                          {t('contracting.field_indirect_cost_modal.s51', "مرحل لفترة قادمة (صفرية):")} {formatCurrency(previewSummary.totalDeferredOut)}
                         </span>
                       ) : (
                         <span style={{ color: '#15803d', fontWeight: 700 }}>
-                          الموزع على البنود: {formatCurrency(previewSummary.totalAllocated)}
+                          {t('contracting.field_indirect_cost_modal.s52', "الموزع على البنود:")} {formatCurrency(previewSummary.totalAllocated)}
                         </span>
                       )}
                     </div>
@@ -820,12 +822,12 @@ export function FieldIndirectCostModal({
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--font-body)' }}>
                       <thead>
                         <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', fontSize: 'var(--font-micro)' }}>
-                          <th style={{ padding: '6px 10px', textAlign: 'right' }}>كود البند</th>
-                          <th style={{ padding: '6px 10px', textAlign: 'center' }}>سكن وإعاشة P1</th>
-                          <th style={{ padding: '6px 10px', textAlign: 'center' }}>أعباء عمالة P2</th>
-                          <th style={{ padding: '6px 10px', textAlign: 'center' }}>معدات مشتركة P3</th>
-                          <th style={{ padding: '6px 10px', textAlign: 'center' }}>إشراف موقع P4</th>
-                          <th style={{ padding: '6px 10px', textAlign: 'center' }}>إجمالي المحمل للبند</th>
+                          <th style={{ padding: '6px 10px', textAlign: 'right' }}>{t('contracting.field_indirect_cost_modal.s53', "كود البند")}</th>
+                          <th style={{ padding: '6px 10px', textAlign: 'center' }}>{t('contracting.field_indirect_cost_modal.s54', "سكن وإعاشة P1")}</th>
+                          <th style={{ padding: '6px 10px', textAlign: 'center' }}>{t('contracting.field_indirect_cost_modal.s55', "أعباء عمالة P2")}</th>
+                          <th style={{ padding: '6px 10px', textAlign: 'center' }}>{t('contracting.field_indirect_cost_modal.s56', "معدات مشتركة P3")}</th>
+                          <th style={{ padding: '6px 10px', textAlign: 'center' }}>{t('contracting.field_indirect_cost_modal.s57', "إشراف موقع P4")}</th>
+                          <th style={{ padding: '6px 10px', textAlign: 'center' }}>{t('contracting.field_indirect_cost_modal.s58', "إجمالي المحمل للبند")}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -874,7 +876,7 @@ export function FieldIndirectCostModal({
                       }}
                     >
                       <AppIcons.CheckShield size={16} />
-                      {submitting ? 'جاري الاعتماد والترحيل...' : 'تأكيد واعتماد ترحيل التكاليف لبنود المقايسة'}
+                      {submitting ? t('contracting.field_indirect_cost_modal.s59', "جاري الاعتماد والترحيل...") : t('contracting.field_indirect_cost_modal.s60', "تأكيد واعتماد ترحيل التكاليف لبنود المقايسة")}
                     </button>
                   </div>
                 </div>
@@ -892,9 +894,9 @@ export function FieldIndirectCostModal({
                   }}
                 >
                   <AppIcons.Sliders size={32} />
-                  <span style={{ marginTop: '8px', fontWeight: 600 }}>حدد الفترة الزمنية واضغط "معاينة التوزيع" للاحتساب اللحظي</span>
+                  <span style={{ marginTop: '8px', fontWeight: 600 }}>{t('contracting.field_indirect_cost_modal.s61', "حدد الفترة الزمنية واضغط \"معاينة التوزيع\" للاحتساب اللحظي")}</span>
                   <small style={{ color: '#94a3b8', marginTop: '4px' }}>
-                    يقوم المحرك بجمع ساعات ومصاريف العمالة والمعدات في الفترة وتطبيق معايير AACE RP 10S-90 بدقة متناهية
+                    {t('contracting.field_indirect_cost_modal.s62', "يقوم المحرك بجمع ساعات ومصاريف العمالة والمعدات في الفترة وتطبيق معايير AACE RP 10S-90 بدقة متناهية")}
                   </small>
                 </div>
               )}
@@ -907,20 +909,20 @@ export function FieldIndirectCostModal({
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--font-body)' }}>
                 <thead>
                   <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', fontSize: 'var(--font-micro)' }}>
-                    <th style={{ padding: '8px 12px', textAlign: 'right' }}>رقم الدفعة</th>
-                    <th style={{ padding: '8px 12px', textAlign: 'center' }}>فترة التوزيع</th>
-                    <th style={{ padding: '8px 12px', textAlign: 'center' }}>صافي الأوعية</th>
-                    <th style={{ padding: '8px 12px', textAlign: 'center' }}>المحمل للبنود</th>
-                    <th style={{ padding: '8px 12px', textAlign: 'center' }}>المرحل لفترة تالية</th>
-                    <th style={{ padding: '8px 12px', textAlign: 'center' }}>تاريخ الاعتماد</th>
-                    <th style={{ padding: '8px 12px', textAlign: 'center' }}>المعتمد</th>
+                    <th style={{ padding: '8px 12px', textAlign: 'right' }}>{t('contracting.field_indirect_cost_modal.s63', "رقم الدفعة")}</th>
+                    <th style={{ padding: '8px 12px', textAlign: 'center' }}>{t('contracting.field_indirect_cost_modal.s64', "فترة التوزيع")}</th>
+                    <th style={{ padding: '8px 12px', textAlign: 'center' }}>{t('contracting.field_indirect_cost_modal.s65', "صافي الأوعية")}</th>
+                    <th style={{ padding: '8px 12px', textAlign: 'center' }}>{t('contracting.field_indirect_cost_modal.s66', "المحمل للبنود")}</th>
+                    <th style={{ padding: '8px 12px', textAlign: 'center' }}>{t('contracting.field_indirect_cost_modal.s67', "المرحل لفترة تالية")}</th>
+                    <th style={{ padding: '8px 12px', textAlign: 'center' }}>{t('contracting.field_indirect_cost_modal.s68', "تاريخ الاعتماد")}</th>
+                    <th style={{ padding: '8px 12px', textAlign: 'center' }}>{t('contracting.field_indirect_cost_modal.s69', "المعتمد")}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {batches.length === 0 ? (
                     <tr>
                       <td colSpan={7} style={{ padding: '30px', textAlign: 'center', color: '#94a3b8' }}>
-                        لا توجد دفعات مرحلة حتى الآن
+                        {t('contracting.field_indirect_cost_modal.s70', "لا توجد دفعات مرحلة حتى الآن")}
                       </td>
                     </tr>
                   ) : (
@@ -930,7 +932,7 @@ export function FieldIndirectCostModal({
                           {b.batchNumber}
                         </td>
                         <td style={{ padding: '8px 12px', textAlign: 'center', fontSize: 'var(--font-micro)' }}>
-                          {b.periodStart} إلى {b.periodEnd}
+                          {b.periodStart} {t('contracting.field_indirect_cost_modal.s71', "إلى")} {b.periodEnd}
                         </td>
                         <td style={{ padding: '8px 12px', textAlign: 'center', fontWeight: 600 }}>
                           {formatCurrency(b.totalNetPoolCost)}

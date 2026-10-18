@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useCallback } from 'react';
 import { useContracting } from '../context/ContractingContext';
 import { contractingApi } from '../api/contracting.api';
@@ -9,6 +10,7 @@ import { RetentionLedgerModal } from '../components/RetentionLedgerModal';
 import type { ContractingProjectHandover, ContractingSnagItem } from '../contracting.types';
 
 export function ContractingCloseoutPage() {
+  const { t } = useTranslation();
   const { projects, selectedProjectId, activeProject, reloadProjects } = useContracting();
 
   const effectiveProjectId = selectedProjectId || (projects.length > 0 ? projects[0].id : '');
@@ -57,10 +59,10 @@ export function ContractingCloseoutPage() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
         <div>
           <h2 style={{ fontSize: 'var(--font-section-title)', fontWeight: 700, color: '#1e293b', margin: 0 }}>
-            المرحلة 7: التسليم الفني وإغلاق المشروع (Snag List, Handover & Closeout)
+            {t('contracting.contracting_closeout_page.s0', "المرحلة 7: التسليم الفني وإغلاق المشروع (Snag List, Handover & Closeout)")}
           </h2>
           <p style={{ fontSize: 'var(--font-subtitle)', color: '#64748b', margin: '4px 0 0' }}>
-            إدارة جولات الفحص والملاحظات المشتركة، محاضر الاستلام الابتدائي والنهائي، والإفراج عن ضمان حسن التنفيذ
+            {t('contracting.contracting_closeout_page.s1', "إدارة جولات الفحص والملاحظات المشتركة، محاضر الاستلام الابتدائي والنهائي، والإفراج عن ضمان حسن التنفيذ")}
           </p>
         </div>
 
@@ -85,7 +87,7 @@ export function ContractingCloseoutPage() {
             }}
           >
             <AppIcons.FileCheck size={15} />
-            <span>قائمة الملاحظات (Snag List)</span>
+            <span>{t('contracting.contracting_closeout_page.s2', "قائمة الملاحظات (Snag List)")}</span>
           </button>
 
           <button
@@ -109,7 +111,7 @@ export function ContractingCloseoutPage() {
             }}
           >
             <AppIcons.CheckCircle size={15} />
-            <span>محاضر الاستلام والتسليم</span>
+            <span>{t('contracting.contracting_closeout_page.s3', "محاضر الاستلام والتسليم")}</span>
           </button>
 
           <button
@@ -132,7 +134,7 @@ export function ContractingCloseoutPage() {
             }}
           >
             <AppIcons.Layers size={15} />
-            <span>تحليل الأرباح الختامي</span>
+            <span>{t('contracting.contracting_closeout_page.s4', "تحليل الأرباح الختامي")}</span>
           </button>
 
           <button
@@ -155,7 +157,7 @@ export function ContractingCloseoutPage() {
             }}
           >
             <AppIcons.CheckShield size={15} />
-            <span>سجل ضمان حسن التنفيذ</span>
+            <span>{t('contracting.contracting_closeout_page.s5', "سجل ضمان حسن التنفيذ")}</span>
           </button>
         </div>
       </div>
@@ -165,9 +167,9 @@ export function ContractingCloseoutPage() {
         {/* الخطوة 1: فحص العيوب والملاحظات */}
         <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <div style={{ fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#64748b' }}>قائمة العيوب (Snag List)</div>
+            <div style={{ fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#64748b' }}>{t('contracting.contracting_closeout_page.s6', "قائمة العيوب (Snag List)")}</div>
             <div style={{ fontSize: '1.2rem', fontWeight: 800, marginTop: '4px', color: openSnags.length > 0 ? '#b91c1c' : '#15803d' }}>
-              {openSnags.length} مفتوحة / {closedSnags.length} مغلقة
+              {openSnags.length} {t('contracting.contracting_closeout_page.s7', "مفتوحة /")} {closedSnags.length} {t('contracting.contracting_closeout_page.s8', "مغلقة")}
             </div>
           </div>
           <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: openSnags.length > 0 ? '#fee2e2' : '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: openSnags.length > 0 ? '#b91c1c' : '#15803d' }}>
@@ -178,9 +180,9 @@ export function ContractingCloseoutPage() {
         {/* الخطوة 2: الاستلام الابتدائي */}
         <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <div style={{ fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#64748b' }}>حالة الاستلام الابتدائي</div>
+            <div style={{ fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#64748b' }}>{t('contracting.contracting_closeout_page.s9', "حالة الاستلام الابتدائي")}</div>
             <div style={{ fontSize: '1.2rem', fontWeight: 800, marginTop: '4px', color: hasPreliminaryHandover ? '#15803d' : '#a16207' }}>
-              {hasPreliminaryHandover ? 'تم الاستلام رسمياً' : 'قيد الفحص والتجهيز'}
+              {hasPreliminaryHandover ? t('contracting.contracting_closeout_page.s10', "تم الاستلام رسمياً") : t('contracting.contracting_closeout_page.s11', "قيد الفحص والتجهيز")}
             </div>
           </div>
           <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: hasPreliminaryHandover ? '#dcfce7' : '#fefce8', display: 'flex', alignItems: 'center', justifyContent: 'center', color: hasPreliminaryHandover ? '#15803d' : '#a16207' }}>
@@ -191,9 +193,9 @@ export function ContractingCloseoutPage() {
         {/* الخطوة 3: الاستلام النهائي والضمان */}
         <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <div style={{ fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#64748b' }}>حالة الاستلام النهائي</div>
+            <div style={{ fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#64748b' }}>{t('contracting.contracting_closeout_page.s12', "حالة الاستلام النهائي")}</div>
             <div style={{ fontSize: '1.2rem', fontWeight: 800, marginTop: '4px', color: hasFinalHandover ? '#15803d' : '#64748b' }}>
-              {hasFinalHandover ? 'مسلّم نهائياً' : 'فترة الضمان والصيانة سارية'}
+              {hasFinalHandover ? t('contracting.contracting_closeout_page.s13', "مسلّم نهائياً") : t('contracting.contracting_closeout_page.s14', "فترة الضمان والصيانة سارية")}
             </div>
           </div>
           <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
@@ -204,7 +206,7 @@ export function ContractingCloseoutPage() {
         {/* الخطوة 4: ضمان حسن التنفيذ وتصفية الأرباح */}
         <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <div style={{ fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#64748b' }}>ضمان حسن التنفيذ المحتجز</div>
+            <div style={{ fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#64748b' }}>{t('contracting.contracting_closeout_page.s15', "ضمان حسن التنفيذ المحتجز")}</div>
             <div style={{ fontSize: '1.2rem', fontWeight: 800, marginTop: '4px', color: '#170e5e' }}>
               {effectiveProject ? Number((effectiveProject as any).totalRetentionHeld || 0).toLocaleString('en-US', { minimumFractionDigits: 2 }) : '0.00'}
             </div>
@@ -218,7 +220,7 @@ export function ContractingCloseoutPage() {
       {/* خريطة خطوات التسليم والإغلاق القياسية (Global Handover Journey) */}
       <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '20px' }}>
         <h3 style={{ fontSize: 'var(--font-section-title)', fontWeight: 700, color: '#0f172a', margin: '0 0 14px' }}>
-          مسار إجراءات التسليم والإغلاق المعتمدة طبقاً لمواصفات الفيديك (FIDIC Handover Protocol)
+          {t('contracting.contracting_closeout_page.s16', "مسار إجراءات التسليم والإغلاق المعتمدة طبقاً لمواصفات الفيديك (FIDIC Handover Protocol)")}
         </h3>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
@@ -227,10 +229,10 @@ export function ContractingCloseoutPage() {
               <span style={{ width: '22px', height: '22px', borderRadius: '50%', background: '#170e5e', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 800 }}>
                 1
               </span>
-              <strong style={{ fontSize: 'var(--font-table-head)', color: '#0f172a' }}>جولة فحص العيوب (Snags)</strong>
+              <strong style={{ fontSize: 'var(--font-table-head)', color: '#0f172a' }}>{t('contracting.contracting_closeout_page.s17', "جولة فحص العيوب (Snags)")}</strong>
             </div>
             <p style={{ margin: 0, fontSize: 'var(--font-micro)', color: '#64748b', lineHeight: 1.5 }}>
-              إجراء الجولة الميدانية المشتركة مع الاستشاري لتسجيل أي ملاحظات تشطيب أو عيوب وتعيين المسؤول عن إصلاحها.
+              {t('contracting.contracting_closeout_page.s18', "إجراء الجولة الميدانية المشتركة مع الاستشاري لتسجيل أي ملاحظات تشطيب أو عيوب وتعيين المسؤول عن إصلاحها.")}
             </p>
           </div>
 
@@ -239,10 +241,10 @@ export function ContractingCloseoutPage() {
               <span style={{ width: '22px', height: '22px', borderRadius: '50%', background: '#170e5e', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 800 }}>
                 2
               </span>
-              <strong style={{ fontSize: 'var(--font-table-head)', color: '#0f172a' }}>محضر الاستلام الابتدائي</strong>
+              <strong style={{ fontSize: 'var(--font-table-head)', color: '#0f172a' }}>{t('contracting.contracting_closeout_page.s19', "محضر الاستلام الابتدائي")}</strong>
             </div>
             <p style={{ margin: 0, fontSize: 'var(--font-micro)', color: '#64748b', lineHeight: 1.5 }}>
-              تحرير محضر التسليم الابتدائي الرسمي، بدء سريان فترة الضمان والصيانة التعاقدية، واستحقاق الإفراج عن 50% من الضمان المحتجز.
+              {t('contracting.contracting_closeout_page.s20', "تحرير محضر التسليم الابتدائي الرسمي، بدء سريان فترة الضمان والصيانة التعاقدية، واستحقاق الإفراج عن 50% من الضمان المحتجز.")}
             </p>
           </div>
 
@@ -251,10 +253,10 @@ export function ContractingCloseoutPage() {
               <span style={{ width: '22px', height: '22px', borderRadius: '50%', background: '#170e5e', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 800 }}>
                 3
               </span>
-              <strong style={{ fontSize: 'var(--font-table-head)', color: '#0f172a' }}>المستخلص الختامي وتصفية الأرباح</strong>
+              <strong style={{ fontSize: 'var(--font-table-head)', color: '#0f172a' }}>{t('contracting.contracting_closeout_page.s21', "المستخلص الختامي وتصفية الأرباح")}</strong>
             </div>
             <p style={{ margin: 0, fontSize: 'var(--font-micro)', color: '#64748b', lineHeight: 1.5 }}>
-              تثبيت الكميات المنفذة الفعلية، إصدار المستخلص الختامي، وتسوية حسابات مقاولي الباطن والموردين لحساب صافي الأرباح النهائي.
+              {t('contracting.contracting_closeout_page.s22', "تثبيت الكميات المنفذة الفعلية، إصدار المستخلص الختامي، وتسوية حسابات مقاولي الباطن والموردين لحساب صافي الأرباح النهائي.")}
             </p>
           </div>
 
@@ -263,10 +265,10 @@ export function ContractingCloseoutPage() {
               <span style={{ width: '22px', height: '22px', borderRadius: '50%', background: '#170e5e', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 800 }}>
                 4
               </span>
-              <strong style={{ fontSize: 'var(--font-table-head)', color: '#0f172a' }}>الاستلام النهائي والإفراج الكامل</strong>
+              <strong style={{ fontSize: 'var(--font-table-head)', color: '#0f172a' }}>{t('contracting.contracting_closeout_page.s23', "الاستلام النهائي والإفراج الكامل")}</strong>
             </div>
             <p style={{ margin: 0, fontSize: 'var(--font-micro)', color: '#64748b', lineHeight: 1.5 }}>
-              بعد انقضاء فترة الصيانة (سنة عادةً): تحرير محضر الاستلام النهائي والإفراج عن النصف المتبقي من ضمان حسن التنفيذ وإغلاق المشروع.
+              {t('contracting.contracting_closeout_page.s24', "بعد انقضاء فترة الصيانة (سنة عادةً): تحرير محضر الاستلام النهائي والإفراج عن النصف المتبقي من ضمان حسن التنفيذ وإغلاق المشروع.")}
             </p>
           </div>
         </div>

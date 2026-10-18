@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useRef } from 'react';
 import { StandardDialog } from '@/shared/components/StandardDialog';
 import { ContractingInvoice, ContractingProject } from '../contracting.types';
@@ -13,6 +14,7 @@ interface PrintIpcCertificateModalProps {
 }
 
 export function PrintIpcCertificateModal({ open, invoice, project: propProject, onClose }: PrintIpcCertificateModalProps) {
+  const { t } = useTranslation();
   const { currencySymbol } = useSystemCurrency();
   const printRef = useRef<HTMLDivElement>(null);
 
@@ -45,7 +47,7 @@ export function PrintIpcCertificateModal({ open, invoice, project: propProject, 
       open={open}
       onClose={onClose}
       title={`شهادة دفع ومستخلص تنفيذي معتمد - ${invoice.ipcNumber}`}
-      subtitle="نموذج الحصر والاعتماد الهندسي المعتمد (AIA G702 / G703 Application & Certificate for Payment)"
+      subtitle={t('contracting.print_ipc_certificate_modal.s0', "نموذج الحصر والاعتماد الهندسي المعتمد (AIA G702 / G703 Application & Certificate for Payment)")}
       width="min(950px, 95vw)"
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -69,7 +71,7 @@ export function PrintIpcCertificateModal({ open, invoice, project: propProject, 
             }}
           >
             <AppIcons.Printer size={16} />
-            طباعة شهادة المستخلص (A4)
+            {t('contracting.print_ipc_certificate_modal.s1', "طباعة شهادة المستخلص (A4)")}
           </button>
         </div>
 
@@ -90,24 +92,24 @@ export function PrintIpcCertificateModal({ open, invoice, project: propProject, 
           {/* Header */}
           <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '2px solid #170e5e', paddingBottom: '16px', marginBottom: '16px' }}>
             <div>
-              <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: '#170e5e' }}>شهادة استحقاق مستخلص أعمال جاري</h2>
+              <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: '#170e5e' }}>{t('contracting.print_ipc_certificate_modal.s2', "شهادة استحقاق مستخلص أعمال جاري")}</h2>
               <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>INTERIM PAYMENT CERTIFICATE & SUMMARY (AIA G702 STANDARD)</div>
-              <div style={{ marginTop: '8px', fontWeight: 700, fontSize: '14px' }}>المشروع: {project?.name || '---'}</div>
-              <div style={{ color: '#475569' }}>كود المشروع: {project?.code || '---'}</div>
+              <div style={{ marginTop: '8px', fontWeight: 700, fontSize: '14px' }}>{t('contracting.print_ipc_certificate_modal.s3', "المشروع:")} {project?.name || '---'}</div>
+              <div style={{ color: '#475569' }}>{t('contracting.print_ipc_certificate_modal.s4', "كود المشروع:")} {project?.code || '---'}</div>
             </div>
             <div style={{ textAlign: 'left' }}>
-              <div style={{ fontWeight: 800, fontSize: '14px', color: '#170e5e' }}>رقم المستخلص: {invoice.ipcNumber}</div>
-              <div>المستخلص رقم: {invoice.sequenceOrder}</div>
-              <div>الفترة: {invoice.periodStart || '---'} إلى {invoice.periodEnd || '---'}</div>
-              <div>تاريخ الإصدار: {new Date(invoice.createdAt).toLocaleDateString('ar-EG')}</div>
+              <div style={{ fontWeight: 800, fontSize: '14px', color: '#170e5e' }}>{t('contracting.print_ipc_certificate_modal.s5', "رقم المستخلص:")} {invoice.ipcNumber}</div>
+              <div>{t('contracting.print_ipc_certificate_modal.s6', "المستخلص رقم:")} {invoice.sequenceOrder}</div>
+              <div>{t('contracting.print_ipc_certificate_modal.s7', "الفترة:")} {invoice.periodStart || '---'} {t('contracting.print_ipc_certificate_modal.s8', "إلى")} {invoice.periodEnd || '---'}</div>
+              <div>{t('contracting.print_ipc_certificate_modal.s9', "تاريخ الإصدار:")} {new Date(invoice.createdAt).toLocaleDateString('ar-EG')}</div>
               <div style={{ marginTop: '4px' }}>
-                الحالة: <strong style={{ color: invoice.status === 'approved' ? '#059669' : '#d97706' }}>
-                  {invoice.status === 'approved' ? 'معتمد رسمياً' : 'مسودة قيد المراجعة'}
+                {t('contracting.print_ipc_certificate_modal.s10', "الحالة:")} <strong style={{ color: invoice.status === 'approved' ? '#059669' : '#d97706' }}>
+                  {invoice.status === 'approved' ? t('contracting.print_ipc_certificate_modal.s11', "معتمد رسمياً") : t('contracting.print_ipc_certificate_modal.s12', "مسودة قيد المراجعة")}
                 </strong>
               </div>
               {invoice.journalEntryId && (
                 <div style={{ marginTop: '2px', fontSize: '11px', color: '#15803d', fontWeight: 700 }}>
-                  القيد الدفتري المرحل: #{invoice.journalEntryId}
+                  {t('contracting.print_ipc_certificate_modal.s13', "القيد الدفتري المرحل: #")}{invoice.journalEntryId}
                 </div>
               )}
             </div>
@@ -116,16 +118,16 @@ export function PrintIpcCertificateModal({ open, invoice, project: propProject, 
           {/* Stakeholders Info */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', backgroundColor: '#f8fafc', padding: '12px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', marginBottom: '20px' }}>
             <div>
-              <span style={{ fontSize: '10px', color: '#64748b', display: 'block' }}>المالك / جهة الإسناد:</span>
+              <span style={{ fontSize: '10px', color: '#64748b', display: 'block' }}>{t('contracting.print_ipc_certificate_modal.s14', "المالك / جهة الإسناد:")}</span>
               <strong>{project?.clientName || '---'}</strong>
             </div>
             <div>
-              <span style={{ fontSize: '10px', color: '#64748b', display: 'block' }}>المقاول العام المنفذ:</span>
-              <strong>شركة المقاولات العامة</strong>
+              <span style={{ fontSize: '10px', color: '#64748b', display: 'block' }}>{t('contracting.print_ipc_certificate_modal.s15', "المقاول العام المنفذ:")}</span>
+              <strong>{t('contracting.print_ipc_certificate_modal.s16', "شركة المقاولات العامة")}</strong>
             </div>
             <div>
-              <span style={{ fontSize: '10px', color: '#64748b', display: 'block' }}>المهندس الاستشاري المشرف:</span>
-              <strong>المكتب الاستشاري الهندسي المعتمد</strong>
+              <span style={{ fontSize: '10px', color: '#64748b', display: 'block' }}>{t('contracting.print_ipc_certificate_modal.s17', "المهندس الاستشاري المشرف:")}</span>
+              <strong>{t('contracting.print_ipc_certificate_modal.s18', "المكتب الاستشاري الهندسي المعتمد")}</strong>
             </div>
           </div>
 
@@ -133,59 +135,59 @@ export function PrintIpcCertificateModal({ open, invoice, project: propProject, 
           <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '20px', fontSize: '12px' }}>
             <tbody>
               <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
-                <td style={{ padding: '8px 12px', fontWeight: 600 }}>1. قيمة العقد الأصلي (Original Contract Sum)</td>
+                <td style={{ padding: '8px 12px', fontWeight: 600 }}>{t('contracting.print_ipc_certificate_modal.s19', "1. قيمة العقد الأصلي (Original Contract Sum)")}</td>
                 <td style={{ padding: '8px 12px', textAlign: 'left', fontWeight: 700 }}>{originalContract.toLocaleString('ar-EG')} {currencySymbol}</td>
               </tr>
               <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
-                <td style={{ padding: '8px 12px', fontWeight: 600 }}>2. صافي أوامر التغيير والملحقات المعتمدة (Net Change by Change Orders)</td>
+                <td style={{ padding: '8px 12px', fontWeight: 600 }}>{t('contracting.print_ipc_certificate_modal.s20', "2. صافي أوامر التغيير والملحقات المعتمدة (Net Change by Change Orders)")}</td>
                 <td style={{ padding: '8px 12px', textAlign: 'left', fontWeight: 700, color: netChangeOrders >= 0 ? '#059669' : '#dc2626' }}>
                   {netChangeOrders >= 0 ? `+ ${netChangeOrders.toLocaleString('ar-EG')}` : netChangeOrders.toLocaleString('ar-EG')} {currencySymbol}
                 </td>
               </tr>
               <tr style={{ borderBottom: '2px solid #cbd5e1', backgroundColor: '#f8fafc' }}>
-                <td style={{ padding: '8px 12px', fontWeight: 700 }}>3. القيمة التعاقدية المعدلة حتى تاريخه (Contract Sum to Date)</td>
+                <td style={{ padding: '8px 12px', fontWeight: 700 }}>{t('contracting.print_ipc_certificate_modal.s21', "3. القيمة التعاقدية المعدلة حتى تاريخه (Contract Sum to Date)")}</td>
                 <td style={{ padding: '8px 12px', textAlign: 'left', fontWeight: 800, color: '#170e5e' }}>{revisedContract.toLocaleString('ar-EG')} {currencySymbol}</td>
               </tr>
               <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
-                <td style={{ padding: '8px 12px' }}>4. إجمالي الأعمال السابقة المعتمدة (Work from Previous Certificates)</td>
+                <td style={{ padding: '8px 12px' }}>{t('contracting.print_ipc_certificate_modal.s22', "4. إجمالي الأعمال السابقة المعتمدة (Work from Previous Certificates)")}</td>
                 <td style={{ padding: '8px 12px', textAlign: 'left' }}>{previousWork.toLocaleString('ar-EG')} {currencySymbol}</td>
               </tr>
               <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
-                <td style={{ padding: '8px 12px' }}>5. إجمالي الأعمال المنفذة خلال الفترة الحالية (Work Completed This Period)</td>
+                <td style={{ padding: '8px 12px' }}>{t('contracting.print_ipc_certificate_modal.s23', "5. إجمالي الأعمال المنفذة خلال الفترة الحالية (Work Completed This Period)")}</td>
                 <td style={{ padding: '8px 12px', textAlign: 'left' }}>{currentWork.toLocaleString('ar-EG')} {currencySymbol}</td>
               </tr>
               <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
-                <td style={{ padding: '8px 12px' }}>6. تشوينات المواد والخامات بالموقع (Materials Stored on Site)</td>
+                <td style={{ padding: '8px 12px' }}>{t('contracting.print_ipc_certificate_modal.s24', "6. تشوينات المواد والخامات بالموقع (Materials Stored on Site)")}</td>
                 <td style={{ padding: '8px 12px', textAlign: 'left' }}>{storedMaterials.toLocaleString('ar-EG')} {currencySymbol}</td>
               </tr>
               <tr style={{ borderBottom: '2px solid #cbd5e1', backgroundColor: '#f8fafc' }}>
-                <td style={{ padding: '8px 12px', fontWeight: 700 }}>7. إجمالي المنفذ والتشوينات التراكمي (Total Completed & Stored to Date)</td>
+                <td style={{ padding: '8px 12px', fontWeight: 700 }}>{t('contracting.print_ipc_certificate_modal.s25', "7. إجمالي المنفذ والتشوينات التراكمي (Total Completed & Stored to Date)")}</td>
                 <td style={{ padding: '8px 12px', textAlign: 'left', fontWeight: 800 }}>{cumulativeWork.toLocaleString('ar-EG')} {currencySymbol}</td>
               </tr>
               <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
-                <td style={{ padding: '8px 12px', color: '#dc2626' }}>8. خصم: استرداد نسبة الدفعة المقدمة (Advance Payment Recovery)</td>
+                <td style={{ padding: '8px 12px', color: '#dc2626' }}>{t('contracting.print_ipc_certificate_modal.s26', "8. خصم: استرداد نسبة الدفعة المقدمة (Advance Payment Recovery)")}</td>
                 <td style={{ padding: '8px 12px', textAlign: 'left', color: '#dc2626' }}>- {advanceRecovery.toLocaleString('ar-EG')} {currencySymbol}</td>
               </tr>
               <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
-                <td style={{ padding: '8px 12px', color: '#dc2626' }}>9. خصم: تأمين ضمان الأعمال وحسن التنفيذ (Retainage Withheld)</td>
+                <td style={{ padding: '8px 12px', color: '#dc2626' }}>{t('contracting.print_ipc_certificate_modal.s27', "9. خصم: تأمين ضمان الأعمال وحسن التنفيذ (Retainage Withheld)")}</td>
                 <td style={{ padding: '8px 12px', textAlign: 'left', color: '#dc2626' }}>- {retentionHeld.toLocaleString('ar-EG')} {currencySymbol}</td>
               </tr>
               {otherDeductions > 0 && (
                 <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
-                  <td style={{ padding: '8px 12px', color: '#dc2626' }}>10. خصم: استقطاعات وغرامات أخرى (Other Deductions)</td>
+                  <td style={{ padding: '8px 12px', color: '#dc2626' }}>{t('contracting.print_ipc_certificate_modal.s28', "10. خصم: استقطاعات وغرامات أخرى (Other Deductions)")}</td>
                   <td style={{ padding: '8px 12px', textAlign: 'left', color: '#dc2626' }}>- {otherDeductions.toLocaleString('ar-EG')} {currencySymbol}</td>
                 </tr>
               )}
               <tr style={{ borderTop: '2px solid #170e5e', borderBottom: '2px solid #170e5e', backgroundColor: '#eef2ff' }}>
                 <td style={{ padding: '12px 12px', fontWeight: 800, fontSize: '13px', color: '#170e5e' }}>
-                  صافي المبلغ المستحق للدفع حالياً (CURRENT PAYMENT DUE)
+                  {t('contracting.print_ipc_certificate_modal.s29', "صافي المبلغ المستحق للدفع حالياً (CURRENT PAYMENT DUE)")}
                 </td>
                 <td style={{ padding: '12px 12px', textAlign: 'left', fontWeight: 800, fontSize: '15px', color: '#170e5e' }}>
                   {netPayable.toLocaleString('ar-EG')} {currencySymbol}
                 </td>
               </tr>
               <tr>
-                <td style={{ padding: '8px 12px', color: '#64748b' }}>11. الرصيد المتبقي لإنهاء المشروع شاملاً التأمين (Balance to Finish)</td>
+                <td style={{ padding: '8px 12px', color: '#64748b' }}>{t('contracting.print_ipc_certificate_modal.s30', "11. الرصيد المتبقي لإنهاء المشروع شاملاً التأمين (Balance to Finish)")}</td>
                 <td style={{ padding: '8px 12px', textAlign: 'left', color: '#64748b' }}>{balanceToFinish.toLocaleString('ar-EG')} {currencySymbol}</td>
               </tr>
             </tbody>
@@ -194,19 +196,19 @@ export function PrintIpcCertificateModal({ open, invoice, project: propProject, 
           {/* Detailed Items Table (AIA G703 Summary) */}
           {invoice.items && invoice.items.length > 0 && (
             <div style={{ marginBottom: '24px' }}>
-              <h3 style={{ fontSize: '12px', fontWeight: 700, margin: '0 0 8px 0', color: '#475569' }}>جدول حصر بنود الأعمال وتوزيع الكميات (G703 Continuation Sheet)</h3>
+              <h3 style={{ fontSize: '12px', fontWeight: 700, margin: '0 0 8px 0', color: '#475569' }}>{t('contracting.print_ipc_certificate_modal.s31', "جدول حصر بنود الأعمال وتوزيع الكميات (G703 Continuation Sheet)")}</h3>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '10.5px' }}>
                 <thead>
                   <tr style={{ backgroundColor: '#f1f5f9', borderBottom: '1px solid #cbd5e1', textAlign: 'right' }}>
-                    <th style={{ padding: '6px 8px' }}>م</th>
-                    <th style={{ padding: '6px 8px' }}>بيان الأعمال</th>
-                    <th style={{ padding: '6px 8px' }}>الوحدة</th>
-                    <th style={{ padding: '6px 8px' }}>سعر الفئة</th>
-                    <th style={{ padding: '6px 8px' }}>كمية سابقة</th>
-                    <th style={{ padding: '6px 8px' }}>كمية حالية</th>
-                    <th style={{ padding: '6px 8px' }}>تشوينات</th>
-                    <th style={{ padding: '6px 8px' }}>كمية إجمالية</th>
-                    <th style={{ padding: '6px 8px' }}>إجمالي القيمة</th>
+                    <th style={{ padding: '6px 8px' }}>{t('contracting.print_ipc_certificate_modal.s32', "م")}</th>
+                    <th style={{ padding: '6px 8px' }}>{t('contracting.print_ipc_certificate_modal.s33', "بيان الأعمال")}</th>
+                    <th style={{ padding: '6px 8px' }}>{t('contracting.print_ipc_certificate_modal.s34', "الوحدة")}</th>
+                    <th style={{ padding: '6px 8px' }}>{t('contracting.print_ipc_certificate_modal.s35', "سعر الفئة")}</th>
+                    <th style={{ padding: '6px 8px' }}>{t('contracting.print_ipc_certificate_modal.s36', "كمية سابقة")}</th>
+                    <th style={{ padding: '6px 8px' }}>{t('contracting.print_ipc_certificate_modal.s37', "كمية حالية")}</th>
+                    <th style={{ padding: '6px 8px' }}>{t('contracting.print_ipc_certificate_modal.s38', "تشوينات")}</th>
+                    <th style={{ padding: '6px 8px' }}>{t('contracting.print_ipc_certificate_modal.s39', "كمية إجمالية")}</th>
+                    <th style={{ padding: '6px 8px' }}>{t('contracting.print_ipc_certificate_modal.s40', "إجمالي القيمة")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -247,24 +249,24 @@ export function PrintIpcCertificateModal({ open, invoice, project: propProject, 
           {/* Formal Signatures and Stamp Block */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px', marginTop: '30px', paddingTop: '16px', borderTop: '1px solid #cbd5e1', textAlign: 'center' }}>
             <div>
-              <div style={{ fontWeight: 700, marginBottom: '6px' }}>إعداد مهندس الموقع / المقاول</div>
-              <div style={{ fontSize: '10px', color: '#64748b' }}>أقر بأن الأعمال المدرجة نُفذت طبقاً للمواصفات</div>
+              <div style={{ fontWeight: 700, marginBottom: '6px' }}>{t('contracting.print_ipc_certificate_modal.s41', "إعداد مهندس الموقع / المقاول")}</div>
+              <div style={{ fontSize: '10px', color: '#64748b' }}>{t('contracting.print_ipc_certificate_modal.s42', "أقر بأن الأعمال المدرجة نُفذت طبقاً للمواصفات")}</div>
               <div style={{ height: '50px', borderBottom: '1px dashed #cbd5e1', margin: '8px 20px' }}></div>
-              <div style={{ fontSize: '11px' }}>التوقيع: ...................................</div>
+              <div style={{ fontSize: '11px' }}>{t('contracting.print_ipc_certificate_modal.s43', "التوقيع: ...................................")}</div>
             </div>
 
             <div>
-              <div style={{ fontWeight: 700, marginBottom: '6px' }}>اعتماد المهندس الاستشاري</div>
-              <div style={{ fontSize: '10px', color: '#64748b' }}>تمت المراجعة والمعاينة الميدانية ومطابقة الحصر</div>
+              <div style={{ fontWeight: 700, marginBottom: '6px' }}>{t('contracting.print_ipc_certificate_modal.s44', "اعتماد المهندس الاستشاري")}</div>
+              <div style={{ fontSize: '10px', color: '#64748b' }}>{t('contracting.print_ipc_certificate_modal.s45', "تمت المراجعة والمعاينة الميدانية ومطابقة الحصر")}</div>
               <div style={{ height: '50px', borderBottom: '1px dashed #cbd5e1', margin: '8px 20px' }}></div>
-              <div style={{ fontSize: '11px' }}>الختم والاعتماد: .............................</div>
+              <div style={{ fontSize: '11px' }}>{t('contracting.print_ipc_certificate_modal.s46', "الختم والاعتماد: .............................")}</div>
             </div>
 
             <div>
-              <div style={{ fontWeight: 700, marginBottom: '6px' }}>موافقة واعتماد المالك</div>
-              <div style={{ fontSize: '10px', color: '#64748b' }}>الموافقة على الصرف وقيد الاستحقاق المالي</div>
+              <div style={{ fontWeight: 700, marginBottom: '6px' }}>{t('contracting.print_ipc_certificate_modal.s47', "موافقة واعتماد المالك")}</div>
+              <div style={{ fontSize: '10px', color: '#64748b' }}>{t('contracting.print_ipc_certificate_modal.s48', "الموافقة على الصرف وقيد الاستحقاق المالي")}</div>
               <div style={{ height: '50px', borderBottom: '1px dashed #cbd5e1', margin: '8px 20px' }}></div>
-              <div style={{ fontSize: '11px' }}>توقيع الإدارة: ................................</div>
+              <div style={{ fontSize: '11px' }}>{t('contracting.print_ipc_certificate_modal.s49', "توقيع الإدارة: ................................")}</div>
             </div>
           </div>
         </div>

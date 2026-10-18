@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { useQuery } from '@tanstack/react-query';
@@ -16,6 +17,7 @@ import {
 } from '../api/cashier-fraud-radar.api';
 
 export function CashierFraudRadarSection() {
+  const { t } = useTranslation();
   const [timeframe, setTimeframe] = useState<'today' | '7days' | '30days'>('today');
   const [selectedCashierId, setSelectedCashierId] = useState<number | null>(null);
 
@@ -61,7 +63,7 @@ export function CashierFraudRadarSection() {
           }}
         >
           <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#ef4444' }} />
-          عالي الخطورة ({score}%)
+          {t('audit.cashier_fraud_radar_section.s0', "عالي الخطورة (")}{score}%)
         </span>
       );
     }
@@ -82,7 +84,7 @@ export function CashierFraudRadarSection() {
           }}
         >
           <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#f59e0b' }} />
-          تحت الملاحظة ({score}%)
+          {t('audit.cashier_fraud_radar_section.s1', "تحت الملاحظة (")}{score}%)
         </span>
       );
     }
@@ -102,7 +104,7 @@ export function CashierFraudRadarSection() {
         }}
       >
         <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#22c55e' }} />
-        طبيعي وآمن ({score}%)
+        {t('audit.cashier_fraud_radar_section.s2', "طبيعي وآمن (")}{score}%)
       </span>
     );
   };
@@ -112,31 +114,31 @@ export function CashierFraudRadarSection() {
       case 'cart_remove':
         return (
           <span style={{ padding: '2px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: 600, background: '#fee2e2', color: '#991b1b' }}>
-            حذف من السلة
+            {t('audit.cashier_fraud_radar_section.s3', "حذف من السلة")}
           </span>
         );
       case 'draft_cancel':
         return (
           <span style={{ padding: '2px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: 600, background: '#ffedd5', color: '#9a3412' }}>
-            إلغاء فاتورة
+            {t('audit.cashier_fraud_radar_section.s4', "إلغاء فاتورة")}
           </span>
         );
       case 'sale_cancelled':
         return (
           <span style={{ padding: '2px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: 600, background: '#fce7f3', color: '#9d174d' }}>
-            فاتورة ملغاة
+            {t('audit.cashier_fraud_radar_section.s5', "فاتورة ملغاة")}
           </span>
         );
       case 'discount_override':
         return (
           <span style={{ padding: '2px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: 600, background: '#ede9fe', color: '#6b21a8' }}>
-            تجاوز خصم
+            {t('audit.cashier_fraud_radar_section.s6', "تجاوز خصم")}
           </span>
         );
       default:
         return (
           <span style={{ padding: '2px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: 600, background: '#f1f5f9', color: '#475569' }}>
-            أمني
+            {t('audit.cashier_fraud_radar_section.s7', "أمني")}
           </span>
         );
     }
@@ -163,7 +165,7 @@ export function CashierFraudRadarSection() {
         <div style={{ flex: '1 1 260px', minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
             <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: '#0f172a' }}>
-              رادار كشف تلاعب وسرقات الكاشير ومنع الخسائر
+              {t('audit.cashier_fraud_radar_section.s8', "رادار كشف تلاعب وسرقات الكاشير ومنع الخسائر")}
             </h3>
             <span
               style={{
@@ -178,11 +180,11 @@ export function CashierFraudRadarSection() {
                 flexShrink: 0,
               }}
             >
-              محدث آلياً (Radar Active)
+              {t('audit.cashier_fraud_radar_section.s9', "محدث آلياً (Radar Active)")}
             </span>
           </div>
           <p style={{ margin: '4px 0 0', fontSize: '13px', color: '#64748b' }}>
-            رصد تلقائي للأنماط المريبة (حذف أصناف بعد مسحها، إلغاء فواتير، تلاعب الخصم) مع إنذارات واتساب للمالك عند الاشتباه.
+            {t('audit.cashier_fraud_radar_section.s10', "رصد تلقائي للأنماط المريبة (حذف أصناف بعد مسحها، إلغاء فواتير، تلاعب الخصم) مع إنذارات واتساب للمالك عند الاشتباه.")}
           </p>
         </div>
 
@@ -228,7 +230,7 @@ export function CashierFraudRadarSection() {
                 transition: 'background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease',
               }}
             >
-              اليوم
+              {t('audit.cashier_fraud_radar_section.s11', "اليوم")}
             </button>
             <button
               type="button"
@@ -249,7 +251,7 @@ export function CashierFraudRadarSection() {
                 transition: 'background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease',
               }}
             >
-              آخر 7 أيام
+              {t('audit.cashier_fraud_radar_section.s12', "آخر 7 أيام")}
             </button>
             <button
               type="button"
@@ -270,7 +272,7 @@ export function CashierFraudRadarSection() {
                 transition: 'background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease',
               }}
             >
-              آخر 30 يوماً
+              {t('audit.cashier_fraud_radar_section.s13', "آخر 30 يوماً")}
             </button>
           </div>
 
@@ -281,7 +283,7 @@ export function CashierFraudRadarSection() {
             style={{ fontSize: '13px', padding: '6px 14px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
           >
             <RefreshCwIcon size={14} />
-            <span>تحديث الرادار</span>
+            <span>{t('audit.cashier_fraud_radar_section.s14', "تحديث الرادار")}</span>
           </Button>
         </div>
       </div>
@@ -304,10 +306,10 @@ export function CashierFraudRadarSection() {
             <AlertTriangleIcon size={24} color="#9f1239" />
             <div>
               <div style={{ fontWeight: 800, color: '#9f1239', fontSize: '14px' }}>
-                تنبيه رادار الرقابة: تم رصد {summary.highRiskCashiersCount} كاشير في دائرة الخطر المرتفع!
+                {t('audit.cashier_fraud_radar_section.s15', "تنبيه رادار الرقابة: تم رصد")} {summary.highRiskCashiersCount} {t('audit.cashier_fraud_radar_section.s16', "كاشير في دائرة الخطر المرتفع!")}
               </div>
               <div style={{ fontSize: '12.5px', color: '#be123c', marginTop: '2px' }}>
-                تكرار عمليات حذف الأصناف أو إلغاء الفواتير تجاوز المعدل الطبيعي. تم تفعيل المراقبة وإرسال تنبيه واتساب فوري للإدارة.
+                {t('audit.cashier_fraud_radar_section.s17', "تكرار عمليات حذف الأصناف أو إلغاء الفواتير تجاوز المعدل الطبيعي. تم تفعيل المراقبة وإرسال تنبيه واتساب فوري للإدارة.")}
               </div>
             </div>
           </div>
@@ -322,7 +324,7 @@ export function CashierFraudRadarSection() {
               border: '1px solid #fecdd3',
             }}
           >
-            نظام التنبيه التلقائي: نشط
+            {t('audit.cashier_fraud_radar_section.s18', "نظام التنبيه التلقائي: نشط")}
           </span>
         </div>
       ) : (
@@ -340,10 +342,10 @@ export function CashierFraudRadarSection() {
           <ShieldCheckIcon size={20} color="#166534" />
           <div>
             <div style={{ fontWeight: 700, color: '#166534', fontSize: '13.5px' }}>
-              الوضع الرقابي مستقر وآمن
+              {t('audit.cashier_fraud_radar_section.s19', "الوضع الرقابي مستقر وآمن")}
             </div>
             <div style={{ fontSize: '12px', color: '#15803d' }}>
-              لا توجد أنماط تلاعب غير اعتيادية مرصودة حالياً. نظام كشف التلاعب يعمل على مدار الساعة.
+              {t('audit.cashier_fraud_radar_section.s20', "لا توجد أنماط تلاعب غير اعتيادية مرصودة حالياً. نظام كشف التلاعب يعمل على مدار الساعة.")}
             </div>
           </div>
         </div>
@@ -368,12 +370,12 @@ export function CashierFraudRadarSection() {
             boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
           }}
         >
-          <div style={{ fontSize: '12.5px', color: '#64748b', fontWeight: 600 }}>إجمالي العمليات المشبوهة</div>
+          <div style={{ fontSize: '12.5px', color: '#64748b', fontWeight: 600 }}>{t('audit.cashier_fraud_radar_section.s21', "إجمالي العمليات المشبوهة")}</div>
           <div style={{ fontSize: '26px', fontWeight: 900, color: '#0f172a', marginTop: '6px' }}>
             {summary?.totalSuspiciousEvents ?? 0}
           </div>
           <div style={{ fontSize: '11.5px', color: '#94a3b8', marginTop: '4px' }}>
-            حذف أصناف + إلغاء فواتير + خصومات
+            {t('audit.cashier_fraud_radar_section.s22', "حذف أصناف + إلغاء فواتير + خصومات")}
           </div>
         </div>
 
@@ -387,12 +389,12 @@ export function CashierFraudRadarSection() {
             boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
           }}
         >
-          <div style={{ fontSize: '12.5px', color: '#b91c1c', fontWeight: 600 }}>كاشيرات في دائرة الخطر</div>
+          <div style={{ fontSize: '12.5px', color: '#b91c1c', fontWeight: 600 }}>{t('audit.cashier_fraud_radar_section.s23', "كاشيرات في دائرة الخطر")}</div>
           <div style={{ fontSize: '26px', fontWeight: 900, color: '#b91c1c', marginTop: '6px' }}>
             {summary?.highRiskCashiersCount ?? 0}
           </div>
           <div style={{ fontSize: '11.5px', color: '#94a3b8', marginTop: '4px' }}>
-            مؤشر خطر مرتفع (&gt;= 60%)
+            {t('audit.cashier_fraud_radar_section.s24', "مؤشر خطر مرتفع (>= 60%)")}
           </div>
         </div>
 
@@ -406,12 +408,12 @@ export function CashierFraudRadarSection() {
             boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
           }}
         >
-          <div style={{ fontSize: '12.5px', color: '#b45309', fontWeight: 600 }}>كاشيرات تحت الملاحظة</div>
+          <div style={{ fontSize: '12.5px', color: '#b45309', fontWeight: 600 }}>{t('audit.cashier_fraud_radar_section.s25', "كاشيرات تحت الملاحظة")}</div>
           <div style={{ fontSize: '26px', fontWeight: 900, color: '#b45309', marginTop: '6px' }}>
             {summary?.mediumRiskCashiersCount ?? 0}
           </div>
           <div style={{ fontSize: '11.5px', color: '#94a3b8', marginTop: '4px' }}>
-            مؤشر خطر متوسط (30% - 59%)
+            {t('audit.cashier_fraud_radar_section.s26', "مؤشر خطر متوسط (30% - 59%)")}
           </div>
         </div>
 
@@ -425,12 +427,12 @@ export function CashierFraudRadarSection() {
             boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
           }}
         >
-          <div style={{ fontSize: '12.5px', color: '#0f766e', fontWeight: 600 }}>الخسائر المرصودة / المحمية</div>
+          <div style={{ fontSize: '12.5px', color: '#0f766e', fontWeight: 600 }}>{t('audit.cashier_fraud_radar_section.s27', "الخسائر المرصودة / المحمية")}</div>
           <div style={{ fontSize: '24px', fontWeight: 900, color: '#0f766e', marginTop: '6px' }}>
             {formatCurrency(summary?.estimatedProtectedLoss ?? 0)} <CurrencySymbol />
           </div>
           <div style={{ fontSize: '11.5px', color: '#94a3b8', marginTop: '4px' }}>
-            إجمالي مبالغ الحركات الملغاة والمحذوفة
+            {t('audit.cashier_fraud_radar_section.s28', "إجمالي مبالغ الحركات الملغاة والمحذوفة")}
           </div>
         </div>
       </div>
@@ -461,10 +463,10 @@ export function CashierFraudRadarSection() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
               <h4 style={{ margin: 0, fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>
-                تقييم مؤشر أمان وسلوك الكاشيرات
+                {t('audit.cashier_fraud_radar_section.s29', "تقييم مؤشر أمان وسلوك الكاشيرات")}
               </h4>
               <p style={{ margin: '2px 0 0', fontSize: '12px', color: '#64748b' }}>
-                ترتيب الكاشيرات حسب معدل الحركات المشبوهة وحذوفات السلة
+                {t('audit.cashier_fraud_radar_section.s30', "ترتيب الكاشيرات حسب معدل الحركات المشبوهة وحذوفات السلة")}
               </p>
             </div>
             {selectedCashierId ? (
@@ -473,18 +475,18 @@ export function CashierFraudRadarSection() {
                 onClick={() => setSelectedCashierId(null)}
                 style={{ fontSize: '11px', padding: '3px 8px' }}
               >
-                عرض كل الكاشيرات
+                {t('audit.cashier_fraud_radar_section.s31', "عرض كل الكاشيرات")}
               </Button>
             ) : null}
           </div>
 
           {summaryQuery.isLoading ? (
             <div style={{ textAlign: 'center', padding: '30px', color: '#94a3b8', fontSize: '13px' }}>
-              جاري تحليل بيانات الأمان وسلوك الكاشيرات...
+              {t('audit.cashier_fraud_radar_section.s32', "جاري تحليل بيانات الأمان وسلوك الكاشيرات...")}
             </div>
           ) : !summary?.cashiers.length ? (
             <div style={{ textAlign: 'center', padding: '30px', color: '#94a3b8', fontSize: '13px' }}>
-              لا يوجد كاشيرات مسجلين حالياً
+              {t('audit.cashier_fraud_radar_section.s33', "لا يوجد كاشيرات مسجلين حالياً")}
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -527,7 +529,7 @@ export function CashierFraudRadarSection() {
                             {c.cashierName}
                           </div>
                           <div style={{ fontSize: '11.5px', color: '#64748b' }}>
-                            {c.totalSalesCount} فاتورة بيع ناجحة
+                            {c.totalSalesCount} {t('audit.cashier_fraud_radar_section.s34', "فاتورة بيع ناجحة")}
                           </div>
                         </div>
                       </div>
@@ -562,25 +564,25 @@ export function CashierFraudRadarSection() {
                       }}
                     >
                       <div>
-                        <div style={{ color: '#64748b', fontSize: '10.5px' }}>حذف سلة</div>
+                        <div style={{ color: '#64748b', fontSize: '10.5px' }}>{t('audit.cashier_fraud_radar_section.s35', "حذف سلة")}</div>
                         <div style={{ fontWeight: 800, color: c.cartVoidsCount > 0 ? '#b91c1c' : '#334155' }}>
                           {c.cartVoidsCount}
                         </div>
                       </div>
                       <div>
-                        <div style={{ color: '#64748b', fontSize: '10.5px' }}>إلغاء مسودة</div>
+                        <div style={{ color: '#64748b', fontSize: '10.5px' }}>{t('audit.cashier_fraud_radar_section.s36', "إلغاء مسودة")}</div>
                         <div style={{ fontWeight: 800, color: c.draftCancelsCount > 0 ? '#b45309' : '#334155' }}>
                           {c.draftCancelsCount}
                         </div>
                       </div>
                       <div>
-                        <div style={{ color: '#64748b', fontSize: '10.5px' }}>فواتير ملغاة</div>
+                        <div style={{ color: '#64748b', fontSize: '10.5px' }}>{t('audit.cashier_fraud_radar_section.s37', "فواتير ملغاة")}</div>
                         <div style={{ fontWeight: 800, color: c.cancelledSalesCount > 0 ? '#b91c1c' : '#334155' }}>
                           {c.cancelledSalesCount}
                         </div>
                       </div>
                       <div>
-                        <div style={{ color: '#64748b', fontSize: '10.5px' }}>تجاوز خصم</div>
+                        <div style={{ color: '#64748b', fontSize: '10.5px' }}>{t('audit.cashier_fraud_radar_section.s38', "تجاوز خصم")}</div>
                         <div style={{ fontWeight: 800, color: c.discountOverridesCount > 0 ? '#6b21a8' : '#334155' }}>
                           {c.discountOverridesCount}
                         </div>
@@ -589,7 +591,7 @@ export function CashierFraudRadarSection() {
 
                     {c.lastSuspiciousAt ? (
                       <div style={{ fontSize: '10.5px', color: '#94a3b8', marginTop: '6px', textAlign: 'left' }}>
-                        آخر حركة مشبوهة: {formatDateTimeArabic(c.lastSuspiciousAt)}
+                        {t('audit.cashier_fraud_radar_section.s39', "آخر حركة مشبوهة:")} {formatDateTimeArabic(c.lastSuspiciousAt)}
                       </div>
                     ) : null}
                   </div>
@@ -615,7 +617,7 @@ export function CashierFraudRadarSection() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
               <h4 style={{ margin: 0, fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>
-                شريط الرصد الحي للعمليات المشبوهة
+                {t('audit.cashier_fraud_radar_section.s40', "شريط الرصد الحي للعمليات المشبوهة")}
               </h4>
               <p style={{ margin: '2px 0 0', fontSize: '12px', color: '#64748b' }}>
                 {selectedCashierId
@@ -633,13 +635,13 @@ export function CashierFraudRadarSection() {
                 borderRadius: '6px',
               }}
             >
-              {filteredEvents.length} حدث
+              {filteredEvents.length} {t('audit.cashier_fraud_radar_section.s41', "حدث")}
             </span>
           </div>
 
           {eventsQuery.isLoading ? (
             <div style={{ textAlign: 'center', padding: '30px', color: '#94a3b8', fontSize: '13px' }}>
-              جاري جلب سجل الأحداث الأمنية...
+              {t('audit.cashier_fraud_radar_section.s42', "جاري جلب سجل الأحداث الأمنية...")}
             </div>
           ) : !filteredEvents.length ? (
             <div
@@ -656,10 +658,10 @@ export function CashierFraudRadarSection() {
                 <CheckCircleIcon size={24} color="#16a34a" />
               </div>
               <div style={{ fontWeight: 700, fontSize: '13px', color: '#475569' }}>
-                لا توجد عمليات مشبوهة مسجلة
+                {t('audit.cashier_fraud_radar_section.s43', "لا توجد عمليات مشبوهة مسجلة")}
               </div>
               <div style={{ fontSize: '11.5px', color: '#94a3b8', marginTop: '2px' }}>
-                كافة عمليات البيع والكاشير تسير بصورة طبيعية ونظامية.
+                {t('audit.cashier_fraud_radar_section.s44', "كافة عمليات البيع والكاشير تسير بصورة طبيعية ونظامية.")}
               </div>
             </div>
           ) : (
@@ -704,7 +706,7 @@ export function CashierFraudRadarSection() {
 
                   {typeof evt.amount === 'number' && evt.amount > 0 ? (
                     <div style={{ fontSize: '11px', fontWeight: 700, color: '#b91c1c', textAlign: 'left' }}>
-                      القيمة: {formatCurrency(evt.amount)} <CurrencySymbol />
+                      {t('audit.cashier_fraud_radar_section.s45', "القيمة:")} {formatCurrency(evt.amount)} <CurrencySymbol />
                     </div>
                   ) : null}
                 </div>

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { StorefrontCategory } from '../types/storefront.types';
 
 interface StorefrontCategoryPillsProps {
@@ -13,6 +14,7 @@ export function StorefrontCategoryPills({
   onSelectCategory,
   categoryCounts,
 }: StorefrontCategoryPillsProps) {
+  const { t } = useTranslation();
   const allCount = categoryCounts.get('all') || 0;
 
   return (
@@ -63,7 +65,7 @@ export function StorefrontCategoryPills({
             boxShadow: selectedCategoryId === 'all' ? '0 4px 12px rgba(15, 23, 42, 0.15)' : 'none',
           }}
         >
-          <span>جميع الأصناف</span>
+          <span>{t('storefront.storefront_category_pills.s0', "جميع الأصناف")}</span>
           <span
             style={{
               fontSize: '11px',

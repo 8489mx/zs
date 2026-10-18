@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { XIcon } from '@/shared/components/icons/AppIcons';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { SaasTenantRow } from '../api/saas-admin.api';
@@ -49,6 +50,7 @@ export function TenantActionHubModal({
   onSeedDemo,
   onWipeData,
 }: TenantActionHubModalProps) {
+  const { t } = useTranslation();
   const isTrial = tenant.status === 'trial';
   const isActive = tenant.status === 'active';
 
@@ -57,7 +59,7 @@ export function TenantActionHubModal({
       open={true}
       onClose={onClose}
       width="min(880px, 95vw)"
-      ariaLabel="مركز إجراءات المشترك"
+      ariaLabel={t('saas_admin.tenant_action_hub_modal.s0', "مركز إجراءات المشترك")}
     >
       <div className="dialog-card" dir="rtl" style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxHeight: '88vh', overflowY: 'auto' }}>
         {/* Header */}
@@ -74,18 +76,18 @@ export function TenantActionHubModal({
                 {tenant.businessName || tenant.slug}
               </h3>
               <span className={`tenant-status-pill ${tenant.status}`} style={{ fontSize: '11px', padding: '1px 8px' }}>
-                {tenant.status === 'active' ? 'مفعلة' : tenant.status === 'trial' ? 'تجريبية' : tenant.status === 'expired' ? 'منتهية' : 'موقوفة'}
+                {tenant.status === 'active' ? t('saas_admin.tenant_action_hub_modal.s1', "مفعلة") : tenant.status === 'trial' ? t('saas_admin.tenant_action_hub_modal.s2', "تجريبية") : tenant.status === 'expired' ? t('saas_admin.tenant_action_hub_modal.s3', "منتهية") : t('saas_admin.tenant_action_hub_modal.s4', "موقوفة")}
               </span>
             </div>
             <div style={{ margin: '4px 0 0', fontSize: '12.5px', color: '#64748b', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-              <span>المعرف: <strong style={{ color: '#0f172a' }}>{tenant.slug}</strong></span>
+              <span>{t('saas_admin.tenant_action_hub_modal.s5', "المعرف:")} <strong style={{ color: '#0f172a' }}>{tenant.slug}</strong></span>
               <span>•</span>
-              <span>المالك: <strong style={{ color: '#0f172a' }}>{tenant.ownerName}</strong> ({tenant.ownerPhone || '-'})</span>
+              <span>{t('saas_admin.tenant_action_hub_modal.s6', "المالك:")} <strong style={{ color: '#0f172a' }}>{tenant.ownerName}</strong> ({tenant.ownerPhone || '-'})</span>
               {tenant.ownerUsername && (
                 <>
                   <span>•</span>
                   <span style={{ background: '#f1f5f9', border: '1px solid #e2e8f0', padding: '1px 8px', borderRadius: '6px', color: '#170e5e', fontWeight: 800 }}>
-                    اسم الدخول: <code style={{ fontFamily: 'monospace' }}>{tenant.ownerUsername}</code>
+                    {t('saas_admin.tenant_action_hub_modal.s7', "اسم الدخول:")} <code style={{ fontFamily: 'monospace' }}>{tenant.ownerUsername}</code>
                   </span>
                 </>
               )}
@@ -95,7 +97,7 @@ export function TenantActionHubModal({
             type="button"
             className="dialog-shell-close-btn"
             onClick={onClose}
-            title="إغلاق"
+            title={t('saas_admin.tenant_action_hub_modal.s8', "إغلاق")}
           ><XIcon size={15} /></button>
         </div>
 
@@ -114,7 +116,7 @@ export function TenantActionHubModal({
               <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>
               <line x1="1" y1="10" x2="23" y2="10"/>
             </svg>
-            <span>الاشتراكات والفوترة</span>
+            <span>{t('saas_admin.tenant_action_hub_modal.s9', "الاشتراكات والفوترة")}</span>
           </div>
 
           <div style={{
@@ -134,8 +136,8 @@ export function TenantActionHubModal({
                 </svg>
               </div>
               <div className="saas-action-card-info">
-                <strong className="saas-action-card-title">تجديد الاشتراك</strong>
-                <span className="saas-action-card-sub">تمديد فترة الصلاحية لعدة أشهر أو سنة</span>
+                <strong className="saas-action-card-title">{t('saas_admin.tenant_action_hub_modal.s10', "تجديد الاشتراك")}</strong>
+                <span className="saas-action-card-sub">{t('saas_admin.tenant_action_hub_modal.s11', "تمديد فترة الصلاحية لعدة أشهر أو سنة")}</span>
               </div>
             </button>
 
@@ -154,8 +156,8 @@ export function TenantActionHubModal({
                 </svg>
               </div>
               <div className="saas-action-card-info">
-                <strong className="saas-action-card-title">سجل الاشتراكات والإيصالات</strong>
-                <span className="saas-action-card-sub">فواتير العميل السابقة وطباعة إيصال سداد</span>
+                <strong className="saas-action-card-title">{t('saas_admin.tenant_action_hub_modal.s12', "سجل الاشتراكات والإيصالات")}</strong>
+                <span className="saas-action-card-sub">{t('saas_admin.tenant_action_hub_modal.s13', "فواتير العميل السابقة وطباعة إيصال سداد")}</span>
               </div>
             </button>
 
@@ -171,8 +173,8 @@ export function TenantActionHubModal({
                 </svg>
               </div>
               <div className="saas-action-card-info">
-                <strong className="saas-action-card-title">تفعيل / ترقية الخطة</strong>
-                <span className="saas-action-card-sub">تفعيل النسخة لأول مرة أو الترقية لباقة أعلى</span>
+                <strong className="saas-action-card-title">{t('saas_admin.tenant_action_hub_modal.s14', "تفعيل / ترقية الخطة")}</strong>
+                <span className="saas-action-card-sub">{t('saas_admin.tenant_action_hub_modal.s15', "تفعيل النسخة لأول مرة أو الترقية لباقة أعلى")}</span>
               </div>
             </button>
 
@@ -196,8 +198,8 @@ export function TenantActionHubModal({
                 </svg>
               </div>
               <div className="saas-action-card-info">
-                <strong className="saas-action-card-title">تعديل الباقة والميزات</strong>
-                <span className="saas-action-card-sub">تغيير الباقة الحالية وحدود الفروع والمستخدمين</span>
+                <strong className="saas-action-card-title">{t('saas_admin.tenant_action_hub_modal.s16', "تعديل الباقة والميزات")}</strong>
+                <span className="saas-action-card-sub">{t('saas_admin.tenant_action_hub_modal.s17', "تغيير الباقة الحالية وحدود الفروع والمستخدمين")}</span>
               </div>
             </button>
 
@@ -214,8 +216,8 @@ export function TenantActionHubModal({
                 </svg>
               </div>
               <div className="saas-action-card-info">
-                <strong className="saas-action-card-title">تسجيل دفعة مالية</strong>
-                <span className="saas-action-card-sub">سداد نقدي، تحويل بنكي أو محفظة إلكترونية</span>
+                <strong className="saas-action-card-title">{t('saas_admin.tenant_action_hub_modal.s18', "تسجيل دفعة مالية")}</strong>
+                <span className="saas-action-card-sub">{t('saas_admin.tenant_action_hub_modal.s19', "سداد نقدي، تحويل بنكي أو محفظة إلكترونية")}</span>
               </div>
             </button>
 
@@ -231,8 +233,8 @@ export function TenantActionHubModal({
                 </svg>
               </div>
               <div className="saas-action-card-info">
-                <strong className="saas-action-card-title">مشاركة الدخول عبر واتساب</strong>
-                <span className="saas-action-card-sub">إرسال رسالة ترحيبية وبيانات الدخول للعميل</span>
+                <strong className="saas-action-card-title">{t('saas_admin.tenant_action_hub_modal.s20', "مشاركة الدخول عبر واتساب")}</strong>
+                <span className="saas-action-card-sub">{t('saas_admin.tenant_action_hub_modal.s21', "إرسال رسالة ترحيبية وبيانات الدخول للعميل")}</span>
               </div>
             </button>
           </div>
@@ -252,7 +254,7 @@ export function TenantActionHubModal({
             <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#6366f1" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
             </svg>
-            <span>إدارة الحساب والأمان</span>
+            <span>{t('saas_admin.tenant_action_hub_modal.s22', "إدارة الحساب والأمان")}</span>
           </div>
 
           <div style={{
@@ -272,8 +274,8 @@ export function TenantActionHubModal({
                 </svg>
               </div>
               <div className="saas-action-card-info">
-                <strong className="saas-action-card-title">سجل النشاط والتفاصيل</strong>
-                <span className="saas-action-card-sub">استعراض سجل الأحداث والعمليات للنسخة</span>
+                <strong className="saas-action-card-title">{t('saas_admin.tenant_action_hub_modal.s23', "سجل النشاط والتفاصيل")}</strong>
+                <span className="saas-action-card-sub">{t('saas_admin.tenant_action_hub_modal.s24', "استعراض سجل الأحداث والعمليات للنسخة")}</span>
               </div>
             </button>
 
@@ -290,9 +292,9 @@ export function TenantActionHubModal({
                 </svg>
               </div>
               <div className="saas-action-card-info">
-                <strong className="saas-action-card-title">تعديل معرّف النسخة (Slug)</strong>
+                <strong className="saas-action-card-title">{t('saas_admin.tenant_action_hub_modal.s25', "تعديل معرّف النسخة (Slug)")}</strong>
                 <span className="saas-action-card-sub">
-                  تغيير الرابط الفريد الحالي: ({tenant.slug})
+                  {t('saas_admin.tenant_action_hub_modal.s26', "تغيير الرابط الفريد الحالي: (")}{tenant.slug})
                 </span>
               </div>
             </button>
@@ -310,9 +312,9 @@ export function TenantActionHubModal({
                 </svg>
               </div>
               <div className="saas-action-card-info">
-                <strong className="saas-action-card-title">إعادة تعيين كلمة المرور</strong>
+                <strong className="saas-action-card-title">{t('saas_admin.tenant_action_hub_modal.s27', "إعادة تعيين كلمة المرور")}</strong>
                 <span className="saas-action-card-sub">
-                  توليد كلمة سر جديدة للحساب {tenant.ownerUsername ? `(${tenant.ownerUsername})` : ''}
+                  {t('saas_admin.tenant_action_hub_modal.s28', "توليد كلمة سر جديدة للحساب")} {tenant.ownerUsername ? `(${tenant.ownerUsername})` : ''}
                 </span>
               </div>
             </button>
@@ -331,8 +333,8 @@ export function TenantActionHubModal({
                   </svg>
                 </div>
                 <div className="saas-action-card-info">
-                  <strong className="saas-action-card-title">تمديد التجربة (+7 أيام)</strong>
-                  <span className="saas-action-card-sub">إضافة أسبوع تجريبي مجاني للعميل</span>
+                  <strong className="saas-action-card-title">{t('saas_admin.tenant_action_hub_modal.s29', "تمديد التجربة (+7 أيام)")}</strong>
+                  <span className="saas-action-card-sub">{t('saas_admin.tenant_action_hub_modal.s30', "إضافة أسبوع تجريبي مجاني للعميل")}</span>
                 </div>
               </button>
             )}
@@ -350,9 +352,9 @@ export function TenantActionHubModal({
                 </svg>
               </div>
               <div className="saas-action-card-info">
-                <strong className="saas-action-card-title">فك قفل حساب المالك</strong>
+                <strong className="saas-action-card-title">{t('saas_admin.tenant_action_hub_modal.s31', "فك قفل حساب المالك")}</strong>
                 <span className="saas-action-card-sub">
-                  إلغاء الحظر الأمني للمستخدم {tenant.ownerUsername ? `(${tenant.ownerUsername})` : ''}
+                  {t('saas_admin.tenant_action_hub_modal.s32', "إلغاء الحظر الأمني للمستخدم")} {tenant.ownerUsername ? `(${tenant.ownerUsername})` : ''}
                 </span>
               </div>
             </button>
@@ -372,8 +374,8 @@ export function TenantActionHubModal({
                   </svg>
                 </div>
                 <div className="saas-action-card-info">
-                  <strong className="saas-action-card-title">إيقاف النسخة مؤقتاً</strong>
-                  <span className="saas-action-card-sub">تعطيل دخول المستخدمين حتى إعادة التفعيل</span>
+                  <strong className="saas-action-card-title">{t('saas_admin.tenant_action_hub_modal.s33', "إيقاف النسخة مؤقتاً")}</strong>
+                  <span className="saas-action-card-sub">{t('saas_admin.tenant_action_hub_modal.s34', "تعطيل دخول المستخدمين حتى إعادة التفعيل")}</span>
                 </div>
               </button>
             ) : (
@@ -389,8 +391,8 @@ export function TenantActionHubModal({
                   </svg>
                 </div>
                 <div className="saas-action-card-info">
-                  <strong className="saas-action-card-title">إنهاء الصلاحية</strong>
-                  <span className="saas-action-card-sub">وسم النسخة كمنتهية الصلاحية</span>
+                  <strong className="saas-action-card-title">{t('saas_admin.tenant_action_hub_modal.s35', "إنهاء الصلاحية")}</strong>
+                  <span className="saas-action-card-sub">{t('saas_admin.tenant_action_hub_modal.s36', "وسم النسخة كمنتهية الصلاحية")}</span>
                 </div>
               </button>
             )}
@@ -411,7 +413,7 @@ export function TenantActionHubModal({
             <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
             </svg>
-            <span>إدارة دورة حياة بيانات المشترك</span>
+            <span>{t('saas_admin.tenant_action_hub_modal.s37', "إدارة دورة حياة بيانات المشترك")}</span>
           </div>
 
           <div style={{
@@ -431,8 +433,8 @@ export function TenantActionHubModal({
                 </svg>
               </div>
               <div className="saas-action-card-info">
-                <strong className="saas-action-card-title">سكب بيانات تجريبية</strong>
-                <span className="saas-action-card-sub">توليد أصناف ومبيعات تجريبية حسب نشاط المشترك</span>
+                <strong className="saas-action-card-title">{t('saas_admin.tenant_action_hub_modal.s38', "سكب بيانات تجريبية")}</strong>
+                <span className="saas-action-card-sub">{t('saas_admin.tenant_action_hub_modal.s39', "توليد أصناف ومبيعات تجريبية حسب نشاط المشترك")}</span>
               </div>
             </button>
 
@@ -448,8 +450,8 @@ export function TenantActionHubModal({
                 </svg>
               </div>
               <div className="saas-action-card-info">
-                <strong className="saas-action-card-title" style={{ color: '#be123c' }}>تصفير قاعدة البيانات (Factory Reset)</strong>
-                <span className="saas-action-card-sub">إعادة النسخة بيضاء 0% لبدء العمل الفعلي للعميل</span>
+                <strong className="saas-action-card-title" style={{ color: '#be123c' }}>{t('saas_admin.tenant_action_hub_modal.s40', "تصفير قاعدة البيانات (Factory Reset)")}</strong>
+                <span className="saas-action-card-sub">{t('saas_admin.tenant_action_hub_modal.s41', "إعادة النسخة بيضاء 0% لبدء العمل الفعلي للعميل")}</span>
               </div>
             </button>
           </div>
@@ -469,10 +471,10 @@ export function TenantActionHubModal({
         }}>
           <div>
             <strong style={{ color: '#991b1b', fontSize: '13px', display: 'block' }}>
-              حذف النسخة نهائياً (Danger Zone)
+              {t('saas_admin.tenant_action_hub_modal.s42', "حذف النسخة نهائياً (Danger Zone)")}
             </strong>
             <span style={{ color: '#b91c1c', fontSize: '11.5px' }}>
-              سيتم حذف كافة البيانات وقواعد البيانات الخاصة بهذه النسخة ولا يمكن التراجع عن هذا الإجراء.
+              {t('saas_admin.tenant_action_hub_modal.s43', "سيتم حذف كافة البيانات وقواعد البيانات الخاصة بهذه النسخة ولا يمكن التراجع عن هذا الإجراء.")}
             </span>
           </div>
 
@@ -503,7 +505,7 @@ export function TenantActionHubModal({
               <line x1="10" y1="11" x2="10" y2="17"/>
               <line x1="14" y1="11" x2="14" y2="17"/>
             </svg>
-            <span>حذف نهائي</span>
+            <span>{t('saas_admin.tenant_action_hub_modal.s44', "حذف نهائي")}</span>
           </button>
         </div>
       </div>

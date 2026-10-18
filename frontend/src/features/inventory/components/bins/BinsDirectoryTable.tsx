@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React, { useMemo } from 'react';
 import { WarehouseBin } from '../../api/warehouse-bins.api';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
@@ -28,6 +29,7 @@ export const BinsDirectoryTable: React.FC<BinsDirectoryTableProps> = ({
   onEditBin,
   onDeleteBin,
 }) => {
+  const { t } = useTranslation();
   const locationOptions = useMemo(() => [
     { value: '', label: '-- كل المستودعات والفروع --' },
     ...locations.map((loc) => ({ value: String(loc.id), label: loc.name })),
@@ -50,7 +52,7 @@ export const BinsDirectoryTable: React.FC<BinsDirectoryTableProps> = ({
             value={selectedLocationId ? String(selectedLocationId) : ''}
             onChange={(val) => onSelectLocationId(val ? Number(val) : '')}
             options={locationOptions}
-            placeholder="-- كل المستودعات والفروع --"
+            placeholder={t('inventory.bins.bins_directory_table.s0', "-- كل المستودعات والفروع --")}
           />
         </div>
 
@@ -59,7 +61,7 @@ export const BinsDirectoryTable: React.FC<BinsDirectoryTableProps> = ({
             type="text"
             value={search}
             onChange={(e) => onSearchChange(e.target.value)}
-            placeholder="بحث برمز الرف، الباركود، الممر، أو الحامل..."
+            placeholder={t('inventory.bins.bins_directory_table.s1', "بحث برمز الرف، الباركود، الممر، أو الحامل...")}
             style={{
               width: '100%',
               padding: '8px 14px',
@@ -74,16 +76,16 @@ export const BinsDirectoryTable: React.FC<BinsDirectoryTableProps> = ({
 
       {loading ? (
         <div style={{ textAlign: 'center', padding: '40px', color: '#64748b', fontSize: '13px' }}>
-          جاري تحميل أماكن التخزين...
+          {t('inventory.bins.bins_directory_table.s2', "جاري تحميل أماكن التخزين...")}
         </div>
       ) : bins.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '50px 20px', color: '#94a3b8' }}>
           <AppIcons.Box size={40} color="#cbd5e1" />
           <div style={{ fontSize: '14px', fontWeight: 700, color: '#475569', marginTop: '12px' }}>
-            لا توجد أماكن تخزين مسجلة حتى الآن
+            {t('inventory.bins.bins_directory_table.s3', "لا توجد أماكن تخزين مسجلة حتى الآن")}
           </div>
           <div style={{ fontSize: '12px', marginTop: '4px' }}>
-            اضغط على زر "إضافة مكان تخزين جديد" للبدء في تنظيم رفوف المستودع.
+            {t('inventory.bins.bins_directory_table.s4', "اضغط على زر \"إضافة مكان تخزين جديد\" للبدء في تنظيم رفوف المستودع.")}
           </div>
         </div>
       ) : (
@@ -91,16 +93,16 @@ export const BinsDirectoryTable: React.FC<BinsDirectoryTableProps> = ({
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
             <thead>
               <tr style={{ borderBottom: '1px solid #e2e8f0', color: '#64748b', textAlign: 'right' }}>
-                <th style={{ padding: '10px 12px' }}>رمز الرف (Code)</th>
-                <th style={{ padding: '10px 12px' }}>المستودع</th>
-                <th style={{ padding: '10px 12px' }}>الممر (Aisle)</th>
-                <th style={{ padding: '10px 12px' }}>الحامل (Rack)</th>
-                <th style={{ padding: '10px 12px' }}>المستوى (Shelf)</th>
-                <th style={{ padding: '10px 12px' }}>العين (Bin)</th>
-                <th style={{ padding: '10px 12px' }}>الباركود</th>
-                <th style={{ padding: '10px 12px' }}>الأصناف</th>
-                <th style={{ padding: '10px 12px' }}>الكمية المخزنة</th>
-                <th style={{ padding: '10px 12px', textAlign: 'center' }}>الإجراءات</th>
+                <th style={{ padding: '10px 12px' }}>{t('inventory.bins.bins_directory_table.s5', "رمز الرف (Code)")}</th>
+                <th style={{ padding: '10px 12px' }}>{t('inventory.bins.bins_directory_table.s6', "المستودع")}</th>
+                <th style={{ padding: '10px 12px' }}>{t('inventory.bins.bins_directory_table.s7', "الممر (Aisle)")}</th>
+                <th style={{ padding: '10px 12px' }}>{t('inventory.bins.bins_directory_table.s8', "الحامل (Rack)")}</th>
+                <th style={{ padding: '10px 12px' }}>{t('inventory.bins.bins_directory_table.s9', "المستوى (Shelf)")}</th>
+                <th style={{ padding: '10px 12px' }}>{t('inventory.bins.bins_directory_table.s10', "العين (Bin)")}</th>
+                <th style={{ padding: '10px 12px' }}>{t('inventory.bins.bins_directory_table.s11', "الباركود")}</th>
+                <th style={{ padding: '10px 12px' }}>{t('inventory.bins.bins_directory_table.s12', "الأصناف")}</th>
+                <th style={{ padding: '10px 12px' }}>{t('inventory.bins.bins_directory_table.s13', "الكمية المخزنة")}</th>
+                <th style={{ padding: '10px 12px', textAlign: 'center' }}>{t('inventory.bins.bins_directory_table.s14', "الإجراءات")}</th>
               </tr>
             </thead>
             <tbody>
@@ -139,7 +141,7 @@ export const BinsDirectoryTable: React.FC<BinsDirectoryTableProps> = ({
                     </span>
                   </td>
                   <td style={{ padding: '12px', fontWeight: 700, color: '#0f172a' }}>
-                    {bin.productsCount} صنف
+                    {bin.productsCount} {t('inventory.bins.bins_directory_table.s15', "صنف")}
                   </td>
                   <td style={{ padding: '12px', fontWeight: 700, color: '#059669' }}>
                     {bin.totalQuantityStored}
@@ -160,7 +162,7 @@ export const BinsDirectoryTable: React.FC<BinsDirectoryTableProps> = ({
                           cursor: 'pointer',
                         }}
                       >
-                        فحص الرف
+                        {t('inventory.bins.bins_directory_table.s16', "فحص الرف")}
                       </button>
                       <button
                         type="button"
@@ -175,7 +177,7 @@ export const BinsDirectoryTable: React.FC<BinsDirectoryTableProps> = ({
                           cursor: 'pointer',
                         }}
                       >
-                        تعديل
+                        {t('inventory.bins.bins_directory_table.s17', "تعديل")}
                       </button>
                       <button
                         type="button"
@@ -190,7 +192,7 @@ export const BinsDirectoryTable: React.FC<BinsDirectoryTableProps> = ({
                           cursor: 'pointer',
                         }}
                       >
-                        حذف
+                        {t('inventory.bins.bins_directory_table.s18', "حذف")}
                       </button>
                     </div>
                   </td>

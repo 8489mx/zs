@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { queryKeys } from '@/app/query-keys';
@@ -56,6 +57,7 @@ function makeParamsKey(page: number, pageSize: number, search: string, type: str
 }
 
 export function StockMovementRegister() {
+  const { t } = useTranslation();
   const isMobile = useIsMobile();
   const [selectedMovement, setSelectedMovement] = useState<any | null>(null);
   const [search, setSearch] = useState('');
@@ -119,24 +121,24 @@ export function StockMovementRegister() {
   return (
     <div className="page-stack">
       <div className="mini-stats-grid movement-mini-grid">
-        <div className="stat-card compact-stat-card"><span>الحركات المطابقة</span><strong>{pagination?.totalItems || 0}</strong></div>
-        <div className="stat-card compact-stat-card"><span>إجمالي الزيادات</span><strong>{totals.positive.toFixed(3)}</strong></div>
-        <div className="stat-card compact-stat-card"><span>إجمالي الخصومات</span><strong>{totals.negative.toFixed(3)}</strong></div>
+        <div className="stat-card compact-stat-card"><span>{t('inventory.stock_movement_register.s0', "الحركات المطابقة")}</span><strong>{pagination?.totalItems || 0}</strong></div>
+        <div className="stat-card compact-stat-card"><span>{t('inventory.stock_movement_register.s1', "إجمالي الزيادات")}</span><strong>{totals.positive.toFixed(3)}</strong></div>
+        <div className="stat-card compact-stat-card"><span>{t('inventory.stock_movement_register.s2', "إجمالي الخصومات")}</span><strong>{totals.negative.toFixed(3)}</strong></div>
       </div>
-      <SearchToolbar search={search} onSearchChange={setSearch} searchPlaceholder={SINGLE_STORE_MODE ? 'ابحث بالصنف أو السبب أو المخزن' : 'ابحث بالصنف أو السبب أو المخزن'}>
+      <SearchToolbar search={search} onSearchChange={setSearch} searchPlaceholder={SINGLE_STORE_MODE ? t('inventory.stock_movement_register.s3', "ابحث بالصنف أو السبب أو المخزن") : t('inventory.stock_movement_register.s4', "ابحث بالصنف أو السبب أو المخزن")}>
         <div className="field" style={{ minWidth: '180px' }}>
-          <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '4px', display: 'block' }}>نوع الحركة</span>
+          <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '4px', display: 'block' }}>{t('inventory.stock_movement_register.s5', "نوع الحركة")}</span>
           <CustomSelect
             value={typeFilter}
             onChange={(val) => setTypeFilter(val)}
             options={MOVEMENT_FILTER_OPTIONS}
-            placeholder="اختر نوع الحركة"
+            placeholder={t('inventory.stock_movement_register.s6', "اختر نوع الحركة")}
           />
         </div>
         <div className="actions compact-actions align-end-inline">
-          <Button type="button" variant="secondary" onClick={() => { setSearch(''); setTypeFilter('all'); }}>إعادة الضبط</Button>
-          <Button type="button" variant="secondary" onClick={() => void exportCsv()} disabled={!pagination?.totalItems}>تصدير Excel</Button>
-          <Button type="button" variant="secondary" onClick={() => void printRegister()} disabled={!pagination?.totalItems}>طباعة الكل</Button>
+          <Button type="button" variant="secondary" onClick={() => { setSearch(''); setTypeFilter('all'); }}>{t('inventory.stock_movement_register.s7', "إعادة الضبط")}</Button>
+          <Button type="button" variant="secondary" onClick={() => void exportCsv()} disabled={!pagination?.totalItems}>{t('inventory.stock_movement_register.s8', "تصدير Excel")}</Button>
+          <Button type="button" variant="secondary" onClick={() => void printRegister()} disabled={!pagination?.totalItems}>{t('inventory.stock_movement_register.s9', "طباعة الكل")}</Button>
         </div>
       </SearchToolbar>
       <QueryFeedback
@@ -144,9 +146,9 @@ export function StockMovementRegister() {
         isError={movementsQuery.isError}
         error={movementsQuery.error}
         isEmpty={!pagination?.totalItems}
-        loadingText="جاري تحميل سجل حركات المخزون..."
-        emptyTitle="لا توجد حركات مخزون مطابقة"
-        emptyHint="نفّذ تعديل مخزون أو جرّب تغيير الفلتر الحالي."
+        loadingText={t('inventory.stock_movement_register.s10', "جاري تحميل سجل حركات المخزون...")}
+        emptyTitle={t('inventory.stock_movement_register.s11', "لا توجد حركات مخزون مطابقة")}
+        emptyHint={t('inventory.stock_movement_register.s12', "نفّذ تعديل مخزون أو جرّب تغيير الفلتر الحالي.")}
       >
         <DataTable
           rows={rows}
@@ -167,36 +169,36 @@ export function StockMovementRegister() {
               setPage(1);
             },
             pageSizeOptions: [20, 50, 100],
-            itemLabel: 'حركة'
+            itemLabel: t('inventory.stock_movement_register.s13', "حركة")
           }}
           columns={[
             {
               key: 'product',
-              header: 'الصنف',
+              header: t('inventory.stock_movement_register.s14', "الصنف"),
               cell: (movement) => (
                 <div>
-                  <strong>{movement.productName || 'صنف غير معروف'}</strong>
-                  <div className="muted small">{movement.locationName || movement.branchName || (SINGLE_STORE_MODE ? 'المخزن الأساسي' : 'بدون مخزن')} · {movement.createdBy || 'مستخدم غير محدد'}</div>
+                  <strong>{movement.productName || t('inventory.stock_movement_register.s15', "صنف غير معروف")}</strong>
+                  <div className="muted small">{movement.locationName || movement.branchName || (SINGLE_STORE_MODE ? t('inventory.stock_movement_register.s16', "المخزن الأساسي") : t('inventory.stock_movement_register.s17', "بدون مخزن"))} · {movement.createdBy || t('inventory.stock_movement_register.s18', "مستخدم غير محدد")}</div>
                 </div>
               )
             },
-            { key: 'type', header: 'النوع', cell: (movement) => <MovementPill type={movement.type} /> },
+            { key: 'type', header: t('inventory.stock_movement_register.s19', "النوع"), cell: (movement) => <MovementPill type={movement.type} /> },
             {
               key: 'quantities',
-              header: 'قبل / بعد / كمية',
+              header: t('inventory.stock_movement_register.s20', "قبل / بعد / كمية"),
               cell: (movement) => (
                 <div>
-                  <div className="muted small">قبل: {movement.beforeQty} · بعد: {movement.afterQty}</div>
+                  <div className="muted small">{t('inventory.stock_movement_register.s21', "قبل:")} {movement.beforeQty} {t('inventory.stock_movement_register.s22', "· بعد:")} {movement.afterQty}</div>
                   <div className={`movement-delta ${movement.qty >= 0 ? 'positive' : 'negative'}`}>{movement.qty >= 0 ? '+' : ''}{movement.qty}</div>
                 </div>
               )
             },
             {
               key: 'reason',
-              header: 'السبب',
+              header: t('inventory.stock_movement_register.s23', "السبب"),
               cell: (movement) => (
                 <div>
-                  <div>{movement.reason || movement.note || 'بدون سبب إضافي'}</div>
+                  <div>{movement.reason || movement.note || t('inventory.stock_movement_register.s24', "بدون سبب إضافي")}</div>
                   <div className="muted small">{formatDate(movement.date || '')}</div>
                 </div>
               )
@@ -209,12 +211,12 @@ export function StockMovementRegister() {
         <StandardDialog
           open={Boolean(selectedMovement)}
           onClose={() => setSelectedMovement(null)}
-          title="تفاصيل حركة المخزون"
-          subtitle={selectedMovement ? (selectedMovement.productName || 'صنف غير معروف') : ''}
+          title={t('inventory.stock_movement_register.s25', "تفاصيل حركة المخزون")}
+          subtitle={selectedMovement ? (selectedMovement.productName || t('inventory.stock_movement_register.s26', "صنف غير معروف")) : ''}
           size="sm"
           footerActions={
             <StandardDialogFooter
-              cancelLabel="إغلاق"
+              cancelLabel={t('inventory.stock_movement_register.s27', "إغلاق")}
               onCancel={() => setSelectedMovement(null)}
             />
           }
@@ -222,45 +224,45 @@ export function StockMovementRegister() {
           {selectedMovement && (
             <div dir="rtl" style={{ display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '0.88rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f8fafc', padding: '10px 12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                <span style={{ color: '#64748b', fontSize: '0.8rem' }}>نوع الحركة:</span>
+                <span style={{ color: '#64748b', fontSize: '0.8rem' }}>{t('inventory.stock_movement_register.s28', "نوع الحركة:")}</span>
                 <MovementPill type={selectedMovement.type} />
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', background: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0', textAlign: 'center' }}>
                 <div>
-                  <span style={{ color: '#64748b', fontSize: '0.75rem', display: 'block' }}>قبل الحركة</span>
+                  <span style={{ color: '#64748b', fontSize: '0.75rem', display: 'block' }}>{t('inventory.stock_movement_register.s29', "قبل الحركة")}</span>
                   <strong style={{ fontSize: '0.92rem', color: '#334155' }}>{selectedMovement.beforeQty}</strong>
                 </div>
                 <div>
-                  <span style={{ color: '#64748b', fontSize: '0.75rem', display: 'block' }}>مقدار التغير</span>
+                  <span style={{ color: '#64748b', fontSize: '0.75rem', display: 'block' }}>{t('inventory.stock_movement_register.s30', "مقدار التغير")}</span>
                   <strong style={{ fontSize: '0.95rem', color: selectedMovement.qty >= 0 ? '#16a34a' : '#dc2626' }}>
                     {selectedMovement.qty >= 0 ? '+' : ''}{selectedMovement.qty}
                   </strong>
                 </div>
                 <div>
-                  <span style={{ color: '#64748b', fontSize: '0.75rem', display: 'block' }}>بعد الحركة</span>
+                  <span style={{ color: '#64748b', fontSize: '0.75rem', display: 'block' }}>{t('inventory.stock_movement_register.s31', "بعد الحركة")}</span>
                   <strong style={{ fontSize: '0.92rem', color: '#0f172a' }}>{selectedMovement.afterQty}</strong>
                 </div>
               </div>
 
               <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ color: '#64748b' }}>المخزن:</span>
-                  <strong style={{ color: '#1e293b' }}>{selectedMovement.locationName || selectedMovement.branchName || (SINGLE_STORE_MODE ? 'المخزن الأساسي' : 'بدون مخزن')}</strong>
+                  <span style={{ color: '#64748b' }}>{t('inventory.stock_movement_register.s32', "المخزن:")}</span>
+                  <strong style={{ color: '#1e293b' }}>{selectedMovement.locationName || selectedMovement.branchName || (SINGLE_STORE_MODE ? t('inventory.stock_movement_register.s33', "المخزن الأساسي") : t('inventory.stock_movement_register.s34', "بدون مخزن"))}</strong>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ color: '#64748b' }}>المستخدم المسئول:</span>
-                  <strong style={{ color: '#1e293b' }}>{selectedMovement.createdBy || 'مستخدم غير محدد'}</strong>
+                  <span style={{ color: '#64748b' }}>{t('inventory.stock_movement_register.s35', "المستخدم المسئول:")}</span>
+                  <strong style={{ color: '#1e293b' }}>{selectedMovement.createdBy || t('inventory.stock_movement_register.s36', "مستخدم غير محدد")}</strong>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ color: '#64748b' }}>التاريخ والوقت:</span>
+                  <span style={{ color: '#64748b' }}>{t('inventory.stock_movement_register.s37', "التاريخ والوقت:")}</span>
                   <strong style={{ color: '#334155' }}>{formatDate(selectedMovement.date || '')}</strong>
                 </div>
               </div>
 
               {(selectedMovement.reason || selectedMovement.note) && (
                 <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                  <span style={{ color: '#64748b', fontSize: '0.78rem', display: 'block', marginBottom: '4px' }}>السبب / الملاحظات:</span>
+                  <span style={{ color: '#64748b', fontSize: '0.78rem', display: 'block', marginBottom: '4px' }}>{t('inventory.stock_movement_register.s38', "السبب / الملاحظات:")}</span>
                   <span style={{ color: '#1e293b', fontWeight: 500 }}>{selectedMovement.reason || selectedMovement.note}</span>
                 </div>
               )}

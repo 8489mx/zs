@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { Field } from '@/shared/ui/field';
@@ -32,6 +33,7 @@ export function CreateGuaranteeModal({
   onClose,
   onSuccess,
 }: CreateGuaranteeModalProps) {
+  const { t } = useTranslation();
   const { currencySymbol } = useSystemCurrency();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -172,7 +174,7 @@ export function CreateGuaranteeModal({
     <StandardDialog
       open={open}
       onClose={onClose}
-      title="تسجيل خطاب ضمان بنكي جديد (Bank Guarantee)"
+      title={t('contracting.create_guarantee_modal.s0', "تسجيل خطاب ضمان بنكي جديد (Bank Guarantee)")}
       subtitle={`المشروع: ${projectName || projectId} | تفعيل البوابة الرقابية والحماية المالية`}
       maxWidth="780px"
     >
@@ -195,7 +197,7 @@ export function CreateGuaranteeModal({
 
         {/* معلومات الضمان والنوع */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
-          <Field label="نوع خطاب الضمان *">
+          <Field label={t('contracting.create_guarantee_modal.s1', "نوع خطاب الضمان *")}>
             <CustomSelect
               options={GUARANTEE_TYPES}
               value={formData.guaranteeType}
@@ -203,12 +205,12 @@ export function CreateGuaranteeModal({
             />
           </Field>
 
-          <Field label="رقم خطاب الضمان لدى البنك *">
+          <Field label={t('contracting.create_guarantee_modal.s2', "رقم خطاب الضمان لدى البنك *")}>
             <input
               type="text"
               value={formData.guaranteeNumber}
               onChange={(e) => setFormData((prev) => ({ ...prev, guaranteeNumber: e.target.value }))}
-              placeholder="مثال: LG-2026-NBE-0091"
+              placeholder={t('contracting.create_guarantee_modal.s3', "مثال: LG-2026-NBE-0091")}
               required
               style={{
                 width: '100%',
@@ -225,12 +227,12 @@ export function CreateGuaranteeModal({
 
         {/* البنك والمبلغ */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
-          <Field label="البنك المصدر للخطاب *">
+          <Field label={t('contracting.create_guarantee_modal.s4', "البنك المصدر للخطاب *")}>
             <input
               type="text"
               value={formData.issuingBank}
               onChange={(e) => setFormData((prev) => ({ ...prev, issuingBank: e.target.value }))}
-              placeholder="مثال: البنك الأهلي المصري - فرع المهندسين"
+              placeholder={t('contracting.create_guarantee_modal.s5', "مثال: البنك الأهلي المصري - فرع المهندسين")}
               required
               style={{
                 width: '100%',
@@ -269,7 +271,7 @@ export function CreateGuaranteeModal({
 
         {/* التواريخ */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '14px' }}>
-          <Field label="تاريخ الإصدار *">
+          <Field label={t('contracting.create_guarantee_modal.s6', "تاريخ الإصدار *")}>
             <input
               type="date"
               value={formData.issueDate}
@@ -287,7 +289,7 @@ export function CreateGuaranteeModal({
             />
           </Field>
 
-          <Field label="تاريخ انتهاء السريان *">
+          <Field label={t('contracting.create_guarantee_modal.s7', "تاريخ انتهاء السريان *")}>
             <input
               type="date"
               value={formData.expiryDate}
@@ -306,7 +308,7 @@ export function CreateGuaranteeModal({
             />
           </Field>
 
-          <Field label="فترة المطالبة اللاحقة (اختياري)">
+          <Field label={t('contracting.create_guarantee_modal.s8', "فترة المطالبة اللاحقة (اختياري)")}>
             <input
               type="date"
               value={formData.claimExpiryDate}
@@ -326,7 +328,7 @@ export function CreateGuaranteeModal({
 
         {/* الربط بالعقد والمقاول */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
-          <Field label="الربط بعقد مقاول باطن">
+          <Field label={t('contracting.create_guarantee_modal.s9', "الربط بعقد مقاول باطن")}>
             <CustomSelect
               options={subcontractOptions}
               value={formData.subcontractId}
@@ -334,7 +336,7 @@ export function CreateGuaranteeModal({
             />
           </Field>
 
-          <Field label="مقاول الباطن المعني">
+          <Field label={t('contracting.create_guarantee_modal.s10', "مقاول الباطن المعني")}>
             <CustomSelect
               options={subcontractorOptions}
               value={formData.subcontractorId}
@@ -345,12 +347,12 @@ export function CreateGuaranteeModal({
 
         {/* الملاحظات ورابط الوثيقة */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
-          <Field label="رابط الوثيقة / صورة الخطاب">
+          <Field label={t('contracting.create_guarantee_modal.s11', "رابط الوثيقة / صورة الخطاب")}>
             <input
               type="text"
               value={formData.documentUrl}
               onChange={(e) => setFormData((prev) => ({ ...prev, documentUrl: e.target.value }))}
-              placeholder="https://... أو مسار الملف"
+              placeholder={t('contracting.create_guarantee_modal.s12', "https://... أو مسار الملف")}
               style={{
                 width: '100%',
                 height: '36px',
@@ -363,12 +365,12 @@ export function CreateGuaranteeModal({
             />
           </Field>
 
-          <Field label="ملاحظات وشروط خاصة">
+          <Field label={t('contracting.create_guarantee_modal.s13', "ملاحظات وشروط خاصة")}>
             <input
               type="text"
               value={formData.notes}
               onChange={(e) => setFormData((prev) => ({ ...prev, notes: e.target.value }))}
-              placeholder="أي شروط تمديد أو تخفيض أو تفاصيل بنكية"
+              placeholder={t('contracting.create_guarantee_modal.s14', "أي شروط تمديد أو تخفيض أو تفاصيل بنكية")}
               style={{
                 width: '100%',
                 height: '36px',
@@ -385,8 +387,8 @@ export function CreateGuaranteeModal({
         <StandardDialogFooter
           onClose={onClose}
           isSubmitting={isSubmitting}
-          submitText="تسجيل وتفعيل خطاب الضمان"
-          cancelText="إلغاء"
+          submitText={t('contracting.create_guarantee_modal.s15', "تسجيل وتفعيل خطاب الضمان")}
+          cancelText={t('contracting.create_guarantee_modal.s16', "إلغاء")}
         />
       </form>
     </StandardDialog>

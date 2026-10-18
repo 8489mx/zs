@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -21,6 +22,7 @@ import { GoodsReceiptsListModal } from '../components/GoodsReceiptsListModal';
 import { toast } from '@/shared/components/system-alert';
 
 export function PurchaseOrdersPage() {
+  const { t } = useTranslation();
   useAppToolbar([{ label: 'المشتريات والموردين', to: '/purchases' }, { label: 'أوامر الشراء (PO)' }]);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -137,9 +139,9 @@ export function PurchaseOrdersPage() {
     <div className="page-stack page-shell purchases-orders-page" dir="rtl">
       <main className="document-prototype-column" style={{ paddingBottom: '100px', maxWidth: '1280px', margin: '0 auto', width: '100%' }}>
         <PageHeader
-          title="أوامر الشراء (PO)"
-          description="دورة المشتريات المعيارية: إصدار أوامر الشراء، الاعتماد، استلام المخزون، والتحويل المباشر لفاتورة مشتريات رسمية."
-          badge={<span className="nav-pill">{summary.all} أمر</span>}
+          title={t('purchases.purchase_orders_page.s0', "أوامر الشراء (PO)")}
+          description={t('purchases.purchase_orders_page.s1', "دورة المشتريات المعيارية: إصدار أوامر الشراء، الاعتماد، استلام المخزون، والتحويل المباشر لفاتورة مشتريات رسمية.")}
+          badge={<span className="nav-pill">{summary.all} {t('purchases.purchase_orders_page.s2', "أمر")}</span>}
           actions={(
             <div className="actions compact-actions page-header-actions">
               <Button
@@ -148,21 +150,21 @@ export function PurchaseOrdersPage() {
                 style={{ backgroundColor: '#170e5e', color: '#ffffff' }}
               >
                 <PlusIcon className="w-4 h-4" />
-                <span>+ أمر شراء جديد</span>
+                <span>{t('purchases.purchase_orders_page.s3', "+ أمر شراء جديد")}</span>
               </Button>
               <Button
                 onClick={() => setIsGrnListOpen(true)}
                 variant="secondary"
                 style={{ borderColor: '#0284c7', color: '#0284c7', fontWeight: 700 }}
               >
-                سجل أذون الاستلام (GRN)
+                {t('purchases.purchase_orders_page.s4', "سجل أذون الاستلام (GRN)")}
               </Button>
               <Button
                 onClick={async () => {
                   try {
                     setIsRefreshing(true);
                     await queryClient.invalidateQueries({ queryKey: ['purchase-orders-list'] });
-                    toast.success('تم تحديث قائمة أوامر الشراء بنجاح', undefined, 2000);
+                    toast.success(t('purchases.purchase_orders_page.s5', "تم تحديث قائمة أوامر الشراء بنجاح"), undefined, 2000);
                   } finally {
                     setIsRefreshing(false);
                   }
@@ -175,7 +177,7 @@ export function PurchaseOrdersPage() {
                   size={14}
                   style={{ animation: isRefreshing ? 'spin 0.7s linear infinite' : 'none' }}
                 />
-                <span>{isRefreshing ? 'جارٍ التحديث...' : 'تحديث'}</span>
+                <span>{isRefreshing ? t('purchases.purchase_orders_page.s6', "جارٍ التحديث...") : t('purchases.purchase_orders_page.s7', "تحديث")}</span>
               </Button>
             </div>
           )}
@@ -184,37 +186,37 @@ export function PurchaseOrdersPage() {
         <div style={{ marginBottom: '16px' }}>
           <StatsGrid
             items={[
-              { key: 'all', label: 'إجمالي أوامر الشراء', value: `${summary.all} أمر` },
-              { key: 'pending', label: 'بانتظار التوريد', value: `${summary.draft + summary.confirmed} أمر` },
-              { key: 'received', label: 'تم استلامها بالمخزن', value: `${summary.received + summary.partially_received} أمر` },
-              { key: 'converted', label: 'فواتير محررة', value: `${summary.converted_to_bill} فاتورة` },
+              { key: 'all', label: t('purchases.purchase_orders_page.s8', "إجمالي أوامر الشراء"), value: `${summary.all} أمر` },
+              { key: 'pending', label: t('purchases.purchase_orders_page.s9', "بانتظار التوريد"), value: `${summary.draft + summary.confirmed} أمر` },
+              { key: 'received', label: t('purchases.purchase_orders_page.s10', "تم استلامها بالمخزن"), value: `${summary.received + summary.partially_received} أمر` },
+              { key: 'converted', label: t('purchases.purchase_orders_page.s11', "فواتير محررة"), value: `${summary.converted_to_bill} فاتورة` },
             ]}
           />
         </div>
 
         <section className="document-prototype-section workspace-panel">
           <div className="section-header-compact-row">
-            <h3 className="document-prototype-section-title">قائمة أوامر الشراء والتوريد</h3>
+            <h3 className="document-prototype-section-title">{t('purchases.purchase_orders_page.s12', "قائمة أوامر الشراء والتوريد")}</h3>
             <div className="section-header-actions-group">
-              <span className="text-xs text-slate-500 font-medium">عرض {orders.length} من أصل {summary.all}</span>
+              <span className="text-xs text-slate-500 font-medium">{t('purchases.purchase_orders_page.s13', "عرض")} {orders.length} {t('purchases.purchase_orders_page.s14', "من أصل")} {summary.all}</span>
             </div>
           </div>
           <p className="muted small section-header-subtitle">
-            متابعة حالات التوريد، استلام الشحنات بالمستودعات، والتحويل المباشر لفواتير المشتريات.
+            {t('purchases.purchase_orders_page.s15', "متابعة حالات التوريد، استلام الشحنات بالمستودعات، والتحويل المباشر لفواتير المشتريات.")}
           </p>
 
           <div className="products-table-toolbar" style={{ display: 'flex', flexDirection: 'column', gap: '10px', margin: '12px 0 16px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', width: '100%', flexWrap: 'wrap' }}>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', alignItems: 'center' }}>
                 {[
-                  { id: 'all', label: 'الكل' },
-                  { id: 'draft', label: 'مسودات' },
-                  { id: 'pending_approval', label: 'بانتظار الموافقة' },
-                  { id: 'confirmed', label: 'معتمدة' },
-                  { id: 'partially_received', label: 'استلام جزئي' },
-                  { id: 'received', label: 'مستلمة' },
-                  { id: 'converted_to_bill', label: 'مرحلة لفاتورة' },
-                  { id: 'cancelled', label: 'ملغاة' },
+                  { id: 'all', label: t('purchases.purchase_orders_page.s16', "الكل") },
+                  { id: 'draft', label: t('purchases.purchase_orders_page.s17', "مسودات") },
+                  { id: 'pending_approval', label: t('purchases.purchase_orders_page.s18', "بانتظار الموافقة") },
+                  { id: 'confirmed', label: t('purchases.purchase_orders_page.s19', "معتمدة") },
+                  { id: 'partially_received', label: t('purchases.purchase_orders_page.s20', "استلام جزئي") },
+                  { id: 'received', label: t('purchases.purchase_orders_page.s21', "مستلمة") },
+                  { id: 'converted_to_bill', label: t('purchases.purchase_orders_page.s22', "مرحلة لفاتورة") },
+                  { id: 'cancelled', label: t('purchases.purchase_orders_page.s23', "ملغاة") },
                 ].map((tab) => {
                   const isActive = statusFilter === tab.id;
                   return (
@@ -246,7 +248,7 @@ export function PurchaseOrdersPage() {
                   type="text"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  placeholder="بحث برقم الأمر، اسم المورد، أو الهاتف..."
+                  placeholder={t('purchases.purchase_orders_page.s24', "بحث برقم الأمر، اسم المورد، أو الهاتف...")}
                   style={{
                     width: '100%',
                     padding: '8px 36px 8px 12px',
@@ -307,7 +309,7 @@ export function PurchaseOrdersPage() {
         purchaseOrderId={selectedOrder?.id}
         poDocNo={selectedOrder?.order_number}
         supplierId={Number(selectedOrder?.supplier_id || 0)}
-        supplierName={selectedOrder?.supplier_name || 'مورد عام'}
+        supplierName={selectedOrder?.supplier_name || t('purchases.purchase_orders_page.s25', "مورد عام")}
         locationId={Number(selectedOrder?.warehouse_id || 1)}
         initialItems={(selectedOrder?.items || orderDetailsData?.items || []).map((it: any) => ({
           purchaseOrderItemId: it.id,

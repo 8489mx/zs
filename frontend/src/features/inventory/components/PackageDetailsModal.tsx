@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect, type FC } from 'react';
 import { StandardDialog } from '@/shared/components/StandardDialog';
 import { toast, systemConfirm } from '@/shared/components/system-alert';
@@ -23,6 +24,7 @@ export const PackageDetailsModal: FC<PackageDetailsModalProps> = ({
   packageIdentifier,
   onUpdated,
 }) => {
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [details, setDetails] = useState<{
     package: any;
@@ -108,15 +110,15 @@ export const PackageDetailsModal: FC<PackageDetailsModalProps> = ({
               {node.packageNumber}
             </span>
             <span style={{ fontSize: '11.5px', background: '#e0e7ff', color: '#3730a3', padding: '2px 6px', borderRadius: '4px' }}>
-              {node.packageType === 'pallet' ? 'طبلية' : node.packageType === 'carton' ? 'كرتونة' : 'صندوق'}
+              {node.packageType === 'pallet' ? t('inventory.package_details_modal.s0', "طبلية") : node.packageType === 'carton' ? t('inventory.package_details_modal.s1', "كرتونة") : t('inventory.package_details_modal.s2', "صندوق")}
             </span>
             <span style={{ fontSize: '11px', color: '#64748b' }}>
-              (الحالة: {node.status === 'sealed' ? 'مختوم' : node.status === 'opened' ? 'مفتوح' : node.status})
+              {t('inventory.package_details_modal.s3', "(الحالة:")} {node.status === 'sealed' ? t('inventory.package_details_modal.s4', "مختوم") : node.status === 'opened' ? t('inventory.package_details_modal.s5', "مفتوح") : node.status})
             </span>
           </div>
 
           <div style={{ fontSize: '12px', color: '#475569' }}>
-            {node.items.length} أصناف مباشرة {node.children && node.children.length > 0 && `| ${node.children.length} طرود فرعية`}
+            {node.items.length} {t('inventory.package_details_modal.s6', "أصناف مباشرة")} {node.children && node.children.length > 0 && `| ${node.children.length} طرود فرعية`}
           </div>
         </div>
 
@@ -137,7 +139,7 @@ export const PackageDetailsModal: FC<PackageDetailsModalProps> = ({
                   }}
                 >
                   <span>{item.productName || `صنف #${item.productId}`}</span>
-                  <span style={{ fontWeight: 600 }}>{item.quantity} {item.unitName || 'قطعة'}</span>
+                  <span style={{ fontWeight: 600 }}>{item.quantity} {item.unitName || t('inventory.package_details_modal.s7', "قطعة")}</span>
                 </li>
               ))}
             </ul>
@@ -158,14 +160,14 @@ export const PackageDetailsModal: FC<PackageDetailsModalProps> = ({
     <StandardDialog
       open={open}
       onClose={onClose}
-      title={details?.package ? `تفاصيل الطرد: ${details.package.package_number}` : 'بيانات الطرد'}
-      subtitle="المعاينة الهرمية لتسلسل التعبئة ومجموع المحتويات التراكمي"
+      title={details?.package ? `تفاصيل الطرد: ${details.package.package_number}` : t('inventory.package_details_modal.s8', "بيانات الطرد")}
+      subtitle={t('inventory.package_details_modal.s9', "المعاينة الهرمية لتسلسل التعبئة ومجموع المحتويات التراكمي")}
       size="lg"
     >
       {loading ? (
-        <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>جاري استرجاع بيانات الطرد...</div>
+        <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>{t('inventory.package_details_modal.s10', "جاري استرجاع بيانات الطرد...")}</div>
       ) : !details ? (
-        <div style={{ padding: '40px', textAlign: 'center', color: '#ef4444' }}>لم يتم العثور على الطرد</div>
+        <div style={{ padding: '40px', textAlign: 'center', color: '#ef4444' }}>{t('inventory.package_details_modal.s11', "لم يتم العثور على الطرد")}</div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }} dir="rtl">
           {/* Header Info Banner */}
@@ -181,23 +183,23 @@ export const PackageDetailsModal: FC<PackageDetailsModalProps> = ({
             }}
           >
             <div>
-              <div style={{ fontSize: '11.5px', color: '#64748b' }}>رقم / باركود الطرد</div>
+              <div style={{ fontSize: '11.5px', color: '#64748b' }}>{t('inventory.package_details_modal.s12', "رقم / باركود الطرد")}</div>
               <div style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>{details.package.package_number}</div>
             </div>
             <div>
-              <div style={{ fontSize: '11.5px', color: '#64748b' }}>النوع</div>
+              <div style={{ fontSize: '11.5px', color: '#64748b' }}>{t('inventory.package_details_modal.s13', "النوع")}</div>
               <div style={{ fontSize: '14px', fontWeight: 700, color: '#170e5e' }}>
-                {details.package.package_type === 'pallet' ? 'طبلية خشبية (Pallet)' : 'صندوق / كرتونة'}
+                {details.package.package_type === 'pallet' ? t('inventory.package_details_modal.s14', "طبلية خشبية (Pallet)") : t('inventory.package_details_modal.s15', "صندوق / كرتونة")}
               </div>
             </div>
             <div>
-              <div style={{ fontSize: '11.5px', color: '#64748b' }}>الحالة</div>
+              <div style={{ fontSize: '11.5px', color: '#64748b' }}>{t('inventory.package_details_modal.s16', "الحالة")}</div>
               <div style={{ fontSize: '14px', fontWeight: 700 }}>
-                {details.package.status === 'sealed' ? 'مختوم ومحكم' : details.package.status === 'opened' ? 'مفتوح' : details.package.status}
+                {details.package.status === 'sealed' ? t('inventory.package_details_modal.s17', "مختوم ومحكم") : details.package.status === 'opened' ? t('inventory.package_details_modal.s18', "مفتوح") : details.package.status}
               </div>
             </div>
             <div>
-              <div style={{ fontSize: '11.5px', color: '#64748b' }}>الوزن القائم (Gross)</div>
+              <div style={{ fontSize: '11.5px', color: '#64748b' }}>{t('inventory.package_details_modal.s19', "الوزن القائم (Gross)")}</div>
               <div style={{ fontSize: '14px', fontWeight: 700, color: '#0f172a' }}>
                 {details.package.gross_weight_kg ? `${details.package.gross_weight_kg} كجم` : '—'}
               </div>
@@ -207,16 +209,16 @@ export const PackageDetailsModal: FC<PackageDetailsModalProps> = ({
           {/* Aggregated Contents Summary */}
           <div style={{ border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px', background: '#ffffff' }}>
             <h4 style={{ margin: '0 0 10px 0', fontSize: '13.5px', fontWeight: 700, color: '#0f172a' }}>
-              إجمالي المحتويات التراكمي في هذا الطرد (شاملاً كافة الصناديق الفرعية)
+              {t('inventory.package_details_modal.s20', "إجمالي المحتويات التراكمي في هذا الطرد (شاملاً كافة الصناديق الفرعية)")}
             </h4>
             {details.aggregatedContents.length === 0 ? (
-              <div style={{ color: '#64748b', fontSize: '12.5px' }}>لا توجد أصناف معبأة داخل هذا الطرد</div>
+              <div style={{ color: '#64748b', fontSize: '12.5px' }}>{t('inventory.package_details_modal.s21', "لا توجد أصناف معبأة داخل هذا الطرد")}</div>
             ) : (
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
                 <thead>
                   <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', textAlign: 'right' }}>
-                    <th style={{ padding: '8px 12px' }}>اسم الصنف</th>
-                    <th style={{ padding: '8px 12px', width: '150px' }}>إجمالي الكمية الصافية</th>
+                    <th style={{ padding: '8px 12px' }}>{t('inventory.package_details_modal.s22', "اسم الصنف")}</th>
+                    <th style={{ padding: '8px 12px', width: '150px' }}>{t('inventory.package_details_modal.s23', "إجمالي الكمية الصافية")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -226,7 +228,7 @@ export const PackageDetailsModal: FC<PackageDetailsModalProps> = ({
                         {prod.productName || `صنف #${prod.productId}`}
                       </td>
                       <td style={{ padding: '8px 12px', fontWeight: 800, color: '#16a34a' }}>
-                        {prod.totalQuantity} وحدة
+                        {prod.totalQuantity} {t('inventory.package_details_modal.s24', "وحدة")}
                       </td>
                     </tr>
                   ))}
@@ -238,7 +240,7 @@ export const PackageDetailsModal: FC<PackageDetailsModalProps> = ({
           {/* Nested Hierarchy Tree */}
           <div style={{ border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px', background: '#fafafa' }}>
             <h4 style={{ margin: '0 0 12px 0', fontSize: '13.5px', fontWeight: 700, color: '#0f172a' }}>
-              الهيكل الشجري للطرد والطرود الفرعية (Pack-in-Pack Hierarchy)
+              {t('inventory.package_details_modal.s25', "الهيكل الشجري للطرد والطرود الفرعية (Pack-in-Pack Hierarchy)")}
             </h4>
             {renderTree(details.tree)}
           </div>
@@ -261,7 +263,7 @@ export const PackageDetailsModal: FC<PackageDetailsModalProps> = ({
                     cursor: 'pointer',
                   }}
                 >
-                  إعادة الختم (Seal Package)
+                  {t('inventory.package_details_modal.s26', "إعادة الختم (Seal Package)")}
                 </button>
               )}
               {details.package.status === 'sealed' && (
@@ -279,7 +281,7 @@ export const PackageDetailsModal: FC<PackageDetailsModalProps> = ({
                     cursor: 'pointer',
                   }}
                 >
-                  فتح الطرد (Open Package)
+                  {t('inventory.package_details_modal.s27', "فتح الطرد (Open Package)")}
                 </button>
               )}
             </div>
@@ -303,7 +305,7 @@ export const PackageDetailsModal: FC<PackageDetailsModalProps> = ({
                 }}
               >
                 <Trash2Icon size={14} />
-                تفكيك وإفراغ الطرد بالكامل
+                {t('inventory.package_details_modal.s28', "تفكيك وإفراغ الطرد بالكامل")}
               </button>
             )}
           </div>

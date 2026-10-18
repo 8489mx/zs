@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -39,6 +40,7 @@ export function PosCartMetaForm(props: Pick<PosCartPanelProps,
   'quickCustomerName' | 'quickCustomerPhone' | 'quickCustomerAddress' | 'isQuickCustomerPending' |
   'onQuickCustomerSubmit' | 'onQuickCustomerNameChange' | 'onQuickCustomerPhoneChange' | 'onQuickCustomerAddressChange'
 >) {
+  const { t } = useTranslation();
   const [pickerMode, setPickerMode] = useState<CustomerPickerMode>('closed');
   const [query, setQuery] = useState('');
   const [showCustomerDetails, setShowCustomerDetails] = useState(false);
@@ -235,8 +237,8 @@ export function PosCartMetaForm(props: Pick<PosCartPanelProps,
                   forceOpen
                   inputRef={searchInputRef}
                   inputClassName="purchase-prototype-field-input pos-customer-combobox-field"
-                  placeholder="ابحث بالاسم أو الهاتف"
-                  ariaLabel="ابحث بالاسم أو الهاتف"
+                  placeholder={t('pos.pos_cart_panel.pos_cart_meta_form.s0', "ابحث بالاسم أو الهاتف")}
+                  ariaLabel={t('pos.pos_cart_panel.pos_cart_meta_form.s1', "ابحث بالاسم أو الهاتف")}
                   value={query}
                   onChange={setQuery}
                   options={comboboxOptions}
@@ -248,7 +250,7 @@ export function PosCartMetaForm(props: Pick<PosCartPanelProps,
                     setPickerMode('create');
                   }}
                   createLabel={(name) => `+ إضافة عميل جديد باسم "${name}"`}
-                  emptyLabel="لا توجد نتائج مطابقة الآن"
+                  emptyLabel={t('pos.pos_cart_panel.pos_cart_meta_form.s2', "لا توجد نتائج مطابقة الآن")}
                   showDropdownOnEmpty={true}
                   onOpenChange={(isOpen) => {
                     if (!isOpen) {
@@ -259,13 +261,13 @@ export function PosCartMetaForm(props: Pick<PosCartPanelProps,
                 />
               </div>
             ) : (
-              <button type="button" className="pos-customer-trigger" onClick={openSearchInline} title="اضغط للبحث واختيار عميل">
+              <button type="button" className="pos-customer-trigger" onClick={openSearchInline} title={t('pos.pos_cart_panel.pos_cart_meta_form.s3', "اضغط للبحث واختيار عميل")}>
                 <div className="pos-customer-trigger-avatar">
                   <UserIcon size={15} color="#170e5e" />
                 </div>
                 <div className="pos-customer-trigger-info">
-                  <strong>{selectedCustomer?.name || props.quickCustomerName || 'عميل نقدي'}</strong>
-                  <small>{selectedCustomer?.phone || props.quickCustomerPhone || 'ابحث بالاسم أو الهاتف'}</small>
+                  <strong>{selectedCustomer?.name || props.quickCustomerName || t('pos.pos_cart_panel.pos_cart_meta_form.s4', "عميل نقدي")}</strong>
+                  <small>{selectedCustomer?.phone || props.quickCustomerPhone || t('pos.pos_cart_panel.pos_cart_meta_form.s5', "ابحث بالاسم أو الهاتف")}</small>
                 </div>
                 <div className="pos-customer-trigger-search-hint">
                   <SearchIcon size={14} color="#94a3b8" />
@@ -275,7 +277,7 @@ export function PosCartMetaForm(props: Pick<PosCartPanelProps,
           </div>
 
           <Button type="button" variant="secondary" className="pos-customer-create-toggle" onClick={toggleCreateInline}>
-            {pickerMode === 'create' ? 'إلغاء' : 'إضافة عميل'}
+            {pickerMode === 'create' ? t('pos.pos_cart_panel.pos_cart_meta_form.s6', "إلغاء") : t('pos.pos_cart_panel.pos_cart_meta_form.s7', "إضافة عميل")}
           </Button>
         </div>
 
@@ -284,13 +286,13 @@ export function PosCartMetaForm(props: Pick<PosCartPanelProps,
             <div className="pos-customer-create-header">
               <div className="pos-customer-create-title">
                 <UsersIcon size={16} color="#170e5e" />
-                <span>إضافة عميل جديد وتعيينه بالسلة</span>
+                <span>{t('pos.pos_cart_panel.pos_cart_meta_form.s8', "إضافة عميل جديد وتعيينه بالسلة")}</span>
               </div>
               <button
                 type="button"
                 className="pos-customer-create-close"
                 onClick={() => setPickerMode('closed')}
-                title="إلغاء وإغلاق"
+                title={t('pos.pos_cart_panel.pos_cart_meta_form.s9', "إلغاء وإغلاق")}
               >
                 <XIcon size={16} />
               </button>
@@ -306,20 +308,20 @@ export function PosCartMetaForm(props: Pick<PosCartPanelProps,
               <div className="pos-customer-create-grid">
                 <div className="pos-customer-create-field">
                   <label>
-                    اسم العميل <span style={{ color: '#dc2626' }}>*</span>
+                    {t('pos.pos_cart_panel.pos_cart_meta_form.s10', "اسم العميل")} <span style={{ color: '#dc2626' }}>*</span>
                   </label>
                   <input
                     type="text"
                     required
                     autoFocus
-                    placeholder="الاسم الثلاثي أو الثنائي"
+                    placeholder={t('pos.pos_cart_panel.pos_cart_meta_form.s11', "الاسم الثلاثي أو الثنائي")}
                     value={props.quickCustomerName}
                     onChange={(event) => props.onQuickCustomerNameChange(event.target.value)}
                     disabled={props.isQuickCustomerPending}
                   />
                 </div>
                 <div className="pos-customer-create-field">
-                  <label>رقم الهاتف (اختياري)</label>
+                  <label>{t('pos.pos_cart_panel.pos_cart_meta_form.s12', "رقم الهاتف (اختياري)")}</label>
                   <input
                     type="tel"
                     dir="ltr"
@@ -332,10 +334,10 @@ export function PosCartMetaForm(props: Pick<PosCartPanelProps,
               </div>
 
               <div className="pos-customer-create-field">
-                <label>العنوان (اختياري - لطلبات الدليفري والتوصيل)</label>
+                <label>{t('pos.pos_cart_panel.pos_cart_meta_form.s13', "العنوان (اختياري - لطلبات الدليفري والتوصيل)")}</label>
                 <input
                   type="text"
-                  placeholder="المنطقة، الشارع، تفاصيل التوصيل..."
+                  placeholder={t('pos.pos_cart_panel.pos_cart_meta_form.s14', "المنطقة، الشارع، تفاصيل التوصيل...")}
                   value={props.quickCustomerAddress}
                   onChange={(event) => props.onQuickCustomerAddressChange(event.target.value)}
                   disabled={props.isQuickCustomerPending}
@@ -350,7 +352,7 @@ export function PosCartMetaForm(props: Pick<PosCartPanelProps,
                   onClick={() => setPickerMode('closed')}
                   disabled={props.isQuickCustomerPending}
                 >
-                  إلغاء
+                  {t('pos.pos_cart_panel.pos_cart_meta_form.s15', "إلغاء")}
                 </Button>
                 <Button
                   type="submit"
@@ -358,7 +360,7 @@ export function PosCartMetaForm(props: Pick<PosCartPanelProps,
                   disabled={props.isQuickCustomerPending || !props.quickCustomerName.trim()}
                   className="pos-customer-save-btn"
                 >
-                  {props.isQuickCustomerPending ? 'جارٍ الإضافة...' : 'حفظ العميل'}
+                  {props.isQuickCustomerPending ? t('pos.pos_cart_panel.pos_cart_meta_form.s16', "جارٍ الإضافة...") : t('pos.pos_cart_panel.pos_cart_meta_form.s17', "حفظ العميل")}
                 </Button>
               </div>
             </form>
@@ -366,24 +368,24 @@ export function PosCartMetaForm(props: Pick<PosCartPanelProps,
         ) : null}
 
         {selectedCustomer ? (
-          <div className="pos-selected-customer-card" aria-label="ملخص العميل المختار">
+          <div className="pos-selected-customer-card" aria-label={t('pos.pos_cart_panel.pos_cart_meta_form.s18', "ملخص العميل المختار")}>
             <div className="pos-selected-customer-bar">
               <div className="pos-selected-customer-indicators">
                 <span className={`pos-cust-pill ${customerBalance > 0 ? 'is-debt' : 'is-settled'}`}>
-                  <b>رصيد العميل</b>
+                  <b>{t('pos.pos_cart_panel.pos_cart_meta_form.s19', "رصيد العميل")}</b>
                   <span>{formatCurrency(customerBalance)}</span>
                 </span>
 
                 {creditLimit > 0 ? (
                   <span className="pos-cust-pill">
-                    <b>حد الائتمان</b>
+                    <b>{t('pos.pos_cart_panel.pos_cart_meta_form.s20', "حد الائتمان")}</b>
                     <span>{formatCurrency(creditLimit)}</span>
                   </span>
                 ) : null}
 
                 {remainingCredit !== null && creditLimit > 0 ? (
                   <span className="pos-cust-pill">
-                    <b>المتاح</b>
+                    <b>{t('pos.pos_cart_panel.pos_cart_meta_form.s21', "المتاح")}</b>
                     <span>{formatCurrency(remainingCredit)}</span>
                   </span>
                 ) : null}
@@ -394,7 +396,7 @@ export function PosCartMetaForm(props: Pick<PosCartPanelProps,
 
                 {customerSummary?.loyaltyPoints ? (
                   <span className="pos-cust-pill is-loyalty">
-                    <b>نقاط الولاء</b>
+                    <b>{t('pos.pos_cart_panel.pos_cart_meta_form.s22', "نقاط الولاء")}</b>
                     <span>{customerSummary.loyaltyPoints.toLocaleString()}</span>
                   </span>
                 ) : null}
@@ -406,40 +408,40 @@ export function PosCartMetaForm(props: Pick<PosCartPanelProps,
                   className="pos-customer-details-toggle"
                   onClick={() => setShowCustomerDetails((prev) => !prev)}
                 >
-                  {showCustomerDetails ? 'إخفاء التفاصيل ▴' : 'كشف الحساب ▾'}
+                  {showCustomerDetails ? t('pos.pos_cart_panel.pos_cart_meta_form.s23', "إخفاء التفاصيل ▴") : t('pos.pos_cart_panel.pos_cart_meta_form.s24', "كشف الحساب ▾")}
                 </button>
                 <Button
                   type="button"
                   variant="secondary"
                   className="pos-selected-customer-remove"
                   onClick={removeCustomer}
-                  title="إلغاء تعيين العميل والعودة لعميل نقدي"
+                  title={t('pos.pos_cart_panel.pos_cart_meta_form.s25', "إلغاء تعيين العميل والعودة لعميل نقدي")}
                 >
-                  إزالة العميل
+                  {t('pos.pos_cart_panel.pos_cart_meta_form.s26', "إزالة العميل")}
                 </Button>
               </div>
             </div>
 
             <div className={`pos-selected-customer-extended ${showCustomerDetails ? 'is-expanded' : 'is-collapsed'}`}>
               <div className="pos-selected-customer-metrics">
-                {storeCreditBalance ? <span><b>رصيد المتجر</b>{formatCurrency(storeCreditBalance)}</span> : null}
+                {storeCreditBalance ? <span><b>{t('pos.pos_cart_panel.pos_cart_meta_form.s27', "رصيد المتجر")}</b>{formatCurrency(storeCreditBalance)}</span> : null}
                 {customerSummary?.loyaltyPoints ? (
                   <span style={{ color: '#b45309', fontWeight: 'bold' }}>
-                    <b>نقاط الولاء</b>{customerSummary.loyaltyPoints.toLocaleString()} نقطة
+                    <b>{t('pos.pos_cart_panel.pos_cart_meta_form.s28', "نقاط الولاء")}</b>{customerSummary.loyaltyPoints.toLocaleString()} {t('pos.pos_cart_panel.pos_cart_meta_form.s29', "نقطة")}
                   </span>
                 ) : null}
                 {customerSummary ? (
                   <>
-                    <span><b>آخر شراء</b>{customerSummary.lastSaleAt ? formatDate(customerSummary.lastSaleAt) : 'لا يوجد'}</span>
-                    <span><b>إجمالي المشتريات</b>{formatCurrency(customerSummary.totalSalesAmount)}</span>
-                    <span><b>عدد الفواتير</b>{customerSummary.invoiceCount}</span>
+                    <span><b>{t('pos.pos_cart_panel.pos_cart_meta_form.s30', "آخر شراء")}</b>{customerSummary.lastSaleAt ? formatDate(customerSummary.lastSaleAt) : t('pos.pos_cart_panel.pos_cart_meta_form.s31', "لا يوجد")}</span>
+                    <span><b>{t('pos.pos_cart_panel.pos_cart_meta_form.s32', "إجمالي المشتريات")}</b>{formatCurrency(customerSummary.totalSalesAmount)}</span>
+                    <span><b>{t('pos.pos_cart_panel.pos_cart_meta_form.s33', "عدد الفواتير")}</b>{customerSummary.invoiceCount}</span>
                   </>
                 ) : null}
               </div>
             </div>
 
-            {customerSummaryQuery.isLoading ? <div className="pos-customer-summary-note">جاري تحميل ملخص العميل...</div> : null}
-            {customerSummaryQuery.isError ? <div className="pos-customer-summary-note is-error">تعذر تحميل ملخص العميل، ويمكن إتمام البيع بشكل طبيعي.</div> : null}
+            {customerSummaryQuery.isLoading ? <div className="pos-customer-summary-note">{t('pos.pos_cart_panel.pos_cart_meta_form.s34', "جاري تحميل ملخص العميل...")}</div> : null}
+            {customerSummaryQuery.isError ? <div className="pos-customer-summary-note is-error">{t('pos.pos_cart_panel.pos_cart_meta_form.s35', "تعذر تحميل ملخص العميل، ويمكن إتمام البيع بشكل طبيعي.")}</div> : null}
           </div>
         ) : null}
       </div>

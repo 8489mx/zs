@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { PageHeader } from '@/shared/components/page-header';
 import { Button } from '@/shared/ui/button';
 import { usePricingCenterPageController } from '@/features/pricing-center/hooks/usePricingCenterPageController';
@@ -7,6 +8,7 @@ import { PricingPreviewTableSection } from '../components/PricingPreviewTableSec
 import { PricingRunsHistorySection } from '../components/PricingRunsHistorySection';
 
 export function PricingCenterPage() {
+  const { t } = useTranslation();
   const {
     applyMutation,
     applyPricingWave,
@@ -45,16 +47,16 @@ export function PricingCenterPage() {
     <div className="page-stack page-shell pricing-center-page" dir="rtl">
       <div className="document-prototype-column" style={{ width: '100%', paddingBottom: '60px' }}>
         <PageHeader
-          title="مركز التسعير الجماعي"
-          badge={<span className="nav-pill">تعديل الأسعار</span>}
+          title={t('pricing_center.pricing_center_page.s0', "مركز التسعير الجماعي")}
+          badge={<span className="nav-pill">{t('pricing_center.pricing_center_page.s1', "تعديل الأسعار")}</span>}
           actions={(
             <div className="actions compact-actions pricing-center-header-actions">
-              <Button variant="secondary" onClick={resetPricingCenter}>إعادة الضبط</Button>
+              <Button variant="secondary" onClick={resetPricingCenter}>{t('pricing_center.pricing_center_page.s2', "إعادة الضبط")}</Button>
               <Button onClick={runPreview} disabled={previewMutation.isPending}>
-                {previewMutation.isPending ? 'جاري المعاينة...' : 'معاينة الأثر'}
+                {previewMutation.isPending ? t('pricing_center.pricing_center_page.s3', "جاري المعاينة...") : t('pricing_center.pricing_center_page.s4', "معاينة الأثر")}
               </Button>
               <Button variant="primary" onClick={applyPricingWave} disabled={!canManagePricingCenter || applyMutation.isPending || !summary?.affectedCount}>
-                {applyMutation.isPending ? 'جاري الاعتماد...' : 'اعتماد الموجة'}
+                {applyMutation.isPending ? t('pricing_center.pricing_center_page.s5', "جاري الاعتماد...") : t('pricing_center.pricing_center_page.s6', "اعتماد الموجة")}
               </Button>
             </div>
           )}

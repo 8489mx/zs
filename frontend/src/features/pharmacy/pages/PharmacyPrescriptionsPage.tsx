@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { PageHeader } from '@/shared/components/page-header';
@@ -14,6 +15,7 @@ import { PrescriptionsTable } from '../components/prescriptions/PrescriptionsTab
 import { PrescriptionModal } from '../components/prescriptions/PrescriptionModal';
 
 export default function PharmacyPrescriptionsPage() {
+  const { t } = useTranslation();
   useAppToolbar([
     { label: 'الرئيسية', to: '/' },
     { label: 'الصيدلية والأدوية', to: '/pharmacy' },
@@ -92,9 +94,9 @@ export default function PharmacyPrescriptionsPage() {
     <div className="page-stack page-shell" dir="rtl">
       <main className="document-prototype-column" style={{ paddingBottom: '80px', maxWidth: '1280px', margin: '0 auto', width: '100%' }}>
         <PageHeader
-          title="الروشتات الطبية والتأمين الصحي والنقابات"
-          description="تسجيل وصرف الروشتات الطبية، حساب نسبة تحمل المريض (Co-Pay) ومطالبات شركات التأمين"
-          badge={<span className="cashier-chip" style={{ fontWeight: 700, color: 'var(--primary, #1e1b4b)', background: '#f1f5f9', border: '1px solid #e2e8f0' }}>{totalItems} روشتة مسجلة</span>}
+          title={t('pharmacy.pharmacy_prescriptions_page.s0', "الروشتات الطبية والتأمين الصحي والنقابات")}
+          description={t('pharmacy.pharmacy_prescriptions_page.s1', "تسجيل وصرف الروشتات الطبية، حساب نسبة تحمل المريض (Co-Pay) ومطالبات شركات التأمين")}
+          badge={<span className="cashier-chip" style={{ fontWeight: 700, color: 'var(--primary, #1e1b4b)', background: '#f1f5f9', border: '1px solid #e2e8f0' }}>{totalItems} {t('pharmacy.pharmacy_prescriptions_page.s2', "روشتة مسجلة")}</span>}
           actions={
             <div className="actions compact-actions">
               <Button
@@ -103,7 +105,7 @@ export default function PharmacyPrescriptionsPage() {
                 style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
               >
                 <IconPlus size={15} />
-                <span>صرف روشتة جديدة</span>
+                <span>{t('pharmacy.pharmacy_prescriptions_page.s3', "صرف روشتة جديدة")}</span>
               </Button>
               <Button
                 variant="secondary"
@@ -111,7 +113,7 @@ export default function PharmacyPrescriptionsPage() {
                 style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
               >
                 <IconRefresh size={15} />
-                <span>تحديث</span>
+                <span>{t('pharmacy.pharmacy_prescriptions_page.s4', "تحديث")}</span>
               </Button>
             </div>
           }
@@ -138,7 +140,7 @@ export default function PharmacyPrescriptionsPage() {
           prescriptions={prescriptionsList}
           onPrintSticker={(rx) => {
             setStickerPatient(rx.customer_name);
-            setStickerMed('علاج الروشتة');
+            setStickerMed(t('pharmacy.pharmacy_prescriptions_page.s5', "علاج الروشتة"));
             setStickerOpen(true);
           }}
         />

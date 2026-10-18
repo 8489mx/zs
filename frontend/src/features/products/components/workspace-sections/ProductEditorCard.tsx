@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -31,6 +32,7 @@ function omitStock(values: ProductFormOutput): ProductFormOutput {
 }
 
 export function ProductEditorCard({ product, categories, suppliers, customers, locations, onSaved }: { product?: Product; categories: Category[]; suppliers: Supplier[]; customers: Array<{ id: string; name: string }>; locations: Location[]; onSaved?: (product: Product) => void }) {
+  const { t } = useTranslation();
   const settingsQuery = useSettingsQuery();
   const clothingModuleEnabled = settingsQuery.data?.clothingModuleEnabled === true;
   const manufacturingModuleEnabled = settingsQuery.data?.manufacturingModuleEnabled === true;
@@ -88,7 +90,7 @@ export function ProductEditorCard({ product, categories, suppliers, customers, l
   }
 
   if (!product) {
-    return <div className="muted">اختر صنفًا من الجدول لعرض نموذج التعديل. تعديل رصيد المخزون نفسه يتم من تبويب المخزون وليس من master data.</div>;
+    return <div className="muted">{t('products.workspace_sections.product_editor_card.s0', "اختر صنفًا من الجدول لعرض نموذج التعديل. تعديل رصيد المخزون نفسه يتم من تبويب المخزون وليس من master data.")}</div>;
   }
 
   if (groupedEntry) {
@@ -108,54 +110,54 @@ export function ProductEditorCard({ product, categories, suppliers, customers, l
       <form className="page-stack" onSubmit={form.handleSubmit((values) => mutation.mutate({ ...omitStock(values), itemKind: watchedItemKind }))}>
         <div className="form-grid">
           {manufacturingModuleEnabled ? (
-            <Field label="تصنيف الصنف">
+            <Field label={t('products.workspace_sections.product_editor_card.s1', "تصنيف الصنف")}>
               <select {...form.register('itemType')} disabled={mutation.isPending}>
-                <option value="product">منتج نهائي للبيع</option>
-                <option value="raw_material">مادة خام / مكون تصنيع</option>
+                <option value="product">{t('products.workspace_sections.product_editor_card.s2', "منتج نهائي للبيع")}</option>
+                <option value="raw_material">{t('products.workspace_sections.product_editor_card.s3', "مادة خام / مكون تصنيع")}</option>
               </select>
             </Field>
           ) : null}
-          {clothingModuleEnabled ? <Field label="طبيعة الصنف"><select {...form.register('itemKind')} disabled={mutation.isPending}><option value="standard">صنف عادي (بسيط)</option><option value="fashion">صنف بمتغيرات / Variant</option></select></Field> : null}
-          <Field label="اسم الصنف" error={form.formState.errors.name?.message}><input {...form.register('name')} disabled={mutation.isPending} /></Field>
-          <Field label="الباركود"><input {...form.register('barcode')} disabled={mutation.isPending} /></Field>
-          {watchedItemKind === 'fashion' ? <Field label="كود الموديل / الصنف الرئيسي"><input value={watchedStyleCode} onChange={(event) => form.setValue('styleCode', normalizeNumericStyleCode(event.target.value), { shouldDirty: true, shouldValidate: true })} disabled={mutation.isPending} inputMode="numeric" placeholder="اختياري - أرقام فقط" /></Field> : null}
-          {watchedItemKind === 'fashion' ? <Field label="الخاصية 1 (اللون / الرائحة)"><input {...form.register('color')} disabled={mutation.isPending} placeholder="اختياري" /></Field> : null}
-          {watchedItemKind === 'fashion' ? <Field label="الخاصية 2 (المقاس / الحجم)"><input {...form.register('size')} disabled={mutation.isPending} placeholder="اختياري" /></Field> : null}
-          <Field label="سعر الشراء"><input type="number" step="0.01" {...form.register('costPrice')} disabled={mutation.isPending} /></Field>
-          <Field label="سعر القطاعي (الكاش)"><input type="number" step="0.01" {...form.register('retailPrice')} disabled={mutation.isPending} /></Field>
-          <Field label="سعر الجملة"><input type="number" step="0.01" {...form.register('wholesalePrice')} disabled={mutation.isPending} /></Field>
-          <Field label="سعر البيع الآجل (توزيع)"><input type="number" step="0.01" {...form.register('creditPrice')} disabled={mutation.isPending} placeholder="اختياري" /></Field>
-          <Field label="سعر المستهلك / الجمهور (SRP)"><input type="number" step="0.01" {...form.register('consumerPrice')} disabled={mutation.isPending} placeholder="سعر بيع المحل للمستهلك" /></Field>
-          <Field label="المخزون الحالي"><input type="number" value={Number(product.stock || 0)} disabled readOnly /></Field>
-          <Field label="الحد الأدنى"><input type="number" {...form.register('minStock')} disabled={mutation.isPending} /></Field>
-          <Field label="تاريخ انتهاء الصلاحية">
+          {clothingModuleEnabled ? <Field label={t('products.workspace_sections.product_editor_card.s4', "طبيعة الصنف")}><select {...form.register('itemKind')} disabled={mutation.isPending}><option value="standard">{t('products.workspace_sections.product_editor_card.s5', "صنف عادي (بسيط)")}</option><option value="fashion">{t('products.workspace_sections.product_editor_card.s6', "صنف بمتغيرات / Variant")}</option></select></Field> : null}
+          <Field label={t('products.workspace_sections.product_editor_card.s7', "اسم الصنف")} error={form.formState.errors.name?.message}><input {...form.register('name')} disabled={mutation.isPending} /></Field>
+          <Field label={t('products.workspace_sections.product_editor_card.s8', "الباركود")}><input {...form.register('barcode')} disabled={mutation.isPending} /></Field>
+          {watchedItemKind === 'fashion' ? <Field label={t('products.workspace_sections.product_editor_card.s9', "كود الموديل / الصنف الرئيسي")}><input value={watchedStyleCode} onChange={(event) => form.setValue('styleCode', normalizeNumericStyleCode(event.target.value), { shouldDirty: true, shouldValidate: true })} disabled={mutation.isPending} inputMode="numeric" placeholder={t('products.workspace_sections.product_editor_card.s10', "اختياري - أرقام فقط")} /></Field> : null}
+          {watchedItemKind === 'fashion' ? <Field label={t('products.workspace_sections.product_editor_card.s11', "الخاصية 1 (اللون / الرائحة)")}><input {...form.register('color')} disabled={mutation.isPending} placeholder={t('products.workspace_sections.product_editor_card.s12', "اختياري")} /></Field> : null}
+          {watchedItemKind === 'fashion' ? <Field label={t('products.workspace_sections.product_editor_card.s13', "الخاصية 2 (المقاس / الحجم)")}><input {...form.register('size')} disabled={mutation.isPending} placeholder={t('products.workspace_sections.product_editor_card.s14', "اختياري")} /></Field> : null}
+          <Field label={t('products.workspace_sections.product_editor_card.s15', "سعر الشراء")}><input type="number" step="0.01" {...form.register('costPrice')} disabled={mutation.isPending} /></Field>
+          <Field label={t('products.workspace_sections.product_editor_card.s16', "سعر القطاعي (الكاش)")}><input type="number" step="0.01" {...form.register('retailPrice')} disabled={mutation.isPending} /></Field>
+          <Field label={t('products.workspace_sections.product_editor_card.s17', "سعر الجملة")}><input type="number" step="0.01" {...form.register('wholesalePrice')} disabled={mutation.isPending} /></Field>
+          <Field label={t('products.workspace_sections.product_editor_card.s18', "سعر البيع الآجل (توزيع)")}><input type="number" step="0.01" {...form.register('creditPrice')} disabled={mutation.isPending} placeholder={t('products.workspace_sections.product_editor_card.s19', "اختياري")} /></Field>
+          <Field label={t('products.workspace_sections.product_editor_card.s20', "سعر المستهلك / الجمهور (SRP)")}><input type="number" step="0.01" {...form.register('consumerPrice')} disabled={mutation.isPending} placeholder={t('products.workspace_sections.product_editor_card.s21', "سعر بيع المحل للمستهلك")} /></Field>
+          <Field label={t('products.workspace_sections.product_editor_card.s22', "المخزون الحالي")}><input type="number" value={Number(product.stock || 0)} disabled readOnly /></Field>
+          <Field label={t('products.workspace_sections.product_editor_card.s23', "الحد الأدنى")}><input type="number" {...form.register('minStock')} disabled={mutation.isPending} /></Field>
+          <Field label={t('products.workspace_sections.product_editor_card.s24', "تاريخ انتهاء الصلاحية")}>
             <input type="date" {...form.register('expiryDate')} disabled={mutation.isPending} />
           </Field>
-          <Field label="القسم">
+          <Field label={t('products.workspace_sections.product_editor_card.s25', "القسم")}>
             <select {...form.register('categoryId')} disabled={mutation.isPending}>
-              <option value="">بدون قسم</option>
+              <option value="">{t('products.workspace_sections.product_editor_card.s26', "بدون قسم")}</option>
               {categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
             </select>
           </Field>
-          <Field label="المورد">
+          <Field label={t('products.workspace_sections.product_editor_card.s27', "المورد")}>
             <select {...form.register('supplierId')} disabled={mutation.isPending}>
-              <option value="">بدون مورد</option>
+              <option value="">{t('products.workspace_sections.product_editor_card.s28', "بدون مورد")}</option>
               {suppliers.map((supplier) => <option key={supplier.id} value={supplier.id}>{supplier.name}</option>)}
             </select>
           </Field>
-          <Field label="ملاحظات"><textarea rows={4} {...form.register('notes')} disabled={mutation.isPending} /></Field>
+          <Field label={t('products.workspace_sections.product_editor_card.s29', "ملاحظات")}><textarea rows={4} {...form.register('notes')} disabled={mutation.isPending} /></Field>
         </div>
-        <ProductUnitsEditor units={units} onChange={setUnits} disabled={mutation.isPending} title="وحدات الصنف" />
-        <DraftStateNotice visible={hasDraftChanges && !mutation.isPending} title="تعديلات الصنف الحالية غير محفوظة" hint="احفظ الصنف أو أعد القيم الأصلية قبل الانتقال إلى سجل آخر حتى لا تفقد الوحدات أو الأسعار الخاصة." />
-        <MutationFeedback isError={mutation.isError} isSuccess={mutation.isSuccess} error={mutation.error} errorFallback="تعذر تحديث الصنف" successText="تم تحديث الصنف بنجاح." />
+        <ProductUnitsEditor units={units} onChange={setUnits} disabled={mutation.isPending} title={t('products.workspace_sections.product_editor_card.s30', "وحدات الصنف")} />
+        <DraftStateNotice visible={hasDraftChanges && !mutation.isPending} title={t('products.workspace_sections.product_editor_card.s31', "تعديلات الصنف الحالية غير محفوظة")} hint={t('products.workspace_sections.product_editor_card.s32', "احفظ الصنف أو أعد القيم الأصلية قبل الانتقال إلى سجل آخر حتى لا تفقد الوحدات أو الأسعار الخاصة.")} />
+        <MutationFeedback isError={mutation.isError} isSuccess={mutation.isSuccess} error={mutation.error} errorFallback={t('products.workspace_sections.product_editor_card.s33', "تعذر تحديث الصنف")} successText={t('products.workspace_sections.product_editor_card.s34', "تم تحديث الصنف بنجاح.")} />
         <div className="actions">
           <Button type="button" variant="secondary" onClick={() => {
             if (!canNavigateAway()) return;
             form.reset(toProductFormValues(product));
             setUnits(normalizeProductUnits(product.units, product.barcode || ''));
             setCustomerPrices(normalizeCustomerPrices(product));
-          }} disabled={mutation.isPending}>إعادة القيم</Button>
-          <SubmitButton type="submit" isPending={mutation.isPending} idleText="حفظ التعديل" pendingText="جارٍ الحفظ..." />
+          }} disabled={mutation.isPending}>{t('products.workspace_sections.product_editor_card.s35', "إعادة القيم")}</Button>
+          <SubmitButton type="submit" isPending={mutation.isPending} idleText={t('products.workspace_sections.product_editor_card.s36', "حفظ التعديل")} pendingText={t('products.workspace_sections.product_editor_card.s37', "جارٍ الحفظ...")} />
         </div>
       </form>
       <ProductCustomerPricesCard product={product} customers={customers} customerPrices={customerPrices} onChange={setCustomerPrices} onSave={saveCustomerPricesOnly} isSaving={mutation.isPending} />

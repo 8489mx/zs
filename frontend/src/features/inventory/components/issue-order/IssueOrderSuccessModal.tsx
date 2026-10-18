@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { Button } from '@/shared/ui/button';
@@ -18,6 +19,7 @@ export const IssueOrderSuccessModal: React.FC<IssueOrderSuccessModalProps> = ({
   onNewTransfer,
   onClose,
 }) => {
+  const { t } = useTranslation();
   if (!createdTransfers.length) return null;
 
   const docNo = createdTransfers.length > 1
@@ -28,16 +30,16 @@ export const IssueOrderSuccessModal: React.FC<IssueOrderSuccessModalProps> = ({
     <StandardDialog
       open={createdTransfers.length > 0}
       onClose={onClose}
-      title="تم إنشاء إذن الصرف بنجاح"
+      title={t('inventory.issue_order.issue_order_success_modal.s0', "تم إنشاء إذن الصرف بنجاح")}
       subtitle={`رقم الإذن: ${docNo}`}
       maxWidth="460px"
       minHeight="auto"
       footerActions={
         <StandardDialogFooter
           onCancel={onClose}
-          cancelLabel="العودة للمخزون"
+          cancelLabel={t('inventory.issue_order.issue_order_success_modal.s1', "العودة للمخزون")}
           onSubmit={onNewTransfer}
-          submitLabel="إذن صرف جديد"
+          submitLabel={t('inventory.issue_order.issue_order_success_modal.s2', "إذن صرف جديد")}
         />
       }
     >
@@ -60,7 +62,7 @@ export const IssueOrderSuccessModal: React.FC<IssueOrderSuccessModalProps> = ({
 
         <p style={{ color: '#64748b', margin: '0 0 18px', fontSize: '0.92rem', lineHeight: 1.5 }}>
           {createdTransfers.length > 1
-            ? 'تم اعتماد وحفظ أذونات الصرف بنجاح وتحديث أرصدة المخازن.'
+            ? t('inventory.issue_order.issue_order_success_modal.s3', "تم اعتماد وحفظ أذونات الصرف بنجاح وتحديث أرصدة المخازن.")
             : `تم اعتماد وحفظ إذن الصرف (${docNo}) بنجاح وتحديث أرصدة المخازن.`}
         </p>
 
@@ -77,7 +79,7 @@ export const IssueOrderSuccessModal: React.FC<IssueOrderSuccessModalProps> = ({
               fontWeight: 800,
             }}
           >
-            طباعة ريسيت (Thermal)
+            {t('inventory.issue_order.issue_order_success_modal.s4', "طباعة ريسيت (Thermal)")}
           </Button>
           <Button
             type="button"
@@ -90,7 +92,7 @@ export const IssueOrderSuccessModal: React.FC<IssueOrderSuccessModalProps> = ({
               fontWeight: 700,
             }}
           >
-            طباعة وثيقة (A4)
+            {t('inventory.issue_order.issue_order_success_modal.s5', "طباعة وثيقة (A4)")}
           </Button>
         </div>
       </div>

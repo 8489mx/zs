@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { buildStorePublicUrl } from '@/lib/store-public-url';
 import { useState, useEffect } from 'react';
 import { StorefrontProduct, StorefrontInfo } from '../types/storefront.types';
@@ -41,6 +42,7 @@ export function StorefrontProductQuickViewModal({
   slug,
   cartLine,
 }: StorefrontProductQuickViewModalProps) {
+  const { t } = useTranslation();
   const [qty, setQty] = useState(1);
   const [copied, setCopied] = useState(false);
   const [addedAnimation, setAddedAnimation] = useState(false);
@@ -413,7 +415,7 @@ export function StorefrontProductQuickViewModal({
                 border: '1px solid rgba(23, 14, 94, 0.15)',
               }}
             >
-              {product.categoryName || 'تفاصيل الصنف'}
+              {product.categoryName || t('storefront.storefront_product_quick_view_modal.s0', "تفاصيل الصنف")}
             </span>
             {Boolean(product.rating && product.rating >= 4.5) && (
               <span
@@ -432,7 +434,7 @@ export function StorefrontProductQuickViewModal({
                 <IconStar size={12} fill="#f59e0b" color="#f59e0b" />
                 <span>{Number(product.rating).toFixed(1)}</span>
                 {product.reviewCount ? (
-                  <span style={{ color: '#92400e', fontSize: '10px' }}>({product.reviewCount} تقييم)</span>
+                  <span style={{ color: '#92400e', fontSize: '10px' }}>({product.reviewCount} {t('storefront.storefront_product_quick_view_modal.s1', "تقييم)")}</span>
                 ) : null}
               </span>
             )}
@@ -442,7 +444,7 @@ export function StorefrontProductQuickViewModal({
             type="button"
             className="sf-quickview-close-btn"
             onClick={onClose}
-            aria-label="إغلاق النافذة"
+            aria-label={t('storefront.storefront_product_quick_view_modal.s2', "إغلاق النافذة")}
             style={{
               background: '#f8fafc',
               border: '1px solid #e2e8f0',
@@ -551,7 +553,7 @@ export function StorefrontProductQuickViewModal({
                   }}
                 >
                   <IconFlame size={13} color="#ffffff" strokeWidth={2.2} />
-                  <span>متبقي {product.stockQty} قطع فقط!</span>
+                  <span>{t('storefront.storefront_product_quick_view_modal.s3', "متبقي")} {product.stockQty} {t('storefront.storefront_product_quick_view_modal.s4', "قطع فقط!")}</span>
                 </div>
               )}
             </div>
@@ -614,7 +616,7 @@ export function StorefrontProductQuickViewModal({
               <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', flexWrap: 'wrap' }}>
                 {isZeroPrice ? (
                   <span style={{ fontSize: '16px', fontWeight: 800, color: '#475569' }}>
-                    السعر عند التواصل
+                    {t('storefront.storefront_product_quick_view_modal.s5', "السعر عند التواصل")}
                   </span>
                 ) : (
                   <>
@@ -642,7 +644,7 @@ export function StorefrontProductQuickViewModal({
                           marginInlineStart: '4px',
                         }}
                       >
-                        {product.offerBadge || (product.discountPercent ? `خصم ${product.discountPercent}%` : 'عرض خاص')}
+                        {product.offerBadge || (product.discountPercent ? `خصم ${product.discountPercent}%` : t('storefront.storefront_product_quick_view_modal.s6', "عرض خاص"))}
                       </span>
                     )}
                   </>
@@ -666,7 +668,7 @@ export function StorefrontProductQuickViewModal({
                   }}
                 >
                   <ClockIcon size={13} color="#475569" />
-                  <span>تواصل لمعرفة السعر</span>
+                  <span>{t('storefront.storefront_product_quick_view_modal.s7', "تواصل لمعرفة السعر")}</span>
                 </span>
               ) : (
                 <span
@@ -685,7 +687,7 @@ export function StorefrontProductQuickViewModal({
                   }}
                 >
                   {inStock ? <CheckCircleIcon size={13} color="#16a34a" /> : <ClockIcon size={13} color="#64748b" />}
-                  <span>{inStock ? (product.stockQty >= 999 ? 'متوفر للطلب الفوري' : `متوفر بالمخزون (${product.stockQty})`) : 'ستتوفر قريباً'}</span>
+                  <span>{inStock ? (product.stockQty >= 999 ? t('storefront.storefront_product_quick_view_modal.s8', "متوفر للطلب الفوري") : `متوفر بالمخزون (${product.stockQty})`) : t('storefront.storefront_product_quick_view_modal.s9', "ستتوفر قريباً")}</span>
                 </span>
               )}
             </div>
@@ -695,7 +697,7 @@ export function StorefrontProductQuickViewModal({
               <div className="sf-quickview-variants-box" style={{ marginTop: '12px', padding: '10px 12px', background: '#f8fafc', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
                 <div style={{ fontSize: '12px', fontWeight: 800, color: '#1e293b', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <TagIcon size={12} color={brandColor} />
-                  <span>اختر المقاس / الحجم:</span>
+                  <span>{t('storefront.storefront_product_quick_view_modal.s10', "اختر المقاس / الحجم:")}</span>
                 </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                   {variants.map((v, idx) => {
@@ -723,7 +725,7 @@ export function StorefrontProductQuickViewModal({
                         <span>{v.name}</span>
                         {(() => {
                           const vPrice = resolveVariantUnitPrice(product.price, v);
-                          return vPrice !== null && vPrice !== product.price ? <span>({vPrice.toLocaleString()} ج)</span> : null;
+                          return vPrice !== null && vPrice !== product.price ? <span>({vPrice.toLocaleString()} {t('storefront.storefront_product_quick_view_modal.s11', "ج)")}</span> : null;
                         })()}
                       </button>
                     );
@@ -731,7 +733,7 @@ export function StorefrontProductQuickViewModal({
                 </div>
                 {cartHasOtherVariant && cartLine && (
                   <div style={{ marginTop: '8px', fontSize: '12px', color: '#92400e', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '8px', padding: '6px 10px', lineHeight: 1.5 }}>
-                    في سلتك الآن {cartLine.variantName ? `المقاس «${cartLine.variantName}»` : 'هذا الصنف'} ({cartLine.quantity}). الإضافة ستستبدله بالمقاس المختار، لأن الطلب الواحد يقبل مقاساً واحداً لكل صنف.
+                    {t('storefront.storefront_product_quick_view_modal.s12', "في سلتك الآن")} {cartLine.variantName ? `المقاس «${cartLine.variantName}»` : t('storefront.storefront_product_quick_view_modal.s13', "هذا الصنف")} ({cartLine.quantity}{t('storefront.storefront_product_quick_view_modal.s14', "). الإضافة ستستبدله بالمقاس المختار، لأن الطلب الواحد يقبل مقاساً واحداً لكل صنف.")}
                   </div>
                 )}
               </div>
@@ -777,8 +779,8 @@ export function StorefrontProductQuickViewModal({
                 <TruckIcon size={13} color="#170e5e" />
               </div>
               <span className="sf-quickview-highlight-text" style={{ fontSize: '12px', fontWeight: 700, color: '#334155' }}>
-                <span className="sf-highlight-text-full">توصيل سريع حتى باب منزلك</span>
-                <span className="sf-highlight-text-mobile">توصيل سريع للباب</span>
+                <span className="sf-highlight-text-full">{t('storefront.storefront_product_quick_view_modal.s15', "توصيل سريع حتى باب منزلك")}</span>
+                <span className="sf-highlight-text-mobile">{t('storefront.storefront_product_quick_view_modal.s16', "توصيل سريع للباب")}</span>
               </span>
             </div>
             <div className="sf-quickview-highlight-item" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -786,8 +788,8 @@ export function StorefrontProductQuickViewModal({
                 <ClockIcon size={13} color="#b45309" />
               </div>
               <span className="sf-quickview-highlight-text" style={{ fontSize: '12px', fontWeight: 700, color: '#334155' }}>
-                <span className="sf-highlight-text-full">تجهيز فوري طازج عند الطلب</span>
-                <span className="sf-highlight-text-mobile">تجهيز فوري للطلب</span>
+                <span className="sf-highlight-text-full">{t('storefront.storefront_product_quick_view_modal.s17', "تجهيز فوري طازج عند الطلب")}</span>
+                <span className="sf-highlight-text-mobile">{t('storefront.storefront_product_quick_view_modal.s18', "تجهيز فوري للطلب")}</span>
               </span>
             </div>
           </div>
@@ -803,7 +805,7 @@ export function StorefrontProductQuickViewModal({
               borderTop: '1px solid #f1f5f9',
             }}
           >
-            <span className="sf-quickview-share-label" style={{ fontSize: '11.5px', fontWeight: 700, color: '#64748b' }}>مشاركة الصنف:</span>
+            <span className="sf-quickview-share-label" style={{ fontSize: '11.5px', fontWeight: 700, color: '#64748b' }}>{t('storefront.storefront_product_quick_view_modal.s19', "مشاركة الصنف:")}</span>
             <div style={{ display: 'flex', gap: '6px' }}>
               <button
                 type="button"
@@ -823,7 +825,7 @@ export function StorefrontProductQuickViewModal({
                   cursor: 'pointer',
                 }}
               >
-                <span>واتساب</span>
+                <span>{t('storefront.storefront_product_quick_view_modal.s20', "واتساب")}</span>
               </button>
               <button
                 type="button"
@@ -844,7 +846,7 @@ export function StorefrontProductQuickViewModal({
                 }}
               >
                 {copied ? <CheckIcon size={13} color="#16a34a" /> : <Share2Icon size={13} />}
-                <span>{copied ? 'تم النسخ!' : 'نسخ الرابط'}</span>
+                <span>{copied ? t('storefront.storefront_product_quick_view_modal.s21', "تم النسخ!") : t('storefront.storefront_product_quick_view_modal.s22', "نسخ الرابط")}</span>
               </button>
             </div>
           </div>
@@ -905,7 +907,7 @@ export function StorefrontProductQuickViewModal({
               <svg width="18" height="18" fill="#25d366" viewBox="0 0 24 24">
                 <path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0 0 12.04 2m.01 1.67c2.2 0 4.26.86 5.82 2.42a8.225 8.225 0 0 1 2.41 5.83c0 4.54-3.7 8.23-8.24 8.23-1.48 0-2.93-.39-4.19-1.15l-.3-.17-3.12.82.83-3.04-.2-.31a8.216 8.216 0 0 1-1.26-4.38c0-4.54 3.7-8.24 8.25-8.24m4.52 11.64c-.25-.13-1.47-.72-1.7-.81-.23-.08-.39-.13-.56.13-.17.25-.64.81-.79.97-.14.17-.29.19-.54.06-.25-.13-1.06-.39-2.02-1.25-.75-.67-1.26-1.5-1.41-1.75-.15-.25-.02-.39.11-.51.11-.11.25-.29.38-.44.13-.14.17-.25.25-.42.08-.17.04-.31-.02-.44s-.56-1.35-.77-1.85c-.2-.48-.41-.42-.56-.43h-.48c-.17 0-.44.06-.67.31-.23.25-.88.86-.88 2.1 0 1.24.9 2.44 1.03 2.61.13.17 1.77 2.71 4.3 3.8 2.52 1.09 2.52.73 2.98.68.45-.04 1.47-.6 1.68-1.18.21-.58.21-1.07.15-1.18-.06-.11-.23-.17-.48-.3" />
               </svg>
-              <span>استفسر عن السعر عبر واتساب</span>
+              <span>{t('storefront.storefront_product_quick_view_modal.s23', "استفسر عن السعر عبر واتساب")}</span>
             </a>
           ) : (
             <>
@@ -1014,17 +1016,17 @@ export function StorefrontProductQuickViewModal({
                 {addedAnimation ? (
                   <>
                     <CheckIcon size={16} color="#ffffff" />
-                    <span>تمت الإضافة بنجاح!</span>
+                    <span>{t('storefront.storefront_product_quick_view_modal.s24', "تمت الإضافة بنجاح!")}</span>
                   </>
                 ) : inStock ? (
                   <>
                     <ShoppingBagIcon size={16} color="#ffffff" />
-                    <span>إضافة إلى السلة ({(basePrice * qty).toLocaleString()} <CurrencySymbol />)</span>
+                    <span>{t('storefront.storefront_product_quick_view_modal.s25', "إضافة إلى السلة (")}{(basePrice * qty).toLocaleString()} <CurrencySymbol />)</span>
                   </>
                 ) : (
                   <>
                     <ClockIcon size={16} color="#64748b" />
-                    <span>ستتوفر قريباً</span>
+                    <span>{t('storefront.storefront_product_quick_view_modal.s26', "ستتوفر قريباً")}</span>
                   </>
                 )}
               </button>

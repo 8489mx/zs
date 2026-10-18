@@ -1,4 +1,6 @@
 import type { ReactNode } from 'react';
+import i18n from '@/lib/i18n';
+import { translateUiText } from '@/lib/auto-translator';
 import { downloadExcelFile } from '@/lib/browser';
 import type { BackupSnapshotRecord } from '@/features/settings/components/SettingsWorkspacePrimitives';
 
@@ -25,77 +27,81 @@ interface SettingsGuidanceInput {
 }
 
 export function getSettingsSectionDescription(section: string, vertical?: string) {
+  const isEn = i18n.language === 'en';
   if (section === 'core') {
-    if (vertical === 'maritime') return 'بيانات شركة التوكيلات والشحن الملاحي، ضوابط النولون وغرامات الحاويات، وترويسة الفواتير والمطبوعات.';
-    if (vertical === 'contracting') return 'بيانات شركة المقاولات، نسب ضمان الأعمال والدفعة المقدمة، وهوامش تسعير العطاءات والمقايسات.';
-    return 'بيانات المنشأة، سياسات البيع والمخزون، موديولات النظام، والطباعة والإيصالات.';
+    if (vertical === 'maritime') return isEn ? 'Maritime shipping agency details, freight controls, demurrage rules, and document letterheads.' : 'بيانات شركة التوكيلات والشحن الملاحي، ضوابط النولون وغرامات الحاويات، وترويسة الفواتير والمطبوعات.';
+    if (vertical === 'contracting') return isEn ? 'Contracting company details, retention warranty rates, advance payment limits, and tender pricing margins.' : 'بيانات شركة المقاولات، نسب ضمان الأعمال والدفعة المقدمة، وهوامش تسعير العطاءات والمقايسات.';
+    return isEn ? 'Organization details, sales & inventory policies, system modules, and printing & receipts.' : 'بيانات المنشأة، سياسات البيع والمخزون، موديولات النظام، والطباعة والإيصالات.';
   }
   if (section === 'reference') {
-    if (vertical === 'maritime') return 'إدارة المقرات والمكاتب الملاحية، الموانئ ومحطات ومستودعات الحاويات (Yards & Terminals).';
-    if (vertical === 'contracting') return 'إدارة المقرات الإدارية، مواقع العمل والمشاريع، ومخازن التشوين الميدانية.';
-    return 'إدارة الفروع، نقاط الاستلام، والمستودعات التشغيلية ومخازن البضاعة.';
+    if (vertical === 'maritime') return isEn ? 'Manage maritime headquarters, shipping offices, ports, terminals, and container yards.' : 'إدارة المقرات والمكاتب الملاحية، الموانئ ومحطات ومستودعات الحاويات (Yards & Terminals).';
+    if (vertical === 'contracting') return isEn ? 'Manage administrative headquarters, project work sites, and field storage warehouses.' : 'إدارة المقرات الإدارية، مواقع العمل والمشاريع، ومخازن التشوين الميدانية.';
+    return isEn ? 'Manage branches, pickup points, operational warehouses, and inventory stores.' : 'إدارة الفروع، نقاط الاستلام، والمستودعات التشغيلية ومخازن البضاعة.';
   }
   if (section === 'users') {
-    if (vertical === 'maritime') return 'إدارة حسابات منسقي الشحن، موظفي الموانئ والمكتب الملاحي، ومصفوفة الصلاحيات.';
-    if (vertical === 'contracting') return 'إدارة حسابات مهندسي المواقع، مديري المشاريع، ومصفوفة الصلاحيات الميدانية.';
-    return 'إدارة حسابات الموظفين، الأدوار الوظيفية، ومصفوفة الصلاحيات.';
+    if (vertical === 'maritime') return isEn ? 'Manage shipping coordinators, port staff accounts, and authority matrix.' : 'إدارة حسابات منسقي الشحن، موظفي الموانئ والمكتب الملاحي، ومصفوفة الصلاحيات.';
+    if (vertical === 'contracting') return isEn ? 'Manage site engineers, project managers accounts, and field permissions matrix.' : 'إدارة حسابات مهندسي المواقع، مديري المشاريع، ومصفوفة الصلاحيات الميدانية.';
+    return isEn ? 'Manage employee accounts, job roles, and permissions matrix.' : 'إدارة حسابات الموظفين، الأدوار الوظيفية، ومصفوفة الصلاحيات.';
   }
-  if (section === 'tax-integration') return 'الربط المباشر مع مصلحة الضرائب المصرية (ETA) وهيئة الزكاة والضريبة (ZATCA).';
-  if (section === 'storefront' || section === 'marketplaces') return 'إدارة المتجر الإلكتروني الخارجي، بوابات الدفع والشحن، والربط مع أمازون ونون.';
-  if (section === 'whatsapp' || section === 'daily-digest') return 'بوابة رسائل الواتساب السحابية، روبوت الرد الذكي، وإرسال الملخص اليومي للمدير.';
-  if (section === 'backup') return 'النسخ الاحتياطي، تصدير واستيراد البيانات، وأدوات صيانة النظام.';
-  if (section === 'subscription') return 'تفاصيل الاشتراك السحابي، استهلاك الموارد، وتجديد الباقة والفوترة.';
-  if (section === 'demo-data') return 'توليد أو مسح البيانات التجريبية حسب طبيعة النشاط التجاري.';
-  if (section === 'lan-network') return 'إعدادات مزامنة الشبكة المحلية والربط المتعدد للأجهزة على السيرفر المحلي.';
-  if (section === 'system-updates') return 'سجل إصدارات النظام والتحقق من التحديثات السحابية.';
-  if (section === 'monitoring') return 'المراقبة ورصد أداء الخادم (APM) والتنبيهات عبر تيليجرام.';
-  return 'إعدادات وضوابط تشغيل المنظومة.';
+  if (section === 'tax-integration') return isEn ? 'Direct integration with Egyptian Tax Authority (ETA) and Zakat, Tax and Customs Authority (ZATCA).' : 'الربط المباشر مع مصلحة الضرائب المصرية (ETA) وهيئة الزكاة والضريبة (ZATCA).';
+  if (section === 'storefront' || section === 'marketplaces') return isEn ? 'Manage external e-commerce storefront, payment & shipping gateways, and Amazon & Noon integration.' : 'إدارة المتجر الإلكتروني الخارجي، بوابات الدفع والشحن، والربط مع أمازون ونون.';
+  if (section === 'whatsapp' || section === 'daily-digest') return isEn ? 'Cloud WhatsApp messaging gateway, intelligent auto-responder bot, and daily executive digest.' : 'بوابة رسائل الواتساب السحابية، روبوت الرد الذكي، وإرسال الملخص اليومي للمدير.';
+  if (section === 'backup') return isEn ? 'Data backup, export & import data, and system maintenance utilities.' : 'النسخ الاحتياطي، تصدير واستيراد البيانات، وأدوات صيانة النظام.';
+  if (section === 'subscription') return isEn ? 'Cloud subscription details, resource consumption, plan renewal, and billing.' : 'تفاصيل الاشتراك السحابي، استهلاك الموارد، وتجديد الباقة والفوترة.';
+  if (section === 'demo-data') return isEn ? 'Generate or clear demo sandbox data based on industry vertical.' : 'توليد أو مسح البيانات التجريبية حسب طبيعة النشاط التجاري.';
+  if (section === 'lan-network') return isEn ? 'Local area network (LAN) sync settings and multi-device connection on local server.' : 'إعدادات مزامنة الشبكة المحلية والربط المتعدد للأجهزة على السيرفر المحلي.';
+  if (section === 'system-updates') return isEn ? 'System release history and cloud update check.' : 'سجل إصدارات النظام والتحقق من التحديثات السحابية.';
+  if (section === 'monitoring') return isEn ? 'Server performance monitoring (APM) and Telegram alerts.' : 'المراقبة ورصد أداء الخادم (APM) والتنبيهات عبر تيليجرام.';
+  return isEn ? 'System configuration and operational rules.' : 'إعدادات وضوابط تشغيل المنظومة.';
 }
 
 export function buildSettingsGuidanceCards(input: SettingsGuidanceInput, vertical?: string) {
+  const isEn = i18n.language === 'en';
   const nextAction = input.setupMode
-    ? (input.setupStepTitle || 'أكمل خطوة التهيئة الحالية أولًا')
+    ? (input.setupStepTitle || (isEn ? 'Complete the current setup step first' : 'أكمل خطوة التهيئة الحالية أولًا'))
     : input.section === 'core'
-      ? 'عدّل بيانات النشاط ثم اضغط حفظ قبل الانتقال.'
+      ? (isEn ? 'Edit business details then click Save before moving on.' : 'عدّل بيانات النشاط ثم اضغط حفظ قبل الانتقال.')
       : input.section === 'reference'
         ? (vertical === 'maritime'
-            ? 'ابحث عن المقر الملاحي أو الميناء المطلوب ثم عدّل أو احذف من نفس الجدول.'
+            ? (isEn ? 'Search for the required maritime office or port, then edit or delete from the table.' : 'ابحث عن المقر الملاحي أو الميناء المطلوب ثم عدّل أو احذف من نفس الجدول.')
             : vertical === 'contracting'
-            ? 'ابحث عن الموقع أو مخزن التشوين المطلوب ثم عدّل أو احذف من نفس الجدول.'
-            : 'ابحث عن الفرع أو المخزن المطلوب ثم عدّل أو احذف من نفس الجدول.')
+            ? (isEn ? 'Search for the required work site or storage yard, then edit or delete from the table.' : 'ابحث عن الموقع أو مخزن التشوين المطلوب ثم عدّل أو احذف من نفس الجدول.')
+            : (isEn ? 'Search for the required branch or warehouse, then edit or delete from the table.' : 'ابحث عن الفرع أو المخزن المطلوب ثم عدّل أو احذف من نفس الجدول.'))
         : input.section === 'users'
-          ? 'راجع الحسابات والصلاحيات ثم حدّث المستخدم المطلوب.'
-          : 'خذ نسخة أولًا، ثم نفّذ الاستيراد أو الاستعادة بعد التأكد.';
+          ? (isEn ? 'Review accounts and permissions, then update the selected user.' : 'راجع الحسابات والصلاحيات ثم حدّث المستخدم المطلوب.')
+          : (isEn ? 'Take a backup first, then run import or restore after verification.' : 'خذ نسخة أولًا، ثم نفّذ الاستيراد أو الاستعادة بعد التأكد.');
 
   const focusValue = input.section === 'core'
-      ? (input.storeName || 'بيانات النشاط الأساسية')
+      ? (input.storeName || (isEn ? 'Core Business Details' : 'بيانات النشاط الأساسية'))
       : input.section === 'reference'
         ? (vertical === 'maritime'
-            ? `${input.filteredBranchesCount} مقر ملاحي / ${input.filteredLocationsCount} ميناء ومحطة حاويات`
+            ? (isEn ? `${input.filteredBranchesCount} shipping offices / ${input.filteredLocationsCount} ports & terminals` : `${input.filteredBranchesCount} مقر ملاحي / ${input.filteredLocationsCount} ميناء ومحطة حاويات`)
             : vertical === 'contracting'
-            ? `${input.filteredBranchesCount} موقع عمل / ${input.filteredLocationsCount} مخزن تشوين`
-            : `${input.filteredBranchesCount} فرع ظاهر / ${input.filteredLocationsCount} مخزن ظاهر`)
+            ? (isEn ? `${input.filteredBranchesCount} work sites / ${input.filteredLocationsCount} storage yards` : `${input.filteredBranchesCount} موقع عمل / ${input.filteredLocationsCount} مخزن تشوين`)
+            : (isEn ? `${input.filteredBranchesCount} visible branches / ${input.filteredLocationsCount} visible warehouses` : `${input.filteredBranchesCount} فرع ظاهر / ${input.filteredLocationsCount} مخزن ظاهر`))
         : input.section === 'users'
-          ? (input.currentUserRole === 'super_admin' ? 'إدارة المستخدمين متاحة' : 'هذه الشاشة مخصصة للمشرف العام')
-          : `${input.snapshotsCount} نسخة تلقائية متاحة`;
+          ? (input.currentUserRole === 'super_admin' ? (isEn ? 'User management available' : 'إدارة المستخدمين متاحة') : (isEn ? 'This screen is restricted to administrators' : 'هذه الشاشة مخصصة للمشرف العام'))
+          : (isEn ? `${input.snapshotsCount} automatic backups available` : `${input.snapshotsCount} نسخة تلقائية متاحة`);
 
   const cautionValue = input.section === 'backup'
-    ? 'الاستعادة تستبدل البيانات الحالية بالكامل.'
+    ? (isEn ? 'Restore will completely replace all existing data.' : 'الاستعادة تستبدل البيانات الحالية بالكامل.')
     : input.section === 'users'
-      ? 'استخدم أقل صلاحية ممكنة لكل حساب.'
+      ? (isEn ? 'Use least-privilege permissions for each account.' : 'استخدم أقل صلاحية ممكنة لكل حساب.')
       : input.section === 'reference'
         ? (vertical === 'maritime'
-            ? 'احرص أن يكون كل ميناء أو محطة مرتبطة بمقر ملاحي واضح.'
+            ? (isEn ? 'Ensure every port or terminal is linked to a distinct shipping office.' : 'احرص أن يكون كل ميناء أو محطة مرتبطة بمقر ملاحي واضح.')
             : vertical === 'contracting'
-            ? 'احرص أن يكون كل مخزن تشوين مرتبطاً بموقع أو مقر إدارة واضح.'
-            : 'احرص أن يكون كل مخزن مرتبطًا بفرع واضح.')
-        : 'غيّر ما تحتاجه فقط ثم احفظ.';
+            ? (isEn ? 'Ensure every storage yard is linked to a distinct project or site.' : 'احرص أن يكون كل مخزن تشوين مرتبطاً بموقع أو مقر إدارة واضح.')
+            : (isEn ? 'Ensure every warehouse is linked to a distinct branch.' : 'احرص أن يكون كل مخزن مرتبطًا بفرع واضح.'))
+        : (isEn ? 'Change only what is necessary, then save.' : 'غيّر ما تحتاجه فقط ثم احفظ.');
+
+  const sectionLabel = isEn ? (translateUiText(input.sectionLabel) || input.sectionLabel) : input.sectionLabel;
 
   return [
-    { key: 'section', label: 'القسم الحالي', value: input.sectionLabel },
-    { key: 'next', label: 'الخطوة الأنسب الآن', value: nextAction },
-    { key: 'focus', label: 'التركيز الحالي', value: focusValue },
-    { key: 'caution', label: 'ملاحظة مهمة', value: cautionValue },
+    { key: 'section', label: isEn ? 'Current Section' : 'القسم الحالي', value: sectionLabel },
+    { key: 'next', label: isEn ? 'Recommended Next Step' : 'الخطوة الأنسب الآن', value: nextAction },
+    { key: 'focus', label: isEn ? 'Current Focus' : 'التركيز الحالي', value: focusValue },
+    { key: 'caution', label: isEn ? 'Important Note' : 'ملاحظة مهمة', value: cautionValue },
   ];
 }
 

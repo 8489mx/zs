@@ -1,5 +1,6 @@
 import { type ReactNode, type CSSProperties } from 'react';
 import { useTranslation } from 'react-i18next';
+import { translateUiText } from '@/lib/auto-translator';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { XIcon, ArrowRightIcon } from '@/shared/components/icons/AppIcons';
 import { Button } from '@/shared/ui/button';
@@ -73,10 +74,14 @@ export function StandardDialog({
   bodyStyle,
   autoFocus = true,
 }: StandardDialogProps) {
+  const { t: __t } = useTranslation();
   const { t, i18n } = useTranslation();
   const isLtr = i18n.language === 'en';
   const currentDir = isLtr ? 'ltr' : 'rtl';
   const isVisible = open !== undefined ? open : Boolean(isOpen);
+  const displayTitle = typeof title === 'string' && isLtr ? (translateUiText(title) || title) : title;
+  const displaySubtitle = typeof subtitle === 'string' && isLtr ? (translateUiText(subtitle) || subtitle) : subtitle;
+  const displayLoadingText = typeof loadingText === 'string' && isLtr ? (translateUiText(loadingText) || loadingText) : loadingText;
   if (!isVisible) return null;
 
   const sizeMap: Record<string, string> = {
@@ -114,7 +119,7 @@ export function StandardDialog({
       maxHeight={maxHeight}
       zIndex={zIndex}
       shellClassName={finalShellClass}
-      ariaLabel={ariaLabel || (typeof title === 'string' ? title : (isLtr ? 'Dialog' : 'نافذة منبثقة'))}
+      ariaLabel={ariaLabel || (typeof displayTitle === 'string' ? displayTitle : (isLtr ? 'Dialog' : __t('shared.standard_dialog.s0', "نافذة منبثقة")))}
       autoFocus={autoFocus}
     >
       <div
@@ -144,7 +149,7 @@ export function StandardDialog({
                   flexShrink: 1,
                 }}
               >
-                {title}
+                {displayTitle}
               </h3>
               {badge && (
                 <span
@@ -165,7 +170,7 @@ export function StandardDialog({
             </div>
             {/* div, not p: subtitle can now carry block-level content (e.g. a badge row), and a
                 <div> inside a <p> is invalid HTML that browsers silently mis-nest. */}
-            {subtitle && (
+            {displaySubtitle && (
               <div
                 className="standard-dialog-subtitle"
                 style={{
@@ -176,7 +181,7 @@ export function StandardDialog({
                   display: 'block',
                 }}
               >
-                {subtitle}
+                {displaySubtitle}
               </div>
             )}
           </div>
@@ -186,8 +191,8 @@ export function StandardDialog({
                 type="button"
                 onClick={onBack}
                 className="standard-dialog-back-btn"
-                aria-label={backText || 'الرجوع لعمليات المطعم'}
-                title={backText || 'الرجوع لمركز عمليات المطعم'}
+                aria-label={backText || __t('shared.standard_dialog.s1', "الرجوع لعمليات المطعم")}
+                title={backText || __t('shared.standard_dialog.s2', "الرجوع لمركز عمليات المطعم")}
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
@@ -213,7 +218,7 @@ export function StandardDialog({
                 }}
               >
                 <ArrowRightIcon size={13} color="#170e5e" style={{ transform: isLtr ? 'scaleX(-1)' : undefined }} />
-                <span>{backText || (isLtr ? 'Back' : 'رجوع')}</span>
+                <span>{backText || (isLtr ? 'Back' : __t('shared.standard_dialog.s3', "رجوع"))}</span>
               </button>
             )}
             <button
@@ -271,7 +276,7 @@ export function StandardDialog({
                 }}
               />
               <span style={{ fontSize: 'var(--font-body)', fontWeight: 600 }}>
-                {loadingText || (isLtr ? 'Loading data...' : 'جارٍ تحميل البيانات...')}
+                {loadingText || (isLtr ? 'Loading data...' : __t('shared.standard_dialog.s4', "جارٍ تحميل البيانات..."))}
               </span>
             </div>
           ) : (
@@ -357,6 +362,7 @@ export function StandardDialogFooter({
   style,
   className,
 }: StandardDialogFooterProps) {
+  const { t } = useTranslation();
   if (children) {
     return (
       <div className={`standard-dialog-footer ${className || ''}`.trim()} style={style}>
@@ -383,7 +389,7 @@ export function StandardDialogFooter({
           style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}
         >
           <ArrowRightIcon size={14} color="#170e5e" />
-          <span>{backText || 'الرجوع لعمليات المطعم'}</span>
+          <span>{backText || t('shared.standard_dialog.s5', "الرجوع لعمليات المطعم")}</span>
         </Button>
       )}
       {handleCancel && (

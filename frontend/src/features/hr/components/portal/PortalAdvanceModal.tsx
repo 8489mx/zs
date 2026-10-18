@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { getGlobalCurrencySymbol } from '@/lib/currencies';
 import React, { useState } from 'react';
 import { employeePortalApi } from '../../api/employee-portal.api';
@@ -16,6 +17,7 @@ export function PortalAdvanceModal({
   onClose,
   onSuccess,
 }: PortalAdvanceModalProps) {
+  const { t } = useTranslation();
   const [advanceAmount, setAdvanceAmount] = useState('');
   const [advanceReason, setAdvanceReason] = useState('');
   const [advanceMonths, setAdvanceMonths] = useState<number>(1);
@@ -54,7 +56,7 @@ export function PortalAdvanceModal({
       open={open}
       onClose={onClose}
       width="min(480px, 95vw)"
-      ariaLabel="طلب سلفة مالية من الراتب"
+      ariaLabel={t('hr.portal.portal_advance_modal.s0', "طلب سلفة مالية من الراتب")}
     >
       <div
         dir="rtl"
@@ -67,7 +69,7 @@ export function PortalAdvanceModal({
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <CreditCardIcon size={20} color="#170e5e" />
                 <h3 style={{ margin: 0, fontSize: '17px', fontWeight: 900, color: '#0f172a' }}>
-                  طلب سلفة مالية من الراتب
+                  {t('hr.portal.portal_advance_modal.s1', "طلب سلفة مالية من الراتب")}
                 </h3>
               </div>
               <button
@@ -82,7 +84,7 @@ export function PortalAdvanceModal({
             <form onSubmit={handleSubmitAdvance} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-                  مبلغ السلفة المطلوب ({getGlobalCurrencySymbol()}):
+                  {t('hr.portal.portal_advance_modal.s2', "مبلغ السلفة المطلوب (")}{getGlobalCurrencySymbol()}):
                 </label>
                 <input
                   type="number"
@@ -90,7 +92,7 @@ export function PortalAdvanceModal({
                   step="50"
                   value={advanceAmount}
                   onChange={(e) => setAdvanceAmount(e.target.value)}
-                  placeholder="مثال: 1000"
+                  placeholder={t('hr.portal.portal_advance_modal.s3', "مثال: 1000")}
                   required
                   style={{
                     width: '100%',
@@ -106,7 +108,7 @@ export function PortalAdvanceModal({
 
               <div>
                 <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-                  مدة السداد (عدد الشهور):
+                  {t('hr.portal.portal_advance_modal.s4', "مدة السداد (عدد الشهور):")}
                 </label>
                 <select
                   value={advanceMonths}
@@ -121,22 +123,22 @@ export function PortalAdvanceModal({
                     fontWeight: 700,
                   }}
                 >
-                  <option value={1}>شهر واحد (خصم كامل من الراتب القادم)</option>
-                  <option value={2}>شهران (قسطان متساويان)</option>
-                  <option value={3}>3 شهور (3 أقساط)</option>
-                  <option value={6}>6 شهور</option>
+                  <option value={1}>{t('hr.portal.portal_advance_modal.s5', "شهر واحد (خصم كامل من الراتب القادم)")}</option>
+                  <option value={2}>{t('hr.portal.portal_advance_modal.s6', "شهران (قسطان متساويان)")}</option>
+                  <option value={3}>{t('hr.portal.portal_advance_modal.s7', "3 شهور (3 أقساط)")}</option>
+                  <option value={6}>{t('hr.portal.portal_advance_modal.s8', "6 شهور")}</option>
                 </select>
               </div>
 
               <div>
                 <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-                  سبب طلب السلفة:
+                  {t('hr.portal.portal_advance_modal.s9', "سبب طلب السلفة:")}
                 </label>
                 <textarea
                   rows={3}
                   value={advanceReason}
                   onChange={(e) => setAdvanceReason(e.target.value)}
-                  placeholder="اكتب سبب طلب السلفة والظروف الخاصة باختصار..."
+                  placeholder={t('hr.portal.portal_advance_modal.s10', "اكتب سبب طلب السلفة والظروف الخاصة باختصار...")}
                   style={{
                     width: '100%',
                     padding: '10px',
@@ -165,7 +167,7 @@ export function PortalAdvanceModal({
                     cursor: advanceSubmitting ? 'not-allowed' : 'pointer',
                   }}
                 >
-                  {advanceSubmitting ? 'جاري التسجيل...' : 'إرسال طلب السلفة'}
+                  {advanceSubmitting ? t('hr.portal.portal_advance_modal.s11', "جاري التسجيل...") : t('hr.portal.portal_advance_modal.s12', "إرسال طلب السلفة")}
                 </button>
                 <button
                   type="button"
@@ -180,7 +182,7 @@ export function PortalAdvanceModal({
                     cursor: 'pointer',
                   }}
                 >
-                  إلغاء
+                  {t('hr.portal.portal_advance_modal.s13', "إلغاء")}
                 </button>
               </div>
             </form>

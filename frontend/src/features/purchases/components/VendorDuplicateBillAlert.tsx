@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import type { DuplicateBillCheckResult, DuplicateBillMatch } from '../api/purchases.api';
 import { AlertTriangleIcon, CheckShieldIcon } from '@/shared/components/icons/AppIcons';
 
@@ -22,6 +23,7 @@ export function VendorDuplicateBillAlert({
   onChangeOverrideReason,
   isAdmin,
 }: VendorDuplicateBillAlertProps) {
+  const { t } = useTranslation();
   if (!checkResult || !checkResult.hasDuplicates || checkResult.matches.length === 0) {
     return null;
   }
@@ -51,8 +53,8 @@ export function VendorDuplicateBillAlert({
         <AlertTriangleIcon size={18} />
         <span>
           {isBlocking
-            ? 'تنبيه رقابي حاسم: تم رصد فاتورة مشتريات مكررة لنفس المورد'
-            : 'تنبيه رقابي استباقي: اشتباه في تكرار فاتورة مشتريات سابقة لنفس المورد'}
+            ? t('purchases.vendor_duplicate_bill_alert.s0', "تنبيه رقابي حاسم: تم رصد فاتورة مشتريات مكررة لنفس المورد")
+            : t('purchases.vendor_duplicate_bill_alert.s1', "تنبيه رقابي استباقي: اشتباه في تكرار فاتورة مشتريات سابقة لنفس المورد")}
         </span>
       </div>
 
@@ -87,12 +89,12 @@ export function VendorDuplicateBillAlert({
                   fontSize: '11.5px',
                 }}
               >
-                {m.severity === 'blocking' ? 'تطابق تام' : 'اشتباه قيمة أو تشابه'}
+                {m.severity === 'blocking' ? t('purchases.vendor_duplicate_bill_alert.s2', "تطابق تام") : t('purchases.vendor_duplicate_bill_alert.s3', "اشتباه قيمة أو تشابه")}
               </span>
               <span>{m.message}</span>
             </div>
             <div style={{ fontWeight: 600, color: '#0f172a', fontSize: '12px' }}>
-              المبلغ: {m.total.toLocaleString('ar-EG', { minimumFractionDigits: 2 })} | التاريخ: {m.date}
+              {t('purchases.vendor_duplicate_bill_alert.s4', "المبلغ:")} {m.total.toLocaleString('ar-EG', { minimumFractionDigits: 2 })} {t('purchases.vendor_duplicate_bill_alert.s5', "| التاريخ:")} {m.date}
             </div>
           </div>
         ))}
@@ -127,19 +129,19 @@ export function VendorDuplicateBillAlert({
                   style={{ width: '16px', height: '16px', accentColor: '#170e5e', cursor: 'pointer' }}
                 />
                 <CheckShieldIcon size={16} />
-                <span>طلب تجاوز حظر الفاتورة المكررة (صلاحية إدارية خاصة للمسؤولين)</span>
+                <span>{t('purchases.vendor_duplicate_bill_alert.s6', "طلب تجاوز حظر الفاتورة المكررة (صلاحية إدارية خاصة للمسؤولين)")}</span>
               </label>
 
               {allowOverride && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '4px' }}>
                   <label style={{ fontSize: '12px', fontWeight: 600, color: '#334155' }}>
-                    سبب التجاوز والاعتماد الإداري (إلزامي - 10 أحرف على الأقل):
+                    {t('purchases.vendor_duplicate_bill_alert.s7', "سبب التجاوز والاعتماد الإداري (إلزامي - 10 أحرف على الأقل):")}
                   </label>
                   <input
                     type="text"
                     value={overrideReason}
                     onChange={(e) => onChangeOverrideReason(e.target.value)}
-                    placeholder="مثال: فاتورة ملحقة معتمدة لتعديل أسعار توريد شحنة سابقة..."
+                    placeholder={t('purchases.vendor_duplicate_bill_alert.s8', "مثال: فاتورة ملحقة معتمدة لتعديل أسعار توريد شحنة سابقة...")}
                     style={{
                       padding: '8px 12px',
                       borderRadius: '6px',
@@ -151,7 +153,7 @@ export function VendorDuplicateBillAlert({
                   />
                   {overrideReason.trim().length > 0 && overrideReason.trim().length < 10 && (
                     <small style={{ color: '#ef4444' }}>
-                      السبب قصير جداً ({overrideReason.trim().length}/10 أحرف مطلوبة).
+                      {t('purchases.vendor_duplicate_bill_alert.s9', "السبب قصير جداً (")}{overrideReason.trim().length}{t('purchases.vendor_duplicate_bill_alert.s10', "/10 أحرف مطلوبة).")}
                     </small>
                   )}
                 </div>
@@ -159,7 +161,7 @@ export function VendorDuplicateBillAlert({
             </>
           ) : (
             <div style={{ color: '#b91c1c', fontSize: '12px', fontWeight: 600 }}>
-              تم حظر حفظ هذه الفاتورة نظراً لتطابق رقم فاتورة المورد مع فاتورة سابقة. لتجاوز الحظر، يرجى مراجعة مسؤول النظام (Admin).
+              {t('purchases.vendor_duplicate_bill_alert.s11', "تم حظر حفظ هذه الفاتورة نظراً لتطابق رقم فاتورة المورد مع فاتورة سابقة. لتجاوز الحظر، يرجى مراجعة مسؤول النظام (Admin).")}
             </div>
           )}
         </div>
@@ -181,7 +183,7 @@ export function VendorDuplicateBillAlert({
               onChange={(e) => onToggleConfirmWarning(e.target.checked)}
               style={{ width: '16px', height: '16px', accentColor: '#170e5e', cursor: 'pointer' }}
             />
-            <span>أؤكد أن هذه فاتورة توريد مختلفة وليست مكررة، وأرغب في متابعة الحفظ</span>
+            <span>{t('purchases.vendor_duplicate_bill_alert.s12', "أؤكد أن هذه فاتورة توريد مختلفة وليست مكررة، وأرغب في متابعة الحفظ")}</span>
           </label>
         </div>
       )}

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 import { UtensilsIcon, BellIcon, BellOffIcon, Maximize2Icon, ArrowRightIcon, BanIcon } from '@/shared/components/icons/AppIcons';
 
@@ -24,6 +25,7 @@ export const KdsHeader: React.FC<KdsHeaderProps> = ({
   onOpen86Modal,
   active86Count = 0,
 }) => {
+  const { t } = useTranslation();
   return (
     <header
       style={{
@@ -60,7 +62,7 @@ export const KdsHeader: React.FC<KdsHeaderProps> = ({
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <h1 style={{ margin: 0, fontSize: '18px', fontWeight: 900, color: '#0f172a' }}>
-              شاشة المطبخ التفاعلية (KDS)
+              {t('pos.kds.kds_header.s0', "شاشة المطبخ التفاعلية (KDS)")}
             </h1>
             <span
               style={{
@@ -77,7 +79,7 @@ export const KdsHeader: React.FC<KdsHeaderProps> = ({
             </span>
           </div>
           <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px', fontWeight: 600 }}>
-            نظام إدارة وتوجيه طلبات المطبخ الذكي • Z-Kitchen Operations
+            {t('pos.kds.kds_header.s1', "نظام إدارة وتوجيه طلبات المطبخ الذكي • Z-Kitchen Operations")}
           </div>
         </div>
       </div>
@@ -119,10 +121,10 @@ export const KdsHeader: React.FC<KdsHeaderProps> = ({
                 boxShadow: '0 2px 6px rgba(23, 14, 94, 0.2)',
                 transition: 'all 0.15s ease',
               }}
-              title="العودة للنظام (Esc)"
+              title={t('pos.kds.kds_header.s2', "العودة للنظام (Esc)")}
             >
               <ArrowRightIcon size={14} color="#ffffff" strokeWidth={2.5} />
-              <span>العودة للنظام</span>
+              <span>{t('pos.kds.kds_header.s3', "العودة للنظام")}</span>
             </button>
           )}
 
@@ -145,10 +147,10 @@ export const KdsHeader: React.FC<KdsHeaderProps> = ({
                 gap: '6px',
                 transition: 'all 0.15s ease',
               }}
-              title="إدارة واستبعاد الأصناف النافذة بالمطبخ (86'd Items)"
+              title={t('pos.kds.kds_header.s4', "إدارة واستبعاد الأصناف النافذة بالمطبخ (86'd Items)")}
             >
               <BanIcon size={14} color={active86Count > 0 ? '#dc2626' : '#64748b'} />
-              <span>أصناف 86</span>
+              <span>{t('pos.kds.kds_header.s5', "أصناف 86")}</span>
               {active86Count > 0 && (
                 <span
                   style={{
@@ -184,10 +186,10 @@ export const KdsHeader: React.FC<KdsHeaderProps> = ({
               gap: '6px',
               transition: 'all 0.15s ease',
             }}
-            title="تفعيل/كتم صوت جرس التنبيه"
+            title={t('pos.kds.kds_header.s6', "تفعيل/كتم صوت جرس التنبيه")}
           >
             {soundEnabled ? <BellIcon size={14} color="#170e5e" /> : <BellOffIcon size={14} color="#64748b" />}
-            <span>{soundEnabled ? 'التنبيه مفعّل' : 'مكتوم'}</span>
+            <span>{soundEnabled ? t('pos.kds.kds_header.s7', "التنبيه مفعّل") : t('pos.kds.kds_header.s8', "مكتوم")}</span>
           </button>
 
           {/* Recall Last Served */}
@@ -210,9 +212,9 @@ export const KdsHeader: React.FC<KdsHeaderProps> = ({
               boxShadow: '0 1px 2px rgba(15, 23, 42, 0.04)',
               transition: 'all 0.15s ease',
             }}
-            title="استرجاع آخر طلب مكتمل"
+            title={t('pos.kds.kds_header.s9', "استرجاع آخر طلب مكتمل")}
           >
-            <span>استرجاع آخر طلب</span>
+            <span>{t('pos.kds.kds_header.s10', "استرجاع آخر طلب")}</span>
           </button>
 
           {/* Fullscreen Button */}
@@ -233,7 +235,7 @@ export const KdsHeader: React.FC<KdsHeaderProps> = ({
               justifyContent: 'center',
               boxShadow: '0 1px 2px rgba(15, 23, 42, 0.04)',
             }}
-            title="ملء الشاشة"
+            title={t('pos.kds.kds_header.s11', "ملء الشاشة")}
           >
             <Maximize2Icon size={16} color="#334155" />
           </button>

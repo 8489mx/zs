@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { CSSProperties, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
@@ -34,6 +35,7 @@ function formatCompactAlert(alert: { title: string; message: string; domain: str
 }
 
 export function ManagerNotificationsBell() {
+  const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
@@ -169,7 +171,7 @@ export function ManagerNotificationsBell() {
   const menu = isOpen ? (
     <div
       role="dialog"
-      aria-label="تنبيهات النظام"
+      aria-label={t('dashboard.manager_notifications_bell.s0', "تنبيهات النظام")}
       ref={menuRef}
       style={{
         ...menuStyle,
@@ -185,7 +187,7 @@ export function ManagerNotificationsBell() {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '10px', borderBottom: '1px solid #f1f5f9', marginBottom: '10px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <strong style={{ fontSize: '0.98rem', fontWeight: 800, color: '#0f172a' }}>
-            تنبيهات النظام
+            {t('dashboard.manager_notifications_bell.s1', "تنبيهات النظام")}
           </strong>
           {badgeCount > 0 ? (
             <span style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fee2e2', fontSize: '0.75rem', fontWeight: 800, padding: '2px 8px', borderRadius: '12px' }}>
@@ -201,7 +203,7 @@ export function ManagerNotificationsBell() {
               setSoundEnabled(next);
               setAudioChimeEnabled(next);
             }}
-            title={soundEnabled ? 'صوت التنبيهات: مفعّل (اضغط للكتم)' : 'صوت التنبيهات: صامت (اضغط للتشغيل)'}
+            title={soundEnabled ? t('dashboard.manager_notifications_bell.s2', "صوت التنبيهات: مفعّل (اضغط للكتم)") : t('dashboard.manager_notifications_bell.s3', "صوت التنبيهات: صامت (اضغط للتشغيل)")}
             style={{
               background: soundEnabled ? '#eff6ff' : '#f1f5f9',
               border: soundEnabled ? '1px solid #bfdbfe' : '1px solid #cbd5e1',
@@ -216,11 +218,11 @@ export function ManagerNotificationsBell() {
           >
             {soundEnabled ? <BellIcon size={13} color="#1e40af" /> : <BellOffIcon size={13} color="#64748b" />}
             <span style={{ fontSize: '0.7rem', fontWeight: 700, color: soundEnabled ? '#1e40af' : '#64748b' }}>
-              {soundEnabled ? 'صوت' : 'صامت'}
+              {soundEnabled ? t('dashboard.manager_notifications_bell.s4', "صوت") : t('dashboard.manager_notifications_bell.s5', "صامت")}
             </span>
           </button>
           <span style={{ fontSize: '0.78rem', color: '#64748b' }}>
-            {badgeCount ? `${badgeCount} تنبيه بحاجة لمتابعة` : 'الكل مستقر ومحدث'}
+            {badgeCount ? `${badgeCount} تنبيه بحاجة لمتابعة` : t('dashboard.manager_notifications_bell.s6', "الكل مستقر ومحدث")}
           </span>
         </div>
       </div>
@@ -250,11 +252,11 @@ export function ManagerNotificationsBell() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <RefreshCwIcon size={18} color="#ffffff" />
             <div>
-              <div style={{ fontWeight: 800, fontSize: '12.5px', color: '#ffffff' }}>تحديث جديد للمنظومة (v{updateInfo?.latestVersion})</div>
-              <div style={{ fontSize: '10.5px', color: '#a7f3d0', marginTop: 1 }}>اضغط هنا للانتقال لصفحة الترقية وتطبيق التحديث</div>
+              <div style={{ fontWeight: 800, fontSize: '12.5px', color: '#ffffff' }}>{t('dashboard.manager_notifications_bell.s7', "تحديث جديد للمنظومة (v")}{updateInfo?.latestVersion})</div>
+              <div style={{ fontSize: '10.5px', color: '#a7f3d0', marginTop: 1 }}>{t('dashboard.manager_notifications_bell.s8', "اضغط هنا للانتقال لصفحة الترقية وتطبيق التحديث")}</div>
             </div>
           </div>
-          <span style={{ fontSize: '11px', fontWeight: 800, background: '#10b981', color: '#ffffff', padding: '3px 9px', borderRadius: '6px', whiteSpace: 'nowrap' }}>ترقية الآن</span>
+          <span style={{ fontSize: '11px', fontWeight: 800, background: '#10b981', color: '#ffffff', padding: '3px 9px', borderRadius: '6px', whiteSpace: 'nowrap' }}>{t('dashboard.manager_notifications_bell.s9', "ترقية الآن")}</span>
         </div>
       )}
 
@@ -276,7 +278,7 @@ export function ManagerNotificationsBell() {
               whiteSpace: 'nowrap',
             }}
           >
-            الكل ({badgeCount})
+            {t('dashboard.manager_notifications_bell.s10', "الكل (")}{badgeCount})
           </button>
 
           {vanSuspicionCount > 0 && (
@@ -295,7 +297,7 @@ export function ManagerNotificationsBell() {
                 whiteSpace: 'nowrap',
               }}
             >
-              رادار المناديب ({vanSuspicionCount})
+              {t('dashboard.manager_notifications_bell.s11', "رادار المناديب (")}{vanSuspicionCount})
             </button>
           )}
 
@@ -316,7 +318,7 @@ export function ManagerNotificationsBell() {
                 transition: 'all 0.15s ease',
               }}
             >
-              طلبات المتجر ({onlineOrdersCount})
+              {t('dashboard.manager_notifications_bell.s12', "طلبات المتجر (")}{onlineOrdersCount})
             </button>
           )}
 
@@ -337,7 +339,7 @@ export function ManagerNotificationsBell() {
                 transition: 'all 0.15s ease',
               }}
             >
-              المخزون ({inventoryCount})
+              {t('dashboard.manager_notifications_bell.s13', "المخزون (")}{inventoryCount})
             </button>
           )}
 
@@ -358,7 +360,7 @@ export function ManagerNotificationsBell() {
                 transition: 'all 0.15s ease',
               }}
             >
-              صلاحية الأدوية ({pharmacyCount})
+              {t('dashboard.manager_notifications_bell.s14', "صلاحية الأدوية (")}{pharmacyCount})
             </button>
           )}
 
@@ -379,7 +381,7 @@ export function ManagerNotificationsBell() {
                 transition: 'all 0.15s ease',
               }}
             >
-              الأقساط ({installmentsCount})
+              {t('dashboard.manager_notifications_bell.s15', "الأقساط (")}{installmentsCount})
             </button>
           )}
 
@@ -400,7 +402,7 @@ export function ManagerNotificationsBell() {
                 transition: 'all 0.15s ease',
               }}
             >
-              العملاء ({customersCount})
+              {t('dashboard.manager_notifications_bell.s16', "العملاء (")}{customersCount})
             </button>
           )}
 
@@ -421,7 +423,7 @@ export function ManagerNotificationsBell() {
                 transition: 'all 0.15s ease',
               }}
             >
-              المبيعات ({salesCount})
+              {t('dashboard.manager_notifications_bell.s17', "المبيعات (")}{salesCount})
             </button>
           )}
 
@@ -442,7 +444,7 @@ export function ManagerNotificationsBell() {
                 transition: 'all 0.15s ease',
               }}
             >
-              المالية ({accountsCount})
+              {t('dashboard.manager_notifications_bell.s18', "المالية (")}{accountsCount})
             </button>
           )}
         </div>
@@ -539,8 +541,8 @@ export function ManagerNotificationsBell() {
         </div>
       ) : (
         <div style={{ textAlign: 'center', padding: '28px 16px', color: '#64748b' }}>
-          <strong style={{ display: 'block', fontSize: '0.92rem', color: '#0f172a', marginBottom: '4px' }}>لا توجد تنبيهات عاجلة</strong>
-          <span style={{ fontSize: '0.8rem' }}>جميع العمليات والمخزون في الحدود الطبيعية.</span>
+          <strong style={{ display: 'block', fontSize: '0.92rem', color: '#0f172a', marginBottom: '4px' }}>{t('dashboard.manager_notifications_bell.s19', "لا توجد تنبيهات عاجلة")}</strong>
+          <span style={{ fontSize: '0.8rem' }}>{t('dashboard.manager_notifications_bell.s20', "جميع العمليات والمخزون في الحدود الطبيعية.")}</span>
         </div>
       )}
 
@@ -563,7 +565,7 @@ export function ManagerNotificationsBell() {
             onMouseEnter={(e) => { e.currentTarget.style.background = '#f1f5f9'; e.currentTarget.style.color = '#0f172a'; }}
             onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#475569'; }}
           >
-            {showAllAlerts ? 'عرض أقل' : `عرض الكل (${badgeCount})`}
+            {showAllAlerts ? t('dashboard.manager_notifications_bell.s21', "عرض أقل") : `عرض الكل (${badgeCount})`}
           </button>
         ) : <div />}
 
@@ -584,7 +586,7 @@ export function ManagerNotificationsBell() {
           onMouseEnter={(e) => { e.currentTarget.style.background = '#1e293b'; }}
           onMouseLeave={(e) => { e.currentTarget.style.background = '#0f172a'; }}
         >
-          مركز القرارات ←
+          {t('dashboard.manager_notifications_bell.s22', "مركز القرارات ←")}
         </button>
       </div>
     </div>
@@ -595,7 +597,7 @@ export function ManagerNotificationsBell() {
       <button
         type="button"
         className="manager-notifications-button"
-        aria-label="تنبيهات المدير"
+        aria-label={t('dashboard.manager_notifications_bell.s23', "تنبيهات المدير")}
         aria-haspopup="dialog"
         aria-expanded={isOpen}
         onClick={() => setIsOpen((current) => !current)}

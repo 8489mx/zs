@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useMemo, Fragment } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
@@ -87,6 +88,7 @@ const formatUnitLabel = (unit?: string, compCode?: string): string => {
 };
 
 export function ContractingTenderPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const projectIdParam = searchParams.get('projectId');
@@ -856,10 +858,10 @@ export function ContractingTenderPage() {
           <div>
             <h2 style={{ fontSize: 'var(--font-page-title)', fontWeight: 800, color: '#170e5e', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
               <AppIcons.Sliders size={20} />
-              المرحلة 1: دراسة وتسعير العطاءات والمشروعات المحتملة (Tender & Bid Estimator)
+              {t('contracting.contracting_tender_page.s0', "المرحلة 1: دراسة وتسعير العطاءات والمشروعات المحتملة (Tender & Bid Estimator)")}
             </h2>
             <p style={{ fontSize: 'var(--font-subtitle)', color: '#64748b', margin: '4px 0 0' }}>
-              حصر الكميات من المخططات وتفكيك الكود الهندسي (BOM) لضبط نسب الخامات والمصنعيات وحساب الأرباح قبل توقيع العقد.
+              {t('contracting.contracting_tender_page.s1', "حصر الكميات من المخططات وتفكيك الكود الهندسي (BOM) لضبط نسب الخامات والمصنعيات وحساب الأرباح قبل توقيع العقد.")}
             </p>
           </div>
 
@@ -885,7 +887,7 @@ export function ContractingTenderPage() {
               }}
             >
               <AppIcons.Plus size={15} />
-              <span>تسعير عطاء جديد</span>
+              <span>{t('contracting.contracting_tender_page.s2', "تسعير عطاء جديد")}</span>
             </button>
 
             <button
@@ -908,7 +910,7 @@ export function ContractingTenderPage() {
               }}
             >
               <AppIcons.Folder size={15} />
-              <span>العطاءات المحفوظة</span>
+              <span>{t('contracting.contracting_tender_page.s3', "العطاءات المحفوظة")}</span>
               <span
                 style={{
                   fontSize: 'var(--font-badge)',
@@ -944,7 +946,7 @@ export function ContractingTenderPage() {
               }}
             >
               <AppIcons.Layers size={15} />
-              <span>خريطة مسار المشروع</span>
+              <span>{t('contracting.contracting_tender_page.s4', "خريطة مسار المشروع")}</span>
             </button>
 
             <button
@@ -967,7 +969,7 @@ export function ContractingTenderPage() {
               }}
             >
               <AppIcons.Calculator size={15} />
-              <span>محرك التسعير الآلي</span>
+              <span>{t('contracting.contracting_tender_page.s5', "محرك التسعير الآلي")}</span>
             </button>
 
             <button
@@ -992,7 +994,7 @@ export function ContractingTenderPage() {
               }}
             >
               <AppIcons.FileSpreadsheet size={15} />
-              <span>تصدير إكسيل مسعر (Excel)</span>
+              <span>{t('contracting.contracting_tender_page.s6', "تصدير إكسيل مسعر (Excel)")}</span>
             </button>
 
             <button
@@ -1017,7 +1019,7 @@ export function ContractingTenderPage() {
               }}
             >
               <AppIcons.Printer size={15} />
-              <span>عرض سعر رسمي للعميل</span>
+              <span>{t('contracting.contracting_tender_page.s7', "عرض سعر رسمي للعميل")}</span>
             </button>
           </div>
         </div>
@@ -1048,7 +1050,7 @@ export function ContractingTenderPage() {
               </span>
               {currentProject.clientName && (
                 <span style={{ fontSize: 'var(--font-subtitle)', color: '#64748b' }}>
-                  (العميل: {currentProject.clientName})
+                  {t('contracting.contracting_tender_page.s8', "(العميل:")} {currentProject.clientName})
                 </span>
               )}
               <span
@@ -1063,12 +1065,12 @@ export function ContractingTenderPage() {
                 }}
               >
                 {currentProject.status === 'submitted'
-                  ? 'تم تقديم العرض المالي (بانتظار رد العميل)'
+                  ? t('contracting.contracting_tender_page.s9', "تم تقديم العرض المالي (بانتظار رد العميل)")
                   : currentProject.status === 'negotiation'
                   ? `تحت التفاوض والمراجعة (Rev-${currentProject.revisionNumber || 1})`
                   : currentProject.status === 'lost'
-                  ? 'أرشيف العطاءات غير المرسّاة'
-                  : 'عطاء قيد الدراسة والتسعير (Draft)'}
+                  ? t('contracting.contracting_tender_page.s10', "أرشيف العطاءات غير المرسّاة")
+                  : t('contracting.contracting_tender_page.s11', "عطاء قيد الدراسة والتسعير (Draft)")}
               </span>
               {Number(currentProject.revisionNumber || 0) > 0 && (
                 <span style={{ fontFamily: 'monospace', fontWeight: 700, fontSize: '11px', color: '#475569', background: '#ffffff', padding: '2px 8px', borderRadius: '4px', border: '1px solid #e2e8f0' }}>
@@ -1098,7 +1100,7 @@ export function ContractingTenderPage() {
                 }}
               >
                 <AppIcons.Folder size={13} />
-                <span>تبديل العطاء</span>
+                <span>{t('contracting.contracting_tender_page.s12', "تبديل العطاء")}</span>
               </button>
 
               <button
@@ -1121,7 +1123,7 @@ export function ContractingTenderPage() {
                 }}
               >
                 <AppIcons.Plus size={13} />
-                <span>تسعير عطاء جديد</span>
+                <span>{t('contracting.contracting_tender_page.s13', "تسعير عطاء جديد")}</span>
               </button>
 
               {(currentProject.status === 'draft' || currentProject.status === 'planning') && (
@@ -1145,7 +1147,7 @@ export function ContractingTenderPage() {
                   }}
                 >
                   <AppIcons.CheckCircle size={13} />
-                  <span>تقديم العرض للعميل</span>
+                  <span>{t('contracting.contracting_tender_page.s14', "تقديم العرض للعميل")}</span>
                 </button>
               )}
 
@@ -1169,7 +1171,7 @@ export function ContractingTenderPage() {
                 }}
               >
                 <AppIcons.Copy size={13} />
-                <span>إنشاء مراجعة تفاوض (Rev+)</span>
+                <span>{t('contracting.contracting_tender_page.s15', "إنشاء مراجعة تفاوض (Rev+)")}</span>
               </button>
 
               <button
@@ -1193,7 +1195,7 @@ export function ContractingTenderPage() {
                 }}
               >
                 <AppIcons.CheckShield size={14} />
-                <span>اعتماد وترسية العطاء</span>
+                <span>{t('contracting.contracting_tender_page.s16', "اعتماد وترسية العطاء")}</span>
               </button>
 
               <button
@@ -1216,7 +1218,7 @@ export function ContractingTenderPage() {
                 }}
               >
                 <AppIcons.Archive size={13} />
-                <span>أرشفة (لم يُرسَ)</span>
+                <span>{t('contracting.contracting_tender_page.s17', "أرشفة (لم يُرسَ)")}</span>
               </button>
             </div>
           </div>
@@ -1239,10 +1241,10 @@ export function ContractingTenderPage() {
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <AppIcons.Sliders size={16} style={{ color: '#170e5e' }} />
               <span style={{ fontSize: 'var(--font-body)', fontWeight: 700, color: '#1e293b' }}>
-                مسودة عطاء جديد (جاهزة لإدخال أو سحب كراسة المقايسة BOQ)
+                {t('contracting.contracting_tender_page.s18', "مسودة عطاء جديد (جاهزة لإدخال أو سحب كراسة المقايسة BOQ)")}
               </span>
               <span style={{ fontSize: 'var(--font-subtitle)', color: '#64748b' }}>
-                - يمكنك رفع ملف المقايسة وحصر المخططات، ثم حفظ العطاء قيد الدراسة والتسعير.
+                {t('contracting.contracting_tender_page.s19', "- يمكنك رفع ملف المقايسة وحصر المخططات، ثم حفظ العطاء قيد الدراسة والتسعير.")}
               </span>
             </div>
 
@@ -1267,7 +1269,7 @@ export function ContractingTenderPage() {
                 }}
               >
                 <AppIcons.Folder size={13} />
-                <span>فتح عطاء محفوظ سابقاً ({tendersUnderStudyCount})</span>
+                <span>{t('contracting.contracting_tender_page.s20', "فتح عطاء محفوظ سابقاً (")}{tendersUnderStudyCount})</span>
               </button>
 
               <button
@@ -1290,7 +1292,7 @@ export function ContractingTenderPage() {
                 }}
               >
                 <AppIcons.Layers size={13} />
-                <span>خريطة مسار وسيناريوهات المشروع</span>
+                <span>{t('contracting.contracting_tender_page.s21', "خريطة مسار وسيناريوهات المشروع")}</span>
               </button>
             </div>
           </div>
@@ -1300,33 +1302,33 @@ export function ContractingTenderPage() {
         <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-end', width: '100%', flexWrap: 'nowrap' }}>
           <div style={{ flex: '2 1 220px', minWidth: '160px' }}>
             <label style={{ display: 'block', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155', marginBottom: '4px', whiteSpace: 'nowrap' }}>
-              اسم المشروع / العطاء المقترح
+              {t('contracting.contracting_tender_page.s22', "اسم المشروع / العطاء المقترح")}
             </label>
             <input
               type="text"
               value={projectName}
               onChange={(e) => setProjectName(e.target.value)}
-              placeholder="مثال: عطاء إنشاء مجمع سكني وتجاري"
+              placeholder={t('contracting.contracting_tender_page.s23', "مثال: عطاء إنشاء مجمع سكني وتجاري")}
               style={{ width: '100%', height: '34px', padding: '6px 10px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: 'var(--font-body)', boxSizing: 'border-box' }}
             />
           </div>
 
           <div style={{ flex: '1.5 1 170px', minWidth: '140px' }}>
             <label style={{ display: 'block', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155', marginBottom: '4px', whiteSpace: 'nowrap' }}>
-              العميل / جهة الإسناد
+              {t('contracting.contracting_tender_page.s24', "العميل / جهة الإسناد")}
             </label>
             <input
               type="text"
               value={clientName}
               onChange={(e) => setClientName(e.target.value)}
-              placeholder="اسم المالك أو جهة الطرح"
+              placeholder={t('contracting.contracting_tender_page.s25', "اسم المالك أو جهة الطرح")}
               style={{ width: '100%', height: '34px', padding: '6px 10px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: 'var(--font-body)', boxSizing: 'border-box' }}
             />
           </div>
 
           <div style={{ width: '95px', flexShrink: 0 }}>
             <label style={{ display: 'block', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155', marginBottom: '4px', whiteSpace: 'nowrap' }}>
-              هامش الربح %
+              {t('contracting.contracting_tender_page.s26', "هامش الربح %")}
             </label>
             <input
               type="number"
@@ -1340,7 +1342,7 @@ export function ContractingTenderPage() {
 
           <div style={{ width: '95px', flexShrink: 0 }}>
             <label style={{ display: 'block', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155', marginBottom: '4px', whiteSpace: 'nowrap' }}>
-              المصاريف %
+              {t('contracting.contracting_tender_page.s27', "المصاريف %")}
             </label>
             <input
               type="number"
@@ -1354,7 +1356,7 @@ export function ContractingTenderPage() {
 
           <div style={{ width: '85px', flexShrink: 0 }}>
             <label style={{ display: 'block', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155', marginBottom: '4px', whiteSpace: 'nowrap' }}>
-              الهالك %
+              {t('contracting.contracting_tender_page.s28', "الهالك %")}
             </label>
             <input
               type="number"
@@ -1390,7 +1392,7 @@ export function ContractingTenderPage() {
               }}
             >
               <AppIcons.CheckCircle size={14} />
-              <span>تعميم النسب على كافة البنود</span>
+              <span>{t('contracting.contracting_tender_page.s29', "تعميم النسب على كافة البنود")}</span>
             </button>
           </div>
         </div>
@@ -1419,7 +1421,7 @@ export function ContractingTenderPage() {
             }}
           >
             <AppIcons.FileSpreadsheet size={15} />
-            <span>استيراد مقايسة Excel (BOQ)</span>
+            <span>{t('contracting.contracting_tender_page.s30', "استيراد مقايسة Excel (BOQ)")}</span>
           </button>
 
           <button
@@ -1442,7 +1444,7 @@ export function ContractingTenderPage() {
             }}
           >
             <AppIcons.Layers size={15} />
-            <span>سحب من المقايسة المرجعية (124 بند)</span>
+            <span>{t('contracting.contracting_tender_page.s31', "سحب من المقايسة المرجعية (124 بند)")}</span>
           </button>
 
           <button
@@ -1465,7 +1467,7 @@ export function ContractingTenderPage() {
             }}
           >
             <AppIcons.Sliders size={15} />
-            <span>حصر سريع من أبعاد الرسومات (CAD Takeoff)</span>
+            <span>{t('contracting.contracting_tender_page.s32', "حصر سريع من أبعاد الرسومات (CAD Takeoff)")}</span>
           </button>
         </div>
 
@@ -1491,12 +1493,12 @@ export function ContractingTenderPage() {
               }}
             >
               <AppIcons.Trash2 size={13} />
-              <span>تفريغ وبدء عطاء جديد</span>
+              <span>{t('contracting.contracting_tender_page.s33', "تفريغ وبدء عطاء جديد")}</span>
             </button>
           )}
 
           <div style={{ fontSize: 'var(--font-body)', fontWeight: 700, color: '#64748b' }}>
-            إجمالي بنود العطاء الحالية: <strong style={{ color: '#0f172a' }}>{items.length} بند</strong>
+            {t('contracting.contracting_tender_page.s34', "إجمالي بنود العطاء الحالية:")} <strong style={{ color: '#0f172a' }}>{items.length} {t('contracting.contracting_tender_page.s35', "بند")}</strong>
           </div>
         </div>
       </div>
@@ -1505,12 +1507,12 @@ export function ContractingTenderPage() {
       {isCadTakeoffFormOpen && (
         <div style={{ background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '12px', padding: '16px 20px' }}>
           <h4 style={{ margin: '0 0 12px', fontSize: 'var(--font-section-title)', fontWeight: 700, color: '#170e5e' }}>
-            حاسبة الحصر السريع للأبعاد وتفكيك الكود الهندسي
+            {t('contracting.contracting_tender_page.s36', "حاسبة الحصر السريع للأبعاد وتفكيك الكود الهندسي")}
           </h4>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px', marginBottom: '12px' }}>
             <div>
-              <label style={{ display: 'block', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>نوع البند</label>
+              <label style={{ display: 'block', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>{t('contracting.contracting_tender_page.s37', "نوع البند")}</label>
               <select
                 value={cadItemCode}
                 onChange={(e) => setCadItemCode(e.target.value)}
@@ -1525,7 +1527,7 @@ export function ContractingTenderPage() {
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>الطول (م)</label>
+              <label style={{ display: 'block', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>{t('contracting.contracting_tender_page.s38', "الطول (م)")}</label>
               <input
                 type="number"
                 step="0.01"
@@ -1536,7 +1538,7 @@ export function ContractingTenderPage() {
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>الارتفاع / السمك (م)</label>
+              <label style={{ display: 'block', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>{t('contracting.contracting_tender_page.s39', "الارتفاع / السمك (م)")}</label>
               <input
                 type="number"
                 step="0.01"
@@ -1547,7 +1549,7 @@ export function ContractingTenderPage() {
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>عدد الحوائط / التكرار</label>
+              <label style={{ display: 'block', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>{t('contracting.contracting_tender_page.s40', "عدد الحوائط / التكرار")}</label>
               <input
                 type="number"
                 step="1"
@@ -1559,7 +1561,7 @@ export function ContractingTenderPage() {
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>خصومات الأبواب والشبابيك (م²)</label>
+              <label style={{ display: 'block', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>{t('contracting.contracting_tender_page.s41', "خصومات الأبواب والشبابيك (م²)")}</label>
               <input
                 type="number"
                 step="0.01"
@@ -1574,7 +1576,7 @@ export function ContractingTenderPage() {
           {cadItemCode.startsWith('BRK') && (
             <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '12px', marginBottom: '12px' }}>
               <div style={{ fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#0f172a', marginBottom: '8px' }}>
-                مقاس الطوب والبلوك ومعادلة حساب الاستهلاك:
+                {t('contracting.contracting_tender_page.s42', "مقاس الطوب والبلوك ومعادلة حساب الاستهلاك:")}
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '10px' }}>
                 {BRICK_SIZE_PRESETS.slice(0, 4).map((p) => (
@@ -1600,7 +1602,7 @@ export function ContractingTenderPage() {
                     />
                     <div>
                       <div style={{ fontWeight: 700, color: '#0f172a' }}>{p.name.split('-')[0]}</div>
-                      <div style={{ fontSize: '11px', color: '#64748b' }}>معدل: {p.ratePerM2OrM3} طوبة/{p.unit}</div>
+                      <div style={{ fontSize: '11px', color: '#64748b' }}>{t('contracting.contracting_tender_page.s43', "معدل:")} {p.ratePerM2OrM3} {t('contracting.contracting_tender_page.s44', "طوبة/")}{p.unit}</div>
                     </div>
                   </label>
                 ))}
@@ -1614,14 +1616,14 @@ export function ContractingTenderPage() {
               onClick={() => setIsCadTakeoffFormOpen(false)}
               style={{ padding: '7px 14px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#fff', fontSize: '12.5px', cursor: 'pointer' }}
             >
-              إلغاء
+              {t('contracting.contracting_tender_page.s45', "إلغاء")}
             </button>
             <button
               type="button"
               onClick={handleAddFromCadTakeoff}
               style={{ padding: '7px 18px', borderRadius: '6px', border: 'none', background: '#170e5e', color: '#fff', fontWeight: 700, fontSize: '12.5px', cursor: 'pointer' }}
             >
-              حصر وإضافة البند فورياً
+              {t('contracting.contracting_tender_page.s46', "حصر وإضافة البند فورياً")}
             </button>
           </div>
         </div>
@@ -1634,9 +1636,9 @@ export function ContractingTenderPage() {
             <div style={{ color: '#94a3b8', marginBottom: '10px', display: 'flex', justifyContent: 'center' }}>
               <AppIcons.FileSpreadsheet size={42} />
             </div>
-            <div style={{ fontSize: '15px', fontWeight: 700, color: '#1e293b' }}>لم يتم إضافة أي بنود لدراسة هذا العطاء بعد</div>
+            <div style={{ fontSize: '15px', fontWeight: 700, color: '#1e293b' }}>{t('contracting.contracting_tender_page.s47', "لم يتم إضافة أي بنود لدراسة هذا العطاء بعد")}</div>
             <div style={{ fontSize: '13px', marginTop: '6px', color: '#64748b', maxWidth: '500px', marginInline: 'auto' }}>
-              ارفع شيت مقايسة العطاء المسلّم من المالك (Excel)، أو اسحب بنوداً نمطية من المقايسة المرجعية، أو ابدأ بحصر سريع من اللوحات الهندسية.
+              {t('contracting.contracting_tender_page.s48', "ارفع شيت مقايسة العطاء المسلّم من المالك (Excel)، أو اسحب بنوداً نمطية من المقايسة المرجعية، أو ابدأ بحصر سريع من اللوحات الهندسية.")}
             </div>
             <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', marginTop: '16px', flexWrap: 'wrap' }}>
               <button
@@ -1659,7 +1661,7 @@ export function ContractingTenderPage() {
                 }}
               >
                 <AppIcons.FileSpreadsheet size={15} />
-                <span>استيراد مقايسة العطاء من Excel (BOQ)</span>
+                <span>{t('contracting.contracting_tender_page.s49', "استيراد مقايسة العطاء من Excel (BOQ)")}</span>
               </button>
 
               <button
@@ -1681,7 +1683,7 @@ export function ContractingTenderPage() {
                 }}
               >
                 <AppIcons.Layers size={15} />
-                <span>سحب من المقايسة المرجعية</span>
+                <span>{t('contracting.contracting_tender_page.s50', "سحب من المقايسة المرجعية")}</span>
               </button>
             </div>
           </div>
@@ -1703,7 +1705,7 @@ export function ContractingTenderPage() {
               >
                 <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
                   <span style={{ fontSize: '12px', fontWeight: 700, color: '#475569', marginInlineEnd: '4px' }}>
-                    {availableSourceFiles.length > 1 ? 'تبويب ملفات المقايسة:' : 'تصفية حسب التخصص:'}
+                    {availableSourceFiles.length > 1 ? t('contracting.contracting_tender_page.s51', "تبويب ملفات المقايسة:") : t('contracting.contracting_tender_page.s52', "تصفية حسب التخصص:")}
                   </span>
                   <button
                     type="button"
@@ -1720,7 +1722,7 @@ export function ContractingTenderPage() {
                       transition: 'all 0.15s ease',
                     }}
                   >
-                    كافة البنود ({items.length})
+                    {t('contracting.contracting_tender_page.s53', "كافة البنود (")}{items.length})
                   </button>
                   {availableSourceFiles.length > 1
                     ? availableSourceFiles.map(({ fileName, count }) => {
@@ -1742,7 +1744,7 @@ export function ContractingTenderPage() {
                               transition: 'all 0.15s ease',
                             }}
                           >
-                            ملف: {fileName} ({count})
+                            {t('contracting.contracting_tender_page.s54', "ملف:")} {fileName} ({count})
                           </button>
                         );
                       })
@@ -1775,7 +1777,7 @@ export function ContractingTenderPage() {
 
                 {selectedTradeFilter !== 'all' && (
                   <div style={{ fontSize: '12px', color: '#170e5e', fontWeight: 700 }}>
-                    إجمالي {activeScopeLabel}:{' '}
+                    {t('contracting.contracting_tender_page.s55', "إجمالي")} {activeScopeLabel}:{' '}
                     <strong style={{ fontSize: '13.5px' }}>{formatCurrency(tradeSubtotal)}</strong>
                   </div>
                 )}
@@ -1798,16 +1800,16 @@ export function ContractingTenderPage() {
                 </colgroup>
                 <thead style={{ background: '#f8fafc' }}>
                   <tr>
-                    <th style={{ padding: '10px 12px', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>كود البند</th>
-                    <th style={{ padding: '10px 12px', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>بيان الأعمال والمواصفات</th>
-                    <th style={{ padding: '10px 10px', borderBottom: '1px solid #e2e8f0', color: '#475569', textAlign: 'center' }}>الوحدة</th>
-                    <th style={{ padding: '10px 10px', borderBottom: '1px solid #e2e8f0', color: '#475569', textAlign: 'center' }}>الكمية</th>
-                    <th style={{ padding: '10px 10px', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>التكلفة المباشرة</th>
-                    <th style={{ padding: '10px 8px', borderBottom: '1px solid #e2e8f0', color: '#475569', textAlign: 'center' }}>هامش الربح %</th>
-                    <th style={{ padding: '10px 10px', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>سعر الفئة المقترح</th>
-                    <th style={{ padding: '10px 10px', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>إجمالي القيمة</th>
-                    <th style={{ padding: '10px 8px', borderBottom: '1px solid #e2e8f0', color: '#475569', textAlign: 'center' }}>تفكيك الكود</th>
-                    <th style={{ padding: '10px 8px', borderBottom: '1px solid #e2e8f0', color: '#475569', textAlign: 'center' }}>حذف</th>
+                    <th style={{ padding: '10px 12px', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>{t('contracting.contracting_tender_page.s56', "كود البند")}</th>
+                    <th style={{ padding: '10px 12px', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>{t('contracting.contracting_tender_page.s57', "بيان الأعمال والمواصفات")}</th>
+                    <th style={{ padding: '10px 10px', borderBottom: '1px solid #e2e8f0', color: '#475569', textAlign: 'center' }}>{t('contracting.contracting_tender_page.s58', "الوحدة")}</th>
+                    <th style={{ padding: '10px 10px', borderBottom: '1px solid #e2e8f0', color: '#475569', textAlign: 'center' }}>{t('contracting.contracting_tender_page.s59', "الكمية")}</th>
+                    <th style={{ padding: '10px 10px', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>{t('contracting.contracting_tender_page.s60', "التكلفة المباشرة")}</th>
+                    <th style={{ padding: '10px 8px', borderBottom: '1px solid #e2e8f0', color: '#475569', textAlign: 'center' }}>{t('contracting.contracting_tender_page.s61', "هامش الربح %")}</th>
+                    <th style={{ padding: '10px 10px', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>{t('contracting.contracting_tender_page.s62', "سعر الفئة المقترح")}</th>
+                    <th style={{ padding: '10px 10px', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>{t('contracting.contracting_tender_page.s63', "إجمالي القيمة")}</th>
+                    <th style={{ padding: '10px 8px', borderBottom: '1px solid #e2e8f0', color: '#475569', textAlign: 'center' }}>{t('contracting.contracting_tender_page.s64', "تفكيك الكود")}</th>
+                    <th style={{ padding: '10px 8px', borderBottom: '1px solid #e2e8f0', color: '#475569', textAlign: 'center' }}>{t('contracting.contracting_tender_page.s65', "حذف")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1911,7 +1913,7 @@ export function ContractingTenderPage() {
                             <button
                               type="button"
                               onClick={() => setExpandedItemId(isExpanded ? null : item.id)}
-                              title={isExpanded ? 'إغلاق شجرة الموارد' : 'شجرة تحليل الموارد والتكلفة (BOM)'}
+                              title={isExpanded ? t('contracting.contracting_tender_page.s66', "إغلاق شجرة الموارد") : t('contracting.contracting_tender_page.s67', "شجرة تحليل الموارد والتكلفة (BOM)")}
                               style={{
                                 height: '28px',
                                 padding: '0 10px',
@@ -1933,13 +1935,13 @@ export function ContractingTenderPage() {
                               }}
                             >
                               <AppIcons.Sliders size={12} style={{ color: isExpanded ? '#ffffff' : '#170e5e', flexShrink: 0 }} />
-                              <span>{isExpanded ? 'إغلاق' : 'BOM'}</span>
+                              <span>{isExpanded ? t('contracting.contracting_tender_page.s68', "إغلاق") : 'BOM'}</span>
                             </button>
                           </td>
                           <td style={{ padding: '12px 6px', textAlign: 'center', verticalAlign: 'middle' }}>
                             <button
                               type="button"
-                              title="حذف البند من دراسة العطاء"
+                              title={t('contracting.contracting_tender_page.s69', "حذف البند من دراسة العطاء")}
                               onClick={() => setItems((prev) => prev.filter((it) => it.id !== item.id))}
                               style={{
                                 width: '28px',
@@ -1978,15 +1980,15 @@ export function ContractingTenderPage() {
                                 <div style={{ fontWeight: 700, fontSize: '13px', color: '#170e5e', display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0, maxWidth: '650px' }}>
                                   <AppIcons.Sliders size={16} style={{ flexShrink: 0 }} />
                                   <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', direction: textDir }}>
-                                    تفكيك الكود الهندسي وتخصيص الموارد: [{item.itemCode}] {item.description}
+                                    {t('contracting.contracting_tender_page.s70', "تفكيك الكود الهندسي وتخصيص الموارد: [")}{item.itemCode}] {item.description}
                                   </span>
                                 </div>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                                   <div style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '3px 10px', fontSize: '12px', color: '#334155' }}>
-                                    كمية البند: <strong style={{ color: '#0f172a' }}>{item.estimatedQty.toLocaleString()} {formatUnitLabel(item.unit)}</strong>
+                                    {t('contracting.contracting_tender_page.s71', "كمية البند:")} <strong style={{ color: '#0f172a' }}>{item.estimatedQty.toLocaleString()} {formatUnitLabel(item.unit)}</strong>
                                   </div>
                                   <div style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '3px 10px', fontSize: '12px', color: '#334155' }}>
-                                    التكلفة المباشرة للوحدة: <strong style={{ color: '#170e5e', fontWeight: 800 }}>{formatCurrency(rates.directCost)}</strong>
+                                    {t('contracting.contracting_tender_page.s72', "التكلفة المباشرة للوحدة:")} <strong style={{ color: '#170e5e', fontWeight: 800 }}>{formatCurrency(rates.directCost)}</strong>
                                   </div>
                                 <button
                                   type="button"
@@ -2008,7 +2010,7 @@ export function ContractingTenderPage() {
                                   }}
                                 >
                                   <AppIcons.Plus size={13} />
-                                  <span>إضافة خامة / مورد</span>
+                                  <span>{t('contracting.contracting_tender_page.s73', "إضافة خامة / مورد")}</span>
                                 </button>
                               </div>
                             </div>
@@ -2056,7 +2058,7 @@ export function ContractingTenderPage() {
                                     />
                                     <button
                                       type="button"
-                                      title="حذف هذا المورد من البند"
+                                      title={t('contracting.contracting_tender_page.s74', "حذف هذا المورد من البند")}
                                       onClick={() => handleRemoveComponent(item.id, cIdx)}
                                       style={{
                                         background: 'none',
@@ -2078,7 +2080,7 @@ export function ContractingTenderPage() {
                                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '10px', paddingTop: '8px', borderTop: '1px dashed #e2e8f0' }}>
                                     <div>
                                       <label style={{ display: 'block', fontSize: '10.5px', color: '#475569', fontWeight: 600, marginBottom: '3px' }}>
-                                        المعدل/{formatUnitLabel(item.unit)}:
+                                        {t('contracting.contracting_tender_page.s75', "المعدل/")}{formatUnitLabel(item.unit)}:
                                       </label>
                                       <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #cbd5e1', borderRadius: '6px', overflow: 'hidden', background: '#ffffff', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}>
                                         <input
@@ -2119,7 +2121,7 @@ export function ContractingTenderPage() {
 
                                     <div>
                                       <label style={{ display: 'block', fontSize: '10.5px', color: '#475569', fontWeight: 600, marginBottom: '3px' }}>
-                                        سعر الوحدة:
+                                        {t('contracting.contracting_tender_page.s76', "سعر الوحدة:")}
                                       </label>
                                       <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #cbd5e1', borderRadius: '6px', overflow: 'hidden', background: '#ffffff', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}>
                                         <input
@@ -2153,21 +2155,21 @@ export function ContractingTenderPage() {
                                           }}
                                         />
                                         <span style={{ fontSize: '10.5px', color: '#475569', background: '#f1f5f9', padding: '0 7px', height: '28px', display: 'flex', alignItems: 'center', borderInlineStart: '1px solid #e2e8f0', whiteSpace: 'nowrap', fontWeight: 600 }}>
-                                          ج.م
+                                          {t('contracting.contracting_tender_page.s77', "ج.م")}
                                         </span>
                                       </div>
                                     </div>
                                   </div>
 
                                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px', paddingTop: '6px', borderTop: '1px solid #f1f5f9', fontSize: '11px', color: '#64748b' }}>
-                                    <span>إجمالي احتياج المشروع (شامل الهالك):</span>
+                                    <span>{t('contracting.contracting_tender_page.s78', "إجمالي احتياج المشروع (شامل الهالك):")}</span>
                                     <strong style={{ color: '#0f172a', direction: 'ltr', display: 'inline-block' }}>
                                       {(comp.qtyPerUnit * item.estimatedQty * (1 + (item.wastePercent || 0) / 100)).toLocaleString(undefined, { maximumFractionDigits: 1 })} {formatUnitLabel(comp.unit, comp.componentCode)}
                                     </strong>
                                   </div>
 
                                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '3px', fontSize: '11px', color: '#64748b' }}>
-                                    <span>حصة {formatUnitLabel(item.unit)} من التكلفة المباشرة:</span>
+                                    <span>{t('contracting.contracting_tender_page.s79', "حصة")} {formatUnitLabel(item.unit)} {t('contracting.contracting_tender_page.s80', "من التكلفة المباشرة:")}</span>
                                     <strong style={{ color: '#170e5e', fontWeight: 800 }}>
                                       {formatCurrency(comp.qtyPerUnit * comp.unitRate)}
                                     </strong>
@@ -2193,7 +2195,7 @@ export function ContractingTenderPage() {
         <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '18px 20px' }}>
           <h3 style={{ fontSize: 'var(--font-section-title)', fontWeight: 700, color: '#0f172a', margin: '0 0 12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <AppIcons.Box size={18} />
-            إجمالي الموارد والخامات التقديرية لتنفيذ العطاء بالكامل (Pre-Procurement Materials Takeoff)
+            {t('contracting.contracting_tender_page.s81', "إجمالي الموارد والخامات التقديرية لتنفيذ العطاء بالكامل (Pre-Procurement Materials Takeoff)")}
           </h3>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '10px' }}>
             {consolidatedMaterials.slice(0, 8).map((mat, mIdx) => (
@@ -2203,7 +2205,7 @@ export function ContractingTenderPage() {
                   {mat.totalQty.toLocaleString(undefined, { maximumFractionDigits: 1 })} {mat.unit}
                 </div>
                 <div style={{ fontSize: '11px', color: '#1e40af', fontWeight: 600 }}>
-                  التكلفة: {formatCurrency(mat.totalCost)}
+                  {t('contracting.contracting_tender_page.s82', "التكلفة:")} {formatCurrency(mat.totalCost)}
                 </div>
               </div>
             ))}
@@ -2231,17 +2233,17 @@ export function ContractingTenderPage() {
       >
         <div style={{ display: 'flex', gap: '24px', alignItems: 'center', flexWrap: 'wrap' }}>
           <div>
-            <div style={{ fontSize: '11.5px', color: '#64748b', fontWeight: 600 }}>إجمالي التكلفة المباشرة</div>
+            <div style={{ fontSize: '11.5px', color: '#64748b', fontWeight: 600 }}>{t('contracting.contracting_tender_page.s83', "إجمالي التكلفة المباشرة")}</div>
             <div style={{ fontSize: '15px', fontWeight: 700, color: '#0f172a' }}>{formatCurrency(grandTotals.totalDirectCost)}</div>
           </div>
 
           <div>
-            <div style={{ fontSize: '11.5px', color: '#64748b', fontWeight: 600 }}>صافي الربح المتوقع ({grandTotals.profitMargin.toFixed(1)}%)</div>
+            <div style={{ fontSize: '11.5px', color: '#64748b', fontWeight: 600 }}>{t('contracting.contracting_tender_page.s84', "صافي الربح المتوقع (")}{grandTotals.profitMargin.toFixed(1)}%)</div>
             <div style={{ fontSize: '16px', fontWeight: 800, color: '#15803d' }}>{formatCurrency(grandTotals.totalProfit)}</div>
           </div>
 
           <div>
-            <div style={{ fontSize: '12px', color: '#170e5e', fontWeight: 700 }}>إجمالي قيمة العطاء للعميل</div>
+            <div style={{ fontSize: '12px', color: '#170e5e', fontWeight: 700 }}>{t('contracting.contracting_tender_page.s85', "إجمالي قيمة العطاء للعميل")}</div>
             <div style={{ fontSize: '19px', fontWeight: 800, color: '#170e5e' }}>{formatCurrency(grandTotals.totalSellingPrice)}</div>
           </div>
         </div>
@@ -2251,7 +2253,7 @@ export function ContractingTenderPage() {
             type="button"
             disabled={isSubmitting || items.length === 0}
             onClick={handleExportPricedClientExcel}
-            title="تصدير شيت العميل الأصلي بنفس ألوانه وديباجته وتنسيقاته مع كتابة الأسعار فقط"
+            title={t('contracting.contracting_tender_page.s86', "تصدير شيت العميل الأصلي بنفس ألوانه وديباجته وتنسيقاته مع كتابة الأسعار فقط")}
             style={{
               height: '40px',
               padding: '0 16px',
@@ -2270,7 +2272,7 @@ export function ContractingTenderPage() {
             }}
           >
             <AppIcons.Download size={15} />
-            <span>تصدير شيت العميل المسعر (Excel)</span>
+            <span>{t('contracting.contracting_tender_page.s87', "تصدير شيت العميل المسعر (Excel)")}</span>
           </button>
 
           <button
@@ -2295,7 +2297,7 @@ export function ContractingTenderPage() {
             }}
           >
             <AppIcons.Printer size={15} />
-            <span>عرض السعر للعميل</span>
+            <span>{t('contracting.contracting_tender_page.s88', "عرض السعر للعميل")}</span>
           </button>
 
           <button
@@ -2320,7 +2322,7 @@ export function ContractingTenderPage() {
             }}
           >
             <AppIcons.Save size={16} />
-            <span>{isSubmitting ? 'جاري الحفظ...' : 'حفظ كعطاء قيد الدراسة (Planning)'}</span>
+            <span>{isSubmitting ? t('contracting.contracting_tender_page.s89', "جاري الحفظ...") : t('contracting.contracting_tender_page.s90', "حفظ كعطاء قيد الدراسة (Planning)")}</span>
           </button>
 
           <button
@@ -2345,7 +2347,7 @@ export function ContractingTenderPage() {
             }}
           >
             <AppIcons.CheckShield size={17} />
-            <span>{isSubmitting ? 'جاري الترسية والتأسيس...' : 'اعتماد وترسية العطاء كمشروع رسمي'}</span>
+            <span>{isSubmitting ? t('contracting.contracting_tender_page.s91', "جاري الترسية والتأسيس...") : t('contracting.contracting_tender_page.s92', "اعتماد وترسية العطاء كمشروع رسمي")}</span>
           </button>
         </div>
       </div>
@@ -2487,7 +2489,7 @@ export function ContractingTenderPage() {
               }))
             );
             setIsAutoPricingOpen(false);
-            toast.success('تم تطبيق أسعار ونسب التسعير الآلي بنجاح');
+            toast.success(t('contracting.contracting_tender_page.s93', "تم تطبيق أسعار ونسب التسعير الآلي بنجاح"));
           }}
         />
       )}

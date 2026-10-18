@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { FormSection } from '@/shared/components/form-section';
 import { EmptyState } from '@/shared/ui/empty-state';
@@ -24,35 +25,36 @@ export function DashboardCompactManagerActions({
   isError,
   error,
 }: DashboardCompactManagerActionsProps) {
+  const { t } = useTranslation();
   const topInsights = sortManagerActionsByImportance(insights).slice(0, 3);
 
   return (
     <FormSection
-      title="مركز قرارات المدير"
-      description="أهم ما يحتاج تصرف سريع فقط، بدون إغراق الرئيسية بالتفاصيل."
+      title={t('dashboard.dashboard_compact_manager_actions.s0', "مركز قرارات المدير")}
+      description={t('dashboard.dashboard_compact_manager_actions.s1', "أهم ما يحتاج تصرف سريع فقط، بدون إغراق الرئيسية بالتفاصيل.")}
       className="dashboard-premium-card dashboard-card-compact manager-action-center-card manager-action-center-card-compact"
     >
       {isLoading ? (
         <LoadingState
-          title="جاري تحليل البيانات..."
-          hint="نراجع التسعير والمخزون والمبيعات والحسابات."
+          title={t('dashboard.dashboard_compact_manager_actions.s2', "جاري تحليل البيانات...")}
+          hint={t('dashboard.dashboard_compact_manager_actions.s3', "نراجع التسعير والمخزون والمبيعات والحسابات.")}
           className="dashboard-inline-state"
         />
       ) : null}
 
       {!isLoading && isError ? (
         <ErrorState
-          title="تعذر تحميل قرارات المدير"
+          title={t('dashboard.dashboard_compact_manager_actions.s4', "تعذر تحميل قرارات المدير")}
           error={error}
-          hint="يمكنك متابعة الرئيسية، ثم إعادة المحاولة بعد تشغيل الخادم."
+          hint={t('dashboard.dashboard_compact_manager_actions.s5', "يمكنك متابعة الرئيسية، ثم إعادة المحاولة بعد تشغيل الخادم.")}
           className="dashboard-inline-state"
         />
       ) : null}
 
       {!isLoading && !isError && !insights.length ? (
         <EmptyState
-          title="لا توجد قرارات عاجلة الآن"
-          hint="ستظهر هنا فقط التنبيهات التي تحتاج تصرفًا واضحًا."
+          title={t('dashboard.dashboard_compact_manager_actions.s6', "لا توجد قرارات عاجلة الآن")}
+          hint={t('dashboard.dashboard_compact_manager_actions.s7', "ستظهر هنا فقط التنبيهات التي تحتاج تصرفًا واضحًا.")}
           className="dashboard-empty-state"
         />
       ) : null}

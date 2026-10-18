@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useEffect, useRef, useState } from 'react';
 import { useSearchParams, Navigate } from 'react-router-dom';
 import { ActionConfirmDialog } from '@/shared/components/action-confirm-dialog';
@@ -19,6 +20,7 @@ void cashDrawerRegressionLabels;
 void cashDrawerRegressionMarkers;
 
 export function CashDrawerPage() {
+  const { t } = useTranslation();
   const { user } = useAuthStore();
   const isAdmin = isAdminUser(user);
   const { data: settings } = useSettingsQuery();
@@ -131,8 +133,8 @@ export function CashDrawerPage() {
     <div className="page-stack page-shell cash-drawer-page" dir="rtl">
       <main className="document-prototype-column" style={{ maxWidth: '1280px', paddingBottom: '100px' }}>
       <PageHeader
-        title="ورديات نقطة البيع ودرج النقدية"
-        badge={<span className="nav-pill">متابعة ورديات نقطة البيع</span>}
+        title={t('cash_drawer.cash_drawer_page.s0', "ورديات نقطة البيع ودرج النقدية")}
+        badge={<span className="nav-pill">{t('cash_drawer.cash_drawer_page.s1', "متابعة ورديات نقطة البيع")}</span>}
         actions={
           <div className="actions compact-actions">
             <Button
@@ -141,7 +143,7 @@ export function CashDrawerPage() {
               disabled={!controller.canOpenShift}
               title={!controller.canOpenShift ? controller.openDisabledHint : undefined}
             >
-              فتح وردية
+              {t('cash_drawer.cash_drawer_page.s2', "فتح وردية")}
             </Button>
             <Button
               variant="secondary"
@@ -149,7 +151,7 @@ export function CashDrawerPage() {
               disabled={!controller.canRecordMovement}
               title={!controller.canRecordMovement ? controller.movementDisabledHint : undefined}
             >
-              تسجيل حركة
+              {t('cash_drawer.cash_drawer_page.s3', "تسجيل حركة")}
             </Button>
             <Button
               variant="danger"
@@ -157,7 +159,7 @@ export function CashDrawerPage() {
               disabled={!controller.canCloseShift}
               title={!controller.canCloseShift ? controller.closeDisabledHint : undefined}
             >
-              إغلاق الوردية
+              {t('cash_drawer.cash_drawer_page.s4', "إغلاق الوردية")}
             </Button>
           </div>
         }
@@ -228,7 +230,7 @@ export function CashDrawerPage() {
         open={Boolean(controller.confirmAction)}
         title={confirmDialogTitle}
         description={confirmDialogDescription}
-        confirmLabel={isMovement ? (isCashOut ? 'تنفيذ الصرف' : 'تسجيل الإيداع') : 'إغلاق وردية نقطة البيع'}
+        confirmLabel={isMovement ? (isCashOut ? t('cash_drawer.cash_drawer_page.s5', "تنفيذ الصرف") : t('cash_drawer.cash_drawer_page.s6', "تسجيل الإيداع")) : t('cash_drawer.cash_drawer_page.s7', "إغلاق وردية نقطة البيع")}
         confirmVariant={isMovement ? (isCashOut ? 'danger' : 'success') : 'primary'}
         managerPinRequired={isPinRequired}
         managerPinLabel={managerPinLabel}

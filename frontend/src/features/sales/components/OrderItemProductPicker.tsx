@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useRef, useMemo, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { SearchIcon } from '@/shared/components/icons/AppIcons';
@@ -26,6 +27,7 @@ export function OrderItemProductPicker({
   onChangeText,
   onSelectProduct,
 }: OrderItemProductPickerProps) {
+  const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const dropdownRef = useRef<HTMLDivElement | null>(null);
@@ -130,7 +132,7 @@ export function OrderItemProductPicker({
         <input
           ref={inputRef}
           type="text"
-          placeholder="ابحث باسم الصنف أو الباركود أو الكود..."
+          placeholder={t('sales.order_item_product_picker.s0', "ابحث باسم الصنف أو الباركود أو الكود...")}
           value={value}
           onChange={(e) => {
             onChangeText(e.target.value);
@@ -180,11 +182,11 @@ export function OrderItemProductPicker({
               fontWeight: 600,
             }}
           >
-            المتوفر بالمخزن: {stockOnHand ?? 0} {unitName || 'قطعة'}
+            {t('sales.order_item_product_picker.s1', "المتوفر بالمخزن:")} {stockOnHand ?? 0} {unitName || t('sales.order_item_product_picker.s2', "قطعة")}
           </span>
           {isExceedingStock && (
             <span style={{ color: '#c2410c', fontWeight: 700, fontSize: '10px' }}>
-              الكمية تتجاوز رصيد المخزن
+              {t('sales.order_item_product_picker.s3', "الكمية تتجاوز رصيد المخزن")}
             </span>
           )}
         </div>
@@ -251,9 +253,9 @@ export function OrderItemProductPicker({
                       {prod.name}
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px', fontSize: '11px', color: '#64748b' }}>
-                      {prod.barcode && <span>باركود: {prod.barcode}</span>}
+                      {prod.barcode && <span>{t('sales.order_item_product_picker.s4', "باركود:")} {prod.barcode}</span>}
                       {prod.sku && <span>SKU: {prod.sku}</span>}
-                      {prod.styleCode && <span>كود: {prod.styleCode}</span>}
+                      {prod.styleCode && <span>{t('sales.order_item_product_picker.s5', "كود:")} {prod.styleCode}</span>}
                     </div>
                   </div>
 
@@ -272,7 +274,7 @@ export function OrderItemProductPicker({
                         border: `1px solid ${hasStock ? '#a7f3d0' : '#fecaca'}`,
                       }}
                     >
-                      {hasStock ? `متوفر: ${stock}` : 'غير متوفر'}
+                      {hasStock ? `متوفر: ${stock}` : t('sales.order_item_product_picker.s6', "غير متوفر")}
                     </span>
                   </div>
                 </div>
@@ -280,7 +282,7 @@ export function OrderItemProductPicker({
             })
           ) : (
             <div style={{ padding: '14px', textAlign: 'center', color: '#94a3b8', fontSize: '12px' }}>
-              لا توجد أصناف مطابقة للبحث "{query}"
+              {t('sales.order_item_product_picker.s7', "لا توجد أصناف مطابقة للبحث \"")}{query}"
             </div>
           )}
         </div>,

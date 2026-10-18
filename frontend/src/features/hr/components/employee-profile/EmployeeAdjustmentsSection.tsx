@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import type { HrEmployeeAdjustment } from '@/types/domain';
 import { money, fallbackText } from '@/features/hr/utils/employee-profile.helpers';
@@ -12,6 +13,7 @@ interface EmployeeAdjustmentsSectionProps {
 }
 
 export function EmployeeAdjustmentsSection({ adjustments, onAddAdjustment, onDeleteAdjustment, isBusy }: EmployeeAdjustmentsSectionProps) {
+  const { t } = useTranslation();
   const [showAddForm, setShowAddForm] = useState(false);
   const [adjustmentType, setAdjustmentType] = useState<'allowance' | 'deduction'>('allowance');
   const [amountType, setAmountType] = useState<'money' | 'days' | 'hours'>('money');
@@ -51,46 +53,46 @@ export function EmployeeAdjustmentsSection({ adjustments, onAddAdjustment, onDel
   };
 
   return (
-    <FormSection title="المكافآت والخصومات" description="سجل المكافآت أو الخصومات للموظف هنا. سيتم احتسابها تلقائياً مع أقرب مسير رواتب.">
+    <FormSection title={t('hr.employee_profile.employee_adjustments_section.s0', "المكافآت والخصومات")} description={t('hr.employee_profile.employee_adjustments_section.s1', "سجل المكافآت أو الخصومات للموظف هنا. سيتم احتسابها تلقائياً مع أقرب مسير رواتب.")}>
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>
         <Button type="button" onClick={() => setShowAddForm(!showAddForm)} disabled={isBusy}>
-          {showAddForm ? 'إلغاء' : 'إضافة مكافأة / خصم'}
+          {showAddForm ? t('hr.employee_profile.employee_adjustments_section.s2', "إلغاء") : t('hr.employee_profile.employee_adjustments_section.s3', "إضافة مكافأة / خصم")}
         </Button>
       </div>
 
       {showAddForm && (
         <form onSubmit={handleSubmit} className="form-grid" style={{ marginBottom: '2rem', padding: '1rem', background: 'var(--bg-subtle)', borderRadius: 8 }}>
           <label className="field">
-            <span>النوع</span>
+            <span>{t('hr.employee_profile.employee_adjustments_section.s4', "النوع")}</span>
             <select value={adjustmentType} onChange={e => setAdjustmentType(e.target.value as any)} disabled={isBusy}>
-              <option value="allowance">مكافأة (إضافة)</option>
-              <option value="deduction">خصم (استقطاع)</option>
+              <option value="allowance">{t('hr.employee_profile.employee_adjustments_section.s5', "مكافأة (إضافة)")}</option>
+              <option value="deduction">{t('hr.employee_profile.employee_adjustments_section.s6', "خصم (استقطاع)")}</option>
             </select>
           </label>
           
           <label className="field">
-            <span>نوع القيمة</span>
+            <span>{t('hr.employee_profile.employee_adjustments_section.s7', "نوع القيمة")}</span>
             <select value={amountType} onChange={e => setAmountType(e.target.value as any)} disabled={isBusy}>
-              <option value="money">مبلغ نقدي</option>
-              <option value="days">أيام</option>
-              <option value="hours">ساعات</option>
+              <option value="money">{t('hr.employee_profile.employee_adjustments_section.s8', "مبلغ نقدي")}</option>
+              <option value="days">{t('hr.employee_profile.employee_adjustments_section.s9', "أيام")}</option>
+              <option value="hours">{t('hr.employee_profile.employee_adjustments_section.s10', "ساعات")}</option>
             </select>
           </label>
 
           <label className="field">
-            <span>القيمة</span>
+            <span>{t('hr.employee_profile.employee_adjustments_section.s11', "القيمة")}</span>
             <input 
               type="number" 
               step="any" 
               value={amount} 
               onChange={e => setAmount(e.target.value)} 
-              placeholder="مثال: 500" 
+              placeholder={t('hr.employee_profile.employee_adjustments_section.s12', "مثال: 500")} 
               disabled={isBusy}
             />
           </label>
 
           <label className="field">
-            <span>التاريخ</span>
+            <span>{t('hr.employee_profile.employee_adjustments_section.s13', "التاريخ")}</span>
             <input 
               type="date" 
               value={date} 
@@ -100,12 +102,12 @@ export function EmployeeAdjustmentsSection({ adjustments, onAddAdjustment, onDel
           </label>
 
           <label className="field" style={{ gridColumn: '1 / -1' }}>
-            <span>السبب / ملاحظات</span>
+            <span>{t('hr.employee_profile.employee_adjustments_section.s14', "السبب / ملاحظات")}</span>
             <input 
               type="text" 
               value={reason} 
               onChange={e => setReason(e.target.value)} 
-              placeholder="سبب المكافأة أو الخصم" 
+              placeholder={t('hr.employee_profile.employee_adjustments_section.s15', "سبب المكافأة أو الخصم")} 
               disabled={isBusy}
             />
           </label>
@@ -113,7 +115,7 @@ export function EmployeeAdjustmentsSection({ adjustments, onAddAdjustment, onDel
           {error && <div className="error-box" style={{ gridColumn: '1 / -1' }}>{error}</div>}
 
           <div style={{ gridColumn: '1 / -1', display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
-            <Button type="submit" disabled={isBusy}>حفظ</Button>
+            <Button type="submit" disabled={isBusy}>{t('hr.employee_profile.employee_adjustments_section.s16', "حفظ")}</Button>
           </div>
         </form>
       )}
@@ -123,12 +125,12 @@ export function EmployeeAdjustmentsSection({ adjustments, onAddAdjustment, onDel
           <table className="data-table">
             <thead>
               <tr>
-                <th>التاريخ</th>
-                <th>النوع</th>
-                <th>القيمة</th>
-                <th>السبب</th>
-                <th>الحالة</th>
-                <th>إجراءات</th>
+                <th>{t('hr.employee_profile.employee_adjustments_section.s17', "التاريخ")}</th>
+                <th>{t('hr.employee_profile.employee_adjustments_section.s18', "النوع")}</th>
+                <th>{t('hr.employee_profile.employee_adjustments_section.s19', "القيمة")}</th>
+                <th>{t('hr.employee_profile.employee_adjustments_section.s20', "السبب")}</th>
+                <th>{t('hr.employee_profile.employee_adjustments_section.s21', "الحالة")}</th>
+                <th>{t('hr.employee_profile.employee_adjustments_section.s22', "إجراءات")}</th>
               </tr>
             </thead>
             <tbody>
@@ -137,21 +139,21 @@ export function EmployeeAdjustmentsSection({ adjustments, onAddAdjustment, onDel
                   <td>{adj.date}</td>
                   <td>
                     <span className={`badge ${adj.adjustmentType === 'allowance' ? 'success' : 'danger'}`}>
-                      {adj.adjustmentType === 'allowance' ? 'مكافأة' : 'خصم'}
+                      {adj.adjustmentType === 'allowance' ? t('hr.employee_profile.employee_adjustments_section.s23', "مكافأة") : t('hr.employee_profile.employee_adjustments_section.s24', "خصم")}
                     </span>
                   </td>
                   <td>
-                    {adj.amountType === 'money' ? money(adj.amount) : `${adj.amount} ${adj.amountType === 'days' ? 'أيام' : 'ساعات'}`}
+                    {adj.amountType === 'money' ? money(adj.amount) : `${adj.amount} ${adj.amountType === 'days' ? t('hr.employee_profile.employee_adjustments_section.s25', "أيام") : t('hr.employee_profile.employee_adjustments_section.s26', "ساعات")}`}
                   </td>
                   <td>{fallbackText(adj.reason)}</td>
                   <td>
                     <span className={`badge ${adj.status === 'applied' ? 'success' : 'warning'}`}>
-                      {adj.status === 'applied' ? 'تم الاحتساب' : 'قيد الانتظار'}
+                      {adj.status === 'applied' ? t('hr.employee_profile.employee_adjustments_section.s27', "تم الاحتساب") : t('hr.employee_profile.employee_adjustments_section.s28', "قيد الانتظار")}
                     </span>
                   </td>
                   <td>
                     {adj.status === 'pending' && (
-                      <Button type="button" variant="danger" onClick={() => onDeleteAdjustment(adj.id)} disabled={isBusy}>حذف</Button>
+                      <Button type="button" variant="danger" onClick={() => onDeleteAdjustment(adj.id)} disabled={isBusy}>{t('hr.employee_profile.employee_adjustments_section.s29', "حذف")}</Button>
                     )}
                   </td>
                 </tr>
@@ -160,7 +162,7 @@ export function EmployeeAdjustmentsSection({ adjustments, onAddAdjustment, onDel
           </table>
         </div>
       ) : (
-        <p className="muted">لا توجد مكافآت أو خصومات مسجلة.</p>
+        <p className="muted">{t('hr.employee_profile.employee_adjustments_section.s30', "لا توجد مكافآت أو خصومات مسجلة.")}</p>
       )}
     </FormSection>
   );

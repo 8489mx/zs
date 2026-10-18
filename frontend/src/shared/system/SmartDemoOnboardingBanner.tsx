@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
@@ -33,6 +34,7 @@ function getIndustryLabelAndActivity(industry?: string): { activity: string; lab
 }
 
 export function SmartDemoOnboardingBanner() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const user = useAuthStore((s) => s.user);
@@ -152,12 +154,12 @@ export function SmartDemoOnboardingBanner() {
               <RefreshCwIcon size={32} color="#170e5e" className="animate-spin" />
             </div>
             <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: '#0f172a' }}>
-              جاري تجهيز وسكب البيانات التجريبية...
+              {t('shared.system.smart_demo_onboarding_banner.s0', "جاري تجهيز وسكب البيانات التجريبية...")}
             </h3>
             <p style={{ margin: 0, fontSize: '0.88rem', color: '#64748b', lineHeight: 1.6 }}>
-              يتم الآن إنشاء الأصناف، الفواتير، والعمليات المالية لنشاط ({mappedIndustry.label}).
+              {t('shared.system.smart_demo_onboarding_banner.s1', "يتم الآن إنشاء الأصناف، الفواتير، والعمليات المالية لنشاط (")}{mappedIndustry.label}).
               <br />
-              يرجى الانتظار ثوانٍ معدودة...
+              {t('shared.system.smart_demo_onboarding_banner.s2', "يرجى الانتظار ثوانٍ معدودة...")}
             </p>
           </div>
         </div>
@@ -166,7 +168,7 @@ export function SmartDemoOnboardingBanner() {
       <div style={{ flex: '1 1 340px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
           <h3 style={{ margin: 0, fontSize: '0.96rem', fontWeight: 800, color: '#0f172a', letterSpacing: '-0.2px' }}>
-            معالج استيراد البيانات التجريبية حسب النشاط
+            {t('shared.system.smart_demo_onboarding_banner.s3', "معالج استيراد البيانات التجريبية حسب النشاط")}
           </h3>
           <span
             style={{
@@ -179,11 +181,11 @@ export function SmartDemoOnboardingBanner() {
               fontWeight: 700,
             }}
           >
-            5 ثوانٍ فقط
+            {t('shared.system.smart_demo_onboarding_banner.s4', "5 ثوانٍ فقط")}
           </span>
         </div>
         <p style={{ margin: '4px 0 0', fontSize: '0.83rem', color: '#64748b', lineHeight: 1.5 }}>
-          اختر نشاطك (سوبرماركت، ملابس، كافيه، إلكترونيات، صيدلية) لتعبئة ~50 صنفاً وفواتير وموردين لتجربة شاشة الكاشير والداشبورد وبوت الواتساب فورياً.
+          {t('shared.system.smart_demo_onboarding_banner.s5', "اختر نشاطك (سوبرماركت، ملابس، كافيه، إلكترونيات، صيدلية) لتعبئة ~50 صنفاً وفواتير وموردين لتجربة شاشة الكاشير والداشبورد وبوت الواتساب فورياً.")}
         </p>
       </div>
 
@@ -207,7 +209,7 @@ export function SmartDemoOnboardingBanner() {
             boxShadow: '0 2px 8px rgba(23, 14, 94, 0.2)',
           }}
         >
-          اختيار النشاط عبر المعالج
+          {t('shared.system.smart_demo_onboarding_banner.s6', "اختيار النشاط عبر المعالج")}
         </Button>
 
         <button
@@ -228,13 +230,13 @@ export function SmartDemoOnboardingBanner() {
             cursor: 'pointer',
           }}
         >
-          {mutation.isPending ? 'جاري الاستيراد...' : `تعبئة سريعة (${mappedIndustry.label})`}
+          {mutation.isPending ? t('shared.system.smart_demo_onboarding_banner.s7', "جاري الاستيراد...") : `تعبئة سريعة (${mappedIndustry.label})`}
         </button>
 
         <button
           type="button"
           onClick={() => setIsDismissed(true)}
-          title="إخفاء التنبيه"
+          title={t('shared.system.smart_demo_onboarding_banner.s8', "إخفاء التنبيه")}
           style={{
             background: 'transparent',
             border: '1px solid #e2e8f0',

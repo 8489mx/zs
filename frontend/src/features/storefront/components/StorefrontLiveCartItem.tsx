@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { Trash2Icon } from '@/shared/components/icons/AppIcons';
 import { CartItem } from '../types/storefront.types';
@@ -13,6 +14,7 @@ interface StorefrontLiveCartItemProps {
 }
 
 export function StorefrontLiveCartItem({ item, onUpdateQuantity }: StorefrontLiveCartItemProps) {
+  const { t } = useTranslation();
   const currCode = getGlobalSystemCurrency();
   const isThreeDec = isThreeDecimalCurrency(currCode);
   const activeSymbol = getGlobalCurrencySymbol();
@@ -101,7 +103,7 @@ export function StorefrontLiveCartItem({ item, onUpdateQuantity }: StorefrontLiv
           )}
           {linePricing.savings > 0 && !linePricing.isBogoApplied && (
             <span style={{ fontSize: '10px', color: 'var(--storefront-secondary-color, #d97706)', fontWeight: 700 }}>
-              (وفر {formatPriceNumber(linePricing.savings)} {activeSymbol})
+              {t('storefront.storefront_live_cart_item.s0', "(وفر")} {formatPriceNumber(linePricing.savings)} {activeSymbol})
             </span>
           )}
           {linePricing.isBogoApplied && (
@@ -130,7 +132,7 @@ export function StorefrontLiveCartItem({ item, onUpdateQuantity }: StorefrontLiv
             e.stopPropagation();
             onUpdateQuantity(Number(item.product.id), item.quantity + 1);
           }}
-          title="زيادة الكمية"
+          title={t('storefront.storefront_live_cart_item.s1', "زيادة الكمية")}
           style={{
             width: '24px',
             height: '24px',
@@ -167,7 +169,7 @@ export function StorefrontLiveCartItem({ item, onUpdateQuantity }: StorefrontLiv
             e.stopPropagation();
             onUpdateQuantity(Number(item.product.id), item.quantity - 1);
           }}
-          title={item.quantity === 1 ? 'حذف من السلة' : 'تقليل الكمية'}
+          title={item.quantity === 1 ? t('storefront.storefront_live_cart_item.s2', "حذف من السلة") : t('storefront.storefront_live_cart_item.s3', "تقليل الكمية")}
           style={{
             width: '24px',
             height: '24px',

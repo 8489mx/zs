@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useMemo } from 'react';
 import { getGlobalCurrencySymbol } from '@/lib/currencies';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -19,6 +20,7 @@ interface OfflineQueueItem {
 }
 
 export function DeliveryDriverMobilePage() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [selectedRepId, setSelectedRepId] = useState<number>(() => {
     return Number(localStorage.getItem('z_active_delivery_rep_id')) || 1;
@@ -260,13 +262,13 @@ export function DeliveryDriverMobilePage() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           {ordersLoading ? (
             <div style={{ textAlign: 'center', padding: '40px', color: '#64748b' }}>
-              جاري تحميل شحنات اليوم...
+              {t('delivery_reps.delivery_driver_mobile_page.s0', "جاري تحميل شحنات اليوم...")}
             </div>
           ) : filteredOrders.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '40px 20px', background: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
               <PackageIcon size={36} color="#94a3b8" />
-              <h4 style={{ margin: '10px 0 4px', fontSize: '15px', color: '#0f172a' }}>لا توجد طلبات مطابقة</h4>
-              <p style={{ margin: 0, fontSize: '12px', color: '#64748b' }}>لا توجد شحنات مسندة إليك تحت هذا الفلتر في الوقت الحالي.</p>
+              <h4 style={{ margin: '10px 0 4px', fontSize: '15px', color: '#0f172a' }}>{t('delivery_reps.delivery_driver_mobile_page.s1', "لا توجد طلبات مطابقة")}</h4>
+              <p style={{ margin: 0, fontSize: '12px', color: '#64748b' }}>{t('delivery_reps.delivery_driver_mobile_page.s2', "لا توجد شحنات مسندة إليك تحت هذا الفلتر في الوقت الحالي.")}</p>
             </div>
           ) : (
             filteredOrders.map((order: DeliveryOrder) => (
@@ -291,7 +293,7 @@ export function DeliveryDriverMobilePage() {
         isOpen={scannerOpen}
         onClose={() => setScannerOpen(false)}
         onScan={handleBarcodeScanned}
-        title="مسح باركود الشحنة للتحصيل المباشر"
+        title={t('delivery_reps.delivery_driver_mobile_page.s3', "مسح باركود الشحنة للتحصيل المباشر")}
       />
 
       {/* Van Sale Modal */}

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect, type FC, type FormEvent } from 'react';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { CustomSelect } from '@/shared/ui/custom-select';
@@ -16,6 +17,7 @@ export const CreateQCPointModal: FC<CreateQCPointModalProps> = ({
   onClose,
   onSuccess,
 }) => {
+  const { t } = useTranslation();
   const [name, setName] = useState('');
   const [productId, setProductId] = useState<string>('');
   const [triggerStage, setTriggerStage] = useState<'receipt' | 'manufacturing' | 'delivery' | 'internal'>('receipt');
@@ -90,21 +92,21 @@ export const CreateQCPointModal: FC<CreateQCPointModalProps> = ({
     <StandardDialog
       open={open}
       onClose={onClose}
-      title="إنشاء نقطة فحص جودة ومعايير امتثال (Quality Control Point)"
-      subtitle="تحديد متطلبات الفحص الإلزامي، حدود التسامح، والمرحلة التشغيلية المفعلة لها"
+      title={t('inventory.quality.create_q_c_point_modal.s0', "إنشاء نقطة فحص جودة ومعايير امتثال (Quality Control Point)")}
+      subtitle={t('inventory.quality.create_q_c_point_modal.s1', "تحديد متطلبات الفحص الإلزامي، حدود التسامح، والمرحلة التشغيلية المفعلة لها")}
       size="md"
     >
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
         <div>
           <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 600, color: '#334155' }}>
-            اسم نقطة ومعيار الفحص *
+            {t('inventory.quality.create_q_c_point_modal.s2', "اسم نقطة ومعيار الفحص *")}
           </label>
           <input
             type="text"
             required
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="مثال: فحص سلامة التغليف الخارجي أو قياس أبعاد القطر"
+            placeholder={t('inventory.quality.create_q_c_point_modal.s3', "مثال: فحص سلامة التغليف الخارجي أو قياس أبعاد القطر")}
             style={{ width: '100%', height: '36px', padding: '6px 10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
           />
         </div>
@@ -112,7 +114,7 @@ export const CreateQCPointModal: FC<CreateQCPointModalProps> = ({
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
           <div>
             <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 600, color: '#334155' }}>
-              المرحلة التشغيلية *
+              {t('inventory.quality.create_q_c_point_modal.s4', "المرحلة التشغيلية *")}
             </label>
             <CustomSelect
               value={triggerStage}
@@ -123,7 +125,7 @@ export const CreateQCPointModal: FC<CreateQCPointModalProps> = ({
 
           <div>
             <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 600, color: '#334155' }}>
-              نوع الاختبار *
+              {t('inventory.quality.create_q_c_point_modal.s5', "نوع الاختبار *")}
             </label>
             <CustomSelect
               value={testType}
@@ -135,13 +137,13 @@ export const CreateQCPointModal: FC<CreateQCPointModalProps> = ({
 
         <div>
           <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 600, color: '#334155' }}>
-            الصنف المستهدف (اختياري)
+            {t('inventory.quality.create_q_c_point_modal.s6', "الصنف المستهدف (اختياري)")}
           </label>
           <CustomSelect
             value={productId}
             onChange={setProductId}
             options={productOptions}
-            placeholder="اختر صنفاً مخصصاً أو اتركه عاماً..."
+            placeholder={t('inventory.quality.create_q_c_point_modal.s7', "اختر صنفاً مخصصاً أو اتركه عاماً...")}
           />
         </div>
 
@@ -149,7 +151,7 @@ export const CreateQCPointModal: FC<CreateQCPointModalProps> = ({
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px', background: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
             <div>
               <label style={{ display: 'block', marginBottom: '4px', fontSize: '12px', fontWeight: 600, color: '#475569' }}>
-                الحد الأدنى المسموح
+                {t('inventory.quality.create_q_c_point_modal.s8', "الحد الأدنى المسموح")}
               </label>
               <input
                 type="number"
@@ -162,7 +164,7 @@ export const CreateQCPointModal: FC<CreateQCPointModalProps> = ({
             </div>
             <div>
               <label style={{ display: 'block', marginBottom: '4px', fontSize: '12px', fontWeight: 600, color: '#475569' }}>
-                الحد الأقصى المسموح
+                {t('inventory.quality.create_q_c_point_modal.s9', "الحد الأقصى المسموح")}
               </label>
               <input
                 type="number"
@@ -175,13 +177,13 @@ export const CreateQCPointModal: FC<CreateQCPointModalProps> = ({
             </div>
             <div>
               <label style={{ display: 'block', marginBottom: '4px', fontSize: '12px', fontWeight: 600, color: '#475569' }}>
-                وحدة القياس
+                {t('inventory.quality.create_q_c_point_modal.s10', "وحدة القياس")}
               </label>
               <input
                 type="text"
                 value={measureUnit}
                 onChange={(e) => setMeasureUnit(e.target.value)}
-                placeholder="مم / كجم / فولت..."
+                placeholder={t('inventory.quality.create_q_c_point_modal.s11', "مم / كجم / فولت...")}
                 style={{ width: '100%', height: '32px', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
               />
             </div>
@@ -190,13 +192,13 @@ export const CreateQCPointModal: FC<CreateQCPointModalProps> = ({
 
         <div>
           <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 600, color: '#334155' }}>
-            تعليمات الفحص للمفتش
+            {t('inventory.quality.create_q_c_point_modal.s12', "تعليمات الفحص للمفتش")}
           </label>
           <textarea
             value={instructions}
             onChange={(e) => setInstructions(e.target.value)}
             rows={2}
-            placeholder="خطوات المعاينة، أجهزة الفحص المستخدمة، وطرق سحب العينات..."
+            placeholder={t('inventory.quality.create_q_c_point_modal.s13', "خطوات المعاينة، أجهزة الفحص المستخدمة، وطرق سحب العينات...")}
             style={{ width: '100%', padding: '8px', borderRadius: '8px', border: '1px solid #cbd5e1', resize: 'vertical' }}
           />
         </div>
@@ -210,14 +212,14 @@ export const CreateQCPointModal: FC<CreateQCPointModalProps> = ({
             style={{ width: '16px', height: '16px', cursor: 'pointer' }}
           />
           <label htmlFor="isMandatory" style={{ fontSize: '13px', fontWeight: 600, color: '#1e293b', cursor: 'pointer' }}>
-            فحص إلزامي وحاكم قبل اعتماد الحركة المخزنية (Mandatory Gate)
+            {t('inventory.quality.create_q_c_point_modal.s14', "فحص إلزامي وحاكم قبل اعتماد الحركة المخزنية (Mandatory Gate)")}
           </label>
         </div>
 
         <StandardDialogFooter
           onClose={onClose}
           primaryButton={{
-            label: isSubmitting ? 'جاري الحفظ...' : 'حفظ نقطة الفحص',
+            label: isSubmitting ? t('inventory.quality.create_q_c_point_modal.s15', "جاري الحفظ...") : t('inventory.quality.create_q_c_point_modal.s16', "حفظ نقطة الفحص"),
             disabled: isSubmitting,
             onClick: () => handleSubmit(),
           }}

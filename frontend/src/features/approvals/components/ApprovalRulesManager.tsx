@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React, { useState, useEffect } from 'react';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { getGlobalCurrencySymbol } from '@/lib/currencies';
@@ -14,6 +15,7 @@ import { systemConfirm } from '@/shared/components/system-alert';
 import { PlusIcon, TrashIcon, CheckIcon, ShieldAlertIcon } from '@/shared/components/icons/AppIcons';
 
 export const ApprovalRulesManager: React.FC = () => {
+  const { t } = useTranslation();
   const [rules, setRules] = useState<ApprovalRule[]>([]);
   const [loading, setLoading] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
@@ -104,15 +106,15 @@ export const ApprovalRulesManager: React.FC = () => {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
           <h3 style={{ fontSize: 'var(--font-section-title)', fontWeight: 700, margin: 0, color: '#0f172a' }}>
-            مصفوفة وقواعد الموافقات المعتمدة (Approval Matrix Rules)
+            {t('approvals.approval_rules_manager.s0', "مصفوفة وقواعد الموافقات المعتمدة (Approval Matrix Rules)")}
           </h3>
           <p style={{ fontSize: 'var(--font-subtitle)', color: '#64748b', margin: '4px 0 0' }}>
-            تحديد المستويات الهرمية وسقف المبالغ المالية والرتب المخولة بالاعتماد لكل موديول.
+            {t('approvals.approval_rules_manager.s1', "تحديد المستويات الهرمية وسقف المبالغ المالية والرتب المخولة بالاعتماد لكل موديول.")}
           </p>
         </div>
         <Button variant="primary" onClick={() => setModalOpen(true)}>
           <PlusIcon size={16} />
-          إضافة قاعدة اعتماد جديدة
+          {t('approvals.approval_rules_manager.s2', "إضافة قاعدة اعتماد جديدة")}
         </Button>
       </div>
 
@@ -128,25 +130,25 @@ export const ApprovalRulesManager: React.FC = () => {
         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right' }}>
           <thead>
             <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-              <th style={{ padding: '12px 16px', fontSize: 'var(--font-table-head)', color: '#475569' }}>الموديول</th>
-              <th style={{ padding: '12px 16px', fontSize: 'var(--font-table-head)', color: '#475569' }}>المستوى الهرمي</th>
-              <th style={{ padding: '12px 16px', fontSize: 'var(--font-table-head)', color: '#475569' }}>نطاق المبلغ المالي</th>
-              <th style={{ padding: '12px 16px', fontSize: 'var(--font-table-head)', color: '#475569' }}>الرتبة المخولة</th>
-              <th style={{ padding: '12px 16px', fontSize: 'var(--font-table-head)', color: '#475569' }}>الحالة</th>
-              <th style={{ padding: '12px 16px', fontSize: 'var(--font-table-head)', color: '#475569', textAlign: 'center' }}>إجراءات</th>
+              <th style={{ padding: '12px 16px', fontSize: 'var(--font-table-head)', color: '#475569' }}>{t('approvals.approval_rules_manager.s3', "الموديول")}</th>
+              <th style={{ padding: '12px 16px', fontSize: 'var(--font-table-head)', color: '#475569' }}>{t('approvals.approval_rules_manager.s4', "المستوى الهرمي")}</th>
+              <th style={{ padding: '12px 16px', fontSize: 'var(--font-table-head)', color: '#475569' }}>{t('approvals.approval_rules_manager.s5', "نطاق المبلغ المالي")}</th>
+              <th style={{ padding: '12px 16px', fontSize: 'var(--font-table-head)', color: '#475569' }}>{t('approvals.approval_rules_manager.s6', "الرتبة المخولة")}</th>
+              <th style={{ padding: '12px 16px', fontSize: 'var(--font-table-head)', color: '#475569' }}>{t('approvals.approval_rules_manager.s7', "الحالة")}</th>
+              <th style={{ padding: '12px 16px', fontSize: 'var(--font-table-head)', color: '#475569', textAlign: 'center' }}>{t('approvals.approval_rules_manager.s8', "إجراءات")}</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
                 <td colSpan={6} style={{ padding: '32px', textAlign: 'center', color: '#64748b' }}>
-                  جاري تحميل القواعد...
+                  {t('approvals.approval_rules_manager.s9', "جاري تحميل القواعد...")}
                 </td>
               </tr>
             ) : rules.length === 0 ? (
               <tr>
                 <td colSpan={6} style={{ padding: '32px', textAlign: 'center', color: '#94a3b8' }}>
-                  لم يتم تعريف أي قواعد موافقة بعد. يمكنك إضافة قاعدة لتفعيل التدقيق الهرمي.
+                  {t('approvals.approval_rules_manager.s10', "لم يتم تعريف أي قواعد موافقة بعد. يمكنك إضافة قاعدة لتفعيل التدقيق الهرمي.")}
                 </td>
               </tr>
             ) : (
@@ -167,12 +169,12 @@ export const ApprovalRulesManager: React.FC = () => {
                         fontWeight: 600,
                       }}
                     >
-                      المستوى {r.tier_level}
+                      {t('approvals.approval_rules_manager.s11', "المستوى")} {r.tier_level}
                     </span>
                   </td>
                   <td style={{ padding: '12px 16px', color: '#334155' }}>
-                    من {Number(r.min_amount).toLocaleString('ar-EG')} <CurrencySymbol />
-                    {r.max_amount ? ` حتى ${Number(r.max_amount).toLocaleString('ar-EG')} ${getGlobalCurrencySymbol()}` : ' فأكثر (بدون سقف)'}
+                    {t('approvals.approval_rules_manager.s12', "من")} {Number(r.min_amount).toLocaleString('ar-EG')} <CurrencySymbol />
+                    {r.max_amount ? ` حتى ${Number(r.max_amount).toLocaleString('ar-EG')} ${getGlobalCurrencySymbol()}` : t('approvals.approval_rules_manager.s13', " فأكثر (بدون سقف)")}
                   </td>
                   <td style={{ padding: '12px 16px', color: '#170e5e', fontWeight: 600 }}>
                     {roleLabels[r.required_role] || r.required_role}
@@ -192,7 +194,7 @@ export const ApprovalRulesManager: React.FC = () => {
                         cursor: 'pointer',
                       }}
                     >
-                      {r.is_active ? 'مفعلة' : 'معطلة'}
+                      {r.is_active ? t('approvals.approval_rules_manager.s14', "مفعلة") : t('approvals.approval_rules_manager.s15', "معطلة")}
                     </button>
                   </td>
                   <td style={{ padding: '12px 16px', textAlign: 'center' }}>
@@ -206,7 +208,7 @@ export const ApprovalRulesManager: React.FC = () => {
                         cursor: 'pointer',
                         padding: '4px',
                       }}
-                      title="حذف القاعدة"
+                      title={t('approvals.approval_rules_manager.s16', "حذف القاعدة")}
                     >
                       <TrashIcon size={16} />
                     </button>
@@ -222,8 +224,8 @@ export const ApprovalRulesManager: React.FC = () => {
       <StandardDialog
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
-        title="إضافة قاعدة اعتماد ورقابة جديدة"
-        subtitle="حدد شروط تفعيل طلب الموافقة الهرمي وسقف المبالغ والرتبة المطلوبة."
+        title={t('approvals.approval_rules_manager.s17', "إضافة قاعدة اعتماد ورقابة جديدة")}
+        subtitle={t('approvals.approval_rules_manager.s18', "حدد شروط تفعيل طلب الموافقة الهرمي وسقف المبالغ والرتبة المطلوبة.")}
         width="600px"
       >
         <form onSubmit={handleCreate} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
@@ -249,14 +251,14 @@ export const ApprovalRulesManager: React.FC = () => {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
               <label style={{ fontSize: 'var(--font-body)', fontWeight: 600, color: '#334155' }}>
-                الموديول الخاضع للاعتماد:
+                {t('approvals.approval_rules_manager.s19', "الموديول الخاضع للاعتماد:")}
               </label>
-              <p>أوامر الشراء (Purchase Orders)</p>
+              <p>{t('approvals.approval_rules_manager.s20', "أوامر الشراء (Purchase Orders)")}</p>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
               <label style={{ fontSize: 'var(--font-body)', fontWeight: 600, color: '#334155' }}>
-                المستوى الهرمي (Tier):
+                {t('approvals.approval_rules_manager.s21', "المستوى الهرمي (Tier):")}
               </label>
               <select
                 value={tierLevel}
@@ -269,9 +271,9 @@ export const ApprovalRulesManager: React.FC = () => {
                   outline: 'none',
                 }}
               >
-                <option value={1}>المستوى 1 (الموافقة المبدئية)</option>
-                <option value={2}>المستوى 2 (موافقة متوسطة)</option>
-                <option value={3}>المستوى 3 (اعتماد نهائي عليا)</option>
+                <option value={1}>{t('approvals.approval_rules_manager.s22', "المستوى 1 (الموافقة المبدئية)")}</option>
+                <option value={2}>{t('approvals.approval_rules_manager.s23', "المستوى 2 (موافقة متوسطة)")}</option>
+                <option value={3}>{t('approvals.approval_rules_manager.s24', "المستوى 3 (اعتماد نهائي عليا)")}</option>
               </select>
             </div>
           </div>
@@ -279,7 +281,7 @@ export const ApprovalRulesManager: React.FC = () => {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
               <label style={{ fontSize: 'var(--font-body)', fontWeight: 600, color: '#334155' }}>
-                الحد الأدنى للمبلغ (يبدأ التفعيل عنده):
+                {t('approvals.approval_rules_manager.s25', "الحد الأدنى للمبلغ (يبدأ التفعيل عنده):")}
               </label>
               <input
                 type="number"
@@ -300,13 +302,13 @@ export const ApprovalRulesManager: React.FC = () => {
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
               <label style={{ fontSize: 'var(--font-body)', fontWeight: 600, color: '#334155' }}>
-                الحد الأقصى للمبلغ (اتركه فارغاً لبلا سقف):
+                {t('approvals.approval_rules_manager.s26', "الحد الأقصى للمبلغ (اتركه فارغاً لبلا سقف):")}
               </label>
               <input
                 type="number"
                 min="0"
                 step="100"
-                placeholder="بدون سقف"
+                placeholder={t('approvals.approval_rules_manager.s27', "بدون سقف")}
                 value={maxAmount}
                 onChange={(e) => setMaxAmount(e.target.value)}
                 style={{
@@ -322,7 +324,7 @@ export const ApprovalRulesManager: React.FC = () => {
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
             <label style={{ fontSize: 'var(--font-body)', fontWeight: 600, color: '#334155' }}>
-              الرتبة الإدارية المخولة بالاعتماد:
+              {t('approvals.approval_rules_manager.s28', "الرتبة الإدارية المخولة بالاعتماد:")}
             </label>
             <select
               value={requiredRole}
@@ -335,19 +337,19 @@ export const ApprovalRulesManager: React.FC = () => {
                 outline: 'none',
               }}
             >
-              <option value="admin">مدير النظام (Admin)</option>
+              <option value="admin">{t('approvals.approval_rules_manager.s29', "مدير النظام (Admin)")}</option>
             </select>
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
             <label style={{ fontSize: 'var(--font-body)', fontWeight: 600, color: '#334155' }}>
-              وصف القاعدة أو التوجيهات (اختياري):
+              {t('approvals.approval_rules_manager.s30', "وصف القاعدة أو التوجيهات (اختياري):")}
             </label>
             <input
               type="text"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="مثال: يلزم اعتماد المدير المالي للمشتريات التي تتجاوز 20,000"
+              placeholder={t('approvals.approval_rules_manager.s31', "مثال: يلزم اعتماد المدير المالي للمشتريات التي تتجاوز 20,000")}
               style={{
                 padding: '8px 12px',
                 borderRadius: '6px',
@@ -369,11 +371,11 @@ export const ApprovalRulesManager: React.FC = () => {
             }}
           >
             <Button variant="secondary" onClick={() => setModalOpen(false)} disabled={formLoading}>
-              إلغاء
+              {t('approvals.approval_rules_manager.s32', "إلغاء")}
             </Button>
             <Button variant="primary" type="submit" disabled={formLoading}>
               <CheckIcon size={16} />
-              حفظ وتفعيل القاعدة
+              {t('approvals.approval_rules_manager.s33', "حفظ وتفعيل القاعدة")}
             </Button>
           </div>
         </form>

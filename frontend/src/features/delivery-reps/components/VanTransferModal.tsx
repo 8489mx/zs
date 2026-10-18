@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { StandardDialog } from '@/shared/components/StandardDialog';
 import { Button } from '@/shared/ui/button';
@@ -32,6 +33,7 @@ export const VanTransferModal: React.FC<VanTransferModalProps> = ({
   onRefreshTransfers,
   onRefreshInventory,
 }) => {
+  const { t: __t } = useTranslation();
   const [activeTab, setActiveTab] = useState<'incoming' | 'create' | 'history'>('incoming');
 
   // Create transfer form state
@@ -135,14 +137,14 @@ export const VanTransferModal: React.FC<VanTransferModalProps> = ({
     <StandardDialog
       open={open}
       onClose={onClose}
-      title="مناقلة بضاعة بين سيارتين بالميدان"
-      subtitle="تحويل بضاعة فوري بين المناديب في الشارع بموافقة الطرفين"
+      title={__t('delivery_reps.van_transfer_modal.s0', __t('delivery_reps.van_transfer_modal.s0', "مناقلة بضاعة بين سيارتين بالميدان"))}
+      subtitle={__t('delivery_reps.van_transfer_modal.s1', __t('delivery_reps.van_transfer_modal.s1', "تحويل بضاعة فوري بين المناديب في الشارع بموافقة الطرفين"))}
       compact
       minHeight="auto"
       width="min(480px, 94vw)"
       footerActions={
         <Button variant="secondary" onClick={onClose} style={{ height: '34px', fontSize: '12px' }}>
-          إغلاق
+          {__t('delivery_reps.van_transfer_modal.s2', __t('delivery_reps.van_transfer_modal.s2', "إغلاق"))}
         </Button>
       }
     >
@@ -180,7 +182,7 @@ export const VanTransferModal: React.FC<VanTransferModalProps> = ({
               boxShadow: activeTab === 'incoming' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
             }}
           >
-            الواردة {incomingPending.length > 0 ? `(${incomingPending.length})` : ''}
+            {__t('delivery_reps.van_transfer_modal.s3', __t('delivery_reps.van_transfer_modal.s3', "الواردة"))} {incomingPending.length > 0 ? `(${incomingPending.length})` : ''}
           </button>
           <button
             type="button"
@@ -201,7 +203,7 @@ export const VanTransferModal: React.FC<VanTransferModalProps> = ({
               boxShadow: activeTab === 'create' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
             }}
           >
-            + تحويل جديد
+            {__t('delivery_reps.van_transfer_modal.s4', __t('delivery_reps.van_transfer_modal.s4', "+ تحويل جديد"))}
           </button>
           <button
             type="button"
@@ -222,7 +224,7 @@ export const VanTransferModal: React.FC<VanTransferModalProps> = ({
               boxShadow: activeTab === 'history' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
             }}
           >
-            السجل ({transfers.length})
+            {__t('delivery_reps.van_transfer_modal.s5', __t('delivery_reps.van_transfer_modal.s5', "السجل ("))}{transfers.length})
           </button>
         </div>
 
@@ -231,7 +233,7 @@ export const VanTransferModal: React.FC<VanTransferModalProps> = ({
           <div>
             {incomingPending.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '30px 10px', color: '#94a3b8', fontSize: '12.5px', border: '1px dashed #cbd5e1', borderRadius: '10px' }}>
-                لا توجد طلبات تحويل واردة بانتظار موافقتك حالياً
+                {__t('delivery_reps.van_transfer_modal.s6', __t('delivery_reps.van_transfer_modal.s6', "لا توجد طلبات تحويل واردة بانتظار موافقتك حالياً"))}
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -254,7 +256,7 @@ export const VanTransferModal: React.FC<VanTransferModalProps> = ({
                           #{tr.transferNo}
                         </span>
                         <h4 style={{ margin: '2px 0 0', fontSize: '13px', fontWeight: 800, color: '#0f172a' }}>
-                          محول من المندوب: {tr.fromRepName}
+                          {__t('delivery_reps.van_transfer_modal.s7', __t('delivery_reps.van_transfer_modal.s7', "محول من المندوب:"))} {tr.fromRepName}
                         </h4>
                       </div>
                       <span
@@ -272,26 +274,26 @@ export const VanTransferModal: React.FC<VanTransferModalProps> = ({
                         }}
                       >
                         <ClockIcon size={12} color="#b45309" />
-                        <span>بانتظار تأكيدك</span>
+                        <span>{__t('delivery_reps.van_transfer_modal.s8', __t('delivery_reps.van_transfer_modal.s8', "بانتظار تأكيدك"))}</span>
                       </span>
                     </div>
 
                     {/* Items table */}
                     <div style={{ backgroundColor: '#f8fafc', borderRadius: '6px', padding: '8px', fontSize: '11.5px' }}>
                       <span style={{ color: '#64748b', fontWeight: 700, display: 'block', marginBottom: '4px' }}>
-                        الأصناف المحولة:
+                        {__t('delivery_reps.van_transfer_modal.s9', __t('delivery_reps.van_transfer_modal.s9', "الأصناف المحولة:"))}
                       </span>
                       {tr.items.map((it) => (
                         <div key={it.productId} style={{ display: 'flex', justifyContent: 'space-between', padding: '2px 0' }}>
                           <span>{it.productName}</span>
-                          <strong style={{ color: '#0f172a' }}>{it.qty} قطعة</strong>
+                          <strong style={{ color: '#0f172a' }}>{it.qty} {__t('delivery_reps.van_transfer_modal.s10', __t('delivery_reps.van_transfer_modal.s10', "قطعة"))}</strong>
                         </div>
                       ))}
                     </div>
 
                     {tr.notes && (
                       <span style={{ fontSize: '11px', color: '#64748b', fontStyle: 'italic' }}>
-                        ملاحظة: "{tr.notes}"
+                        {__t('delivery_reps.van_transfer_modal.s11', __t('delivery_reps.van_transfer_modal.s11', "ملاحظة: \""))}{tr.notes}"
                       </span>
                     )}
 
@@ -302,14 +304,14 @@ export const VanTransferModal: React.FC<VanTransferModalProps> = ({
                         onClick={() => handleAcceptTransfer(tr.id)}
                         style={{ flex: 1, backgroundColor: '#15803d', color: '#ffffff', fontSize: '12px', fontWeight: 800, height: '32px' }}
                       >
-                        ✓ استلام وتأكيد البضاعة
+                        {__t('delivery_reps.van_transfer_modal.s12', __t('delivery_reps.van_transfer_modal.s12', "✓ استلام وتأكيد البضاعة"))}
                       </Button>
                       <Button
                         variant="secondary"
                         onClick={() => handleRejectTransfer(tr.id)}
                         style={{ fontSize: '12px', color: '#dc2626', borderColor: '#fca5a5', height: '32px' }}
                       >
-                        رفض
+                        {__t('delivery_reps.van_transfer_modal.s13', __t('delivery_reps.van_transfer_modal.s13', "رفض"))}
                       </Button>
                     </div>
                   </div>
@@ -324,19 +326,19 @@ export const VanTransferModal: React.FC<VanTransferModalProps> = ({
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             <div>
               <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: '#334155', marginBottom: '3px' }}>
-                المندوب الزميل المستلم:
+                {__t('delivery_reps.van_transfer_modal.s14', __t('delivery_reps.van_transfer_modal.s14', "المندوب الزميل المستلم:"))}
               </label>
               <CustomSelect
                 value={selectedRepId ? String(selectedRepId) : ''}
                 onChange={(val) => setSelectedRepId(val ? Number(val) : '')}
                 options={[
-                  { value: '', label: '-- اختر المندوب المستلم --' },
+                  { value: '', label: __t('delivery_reps.van_transfer_modal.s15', __t('delivery_reps.van_transfer_modal.s15', "-- اختر المندوب المستلم --")) },
                   ...peerReps.map((r) => ({
                     value: String(r.id),
                     label: `${r.name}${r.vehiclePlate ? ` (${r.vehiclePlate})` : ''}`,
                   })),
                 ]}
-                placeholder="اختر المندوب"
+                placeholder={__t('delivery_reps.van_transfer_modal.s16', __t('delivery_reps.van_transfer_modal.s16', "اختر المندوب"))}
               />
             </div>
 
@@ -344,13 +346,13 @@ export const VanTransferModal: React.FC<VanTransferModalProps> = ({
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: '#334155', marginBottom: '3px' }}>
-                  الصنف من سيارتك:
+                  {__t('delivery_reps.van_transfer_modal.s17', __t('delivery_reps.van_transfer_modal.s17', "الصنف من سيارتك:"))}
                 </label>
                 <CustomSelect
                   value={selectedProductId ? String(selectedProductId) : ''}
                   onChange={(val) => setSelectedProductId(val ? Number(val) : '')}
                   options={[
-                    { value: '', label: '-- اختر الصنف --' },
+                    { value: '', label: __t('delivery_reps.van_transfer_modal.s18', __t('delivery_reps.van_transfer_modal.s18', "-- اختر الصنف --")) },
                     ...inventory
                       .filter((i) => i.qty > 0)
                       .map((i) => ({
@@ -358,21 +360,21 @@ export const VanTransferModal: React.FC<VanTransferModalProps> = ({
                         label: `${i.productName} (متوفر: ${i.qty})`,
                       })),
                   ]}
-                  placeholder="اختر الصنف"
+                  placeholder={__t('delivery_reps.van_transfer_modal.s19', __t('delivery_reps.van_transfer_modal.s19', "اختر الصنف"))}
                 />
               </div>
 
               <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-end' }}>
                 <div style={{ flex: 1 }}>
                   <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: '#334155', marginBottom: '3px' }}>
-                    الكمية المحولة:
+                    {__t('delivery_reps.van_transfer_modal.s20', __t('delivery_reps.van_transfer_modal.s20', "الكمية المحولة:"))}
                   </label>
                   <input
                     type="number"
                     min="1"
                     value={transferQty}
                     onChange={(e) => setTransferQty(e.target.value)}
-                    placeholder="الكمية..."
+                    placeholder={__t('delivery_reps.van_transfer_modal.s21', __t('delivery_reps.van_transfer_modal.s21', "الكمية..."))}
                     style={{
                       width: '100%',
                       height: '36px',
@@ -399,7 +401,7 @@ export const VanTransferModal: React.FC<VanTransferModalProps> = ({
                     backgroundColor: '#f1f5f9',
                   }}
                 >
-                  + إضافة الصنف
+                  {__t('delivery_reps.van_transfer_modal.s22', __t('delivery_reps.van_transfer_modal.s22', "+ إضافة الصنف"))}
                 </Button>
               </div>
             </div>
@@ -422,7 +424,7 @@ export const VanTransferModal: React.FC<VanTransferModalProps> = ({
                   >
                     <span>{it.productName}</span>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <strong style={{ color: '#0f172a' }}>{it.qty} قطعة</strong>
+                      <strong style={{ color: '#0f172a' }}>{it.qty} {__t('delivery_reps.van_transfer_modal.s23', __t('delivery_reps.van_transfer_modal.s23', "قطعة"))}</strong>
                       <button
                         type="button"
                         onClick={() => handleRemoveItem(it.productId)}
@@ -438,13 +440,13 @@ export const VanTransferModal: React.FC<VanTransferModalProps> = ({
 
             <div>
               <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: '#334155', marginBottom: '3px' }}>
-                ملاحظات التحويل:
+                {__t('delivery_reps.van_transfer_modal.s24', __t('delivery_reps.van_transfer_modal.s24', "ملاحظات التحويل:"))}
               </label>
               <input
                 type="text"
                 value={transferNotes}
                 onChange={(e) => setTransferNotes(e.target.value)}
-                placeholder="سبب التحويل أو موقع اللقاء..."
+                placeholder={__t('delivery_reps.van_transfer_modal.s25', __t('delivery_reps.van_transfer_modal.s25', "سبب التحويل أو موقع اللقاء..."))}
                 style={{ width: '100%', padding: '7px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '12px', boxSizing: 'border-box' }}
               />
             </div>
@@ -456,7 +458,7 @@ export const VanTransferModal: React.FC<VanTransferModalProps> = ({
               disabled={isSubmitting || transferItems.length === 0 || !selectedRepId}
               style={{ backgroundColor: '#170e5e', color: '#ffffff', height: '38px', fontSize: '13px', fontWeight: 800, marginTop: '4px' }}
             >
-              {isSubmitting ? 'جاري الإرسال...' : 'إرسال طلب التحويل للزميل'}
+              {isSubmitting ? __t('delivery_reps.van_transfer_modal.s26', __t('delivery_reps.van_transfer_modal.s26', "جاري الإرسال...")) : __t('delivery_reps.van_transfer_modal.s27', __t('delivery_reps.van_transfer_modal.s27', "إرسال طلب التحويل للزميل"))}
             </Button>
           </div>
         )}
@@ -466,7 +468,7 @@ export const VanTransferModal: React.FC<VanTransferModalProps> = ({
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             {transfers.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '24px 10px', color: '#94a3b8', fontSize: '12px' }}>
-                لا توجد تحويلات سابقة
+                {__t('delivery_reps.van_transfer_modal.s28', __t('delivery_reps.van_transfer_modal.s28', "لا توجد تحويلات سابقة"))}
               </div>
             ) : (
               transfers.map((tr) => (
@@ -487,17 +489,17 @@ export const VanTransferModal: React.FC<VanTransferModalProps> = ({
                     <span style={{ fontFamily: 'monospace', fontWeight: 700, color: '#170e5e' }}>#{tr.transferNo}</span>
                     <span style={{ color: '#64748b' }}> ({tr.fromRepName} ➔ {tr.toRepName})</span>
                     <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '2px' }}>
-                      {tr.totalItemsCount} أصناف | إجمالي الكمية: {tr.totalQty}
+                      {tr.totalItemsCount} {__t('delivery_reps.van_transfer_modal.s29', __t('delivery_reps.van_transfer_modal.s29', "أصناف | إجمالي الكمية:"))} {tr.totalQty}
                     </div>
                   </div>
 
                   <div>
                     {tr.status === 'accepted' ? (
-                      <span style={{ color: '#16a34a', fontWeight: 800, fontSize: '11px' }}>✓ تم الاستلام</span>
+                      <span style={{ color: '#16a34a', fontWeight: 800, fontSize: '11px' }}>{__t('delivery_reps.van_transfer_modal.s30', __t('delivery_reps.van_transfer_modal.s30', "✓ تم الاستلام"))}</span>
                     ) : tr.status === 'rejected' ? (
-                      <span style={{ color: '#dc2626', fontWeight: 800, fontSize: '11px' }}>✕ مرفوض</span>
+                      <span style={{ color: '#dc2626', fontWeight: 800, fontSize: '11px' }}>{__t('delivery_reps.van_transfer_modal.s31', __t('delivery_reps.van_transfer_modal.s31', "✕ مرفوض"))}</span>
                     ) : (
-                      <span style={{ color: '#d97706', fontWeight: 800, fontSize: '11px' }}>⏳ معلق</span>
+                      <span style={{ color: '#d97706', fontWeight: 800, fontSize: '11px' }}>{__t('delivery_reps.van_transfer_modal.s32', __t('delivery_reps.van_transfer_modal.s32', "⏳ معلق"))}</span>
                     )}
                   </div>
                 </div>

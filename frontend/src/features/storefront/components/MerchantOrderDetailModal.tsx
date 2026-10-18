@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { getGlobalSystemCurrency, getCurrencySymbol, isThreeDecimalCurrency } from '@/lib/currencies';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import type { OnlineOrderRecord } from '../types/storefront.types';
@@ -72,6 +73,7 @@ export function MerchantOrderDetailModal({
   isBostaConfigured = false,
   isGccConfigured = false,
 }: MerchantOrderDetailModalProps) {
+  const { t } = useTranslation();
   if (!order) return null;
 
   const isKwdOrder = order?.countryCode === 'KW' || (order as any)?.country_code === 'KW' || getGlobalSystemCurrency() === 'KWD';
@@ -120,7 +122,7 @@ export function MerchantOrderDetailModal({
         >
           <div>
             <h3 style={{ margin: 0, fontSize: '17px', fontWeight: 800, color: '#170e5e' }}>
-              طلب رقم #{order.orderNumber}
+              {t('storefront.merchant_order_detail_modal.s0', "طلب رقم #")}{order.orderNumber}
             </h3>
             <span style={{ fontSize: '12px', color: '#64748b' }}>
               {new Date(order.createdAt).toLocaleString('ar-EG')}
@@ -162,26 +164,26 @@ export function MerchantOrderDetailModal({
             }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ fontSize: '12px', color: '#64748b' }}>اسم العميل:</span>
+              <span style={{ fontSize: '12px', color: '#64748b' }}>{t('storefront.merchant_order_detail_modal.s1', "اسم العميل:")}</span>
               <span style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a' }}>
                 {order.customerName}
               </span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ fontSize: '12px', color: '#64748b' }}>رقم الهاتف:</span>
+              <span style={{ fontSize: '12px', color: '#64748b' }}>{t('storefront.merchant_order_detail_modal.s2', "رقم الهاتف:")}</span>
               <span style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a', direction: 'ltr' }}>
                 {order.customerPhone}
               </span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ fontSize: '12px', color: '#64748b' }}>عنوان التوصيل:</span>
+              <span style={{ fontSize: '12px', color: '#64748b' }}>{t('storefront.merchant_order_detail_modal.s3', "عنوان التوصيل:")}</span>
               <span style={{ fontSize: '13px', fontWeight: 600, color: '#334155' }}>
-                {order.customerAddress || 'غير محدد'}
+                {order.customerAddress || t('storefront.merchant_order_detail_modal.s4', "غير محدد")}
               </span>
             </div>
             {order.deliveryZoneName && (
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '12px', color: '#64748b' }}>منطقة التوصيل:</span>
+                <span style={{ fontSize: '12px', color: '#64748b' }}>{t('storefront.merchant_order_detail_modal.s5', "منطقة التوصيل:")}</span>
                 <span
                   style={{
                     fontSize: '12px',
@@ -202,7 +204,7 @@ export function MerchantOrderDetailModal({
               </div>
             )}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '12px', color: '#64748b' }}>طريقة الدفع:</span>
+              <span style={{ fontSize: '12px', color: '#64748b' }}>{t('storefront.merchant_order_detail_modal.s6', "طريقة الدفع:")}</span>
               <span
                 style={{
                   fontSize: '12px',
@@ -217,7 +219,7 @@ export function MerchantOrderDetailModal({
               </span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '12px', color: '#64748b' }}>حالة السداد:</span>
+              <span style={{ fontSize: '12px', color: '#64748b' }}>{t('storefront.merchant_order_detail_modal.s7', "حالة السداد:")}</span>
               <span
                 style={{
                   fontSize: '12px',
@@ -234,7 +236,7 @@ export function MerchantOrderDetailModal({
             {canConfirmTransfer && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', background: '#f5f3ff', border: '1px solid #ddd6fe', borderRadius: '8px', padding: '8px 12px' }}>
                 <span style={{ fontSize: '12px', color: '#5b21b6', fontWeight: 700, lineHeight: 1.5 }}>
-                  لن تُعتبر الفاتورة محصّلة حتى تتأكد من وصول التحويل فعلياً لحسابك. بدون التأكيد سيطالب المندوب العميل بالمبلغ عند التسليم.
+                  {t('storefront.merchant_order_detail_modal.s8', "لن تُعتبر الفاتورة محصّلة حتى تتأكد من وصول التحويل فعلياً لحسابك. بدون التأكيد سيطالب المندوب العميل بالمبلغ عند التسليم.")}
                 </span>
                 <button
                   type="button"
@@ -256,13 +258,13 @@ export function MerchantOrderDetailModal({
                     fontFamily: 'inherit',
                   }}
                 >
-                  {isConfirmingPayment ? 'جاري التأكيد...' : 'تأكيد استلام التحويل'}
+                  {isConfirmingPayment ? t('storefront.merchant_order_detail_modal.s9', "جاري التأكيد...") : t('storefront.merchant_order_detail_modal.s10', "تأكيد استلام التحويل")}
                 </button>
               </div>
             )}
             {order.customerNotes && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '8px', padding: '8px 12px', marginTop: '2px' }}>
-                <span style={{ fontSize: '12px', color: '#92400e', fontWeight: 800 }}>ملاحظات العميل وتجهيز الأصناف:</span>
+                <span style={{ fontSize: '12px', color: '#92400e', fontWeight: 800 }}>{t('storefront.merchant_order_detail_modal.s11', "ملاحظات العميل وتجهيز الأصناف:")}</span>
                 <span style={{ fontSize: '12.5px', color: '#b45309', fontWeight: 600, whiteSpace: 'pre-wrap', lineHeight: '1.4' }}>
                   {order.customerNotes}
                 </span>
@@ -283,13 +285,13 @@ export function MerchantOrderDetailModal({
                 marginTop: '4px',
               }}
             >
-              <span>أوتوميشن فوري: عند التحويل يتم تسجيل هذا العميل تلقائياً، وإصدار فاتورة دليفري، وخصم المخزون.</span>
+              <span>{t('storefront.merchant_order_detail_modal.s12', "أوتوميشن فوري: عند التحويل يتم تسجيل هذا العميل تلقائياً، وإصدار فاتورة دليفري، وخصم المخزون.")}</span>
             </div>
           </div>
 
           {/* Items List */}
           <h4 style={{ margin: '0 0 10px', fontSize: '14px', fontWeight: 700, color: '#0f172a' }}>
-            الأصناف المطلوبة ({order.items.length}):
+            {t('storefront.merchant_order_detail_modal.s13', "الأصناف المطلوبة (")}{order.items.length}):
           </h4>
           <div
             style={{
@@ -341,10 +343,10 @@ export function MerchantOrderDetailModal({
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 800, fontSize: '13px', color: '#e11d48' }}>
                   <PackageIcon size={15} color="#e11d48" />
-                  <span>شحنة بوسطة إكسبريس (Bosta)</span>
+                  <span>{t('storefront.merchant_order_detail_modal.s14', "شحنة بوسطة إكسبريس (Bosta)")}</span>
                 </div>
                 <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>
-                  رقم التتبع: #{order.bostaTrackingNumber}
+                  {t('storefront.merchant_order_detail_modal.s15', "رقم التتبع: #")}{order.bostaTrackingNumber}
                 </div>
               </div>
               <button
@@ -361,7 +363,7 @@ export function MerchantOrderDetailModal({
                   cursor: 'pointer',
                 }}
               >
-                طباعة البوليصة AWB
+                {t('storefront.merchant_order_detail_modal.s16', "طباعة البوليصة AWB")}
               </button>
             </div>
           )}
@@ -383,10 +385,10 @@ export function MerchantOrderDetailModal({
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 800, fontSize: '13px', color: (order.gccShippingCarrier || order.gcc_shipping_carrier) === 'aramex' ? '#dc2626' : '#ea580c' }}>
                   <TruckIcon size={15} color={(order.gccShippingCarrier || order.gcc_shipping_carrier) === 'aramex' ? '#dc2626' : '#ea580c'} />
-                  <span>شحنة {(order.gccShippingCarrier || order.gcc_shipping_carrier) === 'aramex' ? 'أرامكس (Aramex)' : 'سمسا إكسبريس (SMSA)'}</span>
+                  <span>{t('storefront.merchant_order_detail_modal.s17', "شحنة")} {(order.gccShippingCarrier || order.gcc_shipping_carrier) === 'aramex' ? t('storefront.merchant_order_detail_modal.s18', "أرامكس (Aramex)") : t('storefront.merchant_order_detail_modal.s19', "سمسا إكسبريس (SMSA)")}</span>
                 </div>
                 <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>
-                  رقم التتبع: #{order.gccTrackingNumber || order.gcc_tracking_number}
+                  {t('storefront.merchant_order_detail_modal.s20', "رقم التتبع: #")}{order.gccTrackingNumber || order.gcc_tracking_number}
                 </div>
               </div>
               <button
@@ -403,7 +405,7 @@ export function MerchantOrderDetailModal({
                   cursor: 'pointer',
                 }}
               >
-                عرض التتبع والطباعة
+                {t('storefront.merchant_order_detail_modal.s21', "عرض التتبع والطباعة")}
               </button>
             </div>
           )}
@@ -422,26 +424,26 @@ export function MerchantOrderDetailModal({
             }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748b' }}>
-              <span>المجموع الفرعي:</span>
+              <span>{t('storefront.merchant_order_detail_modal.s22', "المجموع الفرعي:")}</span>
               <span style={{ fontWeight: 600 }}>{formatOrderMoney(order.subtotal)} {orderCurrencySymbol}</span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748b' }}>
-              <span>رسوم التوصيل {order.deliveryZoneName ? `(${order.deliveryZoneName})` : ''}:</span>
+              <span>{t('storefront.merchant_order_detail_modal.s23', "رسوم التوصيل")} {order.deliveryZoneName ? `(${order.deliveryZoneName})` : ''}:</span>
               {order.deliveryFee === 0 ? (
-                <span style={{ fontWeight: 700, color: '#16a34a' }}>مجاناً</span>
+                <span style={{ fontWeight: 700, color: '#16a34a' }}>{t('storefront.merchant_order_detail_modal.s24', "مجاناً")}</span>
               ) : (
                 <span style={{ fontWeight: 600 }}>{formatOrderMoney(order.deliveryFee)} {orderCurrencySymbol}</span>
               )}
             </div>
             {order.couponCode && (
               <div style={{ display: 'flex', justifyContent: 'space-between', color: '#170e5e' }}>
-                <span>كود الخصم المستخدم:</span>
+                <span>{t('storefront.merchant_order_detail_modal.s25', "كود الخصم المستخدم:")}</span>
                 <span style={{ fontWeight: 800, fontFamily: 'monospace' }}>{order.couponCode}</span>
               </div>
             )}
             {(order.discountAmount ?? 0) > 0 && (
               <div style={{ display: 'flex', justifyContent: 'space-between', color: '#16a34a' }}>
-                <span>قيمة الخصم:</span>
+                <span>{t('storefront.merchant_order_detail_modal.s26', "قيمة الخصم:")}</span>
                 <span style={{ fontWeight: 700 }}>- {formatOrderMoney(order.discountAmount)} {orderCurrencySymbol}</span>
               </div>
             )}
@@ -456,7 +458,7 @@ export function MerchantOrderDetailModal({
                 color: '#0f172a',
               }}
             >
-              <span>المبلغ المطلوب:</span>
+              <span>{t('storefront.merchant_order_detail_modal.s27', "المبلغ المطلوب:")}</span>
               <span>{formatOrderMoney(order.totalAmount)} {orderCurrencySymbol}</span>
             </div>
           </div>
@@ -464,7 +466,7 @@ export function MerchantOrderDetailModal({
           {/* Status Selector */}
           <div style={{ marginTop: '16px' }}>
             <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#475569', marginBottom: '6px' }}>
-              تحديث حالة الطلب:
+              {t('storefront.merchant_order_detail_modal.s28', "تحديث حالة الطلب:")}
             </label>
             <select
               value={order.status}
@@ -480,12 +482,12 @@ export function MerchantOrderDetailModal({
                 fontFamily: 'inherit',
               }}
             >
-              <option value="pending">قيد الانتظار (جديد)</option>
-              <option value="confirmed">تم التأكيد</option>
-              <option value="processing">جاري التجهيز</option>
-              <option value="shipped">خرج للتوصيل</option>
-              <option value="delivered">مكتمل / تم التسليم</option>
-              <option value="cancelled">ملغي</option>
+              <option value="pending">{t('storefront.merchant_order_detail_modal.s29', "قيد الانتظار (جديد)")}</option>
+              <option value="confirmed">{t('storefront.merchant_order_detail_modal.s30', "تم التأكيد")}</option>
+              <option value="processing">{t('storefront.merchant_order_detail_modal.s31', "جاري التجهيز")}</option>
+              <option value="shipped">{t('storefront.merchant_order_detail_modal.s32', "خرج للتوصيل")}</option>
+              <option value="delivered">{t('storefront.merchant_order_detail_modal.s33', "مكتمل / تم التسليم")}</option>
+              <option value="cancelled">{t('storefront.merchant_order_detail_modal.s34', "ملغي")}</option>
             </select>
           </div>
         </div>
@@ -517,7 +519,7 @@ export function MerchantOrderDetailModal({
               }}
             >
               <AlertTriangleIcon size={14} color="#991b1b" />
-              <span>هذا الطلب تم إلغاؤه من قبل العميل</span>
+              <span>{t('storefront.merchant_order_detail_modal.s35', "هذا الطلب تم إلغاؤه من قبل العميل")}</span>
             </div>
           ) : order.status === 'delivered' ? (
             <div
@@ -540,7 +542,7 @@ export function MerchantOrderDetailModal({
               <span>
                 {order.saleId
                   ? `تم تسليم هذا الطلب بنجاح للعميل (فاتورة رقم #${order.saleId})`
-                  : 'تم تسليم هذا الطلب بنجاح للعميل (مكتمل)'}
+                  : t('storefront.merchant_order_detail_modal.s36', "تم تسليم هذا الطلب بنجاح للعميل (مكتمل)")}
               </span>
             </div>
           ) : order.saleId ? (
@@ -561,7 +563,7 @@ export function MerchantOrderDetailModal({
                 }}
               >
                 <CheckIcon size={14} color="#166534" strokeWidth={2.5} />
-                <span>تم إصدار فاتورة دليفري رقم #{order.saleId}</span>
+                <span>{t('storefront.merchant_order_detail_modal.s37', "تم إصدار فاتورة دليفري رقم #")}{order.saleId}</span>
               </div>
               {order.status === 'processing' && (
                 <button
@@ -584,7 +586,7 @@ export function MerchantOrderDetailModal({
                   }}
                 >
                   <TruckIcon size={14} color="#ffffff" />
-                  <span>تسليم للمندوب (خرج للتوصيل)</span>
+                  <span>{t('storefront.merchant_order_detail_modal.s38', "تسليم للمندوب (خرج للتوصيل)")}</span>
                 </button>
               )}
               {order.status === 'shipped' && (
@@ -608,7 +610,7 @@ export function MerchantOrderDetailModal({
                   }}
                 >
                   <CheckIcon size={14} color="#ffffff" strokeWidth={2.5} />
-                  <span>تأكيد استلام العميل (تم التسليم بنجاح)</span>
+                  <span>{t('storefront.merchant_order_detail_modal.s39', "تأكيد استلام العميل (تم التسليم بنجاح)")}</span>
                 </button>
               )}
             </div>
@@ -634,7 +636,7 @@ export function MerchantOrderDetailModal({
                 }}
               >
                 <span>
-                  {loadingPosOrderId === order.id ? 'جاري النقل...' : 'تنزيل في السلة (POS)'}
+                  {loadingPosOrderId === order.id ? t('storefront.merchant_order_detail_modal.s40', "جاري النقل...") : t('storefront.merchant_order_detail_modal.s41', "تنزيل في السلة (POS)")}
                 </span>
               </button>
 
@@ -657,7 +659,7 @@ export function MerchantOrderDetailModal({
                   gap: '6px',
                 }}
               >
-                <span>دليفري داخلي</span>
+                <span>{t('storefront.merchant_order_detail_modal.s42', "دليفري داخلي")}</span>
               </button>
 
               {showBosta && (
@@ -681,7 +683,7 @@ export function MerchantOrderDetailModal({
                   }}
                 >
                   <PackageIcon size={14} color="#ffffff" />
-                  <span>شحن بوسطة</span>
+                  <span>{t('storefront.merchant_order_detail_modal.s43', "شحن بوسطة")}</span>
                 </button>
               )}
 
@@ -706,7 +708,7 @@ export function MerchantOrderDetailModal({
                   }}
                 >
                   <TruckIcon size={14} color="#ffffff" />
-                  <span>شحن خليجي</span>
+                  <span>{t('storefront.merchant_order_detail_modal.s44', "شحن خليجي")}</span>
                 </button>
               )}
             </div>

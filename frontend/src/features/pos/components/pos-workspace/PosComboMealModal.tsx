@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useMemo } from 'react';
 import { RestaurantOperationsDialog } from './RestaurantOperationsDialog';
 import { Button } from '@/shared/ui/button';
@@ -38,6 +39,7 @@ export function PosComboMealModal({
   products,
   onAddComboToCart,
 }: PosComboMealModalProps) {
+  const { t } = useTranslation();
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1);
   const [mainSearch, setMainSearch] = useState('');
 
@@ -109,10 +111,10 @@ export function PosComboMealModal({
       open={open}
       onClose={onClose}
       onBack={onBack}
-      title="معالج وجبات الكومبو السريعة (Combo Meal Builder)"
-      subtitle="بناء وجبة متكاملة خطوة بخطوة: الصنف الرئيسي ➔ الطبق الجانبي ➔ المشروب"
+      title={t('pos.pos_workspace.pos_combo_meal_modal.s0', "معالج وجبات الكومبو السريعة (Combo Meal Builder)")}
+      subtitle={t('pos.pos_workspace.pos_combo_meal_modal.s1', "بناء وجبة متكاملة خطوة بخطوة: الصنف الرئيسي ➔ الطبق الجانبي ➔ المشروب")}
       icon={<LayersIcon size={18} color="#170e5e" />}
-      footerNote="تُجمع بنود الوجبة في صنف واحد موحد بالسلة مع تفاصيل المكونات والإضافات للطلب والمطبخ"
+      footerNote={t('pos.pos_workspace.pos_combo_meal_modal.s2', "تُجمع بنود الوجبة في صنف واحد موحد بالسلة مع تفاصيل المكونات والإضافات للطلب والمطبخ")}
       scrollableBody={false}
       bodyStyle={{
         padding: '16px 20px',
@@ -141,7 +143,7 @@ export function PosComboMealModal({
                 }}
               >
                 <ArrowRightIcon size={14} />
-                <span>الخطوة السابقة</span>
+                <span>{t('pos.pos_workspace.pos_combo_meal_modal.s3', "الخطوة السابقة")}</span>
               </Button>
             )}
           </div>
@@ -153,7 +155,7 @@ export function PosComboMealModal({
               onClick={onClose}
               style={{ height: '34px', minHeight: '34px', padding: '0 14px', fontSize: '12px' }}
             >
-              إلغاء
+              {t('pos.pos_workspace.pos_combo_meal_modal.s4', "إلغاء")}
             </Button>
             {currentStep < 3 ? (
               <Button
@@ -173,7 +175,7 @@ export function PosComboMealModal({
                   backgroundColor: '#170e5e',
                 }}
               >
-                <span>الخطوة التالية</span>
+                <span>{t('pos.pos_workspace.pos_combo_meal_modal.s5', "الخطوة التالية")}</span>
                 <ArrowLeftIcon size={14} />
               </Button>
             ) : (
@@ -195,7 +197,7 @@ export function PosComboMealModal({
                 }}
               >
                 <CheckCircleIcon size={14} color="#ffffff" />
-                <span>إضافة وجبة الكومبو بالسلة ({formatCurrency(totalComboPrice)})</span>
+                <span>{t('pos.pos_workspace.pos_combo_meal_modal.s6', "إضافة وجبة الكومبو بالسلة (")}{formatCurrency(totalComboPrice)})</span>
               </Button>
             )}
           </div>
@@ -206,9 +208,9 @@ export function PosComboMealModal({
         {/* Step Progress Indicators */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', flexShrink: 0 }}>
           {[
-            { step: 1, title: '1. الصنف الرئيسي (البرجر/الساندوتش)', desc: selectedMain ? selectedMain.name : 'اختر الصنف' },
-            { step: 2, title: '2. الصنف الجانبي (البطاطس والمقبلات)', desc: selectedSide.name },
-            { step: 3, title: '3. المشروب والملاحظات', desc: selectedDrink.name },
+            { step: 1, title: t('pos.pos_workspace.pos_combo_meal_modal.s7', "1. الصنف الرئيسي (البرجر/الساندوتش)"), desc: selectedMain ? selectedMain.name : t('pos.pos_workspace.pos_combo_meal_modal.s8', "اختر الصنف") },
+            { step: 2, title: t('pos.pos_workspace.pos_combo_meal_modal.s9', "2. الصنف الجانبي (البطاطس والمقبلات)"), desc: selectedSide.name },
+            { step: 3, title: t('pos.pos_workspace.pos_combo_meal_modal.s10', "3. المشروب والملاحظات"), desc: selectedDrink.name },
           ].map((s) => {
             const isActive = currentStep === s.step;
             const isCompleted = currentStep > s.step;
@@ -260,12 +262,12 @@ export function PosComboMealModal({
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: 1, minHeight: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
               <div style={{ fontSize: '12.5px', fontWeight: 800, color: '#0f172a' }}>
-                اختر الصنف الرئيسي للوجبة ({mainEntrees.length} صنف متاح):
+                {t('pos.pos_workspace.pos_combo_meal_modal.s11', "اختر الصنف الرئيسي للوجبة (")}{mainEntrees.length} {t('pos.pos_workspace.pos_combo_meal_modal.s12', "صنف متاح):")}
               </div>
               <div style={{ position: 'relative', width: '220px' }}>
                 <input
                   type="text"
-                  placeholder="بحث في الأصناف..."
+                  placeholder={t('pos.pos_workspace.pos_combo_meal_modal.s13', "بحث في الأصناف...")}
                   value={mainSearch}
                   onChange={(e) => setMainSearch(e.target.value)}
                   style={{
@@ -338,7 +340,7 @@ export function PosComboMealModal({
         {currentStep === 2 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: 1, minHeight: 0 }}>
             <div style={{ fontSize: '12.5px', fontWeight: 800, color: '#0f172a' }}>
-              اختر الصنف الجانبي (بطاطس ومقبلات):
+              {t('pos.pos_workspace.pos_combo_meal_modal.s14', "اختر الصنف الجانبي (بطاطس ومقبلات):")}
             </div>
             <div
               className="thin-scrollbar"
@@ -381,7 +383,7 @@ export function PosComboMealModal({
                       {isSelected && <CheckCircleIcon size={14} color="#170e5e" />}
                     </div>
                     <div style={{ fontSize: '12px', fontWeight: 800, color: side.priceDelta > 0 ? '#ea580c' : '#16a34a', marginTop: '4px' }}>
-                      {side.priceDelta > 0 ? `+ ${formatCurrency(side.priceDelta)}` : 'مشمول بالوجبة (0 ج.م)'}
+                      {side.priceDelta > 0 ? `+ ${formatCurrency(side.priceDelta)}` : t('pos.pos_workspace.pos_combo_meal_modal.s15', "مشمول بالوجبة (0 ج.م)")}
                     </div>
                   </button>
                 );
@@ -394,7 +396,7 @@ export function PosComboMealModal({
         {currentStep === 3 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: 1, minHeight: 0 }}>
             <div style={{ fontSize: '12.5px', fontWeight: 800, color: '#0f172a' }}>
-              اختر المشروب المنعش وتفضيلات التحضير:
+              {t('pos.pos_workspace.pos_combo_meal_modal.s16', "اختر المشروب المنعش وتفضيلات التحضير:")}
             </div>
             <div
               className="thin-scrollbar"
@@ -437,7 +439,7 @@ export function PosComboMealModal({
                       {isSelected && <CheckCircleIcon size={14} color="#170e5e" />}
                     </div>
                     <div style={{ fontSize: '11.5px', fontWeight: 800, color: drink.priceDelta > 0 ? '#ea580c' : '#16a34a', marginTop: '3px' }}>
-                      {drink.priceDelta > 0 ? `+ ${formatCurrency(drink.priceDelta)}` : 'مشمول بالوجبة (0 ج.م)'}
+                      {drink.priceDelta > 0 ? `+ ${formatCurrency(drink.priceDelta)}` : t('pos.pos_workspace.pos_combo_meal_modal.s17', "مشمول بالوجبة (0 ج.م)")}
                     </div>
                   </button>
                 );
@@ -446,11 +448,11 @@ export function PosComboMealModal({
 
             <div style={{ marginTop: '2px' }}>
               <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: '#475569', marginBottom: '3px' }}>
-                ملاحظات وتخصيص الوجبة للمطبخ (اختياري):
+                {t('pos.pos_workspace.pos_combo_meal_modal.s18', "ملاحظات وتخصيص الوجبة للمطبخ (اختياري):")}
               </label>
               <input
                 type="text"
-                placeholder="مثال: بدون بصل / صوص باربيكيو جانبي / بدون ثلج في المشروب"
+                placeholder={t('pos.pos_workspace.pos_combo_meal_modal.s19', "مثال: بدون بصل / صوص باربيكيو جانبي / بدون ثلج في المشروب")}
                 value={comboNotes}
                 onChange={(e) => setComboNotes(e.target.value)}
                 style={{
@@ -485,7 +487,7 @@ export function PosComboMealModal({
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
             <UtensilsIcon size={16} color="#170e5e" />
             <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: '10.5px', color: '#64748b', fontWeight: 600 }}>مكونات الوجبة المختارة:</div>
+              <div style={{ fontSize: '10.5px', color: '#64748b', fontWeight: 600 }}>{t('pos.pos_workspace.pos_combo_meal_modal.s20', "مكونات الوجبة المختارة:")}</div>
               <div style={{ fontSize: '12.5px', fontWeight: 800, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {selectedMain?.name || '—'} + {selectedSide.name} + {selectedDrink.name}
               </div>
@@ -493,7 +495,7 @@ export function PosComboMealModal({
           </div>
 
           <div style={{ textAlign: 'left', flexShrink: 0 }}>
-            <div style={{ fontSize: '10.5px', color: '#64748b', fontWeight: 600 }}>إجمالي سعر الوجبة:</div>
+            <div style={{ fontSize: '10.5px', color: '#64748b', fontWeight: 600 }}>{t('pos.pos_workspace.pos_combo_meal_modal.s21', "إجمالي سعر الوجبة:")}</div>
             <div style={{ fontSize: '17px', fontWeight: 900, color: '#170e5e' }}>
               {formatCurrency(totalComboPrice)}
             </div>

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect, type FC } from 'react';
 import { PageHeader } from '@/shared/components/page-header';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
@@ -15,6 +16,7 @@ import { CreateEditBinModal } from '../components/bins/CreateEditBinModal';
 import { systemConfirm, toast } from '@/shared/components/system-alert';
 
 export const WarehouseBinsPage: FC = () => {
+  const { t } = useTranslation();
   const [bins, setBins] = useState<WarehouseBin[]>([]);
   const [locations, setLocations] = useState<any[]>([]);
   const [selectedLocationId, setSelectedLocationId] = useState<number | ''>('');
@@ -218,9 +220,9 @@ export const WarehouseBinsPage: FC = () => {
     <div className="page-stack page-shell" dir="rtl">
       <main className="document-prototype-column" style={{ paddingBottom: '100px' }}>
         <PageHeader
-          title="أماكن التخزين والأرفف (Warehouse Bins & Shelves)"
-          description="إدارة الهيكل التفصيلي للمستودعات (الممرات، الأرفف، الأعين) مع فاحص وجرد الباركود المباشر عبر الماسح اللاسلكي أو الهاتف."
-          badge={<span className="nav-pill">إدارة المستودعات المتقدمة</span>}
+          title={t('inventory.warehouse_bins_page.s0', "أماكن التخزين والأرفف (Warehouse Bins & Shelves)")}
+          description={t('inventory.warehouse_bins_page.s1', "إدارة الهيكل التفصيلي للمستودعات (الممرات، الأرفف، الأعين) مع فاحص وجرد الباركود المباشر عبر الماسح اللاسلكي أو الهاتف.")}
+          badge={<span className="nav-pill">{t('inventory.warehouse_bins_page.s2', "إدارة المستودعات المتقدمة")}</span>}
           actions={
             <button
               type="button"
@@ -240,7 +242,7 @@ export const WarehouseBinsPage: FC = () => {
               }}
             >
               <AppIcons.Plus size={16} />
-              إضافة مكان تخزين جديد (New Bin)
+              {t('inventory.warehouse_bins_page.s3', "إضافة مكان تخزين جديد (New Bin)")}
             </button>
           }
         />
@@ -272,7 +274,7 @@ export const WarehouseBinsPage: FC = () => {
             }}
           >
             <AppIcons.Box size={16} />
-            سجل الأرفف وأماكن التخزين (Bins Directory)
+            {t('inventory.warehouse_bins_page.s4', "سجل الأرفف وأماكن التخزين (Bins Directory)")}
           </button>
           <button
             type="button"
@@ -292,7 +294,7 @@ export const WarehouseBinsPage: FC = () => {
             }}
           >
             <AppIcons.Barcode size={16} />
-            فاحص وجرد الباركود السريع (Quick Barcode Audit)
+            {t('inventory.warehouse_bins_page.s5', "فاحص وجرد الباركود السريع (Quick Barcode Audit)")}
           </button>
         </div>
 

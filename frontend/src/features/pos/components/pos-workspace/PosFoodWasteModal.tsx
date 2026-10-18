@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { RestaurantOperationsDialog } from './RestaurantOperationsDialog';
@@ -19,6 +20,7 @@ interface PosFoodWasteModalProps {
 }
 
 export function PosFoodWasteModal({ open, onClose, branchId = 1, onBack }: PosFoodWasteModalProps) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<'log' | 'history'>('log');
   const [productId, setProductId] = useState('');
@@ -97,10 +99,10 @@ export function PosFoodWasteModal({ open, onClose, branchId = 1, onBack }: PosFo
       open={open}
       onClose={onClose}
       onBack={onBack}
-      backText="الرجوع لعمليات المطعم"
-      title="إدارة وتوثيق هدر المطبخ والتالف (Kitchen Food Waste & Spoilage)"
-      subtitle="توثيق هدر وتالف المواد الغذائية والوجبات وخصمها من المستودع مع تحليل التكلفة"
-      footerNote="تسجيل التالف يخصم الكميات من المخزون المركزي ويحسب التكلفة تلقائياً"
+      backText={t('pos.pos_workspace.pos_food_waste_modal.s0', "الرجوع لعمليات المطعم")}
+      title={t('pos.pos_workspace.pos_food_waste_modal.s1', "إدارة وتوثيق هدر المطبخ والتالف (Kitchen Food Waste & Spoilage)")}
+      subtitle={t('pos.pos_workspace.pos_food_waste_modal.s2', "توثيق هدر وتالف المواد الغذائية والوجبات وخصمها من المستودع مع تحليل التكلفة")}
+      footerNote={t('pos.pos_workspace.pos_food_waste_modal.s3', "تسجيل التالف يخصم الكميات من المخزون المركزي ويحسب التكلفة تلقائياً")}
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
         {/* KPI Strip */}
@@ -114,7 +116,7 @@ export function PosFoodWasteModal({ open, onClose, branchId = 1, onBack }: PosFo
             }}
           >
             <div style={{ fontSize: '11.5px', fontWeight: 600, color: '#991b1b' }}>
-              إجمالي تكلفة الهدر (آخر 30 يوماً)
+              {t('pos.pos_workspace.pos_food_waste_modal.s4', "إجمالي تكلفة الهدر (آخر 30 يوماً)")}
             </div>
             <div style={{ fontSize: '18px', fontWeight: 800, color: '#b91c1c', marginTop: '2px' }}>
               {isLoadingSummary ? '—' : formatCurrency(Number(summary?.totalWasteCost || 0))}
@@ -129,7 +131,7 @@ export function PosFoodWasteModal({ open, onClose, branchId = 1, onBack }: PosFo
             }}
           >
             <div style={{ fontSize: '11.5px', fontWeight: 600, color: '#475569' }}>
-              إجمالي حوادث الهدر المسجلة
+              {t('pos.pos_workspace.pos_food_waste_modal.s5', "إجمالي حوادث الهدر المسجلة")}
             </div>
             <div style={{ fontSize: '18px', fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>
               {isLoadingSummary ? '—' : `${summary?.totalWasteIncidents || 0} واقعة`}
@@ -153,7 +155,7 @@ export function PosFoodWasteModal({ open, onClose, branchId = 1, onBack }: PosFo
               color: activeTab === 'log' ? '#ffffff' : '#475569',
             }}
           >
-            تسجيل هدر جديد
+            {t('pos.pos_workspace.pos_food_waste_modal.s6', "تسجيل هدر جديد")}
           </button>
           <button
             type="button"
@@ -169,7 +171,7 @@ export function PosFoodWasteModal({ open, onClose, branchId = 1, onBack }: PosFo
               color: activeTab === 'history' ? '#ffffff' : '#475569',
             }}
           >
-            سجل الهدر والتالف السابق
+            {t('pos.pos_workspace.pos_food_waste_modal.s7', "سجل الهدر والتالف السابق")}
           </button>
         </div>
 
@@ -190,11 +192,11 @@ export function PosFoodWasteModal({ open, onClose, branchId = 1, onBack }: PosFo
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                  رقم الصنف أو المادة الخام (Product ID) *
+                  {t('pos.pos_workspace.pos_food_waste_modal.s8', "رقم الصنف أو المادة الخام (Product ID) *")}
                 </label>
                 <input
                   type="number"
-                  placeholder="مثال: 104"
+                  placeholder={t('pos.pos_workspace.pos_food_waste_modal.s9', "مثال: 104")}
                   value={productId}
                   onChange={(e) => setProductId(e.target.value)}
                   required
@@ -211,7 +213,7 @@ export function PosFoodWasteModal({ open, onClose, branchId = 1, onBack }: PosFo
 
               <div>
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                  الكمية التالفة / المهدورة *
+                  {t('pos.pos_workspace.pos_food_waste_modal.s10', "الكمية التالفة / المهدورة *")}
                 </label>
                 <input
                   type="number"
@@ -235,7 +237,7 @@ export function PosFoodWasteModal({ open, onClose, branchId = 1, onBack }: PosFo
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                  سبب الهدر والتلف *
+                  {t('pos.pos_workspace.pos_food_waste_modal.s11', "سبب الهدر والتلف *")}
                 </label>
                 <select
                   value={reason}
@@ -250,21 +252,21 @@ export function PosFoodWasteModal({ open, onClose, branchId = 1, onBack }: PosFo
                     boxSizing: 'border-box',
                   }}
                 >
-                  <option value="spoilage">تلف أو فساد مادة خام</option>
-                  <option value="prep_error">خطأ إعداد وتحضير بالمطبخ</option>
-                  <option value="expired">انتهاء صلاحية الصنف</option>
-                  <option value="customer_complaint">شكوى أو استرجاع طبق من الزبون</option>
-                  <option value="other">أسباب أخرى</option>
+                  <option value="spoilage">{t('pos.pos_workspace.pos_food_waste_modal.s12', "تلف أو فساد مادة خام")}</option>
+                  <option value="prep_error">{t('pos.pos_workspace.pos_food_waste_modal.s13', "خطأ إعداد وتحضير بالمطبخ")}</option>
+                  <option value="expired">{t('pos.pos_workspace.pos_food_waste_modal.s14', "انتهاء صلاحية الصنف")}</option>
+                  <option value="customer_complaint">{t('pos.pos_workspace.pos_food_waste_modal.s15', "شكوى أو استرجاع طبق من الزبون")}</option>
+                  <option value="other">{t('pos.pos_workspace.pos_food_waste_modal.s16', "أسباب أخرى")}</option>
                 </select>
               </div>
 
               <div>
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                  ملاحظات وتفاصيل إضافية
+                  {t('pos.pos_workspace.pos_food_waste_modal.s17', "ملاحظات وتفاصيل إضافية")}
                 </label>
                 <input
                   type="text"
-                  placeholder="مثال: احتراق الخبز في الفرن أو تلف كرتون الخضار"
+                  placeholder={t('pos.pos_workspace.pos_food_waste_modal.s18', "مثال: احتراق الخبز في الفرن أو تلف كرتون الخضار")}
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   style={{
@@ -293,7 +295,7 @@ export function PosFoodWasteModal({ open, onClose, branchId = 1, onBack }: PosFo
                 }}
               >
                 <PlusCircleIcon size={14} />
-                {logWasteMutation.isPending ? 'جاري التسجيل...' : 'إثبات هدر وخصم من المستودع'}
+                {logWasteMutation.isPending ? t('pos.pos_workspace.pos_food_waste_modal.s19', "جاري التسجيل...") : t('pos.pos_workspace.pos_food_waste_modal.s20', "إثبات هدر وخصم من المستودع")}
               </Button>
             </div>
           </form>
@@ -314,14 +316,14 @@ export function PosFoodWasteModal({ open, onClose, branchId = 1, onBack }: PosFo
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right' }}>
               <thead>
                 <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-                  <th style={{ padding: '8px 10px', fontSize: '11.5px', fontWeight: 700, color: '#475569' }}>الصنف</th>
-                  <th style={{ padding: '8px 10px', fontSize: '11.5px', fontWeight: 700, color: '#475569' }}>الكمية</th>
+                  <th style={{ padding: '8px 10px', fontSize: '11.5px', fontWeight: 700, color: '#475569' }}>{t('pos.pos_workspace.pos_food_waste_modal.s21', "الصنف")}</th>
+                  <th style={{ padding: '8px 10px', fontSize: '11.5px', fontWeight: 700, color: '#475569' }}>{t('pos.pos_workspace.pos_food_waste_modal.s22', "الكمية")}</th>
                   <th style={{ padding: '8px 10px', fontSize: '11.5px', fontWeight: 700, color: '#475569' }}>
-                    تكلفة الهدر
+                    {t('pos.pos_workspace.pos_food_waste_modal.s23', "تكلفة الهدر")}
                   </th>
-                  <th style={{ padding: '8px 10px', fontSize: '11.5px', fontWeight: 700, color: '#475569' }}>السبب</th>
+                  <th style={{ padding: '8px 10px', fontSize: '11.5px', fontWeight: 700, color: '#475569' }}>{t('pos.pos_workspace.pos_food_waste_modal.s24', "السبب")}</th>
                   <th style={{ padding: '8px 10px', fontSize: '11.5px', fontWeight: 700, color: '#475569' }}>
-                    التاريخ
+                    {t('pos.pos_workspace.pos_food_waste_modal.s25', "التاريخ")}
                   </th>
                 </tr>
               </thead>
@@ -329,13 +331,13 @@ export function PosFoodWasteModal({ open, onClose, branchId = 1, onBack }: PosFo
                 {isLoadingLogs ? (
                   <tr>
                     <td colSpan={5} style={{ textAlign: 'center', padding: '24px', color: '#64748b' }}>
-                      جاري تحميل السجلات...
+                      {t('pos.pos_workspace.pos_food_waste_modal.s26', "جاري تحميل السجلات...")}
                     </td>
                   </tr>
                 ) : logs.length === 0 ? (
                   <tr>
                     <td colSpan={5} style={{ textAlign: 'center', padding: '24px', color: '#94a3b8' }}>
-                      لا توجد سجلات هدر مسجلة لهذا الفرع
+                      {t('pos.pos_workspace.pos_food_waste_modal.s27', "لا توجد سجلات هدر مسجلة لهذا الفرع")}
                     </td>
                   </tr>
                 ) : (

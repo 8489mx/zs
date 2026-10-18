@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { memo, type CSSProperties } from 'react';
 import type { UseFormReturn } from 'react-hook-form';
 import type { SettingsFormInput, SettingsFormOutput } from '@/features/settings/schemas/settings.schema';
@@ -123,6 +124,7 @@ export const PrintingSettingsTab = memo(function PrintingSettingsTab({
   savedKitchenPrinter,
   posKitchenPrinterEnabled,
 }: PrintingTabProps) {
+  const { t } = useTranslation();
   const rawActivity = String(form.watch('businessIndustry') || settings?.businessIndustry || (settings as any)?.activityType || 'retail_general').trim().toLowerCase();
   const isContractingVertical = rawActivity === 'contracting' || rawActivity === 'construction' || rawActivity === 'مقاولات' || Boolean(form.watch('contractingModuleEnabled'));
   const isMaritimeVertical = rawActivity === 'maritime_freight' || rawActivity === 'maritime' || rawActivity === 'freight' || rawActivity === 'shipping' || rawActivity === 'شحن' || Boolean(form.watch('maritimeFreightModuleEnabled'));
@@ -137,24 +139,24 @@ export const PrintingSettingsTab = memo(function PrintingSettingsTab({
     <div style={{ display: activeTab === 'printing' ? 'block' : 'none' }}>
       {/* ===== 1. إعدادات الإيصال ونمط الفاتورة العامة ===== */}
       <FormSection
-        title={isNonPosVertical ? "إعدادات نماذج المطبوعات والوثائق الرسمية" : "إعدادات الإيصال ونمط الفاتورة العامة"}
-        description={isNonPosVertical ? "تحديد مقاس الورق (A4 القياسي للمشاريع والوثائق)، نمط الترقيم وتذييل المطبوعات الرسمية." : "تحديد مقاس الورق وشكل الترقيم والتصميم والنصوص المطبوعة على الفاتورة."}
+        title={isNonPosVertical ? t('settings.forms.tabs.printing_settings_tab.s0', "إعدادات نماذج المطبوعات والوثائق الرسمية") : t('settings.forms.tabs.printing_settings_tab.s1', "إعدادات الإيصال ونمط الفاتورة العامة")}
+        description={isNonPosVertical ? t('settings.forms.tabs.printing_settings_tab.s2', "تحديد مقاس الورق (A4 القياسي للمشاريع والوثائق)، نمط الترقيم وتذييل المطبوعات الرسمية.") : t('settings.forms.tabs.printing_settings_tab.s3', "تحديد مقاس الورق وشكل الترقيم والتصميم والنصوص المطبوعة على الفاتورة.")}
       >
         <div className="document-prototype-grid compact-grid-2">
           <div className="field">
-            <label>مقاس الطباعة الافتراضي</label>
+            <label>{t('settings.forms.tabs.printing_settings_tab.s4', "مقاس الطباعة الافتراضي")}</label>
             <CustomSelect
               value={form.watch('paperSize') || (isNonPosVertical ? 'a4' : 'receipt')}
               onChange={(val) => form.setValue('paperSize', val as any, { shouldDirty: true, shouldValidate: true })}
               options={
                 isNonPosVertical
                   ? [
-                      { value: 'a4', label: 'ورق قياسي للمشاريع والوثائق (A4)' },
-                      { value: 'receipt', label: 'إيصال حراري (58/80mm)' },
+                      { value: 'a4', label: t('settings.forms.tabs.printing_settings_tab.s5', "ورق قياسي للمشاريع والوثائق (A4)") },
+                      { value: 'receipt', label: t('settings.forms.tabs.printing_settings_tab.s6', "إيصال حراري (58/80mm)") },
                     ]
                   : [
-                      { value: 'receipt', label: 'إيصال حراري (58/80mm)' },
-                      { value: 'a4', label: 'ورق كبير قياسي (A4)' },
+                      { value: 'receipt', label: t('settings.forms.tabs.printing_settings_tab.s7', "إيصال حراري (58/80mm)") },
+                      { value: 'a4', label: t('settings.forms.tabs.printing_settings_tab.s8', "ورق كبير قياسي (A4)") },
                     ]
               }
               disabled={disabled}
@@ -162,25 +164,25 @@ export const PrintingSettingsTab = memo(function PrintingSettingsTab({
           </div>
 
           {form.watch('paperSize') === 'receipt' && <div className="field">
-            <label>عرض ورق الإيصال</label>
+            <label>{t('settings.forms.tabs.printing_settings_tab.s9', "عرض ورق الإيصال")}</label>
             <CustomSelect
               value={String(form.watch('receiptWidthMm') || 80)}
               onChange={(value) => form.setValue('receiptWidthMm', value === '58' ? 58 : 80, { shouldDirty: true, shouldValidate: true })}
-              options={[{ value: '80', label: '80 مم' }, { value: '58', label: '58 مم' }]}
+              options={[{ value: '80', label: t('settings.forms.tabs.printing_settings_tab.s10', "80 مم") }, { value: '58', label: t('settings.forms.tabs.printing_settings_tab.s11', "58 مم") }]}
               disabled={disabled}
             />
           </div>}
 
           {showPosSettings && (
             <div className="field">
-              <label>شكل وتصميم الإيصال (Receipt Theme)</label>
+              <label>{t('settings.forms.tabs.printing_settings_tab.s12', "شكل وتصميم الإيصال (Receipt Theme)")}</label>
               <CustomSelect
                 value={form.watch('posReceiptTheme') || 'boxed'}
                 onChange={(val) => form.setValue('posReceiptTheme', val as any, { shouldDirty: true, shouldValidate: true })}
                 options={[
-                  { value: 'boxed', label: 'نمط المربعات (Boxed) — أنيق ومنظم' },
-                  { value: 'classic', label: 'النمط الكلاسيكي (Classic)' },
-                  { value: 'ultra-compact', label: 'نمط مصغر جداً لتوفير الورق (Ultra Compact)' },
+                  { value: 'boxed', label: t('settings.forms.tabs.printing_settings_tab.s13', "نمط المربعات (Boxed) — أنيق ومنظم") },
+                  { value: 'classic', label: t('settings.forms.tabs.printing_settings_tab.s14', "النمط الكلاسيكي (Classic)") },
+                  { value: 'ultra-compact', label: t('settings.forms.tabs.printing_settings_tab.s15', "نمط مصغر جداً لتوفير الورق (Ultra Compact)") },
                 ]}
                 disabled={disabled}
               />
@@ -188,48 +190,48 @@ export const PrintingSettingsTab = memo(function PrintingSettingsTab({
           )}
 
           <div className="field">
-            <label>نمط ترقيم الفواتير والمرتجعات</label>
+            <label>{t('settings.forms.tabs.printing_settings_tab.s16', "نمط ترقيم الفواتير والمرتجعات")}</label>
             <CustomSelect
               value={form.watch('invoiceNumberingScheme') || 'daily'}
               onChange={(val) => form.setValue('invoiceNumberingScheme', val as any, { shouldDirty: true, shouldValidate: true })}
               options={[
-                { value: 'daily', label: 'ترقيم يومي مدمج بالتاريخ (Z-260818-0001)' },
-                { value: 'sequential', label: 'ترقيم تسلسلي كلاسيكي مستمر (Z-1, Z-2...)' },
+                { value: 'daily', label: t('settings.forms.tabs.printing_settings_tab.s17', "ترقيم يومي مدمج بالتاريخ (Z-260818-0001)") },
+                { value: 'sequential', label: t('settings.forms.tabs.printing_settings_tab.s18', "ترقيم تسلسلي كلاسيكي مستمر (Z-1, Z-2...)") },
               ]}
               disabled={disabled}
             />
           </div>
 
           <div className="field">
-            <label>تنسيق أرقام الفاتورة المطبوعة</label>
+            <label>{t('settings.forms.tabs.printing_settings_tab.s19', "تنسيق أرقام الفاتورة المطبوعة")}</label>
             <CustomSelect
               value={form.watch('printNumberFormat') || 'arabic'}
               onChange={(val) => form.setValue('printNumberFormat', val as any, { shouldDirty: true, shouldValidate: true })}
               options={[
-                { value: 'arabic', label: 'أرقام عربية: ١٢٣٤' },
-                { value: 'english', label: 'أرقام إنجليزية: 1234' },
+                { value: 'arabic', label: t('settings.forms.tabs.printing_settings_tab.s20', "أرقام عربية: ١٢٣٤") },
+                { value: 'english', label: t('settings.forms.tabs.printing_settings_tab.s21', "أرقام إنجليزية: 1234") },
               ]}
               disabled={disabled}
             />
           </div>
 
           <div className="field">
-            <label>تذييل الفاتورة المطبوعة</label>
+            <label>{t('settings.forms.tabs.printing_settings_tab.s22', "تذييل الفاتورة المطبوعة")}</label>
             <input
               className="purchase-prototype-field-input"
               {...form.register('invoiceFooter')}
               disabled={disabled}
-              placeholder="مثال: شكراً لتعاملكم معنا ونسعد بزيارتكم دائماً"
+              placeholder={t('settings.forms.tabs.printing_settings_tab.s23', "مثال: شكراً لتعاملكم معنا ونسعد بزيارتكم دائماً")}
             />
           </div>
 
           <div className="field">
-            <label>محتوى رمز QR في الفاتورة</label>
+            <label>{t('settings.forms.tabs.printing_settings_tab.s24', "محتوى رمز QR في الفاتورة")}</label>
             <input
               className="purchase-prototype-field-input"
               {...form.register('invoiceQR')}
               disabled={disabled}
-              placeholder="رابط الموقع أو نص اختياري للـ QR"
+              placeholder={t('settings.forms.tabs.printing_settings_tab.s25', "رابط الموقع أو نص اختياري للـ QR")}
             />
           </div>
         </div>
@@ -237,8 +239,8 @@ export const PrintingSettingsTab = memo(function PrintingSettingsTab({
 
       {/* ===== 2. عناصر وبيانات الفاتورة المطبوعة ===== */}
       <FormSection
-        title="عناصر وبيانات الفاتورة المطبوعة"
-        description="حدد البيانات المطلوب إظهارها أو إخفاؤها من الإيصال المطبوع للكاشير مقسمة حسب تسلسلها في الفاتورة."
+        title={t('settings.forms.tabs.printing_settings_tab.s26', "عناصر وبيانات الفاتورة المطبوعة")}
+        description={t('settings.forms.tabs.printing_settings_tab.s27', "حدد البيانات المطلوب إظهارها أو إخفاؤها من الإيصال المطبوع للكاشير مقسمة حسب تسلسلها في الفاتورة.")}
       >
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '10px', alignItems: 'start' }}>
 
@@ -248,32 +250,32 @@ export const PrintingSettingsTab = memo(function PrintingSettingsTab({
             <div style={groupCardStyle}>
               <div style={groupHeaderStyle}>
                 <span style={groupHeaderBadgeStyle}>1</span>
-                <strong style={groupHeaderTitleStyle}>بيانات المتجر والفرع (الرأس بالأعلى)</strong>
+                <strong style={groupHeaderTitleStyle}>{t('settings.forms.tabs.printing_settings_tab.s28', "بيانات المتجر والفرع (الرأس بالأعلى)")}</strong>
               </div>
               <div className="settings-print-options-grid" style={checkboxGridStyle}>
                 <label className="settings-print-option" style={checkboxStyle}>
                   <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowLogo')} disabled={disabled} />
-                  إظهار الشعار
+                  {t('settings.forms.tabs.printing_settings_tab.s29', "إظهار الشعار")}
                 </label>
                 <label className="settings-print-option" style={checkboxStyle}>
                   <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowPhone')} disabled={disabled} />
-                  إظهار الهاتف
+                  {t('settings.forms.tabs.printing_settings_tab.s30', "إظهار الهاتف")}
                 </label>
                 <label className="settings-print-option" style={checkboxStyle}>
                   <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowAddress')} disabled={disabled} />
-                  إظهار العنوان
+                  {t('settings.forms.tabs.printing_settings_tab.s31', "إظهار العنوان")}
                 </label>
                 <label className="settings-print-option" style={checkboxStyle}>
                   <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowTaxNumber')} disabled={disabled} />
-                  إظهار الرقم الضريبي
+                  {t('settings.forms.tabs.printing_settings_tab.s32', "إظهار الرقم الضريبي")}
                 </label>
                 <label className="settings-print-option" style={checkboxStyle}>
                   <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowBranch')} disabled={disabled} />
-                  إظهار الفرع
+                  {t('settings.forms.tabs.printing_settings_tab.s33', "إظهار الفرع")}
                 </label>
                 <label className="settings-print-option" style={checkboxStyle}>
                   <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowLocation')} disabled={disabled} />
-                  إظهار المخزن
+                  {t('settings.forms.tabs.printing_settings_tab.s34', "إظهار المخزن")}
                 </label>
               </div>
             </div>
@@ -282,46 +284,46 @@ export const PrintingSettingsTab = memo(function PrintingSettingsTab({
             <div style={groupCardStyle}>
               <div style={groupHeaderStyle}>
                 <span style={groupHeaderBadgeStyle}>2</span>
-                <strong style={groupHeaderTitleStyle}>بيانات المستند والعملية</strong>
+                <strong style={groupHeaderTitleStyle}>{t('settings.forms.tabs.printing_settings_tab.s35', "بيانات المستند والعملية")}</strong>
               </div>
               <div className="settings-print-options-grid" style={checkboxGridStyle}>
                 <label className="settings-print-option" style={checkboxStyle}>
                   <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowDocumentType')} disabled={disabled} />
-                  إظهار نوع المستند
+                  {t('settings.forms.tabs.printing_settings_tab.s36', "إظهار نوع المستند")}
                 </label>
                 <label className="settings-print-option" style={checkboxStyle}>
                   <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowDocumentNumber')} disabled={disabled} />
-                  إظهار رقم المستند
+                  {t('settings.forms.tabs.printing_settings_tab.s37', "إظهار رقم المستند")}
                 </label>
                 <label className="settings-print-option" style={checkboxStyle}>
                   <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowDate')} disabled={disabled} />
-                  إظهار تاريخ ووقت الفاتورة
+                  {t('settings.forms.tabs.printing_settings_tab.s38', "إظهار تاريخ ووقت الفاتورة")}
                 </label>
                 <label className="settings-print-option" style={{ ...checkboxStyle, gridColumn: 'span 2' }}>
                   <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowHijriDate')} disabled={disabled} />
-                  إظهار التقويم الهجري (أم القرى)
+                  {t('settings.forms.tabs.printing_settings_tab.s39', "إظهار التقويم الهجري (أم القرى)")}
                 </label>
                 <label className="settings-print-option" style={checkboxStyle}>
                   <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowOrderType')} disabled={disabled} />
-                  إظهار نوع الطلب
+                  {t('settings.forms.tabs.printing_settings_tab.s40', "إظهار نوع الطلب")}
                 </label>
                 {showPosSettings && (
                   <>
                     <label className="settings-print-option" style={checkboxStyle}>
                       <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowCashier')} disabled={disabled} />
-                      إظهار الكاشير
+                      {t('settings.forms.tabs.printing_settings_tab.s41', "إظهار الكاشير")}
                     </label>
                     <label className="settings-print-option" style={checkboxStyle}>
                       <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowDeliveryCustomerDetails')} disabled={disabled} />
-                      تفاصيل العميل في الدليفري
+                      {t('settings.forms.tabs.printing_settings_tab.s42', "تفاصيل العميل في الدليفري")}
                     </label>
                     <label className="settings-print-option" style={checkboxStyle}>
                       <input type="checkbox" style={checkboxInputStyle} {...form.register('printDeliveryRepOnReceipt')} disabled={disabled} />
-                      إظهار اسم المندوب
+                      {t('settings.forms.tabs.printing_settings_tab.s43', "إظهار اسم المندوب")}
                     </label>
                     <label className="settings-print-option" style={{ ...checkboxStyle, gridColumn: '1 / -1' }}>
                       <input type="checkbox" style={checkboxInputStyle} {...form.register('printDualReceiptForOnlineDelivery')} disabled={disabled} />
-                      طباعة نسختين تلقائياً للدليفري والدفع الإلكتروني (عميل + محل)
+                      {t('settings.forms.tabs.printing_settings_tab.s44', "طباعة نسختين تلقائياً للدليفري والدفع الإلكتروني (عميل + محل)")}
                     </label>
                   </>
                 )}
@@ -336,20 +338,20 @@ export const PrintingSettingsTab = memo(function PrintingSettingsTab({
               <div style={groupCardStyle}>
                 <div style={groupHeaderStyle}>
                   <span style={groupHeaderBadgeStyle}>3</span>
-                  <strong style={groupHeaderTitleStyle}>الأصناف وعروض التخفيض</strong>
+                  <strong style={groupHeaderTitleStyle}>{t('settings.forms.tabs.printing_settings_tab.s45', "الأصناف وعروض التخفيض")}</strong>
                 </div>
                 <div className="settings-print-options-grid" style={checkboxGridStyle}>
                   <label className="settings-print-option" style={{ ...checkboxStyle, gridColumn: '1 / -1' }}>
                     <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowItemOffers')} disabled={disabled} />
-                    إظهار عروض الأصناف (عرض: X بدلاً من Y)
+                    {t('settings.forms.tabs.printing_settings_tab.s46', "إظهار عروض الأصناف (عرض: X بدلاً من Y)")}
                   </label>
                   <label className="settings-print-option" style={{ ...checkboxStyle, gridColumn: '1 / -1' }}>
                     <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowDiscountBreakdown')} disabled={disabled} />
-                    تفصيل سطور الخصومات في الإجماليات
+                    {t('settings.forms.tabs.printing_settings_tab.s47', "تفصيل سطور الخصومات في الإجماليات")}
                   </label>
                   <label className="settings-print-option" style={{ ...checkboxStyle, gridColumn: '1 / -1' }}>
                     <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowSavingsBanner')} disabled={disabled} />
-                    إظهار شريط إجمالي التوفير بالفاتورة
+                    {t('settings.forms.tabs.printing_settings_tab.s48', "إظهار شريط إجمالي التوفير بالفاتورة")}
                   </label>
                 </div>
               </div>
@@ -359,24 +361,24 @@ export const PrintingSettingsTab = memo(function PrintingSettingsTab({
             <div style={groupCardStyle}>
               <div style={groupHeaderStyle}>
                 <span style={groupHeaderBadgeStyle}>4</span>
-                <strong style={groupHeaderTitleStyle}>الإجماليات والملخص</strong>
+                <strong style={groupHeaderTitleStyle}>{t('settings.forms.tabs.printing_settings_tab.s49', "الإجماليات والملخص")}</strong>
               </div>
               <div className="settings-print-options-grid" style={checkboxGridStyle}>
                 <label className="settings-print-option" style={checkboxStyle}>
                   <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowTax')} disabled={disabled} />
-                  إظهار الضريبة
+                  {t('settings.forms.tabs.printing_settings_tab.s50', "إظهار الضريبة")}
                 </label>
                 <label className="settings-print-option" style={checkboxStyle}>
                   <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowItemCount')} disabled={disabled} />
-                  إظهار عدد الأصناف
+                  {t('settings.forms.tabs.printing_settings_tab.s51', "إظهار عدد الأصناف")}
                 </label>
                 <label className="settings-print-option" style={checkboxStyle}>
                   <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowPiecesCount')} disabled={disabled} />
-                  إظهار إجمالي القطع
+                  {t('settings.forms.tabs.printing_settings_tab.s52', "إظهار إجمالي القطع")}
                 </label>
                 <label className="settings-print-option" style={checkboxStyle}>
                   <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowPaymentBreakdown')} disabled={disabled} />
-                  إظهار تفصيل المدفوعات
+                  {t('settings.forms.tabs.printing_settings_tab.s53', "إظهار تفصيل المدفوعات")}
                 </label>
               </div>
             </div>
@@ -385,20 +387,20 @@ export const PrintingSettingsTab = memo(function PrintingSettingsTab({
             <div style={groupCardStyle}>
               <div style={groupHeaderStyle}>
                 <span style={groupHeaderBadgeStyle}>5</span>
-                <strong style={groupHeaderTitleStyle}>التذييل ونمط الإيصال (الأسفل)</strong>
+                <strong style={groupHeaderTitleStyle}>{t('settings.forms.tabs.printing_settings_tab.s54', "التذييل ونمط الإيصال (الأسفل)")}</strong>
               </div>
               <div className="settings-print-options-grid" style={checkboxGridStyle}>
                 <label className="settings-print-option" style={{ ...checkboxStyle, gridColumn: '1 / -1' }}>
                   <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowInvoiceBarcode')} disabled={disabled} />
-                  إظهار شريط باركود الفاتورة (Code 128)
+                  {t('settings.forms.tabs.printing_settings_tab.s55', "إظهار شريط باركود الفاتورة (Code 128)")}
                 </label>
                 <label className="settings-print-option" style={checkboxStyle}>
                   <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowFooter')} disabled={disabled} />
-                  إظهار التذييل
+                  {t('settings.forms.tabs.printing_settings_tab.s56', "إظهار التذييل")}
                 </label>
                 <label className="settings-print-option" style={checkboxStyle}>
                   <input type="checkbox" style={checkboxInputStyle} {...form.register('printCompactReceipt')} disabled={disabled} />
-                  خطوط إيصال مضغوطة
+                  {t('settings.forms.tabs.printing_settings_tab.s57', "خطوط إيصال مضغوطة")}
                 </label>
               </div>
             </div>
@@ -410,34 +412,34 @@ export const PrintingSettingsTab = memo(function PrintingSettingsTab({
       {/* ===== 3. طابعة وشيت المطبخ ومناداة العميل (KOT) ===== */}
       {(isRestaurantVertical || posKitchenPrinterEnabled) && (
         <FormSection
-          title="طابعة وشيت المطبخ ومناداة العميل (KOT)"
-          description="إعدادات طباعة تذكرة التحضير بالمطبخ أو إيصال المناداة الصغير للعميل."
+          title={t('settings.forms.tabs.printing_settings_tab.s58', "طابعة وشيت المطبخ ومناداة العميل (KOT)")}
+          description={t('settings.forms.tabs.printing_settings_tab.s59', "إعدادات طباعة تذكرة التحضير بالمطبخ أو إيصال المناداة الصغير للعميل.")}
         >
           <div className="document-prototype-grid compact-grid-2">
             <label style={premiumCardStyle}>
               <div style={premiumCardTextStyle}>
-                <strong>تفعيل طباعة شيت المطبخ (KOT)</strong>
-                <small className="muted">تمكين خيار طباعة إيصال التحضير أو المناداة</small>
+                <strong>{t('settings.forms.tabs.printing_settings_tab.s60', "تفعيل طباعة شيت المطبخ (KOT)")}</strong>
+                <small className="muted">{t('settings.forms.tabs.printing_settings_tab.s61', "تمكين خيار طباعة إيصال التحضير أو المناداة")}</small>
               </div>
               <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('posKitchenPrinterEnabled')} disabled={disabled} />
             </label>
 
             <label style={premiumCardStyle}>
               <div style={premiumCardTextStyle}>
-                <strong>طباعة شيت المطبخ تلقائياً</strong>
-                <small className="muted">إرسال التذكرة للطابعة فور حفظ فاتورة البيع</small>
+                <strong>{t('settings.forms.tabs.printing_settings_tab.s62', "طباعة شيت المطبخ تلقائياً")}</strong>
+                <small className="muted">{t('settings.forms.tabs.printing_settings_tab.s63', "إرسال التذكرة للطابعة فور حفظ فاتورة البيع")}</small>
               </div>
               <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('posKitchenPrinterAuto')} disabled={disabled} />
             </label>
 
             <div className="field" style={{ gridColumn: '1 / -1' }}>
-              <label>نوع شيت المطبخ المطلوب</label>
+              <label>{t('settings.forms.tabs.printing_settings_tab.s64', "نوع شيت المطبخ المطلوب")}</label>
               <CustomSelect
                 value={form.watch('posKitchenPrinterMode') || 'detailed'}
                 onChange={(val) => form.setValue('posKitchenPrinterMode', val as any, { shouldDirty: true, shouldValidate: true })}
                 options={[
-                  { value: 'detailed', label: 'إيصال مطبخ مفصل (شامل قائمة الأصناف والإضافات)' },
-                  { value: 'mini', label: 'إيصال مصغر لتوفير الورق (رقم الطلب فقط لمناداة العميل)' },
+                  { value: 'detailed', label: t('settings.forms.tabs.printing_settings_tab.s65', "إيصال مطبخ مفصل (شامل قائمة الأصناف والإضافات)") },
+                  { value: 'mini', label: t('settings.forms.tabs.printing_settings_tab.s66', "إيصال مصغر لتوفير الورق (رقم الطلب فقط لمناداة العميل)") },
                 ]}
                 disabled={disabled || !posKitchenPrinterEnabled}
               />
@@ -450,12 +452,12 @@ export const PrintingSettingsTab = memo(function PrintingSettingsTab({
                 style={{ gridColumn: '1 / -1', marginTop: 8, padding: '12px', border: '1px solid var(--border)', borderRadius: 8, background: '#f8fafc' }}
               >
                 <div className="field">
-                  <label>طابعة الكاشير المباشرة (الريسيت)</label>
+                  <label>{t('settings.forms.tabs.printing_settings_tab.s67', "طابعة الكاشير المباشرة (الريسيت)")}</label>
                   <CustomSelect
                     value={form.watch('posElectronCashierPrinter') || ''}
                     onChange={(val) => form.setValue('posElectronCashierPrinter', val, { shouldDirty: true, shouldValidate: true })}
                     options={[
-                      { value: '', label: '- الطباعة العادية (نافذة المتصفح) -' },
+                      { value: '', label: t('settings.forms.tabs.printing_settings_tab.s68', "- الطباعة العادية (نافذة المتصفح) -") },
                       ...(savedCashierPrinter && !systemPrinters.some((p: any) => p.name === savedCashierPrinter) ? [{ value: savedCashierPrinter, label: savedCashierPrinter }] : []),
                       ...systemPrinters.map((p: any) => ({ value: p.name, label: p.displayName || p.name })),
                     ]}
@@ -464,12 +466,12 @@ export const PrintingSettingsTab = memo(function PrintingSettingsTab({
                 </div>
 
                 <div className="field">
-                  <label>طابعة المطبخ المباشرة (KOT)</label>
+                  <label>{t('settings.forms.tabs.printing_settings_tab.s69', "طابعة المطبخ المباشرة (KOT)")}</label>
                   <CustomSelect
                     value={form.watch('posElectronKitchenPrinter') || ''}
                     onChange={(val) => form.setValue('posElectronKitchenPrinter', val, { shouldDirty: true, shouldValidate: true })}
                     options={[
-                      { value: '', label: '- الطباعة العادية (نافذة المتصفح) -' },
+                      { value: '', label: t('settings.forms.tabs.printing_settings_tab.s70', "- الطباعة العادية (نافذة المتصفح) -") },
                       ...(savedKitchenPrinter && !systemPrinters.some((p: any) => p.name === savedKitchenPrinter) ? [{ value: savedKitchenPrinter, label: savedKitchenPrinter }] : []),
                       ...systemPrinters.map((p: any) => ({ value: p.name, label: p.displayName || p.name })),
                     ]}
@@ -478,8 +480,7 @@ export const PrintingSettingsTab = memo(function PrintingSettingsTab({
                 </div>
 
                 <div className="muted small" style={{ gridColumn: '1 / -1' }}>
-                  <strong>معلومة:</strong> إذا اخترت طابعة هنا، سيتم إرسال الطباعة <b>مباشرة وبدون أي شاشة تأكيد</b>.
-                  ولو اخترت <b>نفس الطابعة</b> للكاشير والمطبخ، سيتم طباعة الإيصالين ورا بعد تلقائياً.
+                  <strong>{t('settings.forms.tabs.printing_settings_tab.s71', "معلومة:")}</strong> {t('settings.forms.tabs.printing_settings_tab.s72', "إذا اخترت طابعة هنا، سيتم إرسال الطباعة")} <b>{t('settings.forms.tabs.printing_settings_tab.s73', "مباشرة وبدون أي شاشة تأكيد")}</b>{t('settings.forms.tabs.printing_settings_tab.s74', ".\n                  ولو اخترت")} <b>{t('settings.forms.tabs.printing_settings_tab.s75', "نفس الطابعة")}</b> {t('settings.forms.tabs.printing_settings_tab.s76', "للكاشير والمطبخ، سيتم طباعة الإيصالين ورا بعد تلقائياً.")}
                 </div>
               </div>
             )}
@@ -492,17 +493,17 @@ export const PrintingSettingsTab = memo(function PrintingSettingsTab({
       <FormSection
         title={
           isMaritimeVertical
-            ? 'معاين ومصمم وثائق وفواتير الشحن الملاحي (Maritime Freight Invoice Preview)'
+            ? t('settings.forms.tabs.printing_settings_tab.s77', "معاين ومصمم وثائق وفواتير الشحن الملاحي (Maritime Freight Invoice Preview)")
             : isContractingVertical
-            ? 'معاين ومصمم مستخلصات المشروعات الهندسية (Contracting IPC Preview)'
-            : 'مصمم ومعاين الفاتورة البصري التفاعلي (Visual Receipt Preview)'
+            ? t('settings.forms.tabs.printing_settings_tab.s78', "معاين ومصمم مستخلصات المشروعات الهندسية (Contracting IPC Preview)")
+            : t('settings.forms.tabs.printing_settings_tab.s79', "مصمم ومعاين الفاتورة البصري التفاعلي (Visual Receipt Preview)")
         }
         description={
           isMaritimeVertical
-            ? 'معاينة حية ومباشرة لشكل فاتورة الشحن والنولون الرسمية بمقاس A4 وتذييل البوالص الملاحية.'
+            ? t('settings.forms.tabs.printing_settings_tab.s80', "معاينة حية ومباشرة لشكل فاتورة الشحن والنولون الرسمية بمقاس A4 وتذييل البوالص الملاحية.")
             : isContractingVertical
-            ? 'معاينة حية ومباشرة لشكل مستخلص الأعمال الدوري بمقاس A4 وتذييل الاستشاري والمالك.'
-            : 'معاينة حية ومباشرة لشكل الإيصال المطبوع مع إمكانية تجربة الطباعة الحية على طابعتك.'
+            ? t('settings.forms.tabs.printing_settings_tab.s81', "معاينة حية ومباشرة لشكل مستخلص الأعمال الدوري بمقاس A4 وتذييل الاستشاري والمالك.")
+            : t('settings.forms.tabs.printing_settings_tab.s82', "معاينة حية ومباشرة لشكل الإيصال المطبوع مع إمكانية تجربة الطباعة الحية على طابعتك.")
         }
       >
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px', alignItems: 'start' }}>
@@ -533,9 +534,9 @@ export const PrintingSettingsTab = memo(function PrintingSettingsTab({
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '2px solid #170e5e', paddingBottom: '12px', marginBottom: '12px' }}>
                   <div>
-                    <div style={{ fontSize: '15px', fontWeight: 900, color: '#170e5e' }}>{(settings as any)?.companyName || settings?.storeName || 'شركة الملاحة والشحن الدولي'}</div>
-                    <div style={{ fontSize: '10px', color: '#64748b' }}>الفرع الملاحي الرئيسي • ميناء الإسكندرية</div>
-                    <div style={{ fontSize: '10px', color: '#64748b' }}>س.ت: 894120 • ت.ض: 456-789-012</div>
+                    <div style={{ fontSize: '15px', fontWeight: 900, color: '#170e5e' }}>{(settings as any)?.companyName || settings?.storeName || t('settings.forms.tabs.printing_settings_tab.s83', "شركة الملاحة والشحن الدولي")}</div>
+                    <div style={{ fontSize: '10px', color: '#64748b' }}>{t('settings.forms.tabs.printing_settings_tab.s84', "الفرع الملاحي الرئيسي • ميناء الإسكندرية")}</div>
+                    <div style={{ fontSize: '10px', color: '#64748b' }}>{t('settings.forms.tabs.printing_settings_tab.s85', "س.ت: 894120 • ت.ض: 456-789-012")}</div>
                   </div>
                   <div style={{ textAlign: 'left', direction: 'ltr' }}>
                     <span style={{ display: 'inline-block', background: '#e0f2fe', color: '#0369a1', padding: '3px 8px', borderRadius: '4px', fontWeight: 800, fontSize: '10px' }}>A4 OFFICIAL INVOICE</span>
@@ -544,65 +545,65 @@ export const PrintingSettingsTab = memo(function PrintingSettingsTab({
                 </div>
 
                 <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '8px 10px', marginBottom: '12px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', fontSize: '10px' }}>
-                  <div><span>بوليصة الشحن (B/L):</span> <strong>BL-EGY-99412</strong></div>
-                  <div><span>السفينة / الرحلة:</span> <strong>CMA CGM JULES - V.12</strong></div>
-                  <div><span>ميناء الشحن (POL):</span> <strong>Alexandria Port (EGALY)</strong></div>
-                  <div><span>ميناء التفريغ (POD):</span> <strong>Rotterdam (NLRTM)</strong></div>
-                  <div><span>عدد الحاويات:</span> <strong>2 × 40HQ (FCL)</strong></div>
-                  <div><span>فترة السماح (Demurrage):</span> <strong>14 يوم مجاني</strong></div>
+                  <div><span>{t('settings.forms.tabs.printing_settings_tab.s86', "بوليصة الشحن (B/L):")}</span> <strong>BL-EGY-99412</strong></div>
+                  <div><span>{t('settings.forms.tabs.printing_settings_tab.s87', "السفينة / الرحلة:")}</span> <strong>CMA CGM JULES - V.12</strong></div>
+                  <div><span>{t('settings.forms.tabs.printing_settings_tab.s88', "ميناء الشحن (POL):")}</span> <strong>Alexandria Port (EGALY)</strong></div>
+                  <div><span>{t('settings.forms.tabs.printing_settings_tab.s89', "ميناء التفريغ (POD):")}</span> <strong>Rotterdam (NLRTM)</strong></div>
+                  <div><span>{t('settings.forms.tabs.printing_settings_tab.s90', "عدد الحاويات:")}</span> <strong>2 × 40HQ (FCL)</strong></div>
+                  <div><span>{t('settings.forms.tabs.printing_settings_tab.s91', "فترة السماح (Demurrage):")}</span> <strong>{t('settings.forms.tabs.printing_settings_tab.s92', "14 يوم مجاني")}</strong></div>
                 </div>
 
                 {/* Items */}
                 <div style={{ borderBottom: '1px solid #cbd5e1', paddingBottom: '8px', marginBottom: '8px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 800, borderBottom: '1px solid #e2e8f0', paddingBottom: '4px', marginBottom: '6px', color: '#334155' }}>
-                    <span>الخدمة / البند اللوجستي</span>
-                    <span>العملة والفئة</span>
-                    <span>الإجمالي</span>
+                    <span>{t('settings.forms.tabs.printing_settings_tab.s93', "الخدمة / البند اللوجستي")}</span>
+                    <span>{t('settings.forms.tabs.printing_settings_tab.s94', "العملة والفئة")}</span>
+                    <span>{t('settings.forms.tabs.printing_settings_tab.s95', "الإجمالي")}</span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', margin: '4px 0' }}>
-                    <span>نولون شحن بحري (Ocean Freight - 40HQ)</span>
+                    <span>{t('settings.forms.tabs.printing_settings_tab.s96', "نولون شحن بحري (Ocean Freight - 40HQ)")}</span>
                     <span dir="ltr">2 × $1,200.00</span>
                     <span dir="ltr" style={{ fontWeight: 700 }}>$2,400.00</span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', margin: '4px 0' }}>
-                    <span>رسوم تفريغ ومناولة محطة الحاويات (THC)</span>
-                    <span>2 × 2,100 ج.م</span>
-                    <span style={{ fontWeight: 700 }}>4,200.00 ج.م</span>
+                    <span>{t('settings.forms.tabs.printing_settings_tab.s97', "رسوم تفريغ ومناولة محطة الحاويات (THC)")}</span>
+                    <span>{t('settings.forms.tabs.printing_settings_tab.s98', "2 × 2,100 ج.م")}</span>
+                    <span style={{ fontWeight: 700 }}>{t('settings.forms.tabs.printing_settings_tab.s99', "4,200.00 ج.م")}</span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', margin: '4px 0' }}>
-                    <span>إذن تسليم وإجراءات ملاحية (Delivery Order)</span>
-                    <span>مقطوع</span>
-                    <span style={{ fontWeight: 700 }}>1,500.00 ج.م</span>
+                    <span>{t('settings.forms.tabs.printing_settings_tab.s100', "إذن تسليم وإجراءات ملاحية (Delivery Order)")}</span>
+                    <span>{t('settings.forms.tabs.printing_settings_tab.s101', "مقطوع")}</span>
+                    <span style={{ fontWeight: 700 }}>{t('settings.forms.tabs.printing_settings_tab.s102', "1,500.00 ج.م")}</span>
                   </div>
                 </div>
 
                 {/* Totals */}
                 <div style={{ borderBottom: '1px solid #cbd5e1', paddingBottom: '8px', marginBottom: '10px', display: 'flex', flexDirection: 'column', gap: '3px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span>إجمالي النولون الأجنبي:</span>
+                    <span>{t('settings.forms.tabs.printing_settings_tab.s103', "إجمالي النولون الأجنبي:")}</span>
                     <strong dir="ltr">$2,400.00</strong>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span>إجمالي الخدمات المحلية:</span>
-                    <strong>5,700.00 ج.م</strong>
+                    <span>{t('settings.forms.tabs.printing_settings_tab.s104', "إجمالي الخدمات المحلية:")}</span>
+                    <strong>{t('settings.forms.tabs.printing_settings_tab.s105', "5,700.00 ج.م")}</strong>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span>ضريبة القيمة المضافة (14% على الخدمات):</span>
-                    <strong>798.00 ج.م</strong>
+                    <span>{t('settings.forms.tabs.printing_settings_tab.s106', "ضريبة القيمة المضافة (14% على الخدمات):")}</span>
+                    <strong>{t('settings.forms.tabs.printing_settings_tab.s107', "798.00 ج.م")}</strong>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', fontWeight: 900, color: '#170e5e', marginTop: '4px', borderTop: '1px dashed #cbd5e1', paddingTop: '4px' }}>
-                    <span>الصافي الإجمالي المستحق:</span>
-                    <span dir="ltr">$2,400.00 + 6,498.00 ج.م</span>
+                    <span>{t('settings.forms.tabs.printing_settings_tab.s108', "الصافي الإجمالي المستحق:")}</span>
+                    <span dir="ltr">{t('settings.forms.tabs.printing_settings_tab.s109', "$2,400.00 + 6,498.00 ج.م")}</span>
                   </div>
                 </div>
 
                 {/* Footer Stamp */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px' }}>
                   <div style={{ fontSize: '9.5px', color: '#64748b' }}>
-                    {form.watch('invoiceFooter') || 'شكراً لتعاملكم مع خطوطنا وخدماتنا الملاحية.'}
+                    {form.watch('invoiceFooter') || t('settings.forms.tabs.printing_settings_tab.s110', "شكراً لتعاملكم مع خطوطنا وخدماتنا الملاحية.")}
                   </div>
                   <div style={{ border: '1px dashed #94a3b8', borderRadius: '4px', padding: '4px 10px', fontSize: '9px', color: '#475569', fontWeight: 700 }}>
-                    ختم التوكيل الملاحي
+                    {t('settings.forms.tabs.printing_settings_tab.s111', "ختم التوكيل الملاحي")}
                   </div>
                 </div>
               </div>
@@ -623,8 +624,8 @@ export const PrintingSettingsTab = memo(function PrintingSettingsTab({
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '2px solid #0369a1', paddingBottom: '12px', marginBottom: '12px' }}>
                   <div>
-                    <div style={{ fontSize: '15px', fontWeight: 900, color: '#0369a1' }}>{(settings as any)?.companyName || settings?.storeName || 'شركة المقاولات العامة والإنشاءات'}</div>
-                    <div style={{ fontSize: '10px', color: '#64748b' }}>مشروع: أبراج العاصمة الإدارية • مقاولة عامة</div>
+                    <div style={{ fontSize: '15px', fontWeight: 900, color: '#0369a1' }}>{(settings as any)?.companyName || settings?.storeName || t('settings.forms.tabs.printing_settings_tab.s112', "شركة المقاولات العامة والإنشاءات")}</div>
+                    <div style={{ fontSize: '10px', color: '#64748b' }}>{t('settings.forms.tabs.printing_settings_tab.s113', "مشروع: أبراج العاصمة الإدارية • مقاولة عامة")}</div>
                   </div>
                   <div style={{ textAlign: 'left', direction: 'ltr' }}>
                     <span style={{ display: 'inline-block', background: '#f0fdf4', color: '#166534', padding: '3px 8px', borderRadius: '4px', fontWeight: 800, fontSize: '10px' }}>IPC PROGRESS INVOICE</span>
@@ -633,37 +634,37 @@ export const PrintingSettingsTab = memo(function PrintingSettingsTab({
                 </div>
 
                 <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '8px 10px', marginBottom: '12px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', fontSize: '10px' }}>
-                  <div><span>رقم العقد:</span> <strong>CTR-2026-091</strong></div>
-                  <div><span>شهادة الدفع:</span> <strong>AIA G702 / G703</strong></div>
-                  <div><span>جهة الإسناد:</span> <strong>الهيئة الهندسية للتطوير</strong></div>
-                  <div><span>نسبة الإنجاز الإجمالية:</span> <strong>64.5%</strong></div>
+                  <div><span>{t('settings.forms.tabs.printing_settings_tab.s114', "رقم العقد:")}</span> <strong>CTR-2026-091</strong></div>
+                  <div><span>{t('settings.forms.tabs.printing_settings_tab.s115', "شهادة الدفع:")}</span> <strong>AIA G702 / G703</strong></div>
+                  <div><span>{t('settings.forms.tabs.printing_settings_tab.s116', "جهة الإسناد:")}</span> <strong>{t('settings.forms.tabs.printing_settings_tab.s117', "الهيئة الهندسية للتطوير")}</strong></div>
+                  <div><span>{t('settings.forms.tabs.printing_settings_tab.s118', "نسبة الإنجاز الإجمالية:")}</span> <strong>64.5%</strong></div>
                 </div>
 
                 <div style={{ borderBottom: '1px solid #cbd5e1', paddingBottom: '8px', marginBottom: '10px', display: 'flex', flexDirection: 'column', gap: '3px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span>إجمالي الأعمال المنجزة (GWD):</span>
-                    <strong>1,450,000.00 ج.م</strong>
+                    <span>{t('settings.forms.tabs.printing_settings_tab.s119', "إجمالي الأعمال المنجزة (GWD):")}</span>
+                    <strong>{t('settings.forms.tabs.printing_settings_tab.s120', "1,450,000.00 ج.م")}</strong>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', color: '#b91c1c' }}>
-                    <span>استقطاع الدفعة المقدمة (10%):</span>
-                    <span>-145,000.00 ج.م</span>
+                    <span>{t('settings.forms.tabs.printing_settings_tab.s121', "استقطاع الدفعة المقدمة (10%):")}</span>
+                    <span>{t('settings.forms.tabs.printing_settings_tab.s122', "-145,000.00 ج.م")}</span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', color: '#b91c1c' }}>
-                    <span>ضمان الأعمال المحتجز (Retention 5%):</span>
-                    <span>-72,500.00 ج.م</span>
+                    <span>{t('settings.forms.tabs.printing_settings_tab.s123', "ضمان الأعمال المحتجز (Retention 5%):")}</span>
+                    <span>{t('settings.forms.tabs.printing_settings_tab.s124', "-72,500.00 ج.م")}</span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', fontWeight: 900, color: '#0369a1', marginTop: '4px', borderTop: '1px dashed #cbd5e1', paddingTop: '4px' }}>
-                    <span>الصافي المستحق للصرف:</span>
-                    <span>1,232,500.00 ج.م</span>
+                    <span>{t('settings.forms.tabs.printing_settings_tab.s125', "الصافي المستحق للصرف:")}</span>
+                    <span>{t('settings.forms.tabs.printing_settings_tab.s126', "1,232,500.00 ج.م")}</span>
                   </div>
                 </div>
 
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px' }}>
                   <div style={{ fontSize: '9.5px', color: '#64748b' }}>
-                    {form.watch('invoiceFooter') || 'المستخلص معتمد ومطابق للمواصفات الهندسية وجداول الكميات.'}
+                    {form.watch('invoiceFooter') || t('settings.forms.tabs.printing_settings_tab.s127', "المستخلص معتمد ومطابق للمواصفات الهندسية وجداول الكميات.")}
                   </div>
                   <div style={{ border: '1px dashed #94a3b8', borderRadius: '4px', padding: '4px 10px', fontSize: '9px', color: '#475569', fontWeight: 700 }}>
-                    اعتماد الاستشاري
+                    {t('settings.forms.tabs.printing_settings_tab.s128', "اعتماد الاستشاري")}
                   </div>
                 </div>
               </div>
@@ -684,26 +685,26 @@ export const PrintingSettingsTab = memo(function PrintingSettingsTab({
                 boxSizing: 'border-box',
               }}>
                 <div style={{ textAlign: 'center', borderBottom: '1px dashed #cbd5e1', paddingBottom: '10px', marginBottom: '10px' }}>
-                  <div style={{ fontSize: '15px', fontWeight: 900 }}>{settings?.storeName || 'متجر Z-Systems التجريبي'}</div>
-                  <div style={{ fontSize: '10px', color: '#64748b' }}>الفرع الرئيسي • القاهرة</div>
-                  <div style={{ fontSize: '10px', color: '#64748b' }}>س.ت: 123456 • ت.ض: 987654321</div>
-                  <div style={{ marginTop: '6px', fontSize: '11px', fontWeight: 700 }}>فاتورة ضريبية مبسطة</div>
-                  <div style={{ fontSize: '10px', color: '#475569' }}>رقم: #Z-260818-0001 • {new Date().toLocaleDateString('ar-EG')}</div>
+                  <div style={{ fontSize: '15px', fontWeight: 900 }}>{settings?.storeName || t('settings.forms.tabs.printing_settings_tab.s129', "متجر Z-Systems التجريبي")}</div>
+                  <div style={{ fontSize: '10px', color: '#64748b' }}>{t('settings.forms.tabs.printing_settings_tab.s130', "الفرع الرئيسي • القاهرة")}</div>
+                  <div style={{ fontSize: '10px', color: '#64748b' }}>{t('settings.forms.tabs.printing_settings_tab.s131', "س.ت: 123456 • ت.ض: 987654321")}</div>
+                  <div style={{ marginTop: '6px', fontSize: '11px', fontWeight: 700 }}>{t('settings.forms.tabs.printing_settings_tab.s132', "فاتورة ضريبية مبسطة")}</div>
+                  <div style={{ fontSize: '10px', color: '#475569' }}>{t('settings.forms.tabs.printing_settings_tab.s133', "رقم: #Z-260818-0001 •")} {new Date().toLocaleDateString('ar-EG')}</div>
                 </div>
 
                 <div style={{ borderBottom: '1px dashed #cbd5e1', paddingBottom: '8px', marginBottom: '8px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, borderBottom: '1px solid #e2e8f0', paddingBottom: '4px', marginBottom: '4px' }}>
-                    <span>الصنف</span>
-                    <span>الكمية × السعر</span>
-                    <span>الإجمالي</span>
+                    <span>{t('settings.forms.tabs.printing_settings_tab.s134', "الصنف")}</span>
+                    <span>{t('settings.forms.tabs.printing_settings_tab.s135', "الكمية × السعر")}</span>
+                    <span>{t('settings.forms.tabs.printing_settings_tab.s136', "الإجمالي")}</span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', margin: '3px 0' }}>
-                    <span>صنف تجريبي 1</span>
+                    <span>{t('settings.forms.tabs.printing_settings_tab.s137', "صنف تجريبي 1")}</span>
                     <span>2 × 50.00</span>
                     <span>100.00</span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', margin: '3px 0' }}>
-                    <span>صنف تجريبي 2</span>
+                    <span>{t('settings.forms.tabs.printing_settings_tab.s138', "صنف تجريبي 2")}</span>
                     <span>1 × 150.00</span>
                     <span>150.00</span>
                   </div>
@@ -711,19 +712,19 @@ export const PrintingSettingsTab = memo(function PrintingSettingsTab({
 
                 <div style={{ borderBottom: '1px dashed #cbd5e1', paddingBottom: '8px', marginBottom: '8px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span>المجموع الفرعي:</span>
+                    <span>{t('settings.forms.tabs.printing_settings_tab.s139', "المجموع الفرعي:")}</span>
                     <span>250.00 <CurrencySymbol /></span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span>ضريبة القيمة المضافة (14%):</span>
+                    <span>{t('settings.forms.tabs.printing_settings_tab.s140', "ضريبة القيمة المضافة (14%):")}</span>
                     <span>35.00 <CurrencySymbol /></span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', color: '#b45309' }}>
-                    <span>خصم نقاط الولاء:</span>
+                    <span>{t('settings.forms.tabs.printing_settings_tab.s141', "خصم نقاط الولاء:")}</span>
                     <span>-20.00 <CurrencySymbol /></span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', fontWeight: 900, marginTop: '4px' }}>
-                    <span>الصافي النهائي:</span>
+                    <span>{t('settings.forms.tabs.printing_settings_tab.s142', "الصافي النهائي:")}</span>
                     <span>265.00 <CurrencySymbol /></span>
                   </div>
                 </div>
@@ -737,10 +738,10 @@ export const PrintingSettingsTab = memo(function PrintingSettingsTab({
                     borderRadius: '4px',
                     marginBottom: '8px'
                   }}>
-                    <span style={{ fontSize: '9px', fontWeight: 700, color: '#475569' }}>[ رمز QR المشفر ]</span>
+                    <span style={{ fontSize: '9px', fontWeight: 700, color: '#475569' }}>{t('settings.forms.tabs.printing_settings_tab.s143', "[ رمز QR المشفر ]")}</span>
                   </div>
                   <div style={{ fontSize: '10px', color: '#64748b' }}>
-                    {form.watch('invoiceFooter') || 'شكراً لتعاملكم معنا ونسعد بزيارتكم دائماً'}
+                    {form.watch('invoiceFooter') || t('settings.forms.tabs.printing_settings_tab.s144', "شكراً لتعاملكم معنا ونسعد بزيارتكم دائماً")}
                   </div>
                 </div>
               </div>
@@ -752,7 +753,7 @@ export const PrintingSettingsTab = memo(function PrintingSettingsTab({
                 type="button"
                 variant="primary"
                 onClick={() => {
-                  const footerText = form.getValues('invoiceFooter') || (isMaritimeVertical ? 'شكراً لتعاملكم مع خطوطنا وخدماتنا الملاحية.' : 'شكراً لتعاملكم معنا ونسعد بزيارتكم دائماً');
+                  const footerText = form.getValues('invoiceFooter') || (isMaritimeVertical ? t('settings.forms.tabs.printing_settings_tab.s145', "شكراً لتعاملكم مع خطوطنا وخدماتنا الملاحية.") : t('settings.forms.tabs.printing_settings_tab.s146', "شكراً لتعاملكم معنا ونسعد بزيارتكم دائماً"));
                   if (isMaritimeVertical || isContractingVertical) {
                     window.print();
                     return;
@@ -774,7 +775,7 @@ export const PrintingSettingsTab = memo(function PrintingSettingsTab({
                       ${footerText}
                     </div>
                   `;
-                  printSmallReceiptDocument(testHtml, { title: 'إيصال تجريبي', widthMm: form.getValues('receiptWidthMm') === 58 ? 58 : 80 });
+                  printSmallReceiptDocument(testHtml, { title: t('settings.forms.tabs.printing_settings_tab.s147', "إيصال تجريبي"), widthMm: form.getValues('receiptWidthMm') === 58 ? 58 : 80 });
                 }}
                 style={{
                   background: '#170e5e',
@@ -787,7 +788,7 @@ export const PrintingSettingsTab = memo(function PrintingSettingsTab({
                   cursor: 'pointer'
                 }}
               >
-                {isNonPosVertical ? 'معاينة وطباعة تجريبية A4' : 'طباعة تجريبية حية (Test Print)'}
+                {isNonPosVertical ? t('settings.forms.tabs.printing_settings_tab.s148', "معاينة وطباعة تجريبية A4") : t('settings.forms.tabs.printing_settings_tab.s149', "طباعة تجريبية حية (Test Print)")}
               </Button>
             </div>
           </div>
@@ -797,31 +798,31 @@ export const PrintingSettingsTab = memo(function PrintingSettingsTab({
             <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px' }}>
               <strong style={{ fontSize: '13px', color: '#0f172a', display: 'block', marginBottom: '6px' }}>
                 {isMaritimeVertical
-                  ? 'إرشادات طباعة وثائق ومستندات الشحن والنولون (A4)'
+                  ? t('settings.forms.tabs.printing_settings_tab.s150', "إرشادات طباعة وثائق ومستندات الشحن والنولون (A4)")
                   : isContractingVertical
-                  ? 'إرشادات طباعة مستخلصات المشروعات الهندسية (A4)'
-                  : 'نصائح لضبط مقاس الطابعات الحرارية'}
+                  ? t('settings.forms.tabs.printing_settings_tab.s151', "إرشادات طباعة مستخلصات المشروعات الهندسية (A4)")
+                  : t('settings.forms.tabs.printing_settings_tab.s152', "نصائح لضبط مقاس الطابعات الحرارية")}
               </strong>
               {isMaritimeVertical ? (
                 <ul style={{ margin: 0, paddingRight: '20px', fontSize: '12px', color: '#64748b', lineHeight: 1.7 }}>
-                  <li>مقاس <b>A4</b> هو المقاس القياسي الدولي لكافة فواتير النولون وبوالص الشحن (B/L) وأذون التسليم.</li>
-                  <li>تدعم المنظومة التصدير الفوري بصيغة <b>PDF رسمية</b> أو الطباعة على كافة طابعات الليزر المكتبية (HP, Canon, Xerox).</li>
-                  <li>تتضمن الفاتورة تلقائياً أرقام الحاويات، السفينة، الرحلة، وميناءي الشحن والتفريغ.</li>
-                  <li>يمكنك تخصيص الشعار وتذييل المطبوعات الرسمية من تبويب الهوية والمؤسسة.</li>
+                  <li>{t('settings.forms.tabs.printing_settings_tab.s153', "مقاس")} <b>A4</b> {t('settings.forms.tabs.printing_settings_tab.s154', "هو المقاس القياسي الدولي لكافة فواتير النولون وبوالص الشحن (B/L) وأذون التسليم.")}</li>
+                  <li>{t('settings.forms.tabs.printing_settings_tab.s155', "تدعم المنظومة التصدير الفوري بصيغة")} <b>{t('settings.forms.tabs.printing_settings_tab.s156', "PDF رسمية")}</b> {t('settings.forms.tabs.printing_settings_tab.s157', "أو الطباعة على كافة طابعات الليزر المكتبية (HP, Canon, Xerox).")}</li>
+                  <li>{t('settings.forms.tabs.printing_settings_tab.s158', "تتضمن الفاتورة تلقائياً أرقام الحاويات، السفينة، الرحلة، وميناءي الشحن والتفريغ.")}</li>
+                  <li>{t('settings.forms.tabs.printing_settings_tab.s159', "يمكنك تخصيص الشعار وتذييل المطبوعات الرسمية من تبويب الهوية والمؤسسة.")}</li>
                 </ul>
               ) : isContractingVertical ? (
                 <ul style={{ margin: 0, paddingRight: '20px', fontSize: '12px', color: '#64748b', lineHeight: 1.7 }}>
-                  <li>مقاس <b>A4</b> هو المقاس الهندسي المعتمد لجداول الكميات وشهادات الدفع والمستخلصات (AIA G702).</li>
-                  <li>تتضمن الوثيقة تفصيل الأعمال المنجزة والاستقطاعات التعاقدية (الدفعة المقدمة وضمان الأعمال).</li>
-                  <li>تجهيز خانات مخصصة لختم وتوقيع مهندس الموقع، الاستشاري، والجهة المالكة.</li>
-                  <li>تصدير فوري بصيغة PDF وتجهيز ملفات الأرشفة الهندسية.</li>
+                  <li>{t('settings.forms.tabs.printing_settings_tab.s160', "مقاس")} <b>A4</b> {t('settings.forms.tabs.printing_settings_tab.s161', "هو المقاس الهندسي المعتمد لجداول الكميات وشهادات الدفع والمستخلصات (AIA G702).")}</li>
+                  <li>{t('settings.forms.tabs.printing_settings_tab.s162', "تتضمن الوثيقة تفصيل الأعمال المنجزة والاستقطاعات التعاقدية (الدفعة المقدمة وضمان الأعمال).")}</li>
+                  <li>{t('settings.forms.tabs.printing_settings_tab.s163', "تجهيز خانات مخصصة لختم وتوقيع مهندس الموقع، الاستشاري، والجهة المالكة.")}</li>
+                  <li>{t('settings.forms.tabs.printing_settings_tab.s164', "تصدير فوري بصيغة PDF وتجهيز ملفات الأرشفة الهندسية.")}</li>
                 </ul>
               ) : (
                 <ul style={{ margin: 0, paddingRight: '20px', fontSize: '12px', color: '#64748b', lineHeight: 1.7 }}>
-                  <li>مقاس <b>80mm</b> هو المقاس القياسي لمعظم طابعات الكاشير المكتفية (Epson, Xprinter, Rongta).</li>
-                  <li>مقاس <b>58mm</b> مناسب للطابعات المحمولة عبر البلوتوث وطابعات مناديب التوصيل.</li>
-                  <li>تأكد من ضبط هوامش الورق في المتصفح على <b>"None" (بلا هوامش)</b> للحصول على أفضل محاذاة.</li>
-                  <li>يمكنك معاينة التغييرات فورياً في النموذج المقابل وتجربة الطباعة المباشرة بضغطة زر.</li>
+                  <li>{t('settings.forms.tabs.printing_settings_tab.s165', "مقاس")} <b>80mm</b> {t('settings.forms.tabs.printing_settings_tab.s166', "هو المقاس القياسي لمعظم طابعات الكاشير المكتفية (Epson, Xprinter, Rongta).")}</li>
+                  <li>{t('settings.forms.tabs.printing_settings_tab.s167', "مقاس")} <b>58mm</b> {t('settings.forms.tabs.printing_settings_tab.s168', "مناسب للطابعات المحمولة عبر البلوتوث وطابعات مناديب التوصيل.")}</li>
+                  <li>{t('settings.forms.tabs.printing_settings_tab.s169', "تأكد من ضبط هوامش الورق في المتصفح على")} <b>{t('settings.forms.tabs.printing_settings_tab.s170', "\"None\" (بلا هوامش)")}</b> {t('settings.forms.tabs.printing_settings_tab.s171', "للحصول على أفضل محاذاة.")}</li>
+                  <li>{t('settings.forms.tabs.printing_settings_tab.s172', "يمكنك معاينة التغييرات فورياً في النموذج المقابل وتجربة الطباعة المباشرة بضغطة زر.")}</li>
                 </ul>
               )}
             </div>

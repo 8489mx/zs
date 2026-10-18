@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { CheckIcon, FileTextIcon, PrinterIcon, RefreshCwIcon, XIcon } from '@/shared/components/icons/AppIcons';
 import { useEffect, useState, useCallback } from 'react';
 import { Button } from '@/shared/ui/button';
@@ -25,6 +26,7 @@ export function PosRecentSalesReprintModal({
   cashierName = '—',
   onReprintLastSale,
 }: PosRecentSalesReprintModalProps) {
+  const { t } = useTranslation();
   const [feedbackMessage, setFeedbackMessage] = useState('');
   const [recentSales, setRecentSales] = useState<Sale[]>([]);
   const [loading, setLoading] = useState(false);
@@ -96,7 +98,7 @@ export function PosRecentSalesReprintModal({
       onClose={onClose}
       width="min(860px, calc(100vw - 32px))"
       zIndex={90}
-      ariaLabel="إعادة طباعة الفواتير والريسيت"
+      ariaLabel={t('pos.pos_workspace.pos_recent_sales_reprint_modal.s0', "إعادة طباعة الفواتير والريسيت")}
       shellClassName="pos-recent-reprint-dialog-shell"
     >
       <div
@@ -138,10 +140,10 @@ export function PosRecentSalesReprintModal({
             </div>
             <div>
               <h3 style={{ margin: 0, fontSize: '17px', fontWeight: 800, color: '#0f172a' }}>
-                إعادة طباعة الفواتير والريسيت
+                {t('pos.pos_workspace.pos_recent_sales_reprint_modal.s1', "إعادة طباعة الفواتير والريسيت")}
               </h3>
               <p style={{ margin: '2px 0 0', fontSize: '12px', color: '#64748b' }}>
-                اضغط <kbd style={{ padding: '2px 6px', background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '11px', fontWeight: 700, color: '#0f172a' }}>F9</kbd> لطباعة آخر فاتورة مباشرة، أو اختر من آخر 5 فواتير
+                {t('pos.pos_workspace.pos_recent_sales_reprint_modal.s2', "اضغط")} <kbd style={{ padding: '2px 6px', background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '11px', fontWeight: 700, color: '#0f172a' }}>F9</kbd> {t('pos.pos_workspace.pos_recent_sales_reprint_modal.s3', "لطباعة آخر فاتورة مباشرة، أو اختر من آخر 5 فواتير")}
               </p>
             </div>
           </div>
@@ -149,7 +151,7 @@ export function PosRecentSalesReprintModal({
           <button
             type="button"
             onClick={onClose}
-            title="إغلاق النافذة (Esc)"
+            title={t('pos.pos_workspace.pos_recent_sales_reprint_modal.s4', "إغلاق النافذة (Esc)")}
             style={{
               width: '34px',
               height: '34px',
@@ -228,20 +230,20 @@ export function PosRecentSalesReprintModal({
                   borderRadius: '6px',
                   letterSpacing: '0.3px',
                 }}>
-                  اختصار سريع F9
+                  {t('pos.pos_workspace.pos_recent_sales_reprint_modal.s5', "اختصار سريع F9")}
                 </span>
                 <span style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>
-                  طباعة آخر فاتورة تم إتمامها
+                  {t('pos.pos_workspace.pos_recent_sales_reprint_modal.s6', "طباعة آخر فاتورة تم إتمامها")}
                 </span>
               </div>
 
               {lastSale ? (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', fontSize: '13px', color: '#475569' }}>
-                  <span>رقم: <strong style={{ fontFamily: 'monospace', color: '#0f172a', background: '#e2e8f0', padding: '1px 6px', borderRadius: '4px' }}>#{lastSale.docNo || lastSale.id}</strong></span>
+                  <span>{t('pos.pos_workspace.pos_recent_sales_reprint_modal.s7', "رقم:")} <strong style={{ fontFamily: 'monospace', color: '#0f172a', background: '#e2e8f0', padding: '1px 6px', borderRadius: '4px' }}>#{lastSale.docNo || lastSale.id}</strong></span>
                   <span style={{ color: '#cbd5e1' }}>•</span>
-                  <span>العميل: <strong style={{ color: '#0f172a' }}>{lastSale.customerName || 'عميل نقدي'}</strong></span>
+                  <span>{t('pos.pos_workspace.pos_recent_sales_reprint_modal.s8', "العميل:")} <strong style={{ color: '#0f172a' }}>{lastSale.customerName || t('pos.pos_workspace.pos_recent_sales_reprint_modal.s9', "عميل نقدي")}</strong></span>
                   <span style={{ color: '#cbd5e1' }}>•</span>
-                  <span>الإجمالي: <strong style={{ color: '#170e5e', fontSize: '14px', fontWeight: 900 }}>{formatCurrency(Number(lastSale.total || 0))}</strong></span>
+                  <span>{t('pos.pos_workspace.pos_recent_sales_reprint_modal.s10', "الإجمالي:")} <strong style={{ color: '#170e5e', fontSize: '14px', fontWeight: 900 }}>{formatCurrency(Number(lastSale.total || 0))}</strong></span>
                   <span style={{ color: '#cbd5e1' }}>•</span>
                   <span style={{
                     fontSize: '11px',
@@ -257,7 +259,7 @@ export function PosRecentSalesReprintModal({
                 </div>
               ) : (
                 <p style={{ margin: 0, fontSize: '13px', color: '#94a3b8' }}>
-                  لا توجد فاتورة مبيعات مسجلة في الجلسة الحالية حتى الآن
+                  {t('pos.pos_workspace.pos_recent_sales_reprint_modal.s11', "لا توجد فاتورة مبيعات مسجلة في الجلسة الحالية حتى الآن")}
                 </p>
               )}
             </div>
@@ -285,7 +287,7 @@ export function PosRecentSalesReprintModal({
               onMouseLeave={(e) => { if (lastSale) e.currentTarget.style.background = '#170e5e'; }}
             >
               <PrinterIcon size={16} color="#ffffff" />
-              <span>طباعة آخر فاتورة (F9)</span>
+              <span>{t('pos.pos_workspace.pos_recent_sales_reprint_modal.s12', "طباعة آخر فاتورة (F9)")}</span>
             </button>
           </div>
 
@@ -294,7 +296,7 @@ export function PosRecentSalesReprintModal({
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 800, color: '#334155', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <FileTextIcon size={16} color="#475569" />
-                <span>آخر 5 فواتير مبيعات (لإعادة طباعة ريسيت العميل عند طلبه):</span>
+                <span>{t('pos.pos_workspace.pos_recent_sales_reprint_modal.s13', "آخر 5 فواتير مبيعات (لإعادة طباعة ريسيت العميل عند طلبه):")}</span>
               </h4>
 
               <button
@@ -314,7 +316,7 @@ export function PosRecentSalesReprintModal({
                 }}
               >
                 <RefreshCwIcon size={13} color="#2563eb" />
-                <span>{loading ? 'جاري التحديث...' : 'تحديث القائمة'}</span>
+                <span>{loading ? t('pos.pos_workspace.pos_recent_sales_reprint_modal.s14', "جاري التحديث...") : t('pos.pos_workspace.pos_recent_sales_reprint_modal.s15', "تحديث القائمة")}</span>
               </button>
             </div>
 
@@ -326,11 +328,11 @@ export function PosRecentSalesReprintModal({
             }}>
               {loading && recentSales.length === 0 ? (
                 <div style={{ padding: '32px', textAlign: 'center', color: '#64748b', fontSize: '13px' }}>
-                  جاري تحميل آخر الفواتير...
+                  {t('pos.pos_workspace.pos_recent_sales_reprint_modal.s16', "جاري تحميل آخر الفواتير...")}
                 </div>
               ) : recentSales.length === 0 ? (
                 <div style={{ padding: '32px', textAlign: 'center', color: '#64748b', fontSize: '13px' }}>
-                  لا توجد فواتير مبيعات سابقة مسجلة.
+                  {t('pos.pos_workspace.pos_recent_sales_reprint_modal.s17', "لا توجد فواتير مبيعات سابقة مسجلة.")}
                 </div>
               ) : (
                 recentSales.map((saleItem, index) => {
@@ -381,25 +383,25 @@ export function PosRecentSalesReprintModal({
 
                           {saleItem.orderType === 'delivery' && (
                             <span style={{ fontSize: '11px', fontWeight: 700, padding: '2px 8px', borderRadius: '9999px', background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe' }}>
-                              دليفري
+                              {t('pos.pos_workspace.pos_recent_sales_reprint_modal.s18', "دليفري")}
                             </span>
                           )}
 
                           {isTopLast && (
                             <span style={{ fontSize: '11px', fontWeight: 800, padding: '2px 8px', borderRadius: '9999px', background: '#dbeafe', color: '#1e40af', border: '1px solid #bfdbfe' }}>
-                              آخر فاتورة
+                              {t('pos.pos_workspace.pos_recent_sales_reprint_modal.s19', "آخر فاتورة")}
                             </span>
                           )}
                         </div>
 
                         <div style={{ display: 'flex', gap: '10px', fontSize: '12px', color: '#64748b', marginTop: '2px', flexWrap: 'wrap' }}>
-                          <span>العميل: <strong style={{ color: '#334155' }}>{saleItem.customerName || 'عميل نقدي'}</strong></span>
+                          <span>{t('pos.pos_workspace.pos_recent_sales_reprint_modal.s20', "العميل:")} <strong style={{ color: '#334155' }}>{saleItem.customerName || t('pos.pos_workspace.pos_recent_sales_reprint_modal.s21', "عميل نقدي")}</strong></span>
                           <span style={{ color: '#cbd5e1' }}>•</span>
-                          <span>الوقت: <b>{formatDateTime(saleItem.date || saleItem.createdAt)}</b></span>
+                          <span>{t('pos.pos_workspace.pos_recent_sales_reprint_modal.s22', "الوقت:")} <b>{formatDateTime(saleItem.date || saleItem.createdAt)}</b></span>
                           {saleItem.items && (
                             <>
                               <span style={{ color: '#cbd5e1' }}>•</span>
-                              <span>الأصناف: <b>{saleItem.items.length} صنف</b></span>
+                              <span>{t('pos.pos_workspace.pos_recent_sales_reprint_modal.s23', "الأصناف:")} <b>{saleItem.items.length} {t('pos.pos_workspace.pos_recent_sales_reprint_modal.s24', "صنف")}</b></span>
                             </>
                           )}
                         </div>
@@ -408,7 +410,7 @@ export function PosRecentSalesReprintModal({
                       {/* Total and Print actions */}
                       <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexShrink: 0 }}>
                         <div style={{ textAlign: 'left', minWidth: '90px' }}>
-                          <span style={{ fontSize: '11px', color: '#64748b', display: 'block' }}>السعر النهائي</span>
+                          <span style={{ fontSize: '11px', color: '#64748b', display: 'block' }}>{t('pos.pos_workspace.pos_recent_sales_reprint_modal.s25', "السعر النهائي")}</span>
                           <strong style={{ fontSize: '16px', color: '#0f172a', fontWeight: 900 }}>
                             {formatCurrency(Number(saleItem.total || 0))}
                           </strong>
@@ -427,7 +429,7 @@ export function PosRecentSalesReprintModal({
                           <button
                             type="button"
                             onClick={() => handlePrintSale(saleItem, 'receipt')}
-                            title="طباعة إيصال حراري (ريسيت)"
+                            title={t('pos.pos_workspace.pos_recent_sales_reprint_modal.s26', "طباعة إيصال حراري (ريسيت)")}
                             style={{
                               background: '#ffffff',
                               color: '#170e5e',
@@ -452,13 +454,13 @@ export function PosRecentSalesReprintModal({
                             }}
                           >
                             <PrinterIcon size={14} color="#170e5e" />
-                            <span>طباعة ريسيت</span>
+                            <span>{t('pos.pos_workspace.pos_recent_sales_reprint_modal.s27', "طباعة ريسيت")}</span>
                           </button>
 
                           <button
                             type="button"
                             onClick={() => handlePrintSale(saleItem, 'a4')}
-                            title="طباعة فاتورة A4"
+                            title={t('pos.pos_workspace.pos_recent_sales_reprint_modal.s28', "طباعة فاتورة A4")}
                             style={{
                               background: '#ffffff',
                               color: '#475569',
@@ -503,12 +505,12 @@ export function PosRecentSalesReprintModal({
           marginTop: 'auto',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span>اختصارات لوحة المفاتيح:</span>
+            <span>{t('pos.pos_workspace.pos_recent_sales_reprint_modal.s29', "اختصارات لوحة المفاتيح:")}</span>
             <kbd style={{ padding: '2px 6px', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '11px', fontWeight: 700, color: '#0f172a' }}>F9</kbd>
-            <span>طباعة سريعة</span>
+            <span>{t('pos.pos_workspace.pos_recent_sales_reprint_modal.s30', "طباعة سريعة")}</span>
             <span style={{ color: '#cbd5e1' }}>•</span>
             <kbd style={{ padding: '2px 6px', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '11px', fontWeight: 700, color: '#0f172a' }}>Esc</kbd>
-            <span>إغلاق النافذة</span>
+            <span>{t('pos.pos_workspace.pos_recent_sales_reprint_modal.s31', "إغلاق النافذة")}</span>
           </div>
 
           <Button
@@ -521,7 +523,7 @@ export function PosRecentSalesReprintModal({
               padding: '0 16px',
             }}
           >
-            إغلاق
+            {t('pos.pos_workspace.pos_recent_sales_reprint_modal.s32', "إغلاق")}
           </Button>
         </div>
       </div>

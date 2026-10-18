@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 import { DataTable } from '@/shared/ui/data-table';
 import { Button } from '@/shared/ui/button';
@@ -25,14 +26,15 @@ export const CategoriesDataTable: React.FC<CategoriesDataTableProps> = ({
   onTransferWarehouse,
   onDelete,
 }) => {
+  const { t } = useTranslation();
   if (isLoading) {
-    return <div className="muted small" style={{ padding: 40, textAlign: 'center' }}>جاري التحميل...</div>;
+    return <div className="muted small" style={{ padding: 40, textAlign: 'center' }}>{t('products.categories.categories_data_table.s0', "جاري التحميل...")}</div>;
   }
 
   if (categories.length === 0) {
     return (
       <div className="muted" style={{ padding: '48px 24px', textAlign: 'center', color: '#94a3b8' }}>
-        لا توجد أقسام متطابقة مع البحث.
+        {t('products.categories.categories_data_table.s1', "لا توجد أقسام متطابقة مع البحث.")}
       </div>
     );
   }
@@ -45,7 +47,7 @@ export const CategoriesDataTable: React.FC<CategoriesDataTableProps> = ({
       columns={[
         {
           key: 'name',
-          header: 'اسم القسم',
+          header: t('products.categories.categories_data_table.s2', "اسم القسم"),
           cell: (row) => (
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <div style={{
@@ -67,7 +69,7 @@ export const CategoriesDataTable: React.FC<CategoriesDataTableProps> = ({
         },
         {
           key: 'productCount',
-          header: 'عدد الأصناف',
+          header: t('products.categories.categories_data_table.s3', "عدد الأصناف"),
           cell: (row) => {
             const count = row.productCount || 0;
             const isZero = count === 0;
@@ -84,14 +86,14 @@ export const CategoriesDataTable: React.FC<CategoriesDataTableProps> = ({
                 alignItems: 'center',
                 gap: '4px',
               }}>
-                <span>{count} صنف</span>
+                <span>{count} {t('products.categories.categories_data_table.s4', "صنف")}</span>
               </span>
             );
           }
         },
         {
           key: 'actions',
-          header: 'الإجراءات',
+          header: t('products.categories.categories_data_table.s5', "الإجراءات"),
           cell: (row) => {
             const hasProducts = (row.productCount || 0) > 0;
             return (
@@ -99,10 +101,10 @@ export const CategoriesDataTable: React.FC<CategoriesDataTableProps> = ({
                 <Button 
                   variant="secondary" 
                   onClick={() => onEdit(row)}
-                  title="تعديل الاسم"
+                  title={t('products.categories.categories_data_table.s6', "تعديل الاسم")}
                   style={{ padding: '6px 12px', fontSize: '12px' }}
                 >
-                  تعديل
+                  {t('products.categories.categories_data_table.s7', "تعديل")}
                 </Button>
                 
                 {hasProducts ? (
@@ -110,28 +112,28 @@ export const CategoriesDataTable: React.FC<CategoriesDataTableProps> = ({
                     <Button 
                       variant="secondary" 
                       onClick={() => onTransferProducts(row)}
-                      title="نقل الأصناف لقسم آخر"
+                      title={t('products.categories.categories_data_table.s8', "نقل الأصناف لقسم آخر")}
                       style={{ padding: '6px 12px', fontSize: '12px' }}
                     >
-                      نقل الأصناف
+                      {t('products.categories.categories_data_table.s9', "نقل الأصناف")}
                     </Button>
                     <Button 
                       variant="secondary" 
                       onClick={() => onTransferWarehouse(row)}
-                      title="نقل أرصدة القسم لمخزن آخر"
+                      title={t('products.categories.categories_data_table.s10', "نقل أرصدة القسم لمخزن آخر")}
                       style={{ padding: '6px 12px', fontSize: '12px' }}
                     >
-                      نقل المخزن
+                      {t('products.categories.categories_data_table.s11', "نقل المخزن")}
                     </Button>
                   </>
                 ) : (
                   <Button 
                     variant="secondary" 
                     onClick={() => onDelete(row)}
-                    title="حذف القسم"
+                    title={t('products.categories.categories_data_table.s12', "حذف القسم")}
                     style={{ padding: '6px 12px', fontSize: '12px', color: '#dc2626', borderColor: '#fecaca', background: '#fff1f2' }}
                   >
-                    حذف
+                    {t('products.categories.categories_data_table.s13', "حذف")}
                   </Button>
                 )}
               </div>

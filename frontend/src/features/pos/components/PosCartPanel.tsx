@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { memo } from 'react';
 import { Card } from '@/shared/ui/card';
 import { PosCartMetaForm } from '@/features/pos/components/pos-cart-panel/PosCartMetaForm';
@@ -10,6 +11,7 @@ import type { HeldPosDraftSummary, PosCartPanelProps } from '@/features/pos/comp
 export type { HeldPosDraftSummary, PosCartPanelProps };
 
 function PosCartPanelComponent(props: PosCartPanelProps) {
+  const { t } = useTranslation();
   const alertMessages = getAlertMessages(props);
 
   return (
@@ -24,7 +26,7 @@ function PosCartPanelComponent(props: PosCartPanelProps) {
 
         {alertMessages.length ? (
           <div className="pos-inline-alert-bar" role="status" aria-live="polite">
-            <strong>راجع قبل الإتمام:</strong>
+            <strong>{t('pos.pos_cart_panel.s0', "راجع قبل الإتمام:")}</strong>
             <span>{alertMessages.join(' · ')}</span>
           </div>
         ) : null}

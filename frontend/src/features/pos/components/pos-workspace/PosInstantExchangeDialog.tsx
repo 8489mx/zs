@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { DialogShell } from '@/shared/components/dialog-shell';
@@ -12,6 +13,7 @@ type SourceSale = Awaited<ReturnType<typeof posApi.getSaleForExchange>>['sale'];
 export function PosInstantExchangeDialog({ open, onClose, pos }: {
   open: boolean; onClose: () => void; pos: PosWorkspaceState;
 }) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [sourceId, setSourceId] = useState('');
   const [source, setSource] = useState<SourceSale | null>(null);
@@ -108,43 +110,43 @@ export function PosInstantExchangeDialog({ open, onClose, pos }: {
     } finally { setPending(false); }
   }
 
-  return <DialogShell open={open} onClose={() => { if (!pending) onClose(); }} width="min(700px, 96vw)" ariaLabel="استبدال فوري">
+  return <DialogShell open={open} onClose={() => { if (!pending) onClose(); }} width="min(700px, 96vw)" ariaLabel={t('pos.pos_workspace.pos_instant_exchange_dialog.s0', "استبدال فوري")}>
     <div dir="rtl" style={{ padding: 20, maxHeight: 'min(620px, 82vh)', overflowY: 'auto' }}>
-      <h2>استبدال فوري</h2>
-      <p>البضاعة الجديدة من سلة الكاشير، والمرتجع من فاتورة العميل الأصلية. يُحسب الصافي عند الاعتماد على السيرفر.</p>
-      <label htmlFor="exchange-source">رقم الفاتورة الأصلية</label>
+      <h2>{t('pos.pos_workspace.pos_instant_exchange_dialog.s1', "استبدال فوري")}</h2>
+      <p>{t('pos.pos_workspace.pos_instant_exchange_dialog.s2', "البضاعة الجديدة من سلة الكاشير، والمرتجع من فاتورة العميل الأصلية. يُحسب الصافي عند الاعتماد على السيرفر.")}</p>
+      <label htmlFor="exchange-source">{t('pos.pos_workspace.pos_instant_exchange_dialog.s3', "رقم الفاتورة الأصلية")}</label>
       <div style={{ display: 'flex', gap: 8 }}>
         <input id="exchange-source" type="number" min={1} value={sourceId} onChange={(event) => setSourceId(event.target.value)} disabled={pending || attempted} />
-        <Button type="button" onClick={() => { void loadSource(); }} disabled={pending || attempted}>تحميل</Button>
+        <Button type="button" onClick={() => { void loadSource(); }} disabled={pending || attempted}>{t('pos.pos_workspace.pos_instant_exchange_dialog.s4', "تحميل")}</Button>
       </div>
       {source && <>
-        <p>العميل: {source.customerId}، الفاتورة: {source.id}</p>
-        <h3>السطور المرتجعة</h3>
+        <p>{t('pos.pos_workspace.pos_instant_exchange_dialog.s5', "العميل:")} {source.customerId}{t('pos.pos_workspace.pos_instant_exchange_dialog.s6', "، الفاتورة:")} {source.id}</p>
+        <h3>{t('pos.pos_workspace.pos_instant_exchange_dialog.s7', "السطور المرتجعة")}</h3>
         {source.items.map((item) => <div key={item.id} style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 90px', gap: 8, marginBottom: 8 }}>
-          <span>{item.name}، المباع {item.qty}</span>
+          <span>{item.name}{t('pos.pos_workspace.pos_instant_exchange_dialog.s8', "، المباع")} {item.qty}</span>
           <input type="number" min={0} max={item.qty} step="0.001" value={quantities[item.id] || 0}
           onChange={(event) => setQuantities((current) => ({ ...current, [item.id]: Math.max(0, Math.min(Number(item.qty), Number(event.target.value) || 0)) }))} disabled={pending || attempted} />
           {Number(quantities[item.id] || 0) > 0 && item.serials?.length > 0 &&
-            <input aria-label={`سيريالات ${item.name}`} placeholder="الأرقام التسلسلية مفصولة بفاصلة" value={serials[item.id] || ''}
+            <input aria-label={`سيريالات ${item.name}`} placeholder={t('pos.pos_workspace.pos_instant_exchange_dialog.s9', "الأرقام التسلسلية مفصولة بفاصلة")} value={serials[item.id] || ''}
               onChange={(event) => setSerials((current) => ({ ...current, [item.id]: event.target.value }))} disabled={pending || attempted}
               style={{ gridColumn: '1 / -1' }} />}
         </div>)}
-        <h3>السطور الجديدة ({pos.cart.length})</h3>
+        <h3>{t('pos.pos_workspace.pos_instant_exchange_dialog.s10', "السطور الجديدة (")}{pos.cart.length})</h3>
         {pos.cart.map((item) => <div key={item.lineKey}>{item.name} × {item.qty}</div>)}
-        <p>تقدير المرتجع: {returnEstimate.toFixed(2)}، تقدير الصافي: {netEstimate.toFixed(2)}</p>
-        <label htmlFor="exchange-payment">تحصيل الفرق الموجب</label>
+        <p>{t('pos.pos_workspace.pos_instant_exchange_dialog.s11', "تقدير المرتجع:")} {returnEstimate.toFixed(2)}{t('pos.pos_workspace.pos_instant_exchange_dialog.s12', "، تقدير الصافي:")} {netEstimate.toFixed(2)}</p>
+        <label htmlFor="exchange-payment">{t('pos.pos_workspace.pos_instant_exchange_dialog.s13', "تحصيل الفرق الموجب")}</label>
         <select id="exchange-payment" value={paymentChannel} disabled={attempted} onChange={(event) => setPaymentChannel(event.target.value as 'cash' | 'card')}>
-          <option value="cash">نقدي</option><option value="card">شبكة</option>
+          <option value="cash">{t('pos.pos_workspace.pos_instant_exchange_dialog.s14', "نقدي")}</option><option value="card">{t('pos.pos_workspace.pos_instant_exchange_dialog.s15', "شبكة")}</option>
         </select>
-        <label htmlFor="exchange-refund">رد الفرق السالب</label>
+        <label htmlFor="exchange-refund">{t('pos.pos_workspace.pos_instant_exchange_dialog.s16', "رد الفرق السالب")}</label>
         <select id="exchange-refund" value={refundMethod} disabled={attempted} onChange={(event) => setRefundMethod(event.target.value as 'cash' | 'card' | 'store_credit')}>
-          <option value="cash">حسب وسيلة الدفع الأصلية</option><option value="card">شبكة أولاً</option><option value="store_credit">رصيد متجر</option>
+          <option value="cash">{t('pos.pos_workspace.pos_instant_exchange_dialog.s17', "حسب وسيلة الدفع الأصلية")}</option><option value="card">{t('pos.pos_workspace.pos_instant_exchange_dialog.s18', "شبكة أولاً")}</option><option value="store_credit">{t('pos.pos_workspace.pos_instant_exchange_dialog.s19', "رصيد متجر")}</option>
         </select>
-        <label htmlFor="exchange-manager-pin">رمز اعتماد المشرف</label>
+        <label htmlFor="exchange-manager-pin">{t('pos.pos_workspace.pos_instant_exchange_dialog.s20', "رمز اعتماد المشرف")}</label>
         <input id="exchange-manager-pin" type="password" value={managerPin} onChange={(event) => setManagerPin(event.target.value)} disabled={pending || attempted} />
-        <Button type="button" onClick={() => { void submit().catch((error: unknown) => toast.error(error instanceof Error ? error.message : 'بيانات الاستبدال غير صالحة')); }}
+        <Button type="button" onClick={() => { void submit().catch((error: unknown) => toast.error(error instanceof Error ? error.message : t('pos.pos_workspace.pos_instant_exchange_dialog.s21', "بيانات الاستبدال غير صالحة"))); }}
           disabled={pending || !returned.length || !pos.cart.length || !managerPin.trim()}>
-          {pending ? 'جارٍ التنفيذ...' : attempted ? 'التحقق من نتيجة الطلب' : 'اعتماد الاستبدال'}
+          {pending ? t('pos.pos_workspace.pos_instant_exchange_dialog.s22', "جارٍ التنفيذ...") : attempted ? t('pos.pos_workspace.pos_instant_exchange_dialog.s23', "التحقق من نتيجة الطلب") : t('pos.pos_workspace.pos_instant_exchange_dialog.s24', "اعتماد الاستبدال")}
         </Button>
       </>}
     </div>

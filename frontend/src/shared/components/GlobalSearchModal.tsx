@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -16,6 +17,7 @@ import { resolveCurrentVertical, isRouteAllowedInVertical } from '@/shared/verti
 import type { Product, Sale, Customer } from '@/types/domain';
 
 export function GlobalSearchModal() {
+  const { t } = useTranslation();
   const { isGlobalSearchOpen, setGlobalSearchOpen, globalSearchQuery, setGlobalSearchQuery } = useToolbarStore();
   const inputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
@@ -112,7 +114,7 @@ export function GlobalSearchModal() {
     if (!hasQuery) {
       return (
         <div className="global-search-empty">
-          <p>اكتب للبحث في الصفحات، الأصناف، الفواتير، والعملاء...</p>
+          <p>{t('shared.global_search_modal.s0', "اكتب للبحث في الصفحات، الأصناف، الفواتير، والعملاء...")}</p>
         </div>
       );
     }
@@ -120,7 +122,7 @@ export function GlobalSearchModal() {
     if (isLoading && navMatches.length === 0) {
       return (
         <div className="global-search-empty">
-          <p>جاري البحث...</p>
+          <p>{t('shared.global_search_modal.s1', "جاري البحث...")}</p>
         </div>
       );
     }
@@ -132,7 +134,7 @@ export function GlobalSearchModal() {
     if (products.length === 0 && sales.length === 0 && customers.length === 0 && navMatches.length === 0) {
       return (
         <div className="global-search-empty">
-          <p>لم يتم العثور على نتائج مطابقة لـ "{debouncedQuery}"</p>
+          <p>{t('shared.global_search_modal.s2', "لم يتم العثور على نتائج مطابقة لـ \"")}{debouncedQuery}"</p>
         </div>
       );
     }
@@ -141,7 +143,7 @@ export function GlobalSearchModal() {
       <div className="global-search-results">
         {navMatches.length > 0 && (
           <>
-            <div className="global-search-group-title">الصفحات والتنقل</div>
+            <div className="global-search-group-title">{t('shared.global_search_modal.s3', "الصفحات والتنقل")}</div>
             {navMatches.map((item) => (
               <div key={item.key} className="global-search-item" onClick={() => handleNavigate(item.to)}>
                 <div className="global-search-item-icon"><CompassIcon size={18} /></div>
@@ -155,13 +157,13 @@ export function GlobalSearchModal() {
         )}
         {products.length > 0 && (
           <>
-            <div className="global-search-group-title">المنتجات</div>
+            <div className="global-search-group-title">{t('shared.global_search_modal.s4', "المنتجات")}</div>
             {products.map((p: Product) => (
               <div key={p.id} className="global-search-item" onClick={() => handleNavigate(`/products/${p.id}/edit`)}>
                 <div className="global-search-item-icon"><PackageIcon size={18} /></div>
                 <div className="global-search-item-content">
                   <span className="global-search-item-title">{p.name}</span>
-                  <span className="global-search-item-subtitle">{p.barcode ? `باركود: ${p.barcode}` : 'بدون باركود'}</span>
+                  <span className="global-search-item-subtitle">{p.barcode ? `باركود: ${p.barcode}` : t('shared.global_search_modal.s5', "بدون باركود")}</span>
                 </div>
               </div>
             ))}
@@ -170,13 +172,13 @@ export function GlobalSearchModal() {
 
         {sales.length > 0 && (
           <>
-            <div className="global-search-group-title">فواتير المبيعات</div>
+            <div className="global-search-group-title">{t('shared.global_search_modal.s6', "فواتير المبيعات")}</div>
             {sales.map((s: Sale) => (
               <div key={s.id} className="global-search-item" onClick={() => handleNavigate(`/sales`)}>
                 <div className="global-search-item-icon"><ReceiptIcon size={18} /></div>
                 <div className="global-search-item-content">
-                  <span className="global-search-item-title">فاتورة مبيعات #{s.docNo || s.id.slice(0, 8)}</span>
-                  <span className="global-search-item-subtitle">الإجمالي: {s.total}</span>
+                  <span className="global-search-item-title">{t('shared.global_search_modal.s7', "فاتورة مبيعات #")}{s.docNo || s.id.slice(0, 8)}</span>
+                  <span className="global-search-item-subtitle">{t('shared.global_search_modal.s8', "الإجمالي:")} {s.total}</span>
                 </div>
               </div>
             ))}
@@ -185,13 +187,13 @@ export function GlobalSearchModal() {
 
         {customers.length > 0 && (
           <>
-            <div className="global-search-group-title">العملاء</div>
+            <div className="global-search-group-title">{t('shared.global_search_modal.s9', "العملاء")}</div>
             {customers.map((c: Customer) => (
               <div key={c.id} className="global-search-item" onClick={() => handleNavigate(`/customers`)}>
                 <div className="global-search-item-icon"><UsersIcon size={18} /></div>
                 <div className="global-search-item-content">
                   <span className="global-search-item-title">{c.name}</span>
-                  <span className="global-search-item-subtitle">{c.phone || 'بدون هاتف'}</span>
+                  <span className="global-search-item-subtitle">{c.phone || t('shared.global_search_modal.s10', "بدون هاتف")}</span>
                 </div>
               </div>
             ))}

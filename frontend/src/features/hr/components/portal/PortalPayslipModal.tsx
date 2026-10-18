@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { formatCurrency } from '@/lib/format';
 import type { EmployeePayslipItem } from '../../api/employee-portal.api';
 import { ReceiptIcon, XIcon } from '@/shared/components/icons/AppIcons';
@@ -9,6 +10,7 @@ export interface PortalPayslipModalProps {
 }
 
 export function PortalPayslipModal({ payslip, onClose }: PortalPayslipModalProps) {
+  const { t } = useTranslation();
   if (!payslip) return null;
 
   const selectedPayslip = payslip;
@@ -31,7 +33,7 @@ export function PortalPayslipModal({ payslip, onClose }: PortalPayslipModalProps
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <ReceiptIcon size={22} color="#170e5e" />
                 <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 900, color: '#0f172a' }}>
-                  قسيمة راتب شهر {selectedPayslip.period}
+                  {t('hr.portal.portal_payslip_modal.s0', "قسيمة راتب شهر")} {selectedPayslip.period}
                 </h3>
               </div>
               <button
@@ -45,23 +47,23 @@ export function PortalPayslipModal({ payslip, onClose }: PortalPayslipModalProps
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '13px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #f1f5f9' }}>
-                <span style={{ color: '#64748b', fontWeight: 700 }}>الراتب الأساسي:</span>
+                <span style={{ color: '#64748b', fontWeight: 700 }}>{t('hr.portal.portal_payslip_modal.s1', "الراتب الأساسي:")}</span>
                 <span style={{ fontWeight: 800, color: '#0f172a' }}>{formatCurrency(selectedPayslip.baseSalary)}</span>
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #f1f5f9' }}>
-                <span style={{ color: '#16a34a', fontWeight: 700 }}>إجمالي البدلات والمكافآت (+):</span>
+                <span style={{ color: '#16a34a', fontWeight: 700 }}>{t('hr.portal.portal_payslip_modal.s2', "إجمالي البدلات والمكافآت (+):")}</span>
                 <span style={{ fontWeight: 800, color: '#16a34a' }}>+{formatCurrency(selectedPayslip.allowances)}</span>
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #f1f5f9' }}>
-                <span style={{ color: '#dc2626', fontWeight: 700 }}>الاستقطاعات والخصومات (-):</span>
+                <span style={{ color: '#dc2626', fontWeight: 700 }}>{t('hr.portal.portal_payslip_modal.s3', "الاستقطاعات والخصومات (-):")}</span>
                 <span style={{ fontWeight: 800, color: '#dc2626' }}>-{formatCurrency(selectedPayslip.deductions)}</span>
               </div>
 
               {selectedPayslip.loanDeductions > 0 && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #f1f5f9' }}>
-                  <span style={{ color: '#dc2626', fontWeight: 700 }}>قسط سداد سلفة (-):</span>
+                  <span style={{ color: '#dc2626', fontWeight: 700 }}>{t('hr.portal.portal_payslip_modal.s4', "قسط سداد سلفة (-):")}</span>
                   <span style={{ fontWeight: 800, color: '#dc2626' }}>-{formatCurrency(selectedPayslip.loanDeductions)}</span>
                 </div>
               )}
@@ -70,7 +72,7 @@ export function PortalPayslipModal({ payslip, onClose }: PortalPayslipModalProps
               {selectedPayslip.adjustments && selectedPayslip.adjustments.length > 0 && (
                 <div style={{ backgroundColor: '#f8fafc', padding: '12px', borderRadius: '10px', marginTop: '6px' }}>
                   <div style={{ fontWeight: 800, color: '#334155', marginBottom: '8px', fontSize: '12px' }}>
-                    تفاصيل البنود والبدلات الإضافية:
+                    {t('hr.portal.portal_payslip_modal.s5', "تفاصيل البنود والبدلات الإضافية:")}
                   </div>
                   {selectedPayslip.adjustments.map((a, idx) => (
                     <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#64748b', margin: '4px 0' }}>
@@ -97,7 +99,7 @@ export function PortalPayslipModal({ payslip, onClose }: PortalPayslipModalProps
                 }}
               >
                 <div>
-                  <div style={{ fontSize: '12px', fontWeight: 700, color: '#166534' }}>صافي الراتب المستحق للصرف:</div>
+                  <div style={{ fontSize: '12px', fontWeight: 700, color: '#166534' }}>{t('hr.portal.portal_payslip_modal.s6', "صافي الراتب المستحق للصرف:")}</div>
                   <div style={{ fontSize: '24px', fontWeight: 900, color: '#15803d', marginTop: '2px' }}>
                     {formatCurrency(selectedPayslip.netPay)}
                   </div>
@@ -113,7 +115,7 @@ export function PortalPayslipModal({ payslip, onClose }: PortalPayslipModalProps
                     border: '1px solid #86efac',
                   }}
                 >
-                  معتمد ومصروف
+                  {t('hr.portal.portal_payslip_modal.s7', "معتمد ومصروف")}
                 </span>
               </div>
             </div>

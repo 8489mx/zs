@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect, type FC, type FormEvent } from 'react';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { CustomSelect } from '@/shared/ui/custom-select';
@@ -16,6 +17,7 @@ export const CreateNCRModal: FC<CreateNCRModalProps> = ({
   onClose,
   onSuccess,
 }) => {
+  const { t } = useTranslation();
   const [productId, setProductId] = useState<string>('');
   const [defectDescription, setDefectDescription] = useState('');
   const [severity, setSeverity] = useState<'minor' | 'major' | 'critical'>('major');
@@ -86,27 +88,27 @@ export const CreateNCRModal: FC<CreateNCRModalProps> = ({
     <StandardDialog
       open={open}
       onClose={onClose}
-      title="فتح تقرير عدم مطابقة (Create Non-Conformance Report - NCR)"
-      subtitle="توثيق العيوب الفنية، تحليل الأسباب الجذرية، وتحديد الإجراء التصحيحي"
+      title={t('inventory.quality.create_n_c_r_modal.s0', "فتح تقرير عدم مطابقة (Create Non-Conformance Report - NCR)")}
+      subtitle={t('inventory.quality.create_n_c_r_modal.s1', "توثيق العيوب الفنية، تحليل الأسباب الجذرية، وتحديد الإجراء التصحيحي")}
       size="md"
     >
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
         <div>
           <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 600, color: '#334155' }}>
-            الصنف المعيب *
+            {t('inventory.quality.create_n_c_r_modal.s2', "الصنف المعيب *")}
           </label>
           <CustomSelect
             value={productId}
             onChange={setProductId}
             options={productOptions}
-            placeholder="اختر الصنف..."
+            placeholder={t('inventory.quality.create_n_c_r_modal.s3', "اختر الصنف...")}
           />
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
           <div>
             <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 600, color: '#334155' }}>
-              درجة خطورة العيب *
+              {t('inventory.quality.create_n_c_r_modal.s4', "درجة خطورة العيب *")}
             </label>
             <CustomSelect
               value={severity}
@@ -117,7 +119,7 @@ export const CreateNCRModal: FC<CreateNCRModalProps> = ({
 
           <div>
             <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 600, color: '#334155' }}>
-              الإجراء التصحيحي المقترح *
+              {t('inventory.quality.create_n_c_r_modal.s5', "الإجراء التصحيحي المقترح *")}
             </label>
             <CustomSelect
               value={dispositionAction}
@@ -129,27 +131,27 @@ export const CreateNCRModal: FC<CreateNCRModalProps> = ({
 
         <div>
           <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 600, color: '#334155' }}>
-            بيان ووصف العيب وعدم المطابقة *
+            {t('inventory.quality.create_n_c_r_modal.s6', "بيان ووصف العيب وعدم المطابقة *")}
           </label>
           <textarea
             required
             value={defectDescription}
             onChange={(e) => setDefectDescription(e.target.value)}
             rows={3}
-            placeholder="شرح العيب المرصود، الأضرار، أو بنود المواصفة المخالفة..."
+            placeholder={t('inventory.quality.create_n_c_r_modal.s7', "شرح العيب المرصود، الأضرار، أو بنود المواصفة المخالفة...")}
             style={{ width: '100%', padding: '8px', borderRadius: '8px', border: '1px solid #cbd5e1', resize: 'vertical' }}
           />
         </div>
 
         <div>
           <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 600, color: '#334155' }}>
-            تحليل السبب الجذري (Root Cause Analysis - RCA)
+            {t('inventory.quality.create_n_c_r_modal.s8', "تحليل السبب الجذري (Root Cause Analysis - RCA)")}
           </label>
           <textarea
             value={rootCause}
             onChange={(e) => setRootCause(e.target.value)}
             rows={2}
-            placeholder="سبب حدوث الخلل: سوء تخزين، عيب تصنيع من المورد، اهتزاز أثناء النقل..."
+            placeholder={t('inventory.quality.create_n_c_r_modal.s9', "سبب حدوث الخلل: سوء تخزين، عيب تصنيع من المورد، اهتزاز أثناء النقل...")}
             style={{ width: '100%', padding: '8px', borderRadius: '8px', border: '1px solid #cbd5e1', resize: 'vertical' }}
           />
         </div>
@@ -157,7 +159,7 @@ export const CreateNCRModal: FC<CreateNCRModalProps> = ({
         <StandardDialogFooter
           onClose={onClose}
           primaryButton={{
-            label: isSubmitting ? 'جاري الفتح والتوثيق...' : 'فتح وتعميم الـ NCR',
+            label: isSubmitting ? t('inventory.quality.create_n_c_r_modal.s10', "جاري الفتح والتوثيق...") : t('inventory.quality.create_n_c_r_modal.s11', "فتح وتعميم الـ NCR"),
             disabled: isSubmitting,
             onClick: () => handleSubmit(),
           }}

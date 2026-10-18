@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React, { useState, useRef, useEffect } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { http } from '@/lib/http';
@@ -43,6 +44,17 @@ interface AiBusinessCopilotModalProps {
   open: boolean;
   onClose: () => void;
 }
+
+const QUICK_SUGGESTIONS_EN = [
+  'How much did we earn today?',
+  'Current cash in safe & register',
+  'What are critical stock shortages?',
+  'Top customers with outstanding balances',
+  'Out-of-the-box ideas to boost profit',
+  'Opportunities to move stagnant stock',
+  'Company policies & terms',
+  'Top 5 best-selling products',
+];
 
 const QUICK_SUGGESTIONS = [
   'كسبت كام النهاردة؟',
@@ -247,6 +259,8 @@ function renderFormattedContent(text: string) {
 }
 
 export function AiBusinessCopilotModal({ open, onClose }: AiBusinessCopilotModalProps) {
+  const { t, i18n } = useTranslation();
+  const isEn = i18n.language === 'en';
   const [activeTab, setActiveTab] = useState<'chat' | 'knowledge'>('chat');
   const [input, setInput] = useState('');
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -420,7 +434,7 @@ export function AiBusinessCopilotModal({ open, onClose }: AiBusinessCopilotModal
   };
 
   return (
-    <DialogShell open={open} onClose={onClose} ariaLabel="مستشارك التنفيذي - زاد AI" width="min(820px, 95vw)">
+    <DialogShell open={open} onClose={onClose} ariaLabel={t('ai_copilot.ai_business_copilot_modal.s0', "مستشارك التنفيذي - زاد AI")} width="min(820px, 95vw)">
       <style>{`
         .ai-chips-bar::-webkit-scrollbar {
           display: none !important;
@@ -476,9 +490,9 @@ export function AiBusinessCopilotModal({ open, onClose }: AiBusinessCopilotModal
                   whiteSpace: 'nowrap',
                 }}
               >
-                <span>زاد AI</span>
+                <span>{t('ai_copilot.ai_business_copilot_modal.s1', "زاد AI")}</span>
                 <span style={{ color: '#94a3b8', fontSize: '13px' }}>•</span>
-                <span>المستشار التنفيذي الذكي</span>
+                <span>{t('ai_copilot.ai_business_copilot_modal.s2', "المستشار التنفيذي الذكي")}</span>
               </div>
               <div
                 style={{
@@ -492,7 +506,7 @@ export function AiBusinessCopilotModal({ open, onClose }: AiBusinessCopilotModal
                 }}
               >
                 <span style={{ fontSize: '7px', lineHeight: 1, color: '#10b981' }}>●</span>
-                <span>مستودع المعرفة (RAG) + أدوات ERP الحية</span>
+                <span>{t('ai_copilot.ai_business_copilot_modal.s3', "مستودع المعرفة (RAG) + أدوات ERP الحية")}</span>
               </div>
             </div>
           </div>
@@ -523,7 +537,7 @@ export function AiBusinessCopilotModal({ open, onClose }: AiBusinessCopilotModal
                 boxSizing: 'border-box',
               }}
             >
-              المستشار والمحادثة
+              {t('ai_copilot.ai_business_copilot_modal.s4', "المستشار والمحادثة")}
             </button>
             <button
               type="button"
@@ -540,14 +554,14 @@ export function AiBusinessCopilotModal({ open, onClose }: AiBusinessCopilotModal
                 boxSizing: 'border-box',
               }}
             >
-              مستودع المعرفة (Chatbase)
+              {t('ai_copilot.ai_business_copilot_modal.s5', "مستودع المعرفة (Chatbase)")}
             </button>
           </div>
 
           <button
             type="button"
             onClick={onClose}
-            aria-label="إغلاق"
+            aria-label={t('ai_copilot.ai_business_copilot_modal.s6', "إغلاق")}
             style={{
               background: '#ffffff',
               border: '1.5px solid #cbd5e1',
@@ -629,7 +643,7 @@ export function AiBusinessCopilotModal({ open, onClose }: AiBusinessCopilotModal
                             }}
                           >
                             <SlidersIcon size={13} />
-                            <span>استدعاء الأدوات وتحليل البيانات ({m.reasoningSteps?.length} خطوات)</span>
+                            <span>{t('ai_copilot.ai_business_copilot_modal.s7', "استدعاء الأدوات وتحليل البيانات (")}{m.reasoningSteps?.length} {t('ai_copilot.ai_business_copilot_modal.s8', "خطوات)")}</span>
                             {isReasoningOpen ? <ChevronUpIcon size={13} /> : <ChevronDownIcon size={13} />}
                           </button>
 
@@ -693,7 +707,7 @@ export function AiBusinessCopilotModal({ open, onClose }: AiBusinessCopilotModal
               {chatMutation.isPending && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#6366f1', fontSize: '12.5px', padding: '6px 8px' }}>
                   <AiRobotIcon size={18} />
-                  <span style={{ fontWeight: 700 }}>زاد AI يراجع الأدوات ويبحث في البيانات ويفكر في الحل الأنسب...</span>
+                  <span style={{ fontWeight: 700 }}>{t('ai_copilot.ai_business_copilot_modal.s9', "زاد AI يراجع الأدوات ويبحث في البيانات ويفكر في الحل الأنسب...")}</span>
                 </div>
               )}
 
@@ -717,7 +731,7 @@ export function AiBusinessCopilotModal({ open, onClose }: AiBusinessCopilotModal
               <button
                 type="button"
                 onClick={handleResetChat}
-                title="بدء جلسة جديدة"
+                title={t('ai_copilot.ai_business_copilot_modal.s10', "بدء جلسة جديدة")}
                 style={{
                   background: '#ffffff',
                   border: '1px solid #cbd5e1',
@@ -734,10 +748,10 @@ export function AiBusinessCopilotModal({ open, onClose }: AiBusinessCopilotModal
                 }}
               >
                 <RefreshCwIcon size={12} />
-                <span>جلسة جديدة</span>
+                <span>{t('ai_copilot.ai_business_copilot_modal.s11', "جلسة جديدة")}</span>
               </button>
 
-              {QUICK_SUGGESTIONS.map((text, idx) => (
+              {(isEn ? QUICK_SUGGESTIONS_EN : QUICK_SUGGESTIONS).map((text, idx) => (
                 <button
                   key={idx}
                   type="button"
@@ -774,7 +788,7 @@ export function AiBusinessCopilotModal({ open, onClose }: AiBusinessCopilotModal
             >
               <input
                 type="text"
-                placeholder="اسأل زاد أي شيء عن أرقامك، مبيعاتك، مخزونك، أو اطلب استشارة بره الصندوق..."
+                placeholder={t('ai_copilot.ai_business_copilot_modal.s12', "اسأل زاد أي شيء عن أرقامك، مبيعاتك، مخزونك، أو اطلب استشارة بره الصندوق...")}
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
@@ -808,7 +822,7 @@ export function AiBusinessCopilotModal({ open, onClose }: AiBusinessCopilotModal
                   gap: '6px',
                 }}
               >
-                <span>إرسال</span>
+                <span>{t('ai_copilot.ai_business_copilot_modal.s13', "إرسال")}</span>
               </button>
             </div>
           </>
@@ -843,10 +857,10 @@ export function AiBusinessCopilotModal({ open, onClose }: AiBusinessCopilotModal
             >
               <div>
                 <div style={{ fontSize: '14px', fontWeight: 800, color: '#0f172a' }}>
-                  مستودع المعرفة والوثائق (Chatbase RAG Engine)
+                  {t('ai_copilot.ai_business_copilot_modal.s14', "مستودع المعرفة والوثائق (Chatbase RAG Engine)")}
                 </div>
                 <div style={{ fontSize: '12px', color: '#64748b', marginTop: '3px' }}>
-                  ارفع لوائح شركتك، شروط الضمان، أو الكتالوجات لتدريب زاد AI عليها والإجابة منها بدقة.
+                  {t('ai_copilot.ai_business_copilot_modal.s15', "ارفع لوائح شركتك، شروط الضمان، أو الكتالوجات لتدريب زاد AI عليها والإجابة منها بدقة.")}
                 </div>
               </div>
 
@@ -870,7 +884,7 @@ export function AiBusinessCopilotModal({ open, onClose }: AiBusinessCopilotModal
                   }}
                 >
                   <RefreshCwIcon size={14} />
-                  <span>{autoIndexMutation.isPending ? 'جاري الفهرسة...' : 'فهرسة الأصناف تلقائياً'}</span>
+                  <span>{autoIndexMutation.isPending ? t('ai_copilot.ai_business_copilot_modal.s16', "جاري الفهرسة...") : t('ai_copilot.ai_business_copilot_modal.s17', "فهرسة الأصناف تلقائياً")}</span>
                 </button>
 
                 <button
@@ -891,7 +905,7 @@ export function AiBusinessCopilotModal({ open, onClose }: AiBusinessCopilotModal
                   }}
                 >
                   <PlusCircleIcon size={14} />
-                  <span>{isAddingDoc ? 'إلغاء' : 'إضافة وثيقة / لائحة'}</span>
+                  <span>{isAddingDoc ? t('ai_copilot.ai_business_copilot_modal.s18', "إلغاء") : t('ai_copilot.ai_business_copilot_modal.s19', "إضافة وثيقة / لائحة")}</span>
                 </button>
               </div>
             </div>
@@ -910,17 +924,17 @@ export function AiBusinessCopilotModal({ open, onClose }: AiBusinessCopilotModal
                 }}
               >
                 <div style={{ fontSize: '13.5px', fontWeight: 800, color: '#0f172a' }}>
-                  إضافة مستند أو لائحة جديدة للمستودع الدلالي
+                  {t('ai_copilot.ai_business_copilot_modal.s20', "إضافة مستند أو لائحة جديدة للمستودع الدلالي")}
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '10px' }}>
                   <div>
                     <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
-                      عنوان المستند / اللائحة
+                      {t('ai_copilot.ai_business_copilot_modal.s21', "عنوان المستند / اللائحة")}
                     </label>
                     <input
                       type="text"
-                      placeholder="مثال: سياسة الائتمان وفترات السماح للشركات"
+                      placeholder={t('ai_copilot.ai_business_copilot_modal.s22', "مثال: سياسة الائتمان وفترات السماح للشركات")}
                       value={docTitle}
                       onChange={(e) => setDocTitle(e.target.value)}
                       style={{
@@ -936,7 +950,7 @@ export function AiBusinessCopilotModal({ open, onClose }: AiBusinessCopilotModal
 
                   <div>
                     <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
-                      نوع المحتوى
+                      {t('ai_copilot.ai_business_copilot_modal.s23', "نوع المحتوى")}
                     </label>
                     <select
                       value={docType}
@@ -951,21 +965,21 @@ export function AiBusinessCopilotModal({ open, onClose }: AiBusinessCopilotModal
                         boxSizing: 'border-box',
                       }}
                     >
-                      <option value="policy">لائحة وسياسة عمل</option>
-                      <option value="catalog">كتالوج ومواصفات أصناف</option>
-                      <option value="manual">دليل تشغيل وإرشادات</option>
-                      <option value="contract">شروط تعاقدية وضمان</option>
+                      <option value="policy">{t('ai_copilot.ai_business_copilot_modal.s24', "لائحة وسياسة عمل")}</option>
+                      <option value="catalog">{t('ai_copilot.ai_business_copilot_modal.s25', "كتالوج ومواصفات أصناف")}</option>
+                      <option value="manual">{t('ai_copilot.ai_business_copilot_modal.s26', "دليل تشغيل وإرشادات")}</option>
+                      <option value="contract">{t('ai_copilot.ai_business_copilot_modal.s27', "شروط تعاقدية وضمان")}</option>
                     </select>
                   </div>
                 </div>
 
                 <div>
                   <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
-                    النص الكامل أو محتوى الوثيقة
+                    {t('ai_copilot.ai_business_copilot_modal.s28', "النص الكامل أو محتوى الوثيقة")}
                   </label>
                   <textarea
                     rows={5}
-                    placeholder="الصق نص اللائحة أو المواصفات هنا ليتم تقطيعه وتضمينه شعاعياً في قاعدة البيانات..."
+                    placeholder={t('ai_copilot.ai_business_copilot_modal.s29', "الصق نص اللائحة أو المواصفات هنا ليتم تقطيعه وتضمينه شعاعياً في قاعدة البيانات...")}
                     value={docContent}
                     onChange={(e) => setDocContent(e.target.value)}
                     style={{
@@ -994,7 +1008,7 @@ export function AiBusinessCopilotModal({ open, onClose }: AiBusinessCopilotModal
                       cursor: 'pointer',
                     }}
                   >
-                    إلغاء
+                    {t('ai_copilot.ai_business_copilot_modal.s30', "إلغاء")}
                   </button>
                   <button
                     type="button"
@@ -1011,7 +1025,7 @@ export function AiBusinessCopilotModal({ open, onClose }: AiBusinessCopilotModal
                       cursor: 'pointer',
                     }}
                   >
-                    {addDocMutation.isPending ? 'جاري التضمين...' : 'حفظ وتضمين في الـ AI'}
+                    {addDocMutation.isPending ? t('ai_copilot.ai_business_copilot_modal.s31', "جاري التضمين...") : t('ai_copilot.ai_business_copilot_modal.s32', "حفظ وتضمين في الـ AI")}
                   </button>
                 </div>
               </div>
@@ -1020,12 +1034,12 @@ export function AiBusinessCopilotModal({ open, onClose }: AiBusinessCopilotModal
             {/* Sources List */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               <div style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a' }}>
-                المستندات والكتالوجات المفهرسة حالياً ({sources.length})
+                {t('ai_copilot.ai_business_copilot_modal.s33', "المستندات والكتالوجات المفهرسة حالياً (")}{sources.length})
               </div>
 
               {isLoadingSources ? (
                 <div style={{ padding: '24px', textAlign: 'center', color: '#64748b', fontSize: '13px' }}>
-                  جاري تحميل مصادر المعرفة...
+                  {t('ai_copilot.ai_business_copilot_modal.s34', "جاري تحميل مصادر المعرفة...")}
                 </div>
               ) : sources.length === 0 ? (
                 <div
@@ -1039,7 +1053,7 @@ export function AiBusinessCopilotModal({ open, onClose }: AiBusinessCopilotModal
                     fontSize: '13px',
                   }}
                 >
-                  لا توجد وثائق مدربة حتى الآن. اضغط على "إضافة وثيقة" لرفع لوائحك، أو "فهرسة الأصناف تلقائياً" ليقرأ زاد كتالوج متجرك فوراً!
+                  {t('ai_copilot.ai_business_copilot_modal.s35', "لا توجد وثائق مدربة حتى الآن. اضغط على \"إضافة وثيقة\" لرفع لوائحك، أو \"فهرسة الأصناف تلقائياً\" ليقرأ زاد كتالوج متجرك فوراً!")}
                 </div>
               ) : (
                 sources.map((s) => (
@@ -1075,12 +1089,12 @@ export function AiBusinessCopilotModal({ open, onClose }: AiBusinessCopilotModal
                         <div style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a' }}>{s.title}</div>
                         <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '3px', fontSize: '11px', color: '#64748b' }}>
                           <span style={{ background: '#f1f5f9', padding: '1px 6px', borderRadius: '4px' }}>
-                            {s.source_type === 'catalog_auto' ? 'كتالوج تلقائي' : s.source_type}
+                            {s.source_type === 'catalog_auto' ? t('ai_copilot.ai_business_copilot_modal.s36', "كتالوج تلقائي") : s.source_type}
                           </span>
                           <span>•</span>
-                          <span>{s.chunk_count} فقرة دلالية</span>
+                          <span>{s.chunk_count} {t('ai_copilot.ai_business_copilot_modal.s37', "فقرة دلالية")}</span>
                           <span>•</span>
-                          <span style={{ color: '#059669', fontWeight: 700 }}>جاهز ومفهرس</span>
+                          <span style={{ color: '#059669', fontWeight: 700 }}>{t('ai_copilot.ai_business_copilot_modal.s38', "جاهز ومفهرس")}</span>
                         </div>
                       </div>
                     </div>
@@ -1089,7 +1103,7 @@ export function AiBusinessCopilotModal({ open, onClose }: AiBusinessCopilotModal
                       type="button"
                       onClick={() => deleteDocMutation.mutate(s.id)}
                       disabled={deleteDocMutation.isPending}
-                      title="حذف الوثيقة"
+                      title={t('ai_copilot.ai_business_copilot_modal.s39', "حذف الوثيقة")}
                       style={{
                         background: '#fff1f2',
                         border: '1px solid #ffe4e6',

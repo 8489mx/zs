@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/shared/ui/button';
@@ -18,6 +19,7 @@ import { CreateInstallmentPlanModal } from '../components/CreateInstallmentPlanM
 import { InstallmentModalsManager } from '../components/InstallmentModalsManager';
 
 export function InstallmentsPage() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<'schedule' | 'plans'>('schedule');
   const [scheduleStatusFilter, setScheduleStatusFilter] = useState<'all' | 'overdue' | 'due_now' | 'pending' | 'paid'>('all');
@@ -185,16 +187,16 @@ export function InstallmentsPage() {
     <div className="page-stack page-shell installments-workspace" dir="rtl">
       <div className="document-prototype-column" style={{ paddingBottom: '32px' }}>
         <PageHeader
-          title="نظام إدارة أقساط العملاء (Installments Engine)"
-          description="جدولة وتوزيع مبيعات الآجل على أقساط شهرية، احتساب نسب الفائدة، ومتابعة التحصيلات والإيصالات."
-          badge={<span className="nav-pill">{metrics.active_plans} عقد نشط</span>}
+          title={t('sales.installments_page.s0', "نظام إدارة أقساط العملاء (Installments Engine)")}
+          description={t('sales.installments_page.s1', "جدولة وتوزيع مبيعات الآجل على أقساط شهرية، احتساب نسب الفائدة، ومتابعة التحصيلات والإيصالات.")}
+          badge={<span className="nav-pill">{metrics.active_plans} {t('sales.installments_page.s2', "عقد نشط")}</span>}
           actions={
             <div className="actions compact-actions">
               <Button
                 variant="primary"
                 onClick={() => setCreatePlanModalOpen(true)}
               >
-                + إنشاء خطة تقسيط جديدة
+                {t('sales.installments_page.s3', "+ إنشاء خطة تقسيط جديدة")}
               </Button>
             </div>
           }
@@ -210,21 +212,21 @@ export function InstallmentsPage() {
                 variant={activeTab === 'schedule' ? 'primary' : 'secondary'}
                 onClick={() => setActiveTab('schedule')}
               >
-                جدول الأقساط والاستحقاقات
+                {t('sales.installments_page.s4', "جدول الأقساط والاستحقاقات")}
               </Button>
               <Button
                 type="button"
                 variant={activeTab === 'plans' ? 'primary' : 'secondary'}
                 onClick={() => setActiveTab('plans')}
               >
-                عقود وخطط التقسيط
+                {t('sales.installments_page.s5', "عقود وخطط التقسيط")}
               </Button>
             </div>
 
             <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
               <input
                 type="text"
-                placeholder="بحث برقم الخطة، اسم العميل، الهاتف..."
+                placeholder={t('sales.installments_page.s6', "بحث برقم الخطة، اسم العميل، الهاتف...")}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 style={{
@@ -250,11 +252,11 @@ export function InstallmentsPage() {
                     backgroundColor: '#ffffff',
                   }}
                 >
-                  <option value="all">كل الحالات</option>
-                  <option value="overdue">المتأخرة فقط</option>
-                  <option value="due_now">مستحقة اليوم أو قبل</option>
-                  <option value="pending">غير مسددة</option>
-                  <option value="paid">المسددة</option>
+                  <option value="all">{t('sales.installments_page.s7', "كل الحالات")}</option>
+                  <option value="overdue">{t('sales.installments_page.s8', "المتأخرة فقط")}</option>
+                  <option value="due_now">{t('sales.installments_page.s9', "مستحقة اليوم أو قبل")}</option>
+                  <option value="pending">{t('sales.installments_page.s10', "غير مسددة")}</option>
+                  <option value="paid">{t('sales.installments_page.s11', "المسددة")}</option>
                 </select>
               )}
             </div>

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLocation, useSearchParams } from 'react-router-dom';
 import { invalidateReturnsDomain } from '@/app/query-invalidation';
@@ -30,6 +31,7 @@ import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
 import { useAuthStore } from '@/stores/auth-store';
 
 export function ReturnsWorkspace() {
+  const { t, i18n } = useTranslation();
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const isPurchaseMode = location.pathname.includes('purchase-returns');
@@ -235,36 +237,36 @@ export function ReturnsWorkspace() {
   const copyReturnsSummary = async () => {
     if (typeof navigator === 'undefined' || !navigator.clipboard) return;
     const lines = [
-      'ملخص المرتجعات',
-      `إجمالي المرتجعات المطابقة: ${summary?.totalItems || 0}`,
-      `مرتجع بيع: ${salesReturns}`,
-      `مرتجع شراء: ${purchaseReturns}`,
-      `الإجمالي: ${formatCurrency(total)}`
+      t('returns.summary', 'ملخص المرتجعات'),
+      `${t('returns.summary_total', 'إجمالي المرتجعات المطابقة')}: ${summary?.totalItems || 0}`,
+      `${t('returns.stats.sales', 'مرتجع بيع')}: ${salesReturns}`,
+      `${t('returns.stats.purchase', 'مرتجع شراء')}: ${purchaseReturns}`,
+      `${t('returns.stats.amount', 'إجمالي القيمة')}: ${formatCurrency(total)}`
     ];
     try {
       await navigator.clipboard.writeText(lines.join('\n'));
-      setCopyFeedback({ kind: 'success', text: 'تم نسخ ملخص المرتجعات.' });
+      setCopyFeedback({ kind: 'success', text: t('returns.copy_summary_success', 'تم نسخ ملخص المرتجعات.') });
     } catch {
-      setCopyFeedback({ kind: 'error', text: 'تعذر نسخ ملخص المرتجعات.' });
+      setCopyFeedback({ kind: 'error', text: t('returns.copy_summary_error', 'تعذر نسخ ملخص المرتجعات.') });
     }
   };
 
   const copySelectedReturn = async () => {
     if (!selectedReturn || typeof navigator === 'undefined' || !navigator.clipboard) return;
     const lines = [
-      `المستند: ${selectedReturn.docNo || selectedReturn.id}`,
-      `النوع: ${returnTypeLabel(selectedReturn)}`,
-      `الصنف: ${selectedReturn.productName || '—'}`,
-      `الكمية: ${selectedReturn.qty || 0}`,
-      `الإجمالي: ${formatCurrency(Number(selectedReturn.total || 0))}`,
-      `التاريخ: ${formatDate(getReturnDateValue(selectedReturn))}`,
-      `الملاحظات: ${selectedReturn.note || '—'}`
+      `${t('returns.col_doc_no', 'المستند')}: ${selectedReturn.docNo || selectedReturn.id}`,
+      `${t('returns.col_type', 'النوع')}: ${returnTypeLabel(selectedReturn, t)}`,
+      `${t('returns.col_product', 'الصنف')}: ${selectedReturn.productName || '—'}`,
+      `${t('returns.col_qty', 'الكمية')}: ${selectedReturn.qty || 0}`,
+      `${t('returns.col_total', 'الإجمالي')}: ${formatCurrency(Number(selectedReturn.total || 0))}`,
+      `${t('returns.col_date', 'التاريخ')}: ${formatDate(getReturnDateValue(selectedReturn))}`,
+      `${t('returns.col_note', 'الملاحظات')}: ${selectedReturn.note || '—'}`
     ];
     try {
       await navigator.clipboard.writeText(lines.join('\n'));
-      setCopyFeedback({ kind: 'success', text: 'تم نسخ تفاصيل المرتجع المحدد.' });
+      setCopyFeedback({ kind: 'success', text: t('returns.copy_selected_success', 'تم نسخ تفاصيل المرتجع المحدد.') });
     } catch {
-      setCopyFeedback({ kind: 'error', text: 'تعذر نسخ تفاصيل المرتجع المحدد.' });
+      setCopyFeedback({ kind: 'error', text: t('returns.copy_selected_error', 'تعذر نسخ تفاصيل المرتجع المحدد.') });
     }
   };
 
@@ -284,10 +286,10 @@ export function ReturnsWorkspace() {
   };
 
   const stats = [
-    { key: 'total', label: 'إجمالي المرتجعات', value: summary?.totalItems || 0 },
-    { key: 'sales', label: 'مرتجع بيع', value: salesReturns },
-    { key: 'purchase', label: 'مرتجع شراء', value: purchaseReturns },
-    { key: 'amount', label: 'إجمالي القيمة', value: formatCurrency(total) },
+    { key: 'total', label: t('returns.stats.total', 'إجمالي المرتجعات'), value: summary?.totalItems || 0 },
+    { key: 'sales', label: t('returns.stats.sales', 'مرتجع بيع'), value: salesReturns },
+    { key: 'purchase', label: t('returns.stats.purchase', 'مرتجع شراء'), value: purchaseReturns },
+    { key: 'amount', label: t('returns.stats.amount', 'إجمالي القيمة'), value: formatCurrency(total) },
   ] as const;
 
   const anomalySummary = useMemo(() => {
@@ -295,7 +297,7 @@ export function ReturnsWorkspace() {
   }, [rows, salesQuery.data]);
 
   return (
-    <div className="page-stack page-shell returns-workspace" dir="rtl">
+    <div className="page-stack page-shell returns-workspace" dir={i18n.dir()}>
       <main className="document-prototype-column" style={{ paddingBottom: '32px' }}>
         <ReturnsWorkspaceHeader
           totalItems={summary?.totalItems || 0}
@@ -315,13 +317,13 @@ export function ReturnsWorkspace() {
             variant={activeTab === 'register' ? 'primary' : 'secondary'}
             onClick={() => setActiveTab('register')}
           >
-            سجل المرتجعات ({summary?.totalItems || rows.length})
+            {t('returns.tabs.register', 'سجل المرتجعات')} ({summary?.totalItems || rows.length})
           </Button>
           <Button
             variant={activeTab === 'radar' ? 'primary' : 'secondary'}
             onClick={() => setActiveTab('radar')}
           >
-            رقابة وتدقيق الشبهات
+            {t('returns.tabs.radar', 'رقابة وتدقيق الشبهات')}
             {anomalySummary.totalSuspectReturnsCount > 0 ? ` (${anomalySummary.totalSuspectReturnsCount})` : ''}
           </Button>
         </div>
@@ -391,7 +393,7 @@ export function ReturnsWorkspace() {
           open={Boolean(selectedReturnId && selectedReturn)}
           onClose={() => setSelectedReturnId('')}
           width="min(640px, 95vw)"
-          ariaLabel="تفاصيل المرتجع"
+          ariaLabel={t('returns.details_title', 'تفاصيل المرتجع')}
           showCloseButton={true}
         >
           <div className="dialog-card">
@@ -406,18 +408,18 @@ export function ReturnsWorkspace() {
 
       <ActionConfirmDialog
         open={confirmReturn}
-        title={form.type === 'sale' ? 'تأكيد مرتجع البيع' : 'تأكيد مرتجع الشراء'}
-        description={selectedInvoice ? `سيتم إنشاء مرتجع على الفاتورة ${selectedInvoice.docNo || selectedInvoice.id} بعدد ${selectedItemsCount} بند بقيمة متوقعة ${formatCurrency(expectedReturnValue)}.` : 'راجع البيانات قبل حفظ المرتجع.'}
-        confirmLabel={form.type === 'sale' ? 'تسجيل مرتجع البيع' : 'تسجيل مرتجع الشراء'}
+        title={form.type === 'sale' ? t('returns.confirm_sale_title', 'تأكيد مرتجع البيع') : t('returns.confirm_purchase_title', 'تأكيد مرتجع الشراء')}
+        description={selectedInvoice ? t('returns.confirm_desc', 'سيتم إنشاء مرتجع على الفاتورة {{docNo}} بعدد {{count}} بند بقيمة متوقعة {{amount}}.', { docNo: selectedInvoice.docNo || selectedInvoice.id, count: selectedItemsCount, amount: formatCurrency(expectedReturnValue) }) : t('returns.confirm_desc_empty', 'راجع البيانات قبل حفظ المرتجع.')}
+        confirmLabel={form.type === 'sale' ? t('returns.confirm_sale_action', 'تسجيل مرتجع البيع') : t('returns.confirm_purchase_action', 'تسجيل مرتجع الشراء')}
         confirmVariant="danger"
         reasonRequired
-        reasonLabel="سبب المرتجع"
-        reasonPlaceholder="اكتب سبب المرتجع"
-        reasonHint="هذا السبب سيظهر في السجل ويُستخدم للمراجعة لاحقًا."
+        reasonLabel={t('returns.reason_label', 'سبب المرتجع')}
+        reasonPlaceholder={t('returns.reason_placeholder', 'اكتب سبب المرتجع')}
+        reasonHint={t('returns.reason_hint', 'هذا السبب سيظهر في السجل ويُستخدم للمراجعة لاحقًا.')}
         minReasonLength={1}
         managerPinRequired={!canDirectReturn}
-        managerPinLabel="رمز اعتماد المشرف / كلمة المرور"
-        managerPinHint={!canDirectReturn ? 'يتطلب حساب هذا الكاشير اعتماد المشرف أو إدخال رمز المدير لإتمام المرتجع.' : undefined}
+        managerPinLabel={t('returns.manager_pin_label', 'رمز اعتماد المشرف / كلمة المرور')}
+        managerPinHint={!canDirectReturn ? t('returns.manager_pin_hint', 'يتطلب حساب هذا الكاشير اعتماد المشرف أو إدخال رمز المدير لإتمام المرتجع.') : undefined}
         isBusy={createMutation.isPending}
         onCancel={() => setConfirmReturn(false)}
         onConfirm={({ reason, managerPin }) => void createMutation.mutate({ reason, managerPin })}

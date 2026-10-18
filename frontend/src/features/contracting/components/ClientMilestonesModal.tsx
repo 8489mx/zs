@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
 import { StandardDialog } from '@/shared/components/StandardDialog';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
@@ -22,6 +23,7 @@ export function ClientMilestonesModal({
   onClose,
   onSuccess,
 }: ClientMilestonesModalProps) {
+  const { t } = useTranslation();
   const { currencySymbol, formatCurrency } = useSystemCurrency();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -153,14 +155,14 @@ export function ClientMilestonesModal({
     <StandardDialog
       open={open}
       onClose={onClose}
-      title="جدول دفعات العميل والتسويات العينية (المقايضة بالوحدات)"
-      subtitle={projectName ? `المشروع: ${projectName}` : 'متابعة استحقاق الدفعات، ونسب الإنجاز المشروطة، وخصم الوحدات العقارية المسلمة'}
+      title={t('contracting.client_milestones_modal.s0', "جدول دفعات العميل والتسويات العينية (المقايضة بالوحدات)")}
+      subtitle={projectName ? `المشروع: ${projectName}` : t('contracting.client_milestones_modal.s1', "متابعة استحقاق الدفعات، ونسب الإنجاز المشروطة، وخصم الوحدات العقارية المسلمة")}
       width="min(1100px, 95vw)"
       minHeight="min(600px, 85vh)"
       footer={
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
           <div style={{ fontSize: 'var(--font-micro)', color: '#64748b' }}>
-            يتم خصم قيمة الوحدات العينية تلقائياً من ذمة العميل وتوثيقها محاسبياً كدفعة مسددة.
+            {t('contracting.client_milestones_modal.s2', "يتم خصم قيمة الوحدات العينية تلقائياً من ذمة العميل وتوثيقها محاسبياً كدفعة مسددة.")}
           </div>
           <button
             type="button"
@@ -176,7 +178,7 @@ export function ClientMilestonesModal({
               cursor: 'pointer',
             }}
           >
-            إغلاق النافذة
+            {t('contracting.client_milestones_modal.s3', "إغلاق النافذة")}
           </button>
         </div>
       }
@@ -191,28 +193,28 @@ export function ClientMilestonesModal({
         {/* KPI Strip */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px' }}>
           <div style={{ padding: '12px 14px', borderRadius: '10px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0' }}>
-            <span style={{ fontSize: 'var(--font-micro)', color: '#64748b', fontWeight: 600 }}>قيمة التعاقد المقررة</span>
+            <span style={{ fontSize: 'var(--font-micro)', color: '#64748b', fontWeight: 600 }}>{t('contracting.client_milestones_modal.s4', "قيمة التعاقد المقررة")}</span>
             <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>
               {loading ? '—' : formatCurrency(contractValue || totalScheduled)}
             </div>
           </div>
 
           <div style={{ padding: '12px 14px', borderRadius: '10px', backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0' }}>
-            <span style={{ fontSize: 'var(--font-micro)', color: '#166534', fontWeight: 600 }}>المسدد نقدياً وبنكياً</span>
+            <span style={{ fontSize: 'var(--font-micro)', color: '#166534', fontWeight: 600 }}>{t('contracting.client_milestones_modal.s5', "المسدد نقدياً وبنكياً")}</span>
             <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#15803d', marginTop: '2px' }}>
               {loading ? '—' : formatCurrency(totalReceivedCash)}
             </div>
           </div>
 
           <div style={{ padding: '12px 14px', borderRadius: '10px', backgroundColor: '#eff6ff', border: '1px solid #bfdbfe' }}>
-            <span style={{ fontSize: 'var(--font-micro)', color: '#1e40af', fontWeight: 600 }}>المقايضة العينية (وحدات)</span>
+            <span style={{ fontSize: 'var(--font-micro)', color: '#1e40af', fontWeight: 600 }}>{t('contracting.client_milestones_modal.s6', "المقايضة العينية (وحدات)")}</span>
             <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#170e5e', marginTop: '2px' }}>
               {loading ? '—' : formatCurrency(totalBarterValuation)}
             </div>
           </div>
 
           <div style={{ padding: '12px 14px', borderRadius: '10px', backgroundColor: '#fff7ed', border: '1px solid #fed7aa' }}>
-            <span style={{ fontSize: 'var(--font-micro)', color: '#9a3412', fontWeight: 600 }}>المتبقي المستحق على العميل</span>
+            <span style={{ fontSize: 'var(--font-micro)', color: '#9a3412', fontWeight: 600 }}>{t('contracting.client_milestones_modal.s7', "المتبقي المستحق على العميل")}</span>
             <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#c2410c', marginTop: '2px' }}>
               {loading ? '—' : formatCurrency(totalRemaining)}
             </div>
@@ -222,7 +224,7 @@ export function ClientMilestonesModal({
         {/* Action Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <h3 style={{ fontSize: 'var(--font-section-title)', fontWeight: 700, color: '#1e293b', margin: 0 }}>
-            جدول استحقاقات ومحطات الدفع ({milestones.length} دفعة)
+            {t('contracting.client_milestones_modal.s8', "جدول استحقاقات ومحطات الدفع (")}{milestones.length} {t('contracting.client_milestones_modal.s9', "دفعة)")}
           </h3>
           <button
             type="button"
@@ -245,7 +247,7 @@ export function ClientMilestonesModal({
             }}
           >
             {showAddMilestone ? <AppIcons.X size={15} /> : <AppIcons.Plus size={15} />}
-            <span>{showAddMilestone ? 'إلغاء الإضافة' : 'إضافة دفعة / مرحلة جديدة'}</span>
+            <span>{showAddMilestone ? t('contracting.client_milestones_modal.s10', "إلغاء الإضافة") : t('contracting.client_milestones_modal.s11', "إضافة دفعة / مرحلة جديدة")}</span>
           </button>
         </div>
 
@@ -264,19 +266,19 @@ export function ClientMilestonesModal({
             }}
           >
             <div style={{ fontWeight: 700, color: '#170e5e', fontSize: 'var(--font-body)' }}>
-              إدراج مرحلة دفع جديدة في العقد
+              {t('contracting.client_milestones_modal.s12', "إدراج مرحلة دفع جديدة في العقد")}
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr', gap: '12px' }}>
               <div>
                 <label style={{ display: 'block', fontSize: 'var(--font-micro)', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                  اسم الدفعة أو المحطة *
+                  {t('contracting.client_milestones_modal.s13', "اسم الدفعة أو المحطة *")}
                 </label>
                 <input
                   type="text"
                   value={milestoneName}
                   onChange={(e) => setMilestoneName(e.target.value)}
-                  placeholder="مثال: دفعة صب سقف الدور الثالث..."
+                  placeholder={t('contracting.client_milestones_modal.s14', "مثال: دفعة صب سقف الدور الثالث...")}
                   required
                   style={{
                     width: '100%',
@@ -291,7 +293,7 @@ export function ClientMilestonesModal({
 
               <div>
                 <label style={{ display: 'block', fontSize: 'var(--font-micro)', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                  قيمة الدفعة ({currencySymbol}) *
+                  {t('contracting.client_milestones_modal.s15', "قيمة الدفعة (")}{currencySymbol}) *
                 </label>
                 <input
                   type="number"
@@ -315,7 +317,7 @@ export function ClientMilestonesModal({
 
               <div>
                 <label style={{ display: 'block', fontSize: 'var(--font-micro)', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                  نسبة الإنجاز المطلوبة %
+                  {t('contracting.client_milestones_modal.s16', "نسبة الإنجاز المطلوبة %")}
                 </label>
                 <input
                   type="number"
@@ -323,7 +325,7 @@ export function ClientMilestonesModal({
                   max="100"
                   value={requiredProgress}
                   onChange={(e) => setRequiredProgress(e.target.value === '' ? '' : parseFloat(e.target.value))}
-                  placeholder="مثال: 35%"
+                  placeholder={t('contracting.client_milestones_modal.s17', "مثال: 35%")}
                   style={{
                     width: '100%',
                     height: '36px',
@@ -337,7 +339,7 @@ export function ClientMilestonesModal({
 
               <div>
                 <label style={{ display: 'block', fontSize: 'var(--font-micro)', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                  تاريخ الاستحقاق التقريبي
+                  {t('contracting.client_milestones_modal.s18', "تاريخ الاستحقاق التقريبي")}
                 </label>
                 <input
                   type="date"
@@ -357,13 +359,13 @@ export function ClientMilestonesModal({
 
             <div>
               <label style={{ display: 'block', fontSize: 'var(--font-micro)', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                شروط واستحقاق الدفعة
+                {t('contracting.client_milestones_modal.s19', "شروط واستحقاق الدفعة")}
               </label>
               <input
                 type="text"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                placeholder="تُستحق بعد اعتماد مكعبات الخرسانة أو استلام مهندس المالك..."
+                placeholder={t('contracting.client_milestones_modal.s20', "تُستحق بعد اعتماد مكعبات الخرسانة أو استلام مهندس المالك...")}
                 style={{
                   width: '100%',
                   height: '34px',
@@ -389,7 +391,7 @@ export function ClientMilestonesModal({
                   cursor: 'pointer',
                 }}
               >
-                إلغاء
+                {t('contracting.client_milestones_modal.s21', "إلغاء")}
               </button>
               <button
                 type="submit"
@@ -405,7 +407,7 @@ export function ClientMilestonesModal({
                   cursor: saving ? 'not-allowed' : 'pointer',
                 }}
               >
-                {saving ? 'جارٍ الحفظ...' : 'حفظ الدفعة في الجدول'}
+                {saving ? t('contracting.client_milestones_modal.s22', "جارٍ الحفظ...") : t('contracting.client_milestones_modal.s23', "حفظ الدفعة في الجدول")}
               </button>
             </div>
           </form>
@@ -427,7 +429,7 @@ export function ClientMilestonesModal({
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div style={{ fontWeight: 700, color: '#1e40af', fontSize: 'var(--font-body)' }}>
-                تسجيل تسوية عينية (مقايضة وحدة/شقة) على دفعة: {barterMilestone.milestoneName}
+                {t('contracting.client_milestones_modal.s24', "تسجيل تسوية عينية (مقايضة وحدة/شقة) على دفعة:")} {barterMilestone.milestoneName}
               </div>
               <button
                 type="button"
@@ -441,13 +443,13 @@ export function ClientMilestonesModal({
             <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '12px' }}>
               <div>
                 <label style={{ display: 'block', fontSize: 'var(--font-micro)', fontWeight: 600, color: '#1e3a8a', marginBottom: '4px' }}>
-                  بيانات ورقم الوحدة المقايضة *
+                  {t('contracting.client_milestones_modal.s25', "بيانات ورقم الوحدة المقايضة *")}
                 </label>
                 <input
                   type="text"
                   value={unitRef}
                   onChange={(e) => setUnitRef(e.target.value)}
-                  placeholder="مثال: شقة رقم 102 - الدور الأول علوي - برج A..."
+                  placeholder={t('contracting.client_milestones_modal.s26', "مثال: شقة رقم 102 - الدور الأول علوي - برج A...")}
                   required
                   style={{
                     width: '100%',
@@ -462,7 +464,7 @@ export function ClientMilestonesModal({
 
               <div>
                 <label style={{ display: 'block', fontSize: 'var(--font-micro)', fontWeight: 600, color: '#1e3a8a', marginBottom: '4px' }}>
-                  قيمة الوحدة الدفترية المتفق عليها ({currencySymbol}) *
+                  {t('contracting.client_milestones_modal.s27', "قيمة الوحدة الدفترية المتفق عليها (")}{currencySymbol}) *
                 </label>
                 <input
                   type="number"
@@ -487,13 +489,13 @@ export function ClientMilestonesModal({
 
             <div>
               <label style={{ display: 'block', fontSize: 'var(--font-micro)', fontWeight: 600, color: '#1e3a8a', marginBottom: '4px' }}>
-                ملاحظات عقد المقايضة وسند التسليم
+                {t('contracting.client_milestones_modal.s28', "ملاحظات عقد المقايضة وسند التسليم")}
               </label>
               <input
                 type="text"
                 value={barterNotes}
                 onChange={(e) => setBarterNotes(e.target.value)}
-                placeholder="رقم محضر الاستلام أو العقد الابتدائي المبرم مع المالك..."
+                placeholder={t('contracting.client_milestones_modal.s29', "رقم محضر الاستلام أو العقد الابتدائي المبرم مع المالك...")}
                 style={{
                   width: '100%',
                   height: '34px',
@@ -519,7 +521,7 @@ export function ClientMilestonesModal({
                   cursor: 'pointer',
                 }}
               >
-                إلغاء
+                {t('contracting.client_milestones_modal.s30', "إلغاء")}
               </button>
               <button
                 type="submit"
@@ -535,7 +537,7 @@ export function ClientMilestonesModal({
                   cursor: saving ? 'not-allowed' : 'pointer',
                 }}
               >
-                {saving ? 'جارٍ الاعتماد...' : 'اعتماد تسوية الوحدة وخصمها من المستحقات'}
+                {saving ? t('contracting.client_milestones_modal.s31', "جارٍ الاعتماد...") : t('contracting.client_milestones_modal.s32', "اعتماد تسوية الوحدة وخصمها من المستحقات")}
               </button>
             </div>
           </form>
@@ -558,29 +560,29 @@ export function ClientMilestonesModal({
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '280px', gap: '12px', backgroundColor: '#f8fafc', color: '#64748b' }}>
               <div style={{ width: '32px', height: '32px', border: '3px solid #cbd5e1', borderTopColor: '#170e5e', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
               <span style={{ fontSize: 'var(--font-body)', fontWeight: 600 }}>
-                جارٍ تحميل جدول الدفعات ومحطات الاستحقاق...
+                {t('contracting.client_milestones_modal.s33', "جارٍ تحميل جدول الدفعات ومحطات الاستحقاق...")}
               </span>
             </div>
           ) : safeMilestones.length === 0 ? (
             <div style={{ flex: 1, minHeight: '280px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '36px', textAlign: 'center', color: '#64748b' }}>
               <AppIcons.FileText size={32} style={{ color: '#94a3b8' }} />
-              <div style={{ fontWeight: 600 }}>لم يتم إدراج جدول دفعات تعاقدية لهذا المشروع بعد.</div>
+              <div style={{ fontWeight: 600 }}>{t('contracting.client_milestones_modal.s34', "لم يتم إدراج جدول دفعات تعاقدية لهذا المشروع بعد.")}</div>
               <div style={{ fontSize: 'var(--font-micro)', color: '#94a3b8' }}>
-                اضغط على "إضافة دفعة / مرحلة جديدة" لتسجيل دفعات المستخلصات والمقايضة العينية.
+                {t('contracting.client_milestones_modal.s35', "اضغط على \"إضافة دفعة / مرحلة جديدة\" لتسجيل دفعات المستخلصات والمقايضة العينية.")}
               </div>
             </div>
           ) : (
               <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right' }}>
                 <thead style={{ position: 'sticky', top: 0, background: '#f8fafc', zIndex: 1 }}>
                   <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
-                    <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>المرحلة / الدفعة</th>
-                    <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>القيمة المقررة</th>
-                    <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>المسدد نقداً</th>
-                    <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>المقايضة العينية (وحدة)</th>
-                    <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>نسبة الإنجاز المشروطة</th>
-                    <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>تاريخ الاستحقاق</th>
-                    <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>الحالة</th>
-                    <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569', textAlign: 'center' }}>إجراء</th>
+                    <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>{t('contracting.client_milestones_modal.s36', "المرحلة / الدفعة")}</th>
+                    <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>{t('contracting.client_milestones_modal.s37', "القيمة المقررة")}</th>
+                    <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>{t('contracting.client_milestones_modal.s38', "المسدد نقداً")}</th>
+                    <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>{t('contracting.client_milestones_modal.s39', "المقايضة العينية (وحدة)")}</th>
+                    <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>{t('contracting.client_milestones_modal.s40', "نسبة الإنجاز المشروطة")}</th>
+                    <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>{t('contracting.client_milestones_modal.s41', "تاريخ الاستحقاق")}</th>
+                    <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>{t('contracting.client_milestones_modal.s42', "الحالة")}</th>
+                    <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569', textAlign: 'center' }}>{t('contracting.client_milestones_modal.s43', "إجراء")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -613,7 +615,7 @@ export function ClientMilestonesModal({
                               </span>
                               {m.inKindUnitRef && (
                                 <div style={{ fontSize: 'var(--font-micro)', color: '#475569' }}>
-                                  وحدة: {m.inKindUnitRef}
+                                  {t('contracting.client_milestones_modal.s44', "وحدة:")} {m.inKindUnitRef}
                                 </div>
                               )}
                             </div>
@@ -623,7 +625,7 @@ export function ClientMilestonesModal({
                         </td>
 
                         <td style={{ padding: '10px 12px', fontSize: 'var(--font-body)', color: '#475569' }}>
-                          {m.requiredProgressPercent ? `${m.requiredProgressPercent}% إنجاز` : 'عند التعاقد'}
+                          {m.requiredProgressPercent ? `${m.requiredProgressPercent}% إنجاز` : t('contracting.client_milestones_modal.s45', "عند التعاقد")}
                         </td>
 
                         <td style={{ padding: '10px 12px', fontSize: 'var(--font-body)', color: '#64748b' }}>
@@ -641,7 +643,7 @@ export function ClientMilestonesModal({
                               color: isFullySettled ? '#15803d' : Number(m.inKindValuation || 0) > 0 ? '#1e40af' : '#b45309',
                             }}
                           >
-                            {isFullySettled ? 'مسددة بالكامل' : Number(m.inKindValuation || 0) > 0 ? 'تسوية عينية' : 'مستحقة'}
+                            {isFullySettled ? t('contracting.client_milestones_modal.s46', "مسددة بالكامل") : Number(m.inKindValuation || 0) > 0 ? t('contracting.client_milestones_modal.s47', "تسوية عينية") : t('contracting.client_milestones_modal.s48', "مستحقة")}
                           </span>
                         </td>
 
@@ -665,7 +667,7 @@ export function ClientMilestonesModal({
                                 cursor: 'pointer',
                               }}
                             >
-                              مقايضة وحدة
+                              {t('contracting.client_milestones_modal.s49', "مقايضة وحدة")}
                             </button>
                           )}
                         </td>

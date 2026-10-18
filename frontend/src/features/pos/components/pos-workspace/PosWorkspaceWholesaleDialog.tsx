@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { ActionConfirmDialog } from '@/shared/components/action-confirm-dialog';
 import type { PosWorkspaceState } from '@/features/pos/components/pos-workspace/posWorkspace.helpers';
 
@@ -14,16 +15,17 @@ export function PosWorkspaceWholesaleDialog({
   onClose,
   onFocusBarcodeEntry,
 }: PosWorkspaceWholesaleDialogProps) {
+  const { t } = useTranslation();
   return (
     <ActionConfirmDialog
       open={open}
-      title="اعتماد البيع بسعر الجملة"
-      description="أدخل رمز المدير أو كلمة مرور حساب المدير أو السوبر أدمن لتفعيل سعر الجملة للكاشير لهذه الفاتورة فقط."
-      confirmLabel="اعتماد سعر الجملة"
+      title={t('pos.pos_workspace.pos_workspace_wholesale_dialog.s0', "اعتماد البيع بسعر الجملة")}
+      description={t('pos.pos_workspace.pos_workspace_wholesale_dialog.s1', "أدخل رمز المدير أو كلمة مرور حساب المدير أو السوبر أدمن لتفعيل سعر الجملة للكاشير لهذه الفاتورة فقط.")}
+      confirmLabel={t('pos.pos_workspace.pos_workspace_wholesale_dialog.s2', "اعتماد سعر الجملة")}
       confirmVariant="primary"
       managerPinRequired
-      managerPinLabel="رمز المدير أو كلمة المرور"
-      managerPinHint="سيتم التحقق من PIN المدير أو كلمة مرور حساب الأدمن / السوبر أدمن لتفعيل سعر الجملة."
+      managerPinLabel={t('pos.pos_workspace.pos_workspace_wholesale_dialog.s3', "رمز المدير أو كلمة المرور")}
+      managerPinHint={t('pos.pos_workspace.pos_workspace_wholesale_dialog.s4', "سيتم التحقق من PIN المدير أو كلمة مرور حساب الأدمن / السوبر أدمن لتفعيل سعر الجملة.")}
       isBusy={Boolean(pos.discountAuthorizationMutation.isPending)}
       onCancel={() => {
         pos.setWholesaleApprovalSecret('');
@@ -35,7 +37,7 @@ export function PosWorkspaceWholesaleDialog({
           pos.setWholesaleApprovalGranted(true);
           pos.setWholesaleApprovalSecret(managerPin);
           pos.setPriceType('wholesale');
-          pos.setSubmitMessage('تم اعتماد سعر الجملة لهذه الفاتورة.');
+          pos.setSubmitMessage(t('pos.pos_workspace.pos_workspace_wholesale_dialog.s5', "تم اعتماد سعر الجملة لهذه الفاتورة."));
           onClose();
           onFocusBarcodeEntry();
         } catch (error) {

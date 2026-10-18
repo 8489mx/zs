@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { Button } from '@/shared/ui/button';
 
@@ -16,6 +17,7 @@ export function PurchaseOrderSuccessModal({
   onNavigateToList,
   onClose,
 }: PurchaseOrderSuccessModalProps) {
+  const { t } = useTranslation();
   if (!createdPurchase) return null;
 
   const handleClose = onClose || onNavigateToList;
@@ -24,15 +26,15 @@ export function PurchaseOrderSuccessModal({
     <StandardDialog
       open={Boolean(createdPurchase)}
       onClose={handleClose}
-      title="تم إنشاء الفاتورة بنجاح"
+      title={t('purchases.new_purchase_order.purchase_order_success_modal.s0', "تم إنشاء الفاتورة بنجاح")}
       subtitle={`رقم الفاتورة: ${createdPurchase?.invoiceNumber || createdPurchase?.id || ''}`}
       maxWidth="440px"
       footerActions={
         <StandardDialogFooter
           onCancel={onNavigateToList}
-          cancelLabel="العودة لسجل الفواتير"
+          cancelLabel={t('purchases.new_purchase_order.purchase_order_success_modal.s1', "العودة لسجل الفواتير")}
           onSubmit={onNewOrder}
-          submitLabel="فاتورة شراء جديدة"
+          submitLabel={t('purchases.new_purchase_order.purchase_order_success_modal.s2', "فاتورة شراء جديدة")}
         />
       }
     >
@@ -43,7 +45,7 @@ export function PurchaseOrderSuccessModal({
           </svg>
         </div>
         <p style={{ color: '#64748b', marginBottom: '20px', fontSize: '0.95rem' }}>
-          تم حفظ الفاتورة وتحديث أرصدة الموردين والحسابات ذات الصلة بنجاح.
+          {t('purchases.new_purchase_order.purchase_order_success_modal.s3', "تم حفظ الفاتورة وتحديث أرصدة الموردين والحسابات ذات الصلة بنجاح.")}
         </p>
 
         <Button
@@ -55,7 +57,7 @@ export function PurchaseOrderSuccessModal({
           }}
           style={{ width: '100%', justifyContent: 'center' }}
         >
-          طباعة الفاتورة ({rawSettings?.paperSize === 'receipt' ? 'ريسيت' : 'A4'})
+          {t('purchases.new_purchase_order.purchase_order_success_modal.s4', "طباعة الفاتورة (")}{rawSettings?.paperSize === 'receipt' ? t('purchases.new_purchase_order.purchase_order_success_modal.s5', "ريسيت") : 'A4'})
         </Button>
       </div>
     </StandardDialog>

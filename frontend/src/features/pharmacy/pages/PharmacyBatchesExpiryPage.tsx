@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { XIcon } from '@/shared/components/icons/AppIcons';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { useState } from 'react';
@@ -21,6 +22,7 @@ import {
 } from '../components/PharmacyIcons';
 
 export default function PharmacyBatchesExpiryPage() {
+  const { t } = useTranslation();
   useAppToolbar([
     { label: 'الرئيسية', to: '/' },
     { label: 'الصيدلية والأدوية', to: '/pharmacy' },
@@ -94,9 +96,9 @@ export default function PharmacyBatchesExpiryPage() {
     <div className="page-stack page-shell" dir="rtl">
       <main className="document-prototype-column" style={{ paddingBottom: '80px', maxWidth: '1280px', margin: '0 auto', width: '100%' }}>
         <PageHeader
-          title="إدارة التشغيلات وتواريخ الصلاحية ومرتجعات الشركات"
-          description="تتبع أرقام التشغيلات (Batches)، تواريخ الانتهاء، ورصد الأدوية الوشيكة لتجهيز أذون الإرجاع للموزعين"
-          badge={<span className="cashier-chip" style={{ fontWeight: 700, color: 'var(--primary, #1e1b4b)', background: '#f1f5f9', border: '1px solid #e2e8f0' }}>{totalItems} تشغيلة مسجلة</span>}
+          title={t('pharmacy.pharmacy_batches_expiry_page.s0', "إدارة التشغيلات وتواريخ الصلاحية ومرتجعات الشركات")}
+          description={t('pharmacy.pharmacy_batches_expiry_page.s1', "تتبع أرقام التشغيلات (Batches)، تواريخ الانتهاء، ورصد الأدوية الوشيكة لتجهيز أذون الإرجاع للموزعين")}
+          badge={<span className="cashier-chip" style={{ fontWeight: 700, color: 'var(--primary, #1e1b4b)', background: '#f1f5f9', border: '1px solid #e2e8f0' }}>{totalItems} {t('pharmacy.pharmacy_batches_expiry_page.s2', "تشغيلة مسجلة")}</span>}
           actions={
             <div className="actions compact-actions">
               <Button
@@ -105,7 +107,7 @@ export default function PharmacyBatchesExpiryPage() {
                 style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
               >
                 <IconPlus size={15} />
-                <span>تسجيل تشغيلة جديدة</span>
+                <span>{t('pharmacy.pharmacy_batches_expiry_page.s3', "تسجيل تشغيلة جديدة")}</span>
               </Button>
               <Button
                 variant="secondary"
@@ -113,7 +115,7 @@ export default function PharmacyBatchesExpiryPage() {
                 style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
               >
                 <IconRefresh size={15} />
-                <span>تحديث</span>
+                <span>{t('pharmacy.pharmacy_batches_expiry_page.s4', "تحديث")}</span>
               </Button>
             </div>
           }
@@ -123,7 +125,7 @@ export default function PharmacyBatchesExpiryPage() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px', marginBottom: '16px' }}>
           <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 3px rgba(15, 23, 42, 0.02)' }}>
             <div>
-              <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>تشغيلات صالحة وسارية</div>
+              <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>{t('pharmacy.pharmacy_batches_expiry_page.s5', "تشغيلات صالحة وسارية")}</div>
               <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#16a34a', marginTop: '2px' }}>{activeCount}</div>
             </div>
             <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: '#f8fafc', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#16a34a' }}>
@@ -133,7 +135,7 @@ export default function PharmacyBatchesExpiryPage() {
 
           <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 3px rgba(15, 23, 42, 0.02)' }}>
             <div>
-              <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>وشيك الانتهاء (أقل من 3 شهور)</div>
+              <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>{t('pharmacy.pharmacy_batches_expiry_page.s6', "وشيك الانتهاء (أقل من 3 شهور)")}</div>
               <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#d97706', marginTop: '2px' }}>{nearExpiryCount}</div>
             </div>
             <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: '#f8fafc', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#d97706' }}>
@@ -143,7 +145,7 @@ export default function PharmacyBatchesExpiryPage() {
 
           <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 3px rgba(15, 23, 42, 0.02)' }}>
             <div>
-              <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>منتهي الصلاحية (اكسباير)</div>
+              <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>{t('pharmacy.pharmacy_batches_expiry_page.s7', "منتهي الصلاحية (اكسباير)")}</div>
               <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#b91c1c', marginTop: '2px' }}>{expiredCount}</div>
             </div>
             <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: '#f8fafc', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#b91c1c' }}>
@@ -153,7 +155,7 @@ export default function PharmacyBatchesExpiryPage() {
 
           <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 3px rgba(15, 23, 42, 0.02)' }}>
             <div>
-              <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>تم إرجاعه لشركات التوزيع</div>
+              <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>{t('pharmacy.pharmacy_batches_expiry_page.s8', "تم إرجاعه لشركات التوزيع")}</div>
               <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>{returnedCount}</div>
             </div>
             <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: '#f8fafc', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#334155' }}>
@@ -170,35 +172,35 @@ export default function PharmacyBatchesExpiryPage() {
               className={'btn btn-sm ' + (statusFilter === 'all' ? 'btn-primary' : 'btn-secondary')}
               onClick={() => { setStatusFilter('all'); setPage(1); }}
             >
-              الكل ({totalItems})
+              {t('pharmacy.pharmacy_batches_expiry_page.s9', "الكل (")}{totalItems})
             </button>
             <button
               type="button"
               className={'btn btn-sm ' + (statusFilter === 'active' ? 'btn-primary' : 'btn-secondary')}
               onClick={() => { setStatusFilter('active'); setPage(1); }}
             >
-              سارية
+              {t('pharmacy.pharmacy_batches_expiry_page.s10', "سارية")}
             </button>
             <button
               type="button"
               className={'btn btn-sm ' + (statusFilter === 'near_expiry' ? 'btn-primary' : 'btn-secondary')}
               onClick={() => { setStatusFilter('near_expiry'); setPage(1); }}
             >
-              وشيك الانتهاء
+              {t('pharmacy.pharmacy_batches_expiry_page.s11', "وشيك الانتهاء")}
             </button>
             <button
               type="button"
               className={'btn btn-sm ' + (statusFilter === 'expired' ? 'btn-primary' : 'btn-secondary')}
               onClick={() => { setStatusFilter('expired'); setPage(1); }}
             >
-              منتهي الصلاحية
+              {t('pharmacy.pharmacy_batches_expiry_page.s12', "منتهي الصلاحية")}
             </button>
             <button
               type="button"
               className={'btn btn-sm ' + (statusFilter === 'returned' ? 'btn-primary' : 'btn-secondary')}
               onClick={() => { setStatusFilter('returned'); setPage(1); }}
             >
-              مرتجع للموزع
+              {t('pharmacy.pharmacy_batches_expiry_page.s13', "مرتجع للموزع")}
             </button>
           </div>
 
@@ -206,7 +208,7 @@ export default function PharmacyBatchesExpiryPage() {
             <input
               type="text"
               className="purchase-prototype-field-input"
-              placeholder="بحث برقم التشغيلة، الموزع، أو الملاحظات..."
+              placeholder={t('pharmacy.pharmacy_batches_expiry_page.s14', "بحث برقم التشغيلة، الموزع، أو الملاحظات...")}
               value={searchQuery}
               onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
               style={{ width: '100%', paddingInlineStart: '34px', boxSizing: 'border-box' }}
@@ -222,23 +224,23 @@ export default function PharmacyBatchesExpiryPage() {
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem', textAlign: 'right' }}>
             <thead>
               <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', fontWeight: 700 }}>
-                <th style={{ padding: '10px 14px' }}>رقم التشغيلة (Batch No)</th>
-                <th style={{ padding: '10px 14px' }}>تاريخ الانتهاء (Expiry)</th>
-                <th style={{ padding: '10px 14px' }}>الكمية المتبقية</th>
-                <th style={{ padding: '10px 14px' }}>سعر التكلفة</th>
-                <th style={{ padding: '10px 14px' }}>الشركة الموزعة</th>
-                <th style={{ padding: '10px 14px' }}>الحالة</th>
-                <th style={{ padding: '10px 14px', textAlign: 'center' }}>الإجراءات</th>
+                <th style={{ padding: '10px 14px' }}>{t('pharmacy.pharmacy_batches_expiry_page.s15', "رقم التشغيلة (Batch No)")}</th>
+                <th style={{ padding: '10px 14px' }}>{t('pharmacy.pharmacy_batches_expiry_page.s16', "تاريخ الانتهاء (Expiry)")}</th>
+                <th style={{ padding: '10px 14px' }}>{t('pharmacy.pharmacy_batches_expiry_page.s17', "الكمية المتبقية")}</th>
+                <th style={{ padding: '10px 14px' }}>{t('pharmacy.pharmacy_batches_expiry_page.s18', "سعر التكلفة")}</th>
+                <th style={{ padding: '10px 14px' }}>{t('pharmacy.pharmacy_batches_expiry_page.s19', "الشركة الموزعة")}</th>
+                <th style={{ padding: '10px 14px' }}>{t('pharmacy.pharmacy_batches_expiry_page.s20', "الحالة")}</th>
+                <th style={{ padding: '10px 14px', textAlign: 'center' }}>{t('pharmacy.pharmacy_batches_expiry_page.s21', "الإجراءات")}</th>
               </tr>
             </thead>
             <tbody>
               {isLoading ? (
                 <tr>
-                  <td colSpan={7} style={{ padding: '36px', textAlign: 'center', color: '#64748b' }}>جاري التحميل...</td>
+                  <td colSpan={7} style={{ padding: '36px', textAlign: 'center', color: '#64748b' }}>{t('pharmacy.pharmacy_batches_expiry_page.s22', "جاري التحميل...")}</td>
                 </tr>
               ) : batchesList.length === 0 ? (
                 <tr>
-                  <td colSpan={7} style={{ padding: '36px', textAlign: 'center', color: '#64748b' }}>لا توجد تشغيلات مسجلة</td>
+                  <td colSpan={7} style={{ padding: '36px', textAlign: 'center', color: '#64748b' }}>{t('pharmacy.pharmacy_batches_expiry_page.s23', "لا توجد تشغيلات مسجلة")}</td>
                 </tr>
               ) : (
                 batchesList.map((batch: PharmacyBatch) => (
@@ -250,7 +252,7 @@ export default function PharmacyBatchesExpiryPage() {
                       {batch.expiry_date}
                     </td>
                     <td style={{ padding: '10px 14px', fontWeight: 700, color: '#0f172a' }}>
-                      {batch.quantity} علبة
+                      {batch.quantity} {t('pharmacy.pharmacy_batches_expiry_page.s24', "علبة")}
                     </td>
                     <td style={{ padding: '10px 14px' }}>
                       {Number(batch.unit_cost).toFixed(2)} <CurrencySymbol />
@@ -293,12 +295,12 @@ export default function PharmacyBatchesExpiryPage() {
                         }}
                       >
                         {batch.status === 'expired'
-                          ? 'منتهي الصلاحية'
+                          ? t('pharmacy.pharmacy_batches_expiry_page.s25', "منتهي الصلاحية")
                           : batch.status === 'near_expiry'
-                          ? 'وشيك الانتهاء'
+                          ? t('pharmacy.pharmacy_batches_expiry_page.s26', "وشيك الانتهاء")
                           : batch.status === 'returned'
-                          ? 'مرتجع للشركة'
-                          : 'سارٍ وصالح'}
+                          ? t('pharmacy.pharmacy_batches_expiry_page.s27', "مرتجع للشركة")
+                          : t('pharmacy.pharmacy_batches_expiry_page.s28', "سارٍ وصالح")}
                       </span>
                     </td>
                     <td style={{ padding: '10px 14px', textAlign: 'center' }}>
@@ -312,7 +314,7 @@ export default function PharmacyBatchesExpiryPage() {
                         style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}
                       >
                         <IconEdit size={14} />
-                        <span>تعديل</span>
+                        <span>{t('pharmacy.pharmacy_batches_expiry_page.s29', "تعديل")}</span>
                       </Button>
                     </td>
                   </tr>
@@ -327,12 +329,12 @@ export default function PharmacyBatchesExpiryPage() {
             open={modalOpen}
             onClose={() => setModalOpen(false)}
             width="min(600px, 95vw)"
-            ariaLabel={editingBatch.id ? 'تعديل بيانات التشغيلة' : 'إضافة تشغيلة وصلاحية جديدة'}
+            ariaLabel={editingBatch.id ? t('pharmacy.pharmacy_batches_expiry_page.s30', "تعديل بيانات التشغيلة") : t('pharmacy.pharmacy_batches_expiry_page.s31', "إضافة تشغيلة وصلاحية جديدة")}
           >
             <div dir="rtl" style={{ background: '#ffffff', borderRadius: '10px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0', paddingBottom: '12px' }}>
                 <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: '#0f172a' }}>
-                  {editingBatch.id ? 'تعديل بيانات التشغيلة' : 'إضافة تشغيلة وصلاحية جديدة'}
+                  {editingBatch.id ? t('pharmacy.pharmacy_batches_expiry_page.s32', "تعديل بيانات التشغيلة") : t('pharmacy.pharmacy_batches_expiry_page.s33', "إضافة تشغيلة وصلاحية جديدة")}
                 </h3>
                 <button
                   type="button"
@@ -345,7 +347,7 @@ export default function PharmacyBatchesExpiryPage() {
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
                   <div>
                     <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '4px' }}>
-                      رقم التشغيلة (Batch Number) <span style={{ color: '#dc2626' }}>*</span>
+                      {t('pharmacy.pharmacy_batches_expiry_page.s34', "رقم التشغيلة (Batch Number)")} <span style={{ color: '#dc2626' }}>*</span>
                     </label>
                     <input
                       type="text"
@@ -360,7 +362,7 @@ export default function PharmacyBatchesExpiryPage() {
 
                   <div>
                     <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '4px' }}>
-                      تاريخ الانتهاء (Expiry Date) <span style={{ color: '#dc2626' }}>*</span>
+                      {t('pharmacy.pharmacy_batches_expiry_page.s35', "تاريخ الانتهاء (Expiry Date)")} <span style={{ color: '#dc2626' }}>*</span>
                     </label>
                     <input
                       type="text"
@@ -368,21 +370,21 @@ export default function PharmacyBatchesExpiryPage() {
                       className="purchase-prototype-field-input"
                       value={editingBatch.expiry_date || ''}
                       onChange={(e) => setEditingBatch({ ...editingBatch, expiry_date: e.target.value })}
-                      placeholder="مثال: 2026-11 أو 11/2026"
+                      placeholder={t('pharmacy.pharmacy_batches_expiry_page.s36', "مثال: 2026-11 أو 11/2026")}
                       style={{ width: '100%', boxSizing: 'border-box' }}
                     />
                     {/* Quick Expiry Date Preset Buttons */}
                     <div style={{ display: 'flex', gap: '4px', marginTop: '6px' }}>
-                      <button type="button" onClick={() => handleSetQuickExpiry(6)} className="btn btn-sm btn-secondary" style={{ padding: '2px 6px', fontSize: '0.7rem' }}>+6 شهور</button>
-                      <button type="button" onClick={() => handleSetQuickExpiry(12)} className="btn btn-sm btn-secondary" style={{ padding: '2px 6px', fontSize: '0.7rem' }}>+1 سنة</button>
-                      <button type="button" onClick={() => handleSetQuickExpiry(24)} className="btn btn-sm btn-secondary" style={{ padding: '2px 6px', fontSize: '0.7rem' }}>+2 سنة</button>
-                      <button type="button" onClick={() => handleSetQuickExpiry(36)} className="btn btn-sm btn-secondary" style={{ padding: '2px 6px', fontSize: '0.7rem' }}>+3 سنوات</button>
+                      <button type="button" onClick={() => handleSetQuickExpiry(6)} className="btn btn-sm btn-secondary" style={{ padding: '2px 6px', fontSize: '0.7rem' }}>{t('pharmacy.pharmacy_batches_expiry_page.s37', "+6 شهور")}</button>
+                      <button type="button" onClick={() => handleSetQuickExpiry(12)} className="btn btn-sm btn-secondary" style={{ padding: '2px 6px', fontSize: '0.7rem' }}>{t('pharmacy.pharmacy_batches_expiry_page.s38', "+1 سنة")}</button>
+                      <button type="button" onClick={() => handleSetQuickExpiry(24)} className="btn btn-sm btn-secondary" style={{ padding: '2px 6px', fontSize: '0.7rem' }}>{t('pharmacy.pharmacy_batches_expiry_page.s39', "+2 سنة")}</button>
+                      <button type="button" onClick={() => handleSetQuickExpiry(36)} className="btn btn-sm btn-secondary" style={{ padding: '2px 6px', fontSize: '0.7rem' }}>{t('pharmacy.pharmacy_batches_expiry_page.s40', "+3 سنوات")}</button>
                     </div>
                   </div>
 
                   <div>
                     <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '4px' }}>
-                      الكمية (العلب)
+                      {t('pharmacy.pharmacy_batches_expiry_page.s41', "الكمية (العلب)")}
                     </label>
                     <input
                       type="number"
@@ -395,7 +397,7 @@ export default function PharmacyBatchesExpiryPage() {
 
                   <div>
                     <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '4px' }}>
-                      سعر التكلفة / الشراء
+                      {t('pharmacy.pharmacy_batches_expiry_page.s42', "سعر التكلفة / الشراء")}
                     </label>
                     <input
                       type="number"
@@ -409,7 +411,7 @@ export default function PharmacyBatchesExpiryPage() {
 
                   <div>
                     <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '4px' }}>
-                      الموزع / المورد
+                      {t('pharmacy.pharmacy_batches_expiry_page.s43', "الموزع / المورد")}
                     </label>
                     <CustomSelect
                       value={editingBatch.supplier_name || MAJOR_DISTRIBUTORS[0]}
@@ -420,16 +422,16 @@ export default function PharmacyBatchesExpiryPage() {
 
                   <div>
                     <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '4px' }}>
-                      حالة التشغيلة
+                      {t('pharmacy.pharmacy_batches_expiry_page.s44', "حالة التشغيلة")}
                     </label>
                     <CustomSelect
                       value={editingBatch.status || 'active'}
                       onChange={(val) => setEditingBatch({ ...editingBatch, status: val as any })}
                       options={[
-                        { value: 'active', label: 'صلاحية سارية' },
-                        { value: 'near_expiry', label: 'وشيك الانتهاء' },
-                        { value: 'expired', label: 'منتهي الصلاحية' },
-                        { value: 'returned', label: 'تم إرجاعه للموزع' },
+                        { value: 'active', label: t('pharmacy.pharmacy_batches_expiry_page.s45', "صلاحية سارية") },
+                        { value: 'near_expiry', label: t('pharmacy.pharmacy_batches_expiry_page.s46', "وشيك الانتهاء") },
+                        { value: 'expired', label: t('pharmacy.pharmacy_batches_expiry_page.s47', "منتهي الصلاحية") },
+                        { value: 'returned', label: t('pharmacy.pharmacy_batches_expiry_page.s48', "تم إرجاعه للموزع") },
                       ]}
                     />
                   </div>
@@ -437,10 +439,10 @@ export default function PharmacyBatchesExpiryPage() {
                 </div>
 
                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '16px', borderTop: '1px solid #f1f5f9', paddingTop: '12px' }}>
-                  <Button variant="secondary" onClick={() => setModalOpen(false)}>إلغاء</Button>
+                  <Button variant="secondary" onClick={() => setModalOpen(false)}>{t('pharmacy.pharmacy_batches_expiry_page.s49', "إلغاء")}</Button>
                   <Button variant="primary" type="submit" disabled={upsertMutation.isPending} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                     <IconSave size={15} />
-                    <span>{upsertMutation.isPending ? 'جاري الحفظ...' : 'حفظ التشغيلة'}</span>
+                    <span>{upsertMutation.isPending ? t('pharmacy.pharmacy_batches_expiry_page.s50', "جاري الحفظ...") : t('pharmacy.pharmacy_batches_expiry_page.s51', "حفظ التشغيلة")}</span>
                   </Button>
                 </div>
               </form>

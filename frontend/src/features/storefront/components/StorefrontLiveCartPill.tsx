@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import React, { useRef } from 'react';
 
@@ -20,6 +21,7 @@ export function StorefrontLiveCartPill({
   onProceedToCheckout,
   onDismiss,
 }: StorefrontLiveCartPillProps) {
+  const { t } = useTranslation();
   const touchStartXRef = useRef<number | null>(null);
 
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -53,7 +55,7 @@ export function StorefrontLiveCartPill({
         boxSizing: 'border-box',
         transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
       }}
-      title="اضغط لعرض تفاصيل السلة"
+      title={t('storefront.storefront_live_cart_pill.s0', "اضغط لعرض تفاصيل السلة")}
       onClick={onExpand}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
@@ -104,10 +106,10 @@ export function StorefrontLiveCartPill({
       {/* Exactly 2 clean lines: Line 1 = Items & Pieces, Line 2 = Total */}
       <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.3, minWidth: 0 }}>
         <div style={{ fontSize: '12px', fontWeight: 700, color: '#475569', whiteSpace: 'nowrap' }}>
-          <strong style={{ color: '#0f172a', fontWeight: 800 }}>{itemsCount}</strong> صنف • <strong style={{ color: '#0f172a', fontWeight: 800 }}>{totalQuantity}</strong> قطعة
+          <strong style={{ color: '#0f172a', fontWeight: 800 }}>{itemsCount}</strong> {t('storefront.storefront_live_cart_pill.s1', "صنف •")} <strong style={{ color: '#0f172a', fontWeight: 800 }}>{totalQuantity}</strong> {t('storefront.storefront_live_cart_pill.s2', "قطعة")}
         </div>
         <div style={{ fontSize: '13px', fontWeight: 900, color: '#166534', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '3px' }}>
-          <span>الإجمالي:</span>
+          <span>{t('storefront.storefront_live_cart_pill.s3', "الإجمالي:")}</span>
           <span>{total.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</span>
           <CurrencySymbol />
         </div>
@@ -151,7 +153,7 @@ export function StorefrontLiveCartPill({
             }
           }}
         >
-          <span>إتمام الطلب</span>
+          <span>{t('storefront.storefront_live_cart_pill.s4', "إتمام الطلب")}</span>
           <span style={{ fontSize: '13.5px', lineHeight: 1 }}>←</span>
         </button>
 
@@ -162,8 +164,8 @@ export function StorefrontLiveCartPill({
               e.stopPropagation();
               onDismiss();
             }}
-            aria-label="تصغير وإخفاء الشريط مؤقتاً"
-            title="تصغير وإخفاء الشريط مؤقتاً"
+            aria-label={t('storefront.storefront_live_cart_pill.s5', "تصغير وإخفاء الشريط مؤقتاً")}
+            title={t('storefront.storefront_live_cart_pill.s6', "تصغير وإخفاء الشريط مؤقتاً")}
             style={{
               width: '26px',
               height: '26px',

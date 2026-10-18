@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 import { PdcCheque, ChequeStatus } from '@/features/accounting/api/accounting.api';
 import { formatCurrency } from '@/lib/format';
@@ -34,10 +35,11 @@ export const PdcChequesTable: React.FC<PdcChequesTableProps> = ({
   onDirectAction,
   onDeleteCheque,
 }) => {
+  const { t } = useTranslation();
   if (isLoading) {
     return (
       <div style={{ padding: '48px', textAlign: 'center', color: '#94a3b8', fontSize: '13px' }}>
-        جاري تحميل حافظة الشيكات...
+        {t('accounting.pdc_cheques_table.s0', "جاري تحميل حافظة الشيكات...")}
       </div>
     );
   }
@@ -60,9 +62,9 @@ export const PdcChequesTable: React.FC<PdcChequesTableProps> = ({
         >
           <FileTextIcon size={24} />
         </div>
-        <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#334155', margin: 0 }}>لا توجد شيكات مطابقة للبحث</h3>
+        <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#334155', margin: 0 }}>{t('accounting.pdc_cheques_table.s1', "لا توجد شيكات مطابقة للبحث")}</h3>
         <p style={{ fontSize: '12px', color: '#94a3b8', marginTop: '4px' }}>
-          يمكنك تسجيل ورقة قبض أو دفع جديدة عبر الأزرار بالأعلى
+          {t('accounting.pdc_cheques_table.s2', "يمكنك تسجيل ورقة قبض أو دفع جديدة عبر الأزرار بالأعلى")}
         </p>
       </div>
     );
@@ -73,15 +75,15 @@ export const PdcChequesTable: React.FC<PdcChequesTableProps> = ({
       <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right', fontSize: '13px' }}>
         <thead>
           <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>
-            <th style={{ padding: '10px 16px', fontWeight: 600, fontSize: '12.5px' }}>رقم الشيك</th>
-            <th style={{ padding: '10px 16px', fontWeight: 600, fontSize: '12.5px' }}>الطرف (العميل / المورد)</th>
-            <th style={{ padding: '10px 16px', fontWeight: 600, fontSize: '12.5px' }}>البنك المسحوب عليه</th>
-            <th style={{ padding: '10px 16px', fontWeight: 600, fontSize: '12.5px' }}>المبلغ</th>
-            <th style={{ padding: '10px 16px', fontWeight: 600, fontSize: '12.5px' }}>تاريخ التحرير</th>
-            <th style={{ padding: '10px 16px', fontWeight: 600, fontSize: '12.5px' }}>تاريخ الاستحقاق</th>
-            <th style={{ padding: '10px 16px', fontWeight: 600, fontSize: '12.5px', textAlign: 'center' }}>الحالة</th>
-            <th style={{ padding: '10px 16px', fontWeight: 600, fontSize: '12.5px' }}>بنك الإيداع / تفاصيل</th>
-            <th style={{ padding: '10px 16px', fontWeight: 600, fontSize: '12.5px', textAlign: 'center' }}>الإجراءات</th>
+            <th style={{ padding: '10px 16px', fontWeight: 600, fontSize: '12.5px' }}>{t('accounting.pdc_cheques_table.s3', "رقم الشيك")}</th>
+            <th style={{ padding: '10px 16px', fontWeight: 600, fontSize: '12.5px' }}>{t('accounting.pdc_cheques_table.s4', "الطرف (العميل / المورد)")}</th>
+            <th style={{ padding: '10px 16px', fontWeight: 600, fontSize: '12.5px' }}>{t('accounting.pdc_cheques_table.s5', "البنك المسحوب عليه")}</th>
+            <th style={{ padding: '10px 16px', fontWeight: 600, fontSize: '12.5px' }}>{t('accounting.pdc_cheques_table.s6', "المبلغ")}</th>
+            <th style={{ padding: '10px 16px', fontWeight: 600, fontSize: '12.5px' }}>{t('accounting.pdc_cheques_table.s7', "تاريخ التحرير")}</th>
+            <th style={{ padding: '10px 16px', fontWeight: 600, fontSize: '12.5px' }}>{t('accounting.pdc_cheques_table.s8', "تاريخ الاستحقاق")}</th>
+            <th style={{ padding: '10px 16px', fontWeight: 600, fontSize: '12.5px', textAlign: 'center' }}>{t('accounting.pdc_cheques_table.s9', "الحالة")}</th>
+            <th style={{ padding: '10px 16px', fontWeight: 600, fontSize: '12.5px' }}>{t('accounting.pdc_cheques_table.s10', "بنك الإيداع / تفاصيل")}</th>
+            <th style={{ padding: '10px 16px', fontWeight: 600, fontSize: '12.5px', textAlign: 'center' }}>{t('accounting.pdc_cheques_table.s11', "الإجراءات")}</th>
           </tr>
         </thead>
         <tbody>
@@ -113,7 +115,7 @@ export const PdcChequesTable: React.FC<PdcChequesTableProps> = ({
                   </div>
                   {c.drawer_name && (
                     <span style={{ fontSize: '10px', color: '#94a3b8', display: 'block', fontFamily: 'sans-serif' }}>
-                      الساحب: {c.drawer_name}
+                      {t('accounting.pdc_cheques_table.s12', "الساحب:")} {c.drawer_name}
                     </span>
                   )}
                 </td>
@@ -122,7 +124,7 @@ export const PdcChequesTable: React.FC<PdcChequesTableProps> = ({
                 <td style={{ padding: '12px 16px' }}>
                   <div style={{ fontWeight: 700, color: '#1e293b' }}>{c.partner_name}</div>
                   <span style={{ fontSize: '10px', color: '#94a3b8' }}>
-                    {c.partner_type === 'customer' ? 'عميل' : 'مورد'}
+                    {c.partner_type === 'customer' ? t('accounting.pdc_cheques_table.s13', "عميل") : t('accounting.pdc_cheques_table.s14', "مورد")}
                   </span>
                 </td>
 
@@ -130,7 +132,7 @@ export const PdcChequesTable: React.FC<PdcChequesTableProps> = ({
                 <td style={{ padding: '12px 16px' }}>
                   <div style={{ color: '#334155', fontWeight: 600 }}>{c.bank_name}</div>
                   {c.branch_name && (
-                    <span style={{ fontSize: '10px', color: '#94a3b8' }}>فرع {c.branch_name}</span>
+                    <span style={{ fontSize: '10px', color: '#94a3b8' }}>{t('accounting.pdc_cheques_table.s15', "فرع")} {c.branch_name}</span>
                   )}
                 </td>
 
@@ -157,12 +159,12 @@ export const PdcChequesTable: React.FC<PdcChequesTableProps> = ({
                     </span>
                     {isOverdue && (
                       <span style={{ fontSize: '10px', padding: '2px 6px', borderRadius: '4px', backgroundColor: '#fee2e2', color: '#b91c1c', fontWeight: 700 }}>
-                        متأخر
+                        {t('accounting.pdc_cheques_table.s16', "متأخر")}
                       </span>
                     )}
                     {isDueSoon && (
                       <span style={{ fontSize: '10px', padding: '2px 6px', borderRadius: '4px', backgroundColor: '#fef3c7', color: '#92400e', fontWeight: 700 }}>
-                        خلال أسبوع
+                        {t('accounting.pdc_cheques_table.s17', "خلال أسبوع")}
                       </span>
                     )}
                   </div>
@@ -190,38 +192,38 @@ export const PdcChequesTable: React.FC<PdcChequesTableProps> = ({
                 <td style={{ padding: '12px 16px', fontSize: '11px', color: '#475569' }}>
                   {c.status === 'under_collection' && (
                     <div>
-                      <span>مودع بتاريخ {c.deposit_date}</span>
+                      <span>{t('accounting.pdc_cheques_table.s18', "مودع بتاريخ")} {c.deposit_date}</span>
                     </div>
                   )}
                   {c.status === 'collected' && (
                     <span style={{ color: '#047857', fontWeight: 700 }}>
-                      حصل في {c.cleared_date}
+                      {t('accounting.pdc_cheques_table.s19', "حصل في")} {c.cleared_date}
                     </span>
                   )}
                   {c.status === 'cleared' && (
                     <span style={{ color: '#047857', fontWeight: 700 }}>
-                      صرف في {c.cleared_date}
+                      {t('accounting.pdc_cheques_table.s20', "صرف في")} {c.cleared_date}
                     </span>
                   )}
                   {c.status === 'bounced' && (
                     <div style={{ color: '#b91c1c' }}>
                       <span style={{ fontWeight: 700, display: 'block' }}>{c.bounced_reason}</span>
                       <span style={{ fontSize: '10px', color: '#ef4444' }}>
-                        في {c.bounced_date}
+                        {t('accounting.pdc_cheques_table.s21', "في")} {c.bounced_date}
                         {c.bounced_fee > 0 && ` | مصاريف: ${c.bounced_fee}`}
                       </span>
                     </div>
                   )}
                   {c.status === 'endorsed' && (
                     <span style={{ color: '#7e22ce', fontWeight: 700 }}>
-                      ظهر للمورد: {c.endorsed_to_supplier_name}
+                      {t('accounting.pdc_cheques_table.s22', "ظهر للمورد:")} {c.endorsed_to_supplier_name}
                     </span>
                   )}
                   {c.status === 'in_safe' && (
-                    <span style={{ color: '#94a3b8' }}>متاح في الخزينة</span>
+                    <span style={{ color: '#94a3b8' }}>{t('accounting.pdc_cheques_table.s23', "متاح في الخزينة")}</span>
                   )}
                   {c.status === 'issued' && (
-                    <span style={{ color: '#94a3b8' }}>محرر للمورد</span>
+                    <span style={{ color: '#94a3b8' }}>{t('accounting.pdc_cheques_table.s24', "محرر للمورد")}</span>
                   )}
                 </td>
 
@@ -244,9 +246,9 @@ export const PdcChequesTable: React.FC<PdcChequesTableProps> = ({
                             fontWeight: 600,
                             cursor: 'pointer',
                           }}
-                          title="إيداع الشيك برسم التحصيل في البنك"
+                          title={t('accounting.pdc_cheques_table.s25', "إيداع الشيك برسم التحصيل في البنك")}
                         >
-                          إيداع بالبنك
+                          {t('accounting.pdc_cheques_table.s26', "إيداع بالبنك")}
                         </button>
                         <button
                           type="button"
@@ -261,9 +263,9 @@ export const PdcChequesTable: React.FC<PdcChequesTableProps> = ({
                             fontWeight: 600,
                             cursor: 'pointer',
                           }}
-                          title="تحصيل مباشر"
+                          title={t('accounting.pdc_cheques_table.s27', "تحصيل مباشر")}
                         >
-                          تحصيل
+                          {t('accounting.pdc_cheques_table.s28', "تحصيل")}
                         </button>
                         <button
                           type="button"
@@ -278,9 +280,9 @@ export const PdcChequesTable: React.FC<PdcChequesTableProps> = ({
                             fontWeight: 600,
                             cursor: 'pointer',
                           }}
-                          title="تظهير الشيك لمورد"
+                          title={t('accounting.pdc_cheques_table.s29', "تظهير الشيك لمورد")}
                         >
-                          تظهير
+                          {t('accounting.pdc_cheques_table.s30', "تظهير")}
                         </button>
                       </>
                     )}
@@ -301,9 +303,9 @@ export const PdcChequesTable: React.FC<PdcChequesTableProps> = ({
                             cursor: 'pointer',
                             boxShadow: '0 1px 2px rgba(5, 150, 105, 0.25)',
                           }}
-                          title="تأكيد تحصيل الشيك وإضافته للرصيد"
+                          title={t('accounting.pdc_cheques_table.s31', "تأكيد تحصيل الشيك وإضافته للرصيد")}
                         >
-                          تأكيد التحصيل
+                          {t('accounting.pdc_cheques_table.s32', "تأكيد التحصيل")}
                         </button>
                         <button
                           type="button"
@@ -318,9 +320,9 @@ export const PdcChequesTable: React.FC<PdcChequesTableProps> = ({
                             fontWeight: 600,
                             cursor: 'pointer',
                           }}
-                          title="تسجيل ارتداد ورفض الشيك"
+                          title={t('accounting.pdc_cheques_table.s33', "تسجيل ارتداد ورفض الشيك")}
                         >
-                          ارتداد
+                          {t('accounting.pdc_cheques_table.s34', "ارتداد")}
                         </button>
                         <button
                           type="button"
@@ -335,9 +337,9 @@ export const PdcChequesTable: React.FC<PdcChequesTableProps> = ({
                             fontWeight: 600,
                             cursor: 'pointer',
                           }}
-                          title="استرجاع الشيك للخزينة"
+                          title={t('accounting.pdc_cheques_table.s35', "استرجاع الشيك للخزينة")}
                         >
-                          للخزينة
+                          {t('accounting.pdc_cheques_table.s36', "للخزينة")}
                         </button>
                       </>
                     )}
@@ -359,9 +361,9 @@ export const PdcChequesTable: React.FC<PdcChequesTableProps> = ({
                             cursor: 'pointer',
                             boxShadow: '0 1px 2px rgba(5, 150, 105, 0.25)',
                           }}
-                          title="تأكيد صرف الشيك وخصمه من البنك"
+                          title={t('accounting.pdc_cheques_table.s37', "تأكيد صرف الشيك وخصمه من البنك")}
                         >
-                          تأكيد الصرف
+                          {t('accounting.pdc_cheques_table.s38', "تأكيد الصرف")}
                         </button>
                         <button
                           type="button"
@@ -376,9 +378,9 @@ export const PdcChequesTable: React.FC<PdcChequesTableProps> = ({
                             fontWeight: 600,
                             cursor: 'pointer',
                           }}
-                          title="ارتداد الشيك"
+                          title={t('accounting.pdc_cheques_table.s39', "ارتداد الشيك")}
                         >
-                          ارتداد
+                          {t('accounting.pdc_cheques_table.s40', "ارتداد")}
                         </button>
                       </>
                     )}
@@ -399,7 +401,7 @@ export const PdcChequesTable: React.FC<PdcChequesTableProps> = ({
                           cursor: 'pointer',
                         }}
                       >
-                        إعادة للحافظة
+                        {t('accounting.pdc_cheques_table.s41', "إعادة للحافظة")}
                       </button>
                     )}
 
@@ -418,7 +420,7 @@ export const PdcChequesTable: React.FC<PdcChequesTableProps> = ({
                         alignItems: 'center',
                         justifyContent: 'center',
                       }}
-                      title="معاينة وطباعة سند الشيك"
+                      title={t('accounting.pdc_cheques_table.s42', "معاينة وطباعة سند الشيك")}
                     >
                       <PrinterIcon size={14} />
                     </button>
@@ -439,7 +441,7 @@ export const PdcChequesTable: React.FC<PdcChequesTableProps> = ({
                           alignItems: 'center',
                           justifyContent: 'center',
                         }}
-                        title="حذف الشيك"
+                        title={t('accounting.pdc_cheques_table.s43', "حذف الشيك")}
                       >
                         <Trash2Icon size={14} />
                       </button>

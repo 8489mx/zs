@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { XIcon } from '@/shared/components/icons/AppIcons';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { getGlobalCurrencySymbol } from '@/lib/currencies';
@@ -21,6 +22,7 @@ import {
 } from '../components/PharmacyIcons';
 
 export default function PharmacyClinicalServicesPage() {
+  const { t } = useTranslation();
   useAppToolbar([
     { label: 'الرئيسية', to: '/' },
     { label: 'الصيدلية والأدوية', to: '/pharmacy' },
@@ -81,9 +83,9 @@ export default function PharmacyClinicalServicesPage() {
     <div className="page-stack page-shell" dir="rtl">
       <main className="document-prototype-column" style={{ paddingBottom: '80px', maxWidth: '1280px', margin: '0 auto', width: '100%' }}>
         <PageHeader
-          title="الرعاية الصيدلانية والفحوصات الإكلينيكية"
-          description="سجل قياسات ضغط الدم، السكر العشوائي والصائم، مؤشر كتلة الجسم (BMI)، والحقن والغيار"
-          badge={<span className="cashier-chip" style={{ fontWeight: 700, color: 'var(--primary, #1e1b4b)', background: '#f1f5f9', border: '1px solid #e2e8f0' }}>{totalItems} فحص مسجل</span>}
+          title={t('pharmacy.pharmacy_clinical_services_page.s0', "الرعاية الصيدلانية والفحوصات الإكلينيكية")}
+          description={t('pharmacy.pharmacy_clinical_services_page.s1', "سجل قياسات ضغط الدم، السكر العشوائي والصائم، مؤشر كتلة الجسم (BMI)، والحقن والغيار")}
+          badge={<span className="cashier-chip" style={{ fontWeight: 700, color: 'var(--primary, #1e1b4b)', background: '#f1f5f9', border: '1px solid #e2e8f0' }}>{totalItems} {t('pharmacy.pharmacy_clinical_services_page.s2', "فحص مسجل")}</span>}
           actions={
             <div className="actions compact-actions">
               <Button
@@ -92,7 +94,7 @@ export default function PharmacyClinicalServicesPage() {
                 style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
               >
                 <IconPlus size={15} />
-                <span>تسجيل فحص صيدلاني</span>
+                <span>{t('pharmacy.pharmacy_clinical_services_page.s3', "تسجيل فحص صيدلاني")}</span>
               </Button>
               <Button
                 variant="secondary"
@@ -100,7 +102,7 @@ export default function PharmacyClinicalServicesPage() {
                 style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
               >
                 <IconRefresh size={15} />
-                <span>تحديث</span>
+                <span>{t('pharmacy.pharmacy_clinical_services_page.s4', "تحديث")}</span>
               </Button>
             </div>
           }
@@ -110,7 +112,7 @@ export default function PharmacyClinicalServicesPage() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px', marginBottom: '16px' }}>
           <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 3px rgba(15, 23, 42, 0.02)' }}>
             <div>
-              <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>إجمالي الفحوصات والخدمات</div>
+              <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>{t('pharmacy.pharmacy_clinical_services_page.s5', "إجمالي الفحوصات والخدمات")}</div>
               <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--primary, #1e1b4b)', marginTop: '2px' }}>{totalItems}</div>
             </div>
             <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: '#f8fafc', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary, #1e1b4b)' }}>
@@ -120,7 +122,7 @@ export default function PharmacyClinicalServicesPage() {
 
           <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 3px rgba(15, 23, 42, 0.02)' }}>
             <div>
-              <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>قياسات ضغط الدم والنبض</div>
+              <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>{t('pharmacy.pharmacy_clinical_services_page.s6', "قياسات ضغط الدم والنبض")}</div>
               <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>{bpCount}</div>
             </div>
             <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: '#f8fafc', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#334155' }}>
@@ -130,7 +132,7 @@ export default function PharmacyClinicalServicesPage() {
 
           <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 3px rgba(15, 23, 42, 0.02)' }}>
             <div>
-              <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>تحاليل السكر والحقن</div>
+              <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>{t('pharmacy.pharmacy_clinical_services_page.s7', "تحاليل السكر والحقن")}</div>
               <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>{glucoseCount + injectionCount}</div>
             </div>
             <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: '#f8fafc', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#334155' }}>
@@ -140,7 +142,7 @@ export default function PharmacyClinicalServicesPage() {
 
           <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 3px rgba(15, 23, 42, 0.02)' }}>
             <div>
-              <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>إيراد الخدمات الصيدلانية</div>
+              <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>{t('pharmacy.pharmacy_clinical_services_page.s8', "إيراد الخدمات الصيدلانية")}</div>
               <div style={{ fontSize: '1.35rem', fontWeight: 800, color: '#16a34a', marginTop: '2px' }}>
                 {totalFees.toFixed(2)} <span style={{ fontSize: '0.75rem', fontWeight: 700 }}><CurrencySymbol /></span>
               </div>
@@ -156,22 +158,22 @@ export default function PharmacyClinicalServicesPage() {
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem', textAlign: 'right' }}>
             <thead>
               <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', fontWeight: 700 }}>
-                <th style={{ padding: '10px 14px' }}>نوع الخدمة / الفحص</th>
-                <th style={{ padding: '10px 14px' }}>اسم المريض / الهاتف</th>
-                <th style={{ padding: '10px 14px' }}>النتيجة والقياس</th>
-                <th style={{ padding: '10px 14px' }}>ملاحظات وتوجيهات الصيدلي</th>
-                <th style={{ padding: '10px 14px' }}>رسوم الخدمة</th>
-                <th style={{ padding: '10px 14px' }}>التاريخ والوقت</th>
+                <th style={{ padding: '10px 14px' }}>{t('pharmacy.pharmacy_clinical_services_page.s9', "نوع الخدمة / الفحص")}</th>
+                <th style={{ padding: '10px 14px' }}>{t('pharmacy.pharmacy_clinical_services_page.s10', "اسم المريض / الهاتف")}</th>
+                <th style={{ padding: '10px 14px' }}>{t('pharmacy.pharmacy_clinical_services_page.s11', "النتيجة والقياس")}</th>
+                <th style={{ padding: '10px 14px' }}>{t('pharmacy.pharmacy_clinical_services_page.s12', "ملاحظات وتوجيهات الصيدلي")}</th>
+                <th style={{ padding: '10px 14px' }}>{t('pharmacy.pharmacy_clinical_services_page.s13', "رسوم الخدمة")}</th>
+                <th style={{ padding: '10px 14px' }}>{t('pharmacy.pharmacy_clinical_services_page.s14', "التاريخ والوقت")}</th>
               </tr>
             </thead>
             <tbody>
               {isLoading ? (
                 <tr>
-                  <td colSpan={6} style={{ padding: '36px', textAlign: 'center', color: '#64748b' }}>جاري التحميل...</td>
+                  <td colSpan={6} style={{ padding: '36px', textAlign: 'center', color: '#64748b' }}>{t('pharmacy.pharmacy_clinical_services_page.s15', "جاري التحميل...")}</td>
                 </tr>
               ) : servicesList.length === 0 ? (
                 <tr>
-                  <td colSpan={6} style={{ padding: '36px', textAlign: 'center', color: '#64748b' }}>لا توجد خدمات مسجلة</td>
+                  <td colSpan={6} style={{ padding: '36px', textAlign: 'center', color: '#64748b' }}>{t('pharmacy.pharmacy_clinical_services_page.s16', "لا توجد خدمات مسجلة")}</td>
                 </tr>
               ) : (
                 servicesList.map((srv: PharmacyClinicalService) => {
@@ -193,7 +195,7 @@ export default function PharmacyClinicalServicesPage() {
                         {srv.pharmacist_notes || '—'}
                       </td>
                       <td style={{ padding: '10px 14px', fontWeight: 700, color: '#16a34a' }}>
-                        {Number(srv.fee) > 0 ? (Number(srv.fee).toFixed(2) + ' ' + getGlobalCurrencySymbol()) : 'مجانية'}
+                        {Number(srv.fee) > 0 ? (Number(srv.fee).toFixed(2) + ' ' + getGlobalCurrencySymbol()) : t('pharmacy.pharmacy_clinical_services_page.s17', "مجانية")}
                       </td>
                       <td style={{ padding: '10px 14px', color: '#64748b', fontSize: '0.74rem' }}>
                         {new Date(srv.created_at).toLocaleString('ar-EG')}
@@ -211,12 +213,12 @@ export default function PharmacyClinicalServicesPage() {
             open={modalOpen}
             onClose={() => setModalOpen(false)}
             width="min(580px, 95vw)"
-            ariaLabel="تسجيل فحص أو خدمة رعاية صيدلانية"
+            ariaLabel={t('pharmacy.pharmacy_clinical_services_page.s18', "تسجيل فحص أو خدمة رعاية صيدلانية")}
           >
             <div dir="rtl" style={{ background: '#ffffff', borderRadius: '10px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0', paddingBottom: '12px' }}>
                 <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: '#0f172a' }}>
-                  تسجيل فحص أو خدمة رعاية صيدلانية
+                  {t('pharmacy.pharmacy_clinical_services_page.s19', "تسجيل فحص أو خدمة رعاية صيدلانية")}
                 </h3>
                 <button
                   type="button"
@@ -229,17 +231,17 @@ export default function PharmacyClinicalServicesPage() {
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
                   <div style={{ gridColumn: 'span 2' }}>
                     <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '4px' }}>
-                      نوع الخدمة
+                      {t('pharmacy.pharmacy_clinical_services_page.s20', "نوع الخدمة")}
                     </label>
                     <CustomSelect
                       value={newService.service_type || 'blood_pressure'}
                       onChange={(val) => setNewService({ ...newService, service_type: val as any })}
                       options={[
-                        { value: 'blood_pressure', label: 'قياس ضغط الدم والنبض' },
-                        { value: 'blood_glucose', label: 'قياس السكر بالدم (صائم / عشوائي)' },
-                        { value: 'weight_bmi', label: 'قياس الوزن ومؤشر كتلة الجسم' },
-                        { value: 'injection', label: 'إعطاء حقنة عضل / وريد' },
-                        { value: 'wound_dressing', label: 'غيار وتطهير جروح' },
+                        { value: 'blood_pressure', label: t('pharmacy.pharmacy_clinical_services_page.s21', "قياس ضغط الدم والنبض") },
+                        { value: 'blood_glucose', label: t('pharmacy.pharmacy_clinical_services_page.s22', "قياس السكر بالدم (صائم / عشوائي)") },
+                        { value: 'weight_bmi', label: t('pharmacy.pharmacy_clinical_services_page.s23', "قياس الوزن ومؤشر كتلة الجسم") },
+                        { value: 'injection', label: t('pharmacy.pharmacy_clinical_services_page.s24', "إعطاء حقنة عضل / وريد") },
+                        { value: 'wound_dressing', label: t('pharmacy.pharmacy_clinical_services_page.s25', "غيار وتطهير جروح") },
                       ]}
                     />
                   </div>
@@ -247,7 +249,7 @@ export default function PharmacyClinicalServicesPage() {
 
                   <div>
                     <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '4px' }}>
-                      اسم المريض <span style={{ color: '#dc2626' }}>*</span>
+                      {t('pharmacy.pharmacy_clinical_services_page.s26', "اسم المريض")} <span style={{ color: '#dc2626' }}>*</span>
                     </label>
                     <input
                       type="text"
@@ -255,14 +257,14 @@ export default function PharmacyClinicalServicesPage() {
                       className="purchase-prototype-field-input"
                       value={newService.customer_name || ''}
                       onChange={(e) => setNewService({ ...newService, customer_name: e.target.value })}
-                      placeholder="اسم المريض..."
+                      placeholder={t('pharmacy.pharmacy_clinical_services_page.s27', "اسم المريض...")}
                       style={{ width: '100%', boxSizing: 'border-box' }}
                     />
                   </div>
 
                   <div>
                     <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '4px' }}>
-                      هاتف المريض
+                      {t('pharmacy.pharmacy_clinical_services_page.s28', "هاتف المريض")}
                     </label>
                     <input
                       type="text"
@@ -276,55 +278,55 @@ export default function PharmacyClinicalServicesPage() {
 
                   <div>
                     <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '4px' }}>
-                      قيمة القياس الأولى (الضغط / السكر / الوزن)
+                      {t('pharmacy.pharmacy_clinical_services_page.s29', "قيمة القياس الأولى (الضغط / السكر / الوزن)")}
                     </label>
                     <input
                       type="text"
                       className="purchase-prototype-field-input"
                       value={newService.metric_value_1 || ''}
                       onChange={(e) => setNewService({ ...newService, metric_value_1: e.target.value })}
-                      placeholder="مثال: 120/80 أو 110 mg/dL"
+                      placeholder={t('pharmacy.pharmacy_clinical_services_page.s30', "مثال: 120/80 أو 110 mg/dL")}
                       style={{ width: '100%', boxSizing: 'border-box' }}
                     />
                     {/* Quick Values Helpers */}
                     <div style={{ display: 'flex', gap: '4px', marginTop: '6px' }}>
                       <button type="button" onClick={() => setNewService({ ...newService, metric_value_1: '120/80', metric_value_2: '72' })} className="btn btn-sm btn-secondary" style={{ padding: '2px 6px', fontSize: '0.7rem' }}>120/80</button>
                       <button type="button" onClick={() => setNewService({ ...newService, metric_value_1: '140/90', metric_value_2: '80' })} className="btn btn-sm btn-secondary" style={{ padding: '2px 6px', fontSize: '0.7rem' }}>140/90</button>
-                      <button type="button" onClick={() => setNewService({ ...newService, metric_value_1: '110 mg/dL', metric_value_2: 'صائم' })} className="btn btn-sm btn-secondary" style={{ padding: '2px 6px', fontSize: '0.7rem' }}>110 صائم</button>
+                      <button type="button" onClick={() => setNewService({ ...newService, metric_value_1: '110 mg/dL', metric_value_2: t('pharmacy.pharmacy_clinical_services_page.s31', "صائم") })} className="btn btn-sm btn-secondary" style={{ padding: '2px 6px', fontSize: '0.7rem' }}>{t('pharmacy.pharmacy_clinical_services_page.s32', "110 صائم")}</button>
                     </div>
                   </div>
 
                   <div>
                     <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '4px' }}>
-                      قيمة ثانوية (النبض / الحالة)
+                      {t('pharmacy.pharmacy_clinical_services_page.s33', "قيمة ثانوية (النبض / الحالة)")}
                     </label>
                     <input
                       type="text"
                       className="purchase-prototype-field-input"
                       value={newService.metric_value_2 || ''}
                       onChange={(e) => setNewService({ ...newService, metric_value_2: e.target.value })}
-                      placeholder="مثال: نبض 75 / عشوائي بعد الأكل"
+                      placeholder={t('pharmacy.pharmacy_clinical_services_page.s34', "مثال: نبض 75 / عشوائي بعد الأكل")}
                       style={{ width: '100%', boxSizing: 'border-box' }}
                     />
                   </div>
 
                   <div style={{ gridColumn: 'span 2' }}>
                     <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '4px' }}>
-                      ملاحظات وتوجيهات الصيدلي
+                      {t('pharmacy.pharmacy_clinical_services_page.s35', "ملاحظات وتوجيهات الصيدلي")}
                     </label>
                     <input
                       type="text"
                       className="purchase-prototype-field-input"
                       value={newService.pharmacist_notes || ''}
                       onChange={(e) => setNewService({ ...newService, pharmacist_notes: e.target.value })}
-                      placeholder="مثال: الضغط مستقر / يفضل تقليل الأملاح..."
+                      placeholder={t('pharmacy.pharmacy_clinical_services_page.s36', "مثال: الضغط مستقر / يفضل تقليل الأملاح...")}
                       style={{ width: '100%', boxSizing: 'border-box' }}
                     />
                   </div>
 
                   <div>
                     <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '4px' }}>
-                      رسوم الخدمة ({getGlobalCurrencySymbol()})
+                      {t('pharmacy.pharmacy_clinical_services_page.s37', "رسوم الخدمة (")}{getGlobalCurrencySymbol()})
                     </label>
                     <input
                       type="number"
@@ -338,10 +340,10 @@ export default function PharmacyClinicalServicesPage() {
                 </div>
 
                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '16px', borderTop: '1px solid #f1f5f9', paddingTop: '12px' }}>
-                  <Button variant="secondary" onClick={() => setModalOpen(false)}>إلغاء</Button>
+                  <Button variant="secondary" onClick={() => setModalOpen(false)}>{t('pharmacy.pharmacy_clinical_services_page.s38', "إلغاء")}</Button>
                   <Button variant="primary" type="submit" disabled={createMutation.isPending} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                     <IconSave size={15} />
-                    <span>{createMutation.isPending ? 'جاري الحفظ...' : 'حفظ الفحص'}</span>
+                    <span>{createMutation.isPending ? t('pharmacy.pharmacy_clinical_services_page.s39', "جاري الحفظ...") : t('pharmacy.pharmacy_clinical_services_page.s40', "حفظ الفحص")}</span>
                   </Button>
                 </div>
               </form>

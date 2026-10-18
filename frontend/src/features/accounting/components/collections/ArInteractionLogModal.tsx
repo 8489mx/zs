@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, type FC } from 'react';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { Button } from '@/shared/ui/button';
@@ -18,6 +19,7 @@ export const ArInteractionLogModal: FC<ArInteractionLogModalProps> = ({
   onSuccess,
   caseItem,
 }) => {
+  const { t } = useTranslation();
   const [interactionType, setInteractionType] = useState('call');
   const [resultStatus, setResultStatus] = useState('answered');
   const [details, setDetails] = useState('');
@@ -84,15 +86,15 @@ export const ArInteractionLogModal: FC<ArInteractionLogModalProps> = ({
     <StandardDialog
       open={open}
       onClose={onClose}
-      title="توثيق إجراء تحصيل ومتابعة"
-      subtitle={`العميل: ${caseItem?.customer_name || ''} | الهاتف: ${caseItem?.customer_phone || 'غير مسجل'}`}
+      title={t('accounting.collections.ar_interaction_log_modal.s0', "توثيق إجراء تحصيل ومتابعة")}
+      subtitle={`العميل: ${caseItem?.customer_name || ''} | الهاتف: ${caseItem?.customer_phone || t('accounting.collections.ar_interaction_log_modal.s1', "غير مسجل")}`}
       size="md"
     >
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
           <div>
             <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-              نوع قناة التواصل *
+              {t('accounting.collections.ar_interaction_log_modal.s2', "نوع قناة التواصل *")}
             </label>
             <CustomSelect
               options={interactionTypeOptions}
@@ -103,7 +105,7 @@ export const ArInteractionLogModal: FC<ArInteractionLogModalProps> = ({
 
           <div>
             <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-              نتيجة الإجراء والموقف الحالي *
+              {t('accounting.collections.ar_interaction_log_modal.s3', "نتيجة الإجراء والموقف الحالي *")}
             </label>
             <CustomSelect
               options={resultStatusOptions}
@@ -117,7 +119,7 @@ export const ArInteractionLogModal: FC<ArInteractionLogModalProps> = ({
           <div style={{ backgroundColor: '#ecfdf5', border: '1px solid #a7f3d0', padding: '12px', borderRadius: '8px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
             <div>
               <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#065f46', marginBottom: '4px' }}>
-                تاريخ السداد المتعهد به *
+                {t('accounting.collections.ar_interaction_log_modal.s4', "تاريخ السداد المتعهد به *")}
               </label>
               <input
                 type="date"
@@ -136,7 +138,7 @@ export const ArInteractionLogModal: FC<ArInteractionLogModalProps> = ({
             </div>
             <div>
               <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#065f46', marginBottom: '4px' }}>
-                المبلغ المتعهد بسداده (ج.م)
+                {t('accounting.collections.ar_interaction_log_modal.s5', "المبلغ المتعهد بسداده (ج.م)")}
               </label>
               <input
                 type="number"
@@ -161,14 +163,14 @@ export const ArInteractionLogModal: FC<ArInteractionLogModalProps> = ({
 
         <div>
           <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-            تفاصيل وملخص التواصل والردود *
+            {t('accounting.collections.ar_interaction_log_modal.s6', "تفاصيل وملخص التواصل والردود *")}
           </label>
           <textarea
             required
             rows={3}
             value={details}
             onChange={(e) => setDetails(e.target.value)}
-            placeholder="اكتب خلاصة المكالمة أو المقابلة، رد العميل، مبررات التأخير أو أي التزامات تمت مناقشتها..."
+            placeholder={t('accounting.collections.ar_interaction_log_modal.s7', "اكتب خلاصة المكالمة أو المقابلة، رد العميل، مبررات التأخير أو أي التزامات تمت مناقشتها...")}
             style={{
               width: '100%',
               padding: '8px 12px',
@@ -184,7 +186,7 @@ export const ArInteractionLogModal: FC<ArInteractionLogModalProps> = ({
 
         <div>
           <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-            تاريخ المتابعة القادمة (اختياري)
+            {t('accounting.collections.ar_interaction_log_modal.s8', "تاريخ المتابعة القادمة (اختياري)")}
           </label>
           <input
             type="date"
@@ -203,14 +205,14 @@ export const ArInteractionLogModal: FC<ArInteractionLogModalProps> = ({
 
         <StandardDialogFooter>
           <Button type="button" variant="secondary" onClick={onClose} disabled={isSubmitting}>
-            إلغاء
+            {t('accounting.collections.ar_interaction_log_modal.s9', "إلغاء")}
           </Button>
           <Button
             type="submit"
             disabled={isSubmitting}
             style={{ backgroundColor: '#170e5e', color: '#ffffff' }}
           >
-            {isSubmitting ? 'جاري التوثيق...' : 'حفظ الإجراء في السجل'}
+            {isSubmitting ? t('accounting.collections.ar_interaction_log_modal.s10', "جاري التوثيق...") : t('accounting.collections.ar_interaction_log_modal.s11', "حفظ الإجراء في السجل")}
           </Button>
         </StandardDialogFooter>
       </form>

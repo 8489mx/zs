@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { DialogShell } from '@/shared/components/dialog-shell';
@@ -24,6 +25,7 @@ export function UpsertDeliveryRepModal({
   defaultRepType = 'delivery',
   hideDeliveryOption = false,
 }: UpsertDeliveryRepModalProps) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
 
   const vehiclesQuery = useQuery({
@@ -191,7 +193,7 @@ export function UpsertDeliveryRepModal({
       open={open}
       onClose={onClose}
       width="min(1060px, 96vw)"
-      ariaLabel={rep ? 'تعديل بيانات المندوب' : 'إضافة مندوب جديد'}
+      ariaLabel={rep ? t('shared.delivery_reps.upsert_delivery_rep_modal.s0', "تعديل بيانات المندوب") : t('shared.delivery_reps.upsert_delivery_rep_modal.s1', "إضافة مندوب جديد")}
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', padding: '14px 18px', boxSizing: 'border-box' }} dir="rtl">
         {/* Header */}
@@ -200,7 +202,7 @@ export function UpsertDeliveryRepModal({
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>
-                  {rep ? 'تعديل بيانات المندوب' : 'إضافة مندوب جديد'}
+                  {rep ? t('shared.delivery_reps.upsert_delivery_rep_modal.s2', "تعديل بيانات المندوب") : t('shared.delivery_reps.upsert_delivery_rep_modal.s3', "إضافة مندوب جديد")}
                 </h3>
                 {rep && (
                   <span
@@ -213,12 +215,12 @@ export function UpsertDeliveryRepModal({
                       color: isActiveInput ? '#15803d' : '#b91c1c',
                     }}
                   >
-                    {isActiveInput ? 'نشط ويعمل' : 'موقوف ومُعطل'}
+                    {isActiveInput ? t('shared.delivery_reps.upsert_delivery_rep_modal.s4', "نشط ويعمل") : t('shared.delivery_reps.upsert_delivery_rep_modal.s5', "موقوف ومُعطل")}
                   </span>
                 )}
               </div>
               <p style={{ margin: '2px 0 0 0', fontSize: '11px', color: '#64748b' }}>
-                تحديد طبيعة عمل المندوب (دليفري أو فان)، بيانات الدخول للموبايل، وتفاصيل المركبة والصلاحيات
+                {t('shared.delivery_reps.upsert_delivery_rep_modal.s6', "تحديد طبيعة عمل المندوب (دليفري أو فان)، بيانات الدخول للموبايل، وتفاصيل المركبة والصلاحيات")}
               </p>
             </div>
           </div>
@@ -239,9 +241,9 @@ export function UpsertDeliveryRepModal({
                   color: isActiveInput ? '#dc2626' : '#16a34a',
                   transition: 'all 0.15s ease',
                 }}
-                title={isActiveInput ? 'إيقاف الحساب وتعطيل دخول التطبيق' : 'إعادة تفعيل الحساب وتصريح الدخول'}
+                title={isActiveInput ? t('shared.delivery_reps.upsert_delivery_rep_modal.s7', "إيقاف الحساب وتعطيل دخول التطبيق") : t('shared.delivery_reps.upsert_delivery_rep_modal.s8', "إعادة تفعيل الحساب وتصريح الدخول")}
               >
-                {isActiveInput ? 'إيقاف الحساب' : 'إعادة التفعيل'}
+                {isActiveInput ? t('shared.delivery_reps.upsert_delivery_rep_modal.s9', "إيقاف الحساب") : t('shared.delivery_reps.upsert_delivery_rep_modal.s10', "إعادة التفعيل")}
               </button>
             )}
             <button
@@ -283,9 +285,9 @@ export function UpsertDeliveryRepModal({
             <div style={{ background: '#f8fafc', padding: '10px 12px', borderRadius: '10px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '8px' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <span style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a' }}>
-                  طبيعة العمل ونوع المندوب <span style={{ color: '#dc2626' }}>*</span>
+                  {t('shared.delivery_reps.upsert_delivery_rep_modal.s11', "طبيعة العمل ونوع المندوب")} <span style={{ color: '#dc2626' }}>*</span>
                 </span>
-                <span style={{ fontSize: '10px', color: '#64748b' }}>يحدد واجهة تطبيق الهاتف</span>
+                <span style={{ fontSize: '10px', color: '#64748b' }}>{t('shared.delivery_reps.upsert_delivery_rep_modal.s12', "يحدد واجهة تطبيق الهاتف")}</span>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: hideDeliveryOption ? '1fr 1fr' : 'repeat(3, 1fr)', gap: '6px' }}>
                 {[
@@ -294,8 +296,8 @@ export function UpsertDeliveryRepModal({
                     : [
                         {
                           key: 'delivery' as const,
-                          label: 'طيار دليفري',
-                          subtitle: 'أوردرات (/driver)',
+                          label: t('shared.delivery_reps.upsert_delivery_rep_modal.s13', "طيار دليفري"),
+                          subtitle: t('shared.delivery_reps.upsert_delivery_rep_modal.s14', "أوردرات (/driver)"),
                           icon: <PackageIcon size={16} color={repTypeInput === 'delivery' ? '#ea580c' : '#64748b'} />,
                           activeBorder: '#ea580c',
                           activeBg: '#fff7ed',
@@ -304,8 +306,8 @@ export function UpsertDeliveryRepModal({
                       ]),
                   {
                     key: 'van' as const,
-                    label: 'توزيع فان',
-                    subtitle: 'بيع سيارة (/van-sales)',
+                    label: t('shared.delivery_reps.upsert_delivery_rep_modal.s15', "توزيع فان"),
+                    subtitle: t('shared.delivery_reps.upsert_delivery_rep_modal.s16', "بيع سيارة (/van-sales)"),
                     icon: <TruckIcon size={16} color={repTypeInput === 'van' ? '#0284c7' : '#64748b'} />,
                     activeBorder: '#0284c7',
                     activeBg: '#f0f9ff',
@@ -313,8 +315,8 @@ export function UpsertDeliveryRepModal({
                   },
                   {
                     key: 'both' as const,
-                    label: 'مندوب شامل',
-                    subtitle: 'دليفري + توزيع',
+                    label: t('shared.delivery_reps.upsert_delivery_rep_modal.s17', "مندوب شامل"),
+                    subtitle: t('shared.delivery_reps.upsert_delivery_rep_modal.s18', "دليفري + توزيع"),
                     icon: <LayersIcon size={16} color={repTypeInput === 'both' ? '#7c3aed' : '#64748b'} />,
                     activeBorder: '#7c3aed',
                     activeBg: '#f5f3ff',
@@ -358,15 +360,15 @@ export function UpsertDeliveryRepModal({
 
             {/* 2. Basic Info & Mobile Login */}
             <div style={{ background: '#ffffff', padding: '10px 12px', borderRadius: '10px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <span style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a' }}>البيانات الأساسية وتطبيق الموبايل</span>
+              <span style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a' }}>{t('shared.delivery_reps.upsert_delivery_rep_modal.s19', "البيانات الأساسية وتطبيق الموبايل")}</span>
               <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1.1fr 0.9fr', gap: '8px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                    اسم المندوب / الشهرة <span style={{ color: '#dc2626' }}>*</span>
+                    {t('shared.delivery_reps.upsert_delivery_rep_modal.s20', "اسم المندوب / الشهرة")} <span style={{ color: '#dc2626' }}>*</span>
                   </label>
                   <input
                     type="text"
-                    placeholder="كابتن أحمد / طاهر"
+                    placeholder={t('shared.delivery_reps.upsert_delivery_rep_modal.s21', "كابتن أحمد / طاهر")}
                     value={nameInput}
                     onChange={(e) => setNameInput(e.target.value)}
                     style={{
@@ -384,7 +386,7 @@ export function UpsertDeliveryRepModal({
 
                 <div>
                   <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                    رقم الهاتف / الموبايل <span style={{ color: '#dc2626' }}>*</span>
+                    {t('shared.delivery_reps.upsert_delivery_rep_modal.s22', "رقم الهاتف / الموبايل")} <span style={{ color: '#dc2626' }}>*</span>
                   </label>
                   <input
                     type="text"
@@ -408,12 +410,12 @@ export function UpsertDeliveryRepModal({
 
                 <div>
                   <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                    رمز الدخول (PIN) {!rep && <span style={{ color: '#dc2626' }}>*</span>}
+                    {t('shared.delivery_reps.upsert_delivery_rep_modal.s23', "رمز الدخول (PIN)")} {!rep && <span style={{ color: '#dc2626' }}>*</span>}
                   </label>
                   <input
                     type="password"
                     maxLength={6}
-                    placeholder={rep && (rep.has_pin || (rep as any).hasPin || (rep as any).pin_hash || rep.pin_code) ? '•••• (مفعّل)' : '1234'}
+                    placeholder={rep && (rep.has_pin || (rep as any).hasPin || (rep as any).pin_hash || rep.pin_code) ? t('shared.delivery_reps.upsert_delivery_rep_modal.s24', "•••• (مفعّل)") : '1234'}
                     value={pinCodeInput}
                     onChange={(e) => setPinCodeInput(e.target.value)}
                     style={{
@@ -428,11 +430,11 @@ export function UpsertDeliveryRepModal({
                       direction: 'ltr',
                       textAlign: 'center',
                     }}
-                    title="رمز مكون من 4 إلى 6 أرقام يتيح للمندوب تسجيل الدخول لتطبيق الهاتف"
+                    title={t('shared.delivery_reps.upsert_delivery_rep_modal.s25', "رمز مكون من 4 إلى 6 أرقام يتيح للمندوب تسجيل الدخول لتطبيق الهاتف")}
                   />
                   {rep && (rep.has_pin || (rep as any).hasPin || (rep as any).pin_hash || rep.pin_code) && (
                     <span style={{ display: 'block', fontSize: '9px', color: '#16a34a', marginTop: '2px', fontWeight: 600, whiteSpace: 'nowrap' }}>
-                      الرمز مفعّل (اتركه للحفظ)
+                      {t('shared.delivery_reps.upsert_delivery_rep_modal.s26', "الرمز مفعّل (اتركه للحفظ)")}
                     </span>
                   )}
                 </div>
@@ -441,15 +443,15 @@ export function UpsertDeliveryRepModal({
 
             {/* 3. Identity & Address (Optional) */}
             <div style={{ background: '#ffffff', padding: '10px 12px', borderRadius: '10px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <span style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a' }}>بيانات الهوية والضمان (اختياري)</span>
+              <span style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a' }}>{t('shared.delivery_reps.upsert_delivery_rep_modal.s27', "بيانات الهوية والضمان (اختياري)")}</span>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                    الاسم بالكامل (من واقع البطاقة)
+                    {t('shared.delivery_reps.upsert_delivery_rep_modal.s28', "الاسم بالكامل (من واقع البطاقة)")}
                   </label>
                   <input
                     type="text"
-                    placeholder="الاسم الرباعي كاملاً"
+                    placeholder={t('shared.delivery_reps.upsert_delivery_rep_modal.s29', "الاسم الرباعي كاملاً")}
                     value={fullNameInput}
                     onChange={(e) => setFullNameInput(e.target.value)}
                     style={{
@@ -467,12 +469,12 @@ export function UpsertDeliveryRepModal({
 
                 <div>
                   <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                    الرقم القومي (١٤ رقم)
+                    {t('shared.delivery_reps.upsert_delivery_rep_modal.s30', "الرقم القومي (١٤ رقم)")}
                   </label>
                   <input
                     type="text"
                     maxLength={14}
-                    placeholder="الرقم القومي كاملاً"
+                    placeholder={t('shared.delivery_reps.upsert_delivery_rep_modal.s31', "الرقم القومي كاملاً")}
                     value={nationalIdInput}
                     onChange={(e) => setNationalIdInput(e.target.value.replace(/\D/g, ''))}
                     style={{
@@ -493,11 +495,11 @@ export function UpsertDeliveryRepModal({
 
               <div>
                 <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                  العنوان بالتفصيل
+                  {t('shared.delivery_reps.upsert_delivery_rep_modal.s32', "العنوان بالتفصيل")}
                 </label>
                 <input
                   type="text"
-                  placeholder="المنطقة، الشارع، رقم العقار"
+                  placeholder={t('shared.delivery_reps.upsert_delivery_rep_modal.s33', "المنطقة، الشارع، رقم العقار")}
                   value={addressInput}
                   onChange={(e) => setAddressInput(e.target.value)}
                   style={{
@@ -520,17 +522,17 @@ export function UpsertDeliveryRepModal({
             {/* 4. Vehicle Data */}
             <div style={{ background: '#f8fafc', padding: '10px 12px', borderRadius: '10px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '6px' }}>
               <span style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a' }}>
-                {repTypeInput === 'van' ? 'بيانات سيارة التوزيع (الفان)' : repTypeInput === 'both' ? 'بيانات المركبة / السيارة' : 'بيانات دراجة التوصيل / المركبة'}
+                {repTypeInput === 'van' ? t('shared.delivery_reps.upsert_delivery_rep_modal.s34', "بيانات سيارة التوزيع (الفان)") : repTypeInput === 'both' ? t('shared.delivery_reps.upsert_delivery_rep_modal.s35', "بيانات المركبة / السيارة") : t('shared.delivery_reps.upsert_delivery_rep_modal.s36', "بيانات دراجة التوصيل / المركبة")}
               </span>
               {fleetVehicles.length > 0 ? (
                 <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '8px', alignItems: 'flex-start' }}>
                   <div>
                     <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                      اختيار من أسطول سيارات الشركة
+                      {t('shared.delivery_reps.upsert_delivery_rep_modal.s37', "اختيار من أسطول سيارات الشركة")}
                     </label>
                     <CustomSelect
                       options={[
-                        { value: '', label: '— إدخال يدوي / غير مسجلة —' },
+                        { value: '', label: t('shared.delivery_reps.upsert_delivery_rep_modal.s38', "— إدخال يدوي / غير مسجلة —") },
                         ...fleetVehicles.map((v) => ({
                           value: v.plateNumber,
                           label: `${v.plateNumber}${v.modelName ? ` (${v.modelName})` : ''}`,
@@ -544,11 +546,11 @@ export function UpsertDeliveryRepModal({
                   </div>
                   <div>
                     <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                      رقم لوحة المركبة / السيارة
+                      {t('shared.delivery_reps.upsert_delivery_rep_modal.s39', "رقم لوحة المركبة / السيارة")}
                     </label>
                     <input
                       type="text"
-                      placeholder={repTypeInput === 'van' ? 'مثال: 5678 ن و ر' : 'مثال: 1234 ص ع'}
+                      placeholder={repTypeInput === 'van' ? t('shared.delivery_reps.upsert_delivery_rep_modal.s40', "مثال: 5678 ن و ر") : t('shared.delivery_reps.upsert_delivery_rep_modal.s41', "مثال: 1234 ص ع")}
                       value={vehiclePlateInput}
                       onChange={(e) => setVehiclePlateInput(e.target.value)}
                       style={{
@@ -567,11 +569,11 @@ export function UpsertDeliveryRepModal({
               ) : (
                 <div>
                   <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                    رقم لوحة المركبة / السيارة
+                    {t('shared.delivery_reps.upsert_delivery_rep_modal.s42', "رقم لوحة المركبة / السيارة")}
                   </label>
                   <input
                     type="text"
-                    placeholder={repTypeInput === 'van' ? 'مثال: 5678 ن و ر (سيارة فان)' : 'مثال: 1234 ص ع'}
+                    placeholder={repTypeInput === 'van' ? t('shared.delivery_reps.upsert_delivery_rep_modal.s43', "مثال: 5678 ن و ر (سيارة فان)") : t('shared.delivery_reps.upsert_delivery_rep_modal.s44', "مثال: 1234 ص ع")}
                     value={vehiclePlateInput}
                     onChange={(e) => setVehiclePlateInput(e.target.value)}
                     style={{
@@ -595,11 +597,11 @@ export function UpsertDeliveryRepModal({
                 <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
                   <CheckShieldIcon size={14} color="#170e5e" />
                   <span style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a' }}>
-                    صلاحيات وضوابط المندوب في تطبيق الميدان
+                    {t('shared.delivery_reps.upsert_delivery_rep_modal.s45', "صلاحيات وضوابط المندوب في تطبيق الميدان")}
                   </span>
                 </div>
                 <span style={{ fontSize: '10px', color: '#64748b' }}>
-                  الضوابط التشغيلية والمالية
+                  {t('shared.delivery_reps.upsert_delivery_rep_modal.s46', "الضوابط التشغيلية والمالية")}
                 </span>
               </div>
 
@@ -614,10 +616,10 @@ export function UpsertDeliveryRepModal({
                   />
                   <div style={{ minWidth: 0 }}>
                     <strong style={{ fontSize: '11px', color: '#0f172a', display: 'block', lineHeight: 1.25 }}>
-                      تعديل خطوط السير والزيارات
+                      {t('shared.delivery_reps.upsert_delivery_rep_modal.s47', "تعديل خطوط السير والزيارات")}
                     </strong>
                     <span style={{ fontSize: '9.5px', color: '#64748b', display: 'block', lineHeight: 1.2 }}>
-                      (مقتصر على المشرف افتراضياً)
+                      {t('shared.delivery_reps.upsert_delivery_rep_modal.s48', "(مقتصر على المشرف افتراضياً)")}
                     </span>
                   </div>
                 </label>
@@ -632,10 +634,10 @@ export function UpsertDeliveryRepModal({
                   />
                   <div style={{ minWidth: 0 }}>
                     <strong style={{ fontSize: '11px', color: '#0f172a', display: 'block', lineHeight: 1.25 }}>
-                      تسجيل وإضافة محلات جديدة
+                      {t('shared.delivery_reps.upsert_delivery_rep_modal.s49', "تسجيل وإضافة محلات جديدة")}
                     </strong>
                     <span style={{ fontSize: '9.5px', color: '#64748b', display: 'block', lineHeight: 1.2 }}>
-                      السماح بتسجيل منافذ من الميدان
+                      {t('shared.delivery_reps.upsert_delivery_rep_modal.s50', "السماح بتسجيل منافذ من الميدان")}
                     </span>
                   </div>
                 </label>
@@ -650,10 +652,10 @@ export function UpsertDeliveryRepModal({
                   />
                   <div style={{ minWidth: 0 }}>
                     <strong style={{ fontSize: '11px', color: '#0f172a', display: 'block', lineHeight: 1.25 }}>
-                      إلزامية فتح الـ GPS
+                      {t('shared.delivery_reps.upsert_delivery_rep_modal.s51', "إلزامية فتح الـ GPS")}
                     </strong>
                     <span style={{ fontSize: '9.5px', color: '#64748b', display: 'block', lineHeight: 1.2 }}>
-                      إلزام الموقع لبدء وتأكيد الزيارات
+                      {t('shared.delivery_reps.upsert_delivery_rep_modal.s52', "إلزام الموقع لبدء وتأكيد الزيارات")}
                     </span>
                   </div>
                 </label>
@@ -668,10 +670,10 @@ export function UpsertDeliveryRepModal({
                   />
                   <div style={{ minWidth: 0 }}>
                     <strong style={{ fontSize: '11px', color: '#0f172a', display: 'block', lineHeight: 1.25 }}>
-                      تحصيل دفعات نقدية
+                      {t('shared.delivery_reps.upsert_delivery_rep_modal.s53', "تحصيل دفعات نقدية")}
                     </strong>
                     <span style={{ fontSize: '9.5px', color: '#64748b', display: 'block', lineHeight: 1.2 }}>
-                      استلام نقدية وإصدار سندات قبض
+                      {t('shared.delivery_reps.upsert_delivery_rep_modal.s54', "استلام نقدية وإصدار سندات قبض")}
                     </span>
                   </div>
                 </label>
@@ -686,10 +688,10 @@ export function UpsertDeliveryRepModal({
                   />
                   <div style={{ minWidth: 0 }}>
                     <strong style={{ fontSize: '11px', color: '#0f172a', display: 'block', lineHeight: 1.25 }}>
-                      تجاوز سقف المديونية
+                      {t('shared.delivery_reps.upsert_delivery_rep_modal.s55', "تجاوز سقف المديونية")}
                     </strong>
                     <span style={{ fontSize: '9.5px', color: '#64748b', display: 'block', lineHeight: 1.2 }}>
-                      إصدار آجل عند تخطي الحد الائتماني
+                      {t('shared.delivery_reps.upsert_delivery_rep_modal.s56', "إصدار آجل عند تخطي الحد الائتماني")}
                     </span>
                   </div>
                 </label>
@@ -704,12 +706,12 @@ export function UpsertDeliveryRepModal({
                       style={{ cursor: 'pointer' }}
                     />
                     <strong style={{ fontSize: '11px', color: '#0f172a', lineHeight: 1.25 }}>
-                      منح خصومات نقدية
+                      {t('shared.delivery_reps.upsert_delivery_rep_modal.s57', "منح خصومات نقدية")}
                     </strong>
                   </label>
                   {canGiveDiscount ? (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginRight: '18px' }}>
-                      <span style={{ fontSize: '10px', color: '#475569' }}>الحد الأقصى:</span>
+                      <span style={{ fontSize: '10px', color: '#475569' }}>{t('shared.delivery_reps.upsert_delivery_rep_modal.s58', "الحد الأقصى:")}</span>
                       <input
                         type="number"
                         min={0}
@@ -722,7 +724,7 @@ export function UpsertDeliveryRepModal({
                     </div>
                   ) : (
                     <span style={{ fontSize: '9.5px', color: '#64748b', marginRight: '18px', display: 'block', lineHeight: 1.2 }}>
-                      السماح بخصم نسبي على الفاتورة
+                      {t('shared.delivery_reps.upsert_delivery_rep_modal.s59', "السماح بخصم نسبي على الفاتورة")}
                     </span>
                   )}
                 </div>
@@ -734,7 +736,7 @@ export function UpsertDeliveryRepModal({
         {/* Footer Actions */}
         <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', borderTop: '1px solid #e2e8f0', paddingTop: '10px' }}>
           <Button variant="secondary" onClick={onClose} style={{ height: '34px', minHeight: '34px', padding: '0 16px', fontSize: '12px' }}>
-            إلغاء
+            {t('shared.delivery_reps.upsert_delivery_rep_modal.s60', "إلغاء")}
           </Button>
           <Button
             variant="primary"
@@ -742,7 +744,7 @@ export function UpsertDeliveryRepModal({
             disabled={!nameInput.trim() || isSaving}
             style={{ height: '34px', minHeight: '34px', padding: '0 22px', fontSize: '12px', fontWeight: 700, background: '#170e5e' }}
           >
-            {isSaving ? 'جاري الحفظ...' : rep ? 'تحديث البيانات' : 'حفظ المندوب'}
+            {isSaving ? t('shared.delivery_reps.upsert_delivery_rep_modal.s61', "جاري الحفظ...") : rep ? t('shared.delivery_reps.upsert_delivery_rep_modal.s62', "تحديث البيانات") : t('shared.delivery_reps.upsert_delivery_rep_modal.s63', "حفظ المندوب")}
           </Button>
         </div>
       </div>

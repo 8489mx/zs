@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, type FC, type FormEvent } from 'react';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { CustomSelect } from '@/shared/ui/custom-select';
@@ -21,6 +22,7 @@ export const CreateApplicantModal: FC<CreateApplicantModalProps> = ({
   onSuccess,
   jobs,
 }) => {
+  const { t } = useTranslation();
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
@@ -97,21 +99,21 @@ export const CreateApplicantModal: FC<CreateApplicantModalProps> = ({
     <StandardDialog
       open={open}
       onClose={onClose}
-      title="إضافة متقدم للوظيفة / مجمع المواهب (Add Applicant)"
-      subtitle="تسجيل بيانات السيرة الذاتية، التقييم الأولي، والتصنيف المهني"
+      title={t('hr.recruitment.create_applicant_modal.s0', "إضافة متقدم للوظيفة / مجمع المواهب (Add Applicant)")}
+      subtitle={t('hr.recruitment.create_applicant_modal.s1', "تسجيل بيانات السيرة الذاتية، التقييم الأولي، والتصنيف المهني")}
       size="md"
     >
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
         <div>
           <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 600, color: '#334155' }}>
-            اسم المرشح بالكامل *
+            {t('hr.recruitment.create_applicant_modal.s2', "اسم المرشح بالكامل *")}
           </label>
           <input
             type="text"
             required
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
-            placeholder="الاسم الرباعي أو الثلاثي للمتقدم..."
+            placeholder={t('hr.recruitment.create_applicant_modal.s3', "الاسم الرباعي أو الثلاثي للمتقدم...")}
             style={{ width: '100%', height: '36px', padding: '6px 10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
           />
         </div>
@@ -119,7 +121,7 @@ export const CreateApplicantModal: FC<CreateApplicantModalProps> = ({
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
           <div>
             <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 600, color: '#334155' }}>
-              رقم الهاتف / الواتساب *
+              {t('hr.recruitment.create_applicant_modal.s4', "رقم الهاتف / الواتساب *")}
             </label>
             <input
               type="tel"
@@ -133,7 +135,7 @@ export const CreateApplicantModal: FC<CreateApplicantModalProps> = ({
 
           <div>
             <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 600, color: '#334155' }}>
-              البريد الإلكتروني
+              {t('hr.recruitment.create_applicant_modal.s5', "البريد الإلكتروني")}
             </label>
             <input
               type="email"
@@ -147,7 +149,7 @@ export const CreateApplicantModal: FC<CreateApplicantModalProps> = ({
 
         <div>
           <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 600, color: '#334155' }}>
-            الوظيفة الشاغرة المرتبطة
+            {t('hr.recruitment.create_applicant_modal.s6', "الوظيفة الشاغرة المرتبطة")}
           </label>
           <CustomSelect
             value={jobId}
@@ -159,7 +161,7 @@ export const CreateApplicantModal: FC<CreateApplicantModalProps> = ({
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
           <div>
             <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 600, color: '#334155' }}>
-              تصنيف مجمع المواهب (Talent Pool)
+              {t('hr.recruitment.create_applicant_modal.s7', "تصنيف مجمع المواهب (Talent Pool)")}
             </label>
             <CustomSelect
               value={talentPoolTag}
@@ -170,7 +172,7 @@ export const CreateApplicantModal: FC<CreateApplicantModalProps> = ({
 
           <div>
             <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 600, color: '#334155' }}>
-              التقييم الأولي
+              {t('hr.recruitment.create_applicant_modal.s8', "التقييم الأولي")}
             </label>
             <CustomSelect
               value={rating}
@@ -183,21 +185,21 @@ export const CreateApplicantModal: FC<CreateApplicantModalProps> = ({
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
           <div>
             <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 600, color: '#334155' }}>
-              الراتب المتوقع
+              {t('hr.recruitment.create_applicant_modal.s9', "الراتب المتوقع")}
             </label>
             <input
               type="number"
               min="0"
               value={expectedSalary}
               onChange={(e) => setExpectedSalary(e.target.value)}
-              placeholder="مثال: 10000"
+              placeholder={t('hr.recruitment.create_applicant_modal.s10', "مثال: 10000")}
               style={{ width: '100%', height: '36px', padding: '6px 10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
             />
           </div>
 
           <div>
             <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 600, color: '#334155' }}>
-              سنوات الخبرة الفعلية
+              {t('hr.recruitment.create_applicant_modal.s11', "سنوات الخبرة الفعلية")}
             </label>
             <input
               type="number"
@@ -212,26 +214,26 @@ export const CreateApplicantModal: FC<CreateApplicantModalProps> = ({
 
         <div>
           <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 600, color: '#334155' }}>
-            رابط السيرة الذاتية (CV / Portfolio Link)
+            {t('hr.recruitment.create_applicant_modal.s12', "رابط السيرة الذاتية (CV / Portfolio Link)")}
           </label>
           <input
             type="url"
             value={cvUrl}
             onChange={(e) => setCvUrl(e.target.value)}
-            placeholder="https://drive.google.com/... أو رابط لينكد إن"
+            placeholder={t('hr.recruitment.create_applicant_modal.s13', "https://drive.google.com/... أو رابط لينكد إن")}
             style={{ width: '100%', height: '36px', padding: '6px 10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
           />
         </div>
 
         <div>
           <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 600, color: '#334155' }}>
-            ملاحظات المقابلة المبدئية
+            {t('hr.recruitment.create_applicant_modal.s14', "ملاحظات المقابلة المبدئية")}
           </label>
           <textarea
             value={interviewNotes}
             onChange={(e) => setInterviewNotes(e.target.value)}
             rows={2}
-            placeholder="انطباع المقابلة الأولية، موعد البدء المتاح، أو الملاحظات السلوكية..."
+            placeholder={t('hr.recruitment.create_applicant_modal.s15', "انطباع المقابلة الأولية، موعد البدء المتاح، أو الملاحظات السلوكية...")}
             style={{ width: '100%', padding: '8px', borderRadius: '8px', border: '1px solid #cbd5e1', resize: 'vertical' }}
           />
         </div>
@@ -239,7 +241,7 @@ export const CreateApplicantModal: FC<CreateApplicantModalProps> = ({
         <StandardDialogFooter
           onClose={onClose}
           primaryButton={{
-            label: isSubmitting ? 'جاري التسجيل...' : 'تسجيل المرشح',
+            label: isSubmitting ? t('hr.recruitment.create_applicant_modal.s16', "جاري التسجيل...") : t('hr.recruitment.create_applicant_modal.s17', "تسجيل المرشح"),
             disabled: isSubmitting,
             onClick: () => handleSubmit(),
           }}

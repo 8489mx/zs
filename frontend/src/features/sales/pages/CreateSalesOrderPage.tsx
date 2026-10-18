@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCreateSalesOrderForm, type SalesOrderItem } from '../hooks/useCreateSalesOrderForm';
@@ -24,6 +25,7 @@ interface SalesOrderFormItem extends SalesOrderItem {
 }
 
 export function CreateSalesOrderPage() {
+  const { t } = useTranslation();
   useAppToolbar([
     { label: 'المبيعات', to: '/sales' },
     { label: 'أوامر البيع وحجز المخزون', to: '/sales/orders' },
@@ -395,13 +397,13 @@ export function CreateSalesOrderPage() {
       <main className="document-prototype-column" style={{ paddingBottom: '32px', maxWidth: '1280px', margin: '0 auto', width: '100%' }}>
         {/* Universal Document Header */}
         <PageHeader
-          title="أمر بيع جديد"
+          title={t('sales.create_sales_order_page.s0', "أمر بيع جديد")}
           onBack={() => navigate('/sales/orders')}
           badge={
             <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-              <span className="document-prototype-status-badge is-draft">مسودة</span>
+              <span className="document-prototype-status-badge is-draft">{t('sales.create_sales_order_page.s1', "مسودة")}</span>
               <span className="nav-pill" style={{ fontWeight: 700, color: '#0f172a' }}>
-                الإجمالي: {formatCurrencyWithSymbol(totalAmount, currency)}
+                {t('sales.create_sales_order_page.s2', "الإجمالي:")} {formatCurrencyWithSymbol(totalAmount, currency)}
               </span>
             </div>
           }
@@ -414,17 +416,17 @@ export function CreateSalesOrderPage() {
                 onClick={() => navigate('/sales/orders')}
                 style={{ color: 'var(--danger-color)', borderColor: 'rgba(239, 68, 68, 0.3)' }}
               >
-                <span>إلغاء المسودة</span>
+                <span>{t('sales.create_sales_order_page.s3', "إلغاء المسودة")}</span>
               </Button>
               <Button
                 variant="secondary"
                 type="button"
                 className="purchase-prototype-toolbar-action purchase-prototype-toolbar-action-secondary"
                 onClick={() => {
-                  toast.success('تم حفظ مسودة أمر البيع بنجاح');
+                  toast.success(t('sales.create_sales_order_page.s4', "تم حفظ مسودة أمر البيع بنجاح"));
                 }}
               >
-                <span>حفظ كمسودة</span>
+                <span>{t('sales.create_sales_order_page.s5', "حفظ كمسودة")}</span>
               </Button>
               <Button
                 type="button"
@@ -433,7 +435,7 @@ export function CreateSalesOrderPage() {
                 disabled={isSubmitting}
                 style={{ backgroundColor: '#170e5e', color: '#ffffff' }}
               >
-                <span>{isSubmitting ? 'جارٍ الاعتماد...' : 'اعتماد أمر البيع'}</span>
+                <span>{isSubmitting ? t('sales.create_sales_order_page.s6', "جارٍ الاعتماد...") : t('sales.create_sales_order_page.s7', "اعتماد أمر البيع")}</span>
               </Button>
             </div>
           }
@@ -448,7 +450,7 @@ export function CreateSalesOrderPage() {
         {/* Section 1: Basic Info */}
         <section className="document-prototype-section" style={{ marginTop: '12px' }}>
           <div className="section-header-compact-row" style={{ marginBottom: '0.6rem' }}>
-            <h3 className="document-prototype-section-title">المعلومات الأساسية</h3>
+            <h3 className="document-prototype-section-title">{t('sales.create_sales_order_page.s8', "المعلومات الأساسية")}</h3>
             <div className="section-header-actions-group" style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
               <label className="section-header-action-btn purchase-camera-btn" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', cursor: 'pointer', margin: 0 }}>
                 <input type="file" accept="image/*" capture="environment" onChange={handleFileUpload} style={{ display: 'none' }} />
@@ -456,14 +458,14 @@ export function CreateSalesOrderPage() {
                   <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
                   <circle cx="12" cy="13" r="4" />
                 </svg>
-                <span>كاميرا</span>
+                <span>{t('sales.create_sales_order_page.s9', "كاميرا")}</span>
               </label>
               <label className="section-header-action-btn" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', cursor: 'pointer', margin: 0 }}>
                 <input type="file" multiple onChange={handleFileUpload} style={{ display: 'none' }} />
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="13" height="13">
                   <path d="M21 12.5 12.8 20.7a5 5 0 0 1-7.1-7.1L14.2 5.1a3.5 3.5 0 0 1 4.9 4.9L9.9 19.2" />
                 </svg>
-                <span>إرفاق</span>
+                <span>{t('sales.create_sales_order_page.s10', "إرفاق")}</span>
                 {attachments.length > 0 && <span className="nav-pill" style={{ fontSize: '0.65rem', padding: '1px 4px', marginInlineStart: '2px' }}>{attachments.length}</span>}
               </label>
             </div>
@@ -472,8 +474,8 @@ export function CreateSalesOrderPage() {
           <div className="purchase-prototype-form-grid">
             {/* Customer Name */}
             <SearchableCombobox
-              label="العميل *"
-              placeholder="ابحث عن عميل بالاسم أو الهاتف..."
+              label={t('sales.create_sales_order_page.s11', "العميل *")}
+              placeholder={t('sales.create_sales_order_page.s12', "ابحث عن عميل بالاسم أو الهاتف...")}
               value={customerName}
               onChange={(value) => {
                 setCustomerName(value);
@@ -497,35 +499,35 @@ export function CreateSalesOrderPage() {
                 setCustomerAddress(c.address || '');
               }}
               inputClassName="purchase-prototype-field-input"
-              emptyLabel="عميل جديد غير مسجل (يمكنك المتابعة بالاسم المدخل)"
+              emptyLabel={t('sales.create_sales_order_page.s13', "عميل جديد غير مسجل (يمكنك المتابعة بالاسم المدخل)")}
             />
 
             {/* Customer Phone */}
-            <Field label="رقم الهاتف">
+            <Field label={t('sales.create_sales_order_page.s14', "رقم الهاتف")}>
               <input
                 className="purchase-prototype-field-input"
                 type="text"
-                placeholder="ابحث عن رقم تليفون أو أدخله..."
+                placeholder={t('sales.create_sales_order_page.s15', "ابحث عن رقم تليفون أو أدخله...")}
                 value={customerPhone}
                 onChange={(e) => setCustomerPhone(e.target.value)}
               />
             </Field>
 
             {/* Payment Type */}
-            <Field label="طريقة الدفع / المعاملة">
+            <Field label={t('sales.create_sales_order_page.s16', "طريقة الدفع / المعاملة")}>
               <CustomSelect
                 value={paymentType}
                 onChange={(val) => setPaymentType(val as 'cash' | 'credit')}
                 options={[
-                  { value: 'credit', label: 'آجل (حساب المديونية للعميل)' },
-                  { value: 'cash', label: 'نقدي (سداد فوري عند الاستلام)' },
+                  { value: 'credit', label: t('sales.create_sales_order_page.s17', "آجل (حساب المديونية للعميل)") },
+                  { value: 'cash', label: t('sales.create_sales_order_page.s18', "نقدي (سداد فوري عند الاستلام)") },
                 ]}
-                placeholder="اختر طريقة الدفع..."
+                placeholder={t('sales.create_sales_order_page.s19', "اختر طريقة الدفع...")}
               />
             </Field>
 
             {/* Order Date */}
-            <Field label="تاريخ أمر البيع">
+            <Field label={t('sales.create_sales_order_page.s20', "تاريخ أمر البيع")}>
               <input
                 className="purchase-prototype-field-input"
                 type="date"
@@ -535,7 +537,7 @@ export function CreateSalesOrderPage() {
             </Field>
 
             {/* Expected Delivery Date */}
-            <Field label="تاريخ التسليم المتوقع">
+            <Field label={t('sales.create_sales_order_page.s21', "تاريخ التسليم المتوقع")}>
               <input
                 className="purchase-prototype-field-input"
                 type="date"
@@ -545,17 +547,17 @@ export function CreateSalesOrderPage() {
             </Field>
 
             {/* Currency */}
-            <Field label="العملة">
+            <Field label={t('sales.create_sales_order_page.s22', "العملة")}>
               <CustomSelect
                 value={currency}
                 onChange={(val) => setCurrency(val)}
                 options={[
-                  { value: 'EGP', label: 'EGP - جنيه مصري' },
-                  { value: 'USD', label: 'USD - دولار أمريكي' },
-                  { value: 'SAR', label: 'SAR - ريال سعودي' },
-                  { value: 'AED', label: 'AED - درهم إماراتي' },
+                  { value: 'EGP', label: t('sales.create_sales_order_page.s23', "EGP - جنيه مصري") },
+                  { value: 'USD', label: t('sales.create_sales_order_page.s24', "USD - دولار أمريكي") },
+                  { value: 'SAR', label: t('sales.create_sales_order_page.s25', "SAR - ريال سعودي") },
+                  { value: 'AED', label: t('sales.create_sales_order_page.s26', "AED - درهم إماراتي") },
                 ]}
-                placeholder="اختر العملة..."
+                placeholder={t('sales.create_sales_order_page.s27', "اختر العملة...")}
               />
             </Field>
           </div>
@@ -563,9 +565,9 @@ export function CreateSalesOrderPage() {
 
         {/* Section 2: Stock Reservation & Delivery Settings */}
         <section className="document-prototype-section" style={{ marginTop: '12px' }}>
-          <h3 className="document-prototype-section-title">حجز المخزون وموقع التسليم</h3>
+          <h3 className="document-prototype-section-title">{t('sales.create_sales_order_page.s28', "حجز المخزون وموقع التسليم")}</h3>
           <div className="purchase-prototype-form-grid" style={{ marginBottom: '14px' }}>
-            <Field label="صلاحية حجز المخزون حتى">
+            <Field label={t('sales.create_sales_order_page.s29', "صلاحية حجز المخزون حتى")}>
               <input
                 className="purchase-prototype-field-input"
                 type="date"
@@ -574,11 +576,11 @@ export function CreateSalesOrderPage() {
               />
             </Field>
 
-            <Field label="عنوان العميل / موقع التسليم">
+            <Field label={t('sales.create_sales_order_page.s30', "عنوان العميل / موقع التسليم")}>
               <input
                 className="purchase-prototype-field-input"
                 type="text"
-                placeholder="العنوان التفصيلي للتسليم أو الاستلام..."
+                placeholder={t('sales.create_sales_order_page.s31', "العنوان التفصيلي للتسليم أو الاستلام...")}
                 value={customerAddress}
                 onChange={(e) => setCustomerAddress(e.target.value)}
               />
@@ -602,10 +604,10 @@ export function CreateSalesOrderPage() {
               <LockIcon size={18} color={autoReserve ? '#1d4ed8' : '#64748b'} />
               <div>
                 <span style={{ fontSize: '13px', fontWeight: 700, color: autoReserve ? '#1e3a8a' : '#334155', display: 'block' }}>
-                  تفعيل حجز المخزون التلقائي فور الحفظ (Stock Reservation)
+                  {t('sales.create_sales_order_page.s32', "تفعيل حجز المخزون التلقائي فور الحفظ (Stock Reservation)")}
                 </span>
                 <span style={{ fontSize: '11.5px', color: autoReserve ? '#2563eb' : '#64748b' }}>
-                  يتم زيادة الكمية المحجوزة للمنتجات ومنع بيعها في الكاشير أو المتجر الإلكتروني حتى إتمام الفاتورة.
+                  {t('sales.create_sales_order_page.s33', "يتم زيادة الكمية المحجوزة للمنتجات ومنع بيعها في الكاشير أو المتجر الإلكتروني حتى إتمام الفاتورة.")}
                 </span>
               </div>
             </div>
@@ -623,34 +625,34 @@ export function CreateSalesOrderPage() {
           <div className="section-header-compact-row" style={{ marginBottom: '0.6rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               <PackageIcon size={16} color="#170e5e" />
-              <h3 className="document-prototype-section-title" style={{ margin: 0 }}>الأصناف والكميات</h3>
-              <span className="nav-pill" style={{ fontSize: '0.72rem', padding: '2px 8px' }}>({items.length} صنف)</span>
+              <h3 className="document-prototype-section-title" style={{ margin: 0 }}>{t('sales.create_sales_order_page.s34', "الأصناف والكميات")}</h3>
+              <span className="nav-pill" style={{ fontSize: '0.72rem', padding: '2px 8px' }}>({items.length} {t('sales.create_sales_order_page.s35', "صنف)")}</span>
             </div>
-            <div className="purchase-prototype-quick-actions" aria-label="إجراءات سريعة">
+            <div className="purchase-prototype-quick-actions" aria-label={t('sales.create_sales_order_page.s36', "إجراءات سريعة")}>
               <button
                 type="button"
                 className="purchase-prototype-quick-action"
-                title="إضافة صنف جديد"
+                title={t('sales.create_sales_order_page.s37', "إضافة صنف جديد")}
                 onClick={handleAddItem}
                 style={{ fontWeight: 700, color: '#1e40af' }}
               >
                 <span aria-hidden="true">+</span>
-                <span>صنف</span>
+                <span>{t('sales.create_sales_order_page.s38', "صنف")}</span>
               </button>
               <button
                 type="button"
                 className="purchase-prototype-quick-action"
-                title="إضافة بند خدمة أو شحن"
+                title={t('sales.create_sales_order_page.s39', "إضافة بند خدمة أو شحن")}
                 onClick={handleAddServiceLine}
                 style={{ fontWeight: 700, color: '#0284c7' }}
               >
                 <span aria-hidden="true">+</span>
-                <span>خدمة</span>
+                <span>{t('sales.create_sales_order_page.s40', "خدمة")}</span>
               </button>
               <button
                 type="button"
                 className="purchase-prototype-quick-action"
-                title="تطبيق ضريبة"
+                title={t('sales.create_sales_order_page.s41', "تطبيق ضريبة")}
                 onClick={() => setActiveQuickAction((curr) => (curr === 'tax' ? null : 'tax'))}
                 style={
                   taxRate > 0
@@ -659,12 +661,12 @@ export function CreateSalesOrderPage() {
                 }
               >
                 <span aria-hidden="true">%</span>
-                <span>ضريبة{taxRate > 0 ? ` ${taxRate}%` : ''}</span>
+                <span>{t('sales.create_sales_order_page.s42', "ضريبة")}{taxRate > 0 ? ` ${taxRate}%` : ''}</span>
               </button>
               <button
                 type="button"
                 className="purchase-prototype-quick-action"
-                title="إضافة خصم"
+                title={t('sales.create_sales_order_page.s43', "إضافة خصم")}
                 onClick={() => setActiveQuickAction((curr) => (curr === 'discount' ? null : 'discount'))}
                 style={
                   discountValue > 0
@@ -672,7 +674,7 @@ export function CreateSalesOrderPage() {
                     : undefined
                 }
               >
-                <span>خصم{discountValue > 0 ? (discountMode === 'percent' ? ` ${discountValue}%` : ` ${discountValue}`) : ''}</span>
+                <span>{t('sales.create_sales_order_page.s44', "خصم")}{discountValue > 0 ? (discountMode === 'percent' ? ` ${discountValue}%` : ` ${discountValue}`) : ''}</span>
               </button>
             </div>
           </div>
@@ -690,7 +692,7 @@ export function CreateSalesOrderPage() {
                   }}
                   style={taxRate === 0 ? { backgroundColor: '#e0e7ff', borderColor: '#4338ca', color: '#3730a3', fontWeight: 700 } : undefined}
                 >
-                  بدون ضريبة
+                  {t('sales.create_sales_order_page.s45', "بدون ضريبة")}
                 </button>
                 <button
                   type="button"
@@ -701,7 +703,7 @@ export function CreateSalesOrderPage() {
                   }}
                   style={taxRate === 14 ? { backgroundColor: '#e0e7ff', borderColor: '#4338ca', color: '#3730a3', fontWeight: 700 } : undefined}
                 >
-                  14% (قيمة مضافة قياسية)
+                  {t('sales.create_sales_order_page.s46', "14% (قيمة مضافة قياسية)")}
                 </button>
                 <button
                   type="button"
@@ -712,7 +714,7 @@ export function CreateSalesOrderPage() {
                   }}
                   style={taxRate === 15 ? { backgroundColor: '#e0e7ff', borderColor: '#4338ca', color: '#3730a3', fontWeight: 700 } : undefined}
                 >
-                  15% (الضريبة الخليجية)
+                  {t('sales.create_sales_order_page.s47', "15% (الضريبة الخليجية)")}
                 </button>
               </div>
             </div>
@@ -726,15 +728,15 @@ export function CreateSalesOrderPage() {
                   onChange={(e) => setDiscountMode(e.target.value as 'percent' | 'value')}
                   style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px' }}
                 >
-                  <option value="value">مبلغ ثابت (ج.م)</option>
-                  <option value="percent">نسبة مئوية (%)</option>
+                  <option value="value">{t('sales.create_sales_order_page.s48', "مبلغ ثابت (ج.م)")}</option>
+                  <option value="percent">{t('sales.create_sales_order_page.s49', "نسبة مئوية (%)")}</option>
                 </select>
                 <input
                   type="number"
                   min="0"
                   value={discountValue}
                   onChange={(e) => setDiscountValue(Number(e.target.value) || 0)}
-                  placeholder="قيمة الخصم..."
+                  placeholder={t('sales.create_sales_order_page.s50', "قيمة الخصم...")}
                   style={{ width: '120px', padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px', textAlign: 'center' }}
                 />
                 <Button
@@ -743,7 +745,7 @@ export function CreateSalesOrderPage() {
                   onClick={() => setActiveQuickAction(null)}
                   style={{ height: '32px', fontSize: '12px' }}
                 >
-                  تطبيق
+                  {t('sales.create_sales_order_page.s51', "تطبيق")}
                 </Button>
               </div>
             </div>
@@ -754,13 +756,13 @@ export function CreateSalesOrderPage() {
             <table className="document-line-items-table">
               <thead>
                 <tr>
-                  <th className="purchase-prototype-table-head purchase-prototype-table-head-product" style={{ width: '32%', textAlign: 'right' }}>الصنف</th>
-                  <th className="purchase-prototype-table-head purchase-prototype-table-head-category" style={{ width: '12%', textAlign: 'center' }}>الوحدة</th>
-                  <th className="purchase-prototype-table-head purchase-prototype-table-head-warehouse" style={{ width: '12%', textAlign: 'center' }}>رصيد المخزن</th>
-                  <th className="purchase-prototype-table-head purchase-prototype-table-head-qty" style={{ width: '10%', textAlign: 'center' }}>الكمية</th>
-                  <th className="purchase-prototype-table-head purchase-prototype-table-head-price" style={{ width: '12%', textAlign: 'center' }}>السعر</th>
-                  <th className="purchase-prototype-table-head purchase-prototype-table-head-price" style={{ width: '10%', textAlign: 'center' }}>الخصم</th>
-                  <th className="purchase-prototype-table-head purchase-prototype-table-head-amount" style={{ width: '12%', textAlign: 'center' }}>المبلغ</th>
+                  <th className="purchase-prototype-table-head purchase-prototype-table-head-product" style={{ width: '32%', textAlign: 'right' }}>{t('sales.create_sales_order_page.s52', "الصنف")}</th>
+                  <th className="purchase-prototype-table-head purchase-prototype-table-head-category" style={{ width: '12%', textAlign: 'center' }}>{t('sales.create_sales_order_page.s53', "الوحدة")}</th>
+                  <th className="purchase-prototype-table-head purchase-prototype-table-head-warehouse" style={{ width: '12%', textAlign: 'center' }}>{t('sales.create_sales_order_page.s54', "رصيد المخزن")}</th>
+                  <th className="purchase-prototype-table-head purchase-prototype-table-head-qty" style={{ width: '10%', textAlign: 'center' }}>{t('sales.create_sales_order_page.s55', "الكمية")}</th>
+                  <th className="purchase-prototype-table-head purchase-prototype-table-head-price" style={{ width: '12%', textAlign: 'center' }}>{t('sales.create_sales_order_page.s56', "السعر")}</th>
+                  <th className="purchase-prototype-table-head purchase-prototype-table-head-price" style={{ width: '10%', textAlign: 'center' }}>{t('sales.create_sales_order_page.s57', "الخصم")}</th>
+                  <th className="purchase-prototype-table-head purchase-prototype-table-head-amount" style={{ width: '12%', textAlign: 'center' }}>{t('sales.create_sales_order_page.s58', "المبلغ")}</th>
                   <th className="purchase-prototype-table-head purchase-prototype-table-head-actions" style={{ width: '5%', textAlign: 'center' }}></th>
                 </tr>
               </thead>
@@ -773,7 +775,7 @@ export function CreateSalesOrderPage() {
                         inline
                         className="purchase-prototype-inline-combobox"
                         inputClassName="purchase-prototype-field-input purchase-prototype-combobox-input purchase-prototype-combobox-input-inline"
-                        placeholder="ابحث عن صنف بالاسم أو الباركود..."
+                        placeholder={t('sales.create_sales_order_page.s59', "ابحث عن صنف بالاسم أو الباركود...")}
                         value={line.productName}
                         onChange={(value) => handleUpdateLine(line.id, 'productName', value)}
                         options={productOptions}
@@ -786,7 +788,7 @@ export function CreateSalesOrderPage() {
                         }
                         onSelect={(option) => handleProductSelect(line.id, option)}
                         showDropdownOnEmpty={true}
-                        emptyLabel="صنف جديد (يمكنك المتابعة بالاسم المدخل)"
+                        emptyLabel={t('sales.create_sales_order_page.s60', "صنف جديد (يمكنك المتابعة بالاسم المدخل)")}
                       />
                     </td>
 
@@ -795,7 +797,7 @@ export function CreateSalesOrderPage() {
                       <input
                         className="purchase-prototype-table-input"
                         type="text"
-                        placeholder="الوحدة..."
+                        placeholder={t('sales.create_sales_order_page.s61', "الوحدة...")}
                         value={line.unitName || ''}
                         onChange={(e) => handleUpdateLine(line.id, 'unitName', e.target.value)}
                         style={{ textAlign: 'center' }}
@@ -815,7 +817,7 @@ export function CreateSalesOrderPage() {
                           borderColor: (line.stockOnHand ?? 0) > 0 ? '#bbf7d0' : '#fecaca',
                         }}
                       >
-                        {line.stockOnHand ?? 0} متاح
+                        {line.stockOnHand ?? 0} {t('sales.create_sales_order_page.s62', "متاح")}
                       </span>
                     </td>
 
@@ -870,7 +872,7 @@ export function CreateSalesOrderPage() {
                         className="document-row-delete purchase-prototype-row-delete"
                         onClick={() => handleRemoveItem(line.id)}
                         disabled={items.length === 1}
-                        title="حذف هذا الصنف"
+                        title={t('sales.create_sales_order_page.s63', "حذف هذا الصنف")}
                       >
                         ×
                       </button>
@@ -885,7 +887,7 @@ export function CreateSalesOrderPage() {
           <div className="document-line-items-actions" style={{ marginTop: '12px', display: 'flex', gap: '8px' }}>
             <Button type="button" variant="dashedAction" onClick={handleAddItem}>
               <span aria-hidden="true">+</span>
-              <span>إضافة صنف</span>
+              <span>{t('sales.create_sales_order_page.s64', "إضافة صنف")}</span>
             </Button>
             <Button type="button" variant="dashedAction" onClick={handleBarcodeScan}>
               <span aria-hidden="true" className="purchase-prototype-scan-icon">
@@ -894,13 +896,13 @@ export function CreateSalesOrderPage() {
                   <path d="M5.1 5.2v5.6M7 5.2v5.6M9 5.2v5.6M10.9 5.2v5.6" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
                 </svg>
               </span>
-              <span>مسح باركود</span>
+              <span>{t('sales.create_sales_order_page.s65', "مسح باركود")}</span>
             </Button>
             <Button
               type="button"
               variant="dashedAction"
               onClick={() => {
-                const name = window.prompt('أدخل اسم المنتج الجديد:');
+                const name = window.prompt(t('sales.create_sales_order_page.s66', "أدخل اسم المنتج الجديد:"));
                 if (name && name.trim()) {
                   setItems((prev) => [
                     ...prev,
@@ -908,33 +910,33 @@ export function CreateSalesOrderPage() {
                       id: Date.now() + Math.random(),
                       productId: 0,
                       productName: name.trim(),
-                      unitName: 'قطعة',
+                      unitName: t('sales.create_sales_order_page.s67', "قطعة"),
                       quantity: 1,
                       unitPrice: 0,
                       total: 0,
                       discount: 0,
                       stockOnHand: 0,
-                      warehouse: 'المستودع الرئيسي',
+                      warehouse: t('sales.create_sales_order_page.s68', "المستودع الرئيسي"),
                     },
                   ]);
                 }
               }}
             >
               <span aria-hidden="true">+</span>
-              <span>منتج جديد</span>
+              <span>{t('sales.create_sales_order_page.s69', "منتج جديد")}</span>
             </Button>
           </div>
         </section>
 
         {/* Section 4: Terms & Conditions */}
         <section className="document-prototype-section" style={{ marginTop: '12px' }}>
-          <h3 className="document-prototype-section-title">الشروط والأحكام</h3>
+          <h3 className="document-prototype-section-title">{t('sales.create_sales_order_page.s70', "الشروط والأحكام")}</h3>
           <textarea
             className="purchase-prototype-notes-textarea"
             rows={3}
             value={termsConditions}
             onChange={(e) => setTermsConditions(e.target.value)}
-            placeholder="الشروط والأحكام الخاصة بحجز البضاعة وسداد القيمة..."
+            placeholder={t('sales.create_sales_order_page.s71', "الشروط والأحكام الخاصة بحجز البضاعة وسداد القيمة...")}
             style={{ width: '100%', boxSizing: 'border-box' }}
           />
         </section>
@@ -943,37 +945,37 @@ export function CreateSalesOrderPage() {
         <section className="document-prototype-bottom-grid" style={{ marginTop: '12px' }}>
           {/* Notes Card (60%) */}
           <div className="document-prototype-section">
-            <h3 className="document-prototype-section-title">ملاحظات</h3>
+            <h3 className="document-prototype-section-title">{t('sales.create_sales_order_page.s72', "ملاحظات")}</h3>
             <textarea
               className="purchase-prototype-notes-textarea"
               rows={4}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="ملاحظات إضافية للتسليم أو العميل..."
+              placeholder={t('sales.create_sales_order_page.s73', "ملاحظات إضافية للتسليم أو العميل...")}
               style={{ width: '100%', boxSizing: 'border-box' }}
             />
           </div>
 
           {/* Totals Card (40%) */}
           <div className="document-prototype-section document-totals-card">
-            <h3 className="document-prototype-section-title">الإجماليات</h3>
+            <h3 className="document-prototype-section-title">{t('sales.create_sales_order_page.s74', "الإجماليات")}</h3>
             <div className="document-totals-panel">
               <div>
-                <span>الإجمالي الفرعي:</span>
+                <span>{t('sales.create_sales_order_page.s75', "الإجمالي الفرعي:")}</span>
                 <strong>{formatCurrencyWithSymbol(subtotal, currency)}</strong>
               </div>
               {totalDiscount > 0 && (
                 <div style={{ color: '#dc2626' }}>
-                  <span>الخصم:</span>
+                  <span>{t('sales.create_sales_order_page.s76', "الخصم:")}</span>
                   <strong>- {formatCurrencyWithSymbol(totalDiscount, currency)}</strong>
                 </div>
               )}
               <div>
-                <span>الضريبة ({taxRate}%):</span>
+                <span>{t('sales.create_sales_order_page.s77', "الضريبة (")}{taxRate}%):</span>
                 <strong>{formatCurrencyWithSymbol(taxAmount, currency)}</strong>
               </div>
               <div className="document-total-grand" style={{ borderTop: '2px solid #e2e8f0', paddingTop: '8px', marginTop: '6px' }}>
-                <span>الصافي المطلوب:</span>
+                <span>{t('sales.create_sales_order_page.s78', "الصافي المطلوب:")}</span>
                 <strong>{formatCurrencyWithSymbol(totalAmount, currency)}</strong>
               </div>
             </div>

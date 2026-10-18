@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { CustomSelect } from '@/shared/ui/custom-select';
@@ -29,6 +30,7 @@ export const CategoryTransferWarehouseModal: React.FC<CategoryTransferWarehouseM
   onClose,
   onSubmit,
 }) => {
+  const { t } = useTranslation();
   if (!category) return null;
 
   const locationOptions = (locations || []).map((l) => ({
@@ -44,14 +46,14 @@ export const CategoryTransferWarehouseModal: React.FC<CategoryTransferWarehouseM
       open={true}
       onClose={onClose}
       title={`نقل أرصدة القسم: ${category.name}`}
-      subtitle="تحويل ونقل كافة أرصدة منتجات هذا القسم من مخزن إلى مخزن آخر"
+      subtitle={t('products.categories.category_transfer_warehouse_modal.s0', "تحويل ونقل كافة أرصدة منتجات هذا القسم من مخزن إلى مخزن آخر")}
       maxWidth="520px"
       footerActions={
         <StandardDialogFooter
           onClose={onClose}
           onSubmit={onSubmit}
-          submitLabel="تأكيد النقل المخزني"
-          loadingText="جاري النقل..."
+          submitLabel={t('products.categories.category_transfer_warehouse_modal.s1', "تأكيد النقل المخزني")}
+          loadingText={t('products.categories.category_transfer_warehouse_modal.s2', "جاري النقل...")}
           isPending={isPending}
           disabled={isSubmitDisabled}
         />
@@ -86,10 +88,10 @@ export const CategoryTransferWarehouseModal: React.FC<CategoryTransferWarehouseM
           </div>
           <div>
             <strong style={{ display: 'block', marginBottom: '2px', fontSize: '13px', color: '#0f172a' }}>
-              مناقلة مجمعة لأرصدة القسم
+              {t('products.categories.category_transfer_warehouse_modal.s3', "مناقلة مجمعة لأرصدة القسم")}
             </strong>
             <span style={{ fontSize: '12px', color: '#64748b', lineHeight: 1.5 }}>
-              سيتم إنشاء إذن تحويل مخزني لكافة أرصدة منتجات قسم &ldquo;{category.name}&rdquo; من المخزن المصدر إلى المخزن الوجهة.
+              {t('products.categories.category_transfer_warehouse_modal.s4', "سيتم إنشاء إذن تحويل مخزني لكافة أرصدة منتجات قسم “")}{category.name}{t('products.categories.category_transfer_warehouse_modal.s5', "” من المخزن المصدر إلى المخزن الوجهة.")}
             </span>
           </div>
         </div>
@@ -108,26 +110,26 @@ export const CategoryTransferWarehouseModal: React.FC<CategoryTransferWarehouseM
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px' }}>
             <WarehouseIcon size={16} color="#170e5e" />
-            <span style={{ fontSize: '0.84rem', fontWeight: 700, color: '#170e5e' }}>تحديد المخزن المصدر والوجهة</span>
+            <span style={{ fontSize: '0.84rem', fontWeight: 700, color: '#170e5e' }}>{t('products.categories.category_transfer_warehouse_modal.s6', "تحديد المخزن المصدر والوجهة")}</span>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-            <Field label="من مخزن (المصدر)">
+            <Field label={t('products.categories.category_transfer_warehouse_modal.s7', "من مخزن (المصدر)")}>
               <CustomSelect
                 options={locationOptions}
                 value={fromLocationId}
                 onChange={(val) => setFromLocationId(val)}
-                placeholder="اختر المخزن المحول منه..."
+                placeholder={t('products.categories.category_transfer_warehouse_modal.s8', "اختر المخزن المحول منه...")}
                 searchable
               />
             </Field>
 
-            <Field label="إلى مخزن (الوجهة)">
+            <Field label={t('products.categories.category_transfer_warehouse_modal.s9', "إلى مخزن (الوجهة)")}>
               <CustomSelect
                 options={locationOptions.filter((opt) => opt.value !== fromLocationId)}
                 value={toLocationId}
                 onChange={(val) => setToLocationId(val)}
-                placeholder="اختر المخزن المحول إليه..."
+                placeholder={t('products.categories.category_transfer_warehouse_modal.s10', "اختر المخزن المحول إليه...")}
                 searchable
               />
             </Field>

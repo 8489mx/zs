@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 import { Button } from '@/shared/ui/button';
 import { CustomSelect } from '@/shared/ui/custom-select';
@@ -29,6 +30,7 @@ export const ShortageQuickAddBar: React.FC<ShortageQuickAddBarProps> = ({
   isPending,
   onSubmit,
 }) => {
+  const { t } = useTranslation();
   return (
     <form
       onSubmit={onSubmit}
@@ -47,14 +49,14 @@ export const ShortageQuickAddBar: React.FC<ShortageQuickAddBarProps> = ({
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#0f172a', fontWeight: 700, fontSize: '0.82rem' }}>
         <IconPlus size={15} color="var(--primary, #1e1b4b)" />
-        <span>إضافة فورية للكشكول:</span>
+        <span>{t('pharmacy.shortages.shortage_quick_add_bar.s0', "إضافة فورية للكشكول:")}</span>
       </div>
 
       <input
         type="text"
         required
         className="purchase-prototype-field-input"
-        placeholder="اسم الدواء الناقص..."
+        placeholder={t('pharmacy.shortages.shortage_quick_add_bar.s1', "اسم الدواء الناقص...")}
         value={quickName}
         onChange={(e) => setQuickName(e.target.value)}
         style={{ flex: '1 1 200px', fontSize: '0.84rem' }}
@@ -64,11 +66,11 @@ export const ShortageQuickAddBar: React.FC<ShortageQuickAddBarProps> = ({
         type="number"
         min="1"
         className="purchase-prototype-field-input"
-        placeholder="العدد"
+        placeholder={t('pharmacy.shortages.shortage_quick_add_bar.s2', "العدد")}
         value={quickQty}
         onChange={(e) => setQuickQty(Number(e.target.value) || 1)}
         style={{ width: '70px', fontSize: '0.84rem', textAlign: 'center' }}
-        title="الكمية المطلوبة بالعلب"
+        title={t('pharmacy.shortages.shortage_quick_add_bar.s3', "الكمية المطلوبة بالعلب")}
       />
 
       <div style={{ width: '150px' }}>
@@ -84,9 +86,9 @@ export const ShortageQuickAddBar: React.FC<ShortageQuickAddBarProps> = ({
           value={quickPriority}
           onChange={(val) => setQuickPriority(val as any)}
           options={[
-            { value: 'normal', label: 'عادي' },
-            { value: 'urgent', label: 'عاجل جداً' },
-            { value: 'customer_request', label: 'طلب مريض' },
+            { value: 'normal', label: t('pharmacy.shortages.shortage_quick_add_bar.s4', "عادي") },
+            { value: 'urgent', label: t('pharmacy.shortages.shortage_quick_add_bar.s5', "عاجل جداً") },
+            { value: 'customer_request', label: t('pharmacy.shortages.shortage_quick_add_bar.s6', "طلب مريض") },
           ]}
         />
       </div>
@@ -97,7 +99,7 @@ export const ShortageQuickAddBar: React.FC<ShortageQuickAddBarProps> = ({
         disabled={isPending || !quickName.trim()}
         style={{ whiteSpace: 'nowrap', padding: '6px 14px' }}
       >
-        {isPending ? 'جاري الإضافة...' : '+ إدراج بالكشكول'}
+        {isPending ? t('pharmacy.shortages.shortage_quick_add_bar.s7', "جاري الإضافة...") : t('pharmacy.shortages.shortage_quick_add_bar.s8', "+ إدراج بالكشكول")}
       </Button>
     </form>
   );

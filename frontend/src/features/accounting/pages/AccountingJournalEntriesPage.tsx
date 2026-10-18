@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { DataTable } from '@/shared/components/data-table';
@@ -10,15 +11,42 @@ import { accountingApi, type JournalEntryDetail, type JournalEntryLine, type Jou
 import { ManualJournalEntryDialog } from '../components/ManualJournalEntryDialog';
 import { PlusIcon } from '@/shared/components/icons/AppIcons';
 import { StandardDialog } from '@/shared/components/StandardDialog';
+import { translateUiText } from '@/lib/auto-translator';
 
-function mapStatusLabel(status: string) {
+function mapStatusLabel(status: string, isEn?: boolean) {
+  if (isEn) {
+    if (status === 'posted') return 'Posted';
+    if (status === 'draft') return 'Draft';
+    if (status === 'cancelled') return 'Cancelled';
+    return status || '';
+  }
   if (status === 'posted') return 'مرحّل';
   if (status === 'draft') return 'مسودة';
   if (status === 'cancelled') return 'ملغي';
   return status || '';
 }
 
-function mapSourceLabel(sourceType: string) {
+function mapSourceLabel(sourceType: string, isEn?: boolean) {
+  if (isEn) {
+    if (sourceType === 'sale') return 'Sale';
+    if (sourceType === 'sale_edit') return 'Sale Edit';
+    if (sourceType === 'sale_edit_reversal') return 'Sale Edit Reversal';
+    if (sourceType === 'sale_cancel' || sourceType === 'sale_reversal') return 'Sale Reversal / Cancellation';
+    if (sourceType === 'sales_return') return 'Sales Return';
+    if (sourceType === 'return') return 'Return';
+    if (sourceType === 'purchase') return 'Purchase';
+    if (sourceType === 'purchase_cancel' || sourceType === 'purchase_reversal') return 'Purchase Reversal / Cancellation';
+    if (sourceType === 'supplier_payment' || sourceType === 'supplier_payment_schedule_settlement') return 'Supplier Payment';
+    if (sourceType === 'supplier_payment_reversal') return 'Supplier Payment Reversal';
+    if (sourceType === 'customer_payment') return 'Customer Payment';
+    if (sourceType === 'customer_payment_reversal') return 'Customer Payment Reversal';
+    if (sourceType === 'expense') return 'Expense';
+    if (sourceType === 'treasury_expense') return 'Treasury Expense';
+    if (sourceType === 'expense_reversal') return 'Expense Reversal';
+    if (sourceType === 'opening_balance') return 'Opening Balance';
+    if (sourceType === 'manual') return 'Manual';
+    return sourceType || '';
+  }
   if (sourceType === 'sale') return 'بيع';
   if (sourceType === 'sale_edit') return 'تعديل بيع';
   if (sourceType === 'sale_edit_reversal') return 'عكس تعديل بيع';
@@ -41,6 +69,8 @@ function mapSourceLabel(sourceType: string) {
 }
 
 export function AccountingJournalEntriesPage() {
+  const { t, i18n } = useTranslation();
+  const isEn = i18n.language === 'en';
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const [selectedEntryId, setSelectedEntryId] = useState<string | null>(null);
@@ -105,9 +135,9 @@ export function AccountingJournalEntriesPage() {
     <div className="page-stack page-shell" dir="rtl">
       <main className="document-prototype-column" style={{ paddingBottom: '100px' }}>
       <PageHeader
-        title="القيود اليومية"
-        description="استعراض وتتبع قيود اليومية العامة الناتجة عن حركات النظام المالية."
-        badge={<span className="nav-pill">دفتر اليومية العامة</span>}
+        title={t('accounting.accounting_journal_entries_page.s0', "القيود اليومية")}
+        description={t('accounting.accounting_journal_entries_page.s1', "استعراض وتتبع قيود اليومية العامة الناتجة عن حركات النظام المالية.")}
+        badge={<span className="nav-pill">{t('accounting.accounting_journal_entries_page.s2', "دفتر اليومية العامة")}</span>}
         actions={
           <Button
             type="button"
@@ -123,15 +153,15 @@ export function AccountingJournalEntriesPage() {
             }}
           >
             <PlusIcon size={16} />
-            إنشاء قيد يدوي
+            {t('accounting.accounting_journal_entries_page.s3', "إنشاء قيد يدوي")}
           </Button>
         }
       />
       <section className="document-prototype-section">
         <div className="section-header-compact-row">
-          <h3 className="document-prototype-section-title">سجل القيود المسجلة</h3>
+          <h3 className="document-prototype-section-title">{t('accounting.accounting_journal_entries_page.s4', "سجل القيود المسجلة")}</h3>
           <div className="section-header-actions-group">
-            <span className="nav-pill" style={{ fontSize: '11px', padding: '2px 8px' }}>إجمالي القيود: {rows.length}</span>
+            <span className="nav-pill" style={{ fontSize: '11px', padding: '2px 8px' }}>{t('accounting.accounting_journal_entries_page.s5', "إجمالي القيود:")} {rows.length}</span>
           </div>
         </div>
         <QueryFeedback
@@ -139,20 +169,20 @@ export function AccountingJournalEntriesPage() {
           isError={query.isError}
           error={query.error}
           isEmpty={!rows.length}
-          loadingText="جاري تحميل القيود اليومية..."
-          errorTitle="تعذر تحميل القيود اليومية"
-          emptyTitle="لا توجد قيود يومية"
+          loadingText={t('accounting.accounting_journal_entries_page.s6', "جاري تحميل القيود اليومية...")}
+          errorTitle={t('accounting.accounting_journal_entries_page.s7', "تعذر تحميل القيود اليومية")}
+          emptyTitle={t('accounting.accounting_journal_entries_page.s8', "لا توجد قيود يومية")}
         >
           <DataTable<JournalEntryListItem>
             data={rows}
             getRowKey={(row) => row.id}
             onRowClick={(row) => handleSelectEntry(row.id)}
-            rowTitle={() => 'عرض تفاصيل القيد'}
+            rowTitle={() => t('accounting.accounting_journal_entries_page.s9', "عرض تفاصيل القيد")}
             defaultSort={{ columnId: 'date', direction: 'desc' }}
             columns={[
               {
                 id: 'entryNo',
-                header: 'رقم القيد',
+                header: t('accounting.accounting_journal_entries_page.s10', "رقم القيد"),
                 sortable: true,
                 sortValue: (row) => Number(row.id || 0),
                 render: (row) => (
@@ -175,25 +205,29 @@ export function AccountingJournalEntriesPage() {
               },
               {
                 id: 'date',
-                header: 'التاريخ',
+                header: t('accounting.accounting_journal_entries_page.s11', "التاريخ"),
                 render: (row) => String(row.entryDate || '').slice(0, 10),
                 sortable: true,
                 sortValue: (row) => row.entryDate,
               },
               {
                 id: 'source',
-                header: 'المصدر',
-                render: (row) => mapSourceLabel(row.sourceType || ''),
+                header: t('accounting.accounting_journal_entries_page.s12', "المصدر"),
+                render: (row) => mapSourceLabel(row.sourceType || '', isEn),
                 sortable: true,
-                sortValue: (row) => mapSourceLabel(row.sourceType || ''),
+                sortValue: (row) => mapSourceLabel(row.sourceType || '', isEn),
               },
-              { id: 'description', header: 'الوصف', render: (row) => row.description || '' },
+              {
+                id: 'description',
+                header: t('accounting.accounting_journal_entries_page.s13', "الوصف"),
+                render: (row) => (isEn ? translateUiText(row.description || '') || row.description : row.description) || '',
+              },
               {
                 id: 'status',
-                header: 'الحالة',
-                render: (row) => mapStatusLabel(row.status || ''),
+                header: t('accounting.accounting_journal_entries_page.s14', "الحالة"),
+                render: (row) => mapStatusLabel(row.status || '', isEn),
                 sortable: true,
-                sortValue: (row) => mapStatusLabel(row.status || ''),
+                sortValue: (row) => mapStatusLabel(row.status || '', isEn),
               },
             ]}
             pagination={{
@@ -205,7 +239,7 @@ export function AccountingJournalEntriesPage() {
                 setPageSize(next);
                 setPage(1);
               },
-              itemLabel: 'قيد',
+              itemLabel: t('accounting.accounting_journal_entries_page.s15', "قيد"),
             }}
           />
         </QueryFeedback>
@@ -213,7 +247,7 @@ export function AccountingJournalEntriesPage() {
 
       {selectedEntryId ? (
         <div ref={detailsRef}>
-          <FormSection title="تفاصيل القيد">
+          <FormSection title={t('accounting.accounting_journal_entries_page.s16', "تفاصيل القيد")}>
             <div className="actions" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
               <Button
                 type="button"
@@ -223,7 +257,7 @@ export function AccountingJournalEntriesPage() {
                   setShouldAutoScrollToDetails(false);
                 }}
               >
-                العودة للقيود اليومية
+                {t('accounting.accounting_journal_entries_page.s17', "العودة للقيود اليومية")}
               </Button>
               {detailEntry && detailEntry.status === 'posted' && !detailEntry.sourceType?.endsWith('_reversal') && (
                 <Button
@@ -241,7 +275,7 @@ export function AccountingJournalEntriesPage() {
                     fontWeight: 700,
                   }}
                 >
-                  عكس وإلغاء القيد آلياً (Reverse)
+                  {t('accounting.accounting_journal_entries_page.s18', "عكس وإلغاء القيد آلياً (Reverse)")}
                 </Button>
               )}
             </div>
@@ -251,23 +285,23 @@ export function AccountingJournalEntriesPage() {
               isError={detailQuery.isError}
               error={detailQuery.error}
               isEmpty={!detailEntry}
-              loadingText="جاري تحميل تفاصيل القيد..."
-              errorTitle="تعذر تحميل تفاصيل القيد"
-              emptyTitle="لا توجد تفاصيل لهذا القيد"
+              loadingText={t('accounting.accounting_journal_entries_page.s19', "جاري تحميل تفاصيل القيد...")}
+              errorTitle={t('accounting.accounting_journal_entries_page.s20', "تعذر تحميل تفاصيل القيد")}
+              emptyTitle={t('accounting.accounting_journal_entries_page.s21', "لا توجد تفاصيل لهذا القيد")}
             >
               {detailEntry ? (
                 <div className="page-stack">
                   <div className="grid-2">
-                    <div><strong>رقم القيد:</strong> {detailEntry.entryNo}</div>
-                    <div><strong>التاريخ:</strong> {String(detailEntry.entryDate || '').slice(0, 10)}</div>
-                    <div><strong>المصدر:</strong> {mapSourceLabel(detailEntry.sourceType || '')}</div>
-                    <div><strong>الحالة:</strong> {mapStatusLabel(detailEntry.status || '')}</div>
-                    <div><strong>الوصف:</strong> {detailEntry.description || '-'}</div>
-                    <div><strong>إجمالي المدين:</strong> {formatCurrency(Number(detailEntry.totals?.debit || 0))}</div>
-                    <div><strong>إجمالي الدائن:</strong> {formatCurrency(Number(detailEntry.totals?.credit || 0))}</div>
+                    <div><strong>{t('accounting.accounting_journal_entries_page.s22', "رقم القيد:")}</strong> {detailEntry.entryNo}</div>
+                    <div><strong>{t('accounting.accounting_journal_entries_page.s23', "التاريخ:")}</strong> {String(detailEntry.entryDate || '').slice(0, 10)}</div>
+                    <div><strong>{t('accounting.accounting_journal_entries_page.s24', "المصدر:")}</strong> {mapSourceLabel(detailEntry.sourceType || '', isEn)}</div>
+                    <div><strong>{t('accounting.accounting_journal_entries_page.s25', "الحالة:")}</strong> {mapStatusLabel(detailEntry.status || '', isEn)}</div>
+                    <div><strong>{t('accounting.accounting_journal_entries_page.s26', "الوصف:")}</strong> {(isEn ? translateUiText(detailEntry.description || '') || detailEntry.description : detailEntry.description) || '-'}</div>
+                    <div><strong>{t('accounting.accounting_journal_entries_page.s27', "إجمالي المدين:")}</strong> {formatCurrency(Number(detailEntry.totals?.debit || 0))}</div>
+                    <div><strong>{t('accounting.accounting_journal_entries_page.s28', "إجمالي الدائن:")}</strong> {formatCurrency(Number(detailEntry.totals?.credit || 0))}</div>
                   </div>
 
-                  <FormSection title="سطور القيد">
+                  <FormSection title={t('accounting.accounting_journal_entries_page.s29', "سطور القيد")}>
                     {detailEntry.lines?.length ? (
                       <DataTable<JournalEntryLine>
                         data={detailEntry.lines}
@@ -275,12 +309,19 @@ export function AccountingJournalEntriesPage() {
                         columns={[
                           {
                             id: 'account',
-                            header: 'الحساب',
-                            render: (row) => [row.accountCode, row.accountNameAr || row.accountNameEn || row.accountId].filter(Boolean).join(' - '),
+                            header: t('accounting.accounting_journal_entries_page.s30', "الحساب"),
+                            render: (row) => [
+                              row.accountCode,
+                              isEn && row.accountNameEn
+                                ? row.accountNameEn
+                                : isEn
+                                  ? translateUiText(row.accountNameAr || '') || row.accountNameAr
+                                  : row.accountNameAr || row.accountNameEn || row.accountId,
+                            ].filter(Boolean).join(' - '),
                           },
                           {
                             id: 'costCenter',
-                            header: 'مركز التكلفة',
+                            header: t('accounting.accounting_journal_entries_page.s31', "مركز التكلفة"),
                             render: (row) =>
                               row.costCenterName ? (
                                 <span
@@ -299,13 +340,13 @@ export function AccountingJournalEntriesPage() {
                                 <span style={{ color: '#94a3b8' }}>-</span>
                               ),
                           },
-                          { id: 'description', header: 'الوصف', render: (row) => row.description || '-' },
-                          { id: 'debit', header: 'مدين', align: 'end', render: (row) => formatCurrency(Number(row.debit || 0)) },
-                          { id: 'credit', header: 'دائن', align: 'end', render: (row) => formatCurrency(Number(row.credit || 0)) },
+                          { id: 'description', header: t('accounting.accounting_journal_entries_page.s32', "الوصف"), render: (row) => row.description || '-' },
+                          { id: 'debit', header: t('accounting.accounting_journal_entries_page.s33', "مدين"), align: 'end', render: (row) => formatCurrency(Number(row.debit || 0)) },
+                          { id: 'credit', header: t('accounting.accounting_journal_entries_page.s34', "دائن"), align: 'end', render: (row) => formatCurrency(Number(row.credit || 0)) },
                         ]}
                       />
                     ) : (
-                      <div className="muted">لا توجد سطور لهذا القيد</div>
+                      <div className="muted">{t('accounting.accounting_journal_entries_page.s35', "لا توجد سطور لهذا القيد")}</div>
                     )}
                   </FormSection>
                 </div>
@@ -332,7 +373,7 @@ export function AccountingJournalEntriesPage() {
             setReverseFeedback(null);
           }
         }}
-        title="عكس وإلغاء القيد المحاسبي آلياً"
+        title={t('accounting.accounting_journal_entries_page.s36', "عكس وإلغاء القيد المحاسبي آلياً")}
         subtitle={`سيتم إنشاء قيد يومية عكسي يقلب كافة بنود المدين والدائن للقيد رقم ${detailEntry?.entryNo || ''}`}
         width="520px"
         footerActions={
@@ -343,7 +384,7 @@ export function AccountingJournalEntriesPage() {
               onClick={() => setIsReverseOpen(false)}
               disabled={reversing}
             >
-              إلغاء
+              {t('accounting.accounting_journal_entries_page.s37', "إلغاء")}
             </Button>
             <Button
               type="button"
@@ -352,7 +393,7 @@ export function AccountingJournalEntriesPage() {
               disabled={reversing || !reverseReason.trim()}
               style={{ backgroundColor: '#dc2626', borderColor: '#dc2626', color: '#fff', fontWeight: 700 }}
             >
-              {reversing ? 'جاري العكس...' : 'تأكيد العكس وترحيل القيد المعكوس'}
+              {reversing ? t('accounting.accounting_journal_entries_page.s38', "جاري العكس...") : t('accounting.accounting_journal_entries_page.s39', "تأكيد العكس وترحيل القيد المعكوس")}
             </Button>
           </div>
         }
@@ -374,17 +415,17 @@ export function AccountingJournalEntriesPage() {
           )}
 
           <div style={{ fontSize: '13px', color: '#475569', lineHeight: 1.6 }}>
-            وفق المعايير المحاسبية المعتمدة (IFRS و Odoo)، لا يتم حذف القيود المرحلة نهائياً بل يتم إنشاء قيد تسوية عكسي (Reversal Entry) مع وسم القيد الحالي كـ <strong>ملغي (Cancelled)</strong> للحفاظ على تتبع التدقيق المحاسبي (Audit Trail).
+            {t('accounting.accounting_journal_entries_page.s40', "وفق المعايير المحاسبية المعتمدة (IFRS و Odoo)، لا يتم حذف القيود المرحلة نهائياً بل يتم إنشاء قيد تسوية عكسي (Reversal Entry) مع وسم القيد الحالي كـ")} <strong>{t('accounting.accounting_journal_entries_page.s41', "ملغي (Cancelled)")}</strong> {t('accounting.accounting_journal_entries_page.s42', "للحفاظ على تتبع التدقيق المحاسبي (Audit Trail).")}
           </div>
 
           <div>
             <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, marginBottom: '6px', color: '#1e293b' }}>
-              سبب عكس القيد <span style={{ color: '#dc2626' }}>*</span>
+              {t('accounting.accounting_journal_entries_page.s43', "سبب عكس القيد")} <span style={{ color: '#dc2626' }}>*</span>
             </label>
             <textarea
               value={reverseReason}
               onChange={(e) => setReverseReason(e.target.value)}
-              placeholder="اكتب سبب عكس القيد بالتفصيل (مثل: خطأ في توجيه الحساب أو إلغاء المعاملة)..."
+              placeholder={t('accounting.accounting_journal_entries_page.s44', "اكتب سبب عكس القيد بالتفصيل (مثل: خطأ في توجيه الحساب أو إلغاء المعاملة)...")}
               rows={3}
               style={{
                 width: '100%',

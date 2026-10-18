@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { Field } from '@/shared/ui/field';
 import { XIcon } from '@/shared/components/icons/AppIcons';
@@ -33,6 +34,7 @@ export function UpgradeTenantModal({
   onSubmit,
   isPending,
 }: UpgradeTenantModalProps) {
+  const { t } = useTranslation();
   if (!tenant) return null;
 
   return (
@@ -40,7 +42,7 @@ export function UpgradeTenantModal({
       open={Boolean(tenant)}
       onClose={onClose}
       width="520px"
-      ariaLabel="تفعيل أو ترقية الخطة"
+      ariaLabel={t('saas_admin.upgrade_tenant_modal.s0', "تفعيل أو ترقية الخطة")}
     >
       <div className="dialog-card" dir="rtl" style={{ padding: '22px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '14px', borderBottom: '1px solid #f1f5f9', marginBottom: '16px' }}>
@@ -52,10 +54,10 @@ export function UpgradeTenantModal({
             </div>
             <div>
               <h3 style={{ margin: 0, fontSize: '17px', fontWeight: 800, color: '#0f172a' }}>
-                تفعيل / ترقية الاشتراك
+                {t('saas_admin.upgrade_tenant_modal.s1', "تفعيل / ترقية الاشتراك")}
               </h3>
               <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>
-                النسخة: <strong style={{ color: '#0f172a' }}>{tenant.name}</strong>
+                {t('saas_admin.upgrade_tenant_modal.s2', "النسخة:")} <strong style={{ color: '#0f172a' }}>{tenant.name}</strong>
               </div>
             </div>
           </div>
@@ -69,43 +71,43 @@ export function UpgradeTenantModal({
           </button>
         </div>
         <div className="stack gap-12">
-          <Field label="الخطة / الباقة المستهدفة *">
+          <Field label={t('saas_admin.upgrade_tenant_modal.s3', "الخطة / الباقة المستهدفة *")}>
             <select value={planId} onChange={(e) => onChangePlanId(e.target.value ? Number(e.target.value) : '')}>
-              <option value="">-- اختر الباقة --</option>
+              <option value="">{t('saas_admin.upgrade_tenant_modal.s4', "-- اختر الباقة --")}</option>
               {plans.map((p) => (
                 <option key={p.id} value={p.id}>{p.name}</option>
               ))}
             </select>
           </Field>
-          <Field label="مدة الاشتراك">
+          <Field label={t('saas_admin.upgrade_tenant_modal.s5', "مدة الاشتراك")}>
             <select value={duration} onChange={(e) => onChangeDuration(Number(e.target.value))}>
-              <option value={1}>شهر واحد</option>
-              <option value={3}>3 أشهر</option>
-              <option value={6}>6 أشهر</option>
-              <option value={12}>سنة واحدة</option>
-              <option value={60}>5 سنوات (شامل / مدى الحياة)</option>
+              <option value={1}>{t('saas_admin.upgrade_tenant_modal.s6', "شهر واحد")}</option>
+              <option value={3}>{t('saas_admin.upgrade_tenant_modal.s7', "3 أشهر")}</option>
+              <option value={6}>{t('saas_admin.upgrade_tenant_modal.s8', "6 أشهر")}</option>
+              <option value={12}>{t('saas_admin.upgrade_tenant_modal.s9', "سنة واحدة")}</option>
+              <option value={60}>{t('saas_admin.upgrade_tenant_modal.s10', "5 سنوات (شامل / مدى الحياة)")}</option>
             </select>
           </Field>
           <div className="saas-modal-grid-2">
-            <Field label="المبلغ المدفوع (اختياري)">
+            <Field label={t('saas_admin.upgrade_tenant_modal.s11', "المبلغ المدفوع (اختياري)")}>
               <input
                 type="number"
                 min="0"
                 value={paymentAmount}
                 onChange={(e) => onChangePaymentAmount(Number(e.target.value))}
-                placeholder="المبلغ المحصل"
+                placeholder={t('saas_admin.upgrade_tenant_modal.s12', "المبلغ المحصل")}
               />
             </Field>
-            <Field label="طريقة الدفع">
+            <Field label={t('saas_admin.upgrade_tenant_modal.s13', "طريقة الدفع")}>
               <select value={paymentMethod} onChange={(e) => onChangePaymentMethod(e.target.value)}>
-                <option value="cash">نقدي (Cash)</option>
-                <option value="transfer">تحويل بنكي / فودافون كاش</option>
-                <option value="card">بطاقة دفع (Card)</option>
+                <option value="cash">{t('saas_admin.upgrade_tenant_modal.s14', "نقدي (Cash)")}</option>
+                <option value="transfer">{t('saas_admin.upgrade_tenant_modal.s15', "تحويل بنكي / فودافون كاش")}</option>
+                <option value="card">{t('saas_admin.upgrade_tenant_modal.s16', "بطاقة دفع (Card)")}</option>
               </select>
             </Field>
           </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '16px', paddingTop: '12px', borderTop: '1px solid #f1f5f9' }}>
-            <button type="button" className="button button-secondary" onClick={onClose}>إلغاء</button>
+            <button type="button" className="button button-secondary" onClick={onClose}>{t('saas_admin.upgrade_tenant_modal.s17', "إلغاء")}</button>
             <button
               type="button"
               className="button"
@@ -113,7 +115,7 @@ export function UpgradeTenantModal({
               onClick={onSubmit}
               disabled={isPending || !planId}
             >
-              تأكيد التفعيل والترقية
+              {t('saas_admin.upgrade_tenant_modal.s18', "تأكيد التفعيل والترقية")}
             </button>
           </div>
         </div>

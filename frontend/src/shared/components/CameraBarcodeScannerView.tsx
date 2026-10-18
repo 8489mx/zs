@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { XIcon } from '@/shared/components/icons/AppIcons';
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
@@ -156,6 +157,7 @@ export function CameraBarcodeScannerView({
   title = 'مسح باركود الصنف',
   continuous = false,
 }: CameraBarcodeScannerModalProps) {
+  const { t } = useTranslation();
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isInitializing, setIsInitializing] = useState(true);
   const [lastScanned, setLastScanned] = useState<string | null>(null);
@@ -537,7 +539,7 @@ export function CameraBarcodeScannerView({
                 type="button"
                 variant="secondary"
                 onClick={switchCamera}
-                title="تبديل الكاميرا"
+                title={t('shared.camera_barcode_scanner_view.s0', "تبديل الكاميرا")}
                 style={{ padding: '4px 8px', fontSize: '0.8rem', minHeight: '30px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
               >
                 <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -545,7 +547,7 @@ export function CameraBarcodeScannerView({
                   <polyline points="1 20 1 14 7 14"/>
                   <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
                 </svg>
-                <span>تبديل</span>
+                <span>{t('shared.camera_barcode_scanner_view.s1', "تبديل")}</span>
               </Button>
             )}
 
@@ -554,13 +556,13 @@ export function CameraBarcodeScannerView({
                 type="button"
                 variant={isTorchOn ? 'primary' : 'secondary'}
                 onClick={toggleTorch}
-                title={isTorchOn ? 'إطفاء الفلاش' : 'تشغيل الفلاش'}
+                title={isTorchOn ? t('shared.camera_barcode_scanner_view.s2', "إطفاء الفلاش") : t('shared.camera_barcode_scanner_view.s3', "تشغيل الفلاش")}
                 style={{ padding: '4px 8px', fontSize: '0.8rem', minHeight: '30px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
               >
                 <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
                 </svg>
-                <span>{isTorchOn ? 'إطفاء' : 'فلاش'}</span>
+                <span>{isTorchOn ? t('shared.camera_barcode_scanner_view.s4', "إطفاء") : t('shared.camera_barcode_scanner_view.s5', "فلاش")}</span>
               </Button>
             )}
 
@@ -568,7 +570,7 @@ export function CameraBarcodeScannerView({
               type="button"
               className="z-scanner-btn-close"
               onClick={onClose}
-              aria-label="إغلاق"
+              aria-label={t('shared.camera_barcode_scanner_view.s6', "إغلاق")}
             ><XIcon size={15} /></button>
           </div>
         </div>
@@ -588,7 +590,7 @@ export function CameraBarcodeScannerView({
           {isInitializing && !errorMsg && (
             <div className="z-scanner-overlay-state">
               <div className="z-scanner-spinner" />
-              <span className="z-scanner-state-text">جاري تشغيل الكاميرا...</span>
+              <span className="z-scanner-state-text">{t('shared.camera_barcode_scanner_view.s7', "جاري تشغيل الكاميرا...")}</span>
             </div>
           )}
 
@@ -602,7 +604,7 @@ export function CameraBarcodeScannerView({
                   <line x1="1" y1="1" x2="23" y2="23"/>
                 </svg>
               </div>
-              <strong style={{ fontSize: '0.92rem', color: '#991b1b', marginBottom: '4px' }}>تعذر الوصول إلى الكاميرا</strong>
+              <strong style={{ fontSize: '0.92rem', color: '#991b1b', marginBottom: '4px' }}>{t('shared.camera_barcode_scanner_view.s8', "تعذر الوصول إلى الكاميرا")}</strong>
               <p style={{ fontSize: '0.78rem', color: '#7f1d1d', margin: '0 0 12px 0', lineHeight: 1.5 }}>{errorMsg}</p>
               
               <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap' }}>
@@ -612,7 +614,7 @@ export function CameraBarcodeScannerView({
                   onClick={() => startScanner(activeCameraIndex)}
                   style={{ fontSize: '0.8rem', padding: '6px 14px' }}
                 >
-                  إعادة المحاولة
+                  {t('shared.camera_barcode_scanner_view.s9', "إعادة المحاولة")}
                 </Button>
                 <Button
                   type="button"
@@ -620,7 +622,7 @@ export function CameraBarcodeScannerView({
                   onClick={() => setShowManualInput(true)}
                   style={{ fontSize: '0.8rem', padding: '6px 14px' }}
                 >
-                  إدخال الباركود يدوياً
+                  {t('shared.camera_barcode_scanner_view.s10', "إدخال الباركود يدوياً")}
                 </Button>
               </div>
             </div>
@@ -629,7 +631,7 @@ export function CameraBarcodeScannerView({
           {/* Success Toast Notification */}
           {lastScanned && (
             <div className="z-scanner-success-toast">
-              <span style={{ fontWeight: 800 }}>تم المسح:</span>
+              <span style={{ fontWeight: 800 }}>{t('shared.camera_barcode_scanner_view.s11', "تم المسح:")}</span>
               <strong style={{ marginInlineStart: '4px' }}>{lastScanned}</strong>
             </div>
           )}
@@ -642,12 +644,12 @@ export function CameraBarcodeScannerView({
               type="text"
               value={manualBarcode}
               onChange={(e) => setManualBarcode(e.target.value)}
-              placeholder="اكتب رقم الباركود هنا..."
+              placeholder={t('shared.camera_barcode_scanner_view.s12', "اكتب رقم الباركود هنا...")}
               className="z-scanner-manual-input"
               autoFocus
             />
             <Button type="submit" variant="primary" disabled={!manualBarcode.trim()} style={{ padding: '0 14px', minHeight: '34px', fontSize: '0.825rem' }}>
-              إضافة
+              {t('shared.camera_barcode_scanner_view.s13', "إضافة")}
             </Button>
           </form>
         )}
@@ -656,7 +658,7 @@ export function CameraBarcodeScannerView({
         <div className="z-scanner-footer">
           <div className="z-scanner-footer-row">
             <span className="z-scanner-hint">
-              وجّه الكاميرا نحو الباركود لقراءته تلقائياً
+              {t('shared.camera_barcode_scanner_view.s14', "وجّه الكاميرا نحو الباركود لقراءته تلقائياً")}
             </span>
             {!showManualInput && (
               <button
@@ -664,7 +666,7 @@ export function CameraBarcodeScannerView({
                 className="z-scanner-text-link"
                 onClick={() => setShowManualInput(true)}
               >
-                إدخال يدوي
+                {t('shared.camera_barcode_scanner_view.s15', "إدخال يدوي")}
               </button>
             )}
           </div>
@@ -678,7 +680,7 @@ export function CameraBarcodeScannerView({
                 setIsContinuousMode(e.target.checked);
               }}
             />
-            <span style={{ fontSize: '0.78rem', color: '#475569', fontWeight: 600 }}>المسح المتتالي (إبقاء الكاميرا مفتوحة)</span>
+            <span style={{ fontSize: '0.78rem', color: '#475569', fontWeight: 600 }}>{t('shared.camera_barcode_scanner_view.s16', "المسح المتتالي (إبقاء الكاميرا مفتوحة)")}</span>
           </label>
         </div>
       </div>

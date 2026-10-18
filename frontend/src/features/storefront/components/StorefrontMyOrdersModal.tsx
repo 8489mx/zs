@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -42,6 +43,7 @@ export function StorefrontMyOrdersModal({
   onEditOrder,
   onReorder,
 }: StorefrontMyOrdersModalProps) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [actionError, setActionError] = useState('');
   const [expandedDateKeys, setExpandedDateKeys] = useState<Record<string, boolean>>({});
@@ -142,7 +144,7 @@ export function StorefrontMyOrdersModal({
       open={isOpen}
       onClose={onClose}
       width="min(580px, calc(100vw - 20px))"
-      ariaLabel="متابعة طلباتي"
+      ariaLabel={t('storefront.storefront_my_orders_modal.s0', "متابعة طلباتي")}
     >
       <div
         className="full-bleed"
@@ -209,10 +211,10 @@ export function StorefrontMyOrdersModal({
               </div>
 
               <h4 style={{ margin: '0 0 6px', fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>
-                تأكيد إلغاء الطلب #{cancellingOrder.orderNumber}
+                {t('storefront.storefront_my_orders_modal.s1', "تأكيد إلغاء الطلب #")}{cancellingOrder.orderNumber}
               </h4>
               <p style={{ margin: '0 0 16px', fontSize: '12.5px', color: '#64748b', lineHeight: 1.5 }}>
-                هل أنت متأكد من رغبتك في إلغاء هذا الطلب؟ لا يمكن التراجع عن هذا الإجراء بعد تنفيذه.
+                {t('storefront.storefront_my_orders_modal.s2', "هل أنت متأكد من رغبتك في إلغاء هذا الطلب؟ لا يمكن التراجع عن هذا الإجراء بعد تنفيذه.")}
               </p>
 
               <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
@@ -233,7 +235,7 @@ export function StorefrontMyOrdersModal({
                     fontFamily: 'inherit',
                   }}
                 >
-                  تراجع
+                  {t('storefront.storefront_my_orders_modal.s3', "تراجع")}
                 </button>
                 <button
                   type="button"
@@ -252,7 +254,7 @@ export function StorefrontMyOrdersModal({
                     fontFamily: 'inherit',
                   }}
                 >
-                  {cancelMutation.isPending ? 'جاري الإلغاء...' : 'نعم، إلغاء الطلب'}
+                  {cancelMutation.isPending ? t('storefront.storefront_my_orders_modal.s4', "جاري الإلغاء...") : t('storefront.storefront_my_orders_modal.s5', "نعم، إلغاء الطلب")}
                 </button>
               </div>
             </div>
@@ -312,7 +314,7 @@ export function StorefrontMyOrdersModal({
                     whiteSpace: 'nowrap',
                   }}
                 >
-                  متابعة طلباتي
+                  {t('storefront.storefront_my_orders_modal.s6', "متابعة طلباتي")}
                 </h3>
               </div>
               <span
@@ -327,7 +329,7 @@ export function StorefrontMyOrdersModal({
                   marginTop: '1px',
                 }}
               >
-                تتبع حالة ومسار طلباتك وإدارتها
+                {t('storefront.storefront_my_orders_modal.s7', "تتبع حالة ومسار طلباتك وإدارتها")}
               </span>
             </div>
           </div>
@@ -338,7 +340,7 @@ export function StorefrontMyOrdersModal({
               type="button"
               onClick={() => ordersQuery.refetch()}
               disabled={ordersQuery.isFetching}
-              title="تحديث البيانات"
+              title={t('storefront.storefront_my_orders_modal.s8', "تحديث البيانات")}
               style={{
                 background: '#f8fafc',
                 border: '1px solid #cbd5e1',
@@ -357,13 +359,13 @@ export function StorefrontMyOrdersModal({
               }}
             >
               {ordersQuery.isFetching ? <ClockIcon size={13} /> : <RefreshCwIcon size={13} />}
-              <span>{ordersQuery.isFetching ? 'جاري...' : 'تحديث'}</span>
+              <span>{ordersQuery.isFetching ? t('storefront.storefront_my_orders_modal.s9', "جاري...") : t('storefront.storefront_my_orders_modal.s10', "تحديث")}</span>
             </button>
 
             <button
               type="button"
               onClick={onClose}
-              title="إغلاق (Esc)"
+              title={t('storefront.storefront_my_orders_modal.s11', "إغلاق (Esc)")}
               style={{
                 background: '#f8fafc',
                 border: '1px solid #cbd5e1',
@@ -399,7 +401,7 @@ export function StorefrontMyOrdersModal({
         >
           <InfoIcon size={13} color="#64748b" style={{ flexShrink: 0 }} />
           <span style={{ lineHeight: 1.35 }}>
-            تظهر هنا الطلبات المسجلة من هذا الجهاز فقط. لمتابعة طلب من جهاز آخر، تواصل برقم الطلب.
+            {t('storefront.storefront_my_orders_modal.s12', "تظهر هنا الطلبات المسجلة من هذا الجهاز فقط. لمتابعة طلب من جهاز آخر، تواصل برقم الطلب.")}
           </span>
         </div>
 
@@ -434,7 +436,7 @@ export function StorefrontMyOrdersModal({
         >
           {ordersQuery.isLoading ? (
             <div style={{ padding: '36px', textAlign: 'center', color: '#64748b', fontSize: '12.5px' }}>
-              جاري البحث عن طلباتك...
+              {t('storefront.storefront_my_orders_modal.s13', "جاري البحث عن طلباتك...")}
             </div>
           ) : groupedOrders.length === 0 ? (
             <div style={{ padding: '36px 20px', textAlign: 'center', color: '#64748b' }}>
@@ -442,10 +444,10 @@ export function StorefrontMyOrdersModal({
                 <ShoppingCartIcon size={38} color="#94a3b8" />
               </div>
               <h4 style={{ margin: '0 0 4px', fontSize: '14.5px', fontWeight: 800, color: '#0f172a' }}>
-                لا توجد طلبات مسجلة حالياً
+                {t('storefront.storefront_my_orders_modal.s14', "لا توجد طلبات مسجلة حالياً")}
               </h4>
               <p style={{ margin: 0, fontSize: '12px', color: '#94a3b8' }}>
-                ستظهر طلباتك هنا تلقائياً بعد إتمام أي طلب من هذا المتجر.
+                {t('storefront.storefront_my_orders_modal.s15', "ستظهر طلباتك هنا تلقائياً بعد إتمام أي طلب من هذا المتجر.")}
               </p>
             </div>
           ) : (

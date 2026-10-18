@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '@/shared/components/page-header';
@@ -30,6 +31,7 @@ import { HrReportsOverviewGrid } from '@/features/hr/pages/reports/HrReportsOver
 import { HrReportsDetailSections } from '@/features/hr/pages/reports/HrReportsDetailSections';
 
 export function HrReportsPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [from, setFrom] = useState(monthStartDate());
   const [to, setTo] = useState(todayDate());
@@ -109,13 +111,13 @@ export function HrReportsPage() {
     <div className="page-stack page-shell" dir="rtl">
       <main className="document-prototype-column" style={{ paddingBottom: '20px' }}>
         <PageHeader
-          title="تقارير الموارد البشرية"
-          description="ملخص تشغيلي سريع لكل دورة HR: الموظفين، الحضور، الإجازات، السلف، المرتبات، والعُهد."
+          title={t('hr.hr_reports_page.s0', "تقارير الموارد البشرية")}
+          description={t('hr.hr_reports_page.s1', "ملخص تشغيلي سريع لكل دورة HR: الموظفين، الحضور، الإجازات، السلف، المرتبات، والعُهد.")}
           actions={
             <div className="actions compact-actions">
-              <Button variant="secondary" onClick={() => navigate('/hr')}>نظرة عامة HR</Button>
-              <Button variant="secondary" onClick={() => navigate('/hr/payroll')}>فتح المرتبات</Button>
-              <Button variant="secondary" onClick={() => navigate('/hr/employees')}>رجوع للموظفين</Button>
+              <Button variant="secondary" onClick={() => navigate('/hr')}>{t('hr.hr_reports_page.s2', "نظرة عامة HR")}</Button>
+              <Button variant="secondary" onClick={() => navigate('/hr/payroll')}>{t('hr.hr_reports_page.s3', "فتح المرتبات")}</Button>
+              <Button variant="secondary" onClick={() => navigate('/hr/employees')}>{t('hr.hr_reports_page.s4', "رجوع للموظفين")}</Button>
             </div>
           }
         />
@@ -148,7 +150,7 @@ export function HrReportsPage() {
             setReportType={setReportType}
           />
 
-          <QueryFeedback isLoading={loading} isError={isError} error={error} isEmpty={!hasAnyData} loadingText="جارٍ تحميل التقارير..." errorTitle="تعذر تحميل تقارير الموارد البشرية" emptyTitle="لا توجد بيانات كافية لعرض التقرير.">
+          <QueryFeedback isLoading={loading} isError={isError} error={error} isEmpty={!hasAnyData} loadingText={t('hr.hr_reports_page.s5', "جارٍ تحميل التقارير...")} errorTitle={t('hr.hr_reports_page.s6', "تعذر تحميل تقارير الموارد البشرية")} emptyTitle={t('hr.hr_reports_page.s7', "لا توجد بيانات كافية لعرض التقرير.")}>
             {reportType === 'all' ? (
               <HrReportsOverviewGrid
                 setReportType={setReportType}

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { SINGLE_STORE_MODE } from '@/config/product-scope';
 import type { Branch, Location } from '@/types/domain';
 import { useAuthStore } from '@/stores/auth-store';
@@ -17,6 +18,7 @@ export function BranchRowActions({ branch, onStartEdit, onDelete, canManageSetti
   mutationError?: unknown;
   setupMode?: boolean;
 }) {
+  const { t } = useTranslation();
   return (
     <div style={{
       display: 'flex',
@@ -35,11 +37,11 @@ export function BranchRowActions({ branch, onStartEdit, onDelete, canManageSetti
             {branch.code}
           </span>
         ) : (
-          <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>بدون كود</span>
+          <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>{t('settings.workspace_sections.reference_section.row_actions.s0', "بدون كود")}</span>
         )}
         {setupMode && branch.defaultStockLocationId && (
           <span style={{ fontSize: '0.7rem', backgroundColor: '#e0f2fe', color: '#0369a1', padding: '1px 6px', borderRadius: '4px', fontWeight: 600 }}>
-            تم تعيين المخزن
+            {t('settings.workspace_sections.reference_section.row_actions.s1', "تم تعيين المخزن")}
           </span>
         )}
       </div>
@@ -52,7 +54,7 @@ export function BranchRowActions({ branch, onStartEdit, onDelete, canManageSetti
             disabled={isBusy}
             style={{ padding: '4px 10px', fontSize: '0.75rem', fontWeight: 600, borderRadius: '5px', border: '1px solid #cbd5e1', background: '#f8fafc', color: '#1e293b', cursor: 'pointer' }}
           >
-            تعديل
+            {t('settings.workspace_sections.reference_section.row_actions.s2', "تعديل")}
           </button>
           {!SINGLE_STORE_MODE && (
             <button
@@ -61,7 +63,7 @@ export function BranchRowActions({ branch, onStartEdit, onDelete, canManageSetti
               disabled={isBusy}
               style={{ padding: '4px 10px', fontSize: '0.75rem', fontWeight: 600, borderRadius: '5px', border: '1px solid #fecaca', background: '#fef2f2', color: '#dc2626', cursor: 'pointer' }}
             >
-              حذف
+              {t('settings.workspace_sections.reference_section.row_actions.s3', "حذف")}
             </button>
           )}
         </div>
@@ -83,6 +85,7 @@ export function LocationRowActions({ location, onStartEdit, onDelete, canManageS
   isBusy: boolean;
   mutationError?: unknown;
 }) {
+  const { t } = useTranslation();
   const tenant = useAuthStore((s) => s.tenant);
   const vertical = resolveCurrentVertical(tenant);
   const isMaritime = vertical === 'maritime';
@@ -137,7 +140,7 @@ export function LocationRowActions({ location, onStartEdit, onDelete, canManageS
               disabled={isBusy}
               style={{ padding: '4px 10px', fontSize: '0.75rem', fontWeight: 600, borderRadius: '5px', border: '1px solid #cbd5e1', background: '#f8fafc', color: '#1e293b', cursor: 'pointer' }}
             >
-              تعديل
+              {t('settings.workspace_sections.reference_section.row_actions.s4', "تعديل")}
             </button>
             {!SINGLE_STORE_MODE && (
               <button
@@ -146,7 +149,7 @@ export function LocationRowActions({ location, onStartEdit, onDelete, canManageS
                 disabled={isBusy}
                 style={{ padding: '4px 10px', fontSize: '0.75rem', fontWeight: 600, borderRadius: '5px', border: '1px solid #fecaca', background: '#fef2f2', color: '#dc2626', cursor: 'pointer' }}
               >
-                حذف
+                {t('settings.workspace_sections.reference_section.row_actions.s5', "حذف")}
               </button>
             )}
           </>

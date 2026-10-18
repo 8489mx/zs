@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useMemo, type ReactNode } from 'react';
 import { StandardDialog } from '@/shared/components/StandardDialog';
 import { contractingApi } from '../api/contracting.api';
@@ -119,6 +120,7 @@ export function ImportMasterBoqModal({
   onSuccess,
   onImportSelected,
 }: ImportMasterBoqModalProps) {
+  const { t: __t } = useTranslation();
   const [trades, setTrades] = useState<MasterBoqTrade[]>([]);
   const [selectedSector, setSelectedSector] = useState<string>('all');
   const [selectedTrade, setSelectedTrade] = useState<string>('all');
@@ -307,7 +309,7 @@ export function ImportMasterBoqModal({
     <StandardDialog
       open={open}
       onClose={onClose}
-      title="سحب واستيراد من بنك بنود المقاولات المرجعي"
+      title={__t('contracting.import_master_boq_modal.s0', "سحب واستيراد من بنك بنود المقاولات المرجعي")}
       subtitle={`سحب وتوريث البنود القياسية بأسعار السوق المحدثة إلى مشروع: ${projectName}`}
       width="min(1200px, 96vw)"
       maxWidth="1200px"
@@ -316,7 +318,7 @@ export function ImportMasterBoqModal({
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: 'var(--font-subtitle)', color: '#475569' }}>
             <span style={{ fontWeight: 700, color: '#0f172a' }}>
-              المحدد حالياً: {selectedIds.size} بند
+              {__t('contracting.import_master_boq_modal.s1', "المحدد حالياً:")} {selectedIds.size} {__t('contracting.import_master_boq_modal.s2', "بند")}
             </span>
             {selectedIds.size > 0 && (
               <button
@@ -332,7 +334,7 @@ export function ImportMasterBoqModal({
                   padding: 0,
                 }}
               >
-                إلغاء التحديد
+                {__t('contracting.import_master_boq_modal.s3', "إلغاء التحديد")}
               </button>
             )}
           </div>
@@ -344,7 +346,7 @@ export function ImportMasterBoqModal({
               disabled={submitting}
               style={{ padding: '8px 18px', borderRadius: '8px', cursor: 'pointer' }}
             >
-              إلغاء
+              {__t('contracting.import_master_boq_modal.s4', "إلغاء")}
             </button>
             <button
               type="button"
@@ -362,7 +364,7 @@ export function ImportMasterBoqModal({
                 opacity: selectedIds.size === 0 || submitting ? 0.6 : 1,
               }}
             >
-              {submitting ? 'جاري الاستيراد...' : `سحب (${selectedIds.size}) بند إلى المقايسة`}
+              {submitting ? __t('contracting.import_master_boq_modal.s5', "جاري الاستيراد...") : `سحب (${selectedIds.size}) بند إلى المقايسة`}
             </button>
           </div>
         </div>
@@ -390,7 +392,7 @@ export function ImportMasterBoqModal({
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="ابحث بكود البند، الاسم، التوصيف الفني، أو التخصص..."
+                placeholder={__t('contracting.import_master_boq_modal.s6', "ابحث بكود البند، الاسم، التوصيف الفني، أو التخصص...")}
                 style={{
                   width: '100%',
                   padding: '8px 34px 8px 12px',
@@ -420,7 +422,7 @@ export function ImportMasterBoqModal({
                 onClick={() => setSearch('')}
                 style={{ background: '#e2e8f0', border: 'none', borderRadius: '6px', padding: '7px 14px', cursor: 'pointer', fontSize: 'var(--font-micro)', fontWeight: 600 }}
               >
-                مسح البحث
+                {__t('contracting.import_master_boq_modal.s7', "مسح البحث")}
               </button>
             )}
           </div>
@@ -442,7 +444,7 @@ export function ImportMasterBoqModal({
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
                 <AppIcons.Sliders size={14} color="#170e5e" />
                 <span style={{ fontSize: '12px', fontWeight: 700, color: '#1e293b' }}>
-                  القطاعات الهندسية:
+                  {__t('contracting.import_master_boq_modal.s8', "القطاعات الهندسية:")}
                 </span>
               </div>
               <div
@@ -513,7 +515,7 @@ export function ImportMasterBoqModal({
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
                 <AppIcons.Tool size={14} color="#170e5e" />
                 <span style={{ fontSize: '12px', fontWeight: 700, color: '#1e293b' }}>
-                  التخصصات التنفيذية:
+                  {__t('contracting.import_master_boq_modal.s9', "التخصصات التنفيذية:")}
                 </span>
               </div>
               <div
@@ -547,7 +549,7 @@ export function ImportMasterBoqModal({
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0, flex: 1 }}>
                     <AppIcons.Layers size={14} color={selectedTrade === 'all' ? '#ffffff' : '#64748b'} style={{ flexShrink: 0 }} />
                     <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'right' }}>
-                      {selectedSector === 'all' ? 'كافة التخصصات' : `كافة بنود ${SECTORS.find(s => s.id === selectedSector)?.name || ''}`}
+                      {selectedSector === 'all' ? __t('contracting.import_master_boq_modal.s10', "كافة التخصصات") : `كافة بنود ${SECTORS.find(s => s.id === selectedSector)?.name || ''}`}
                     </span>
                   </div>
                   <span
@@ -639,15 +641,15 @@ export function ImportMasterBoqModal({
                     checked={allVisibleSelected}
                     onChange={toggleSelectAll}
                     style={{ cursor: 'pointer', width: '16px', height: '16px' }}
-                    title="تحديد كل المعروض"
+                    title={__t('contracting.import_master_boq_modal.s11', "تحديد كل المعروض")}
                   />
                 </th>
-                <th style={{ padding: '9px 8px', fontSize: 'var(--font-table-head)', color: '#475569', textAlign: 'center' }}>كود البند</th>
-                <th style={{ padding: '9px 10px', fontSize: 'var(--font-table-head)', color: '#475569' }}>اسم البند والتوصيف الهندسي</th>
-                <th style={{ padding: '9px 8px', fontSize: 'var(--font-table-head)', color: '#475569', textAlign: 'center' }}>التخصص</th>
-                <th style={{ padding: '9px 8px', fontSize: 'var(--font-table-head)', color: '#475569', textAlign: 'center' }}>الوحدة</th>
-                <th style={{ padding: '9px 10px', fontSize: 'var(--font-table-head)', color: '#475569', textAlign: 'left' }}>تكلفة السوق</th>
-                <th style={{ padding: '9px 10px', fontSize: 'var(--font-table-head)', color: '#475569', textAlign: 'left' }}>سعر البيع</th>
+                <th style={{ padding: '9px 8px', fontSize: 'var(--font-table-head)', color: '#475569', textAlign: 'center' }}>{__t('contracting.import_master_boq_modal.s12', "كود البند")}</th>
+                <th style={{ padding: '9px 10px', fontSize: 'var(--font-table-head)', color: '#475569' }}>{__t('contracting.import_master_boq_modal.s13', "اسم البند والتوصيف الهندسي")}</th>
+                <th style={{ padding: '9px 8px', fontSize: 'var(--font-table-head)', color: '#475569', textAlign: 'center' }}>{__t('contracting.import_master_boq_modal.s14', "التخصص")}</th>
+                <th style={{ padding: '9px 8px', fontSize: 'var(--font-table-head)', color: '#475569', textAlign: 'center' }}>{__t('contracting.import_master_boq_modal.s15', "الوحدة")}</th>
+                <th style={{ padding: '9px 10px', fontSize: 'var(--font-table-head)', color: '#475569', textAlign: 'left' }}>{__t('contracting.import_master_boq_modal.s16', "تكلفة السوق")}</th>
+                <th style={{ padding: '9px 10px', fontSize: 'var(--font-table-head)', color: '#475569', textAlign: 'left' }}>{__t('contracting.import_master_boq_modal.s17', "سعر البيع")}</th>
               </tr>
             </thead>
             <tbody>
@@ -656,14 +658,14 @@ export function ImportMasterBoqModal({
                   <td colSpan={7} style={{ textAlign: 'center', padding: '90px 20px' }}>
                     <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
                       <div className="spinner" style={{ width: '32px', height: '32px', border: '3px solid #e2e8f0', borderTopColor: '#170e5e', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-                      <span style={{ fontSize: 'var(--font-subtitle)', color: '#64748b', fontWeight: 600 }}>جاري تحميل بنك البنود المرجعي...</span>
+                      <span style={{ fontSize: 'var(--font-subtitle)', color: '#64748b', fontWeight: 600 }}>{__t('contracting.import_master_boq_modal.s18', "جاري تحميل بنك البنود المرجعي...")}</span>
                     </div>
                   </td>
                 </tr>
               ) : filteredItems.length === 0 ? (
                 <tr>
                   <td colSpan={7} style={{ textAlign: 'center', padding: '60px 20px', color: '#94a3b8' }}>
-                    لا توجد بنود مطابقة للبحث أو التخصص المحدد.
+                    {__t('contracting.import_master_boq_modal.s19', "لا توجد بنود مطابقة للبحث أو التخصص المحدد.")}
                   </td>
                 </tr>
               ) : (

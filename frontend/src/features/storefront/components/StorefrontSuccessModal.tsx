@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { DialogShell } from '@/shared/components/dialog-shell';
@@ -29,6 +30,7 @@ export function StorefrontSuccessModal({
   onClose,
   onTrackOrder,
 }: StorefrontSuccessModalProps) {
+  const { t } = useTranslation();
   const activeOrder = order || orderData;
   const [linkCopied, setLinkCopied] = useState(false);
   const [orderNumCopied, setOrderNumCopied] = useState(false);
@@ -78,7 +80,7 @@ export function StorefrontSuccessModal({
       onClose={onClose}
       width="min(480px, calc(100vw - 24px))"
       maxHeight="min(90vh, 760px)"
-      ariaLabel="تم استلام الطلب بنجاح"
+      ariaLabel={t('storefront.storefront_success_modal.s0', "تم استلام الطلب بنجاح")}
     >
       <div
         className="full-bleed"
@@ -111,7 +113,7 @@ export function StorefrontSuccessModal({
               lineHeight: 1.25,
             }}
           >
-            {activeOrder.tableNumber ? 'تم إرسال طلب الطاولة للمطبخ بنجاح' : 'تم استلام طلبك بنجاح'}
+            {activeOrder.tableNumber ? t('storefront.storefront_success_modal.s1', "تم إرسال طلب الطاولة للمطبخ بنجاح") : t('storefront.storefront_success_modal.s2', "تم استلام طلبك بنجاح")}
           </h2>
           <div
             style={{
@@ -149,14 +151,14 @@ export function StorefrontSuccessModal({
         >
           {activeOrder.tableNumber ? (
             <span>
-              طاولة رقم{' '}
+              {t('storefront.storefront_success_modal.s3', "طاولة رقم")}{' '}
               <strong style={{ color: 'var(--storefront-primary-color, #170e5e)', fontWeight: 800 }}>
                 {activeOrder.tableNumber}
               </strong>{' '}
-              • رقم الطلب:
+              {t('storefront.storefront_success_modal.s4', "• رقم الطلب:")}
             </span>
           ) : (
-            <span>رقم الطلب:</span>
+            <span>{t('storefront.storefront_success_modal.s5', "رقم الطلب:")}</span>
           )}
           <span
             style={{
@@ -172,7 +174,7 @@ export function StorefrontSuccessModal({
           <button
             type="button"
             onClick={copyOrderNumber}
-            title={orderNumCopied ? 'تم نسخ الرقم' : 'نسخ رقم الطلب'}
+            title={orderNumCopied ? t('storefront.storefront_success_modal.s6', "تم نسخ الرقم") : t('storefront.storefront_success_modal.s7', "نسخ رقم الطلب")}
             style={{
               background: 'transparent',
               border: 'none',
@@ -223,7 +225,7 @@ export function StorefrontSuccessModal({
               }}
             >
               <ReceiptIcon size={13} color="#64748b" strokeWidth={2.2} />
-              <span>ملخص الفاتورة</span>
+              <span>{t('storefront.storefront_success_modal.s8', "ملخص الفاتورة")}</span>
             </div>
             <span
               style={{
@@ -236,7 +238,7 @@ export function StorefrontSuccessModal({
                 borderRadius: '4px',
               }}
             >
-              {activeOrder.items.length} {activeOrder.items.length === 1 ? 'صنف' : activeOrder.items.length <= 10 ? 'أصناف' : 'صنف'}
+              {activeOrder.items.length} {activeOrder.items.length === 1 ? t('storefront.storefront_success_modal.s9', "صنف") : activeOrder.items.length <= 10 ? t('storefront.storefront_success_modal.s10', "أصناف") : t('storefront.storefront_success_modal.s11', "صنف")}
             </span>
           </div>
 
@@ -312,22 +314,22 @@ export function StorefrontSuccessModal({
           >
             {activeOrder.tableNumber ? (
               <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--storefront-primary-color, #170e5e)' }}>
-                <span>نوع الطلب:</span>
-                <span style={{ fontWeight: 700 }}>صالة (طاولة رقم {activeOrder.tableNumber})</span>
+                <span>{t('storefront.storefront_success_modal.s12', "نوع الطلب:")}</span>
+                <span style={{ fontWeight: 700 }}>{t('storefront.storefront_success_modal.s13', "صالة (طاولة رقم")} {activeOrder.tableNumber})</span>
               </div>
             ) : activeOrder.orderType === 'pickup' ? (
               <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--storefront-primary-color, #170e5e)' }}>
-                <span>نوع الطلب:</span>
-                <span style={{ fontWeight: 700 }}>استلام من الفرع</span>
+                <span>{t('storefront.storefront_success_modal.s14', "نوع الطلب:")}</span>
+                <span style={{ fontWeight: 700 }}>{t('storefront.storefront_success_modal.s15', "استلام من الفرع")}</span>
               </div>
             ) : activeOrder.deliveryFee === 0 ? (
               <div style={{ display: 'flex', justifyContent: 'space-between', color: '#16a34a' }}>
-                <span>خدمة التوصيل {activeOrder.deliveryZoneName ? `(${activeOrder.deliveryZoneName})` : ''}:</span>
-                <span style={{ fontWeight: 800 }}>مجاناً</span>
+                <span>{t('storefront.storefront_success_modal.s16', "خدمة التوصيل")} {activeOrder.deliveryZoneName ? `(${activeOrder.deliveryZoneName})` : ''}:</span>
+                <span style={{ fontWeight: 800 }}>{t('storefront.storefront_success_modal.s17', "مجاناً")}</span>
               </div>
             ) : (
               <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748b' }}>
-                <span>خدمة التوصيل {activeOrder.deliveryZoneName ? `(${activeOrder.deliveryZoneName})` : ''}:</span>
+                <span>{t('storefront.storefront_success_modal.s18', "خدمة التوصيل")} {activeOrder.deliveryZoneName ? `(${activeOrder.deliveryZoneName})` : ''}:</span>
                 <span style={{ fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
                   <span>{formatPriceNumber(activeOrder.deliveryFee)}</span>
                   <CurrencySymbol />
@@ -337,7 +339,7 @@ export function StorefrontSuccessModal({
 
             {(activeOrder.discountAmount ?? 0) > 0 && (
               <div style={{ display: 'flex', justifyContent: 'space-between', color: '#16a34a' }}>
-                <span>خصم الكوبون {activeOrder.couponCode ? `(${activeOrder.couponCode})` : ''}:</span>
+                <span>{t('storefront.storefront_success_modal.s19', "خصم الكوبون")} {activeOrder.couponCode ? `(${activeOrder.couponCode})` : ''}:</span>
                 <span style={{ fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
                   <span>-{formatPriceNumber(activeOrder.discountAmount ?? 0)}</span>
                   <CurrencySymbol />
@@ -359,7 +361,7 @@ export function StorefrontSuccessModal({
               color: '#0f172a',
             }}
           >
-            <span style={{ fontSize: '12.5px' }}>المطلوب دفعه:</span>
+            <span style={{ fontSize: '12.5px' }}>{t('storefront.storefront_success_modal.s20', "المطلوب دفعه:")}</span>
             <span
               style={{
                 fontSize: '15.5px',
@@ -394,7 +396,7 @@ export function StorefrontSuccessModal({
               }}
             >
               <CheckShieldIcon size={13} color="#16a34a" />
-              <span>تم الدفع إلكترونياً بنجاح بالبطاقة البنكية</span>
+              <span>{t('storefront.storefront_success_modal.s21', "تم الدفع إلكترونياً بنجاح بالبطاقة البنكية")}</span>
             </div>
           )}
         </div>
@@ -425,7 +427,7 @@ export function StorefrontSuccessModal({
             }}
           >
             <PackageIcon size={15} strokeWidth={2.2} color="#ffffff" />
-            <span>تتبع حالة الطلب في (طلباتي)</span>
+            <span>{t('storefront.storefront_success_modal.s22', "تتبع حالة الطلب في (طلباتي)")}</span>
           </button>
         )}
 
@@ -467,7 +469,7 @@ export function StorefrontSuccessModal({
                 <svg width="15" height="15" fill="currentColor" viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
                   <path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.77-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.299.045-.677.063-1.092-.069-.252-.08-.575-.187-.988-.365-1.739-.751-2.874-2.502-2.961-2.617-.087-.116-.708-.94-.708-1.793s.448-1.273.607-1.446c.159-.173.346-.217.462-.217l.332.006c.106.005.249-.04.39.298.144.347.491 1.2.534 1.287.043.087.072.188.014.304-.058.116-.087.188-.173.289l-.26.304c-.087.086-.177.181-.076.355.101.174.449.741.964 1.201.662.591 1.221.774 1.394.86.173.086.275.072.376-.044.101-.116.433-.506.549-.68.116-.173.231-.145.39-.087s1.011.477 1.184.564.289.13.332.202c.043.072.043.419-.101.824z" />
                 </svg>
-                <span>واتساب المتجر</span>
+                <span>{t('storefront.storefront_success_modal.s23', "واتساب المتجر")}</span>
               </a>
             )}
 
@@ -499,12 +501,12 @@ export function StorefrontSuccessModal({
                 {linkCopied ? (
                   <>
                     <CheckIcon size={14} color="#16a34a" strokeWidth={2.4} style={{ flexShrink: 0 }} />
-                    <span>تم نسخ الرابط</span>
+                    <span>{t('storefront.storefront_success_modal.s24', "تم نسخ الرابط")}</span>
                   </>
                 ) : (
                   <>
                     <CopyIcon size={13} color="#64748b" strokeWidth={2} style={{ flexShrink: 0 }} />
-                    <span>نسخ رابط التتبع</span>
+                    <span>{t('storefront.storefront_success_modal.s25', "نسخ رابط التتبع")}</span>
                   </>
                 )}
               </button>
@@ -526,7 +528,7 @@ export function StorefrontSuccessModal({
               gap: '4px',
             }}
           >
-            <span>احفظ الرابط لمتابعة طلبك من أي جهاز في أي وقت</span>
+            <span>{t('storefront.storefront_success_modal.s26', "احفظ الرابط لمتابعة طلبك من أي جهاز في أي وقت")}</span>
             <span>•</span>
             <a
               href={`https://wa.me/?text=${encodeURIComponent(`رابط متابعة طلبي #${activeOrder.orderNumber}: ${trackingUrl}`)}`}
@@ -538,7 +540,7 @@ export function StorefrontSuccessModal({
                 textDecoration: 'none',
               }}
             >
-              إرسال لنفسي
+              {t('storefront.storefront_success_modal.s27', "إرسال لنفسي")}
             </a>
           </div>
         )}
@@ -565,7 +567,7 @@ export function StorefrontSuccessModal({
           }}
         >
           <ShoppingBagIcon size={14} color="#64748b" strokeWidth={2} />
-          <span>متابعة التسوق في المتجر</span>
+          <span>{t('storefront.storefront_success_modal.s28', "متابعة التسوق في المتجر")}</span>
         </button>
       </div>
     </DialogShell>

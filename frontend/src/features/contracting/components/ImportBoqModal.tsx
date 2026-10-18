@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useRef } from 'react';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
@@ -60,6 +61,7 @@ export function ImportBoqModal({
   onSuccess,
   onImportItems,
 }: ImportBoqModalProps) {
+  const { t } = useTranslation();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [importMode, setImportMode] = useState<'append' | 'replace'>('append');
   const [fileName, setFileName] = useState<string>('');
@@ -418,8 +420,8 @@ export function ImportBoqModal({
     <StandardDialog
       open={open}
       onClose={onClose}
-      title={onImportItems ? 'استيراد مقايسة العطاء (Excel / PDF)' : 'استيراد جدول الكميات والمقايسة (Excel / PDF)'}
-      subtitle={projectName ? `المشروع: ${projectName}` : 'التعرف الذكي التلقائي على الأعمدة والوحدات باللغتين العربية والإنجليزية'}
+      title={onImportItems ? t('contracting.import_boq_modal.s0', "استيراد مقايسة العطاء (Excel / PDF)") : t('contracting.import_boq_modal.s1', "استيراد جدول الكميات والمقايسة (Excel / PDF)")}
+      subtitle={projectName ? `المشروع: ${projectName}` : t('contracting.import_boq_modal.s2', "التعرف الذكي التلقائي على الأعمدة والوحدات باللغتين العربية والإنجليزية")}
       width="min(1280px, 98vw)"
       minHeight="min(600px, 85vh)"
       footerActions={(
@@ -428,14 +430,14 @@ export function ImportBoqModal({
           onSubmit={handleImport}
           submitText={
             isSubmitting
-              ? 'جاري الاستيراد...'
+              ? t('contracting.import_boq_modal.s3', "جاري الاستيراد...")
               : onImportItems
                 ? importMode === 'append' && existingItemCount > 0
                   ? `تأكيد إلحاق وإضافة (${validRows.length}) بند بالمشروع`
                   : `تأكيد إدراج (${validRows.length}) بند في دراسة العطاء`
                 : `تأكيد استيراد (${validRows.length}) بند إلى المقايسة`
           }
-          cancelText="إلغاء"
+          cancelText={t('contracting.import_boq_modal.s4', "إلغاء")}
           submitDisabled={isSubmitting || validRows.length === 0}
         />
       )}
@@ -455,10 +457,10 @@ export function ImportBoqModal({
         >
           <div>
             <div style={{ fontWeight: 700, fontSize: 'var(--font-body)', color: '#1e293b' }}>
-              محرك الاستيراد الذكي الشامل (Universal BOQ & PDF Importer)
+              {t('contracting.import_boq_modal.s5', "محرك الاستيراد الذكي الشامل (Universal BOQ & PDF Importer)")}
             </div>
             <div style={{ fontSize: 'var(--font-subtitle)', color: '#64748b', marginTop: '2px' }}>
-              يدعم ملفات Excel و CSV ومستندات PDF الاستشارية، مع التعرف التلقائي على صف الهيدر، تجميع البنود متعددة الأسطر، ترجمة الوحدات، وتصنيف الأعمال هندسياً.
+              {t('contracting.import_boq_modal.s6', "يدعم ملفات Excel و CSV ومستندات PDF الاستشارية، مع التعرف التلقائي على صف الهيدر، تجميع البنود متعددة الأسطر، ترجمة الوحدات، وتصنيف الأعمال هندسياً.")}
             </div>
           </div>
           <button
@@ -480,7 +482,7 @@ export function ImportBoqModal({
             }}
           >
             <AppIcons.Download size={14} />
-            تحميل النموذج الاسترشادي (XLSX)
+            {t('contracting.import_boq_modal.s7', "تحميل النموذج الاسترشادي (XLSX)")}
           </button>
         </div>
 
@@ -512,10 +514,10 @@ export function ImportBoqModal({
             )}
           </div>
           <div style={{ fontWeight: 700, fontSize: 'var(--font-body)', color: '#0f172a' }}>
-            {fileName ? `الملف المحدد: ${fileName}` : 'اضغط لاختيار ملف Excel أو CSV أو PDF لجدول المقايسة'}
+            {fileName ? `الملف المحدد: ${fileName}` : t('contracting.import_boq_modal.s8', "اضغط لاختيار ملف Excel أو CSV أو PDF لجدول المقايسة")}
           </div>
           <div style={{ fontSize: 'var(--font-subtitle)', color: '#64748b', marginTop: '4px' }}>
-            يدعم ملفات .xlsx و .xls و .csv و .pdf (مع التعرف التلقائي على الجداول وتجميع البنود متعددة الأسطر)
+            {t('contracting.import_boq_modal.s9', "يدعم ملفات .xlsx و .xls و .csv و .pdf (مع التعرف التلقائي على الجداول وتجميع البنود متعددة الأسطر)")}
           </div>
         </div>
 
@@ -533,7 +535,7 @@ export function ImportBoqModal({
             }}
           >
             <div style={{ fontSize: 'var(--font-body)', fontWeight: 700, color: '#1e293b' }}>
-              صفحة العمل (Sheet):
+              {t('contracting.import_boq_modal.s10', "صفحة العمل (Sheet):")}
             </div>
             <select
               value={selectedSheet}
@@ -551,12 +553,12 @@ export function ImportBoqModal({
             >
               {sheetNames.map((name) => (
                 <option key={name} value={name}>
-                  {name} {name === selectedSheet ? ' (المختارة)' : ''}
+                  {name} {name === selectedSheet ? t('contracting.import_boq_modal.s11', " (المختارة)") : ''}
                 </option>
               ))}
             </select>
             <div style={{ fontSize: 'var(--font-micro)', color: '#64748b' }}>
-              تم التعرف على ({sheetNames.length}) صفحات، وتم اختيار الصفحة الأكثر مطابقة لبنود المقايسة تلقائياً.
+              {t('contracting.import_boq_modal.s12', "تم التعرف على (")}{sheetNames.length}{t('contracting.import_boq_modal.s13', ") صفحات، وتم اختيار الصفحة الأكثر مطابقة لبنود المقايسة تلقائياً.")}
             </div>
           </div>
         )}
@@ -584,7 +586,7 @@ export function ImportBoqModal({
         {/* Parsing Progress */}
         {isParsing && (
           <div style={{ padding: '24px', textAlign: 'center', color: '#64748b', fontSize: 'var(--font-body)' }}>
-            جاري قراءة وتحليل بيانات المقايسة والكشف الذكي عن الأعمدة...
+            {t('contracting.import_boq_modal.s14', "جاري قراءة وتحليل بيانات المقايسة والكشف الذكي عن الأعمدة...")}
           </div>
         )}
 
@@ -592,32 +594,32 @@ export function ImportBoqModal({
         {parsedRows.length > 0 && !isParsing && (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px' }}>
             <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 14px' }}>
-              <div style={{ fontSize: 'var(--font-micro)', color: '#64748b', fontWeight: 600 }}>إجمالي البنود المقروءة</div>
+              <div style={{ fontSize: 'var(--font-micro)', color: '#64748b', fontWeight: 600 }}>{t('contracting.import_boq_modal.s15', "إجمالي البنود المقروءة")}</div>
               <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>
-                {parsedRows.length} بند
+                {parsedRows.length} {t('contracting.import_boq_modal.s16', "بند")}
               </div>
             </div>
             <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 14px' }}>
-              <div style={{ fontSize: 'var(--font-micro)', color: '#64748b', fontWeight: 600 }}>البنود الصالحة للاستيراد</div>
+              <div style={{ fontSize: 'var(--font-micro)', color: '#64748b', fontWeight: 600 }}>{t('contracting.import_boq_modal.s17', "البنود الصالحة للاستيراد")}</div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
                 <span style={{ fontSize: '1.15rem', fontWeight: 800, color: '#15803d' }}>
-                  {validRows.length} بند
+                  {validRows.length} {t('contracting.import_boq_modal.s18', "بند")}
                 </span>
                 {unpricedRows.length > 0 && (
                   <span style={{ fontSize: 'var(--font-micro)', color: '#b45309', fontWeight: 700 }}>
-                    ({unpricedRows.length} غير مسعر)
+                    ({unpricedRows.length} {t('contracting.import_boq_modal.s19', "غير مسعر)")}
                   </span>
                 )}
               </div>
             </div>
             <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 14px' }}>
-              <div style={{ fontSize: 'var(--font-micro)', color: '#64748b', fontWeight: 600 }}>إجمالي القيمة التعاقدية</div>
+              <div style={{ fontSize: 'var(--font-micro)', color: '#64748b', fontWeight: 600 }}>{t('contracting.import_boq_modal.s20', "إجمالي القيمة التعاقدية")}</div>
               <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#170e5e', marginTop: '2px' }}>
                 {totalContractVal.toLocaleString('en-US', { minimumFractionDigits: 2 })}
               </div>
             </div>
             <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 14px' }}>
-              <div style={{ fontSize: 'var(--font-micro)', color: '#64748b', fontWeight: 600 }}>إجمالي التكلفة التقديرية</div>
+              <div style={{ fontSize: 'var(--font-micro)', color: '#64748b', fontWeight: 600 }}>{t('contracting.import_boq_modal.s21', "إجمالي التكلفة التقديرية")}</div>
               <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#475569', marginTop: '2px' }}>
                 {totalCostVal.toLocaleString('en-US', { minimumFractionDigits: 2 })}
               </div>
@@ -643,7 +645,7 @@ export function ImportBoqModal({
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <AppIcons.Layers size={16} color="#170e5e" />
               <span style={{ fontWeight: 700, fontSize: '13px', color: '#0f172a' }}>
-                طريقة إدراج البنود في دراسة العطاء (يوجد حالياً {existingItemCount} بند سابق):
+                {t('contracting.import_boq_modal.s22', "طريقة إدراج البنود في دراسة العطاء (يوجد حالياً")} {existingItemCount} {t('contracting.import_boq_modal.s23', "بند سابق):")}
               </span>
             </div>
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
@@ -670,7 +672,7 @@ export function ImportBoqModal({
                   onChange={() => setImportMode('append')}
                   style={{ accentColor: '#170e5e' }}
                 />
-                <span>➕ إلحاق وإضافة للبنود القائمة (دمج التخصصات)</span>
+                <span>{t('contracting.import_boq_modal.s24', "➕ إلحاق وإضافة للبنود القائمة (دمج التخصصات)")}</span>
               </label>
 
               <label
@@ -696,7 +698,7 @@ export function ImportBoqModal({
                   onChange={() => setImportMode('replace')}
                   style={{ accentColor: '#b91c1c' }}
                 />
-                <span>🔄 استبدال وتفريغ البنود السابقة</span>
+                <span>{t('contracting.import_boq_modal.s25', "🔄 استبدال وتفريغ البنود السابقة")}</span>
               </label>
             </div>
           </div>
@@ -720,14 +722,14 @@ export function ImportBoqModal({
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <AppIcons.Settings size={15} color="#170e5e" />
                 <span style={{ fontWeight: 700, fontSize: 'var(--font-subtitle)', color: '#1e293b' }}>
-                  تخصيص مطابقة أعمدة الملف يدوياً (Column Mapping)
+                  {t('contracting.import_boq_modal.s26', "تخصيص مطابقة أعمدة الملف يدوياً (Column Mapping)")}
                 </span>
                 <span style={{ fontSize: 'var(--font-micro)', color: '#64748b' }}>
-                  (صف الهيدر المكتشف: الصف رقم {headerRowIndex + 1})
+                  {t('contracting.import_boq_modal.s27', "(صف الهيدر المكتشف: الصف رقم")} {headerRowIndex + 1})
                 </span>
               </div>
               <div style={{ fontSize: 'var(--font-micro)', color: '#170e5e', fontWeight: 700 }}>
-                {showCustomMapping ? 'إخفاء الخيارات ▲' : 'تعديل مطابقة الأعمدة ▼'}
+                {showCustomMapping ? t('contracting.import_boq_modal.s28', "إخفاء الخيارات ▲") : t('contracting.import_boq_modal.s29', "تعديل مطابقة الأعمدة ▼")}
               </div>
             </div>
 
@@ -744,14 +746,14 @@ export function ImportBoqModal({
               >
                 <div>
                   <label style={{ display: 'block', fontSize: 'var(--font-micro)', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                    بيان الأعمال والمواصفات (إلزامي):
+                    {t('contracting.import_boq_modal.s30', "بيان الأعمال والمواصفات (إلزامي):")}
                   </label>
                   <select
                     value={columnMapping.descriptionCol}
                     onChange={(e) => handleColumnMappingChange('descriptionCol', Number(e.target.value))}
                     style={{ width: '100%', padding: '6px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: 'var(--font-subtitle)' }}
                   >
-                    <option value={-1}>-- غير محدد --</option>
+                    <option value={-1}>{t('contracting.import_boq_modal.s31', "-- غير محدد --")}</option>
                     {headers.map((h, idx) => (
                       <option key={idx} value={idx}>
                         {idx + 1}: {h || `عمود ${idx + 1}`}
@@ -762,14 +764,14 @@ export function ImportBoqModal({
 
                 <div>
                   <label style={{ display: 'block', fontSize: 'var(--font-micro)', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                    الكمية التعاقدية (Quantity):
+                    {t('contracting.import_boq_modal.s32', "الكمية التعاقدية (Quantity):")}
                   </label>
                   <select
                     value={columnMapping.qtyCol}
                     onChange={(e) => handleColumnMappingChange('qtyCol', Number(e.target.value))}
                     style={{ width: '100%', padding: '6px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: 'var(--font-subtitle)' }}
                   >
-                    <option value={-1}>-- غير محدد (افتراضي 0) --</option>
+                    <option value={-1}>{t('contracting.import_boq_modal.s33', "-- غير محدد (افتراضي 0) --")}</option>
                     {headers.map((h, idx) => (
                       <option key={idx} value={idx}>
                         {idx + 1}: {h || `عمود ${idx + 1}`}
@@ -780,14 +782,14 @@ export function ImportBoqModal({
 
                 <div>
                   <label style={{ display: 'block', fontSize: 'var(--font-micro)', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                    سعر الفئة التعاقدي (Unit Price):
+                    {t('contracting.import_boq_modal.s34', "سعر الفئة التعاقدي (Unit Price):")}
                   </label>
                   <select
                     value={columnMapping.unitPriceCol}
                     onChange={(e) => handleColumnMappingChange('unitPriceCol', Number(e.target.value))}
                     style={{ width: '100%', padding: '6px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: 'var(--font-subtitle)' }}
                   >
-                    <option value={-1}>-- غير محدد (غير مسعر 0) --</option>
+                    <option value={-1}>{t('contracting.import_boq_modal.s35', "-- غير محدد (غير مسعر 0) --")}</option>
                     {headers.map((h, idx) => (
                       <option key={idx} value={idx}>
                         {idx + 1}: {h || `عمود ${idx + 1}`}
@@ -798,14 +800,14 @@ export function ImportBoqModal({
 
                 <div>
                   <label style={{ display: 'block', fontSize: 'var(--font-micro)', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                    وحدة القياس (Unit):
+                    {t('contracting.import_boq_modal.s36', "وحدة القياس (Unit):")}
                   </label>
                   <select
                     value={columnMapping.unitCol}
                     onChange={(e) => handleColumnMappingChange('unitCol', Number(e.target.value))}
                     style={{ width: '100%', padding: '6px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: 'var(--font-subtitle)' }}
                   >
-                    <option value={-1}>-- غير محدد (افتراضي م3) --</option>
+                    <option value={-1}>{t('contracting.import_boq_modal.s37', "-- غير محدد (افتراضي م3) --")}</option>
                     {headers.map((h, idx) => (
                       <option key={idx} value={idx}>
                         {idx + 1}: {h || `عمود ${idx + 1}`}
@@ -816,14 +818,14 @@ export function ImportBoqModal({
 
                 <div>
                   <label style={{ display: 'block', fontSize: 'var(--font-micro)', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                    كود البند / مسلسل (Item Code):
+                    {t('contracting.import_boq_modal.s38', "كود البند / مسلسل (Item Code):")}
                   </label>
                   <select
                     value={columnMapping.itemCodeCol}
                     onChange={(e) => handleColumnMappingChange('itemCodeCol', Number(e.target.value))}
                     style={{ width: '100%', padding: '6px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: 'var(--font-subtitle)' }}
                   >
-                    <option value={-1}>-- توليد تسلسلي تلقائي --</option>
+                    <option value={-1}>{t('contracting.import_boq_modal.s39', "-- توليد تسلسلي تلقائي --")}</option>
                     {headers.map((h, idx) => (
                       <option key={idx} value={idx}>
                         {idx + 1}: {h || `عمود ${idx + 1}`}
@@ -834,14 +836,14 @@ export function ImportBoqModal({
 
                 <div>
                   <label style={{ display: 'block', fontSize: 'var(--font-micro)', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                    التصنيف الهندسي (Category):
+                    {t('contracting.import_boq_modal.s40', "التصنيف الهندسي (Category):")}
                   </label>
                   <select
                     value={columnMapping.categoryCol}
                     onChange={(e) => handleColumnMappingChange('categoryCol', Number(e.target.value))}
                     style={{ width: '100%', padding: '6px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: 'var(--font-subtitle)' }}
                   >
-                    <option value={-1}>-- تصنيف ذكي تلقائي من البيان --</option>
+                    <option value={-1}>{t('contracting.import_boq_modal.s41', "-- تصنيف ذكي تلقائي من البيان --")}</option>
                     {headers.map((h, idx) => (
                       <option key={idx} value={idx}>
                         {idx + 1}: {h || `عمود ${idx + 1}`}
@@ -877,7 +879,7 @@ export function ImportBoqModal({
                   transition: 'all 0.15s ease',
                 }}
               >
-                <span>جميع البنود المدرجة</span>
+                <span>{t('contracting.import_boq_modal.s42', "جميع البنود المدرجة")}</span>
                 <span
                   style={{
                     padding: '1px 6px',
@@ -910,7 +912,7 @@ export function ImportBoqModal({
                 }}
               >
                 <AppIcons.CheckCircle size={13} />
-                <span>المسعرة والجاهزة</span>
+                <span>{t('contracting.import_boq_modal.s43', "المسعرة والجاهزة")}</span>
                 <span
                   style={{
                     padding: '1px 6px',
@@ -944,7 +946,7 @@ export function ImportBoqModal({
                 }}
               >
                 <AppIcons.AlertTriangle size={13} />
-                <span>غير المسعرة (للتسعير الفوري)</span>
+                <span>{t('contracting.import_boq_modal.s44', "غير المسعرة (للتسعير الفوري)")}</span>
                 <span
                   style={{
                     padding: '1px 6px',
@@ -979,7 +981,7 @@ export function ImportBoqModal({
                   }}
                 >
                   <AppIcons.FileText size={13} />
-                  <span>ديباجة وملاحظات عامة</span>
+                  <span>{t('contracting.import_boq_modal.s45', "ديباجة وملاحظات عامة")}</span>
                   <span
                     style={{
                       padding: '1px 6px',
@@ -1015,7 +1017,7 @@ export function ImportBoqModal({
                   }}
                 >
                   <AppIcons.FileText size={13} />
-                  <span>عناوين الأبواب (DIVISION)</span>
+                  <span>{t('contracting.import_boq_modal.s46', "عناوين الأبواب (DIVISION)")}</span>
                   <span
                     style={{
                       padding: '1px 6px',
@@ -1064,13 +1066,13 @@ export function ImportBoqModal({
                       style={{ cursor: 'pointer', width: '16px', height: '16px', accentColor: '#170e5e' }}
                     />
                     <span>
-                      استبعاد سطور العناوين والأبواب الاستشارية ({sectionHeaderRows.length} عنوان مثل DIVISION و Section) من بنود المقايسة
+                      {t('contracting.import_boq_modal.s47', "استبعاد سطور العناوين والأبواب الاستشارية (")}{sectionHeaderRows.length} {t('contracting.import_boq_modal.s48', "عنوان مثل DIVISION و Section) من بنود المقايسة")}
                     </span>
                   </label>
                   <span style={{ fontSize: 'var(--font-micro)', color: '#64748b', fontWeight: 600 }}>
                     {ignoreSectionHeaders
-                      ? 'العناوين مستبعدة تلقائياً لضمان سحب البنود التنفيذية فقط'
-                      : 'العناوين مدرجة كبنود مسودة'}
+                      ? t('contracting.import_boq_modal.s49', "العناوين مستبعدة تلقائياً لضمان سحب البنود التنفيذية فقط")
+                      : t('contracting.import_boq_modal.s50', "العناوين مدرجة كبنود مسودة")}
                   </span>
                 </div>
               )}
@@ -1103,13 +1105,13 @@ export function ImportBoqModal({
                       style={{ cursor: 'pointer', width: '16px', height: '16px', accentColor: '#170e5e' }}
                     />
                     <span>
-                      استبعاد سطور الملاحظات والديباجة الاستشارية العامة ({preambleRows.length} سطر بدون كمية وسعر) من بنود المقايسة
+                      {t('contracting.import_boq_modal.s51', "استبعاد سطور الملاحظات والديباجة الاستشارية العامة (")}{preambleRows.length} {t('contracting.import_boq_modal.s52', "سطر بدون كمية وسعر) من بنود المقايسة")}
                     </span>
                   </label>
                   <span style={{ fontSize: 'var(--font-micro)', color: '#64748b', fontWeight: 600 }}>
                     {ignorePreambles
-                      ? 'الملاحظات مستبعدة لتركيز المقايسة على البنود ذات الحصر والكميات فقط'
-                      : 'الملاحظات مدرجة كبنود استشارية'}
+                      ? t('contracting.import_boq_modal.s53', "الملاحظات مستبعدة لتركيز المقايسة على البنود ذات الحصر والكميات فقط")
+                      : t('contracting.import_boq_modal.s54', "الملاحظات مدرجة كبنود استشارية")}
                   </span>
                 </div>
               )}
@@ -1148,22 +1150,22 @@ export function ImportBoqModal({
                 </colgroup>
                 <thead>
                   <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', position: 'sticky', top: 0, zIndex: 2 }}>
-                    <th style={{ padding: '10px 4px', textAlign: 'center', fontWeight: 600, color: '#475569' }}>م</th>
-                    <th style={{ padding: '10px 6px', textAlign: 'center', fontWeight: 600, color: '#475569' }}>كود البند</th>
-                    <th style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 600, color: '#475569' }}>بيان الأعمال والمواصفات</th>
-                    <th style={{ padding: '10px 6px', textAlign: 'center', fontWeight: 600, color: '#475569' }}>التخصص</th>
-                    <th style={{ padding: '10px 4px', textAlign: 'center', fontWeight: 600, color: '#475569' }}>الوحدة</th>
-                    <th style={{ padding: '10px 6px', textAlign: 'right', fontWeight: 600, color: '#475569' }}>الكمية</th>
-                    <th style={{ padding: '10px 6px', textAlign: 'right', fontWeight: 600, color: '#475569' }}>سعر الفئة</th>
-                    <th style={{ padding: '10px 6px', textAlign: 'right', fontWeight: 600, color: '#475569' }}>إجمالي القيمة</th>
-                    <th style={{ padding: '10px 6px', textAlign: 'center', fontWeight: 600, color: '#475569' }}>الحالة</th>
+                    <th style={{ padding: '10px 4px', textAlign: 'center', fontWeight: 600, color: '#475569' }}>{t('contracting.import_boq_modal.s55', "م")}</th>
+                    <th style={{ padding: '10px 6px', textAlign: 'center', fontWeight: 600, color: '#475569' }}>{t('contracting.import_boq_modal.s56', "كود البند")}</th>
+                    <th style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 600, color: '#475569' }}>{t('contracting.import_boq_modal.s57', "بيان الأعمال والمواصفات")}</th>
+                    <th style={{ padding: '10px 6px', textAlign: 'center', fontWeight: 600, color: '#475569' }}>{t('contracting.import_boq_modal.s58', "التخصص")}</th>
+                    <th style={{ padding: '10px 4px', textAlign: 'center', fontWeight: 600, color: '#475569' }}>{t('contracting.import_boq_modal.s59', "الوحدة")}</th>
+                    <th style={{ padding: '10px 6px', textAlign: 'right', fontWeight: 600, color: '#475569' }}>{t('contracting.import_boq_modal.s60', "الكمية")}</th>
+                    <th style={{ padding: '10px 6px', textAlign: 'right', fontWeight: 600, color: '#475569' }}>{t('contracting.import_boq_modal.s61', "سعر الفئة")}</th>
+                    <th style={{ padding: '10px 6px', textAlign: 'right', fontWeight: 600, color: '#475569' }}>{t('contracting.import_boq_modal.s62', "إجمالي القيمة")}</th>
+                    <th style={{ padding: '10px 6px', textAlign: 'center', fontWeight: 600, color: '#475569' }}>{t('contracting.import_boq_modal.s63', "الحالة")}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {displayedRows.length === 0 ? (
                     <tr>
                       <td colSpan={9} style={{ padding: '32px', textAlign: 'center', color: '#64748b', fontSize: 'var(--font-body)' }}>
-                        لا توجد بنود تطابق التصفية المختارة
+                        {t('contracting.import_boq_modal.s64', "لا توجد بنود تطابق التصفية المختارة")}
                       </td>
                     </tr>
                   ) : (
@@ -1386,7 +1388,7 @@ export function ImportBoqModal({
                                   outline: 'none',
                                   boxSizing: 'border-box',
                                 }}
-                                title={row.isAutoPriced ? (row.warningMessage || 'تم التسعير التقديري تلقائياً من المكتبة الهندسية') : (row.unitPrice === 0 ? 'انقر لتسعير البند مباشرة في المقايسة' : 'سعر الفئة التعاقدي')}
+                                title={row.isAutoPriced ? (row.warningMessage || t('contracting.import_boq_modal.s65', "تم التسعير التقديري تلقائياً من المكتبة الهندسية")) : (row.unitPrice === 0 ? t('contracting.import_boq_modal.s66', "انقر لتسعير البند مباشرة في المقايسة") : t('contracting.import_boq_modal.s67', "سعر الفئة التعاقدي"))}
                               />
                             )}
                           </td>
@@ -1409,7 +1411,7 @@ export function ImportBoqModal({
                                 }}
                               >
                                 <AppIcons.FileText size={12} />
-                                عنوان رئيسي
+                                {t('contracting.import_boq_modal.s68', "عنوان رئيسي")}
                               </span>
                             ) : row.isPreamble && ignorePreambles ? (
                               <span
@@ -1426,7 +1428,7 @@ export function ImportBoqModal({
                                 }}
                               >
                                 <AppIcons.FileText size={12} />
-                                ديباجة
+                                {t('contracting.import_boq_modal.s69', "ديباجة")}
                               </span>
                             ) : row.isAutoPriced ? (
                               <span
@@ -1441,10 +1443,10 @@ export function ImportBoqModal({
                                   fontSize: 'var(--font-micro)',
                                   fontWeight: 700,
                                 }}
-                                title={row.warningMessage || 'تم التسعير التقديري تلقائياً من المكتبة الهندسية'}
+                                title={row.warningMessage || t('contracting.import_boq_modal.s70', "تم التسعير التقديري تلقائياً من المكتبة الهندسية")}
                               >
                                 <AppIcons.CheckCircle size={12} />
-                                مسعر آلياً
+                                {t('contracting.import_boq_modal.s71', "مسعر آلياً")}
                               </span>
                             ) : row.status === 'ready' ? (
                               <span
@@ -1461,7 +1463,7 @@ export function ImportBoqModal({
                                 }}
                               >
                                 <AppIcons.CheckCircle size={12} />
-                                جاهز
+                                {t('contracting.import_boq_modal.s72', "جاهز")}
                               </span>
                             ) : row.status === 'unpriced' ? (
                               <span
@@ -1478,7 +1480,7 @@ export function ImportBoqModal({
                                 }}
                               >
                                 <AppIcons.AlertTriangle size={12} />
-                                غير مسعر
+                                {t('contracting.import_boq_modal.s73', "غير مسعر")}
                               </span>
                             ) : row.status === 'zero_qty' ? (
                               <span
@@ -1495,7 +1497,7 @@ export function ImportBoqModal({
                                 }}
                               >
                                 <AppIcons.AlertTriangle size={12} />
-                                كمية 0
+                                {t('contracting.import_boq_modal.s74', "كمية 0")}
                               </span>
                             ) : (
                               <span
@@ -1512,7 +1514,7 @@ export function ImportBoqModal({
                                 }}
                               >
                                 <AppIcons.AlertCircle size={12} />
-                                غير صالح
+                                {t('contracting.import_boq_modal.s75', "غير صالح")}
                               </span>
                             )}
                           </td>

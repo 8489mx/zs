@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { useState } from 'react';
 import { DialogShell } from '@/shared/components/dialog-shell';
@@ -29,6 +30,7 @@ export function DistributorInvoiceImportModal({
   onClose,
   onImportSuccess,
 }: Props) {
+  const { t } = useTranslation();
   const [distributor, setDistributor] = useState('الشركة المتحدة للصيادلة (UCP)');
   const [invoiceNumber, setInvoiceNumber] = useState('');
   const [rawText, setRawText] = useState('');
@@ -150,15 +152,15 @@ export function DistributorInvoiceImportModal({
   const totalCostSum = lines.reduce((acc, l) => acc + Number(l.quantity || 0) * Number(l.costPrice || 0), 0);
 
   return (
-    <DialogShell open={open} onClose={onClose} width="min(1240px, 96vw)" ariaLabel="استيراد فواتير الموزعين الإلكترونية">
+    <DialogShell open={open} onClose={onClose} width="min(1240px, 96vw)" ariaLabel={t('pharmacy.distributor_invoice_import_modal.s0', "استيراد فواتير الموزعين الإلكترونية")}>
       <div dir="rtl" style={{ background: '#ffffff', borderRadius: '10px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0', paddingBottom: '12px' }}>
           <div>
             <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: '#0f172a' }}>
-              استيراد فواتير الموزعين الإلكترونية (E-Invoice Importer)
+              {t('pharmacy.distributor_invoice_import_modal.s1', "استيراد فواتير الموزعين الإلكترونية (E-Invoice Importer)")}
             </h3>
             <p style={{ margin: '2px 0 0', fontSize: '0.78rem', color: '#64748b' }}>
-              دعم فواتير (المتحدة للصيادلة UCP، ابن سينا Ibnsina، فارما أوفرسيز) وتحديث المخزون والتشغيلات فوراً
+              {t('pharmacy.distributor_invoice_import_modal.s2', "دعم فواتير (المتحدة للصيادلة UCP، ابن سينا Ibnsina، فارما أوفرسيز) وتحديث المخزون والتشغيلات فوراً")}
             </p>
           </div>
           <button
@@ -187,27 +189,27 @@ export function DistributorInvoiceImportModal({
         {/* Distributor selection & Invoice metadata */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px', background: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
           <div>
-            <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '4px' }}>شركة التوزيع / المورد</label>
+            <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '4px' }}>{t('pharmacy.distributor_invoice_import_modal.s3', "شركة التوزيع / المورد")}</label>
             <CustomSelect
               value={distributor}
               onChange={(val) => setDistributor(val)}
               options={[
-                { value: 'الشركة المتحدة للصيادلة (UCP)', label: 'الشركة المتحدة للصيادلة (UCP)' },
-                { value: 'ابن سينا فارما (Ibnsina)', label: 'ابن سينا فارما (Ibnsina)' },
-                { value: 'فارما أوفرسيز (PharmaOverseas)', label: 'فارما أوفرسيز (PharmaOverseas)' },
-                { value: 'الشركة المصرية لتجارة الأدوية', label: 'الشركة المصرية لتجارة الأدوية' },
-                { value: 'مالتي فارما (MultiPharma)', label: 'مالتي فارما (MultiPharma)' },
-                { value: 'موزع / مخزن أدوية آخر', label: 'موزع / مخزن أدوية آخر' },
+                { value: t('pharmacy.distributor_invoice_import_modal.s4', "الشركة المتحدة للصيادلة (UCP)"), label: t('pharmacy.distributor_invoice_import_modal.s5', "الشركة المتحدة للصيادلة (UCP)") },
+                { value: t('pharmacy.distributor_invoice_import_modal.s6', "ابن سينا فارما (Ibnsina)"), label: t('pharmacy.distributor_invoice_import_modal.s7', "ابن سينا فارما (Ibnsina)") },
+                { value: t('pharmacy.distributor_invoice_import_modal.s8', "فارما أوفرسيز (PharmaOverseas)"), label: t('pharmacy.distributor_invoice_import_modal.s9', "فارما أوفرسيز (PharmaOverseas)") },
+                { value: t('pharmacy.distributor_invoice_import_modal.s10', "الشركة المصرية لتجارة الأدوية"), label: t('pharmacy.distributor_invoice_import_modal.s11', "الشركة المصرية لتجارة الأدوية") },
+                { value: t('pharmacy.distributor_invoice_import_modal.s12', "مالتي فارما (MultiPharma)"), label: t('pharmacy.distributor_invoice_import_modal.s13', "مالتي فارما (MultiPharma)") },
+                { value: t('pharmacy.distributor_invoice_import_modal.s14', "موزع / مخزن أدوية آخر"), label: t('pharmacy.distributor_invoice_import_modal.s15', "موزع / مخزن أدوية آخر") },
               ]}
             />
           </div>
 
 
           <div>
-            <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '4px' }}>رقم الفاتورة الإلكترونية</label>
+            <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '4px' }}>{t('pharmacy.distributor_invoice_import_modal.s16', "رقم الفاتورة الإلكترونية")}</label>
             <input
               type="text"
-              placeholder="مثال: INV-260914-0001"
+              placeholder={t('pharmacy.distributor_invoice_import_modal.s17', "مثال: INV-260914-0001")}
               value={invoiceNumber}
               onChange={(e) => setInvoiceNumber(e.target.value)}
               className="purchase-prototype-field-input"
@@ -217,11 +219,11 @@ export function DistributorInvoiceImportModal({
 
           <div style={{ display: 'flex', gap: '14px', alignItems: 'center', background: '#ffffff', padding: '8px 12px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
             <div>
-              <div style={{ fontSize: '0.72rem', color: '#64748b' }}>إجمالي التكلفة:</div>
+              <div style={{ fontSize: '0.72rem', color: '#64748b' }}>{t('pharmacy.distributor_invoice_import_modal.s18', "إجمالي التكلفة:")}</div>
               <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#0f172a' }}>{totalCostSum.toFixed(2)} <CurrencySymbol /></div>
             </div>
             <div style={{ borderRight: '1px solid #e2e8f0', paddingRight: '14px' }}>
-              <div style={{ fontSize: '0.72rem', color: '#64748b' }}>قيمة البيع للجمهور:</div>
+              <div style={{ fontSize: '0.72rem', color: '#64748b' }}>{t('pharmacy.distributor_invoice_import_modal.s19', "قيمة البيع للجمهور:")}</div>
               <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#16a34a' }}>{totalPublicSum.toFixed(2)} <CurrencySymbol /></div>
             </div>
           </div>
@@ -230,19 +232,19 @@ export function DistributorInvoiceImportModal({
         {/* Quick Paste Raw Excel Area */}
         <details style={{ fontSize: '0.78rem', color: '#475569' }}>
           <summary style={{ cursor: 'pointer', fontWeight: 700, color: 'var(--primary, #1e1b4b)', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-            <ClipboardIcon size={16} /> لصق بيانات مباشرة من ملف Excel / CSV الموزع
+            <ClipboardIcon size={16} /> {t('pharmacy.distributor_invoice_import_modal.s20', "لصق بيانات مباشرة من ملف Excel / CSV الموزع")}
           </summary>
           <div style={{ marginTop: '8px', display: 'flex', gap: '8px' }}>
             <textarea
               rows={3}
-              placeholder="انسخ صفوف جدول الفاتورة من ملف الاكسل والصقها هنا مباشرة (الاسم [Tab] الباركود [Tab] الكمية [Tab] البونص [Tab] سعر الشراء [Tab] سعر الجمهور [Tab] الصلاحية)..."
+              placeholder={t('pharmacy.distributor_invoice_import_modal.s21', "انسخ صفوف جدول الفاتورة من ملف الاكسل والصقها هنا مباشرة (الاسم [Tab] الباركود [Tab] الكمية [Tab] البونص [Tab] سعر الشراء [Tab] سعر الجمهور [Tab] الصلاحية)...")}
               value={rawText}
               onChange={(e) => setRawText(e.target.value)}
               className="purchase-prototype-field-input"
               style={{ width: '100%', fontFamily: 'monospace', fontSize: '0.76rem', boxSizing: 'border-box' }}
             />
             <Button variant="secondary" onClick={handleParseRawText} style={{ whiteSpace: 'nowrap' }}>
-              معالجة اللصق
+              {t('pharmacy.distributor_invoice_import_modal.s22', "معالجة اللصق")}
             </Button>
           </div>
         </details>
@@ -252,14 +254,14 @@ export function DistributorInvoiceImportModal({
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.78rem', textAlign: 'right' }}>
             <thead style={{ position: 'sticky', top: 0, background: '#f8fafc', borderBottom: '1px solid #e2e8f0', zIndex: 2 }}>
               <tr style={{ color: '#475569', fontWeight: 700 }}>
-                <th style={{ padding: '8px 10px' }}>اسم الصنف</th>
-                <th style={{ padding: '8px 10px' }}>الباركود</th>
-                <th style={{ padding: '8px 10px', width: '70px' }}>الكمية</th>
-                <th style={{ padding: '8px 10px', width: '65px' }}>بونص</th>
-                <th style={{ padding: '8px 10px', width: '90px' }}>سعر الشراء</th>
-                <th style={{ padding: '8px 10px', width: '90px' }}>سعر الجمهور</th>
-                <th style={{ padding: '8px 10px', width: '90px' }}>الصلاحية</th>
-                <th style={{ padding: '8px 10px', width: '90px' }}>التشغيلة</th>
+                <th style={{ padding: '8px 10px' }}>{t('pharmacy.distributor_invoice_import_modal.s23', "اسم الصنف")}</th>
+                <th style={{ padding: '8px 10px' }}>{t('pharmacy.distributor_invoice_import_modal.s24', "الباركود")}</th>
+                <th style={{ padding: '8px 10px', width: '70px' }}>{t('pharmacy.distributor_invoice_import_modal.s25', "الكمية")}</th>
+                <th style={{ padding: '8px 10px', width: '65px' }}>{t('pharmacy.distributor_invoice_import_modal.s26', "بونص")}</th>
+                <th style={{ padding: '8px 10px', width: '90px' }}>{t('pharmacy.distributor_invoice_import_modal.s27', "سعر الشراء")}</th>
+                <th style={{ padding: '8px 10px', width: '90px' }}>{t('pharmacy.distributor_invoice_import_modal.s28', "سعر الجمهور")}</th>
+                <th style={{ padding: '8px 10px', width: '90px' }}>{t('pharmacy.distributor_invoice_import_modal.s29', "الصلاحية")}</th>
+                <th style={{ padding: '8px 10px', width: '90px' }}>{t('pharmacy.distributor_invoice_import_modal.s30', "التشغيلة")}</th>
                 <th style={{ padding: '8px 10px', width: '36px' }}></th>
               </tr>
             </thead>
@@ -271,7 +273,7 @@ export function DistributorInvoiceImportModal({
                       type="text"
                       value={line.productName}
                       onChange={(e) => handleUpdateLine(idx, 'productName', e.target.value)}
-                      placeholder="اسم الدواء..."
+                      placeholder={t('pharmacy.distributor_invoice_import_modal.s31', "اسم الدواء...")}
                       className="purchase-prototype-field-input"
                       style={{ width: '100%', boxSizing: 'border-box' }}
                     />
@@ -360,16 +362,16 @@ export function DistributorInvoiceImportModal({
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Button variant="secondary" onClick={handleAddLine} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
             <IconPlus size={14} />
-            <span>+ إضافة سطر صنف جديد</span>
+            <span>{t('pharmacy.distributor_invoice_import_modal.s32', "+ إضافة سطر صنف جديد")}</span>
           </Button>
           <div style={{ fontSize: '0.78rem', color: '#64748b' }}>
-            عدد الأصناف بالفاتورة: <strong style={{ color: '#0f172a' }}>{lines.length}</strong>
+            {t('pharmacy.distributor_invoice_import_modal.s33', "عدد الأصناف بالفاتورة:")} <strong style={{ color: '#0f172a' }}>{lines.length}</strong>
           </div>
         </div>
 
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '8px', borderTop: '1px solid #f1f5f9', paddingTop: '12px' }}>
           <Button variant="secondary" onClick={onClose} disabled={importing}>
-            إلغاء
+            {t('pharmacy.distributor_invoice_import_modal.s34', "إلغاء")}
           </Button>
           <Button
             variant="primary"
@@ -378,7 +380,7 @@ export function DistributorInvoiceImportModal({
             style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
           >
             <IconCheck size={15} />
-            <span>{importing ? 'جاري الاستيراد وتحديث الأرصدة...' : `استيراد الفاتورة وتحديث المخزون (${lines.length} صنف)`}</span>
+            <span>{importing ? t('pharmacy.distributor_invoice_import_modal.s35', "جاري الاستيراد وتحديث الأرصدة...") : `استيراد الفاتورة وتحديث المخزون (${lines.length} صنف)`}</span>
           </Button>
         </div>
       </div>

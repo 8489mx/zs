@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/app/query-keys';
@@ -42,6 +43,7 @@ interface PurchasePaymentScheduleCardProps {
 }
 
 export function PurchasePaymentScheduleCard({ purchase }: PurchasePaymentScheduleCardProps) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const purchaseId = String(purchase.id || '');
   const supplierId = String(purchase.supplierId || '');
@@ -104,26 +106,26 @@ export function PurchasePaymentScheduleCard({ purchase }: PurchasePaymentSchedul
   return (
     <FormSection
       className="purchase-payment-schedule-card"
-      title="جدولة دفعات المورد"
-      description="قسّم فاتورة المورد الآجلة إلى دفعات مستحقة، وتابع المدفوع والمتبقي من نفس الفاتورة."
-      actions={<span className="nav-pill">{rows.length ? `${rows.length} دفعات` : 'بدون جدول'}</span>}
+      title={t('purchases.purchase_payment_schedule_card.s0', "جدولة دفعات المورد")}
+      description={t('purchases.purchase_payment_schedule_card.s1', "قسّم فاتورة المورد الآجلة إلى دفعات مستحقة، وتابع المدفوع والمتبقي من نفس الفاتورة.")}
+      actions={<span className="nav-pill">{rows.length ? `${rows.length} دفعات` : t('purchases.purchase_payment_schedule_card.s2', "بدون جدول")}</span>}
     >
       <div className="stats-grid compact-grid">
-        <div className="stat-card"><span>إجمالي الجدول</span><strong>{formatCurrency(summary.total)}</strong></div>
-        <div className="stat-card"><span>مدفوع</span><strong>{formatCurrency(summary.paid)}</strong></div>
-        <div className="stat-card"><span>متبقي</span><strong>{formatCurrency(summary.remaining || (isCreditPurchase ? Number(purchase.total || 0) : 0))}</strong></div>
-        <div className="stat-card"><span>متأخر</span><strong>{summary.overdue}</strong></div>
+        <div className="stat-card"><span>{t('purchases.purchase_payment_schedule_card.s3', "إجمالي الجدول")}</span><strong>{formatCurrency(summary.total)}</strong></div>
+        <div className="stat-card"><span>{t('purchases.purchase_payment_schedule_card.s4', "مدفوع")}</span><strong>{formatCurrency(summary.paid)}</strong></div>
+        <div className="stat-card"><span>{t('purchases.purchase_payment_schedule_card.s5', "متبقي")}</span><strong>{formatCurrency(summary.remaining || (isCreditPurchase ? Number(purchase.total || 0) : 0))}</strong></div>
+        <div className="stat-card"><span>{t('purchases.purchase_payment_schedule_card.s6', "متأخر")}</span><strong>{summary.overdue}</strong></div>
       </div>
 
       {!isCreditPurchase ? (
         <div className="surface-note" style={{ marginTop: 12 }}>
-          جدولة الدفعات متاحة لفواتير المورد الآجلة فقط، لأن الفاتورة النقدية يتم تسجيل خروجها من الخزينة مباشرة عند إنشاء الفاتورة.
+          {t('purchases.purchase_payment_schedule_card.s7', "جدولة الدفعات متاحة لفواتير المورد الآجلة فقط، لأن الفاتورة النقدية يتم تسجيل خروجها من الخزينة مباشرة عند إنشاء الفاتورة.")}
         </div>
       ) : null}
 
       {canCreateSchedule ? (
         <div className="form-grid schedule-form-grid" style={{ marginTop: 12 }}>
-          <Field label="طريقة التقسيم">
+          <Field label={t('purchases.purchase_payment_schedule_card.s8', "طريقة التقسيم")}>
             <CustomSelect
               value={mode}
               onChange={(val) => setMode(val as 'count' | 'amount')}
@@ -132,32 +134,32 @@ export function PurchasePaymentScheduleCard({ purchase }: PurchasePaymentSchedul
             />
           </Field>
           {mode === 'count' ? (
-            <Field label="عدد الدفعات">
+            <Field label={t('purchases.purchase_payment_schedule_card.s9', "عدد الدفعات")}>
               <input type="number" min="1" value={installmentCount} onChange={(event) => setInstallmentCount(event.target.value)} />
             </Field>
           ) : (
-            <Field label="مبلغ كل دفعة">
+            <Field label={t('purchases.purchase_payment_schedule_card.s10', "مبلغ كل دفعة")}>
               <input type="number" min="1" step="0.01" value={installmentAmount} onChange={(event) => setInstallmentAmount(event.target.value)} />
             </Field>
           )}
-          <Field label="تاريخ أول دفعة"><input type="date" value={firstDueDate} onChange={(event) => setFirstDueDate(event.target.value)} /></Field>
-          <Field label="تكرار الاستحقاق (أيام)"><input type="number" min="1" value={intervalDays} onChange={(event) => setIntervalDays(event.target.value)} /></Field>
-          <Field label="تقريب الدفعات لأقرب"><input type="number" min="1" value={roundingStep} onChange={(event) => setRoundingStep(event.target.value)} /></Field>
-          <Field label="ملاحظة"><input value={note} onChange={(event) => setNote(event.target.value)} placeholder="مثال: اتفاق دفع مع المورد" /></Field>
+          <Field label={t('purchases.purchase_payment_schedule_card.s11', "تاريخ أول دفعة")}><input type="date" value={firstDueDate} onChange={(event) => setFirstDueDate(event.target.value)} /></Field>
+          <Field label={t('purchases.purchase_payment_schedule_card.s12', "تكرار الاستحقاق (أيام)")}><input type="number" min="1" value={intervalDays} onChange={(event) => setIntervalDays(event.target.value)} /></Field>
+          <Field label={t('purchases.purchase_payment_schedule_card.s13', "تقريب الدفعات لأقرب")}><input type="number" min="1" value={roundingStep} onChange={(event) => setRoundingStep(event.target.value)} /></Field>
+          <Field label={t('purchases.purchase_payment_schedule_card.s14', "ملاحظة")}><input value={note} onChange={(event) => setNote(event.target.value)} placeholder={t('purchases.purchase_payment_schedule_card.s15', "مثال: اتفاق دفع مع المورد")} /></Field>
           <div className="field field-full-span" style={{ gridColumn: '1 / -1', marginTop: '4px' }}>
             <Button type="button" onClick={() => createMutation.mutate()} disabled={createMutation.isPending} style={{ width: '100%', justifyContent: 'center' }}>
-              {rows.length ? 'إعادة جدولة الدفعات' : 'جدولة الدفعات'}
+              {rows.length ? t('purchases.purchase_payment_schedule_card.s16', "إعادة جدولة الدفعات") : t('purchases.purchase_payment_schedule_card.s17', "جدولة الدفعات")}
             </Button>
           </div>
         </div>
       ) : null}
 
-      <MutationFeedback isError={createMutation.isError || settleMutation.isError} isSuccess={createMutation.isSuccess || settleMutation.isSuccess} error={createMutation.error || settleMutation.error} errorFallback="تعذر تنفيذ عملية الدفعات" successText="تم تحديث جدول دفعات المورد." />
+      <MutationFeedback isError={createMutation.isError || settleMutation.isError} isSuccess={createMutation.isSuccess || settleMutation.isSuccess} error={createMutation.error || settleMutation.error} errorFallback={t('purchases.purchase_payment_schedule_card.s18', "تعذر تنفيذ عملية الدفعات")} successText={t('purchases.purchase_payment_schedule_card.s19', "تم تحديث جدول دفعات المورد.")} />
 
       <div className="table-wrap" style={{ marginTop: 12 }}>
         {rows.length ? (
           <table>
-            <thead><tr><th>#</th><th>الاستحقاق</th><th>المبلغ</th><th>المدفوع</th><th>المتبقي</th><th>الحالة</th><th>تسجيل دفع</th></tr></thead>
+            <thead><tr><th>#</th><th>{t('purchases.purchase_payment_schedule_card.s20', "الاستحقاق")}</th><th>{t('purchases.purchase_payment_schedule_card.s21', "المبلغ")}</th><th>{t('purchases.purchase_payment_schedule_card.s22', "المدفوع")}</th><th>{t('purchases.purchase_payment_schedule_card.s23', "المتبقي")}</th><th>{t('purchases.purchase_payment_schedule_card.s24', "الحالة")}</th><th>{t('purchases.purchase_payment_schedule_card.s25', "تسجيل دفع")}</th></tr></thead>
             <tbody>
               {rows.map((row) => {
                 const isSettled = row.status === 'paid' || row.status === 'cancelled';
@@ -170,14 +172,14 @@ export function PurchasePaymentScheduleCard({ purchase }: PurchasePaymentSchedul
                     <td>{formatCurrency(row.paidAmount)}</td>
                     <td>{formatCurrency(row.remainingAmount)}</td>
                     <td>{statusLabel(row.status)}</td>
-                    <td><div className="actions compact-actions"><input type="number" min="0.01" step="0.01" value={amountValue} onChange={(event) => setSettleAmounts((current) => ({ ...current, [row.id]: event.target.value }))} placeholder={String(row.remainingAmount || '')} disabled={isSettled || !isCreditPurchase} style={{ maxWidth: 110 }} /><Button type="button" variant="secondary" disabled={isSettled || !isCreditPurchase || settleMutation.isPending} onClick={() => settleMutation.mutate({ row, amount: amountValue ? Number(amountValue) : undefined })}>دفع</Button></div></td>
+                    <td><div className="actions compact-actions"><input type="number" min="0.01" step="0.01" value={amountValue} onChange={(event) => setSettleAmounts((current) => ({ ...current, [row.id]: event.target.value }))} placeholder={String(row.remainingAmount || '')} disabled={isSettled || !isCreditPurchase} style={{ maxWidth: 110 }} /><Button type="button" variant="secondary" disabled={isSettled || !isCreditPurchase || settleMutation.isPending} onClick={() => settleMutation.mutate({ row, amount: amountValue ? Number(amountValue) : undefined })}>{t('purchases.purchase_payment_schedule_card.s26', "دفع")}</Button></div></td>
                   </tr>
                 );
               })}
             </tbody>
           </table>
         ) : (
-          <EmptyState title="لا يوجد جدول دفعات لهذه الفاتورة" hint={isCreditPurchase ? 'اختر طريقة التقسيم وأنشئ جدول دفعات للمورد.' : 'حوّل الفاتورة إلى آجلة عند إنشائها إذا كان سيتم سدادها على دفعات.'} />
+          <EmptyState title={t('purchases.purchase_payment_schedule_card.s27', "لا يوجد جدول دفعات لهذه الفاتورة")} hint={isCreditPurchase ? t('purchases.purchase_payment_schedule_card.s28', "اختر طريقة التقسيم وأنشئ جدول دفعات للمورد.") : t('purchases.purchase_payment_schedule_card.s29', "حوّل الفاتورة إلى آجلة عند إنشائها إذا كان سيتم سدادها على دفعات.")} />
         )}
       </div>
     </FormSection>

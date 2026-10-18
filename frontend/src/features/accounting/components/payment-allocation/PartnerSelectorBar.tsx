@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 
 interface Partner {
@@ -23,6 +24,7 @@ export const PartnerSelectorBar: React.FC<PartnerSelectorBarProps> = ({
   partners,
   loadingPartners,
 }) => {
+  const { t } = useTranslation();
   return (
     <div
       style={{
@@ -37,7 +39,7 @@ export const PartnerSelectorBar: React.FC<PartnerSelectorBarProps> = ({
       <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '24px', alignItems: 'center' }}>
         <div>
           <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#64748b', marginBottom: '8px' }}>
-            نوع الشريك
+            {t('accounting.payment_allocation.partner_selector_bar.s0', "نوع الشريك")}
           </label>
           <div style={{ display: 'flex', gap: '8px' }}>
             <button
@@ -55,7 +57,7 @@ export const PartnerSelectorBar: React.FC<PartnerSelectorBarProps> = ({
                 color: partnerType === 'customer' ? '#ffffff' : '#334155',
               }}
             >
-              عملاء (فواتير المبيعات)
+              {t('accounting.payment_allocation.partner_selector_bar.s1', "عملاء (فواتير المبيعات)")}
             </button>
             <button
               type="button"
@@ -72,14 +74,14 @@ export const PartnerSelectorBar: React.FC<PartnerSelectorBarProps> = ({
                 color: partnerType === 'supplier' ? '#ffffff' : '#334155',
               }}
             >
-              موردين (فواتير المشتريات)
+              {t('accounting.payment_allocation.partner_selector_bar.s2', "موردين (فواتير المشتريات)")}
             </button>
           </div>
         </div>
 
         <div>
           <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#64748b', marginBottom: '8px' }}>
-            اختر {partnerType === 'customer' ? 'العميل' : 'المورد'}
+            {t('accounting.payment_allocation.partner_selector_bar.s3', "اختر")} {partnerType === 'customer' ? t('accounting.payment_allocation.partner_selector_bar.s4', "العميل") : t('accounting.payment_allocation.partner_selector_bar.s5', "المورد")}
           </label>
           <select
             value={partnerId || ''}
@@ -96,7 +98,7 @@ export const PartnerSelectorBar: React.FC<PartnerSelectorBarProps> = ({
               outline: 'none',
             }}
           >
-            <option value="">-- اختر {partnerType === 'customer' ? 'العميل' : 'المورد'} لعرض فواتيره وسنداته --</option>
+            <option value="">{t('accounting.payment_allocation.partner_selector_bar.s6', "-- اختر")} {partnerType === 'customer' ? t('accounting.payment_allocation.partner_selector_bar.s7', "العميل") : t('accounting.payment_allocation.partner_selector_bar.s8', "المورد")} {t('accounting.payment_allocation.partner_selector_bar.s9', "لعرض فواتيره وسنداته --")}</option>
             {partners.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.name} {p.phone ? `(${p.phone})` : ''}

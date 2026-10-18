@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { Button } from '@/shared/ui/button';
@@ -46,6 +47,7 @@ export function DriverLoadRequisitionModal({
   onClose,
   onRequisitionSubmitted,
 }: DriverLoadRequisitionModalProps) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
 
   // 'all' represents all warehouses with auto-selection; otherwise a specific warehouseId string
@@ -286,8 +288,8 @@ export function DriverLoadRequisitionModal({
     <StandardDialog
       open={open}
       onClose={handleReset}
-      title="طلب شحن بضاعة (إذن تحميل سيارة)"
-      subtitle="تحديد أصناف وكميات البضاعة المطلوبة من المستودعات لسيارة التوزيع للمراجعة والاعتماد"
+      title={t('delivery_reps.driver_load_requisition_modal.s0', "طلب شحن بضاعة (إذن تحميل سيارة)")}
+      subtitle={t('delivery_reps.driver_load_requisition_modal.s1', "تحديد أصناف وكميات البضاعة المطلوبة من المستودعات لسيارة التوزيع للمراجعة والاعتماد")}
       maxWidth="840px"
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', width: '100%' }} dir="rtl">
@@ -316,10 +318,10 @@ export function DriverLoadRequisitionModal({
               <CheckCircleIcon size={30} color="#16a34a" />
             </div>
             <h3 style={{ fontSize: '17px', fontWeight: 800, color: '#15803d', margin: '0 0 6px' }}>
-              تم إرسال طلب إذن التحميل للمشرف بنجاح!
+              {t('delivery_reps.driver_load_requisition_modal.s2', "تم إرسال طلب إذن التحميل للمشرف بنجاح!")}
             </h3>
             <p style={{ fontSize: '14px', fontWeight: 800, color: '#166534', margin: '0 0 12px' }}>
-              رقم الوثيقة: #{submittedDocNo}
+              {t('delivery_reps.driver_load_requisition_modal.s3', "رقم الوثيقة: #")}{submittedDocNo}
             </p>
             <div
               style={{
@@ -334,8 +336,7 @@ export function DriverLoadRequisitionModal({
                 lineHeight: 1.6,
               }}
             >
-              طلبك الآن قيد مراجعة وتجهيز المستودع. سيتم إخطارك وبدء الرحلة وتحديث عهدة السيارة فور اعتماد المشرف
-              وصرف البضاعة.
+              {t('delivery_reps.driver_load_requisition_modal.s4', "طلبك الآن قيد مراجعة وتجهيز المستودع. سيتم إخطارك وبدء الرحلة وتحديث عهدة السيارة فور اعتماد المشرف\n              وصرف البضاعة.")}
             </div>
             <Button
               variant="primary"
@@ -348,7 +349,7 @@ export function DriverLoadRequisitionModal({
                 borderRadius: '8px',
               }}
             >
-              تم والعودة للتطبيق
+              {t('delivery_reps.driver_load_requisition_modal.s5', "تم والعودة للتطبيق")}
             </Button>
           </div>
         ) : (
@@ -376,7 +377,7 @@ export function DriverLoadRequisitionModal({
                   }}
                 >
                   <WarehouseIcon size={14} color="#170e5e" />
-                  <span>المستودع المصدر:</span>
+                  <span>{t('delivery_reps.driver_load_requisition_modal.s6', "المستودع المصدر:")}</span>
                 </label>
                 <CustomSelect
                   value={selectedWarehouseFilter}
@@ -400,7 +401,7 @@ export function DriverLoadRequisitionModal({
                     }
                   }}
                   options={warehouseOptions}
-                  placeholder={isLoadingWarehouses ? 'جارٍ تحميل المستودعات...' : 'اختر المستودع'}
+                  placeholder={isLoadingWarehouses ? t('delivery_reps.driver_load_requisition_modal.s7', "جارٍ تحميل المستودعات...") : t('delivery_reps.driver_load_requisition_modal.s8', "اختر المستودع")}
                 />
               </div>
 
@@ -418,7 +419,7 @@ export function DriverLoadRequisitionModal({
                   }}
                 >
                   <SearchIcon size={14} color="#170e5e" />
-                  <span>بحث عن صنف لإضافته للطلب:</span>
+                  <span>{t('delivery_reps.driver_load_requisition_modal.s9', "بحث عن صنف لإضافته للطلب:")}</span>
                 </label>
                 <div style={{ position: 'relative' }}>
                   <input
@@ -430,7 +431,7 @@ export function DriverLoadRequisitionModal({
                       setIsSearchOpen(true);
                     }}
                     onFocus={() => setIsSearchOpen(true)}
-                    placeholder="اكتب اسم الصنف أو الباركود..."
+                    placeholder={t('delivery_reps.driver_load_requisition_modal.s10', "اكتب اسم الصنف أو الباركود...")}
                     style={{
                       width: '100%',
                       height: '38px',
@@ -477,7 +478,7 @@ export function DriverLoadRequisitionModal({
                   >
                     {isLoadingProducts ? (
                       <div style={{ padding: '16px', textAlign: 'center', color: '#64748b', fontSize: '12px' }}>
-                        جارٍ فحص الأرصدة والمستودعات...
+                        {t('delivery_reps.driver_load_requisition_modal.s11', "جارٍ فحص الأرصدة والمستودعات...")}
                       </div>
                     ) : searchResults.length > 0 ? (
                       searchResults.map((product) => {
@@ -539,7 +540,7 @@ export function DriverLoadRequisitionModal({
                                   ))
                                 ) : (
                                   <span style={{ fontSize: '10.5px', color: '#ef4444' }}>
-                                    غير متوفر بالمستودعات حالياً
+                                    {t('delivery_reps.driver_load_requisition_modal.s12', "غير متوفر بالمستودعات حالياً")}
                                   </span>
                                 )}
                               </div>
@@ -556,7 +557,7 @@ export function DriverLoadRequisitionModal({
                                   color: hasStock ? '#15803d' : '#b91c1c',
                                 }}
                               >
-                                {hasStock ? `المتاح: ${product.totalStock} ${product.unit}` : 'نفد الرصيد'}
+                                {hasStock ? `المتاح: ${product.totalStock} ${product.unit}` : t('delivery_reps.driver_load_requisition_modal.s13', "نفد الرصيد")}
                               </span>
                               <span style={{ fontSize: '11.5px', color: '#170e5e', fontWeight: 800 }}>
                                 {product.retailPrice.toFixed(2)} <CurrencySymbol />
@@ -567,7 +568,7 @@ export function DriverLoadRequisitionModal({
                       })
                     ) : (
                       <div style={{ padding: '16px', textAlign: 'center', color: '#94a3b8', fontSize: '12px' }}>
-                        لا توجد أصناف مطابقة للبحث
+                        {t('delivery_reps.driver_load_requisition_modal.s14', "لا توجد أصناف مطابقة للبحث")}
                       </div>
                     )}
                   </div>
@@ -588,7 +589,7 @@ export function DriverLoadRequisitionModal({
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <PackageIcon size={16} color="#170e5e" />
                   <span style={{ fontSize: '13px', fontWeight: 800, color: '#170e5e' }}>
-                    الأصناف المحددة لطلب التحميل ({cart.length})
+                    {t('delivery_reps.driver_load_requisition_modal.s15', "الأصناف المحددة لطلب التحميل (")}{cart.length})
                   </span>
                 </div>
                 {cart.length > 0 && (
@@ -605,7 +606,7 @@ export function DriverLoadRequisitionModal({
                       padding: '2px 6px',
                     }}
                   >
-                    تفريغ القائمة
+                    {t('delivery_reps.driver_load_requisition_modal.s16', "تفريغ القائمة")}
                   </button>
                 )}
               </div>
@@ -636,12 +637,12 @@ export function DriverLoadRequisitionModal({
                         }}
                       >
                         <tr>
-                          <th style={{ padding: '8px 12px', fontWeight: 700, color: '#475569' }}>الصنف</th>
+                          <th style={{ padding: '8px 12px', fontWeight: 700, color: '#475569' }}>{t('delivery_reps.driver_load_requisition_modal.s17', "الصنف")}</th>
                           <th style={{ padding: '8px 10px', fontWeight: 700, color: '#475569', minWidth: '150px' }}>
-                            مستودع الصرف
+                            {t('delivery_reps.driver_load_requisition_modal.s18', "مستودع الصرف")}
                           </th>
                           <th style={{ padding: '8px 10px', fontWeight: 700, color: '#475569', textAlign: 'center' }}>
-                            الرصيد المتاح
+                            {t('delivery_reps.driver_load_requisition_modal.s19', "الرصيد المتاح")}
                           </th>
                           <th
                             style={{
@@ -652,10 +653,10 @@ export function DriverLoadRequisitionModal({
                               minWidth: '130px',
                             }}
                           >
-                            الكمية المطلوبة
+                            {t('delivery_reps.driver_load_requisition_modal.s20', "الكمية المطلوبة")}
                           </th>
                           <th style={{ padding: '8px 10px', fontWeight: 700, color: '#475569', textAlign: 'left' }}>
-                            القيمة
+                            {t('delivery_reps.driver_load_requisition_modal.s21', "القيمة")}
                           </th>
                           <th style={{ padding: '8px 6px', width: '36px' }}></th>
                         </tr>
@@ -773,7 +774,7 @@ export function DriverLoadRequisitionModal({
                                       justifyContent: 'center',
                                       color: '#334155',
                                     }}
-                                    title="زيادة الكمية"
+                                    title={t('delivery_reps.driver_load_requisition_modal.s22', "زيادة الكمية")}
                                   >
                                     <PlusIcon size={13} />
                                   </button>
@@ -810,7 +811,7 @@ export function DriverLoadRequisitionModal({
                                       justifyContent: 'center',
                                       color: '#334155',
                                     }}
-                                    title="إنقاص الكمية"
+                                    title={t('delivery_reps.driver_load_requisition_modal.s23', "إنقاص الكمية")}
                                   >
                                     <MinusIcon size={13} />
                                   </button>
@@ -838,7 +839,7 @@ export function DriverLoadRequisitionModal({
                                     alignItems: 'center',
                                     justifyContent: 'center',
                                   }}
-                                  title="حذف الصنف"
+                                  title={t('delivery_reps.driver_load_requisition_modal.s24', "حذف الصنف")}
                                   onMouseEnter={(e) => (e.currentTarget.style.color = '#ef4444')}
                                   onMouseLeave={(e) => (e.currentTarget.style.color = '#94a3b8')}
                                 >
@@ -869,10 +870,10 @@ export function DriverLoadRequisitionModal({
                 >
                   <PackageIcon size={28} color="#94a3b8" />
                   <span style={{ fontSize: '13px', fontWeight: 600, color: '#64748b' }}>
-                    لم يتم إضافة أصناف بعد
+                    {t('delivery_reps.driver_load_requisition_modal.s25', "لم يتم إضافة أصناف بعد")}
                   </span>
                   <span style={{ fontSize: '11.5px', color: '#94a3b8' }}>
-                    ابحث عن الصنف بالاسم أو الباركود أعلاه لإضافته مباشرة وتحديد كميات التحميل
+                    {t('delivery_reps.driver_load_requisition_modal.s26', "ابحث عن الصنف بالاسم أو الباركود أعلاه لإضافته مباشرة وتحديد كميات التحميل")}
                   </span>
                 </div>
               )}
@@ -893,23 +894,23 @@ export function DriverLoadRequisitionModal({
               >
                 <div>
                   <span style={{ display: 'block', fontSize: '11px', color: '#64748b', fontWeight: 600 }}>
-                    عدد الأصناف:
+                    {t('delivery_reps.driver_load_requisition_modal.s27', "عدد الأصناف:")}
                   </span>
                   <span style={{ fontSize: '14px', fontWeight: 800, color: '#0f172a' }}>
-                    {summaryStats.distinctItems} صنف
+                    {summaryStats.distinctItems} {t('delivery_reps.driver_load_requisition_modal.s28', "صنف")}
                   </span>
                 </div>
                 <div>
                   <span style={{ display: 'block', fontSize: '11px', color: '#64748b', fontWeight: 600 }}>
-                    إجمالي الوحدات:
+                    {t('delivery_reps.driver_load_requisition_modal.s29', "إجمالي الوحدات:")}
                   </span>
                   <span style={{ fontSize: '14px', fontWeight: 800, color: '#0f172a' }}>
-                    {summaryStats.totalUnits} قطعة
+                    {summaryStats.totalUnits} {t('delivery_reps.driver_load_requisition_modal.s30', "قطعة")}
                   </span>
                 </div>
                 <div>
                   <span style={{ display: 'block', fontSize: '11px', color: '#64748b', fontWeight: 600 }}>
-                    إجمالي القيمة التقديرية:
+                    {t('delivery_reps.driver_load_requisition_modal.s31', "إجمالي القيمة التقديرية:")}
                   </span>
                   <span style={{ fontSize: '14px', fontWeight: 800, color: '#170e5e' }}>
                     {summaryStats.totalEstimatedValue.toFixed(2)} <CurrencySymbol />
@@ -929,13 +930,13 @@ export function DriverLoadRequisitionModal({
                   marginBottom: '4px',
                 }}
               >
-                ملاحظات إضافية لمشرف المستودع (اختياري):
+                {t('delivery_reps.driver_load_requisition_modal.s32', "ملاحظات إضافية لمشرف المستودع (اختياري):")}
               </label>
               <input
                 type="text"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                placeholder="مثال: يرجى صرف كميات إضافية لتغطية خط سير اليوم..."
+                placeholder={t('delivery_reps.driver_load_requisition_modal.s33', "مثال: يرجى صرف كميات إضافية لتغطية خط سير اليوم...")}
                 style={{
                   width: '100%',
                   height: '36px',
@@ -953,7 +954,7 @@ export function DriverLoadRequisitionModal({
             {/* Standard Footer */}
             <StandardDialogFooter>
               <Button variant="secondary" onClick={handleReset} disabled={submitMutation.isPending}>
-                إلغاء
+                {t('delivery_reps.driver_load_requisition_modal.s34', "إلغاء")}
               </Button>
               <Button
                 variant="primary"
@@ -968,7 +969,7 @@ export function DriverLoadRequisitionModal({
                 }}
               >
                 {submitMutation.isPending
-                  ? 'جارٍ إرسال الطلب...'
+                  ? t('delivery_reps.driver_load_requisition_modal.s35', "جارٍ إرسال الطلب...")
                   : `إرسال طلب التحميل للمشرف (${cart.length} أصناف)`}
               </Button>
             </StandardDialogFooter>

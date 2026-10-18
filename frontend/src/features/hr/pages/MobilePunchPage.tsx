@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useRef } from 'react';
 import { mobilePunchApi, type MobileAttendanceUser, type TodayAttendanceStatus } from '../api/mobile-punch.api';
 import { MobilePunchLoginScreen } from '../components/punch/MobilePunchLoginScreen';
@@ -6,6 +7,7 @@ import { MobilePunchGpsCard } from '../components/punch/MobilePunchGpsCard';
 import { MobilePunchTimeline } from '../components/punch/MobilePunchTimeline';
 
 export default function MobilePunchPage() {
+  const { t: __t } = useTranslation();
   const [token, setToken] = useState<string | null>(() => {
     return typeof localStorage !== 'undefined' ? localStorage.getItem('zs_mobile_punch_token') : null;
   });
@@ -257,14 +259,14 @@ export default function MobilePunchPage() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#ffffff', borderRadius: '12px', padding: '10px 14px', border: '1px solid #e2e8f0' }}>
           <div>
             <div style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a' }}>{employee?.name}</div>
-            <div style={{ fontSize: '11px', color: '#64748b' }}>{status?.branch?.name || 'الفرع الرئيسي'}</div>
+            <div style={{ fontSize: '11px', color: '#64748b' }}>{status?.branch?.name || __t('hr.mobile_punch_page.s0', "الفرع الرئيسي")}</div>
           </div>
           <button
             type="button"
             onClick={handleLogout}
             style={{ padding: '4px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#64748b', fontSize: '11.5px', fontWeight: 700, cursor: 'pointer' }}
           >
-            خروج
+            {__t('hr.mobile_punch_page.s1', "خروج")}
           </button>
         </div>
 
@@ -318,7 +320,7 @@ export default function MobilePunchPage() {
               boxShadow: '0 4px 12px rgba(5, 150, 105, 0.25)',
             }}
           >
-            {punching ? 'جارٍ التسجيل...' : 'تسجيل حضور'}
+            {punching ? __t('hr.mobile_punch_page.s2', "جارٍ التسجيل...") : __t('hr.mobile_punch_page.s3', "تسجيل حضور")}
           </button>
 
           <button
@@ -337,7 +339,7 @@ export default function MobilePunchPage() {
               boxShadow: '0 4px 12px rgba(220, 38, 38, 0.25)',
             }}
           >
-            {punching ? 'جارٍ التسجيل...' : 'تسجيل انصراف'}
+            {punching ? __t('hr.mobile_punch_page.s4', "جارٍ التسجيل...") : __t('hr.mobile_punch_page.s5', "تسجيل انصراف")}
           </button>
         </div>
 

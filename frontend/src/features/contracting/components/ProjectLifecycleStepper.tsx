@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
 import type { ContractingProject } from '../contracting.types';
 
@@ -88,6 +89,7 @@ export function ProjectLifecycleStepper({
   totalProjectsCount,
   onOpenTenderEstimator,
 }: ProjectLifecycleStepperProps) {
+  const { t } = useTranslation();
   return (
     <div
       style={{
@@ -138,13 +140,13 @@ export function ProjectLifecycleStepper({
             }}
           >
             <AppIcons.Building size={15} />
-            <span>سجل ومؤشرات كافة المشاريع ({totalProjectsCount})</span>
+            <span>{t('contracting.project_lifecycle_stepper.s0', "سجل ومؤشرات كافة المشاريع (")}{totalProjectsCount})</span>
           </button>
 
           <span style={{ color: '#cbd5e1', fontSize: '14px' }}>|</span>
 
           <span style={{ fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#475569' }}>
-            مسار دورة حياة المشروع التنفيذية (من العطاء حتى التسليم النهائي):
+            {t('contracting.project_lifecycle_stepper.s1', "مسار دورة حياة المشروع التنفيذية (من العطاء حتى التسليم النهائي):")}
           </span>
         </div>
 
@@ -161,7 +163,7 @@ export function ProjectLifecycleStepper({
                 border: '1px solid #dbeafe',
               }}
             >
-              مشروع محدد: [{activeProject.code}] {activeProject.name}
+              {t('contracting.project_lifecycle_stepper.s2', "مشروع محدد: [")}{activeProject.code}] {activeProject.name}
             </span>
           </div>
         )}

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { getGlobalCurrencySymbol } from '@/lib/currencies';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
@@ -17,6 +18,7 @@ interface TradeInDisclaimerModalProps {
 }
 
 export function TradeInDisclaimerModal({ open, transaction, settings, onClose }: TradeInDisclaimerModalProps) {
+  const { t } = useTranslation();
   const profile = getMaintenanceProfile(settings?.maintenanceProfile);
 
   if (!open || !transaction) return null;
@@ -109,14 +111,14 @@ export function TradeInDisclaimerModal({ open, transaction, settings, onClose }:
     <StandardDialog
       open={open}
       onClose={onClose}
-      title="عقد وإقرار بيع وتنازل عن جهاز"
+      title={t('tradein.trade_in_disclaimer_modal.s0', "عقد وإقرار بيع وتنازل عن جهاز")}
       subtitle={`رقم العملية: ${transaction.docNo} • التاريخ: ${dateFormatted}`}
-      badge="استبدال وشراء أجهزة"
+      badge={t('tradein.trade_in_disclaimer_modal.s1', "استبدال وشراء أجهزة")}
       width="min(680px, 95vw)"
       footerActions={
         <StandardDialogFooter
           onClose={onClose}
-          cancelText="إغلاق"
+          cancelText={t('tradein.trade_in_disclaimer_modal.s2', "إغلاق")}
           extraActions={
             <Button
               variant="primary"
@@ -124,7 +126,7 @@ export function TradeInDisclaimerModal({ open, transaction, settings, onClose }:
               style={{ backgroundColor: '#170e5e', color: '#ffffff', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
             >
               <PrinterIcon size={15} />
-              <span>طباعة الإقرار</span>
+              <span>{t('tradein.trade_in_disclaimer_modal.s3', "طباعة الإقرار")}</span>
             </Button>
           }
         />
@@ -134,28 +136,28 @@ export function TradeInDisclaimerModal({ open, transaction, settings, onClose }:
         {/* Preview card shown in modal */}
         <div style={{ background: '#fff', border: '1px solid #cbd5e1', borderRadius: '10px', padding: '18px', fontSize: '0.875rem', lineHeight: 1.6, color: '#0f172a' }}>
           <div style={{ textAlign: 'center', borderBottom: '2px solid #0f172a', paddingBottom: '10px', marginBottom: '14px' }}>
-            <h2 style={{ margin: '0 0 4px', fontSize: '1.25rem', fontWeight: 800 }}>{settings?.storeName || 'متجر الإلكترونيات'}</h2>
-            <div style={{ fontSize: '0.95rem', fontWeight: 700, color: '#1e293b' }}>إقرار وتعهد بيع وتنازل عن جهاز وإخلاء مسؤولية أمنية</div>
-            <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '4px' }}>رقم العملية: {transaction.docNo} • التاريخ: {dateFormatted}</div>
+            <h2 style={{ margin: '0 0 4px', fontSize: '1.25rem', fontWeight: 800 }}>{settings?.storeName || t('tradein.trade_in_disclaimer_modal.s4', "متجر الإلكترونيات")}</h2>
+            <div style={{ fontSize: '0.95rem', fontWeight: 700, color: '#1e293b' }}>{t('tradein.trade_in_disclaimer_modal.s5', "إقرار وتعهد بيع وتنازل عن جهاز وإخلاء مسؤولية أمنية")}</div>
+            <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '4px' }}>{t('tradein.trade_in_disclaimer_modal.s6', "رقم العملية:")} {transaction.docNo} {t('tradein.trade_in_disclaimer_modal.s7', "• التاريخ:")} {dateFormatted}</div>
           </div>
           <div style={{ textAlign: 'center', marginBottom: '12px' }}>
             <div dangerouslySetInnerHTML={{ __html: barcodeSvg }} style={{ height: '40px', margin: '0 auto' }} />
           </div>
           <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0', marginBottom: '14px' }}>
             <p style={{ margin: 0 }}>
-              أقر أنا الموقع أدناه / <strong>{transaction.sellerName}</strong><br />
-              بطاقة رقم قومي: <strong dir="ltr">{transaction.sellerNationalId}</strong><br />
-              رقم الهاتف: <strong dir="ltr">{transaction.sellerPhone}</strong>
+              {t('tradein.trade_in_disclaimer_modal.s8', "أقر أنا الموقع أدناه /")} <strong>{transaction.sellerName}</strong><br />
+              {t('tradein.trade_in_disclaimer_modal.s9', "بطاقة رقم قومي:")} <strong dir="ltr">{transaction.sellerNationalId}</strong><br />
+              {t('tradein.trade_in_disclaimer_modal.s10', "رقم الهاتف:")} <strong dir="ltr">{transaction.sellerPhone}</strong>
             </p>
           </div>
           <div style={{ background: '#f1f5f9', padding: '12px', borderRadius: '8px', marginBottom: '14px' }}>
-            <div>• الجهاز: <strong>{transaction.deviceBrand ? `${transaction.deviceBrand} ` : ''}{transaction.deviceModel}</strong></div>
+            <div>{t('tradein.trade_in_disclaimer_modal.s11', "• الجهاز:")} <strong>{transaction.deviceBrand ? `${transaction.deviceBrand} ` : ''}{transaction.deviceModel}</strong></div>
             <div>• {profile.serialLabel}: <strong dir="ltr">{transaction.serialNumber}</strong></div>
-            <div>• السعر المتفق عليه: <strong>{Number(transaction.agreedPurchasePrice).toFixed(2)} <CurrencySymbol /></strong></div>
+            <div>{t('tradein.trade_in_disclaimer_modal.s12', "• السعر المتفق عليه:")} <strong>{Number(transaction.agreedPurchasePrice).toFixed(2)} <CurrencySymbol /></strong></div>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', borderTop: '2px solid #0f172a', paddingTop: '12px', textAlign: 'center', fontSize: '0.8rem' }}>
-            <div><strong>توقيع البائع</strong><br /><br />الاسم: .............<br />التوقيع: ............</div>
-            <div><strong>توقيع المستلم</strong><br /><br />الاسم: .............<br />الختم: .............</div>
+            <div><strong>{t('tradein.trade_in_disclaimer_modal.s13', "توقيع البائع")}</strong><br /><br />{t('tradein.trade_in_disclaimer_modal.s14', "الاسم: .............")}<br />{t('tradein.trade_in_disclaimer_modal.s15', "التوقيع: ............")}</div>
+            <div><strong>{t('tradein.trade_in_disclaimer_modal.s16', "توقيع المستلم")}</strong><br /><br />{t('tradein.trade_in_disclaimer_modal.s17', "الاسم: .............")}<br />{t('tradein.trade_in_disclaimer_modal.s18', "الختم: .............")}</div>
           </div>
         </div>
       </div>

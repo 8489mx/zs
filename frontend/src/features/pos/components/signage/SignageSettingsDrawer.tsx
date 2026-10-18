@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 import { SettingsIcon, XIcon } from '@/shared/components/icons/AppIcons';
 
@@ -20,6 +21,7 @@ export const SignageSettingsDrawer: React.FC<SignageSettingsDrawerProps> = ({
   customTickerText,
   onCustomTickerTextChange,
 }) => {
+  const { t } = useTranslation();
   return (
     <div
       dir="rtl"
@@ -46,7 +48,7 @@ export const SignageSettingsDrawer: React.FC<SignageSettingsDrawerProps> = ({
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#0f172a', fontWeight: 800, fontSize: '15px' }}>
           <SettingsIcon size={16} color="#170e5e" />
-          <span>إعدادات شاشة العروض</span>
+          <span>{t('pos.signage.signage_settings_drawer.s0', "إعدادات شاشة العروض")}</span>
         </div>
         <button
           type="button"
@@ -68,7 +70,7 @@ export const SignageSettingsDrawer: React.FC<SignageSettingsDrawerProps> = ({
       <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', fontSize: '12px' }}>
         <div>
           <label style={{ display: 'block', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-            سرعة تبديل الشرائح (ثواني):
+            {t('pos.signage.signage_settings_drawer.s1', "سرعة تبديل الشرائح (ثواني):")}
           </label>
           <select
             value={slideIntervalSec}
@@ -83,16 +85,16 @@ export const SignageSettingsDrawer: React.FC<SignageSettingsDrawerProps> = ({
               fontWeight: 600,
             }}
           >
-            <option value={5}>5 ثوانٍ (سريع)</option>
-            <option value={8}>8 ثوانٍ (افتراضي - ممتاز)</option>
-            <option value={12}>12 ثانية (متأنٍ)</option>
-            <option value={20}>20 ثانية (بطيء)</option>
+            <option value={5}>{t('pos.signage.signage_settings_drawer.s2', "5 ثوانٍ (سريع)")}</option>
+            <option value={8}>{t('pos.signage.signage_settings_drawer.s3', "8 ثوانٍ (افتراضي - ممتاز)")}</option>
+            <option value={12}>{t('pos.signage.signage_settings_drawer.s4', "12 ثانية (متأنٍ)")}</option>
+            <option value={20}>{t('pos.signage.signage_settings_drawer.s5', "20 ثانية (بطيء)")}</option>
           </select>
         </div>
 
         <div>
           <label style={{ display: 'block', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-            مصدر الأصناف المعروضة:
+            {t('pos.signage.signage_settings_drawer.s6', "مصدر الأصناف المعروضة:")}
           </label>
           <div style={{ display: 'flex', gap: '6px' }}>
             <button
@@ -109,7 +111,7 @@ export const SignageSettingsDrawer: React.FC<SignageSettingsDrawerProps> = ({
                 cursor: 'pointer',
               }}
             >
-              العروض فقط
+              {t('pos.signage.signage_settings_drawer.s7', "العروض فقط")}
             </button>
             <button
               type="button"
@@ -125,14 +127,14 @@ export const SignageSettingsDrawer: React.FC<SignageSettingsDrawerProps> = ({
                 cursor: 'pointer',
               }}
             >
-              كل المنتجات
+              {t('pos.signage.signage_settings_drawer.s8', "كل المنتجات")}
             </button>
           </div>
         </div>
 
         <div>
           <label style={{ display: 'block', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-            نص الشريط المتحرك السفلي:
+            {t('pos.signage.signage_settings_drawer.s9', "نص الشريط المتحرك السفلي:")}
           </label>
           <textarea
             value={customTickerText}

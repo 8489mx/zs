@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAppToolbar } from '@/stores/toolbar-store';
@@ -12,6 +13,8 @@ import { CostCenterReportModal } from '../components/cost-centers/CostCenterRepo
 import { CostCenterAllocationsTab } from '../components/cost-centers/CostCenterAllocationsTab';
 
 export function AccountingCostCentersPage() {
+  const { t, i18n } = useTranslation();
+  const isEn = i18n.language === 'en';
   const queryClient = useQueryClient();
 
   useAppToolbar([
@@ -175,9 +178,9 @@ export function AccountingCostCentersPage() {
     <div className="page-stack page-shell cost-centers-page" dir="rtl">
       <main className="document-prototype-column" style={{ paddingBottom: '100px', maxWidth: '1280px', margin: '0 auto', width: '100%' }}>
         <PageHeader
-          title="مراكز التكلفة المحاسبية (Cost Centers)"
-          description="دليل شجري لإدارة وتتبع مراكز التكلفة والفروع والمشاريع، وحساب الأرباح والمصروفات المستقلة"
-          badge={<span className="nav-pill">دليل تحليلي</span>}
+          title={t('accounting.accounting_cost_centers_page.s0', "مراكز التكلفة المحاسبية (Cost Centers)")}
+          description={t('accounting.accounting_cost_centers_page.s1', "دليل شجري لإدارة وتتبع مراكز التكلفة والفروع والمشاريع، وحساب الأرباح والمصروفات المستقلة")}
+          badge={<span className="nav-pill">{t('accounting.accounting_cost_centers_page.s2', "دليل تحليلي")}</span>}
           actions={
             <div className="actions compact-actions page-header-actions">
               <Button
@@ -186,7 +189,7 @@ export function AccountingCostCentersPage() {
                 style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
               >
                 <PlusIcon size={16} />
-                <span>إضافة مركز تكلفة جديد</span>
+                <span>{t('accounting.accounting_cost_centers_page.s3', "إضافة مركز تكلفة جديد")}</span>
               </Button>
             </div>
           }
@@ -198,18 +201,18 @@ export function AccountingCostCentersPage() {
             items={[
               {
                 key: 'total',
-                label: 'إجمالي مراكز التكلفة',
-                value: `${costCenters.length} مركز`,
+                label: t('accounting.accounting_cost_centers_page.s4', "إجمالي مراكز التكلفة"),
+                value: isEn ? `${costCenters.length} Centers` : `${costCenters.length} مركز`,
               },
               {
                 key: 'active',
-                label: 'المراكز النشطة',
-                value: `${activeCount} مركز نشط`,
+                label: t('accounting.accounting_cost_centers_page.s5', "المراكز النشطة"),
+                value: isEn ? `${activeCount} Active Centers` : `${activeCount} مركز نشط`,
               },
               {
                 key: 'roots',
-                label: 'المراكز الرئيسية (الجذور)',
-                value: `${rootCount} مركز رئيسي`,
+                label: t('accounting.accounting_cost_centers_page.s6', "المراكز الرئيسية (الجذور)"),
+                value: isEn ? `${rootCount} Root Centers` : `${rootCount} مركز رئيسي`,
               },
             ]}
           />
@@ -239,7 +242,7 @@ export function AccountingCostCentersPage() {
               cursor: 'pointer',
             }}
           >
-            دليل مراكز التكلفة الشجري ({costCenters.length})
+            {t('accounting.accounting_cost_centers_page.s7', "دليل مراكز التكلفة الشجري (")}{costCenters.length})
           </button>
           <button
             type="button"
@@ -255,7 +258,7 @@ export function AccountingCostCentersPage() {
               cursor: 'pointer',
             }}
           >
-            مصفوفات وقوالب التوزيع النسبي (Allocation Matrices)
+            {t('accounting.accounting_cost_centers_page.s8', "مصفوفات وقوالب التوزيع النسبي (Allocation Matrices)")}
           </button>
         </div>
 

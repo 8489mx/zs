@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
 import { getGlobalCurrencySymbol } from '@/lib/currencies';
 import { DialogShell } from '@/shared/components/dialog-shell';
@@ -14,6 +15,7 @@ interface Props {
 }
 
 export function EgyptianMasterCatalogModal({ open, onClose, onImportSuccess }: Props) {
+  const { t } = useTranslation();
   const [drugs, setDrugs] = useState<MasterDrugItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [seeding, setSeeding] = useState(false);
@@ -96,15 +98,15 @@ export function EgyptianMasterCatalogModal({ open, onClose, onImportSuccess }: P
   };
 
   return (
-    <DialogShell open={open} onClose={onClose} width="min(1240px, 96vw)" ariaLabel="المرجع الدوائي المصري الشامل">
+    <DialogShell open={open} onClose={onClose} width="min(1240px, 96vw)" ariaLabel={t('pharmacy.egyptian_master_catalog_modal.s0', "المرجع الدوائي المصري الشامل")}>
       <div dir="rtl" style={{ background: '#ffffff', borderRadius: '10px', padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0', paddingBottom: '10px' }}>
           <div>
             <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#0f172a' }}>
-              المرجع الدوائي المصري الشامل (Master Drug Index)
+              {t('pharmacy.egyptian_master_catalog_modal.s1', "المرجع الدوائي المصري الشامل (Master Drug Index)")}
             </h3>
             <p style={{ margin: '2px 0 0', fontSize: '0.76rem', color: '#64748b' }}>
-              قاعدة البيانات المعتمدة لكافة الأدوية المصرية بالباركود والمواد الفعالة والتسعيرة الجبرية الرسمية
+              {t('pharmacy.egyptian_master_catalog_modal.s2', "قاعدة البيانات المعتمدة لكافة الأدوية المصرية بالباركود والمواد الفعالة والتسعيرة الجبرية الرسمية")}
             </p>
           </div>
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
@@ -114,7 +116,7 @@ export function EgyptianMasterCatalogModal({ open, onClose, onImportSuccess }: P
               disabled={seeding}
               style={{ fontSize: '0.82rem', padding: '6px 12px' }}
             >
-              <span>{seeding ? 'جاري الاستيراد الشامل...' : 'استيراد كافة الأدوية لصيدليتي'}</span>
+              <span>{seeding ? t('pharmacy.egyptian_master_catalog_modal.s3', "جاري الاستيراد الشامل...") : t('pharmacy.egyptian_master_catalog_modal.s4', "استيراد كافة الأدوية لصيدليتي")}</span>
             </Button>
             <button
               type="button"
@@ -145,7 +147,7 @@ export function EgyptianMasterCatalogModal({ open, onClose, onImportSuccess }: P
           <div style={{ position: 'relative', flex: 1 }}>
             <input
               type="text"
-              placeholder="ابحث بالاسم التجاري، العربي، المادة الفعالة، الشركة، أو الباركود..."
+              placeholder={t('pharmacy.egyptian_master_catalog_modal.s5', "ابحث بالاسم التجاري، العربي، المادة الفعالة، الشركة، أو الباركود...")}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="purchase-prototype-field-input"
@@ -161,15 +163,15 @@ export function EgyptianMasterCatalogModal({ open, onClose, onImportSuccess }: P
               value={selectedClass}
               onChange={(val) => setSelectedClass(val)}
               options={[
-                { value: 'all', label: 'جميع المجموعات العلاجية' },
-                { value: 'مسكنات وخافضات حرارة', label: 'مسكنات وخافضات حرارة' },
-                { value: 'مضادات حيوية واسعة المجال', label: 'مضادات حيوية واسعة المجال' },
-                { value: 'مثبطات مضخة البروتون (PPI)', label: 'أدوية المعدة والحموضة' },
-                { value: 'مغلقات بيتا (Beta Blockers)', label: 'أدوية القلب والضغط' },
-                { value: 'أدوية السكر الفموية', label: 'أدوية السكري' },
-                { value: 'مضادات احتقان الأنف', label: 'أدوية الجهاز التنفسي والبرد' },
-                { value: 'فيتامينات ومقويات الأعصاب', label: 'فيتامينات ومقويات الأعصاب' },
-                { value: 'مضادات حيوية موضعية', label: 'جلدية وقطرات ومراهم' },
+                { value: 'all', label: t('pharmacy.egyptian_master_catalog_modal.s6', "جميع المجموعات العلاجية") },
+                { value: t('pharmacy.egyptian_master_catalog_modal.s7', "مسكنات وخافضات حرارة"), label: t('pharmacy.egyptian_master_catalog_modal.s8', "مسكنات وخافضات حرارة") },
+                { value: t('pharmacy.egyptian_master_catalog_modal.s9', "مضادات حيوية واسعة المجال"), label: t('pharmacy.egyptian_master_catalog_modal.s10', "مضادات حيوية واسعة المجال") },
+                { value: t('pharmacy.egyptian_master_catalog_modal.s11', "مثبطات مضخة البروتون (PPI)"), label: t('pharmacy.egyptian_master_catalog_modal.s12', "أدوية المعدة والحموضة") },
+                { value: t('pharmacy.egyptian_master_catalog_modal.s13', "مغلقات بيتا (Beta Blockers)"), label: t('pharmacy.egyptian_master_catalog_modal.s14', "أدوية القلب والضغط") },
+                { value: t('pharmacy.egyptian_master_catalog_modal.s15', "أدوية السكر الفموية"), label: t('pharmacy.egyptian_master_catalog_modal.s16', "أدوية السكري") },
+                { value: t('pharmacy.egyptian_master_catalog_modal.s17', "مضادات احتقان الأنف"), label: t('pharmacy.egyptian_master_catalog_modal.s18', "أدوية الجهاز التنفسي والبرد") },
+                { value: t('pharmacy.egyptian_master_catalog_modal.s19', "فيتامينات ومقويات الأعصاب"), label: t('pharmacy.egyptian_master_catalog_modal.s20', "فيتامينات ومقويات الأعصاب") },
+                { value: t('pharmacy.egyptian_master_catalog_modal.s21', "مضادات حيوية موضعية"), label: t('pharmacy.egyptian_master_catalog_modal.s22', "جلدية وقطرات ومراهم") },
               ]}
             />
           </div>
@@ -178,9 +180,9 @@ export function EgyptianMasterCatalogModal({ open, onClose, onImportSuccess }: P
         {/* Drug list table */}
         <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', maxHeight: 'min(560px, calc(80vh - 180px))', overflowY: 'auto', overflowX: 'hidden' }}>
           {loading ? (
-            <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>جاري استدعاء الأدوية من المرجع المصري...</div>
+            <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>{t('pharmacy.egyptian_master_catalog_modal.s23', "جاري استدعاء الأدوية من المرجع المصري...")}</div>
           ) : drugs.length === 0 ? (
-            <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>لا توجد أدوية مطابقة لبحثك في المرجع المصري</div>
+            <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>{t('pharmacy.egyptian_master_catalog_modal.s24', "لا توجد أدوية مطابقة لبحثك في المرجع المصري")}</div>
           ) : (
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem', textAlign: 'right', tableLayout: 'fixed' }}>
               <thead style={{ position: 'sticky', top: 0, background: '#f8fafc', borderBottom: '1px solid #e2e8f0', zIndex: 2 }}>
@@ -195,12 +197,12 @@ export function EgyptianMasterCatalogModal({ open, onClose, onImportSuccess }: P
                       }}
                     />
                   </th>
-                  <th style={{ padding: '10px 8px', width: '26%', verticalAlign: 'middle' }}>الدواء والتجاري</th>
-                  <th style={{ padding: '10px 8px', width: '25%', verticalAlign: 'middle' }}>المادة الفعالة والشكل</th>
-                  <th style={{ padding: '10px 8px', width: '18%', verticalAlign: 'middle' }}>الشركة والباركود</th>
-                  <th style={{ padding: '10px 6px', width: '9%', textAlign: 'center', verticalAlign: 'middle' }}>التجزئة</th>
-                  <th style={{ padding: '10px 6px', width: '12%', textAlign: 'center', verticalAlign: 'middle' }}>التسعيرة الرسمية</th>
-                  <th style={{ padding: '10px 6px', width: '10%', textAlign: 'center', verticalAlign: 'middle' }}>الرقابة</th>
+                  <th style={{ padding: '10px 8px', width: '26%', verticalAlign: 'middle' }}>{t('pharmacy.egyptian_master_catalog_modal.s25', "الدواء والتجاري")}</th>
+                  <th style={{ padding: '10px 8px', width: '25%', verticalAlign: 'middle' }}>{t('pharmacy.egyptian_master_catalog_modal.s26', "المادة الفعالة والشكل")}</th>
+                  <th style={{ padding: '10px 8px', width: '18%', verticalAlign: 'middle' }}>{t('pharmacy.egyptian_master_catalog_modal.s27', "الشركة والباركود")}</th>
+                  <th style={{ padding: '10px 6px', width: '9%', textAlign: 'center', verticalAlign: 'middle' }}>{t('pharmacy.egyptian_master_catalog_modal.s28', "التجزئة")}</th>
+                  <th style={{ padding: '10px 6px', width: '12%', textAlign: 'center', verticalAlign: 'middle' }}>{t('pharmacy.egyptian_master_catalog_modal.s29', "التسعيرة الرسمية")}</th>
+                  <th style={{ padding: '10px 6px', width: '10%', textAlign: 'center', verticalAlign: 'middle' }}>{t('pharmacy.egyptian_master_catalog_modal.s30', "الرقابة")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -252,21 +254,21 @@ export function EgyptianMasterCatalogModal({ open, onClose, onImportSuccess }: P
                       <td style={{ padding: '10px 6px', textAlign: 'center', verticalAlign: 'middle' }}>
                         <div style={{ fontWeight: 800, color: '#16a34a', fontSize: '0.82rem', lineHeight: '1.2' }}>{d.box_price.toFixed(2)} {getGlobalCurrencySymbol()}</div>
                         <div style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '2px' }}>
-                          الشريط: {d.strip_price.toFixed(2)}
+                          {t('pharmacy.egyptian_master_catalog_modal.s31', "الشريط:")} {d.strip_price.toFixed(2)}
                         </div>
                       </td>
                       <td style={{ padding: '10px 6px', textAlign: 'center', verticalAlign: 'middle' }}>
                         {d.controlled_level === 'table_1' ? (
                           <span style={{ background: '#fee2e2', color: '#b91c1c', padding: '2px 6px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                            <AlertTriangleIcon size={12} color="#b91c1c" /> جدول أول
+                            <AlertTriangleIcon size={12} color="#b91c1c" /> {t('pharmacy.egyptian_master_catalog_modal.s32', "جدول أول")}
                           </span>
                         ) : d.controlled_level === 'table_2' ? (
                           <span style={{ background: '#fef3c7', color: '#b45309', padding: '2px 6px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 700, display: 'inline-block' }}>
-                            جدول ثانٍ
+                            {t('pharmacy.egyptian_master_catalog_modal.s33', "جدول ثانٍ")}
                           </span>
                         ) : (
                           <span style={{ background: '#f0fdf4', color: '#166534', padding: '2px 6px', borderRadius: '4px', fontSize: '0.7rem', display: 'inline-block' }}>
-                            عادي OTC
+                            {t('pharmacy.egyptian_master_catalog_modal.s34', "عادي OTC")}
                           </span>
                         )}
                       </td>
@@ -283,11 +285,11 @@ export function EgyptianMasterCatalogModal({ open, onClose, onImportSuccess }: P
 
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px', borderTop: '1px solid #f1f5f9', paddingTop: '12px' }}>
           <div style={{ fontSize: '0.78rem', color: '#475569' }}>
-            المحدد: <strong style={{ color: 'var(--primary, #1e1b4b)' }}>{selectedIds.length}</strong> صنف من أصل {drugs.length} معروض
+            {t('pharmacy.egyptian_master_catalog_modal.s35', "المحدد:")} <strong style={{ color: 'var(--primary, #1e1b4b)' }}>{selectedIds.length}</strong> {t('pharmacy.egyptian_master_catalog_modal.s36', "صنف من أصل")} {drugs.length} {t('pharmacy.egyptian_master_catalog_modal.s37', "معروض")}
           </div>
           <div style={{ display: 'flex', gap: '8px' }}>
             <Button variant="secondary" onClick={onClose} disabled={importingSelected || seeding}>
-              إغلاق
+              {t('pharmacy.egyptian_master_catalog_modal.s38', "إغلاق")}
             </Button>
             {selectedIds.length > 0 && (
               <Button
@@ -297,7 +299,7 @@ export function EgyptianMasterCatalogModal({ open, onClose, onImportSuccess }: P
                 style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
               >
                 <IconCheck size={15} />
-                <span>{importingSelected ? 'جاري الاستيراد...' : `استيراد المحدد (${selectedIds.length}) إلى صيدليتي`}</span>
+                <span>{importingSelected ? t('pharmacy.egyptian_master_catalog_modal.s39', "جاري الاستيراد...") : `استيراد المحدد (${selectedIds.length}) إلى صيدليتي`}</span>
               </Button>
             )}
           </div>

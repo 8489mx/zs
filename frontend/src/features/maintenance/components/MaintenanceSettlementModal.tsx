@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { Button } from '@/shared/ui/button';
@@ -30,6 +31,7 @@ export function MaintenanceSettlementModal({
   customReason,
   setCustomReason,
 }: MaintenanceSettlementModalProps) {
+  const { t } = useTranslation();
   if (!settlementTicket) return null;
 
   const totalCost = settlementTicket.finalCost || settlementTicket.expectedCost || 0;
@@ -42,7 +44,7 @@ export function MaintenanceSettlementModal({
       open={Boolean(settlementTicket)}
       onClose={onClose}
       width="min(540px, 95vw)"
-      ariaLabel="تأكيد تحصيل وتسليم جهاز الصيانة"
+      ariaLabel={t('maintenance.maintenance_settlement_modal.s0', "تأكيد تحصيل وتسليم جهاز الصيانة")}
     >
       <div className="page-stack" dir="rtl" style={{ gap: '14px', padding: '20px 24px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0', paddingBottom: '12px' }}>
@@ -52,10 +54,10 @@ export function MaintenanceSettlementModal({
             </div>
             <div>
               <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#0f172a' }}>
-                تحصيل وتسليم الجهاز: <span style={{ fontFamily: 'monospace', color: '#0f172a' }}>{settlementTicket.ticketNo}</span>
+                {t('maintenance.maintenance_settlement_modal.s1', "تحصيل وتسليم الجهاز:")} <span style={{ fontFamily: 'monospace', color: '#0f172a' }}>{settlementTicket.ticketNo}</span>
               </h3>
               <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '2px' }}>
-                العميل: <strong>{settlementTicket.customerName}</strong> ({settlementTicket.deviceBrand ? `${settlementTicket.deviceBrand} ` : ''}{settlementTicket.deviceModel})
+                {t('maintenance.maintenance_settlement_modal.s2', "العميل:")} <strong>{settlementTicket.customerName}</strong> ({settlementTicket.deviceBrand ? `${settlementTicket.deviceBrand} ` : ''}{settlementTicket.deviceModel})
               </div>
             </div>
           </div>
@@ -70,22 +72,22 @@ export function MaintenanceSettlementModal({
 
         <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '12px', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', textAlign: 'center', fontSize: '0.78rem' }}>
           <div style={{ background: '#fff', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-            <div style={{ color: '#64748b', marginBottom: '2px' }}>إجمالي الحساب</div>
+            <div style={{ color: '#64748b', marginBottom: '2px' }}>{t('maintenance.maintenance_settlement_modal.s3', "إجمالي الحساب")}</div>
             <strong style={{ fontSize: '0.95rem', color: '#0f172a' }}>{totalCost.toFixed(2)} <CurrencySymbol /></strong>
           </div>
           <div style={{ background: '#fff', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-            <div style={{ color: '#64748b', marginBottom: '2px' }}>المدفوع مقدماً</div>
+            <div style={{ color: '#64748b', marginBottom: '2px' }}>{t('maintenance.maintenance_settlement_modal.s4', "المدفوع مقدماً")}</div>
             <strong style={{ fontSize: '0.95rem', color: '#0f172a' }}>{advancePaid.toFixed(2)} <CurrencySymbol /></strong>
           </div>
           <div style={{ background: '#ffffff', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1' }}>
-            <div style={{ color: '#475569', marginBottom: '2px' }}>المطلوب تحصيله</div>
+            <div style={{ color: '#475569', marginBottom: '2px' }}>{t('maintenance.maintenance_settlement_modal.s5', "المطلوب تحصيله")}</div>
             <strong style={{ fontSize: '0.95rem', color: '#0f172a' }}>{expectedRem.toFixed(2)} <CurrencySymbol /></strong>
           </div>
         </div>
 
         <div style={{ background: '#fff', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '12px' }}>
           <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-            المبلغ المستلم فعلياً من العميل الآن:
+            {t('maintenance.maintenance_settlement_modal.s6', "المبلغ المستلم فعلياً من العميل الآن:")}
           </label>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <input
@@ -105,12 +107,12 @@ export function MaintenanceSettlementModal({
           <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '12px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
               <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#475569' }}>
-                فرق / خصم مسموح به للعميل:
+                {t('maintenance.maintenance_settlement_modal.s7', "فرق / خصم مسموح به للعميل:")}
               </span>
               <strong style={{ fontSize: '0.95rem', color: '#0f172a' }}>{diff.toFixed(2)} <CurrencySymbol /></strong>
             </div>
             <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#64748b', marginBottom: '4px' }}>
-              اختر سبب الخصم / الفرق:
+              {t('maintenance.maintenance_settlement_modal.s8', "اختر سبب الخصم / الفرق:")}
             </label>
             <select
               value={discountReason}
@@ -118,15 +120,15 @@ export function MaintenanceSettlementModal({
               className="purchase-prototype-field-input"
               style={{ width: '100%', padding: '6px 8px', borderRadius: '5px', border: '1px solid #cbd5e1', background: '#fff', fontWeight: 600, fontSize: '0.8rem', marginBottom: discountReason === 'custom' ? '6px' : '0' }}
             >
-              <option value="فصال ومراضاة للعميل">فصال ومراضاة للعميل (خصم مسموح به)</option>
-              <option value="خصم عميل مميز / إكرامية">خصم عميل مميز / إكرامية</option>
-              <option value="تقريب كسور وفكة">تقريب كسور وفكة</option>
-              <option value="custom">سبب آخر (اكتب يدوياً)</option>
+              <option value={t('maintenance.maintenance_settlement_modal.s9', "فصال ومراضاة للعميل")}>{t('maintenance.maintenance_settlement_modal.s10', "فصال ومراضاة للعميل (خصم مسموح به)")}</option>
+              <option value={t('maintenance.maintenance_settlement_modal.s11', "خصم عميل مميز / إكرامية")}>{t('maintenance.maintenance_settlement_modal.s12', "خصم عميل مميز / إكرامية")}</option>
+              <option value={t('maintenance.maintenance_settlement_modal.s13', "تقريب كسور وفكة")}>{t('maintenance.maintenance_settlement_modal.s14', "تقريب كسور وفكة")}</option>
+              <option value="custom">{t('maintenance.maintenance_settlement_modal.s15', "سبب آخر (اكتب يدوياً)")}</option>
             </select>
             {discountReason === 'custom' && (
               <input
                 type="text"
-                placeholder="اكتب سبب الخصم..."
+                placeholder={t('maintenance.maintenance_settlement_modal.s16', "اكتب سبب الخصم...")}
                 value={customReason}
                 onChange={(e) => setCustomReason(e.target.value)}
                 className="purchase-prototype-field-input"
@@ -138,14 +140,14 @@ export function MaintenanceSettlementModal({
 
         {diff < 0 && (
           <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#475569' }}>باقي مستحق للعميل:</span>
+            <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#475569' }}>{t('maintenance.maintenance_settlement_modal.s17', "باقي مستحق للعميل:")}</span>
             <strong style={{ fontSize: '0.95rem', color: '#0f172a' }}>{Math.abs(diff).toFixed(2)} <CurrencySymbol /></strong>
           </div>
         )}
 
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #e2e8f0', paddingTop: '12px' }}>
           <Button type="button" variant="secondary" onClick={onClose} style={{ fontSize: '0.85rem' }}>
-            إلغاء
+            {t('maintenance.maintenance_settlement_modal.s18', "إلغاء")}
           </Button>
           <Button
             type="button"
@@ -154,7 +156,7 @@ export function MaintenanceSettlementModal({
             disabled={isPending}
             style={{ padding: '7px 20px', fontWeight: 700, fontSize: '0.85rem' }}
           >
-            {isPending ? 'جاري التحصيل...' : 'تأكيد التحصيل والتسليم النهائي'}
+            {isPending ? t('maintenance.maintenance_settlement_modal.s19', "جاري التحصيل...") : t('maintenance.maintenance_settlement_modal.s20', "تأكيد التحصيل والتسليم النهائي")}
           </Button>
         </div>
       </div>

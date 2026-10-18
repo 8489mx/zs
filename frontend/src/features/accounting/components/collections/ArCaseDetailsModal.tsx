@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect, type FC } from 'react';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { Button } from '@/shared/ui/button';
@@ -28,6 +29,7 @@ export const ArCaseDetailsModal: FC<ArCaseDetailsModalProps> = ({
   onOpenPromiseModal,
   onOpenLogModal,
 }) => {
+  const { t } = useTranslation();
   const [data, setData] = useState<ArCollectionCaseDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [togglingBlock, setTogglingBlock] = useState(false);
@@ -82,13 +84,13 @@ export const ArCaseDetailsModal: FC<ArCaseDetailsModalProps> = ({
     <StandardDialog
       open={open}
       onClose={onClose}
-      title={`ملف تحصيل متكامل: ${c?.customer_name || 'جاري التحميل...'}`}
-      subtitle={`رقم الملف: ${caseId} | الحالة: ${c?.status === 'promised_to_pay' ? 'تعهد بالسداد' : c?.status === 'escalated' ? 'تصعيد / إنذار' : c?.status === 'settled' ? 'مسدد بالكامل' : 'قيد المتابعة'}`}
+      title={`ملف تحصيل متكامل: ${c?.customer_name || t('accounting.collections.ar_case_details_modal.s0', "جاري التحميل...")}`}
+      subtitle={`رقم الملف: ${caseId} | الحالة: ${c?.status === 'promised_to_pay' ? t('accounting.collections.ar_case_details_modal.s1', "تعهد بالسداد") : c?.status === 'escalated' ? t('accounting.collections.ar_case_details_modal.s2', "تصعيد / إنذار") : c?.status === 'settled' ? t('accounting.collections.ar_case_details_modal.s3', "مسدد بالكامل") : t('accounting.collections.ar_case_details_modal.s4', "قيد المتابعة")}`}
       size="lg"
     >
       {loading ? (
         <div style={{ padding: '60px 0', textAlign: 'center', color: '#64748b' }}>
-          جاري تحميل بيانات وتاريخ الملف...
+          {t('accounting.collections.ar_case_details_modal.s5', "جاري تحميل بيانات وتاريخ الملف...")}
         </div>
       ) : c ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -105,33 +107,33 @@ export const ArCaseDetailsModal: FC<ArCaseDetailsModalProps> = ({
             }}
           >
             <div>
-              <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 500 }}>اسم العميل ورقم الهاتف</div>
+              <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 500 }}>{t('accounting.collections.ar_case_details_modal.s6', "اسم العميل ورقم الهاتف")}</div>
               <div style={{ fontSize: '14px', fontWeight: 700, color: '#0f172a', marginTop: '2px' }}>{c.customer_name}</div>
-              <div style={{ fontSize: '12px', color: '#475569' }}>{c.customer_phone || 'لا يوجد هاتف'}</div>
+              <div style={{ fontSize: '12px', color: '#475569' }}>{c.customer_phone || t('accounting.collections.ar_case_details_modal.s7', "لا يوجد هاتف")}</div>
             </div>
 
             <div>
-              <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 500 }}>إجمالي المتأخرات / الرصيد</div>
+              <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 500 }}>{t('accounting.collections.ar_case_details_modal.s8', "إجمالي المتأخرات / الرصيد")}</div>
               <div style={{ fontSize: '15px', fontWeight: 800, color: '#b91c1c', marginTop: '2px' }}>
-                {Number(c.total_overdue).toLocaleString('ar-EG')} ج.م
+                {Number(c.total_overdue).toLocaleString('ar-EG')} {t('accounting.collections.ar_case_details_modal.s9', "ج.م")}
               </div>
               <div style={{ fontSize: '11px', color: '#64748b' }}>
-                من إجمالي رصيد {Number(c.customer_balance).toLocaleString('ar-EG')} ج.م
+                {t('accounting.collections.ar_case_details_modal.s10', "من إجمالي رصيد")} {Number(c.customer_balance).toLocaleString('ar-EG')} {t('accounting.collections.ar_case_details_modal.s11', "ج.م")}
               </div>
             </div>
 
             <div>
-              <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 500 }}>مستوى التصعيد الحالي</div>
+              <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 500 }}>{t('accounting.collections.ar_case_details_modal.s12', "مستوى التصعيد الحالي")}</div>
               <div style={{ fontSize: '13px', fontWeight: 700, color: '#170e5e', marginTop: '2px' }}>
-                {c.level_name || 'غير محدد'}
+                {c.level_name || t('accounting.collections.ar_case_details_modal.s13', "غير محدد")}
               </div>
               <div style={{ fontSize: '11px', color: '#64748b' }}>
-                أقدم تأخير: {c.oldest_overdue_days} يوماً
+                {t('accounting.collections.ar_case_details_modal.s14', "أقدم تأخير:")} {c.oldest_overdue_days} {t('accounting.collections.ar_case_details_modal.s15', "يوماً")}
               </div>
             </div>
 
             <div>
-              <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 500 }}>موقف البيع الآجل</div>
+              <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 500 }}>{t('accounting.collections.ar_case_details_modal.s16', "موقف البيع الآجل")}</div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
                 <span
                   style={{
@@ -144,7 +146,7 @@ export const ArCaseDetailsModal: FC<ArCaseDetailsModalProps> = ({
                     border: `1px solid ${c.is_credit_blocked ? '#fecaca' : '#a7f3d0'}`,
                   }}
                 >
-                  {c.is_credit_blocked ? 'محظور من الآجل' : 'مسموح بالآجل'}
+                  {c.is_credit_blocked ? t('accounting.collections.ar_case_details_modal.s17', "محظور من الآجل") : t('accounting.collections.ar_case_details_modal.s18', "مسموح بالآجل")}
                 </span>
                 <Button
                   type="button"
@@ -154,7 +156,7 @@ export const ArCaseDetailsModal: FC<ArCaseDetailsModalProps> = ({
                   onClick={handleToggleCreditBlock}
                   style={{ fontSize: '11px', padding: '3px 8px', height: 'auto' }}
                 >
-                  {c.is_credit_blocked ? 'إلغاء الحظر' : 'حظر الآجل'}
+                  {c.is_credit_blocked ? t('accounting.collections.ar_case_details_modal.s19', "إلغاء الحظر") : t('accounting.collections.ar_case_details_modal.s20', "حظر الآجل")}
                 </Button>
               </div>
               {c.credit_block_reason && (
@@ -186,7 +188,7 @@ export const ArCaseDetailsModal: FC<ArCaseDetailsModalProps> = ({
                 }}
               >
                 <MessageSquareIcon size={16} color="#ffffff" />
-                <span>إرسال مطالبة عبر الواتساب</span>
+                <span>{t('accounting.collections.ar_case_details_modal.s21', "إرسال مطالبة عبر الواتساب")}</span>
               </a>
             )}
 
@@ -197,7 +199,7 @@ export const ArCaseDetailsModal: FC<ArCaseDetailsModalProps> = ({
               style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12.5px' }}
             >
               <CalendarIcon size={15} color="#170e5e" />
-              <span>تسجيل تعهد سداد</span>
+              <span>{t('accounting.collections.ar_case_details_modal.s22', "تسجيل تعهد سداد")}</span>
             </Button>
 
             <Button
@@ -207,7 +209,7 @@ export const ArCaseDetailsModal: FC<ArCaseDetailsModalProps> = ({
               style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12.5px' }}
             >
               <PhoneIcon size={15} color="#170e5e" />
-              <span>توثيق إجراء تواصل</span>
+              <span>{t('accounting.collections.ar_case_details_modal.s23', "توثيق إجراء تواصل")}</span>
             </Button>
           </div>
 
@@ -215,18 +217,18 @@ export const ArCaseDetailsModal: FC<ArCaseDetailsModalProps> = ({
           <div>
             <div style={{ fontSize: '13px', fontWeight: 700, color: '#1e293b', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
               <FileTextIcon size={16} color="#170e5e" />
-              <span>الفواتير المفتوحة ذات المديونيات المستحقة</span>
+              <span>{t('accounting.collections.ar_case_details_modal.s24', "الفواتير المفتوحة ذات المديونيات المستحقة")}</span>
             </div>
             {data?.invoices?.length ? (
               <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', textAlign: 'right' }}>
                   <thead style={{ backgroundColor: '#f1f5f9', color: '#475569', fontWeight: 600 }}>
                     <tr>
-                      <th style={{ padding: '8px 12px' }}>رقم الفاتورة</th>
-                      <th style={{ padding: '8px 12px' }}>تاريخ الإصدار</th>
-                      <th style={{ padding: '8px 12px' }}>إجمالي الفاتورة</th>
-                      <th style={{ padding: '8px 12px' }}>المسدد</th>
-                      <th style={{ padding: '8px 12px' }}>المتبقي المستحق</th>
+                      <th style={{ padding: '8px 12px' }}>{t('accounting.collections.ar_case_details_modal.s25', "رقم الفاتورة")}</th>
+                      <th style={{ padding: '8px 12px' }}>{t('accounting.collections.ar_case_details_modal.s26', "تاريخ الإصدار")}</th>
+                      <th style={{ padding: '8px 12px' }}>{t('accounting.collections.ar_case_details_modal.s27', "إجمالي الفاتورة")}</th>
+                      <th style={{ padding: '8px 12px' }}>{t('accounting.collections.ar_case_details_modal.s28', "المسدد")}</th>
+                      <th style={{ padding: '8px 12px' }}>{t('accounting.collections.ar_case_details_modal.s29', "المتبقي المستحق")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -239,13 +241,13 @@ export const ArCaseDetailsModal: FC<ArCaseDetailsModalProps> = ({
                           {new Date(inv.created_at).toLocaleDateString('ar-EG')}
                         </td>
                         <td style={{ padding: '8px 12px' }}>
-                          {Number(inv.total).toLocaleString('ar-EG')} ج.م
+                          {Number(inv.total).toLocaleString('ar-EG')} {t('accounting.collections.ar_case_details_modal.s30', "ج.م")}
                         </td>
                         <td style={{ padding: '8px 12px', color: '#047857' }}>
-                          {Number(inv.paid_amount).toLocaleString('ar-EG')} ج.م
+                          {Number(inv.paid_amount).toLocaleString('ar-EG')} {t('accounting.collections.ar_case_details_modal.s31', "ج.م")}
                         </td>
                         <td style={{ padding: '8px 12px', fontWeight: 700, color: '#b91c1c' }}>
-                          {Number(inv.unpaid_amount).toLocaleString('ar-EG')} ج.م
+                          {Number(inv.unpaid_amount).toLocaleString('ar-EG')} {t('accounting.collections.ar_case_details_modal.s32', "ج.م")}
                         </td>
                       </tr>
                     ))}
@@ -254,7 +256,7 @@ export const ArCaseDetailsModal: FC<ArCaseDetailsModalProps> = ({
               </div>
             ) : (
               <div style={{ padding: '12px', backgroundColor: '#f8fafc', borderRadius: '8px', textAlign: 'center', fontSize: '12px', color: '#64748b' }}>
-                لا توجد فواتير مفتوحة مسجلة.
+                {t('accounting.collections.ar_case_details_modal.s33', "لا توجد فواتير مفتوحة مسجلة.")}
               </div>
             )}
           </div>
@@ -263,7 +265,7 @@ export const ArCaseDetailsModal: FC<ArCaseDetailsModalProps> = ({
           <div>
             <div style={{ fontSize: '13px', fontWeight: 700, color: '#1e293b', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
               <ClockIcon size={16} color="#170e5e" />
-              <span>سجل المتابعات والإجراءات المتخذة</span>
+              <span>{t('accounting.collections.ar_case_details_modal.s34', "سجل المتابعات والإجراءات المتخذة")}</span>
             </div>
             {data?.logs?.length ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '200px', overflowY: 'auto' }}>
@@ -292,17 +294,17 @@ export const ArCaseDetailsModal: FC<ArCaseDetailsModalProps> = ({
                       }}
                     >
                       {log.interaction_type === 'call'
-                        ? 'اتصال'
+                        ? t('accounting.collections.ar_case_details_modal.s35', "اتصال")
                         : log.interaction_type === 'whatsapp'
-                        ? 'واتساب'
+                        ? t('accounting.collections.ar_case_details_modal.s36', "واتساب")
                         : log.interaction_type === 'promise_to_pay'
-                        ? 'تعهد سداد'
+                        ? t('accounting.collections.ar_case_details_modal.s37', "تعهد سداد")
                         : log.interaction_type === 'block_credit'
-                        ? 'حظر آجل'
+                        ? t('accounting.collections.ar_case_details_modal.s38', "حظر آجل")
                         : log.interaction_type === 'unblock_credit'
-                        ? 'إلغاء حظر'
+                        ? t('accounting.collections.ar_case_details_modal.s39', "إلغاء حظر")
                         : log.interaction_type === 'level_escalation'
-                        ? 'تصعيد آلي'
+                        ? t('accounting.collections.ar_case_details_modal.s40', "تصعيد آلي")
                         : log.interaction_type}
                     </div>
 
@@ -312,7 +314,7 @@ export const ArCaseDetailsModal: FC<ArCaseDetailsModalProps> = ({
                       </div>
                       {log.promised_date && (
                         <div style={{ fontSize: '11px', color: '#047857', fontWeight: 600, marginTop: '2px' }}>
-                          موعد السداد المتعهد به: {log.promised_date} {log.promised_amount ? `(مبلغ: ${Number(log.promised_amount).toLocaleString('ar-EG')} ج.م)` : ''}
+                          {t('accounting.collections.ar_case_details_modal.s41', "موعد السداد المتعهد به:")} {log.promised_date} {log.promised_amount ? `(مبلغ: ${Number(log.promised_amount).toLocaleString('ar-EG')} ج.م)` : ''}
                         </div>
                       )}
                       <div style={{ fontSize: '10.5px', color: '#94a3b8', marginTop: '3px' }}>
@@ -324,7 +326,7 @@ export const ArCaseDetailsModal: FC<ArCaseDetailsModalProps> = ({
               </div>
             ) : (
               <div style={{ padding: '12px', backgroundColor: '#f8fafc', borderRadius: '8px', textAlign: 'center', fontSize: '12px', color: '#64748b' }}>
-                لا توجد إجراءات مسجلة بعد في هذا الملف.
+                {t('accounting.collections.ar_case_details_modal.s42', "لا توجد إجراءات مسجلة بعد في هذا الملف.")}
               </div>
             )}
           </div>
@@ -333,7 +335,7 @@ export const ArCaseDetailsModal: FC<ArCaseDetailsModalProps> = ({
 
       <StandardDialogFooter>
         <Button type="button" variant="secondary" onClick={onClose}>
-          إغلاق النافذة
+          {t('accounting.collections.ar_case_details_modal.s43', "إغلاق النافذة")}
         </Button>
       </StandardDialogFooter>
     </StandardDialog>

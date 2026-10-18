@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { Field } from '@/shared/ui/field';
@@ -18,6 +19,7 @@ export function ContainerMilestoneModal({
   onClose,
   onUpdated,
 }: ContainerMilestoneModalProps) {
+  const { t } = useTranslation();
   const [dischargedAt, setDischargedAt] = useState('');
   const [gatedOutAt, setGatedOutAt] = useState('');
   const [sealNumber, setSealNumber] = useState('');
@@ -62,8 +64,8 @@ export function ContainerMilestoneModal({
     <StandardDialog
       open={open}
       onClose={onClose}
-      title="تحديث محطات دورة حياة الحاوية"
-      subtitle={`الحاوية: ${container.container_number} — ${container.container_type} (${container.shipping_line_name || 'الخط الملاحي'})`}
+      title={t('maritime_freight.container_milestone_modal.s0', "تحديث محطات دورة حياة الحاوية")}
+      subtitle={`الحاوية: ${container.container_number} — ${container.container_type} (${container.shipping_line_name || t('maritime_freight.container_milestone_modal.s1', "الخط الملاحي")})`}
       width="min(640px, 95vw)"
       minHeight="min(440px, 80vh)"
       footerActions={(
@@ -71,8 +73,8 @@ export function ContainerMilestoneModal({
           onCancel={onClose}
           onSubmit={handleSave}
           isSubmitting={isSubmitting}
-          submitText="حفظ تحديثات الحركة"
-          cancelText="إلغاء"
+          submitText={t('maritime_freight.container_milestone_modal.s2', "حفظ تحديثات الحركة")}
+          cancelText={t('maritime_freight.container_milestone_modal.s3', "إلغاء")}
         />
       )}
     >
@@ -125,16 +127,16 @@ export function ContainerMilestoneModal({
         {/* Card 1: بطاقة ملخص الحاوية */}
         <div style={{ background: '#f8fafc', padding: '10px 14px', borderRadius: '8px', border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.8125rem' }}>
           <div>
-            <span style={{ color: '#64748b', fontSize: '0.74rem' }}>العميل: </span>
+            <span style={{ color: '#64748b', fontSize: '0.74rem' }}>{t('maritime_freight.container_milestone_modal.s4', "العميل:")} </span>
             <strong style={{ color: '#0f172a' }}>{container.customer_name || '—'}</strong>
           </div>
           <div>
-            <span style={{ color: '#64748b', fontSize: '0.74rem' }}>أمر الشغل: </span>
+            <span style={{ color: '#64748b', fontSize: '0.74rem' }}>{t('maritime_freight.container_milestone_modal.s5', "أمر الشغل:")} </span>
             <strong style={{ color: '#1e40af' }}>{container.job_number || '—'}</strong>
           </div>
           <div>
-            <span style={{ color: '#64748b', fontSize: '0.74rem' }}>فترة السماح: </span>
-            <strong style={{ color: '#15803d' }}>{container.free_days || 14} يوماً</strong>
+            <span style={{ color: '#64748b', fontSize: '0.74rem' }}>{t('maritime_freight.container_milestone_modal.s6', "فترة السماح:")} </span>
+            <strong style={{ color: '#15803d' }}>{container.free_days || 14} {t('maritime_freight.container_milestone_modal.s7', "يوماً")}</strong>
           </div>
         </div>
 
@@ -142,11 +144,11 @@ export function ContainerMilestoneModal({
         <div style={{ background: '#f8fafc', padding: '12px 14px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
             <AppIcons.Clock size={15} />
-            <span>تواريخ محطات التفريغ وبوابات الميناء (Milestone Dates)</span>
+            <span>{t('maritime_freight.container_milestone_modal.s8', "تواريخ محطات التفريغ وبوابات الميناء (Milestone Dates)")}</span>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
-            <Field label="تاريخ التفريغ بالميناء (Discharge Date)">
+            <Field label={t('maritime_freight.container_milestone_modal.s9', "تاريخ التفريغ بالميناء (Discharge Date)")}>
               <input
                 type="date"
                 value={dischargedAt}
@@ -154,7 +156,7 @@ export function ContainerMilestoneModal({
               />
             </Field>
 
-            <Field label="تاريخ خروج البوابة (Gate-Out Date)">
+            <Field label={t('maritime_freight.container_milestone_modal.s10', "تاريخ خروج البوابة (Gate-Out Date)")}>
               <input
                 type="date"
                 value={gatedOutAt}
@@ -164,12 +166,12 @@ export function ContainerMilestoneModal({
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '10px' }}>
-            <Field label="رقم السيل / الختم الملاحي (Seal Number)">
+            <Field label={t('maritime_freight.container_milestone_modal.s11', "رقم السيل / الختم الملاحي (Seal Number)")}>
               <input
                 type="text"
                 value={sealNumber}
                 onChange={(e) => setSealNumber(e.target.value)}
-                placeholder="مثال: ML-EG-998822"
+                placeholder={t('maritime_freight.container_milestone_modal.s12', "مثال: ML-EG-998822")}
               />
             </Field>
           </div>
@@ -179,15 +181,15 @@ export function ContainerMilestoneModal({
         <div style={{ background: '#f8fafc', padding: '12px 14px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
             <AppIcons.FileText size={15} />
-            <span>الملاحظات التشغيلية للمحطة</span>
+            <span>{t('maritime_freight.container_milestone_modal.s13', "الملاحظات التشغيلية للمحطة")}</span>
           </div>
 
-          <Field label="ملاحظات الحركة والتشغيل">
+          <Field label={t('maritime_freight.container_milestone_modal.s14', "ملاحظات الحركة والتشغيل")}>
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={2}
-              placeholder="ملاحظات فحص الحاوية، حالة الطرد، أو تعليمات الساحة..."
+              placeholder={t('maritime_freight.container_milestone_modal.s15', "ملاحظات فحص الحاوية، حالة الطرد، أو تعليمات الساحة...")}
             />
           </Field>
         </div>

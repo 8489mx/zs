@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { CustomSelect } from '@/shared/ui/custom-select';
@@ -36,6 +37,7 @@ export const CategoryTransferProductsModal: React.FC<CategoryTransferProductsMod
   onClose,
   onSubmit,
 }) => {
+  const { t } = useTranslation();
   if (!category) return null;
 
   const targetCategoryOptions = categories
@@ -50,14 +52,14 @@ export const CategoryTransferProductsModal: React.FC<CategoryTransferProductsMod
       open={true}
       onClose={onClose}
       title={`نقل أصناف قسم: ${category.name}`}
-      subtitle="نقل الأصناف التابعة لهذا القسم إلى قسم آخر مع الحفاظ على الأرصدة والبيانات"
+      subtitle={t('products.categories.category_transfer_products_modal.s0', "نقل الأصناف التابعة لهذا القسم إلى قسم آخر مع الحفاظ على الأرصدة والبيانات")}
       maxWidth="560px"
       footerActions={
         <StandardDialogFooter
           onClose={onClose}
           onSubmit={onSubmit}
-          submitLabel="نقل الأصناف"
-          loadingText="جاري النقل..."
+          submitLabel={t('products.categories.category_transfer_products_modal.s1', "نقل الأصناف")}
+          loadingText={t('products.categories.category_transfer_products_modal.s2', "جاري النقل...")}
           isPending={isPending}
           disabled={!targetCategoryId || isPending}
         />
@@ -78,7 +80,7 @@ export const CategoryTransferProductsModal: React.FC<CategoryTransferProductsMod
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px' }}>
             <FolderIcon size={16} color="#170e5e" />
-            <span style={{ fontSize: '0.84rem', fontWeight: 700, color: '#170e5e' }}>وجهة النقل والتصنيف المستهدف</span>
+            <span style={{ fontSize: '0.84rem', fontWeight: 700, color: '#170e5e' }}>{t('products.categories.category_transfer_products_modal.s3', "وجهة النقل والتصنيف المستهدف")}</span>
           </div>
 
           <div
@@ -95,15 +97,15 @@ export const CategoryTransferProductsModal: React.FC<CategoryTransferProductsMod
             }}
           >
             <InfoIcon size={18} color="#1e40af" />
-            <span>يمكنك اختيار قسم بديل لنقل كافة أصناف هذا القسم إليه أو تحديد منتجات معينة فقط.</span>
+            <span>{t('products.categories.category_transfer_products_modal.s4', "يمكنك اختيار قسم بديل لنقل كافة أصناف هذا القسم إليه أو تحديد منتجات معينة فقط.")}</span>
           </div>
 
-          <Field label="القسم الوجهة المستهدف">
+          <Field label={t('products.categories.category_transfer_products_modal.s5', "القسم الوجهة المستهدف")}>
             <CustomSelect
               options={targetCategoryOptions}
               value={targetCategoryId}
               onChange={(val) => setTargetCategoryId(val)}
-              placeholder="اختر القسم الوجهة..."
+              placeholder={t('products.categories.category_transfer_products_modal.s6', "اختر القسم الوجهة...")}
               searchable
             />
           </Field>
@@ -124,12 +126,12 @@ export const CategoryTransferProductsModal: React.FC<CategoryTransferProductsMod
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <PackageIcon size={16} color="#170e5e" />
-              <span style={{ fontSize: '0.84rem', fontWeight: 700, color: '#170e5e' }}>تحديد الأصناف المراد نقلها</span>
+              <span style={{ fontSize: '0.84rem', fontWeight: 700, color: '#170e5e' }}>{t('products.categories.category_transfer_products_modal.s7', "تحديد الأصناف المراد نقلها")}</span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <span style={{ fontSize: '11px', color: '#64748b' }}>
                 {selectedProductIds.size === 0
-                  ? 'سيتم نقل كل الأصناف'
+                  ? t('products.categories.category_transfer_products_modal.s8', "سيتم نقل كل الأصناف")
                   : `${selectedProductIds.size} من ${categoryProducts.length} محدد`}
               </span>
               <Button
@@ -139,7 +141,7 @@ export const CategoryTransferProductsModal: React.FC<CategoryTransferProductsMod
                 disabled={isLoadingProducts || categoryProducts.length === 0}
                 style={{ padding: '3px 8px', fontSize: '11px', minHeight: '26px' }}
               >
-                {selectedProductIds.size === categoryProducts.length && categoryProducts.length > 0 ? 'إلغاء التحديد' : 'تحديد الكل'}
+                {selectedProductIds.size === categoryProducts.length && categoryProducts.length > 0 ? t('products.categories.category_transfer_products_modal.s9', "إلغاء التحديد") : t('products.categories.category_transfer_products_modal.s10', "تحديد الكل")}
               </Button>
             </div>
           </div>
@@ -154,9 +156,9 @@ export const CategoryTransferProductsModal: React.FC<CategoryTransferProductsMod
             }}
           >
             {isLoadingProducts ? (
-              <div style={{ textAlign: 'center', padding: '24px', color: '#64748b', fontSize: '12px' }}>جاري تحميل الأصناف...</div>
+              <div style={{ textAlign: 'center', padding: '24px', color: '#64748b', fontSize: '12px' }}>{t('products.categories.category_transfer_products_modal.s11', "جاري تحميل الأصناف...")}</div>
             ) : categoryProducts.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '24px', color: '#64748b', fontSize: '12px' }}>لا توجد أصناف في هذا القسم.</div>
+              <div style={{ textAlign: 'center', padding: '24px', color: '#64748b', fontSize: '12px' }}>{t('products.categories.category_transfer_products_modal.s12', "لا توجد أصناف في هذا القسم.")}</div>
             ) : (
               categoryProducts.map((p, index) => {
                 const isSelected = selectedProductIds.has(Number(p.id));
@@ -185,7 +187,7 @@ export const CategoryTransferProductsModal: React.FC<CategoryTransferProductsMod
                     />
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '2px' }}>
                       <span style={{ fontWeight: 600, fontSize: '12.5px', color: isSelected ? '#1d4ed8' : '#0f172a' }}>{p.name}</span>
-                      {p.barcode && <span style={{ fontSize: '11px', color: '#64748b' }}>الباركود: {p.barcode}</span>}
+                      {p.barcode && <span style={{ fontSize: '11px', color: '#64748b' }}>{t('products.categories.category_transfer_products_modal.s13', "الباركود:")} {p.barcode}</span>}
                     </div>
                   </label>
                 );

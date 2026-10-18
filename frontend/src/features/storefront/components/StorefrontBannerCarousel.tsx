@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 
 interface StorefrontBannerCarouselProps {
@@ -21,6 +22,7 @@ export function StorefrontBannerCarousel({
   bannerIntervalSeconds = 4,
   onBannerClick,
 }: StorefrontBannerCarouselProps) {
+  const { t } = useTranslation();
   const validBanners = banners.filter(Boolean);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
@@ -317,7 +319,7 @@ export function StorefrontBannerCarousel({
               transition: 'all 0.25s ease',
             }}
           >
-            <span>تصفح العروض والمنتجات</span>
+            <span>{t('storefront.storefront_banner_carousel.s0', "تصفح العروض والمنتجات")}</span>
             <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 9l-7 7-7-7" />
             </svg>
@@ -335,7 +337,7 @@ export function StorefrontBannerCarousel({
                 e.stopPropagation();
                 prevSlide();
               }}
-              aria-label="البانر السابق"
+              aria-label={t('storefront.storefront_banner_carousel.s1', "البانر السابق")}
               style={{
                 position: 'absolute',
                 top: '50%',
@@ -380,7 +382,7 @@ export function StorefrontBannerCarousel({
                 e.stopPropagation();
                 nextSlide();
               }}
-              aria-label="البانر التالي"
+              aria-label={t('storefront.storefront_banner_carousel.s2', "البانر التالي")}
               style={{
                 position: 'absolute',
                 top: '50%',

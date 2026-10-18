@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { StandardDialog } from '@/shared/components/StandardDialog';
@@ -78,6 +79,7 @@ export function PosPhoneOrderDialog({
   initialPhone = '',
   initialName = '',
 }: PosPhoneOrderDialogProps) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const searchInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -556,10 +558,10 @@ export function PosPhoneOrderDialog({
       title={
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <PhoneCallIcon size={18} color="#170e5e" />
-          <span>مكتب طلبات الهاتف والتوصيل السريع (Phone Order Desk)</span>
+          <span>{t('pos.pos_workspace.pos_phone_order_dialog.s0', "مكتب طلبات الهاتف والتوصيل السريع (Phone Order Desk)")}</span>
         </div>
       }
-      subtitle="استقبال مكالمات العملاء، كاشف الأرقام، تجهيز فكة الطيار، وتكرار الطلبات بضغطة واحدة"
+      subtitle={t('pos.pos_workspace.pos_phone_order_dialog.s1', "استقبال مكالمات العملاء، كاشف الأرقام، تجهيز فكة الطيار، وتكرار الطلبات بضغطة واحدة")}
       width="1180px"
       maxWidth="96vw"
       minHeight="auto"
@@ -579,7 +581,7 @@ export function PosPhoneOrderDialog({
               cursor: 'pointer',
             }}
           >
-            شاشة الطلبات
+            {t('pos.pos_workspace.pos_phone_order_dialog.s2', "شاشة الطلبات")}
           </button>
           <button
             type="button"
@@ -599,7 +601,7 @@ export function PosPhoneOrderDialog({
             }}
           >
             <ClockIcon size={12} />
-            سجل المكالمات
+            {t('pos.pos_workspace.pos_phone_order_dialog.s3', "سجل المكالمات")}
             {recentCallsList.length > 0 && (
               <span
                 style={{
@@ -633,7 +635,7 @@ export function PosPhoneOrderDialog({
             }}
           >
             <SlidersIcon size={11} />
-            كاشف المتصل (Caller ID)
+            {t('pos.pos_workspace.pos_phone_order_dialog.s4', "كاشف المتصل (Caller ID)")}
             {isSerialConnected && (
               <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10b981' }} />
             )}
@@ -644,16 +646,16 @@ export function PosPhoneOrderDialog({
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
           <div style={{ fontSize: '0.78rem', color: '#64748b' }}>
             {currentCustomer ? (
-              <span>العميل المحدد: <strong>{currentCustomer.name}</strong> ({currentCustomer.phone || 'بدون هاتف'})</span>
+              <span>{t('pos.pos_workspace.pos_phone_order_dialog.s5', "العميل المحدد:")} <strong>{currentCustomer.name}</strong> ({currentCustomer.phone || t('pos.pos_workspace.pos_phone_order_dialog.s6', "بدون هاتف")})</span>
             ) : isSearchActive ? (
-              <span>نتائج البحث للرقم: <strong>{phoneQuery}</strong></span>
+              <span>{t('pos.pos_workspace.pos_phone_order_dialog.s7', "نتائج البحث للرقم:")} <strong>{phoneQuery}</strong></span>
             ) : (
-              <span>أدخل 6 أرقام على الأقل للبحث السريع</span>
+              <span>{t('pos.pos_workspace.pos_phone_order_dialog.s8', "أدخل 6 أرقام على الأقل للبحث السريع")}</span>
             )}
           </div>
           <div style={{ display: 'flex', gap: '8px' }}>
             <Button variant="secondary" size="sm" onClick={onClose} style={{ fontSize: '0.78rem' }}>
-              إلغاء وإغلاق
+              {t('pos.pos_workspace.pos_phone_order_dialog.s9', "إلغاء وإغلاق")}
             </Button>
             {currentCustomer && activeTab === 'desk' && (
               <>
@@ -677,15 +679,15 @@ export function PosPhoneOrderDialog({
                         total: Number(pos.totals?.total || 0),
                         deliveryFee: currentDeliveryFee,
                         items: pos.cart.map((c) => ({ name: c.name, qty: c.qty, price: c.price })),
-                        storeName: pos.settingsQuery?.data?.storeName || pos.settingsQuery?.data?.brandName || 'المتجر',
+                        storeName: pos.settingsQuery?.data?.storeName || pos.settingsQuery?.data?.brandName || t('pos.pos_workspace.pos_phone_order_dialog.s10', "المتجر"),
                         currency: currencySym,
                       });
                       openWhatsAppChat(currentCustomer.phone, msg);
                     }}
-                    title={isKwd ? "إرسال تفاصيل الطلب وخيارات السداد K-NET عبر الواتساب" : isKsa ? "إرسال تفاصيل الطلب وخيارات السداد الإلكتروني عبر الواتساب" : "إرسال تفاصيل الطلب للعميل عبر الواتساب"}
+                    title={isKwd ? t('pos.pos_workspace.pos_phone_order_dialog.s11', "إرسال تفاصيل الطلب وخيارات السداد K-NET عبر الواتساب") : isKsa ? t('pos.pos_workspace.pos_phone_order_dialog.s12', "إرسال تفاصيل الطلب وخيارات السداد الإلكتروني عبر الواتساب") : t('pos.pos_workspace.pos_phone_order_dialog.s13', "إرسال تفاصيل الطلب للعميل عبر الواتساب")}
                   >
                     <SendIcon size={13} color="#166534" />
-                    <span>{isKwd ? 'واتساب وسداد K-NET' : isKsa ? 'واتساب وسداد إلكتروني' : 'إرسال واتساب'}</span>
+                    <span>{isKwd ? t('pos.pos_workspace.pos_phone_order_dialog.s14', "واتساب وسداد K-NET") : isKsa ? t('pos.pos_workspace.pos_phone_order_dialog.s15', "واتساب وسداد إلكتروني") : t('pos.pos_workspace.pos_phone_order_dialog.s16', "إرسال واتساب")}</span>
                   </Button>
                 ) : null}
                 <Button
@@ -694,7 +696,7 @@ export function PosPhoneOrderDialog({
                   onClick={handleStartNewOrder}
                 >
                   <PlusIcon size={14} style={{ marginLeft: '4px' }} />
-                  بدء طلب جديد للعميل
+                  {t('pos.pos_workspace.pos_phone_order_dialog.s17', "بدء طلب جديد للعميل")}
                 </Button>
               </>
             )}
@@ -708,10 +710,10 @@ export function PosPhoneOrderDialog({
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
               <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#0f172a', margin: '0 0 4px 0' }}>
-                سجل المكالمات الواردة الأخيرة (Caller ID Log)
+                {t('pos.pos_workspace.pos_phone_order_dialog.s18', "سجل المكالمات الواردة الأخيرة (Caller ID Log)")}
               </h3>
               <p style={{ fontSize: '0.8rem', color: '#64748b', margin: 0 }}>
-                يمكنك الضغط على أي مكالمة فائتة أو واردة لفتح ملف العميل وبدء الطلب فوراً.
+                {t('pos.pos_workspace.pos_phone_order_dialog.s19', "يمكنك الضغط على أي مكالمة فائتة أو واردة لفتح ملف العميل وبدء الطلب فوراً.")}
               </p>
             </div>
             <div style={{ display: 'flex', gap: '8px' }}>
@@ -721,12 +723,12 @@ export function PosPhoneOrderDialog({
                 onClick={() => {
                   callerIdService.clearRecentCalls();
                   setRecentCallsList([]);
-                  toast.info('تم مسح سجل المكالمات');
+                  toast.info(t('pos.pos_workspace.pos_phone_order_dialog.s20', "تم مسح سجل المكالمات"));
                 }}
                 disabled={recentCallsList.length === 0}
               >
                 <TrashIcon size={14} style={{ marginLeft: '4px' }} />
-                مسح السجل
+                {t('pos.pos_workspace.pos_phone_order_dialog.s21', "مسح السجل")}
               </Button>
               <Button
                 size="sm"
@@ -734,7 +736,7 @@ export function PosPhoneOrderDialog({
                 onClick={handleSimulateCall}
               >
                 <PhoneIncomingIcon size={14} style={{ marginLeft: '4px' }} />
-                محاكاة رنين وارد
+                {t('pos.pos_workspace.pos_phone_order_dialog.s22', "محاكاة رنين وارد")}
               </Button>
             </div>
           </div>
@@ -755,10 +757,10 @@ export function PosPhoneOrderDialog({
             >
               <PhoneIncomingIcon size={36} color="#94a3b8" style={{ marginBottom: '10px' }} />
               <div style={{ fontSize: '0.92rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                لا توجد مكالمات مسجلة في الجلسة الحالية
+                {t('pos.pos_workspace.pos_phone_order_dialog.s23', "لا توجد مكالمات مسجلة في الجلسة الحالية")}
               </div>
               <p style={{ fontSize: '0.8rem', color: '#64748b', maxWidth: '380px', margin: 0 }}>
-                بمجرد توصيل جهاز كاشف الأرقام USB أو استقبال رنين، ستظهر الأرقام هنا تلقائياً.
+                {t('pos.pos_workspace.pos_phone_order_dialog.s24', "بمجرد توصيل جهاز كاشف الأرقام USB أو استقبال رنين، ستظهر الأرقام هنا تلقائياً.")}
               </p>
             </div>
           ) : (
@@ -809,7 +811,7 @@ export function PosPhoneOrderDialog({
                     onClick={() => handlePickRecentCall(call.phone)}
                   >
                     <SearchIcon size={13} style={{ marginLeft: '4px' }} />
-                    فتح ملف العميل وبدء الطلب
+                    {t('pos.pos_workspace.pos_phone_order_dialog.s25', "فتح ملف العميل وبدء الطلب")}
                   </Button>
                 </div>
               ))}
@@ -821,17 +823,17 @@ export function PosPhoneOrderDialog({
         <div style={{ padding: '8px 0', display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
             <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#0f172a', margin: '0 0 6px 0' }}>
-              إعدادات جهاز كاشف رقم المتصل (USB Serial Caller ID)
+              {t('pos.pos_workspace.pos_phone_order_dialog.s26', "إعدادات جهاز كاشف رقم المتصل (USB Serial Caller ID)")}
             </h3>
             <p style={{ fontSize: '0.8125rem', color: '#64748b', margin: 0, lineHeight: 1.6 }}>
-              يتيح ربط جهاز كاشف الرقم التقاط رقم المتصل فور رنين هاتف المطعم وفتح ملف العميل تلقائياً بضغطة واحدة دون الحاجة لكتابة الرقم يدوياً.
+              {t('pos.pos_workspace.pos_phone_order_dialog.s27', "يتيح ربط جهاز كاشف الرقم التقاط رقم المتصل فور رنين هاتف المطعم وفتح ملف العميل تلقائياً بضغطة واحدة دون الحاجة لكتابة الرقم يدوياً.")}
             </p>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
             <div style={{ background: '#ffffff', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
               <div style={{ fontSize: '0.875rem', fontWeight: 700, color: '#1e293b', marginBottom: '8px' }}>
-                حالة التوصيل المباشر
+                {t('pos.pos_workspace.pos_phone_order_dialog.s28', "حالة التوصيل المباشر")}
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
                 <span
@@ -843,7 +845,7 @@ export function PosPhoneOrderDialog({
                   }}
                 />
                 <span style={{ fontSize: '0.85rem', fontWeight: 600, color: isSerialConnected ? '#065f46' : '#64748b' }}>
-                  {isSerialConnected ? 'متصل بجهاز كاشف الرقم' : 'غير متصل'}
+                  {isSerialConnected ? t('pos.pos_workspace.pos_phone_order_dialog.s29', "متصل بجهاز كاشف الرقم") : t('pos.pos_workspace.pos_phone_order_dialog.s30', "غير متصل")}
                 </span>
               </div>
               <Button
@@ -852,21 +854,21 @@ export function PosPhoneOrderDialog({
                 onClick={handleConnectHardware}
               >
                 <RefreshCwIcon size={14} style={{ marginLeft: '6px' }} />
-                {isConnectingHardware ? 'جاري الاتصال...' : 'توصيل جهاز كاشف الأرقام USB'}
+                {isConnectingHardware ? t('pos.pos_workspace.pos_phone_order_dialog.s31', "جاري الاتصال...") : t('pos.pos_workspace.pos_phone_order_dialog.s32', "توصيل جهاز كاشف الأرقام USB")}
               </Button>
               {!isSerialSupported && (
                 <div style={{ fontSize: '0.75rem', color: '#dc2626', marginTop: '8px' }}>
-                  المتصفح الحالي لا يدعم Web Serial API. يرجى استخدام متصفح Chrome أو Edge.
+                  {t('pos.pos_workspace.pos_phone_order_dialog.s33', "المتصفح الحالي لا يدعم Web Serial API. يرجى استخدام متصفح Chrome أو Edge.")}
                 </div>
               )}
             </div>
 
             <div style={{ background: '#ffffff', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
               <div style={{ fontSize: '0.875rem', fontWeight: 700, color: '#1e293b', marginBottom: '8px' }}>
-                محاكاة واختبار الرنين (QA & Testing)
+                {t('pos.pos_workspace.pos_phone_order_dialog.s34', "محاكاة واختبار الرنين (QA & Testing)")}
               </div>
               <p style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: '16px', lineHeight: 1.5 }}>
-                يمكنك محاكاة مكالمة هاتفية واردة لتجربة التنبيه الصوتي والنافذة المنبثقة فورياً.
+                {t('pos.pos_workspace.pos_phone_order_dialog.s35', "يمكنك محاكاة مكالمة هاتفية واردة لتجربة التنبيه الصوتي والنافذة المنبثقة فورياً.")}
               </p>
               <Button
                 variant="secondary"
@@ -874,7 +876,7 @@ export function PosPhoneOrderDialog({
                 onClick={handleSimulateCall}
               >
                 <PhoneIncomingIcon size={14} style={{ marginLeft: '6px' }} />
-                محاكاة اتصال هاتفي وارد الآن
+                {t('pos.pos_workspace.pos_phone_order_dialog.s36', "محاكاة اتصال هاتفي وارد الآن")}
               </Button>
             </div>
           </div>
@@ -908,10 +910,10 @@ export function PosPhoneOrderDialog({
                 }}
                 placeholder={
                   isKwd
-                    ? "أدخل رقم هاتف العميل بالكويت (8 أرقام مثال: 91234567) أو اسم العميل..."
+                    ? t('pos.pos_workspace.pos_phone_order_dialog.s37', "أدخل رقم هاتف العميل بالكويت (8 أرقام مثال: 91234567) أو اسم العميل...")
                     : isKsa
-                    ? "أدخل رقم هاتف العميل بالسعودية (مثال: 0501234567) أو اسم العميل..."
-                    : "أدخل رقم هاتف العميل (مثال: 01012345678) أو اسم العميل..."
+                    ? t('pos.pos_workspace.pos_phone_order_dialog.s38', "أدخل رقم هاتف العميل بالسعودية (مثال: 0501234567) أو اسم العميل...")
+                    : t('pos.pos_workspace.pos_phone_order_dialog.s39', "أدخل رقم هاتف العميل (مثال: 01012345678) أو اسم العميل...")
                 }
                 style={{
                   width: '100%',
@@ -960,7 +962,7 @@ export function PosPhoneOrderDialog({
             {deliveryLookupQuery.isFetching && (
               <div style={{ fontSize: '0.75rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '4px' }}>
                 <RefreshCwIcon size={13} className="spin" />
-                <span>جاري البحث...</span>
+                <span>{t('pos.pos_workspace.pos_phone_order_dialog.s40', "جاري البحث...")}</span>
               </div>
             )}
           </div>
@@ -983,10 +985,10 @@ export function PosPhoneOrderDialog({
             >
               <PhoneIcon size={36} color="#94a3b8" style={{ marginBottom: '8px' }} />
               <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0f172a', marginBottom: '4px' }}>
-                مكتب استقبال طلبات الهاتف والتوصيل السريع
+                {t('pos.pos_workspace.pos_phone_order_dialog.s41', "مكتب استقبال طلبات الهاتف والتوصيل السريع")}
               </div>
               <p style={{ fontSize: '0.78rem', color: '#64748b', maxWidth: '440px', margin: '0 0 12px 0', lineHeight: 1.5 }}>
-                أدخل <strong>6 أرقام على الأقل</strong> للبحث برقم الهاتف لتجاوز بادئة شركات المحمول (010 / 011 / 012 / 015)، أو ابدأ بكتابة اسم العميل.
+                {t('pos.pos_workspace.pos_phone_order_dialog.s42', "أدخل")} <strong>{t('pos.pos_workspace.pos_phone_order_dialog.s43', "6 أرقام على الأقل")}</strong> {t('pos.pos_workspace.pos_phone_order_dialog.s44', "للبحث برقم الهاتف لتجاوز بادئة شركات المحمول (010 / 011 / 012 / 015)، أو ابدأ بكتابة اسم العميل.")}
               </p>
               <div style={{ display: 'flex', gap: '8px' }}>
                 <Button
@@ -996,7 +998,7 @@ export function PosPhoneOrderDialog({
                   style={{ fontSize: '0.75rem', fontWeight: 700 }}
                 >
                   <ClockIcon size={12} style={{ marginLeft: '4px' }} />
-                  سجل المكالمات الواردة
+                  {t('pos.pos_workspace.pos_phone_order_dialog.s45', "سجل المكالمات الواردة")}
                 </Button>
                 <Button
                   variant="secondary"
@@ -1008,7 +1010,7 @@ export function PosPhoneOrderDialog({
                   style={{ fontSize: '0.75rem', fontWeight: 700 }}
                 >
                   <PlusIcon size={12} style={{ marginLeft: '4px' }} />
-                  تسجيل عميل جديد مباشرة
+                  {t('pos.pos_workspace.pos_phone_order_dialog.s46', "تسجيل عميل جديد مباشرة")}
                 </Button>
               </div>
             </div>
@@ -1044,10 +1046,10 @@ export function PosPhoneOrderDialog({
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#1e3a8a' }}>
-                      العميل النشط: {currentCustomer.name}
+                      {t('pos.pos_workspace.pos_phone_order_dialog.s47', "العميل النشط:")} {currentCustomer.name}
                     </span>
                     <span style={{ fontSize: '0.75rem', color: '#3b82f6', fontWeight: 600 }}>
-                      ({currentCustomer.phone || 'بدون رقم'})
+                      ({currentCustomer.phone || t('pos.pos_workspace.pos_phone_order_dialog.s48', "بدون رقم")})
                     </span>
                     <span
                       style={{
@@ -1059,7 +1061,7 @@ export function PosPhoneOrderDialog({
                         color: currentCustomer.customerType === 'vip' ? '#92400e' : '#3730a3',
                       }}
                     >
-                      {currentCustomer.customerType === 'vip' ? 'VIP' : 'نقدي'}
+                      {currentCustomer.customerType === 'vip' ? 'VIP' : t('pos.pos_workspace.pos_phone_order_dialog.s49', "نقدي")}
                     </span>
                   </div>
                 </div>
@@ -1082,7 +1084,7 @@ export function PosPhoneOrderDialog({
                   }}
                 >
                   <SearchIcon size={12} style={{ marginLeft: '4px' }} />
-                  تغيير العميل
+                  {t('pos.pos_workspace.pos_phone_order_dialog.s50', "تغيير العميل")}
                 </Button>
               </div>
 
@@ -1105,19 +1107,19 @@ export function PosPhoneOrderDialog({
                     {/* Stats */}
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px' }}>
                       <div style={{ background: '#f8fafc', padding: '4px 6px', borderRadius: '6px', textAlign: 'center' }}>
-                        <div style={{ fontSize: '0.65rem', color: '#64748b', fontWeight: 600 }}>إجمالي الطلبات</div>
+                        <div style={{ fontSize: '0.65rem', color: '#64748b', fontWeight: 600 }}>{t('pos.pos_workspace.pos_phone_order_dialog.s51', "إجمالي الطلبات")}</div>
                         <div style={{ fontSize: '0.8rem', fontWeight: 800, color: '#1e293b' }}>
                           {profileData?.stats?.invoiceCount || 0}
                         </div>
                       </div>
                       <div style={{ background: '#f8fafc', padding: '4px 6px', borderRadius: '6px', textAlign: 'center' }}>
-                        <div style={{ fontSize: '0.65rem', color: '#64748b', fontWeight: 600 }}>إجمالي المشتريات</div>
+                        <div style={{ fontSize: '0.65rem', color: '#64748b', fontWeight: 600 }}>{t('pos.pos_workspace.pos_phone_order_dialog.s52', "إجمالي المشتريات")}</div>
                         <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#170e5e' }}>
                           {formatCurrency(profileData?.stats?.totalSalesAmount || 0)}
                         </div>
                       </div>
                       <div style={{ background: '#f8fafc', padding: '4px 6px', borderRadius: '6px', textAlign: 'center' }}>
-                        <div style={{ fontSize: '0.65rem', color: '#64748b', fontWeight: 600 }}>نقاط الولاء</div>
+                        <div style={{ fontSize: '0.65rem', color: '#64748b', fontWeight: 600 }}>{t('pos.pos_workspace.pos_phone_order_dialog.s53', "نقاط الولاء")}</div>
                         <div style={{ fontSize: '0.8rem', fontWeight: 800, color: '#059669' }}>
                           {currentCustomer.loyaltyPoints || 0}
                         </div>
@@ -1127,7 +1129,7 @@ export function PosPhoneOrderDialog({
                     {/* Customer notes if any */}
                     {currentCustomer.notes && (
                       <div style={{ background: '#fffbeb', padding: '3px 8px', borderRadius: '4px', border: '1px solid #fef3c7', fontSize: '0.7rem', color: '#92400e' }}>
-                        <strong>ملاحظات:</strong> {currentCustomer.notes}
+                        <strong>{t('pos.pos_workspace.pos_phone_order_dialog.s54', "ملاحظات:")}</strong> {currentCustomer.notes}
                       </div>
                     )}
 
@@ -1136,7 +1138,7 @@ export function PosPhoneOrderDialog({
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
                         <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#1e293b', display: 'flex', alignItems: 'center', gap: '4px' }}>
                           <MapPinIcon size={12} color="#2563eb" />
-                          <span>عنوان التوصيل</span>
+                          <span>{t('pos.pos_workspace.pos_phone_order_dialog.s55', "عنوان التوصيل")}</span>
                         </div>
                         <button
                           type="button"
@@ -1151,7 +1153,7 @@ export function PosPhoneOrderDialog({
                             padding: 0,
                           }}
                         >
-                          {isCustomAddressMode ? 'اختيار من العناوين المحفوظة' : '+ عنوان جديد'}
+                          {isCustomAddressMode ? t('pos.pos_workspace.pos_phone_order_dialog.s56', "اختيار من العناوين المحفوظة") : t('pos.pos_workspace.pos_phone_order_dialog.s57', "+ عنوان جديد")}
                         </button>
                       </div>
 
@@ -1174,7 +1176,7 @@ export function PosPhoneOrderDialog({
                                   cursor: 'pointer',
                                 }}
                               >
-                                {tag === 'home' ? 'المنزل' : tag === 'work' ? 'العمل' : 'أخرى'}
+                                {tag === 'home' ? t('pos.pos_workspace.pos_phone_order_dialog.s58', "المنزل") : tag === 'work' ? t('pos.pos_workspace.pos_phone_order_dialog.s59', "العمل") : t('pos.pos_workspace.pos_phone_order_dialog.s60', "أخرى")}
                               </button>
                             ))}
                           </div>
@@ -1189,7 +1191,7 @@ export function PosPhoneOrderDialog({
                                   handleSaveCustomAddress();
                                 }
                               }}
-                              placeholder={isKwd ? "اكتب العنوان بالتفصيل (المنطقة، قطعة، شارع، منزل، والرقم الآلي للعنوان)..." : "اكتب العنوان بالتفصيل (المنطقة، الشارع، العقار، الدور)..."}
+                              placeholder={isKwd ? t('pos.pos_workspace.pos_phone_order_dialog.s61', "اكتب العنوان بالتفصيل (المنطقة، قطعة، شارع، منزل، والرقم الآلي للعنوان)...") : t('pos.pos_workspace.pos_phone_order_dialog.s62', "اكتب العنوان بالتفصيل (المنطقة، الشارع، العقار، الدور)...")}
                               style={{
                                 flex: 1,
                                 padding: '4px 8px',
@@ -1218,10 +1220,10 @@ export function PosPhoneOrderDialog({
                                 whiteSpace: 'nowrap',
                                 opacity: !customAddressInput.trim() ? 0.6 : 1,
                               }}
-                              title="حفظ هذا العنوان في ملف العميل دائماً"
+                              title={t('pos.pos_workspace.pos_phone_order_dialog.s63', "حفظ هذا العنوان في ملف العميل دائماً")}
                             >
                               <PlusIcon size={12} />
-                              <span>حفظ العنوان</span>
+                              <span>{t('pos.pos_workspace.pos_phone_order_dialog.s64', "حفظ العنوان")}</span>
                             </button>
                           </div>
                         </div>
@@ -1229,10 +1231,10 @@ export function PosPhoneOrderDialog({
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', maxHeight: '80px', overflowY: 'auto' }}>
                           {addresses.map((addr, idx) => {
                             const isSelected = selectedAddress === addr;
-                            const isHome = addr.startsWith('[المنزل]');
-                            const isWork = addr.startsWith('[العمل]');
+                            const isHome = addr.startsWith(t('pos.pos_workspace.pos_phone_order_dialog.s65', "[المنزل]"));
+                            const isWork = addr.startsWith(t('pos.pos_workspace.pos_phone_order_dialog.s66', "[العمل]"));
                             const displayAddr = addr.replace(/^\[(المنزل|العمل|أخرى)\]\s*/, '');
-                            const tagLabel = isHome ? 'المنزل' : isWork ? 'العمل' : null;
+                            const tagLabel = isHome ? t('pos.pos_workspace.pos_phone_order_dialog.s67', "المنزل") : isWork ? t('pos.pos_workspace.pos_phone_order_dialog.s68', "العمل") : null;
 
                             return (
                               <div
@@ -1298,7 +1300,7 @@ export function PosPhoneOrderDialog({
                                       display: 'flex',
                                       alignItems: 'center',
                                     }}
-                                    title="حذف هذا العنوان"
+                                    title={t('pos.pos_workspace.pos_phone_order_dialog.s69', "حذف هذا العنوان")}
                                     onMouseEnter={(e) => (e.currentTarget.style.color = '#ef4444')}
                                     onMouseLeave={(e) => (e.currentTarget.style.color = '#94a3b8')}
                                   >
@@ -1311,7 +1313,7 @@ export function PosPhoneOrderDialog({
                         </div>
                       ) : (
                         <div style={{ fontSize: '0.7rem', color: '#94a3b8', padding: '4px', textAlign: 'center', background: '#f8fafc', borderRadius: '4px' }}>
-                          لا يوجد عناوين سابقة مسجلة لهذا العميل. اضغط على "+ عنوان جديد" لإضافة عنوان.
+                          {t('pos.pos_workspace.pos_phone_order_dialog.s70', "لا يوجد عناوين سابقة مسجلة لهذا العميل. اضغط على \"+ عنوان جديد\" لإضافة عنوان.")}
                         </div>
                       )}
                     </div>
@@ -1333,7 +1335,7 @@ export function PosPhoneOrderDialog({
                     <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '6px' }}>
                       <div>
                         <label style={{ fontSize: '0.6875rem', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '2px' }}>
-                          منطقة التوصيل والرسوم
+                          {t('pos.pos_workspace.pos_phone_order_dialog.s71', "منطقة التوصيل والرسوم")}
                         </label>
                         <select
                           value={selectedZoneId}
@@ -1357,7 +1359,7 @@ export function PosPhoneOrderDialog({
 
                       <div>
                         <label style={{ fontSize: '0.6875rem', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '2px' }}>
-                          تعيين الطيار (اختياري)
+                          {t('pos.pos_workspace.pos_phone_order_dialog.s72', "تعيين الطيار (اختياري)")}
                         </label>
                         <select
                           value={selectedDriverId}
@@ -1371,7 +1373,7 @@ export function PosPhoneOrderDialog({
                             background: '#ffffff',
                           }}
                         >
-                          <option value="">توزيع تلقائي لاحقاً</option>
+                          <option value="">{t('pos.pos_workspace.pos_phone_order_dialog.s73', "توزيع تلقائي لاحقاً")}</option>
                           {deliveryReps.map((dr: DeliveryRep) => (
                             <option key={dr.id} value={dr.id}>
                               {dr.name} {dr.phone ? `(${dr.phone})` : ''}
@@ -1383,7 +1385,7 @@ export function PosPhoneOrderDialog({
 
                     {selectedZoneId === 'zone_custom' && (
                       <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                        <span style={{ fontSize: '0.7rem', color: '#64748b' }}>رسوم التوصيل:</span>
+                        <span style={{ fontSize: '0.7rem', color: '#64748b' }}>{t('pos.pos_workspace.pos_phone_order_dialog.s74', "رسوم التوصيل:")}</span>
                         <input
                           type="number"
                           min="0"
@@ -1399,7 +1401,7 @@ export function PosPhoneOrderDialog({
                     {/* Payment at Doorstep Selector */}
                     <div style={{ paddingTop: '4px', borderTop: '1px dashed #e2e8f0' }}>
                       <label style={{ fontSize: '0.6875rem', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '2px' }}>
-                        طريقة الدفع عند الاستلام
+                        {t('pos.pos_workspace.pos_phone_order_dialog.s75', "طريقة الدفع عند الاستلام")}
                       </label>
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '4px' }}>
                         <button
@@ -1422,7 +1424,7 @@ export function PosPhoneOrderDialog({
                           }}
                         >
                           <DollarSignIcon size={11} />
-                          كاش
+                          {t('pos.pos_workspace.pos_phone_order_dialog.s76', "كاش")}
                         </button>
                         <button
                           type="button"
@@ -1444,7 +1446,7 @@ export function PosPhoneOrderDialog({
                           }}
                         >
                           <CreditCardIcon size={11} />
-                          {isKwd ? 'كي نت مع المندوب' : isKsa ? 'مدى مع المندوب' : 'فيزا مع الطيار'}
+                          {isKwd ? t('pos.pos_workspace.pos_phone_order_dialog.s77', "كي نت مع المندوب") : isKsa ? t('pos.pos_workspace.pos_phone_order_dialog.s78', "مدى مع المندوب") : t('pos.pos_workspace.pos_phone_order_dialog.s79', "فيزا مع الطيار")}
                         </button>
                         <button
                           type="button"
@@ -1465,18 +1467,18 @@ export function PosPhoneOrderDialog({
                             gap: '3px',
                           }}
                         >
-                          {isKwd ? 'رابط دفع أونلاين' : isKsa ? 'تحويل / STC Pay' : 'إنستاباي / محفظة'}
+                          {isKwd ? t('pos.pos_workspace.pos_phone_order_dialog.s80', "رابط دفع أونلاين") : isKsa ? t('pos.pos_workspace.pos_phone_order_dialog.s81', "تحويل / STC Pay") : t('pos.pos_workspace.pos_phone_order_dialog.s82', "إنستاباي / محفظة")}
                         </button>
                       </div>
 
                       {paymentMethodAtDoor === 'cash' && (
                         <div style={{ marginTop: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <span style={{ fontSize: '0.65rem', color: '#64748b', whiteSpace: 'nowrap' }}>العميل يدفع:</span>
+                          <span style={{ fontSize: '0.65rem', color: '#64748b', whiteSpace: 'nowrap' }}>{t('pos.pos_workspace.pos_phone_order_dialog.s83', "العميل يدفع:")}</span>
                           <input
                             type="text"
                             value={customerPaidNote}
                             onChange={(e) => setCustomerPaidNote(e.target.value)}
-                            placeholder={isKwd ? "مثال: 10 د.ك..." : isKsa ? "مثال: 100 ر.س..." : "مثال: 200 ج..."}
+                            placeholder={isKwd ? t('pos.pos_workspace.pos_phone_order_dialog.s84', "مثال: 10 د.ك...") : isKsa ? t('pos.pos_workspace.pos_phone_order_dialog.s85', "مثال: 100 ر.س...") : t('pos.pos_workspace.pos_phone_order_dialog.s86', "مثال: 200 ج...")}
                             style={{
                               flex: 1,
                               padding: '2px 6px',
@@ -1515,7 +1517,7 @@ export function PosPhoneOrderDialog({
                         type="text"
                         value={deliveryNotes}
                         onChange={(e) => setDeliveryNotes(e.target.value)}
-                        placeholder="توجيهات للطيار (مثال: رن الجرس مرتين، بجوار صيدلية العزبي)..."
+                        placeholder={t('pos.pos_workspace.pos_phone_order_dialog.s87', "توجيهات للطيار (مثال: رن الجرس مرتين، بجوار صيدلية العزبي)...")}
                         style={{
                           width: '100%',
                           padding: '3px 6px',
@@ -1533,10 +1535,10 @@ export function PosPhoneOrderDialog({
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', display: 'flex', alignItems: 'center', gap: '4px' }}>
                       <ReceiptIcon size={13} color="#170e5e" />
-                      <span>سجل طلبات العميل السابقة</span>
+                      <span>{t('pos.pos_workspace.pos_phone_order_dialog.s88', "سجل طلبات العميل السابقة")}</span>
                     </div>
                     <span style={{ fontSize: '0.6875rem', color: '#64748b' }}>
-                      {recentOrders.length} طلبات مسجلة
+                      {recentOrders.length} {t('pos.pos_workspace.pos_phone_order_dialog.s89', "طلبات مسجلة")}
                     </span>
                   </div>
 
@@ -1552,17 +1554,17 @@ export function PosPhoneOrderDialog({
                     >
                       <ClockIcon size={24} color="#94a3b8" style={{ marginBottom: '4px' }} />
                       <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155' }}>
-                        لا توجد طلبات سابقة مسجلة لهذا العميل
+                        {t('pos.pos_workspace.pos_phone_order_dialog.s90', "لا توجد طلبات سابقة مسجلة لهذا العميل")}
                       </div>
                       <p style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '2px', marginBottom: '8px' }}>
-                        يمكنك بدء أول طلب له وسيقوم النظام بحفظ عنوانه وتفضيلاته تلقائياً.
+                        {t('pos.pos_workspace.pos_phone_order_dialog.s91', "يمكنك بدء أول طلب له وسيقوم النظام بحفظ عنوانه وتفضيلاته تلقائياً.")}
                       </p>
                       <Button
                         style={{ background: '#170e5e', color: '#ffffff', fontWeight: 700, fontSize: '0.72rem', padding: '3px 8px' }}
                         onClick={handleStartNewOrder}
                       >
                         <PlusIcon size={12} style={{ marginLeft: '4px' }} />
-                        بدء أول طلب للعميل
+                        {t('pos.pos_workspace.pos_phone_order_dialog.s92', "بدء أول طلب للعميل")}
                       </Button>
                     </div>
                   ) : (
@@ -1617,7 +1619,7 @@ export function PosPhoneOrderDialog({
                           {/* Order Footer & Repeat Button */}
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '2px' }}>
                             <div style={{ fontSize: '0.65rem', color: '#64748b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '240px' }}>
-                              {order.customerAddress ? `العنوان: ${order.customerAddress}` : 'بدون عنوان محدد'}
+                              {order.customerAddress ? `العنوان: ${order.customerAddress}` : t('pos.pos_workspace.pos_phone_order_dialog.s93', "بدون عنوان محدد")}
                             </div>
                             <Button
                               size="sm"
@@ -1632,7 +1634,7 @@ export function PosPhoneOrderDialog({
                               onClick={() => handleReorder(order)}
                             >
                               <RotateCcwIcon size={11} style={{ marginLeft: '3px' }} />
-                              تكرار هذا الطلب
+                              {t('pos.pos_workspace.pos_phone_order_dialog.s94', "تكرار هذا الطلب")}
                             </Button>
                           </div>
                         </div>
@@ -1658,7 +1660,7 @@ export function PosPhoneOrderDialog({
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#0f172a' }}>
-                    نتائج البحث المتطابقة
+                    {t('pos.pos_workspace.pos_phone_order_dialog.s95', "نتائج البحث المتطابقة")}
                   </span>
                   <span
                     style={{
@@ -1670,7 +1672,7 @@ export function PosPhoneOrderDialog({
                       borderRadius: '10px',
                     }}
                   >
-                    {matchedCustomers.length} عميل
+                    {matchedCustomers.length} {t('pos.pos_workspace.pos_phone_order_dialog.s96', "عميل")}
                   </span>
                 </div>
 
@@ -1684,7 +1686,7 @@ export function PosPhoneOrderDialog({
                   style={{ fontSize: '0.72rem', fontWeight: 700, padding: '3px 8px' }}
                 >
                   <PlusIcon size={12} style={{ marginLeft: '4px' }} />
-                  تسجيل عميل جديد برقم ({phoneQuery})
+                  {t('pos.pos_workspace.pos_phone_order_dialog.s97', "تسجيل عميل جديد برقم (")}{phoneQuery})
                 </Button>
               </div>
 
@@ -1736,7 +1738,7 @@ export function PosPhoneOrderDialog({
                             </div>
                             <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '3px' }}>
                               <PhoneIcon size={11} color="#64748b" />
-                              <span>{c.phone || 'بدون رقم'}</span>
+                              <span>{c.phone || t('pos.pos_workspace.pos_phone_order_dialog.s98', "بدون رقم")}</span>
                             </div>
                           </div>
                         </div>
@@ -1750,7 +1752,7 @@ export function PosPhoneOrderDialog({
                             color: c.customerType === 'vip' ? '#92400e' : '#475569',
                           }}
                         >
-                          {c.customerType === 'vip' ? 'VIP' : 'نقدي'}
+                          {c.customerType === 'vip' ? 'VIP' : t('pos.pos_workspace.pos_phone_order_dialog.s99', "نقدي")}
                         </span>
                       </div>
 
@@ -1792,7 +1794,7 @@ export function PosPhoneOrderDialog({
                       }}
                     >
                       <ArrowLeftIcon size={13} style={{ marginLeft: '4px' }} />
-                      اختيار العميل وتجهيز الطلب
+                      {t('pos.pos_workspace.pos_phone_order_dialog.s100', "اختيار العميل وتجهيز الطلب")}
                     </Button>
                   </div>
                 ))}
@@ -1813,7 +1815,7 @@ export function PosPhoneOrderDialog({
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <PlusIcon size={16} color="#2563eb" />
                   <h3 style={{ fontSize: '0.85rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>
-                    تسجيل عميل جديد وتجهيز طلب التوصيل
+                    {t('pos.pos_workspace.pos_phone_order_dialog.s101', "تسجيل عميل جديد وتجهيز طلب التوصيل")}
                   </h3>
                 </div>
                 {isForceNewCustomer && matchedCustomers.length > 0 && (
@@ -1824,7 +1826,7 @@ export function PosPhoneOrderDialog({
                     onClick={() => setIsForceNewCustomer(false)}
                     style={{ fontSize: '0.7rem', fontWeight: 700, padding: '2px 6px' }}
                   >
-                    العودة لنتائج البحث ({matchedCustomers.length})
+                    {t('pos.pos_workspace.pos_phone_order_dialog.s102', "العودة لنتائج البحث (")}{matchedCustomers.length})
                   </Button>
                 )}
               </div>
@@ -1833,7 +1835,7 @@ export function PosPhoneOrderDialog({
                 onSubmit={(e) => {
                   e.preventDefault();
                   if (!newName.trim()) {
-                    toast.error('اسم العميل مطلوب');
+                    toast.error(t('pos.pos_workspace.pos_phone_order_dialog.s103', "اسم العميل مطلوب"));
                     return;
                   }
                   createCustomerMutation.mutate({
@@ -1848,14 +1850,14 @@ export function PosPhoneOrderDialog({
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
                   <div>
                     <label style={{ fontSize: '0.72rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '2px' }}>
-                      اسم العميل <span style={{ color: '#dc2626' }}>*</span>
+                      {t('pos.pos_workspace.pos_phone_order_dialog.s104', "اسم العميل")} <span style={{ color: '#dc2626' }}>*</span>
                     </label>
                     <input
                       type="text"
                       required
                       value={newName}
                       onChange={(e) => setNewName(e.target.value)}
-                      placeholder="اسم العميل الكامل..."
+                      placeholder={t('pos.pos_workspace.pos_phone_order_dialog.s105', "اسم العميل الكامل...")}
                       style={{
                         width: '100%',
                         padding: '5px 8px',
@@ -1868,7 +1870,7 @@ export function PosPhoneOrderDialog({
 
                   <div>
                     <label style={{ fontSize: '0.72rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '2px' }}>
-                      رقم الهاتف
+                      {t('pos.pos_workspace.pos_phone_order_dialog.s106', "رقم الهاتف")}
                     </label>
                     <input
                       type="text"
@@ -1876,10 +1878,10 @@ export function PosPhoneOrderDialog({
                       onChange={(e) => setNewPhone(e.target.value)}
                       placeholder={
                         isKwd
-                          ? "رقم الهاتف بالكويت (8 أرقام)..."
+                          ? t('pos.pos_workspace.pos_phone_order_dialog.s107', "رقم الهاتف بالكويت (8 أرقام)...")
                           : isKsa
-                          ? "رقم الهاتف بالسعودية (05xxxxxxxx)..."
-                          : "رقم الهاتف (مثال: 01012345678)..."
+                          ? t('pos.pos_workspace.pos_phone_order_dialog.s108', "رقم الهاتف بالسعودية (05xxxxxxxx)...")
+                          : t('pos.pos_workspace.pos_phone_order_dialog.s109', "رقم الهاتف (مثال: 01012345678)...")
                       }
                       style={{
                         width: '100%',
@@ -1895,7 +1897,7 @@ export function PosPhoneOrderDialog({
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2px' }}>
                     <label style={{ fontSize: '0.72rem', fontWeight: 600, color: '#334155', margin: 0 }}>
-                      عنوان التوصيل التفصيلي (المنطقة، الشارع، العقار، الدور، الشقة)
+                      {t('pos.pos_workspace.pos_phone_order_dialog.s110', "عنوان التوصيل التفصيلي (المنطقة، الشارع، العقار، الدور، الشقة)")}
                     </label>
                     <div style={{ display: 'flex', gap: '3px' }}>
                       {(['home', 'work', 'other'] as const).map((tag) => (
@@ -1914,7 +1916,7 @@ export function PosPhoneOrderDialog({
                             cursor: 'pointer',
                           }}
                         >
-                          {tag === 'home' ? 'المنزل' : tag === 'work' ? 'العمل' : 'أخرى'}
+                          {tag === 'home' ? t('pos.pos_workspace.pos_phone_order_dialog.s111', "المنزل") : tag === 'work' ? t('pos.pos_workspace.pos_phone_order_dialog.s112', "العمل") : t('pos.pos_workspace.pos_phone_order_dialog.s113', "أخرى")}
                         </button>
                       ))}
                     </div>
@@ -1925,10 +1927,10 @@ export function PosPhoneOrderDialog({
                     onChange={(e) => setNewAddress(e.target.value)}
                     placeholder={
                       isKwd
-                        ? "مثال: حولي - ق 4 - ش تونس - جادة 2 - منزل 18 - دور 3 شقة 6"
+                        ? t('pos.pos_workspace.pos_phone_order_dialog.s114', "مثال: حولي - ق 4 - ش تونس - جادة 2 - منزل 18 - دور 3 شقة 6")
                         : isKsa
-                        ? "مثال: الرياض - حي الملقا - شارع وادي حنيفة - عمارة 12 - شقة 4"
-                        : "مثال: المعادي - شارع 9 - عمارة 14 - الدور الثالث شقة 6"
+                        ? t('pos.pos_workspace.pos_phone_order_dialog.s115', "مثال: الرياض - حي الملقا - شارع وادي حنيفة - عمارة 12 - شقة 4")
+                        : t('pos.pos_workspace.pos_phone_order_dialog.s116', "مثال: المعادي - شارع 9 - عمارة 14 - الدور الثالث شقة 6")
                     }
                     style={{
                       width: '100%',
@@ -1952,7 +1954,7 @@ export function PosPhoneOrderDialog({
                   }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#170e5e' }}>
-                        نموذج المعلومات المدنية الكويتية (PACI):
+                        {t('pos.pos_workspace.pos_phone_order_dialog.s117', "نموذج المعلومات المدنية الكويتية (PACI):")}
                       </span>
                       <button
                         type="button"
@@ -1970,13 +1972,13 @@ export function PosPhoneOrderDialog({
                           cursor: 'pointer',
                         }}
                       >
-                        توليد العنوان تلقائياً
+                        {t('pos.pos_workspace.pos_phone_order_dialog.s118', "توليد العنوان تلقائياً")}
                       </button>
                     </div>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px' }}>
                       <input
                         type="text"
-                        placeholder="المنطقة (حولي)"
+                        placeholder={t('pos.pos_workspace.pos_phone_order_dialog.s119', "المنطقة (حولي)")}
                         value={paciArea}
                         onChange={(e) => {
                           const val = e.target.value;
@@ -1987,7 +1989,7 @@ export function PosPhoneOrderDialog({
                       />
                       <input
                         type="text"
-                        placeholder="القطعة (Block)"
+                        placeholder={t('pos.pos_workspace.pos_phone_order_dialog.s120', "القطعة (Block)")}
                         value={paciBlock}
                         onChange={(e) => {
                           const val = e.target.value;
@@ -1998,7 +2000,7 @@ export function PosPhoneOrderDialog({
                       />
                       <input
                         type="text"
-                        placeholder="الشارع"
+                        placeholder={t('pos.pos_workspace.pos_phone_order_dialog.s121', "الشارع")}
                         value={paciStreet}
                         onChange={(e) => {
                           const val = e.target.value;
@@ -2009,7 +2011,7 @@ export function PosPhoneOrderDialog({
                       />
                       <input
                         type="text"
-                        placeholder="الجادة (اختياري)"
+                        placeholder={t('pos.pos_workspace.pos_phone_order_dialog.s122', "الجادة (اختياري)")}
                         value={paciAvenue}
                         onChange={(e) => {
                           const val = e.target.value;
@@ -2022,7 +2024,7 @@ export function PosPhoneOrderDialog({
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px' }}>
                       <input
                         type="text"
-                        placeholder="المنزل / القسيمة / المبنى"
+                        placeholder={t('pos.pos_workspace.pos_phone_order_dialog.s123', "المنزل / القسيمة / المبنى")}
                         value={paciHouse}
                         onChange={(e) => {
                           const val = e.target.value;
@@ -2033,7 +2035,7 @@ export function PosPhoneOrderDialog({
                       />
                       <input
                         type="text"
-                        placeholder="الدور (اختياري)"
+                        placeholder={t('pos.pos_workspace.pos_phone_order_dialog.s124', "الدور (اختياري)")}
                         value={paciFloor}
                         onChange={(e) => {
                           const val = e.target.value;
@@ -2044,7 +2046,7 @@ export function PosPhoneOrderDialog({
                       />
                       <input
                         type="text"
-                        placeholder="الشقة (اختياري)"
+                        placeholder={t('pos.pos_workspace.pos_phone_order_dialog.s125', "الشقة (اختياري)")}
                         value={paciApt}
                         onChange={(e) => {
                           const val = e.target.value;
@@ -2057,8 +2059,8 @@ export function PosPhoneOrderDialog({
                         type="text"
                         inputMode="numeric"
                         maxLength={8}
-                        placeholder="الرقم الآلي (8 أرقام)"
-                        title="الرقم الآلي للعنوان المعتمد من PACI كويت فايندر"
+                        placeholder={t('pos.pos_workspace.pos_phone_order_dialog.s126', "الرقم الآلي (8 أرقام)")}
+                        title={t('pos.pos_workspace.pos_phone_order_dialog.s127', "الرقم الآلي للعنوان المعتمد من PACI كويت فايندر")}
                         value={paciAutoNumber}
                         onChange={(e) => {
                           const val = e.target.value.replace(/\D/g, '').slice(0, 8);
@@ -2075,7 +2077,7 @@ export function PosPhoneOrderDialog({
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', background: '#f8fafc', padding: '6px 8px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
                   <div>
                     <label style={{ fontSize: '0.6875rem', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '2px' }}>
-                      منطقة التوصيل
+                      {t('pos.pos_workspace.pos_phone_order_dialog.s128', "منطقة التوصيل")}
                     </label>
                     <select
                       value={selectedZoneId}
@@ -2099,7 +2101,7 @@ export function PosPhoneOrderDialog({
 
                   <div>
                     <label style={{ fontSize: '0.6875rem', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '2px' }}>
-                      طريقة الدفع عند الاستلام
+                      {t('pos.pos_workspace.pos_phone_order_dialog.s129', "طريقة الدفع عند الاستلام")}
                     </label>
                     <select
                       value={paymentMethodAtDoor}
@@ -2113,20 +2115,20 @@ export function PosPhoneOrderDialog({
                         background: '#ffffff',
                       }}
                     >
-                      <option value="cash">كاش عند الاستلام</option>
+                      <option value="cash">{t('pos.pos_workspace.pos_phone_order_dialog.s130', "كاش عند الاستلام")}</option>
                       <option value="card_pos">
                         {isKwd
-                          ? 'كي نت مع المندوب (K-NET)'
+                          ? t('pos.pos_workspace.pos_phone_order_dialog.s131', "كي نت مع المندوب (K-NET)")
                           : isKsa
-                          ? 'مدى مع المندوب (mada POS)'
-                          : 'فيزا مع الطيار (POS)'}
+                          ? t('pos.pos_workspace.pos_phone_order_dialog.s132', "مدى مع المندوب (mada POS)")
+                          : t('pos.pos_workspace.pos_phone_order_dialog.s133', "فيزا مع الطيار (POS)")}
                       </option>
                       <option value="instapay_wallet">
                         {isKwd
-                          ? 'رابط دفع أونلاين (K-NET Link)'
+                          ? t('pos.pos_workspace.pos_phone_order_dialog.s134', "رابط دفع أونلاين (K-NET Link)")
                           : isKsa
-                          ? 'STC Pay / محفظة رقمية'
-                          : 'إنستاباي / محفظة إلكترونية'}
+                          ? t('pos.pos_workspace.pos_phone_order_dialog.s135', "STC Pay / محفظة رقمية")
+                          : t('pos.pos_workspace.pos_phone_order_dialog.s136', "إنستاباي / محفظة إلكترونية")}
                       </option>
                     </select>
                   </div>
@@ -2137,7 +2139,7 @@ export function PosPhoneOrderDialog({
                     type="text"
                     value={newNotes}
                     onChange={(e) => setNewNotes(e.target.value)}
-                    placeholder="ملاحظات أو علامات مميزة للعنوان (مثال: أمام مسجد الفتح، مدخل العمارة من الجانب)..."
+                    placeholder={t('pos.pos_workspace.pos_phone_order_dialog.s137', "ملاحظات أو علامات مميزة للعنوان (مثال: أمام مسجد الفتح، مدخل العمارة من الجانب)...")}
                     style={{
                       width: '100%',
                       padding: '5px 8px',
@@ -2156,7 +2158,7 @@ export function PosPhoneOrderDialog({
                     style={{ background: '#170e5e', color: '#ffffff', fontWeight: 700, fontSize: '0.78rem' }}
                   >
                     <CheckCircleIcon size={14} style={{ marginLeft: '4px' }} />
-                    {createCustomerMutation.isPending ? 'جاري الحفظ...' : 'حفظ العميل وبدء طلب التوصيل'}
+                    {createCustomerMutation.isPending ? t('pos.pos_workspace.pos_phone_order_dialog.s138', "جاري الحفظ...") : t('pos.pos_workspace.pos_phone_order_dialog.s139', "حفظ العميل وبدء طلب التوصيل")}
                   </Button>
                 </div>
               </form>

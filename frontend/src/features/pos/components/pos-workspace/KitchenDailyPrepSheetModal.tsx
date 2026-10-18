@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { RestaurantOperationsDialog } from './RestaurantOperationsDialog';
@@ -19,6 +20,7 @@ export function KitchenDailyPrepSheetModal({
   branchId: _branchId,
   onBack,
 }: KitchenDailyPrepSheetModalProps) {
+  const { t } = useTranslation();
   const todayStr = new Date().toISOString().slice(0, 10);
 
   const [shiftType, setShiftType] = useState<'morning' | 'evening' | 'night'>('morning');
@@ -97,10 +99,10 @@ export function KitchenDailyPrepSheetModal({
       open={open}
       onClose={onClose}
       onBack={onBack}
-      backText="الرجوع لعمليات المطعم"
-      title="ورقة التحضير اليومية للمطبخ المركزي (Daily Prep Sheet & Commissary)"
-      subtitle="جدولة ومتابعة تحضير الأصناف نصف المصنعة (تتبيل، صوصات، عجين) لضمان جاهزية الوردية ومنع العجز"
-      footerNote="الكميات المحضرة تنعكس فورياً في كفاءة الشيف وسجلات المخزون المركزي."
+      backText={t('pos.pos_workspace.kitchen_daily_prep_sheet_modal.s0', "الرجوع لعمليات المطعم")}
+      title={t('pos.pos_workspace.kitchen_daily_prep_sheet_modal.s1', "ورقة التحضير اليومية للمطبخ المركزي (Daily Prep Sheet & Commissary)")}
+      subtitle={t('pos.pos_workspace.kitchen_daily_prep_sheet_modal.s2', "جدولة ومتابعة تحضير الأصناف نصف المصنعة (تتبيل، صوصات، عجين) لضمان جاهزية الوردية ومنع العجز")}
+      footerNote={t('pos.pos_workspace.kitchen_daily_prep_sheet_modal.s3', "الكميات المحضرة تنعكس فورياً في كفاءة الشيف وسجلات المخزون المركزي.")}
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
         {/* Top Control Bar */}
@@ -118,7 +120,7 @@ export function KitchenDailyPrepSheetModal({
           }}
         >
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-            <span style={{ fontSize: '12px', fontWeight: 700, color: '#334155' }}>وردية التحضير:</span>
+            <span style={{ fontSize: '12px', fontWeight: 700, color: '#334155' }}>{t('pos.pos_workspace.kitchen_daily_prep_sheet_modal.s4', "وردية التحضير:")}</span>
             <div style={{ display: 'flex', gap: '6px' }}>
               {(['morning', 'evening', 'night'] as const).map((shift) => (
                 <button
@@ -136,9 +138,9 @@ export function KitchenDailyPrepSheetModal({
                     cursor: 'pointer',
                   }}
                 >
-                  {shift === 'morning' && 'صباحية (افتتاح)'}
-                  {shift === 'evening' && 'مسائية (ذروة)'}
-                  {shift === 'night' && 'ليلية (إغلاق وتجهيز)'}
+                  {shift === 'morning' && t('pos.pos_workspace.kitchen_daily_prep_sheet_modal.s5', "صباحية (افتتاح)")}
+                  {shift === 'evening' && t('pos.pos_workspace.kitchen_daily_prep_sheet_modal.s6', "مسائية (ذروة)")}
+                  {shift === 'night' && t('pos.pos_workspace.kitchen_daily_prep_sheet_modal.s7', "ليلية (إغلاق وتجهيز)")}
                 </button>
               ))}
             </div>
@@ -165,11 +167,11 @@ export function KitchenDailyPrepSheetModal({
                 }}
               >
                 <PlusCircleIcon size={14} />
-                <span>توليد ورقة اليوم بناءً على الاستهلاك المتوقع</span>
+                <span>{t('pos.pos_workspace.kitchen_daily_prep_sheet_modal.s8', "توليد ورقة اليوم بناءً على الاستهلاك المتوقع")}</span>
               </button>
             ) : (
               <span style={{ fontSize: '12px', color: '#166534', background: '#dcfce7', padding: '4px 10px', borderRadius: '6px', fontWeight: 800 }}>
-                ورقة اليوم معتمدة ({activeSheet.items?.length || 0} بنود تحضير)
+                {t('pos.pos_workspace.kitchen_daily_prep_sheet_modal.s9', "ورقة اليوم معتمدة (")}{activeSheet.items?.length || 0} {t('pos.pos_workspace.kitchen_daily_prep_sheet_modal.s10', "بنود تحضير)")}
               </span>
             )}
           </div>
@@ -181,13 +183,13 @@ export function KitchenDailyPrepSheetModal({
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12.5px', textAlign: 'right' }}>
               <thead>
                 <tr style={{ background: '#f8fafc', color: '#475569', borderBottom: '1px solid #e2e8f0' }}>
-                  <th style={{ padding: '9px 12px' }}>بند التحضير نصف المصنع</th>
-                  <th style={{ padding: '9px 12px' }}>الوحدة</th>
-                  <th style={{ padding: '9px 12px' }}>المستهدف (Par Level)</th>
-                  <th style={{ padding: '9px 12px' }}>المتاح بالثلاجة</th>
-                  <th style={{ padding: '9px 12px' }}>المطلوب تحضيره</th>
-                  <th style={{ padding: '9px 12px' }}>المحضر فعلياً</th>
-                  <th style={{ padding: '9px 12px', textAlign: 'center' }}>الحالة والإجراء</th>
+                  <th style={{ padding: '9px 12px' }}>{t('pos.pos_workspace.kitchen_daily_prep_sheet_modal.s11', "بند التحضير نصف المصنع")}</th>
+                  <th style={{ padding: '9px 12px' }}>{t('pos.pos_workspace.kitchen_daily_prep_sheet_modal.s12', "الوحدة")}</th>
+                  <th style={{ padding: '9px 12px' }}>{t('pos.pos_workspace.kitchen_daily_prep_sheet_modal.s13', "المستهدف (Par Level)")}</th>
+                  <th style={{ padding: '9px 12px' }}>{t('pos.pos_workspace.kitchen_daily_prep_sheet_modal.s14', "المتاح بالثلاجة")}</th>
+                  <th style={{ padding: '9px 12px' }}>{t('pos.pos_workspace.kitchen_daily_prep_sheet_modal.s15', "المطلوب تحضيره")}</th>
+                  <th style={{ padding: '9px 12px' }}>{t('pos.pos_workspace.kitchen_daily_prep_sheet_modal.s16', "المحضر فعلياً")}</th>
+                  <th style={{ padding: '9px 12px', textAlign: 'center' }}>{t('pos.pos_workspace.kitchen_daily_prep_sheet_modal.s17', "الحالة والإجراء")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -257,7 +259,7 @@ export function KitchenDailyPrepSheetModal({
                             }}
                           >
                             <CheckCircleIcon size={12} />
-                            <span>{isCompleted ? 'مكتمل' : 'تأكيد التحضير'}</span>
+                            <span>{isCompleted ? t('pos.pos_workspace.kitchen_daily_prep_sheet_modal.s18', "مكتمل") : t('pos.pos_workspace.kitchen_daily_prep_sheet_modal.s19', "تأكيد التحضير")}</span>
                           </button>
 
                           <button
@@ -276,10 +278,10 @@ export function KitchenDailyPrepSheetModal({
                               alignItems: 'center',
                               gap: '4px',
                             }}
-                            title="طباعة ملصق الصلاحية الحراري 50x30 مم (Day-Dot)"
+                            title={t('pos.pos_workspace.kitchen_daily_prep_sheet_modal.s20', "طباعة ملصق الصلاحية الحراري 50x30 مم (Day-Dot)")}
                           >
                             <PrinterIcon size={12} color="#170e5e" />
-                            <span>ملصق (50x30)</span>
+                            <span>{t('pos.pos_workspace.kitchen_daily_prep_sheet_modal.s21', "ملصق (50x30)")}</span>
                           </button>
                         </div>
                       </td>
@@ -289,7 +291,7 @@ export function KitchenDailyPrepSheetModal({
                 {(!activeSheet || !activeSheet.items || activeSheet.items.length === 0) && (
                   <tr>
                     <td colSpan={7} style={{ textAlign: 'center', padding: '30px', color: '#94a3b8' }}>
-                      لا توجد ورقة تحضير منشأة لليوم بعد. انقر على زر "توليد ورقة اليوم" للبدء.
+                      {t('pos.pos_workspace.kitchen_daily_prep_sheet_modal.s22', "لا توجد ورقة تحضير منشأة لليوم بعد. انقر على زر \"توليد ورقة اليوم\" للبدء.")}
                     </td>
                   </tr>
                 )}

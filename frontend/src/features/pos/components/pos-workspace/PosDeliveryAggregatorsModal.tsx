@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { RestaurantOperationsDialog } from './RestaurantOperationsDialog';
@@ -19,6 +20,7 @@ interface PosDeliveryAggregatorsModalProps {
 }
 
 export function PosDeliveryAggregatorsModal({ open, onClose, onBack }: PosDeliveryAggregatorsModalProps) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const isKw = isKuwait();
   const isSa = isSaudi();
@@ -101,16 +103,16 @@ export function PosDeliveryAggregatorsModal({ open, onClose, onBack }: PosDelive
       open={open}
       onClose={onClose}
       onBack={onBack}
-      backText="الرجوع لعمليات المطعم"
+      backText={t('pos.pos_workspace.pos_delivery_aggregators_modal.s0', "الرجوع لعمليات المطعم")}
       title={
         isKw
-          ? 'منظومة تطبيقات التوصيل بالكويت (طلبات، دليفرو، كاري، جاهز، كيتا)'
+          ? t('pos.pos_workspace.pos_delivery_aggregators_modal.s1', "منظومة تطبيقات التوصيل بالكويت (طلبات، دليفرو، كاري، جاهز، كيتا)")
           : isSa
-          ? 'منظومة تطبيقات التوصيل بالسعودية (جاهز، هنقرستيشن، تويو، ذا شفز، كيتا، مرسول)'
-          : 'منظومة تطبيقات التوصيل (طلبات، المنيوز، نون فود، مرسول، التوصيل المباشر)'
+          ? t('pos.pos_workspace.pos_delivery_aggregators_modal.s2', "منظومة تطبيقات التوصيل بالسعودية (جاهز، هنقرستيشن، تويو، ذا شفز، كيتا، مرسول)")
+          : t('pos.pos_workspace.pos_delivery_aggregators_modal.s3', "منظومة تطبيقات التوصيل (طلبات، المنيوز، نون فود، مرسول، التوصيل المباشر)")
       }
-      subtitle="إدارة وتوجيه الطلبيات اللحظية، عمولات المنصات، وإيقاف الأصناف التلقائي (86 Out of Stock)"
-      footerNote="تكامل واجهات برمجة تطبيقات التوصيل المتعددة مع منصة المطعم المركزية"
+      subtitle={t('pos.pos_workspace.pos_delivery_aggregators_modal.s4', "إدارة وتوجيه الطلبيات اللحظية، عمولات المنصات، وإيقاف الأصناف التلقائي (86 Out of Stock)")}
+      footerNote={t('pos.pos_workspace.pos_delivery_aggregators_modal.s5', "تكامل واجهات برمجة تطبيقات التوصيل المتعددة مع منصة المطعم المركزية")}
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
         {/* Navigation Tabs */}
@@ -129,7 +131,7 @@ export function PosDeliveryAggregatorsModal({ open, onClose, onBack }: PosDelive
               color: activeTab === 'orders' ? '#ffffff' : '#475569',
             }}
           >
-            طلبات التوصيل الحية ({orders.length})
+            {t('pos.pos_workspace.pos_delivery_aggregators_modal.s6', "طلبات التوصيل الحية (")}{orders.length})
           </button>
           <button
             type="button"
@@ -145,7 +147,7 @@ export function PosDeliveryAggregatorsModal({ open, onClose, onBack }: PosDelive
               color: activeTab === 'platforms' ? '#ffffff' : '#475569',
             }}
           >
-            منصات التوصيل والعمولات
+            {t('pos.pos_workspace.pos_delivery_aggregators_modal.s7', "منصات التوصيل والعمولات")}
           </button>
           <button
             type="button"
@@ -161,7 +163,7 @@ export function PosDeliveryAggregatorsModal({ open, onClose, onBack }: PosDelive
               color: activeTab === 'stock86' ? '#ffffff' : '#475569',
             }}
           >
-            إيقاف الأصناف الفوري (86 Dispatcher)
+            {t('pos.pos_workspace.pos_delivery_aggregators_modal.s8', "إيقاف الأصناف الفوري (86 Dispatcher)")}
           </button>
         </div>
 
@@ -187,14 +189,14 @@ export function PosDeliveryAggregatorsModal({ open, onClose, onBack }: PosDelive
                     }}
                   >
                     {st === 'all'
-                      ? 'الكل'
+                      ? t('pos.pos_workspace.pos_delivery_aggregators_modal.s9', "الكل")
                       : st === 'received'
-                      ? 'جديد'
+                      ? t('pos.pos_workspace.pos_delivery_aggregators_modal.s10', "جديد")
                       : st === 'preparing'
-                      ? 'تحضير'
+                      ? t('pos.pos_workspace.pos_delivery_aggregators_modal.s11', "تحضير")
                       : st === 'ready'
-                      ? 'جاهز'
-                      : 'تم الاستلام'}
+                      ? t('pos.pos_workspace.pos_delivery_aggregators_modal.s12', "جاهز")
+                      : t('pos.pos_workspace.pos_delivery_aggregators_modal.s13', "تم الاستلام")}
                   </button>
                 ))}
               </div>
@@ -205,7 +207,7 @@ export function PosDeliveryAggregatorsModal({ open, onClose, onBack }: PosDelive
                 style={{ fontSize: '12px', display: 'flex', alignItems: 'center', gap: '4px' }}
               >
                 <RefreshCwIcon size={13} />
-                تحديث لحظي
+                {t('pos.pos_workspace.pos_delivery_aggregators_modal.s14', "تحديث لحظي")}
               </Button>
             </div>
 
@@ -223,7 +225,7 @@ export function PosDeliveryAggregatorsModal({ open, onClose, onBack }: PosDelive
             >
               {isLoadingOrders ? (
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
-                  <span style={{ fontSize: '13px', color: '#64748b' }}>جاري جلب طلبات المنصات...</span>
+                  <span style={{ fontSize: '13px', color: '#64748b' }}>{t('pos.pos_workspace.pos_delivery_aggregators_modal.s15', "جاري جلب طلبات المنصات...")}</span>
                 </div>
               ) : orders.length === 0 ? (
                 <div
@@ -238,10 +240,10 @@ export function PosDeliveryAggregatorsModal({ open, onClose, onBack }: PosDelive
                 >
                   <ClockIcon size={28} />
                   <span style={{ fontSize: '13px', fontWeight: 600, color: '#475569' }}>
-                    لا توجد طلبات توصيل واردة حالياً
+                    {t('pos.pos_workspace.pos_delivery_aggregators_modal.s16', "لا توجد طلبات توصيل واردة حالياً")}
                   </span>
                   <span style={{ fontSize: '11.5px', color: '#94a3b8' }}>
-                    الطلبات الواردة من جاهز وهنقرستيشن وطلبات وكيتا تظهر هنا لحظياً
+                    {t('pos.pos_workspace.pos_delivery_aggregators_modal.s17', "الطلبات الواردة من جاهز وهنقرستيشن وطلبات وكيتا تظهر هنا لحظياً")}
                   </span>
                 </div>
               ) : (
@@ -292,8 +294,7 @@ export function PosDeliveryAggregatorsModal({ open, onClose, onBack }: PosDelive
                             </span>
                           </div>
                           <div style={{ fontSize: '11.5px', color: '#64748b' }}>
-                            العميل: {ord.customer_name || '—'} {ord.customer_phone ? `(${ord.customer_phone})` : ''} |
-                            السائق: {ord.rider_name || 'بانتظار تخصيص سائق'}
+                            {t('pos.pos_workspace.pos_delivery_aggregators_modal.s18', "العميل:")} {ord.customer_name || '—'} {ord.customer_phone ? `(${ord.customer_phone})` : ''} {t('pos.pos_workspace.pos_delivery_aggregators_modal.s19', "|\n                            السائق:")} {ord.rider_name || t('pos.pos_workspace.pos_delivery_aggregators_modal.s20', "بانتظار تخصيص سائق")}
                           </div>
                         </div>
 
@@ -303,7 +304,7 @@ export function PosDeliveryAggregatorsModal({ open, onClose, onBack }: PosDelive
                               {formatCurrency(Number(ord.subtotal))}
                             </div>
                             <div style={{ fontSize: '10.5px', color: '#64748b' }}>
-                              الصافي بعد العمولة: {formatCurrency(Number(ord.net_payout))}
+                              {t('pos.pos_workspace.pos_delivery_aggregators_modal.s21', "الصافي بعد العمولة:")} {formatCurrency(Number(ord.net_payout))}
                             </div>
                           </div>
 
@@ -314,7 +315,7 @@ export function PosDeliveryAggregatorsModal({ open, onClose, onBack }: PosDelive
                                 onClick={() => updateStatusMutation.mutate({ id: ord.id, status: 'preparing' })}
                                 style={{ backgroundColor: '#1d4ed8', color: '#ffffff', fontSize: '11px' }}
                               >
-                                بدء التحضير
+                                {t('pos.pos_workspace.pos_delivery_aggregators_modal.s22', "بدء التحضير")}
                               </Button>
                             )}
                             {ord.status === 'preparing' && (
@@ -323,7 +324,7 @@ export function PosDeliveryAggregatorsModal({ open, onClose, onBack }: PosDelive
                                 onClick={() => updateStatusMutation.mutate({ id: ord.id, status: 'ready' })}
                                 style={{ backgroundColor: '#047857', color: '#ffffff', fontSize: '11px' }}
                               >
-                                جاهز للتسليم
+                                {t('pos.pos_workspace.pos_delivery_aggregators_modal.s23', "جاهز للتسليم")}
                               </Button>
                             )}
                             {ord.status === 'ready' && (
@@ -332,7 +333,7 @@ export function PosDeliveryAggregatorsModal({ open, onClose, onBack }: PosDelive
                                 onClick={() => updateStatusMutation.mutate({ id: ord.id, status: 'picked_up' })}
                                 style={{ backgroundColor: '#170e5e', color: '#ffffff', fontSize: '11px' }}
                               >
-                                تسليم للسائق
+                                {t('pos.pos_workspace.pos_delivery_aggregators_modal.s24', "تسليم للسائق")}
                               </Button>
                             )}
                           </div>
@@ -352,15 +353,15 @@ export function PosDeliveryAggregatorsModal({ open, onClose, onBack }: PosDelive
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right' }}>
               <thead>
                 <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-                  <th style={{ padding: '8px 12px', fontSize: '12px', fontWeight: 700, color: '#475569' }}>المنصة</th>
+                  <th style={{ padding: '8px 12px', fontSize: '12px', fontWeight: 700, color: '#475569' }}>{t('pos.pos_workspace.pos_delivery_aggregators_modal.s25', "المنصة")}</th>
                   <th style={{ padding: '8px 12px', fontSize: '12px', fontWeight: 700, color: '#475569' }}>
-                    نسبة العمولة الافتراضية
+                    {t('pos.pos_workspace.pos_delivery_aggregators_modal.s26', "نسبة العمولة الافتراضية")}
                   </th>
                   <th style={{ padding: '8px 12px', fontSize: '12px', fontWeight: 700, color: '#475569' }}>
-                    القبول التلقائي للطلبات
+                    {t('pos.pos_workspace.pos_delivery_aggregators_modal.s27', "القبول التلقائي للطلبات")}
                   </th>
-                  <th style={{ padding: '8px 12px', fontSize: '12px', fontWeight: 700, color: '#475569' }}>الحالة</th>
-                  <th style={{ padding: '8px 12px', fontSize: '12px', fontWeight: 700, color: '#475569' }}>إجراء</th>
+                  <th style={{ padding: '8px 12px', fontSize: '12px', fontWeight: 700, color: '#475569' }}>{t('pos.pos_workspace.pos_delivery_aggregators_modal.s28', "الحالة")}</th>
+                  <th style={{ padding: '8px 12px', fontSize: '12px', fontWeight: 700, color: '#475569' }}>{t('pos.pos_workspace.pos_delivery_aggregators_modal.s29', "إجراء")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -373,7 +374,7 @@ export function PosDeliveryAggregatorsModal({ open, onClose, onBack }: PosDelive
                       %{Number(p.commission_rate)}
                     </td>
                     <td style={{ padding: '10px 12px', fontSize: '12px', color: '#047857' }}>
-                      {p.auto_accept_orders ? 'مفعل (إرسال مباشر للمطبخ)' : 'يدوي'}
+                      {p.auto_accept_orders ? t('pos.pos_workspace.pos_delivery_aggregators_modal.s30', "مفعل (إرسال مباشر للمطبخ)") : t('pos.pos_workspace.pos_delivery_aggregators_modal.s31', "يدوي")}
                     </td>
                     <td style={{ padding: '10px 12px', fontSize: '12px' }}>
                       <span
@@ -386,7 +387,7 @@ export function PosDeliveryAggregatorsModal({ open, onClose, onBack }: PosDelive
                           color: p.is_active ? '#15803d' : '#b91c1c',
                         }}
                       >
-                        {p.is_active ? 'نشط' : 'معطل'}
+                        {p.is_active ? t('pos.pos_workspace.pos_delivery_aggregators_modal.s32', "نشط") : t('pos.pos_workspace.pos_delivery_aggregators_modal.s33', "معطل")}
                       </span>
                     </td>
                     <td style={{ padding: '10px 12px' }}>
@@ -396,7 +397,7 @@ export function PosDeliveryAggregatorsModal({ open, onClose, onBack }: PosDelive
                         onClick={() => togglePlatformMutation.mutate({ id: p.id, is_active: !p.is_active })}
                         style={{ fontSize: '11px' }}
                       >
-                        {p.is_active ? 'تعطيل' : 'تفعيل'}
+                        {p.is_active ? t('pos.pos_workspace.pos_delivery_aggregators_modal.s34', "تعطيل") : t('pos.pos_workspace.pos_delivery_aggregators_modal.s35', "تفعيل")}
                       </Button>
                     </td>
                   </tr>
@@ -422,18 +423,17 @@ export function PosDeliveryAggregatorsModal({ open, onClose, onBack }: PosDelive
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <AlertTriangleIcon size={18} />
               <span style={{ fontSize: '13.5px', fontWeight: 700, color: '#0f172a' }}>
-                إيقاف الصنف التلقائي على كافة منصات التوصيل (Instant 86 Dispatcher)
+                {t('pos.pos_workspace.pos_delivery_aggregators_modal.s36', "إيقاف الصنف التلقائي على كافة منصات التوصيل (Instant 86 Dispatcher)")}
               </span>
             </div>
             <p style={{ fontSize: '12px', color: '#64748b', margin: 0 }}>
-              عند نفاد أي صنف في المطبخ، أدخل رقم الصنف (Product ID) وسيتم فوراً إرسال إشعار 86 لمنصات (جاهز، هنقرستيشن،
-              طلبات، كيتا، دليفرو) لمنع الزبائن من طلبه وتفادي غرامات الإلغاء.
+              {t('pos.pos_workspace.pos_delivery_aggregators_modal.s37', "عند نفاد أي صنف في المطبخ، أدخل رقم الصنف (Product ID) وسيتم فوراً إرسال إشعار 86 لمنصات (جاهز، هنقرستيشن،\n              طلبات، كيتا، دليفرو) لمنع الزبائن من طلبه وتفادي غرامات الإلغاء.")}
             </p>
 
             <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
               <input
                 type="number"
-                placeholder="أدخل رقم الصنف (ID)"
+                placeholder={t('pos.pos_workspace.pos_delivery_aggregators_modal.s38', "أدخل رقم الصنف (ID)")}
                 value={searchProductId}
                 onChange={(e) => setSearchProductId(e.target.value)}
                 style={{
@@ -451,7 +451,7 @@ export function PosDeliveryAggregatorsModal({ open, onClose, onBack }: PosDelive
                 disabled={!searchProductId || trigger86Mutation.isPending}
                 style={{ backgroundColor: '#b91c1c', color: '#ffffff', fontSize: '12px' }}
               >
-                إيقاف الصنف فوراً (Out of Stock)
+                {t('pos.pos_workspace.pos_delivery_aggregators_modal.s39', "إيقاف الصنف فوراً (Out of Stock)")}
               </Button>
               <Button
                 variant="secondary"
@@ -461,7 +461,7 @@ export function PosDeliveryAggregatorsModal({ open, onClose, onBack }: PosDelive
                 disabled={!searchProductId || trigger86Mutation.isPending}
                 style={{ fontSize: '12px' }}
               >
-                إعادة تفعيل الصنف (Available)
+                {t('pos.pos_workspace.pos_delivery_aggregators_modal.s40', "إعادة تفعيل الصنف (Available)")}
               </Button>
             </div>
           </div>

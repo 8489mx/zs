@@ -9,6 +9,7 @@ export interface CashFlowLine {
   labelEn: string;
   amount: number;
   note?: string;
+  noteEn?: string;
 }
 
 export interface CashFlowSection {
@@ -211,9 +212,9 @@ export class CashFlowService {
     const operatingLines: CashFlowLine[] = [
       { labelAr: 'صافي الربح المحاسبي للفترة', labelEn: 'Net Accounting Profit', amount: netProfit },
       { labelAr: 'تسوية: مجمع ومصروف إهلاك الأصول (غير نقدي)', labelEn: 'Depreciation & Amortization', amount: depreciationExpense },
-      { labelAr: 'التغير في أرصدة العملاء والمدينين', labelEn: 'Change in Accounts Receivable', amount: changeInReceivables, note: changeInReceivables < 0 ? 'زيادة أرصدة العملاء (تدفق خارج)' : 'تحصيل من العملاء (تدفق داخل)' },
-      { labelAr: 'التغير في رصيد المخزون السلعي', labelEn: 'Change in Inventory', amount: changeInInventory, note: changeInInventory < 0 ? 'مشتريات وتخزين بضاعة (تدفق خارج)' : 'انخفاض رصيد المخزون (تدفق داخل)' },
-      { labelAr: 'التغير في أرصدة الموردين والدائنين', labelEn: 'Change in Accounts Payable', amount: changeInPayables, note: changeInPayables > 0 ? 'تأجيل سداد للموردين (تدفق داخل)' : 'سداد دفعات الموردين (تدفق خارج)' },
+      { labelAr: 'التغير في أرصدة العملاء والمدينين', labelEn: 'Change in Accounts Receivable', amount: changeInReceivables, note: changeInReceivables < 0 ? 'زيادة أرصدة العملاء (تدفق خارج)' : 'تحصيل من العملاء (تدفق داخل)', noteEn: changeInReceivables < 0 ? 'Increase in Receivables (Outflow)' : 'Collection from Customers (Inflow)' },
+      { labelAr: 'التغير في رصيد المخزون السلعي', labelEn: 'Change in Inventory', amount: changeInInventory, note: changeInInventory < 0 ? 'مشتريات وتخزين بضاعة (تدفق خارج)' : 'انخفاض رصيد المخزون (تدفق داخل)', noteEn: changeInInventory < 0 ? 'Purchases & Inventory Storage (Outflow)' : 'Decrease in Inventory (Inflow)' },
+      { labelAr: 'التغير في أرصدة الموردين والدائنين', labelEn: 'Change in Accounts Payable', amount: changeInPayables, note: changeInPayables > 0 ? 'تأجيل سداد للموردين (تدفق داخل)' : 'سداد دفعات الموردين (تدفق خارج)', noteEn: changeInPayables > 0 ? 'Deferred Supplier Payments (Inflow)' : 'Supplier Payments (Outflow)' },
       { labelAr: 'التغير في الضرائب والالتزامات المستحقة', labelEn: 'Change in Accrued Taxes & Liabilities', amount: changeInTaxes },
     ];
     const totalOperating = this.toMoney(operatingLines.reduce((s, l) => s + l.amount, 0));

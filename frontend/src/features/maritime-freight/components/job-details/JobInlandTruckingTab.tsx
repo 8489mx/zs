@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
 import { toast } from '@/shared/components/system-alert';
@@ -13,6 +14,7 @@ interface Props {
 }
 
 export function JobInlandTruckingTab({ job, onUpdated }: Props) {
+  const { t } = useTranslation();
   const { currencySymbol } = useSystemCurrency();
   const [trips, setTrips] = useState<MaritimeInlandTruckingTrip[]>([]);
   const [loading, setLoading] = useState(true);
@@ -108,13 +110,13 @@ export function JobInlandTruckingTab({ job, onUpdated }: Props) {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'scheduled':
-        return <span style={{ padding: '2px 8px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 700, background: '#fef3c7', color: '#b45309' }}>مجدولة ومسندة</span>;
+        return <span style={{ padding: '2px 8px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 700, background: '#fef3c7', color: '#b45309' }}>{t('maritime_freight.job_details.job_inland_trucking_tab.s0', "مجدولة ومسندة")}</span>;
       case 'in_transit':
-        return <span style={{ padding: '2px 8px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 700, background: '#e0f2fe', color: '#0369a1' }}>في الطريق</span>;
+        return <span style={{ padding: '2px 8px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 700, background: '#e0f2fe', color: '#0369a1' }}>{t('maritime_freight.job_details.job_inland_trucking_tab.s1', "في الطريق")}</span>;
       case 'delivered':
-        return <span style={{ padding: '2px 8px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 700, background: '#dcfce7', color: '#15803d' }}>تم التسليم</span>;
+        return <span style={{ padding: '2px 8px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 700, background: '#dcfce7', color: '#15803d' }}>{t('maritime_freight.job_details.job_inland_trucking_tab.s2', "تم التسليم")}</span>;
       case 'cancelled':
-        return <span style={{ padding: '2px 8px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 700, background: '#fee2e2', color: '#b91c1c' }}>ملغاة</span>;
+        return <span style={{ padding: '2px 8px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 700, background: '#fee2e2', color: '#b91c1c' }}>{t('maritime_freight.job_details.job_inland_trucking_tab.s3', "ملغاة")}</span>;
       default:
         return <span style={{ padding: '2px 8px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 700, background: '#f1f5f9', color: '#64748b' }}>{status}</span>;
     }
@@ -160,13 +162,13 @@ export function JobInlandTruckingTab({ job, onUpdated }: Props) {
             </div>
             <div>
               <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#170e5e', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span>رحلات النقل البري والترحيل الداخلي (Inland Haulage / Trucking)</span>
+                <span>{t('maritime_freight.job_details.job_inland_trucking_tab.s4', "رحلات النقل البري والترحيل الداخلي (Inland Haulage / Trucking)")}</span>
                 <span style={{ fontSize: '0.72rem', padding: '2px 8px', borderRadius: '12px', background: '#e2e8f0', color: '#334155' }}>
-                  {trips.length} رحلة
+                  {trips.length} {t('maritime_freight.job_details.job_inland_trucking_tab.s5', "رحلة")}
                 </span>
               </div>
               <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '2px' }}>
-                إدارة أذون التحميل، توجيه الشاحنات وسائقي المقطورات من وإلى الموانئ، وطباعة بوالص النقل البري (CMR / Trucking Waybill)
+                {t('maritime_freight.job_details.job_inland_trucking_tab.s6', "إدارة أذون التحميل، توجيه الشاحنات وسائقي المقطورات من وإلى الموانئ، وطباعة بوالص النقل البري (CMR / Trucking Waybill)")}
               </div>
             </div>
           </div>
@@ -189,22 +191,22 @@ export function JobInlandTruckingTab({ job, onUpdated }: Props) {
             }}
           >
             <AppIcons.PlusCircle size={15} />
-            <span>+ تسجيل رحلة نقل جديدة</span>
+            <span>{t('maritime_freight.job_details.job_inland_trucking_tab.s7', "+ تسجيل رحلة نقل جديدة")}</span>
           </button>
         </div>
 
         {loading ? (
           <div style={{ padding: '28px', textAlign: 'center', color: '#64748b', fontSize: '0.82rem' }}>
-            جاري تحميل رحلات النقل...
+            {t('maritime_freight.job_details.job_inland_trucking_tab.s8', "جاري تحميل رحلات النقل...")}
           </div>
         ) : trips.length === 0 ? (
           <div style={{ padding: '32px 16px', textAlign: 'center', color: '#94a3b8' }}>
             <AppIcons.Truck size={32} style={{ margin: '0 auto 8px', opacity: 0.5 }} />
             <div style={{ fontSize: '0.84rem', fontWeight: 700, color: '#64748b' }}>
-              لا توجد رحلات نقل بري مسجلة لهذه العملية بعد
+              {t('maritime_freight.job_details.job_inland_trucking_tab.s9', "لا توجد رحلات نقل بري مسجلة لهذه العملية بعد")}
             </div>
             <div style={{ fontSize: '0.74rem', color: '#94a3b8', marginTop: '4px' }}>
-              اضغط على "+ تسجيل رحلة نقل جديدة" لجدولة ترحيل الحاوية أو الطرود من الميناء لمستودع العميل.
+              {t('maritime_freight.job_details.job_inland_trucking_tab.s10', "اضغط على \"+ تسجيل رحلة نقل جديدة\" لجدولة ترحيل الحاوية أو الطرود من الميناء لمستودع العميل.")}
             </div>
           </div>
         ) : (
@@ -212,13 +214,13 @@ export function JobInlandTruckingTab({ job, onUpdated }: Props) {
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.78rem' }}>
               <thead>
                 <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', textAlign: 'right' }}>
-                  <th style={{ padding: '10px 14px', fontWeight: 700 }}>رقم الرحلة</th>
-                  <th style={{ padding: '10px 14px', fontWeight: 700 }}>شركة النقل والسائق</th>
-                  <th style={{ padding: '10px 14px', fontWeight: 700 }}>الشاحنة / الحاوية</th>
-                  <th style={{ padding: '10px 14px', fontWeight: 700 }}>المسار (التحميل ⬅️ التفريغ)</th>
-                  <th style={{ padding: '10px 14px', fontWeight: 700 }}>التكلفة / السعر</th>
-                  <th style={{ padding: '10px 14px', fontWeight: 700, textAlign: 'center' }}>الحالة</th>
-                  <th style={{ padding: '10px 14px', fontWeight: 700, textAlign: 'center' }}>الإجراءات</th>
+                  <th style={{ padding: '10px 14px', fontWeight: 700 }}>{t('maritime_freight.job_details.job_inland_trucking_tab.s11', "رقم الرحلة")}</th>
+                  <th style={{ padding: '10px 14px', fontWeight: 700 }}>{t('maritime_freight.job_details.job_inland_trucking_tab.s12', "شركة النقل والسائق")}</th>
+                  <th style={{ padding: '10px 14px', fontWeight: 700 }}>{t('maritime_freight.job_details.job_inland_trucking_tab.s13', "الشاحنة / الحاوية")}</th>
+                  <th style={{ padding: '10px 14px', fontWeight: 700 }}>{t('maritime_freight.job_details.job_inland_trucking_tab.s14', "المسار (التحميل ⬅️ التفريغ)")}</th>
+                  <th style={{ padding: '10px 14px', fontWeight: 700 }}>{t('maritime_freight.job_details.job_inland_trucking_tab.s15', "التكلفة / السعر")}</th>
+                  <th style={{ padding: '10px 14px', fontWeight: 700, textAlign: 'center' }}>{t('maritime_freight.job_details.job_inland_trucking_tab.s16', "الحالة")}</th>
+                  <th style={{ padding: '10px 14px', fontWeight: 700, textAlign: 'center' }}>{t('maritime_freight.job_details.job_inland_trucking_tab.s17', "الإجراءات")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -230,24 +232,24 @@ export function JobInlandTruckingTab({ job, onUpdated }: Props) {
                     <td style={{ padding: '10px 14px', color: '#0f172a' }}>
                       <div style={{ fontWeight: 700 }}>{tr.trucking_company}</div>
                       <div style={{ fontSize: '0.7rem', color: '#64748b' }}>
-                        السائق: {tr.driver_name || 'غير محدد'} {tr.driver_phone ? `(${tr.driver_phone})` : ''}
+                        {t('maritime_freight.job_details.job_inland_trucking_tab.s18', "السائق:")} {tr.driver_name || t('maritime_freight.job_details.job_inland_trucking_tab.s19', "غير محدد")} {tr.driver_phone ? `(${tr.driver_phone})` : ''}
                       </div>
                     </td>
                     <td style={{ padding: '10px 14px', color: '#334155' }}>
-                      <div style={{ fontWeight: 600 }}>لوحة: {tr.truck_plate_number}</div>
+                      <div style={{ fontWeight: 600 }}>{t('maritime_freight.job_details.job_inland_trucking_tab.s20', "لوحة:")} {tr.truck_plate_number}</div>
                       {tr.container_number && (
                         <div style={{ fontSize: '0.7rem', fontFamily: 'monospace', color: '#0369a1' }}>
-                          حاوية: {tr.container_number}
+                          {t('maritime_freight.job_details.job_inland_trucking_tab.s21', "حاوية:")} {tr.container_number}
                         </div>
                       )}
                     </td>
                     <td style={{ padding: '10px 14px', color: '#1e293b' }}>
-                      <div>من: <strong>{tr.pickup_location}</strong></div>
-                      <div>إلى: <strong>{tr.delivery_location}</strong></div>
+                      <div>{t('maritime_freight.job_details.job_inland_trucking_tab.s22', "من:")} <strong>{tr.pickup_location}</strong></div>
+                      <div>{t('maritime_freight.job_details.job_inland_trucking_tab.s23', "إلى:")} <strong>{tr.delivery_location}</strong></div>
                     </td>
                     <td style={{ padding: '10px 14px', color: '#475569' }}>
-                      <div>تكلفة: <strong>{currencySymbol} {Number(tr.cost_amount || 0).toLocaleString()}</strong></div>
-                      <div>مبيع: <strong style={{ color: '#15803d' }}>{currencySymbol} {Number(tr.sell_amount || 0).toLocaleString()}</strong></div>
+                      <div>{t('maritime_freight.job_details.job_inland_trucking_tab.s24', "تكلفة:")} <strong>{currencySymbol} {Number(tr.cost_amount || 0).toLocaleString()}</strong></div>
+                      <div>{t('maritime_freight.job_details.job_inland_trucking_tab.s25', "مبيع:")} <strong style={{ color: '#15803d' }}>{currencySymbol} {Number(tr.sell_amount || 0).toLocaleString()}</strong></div>
                     </td>
                     <td style={{ padding: '10px 14px', textAlign: 'center' }}>
                       {getStatusBadge(tr.status)}
@@ -272,7 +274,7 @@ export function JobInlandTruckingTab({ job, onUpdated }: Props) {
                           }}
                         >
                           <AppIcons.Printer size={13} />
-                          بوليصة نقل
+                          {t('maritime_freight.job_details.job_inland_trucking_tab.s26', "بوليصة نقل")}
                         </button>
                         {tr.status === 'scheduled' && (
                           <button
@@ -289,7 +291,7 @@ export function JobInlandTruckingTab({ job, onUpdated }: Props) {
                               cursor: 'pointer',
                             }}
                           >
-                            بدء النقل
+                            {t('maritime_freight.job_details.job_inland_trucking_tab.s27', "بدء النقل")}
                           </button>
                         )}
                         {tr.status === 'in_transit' && (
@@ -307,7 +309,7 @@ export function JobInlandTruckingTab({ job, onUpdated }: Props) {
                               cursor: 'pointer',
                             }}
                           >
-                            تأكيد التسليم
+                            {t('maritime_freight.job_details.job_inland_trucking_tab.s28', "تأكيد التسليم")}
                           </button>
                         )}
                       </div>
@@ -325,54 +327,54 @@ export function JobInlandTruckingTab({ job, onUpdated }: Props) {
         <StandardDialog
           open={showAddModal}
           onClose={() => setShowAddModal(false)}
-          title="تسجيل وتوجيه رحلة نقل بري (Inland Trucking Trip)"
+          title={t('maritime_freight.job_details.job_inland_trucking_tab.s29', "تسجيل وتوجيه رحلة نقل بري (Inland Trucking Trip)")}
           subtitle={`العملية: ${job.job_number} | العميل: ${job.customer_name}`}
           width="min(600px, 95vw)"
           footerActions={(
             <StandardDialogFooter
               onCancel={() => setShowAddModal(false)}
               onConfirm={handleCreateTrip}
-              confirmText="حفظ وتوجيه الشاحنة"
-              cancelText="إلغاء"
+              confirmText={t('maritime_freight.job_details.job_inland_trucking_tab.s30', "حفظ وتوجيه الشاحنة")}
+              cancelText={t('maritime_freight.job_details.job_inland_trucking_tab.s31', "إلغاء")}
               isSubmitting={isSubmitting}
             />
           )}
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }} dir="rtl">
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              <Field label="شركة النقل / مقاول النقل *">
+              <Field label={t('maritime_freight.job_details.job_inland_trucking_tab.s32', "شركة النقل / مقاول النقل *")}>
                 <input
                   type="text"
                   value={form.truckingCompany}
                   onChange={(e) => setForm({ ...form, truckingCompany: e.target.value })}
-                  placeholder="مثال: شركة مصر الدولية للنقل والتخليص"
+                  placeholder={t('maritime_freight.job_details.job_inland_trucking_tab.s33', "مثال: شركة مصر الدولية للنقل والتخليص")}
                   style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.8rem' }}
                 />
               </Field>
 
-              <Field label="رقم لوحة الشاحنة / المقطورة *">
+              <Field label={t('maritime_freight.job_details.job_inland_trucking_tab.s34', "رقم لوحة الشاحنة / المقطورة *")}>
                 <input
                   type="text"
                   value={form.truckPlateNumber}
                   onChange={(e) => setForm({ ...form, truckPlateNumber: e.target.value })}
-                  placeholder="مثال: ط س ر 1928"
+                  placeholder={t('maritime_freight.job_details.job_inland_trucking_tab.s35', "مثال: ط س ر 1928")}
                   style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.8rem' }}
                 />
               </Field>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              <Field label="اسم السائق">
+              <Field label={t('maritime_freight.job_details.job_inland_trucking_tab.s36', "اسم السائق")}>
                 <input
                   type="text"
                   value={form.driverName}
                   onChange={(e) => setForm({ ...form, driverName: e.target.value })}
-                  placeholder="اسم السائق المسند إليه التحميل"
+                  placeholder={t('maritime_freight.job_details.job_inland_trucking_tab.s37', "اسم السائق المسند إليه التحميل")}
                   style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.8rem' }}
                 />
               </Field>
 
-              <Field label="رقم هاتف السائق">
+              <Field label={t('maritime_freight.job_details.job_inland_trucking_tab.s38', "رقم هاتف السائق")}>
                 <input
                   type="text"
                   value={form.driverPhone}
@@ -384,7 +386,7 @@ export function JobInlandTruckingTab({ job, onUpdated }: Props) {
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              <Field label="موقع التحميل (Pickup Location) *">
+              <Field label={t('maritime_freight.job_details.job_inland_trucking_tab.s39', "موقع التحميل (Pickup Location) *")}>
                 <input
                   type="text"
                   value={form.pickupLocation}
@@ -393,7 +395,7 @@ export function JobInlandTruckingTab({ job, onUpdated }: Props) {
                 />
               </Field>
 
-              <Field label="موقع التفريغ (Delivery Location) *">
+              <Field label={t('maritime_freight.job_details.job_inland_trucking_tab.s40', "موقع التفريغ (Delivery Location) *")}>
                 <input
                   type="text"
                   value={form.deliveryLocation}
@@ -404,7 +406,7 @@ export function JobInlandTruckingTab({ job, onUpdated }: Props) {
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              <Field label="رقم الحاوية المحمولة">
+              <Field label={t('maritime_freight.job_details.job_inland_trucking_tab.s41', "رقم الحاوية المحمولة")}>
                 <input
                   type="text"
                   value={form.containerNumber}
@@ -414,7 +416,7 @@ export function JobInlandTruckingTab({ job, onUpdated }: Props) {
                 />
               </Field>
 
-              <Field label="تاريخ وتوقيت التحميل">
+              <Field label={t('maritime_freight.job_details.job_inland_trucking_tab.s42', "تاريخ وتوقيت التحميل")}>
                 <input
                   type="datetime-local"
                   value={form.scheduledPickupTime}
@@ -425,27 +427,27 @@ export function JobInlandTruckingTab({ job, onUpdated }: Props) {
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
-              <Field label="تكلفة النقل (شراء)">
+              <Field label={t('maritime_freight.job_details.job_inland_trucking_tab.s43', "تكلفة النقل (شراء)")}>
                 <input
                   type="number"
                   value={form.costAmount}
                   onChange={(e) => setForm({ ...form, costAmount: e.target.value })}
-                  placeholder="مثال: 4500"
+                  placeholder={t('maritime_freight.job_details.job_inland_trucking_tab.s44', "مثال: 4500")}
                   style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.8rem' }}
                 />
               </Field>
 
-              <Field label="سعر البيع للعميل">
+              <Field label={t('maritime_freight.job_details.job_inland_trucking_tab.s45', "سعر البيع للعميل")}>
                 <input
                   type="number"
                   value={form.sellAmount}
                   onChange={(e) => setForm({ ...form, sellAmount: e.target.value })}
-                  placeholder="مثال: 6000"
+                  placeholder={t('maritime_freight.job_details.job_inland_trucking_tab.s46', "مثال: 6000")}
                   style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.8rem' }}
                 />
               </Field>
 
-              <Field label="العملة">
+              <Field label={t('maritime_freight.job_details.job_inland_trucking_tab.s47', "العملة")}>
                 <input
                   type="text"
                   value={form.currency}
@@ -455,12 +457,12 @@ export function JobInlandTruckingTab({ job, onUpdated }: Props) {
               </Field>
             </div>
 
-            <Field label="ملاحظات وتوجيهات السائق">
+            <Field label={t('maritime_freight.job_details.job_inland_trucking_tab.s48', "ملاحظات وتوجيهات السائق")}>
               <textarea
                 value={form.notes}
                 onChange={(e) => setForm({ ...form, notes: e.target.value })}
                 rows={2}
-                placeholder="توجيهات الدخول لبوابات الميناء، تعليمات الوزن، رقم إذن الصرف..."
+                placeholder={t('maritime_freight.job_details.job_inland_trucking_tab.s49', "توجيهات الدخول لبوابات الميناء، تعليمات الوزن، رقم إذن الصرف...")}
                 style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.8rem', resize: 'none' }}
               />
             </Field>

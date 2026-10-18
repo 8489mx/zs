@@ -1,7 +1,9 @@
+import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { useFirstRunSetupFlow } from '@/features/settings/hooks/useFirstRunSetupFlow';
 
 export function FirstRunSetupChecklist() {
+  const { t } = useTranslation();
   const flow = useFirstRunSetupFlow();
 
   if (!flow.enabled || flow.isLoading) return null;
@@ -21,15 +23,15 @@ export function FirstRunSetupChecklist() {
             </svg>
           </div>
           <div>
-            <h2 className="setup-premium-title">جهز نظامك في دقائق</h2>
+            <h2 className="setup-premium-title">{t('shared.system.first_run_setup_checklist.s0', "جهز نظامك في دقائق")}</h2>
             <p className="setup-premium-subtitle">
-              أكمل الإعدادات الأساسية لتفعيل حسابك وظهور التقارير بشكل صحيح.
+              {t('shared.system.first_run_setup_checklist.s1', "أكمل الإعدادات الأساسية لتفعيل حسابك وظهور التقارير بشكل صحيح.")}
             </p>
           </div>
         </div>
         <div className="setup-premium-progress-area">
           <div className="setup-progress-meta">
-            <span>نسبة الإنجاز</span>
+            <span>{t('shared.system.first_run_setup_checklist.s2', "نسبة الإنجاز")}</span>
             <strong>{progressPercentage}%</strong>
           </div>
           <div className="setup-progress-track tone-surface">
@@ -62,7 +64,7 @@ export function FirstRunSetupChecklist() {
                 </div>
                 <div className="setup-step-action">
                   {isDone ? (
-                    <span className="setup-status-done">مكتمل</span>
+                    <span className="setup-status-done">{t('shared.system.first_run_setup_checklist.s3', "مكتمل")}</span>
                   ) : isActive ? (
                     <Link className="button button-primary setup-btn-pulse" to={step.to}>{step.ctaLabel}</Link>
                   ) : (

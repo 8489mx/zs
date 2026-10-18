@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useCallback } from 'react';
 import { StandardDialog } from '@/shared/components/StandardDialog';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
@@ -18,6 +19,7 @@ interface EquipmentFuelLogsModalProps {
 }
 
 export function EquipmentFuelLogsModal({ open, onClose, projectId, projectName }: EquipmentFuelLogsModalProps) {
+  const { t } = useTranslation();
   const [fuelLogs, setFuelLogs] = useState<ContractingEquipmentFuelLog[]>([]);
   const [boqItems, setBoqItems] = useState<ContractingBoqItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -134,8 +136,8 @@ export function EquipmentFuelLogsModal({ open, onClose, projectId, projectName }
     <StandardDialog
       open={open}
       onClose={onClose}
-      title="سجل استهلاك الوقود وساعات تشغيل المعدات (Equipment Fuel & Meter Logs)"
-      subtitle={`متابعة عدادات الديزل وساعات تشغيل الآليات الثقيلة لمشروع: ${projectName || 'المشروع المحدد'}`}
+      title={t('contracting.equipment_fuel_logs_modal.s0', "سجل استهلاك الوقود وساعات تشغيل المعدات (Equipment Fuel & Meter Logs)")}
+      subtitle={`متابعة عدادات الديزل وساعات تشغيل الآليات الثقيلة لمشروع: ${projectName || t('contracting.equipment_fuel_logs_modal.s1', "المشروع المحدد")}`}
       width="1180px"
       compact
       minHeight="min(580px, 86vh)"
@@ -161,7 +163,7 @@ export function EquipmentFuelLogsModal({ open, onClose, projectId, projectName }
             }}
           >
             <AppIcons.Layers size={14} />
-            سجل التشغيل والوقود ({fuelLogs.length})
+            {t('contracting.equipment_fuel_logs_modal.s2', "سجل التشغيل والوقود (")}{fuelLogs.length})
           </button>
           <button
             type="button"
@@ -181,23 +183,23 @@ export function EquipmentFuelLogsModal({ open, onClose, projectId, projectName }
             }}
           >
             <AppIcons.PlusCircle size={14} />
-            تسجيل يومية تشغيل وقود
+            {t('contracting.equipment_fuel_logs_modal.s3', "تسجيل يومية تشغيل وقود")}
           </button>
         </div>
 
         {/* Mini KPI summary */}
         <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
           <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', padding: '4px 10px', borderRadius: '8px', fontSize: '11.5px' }}>
-            ساعات التشغيل: <strong style={{ color: '#0f172a' }}>{totalHours.toFixed(1)} ساعة</strong>
+            {t('contracting.equipment_fuel_logs_modal.s4', "ساعات التشغيل:")} <strong style={{ color: '#0f172a' }}>{totalHours.toFixed(1)} {t('contracting.equipment_fuel_logs_modal.s5', "ساعة")}</strong>
           </div>
           <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', padding: '4px 10px', borderRadius: '8px', fontSize: '11.5px', color: '#1e40af' }}>
-            إجمالي الوقود: <strong>{totalLiters.toLocaleString()} لتر</strong>
+            {t('contracting.equipment_fuel_logs_modal.s6', "إجمالي الوقود:")} <strong>{totalLiters.toLocaleString()} {t('contracting.equipment_fuel_logs_modal.s7', "لتر")}</strong>
           </div>
           <div style={{ background: '#fef3c7', border: '1px solid #fde68a', padding: '4px 10px', borderRadius: '8px', fontSize: '11.5px', color: '#b45309' }}>
-            تكلفة الوقود: <strong>{formatCurrency(totalFuelCost)}</strong>
+            {t('contracting.equipment_fuel_logs_modal.s8', "تكلفة الوقود:")} <strong>{formatCurrency(totalFuelCost)}</strong>
           </div>
           <div style={{ background: '#dcfce7', border: '1px solid #bbf7d0', padding: '4px 10px', borderRadius: '8px', fontSize: '11.5px', color: '#15803d' }}>
-            معدل الاستهلاك: <strong>{avgConsumption} لتر/ساعة</strong>
+            {t('contracting.equipment_fuel_logs_modal.s9', "معدل الاستهلاك:")} <strong>{avgConsumption} {t('contracting.equipment_fuel_logs_modal.s10', "لتر/ساعة")}</strong>
           </div>
         </div>
       </div>
@@ -205,24 +207,24 @@ export function EquipmentFuelLogsModal({ open, onClose, projectId, projectName }
       {loading ? (
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '300px', gap: '12px' }}>
           <div className="spinner" style={{ width: '32px', height: '32px', border: '3px solid #e2e8f0', borderTopColor: '#170e5e', borderRadius: '50%' }} />
-          <div style={{ color: '#64748b', fontSize: '13px' }}>جاري تحميل سجلات وقود وتشغيل الآليات...</div>
+          <div style={{ color: '#64748b', fontSize: '13px' }}>{t('contracting.equipment_fuel_logs_modal.s11', "جاري تحميل سجلات وقود وتشغيل الآليات...")}</div>
         </div>
       ) : activeTab === 'create' ? (
         /* Create Form */
         <form onSubmit={handleCreateLog} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 1fr', gap: '14px' }}>
-            <Field label="اسم / كود المعدة أو الآلية *">
+            <Field label={t('contracting.equipment_fuel_logs_modal.s12', "اسم / كود المعدة أو الآلية *")}>
               <input
                 type="text"
                 value={equipmentName}
                 onChange={(e) => setEquipmentName(e.target.value)}
-                placeholder="مثال: حفار كوماتسو 200 - لودر كاتربيلر 966"
+                placeholder={t('contracting.equipment_fuel_logs_modal.s13', "مثال: حفار كوماتسو 200 - لودر كاتربيلر 966")}
                 style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '13px' }}
                 required
               />
             </Field>
 
-            <Field label="تاريخ التشغيل والتزويد *">
+            <Field label={t('contracting.equipment_fuel_logs_modal.s14', "تاريخ التشغيل والتزويد *")}>
               <input
                 type="date"
                 value={logDate}
@@ -232,12 +234,12 @@ export function EquipmentFuelLogsModal({ open, onClose, projectId, projectName }
               />
             </Field>
 
-            <Field label="اسم السائق / المشغل">
+            <Field label={t('contracting.equipment_fuel_logs_modal.s15', "اسم السائق / المشغل")}>
               <input
                 type="text"
                 value={driverOperatorName}
                 onChange={(e) => setDriverOperatorName(e.target.value)}
-                placeholder="اسم السائق أو الفني المسؤول"
+                placeholder={t('contracting.equipment_fuel_logs_modal.s16', "اسم السائق أو الفني المسؤول")}
                 style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '13px' }}
               />
             </Field>
@@ -245,7 +247,7 @@ export function EquipmentFuelLogsModal({ open, onClose, projectId, projectName }
 
           {/* Meter & Hours Card */}
           <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '14px', alignItems: 'center' }}>
-            <Field label="قراءة العداد الابتدائية (ساعة)">
+            <Field label={t('contracting.equipment_fuel_logs_modal.s17', "قراءة العداد الابتدائية (ساعة)")}>
               <input
                 type="number"
                 step="0.1"
@@ -257,7 +259,7 @@ export function EquipmentFuelLogsModal({ open, onClose, projectId, projectName }
               />
             </Field>
 
-            <Field label="قراءة العداد النهائية (ساعة)">
+            <Field label={t('contracting.equipment_fuel_logs_modal.s18', "قراءة العداد النهائية (ساعة)")}>
               <input
                 type="number"
                 step="0.1"
@@ -270,16 +272,16 @@ export function EquipmentFuelLogsModal({ open, onClose, projectId, projectName }
             </Field>
 
             <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-              <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 600 }}>إجمالي ساعات التشغيل المحسوبة:</span>
+              <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 600 }}>{t('contracting.equipment_fuel_logs_modal.s19', "إجمالي ساعات التشغيل المحسوبة:")}</span>
               <span style={{ fontSize: '17px', fontWeight: 800, color: '#170e5e', marginTop: '4px' }}>
-                {calculatedOperatingHours} ساعة
+                {calculatedOperatingHours} {t('contracting.equipment_fuel_logs_modal.s20', "ساعة")}
               </span>
             </div>
           </div>
 
           {/* Fuel liters & Cost Card */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '14px' }}>
-            <Field label="كمية الوقود المعبأة (لتر)">
+            <Field label={t('contracting.equipment_fuel_logs_modal.s21', "كمية الوقود المعبأة (لتر)")}>
               <input
                 type="number"
                 step="0.1"
@@ -291,7 +293,7 @@ export function EquipmentFuelLogsModal({ open, onClose, projectId, projectName }
               />
             </Field>
 
-            <Field label="سعر لتر السولار / البنزين (ج.م)">
+            <Field label={t('contracting.equipment_fuel_logs_modal.s22', "سعر لتر السولار / البنزين (ج.م)")}>
               <input
                 type="number"
                 step="0.01"
@@ -304,7 +306,7 @@ export function EquipmentFuelLogsModal({ open, onClose, projectId, projectName }
             </Field>
 
             <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-              <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 600 }}>إجمالي تكلفة الوقود المحسوبة:</span>
+              <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 600 }}>{t('contracting.equipment_fuel_logs_modal.s23', "إجمالي تكلفة الوقود المحسوبة:")}</span>
               <span style={{ fontSize: '17px', fontWeight: 800, color: '#b91c1c', marginTop: '4px' }}>
                 {formatCurrency(calculatedFuelCost)}
               </span>
@@ -312,27 +314,27 @@ export function EquipmentFuelLogsModal({ open, onClose, projectId, projectName }
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
-            <Field label="ربط ببند المقايسة (لتوزيع التكلفة المباشرة للنشاط)">
+            <Field label={t('contracting.equipment_fuel_logs_modal.s24', "ربط ببند المقايسة (لتوزيع التكلفة المباشرة للنشاط)")}>
               <CustomSelect
                 value={boqItemId}
                 onChange={(val) => setBoqItemId(String(val))}
                 options={[
-                  { value: '', label: '-- بدون ربط (تكاليف عامة للموقع) --' },
+                  { value: '', label: t('contracting.equipment_fuel_logs_modal.s25', "-- بدون ربط (تكاليف عامة للموقع) --") },
                   ...boqItems.map((b) => ({
                     value: b.id,
                     label: `${b.itemCode || ''} - ${b.description}`,
                   })),
                 ]}
-                placeholder="-- اختر بند المقايسة --"
+                placeholder={t('contracting.equipment_fuel_logs_modal.s26', "-- اختر بند المقايسة --")}
               />
             </Field>
 
-            <Field label="ملاحظات وسجل الصيانة الدورية">
+            <Field label={t('contracting.equipment_fuel_logs_modal.s27', "ملاحظات وسجل الصيانة الدورية")}>
               <input
                 type="text"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                placeholder="تغيير زيت، تبديل فلاتر، صيانة تشحيم، أو موقع العمل..."
+                placeholder={t('contracting.equipment_fuel_logs_modal.s28', "تغيير زيت، تبديل فلاتر، صيانة تشحيم، أو موقع العمل...")}
                 style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '13px' }}
               />
             </Field>
@@ -352,7 +354,7 @@ export function EquipmentFuelLogsModal({ open, onClose, projectId, projectName }
                 cursor: 'pointer',
               }}
             >
-              إلغاء
+              {t('contracting.equipment_fuel_logs_modal.s29', "إلغاء")}
             </button>
             <button
               type="submit"
@@ -371,7 +373,7 @@ export function EquipmentFuelLogsModal({ open, onClose, projectId, projectName }
                 gap: '6px',
               }}
             >
-              {isSubmitting ? 'جاري الحفظ...' : 'حفظ يومية المعدة والوقود'}
+              {isSubmitting ? t('contracting.equipment_fuel_logs_modal.s30', "جاري الحفظ...") : t('contracting.equipment_fuel_logs_modal.s31', "حفظ يومية المعدة والوقود")}
             </button>
           </div>
         </form>
@@ -384,28 +386,28 @@ export function EquipmentFuelLogsModal({ open, onClose, projectId, projectName }
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="بحث باسم المعدة أو السائق..."
+              placeholder={t('contracting.equipment_fuel_logs_modal.s32', "بحث باسم المعدة أو السائق...")}
               style={{ width: '280px', padding: '6px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '12px' }}
             />
           </div>
 
           {filteredLogs.length === 0 ? (
             <div style={{ padding: '40px', textAlign: 'center', color: '#64748b', background: '#f8fafc', borderRadius: '10px' }}>
-              لا توجد سجلات وقود وتشغيل مسجلة للمعدات في هذا المشروع.
+              {t('contracting.equipment_fuel_logs_modal.s33', "لا توجد سجلات وقود وتشغيل مسجلة للمعدات في هذا المشروع.")}
             </div>
           ) : (
             <div style={{ overflowX: 'auto', maxHeight: '340px', border: '1px solid #e2e8f0', borderRadius: '10px' }} className="thin-scrollbar">
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12.5px', textAlign: 'right' }}>
                 <thead style={{ background: '#f8fafc', position: 'sticky', top: 0, zIndex: 1 }}>
                   <tr>
-                    <th style={{ padding: '10px 12px', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>المعدة / الآلية</th>
-                    <th style={{ padding: '10px 12px', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>التاريخ</th>
-                    <th style={{ padding: '10px 12px', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>العداد (من - إلى)</th>
-                    <th style={{ padding: '10px 12px', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>ساعات التشغيل</th>
-                    <th style={{ padding: '10px 12px', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>الوقود (لتر)</th>
-                    <th style={{ padding: '10px 12px', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>التكلفة</th>
-                    <th style={{ padding: '10px 12px', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>المشغل / السائق</th>
-                    <th style={{ padding: '10px 12px', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>بند المقايسة</th>
+                    <th style={{ padding: '10px 12px', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>{t('contracting.equipment_fuel_logs_modal.s34', "المعدة / الآلية")}</th>
+                    <th style={{ padding: '10px 12px', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>{t('contracting.equipment_fuel_logs_modal.s35', "التاريخ")}</th>
+                    <th style={{ padding: '10px 12px', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>{t('contracting.equipment_fuel_logs_modal.s36', "العداد (من - إلى)")}</th>
+                    <th style={{ padding: '10px 12px', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>{t('contracting.equipment_fuel_logs_modal.s37', "ساعات التشغيل")}</th>
+                    <th style={{ padding: '10px 12px', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>{t('contracting.equipment_fuel_logs_modal.s38', "الوقود (لتر)")}</th>
+                    <th style={{ padding: '10px 12px', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>{t('contracting.equipment_fuel_logs_modal.s39', "التكلفة")}</th>
+                    <th style={{ padding: '10px 12px', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>{t('contracting.equipment_fuel_logs_modal.s40', "المشغل / السائق")}</th>
+                    <th style={{ padding: '10px 12px', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>{t('contracting.equipment_fuel_logs_modal.s41', "بند المقايسة")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -417,17 +419,17 @@ export function EquipmentFuelLogsModal({ open, onClose, projectId, projectName }
                         {item.startMeterHours || 0} - {item.endMeterHours || 0}
                       </td>
                       <td style={{ padding: '10px 12px', fontWeight: 700, color: '#0f172a' }}>
-                        {item.operatingHours || 0} س
+                        {item.operatingHours || 0} {t('contracting.equipment_fuel_logs_modal.s42', "س")}
                       </td>
                       <td style={{ padding: '10px 12px', fontWeight: 600, color: '#1e40af' }}>
-                        {item.fuelLitersAdded || 0} لتر
+                        {item.fuelLitersAdded || 0} {t('contracting.equipment_fuel_logs_modal.s43', "لتر")}
                       </td>
                       <td style={{ padding: '10px 12px', fontWeight: 700, color: '#b91c1c' }}>
                         {formatCurrency(item.fuelCostTotal)}
                       </td>
                       <td style={{ padding: '10px 12px', color: '#475569' }}>{item.driverOperatorName || '—'}</td>
                       <td style={{ padding: '10px 12px', color: '#64748b', fontSize: '11.5px' }}>
-                        {item.boqItemCode ? `بند ${item.boqItemCode}` : 'تكلفة عامة'}
+                        {item.boqItemCode ? `بند ${item.boqItemCode}` : t('contracting.equipment_fuel_logs_modal.s44', "تكلفة عامة")}
                       </td>
                     </tr>
                   ))}

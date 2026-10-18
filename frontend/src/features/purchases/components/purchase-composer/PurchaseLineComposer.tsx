@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/shared/ui/button';
 import { Field } from '@/shared/ui/field';
 import type { Product } from '@/types/domain';
@@ -38,6 +39,7 @@ export function PurchaseLineComposer({
   onAddItem: () => void;
   onOpenQuickCreate: () => void;
 }) {
+  const { t } = useTranslation();
   const hasSearch = Boolean(productSearch.trim());
   const hasSelection = Boolean(lineProductId);
 
@@ -45,24 +47,24 @@ export function PurchaseLineComposer({
     <div className="list-stack purchase-line-composer" style={{ gridColumn: '1 / -1' }}>
       <div className="section-title" style={{ marginBottom: 0 }}>
         <div className="section-heading-copy">
-          <h3>إضافة صنف للفاتورة</h3>
-          <p className="section-description">ابحث بالاسم أو الباركود من نفس الحقل، أو أنشئ صنفًا جديدًا بدون مغادرة فاتورة الشراء.</p>
+          <h3>{t('purchases.purchase_composer.purchase_line_composer.s0', "إضافة صنف للفاتورة")}</h3>
+          <p className="section-description">{t('purchases.purchase_composer.purchase_line_composer.s1', "ابحث بالاسم أو الباركود من نفس الحقل، أو أنشئ صنفًا جديدًا بدون مغادرة فاتورة الشراء.")}</p>
         </div>
         <div className="actions compact-actions">
-          <Button type="button" variant="secondary" onClick={onOpenQuickCreate} disabled={isPending}>إضافة صنف جديد</Button>
+          <Button type="button" variant="secondary" onClick={onOpenQuickCreate} disabled={isPending}>{t('purchases.purchase_composer.purchase_line_composer.s2', "إضافة صنف جديد")}</Button>
         </div>
       </div>
       <div className="toolbar-grid">
-        <Field label="بحث واختيار الصنف">
+        <Field label={t('purchases.purchase_composer.purchase_line_composer.s3', "بحث واختيار الصنف")}>
           <div className="list-stack" style={{ gap: 8 }}>
             <input
               value={productSearch}
               onChange={(event) => onProductSearchChange(event.target.value)}
-              placeholder="اكتب اسم الصنف أو اضرب الباركود"
+              placeholder={t('purchases.purchase_composer.purchase_line_composer.s4', "اكتب اسم الصنف أو اضرب الباركود")}
               disabled={isPending}
               data-autofocus
             />
-            {hasSelection ? <div className="muted small">تم اختيار: <strong>{selectedProductName}</strong></div> : null}
+            {hasSelection ? <div className="muted small">{t('purchases.purchase_composer.purchase_line_composer.s5', "تم اختيار:")} <strong>{selectedProductName}</strong></div> : null}
             {hasSearch ? (
               products.length ? (
                 <div className="stack-card" style={{ maxHeight: 220, overflowY: 'auto', padding: 8 }}>
@@ -82,26 +84,26 @@ export function PurchaseLineComposer({
                             <strong>{product.name}</strong>
                             {renderProductMeta(product)}
                           </span>
-                          {isSelected ? <span className="nav-pill">محدد</span> : null}
+                          {isSelected ? <span className="nav-pill">{t('purchases.purchase_composer.purchase_line_composer.s6', "محدد")}</span> : null}
                         </button>
                       );
                     })}
                   </div>
                 </div>
               ) : (
-                <div className="muted small">لا يوجد صنف مطابق. أضف صنفًا جديدًا من الزرار بالأعلى.</div>
+                <div className="muted small">{t('purchases.purchase_composer.purchase_line_composer.s7', "لا يوجد صنف مطابق. أضف صنفًا جديدًا من الزرار بالأعلى.")}</div>
               )
             ) : (
-              <div className="muted small">ابدأ بكتابة اسم الصنف أو اضرب الباركود ليظهر لك الاختيار مباشرة.</div>
+              <div className="muted small">{t('purchases.purchase_composer.purchase_line_composer.s8', "ابدأ بكتابة اسم الصنف أو اضرب الباركود ليظهر لك الاختيار مباشرة.")}</div>
             )}
           </div>
         </Field>
-        <Field label="الكمية"><input type="number" min="0.001" step="0.001" value={lineQty} onChange={(event) => onQtyChange(Number(event.target.value || 0))} disabled={isPending} /></Field>
-        <Field label="التكلفة"><input type="number" min="0" step="0.01" value={lineCost} onChange={(event) => onCostChange(Number(event.target.value || 0))} disabled={isPending} /></Field>
+        <Field label={t('purchases.purchase_composer.purchase_line_composer.s9', "الكمية")}><input type="number" min="0.001" step="0.001" value={lineQty} onChange={(event) => onQtyChange(Number(event.target.value || 0))} disabled={isPending} /></Field>
+        <Field label={t('purchases.purchase_composer.purchase_line_composer.s10', "التكلفة")}><input type="number" min="0" step="0.01" value={lineCost} onChange={(event) => onCostChange(Number(event.target.value || 0))} disabled={isPending} /></Field>
       </div>
       {lineError ? <div className="error-box">{lineError}</div> : null}
       <div className="actions form-subactions">
-        <Button type="button" variant="secondary" onClick={onAddItem} disabled={isPending}>إضافة الصنف</Button>
+        <Button type="button" variant="secondary" onClick={onAddItem} disabled={isPending}>{t('purchases.purchase_composer.purchase_line_composer.s11', "إضافة الصنف")}</Button>
       </div>
     </div>
   );

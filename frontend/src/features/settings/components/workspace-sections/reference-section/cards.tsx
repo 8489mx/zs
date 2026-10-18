@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import type { Dispatch, SetStateAction } from 'react';
 import { QueryFeedback } from '@/shared/components/query-feedback';
 import { Button } from '@/shared/ui/button';
@@ -31,6 +32,8 @@ export function BranchReferenceCard(props: {
   onShowAddBranch?: () => void;
   setupMode?: boolean;
 }) {
+  const { t, i18n } = useTranslation();
+  const isEn = i18n.language === 'en';
   const { branches, branchList, filteredCount, branchSearch, branchFilter, setBranchSearch, setBranchFilter, resetBranchFilters, copyVisibleBranches: _copyVisibleBranches, branchesQuery, canManageSettings, setEditingBranch, setDeleteConfirm, branchActionBusy, setupMode, onShowAddBranch } = props;
 
   const user = useAuthStore((s) => s.user);
@@ -41,16 +44,16 @@ export function BranchReferenceCard(props: {
   const isBranchLimitReached = !hasMultiBranch && branches.length >= 1;
 
   const branchTitle = vertical === 'maritime'
-    ? `المقرات والمكاتب الملاحية (${branches.length})`
+    ? (isEn ? `Shipping Offices & HQs (${branches.length})` : `المقرات والمكاتب الملاحية (${branches.length})`)
     : vertical === 'contracting'
-    ? `المقرات الإدارية ومواقع العمل (${branches.length})`
-    : `الفروع (${branches.length})`;
+    ? (isEn ? `Project Sites & Administrative HQs (${branches.length})` : `المقرات الإدارية ومواقع العمل (${branches.length})`)
+    : (isEn ? `Branches (${branches.length})` : `الفروع (${branches.length})`);
 
   const addBranchBtnLabel = vertical === 'maritime'
-    ? '+ مقر / مكتب'
+    ? (isEn ? '+ Shipping Office' : '+ مقر / مكتب')
     : vertical === 'contracting'
-    ? '+ موقع عمل'
-    : '+ فرع';
+    ? (isEn ? '+ Project Site' : '+ موقع عمل')
+    : (isEn ? '+ Branch' : '+ فرع');
 
   return (
     <section className="document-prototype-section settings-reference-card">
@@ -73,9 +76,9 @@ export function BranchReferenceCard(props: {
                   gap: '3px',
                   whiteSpace: 'nowrap',
                 }}
-                title="وصلت للحد الأقصى في باقتك (فرع واحد)."
+                title={t('settings.workspace_sections.reference_section.cards.s0', "وصلت للحد الأقصى في باقتك (فرع واحد).")}
               >
-                حد الباقة (1)
+                {t('settings.workspace_sections.reference_section.cards.s1', "حد الباقة (1)")}
               </span>
             ) : (
               <Button variant="primary" onClick={onShowAddBranch} className="section-header-action-btn">
@@ -84,10 +87,10 @@ export function BranchReferenceCard(props: {
             )
           )}
           <Button variant="secondary" className="section-header-action-btn" onClick={() => downloadEntityListCsv('branches.csv', ['name', 'code'], branchList.map((branch) => [branch.name || '', branch.code || '']))}>
-            تصدير
+            {t('settings.workspace_sections.reference_section.cards.s2', "تصدير")}
           </Button>
-          <Button variant="secondary" className="section-header-action-btn" onClick={() => printEntityList(branchTitle, ['الاسم', 'الكود'], branchList.map((branch) => [branch.name || '', branch.code || '']))}>
-            طباعة
+          <Button variant="secondary" className="section-header-action-btn" onClick={() => printEntityList(branchTitle, [t('settings.workspace_sections.reference_section.cards.s3', "الاسم"), t('settings.workspace_sections.reference_section.cards.s4', "الكود")], branchList.map((branch) => [branch.name || '', branch.code || '']))}>
+            {t('settings.workspace_sections.reference_section.cards.s5', "طباعة")}
           </Button>
         </div>
       </div>
@@ -96,23 +99,23 @@ export function BranchReferenceCard(props: {
         isError={branchesQuery.isError}
         error={branchesQuery.error}
         isEmpty={!branches.length}
-        loadingText={vertical === 'maritime' ? 'جاري تحميل المقرات والمكاتب الملاحية...' : vertical === 'contracting' ? 'جاري تحميل مواقع العمل...' : 'جاري تحميل الفروع الحالية...'}
-        emptyTitle={vertical === 'maritime' ? 'لم تتم إضافة مقرات ملاحية بعد' : vertical === 'contracting' ? 'لم تتم إضافة مواقع عمل بعد' : 'لم تتم إضافة فروع بعد'}
-        emptyHint={vertical === 'maritime' ? 'أضف مقراً ملاحياً جديداً للبدء.' : vertical === 'contracting' ? 'أضف موقع عمل جديداً للبدء.' : 'أضف فرعًا جديدًا للبدء.'}
+        loadingText={vertical === 'maritime' ? t('settings.workspace_sections.reference_section.cards.s6', "جاري تحميل المقرات والمكاتب الملاحية...") : vertical === 'contracting' ? t('settings.workspace_sections.reference_section.cards.s7', "جاري تحميل مواقع العمل...") : t('settings.workspace_sections.reference_section.cards.s8', "جاري تحميل الفروع الحالية...")}
+        emptyTitle={vertical === 'maritime' ? t('settings.workspace_sections.reference_section.cards.s9', "لم تتم إضافة مقرات ملاحية بعد") : vertical === 'contracting' ? t('settings.workspace_sections.reference_section.cards.s10', "لم تتم إضافة مواقع عمل بعد") : t('settings.workspace_sections.reference_section.cards.s11', "لم تتم إضافة فروع بعد")}
+        emptyHint={vertical === 'maritime' ? t('settings.workspace_sections.reference_section.cards.s12', "أضف مقراً ملاحياً جديداً للبدء.") : vertical === 'contracting' ? t('settings.workspace_sections.reference_section.cards.s13', "أضف موقع عمل جديداً للبدء.") : t('settings.workspace_sections.reference_section.cards.s14', "أضف فرعًا جديدًا للبدء.")}
       >
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
         {/* Compact Search & Filter Strip */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', background: '#f8fafc', padding: '6px 10px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
           <input
             value={branchSearch}
-            placeholder={vertical === 'maritime' ? 'بحث باسم المقر الملاحي أو الكود...' : vertical === 'contracting' ? 'بحث باسم موقع العمل أو الكود...' : 'بحث باسم الفرع أو الكود...'}
+            placeholder={vertical === 'maritime' ? t('settings.workspace_sections.reference_section.cards.s15', "بحث باسم المقر الملاحي أو الكود...") : vertical === 'contracting' ? t('settings.workspace_sections.reference_section.cards.s16', "بحث باسم موقع العمل أو الكود...") : t('settings.workspace_sections.reference_section.cards.s17', "بحث باسم الفرع أو الكود...")}
             onChange={(e) => setBranchSearch(e.target.value)}
             style={{ flex: 1, minWidth: '140px', padding: '5px 10px', fontSize: '0.8rem', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', outline: 'none' }}
           />
 
           <div style={{ display: 'flex', gap: '4px', background: '#e2e8f0', padding: '2px', borderRadius: '6px' }}>
             {(['all', 'with-code', 'without-code'] as const).map((mode) => {
-              const label = mode === 'all' ? 'الكل' : mode === 'with-code' ? 'بكود' : 'بدون كود';
+              const label = mode === 'all' ? t('settings.workspace_sections.reference_section.cards.s18', "الكل") : mode === 'with-code' ? t('settings.workspace_sections.reference_section.cards.s19', "بكود") : t('settings.workspace_sections.reference_section.cards.s20', "بدون كود");
               const active = branchFilter === mode;
               return (
                 <button
@@ -146,7 +149,7 @@ export function BranchReferenceCard(props: {
               onClick={resetBranchFilters}
               style={{ fontSize: '0.72rem', color: '#64748b', background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}
             >
-              إعادة ضبط
+              {t('settings.workspace_sections.reference_section.cards.s21', "إعادة ضبط")}
             </button>
           )}
         </div>
@@ -156,14 +159,14 @@ export function BranchReferenceCard(props: {
           {filteredCount === 0 ? (
             <div style={{ padding: '20px 14px', textAlign: 'center', background: '#f8fafc', borderRadius: '8px', border: '1px dashed #cbd5e1' }}>
               <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                {vertical === 'maritime' ? 'لا توجد مقرات ملاحية مطابقة للبحث أو الفلتر' : vertical === 'contracting' ? 'لا توجد مواقع عمل مطابقة للبحث أو الفلتر' : 'لا توجد فروع مطابقة للبحث أو الفلتر'}
+                {vertical === 'maritime' ? t('settings.workspace_sections.reference_section.cards.s22', "لا توجد مقرات ملاحية مطابقة للبحث أو الفلتر") : vertical === 'contracting' ? t('settings.workspace_sections.reference_section.cards.s23', "لا توجد مواقع عمل مطابقة للبحث أو الفلتر") : t('settings.workspace_sections.reference_section.cards.s24', "لا توجد فروع مطابقة للبحث أو الفلتر")}
               </div>
               <button
                 type="button"
                 onClick={resetBranchFilters}
                 style={{ fontSize: '0.76rem', color: '#0369a1', background: 'transparent', border: 'none', cursor: 'pointer', fontWeight: 600, textDecoration: 'underline' }}
               >
-                {vertical === 'maritime' ? 'إظهار كافة المقرات' : vertical === 'contracting' ? 'إظهار كافة المواقع' : 'إظهار كل الفروع'}
+                {vertical === 'maritime' ? t('settings.workspace_sections.reference_section.cards.s25', "إظهار كافة المقرات") : vertical === 'contracting' ? t('settings.workspace_sections.reference_section.cards.s26', "إظهار كافة المواقع") : t('settings.workspace_sections.reference_section.cards.s27', "إظهار كل الفروع")}
               </button>
             </div>
           ) : (
@@ -181,7 +184,7 @@ export function BranchReferenceCard(props: {
                     allowExternalSalesStock: currentBranch.allowExternalSalesStock || false,
                   }
                 })}
-                onDelete={(currentBranch) => setDeleteConfirm({ kind: 'branch', id: currentBranch.id, name: currentBranch.name || 'هذا الفرع' })}
+                onDelete={(currentBranch) => setDeleteConfirm({ kind: 'branch', id: currentBranch.id, name: currentBranch.name || t('settings.workspace_sections.reference_section.cards.s28', "هذا الفرع") })}
                 canManageSettings={canManageSettings}
                 isBusy={branchActionBusy}
                 setupMode={setupMode}
@@ -216,6 +219,8 @@ export function LocationReferenceCard(props: {
   onUpdateLocation: (locationId: string, values: { name: string; code: string; branchId: string }) => Promise<void>;
   onShowAddLocation?: () => void;
 }) {
+  const { t, i18n } = useTranslation();
+  const isEn = i18n.language === 'en';
   const { locations, locationList, filteredCount, locationSearch, locationFilter, setLocationSearch, setLocationFilter, resetLocationFilters, locationsQuery, canManageSettings, setEditingLocation, setDeleteConfirm, locationActionBusy, onShowAddLocation } = props;
 
   const user = useAuthStore((s) => s.user);
@@ -226,16 +231,16 @@ export function LocationReferenceCard(props: {
   const isLocationLimitReached = !hasMultiWarehouse && locations.length >= 1;
 
   const locationTitle = vertical === 'maritime'
-    ? `الموانئ ومحطات ومستودعات الحاويات (${locations.length})`
+    ? (isEn ? `Ports, Terminals & Container Yards (${locations.length})` : `الموانئ ومحطات ومستودعات الحاويات (${locations.length})`)
     : vertical === 'contracting'
-    ? `مخازن التشوين الميدانية (${locations.length})`
-    : `المخازن والمواقع (${locations.length})`;
+    ? (isEn ? `Field Storage Warehouses (${locations.length})` : `مخازن التشوين الميدانية (${locations.length})`)
+    : (isEn ? `Warehouses & Locations (${locations.length})` : `المخازن والمواقع (${locations.length})`);
 
   const addLocationBtnLabel = vertical === 'maritime'
-    ? '+ ميناء / موقع'
+    ? (isEn ? '+ Port / Yard' : '+ ميناء / موقع')
     : vertical === 'contracting'
-    ? '+ مخزن تشوين'
-    : '+ مخزن';
+    ? (isEn ? '+ Storage Yard' : '+ مخزن تشوين')
+    : (isEn ? '+ Warehouse' : '+ مخزن');
 
   return (
     <section className="document-prototype-section settings-reference-card">
@@ -258,9 +263,9 @@ export function LocationReferenceCard(props: {
                   gap: '3px',
                   whiteSpace: 'nowrap',
                 }}
-                title="وصلت للحد الأقصى في باقتك (مخزن واحد)."
+                title={t('settings.workspace_sections.reference_section.cards.s29', "وصلت للحد الأقصى في باقتك (مخزن واحد).")}
               >
-                حد الباقة (1)
+                {t('settings.workspace_sections.reference_section.cards.s30', "حد الباقة (1)")}
               </span>
             ) : (
               <Button variant="primary" onClick={onShowAddLocation} className="section-header-action-btn">
@@ -269,10 +274,10 @@ export function LocationReferenceCard(props: {
             )
           )}
           <Button variant="secondary" className="section-header-action-btn" onClick={() => downloadEntityListCsv('locations.csv', ['name', 'code', 'branch'], locationList.map((location) => [location.name || '', location.code || '', location.branchName || '']))}>
-            تصدير
+            {t('settings.workspace_sections.reference_section.cards.s31', "تصدير")}
           </Button>
-          <Button variant="secondary" className="section-header-action-btn" onClick={() => printEntityList(locationTitle, ['الاسم', 'الكود', vertical === 'maritime' ? 'المكتب المشرف' : 'الفرع'], locationList.map((location) => [location.name || '', location.code || '', location.branchName || '']))}>
-            طباعة
+          <Button variant="secondary" className="section-header-action-btn" onClick={() => printEntityList(locationTitle, [t('settings.workspace_sections.reference_section.cards.s32', "الاسم"), t('settings.workspace_sections.reference_section.cards.s33', "الكود"), vertical === 'maritime' ? t('settings.workspace_sections.reference_section.cards.s34', "المكتب المشرف") : t('settings.workspace_sections.reference_section.cards.s35', "الفرع")], locationList.map((location) => [location.name || '', location.code || '', location.branchName || '']))}>
+            {t('settings.workspace_sections.reference_section.cards.s36', "طباعة")}
           </Button>
         </div>
       </div>
@@ -281,16 +286,16 @@ export function LocationReferenceCard(props: {
         isError={locationsQuery.isError}
         error={locationsQuery.error}
         isEmpty={!locations.length}
-        loadingText={vertical === 'maritime' ? 'جاري تحميل الموانئ والمحطات...' : vertical === 'contracting' ? 'جاري تحميل مواقع التشوين...' : 'جاري تحميل المخازن...'}
-        emptyTitle={vertical === 'maritime' ? 'لم تتم إضافة موانئ أو محطات بعد' : vertical === 'contracting' ? 'لم تتم إضافة مواقع تشوين بعد' : 'لم تتم إضافة مخازن بعد'}
-        emptyHint={vertical === 'maritime' ? 'أضف ميناء أو محطة حاويات جديدة للبدء.' : vertical === 'contracting' ? 'أضف مخزن تشوين جديداً للبدء.' : 'أضف مخزنًا جديدًا للبدء.'}
+        loadingText={vertical === 'maritime' ? t('settings.workspace_sections.reference_section.cards.s37', "جاري تحميل الموانئ والمحطات...") : vertical === 'contracting' ? t('settings.workspace_sections.reference_section.cards.s38', "جاري تحميل مواقع التشوين...") : t('settings.workspace_sections.reference_section.cards.s39', "جاري تحميل المخازن...")}
+        emptyTitle={vertical === 'maritime' ? t('settings.workspace_sections.reference_section.cards.s40', "لم تتم إضافة موانئ أو محطات بعد") : vertical === 'contracting' ? t('settings.workspace_sections.reference_section.cards.s41', "لم تتم إضافة مواقع تشوين بعد") : t('settings.workspace_sections.reference_section.cards.s42', "لم تتم إضافة مخازن بعد")}
+        emptyHint={vertical === 'maritime' ? t('settings.workspace_sections.reference_section.cards.s43', "أضف ميناء أو محطة حاويات جديدة للبدء.") : vertical === 'contracting' ? t('settings.workspace_sections.reference_section.cards.s44', "أضف مخزن تشوين جديداً للبدء.") : t('settings.workspace_sections.reference_section.cards.s45', "أضف مخزنًا جديدًا للبدء.")}
       >
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
         {/* Compact Search & Filter Strip */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', background: '#f8fafc', padding: '6px 10px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
           <input
             value={locationSearch}
-            placeholder={vertical === 'maritime' ? 'بحث باسم الميناء أو المحطة أو الكود...' : vertical === 'contracting' ? 'بحث باسم مخزن التشوين أو الكود...' : 'بحث باسم المخزن أو الكود أو الفرع...'}
+            placeholder={vertical === 'maritime' ? t('settings.workspace_sections.reference_section.cards.s46', "بحث باسم الميناء أو المحطة أو الكود...") : vertical === 'contracting' ? t('settings.workspace_sections.reference_section.cards.s47', "بحث باسم مخزن التشوين أو الكود...") : t('settings.workspace_sections.reference_section.cards.s48', "بحث باسم المخزن أو الكود أو الفرع...")}
             onChange={(e) => setLocationSearch(e.target.value)}
             style={{ flex: 1, minWidth: '140px', padding: '5px 10px', fontSize: '0.8rem', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', outline: 'none' }}
           />
@@ -298,10 +303,10 @@ export function LocationReferenceCard(props: {
           <div style={{ display: 'flex', gap: '4px', background: '#e2e8f0', padding: '2px', borderRadius: '6px' }}>
             {(['all', 'with-branch', 'without-branch'] as const).map((mode) => {
               const label = mode === 'all'
-                ? 'الكل'
+                ? t('settings.workspace_sections.reference_section.cards.s49', "الكل")
                 : mode === 'with-branch'
-                ? (vertical === 'maritime' ? 'بمكتب' : vertical === 'contracting' ? 'بمقر' : 'بفرع')
-                : (vertical === 'maritime' ? 'بدون مكتب' : vertical === 'contracting' ? 'بدون مقر' : 'بدون فرع');
+                ? (vertical === 'maritime' ? t('settings.workspace_sections.reference_section.cards.s50', "بمكتب") : vertical === 'contracting' ? t('settings.workspace_sections.reference_section.cards.s51', "بمقر") : t('settings.workspace_sections.reference_section.cards.s52', "بفرع"))
+                : (vertical === 'maritime' ? t('settings.workspace_sections.reference_section.cards.s53', "بدون مكتب") : vertical === 'contracting' ? t('settings.workspace_sections.reference_section.cards.s54', "بدون مقر") : t('settings.workspace_sections.reference_section.cards.s55', "بدون فرع"));
               const active = locationFilter === mode;
               return (
                 <button
@@ -335,7 +340,7 @@ export function LocationReferenceCard(props: {
               onClick={resetLocationFilters}
               style={{ fontSize: '0.72rem', color: '#64748b', background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}
             >
-              إعادة ضبط
+              {t('settings.workspace_sections.reference_section.cards.s56', "إعادة ضبط")}
             </button>
           )}
         </div>
@@ -345,14 +350,14 @@ export function LocationReferenceCard(props: {
           {filteredCount === 0 ? (
             <div style={{ padding: '20px 14px', textAlign: 'center', background: '#f8fafc', borderRadius: '8px', border: '1px dashed #cbd5e1' }}>
               <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                {vertical === 'maritime' ? 'لا توجد موانئ أو محطات مطابقة للبحث أو الفلتر' : vertical === 'contracting' ? 'لا توجد مواقع تشوين مطابقة للبحث أو الفلتر' : 'لا توجد مخازن مطابقة للبحث أو الفلتر'}
+                {vertical === 'maritime' ? t('settings.workspace_sections.reference_section.cards.s57', "لا توجد موانئ أو محطات مطابقة للبحث أو الفلتر") : vertical === 'contracting' ? t('settings.workspace_sections.reference_section.cards.s58', "لا توجد مواقع تشوين مطابقة للبحث أو الفلتر") : t('settings.workspace_sections.reference_section.cards.s59', "لا توجد مخازن مطابقة للبحث أو الفلتر")}
               </div>
               <button
                 type="button"
                 onClick={resetLocationFilters}
                 style={{ fontSize: '0.76rem', color: '#0369a1', background: 'transparent', border: 'none', cursor: 'pointer', fontWeight: 600, textDecoration: 'underline' }}
               >
-                {vertical === 'maritime' ? 'إظهار كافة الموانئ والمحطات' : vertical === 'contracting' ? 'إظهار كافة مواقع التشوين' : 'إظهار كل المخازن'}
+                {vertical === 'maritime' ? t('settings.workspace_sections.reference_section.cards.s60', "إظهار كافة الموانئ والمحطات") : vertical === 'contracting' ? t('settings.workspace_sections.reference_section.cards.s61', "إظهار كافة مواقع التشوين") : t('settings.workspace_sections.reference_section.cards.s62', "إظهار كل المخازن")}
               </button>
             </div>
           ) : (
@@ -369,7 +374,7 @@ export function LocationReferenceCard(props: {
                     locationType: currentLocation.locationType || 'internal_warehouse',
                   }
                 })}
-                onDelete={(currentLocation) => setDeleteConfirm({ kind: 'location', id: currentLocation.id, name: currentLocation.name || (vertical === 'maritime' ? 'هذا الموقع / الميناء' : vertical === 'contracting' ? 'هذا المخزن التشويني' : 'هذا المخزن') })}
+                onDelete={(currentLocation) => setDeleteConfirm({ kind: 'location', id: currentLocation.id, name: currentLocation.name || (vertical === 'maritime' ? t('settings.workspace_sections.reference_section.cards.s63', "هذا الموقع / الميناء") : vertical === 'contracting' ? t('settings.workspace_sections.reference_section.cards.s64', "هذا المخزن التشويني") : t('settings.workspace_sections.reference_section.cards.s65', "هذا المخزن")) })}
                 canManageSettings={canManageSettings}
                 isBusy={locationActionBusy}
               />

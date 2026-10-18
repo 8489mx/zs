@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
@@ -12,6 +13,7 @@ interface WhatsAppMarketingModalProps {
 }
 
 export function WhatsAppMarketingModal({ open, onClose }: WhatsAppMarketingModalProps) {
+  const { t } = useTranslation();
   const tenant = useAuthStore((state) => state.tenant);
   const businessName = tenant?.businessName || 'متجرنا';
   const [days, setDays] = useState(30);
@@ -48,8 +50,8 @@ export function WhatsAppMarketingModal({ open, onClose }: WhatsAppMarketingModal
     <StandardDialog
       open={open}
       onClose={onClose}
-      title="حملات الواتساب وإعادة استهداف العملاء المنقطعين"
-      subtitle="تحديد العملاء الذين لم يشتروا منذ فترة، وإرسال عروض ترويجية مخصصة لإعادتهم للشراء"
+      title={t('customers.whats_app_marketing_modal.s0', "حملات الواتساب وإعادة استهداف العملاء المنقطعين")}
+      subtitle={t('customers.whats_app_marketing_modal.s1', "تحديد العملاء الذين لم يشتروا منذ فترة، وإرسال عروض ترويجية مخصصة لإعادتهم للشراء")}
       width="min(880px, 95vw)"
       minHeight="auto"
       footerActions={(
@@ -61,12 +63,12 @@ export function WhatsAppMarketingModal({ open, onClose }: WhatsAppMarketingModal
             style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.8125rem' }}
           >
             {copiedAll ? <AppIcons.Check size={14} color="#16a34a" /> : <AppIcons.Copy size={14} />}
-            <span>{copiedAll ? 'تم نسخ جميع الأرقام بنجاح!' : 'نسخ أرقام الهواتف للحملات'}</span>
+            <span>{copiedAll ? t('customers.whats_app_marketing_modal.s2', "تم نسخ جميع الأرقام بنجاح!") : t('customers.whats_app_marketing_modal.s3', "نسخ أرقام الهواتف للحملات")}</span>
           </Button>
 
           <StandardDialogFooter
             onCancel={onClose}
-            cancelText="إغلاق"
+            cancelText={t('customers.whats_app_marketing_modal.s4', "إغلاق")}
           />
         </div>
       )}
@@ -77,14 +79,14 @@ export function WhatsAppMarketingModal({ open, onClose }: WhatsAppMarketingModal
         <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 14px', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
             <AppIcons.Filter size={15} />
-            <span>تصفية العملاء المنقطعين منذ:</span>
+            <span>{t('customers.whats_app_marketing_modal.s5', "تصفية العملاء المنقطعين منذ:")}</span>
           </div>
 
           {[
-            { label: '15 يوماً', val: 15 },
-            { label: '30 يوماً (شهر)', val: 30 },
-            { label: '60 يوماً (شهرين)', val: 60 },
-            { label: '90 يوماً (3 أشهر)', val: 90 },
+            { label: t('customers.whats_app_marketing_modal.s6', "15 يوماً"), val: 15 },
+            { label: t('customers.whats_app_marketing_modal.s7', "30 يوماً (شهر)"), val: 30 },
+            { label: t('customers.whats_app_marketing_modal.s8', "60 يوماً (شهرين)"), val: 60 },
+            { label: t('customers.whats_app_marketing_modal.s9', "90 يوماً (3 أشهر)"), val: 90 },
           ].map((d) => (
             <button
               key={d.val}
@@ -121,7 +123,7 @@ export function WhatsAppMarketingModal({ open, onClose }: WhatsAppMarketingModal
             gap: '4px',
           }}>
             <AppIcons.Users size={14} />
-            <span>العدد المستهدف: {customers.length} عميل</span>
+            <span>{t('customers.whats_app_marketing_modal.s10', "العدد المستهدف:")} {customers.length} {t('customers.whats_app_marketing_modal.s11', "عميل")}</span>
           </span>
         </div>
 
@@ -130,9 +132,9 @@ export function WhatsAppMarketingModal({ open, onClose }: WhatsAppMarketingModal
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.84rem', fontWeight: 700, color: '#170e5e' }}>
               <AppIcons.FileText size={15} />
-              <span>نص رسالة العرض الترويجي (تتغير تلقائياً باسم كل عميل):</span>
+              <span>{t('customers.whats_app_marketing_modal.s12', "نص رسالة العرض الترويجي (تتغير تلقائياً باسم كل عميل):")}</span>
             </div>
-            <span style={{ fontSize: '0.72rem', color: '#64748b' }}>استخدم {'{name}'} لوضع اسم العميل تلقائياً</span>
+            <span style={{ fontSize: '0.72rem', color: '#64748b' }}>{t('customers.whats_app_marketing_modal.s13', "استخدم")} {'{name}'} {t('customers.whats_app_marketing_modal.s14', "لوضع اسم العميل تلقائياً")}</span>
           </div>
           <textarea
             rows={2}
@@ -156,37 +158,37 @@ export function WhatsAppMarketingModal({ open, onClose }: WhatsAppMarketingModal
         <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden' }}>
           <div style={{ padding: '8px 12px', background: '#f8fafc', borderBottom: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', fontWeight: 700, color: '#334155' }}>
             <AppIcons.Users size={14} />
-            <span>قائمة العملاء المستهدفين للإرسال المباشر</span>
+            <span>{t('customers.whats_app_marketing_modal.s15', "قائمة العملاء المستهدفين للإرسال المباشر")}</span>
           </div>
           <div style={{ maxHeight: '280px', overflowY: 'auto' }}>
             {isLoading ? (
-              <div style={{ padding: '28px', textAlign: 'center', color: '#64748b', fontSize: '0.8125rem' }}>جاري جلب العملاء المستهدفين...</div>
+              <div style={{ padding: '28px', textAlign: 'center', color: '#64748b', fontSize: '0.8125rem' }}>{t('customers.whats_app_marketing_modal.s16', "جاري جلب العملاء المستهدفين...")}</div>
             ) : customers.length === 0 ? (
               <div style={{ padding: '28px', textAlign: 'center', color: '#166534', fontWeight: 700, fontSize: '0.84rem' }}>
-                ممتاز! لا يوجد عملاء منقطعون عن الشراء خلال هذه الفترة.
+                {t('customers.whats_app_marketing_modal.s17', "ممتاز! لا يوجد عملاء منقطعون عن الشراء خلال هذه الفترة.")}
               </div>
             ) : (
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
                 <thead style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', textAlign: 'right', position: 'sticky', top: 0, zIndex: 1 }}>
                   <tr>
-                    <th style={{ padding: '8px 12px' }}>اسم العميل</th>
-                    <th style={{ padding: '8px 12px' }}>رقم الهاتف</th>
-                    <th style={{ padding: '8px 12px' }}>آخر عملية شراء</th>
-                    <th style={{ padding: '8px 12px' }}>نقاط الولاء</th>
-                    <th style={{ padding: '8px 12px', textAlign: 'center' }}>إجراء المراسلة</th>
+                    <th style={{ padding: '8px 12px' }}>{t('customers.whats_app_marketing_modal.s18', "اسم العميل")}</th>
+                    <th style={{ padding: '8px 12px' }}>{t('customers.whats_app_marketing_modal.s19', "رقم الهاتف")}</th>
+                    <th style={{ padding: '8px 12px' }}>{t('customers.whats_app_marketing_modal.s20', "آخر عملية شراء")}</th>
+                    <th style={{ padding: '8px 12px' }}>{t('customers.whats_app_marketing_modal.s21', "نقاط الولاء")}</th>
+                    <th style={{ padding: '8px 12px', textAlign: 'center' }}>{t('customers.whats_app_marketing_modal.s22', "إجراء المراسلة")}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {customers.map((c) => (
                     <tr key={c.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                       <td style={{ padding: '8px 12px', fontWeight: 700 }}>{c.name}</td>
-                      <td style={{ padding: '8px 12px', color: '#64748b', direction: 'ltr', textAlign: 'right' }}>{c.phone || 'بدون هاتف'}</td>
+                      <td style={{ padding: '8px 12px', color: '#64748b', direction: 'ltr', textAlign: 'right' }}>{c.phone || t('customers.whats_app_marketing_modal.s23', "بدون هاتف")}</td>
                       <td style={{ padding: '8px 12px', color: '#475569' }}>
-                        {c.lastSaleAt ? new Date(c.lastSaleAt).toLocaleDateString('ar-EG') : 'لم يشترِ بعد'}
+                        {c.lastSaleAt ? new Date(c.lastSaleAt).toLocaleDateString('ar-EG') : t('customers.whats_app_marketing_modal.s24', "لم يشترِ بعد")}
                       </td>
                       <td style={{ padding: '8px 12px' }}>
                         <span style={{ background: '#eff6ff', color: '#1d4ed8', fontWeight: 800, padding: '2px 8px', borderRadius: '4px', fontSize: '0.74rem' }}>
-                          {c.loyaltyPoints} نقطة
+                          {c.loyaltyPoints} {t('customers.whats_app_marketing_modal.s25', "نقطة")}
                         </span>
                       </td>
                       <td style={{ padding: '8px 12px', textAlign: 'center' }}>
@@ -209,10 +211,10 @@ export function WhatsAppMarketingModal({ open, onClose }: WhatsAppMarketingModal
                             }}
                           >
                             <AppIcons.Send size={12} />
-                            <span>إرسال عبر واتساب</span>
+                            <span>{t('customers.whats_app_marketing_modal.s26', "إرسال عبر واتساب")}</span>
                           </button>
                         ) : (
-                          <span style={{ color: '#94a3b8', fontSize: '0.74rem' }}>لا يوجد رقم</span>
+                          <span style={{ color: '#94a3b8', fontSize: '0.74rem' }}>{t('customers.whats_app_marketing_modal.s27', "لا يوجد رقم")}</span>
                         )}
                       </td>
                     </tr>

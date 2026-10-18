@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useEffect, useState } from 'react';
 import { Button } from '@/shared/ui/button';
 import { BellIcon, XIcon } from '@/shared/components/icons/AppIcons';
@@ -13,6 +14,7 @@ export function PosOnlineOrderFloatingAlert({
   onOpenOrders,
   onDismiss,
 }: PosOnlineOrderFloatingAlertProps) {
+  const { t } = useTranslation();
   const [visible, setVisible] = useState(true);
 
   useEffect(() => {
@@ -67,7 +69,7 @@ export function PosOnlineOrderFloatingAlert({
       <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <strong style={{ fontSize: '0.92rem', color: '#0f172a', fontWeight: 800 }}>
-            طلب متجر إلكتروني جديد!
+            {t('pos.pos_workspace.pos_online_order_floating_alert.s0', "طلب متجر إلكتروني جديد!")}
           </strong>
           <span
             style={{
@@ -79,11 +81,11 @@ export function PosOnlineOrderFloatingAlert({
               padding: '1px 7px',
             }}
           >
-            {orderCount} {orderCount === 1 ? 'طلب' : 'طلبات'}
+            {orderCount} {orderCount === 1 ? t('pos.pos_workspace.pos_online_order_floating_alert.s1', "طلب") : t('pos.pos_workspace.pos_online_order_floating_alert.s2', "طلبات")}
           </span>
         </div>
         <span style={{ fontSize: '0.78rem', color: '#64748b' }}>
-          تم استلام طلب جديد من المتجر الإلكتروني بانتظار التأكيد أو التنزيل بالسلة.
+          {t('pos.pos_workspace.pos_online_order_floating_alert.s3', "تم استلام طلب جديد من المتجر الإلكتروني بانتظار التأكيد أو التنزيل بالسلة.")}
         </span>
       </div>
 
@@ -104,7 +106,7 @@ export function PosOnlineOrderFloatingAlert({
             fontWeight: 700,
           }}
         >
-          عرض الطلبات
+          {t('pos.pos_workspace.pos_online_order_floating_alert.s4', "عرض الطلبات")}
         </Button>
         <button
           type="button"
@@ -124,7 +126,7 @@ export function PosOnlineOrderFloatingAlert({
             alignItems: 'center',
             justifyContent: 'center',
           }}
-          title="إغلاق التنبيه"
+          title={t('pos.pos_workspace.pos_online_order_floating_alert.s5', "إغلاق التنبيه")}
         >
           <XIcon size={14} />
         </button>

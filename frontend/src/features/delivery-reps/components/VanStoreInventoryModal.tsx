@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React, { useState } from 'react';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { Button } from '@/shared/ui/button';
@@ -18,6 +19,7 @@ export const VanStoreInventoryModal: React.FC<VanStoreInventoryModalProps> = ({
   onClose,
   onSuccess,
 }) => {
+  const { t } = useTranslation();
   if (!customer) return null;
 
   const [items, setItems] = useState<Array<{ productName: string; qtyOnShelf: number; expiryDate?: string }>>([]);
@@ -87,12 +89,12 @@ export const VanStoreInventoryModal: React.FC<VanStoreInventoryModalProps> = ({
       onClose={onClose}
       title={`جرد رصيد رف العميل (اختياري)`}
       subtitle={`المحل: ${customer.customerName}`}
-      badge="جرد الرف"
+      badge={t('delivery_reps.van_store_inventory_modal.s0', "جرد الرف")}
       width="min(540px, 96vw)"
       footerActions={
         <StandardDialogFooter
           onClose={onClose}
-          cancelText="تخطي وإغلاق"
+          cancelText={t('delivery_reps.van_store_inventory_modal.s1', "تخطي وإغلاق")}
           extraActions={
             <Button
               variant="primary"
@@ -106,7 +108,7 @@ export const VanStoreInventoryModal: React.FC<VanStoreInventoryModalProps> = ({
                 height: '38px',
               }}
             >
-              {isSubmitting ? 'جاري الحفظ...' : `حفظ جرد الرف (${items.length} أصناف)`}
+              {isSubmitting ? t('delivery_reps.van_store_inventory_modal.s2', "جاري الحفظ...") : `حفظ جرد الرف (${items.length} أصناف)`}
             </Button>
           }
         />
@@ -125,7 +127,7 @@ export const VanStoreInventoryModal: React.FC<VanStoreInventoryModalProps> = ({
             lineHeight: 1.5,
           }}
         >
-          هذه الخطوة <b>اختيارية تماماً</b> لتسهيل حركة المندوب في الشارع. يمكنك تسجيل كميات الأصناف المتبقية لدى التاجر لمعرفة معدل سحب البضاعة، أو الضغط على <b>«تخطي وإغلاق»</b> للانتقال للبيع مباشرة.
+          {t('delivery_reps.van_store_inventory_modal.s3', "هذه الخطوة")} <b>{t('delivery_reps.van_store_inventory_modal.s4', "اختيارية تماماً")}</b> {t('delivery_reps.van_store_inventory_modal.s5', "لتسهيل حركة المندوب في الشارع. يمكنك تسجيل كميات الأصناف المتبقية لدى التاجر لمعرفة معدل سحب البضاعة، أو الضغط على")} <b>{t('delivery_reps.van_store_inventory_modal.s6', "«تخطي وإغلاق»")}</b> {t('delivery_reps.van_store_inventory_modal.s7', "للانتقال للبيع مباشرة.")}
         </div>
 
         {/* Add Item Form */}
@@ -141,16 +143,16 @@ export const VanStoreInventoryModal: React.FC<VanStoreInventoryModalProps> = ({
           }}
         >
           <div style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a' }}>
-            إضافة صنف مجرود على الرف:
+            {t('delivery_reps.van_store_inventory_modal.s8', "إضافة صنف مجرود على الرف:")}
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 140px', gap: '8px' }}>
             <div>
               <label style={{ fontSize: '11px', color: '#64748b', display: 'block', marginBottom: '4px' }}>
-                اسم الصنف أو الباركود
+                {t('delivery_reps.van_store_inventory_modal.s9', "اسم الصنف أو الباركود")}
               </label>
               <input
                 type="text"
-                placeholder="أدخل اسم الصنف..."
+                placeholder={t('delivery_reps.van_store_inventory_modal.s10', "أدخل اسم الصنف...")}
                 value={productNameInput}
                 onChange={(e) => setProductNameInput(e.target.value)}
                 style={{
@@ -166,7 +168,7 @@ export const VanStoreInventoryModal: React.FC<VanStoreInventoryModalProps> = ({
             </div>
             <div>
               <label style={{ fontSize: '11px', color: '#64748b', display: 'block', marginBottom: '4px' }}>
-                الكمية على الرف
+                {t('delivery_reps.van_store_inventory_modal.s11', "الكمية على الرف")}
               </label>
               {/* Strict RTL Stepper: [+] (qty) [-] */}
               <div dir="rtl" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -224,7 +226,7 @@ export const VanStoreInventoryModal: React.FC<VanStoreInventoryModalProps> = ({
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
             <div style={{ flex: 1 }}>
               <label style={{ fontSize: '11px', color: '#64748b', display: 'block', marginBottom: '4px' }}>
-                تاريخ الصلاحية (اختياري)
+                {t('delivery_reps.van_store_inventory_modal.s12', "تاريخ الصلاحية (اختياري)")}
               </label>
               <input
                 type="date"
@@ -253,7 +255,7 @@ export const VanStoreInventoryModal: React.FC<VanStoreInventoryModalProps> = ({
               }}
             >
               <PlusCircleIcon size={14} style={{ marginInlineEnd: '4px' }} />
-              إضافة للقائمة
+              {t('delivery_reps.van_store_inventory_modal.s13', "إضافة للقائمة")}
             </Button>
           </div>
         </div>
@@ -262,15 +264,15 @@ export const VanStoreInventoryModal: React.FC<VanStoreInventoryModalProps> = ({
         <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
           {items.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '16px', color: '#94a3b8', fontSize: '12px', border: '1px dashed #cbd5e1', borderRadius: '8px' }}>
-              لم تتم إضافة أي أصناف بعد
+              {t('delivery_reps.van_store_inventory_modal.s14', "لم تتم إضافة أي أصناف بعد")}
             </div>
           ) : (
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
               <thead>
                 <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>
-                  <th style={{ padding: '8px 10px', textAlign: 'start' }}>الصنف</th>
-                  <th style={{ padding: '8px 10px', textAlign: 'center' }}>الكمية</th>
-                  <th style={{ padding: '8px 10px', textAlign: 'center' }}>الصلاحية</th>
+                  <th style={{ padding: '8px 10px', textAlign: 'start' }}>{t('delivery_reps.van_store_inventory_modal.s15', "الصنف")}</th>
+                  <th style={{ padding: '8px 10px', textAlign: 'center' }}>{t('delivery_reps.van_store_inventory_modal.s16', "الكمية")}</th>
+                  <th style={{ padding: '8px 10px', textAlign: 'center' }}>{t('delivery_reps.van_store_inventory_modal.s17', "الصلاحية")}</th>
                   <th style={{ padding: '8px 10px', width: '36px' }}></th>
                 </tr>
               </thead>

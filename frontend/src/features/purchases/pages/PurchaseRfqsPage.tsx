@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useMemo, type FC } from 'react';
 import { PageHeader } from '@/shared/components/page-header';
 import { StatsGrid } from '@/shared/components/stats-grid';
@@ -17,6 +18,7 @@ import { RfqComparisonMatrixModal } from '../components/rfq/RfqComparisonMatrixM
 import { SubmitSupplierBidModal } from '../components/rfq/SubmitSupplierBidModal';
 
 export const PurchaseRfqsPage: FC = () => {
+  const { t } = useTranslation();
   const [rfqs, setRfqs] = useState<PurchaseRfq[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -229,16 +231,16 @@ export const PurchaseRfqsPage: FC = () => {
     <div className="page-stack page-shell purchase-rfqs-workspace">
       <div className="document-prototype-column" style={{ paddingBottom: '32px' }}>
         <PageHeader
-          title="طلبات عروض أسعار الموردين (Vendor RFQs)"
-          description="دورة استدراج عروض الأسعار من الموردين، المفاضلة التلقائية، واعتماد العرض الفائز بنقرة واحدة لأمر شراء (PO)"
-          badge={<span className="nav-pill">المشتريات والتوريد</span>}
+          title={t('purchases.purchase_rfqs_page.s0', "طلبات عروض أسعار الموردين (Vendor RFQs)")}
+          description={t('purchases.purchase_rfqs_page.s1', "دورة استدراج عروض الأسعار من الموردين، المفاضلة التلقائية، واعتماد العرض الفائز بنقرة واحدة لأمر شراء (PO)")}
+          badge={<span className="nav-pill">{t('purchases.purchase_rfqs_page.s2', "المشتريات والتوريد")}</span>}
           actions={
             <Button
               variant="primary"
               onClick={openCreateModal}
             >
               <PlusIcon size={16} />
-              طلب عرض سعر جديد
+              {t('purchases.purchase_rfqs_page.s3', "طلب عرض سعر جديد")}
             </Button>
           }
         />
@@ -248,14 +250,14 @@ export const PurchaseRfqsPage: FC = () => {
         <section className="document-prototype-section">
           <div className="section-header-compact-row" style={{ marginBottom: '14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
             <div style={{ fontSize: 'var(--font-section-title)', fontWeight: 800, color: '#0f172a' }}>
-              طلبات عروض الأسعار ({filteredRfqs.length})
+              {t('purchases.purchase_rfqs_page.s4', "طلبات عروض الأسعار (")}{filteredRfqs.length})
             </div>
 
             <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
               <div style={{ position: 'relative', width: '260px' }}>
                 <input
                   type="text"
-                  placeholder="بحث بالرقم أو العنوان..."
+                  placeholder={t('purchases.purchase_rfqs_page.s5', "بحث بالرقم أو العنوان...")}
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   style={{
@@ -279,12 +281,12 @@ export const PurchaseRfqsPage: FC = () => {
                   value={statusFilter}
                   onChange={(val) => setStatusFilter(val)}
                   options={[
-                    { value: 'all', label: 'كافة الحالات' },
-                    { value: 'draft', label: 'مسودة' },
-                    { value: 'bids_received', label: 'تم استلام عروض' },
-                    { value: 'converted_to_po', label: 'تم التحويل لأمر شراء (PO)' },
+                    { value: 'all', label: t('purchases.purchase_rfqs_page.s6', "كافة الحالات") },
+                    { value: 'draft', label: t('purchases.purchase_rfqs_page.s7', "مسودة") },
+                    { value: 'bids_received', label: t('purchases.purchase_rfqs_page.s8', "تم استلام عروض") },
+                    { value: 'converted_to_po', label: t('purchases.purchase_rfqs_page.s9', "تم التحويل لأمر شراء (PO)") },
                   ]}
-                  placeholder="تصفية حسب الحالة..."
+                  placeholder={t('purchases.purchase_rfqs_page.s10', "تصفية حسب الحالة...")}
                 />
               </div>
             </div>

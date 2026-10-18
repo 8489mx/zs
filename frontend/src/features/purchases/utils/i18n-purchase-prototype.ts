@@ -238,12 +238,15 @@ export const dict = {
 };
 
 import { useEffect } from 'react';
+import { useTranslation as useI18nTranslation } from 'react-i18next';
 import i18n from '@/lib/i18n';
 
 export type DictKey = keyof typeof dict;
 
 export function useTranslation() {
-  const language = (i18n.language && i18n.language.startsWith('en')) ? 'en' : 'ar';
+  const { t: i18nTranslate, i18n: i18nInstance } = useI18nTranslation();
+  const currentLang = i18nInstance?.language || i18n.language || 'ar';
+  const language = currentLang.startsWith('en') ? 'en' : 'ar';
   
   useEffect(() => {
     const expectedDir = language === 'ar' ? 'rtl' : 'ltr';
@@ -253,14 +256,19 @@ export function useTranslation() {
   }, [language]);
   
   return {
-    t: (key: DictKey) => {
-      if (!dict[key]) return key;
-      return dict[key][language as 'ar' | 'en'] || key;
+    t: (key: string | DictKey, fallback?: string) => {
+      if (typeof key === 'string' && key.includes('.')) {
+        return i18nTranslate(key, typeof fallback === 'string' ? fallback : undefined);
+      }
+      if (dict[key as DictKey]) {
+        return dict[key as DictKey][language as 'ar' | 'en'] || (typeof fallback === 'string' ? fallback : key);
+      }
+      return i18nTranslate(key, typeof fallback === 'string' ? fallback : key);
     },
     language,
     setLanguage: (lang: 'ar' | 'en') => {
       useAuthStore.getState().updateSessionMeta({ language: lang });
-      void i18n.changeLanguage(lang);
+      void (i18nInstance || i18n).changeLanguage(lang);
     }
   };
 }

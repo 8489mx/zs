@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { toast } from '@/shared/components/system-alert';
 import { maritimeApi, MaritimeJob } from '../../api/maritime-freight.api';
@@ -10,6 +11,7 @@ interface Props {
 }
 
 export function JobExportCutoffsCard({ job, onUpdated }: Props) {
+  const { t } = useTranslation();
   const [showEditModal, setShowEditModal] = useState(false);
   const [formData, setFormData] = useState({
     siCutoffDate: job.si_cutoff_date ? new Date(job.si_cutoff_date).toISOString().slice(0, 16) : '',
@@ -56,7 +58,7 @@ export function JobExportCutoffsCard({ job, onUpdated }: Props) {
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#d97706', display: 'inline-block' }} />
           <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#92400e' }}>
-            رادار المواعيد الحرجة للتصدير وتفويت الحاويات (Export Deadlines & Cut-offs)
+            {t('maritime_freight.job_details.job_export_cutoffs_card.s0', "رادار المواعيد الحرجة للتصدير وتفويت الحاويات (Export Deadlines & Cut-offs)")}
           </span>
         </div>
 
@@ -81,45 +83,45 @@ export function JobExportCutoffsCard({ job, onUpdated }: Props) {
             cursor: 'pointer',
           }}
         >
-          ضبط المواعيد الحرجة
+          {t('maritime_freight.job_details.job_export_cutoffs_card.s1', "ضبط المواعيد الحرجة")}
         </button>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px', marginTop: '6px' }}>
         <div style={{ background: '#f8fafc', padding: '8px 10px', borderRadius: '6px' }}>
-          <div style={{ fontSize: '0.72rem', color: '#64748b' }}>موعد تعليمات الشحن (SI Cut-off):</div>
+          <div style={{ fontSize: '0.72rem', color: '#64748b' }}>{t('maritime_freight.job_details.job_export_cutoffs_card.s2', "موعد تعليمات الشحن (SI Cut-off):")}</div>
           <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#0f172a', marginTop: '2px', fontFamily: 'monospace' }}>
             {formatCutoff(job.si_cutoff_date)}
           </div>
-          <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '1px' }}>إغلاق بوليصة الشحن مسودة</div>
+          <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '1px' }}>{t('maritime_freight.job_details.job_export_cutoffs_card.s3', "إغلاق بوليصة الشحن مسودة")}</div>
         </div>
 
         <div style={{ background: '#f8fafc', padding: '8px 10px', borderRadius: '6px' }}>
-          <div style={{ fontSize: '0.72rem', color: '#64748b' }}>موعد شهادة الوزن (VGM Cut-off):</div>
+          <div style={{ fontSize: '0.72rem', color: '#64748b' }}>{t('maritime_freight.job_details.job_export_cutoffs_card.s4', "موعد شهادة الوزن (VGM Cut-off):")}</div>
           <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#170e5e', marginTop: '2px', fontFamily: 'monospace' }}>
             {formatCutoff(job.vgm_cutoff_date)}
           </div>
-          <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '1px' }}>إقرار وزن SOLAS الإلزامي</div>
+          <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '1px' }}>{t('maritime_freight.job_details.job_export_cutoffs_card.s5', "إقرار وزن SOLAS الإلزامي")}</div>
         </div>
 
         <div style={{ background: '#f8fafc', padding: '8px 10px', borderRadius: '6px' }}>
-          <div style={{ fontSize: '0.72rem', color: '#64748b' }}>موعد دخول وبوابات الميناء (Port Cut-off):</div>
+          <div style={{ fontSize: '0.72rem', color: '#64748b' }}>{t('maritime_freight.job_details.job_export_cutoffs_card.s6', "موعد دخول وبوابات الميناء (Port Cut-off):")}</div>
           <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#b91c1c', marginTop: '2px', fontFamily: 'monospace' }}>
             {formatCutoff(job.port_cutoff_date || job.port_cut_off)}
           </div>
-          <div style={{ fontSize: '0.7rem', color: '#dc2626', marginTop: '1px' }}>إغلاق ساحة محطة الحاويات</div>
+          <div style={{ fontSize: '0.7rem', color: '#dc2626', marginTop: '1px' }}>{t('maritime_freight.job_details.job_export_cutoffs_card.s7', "إغلاق ساحة محطة الحاويات")}</div>
         </div>
       </div>
 
       <StandardDialog
         open={showEditModal}
         onClose={() => setShowEditModal(false)}
-        title="تحديث المواعيد الحرجة للشحنة (Deadlines & Cut-offs)"
-        subtitle="تحديد التوقيتات الصارمة لإغلاق بوابات الميناء ومسودة البوليصة وشهادة VGM"
+        title={t('maritime_freight.job_details.job_export_cutoffs_card.s8', "تحديث المواعيد الحرجة للشحنة (Deadlines & Cut-offs)")}
+        subtitle={t('maritime_freight.job_details.job_export_cutoffs_card.s9', "تحديد التوقيتات الصارمة لإغلاق بوابات الميناء ومسودة البوليصة وشهادة VGM")}
         width="500px"
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          <Field label="موعد إغلاق تعليمات الشحن (SI Cut-off)">
+          <Field label={t('maritime_freight.job_details.job_export_cutoffs_card.s10', "موعد إغلاق تعليمات الشحن (SI Cut-off)")}>
             <input
               type="datetime-local"
               value={formData.siCutoffDate}
@@ -128,7 +130,7 @@ export function JobExportCutoffsCard({ job, onUpdated }: Props) {
             />
           </Field>
 
-          <Field label="موعد إغلاق شهادة الوزن المعتمد (VGM Cut-off)">
+          <Field label={t('maritime_freight.job_details.job_export_cutoffs_card.s11', "موعد إغلاق شهادة الوزن المعتمد (VGM Cut-off)")}>
             <input
               type="datetime-local"
               value={formData.vgmCutoffDate}
@@ -137,7 +139,7 @@ export function JobExportCutoffsCard({ job, onUpdated }: Props) {
             />
           </Field>
 
-          <Field label="موعد إغلاق بوابات الميناء (Port / Gate-in Cut-off)">
+          <Field label={t('maritime_freight.job_details.job_export_cutoffs_card.s12', "موعد إغلاق بوابات الميناء (Port / Gate-in Cut-off)")}>
             <input
               type="datetime-local"
               value={formData.portCutoffDate}
@@ -153,7 +155,7 @@ export function JobExportCutoffsCard({ job, onUpdated }: Props) {
             onClick={() => setShowEditModal(false)}
             style={{ padding: '8px 16px', background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '6px', cursor: 'pointer', fontWeight: 600 }}
           >
-            إلغاء
+            {t('maritime_freight.job_details.job_export_cutoffs_card.s13', "إلغاء")}
           </button>
           <button
             type="button"
@@ -161,7 +163,7 @@ export function JobExportCutoffsCard({ job, onUpdated }: Props) {
             disabled={isSaving}
             style={{ padding: '8px 20px', background: '#170e5e', color: '#ffffff', border: 'none', borderRadius: '6px', cursor: isSaving ? 'not-allowed' : 'pointer', fontWeight: 700 }}
           >
-            {isSaving ? 'جاري الحفظ...' : 'حفظ المواعيد'}
+            {isSaving ? t('maritime_freight.job_details.job_export_cutoffs_card.s14', "جاري الحفظ...") : t('maritime_freight.job_details.job_export_cutoffs_card.s15', "حفظ المواعيد")}
           </button>
         </StandardDialogFooter>
       </StandardDialog>

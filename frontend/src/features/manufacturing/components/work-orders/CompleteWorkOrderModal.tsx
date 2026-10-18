@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { type Dispatch, type SetStateAction } from 'react';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { Button } from '@/shared/ui/button';
@@ -25,6 +26,7 @@ export function CompleteWorkOrderModal({
   onConfirm,
   isCompleting,
 }: CompleteWorkOrderModalProps) {
+  const { t } = useTranslation();
   if (!order) return null;
 
   const workCenterOptions = workCenters.map((wc) => ({
@@ -43,9 +45,9 @@ export function CompleteWorkOrderModal({
       footer={
         <StandardDialogFooter
           onClose={onClose}
-          closeLabel="إلغاء"
+          closeLabel={t('manufacturing.work_orders.complete_work_order_modal.s0', "إلغاء")}
           primaryButton={{
-            label: isCompleting ? 'جاري التأكيد والخصم...' : 'تأكيد الإنتاج وإدخال المخزون',
+            label: isCompleting ? t('manufacturing.work_orders.complete_work_order_modal.s1', "جاري التأكيد والخصم...") : t('manufacturing.work_orders.complete_work_order_modal.s2', "تأكيد الإنتاج وإدخال المخزون"),
             onClick: onConfirm,
             disabled: isCompleting,
           }}
@@ -65,14 +67,14 @@ export function CompleteWorkOrderModal({
             lineHeight: 1.6,
           }}
         >
-          <strong>إشعار رقابي مخزني:</strong> عند تأكيد إنهاء هذا الأمر، سيتم استهلاك المواد الخام المسجلة في الـ BOM من المخزن وخصمها آلياً، وإيداع كمية المنتج التام المصنعة ({order.quantity_to_produce} وحدة) في رصيد المستودع المعتمد.
+          <strong>{t('manufacturing.work_orders.complete_work_order_modal.s3', "إشعار رقابي مخزني:")}</strong> {t('manufacturing.work_orders.complete_work_order_modal.s4', "عند تأكيد إنهاء هذا الأمر، سيتم استهلاك المواد الخام المسجلة في الـ BOM من المخزن وخصمها آلياً، وإيداع كمية المنتج التام المصنعة (")}{order.quantity_to_produce} {t('manufacturing.work_orders.complete_work_order_modal.s5', "وحدة) في رصيد المستودع المعتمد.")}
         </div>
 
         {/* Card 2: Operations / Work Centers */}
         <div style={{ border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px', background: '#f8fafc' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
             <span style={{ fontSize: '13px', fontWeight: 700, color: '#170e5e' }}>
-              تسجيل عمليات مراكز التشغيل والعمالة (اختياري):
+              {t('manufacturing.work_orders.complete_work_order_modal.s6', "تسجيل عمليات مراكز التشغيل والعمالة (اختياري):")}
             </span>
             <Button
               type="button"
@@ -80,19 +82,19 @@ export function CompleteWorkOrderModal({
               onClick={() =>
                 onOperationsChange((prev) => [
                   ...prev,
-                  { workCenterId: workCenters[0]?.id || 1, operationName: 'تشغيل', durationHours: 0.5, cost: 0 },
+                  { workCenterId: workCenters[0]?.id || 1, operationName: t('manufacturing.work_orders.complete_work_order_modal.s7', "تشغيل"), durationHours: 0.5, cost: 0 },
                 ])
               }
               style={{ padding: '4px 10px', fontSize: '11.5px', display: 'flex', alignItems: 'center', gap: '4px' }}
             >
               <PlusIcon size={14} />
-              <span>إضافة مرحلة تشغيل</span>
+              <span>{t('manufacturing.work_orders.complete_work_order_modal.s8', "إضافة مرحلة تشغيل")}</span>
             </Button>
           </div>
 
           {operations.length === 0 ? (
             <div style={{ padding: '16px', textAlign: 'center', color: '#94a3b8', fontSize: '12px' }}>
-              لم يتم إضافة مراحل تشغيل مخصصة (سيتم احتساب تكلفة الإنتاج القياسية من الـ BOM مباشرة).
+              {t('manufacturing.work_orders.complete_work_order_modal.s9', "لم يتم إضافة مراحل تشغيل مخصصة (سيتم احتساب تكلفة الإنتاج القياسية من الـ BOM مباشرة).")}
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -112,7 +114,7 @@ export function CompleteWorkOrderModal({
                 >
                   <input
                     type="text"
-                    placeholder="اسم العملية"
+                    placeholder={t('manufacturing.work_orders.complete_work_order_modal.s10', "اسم العملية")}
                     value={op.operationName}
                     onChange={(e) => {
                       const next = [...operations];
@@ -129,11 +131,11 @@ export function CompleteWorkOrderModal({
                       onOperationsChange(next);
                     }}
                     options={workCenterOptions}
-                    placeholder="مركز العمل..."
+                    placeholder={t('manufacturing.work_orders.complete_work_order_modal.s11', "مركز العمل...")}
                   />
                   <input
                     type="number"
-                    placeholder="ساعات"
+                    placeholder={t('manufacturing.work_orders.complete_work_order_modal.s12', "ساعات")}
                     value={op.durationHours}
                     onChange={(e) => {
                       const next = [...operations];
@@ -144,7 +146,7 @@ export function CompleteWorkOrderModal({
                   />
                   <input
                     type="number"
-                    placeholder="تكلفة"
+                    placeholder={t('manufacturing.work_orders.complete_work_order_modal.s13', "تكلفة")}
                     value={op.cost ?? 0}
                     onChange={(e) => {
                       const next = [...operations];
@@ -157,7 +159,7 @@ export function CompleteWorkOrderModal({
                     type="button"
                     onClick={() => onOperationsChange((prev) => prev.filter((_, i) => i !== idx))}
                     style={{ border: 'none', background: 'transparent', color: '#ef4444', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                    title="حذف المرحلة"
+                    title={t('manufacturing.work_orders.complete_work_order_modal.s14', "حذف المرحلة")}
                   >
                     <Trash2Icon size={15} />
                   </button>

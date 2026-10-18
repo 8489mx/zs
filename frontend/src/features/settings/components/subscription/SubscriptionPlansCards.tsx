@@ -1,44 +1,32 @@
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/shared/ui/button';
 import { UsersIcon, BuildingIcon } from '@/shared/components/icons/AppIcons';
 import { getCurrencySymbol } from '@/lib/currencies';
+import { translateUiText } from '@/lib/auto-translator';
 import { PlanFeatureItem } from './PlanFeatureItem';
 import type { ResolvedPricing, ResolvedPricingLevel } from '../../api/tenant-subscription.api';
 
-/**
- * بطاقات مستويات الباقة — مبنية بالكامل على ما يرسله الخادم.
- *
- * كانت هذه الشاشة أربع بطاقات ثابتة (basic/pro/ultimate/omnichannel) بأسعار من
- * `REGIONAL_PRICING` في الواجهة وقوائم ميزات مكتوبة في الكود. المشاكل التي أُصلحت:
- *  · البند C7: جدول أسعار مكتوب في الواجهة بأرقام قديمة.
- *  · البند C8: منتقي عملات يختاره العميل فيرى سعر بلد آخر.
- *  · البند C9: السعر المعروض من الواجهة والمحصَّل من قاعدة البيانات — مصدران.
- *  · PRICE-S1: عرض باقات وميزات قطاعات أخرى لمنشأة لا تخصها.
- *
- * الآن: مستويات نطاق المنشأة وحدها، بأسعار بلدها وحده، وميزاتها من الكتالوج.
- */
 interface SubscriptionPlansCardsProps {
   pricing: ResolvedPricing;
   isAnnual: boolean;
-  /** معرّف الباقة في `saas_plans` مقابل كل مستوى — للترقية والدفع */
   planIdForLevel: (levelId: string) => number | null;
   onSelectPlan: (plan: { id: number; name: string; price: number; currency: string; levelId: string }) => void;
-  /** المستوى المشترك فيه حالياً، لتعطيل زره */
   currentLevelId?: string | null;
 }
 
-function CapacityPills({ limits, productId }: { limits: ResolvedPricingLevel['limits']; productId?: string }) {
-  const describe = (n: number | null | undefined) => (n == null ? 'بلا حد' : String(n));
+function CapacityPills({ limits, productId, isEn }: { limits: ResolvedPricingLevel['limits']; productId?: string; isEn: boolean }) {
+  const describe = (n: number | null | undefined) => (n == null ? (isEn ? 'Unlimited' : 'بلا حد') : String(n));
   const pills: Array<{ icon: 'users' | 'building'; text: string }> = [];
 
   const isMaritime = productId === 'maritime';
   const isContracting = productId === 'contracting';
 
-  if (limits.users !== undefined) pills.push({ icon: 'users', text: `${describe(limits.users)} مستخدم` });
-  if (!isMaritime && limits.branches !== undefined) pills.push({ icon: 'building', text: `${describe(limits.branches)} فرع` });
-  if (!isMaritime && !isContracting && limits.posTerminals != null) pills.push({ icon: 'building', text: `${limits.posTerminals} طرفية` });
-  if (isContracting && limits.activeProjects != null) pills.push({ icon: 'building', text: `${limits.activeProjects} مشروع نشط` });
-  if (isMaritime && limits.containersPerMonth != null) pills.push({ icon: 'building', text: `${limits.containersPerMonth} حاوية/شهر` });
-  if (limits.multiCompany) pills.push({ icon: 'building', text: 'تعدد الشركات' });
+  if (limits.users !== undefined) pills.push({ icon: 'users', text: isEn ? `${describe(limits.users)} Users` : `${describe(limits.users)} مستخدم` });
+  if (!isMaritime && limits.branches !== undefined) pills.push({ icon: 'building', text: isEn ? `${describe(limits.branches)} Branches` : `${describe(limits.branches)} فرع` });
+  if (!isMaritime && !isContracting && limits.posTerminals != null) pills.push({ icon: 'building', text: isEn ? `${limits.posTerminals} Terminals` : `${limits.posTerminals} طرفية` });
+  if (isContracting && limits.activeProjects != null) pills.push({ icon: 'building', text: isEn ? `${limits.activeProjects} Active Projects` : `${limits.activeProjects} مشروع نشط` });
+  if (isMaritime && limits.containersPerMonth != null) pills.push({ icon: 'building', text: isEn ? `${limits.containersPerMonth} Containers/Mo` : `${limits.containersPerMonth} حاوية/شهر` });
+  if (limits.multiCompany) pills.push({ icon: 'building', text: isEn ? 'Multi-Company' : 'تعدد الشركات' });
 
   return (
     <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '16px' }}>
@@ -73,10 +61,10 @@ export function SubscriptionPlansCards({
   onSelectPlan,
   currentLevelId,
 }: SubscriptionPlansCardsProps) {
-  // المقاولات والشحن تُعرض بالسنوي فقط — الرقم الشهري يُدرك كبرنامج والسنوي كمنظومة (PRICE-S4)
+  const { t, i18n } = useTranslation();
+  const isEn = i18n.language === 'en';
   const showAnnual = pricing.quoteAnnuallyOnly || isAnnual;
-  const periodLabel = showAnnual ? 'سنة' : 'شهر';
-  // المستوى الأوسط هو المرشَّح: لا "الأكثر طلباً" مكتوبة على باقة بعينها في الكود
+  const periodLabel = showAnnual ? (isEn ? 'yr' : 'سنة') : (isEn ? 'mo' : 'شهر');
   const featuredIndex = Math.min(1, pricing.levels.length - 1);
 
   return (
@@ -86,6 +74,8 @@ export function SubscriptionPlansCards({
         const isCurrent = currentLevelId === level.id;
         const amount = showAnnual ? level.annual : level.monthly;
         const planId = planIdForLevel(level.id);
+        const productName = isEn ? translateUiText(pricing.product.name) : pricing.product.name;
+        const levelName = isEn ? translateUiText(level.name) : level.name;
 
         return (
           <div
@@ -107,7 +97,8 @@ export function SubscriptionPlansCards({
                 style={{
                   position: 'absolute',
                   top: '-11px',
-                  right: '16px',
+                  right: isEn ? 'auto' : '16px',
+                  left: isEn ? '16px' : 'auto',
                   background: '#059669',
                   color: '#ffffff',
                   fontSize: '10.5px',
@@ -116,16 +107,16 @@ export function SubscriptionPlansCards({
                   borderRadius: '10px',
                 }}
               >
-                باقتك الحالية
+                {isEn ? 'Current Plan' : t('settings.subscription.subscription_plans_cards.s0', "باقتك الحالية")}
               </span>
             )}
 
             <div>
               <span style={{ fontSize: '11px', fontWeight: 800, color: isFeatured ? '#170e5e' : '#64748b' }}>
-                {pricing.product.name}
+                {productName}
               </span>
               <h3 style={{ fontSize: '18px', fontWeight: 800, color: isFeatured ? '#170e5e' : '#0f172a', margin: '4px 0 10px' }}>
-                {level.name}
+                {levelName}
               </h3>
 
               <div style={{ marginBottom: '12px' }}>
@@ -137,16 +128,16 @@ export function SubscriptionPlansCards({
                 </span>
               </div>
 
-              <CapacityPills limits={level.limits} productId={pricing.product.id} />
+              <CapacityPills limits={level.limits} productId={pricing.product.id} isEn={isEn} />
 
               {level.sectorFeatures.length > 0 && (
                 <div style={{ marginBottom: '14px' }}>
                   <div style={{ fontSize: '11.5px', fontWeight: 800, color: '#170e5e', marginBottom: '8px' }}>
-                    مخصص لنشاطك
+                    {isEn ? 'Tailored for Your Vertical' : t('settings.subscription.subscription_plans_cards.s1', "مخصص لنشاطك")}
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '12px', color: '#334155' }}>
                     {level.sectorFeatures.map((feat, i) => (
-                      <PlanFeatureItem key={i}>{feat}</PlanFeatureItem>
+                      <PlanFeatureItem key={i}>{isEn ? translateUiText(feat) : feat}</PlanFeatureItem>
                     ))}
                   </div>
                 </div>
@@ -155,11 +146,11 @@ export function SubscriptionPlansCards({
               {level.featureGroups.map((group) => (
                 <div key={group.name} style={{ marginBottom: '14px' }}>
                   <div style={{ fontSize: '11.5px', fontWeight: 800, color: '#64748b', marginBottom: '8px' }}>
-                    {group.name}
+                    {isEn ? translateUiText(group.name) : group.name}
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '12px', color: '#334155' }}>
                     {group.items.map((feat, i) => (
-                      <PlanFeatureItem key={i}>{feat}</PlanFeatureItem>
+                      <PlanFeatureItem key={i}>{isEn ? translateUiText(feat) : feat}</PlanFeatureItem>
                     ))}
                   </div>
                 </div>
@@ -175,7 +166,11 @@ export function SubscriptionPlansCards({
               }}
               style={{ width: '100%', fontWeight: 700, fontSize: '12.5px', marginTop: '6px' }}
             >
-              {isCurrent ? 'باقتك الحالية' : planId == null ? 'تواصل معنا' : `اختيار ${level.name}`}
+              {isCurrent
+                ? (isEn ? 'Current Plan' : t('settings.subscription.subscription_plans_cards.s2', "باقتك الحالية"))
+                : planId == null
+                  ? (isEn ? 'Contact Us' : t('settings.subscription.subscription_plans_cards.s3', "تواصل معنا"))
+                  : (isEn ? `Select ${levelName}` : `اختيار ${level.name}`)}
             </Button>
           </div>
         );

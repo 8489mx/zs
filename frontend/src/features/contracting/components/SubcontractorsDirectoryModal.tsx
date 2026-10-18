@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useCallback } from 'react';
 import { StandardDialog } from '@/shared/components/StandardDialog';
 import { contractingApi } from '../api/contracting.api';
@@ -40,6 +41,7 @@ export function SubcontractorsDirectoryModal({
   onClose,
   onChanged,
 }: SubcontractorsDirectoryModalProps) {
+  const { t } = useTranslation();
   const { currencySymbol } = useSystemCurrency();
 
   const [subcontractors, setSubcontractors] = useState<ContractingSubcontractor[]>([]);
@@ -97,8 +99,8 @@ export function SubcontractorsDirectoryModal({
       <StandardDialog
         open={open}
         onClose={onClose}
-        title="دليل وسجل مقاولي الباطن المعتمدين (Subcontractors Master Directory)"
-        subtitle="دليل مستقل للمقاولين المنفذين، تخصصاتهم، ومتابعة كشوفات حساباتهم ومستحقاتهم المالية"
+        title={t('contracting.subcontractors_directory_modal.s0', "دليل وسجل مقاولي الباطن المعتمدين (Subcontractors Master Directory)")}
+        subtitle={t('contracting.subcontractors_directory_modal.s1', "دليل مستقل للمقاولين المنفذين، تخصصاتهم، ومتابعة كشوفات حساباتهم ومستحقاتهم المالية")}
         maxWidth="1150px"
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }} dir="rtl">
@@ -122,7 +124,7 @@ export function SubcontractorsDirectoryModal({
                   type="text"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  placeholder="بحث باسم المقاول، التخصص، الهاتف، الرقم الضريبي..."
+                  placeholder={t('contracting.subcontractors_directory_modal.s2', "بحث باسم المقاول، التخصص، الهاتف، الرقم الضريبي...")}
                   style={{
                     width: '100%',
                     height: '36px',
@@ -140,7 +142,7 @@ export function SubcontractorsDirectoryModal({
                   value={selectedSpecialty}
                   onChange={(val) => setSelectedSpecialty(val)}
                   options={SPECIALTY_FILTERS}
-                  placeholder="فلترة التخصص..."
+                  placeholder={t('contracting.subcontractors_directory_modal.s3', "فلترة التخصص...")}
                 />
               </div>
             </div>
@@ -167,7 +169,7 @@ export function SubcontractorsDirectoryModal({
               }}
             >
               <AppIcons.Plus size={15} />
-              <span>إضافة مقاول باطن جديد</span>
+              <span>{t('contracting.subcontractors_directory_modal.s4', "إضافة مقاول باطن جديد")}</span>
             </button>
           </div>
 
@@ -176,14 +178,14 @@ export function SubcontractorsDirectoryModal({
             {loading ? (
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '340px', gap: '10px' }}>
                 <div style={{ width: '28px', height: '28px', borderRadius: '50%', border: '3px solid #e2e8f0', borderTopColor: '#170e5e', animation: 'spin 0.8s linear infinite' }} />
-                <span style={{ fontSize: 'var(--font-subtitle)', color: '#94a3b8' }}>جاري تحميل دليل المقاولين...</span>
+                <span style={{ fontSize: 'var(--font-subtitle)', color: '#94a3b8' }}>{t('contracting.subcontractors_directory_modal.s5', "جاري تحميل دليل المقاولين...")}</span>
               </div>
             ) : subcontractors.length === 0 ? (
               <div style={{ padding: '48px 24px', textAlign: 'center', color: '#64748b' }}>
                 <AppIcons.Users size={44} style={{ color: '#cbd5e1', marginBottom: '8px' }} />
-                <div style={{ fontWeight: 700, fontSize: 'var(--font-section-title)', color: '#334155' }}>لا يوجد مقاولو باطن مسجلين مطابقين للبحث</div>
+                <div style={{ fontWeight: 700, fontSize: 'var(--font-section-title)', color: '#334155' }}>{t('contracting.subcontractors_directory_modal.s6', "لا يوجد مقاولو باطن مسجلين مطابقين للبحث")}</div>
                 <div style={{ fontSize: 'var(--font-subtitle)', color: '#94a3b8', marginTop: '4px', marginBottom: '16px' }}>
-                  قم بإضافة مقاولي الباطن والتنفيذ المعتمدين لربطهم بعقود الأعمال والمستخلصات.
+                  {t('contracting.subcontractors_directory_modal.s7', "قم بإضافة مقاولي الباطن والتنفيذ المعتمدين لربطهم بعقود الأعمال والمستخلصات.")}
                 </div>
                 <button
                   type="button"
@@ -203,7 +205,7 @@ export function SubcontractorsDirectoryModal({
                     fontSize: 'var(--font-body)',
                   }}
                 >
-                  إضافة أول مقاول باطن
+                  {t('contracting.subcontractors_directory_modal.s8', "إضافة أول مقاول باطن")}
                 </button>
               </div>
             ) : (
@@ -220,13 +222,13 @@ export function SubcontractorsDirectoryModal({
                   </colgroup>
                   <thead>
                     <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-                      <th style={{ padding: '10px 14px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>المقاول والتخصص</th>
-                      <th style={{ padding: '10px 14px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>بيانات الاتصال</th>
-                      <th style={{ padding: '10px 14px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>إجمالي الالتزام</th>
-                      <th style={{ padding: '10px 14px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>المستخلص المنفذ</th>
-                      <th style={{ padding: '10px 14px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#170e5e' }}>صافي المستحق</th>
-                      <th style={{ padding: '10px 14px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>الحالة</th>
-                      <th style={{ padding: '10px 14px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569', textAlign: 'center' }}>إجراءات</th>
+                      <th style={{ padding: '10px 14px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>{t('contracting.subcontractors_directory_modal.s9', "المقاول والتخصص")}</th>
+                      <th style={{ padding: '10px 14px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>{t('contracting.subcontractors_directory_modal.s10', "بيانات الاتصال")}</th>
+                      <th style={{ padding: '10px 14px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>{t('contracting.subcontractors_directory_modal.s11', "إجمالي الالتزام")}</th>
+                      <th style={{ padding: '10px 14px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>{t('contracting.subcontractors_directory_modal.s12', "المستخلص المنفذ")}</th>
+                      <th style={{ padding: '10px 14px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#170e5e' }}>{t('contracting.subcontractors_directory_modal.s13', "صافي المستحق")}</th>
+                      <th style={{ padding: '10px 14px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>{t('contracting.subcontractors_directory_modal.s14', "الحالة")}</th>
+                      <th style={{ padding: '10px 14px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569', textAlign: 'center' }}>{t('contracting.subcontractors_directory_modal.s15', "إجراءات")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -238,11 +240,11 @@ export function SubcontractorsDirectoryModal({
                             <div style={{ fontWeight: 700, color: '#0f172a', fontSize: 'var(--font-body)' }}>{sub.name}</div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
                               <span style={{ fontSize: 'var(--font-micro)', background: '#eff6ff', color: '#1e40af', padding: '1px 6px', borderRadius: '4px', fontWeight: 600 }}>
-                                {sub.tradeSpecialty || 'مقاولات عامة'}
+                                {sub.tradeSpecialty || t('contracting.subcontractors_directory_modal.s16', "مقاولات عامة")}
                               </span>
                               {sub.subcontractsCount !== undefined && sub.subcontractsCount > 0 && (
                                 <span style={{ fontSize: 'var(--font-micro)', color: '#64748b' }}>
-                                  ({sub.subcontractsCount} عقد)
+                                  ({sub.subcontractsCount} {t('contracting.subcontractors_directory_modal.s17', "عقد)")}
                                 </span>
                               )}
                             </div>
@@ -250,7 +252,7 @@ export function SubcontractorsDirectoryModal({
 
                           <td style={{ padding: '10px 14px', fontSize: 'var(--font-micro)', color: '#475569' }}>
                             <div>{sub.phone || sub.mobile || '-'}</div>
-                            {sub.contactPerson && <div style={{ color: '#94a3b8' }}>المسؤول: {sub.contactPerson}</div>}
+                            {sub.contactPerson && <div style={{ color: '#94a3b8' }}>{t('contracting.subcontractors_directory_modal.s18', "المسؤول:")} {sub.contactPerson}</div>}
                           </td>
 
                           <td style={{ padding: '10px 14px', fontSize: 'var(--font-body)', fontWeight: 600, color: '#334155', whiteSpace: 'nowrap' }}>
@@ -276,7 +278,7 @@ export function SubcontractorsDirectoryModal({
                                 color: sub.status === 'active' ? '#15803d' : '#991b1b',
                               }}
                             >
-                              {sub.status === 'active' ? 'نشط' : 'موقوف'}
+                              {sub.status === 'active' ? t('contracting.subcontractors_directory_modal.s19', "نشط") : t('contracting.subcontractors_directory_modal.s20', "موقوف")}
                             </span>
                           </td>
 
@@ -285,7 +287,7 @@ export function SubcontractorsDirectoryModal({
                               <button
                                 type="button"
                                 onClick={() => setSelectedLedgerSubId(sub.id)}
-                                title="كشف حساب المقاول (ما له وما عليه)"
+                                title={t('contracting.subcontractors_directory_modal.s21', "كشف حساب المقاول (ما له وما عليه)")}
                                 style={{
                                   padding: '4px 8px',
                                   borderRadius: '6px',
@@ -302,13 +304,13 @@ export function SubcontractorsDirectoryModal({
                                 }}
                               >
                                 <AppIcons.FileText size={13} />
-                                <span>كشف حساب</span>
+                                <span>{t('contracting.subcontractors_directory_modal.s22', "كشف حساب")}</span>
                               </button>
 
                               <button
                                 type="button"
                                 onClick={() => setPaymentSub(sub)}
-                                title="تسجيل دفعة وصرف للمقاول"
+                                title={t('contracting.subcontractors_directory_modal.s23', "تسجيل دفعة وصرف للمقاول")}
                                 style={{
                                   padding: '4px',
                                   borderRadius: '6px',
@@ -330,7 +332,7 @@ export function SubcontractorsDirectoryModal({
                                   setEditingSub(sub);
                                   setIsCreateOpen(true);
                                 }}
-                                title="تعديل بيانات المقاول"
+                                title={t('contracting.subcontractors_directory_modal.s24', "تعديل بيانات المقاول")}
                                 style={{
                                   padding: '4px',
                                   borderRadius: '6px',
@@ -349,7 +351,7 @@ export function SubcontractorsDirectoryModal({
                               <button
                                 type="button"
                                 onClick={() => handleDelete(sub)}
-                                title="حذف أو إيقاف"
+                                title={t('contracting.subcontractors_directory_modal.s25', "حذف أو إيقاف")}
                                 style={{
                                   padding: '4px',
                                   borderRadius: '6px',

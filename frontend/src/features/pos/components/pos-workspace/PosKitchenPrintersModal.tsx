@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React, { useState, useEffect } from 'react';
 import { StandardDialog } from '@/shared/components/StandardDialog';
 import { Button } from '@/shared/ui/button';
@@ -27,6 +28,7 @@ export const PosKitchenPrintersModal: React.FC<PosKitchenPrintersModalProps> = (
   onClose,
   branchId,
 }) => {
+  const { t } = useTranslation();
   const [printers, setPrinters] = useState<KitchenPrinter[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -151,8 +153,8 @@ export const PosKitchenPrintersModal: React.FC<PosKitchenPrintersModalProps> = (
     <StandardDialog
       open={open}
       onClose={onClose}
-      title="إدارة طابعات المطبخ والبار الشبكية (Network KOT Printers)"
-      subtitle="توجيه بونات التحضير تلقائياً حسب المحطة (مطبخ / بار / شواية / حلويات) عبر الشبكة المحلية"
+      title={t('pos.pos_workspace.pos_kitchen_printers_modal.s0', "إدارة طابعات المطبخ والبار الشبكية (Network KOT Printers)")}
+      subtitle={t('pos.pos_workspace.pos_kitchen_printers_modal.s1', "توجيه بونات التحضير تلقائياً حسب المحطة (مطبخ / بار / شواية / حلويات) عبر الشبكة المحلية")}
       width="680px"
       compact
     >
@@ -168,10 +170,10 @@ export const PosKitchenPrintersModal: React.FC<PosKitchenPrintersModalProps> = (
           gap: '12px',
         }}>
           <div style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span>{editingId ? 'تعديل طابعة' : 'إضافة طابعة مطبخ جديدة'}</span>
+            <span>{editingId ? t('pos.pos_workspace.pos_kitchen_printers_modal.s2', "تعديل طابعة") : t('pos.pos_workspace.pos_kitchen_printers_modal.s3', "إضافة طابعة مطبخ جديدة")}</span>
             {editingId && (
               <Button type="button" variant="secondary" onClick={resetForm} style={{ height: '26px', fontSize: '11px', padding: '0 8px' }}>
-                إلغاء التعديل
+                {t('pos.pos_workspace.pos_kitchen_printers_modal.s4', "إلغاء التعديل")}
               </Button>
             )}
           </div>
@@ -179,12 +181,12 @@ export const PosKitchenPrintersModal: React.FC<PosKitchenPrintersModalProps> = (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '10px' }}>
             <div>
               <label style={{ fontSize: '11.5px', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '4px' }}>
-                اسم الطابعة / المحطة:
+                {t('pos.pos_workspace.pos_kitchen_printers_modal.s5', "اسم الطابعة / المحطة:")}
               </label>
               <input
                 value={name}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
-                placeholder="مثال: طابعة البار والمشروبات"
+                placeholder={t('pos.pos_workspace.pos_kitchen_printers_modal.s6', "مثال: طابعة البار والمشروبات")}
                 required
                 style={inputStyle}
               />
@@ -192,7 +194,7 @@ export const PosKitchenPrintersModal: React.FC<PosKitchenPrintersModalProps> = (
 
             <div>
               <label style={{ fontSize: '11.5px', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '4px' }}>
-                محطة التحضير (Station):
+                {t('pos.pos_workspace.pos_kitchen_printers_modal.s7', "محطة التحضير (Station):")}
               </label>
               <CustomSelect
                 value={stationCode}
@@ -203,7 +205,7 @@ export const PosKitchenPrintersModal: React.FC<PosKitchenPrintersModalProps> = (
 
             <div>
               <label style={{ fontSize: '11.5px', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '4px' }}>
-                عنوان IP على الشبكة (Local IP):
+                {t('pos.pos_workspace.pos_kitchen_printers_modal.s8', "عنوان IP على الشبكة (Local IP):")}
               </label>
               <input
                 value={ipAddress}
@@ -216,7 +218,7 @@ export const PosKitchenPrintersModal: React.FC<PosKitchenPrintersModalProps> = (
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
               <div>
                 <label style={{ fontSize: '11.5px', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '4px' }}>
-                  المنفذ (Port):
+                  {t('pos.pos_workspace.pos_kitchen_printers_modal.s9', "المنفذ (Port):")}
                 </label>
                 <input
                   type="number"
@@ -229,14 +231,14 @@ export const PosKitchenPrintersModal: React.FC<PosKitchenPrintersModalProps> = (
 
               <div>
                 <label style={{ fontSize: '11.5px', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '4px' }}>
-                  عرض الورق:
+                  {t('pos.pos_workspace.pos_kitchen_printers_modal.s10', "عرض الورق:")}
                 </label>
                 <CustomSelect
                   value={paperWidth}
                   onChange={(val: string) => setPaperWidth(val)}
                   options={[
-                    { label: '80 مم (قياسي)', value: '80mm' },
-                    { label: '58 مم (مصغر)', value: '58mm' },
+                    { label: t('pos.pos_workspace.pos_kitchen_printers_modal.s11', "80 مم (قياسي)"), value: '80mm' },
+                    { label: t('pos.pos_workspace.pos_kitchen_printers_modal.s12', "58 مم (مصغر)"), value: '58mm' },
                   ]}
                 />
               </div>
@@ -250,7 +252,7 @@ export const PosKitchenPrintersModal: React.FC<PosKitchenPrintersModalProps> = (
                 checked={isActive}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setIsActive(e.target.checked)}
               />
-              <span>تفعيل الطابعة لاستقبال بونات التحضير آلياً</span>
+              <span>{t('pos.pos_workspace.pos_kitchen_printers_modal.s13', "تفعيل الطابعة لاستقبال بونات التحضير آلياً")}</span>
             </label>
 
             <Button
@@ -259,7 +261,7 @@ export const PosKitchenPrintersModal: React.FC<PosKitchenPrintersModalProps> = (
               disabled={saving}
               style={{ height: '34px', fontSize: '12px', fontWeight: 700, minWidth: '110px' }}
             >
-              {saving ? 'جاري الحفظ...' : (editingId ? 'تحديث الطابعة' : 'حفظ الطابعة')}
+              {saving ? t('pos.pos_workspace.pos_kitchen_printers_modal.s14', "جاري الحفظ...") : (editingId ? t('pos.pos_workspace.pos_kitchen_printers_modal.s15', "تحديث الطابعة") : t('pos.pos_workspace.pos_kitchen_printers_modal.s16', "حفظ الطابعة"))}
             </Button>
           </div>
         </form>
@@ -267,12 +269,12 @@ export const PosKitchenPrintersModal: React.FC<PosKitchenPrintersModalProps> = (
         {/* Existing Printers List */}
         <div>
           <div style={{ fontSize: '12px', fontWeight: 800, color: '#475569', marginBottom: '8px' }}>
-            الطابعات المعرفة بالنظام ({printers.length})
+            {t('pos.pos_workspace.pos_kitchen_printers_modal.s17', "الطابعات المعرفة بالنظام (")}{printers.length})
           </div>
 
           {loading ? (
             <div style={{ padding: '20px', textAlign: 'center', color: '#94a3b8', fontSize: '12px' }}>
-              جاري تحميل الطابعات...
+              {t('pos.pos_workspace.pos_kitchen_printers_modal.s18', "جاري تحميل الطابعات...")}
             </div>
           ) : printers.length === 0 ? (
             <div style={{
@@ -284,7 +286,7 @@ export const PosKitchenPrintersModal: React.FC<PosKitchenPrintersModalProps> = (
               color: '#64748b',
               fontSize: '12px',
             }}>
-              لم يتم تعريف أي طابعات مطبخ شبكية بعد. أضف طابعة للبدء في توجيه البونات تلقائياً.
+              {t('pos.pos_workspace.pos_kitchen_printers_modal.s19', "لم يتم تعريف أي طابعات مطبخ شبكية بعد. أضف طابعة للبدء في توجيه البونات تلقائياً.")}
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '230px', overflowY: 'auto' }}>
@@ -315,7 +317,7 @@ export const PosKitchenPrintersModal: React.FC<PosKitchenPrintersModalProps> = (
                         {printer.name}
                       </div>
                       <div style={{ fontSize: '11px', color: '#64748b', display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px' }}>
-                        <span>المحطة: {getStationLabel(printer.station_code)}</span>
+                        <span>{t('pos.pos_workspace.pos_kitchen_printers_modal.s20', "المحطة:")} {getStationLabel(printer.station_code)}</span>
                         <span>•</span>
                         <span style={{ direction: 'ltr', display: 'inline-block' }}>{printer.ip_address || 'USB/Direct'}:{printer.port}</span>
                         <span>•</span>
@@ -333,7 +335,7 @@ export const PosKitchenPrintersModal: React.FC<PosKitchenPrintersModalProps> = (
                       background: printer.is_active ? '#dcfce7' : '#fee2e2',
                       color: printer.is_active ? '#166534' : '#991b1b',
                     }}>
-                      {printer.is_active ? 'نشطة' : 'معطلة'}
+                      {printer.is_active ? t('pos.pos_workspace.pos_kitchen_printers_modal.s21', "نشطة") : t('pos.pos_workspace.pos_kitchen_printers_modal.s22', "معطلة")}
                     </span>
                     <Button
                       type="button"
@@ -341,7 +343,7 @@ export const PosKitchenPrintersModal: React.FC<PosKitchenPrintersModalProps> = (
                       onClick={() => handleEdit(printer)}
                       style={{ height: '28px', fontSize: '11px', padding: '0 8px' }}
                     >
-                      تعديل
+                      {t('pos.pos_workspace.pos_kitchen_printers_modal.s23', "تعديل")}
                     </Button>
                     <Button
                       type="button"

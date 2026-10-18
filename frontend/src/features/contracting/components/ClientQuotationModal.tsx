@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useRef, useMemo, useEffect } from 'react';
 import { StandardDialog } from '@/shared/components/StandardDialog';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
@@ -49,6 +50,7 @@ export function ClientQuotationModal({
   items,
   currency: currencyProp,
 }: ClientQuotationModalProps) {
+  const { t } = useTranslation();
   const { currencySymbol } = useSystemCurrency(currencyProp);
   const currency = currencyProp || currencySymbol;
   const printRef = useRef<HTMLDivElement>(null);
@@ -607,8 +609,8 @@ export function ClientQuotationModal({
     <StandardDialog
       open={isOpen}
       onClose={onClose}
-      title="عرض سعر مالي رسمي للمالك والضرائب والتأمينات"
-      subtitle="احتساب القيمة المضافة، وتأمينات المقاولة الاجتماعية، ومصاريف الإشراف مع تصدير إكسيل مسعر وطباعة PDF رسمية"
+      title={t('contracting.client_quotation_modal.s0', "عرض سعر مالي رسمي للمالك والضرائب والتأمينات")}
+      subtitle={t('contracting.client_quotation_modal.s1', "احتساب القيمة المضافة، وتأمينات المقاولة الاجتماعية، ومصاريف الإشراف مع تصدير إكسيل مسعر وطباعة PDF رسمية")}
       width="min(1150px, 96vw)"
       minHeight="min(640px, 88vh)"
       footerActions={
@@ -627,7 +629,7 @@ export function ClientQuotationModal({
               cursor: 'pointer',
             }}
           >
-            إغلاق
+            {t('contracting.client_quotation_modal.s2', "إغلاق")}
           </button>
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
             <button
@@ -648,7 +650,7 @@ export function ClientQuotationModal({
               }}
             >
               <AppIcons.FileSpreadsheet size={16} />
-              <span>تصدير إكسيل مسعر (Excel)</span>
+              <span>{t('contracting.client_quotation_modal.s3', "تصدير إكسيل مسعر (Excel)")}</span>
             </button>
             <button
               type="button"
@@ -668,7 +670,7 @@ export function ClientQuotationModal({
               }}
             >
               <AppIcons.Share2 size={16} />
-              <span>واتساب (WhatsApp)</span>
+              <span>{t('contracting.client_quotation_modal.s4', "واتساب (WhatsApp)")}</span>
             </button>
             <button
               type="button"
@@ -688,7 +690,7 @@ export function ClientQuotationModal({
               }}
             >
               <AppIcons.Printer size={16} />
-              <span>طباعة وتصدير PDF رسمي</span>
+              <span>{t('contracting.client_quotation_modal.s5', "طباعة وتصدير PDF رسمي")}</span>
             </button>
           </div>
         </div>
@@ -710,7 +712,7 @@ export function ClientQuotationModal({
             }}
           >
             <span style={{ fontSize: '12px', fontWeight: 700, color: '#475569' }}>
-              اختر نطاق العرض للطباعة والتصدير:
+              {t('contracting.client_quotation_modal.s6', "اختر نطاق العرض للطباعة والتصدير:")}
             </span>
             {availableScopes.map((scope) => {
               const isSelected = selectedScope === scope.id;
@@ -758,7 +760,7 @@ export function ClientQuotationModal({
                 checked={includeSocialInsurance}
                 onChange={(e) => setIncludeSocialInsurance(e.target.checked)}
               />
-              <span>تأمينات العملية الاجتماعية</span>
+              <span>{t('contracting.client_quotation_modal.s7', "تأمينات العملية الاجتماعية")}</span>
             </label>
             {includeSocialInsurance && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -769,7 +771,7 @@ export function ClientQuotationModal({
                   onChange={(e) => setSocialInsurancePercent(parseFloat(e.target.value) || 0)}
                   style={{ width: '70px', height: '30px', padding: '0 6px', borderRadius: '6px', border: '1px solid #cbd5e1', textAlign: 'center' }}
                 />
-                <span style={{ fontSize: 'var(--font-micro)', color: '#64748b' }}>% (2.16% مباني / 3.6% تشطيب)</span>
+                <span style={{ fontSize: 'var(--font-micro)', color: '#64748b' }}>{t('contracting.client_quotation_modal.s8', "% (2.16% مباني / 3.6% تشطيب)")}</span>
               </div>
             )}
           </div>
@@ -782,7 +784,7 @@ export function ClientQuotationModal({
                 checked={includeOfficeMargin}
                 onChange={(e) => setIncludeOfficeMargin(e.target.checked)}
               />
-              <span>مصاريف مكتب المقاولات والإشراف</span>
+              <span>{t('contracting.client_quotation_modal.s9', "مصاريف مكتب المقاولات والإشراف")}</span>
             </label>
             {includeOfficeMargin && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -793,7 +795,7 @@ export function ClientQuotationModal({
                   onChange={(e) => setOfficeMarginPercent(parseFloat(e.target.value) || 0)}
                   style={{ width: '70px', height: '30px', padding: '0 6px', borderRadius: '6px', border: '1px solid #cbd5e1', textAlign: 'center' }}
                 />
-                <span style={{ fontSize: 'var(--font-micro)', color: '#64748b' }}>% أتعاب إشراف وضريبة أرباح</span>
+                <span style={{ fontSize: 'var(--font-micro)', color: '#64748b' }}>{t('contracting.client_quotation_modal.s10', "% أتعاب إشراف وضريبة أرباح")}</span>
               </div>
             )}
           </div>
@@ -806,7 +808,7 @@ export function ClientQuotationModal({
                 checked={includeVat}
                 onChange={(e) => setIncludeVat(e.target.checked)}
               />
-              <span>إضافة ضريبة القيمة المضافة (VAT)</span>
+              <span>{t('contracting.client_quotation_modal.s11', "إضافة ضريبة القيمة المضافة (VAT)")}</span>
             </label>
             {includeVat && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -817,7 +819,7 @@ export function ClientQuotationModal({
                   onChange={(e) => setVatPercent(parseFloat(e.target.value) || 0)}
                   style={{ width: '70px', height: '30px', padding: '0 6px', borderRadius: '6px', border: '1px solid #cbd5e1', textAlign: 'center' }}
                 />
-                <span style={{ fontSize: 'var(--font-micro)', color: '#64748b' }}>% القيمة المضافة (14%)</span>
+                <span style={{ fontSize: 'var(--font-micro)', color: '#64748b' }}>{t('contracting.client_quotation_modal.s12', "% القيمة المضافة (14%)")}</span>
               </div>
             )}
           </div>
@@ -830,12 +832,12 @@ export function ClientQuotationModal({
                 checked={includeCompanyHeaderInExcel}
                 onChange={(e) => setIncludeCompanyHeaderInExcel(e.target.checked)}
               />
-              <span>تصدير كعرض سعر رسمي ملون بهوية الشركة</span>
+              <span>{t('contracting.client_quotation_modal.s13', "تصدير كعرض سعر رسمي ملون بهوية الشركة")}</span>
             </label>
             <span style={{ fontSize: 'var(--font-micro)', color: includeCompanyHeaderInExcel ? '#170e5e' : '#15803d', fontWeight: 600 }}>
               {includeCompanyHeaderInExcel
-                ? 'ملف إكسيل منسق وملون بترويسة الشركة وبنود العميل المنسقة'
-                : 'شيت العميل الأصلي بكامل ألوانه وتنسيقاته وديباجته (المعتمد)'}
+                ? t('contracting.client_quotation_modal.s14', "ملف إكسيل منسق وملون بترويسة الشركة وبنود العميل المنسقة")
+                : t('contracting.client_quotation_modal.s15', "شيت العميل الأصلي بكامل ألوانه وتنسيقاته وديباجته (المعتمد)")}
             </span>
           </div>
         </div>
@@ -875,7 +877,7 @@ export function ClientQuotationModal({
                   {resolvedCompanyName}
                 </h3>
                 <p style={{ margin: '3px 0 0', fontSize: 'var(--font-subtitle)', color: '#64748b' }}>
-                  {[resolvedCompanyPhone ? `هاتف: ${resolvedCompanyPhone}` : '', resolvedCompanyAddress ? `العنوان: ${resolvedCompanyAddress}` : '', resolvedCompanyTaxNumber ? `الرقم الضريبي: ${resolvedCompanyTaxNumber}` : ''].filter(Boolean).join('  |  ') || 'قسم العطاءات والمناقصات والمكتب الفني'}
+                  {[resolvedCompanyPhone ? `هاتف: ${resolvedCompanyPhone}` : '', resolvedCompanyAddress ? `العنوان: ${resolvedCompanyAddress}` : '', resolvedCompanyTaxNumber ? `الرقم الضريبي: ${resolvedCompanyTaxNumber}` : ''].filter(Boolean).join('  |  ') || t('contracting.client_quotation_modal.s16', "قسم العطاءات والمناقصات والمكتب الفني")}
                 </p>
               </div>
             </div>
@@ -891,10 +893,10 @@ export function ClientQuotationModal({
                   fontSize: 'var(--font-badge)',
                 }}
               >
-                عرض سعر مالي رسمي
+                {t('contracting.client_quotation_modal.s17', "عرض سعر مالي رسمي")}
               </span>
               <p style={{ margin: '3px 0 0', fontSize: 'var(--font-micro)', color: '#64748b' }}>
-                التاريخ: {new Date().toLocaleDateString('ar-EG')}
+                {t('contracting.client_quotation_modal.s18', "التاريخ:")} {new Date().toLocaleDateString('ar-EG')}
               </p>
             </div>
           </div>
@@ -913,17 +915,17 @@ export function ClientQuotationModal({
             }}
           >
             <div>
-              <span style={{ fontSize: 'var(--font-micro)', color: '#64748b' }}>اسم المشروع:</span>
+              <span style={{ fontSize: 'var(--font-micro)', color: '#64748b' }}>{t('contracting.client_quotation_modal.s19', "اسم المشروع:")}</span>
               <strong style={{ display: 'block', fontSize: 'var(--font-body)', color: '#0f172a' }}>{projectName}</strong>
             </div>
             <div>
-              <span style={{ fontSize: 'var(--font-micro)', color: '#64748b' }}>الجهة المالكة / العميل:</span>
+              <span style={{ fontSize: 'var(--font-micro)', color: '#64748b' }}>{t('contracting.client_quotation_modal.s20', "الجهة المالكة / العميل:")}</span>
               <strong style={{ display: 'block', fontSize: 'var(--font-body)', color: '#0f172a' }}>{clientName}</strong>
             </div>
             <div>
-              <span style={{ fontSize: 'var(--font-micro)', color: '#64748b' }}>النطاق المعروض:</span>
+              <span style={{ fontSize: 'var(--font-micro)', color: '#64748b' }}>{t('contracting.client_quotation_modal.s21', "النطاق المعروض:")}</span>
               <strong style={{ display: 'block', fontSize: 'var(--font-body)', color: '#170e5e' }}>
-                {activeScopeLabel} ({displayedItems.length} بند)
+                {activeScopeLabel} ({displayedItems.length} {t('contracting.client_quotation_modal.s22', "بند)")}
               </strong>
             </div>
           </div>
@@ -942,13 +944,13 @@ export function ClientQuotationModal({
               </colgroup>
               <thead style={{ position: 'sticky', top: 0, zIndex: 2 }}>
                 <tr style={{ backgroundColor: '#170e5e', color: '#ffffff' }}>
-                  <th style={{ padding: '6px 6px', fontSize: 'var(--font-table-head)', textAlign: 'center' }}>م</th>
-                  <th style={{ padding: '6px 8px', fontSize: 'var(--font-table-head)' }}>كود البند</th>
-                  <th style={{ padding: '6px 8px', fontSize: 'var(--font-table-head)' }}>بيان الأعمال والمواصفات</th>
-                  <th style={{ padding: '6px 6px', fontSize: 'var(--font-table-head)', textAlign: 'center' }}>الوحدة</th>
-                  <th style={{ padding: '6px 6px', fontSize: 'var(--font-table-head)', textAlign: 'center' }}>الكمية</th>
-                  <th style={{ padding: '6px 8px', fontSize: 'var(--font-table-head)' }}>سعر الفئة</th>
-                  <th style={{ padding: '6px 8px', fontSize: 'var(--font-table-head)' }}>الإجمالي</th>
+                  <th style={{ padding: '6px 6px', fontSize: 'var(--font-table-head)', textAlign: 'center' }}>{t('contracting.client_quotation_modal.s23', "م")}</th>
+                  <th style={{ padding: '6px 8px', fontSize: 'var(--font-table-head)' }}>{t('contracting.client_quotation_modal.s24', "كود البند")}</th>
+                  <th style={{ padding: '6px 8px', fontSize: 'var(--font-table-head)' }}>{t('contracting.client_quotation_modal.s25', "بيان الأعمال والمواصفات")}</th>
+                  <th style={{ padding: '6px 6px', fontSize: 'var(--font-table-head)', textAlign: 'center' }}>{t('contracting.client_quotation_modal.s26', "الوحدة")}</th>
+                  <th style={{ padding: '6px 6px', fontSize: 'var(--font-table-head)', textAlign: 'center' }}>{t('contracting.client_quotation_modal.s27', "الكمية")}</th>
+                  <th style={{ padding: '6px 8px', fontSize: 'var(--font-table-head)' }}>{t('contracting.client_quotation_modal.s28', "سعر الفئة")}</th>
+                  <th style={{ padding: '6px 8px', fontSize: 'var(--font-table-head)' }}>{t('contracting.client_quotation_modal.s29', "الإجمالي")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -1014,27 +1016,27 @@ export function ClientQuotationModal({
             }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--font-body)', color: '#475569' }}>
-              <span>إجمالي قيمة الأعمال التنفيذية الأساسية:</span>
+              <span>{t('contracting.client_quotation_modal.s30', "إجمالي قيمة الأعمال التنفيذية الأساسية:")}</span>
               <strong style={{ color: '#0f172a' }}>{Math.round(baseContractValue).toLocaleString('en-US')} {currency}</strong>
             </div>
 
             {includeSocialInsurance && (
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--font-body)', color: '#475569' }}>
-                <span>تأمينات اجتماعية على العملية ({socialInsurancePercent}%):</span>
+                <span>{t('contracting.client_quotation_modal.s31', "تأمينات اجتماعية على العملية (")}{socialInsurancePercent}%):</span>
                 <strong style={{ color: '#0f172a' }}>{Math.round(socialInsuranceAmount).toLocaleString('en-US')} {currency}</strong>
               </div>
             )}
 
             {includeOfficeMargin && (
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--font-body)', color: '#475569' }}>
-                <span>مصاريف مكتب المقاولات والإشراف الهندسي ({officeMarginPercent}%):</span>
+                <span>{t('contracting.client_quotation_modal.s32', "مصاريف مكتب المقاولات والإشراف الهندسي (")}{officeMarginPercent}%):</span>
                 <strong style={{ color: '#0f172a' }}>{Math.round(officeMarginAmount).toLocaleString('en-US')} {currency}</strong>
               </div>
             )}
 
             {includeVat && (
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--font-body)', color: '#475569' }}>
-                <span>ضريبة القيمة المضافة ({vatPercent}%):</span>
+                <span>{t('contracting.client_quotation_modal.s33', "ضريبة القيمة المضافة (")}{vatPercent}%):</span>
                 <strong style={{ color: '#0f172a' }}>{Math.round(vatAmount).toLocaleString('en-US')} {currency}</strong>
               </div>
             )}
@@ -1049,7 +1051,7 @@ export function ClientQuotationModal({
                 fontSize: 'var(--font-section-title)',
               }}
             >
-              <strong style={{ color: '#170e5e' }}>إجمالي قيمة العرض المالي النهائي:</strong>
+              <strong style={{ color: '#170e5e' }}>{t('contracting.client_quotation_modal.s34', "إجمالي قيمة العرض المالي النهائي:")}</strong>
               <strong style={{ color: '#170e5e', fontSize: '1.15rem' }}>
                 {Math.round(finalTotalAmount).toLocaleString('en-US')} {currency}
               </strong>

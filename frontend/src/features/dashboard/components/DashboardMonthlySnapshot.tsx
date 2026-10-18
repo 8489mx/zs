@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { formatCurrency } from '@/lib/format';
 import type { DashboardManagerOverviewPayload } from '@/features/dashboard/api/dashboard.types';
@@ -13,6 +14,7 @@ function formatPercent(value: number | null | undefined) {
 }
 
 export function DashboardMonthlySnapshot({ data }: DashboardMonthlySnapshotProps) {
+  const { t } = useTranslation();
   if (!data) return null;
 
   const hasMonthlyActivity = Number(data.salesLast30.count || 0) > 0
@@ -23,35 +25,35 @@ export function DashboardMonthlySnapshot({ data }: DashboardMonthlySnapshotProps
     <section className="document-prototype-section dashboard-premium-card dashboard-card-compact dashboard-monthly-snapshot-card">
       <div className="section-header-compact-row">
         <h3 className="document-prototype-section-title">
-          لمحة شهرية مختصرة
+          {t('dashboard.dashboard_monthly_snapshot.s0', "لمحة شهرية مختصرة")}
         </h3>
         <div className="section-header-actions-group">
-          <Link className="section-header-action-btn" to="/reports">عرض التقارير</Link>
+          <Link className="section-header-action-btn" to="/reports">{t('dashboard.dashboard_monthly_snapshot.s1', "عرض التقارير")}</Link>
         </div>
       </div>
       <p className="muted small section-header-subtitle">
-        أرقام كافية للاتجاه العام، والتفاصيل الكاملة مكانها التقارير.
+        {t('dashboard.dashboard_monthly_snapshot.s2', "أرقام كافية للاتجاه العام، والتفاصيل الكاملة مكانها التقارير.")}
       </p>
       {hasMonthlyActivity ? (
         <div className="dashboard-monthly-snapshot-grid">
           <div className="manager-overview-metric">
-            <span>مبيعات آخر 30 يوم</span>
+            <span>{t('dashboard.dashboard_monthly_snapshot.s3', "مبيعات آخر 30 يوم")}</span>
             <strong>{formatCurrency(data.salesLast30.total)}</strong>
-            <small>{formatPercent(data.salesLast30.comparisonPercent)} عن الفترة السابقة</small>
+            <small>{formatPercent(data.salesLast30.comparisonPercent)} {t('dashboard.dashboard_monthly_snapshot.s4', "عن الفترة السابقة")}</small>
           </div>
           <div className="manager-overview-metric">
-            <span>صافي الربح</span>
+            <span>{t('dashboard.dashboard_monthly_snapshot.s5', "صافي الربح")}</span>
             <strong>{formatCurrency(data.profitSummary.netProfit)}</strong>
-            <small>بعد تكلفة البضاعة والمصروفات</small>
+            <small>{t('dashboard.dashboard_monthly_snapshot.s6', "بعد تكلفة البضاعة والمصروفات")}</small>
           </div>
           <div className="manager-overview-metric">
-            <span>متوسط الفاتورة</span>
+            <span>{t('dashboard.dashboard_monthly_snapshot.s7', "متوسط الفاتورة")}</span>
             <strong>{formatCurrency(data.salesLast30.averageInvoice)}</strong>
-            <small>{data.salesLast30.count} فاتورة في آخر 30 يوم</small>
+            <small>{data.salesLast30.count} {t('dashboard.dashboard_monthly_snapshot.s8', "فاتورة في آخر 30 يوم")}</small>
           </div>
         </div>
       ) : (
-        <div className="dashboard-inline-empty dashboard-monthly-empty">لا توجد بيانات شهرية كافية حاليًا.</div>
+        <div className="dashboard-inline-empty dashboard-monthly-empty">{t('dashboard.dashboard_monthly_snapshot.s9', "لا توجد بيانات شهرية كافية حاليًا.")}</div>
       )}
     </section>
   );

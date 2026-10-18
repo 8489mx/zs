@@ -125,6 +125,7 @@ export const settingsFormSchema = z.object({
   printShowFooter: z.boolean().default(true),
   printCompactReceipt: z.boolean().default(true),
   posReceiptTheme: z.string().default('classic'),
+  receiptItemLanguageMode: z.enum(['ar_primary', 'en_primary', 'ar_only', 'en_only']).default('ar_only'),
   printNumberFormat: z.enum(['arabic', 'english']).default('arabic'),
   printDualReceiptForOnlineDelivery: z.boolean().default(false),
   uiLanguage: z.enum(['ar', 'en']).default('ar'),

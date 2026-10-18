@@ -1,8 +1,10 @@
+import { useTranslation } from 'react-i18next';
 import { CSSProperties, KeyboardEvent, RefObject, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Field } from '@/shared/ui/field';
 
 import { matchesArabic } from '@/lib/arabic-normalization';
+import { translateUiText } from '@/lib/auto-translator';
 
 export type ComboboxOption = {
   id: string;
@@ -79,6 +81,10 @@ export function SearchableCombobox<T extends ComboboxOption>({
   style,
   inputStyle,
 }: SearchableComboboxProps<T>) {
+  const { t, i18n } = useTranslation();
+  const isEn = i18n.language === 'en';
+  const resolvedPlaceholder = isEn && placeholder ? (translateUiText(placeholder) || placeholder) : placeholder;
+  const resolvedEmptyLabel = isEn && emptyLabel ? (translateUiText(emptyLabel) || emptyLabel) : emptyLabel;
   const rootRef = useRef<HTMLDivElement | null>(null);
   const dropdownRef = useRef<HTMLDivElement | null>(null);
   const [open, setOpen] = useState(false);
@@ -370,7 +376,7 @@ export function SearchableCombobox<T extends ComboboxOption>({
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => selectOption(option)}
             >
-              <span className="purchase-prototype-combobox-option-title">{getLabel(option)}</span>
+              <span className="purchase-prototype-combobox-option-title">{isEn ? (translateUiText(getLabel(option)) || getLabel(option)) : getLabel(option)}</span>
               {getMeta?.(option) ? <span className="purchase-prototype-combobox-option-meta">{getMeta(option)}</span> : null}
             </button>
           ))}
@@ -388,7 +394,7 @@ export function SearchableCombobox<T extends ComboboxOption>({
         </>
       ) : hasSearchIntent ? (
         <div className="purchase-prototype-combobox-empty">
-          <span>{emptyLabel}</span>
+          <span>{resolvedEmptyLabel}</span>
           {hasCreateRow ? (
             <button
               type="button"
@@ -402,7 +408,7 @@ export function SearchableCombobox<T extends ComboboxOption>({
         </div>
       ) : showIdleHelper ? (
         <div className="purchase-prototype-combobox-empty purchase-prototype-combobox-helper">
-          <span>{idleHelperLabel ?? 'ابدأ بالكتابة لعرض النتائج'}</span>
+          <span>{idleHelperLabel ?? t('shared.ui.searchable_combobox.s0', "ابدأ بالكتابة لعرض النتائج")}</span>
         </div>
       ) : null}
     </div>,
@@ -424,7 +430,7 @@ export function SearchableCombobox<T extends ComboboxOption>({
           aria-invalid={Boolean(error)}
           aria-label={ariaLabel || label || placeholder}
           value={value}
-          placeholder={placeholder}
+          placeholder={resolvedPlaceholder}
           autoComplete="off"
           aria-autocomplete="list"
           aria-expanded={currentOpen}
@@ -446,7 +452,7 @@ export function SearchableCombobox<T extends ComboboxOption>({
             aria-invalid={Boolean(error)}
             aria-label={ariaLabel || label || placeholder}
             value={value}
-            placeholder={placeholder}
+            placeholder={resolvedPlaceholder}
             autoComplete="off"
             aria-autocomplete="list"
             aria-expanded={currentOpen}

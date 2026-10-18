@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
@@ -26,6 +27,7 @@ interface ProductOfferDialogProps {
 }
 
 export function ProductOfferDialog({ open, product: initialProduct, onClose, onSaved }: ProductOfferDialogProps) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { data: settings } = useSettingsQuery();
   const expiryThresholdDays = Number(settings?.expiryAlertDays || 30);
@@ -639,12 +641,12 @@ export function ProductOfferDialog({ open, product: initialProduct, onClose, onS
     <StandardDialog
       open={open}
       onClose={onClose}
-      title="إدارة العروض والخصومات والوجبات التجميعية"
-      subtitle={activeProduct ? `الصنف: ${activeProduct.name} · السعر الأساسي: ${formatCurrency(retailPrice)}` : 'إدارة العروض والخصومات والوجبات الكومبو المجمعة'}
+      title={t('products.product_offer_dialog.s0', "إدارة العروض والخصومات والوجبات التجميعية")}
+      subtitle={activeProduct ? `الصنف: ${activeProduct.name} · السعر الأساسي: ${formatCurrency(retailPrice)}` : t('products.product_offer_dialog.s1', "إدارة العروض والخصومات والوجبات الكومبو المجمعة")}
       maxWidth="1140px"
       footerActions={
         <StandardDialogFooter
-          cancelText="إغلاق"
+          cancelText={t('products.product_offer_dialog.s2', "إغلاق")}
           onCancel={onClose}
         />
       }
@@ -669,11 +671,11 @@ export function ProductOfferDialog({ open, product: initialProduct, onClose, onS
                 {activeProduct.name}
               </span>
               <span style={{ background: '#ffffff', border: '1px solid #cbd5e1', padding: '2px 8px', borderRadius: 6, fontSize: '0.8rem', color: '#0f172a', fontWeight: 600 }}>
-                السعر الأساسي: {formatCurrency(retailPrice)}
+                {t('products.product_offer_dialog.s3', "السعر الأساسي:")} {formatCurrency(retailPrice)}
               </span>
               {costPrice > 0 && (
                 <span style={{ background: '#ffffff', border: '1px solid #cbd5e1', padding: '2px 8px', borderRadius: 6, fontSize: '0.8rem', color: '#64748b' }}>
-                  التكلفة: {formatCurrency(costPrice)}
+                  {t('products.product_offer_dialog.s4', "التكلفة:")} {formatCurrency(costPrice)}
                 </span>
               )}
               <span style={{
@@ -685,7 +687,7 @@ export function ProductOfferDialog({ open, product: initialProduct, onClose, onS
                 fontSize: '0.76rem',
                 fontWeight: 600
               }}>
-                {offers.length} {offers.length === 1 ? 'عرض مسجل' : 'عروض مسجلة'}
+                {offers.length} {offers.length === 1 ? t('products.product_offer_dialog.s5', "عرض مسجل") : t('products.product_offer_dialog.s6', "عروض مسجلة")}
               </span>
             </div>
 
@@ -713,7 +715,7 @@ export function ProductOfferDialog({ open, product: initialProduct, onClose, onS
                 <circle cx="11" cy="11" r="8" />
                 <line x1="21" y1="21" x2="16.65" y2="16.65" />
               </svg>
-              <span>اختيار صنف آخر</span>
+              <span>{t('products.product_offer_dialog.s7', "اختيار صنف آخر")}</span>
             </button>
           </div>
         ) : (
@@ -750,7 +752,7 @@ export function ProductOfferDialog({ open, product: initialProduct, onClose, onS
                   <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
                   <line x1="7" y1="7" x2="7.01" y2="7" />
                 </svg>
-                عروض الأصناف
+                {t('products.product_offer_dialog.s8', "عروض الأصناف")}
               </button>
 
               <button
@@ -776,7 +778,7 @@ export function ProductOfferDialog({ open, product: initialProduct, onClose, onS
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
                 </svg>
-                العروض المجمعة (الكومبو)
+                {t('products.product_offer_dialog.s9', "العروض المجمعة (الكومبو)")}
                 <span style={{
                   background: (dialogMode === 'active_combos' || dialogMode === 'create_combo') ? 'rgba(255,255,255,0.25)' : '#f1f5f9',
                   color: (dialogMode === 'active_combos' || dialogMode === 'create_combo') ? '#ffffff' : '#64748b',
@@ -799,7 +801,7 @@ export function ProductOfferDialog({ open, product: initialProduct, onClose, onS
               fontSize: '0.75rem',
               fontWeight: 600
             }}>
-              اختصار سريع: Ctrl+Alt+S
+              {t('products.product_offer_dialog.s10', "اختصار سريع: Ctrl+Alt+S")}
             </div>
           </div>
         )}

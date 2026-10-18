@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -47,6 +48,7 @@ export function PosVisualFloorCanvas({
   onRecallDraft,
   onResolveCalls,
 }: PosVisualFloorCanvasProps) {
+  const { t: __t } = useTranslation();
   const queryClient = useQueryClient();
   const canvasRef = useRef<HTMLDivElement>(null);
 
@@ -282,10 +284,10 @@ export function PosVisualFloorCanvas({
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <span style={{ fontSize: '12px', fontWeight: 800, color: '#170e5e' }}>
-            المخطط البصري التفاعلي للصالة (Visual Floor Canvas)
+            {__t('pos.pos_workspace.pos_visual_floor_canvas.s0', __t('pos.pos_workspace.pos_visual_floor_canvas.s0', "المخطط البصري التفاعلي للصالة (Visual Floor Canvas)"))}
           </span>
           <span style={{ fontSize: '11px', color: '#64748b' }}>
-            {visibleLayouts.length} طاولة بالمخطط
+            {visibleLayouts.length} {__t('pos.pos_workspace.pos_visual_floor_canvas.s1', __t('pos.pos_workspace.pos_visual_floor_canvas.s1', "طاولة بالمخطط"))}
           </span>
         </div>
 
@@ -311,7 +313,7 @@ export function PosVisualFloorCanvas({
                 }}
               >
                 <PlusIcon size={13} color="#166534" />
-                <span>إضافة طاولة</span>
+                <span>{__t('pos.pos_workspace.pos_visual_floor_canvas.s2', __t('pos.pos_workspace.pos_visual_floor_canvas.s2', "إضافة طاولة"))}</span>
               </button>
 
               <button
@@ -327,9 +329,9 @@ export function PosVisualFloorCanvas({
                   fontWeight: 600,
                   cursor: 'pointer',
                 }}
-                title="إعادة التوزيع المتناسق للطاولات تلقائياً"
+                title={__t('pos.pos_workspace.pos_visual_floor_canvas.s3', __t('pos.pos_workspace.pos_visual_floor_canvas.s3', "إعادة التوزيع المتناسق للطاولات تلقائياً"))}
               >
-                توزيع تلقائي
+                {__t('pos.pos_workspace.pos_visual_floor_canvas.s4', __t('pos.pos_workspace.pos_visual_floor_canvas.s4', "توزيع تلقائي"))}
               </button>
 
               <button
@@ -351,7 +353,7 @@ export function PosVisualFloorCanvas({
                 }}
               >
                 <SaveIcon size={13} color="#ffffff" />
-                <span>{saveMutation.isPending ? 'جاري الحفظ...' : 'حفظ التصميم'}</span>
+                <span>{saveMutation.isPending ? __t('pos.pos_workspace.pos_visual_floor_canvas.s5', __t('pos.pos_workspace.pos_visual_floor_canvas.s5', "جاري الحفظ...")) : __t('pos.pos_workspace.pos_visual_floor_canvas.s6', __t('pos.pos_workspace.pos_visual_floor_canvas.s6', "حفظ التصميم"))}</span>
               </button>
 
               <button
@@ -368,7 +370,7 @@ export function PosVisualFloorCanvas({
                   cursor: 'pointer',
                 }}
               >
-                إلغاء
+                {__t('pos.pos_workspace.pos_visual_floor_canvas.s7', __t('pos.pos_workspace.pos_visual_floor_canvas.s7', "إلغاء"))}
               </button>
             </>
           ) : (
@@ -388,10 +390,10 @@ export function PosVisualFloorCanvas({
                 alignItems: 'center',
                 gap: '5px',
               }}
-              title="تفعيل وضع السحب والإفلات وتغيير مواقع وأشكال الطاولات"
+              title={__t('pos.pos_workspace.pos_visual_floor_canvas.s8', __t('pos.pos_workspace.pos_visual_floor_canvas.s8', "تفعيل وضع السحب والإفلات وتغيير مواقع وأشكال الطاولات"))}
             >
               <EditIcon size={13} color="#170e5e" />
-              <span>تعديل وتصميم المخطط</span>
+              <span>{__t('pos.pos_workspace.pos_visual_floor_canvas.s9', __t('pos.pos_workspace.pos_visual_floor_canvas.s9', "تعديل وتصميم المخطط"))}</span>
             </button>
           )}
         </div>
@@ -414,7 +416,7 @@ export function PosVisualFloorCanvas({
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span style={{ fontWeight: 800, color: '#1e40af' }}>
-              طاولة #{activeTableId}:
+              {__t('pos.pos_workspace.pos_visual_floor_canvas.s10', __t('pos.pos_workspace.pos_visual_floor_canvas.s10', "طاولة #"))}{activeTableId}:
             </span>
 
             {/* Shape Selector */}
@@ -442,19 +444,19 @@ export function PosVisualFloorCanvas({
                   }}
                 >
                   {sh === 'square'
-                    ? 'مربعة'
+                    ? __t('pos.pos_workspace.pos_visual_floor_canvas.s11', __t('pos.pos_workspace.pos_visual_floor_canvas.s11', "مربعة"))
                     : sh === 'round'
-                    ? 'دائرية'
+                    ? __t('pos.pos_workspace.pos_visual_floor_canvas.s12', __t('pos.pos_workspace.pos_visual_floor_canvas.s12', "دائرية"))
                     : sh === 'rectangle'
-                    ? 'مستطيلة'
-                    : 'كنب'}
+                    ? __t('pos.pos_workspace.pos_visual_floor_canvas.s13', __t('pos.pos_workspace.pos_visual_floor_canvas.s13', "مستطيلة"))
+                    : __t('pos.pos_workspace.pos_visual_floor_canvas.s14', __t('pos.pos_workspace.pos_visual_floor_canvas.s14', "كنب"))}
                 </button>
               ))}
             </div>
 
             {/* Seats Controls: Strict RTL Stepper [+] on Right, [-] on Left */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginInlineStart: '6px' }}>
-              <span style={{ color: '#475569', fontSize: '11px' }}>المقاعد:</span>
+              <span style={{ color: '#475569', fontSize: '11px' }}>{__t('pos.pos_workspace.pos_visual_floor_canvas.s15', __t('pos.pos_workspace.pos_visual_floor_canvas.s15', "المقاعد:"))}</span>
               <button
                 type="button"
                 onClick={() => handleChangeSeats(activeTableId, 1)}
@@ -511,7 +513,7 @@ export function PosVisualFloorCanvas({
               }}
             >
               <RotateCcwIcon size={11} />
-              <span>تدوير 90°</span>
+              <span>{__t('pos.pos_workspace.pos_visual_floor_canvas.s16', __t('pos.pos_workspace.pos_visual_floor_canvas.s16', "تدوير 90°"))}</span>
             </button>
           </div>
 
@@ -534,7 +536,7 @@ export function PosVisualFloorCanvas({
             }}
           >
             <TrashIcon size={12} color="#991b1b" />
-            <span>حذف الطاولة</span>
+            <span>{__t('pos.pos_workspace.pos_visual_floor_canvas.s17', __t('pos.pos_workspace.pos_visual_floor_canvas.s17', "حذف الطاولة"))}</span>
           </button>
         </div>
       )}
@@ -678,7 +680,7 @@ export function PosVisualFloorCanvas({
                     fontWeight: 600,
                   }}
                 >
-                  ({tbl.seats || 4}م)
+                  ({tbl.seats || 4}{__t('pos.pos_workspace.pos_visual_floor_canvas.s18', __t('pos.pos_workspace.pos_visual_floor_canvas.s18', "م)"))}
                 </span>
               </div>
 
@@ -695,7 +697,7 @@ export function PosVisualFloorCanvas({
                     marginTop: '2px',
                   }}
                 >
-                  مسدد
+                  {__t('pos.pos_workspace.pos_visual_floor_canvas.s19', __t('pos.pos_workspace.pos_visual_floor_canvas.s19', "مسدد"))}
                 </div>
               ) : hasCalls ? (
                 <div
@@ -714,7 +716,7 @@ export function PosVisualFloorCanvas({
                   }}
                 >
                   <BellIcon size={10} color="#b45309" />
-                  <span>نداء</span>
+                  <span>{__t('pos.pos_workspace.pos_visual_floor_canvas.s20', __t('pos.pos_workspace.pos_visual_floor_canvas.s20', "نداء"))}</span>
                 </div>
               ) : isOccupied ? (
                 <div style={{ textAlign: 'center', marginTop: '2px' }}>
@@ -729,7 +731,7 @@ export function PosVisualFloorCanvas({
                     {formatCurrency(Number(draft?.cartTotal || draft?.totals?.total || 0))}
                   </div>
                   <div style={{ fontSize: '8.5px', color: '#64748b' }}>
-                    {draft?.cart?.length || draft?.itemCount || 1} صنف
+                    {draft?.cart?.length || draft?.itemCount || 1} {__t('pos.pos_workspace.pos_visual_floor_canvas.s21', __t('pos.pos_workspace.pos_visual_floor_canvas.s21', "صنف"))}
                   </div>
                 </div>
               ) : reservation ? (
@@ -744,7 +746,7 @@ export function PosVisualFloorCanvas({
                     marginTop: '2px',
                   }}
                 >
-                  حجز
+                  {__t('pos.pos_workspace.pos_visual_floor_canvas.s22', __t('pos.pos_workspace.pos_visual_floor_canvas.s22', "حجز"))}
                 </div>
               ) : (
                 <span
@@ -755,7 +757,7 @@ export function PosVisualFloorCanvas({
                     marginTop: '2px',
                   }}
                 >
-                  متاحة
+                  {__t('pos.pos_workspace.pos_visual_floor_canvas.s23', __t('pos.pos_workspace.pos_visual_floor_canvas.s23', "متاحة"))}
                 </span>
               )}
             </div>

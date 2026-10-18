@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/shared/ui/button';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { CheckIcon, ClockIcon, PrinterIcon } from '@/shared/components/icons/AppIcons';
@@ -24,6 +25,7 @@ export function DeliveryOrderCard({
   isSettlePending,
   activeSettleOrderId,
 }: DeliveryOrderCardProps) {
+  const { t } = useTranslation();
   const isSettled = Boolean(order.settledAt);
 
   return (
@@ -67,12 +69,12 @@ export function DeliveryOrderCard({
           {isSettled ? (
             <>
               <CheckIcon size={12} color="#166534" />
-              <span>تم التسليم والتحصيل</span>
+              <span>{t('delivery_reps.delivery_order_card.s0', "تم التسليم والتحصيل")}</span>
             </>
           ) : (
             <>
               <ClockIcon size={12} color="#c2410c" />
-              <span>قيد التوصيل</span>
+              <span>{t('delivery_reps.delivery_order_card.s1', "قيد التوصيل")}</span>
             </>
           )}
         </span>
@@ -92,7 +94,7 @@ export function DeliveryOrderCard({
 
       {/* Amount to collect */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc', padding: '8px 12px', borderRadius: '8px' }}>
-        <span style={{ fontSize: '12px', fontWeight: 700, color: '#475569' }}>المبلغ المطلوب تحصيله:</span>
+        <span style={{ fontSize: '12px', fontWeight: 700, color: '#475569' }}>{t('delivery_reps.delivery_order_card.s2', "المبلغ المطلوب تحصيله:")}</span>
         <span style={{ fontSize: '16px', fontWeight: 900, color: '#16a34a' }}>
           {Number(order.total).toLocaleString('ar-EG')} <CurrencySymbol />
         </span>
@@ -114,7 +116,7 @@ export function DeliveryOrderCard({
             cursor: 'pointer',
           }}
         >
-          اتصال
+          {t('delivery_reps.delivery_order_card.s3', "اتصال")}
         </button>
 
         <button
@@ -132,7 +134,7 @@ export function DeliveryOrderCard({
             cursor: 'pointer',
           }}
         >
-          واتساب
+          {t('delivery_reps.delivery_order_card.s4', "واتساب")}
         </button>
 
         <button
@@ -150,7 +152,7 @@ export function DeliveryOrderCard({
             cursor: 'pointer',
           }}
         >
-          الخريطة
+          {t('delivery_reps.delivery_order_card.s5', "الخريطة")}
         </button>
 
         <button
@@ -171,7 +173,7 @@ export function DeliveryOrderCard({
           }}
         >
           <PrinterIcon size={13} color="#334155" />
-          <span>إيصال</span>
+          <span>{t('delivery_reps.delivery_order_card.s6', "إيصال")}</span>
         </button>
       </div>
 
@@ -181,18 +183,18 @@ export function DeliveryOrderCard({
           {order.deliverySignature && (
             <span style={{ fontSize: '11px', background: '#e0e7ff', color: '#3730a3', padding: '2px 8px', borderRadius: '6px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
               <CheckIcon size={11} color="#3730a3" />
-              <span>توقيع العميل معتمد</span>
+              <span>{t('delivery_reps.delivery_order_card.s7', "توقيع العميل معتمد")}</span>
             </span>
           )}
           {order.deliveryPhotoUrl && (
             <span style={{ fontSize: '11px', background: '#fef3c7', color: '#92400e', padding: '2px 8px', borderRadius: '6px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
               <CheckIcon size={11} color="#92400e" />
-              <span>صورة إثبات التسليم مرفقة</span>
+              <span>{t('delivery_reps.delivery_order_card.s8', "صورة إثبات التسليم مرفقة")}</span>
             </span>
           )}
           {order.deliveryNotes && (
             <span style={{ fontSize: '11px', color: '#64748b' }}>
-              ملاحظة: {order.deliveryNotes}
+              {t('delivery_reps.delivery_order_card.s9', "ملاحظة:")} {order.deliveryNotes}
             </span>
           )}
         </div>
@@ -204,8 +206,8 @@ export function DeliveryOrderCard({
           style={{ width: '100%', padding: '10px', fontSize: '13px', fontWeight: 800, background: '#16a34a', border: 'none', borderRadius: '10px' }}
         >
           {isSettlePending && activeSettleOrderId === order.id
-            ? 'جاري التأكيد...'
-            : 'تسليم وتحصيل (توقيع وكاميرا أوفلاين)'}
+            ? t('delivery_reps.delivery_order_card.s10', "جاري التأكيد...")
+            : t('delivery_reps.delivery_order_card.s11', "تسليم وتحصيل (توقيع وكاميرا أوفلاين)")}
         </Button>
       )}
     </div>

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect, type FC, type FormEvent } from 'react';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { CustomSelect } from '@/shared/ui/custom-select';
@@ -22,6 +23,7 @@ export const RecordInspectionModal: FC<RecordInspectionModalProps> = ({
   onSuccess,
   qcPoints,
 }) => {
+  const { t } = useTranslation();
   const [pointId, setPointId] = useState<string>('');
   const [referenceDocType, setReferenceDocType] = useState<'goods_receipt' | 'work_order' | 'delivery' | 'adhoc'>('goods_receipt');
   const [referenceDocId, setReferenceDocId] = useState('');
@@ -137,15 +139,15 @@ export const RecordInspectionModal: FC<RecordInspectionModalProps> = ({
     <StandardDialog
       open={open}
       onClose={onClose}
-      title="تسجيل فحص ومعاينة جودة (Record Quality Inspection)"
-      subtitle="إثبات نتائج فحص العينات، الكميات المقبولة والمرفوضة، وتوثيق عدم المطابقة"
+      title={t('inventory.quality.record_inspection_modal.s0', "تسجيل فحص ومعاينة جودة (Record Quality Inspection)")}
+      subtitle={t('inventory.quality.record_inspection_modal.s1', "إثبات نتائج فحص العينات، الكميات المقبولة والمرفوضة، وتوثيق عدم المطابقة")}
       size="lg"
     >
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
           <div>
             <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 600, color: '#334155' }}>
-              معيار / نقطة فحص الجودة
+              {t('inventory.quality.record_inspection_modal.s2', "معيار / نقطة فحص الجودة")}
             </label>
             <CustomSelect
               value={pointId}
@@ -156,7 +158,7 @@ export const RecordInspectionModal: FC<RecordInspectionModalProps> = ({
 
           <div>
             <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 600, color: '#334155' }}>
-              نوع المستند المرجعي *
+              {t('inventory.quality.record_inspection_modal.s3', "نوع المستند المرجعي *")}
             </label>
             <CustomSelect
               value={referenceDocType}
@@ -167,27 +169,27 @@ export const RecordInspectionModal: FC<RecordInspectionModalProps> = ({
 
           <div>
             <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 600, color: '#334155' }}>
-              رقم المستند / أمر الشغل *
+              {t('inventory.quality.record_inspection_modal.s4', "رقم المستند / أمر الشغل *")}
             </label>
             <input
               type="text"
               required
               value={referenceDocId}
               onChange={(e) => setReferenceDocId(e.target.value)}
-              placeholder="مثال: PO-260930-0001 أو WO-..."
+              placeholder={t('inventory.quality.record_inspection_modal.s5', "مثال: PO-260930-0001 أو WO-...")}
               style={{ width: '100%', height: '36px', padding: '6px 10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
             />
           </div>
 
           <div>
             <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 600, color: '#334155' }}>
-              الصنف الخاضع للفحص *
+              {t('inventory.quality.record_inspection_modal.s6', "الصنف الخاضع للفحص *")}
             </label>
             <CustomSelect
               value={productId}
               onChange={setProductId}
               options={productOptions}
-              placeholder="اختر الصنف..."
+              placeholder={t('inventory.quality.record_inspection_modal.s7', "اختر الصنف...")}
             />
           </div>
         </div>
@@ -196,7 +198,7 @@ export const RecordInspectionModal: FC<RecordInspectionModalProps> = ({
         <div style={{ background: '#f8fafc', padding: '14px', borderRadius: '10px', border: '1px solid #e2e8f0', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '14px' }}>
           <div>
             <label style={{ display: 'block', marginBottom: '4px', fontSize: '12.5px', fontWeight: 600, color: '#334155' }}>
-              إجمالي الكمية المفحوصة
+              {t('inventory.quality.record_inspection_modal.s8', "إجمالي الكمية المفحوصة")}
             </label>
             <input
               type="number"
@@ -211,7 +213,7 @@ export const RecordInspectionModal: FC<RecordInspectionModalProps> = ({
 
           <div>
             <label style={{ display: 'block', marginBottom: '4px', fontSize: '12.5px', fontWeight: 600, color: '#166534' }}>
-              الكمية السليمة المقبولة
+              {t('inventory.quality.record_inspection_modal.s9', "الكمية السليمة المقبولة")}
             </label>
             <input
               type="number"
@@ -225,7 +227,7 @@ export const RecordInspectionModal: FC<RecordInspectionModalProps> = ({
 
           <div>
             <label style={{ display: 'block', marginBottom: '4px', fontSize: '12.5px', fontWeight: 600, color: '#991b1b' }}>
-              الكمية المعيبة المرفوضة
+              {t('inventory.quality.record_inspection_modal.s10', "الكمية المعيبة المرفوضة")}
             </label>
             <input
               type="number"
@@ -242,7 +244,7 @@ export const RecordInspectionModal: FC<RecordInspectionModalProps> = ({
         {selectedPoint?.test_type === 'measure' ? (
           <div>
             <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 600, color: '#334155' }}>
-              القيمة المقاسة فعلياً ({selectedPoint.measure_unit || 'وحدة القياس'}) [الحدود: {selectedPoint.norm_measure_min ?? '—'} إلى {selectedPoint.norm_measure_max ?? '—'}] *
+              {t('inventory.quality.record_inspection_modal.s11', "القيمة المقاسة فعلياً (")}{selectedPoint.measure_unit || t('inventory.quality.record_inspection_modal.s12', "وحدة القياس")}{t('inventory.quality.record_inspection_modal.s13', ") [الحدود:")} {selectedPoint.norm_measure_min ?? '—'} {t('inventory.quality.record_inspection_modal.s14', "إلى")} {selectedPoint.norm_measure_max ?? '—'}] *
             </label>
             <input
               type="number"
@@ -250,7 +252,7 @@ export const RecordInspectionModal: FC<RecordInspectionModalProps> = ({
               required
               value={measuredValue}
               onChange={(e) => setMeasuredValue(e.target.value)}
-              placeholder="أدخل القيمة المقاسة..."
+              placeholder={t('inventory.quality.record_inspection_modal.s15', "أدخل القيمة المقاسة...")}
               style={{ width: '100%', height: '36px', padding: '6px 10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
             />
           </div>
@@ -264,20 +266,20 @@ export const RecordInspectionModal: FC<RecordInspectionModalProps> = ({
               style={{ width: '18px', height: '18px', cursor: 'pointer' }}
             />
             <label htmlFor="qcPassed" style={{ fontSize: '13px', fontWeight: 700, color: passed ? '#15803d' : '#b91c1c', cursor: 'pointer' }}>
-              {passed ? 'العينة مطابقة للمواصفات الفنية والبصرية (Pass)' : 'العينة غير مطابقة للمواصفات الفنية (Fail)'}
+              {passed ? t('inventory.quality.record_inspection_modal.s16', "العينة مطابقة للمواصفات الفنية والبصرية (Pass)") : t('inventory.quality.record_inspection_modal.s17', "العينة غير مطابقة للمواصفات الفنية (Fail)")}
             </label>
           </div>
         )}
 
         <div>
           <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 600, color: '#334155' }}>
-            ملاحظات الفحص والعيوب المرصودة
+            {t('inventory.quality.record_inspection_modal.s18', "ملاحظات الفحص والعيوب المرصودة")}
           </label>
           <textarea
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             rows={2}
-            placeholder="وصف المشكلة، أسباب الرفض الجزئي أو الكلي..."
+            placeholder={t('inventory.quality.record_inspection_modal.s19', "وصف المشكلة، أسباب الرفض الجزئي أو الكلي...")}
             style={{ width: '100%', padding: '8px', borderRadius: '8px', border: '1px solid #cbd5e1', resize: 'vertical' }}
           />
         </div>
@@ -291,14 +293,14 @@ export const RecordInspectionModal: FC<RecordInspectionModalProps> = ({
             style={{ width: '16px', height: '16px', cursor: 'pointer' }}
           />
           <label htmlFor="autoNCR" style={{ fontSize: '13px', fontWeight: 600, color: '#1e293b', cursor: 'pointer' }}>
-            فتح تقرير عدم مطابقة (NCR) تلقائياً في حال وجود كميات مرفوضة
+            {t('inventory.quality.record_inspection_modal.s20', "فتح تقرير عدم مطابقة (NCR) تلقائياً في حال وجود كميات مرفوضة")}
           </label>
         </div>
 
         <StandardDialogFooter
           onClose={onClose}
           primaryButton={{
-            label: isSubmitting ? 'جاري التقييم والتسجيل...' : 'اعتماد وتسجيل الفحص',
+            label: isSubmitting ? t('inventory.quality.record_inspection_modal.s21', "جاري التقييم والتسجيل...") : t('inventory.quality.record_inspection_modal.s22', "اعتماد وتسجيل الفحص"),
             disabled: isSubmitting,
             onClick: () => handleSubmit(),
           }}

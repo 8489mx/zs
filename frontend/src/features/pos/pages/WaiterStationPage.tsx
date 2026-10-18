@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useWaiterStation, WaiterCartItem } from '@/features/pos/hooks/useWaiterStation';
@@ -13,6 +14,7 @@ import {
 } from '@/shared/components/icons/AppIcons';
 
 export function WaiterStationPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
 
   // Authentication State
@@ -209,12 +211,12 @@ export function WaiterStationPage() {
               }}
             >
               <ArrowRightIcon size={14} color="#170e5e" strokeWidth={2.5} />
-              <span>العودة للكاشير</span>
+              <span>{t('pos.waiter_station_page.s0', "العودة للكاشير")}</span>
             </button>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <span style={{ width: '3px', height: '18px', backgroundColor: '#170e5e', borderRadius: '2px', display: 'inline-block' }} />
               <h1 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 900, color: '#0f172a' }}>
-                محطة الويتر وكابتن الصالة (Captain Station)
+                {t('pos.waiter_station_page.s1', "محطة الويتر وكابتن الصالة (Captain Station)")}
               </h1>
             </div>
           </div>
@@ -237,7 +239,7 @@ export function WaiterStationPage() {
                 }}
               >
                 <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#10b981', display: 'inline-block' }} />
-                <span>متصل بالشبكة</span>
+                <span>{t('pos.waiter_station_page.s2', "متصل بالشبكة")}</span>
               </span>
             ) : (
               <button
@@ -257,7 +259,7 @@ export function WaiterStationPage() {
                   alignItems: 'center',
                   gap: '6px',
                 }}
-                title="انقر لمزامنة الطلبات المحفوظة محلياً مع السيرفر"
+                title={t('pos.waiter_station_page.s3', "انقر لمزامنة الطلبات المحفوظة محلياً مع السيرفر")}
               >
                 <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#d97706', display: 'inline-block' }} />
                 <span>{isOnline ? `مزامنة (${offlineQueueCount} معلق)` : `أوفلاين (${offlineQueueCount} معلق)`}</span>
@@ -265,7 +267,7 @@ export function WaiterStationPage() {
             )}
 
             <span style={{ fontSize: '12px', background: '#eef2ff', color: '#170e5e', border: '1px solid #c7d2fe', padding: '4px 12px', borderRadius: '8px', fontWeight: 800 }}>
-              كابتن #{waiterPin}
+              {t('pos.waiter_station_page.s4', "كابتن #")}{waiterPin}
             </span>
           </div>
         </header>
@@ -282,20 +284,20 @@ export function WaiterStationPage() {
           }}
         >
           <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '8px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: '13px', fontWeight: 700, color: '#475569' }}>إجمالي طاولات الصالة:</span>
+            <span style={{ fontSize: '13px', fontWeight: 700, color: '#475569' }}>{t('pos.waiter_station_page.s5', "إجمالي طاولات الصالة:")}</span>
             <span style={{ fontSize: '17px', fontWeight: 900, color: '#170e5e' }}>{tablesCount}</span>
           </div>
           <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '8px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981', display: 'inline-block' }} />
-              <span style={{ fontSize: '13px', fontWeight: 700, color: '#475569' }}>شاغرة ومتاحة:</span>
+              <span style={{ fontSize: '13px', fontWeight: 700, color: '#475569' }}>{t('pos.waiter_station_page.s6', "شاغرة ومتاحة:")}</span>
             </div>
             <span style={{ fontSize: '17px', fontWeight: 900, color: '#15803d' }}>{tablesCount - occupiedTablesMap.size}</span>
           </div>
           <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '8px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: occupiedTablesMap.size > 0 ? '#ef4444' : '#94a3b8', display: 'inline-block' }} />
-              <span style={{ fontSize: '13px', fontWeight: 700, color: '#475569' }}>مشغولة حالياً:</span>
+              <span style={{ fontSize: '13px', fontWeight: 700, color: '#475569' }}>{t('pos.waiter_station_page.s7', "مشغولة حالياً:")}</span>
             </div>
             <span style={{ fontSize: '17px', fontWeight: 900, color: occupiedTablesMap.size > 0 ? '#b91c1c' : '#64748b' }}>{occupiedTablesMap.size}</span>
           </div>
@@ -303,7 +305,7 @@ export function WaiterStationPage() {
             <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '10px', padding: '8px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#f59e0b', display: 'inline-block' }} />
-                <span style={{ fontSize: '13px', fontWeight: 700, color: '#92400e' }}>نداءات الزبائن:</span>
+                <span style={{ fontSize: '13px', fontWeight: 700, color: '#92400e' }}>{t('pos.waiter_station_page.s8', "نداءات الزبائن:")}</span>
               </div>
               <span style={{ fontSize: '17px', fontWeight: 900, color: '#b45309' }}>{pendingCalls.length}</span>
             </div>
@@ -325,7 +327,7 @@ export function WaiterStationPage() {
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 800, color: '#92400e', fontSize: '12.5px', whiteSpace: 'nowrap' }}>
               <BellIcon size={16} color="#d97706" />
-              <span>نداءات الزبائن العاجلة ({pendingCalls.length}):</span>
+              <span>{t('pos.waiter_station_page.s9', "نداءات الزبائن العاجلة (")}{pendingCalls.length}):</span>
             </div>
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'nowrap' }}>
               {pendingCalls.map((call) => (
@@ -343,9 +345,9 @@ export function WaiterStationPage() {
                     boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
                   }}
                 >
-                  <strong style={{ fontSize: '12px', color: '#0f172a' }}>طاولة {call.table_number}</strong>
+                  <strong style={{ fontSize: '12px', color: '#0f172a' }}>{t('pos.waiter_station_page.s10', "طاولة")} {call.table_number}</strong>
                   <span style={{ fontSize: '11px', color: call.call_type === 'bill' ? '#991b1b' : '#92400e', fontWeight: 700 }}>
-                    {call.call_type === 'bill' ? 'طلب الحساب' : 'استدعاء ويتر'}
+                    {call.call_type === 'bill' ? t('pos.waiter_station_page.s11', "طلب الحساب") : t('pos.waiter_station_page.s12', "استدعاء ويتر")}
                   </span>
                   <button
                     type="button"
@@ -361,7 +363,7 @@ export function WaiterStationPage() {
                       cursor: 'pointer',
                     }}
                   >
-                    تم الحضور
+                    {t('pos.waiter_station_page.s13', "تم الحضور")}
                   </button>
                 </div>
               ))}
@@ -430,7 +432,7 @@ export function WaiterStationPage() {
                 }}
               >
                 <div style={{ fontSize: '18px', fontWeight: 900, color: isOccupied ? '#991b1b' : '#0f172a' }}>
-                  طاولة {tNum}
+                  {t('pos.waiter_station_page.s14', "طاولة")} {tNum}
                 </div>
                 {hasCall && (
                   <span
@@ -447,7 +449,7 @@ export function WaiterStationPage() {
                     }}
                   >
                     <BellIcon size={11} color="#ffffff" />
-                    <span>{isBillPaid ? 'مسدد إلكترونياً!' : isBill ? 'طلب حساب!' : 'استدعاء!'}</span>
+                    <span>{isBillPaid ? t('pos.waiter_station_page.s15', "مسدد إلكترونياً!") : isBill ? t('pos.waiter_station_page.s16', "طلب حساب!") : t('pos.waiter_station_page.s17', "استدعاء!")}</span>
                   </span>
                 )}
                 {isOccupied ? (
@@ -456,12 +458,12 @@ export function WaiterStationPage() {
                       {formatCurrency(total)}
                     </div>
                     <span style={{ fontSize: '10.5px', background: '#fee2e2', color: '#b91c1c', padding: '2px 8px', borderRadius: '6px', fontWeight: 700 }}>
-                      مشغولة ({occupied.cart?.length || 0})
+                      {t('pos.waiter_station_page.s18', "مشغولة (")}{occupied.cart?.length || 0})
                     </span>
                   </>
                 ) : (
                   <span style={{ fontSize: '11.5px', color: '#16a34a', background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '2px 10px', borderRadius: '20px', fontWeight: 700 }}>
-                    شاغرة ومتاحة
+                    {t('pos.waiter_station_page.s19', "شاغرة ومتاحة")}
                   </span>
                 )}
               </button>
@@ -506,7 +508,7 @@ export function WaiterStationPage() {
             type="button"
             onClick={async () => {
               if (cart.length > 0) {
-                const ok = await systemConfirm('هل تريد إلغاء الطلب الحالي والعودة لشبكة الطاولات؟');
+                const ok = await systemConfirm(t('pos.waiter_station_page.s20', "هل تريد إلغاء الطلب الحالي والعودة لشبكة الطاولات؟"));
                 if (ok) {
                   setSelectedTable(null);
                   setCart([]);
@@ -530,12 +532,12 @@ export function WaiterStationPage() {
             }}
           >
             <ArrowRightIcon size={14} color="#170e5e" strokeWidth={2.5} />
-            <span>تغيير الطاولة</span>
+            <span>{t('pos.waiter_station_page.s21', "تغيير الطاولة")}</span>
           </button>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span style={{ width: '3px', height: '18px', backgroundColor: '#170e5e', borderRadius: '2px', display: 'inline-block' }} />
             <h1 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 900, color: '#0f172a' }}>
-              تسجيل طلب: طاولة {selectedTable}
+              {t('pos.waiter_station_page.s22', "تسجيل طلب: طاولة")} {selectedTable}
             </h1>
           </div>
         </div>
@@ -559,7 +561,7 @@ export function WaiterStationPage() {
               }}
             >
               <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10b981', display: 'inline-block' }} />
-              <span>متصل</span>
+              <span>{t('pos.waiter_station_page.s23', "متصل")}</span>
             </span>
           ) : (
             <button
@@ -579,7 +581,7 @@ export function WaiterStationPage() {
                 alignItems: 'center',
                 gap: '6px',
               }}
-              title="انقر لمزامنة الطلبات المحفوظة محلياً مع السيرفر"
+              title={t('pos.waiter_station_page.s24', "انقر لمزامنة الطلبات المحفوظة محلياً مع السيرفر")}
             >
               <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#d97706', display: 'inline-block' }} />
               <span>{isOnline ? `مزامنة (${offlineQueueCount})` : `أوفلاين (${offlineQueueCount})`}</span>
@@ -588,7 +590,7 @@ export function WaiterStationPage() {
 
           {/* Covers RTL Stepper: [+] first, label, [-] last */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ fontSize: '12px', fontWeight: 700, color: '#475569' }}>الضيوف:</span>
+            <span style={{ fontSize: '12px', fontWeight: 700, color: '#475569' }}>{t('pos.waiter_station_page.s25', "الضيوف:")}</span>
             <div style={{ display: 'inline-flex', alignItems: 'center', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', height: '32px' }}>
               <button
                 type="button"
@@ -643,7 +645,7 @@ export function WaiterStationPage() {
             }}
           >
             <UtensilsIcon size={14} color={mobileActiveTab === 'menu' ? '#ffffff' : '#475569'} />
-            <span>قائمة الأصناف ({filteredProducts.length})</span>
+            <span>{t('pos.waiter_station_page.s26', "قائمة الأصناف (")}{filteredProducts.length})</span>
           </button>
           <button
             type="button"
@@ -665,7 +667,7 @@ export function WaiterStationPage() {
             }}
           >
             <ShoppingCartIcon size={14} color={mobileActiveTab === 'cart' ? '#ffffff' : '#475569'} />
-            <span>سلة الطلب ({cartItemsCount}) · {formatCurrency(cartTotal)}</span>
+            <span>{t('pos.waiter_station_page.s27', "سلة الطلب (")}{cartItemsCount}) · {formatCurrency(cartTotal)}</span>
           </button>
         </div>
       )}
@@ -719,7 +721,7 @@ export function WaiterStationPage() {
                 cursor: 'pointer',
               }}
             >
-              الكل
+              {t('pos.waiter_station_page.s28', "الكل")}
             </button>
             {categories.map((cat) => (
               <button
@@ -748,7 +750,7 @@ export function WaiterStationPage() {
               <SearchIcon size={14} color="#64748b" />
               <input
                 type="text"
-                placeholder="بحث سريع باسم الوجبة أو المشروب..."
+                placeholder={t('pos.waiter_station_page.s29', "بحث سريع باسم الوجبة أو المشروب...")}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 style={{ border: 'none', outline: 'none', width: '100%', fontSize: '12.5px' }}
@@ -863,7 +865,7 @@ export function WaiterStationPage() {
             >
               <div>
                 <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>
-                  الطلب الحالي ({cartItemsCount} أصناف)
+                  {t('pos.waiter_station_page.s30', "الطلب الحالي (")}{cartItemsCount} {t('pos.waiter_station_page.s31', "أصناف)")}
                 </div>
                 <div style={{ fontSize: '15px', color: '#170e5e', fontWeight: 900 }}>
                   {formatCurrency(cartTotal)}
@@ -887,7 +889,7 @@ export function WaiterStationPage() {
                 }}
               >
                 <ShoppingCartIcon size={14} color="#ffffff" />
-                <span>مراجعة السلة ({cartItemsCount})</span>
+                <span>{t('pos.waiter_station_page.s32', "مراجعة السلة (")}{cartItemsCount})</span>
               </button>
             </div>
           )}
@@ -917,7 +919,7 @@ export function WaiterStationPage() {
             }}
           >
             <div style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a' }}>
-              طلبات الطاولة الجديدة ({cartItemsCount})
+              {t('pos.waiter_station_page.s33', "طلبات الطاولة الجديدة (")}{cartItemsCount})
             </div>
             {isMobile && (
               <button
@@ -934,7 +936,7 @@ export function WaiterStationPage() {
                   cursor: 'pointer',
                 }}
               >
-                + إضافة المزيد
+                {t('pos.waiter_station_page.s34', "+ إضافة المزيد")}
               </button>
             )}
           </div>
@@ -943,7 +945,7 @@ export function WaiterStationPage() {
           <div style={{ flex: 1, overflowY: 'auto', padding: '8px' }}>
             {cart.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '40px 10px', color: '#64748b', fontSize: '12px' }}>
-                اضغط على الأصناف من القائمة لإضافتها للطلب.
+                {t('pos.waiter_station_page.s35', "اضغط على الأصناف من القائمة لإضافتها للطلب.")}
               </div>
             ) : (
               cart.map((item) => (
@@ -978,7 +980,7 @@ export function WaiterStationPage() {
 
                   {item.notes && (
                     <div style={{ fontSize: '11px', color: '#b45309', fontWeight: 600, marginTop: '2px' }}>
-                      ملاحظة: {item.notes}
+                      {t('pos.waiter_station_page.s36', "ملاحظة:")} {item.notes}
                     </div>
                   )}
 
@@ -1019,7 +1021,7 @@ export function WaiterStationPage() {
                         cursor: 'pointer',
                       }}
                     >
-                      {item.notes ? 'تعديل الملاحظة' : '+ ملاحظة طبق'}
+                      {item.notes ? t('pos.waiter_station_page.s37', "تعديل الملاحظة") : t('pos.waiter_station_page.s38', "+ ملاحظة طبق")}
                     </button>
                   </div>
                 </div>
@@ -1030,7 +1032,7 @@ export function WaiterStationPage() {
           {/* Cart Footer & Big Kitchen Action Button */}
           <div style={{ padding: '12px 14px', borderTop: '2px solid #e2e8f0', background: '#f8fafc' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-              <span style={{ fontSize: '13px', fontWeight: 700, color: '#475569' }}>إجمالي الطلب:</span>
+              <span style={{ fontSize: '13px', fontWeight: 700, color: '#475569' }}>{t('pos.waiter_station_page.s39', "إجمالي الطلب:")}</span>
               <strong style={{ fontSize: '16px', fontWeight: 900, color: '#170e5e' }}>{formatCurrency(cartTotal)}</strong>
             </div>
 
@@ -1056,7 +1058,7 @@ export function WaiterStationPage() {
               }}
             >
               <CheckCircleIcon size={16} color="#ffffff" />
-              <span>{isSendingToKitchen ? 'جاري الإرسال...' : 'إرسال الطلب للمطبخ (Send to Kitchen)'}</span>
+              <span>{isSendingToKitchen ? t('pos.waiter_station_page.s40', "جاري الإرسال...") : t('pos.waiter_station_page.s41', "إرسال الطلب للمطبخ (Send to Kitchen)")}</span>
             </button>
           </div>
         </div>
@@ -1078,11 +1080,11 @@ export function WaiterStationPage() {
         >
           <div style={{ background: '#ffffff', borderRadius: '12px', padding: '18px', width: '360px', maxWidth: '90vw' }}>
             <h3 style={{ margin: '0 0 10px', fontSize: '14px', fontWeight: 800, color: '#0f172a' }}>
-              ملاحظات تحضير الطبق: {activeItemNoteModal.name}
+              {t('pos.waiter_station_page.s42', "ملاحظات تحضير الطبق:")} {activeItemNoteModal.name}
             </h3>
             <textarea
               rows={3}
-              placeholder="مثال: بدون بصل / صوص جانبي / مستوي جيداً / يقدم مع المقبلات"
+              placeholder={t('pos.waiter_station_page.s43', "مثال: بدون بصل / صوص جانبي / مستوي جيداً / يقدم مع المقبلات")}
               value={itemNoteText}
               onChange={(e) => setItemNoteText(e.target.value)}
               style={{ width: '100%', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '8px', fontSize: '13px', boxSizing: 'border-box' }}
@@ -1093,14 +1095,14 @@ export function WaiterStationPage() {
                 onClick={() => setActiveItemNoteModal(null)}
                 style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '6px 14px', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}
               >
-                إلغاء
+                {t('pos.waiter_station_page.s44', "إلغاء")}
               </button>
               <button
                 type="button"
                 onClick={handleSaveItemNote}
                 style={{ background: '#170e5e', color: '#ffffff', border: 'none', borderRadius: '6px', padding: '6px 16px', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}
               >
-                تأكيد الملاحظة
+                {t('pos.waiter_station_page.s45', "تأكيد الملاحظة")}
               </button>
             </div>
           </div>

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
@@ -14,6 +15,7 @@ interface AddonsManagementDialogProps {
 }
 
 export function AddonsManagementDialog({ open, onClose }: AddonsManagementDialogProps) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [editingId, setEditingId] = useState<string | number | null>(null);
   const [formData, setFormData] = useState<Partial<Addon>>({ name: '', price: 0, costPrice: 0, isActive: true });
@@ -73,12 +75,12 @@ export function AddonsManagementDialog({ open, onClose }: AddonsManagementDialog
     <StandardDialog
       open={open}
       onClose={onClose}
-      title="إدارة الإضافات (Modifiers)"
-      subtitle="إدارة مصفوفة الإضافات والخيارات للوجبات والمنتجات وتحديد الأسعار"
+      title={t('products.addons_management_dialog.s0', "إدارة الإضافات (Modifiers)")}
+      subtitle={t('products.addons_management_dialog.s1', "إدارة مصفوفة الإضافات والخيارات للوجبات والمنتجات وتحديد الأسعار")}
       maxWidth="760px"
       footerActions={
         <StandardDialogFooter
-          cancelText="إغلاق"
+          cancelText={t('products.addons_management_dialog.s2', "إغلاق")}
           onCancel={onClose}
         />
       }
@@ -88,22 +90,22 @@ export function AddonsManagementDialog({ open, onClose }: AddonsManagementDialog
         <div style={{ background: '#f8fafc', padding: '12px 16px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
             <AppIcons.Layers size={15} />
-            <span>1. بيانات الإضافة والتسعير (Add-on Details & Pricing)</span>
+            <span>{t('products.addons_management_dialog.s3', "1. بيانات الإضافة والتسعير (Add-on Details & Pricing)")}</span>
           </div>
 
           <form onSubmit={handleSubmit}>
             <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr auto', gap: '10px', alignItems: 'flex-end' }}>
-              <Field label="اسم الإضافة *">
+              <Field label={t('products.addons_management_dialog.s4', "اسم الإضافة *")}>
                 <input
                   type="text"
                   required
-                  placeholder="مثال: جبنة إضافية، صلصة حارة..."
+                  placeholder={t('products.addons_management_dialog.s5', "مثال: جبنة إضافية، صلصة حارة...")}
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 />
               </Field>
 
-              <Field label="السعر للعميل *">
+              <Field label={t('products.addons_management_dialog.s6', "السعر للعميل *")}>
                 <input
                   type="number"
                   min={0}
@@ -114,7 +116,7 @@ export function AddonsManagementDialog({ open, onClose }: AddonsManagementDialog
                 />
               </Field>
 
-              <Field label="التكلفة (اختياري)">
+              <Field label={t('products.addons_management_dialog.s7', "التكلفة (اختياري)")}>
                 <input
                   type="number"
                   min={0}
@@ -131,7 +133,7 @@ export function AddonsManagementDialog({ open, onClose }: AddonsManagementDialog
                     checked={formData.isActive !== false}
                     onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
                   />
-                  <span>نشط</span>
+                  <span>{t('products.addons_management_dialog.s8', "نشط")}</span>
                 </label>
               </div>
             </div>
@@ -139,11 +141,11 @@ export function AddonsManagementDialog({ open, onClose }: AddonsManagementDialog
             <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '10px' }}>
               {editingId ? (
                 <Button type="button" variant="secondary" onClick={handleCancelEdit}>
-                  إلغاء التعديل
+                  {t('products.addons_management_dialog.s9', "إلغاء التعديل")}
                 </Button>
               ) : null}
               <Button type="submit" disabled={saveMutation.isPending} variant="primary">
-                {editingId ? 'حفظ التعديل' : 'إضافة إلى القائمة'}
+                {editingId ? t('products.addons_management_dialog.s10', "حفظ التعديل") : t('products.addons_management_dialog.s11', "إضافة إلى القائمة")}
               </Button>
             </div>
           </form>
@@ -153,28 +155,28 @@ export function AddonsManagementDialog({ open, onClose }: AddonsManagementDialog
         <div style={{ background: '#f8fafc', padding: '12px 16px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
             <AppIcons.Package size={15} />
-            <span>2. قائمة الإضافات المسجلة (Registered Add-ons)</span>
+            <span>{t('products.addons_management_dialog.s12', "2. قائمة الإضافات المسجلة (Registered Add-ons)")}</span>
           </div>
 
           <div className="table-responsive">
             {isLoading ? (
-              <div style={{ textAlign: 'center', padding: '20px', color: '#64748b' }}>جاري التحميل...</div>
+              <div style={{ textAlign: 'center', padding: '20px', color: '#64748b' }}>{t('products.addons_management_dialog.s13', "جاري التحميل...")}</div>
             ) : (
               <table className="table" style={{ width: '100%', background: '#ffffff', borderRadius: '6px', overflow: 'hidden' }}>
                 <thead>
                   <tr>
-                    <th>الاسم</th>
-                    <th>السعر</th>
-                    <th>التكلفة</th>
-                    <th>الحالة</th>
-                    <th style={{ textAlign: 'center' }}>إجراءات</th>
+                    <th>{t('products.addons_management_dialog.s14', "الاسم")}</th>
+                    <th>{t('products.addons_management_dialog.s15', "السعر")}</th>
+                    <th>{t('products.addons_management_dialog.s16', "التكلفة")}</th>
+                    <th>{t('products.addons_management_dialog.s17', "الحالة")}</th>
+                    <th style={{ textAlign: 'center' }}>{t('products.addons_management_dialog.s18', "إجراءات")}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {addons.length === 0 ? (
                     <tr>
                       <td colSpan={5} style={{ textAlign: 'center', padding: '20px', color: '#64748b' }}>
-                        لا توجد إضافات مسجلة حالياً
+                        {t('products.addons_management_dialog.s19', "لا توجد إضافات مسجلة حالياً")}
                       </td>
                     </tr>
                   ) : (
@@ -185,16 +187,16 @@ export function AddonsManagementDialog({ open, onClose }: AddonsManagementDialog
                         <td>{addon.costPrice || '—'}</td>
                         <td>
                           <span className="badge" style={{ background: addon.isActive === false ? '#fef2f2' : '#ecfdf5', color: addon.isActive === false ? '#ef4444' : '#10b981' }}>
-                            {addon.isActive === false ? 'غير نشط' : 'نشط'}
+                            {addon.isActive === false ? t('products.addons_management_dialog.s20', "غير نشط") : t('products.addons_management_dialog.s21', "نشط")}
                           </span>
                         </td>
                         <td style={{ textAlign: 'center' }}>
                           <div style={{ display: 'inline-flex', gap: '6px' }}>
                             <Button variant="secondary" onClick={() => handleEdit(addon)} style={{ padding: '2px 8px', fontSize: '0.75rem' }}>
-                              تعديل
+                              {t('products.addons_management_dialog.s22', "تعديل")}
                             </Button>
                             <Button variant="secondary" onClick={() => setDeletingId(addon.id!)} style={{ padding: '2px 8px', fontSize: '0.75rem', color: '#ef4444' }}>
-                              حذف
+                              {t('products.addons_management_dialog.s23', "حذف")}
                             </Button>
                           </div>
                         </td>
@@ -210,9 +212,9 @@ export function AddonsManagementDialog({ open, onClose }: AddonsManagementDialog
 
       <ActionConfirmDialog
         open={Boolean(deletingId)}
-        title="حذف الإضافة"
-        description="هل أنت متأكد من حذف هذه الإضافة؟"
-        confirmLabel="نعم، حذف"
+        title={t('products.addons_management_dialog.s24', "حذف الإضافة")}
+        description={t('products.addons_management_dialog.s25', "هل أنت متأكد من حذف هذه الإضافة؟")}
+        confirmLabel={t('products.addons_management_dialog.s26', "نعم، حذف")}
         isBusy={deleteMutation.isPending}
         onCancel={() => setDeletingId(null)}
         onConfirm={() => {

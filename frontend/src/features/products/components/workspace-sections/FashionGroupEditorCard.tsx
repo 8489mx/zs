@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { getGlobalCurrencySymbol } from '@/lib/currencies';
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -95,6 +96,7 @@ interface FashionGroupEditorCardProps {
 }
 
 export function FashionGroupEditorCard({ product, categories, suppliers, locations, onSaved }: FashionGroupEditorCardProps) {
+  const { t } = useTranslation();
   const allProductsQuery = useQuery({ queryKey: queryKeys.products, queryFn: productsApi.list, staleTime: 30_000 });
   const queryClient = useQueryClient();
   const styleCode = String(product.styleCode || '').trim();
@@ -401,14 +403,14 @@ export function FashionGroupEditorCard({ product, categories, suppliers, locatio
       {/* 1. Master Product Card */}
       <div className="product-compact-card">
         <div className="product-compact-card-header">
-          <h3 className="product-compact-card-title">بيانات الصنف والأسعار الأساسية للمجموعة</h3>
+          <h3 className="product-compact-card-title">{t('products.workspace_sections.fashion_group_editor_card.s0', "بيانات الصنف والأسعار الأساسية للمجموعة")}</h3>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <span className="cashier-chip" style={{ fontWeight: 700, background: '#dbeafe', color: '#1e40af' }}>
-              {variantRows.length} صنف فرعي
+              {variantRows.length} {t('products.workspace_sections.fashion_group_editor_card.s1', "صنف فرعي")}
             </span>
             {commonDraft.styleCode ? (
               <span className="cashier-chip" style={{ fontWeight: 600, background: '#f1f5f9', color: '#334155' }}>
-                كود الموديل: {commonDraft.styleCode}
+                {t('products.workspace_sections.fashion_group_editor_card.s2', "كود الموديل:")} {commonDraft.styleCode}
               </span>
             ) : null}
           </div>
@@ -417,18 +419,18 @@ export function FashionGroupEditorCard({ product, categories, suppliers, locatio
         <div className="page-stack" style={{ gap: '0.75rem' }}>
           {/* Row 1: 6 Columns: Name, StyleCode, Cost, Retail, Wholesale, MinStock */}
           <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.4fr) minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 0.9fr)', gap: '0.65rem', alignItems: 'start' }}>
-            <Field label="اسم الصنف الأساسي">
+            <Field label={t('products.workspace_sections.fashion_group_editor_card.s3', "اسم الصنف الأساسي")}>
               <input
                 className="purchase-prototype-field-input"
                 style={{ fontWeight: 700, color: '#0f172a' }}
                 value={commonDraft.name}
                 onChange={(event) => setCommonDraft((current) => ({ ...current, name: normalizeArabicInput(event.target.value) }))}
                 disabled={mutation.isPending}
-                placeholder="مثال: قميص أكسفورد"
+                placeholder={t('products.workspace_sections.fashion_group_editor_card.s4', "مثال: قميص أكسفورد")}
               />
             </Field>
 
-            <Field label="كود الموديل / المجموعة">
+            <Field label={t('products.workspace_sections.fashion_group_editor_card.s5', "كود الموديل / المجموعة")}>
               <div style={{ display: 'flex', gap: '4px' }}>
                 <input
                   className="purchase-prototype-field-input"
@@ -443,12 +445,12 @@ export function FashionGroupEditorCard({ product, categories, suppliers, locatio
                   placeholder="106"
                 />
                 <Button type="button" variant="secondary" onClick={handleGenerateStyleCode} disabled={mutation.isPending} style={{ whiteSpace: 'nowrap', fontSize: '0.75rem', padding: '0 8px' }}>
-                  توليد
+                  {t('products.workspace_sections.fashion_group_editor_card.s6', "توليد")}
                 </Button>
               </div>
             </Field>
 
-            <Field label="سعر الشراء">
+            <Field label={t('products.workspace_sections.fashion_group_editor_card.s7', "سعر الشراء")}>
               <input
                 className="purchase-prototype-field-input"
                 type="number"
@@ -459,7 +461,7 @@ export function FashionGroupEditorCard({ product, categories, suppliers, locatio
               />
             </Field>
 
-            <Field label="سعر البيع (قطاعي)">
+            <Field label={t('products.workspace_sections.fashion_group_editor_card.s8', "سعر البيع (قطاعي)")}>
               <input
                 className="purchase-prototype-field-input"
                 type="number"
@@ -471,7 +473,7 @@ export function FashionGroupEditorCard({ product, categories, suppliers, locatio
               />
             </Field>
 
-            <Field label="سعر الجملة">
+            <Field label={t('products.workspace_sections.fashion_group_editor_card.s9', "سعر الجملة")}>
               <input
                 className="purchase-prototype-field-input"
                 type="number"
@@ -483,7 +485,7 @@ export function FashionGroupEditorCard({ product, categories, suppliers, locatio
               />
             </Field>
 
-            <Field label="الحد الأدنى">
+            <Field label={t('products.workspace_sections.fashion_group_editor_card.s10', "الحد الأدنى")}>
               <input
                 className="purchase-prototype-field-input"
                 type="number"
@@ -496,49 +498,49 @@ export function FashionGroupEditorCard({ product, categories, suppliers, locatio
 
           {/* Row 2: 4 Columns: Category, Supplier, Location, Notes */}
           <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.1fr) minmax(0, 1.1fr) minmax(0, 1.1fr) minmax(0, 2fr)', gap: '0.65rem', alignItems: 'start' }}>
-            <Field label="القسم">
+            <Field label={t('products.workspace_sections.fashion_group_editor_card.s11', "القسم")}>
               <select
                 className="purchase-prototype-field-input"
                 value={commonDraft.categoryId}
                 onChange={(event) => setCommonDraft((current) => ({ ...current, categoryId: event.target.value }))}
                 disabled={mutation.isPending}
               >
-                <option value="">بدون قسم</option>
+                <option value="">{t('products.workspace_sections.fashion_group_editor_card.s12', "بدون قسم")}</option>
                 {categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
               </select>
             </Field>
 
-            <Field label="المورد">
+            <Field label={t('products.workspace_sections.fashion_group_editor_card.s13', "المورد")}>
               <select
                 className="purchase-prototype-field-input"
                 value={commonDraft.supplierId}
                 onChange={(event) => setCommonDraft((current) => ({ ...current, supplierId: event.target.value }))}
                 disabled={mutation.isPending}
               >
-                <option value="">بدون مورد</option>
+                <option value="">{t('products.workspace_sections.fashion_group_editor_card.s14', "بدون مورد")}</option>
                 {suppliers.map((supplier) => <option key={supplier.id} value={supplier.id}>{supplier.name}</option>)}
               </select>
             </Field>
 
-            <Field label="المخزن الافتراضي">
+            <Field label={t('products.workspace_sections.fashion_group_editor_card.s15', "المخزن الافتراضي")}>
               <select
                 className="purchase-prototype-field-input"
                 value={commonDraft.defaultLocationId || ''}
                 onChange={(event) => setCommonDraft((current) => ({ ...current, defaultLocationId: event.target.value }))}
                 disabled={mutation.isPending}
               >
-                <option value="">بدون مخزن افتراضي</option>
+                <option value="">{t('products.workspace_sections.fashion_group_editor_card.s16', "بدون مخزن افتراضي")}</option>
                 {locations.map((loc) => <option key={loc.id} value={loc.id}>{loc.name}</option>)}
               </select>
             </Field>
 
-            <Field label="ملاحظات حول الموديل">
+            <Field label={t('products.workspace_sections.fashion_group_editor_card.s17', "ملاحظات حول الموديل")}>
               <input
                 className="purchase-prototype-field-input"
                 value={commonDraft.notes}
                 onChange={(event) => setCommonDraft((current) => ({ ...current, notes: normalizeArabicInput(event.target.value) }))}
                 disabled={mutation.isPending}
-                placeholder="ملاحظات اختيارية..."
+                placeholder={t('products.workspace_sections.fashion_group_editor_card.s18', "ملاحظات اختيارية...")}
               />
             </Field>
           </div>
@@ -552,7 +554,7 @@ export function FashionGroupEditorCard({ product, categories, suppliers, locatio
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>
             <div>
               <h4 style={{ margin: 0, fontSize: '0.94rem', fontWeight: 800, color: '#0f172a' }}>
-                مُنشئ ومولد المتغيرات السريع
+                {t('products.workspace_sections.fashion_group_editor_card.s19', "مُنشئ ومولد المتغيرات السريع")}
               </h4>
               <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '2px' }}>{templateConfig.hint}</div>
             </div>
@@ -581,7 +583,7 @@ export function FashionGroupEditorCard({ product, categories, suppliers, locatio
                 }}
               >
                 <ScentDropletIcon size={14} />
-                <span>روائح ونكهات</span>
+                <span>{t('products.workspace_sections.fashion_group_editor_card.s20', "روائح ونكهات")}</span>
               </button>
               <button
                 type="button"
@@ -606,7 +608,7 @@ export function FashionGroupEditorCard({ product, categories, suppliers, locatio
                 }}
               >
                 <FashionShirtIcon size={14} />
-                <span>ملابس وأحذية</span>
+                <span>{t('products.workspace_sections.fashion_group_editor_card.s21', "ملابس وأحذية")}</span>
               </button>
               <button
                 type="button"
@@ -631,7 +633,7 @@ export function FashionGroupEditorCard({ product, categories, suppliers, locatio
                 }}
               >
                 <PackageBoxIcon size={14} />
-                <span>أحجام وعبوات</span>
+                <span>{t('products.workspace_sections.fashion_group_editor_card.s22', "أحجام وعبوات")}</span>
               </button>
               <button
                 type="button"
@@ -656,7 +658,7 @@ export function FashionGroupEditorCard({ product, categories, suppliers, locatio
                 }}
               >
                 <SlidersConfigIcon size={14} />
-                <span>مخصص</span>
+                <span>{t('products.workspace_sections.fashion_group_editor_card.s23', "مخصص")}</span>
               </button>
             </div>
           </div>
@@ -664,22 +666,22 @@ export function FashionGroupEditorCard({ product, categories, suppliers, locatio
           {/* Custom Labels Inputs */}
           {activeTemplate === 'custom' && (
             <div className="product-form-grid-2" style={{ background: '#f8fafc', padding: '8px 12px', borderRadius: '8px', border: '1px dashed #cbd5e1' }}>
-              <Field label="تسمية الخاصية الأولى (مثال: النوع، اللون، الخامة)">
+              <Field label={t('products.workspace_sections.fashion_group_editor_card.s24', "تسمية الخاصية الأولى (مثال: النوع، اللون، الخامة)")}>
                 <input
                   className="purchase-prototype-field-input"
                   value={customPrimaryLabel}
                   onChange={(e) => setCustomPrimaryLabel(normalizeArabicInput(e.target.value))}
                   disabled={mutation.isPending}
-                  placeholder="الخاصية الأولى"
+                  placeholder={t('products.workspace_sections.fashion_group_editor_card.s25', "الخاصية الأولى")}
                 />
               </Field>
-              <Field label="تسمية الخاصية الثانية (مثال: المقاس، السعة، التغليف)">
+              <Field label={t('products.workspace_sections.fashion_group_editor_card.s26', "تسمية الخاصية الثانية (مثال: المقاس، السعة، التغليف)")}>
                 <input
                   className="purchase-prototype-field-input"
                   value={customSecondaryLabel}
                   onChange={(e) => setCustomSecondaryLabel(normalizeArabicInput(e.target.value))}
                   disabled={mutation.isPending}
-                  placeholder="الخاصية الثانية"
+                  placeholder={t('products.workspace_sections.fashion_group_editor_card.s27', "الخاصية الثانية")}
                 />
               </Field>
             </div>
@@ -834,7 +836,7 @@ export function FashionGroupEditorCard({ product, categories, suppliers, locatio
               disabled={mutation.isPending || (!colorsValue.trim() && !sizesValue.trim())}
               style={{ fontSize: '0.78rem', padding: '4px 14px', fontWeight: 700, height: '30px' }}
             >
-              توليد وتحديث شبكة الفروع بناءً على القيم أعلاه
+              {t('products.workspace_sections.fashion_group_editor_card.s28', "توليد وتحديث شبكة الفروع بناءً على القيم أعلاه")}
             </Button>
           </div>
         </div>
@@ -843,7 +845,7 @@ export function FashionGroupEditorCard({ product, categories, suppliers, locatio
       {/* 3. Child Variants Matrix Card */}
       <div className="product-compact-card">
         <div className="product-compact-card-header">
-          <h3 className="product-compact-card-title">جدول الأصناف الفرعية والباركودات</h3>
+          <h3 className="product-compact-card-title">{t('products.workspace_sections.fashion_group_editor_card.s29', "جدول الأصناف الفرعية والباركودات")}</h3>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
             <Button
@@ -853,7 +855,7 @@ export function FashionGroupEditorCard({ product, categories, suppliers, locatio
               disabled={mutation.isPending}
               style={{ fontSize: '0.78rem', padding: '4px 12px' }}
             >
-              + إضافة صنف فرعي يدوي
+              {t('products.workspace_sections.fashion_group_editor_card.s30', "+ إضافة صنف فرعي يدوي")}
             </Button>
             <Button
               type="button"
@@ -862,7 +864,7 @@ export function FashionGroupEditorCard({ product, categories, suppliers, locatio
               disabled={mutation.isPending || !variantRows.length || !commonDraft.styleCode.trim()}
               style={{ fontSize: '0.78rem', padding: '4px 10px' }}
             >
-              توليد باركودات متسلسلة
+              {t('products.workspace_sections.fashion_group_editor_card.s31', "توليد باركودات متسلسلة")}
             </Button>
             <Button
               type="button"
@@ -871,7 +873,7 @@ export function FashionGroupEditorCard({ product, categories, suppliers, locatio
               disabled={mutation.isPending || !variantRows.length}
               style={{ fontSize: '0.78rem', padding: '4px 10px' }}
             >
-              توليد أكواد SKU
+              {t('products.workspace_sections.fashion_group_editor_card.s32', "توليد أكواد SKU")}
             </Button>
             <Button
               type="button"
@@ -880,7 +882,7 @@ export function FashionGroupEditorCard({ product, categories, suppliers, locatio
               disabled={mutation.isPending || !variantRows.length}
               style={{ fontSize: '0.78rem', padding: '4px 10px' }}
             >
-              مسح كل الباركودات
+              {t('products.workspace_sections.fashion_group_editor_card.s33', "مسح كل الباركودات")}
             </Button>
             <Button
               type="button"
@@ -889,7 +891,7 @@ export function FashionGroupEditorCard({ product, categories, suppliers, locatio
               disabled={mutation.isPending || !hasDraftChanges}
               style={{ fontSize: '0.78rem', padding: '4px 10px' }}
             >
-              إعادة القيم الأصلية
+              {t('products.workspace_sections.fashion_group_editor_card.s34', "إعادة القيم الأصلية")}
             </Button>
           </div>
         </div>
@@ -897,10 +899,10 @@ export function FashionGroupEditorCard({ product, categories, suppliers, locatio
         {/* Stats Strip */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '10px' }}>
           <span className="cashier-chip" style={{ fontWeight: 800, color: '#1e40af', background: '#dbeafe' }}>
-            {variantRows.length} صنف فرعي
+            {variantRows.length} {t('products.workspace_sections.fashion_group_editor_card.s35', "صنف فرعي")}
           </span>
           <span className="cashier-chip" style={{ color: '#166534', background: '#dcfce7' }}>
-            إجمالي المخزون الحالي: {totalStock}
+            {t('products.workspace_sections.fashion_group_editor_card.s36', "إجمالي المخزون الحالي:")} {totalStock}
           </span>
         </div>
 
@@ -912,14 +914,14 @@ export function FashionGroupEditorCard({ product, categories, suppliers, locatio
                 <th style={{ padding: '8px 8px', width: '32px', textAlign: 'center' }}>#</th>
                 <th style={{ padding: '8px 8px', minWidth: '110px' }}>{primaryLabel}</th>
                 <th style={{ padding: '8px 8px', minWidth: '100px' }}>{secondaryLabel}</th>
-                <th style={{ padding: '8px 8px', minWidth: '110px' }}>رمز SKU</th>
-                <th style={{ padding: '8px 8px', minWidth: '120px' }}>الباركود</th>
-                <th style={{ padding: '8px 8px', minWidth: '95px' }}>سعر البيع ({getGlobalCurrencySymbol()})</th>
-                <th style={{ padding: '8px 8px', minWidth: '95px' }}>سعر الشراء ({getGlobalCurrencySymbol()})</th>
-                <th style={{ padding: '8px 8px', width: '70px', textAlign: 'center' }}>الرصيد</th>
-                <th style={{ padding: '8px 8px', minWidth: '140px' }}>الاسم النهائي للصنف</th>
-                <th style={{ padding: '8px 8px', width: '110px', textAlign: 'center' }}>التسعير المخصص</th>
-                <th style={{ padding: '8px 6px', width: '40px', textAlign: 'center' }}>حذف</th>
+                <th style={{ padding: '8px 8px', minWidth: '110px' }}>{t('products.workspace_sections.fashion_group_editor_card.s37', "رمز SKU")}</th>
+                <th style={{ padding: '8px 8px', minWidth: '120px' }}>{t('products.workspace_sections.fashion_group_editor_card.s38', "الباركود")}</th>
+                <th style={{ padding: '8px 8px', minWidth: '95px' }}>{t('products.workspace_sections.fashion_group_editor_card.s39', "سعر البيع (")}{getGlobalCurrencySymbol()})</th>
+                <th style={{ padding: '8px 8px', minWidth: '95px' }}>{t('products.workspace_sections.fashion_group_editor_card.s40', "سعر الشراء (")}{getGlobalCurrencySymbol()})</th>
+                <th style={{ padding: '8px 8px', width: '70px', textAlign: 'center' }}>{t('products.workspace_sections.fashion_group_editor_card.s41', "الرصيد")}</th>
+                <th style={{ padding: '8px 8px', minWidth: '140px' }}>{t('products.workspace_sections.fashion_group_editor_card.s42', "الاسم النهائي للصنف")}</th>
+                <th style={{ padding: '8px 8px', width: '110px', textAlign: 'center' }}>{t('products.workspace_sections.fashion_group_editor_card.s43', "التسعير المخصص")}</th>
+                <th style={{ padding: '8px 6px', width: '40px', textAlign: 'center' }}>{t('products.workspace_sections.fashion_group_editor_card.s44', "حذف")}</th>
               </tr>
             </thead>
             <tbody>
@@ -960,7 +962,7 @@ export function FashionGroupEditorCard({ product, categories, suppliers, locatio
                           value={row.sku || ''}
                           onChange={(event) => updateRow(index, { sku: event.target.value })}
                           disabled={mutation.isPending}
-                          placeholder="اختياري SKU"
+                          placeholder={t('products.workspace_sections.fashion_group_editor_card.s45', "اختياري SKU")}
                         />
                       </td>
                       <td style={{ padding: '6px 6px' }}>
@@ -970,7 +972,7 @@ export function FashionGroupEditorCard({ product, categories, suppliers, locatio
                           value={row.barcode}
                           onChange={(event) => updateRow(index, { barcode: event.target.value })}
                           disabled={mutation.isPending}
-                          placeholder="الباركود"
+                          placeholder={t('products.workspace_sections.fashion_group_editor_card.s46', "الباركود")}
                         />
                       </td>
                       <td style={{ padding: '6px 6px' }}>
@@ -1040,7 +1042,7 @@ export function FashionGroupEditorCard({ product, categories, suppliers, locatio
                           type="button"
                           onClick={() => removeDraftRow(index)}
                           disabled={mutation.isPending || variantRows.length === 1}
-                          title={variantRows.length === 1 ? 'يجب أن يتبقى صنف فرعي واحد على الأقل' : 'حذف هذا الصنف الفرعي'}
+                          title={variantRows.length === 1 ? t('products.workspace_sections.fashion_group_editor_card.s47', "يجب أن يتبقى صنف فرعي واحد على الأقل") : t('products.workspace_sections.fashion_group_editor_card.s48', "حذف هذا الصنف الفرعي")}
                           style={{
                             display: 'inline-flex',
                             alignItems: 'center',
@@ -1067,7 +1069,7 @@ export function FashionGroupEditorCard({ product, categories, suppliers, locatio
                         <td colSpan={11} style={{ padding: '10px 16px', borderBottom: '1px solid #bae6fd' }}>
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                             <div style={{ fontSize: '0.8rem', fontWeight: 800, color: '#0369a1' }}>
-                              تخصيص أسعار الفرعي: {fullName}
+                              {t('products.workspace_sections.fashion_group_editor_card.s49', "تخصيص أسعار الفرعي:")} {fullName}
                             </div>
                             <Button
                               type="button"
@@ -1076,12 +1078,12 @@ export function FashionGroupEditorCard({ product, categories, suppliers, locatio
                               disabled={mutation.isPending}
                               style={{ fontSize: '0.72rem', padding: '2px 8px' }}
                             >
-                              الرجوع للسعر الموحد
+                              {t('products.workspace_sections.fashion_group_editor_card.s50', "الرجوع للسعر الموحد")}
                             </Button>
                           </div>
 
                           <div className="product-form-grid-3">
-                            <Field label="سعر الشراء للفرعي">
+                            <Field label={t('products.workspace_sections.fashion_group_editor_card.s51', "سعر الشراء للفرعي")}>
                               <input
                                 className="purchase-prototype-field-input"
                                 type="number"
@@ -1091,7 +1093,7 @@ export function FashionGroupEditorCard({ product, categories, suppliers, locatio
                                 disabled={mutation.isPending}
                               />
                             </Field>
-                            <Field label="سعر البيع للفرعي">
+                            <Field label={t('products.workspace_sections.fashion_group_editor_card.s52', "سعر البيع للفرعي")}>
                               <input
                                 className="purchase-prototype-field-input"
                                 type="number"
@@ -1102,7 +1104,7 @@ export function FashionGroupEditorCard({ product, categories, suppliers, locatio
                                 style={{ fontWeight: 800, color: '#15803d' }}
                               />
                             </Field>
-                            <Field label="سعر الجملة للفرعي">
+                            <Field label={t('products.workspace_sections.fashion_group_editor_card.s53', "سعر الجملة للفرعي")}>
                               <input
                                 className="purchase-prototype-field-input"
                                 type="number"
@@ -1128,25 +1130,25 @@ export function FashionGroupEditorCard({ product, categories, suppliers, locatio
       {/* Notices & Alerts */}
       <DraftStateNotice
         visible={hasDraftChanges && !mutation.isPending}
-        title="توجد تعديلات غير محفوظة على هذا الموديل"
-        hint="عند الضغط على حفظ، سيتم تحديث وتطبيق البيانات على جميع الأصناف الفرعية التابعة له في المخازن ونقطة البيع."
+        title={t('products.workspace_sections.fashion_group_editor_card.s54', "توجد تعديلات غير محفوظة على هذا الموديل")}
+        hint={t('products.workspace_sections.fashion_group_editor_card.s55', "عند الضغط على حفظ، سيتم تحديث وتطبيق البيانات على جميع الأصناف الفرعية التابعة له في المخازن ونقطة البيع.")}
       />
 
       {incompleteRows ? (
         <div style={{ padding: '8px 12px', borderRadius: '6px', background: '#fffbeb', border: '1px solid #fef3c7', color: '#b45309', fontSize: '0.8rem', fontWeight: 600 }}>
-          يوجد {incompleteRows} سطر فرعي غير مكتمل. يرجى ملء الخاصية لتجنب تجاهل السطر.
+          {t('products.workspace_sections.fashion_group_editor_card.s56', "يوجد")} {incompleteRows} {t('products.workspace_sections.fashion_group_editor_card.s57', "سطر فرعي غير مكتمل. يرجى ملء الخاصية لتجنب تجاهل السطر.")}
         </div>
       ) : null}
 
       {duplicates.duplicateCombos ? (
         <div style={{ padding: '8px 12px', borderRadius: '6px', background: '#fef2f2', border: '1px solid #fee2e2', color: '#b91c1c', fontSize: '0.8rem', fontWeight: 700 }}>
-          يوجد صنف فرعي مكرر بنفس الخاصية داخل نفس المجموعة.
+          {t('products.workspace_sections.fashion_group_editor_card.s58', "يوجد صنف فرعي مكرر بنفس الخاصية داخل نفس المجموعة.")}
         </div>
       ) : null}
 
       {duplicates.duplicateBarcodes ? (
         <div style={{ padding: '8px 12px', borderRadius: '6px', background: '#fef2f2', border: '1px solid #fee2e2', color: '#b91c1c', fontSize: '0.8rem', fontWeight: 700 }}>
-          يوجد باركود مكرر مسند لأكثر من صنف فرعي داخل المجموعة.
+          {t('products.workspace_sections.fashion_group_editor_card.s59', "يوجد باركود مكرر مسند لأكثر من صنف فرعي داخل المجموعة.")}
         </div>
       ) : null}
 
@@ -1154,8 +1156,8 @@ export function FashionGroupEditorCard({ product, categories, suppliers, locatio
         isError={mutation.isError}
         isSuccess={mutation.isSuccess}
         error={mutation.error}
-        errorFallback="تعذر حفظ تعديلات المجموعة"
-        successText="تم حفظ وتحديث الصنف الرئيسي وجميع الأصناف الفرعية بنجاح!"
+        errorFallback={t('products.workspace_sections.fashion_group_editor_card.s60', "تعذر حفظ تعديلات المجموعة")}
+        successText={t('products.workspace_sections.fashion_group_editor_card.s61', "تم حفظ وتحديث الصنف الرئيسي وجميع الأصناف الفرعية بنجاح!")}
       />
 
       {/* Sticky Bottom Footer Action Bar */}
@@ -1175,7 +1177,7 @@ export function FashionGroupEditorCard({ product, categories, suppliers, locatio
         zIndex: 10,
       }}>
         <div style={{ fontSize: '0.82rem', color: '#64748b', fontWeight: 600 }}>
-          إجمالي الأصناف الفرعية: <strong style={{ color: '#0f172a' }}>{variantRows.length} صنف</strong> | إجمالي المخزون: <strong style={{ color: '#15803d' }}>{totalStock}</strong>
+          {t('products.workspace_sections.fashion_group_editor_card.s62', "إجمالي الأصناف الفرعية:")} <strong style={{ color: '#0f172a' }}>{variantRows.length} {t('products.workspace_sections.fashion_group_editor_card.s63', "صنف")}</strong> {t('products.workspace_sections.fashion_group_editor_card.s64', "| إجمالي المخزون:")} <strong style={{ color: '#15803d' }}>{totalStock}</strong>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -1186,15 +1188,15 @@ export function FashionGroupEditorCard({ product, categories, suppliers, locatio
             disabled={mutation.isPending || !hasDraftChanges}
             style={{ fontSize: '0.82rem', padding: '6px 14px' }}
           >
-            إلغاء التعديلات
+            {t('products.workspace_sections.fashion_group_editor_card.s65', "إلغاء التعديلات")}
           </Button>
 
           <SubmitButton
             type="button"
             onClick={() => mutation.mutate()}
             disabled={mutation.isPending || duplicates.duplicateCombos > 0 || duplicates.duplicateBarcodes > 0 || !variantRows.length}
-            idleText="حفظ كل التعديلات مرة واحدة"
-            pendingText="جارٍ الحفظ..."
+            idleText={t('products.workspace_sections.fashion_group_editor_card.s66', "حفظ كل التعديلات مرة واحدة")}
+            pendingText={t('products.workspace_sections.fashion_group_editor_card.s67', "جارٍ الحفظ...")}
             style={{ fontSize: '0.84rem', padding: '6px 20px', fontWeight: 800 }}
           />
         </div>

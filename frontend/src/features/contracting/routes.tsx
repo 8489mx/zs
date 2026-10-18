@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 import { createLazyRoute } from '@/app/router/lazy-route';
 import type { FeatureRouteModule } from '@/app/router/types';
@@ -10,13 +11,16 @@ const wrapContractingIndependent = (Component: React.ComponentType) => (
 );
 
 const ContractingWorkspaceLazy = createLazyRoute(() =>
-  import('./pages/ContractingLayout').then((m) => ({
+  {
+  const { t } = useTranslation();
+  return import('./pages/ContractingLayout').then((m) => ({
     default: () => (
-      <FeatureGate feature="contracting" featureName="المقاولات وإدارة المشاريع الإنشائية">
+      <FeatureGate feature="contracting" featureName={t('contracting.routes.s0', "المقاولات وإدارة المشاريع الإنشائية")}>
         <m.ContractingLayout />
       </FeatureGate>
     ),
-  })),
+  }));
+},
 );
 
 export const contractingRouteModule: FeatureRouteModule = {

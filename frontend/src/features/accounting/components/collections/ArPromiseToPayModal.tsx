@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React, { useState, useEffect } from 'react';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { Button } from '@/shared/ui/button';
@@ -18,6 +19,7 @@ export const ArPromiseToPayModal: React.FC<ArPromiseToPayModalProps> = ({
   onSuccess,
   caseItem,
 }) => {
+  const { t } = useTranslation();
   const [promisedDate, setPromisedDate] = useState('');
   const [promisedAmount, setPromisedAmount] = useState<number>(0);
   const [notes, setNotes] = useState('');
@@ -71,7 +73,7 @@ export const ArPromiseToPayModal: React.FC<ArPromiseToPayModalProps> = ({
     <StandardDialog
       open={open}
       onClose={onClose}
-      title="تسجيل تعهد بالسداد (Promise to Pay)"
+      title={t('accounting.collections.ar_promise_to_pay_modal.s0', "تسجيل تعهد بالسداد (Promise to Pay)")}
       subtitle={`العميل: ${caseItem?.customer_name || ''} | إجمالي المتأخرات: ${Number(caseItem?.total_overdue || 0).toLocaleString('ar-EG')} ج.م`}
       size="sm"
     >
@@ -79,13 +81,13 @@ export const ArPromiseToPayModal: React.FC<ArPromiseToPayModalProps> = ({
         <div style={{ backgroundColor: '#f8fafc', padding: '12px 14px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', color: '#1e293b', fontSize: '13px', fontWeight: 600 }}>
             <CalendarIcon size={16} color="#170e5e" />
-            <span>بيانات موعد السداد الملتزم به</span>
+            <span>{t('accounting.collections.ar_promise_to_pay_modal.s1', "بيانات موعد السداد الملتزم به")}</span>
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             <div>
               <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                تاريخ السداد المتعهد به *
+                {t('accounting.collections.ar_promise_to_pay_modal.s2', "تاريخ السداد المتعهد به *")}
               </label>
               <input
                 type="date"
@@ -106,7 +108,7 @@ export const ArPromiseToPayModal: React.FC<ArPromiseToPayModalProps> = ({
 
             <div>
               <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                المبلغ المتعهد بسداده (ج.م) *
+                {t('accounting.collections.ar_promise_to_pay_modal.s3', "المبلغ المتعهد بسداده (ج.م) *")}
               </label>
               <input
                 type="number"
@@ -131,13 +133,13 @@ export const ArPromiseToPayModal: React.FC<ArPromiseToPayModalProps> = ({
 
             <div>
               <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                ملاحظات الاتفاق
+                {t('accounting.collections.ar_promise_to_pay_modal.s4', "ملاحظات الاتفاق")}
               </label>
               <textarea
                 rows={2}
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                placeholder="مثال: تم الاتفاق هاتفياً مع المدير المالي للشركة بالسداد بشيك أو تحويل بنكي..."
+                placeholder={t('accounting.collections.ar_promise_to_pay_modal.s5', "مثال: تم الاتفاق هاتفياً مع المدير المالي للشركة بالسداد بشيك أو تحويل بنكي...")}
                 style={{
                   width: '100%',
                   padding: '7px 10px',
@@ -155,19 +157,19 @@ export const ArPromiseToPayModal: React.FC<ArPromiseToPayModalProps> = ({
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11.5px', color: '#64748b', backgroundColor: '#f1f5f9', padding: '8px 12px', borderRadius: '6px' }}>
           <ClockIcon size={14} color="#64748b" />
-          <span>سيقوم النظام بمراقبة موعد السداد، وتصعيد الملف تلقائياً في حال عدم الالتزام.</span>
+          <span>{t('accounting.collections.ar_promise_to_pay_modal.s6', "سيقوم النظام بمراقبة موعد السداد، وتصعيد الملف تلقائياً في حال عدم الالتزام.")}</span>
         </div>
 
         <StandardDialogFooter>
           <Button type="button" variant="secondary" onClick={onClose} disabled={isSubmitting}>
-            إلغاء
+            {t('accounting.collections.ar_promise_to_pay_modal.s7', "إلغاء")}
           </Button>
           <Button
             type="submit"
             disabled={isSubmitting}
             style={{ backgroundColor: '#170e5e', color: '#ffffff' }}
           >
-            {isSubmitting ? 'جاري الحفظ...' : 'تثبيت تعهد السداد'}
+            {isSubmitting ? t('accounting.collections.ar_promise_to_pay_modal.s8', "جاري الحفظ...") : t('accounting.collections.ar_promise_to_pay_modal.s9', "تثبيت تعهد السداد")}
           </Button>
         </StandardDialogFooter>
       </form>

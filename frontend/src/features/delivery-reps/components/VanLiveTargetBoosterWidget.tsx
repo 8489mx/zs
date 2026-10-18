@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React, { useState } from 'react';
 import { RepTargetMetrics } from '../api/van-sales.api';
 import {
@@ -15,6 +16,7 @@ export const VanLiveTargetBoosterWidget: React.FC<VanLiveTargetBoosterWidgetProp
   metrics,
   compact = false,
 }) => {
+  const { t } = useTranslation();
   const [isExpanded, setIsExpanded] = useState(!compact);
 
   if (!metrics || !metrics.targetAmount || metrics.targetAmount <= 0) {
@@ -66,7 +68,7 @@ export const VanLiveTargetBoosterWidget: React.FC<VanLiveTargetBoosterWidgetProp
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               <span style={{ fontSize: '12.5px', fontWeight: 800, color: '#0f172a' }}>
-                عداد التارجت والعمولة الحية
+                {t('delivery_reps.van_live_target_booster_widget.s0', "عداد التارجت والعمولة الحية")}
               </span>
               <span
                 style={{
@@ -82,7 +84,7 @@ export const VanLiveTargetBoosterWidget: React.FC<VanLiveTargetBoosterWidgetProp
               </span>
             </div>
             <span style={{ fontSize: '10.5px', color: '#64748b' }}>
-              مبيعات الشهر: {metrics.actualSalesMTD.toLocaleString('ar-EG')} ج.م من أصل {metrics.targetAmount.toLocaleString('ar-EG')} ج.م
+              {t('delivery_reps.van_live_target_booster_widget.s1', "مبيعات الشهر:")} {metrics.actualSalesMTD.toLocaleString('ar-EG')} {t('delivery_reps.van_live_target_booster_widget.s2', "ج.م من أصل")} {metrics.targetAmount.toLocaleString('ar-EG')} {t('delivery_reps.van_live_target_booster_widget.s3', "ج.م")}
             </span>
           </div>
         </div>
@@ -98,7 +100,7 @@ export const VanLiveTargetBoosterWidget: React.FC<VanLiveTargetBoosterWidgetProp
               color: isAchieved ? '#15803d' : '#3730a3',
             }}
           >
-            {rate.toFixed(1)}% {isAchieved ? 'تم الإنجاز!' : ''}
+            {rate.toFixed(1)}% {isAchieved ? t('delivery_reps.van_live_target_booster_widget.s4', "تم الإنجاز!") : ''}
           </div>
 
           <button
@@ -153,7 +155,7 @@ export const VanLiveTargetBoosterWidget: React.FC<VanLiveTargetBoosterWidgetProp
                 padding: '6px 4px',
               }}
             >
-              <span style={{ fontSize: '10px', color: '#64748b', display: 'block' }}>المتبقي للهدف</span>
+              <span style={{ fontSize: '10px', color: '#64748b', display: 'block' }}>{t('delivery_reps.van_live_target_booster_widget.s5', "المتبقي للهدف")}</span>
               <span
                 style={{
                   fontSize: '12px',
@@ -161,7 +163,7 @@ export const VanLiveTargetBoosterWidget: React.FC<VanLiveTargetBoosterWidgetProp
                   color: isAchieved ? '#15803d' : '#0f172a',
                 }}
               >
-                {isAchieved ? 'محقق بالكامل' : `${metrics.remainingTarget.toLocaleString('ar-EG')} ج.م`}
+                {isAchieved ? t('delivery_reps.van_live_target_booster_widget.s6', "محقق بالكامل") : `${metrics.remainingTarget.toLocaleString('ar-EG')} ج.م`}
               </span>
             </div>
 
@@ -175,10 +177,10 @@ export const VanLiveTargetBoosterWidget: React.FC<VanLiveTargetBoosterWidgetProp
               }}
             >
               <span style={{ fontSize: '10px', color: '#64748b', display: 'block' }}>
-                المطلوب يومياً ({metrics.remainingWorkingDays} يوم عمل)
+                {t('delivery_reps.van_live_target_booster_widget.s7', "المطلوب يومياً (")}{metrics.remainingWorkingDays} {t('delivery_reps.van_live_target_booster_widget.s8', "يوم عمل)")}
               </span>
               <span style={{ fontSize: '12px', fontWeight: 800, color: '#170e5e' }}>
-                {metrics.remainingWorkingDays > 0 ? `${metrics.requiredDailyTarget.toLocaleString('ar-EG')} ج.م` : '0 ج.م'}
+                {metrics.remainingWorkingDays > 0 ? `${metrics.requiredDailyTarget.toLocaleString('ar-EG')} ج.م` : t('delivery_reps.van_live_target_booster_widget.s9', "0 ج.م")}
               </span>
             </div>
 
@@ -191,7 +193,7 @@ export const VanLiveTargetBoosterWidget: React.FC<VanLiveTargetBoosterWidgetProp
                 padding: '6px 4px',
               }}
             >
-              <span style={{ fontSize: '10px', color: '#166534', display: 'block' }}>العمولة المستحقة الحية</span>
+              <span style={{ fontSize: '10px', color: '#166534', display: 'block' }}>{t('delivery_reps.van_live_target_booster_widget.s10', "العمولة المستحقة الحية")}</span>
               <span style={{ fontSize: '12.5px', fontWeight: 900, color: '#15803d' }}>
                 {earnedCommission > 0 ? `${earnedCommission.toLocaleString('ar-EG')} ج.م` : '—'}
               </span>
@@ -214,10 +216,10 @@ export const VanLiveTargetBoosterWidget: React.FC<VanLiveTargetBoosterWidgetProp
               }}
             >
               <span>
-                مبيعات رحلة اليوم: <strong>{Number(metrics.todaySales || 0).toLocaleString('ar-EG')} ج.م</strong>
+                {t('delivery_reps.van_live_target_booster_widget.s11', "مبيعات رحلة اليوم:")} <strong>{Number(metrics.todaySales || 0).toLocaleString('ar-EG')} {t('delivery_reps.van_live_target_booster_widget.s12', "ج.م")}</strong>
               </span>
               <span>
-                تحصيلات رحلة اليوم: <strong>{Number(metrics.todayCollections || 0).toLocaleString('ar-EG')} ج.م</strong>
+                {t('delivery_reps.van_live_target_booster_widget.s13', "تحصيلات رحلة اليوم:")} <strong>{Number(metrics.todayCollections || 0).toLocaleString('ar-EG')} {t('delivery_reps.van_live_target_booster_widget.s14', "ج.م")}</strong>
               </span>
             </div>
           )}

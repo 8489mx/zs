@@ -1,3 +1,4 @@
+import i18n from '@/lib/i18n';
 import { SINGLE_STORE_MODE } from '@/config/product-scope';
 import { formatCurrency, formatDate } from '@/lib/format';
 import type { Purchase } from '@/types/domain';
@@ -12,21 +13,26 @@ export function getPurchaseTotals(rows: Purchase[]) {
 }
 
 export function getPurchaseColumns() {
+  const isEn = i18n.language === 'en';
   return [
-    { key: 'docNo', header: 'الرقم', cell: (purchase: Purchase) => purchase.docNo || '—' },
+    { key: 'docNo', header: isEn ? 'Doc No.' : 'الرقم', cell: (purchase: Purchase) => purchase.docNo || '—' },
     {
       key: 'supplierName',
-      header: 'المورد',
+      header: isEn ? 'Supplier' : 'المورد',
       cell: (purchase: Purchase) => (
         <div>
           <strong>{purchase.supplierName || '—'}</strong>
-          <div className="muted small">{SINGLE_STORE_MODE ? (purchase.locationName || 'المخزن الأساسي') : `${purchase.branchName || 'بدون فرع'} · ${purchase.locationName || 'بدون موقع'}`}</div>
+          <div className="muted small">
+            {SINGLE_STORE_MODE
+              ? (purchase.locationName || (isEn ? 'Main Warehouse' : 'المخزن الأساسي'))
+              : `${purchase.branchName || (isEn ? 'No Branch' : 'بدون فرع')} · ${purchase.locationName || (isEn ? 'No Location' : 'بدون موقع')}`}
+          </div>
         </div>
       )
     },
     {
       key: 'status',
-      header: 'الحالة والمطابقة',
+      header: isEn ? 'Status & Matching' : 'الحالة والمطابقة',
       cell: (purchase: Purchase) => {
         const isOrder = purchase.lifecycleStatus === 'purchase_order';
         const isGrn = purchase.lifecycleStatus === 'grn_received';
@@ -45,12 +51,12 @@ export function getPurchaseColumns() {
               }`}
             >
               {isCancelled
-                ? 'ملغاة'
+                ? (isEn ? 'Cancelled' : 'ملغاة')
                 : isOrder
-                ? 'أمر شراء (PO)'
+                ? (isEn ? 'Purchase Order (PO)' : 'أمر شراء (PO)')
                 : isGrn
-                ? 'استلام مخزني (GRN)'
-                : 'مكتملة ومرحلة'}
+                ? (isEn ? 'Goods Receipt (GRN)' : 'استلام مخزني (GRN)')
+                : (isEn ? 'Posted & Complete' : 'مكتملة ومرحلة')}
             </span>
             {purchase.matchedStatus && (
               <span
@@ -66,18 +72,18 @@ export function getPurchaseColumns() {
                 }}
               >
                 {purchase.matchedStatus === 'matched'
-                  ? 'مطابقة ثلاثية كاملة'
+                  ? (isEn ? '3-Way Matched' : 'مطابقة ثلاثية كاملة')
                   : purchase.matchedStatus === 'partial'
-                  ? 'مطابقة واستلام جزئي'
-                  : 'بانتظار استلام البضاعة'}
+                  ? (isEn ? 'Partially Received' : 'مطابقة واستلام جزئي')
+                  : (isEn ? 'Awaiting Receipt' : 'بانتظار استلام البضاعة')}
               </span>
             )}
           </div>
         );
       },
     },
-    { key: 'paymentType', header: 'الدفع', cell: (purchase: Purchase) => purchase.paymentType || 'cash' },
-    { key: 'total', header: 'الإجمالي', cell: (purchase: Purchase) => formatCurrency(purchase.total) },
-    { key: 'date', header: 'التاريخ', cell: (purchase: Purchase) => formatDate(purchase.date) }
+    { key: 'paymentType', header: isEn ? 'Payment' : 'الدفع', cell: (purchase: Purchase) => purchase.paymentType || 'cash' },
+    { key: 'total', header: isEn ? 'Total' : 'الإجمالي', cell: (purchase: Purchase) => formatCurrency(purchase.total) },
+    { key: 'date', header: isEn ? 'Date' : 'التاريخ', cell: (purchase: Purchase) => formatDate(purchase.date) }
   ];
 }

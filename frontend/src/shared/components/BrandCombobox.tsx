@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { XIcon } from '@/shared/components/icons/AppIcons';
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { matchesArabic } from '@/lib/arabic-normalization';
@@ -36,6 +37,7 @@ export function BrandCombobox({
   placeholder = 'اختر أو اكتب الماركة...',
   style,
 }: BrandComboboxProps) {
+  const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState<number>(0);
   const [customBrands, setCustomBrands] = useState<string[]>([]);
@@ -322,7 +324,7 @@ export function BrandCombobox({
                     <span>{brandName}</span>
                     {isCustom && (
                       <span style={{ fontSize: '0.68rem', background: '#e2e8f0', color: '#475569', padding: '1px 5px', borderRadius: '4px', fontWeight: 600 }}>
-                        محفوظة
+                        {t('shared.brand_combobox.s0', "محفوظة")}
                       </span>
                     )}
                   </div>
@@ -330,7 +332,7 @@ export function BrandCombobox({
                   {isCustom ? (
                     <button
                       type="button"
-                      title="حذف من الماركات المحفوظة"
+                      title={t('shared.brand_combobox.s1', "حذف من الماركات المحفوظة")}
                       onClick={(e) => removeCustomBrand(brandName, e)}
                       style={{
                         background: 'transparent',
@@ -361,7 +363,7 @@ export function BrandCombobox({
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
                 <span style={{ fontSize: '0.9rem', fontWeight: 800 }}>+</span>
-                <span>حفظ <strong>"{value.trim()}"</strong></span>
+                <span>{t('shared.brand_combobox.s2', "حفظ")} <strong>"{value.trim()}"</strong></span>
               </div>
               <span style={{ fontSize: '0.65rem', color: '#475569', background: '#ffffff', padding: '1px 5px', borderRadius: '3px', border: '1px solid #cbd5e1', flexShrink: 0 }}>
                 Enter ↵

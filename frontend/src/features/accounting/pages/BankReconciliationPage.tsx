@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/shared/ui/button';
@@ -15,6 +16,7 @@ import { CreateBankStatementModal } from '../components/bank-reconciliation/Crea
 import { BankFeeAdjustmentModal } from '../components/bank-reconciliation/BankFeeAdjustmentModal';
 
 export function BankReconciliationPage() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [selectedStatementId, setSelectedStatementId] = useState<number | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -182,9 +184,9 @@ export function BankReconciliationPage() {
     <div className="page-stack page-shell bank-reconciliation-page" dir="rtl">
       <main className="document-prototype-column" style={{ paddingBottom: '100px' }}>
         <PageHeader
-          title="التسويات البنكية ومطابقة كشوف الحساب (Bank Reconciliation)"
-          description="مطابقة كشوف الحسابات البنكية الواردة مع قيود وحركات الأستاذ العام وتسوية الفروقات والعمولات"
-          badge={<span className="nav-pill">المحاسبة والتسويات</span>}
+          title={t('accounting.bank_reconciliation_page.s0', "التسويات البنكية ومطابقة كشوف الحساب (Bank Reconciliation)")}
+          description={t('accounting.bank_reconciliation_page.s1', "مطابقة كشوف الحسابات البنكية الواردة مع قيود وحركات الأستاذ العام وتسوية الفروقات والعمولات")}
+          badge={<span className="nav-pill">{t('accounting.bank_reconciliation_page.s2', "المحاسبة والتسويات")}</span>}
           actions={
             selectedStatementId !== null ? (
               <Button
@@ -197,7 +199,7 @@ export function BankReconciliationPage() {
                 }}
                 style={{ fontSize: '13px', fontWeight: 700 }}
               >
-                ← العودة لقائمة كشوف الحسابات
+                {t('accounting.bank_reconciliation_page.s3', "← العودة لقائمة كشوف الحسابات")}
               </Button>
             ) : (
               <Button
@@ -220,7 +222,7 @@ export function BankReconciliationPage() {
                 }}
               >
                 <PlusIcon size={16} />
-                إضافة / استيراد كشف حساب بنكي
+                {t('accounting.bank_reconciliation_page.s4', "إضافة / استيراد كشف حساب بنكي")}
               </Button>
             )
           }
@@ -280,10 +282,10 @@ export function BankReconciliationPage() {
                 boxShadow: '0 4px 12px rgba(23, 14, 94, 0.2)',
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '13px', fontWeight: 700 }}>
-                  <span>العناصر المحددة للمطابقة:</span>
-                  <span>السطر البنكي: <strong>{selectedStatementLineId ? `#${selectedStatementLineId}` : 'لم يحدد'}</strong></span>
+                  <span>{t('accounting.bank_reconciliation_page.s5', "العناصر المحددة للمطابقة:")}</span>
+                  <span>{t('accounting.bank_reconciliation_page.s6', "السطر البنكي:")} <strong>{selectedStatementLineId ? `#${selectedStatementLineId}` : t('accounting.bank_reconciliation_page.s7', "لم يحدد")}</strong></span>
                   <span>•</span>
-                  <span>قيد الأستاذ: <strong>{selectedGlLineId ? `#${selectedGlLineId}` : 'لم يحدد'}</strong></span>
+                  <span>{t('accounting.bank_reconciliation_page.s8', "قيد الأستاذ:")} <strong>{selectedGlLineId ? `#${selectedGlLineId}` : t('accounting.bank_reconciliation_page.s9', "لم يحدد")}</strong></span>
                 </div>
 
                 <div style={{ display: 'flex', gap: '8px' }}>
@@ -298,7 +300,7 @@ export function BankReconciliationPage() {
                     }}
                     style={{ fontWeight: 800, fontSize: '12.5px' }}
                   >
-                    تأكيد مطابقة العنصرين (Match)
+                    {t('accounting.bank_reconciliation_page.s10', "تأكيد مطابقة العنصرين (Match)")}
                   </Button>
                   <Button
                     type="button"
@@ -309,7 +311,7 @@ export function BankReconciliationPage() {
                     }}
                     style={{ color: '#ffffff', borderColor: '#ffffff', fontSize: '12px' }}
                   >
-                    إلغاء التحديد
+                    {t('accounting.bank_reconciliation_page.s11', "إلغاء التحديد")}
                   </Button>
                 </div>
               </div>

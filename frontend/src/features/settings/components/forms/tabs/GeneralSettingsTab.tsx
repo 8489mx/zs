@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useEffect, memo } from 'react';
 import { useWatch, type UseFormReturn } from 'react-hook-form';
 import type { SettingsFormInput, SettingsFormOutput } from '@/features/settings/schemas/settings.schema';
@@ -12,14 +13,14 @@ import { isPlatformAdmin } from '@/app/router/access';
 import { CustomSelect } from '@/shared/ui/custom-select';
 import { toast } from '@/shared/components/system-alert';
 
-function getPillarBadgeInfo(rawActivity?: string | null, pillar?: string | null) {
+function getPillarBadgeInfo(rawActivity?: string | null, pillar?: string | null, isEn = false) {
   const norm = String(rawActivity || pillar || 'retail_general').trim().toLowerCase();
   if (norm === 'contracting' || norm === 'construction' || norm === 'مقاولات') {
     return {
-      shortTitle: 'قطاع المقاولات',
-      title: 'قطاع المقاولات وإدارة المشاريع الإنشائية',
-      badge: 'مشاريع ومقايسات',
-      desc: 'بيئة عمل متكاملة للمشاريع والمقايسات (BOQ) والمستخلصات وعقود مقاولي الباطن والمشتريات والمخازن والحسابات.',
+      shortTitle: isEn ? 'Contracting ERP' : 'قطاع المقاولات',
+      title: isEn ? 'Contracting & Construction Management' : 'قطاع المقاولات وإدارة المشاريع الإنشائية',
+      badge: isEn ? 'Projects & BOQ' : 'مشاريع ومقايسات',
+      desc: isEn ? 'Integrated workspace for projects, BOQ, IPCs, subcontractor contracts, purchasing, warehouses, and accounting.' : 'بيئة عمل متكاملة للمشاريع والمقايسات (BOQ) والمستخلصات وعقود مقاولي الباطن والمشتريات والمخازن والحسابات.',
       color: '#0284c7',
       bg: '#f0f9ff',
       borderColor: '#bae6fd',
@@ -27,10 +28,10 @@ function getPillarBadgeInfo(rawActivity?: string | null, pillar?: string | null)
   }
   if (norm === 'maritime_freight' || norm === 'maritime' || norm === 'freight' || norm === 'shipping' || norm === 'شحن') {
     return {
-      shortTitle: 'قطاع الشحن',
-      title: 'قطاع الشحن البحري واللوجستيات',
-      badge: 'نولون وحاويات',
-      desc: 'بيئة عمل متكاملة للخطوط الملاحية، الموانئ، مقارنة أسعار النولون (RFQ)، أوامر التشغيل وتتبع الحاويات.',
+      shortTitle: isEn ? 'Maritime Freight' : 'قطاع الشحن',
+      title: isEn ? 'Maritime Freight & Logistics' : 'قطاع الشحن البحري واللوجستيات',
+      badge: isEn ? 'Ocean & Containers' : 'نولون وحاويات',
+      desc: isEn ? 'Integrated system for shipping lines, ports, freight RFQ, operation orders, and demurrage tracking.' : 'بيئة عمل متكاملة للخطوط الملاحية، الموانئ، مقارنة أسعار النولون (RFQ)، أوامر التشغيل وتتبع الحاويات.',
       color: '#0d9488',
       bg: '#f0fdfa',
       borderColor: '#99f6e4',
@@ -38,10 +39,10 @@ function getPillarBadgeInfo(rawActivity?: string | null, pillar?: string | null)
   }
   if (norm === 'pharmacy' || norm === 'صيدلية') {
     return {
-      shortTitle: 'قطاع التجارة',
-      title: 'قطاع التجارة: صيدليات ومستلزمات طبية',
-      badge: 'صيدليات FEFO',
-      desc: 'إدارة متكاملة للأدوية والبدائل، تتبع التشغيلات وتواريخ انتهاء الصلاحية، والروشتات.',
+      shortTitle: isEn ? 'Commerce' : 'قطاع التجارة',
+      title: isEn ? 'Commerce: Pharmacies & Medical Supplies' : 'قطاع التجارة: صيدليات ومستلزمات طبية',
+      badge: isEn ? 'FEFO Pharmacy' : 'صيدليات FEFO',
+      desc: isEn ? 'Integrated management of drugs & alternatives, batch tracking & expiry dates, and prescriptions.' : 'إدارة متكاملة للأدوية والبدائل، تتبع التشغيلات وتواريخ انتهاء الصلاحية، والروشتات.',
       color: '#16a34a',
       bg: '#f0fdf4',
       borderColor: '#bbf7d0',
@@ -49,10 +50,10 @@ function getPillarBadgeInfo(rawActivity?: string | null, pillar?: string | null)
   }
   if (norm === 'restaurant' || norm === 'cafe' || norm === 'مطعم') {
     return {
-      shortTitle: 'قطاع التجارة',
-      title: 'قطاع التجارة: مطاعم وكافيهات وضيافة',
-      badge: 'مطاعم KDS',
-      desc: 'إدارة متكاملة لشاشات المطبخ، خيارات الوجبات والإضافات، والصالات ونقاط البيع.',
+      shortTitle: isEn ? 'Commerce' : 'قطاع التجارة',
+      title: isEn ? 'Commerce: Restaurants & Cafes' : 'قطاع التجارة: مطاعم وكافيهات وضيافة',
+      badge: isEn ? 'Restaurant KDS' : 'مطاعم KDS',
+      desc: isEn ? 'Kitchen display system, dining tables, meal modifiers & toppings, and fast takeaway.' : 'إدارة متكاملة لشاشات المطبخ، خيارات الوجبات والإضافات، والصالات ونقاط البيع.',
       color: '#ea580c',
       bg: '#fff7ed',
       borderColor: '#fed7aa',
@@ -60,10 +61,10 @@ function getPillarBadgeInfo(rawActivity?: string | null, pillar?: string | null)
   }
   if (norm === 'manufacturing' || norm === 'تصنيع') {
     return {
-      shortTitle: 'قطاع التصنيع',
-      title: 'قطاع التجارة: تصنيع وخطوط إنتاج خفيف',
-      badge: 'تصنيع BOM',
-      desc: 'إدارة متكاملة لقوائم المكونات (BOM)، أوامر التشغيل والإنتاج، وحساب التكاليف الصناعية.',
+      shortTitle: isEn ? 'Manufacturing' : 'قطاع التصنيع',
+      title: isEn ? 'Commerce: Industrial Production' : 'قطاع التجارة: تصنيع وخطوط إنتاج خفيف',
+      badge: isEn ? 'BOM Production' : 'تصنيع BOM',
+      desc: isEn ? 'Bills of materials (BOM), work orders, production routing, and manufacturing costing.' : 'إدارة متكاملة لقوائم المكونات (BOM)، أوامر التشغيل والإنتاج، وحساب التكاليف الصناعية.',
       color: '#7c3aed',
       bg: '#f5f3ff',
       borderColor: '#ddd6fe',
@@ -71,10 +72,10 @@ function getPillarBadgeInfo(rawActivity?: string | null, pillar?: string | null)
   }
   if (norm === 'maintenance' || norm === 'electronics' || norm === 'صيانة') {
     return {
-      shortTitle: 'قطاع التجارة',
-      title: 'قطاع التجارة: مراكز صيانة وخدمة أجهزة',
-      badge: 'كروت صيانة',
-      desc: 'إدارة متكاملة لكروت فحص واستلام الأجهزة، قطع الغيار المستهلكة، وتتبع أرقام السيريال.',
+      shortTitle: isEn ? 'Commerce' : 'قطاع التجارة',
+      title: isEn ? 'Commerce: Maintenance & Service Centers' : 'قطاع التجارة: مراكز صيانة وخدمة أجهزة',
+      badge: isEn ? 'Job Cards' : 'كروت صيانة',
+      desc: isEn ? 'Device intake, warranty cards, IMEI serial tracking, and spare parts.' : 'إدارة متكاملة لكروت فحص واستلام الأجهزة، قطع الغيار المستهلكة، وتتبع أرقام السيريال.',
       color: '#2563eb',
       bg: '#eff6ff',
       borderColor: '#bfdbfe',
@@ -82,10 +83,10 @@ function getPillarBadgeInfo(rawActivity?: string | null, pillar?: string | null)
   }
   if (norm === 'auto_parts' || norm === 'autoparts' || norm === 'قطع_غيار') {
     return {
-      shortTitle: 'قطاع التجارة',
-      title: 'قطاع التجارة: قطع غيار ومعدات',
-      badge: 'قطع غيار',
-      desc: 'إدارة متكاملة لأكواد قطع الغيار، سنة الصنع، والموديلات المتوافقة.',
+      shortTitle: isEn ? 'Commerce' : 'قطاع التجارة',
+      title: isEn ? 'Commerce: Auto Parts & Equipment' : 'قطاع التجارة: قطع غيار ومعدات',
+      badge: isEn ? 'Auto Parts OEM' : 'قطع غيار',
+      desc: isEn ? 'Parts directory, OEM numbers, vehicle compatibility and cross-reference.' : 'إدارة متكاملة لأكواد قطع الغيار، سنة الصنع، والموديلات المتوافقة.',
       color: '#b45309',
       bg: '#fffbeb',
       borderColor: '#fde68a',
@@ -93,10 +94,10 @@ function getPillarBadgeInfo(rawActivity?: string | null, pillar?: string | null)
   }
   if (norm === 'import_export' || norm === 'import' || norm === 'استيراد') {
     return {
-      shortTitle: 'قطاع التجارة',
-      title: 'قطاع التجارة: استيراد وتصدير وشراكة',
-      badge: 'استيراد وتصدير',
-      desc: 'إدارة متكاملة للشحنات الاستيرادية وتكاليف الوصول ومستندات الشحن.',
+      shortTitle: isEn ? 'Commerce' : 'قطاع التجارة',
+      title: isEn ? 'Commerce: Import & International Trade' : 'قطاع التجارة: استيراد وتصدير وشراكة',
+      badge: isEn ? 'Import & Customs' : 'استيراد وتصدير',
+      desc: isEn ? 'Customs shipments, overseas vendor payables, and landed cost tracking.' : 'إدارة متكاملة للشحنات الاستيرادية وتكاليف الوصول ومستندات الشحن.',
       color: '#0369a1',
       bg: '#f0f9ff',
       borderColor: '#bae6fd',
@@ -104,60 +105,60 @@ function getPillarBadgeInfo(rawActivity?: string | null, pillar?: string | null)
   }
   if (norm === 'clothing' || norm === 'fashion' || norm === 'ملابس') {
     return {
-      shortTitle: 'قطاع التجارة',
-      title: 'قطاع التجارة: أزياء وملابس ومقاسات',
-      badge: 'ملابس ومقاسات',
-      desc: 'إدارة متكاملة للمقاسات والألوان وتوليد الباركود التلقائي للمصفوفة.',
+      shortTitle: isEn ? 'Commerce' : 'قطاع التجارة',
+      title: isEn ? 'Commerce: Apparel & Fashion' : 'قطاع التجارة: أزياء وملابس ومقاسات',
+      badge: isEn ? 'Fashion Matrix' : 'ملابس ومقاسات',
+      desc: isEn ? 'Multi-variant size and color matrix, fashion barcode generation, and seasonal styles.' : 'إدارة متكاملة للمقاسات والألوان وتوليد الباركود التلقائي للمصفوفة.',
       color: '#db2777',
       bg: '#fdf2f8',
       borderColor: '#fbcfe8',
     };
   }
   return {
-    shortTitle: 'قطاع التجارة',
-    title: 'قطاع التجارة وإدارة الأعمال العامة',
-    badge: 'تجزئة ومستودعات',
-    desc: 'إدارة متكاملة لنقاط البيع السريعة، المخازن والمستودعات، المشتريات، والحسابات المالية.',
+    shortTitle: isEn ? 'Commerce' : 'قطاع التجارة',
+    title: isEn ? 'Commerce & Retail Business' : 'قطاع التجارة وإدارة الأعمال العامة',
+    badge: isEn ? 'Retail & POS' : 'تجزئة ومستودعات',
+    desc: isEn ? 'Fast POS, warehouses & inventory, purchasing, and financial accounts.' : 'إدارة متكاملة لنقاط البيع السريعة، المخازن والمستودعات، المشتريات، والحسابات المالية.',
     color: '#170e5e',
     bg: '#eef2ff',
     borderColor: '#c7d2fe',
   };
 }
 
-function getIndustrySummary(ind?: string) {
+function getIndustrySummary(ind?: string, isEn = false) {
   const norm = String(ind || 'general').trim().toLowerCase();
   switch (norm) {
     case 'contracting':
     case 'construction':
     case 'مقاولات':
-      return 'قطاع المقاولات وإدارة المشاريع الإنشائية';
+      return isEn ? 'Contracting & Construction Management' : 'قطاع المقاولات وإدارة المشاريع الإنشائية';
     case 'maritime_freight':
     case 'maritime':
     case 'freight':
     case 'shipping':
     case 'شحن':
-      return 'قطاع الشحن البحري واللوجستيات';
+      return isEn ? 'Maritime Freight & Logistics' : 'قطاع الشحن البحري واللوجستيات';
     case 'fashion':
-      return 'موديول الملابس والمقاسات ومصفوفة الأصناف';
+      return isEn ? 'Apparel, Sizes & Variant Matrix' : 'موديول الملابس والمقاسات ومصفوفة الأصناف';
     case 'perfumes':
-      return 'موديول تركيبات العطور والعبوات';
+      return isEn ? 'Perfume Formulations & Packaging' : 'موديول تركيبات العطور والعبوات';
     case 'pharmacy':
     case 'صيدلية':
-      return 'موديول الصيدلية والأدوية وتواريخ الصلاحية (FEFO)';
+      return isEn ? 'Pharmacy, Medications & Expiry (FEFO)' : 'موديول الصيدلية والأدوية وتواريخ الصلاحية (FEFO)';
     case 'electronics':
     case 'maintenance':
     case 'صيانة':
-      return 'موديول كروت الصيانة والأجهزة والسيريال والـ IMEI';
+      return isEn ? 'Maintenance Cards, Devices & Serial/IMEI' : 'موديول كروت الصيانة والأجهزة والسيريال والـ IMEI';
     case 'cafe':
     case 'restaurant':
     case 'مطعم':
-      return 'موديول المطاعم والكافيهات وشاشات المطبخ (KDS)';
+      return isEn ? 'Restaurants, Cafes & Kitchen Displays (KDS)' : 'موديول المطاعم والكافيهات وشاشات المطبخ (KDS)';
     case 'manufacturing':
     case 'تصنيع':
-      return 'موديول التصنيع وقوائم المكونات (BOM)';
+      return isEn ? 'Industrial Production & Bills of Materials (BOM)' : 'موديول التصنيع وقوائم المكونات (BOM)';
     case 'general':
     default:
-      return 'النشاط التجاري القياسي وإدارة الأعمال العامة';
+      return isEn ? 'Standard Commercial & General Business Management' : 'النشاط التجاري القياسي وإدارة الأعمال العامة';
   }
 }
 
@@ -208,6 +209,7 @@ function BrandAvatarAndTitlePreview({
   logoData?: string;
   children?: React.ReactNode;
 }) {
+  const { t } = useTranslation();
   const storeName = useWatch({ control, name: 'storeName' });
   const brandName = useWatch({ control, name: 'brandName' });
 
@@ -238,7 +240,7 @@ function BrandAvatarAndTitlePreview({
 
       <div style={{ minWidth: 0, flex: 1 }}>
         <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          {storeName || 'اسم النشاط / المتجر'}
+          {storeName || t('settings.forms.tabs.general_settings_tab.s0', "اسم النشاط / المتجر")}
         </div>
         <div style={{ fontSize: '0.74rem', color: '#64748b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {brandName || 'Z Systems'}
@@ -283,6 +285,8 @@ export const GeneralSettingsTab = memo(function GeneralSettingsTab({
   locations = [],
   onUpdateBranch,
 }: GeneralTabProps) {
+  const { t, i18n } = useTranslation();
+  const isEn = i18n.language === 'en';
   const accentColor = form.watch('accentColor') || '#170c5c';
   const logoData = form.watch('logoData');
   const user = useAuthStore((s) => s.user);
@@ -310,60 +314,60 @@ export const GeneralSettingsTab = memo(function GeneralSettingsTab({
   const isNonPosVertical = isContractingVertical || isMaritimeVertical || isServicesVertical || isManufacturingVertical;
 
   const storeNameLabel = isContractingVertical
-    ? 'اسم شركة المقاولات / المؤسسة'
+    ? (isEn ? 'Contracting Company / Enterprise Name' : 'اسم شركة المقاولات / المؤسسة')
     : isMaritimeVertical
-    ? 'اسم شركة الشحن والتوكيلات الملاحية'
+    ? (isEn ? 'Shipping Agency / Maritime Company Name' : 'اسم شركة الشحن والتوكيلات الملاحية')
     : isManufacturingVertical
-    ? 'اسم المصنع / المنشأة الصناعية'
+    ? (isEn ? 'Factory / Industrial Facility Name' : 'اسم المصنع / المنشأة الصناعية')
     : isImportVertical
-    ? 'اسم شركة الاستيراد والتصدير'
+    ? (isEn ? 'Import & Export Company Name' : 'اسم شركة الاستيراد والتصدير')
     : isServicesVertical
-    ? 'اسم المكتب / الشركة الاستشارية والخدمية'
+    ? (isEn ? 'Consulting & Services Office Name' : 'اسم المكتب / الشركة الاستشارية والخدمية')
     : isRestaurantVertical
-    ? 'اسم المطعم / الكافيه'
+    ? (isEn ? 'Restaurant / Cafe Name' : 'اسم المطعم / الكافيه')
     : isPharmacyVertical
-    ? 'اسم الصيدلية / المؤسسة العلاجية'
+    ? (isEn ? 'Pharmacy / Medical Facility Name' : 'اسم الصيدلية / المؤسسة العلاجية')
     : isClothingVertical
-    ? 'اسم المتجر / بوتيك الأزياء'
+    ? (isEn ? 'Boutique / Fashion Store Name' : 'اسم المتجر / بوتيك الأزياء')
     : isAutoPartsVertical
-    ? 'اسم المركز / محل قطع الغيار'
+    ? (isEn ? 'Auto Parts Center / Store Name' : 'اسم المركز / محل قطع الغيار')
     : isMaintenanceVertical
-    ? 'اسم المركز / محل صيانة الأجهزة'
-    : 'اسم النشاط / المتجر';
+    ? (isEn ? 'Service Center / Repair Shop Name' : 'اسم المركز / محل صيانة الأجهزة')
+    : (isEn ? 'Business / Store Name' : 'اسم النشاط / المتجر');
 
   const storeNamePlaceholder = isContractingVertical
-    ? 'مثال: شركة المقاولات والإنشاءات الحديثة'
+    ? (isEn ? 'e.g., Modern Contracting & Construction Co.' : 'مثال: شركة المقاولات والإنشاءات الحديثة')
     : isMaritimeVertical
-    ? 'مثال: شركة الملاحة والخدمات اللوجستية'
+    ? (isEn ? 'e.g., Maritime Shipping & Logistics Co.' : 'مثال: شركة الملاحة والخدمات اللوجستية')
     : isManufacturingVertical
-    ? 'مثال: مصنع النور للصناعات والتجميع'
+    ? (isEn ? 'e.g., Al-Noor Industrial Manufacturing' : 'مثال: مصنع النور للصناعات والتجميع')
     : isImportVertical
-    ? 'مثال: المجموعة الدولية للاستيراد والتصدير'
+    ? (isEn ? 'e.g., International Group for Import & Export' : 'مثال: المجموعة الدولية للاستيراد والتصدير')
     : isServicesVertical
-    ? 'مثال: المجموعة الاستشارية للأعمال'
+    ? (isEn ? 'e.g., Business Advisory Group' : 'مثال: المجموعة الاستشارية للأعمال')
     : isRestaurantVertical
-    ? 'مثال: مطعم وكافيه الشرق'
+    ? (isEn ? 'e.g., Eastern Restaurant & Cafe' : 'مثال: مطعم وكافيه الشرق')
     : isPharmacyVertical
-    ? 'مثال: صيدليات الحياة الكبرى'
+    ? (isEn ? 'e.g., Al-Hayat Pharmacies' : 'مثال: صيدليات الحياة الكبرى')
     : isClothingVertical
-    ? 'مثال: دار النخبة للأزياء والملابس'
+    ? (isEn ? 'e.g., Elite Fashion & Apparel' : 'مثال: دار النخبة للأزياء والملابس')
     : isAutoPartsVertical
-    ? 'مثال: المركز المعتمد لقطع غيار السيارات'
+    ? (isEn ? 'e.g., Certified Auto Parts Center' : 'مثال: المركز المعتمد لقطع غيار السيارات')
     : isMaintenanceVertical
-    ? 'مثال: مركز التقنية لصيانة الأجهزة والموبايل'
-    : 'مثال: محلات رجب العطار';
+    ? (isEn ? 'e.g., Tech Center for Device Repair' : 'مثال: مركز التقنية لصيانة الأجهزة والموبايل')
+    : (isEn ? 'e.g., Al-Attar Store' : 'مثال: محلات رجب العطار');
 
   const locationFieldLabel = isContractingVertical
-    ? 'مخزن الموقع / التشوين الافتراضي'
-    : 'مكان الاستلام الافتراضي';
+    ? (isEn ? 'Default Site / Staging Warehouse' : 'مخزن الموقع / التشوين الافتراضي')
+    : (isEn ? 'Default Receiving Location' : 'مكان الاستلام الافتراضي');
 
   const branchFieldLabel = isContractingVertical
-    ? 'مقر الإدارة / الفرع الرئيسي'
+    ? (isEn ? 'Management HQ / Main Branch' : 'مقر الإدارة / الفرع الرئيسي')
     : isMaritimeVertical
-    ? 'المكتب / الفرع الملاحي الرئيسي'
-    : 'الفرع الرئيسي';
+    ? (isEn ? 'Main Shipping Office / Branch' : 'المكتب / الفرع الملاحي الرئيسي')
+    : (isEn ? 'Main Branch' : 'الفرع الرئيسي');
 
-  const info = getPillarBadgeInfo(rawAct, tenant?.pillar);
+  const info = getPillarBadgeInfo(rawAct, tenant?.pillar, isEn);
 
   return (
     <div style={{ display: activeTab === 'general' ? 'flex' : 'none', flexDirection: 'column', gap: '16px' }}>
@@ -385,9 +389,9 @@ export const GeneralSettingsTab = memo(function GeneralSettingsTab({
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>
             <div style={{ minWidth: 0, flex: 1 }}>
               <strong style={{ fontSize: '0.95rem', color: '#0f172a', fontWeight: 800, display: 'block' }}>
-                الهوية وبيانات النشاط
+                {t('settings.forms.tabs.general_settings_tab.s1', "الهوية وبيانات النشاط")}
               </strong>
-              <span style={{ fontSize: '0.76rem', color: '#64748b' }}>الاسم والشعار وبيانات التواصل المطبوعة</span>
+              <span style={{ fontSize: '0.76rem', color: '#64748b' }}>{t('settings.forms.tabs.general_settings_tab.s2', "الاسم والشعار وبيانات التواصل المطبوعة")}</span>
             </div>
           </div>
 
@@ -417,7 +421,7 @@ export const GeneralSettingsTab = memo(function GeneralSettingsTab({
                     padding: '2px 8px',
                     cursor: disabled ? 'not-allowed' : 'pointer',
                   }}>
-                    {logoData ? 'تغيير الشعار' : 'رفع شعار'}
+                    {logoData ? t('settings.forms.tabs.general_settings_tab.s3', "تغيير الشعار") : t('settings.forms.tabs.general_settings_tab.s4', "رفع شعار")}
                     <input
                       type="file"
                       style={{ display: 'none' }}
@@ -450,7 +454,7 @@ export const GeneralSettingsTab = memo(function GeneralSettingsTab({
                         padding: '2px 6px',
                       }}
                     >
-                      حذف
+                      {t('settings.forms.tabs.general_settings_tab.s5', "حذف")}
                     </button>
                   )}
                 </div>
@@ -472,8 +476,8 @@ export const GeneralSettingsTab = memo(function GeneralSettingsTab({
               }}
               title={
                 isSuperAdmin
-                  ? 'وضع السوبر أدمن: التعديل متاح من تبويب تخصيص المنظومة والنشاط'
-                  : 'نمط معتمد ومثبت للمنشأة لحماية سلامة القيود'
+                  ? t('settings.forms.tabs.general_settings_tab.s6', "وضع السوبر أدمن: التعديل متاح من تبويب تخصيص المنظومة والنشاط")
+                  : t('settings.forms.tabs.general_settings_tab.s7', "نمط معتمد ومثبت للمنشأة لحماية سلامة القيود")
               }
             >
               <ShieldCheckIcon size={14} color={info.color} />
@@ -514,20 +518,20 @@ export const GeneralSettingsTab = memo(function GeneralSettingsTab({
 
             <div className="field">
               <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <span>نشاط المنشأة والقطاع الفعال</span>
+                <span>{t('settings.forms.tabs.general_settings_tab.s8', "نشاط المنشأة والقطاع الفعال")}</span>
                 <span style={{ fontSize: '0.7rem', background: info.bg, color: info.color, border: `1px solid ${info.borderColor}`, padding: '2px 8px', borderRadius: '4px', fontWeight: 700 }}>
                   {info.badge}
                 </span>
               </label>
               <div style={{ padding: '8px 12px', borderRadius: '6px', background: '#f8fafc', border: '1px solid #e2e8f0', fontSize: '0.82rem', color: '#0f172a', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '6px' }}>
-                <span>{getIndustrySummary(form.watch('businessIndustry') || rawAct)}</span>
-                <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 500 }}>نمط معتمد ومثبت للمنشأة</span>
+                <span>{getIndustrySummary(form.watch('businessIndustry') || rawAct, isEn)}</span>
+                <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 500 }}>{t('settings.forms.tabs.general_settings_tab.s9', "نمط معتمد ومثبت للمنشأة")}</span>
               </div>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
               <div className="field">
-                <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>الهاتف</label>
+                <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>{t('settings.forms.tabs.general_settings_tab.s10', "الهاتف")}</label>
                 <input
                   className="purchase-prototype-field-input"
                   placeholder="010xxxxxxxx"
@@ -541,10 +545,10 @@ export const GeneralSettingsTab = memo(function GeneralSettingsTab({
               </div>
 
               <div className="field">
-                <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>العنوان</label>
+                <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>{t('settings.forms.tabs.general_settings_tab.s11', "العنوان")}</label>
                 <input
                   className="purchase-prototype-field-input"
-                  placeholder="المدينة - الشارع"
+                  placeholder={t('settings.forms.tabs.general_settings_tab.s12', "المدينة - الشارع")}
                   autoComplete="off"
                   autoCorrect="off"
                   data-lpignore="true"
@@ -557,7 +561,7 @@ export const GeneralSettingsTab = memo(function GeneralSettingsTab({
 
             {/* Color Selection Inline */}
             <div className="field">
-              <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>لون الواجهة المخصص</label>
+              <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>{t('settings.forms.tabs.general_settings_tab.s13', "لون الواجهة المخصص")}</label>
               <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
                 <input
                   type="color"
@@ -579,7 +583,7 @@ export const GeneralSettingsTab = memo(function GeneralSettingsTab({
                   disabled={disabled}
                   style={{ padding: '7px 10px', fontSize: '0.75rem', fontWeight: 600, borderRadius: '6px', border: '1px solid #cbd5e1', background: '#f8fafc', color: '#475569', cursor: 'pointer', whiteSpace: 'nowrap' }}
                 >
-                  الافتراضي
+                  {t('settings.forms.tabs.general_settings_tab.s14', "الافتراضي")}
                 </button>
               </div>
             </div>
@@ -600,10 +604,10 @@ export const GeneralSettingsTab = memo(function GeneralSettingsTab({
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>
             <div>
               <strong style={{ fontSize: '0.95rem', color: '#0f172a', fontWeight: 800, display: 'block' }}>
-                {isContractingVertical ? 'المقر الإداري ومواقع العمل' : isMaritimeVertical ? 'المكتب والمقر الملاحي الرئيسي' : 'إعدادات التشغيل والمخزون'}
+                {isContractingVertical ? t('settings.forms.tabs.general_settings_tab.s15', "المقر الإداري ومواقع العمل") : isMaritimeVertical ? t('settings.forms.tabs.general_settings_tab.s16', "المكتب والمقر الملاحي الرئيسي") : t('settings.forms.tabs.general_settings_tab.s17', "إعدادات التشغيل والمخزون")}
               </strong>
               <span style={{ fontSize: '0.76rem', color: '#64748b' }}>
-                {isContractingVertical ? 'مقر الإدارة ومخزن التشوين الميداني الافتراضي' : isMaritimeVertical ? 'المكتب المعتمد كمركز إدارة وتنسيق العمليات والتوكيلات الملاحية' : 'الفرع الرئيسي ومخازن ونمط الكاشير'}
+                {isContractingVertical ? t('settings.forms.tabs.general_settings_tab.s18', "مقر الإدارة ومخزن التشوين الميداني الافتراضي") : isMaritimeVertical ? t('settings.forms.tabs.general_settings_tab.s19', "المكتب المعتمد كمركز إدارة وتنسيق العمليات والتوكيلات الملاحية") : t('settings.forms.tabs.general_settings_tab.s20', "الفرع الرئيسي ومخازن ونمط الكاشير")}
               </span>
             </div>
           </div>
@@ -614,7 +618,7 @@ export const GeneralSettingsTab = memo(function GeneralSettingsTab({
               <RequiredField label={branchFieldLabel} error={form.formState.errors.currentBranchId?.message}>
                 <input
                   className="purchase-prototype-field-input"
-                  value={selectedBranch?.name || 'سيتم الربط تلقائيًا بعد حفظ بيانات النشاط الرئيسي'}
+                  value={selectedBranch?.name || t('settings.forms.tabs.general_settings_tab.s21', "سيتم الربط تلقائيًا بعد حفظ بيانات النشاط الرئيسي")}
                   disabled
                   readOnly
                   style={{ padding: '7px 10px', fontSize: '0.84rem', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#f8fafc' }}
@@ -626,7 +630,7 @@ export const GeneralSettingsTab = memo(function GeneralSettingsTab({
                   <input
                     className="purchase-prototype-field-input"
                     value={branchQuery}
-                    placeholder="ابحث أو اكتب اسم فرع جديد لإضافته"
+                    placeholder={t('settings.forms.tabs.general_settings_tab.s22', "ابحث أو اكتب اسم فرع جديد لإضافته")}
                     name="settings_branch_search"
                     autoComplete="off"
                     autoCorrect="off"
@@ -675,7 +679,7 @@ export const GeneralSettingsTab = memo(function GeneralSettingsTab({
                             setBranchMenuOpen(false);
                           }}
                         >
-                          + إضافة فرع جديد: &quot;{branchQuery.trim()}&quot;
+                          {t('settings.forms.tabs.general_settings_tab.s23', "+ إضافة فرع جديد: \"")}{branchQuery.trim()}&quot;
                         </button>
                       ) : null}
                     </div>
@@ -689,22 +693,22 @@ export const GeneralSettingsTab = memo(function GeneralSettingsTab({
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                 <div className="field">
                   <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>
-                    عملة تسعير النولون الافتراضية
+                    {t('settings.forms.tabs.general_settings_tab.s24', "عملة تسعير النولون الافتراضية")}
                   </label>
                   <CustomSelect
                     value={form.watch('maritimeDefaultCurrency') || 'USD'}
                     onChange={(val) => form.setValue('maritimeDefaultCurrency', val as any, { shouldDirty: true, shouldValidate: true })}
                     options={[
-                      { value: 'USD', label: 'دولار أمريكي (USD)' },
-                      { value: 'EUR', label: 'يورو (EUR)' },
-                      { value: 'EGP', label: 'جنيه مصري (EGP)' },
+                      { value: 'USD', label: t('settings.forms.tabs.general_settings_tab.s25', "دولار أمريكي (USD)") },
+                      { value: 'EUR', label: t('settings.forms.tabs.general_settings_tab.s26', "يورو (EUR)") },
+                      { value: 'EGP', label: t('settings.forms.tabs.general_settings_tab.s27', "جنيه مصري (EGP)") },
                     ]}
                     disabled={disabled}
                   />
                 </div>
                 <div className="field">
                   <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>
-                    أيام السماح المجانية للحاويات (Demurrage)
+                    {t('settings.forms.tabs.general_settings_tab.s28', "أيام السماح المجانية للحاويات (Demurrage)")}
                   </label>
                   <input
                     type="number"
@@ -723,14 +727,14 @@ export const GeneralSettingsTab = memo(function GeneralSettingsTab({
                 <RequiredField label={locationFieldLabel} error={form.formState.errors.currentLocationId?.message}>
                   {visibleLocations.length === 0 ? (
                     <div style={{ padding: '6px 8px', background: '#fee2e2', color: '#991b1b', borderRadius: '6px', fontSize: '0.78rem' }}>
-                      لا توجد أماكن مخزون.
+                      {t('settings.forms.tabs.general_settings_tab.s29', "لا توجد أماكن مخزون.")}
                     </div>
                   ) : (
                     <CustomSelect
                       value={form.watch('currentLocationId') || ''}
                       onChange={(val) => form.setValue('currentLocationId', val, { shouldDirty: true, shouldValidate: true })}
                       options={[
-                        { value: '', label: '-- اختر المخزن --' },
+                        { value: '', label: t('settings.forms.tabs.general_settings_tab.s30', "-- اختر المخزن --") },
                         ...visibleLocations.map((loc) => ({ value: String(loc.id), label: loc.name })),
                       ]}
                       disabled={disabled}
@@ -740,13 +744,13 @@ export const GeneralSettingsTab = memo(function GeneralSettingsTab({
 
                 {!isNonPosVertical && (
                   <div className="field">
-                    <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>نمط الكاشير الافتراضي</label>
+                    <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>{t('settings.forms.tabs.general_settings_tab.s31', "نمط الكاشير الافتراضي")}</label>
                     <CustomSelect
                       value={form.watch('defaultPosMode') || 'scanner'}
                       onChange={(val) => form.setValue('defaultPosMode', val as any, { shouldDirty: true, shouldValidate: true })}
                       options={[
-                        { value: 'scanner', label: 'سكانر باركود' },
-                        { value: 'touch', label: 'لمس (تاتش)' },
+                        { value: 'scanner', label: t('settings.forms.tabs.general_settings_tab.s32', "سكانر باركود") },
+                        { value: 'touch', label: t('settings.forms.tabs.general_settings_tab.s33', "لمس (تاتش)") },
                       ]}
                       disabled={disabled}
                     />
@@ -765,31 +769,31 @@ export const GeneralSettingsTab = memo(function GeneralSettingsTab({
                 marginTop: '4px',
               }}>
                 <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#0f172a', marginBottom: '6px' }}>
-                  مصدر مخزون البيع للفرع ({selectedBranch.name})
+                  {t('settings.forms.tabs.general_settings_tab.s34', "مصدر مخزون البيع للفرع (")}{selectedBranch.name})
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
                   <div>
-                    <label style={{ fontSize: '0.72rem', color: '#64748b', display: 'block', marginBottom: '2px' }}>نطاق المخزون</label>
+                    <label style={{ fontSize: '0.72rem', color: '#64748b', display: 'block', marginBottom: '2px' }}>{t('settings.forms.tabs.general_settings_tab.s35', "نطاق المخزون")}</label>
                     <CustomSelect
                       value={stockMode}
                       disabled={!canManageSettings || branchStockSaving}
                       onChange={(val) => { setStockMode(val as any); setBranchStockDirty(true); setBranchStockSaved(false); }}
                       options={[
-                        { value: 'single_location', label: 'مخزن محدد' },
-                        { value: 'all_operational_locations', label: 'كل المخازن التشغيلية' },
+                        { value: 'single_location', label: t('settings.forms.tabs.general_settings_tab.s36', "مخزن محدد") },
+                        { value: 'all_operational_locations', label: t('settings.forms.tabs.general_settings_tab.s37', "كل المخازن التشغيلية") },
                       ]}
                     />
                   </div>
 
                   <div>
-                    <label style={{ fontSize: '0.72rem', color: '#64748b', display: 'block', marginBottom: '2px' }}>مخزن البيع الأساسي</label>
+                    <label style={{ fontSize: '0.72rem', color: '#64748b', display: 'block', marginBottom: '2px' }}>{t('settings.forms.tabs.general_settings_tab.s38', "مخزن البيع الأساسي")}</label>
                     <CustomSelect
                       value={defaultStockLocationId}
                       disabled={!canManageSettings || branchStockSaving}
                       onChange={(val) => { setDefaultStockLocationId(val); setBranchStockDirty(true); setBranchStockSaved(false); }}
                       options={[
-                        { value: '', label: '-- غير محدد --' },
+                        { value: '', label: t('settings.forms.tabs.general_settings_tab.s39', "-- غير محدد --") },
                         ...locations.filter((loc) => !loc.branchId || loc.branchId === selectedBranch.id).map((loc) => ({
                           value: String(loc.id),
                           label: loc.name,
@@ -808,7 +812,7 @@ export const GeneralSettingsTab = memo(function GeneralSettingsTab({
                         disabled={!canManageSettings || branchStockSaving}
                         onChange={(e) => { setAllowExternalSalesStock(e.target.checked); setBranchStockDirty(true); setBranchStockSaved(false); }}
                       />
-                      السماح بالبيع من المخازن الخارجية
+                      {t('settings.forms.tabs.general_settings_tab.s40', "السماح بالبيع من المخازن الخارجية")}
                     </label>
                   </div>
                 )}
@@ -833,7 +837,7 @@ export const GeneralSettingsTab = memo(function GeneralSettingsTab({
                           setBranchStockSaved(true);
                           setBranchStockDirty(false);
                         } catch {
-                          setBranchStockError('تعذر حفظ إعدادات المخزون.');
+                          setBranchStockError(t('settings.forms.tabs.general_settings_tab.s41', "تعذر حفظ إعدادات المخزون."));
                         } finally {
                           setBranchStockSaving(false);
                         }
@@ -849,12 +853,12 @@ export const GeneralSettingsTab = memo(function GeneralSettingsTab({
                         cursor: branchStockSaving ? 'wait' : 'pointer',
                       }}
                     >
-                      {branchStockSaving ? 'جارٍ الحفظ...' : 'حفظ إعدادات مخزون الفرع'}
+                      {branchStockSaving ? t('settings.forms.tabs.general_settings_tab.s42', "جارٍ الحفظ...") : t('settings.forms.tabs.general_settings_tab.s43', "حفظ إعدادات مخزون الفرع")}
                     </button>
                   </div>
                 )}
 
-                {branchStockSaved && <div style={{ color: '#16a34a', marginTop: '4px', fontSize: '0.75rem', fontWeight: 600 }}>تم حفظ إعدادات مخزون البيع بنجاح.</div>}
+                {branchStockSaved && <div style={{ color: '#16a34a', marginTop: '4px', fontSize: '0.75rem', fontWeight: 600 }}>{t('settings.forms.tabs.general_settings_tab.s44', "تم حفظ إعدادات مخزون البيع بنجاح.")}</div>}
                 {branchStockError && <div style={{ color: '#dc2626', marginTop: '4px', fontSize: '0.75rem', fontWeight: 600 }}>{branchStockError}</div>}
               </div>
             )}
@@ -877,10 +881,10 @@ export const GeneralSettingsTab = memo(function GeneralSettingsTab({
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px', flexWrap: 'wrap', gap: '8px' }}>
             <div>
               <strong style={{ fontSize: '0.95rem', color: '#0f172a', fontWeight: 800, display: 'block' }}>
-                نمط تشغيل المنشأة ونطاق العمل (Operation Mode)
+                {t('settings.forms.tabs.general_settings_tab.s45', "نمط تشغيل المنشأة ونطاق العمل (Operation Mode)")}
               </strong>
               <span style={{ fontSize: '0.78rem', color: '#64748b' }}>
-                اختر النمط المناسب لحجم نشاطك لضبط القوائم والواجهات؛ يتم تدوين القيود المحاسبية في الخلفية تلقائياً في كلا النمطين.
+                {t('settings.forms.tabs.general_settings_tab.s46', "اختر النمط المناسب لحجم نشاطك لضبط القوائم والواجهات؛ يتم تدوين القيود المحاسبية في الخلفية تلقائياً في كلا النمطين.")}
               </span>
             </div>
             <span style={{
@@ -892,7 +896,7 @@ export const GeneralSettingsTab = memo(function GeneralSettingsTab({
               padding: '3px 10px',
               borderRadius: '6px',
             }}>
-              {form.watch('enableEnterpriseFeatures') ? 'النمط المؤسسي المتقدم' : 'النمط التجاري المبسط'}
+              {form.watch('enableEnterpriseFeatures') ? t('settings.forms.tabs.general_settings_tab.s47', "النمط المؤسسي المتقدم") : t('settings.forms.tabs.general_settings_tab.s48', "النمط التجاري المبسط")}
             </span>
           </div>
 
@@ -928,15 +932,15 @@ export const GeneralSettingsTab = memo(function GeneralSettingsTab({
                     flexShrink: 0,
                   }} />
                   <strong style={{ fontSize: '0.9rem', color: '#0f172a', fontWeight: 800 }}>
-                    محل تجاري ونقاط بيع مبسطة (Simple Retail)
+                    {t('settings.forms.tabs.general_settings_tab.s49', "محل تجاري ونقاط بيع مبسطة (Simple Retail)")}
                   </strong>
                 </div>
                 <span style={{ fontSize: '0.7rem', background: '#dcfce7', color: '#15803d', padding: '2px 8px', borderRadius: '4px', fontWeight: 700 }}>
-                  موصى به للمحلات
+                  {t('settings.forms.tabs.general_settings_tab.s50', "موصى به للمحلات")}
                 </span>
               </div>
               <p style={{ fontSize: '0.78rem', color: '#64748b', margin: 0, lineHeight: 1.5 }}>
-                واجهة رشيقة وسريعة للكاشير ونقاط البيع والفواتير المباشرة والمخزون، مع الخزينة والمصروفات اليومية. تخفي الشيكات والبنوك وقيود اليومية وأوامر الشراء والأرفف لمنع التشتيت وسرعة الإنجاز.
+                {t('settings.forms.tabs.general_settings_tab.s51', "واجهة رشيقة وسريعة للكاشير ونقاط البيع والفواتير المباشرة والمخزون، مع الخزينة والمصروفات اليومية. تخفي الشيكات والبنوك وقيود اليومية وأوامر الشراء والأرفف لمنع التشتيت وسرعة الإنجاز.")}
               </p>
             </div>
 
@@ -971,15 +975,15 @@ export const GeneralSettingsTab = memo(function GeneralSettingsTab({
                     flexShrink: 0,
                   }} />
                   <strong style={{ fontSize: '0.9rem', color: '#0f172a', fontWeight: 800 }}>
-                    مؤسسة تجارية متقدمة (Enterprise Trading)
+                    {t('settings.forms.tabs.general_settings_tab.s52', "مؤسسة تجارية متقدمة (Enterprise Trading)")}
                   </strong>
                 </div>
                 <span style={{ fontSize: '0.7rem', background: '#eff6ff', color: '#1d4ed8', padding: '2px 8px', borderRadius: '4px', fontWeight: 700 }}>
-                  محاسبة متقدمة
+                  {t('settings.forms.tabs.general_settings_tab.s53', "محاسبة متقدمة")}
                 </span>
               </div>
               <p style={{ fontSize: '0.78rem', color: '#64748b', margin: 0, lineHeight: 1.5 }}>
-                تفعيل الدورة المستندية الكاملة: أوامر الشراء والبيع، عروض الأسعار (RFQ)، شجرة المخازن والأرفف، المحاسبة العامة، شجرة الحسابات، قيود اليومية، حافظة الشيكات (PDC)، والتسويات البنكية ومراكز التكلفة.
+                {t('settings.forms.tabs.general_settings_tab.s54', "تفعيل الدورة المستندية الكاملة: أوامر الشراء والبيع، عروض الأسعار (RFQ)، شجرة المخازن والأرفف، المحاسبة العامة، شجرة الحسابات، قيود اليومية، حافظة الشيكات (PDC)، والتسويات البنكية ومراكز التكلفة.")}
               </p>
             </div>
           </div>
@@ -1000,18 +1004,18 @@ export const GeneralSettingsTab = memo(function GeneralSettingsTab({
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>
           <div style={{ minWidth: 0, flex: 1 }}>
             <strong style={{ fontSize: '0.95rem', color: '#0f172a', fontWeight: 800, display: 'block' }}>
-              اللغة والمنطقة والتواصل
+              {t('settings.forms.tabs.general_settings_tab.s55', "اللغة والمنطقة والتواصل")}
             </strong>
-            <span style={{ fontSize: '0.76rem', color: '#64748b' }}>العملة، التوقيت، وتنسيق التواريخ والواتساب</span>
+            <span style={{ fontSize: '0.76rem', color: '#64748b' }}>{t('settings.forms.tabs.general_settings_tab.s56', "العملة، التوقيت، وتنسيق التواريخ والواتساب")}</span>
           </div>
           <span style={{ fontSize: '0.72rem', background: '#f1f5f9', color: '#475569', padding: '2px 8px', borderRadius: '4px', border: '1px solid #e2e8f0', fontWeight: 600, flexShrink: 0 }}>
-            التفضيلات
+            {t('settings.forms.tabs.general_settings_tab.s57', "التفضيلات")}
           </span>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px' }}>
           <div className="field">
-            <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>دولة المقر / التشغيل</label>
+            <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>{t('settings.forms.tabs.general_settings_tab.s58', "دولة المقر / التشغيل")}</label>
             <CustomSelect
               value={form.watch('country') || (form.watch('currency') === 'KWD' ? 'KW' : form.watch('currency') === 'SAR' ? 'SA' : 'EG')}
               onChange={(val) => {
@@ -1024,13 +1028,13 @@ export const GeneralSettingsTab = memo(function GeneralSettingsTab({
                   form.setValue('printShowTaxNumber', false, { shouldDirty: true, shouldValidate: true });
                   form.setValue('posTerminalProvider', 'knet_pos', { shouldDirty: true, shouldValidate: true });
                   form.setValue('printNumberFormat', 'english', { shouldDirty: true, shouldValidate: true });
-                  toast.success('تم تفعيل إعدادات دولة الكويت بنجاح: د.ك (3 خانات - فلس)، أرقام لاتينية قياسية، ضريبة 0%، وشبكة كي نت K-NET.');
+                  toast.success(t('settings.forms.tabs.general_settings_tab.s59', "تم تفعيل إعدادات دولة الكويت بنجاح: د.ك (3 خانات - فلس)، أرقام لاتينية قياسية، ضريبة 0%، وشبكة كي نت K-NET."));
                 } else if (val === 'SA') {
                   form.setValue('currency', 'SAR', { shouldDirty: true, shouldValidate: true });
                   form.setValue('timezone', 'Asia/Riyadh', { shouldDirty: true, shouldValidate: true });
                   form.setValue('taxRate', 15, { shouldDirty: true, shouldValidate: true });
                   form.setValue('printShowTaxNumber', true, { shouldDirty: true, shouldValidate: true });
-                  toast.success('تم تفعيل إعدادات المملكة العربية السعودية: ريال سعودي، ضريبة 15%، وهيئة الزكاة والضريبة ZATCA.');
+                  toast.success(t('settings.forms.tabs.general_settings_tab.s60', "تم تفعيل إعدادات المملكة العربية السعودية: ريال سعودي، ضريبة 15%، وهيئة الزكاة والضريبة ZATCA."));
                 } else if (val === 'EG') {
                   form.setValue('currency', 'EGP', { shouldDirty: true, shouldValidate: true });
                   form.setValue('timezone', 'Africa/Cairo', { shouldDirty: true, shouldValidate: true });
@@ -1054,20 +1058,20 @@ export const GeneralSettingsTab = memo(function GeneralSettingsTab({
                 }
               }}
               options={[
-                { value: 'KW', label: 'دولة الكويت (Kuwait)' },
-                { value: 'SA', label: 'المملكة العربية السعودية (KSA)' },
-                { value: 'EG', label: 'جمهورية مصر العربية (Egypt)' },
-                { value: 'AE', label: 'دولة الإمارات (UAE)' },
-                { value: 'QA', label: 'دولة قطر (Qatar)' },
-                { value: 'BH', label: 'مملكة البحرين (Bahrain)' },
-                { value: 'OM', label: 'سلطنة عُمان (Oman)' },
+                { value: 'KW', label: t('settings.forms.tabs.general_settings_tab.s61', "دولة الكويت (Kuwait)") },
+                { value: 'SA', label: t('settings.forms.tabs.general_settings_tab.s62', "المملكة العربية السعودية (KSA)") },
+                { value: 'EG', label: t('settings.forms.tabs.general_settings_tab.s63', "جمهورية مصر العربية (Egypt)") },
+                { value: 'AE', label: t('settings.forms.tabs.general_settings_tab.s64', "دولة الإمارات (UAE)") },
+                { value: 'QA', label: t('settings.forms.tabs.general_settings_tab.s65', "دولة قطر (Qatar)") },
+                { value: 'BH', label: t('settings.forms.tabs.general_settings_tab.s66', "مملكة البحرين (Bahrain)") },
+                { value: 'OM', label: t('settings.forms.tabs.general_settings_tab.s67', "سلطنة عُمان (Oman)") },
               ]}
               disabled={disabled}
             />
           </div>
 
           <div className="field">
-            <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>لغة النظام</label>
+            <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>{t('settings.forms.tabs.general_settings_tab.s68', "لغة النظام")}</label>
             <CustomSelect
               value={form.watch('uiLanguage') || 'ar'}
               onChange={(val) => {
@@ -1079,7 +1083,7 @@ export const GeneralSettingsTab = memo(function GeneralSettingsTab({
                 }
               }}
               options={[
-                { value: 'ar', label: 'العربية' },
+                { value: 'ar', label: t('settings.forms.tabs.general_settings_tab.s69', "العربية") },
                 { value: 'en', label: 'English' },
               ]}
               disabled={disabled}
@@ -1087,7 +1091,7 @@ export const GeneralSettingsTab = memo(function GeneralSettingsTab({
           </div>
 
           <div className="field">
-            <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>العملة</label>
+            <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>{t('settings.forms.tabs.general_settings_tab.s70', "العملة")}</label>
             <CustomSelect
               value={form.watch('currency') || 'EGP'}
               onChange={(val) => {
@@ -1104,26 +1108,26 @@ export const GeneralSettingsTab = memo(function GeneralSettingsTab({
           </div>
 
           <div className="field">
-            <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>المنطقة الزمنية</label>
+            <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>{t('settings.forms.tabs.general_settings_tab.s71', "المنطقة الزمنية")}</label>
             <CustomSelect
               value={form.watch('timezone') || 'Africa/Cairo'}
               onChange={(val) => form.setValue('timezone', val, { shouldDirty: true, shouldValidate: true })}
               options={[
-                { value: 'Africa/Cairo', label: 'مصر (Africa/Cairo)' },
-                { value: 'Asia/Riyadh', label: 'السعودية (Asia/Riyadh)' },
-                { value: 'Asia/Kuwait', label: 'الكويت (Asia/Kuwait)' },
-                { value: 'Asia/Qatar', label: 'قطر (Asia/Qatar)' },
-                { value: 'Asia/Dubai', label: 'الإمارات (Asia/Dubai)' },
-                { value: 'Asia/Bahrain', label: 'البحرين (Asia/Bahrain)' },
-                { value: 'Asia/Muscat', label: 'عُمان (Asia/Muscat)' },
-                { value: 'UTC', label: 'التوقيت العالمي (UTC)' },
+                { value: 'Africa/Cairo', label: t('settings.forms.tabs.general_settings_tab.s72', "مصر (Africa/Cairo)") },
+                { value: 'Asia/Riyadh', label: t('settings.forms.tabs.general_settings_tab.s73', "السعودية (Asia/Riyadh)") },
+                { value: 'Asia/Kuwait', label: t('settings.forms.tabs.general_settings_tab.s74', "الكويت (Asia/Kuwait)") },
+                { value: 'Asia/Qatar', label: t('settings.forms.tabs.general_settings_tab.s75', "قطر (Asia/Qatar)") },
+                { value: 'Asia/Dubai', label: t('settings.forms.tabs.general_settings_tab.s76', "الإمارات (Asia/Dubai)") },
+                { value: 'Asia/Bahrain', label: t('settings.forms.tabs.general_settings_tab.s77', "البحرين (Asia/Bahrain)") },
+                { value: 'Asia/Muscat', label: t('settings.forms.tabs.general_settings_tab.s78', "عُمان (Asia/Muscat)") },
+                { value: 'UTC', label: t('settings.forms.tabs.general_settings_tab.s79', "التوقيت العالمي (UTC)") },
               ]}
               disabled={disabled}
             />
           </div>
 
           <div className="field">
-            <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>صيغة التاريخ</label>
+            <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>{t('settings.forms.tabs.general_settings_tab.s80', "صيغة التاريخ")}</label>
             <CustomSelect
               value={form.watch('dateFormat') || 'dd/MM/yyyy'}
               onChange={(val) => form.setValue('dateFormat', val as any, { shouldDirty: true, shouldValidate: true })}
@@ -1136,27 +1140,27 @@ export const GeneralSettingsTab = memo(function GeneralSettingsTab({
           </div>
 
           <div className="field">
-            <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>صيغة الوقت</label>
+            <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>{t('settings.forms.tabs.general_settings_tab.s81', "صيغة الوقت")}</label>
             <CustomSelect
               value={form.watch('timeFormat') || '12h'}
               onChange={(val) => form.setValue('timeFormat', val as any, { shouldDirty: true, shouldValidate: true })}
               options={[
-                { value: '24h', label: '24 ساعة' },
-                { value: '12h', label: '12 ساعة (ص/م)' },
+                { value: '24h', label: t('settings.forms.tabs.general_settings_tab.s82', "24 ساعة") },
+                { value: '12h', label: t('settings.forms.tabs.general_settings_tab.s83', "12 ساعة (ص/م)") },
               ]}
               disabled={disabled}
             />
           </div>
 
           <div className="field">
-            <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>رابط إرسال الواتساب</label>
+            <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>{t('settings.forms.tabs.general_settings_tab.s84', "رابط إرسال الواتساب")}</label>
             <CustomSelect
               value={form.watch('whatsappLinkMode') || 'wa_me'}
               onChange={(val) => form.setValue('whatsappLinkMode', val as any, { shouldDirty: true, shouldValidate: true })}
               options={[
-                { value: 'wa_me', label: 'افتراضي (يسأل المستخدم)' },
-                { value: 'web', label: 'واتساب ويب مباشرة' },
-                { value: 'app', label: 'تطبيق الواتساب مباشرة' },
+                { value: 'wa_me', label: t('settings.forms.tabs.general_settings_tab.s85', "افتراضي (يسأل المستخدم)") },
+                { value: 'web', label: t('settings.forms.tabs.general_settings_tab.s86', "واتساب ويب مباشرة") },
+                { value: 'app', label: t('settings.forms.tabs.general_settings_tab.s87', "تطبيق الواتساب مباشرة") },
               ]}
               disabled={disabled}
             />
@@ -1179,9 +1183,9 @@ export const GeneralSettingsTab = memo(function GeneralSettingsTab({
           }}>
             <ShieldCheckIcon size={18} color="#16a34a" />
             <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-              <strong style={{ fontSize: '0.84rem' }}>الملف الإقليمي لدولة الكويت مفعّل بالكامل</strong>
+              <strong style={{ fontSize: '0.84rem' }}>{t('settings.forms.tabs.general_settings_tab.s88', "الملف الإقليمي لدولة الكويت مفعّل بالكامل")}</strong>
               <span style={{ fontSize: '0.74rem', color: '#15803d' }}>
-                دقة الأسعار 3 خانات عشرية (فلس)، ضريبة 0%، شبكة كي نت (K-NET)، منصة كاري (Cari)، ونموذج عناوين المعلومات المدنية (PACI). يمكنك تعديل أي حقل مخصص يدوياً بحرية.
+                {t('settings.forms.tabs.general_settings_tab.s89', "دقة الأسعار 3 خانات عشرية (فلس)، ضريبة 0%، شبكة كي نت (K-NET)، منصة كاري (Cari)، ونموذج عناوين المعلومات المدنية (PACI). يمكنك تعديل أي حقل مخصص يدوياً بحرية.")}
               </span>
             </div>
           </div>

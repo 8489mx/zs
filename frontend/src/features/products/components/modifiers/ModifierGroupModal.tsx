@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React, { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
@@ -53,6 +54,7 @@ export const ModifierGroupModal: React.FC<ModifierGroupModalProps> = ({
   modalFeedback,
   onSave,
 }) => {
+  const { t } = useTranslation();
   const { data: rawProducts = [] } = useQuery({
     queryKey: ['products-for-modifiers'],
     queryFn: () => productsApi.list(),
@@ -74,14 +76,14 @@ export const ModifierGroupModal: React.FC<ModifierGroupModalProps> = ({
       onClose={() => {
         if (!saving) onClose();
       }}
-      title={editingGroup ? 'تعديل مجموعة الإضافات والخيارات' : 'إضافة مجموعة خيارات جديدة'}
-      subtitle="تحديد نوع الاختيار، قواعد الإلزام، وربط الخيارات بالمواد الخام للاستنزاف التلقائي للمخزون"
+      title={editingGroup ? t('products.modifiers.modifier_group_modal.s0', "تعديل مجموعة الإضافات والخيارات") : t('products.modifiers.modifier_group_modal.s1', "إضافة مجموعة خيارات جديدة")}
+      subtitle={t('products.modifiers.modifier_group_modal.s2', "تحديد نوع الاختيار، قواعد الإلزام، وربط الخيارات بالمواد الخام للاستنزاف التلقائي للمخزون")}
       maxWidth="780px"
       footerActions={
         <StandardDialogFooter
-          cancelText="إلغاء"
+          cancelText={t('products.modifiers.modifier_group_modal.s3', "إلغاء")}
           onCancel={onClose}
-          submitText={editingGroup ? 'حفظ التعديلات' : 'حفظ المجموعة والخيارات'}
+          submitText={editingGroup ? t('products.modifiers.modifier_group_modal.s4', "حفظ التعديلات") : t('products.modifiers.modifier_group_modal.s5', "حفظ المجموعة والخيارات")}
           onSubmit={onSave}
           isSubmitting={saving}
           submitDisabled={saving || !formName.trim()}
@@ -108,20 +110,20 @@ export const ModifierGroupModal: React.FC<ModifierGroupModalProps> = ({
         <div style={{ background: '#f8fafc', padding: '12px 16px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
             <AppIcons.Layers size={15} />
-            <span>1. بيانات المجموعة والقواعد (Group Rules & Details)</span>
+            <span>{t('products.modifiers.modifier_group_modal.s6', "1. بيانات المجموعة والقواعد (Group Rules & Details)")}</span>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: '10px', marginBottom: '10px' }}>
-            <Field label="اسم المجموعة بالعربية *">
+            <Field label={t('products.modifiers.modifier_group_modal.s7', "اسم المجموعة بالعربية *")}>
               <input
                 type="text"
                 value={formName}
                 onChange={(e) => setFormName(e.target.value)}
-                placeholder="مثال: درجة الطهي، الصوصات، إضافات إكسترا..."
+                placeholder={t('products.modifiers.modifier_group_modal.s8', "مثال: درجة الطهي، الصوصات، إضافات إكسترا...")}
               />
             </Field>
 
-            <Field label="الاسم بالإنجليزية (اختياري)">
+            <Field label={t('products.modifiers.modifier_group_modal.s9', "الاسم بالإنجليزية (اختياري)")}>
               <input
                 type="text"
                 value={formNameEn}
@@ -132,7 +134,7 @@ export const ModifierGroupModal: React.FC<ModifierGroupModalProps> = ({
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: '10px', alignItems: 'flex-end' }}>
-            <Field label="نوع الاختيار *">
+            <Field label={t('products.modifiers.modifier_group_modal.s10', "نوع الاختيار *")}>
               <CustomSelect
                 value={formSelectionType}
                 options={SELECTION_TYPE_OPTIONS}
@@ -147,7 +149,7 @@ export const ModifierGroupModal: React.FC<ModifierGroupModalProps> = ({
                   checked={formIsMandatory}
                   onChange={(e) => setFormIsMandatory(e.target.checked)}
                 />
-                <span>اختيار إلزامي قبل إضافة الصنف للسلة</span>
+                <span>{t('products.modifiers.modifier_group_modal.s11', "اختيار إلزامي قبل إضافة الصنف للسلة")}</span>
               </label>
             </div>
           </div>
@@ -159,10 +161,10 @@ export const ModifierGroupModal: React.FC<ModifierGroupModalProps> = ({
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
                 <AppIcons.Package size={15} />
-                <span>2. قائمة الخيارات والإضافات وربط استهلاك المواد الخام</span>
+                <span>{t('products.modifiers.modifier_group_modal.s12', "2. قائمة الخيارات والإضافات وربط استهلاك المواد الخام")}</span>
               </div>
               <p style={{ margin: '2px 0 0', fontSize: '11px', color: '#64748b' }}>
-                يمكنك ربط كل إضافة بمادة خام من المخزن لتُخصم كميتها تلقائياً وتُحسب تكلفتها عند اختيار العميل لها
+                {t('products.modifiers.modifier_group_modal.s13', "يمكنك ربط كل إضافة بمادة خام من المخزن لتُخصم كميتها تلقائياً وتُحسب تكلفتها عند اختيار العميل لها")}
               </p>
             </div>
             <button
@@ -179,7 +181,7 @@ export const ModifierGroupModal: React.FC<ModifierGroupModalProps> = ({
                 cursor: 'pointer',
               }}
             >
-              + إضافة خيار
+              {t('products.modifiers.modifier_group_modal.s14', "+ إضافة خيار")}
             </button>
           </div>
 
@@ -203,7 +205,7 @@ export const ModifierGroupModal: React.FC<ModifierGroupModalProps> = ({
                     type="text"
                     value={opt.name}
                     onChange={(e) => onOptionChange(idx, 'name', e.target.value)}
-                    placeholder="اسم الخيار (مثل: شريحة جبنة شيدر)..."
+                    placeholder={t('products.modifiers.modifier_group_modal.s15', "اسم الخيار (مثل: شريحة جبنة شيدر)...")}
                     style={{ padding: '7px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '12.5px' }}
                   />
                   <input
@@ -212,7 +214,7 @@ export const ModifierGroupModal: React.FC<ModifierGroupModalProps> = ({
                     step="0.5"
                     value={opt.price}
                     onChange={(e) => onOptionChange(idx, 'price', parseFloat(e.target.value) || 0)}
-                    placeholder="السعر الإضافي..."
+                    placeholder={t('products.modifiers.modifier_group_modal.s16', "السعر الإضافي...")}
                     style={{ padding: '7px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '12.5px' }}
                   />
                   <label style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', cursor: 'pointer', fontSize: '11px', color: '#64748b' }}>
@@ -221,7 +223,7 @@ export const ModifierGroupModal: React.FC<ModifierGroupModalProps> = ({
                       checked={Boolean(opt.isDefault)}
                       onChange={(e) => onOptionChange(idx, 'isDefault', e.target.checked)}
                     />
-                    <span>افتراضي</span>
+                    <span>{t('products.modifiers.modifier_group_modal.s17', "افتراضي")}</span>
                   </label>
                   <button
                     type="button"
@@ -236,7 +238,7 @@ export const ModifierGroupModal: React.FC<ModifierGroupModalProps> = ({
                       cursor: formOptions.length > 1 ? 'pointer' : 'not-allowed',
                       opacity: formOptions.length > 1 ? 1 : 0.4,
                     }}
-                    title="حذف الخيار"
+                    title={t('products.modifiers.modifier_group_modal.s18', "حذف الخيار")}
                   >
                     <AppIcons.Trash size={14} />
                   </button>
@@ -246,18 +248,18 @@ export const ModifierGroupModal: React.FC<ModifierGroupModalProps> = ({
                 <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: '8px', alignItems: 'center', backgroundColor: '#f8fafc', padding: '6px 8px', borderRadius: '6px' }}>
                   <div>
                     <label style={{ display: 'block', fontSize: '10.5px', color: '#475569', fontWeight: 600, marginBottom: '2px' }}>
-                      المادة الخام المستنزفة (مخزون)
+                      {t('products.modifiers.modifier_group_modal.s19', "المادة الخام المستنزفة (مخزون)")}
                     </label>
                     <CustomSelect
                       value={opt.componentProductId ? String(opt.componentProductId) : ''}
                       options={productOptions}
                       onChange={(val) => onOptionChange(idx, 'componentProductId', val ? Number(val) : null)}
-                      placeholder="— بدون خصم مخزني —"
+                      placeholder={t('products.modifiers.modifier_group_modal.s20', "— بدون خصم مخزني —")}
                     />
                   </div>
                   <div>
                     <label style={{ display: 'block', fontSize: '10.5px', color: '#475569', fontWeight: 600, marginBottom: '2px' }}>
-                      كمية الخصم
+                      {t('products.modifiers.modifier_group_modal.s21', "كمية الخصم")}
                     </label>
                     <input
                       type="number"
@@ -271,13 +273,13 @@ export const ModifierGroupModal: React.FC<ModifierGroupModalProps> = ({
                   </div>
                   <div>
                     <label style={{ display: 'block', fontSize: '10.5px', color: '#475569', fontWeight: 600, marginBottom: '2px' }}>
-                      الوحدة
+                      {t('products.modifiers.modifier_group_modal.s22', "الوحدة")}
                     </label>
                     <input
                       type="text"
                       value={opt.unitName || ''}
                       onChange={(e) => onOptionChange(idx, 'unitName', e.target.value)}
-                      placeholder="حبة / جرام / مل..."
+                      placeholder={t('products.modifiers.modifier_group_modal.s23', "حبة / جرام / مل...")}
                       style={{ width: '100%', padding: '6px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '12px' }}
                     />
                   </div>

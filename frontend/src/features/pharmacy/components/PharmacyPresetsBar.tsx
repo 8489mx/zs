@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { IconBox, IconPlus } from './PharmacyIcons';
 
 export const FAST_DRUG_PRESETS = [
@@ -14,11 +15,12 @@ interface PharmacyPresetsBarProps {
 }
 
 export function PharmacyPresetsBar({ onSelectPreset }: PharmacyPresetsBarProps) {
+  const { t } = useTranslation();
   return (
     <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '12px 16px', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
       <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#475569', display: 'flex', alignItems: 'center', gap: '4px' }}>
         <IconBox />
-        <span>إضافة سريعة لأشهر الأصناف المصرية:</span>
+        <span>{t('pharmacy.pharmacy_presets_bar.s0', "إضافة سريعة لأشهر الأصناف المصرية:")}</span>
       </span>
       {FAST_DRUG_PRESETS.map((p, idx) => (
         <button

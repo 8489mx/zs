@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
@@ -35,6 +36,7 @@ function formatLocationType(type?: string) {
 }
 
 export function WarehousesGridPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { locationsQuery, branchesQuery } = useInventoryActionCatalog();
   const locations = locationsQuery.data || [];
@@ -136,8 +138,8 @@ export function WarehousesGridPage() {
   return (
     <main className="document-prototype-column" dir="rtl" style={{ paddingBottom: '32px', maxWidth: '1280px', margin: '0 auto', width: '100%' }}>
       <PageHeader 
-        title="أماكن المخزون" 
-        description="استعراض وإدارة أماكن التخزين والفروع ومتابعة الأرصدة والقيم المالية" 
+        title={t('inventory.warehouses_grid_page.s0', "أماكن المخزون")} 
+        description={t('inventory.warehouses_grid_page.s1', "استعراض وإدارة أماكن التخزين والفروع ومتابعة الأرصدة والقيم المالية")} 
         actions={(
           <div className="actions compact-actions page-header-actions">
             <Button 
@@ -145,14 +147,14 @@ export function WarehousesGridPage() {
               onClick={handleCreate}
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginInlineEnd: 6 }}><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-              إضافة مخزن جديد
+              {t('inventory.warehouses_grid_page.s2', "إضافة مخزن جديد")}
             </Button>
             <Button 
               variant="secondary"
               onClick={() => navigate('/inventory/tree')}
               style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
             >
-              <NetworkIcon size={16} /> شجرة المخازن الشاملة
+              <NetworkIcon size={16} /> {t('inventory.warehouses_grid_page.s3', "شجرة المخازن الشاملة")}
             </Button>
           </div>
         )}
@@ -169,7 +171,7 @@ export function WarehousesGridPage() {
       }}>
         <input
           type="text"
-          placeholder="ابحث باسم المخزن أو الكود أو الفرع..."
+          placeholder={t('inventory.warehouses_grid_page.s4', "ابحث باسم المخزن أو الكود أو الفرع...")}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           style={{
@@ -185,16 +187,16 @@ export function WarehousesGridPage() {
 
       <section className="document-prototype-section">
         <div className="section-header-compact-row">
-          <h3 className="document-prototype-section-title">قائمة أماكن المخزون</h3>
+          <h3 className="document-prototype-section-title">{t('inventory.warehouses_grid_page.s5', "قائمة أماكن المخزون")}</h3>
           <div className="section-header-actions-group">
-            <span className="nav-pill" style={{ fontSize: '11px', padding: '2px 8px' }}>إجمالي الأماكن: {filteredLocations.length}</span>
+            <span className="nav-pill" style={{ fontSize: '11px', padding: '2px 8px' }}>{t('inventory.warehouses_grid_page.s6', "إجمالي الأماكن:")} {filteredLocations.length}</span>
           </div>
         </div>
 
         {locationsQuery.isLoading || isOverviewLoading ? (
-          <div className="muted small" style={{ padding: 32, textAlign: 'center' }}>جاري تحميل المخازن...</div>
+          <div className="muted small" style={{ padding: 32, textAlign: 'center' }}>{t('inventory.warehouses_grid_page.s7', "جاري تحميل المخازن...")}</div>
         ) : filteredLocations.length === 0 ? (
-          <div className="muted small" style={{ padding: 32, textAlign: 'center' }}>لا توجد مخازن مطابقة للبحث</div>
+          <div className="muted small" style={{ padding: 32, textAlign: 'center' }}>{t('inventory.warehouses_grid_page.s8', "لا توجد مخازن مطابقة للبحث")}</div>
         ) : (
           <div className="warehouses-locations-grid">
             {filteredLocations.map((loc) => {
@@ -219,7 +221,7 @@ export function WarehousesGridPage() {
                         </div>
                         <div className="warehouse-card-subtitle-row">
                           <span className="warehouse-card-branch-name">
-                            {loc.branchName ? `الفرع: ${loc.branchName}` : loc.code ? `كود: ${loc.code}` : 'موقع رئيسي'}
+                            {loc.branchName ? `الفرع: ${loc.branchName}` : loc.code ? `كود: ${loc.code}` : t('inventory.warehouses_grid_page.s9', "موقع رئيسي")}
                           </span>
                           <span className={`warehouse-type-badge ${loc.locationType === 'branch_stock' ? 'badge-branch-sale' : 'badge-internal-stock'}`}>
                             {formatLocationType(loc.locationType)}
@@ -233,7 +235,7 @@ export function WarehousesGridPage() {
                       <button
                         type="button"
                         onClick={(e) => handleEdit(loc, e)}
-                        title="تعديل المخزن"
+                        title={t('inventory.warehouses_grid_page.s10', "تعديل المخزن")}
                         className="warehouse-action-btn edit-btn"
                       >
                         <EditIcon size={14} />
@@ -241,7 +243,7 @@ export function WarehousesGridPage() {
                       <button
                         type="button"
                         onClick={(e) => handleDelete(loc, e)}
-                        title="حذف المخزن"
+                        title={t('inventory.warehouses_grid_page.s11', "حذف المخزن")}
                         className="warehouse-action-btn delete-btn"
                       >
                         <TrashIcon size={14} />
@@ -253,14 +255,14 @@ export function WarehousesGridPage() {
                     <div className="warehouse-card-metrics">
                       <div className="warehouse-count-pill">
                         <PackageIcon size={12} color="#64748b" />
-                        <span>{productCount} أصناف</span>
+                        <span>{productCount} {t('inventory.warehouses_grid_page.s12', "أصناف")}</span>
                       </div>
                       <div className="warehouse-value-amount">
                         {formatCurrency(locValue)}
                       </div>
                     </div>
                     <div className="warehouse-details-link">
-                      <span>عرض الأصناف</span>
+                      <span>{t('inventory.warehouses_grid_page.s13', "عرض الأصناف")}</span>
                       <ArrowLeftIcon size={14} />
                     </div>
                   </div>
@@ -275,14 +277,14 @@ export function WarehousesGridPage() {
       <StandardDialog
         open={modalOpen}
         onClose={() => setModalOpen(false)}
-        title={editingLocation ? 'تعديل بيانات المخزن' : 'إضافة مخزن جديد'}
-        subtitle="إدارة بيانات وتصنيف المخزن والفرع التابع له"
+        title={editingLocation ? t('inventory.warehouses_grid_page.s14', "تعديل بيانات المخزن") : t('inventory.warehouses_grid_page.s15', "إضافة مخزن جديد")}
+        subtitle={t('inventory.warehouses_grid_page.s16', "إدارة بيانات وتصنيف المخزن والفرع التابع له")}
         size="md"
         footerActions={
           <StandardDialogFooter
             onCancel={() => setModalOpen(false)}
-            cancelLabel="إلغاء"
-            primaryLabel={editingLocation ? 'حفظ التعديلات' : 'إضافة المخزن'}
+            cancelLabel={t('inventory.warehouses_grid_page.s17', "إلغاء")}
+            primaryLabel={editingLocation ? t('inventory.warehouses_grid_page.s18', "حفظ التعديلات") : t('inventory.warehouses_grid_page.s19', "إضافة المخزن")}
             onPrimary={() => {
               const form = document.getElementById('location-form') as HTMLFormElement | null;
               if (form) form.requestSubmit();
@@ -293,28 +295,28 @@ export function WarehousesGridPage() {
         }
       >
         <form onSubmit={onSave} className="form-grid single-col" id="location-form" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <Field label="اسم المخزن">
-            <input required value={name} onChange={(e) => setName(e.target.value)} disabled={createMutation.isPending || updateMutation.isPending} placeholder="مثال: المخزن الرئيسي" />
+          <Field label={t('inventory.warehouses_grid_page.s20', "اسم المخزن")}>
+            <input required value={name} onChange={(e) => setName(e.target.value)} disabled={createMutation.isPending || updateMutation.isPending} placeholder={t('inventory.warehouses_grid_page.s21', "مثال: المخزن الرئيسي")} />
           </Field>
-          <Field label="كود المخزن">
-            <input value={code} onChange={(e) => setCode(e.target.value)} disabled={createMutation.isPending || updateMutation.isPending} placeholder="اختياري" />
+          <Field label={t('inventory.warehouses_grid_page.s22', "كود المخزن")}>
+            <input value={code} onChange={(e) => setCode(e.target.value)} disabled={createMutation.isPending || updateMutation.isPending} placeholder={t('inventory.warehouses_grid_page.s23', "اختياري")} />
           </Field>
-          <Field label="الفرع المرتبط">
+          <Field label={t('inventory.warehouses_grid_page.s24', "الفرع المرتبط")}>
             <CustomSelect
               value={branchId}
               onChange={(val) => setBranchId(val)}
               options={branchOptions}
               disabled={createMutation.isPending || updateMutation.isPending}
-              placeholder="اختر الفرع المرتبط"
+              placeholder={t('inventory.warehouses_grid_page.s25', "اختر الفرع المرتبط")}
             />
           </Field>
-          <Field label="نوع المخزن">
+          <Field label={t('inventory.warehouses_grid_page.s26', "نوع المخزن")}>
             <CustomSelect
               value={locationType}
               onChange={(val) => setLocationType(val as 'internal_warehouse' | 'branch_stock')}
               options={LOCATION_TYPE_OPTIONS}
               disabled={createMutation.isPending || updateMutation.isPending}
-              placeholder="اختر نوع المخزن"
+              placeholder={t('inventory.warehouses_grid_page.s27', "اختر نوع المخزن")}
             />
           </Field>
         </form>

@@ -29,6 +29,7 @@ interface PosCheckoutDialogProps {
 }
 
 function PosCheckoutDialogContent({ open, pos, selectedCustomerName, onClose, onConfirmSale, onOpenSplitBill }: PosCheckoutDialogProps) {
+  const { t: __t } = useTranslation();
   const { t } = useTranslation();
   const [customerPickerOpen, setCustomerPickerOpen] = useState(false);
   const [customerQuery, setCustomerQuery] = useState('');
@@ -293,7 +294,7 @@ function PosCheckoutDialogContent({ open, pos, selectedCustomerName, onClose, on
                     <line x1="12" y1="9" x2="12" y2="13"/>
                     <line x1="12" y1="17" x2="12.01" y2="17"/>
                   </svg>
-                  <span>يجب اختيار مندوب التوصيل لتسجيل عهدة التحصيل عليه (في حالة تحصيل من العميل).</span>
+                  <span>{__t('pos.pos_workspace.pos_checkout_dialog.s0', __t('pos.pos_workspace.pos_checkout_dialog.s0', "يجب اختيار مندوب التوصيل لتسجيل عهدة التحصيل عليه (في حالة تحصيل من العميل)."))}</span>
                 </div>
               )}
             </div>

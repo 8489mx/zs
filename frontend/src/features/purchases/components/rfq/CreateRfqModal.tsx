@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { Button } from '@/shared/ui/button';
 import { PlusIcon, TrashIcon } from '@/shared/components/icons/AppIcons';
@@ -34,20 +35,21 @@ export function CreateRfqModal({
   onSubmit,
   submitting,
 }: CreateRfqModalProps) {
+  const { t } = useTranslation();
   if (!isOpen) return null;
 
   return (
     <StandardDialog
       open={isOpen}
       onClose={onClose}
-      title="إنشاء طلب عرض سعر استدراج جديد (RFQ)"
-      subtitle="إدخال بيانات المناقصة أو الاستدراج وقائمة الأصناف والمواصفات المستهدفة"
+      title={t('purchases.rfq.create_rfq_modal.s0', "إنشاء طلب عرض سعر استدراج جديد (RFQ)")}
+      subtitle={t('purchases.rfq.create_rfq_modal.s1', "إدخال بيانات المناقصة أو الاستدراج وقائمة الأصناف والمواصفات المستهدفة")}
       maxWidth="800px"
       footerActions={
         <StandardDialogFooter
           onCancel={onClose}
-          cancelLabel="إلغاء"
-          submitLabel={submitting ? 'جاري الإنشاء...' : 'حفظ ونشر طلب عرض السعر'}
+          cancelLabel={t('purchases.rfq.create_rfq_modal.s2', "إلغاء")}
+          submitLabel={submitting ? t('purchases.rfq.create_rfq_modal.s3', "جاري الإنشاء...") : t('purchases.rfq.create_rfq_modal.s4', "حفظ ونشر طلب عرض السعر")}
           isSubmitting={submitting}
           submitDisabled={submitting || newRfq.items.length === 0}
           onSubmit={onSubmit}
@@ -58,12 +60,12 @@ export function CreateRfqModal({
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
           <div>
             <label style={{ display: 'block', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-              عنوان الطلب / الغرض *
+              {t('purchases.rfq.create_rfq_modal.s5', "عنوان الطلب / الغرض *")}
             </label>
             <input
               type="text"
               required
-              placeholder="مثال: توريد خامات تعبئة وتغليف لشهر أكتوبر"
+              placeholder={t('purchases.rfq.create_rfq_modal.s6', "مثال: توريد خامات تعبئة وتغليف لشهر أكتوبر")}
               value={newRfq.title}
               onChange={(e) => onRfqChange({ ...newRfq, title: e.target.value })}
               style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: 'var(--font-body)' }}
@@ -72,7 +74,7 @@ export function CreateRfqModal({
 
           <div>
             <label style={{ display: 'block', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-              آخر موعد لتقديم العروض (Deadline)
+              {t('purchases.rfq.create_rfq_modal.s7', "آخر موعد لتقديم العروض (Deadline)")}
             </label>
             <input
               type="date"
@@ -84,7 +86,7 @@ export function CreateRfqModal({
 
           <div>
             <label style={{ display: 'block', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-              تاريخ التسليم المطلوب
+              {t('purchases.rfq.create_rfq_modal.s8', "تاريخ التسليم المطلوب")}
             </label>
             <input
               type="date"
@@ -97,10 +99,10 @@ export function CreateRfqModal({
 
         <div>
           <label style={{ display: 'block', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-            شروط وملاحظات المناقصة
+            {t('purchases.rfq.create_rfq_modal.s9', "شروط وملاحظات المناقصة")}
           </label>
           <textarea
-            placeholder="شروط السداد، مكان التسليم، أو أي متطلبات خاصة..."
+            placeholder={t('purchases.rfq.create_rfq_modal.s10', "شروط السداد، مكان التسليم، أو أي متطلبات خاصة...")}
             value={newRfq.notes}
             onChange={(e) => onRfqChange({ ...newRfq, notes: e.target.value })}
             style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: 'var(--font-body)', minHeight: '60px' }}
@@ -110,23 +112,23 @@ export function CreateRfqModal({
         {/* Items Section */}
         <div style={{ border: '1px solid #e2e8f0', borderRadius: '10px', padding: '16px', backgroundColor: '#f8fafc' }}>
           <h4 style={{ fontSize: 'var(--font-section-title)', fontWeight: 700, color: '#170e5e', marginBottom: '12px' }}>
-            الأصناف والمواصفات المطلوبة ({newRfq.items.length})
+            {t('purchases.rfq.create_rfq_modal.s11', "الأصناف والمواصفات المطلوبة (")}{newRfq.items.length})
           </h4>
 
           {/* Add item bar */}
           <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 2fr auto', gap: '8px', alignItems: 'flex-end', marginBottom: '16px' }}>
             <div>
-              <span style={{ fontSize: 'var(--font-micro)', fontWeight: 600, color: '#475569' }}>اسم الصنف / المادة</span>
+              <span style={{ fontSize: 'var(--font-micro)', fontWeight: 600, color: '#475569' }}>{t('purchases.rfq.create_rfq_modal.s12', "اسم الصنف / المادة")}</span>
               <input
                 type="text"
-                placeholder="اسم الصنف أو المادة الخام"
+                placeholder={t('purchases.rfq.create_rfq_modal.s13', "اسم الصنف أو المادة الخام")}
                 value={newItem.product_name}
                 onChange={(e) => onNewItemChange({ ...newItem, product_name: e.target.value })}
                 style={{ width: '100%', padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: 'var(--font-body)' }}
               />
             </div>
             <div>
-              <span style={{ fontSize: 'var(--font-micro)', fontWeight: 600, color: '#475569' }}>الكمية المستهدفة</span>
+              <span style={{ fontSize: 'var(--font-micro)', fontWeight: 600, color: '#475569' }}>{t('purchases.rfq.create_rfq_modal.s14', "الكمية المستهدفة")}</span>
               <input
                 type="number"
                 min="1"
@@ -136,7 +138,7 @@ export function CreateRfqModal({
               />
             </div>
             <div>
-              <span style={{ fontSize: 'var(--font-micro)', fontWeight: 600, color: '#475569' }}>الوحدة</span>
+              <span style={{ fontSize: 'var(--font-micro)', fontWeight: 600, color: '#475569' }}>{t('purchases.rfq.create_rfq_modal.s15', "الوحدة")}</span>
               <input
                 type="text"
                 value={newItem.unit_name}
@@ -145,10 +147,10 @@ export function CreateRfqModal({
               />
             </div>
             <div>
-              <span style={{ fontSize: 'var(--font-micro)', fontWeight: 600, color: '#475569' }}>المواصفات والمعايير المطلوبة</span>
+              <span style={{ fontSize: 'var(--font-micro)', fontWeight: 600, color: '#475569' }}>{t('purchases.rfq.create_rfq_modal.s16', "المواصفات والمعايير المطلوبة")}</span>
               <input
                 type="text"
-                placeholder="مثل: سمك 2 مم، فرز أول، أو كود الماركة"
+                placeholder={t('purchases.rfq.create_rfq_modal.s17', "مثل: سمك 2 مم، فرز أول، أو كود الماركة")}
                 value={newItem.specifications}
                 onChange={(e) => onNewItemChange({ ...newItem, specifications: e.target.value })}
                 style={{ width: '100%', padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: 'var(--font-body)' }}
@@ -161,7 +163,7 @@ export function CreateRfqModal({
                 onClick={onAddItem}
                 style={{ padding: '6px 12px', fontSize: 'var(--font-body)', fontWeight: 700 }}
               >
-                <PlusIcon size={14} /> إضافة
+                <PlusIcon size={14} /> {t('purchases.rfq.create_rfq_modal.s18', "إضافة")}
               </Button>
             </div>
           </div>
@@ -169,17 +171,17 @@ export function CreateRfqModal({
           {/* List of items */}
           {newRfq.items.length === 0 ? (
             <div style={{ textAlign: 'center', color: '#94a3b8', fontSize: 'var(--font-subtitle)', padding: '16px' }}>
-              لم يتم إضافة أصناف بعد. أدخل الأصناف بالصندوق أعلاه.
+              {t('purchases.rfq.create_rfq_modal.s19', "لم يتم إضافة أصناف بعد. أدخل الأصناف بالصندوق أعلاه.")}
             </div>
           ) : (
             <table style={{ width: '100%', borderCollapse: 'collapse', backgroundColor: '#ffffff', borderRadius: '6px', overflow: 'hidden' }}>
               <thead>
                 <tr style={{ backgroundColor: '#f1f5f9', borderBottom: '1px solid #e2e8f0', fontSize: 'var(--font-micro)', color: '#475569' }}>
-                  <th style={{ padding: '8px', textAlign: 'right' }}>الصنف</th>
-                  <th style={{ padding: '8px', textAlign: 'center' }}>الكمية</th>
-                  <th style={{ padding: '8px', textAlign: 'center' }}>الوحدة</th>
-                  <th style={{ padding: '8px', textAlign: 'right' }}>المواصفات</th>
-                  <th style={{ padding: '8px', textAlign: 'center' }}>إجراء</th>
+                  <th style={{ padding: '8px', textAlign: 'right' }}>{t('purchases.rfq.create_rfq_modal.s20', "الصنف")}</th>
+                  <th style={{ padding: '8px', textAlign: 'center' }}>{t('purchases.rfq.create_rfq_modal.s21', "الكمية")}</th>
+                  <th style={{ padding: '8px', textAlign: 'center' }}>{t('purchases.rfq.create_rfq_modal.s22', "الوحدة")}</th>
+                  <th style={{ padding: '8px', textAlign: 'right' }}>{t('purchases.rfq.create_rfq_modal.s23', "المواصفات")}</th>
+                  <th style={{ padding: '8px', textAlign: 'center' }}>{t('purchases.rfq.create_rfq_modal.s24', "إجراء")}</th>
                 </tr>
               </thead>
               <tbody>

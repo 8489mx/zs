@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 import type { PivotResult } from '../../api/dynamic-pivot.api';
 
@@ -16,10 +17,11 @@ export const PivotGridTable: React.FC<PivotGridTableProps> = ({
   colDimensionLabel,
   metricLabel,
 }) => {
+  const { t } = useTranslation();
   if (loading) {
     return (
       <div style={{ padding: '80px 0', textAlign: 'center', color: '#64748b', fontSize: '13px' }}>
-        جاري تحليل وتجميع البيانات عبر الأبعاد المحددة...
+        {t('reports.pivot.pivot_grid_table.s0', "جاري تحليل وتجميع البيانات عبر الأبعاد المحددة...")}
       </div>
     );
   }
@@ -28,10 +30,10 @@ export const PivotGridTable: React.FC<PivotGridTableProps> = ({
     return (
       <div style={{ padding: '60px 16px', textAlign: 'center', color: '#64748b' }}>
         <div style={{ fontSize: '14px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-          لا توجد بيانات مطابقة لمعايير التحليل الحالية
+          {t('reports.pivot.pivot_grid_table.s1', "لا توجد بيانات مطابقة لمعايير التحليل الحالية")}
         </div>
         <div style={{ fontSize: '12px', color: '#94a3b8' }}>
-          يرجى تعديل نطاق التاريخ أو تغيير مصدر البيانات للبدء في إنشاء التقرير المحوري.
+          {t('reports.pivot.pivot_grid_table.s2', "يرجى تعديل نطاق التاريخ أو تغيير مصدر البيانات للبدء في إنشاء التقرير المحوري.")}
         </div>
       </div>
     );
@@ -109,7 +111,7 @@ export const PivotGridTable: React.FC<PivotGridTableProps> = ({
                 textAlign: 'center',
               }}
             >
-              إجمالي الصف ({metricLabel})
+              {t('reports.pivot.pivot_grid_table.s3', "إجمالي الصف (")}{metricLabel})
             </th>
           </tr>
         </thead>
@@ -206,7 +208,7 @@ export const PivotGridTable: React.FC<PivotGridTableProps> = ({
                 zIndex: 1,
               }}
             >
-              إجمالي الأعمدة
+              {t('reports.pivot.pivot_grid_table.s4', "إجمالي الأعمدة")}
             </td>
 
             {colKeys.map((c) => {

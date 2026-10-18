@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/shared/ui/button';
@@ -11,6 +12,7 @@ import { systemAlert } from '@/shared/components/system-alert';
 type Column<T> = { key: string; header: ReactNode; cell: (row: T) => ReactNode; className?: string };
 
 export default function BomsListPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [boms, setBoms] = useState<BomRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -28,14 +30,14 @@ export default function BomsListPage() {
     { key: 'quantity', header: 'الكمية المنتجة', cell: (row) => Number(row.quantity).toLocaleString('ar-EG', { maximumFractionDigits: 2 }) },
     { key: 'expected_cost', header: 'التكلفة المتوقعة', cell: (row) => Number(row.expected_cost).toLocaleString('ar-EG', { style: 'currency', currency: 'EGP' }) },
     { key: 'created_at', header: 'تاريخ الإنشاء', cell: (row) => new Date(row.created_at || Date.now()).toLocaleDateString('ar-EG', { day: 'numeric', month: 'short', year: 'numeric' }) },
-    { key: 'is_active', header: 'الحالة', cell: (row) => row.is_active ? <span style={{ color: '#10b981', fontWeight: '500' }}>نشط</span> : <span style={{ color: '#ef4444', fontWeight: '500' }}>غير نشط</span> },
+    { key: 'is_active', header: 'الحالة', cell: (row) => row.is_active ? <span style={{ color: '#10b981', fontWeight: '500' }}>{t('manufacturing.boms_list_page.s0', "نشط")}</span> : <span style={{ color: '#ef4444', fontWeight: '500' }}>{t('manufacturing.boms_list_page.s1', "غير نشط")}</span> },
     { key: 'actions', header: '', cell: (row) => (
       <div style={{ display: 'flex', gap: '8px' }}>
         <Button variant="secondary" onClick={() => navigate(`/manufacturing/boms/${row.id}/edit`)} style={{ padding: '4px 8px', fontSize: '12px' }}>
-          تعديل
+          {t('manufacturing.boms_list_page.s2', "تعديل")}
         </Button>
         <Button variant="danger" onClick={() => handleDelete(row.id)} style={{ padding: '4px 8px', fontSize: '12px' }}>
-          حذف
+          {t('manufacturing.boms_list_page.s3', "حذف")}
         </Button>
       </div>
     )}
@@ -55,10 +57,10 @@ export default function BomsListPage() {
   return (
     <ManufacturingLayout
       breadcrumbs={[
-        { label: 'التصنيع', to: '/manufacturing/boms' },
-        { label: 'قوائم المكونات' }
+        { label: t('manufacturing.boms_list_page.s4', "التصنيع"), to: '/manufacturing/boms' },
+        { label: t('manufacturing.boms_list_page.s5', "قوائم المكونات") }
       ]}
-      title="قوائم المكونات (BOMs)"
+      title={t('manufacturing.boms_list_page.s6', "قوائم المكونات (BOMs)")}
       actions={
         <div className="actions compact-actions">
           <Button 
@@ -66,26 +68,26 @@ export default function BomsListPage() {
             variant="primary"
             onClick={() => navigate('/manufacturing/boms/new')}
           >
-            + تركيبة جديدة
+            {t('manufacturing.boms_list_page.s7', "+ تركيبة جديدة")}
           </Button>
         </div>
       }
     >
         <section className="document-prototype-section">
           <div className="section-header-compact-row">
-            <h3 className="document-prototype-section-title">قائمة معادلات التصنيع</h3>
+            <h3 className="document-prototype-section-title">{t('manufacturing.boms_list_page.s8', "قائمة معادلات التصنيع")}</h3>
             <div className="section-header-actions-group">
-              <span className="nav-pill" style={{ fontSize: '11px', padding: '2px 8px' }}>العدد: {boms.length}</span>
+              <span className="nav-pill" style={{ fontSize: '11px', padding: '2px 8px' }}>{t('manufacturing.boms_list_page.s9', "العدد:")} {boms.length}</span>
             </div>
           </div>
           <div className="page-stack">
           {isLoading ? (
-            <div style={{ padding: '40px', textAlign: 'center', color: '#6b7280' }}>جاري التحميل...</div>
+            <div style={{ padding: '40px', textAlign: 'center', color: '#6b7280' }}>{t('manufacturing.boms_list_page.s10', "جاري التحميل...")}</div>
           ) : boms.length === 0 ? (
             <div style={{ padding: '40px', textAlign: 'center', color: '#6b7280' }}>
-               لا توجد تركيبات مسجلة بعد.
+               {t('manufacturing.boms_list_page.s11', "لا توجد تركيبات مسجلة بعد.")}
                <br />
-               <Button variant="secondary" style={{ marginTop: '16px' }} onClick={() => navigate('/manufacturing/boms/new')}>إضافة أول تركيبة</Button>
+               <Button variant="secondary" style={{ marginTop: '16px' }} onClick={() => navigate('/manufacturing/boms/new')}>{t('manufacturing.boms_list_page.s12', "إضافة أول تركيبة")}</Button>
             </div>
           ) : (
             <DataTable 

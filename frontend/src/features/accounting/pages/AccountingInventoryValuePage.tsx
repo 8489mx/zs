@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { DataTable } from '@/shared/components/data-table';
@@ -19,6 +20,7 @@ function statusLabel(status: InventoryValueItem['status']) {
 }
 
 export function AccountingInventoryValuePage() {
+  const { t } = useTranslation();
   const [search, setSearch] = useState('');
   const [categoryId, setCategoryId] = useState('');
   const [supplierId, setSupplierId] = useState('');
@@ -71,32 +73,32 @@ export function AccountingInventoryValuePage() {
   return (
     <div className="page-stack page-shell" dir="rtl">
       <main className="document-prototype-column" style={{ paddingBottom: '100px', maxWidth: '1280px' }}>
-        <PageHeader title="قيمة المخزون" description="تقرير مبسط يوضح قيمة البضاعة الموجودة حاليًا وتوزيعها على الأصناف." />
+        <PageHeader title={t('accounting.accounting_inventory_value_page.s0', "قيمة المخزون")} description={t('accounting.accounting_inventory_value_page.s1', "تقرير مبسط يوضح قيمة البضاعة الموجودة حاليًا وتوزيعها على الأصناف.")} />
 
-        <FormSection title="فلاتر التقرير">
+        <FormSection title={t('accounting.accounting_inventory_value_page.s2', "فلاتر التقرير")}>
         <div className="grid-3" style={{ alignItems: 'end' }}>
           <label className="field stack gap-8">
-            <span>بحث باسم الصنف أو الباركود</span>
-            <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="اكتب اسم الصنف أو الباركود" />
+            <span>{t('accounting.accounting_inventory_value_page.s3', "بحث باسم الصنف أو الباركود")}</span>
+            <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder={t('accounting.accounting_inventory_value_page.s4', "اكتب اسم الصنف أو الباركود")} />
           </label>
           <div className="field stack gap-8">
-            <span>التصنيف</span>
+            <span>{t('accounting.accounting_inventory_value_page.s5', "التصنيف")}</span>
             <CustomSelect
               value={categoryId}
               onChange={(val) => setCategoryId(val)}
               options={[
-                { value: '', label: 'كل التصنيفات' },
+                { value: '', label: t('accounting.accounting_inventory_value_page.s6', "كل التصنيفات") },
                 ...(categoriesQuery.data || []).map((category) => ({ value: category.id, label: category.name })),
               ]}
             />
           </div>
           <div className="field stack gap-8">
-            <span>المورد</span>
+            <span>{t('accounting.accounting_inventory_value_page.s7', "المورد")}</span>
             <CustomSelect
               value={supplierId}
               onChange={(val) => setSupplierId(val)}
               options={[
-                { value: '', label: 'كل الموردين' },
+                { value: '', label: t('accounting.accounting_inventory_value_page.s8', "كل الموردين") },
                 ...(suppliersQuery.data || []).map((supplier) => ({ value: supplier.id, label: supplier.name })),
               ]}
             />
@@ -105,11 +107,11 @@ export function AccountingInventoryValuePage() {
         <div className="actions" style={{ marginTop: 12 }}>
           <label className="checkbox" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
             <input type="checkbox" checked={lowStockOnly} onChange={(event) => setLowStockOnly(event.target.checked)} />
-            عرض الأصناف قليلة المخزون فقط
+            {t('accounting.accounting_inventory_value_page.s9', "عرض الأصناف قليلة المخزون فقط")}
           </label>
           <label className="checkbox" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
             <input type="checkbox" checked={zeroStockOnly} onChange={(event) => setZeroStockOnly(event.target.checked)} />
-            عرض الأصناف المنتهية فقط
+            {t('accounting.accounting_inventory_value_page.s10', "عرض الأصناف المنتهية فقط")}
           </label>
           <button
             type="button"
@@ -122,7 +124,7 @@ export function AccountingInventoryValuePage() {
               setAppliedZeroStockOnly(zeroStockOnly);
             }}
           >
-            تطبيق
+            {t('accounting.accounting_inventory_value_page.s11', "تطبيق")}
           </button>
           <button
             type="button"
@@ -140,20 +142,20 @@ export function AccountingInventoryValuePage() {
               setAppliedZeroStockOnly(false);
             }}
           >
-            إعادة ضبط
+            {t('accounting.accounting_inventory_value_page.s12', "إعادة ضبط")}
           </button>
         </div>
         </FormSection>
 
-        <FormSection title="ملخص قيمة المخزون">
+        <FormSection title={t('accounting.accounting_inventory_value_page.s13', "ملخص قيمة المخزون")}>
         <QueryFeedback
           isLoading={query.isLoading}
           isError={query.isError}
           error={query.error}
           isEmpty={!totals}
-          loadingText="جاري تحميل تقرير قيمة المخزون..."
-          errorTitle="تعذر تحميل تقرير قيمة المخزون"
-          emptyTitle="لا توجد بيانات مطابقة للفلاتر"
+          loadingText={t('accounting.accounting_inventory_value_page.s14', "جاري تحميل تقرير قيمة المخزون...")}
+          errorTitle={t('accounting.accounting_inventory_value_page.s15', "تعذر تحميل تقرير قيمة المخزون")}
+          emptyTitle={t('accounting.accounting_inventory_value_page.s16', "لا توجد بيانات مطابقة للفلاتر")}
         >
           {stats.length ? (
             <div className="reports-workspace">
@@ -167,28 +169,28 @@ export function AccountingInventoryValuePage() {
         </QueryFeedback>
         </FormSection>
 
-        <FormSection title="تفاصيل الأصناف">
+        <FormSection title={t('accounting.accounting_inventory_value_page.s17', "تفاصيل الأصناف")}>
         <DataTable<InventoryValueItem>
           data={rows}
           getRowKey={(row) => row.productId}
-          emptyMessage="لا توجد أصناف مطابقة للفلاتر الحالية"
+          emptyMessage={t('accounting.accounting_inventory_value_page.s18', "لا توجد أصناف مطابقة للفلاتر الحالية")}
           defaultSort={{ columnId: 'inventoryValue', direction: 'desc' }}
           columns={[
-            { id: 'name', header: 'الصنف', sortable: true, sortValue: (row) => row.productName || '', render: (row) => row.productName || '-' },
-            { id: 'barcode', header: 'الباركود', sortable: true, sortValue: (row) => row.barcode || '', render: (row) => row.barcode || '-' },
-            { id: 'category', header: 'التصنيف', sortable: true, sortValue: (row) => row.categoryName || '', render: (row) => row.categoryName || '-' },
-            { id: 'supplier', header: 'المورد', sortable: true, sortValue: (row) => row.supplierName || '', render: (row) => row.supplierName || '-' },
-            { id: 'qty', header: 'الكمية الحالية', align: 'end', sortable: true, sortValue: (row) => row.quantityOnHand, render: (row) => String(row.quantityOnHand) },
-            { id: 'unitCost', header: 'تكلفة الوحدة', align: 'end', sortable: true, sortValue: (row) => row.unitCost, render: (row) => formatCurrency(row.unitCost) },
-            { id: 'inventoryValue', header: 'قيمة المخزون', align: 'end', sortable: true, sortValue: (row) => row.inventoryValue, render: (row) => formatCurrency(row.inventoryValue) },
-            { id: 'retailPrice', header: 'سعر البيع', align: 'end', sortable: true, sortValue: (row) => row.unitRetailPrice, render: (row) => formatCurrency(row.unitRetailPrice) },
-            { id: 'retailValue', header: 'قيمة البيع التقديرية', align: 'end', sortable: true, sortValue: (row) => row.retailPotentialValue, render: (row) => formatCurrency(row.retailPotentialValue) },
-            { id: 'status', header: 'الحالة', sortable: true, sortValue: (row) => statusLabel(row.status), render: (row) => statusLabel(row.status) },
+            { id: 'name', header: t('accounting.accounting_inventory_value_page.s19', "الصنف"), sortable: true, sortValue: (row) => row.productName || '', render: (row) => row.productName || '-' },
+            { id: 'barcode', header: t('accounting.accounting_inventory_value_page.s20', "الباركود"), sortable: true, sortValue: (row) => row.barcode || '', render: (row) => row.barcode || '-' },
+            { id: 'category', header: t('accounting.accounting_inventory_value_page.s21', "التصنيف"), sortable: true, sortValue: (row) => row.categoryName || '', render: (row) => row.categoryName || '-' },
+            { id: 'supplier', header: t('accounting.accounting_inventory_value_page.s22', "المورد"), sortable: true, sortValue: (row) => row.supplierName || '', render: (row) => row.supplierName || '-' },
+            { id: 'qty', header: t('accounting.accounting_inventory_value_page.s23', "الكمية الحالية"), align: 'end', sortable: true, sortValue: (row) => row.quantityOnHand, render: (row) => String(row.quantityOnHand) },
+            { id: 'unitCost', header: t('accounting.accounting_inventory_value_page.s24', "تكلفة الوحدة"), align: 'end', sortable: true, sortValue: (row) => row.unitCost, render: (row) => formatCurrency(row.unitCost) },
+            { id: 'inventoryValue', header: t('accounting.accounting_inventory_value_page.s25', "قيمة المخزون"), align: 'end', sortable: true, sortValue: (row) => row.inventoryValue, render: (row) => formatCurrency(row.inventoryValue) },
+            { id: 'retailPrice', header: t('accounting.accounting_inventory_value_page.s26', "سعر البيع"), align: 'end', sortable: true, sortValue: (row) => row.unitRetailPrice, render: (row) => formatCurrency(row.unitRetailPrice) },
+            { id: 'retailValue', header: t('accounting.accounting_inventory_value_page.s27', "قيمة البيع التقديرية"), align: 'end', sortable: true, sortValue: (row) => row.retailPotentialValue, render: (row) => formatCurrency(row.retailPotentialValue) },
+            { id: 'status', header: t('accounting.accounting_inventory_value_page.s28', "الحالة"), sortable: true, sortValue: (row) => statusLabel(row.status), render: (row) => statusLabel(row.status) },
           ]}
         />
         </FormSection>
 
-        <div className="muted" style={{ paddingInline: '24px' }}>القيم تقديرية حسب تكلفة الشراء الحالية وسعر البيع الحالي، وليست ربحًا محققًا.</div>
+        <div className="muted" style={{ paddingInline: '24px' }}>{t('accounting.accounting_inventory_value_page.s29', "القيم تقديرية حسب تكلفة الشراء الحالية وسعر البيع الحالي، وليست ربحًا محققًا.")}</div>
       </main>
     </div>
   );

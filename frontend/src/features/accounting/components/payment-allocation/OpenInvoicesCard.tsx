@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 import { formatCurrency } from '@/lib/format';
 import type { OpenInvoiceItem } from '@/features/accounting/api/accounting.api';
@@ -27,6 +28,7 @@ export const OpenInvoicesCard: React.FC<OpenInvoicesCardProps> = ({
   saving,
   selectedPayment,
 }) => {
+  const { t } = useTranslation();
   const isSaveDisabled = Boolean(
     saving ||
     totalAllocating <= 0 ||
@@ -46,20 +48,20 @@ export const OpenInvoicesCard: React.FC<OpenInvoicesCardProps> = ({
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
         <div>
           <h3 style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a', margin: 0 }}>
-            الفواتير المفتوحة والمستحقة
+            {t('accounting.payment_allocation.open_invoices_card.s0', "الفواتير المفتوحة والمستحقة")}
           </h3>
           <div style={{ fontSize: '12px', color: '#64748b', marginTop: '3px' }}>
-            فواتير {partnerType === 'customer' ? 'المبيعات' : 'المشتريات'} التي لها رصيد متبقي
+            {t('accounting.payment_allocation.open_invoices_card.s1', "فواتير")} {partnerType === 'customer' ? t('accounting.payment_allocation.open_invoices_card.s2', "المبيعات") : t('accounting.payment_allocation.open_invoices_card.s3', "المشتريات")} {t('accounting.payment_allocation.open_invoices_card.s4', "التي لها رصيد متبقي")}
           </div>
         </div>
         <span className="badge" style={{ backgroundColor: '#fef3c7', color: '#92400e' }}>
-          {invoices.length} فاتورة مفتوحة
+          {invoices.length} {t('accounting.payment_allocation.open_invoices_card.s5', "فاتورة مفتوحة")}
         </span>
       </div>
 
       {invoices.length === 0 ? (
         <div style={{ padding: '40px 10px', textAlign: 'center', color: '#94a3b8', fontSize: '13px' }}>
-          كافة فواتير هذا {partnerType === 'customer' ? 'العميل' : 'المورد'} مسددة بالكامل (رصيد الفواتير 0).
+          {t('accounting.payment_allocation.open_invoices_card.s6', "كافة فواتير هذا")} {partnerType === 'customer' ? t('accounting.payment_allocation.open_invoices_card.s7', "العميل") : t('accounting.payment_allocation.open_invoices_card.s8', "المورد")} {t('accounting.payment_allocation.open_invoices_card.s9', "مسددة بالكامل (رصيد الفواتير 0).")}
         </div>
       ) : (
         <>
@@ -67,11 +69,11 @@ export const OpenInvoicesCard: React.FC<OpenInvoicesCardProps> = ({
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12.5px' }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid #e2e8f0', color: '#64748b' }}>
-                  <th style={{ textAlign: 'right', padding: '8px 10px' }}>رقم الفاتورة</th>
-                  <th style={{ textAlign: 'right', padding: '8px 10px' }}>التاريخ</th>
-                  <th style={{ textAlign: 'right', padding: '8px 10px' }}>الإجمالي</th>
-                  <th style={{ textAlign: 'right', padding: '8px 10px' }}>المتبقي</th>
-                  <th style={{ textAlign: 'right', padding: '8px 10px', width: '130px' }}>المبلغ المخصص</th>
+                  <th style={{ textAlign: 'right', padding: '8px 10px' }}>{t('accounting.payment_allocation.open_invoices_card.s10', "رقم الفاتورة")}</th>
+                  <th style={{ textAlign: 'right', padding: '8px 10px' }}>{t('accounting.payment_allocation.open_invoices_card.s11', "التاريخ")}</th>
+                  <th style={{ textAlign: 'right', padding: '8px 10px' }}>{t('accounting.payment_allocation.open_invoices_card.s12', "الإجمالي")}</th>
+                  <th style={{ textAlign: 'right', padding: '8px 10px' }}>{t('accounting.payment_allocation.open_invoices_card.s13', "المتبقي")}</th>
+                  <th style={{ textAlign: 'right', padding: '8px 10px', width: '130px' }}>{t('accounting.payment_allocation.open_invoices_card.s14', "المبلغ المخصص")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -122,13 +124,13 @@ export const OpenInvoicesCard: React.FC<OpenInvoicesCardProps> = ({
           {/* Notes & Confirmation */}
           <div style={{ marginBottom: '16px' }}>
             <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#64748b', marginBottom: '6px' }}>
-              ملاحظات التسوية
+              {t('accounting.payment_allocation.open_invoices_card.s15', "ملاحظات التسوية")}
             </label>
             <input
               type="text"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="مثال: سداد دفعة عن الفواتير المستحقة..."
+              placeholder={t('accounting.payment_allocation.open_invoices_card.s16', "مثال: سداد دفعة عن الفواتير المستحقة...")}
               style={{
                 width: '100%',
                 padding: '8px 12px',
@@ -152,7 +154,7 @@ export const OpenInvoicesCard: React.FC<OpenInvoicesCardProps> = ({
             }}
           >
             <div>
-              <div style={{ fontSize: '12px', color: '#64748b' }}>إجمالي التخصيص الحالي:</div>
+              <div style={{ fontSize: '12px', color: '#64748b' }}>{t('accounting.payment_allocation.open_invoices_card.s17', "إجمالي التخصيص الحالي:")}</div>
               <div style={{ fontSize: '16px', fontWeight: 800, color: '#170e5e' }}>
                 {formatCurrency(totalAllocating)}
               </div>
@@ -175,7 +177,7 @@ export const OpenInvoicesCard: React.FC<OpenInvoicesCardProps> = ({
                 opacity: isSaveDisabled ? 0.6 : 1,
               }}
             >
-              {saving ? 'جاري الحفظ...' : 'تأكيد وحفظ التخصيص المحاسبي'}
+              {saving ? t('accounting.payment_allocation.open_invoices_card.s18', "جاري الحفظ...") : t('accounting.payment_allocation.open_invoices_card.s19', "تأكيد وحفظ التخصيص المحاسبي")}
             </button>
           </div>
         </>

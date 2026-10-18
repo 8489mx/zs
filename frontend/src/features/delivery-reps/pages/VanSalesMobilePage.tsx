@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { getGlobalCurrencySymbol } from '@/lib/currencies';
@@ -44,6 +45,7 @@ import { VanDamagedSwapModal } from '../components/VanDamagedSwapModal';
 import { VanGpsMandatoryModal } from '../components/VanGpsMandatoryModal';
 
 export default function VanSalesMobilePage() {
+  const { t: __t } = useTranslation();
   const queryClient = useQueryClient();
 
   const [session, setSession] = useState(() => driverPortalApi.getStoredSession());
@@ -1096,15 +1098,15 @@ export default function VanSalesMobilePage() {
                 textRendering: 'optimizeLegibility',
               }}
             >
-              مبيعات وتوزيع الفان
+              {__t('delivery_reps.van_sales_mobile_page.s0', __t('delivery_reps.van_sales_mobile_page.s0', "مبيعات وتوزيع الفان"))}
             </h1>
             <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginTop: '2px', flexWrap: 'wrap' }}>
               <span style={{ fontSize: '10px', color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                {session.rep?.fullName || session.rep?.name || 'المندوب'} • {vehicle?.plate ? `سيارة [${vehicle.plate}]` : 'الميدان'}
+                {session.rep?.fullName || session.rep?.name || __t('delivery_reps.van_sales_mobile_page.s1', __t('delivery_reps.van_sales_mobile_page.s1', "المندوب"))} • {vehicle?.plate ? `سيارة [${vehicle.plate}]` : __t('delivery_reps.van_sales_mobile_page.s2', __t('delivery_reps.van_sales_mobile_page.s2', "الميدان"))}
               </span>
               <span
                 onClick={() => window.location.reload()}
-                title="رقم إصدار البيلد - انقر للتحديث الفوري"
+                title={__t('delivery_reps.van_sales_mobile_page.s3', __t('delivery_reps.van_sales_mobile_page.s3', "رقم إصدار البيلد - انقر للتحديث الفوري"))}
                 style={{
                   backgroundColor: '#f1f5f9',
                   border: '1px solid #e2e8f0',
@@ -1127,7 +1129,7 @@ export default function VanSalesMobilePage() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
           <a
             href="/inventory/van-sales"
-            title="الانتقال إلى لوحة إدارة المشرف والأسطول المركزية"
+            title={__t('delivery_reps.van_sales_mobile_page.s4', __t('delivery_reps.van_sales_mobile_page.s4', "الانتقال إلى لوحة إدارة المشرف والأسطول المركزية"))}
             className="van-erp-link"
             style={{
               backgroundColor: '#f8fafc',
@@ -1145,13 +1147,13 @@ export default function VanSalesMobilePage() {
               whiteSpace: 'nowrap',
             }}
           >
-            لوحة الإدارة (ERP)
+            {__t('delivery_reps.van_sales_mobile_page.s5', __t('delivery_reps.van_sales_mobile_page.s5', "لوحة الإدارة (ERP)"))}
           </a>
           <button
             type="button"
             onClick={handleGlobalRefresh}
             disabled={isGlobalRefreshing}
-            title="تحديث البيانات"
+            title={__t('delivery_reps.van_sales_mobile_page.s6', __t('delivery_reps.van_sales_mobile_page.s6', "تحديث البيانات"))}
             style={{
               backgroundColor: '#f8fafc',
               border: '1px solid #e2e8f0',
@@ -1173,12 +1175,12 @@ export default function VanSalesMobilePage() {
               color="#170e5e"
               style={{ animation: isGlobalRefreshing ? 'vanSpin 0.8s linear infinite' : 'none' }}
             />
-            <span>{isGlobalRefreshing ? 'جاري...' : 'تحديث'}</span>
+            <span>{isGlobalRefreshing ? __t('delivery_reps.van_sales_mobile_page.s7', __t('delivery_reps.van_sales_mobile_page.s7', "جاري...")) : __t('delivery_reps.van_sales_mobile_page.s8', __t('delivery_reps.van_sales_mobile_page.s8', "تحديث"))}</span>
           </button>
           <button
             type="button"
             onClick={handleLogout}
-            title="تسجيل الخروج"
+            title={__t('delivery_reps.van_sales_mobile_page.s9', __t('delivery_reps.van_sales_mobile_page.s9', "تسجيل الخروج"))}
             style={{
               backgroundColor: '#f8fafc',
               border: '1px solid #e2e8f0',
@@ -1193,7 +1195,7 @@ export default function VanSalesMobilePage() {
               alignItems: 'center',
             }}
           >
-            خروج
+            {__t('delivery_reps.van_sales_mobile_page.s10', __t('delivery_reps.van_sales_mobile_page.s10', "خروج"))}
           </button>
         </div>
       </header>
@@ -1225,7 +1227,7 @@ export default function VanSalesMobilePage() {
             />
             <span>
               {!isOnline
-                ? 'وضع عدم الاتصال (أوفلاين) • فواتيرك تُحفظ محلياً وتُطبع فوراً'
+                ? __t('delivery_reps.van_sales_mobile_page.s11', __t('delivery_reps.van_sales_mobile_page.s11', "وضع عدم الاتصال (أوفلاين) • فواتيرك تُحفظ محلياً وتُطبع فوراً"))
                 : `تم الاتصال بالإنترنت • يوجد ${pendingSyncCount} عمليات جاهزة للمزامنة`}
             </span>
             {pendingSyncCount > 0 && (
@@ -1239,7 +1241,7 @@ export default function VanSalesMobilePage() {
                   fontWeight: 800,
                 }}
               >
-                {pendingSyncCount} معلقة
+                {pendingSyncCount} {__t('delivery_reps.van_sales_mobile_page.s12', __t('delivery_reps.van_sales_mobile_page.s12', "معلقة"))}
               </span>
             )}
           </div>
@@ -1263,7 +1265,7 @@ export default function VanSalesMobilePage() {
               }}
             >
               <RefreshCwIcon size={12} color="#ffffff" style={{ animation: isSyncing ? 'spin 1s linear infinite' : 'none' }} />
-              {isSyncing ? 'جاري المزامنة...' : 'مزامنة الآن'}
+              {isSyncing ? __t('delivery_reps.van_sales_mobile_page.s13', __t('delivery_reps.van_sales_mobile_page.s13', "جاري المزامنة...")) : __t('delivery_reps.van_sales_mobile_page.s14', __t('delivery_reps.van_sales_mobile_page.s14', "مزامنة الآن"))}
             </button>
           )}
         </div>
@@ -1347,10 +1349,10 @@ export default function VanSalesMobilePage() {
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '9.5px', color: '#64748b', whiteSpace: 'nowrap' }}>
                 <span style={{ color: '#0f172a', fontWeight: 700 }}>
-                  المدة: {formatDuration(visitDurationSecs)}
+                  {__t('delivery_reps.van_sales_mobile_page.s15', __t('delivery_reps.van_sales_mobile_page.s15', "المدة:"))} {formatDuration(visitDurationSecs)}
                 </span>
                 <span>•</span>
-                <span>{activeVisit.startedTimeStr || 'الآن'}</span>
+                <span>{activeVisit.startedTimeStr || __t('delivery_reps.van_sales_mobile_page.s16', __t('delivery_reps.van_sales_mobile_page.s16', "الآن"))}</span>
               </div>
             </div>
           </div>
@@ -1382,17 +1384,17 @@ export default function VanSalesMobilePage() {
                 }}
               >
                 <ReceiptIcon size={11} color="#ffffff" />
-                <span>+ فاتورة</span>
+                <span>{__t('delivery_reps.van_sales_mobile_page.s17', __t('delivery_reps.van_sales_mobile_page.s17', "+ فاتورة"))}</span>
               </button>
             )}
             <button
               type="button"
               onClick={async () => {
                 const confirmed = await systemConfirm({
-                  title: 'إنهاء الزيارة الميدانية',
+                  title: __t('delivery_reps.van_sales_mobile_page.s18', __t('delivery_reps.van_sales_mobile_page.s18', "إنهاء الزيارة الميدانية")),
                   message: `هل تود إنهاء زيارة "${activeVisit.customerName}" الآن؟ (المدة المنقضية: ${formatDuration(visitDurationSecs)})`,
-                  confirmText: 'إنهاء الزيارة',
-                  cancelText: 'استمرار الزيارة',
+                  confirmText: __t('delivery_reps.van_sales_mobile_page.s19', __t('delivery_reps.van_sales_mobile_page.s19', "إنهاء الزيارة")),
+                  cancelText: __t('delivery_reps.van_sales_mobile_page.s20', __t('delivery_reps.van_sales_mobile_page.s20', "استمرار الزيارة")),
                 });
                 if (confirmed) {
                   const mins = Math.max(1, Math.round((Date.now() - activeVisit.startedAt) / 60000));
@@ -1415,7 +1417,7 @@ export default function VanSalesMobilePage() {
                 alignItems: 'center',
               }}
             >
-              إنهاء الزيارة
+              {__t('delivery_reps.van_sales_mobile_page.s21', __t('delivery_reps.van_sales_mobile_page.s21', "إنهاء الزيارة"))}
             </button>
           </div>
         </div>
@@ -1444,7 +1446,7 @@ export default function VanSalesMobilePage() {
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span style={{ width: '3px', height: '14px', backgroundColor: '#170e5e', borderRadius: '2px', display: 'inline-block' }} />
                 <span style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a' }}>
-                  مستهدفات وإنجازات الشهر ({data.targetMetrics.periodMonth})
+                  {__t('delivery_reps.van_sales_mobile_page.s22', __t('delivery_reps.van_sales_mobile_page.s22', "مستهدفات وإنجازات الشهر ("))}{data.targetMetrics.periodMonth})
                 </span>
                 <button
                   type="button"
@@ -1460,7 +1462,7 @@ export default function VanSalesMobilePage() {
                     cursor: 'pointer',
                   }}
                 >
-                  {isTargetMetricsExpanded ? 'إخفاء التفاصيل ▲' : 'عرض التفاصيل ▼'}
+                  {isTargetMetricsExpanded ? __t('delivery_reps.van_sales_mobile_page.s23', __t('delivery_reps.van_sales_mobile_page.s23', "إخفاء التفاصيل ▲")) : __t('delivery_reps.van_sales_mobile_page.s24', __t('delivery_reps.van_sales_mobile_page.s24', "عرض التفاصيل ▼"))}
                 </button>
               </div>
               <span
@@ -1474,7 +1476,7 @@ export default function VanSalesMobilePage() {
                   border: '1px solid #e2e8f0',
                 }}
               >
-                متبقي {data.targetMetrics.remainingWorkingDays} يوم عمل (مستبعداً الجمعات)
+                {__t('delivery_reps.van_sales_mobile_page.s25', __t('delivery_reps.van_sales_mobile_page.s25', "متبقي"))} {data.targetMetrics.remainingWorkingDays} {__t('delivery_reps.van_sales_mobile_page.s26', __t('delivery_reps.van_sales_mobile_page.s26', "يوم عمل (مستبعداً الجمعات)"))}
               </span>
             </div>
 
@@ -1495,7 +1497,7 @@ export default function VanSalesMobilePage() {
               >
                 {data.targetMetrics.targetAmount > 0 && (
                   <div>
-                    <span style={{ color: '#64748b' }}>المبيعات: </span>
+                    <span style={{ color: '#64748b' }}>{__t('delivery_reps.van_sales_mobile_page.s27', __t('delivery_reps.van_sales_mobile_page.s27', "المبيعات:"))} </span>
                     <strong style={{ color: data.targetMetrics.isTargetAchieved ? '#16a34a' : '#1d4ed8' }}>
                       {data.targetMetrics.achievementRate}% ({data.targetMetrics.actualSalesMTD.toFixed(0)}/{data.targetMetrics.targetAmount.toFixed(0)})
                     </strong>
@@ -1503,7 +1505,7 @@ export default function VanSalesMobilePage() {
                 )}
                 {(data.targetMetrics.collectionTarget ?? 0) > 0 && (
                   <div>
-                    <span style={{ color: '#64748b' }}>التحصيل: </span>
+                    <span style={{ color: '#64748b' }}>{__t('delivery_reps.van_sales_mobile_page.s28', __t('delivery_reps.van_sales_mobile_page.s28', "التحصيل:"))} </span>
                     <strong style={{ color: data.targetMetrics.isCollectionAchieved ? '#16a34a' : '#0284c7' }}>
                       {data.targetMetrics.collectionAchievementRate ?? 0}% ({(data.targetMetrics.actualCollectionsMTD ?? 0).toFixed(0)}/{(data.targetMetrics.collectionTarget ?? 0).toFixed(0)})
                     </strong>
@@ -1511,7 +1513,7 @@ export default function VanSalesMobilePage() {
                 )}
                 {(data.targetMetrics.visitsTarget ?? 0) > 0 && (
                   <div>
-                    <span style={{ color: '#64748b' }}>الزيارات: </span>
+                    <span style={{ color: '#64748b' }}>{__t('delivery_reps.van_sales_mobile_page.s29', __t('delivery_reps.van_sales_mobile_page.s29', "الزيارات:"))} </span>
                     <strong style={{ color: data.targetMetrics.isVisitsAchieved ? '#16a34a' : '#7c3aed' }}>
                       {data.targetMetrics.visitsAchievementRate ?? 0}% ({data.targetMetrics.actualVisitsMTD ?? 0}/{data.targetMetrics.visitsTarget ?? 0})
                     </strong>
@@ -1541,7 +1543,7 @@ export default function VanSalesMobilePage() {
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
                     <span style={{ fontSize: '11.5px', fontWeight: 700, color: '#1e293b' }}>
-                      المبيعات: {data.targetMetrics.targetAmount.toFixed(0)} {getGlobalCurrencySymbol()}
+                      {__t('delivery_reps.van_sales_mobile_page.s30', __t('delivery_reps.van_sales_mobile_page.s30', "المبيعات:"))} {data.targetMetrics.targetAmount.toFixed(0)} {getGlobalCurrencySymbol()}
                     </span>
                     <span
                       style={{
@@ -1553,7 +1555,7 @@ export default function VanSalesMobilePage() {
                         borderRadius: '4px',
                       }}
                     >
-                      {data.targetMetrics.isTargetAchieved ? 'تم الإنجاز' : `${data.targetMetrics.achievementRate}%`}
+                      {data.targetMetrics.isTargetAchieved ? __t('delivery_reps.van_sales_mobile_page.s31', __t('delivery_reps.van_sales_mobile_page.s31', "تم الإنجاز")) : `${data.targetMetrics.achievementRate}%`}
                     </span>
                   </div>
 
@@ -1570,12 +1572,12 @@ export default function VanSalesMobilePage() {
 
                   <div style={{ fontSize: '10.5px', color: '#64748b', display: 'flex', flexDirection: 'column', gap: '3px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span>المحقق بالشهر: <strong style={{ color: '#0f172a' }}>{data.targetMetrics.actualSalesMTD.toFixed(0)}</strong></span>
-                      <span>المتبقي: <strong style={{ color: '#dc2626' }}>{data.targetMetrics.remainingTarget.toFixed(0)}</strong></span>
+                      <span>{__t('delivery_reps.van_sales_mobile_page.s32', __t('delivery_reps.van_sales_mobile_page.s32', "المحقق بالشهر:"))} <strong style={{ color: '#0f172a' }}>{data.targetMetrics.actualSalesMTD.toFixed(0)}</strong></span>
+                      <span>{__t('delivery_reps.van_sales_mobile_page.s33', __t('delivery_reps.van_sales_mobile_page.s33', "المتبقي:"))} <strong style={{ color: '#dc2626' }}>{data.targetMetrics.remainingTarget.toFixed(0)}</strong></span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px dashed #e2e8f0', paddingTop: '3px', marginTop: '2px' }}>
-                      <span>بيع رحلة اليوم: <strong style={{ color: '#16a34a' }}>{(data.targetMetrics.todaySales ?? 0).toFixed(0)}</strong></span>
-                      <span>المطلوب يومياً: <strong style={{ color: '#d97706' }}>{data.targetMetrics.requiredDailyTarget.toFixed(0)}/يوم</strong></span>
+                      <span>{__t('delivery_reps.van_sales_mobile_page.s34', __t('delivery_reps.van_sales_mobile_page.s34', "بيع رحلة اليوم:"))} <strong style={{ color: '#16a34a' }}>{(data.targetMetrics.todaySales ?? 0).toFixed(0)}</strong></span>
+                      <span>{__t('delivery_reps.van_sales_mobile_page.s35', __t('delivery_reps.van_sales_mobile_page.s35', "المطلوب يومياً:"))} <strong style={{ color: '#d97706' }}>{data.targetMetrics.requiredDailyTarget.toFixed(0)}{__t('delivery_reps.van_sales_mobile_page.s36', __t('delivery_reps.van_sales_mobile_page.s36', "/يوم"))}</strong></span>
                     </div>
                   </div>
                 </div>
@@ -1593,7 +1595,7 @@ export default function VanSalesMobilePage() {
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
                     <span style={{ fontSize: '11.5px', fontWeight: 700, color: '#1e293b' }}>
-                      التحصيل: {(data.targetMetrics.collectionTarget ?? 0).toFixed(0)} {getGlobalCurrencySymbol()}
+                      {__t('delivery_reps.van_sales_mobile_page.s37', __t('delivery_reps.van_sales_mobile_page.s37', "التحصيل:"))} {(data.targetMetrics.collectionTarget ?? 0).toFixed(0)} {getGlobalCurrencySymbol()}
                     </span>
                     <span
                       style={{
@@ -1605,7 +1607,7 @@ export default function VanSalesMobilePage() {
                         borderRadius: '4px',
                       }}
                     >
-                      {data.targetMetrics.isCollectionAchieved ? 'تم الإنجاز' : `${data.targetMetrics.collectionAchievementRate ?? 0}%`}
+                      {data.targetMetrics.isCollectionAchieved ? __t('delivery_reps.van_sales_mobile_page.s38', __t('delivery_reps.van_sales_mobile_page.s38', "تم الإنجاز")) : `${data.targetMetrics.collectionAchievementRate ?? 0}%`}
                     </span>
                   </div>
 
@@ -1622,12 +1624,12 @@ export default function VanSalesMobilePage() {
 
                   <div style={{ fontSize: '10.5px', color: '#64748b', display: 'flex', flexDirection: 'column', gap: '3px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span>المحصل بالشهر: <strong style={{ color: '#0f172a' }}>{(data.targetMetrics.actualCollectionsMTD ?? 0).toFixed(0)}</strong></span>
-                      <span>المتبقي: <strong style={{ color: '#dc2626' }}>{(data.targetMetrics.remainingCollection ?? 0).toFixed(0)}</strong></span>
+                      <span>{__t('delivery_reps.van_sales_mobile_page.s39', __t('delivery_reps.van_sales_mobile_page.s39', "المحصل بالشهر:"))} <strong style={{ color: '#0f172a' }}>{(data.targetMetrics.actualCollectionsMTD ?? 0).toFixed(0)}</strong></span>
+                      <span>{__t('delivery_reps.van_sales_mobile_page.s40', __t('delivery_reps.van_sales_mobile_page.s40', "المتبقي:"))} <strong style={{ color: '#dc2626' }}>{(data.targetMetrics.remainingCollection ?? 0).toFixed(0)}</strong></span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px dashed #e2e8f0', paddingTop: '3px', marginTop: '2px' }}>
-                      <span>كاش رحلة اليوم: <strong style={{ color: '#0284c7' }}>{(data.targetMetrics.todayCollections ?? 0).toFixed(0)}</strong></span>
-                      <span>المطلوب يومياً: <strong style={{ color: '#d97706' }}>{(data.targetMetrics.requiredDailyCollection ?? 0).toFixed(0)}/يوم</strong></span>
+                      <span>{__t('delivery_reps.van_sales_mobile_page.s41', __t('delivery_reps.van_sales_mobile_page.s41', "كاش رحلة اليوم:"))} <strong style={{ color: '#0284c7' }}>{(data.targetMetrics.todayCollections ?? 0).toFixed(0)}</strong></span>
+                      <span>{__t('delivery_reps.van_sales_mobile_page.s42', __t('delivery_reps.van_sales_mobile_page.s42', "المطلوب يومياً:"))} <strong style={{ color: '#d97706' }}>{(data.targetMetrics.requiredDailyCollection ?? 0).toFixed(0)}{__t('delivery_reps.van_sales_mobile_page.s43', __t('delivery_reps.van_sales_mobile_page.s43', "/يوم"))}</strong></span>
                     </div>
                   </div>
                 </div>
@@ -1645,7 +1647,7 @@ export default function VanSalesMobilePage() {
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
                     <span style={{ fontSize: '11.5px', fontWeight: 700, color: '#1e293b' }}>
-                      الزيارات: {data.targetMetrics.visitsTarget} زيارة
+                      {__t('delivery_reps.van_sales_mobile_page.s44', __t('delivery_reps.van_sales_mobile_page.s44', "الزيارات:"))} {data.targetMetrics.visitsTarget} {__t('delivery_reps.van_sales_mobile_page.s45', __t('delivery_reps.van_sales_mobile_page.s45', "زيارة"))}
                     </span>
                     <span
                       style={{
@@ -1657,7 +1659,7 @@ export default function VanSalesMobilePage() {
                         borderRadius: '4px',
                       }}
                     >
-                      {data.targetMetrics.isVisitsAchieved ? 'تم الإنجاز' : `${data.targetMetrics.visitsAchievementRate ?? 0}%`}
+                      {data.targetMetrics.isVisitsAchieved ? __t('delivery_reps.van_sales_mobile_page.s46', __t('delivery_reps.van_sales_mobile_page.s46', "تم الإنجاز")) : `${data.targetMetrics.visitsAchievementRate ?? 0}%`}
                     </span>
                   </div>
 
@@ -1674,12 +1676,12 @@ export default function VanSalesMobilePage() {
 
                   <div style={{ fontSize: '10.5px', color: '#64748b', display: 'flex', flexDirection: 'column', gap: '3px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span>منجز بالشهر: <strong style={{ color: '#0f172a' }}>{data.targetMetrics.actualVisitsMTD ?? 0}</strong></span>
-                      <span>المتبقي: <strong style={{ color: '#dc2626' }}>{data.targetMetrics.remainingVisits ?? 0}</strong></span>
+                      <span>{__t('delivery_reps.van_sales_mobile_page.s47', __t('delivery_reps.van_sales_mobile_page.s47', "منجز بالشهر:"))} <strong style={{ color: '#0f172a' }}>{data.targetMetrics.actualVisitsMTD ?? 0}</strong></span>
+                      <span>{__t('delivery_reps.van_sales_mobile_page.s48', __t('delivery_reps.van_sales_mobile_page.s48', "المتبقي:"))} <strong style={{ color: '#dc2626' }}>{data.targetMetrics.remainingVisits ?? 0}</strong></span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px dashed #e2e8f0', paddingTop: '3px', marginTop: '2px' }}>
-                      <span>زيارات اليوم: <strong style={{ color: '#7c3aed' }}>{data.targetMetrics.todayVisits ?? 0}</strong></span>
-                      <span>المطلوب يومياً: <strong style={{ color: '#d97706' }}>{data.targetMetrics.requiredDailyVisits ?? 0} زيارة/يوم</strong></span>
+                      <span>{__t('delivery_reps.van_sales_mobile_page.s49', __t('delivery_reps.van_sales_mobile_page.s49', "زيارات اليوم:"))} <strong style={{ color: '#7c3aed' }}>{data.targetMetrics.todayVisits ?? 0}</strong></span>
+                      <span>{__t('delivery_reps.van_sales_mobile_page.s50', __t('delivery_reps.van_sales_mobile_page.s50', "المطلوب يومياً:"))} <strong style={{ color: '#d97706' }}>{data.targetMetrics.requiredDailyVisits ?? 0} {__t('delivery_reps.van_sales_mobile_page.s51', __t('delivery_reps.van_sales_mobile_page.s51', "زيارة/يوم"))}</strong></span>
                     </div>
                   </div>
                 </div>
@@ -1690,7 +1692,7 @@ export default function VanSalesMobilePage() {
         )}
 
         {isLoading ? (
-          <div style={{ textAlign: 'center', padding: '60px 0', color: '#94a3b8', fontWeight: 700 }}>جاري تحميل بيانات رحلة الفان...</div>
+          <div style={{ textAlign: 'center', padding: '60px 0', color: '#94a3b8', fontWeight: 700 }}>{__t('delivery_reps.van_sales_mobile_page.s52', __t('delivery_reps.van_sales_mobile_page.s52', "جاري تحميل بيانات رحلة الفان..."))}</div>
         ) : (
           <>
             {/* Live Financial & KPI Strip - Active Trip Mode */}
@@ -1714,27 +1716,27 @@ export default function VanSalesMobilePage() {
                 }}
               >
                 <div style={{ flex: '1 1 0', minWidth: 0, borderInlineEnd: '1px solid #f1f5f9', padding: '2px 2px' }}>
-                  <span style={{ fontSize: '10px', fontWeight: 600, color: '#64748b', display: 'block', whiteSpace: 'nowrap' }}>مبيعات</span>
+                  <span style={{ fontSize: '10px', fontWeight: 600, color: '#64748b', display: 'block', whiteSpace: 'nowrap' }}>{__t('delivery_reps.van_sales_mobile_page.s53', __t('delivery_reps.van_sales_mobile_page.s53', "مبيعات"))}</span>
                   <span style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a', whiteSpace: 'nowrap' }}>
                     {Number((data.trip?.salesAmount ?? 0).toFixed(0)).toLocaleString()} <CurrencySymbol />
                   </span>
                 </div>
                 <div style={{ flex: '1 1 0', minWidth: 0, borderInlineEnd: '1px solid #f1f5f9', padding: '2px 2px' }}>
-                  <span style={{ fontSize: '10px', fontWeight: 600, color: '#64748b', display: 'block', whiteSpace: 'nowrap' }}>كاش</span>
+                  <span style={{ fontSize: '10px', fontWeight: 600, color: '#64748b', display: 'block', whiteSpace: 'nowrap' }}>{__t('delivery_reps.van_sales_mobile_page.s54', __t('delivery_reps.van_sales_mobile_page.s54', "كاش"))}</span>
                   <span style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a', whiteSpace: 'nowrap' }}>
                     {Number((data.trip?.cashCollected ?? 0).toFixed(0)).toLocaleString()} <CurrencySymbol />
                   </span>
                 </div>
                 <div style={{ flex: '1 1 0', minWidth: 0, borderInlineEnd: '1px solid #f1f5f9', padding: '2px 2px' }}>
-                  <span style={{ fontSize: '10px', fontWeight: 600, color: '#64748b', display: 'block', whiteSpace: 'nowrap' }}>آجل</span>
+                  <span style={{ fontSize: '10px', fontWeight: 600, color: '#64748b', display: 'block', whiteSpace: 'nowrap' }}>{__t('delivery_reps.van_sales_mobile_page.s55', __t('delivery_reps.van_sales_mobile_page.s55', "آجل"))}</span>
                   <span style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a', whiteSpace: 'nowrap' }}>
                     {Number((data.trip?.creditSales ?? 0).toFixed(0)).toLocaleString()} <CurrencySymbol />
                   </span>
                 </div>
                 <div style={{ flex: '1 1 0', minWidth: 0, padding: '2px 2px' }}>
-                  <span style={{ fontSize: '10px', fontWeight: 600, color: '#64748b', display: 'block', whiteSpace: 'nowrap' }}>بضاعة</span>
+                  <span style={{ fontSize: '10px', fontWeight: 600, color: '#64748b', display: 'block', whiteSpace: 'nowrap' }}>{__t('delivery_reps.van_sales_mobile_page.s56', __t('delivery_reps.van_sales_mobile_page.s56', "بضاعة"))}</span>
                   <span style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a', whiteSpace: 'nowrap' }}>
-                    {data.inventory.length} صنف
+                    {data.inventory.length} {__t('delivery_reps.van_sales_mobile_page.s57', __t('delivery_reps.van_sales_mobile_page.s57', "صنف"))}
                   </span>
                 </div>
               </div>
@@ -1760,7 +1762,7 @@ export default function VanSalesMobilePage() {
                       whiteSpace: 'nowrap',
                     }}
                   >
-                    خط السير {itinerary.length > 0 && `(${itinerary.filter((i) => i.visitStatus !== 'pending').length}/${itinerary.length})`}
+                    {__t('delivery_reps.van_sales_mobile_page.s58', __t('delivery_reps.van_sales_mobile_page.s58', "خط السير"))} {itinerary.length > 0 && `(${itinerary.filter((i) => i.visitStatus !== 'pending').length}/${itinerary.length})`}
                   </button>
                   <button
                     type="button"
@@ -1778,7 +1780,7 @@ export default function VanSalesMobilePage() {
                       whiteSpace: 'nowrap',
                     }}
                   >
-                    بضاعة السيارة ({data.inventory.length})
+                    {__t('delivery_reps.van_sales_mobile_page.s59', __t('delivery_reps.van_sales_mobile_page.s59', "بضاعة السيارة ("))}{data.inventory.length})
                   </button>
                   <button
                     type="button"
@@ -1796,7 +1798,7 @@ export default function VanSalesMobilePage() {
                       whiteSpace: 'nowrap',
                     }}
                   >
-                    فاتورة بيع {cart.length > 0 && `(${cart.length})`}
+                    {__t('delivery_reps.van_sales_mobile_page.s60', __t('delivery_reps.van_sales_mobile_page.s60', "فاتورة بيع"))} {cart.length > 0 && `(${cart.length})`}
                   </button>
                   <button
                     type="button"
@@ -1814,7 +1816,7 @@ export default function VanSalesMobilePage() {
                       whiteSpace: 'nowrap',
                     }}
                   >
-                    حجز من المخزن
+                    {__t('delivery_reps.van_sales_mobile_page.s61', __t('delivery_reps.van_sales_mobile_page.s61', "حجز من المخزن"))}
                   </button>
                   <button
                     type="button"
@@ -1832,7 +1834,7 @@ export default function VanSalesMobilePage() {
                       whiteSpace: 'nowrap',
                     }}
                   >
-                    سجل الفواتير
+                    {__t('delivery_reps.van_sales_mobile_page.s62', __t('delivery_reps.van_sales_mobile_page.s62', "سجل الفواتير"))}
                   </button>
                   <button
                     type="button"
@@ -1850,7 +1852,7 @@ export default function VanSalesMobilePage() {
                       whiteSpace: 'nowrap',
                     }}
                   >
-                    تحصيل / مرتجع
+                    {__t('delivery_reps.van_sales_mobile_page.s63', __t('delivery_reps.van_sales_mobile_page.s63', "تحصيل / مرتجع"))}
                   </button>
                   <button
                     type="button"
@@ -1869,7 +1871,7 @@ export default function VanSalesMobilePage() {
                       position: 'relative',
                     }}
                   >
-                    السيارة والوقود
+                    {__t('delivery_reps.van_sales_mobile_page.s64', __t('delivery_reps.van_sales_mobile_page.s64', "السيارة والوقود"))}
                     {maintenanceAlerts.some((a) => a.severity === 'critical') && (
                       <span
                         style={{
@@ -1899,7 +1901,7 @@ export default function VanSalesMobilePage() {
                       whiteSpace: 'nowrap',
                     }}
                   >
-                    تصفية اليومية
+                    {__t('delivery_reps.van_sales_mobile_page.s65', __t('delivery_reps.van_sales_mobile_page.s65', "تصفية اليومية"))}
                   </button>
                 </>
               ) : (
@@ -1920,7 +1922,7 @@ export default function VanSalesMobilePage() {
                       whiteSpace: 'nowrap',
                     }}
                   >
-                    مركز القيادة
+                    {__t('delivery_reps.van_sales_mobile_page.s66', __t('delivery_reps.van_sales_mobile_page.s66', "مركز القيادة"))}
                   </button>
                   <button
                     type="button"
@@ -1938,7 +1940,7 @@ export default function VanSalesMobilePage() {
                       whiteSpace: 'nowrap',
                     }}
                   >
-                    خط السير {itinerary.length > 0 && `(${itinerary.length})`}
+                    {__t('delivery_reps.van_sales_mobile_page.s67', __t('delivery_reps.van_sales_mobile_page.s67', "خط السير"))} {itinerary.length > 0 && `(${itinerary.length})`}
                   </button>
                   <button
                     type="button"
@@ -1956,7 +1958,7 @@ export default function VanSalesMobilePage() {
                       whiteSpace: 'nowrap',
                     }}
                   >
-                    المخزون والشحن {data?.inventory?.length ? `(${data.inventory.length})` : '(0)'}
+                    {__t('delivery_reps.van_sales_mobile_page.s68', __t('delivery_reps.van_sales_mobile_page.s68', "المخزون والشحن"))} {data?.inventory?.length ? `(${data.inventory.length})` : '(0)'}
                   </button>
                   <button
                     type="button"
@@ -1974,7 +1976,7 @@ export default function VanSalesMobilePage() {
                       whiteSpace: 'nowrap',
                     }}
                   >
-                    فاتورة بيع
+                    {__t('delivery_reps.van_sales_mobile_page.s69', __t('delivery_reps.van_sales_mobile_page.s69', "فاتورة بيع"))}
                   </button>
                   <button
                     type="button"
@@ -1992,7 +1994,7 @@ export default function VanSalesMobilePage() {
                       whiteSpace: 'nowrap',
                     }}
                   >
-                    حجز من المخزن
+                    {__t('delivery_reps.van_sales_mobile_page.s70', __t('delivery_reps.van_sales_mobile_page.s70', "حجز من المخزن"))}
                   </button>
                   <button
                     type="button"
@@ -2010,7 +2012,7 @@ export default function VanSalesMobilePage() {
                       whiteSpace: 'nowrap',
                     }}
                   >
-                    سجل الفواتير
+                    {__t('delivery_reps.van_sales_mobile_page.s71', __t('delivery_reps.van_sales_mobile_page.s71', "سجل الفواتير"))}
                   </button>
                 </>
               )}
@@ -2023,7 +2025,7 @@ export default function VanSalesMobilePage() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '-4px' }}>
                   <span style={{ width: '3px', height: '12px', backgroundColor: '#170e5e', borderRadius: '2px', display: 'inline-block' }} />
                   <h2 style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a', margin: 0 }}>
-                    الإجراءات الميدانية السريعة
+                    {__t('delivery_reps.van_sales_mobile_page.s72', __t('delivery_reps.van_sales_mobile_page.s72', "الإجراءات الميدانية السريعة"))}
                   </h2>
                 </div>
 
@@ -2052,8 +2054,8 @@ export default function VanSalesMobilePage() {
                     <div style={{ width: '30px', height: '30px', borderRadius: '9px', backgroundColor: '#f3e8ff', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 4px' }}>
                       <PackageIcon size={16} color="#7e22ce" />
                     </div>
-                    <span style={{ fontSize: '11px', fontWeight: 800, color: '#0f172a', margin: '0 0 1px', display: 'block' }}>إذن تحميل بضاعة</span>
-                    <span style={{ fontSize: '9px', fontWeight: 500, color: '#64748b' }}>طلب شحن من المستودع</span>
+                    <span style={{ fontSize: '11px', fontWeight: 800, color: '#0f172a', margin: '0 0 1px', display: 'block' }}>{__t('delivery_reps.van_sales_mobile_page.s73', __t('delivery_reps.van_sales_mobile_page.s73', "إذن تحميل بضاعة"))}</span>
+                    <span style={{ fontSize: '9px', fontWeight: 500, color: '#64748b' }}>{__t('delivery_reps.van_sales_mobile_page.s74', __t('delivery_reps.van_sales_mobile_page.s74', "طلب شحن من المستودع"))}</span>
                   </button>
 
                   {/* Tile 2: خط سير اليوم */}
@@ -2079,8 +2081,8 @@ export default function VanSalesMobilePage() {
                     <div style={{ width: '30px', height: '30px', borderRadius: '9px', backgroundColor: '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 4px' }}>
                       <MapPinIcon size={16} color="#15803d" />
                     </div>
-                    <span style={{ fontSize: '11px', fontWeight: 800, color: '#0f172a', margin: '0 0 1px', display: 'block' }}>خط سير اليوم</span>
-                    <span style={{ fontSize: '9px', fontWeight: 500, color: '#64748b' }}>{itinerary.length} متاجر مجدولة</span>
+                    <span style={{ fontSize: '11px', fontWeight: 800, color: '#0f172a', margin: '0 0 1px', display: 'block' }}>{__t('delivery_reps.van_sales_mobile_page.s75', __t('delivery_reps.van_sales_mobile_page.s75', "خط سير اليوم"))}</span>
+                    <span style={{ fontSize: '9px', fontWeight: 500, color: '#64748b' }}>{itinerary.length} {__t('delivery_reps.van_sales_mobile_page.s76', __t('delivery_reps.van_sales_mobile_page.s76', "متاجر مجدولة"))}</span>
                   </button>
 
                   {/* Tile 3: تسجيل وقود وصيانة */}
@@ -2106,8 +2108,8 @@ export default function VanSalesMobilePage() {
                     <div style={{ width: '30px', height: '30px', borderRadius: '9px', backgroundColor: '#fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 4px' }}>
                       <TruckIcon size={16} color="#b45309" />
                     </div>
-                    <span style={{ fontSize: '11px', fontWeight: 800, color: '#0f172a', margin: '0 0 1px', display: 'block' }}>تفويل وصيانة</span>
-                    <span style={{ fontSize: '9px', fontWeight: 500, color: '#64748b' }}>سجل الوقود والعداد</span>
+                    <span style={{ fontSize: '11px', fontWeight: 800, color: '#0f172a', margin: '0 0 1px', display: 'block' }}>{__t('delivery_reps.van_sales_mobile_page.s77', __t('delivery_reps.van_sales_mobile_page.s77', "تفويل وصيانة"))}</span>
+                    <span style={{ fontSize: '9px', fontWeight: 500, color: '#64748b' }}>{__t('delivery_reps.van_sales_mobile_page.s78', __t('delivery_reps.van_sales_mobile_page.s78', "سجل الوقود والعداد"))}</span>
                   </button>
 
                   {/* Tile 4: بضاعة ومخزون السيارة */}
@@ -2133,8 +2135,8 @@ export default function VanSalesMobilePage() {
                     <div style={{ width: '30px', height: '30px', borderRadius: '9px', backgroundColor: '#e0f2fe', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 4px' }}>
                       <ShoppingBagIcon size={16} color="#0369a1" />
                     </div>
-                    <span style={{ fontSize: '11px', fontWeight: 800, color: '#0f172a', margin: '0 0 1px', display: 'block' }}>مخزون السيارة</span>
-                    <span style={{ fontSize: '9px', fontWeight: 500, color: '#64748b' }}>{data?.inventory?.length || 0} أصناف متوفرة</span>
+                    <span style={{ fontSize: '11px', fontWeight: 800, color: '#0f172a', margin: '0 0 1px', display: 'block' }}>{__t('delivery_reps.van_sales_mobile_page.s79', __t('delivery_reps.van_sales_mobile_page.s79', "مخزون السيارة"))}</span>
+                    <span style={{ fontSize: '9px', fontWeight: 500, color: '#64748b' }}>{data?.inventory?.length || 0} {__t('delivery_reps.van_sales_mobile_page.s80', __t('delivery_reps.van_sales_mobile_page.s80', "أصناف متوفرة"))}</span>
                   </button>
                 </div>
 
@@ -2153,29 +2155,29 @@ export default function VanSalesMobilePage() {
                       <TruckIcon size={15} color="#170e5e" />
                     </div>
                     <div>
-                      <h3 style={{ margin: 0, fontSize: '12.5px', fontWeight: 800, color: '#0f172a' }}>مركبة التوزيع والأسطول الميداني</h3>
-                      <span style={{ fontSize: '10px', color: '#64748b' }}>حالة السيارة وقراءة العداد وتنبيهات الصيانة</span>
+                      <h3 style={{ margin: 0, fontSize: '12.5px', fontWeight: 800, color: '#0f172a' }}>{__t('delivery_reps.van_sales_mobile_page.s81', __t('delivery_reps.van_sales_mobile_page.s81', "مركبة التوزيع والأسطول الميداني"))}</h3>
+                      <span style={{ fontSize: '10px', color: '#64748b' }}>{__t('delivery_reps.van_sales_mobile_page.s82', __t('delivery_reps.van_sales_mobile_page.s82', "حالة السيارة وقراءة العداد وتنبيهات الصيانة"))}</span>
                     </div>
                   </div>
 
                   {/* Vehicle Specs Grid: 4 Balanced Elegant Tiles */}
                   <div className="keep-grid-row" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '6px', marginBottom: '8px', width: '100%', boxSizing: 'border-box' }}>
                     <div style={{ backgroundColor: '#f8fafc', padding: '6px 10px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                      <span style={{ fontSize: '9.5px', color: '#64748b', display: 'block', fontWeight: 600, marginBottom: '1px' }}>رقم لوحة السيارة</span>
-                      <span style={{ fontSize: '12px', fontWeight: 800, color: '#170e5e' }}>{vehicle?.plate || 'سيارة التوزيع'}</span>
+                      <span style={{ fontSize: '9.5px', color: '#64748b', display: 'block', fontWeight: 600, marginBottom: '1px' }}>{__t('delivery_reps.van_sales_mobile_page.s83', __t('delivery_reps.van_sales_mobile_page.s83', "رقم لوحة السيارة"))}</span>
+                      <span style={{ fontSize: '12px', fontWeight: 800, color: '#170e5e' }}>{vehicle?.plate || __t('delivery_reps.van_sales_mobile_page.s84', __t('delivery_reps.van_sales_mobile_page.s84', "سيارة التوزيع"))}</span>
                     </div>
                     <div style={{ backgroundColor: '#f8fafc', padding: '6px 10px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                      <span style={{ fontSize: '9.5px', color: '#64748b', display: 'block', fontWeight: 600, marginBottom: '1px' }}>الموديل والنوع</span>
-                      <span style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a' }}>{vehicle?.model || 'فان توزيع بضاعة'}</span>
+                      <span style={{ fontSize: '9.5px', color: '#64748b', display: 'block', fontWeight: 600, marginBottom: '1px' }}>{__t('delivery_reps.van_sales_mobile_page.s85', __t('delivery_reps.van_sales_mobile_page.s85', "الموديل والنوع"))}</span>
+                      <span style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a' }}>{vehicle?.model || __t('delivery_reps.van_sales_mobile_page.s86', __t('delivery_reps.van_sales_mobile_page.s86', "فان توزيع بضاعة"))}</span>
                     </div>
                     <div style={{ backgroundColor: '#f8fafc', padding: '6px 10px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                      <span style={{ fontSize: '9.5px', color: '#64748b', display: 'block', fontWeight: 600, marginBottom: '1px' }}>عداد الكيلومتر الحالي</span>
-                      <span style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a' }}>{vehicle?.startOdometer ? `${vehicle.startOdometer.toLocaleString()} كم` : '0 كم'}</span>
+                      <span style={{ fontSize: '9.5px', color: '#64748b', display: 'block', fontWeight: 600, marginBottom: '1px' }}>{__t('delivery_reps.van_sales_mobile_page.s87', __t('delivery_reps.van_sales_mobile_page.s87', "عداد الكيلومتر الحالي"))}</span>
+                      <span style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a' }}>{vehicle?.startOdometer ? `${vehicle.startOdometer.toLocaleString()} كم` : __t('delivery_reps.van_sales_mobile_page.s88', __t('delivery_reps.van_sales_mobile_page.s88', "0 كم"))}</span>
                     </div>
                     <div style={{ backgroundColor: '#f8fafc', padding: '6px 10px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                      <span style={{ fontSize: '9.5px', color: '#64748b', display: 'block', fontWeight: 600, marginBottom: '1px' }}>نوع الوقود</span>
+                      <span style={{ fontSize: '9.5px', color: '#64748b', display: 'block', fontWeight: 600, marginBottom: '1px' }}>{__t('delivery_reps.van_sales_mobile_page.s89', __t('delivery_reps.van_sales_mobile_page.s89', "نوع الوقود"))}</span>
                       <span style={{ fontSize: '11px', fontWeight: 800, color: '#166534', backgroundColor: '#dcfce7', padding: '1px 6px', borderRadius: '5px', display: 'inline-block' }}>
-                        {vehicle?.fuelType === 'diesel' ? 'سولار' : 'بنزين 92'}
+                        {vehicle?.fuelType === 'diesel' ? __t('delivery_reps.van_sales_mobile_page.s90', __t('delivery_reps.van_sales_mobile_page.s90', "سولار")) : __t('delivery_reps.van_sales_mobile_page.s91', __t('delivery_reps.van_sales_mobile_page.s91', "بنزين 92"))}
                       </span>
                     </div>
                   </div>
@@ -2216,7 +2218,7 @@ export default function VanSalesMobilePage() {
                               cursor: 'pointer',
                             }}
                           >
-                            تسجيل الصيانة
+                            {__t('delivery_reps.van_sales_mobile_page.s92', __t('delivery_reps.van_sales_mobile_page.s92', "تسجيل الصيانة"))}
                           </button>
                         </div>
                       ))}
@@ -2225,7 +2227,7 @@ export default function VanSalesMobilePage() {
                     <div style={{ backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', padding: '6px 10px', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
                       <CheckCircleIcon size={14} color="#16a34a" />
                       <span style={{ fontSize: '11px', fontWeight: 700, color: '#166534' }}>
-                        حالة المركبة ممتازة ولا توجد تنبيهات صيانة أو غيارات زيت متأخرة
+                        {__t('delivery_reps.van_sales_mobile_page.s93', __t('delivery_reps.van_sales_mobile_page.s93', "حالة المركبة ممتازة ولا توجد تنبيهات صيانة أو غيارات زيت متأخرة"))}
                       </span>
                     </div>
                   )}
@@ -2247,7 +2249,7 @@ export default function VanSalesMobilePage() {
                         textAlign: 'center',
                       }}
                     >
-                      {showFleetInCockpit ? 'إخفاء سجل المركبة' : '+ تسجيل تفويلة وقود'}
+                      {showFleetInCockpit ? __t('delivery_reps.van_sales_mobile_page.s94', __t('delivery_reps.van_sales_mobile_page.s94', "إخفاء سجل المركبة")) : __t('delivery_reps.van_sales_mobile_page.s95', __t('delivery_reps.van_sales_mobile_page.s95', "+ تسجيل تفويلة وقود"))}
                     </button>
                     <button
                       type="button"
@@ -2264,7 +2266,7 @@ export default function VanSalesMobilePage() {
                         textAlign: 'center',
                       }}
                     >
-                      {showFleetInCockpit ? 'إغلاق السجل' : 'سجل الوقود والصيانة'}
+                      {showFleetInCockpit ? __t('delivery_reps.van_sales_mobile_page.s96', __t('delivery_reps.van_sales_mobile_page.s96', "إغلاق السجل")) : __t('delivery_reps.van_sales_mobile_page.s97', __t('delivery_reps.van_sales_mobile_page.s97', "سجل الوقود والصيانة"))}
                     </button>
                   </div>
 
@@ -2300,8 +2302,8 @@ export default function VanSalesMobilePage() {
                       <PackageIcon size={15} color="#170e5e" />
                     </div>
                     <div>
-                      <h3 style={{ margin: 0, fontSize: '12.5px', fontWeight: 800, color: '#0f172a' }}>بدء رحلة التوزيع والعمليات الميدانية</h3>
-                      <span style={{ fontSize: '10px', color: '#64748b' }}>إعداد بضاعة السيارة والانطلاق للميدان</span>
+                      <h3 style={{ margin: 0, fontSize: '12.5px', fontWeight: 800, color: '#0f172a' }}>{__t('delivery_reps.van_sales_mobile_page.s98', __t('delivery_reps.van_sales_mobile_page.s98', "بدء رحلة التوزيع والعمليات الميدانية"))}</h3>
+                      <span style={{ fontSize: '10px', color: '#64748b' }}>{__t('delivery_reps.van_sales_mobile_page.s99', __t('delivery_reps.van_sales_mobile_page.s99', "إعداد بضاعة السيارة والانطلاق للميدان"))}</span>
                     </div>
                   </div>
 
@@ -2321,10 +2323,10 @@ export default function VanSalesMobilePage() {
                     >
                       <div>
                         <span style={{ fontSize: '11.5px', fontWeight: 800, color: '#1e40af', display: 'block' }}>
-                          يوجد بضاعة متوفرة بالسيارة حالياً ({data.inventory.length} أصناف)
+                          {__t('delivery_reps.van_sales_mobile_page.s100', __t('delivery_reps.van_sales_mobile_page.s100', "يوجد بضاعة متوفرة بالسيارة حالياً ("))}{data.inventory.length} {__t('delivery_reps.van_sales_mobile_page.s101', __t('delivery_reps.van_sales_mobile_page.s101', "أصناف)"))}
                         </span>
                         <span style={{ fontSize: '10px', color: '#3b82f6' }}>
-                          إجمالي القيمة: {totalInventoryValue.toFixed(2)} {getGlobalCurrencySymbol()} جاهزة للبيع الفوري
+                          {__t('delivery_reps.van_sales_mobile_page.s102', __t('delivery_reps.van_sales_mobile_page.s102', "إجمالي القيمة:"))} {totalInventoryValue.toFixed(2)} {getGlobalCurrencySymbol()} {__t('delivery_reps.van_sales_mobile_page.s103', __t('delivery_reps.van_sales_mobile_page.s103', "جاهزة للبيع الفوري"))}
                         </span>
                       </div>
                       <Button
@@ -2343,12 +2345,12 @@ export default function VanSalesMobilePage() {
                           boxShadow: '0 2px 6px rgba(23, 14, 94, 0.15)',
                         }}
                       >
-                        {startTripMutation.isPending ? 'جاري بدء الرحلة...' : 'بدء رحلة التوزيع بالبضاعة الحالية'}
+                        {startTripMutation.isPending ? __t('delivery_reps.van_sales_mobile_page.s104', __t('delivery_reps.van_sales_mobile_page.s104', "جاري بدء الرحلة...")) : __t('delivery_reps.van_sales_mobile_page.s105', __t('delivery_reps.van_sales_mobile_page.s105', "بدء رحلة التوزيع بالبضاعة الحالية"))}
                       </Button>
                     </div>
                   ) : (
                     <p style={{ fontSize: '11px', color: '#64748b', margin: '0 0 8px', lineHeight: 1.45 }}>
-                      سيارتك جاهزة لبدء العمل! يمكنك إرسال طلب شحن بضاعة لمشرف المستودع للمراجعة وصرف البضاعة، أو بدء الرحلة مباشرة للتحصيل وزيارة المتاجر.
+                      {__t('delivery_reps.van_sales_mobile_page.s106', __t('delivery_reps.van_sales_mobile_page.s106', "سيارتك جاهزة لبدء العمل! يمكنك إرسال طلب شحن بضاعة لمشرف المستودع للمراجعة وصرف البضاعة، أو بدء الرحلة مباشرة للتحصيل وزيارة المتاجر."))}
                     </p>
                   )}
 
@@ -2369,7 +2371,7 @@ export default function VanSalesMobilePage() {
                         boxShadow: '0 2px 6px rgba(23, 14, 94, 0.15)',
                       }}
                     >
-                      + إنشاء طلب شحن بضاعة (إذن تحميل)
+                      {__t('delivery_reps.van_sales_mobile_page.s107', __t('delivery_reps.van_sales_mobile_page.s107', "+ إنشاء طلب شحن بضاعة (إذن تحميل)"))}
                     </Button>
                     <div
                       className="keep-grid-row"
@@ -2397,7 +2399,7 @@ export default function VanSalesMobilePage() {
                             color: '#0f172a',
                           }}
                         >
-                          {startTripMutation.isPending ? 'جاري فتح الرحلة...' : 'بدء الرحلة مباشرة'}
+                          {startTripMutation.isPending ? __t('delivery_reps.van_sales_mobile_page.s108', __t('delivery_reps.van_sales_mobile_page.s108', "جاري فتح الرحلة...")) : __t('delivery_reps.van_sales_mobile_page.s109', __t('delivery_reps.van_sales_mobile_page.s109', "بدء الرحلة مباشرة"))}
                         </Button>
                       )}
                       <Button
@@ -2415,7 +2417,7 @@ export default function VanSalesMobilePage() {
                           color: '#0f172a',
                         }}
                       >
-                        تحديث حالة الرحلة
+                        {__t('delivery_reps.van_sales_mobile_page.s110', __t('delivery_reps.van_sales_mobile_page.s110', "تحديث حالة الرحلة"))}
                       </Button>
                     </div>
                   </div>
@@ -2440,10 +2442,10 @@ export default function VanSalesMobilePage() {
                     </div>
                     <div>
                       <h4 style={{ margin: 0, fontSize: '12px', fontWeight: 800, color: '#0f172a' }}>
-                        خط سير اليوم: {itinerary.length} متاجر مجدولة
+                        {__t('delivery_reps.van_sales_mobile_page.s111', __t('delivery_reps.van_sales_mobile_page.s111', "خط سير اليوم:"))} {itinerary.length} {__t('delivery_reps.van_sales_mobile_page.s112', __t('delivery_reps.van_sales_mobile_page.s112', "متاجر مجدولة"))}
                       </h4>
                       <span style={{ fontSize: '10px', color: '#64748b' }}>
-                        استعرض قائمة المحلات ومواقعها وأرقام الهواتف للاستعداد الميداني
+                        {__t('delivery_reps.van_sales_mobile_page.s113', __t('delivery_reps.van_sales_mobile_page.s113', "استعرض قائمة المحلات ومواقعها وأرقام الهواتف للاستعداد الميداني"))}
                       </span>
                     </div>
                   </div>
@@ -2467,7 +2469,7 @@ export default function VanSalesMobilePage() {
                       transition: 'none',
                     }}
                   >
-                    استعراض خط السير ({itinerary.length} متجر مجدول)
+                    {__t('delivery_reps.van_sales_mobile_page.s114', __t('delivery_reps.van_sales_mobile_page.s114', "استعراض خط السير ("))}{itinerary.length} {__t('delivery_reps.van_sales_mobile_page.s115', __t('delivery_reps.van_sales_mobile_page.s115', "متجر مجدول)"))}
                   </button>
                 </div>
 
@@ -2486,7 +2488,7 @@ export default function VanSalesMobilePage() {
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <span style={{ width: '3px', height: '14px', backgroundColor: '#170e5e', borderRadius: '2px', display: 'inline-block' }} />
                         <span style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a' }}>
-                          أحدث طلبات شحن وتحميل السيارة:
+                          {__t('delivery_reps.van_sales_mobile_page.s116', __t('delivery_reps.van_sales_mobile_page.s116', "أحدث طلبات شحن وتحميل السيارة:"))}
                         </span>
                       </div>
                       <button
@@ -2497,7 +2499,7 @@ export default function VanSalesMobilePage() {
                         }}
                         style={{ backgroundColor: 'transparent', border: 'none', color: '#4338ca', fontSize: '11px', fontWeight: 700, cursor: 'pointer' }}
                       >
-                        عرض الكل ({myRequisitions.length})
+                        {__t('delivery_reps.van_sales_mobile_page.s117', __t('delivery_reps.van_sales_mobile_page.s117', "عرض الكل ("))}{myRequisitions.length})
                       </button>
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -2516,10 +2518,10 @@ export default function VanSalesMobilePage() {
                         >
                           <div>
                             <span style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a', display: 'block' }}>
-                              طلب شحن #{req.docNo}
+                              {__t('delivery_reps.van_sales_mobile_page.s118', __t('delivery_reps.van_sales_mobile_page.s118', "طلب شحن #"))}{req.docNo}
                             </span>
                             <span style={{ fontSize: '11px', color: '#64748b' }}>
-                              المستودع: {req.sourceWarehouseName} • {req.requestedItems.length} أصناف
+                              {__t('delivery_reps.van_sales_mobile_page.s119', __t('delivery_reps.van_sales_mobile_page.s119', "المستودع:"))} {req.sourceWarehouseName} • {req.requestedItems.length} {__t('delivery_reps.van_sales_mobile_page.s120', __t('delivery_reps.van_sales_mobile_page.s120', "أصناف"))}
                             </span>
                           </div>
                           <span
@@ -2545,10 +2547,10 @@ export default function VanSalesMobilePage() {
                             }}
                           >
                             {req.status === 'dispatched'
-                              ? 'تم الصرف'
+                              ? __t('delivery_reps.van_sales_mobile_page.s121', __t('delivery_reps.van_sales_mobile_page.s121', "تم الصرف"))
                               : req.status === 'rejected'
-                              ? 'مرفوض'
-                              : 'قيد المراجعة'}
+                              ? __t('delivery_reps.van_sales_mobile_page.s122', __t('delivery_reps.van_sales_mobile_page.s122', "مرفوض"))
+                              : __t('delivery_reps.van_sales_mobile_page.s123', __t('delivery_reps.van_sales_mobile_page.s123', "قيد المراجعة"))}
                           </span>
                         </div>
                       ))}
@@ -2578,7 +2580,7 @@ export default function VanSalesMobilePage() {
                     if (data?.hasActiveTrip) {
                       setActiveTab('sale');
                     } else {
-                      toast.info('يرجى بدء رحلة التوزيع أولاً لإصدار فاتورة بيع');
+                      toast.info(__t('delivery_reps.van_sales_mobile_page.s124', __t('delivery_reps.van_sales_mobile_page.s124', "يرجى بدء رحلة التوزيع أولاً لإصدار فاتورة بيع")));
                     }
                   };
                   if (cust && (!activeVisit || activeVisit.customerId !== customerId)) {
@@ -2596,7 +2598,7 @@ export default function VanSalesMobilePage() {
                     if (data?.hasActiveTrip) {
                       setActiveTab('collection');
                     } else {
-                      toast.info('يرجى بدء رحلة التوزيع أولاً لتسجيل مرتجع بضاعة');
+                      toast.info(__t('delivery_reps.van_sales_mobile_page.s125', __t('delivery_reps.van_sales_mobile_page.s125', "يرجى بدء رحلة التوزيع أولاً لتسجيل مرتجع بضاعة")));
                     }
                   };
                   if (cust && (!activeVisit || activeVisit.customerId !== customerId)) {
@@ -2613,7 +2615,7 @@ export default function VanSalesMobilePage() {
                     if (data?.hasActiveTrip) {
                       setActiveTab('collection');
                     } else {
-                      toast.info('يرجى بدء رحلة التوزيع أولاً لتسجيل سند تحصيل');
+                      toast.info(__t('delivery_reps.van_sales_mobile_page.s126', __t('delivery_reps.van_sales_mobile_page.s126', "يرجى بدء رحلة التوزيع أولاً لتسجيل سند تحصيل")));
                     }
                   };
                   if (cust && (!activeVisit || activeVisit.customerId !== customerId)) {
@@ -2661,7 +2663,7 @@ export default function VanSalesMobilePage() {
                       whiteSpace: 'nowrap',
                     }}
                   >
-                    بضاعة السيارة {data?.inventory?.length ? `(${data.inventory.length})` : '(0)'}
+                    {__t('delivery_reps.van_sales_mobile_page.s127', __t('delivery_reps.van_sales_mobile_page.s127', "بضاعة السيارة"))} {data?.inventory?.length ? `(${data.inventory.length})` : '(0)'}
                   </button>
                   <button
                     type="button"
@@ -2683,7 +2685,7 @@ export default function VanSalesMobilePage() {
                       gap: '6px',
                     }}
                   >
-                    <span>طلبات شحن السيارة</span>
+                    <span>{__t('delivery_reps.van_sales_mobile_page.s128', __t('delivery_reps.van_sales_mobile_page.s128', "طلبات شحن السيارة"))}</span>
                     {myRequisitions.length > 0 && (
                       <span
                         style={{
@@ -2712,7 +2714,7 @@ export default function VanSalesMobilePage() {
                       if (data?.hasActiveTrip) {
                         addToCart(item);
                       } else {
-                        toast.info('يرجى بدء رحلة التوزيع أولاً لإضافة الأصناف للفاتورة');
+                        toast.info(__t('delivery_reps.van_sales_mobile_page.s129', __t('delivery_reps.van_sales_mobile_page.s129', "يرجى بدء رحلة التوزيع أولاً لإضافة الأصناف للفاتورة")));
                       }
                     }}
                     onUpdateCartQty={updateCartQty}
@@ -2726,10 +2728,10 @@ export default function VanSalesMobilePage() {
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'nowrap', gap: '8px' }}>
                       <div style={{ minWidth: 0, flex: 1 }}>
                         <h3 style={{ margin: 0, fontSize: '13px', fontWeight: 800, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                          طلبات شحن السيارة
+                          {__t('delivery_reps.van_sales_mobile_page.s130', __t('delivery_reps.van_sales_mobile_page.s130', "طلبات شحن السيارة"))}
                         </h3>
                         <span style={{ fontSize: '10.5px', color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'block' }}>
-                          صرف بضاعة المستودع إلى سيارة التوزيع
+                          {__t('delivery_reps.van_sales_mobile_page.s131', __t('delivery_reps.van_sales_mobile_page.s131', "صرف بضاعة المستودع إلى سيارة التوزيع"))}
                         </span>
                       </div>
                       <Button
@@ -2746,14 +2748,14 @@ export default function VanSalesMobilePage() {
                           flexShrink: 0,
                         }}
                       >
-                        + طلب شحن جديد
+                        {__t('delivery_reps.van_sales_mobile_page.s132', __t('delivery_reps.van_sales_mobile_page.s132', "+ طلب شحن جديد"))}
                       </Button>
                     </div>
 
                     {myRequisitions.length === 0 ? (
                       <div style={{ textAlign: 'center', padding: '36px 0', color: '#94a3b8' }}>
                         <PackageIcon size={32} color="#cbd5e1" style={{ margin: '0 auto 8px', display: 'block' }} />
-                        <span style={{ fontSize: '12.5px', fontWeight: 600 }}>لا توجد طلبات شحن سابقة مسجلة</span>
+                        <span style={{ fontSize: '12.5px', fontWeight: 600 }}>{__t('delivery_reps.van_sales_mobile_page.s133', __t('delivery_reps.van_sales_mobile_page.s133', "لا توجد طلبات شحن سابقة مسجلة"))}</span>
                       </div>
                     ) : (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -2769,7 +2771,7 @@ export default function VanSalesMobilePage() {
                           >
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                               <span style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a' }}>
-                                طلب شحن #{req.docNo}
+                                {__t('delivery_reps.van_sales_mobile_page.s134', __t('delivery_reps.van_sales_mobile_page.s134', "طلب شحن #"))}{req.docNo}
                               </span>
                               <span
                                 style={{
@@ -2794,16 +2796,16 @@ export default function VanSalesMobilePage() {
                                 }}
                               >
                                 {req.status === 'dispatched'
-                                  ? 'تم الصرف'
+                                  ? __t('delivery_reps.van_sales_mobile_page.s135', __t('delivery_reps.van_sales_mobile_page.s135', "تم الصرف"))
                                   : req.status === 'rejected'
-                                  ? 'مرفوض'
-                                  : 'قيد المراجعة'}
+                                  ? __t('delivery_reps.van_sales_mobile_page.s136', __t('delivery_reps.van_sales_mobile_page.s136', "مرفوض"))
+                                  : __t('delivery_reps.van_sales_mobile_page.s137', __t('delivery_reps.van_sales_mobile_page.s137', "قيد المراجعة"))}
                               </span>
                             </div>
                             <div style={{ fontSize: '11.5px', color: '#64748b', display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '6px' }}>
-                              <span>المستودع المصدر: <strong style={{ color: '#0f172a' }}>{req.sourceWarehouseName}</strong></span>
-                              <span>الأصناف المطلوبة: <strong style={{ color: '#0f172a' }}>{req.requestedItems.length} صنف</strong></span>
-                              <span>تاريخ الطلب: {new Date(req.createdAt).toLocaleDateString('ar-EG')}</span>
+                              <span>{__t('delivery_reps.van_sales_mobile_page.s138', __t('delivery_reps.van_sales_mobile_page.s138', "المستودع المصدر:"))} <strong style={{ color: '#0f172a' }}>{req.sourceWarehouseName}</strong></span>
+                              <span>{__t('delivery_reps.van_sales_mobile_page.s139', __t('delivery_reps.van_sales_mobile_page.s139', "الأصناف المطلوبة:"))} <strong style={{ color: '#0f172a' }}>{req.requestedItems.length} {__t('delivery_reps.van_sales_mobile_page.s140', __t('delivery_reps.van_sales_mobile_page.s140', "صنف"))}</strong></span>
+                              <span>{__t('delivery_reps.van_sales_mobile_page.s141', __t('delivery_reps.van_sales_mobile_page.s141', "تاريخ الطلب:"))} {new Date(req.createdAt).toLocaleDateString('ar-EG')}</span>
                             </div>
                             {req.rejectionReason && (
                               <div
@@ -2825,7 +2827,7 @@ export default function VanSalesMobilePage() {
                                 }}
                                 title={req.rejectionReason}
                               >
-                                <span style={{ fontWeight: 800, flexShrink: 0 }}>سبب الرفض:</span>
+                                <span style={{ fontWeight: 800, flexShrink: 0 }}>{__t('delivery_reps.van_sales_mobile_page.s142', __t('delivery_reps.van_sales_mobile_page.s142', "سبب الرفض:"))}</span>
                                 <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                   {req.rejectionReason}
                                 </span>
@@ -2839,10 +2841,10 @@ export default function VanSalesMobilePage() {
                                   variant="secondary"
                                   onClick={async () => {
                                     const confirmed = await systemConfirm({
-                                      title: 'إلغاء طلب إذن التحميل',
+                                      title: __t('delivery_reps.van_sales_mobile_page.s143', __t('delivery_reps.van_sales_mobile_page.s143', "إلغاء طلب إذن التحميل")),
                                       message: `هل تريد إلغاء طلب إذن التحميل #${req.docNo} وإعادة تجهيز أصنافه؟`,
-                                      confirmText: 'نعم، إلغاء وتجهيز',
-                                      cancelText: 'تراجع',
+                                      confirmText: __t('delivery_reps.van_sales_mobile_page.s144', __t('delivery_reps.van_sales_mobile_page.s144', "نعم، إلغاء وتجهيز")),
+                                      cancelText: __t('delivery_reps.van_sales_mobile_page.s145', __t('delivery_reps.van_sales_mobile_page.s145', "تراجع")),
                                     });
                                     if (!confirmed) return;
                                     try {
@@ -2851,7 +2853,7 @@ export default function VanSalesMobilePage() {
                                       showAlert('success', `تم إلغاء طلب إذن التحميل #${req.docNo} واسترجاع الأصناف بنجاح`);
                                       setViewMode('new-requisition');
                                     } catch (err: any) {
-                                      showAlert('error', err?.message || 'فشل إلغاء الطلب');
+                                      showAlert('error', err?.message || __t('delivery_reps.van_sales_mobile_page.s146', __t('delivery_reps.van_sales_mobile_page.s146', "فشل إلغاء الطلب")));
                                     }
                                   }}
                                   style={{
@@ -2869,7 +2871,7 @@ export default function VanSalesMobilePage() {
                                   }}
                                 >
                                   <RefreshCwIcon size={12} />
-                                  <span>إلغاء الطلب المعلق وتعديل الأصناف</span>
+                                  <span>{__t('delivery_reps.van_sales_mobile_page.s147', __t('delivery_reps.van_sales_mobile_page.s147', "إلغاء الطلب المعلق وتعديل الأصناف"))}</span>
                                 </Button>
                               </div>
                             )}
@@ -2903,7 +2905,7 @@ export default function VanSalesMobilePage() {
                     cursor: 'pointer',
                   }}
                 >
-                  ← عودة لمركز القيادة (الرئيسية)
+                  {__t('delivery_reps.van_sales_mobile_page.s148', __t('delivery_reps.van_sales_mobile_page.s148', "← عودة لمركز القيادة (الرئيسية)"))}
                 </button>
                 <VanFleetTab
                   vehicle={vehicle}
@@ -2942,16 +2944,16 @@ export default function VanSalesMobilePage() {
                     cursor: 'pointer',
                   }}
                 >
-                  ← عودة لبضاعة السيارة (المخزون)
+                  {__t('delivery_reps.van_sales_mobile_page.s149', __t('delivery_reps.van_sales_mobile_page.s149', "← عودة لبضاعة السيارة (المخزون)"))}
                 </button>
                 <div style={{ backgroundColor: '#ffffff', borderRadius: '14px', border: '1px solid #e2e8f0', padding: '14px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'nowrap', gap: '8px' }}>
                     <div style={{ minWidth: 0, flex: 1 }}>
                       <h3 style={{ margin: 0, fontSize: '13px', fontWeight: 800, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        طلبات شحن السيارة
+                        {__t('delivery_reps.van_sales_mobile_page.s150', __t('delivery_reps.van_sales_mobile_page.s150', "طلبات شحن السيارة"))}
                       </h3>
                       <span style={{ fontSize: '10.5px', color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'block' }}>
-                        صرف بضاعة المستودع إلى سيارة التوزيع
+                        {__t('delivery_reps.van_sales_mobile_page.s151', __t('delivery_reps.van_sales_mobile_page.s151', "صرف بضاعة المستودع إلى سيارة التوزيع"))}
                       </span>
                     </div>
                     <Button
@@ -2968,14 +2970,14 @@ export default function VanSalesMobilePage() {
                         flexShrink: 0,
                       }}
                     >
-                      + طلب شحن جديد
+                      {__t('delivery_reps.van_sales_mobile_page.s152', __t('delivery_reps.van_sales_mobile_page.s152', "+ طلب شحن جديد"))}
                     </Button>
                   </div>
 
                   {myRequisitions.length === 0 ? (
                     <div style={{ textAlign: 'center', padding: '36px 0', color: '#94a3b8' }}>
                       <PackageIcon size={32} color="#cbd5e1" style={{ margin: '0 auto 8px', display: 'block' }} />
-                      <span style={{ fontSize: '12.5px', fontWeight: 600 }}>لا توجد طلبات شحن سابقة مسجلة</span>
+                      <span style={{ fontSize: '12.5px', fontWeight: 600 }}>{__t('delivery_reps.van_sales_mobile_page.s153', __t('delivery_reps.van_sales_mobile_page.s153', "لا توجد طلبات شحن سابقة مسجلة"))}</span>
                     </div>
                   ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -2991,7 +2993,7 @@ export default function VanSalesMobilePage() {
                         >
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                             <span style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a' }}>
-                              طلب شحن #{req.docNo}
+                              {__t('delivery_reps.van_sales_mobile_page.s154', __t('delivery_reps.van_sales_mobile_page.s154', "طلب شحن #"))}{req.docNo}
                             </span>
                             <span
                               style={{
@@ -3016,16 +3018,16 @@ export default function VanSalesMobilePage() {
                               }}
                             >
                               {req.status === 'dispatched'
-                                ? 'تم الصرف'
+                                ? __t('delivery_reps.van_sales_mobile_page.s155', __t('delivery_reps.van_sales_mobile_page.s155', "تم الصرف"))
                                 : req.status === 'rejected'
-                                ? 'مرفوض'
-                                : 'قيد المراجعة'}
+                                ? __t('delivery_reps.van_sales_mobile_page.s156', __t('delivery_reps.van_sales_mobile_page.s156', "مرفوض"))
+                                : __t('delivery_reps.van_sales_mobile_page.s157', __t('delivery_reps.van_sales_mobile_page.s157', "قيد المراجعة"))}
                             </span>
                           </div>
                           <div style={{ fontSize: '11.5px', color: '#64748b', display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '6px' }}>
-                            <span>المستودع المصدر: <strong style={{ color: '#0f172a' }}>{req.sourceWarehouseName}</strong></span>
-                            <span>الأصناف المطلوبة: <strong style={{ color: '#0f172a' }}>{req.requestedItems.length} صنف</strong></span>
-                            <span>تاريخ الطلب: {new Date(req.createdAt).toLocaleDateString('ar-EG')}</span>
+                            <span>{__t('delivery_reps.van_sales_mobile_page.s158', __t('delivery_reps.van_sales_mobile_page.s158', "المستودع المصدر:"))} <strong style={{ color: '#0f172a' }}>{req.sourceWarehouseName}</strong></span>
+                            <span>{__t('delivery_reps.van_sales_mobile_page.s159', __t('delivery_reps.van_sales_mobile_page.s159', "الأصناف المطلوبة:"))} <strong style={{ color: '#0f172a' }}>{req.requestedItems.length} {__t('delivery_reps.van_sales_mobile_page.s160', __t('delivery_reps.van_sales_mobile_page.s160', "صنف"))}</strong></span>
+                            <span>{__t('delivery_reps.van_sales_mobile_page.s161', __t('delivery_reps.van_sales_mobile_page.s161', "تاريخ الطلب:"))} {new Date(req.createdAt).toLocaleDateString('ar-EG')}</span>
                           </div>
                           {req.rejectionReason && (
                             <div
@@ -3047,7 +3049,7 @@ export default function VanSalesMobilePage() {
                               }}
                               title={req.rejectionReason}
                             >
-                              <span style={{ fontWeight: 800, flexShrink: 0 }}>سبب الرفض:</span>
+                              <span style={{ fontWeight: 800, flexShrink: 0 }}>{__t('delivery_reps.van_sales_mobile_page.s162', __t('delivery_reps.van_sales_mobile_page.s162', "سبب الرفض:"))}</span>
                               <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                 {req.rejectionReason}
                               </span>
@@ -3061,10 +3063,10 @@ export default function VanSalesMobilePage() {
                                 variant="secondary"
                                 onClick={async () => {
                                   const confirmed = await systemConfirm({
-                                    title: 'إلغاء طلب إذن التحميل',
+                                    title: __t('delivery_reps.van_sales_mobile_page.s163', __t('delivery_reps.van_sales_mobile_page.s163', "إلغاء طلب إذن التحميل")),
                                     message: `هل تريد إلغاء طلب إذن التحميل #${req.docNo} وإعادة تجهيز أصنافه؟`,
-                                    confirmText: 'نعم، إلغاء وتجهيز',
-                                    cancelText: 'تراجع',
+                                    confirmText: __t('delivery_reps.van_sales_mobile_page.s164', __t('delivery_reps.van_sales_mobile_page.s164', "نعم، إلغاء وتجهيز")),
+                                    cancelText: __t('delivery_reps.van_sales_mobile_page.s165', __t('delivery_reps.van_sales_mobile_page.s165', "تراجع")),
                                   });
                                   if (!confirmed) return;
                                   try {
@@ -3073,7 +3075,7 @@ export default function VanSalesMobilePage() {
                                     showAlert('success', `تم إلغاء طلب إذن التحميل #${req.docNo} واسترجاع الأصناف بنجاح`);
                                     setViewMode('new-requisition');
                                   } catch (err: any) {
-                                    showAlert('error', err?.message || 'فشل إلغاء الطلب');
+                                    showAlert('error', err?.message || __t('delivery_reps.van_sales_mobile_page.s166', __t('delivery_reps.van_sales_mobile_page.s166', "فشل إلغاء الطلب")));
                                   }
                                 }}
                                 style={{
@@ -3091,7 +3093,7 @@ export default function VanSalesMobilePage() {
                                 }}
                               >
                                 <RefreshCwIcon size={12} />
-                                <span>إلغاء الطلب المعلق وتعديل الأصناف</span>
+                                <span>{__t('delivery_reps.van_sales_mobile_page.s167', __t('delivery_reps.van_sales_mobile_page.s167', "إلغاء الطلب المعلق وتعديل الأصناف"))}</span>
                               </Button>
                             </div>
                           )}
@@ -3144,7 +3146,7 @@ export default function VanSalesMobilePage() {
                   onGoToSalesHistory={() => setActiveTab('sales-history')}
                   onSubmitSale={() => {
                     if (cart.length === 0) {
-                      showAlert('error', 'السلة فارغة حالياً. يرجى اختيار صنف واحد على الأقل لإصدار الفاتورة.');
+                      showAlert('error', __t('delivery_reps.van_sales_mobile_page.s168', __t('delivery_reps.van_sales_mobile_page.s168', "السلة فارغة حالياً. يرجى اختيار صنف واحد على الأقل لإصدار الفاتورة.")));
                       return;
                     }
                     if (selectedCustomerId && (!activeVisit || activeVisit.customerId !== Number(selectedCustomerId))) {
@@ -3164,9 +3166,9 @@ export default function VanSalesMobilePage() {
                   <div style={{ width: '56px', height: '56px', backgroundColor: '#eef2ff', borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
                     <ReceiptIcon size={28} color="#170e5e" />
                   </div>
-                  <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#0f172a', margin: '0 0 6px' }}>نقطة بيع الفاتورة السريعة</h3>
+                  <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#0f172a', margin: '0 0 6px' }}>{__t('delivery_reps.van_sales_mobile_page.s169', __t('delivery_reps.van_sales_mobile_page.s169', "نقطة بيع الفاتورة السريعة"))}</h3>
                   <p style={{ fontSize: '12.5px', color: '#64748b', margin: '0 auto 16px', maxWidth: '380px', lineHeight: 1.5 }}>
-                    لبدء إضافة الأصناف وإصدار الفواتير للعملاء وإرفاق صور التسليم، يرجى بدء رحلة التوزيع أولاً.
+                    {__t('delivery_reps.van_sales_mobile_page.s170', __t('delivery_reps.van_sales_mobile_page.s170', "لبدء إضافة الأصناف وإصدار الفواتير للعملاء وإرفاق صور التسليم، يرجى بدء رحلة التوزيع أولاً."))}
                   </p>
                   <Button
                     variant="primary"
@@ -3174,7 +3176,7 @@ export default function VanSalesMobilePage() {
                     disabled={startTripMutation.isPending}
                     style={{ backgroundColor: '#170e5e', color: '#ffffff', fontSize: '12.5px', fontWeight: 800 }}
                   >
-                    {startTripMutation.isPending ? 'جاري بدء الرحلة...' : 'بدء رحلة التوزيع الآن'}
+                    {startTripMutation.isPending ? __t('delivery_reps.van_sales_mobile_page.s171', __t('delivery_reps.van_sales_mobile_page.s171', "جاري بدء الرحلة...")) : __t('delivery_reps.van_sales_mobile_page.s172', __t('delivery_reps.van_sales_mobile_page.s172', "بدء رحلة التوزيع الآن"))}
                   </Button>
                 </div>
               )
@@ -3213,7 +3215,7 @@ export default function VanSalesMobilePage() {
                 customers={allAvailableCustomers}
                 onViewReceipt={(receiptData) => setLastSaleReceipt(receiptData)}
                 onGoToNewSale={() => setActiveTab('sale')}
-                storeName={data?.trip?.sourceWarehouseName || 'مبيعات التوزيع الميداني'}
+                storeName={data?.trip?.sourceWarehouseName || __t('delivery_reps.van_sales_mobile_page.s173', __t('delivery_reps.van_sales_mobile_page.s173', "مبيعات التوزيع الميداني"))}
               />
             )}
 
@@ -3234,7 +3236,7 @@ export default function VanSalesMobilePage() {
                       return;
                     }
                     if (!colCustomerId || !Number(colAmount)) {
-                      showAlert('error', 'يرجى اختيار العميل وإدخال مبلغ التحصيل');
+                      showAlert('error', __t('delivery_reps.van_sales_mobile_page.s174', __t('delivery_reps.van_sales_mobile_page.s174', "يرجى اختيار العميل وإدخال مبلغ التحصيل")));
                       return;
                     }
                     if (colCustomerId && (!activeVisit || activeVisit.customerId !== Number(colCustomerId))) {
@@ -3286,9 +3288,9 @@ export default function VanSalesMobilePage() {
                   <div style={{ width: '56px', height: '56px', backgroundColor: '#ecfdf5', borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
                     <ReceiptIcon size={28} color="#059669" />
                   </div>
-                  <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#0f172a', margin: '0 0 6px' }}>تحصيل المديونيات والمرتجعات</h3>
+                  <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#0f172a', margin: '0 0 6px' }}>{__t('delivery_reps.van_sales_mobile_page.s175', __t('delivery_reps.van_sales_mobile_page.s175', "تحصيل المديونيات والمرتجعات"))}</h3>
                   <p style={{ fontSize: '12.5px', color: '#64748b', margin: '0 auto 16px', maxWidth: '380px', lineHeight: 1.5 }}>
-                    لبدء تسجيل سندات القبض والتحصيل النقدي من العملاء، يرجى بدء رحلة التوزيع أولاً.
+                    {__t('delivery_reps.van_sales_mobile_page.s176', __t('delivery_reps.van_sales_mobile_page.s176', "لبدء تسجيل سندات القبض والتحصيل النقدي من العملاء، يرجى بدء رحلة التوزيع أولاً."))}
                   </p>
                   <Button
                     variant="primary"
@@ -3296,7 +3298,7 @@ export default function VanSalesMobilePage() {
                     disabled={startTripMutation.isPending}
                     style={{ backgroundColor: '#170e5e', color: '#ffffff', fontSize: '12.5px', fontWeight: 800 }}
                   >
-                    {startTripMutation.isPending ? 'جاري بدء الرحلة...' : 'بدء رحلة التوزيع الآن'}
+                    {startTripMutation.isPending ? __t('delivery_reps.van_sales_mobile_page.s177', __t('delivery_reps.van_sales_mobile_page.s177', "جاري بدء الرحلة...")) : __t('delivery_reps.van_sales_mobile_page.s178', __t('delivery_reps.van_sales_mobile_page.s178', "بدء رحلة التوزيع الآن"))}
                   </Button>
                 </div>
               )
@@ -3331,7 +3333,7 @@ export default function VanSalesMobilePage() {
                     const expectedToRemit = Number((data.trip as any)?.expectedCashToRemit ?? data.trip?.cashCollected ?? 0);
                     const finalCountedCash = isBlind ? countedCash : (countedCash === '' ? (expectedToRemit === 0 ? '0' : '') : countedCash);
                     if (finalCountedCash === '') {
-                      showAlert('error', 'يرجى جرد وإدخال النقدية الفعلية الموجودة معك للتوريد');
+                      showAlert('error', __t('delivery_reps.van_sales_mobile_page.s179', __t('delivery_reps.van_sales_mobile_page.s179', "يرجى جرد وإدخال النقدية الفعلية الموجودة معك للتوريد")));
                       return;
                     }
 
@@ -3347,7 +3349,7 @@ export default function VanSalesMobilePage() {
                           showAlert('error', `تعذر إتمام التصفية: توجد ${remaining.length} حركة بيع أو تحصيل معلقة لم يتم ترحيلها للسيرفر بعد. يرجى التأكد من اتصال الإنترنت ثم الضغط على "مزامنة العمليات المعلقة" قبل تسليم العهدة.`);
                           return;
                         }
-                        showAlert('success', 'تمت مزامنة العمليات المعلقة بنجاح، جاري استكمال تصفية اليومية...');
+                        showAlert('success', __t('delivery_reps.van_sales_mobile_page.s180', __t('delivery_reps.van_sales_mobile_page.s180', "تمت مزامنة العمليات المعلقة بنجاح، جاري استكمال تصفية اليومية...")));
                       }
                     } catch (err) {
                       console.warn('[SettlementGate] Outbox verification error:', err);
@@ -3371,9 +3373,9 @@ export default function VanSalesMobilePage() {
                   <div style={{ width: '56px', height: '56px', backgroundColor: '#fef3c7', borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
                     <ClockIcon size={28} color="#d97706" />
                   </div>
-                  <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#0f172a', margin: '0 0 6px' }}>تصفية اليومية وإغلاق العهدة</h3>
+                  <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#0f172a', margin: '0 0 6px' }}>{__t('delivery_reps.van_sales_mobile_page.s181', __t('delivery_reps.van_sales_mobile_page.s181', "تصفية اليومية وإغلاق العهدة"))}</h3>
                   <p style={{ fontSize: '12.5px', color: '#64748b', margin: '0 auto 16px', maxWidth: '380px', lineHeight: 1.5 }}>
-                    لا توجد رحلة توزيع مفتوحة لتصفيتها حالياً. يتم فتح هذا القسم بعد انطلاق الرحلة لتسليم النقدية ومطابقة العهدة المسائية.
+                    {__t('delivery_reps.van_sales_mobile_page.s182', __t('delivery_reps.van_sales_mobile_page.s182', "لا توجد رحلة توزيع مفتوحة لتصفيتها حالياً. يتم فتح هذا القسم بعد انطلاق الرحلة لتسليم النقدية ومطابقة العهدة المسائية."))}
                   </p>
                 </div>
               )
@@ -3491,7 +3493,7 @@ export default function VanSalesMobilePage() {
         <VanSalesReceiptModal
           receipt={lastSaleReceipt}
           onClose={() => setLastSaleReceipt(null)}
-          storeName={data?.trip?.sourceWarehouseName || 'مبيعات التوزيع الميداني'}
+          storeName={data?.trip?.sourceWarehouseName || __t('delivery_reps.van_sales_mobile_page.s183', __t('delivery_reps.van_sales_mobile_page.s183', "مبيعات التوزيع الميداني"))}
         />
       )}
 
@@ -3500,7 +3502,7 @@ export default function VanSalesMobilePage() {
         <VanCollectionReceiptModal
           receipt={lastCollectionReceipt}
           onClose={() => setLastCollectionReceipt(null)}
-          storeName={data?.trip?.sourceWarehouseName || 'إدارة التوزيع والتحصيل الميداني'}
+          storeName={data?.trip?.sourceWarehouseName || __t('delivery_reps.van_sales_mobile_page.s184', __t('delivery_reps.van_sales_mobile_page.s184', "إدارة التوزيع والتحصيل الميداني"))}
         />
       )}
 
@@ -3509,7 +3511,7 @@ export default function VanSalesMobilePage() {
         <VanSettlementReceiptModal
           receipt={lastSettlementReceipt}
           onClose={() => setLastSettlementReceipt(null)}
-          storeName={data?.trip?.sourceWarehouseName || 'إدارة مبيعات وتوزيع الفان'}
+          storeName={data?.trip?.sourceWarehouseName || __t('delivery_reps.van_sales_mobile_page.s185', __t('delivery_reps.van_sales_mobile_page.s185', "إدارة مبيعات وتوزيع الفان"))}
         />
       )}
 
@@ -3572,7 +3574,7 @@ export default function VanSalesMobilePage() {
       {/* Mobile Fixed Bottom Navigation Bar - Pinned Docked Standard with Curved Top Corners */}
       <nav
         dir="rtl"
-        aria-label="شريط الملاحة الميداني السريع للمندوب"
+        aria-label={__t('delivery_reps.van_sales_mobile_page.s186', __t('delivery_reps.van_sales_mobile_page.s186', "شريط الملاحة الميداني السريع للمندوب"))}
         className="van-bottom-nav"
         style={{
           position: 'fixed',
@@ -3645,7 +3647,7 @@ export default function VanSalesMobilePage() {
               >
                 <MapPinIcon size={14} color={currentTab === 'itinerary' ? '#170e5e' : '#64748b'} />
               </div>
-              <span>خط السير</span>
+              <span>{__t('delivery_reps.van_sales_mobile_page.s187', __t('delivery_reps.van_sales_mobile_page.s187', "خط السير"))}</span>
             </button>
 
             <button
@@ -3705,7 +3707,7 @@ export default function VanSalesMobilePage() {
                   </span>
                 )}
               </div>
-              <span>فاتورة بيع</span>
+              <span>{__t('delivery_reps.van_sales_mobile_page.s188', __t('delivery_reps.van_sales_mobile_page.s188', "فاتورة بيع"))}</span>
             </button>
 
             <button
@@ -3744,7 +3746,7 @@ export default function VanSalesMobilePage() {
               >
                 <ShoppingBagIcon size={14} color={currentTab === 'pre-sales' ? '#170e5e' : '#64748b'} />
               </div>
-              <span>طلبيات</span>
+              <span>{__t('delivery_reps.van_sales_mobile_page.s189', __t('delivery_reps.van_sales_mobile_page.s189', "طلبيات"))}</span>
             </button>
 
             <button
@@ -3783,7 +3785,7 @@ export default function VanSalesMobilePage() {
               >
                 <PackageIcon size={14} color={currentTab === 'inventory' ? '#170e5e' : '#64748b'} />
               </div>
-              <span>المخزون</span>
+              <span>{__t('delivery_reps.van_sales_mobile_page.s190', __t('delivery_reps.van_sales_mobile_page.s190', "المخزون"))}</span>
             </button>
 
             <button
@@ -3822,7 +3824,7 @@ export default function VanSalesMobilePage() {
               >
                 <CreditCardIcon size={14} color={currentTab === 'collection' ? '#170e5e' : '#64748b'} />
               </div>
-              <span>التحصيل</span>
+              <span>{__t('delivery_reps.van_sales_mobile_page.s191', __t('delivery_reps.van_sales_mobile_page.s191', "التحصيل"))}</span>
             </button>
 
             <button
@@ -3861,7 +3863,7 @@ export default function VanSalesMobilePage() {
               >
                 <ClockIcon size={14} color={(currentTab === 'settle' || currentTab === 'fleet') ? '#170e5e' : '#64748b'} />
               </div>
-              <span>اليومية</span>
+              <span>{__t('delivery_reps.van_sales_mobile_page.s192', __t('delivery_reps.van_sales_mobile_page.s192', "اليومية"))}</span>
             </button>
           </>
         ) : (
@@ -3902,7 +3904,7 @@ export default function VanSalesMobilePage() {
               >
                 <HomeIcon size={14} color={currentTab === 'cockpit' ? '#170e5e' : '#64748b'} />
               </div>
-              <span>الرئيسية</span>
+              <span>{__t('delivery_reps.van_sales_mobile_page.s193', __t('delivery_reps.van_sales_mobile_page.s193', "الرئيسية"))}</span>
             </button>
 
             <button
@@ -3941,7 +3943,7 @@ export default function VanSalesMobilePage() {
               >
                 <MapPinIcon size={14} color={currentTab === 'itinerary' ? '#170e5e' : '#64748b'} />
               </div>
-              <span>خط السير</span>
+              <span>{__t('delivery_reps.van_sales_mobile_page.s194', __t('delivery_reps.van_sales_mobile_page.s194', "خط السير"))}</span>
             </button>
 
             <button
@@ -3980,7 +3982,7 @@ export default function VanSalesMobilePage() {
               >
                 <ShoppingBagIcon size={14} color={currentTab === 'pre-sales' ? '#170e5e' : '#64748b'} />
               </div>
-              <span>طلبيات</span>
+              <span>{__t('delivery_reps.van_sales_mobile_page.s195', __t('delivery_reps.van_sales_mobile_page.s195', "طلبيات"))}</span>
             </button>
 
             <button
@@ -4019,7 +4021,7 @@ export default function VanSalesMobilePage() {
               >
                 <PackageIcon size={14} color={currentTab === 'inventory' ? '#170e5e' : '#64748b'} />
               </div>
-              <span>المخزون</span>
+              <span>{__t('delivery_reps.van_sales_mobile_page.s196', __t('delivery_reps.van_sales_mobile_page.s196', "المخزون"))}</span>
             </button>
           </>
         )}

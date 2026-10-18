@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useMemo } from 'react';
 import { useAuthStore } from '@/stores/auth-store';
 import { getFilteredPermissionGroups, getPermissionLabel } from '@/features/settings/components/user-management.shared';
@@ -12,6 +13,7 @@ export function UserManagementBranchAccess({
   selectedBranchIds: string[];
   onToggleBranch: (branchId: string) => void;
 }) {
+  const { t } = useTranslation();
   const tenant = useAuthStore((s) => s.tenant);
   const vertical = resolveCurrentVertical(tenant);
   const title = vertical === 'maritime'
@@ -31,7 +33,7 @@ export function UserManagementBranchAccess({
     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', padding: '2px 0' }}>
       <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#334155', whiteSpace: 'nowrap' }}>
         {title}:
-        <span style={{ color: '#dc2626', marginInlineStart: '2px' }} title="إلزامي">*</span>
+        <span style={{ color: '#dc2626', marginInlineStart: '2px' }} title={t('settings.user_management.user_management_permission_groups.s0', "إلزامي")}>*</span>
       </span>
       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
         {branches.length ? branches.map((branch) => {
@@ -65,10 +67,10 @@ export function UserManagementBranchAccess({
         {isMandatoryNotice ? (
           <span style={{ fontSize: '0.70rem', color: '#dc2626', fontWeight: 600 }}>
             {vertical === 'maritime'
-              ? '(اختر مقراً ملاحياً واحداً على الأقل لتسري الصلاحيات عليه)'
+              ? t('settings.user_management.user_management_permission_groups.s1', "(اختر مقراً ملاحياً واحداً على الأقل لتسري الصلاحيات عليه)")
               : vertical === 'contracting'
-              ? '(اختر موقع عمل أو مقراً واحداً على الأقل لتسري الصلاحيات عليه)'
-              : '(اختر فرعاً واحداً على الأقل لتسري الصلاحيات عليه)'}
+              ? t('settings.user_management.user_management_permission_groups.s2', "(اختر موقع عمل أو مقراً واحداً على الأقل لتسري الصلاحيات عليه)")
+              : t('settings.user_management.user_management_permission_groups.s3', "(اختر فرعاً واحداً على الأقل لتسري الصلاحيات عليه)")}
           </span>
         ) : null}
       </div>
@@ -85,6 +87,7 @@ export function UserManagementPermissionGroups({
   role: 'super_admin' | 'admin' | 'cashier';
   onTogglePermission: (permission: string) => void;
 }) {
+  const { t } = useTranslation();
   const tenant = useAuthStore((s) => s.tenant);
   const vertical = resolveCurrentVertical(tenant);
 
@@ -95,10 +98,10 @@ export function UserManagementPermissionGroups({
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <span style={{ fontSize: '0.76rem', fontWeight: 700, color: '#334155' }}>مجموعات الصلاحيات التفصيلية</span>
+        <span style={{ fontSize: '0.76rem', fontWeight: 700, color: '#334155' }}>{t('settings.user_management.user_management_permission_groups.s4', "مجموعات الصلاحيات التفصيلية")}</span>
         {tenant?.features && tenant.features.length > 0 ? (
           <span style={{ fontSize: '0.68rem', background: '#eff6ff', color: '#1d4ed8', padding: '1px 6px', borderRadius: '4px', fontWeight: 700, border: '1px solid #bfdbfe' }}>
-            مخصصة وفق باقة المنشأة الحالية
+            {t('settings.user_management.user_management_permission_groups.s5', "مخصصة وفق باقة المنشأة الحالية")}
           </span>
         ) : null}
       </div>
@@ -136,7 +139,7 @@ export function UserManagementPermissionGroups({
                   borderRadius: '6px',
                   fontWeight: 700
                 }}>
-                  {activeInGroup} / {group.items.length} مفعّل
+                  {activeInGroup} / {group.items.length} {t('settings.user_management.user_management_permission_groups.s6', "مفعّل")}
                 </span>
               </div>
               <div style={{
@@ -218,15 +221,15 @@ export function UserManagementPermissionGroups({
                 <path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14" />
               </svg>
               <strong style={{ fontSize: '0.88rem', color: '#92400e', fontWeight: 800 }}>
-                خاص بالسوبر أدمن (إدارة المنصة المركزية)
+                {t('settings.user_management.user_management_permission_groups.s7', "خاص بالسوبر أدمن (إدارة المنصة المركزية)")}
               </strong>
             </div>
             <span style={{ fontSize: '0.72rem', background: '#fef3c7', color: '#b45309', padding: '2px 8px', borderRadius: '8px', fontWeight: 700, border: '1px solid #fde68a' }}>
-              صلاحية منصة شاملة
+              {t('settings.user_management.user_management_permission_groups.s8', "صلاحية منصة شاملة")}
             </span>
           </div>
           <p style={{ margin: 0, fontSize: '0.76rem', color: '#78350f', lineHeight: 1.6 }}>
-            هذا الحساب يملك رتبة <strong>سوبر أدمن المنصة</strong>؛ تشمل صلاحياته الحصرية الوصول للوحة تحكم المستأجرين (SaaS Tenants)، إدارة وتعديل الباقات والاشتراكات، والتحكم في إعدادات السيرفر وقواعد البيانات المركزية.
+            {t('settings.user_management.user_management_permission_groups.s9', "هذا الحساب يملك رتبة")} <strong>{t('settings.user_management.user_management_permission_groups.s10', "سوبر أدمن المنصة")}</strong>{t('settings.user_management.user_management_permission_groups.s11', "؛ تشمل صلاحياته الحصرية الوصول للوحة تحكم المستأجرين (SaaS Tenants)، إدارة وتعديل الباقات والاشتراكات، والتحكم في إعدادات السيرفر وقواعد البيانات المركزية.")}
           </p>
         </div>
       ) : null}

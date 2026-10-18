@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useCallback } from 'react';
 import { StandardDialog } from '@/shared/components/StandardDialog';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
@@ -29,6 +30,7 @@ const STREAM_COLORS: Record<string, string> = {
 };
 
 export function ProjectCostBreakdownModal({ open, onClose, project }: ProjectCostBreakdownModalProps) {
+  const { t } = useTranslation();
   const { currencySymbol } = useSystemCurrency();
   const [breakdown, setBreakdown] = useState<ContractingProjectCostBreakdown | null>(null);
   const [loading, setLoading] = useState(true);
@@ -64,7 +66,7 @@ export function ProjectCostBreakdownModal({ open, onClose, project }: ProjectCos
       open={open}
       onClose={onClose}
       title={`تحليل التكاليف الفعلية الخماسية للمشروع - ${project.name}`}
-      subtitle="تجميع مسارات التكلفة الفعلية الخمسة (خامات، عمالة، مقاولو باطن، تجهيزات موقع، وعهد نثرية) ومقارنتها بالميزانية"
+      subtitle={t('contracting.project_cost_breakdown_modal.s0', "تجميع مسارات التكلفة الفعلية الخمسة (خامات، عمالة، مقاولو باطن، تجهيزات موقع، وعهد نثرية) ومقارنتها بالميزانية")}
       width="min(1040px, 96vw)"
       minHeight="min(560px, 85vh)"
     >
@@ -72,38 +74,38 @@ export function ProjectCostBreakdownModal({ open, onClose, project }: ProjectCos
         {/* بطاقات المؤشرات العامة للتكلفة */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '10px' }}>
           <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 14px' }}>
-            <div style={{ fontSize: 'var(--font-micro)', color: '#64748b', fontWeight: 600 }}>قيمة التعاقد الأصلية</div>
+            <div style={{ fontSize: 'var(--font-micro)', color: '#64748b', fontWeight: 600 }}>{t('contracting.project_cost_breakdown_modal.s1', "قيمة التعاقد الأصلية")}</div>
             <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>
               {contractVal.toLocaleString('ar-EG')} <span style={{ fontSize: '0.72rem' }}>{currencySymbol}</span>
             </div>
           </div>
 
           <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 14px' }}>
-            <div style={{ fontSize: 'var(--font-micro)', color: '#64748b', fontWeight: 600 }}>الميزانية المستهدفة (Baseline)</div>
+            <div style={{ fontSize: 'var(--font-micro)', color: '#64748b', fontWeight: 600 }}>{t('contracting.project_cost_breakdown_modal.s2', "الميزانية المستهدفة (Baseline)")}</div>
             <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#170e5e', marginTop: '2px' }}>
               {baseline.toLocaleString('ar-EG')} <span style={{ fontSize: '0.72rem' }}>{currencySymbol}</span>
             </div>
           </div>
 
           <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 14px' }}>
-            <div style={{ fontSize: 'var(--font-micro)', color: '#64748b', fontWeight: 600 }}>إجمالي المنصرف الفعلي</div>
+            <div style={{ fontSize: 'var(--font-micro)', color: '#64748b', fontWeight: 600 }}>{t('contracting.project_cost_breakdown_modal.s3', "إجمالي المنصرف الفعلي")}</div>
             <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>
               {loading ? '—' : `${totalActual.toLocaleString('ar-EG')} ${currencySymbol}`}
             </div>
           </div>
 
           <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 14px' }}>
-            <div style={{ fontSize: 'var(--font-micro)', color: '#64748b', fontWeight: 600 }}>الانحراف عن الميزانية</div>
+            <div style={{ fontSize: 'var(--font-micro)', color: '#64748b', fontWeight: 600 }}>{t('contracting.project_cost_breakdown_modal.s4', "الانحراف عن الميزانية")}</div>
             <div style={{ fontSize: '1.15rem', fontWeight: 800, color: isOverBudget ? '#b91c1c' : '#15803d', marginTop: '2px' }}>
               {loading ? '—' : `${isOverBudget ? '+' : ''}${variance.toLocaleString('ar-EG')} ${currencySymbol}`}
             </div>
             <span style={{ fontSize: 'var(--font-micro)', color: isOverBudget ? '#b91c1c' : '#15803d', fontWeight: 600 }}>
-              {isOverBudget ? 'تجاوز في الميزانية' : 'ضمن حدود الميزانية المعتمدة'}
+              {isOverBudget ? t('contracting.project_cost_breakdown_modal.s5', "تجاوز في الميزانية") : t('contracting.project_cost_breakdown_modal.s6', "ضمن حدود الميزانية المعتمدة")}
             </span>
           </div>
 
           <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 14px' }}>
-            <div style={{ fontSize: 'var(--font-micro)', color: '#64748b', fontWeight: 600 }}>هامش الربح التشغيلي</div>
+            <div style={{ fontSize: 'var(--font-micro)', color: '#64748b', fontWeight: 600 }}>{t('contracting.project_cost_breakdown_modal.s7', "هامش الربح التشغيلي")}</div>
             <div style={{ fontSize: '1.15rem', fontWeight: 800, color: profitMargin >= 15 ? '#15803d' : profitMargin > 0 ? '#a16207' : '#b91c1c', marginTop: '2px' }}>
               {loading ? '—' : `${profitMargin}%`}
             </div>
@@ -115,7 +117,7 @@ export function ProjectCostBreakdownModal({ open, onClose, project }: ProjectCos
           <div style={{ background: '#f8fafc', padding: '12px 14px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
               <span style={{ fontSize: 'var(--font-micro)', color: '#334155', fontWeight: 700 }}>
-                التوزيع النسبي لمصروفات المشروع الفعلية
+                {t('contracting.project_cost_breakdown_modal.s8', "التوزيع النسبي لمصروفات المشروع الفعلية")}
               </span>
               <span style={{ fontSize: 'var(--font-micro)', color: '#64748b' }}>
                 100% = {totalActual.toLocaleString('ar-EG')} {currencySymbol}
@@ -152,17 +154,17 @@ export function ProjectCostBreakdownModal({ open, onClose, project }: ProjectCos
           {loading ? (
             <div style={{ minHeight: '220px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
               <div style={{ width: '28px', height: '28px', borderRadius: '50%', border: '3px solid #e2e8f0', borderTopColor: '#170e5e', animation: 'spin 0.8s linear infinite' }} />
-              <span style={{ fontSize: 'var(--font-subtitle)', color: '#94a3b8', fontWeight: 600 }}>جاري استخراج مسارات التكلفة الفعلية...</span>
+              <span style={{ fontSize: 'var(--font-subtitle)', color: '#94a3b8', fontWeight: 600 }}>{t('contracting.project_cost_breakdown_modal.s9', "جاري استخراج مسارات التكلفة الفعلية...")}</span>
             </div>
           ) : (
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right' }}>
               <thead>
                 <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-                  <th style={{ padding: '10px 14px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>مسار التكلفة الفعلي</th>
-                  <th style={{ padding: '10px 14px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>عدد الحركات / البنود</th>
-                  <th style={{ padding: '10px 14px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>إجمالي المبلغ المصروف</th>
-                  <th style={{ padding: '10px 14px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>النسبة من إجمالي التكلفة</th>
-                  <th style={{ padding: '10px 14px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>المصدر التشغيلي بالمنظومة</th>
+                  <th style={{ padding: '10px 14px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>{t('contracting.project_cost_breakdown_modal.s10', "مسار التكلفة الفعلي")}</th>
+                  <th style={{ padding: '10px 14px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>{t('contracting.project_cost_breakdown_modal.s11', "عدد الحركات / البنود")}</th>
+                  <th style={{ padding: '10px 14px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>{t('contracting.project_cost_breakdown_modal.s12', "إجمالي المبلغ المصروف")}</th>
+                  <th style={{ padding: '10px 14px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>{t('contracting.project_cost_breakdown_modal.s13', "النسبة من إجمالي التكلفة")}</th>
+                  <th style={{ padding: '10px 14px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>{t('contracting.project_cost_breakdown_modal.s14', "المصدر التشغيلي بالمنظومة")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -180,7 +182,7 @@ export function ProjectCostBreakdownModal({ open, onClose, project }: ProjectCos
                         </div>
                       </td>
                       <td style={{ padding: '12px 14px', fontSize: 'var(--font-body)', color: '#475569' }}>
-                        {st.count} عملية مسجلة
+                        {st.count} {t('contracting.project_cost_breakdown_modal.s15', "عملية مسجلة")}
                       </td>
                       <td style={{ padding: '12px 14px', fontSize: 'var(--font-body)', fontWeight: 800, color: '#0f172a' }}>
                         {st.amount.toLocaleString('ar-EG')} {currencySymbol}
@@ -194,11 +196,11 @@ export function ProjectCostBreakdownModal({ open, onClose, project }: ProjectCos
                         </div>
                       </td>
                       <td style={{ padding: '12px 14px', fontSize: 'var(--font-micro)', color: '#64748b' }}>
-                        {st.key === 'materials' && 'أذون صرف المواد والتوريدات المخزنية (MRP Requisitions)'}
-                        {st.key === 'labor' && 'يوميات وبطاقات حضور العمالة الميدانية (Direct Labor Attendance)'}
-                        {st.key === 'subcontracts' && 'مستخلصات مقاولي الباطن المعتمدة (Subcontractor IPCs)'}
-                        {st.key === 'mobilization' && 'مصروفات تجهيز الموقع والأصول الثابتة (Site Mobilization)'}
-                        {st.key === 'petty_cash' && 'تسويات العهد والمصروفات النثرية المعتمدة (Petty Cash Settlement)'}
+                        {st.key === 'materials' && t('contracting.project_cost_breakdown_modal.s16', "أذون صرف المواد والتوريدات المخزنية (MRP Requisitions)")}
+                        {st.key === 'labor' && t('contracting.project_cost_breakdown_modal.s17', "يوميات وبطاقات حضور العمالة الميدانية (Direct Labor Attendance)")}
+                        {st.key === 'subcontracts' && t('contracting.project_cost_breakdown_modal.s18', "مستخلصات مقاولي الباطن المعتمدة (Subcontractor IPCs)")}
+                        {st.key === 'mobilization' && t('contracting.project_cost_breakdown_modal.s19', "مصروفات تجهيز الموقع والأصول الثابتة (Site Mobilization)")}
+                        {st.key === 'petty_cash' && t('contracting.project_cost_breakdown_modal.s20', "تسويات العهد والمصروفات النثرية المعتمدة (Petty Cash Settlement)")}
                       </td>
                     </tr>
                   );

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useMemo } from 'react';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
 import { toast } from '@/shared/components/system-alert';
@@ -10,6 +11,7 @@ interface FreightAuditTabProps {
 }
 
 export function FreightAuditTab({ onOpenJobModal }: FreightAuditTabProps) {
+  const { t } = useTranslation();
   const [invoices, setInvoices] = useState<MaritimeCarrierInvoice[]>([]);
   const [summary, setSummary] = useState({
     totalInvoices: 0,
@@ -169,13 +171,13 @@ export function FreightAuditTab({ onOpenJobModal }: FreightAuditTabProps) {
         >
           <div>
             <div style={{ fontSize: '0.76rem', fontWeight: 600, color: '#64748b' }}>
-              إجمالي فواتير النواقل المدققة
+              {t('maritime_freight.freight_audit_tab.s0', "إجمالي فواتير النواقل المدققة")}
             </div>
             <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#0f172a', marginTop: '3px', lineHeight: 1.2 }}>
-              {summary.totalInvoices} <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>فاتورة</span>
+              {summary.totalInvoices} <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>{t('maritime_freight.freight_audit_tab.s1', "فاتورة")}</span>
             </div>
             <div style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '3px' }}>
-              إجمالي المبالغ: ${Number(summary.totalInvoicedAmount || 0).toLocaleString()}
+              {t('maritime_freight.freight_audit_tab.s2', "إجمالي المبالغ: $")}{Number(summary.totalInvoicedAmount || 0).toLocaleString()}
             </div>
           </div>
           <div
@@ -212,10 +214,10 @@ export function FreightAuditTab({ onOpenJobModal }: FreightAuditTabProps) {
         >
           <div>
             <div style={{ fontSize: '0.76rem', fontWeight: 600, color: '#64748b' }}>
-              فواتير مطابقة للتعرفة (Matched)
+              {t('maritime_freight.freight_audit_tab.s3', "فواتير مطابقة للتعرفة (Matched)")}
             </div>
             <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#0f172a', marginTop: '3px', lineHeight: 1.2 }}>
-              {summary.matchedCount} <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>مطابقة</span>
+              {summary.matchedCount} <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>{t('maritime_freight.freight_audit_tab.s4', "مطابقة")}</span>
             </div>
             <div style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '3px' }}>
               {summary.totalInvoices > 0 ? `${Math.round((summary.matchedCount / summary.totalInvoices) * 100)}% معدل التوافق` : '0%'}
@@ -255,13 +257,13 @@ export function FreightAuditTab({ onOpenJobModal }: FreightAuditTabProps) {
         >
           <div>
             <div style={{ fontSize: '0.76rem', fontWeight: 600, color: '#64748b' }}>
-              فواتير بزيادة غير معتمدة (Overcharge)
+              {t('maritime_freight.freight_audit_tab.s5', "فواتير بزيادة غير معتمدة (Overcharge)")}
             </div>
             <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#0f172a', marginTop: '3px', lineHeight: 1.2 }}>
-              {summary.overchargeCount} <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>فاتورة</span>
+              {summary.overchargeCount} <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>{t('maritime_freight.freight_audit_tab.s6', "فاتورة")}</span>
             </div>
             <div style={{ fontSize: '0.68rem', color: summary.overchargeCount > 0 ? '#b91c1c' : '#64748b', fontWeight: summary.overchargeCount > 0 ? 700 : 500, marginTop: '3px' }}>
-              إجمالي الزيادات: +${Number(summary.totalOverchargeAmount || 0).toLocaleString()}
+              {t('maritime_freight.freight_audit_tab.s7', "إجمالي الزيادات: +$")}{Number(summary.totalOverchargeAmount || 0).toLocaleString()}
             </div>
           </div>
           <div
@@ -298,13 +300,13 @@ export function FreightAuditTab({ onOpenJobModal }: FreightAuditTabProps) {
         >
           <div>
             <div style={{ fontSize: '0.76rem', fontWeight: 600, color: '#64748b' }}>
-              نزاعات مالية مفتوحة (Disputed)
+              {t('maritime_freight.freight_audit_tab.s8', "نزاعات مالية مفتوحة (Disputed)")}
             </div>
             <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#0f172a', marginTop: '3px', lineHeight: 1.2 }}>
-              {summary.disputedCount} <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>نزاع</span>
+              {summary.disputedCount} <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>{t('maritime_freight.freight_audit_tab.s9', "نزاع")}</span>
             </div>
             <div style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '3px' }}>
-              فواتير محجوزة عن الصرف لحين التسوية
+              {t('maritime_freight.freight_audit_tab.s10', "فواتير محجوزة عن الصرف لحين التسوية")}
             </div>
           </div>
           <div
@@ -343,13 +345,13 @@ export function FreightAuditTab({ onOpenJobModal }: FreightAuditTabProps) {
       >
         <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
           {[
-            { id: 'all', label: 'كافة الفواتير' },
-            { id: 'overcharge', label: 'زيادة غير معتمدة' },
-            { id: 'matched', label: 'مطابقة للتعرفة' },
-            { id: 'disputed', label: 'نزاع مفتوح' },
-            { id: 'approved_override', label: 'تجاوز معتمد' },
-            { id: 'undercharge', label: 'وفر / خصم' },
-            { id: 'no_contract', label: 'بدون تعرفة' },
+            { id: 'all', label: t('maritime_freight.freight_audit_tab.s11', "كافة الفواتير") },
+            { id: 'overcharge', label: t('maritime_freight.freight_audit_tab.s12', "زيادة غير معتمدة") },
+            { id: 'matched', label: t('maritime_freight.freight_audit_tab.s13', "مطابقة للتعرفة") },
+            { id: 'disputed', label: t('maritime_freight.freight_audit_tab.s14', "نزاع مفتوح") },
+            { id: 'approved_override', label: t('maritime_freight.freight_audit_tab.s15', "تجاوز معتمد") },
+            { id: 'undercharge', label: t('maritime_freight.freight_audit_tab.s16', "وفر / خصم") },
+            { id: 'no_contract', label: t('maritime_freight.freight_audit_tab.s17', "بدون تعرفة") },
           ].map((item) => {
             const isActive = statusFilter === item.id;
             return (
@@ -380,7 +382,7 @@ export function FreightAuditTab({ onOpenJobModal }: FreightAuditTabProps) {
           <div style={{ position: 'relative' }}>
             <input
               type="text"
-              placeholder="بحث برقم الفاتورة، الناقل، أو الشحنة..."
+              placeholder={t('maritime_freight.freight_audit_tab.s18', "بحث برقم الفاتورة، الناقل، أو الشحنة...")}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               style={{
@@ -412,7 +414,7 @@ export function FreightAuditTab({ onOpenJobModal }: FreightAuditTabProps) {
             }}
           >
             <AppIcons.Search size={14} />
-            <span>بحث</span>
+            <span>{t('maritime_freight.freight_audit_tab.s19', "بحث")}</span>
           </button>
           <button
             type="button"
@@ -429,7 +431,7 @@ export function FreightAuditTab({ onOpenJobModal }: FreightAuditTabProps) {
               display: 'inline-flex',
               alignItems: 'center',
             }}
-            title="تحديث البيانات"
+            title={t('maritime_freight.freight_audit_tab.s20', "تحديث البيانات")}
           >
             <AppIcons.RefreshCw size={14} />
           </button>
@@ -458,10 +460,10 @@ export function FreightAuditTab({ onOpenJobModal }: FreightAuditTabProps) {
         >
           <div>
             <h3 style={{ margin: 0, fontSize: '0.94rem', fontWeight: 800, color: '#0f172a' }}>
-              سجل تدقيق ومطابقة فواتير النواقل المركزية (Carrier Freight Audit Center)
+              {t('maritime_freight.freight_audit_tab.s21', "سجل تدقيق ومطابقة فواتير النواقل المركزية (Carrier Freight Audit Center)")}
             </h3>
             <p style={{ margin: '3px 0 0 0', fontSize: '0.78rem', color: '#64748b' }}>
-              مطابقة فواتير الخطوط الملاحية وشركات الطيران والنقل البري تلقائياً مع بطاقات التعرفة المتعاقد عليها، وحوكمة التجاوزات والنزاعات
+              {t('maritime_freight.freight_audit_tab.s22', "مطابقة فواتير الخطوط الملاحية وشركات الطيران والنقل البري تلقائياً مع بطاقات التعرفة المتعاقد عليها، وحوكمة التجاوزات والنزاعات")}
             </p>
           </div>
           <span
@@ -475,7 +477,7 @@ export function FreightAuditTab({ onOpenJobModal }: FreightAuditTabProps) {
               borderRadius: '12px',
             }}
           >
-            {filteredInvoices.length} فاتورة
+            {filteredInvoices.length} {t('maritime_freight.freight_audit_tab.s23', "فاتورة")}
           </span>
         </div>
 
@@ -483,27 +485,27 @@ export function FreightAuditTab({ onOpenJobModal }: FreightAuditTabProps) {
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8125rem', textAlign: 'right' }}>
             <thead>
               <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', fontWeight: 700 }}>
-                <th style={{ padding: '10px 14px' }}>رقم الفاتورة والتاريخ</th>
-                <th style={{ padding: '10px 14px' }}>أمر التشغيل والعميل</th>
-                <th style={{ padding: '10px 14px' }}>الناقل ومسار الشحن</th>
-                <th style={{ padding: '10px 14px' }}>المبلغ المفوتر</th>
-                <th style={{ padding: '10px 14px' }}>التعرفة المتعاقد عليها</th>
-                <th style={{ padding: '10px 14px' }}>الفارق (Variance)</th>
-                <th style={{ padding: '10px 14px', textAlign: 'center' }}>حالة التدقيق</th>
-                <th style={{ padding: '10px 14px', textAlign: 'center' }}>الإجراءات</th>
+                <th style={{ padding: '10px 14px' }}>{t('maritime_freight.freight_audit_tab.s24', "رقم الفاتورة والتاريخ")}</th>
+                <th style={{ padding: '10px 14px' }}>{t('maritime_freight.freight_audit_tab.s25', "أمر التشغيل والعميل")}</th>
+                <th style={{ padding: '10px 14px' }}>{t('maritime_freight.freight_audit_tab.s26', "الناقل ومسار الشحن")}</th>
+                <th style={{ padding: '10px 14px' }}>{t('maritime_freight.freight_audit_tab.s27', "المبلغ المفوتر")}</th>
+                <th style={{ padding: '10px 14px' }}>{t('maritime_freight.freight_audit_tab.s28', "التعرفة المتعاقد عليها")}</th>
+                <th style={{ padding: '10px 14px' }}>{t('maritime_freight.freight_audit_tab.s29', "الفارق (Variance)")}</th>
+                <th style={{ padding: '10px 14px', textAlign: 'center' }}>{t('maritime_freight.freight_audit_tab.s30', "حالة التدقيق")}</th>
+                <th style={{ padding: '10px 14px', textAlign: 'center' }}>{t('maritime_freight.freight_audit_tab.s31', "الإجراءات")}</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
                   <td colSpan={8} style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
-                    جاري تحميل سجل فواتير النواقل والتدقيق المالي...
+                    {t('maritime_freight.freight_audit_tab.s32', "جاري تحميل سجل فواتير النواقل والتدقيق المالي...")}
                   </td>
                 </tr>
               ) : filteredInvoices.length === 0 ? (
                 <tr>
                   <td colSpan={8} style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
-                    لا توجد فواتير نواقل مطابقة للشروط المحددة.
+                    {t('maritime_freight.freight_audit_tab.s33', "لا توجد فواتير نواقل مطابقة للشروط المحددة.")}
                   </td>
                 </tr>
               ) : (
@@ -588,16 +590,16 @@ export function FreightAuditTab({ onOpenJobModal }: FreightAuditTabProps) {
                         }}
                       >
                         {inv.auditStatus === 'matched'
-                          ? 'مطابق للتعرفة'
+                          ? t('maritime_freight.freight_audit_tab.s34', "مطابق للتعرفة")
                           : inv.auditStatus === 'overcharge'
-                          ? 'زيادة غير معتمدة'
+                          ? t('maritime_freight.freight_audit_tab.s35', "زيادة غير معتمدة")
                           : inv.auditStatus === 'approved_override'
-                          ? 'تجاوز معتمد'
+                          ? t('maritime_freight.freight_audit_tab.s36', "تجاوز معتمد")
                           : inv.auditStatus === 'disputed'
                           ? `نزاع مفتوح (${inv.dispute?.disputeNumber || ''})`
                           : inv.auditStatus === 'undercharge'
-                          ? 'وفر / خصم'
-                          : 'بدون تعرفة'}
+                          ? t('maritime_freight.freight_audit_tab.s37', "وفر / خصم")
+                          : t('maritime_freight.freight_audit_tab.s38', "بدون تعرفة")}
                       </span>
                     </td>
                     <td style={{ padding: '10px 14px', textAlign: 'center' }}>
@@ -618,7 +620,7 @@ export function FreightAuditTab({ onOpenJobModal }: FreightAuditTabProps) {
                                 cursor: 'pointer',
                               }}
                             >
-                              اعتماد تجاوز
+                              {t('maritime_freight.freight_audit_tab.s39', "اعتماد تجاوز")}
                             </button>
                             <button
                               type="button"
@@ -634,7 +636,7 @@ export function FreightAuditTab({ onOpenJobModal }: FreightAuditTabProps) {
                                 cursor: 'pointer',
                               }}
                             >
-                              فتح نزاع
+                              {t('maritime_freight.freight_audit_tab.s40', "فتح نزاع")}
                             </button>
                           </>
                         )}
@@ -653,7 +655,7 @@ export function FreightAuditTab({ onOpenJobModal }: FreightAuditTabProps) {
                               cursor: 'pointer',
                             }}
                           >
-                            طباعة النزاع
+                            {t('maritime_freight.freight_audit_tab.s41', "طباعة النزاع")}
                           </button>
                         )}
                         {onOpenJobModal && (
@@ -671,7 +673,7 @@ export function FreightAuditTab({ onOpenJobModal }: FreightAuditTabProps) {
                               cursor: 'pointer',
                             }}
                           >
-                            عرض الشحنة
+                            {t('maritime_freight.freight_audit_tab.s42', "عرض الشحنة")}
                           </button>
                         )}
                       </div>
@@ -689,14 +691,14 @@ export function FreightAuditTab({ onOpenJobModal }: FreightAuditTabProps) {
         <StandardDialog
           open={Boolean(overrideTarget)}
           onClose={() => setOverrideTarget(null)}
-          title="اعتماد تجاوز مالي لفاتورة الناقل (Maker-Checker Override)"
+          title={t('maritime_freight.freight_audit_tab.s43', "اعتماد تجاوز مالي لفاتورة الناقل (Maker-Checker Override)")}
           subtitle={`الفاتورة #${overrideTarget.invoiceNumber} | الناقل: ${overrideTarget.carrierName} | الزيادة: +${overrideTarget.currency} ${overrideTarget.varianceAmount}`}
           width="min(560px, 95vw)"
           minHeight="min(450px, 80vh)"
           footerActions={(
             <StandardDialogFooter
               onSubmit={handleConfirmOverride}
-              submitText={isSubmittingOverride ? 'جاري الاعتماد...' : 'اعتماد التجاوز وترحيل القيد'}
+              submitText={isSubmittingOverride ? t('maritime_freight.freight_audit_tab.s44', "جاري الاعتماد...") : t('maritime_freight.freight_audit_tab.s45', "اعتماد التجاوز وترحيل القيد")}
               isSubmitting={isSubmittingOverride}
               onCancel={() => setOverrideTarget(null)}
             />
@@ -704,20 +706,19 @@ export function FreightAuditTab({ onOpenJobModal }: FreightAuditTabProps) {
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', padding: '10px 0' }}>
             <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', padding: '10px 14px', fontSize: '0.8rem', color: '#991b1b', lineHeight: 1.5 }}>
-              <strong>تحذير رقابي حاسم:</strong> قيمة هذه الفاتورة تتجاوز التعرفة المعتمدة بمقدار{' '}
-              <strong>+{overrideTarget.currency} {overrideTarget.varianceAmount} (+{overrideTarget.variancePct}%)</strong>.
-              بناءً على معايير الحوكمة المالية، يتطلب هذا الإجراء مصادقة محاسب مسؤول آخر (Maker-Checker) مع تدوين مبرر صريح لترحيل قيد المصروف في دفاتر المنشأة.
+              <strong>{t('maritime_freight.freight_audit_tab.s46', "تحذير رقابي حاسم:")}</strong> {t('maritime_freight.freight_audit_tab.s47', "قيمة هذه الفاتورة تتجاوز التعرفة المعتمدة بمقدار")}{' '}
+              <strong>+{overrideTarget.currency} {overrideTarget.varianceAmount} (+{overrideTarget.variancePct}%)</strong>{t('maritime_freight.freight_audit_tab.s48', ".\n              بناءً على معايير الحوكمة المالية، يتطلب هذا الإجراء مصادقة محاسب مسؤول آخر (Maker-Checker) مع تدوين مبرر صريح لترحيل قيد المصروف في دفاتر المنشأة.")}
             </div>
 
             <div>
               <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#0f172a', marginBottom: '6px' }}>
-                مبرر اعتماد الزيادة التشغيلية (Rationale) *
+                {t('maritime_freight.freight_audit_tab.s49', "مبرر اعتماد الزيادة التشغيلية (Rationale) *")}
               </label>
               <textarea
                 rows={3}
                 value={overrideReason}
                 onChange={(e) => setOverrideReason(e.target.value)}
-                placeholder="مثال: زيادة طارئة في رسوم الوقود BAF وتأخير غير متوقع في رسوم التفريغ بميناء الوجهة تم التوافق عليها مع الإدارة..."
+                placeholder={t('maritime_freight.freight_audit_tab.s50', "مثال: زيادة طارئة في رسوم الوقود BAF وتأخير غير متوقع في رسوم التفريغ بميناء الوجهة تم التوافق عليها مع الإدارة...")}
                 style={{
                   width: '100%',
                   padding: '8px 10px',
@@ -729,7 +730,7 @@ export function FreightAuditTab({ onOpenJobModal }: FreightAuditTabProps) {
                 }}
               />
               <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '4px' }}>
-                الحد الأدنى 10 أحرف لضمان توثيق سجل التدقيق المحاسبي.
+                {t('maritime_freight.freight_audit_tab.s51', "الحد الأدنى 10 أحرف لضمان توثيق سجل التدقيق المحاسبي.")}
               </div>
             </div>
           </div>
@@ -741,14 +742,14 @@ export function FreightAuditTab({ onOpenJobModal }: FreightAuditTabProps) {
         <StandardDialog
           open={Boolean(disputeTarget)}
           onClose={() => setDisputeTarget(null)}
-          title="فتح مذكرة نزاع مالي رسمي مع الناقل (Carrier Freight Dispute)"
+          title={t('maritime_freight.freight_audit_tab.s52', "فتح مذكرة نزاع مالي رسمي مع الناقل (Carrier Freight Dispute)")}
           subtitle={`الفاتورة #${disputeTarget.invoiceNumber} | الناقل: ${disputeTarget.carrierName}`}
           width="min(560px, 95vw)"
           minHeight="min(450px, 80vh)"
           footerActions={(
             <StandardDialogFooter
               onSubmit={handleConfirmDispute}
-              submitText={isSubmittingDispute ? 'جاري الفتح...' : 'تأكيد فتح النزاع وحجز الفاتورة'}
+              submitText={isSubmittingDispute ? t('maritime_freight.freight_audit_tab.s53', "جاري الفتح...") : t('maritime_freight.freight_audit_tab.s54', "تأكيد فتح النزاع وحجز الفاتورة")}
               isSubmitting={isSubmittingDispute}
               onCancel={() => setDisputeTarget(null)}
             />
@@ -756,12 +757,12 @@ export function FreightAuditTab({ onOpenJobModal }: FreightAuditTabProps) {
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', padding: '10px 0' }}>
             <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '8px', padding: '10px 14px', fontSize: '0.8rem', color: '#92400e', lineHeight: 1.5 }}>
-              فتح النزاع يقوم تلقائياً بـ <strong>تجميد الفاتورة عن الصرف</strong> ومنع ترحيلها إلى أوامر السداد، وتوليد رقم نزاع مالي رسمي يمكنك طباعته ومشاركته مع الخط الملاحي لطلب إشعار دائن (Credit Note).
+              {t('maritime_freight.freight_audit_tab.s55', "فتح النزاع يقوم تلقائياً بـ")} <strong>{t('maritime_freight.freight_audit_tab.s56', "تجميد الفاتورة عن الصرف")}</strong> {t('maritime_freight.freight_audit_tab.s57', "ومنع ترحيلها إلى أوامر السداد، وتوليد رقم نزاع مالي رسمي يمكنك طباعته ومشاركته مع الخط الملاحي لطلب إشعار دائن (Credit Note).")}
             </div>
 
             <div>
               <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#0f172a', marginBottom: '6px' }}>
-                المبلغ المتنازع عليه ({disputeTarget.currency}) *
+                {t('maritime_freight.freight_audit_tab.s58', "المبلغ المتنازع عليه (")}{disputeTarget.currency}) *
               </label>
               <input
                 type="number"
@@ -782,13 +783,13 @@ export function FreightAuditTab({ onOpenJobModal }: FreightAuditTabProps) {
 
             <div>
               <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#0f172a', marginBottom: '6px' }}>
-                موضوع وتفاصيل النزاع المالي *
+                {t('maritime_freight.freight_audit_tab.s59', "موضوع وتفاصيل النزاع المالي *")}
               </label>
               <textarea
                 rows={3}
                 value={disputeReason}
                 onChange={(e) => setDisputeReason(e.target.value)}
-                placeholder="أدخل تفاصيل الاعتراض المالي على بنود الفاتورة..."
+                placeholder={t('maritime_freight.freight_audit_tab.s60', "أدخل تفاصيل الاعتراض المالي على بنود الفاتورة...")}
                 style={{
                   width: '100%',
                   padding: '8px 10px',

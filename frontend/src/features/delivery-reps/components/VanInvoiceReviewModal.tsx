@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { StandardDialog } from '@/shared/components/StandardDialog';
@@ -78,6 +79,7 @@ export const VanInvoiceReviewModal: React.FC<VanInvoiceReviewModalProps> = ({
   confirmButtonText = 'تأكيد نهائي لحجز الطلبية',
   editButtonText = 'تعديل الأصناف والكميات',
 }) => {
+  const { t } = useTranslation();
   const totalCartons = items.reduce((s, it) => s + (it.cartons || 0), 0);
   const totalPieces = items.reduce((s, it) => s + (it.totalPieces || it.pieces || 0), 0);
 
@@ -87,7 +89,7 @@ export const VanInvoiceReviewModal: React.FC<VanInvoiceReviewModalProps> = ({
       onClose={onClose}
       title={title}
       subtitle={subtitle}
-      badge="معاينة ما قبل التأكيد"
+      badge={t('delivery_reps.van_invoice_review_modal.s0', "معاينة ما قبل التأكيد")}
       width="min(580px, 96vw)"
       minHeight="480px"
       footer={
@@ -145,7 +147,7 @@ export const VanInvoiceReviewModal: React.FC<VanInvoiceReviewModalProps> = ({
             }}
           >
             <CheckCircleIcon size={16} color="#ffffff" />
-            <span>{isSubmitting ? 'جاري الاعتماد والحجز...' : confirmButtonText}</span>
+            <span>{isSubmitting ? t('delivery_reps.van_invoice_review_modal.s1', "جاري الاعتماد والحجز...") : confirmButtonText}</span>
           </Button>
         </div>
       }
@@ -166,9 +168,9 @@ export const VanInvoiceReviewModal: React.FC<VanInvoiceReviewModalProps> = ({
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '6px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               <BuildingIcon size={15} color="#170e5e" />
-              <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 700 }}>العميل:</span>
+              <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 700 }}>{t('delivery_reps.van_invoice_review_modal.s2', "العميل:")}</span>
               <strong style={{ fontSize: '13.5px', color: '#0f172a', fontWeight: 800 }}>
-                {customer?.name || 'غير محدد'}
+                {customer?.name || t('delivery_reps.van_invoice_review_modal.s3', "غير محدد")}
               </strong>
               {customer?.customerCode && (
                 <span
@@ -198,24 +200,24 @@ export const VanInvoiceReviewModal: React.FC<VanInvoiceReviewModalProps> = ({
                 border: `1px solid ${paymentTerms === 'cash' ? '#bbf7d0' : '#fecaca'}`,
               }}
             >
-              طريقة الحساب: {paymentTerms === 'cash' ? 'كاش نقدي' : 'آجل على الحساب'}
+              {t('delivery_reps.van_invoice_review_modal.s4', "طريقة الحساب:")} {paymentTerms === 'cash' ? t('delivery_reps.van_invoice_review_modal.s5', "كاش نقدي") : t('delivery_reps.van_invoice_review_modal.s6', "آجل على الحساب")}
             </span>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '14px', fontSize: '11px', color: '#475569', flexWrap: 'wrap' }}>
             {customer?.phone && (
-              <span>الهاتف: <strong style={{ color: '#0f172a' }}>{customer.phone}</strong></span>
+              <span>{t('delivery_reps.van_invoice_review_modal.s7', "الهاتف:")} <strong style={{ color: '#0f172a' }}>{customer.phone}</strong></span>
             )}
             {customer?.balance != null && (
               <span>
-                المديونية الحالية:{' '}
+                {t('delivery_reps.van_invoice_review_modal.s8', "المديونية الحالية:")}{' '}
                 <strong style={{ color: customer.balance > 0 ? '#b91c1c' : '#059669' }}>
                   {customer.balance.toFixed(2)} <CurrencySymbol />
                 </strong>
               </span>
             )}
             {customer?.creditLimit != null && customer.creditLimit > 0 && (
-              <span>سقف الائتمان: <strong>{customer.creditLimit.toFixed(2)} <CurrencySymbol /></strong></span>
+              <span>{t('delivery_reps.van_invoice_review_modal.s9', "سقف الائتمان:")} <strong>{customer.creditLimit.toFixed(2)} <CurrencySymbol /></strong></span>
             )}
           </div>
 
@@ -235,13 +237,13 @@ export const VanInvoiceReviewModal: React.FC<VanInvoiceReviewModalProps> = ({
               {deliveryDate && (
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                   <CalendarIcon size={13} color="#475569" />
-                  <span>تاريخ التسليم: <strong style={{ color: '#0f172a' }}>{deliveryDate}</strong></span>
+                  <span>{t('delivery_reps.van_invoice_review_modal.s10', "تاريخ التسليم:")} <strong style={{ color: '#0f172a' }}>{deliveryDate}</strong></span>
                 </span>
               )}
               {bookingNotes && (
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                   <ClockIcon size={13} color="#475569" />
-                  <span>ملاحظات: <strong style={{ color: '#0f172a' }}>{bookingNotes}</strong></span>
+                  <span>{t('delivery_reps.van_invoice_review_modal.s11', "ملاحظات:")} <strong style={{ color: '#0f172a' }}>{bookingNotes}</strong></span>
                 </span>
               )}
             </div>
@@ -253,10 +255,10 @@ export const VanInvoiceReviewModal: React.FC<VanInvoiceReviewModalProps> = ({
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
               <PackageIcon size={14} color="#170e5e" />
-              <span>تفاصيل الأصناف المحجوزة ({items.length} صنف):</span>
+              <span>{t('delivery_reps.van_invoice_review_modal.s12', "تفاصيل الأصناف المحجوزة (")}{items.length} {t('delivery_reps.van_invoice_review_modal.s13', "صنف):")}</span>
             </span>
             <span style={{ fontSize: '11px', color: '#64748b' }}>
-              {totalCartons > 0 ? `${totalCartons} كرتونة • ` : ''}{totalPieces} قطعة إجمالاً
+              {totalCartons > 0 ? `${totalCartons} كرتونة • ` : ''}{totalPieces} {t('delivery_reps.van_invoice_review_modal.s14', "قطعة إجمالاً")}
             </span>
           </div>
 
@@ -272,10 +274,10 @@ export const VanInvoiceReviewModal: React.FC<VanInvoiceReviewModalProps> = ({
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11.5px', textAlign: 'right' }}>
               <thead>
                 <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>
-                  <th style={{ padding: '8px 10px', fontWeight: 700 }}>الصنف</th>
-                  <th style={{ padding: '8px 8px', fontWeight: 700, textAlign: 'center' }}>الكمية</th>
-                  <th style={{ padding: '8px 8px', fontWeight: 700, textAlign: 'center' }}>السعر</th>
-                  <th style={{ padding: '8px 10px', fontWeight: 700, textAlign: 'left' }}>الإجمالي</th>
+                  <th style={{ padding: '8px 10px', fontWeight: 700 }}>{t('delivery_reps.van_invoice_review_modal.s15', "الصنف")}</th>
+                  <th style={{ padding: '8px 8px', fontWeight: 700, textAlign: 'center' }}>{t('delivery_reps.van_invoice_review_modal.s16', "الكمية")}</th>
+                  <th style={{ padding: '8px 8px', fontWeight: 700, textAlign: 'center' }}>{t('delivery_reps.van_invoice_review_modal.s17', "السعر")}</th>
+                  <th style={{ padding: '8px 10px', fontWeight: 700, textAlign: 'left' }}>{t('delivery_reps.van_invoice_review_modal.s18', "الإجمالي")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -301,7 +303,7 @@ export const VanInvoiceReviewModal: React.FC<VanInvoiceReviewModalProps> = ({
                         </div>
                         {it.warehouseAvailable != null && (
                           <div style={{ fontSize: '10px', color: '#64748b', marginTop: '2px' }}>
-                            المتاح بالمخزن: {it.warehouseAvailable} قطعة
+                            {t('delivery_reps.van_invoice_review_modal.s19', "المتاح بالمخزن:")} {it.warehouseAvailable} {t('delivery_reps.van_invoice_review_modal.s20', "قطعة")}
                           </div>
                         )}
                       </td>
@@ -312,7 +314,7 @@ export const VanInvoiceReviewModal: React.FC<VanInvoiceReviewModalProps> = ({
                         </span>
                         {hasCartons && (
                           <span style={{ fontSize: '10px', color: '#64748b' }}>
-                            ({it.totalPieces} قطعة)
+                            ({it.totalPieces} {t('delivery_reps.van_invoice_review_modal.s21', "قطعة)")}
                           </span>
                         )}
                       </td>
@@ -353,7 +355,7 @@ export const VanInvoiceReviewModal: React.FC<VanInvoiceReviewModalProps> = ({
               border: '1px solid #e2e8f0',
             }}
           >
-            <span style={{ fontSize: '11px', color: '#64748b', display: 'block' }}>المجموع الأولي</span>
+            <span style={{ fontSize: '11px', color: '#64748b', display: 'block' }}>{t('delivery_reps.van_invoice_review_modal.s22', "المجموع الأولي")}</span>
             <strong style={{ fontSize: '13.5px', color: '#0f172a' }}>
               {(subtotal || totalAmount).toFixed(2)}
             </strong>
@@ -369,7 +371,7 @@ export const VanInvoiceReviewModal: React.FC<VanInvoiceReviewModalProps> = ({
             }}
           >
             <span style={{ fontSize: '11px', color: totalDiscount > 0 ? '#92400e' : '#64748b', display: 'block' }}>
-              إجمالي الوفر / الخصم
+              {t('delivery_reps.van_invoice_review_modal.s23', "إجمالي الوفر / الخصم")}
             </span>
             <strong style={{ fontSize: '13.5px', color: totalDiscount > 0 ? '#b45309' : '#64748b' }}>
               {totalDiscount.toFixed(2)}
@@ -386,7 +388,7 @@ export const VanInvoiceReviewModal: React.FC<VanInvoiceReviewModalProps> = ({
             }}
           >
             <span style={{ fontSize: '11px', color: '#166534', display: 'block', fontWeight: 700 }}>
-              صافي الفاتورة
+              {t('delivery_reps.van_invoice_review_modal.s24', "صافي الفاتورة")}
             </span>
             <strong style={{ fontSize: '14.5px', color: '#15803d', fontWeight: 900 }}>
               {totalAmount.toFixed(2)}

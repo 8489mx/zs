@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { useEffect, useMemo, useState } from 'react';
 import { Controller, useWatch, type Control, type UseFormReturn } from 'react-hook-form';
@@ -188,6 +189,7 @@ interface PaymentChannelRowProps {
 }
 
 function PaymentChannelRow(props: PaymentChannelRowProps) {
+  const { t } = useTranslation();
   const detailsRows = useWatch({
     control: props.control,
     name: props.detailsFieldName,
@@ -262,7 +264,7 @@ function PaymentChannelRow(props: PaymentChannelRowProps) {
                 }}
               >
                 <LockIcon size={11} color="#64748b" />
-                <span>{props.count} {props.count === 1 ? 'عملية' : props.count === 2 ? 'عمليتان' : 'عمليات'}</span>
+                <span>{props.count} {props.count === 1 ? t('cash_drawer.cash_drawer_forms_panel.s0', "عملية") : props.count === 2 ? t('cash_drawer.cash_drawer_forms_panel.s1', "عمليتان") : t('cash_drawer.cash_drawer_forms_panel.s2', "عمليات")}</span>
               </span>
             </div>
             <div style={{ fontSize: '0.75rem', color: '#64748b' }}>{props.subtitle}</div>
@@ -272,7 +274,7 @@ function PaymentChannelRow(props: PaymentChannelRowProps) {
         {/* Right: Declared Amount Input & Expand Button */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#334155' }}>الإجمالي المعلن:</span>
+            <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#334155' }}>{t('cash_drawer.cash_drawer_forms_panel.s3', "الإجمالي المعلن:")}</span>
             <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
               <input
                 type="number"
@@ -313,7 +315,7 @@ function PaymentChannelRow(props: PaymentChannelRowProps) {
               padding: '6px 12px',
             }}
           >
-            <span>تفاصيل العمليات</span>
+            <span>{t('cash_drawer.cash_drawer_forms_panel.s4', "تفاصيل العمليات")}</span>
             <ChevronIcon open={props.isOpen} size={14} />
           </Button>
         </div>
@@ -339,10 +341,10 @@ function PaymentChannelRow(props: PaymentChannelRowProps) {
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
               <div style={{ fontSize: '0.83rem', color: '#475569' }}>
-                مجموع المربعات: <strong style={{ color: '#0f172a', fontSize: '0.95rem' }}>{formatCurrency(detailsTotal)}</strong>
+                {t('cash_drawer.cash_drawer_forms_panel.s5', "مجموع المربعات:")} <strong style={{ color: '#0f172a', fontSize: '0.95rem' }}>{formatCurrency(detailsTotal)}</strong>
               </div>
               <div style={{ fontSize: '0.83rem', color: '#475569' }}>
-                المعلن من الماكينة: <strong style={{ color: '#0f172a', fontSize: '0.95rem' }}>{formatCurrency(declaredTotal)}</strong>
+                {t('cash_drawer.cash_drawer_forms_panel.s6', "المعلن من الماكينة:")} <strong style={{ color: '#0f172a', fontSize: '0.95rem' }}>{formatCurrency(declaredTotal)}</strong>
               </div>
               {isMatch ? (
                 <span
@@ -359,7 +361,7 @@ function PaymentChannelRow(props: PaymentChannelRowProps) {
                   }}
                 >
                   <CheckCircleIcon size={13} color="#15803d" />
-                  <span>متطابق تماماً</span>
+                  <span>{t('cash_drawer.cash_drawer_forms_panel.s7', "متطابق تماماً")}</span>
                 </span>
               ) : !isZero ? (
                 <span
@@ -376,7 +378,7 @@ function PaymentChannelRow(props: PaymentChannelRowProps) {
                   }}
                 >
                   <AlertCircleIcon size={13} color="#b91c1c" />
-                  <span>فرق: {formatCurrency(diff)}</span>
+                  <span>{t('cash_drawer.cash_drawer_forms_panel.s8', "فرق:")} {formatCurrency(diff)}</span>
                 </span>
               ) : null}
             </div>
@@ -395,14 +397,14 @@ function PaymentChannelRow(props: PaymentChannelRowProps) {
               disabled={props.disabled || detailsTotal === 0}
             >
               <CheckCircleIcon size={12} color="#0284c7" />
-              <span>اعتماد المجموع كإجمالي معلن</span>
+              <span>{t('cash_drawer.cash_drawer_forms_panel.s9', "اعتماد المجموع كإجمالي معلن")}</span>
             </Button>
           </div>
 
           {/* Numbered Amount Input Cards */}
           {props.count === 0 ? (
             <div style={{ textAlign: 'center', padding: '20px', color: '#64748b', fontSize: '0.85rem' }}>
-              لا توجد عمليات مسجلة لهذه القناة في الوردية الحالية.
+              {t('cash_drawer.cash_drawer_forms_panel.s10', "لا توجد عمليات مسجلة لهذه القناة في الوردية الحالية.")}
             </div>
           ) : (
             <div
@@ -441,7 +443,7 @@ function PaymentChannelRow(props: PaymentChannelRowProps) {
                         fontWeight: 700,
                       }}
                     >
-                      <span>عملية #{formattedNum}</span>
+                      <span>{t('cash_drawer.cash_drawer_forms_panel.s11', "عملية #")}{formattedNum}</span>
                     </div>
                     <input
                       id={`${props.detailsFieldName}-${index}`}
@@ -505,6 +507,7 @@ function PaymentChannelRow(props: PaymentChannelRowProps) {
 }
 
 export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
+  const { t } = useTranslation();
   const locationList = Array.isArray(props.locations) ? props.locations : [];
   const isBlindCloseMode = props.isBlindCloseMode === true;
 
@@ -640,10 +643,10 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
     >
       {props.activeForm === 'open' && (
         <div className="cash-drawer-modal-scroll">
-          <h2 className="cash-drawer-form-title">فتح وردية نقطة بيع</h2>
+          <h2 className="cash-drawer-form-title">{t('cash_drawer.cash_drawer_forms_panel.s12', "فتح وردية نقطة بيع")}</h2>
         <form className="form-grid" onSubmit={props.openForm.handleSubmit((values) => props.openMutation.mutate(values))}>
-          <Field label="رصيد الفتح"><input type="number" step="0.01" {...props.openForm.register('openingCash', { valueAsNumber: true })} disabled={props.openMutation.isPending} onFocus={(e) => e.target.select()} /></Field>
-          {!SINGLE_STORE_MODE ? <Field label="الفرع">
+          <Field label={t('cash_drawer.cash_drawer_forms_panel.s13', "رصيد الفتح")}><input type="number" step="0.01" {...props.openForm.register('openingCash', { valueAsNumber: true })} disabled={props.openMutation.isPending} onFocus={(e) => e.target.select()} /></Field>
+          {!SINGLE_STORE_MODE ? <Field label={t('cash_drawer.cash_drawer_forms_panel.s14', "الفرع")}>
             <select
               {...props.openForm.register('branchId')}
               disabled={props.openMutation.isPending}
@@ -653,7 +656,7 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
                 const branchObj = props.branches.find(b => String(b.id) === String(nextBranchId));
                 const nextLocs = locationList.filter(l => !l.branchId || String(l.branchId) === String(nextBranchId));
                 const nextDefaultLoc = (branchObj?.defaultStockLocationId && locationList.find(l => String(l.id) === String(branchObj.defaultStockLocationId)))
-                  || nextLocs.find(l => l.name.includes('الرئيسي') || l.name.toLowerCase().includes('main'))
+                  || nextLocs.find(l => l.name.includes(t('cash_drawer.cash_drawer_forms_panel.s15', "الرئيسي")) || l.name.toLowerCase().includes('main'))
                   || nextLocs[0]
                   || locationList[0];
                 if (nextDefaultLoc?.id) {
@@ -661,11 +664,11 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
                 }
               }}
             >
-              <option value="">بدون فرع</option>
+              <option value="">{t('cash_drawer.cash_drawer_forms_panel.s16', "بدون فرع")}</option>
               {props.branches.map((branch) => <option key={branch.id} value={branch.id}>{branch.name}</option>)}
             </select>
           </Field> : null}
-          {SINGLE_STORE_MODE ? <Field label="المخزن الأساسي"><input value={locationList[0]?.name || 'سيتم الربط تلقائيًا بالمخزن الأساسي'} disabled readOnly /></Field> : <Field label="المخزن">
+          {SINGLE_STORE_MODE ? <Field label={t('cash_drawer.cash_drawer_forms_panel.s17', "المخزن الأساسي")}><input value={locationList[0]?.name || t('cash_drawer.cash_drawer_forms_panel.s18', "سيتم الربط تلقائيًا بالمخزن الأساسي")} disabled readOnly /></Field> : <Field label={t('cash_drawer.cash_drawer_forms_panel.s19', "المخزن")}>
             <Controller
               name="locationId"
               control={props.openForm.control}
@@ -675,26 +678,26 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
                   onChange={field.onChange}
                   disabled={props.openMutation.isPending}
                   options={[
-                    { value: '', label: 'بدون مخزن' },
+                    { value: '', label: t('cash_drawer.cash_drawer_forms_panel.s20', "بدون مخزن") },
                     ...availableLocations.map((location) => ({ value: location.id, label: location.name })),
                   ]}
                 />
               )}
             />
           </Field>}
-          <Field label="ملاحظة الافتتاح"><textarea rows={2} {...props.openForm.register('note')} disabled={props.openMutation.isPending} /></Field>
-          <MutationFeedback isError={props.openMutation.isError} isSuccess={props.openMutation.isSuccess} error={props.openMutation.error} errorFallback="تعذر فتح وردية نقطة البيع" successText="تم فتح وردية نقطة البيع بنجاح." />
-          <SubmitButton type="submit" isPending={props.openMutation.isPending} idleText="فتح وردية نقطة البيع" pendingText="جارٍ الفتح..." />
+          <Field label={t('cash_drawer.cash_drawer_forms_panel.s21', "ملاحظة الافتتاح")}><textarea rows={2} {...props.openForm.register('note')} disabled={props.openMutation.isPending} /></Field>
+          <MutationFeedback isError={props.openMutation.isError} isSuccess={props.openMutation.isSuccess} error={props.openMutation.error} errorFallback={t('cash_drawer.cash_drawer_forms_panel.s22', "تعذر فتح وردية نقطة البيع")} successText={t('cash_drawer.cash_drawer_forms_panel.s23', "تم فتح وردية نقطة البيع بنجاح.")} />
+          <SubmitButton type="submit" isPending={props.openMutation.isPending} idleText={t('cash_drawer.cash_drawer_forms_panel.s24', "فتح وردية نقطة البيع")} pendingText={t('cash_drawer.cash_drawer_forms_panel.s25', "جارٍ الفتح...")} />
         </form>
         </div>
       )}
 
       {props.activeForm === 'movement' && (
         <div className="cash-drawer-modal-scroll">
-          <h2 className="cash-drawer-form-title">تسجيل حركة درج النقدية</h2>
+          <h2 className="cash-drawer-form-title">{t('cash_drawer.cash_drawer_forms_panel.s26', "تسجيل حركة درج النقدية")}</h2>
         <form className="form-grid" onSubmit={props.onMovementSubmit}>
           {props.isManager && props.openOptions.length > 1 ? (
-            <Field label="وردية نقطة البيع المفتوحة">
+            <Field label={t('cash_drawer.cash_drawer_forms_panel.s27', "وردية نقطة البيع المفتوحة")}>
               <Controller
                 name="shiftId"
                 control={props.movementForm.control}
@@ -704,10 +707,10 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
                     onChange={field.onChange}
                     disabled={props.movementMutation.isPending}
                     options={[
-                      { value: '', label: 'اختر وردية نقطة البيع' },
+                      { value: '', label: t('cash_drawer.cash_drawer_forms_panel.s28', "اختر وردية نقطة البيع") },
                       ...props.openOptions.map((shift) => ({
                         value: shift.id,
-                        label: `${shift.openedByName || 'وردية نقطة بيع'}${shift.docNo ? ` — ${shift.docNo}` : ''}${String(shift.id) === String(props.myOpenShift?.id) ? ' (ورديتي الحالية)' : ''}`,
+                        label: `${shift.openedByName || t('cash_drawer.cash_drawer_forms_panel.s29', "وردية نقطة بيع")}${shift.docNo ? ` — ${shift.docNo}` : ''}${String(shift.id) === String(props.myOpenShift?.id) ? t('cash_drawer.cash_drawer_forms_panel.s30', " (ورديتي الحالية)") : ''}`,
                       })),
                     ]}
                   />
@@ -715,7 +718,7 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
               />
             </Field>
           ) : (
-            <Field label="وردية نقطة البيع">
+            <Field label={t('cash_drawer.cash_drawer_forms_panel.s31', "وردية نقطة البيع")}>
               <div style={{
                 padding: '10px 14px',
                 background: '#f8fafc',
@@ -728,12 +731,12 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
                 alignItems: 'center',
                 justifyContent: 'space-between',
               }}>
-                <span>{(props.myOpenShift || props.openOptions.find(s => String(s.id) === String(props.movementForm.watch('shiftId'))) || props.openOptions[0])?.openedByName || 'الوردية الحالية'}{(props.myOpenShift || props.openOptions.find(s => String(s.id) === String(props.movementForm.watch('shiftId'))) || props.openOptions[0])?.docNo ? ` — ${(props.myOpenShift || props.openOptions.find(s => String(s.id) === String(props.movementForm.watch('shiftId'))) || props.openOptions[0])?.docNo}` : ''}</span>
-                <span className="badge badge-success" style={{ fontSize: '0.75rem' }}>وردية نشطة</span>
+                <span>{(props.myOpenShift || props.openOptions.find(s => String(s.id) === String(props.movementForm.watch('shiftId'))) || props.openOptions[0])?.openedByName || t('cash_drawer.cash_drawer_forms_panel.s32', "الوردية الحالية")}{(props.myOpenShift || props.openOptions.find(s => String(s.id) === String(props.movementForm.watch('shiftId'))) || props.openOptions[0])?.docNo ? ` — ${(props.myOpenShift || props.openOptions.find(s => String(s.id) === String(props.movementForm.watch('shiftId'))) || props.openOptions[0])?.docNo}` : ''}</span>
+                <span className="badge badge-success" style={{ fontSize: '0.75rem' }}>{t('cash_drawer.cash_drawer_forms_panel.s33', "وردية نشطة")}</span>
               </div>
             </Field>
           )}
-          <Field label="النوع">
+          <Field label={t('cash_drawer.cash_drawer_forms_panel.s34', "النوع")}>
             <Controller
               name="type"
               control={props.movementForm.control}
@@ -743,22 +746,22 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
                   onChange={field.onChange}
                   disabled={props.movementMutation.isPending}
                   options={[
-                    { value: 'cash_in', label: 'إيداع' },
-                    { value: 'cash_out', label: 'صرف' },
+                    { value: 'cash_in', label: t('cash_drawer.cash_drawer_forms_panel.s35', "إيداع") },
+                    { value: 'cash_out', label: t('cash_drawer.cash_drawer_forms_panel.s36', "صرف") },
                   ]}
                 />
               )}
             />
           </Field>
-          <Field label="المبلغ"><input type="number" step="0.01" {...props.movementForm.register('amount', { valueAsNumber: true })} disabled={props.movementMutation.isPending} onFocus={(e) => e.target.select()} /></Field>
-          <Field label="سبب الحركة *"><textarea rows={2} placeholder="اكتب سبب الصرف أو الإيداع بوضوح" required {...props.movementForm.register('note', { required: true })} disabled={props.movementMutation.isPending} /></Field>
-          <MutationFeedback isError={props.movementMutation.isError} isSuccess={props.movementMutation.isSuccess} error={props.movementMutation.error} errorFallback="تعذر تسجيل الحركة" successText="تم تسجيل حركة درج النقدية بنجاح." />
+          <Field label={t('cash_drawer.cash_drawer_forms_panel.s37', "المبلغ")}><input type="number" step="0.01" {...props.movementForm.register('amount', { valueAsNumber: true })} disabled={props.movementMutation.isPending} onFocus={(e) => e.target.select()} /></Field>
+          <Field label={t('cash_drawer.cash_drawer_forms_panel.s38', "سبب الحركة *")}><textarea rows={2} placeholder={t('cash_drawer.cash_drawer_forms_panel.s39', "اكتب سبب الصرف أو الإيداع بوضوح")} required {...props.movementForm.register('note', { required: true })} disabled={props.movementMutation.isPending} /></Field>
+          <MutationFeedback isError={props.movementMutation.isError} isSuccess={props.movementMutation.isSuccess} error={props.movementMutation.error} errorFallback={t('cash_drawer.cash_drawer_forms_panel.s40', "تعذر تسجيل الحركة")} successText={t('cash_drawer.cash_drawer_forms_panel.s41', "تم تسجيل حركة درج النقدية بنجاح.")} />
           <SubmitButton
             type="submit"
             isPending={props.movementMutation.isPending}
             disabled={!props.movementForm.watch('shiftId') || !(Number(props.movementForm.watch('amount')) > 0) || !String(props.movementForm.watch('note') || '').trim()}
-            idleText="حفظ الحركة"
-            pendingText="جارٍ الحفظ..."
+            idleText={t('cash_drawer.cash_drawer_forms_panel.s42', "حفظ الحركة")}
+            pendingText={t('cash_drawer.cash_drawer_forms_panel.s43', "جارٍ الحفظ...")}
           />
         </form>
         </div>
@@ -976,14 +979,14 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
 
           <div className="close-shift-modal-header">
             <div className="close-shift-modal-title-col">
-              <h2 className="close-shift-modal-title">إغلاق وردية نقطة البيع</h2>
+              <h2 className="close-shift-modal-title">{t('cash_drawer.cash_drawer_forms_panel.s44', "إغلاق وردية نقطة البيع")}</h2>
               <div className="close-shift-modal-subtitle">
-                تسجيل إقرار مبيعات النقدية والمدفوعات الإلكترونية ومطابقة بونات الدفع
+                {t('cash_drawer.cash_drawer_forms_panel.s45', "تسجيل إقرار مبيعات النقدية والمدفوعات الإلكترونية ومطابقة بونات الدفع")}
               </div>
             </div>
             <div className="close-shift-modal-badge-chip">
-              <span>{(props.myOpenShift || props.openOptions.find(s => String(s.id) === String(props.closeForm.watch('shiftId'))) || props.openOptions[0])?.openedByName || 'الوردية الحالية'}{(props.myOpenShift || props.openOptions.find(s => String(s.id) === String(props.closeForm.watch('shiftId'))) || props.openOptions[0])?.docNo ? ` — ${(props.myOpenShift || props.openOptions.find(s => String(s.id) === String(props.closeForm.watch('shiftId'))) || props.openOptions[0])?.docNo}` : ''}</span>
-              <span className="badge badge-success" style={{ fontSize: '0.72rem' }}>وردية نشطة</span>
+              <span>{(props.myOpenShift || props.openOptions.find(s => String(s.id) === String(props.closeForm.watch('shiftId'))) || props.openOptions[0])?.openedByName || t('cash_drawer.cash_drawer_forms_panel.s46', "الوردية الحالية")}{(props.myOpenShift || props.openOptions.find(s => String(s.id) === String(props.closeForm.watch('shiftId'))) || props.openOptions[0])?.docNo ? ` — ${(props.myOpenShift || props.openOptions.find(s => String(s.id) === String(props.closeForm.watch('shiftId'))) || props.openOptions[0])?.docNo}` : ''}</span>
+              <span className="badge badge-success" style={{ fontSize: '0.72rem' }}>{t('cash_drawer.cash_drawer_forms_panel.s47', "وردية نشطة")}</span>
             </div>
           </div>
 
@@ -1006,10 +1009,10 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
               </div>
               <div>
                 <div style={{ fontWeight: 800, marginBottom: '2px' }}>
-                  تنبيه: توجد {offlinePendingCount} فواتير مسجلة محلياً بدون إنترنت لم يتم ترحيلها للخادم بعد.
+                  {t('cash_drawer.cash_drawer_forms_panel.s48', "تنبيه: توجد")} {offlinePendingCount} {t('cash_drawer.cash_drawer_forms_panel.s49', "فواتير مسجلة محلياً بدون إنترنت لم يتم ترحيلها للخادم بعد.")}
                 </div>
                 <div>
-                  يرجى التأكد من اتصال الجهاز بالإنترنت والانتظار حتى يتم ترحيل كافة الفواتير تلقائياً قبل إغلاق الوردية، لضمان دقة الحسابات ومطابقة النقدية في الدرج.
+                  {t('cash_drawer.cash_drawer_forms_panel.s50', "يرجى التأكد من اتصال الجهاز بالإنترنت والانتظار حتى يتم ترحيل كافة الفواتير تلقائياً قبل إغلاق الوردية، لضمان دقة الحسابات ومطابقة النقدية في الدرج.")}
                 </div>
               </div>
             </div>
@@ -1017,7 +1020,7 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
 
           <form className="form-grid" onSubmit={props.onCloseSubmit}>
             {props.isManager && props.openOptions.length > 1 ? (
-              <Field label="وردية نقطة البيع المفتوحة">
+              <Field label={t('cash_drawer.cash_drawer_forms_panel.s51', "وردية نقطة البيع المفتوحة")}>
                 <Controller
                   name="shiftId"
                   control={props.closeForm.control}
@@ -1027,10 +1030,10 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
                       onChange={field.onChange}
                       disabled={props.closeMutation.isPending}
                       options={[
-                        { value: '', label: 'اختر وردية نقطة البيع' },
+                        { value: '', label: t('cash_drawer.cash_drawer_forms_panel.s52', "اختر وردية نقطة البيع") },
                         ...props.openOptions.map((shift) => ({
                           value: shift.id,
-                          label: `${shift.openedByName || 'وردية نقطة بيع'}${shift.docNo ? ` — ${shift.docNo}` : ''}${String(shift.id) === String(props.myOpenShift?.id) ? ' (ورديتي الحالية)' : ''}`,
+                          label: `${shift.openedByName || t('cash_drawer.cash_drawer_forms_panel.s53', "وردية نقطة بيع")}${shift.docNo ? ` — ${shift.docNo}` : ''}${String(shift.id) === String(props.myOpenShift?.id) ? t('cash_drawer.cash_drawer_forms_panel.s54', " (ورديتي الحالية)") : ''}`,
                         })),
                       ]}
                     />
@@ -1072,13 +1075,13 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
                       <CashIcon size={20} color="#16a34a" />
                     </div>
                     <div>
-                      <div style={{ fontWeight: 700, fontSize: '0.95rem', color: '#14532d' }}>النقدية المعدودة في درج النقدية</div>
-                      <div style={{ fontSize: '0.75rem', color: '#15803d' }}>المبلغ النقدي (الكاش) الفعلي الموجود داخل الدرج</div>
+                      <div style={{ fontWeight: 700, fontSize: '0.95rem', color: '#14532d' }}>{t('cash_drawer.cash_drawer_forms_panel.s55', "النقدية المعدودة في درج النقدية")}</div>
+                      <div style={{ fontSize: '0.75rem', color: '#15803d' }}>{t('cash_drawer.cash_drawer_forms_panel.s56', "المبلغ النقدي (الكاش) الفعلي الموجود داخل الدرج")}</div>
                     </div>
                   </div>
 
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#166534' }}>المبلغ الفعلي:</span>
+                    <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#166534' }}>{t('cash_drawer.cash_drawer_forms_panel.s57', "المبلغ الفعلي:")}</span>
                     <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
                       <input
                         type="number"
@@ -1110,14 +1113,14 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
                 {/* 2. Electronic Payment Methods Section */}
                 <div style={{ gridColumn: '1 / -1', marginTop: '6px', marginBottom: '4px' }}>
                   <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#1e293b', marginBottom: '8px' }}>
-                    المدفوعات الإلكترونية وماكينات الدفع
+                    {t('cash_drawer.cash_drawer_forms_panel.s58', "المدفوعات الإلكترونية وماكينات الدفع")}
                   </div>
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                     {/* Card / Visa / K-NET */}
                     <PaymentChannelRow
-                      title={isKwd ? "بطاقات K-NET وفيزا" : "فيزا وماكينات POS"}
-                      subtitle={isKwd ? "مدفوعات كي نت والبطاقات البنكية حسب تقرير الماكينة" : "مدفوعات البطاقات البنكية حسب تقرير الماكينة"}
+                      title={isKwd ? t('cash_drawer.cash_drawer_forms_panel.s59', "بطاقات K-NET وفيزا") : t('cash_drawer.cash_drawer_forms_panel.s60', "فيزا وماكينات POS")}
+                      subtitle={isKwd ? t('cash_drawer.cash_drawer_forms_panel.s61', "مدفوعات كي نت والبطاقات البنكية حسب تقرير الماكينة") : t('cash_drawer.cash_drawer_forms_panel.s62', "مدفوعات البطاقات البنكية حسب تقرير الماكينة")}
                       icon={<CardIcon size={18} color="#2563eb" />}
                       themeColor="#2563eb"
                       bgLight="#eff6ff"
@@ -1136,8 +1139,8 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
 
                     {/* Wallets */}
                     <PaymentChannelRow
-                      title={isKwd ? "المحافظ وروابط الدفع" : "المحافظ الإلكترونية"}
-                      subtitle={isKwd ? "Apple Pay والمحافظ الرقمية وروابط الدفع" : "فودافون كاش، أورنج، اتصالات كاش، وي باي"}
+                      title={isKwd ? t('cash_drawer.cash_drawer_forms_panel.s63', "المحافظ وروابط الدفع") : t('cash_drawer.cash_drawer_forms_panel.s64', "المحافظ الإلكترونية")}
+                      subtitle={isKwd ? t('cash_drawer.cash_drawer_forms_panel.s65', "Apple Pay والمحافظ الرقمية وروابط الدفع") : t('cash_drawer.cash_drawer_forms_panel.s66', "فودافون كاش، أورنج، اتصالات كاش، وي باي")}
                       icon={<WalletIcon size={18} color="#7c3aed" />}
                       themeColor="#7c3aed"
                       bgLight="#f5f3ff"
@@ -1156,8 +1159,8 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
 
                     {/* InstaPay / K-NET Electronic Links */}
                     <PaymentChannelRow
-                      title={isKwd ? "عمليات كي نت / روابط الدفع" : "تحويلات InstaPay"}
-                      subtitle={isKwd ? "عمليات الدفع عبر شبكة K-NET وروابط الدفع الإلكتروني" : "التحويلات البنكية اللحظية وتطبيق إنستاباي"}
+                      title={isKwd ? t('cash_drawer.cash_drawer_forms_panel.s67', "عمليات كي نت / روابط الدفع") : t('cash_drawer.cash_drawer_forms_panel.s68', "تحويلات InstaPay")}
+                      subtitle={isKwd ? t('cash_drawer.cash_drawer_forms_panel.s69', "عمليات الدفع عبر شبكة K-NET وروابط الدفع الإلكتروني") : t('cash_drawer.cash_drawer_forms_panel.s70', "التحويلات البنكية اللحظية وتطبيق إنستاباي")}
                       icon={<InstaPayIcon size={18} color="#059669" />}
                       themeColor="#059669"
                       bgLight="#ecfdf5"
@@ -1179,10 +1182,10 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
                 {/* 3. Password & Optional Notes in Responsive Row */}
                 <div className="close-shift-auth-row">
                   <div className="close-shift-note-col">
-                    <Field label="ملاحظات الإغلاق (اختياري)">
+                    <Field label={t('cash_drawer.cash_drawer_forms_panel.s71', "ملاحظات الإغلاق (اختياري)")}>
                       <input
                         type="text"
-                        placeholder="أية ملاحظات خاصة بوردية اليوم..."
+                        placeholder={t('cash_drawer.cash_drawer_forms_panel.s72', "أية ملاحظات خاصة بوردية اليوم...")}
                         {...props.closeForm.register('note')}
                         disabled={props.closeMutation.isPending}
                         style={{ width: '100%' }}
@@ -1191,11 +1194,11 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
                   </div>
 
                   <div className="close-shift-pin-col">
-                    <Field label="كلمة مرور المستخدم الحالي (تأكيد الإغلاق)">
+                    <Field label={t('cash_drawer.cash_drawer_forms_panel.s73', "كلمة مرور المستخدم الحالي (تأكيد الإغلاق)")}>
                       <input
                         type="text"
                         className="secure-password-field"
-                        placeholder="أدخل كلمة المرور لتأكيد الإغلاق"
+                        placeholder={t('cash_drawer.cash_drawer_forms_panel.s74', "أدخل كلمة المرور لتأكيد الإغلاق")}
                         required
                         {...props.closeForm.register('managerPin')}
                         autoComplete="off"
@@ -1213,50 +1216,50 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
                 </div>
 
                 <div className="muted small" style={{ gridColumn: '1 / -1' }}>
-                  سيتم تسجيل الإقرار وإرسال وردية نقطة البيع في انتظار مراجعة واعتماد الإدارة.
+                  {t('cash_drawer.cash_drawer_forms_panel.s75', "سيتم تسجيل الإقرار وإرسال وردية نقطة البيع في انتظار مراجعة واعتماد الإدارة.")}
                 </div>
               </>
             ) : (
               <>
-                <Field label="النقدية المتوقعة"><input value={formatCurrency(props.closeExpectedCash)} disabled readOnly /></Field>
+                <Field label={t('cash_drawer.cash_drawer_forms_panel.s76', "النقدية المتوقعة")}><input value={formatCurrency(props.closeExpectedCash)} disabled readOnly /></Field>
                 {selectedCloseShift ? (
                   <div className="close-shift-financial-card">
                     <div className="close-shift-financial-grid">
                       <div className="close-shift-fin-item">
-                        <span className="close-shift-fin-label">مبيعات نقدي</span>
+                        <span className="close-shift-fin-label">{t('cash_drawer.cash_drawer_forms_panel.s77', "مبيعات نقدي")}</span>
                         <strong className="close-shift-fin-value tone-green">{formatCurrency(closeCashSalesTotal)}</strong>
                       </div>
                       <div className="close-shift-fin-item">
-                        <span className="close-shift-fin-label">مبيعات فيزا</span>
+                        <span className="close-shift-fin-label">{t('cash_drawer.cash_drawer_forms_panel.s78', "مبيعات فيزا")}</span>
                         <strong className="close-shift-fin-value tone-blue">{formatCurrency(closeCardSalesTotal)}</strong>
                       </div>
                       {closeDeliverySalesTotal > 0 ? (
                         <div className="close-shift-fin-item">
-                          <span className="close-shift-fin-label">مبيعات دليفري</span>
+                          <span className="close-shift-fin-label">{t('cash_drawer.cash_drawer_forms_panel.s79', "مبيعات دليفري")}</span>
                           <strong className="close-shift-fin-value">{formatCurrency(closeDeliverySalesTotal)}</strong>
                         </div>
                       ) : null}
                       {closeServiceCashTotal > 0 ? (
                         <div className="close-shift-fin-item">
-                          <span className="close-shift-fin-label">خدمات نقدي</span>
+                          <span className="close-shift-fin-label">{t('cash_drawer.cash_drawer_forms_panel.s80', "خدمات نقدي")}</span>
                           <strong className="close-shift-fin-value">{formatCurrency(closeServiceCashTotal)}</strong>
                         </div>
                       ) : null}
                       {closeCreditSalesTotal > 0 ? (
                         <div className="close-shift-fin-item">
-                          <span className="close-shift-fin-label">مبيعات آجل</span>
+                          <span className="close-shift-fin-label">{t('cash_drawer.cash_drawer_forms_panel.s81', "مبيعات آجل")}</span>
                           <strong className="close-shift-fin-value">{formatCurrency(closeCreditSalesTotal)}</strong>
                         </div>
                       ) : null}
                       {closeSaleReturnCashRefundTotal > 0 ? (
                         <div className="close-shift-fin-item">
-                          <span className="close-shift-fin-label">مرتجعات نقدي</span>
+                          <span className="close-shift-fin-label">{t('cash_drawer.cash_drawer_forms_panel.s82', "مرتجعات نقدي")}</span>
                           <strong className="close-shift-fin-value tone-red">-{formatCurrency(closeSaleReturnCashRefundTotal)}</strong>
                         </div>
                       ) : null}
                       {closeCashDrawerMovementTotal !== 0 ? (
                         <div className="close-shift-fin-item">
-                          <span className="close-shift-fin-label">حركات درج النقدية</span>
+                          <span className="close-shift-fin-label">{t('cash_drawer.cash_drawer_forms_panel.s83', "حركات درج النقدية")}</span>
                           <strong className={`close-shift-fin-value ${closeCashDrawerMovementTotal < 0 ? 'tone-red' : 'tone-green'}`}>
                             {formatCurrency(closeCashDrawerMovementTotal)}
                           </strong>
@@ -1264,52 +1267,52 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
                       ) : null}
                       {closeExpensesTotal > 0 ? (
                         <div className="close-shift-fin-item">
-                          <span className="close-shift-fin-label">مصروفات مسجلة</span>
+                          <span className="close-shift-fin-label">{t('cash_drawer.cash_drawer_forms_panel.s84', "مصروفات مسجلة")}</span>
                           <strong className="close-shift-fin-value tone-red">-{formatCurrency(closeExpensesTotal)}</strong>
                         </div>
                       ) : null}
                       {closeSupplierPaymentsTotal > 0 ? (
                         <div className="close-shift-fin-item">
-                          <span className="close-shift-fin-label">دفعات موردين</span>
+                          <span className="close-shift-fin-label">{t('cash_drawer.cash_drawer_forms_panel.s85', "دفعات موردين")}</span>
                           <strong className="close-shift-fin-value tone-red">-{formatCurrency(closeSupplierPaymentsTotal)}</strong>
                         </div>
                       ) : null}
                       <div className="close-shift-fin-item close-shift-fin-highlight">
-                        <span className="close-shift-fin-label">إجمالي مبيعات الفواتير</span>
+                        <span className="close-shift-fin-label">{t('cash_drawer.cash_drawer_forms_panel.s86', "إجمالي مبيعات الفواتير")}</span>
                         <strong className="close-shift-fin-value tone-primary">{formatCurrency(closeShiftSalesTotal)}</strong>
                       </div>
                       {Number(selectedCloseShift.freelanceDeliveryFeeTotal || 0) > 0 ? (
                         <>
                           <div className="close-shift-fin-item">
-                            <span className="close-shift-fin-label">(-) رسوم طيارين</span>
+                            <span className="close-shift-fin-label">{t('cash_drawer.cash_drawer_forms_panel.s87', "(-) رسوم طيارين")}</span>
                             <strong className="close-shift-fin-value tone-red">-{formatCurrency(selectedCloseShift.freelanceDeliveryFeeTotal || 0)}</strong>
                           </div>
                           <div className="close-shift-fin-item close-shift-fin-highlight">
-                            <span className="close-shift-fin-label">صافي مبيعات المتجر</span>
+                            <span className="close-shift-fin-label">{t('cash_drawer.cash_drawer_forms_panel.s88', "صافي مبيعات المتجر")}</span>
                             <strong className="close-shift-fin-value tone-green">{formatCurrency(closeShiftSalesTotal - Number(selectedCloseShift.freelanceDeliveryFeeTotal || 0))}</strong>
                           </div>
                         </>
                       ) : null}
                       {Number(selectedCloseShift.tipSalesTotal || 0) > 0 ? (
                         <div className="close-shift-fin-item">
-                          <span className="close-shift-fin-label">إكراميات مستحقة للعمالة (Tips)</span>
+                          <span className="close-shift-fin-label">{t('cash_drawer.cash_drawer_forms_panel.s89', "إكراميات مستحقة للعمالة (Tips)")}</span>
                           <strong className="close-shift-fin-value tone-primary">{formatCurrency(selectedCloseShift.tipSalesTotal || 0)}</strong>
                         </div>
                       ) : null}
                     </div>
                     <div className="close-shift-fin-footnote">
-                      النقدية المتوقعة = رصيد الفتح + مبيعات وخدمات النقدي - مرتجعات النقدي + حركات الدرج - المصروفات - دفعات الموردين.
+                      {t('cash_drawer.cash_drawer_forms_panel.s90', "النقدية المتوقعة = رصيد الفتح + مبيعات وخدمات النقدي - مرتجعات النقدي + حركات الدرج - المصروفات - دفعات الموردين.")}
                     </div>
                   </div>
                 ) : null}
-                <Field label="المبلغ المعدود"><input type="number" min="0" step="0.01" className="no-spin-arrows" {...props.closeForm.register('countedCash', { valueAsNumber: true })} disabled={props.closeMutation.isPending} onFocus={(e) => e.target.select()} /></Field>
+                <Field label={t('cash_drawer.cash_drawer_forms_panel.s91', "المبلغ المعدود")}><input type="number" min="0" step="0.01" className="no-spin-arrows" {...props.closeForm.register('countedCash', { valueAsNumber: true })} disabled={props.closeMutation.isPending} onFocus={(e) => e.target.select()} /></Field>
                 
                 <div className="close-shift-auth-row">
                   <div className="close-shift-note-col">
-                    <Field label="ملاحظة الإغلاق">
+                    <Field label={t('cash_drawer.cash_drawer_forms_panel.s92', "ملاحظة الإغلاق")}>
                       <input
                         type="text"
-                        placeholder={Math.abs(props.closeVariancePreview) >= 0.01 ? 'اشرح سبب الفرق قبل إغلاق الوردية' : 'اختياري عند عدم وجود فرق'}
+                        placeholder={Math.abs(props.closeVariancePreview) >= 0.01 ? t('cash_drawer.cash_drawer_forms_panel.s93', "اشرح سبب الفرق قبل إغلاق الوردية") : t('cash_drawer.cash_drawer_forms_panel.s94', "اختياري عند عدم وجود فرق")}
                         {...props.closeForm.register('note')}
                         disabled={props.closeMutation.isPending}
                         style={{ width: '100%' }}
@@ -1318,11 +1321,11 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
                   </div>
 
                   <div className="close-shift-pin-col">
-                    <Field label="كلمة مرور المستخدم الحالي (تأكيد الإغلاق)">
+                    <Field label={t('cash_drawer.cash_drawer_forms_panel.s95', "كلمة مرور المستخدم الحالي (تأكيد الإغلاق)")}>
                       <input
                         type="text"
                         className="secure-password-field"
-                        placeholder="أدخل كلمة المرور لتأكيد الإغلاق"
+                        placeholder={t('cash_drawer.cash_drawer_forms_panel.s96', "أدخل كلمة المرور لتأكيد الإغلاق")}
                         required
                         {...props.closeForm.register('managerPin')}
                         autoComplete="off"
@@ -1340,13 +1343,13 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
                 </div>
 
                 <div className={Math.abs(props.closeVariancePreview) >= 0.01 ? 'warning-box' : 'muted small'} style={{ gridColumn: '1 / -1' }}>
-                  الفرق المتوقع بعد الإغلاق: <strong>{formatCurrency(props.closeVariancePreview)}</strong>
-                  {Math.abs(props.closeVariancePreview) >= 0.01 ? ' — يلزم كتابة ملاحظة قبل إغلاق وردية نقطة البيع مع وجود فرق.' : ''}
+                  {t('cash_drawer.cash_drawer_forms_panel.s97', "الفرق المتوقع بعد الإغلاق:")} <strong>{formatCurrency(props.closeVariancePreview)}</strong>
+                  {Math.abs(props.closeVariancePreview) >= 0.01 ? t('cash_drawer.cash_drawer_forms_panel.s98', " — يلزم كتابة ملاحظة قبل إغلاق وردية نقطة البيع مع وجود فرق.") : ''}
                 </div>
               </>
             )}
 
-            <MutationFeedback isError={props.closeMutation.isError} isSuccess={props.closeMutation.isSuccess} error={props.closeMutation.error} errorFallback="تعذر إغلاق وردية نقطة البيع" successText="تم إغلاق وردية نقطة البيع بنجاح." />
+            <MutationFeedback isError={props.closeMutation.isError} isSuccess={props.closeMutation.isSuccess} error={props.closeMutation.error} errorFallback={t('cash_drawer.cash_drawer_forms_panel.s99', "تعذر إغلاق وردية نقطة البيع")} successText={t('cash_drawer.cash_drawer_forms_panel.s100', "تم إغلاق وردية نقطة البيع بنجاح.")} />
             {props.closeMutation.isSuccess && selectedCloseShift ? (
               <Button
                 type="button"
@@ -1365,15 +1368,15 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
                 }}
               >
                 <PrinterIcon size={16} color="#170e5e" />
-                <span>طباعة تقرير Z النهائي (Z-Report)</span>
+                <span>{t('cash_drawer.cash_drawer_forms_panel.s101', "طباعة تقرير Z النهائي (Z-Report)")}</span>
               </Button>
             ) : null}
             <SubmitButton
               type="submit"
               isPending={props.closeMutation.isPending}
               disabled={!props.closeForm.watch('shiftId') || (!isBlindCloseMode && Math.abs(props.closeVariancePreview) >= 0.01 && !props.closeNoteValue) || !props.closeForm.watch('managerPin')}
-              idleText={isBlindCloseMode ? 'إرسال إقرار الإغلاق' : 'إغلاق وردية نقطة البيع'}
-              pendingText="جارٍ الإغلاق..."
+              idleText={isBlindCloseMode ? t('cash_drawer.cash_drawer_forms_panel.s102', "إرسال إقرار الإغلاق") : t('cash_drawer.cash_drawer_forms_panel.s103', "إغلاق وردية نقطة البيع")}
+              pendingText={t('cash_drawer.cash_drawer_forms_panel.s104', "جارٍ الإغلاق...")}
               style={{ width: '100%', minHeight: '42px', fontSize: '0.95rem', fontWeight: 800, marginTop: '8px' }}
             />
           </form>

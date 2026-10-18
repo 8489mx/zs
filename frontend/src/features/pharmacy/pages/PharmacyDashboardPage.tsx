@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -32,6 +33,7 @@ const POPULAR_SEARCH_PRESETS = [
 ];
 
 export default function PharmacyDashboardPage() {
+  const { t } = useTranslation();
   useAppToolbar([
     { label: 'الرئيسية', to: '/' },
     { label: 'الصيدلية والرعاية الدوائية' },
@@ -73,13 +75,13 @@ export default function PharmacyDashboardPage() {
   };
 
   return (
-    <FeatureGate feature="pharmacy" featureName="الصيدلية والرعاية الدوائية">
+    <FeatureGate feature="pharmacy" featureName={t('pharmacy.pharmacy_dashboard_page.s0', "الصيدلية والرعاية الدوائية")}>
       <div className="page-stack page-shell" dir="rtl">
         <main className="document-prototype-column" style={{ paddingBottom: '80px', maxWidth: '1280px', margin: '0 auto', width: '100%' }}>
         <PageHeader
-          title="لوحة تحكم الصيدلية والرعاية الدوائية"
-          description="إدارة دليل المواد الفعالة والبدائل، الروشتات والتأمين، كشكول النواقص اليومي، ورادار الصلاحيات"
-          badge={<span className="cashier-chip" style={{ fontWeight: 700, color: 'var(--primary, #1e1b4b)', background: '#f1f5f9', border: '1px solid #e2e8f0' }}>الرعاية الصيدلانية</span>}
+          title={t('pharmacy.pharmacy_dashboard_page.s1', "لوحة تحكم الصيدلية والرعاية الدوائية")}
+          description={t('pharmacy.pharmacy_dashboard_page.s2', "إدارة دليل المواد الفعالة والبدائل، الروشتات والتأمين، كشكول النواقص اليومي، ورادار الصلاحيات")}
+          badge={<span className="cashier-chip" style={{ fontWeight: 700, color: 'var(--primary, #1e1b4b)', background: '#f1f5f9', border: '1px solid #e2e8f0' }}>{t('pharmacy.pharmacy_dashboard_page.s3', "الرعاية الصيدلانية")}</span>}
           actions={
             <div className="actions compact-actions">
               <Button
@@ -88,12 +90,12 @@ export default function PharmacyDashboardPage() {
                 style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
               >
                 <IconTag size={15} />
-                <span>طباعة استيكر جرعة</span>
+                <span>{t('pharmacy.pharmacy_dashboard_page.s4', "طباعة استيكر جرعة")}</span>
               </Button>
               <Link to="/pharmacy/prescriptions" style={{ textDecoration: 'none' }}>
                 <Button variant="secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                   <IconPrescription size={15} />
-                  <span>صرف روشتة</span>
+                  <span>{t('pharmacy.pharmacy_dashboard_page.s5', "صرف روشتة")}</span>
                 </Button>
               </Link>
               <Button
@@ -102,7 +104,7 @@ export default function PharmacyDashboardPage() {
                 style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
               >
                 <IconRefresh size={15} />
-                <span>تحديث</span>
+                <span>{t('pharmacy.pharmacy_dashboard_page.s6', "تحديث")}</span>
               </Button>
             </div>
           }
@@ -113,7 +115,7 @@ export default function PharmacyDashboardPage() {
           <Link to="/pharmacy/drugs" style={{ textDecoration: 'none', color: 'inherit' }}>
             <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 3px rgba(15, 23, 42, 0.02)', transition: 'all 0.15s ease' }}>
               <div>
-                <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>دليل الأدوية المسجلة</div>
+                <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>{t('pharmacy.pharmacy_dashboard_page.s7', "دليل الأدوية المسجلة")}</div>
                 <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>{stats.totalDrugs}</div>
               </div>
               <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: '#f8fafc', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#334155' }}>
@@ -125,7 +127,7 @@ export default function PharmacyDashboardPage() {
           <Link to="/pharmacy/shortages" style={{ textDecoration: 'none', color: 'inherit' }}>
             <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 3px rgba(15, 23, 42, 0.02)', transition: 'all 0.15s ease' }}>
               <div>
-                <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>كشكول النواقص</div>
+                <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>{t('pharmacy.pharmacy_dashboard_page.s8', "كشكول النواقص")}</div>
                 <div style={{ fontSize: '1.5rem', fontWeight: 800, color: Number(stats.neededShortages) > 0 ? '#b91c1c' : '#0f172a', marginTop: '2px' }}>{stats.neededShortages}</div>
               </div>
               <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: '#f8fafc', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#334155' }}>
@@ -137,7 +139,7 @@ export default function PharmacyDashboardPage() {
           <Link to="/pharmacy/prescriptions" style={{ textDecoration: 'none', color: 'inherit' }}>
             <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 3px rgba(15, 23, 42, 0.02)', transition: 'all 0.15s ease' }}>
               <div>
-                <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>الروشتات المصروفة</div>
+                <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>{t('pharmacy.pharmacy_dashboard_page.s9', "الروشتات المصروفة")}</div>
                 <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>{stats.dispensedPrescriptions}</div>
               </div>
               <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: '#f8fafc', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#334155' }}>
@@ -149,7 +151,7 @@ export default function PharmacyDashboardPage() {
           <Link to="/pharmacy/batches" style={{ textDecoration: 'none', color: 'inherit' }}>
             <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 3px rgba(15, 23, 42, 0.02)', transition: 'all 0.15s ease' }}>
               <div>
-                <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>التشغيلات والصلاحيات</div>
+                <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>{t('pharmacy.pharmacy_dashboard_page.s10', "التشغيلات والصلاحيات")}</div>
                 <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>{stats.totalBatches}</div>
               </div>
               <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: '#f8fafc', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#334155' }}>
@@ -173,10 +175,10 @@ export default function PharmacyDashboardPage() {
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '14px', marginBottom: '12px' }}>
             <div>
               <h2 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 800, color: '#0f172a' }}>
-                محرك البحث الفوري عن بدائل ومثائل الأدوية (Generics Finder)
+                {t('pharmacy.pharmacy_dashboard_page.s11', "محرك البحث الفوري عن بدائل ومثائل الأدوية (Generics Finder)")}
               </h2>
               <p style={{ margin: '2px 0 0 0', fontSize: '0.78rem', color: '#64748b', lineHeight: 1.4 }}>
-                ابحث بالمادة الفعالة أو الاسم التجاري لعرض كافة البدائل والأسعار والمثائل المتوفرة بالمخزون فوراً
+                {t('pharmacy.pharmacy_dashboard_page.s12', "ابحث بالمادة الفعالة أو الاسم التجاري لعرض كافة البدائل والأسعار والمثائل المتوفرة بالمخزون فوراً")}
               </p>
             </div>
 
@@ -187,7 +189,7 @@ export default function PharmacyDashboardPage() {
                   className="purchase-prototype-field-input"
                   value={searchIngredient}
                   onChange={(e) => setSearchIngredient(e.target.value)}
-                  placeholder="اكتب المادة الفعالة أو اسم الدواء (e.g. Paracetamol)..."
+                  placeholder={t('pharmacy.pharmacy_dashboard_page.s13', "اكتب المادة الفعالة أو اسم الدواء (e.g. Paracetamol)...")}
                   style={{
                     width: '100%',
                     paddingInlineStart: '34px',
@@ -210,14 +212,14 @@ export default function PharmacyDashboardPage() {
                   fontSize: '0.82rem'
                 }}
               >
-                <span>بحث البدائل</span>
+                <span>{t('pharmacy.pharmacy_dashboard_page.s14', "بحث البدائل")}</span>
               </Button>
             </form>
           </div>
 
           {/* Quick Presets Pills */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', paddingTop: '10px', borderTop: '1px solid #f1f5f9' }}>
-            <span style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 700 }}>مواد شائعة:</span>
+            <span style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 700 }}>{t('pharmacy.pharmacy_dashboard_page.s15', "مواد شائعة:")}</span>
             {POPULAR_SEARCH_PRESETS.map((item) => (
               <button
                 key={item}
@@ -260,19 +262,19 @@ export default function PharmacyDashboardPage() {
                 <div style={{ width: 28, height: 28, borderRadius: 6, background: '#f8fafc', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#334155' }}>
                   <IconShortage size={15} />
                 </div>
-                <strong style={{ fontSize: '0.9rem', color: '#0f172a' }}>أحدث النواقص بكشكول الصيدلية</strong>
+                <strong style={{ fontSize: '0.9rem', color: '#0f172a' }}>{t('pharmacy.pharmacy_dashboard_page.s16', "أحدث النواقص بكشكول الصيدلية")}</strong>
               </div>
               <Link to="/pharmacy/shortages" style={{ fontSize: '0.78rem', color: 'var(--primary, #1e1b4b)', textDecoration: 'none', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <span>عرض الكشكول</span>
+                <span>{t('pharmacy.pharmacy_dashboard_page.s17', "عرض الكشكول")}</span>
                 <IconArrowLeft size={13} />
               </Link>
             </div>
 
             {shortagesQuery.isLoading ? (
-              <div style={{ padding: '24px', textAlign: 'center', color: '#64748b', fontSize: '0.84rem' }}>جاري التحميل...</div>
+              <div style={{ padding: '24px', textAlign: 'center', color: '#64748b', fontSize: '0.84rem' }}>{t('pharmacy.pharmacy_dashboard_page.s18', "جاري التحميل...")}</div>
             ) : shortagesQuery.data?.shortages.length === 0 ? (
               <div style={{ padding: '32px 16px', textAlign: 'center', color: '#64748b', fontSize: '0.84rem', background: '#f8fafc', borderRadius: '8px', border: '1px dashed #e2e8f0' }}>
-                لا توجد نواقص مطلوبة مسجلة حالياً
+                {t('pharmacy.pharmacy_dashboard_page.s19', "لا توجد نواقص مطلوبة مسجلة حالياً")}
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -293,7 +295,7 @@ export default function PharmacyDashboardPage() {
                     <div>
                       <strong style={{ fontSize: '0.86rem', color: '#0f172a' }}>{s.product_name}</strong>
                       <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '2px' }}>
-                        {s.suggested_distributor || 'موزع عام'} • الكمية المطلوبة: <strong>{s.requested_quantity}</strong>
+                        {s.suggested_distributor || t('pharmacy.pharmacy_dashboard_page.s20', "موزع عام")} {t('pharmacy.pharmacy_dashboard_page.s21', "• الكمية المطلوبة:")} <strong>{s.requested_quantity}</strong>
                       </div>
                     </div>
                     <span
@@ -308,7 +310,7 @@ export default function PharmacyDashboardPage() {
                         whiteSpace: 'nowrap'
                       }}
                     >
-                      {s.priority === 'urgent' ? 'عاجل' : s.priority === 'customer_request' ? 'طلب عميل' : 'عادي'}
+                      {s.priority === 'urgent' ? t('pharmacy.pharmacy_dashboard_page.s22', "عاجل") : s.priority === 'customer_request' ? t('pharmacy.pharmacy_dashboard_page.s23', "طلب عميل") : t('pharmacy.pharmacy_dashboard_page.s24', "عادي")}
                     </span>
                   </div>
                 ))}
@@ -339,8 +341,8 @@ export default function PharmacyDashboardPage() {
                   <IconPill size={18} />
                 </div>
                 <div>
-                  <strong style={{ fontSize: '0.88rem', color: '#0f172a' }}>دليل الأدوية وتجزئة الشرائط (Fractions)</strong>
-                  <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px' }}>تسجيل المواد الفعالة، تسعير العلبة والشريط، وتصنيف الجداول</div>
+                  <strong style={{ fontSize: '0.88rem', color: '#0f172a' }}>{t('pharmacy.pharmacy_dashboard_page.s25', "دليل الأدوية وتجزئة الشرائط (Fractions)")}</strong>
+                  <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px' }}>{t('pharmacy.pharmacy_dashboard_page.s26', "تسجيل المواد الفعالة، تسعير العلبة والشريط، وتصنيف الجداول")}</div>
                 </div>
               </div>
               <IconArrowLeft size={15} color="#94a3b8" />
@@ -367,8 +369,8 @@ export default function PharmacyDashboardPage() {
                   <IconPrescription size={18} />
                 </div>
                 <div>
-                  <strong style={{ fontSize: '0.88rem', color: '#0f172a' }}>الروشتات الطبية والتأمين الصحي (Co-Pay)</strong>
-                  <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px' }}>صرف الروشتات، حساب نسب التحمل، وأكواد الموافقات الطبية</div>
+                  <strong style={{ fontSize: '0.88rem', color: '#0f172a' }}>{t('pharmacy.pharmacy_dashboard_page.s27', "الروشتات الطبية والتأمين الصحي (Co-Pay)")}</strong>
+                  <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px' }}>{t('pharmacy.pharmacy_dashboard_page.s28', "صرف الروشتات، حساب نسب التحمل، وأكواد الموافقات الطبية")}</div>
                 </div>
               </div>
               <IconArrowLeft size={15} color="#94a3b8" />
@@ -395,8 +397,8 @@ export default function PharmacyDashboardPage() {
                   <IconStethoscope size={18} />
                 </div>
                 <div>
-                  <strong style={{ fontSize: '0.88rem', color: '#0f172a' }}>سجل الفحوصات والخدمات الإكلينيكية</strong>
-                  <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px' }}>قياس الضغط، السكر، الوزن، وحقن المرضى مع حفظ التاريخ الطبي</div>
+                  <strong style={{ fontSize: '0.88rem', color: '#0f172a' }}>{t('pharmacy.pharmacy_dashboard_page.s29', "سجل الفحوصات والخدمات الإكلينيكية")}</strong>
+                  <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px' }}>{t('pharmacy.pharmacy_dashboard_page.s30', "قياس الضغط، السكر، الوزن، وحقن المرضى مع حفظ التاريخ الطبي")}</div>
                 </div>
               </div>
               <IconArrowLeft size={15} color="#94a3b8" />
@@ -423,8 +425,8 @@ export default function PharmacyDashboardPage() {
                   <IconExpiry size={18} />
                 </div>
                 <div>
-                  <strong style={{ fontSize: '0.88rem', color: '#0f172a' }}>رادار الصلاحيات ومرتجعات الشركات</strong>
-                  <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px' }}>حصر الأدوية الوشيكة الانتهاء وتجهيز أذون الإرجاع للموزعين</div>
+                  <strong style={{ fontSize: '0.88rem', color: '#0f172a' }}>{t('pharmacy.pharmacy_dashboard_page.s31', "رادار الصلاحيات ومرتجعات الشركات")}</strong>
+                  <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px' }}>{t('pharmacy.pharmacy_dashboard_page.s32', "حصر الأدوية الوشيكة الانتهاء وتجهيز أذون الإرجاع للموزعين")}</div>
                 </div>
               </div>
               <IconArrowLeft size={15} color="#94a3b8" />

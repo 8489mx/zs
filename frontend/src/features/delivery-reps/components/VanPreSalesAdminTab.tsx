@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
@@ -22,6 +23,7 @@ interface VanPreSalesAdminTabProps {
 }
 
 export const VanPreSalesAdminTab: React.FC<VanPreSalesAdminTabProps> = ({ reps }) => {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
 
   const [selectedRepId, setSelectedRepId] = useState<number | ''>('');
@@ -248,7 +250,7 @@ export const VanPreSalesAdminTab: React.FC<VanPreSalesAdminTabProps> = ({ reps }
               border: '1px solid #fde68a',
             }}
           >
-            بانتظار الاعتماد
+            {t('delivery_reps.van_pre_sales_admin_tab.s0', "بانتظار الاعتماد")}
           </span>
         );
       case 'approved':
@@ -264,7 +266,7 @@ export const VanPreSalesAdminTab: React.FC<VanPreSalesAdminTabProps> = ({ reps }
               border: '1px solid #bbf7d0',
             }}
           >
-            معتمدة وجاهزة
+            {t('delivery_reps.van_pre_sales_admin_tab.s1', "معتمدة وجاهزة")}
           </span>
         );
       case 'converted':
@@ -280,7 +282,7 @@ export const VanPreSalesAdminTab: React.FC<VanPreSalesAdminTabProps> = ({ reps }
               border: '1px solid #c7d2fe',
             }}
           >
-            تم التحويل والتنفيذ
+            {t('delivery_reps.van_pre_sales_admin_tab.s2', "تم التحويل والتنفيذ")}
           </span>
         );
       case 'rejected':
@@ -296,7 +298,7 @@ export const VanPreSalesAdminTab: React.FC<VanPreSalesAdminTabProps> = ({ reps }
               border: '1px solid #fecaca',
             }}
           >
-            مرفوضة
+            {t('delivery_reps.van_pre_sales_admin_tab.s3', "مرفوضة")}
           </span>
         );
       default:
@@ -352,7 +354,7 @@ export const VanPreSalesAdminTab: React.FC<VanPreSalesAdminTabProps> = ({ reps }
             <ClockIcon size={20} color="#b45309" />
           </div>
           <div>
-            <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>بانتظار الاعتماد</div>
+            <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>{t('delivery_reps.van_pre_sales_admin_tab.s4', "بانتظار الاعتماد")}</div>
             <div style={{ fontSize: '18px', fontWeight: 800, color: '#b45309' }}>{pendingCount}</div>
           </div>
         </div>
@@ -382,7 +384,7 @@ export const VanPreSalesAdminTab: React.FC<VanPreSalesAdminTabProps> = ({ reps }
             <CheckCircleIcon size={20} color="#15803d" />
           </div>
           <div>
-            <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>معتمدة</div>
+            <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>{t('delivery_reps.van_pre_sales_admin_tab.s5', "معتمدة")}</div>
             <div style={{ fontSize: '18px', fontWeight: 800, color: '#15803d' }}>{approvedCount}</div>
           </div>
         </div>
@@ -412,7 +414,7 @@ export const VanPreSalesAdminTab: React.FC<VanPreSalesAdminTabProps> = ({ reps }
             <XIcon size={20} color="#b91c1c" />
           </div>
           <div>
-            <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>مرفوضة / محررة</div>
+            <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>{t('delivery_reps.van_pre_sales_admin_tab.s6', "مرفوضة / محررة")}</div>
             <div style={{ fontSize: '18px', fontWeight: 800, color: '#b91c1c' }}>{rejectedCount}</div>
           </div>
         </div>
@@ -442,7 +444,7 @@ export const VanPreSalesAdminTab: React.FC<VanPreSalesAdminTabProps> = ({ reps }
             <DollarSignIcon size={20} color="#4338ca" />
           </div>
           <div>
-            <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>إجمالي قيمة الطلبيات</div>
+            <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>{t('delivery_reps.van_pre_sales_admin_tab.s7', "إجمالي قيمة الطلبيات")}</div>
             <div style={{ fontSize: '17px', fontWeight: 800, color: '#170e5e' }}>
               {totalAmount.toFixed(2)} <CurrencySymbol />
             </div>
@@ -468,7 +470,7 @@ export const VanPreSalesAdminTab: React.FC<VanPreSalesAdminTabProps> = ({ reps }
           <div style={{ position: 'relative', minWidth: '180px' }}>
             <input
               type="text"
-              placeholder="ابحث برقم الطلب أو العميل..."
+              placeholder={t('delivery_reps.van_pre_sales_admin_tab.s8', "ابحث برقم الطلب أو العميل...")}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               style={{
@@ -500,7 +502,7 @@ export const VanPreSalesAdminTab: React.FC<VanPreSalesAdminTabProps> = ({ reps }
               color: '#0f172a',
             }}
           >
-            <option value="">جميع المناديب</option>
+            <option value="">{t('delivery_reps.van_pre_sales_admin_tab.s9', "جميع المناديب")}</option>
             {reps.map((r) => (
               <option key={r.id} value={r.id}>
                 {r.name}
@@ -520,15 +522,15 @@ export const VanPreSalesAdminTab: React.FC<VanPreSalesAdminTabProps> = ({ reps }
               color: '#0f172a',
             }}
           >
-            <option value="all">كافة الحالات</option>
-            <option value="pending_supervisor">بانتظار الاعتماد فقط</option>
-            <option value="approved">المعتمدة والجازة للتجهيز</option>
-            <option value="converted">تم التحويل والتنفيذ ({convertedCount})</option>
-            <option value="rejected">المرفوضة</option>
+            <option value="all">{t('delivery_reps.van_pre_sales_admin_tab.s10', "كافة الحالات")}</option>
+            <option value="pending_supervisor">{t('delivery_reps.van_pre_sales_admin_tab.s11', "بانتظار الاعتماد فقط")}</option>
+            <option value="approved">{t('delivery_reps.van_pre_sales_admin_tab.s12', "المعتمدة والجازة للتجهيز")}</option>
+            <option value="converted">{t('delivery_reps.van_pre_sales_admin_tab.s13', "تم التحويل والتنفيذ (")}{convertedCount})</option>
+            <option value="rejected">{t('delivery_reps.van_pre_sales_admin_tab.s14', "المرفوضة")}</option>
           </select>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <span style={{ fontSize: '11px', color: '#64748b' }}>من:</span>
+            <span style={{ fontSize: '11px', color: '#64748b' }}>{t('delivery_reps.van_pre_sales_admin_tab.s15', "من:")}</span>
             <input
               type="date"
               value={dateFrom}
@@ -541,7 +543,7 @@ export const VanPreSalesAdminTab: React.FC<VanPreSalesAdminTabProps> = ({ reps }
                 fontSize: '11.5px',
               }}
             />
-            <span style={{ fontSize: '11px', color: '#64748b' }}>إلى:</span>
+            <span style={{ fontSize: '11px', color: '#64748b' }}>{t('delivery_reps.van_pre_sales_admin_tab.s16', "إلى:")}</span>
             <input
               type="date"
               value={dateTo}
@@ -574,7 +576,7 @@ export const VanPreSalesAdminTab: React.FC<VanPreSalesAdminTabProps> = ({ reps }
               }}
             >
               <span>
-                تجميع وتوليد إذن تحميل للسيارة
+                {t('delivery_reps.van_pre_sales_admin_tab.s17', "تجميع وتوليد إذن تحميل للسيارة")}
                 {selectedOrderIds.length > 0 ? ` (${selectedOrderIds.length})` : ` (${approvedCount})`}
               </span>
             </Button>
@@ -593,7 +595,7 @@ export const VanPreSalesAdminTab: React.FC<VanPreSalesAdminTabProps> = ({ reps }
             }}
           >
             <RefreshCwIcon size={14} className={isFetching ? 'spin' : ''} />
-            <span>تحديث</span>
+            <span>{t('delivery_reps.van_pre_sales_admin_tab.s18', "تحديث")}</span>
           </Button>
         </div>
       </div>
@@ -630,7 +632,7 @@ export const VanPreSalesAdminTab: React.FC<VanPreSalesAdminTabProps> = ({ reps }
                 <th style={{ padding: '10px 10px', width: '36px', textAlign: 'center' }}>
                   <input
                     type="checkbox"
-                    title="تحديد كافة الطلبيات المعتمدة"
+                    title={t('delivery_reps.van_pre_sales_admin_tab.s19', "تحديد كافة الطلبيات المعتمدة")}
                     disabled={approvedOrders.length === 0}
                     checked={
                       approvedOrders.length > 0 &&
@@ -640,29 +642,29 @@ export const VanPreSalesAdminTab: React.FC<VanPreSalesAdminTabProps> = ({ reps }
                     style={{ cursor: approvedOrders.length > 0 ? 'pointer' : 'not-allowed' }}
                   />
                 </th>
-                <th style={{ padding: '10px 14px' }}>رقم الطلبية</th>
-                <th style={{ padding: '10px 14px' }}>المندوب</th>
-                <th style={{ padding: '10px 14px' }}>العميل</th>
-                <th style={{ padding: '10px 14px' }}>المخزن المطلوب</th>
-                <th style={{ padding: '10px 14px' }}>طريقة الدفع</th>
-                <th style={{ padding: '10px 14px' }}>عدد البنود</th>
-                <th style={{ padding: '10px 14px' }}>الإجمالي</th>
-                <th style={{ padding: '10px 14px' }}>الحالة</th>
-                <th style={{ padding: '10px 14px' }}>تاريخ الحجز</th>
-                <th style={{ padding: '10px 14px', textAlign: 'center' }}>الإجراءات</th>
+                <th style={{ padding: '10px 14px' }}>{t('delivery_reps.van_pre_sales_admin_tab.s20', "رقم الطلبية")}</th>
+                <th style={{ padding: '10px 14px' }}>{t('delivery_reps.van_pre_sales_admin_tab.s21', "المندوب")}</th>
+                <th style={{ padding: '10px 14px' }}>{t('delivery_reps.van_pre_sales_admin_tab.s22', "العميل")}</th>
+                <th style={{ padding: '10px 14px' }}>{t('delivery_reps.van_pre_sales_admin_tab.s23', "المخزن المطلوب")}</th>
+                <th style={{ padding: '10px 14px' }}>{t('delivery_reps.van_pre_sales_admin_tab.s24', "طريقة الدفع")}</th>
+                <th style={{ padding: '10px 14px' }}>{t('delivery_reps.van_pre_sales_admin_tab.s25', "عدد البنود")}</th>
+                <th style={{ padding: '10px 14px' }}>{t('delivery_reps.van_pre_sales_admin_tab.s26', "الإجمالي")}</th>
+                <th style={{ padding: '10px 14px' }}>{t('delivery_reps.van_pre_sales_admin_tab.s27', "الحالة")}</th>
+                <th style={{ padding: '10px 14px' }}>{t('delivery_reps.van_pre_sales_admin_tab.s28', "تاريخ الحجز")}</th>
+                <th style={{ padding: '10px 14px', textAlign: 'center' }}>{t('delivery_reps.van_pre_sales_admin_tab.s29', "الإجراءات")}</th>
               </tr>
             </thead>
             <tbody>
               {isLoading ? (
                 <tr>
                   <td colSpan={11} style={{ padding: '36px', textAlign: 'center', color: '#64748b' }}>
-                    جاري تحميل طلبيات المناديب الميدانية...
+                    {t('delivery_reps.van_pre_sales_admin_tab.s30', "جاري تحميل طلبيات المناديب الميدانية...")}
                   </td>
                 </tr>
               ) : orders.length === 0 ? (
                 <tr>
                   <td colSpan={11} style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
-                    لا توجد طلبيات حجز ميدانية مطابقة لمعايير البحث الحالية
+                    {t('delivery_reps.van_pre_sales_admin_tab.s31', "لا توجد طلبيات حجز ميدانية مطابقة لمعايير البحث الحالية")}
                   </td>
                 </tr>
               ) : (
@@ -692,13 +694,13 @@ export const VanPreSalesAdminTab: React.FC<VanPreSalesAdminTabProps> = ({ reps }
                       {ord.repName || `مندوب #${ord.repId}`}
                     </td>
                     <td style={{ padding: '10px 14px' }}>
-                      <div style={{ fontWeight: 700, color: '#0f172a' }}>{ord.customerName || 'عميل نقدي'}</div>
+                      <div style={{ fontWeight: 700, color: '#0f172a' }}>{ord.customerName || t('delivery_reps.van_pre_sales_admin_tab.s32', "عميل نقدي")}</div>
                       {ord.customerPhone ? (
                         <div style={{ fontSize: '10.5px', color: '#64748b' }}>{ord.customerPhone}</div>
                       ) : null}
                     </td>
                     <td style={{ padding: '10px 14px', color: '#475569', fontSize: '11.5px' }}>
-                      {ord.warehouseLocationName || 'المخزن الرئيسي'}
+                      {ord.warehouseLocationName || t('delivery_reps.van_pre_sales_admin_tab.s33', "المخزن الرئيسي")}
                     </td>
                     <td style={{ padding: '10px 14px' }}>
                       <span
@@ -711,10 +713,10 @@ export const VanPreSalesAdminTab: React.FC<VanPreSalesAdminTabProps> = ({ reps }
                           color: ord.paymentTerms === 'cash' ? '#15803d' : '#b45309',
                         }}
                       >
-                        {ord.paymentTerms === 'cash' ? 'كاش نقدي' : 'آجل على الحساب'}
+                        {ord.paymentTerms === 'cash' ? t('delivery_reps.van_pre_sales_admin_tab.s34', "كاش نقدي") : t('delivery_reps.van_pre_sales_admin_tab.s35', "آجل على الحساب")}
                       </span>
                     </td>
-                    <td style={{ padding: '10px 14px', fontWeight: 600 }}>{ord.itemsCount} أصناف</td>
+                    <td style={{ padding: '10px 14px', fontWeight: 600 }}>{ord.itemsCount} {t('delivery_reps.van_pre_sales_admin_tab.s36', "أصناف")}</td>
                     <td style={{ padding: '10px 14px', fontWeight: 800, color: '#170e5e' }}>
                       {Number(ord.totalAmount).toFixed(2)} <CurrencySymbol />
                     </td>
@@ -734,7 +736,7 @@ export const VanPreSalesAdminTab: React.FC<VanPreSalesAdminTabProps> = ({ reps }
                             fontWeight: 700,
                           }}
                         >
-                          التفاصيل
+                          {t('delivery_reps.van_pre_sales_admin_tab.s37', "التفاصيل")}
                         </Button>
 
                         {(ord.status === 'pending_supervisor' || ord.status === 'pending_approval') ? (
@@ -752,7 +754,7 @@ export const VanPreSalesAdminTab: React.FC<VanPreSalesAdminTabProps> = ({ reps }
                                 color: '#ffffff',
                               }}
                             >
-                              اعتماد
+                              {t('delivery_reps.van_pre_sales_admin_tab.s38', "اعتماد")}
                             </Button>
                             <Button
                               variant="secondary"
@@ -767,7 +769,7 @@ export const VanPreSalesAdminTab: React.FC<VanPreSalesAdminTabProps> = ({ reps }
                                 borderColor: '#fca5a5',
                               }}
                             >
-                              رفض
+                              {t('delivery_reps.van_pre_sales_admin_tab.s39', "رفض")}
                             </Button>
                           </>
                         ) : ord.status === 'approved' ? (
@@ -784,7 +786,7 @@ export const VanPreSalesAdminTab: React.FC<VanPreSalesAdminTabProps> = ({ reps }
                               color: '#ffffff',
                             }}
                           >
-                            تحويل لفاتورة جملة
+                            {t('delivery_reps.van_pre_sales_admin_tab.s40', "تحويل لفاتورة جملة")}
                           </Button>
                         ) : null}
                       </div>
@@ -803,13 +805,13 @@ export const VanPreSalesAdminTab: React.FC<VanPreSalesAdminTabProps> = ({ reps }
           open={true}
           onClose={() => setInspectingOrderId(null)}
           title={`تفاصيل طلبية المندوب #${inspectedOrder?.orderNumber || inspectingOrderId}`}
-          subtitle="مراجعة بنود الحجز من المخزن الرئيسي ومستويات الأسعار"
+          subtitle={t('delivery_reps.van_pre_sales_admin_tab.s41', "مراجعة بنود الحجز من المخزن الرئيسي ومستويات الأسعار")}
           badge="Pre-Sales"
           width="min(820px, 96vw)"
           footerActions={
             <StandardDialogFooter
               onClose={() => setInspectingOrderId(null)}
-              cancelText="إغلاق"
+              cancelText={t('delivery_reps.van_pre_sales_admin_tab.s42', "إغلاق")}
               extraActions={
                 (inspectedOrder?.status === 'pending_supervisor' || inspectedOrder?.status === 'pending_approval') ? (
                   <div style={{ display: 'inline-flex', gap: '8px' }}>
@@ -818,14 +820,14 @@ export const VanPreSalesAdminTab: React.FC<VanPreSalesAdminTabProps> = ({ reps }
                       onClick={() => openRejectDialog(inspectedOrder.id)}
                       style={{ color: '#b91c1c', borderColor: '#fca5a5', fontWeight: 700, fontSize: '12px' }}
                     >
-                      رفض الطلبية
+                      {t('delivery_reps.van_pre_sales_admin_tab.s43', "رفض الطلبية")}
                     </Button>
                     <Button
                       variant="primary"
                       onClick={() => handleApprove(inspectedOrder)}
                       style={{ backgroundColor: '#15803d', color: '#fff', fontWeight: 800, fontSize: '12px' }}
                     >
-                      اعتماد الطلبية الآن
+                      {t('delivery_reps.van_pre_sales_admin_tab.s44', "اعتماد الطلبية الآن")}
                     </Button>
                   </div>
                 ) : inspectedOrder?.status === 'approved' ? (
@@ -840,7 +842,7 @@ export const VanPreSalesAdminTab: React.FC<VanPreSalesAdminTabProps> = ({ reps }
                       }}
                       style={{ fontWeight: 700, fontSize: '12px', color: '#170e5e', borderColor: '#c7d2fe' }}
                     >
-                      توليد إذن تحميل للسيارة
+                      {t('delivery_reps.van_pre_sales_admin_tab.s45', "توليد إذن تحميل للسيارة")}
                     </Button>
                     <Button
                       variant="primary"
@@ -848,7 +850,7 @@ export const VanPreSalesAdminTab: React.FC<VanPreSalesAdminTabProps> = ({ reps }
                       disabled={convertInvoiceMutation.isPending}
                       style={{ backgroundColor: '#170e5e', color: '#fff', fontWeight: 800, fontSize: '12px' }}
                     >
-                      {convertInvoiceMutation.isPending ? 'جاري الإصدار...' : 'إصدار فاتورة بيع جملة مباشرة'}
+                      {convertInvoiceMutation.isPending ? t('delivery_reps.van_pre_sales_admin_tab.s46', "جاري الإصدار...") : t('delivery_reps.van_pre_sales_admin_tab.s47', "إصدار فاتورة بيع جملة مباشرة")}
                     </Button>
                   </div>
                 ) : undefined
@@ -858,7 +860,7 @@ export const VanPreSalesAdminTab: React.FC<VanPreSalesAdminTabProps> = ({ reps }
         >
           {isInspectingLoading || !inspectedOrder ? (
             <div style={{ padding: '30px', textAlign: 'center', color: '#64748b' }}>
-              جاري تحميل تفاصيل الطلبية وبنود الحجز...
+              {t('delivery_reps.van_pre_sales_admin_tab.s48', "جاري تحميل تفاصيل الطلبية وبنود الحجز...")}
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
@@ -876,42 +878,42 @@ export const VanPreSalesAdminTab: React.FC<VanPreSalesAdminTabProps> = ({ reps }
                 }}
               >
                 <div>
-                  <span style={{ color: '#64748b' }}>المندوب: </span>
+                  <span style={{ color: '#64748b' }}>{t('delivery_reps.van_pre_sales_admin_tab.s49', "المندوب:")} </span>
                   <strong style={{ color: '#0f172a' }}>{inspectedOrder.repName}</strong>
                 </div>
                 <div>
-                  <span style={{ color: '#64748b' }}>العميل: </span>
+                  <span style={{ color: '#64748b' }}>{t('delivery_reps.van_pre_sales_admin_tab.s50', "العميل:")} </span>
                   <strong style={{ color: '#0f172a' }}>{inspectedOrder.customerName}</strong>
                 </div>
                 <div>
-                  <span style={{ color: '#64748b' }}>طريقة الدفع: </span>
+                  <span style={{ color: '#64748b' }}>{t('delivery_reps.van_pre_sales_admin_tab.s51', "طريقة الدفع:")} </span>
                   <strong style={{ color: inspectedOrder.paymentTerms === 'cash' ? '#15803d' : '#b45309' }}>
-                    {inspectedOrder.paymentTerms === 'cash' ? 'كاش نقدي' : 'آجل على الحساب'}
+                    {inspectedOrder.paymentTerms === 'cash' ? t('delivery_reps.van_pre_sales_admin_tab.s52', "كاش نقدي") : t('delivery_reps.van_pre_sales_admin_tab.s53', "آجل على الحساب")}
                   </strong>
                 </div>
                 <div>
-                  <span style={{ color: '#64748b' }}>المخزن المحجوز منه: </span>
-                  <strong style={{ color: '#170e5e' }}>{inspectedOrder.warehouseLocationName || 'المخزن الرئيسي'}</strong>
+                  <span style={{ color: '#64748b' }}>{t('delivery_reps.van_pre_sales_admin_tab.s54', "المخزن المحجوز منه:")} </span>
+                  <strong style={{ color: '#170e5e' }}>{inspectedOrder.warehouseLocationName || t('delivery_reps.van_pre_sales_admin_tab.s55', "المخزن الرئيسي")}</strong>
                 </div>
                 <div>
-                  <span style={{ color: '#64748b' }}>الحالة: </span>
+                  <span style={{ color: '#64748b' }}>{t('delivery_reps.van_pre_sales_admin_tab.s56', "الحالة:")} </span>
                   {getStatusBadge(inspectedOrder.status)}
                 </div>
                 <div>
-                  <span style={{ color: '#64748b' }}>تاريخ التسليم المتوقع: </span>
-                  <strong>{inspectedOrder.deliveryDate || 'فوري / اليوم'}</strong>
+                  <span style={{ color: '#64748b' }}>{t('delivery_reps.van_pre_sales_admin_tab.s57', "تاريخ التسليم المتوقع:")} </span>
+                  <strong>{inspectedOrder.deliveryDate || t('delivery_reps.van_pre_sales_admin_tab.s58', "فوري / اليوم")}</strong>
                 </div>
               </div>
 
               {inspectedOrder.notes ? (
                 <div style={{ backgroundColor: '#fffbeb', border: '1px solid #fef3c7', padding: '8px 12px', borderRadius: '8px', fontSize: '12px', color: '#92400e' }}>
-                  <b>ملاحظات المندوب:</b> {inspectedOrder.notes}
+                  <b>{t('delivery_reps.van_pre_sales_admin_tab.s59', "ملاحظات المندوب:")}</b> {inspectedOrder.notes}
                 </div>
               ) : null}
 
               {inspectedOrder.supervisorRejectionReason ? (
                 <div style={{ backgroundColor: '#fef2f2', border: '1px solid #fee2e2', padding: '8px 12px', borderRadius: '8px', fontSize: '12px', color: '#b91c1c' }}>
-                  <b>سبب الرفض:</b> {inspectedOrder.supervisorRejectionReason}
+                  <b>{t('delivery_reps.van_pre_sales_admin_tab.s60', "سبب الرفض:")}</b> {inspectedOrder.supervisorRejectionReason}
                 </div>
               ) : null}
 
@@ -920,13 +922,13 @@ export const VanPreSalesAdminTab: React.FC<VanPreSalesAdminTabProps> = ({ reps }
                 <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right', fontSize: '12px' }}>
                   <thead>
                     <tr style={{ backgroundColor: '#f1f5f9', color: '#334155', fontWeight: 700, fontSize: '11.5px' }}>
-                      <th style={{ padding: '8px 12px' }}>الصنف</th>
-                      <th style={{ padding: '8px 12px' }}>الوحدة</th>
-                      <th style={{ padding: '8px 12px' }}>الكمية</th>
-                      <th style={{ padding: '8px 12px' }}>سعر البيع (للمحل)</th>
-                      <th style={{ padding: '8px 12px' }}>سعر المستهلك (SRP)</th>
-                      <th style={{ padding: '8px 12px' }}>وفر العرض</th>
-                      <th style={{ padding: '8px 12px' }}>الإجمالي</th>
+                      <th style={{ padding: '8px 12px' }}>{t('delivery_reps.van_pre_sales_admin_tab.s61', "الصنف")}</th>
+                      <th style={{ padding: '8px 12px' }}>{t('delivery_reps.van_pre_sales_admin_tab.s62', "الوحدة")}</th>
+                      <th style={{ padding: '8px 12px' }}>{t('delivery_reps.van_pre_sales_admin_tab.s63', "الكمية")}</th>
+                      <th style={{ padding: '8px 12px' }}>{t('delivery_reps.van_pre_sales_admin_tab.s64', "سعر البيع (للمحل)")}</th>
+                      <th style={{ padding: '8px 12px' }}>{t('delivery_reps.van_pre_sales_admin_tab.s65', "سعر المستهلك (SRP)")}</th>
+                      <th style={{ padding: '8px 12px' }}>{t('delivery_reps.van_pre_sales_admin_tab.s66', "وفر العرض")}</th>
+                      <th style={{ padding: '8px 12px' }}>{t('delivery_reps.van_pre_sales_admin_tab.s67', "الإجمالي")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -938,9 +940,9 @@ export const VanPreSalesAdminTab: React.FC<VanPreSalesAdminTabProps> = ({ reps }
                         <td style={{ padding: '8px 12px', fontWeight: 700 }}>
                           {Number(it.unitPrice).toFixed(2)} <CurrencySymbol />
                           {it.pricingTierType === 'credit' ? (
-                            <span style={{ fontSize: '10px', color: '#b45309', marginRight: '4px' }}>(سعر آجل)</span>
+                            <span style={{ fontSize: '10px', color: '#b45309', marginRight: '4px' }}>{t('delivery_reps.van_pre_sales_admin_tab.s68', "(سعر آجل)")}</span>
                           ) : it.pricingTierType === 'offer' ? (
-                            <span style={{ fontSize: '10px', color: '#15803d', marginRight: '4px' }}>(سعر عرض)</span>
+                            <span style={{ fontSize: '10px', color: '#15803d', marginRight: '4px' }}>{t('delivery_reps.van_pre_sales_admin_tab.s69', "(سعر عرض)")}</span>
                           ) : null}
                         </td>
                         <td style={{ padding: '8px 12px', color: '#2563eb', fontWeight: 600 }}>
@@ -970,7 +972,7 @@ export const VanPreSalesAdminTab: React.FC<VanPreSalesAdminTabProps> = ({ reps }
                   <tfoot>
                     <tr style={{ backgroundColor: '#f8fafc', fontWeight: 800, borderTop: '2px solid #e2e8f0' }}>
                       <td colSpan={6} style={{ padding: '10px 12px', textAlign: 'left' }}>
-                        إجمالي الطلبية المستحقة:
+                        {t('delivery_reps.van_pre_sales_admin_tab.s70', "إجمالي الطلبية المستحقة:")}
                       </td>
                       <td style={{ padding: '10px 12px', fontSize: '14px', color: '#059669' }}>
                         {Number(inspectedOrder.totalAmount).toFixed(2)} <CurrencySymbol />
@@ -989,14 +991,14 @@ export const VanPreSalesAdminTab: React.FC<VanPreSalesAdminTabProps> = ({ reps }
         <StandardDialog
           open={true}
           onClose={() => setShowConsolidateDialog(false)}
-          title="تجميع الطلبيات المعتمدة وتوليد إذن تحميل للسيارة"
-          subtitle="سيتم دمج كميات الأصناف من الطلبيات المختارة في إذن تحميل صباحي موحد وتحرير حجز الطلبيات لصالح السيارة"
-          badge="تجهيز سيارة التوزيع"
+          title={t('delivery_reps.van_pre_sales_admin_tab.s71', "تجميع الطلبيات المعتمدة وتوليد إذن تحميل للسيارة")}
+          subtitle={t('delivery_reps.van_pre_sales_admin_tab.s72', "سيتم دمج كميات الأصناف من الطلبيات المختارة في إذن تحميل صباحي موحد وتحرير حجز الطلبيات لصالح السيارة")}
+          badge={t('delivery_reps.van_pre_sales_admin_tab.s73', "تجهيز سيارة التوزيع")}
           width="min(520px, 96vw)"
           footerActions={
             <StandardDialogFooter
               onClose={() => setShowConsolidateDialog(false)}
-              cancelText="تراجع"
+              cancelText={t('delivery_reps.van_pre_sales_admin_tab.s74', "تراجع")}
               extraActions={
                 <Button
                   variant="primary"
@@ -1005,7 +1007,7 @@ export const VanPreSalesAdminTab: React.FC<VanPreSalesAdminTabProps> = ({ reps }
                   style={{ backgroundColor: '#170e5e', color: '#fff', fontWeight: 800, fontSize: '12px' }}
                 >
                   {consolidateMutation.isPending
-                    ? 'جاري التجميع والتوليد...'
+                    ? t('delivery_reps.van_pre_sales_admin_tab.s75', "جاري التجميع والتوليد...")
                     : `توليد إذن التحميل (${selectedOrderIds.length} طلبيات)`}
                 </Button>
               }
@@ -1024,10 +1026,10 @@ export const VanPreSalesAdminTab: React.FC<VanPreSalesAdminTabProps> = ({ reps }
               }}
             >
               <div>
-                عدد الطلبيات المختارة للدمج: <strong>{selectedOrderIds.length} طلبيات معتمدة</strong>
+                {t('delivery_reps.van_pre_sales_admin_tab.s76', "عدد الطلبيات المختارة للدمج:")} <strong>{selectedOrderIds.length} {t('delivery_reps.van_pre_sales_admin_tab.s77', "طلبيات معتمدة")}</strong>
               </div>
               <div style={{ marginTop: '4px' }}>
-                إجمالي القيمة التقديرية للطلبيات:{' '}
+                {t('delivery_reps.van_pre_sales_admin_tab.s78', "إجمالي القيمة التقديرية للطلبيات:")}{' '}
                 <strong style={{ color: '#170e5e' }}>
                   {orders
                     .filter((o) => selectedOrderIds.includes(o.id))
@@ -1040,7 +1042,7 @@ export const VanPreSalesAdminTab: React.FC<VanPreSalesAdminTabProps> = ({ reps }
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
               <label style={{ fontSize: '12.5px', fontWeight: 700, color: '#0f172a' }}>
-                مندوب التوزيع / السيارة المستلمة للبضاعة:
+                {t('delivery_reps.van_pre_sales_admin_tab.s79', "مندوب التوزيع / السيارة المستلمة للبضاعة:")}
               </label>
               <select
                 value={consolidateTargetRepId}
@@ -1054,7 +1056,7 @@ export const VanPreSalesAdminTab: React.FC<VanPreSalesAdminTabProps> = ({ reps }
                   color: '#0f172a',
                 }}
               >
-                <option value="">— اختر مندوب التوزيع —</option>
+                <option value="">{t('delivery_reps.van_pre_sales_admin_tab.s80', "— اختر مندوب التوزيع —")}</option>
                 {reps.map((r) => (
                   <option key={r.id} value={r.id}>
                     {r.name}
@@ -1065,13 +1067,13 @@ export const VanPreSalesAdminTab: React.FC<VanPreSalesAdminTabProps> = ({ reps }
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
               <label style={{ fontSize: '12.5px', fontWeight: 700, color: '#0f172a' }}>
-                ملاحظات إذن التحميل لأمين المخزن (اختياري):
+                {t('delivery_reps.van_pre_sales_admin_tab.s81', "ملاحظات إذن التحميل لأمين المخزن (اختياري):")}
               </label>
               <textarea
                 rows={2}
                 value={consolidateNotes}
                 onChange={(e) => setConsolidateNotes(e.target.value)}
-                placeholder="مثال: تحميل خط سير الصباح لطلبيات الجملة المعتمدة..."
+                placeholder={t('delivery_reps.van_pre_sales_admin_tab.s82', "مثال: تحميل خط سير الصباح لطلبيات الجملة المعتمدة...")}
                 style={{
                   width: '100%',
                   padding: '8px 10px',
@@ -1091,14 +1093,14 @@ export const VanPreSalesAdminTab: React.FC<VanPreSalesAdminTabProps> = ({ reps }
         <StandardDialog
           open={true}
           onClose={() => setRejectingOrderId(null)}
-          title="رفض طلبية المندوب"
-          subtitle="سيتم إلغاء الطلبية وتحرير حجز الأصناف وإعادتها فوراً للرصيد المتاح بالمخزن"
-          badge="إلغاء حجز"
+          title={t('delivery_reps.van_pre_sales_admin_tab.s83', "رفض طلبية المندوب")}
+          subtitle={t('delivery_reps.van_pre_sales_admin_tab.s84', "سيتم إلغاء الطلبية وتحرير حجز الأصناف وإعادتها فوراً للرصيد المتاح بالمخزن")}
+          badge={t('delivery_reps.van_pre_sales_admin_tab.s85', "إلغاء حجز")}
           width="min(460px, 96vw)"
           footerActions={
             <StandardDialogFooter
               onClose={() => setRejectingOrderId(null)}
-              cancelText="تراجع"
+              cancelText={t('delivery_reps.van_pre_sales_admin_tab.s86', "تراجع")}
               extraActions={
                 <Button
                   variant="primary"
@@ -1106,7 +1108,7 @@ export const VanPreSalesAdminTab: React.FC<VanPreSalesAdminTabProps> = ({ reps }
                   disabled={rejectMutation.isPending || !rejectionReason.trim()}
                   style={{ backgroundColor: '#b91c1c', color: '#fff', fontWeight: 800, fontSize: '12px' }}
                 >
-                  {rejectMutation.isPending ? 'جاري التحرير...' : 'تأكيد الرفض وتحرير المخزون'}
+                  {rejectMutation.isPending ? t('delivery_reps.van_pre_sales_admin_tab.s87', "جاري التحرير...") : t('delivery_reps.van_pre_sales_admin_tab.s88', "تأكيد الرفض وتحرير المخزون")}
                 </Button>
               }
             />
@@ -1114,13 +1116,13 @@ export const VanPreSalesAdminTab: React.FC<VanPreSalesAdminTabProps> = ({ reps }
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             <label style={{ fontSize: '12.5px', fontWeight: 700, color: '#0f172a' }}>
-              سبب الرفض (سيظهر للمندوب في سجله):
+              {t('delivery_reps.van_pre_sales_admin_tab.s89', "سبب الرفض (سيظهر للمندوب في سجله):")}
             </label>
             <textarea
               rows={3}
               value={rejectionReason}
               onChange={(e) => setRejectionReason(e.target.value)}
-              placeholder="مثال: رصيد العميل تجاوز سقف الائتمان / خط سير غير مصرح..."
+              placeholder={t('delivery_reps.van_pre_sales_admin_tab.s90', "مثال: رصيد العميل تجاوز سقف الائتمان / خط سير غير مصرح...")}
               style={{
                 width: '100%',
                 padding: '8px 10px',

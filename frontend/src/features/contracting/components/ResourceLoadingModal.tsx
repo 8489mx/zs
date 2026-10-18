@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useCallback } from 'react';
 import { StandardDialog } from '@/shared/components/StandardDialog';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
@@ -13,6 +14,7 @@ interface ResourceLoadingModalProps {
 }
 
 export function ResourceLoadingModal({ open, onClose, projectId, projectName }: ResourceLoadingModalProps) {
+  const { t: __t } = useTranslation();
   const [data, setData] = useState<ResourceLoadingHistogram | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -40,37 +42,37 @@ export function ResourceLoadingModal({ open, onClose, projectId, projectName }: 
     <StandardDialog
       open={open}
       onClose={onClose}
-      title="تقرير تحميل الموارد الأسبوعي (Resource Loading Histogram)"
+      title={__t('contracting.resource_loading_modal.s0', "تقرير تحميل الموارد الأسبوعي (Resource Loading Histogram)")}
       subtitle={`إجمالي العمالة والمعدات المخططة لكل أسبوع من الجدول الزمني — ${projectName || ''}`}
       maxWidth="1000px"
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }} dir="rtl">
         {loading ? (
-          <div style={{ padding: '30px', textAlign: 'center', color: '#64748b' }}>جارٍ التحميل...</div>
+          <div style={{ padding: '30px', textAlign: 'center', color: '#64748b' }}>{__t('contracting.resource_loading_modal.s1', "جارٍ التحميل...")}</div>
         ) : !data || data.weeks.length === 0 ? (
           <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
             <AppIcons.Users size={36} style={{ color: '#94a3b8', margin: '0 auto 8px' }} />
-            <div style={{ fontWeight: 700, color: '#334155' }}>لا توجد بيانات تحميل موارد بعد</div>
+            <div style={{ fontWeight: 700, color: '#334155' }}>{__t('contracting.resource_loading_modal.s2', "لا توجد بيانات تحميل موارد بعد")}</div>
             <div style={{ fontSize: 'var(--font-subtitle)', marginTop: '4px' }}>
-              أدخل عدد العمالة والمعدات المخططة عند إنشاء مهام الجدول الزمني ليظهر التقرير هنا
+              {__t('contracting.resource_loading_modal.s3', "أدخل عدد العمالة والمعدات المخططة عند إنشاء مهام الجدول الزمني ليظهر التقرير هنا")}
             </div>
           </div>
         ) : (
           <>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
               <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '10px', padding: '12px 16px' }}>
-                <div style={{ fontSize: 'var(--font-micro)', color: '#1e40af', fontWeight: 700 }}>ذروة العمالة</div>
+                <div style={{ fontSize: 'var(--font-micro)', color: '#1e40af', fontWeight: 700 }}>{__t('contracting.resource_loading_modal.s4', "ذروة العمالة")}</div>
                 <div style={{ fontSize: 'var(--font-h2)', fontWeight: 800, color: '#1e3a8a' }}>
-                  {data.peakManpowerWeek?.totalManpower ?? 0} عامل
+                  {data.peakManpowerWeek?.totalManpower ?? 0} {__t('contracting.resource_loading_modal.s5', "عامل")}
                 </div>
                 <div style={{ fontSize: 'var(--font-micro)', color: '#64748b' }}>
                   {data.peakManpowerWeek ? `أسبوع ${data.peakManpowerWeek.weekStart}` : '—'}
                 </div>
               </div>
               <div style={{ background: '#fef3c7', border: '1px solid #fde68a', borderRadius: '10px', padding: '12px 16px' }}>
-                <div style={{ fontSize: 'var(--font-micro)', color: '#92400e', fontWeight: 700 }}>ذروة المعدات</div>
+                <div style={{ fontSize: 'var(--font-micro)', color: '#92400e', fontWeight: 700 }}>{__t('contracting.resource_loading_modal.s6', "ذروة المعدات")}</div>
                 <div style={{ fontSize: 'var(--font-h2)', fontWeight: 800, color: '#78350f' }}>
-                  {data.peakEquipmentWeek?.totalEquipment ?? 0} معدة
+                  {data.peakEquipmentWeek?.totalEquipment ?? 0} {__t('contracting.resource_loading_modal.s7', "معدة")}
                 </div>
                 <div style={{ fontSize: 'var(--font-micro)', color: '#64748b' }}>
                   {data.peakEquipmentWeek ? `أسبوع ${data.peakEquipmentWeek.weekStart}` : '—'}
@@ -82,10 +84,10 @@ export function ResourceLoadingModal({ open, onClose, projectId, projectName }: 
               <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right', fontSize: 'var(--font-body)' }}>
                 <thead style={{ background: '#f8fafc', borderBottom: '1.5px solid #e2e8f0', position: 'sticky', top: 0 }}>
                   <tr>
-                    <th style={{ padding: '8px 10px' }}>الأسبوع</th>
-                    <th style={{ padding: '8px 10px' }}>عدد المهام</th>
-                    <th style={{ padding: '8px 10px' }}>العمالة</th>
-                    <th style={{ padding: '8px 10px' }}>المعدات</th>
+                    <th style={{ padding: '8px 10px' }}>{__t('contracting.resource_loading_modal.s8', "الأسبوع")}</th>
+                    <th style={{ padding: '8px 10px' }}>{__t('contracting.resource_loading_modal.s9', "عدد المهام")}</th>
+                    <th style={{ padding: '8px 10px' }}>{__t('contracting.resource_loading_modal.s10', "العمالة")}</th>
+                    <th style={{ padding: '8px 10px' }}>{__t('contracting.resource_loading_modal.s11', "المعدات")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -113,11 +115,11 @@ export function ResourceLoadingModal({ open, onClose, projectId, projectName }: 
 
             {data.tradeBreakdown.length > 0 && (
               <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px' }}>
-                <h4 style={{ margin: '0 0 10px', fontSize: 'var(--font-section-title)', fontWeight: 700, color: '#170e5e' }}>التوزيع حسب التخصص</h4>
+                <h4 style={{ margin: '0 0 10px', fontSize: 'var(--font-section-title)', fontWeight: 700, color: '#170e5e' }}>{__t('contracting.resource_loading_modal.s12', "التوزيع حسب التخصص")}</h4>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                   {data.tradeBreakdown.map((t) => (
                     <div key={t.trade} style={{ padding: '6px 12px', borderRadius: '8px', background: '#fff', border: '1px solid #e2e8f0', fontSize: 'var(--font-micro)' }}>
-                      <strong>{t.trade}</strong>: {t.manpower} عامل، {t.equipment} معدة
+                      <strong>{t.trade}</strong>: {t.manpower} {__t('contracting.resource_loading_modal.s13', "عامل،")} {t.equipment} {__t('contracting.resource_loading_modal.s14', "معدة")}
                     </div>
                   ))}
                 </div>

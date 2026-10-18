@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 import { Card } from '@/shared/ui/card';
 import { formatCurrency } from '@/lib/format';
@@ -34,10 +35,11 @@ export const ReconciliationDualLedger: React.FC<ReconciliationDualLedgerProps> =
   selectedGlLineId,
   onSelectGlLine,
 }) => {
+  const { t } = useTranslation();
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
       {/* RIGHT: Bank Statement Lines */}
-      <Card title="حركات كشف الحساب البنكي (Bank Statement)" className="workspace-panel">
+      <Card title={t('accounting.bank_reconciliation.reconciliation_dual_ledger.s0', "حركات كشف الحساب البنكي (Bank Statement)")} className="workspace-panel">
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           {/* Filters */}
           <div style={{ display: 'flex', gap: '6px' }}>
@@ -57,7 +59,7 @@ export const ReconciliationDualLedger: React.FC<ReconciliationDualLedgerProps> =
                   cursor: 'pointer',
                 }}
               >
-                {filter === 'all' ? 'الكل' : filter === 'pending' ? 'المعلق فقط' : 'المطابق'}
+                {filter === 'all' ? t('accounting.bank_reconciliation.reconciliation_dual_ledger.s1', "الكل") : filter === 'pending' ? t('accounting.bank_reconciliation.reconciliation_dual_ledger.s2', "المعلق فقط") : t('accounting.bank_reconciliation.reconciliation_dual_ledger.s3', "المطابق")}
               </button>
             ))}
           </div>
@@ -67,16 +69,16 @@ export const ReconciliationDualLedger: React.FC<ReconciliationDualLedgerProps> =
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
               <thead>
                 <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', textAlign: 'right' }}>
-                  <th style={{ padding: '8px 10px', color: '#64748b' }}>التاريخ</th>
-                  <th style={{ padding: '8px 10px', color: '#64748b' }}>البيان والمرجع</th>
-                  <th style={{ padding: '8px 10px', color: '#64748b' }}>المبلغ</th>
-                  <th style={{ padding: '8px 10px', color: '#64748b', textAlign: 'center' }}>الإجراء</th>
+                  <th style={{ padding: '8px 10px', color: '#64748b' }}>{t('accounting.bank_reconciliation.reconciliation_dual_ledger.s4', "التاريخ")}</th>
+                  <th style={{ padding: '8px 10px', color: '#64748b' }}>{t('accounting.bank_reconciliation.reconciliation_dual_ledger.s5', "البيان والمرجع")}</th>
+                  <th style={{ padding: '8px 10px', color: '#64748b' }}>{t('accounting.bank_reconciliation.reconciliation_dual_ledger.s6', "المبلغ")}</th>
+                  <th style={{ padding: '8px 10px', color: '#64748b', textAlign: 'center' }}>{t('accounting.bank_reconciliation.reconciliation_dual_ledger.s7', "الإجراء")}</th>
                 </tr>
               </thead>
               <tbody>
                 {statementLines.length === 0 ? (
                   <tr>
-                    <td colSpan={4} style={{ textAlign: 'center', padding: '24px', color: '#94a3b8' }}>لا توجد أسطر مطابقة للمحدد</td>
+                    <td colSpan={4} style={{ textAlign: 'center', padding: '24px', color: '#94a3b8' }}>{t('accounting.bank_reconciliation.reconciliation_dual_ledger.s8', "لا توجد أسطر مطابقة للمحدد")}</td>
                   </tr>
                 ) : (
                   statementLines.map((line) => {
@@ -96,7 +98,7 @@ export const ReconciliationDualLedger: React.FC<ReconciliationDualLedgerProps> =
                         <td style={{ padding: '8px 10px', color: '#64748b', whiteSpace: 'nowrap' }}>{line.lineDate}</td>
                         <td style={{ padding: '8px 10px' }}>
                           <div style={{ fontWeight: 700, color: '#0f172a' }}>{line.description}</div>
-                          {line.reference && <div style={{ fontSize: '11px', color: '#64748b' }}>مرجع: {line.reference}</div>}
+                          {line.reference && <div style={{ fontSize: '11px', color: '#64748b' }}>{t('accounting.bank_reconciliation.reconciliation_dual_ledger.s9', "مرجع:")} {line.reference}</div>}
                         </td>
                         <td style={{ padding: '8px 10px', fontWeight: 800, color: isDeposit ? '#16a34a' : '#dc2626', whiteSpace: 'nowrap' }}>
                           {isDeposit ? `+${formatCurrency(line.amount)}` : formatCurrency(line.amount)}
@@ -104,14 +106,14 @@ export const ReconciliationDualLedger: React.FC<ReconciliationDualLedgerProps> =
                         <td style={{ padding: '8px 10px', textAlign: 'center' }}>
                           {line.isReconciled ? (
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
-                              <span style={{ fontSize: '10.5px', color: '#166534', fontWeight: 800 }}>مطابق</span>
+                              <span style={{ fontSize: '10.5px', color: '#166534', fontWeight: 800 }}>{t('accounting.bank_reconciliation.reconciliation_dual_ledger.s10', "مطابق")}</span>
                               <button
                                 type="button"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   onUnmatchLine(line.id);
                                 }}
-                                title="إلغاء المطابقة"
+                                title={t('accounting.bank_reconciliation.reconciliation_dual_ledger.s11', "إلغاء المطابقة")}
                                 style={{ background: 'transparent', border: 'none', color: '#dc2626', cursor: 'pointer', padding: '2px' }}
                               >
                                 <XIcon size={12} />
@@ -132,7 +134,7 @@ export const ReconciliationDualLedger: React.FC<ReconciliationDualLedgerProps> =
                                   cursor: 'pointer',
                                 }}
                               >
-                                {isSelected ? 'محدد' : 'تحديد'}
+                                {isSelected ? t('accounting.bank_reconciliation.reconciliation_dual_ledger.s12', "محدد") : t('accounting.bank_reconciliation.reconciliation_dual_ledger.s13', "تحديد")}
                               </button>
                               {!isDeposit && (
                                 <button
@@ -141,7 +143,7 @@ export const ReconciliationDualLedger: React.FC<ReconciliationDualLedgerProps> =
                                     e.stopPropagation();
                                     onOpenFeeModal(line);
                                   }}
-                                  title="تسوية عمولة ومصاريف بنكية فورية"
+                                  title={t('accounting.bank_reconciliation.reconciliation_dual_ledger.s14', "تسوية عمولة ومصاريف بنكية فورية")}
                                   style={{
                                     padding: '3px 6px',
                                     borderRadius: '4px',
@@ -153,7 +155,7 @@ export const ReconciliationDualLedger: React.FC<ReconciliationDualLedgerProps> =
                                     cursor: 'pointer',
                                   }}
                                 >
-                                  عمولة
+                                  {t('accounting.bank_reconciliation.reconciliation_dual_ledger.s15', "عمولة")}
                                 </button>
                               )}
                             </div>
@@ -170,13 +172,13 @@ export const ReconciliationDualLedger: React.FC<ReconciliationDualLedgerProps> =
       </Card>
 
       {/* LEFT: General Ledger Journal Lines */}
-      <Card title="حركات دفتر الأستاذ العام (General Ledger)" className="workspace-panel">
+      <Card title={t('accounting.bank_reconciliation.reconciliation_dual_ledger.s16', "حركات دفتر الأستاذ العام (General Ledger)")} className="workspace-panel">
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           {/* Search Bar */}
           <div style={{ position: 'relative' }}>
             <input
               type="text"
-              placeholder="بحث برقم القيد أو البيان أو المبلغ..."
+              placeholder={t('accounting.bank_reconciliation.reconciliation_dual_ledger.s17', "بحث برقم القيد أو البيان أو المبلغ...")}
               value={glFilterText}
               onChange={(e) => onGlFilterTextChange(e.target.value)}
               style={{ width: '100%', padding: '6px 30px 6px 10px', fontSize: '12px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }}
@@ -191,17 +193,17 @@ export const ReconciliationDualLedger: React.FC<ReconciliationDualLedgerProps> =
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
               <thead>
                 <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', textAlign: 'right' }}>
-                  <th style={{ padding: '8px 10px', color: '#64748b' }}>التاريخ والقيد</th>
-                  <th style={{ padding: '8px 10px', color: '#64748b' }}>البيان</th>
-                  <th style={{ padding: '8px 10px', color: '#64748b' }}>مدين (+)</th>
-                  <th style={{ padding: '8px 10px', color: '#64748b' }}>دائن (-)</th>
-                  <th style={{ padding: '8px 10px', color: '#64748b', textAlign: 'center' }}>الإجراء</th>
+                  <th style={{ padding: '8px 10px', color: '#64748b' }}>{t('accounting.bank_reconciliation.reconciliation_dual_ledger.s18', "التاريخ والقيد")}</th>
+                  <th style={{ padding: '8px 10px', color: '#64748b' }}>{t('accounting.bank_reconciliation.reconciliation_dual_ledger.s19', "البيان")}</th>
+                  <th style={{ padding: '8px 10px', color: '#64748b' }}>{t('accounting.bank_reconciliation.reconciliation_dual_ledger.s20', "مدين (+)")}</th>
+                  <th style={{ padding: '8px 10px', color: '#64748b' }}>{t('accounting.bank_reconciliation.reconciliation_dual_ledger.s21', "دائن (-)")}</th>
+                  <th style={{ padding: '8px 10px', color: '#64748b', textAlign: 'center' }}>{t('accounting.bank_reconciliation.reconciliation_dual_ledger.s22', "الإجراء")}</th>
                 </tr>
               </thead>
               <tbody>
                 {glLines.length === 0 ? (
                   <tr>
-                    <td colSpan={5} style={{ textAlign: 'center', padding: '24px', color: '#94a3b8' }}>لا توجد قيود معلقة في دفتر الأستاذ لهذا الحساب</td>
+                    <td colSpan={5} style={{ textAlign: 'center', padding: '24px', color: '#94a3b8' }}>{t('accounting.bank_reconciliation.reconciliation_dual_ledger.s23', "لا توجد قيود معلقة في دفتر الأستاذ لهذا الحساب")}</td>
                   </tr>
                 ) : (
                   glLines.map((gl) => {
@@ -222,7 +224,7 @@ export const ReconciliationDualLedger: React.FC<ReconciliationDualLedgerProps> =
                           <div style={{ fontSize: '11px', color: '#64748b' }}>{gl.entryDate}</div>
                         </td>
                         <td style={{ padding: '8px 10px' }}>
-                          <div style={{ color: '#0f172a', fontWeight: 600 }}>{gl.description || 'قيد مرحل'}</div>
+                          <div style={{ color: '#0f172a', fontWeight: 600 }}>{gl.description || t('accounting.bank_reconciliation.reconciliation_dual_ledger.s24', "قيد مرحل")}</div>
                         </td>
                         <td style={{ padding: '8px 10px', fontWeight: 700, color: gl.debit > 0 ? '#16a34a' : '#94a3b8', whiteSpace: 'nowrap' }}>
                           {gl.debit > 0 ? formatCurrency(gl.debit) : '-'}
@@ -244,7 +246,7 @@ export const ReconciliationDualLedger: React.FC<ReconciliationDualLedgerProps> =
                               cursor: 'pointer',
                             }}
                           >
-                            {isSelected ? 'محدد' : 'تحديد'}
+                            {isSelected ? t('accounting.bank_reconciliation.reconciliation_dual_ledger.s25', "محدد") : t('accounting.bank_reconciliation.reconciliation_dual_ledger.s26', "تحديد")}
                           </button>
                         </td>
                       </tr>

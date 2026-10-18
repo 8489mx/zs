@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import type { CSSProperties, ReactNode } from 'react';
 import { useForm } from 'react-hook-form';
 import type { Branch, Location } from '@/types/domain';
@@ -54,6 +55,7 @@ export async function readFileAsDataUrl(file: File, maxDimension = 320, quality 
 }
 
 export function BrandPreview({ form }: { form: ReturnType<typeof useForm<SettingsFormInput, undefined, SettingsFormOutput>> }) {
+  const { t } = useTranslation();
   const brandName = form.watch('brandName');
   const storeName = form.watch('storeName');
   const accentColor = form.watch('accentColor');
@@ -65,7 +67,7 @@ export function BrandPreview({ form }: { form: ReturnType<typeof useForm<Setting
       </div>
       <div>
         <strong>{brandName || 'Z Systems'}</strong>
-        <div className="muted small">{storeName || 'اسم النشاط / المتجر سيظهر هنا'}</div>
+        <div className="muted small">{storeName || t('settings.forms.settings_forms.shared.s0', "اسم النشاط / المتجر سيظهر هنا")}</div>
         <div className="brand-color-chip"><span className="brand-color-swatch" style={{ background: accentColor || '#170c5c' }} /> {accentColor || '#170c5c'}</div>
       </div>
     </div>

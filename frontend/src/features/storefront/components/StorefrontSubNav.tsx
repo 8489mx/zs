@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { StorefrontCategory } from '../types/storefront.types';
 import { IconGrid, IconFlame, IconCheckCircle, IconClose } from './StorefrontIcons';
 
@@ -30,6 +31,7 @@ export function StorefrontSubNav({
   favoritesCount = 0,
   onClearFilters,
 }: StorefrontSubNavProps) {
+  const { t } = useTranslation();
   return (
     <div
       className="storefront-subnav"
@@ -126,7 +128,7 @@ export function StorefrontSubNav({
             onMouseLeave={(e) => (e.currentTarget.style.filter = 'none')}
           >
             <IconGrid size={15} strokeWidth={2.2} />
-            <span>تصفح الأقسام</span>
+            <span>{t('storefront.storefront_sub_nav.s0', "تصفح الأقسام")}</span>
             <span
               style={{
                 fontSize: '11px',
@@ -161,7 +163,7 @@ export function StorefrontSubNav({
               }}
             >
               <IconFlame size={14} color={onlyDeals ? '#dc2626' : '#ef4444'} strokeWidth={2} />
-              <span>عروض وتخفيضات</span>
+              <span>{t('storefront.storefront_sub_nav.s1', "عروض وتخفيضات")}</span>
               {dealsCount > 0 && (
                 <span
                   style={{
@@ -200,7 +202,7 @@ export function StorefrontSubNav({
             }}
           >
             <IconCheckCircle size={14} color={inStockOnly ? '#16a34a' : '#94a3b8'} strokeWidth={2} />
-            <span>المتوفر بالمخزن</span>
+            <span>{t('storefront.storefront_sub_nav.s2', "المتوفر بالمخزن")}</span>
           </button>
 
           {/* Favorites Filter Pill */}
@@ -236,7 +238,7 @@ export function StorefrontSubNav({
               >
                 <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
               </svg>
-              <span>المفضلة</span>
+              <span>{t('storefront.storefront_sub_nav.s3', "المفضلة")}</span>
               {favoritesCount > 0 && (
                 <span
                   style={{
@@ -287,7 +289,7 @@ export function StorefrontSubNav({
             }}
           >
             <IconClose size={12} strokeWidth={2.5} />
-            <span>مسح التصفية</span>
+            <span>{t('storefront.storefront_sub_nav.s4', "مسح التصفية")}</span>
           </button>
         ) : null}
       </div>

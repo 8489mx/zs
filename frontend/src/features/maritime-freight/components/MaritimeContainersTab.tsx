@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useMemo, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
@@ -21,6 +22,7 @@ export function MaritimeContainersTab({
   onOpenReturnModal,
   onRefresh,
 }: MaritimeContainersTabProps) {
+  const { t } = useTranslation();
   const location = useLocation();
   const [filterType, setFilterType] = useState<ContainerFilterType>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -86,10 +88,10 @@ export function MaritimeContainersTab({
       return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
           <span style={{ padding: '2px 8px', borderRadius: '10px', background: '#f1f5f9', color: '#475569', fontSize: '0.72rem', fontWeight: 700, width: 'fit-content' }}>
-            تم الإرجاع بنجاح ✓
+            {t('maritime_freight.maritime_containers_tab.s0', "تم الإرجاع بنجاح ✓")}
           </span>
           <span style={{ fontSize: '0.68rem', color: '#64748b' }}>
-            أرجع في: {container.empty_returned_at.split('T')[0]}
+            {t('maritime_freight.maritime_containers_tab.s1', "أرجع في:")} {container.empty_returned_at.split('T')[0]}
           </span>
         </div>
       );
@@ -134,7 +136,7 @@ export function MaritimeContainersTab({
         </div>
         {container.return_deadline && (
           <span style={{ fontSize: '0.68rem', color: '#64748b' }}>
-            الموعد الأقصى: {container.return_deadline.split('T')[0]}
+            {t('maritime_freight.maritime_containers_tab.s2', "الموعد الأقصى:")} {container.return_deadline.split('T')[0]}
           </span>
         )}
       </div>
@@ -144,13 +146,13 @@ export function MaritimeContainersTab({
   const getDepositBadge = (status: string) => {
     switch (status) {
       case 'refunded_to_treasury':
-        return <span style={{ padding: '3px 8px', borderRadius: '12px', background: '#dcfce7', color: '#15803d', fontSize: '0.72rem', fontWeight: 700 }}>مسترد للخزينة</span>;
+        return <span style={{ padding: '3px 8px', borderRadius: '12px', background: '#dcfce7', color: '#15803d', fontSize: '0.72rem', fontWeight: 700 }}>{t('maritime_freight.maritime_containers_tab.s3', "مسترد للخزينة")}</span>;
       case 'pending_return_proof':
-        return <span style={{ padding: '3px 8px', borderRadius: '12px', background: '#fef3c7', color: '#b45309', fontSize: '0.72rem', fontWeight: 700 }}>بانتظار إشعار الرد</span>;
+        return <span style={{ padding: '3px 8px', borderRadius: '12px', background: '#fef3c7', color: '#b45309', fontSize: '0.72rem', fontWeight: 700 }}>{t('maritime_freight.maritime_containers_tab.s4', "بانتظار إشعار الرد")}</span>;
       case 'held_by_line':
-        return <span style={{ padding: '3px 8px', borderRadius: '12px', background: '#fee2e2', color: '#b91c1c', fontSize: '0.72rem', fontWeight: 700 }}>محتجز لدى التوكيل</span>;
+        return <span style={{ padding: '3px 8px', borderRadius: '12px', background: '#fee2e2', color: '#b91c1c', fontSize: '0.72rem', fontWeight: 700 }}>{t('maritime_freight.maritime_containers_tab.s5', "محتجز لدى التوكيل")}</span>;
       default:
-        return <span style={{ padding: '3px 8px', borderRadius: '12px', background: '#f1f5f9', color: '#64748b', fontSize: '0.72rem', fontWeight: 600 }}>غير مطلوب</span>;
+        return <span style={{ padding: '3px 8px', borderRadius: '12px', background: '#f1f5f9', color: '#64748b', fontSize: '0.72rem', fontWeight: 600 }}>{t('maritime_freight.maritime_containers_tab.s6', "غير مطلوب")}</span>;
     }
   };
 
@@ -213,9 +215,9 @@ export function MaritimeContainersTab({
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '12px' }}>
         <div style={{ background: '#ffffff', padding: '16px 20px', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: '88px', boxSizing: 'border-box' }}>
           <div>
-            <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>إجمالي الحاويات المتداولة</div>
+            <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>{t('maritime_freight.maritime_containers_tab.s7', "إجمالي الحاويات المتداولة")}</div>
             <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#0f172a', marginTop: '4px' }}>
-              {totalContainers} <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>حاوية</span>
+              {totalContainers} <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>{t('maritime_freight.maritime_containers_tab.s8', "حاوية")}</span>
             </div>
           </div>
           <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#eff6ff', border: '1px solid #dbeafe', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#2563eb', flexShrink: 0 }}>
@@ -225,9 +227,9 @@ export function MaritimeContainersTab({
 
         <div style={{ background: '#ffffff', padding: '16px 20px', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: '88px', boxSizing: 'border-box' }}>
           <div>
-            <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>حاويات تجاوزت السماح (غرامات)</div>
+            <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>{t('maritime_freight.maritime_containers_tab.s9', "حاويات تجاوزت السماح (غرامات)")}</div>
             <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#0f172a', marginTop: '4px' }}>
-              {overdueCount} <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>حاوية</span>
+              {overdueCount} <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>{t('maritime_freight.maritime_containers_tab.s10', "حاوية")}</span>
             </div>
           </div>
           <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#fef2f2', border: '1px solid #fee2e2', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#dc2626', flexShrink: 0 }}>
@@ -237,7 +239,7 @@ export function MaritimeContainersTab({
 
         <div style={{ background: '#ffffff', padding: '16px 20px', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: '88px', boxSizing: 'border-box' }}>
           <div>
-            <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>تأمينات محتجزة لدى التوكيلات</div>
+            <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>{t('maritime_freight.maritime_containers_tab.s11', "تأمينات محتجزة لدى التوكيلات")}</div>
             <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#0f172a', marginTop: '4px' }}>
               {depositHeldTotal.toLocaleString()} <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}><CurrencySymbol /></span>
             </div>
@@ -249,9 +251,9 @@ export function MaritimeContainersTab({
 
         <div style={{ background: '#ffffff', padding: '16px 20px', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: '88px', boxSizing: 'border-box' }}>
           <div>
-            <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>حاويات تم إرجاعها بنجاح</div>
+            <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>{t('maritime_freight.maritime_containers_tab.s12', "حاويات تم إرجاعها بنجاح")}</div>
             <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#0f172a', marginTop: '4px' }}>
-              {returnedCount} <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>حاوية</span>
+              {returnedCount} <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>{t('maritime_freight.maritime_containers_tab.s13', "حاوية")}</span>
             </div>
           </div>
           <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#f0fdf4', border: '1px solid #dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#16a34a', flexShrink: 0 }}>
@@ -265,10 +267,10 @@ export function MaritimeContainersTab({
         <div style={{ padding: '16px 20px', borderBottom: '1px solid #e2e8f0', background: '#f8fafc', display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
           <div>
             <h3 style={{ margin: 0, fontSize: '0.94rem', fontWeight: 800, color: '#0f172a' }}>
-              سجل وتتبع دورة حياة الحاويات والطرود (Container & Cargo Lifecycle Tracking)
+              {t('maritime_freight.maritime_containers_tab.s14', "سجل وتتبع دورة حياة الحاويات والطرود (Container & Cargo Lifecycle Tracking)")}
             </h3>
             <p style={{ margin: '3px 0 0 0', fontSize: '0.78rem', color: '#64748b' }}>
-              متابعة تداول الحاويات، فترات السماح (Free Days)، ومطابقة استرداد ودائع التأمين لدى التوكيلات الملاحية
+              {t('maritime_freight.maritime_containers_tab.s15', "متابعة تداول الحاويات، فترات السماح (Free Days)، ومطابقة استرداد ودائع التأمين لدى التوكيلات الملاحية")}
             </p>
           </div>
 
@@ -290,10 +292,10 @@ export function MaritimeContainersTab({
                 cursor: 'pointer',
               }}
             >
-              <span>تصدير تقرير الحاويات (CSV)</span>
+              <span>{t('maritime_freight.maritime_containers_tab.s16', "تصدير تقرير الحاويات (CSV)")}</span>
             </button>
             <span style={{ fontSize: '0.75rem', fontWeight: 700, background: '#ffffff', color: '#475569', border: '1px solid #e2e8f0', padding: '5px 10px', borderRadius: '8px' }}>
-              {filteredContainers.length} من {containers.length} حاوية
+              {filteredContainers.length} {t('maritime_freight.maritime_containers_tab.s17', "من")} {containers.length} {t('maritime_freight.maritime_containers_tab.s18', "حاوية")}
             </span>
           </div>
         </div>
@@ -316,7 +318,7 @@ export function MaritimeContainersTab({
                 cursor: 'pointer',
               }}
             >
-              الكل ({totalContainers})
+              {t('maritime_freight.maritime_containers_tab.s19', "الكل (")}{totalContainers})
             </button>
 
             <button
@@ -333,7 +335,7 @@ export function MaritimeContainersTab({
                 cursor: 'pointer',
               }}
             >
-              حرجة (≤ 3 أيام) ({criticalCount})
+              {t('maritime_freight.maritime_containers_tab.s20', "حرجة (≤ 3 أيام) (")}{criticalCount})
             </button>
 
             <button
@@ -350,7 +352,7 @@ export function MaritimeContainersTab({
                 cursor: 'pointer',
               }}
             >
-              متأخرة بغرامات ({overdueCount})
+              {t('maritime_freight.maritime_containers_tab.s21', "متأخرة بغرامات (")}{overdueCount})
             </button>
 
             <button
@@ -367,7 +369,7 @@ export function MaritimeContainersTab({
                 cursor: 'pointer',
               }}
             >
-              تأمينات محتجزة ({depositHeldCount})
+              {t('maritime_freight.maritime_containers_tab.s22', "تأمينات محتجزة (")}{depositHeldCount})
             </button>
 
             <button
@@ -384,7 +386,7 @@ export function MaritimeContainersTab({
                 cursor: 'pointer',
               }}
             >
-              تم إرجاعها ({returnedCount})
+              {t('maritime_freight.maritime_containers_tab.s23', "تم إرجاعها (")}{returnedCount})
             </button>
           </div>
 
@@ -402,7 +404,7 @@ export function MaritimeContainersTab({
               data-lpignore="true"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="بحث برقم الحاوية، الختم، العميل، الخط..."
+              placeholder={t('maritime_freight.maritime_containers_tab.s24', "بحث برقم الحاوية، الختم، العميل، الخط...")}
               style={{
                 width: '260px',
                 padding: '6px 12px',
@@ -424,7 +426,7 @@ export function MaritimeContainersTab({
                   cursor: 'pointer',
                 }}
               >
-                مسح
+                {t('maritime_freight.maritime_containers_tab.s25', "مسح")}
               </button>
             )}
           </div>
@@ -434,26 +436,26 @@ export function MaritimeContainersTab({
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right', fontSize: '0.825rem' }}>
             <thead>
               <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', fontWeight: 700 }}>
-                <th style={{ padding: '12px 14px' }}>رقم الحاوية</th>
-                <th style={{ padding: '12px 14px' }}>النوع والختم</th>
-                <th style={{ padding: '12px 14px' }}>أمر التشغيل والعميل</th>
-                <th style={{ padding: '12px 14px' }}>الخط الملاحي</th>
-                <th style={{ padding: '12px 14px' }}>رادار أيام السماح (Free Days)</th>
-                <th style={{ padding: '12px 14px' }}>تأمين الحاوية</th>
-                <th style={{ padding: '12px 14px', textAlign: 'center' }}>الإجراءات التشغيلية</th>
+                <th style={{ padding: '12px 14px' }}>{t('maritime_freight.maritime_containers_tab.s26', "رقم الحاوية")}</th>
+                <th style={{ padding: '12px 14px' }}>{t('maritime_freight.maritime_containers_tab.s27', "النوع والختم")}</th>
+                <th style={{ padding: '12px 14px' }}>{t('maritime_freight.maritime_containers_tab.s28', "أمر التشغيل والعميل")}</th>
+                <th style={{ padding: '12px 14px' }}>{t('maritime_freight.maritime_containers_tab.s29', "الخط الملاحي")}</th>
+                <th style={{ padding: '12px 14px' }}>{t('maritime_freight.maritime_containers_tab.s30', "رادار أيام السماح (Free Days)")}</th>
+                <th style={{ padding: '12px 14px' }}>{t('maritime_freight.maritime_containers_tab.s31', "تأمين الحاوية")}</th>
+                <th style={{ padding: '12px 14px', textAlign: 'center' }}>{t('maritime_freight.maritime_containers_tab.s32', "الإجراءات التشغيلية")}</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
                   <td colSpan={7} style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
-                    جاري تحميل رادار الحاويات...
+                    {t('maritime_freight.maritime_containers_tab.s33', "جاري تحميل رادار الحاويات...")}
                   </td>
                 </tr>
               ) : filteredContainers.length === 0 ? (
                 <tr>
                   <td colSpan={7} style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
-                    لا توجد حاويات مطابقة للفلتر المحدد.
+                    {t('maritime_freight.maritime_containers_tab.s34', "لا توجد حاويات مطابقة للفلتر المحدد.")}
                   </td>
                 </tr>
               ) : (
@@ -467,7 +469,7 @@ export function MaritimeContainersTab({
                     </td>
                     <td style={{ padding: '12px 14px' }}>
                       <div style={{ fontWeight: 700 }}>{c.container_type}</div>
-                      <div style={{ fontSize: '0.72rem', color: '#64748b' }}>ختم: {c.seal_number || 'بدون'}</div>
+                      <div style={{ fontSize: '0.72rem', color: '#64748b' }}>{t('maritime_freight.maritime_containers_tab.s35', "ختم:")} {c.seal_number || t('maritime_freight.maritime_containers_tab.s36', "بدون")}</div>
                     </td>
                     <td style={{ padding: '12px 14px' }}>
                       <div style={{ fontWeight: 700, color: '#0f172a' }}>{c.customer_name || '—'}</div>
@@ -501,9 +503,9 @@ export function MaritimeContainersTab({
                             color: '#1d4ed8',
                             cursor: 'pointer',
                           }}
-                          title="تحديث تاريخ التفريغ أو خروج البوابة"
+                          title={t('maritime_freight.maritime_containers_tab.s37', "تحديث تاريخ التفريغ أو خروج البوابة")}
                         >
-                          تحديث المحطات
+                          {t('maritime_freight.maritime_containers_tab.s38', "تحديث المحطات")}
                         </button>
 
                         <button
@@ -520,7 +522,7 @@ export function MaritimeContainersTab({
                             cursor: 'pointer',
                           }}
                         >
-                          {c.empty_returned_at ? 'تعديل الإرجاع' : 'إرجاع الفارغ والتأمين'}
+                          {c.empty_returned_at ? t('maritime_freight.maritime_containers_tab.s39', "تعديل الإرجاع") : t('maritime_freight.maritime_containers_tab.s40', "إرجاع الفارغ والتأمين")}
                         </button>
                       </div>
                     </td>

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 import {
   ShoppingCartIcon,
@@ -26,6 +27,7 @@ export const CfdHeader: React.FC<CfdHeaderProps> = ({
   onToggleFullscreen,
   onBack,
 }) => {
+  const { t } = useTranslation();
   return (
     <header className="cfd-header">
       <div className="cfd-brand-section">
@@ -33,7 +35,7 @@ export const CfdHeader: React.FC<CfdHeaderProps> = ({
           <ShoppingCartIcon size={22} color="#ffffff" />
         </div>
         <div>
-          <div className="cfd-store-name">{storeName || 'مؤسستنا التجارية'}</div>
+          <div className="cfd-store-name">{storeName || t('pos.customer_display.cfd_header.s0', "مؤسستنا التجارية")}</div>
           {branchName && (
             <span className="cfd-branch-badge">{branchName}</span>
           )}
@@ -50,7 +52,7 @@ export const CfdHeader: React.FC<CfdHeaderProps> = ({
 
         <div className="cfd-status-pill">
           <span className="cfd-status-dot" aria-hidden="true" />
-          <span>بث مباشر للكاشير</span>
+          <span>{t('pos.customer_display.cfd_header.s1', "بث مباشر للكاشير")}</span>
         </div>
 
         {onBack && (
@@ -70,10 +72,10 @@ export const CfdHeader: React.FC<CfdHeaderProps> = ({
               fontWeight: 700,
               fontSize: '12px',
             }}
-            title="العودة لبورتال الشاشات"
+            title={t('pos.customer_display.cfd_header.s2', "العودة لبورتال الشاشات")}
           >
             <ArrowRightIcon size={15} color="#ffffff" strokeWidth={2.5} />
-            <span>الشاشات</span>
+            <span>{t('pos.customer_display.cfd_header.s3', "الشاشات")}</span>
           </button>
         )}
 
@@ -81,7 +83,7 @@ export const CfdHeader: React.FC<CfdHeaderProps> = ({
           type="button"
           className="cfd-fullscreen-btn"
           onClick={onToggleFullscreen}
-          title={isFullscreen ? 'تصغير الشاشة' : 'ملء الشاشة'}
+          title={isFullscreen ? t('pos.customer_display.cfd_header.s4', "تصغير الشاشة") : t('pos.customer_display.cfd_header.s5', "ملء الشاشة")}
           aria-label="Toggle Fullscreen"
         >
           {isFullscreen ? <Minimize2Icon size={18} /> : <Maximize2Icon size={18} />}

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { PageHeader } from '@/shared/components/page-header';
@@ -19,6 +20,7 @@ function formatBytes(bytes: number): string {
 }
 
 export function SaasDiagnosticsPage() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
@@ -71,9 +73,9 @@ export function SaasDiagnosticsPage() {
     <div className="page-stack page-shell saas-diagnostics-workspace" dir="rtl">
       <main className="document-prototype-column" style={{ paddingBottom: '32px' }}>
         <PageHeader
-          title="سجلات التشخيص والدعم الفني"
-          description="متابعة وتحميل حزم اللوجات والفحص المرفوعة تلقائياً ويدوياً من أجهزة العملاء لحل المشاكل استباقياً."
-          badge={<span className="nav-pill">{pagination?.total || items.length} تقرير</span>}
+          title={t('saas_admin.saas_diagnostics_page.s0', "سجلات التشخيص والدعم الفني")}
+          description={t('saas_admin.saas_diagnostics_page.s1', "متابعة وتحميل حزم اللوجات والفحص المرفوعة تلقائياً ويدوياً من أجهزة العملاء لحل المشاكل استباقياً.")}
+          badge={<span className="nav-pill">{pagination?.total || items.length} {t('saas_admin.saas_diagnostics_page.s2', "تقرير")}</span>}
           actions={
             <div className="actions compact-actions">
               <Button
@@ -82,7 +84,7 @@ export function SaasDiagnosticsPage() {
                 onClick={() => refetch()}
                 disabled={isFetching}
               >
-                {isFetching ? 'جاري التحديث...' : 'تحديث البيانات'}
+                {isFetching ? t('saas_admin.saas_diagnostics_page.s3', "جاري التحديث...") : t('saas_admin.saas_diagnostics_page.s4', "تحديث البيانات")}
               </Button>
             </div>
           }
@@ -92,9 +94,9 @@ export function SaasDiagnosticsPage() {
 
         <section className="document-prototype-section">
           <div className="section-header-compact-row" style={{ marginBottom: '12px' }}>
-            <h3 className="document-prototype-section-title">سجلات العملاء المرفوعة</h3>
+            <h3 className="document-prototype-section-title">{t('saas_admin.saas_diagnostics_page.s5', "سجلات العملاء المرفوعة")}</h3>
             <div className="section-header-actions-group">
-              <span className="muted small">يتم استلام اللوجات تلقائياً دورياً أو عند طلب الدعم الفني</span>
+              <span className="muted small">{t('saas_admin.saas_diagnostics_page.s6', "يتم استلام اللوجات تلقائياً دورياً أو عند طلب الدعم الفني")}</span>
             </div>
           </div>
           <div className="space-y-4">
@@ -103,7 +105,7 @@ export function SaasDiagnosticsPage() {
             <div className="w-full sm:w-80">
               <input
                 type="text"
-                placeholder="بحث باسم العميل أو المعرف أو الفترة..."
+                placeholder={t('saas_admin.saas_diagnostics_page.s7', "بحث باسم العميل أو المعرف أو الفترة...")}
                 value={search}
                 onChange={(e) => {
                   setSearch(e.target.value);
@@ -113,7 +115,7 @@ export function SaasDiagnosticsPage() {
               />
             </div>
             <div className="text-xs text-slate-500">
-              يتم استلام اللوجات تلقائياً يوم 15 من كل شهر أو عند طلب الدعم الفني من العميل.
+              {t('saas_admin.saas_diagnostics_page.s8', "يتم استلام اللوجات تلقائياً يوم 15 من كل شهر أو عند طلب الدعم الفني من العميل.")}
             </div>
           </div>
 
@@ -122,10 +124,10 @@ export function SaasDiagnosticsPage() {
             isError={isError}
             error={error}
             isEmpty={items.length === 0}
-            emptyTitle="لا توجد تقارير تشخيصية مرفوعة حتى الآن."
+            emptyTitle={t('saas_admin.saas_diagnostics_page.s9', "لا توجد تقارير تشخيصية مرفوعة حتى الآن.")}
             errorAction={
               <Button variant="secondary" onClick={() => refetch()}>
-                إعادة المحاولة
+                {t('saas_admin.saas_diagnostics_page.s10', "إعادة المحاولة")}
               </Button>
             }
           >
@@ -134,7 +136,7 @@ export function SaasDiagnosticsPage() {
               columns={[
                 {
                   id: 'client',
-                  header: 'العميل / المتجر',
+                  header: t('saas_admin.saas_diagnostics_page.s11', "العميل / المتجر"),
                   render: (row: SaasDiagnosticRow) => (
                     <div>
                       <div className="font-semibold text-slate-900 dark:text-white">{row.clientName}</div>
@@ -144,7 +146,7 @@ export function SaasDiagnosticsPage() {
                 },
                 {
                   id: 'version',
-                  header: 'الإصدار',
+                  header: t('saas_admin.saas_diagnostics_page.s12', "الإصدار"),
                   render: (row: SaasDiagnosticRow) => (
                     <span className="inline-block px-2 py-0.5 text-xs font-mono rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
                       v{row.appVersion || '1.0.0'}
@@ -153,7 +155,7 @@ export function SaasDiagnosticsPage() {
                 },
                 {
                   id: 'period',
-                  header: 'الفترة',
+                  header: t('saas_admin.saas_diagnostics_page.s13', "الفترة"),
                   render: (row: SaasDiagnosticRow) => (
                     <span className="font-mono text-sm font-medium text-slate-800 dark:text-slate-200">
                       {row.logPeriod}
@@ -162,7 +164,7 @@ export function SaasDiagnosticsPage() {
                 },
                 {
                   id: 'status',
-                  header: 'حالة الأخطاء (500)',
+                  header: t('saas_admin.saas_diagnostics_page.s14', "حالة الأخطاء (500)"),
                   render: (row: SaasDiagnosticRow) => {
                     if (row.errorCount500 > 0) {
                       return (
@@ -170,25 +172,25 @@ export function SaasDiagnosticsPage() {
                           type="button"
                           onClick={() => setSelectedErrorRow(row)}
                           className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-400 border border-red-200 dark:border-red-800 hover:bg-red-200 transition-colors"
-                          title="اضغط لمعاينة تفاصيل الأخطاء"
+                          title={t('saas_admin.saas_diagnostics_page.s15', "اضغط لمعاينة تفاصيل الأخطاء")}
                         >
                           <span className="w-1.5 h-1.5 rounded-full bg-red-600 animate-pulse" />
-                          <span>{row.errorCount500} خطأ سيرفر</span>
-                          <span className="text-[10px] underline">(معاينة)</span>
+                          <span>{row.errorCount500} {t('saas_admin.saas_diagnostics_page.s16', "خطأ سيرفر")}</span>
+                          <span className="text-[10px] underline">{t('saas_admin.saas_diagnostics_page.s17', "(معاينة)")}</span>
                         </button>
                       );
                     }
                     return (
                       <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                        <span>نظيف (0 أخطاء)</span>
+                        <span>{t('saas_admin.saas_diagnostics_page.s18', "نظيف (0 أخطاء)")}</span>
                       </span>
                     );
                   },
                 },
                 {
                   id: 'size',
-                  header: 'حجم الحزمة',
+                  header: t('saas_admin.saas_diagnostics_page.s19', "حجم الحزمة"),
                   render: (row: SaasDiagnosticRow) => (
                     <span className="text-xs font-mono text-slate-600 dark:text-slate-400">
                       {formatBytes(row.fileSizeBytes)}
@@ -197,7 +199,7 @@ export function SaasDiagnosticsPage() {
                 },
                 {
                   id: 'uploadedAt',
-                  header: 'تاريخ الرفع',
+                  header: t('saas_admin.saas_diagnostics_page.s20', "تاريخ الرفع"),
                   render: (row: SaasDiagnosticRow) => (
                     <span className="text-xs text-slate-600 dark:text-slate-400">
                       {formatDate(row.uploadedAt)}
@@ -206,7 +208,7 @@ export function SaasDiagnosticsPage() {
                 },
                 {
                   id: 'actions',
-                  header: 'الإجراءات',
+                  header: t('saas_admin.saas_diagnostics_page.s21', "الإجراءات"),
                   render: (row: SaasDiagnosticRow) => (
                     <div className="flex items-center gap-2">
                       <Button
@@ -215,7 +217,7 @@ export function SaasDiagnosticsPage() {
                         onClick={() => handleDownload(row)}
                         className="text-xs px-2.5 py-1 text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 border-indigo-200"
                       >
-                        تحميل ZIP
+                        {t('saas_admin.saas_diagnostics_page.s22', "تحميل ZIP")}
                       </Button>
                       <Button
                         type="button"
@@ -224,7 +226,7 @@ export function SaasDiagnosticsPage() {
                         disabled={deleteMutation.isPending}
                         className="text-xs px-2 py-1 text-red-600 hover:bg-red-50"
                       >
-                        حذف
+                        {t('saas_admin.saas_diagnostics_page.s23', "حذف")}
                       </Button>
                     </div>
                   ),
@@ -238,7 +240,7 @@ export function SaasDiagnosticsPage() {
           {pagination && pagination.totalPages > 1 && (
             <div className="flex items-center justify-between pt-4 border-t border-slate-200 dark:border-slate-800">
               <div className="text-xs text-slate-500">
-                صفحة {pagination.page} من {pagination.totalPages} (إجمالي {pagination.total} تقرير)
+                {t('saas_admin.saas_diagnostics_page.s24', "صفحة")} {pagination.page} {t('saas_admin.saas_diagnostics_page.s25', "من")} {pagination.totalPages} {t('saas_admin.saas_diagnostics_page.s26', "(إجمالي")} {pagination.total} {t('saas_admin.saas_diagnostics_page.s27', "تقرير)")}
               </div>
               <div className="flex items-center gap-2">
                 <Button
@@ -247,7 +249,7 @@ export function SaasDiagnosticsPage() {
                   disabled={page <= 1}
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                 >
-                  السابق
+                  {t('saas_admin.saas_diagnostics_page.s28', "السابق")}
                 </Button>
                 <Button
                   type="button"
@@ -255,7 +257,7 @@ export function SaasDiagnosticsPage() {
                   disabled={page >= pagination.totalPages}
                   onClick={() => setPage((p) => p + 1)}
                 >
-                  التالي
+                  {t('saas_admin.saas_diagnostics_page.s29', "التالي")}
                 </Button>
               </div>
             </div>
@@ -276,16 +278,16 @@ export function SaasDiagnosticsPage() {
             </div>
             <div className="p-3 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 rounded-lg">
               <div className="font-semibold text-red-800 dark:text-red-300">
-                إجمالي الأخطاء المسجلة: {selectedErrorRow.errorCount500} خطأ
+                {t('saas_admin.saas_diagnostics_page.s30', "إجمالي الأخطاء المسجلة:")} {selectedErrorRow.errorCount500} {t('saas_admin.saas_diagnostics_page.s31', "خطأ")}
               </div>
               <div className="text-xs text-red-600 dark:text-red-400 mt-1">
-                تم استخراج هذه العينات من ملفات السجلات الموجودة داخل الحزمة المضغوطة.
+                {t('saas_admin.saas_diagnostics_page.s32', "تم استخراج هذه العينات من ملفات السجلات الموجودة داخل الحزمة المضغوطة.")}
               </div>
             </div>
 
             <div className="space-y-2">
               <div className="font-medium text-slate-800 dark:text-slate-200 text-xs">
-                عينات من الأخطاء:
+                {t('saas_admin.saas_diagnostics_page.s33', "عينات من الأخطاء:")}
               </div>
               {selectedErrorRow.errorSummary?.samples && selectedErrorRow.errorSummary.samples.length > 0 ? (
                 <div className="space-y-2">
@@ -301,7 +303,7 @@ export function SaasDiagnosticsPage() {
                 </div>
               ) : (
                 <div className="text-xs text-slate-500 italic">
-                  لا تتوفر عينات نصية مفصلة. يمكنك تحميل ملف الـ ZIP لفحص اللوجات بالكامل.
+                  {t('saas_admin.saas_diagnostics_page.s34', "لا تتوفر عينات نصية مفصلة. يمكنك تحميل ملف الـ ZIP لفحص اللوجات بالكامل.")}
                 </div>
               )}
             </div>
@@ -313,14 +315,14 @@ export function SaasDiagnosticsPage() {
                 onClick={() => handleDownload(selectedErrorRow)}
                 className="text-xs text-indigo-600 border-indigo-200 hover:bg-indigo-50"
               >
-                تحميل حزمة اللوج الكاملة (ZIP)
+                {t('saas_admin.saas_diagnostics_page.s35', "تحميل حزمة اللوج الكاملة (ZIP)")}
               </Button>
               <Button
                 type="button"
                 variant="primary"
                 onClick={() => setSelectedErrorRow(null)}
               >
-                إغلاق
+                {t('saas_admin.saas_diagnostics_page.s36', "إغلاق")}
               </Button>
             </div>
           </div>

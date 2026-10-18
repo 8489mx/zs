@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { Field } from '@/shared/ui/field';
 import { XIcon } from '@/shared/components/icons/AppIcons';
@@ -31,6 +32,7 @@ export function RecordPaymentModal({
   onSubmit,
   isPending,
 }: RecordPaymentModalProps) {
+  const { t } = useTranslation();
   if (!tenant) return null;
 
   return (
@@ -38,7 +40,7 @@ export function RecordPaymentModal({
       open={Boolean(tenant)}
       onClose={onClose}
       width="520px"
-      ariaLabel="تسجيل دفعة يدوية"
+      ariaLabel={t('saas_admin.record_payment_modal.s0', "تسجيل دفعة يدوية")}
     >
       <div className="dialog-card" dir="rtl" style={{ padding: '22px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '14px', borderBottom: '1px solid #f1f5f9', marginBottom: '16px' }}>
@@ -51,10 +53,10 @@ export function RecordPaymentModal({
             </div>
             <div>
               <h3 style={{ margin: 0, fontSize: '17px', fontWeight: 800, color: '#0f172a' }}>
-                تسجيل دفعة مالية يدوية
+                {t('saas_admin.record_payment_modal.s1', "تسجيل دفعة مالية يدوية")}
               </h3>
               <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>
-                النسخة: <strong style={{ color: '#0f172a' }}>{tenant.name}</strong>
+                {t('saas_admin.record_payment_modal.s2', "النسخة:")} <strong style={{ color: '#0f172a' }}>{tenant.name}</strong>
               </div>
             </div>
           </div>
@@ -69,7 +71,7 @@ export function RecordPaymentModal({
         </div>
         <div className="stack gap-12">
           <div className="saas-modal-grid-2">
-            <Field label="المبلغ *">
+            <Field label={t('saas_admin.record_payment_modal.s3', "المبلغ *")}>
               <input
                 type="number"
                 min="0"
@@ -79,31 +81,31 @@ export function RecordPaymentModal({
                 placeholder="0.00"
               />
             </Field>
-            <Field label="العملة">
+            <Field label={t('saas_admin.record_payment_modal.s4', "العملة")}>
               <select value={currency} onChange={(e) => onChangeCurrency(e.target.value)}>
-                <option value="EGP">EGP (جنيه)</option>
-                <option value="USD">USD (دولار)</option>
-                <option value="SAR">SAR (ريال)</option>
+                <option value="EGP">{t('saas_admin.record_payment_modal.s5', "EGP (جنيه)")}</option>
+                <option value="USD">{t('saas_admin.record_payment_modal.s6', "USD (دولار)")}</option>
+                <option value="SAR">{t('saas_admin.record_payment_modal.s7', "SAR (ريال)")}</option>
               </select>
             </Field>
           </div>
-          <Field label="طريقة الدفع">
+          <Field label={t('saas_admin.record_payment_modal.s8', "طريقة الدفع")}>
             <select value={method} onChange={(e) => onChangeMethod(e.target.value)}>
-              <option value="cash">نقدي (Cash)</option>
-              <option value="transfer">تحويل بنكي / محفظة إلكترونية</option>
-              <option value="card">بطاقة ائتمان (Card)</option>
+              <option value="cash">{t('saas_admin.record_payment_modal.s9', "نقدي (Cash)")}</option>
+              <option value="transfer">{t('saas_admin.record_payment_modal.s10', "تحويل بنكي / محفظة إلكترونية")}</option>
+              <option value="card">{t('saas_admin.record_payment_modal.s11', "بطاقة ائتمان (Card)")}</option>
             </select>
           </Field>
-          <Field label="رقم المرجع / الإيصال (اختياري)">
+          <Field label={t('saas_admin.record_payment_modal.s12', "رقم المرجع / الإيصال (اختياري)")}>
             <input
               type="text"
               value={reference}
               onChange={(e) => onChangeReference(e.target.value)}
-              placeholder="رقم الحوالة أو الإيصال"
+              placeholder={t('saas_admin.record_payment_modal.s13', "رقم الحوالة أو الإيصال")}
             />
           </Field>
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '16px', paddingTop: '12px', borderTop: '1px solid #f1f5f9' }}>
-            <button type="button" className="button button-secondary" onClick={onClose}>إلغاء</button>
+            <button type="button" className="button button-secondary" onClick={onClose}>{t('saas_admin.record_payment_modal.s14', "إلغاء")}</button>
             <button
               type="button"
               className="button"
@@ -111,7 +113,7 @@ export function RecordPaymentModal({
               onClick={onSubmit}
               disabled={isPending || !amount}
             >
-              حفظ الدفعة
+              {t('saas_admin.record_payment_modal.s15', "حفظ الدفعة")}
             </button>
           </div>
         </div>

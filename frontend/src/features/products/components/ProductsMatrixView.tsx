@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useMemo } from 'react';
 import type { Product } from '@/types/domain';
 
@@ -14,6 +15,7 @@ function getSizeRank(size: string) {
 }
 
 export function ProductsMatrixView({ products }: ProductsMatrixViewProps) {
+  const { t } = useTranslation();
   const { colors, sizes, matrix } = useMemo(() => {
     let hasAnyColor = false;
     let hasAnySize = false;
@@ -83,7 +85,7 @@ export function ProductsMatrixView({ products }: ProductsMatrixViewProps) {
         <thead>
           <tr>
             <th style={{ backgroundColor: 'var(--bg-body)', position: 'sticky', right: 0, zIndex: 1, borderInlineEnd: '1px solid var(--border-color)' }}>
-              المتغيرات
+              {t('products.products_matrix_view.s0', "المتغيرات")}
             </th>
             {sizes.map((s) => (
               <th key={s} style={{ textAlign: 'center', backgroundColor: 'var(--bg-body)' }}>{s}</th>
@@ -105,7 +107,7 @@ export function ProductsMatrixView({ products }: ProductsMatrixViewProps) {
                 const isEmpty = stock <= 0;
                 
                 const title = [
-                  `الباركود: ${variant.barcode || 'غير محدد'}`,
+                  `الباركود: ${variant.barcode || t('products.products_matrix_view.s1', "غير محدد")}`,
                   `سعر البيع: ${variant.retailPrice}`,
                   variant.notes ? `ملاحظات: ${variant.notes}` : null
                 ].filter(Boolean).join('\n');

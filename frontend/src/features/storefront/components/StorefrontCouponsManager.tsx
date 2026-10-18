@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { getGlobalCurrencySymbol } from '@/lib/currencies';
 import React, { useState } from 'react';
@@ -15,6 +16,7 @@ import {
 } from '@/shared/components/icons/AppIcons';
 
 export function StorefrontCouponsManager() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCoupon, setEditingCoupon] = useState<StorefrontCoupon | null>(null);
@@ -177,7 +179,7 @@ export function StorefrontCouponsManager() {
           }}
         >
           <div>
-            <div style={{ fontSize: '11.5px', fontWeight: 700, color: '#64748b' }}>إجمالي الكوبونات</div>
+            <div style={{ fontSize: '11.5px', fontWeight: 700, color: '#64748b' }}>{t('storefront.storefront_coupons_manager.s0', "إجمالي الكوبونات")}</div>
             <div style={{ fontSize: '20px', fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>
               {coupons.length}
             </div>
@@ -199,7 +201,7 @@ export function StorefrontCouponsManager() {
           }}
         >
           <div>
-            <div style={{ fontSize: '11.5px', fontWeight: 700, color: '#64748b' }}>كوبونات مفعلة حالياً</div>
+            <div style={{ fontSize: '11.5px', fontWeight: 700, color: '#64748b' }}>{t('storefront.storefront_coupons_manager.s1', "كوبونات مفعلة حالياً")}</div>
             <div style={{ fontSize: '20px', fontWeight: 800, color: '#15803d', marginTop: '2px' }}>
               {activeCount}
             </div>
@@ -221,7 +223,7 @@ export function StorefrontCouponsManager() {
           }}
         >
           <div>
-            <div style={{ fontSize: '11.5px', fontWeight: 700, color: '#64748b' }}>مرات استخدام الزبائن</div>
+            <div style={{ fontSize: '11.5px', fontWeight: 700, color: '#64748b' }}>{t('storefront.storefront_coupons_manager.s2', "مرات استخدام الزبائن")}</div>
             <div style={{ fontSize: '20px', fontWeight: 800, color: '#170e5e', marginTop: '2px' }}>
               {totalUses}
             </div>
@@ -254,10 +256,10 @@ export function StorefrontCouponsManager() {
         >
           <div>
             <h3 style={{ margin: 0, fontSize: '14px', fontWeight: 800, color: '#0f172a' }}>
-              قائمة كوبونات الخصم وقواعد العروض
+              {t('storefront.storefront_coupons_manager.s3', "قائمة كوبونات الخصم وقواعد العروض")}
             </h3>
             <span style={{ fontSize: '11.5px', color: '#64748b' }}>
-              أنشئ أكواد خصم ترويجية (نسبة مئوية، مبلغ مالي، أو شحن مجاني) وشاركها مع زبائنك
+              {t('storefront.storefront_coupons_manager.s4', "أنشئ أكواد خصم ترويجية (نسبة مئوية، مبلغ مالي، أو شحن مجاني) وشاركها مع زبائنك")}
             </span>
           </div>
 
@@ -282,14 +284,14 @@ export function StorefrontCouponsManager() {
             onMouseEnter={(e) => (e.currentTarget.style.background = '#110a47')}
             onMouseLeave={(e) => (e.currentTarget.style.background = '#170e5e')}
           >
-            <span>+ إضافة كوبون جديد</span>
+            <span>{t('storefront.storefront_coupons_manager.s5', "+ إضافة كوبون جديد")}</span>
           </button>
         </div>
 
         {/* Coupons Table */}
         {couponsQuery.isLoading ? (
           <div style={{ padding: '40px', textAlign: 'center', color: '#64748b', fontSize: '13px' }}>
-            جاري تحميل الكوبونات...
+            {t('storefront.storefront_coupons_manager.s6', "جاري تحميل الكوبونات...")}
           </div>
         ) : coupons.length === 0 ? (
           <div style={{ padding: '48px 20px', textAlign: 'center', color: '#64748b' }}>
@@ -297,10 +299,10 @@ export function StorefrontCouponsManager() {
               <TagIcon size={40} color="#94a3b8" />
             </div>
             <h4 style={{ margin: '0 0 6px', fontSize: '15px', fontWeight: 700, color: '#0f172a' }}>
-              لا توجد كوبونات خصم حالياً
+              {t('storefront.storefront_coupons_manager.s7', "لا توجد كوبونات خصم حالياً")}
             </h4>
             <p style={{ margin: '0 0 16px', fontSize: '12.5px', color: '#94a3b8' }}>
-              اضغط على زر "إضافة كوبون جديد" لبدء إنشاء أول كود خصم لمتجرك لزيادة المبيعات!
+              {t('storefront.storefront_coupons_manager.s8', "اضغط على زر \"إضافة كوبون جديد\" لبدء إنشاء أول كود خصم لمتجرك لزيادة المبيعات!")}
             </p>
             <button
               type="button"
@@ -316,7 +318,7 @@ export function StorefrontCouponsManager() {
                 cursor: 'pointer',
               }}
             >
-              إنشاء أول كوبون الآن
+              {t('storefront.storefront_coupons_manager.s9', "إنشاء أول كوبون الآن")}
             </button>
           </div>
         ) : (
@@ -324,13 +326,13 @@ export function StorefrontCouponsManager() {
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right', fontSize: '12.5px' }}>
               <thead>
                 <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>
-                  <th style={{ padding: '10px 14px', fontWeight: 700 }}>كود الكوبون</th>
-                  <th style={{ padding: '10px 14px', fontWeight: 700 }}>نوع الخصم</th>
-                  <th style={{ padding: '10px 14px', fontWeight: 700 }}>قيمة الخصم</th>
-                  <th style={{ padding: '10px 14px', fontWeight: 700 }}>الحد الأدنى للطلب</th>
-                  <th style={{ padding: '10px 14px', fontWeight: 700 }}>مرات الاستخدام</th>
-                  <th style={{ padding: '10px 14px', fontWeight: 700, textAlign: 'center' }}>الحالة</th>
-                  <th style={{ padding: '10px 14px', fontWeight: 700, textAlign: 'center' }}>الإجراءات</th>
+                  <th style={{ padding: '10px 14px', fontWeight: 700 }}>{t('storefront.storefront_coupons_manager.s10', "كود الكوبون")}</th>
+                  <th style={{ padding: '10px 14px', fontWeight: 700 }}>{t('storefront.storefront_coupons_manager.s11', "نوع الخصم")}</th>
+                  <th style={{ padding: '10px 14px', fontWeight: 700 }}>{t('storefront.storefront_coupons_manager.s12', "قيمة الخصم")}</th>
+                  <th style={{ padding: '10px 14px', fontWeight: 700 }}>{t('storefront.storefront_coupons_manager.s13', "الحد الأدنى للطلب")}</th>
+                  <th style={{ padding: '10px 14px', fontWeight: 700 }}>{t('storefront.storefront_coupons_manager.s14', "مرات الاستخدام")}</th>
+                  <th style={{ padding: '10px 14px', fontWeight: 700, textAlign: 'center' }}>{t('storefront.storefront_coupons_manager.s15', "الحالة")}</th>
+                  <th style={{ padding: '10px 14px', fontWeight: 700, textAlign: 'center' }}>{t('storefront.storefront_coupons_manager.s16', "الإجراءات")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -368,7 +370,7 @@ export function StorefrontCouponsManager() {
                           <button
                             type="button"
                             onClick={() => handleCopyCode(coupon.code)}
-                            title="نسخ الكود"
+                            title={t('storefront.storefront_coupons_manager.s17', "نسخ الكود")}
                             style={{
                               background: 'none',
                               border: 'none',
@@ -384,7 +386,7 @@ export function StorefrontCouponsManager() {
                             {copiedCode === coupon.code ? (
                               <span style={{ display: 'inline-flex', alignItems: 'center', gap: '2px', color: '#16a34a', fontSize: '11px', fontWeight: 700 }}>
                                 <CheckIcon size={12} color="#16a34a" />
-                                <span>منسوخ</span>
+                                <span>{t('storefront.storefront_coupons_manager.s18', "منسوخ")}</span>
                               </span>
                             ) : (
                               <CopyIcon size={13} color="#64748b" />
@@ -397,18 +399,18 @@ export function StorefrontCouponsManager() {
                       <td style={{ padding: '12px 14px', verticalAlign: 'middle', fontWeight: 600 }}>
                         {coupon.discountType === 'percentage' && (
                           <span style={{ color: '#0369a1', background: '#e0f2fe', padding: '2px 8px', borderRadius: '6px', fontSize: '11.5px', fontWeight: 700 }}>
-                            نسبة مئوية %
+                            {t('storefront.storefront_coupons_manager.s19', "نسبة مئوية %")}
                           </span>
                         )}
                         {coupon.discountType === 'fixed' && (
                           <span style={{ color: '#15803d', background: '#dcfce7', padding: '2px 8px', borderRadius: '6px', fontSize: '11.5px', fontWeight: 700 }}>
-                            مبلغ مالي ثابت
+                            {t('storefront.storefront_coupons_manager.s20', "مبلغ مالي ثابت")}
                           </span>
                         )}
                         {coupon.discountType === 'free_shipping' && (
                           <span style={{ color: '#6d28d9', background: '#ede9fe', padding: '2px 8px', borderRadius: '6px', fontSize: '11.5px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                             <TruckIcon size={12} color="#6d28d9" />
-                            <span>شحن مجاني</span>
+                            <span>{t('storefront.storefront_coupons_manager.s21', "شحن مجاني")}</span>
                           </span>
                         )}
                       </td>
@@ -420,21 +422,21 @@ export function StorefrontCouponsManager() {
                             <span>{coupon.discountValue}%</span>
                             {coupon.maxDiscountAmount && (
                               <span style={{ fontSize: '10.5px', color: '#64748b', display: 'block' }}>
-                                (بحد أقصى {coupon.maxDiscountAmount} ج)
+                                {t('storefront.storefront_coupons_manager.s22', "(بحد أقصى")} {coupon.maxDiscountAmount} {t('storefront.storefront_coupons_manager.s23', "ج)")}
                               </span>
                             )}
                           </div>
                         )}
                         {coupon.discountType === 'fixed' && <span>{coupon.discountValue} <CurrencySymbol /></span>}
-                        {coupon.discountType === 'free_shipping' && <span style={{ color: '#6d28d9' }}>100% التوصيل</span>}
+                        {coupon.discountType === 'free_shipping' && <span style={{ color: '#6d28d9' }}>{t('storefront.storefront_coupons_manager.s24', "100% التوصيل")}</span>}
                       </td>
 
                       {/* Min Order */}
                       <td style={{ padding: '12px 14px', verticalAlign: 'middle', color: '#475569' }}>
                         {coupon.minOrderAmount > 0 ? (
-                          <span>{coupon.minOrderAmount} {getGlobalCurrencySymbol()} فما فوق</span>
+                          <span>{coupon.minOrderAmount} {getGlobalCurrencySymbol()} {t('storefront.storefront_coupons_manager.s25', "فما فوق")}</span>
                         ) : (
-                          <span style={{ color: '#94a3b8' }}>بدون حد أدنى</span>
+                          <span style={{ color: '#94a3b8' }}>{t('storefront.storefront_coupons_manager.s26', "بدون حد أدنى")}</span>
                         )}
                       </td>
 
@@ -443,11 +445,11 @@ export function StorefrontCouponsManager() {
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                           <span style={{ fontWeight: 800, color: '#0f172a' }}>{coupon.timesUsed}</span>
                           <span style={{ color: '#64748b', fontSize: '11px' }}>
-                            / {coupon.usageLimit ? `${coupon.usageLimit} مرة` : 'غير محدود'}
+                            / {coupon.usageLimit ? `${coupon.usageLimit} مرة` : t('storefront.storefront_coupons_manager.s27', "غير محدود")}
                           </span>
                           {isMaxReached && (
                             <span style={{ fontSize: '10px', background: '#fee2e2', color: '#b91c1c', padding: '1px 5px', borderRadius: '4px', fontWeight: 700 }}>
-                              استنفد
+                              {t('storefront.storefront_coupons_manager.s28', "استنفد")}
                             </span>
                           )}
                         </div>
@@ -485,7 +487,7 @@ export function StorefrontCouponsManager() {
                               background: coupon.isActive ? '#10b981' : '#94a3b8',
                             }}
                           />
-                          <span>{coupon.isActive ? 'مفعل' : 'معطل'}</span>
+                          <span>{coupon.isActive ? t('storefront.storefront_coupons_manager.s29', "مفعل") : t('storefront.storefront_coupons_manager.s30', "معطل")}</span>
                         </button>
                       </td>
 
@@ -506,7 +508,7 @@ export function StorefrontCouponsManager() {
                               cursor: 'pointer',
                             }}
                           >
-                            تعديل
+                            {t('storefront.storefront_coupons_manager.s31', "تعديل")}
                           </button>
                           <button
                             type="button"
@@ -523,7 +525,7 @@ export function StorefrontCouponsManager() {
                               cursor: 'pointer',
                             }}
                           >
-                            حذف
+                            {t('storefront.storefront_coupons_manager.s32', "حذف")}
                           </button>
                         </div>
                       </td>
@@ -541,7 +543,7 @@ export function StorefrontCouponsManager() {
         open={isModalOpen}
         onClose={handleCloseModal}
         width="min(480px, 95vw)"
-        ariaLabel={editingCoupon ? `تعديل الكوبون: ${editingCoupon.code}` : 'إنشاء كوبون خصم جديد'}
+        ariaLabel={editingCoupon ? `تعديل الكوبون: ${editingCoupon.code}` : t('storefront.storefront_coupons_manager.s33', "إنشاء كوبون خصم جديد")}
       >
         <div
           dir="rtl"
@@ -563,10 +565,10 @@ export function StorefrontCouponsManager() {
             >
               <div>
                 <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>
-                  {editingCoupon ? `تعديل الكوبون: ${editingCoupon.code}` : 'إنشاء كوبون خصم جديد'}
+                  {editingCoupon ? `تعديل الكوبون: ${editingCoupon.code}` : t('storefront.storefront_coupons_manager.s34', "إنشاء كوبون خصم جديد")}
                 </h3>
                 <span style={{ fontSize: '11.5px', color: '#64748b' }}>
-                  حدد كود الخصم ونوعه وشروط تطبيقه
+                  {t('storefront.storefront_coupons_manager.s35', "حدد كود الخصم ونوعه وشروط تطبيقه")}
                 </span>
               </div>
               <button
@@ -611,14 +613,14 @@ export function StorefrontCouponsManager() {
                 {/* Coupon Code Input */}
                 <div>
                   <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                    كود الكوبون (الرمز الترويجي) <span style={{ color: '#ef4444' }}>*</span>
+                    {t('storefront.storefront_coupons_manager.s36', "كود الكوبون (الرمز الترويجي)")} <span style={{ color: '#ef4444' }}>*</span>
                   </label>
                   <input
                     type="text"
                     required
                     value={formCode}
                     onChange={(e) => setFormCode(e.target.value.toUpperCase().replace(/\s+/g, ''))}
-                    placeholder="مثال: SAVE10 أو RAMADAN أو FREESHIP"
+                    placeholder={t('storefront.storefront_coupons_manager.s37', "مثال: SAVE10 أو RAMADAN أو FREESHIP")}
                     style={{
                       width: '100%',
                       padding: '8px 12px',
@@ -634,14 +636,14 @@ export function StorefrontCouponsManager() {
                     }}
                   />
                   <span style={{ fontSize: '10.5px', color: '#64748b', marginTop: '2px', display: 'block' }}>
-                    سيقوم العميل بكتابة هذا الكود في شاشة الدفع للاستفادة من الخصم
+                    {t('storefront.storefront_coupons_manager.s38', "سيقوم العميل بكتابة هذا الكود في شاشة الدفع للاستفادة من الخصم")}
                   </span>
                 </div>
 
                 {/* Discount Type Selector */}
                 <div>
                   <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-                    نوع الخصم
+                    {t('storefront.storefront_coupons_manager.s39', "نوع الخصم")}
                   </label>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '6px' }}>
                     <button
@@ -658,7 +660,7 @@ export function StorefrontCouponsManager() {
                         color: formDiscountType === 'percentage' ? '#170e5e' : '#475569',
                       }}
                     >
-                      نسبة مئوية (%)
+                      {t('storefront.storefront_coupons_manager.s40', "نسبة مئوية (%)")}
                     </button>
                     <button
                       type="button"
@@ -674,7 +676,7 @@ export function StorefrontCouponsManager() {
                         color: formDiscountType === 'fixed' ? '#170e5e' : '#475569',
                       }}
                     >
-                      مبلغ ثابت ({getGlobalCurrencySymbol()})
+                      {t('storefront.storefront_coupons_manager.s41', "مبلغ ثابت (")}{getGlobalCurrencySymbol()})
                     </button>
                     <button
                       type="button"
@@ -695,7 +697,7 @@ export function StorefrontCouponsManager() {
                       }}
                     >
                       <TruckIcon size={13} color={formDiscountType === 'free_shipping' ? '#170e5e' : '#475569'} />
-                      <span>شحن مجاني</span>
+                      <span>{t('storefront.storefront_coupons_manager.s42', "شحن مجاني")}</span>
                     </button>
                   </div>
                 </div>
@@ -705,7 +707,7 @@ export function StorefrontCouponsManager() {
                   <div style={{ display: 'grid', gridTemplateColumns: formDiscountType === 'percentage' ? '1fr 1fr' : '1fr', gap: '10px' }}>
                     <div>
                       <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                        {formDiscountType === 'percentage' ? 'نسبة الخصم (%):' : `مبلغ الخصم (${getGlobalCurrencySymbol()}):`}
+                        {formDiscountType === 'percentage' ? t('storefront.storefront_coupons_manager.s43', "نسبة الخصم (%):") : `مبلغ الخصم (${getGlobalCurrencySymbol()}):`}
                       </label>
                       <input
                         type="number"
@@ -728,12 +730,12 @@ export function StorefrontCouponsManager() {
                     {formDiscountType === 'percentage' && (
                       <div>
                         <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                          أقصى خصم ({getGlobalCurrencySymbol()}) [اختياري]:
+                          {t('storefront.storefront_coupons_manager.s44', "أقصى خصم (")}{getGlobalCurrencySymbol()}{t('storefront.storefront_coupons_manager.s45', ") [اختياري]:")}
                         </label>
                         <input
                           type="number"
                           min="0"
-                          placeholder="مثال: 50"
+                          placeholder={t('storefront.storefront_coupons_manager.s46', "مثال: 50")}
                           value={formMaxDiscountAmount}
                           onChange={(e) => setFormMaxDiscountAmount(e.target.value)}
                           style={{
@@ -754,14 +756,14 @@ export function StorefrontCouponsManager() {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                   <div>
                     <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                      الحد الأدنى للطلب ({getGlobalCurrencySymbol()}):
+                      {t('storefront.storefront_coupons_manager.s47', "الحد الأدنى للطلب (")}{getGlobalCurrencySymbol()}):
                     </label>
                     <input
                       type="number"
                       min="0"
                       value={formMinOrderAmount}
                       onChange={(e) => setFormMinOrderAmount(Number(e.target.value))}
-                      placeholder="0 = بدون حد أدنى"
+                      placeholder={t('storefront.storefront_coupons_manager.s48', "0 = بدون حد أدنى")}
                       style={{
                         width: '100%',
                         padding: '8px 12px',
@@ -775,14 +777,14 @@ export function StorefrontCouponsManager() {
 
                   <div>
                     <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                      أقصى عدد مرات استخدام:
+                      {t('storefront.storefront_coupons_manager.s49', "أقصى عدد مرات استخدام:")}
                     </label>
                     <input
                       type="number"
                       min="1"
                       value={formUsageLimit}
                       onChange={(e) => setFormUsageLimit(e.target.value)}
-                      placeholder="فارغ = غير محدود"
+                      placeholder={t('storefront.storefront_coupons_manager.s50', "فارغ = غير محدود")}
                       style={{
                         width: '100%',
                         padding: '8px 12px',
@@ -818,7 +820,7 @@ export function StorefrontCouponsManager() {
                     onChange={(e) => setFormIsActive(e.target.checked)}
                     style={{ width: '16px', height: '16px', accentColor: '#170e5e', cursor: 'pointer' }}
                   />
-                  <span>تفعيل الكوبون فوراً للزبائن في المتجر الإلكتروني</span>
+                  <span>{t('storefront.storefront_coupons_manager.s51', "تفعيل الكوبون فوراً للزبائن في المتجر الإلكتروني")}</span>
                 </label>
               </div>
 
@@ -841,10 +843,10 @@ export function StorefrontCouponsManager() {
                   }}
                 >
                   {createMutation.isPending || updateMutation.isPending
-                    ? 'جاري الحفظ...'
+                    ? t('storefront.storefront_coupons_manager.s52', "جاري الحفظ...")
                     : editingCoupon
-                    ? 'حفظ التعديلات'
-                    : 'إنشاء وتفعيل الكوبون'}
+                    ? t('storefront.storefront_coupons_manager.s53', "حفظ التعديلات")
+                    : t('storefront.storefront_coupons_manager.s54', "إنشاء وتفعيل الكوبون")}
                 </button>
                 <button
                   type="button"
@@ -860,7 +862,7 @@ export function StorefrontCouponsManager() {
                     cursor: 'pointer',
                   }}
                 >
-                  إلغاء
+                  {t('storefront.storefront_coupons_manager.s55', "إلغاء")}
                 </button>
               </div>
             </form>

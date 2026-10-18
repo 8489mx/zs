@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import {
   INDUSTRY_PRESETS,
   type IndustryPresetId,
@@ -32,6 +33,7 @@ export function SmartModularQuickBar({
   onQuickSelect,
   disabled,
 }: SmartModularQuickBarProps) {
+  const { t } = useTranslation();
   // Clean, concise industry labels
   const presetsList: Array<{ id: IndustryPresetId; shortLabel: string }> = [
     { id: 'retail', shortLabel: 'تجارة التجزئة والسوبرماركت' },
@@ -93,7 +95,7 @@ export function SmartModularQuickBar({
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px' }}>
               <h4 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 900, color: '#0f172a' }}>
-                تخصيص المنظومة وقوالب الأنشطة
+                {t('settings.modular_configurator.smart_modular_quick_bar.s0', "تخصيص المنظومة وقوالب الأنشطة")}
               </h4>
               <span
                 style={{
@@ -106,11 +108,11 @@ export function SmartModularQuickBar({
                   border: '1px solid #e2e8f0',
                 }}
               >
-                النشاط الحالي: {activePreset.name}
+                {t('settings.modular_configurator.smart_modular_quick_bar.s1', "النشاط الحالي:")} {activePreset.name}
               </span>
             </div>
             <p style={{ margin: 0, fontSize: '0.78rem', color: '#64748b' }}>
-              اختر قالباً لتفعيل الموديولات الأنسب فورياً وإخفاء الشاشات غير المستخدمة، أو افتح المعالج لتخصيص كل موديول.
+              {t('settings.modular_configurator.smart_modular_quick_bar.s2', "اختر قالباً لتفعيل الموديولات الأنسب فورياً وإخفاء الشاشات غير المستخدمة، أو افتح المعالج لتخصيص كل موديول.")}
             </p>
           </div>
         </div>
@@ -136,7 +138,7 @@ export function SmartModularQuickBar({
           }}
         >
           <SlidersIcon size={16} />
-          <span>فتح معالج التخصيص والمنيو</span>
+          <span>{t('settings.modular_configurator.smart_modular_quick_bar.s3', "فتح معالج التخصيص والمنيو")}</span>
         </button>
       </div>
 
@@ -149,10 +151,10 @@ export function SmartModularQuickBar({
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
           <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 800 }}>
-            القوالب الجاهزة الموصى بها (تطبيق فوري بنقرة واحدة):
+            {t('settings.modular_configurator.smart_modular_quick_bar.s4', "القوالب الجاهزة الموصى بها (تطبيق فوري بنقرة واحدة):")}
           </span>
           <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
-            الضغط على أي قالب يضبط موديولاته تلقائياً
+            {t('settings.modular_configurator.smart_modular_quick_bar.s5', "الضغط على أي قالب يضبط موديولاته تلقائياً")}
           </span>
         </div>
 

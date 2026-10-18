@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { StockTransferSuccessDialog } from '@/features/inventory/components/StockTransferSuccessDialog';
@@ -13,6 +14,7 @@ import type { InventorySectionKey } from '@/features/inventory/pages/inventory.p
 import type { Product } from '@/types/domain';
 
 export function InventoryWorkspace({ currentSection }: { currentSection: InventorySectionKey }) {
+  const { t } = useTranslation();
   const inventory = useInventoryWorkspaceController(currentSection);
   const [selectedInventoryProduct, setSelectedInventoryProduct] = useState<{ product: Product; token: number } | null>(null);
   const [countSubView, setCountSubView] = useState<'create' | 'history'>('create');
@@ -157,16 +159,16 @@ export function InventoryWorkspace({ currentSection }: { currentSection: Invento
               className={`stock-count-subnav-btn ${countSubView === 'create' ? 'stock-count-subnav-btn--active' : ''}`}
               onClick={() => setCountSubView('create')}
             >
-              <span className="stock-count-subnav-title">بدء جلسة جرد جديدة</span>
-              <span className="stock-count-subnav-desc">معالج العد الذكي وخطوات الجرد</span>
+              <span className="stock-count-subnav-title">{t('inventory.inventory_workspace.s0', "بدء جلسة جرد جديدة")}</span>
+              <span className="stock-count-subnav-desc">{t('inventory.inventory_workspace.s1', "معالج العد الذكي وخطوات الجرد")}</span>
             </button>
             <button
               type="button"
               className={`stock-count-subnav-btn ${countSubView === 'history' ? 'stock-count-subnav-btn--active' : ''}`}
               onClick={() => setCountSubView('history')}
             >
-              <span className="stock-count-subnav-title">سجل ومراجعة الجلسات</span>
-              <span className="stock-count-subnav-desc">{inventory.stockCountSummary.totalItems} جلسة مسجلة</span>
+              <span className="stock-count-subnav-title">{t('inventory.inventory_workspace.s2', "سجل ومراجعة الجلسات")}</span>
+              <span className="stock-count-subnav-desc">{inventory.stockCountSummary.totalItems} {t('inventory.inventory_workspace.s3', "جلسة مسجلة")}</span>
             </button>
           </div>
 

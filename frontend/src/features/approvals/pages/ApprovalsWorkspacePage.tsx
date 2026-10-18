@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React, { useState, useEffect } from 'react';
 import { PageHeader } from '@/shared/components/page-header';
 import { StatsGrid, type StatsGridItem } from '@/shared/components/stats-grid';
@@ -14,6 +15,7 @@ import { ApprovalActionModal } from '../components/ApprovalActionModal';
 import { ClockIcon, ShieldAlertIcon, RefreshCwIcon } from '@/shared/components/icons/AppIcons';
 
 export const ApprovalsWorkspacePage: React.FC = () => {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<'requests' | 'rules'>('requests');
   const [requests, setRequests] = useState<ApprovalRequest[]>([]);
   const [statusFilter, setStatusFilter] = useState<string>('pending');
@@ -98,12 +100,12 @@ export const ApprovalsWorkspacePage: React.FC = () => {
       }}
     >
       <PageHeader
-        title="مركز الموافقات وسير العمل الهرمي (Approval Workflow Center)"
-        description="حوكمة المعاملات المالية والمشتريات والمصروفات وفق مصفوفة الصلاحيات وسقف المبالغ المعتمدة."
+        title={t('approvals.approvals_workspace_page.s0', "مركز الموافقات وسير العمل الهرمي (Approval Workflow Center)")}
+        description={t('approvals.approvals_workspace_page.s1', "حوكمة المعاملات المالية والمشتريات والمصروفات وفق مصفوفة الصلاحيات وسقف المبالغ المعتمدة.")}
         actions={
           <Button variant="secondary" onClick={loadData} disabled={loading}>
             <RefreshCwIcon size={16} />
-            تحديث البيانات
+            {t('approvals.approvals_workspace_page.s2', "تحديث البيانات")}
           </Button>
         }
       />
@@ -138,7 +140,7 @@ export const ApprovalsWorkspacePage: React.FC = () => {
           }}
         >
           <ClockIcon size={16} />
-          <span>طابور طلبات الاعتماد</span>
+          <span>{t('approvals.approvals_workspace_page.s3', "طابور طلبات الاعتماد")}</span>
           {pendingCount > 0 && (
             <span
               style={{
@@ -173,7 +175,7 @@ export const ApprovalsWorkspacePage: React.FC = () => {
           }}
         >
           <ShieldAlertIcon size={16} />
-          <span>مصفوفة القواعد والسياسات</span>
+          <span>{t('approvals.approvals_workspace_page.s4', "مصفوفة القواعد والسياسات")}</span>
         </button>
       </div>
 
@@ -193,7 +195,7 @@ export const ApprovalsWorkspacePage: React.FC = () => {
           >
             <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
               <span style={{ fontSize: 'var(--font-body)', fontWeight: 600, color: '#475569' }}>
-                تصفية الحالة:
+                {t('approvals.approvals_workspace_page.s5', "تصفية الحالة:")}
               </span>
               <select
                 value={statusFilter}
@@ -206,14 +208,14 @@ export const ApprovalsWorkspacePage: React.FC = () => {
                   outline: 'none',
                 }}
               >
-                <option value="">جميع الحالات</option>
-                <option value="pending">بانتظار الاعتماد (معلق)</option>
-                <option value="approved">معتمد رسمياً</option>
-                <option value="rejected">مرفوض</option>
+                <option value="">{t('approvals.approvals_workspace_page.s6', "جميع الحالات")}</option>
+                <option value="pending">{t('approvals.approvals_workspace_page.s7', "بانتظار الاعتماد (معلق)")}</option>
+                <option value="approved">{t('approvals.approvals_workspace_page.s8', "معتمد رسمياً")}</option>
+                <option value="rejected">{t('approvals.approvals_workspace_page.s9', "مرفوض")}</option>
               </select>
 
               <span style={{ fontSize: 'var(--font-body)', fontWeight: 600, color: '#475569', marginInlineStart: '12px' }}>
-                الموديول:
+                {t('approvals.approvals_workspace_page.s10', "الموديول:")}
               </span>
               <select
                 value={moduleFilter}
@@ -226,16 +228,16 @@ export const ApprovalsWorkspacePage: React.FC = () => {
                   outline: 'none',
                 }}
               >
-                <option value="">كافة الموديولات</option>
-                <option value="purchase_orders">أوامر الشراء</option>
-                <option value="purchases">فواتير المشتريات</option>
-                <option value="expenses">المصروفات النقدية</option>
-                <option value="treasury_transactions">حركات وسندات الخزينة</option>
+                <option value="">{t('approvals.approvals_workspace_page.s11', "كافة الموديولات")}</option>
+                <option value="purchase_orders">{t('approvals.approvals_workspace_page.s12', "أوامر الشراء")}</option>
+                <option value="purchases">{t('approvals.approvals_workspace_page.s13', "فواتير المشتريات")}</option>
+                <option value="expenses">{t('approvals.approvals_workspace_page.s14', "المصروفات النقدية")}</option>
+                <option value="treasury_transactions">{t('approvals.approvals_workspace_page.s15', "حركات وسندات الخزينة")}</option>
               </select>
             </div>
 
             <div style={{ fontSize: 'var(--font-micro)', color: '#64748b' }}>
-              إجمالي النتائج: <strong>{requests.length}</strong>
+              {t('approvals.approvals_workspace_page.s16', "إجمالي النتائج:")} <strong>{requests.length}</strong>
             </div>
           </div>
 

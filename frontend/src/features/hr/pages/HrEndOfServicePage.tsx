@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useMemo } from 'react';
 import { PageHeader } from '@/shared/components/page-header';
 import { Button } from '@/shared/ui/button';
@@ -14,6 +15,7 @@ import { CreateSettlementModal } from '../components/end-of-service/CreateSettle
 import { PrintSettlementModal } from '../components/end-of-service/PrintSettlementModal';
 
 export function HrEndOfServicePage() {
+  const { t } = useTranslation();
   const { employees } = useHrWorkspace({ pageSize: 150 });
   const [settlements, setSettlements] = useState<SettlementRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -194,9 +196,9 @@ export function HrEndOfServicePage() {
     <div className="page-stack page-shell hr-end-of-service-page" dir="rtl">
       <main className="document-prototype-column" style={{ paddingBottom: '100px' }}>
         <PageHeader
-          title="مخالصات ومكافأة نهاية الخدمة (End of Service Settlements)"
-          description="احتساب مكافأة نهاية الخدمة وتصفية مستحقات وعهد الموظفين وفق أنظمة العمل وإصدار قيود المحاسبة ونماذج المخالصة الرسمية"
-          badge={<span className="nav-pill">الموارد البشرية</span>}
+          title={t('hr.hr_end_of_service_page.s0', "مخالصات ومكافأة نهاية الخدمة (End of Service Settlements)")}
+          description={t('hr.hr_end_of_service_page.s1', "احتساب مكافأة نهاية الخدمة وتصفية مستحقات وعهد الموظفين وفق أنظمة العمل وإصدار قيود المحاسبة ونماذج المخالصة الرسمية")}
+          badge={<span className="nav-pill">{t('hr.hr_end_of_service_page.s2', "الموارد البشرية")}</span>}
           actions={
             <Button
               type="button"
@@ -216,7 +218,7 @@ export function HrEndOfServicePage() {
               }}
             >
               <PlusIcon size={16} />
-              <span>إنشاء مخالصة جديدة</span>
+              <span>{t('hr.hr_end_of_service_page.s3', "إنشاء مخالصة جديدة")}</span>
             </Button>
           }
         />
@@ -239,7 +241,7 @@ export function HrEndOfServicePage() {
               </span>
               <input
                 type="text"
-                placeholder="بحث برقم المخالصة، اسم الموظف، أو الرقم الوظيفي..."
+                placeholder={t('hr.hr_end_of_service_page.s4', "بحث برقم المخالصة، اسم الموظف، أو الرقم الوظيفي...")}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 style={{
@@ -255,15 +257,15 @@ export function HrEndOfServicePage() {
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#475569' }}>الحالة:</span>
+              <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#475569' }}>{t('hr.hr_end_of_service_page.s5', "الحالة:")}</span>
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
                 style={{ padding: '8px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
               >
-                <option value="all">كل الحالات</option>
-                <option value="draft">مسودة</option>
-                <option value="posted">مرحل محاسبياً</option>
+                <option value="all">{t('hr.hr_end_of_service_page.s6', "كل الحالات")}</option>
+                <option value="draft">{t('hr.hr_end_of_service_page.s7', "مسودة")}</option>
+                <option value="posted">{t('hr.hr_end_of_service_page.s8', "مرحل محاسبياً")}</option>
               </select>
             </div>
           </div>

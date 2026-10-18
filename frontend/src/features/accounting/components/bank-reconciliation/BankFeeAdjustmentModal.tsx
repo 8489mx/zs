@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 import { Button } from '@/shared/ui/button';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
@@ -27,6 +28,7 @@ export const BankFeeAdjustmentModal: React.FC<BankFeeAdjustmentModalProps> = ({
   onSubmit,
   isSubmitting,
 }) => {
+  const { t } = useTranslation();
   if (!isOpen || !feeTargetLine) return null;
 
   const expenseAccountOptions = expenseAccounts.map((a: any) => ({
@@ -39,8 +41,8 @@ export const BankFeeAdjustmentModal: React.FC<BankFeeAdjustmentModalProps> = ({
     <StandardDialog
       open={isOpen}
       onClose={onClose}
-      title="تسوية عمولة ومصاريف بنكية فورية"
-      subtitle="إنشاء قيد يومية متزن آلياً لمطابقة السطر البنكي فورياً"
+      title={t('accounting.bank_reconciliation.bank_fee_adjustment_modal.s0', "تسوية عمولة ومصاريف بنكية فورية")}
+      subtitle={t('accounting.bank_reconciliation.bank_fee_adjustment_modal.s1', "إنشاء قيد يومية متزن آلياً لمطابقة السطر البنكي فورياً")}
       size="md"
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
@@ -56,14 +58,14 @@ export const BankFeeAdjustmentModal: React.FC<BankFeeAdjustmentModalProps> = ({
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid #e2e8f0', paddingBottom: '6px' }}>
             <FileTextIcon size={15} style={{ color: '#170e5e' }} />
-            <span style={{ fontSize: '12px', fontWeight: 700, color: '#1e293b' }}>بيانات السطر البنكي المراد تسويته</span>
+            <span style={{ fontSize: '12px', fontWeight: 700, color: '#1e293b' }}>{t('accounting.bank_reconciliation.bank_fee_adjustment_modal.s2', "بيانات السطر البنكي المراد تسويته")}</span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12.5px' }}>
-            <span style={{ color: '#64748b' }}>البيان:</span>
+            <span style={{ color: '#64748b' }}>{t('accounting.bank_reconciliation.bank_fee_adjustment_modal.s3', "البيان:")}</span>
             <span style={{ fontWeight: 600, color: '#1e293b' }}>{feeTargetLine.description}</span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12.5px' }}>
-            <span style={{ color: '#64748b' }}>قيمة العمولة المخصومة:</span>
+            <span style={{ color: '#64748b' }}>{t('accounting.bank_reconciliation.bank_fee_adjustment_modal.s4', "قيمة العمولة المخصومة:")}</span>
             <span style={{ fontWeight: 800, color: '#dc2626' }}>
               {formatCurrency(Math.abs(feeTargetLine.amount))}
             </span>
@@ -82,20 +84,20 @@ export const BankFeeAdjustmentModal: React.FC<BankFeeAdjustmentModalProps> = ({
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid #e2e8f0', paddingBottom: '6px' }}>
             <DollarSignIcon size={15} style={{ color: '#170e5e' }} />
-            <span style={{ fontSize: '12px', fontWeight: 700, color: '#1e293b' }}>توجيه حساب المصروفات</span>
+            <span style={{ fontSize: '12px', fontWeight: 700, color: '#1e293b' }}>{t('accounting.bank_reconciliation.bank_fee_adjustment_modal.s5', "توجيه حساب المصروفات")}</span>
           </div>
           <div>
             <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-              حساب المصروفات البنكية (شجرة الحسابات) <span style={{ color: '#e11d48' }}>*</span>
+              {t('accounting.bank_reconciliation.bank_fee_adjustment_modal.s6', "حساب المصروفات البنكية (شجرة الحسابات)")} <span style={{ color: '#e11d48' }}>*</span>
             </label>
             <CustomSelect
               value={selectedExpenseAccountId ? String(selectedExpenseAccountId) : ''}
               onChange={(val) => onSelectedExpenseAccountIdChange(Number(val))}
               options={expenseAccountOptions}
-              placeholder="اختر حساب المصروفات البنكية..."
+              placeholder={t('accounting.bank_reconciliation.bank_fee_adjustment_modal.s7', "اختر حساب المصروفات البنكية...")}
             />
             <p style={{ margin: '8px 0 0', fontSize: '11px', color: '#64748b', lineHeight: 1.5 }}>
-              سيتم إنشاء قيد يومية متزن آلياً (من ح/ مصاريف بنكية إلى ح/ البنك) ومطابقة الحركة فورياً.
+              {t('accounting.bank_reconciliation.bank_fee_adjustment_modal.s8', "سيتم إنشاء قيد يومية متزن آلياً (من ح/ مصاريف بنكية إلى ح/ البنك) ومطابقة الحركة فورياً.")}
             </p>
           </div>
         </div>
@@ -103,7 +105,7 @@ export const BankFeeAdjustmentModal: React.FC<BankFeeAdjustmentModalProps> = ({
 
       <StandardDialogFooter>
         <Button type="button" variant="secondary" onClick={onClose} style={{ padding: '8px 18px', fontSize: '13px', borderRadius: '8px' }}>
-          إلغاء
+          {t('accounting.bank_reconciliation.bank_fee_adjustment_modal.s9', "إلغاء")}
         </Button>
         <Button
           type="button"
@@ -121,7 +123,7 @@ export const BankFeeAdjustmentModal: React.FC<BankFeeAdjustmentModalProps> = ({
             opacity: isSubmitting || !selectedExpenseAccountId ? 0.6 : 1,
           }}
         >
-          {isSubmitting ? 'جارٍ التسوية...' : 'إنشاء القيد ومطابقة السطر'}
+          {isSubmitting ? t('accounting.bank_reconciliation.bank_fee_adjustment_modal.s10', "جارٍ التسوية...") : t('accounting.bank_reconciliation.bank_fee_adjustment_modal.s11', "إنشاء القيد ومطابقة السطر")}
         </Button>
       </StandardDialogFooter>
     </StandardDialog>

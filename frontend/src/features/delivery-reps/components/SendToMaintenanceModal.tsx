@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { StandardDialog } from '@/shared/components/StandardDialog';
@@ -21,6 +22,7 @@ export function SendToMaintenanceModal({
   preselectedVehicle,
   onSuccess,
 }: SendToMaintenanceModalProps) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
 
   const [selectedVehicleId, setSelectedVehicleId] = useState<number | ''>('');
@@ -83,13 +85,13 @@ export function SendToMaintenanceModal({
     <StandardDialog
       open={open}
       onClose={onClose}
-      title="إدخال سيارة للصيانة والإصلاح بالورشة"
+      title={t('delivery_reps.send_to_maintenance_modal.s0', "إدخال سيارة للصيانة والإصلاح بالورشة")}
       subtitle={
         targetVehicle
-          ? `المركبة: ${targetVehicle.plateNumber} (${targetVehicle.modelName || 'سيارة توزيع'}) • العداد: ${Number(
+          ? `المركبة: ${targetVehicle.plateNumber} (${targetVehicle.modelName || t('delivery_reps.send_to_maintenance_modal.s1', "سيارة توزيع")}) • العداد: ${Number(
               targetVehicle.currentOdometer || 0,
             ).toLocaleString()} كم`
-          : 'تحديد المركبة المحولة للورشة وتسجيل بيان الأعمال'
+          : t('delivery_reps.send_to_maintenance_modal.s2', "تحديد المركبة المحولة للورشة وتسجيل بيان الأعمال")
       }
       maxWidth="620px"
     >
@@ -117,8 +119,7 @@ export function SendToMaintenanceModal({
         >
           <AlertTriangleIcon size={16} color="#ea580c" />
           <span>
-            تحويل المركبة إلى حالة <strong>"تحت الصيانة والإصلاح"</strong> سيوقف إسنادها لأي ورديات توزيع جديدة حتى إتمام
-            الإصلاح وإعادتها للخدمة.
+            {t('delivery_reps.send_to_maintenance_modal.s3', "تحويل المركبة إلى حالة")} <strong>{t('delivery_reps.send_to_maintenance_modal.s4', "\"تحت الصيانة والإصلاح\"")}</strong> {t('delivery_reps.send_to_maintenance_modal.s5', "سيوقف إسنادها لأي ورديات توزيع جديدة حتى إتمام\n            الإصلاح وإعادتها للخدمة.")}
           </span>
         </div>
 
@@ -126,7 +127,7 @@ export function SendToMaintenanceModal({
         {!preselectedVehicle && (
           <div>
             <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-              اختر المركبة من الأسطول <span style={{ color: '#dc2626' }}>*</span>
+              {t('delivery_reps.send_to_maintenance_modal.s6', "اختر المركبة من الأسطول")} <span style={{ color: '#dc2626' }}>*</span>
             </label>
             <select
               value={selectedVehicleId}
@@ -147,10 +148,10 @@ export function SendToMaintenanceModal({
                 background: '#ffffff',
               }}
             >
-              <option value="">-- اختر السيارة المراد صيانتها --</option>
+              <option value="">{t('delivery_reps.send_to_maintenance_modal.s7', "-- اختر السيارة المراد صيانتها --")}</option>
               {vehicles.map((v) => (
                 <option key={v.id} value={v.id}>
-                  {v.plateNumber} - {v.modelName || 'بدون موديل'} ({v.status === 'assigned' ? 'مسندة لسائق' : 'متاحة'})
+                  {v.plateNumber} - {v.modelName || t('delivery_reps.send_to_maintenance_modal.s8', "بدون موديل")} ({v.status === 'assigned' ? t('delivery_reps.send_to_maintenance_modal.s9', "مسندة لسائق") : t('delivery_reps.send_to_maintenance_modal.s10', "متاحة")})
                 </option>
               ))}
             </select>
@@ -160,7 +161,7 @@ export function SendToMaintenanceModal({
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
           <div>
             <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-              نوع ومجال الصيانة <span style={{ color: '#dc2626' }}>*</span>
+              {t('delivery_reps.send_to_maintenance_modal.s11', "نوع ومجال الصيانة")} <span style={{ color: '#dc2626' }}>*</span>
             </label>
             <select
               value={maintenanceType}
@@ -175,26 +176,26 @@ export function SendToMaintenanceModal({
                 background: '#ffffff',
               }}
             >
-              <option value="صيانة دورية وفحص شامل">صيانة دورية وفحص شامل</option>
-              <option value="ميكانيكا ومحرك">ميكانيكا ومحرك</option>
-              <option value="كهرباء وتكييف">كهرباء وتكييف</option>
-              <option value="فرامل ونظام تعليق">فرامل ونظام تعليق (عفشة)</option>
-              <option value="إطارات وبطارية">إطارات وبطارية</option>
-              <option value="سمكرة ودهان">سمكرة ودهان</option>
-              <option value="إصلاح طارئ أو حادث">إصلاح طارئ أو حادث</option>
-              <option value="أخرى">أعمال صيانة أخرى</option>
+              <option value={t('delivery_reps.send_to_maintenance_modal.s12', "صيانة دورية وفحص شامل")}>{t('delivery_reps.send_to_maintenance_modal.s13', "صيانة دورية وفحص شامل")}</option>
+              <option value={t('delivery_reps.send_to_maintenance_modal.s14', "ميكانيكا ومحرك")}>{t('delivery_reps.send_to_maintenance_modal.s15', "ميكانيكا ومحرك")}</option>
+              <option value={t('delivery_reps.send_to_maintenance_modal.s16', "كهرباء وتكييف")}>{t('delivery_reps.send_to_maintenance_modal.s17', "كهرباء وتكييف")}</option>
+              <option value={t('delivery_reps.send_to_maintenance_modal.s18', "فرامل ونظام تعليق")}>{t('delivery_reps.send_to_maintenance_modal.s19', "فرامل ونظام تعليق (عفشة)")}</option>
+              <option value={t('delivery_reps.send_to_maintenance_modal.s20', "إطارات وبطارية")}>{t('delivery_reps.send_to_maintenance_modal.s21', "إطارات وبطارية")}</option>
+              <option value={t('delivery_reps.send_to_maintenance_modal.s22', "سمكرة ودهان")}>{t('delivery_reps.send_to_maintenance_modal.s23', "سمكرة ودهان")}</option>
+              <option value={t('delivery_reps.send_to_maintenance_modal.s24', "إصلاح طارئ أو حادث")}>{t('delivery_reps.send_to_maintenance_modal.s25', "إصلاح طارئ أو حادث")}</option>
+              <option value={t('delivery_reps.send_to_maintenance_modal.s26', "أخرى")}>{t('delivery_reps.send_to_maintenance_modal.s27', "أعمال صيانة أخرى")}</option>
             </select>
           </div>
 
           <div>
             <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-              مركز الصيانة / الورشة
+              {t('delivery_reps.send_to_maintenance_modal.s28', "مركز الصيانة / الورشة")}
             </label>
             <input
               type="text"
               value={workshopName}
               onChange={(e) => setWorkshopName(e.target.value)}
-              placeholder="مثال: ورشة الشركة المركزية، مركز السلام..."
+              placeholder={t('delivery_reps.send_to_maintenance_modal.s29', "مثال: ورشة الشركة المركزية، مركز السلام...")}
               style={{
                 width: '100%',
                 padding: '8px 10px',
@@ -210,13 +211,13 @@ export function SendToMaintenanceModal({
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
           <div>
             <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-              العداد عند الدخول (كم)
+              {t('delivery_reps.send_to_maintenance_modal.s30', "العداد عند الدخول (كم)")}
             </label>
             <input
               type="number"
               value={odometer}
               onChange={(e) => setOdometer(e.target.value)}
-              placeholder="مثال: 45000"
+              placeholder={t('delivery_reps.send_to_maintenance_modal.s31', "مثال: 45000")}
               style={{
                 width: '100%',
                 padding: '8px 10px',
@@ -230,7 +231,7 @@ export function SendToMaintenanceModal({
 
           <div>
             <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-              التكلفة التقديرية
+              {t('delivery_reps.send_to_maintenance_modal.s32', "التكلفة التقديرية")}
             </label>
             <input
               type="number"
@@ -251,7 +252,7 @@ export function SendToMaintenanceModal({
 
           <div>
             <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-              تاريخ الخروج المتوقع
+              {t('delivery_reps.send_to_maintenance_modal.s33', "تاريخ الخروج المتوقع")}
             </label>
             <input
               type="date"
@@ -271,14 +272,14 @@ export function SendToMaintenanceModal({
 
         <div>
           <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-            سبب الإدخال للصيانة ووصف العطل المطلوب إصلاحه <span style={{ color: '#dc2626' }}>*</span>
+            {t('delivery_reps.send_to_maintenance_modal.s34', "سبب الإدخال للصيانة ووصف العطل المطلوب إصلاحه")} <span style={{ color: '#dc2626' }}>*</span>
           </label>
           <textarea
             required
             rows={3}
             value={reason}
             onChange={(e) => setReason(e.target.value)}
-            placeholder="اكتب بالتفصيل المشكلة أو الفحص المطلوب تنفيذه بالسيارة..."
+            placeholder={t('delivery_reps.send_to_maintenance_modal.s35', "اكتب بالتفصيل المشكلة أو الفحص المطلوب تنفيذه بالسيارة...")}
             style={{
               width: '100%',
               padding: '8px 10px',
@@ -293,7 +294,7 @@ export function SendToMaintenanceModal({
 
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '10px' }}>
           <Button variant="secondary" onClick={onClose}>
-            إلغاء
+            {t('delivery_reps.send_to_maintenance_modal.s36', "إلغاء")}
           </Button>
           <Button
             variant="primary"
@@ -302,7 +303,7 @@ export function SendToMaintenanceModal({
             style={{ backgroundColor: '#ea580c', color: '#ffffff', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}
           >
             <ToolIcon size={14} />
-            {sendMutation.isPending ? 'جاري التحويل...' : 'تأكيد تحويل المركبة للصيانة'}
+            {sendMutation.isPending ? t('delivery_reps.send_to_maintenance_modal.s37', "جاري التحويل...") : t('delivery_reps.send_to_maintenance_modal.s38', "تأكيد تحويل المركبة للصيانة")}
           </Button>
         </div>
       </form>

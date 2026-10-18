@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 import { Card } from '@/shared/ui/card';
 import { Button } from '@/shared/ui/button';
@@ -17,18 +18,19 @@ export const BankStatementsListTable: React.FC<BankStatementsListTableProps> = (
   onOpenCreate,
   onSelectStatement,
 }) => {
+  const { t } = useTranslation();
   return (
-    <Card title="سجل كشوف الحسابات البنكية" className="workspace-panel">
+    <Card title={t('accounting.bank_reconciliation.bank_statements_list_table.s0', "سجل كشوف الحسابات البنكية")} className="workspace-panel">
       <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
         {isLoading ? (
-          <div style={{ textAlign: 'center', padding: '36px', color: '#64748b' }}>جارٍ تحميل كشوف الحسابات...</div>
+          <div style={{ textAlign: 'center', padding: '36px', color: '#64748b' }}>{t('accounting.bank_reconciliation.bank_statements_list_table.s1', "جارٍ تحميل كشوف الحسابات...")}</div>
         ) : !statements || statements.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '48px 20px', background: '#f8fafc', borderRadius: '10px', border: '1px dashed #e2e8f0' }}>
             <p style={{ margin: 0, fontSize: '14px', color: '#64748b', fontWeight: 700 }}>
-              لا توجد كشوف حسابات بنكية مسجلة حالياً.
+              {t('accounting.bank_reconciliation.bank_statements_list_table.s2', "لا توجد كشوف حسابات بنكية مسجلة حالياً.")}
             </p>
             <p style={{ margin: '6px 0 16px', fontSize: '12px', color: '#94a3b8' }}>
-              ابدأ بإضافة أول كشف حساب بنكي لمطابقة أرصدة البنك مع دفتر الأستاذ العام.
+              {t('accounting.bank_reconciliation.bank_statements_list_table.s3', "ابدأ بإضافة أول كشف حساب بنكي لمطابقة أرصدة البنك مع دفتر الأستاذ العام.")}
             </p>
             <Button
               type="button"
@@ -36,7 +38,7 @@ export const BankStatementsListTable: React.FC<BankStatementsListTableProps> = (
               onClick={onOpenCreate}
               style={{ background: '#170e5e', borderColor: '#170e5e', fontSize: '13px', fontWeight: 800 }}
             >
-              + إضافة كشف حساب بنكي
+              {t('accounting.bank_reconciliation.bank_statements_list_table.s4', "+ إضافة كشف حساب بنكي")}
             </Button>
           </div>
         ) : (
@@ -44,13 +46,13 @@ export const BankStatementsListTable: React.FC<BankStatementsListTableProps> = (
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
               <thead>
                 <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0', textAlign: 'right' }}>
-                  <th style={{ padding: '10px 14px', color: '#475569' }}>رقم الكشف</th>
-                  <th style={{ padding: '10px 14px', color: '#475569' }}>الحساب البنكي</th>
-                  <th style={{ padding: '10px 14px', color: '#475569' }}>تاريخ الكشف</th>
-                  <th style={{ padding: '10px 14px', color: '#475569' }}>رصيد البداية</th>
-                  <th style={{ padding: '10px 14px', color: '#475569' }}>رصيد النهاية</th>
-                  <th style={{ padding: '10px 14px', color: '#475569' }}>الحالة</th>
-                  <th style={{ padding: '10px 14px', color: '#475569', textAlign: 'center' }}>الإجراء</th>
+                  <th style={{ padding: '10px 14px', color: '#475569' }}>{t('accounting.bank_reconciliation.bank_statements_list_table.s5', "رقم الكشف")}</th>
+                  <th style={{ padding: '10px 14px', color: '#475569' }}>{t('accounting.bank_reconciliation.bank_statements_list_table.s6', "الحساب البنكي")}</th>
+                  <th style={{ padding: '10px 14px', color: '#475569' }}>{t('accounting.bank_reconciliation.bank_statements_list_table.s7', "تاريخ الكشف")}</th>
+                  <th style={{ padding: '10px 14px', color: '#475569' }}>{t('accounting.bank_reconciliation.bank_statements_list_table.s8', "رصيد البداية")}</th>
+                  <th style={{ padding: '10px 14px', color: '#475569' }}>{t('accounting.bank_reconciliation.bank_statements_list_table.s9', "رصيد النهاية")}</th>
+                  <th style={{ padding: '10px 14px', color: '#475569' }}>{t('accounting.bank_reconciliation.bank_statements_list_table.s10', "الحالة")}</th>
+                  <th style={{ padding: '10px 14px', color: '#475569', textAlign: 'center' }}>{t('accounting.bank_reconciliation.bank_statements_list_table.s11', "الإجراء")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -59,7 +61,7 @@ export const BankStatementsListTable: React.FC<BankStatementsListTableProps> = (
                     <td style={{ padding: '12px 14px', fontWeight: 800, color: '#0f172a' }}>{stmt.statementNo}</td>
                     <td style={{ padding: '12px 14px' }}>
                       <span style={{ fontWeight: 700, color: '#1e293b' }}>{stmt.accountNameAr}</span>
-                      <span style={{ fontSize: '11px', color: '#64748b', display: 'block' }}>كود: {stmt.accountCode}</span>
+                      <span style={{ fontSize: '11px', color: '#64748b', display: 'block' }}>{t('accounting.bank_reconciliation.bank_statements_list_table.s12', "كود:")} {stmt.accountCode}</span>
                     </td>
                     <td style={{ padding: '12px 14px', color: '#475569' }}>{stmt.statementDate}</td>
                     <td style={{ padding: '12px 14px', fontWeight: 700 }}>{formatCurrency(stmt.startingBalance)}</td>
@@ -76,7 +78,7 @@ export const BankStatementsListTable: React.FC<BankStatementsListTableProps> = (
                           border: `1px solid ${stmt.status === 'reconciled' ? '#bbf7d0' : stmt.status === 'in_progress' ? '#bfdbfe' : '#cbd5e1'}`,
                         }}
                       >
-                        {stmt.status === 'reconciled' ? 'متطابق بالكامل' : stmt.status === 'in_progress' ? 'جاري المطابقة' : 'مسودة'}
+                        {stmt.status === 'reconciled' ? t('accounting.bank_reconciliation.bank_statements_list_table.s13', "متطابق بالكامل") : stmt.status === 'in_progress' ? t('accounting.bank_reconciliation.bank_statements_list_table.s14', "جاري المطابقة") : t('accounting.bank_reconciliation.bank_statements_list_table.s15', "مسودة")}
                       </span>
                     </td>
                     <td style={{ padding: '12px 14px', textAlign: 'center' }}>
@@ -86,7 +88,7 @@ export const BankStatementsListTable: React.FC<BankStatementsListTableProps> = (
                         onClick={() => onSelectStatement(stmt.id)}
                         style={{ borderColor: '#170e5e', color: '#170e5e', fontSize: '12px', fontWeight: 800, padding: '4px 12px' }}
                       >
-                        فتح مساحة المطابقة ↵
+                        {t('accounting.bank_reconciliation.bank_statements_list_table.s16', "فتح مساحة المطابقة ↵")}
                       </Button>
                     </td>
                   </tr>

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import React from 'react';
 import type { TradeInTransaction } from '@/types/domain-models/tradein';
@@ -23,10 +24,11 @@ export function TradeInTable({
   onOpenDisclaimer,
   onSendWhatsApp,
 }: TradeInTableProps) {
+  const { t: __t } = useTranslation();
   if (isLoading) {
     return (
       <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '40px', textAlign: 'center', color: '#64748b' }}>
-        جاري تحميل سجل المعاملات...
+        {__t('tradein.trade_in_table.s0', "جاري تحميل سجل المعاملات...")}
       </div>
     );
   }
@@ -37,8 +39,8 @@ export function TradeInTable({
         <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px', color: '#94a3b8' }}>
           <TradeInIcons.Device />
         </div>
-        <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#334155', margin: '0 0 4px' }}>لا توجد معاملات مطابقة للبحث</h3>
-        <p style={{ fontSize: '12px', color: '#94a3b8', margin: 0 }}>يمكنك إضافة عملية شراء جهاز مستعمل جديدة بالنقر على الزر أعلاه</p>
+        <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#334155', margin: '0 0 4px' }}>{__t('tradein.trade_in_table.s1', "لا توجد معاملات مطابقة للبحث")}</h3>
+        <p style={{ fontSize: '12px', color: '#94a3b8', margin: 0 }}>{__t('tradein.trade_in_table.s2', "يمكنك إضافة عملية شراء جهاز مستعمل جديدة بالنقر على الزر أعلاه")}</p>
       </div>
     );
   }
@@ -48,14 +50,14 @@ export function TradeInTable({
       <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right', fontSize: '12.5px' }}>
         <thead>
           <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>
-            <th style={{ padding: '10px 14px', fontWeight: 700 }}>رقم المستند</th>
-            <th style={{ padding: '10px 14px', fontWeight: 700 }}>بيانات العميل (البائع)</th>
-            <th style={{ padding: '10px 14px', fontWeight: 700 }}>الجهاز والموديل</th>
+            <th style={{ padding: '10px 14px', fontWeight: 700 }}>{__t('tradein.trade_in_table.s3', "رقم المستند")}</th>
+            <th style={{ padding: '10px 14px', fontWeight: 700 }}>{__t('tradein.trade_in_table.s4', "بيانات العميل (البائع)")}</th>
+            <th style={{ padding: '10px 14px', fontWeight: 700 }}>{__t('tradein.trade_in_table.s5', "الجهاز والموديل")}</th>
             <th style={{ padding: '10px 14px', fontWeight: 700 }}>{serialLabel}</th>
-            <th style={{ padding: '10px 14px', fontWeight: 700 }}>الحالة والتقييم</th>
-            <th style={{ padding: '10px 14px', fontWeight: 700 }}>سعر الشراء</th>
-            <th style={{ padding: '10px 14px', fontWeight: 700 }}>النوع والربط</th>
-            <th style={{ padding: '10px 14px', fontWeight: 700, textAlign: 'center' }}>الإجراءات</th>
+            <th style={{ padding: '10px 14px', fontWeight: 700 }}>{__t('tradein.trade_in_table.s6', "الحالة والتقييم")}</th>
+            <th style={{ padding: '10px 14px', fontWeight: 700 }}>{__t('tradein.trade_in_table.s7', "سعر الشراء")}</th>
+            <th style={{ padding: '10px 14px', fontWeight: 700 }}>{__t('tradein.trade_in_table.s8', "النوع والربط")}</th>
+            <th style={{ padding: '10px 14px', fontWeight: 700, textAlign: 'center' }}>{__t('tradein.trade_in_table.s9', "الإجراءات")}</th>
           </tr>
         </thead>
         <tbody>
@@ -69,7 +71,7 @@ export function TradeInTable({
                 <td style={{ padding: '10px 14px' }}>
                   <div style={{ fontWeight: 700, color: '#0f172a' }}>{t.sellerName}</div>
                   <div style={{ fontSize: '11px', color: '#64748b' }}>{t.sellerPhone}</div>
-                  <div style={{ fontSize: '10px', color: '#94a3b8', fontFamily: 'monospace' }}>الرقم القومي: {t.sellerNationalId}</div>
+                  <div style={{ fontSize: '10px', color: '#94a3b8', fontFamily: 'monospace' }}>{__t('tradein.trade_in_table.s10', "الرقم القومي:")} {t.sellerNationalId}</div>
                 </td>
                 <td style={{ padding: '10px 14px' }}>
                   <div style={{ fontWeight: 700, color: '#1e293b' }}>
@@ -83,7 +85,7 @@ export function TradeInTable({
                       type="button"
                       onClick={(e) => onCopyText(t.serialNumber, e)}
                       style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: copiedId === t.serialNumber ? '#16a34a' : '#94a3b8', padding: '2px' }}
-                      title="نسخ السيريال"
+                      title={__t('tradein.trade_in_table.s11', "نسخ السيريال")}
                     >
                       <TradeInIcons.Copy />
                     </button>
@@ -102,7 +104,7 @@ export function TradeInTable({
                 </td>
                 <td style={{ padding: '10px 14px' }}>
                   <span style={{ display: 'inline-block', padding: '2px 6px', borderRadius: '4px', fontSize: '10.5px', fontWeight: 600, background: t.transactionType === 'exchange_trade_in' ? '#f5f3ff' : '#eff6ff', color: t.transactionType === 'exchange_trade_in' ? '#7c3aed' : '#1d4ed8' }}>
-                    {t.transactionType === 'exchange_trade_in' ? 'استبدال Trade-In' : 'شراء نقدي'}
+                    {t.transactionType === 'exchange_trade_in' ? __t('tradein.trade_in_table.s12', "استبدال Trade-In") : __t('tradein.trade_in_table.s13', "شراء نقدي")}
                   </span>
                 </td>
                 <td style={{ padding: '10px 14px', textAlign: 'center' }}>
@@ -113,13 +115,13 @@ export function TradeInTable({
                       style={{ padding: '4px 8px', borderRadius: '6px', background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', fontSize: '11px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
                     >
                       <TradeInIcons.Printer />
-                      <span>إقرار التنازل</span>
+                      <span>{__t('tradein.trade_in_table.s14', "إقرار التنازل")}</span>
                     </button>
                     <button
                       type="button"
                       onClick={() => onSendWhatsApp(t)}
                       style={{ padding: '4px 6px', borderRadius: '6px', background: '#f0fdf4', border: '1px solid #bbf7d0', cursor: 'pointer' }}
-                      title="إرسال إشعار للعميل عبر واتساب"
+                      title={__t('tradein.trade_in_table.s15', "إرسال إشعار للعميل عبر واتساب")}
                     >
                       <TradeInIcons.WhatsApp />
                     </button>

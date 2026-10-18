@@ -16,6 +16,7 @@ import { useCustomerProfile } from '@/features/customers/constants/customer-prof
 import type { Customer } from '@/types/domain';
 
 export function CustomersPage() {
+  const { t: __t } = useTranslation();
   const { t } = useTranslation();
   const profile = useCustomerProfile();
   const controller = useCustomersPageController();
@@ -83,15 +84,15 @@ export function CustomersPage() {
                 ? () => controller.setCustomerToDelete(controller.selectedCustomer)
                 : undefined
             }
-            deleteLabel={profile.id === 'maritime' ? 'حذف الشاحن' : profile.id === 'contracting' ? 'حذف جهة الإسناد' : 'حذف هذا العميل'}
+            deleteLabel={profile.id === 'maritime' ? __t('customers.customers_page.s0', "حذف الشاحن") : profile.id === 'contracting' ? __t('customers.customers_page.s1', "حذف جهة الإسناد") : __t('customers.customers_page.s2', "حذف هذا العميل")}
           />
         </StandardDialog>
 
         <ActionConfirmDialog
           open={Boolean(controller.customerToDelete)}
-          title="تأكيد حذف العميل"
+          title={__t('customers.customers_page.s3', "تأكيد حذف العميل")}
           description={controller.customerToDelete ? `سيتم حذف العميل ${controller.customerToDelete.name}. إذا كان مرتبطًا بحركات بيع أو تحصيل فسيرفض الخادم الحذف مع إظهار السبب.` : ''}
-          confirmLabel="نعم، حذف العميل"
+          confirmLabel={__t('customers.customers_page.s4', "نعم، حذف العميل")}
           isBusy={controller.deleteMutation.isPending}
           onCancel={() => controller.setCustomerToDelete(null)}
           onConfirm={async () => {
@@ -106,9 +107,9 @@ export function CustomersPage() {
 
         <ActionConfirmDialog
           open={controller.bulkDeleteOpen}
-          title="تأكيد حذف العملاء المحددين"
-          description={controller.selectedCustomers.length ? `سيتم محاولة حذف ${controller.selectedCustomers.length} عميلًا دفعة واحدة. أي عميل مرتبط بحركات قائمة سيرفضه الخادم وسيظهر السبب بعد المحاولة.` : 'لا يوجد عملاء محددون.'}
-          confirmLabel="نعم، حذف المحدد"
+          title={__t('customers.customers_page.s5', "تأكيد حذف العملاء المحددين")}
+          description={controller.selectedCustomers.length ? `سيتم محاولة حذف ${controller.selectedCustomers.length} عميلًا دفعة واحدة. أي عميل مرتبط بحركات قائمة سيرفضه الخادم وسيظهر السبب بعد المحاولة.` : __t('customers.customers_page.s6', "لا يوجد عملاء محددون.")}
+          confirmLabel={__t('customers.customers_page.s7', "نعم، حذف المحدد")}
           isBusy={controller.bulkDeleteMutation.isPending}
           onCancel={() => controller.setBulkDeleteOpen(false)}
           onConfirm={async () => {

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { reportsApi, DebtAgingPartyRow } from '@/features/reports/api/reports.api';
@@ -5,6 +6,7 @@ import { formatCurrency } from '@/lib/format';
 import { Button } from '@/shared/ui/button';
 
 export function DebtAgingReportSection() {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<'receivables' | 'payables'>('receivables');
   const [search, setSearch] = useState('');
 
@@ -17,7 +19,7 @@ export function DebtAgingReportSection() {
   if (isLoading) {
     return (
       <div style={{ padding: '24px', textAlign: 'center', color: '#64748b' }}>
-        جاري حساب وتحميل تقرير أعمار الديون...
+        {t('reports.sections.debt_aging_report_section.s0', "جاري حساب وتحميل تقرير أعمار الديون...")}
       </div>
     );
   }
@@ -25,7 +27,7 @@ export function DebtAgingReportSection() {
   if (isError || !data) {
     return (
       <div style={{ padding: '24px', textAlign: 'center', color: '#dc2626' }}>
-        تعذر تحميل تقرير أعمار الديون. <Button variant="secondary" onClick={() => refetch()}>إعادة المحاولة</Button>
+        {t('reports.sections.debt_aging_report_section.s1', "تعذر تحميل تقرير أعمار الديون.")} <Button variant="secondary" onClick={() => refetch()}>{t('reports.sections.debt_aging_report_section.s2', "إعادة المحاولة")}</Button>
       </div>
     );
   }
@@ -67,7 +69,7 @@ export function DebtAgingReportSection() {
               transition: 'all 0.15s ease',
             }}
           >
-            مديونيات العملاء (Receivables)
+            {t('reports.sections.debt_aging_report_section.s3', "مديونيات العملاء (Receivables)")}
           </button>
           <button
             type="button"
@@ -84,14 +86,14 @@ export function DebtAgingReportSection() {
               transition: 'all 0.15s ease',
             }}
           >
-            مستحقات الموردين (Payables)
+            {t('reports.sections.debt_aging_report_section.s4', "مستحقات الموردين (Payables)")}
           </button>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <input
             type="text"
-            placeholder="بحث بالاسم أو الهاتف..."
+            placeholder={t('reports.sections.debt_aging_report_section.s5', "بحث بالاسم أو الهاتف...")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             style={{
@@ -112,35 +114,35 @@ export function DebtAgingReportSection() {
         gap: '12px',
       }}>
         <div style={{ background: '#ffffff', padding: '16px', borderRadius: '14px', border: '1px solid #e2e8f0' }}>
-          <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 600 }}>إجمالي المستحقات</span>
+          <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 600 }}>{t('reports.sections.debt_aging_report_section.s6', "إجمالي المستحقات")}</span>
           <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#0f172a', marginTop: '4px' }}>
             {formatCurrency(summary.total)}
           </div>
         </div>
 
         <div style={{ background: '#ffffff', padding: '16px', borderRadius: '14px', border: '1px solid #e2e8f0' }}>
-          <span style={{ fontSize: '12px', color: '#166534', fontWeight: 600 }}>جارية (0 - 30 يوم)</span>
+          <span style={{ fontSize: '12px', color: '#166534', fontWeight: 600 }}>{t('reports.sections.debt_aging_report_section.s7', "جارية (0 - 30 يوم)")}</span>
           <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#166534', marginTop: '4px' }}>
             {formatCurrency(summary.current)}
           </div>
         </div>
 
         <div style={{ background: '#ffffff', padding: '16px', borderRadius: '14px', border: '1px solid #e2e8f0' }}>
-          <span style={{ fontSize: '12px', color: '#0369a1', fontWeight: 600 }}>متأخرة (31 - 60 يوم)</span>
+          <span style={{ fontSize: '12px', color: '#0369a1', fontWeight: 600 }}>{t('reports.sections.debt_aging_report_section.s8', "متأخرة (31 - 60 يوم)")}</span>
           <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#0369a1', marginTop: '4px' }}>
             {formatCurrency(summary.days31To60)}
           </div>
         </div>
 
         <div style={{ background: '#ffffff', padding: '16px', borderRadius: '14px', border: '1px solid #e2e8f0' }}>
-          <span style={{ fontSize: '12px', color: '#b45309', fontWeight: 600 }}>متأخرة (61 - 90 يوم)</span>
+          <span style={{ fontSize: '12px', color: '#b45309', fontWeight: 600 }}>{t('reports.sections.debt_aging_report_section.s9', "متأخرة (61 - 90 يوم)")}</span>
           <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#b45309', marginTop: '4px' }}>
             {formatCurrency(summary.days61To90)}
           </div>
         </div>
 
         <div style={{ background: '#ffffff', padding: '16px', borderRadius: '14px', border: '1px solid #e2e8f0' }}>
-          <span style={{ fontSize: '12px', color: '#dc2626', fontWeight: 600 }}>حرجة (+90 يوم)</span>
+          <span style={{ fontSize: '12px', color: '#dc2626', fontWeight: 600 }}>{t('reports.sections.debt_aging_report_section.s10', "حرجة (+90 يوم)")}</span>
           <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#dc2626', marginTop: '4px' }}>
             {formatCurrency(summary.over90)}
           </div>
@@ -157,7 +159,7 @@ export function DebtAgingReportSection() {
       }}>
         <div style={{ padding: '14px 18px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <h4 style={{ margin: 0, fontSize: '14.5px', fontWeight: 800, color: '#0f172a' }}>
-            {activeTab === 'receivables' ? 'تفاصيل أعمار ديون العملاء' : 'تفاصيل أعمار مستحقات الموردين'} ({filteredRows.length})
+            {activeTab === 'receivables' ? t('reports.sections.debt_aging_report_section.s11', "تفاصيل أعمار ديون العملاء") : t('reports.sections.debt_aging_report_section.s12', "تفاصيل أعمار مستحقات الموردين")} ({filteredRows.length})
           </h4>
         </div>
 
@@ -165,20 +167,20 @@ export function DebtAgingReportSection() {
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', textAlign: 'right' }}>
             <thead>
               <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>
-                <th style={{ padding: '12px 16px' }}>الاسم</th>
-                <th style={{ padding: '12px 16px' }}>الهاتف</th>
-                <th style={{ padding: '12px 16px' }}>إجمالي الرصيد</th>
-                <th style={{ padding: '12px 16px', color: '#166534' }}>0 - 30 يوم</th>
-                <th style={{ padding: '12px 16px', color: '#0369a1' }}>31 - 60 يوم</th>
-                <th style={{ padding: '12px 16px', color: '#b45309' }}>61 - 90 يوم</th>
-                <th style={{ padding: '12px 16px', color: '#dc2626' }}>+90 يوم</th>
+                <th style={{ padding: '12px 16px' }}>{t('reports.sections.debt_aging_report_section.s13', "الاسم")}</th>
+                <th style={{ padding: '12px 16px' }}>{t('reports.sections.debt_aging_report_section.s14', "الهاتف")}</th>
+                <th style={{ padding: '12px 16px' }}>{t('reports.sections.debt_aging_report_section.s15', "إجمالي الرصيد")}</th>
+                <th style={{ padding: '12px 16px', color: '#166534' }}>{t('reports.sections.debt_aging_report_section.s16', "0 - 30 يوم")}</th>
+                <th style={{ padding: '12px 16px', color: '#0369a1' }}>{t('reports.sections.debt_aging_report_section.s17', "31 - 60 يوم")}</th>
+                <th style={{ padding: '12px 16px', color: '#b45309' }}>{t('reports.sections.debt_aging_report_section.s18', "61 - 90 يوم")}</th>
+                <th style={{ padding: '12px 16px', color: '#dc2626' }}>{t('reports.sections.debt_aging_report_section.s19', "+90 يوم")}</th>
               </tr>
             </thead>
             <tbody>
               {filteredRows.length === 0 ? (
                 <tr>
                   <td colSpan={7} style={{ padding: '32px', textAlign: 'center', color: '#94a3b8' }}>
-                    لا توجد سجلات مطابقة.
+                    {t('reports.sections.debt_aging_report_section.s20', "لا توجد سجلات مطابقة.")}
                   </td>
                 </tr>
               ) : (

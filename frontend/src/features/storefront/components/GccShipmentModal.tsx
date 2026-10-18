@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -29,6 +30,7 @@ interface GccShipmentModalProps {
 }
 
 export function GccShipmentModal({ order, onClose, onSuccess }: GccShipmentModalProps) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
 
   // Check if order already has an existing GCC tracking number
@@ -104,7 +106,7 @@ export function GccShipmentModal({ order, onClose, onSuccess }: GccShipmentModal
       open={true}
       onClose={onClose}
       width="min(640px, 95vw)"
-      ariaLabel="شحن خليجي أرامكس وسمسا"
+      ariaLabel={t('storefront.gcc_shipment_modal.s0', "شحن خليجي أرامكس وسمسا")}
     >
       <div
         dir="rtl"
@@ -133,10 +135,10 @@ export function GccShipmentModal({ order, onClose, onSuccess }: GccShipmentModal
             </div>
             <div>
               <h3 style={{ margin: 0, fontSize: '16.5px', fontWeight: 800, color: '#170e5e' }}>
-                شحن خليجي (أرامكس / سمسا إكسبريس)
+                {t('storefront.gcc_shipment_modal.s1', "شحن خليجي (أرامكس / سمسا إكسبريس)")}
               </h3>
               <p style={{ margin: '2px 0 0', fontSize: '12px', color: '#64748b' }}>
-                طلب رقم #{order.orderNumber} • العميل: {order.customerName}
+                {t('storefront.gcc_shipment_modal.s2', "طلب رقم #")}{order.orderNumber} {t('storefront.gcc_shipment_modal.s3', "• العميل:")} {order.customerName}
               </p>
             </div>
           </div>
@@ -183,15 +185,15 @@ export function GccShipmentModal({ order, onClose, onSuccess }: GccShipmentModal
                 </div>
                 <h4 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: '#166534' }}>
                   {successResult
-                    ? 'تم حجز وإصدار بوليصة الشحن بنجاح!'
-                    : 'هذا الطلب مرتبط ببوليصة شحن مسجلة'}
+                    ? t('storefront.gcc_shipment_modal.s4', "تم حجز وإصدار بوليصة الشحن بنجاح!")
+                    : t('storefront.gcc_shipment_modal.s5', "هذا الطلب مرتبط ببوليصة شحن مسجلة")}
                 </h4>
                 <p style={{ margin: 0, fontSize: '0.86rem', color: '#15803d' }}>
-                  الناقل:{' '}
+                  {t('storefront.gcc_shipment_modal.s6', "الناقل:")}{' '}
                   <strong>
                     {(successResult?.carrier || existingCarrier) === 'aramex'
-                      ? 'أرامكس (Aramex Express)'
-                      : 'سمسا إكسبريس (SMSA Express)'}
+                      ? t('storefront.gcc_shipment_modal.s7', "أرامكس (Aramex Express)")
+                      : t('storefront.gcc_shipment_modal.s8', "سمسا إكسبريس (SMSA Express)")}
                   </strong>
                 </p>
 
@@ -209,7 +211,7 @@ export function GccShipmentModal({ order, onClose, onSuccess }: GccShipmentModal
                   }}
                 >
                   <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: '0.78rem', color: '#64748b' }}>رقم التتبع والشهادة (AWB)</div>
+                    <div style={{ fontSize: '0.78rem', color: '#64748b' }}>{t('storefront.gcc_shipment_modal.s9', "رقم التتبع والشهادة (AWB)")}</div>
                     <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#0f172a', letterSpacing: '1px' }}>
                       #{activeTrackingNumber}
                     </div>
@@ -234,12 +236,12 @@ export function GccShipmentModal({ order, onClose, onSuccess }: GccShipmentModal
                     {copySuccess ? (
                       <>
                         <CheckIcon size={14} color="#16a34a" />
-                        <span>تم النسخ</span>
+                        <span>{t('storefront.gcc_shipment_modal.s10', "تم النسخ")}</span>
                       </>
                     ) : (
                       <>
                         <CopyIcon size={14} />
-                        <span>نسخ الرقم</span>
+                        <span>{t('storefront.gcc_shipment_modal.s11', "نسخ الرقم")}</span>
                       </>
                     )}
                   </button>
@@ -262,7 +264,7 @@ export function GccShipmentModal({ order, onClose, onSuccess }: GccShipmentModal
                     }}
                   >
                     <PrinterIcon size={16} />
-                    <span>طباعة البوليصة (AWB 4×6)</span>
+                    <span>{t('storefront.gcc_shipment_modal.s12', "طباعة البوليصة (AWB 4×6)")}</span>
                   </Button>
 
                   <a
@@ -288,7 +290,7 @@ export function GccShipmentModal({ order, onClose, onSuccess }: GccShipmentModal
                       border: '1px solid #cbd5e1',
                     }}
                   >
-                    متابعة في موقع الناقل ↗
+                    {t('storefront.gcc_shipment_modal.s13', "متابعة في موقع الناقل ↗")}
                   </a>
                 </div>
               </div>
@@ -304,7 +306,7 @@ export function GccShipmentModal({ order, onClose, onSuccess }: GccShipmentModal
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                   <h5 style={{ margin: 0, fontSize: '0.92rem', fontWeight: 800, color: '#0f172a' }}>
-                    حالة الشحنة الحالية (التتبع المباشر)
+                    {t('storefront.gcc_shipment_modal.s14', "حالة الشحنة الحالية (التتبع المباشر)")}
                   </h5>
                   <button
                     type="button"
@@ -321,14 +323,14 @@ export function GccShipmentModal({ order, onClose, onSuccess }: GccShipmentModal
                   >
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                       <RefreshCwIcon size={12} className={trackingQuery.isFetching ? 'animate-spin' : ''} />
-                      <span>{trackingQuery.isFetching ? 'جاري التحديث...' : 'تحديث الحالة'}</span>
+                      <span>{trackingQuery.isFetching ? t('storefront.gcc_shipment_modal.s15', "جاري التحديث...") : t('storefront.gcc_shipment_modal.s16', "تحديث الحالة")}</span>
                     </span>
                   </button>
                 </div>
 
                 {trackingQuery.isLoading ? (
                   <div style={{ textAlign: 'center', padding: '16px', color: '#64748b', fontSize: '13px' }}>
-                    جاري جلب تفاصيل التتبع...
+                    {t('storefront.gcc_shipment_modal.s17', "جاري جلب تفاصيل التتبع...")}
                   </div>
                 ) : trackingQuery.data ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -342,7 +344,7 @@ export function GccShipmentModal({ order, onClose, onSuccess }: GccShipmentModal
                         fontWeight: 700,
                       }}
                     >
-                      الحالة: {trackingQuery.data.currentStatus}
+                      {t('storefront.gcc_shipment_modal.s18', "الحالة:")} {trackingQuery.data.currentStatus}
                       {trackingQuery.data.destinationCity ? ` • الوجهة: ${trackingQuery.data.destinationCity}` : ''}
                     </div>
 
@@ -376,7 +378,7 @@ export function GccShipmentModal({ order, onClose, onSuccess }: GccShipmentModal
                   </div>
                 ) : (
                   <div style={{ textAlign: 'center', padding: '12px', color: '#64748b', fontSize: '13px' }}>
-                    تم إنشاء البوليصة وتأكيدها. في انتظار الاستلام من المندوب.
+                    {t('storefront.gcc_shipment_modal.s19', "تم إنشاء البوليصة وتأكيدها. في انتظار الاستلام من المندوب.")}
                   </div>
                 )}
               </div>
@@ -387,7 +389,7 @@ export function GccShipmentModal({ order, onClose, onSuccess }: GccShipmentModal
               {/* Carrier Selection Radio Cards */}
               <div>
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#475569', marginBottom: '8px' }}>
-                  اختر شركة الشحن الخليجية:
+                  {t('storefront.gcc_shipment_modal.s20', "اختر شركة الشحن الخليجية:")}
                 </label>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                   <button
@@ -407,11 +409,11 @@ export function GccShipmentModal({ order, onClose, onSuccess }: GccShipmentModal
                     }}
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontWeight: 800, color: '#dc2626', fontSize: '13px' }}>أرامكس (Aramex)</span>
+                      <span style={{ fontWeight: 800, color: '#dc2626', fontSize: '13px' }}>{t('storefront.gcc_shipment_modal.s21', "أرامكس (Aramex)")}</span>
                       <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#dc2626', display: 'inline-block' }} />
                     </div>
                     <span style={{ fontSize: '11px', color: '#64748b' }}>
-                      تغطية شاملة للمملكة، الإمارات، الكويت، وقطر
+                      {t('storefront.gcc_shipment_modal.s22', "تغطية شاملة للمملكة، الإمارات، الكويت، وقطر")}
                     </span>
                   </button>
 
@@ -432,11 +434,11 @@ export function GccShipmentModal({ order, onClose, onSuccess }: GccShipmentModal
                     }}
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontWeight: 800, color: '#ea580c', fontSize: '13px' }}>سمسا إكسبريس (SMSA)</span>
+                      <span style={{ fontWeight: 800, color: '#ea580c', fontSize: '13px' }}>{t('storefront.gcc_shipment_modal.s23', "سمسا إكسبريس (SMSA)")}</span>
                       <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#ea580c', display: 'inline-block' }} />
                     </div>
                     <span style={{ fontSize: '11px', color: '#64748b' }}>
-                      الناقل الأوسع انتشاراً داخل كافة محافظات وقرى السعودية
+                      {t('storefront.gcc_shipment_modal.s24', "الناقل الأوسع انتشاراً داخل كافة محافظات وقرى السعودية")}
                     </span>
                   </button>
                 </div>
@@ -460,17 +462,17 @@ export function GccShipmentModal({ order, onClose, onSuccess }: GccShipmentModal
                     {isPaidOnline ? (
                       <>
                         <CreditCardIcon size={14} />
-                        <span>مسدد إلكترونياً بالكامل (تاب / سترايب)</span>
+                        <span>{t('storefront.gcc_shipment_modal.s25', "مسدد إلكترونياً بالكامل (تاب / سترايب)")}</span>
                       </>
                     ) : (
                       <>
                         <DollarSignIcon size={14} />
-                        <span>دفع عند الاستلام (COD)</span>
+                        <span>{t('storefront.gcc_shipment_modal.s26', "دفع عند الاستلام (COD)")}</span>
                       </>
                     )}
                   </span>
                   <span style={{ margin: '0 6px', color: '#94a3b8' }}>•</span>
-                  <span style={{ color: '#64748b' }}>إجمالي الفاتورة: {formatCurrency(order.totalAmount)}</span>
+                  <span style={{ color: '#64748b' }}>{t('storefront.gcc_shipment_modal.s27', "إجمالي الفاتورة:")} {formatCurrency(order.totalAmount)}</span>
                 </div>
                 <span
                   style={{
@@ -482,7 +484,7 @@ export function GccShipmentModal({ order, onClose, onSuccess }: GccShipmentModal
                     fontWeight: 700,
                   }}
                 >
-                  {isPaidOnline ? 'تحصيل صفر COD' : `المطلوب تحصيله: ${formatCurrency(codAmount)}`}
+                  {isPaidOnline ? t('storefront.gcc_shipment_modal.s28', "تحصيل صفر COD") : `المطلوب تحصيله: ${formatCurrency(codAmount)}`}
                 </span>
               </div>
 
@@ -490,7 +492,7 @@ export function GccShipmentModal({ order, onClose, onSuccess }: GccShipmentModal
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                    اسم العميل المستلم *
+                    {t('storefront.gcc_shipment_modal.s29', "اسم العميل المستلم *")}
                   </label>
                   <input
                     type="text"
@@ -508,7 +510,7 @@ export function GccShipmentModal({ order, onClose, onSuccess }: GccShipmentModal
 
                 <div>
                   <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                    رقم الهاتف المحمول *
+                    {t('storefront.gcc_shipment_modal.s30', "رقم الهاتف المحمول *")}
                   </label>
                   <input
                     type="text"
@@ -528,7 +530,7 @@ export function GccShipmentModal({ order, onClose, onSuccess }: GccShipmentModal
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                    الدولة
+                    {t('storefront.gcc_shipment_modal.s31', "الدولة")}
                   </label>
                   <select
                     value={receiverCountry}
@@ -542,24 +544,24 @@ export function GccShipmentModal({ order, onClose, onSuccess }: GccShipmentModal
                       background: '#ffffff',
                     }}
                   >
-                    <option value="SA">المملكة العربية السعودية (SA)</option>
-                    <option value="AE">الإمارات العربية المتحدة (AE)</option>
-                    <option value="KW">دولة الكويت (KW)</option>
-                    <option value="QA">دولة قطر (QA)</option>
-                    <option value="BH">مملكة البحرين (BH)</option>
-                    <option value="OM">سلطنة عمان (OM)</option>
+                    <option value="SA">{t('storefront.gcc_shipment_modal.s32', "المملكة العربية السعودية (SA)")}</option>
+                    <option value="AE">{t('storefront.gcc_shipment_modal.s33', "الإمارات العربية المتحدة (AE)")}</option>
+                    <option value="KW">{t('storefront.gcc_shipment_modal.s34', "دولة الكويت (KW)")}</option>
+                    <option value="QA">{t('storefront.gcc_shipment_modal.s35', "دولة قطر (QA)")}</option>
+                    <option value="BH">{t('storefront.gcc_shipment_modal.s36', "مملكة البحرين (BH)")}</option>
+                    <option value="OM">{t('storefront.gcc_shipment_modal.s37', "سلطنة عمان (OM)")}</option>
                   </select>
                 </div>
 
                 <div>
                   <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                    المدينة / الحي *
+                    {t('storefront.gcc_shipment_modal.s38', "المدينة / الحي *")}
                   </label>
                   <input
                     type="text"
                     value={receiverCity}
                     onChange={(e) => setReceiverCity(e.target.value)}
-                    placeholder="مثال: الرياض، جدة، الدمام، دبي..."
+                    placeholder={t('storefront.gcc_shipment_modal.s39', "مثال: الرياض، جدة، الدمام، دبي...")}
                     style={{
                       width: '100%',
                       padding: '8px 12px',
@@ -573,13 +575,13 @@ export function GccShipmentModal({ order, onClose, onSuccess }: GccShipmentModal
 
               <div>
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                  العنوان التفصيلي (الشارع، رقم المبنى) *
+                  {t('storefront.gcc_shipment_modal.s40', "العنوان التفصيلي (الشارع، رقم المبنى) *")}
                 </label>
                 <input
                   type="text"
                   value={receiverAddress}
                   onChange={(e) => setReceiverAddress(e.target.value)}
-                  placeholder="مثال: حي النرجس، شارع عثمان بن عفان، مبنى 14"
+                  placeholder={t('storefront.gcc_shipment_modal.s41', "مثال: حي النرجس، شارع عثمان بن عفان، مبنى 14")}
                   style={{
                     width: '100%',
                     padding: '8px 12px',
@@ -594,7 +596,7 @@ export function GccShipmentModal({ order, onClose, onSuccess }: GccShipmentModal
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                    الوزن الإجمالي (كجم)
+                    {t('storefront.gcc_shipment_modal.s42', "الوزن الإجمالي (كجم)")}
                   </label>
                   <input
                     type="number"
@@ -614,7 +616,7 @@ export function GccShipmentModal({ order, onClose, onSuccess }: GccShipmentModal
 
                 <div>
                   <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                    عدد الطرود (Pieces)
+                    {t('storefront.gcc_shipment_modal.s43', "عدد الطرود (Pieces)")}
                   </label>
                   <input
                     type="number"
@@ -633,7 +635,7 @@ export function GccShipmentModal({ order, onClose, onSuccess }: GccShipmentModal
 
                 <div>
                   <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                    مبلغ التحصيل عند الاستلام
+                    {t('storefront.gcc_shipment_modal.s44', "مبلغ التحصيل عند الاستلام")}
                   </label>
                   <input
                     type="number"
@@ -653,7 +655,7 @@ export function GccShipmentModal({ order, onClose, onSuccess }: GccShipmentModal
 
               <div>
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                  وصف الشحنة والمحتويات
+                  {t('storefront.gcc_shipment_modal.s45', "وصف الشحنة والمحتويات")}
                 </label>
                 <input
                   type="text"
@@ -671,13 +673,13 @@ export function GccShipmentModal({ order, onClose, onSuccess }: GccShipmentModal
 
               <div>
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                  ملاحظات للمندوب والتوصيل
+                  {t('storefront.gcc_shipment_modal.s46', "ملاحظات للمندوب والتوصيل")}
                 </label>
                 <input
                   type="text"
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
-                  placeholder="مثال: الاتصال قبل الوصول بنصف ساعة"
+                  placeholder={t('storefront.gcc_shipment_modal.s47', "مثال: الاتصال قبل الوصول بنصف ساعة")}
                   style={{
                     width: '100%',
                     padding: '8px 12px',
@@ -704,7 +706,7 @@ export function GccShipmentModal({ order, onClose, onSuccess }: GccShipmentModal
                   }}
                 >
                   <AlertTriangleIcon size={16} />
-                  <span>حدث خطأ أثناء إنشاء الشحنة: {(shipMutation.error as any)?.message || 'يرجى مراجعة إعدادات الشحن وبيانات العنوان'}</span>
+                  <span>{t('storefront.gcc_shipment_modal.s48', "حدث خطأ أثناء إنشاء الشحنة:")} {(shipMutation.error as any)?.message || t('storefront.gcc_shipment_modal.s49', "يرجى مراجعة إعدادات الشحن وبيانات العنوان")}</span>
                 </div>
               )}
             </>
@@ -733,7 +735,7 @@ export function GccShipmentModal({ order, onClose, onSuccess }: GccShipmentModal
                 borderRadius: '8px',
               }}
             >
-              إغلاق
+              {t('storefront.gcc_shipment_modal.s50', "إغلاق")}
             </Button>
           ) : (
             <>
@@ -752,7 +754,7 @@ export function GccShipmentModal({ order, onClose, onSuccess }: GccShipmentModal
                   fontSize: '13px',
                 }}
               >
-                إلغاء
+                {t('storefront.gcc_shipment_modal.s51', "إلغاء")}
               </button>
 
               <button
@@ -777,10 +779,10 @@ export function GccShipmentModal({ order, onClose, onSuccess }: GccShipmentModal
                 }}
               >
                 {shipMutation.isPending ? (
-                  <span>جاري حجز البوليصة والربط مع {carrier === 'aramex' ? 'أرامكس' : 'سمسا'}...</span>
+                  <span>{t('storefront.gcc_shipment_modal.s52', "جاري حجز البوليصة والربط مع")} {carrier === 'aramex' ? t('storefront.gcc_shipment_modal.s53', "أرامكس") : t('storefront.gcc_shipment_modal.s54', "سمسا")}...</span>
                 ) : (
                   <span>
-                    تأكيد وإصدار بوليصة {carrier === 'aramex' ? 'أرامكس' : 'سمسا'}
+                    {t('storefront.gcc_shipment_modal.s55', "تأكيد وإصدار بوليصة")} {carrier === 'aramex' ? t('storefront.gcc_shipment_modal.s56', "أرامكس") : t('storefront.gcc_shipment_modal.s57', "سمسا")}
                   </span>
                 )}
               </button>

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 import { SignagePromoItem } from './types';
 import { TagIcon, AwardIcon, QrCodeIcon } from '@/shared/components/icons/AppIcons';
@@ -17,6 +18,7 @@ export const SignageSideDeck: React.FC<SignageSideDeckProps> = ({
   currencyCode,
   qrSvgUrl,
 }) => {
+  const { t } = useTranslation();
   return (
     <div
       style={{
@@ -39,8 +41,8 @@ export const SignageSideDeck: React.FC<SignageSideDeckProps> = ({
           }}
         >
           <TagIcon size={18} color="#170e5e" />
-          <span>عروض إضافية بالمعرض</span>
-          <span style={{ fontSize: '12px', color: '#64748b' }}>({promoItems.length} عرض متوفر)</span>
+          <span>{t('pos.signage.signage_side_deck.s0', "عروض إضافية بالمعرض")}</span>
+          <span style={{ fontSize: '12px', color: '#64748b' }}>({promoItems.length} {t('pos.signage.signage_side_deck.s1', "عرض متوفر)")}</span>
         </div>
 
         {promoItems.filter((_, idx) => idx !== currentIndex).length === 0 ? (
@@ -73,9 +75,9 @@ export const SignageSideDeck: React.FC<SignageSideDeckProps> = ({
             </div>
             <div>
               <h4 style={{ margin: 0, fontSize: '13.5px', fontWeight: 800, color: '#0f172a' }}>
-                صفقات وتخفيضات المعرض
+                {t('pos.signage.signage_side_deck.s2', "صفقات وتخفيضات المعرض")}
               </h4>
-              <span style={{ fontSize: '11px', color: '#64748b' }}>تصفح منتجاتنا المميزة بأسعار تنافسية وضمان معتمد</span>
+              <span style={{ fontSize: '11px', color: '#64748b' }}>{t('pos.signage.signage_side_deck.s3', "تصفح منتجاتنا المميزة بأسعار تنافسية وضمان معتمد")}</span>
             </div>
           </div>
         ) : (
@@ -153,17 +155,17 @@ export const SignageSideDeck: React.FC<SignageSideDeckProps> = ({
       >
         <div style={{ fontSize: '13px', fontWeight: 800, color: '#170e5e', display: 'flex', alignItems: 'center', gap: '6px' }}>
           <AwardIcon size={16} color="#170e5e" />
-          <span>مزايا التسوق في صالة العرض</span>
+          <span>{t('pos.signage.signage_side_deck.s4', "مزايا التسوق في صالة العرض")}</span>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
           <div style={{ backgroundColor: '#f8fafc', padding: '8px 10px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-            <div style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a' }}>فحص وتجربة فورية</div>
-            <div style={{ fontSize: '10px', color: '#64748b', marginTop: '2px' }}>معاينة المنتج قبل الشراء</div>
+            <div style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a' }}>{t('pos.signage.signage_side_deck.s5', "فحص وتجربة فورية")}</div>
+            <div style={{ fontSize: '10px', color: '#64748b', marginTop: '2px' }}>{t('pos.signage.signage_side_deck.s6', "معاينة المنتج قبل الشراء")}</div>
           </div>
           <div style={{ backgroundColor: '#f8fafc', padding: '8px 10px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-            <div style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a' }}>دفع إلكتروني آمن</div>
-            <div style={{ fontSize: '10px', color: '#64748b', marginTop: '2px' }}>InstaPay ومحافظ وفيزا</div>
+            <div style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a' }}>{t('pos.signage.signage_side_deck.s7', "دفع إلكتروني آمن")}</div>
+            <div style={{ fontSize: '10px', color: '#64748b', marginTop: '2px' }}>{t('pos.signage.signage_side_deck.s8', "InstaPay ومحافظ وفيزا")}</div>
           </div>
         </div>
       </div>
@@ -212,7 +214,7 @@ export const SignageSideDeck: React.FC<SignageSideDeckProps> = ({
             }}
           >
             <QrCodeIcon size={16} color="#170e5e" />
-            <span>اطلب فورياً من هاتفك</span>
+            <span>{t('pos.signage.signage_side_deck.s9', "اطلب فورياً من هاتفك")}</span>
           </div>
           <p
             style={{
@@ -222,7 +224,7 @@ export const SignageSideDeck: React.FC<SignageSideDeckProps> = ({
               lineHeight: 1.5,
             }}
           >
-            وجّه كاميرا هاتفك نحو رمز الـ QR لتصفح كامل الكتالوج والطلب والتوصيل بضغطة واحدة!
+            {t('pos.signage.signage_side_deck.s10', "وجّه كاميرا هاتفك نحو رمز الـ QR لتصفح كامل الكتالوج والطلب والتوصيل بضغطة واحدة!")}
           </p>
         </div>
       </div>

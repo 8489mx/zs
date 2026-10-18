@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useRef } from 'react';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { Field } from '@/shared/ui/field';
@@ -26,6 +27,7 @@ interface JobDetailsModalProps {
 }
 
 export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsModalProps) {
+  const { t } = useTranslation();
   const { user } = useAuthStore();
   const { currencyCode, currencySymbol } = useSystemCurrency();
   const pendingSubmissions = useRef(new Set<string>());
@@ -861,12 +863,12 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
       <StandardDialog
         open={open}
         onClose={onClose}
-        title="ملف العملية الملاحية"
-        subtitle="جاري جلب تفاصيل وبيانات العملية..."
+        title={t('maritime_freight.job_details_modal.s0', "ملف العملية الملاحية")}
+        subtitle={t('maritime_freight.job_details_modal.s1', "جاري جلب تفاصيل وبيانات العملية...")}
         width="min(1180px, 95vw)"
         height="min(680px, 88vh)"
         loading={true}
-        loadingText="جاري تحميل ملف العملية الملاحية..."
+        loadingText={t('maritime_freight.job_details_modal.s2', "جاري تحميل ملف العملية الملاحية...")}
       >
         <div style={{ minHeight: '420px' }} />
       </StandardDialog>
@@ -943,13 +945,13 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
       <StandardDialog
         open={open}
         onClose={onClose}
-        title="جاري التحميل..."
-        subtitle="ملف العملية اللوجستية"
+        title={t('maritime_freight.job_details_modal.s3', "جاري التحميل...")}
+        subtitle={t('maritime_freight.job_details_modal.s4', "ملف العملية اللوجستية")}
         width="min(1180px, 95vw)"
         height="min(780px, 90vh)"
       >
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', minHeight: '320px', color: '#64748b' }}>
-          جاري تحميل ملف العملية...
+          {t('maritime_freight.job_details_modal.s5', "جاري تحميل ملف العملية...")}
         </div>
       </StandardDialog>
     );
@@ -962,7 +964,7 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
       return (
         <span style={{ padding: '2px 8px', borderRadius: '6px', fontSize: '0.72rem', fontWeight: 800, background: '#e0f2fe', color: '#0369a1', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
           <AppIcons.Plane size={13} />
-          شحن جوي (Air Freight)
+          {t('maritime_freight.job_details_modal.s6', "شحن جوي (Air Freight)")}
         </span>
       );
     }
@@ -970,21 +972,21 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
       return (
         <span style={{ padding: '2px 8px', borderRadius: '6px', fontSize: '0.72rem', fontWeight: 800, background: '#fef3c7', color: '#b45309', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
           <AppIcons.Truck size={13} />
-          شحن بري (Road Freight)
+          {t('maritime_freight.job_details_modal.s7', "شحن بري (Road Freight)")}
         </span>
       );
     }
     if (mode === 'multimodal') {
       return (
         <span style={{ padding: '2px 8px', borderRadius: '6px', fontSize: '0.72rem', fontWeight: 800, background: '#f3e8ff', color: '#7e22ce', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-          متعدد الوسائط (Multimodal)
+          {t('maritime_freight.job_details_modal.s8', "متعدد الوسائط (Multimodal)")}
         </span>
       );
     }
     return (
       <span style={{ padding: '2px 8px', borderRadius: '6px', fontSize: '0.72rem', fontWeight: 800, background: '#e0e7ff', color: '#3730a3', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
         <AppIcons.Ship size={13} />
-        شحن بحري (Ocean Freight)
+        {t('maritime_freight.job_details_modal.s9', "شحن بحري (Ocean Freight)")}
       </span>
     );
   };
@@ -997,7 +999,7 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
         title={`ملف العملية: ${job.job_number}`}
         subtitle={(
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-            <span>العميل: {job.customer_name} | المسار: {job.pol_name} إلى {job.pod_name}</span>
+            <span>{t('maritime_freight.job_details_modal.s10', "العميل:")} {job.customer_name} {t('maritime_freight.job_details_modal.s11', "| المسار:")} {job.pol_name} {t('maritime_freight.job_details_modal.s12', "إلى")} {job.pod_name}</span>
             {renderModeBadge(job.transport_mode)}
           </div>
         )}
@@ -1006,7 +1008,7 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
         footerActions={(
           <StandardDialogFooter
             onCancel={onClose}
-            cancelText="إغلاق"
+            cancelText={t('maritime_freight.job_details_modal.s13', "إغلاق")}
           />
         )}
       >
@@ -1028,7 +1030,7 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                 whiteSpace: 'nowrap',
               }}
             >
-              بيانات الرحلة والحجز
+              {t('maritime_freight.job_details_modal.s14', "بيانات الرحلة والحجز")}
             </button>
             <button
               type="button"
@@ -1045,7 +1047,7 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                 whiteSpace: 'nowrap',
               }}
             >
-              بنود الرسوم والتسعير (Charges)
+              {t('maritime_freight.job_details_modal.s15', "بنود الرسوم والتسعير (Charges)")}
             </button>
             <button
               type="button"
@@ -1062,7 +1064,7 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                 whiteSpace: 'nowrap',
               }}
             >
-              {job.transport_mode === 'air' ? 'بيانات الشحنة والمستودع' : `الحاويات والمستودع (${job.containers?.length || 0})`}
+              {job.transport_mode === 'air' ? t('maritime_freight.job_details_modal.s16', "بيانات الشحنة والمستودع") : `الحاويات والمستودع (${job.containers?.length || 0})`}
             </button>
             <button
               type="button"
@@ -1096,7 +1098,7 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                 whiteSpace: 'nowrap',
               }}
             >
-              التجميع المشترك (LCL)
+              {t('maritime_freight.job_details_modal.s17', "التجميع المشترك (LCL)")}
             </button>
             <button
               type="button"
@@ -1113,7 +1115,7 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                 whiteSpace: 'nowrap',
               }}
             >
-              النقل البري والترحيل
+              {t('maritime_freight.job_details_modal.s18', "النقل البري والترحيل")}
             </button>
             <button
               type="button"
@@ -1130,7 +1132,7 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                 whiteSpace: 'nowrap',
               }}
             >
-              الحافظة وبوالص الشحن (Docs)
+              {t('maritime_freight.job_details_modal.s19', "الحافظة وبوالص الشحن (Docs)")}
             </button>
             <button
               type="button"
@@ -1147,7 +1149,7 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                 whiteSpace: 'nowrap',
               }}
             >
-              ربحية العملية والتأمين (Job P&L)
+              {t('maritime_freight.job_details_modal.s20', "ربحية العملية والتأمين (Job P&L)")}
             </button>
           </div>
 
@@ -1181,12 +1183,12 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                         color: job.payment_status === 'paid' ? '#15803d' : job.payment_status === 'partially_paid' ? '#b45309' : '#64748b',
                       }}
                     >
-                      {job.payment_status === 'paid' ? 'مسددة بالكامل' : job.payment_status === 'partially_paid' ? 'مسددة جزئياً' : 'غير مسددة'}
+                      {job.payment_status === 'paid' ? t('maritime_freight.job_details_modal.s21', "مسددة بالكامل") : job.payment_status === 'partially_paid' ? t('maritime_freight.job_details_modal.s22', "مسددة جزئياً") : t('maritime_freight.job_details_modal.s23', "غير مسددة")}
                     </div>
                     <div style={{ fontSize: '0.82rem', color: '#475569' }}>
-                      المفوتر: <strong style={{ color: '#170e5e', fontSize: '0.9rem' }}>{currencySymbol} {Number(job.client_invoiced_total || 0).toLocaleString()}</strong>
+                      {t('maritime_freight.job_details_modal.s24', "المفوتر:")} <strong style={{ color: '#170e5e', fontSize: '0.9rem' }}>{currencySymbol} {Number(job.client_invoiced_total || 0).toLocaleString()}</strong>
                       {' | '}
-                      المسدد: <strong style={{ color: '#15803d', fontSize: '0.9rem' }}>{currencySymbol} {Number(job.client_paid_total || 0).toLocaleString()}</strong>
+                      {t('maritime_freight.job_details_modal.s25', "المسدد:")} <strong style={{ color: '#15803d', fontSize: '0.9rem' }}>{currencySymbol} {Number(job.client_paid_total || 0).toLocaleString()}</strong>
                     </div>
 
                     {Number(job.customerAvailableCredit || 0) > 0 && job.payment_status !== 'paid' && (
@@ -1205,7 +1207,7 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                           cursor: isSettlingFromBalance ? 'not-allowed' : 'pointer',
                         }}
                       >
-                        {isSettlingFromBalance ? 'جاري السداد...' : `سداد من الرصيد (${currencySymbol} ${Number(job.customerAvailableCredit || 0).toLocaleString()})`}
+                        {isSettlingFromBalance ? t('maritime_freight.job_details_modal.s26', "جاري السداد...") : `سداد من الرصيد (${currencySymbol} ${Number(job.customerAvailableCredit || 0).toLocaleString()})`}
                       </button>
                     )}
                   </div>
@@ -1232,7 +1234,7 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                         gap: '6px',
                       }}
                     >
-                      <span>استخراج ذكي من إيميل الحجز</span>
+                      <span>{t('maritime_freight.job_details_modal.s27', "استخراج ذكي من إيميل الحجز")}</span>
                     </button>
                     <button
                       type="button"
@@ -1248,7 +1250,7 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                         cursor: 'pointer',
                       }}
                     >
-                      تعديل بيانات الرحلة والبوالص
+                      {t('maritime_freight.job_details_modal.s28', "تعديل بيانات الرحلة والبوالص")}
                     </button>
                   </div>
                 </div>
@@ -1258,45 +1260,45 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px' }}>
                     {/* كارت 1: شركة الطيران ورقم الحجز */}
                     <div style={{ background: '#ffffff', padding: '12px 14px', borderRadius: '10px', border: '1px solid #e2e8f0', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}>
-                      <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 600 }}>شركة الطيران ورقم الحجز</div>
+                      <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 600 }}>{t('maritime_freight.job_details_modal.s29', "شركة الطيران ورقم الحجز")}</div>
                       <div style={{ fontSize: '0.94rem', fontWeight: 800, color: '#0369a1', marginTop: '4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={job.shipping_line_name || ''}>
-                        {job.shipping_line_name || 'غير محدد'}
+                        {job.shipping_line_name || t('maritime_freight.job_details_modal.s30', "غير محدد")}
                       </div>
                       <div style={{ fontSize: '0.78rem', color: '#334155', marginTop: '3px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        رقم الحجز: <strong style={{ color: '#0f172a' }}>{job.booking_number || 'غير مسجل'}</strong>
+                        {t('maritime_freight.job_details_modal.s31', "رقم الحجز:")} <strong style={{ color: '#0f172a' }}>{job.booking_number || t('maritime_freight.job_details_modal.s32', "غير مسجل")}</strong>
                       </div>
                     </div>
 
                     {/* كارت 2: رقم الرحلة وتاريخ الإقلاع */}
                     <div style={{ background: '#ffffff', padding: '12px 14px', borderRadius: '10px', border: '1px solid #e2e8f0', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}>
-                      <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 600 }}>الرحلة الجوية (Flight / Date)</div>
+                      <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 600 }}>{t('maritime_freight.job_details_modal.s33', "الرحلة الجوية (Flight / Date)")}</div>
                       <div style={{ fontSize: '0.94rem', fontWeight: 800, color: '#170e5e', marginTop: '4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {job.flight_number ? `رحلة: ${job.flight_number}` : 'قيد الجدولة'}
+                        {job.flight_number ? `رحلة: ${job.flight_number}` : t('maritime_freight.job_details_modal.s34', "قيد الجدولة")}
                       </div>
                       <div style={{ fontSize: '0.78rem', color: '#334155', marginTop: '3px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        تاريخ: <strong>{job.flight_date ? job.flight_date.split('T')[0] : job.etd ? job.etd.split('T')[0] : '—'}</strong> | {job.payment_term || 'prepaid'}
+                        {t('maritime_freight.job_details_modal.s35', "تاريخ:")} <strong>{job.flight_date ? job.flight_date.split('T')[0] : job.etd ? job.etd.split('T')[0] : '—'}</strong> | {job.payment_term || 'prepaid'}
                       </div>
                     </div>
 
                     {/* كارت 3: بوالص الشحن الجوي AWB */}
                     <div style={{ background: '#ffffff', padding: '12px 14px', borderRadius: '10px', border: '1px solid #e2e8f0', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}>
-                      <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 600 }}>بوالص الشحن الجوي (AWB)</div>
+                      <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 600 }}>{t('maritime_freight.job_details_modal.s36', "بوالص الشحن الجوي (AWB)")}</div>
                       <div style={{ fontSize: '0.86rem', fontWeight: 700, color: '#0369a1', marginTop: '4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        MAWB: {job.mawb_number || 'قيد الإصدار'}
+                        MAWB: {job.mawb_number || t('maritime_freight.job_details_modal.s37', "قيد الإصدار")}
                       </div>
                       <div style={{ fontSize: '0.78rem', color: '#475569', marginTop: '3px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        HAWB: {job.hawb_number || 'قيد الإصدار'}
+                        HAWB: {job.hawb_number || t('maritime_freight.job_details_modal.s38', "قيد الإصدار")}
                       </div>
                     </div>
 
                     {/* كارت 4: أوزان الشحن الجوي وفق إياتا */}
                     <div style={{ background: '#ffffff', padding: '12px 14px', borderRadius: '10px', border: '1px solid #e2e8f0', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}>
-                      <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 600 }}>الوزن الخاضع للتحصيل (IATA)</div>
+                      <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 600 }}>{t('maritime_freight.job_details_modal.s39', "الوزن الخاضع للتحصيل (IATA)")}</div>
                       <div style={{ fontSize: '1rem', fontWeight: 900, color: '#15803d', marginTop: '4px' }}>
-                        {Number(job.chargeable_weight_kg || Math.max(job.gross_weight_kg || 0, job.volumetric_weight_kg || 0)).toLocaleString()} كجم
+                        {Number(job.chargeable_weight_kg || Math.max(job.gross_weight_kg || 0, job.volumetric_weight_kg || 0)).toLocaleString()} {t('maritime_freight.job_details_modal.s40', "كجم")}
                       </div>
                       <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '3px' }}>
-                        قائم: {job.gross_weight_kg || 0} كجم | حجمي: {job.volumetric_weight_kg || 0} كجم | {job.package_count || 1} طرد
+                        {t('maritime_freight.job_details_modal.s41', "قائم:")} {job.gross_weight_kg || 0} {t('maritime_freight.job_details_modal.s42', "كجم | حجمي:")} {job.volumetric_weight_kg || 0} {t('maritime_freight.job_details_modal.s43', "كجم |")} {job.package_count || 1} {t('maritime_freight.job_details_modal.s44', "طرد")}
                       </div>
                     </div>
                   </div>
@@ -1304,47 +1306,47 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px' }}>
                     {/* كارت 1: الخط الملاحي ورقم الحجز */}
                     <div style={{ background: '#ffffff', padding: '12px 14px', borderRadius: '10px', border: '1px solid #e2e8f0', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}>
-                      <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 600 }}>الخط الملاحي ورقم الحجز</div>
+                      <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 600 }}>{t('maritime_freight.job_details_modal.s45', "الخط الملاحي ورقم الحجز")}</div>
                       <div style={{ fontSize: '0.94rem', fontWeight: 800, color: '#170e5e', marginTop: '4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={job.shipping_line_name || ''}>
-                        {job.shipping_line_name || 'غير محدد'}
+                        {job.shipping_line_name || t('maritime_freight.job_details_modal.s46', "غير محدد")}
                       </div>
                       <div style={{ fontSize: '0.78rem', color: '#334155', marginTop: '3px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        رقم الحجز: <strong style={{ color: '#0f172a' }}>{job.booking_number || 'غير مسجل'}</strong>
+                        {t('maritime_freight.job_details_modal.s47', "رقم الحجز:")} <strong style={{ color: '#0f172a' }}>{job.booking_number || t('maritime_freight.job_details_modal.s48', "غير مسجل")}</strong>
                       </div>
                     </div>
 
                     {/* كارت 2: السفينة ورقم الرحلة */}
                     <div style={{ background: '#ffffff', padding: '12px 14px', borderRadius: '10px', border: '1px solid #e2e8f0', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}>
-                      <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 600 }}>السفينة ورقم الرحلة (Vessel / Voyage)</div>
+                      <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 600 }}>{t('maritime_freight.job_details_modal.s49', "السفينة ورقم الرحلة (Vessel / Voyage)")}</div>
                       <div style={{ fontSize: '0.94rem', fontWeight: 800, color: '#170e5e', marginTop: '4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={job.vessel_name || ''}>
-                        {job.vessel_name || 'لم تسجل السفينة'}
+                        {job.vessel_name || t('maritime_freight.job_details_modal.s50', "لم تسجل السفينة")}
                       </div>
                       <div style={{ fontSize: '0.78rem', color: '#334155', marginTop: '3px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        الرحلة: <strong>{job.voyage_number || '-'}</strong> | سداد: {job.payment_term || 'prepaid'}
+                        {t('maritime_freight.job_details_modal.s51', "الرحلة:")} <strong>{job.voyage_number || '-'}</strong> {t('maritime_freight.job_details_modal.s52', "| سداد:")} {job.payment_term || 'prepaid'}
                       </div>
                     </div>
 
                     {/* كارت 3: مواعيد الإبحار والوصول */}
                     <div style={{ background: '#ffffff', padding: '12px 14px', borderRadius: '10px', border: '1px solid #e2e8f0', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}>
-                      <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 600 }}>مواعيد الإبحار والوصول (ETD / ETA)</div>
+                      <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 600 }}>{t('maritime_freight.job_details_modal.s53', "مواعيد الإبحار والوصول (ETD / ETA)")}</div>
                       <div style={{ fontSize: '0.84rem', fontWeight: 700, marginTop: '4px', direction: 'ltr', textAlign: 'right' }}>
-                        <span style={{ color: '#0369a1' }}>ETD: {job.etd ? job.etd.split('T')[0] : 'قيد الجدولة'}</span>
+                        <span style={{ color: '#0369a1' }}>ETD: {job.etd ? job.etd.split('T')[0] : t('maritime_freight.job_details_modal.s54', "قيد الجدولة")}</span>
                         {' → '}
-                        <span style={{ color: '#15803d' }}>ETA: {job.eta ? job.eta.split('T')[0] : 'قيد الجدولة'}</span>
+                        <span style={{ color: '#15803d' }}>ETA: {job.eta ? job.eta.split('T')[0] : t('maritime_freight.job_details_modal.s55', "قيد الجدولة")}</span>
                       </div>
                       <div style={{ fontSize: '0.74rem', color: job.port_cut_off ? '#b91c1c' : '#64748b', marginTop: '3px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {job.port_cut_off ? `إغلاق الميناء: ${job.port_cut_off.split('T')[0]}` : 'الميناء مفتوح للتسليم'}
+                        {job.port_cut_off ? `إغلاق الميناء: ${job.port_cut_off.split('T')[0]}` : t('maritime_freight.job_details_modal.s56', "الميناء مفتوح للتسليم")}
                       </div>
                     </div>
 
                     {/* كارت 4: بوالص الشحن */}
                     <div style={{ background: '#ffffff', padding: '12px 14px', borderRadius: '10px', border: '1px solid #e2e8f0', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}>
-                      <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 600 }}>بوالص الشحن (B/L Details)</div>
+                      <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 600 }}>{t('maritime_freight.job_details_modal.s57', "بوالص الشحن (B/L Details)")}</div>
                       <div style={{ fontSize: '0.86rem', fontWeight: 700, color: '#170e5e', marginTop: '4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        Master B/L: {job.mbl_number || 'قيد الإصدار'}
+                        Master B/L: {job.mbl_number || t('maritime_freight.job_details_modal.s58', "قيد الإصدار")}
                       </div>
                       <div style={{ fontSize: '0.78rem', color: '#475569', marginTop: '3px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        House B/L: {job.hbl_number || 'قيد الإصدار'} ({job.bl_type || 'sea_waybill'})
+                        House B/L: {job.hbl_number || t('maritime_freight.job_details_modal.s59', "قيد الإصدار")} ({job.bl_type || 'sea_waybill'})
                       </div>
                     </div>
                   </div>
@@ -1353,16 +1355,16 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                 {/* 3. صف بيانات الشاحن والمستلم */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                   <div style={{ background: '#ffffff', padding: '12px 14px', borderRadius: '10px', border: '1px solid #e2e8f0', minHeight: '65px' }}>
-                    <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 700 }}>بيانات الشاحن (Shipper Details)</div>
+                    <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 700 }}>{t('maritime_freight.job_details_modal.s60', "بيانات الشاحن (Shipper Details)")}</div>
                     <div style={{ fontSize: '0.82rem', color: '#0f172a', marginTop: '3px', whiteSpace: 'pre-wrap', lineHeight: 1.4 }}>
-                      {job.shipper_details || 'غير مسجل'}
+                      {job.shipper_details || t('maritime_freight.job_details_modal.s61', "غير مسجل")}
                     </div>
                   </div>
 
                   <div style={{ background: '#ffffff', padding: '12px 14px', borderRadius: '10px', border: '1px solid #e2e8f0', minHeight: '65px' }}>
-                    <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 700 }}>بيانات المستلم (Consignee Details)</div>
+                    <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 700 }}>{t('maritime_freight.job_details_modal.s62', "بيانات المستلم (Consignee Details)")}</div>
                     <div style={{ fontSize: '0.82rem', color: '#0f172a', marginTop: '3px', whiteSpace: 'pre-wrap', lineHeight: 1.4 }}>
-                      {job.consignee_details || 'غير مسجل'}
+                      {job.consignee_details || t('maritime_freight.job_details_modal.s63', "غير مسجل")}
                     </div>
                   </div>
                 </div>
@@ -1382,10 +1384,10 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                 >
                   <div style={{ minWidth: 0, flex: 1 }}>
                     <div style={{ fontSize: '0.76rem', fontWeight: 700, color: '#1e40af' }}>
-                      رابط التتبع المباشر للعميل (Client Live Tracking Link):
+                      {t('maritime_freight.job_details_modal.s64', "رابط التتبع المباشر للعميل (Client Live Tracking Link):")}
                     </div>
                     <div style={{ fontSize: '0.76rem', color: '#475569', marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', direction: 'ltr', textAlign: 'right' }}>
-                      {trackingUrl || 'جاري توليد الرابط...'}
+                      {trackingUrl || t('maritime_freight.job_details_modal.s65', "جاري توليد الرابط...")}
                     </div>
                   </div>
                   <button
@@ -1404,7 +1406,7 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                       flexShrink: 0,
                     }}
                   >
-                    {copiedLink ? 'تم النسخ!' : 'نسخ الرابط'}
+                    {copiedLink ? t('maritime_freight.job_details_modal.s66', "تم النسخ!") : t('maritime_freight.job_details_modal.s67', "نسخ الرابط")}
                   </button>
                 </div>
 
@@ -1425,11 +1427,11 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.82rem', fontWeight: 800, color: '#0369a1' }}>
                         <AppIcons.Plane size={17} />
-                        <span>رادار تتبع حركة الطيران والشحن الجوي الحي (Live Flight Tracker)</span>
+                        <span>{t('maritime_freight.job_details_modal.s68', "رادار تتبع حركة الطيران والشحن الجوي الحي (Live Flight Tracker)")}</span>
                       </div>
                       {job.flight_number && (
                         <span style={{ fontSize: '0.7rem', fontWeight: 700, padding: '2px 8px', borderRadius: '6px', background: '#f0fdf4', color: '#15803d', border: '1px solid #bbf7d0' }}>
-                          رحلة مسجلة
+                          {t('maritime_freight.job_details_modal.s69', "رحلة مسجلة")}
                         </span>
                       )}
                     </div>
@@ -1437,10 +1439,10 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', background: '#f8fafc', padding: '10px 14px', borderRadius: '8px', border: '1px solid #f1f5f9' }}>
                       <div>
                         <div style={{ fontSize: '0.92rem', fontWeight: 800, color: '#0f172a' }}>
-                          {job.flight_number ? `رحلة رقم: ${job.flight_number}` : 'لم يتم تسجيل رقم الرحلة بعد'}
+                          {job.flight_number ? `رحلة رقم: ${job.flight_number}` : t('maritime_freight.job_details_modal.s70', "لم يتم تسجيل رقم الرحلة بعد")}
                         </div>
                         <div style={{ fontSize: '0.76rem', color: '#64748b', marginTop: '2px' }}>
-                          المسار الجوي: <strong>{job.pol_name} ({job.pol_code})</strong> ← <strong>{job.pod_name} ({job.pod_code})</strong> | الناقل: {job.shipping_line_name}
+                          {t('maritime_freight.job_details_modal.s71', "المسار الجوي:")} <strong>{job.pol_name} ({job.pol_code})</strong> ← <strong>{job.pod_name} ({job.pod_code})</strong> {t('maritime_freight.job_details_modal.s72', "| الناقل:")} {job.shipping_line_name}
                         </div>
                       </div>
 
@@ -1489,7 +1491,7 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                         </div>
                       ) : (
                         <div style={{ fontSize: '0.76rem', color: '#94a3b8' }}>
-                          قم بإدخال رقم الرحلة لتفعيل رادار التتبع الجوي
+                          {t('maritime_freight.job_details_modal.s73', "قم بإدخال رقم الرحلة لتفعيل رادار التتبع الجوي")}
                         </div>
                       )}
                     </div>
@@ -1510,11 +1512,11 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.82rem', fontWeight: 800, color: '#170e5e' }}>
                         <AppIcons.Ship size={17} />
-                        <span>رادار القمر الصناعي لتتبع حركة السفينة الحية (Live Satellite AIS Tracker)</span>
+                        <span>{t('maritime_freight.job_details_modal.s74', "رادار القمر الصناعي لتتبع حركة السفينة الحية (Live Satellite AIS Tracker)")}</span>
                       </div>
                       {job.vessel_name && (
                         <span style={{ fontSize: '0.7rem', fontWeight: 700, padding: '2px 8px', borderRadius: '6px', background: '#f0fdf4', color: '#15803d', border: '1px solid #bbf7d0' }}>
-                          متصل AIS
+                          {t('maritime_freight.job_details_modal.s75', "متصل AIS")}
                         </span>
                       )}
                     </div>
@@ -1522,10 +1524,10 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', background: '#f8fafc', padding: '10px 14px', borderRadius: '8px', border: '1px solid #f1f5f9' }}>
                       <div>
                         <div style={{ fontSize: '0.92rem', fontWeight: 800, color: '#0f172a' }}>
-                          {job.vessel_name || 'لم يتم تسجيل اسم السفينة بعد'}
+                          {job.vessel_name || t('maritime_freight.job_details_modal.s76', "لم يتم تسجيل اسم السفينة بعد")}
                         </div>
                         <div style={{ fontSize: '0.76rem', color: '#64748b', marginTop: '2px' }}>
-                          المسار البحري: <strong>{job.pol_name}</strong> ← <strong>{job.pod_name}</strong> {job.voyage_number ? `| رحلة رقم: ${job.voyage_number}` : ''}
+                          {t('maritime_freight.job_details_modal.s77', "المسار البحري:")} <strong>{job.pol_name}</strong> ← <strong>{job.pod_name}</strong> {job.voyage_number ? `| رحلة رقم: ${job.voyage_number}` : ''}
                         </div>
                       </div>
 
@@ -1574,7 +1576,7 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                         </div>
                       ) : (
                         <div style={{ fontSize: '0.76rem', color: '#94a3b8' }}>
-                          قم بإدخال اسم السفينة لتفعيل رادار التتبع
+                          {t('maritime_freight.job_details_modal.s78', "قم بإدخال اسم السفينة لتفعيل رادار التتبع")}
                         </div>
                       )}
                     </div>
@@ -1623,41 +1625,41 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                         </div>
                         <div>
                           <div style={{ fontSize: '0.96rem', fontWeight: 800, color: '#0f172a' }}>
-                            مواصفات الشحنة الجوية (Air Cargo Specifications)
+                            {t('maritime_freight.job_details_modal.s79', "مواصفات الشحنة الجوية (Air Cargo Specifications)")}
                           </div>
                           <div style={{ fontSize: '0.76rem', color: '#64748b' }}>
-                            الناقل الجوي: <strong>{job.shipping_line_name}</strong> | الرحلة: <strong>{job.flight_number || 'قيد التحديد'}</strong>
+                            {t('maritime_freight.job_details_modal.s80', "الناقل الجوي:")} <strong>{job.shipping_line_name}</strong> {t('maritime_freight.job_details_modal.s81', "| الرحلة:")} <strong>{job.flight_number || t('maritime_freight.job_details_modal.s82', "قيد التحديد")}</strong>
                           </div>
                         </div>
                       </div>
                       <span style={{ padding: '4px 12px', borderRadius: '20px', fontSize: '0.76rem', fontWeight: 800, background: '#e0f2fe', color: '#0369a1' }}>
-                        معيار إياتا IATA (1:6000)
+                        {t('maritime_freight.job_details_modal.s83', "معيار إياتا IATA (1:6000)")}
                       </span>
                     </div>
 
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', background: '#f8fafc', padding: '14px', borderRadius: '10px' }}>
                       <div>
-                        <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 600 }}>الوزن القائم الفعلي (Gross Weight)</div>
+                        <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 600 }}>{t('maritime_freight.job_details_modal.s84', "الوزن القائم الفعلي (Gross Weight)")}</div>
                         <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0f172a', marginTop: '4px' }}>
-                          {Number(job.gross_weight_kg || 0).toLocaleString()} كجم
+                          {Number(job.gross_weight_kg || 0).toLocaleString()} {t('maritime_freight.job_details_modal.s85', "كجم")}
                         </div>
                       </div>
                       <div>
-                        <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 600 }}>الوزن الحجمي (Volumetric Weight)</div>
+                        <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 600 }}>{t('maritime_freight.job_details_modal.s86', "الوزن الحجمي (Volumetric Weight)")}</div>
                         <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0369a1', marginTop: '4px' }}>
-                          {Number(job.volumetric_weight_kg || 0).toLocaleString()} كجم
+                          {Number(job.volumetric_weight_kg || 0).toLocaleString()} {t('maritime_freight.job_details_modal.s87', "كجم")}
                         </div>
                       </div>
                       <div>
-                        <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 600 }}>الوزن الخاضع للتحصيل (Chargeable)</div>
+                        <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 600 }}>{t('maritime_freight.job_details_modal.s88', "الوزن الخاضع للتحصيل (Chargeable)")}</div>
                         <div style={{ fontSize: '1.1rem', fontWeight: 900, color: '#15803d', marginTop: '4px' }}>
-                          {Number(job.chargeable_weight_kg || Math.max(job.gross_weight_kg || 0, job.volumetric_weight_kg || 0)).toLocaleString()} كجم
+                          {Number(job.chargeable_weight_kg || Math.max(job.gross_weight_kg || 0, job.volumetric_weight_kg || 0)).toLocaleString()} {t('maritime_freight.job_details_modal.s89', "كجم")}
                         </div>
                       </div>
                       <div>
-                        <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 600 }}>الحجم وعدد الطرود</div>
+                        <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 600 }}>{t('maritime_freight.job_details_modal.s90', "الحجم وعدد الطرود")}</div>
                         <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#170e5e', marginTop: '4px' }}>
-                          {job.package_count || 1} طرد ({job.total_cbm || 0} م³)
+                          {job.package_count || 1} {t('maritime_freight.job_details_modal.s91', "طرد (")}{job.total_cbm || 0} {t('maritime_freight.job_details_modal.s92', "م³)")}
                         </div>
                       </div>
                     </div>
@@ -1666,7 +1668,7 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                   <>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc', padding: '10px 14px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
                       <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#170e5e' }}>
-                        إدارة الحاويات وتتبع فترة السماح والغرامات
+                        {t('maritime_freight.job_details_modal.s93', "إدارة الحاويات وتتبع فترة السماح والغرامات")}
                       </div>
                       <button
                         type="button"
@@ -1682,13 +1684,13 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                           cursor: 'pointer',
                         }}
                       >
-                        إضافة حاوية جديدة
+                        {t('maritime_freight.job_details_modal.s94', "إضافة حاوية جديدة")}
                       </button>
                     </div>
 
                     {job.containers?.length === 0 ? (
                       <div style={{ textAlign: 'center', padding: '40px', background: '#f8fafc', borderRadius: '12px', border: '1px dashed #cbd5e1', color: '#64748b', fontSize: '0.85rem' }}>
-                        لا توجد حاويات مسجلة في هذا الملف بعد. انقر على "إضافة حاوية جديدة" لإدراج حاويات الشحنة.
+                        {t('maritime_freight.job_details_modal.s95', "لا توجد حاويات مسجلة في هذا الملف بعد. انقر على \"إضافة حاوية جديدة\" لإدراج حاويات الشحنة.")}
                       </div>
                     ) : (
                       job.containers?.map((c) => (
@@ -1701,18 +1703,18 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                               </span>
                               {c.seal_number && (
                                 <span style={{ fontSize: '0.78rem', color: '#64748b', background: '#fafafa', padding: '2px 8px', borderRadius: '4px', border: '1px solid #f1f5f9' }}>
-                                  ختم: {c.seal_number}
+                                  {t('maritime_freight.job_details_modal.s96', "ختم:")} {c.seal_number}
                                 </span>
                               )}
                             </div>
                             <div>
                               {c.empty_returned_at ? (
                                 <span style={{ padding: '4px 12px', background: '#f1f5f9', color: '#475569', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 700 }}>
-                                  تم إرجاع الفارغ بنجاح
+                                  {t('maritime_freight.job_details_modal.s97', "تم إرجاع الفارغ بنجاح")}
                                 </span>
                               ) : (
                                 <span style={{ padding: '4px 12px', background: c.is_overdue ? '#fef2f2' : '#f0fdf4', color: c.is_overdue ? '#b91c1c' : '#15803d', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 700 }}>
-                                  {c.is_overdue ? `تجاوزت المهلة (${c.overdue_days || 0} يوم غرامة)` : 'سارية ضمن فترة السماح'}
+                                  {c.is_overdue ? `تجاوزت المهلة (${c.overdue_days || 0} يوم غرامة)` : t('maritime_freight.job_details_modal.s98', "سارية ضمن فترة السماح")}
                                 </span>
                               )}
                             </div>
@@ -1720,19 +1722,19 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
 
                           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px', background: '#f8fafc', padding: '10px 12px', borderRadius: '8px', fontSize: '0.78rem' }}>
                             <div>
-                              <span style={{ color: '#64748b' }}>فترة السماح: </span>
-                              <strong style={{ color: '#0f172a' }}>{c.free_days || 14} يوم</strong>
+                              <span style={{ color: '#64748b' }}>{t('maritime_freight.job_details_modal.s99', "فترة السماح:")} </span>
+                              <strong style={{ color: '#0f172a' }}>{c.free_days || 14} {t('maritime_freight.job_details_modal.s100', "يوم")}</strong>
                             </div>
                             <div>
-                              <span style={{ color: '#64748b' }}>موعد الإرجاع: </span>
-                              <strong style={{ color: c.is_overdue ? '#b91c1c' : '#0f172a' }}>{c.return_deadline || 'لم يحدد'}</strong>
+                              <span style={{ color: '#64748b' }}>{t('maritime_freight.job_details_modal.s101', "موعد الإرجاع:")} </span>
+                              <strong style={{ color: c.is_overdue ? '#b91c1c' : '#0f172a' }}>{c.return_deadline || t('maritime_freight.job_details_modal.s102', "لم يحدد")}</strong>
                             </div>
                             <div>
-                              <span style={{ color: '#64748b' }}>مبلغ التأمين: </span>
+                              <span style={{ color: '#64748b' }}>{t('maritime_freight.job_details_modal.s103', "مبلغ التأمين:")} </span>
                               <strong style={{ color: '#0f172a' }}>{Number(c.deposit_amount).toLocaleString()} {c.deposit_currency || 'USD'}</strong>
                             </div>
                             <div>
-                              <span style={{ color: '#64748b' }}>حالة التأمين: </span>
+                              <span style={{ color: '#64748b' }}>{t('maritime_freight.job_details_modal.s104', "حالة التأمين:")} </span>
                               <strong style={{ color: '#170e5e' }}>{c.deposit_status || 'not_required'}</strong>
                             </div>
                           </div>
@@ -1757,7 +1759,7 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                               }}
                             >
                               <AppIcons.Truck size={13} />
-                              <span>إذن النقل البري (CMR)</span>
+                              <span>{t('maritime_freight.job_details_modal.s105', "إذن النقل البري (CMR)")}</span>
                             </button>
                             <button
                               type="button"
@@ -1773,7 +1775,7 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                                 cursor: 'pointer',
                               }}
                             >
-                              تعديل الحاوية
+                              {t('maritime_freight.job_details_modal.s106', "تعديل الحاوية")}
                             </button>
                             {!c.discharged_at && (
                               <button
@@ -1790,7 +1792,7 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                                   cursor: 'pointer',
                                 }}
                               >
-                                تسجيل تفريغ الميناء (Discharged)
+                                {t('maritime_freight.job_details_modal.s107', "تسجيل تفريغ الميناء (Discharged)")}
                               </button>
                             )}
                             {c.discharged_at && !c.gated_out_at && (
@@ -1808,7 +1810,7 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                                   cursor: 'pointer',
                                 }}
                               >
-                                تسجيل خروج البوابة (Gate Out)
+                                {t('maritime_freight.job_details_modal.s108', "تسجيل خروج البوابة (Gate Out)")}
                               </button>
                             )}
                             {!c.empty_returned_at && (
@@ -1826,7 +1828,7 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                                   cursor: 'pointer',
                                 }}
                               >
-                                تسجيل إرجاع الفارغ (Empty Returned)
+                                {t('maritime_freight.job_details_modal.s109', "تسجيل إرجاع الفارغ (Empty Returned)")}
                               </button>
                             )}
                           </div>
@@ -1843,10 +1845,10 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                       <AppIcons.Archive size={17} />
                       <div>
                         <span style={{ fontSize: '0.84rem', fontWeight: 800, color: '#170e5e' }}>
-                          أذون استلام وإيداع المستودع الترانزيت والجمركي (Warehouse Intake - MWR)
+                          {t('maritime_freight.job_details_modal.s110', "أذون استلام وإيداع المستودع الترانزيت والجمركي (Warehouse Intake - MWR)")}
                         </span>
                         <div style={{ fontSize: '0.72rem', color: '#64748b' }}>
-                          إدارة استلام الطرود، تخصيص الأرفف والساحات (Bay/Rack/Bin)، وأوامر الإفراج والتسليم
+                          {t('maritime_freight.job_details_modal.s111', "إدارة استلام الطرود، تخصيص الأرفف والساحات (Bay/Rack/Bin)، وأوامر الإفراج والتسليم")}
                         </div>
                       </div>
                     </div>
@@ -1864,29 +1866,29 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                         cursor: 'pointer',
                       }}
                     >
-                      + إذن استلام مستودع (MWR)
+                      {t('maritime_freight.job_details_modal.s112', "+ إذن استلام مستودع (MWR)")}
                     </button>
                   </div>
 
                   {loadingWarehouseReceipts ? (
                     <div style={{ padding: '20px', textAlign: 'center', color: '#64748b', fontSize: '0.8rem' }}>
-                      جاري تحميل أذون استلام المستودع...
+                      {t('maritime_freight.job_details_modal.s113', "جاري تحميل أذون استلام المستودع...")}
                     </div>
                   ) : warehouseReceiptsList.length === 0 ? (
                     <div style={{ padding: '24px', textAlign: 'center', color: '#94a3b8', fontSize: '0.8rem' }}>
-                      لا توجد أذون استلام مستودع مسجلة لهذه العملية بعد. يمكنك إصدار إذن استلام لتسجيل إيداع الطرود بمستودع الترانزيت أو الإيداع الجمركي.
+                      {t('maritime_freight.job_details_modal.s114', "لا توجد أذون استلام مستودع مسجلة لهذه العملية بعد. يمكنك إصدار إذن استلام لتسجيل إيداع الطرود بمستودع الترانزيت أو الإيداع الجمركي.")}
                     </div>
                   ) : (
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.78rem' }}>
                       <thead>
                         <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', textAlign: 'right' }}>
-                          <th style={{ padding: '8px 12px', fontWeight: 700 }}>رقم الإذن (MWR)</th>
-                          <th style={{ padding: '8px 12px', fontWeight: 700 }}>تاريخ الاستلام</th>
-                          <th style={{ padding: '8px 12px', fontWeight: 700 }}>عدد الطرود</th>
-                          <th style={{ padding: '8px 12px', fontWeight: 700 }}>الوزن / الحجم</th>
-                          <th style={{ padding: '8px 12px', fontWeight: 700 }}>موقع التخزين (Bay/Rack/Bin)</th>
-                          <th style={{ padding: '8px 12px', fontWeight: 700, textAlign: 'center' }}>الحالة</th>
-                          <th style={{ padding: '8px 12px', fontWeight: 700, textAlign: 'center' }}>الإجراءات</th>
+                          <th style={{ padding: '8px 12px', fontWeight: 700 }}>{t('maritime_freight.job_details_modal.s115', "رقم الإذن (MWR)")}</th>
+                          <th style={{ padding: '8px 12px', fontWeight: 700 }}>{t('maritime_freight.job_details_modal.s116', "تاريخ الاستلام")}</th>
+                          <th style={{ padding: '8px 12px', fontWeight: 700 }}>{t('maritime_freight.job_details_modal.s117', "عدد الطرود")}</th>
+                          <th style={{ padding: '8px 12px', fontWeight: 700 }}>{t('maritime_freight.job_details_modal.s118', "الوزن / الحجم")}</th>
+                          <th style={{ padding: '8px 12px', fontWeight: 700 }}>{t('maritime_freight.job_details_modal.s119', "موقع التخزين (Bay/Rack/Bin)")}</th>
+                          <th style={{ padding: '8px 12px', fontWeight: 700, textAlign: 'center' }}>{t('maritime_freight.job_details_modal.s120', "الحالة")}</th>
+                          <th style={{ padding: '8px 12px', fontWeight: 700, textAlign: 'center' }}>{t('maritime_freight.job_details_modal.s121', "الإجراءات")}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -1899,13 +1901,13 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                               {rcpt.received_date ? new Date(rcpt.received_date).toLocaleString('ar-EG') : '—'}
                             </td>
                             <td style={{ padding: '8px 12px', fontWeight: 700, color: '#0f172a' }}>
-                              {rcpt.package_count || 1} طرد
+                              {rcpt.package_count || 1} {t('maritime_freight.job_details_modal.s122', "طرد")}
                             </td>
                             <td style={{ padding: '8px 12px', color: '#334155' }}>
-                              {Number(rcpt.gross_weight_kg || 0).toLocaleString()} كجم | {Number(rcpt.cbm || 0).toFixed(2)} م³
+                              {Number(rcpt.gross_weight_kg || 0).toLocaleString()} {t('maritime_freight.job_details_modal.s123', "كجم |")} {Number(rcpt.cbm || 0).toFixed(2)} {t('maritime_freight.job_details_modal.s124', "م³")}
                             </td>
                             <td style={{ padding: '8px 12px', color: '#1e293b', fontWeight: 600 }}>
-                              {rcpt.bay_rack_bin || 'ساحة الاستلام والتفتيش'}
+                              {rcpt.bay_rack_bin || t('maritime_freight.job_details_modal.s125', "ساحة الاستلام والتفتيش")}
                             </td>
                             <td style={{ padding: '8px 12px', textAlign: 'center' }}>
                               <span
@@ -1918,7 +1920,7 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                                   color: rcpt.warehouse_status === 'released' ? '#15803d' : '#1e40af',
                                 }}
                               >
-                                {rcpt.warehouse_status === 'released' ? 'تم الإفراج والتسليم' : 'مودعة بالمستودع'}
+                                {rcpt.warehouse_status === 'released' ? t('maritime_freight.job_details_modal.s126', "تم الإفراج والتسليم") : t('maritime_freight.job_details_modal.s127', "مودعة بالمستودع")}
                               </span>
                             </td>
                             <td style={{ padding: '8px 12px', textAlign: 'center' }}>
@@ -1937,7 +1939,7 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                                     cursor: 'pointer',
                                   }}
                                 >
-                                  طباعة الإذن
+                                  {t('maritime_freight.job_details_modal.s128', "طباعة الإذن")}
                                 </button>
                                 {rcpt.warehouse_status !== 'released' && (
                                   <button
@@ -1954,7 +1956,7 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                                       cursor: 'pointer',
                                     }}
                                   >
-                                    إفراج وتسليم
+                                    {t('maritime_freight.job_details_modal.s129', "إفراج وتسليم")}
                                   </button>
                                 )}
                               </div>
@@ -1974,7 +1976,7 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                 {/* ترقية المرحلة */}
                 <div style={{ background: '#f8fafc', padding: '14px', borderRadius: '10px', border: '1px solid #e2e8f0', display: 'flex', gap: '10px', alignItems: 'center' }}>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: '0.78rem', color: '#64748b', marginBottom: '4px' }}>ترقية المرحلة الملاحية (DCSA Milestone)</div>
+                    <div style={{ fontSize: '0.78rem', color: '#64748b', marginBottom: '4px' }}>{t('maritime_freight.job_details_modal.s130', "ترقية المرحلة الملاحية (DCSA Milestone)")}</div>
                     <CustomSelect
                       value={nextMilestone}
                       onChange={(val) => setNextMilestone(val as DcsaMilestoneKey)}
@@ -1982,16 +1984,16 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                         value: m.key,
                         label: `[${m.key}] ${m.title_ar} - ${m.title_en}`,
                       }))}
-                      placeholder="اختر المرحلة الملاحية..."
+                      placeholder={t('maritime_freight.job_details_modal.s131', "اختر المرحلة الملاحية...")}
                     />
                   </div>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: '0.78rem', color: '#64748b', marginBottom: '4px' }}>ملاحظات المرحلة أو الموقع</div>
+                    <div style={{ fontSize: '0.78rem', color: '#64748b', marginBottom: '4px' }}>{t('maritime_freight.job_details_modal.s132', "ملاحظات المرحلة أو الموقع")}</div>
                     <input
                       type="text"
                       value={milestoneNotes}
                       onChange={(e) => setMilestoneNotes(e.target.value)}
-                      placeholder="مثال: رست السفينة برصيف 45"
+                      placeholder={t('maritime_freight.job_details_modal.s133', "مثال: رست السفينة برصيف 45")}
                       style={{ width: '100%', height: '36px', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '0 8px', fontSize: '0.85rem' }}
                     />
                   </div>
@@ -2012,7 +2014,7 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                       whiteSpace: 'nowrap',
                     }}
                   >
-                    تحديث المرحلة
+                    {t('maritime_freight.job_details_modal.s134', "تحديث المرحلة")}
                   </button>
                 </div>
 
@@ -2020,7 +2022,7 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                 {!job.delivery_order_released && (
                   <div style={{ padding: '12px 16px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div style={{ fontSize: '0.85rem', color: '#92400e', fontWeight: 600 }}>
-                      إذن التسليم (Delivery Order D/O) محتجز حتى تحصيل مستحقات الشحن.
+                      {t('maritime_freight.job_details_modal.s135', "إذن التسليم (Delivery Order D/O) محتجز حتى تحصيل مستحقات الشحن.")}
                     </div>
                     <button
                       type="button"
@@ -2036,7 +2038,7 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                         cursor: 'pointer',
                       }}
                     >
-                      اعتماد وتسليم إذن الإفراج (Release D/O)
+                      {t('maritime_freight.job_details_modal.s136', "اعتماد وتسليم إذن الإفراج (Release D/O)")}
                     </button>
                   </div>
                 )}
@@ -2064,7 +2066,7 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                             type="button"
                             disabled={sendingWhatsAppKey === m.milestone_key}
                             onClick={() => handleSendDirectWhatsApp(m.milestone_key)}
-                            title="إرسال إشعار فوري عبر بوابة Cloud WhatsApp"
+                            title={t('maritime_freight.job_details_modal.s137', "إرسال إشعار فوري عبر بوابة Cloud WhatsApp")}
                             style={{
                               padding: '4px 10px',
                               background: '#15803d',
@@ -2078,7 +2080,7 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                               opacity: sendingWhatsAppKey === m.milestone_key ? 0.7 : 1,
                             }}
                           >
-                            {sendingWhatsAppKey === m.milestone_key ? 'جاري الإرسال...' : 'إرسال سحابي فوري'}
+                            {sendingWhatsAppKey === m.milestone_key ? t('maritime_freight.job_details_modal.s138', "جاري الإرسال...") : t('maritime_freight.job_details_modal.s139', "إرسال سحابي فوري")}
                           </button>
                           <button
                             type="button"
@@ -2089,13 +2091,13 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                                 if (cleanPhone) {
                                   window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(alertData.message)}`, '_blank');
                                 } else {
-                                  toast.warning('لا يوجد رقم هاتف مسجل للعميل');
+                                  toast.warning(t('maritime_freight.job_details_modal.s140', "لا يوجد رقم هاتف مسجل للعميل"));
                                 }
                               } catch (err: any) {
-                                toast.error(err?.message || 'فشل توليد رسالة واتساب');
+                                toast.error(err?.message || t('maritime_freight.job_details_modal.s141', "فشل توليد رسالة واتساب"));
                               }
                             }}
-                            title="فتح تطبيق أو ويب واتساب مباشرة"
+                            title={t('maritime_freight.job_details_modal.s142', "فتح تطبيق أو ويب واتساب مباشرة")}
                             style={{
                               padding: '4px 8px',
                               background: '#f0fdf4',
@@ -2108,7 +2110,7 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                               whiteSpace: 'nowrap',
                             }}
                           >
-                            فتح واتساب
+                            {t('maritime_freight.job_details_modal.s143', "فتح واتساب")}
                           </button>
                         </div>
                       )}
@@ -2181,7 +2183,7 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                   {/* شريط الإجراءات المالية السريعة */}
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc', padding: '10px 14px', borderRadius: '10px', border: '1px solid #e2e8f0', flexWrap: 'wrap', gap: '8px' }}>
                     <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#170e5e' }}>
-                      الإجراءات المالية وتصدير الفواتير والسندات
+                      {t('maritime_freight.job_details_modal.s144', "الإجراءات المالية وتصدير الفواتير والسندات")}
                     </div>
                     <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                       <button
@@ -2202,7 +2204,7 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                         }}
                       >
                         <AppIcons.FileText size={14} />
-                        <span>طباعة فاتورة الشحن</span>
+                        <span>{t('maritime_freight.job_details_modal.s145', "طباعة فاتورة الشحن")}</span>
                       </button>
                       <button
                         type="button"
@@ -2222,7 +2224,7 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                         }}
                       >
                         <AppIcons.CheckShield size={14} />
-                        <span>كشف الربحية (P&L)</span>
+                        <span>{t('maritime_freight.job_details_modal.s146', "كشف الربحية (P&L)")}</span>
                       </button>
                       <button
                         type="button"
@@ -2238,7 +2240,7 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                           cursor: 'pointer',
                         }}
                       >
-                        إصدار فاتورة مبيعات للعميل
+                        {t('maritime_freight.job_details_modal.s147', "إصدار فاتورة مبيعات للعميل")}
                       </button>
                       <button
                         type="button"
@@ -2254,7 +2256,7 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                           cursor: 'pointer',
                         }}
                       >
-                        تسجيل سند مصروفات الخط/الميناء
+                        {t('maritime_freight.job_details_modal.s148', "تسجيل سند مصروفات الخط/الميناء")}
                       </button>
                     </div>
                   </div>
@@ -2276,16 +2278,16 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                     >
                       <div>
                         <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#166534' }}>
-                          رصيد العميل المتاح للخصم (دفعات مقدمة / على الحساب): {currencySymbol} {Number(job.customerAvailableCredit || 0).toLocaleString()}
+                          {t('maritime_freight.job_details_modal.s149', "رصيد العميل المتاح للخصم (دفعات مقدمة / على الحساب):")} {currencySymbol} {Number(job.customerAvailableCredit || 0).toLocaleString()}
                         </div>
                         <div style={{ fontSize: '0.74rem', color: '#15803d', marginTop: '2px' }}>
-                          العميل ({job.customer_name}) قام بسداد مبالغ على حسابه العام، ويمكنك تسوية نولون هذه الشحنة مباشرة دون الحاجة لطلب تحويل إضافي.
+                          {t('maritime_freight.job_details_modal.s150', "العميل (")}{job.customer_name}{t('maritime_freight.job_details_modal.s151', ") قام بسداد مبالغ على حسابه العام، ويمكنك تسوية نولون هذه الشحنة مباشرة دون الحاجة لطلب تحويل إضافي.")}
                         </div>
                       </div>
 
                       {job.payment_status === 'paid' ? (
                         <span style={{ padding: '5px 12px', background: '#dcfce7', color: '#15803d', borderRadius: '6px', fontSize: '0.78rem', fontWeight: 700 }}>
-                          الشحنة مسددة بالكامل
+                          {t('maritime_freight.job_details_modal.s152', "الشحنة مسددة بالكامل")}
                         </span>
                       ) : (
                         <button
@@ -2303,7 +2305,7 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                             cursor: isSettlingFromBalance ? 'not-allowed' : 'pointer',
                           }}
                         >
-                          {isSettlingFromBalance ? 'جاري التسوية...' : 'سداد الشحنة من الرصيد المتاح'}
+                          {isSettlingFromBalance ? t('maritime_freight.job_details_modal.s153', "جاري التسوية...") : t('maritime_freight.job_details_modal.s154', "سداد الشحنة من الرصيد المتاح")}
                         </button>
                       )}
                     </div>
@@ -2326,7 +2328,7 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                       }}
                     >
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>إجمالي الفاتورة للعميل</span>
+                        <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>{t('maritime_freight.job_details_modal.s155', "إجمالي الفاتورة للعميل")}</span>
                         <span style={{
                           padding: '2px 8px',
                           background: job.payment_status === 'paid' ? '#dcfce7' : job.payment_status === 'partially_paid' ? '#fef3c7' : '#eff6ff',
@@ -2335,14 +2337,14 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                           fontSize: '0.7rem',
                           fontWeight: 700,
                         }}>
-                          {job.payment_status === 'paid' ? 'مسدد بالكامل' : job.payment_status === 'partially_paid' ? `مسدد: ${Number(job.client_paid_total || 0).toLocaleString()}` : 'غير مسدد'}
+                          {job.payment_status === 'paid' ? t('maritime_freight.job_details_modal.s156', "مسدد بالكامل") : job.payment_status === 'partially_paid' ? `مسدد: ${Number(job.client_paid_total || 0).toLocaleString()}` : t('maritime_freight.job_details_modal.s157', "غير مسدد")}
                         </span>
                       </div>
                       <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#170e5e', letterSpacing: '-0.02em' }}>
                         {currencySymbol} {revenue.toLocaleString()}
                       </div>
                       <div style={{ fontSize: '0.72rem', color: '#64748b' }}>
-                        مبيعات الشحن والخدمات البحرية
+                        {t('maritime_freight.job_details_modal.s158', "مبيعات الشحن والخدمات البحرية")}
                       </div>
                     </div>
 
@@ -2361,7 +2363,7 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                       }}
                     >
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>تكلفة الخط والموانئ</span>
+                        <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>{t('maritime_freight.job_details_modal.s159', "تكلفة الخط والموانئ")}</span>
                         <span style={{ padding: '2px 8px', background: '#fef2f2', color: '#b91c1c', borderRadius: '6px', fontSize: '0.7rem', fontWeight: 700 }}>
                           Direct Cost
                         </span>
@@ -2370,7 +2372,7 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                         {currencySymbol} {totalCost.toLocaleString()}
                       </div>
                       <div style={{ fontSize: '0.72rem', color: '#64748b' }}>
-                        نولون بحري ومصروفات محطات الموانئ
+                        {t('maritime_freight.job_details_modal.s160', "نولون بحري ومصروفات محطات الموانئ")}
                       </div>
                     </div>
 
@@ -2389,16 +2391,16 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                       }}
                     >
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>صافي ربح العملية</span>
+                        <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>{t('maritime_freight.job_details_modal.s161', "صافي ربح العملية")}</span>
                         <span style={{ padding: '2px 8px', background: '#f0fdf4', color: '#166534', borderRadius: '6px', fontSize: '0.7rem', fontWeight: 700 }}>
-                          هامش: {marginPercent}%
+                          {t('maritime_freight.job_details_modal.s162', "هامش:")} {marginPercent}%
                         </span>
                       </div>
                       <div style={{ fontSize: '1.35rem', fontWeight: 900, color: netProfit >= 0 ? '#15803d' : '#b91c1c', letterSpacing: '-0.02em' }}>
                         {currencySymbol} {netProfit.toLocaleString()}
                       </div>
                       <div style={{ fontSize: '0.72rem', color: '#64748b' }}>
-                        المساهمة الصافية في أرباح التشغيل
+                        {t('maritime_freight.job_details_modal.s163', "المساهمة الصافية في أرباح التشغيل")}
                       </div>
                     </div>
                   </div>
@@ -2423,62 +2425,62 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                       }}
                     >
                       <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#0f172a' }}>
-                        بيان وتفكيك الحسابات التقديرية والفعلية للعملية
+                        {t('maritime_freight.job_details_modal.s164', "بيان وتفكيك الحسابات التقديرية والفعلية للعملية")}
                       </div>
                       <div style={{ fontSize: '0.72rem', color: '#64748b' }}>
-                        العملة الأساسية للنظام: ({currencySymbol})
+                        {t('maritime_freight.job_details_modal.s165', "العملة الأساسية للنظام: (")}{currencySymbol})
                       </div>
                     </div>
 
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.78rem' }}>
                       <thead>
                         <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', textAlign: 'right' }}>
-                          <th style={{ padding: '8px 14px', fontWeight: 700 }}>بند الحساب</th>
-                          <th style={{ padding: '8px 14px', fontWeight: 700 }}>الطرف والجهة</th>
-                          <th style={{ padding: '8px 14px', fontWeight: 700 }}>التصنيف المحاسبي</th>
-                          <th style={{ padding: '8px 14px', fontWeight: 700 }}>المبلغ</th>
-                          <th style={{ padding: '8px 14px', fontWeight: 700, textAlign: 'center' }}>الحالة</th>
+                          <th style={{ padding: '8px 14px', fontWeight: 700 }}>{t('maritime_freight.job_details_modal.s166', "بند الحساب")}</th>
+                          <th style={{ padding: '8px 14px', fontWeight: 700 }}>{t('maritime_freight.job_details_modal.s167', "الطرف والجهة")}</th>
+                          <th style={{ padding: '8px 14px', fontWeight: 700 }}>{t('maritime_freight.job_details_modal.s168', "التصنيف المحاسبي")}</th>
+                          <th style={{ padding: '8px 14px', fontWeight: 700 }}>{t('maritime_freight.job_details_modal.s169', "المبلغ")}</th>
+                          <th style={{ padding: '8px 14px', fontWeight: 700, textAlign: 'center' }}>{t('maritime_freight.job_details_modal.s170', "الحالة")}</th>
                         </tr>
                       </thead>
                       <tbody>
                         <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
-                          <td style={{ padding: '8px 14px', fontWeight: 700, color: '#170e5e' }}>إيراد الشحن البحري للعميل (Ocean Freight Billed)</td>
+                          <td style={{ padding: '8px 14px', fontWeight: 700, color: '#170e5e' }}>{t('maritime_freight.job_details_modal.s171', "إيراد الشحن البحري للعميل (Ocean Freight Billed)")}</td>
                           <td style={{ padding: '8px 14px', color: '#334155' }}>{job.customer_name}</td>
-                          <td style={{ padding: '8px 14px', color: '#64748b' }}>إيراد تشغيلي معتمد</td>
+                          <td style={{ padding: '8px 14px', color: '#64748b' }}>{t('maritime_freight.job_details_modal.s172', "إيراد تشغيلي معتمد")}</td>
                           <td style={{ padding: '8px 14px', fontWeight: 800, color: '#170e5e' }}>{currencySymbol} {revenue.toLocaleString()}</td>
                           <td style={{ padding: '8px 14px', textAlign: 'center' }}>
-                            <span style={{ padding: '2px 8px', background: '#eff6ff', color: '#1e40af', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 700 }}>مفوتر بالكامل</span>
+                            <span style={{ padding: '2px 8px', background: '#eff6ff', color: '#1e40af', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 700 }}>{t('maritime_freight.job_details_modal.s173', "مفوتر بالكامل")}</span>
                           </td>
                         </tr>
                         <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
-                          <td style={{ padding: '8px 14px', fontWeight: 700, color: '#0f172a' }}>نولون الخط الملاحي الأساسي (Carrier Ocean Freight)</td>
-                          <td style={{ padding: '8px 14px', color: '#334155' }}>{job.shipping_line_name || 'غير محدد'}</td>
-                          <td style={{ padding: '8px 14px', color: '#64748b' }}>تكلفة شحن مباشرة</td>
+                          <td style={{ padding: '8px 14px', fontWeight: 700, color: '#0f172a' }}>{t('maritime_freight.job_details_modal.s174', "نولون الخط الملاحي الأساسي (Carrier Ocean Freight)")}</td>
+                          <td style={{ padding: '8px 14px', color: '#334155' }}>{job.shipping_line_name || t('maritime_freight.job_details_modal.s175', "غير محدد")}</td>
+                          <td style={{ padding: '8px 14px', color: '#64748b' }}>{t('maritime_freight.job_details_modal.s176', "تكلفة شحن مباشرة")}</td>
                           <td style={{ padding: '8px 14px', fontWeight: 800, color: totalCost > 0 ? '#b91c1c' : '#64748b' }}>{currencySymbol} {carrierCost.toLocaleString()}</td>
                           <td style={{ padding: '8px 14px', textAlign: 'center' }}>
-                            <span style={{ padding: '2px 8px', background: '#f8fafc', color: '#475569', border: '1px solid #e2e8f0', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 600 }}>مطابقة الخط</span>
+                            <span style={{ padding: '2px 8px', background: '#f8fafc', color: '#475569', border: '1px solid #e2e8f0', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 600 }}>{t('maritime_freight.job_details_modal.s177', "مطابقة الخط")}</span>
                           </td>
                         </tr>
                         <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
-                          <td style={{ padding: '8px 14px', fontWeight: 700, color: '#0f172a' }}>مصروفات الموانئ والمناولة (Port & THC Charges)</td>
+                          <td style={{ padding: '8px 14px', fontWeight: 700, color: '#0f172a' }}>{t('maritime_freight.job_details_modal.s178', "مصروفات الموانئ والمناولة (Port & THC Charges)")}</td>
                           <td style={{ padding: '8px 14px', color: '#334155' }}>{job.pol_name} ← {job.pod_name}</td>
-                          <td style={{ padding: '8px 14px', color: '#64748b' }}>خدمات موانئ وتداول</td>
+                          <td style={{ padding: '8px 14px', color: '#64748b' }}>{t('maritime_freight.job_details_modal.s179', "خدمات موانئ وتداول")}</td>
                           <td style={{ padding: '8px 14px', fontWeight: 800, color: otherCosts > 0 ? '#b91c1c' : '#64748b' }}>
-                            {otherCosts > 0 ? `${currencySymbol} ${otherCosts.toLocaleString()}` : 'ضمن النولون'}
+                            {otherCosts > 0 ? `${currencySymbol} ${otherCosts.toLocaleString()}` : t('maritime_freight.job_details_modal.s180', "ضمن النولون")}
                           </td>
                           <td style={{ padding: '8px 14px', textAlign: 'center' }}>
-                            <span style={{ padding: '2px 8px', background: '#f8fafc', color: '#475569', border: '1px solid #e2e8f0', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 600 }}>تسوية مباشرة</span>
+                            <span style={{ padding: '2px 8px', background: '#f8fafc', color: '#475569', border: '1px solid #e2e8f0', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 600 }}>{t('maritime_freight.job_details_modal.s181', "تسوية مباشرة")}</span>
                           </td>
                         </tr>
                         <tr>
-                          <td style={{ padding: '8px 14px', fontWeight: 700, color: '#0f172a' }}>تأمين الحاويات المسترد (Container Deposit)</td>
-                          <td style={{ padding: '8px 14px', color: '#334155' }}>خزينة أمانات الخط الملاحي</td>
-                          <td style={{ padding: '8px 14px', color: '#64748b' }}>أمانات مستردة (خارج الأرباح)</td>
+                          <td style={{ padding: '8px 14px', fontWeight: 700, color: '#0f172a' }}>{t('maritime_freight.job_details_modal.s182', "تأمين الحاويات المسترد (Container Deposit)")}</td>
+                          <td style={{ padding: '8px 14px', color: '#334155' }}>{t('maritime_freight.job_details_modal.s183', "خزينة أمانات الخط الملاحي")}</td>
+                          <td style={{ padding: '8px 14px', color: '#64748b' }}>{t('maritime_freight.job_details_modal.s184', "أمانات مستردة (خارج الأرباح)")}</td>
                           <td style={{ padding: '8px 14px', fontWeight: 800, color: '#475569' }}>
                             {currencySymbol} {containerDeposits.toLocaleString()}
                           </td>
                           <td style={{ padding: '8px 14px', textAlign: 'center' }}>
-                            <span style={{ padding: '2px 8px', background: '#f0fdf4', color: '#166534', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 700 }}>تحت التسوية</span>
+                            <span style={{ padding: '2px 8px', background: '#f0fdf4', color: '#166534', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 700 }}>{t('maritime_freight.job_details_modal.s185', "تحت التسوية")}</span>
                           </td>
                         </tr>
                       </tbody>
@@ -2506,10 +2508,10 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#170e5e' }}>
-                          سجل فواتير الخطوط الملاحية والتدقيق المالي (Carrier Freight Audit)
+                          {t('maritime_freight.job_details_modal.s186', "سجل فواتير الخطوط الملاحية والتدقيق المالي (Carrier Freight Audit)")}
                         </span>
                         <span style={{ fontSize: '0.72rem', fontWeight: 700, padding: '2px 8px', borderRadius: '4px', background: '#eff6ff', color: '#1e40af' }}>
-                          {carrierInvoicesList.length} فواتير
+                          {carrierInvoicesList.length} {t('maritime_freight.job_details_modal.s187', "فواتير")}
                         </span>
                       </div>
                       <button
@@ -2526,29 +2528,29 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                           cursor: 'pointer',
                         }}
                       >
-                        + تسجيل فاتورة خط ملاحي
+                        {t('maritime_freight.job_details_modal.s188', "+ تسجيل فاتورة خط ملاحي")}
                       </button>
                     </div>
 
                     {loadingCarrierInvoices ? (
                       <div style={{ padding: '20px', textAlign: 'center', color: '#64748b', fontSize: '0.8rem' }}>
-                        جاري تحميل سجل فواتير الناقل...
+                        {t('maritime_freight.job_details_modal.s189', "جاري تحميل سجل فواتير الناقل...")}
                       </div>
                     ) : carrierInvoicesList.length === 0 ? (
                       <div style={{ padding: '20px', textAlign: 'center', color: '#94a3b8', fontSize: '0.78rem' }}>
-                        لم يتم تسجيل أي فواتير للخط الملاحي بعد. يمكنك تسجيل فواتير الناقل لمطابقتها تلقائياً بالتعرفة المتعاقد عليها.
+                        {t('maritime_freight.job_details_modal.s190', "لم يتم تسجيل أي فواتير للخط الملاحي بعد. يمكنك تسجيل فواتير الناقل لمطابقتها تلقائياً بالتعرفة المتعاقد عليها.")}
                       </div>
                     ) : (
                       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.78rem' }}>
                         <thead>
                           <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', textAlign: 'right' }}>
-                            <th style={{ padding: '8px 12px', fontWeight: 700 }}>رقم الفاتورة</th>
-                            <th style={{ padding: '8px 12px', fontWeight: 700 }}>التاريخ</th>
-                            <th style={{ padding: '8px 12px', fontWeight: 700 }}>المبلغ المفوتر</th>
-                            <th style={{ padding: '8px 12px', fontWeight: 700 }}>التعرفة المتعاقد عليها</th>
-                            <th style={{ padding: '8px 12px', fontWeight: 700 }}>الفارق (Variance)</th>
-                            <th style={{ padding: '8px 12px', fontWeight: 700, textAlign: 'center' }}>حالة التدقيق</th>
-                            <th style={{ padding: '8px 12px', fontWeight: 700, textAlign: 'center' }}>الإجراءات</th>
+                            <th style={{ padding: '8px 12px', fontWeight: 700 }}>{t('maritime_freight.job_details_modal.s191', "رقم الفاتورة")}</th>
+                            <th style={{ padding: '8px 12px', fontWeight: 700 }}>{t('maritime_freight.job_details_modal.s192', "التاريخ")}</th>
+                            <th style={{ padding: '8px 12px', fontWeight: 700 }}>{t('maritime_freight.job_details_modal.s193', "المبلغ المفوتر")}</th>
+                            <th style={{ padding: '8px 12px', fontWeight: 700 }}>{t('maritime_freight.job_details_modal.s194', "التعرفة المتعاقد عليها")}</th>
+                            <th style={{ padding: '8px 12px', fontWeight: 700 }}>{t('maritime_freight.job_details_modal.s195', "الفارق (Variance)")}</th>
+                            <th style={{ padding: '8px 12px', fontWeight: 700, textAlign: 'center' }}>{t('maritime_freight.job_details_modal.s196', "حالة التدقيق")}</th>
+                            <th style={{ padding: '8px 12px', fontWeight: 700, textAlign: 'center' }}>{t('maritime_freight.job_details_modal.s197', "الإجراءات")}</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -2599,16 +2601,16 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                                   }}
                                 >
                                   {inv.auditStatus === 'matched'
-                                    ? 'مطابق للتعرفة'
+                                    ? t('maritime_freight.job_details_modal.s198', "مطابق للتعرفة")
                                     : inv.auditStatus === 'overcharge'
-                                    ? 'زيادة غير معتمدة'
+                                    ? t('maritime_freight.job_details_modal.s199', "زيادة غير معتمدة")
                                     : inv.auditStatus === 'approved_override'
-                                    ? 'تجاوز معتمد'
+                                    ? t('maritime_freight.job_details_modal.s200', "تجاوز معتمد")
                                     : inv.auditStatus === 'disputed'
                                     ? `نزاع مفتوح (${inv.dispute?.disputeNumber || ''})`
                                     : inv.auditStatus === 'undercharge'
-                                    ? 'وفر / خصم'
-                                    : 'بدون تعرفة'}
+                                    ? t('maritime_freight.job_details_modal.s201', "وفر / خصم")
+                                    : t('maritime_freight.job_details_modal.s202', "بدون تعرفة")}
                                 </span>
                               </td>
                               <td style={{ padding: '8px 12px', textAlign: 'center' }}>
@@ -2629,7 +2631,7 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                                           cursor: 'pointer',
                                         }}
                                       >
-                                        اعتماد تجاوز
+                                        {t('maritime_freight.job_details_modal.s203', "اعتماد تجاوز")}
                                       </button>
                                       <button
                                         type="button"
@@ -2645,7 +2647,7 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                                           cursor: 'pointer',
                                         }}
                                       >
-                                        فتح نزاع
+                                        {t('maritime_freight.job_details_modal.s204', "فتح نزاع")}
                                       </button>
                                     </>
                                   )}
@@ -2664,7 +2666,7 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                                         cursor: 'pointer',
                                       }}
                                     >
-                                      طباعة النزاع
+                                      {t('maritime_freight.job_details_modal.s205', "طباعة النزاع")}
                                     </button>
                                   )}
                                 </div>
@@ -2698,10 +2700,10 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <AppIcons.CheckShield size={18} />
                         <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#170e5e' }}>
-                          وثائق تأمين البضائع ومطالبات التعويض (Cargo Insurance & Claims)
+                          {t('maritime_freight.job_details_modal.s206', "وثائق تأمين البضائع ومطالبات التعويض (Cargo Insurance & Claims)")}
                         </span>
                         <span style={{ fontSize: '0.72rem', fontWeight: 700, padding: '2px 8px', borderRadius: '4px', background: '#ecfdf5', color: '#047857' }}>
-                          {insurancesList.length} وثائق
+                          {insurancesList.length} {t('maritime_freight.job_details_modal.s207', "وثائق")}
                         </span>
                       </div>
                       <button
@@ -2718,29 +2720,29 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                           cursor: 'pointer',
                         }}
                       >
-                        + إصدار وثيقة تأمين
+                        {t('maritime_freight.job_details_modal.s208', "+ إصدار وثيقة تأمين")}
                       </button>
                     </div>
 
                     {loadingInsurances ? (
                       <div style={{ padding: '20px', textAlign: 'center', color: '#64748b', fontSize: '0.8rem' }}>
-                        جاري تحميل وثائق التأمين...
+                        {t('maritime_freight.job_details_modal.s209', "جاري تحميل وثائق التأمين...")}
                       </div>
                     ) : insurancesList.length === 0 ? (
                       <div style={{ padding: '20px', textAlign: 'center', color: '#94a3b8', fontSize: '0.78rem' }}>
-                        لم يتم تسجيل وثائق تأمين لهذه الشحنة بعد. انقر على "+ إصدار وثيقة تأمين" لتسجيل بوليصة التأمين البحري أو الجوي وتغطية المخاطر.
+                        {t('maritime_freight.job_details_modal.s210', "لم يتم تسجيل وثائق تأمين لهذه الشحنة بعد. انقر على \"+ إصدار وثيقة تأمين\" لتسجيل بوليصة التأمين البحري أو الجوي وتغطية المخاطر.")}
                       </div>
                     ) : (
                       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.78rem' }}>
                         <thead>
                           <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', textAlign: 'right' }}>
-                            <th style={{ padding: '8px 12px', fontWeight: 700 }}>رقم الوثيقة</th>
-                            <th style={{ padding: '8px 12px', fontWeight: 700 }}>شركة التأمين</th>
-                            <th style={{ padding: '8px 12px', fontWeight: 700 }}>نوع التغطية</th>
-                            <th style={{ padding: '8px 12px', fontWeight: 700 }}>القيمة المؤمنة</th>
-                            <th style={{ padding: '8px 12px', fontWeight: 700 }}>القسط التأميني</th>
-                            <th style={{ padding: '8px 12px', fontWeight: 700, textAlign: 'center' }}>الحالة</th>
-                            <th style={{ padding: '8px 12px', fontWeight: 700, textAlign: 'center' }}>الإجراءات</th>
+                            <th style={{ padding: '8px 12px', fontWeight: 700 }}>{t('maritime_freight.job_details_modal.s211', "رقم الوثيقة")}</th>
+                            <th style={{ padding: '8px 12px', fontWeight: 700 }}>{t('maritime_freight.job_details_modal.s212', "شركة التأمين")}</th>
+                            <th style={{ padding: '8px 12px', fontWeight: 700 }}>{t('maritime_freight.job_details_modal.s213', "نوع التغطية")}</th>
+                            <th style={{ padding: '8px 12px', fontWeight: 700 }}>{t('maritime_freight.job_details_modal.s214', "القيمة المؤمنة")}</th>
+                            <th style={{ padding: '8px 12px', fontWeight: 700 }}>{t('maritime_freight.job_details_modal.s215', "القسط التأميني")}</th>
+                            <th style={{ padding: '8px 12px', fontWeight: 700, textAlign: 'center' }}>{t('maritime_freight.job_details_modal.s216', "الحالة")}</th>
+                            <th style={{ padding: '8px 12px', fontWeight: 700, textAlign: 'center' }}>{t('maritime_freight.job_details_modal.s217', "الإجراءات")}</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -2753,7 +2755,7 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                                 {ins.insurance_company}
                               </td>
                               <td style={{ padding: '8px 12px', color: '#64748b' }}>
-                                {ins.coverage_type === 'all_risks' ? 'شامل All Risks' : ins.coverage_type === 'clauses_a' ? 'شروط أ (ICC-A)' : ins.coverage_type === 'clauses_b' ? 'شروط ب (ICC-B)' : 'شروط ج (ICC-C)'}
+                                {ins.coverage_type === 'all_risks' ? t('maritime_freight.job_details_modal.s218', "شامل All Risks") : ins.coverage_type === 'clauses_a' ? t('maritime_freight.job_details_modal.s219', "شروط أ (ICC-A)") : ins.coverage_type === 'clauses_b' ? t('maritime_freight.job_details_modal.s220', "شروط ب (ICC-B)") : t('maritime_freight.job_details_modal.s221', "شروط ج (ICC-C)")}
                               </td>
                               <td style={{ padding: '8px 12px', fontWeight: 800, color: '#15803d' }}>
                                 {ins.currency} {Number(ins.insured_value).toLocaleString()}
@@ -2787,12 +2789,12 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                                   }}
                                 >
                                   {ins.status === 'active'
-                                    ? 'سارية'
+                                    ? t('maritime_freight.job_details_modal.s222', "سارية")
                                     : ins.status === 'claimed'
                                     ? `مطالبة (${ins.currency} ${Number(ins.claim_amount || 0).toLocaleString()})`
                                     : ins.status === 'expired'
-                                    ? 'منتهية'
-                                    : 'مسودة'}
+                                    ? t('maritime_freight.job_details_modal.s223', "منتهية")
+                                    : t('maritime_freight.job_details_modal.s224', "مسودة")}
                                 </span>
                               </td>
                               <td style={{ padding: '8px 12px', textAlign: 'center' }}>
@@ -2811,7 +2813,7 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                                       cursor: 'pointer',
                                     }}
                                   >
-                                    طباعة الشهادة
+                                    {t('maritime_freight.job_details_modal.s225', "طباعة الشهادة")}
                                   </button>
                                   {ins.status === 'active' && (
                                     <button
@@ -2828,7 +2830,7 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                                         cursor: 'pointer',
                                       }}
                                     >
-                                      تسجيل مطالبة
+                                      {t('maritime_freight.job_details_modal.s226', "تسجيل مطالبة")}
                                     </button>
                                   )}
                                 </div>
@@ -2877,7 +2879,7 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                           {job.cost_center_id ? `مركز تكلفة #${job.cost_center_id} (${job.job_number})` : `مركز تكلفة ملاحي #${job.job_number}`}
                         </div>
                         <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '1px' }}>
-                          مربوط بدليل الحسابات العام (شجرة الحسابات ← مراكز تكلفة الشحن واللوجستيات)
+                          {t('maritime_freight.job_details_modal.s227', "مربوط بدليل الحسابات العام (شجرة الحسابات ← مراكز تكلفة الشحن واللوجستيات)")}
                         </div>
                       </div>
                     </div>
@@ -2894,7 +2896,7 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                           fontWeight: 700,
                         }}
                       >
-                        الترحيل الآلي للقيود مفعل
+                        {t('maritime_freight.job_details_modal.s228', "الترحيل الآلي للقيود مفعل")}
                       </span>
                       <span
                         style={{
@@ -2907,7 +2909,7 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                           fontWeight: 600,
                         }}
                       >
-                        {job.payment_term === 'prepaid' ? 'سداد مسبق (Prepaid)' : 'تحصيل بميناء الوصول (Collect)'}
+                        {job.payment_term === 'prepaid' ? t('maritime_freight.job_details_modal.s229', "سداد مسبق (Prepaid)") : t('maritime_freight.job_details_modal.s230', "تحصيل بميناء الوصول (Collect)")}
                       </span>
                     </div>
                   </div>
@@ -2932,14 +2934,14 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                       }}
                     >
                       <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#0f172a' }}>
-                        سجل قيود اليومية المحاسبية المعتمدة للعملية (General Ledger)
+                        {t('maritime_freight.job_details_modal.s231', "سجل قيود اليومية المحاسبية المعتمدة للعملية (General Ledger)")}
                       </div>
                       <div style={{ fontSize: '0.72rem', color: ledgerEntries.length > 0 ? '#15803d' : '#64748b', fontWeight: 700 }}>
                         {loadingLedger
-                          ? 'جاري تحميل القيود...'
+                          ? t('maritime_freight.job_details_modal.s232', "جاري تحميل القيود...")
                           : ledgerEntries.length > 0
                           ? `قيود معتمدة (${ledgerEntries.length} حركة)`
-                          : 'لا توجد قيود مرحلة بعد'}
+                          : t('maritime_freight.job_details_modal.s233', "لا توجد قيود مرحلة بعد")}
                       </div>
                     </div>
 
@@ -2947,11 +2949,11 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.75rem' }}>
                         <thead>
                           <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', textAlign: 'right' }}>
-                            <th style={{ padding: '6px 12px', fontWeight: 700 }}>رقم القيد والتاريخ</th>
-                            <th style={{ padding: '6px 12px', fontWeight: 700 }}>الحساب المحاسبي</th>
-                            <th style={{ padding: '6px 12px', fontWeight: 700 }}>البيان / الوصف</th>
-                            <th style={{ padding: '6px 12px', fontWeight: 700, color: '#15803d' }}>مدين (Debit)</th>
-                            <th style={{ padding: '6px 12px', fontWeight: 700, color: '#b91c1c' }}>دائن (Credit)</th>
+                            <th style={{ padding: '6px 12px', fontWeight: 700 }}>{t('maritime_freight.job_details_modal.s234', "رقم القيد والتاريخ")}</th>
+                            <th style={{ padding: '6px 12px', fontWeight: 700 }}>{t('maritime_freight.job_details_modal.s235', "الحساب المحاسبي")}</th>
+                            <th style={{ padding: '6px 12px', fontWeight: 700 }}>{t('maritime_freight.job_details_modal.s236', "البيان / الوصف")}</th>
+                            <th style={{ padding: '6px 12px', fontWeight: 700, color: '#15803d' }}>{t('maritime_freight.job_details_modal.s237', "مدين (Debit)")}</th>
+                            <th style={{ padding: '6px 12px', fontWeight: 700, color: '#b91c1c' }}>{t('maritime_freight.job_details_modal.s238', "دائن (Credit)")}</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -2981,7 +2983,7 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                       </table>
                     ) : (
                       <div style={{ padding: '16px', textAlign: 'center', color: '#94a3b8', fontSize: '0.78rem' }}>
-                        اضغط على "إصدار فاتورة مبيعات" أو "تسجيل سند مصروفات" لترحيل القيود لمركز تكلفة الشحنة.
+                        {t('maritime_freight.job_details_modal.s239', "اضغط على \"إصدار فاتورة مبيعات\" أو \"تسجيل سند مصروفات\" لترحيل القيود لمركز تكلفة الشحنة.")}
                       </div>
                     )}
                   </div>
@@ -2997,16 +2999,16 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
         <StandardDialog
           open={showEditVoyage}
           onClose={() => setShowEditVoyage(false)}
-          title="تعديل بيانات الرحلة والبوالص"
+          title={t('maritime_freight.job_details_modal.s240', "تعديل بيانات الرحلة والبوالص")}
           subtitle={`العملية الملاحية: ${job.job_number}`}
           width="min(800px, 92vw)"
           minHeight="min(460px, 80vh)"
           footerActions={(
             <StandardDialogFooter
               onSubmit={() => submitOnce('voyage', handleSaveVoyage)}
-              submitText="حفظ التعديلات"
+              submitText={t('maritime_freight.job_details_modal.s241', "حفظ التعديلات")}
               onCancel={() => setShowEditVoyage(false)}
-              cancelText="إلغاء"
+              cancelText={t('maritime_freight.job_details_modal.s242', "إلغاء")}
             />
           )}
         >
@@ -3059,41 +3061,41 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
             <div style={{ background: '#f8fafc', padding: '12px 14px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
                 <AppIcons.Ship size={15} />
-                <span>1. بيانات السفينة ورقم الحجز (Vessel & Booking)</span>
+                <span>{t('maritime_freight.job_details_modal.s243', "1. بيانات السفينة ورقم الحجز (Vessel & Booking)")}</span>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 1fr 1.2fr', gap: '10px' }}>
-                <Field label="اسم السفينة (Vessel Name)">
+                <Field label={t('maritime_freight.job_details_modal.s244', "اسم السفينة (Vessel Name)")}>
                   <input
                     type="text"
                     value={voyageForm.vesselName}
                     onChange={(e) => setVoyageForm({ ...voyageForm, vesselName: e.target.value })}
-                    placeholder="مثال: MSC MAESTRO"
+                    placeholder={t('maritime_freight.job_details_modal.s245', "مثال: MSC MAESTRO")}
                   />
                 </Field>
-                <Field label="رقم الرحلة (Voyage No)">
+                <Field label={t('maritime_freight.job_details_modal.s246', "رقم الرحلة (Voyage No)")}>
                   <input
                     type="text"
                     value={voyageForm.voyageNumber}
                     onChange={(e) => setVoyageForm({ ...voyageForm, voyageNumber: e.target.value })}
-                    placeholder="مثال: 412W"
+                    placeholder={t('maritime_freight.job_details_modal.s247', "مثال: 412W")}
                   />
                 </Field>
-                <Field label="رقم حجز الخط (Booking No)">
+                <Field label={t('maritime_freight.job_details_modal.s248', "رقم حجز الخط (Booking No)")}>
                   <input
                     type="text"
                     value={voyageForm.bookingNumber}
                     onChange={(e) => setVoyageForm({ ...voyageForm, bookingNumber: e.target.value })}
-                    placeholder="مثال: BKG-994821"
+                    placeholder={t('maritime_freight.job_details_modal.s249', "مثال: BKG-994821")}
                   />
                 </Field>
-                <Field label="نوع البوليصة (B/L Type)">
+                <Field label={t('maritime_freight.job_details_modal.s250', "نوع البوليصة (B/L Type)")}>
                   <CustomSelect
                     value={voyageForm.blType}
                     onChange={(val) => setVoyageForm({ ...voyageForm, blType: val as any })}
                     options={[
-                      { value: 'original', label: 'Original B/L (أصل ورقي)' },
-                      { value: 'telex_release', label: 'Telex Release (تلكس)' },
-                      { value: 'sea_waybill', label: 'Sea Waybill (إلكترونية)' },
+                      { value: 'original', label: t('maritime_freight.job_details_modal.s251', "Original B/L (أصل ورقي)") },
+                      { value: 'telex_release', label: t('maritime_freight.job_details_modal.s252', "Telex Release (تلكس)") },
+                      { value: 'sea_waybill', label: t('maritime_freight.job_details_modal.s253', "Sea Waybill (إلكترونية)") },
                     ]}
                   />
                 </Field>
@@ -3104,17 +3106,17 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
             <div style={{ background: '#f8fafc', padding: '12px 14px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
                 <AppIcons.Clock size={15} />
-                <span>2. المواعيد الزمنية للرحلة (Schedule Dates)</span>
+                <span>{t('maritime_freight.job_details_modal.s254', "2. المواعيد الزمنية للرحلة (Schedule Dates)")}</span>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                <Field label="تاريخ الإبحار المتوقع (ETD)">
+                <Field label={t('maritime_freight.job_details_modal.s255', "تاريخ الإبحار المتوقع (ETD)")}>
                   <input
                     type="date"
                     value={voyageForm.etd}
                     onChange={(e) => setVoyageForm({ ...voyageForm, etd: e.target.value })}
                   />
                 </Field>
-                <Field label="تاريخ الوصول المتوقع (ETA)">
+                <Field label={t('maritime_freight.job_details_modal.s256', "تاريخ الوصول المتوقع (ETA)")}>
                   <input
                     type="date"
                     value={voyageForm.eta}
@@ -3128,7 +3130,7 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
             <div style={{ background: '#f8fafc', padding: '12px 14px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
                 <AppIcons.FileText size={15} />
-                <span>3. بوالص الشحن والأطراف التعاقدية (Bills of Lading & Parties)</span>
+                <span>{t('maritime_freight.job_details_modal.s257', "3. بوالص الشحن والأطراف التعاقدية (Bills of Lading & Parties)")}</span>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '8px' }}>
                 <Field label="Master B/L No">
@@ -3136,7 +3138,7 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                     type="text"
                     value={voyageForm.mblNumber}
                     onChange={(e) => setVoyageForm({ ...voyageForm, mblNumber: e.target.value })}
-                    placeholder="مثال: MSK9823412"
+                    placeholder={t('maritime_freight.job_details_modal.s258', "مثال: MSK9823412")}
                   />
                 </Field>
                 <Field label="House B/L No">
@@ -3144,25 +3146,25 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                     type="text"
                     value={voyageForm.hblNumber}
                     onChange={(e) => setVoyageForm({ ...voyageForm, hblNumber: e.target.value })}
-                    placeholder="مثال: HBL-260914-0001"
+                    placeholder={t('maritime_freight.job_details_modal.s259', "مثال: HBL-260914-0001")}
                   />
                 </Field>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                <Field label="بيانات الشاحن (Shipper Details)">
+                <Field label={t('maritime_freight.job_details_modal.s260', "بيانات الشاحن (Shipper Details)")}>
                   <textarea
                     value={voyageForm.shipperDetails}
                     onChange={(e) => setVoyageForm({ ...voyageForm, shipperDetails: e.target.value })}
                     rows={2}
-                    placeholder="اسم شركة الشحن، العنوان، ورقم التواصل"
+                    placeholder={t('maritime_freight.job_details_modal.s261', "اسم شركة الشحن، العنوان، ورقم التواصل")}
                   />
                 </Field>
-                <Field label="بيانات المستلم (Consignee Details)">
+                <Field label={t('maritime_freight.job_details_modal.s262', "بيانات المستلم (Consignee Details)")}>
                   <textarea
                     value={voyageForm.consigneeDetails}
                     onChange={(e) => setVoyageForm({ ...voyageForm, consigneeDetails: e.target.value })}
                     rows={2}
-                    placeholder="اسم العميل المستلم، العنوان، ورقم التواصل"
+                    placeholder={t('maritime_freight.job_details_modal.s263', "اسم العميل المستلم، العنوان، ورقم التواصل")}
                   />
                 </Field>
               </div>
@@ -3176,16 +3178,16 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
         <StandardDialog
           open={showAddContainer}
           onClose={() => setShowAddContainer(false)}
-          title="إضافة حاوية جديدة للشحنة"
+          title={t('maritime_freight.job_details_modal.s264', "إضافة حاوية جديدة للشحنة")}
           subtitle={`العملية: ${job.job_number} | الخط: ${job.shipping_line_name}`}
           width="min(720px, 92vw)"
           minHeight="min(480px, 80vh)"
           footerActions={(
             <StandardDialogFooter
               onSubmit={() => submitOnce('add-container', handleSaveAddContainer)}
-              submitText="إضافة الحاوية"
+              submitText={t('maritime_freight.job_details_modal.s265', "إضافة الحاوية")}
               onCancel={() => setShowAddContainer(false)}
-              cancelText="إلغاء"
+              cancelText={t('maritime_freight.job_details_modal.s266', "إلغاء")}
             />
           )}
         >
@@ -3194,19 +3196,19 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
             <div style={{ background: '#f8fafc', padding: '12px 14px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
                 <AppIcons.Container size={15} />
-                <span>1. هوية الحاوية والمواصفات الفنية (Container Specs)</span>
+                <span>{t('maritime_freight.job_details_modal.s267', "1. هوية الحاوية والمواصفات الفنية (Container Specs)")}</span>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1.4fr 1fr', gap: '10px' }}>
-                <Field label="رقم الحاوية (Container Number) *">
+                <Field label={t('maritime_freight.job_details_modal.s268', "رقم الحاوية (Container Number) *")}>
                   <input
                     type="text"
                     value={addContainerForm.containerNumber}
                     onChange={(e) => setAddContainerForm({ ...addContainerForm, containerNumber: e.target.value.toUpperCase() })}
-                    placeholder="مثال: MSCU9842104"
+                    placeholder={t('maritime_freight.job_details_modal.s269', "مثال: MSCU9842104")}
                     style={{ fontWeight: 700 }}
                   />
                 </Field>
-                <Field label="نوع وحجم الحاوية *">
+                <Field label={t('maritime_freight.job_details_modal.s270', "نوع وحجم الحاوية *")}>
                   <CustomSelect
                     value={addContainerForm.containerType}
                     onChange={(val) => setAddContainerForm({ ...addContainerForm, containerType: val })}
@@ -3224,12 +3226,12 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                     ]}
                   />
                 </Field>
-                <Field label="رقم الختم (Seal No)">
+                <Field label={t('maritime_freight.job_details_modal.s271', "رقم الختم (Seal No)")}>
                   <input
                     type="text"
                     value={addContainerForm.sealNumber}
                     onChange={(e) => setAddContainerForm({ ...addContainerForm, sealNumber: e.target.value })}
-                    placeholder="مثال: SL-984210"
+                    placeholder={t('maritime_freight.job_details_modal.s272', "مثال: SL-984210")}
                   />
                 </Field>
               </div>
@@ -3239,10 +3241,10 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
             <div style={{ background: '#f8fafc', padding: '12px 14px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
                 <AppIcons.Clock size={15} />
-                <span>2. شروط السماح والغرامات والتأمين (Free Days & Deposit)</span>
+                <span>{t('maritime_freight.job_details_modal.s273', "2. شروط السماح والغرامات والتأمين (Free Days & Deposit)")}</span>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr 1.2fr', gap: '10px' }}>
-                <Field label="فترة السماح (أيام) *">
+                <Field label={t('maritime_freight.job_details_modal.s274', "فترة السماح (أيام) *")}>
                   <input
                     type="number"
                     value={addContainerForm.freeDays}
@@ -3250,7 +3252,7 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                     placeholder="14"
                   />
                 </Field>
-                <Field label="غرامة التأخير اليومية ($)">
+                <Field label={t('maritime_freight.job_details_modal.s275', "غرامة التأخير اليومية ($)")}>
                   <input
                     type="number"
                     value={addContainerForm.demurrageRatePerDay}
@@ -3258,7 +3260,7 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                     placeholder="50"
                   />
                 </Field>
-                <Field label="مبلغ التأمين المحتجز للخط">
+                <Field label={t('maritime_freight.job_details_modal.s276', "مبلغ التأمين المحتجز للخط")}>
                   <input
                     type="number"
                     value={addContainerForm.depositAmount}
@@ -3284,9 +3286,9 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
           footerActions={(
             <StandardDialogFooter
               onSubmit={() => submitOnce('edit-container', handleSaveEditContainer)}
-              submitText="حفظ التعديلات"
+              submitText={t('maritime_freight.job_details_modal.s277', "حفظ التعديلات")}
               onCancel={() => setEditingContainer(null)}
-              cancelText="إلغاء"
+              cancelText={t('maritime_freight.job_details_modal.s278', "إلغاء")}
             />
           )}
         >
@@ -3295,24 +3297,24 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
             <div style={{ background: '#f8fafc', padding: '12px 14px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
                 <AppIcons.Container size={15} />
-                <span>1. بيانات الختم والمواعيد (Seal & Schedule)</span>
+                <span>{t('maritime_freight.job_details_modal.s279', "1. بيانات الختم والمواعيد (Seal & Schedule)")}</span>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
-                <Field label="رقم الختم الرصاصي (Seal No)">
+                <Field label={t('maritime_freight.job_details_modal.s280', "رقم الختم الرصاصي (Seal No)")}>
                   <input
                     type="text"
                     value={editContainerForm.sealNumber}
                     onChange={(e) => setEditContainerForm({ ...editContainerForm, sealNumber: e.target.value })}
                   />
                 </Field>
-                <Field label="فترة السماح (أيام)">
+                <Field label={t('maritime_freight.job_details_modal.s281', "فترة السماح (أيام)")}>
                   <input
                     type="number"
                     value={editContainerForm.freeDays}
                     onChange={(e) => setEditContainerForm({ ...editContainerForm, freeDays: e.target.value })}
                   />
                 </Field>
-                <Field label="آخر موعد للإرجاع (Return Deadline)">
+                <Field label={t('maritime_freight.job_details_modal.s282', "آخر موعد للإرجاع (Return Deadline)")}>
                   <input
                     type="date"
                     value={editContainerForm.returnDeadline}
@@ -3326,33 +3328,33 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
             <div style={{ background: '#f8fafc', padding: '12px 14px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
                 <AppIcons.DollarSign size={15} />
-                <span>2. الغرامات وحالة التأمين (Demurrage & Deposit)</span>
+                <span>{t('maritime_freight.job_details_modal.s283', "2. الغرامات وحالة التأمين (Demurrage & Deposit)")}</span>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1.3fr', gap: '10px' }}>
-                <Field label="غرامة التأخير اليومية ($)">
+                <Field label={t('maritime_freight.job_details_modal.s284', "غرامة التأخير اليومية ($)")}>
                   <input
                     type="number"
                     value={editContainerForm.demurrageRatePerDay}
                     onChange={(e) => setEditContainerForm({ ...editContainerForm, demurrageRatePerDay: e.target.value })}
                   />
                 </Field>
-                <Field label="مبلغ التأمين المحتجز">
+                <Field label={t('maritime_freight.job_details_modal.s285', "مبلغ التأمين المحتجز")}>
                   <input
                     type="number"
                     value={editContainerForm.depositAmount}
                     onChange={(e) => setEditContainerForm({ ...editContainerForm, depositAmount: e.target.value })}
                   />
                 </Field>
-                <Field label="حالة أمانة التأمين">
+                <Field label={t('maritime_freight.job_details_modal.s286', "حالة أمانة التأمين")}>
                   <CustomSelect
                     value={editContainerForm.depositStatus}
                     onChange={(val) => setEditContainerForm({ ...editContainerForm, depositStatus: val as any })}
                     options={[
-                      { value: 'not_required', label: 'غير مطلوبة / بدون تأمين' },
-                      { value: 'held_by_line', label: 'محتجزة لدى التوكيل الملاحي' },
-                      { value: 'pending_return_proof', label: 'بانتظار إثبات إرجاع الفارغ' },
-                      { value: 'refunded_to_treasury', label: 'تم الاسترداد للخزينة' },
-                      { value: 'forfeited', label: 'تمت مصادرة التأمين' },
+                      { value: 'not_required', label: t('maritime_freight.job_details_modal.s287', "غير مطلوبة / بدون تأمين") },
+                      { value: 'held_by_line', label: t('maritime_freight.job_details_modal.s288', "محتجزة لدى التوكيل الملاحي") },
+                      { value: 'pending_return_proof', label: t('maritime_freight.job_details_modal.s289', "بانتظار إثبات إرجاع الفارغ") },
+                      { value: 'refunded_to_treasury', label: t('maritime_freight.job_details_modal.s290', "تم الاسترداد للخزينة") },
+                      { value: 'forfeited', label: t('maritime_freight.job_details_modal.s291', "تمت مصادرة التأمين") },
                     ]}
                   />
                 </Field>
@@ -3367,23 +3369,23 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
         <StandardDialog
           open={showInvoiceDialog}
           onClose={() => setShowInvoiceDialog(false)}
-          title="إصدار وترحيل فاتورة مبيعات خدمات ملاحية"
+          title={t('maritime_freight.job_details_modal.s292', "إصدار وترحيل فاتورة مبيعات خدمات ملاحية")}
           subtitle={`العملية: ${job.job_number} | العميل: ${job.customer_name}`}
           width="min(580px, 95vw)"
           minHeight="min(440px, 80vh)"
           footerActions={(
             <StandardDialogFooter
               onSubmit={() => submitOnce('issue-invoice', handleConfirmIssueInvoice)}
-              submitText={isSubmittingInvoice ? 'جاري الترحيل...' : 'ترحيل الفاتورة للدفاتر'}
+              submitText={isSubmittingInvoice ? t('maritime_freight.job_details_modal.s293', "جاري الترحيل...") : t('maritime_freight.job_details_modal.s294', "ترحيل الفاتورة للدفاتر")}
               isSubmitting={isSubmittingInvoice}
               onCancel={() => setShowInvoiceDialog(false)}
-              cancelText="إلغاء"
+              cancelText={t('maritime_freight.job_details_modal.s295', "إلغاء")}
             />
           )}
         >
           <div className="job-submodal-compact" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }} dir="rtl">
             <div style={{ background: '#eff6ff', padding: '10px 14px', borderRadius: '8px', border: '1px solid #bfdbfe', fontSize: '0.78rem', color: '#1e40af' }}>
-              سيتم إنشاء وترحيل قيد يومية معتمد (مدين: حساب العملاء 1130 / دائن: مبيعات الخدمات 4200) وتوجيهه آلياً لمركز تكلفة العملية <strong>#{job.job_number}</strong>.
+              {t('maritime_freight.job_details_modal.s296', "سيتم إنشاء وترحيل قيد يومية معتمد (مدين: حساب العملاء 1130 / دائن: مبيعات الخدمات 4200) وتوجيهه آلياً لمركز تكلفة العملية")} <strong>#{job.job_number}</strong>.
             </div>
 
             <div style={{ background: '#f8fafc', padding: '12px 14px', borderRadius: '8px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -3397,12 +3399,12 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                 />
               </Field>
 
-              <Field label="بيان ووصف الفاتورة">
+              <Field label={t('maritime_freight.job_details_modal.s297', "بيان ووصف الفاتورة")}>
                 <input
                   type="text"
                   value={invoiceNotesInput}
                   onChange={(e) => setInvoiceNotesInput(e.target.value)}
-                  placeholder="بيان الفاتورة..."
+                  placeholder={t('maritime_freight.job_details_modal.s298', "بيان الفاتورة...")}
                 />
               </Field>
             </div>
@@ -3415,47 +3417,47 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
         <StandardDialog
           open={showExpenseDialog}
           onClose={() => setShowExpenseDialog(false)}
-          title="تسجيل وترحيل سند مصروفات ملاحية"
+          title={t('maritime_freight.job_details_modal.s299', "تسجيل وترحيل سند مصروفات ملاحية")}
           subtitle={`العملية: ${job.job_number} | التوكيل: ${job.shipping_line_name}`}
           width="min(620px, 95vw)"
           minHeight="min(460px, 80vh)"
           footerActions={(
             <StandardDialogFooter
               onSubmit={() => submitOnce('record-expense', handleConfirmRecordExpense)}
-              submitText={isSubmittingExpense ? 'جاري الترحيل...' : 'ترحيل سند المصروفات'}
+              submitText={isSubmittingExpense ? t('maritime_freight.job_details_modal.s300', "جاري الترحيل...") : t('maritime_freight.job_details_modal.s301', "ترحيل سند المصروفات")}
               isSubmitting={isSubmittingExpense}
               onCancel={() => setShowExpenseDialog(false)}
-              cancelText="إلغاء"
+              cancelText={t('maritime_freight.job_details_modal.s302', "إلغاء")}
             />
           )}
         >
           <div className="job-submodal-compact" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }} dir="rtl">
             <div style={{ background: '#fef2f2', padding: '10px 14px', borderRadius: '8px', border: '1px solid #fecaca', fontSize: '0.78rem', color: '#991b1b' }}>
-              سيتم إنشاء قيد استحقاق مصروفات (مدين: مصروفات نقل وشحن 6400 بمركز تكلفة العملية / دائن: حساب السداد المحدد) وخصمه من أرباح العملية.
+              {t('maritime_freight.job_details_modal.s303', "سيتم إنشاء قيد استحقاق مصروفات (مدين: مصروفات نقل وشحن 6400 بمركز تكلفة العملية / دائن: حساب السداد المحدد) وخصمه من أرباح العملية.")}
             </div>
 
             <div style={{ background: '#f8fafc', padding: '12px 14px', borderRadius: '8px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '10px' }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                <Field label="نوع المصروف">
+                <Field label={t('maritime_freight.job_details_modal.s304', "نوع المصروف")}>
                   <CustomSelect
                     value={expenseTypeInput}
                     onChange={(val) => setExpenseTypeInput(val as any)}
                     options={[
-                      { value: 'carrier', label: 'نولون وتكاليف الخط الملاحي' },
-                      { value: 'port', label: 'رسوم ومصروفات محطات الميناء THC' },
-                      { value: 'other', label: 'مصروفات تخليص أو خدمات أخرى' },
+                      { value: 'carrier', label: t('maritime_freight.job_details_modal.s305', "نولون وتكاليف الخط الملاحي") },
+                      { value: 'port', label: t('maritime_freight.job_details_modal.s306', "رسوم ومصروفات محطات الميناء THC") },
+                      { value: 'other', label: t('maritime_freight.job_details_modal.s307', "مصروفات تخليص أو خدمات أخرى") },
                     ]}
                   />
                 </Field>
 
-                <Field label="طريقة السداد والتسوية">
+                <Field label={t('maritime_freight.job_details_modal.s308', "طريقة السداد والتسوية")}>
                   <CustomSelect
                     value={expensePaymentMethodInput}
                     onChange={(val) => setExpensePaymentMethodInput(val as any)}
                     options={[
-                      { value: 'payable', label: 'استحقاق أجل على حساب المورد (2110)' },
-                      { value: 'cash', label: 'صرف نقدي فوري من الخزينة (1110)' },
-                      { value: 'bank', label: 'تحويل / شيك بنكي (1120)' },
+                      { value: 'payable', label: t('maritime_freight.job_details_modal.s309', "استحقاق أجل على حساب المورد (2110)") },
+                      { value: 'cash', label: t('maritime_freight.job_details_modal.s310', "صرف نقدي فوري من الخزينة (1110)") },
+                      { value: 'bank', label: t('maritime_freight.job_details_modal.s311', "تحويل / شيك بنكي (1120)") },
                     ]}
                   />
                 </Field>
@@ -3472,12 +3474,12 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
               </Field>
 
               {expenseTypeInput === 'carrier' && (
-                <Field label="رقم فاتورة الخط الملاحي *">
+                <Field label={t('maritime_freight.job_details_modal.s312', "رقم فاتورة الخط الملاحي *")}>
                   <input
                     type="text"
                     value={carrierInvoiceNumber}
                     onChange={(e) => setCarrierInvoiceNumber(e.target.value)}
-                    placeholder="مثال: MSKU-982341..."
+                    placeholder={t('maritime_freight.job_details_modal.s313', "مثال: MSKU-982341...")}
                     style={{ fontWeight: 700 }}
                   />
                 </Field>
@@ -3510,11 +3512,11 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                     <div style={{ fontSize: '0.8rem', fontWeight: 800, color: carrierAuditPreview.audit.isOvercharged ? '#991b1b' : '#166534' }}>
                       {carrierAuditPreview.audit.hasRateCard ? (
                         <>
-                          تدقيق التعرفة المتعاقد عليها: {currencySymbol} {carrierAuditPreview.audit.contractedTotal.toLocaleString()}
+                          {t('maritime_freight.job_details_modal.s314', "تدقيق التعرفة المتعاقد عليها:")} {currencySymbol} {carrierAuditPreview.audit.contractedTotal.toLocaleString()}
                           {carrierAuditPreview.audit.containerCount > 1 ? ` (${carrierAuditPreview.audit.containerCount} حاويات)` : ''}
                         </>
                       ) : (
-                        'لا توجد بطاقة تعرفة نشطة مسجلة لهذا المسار والخط'
+                        t('maritime_freight.job_details_modal.s315', "لا توجد بطاقة تعرفة نشطة مسجلة لهذا المسار والخط")
                       )}
                     </div>
                     <span
@@ -3534,7 +3536,7 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                       {carrierAuditPreview.audit.isOvercharged
                         ? `زيادة: +${currencySymbol} ${carrierAuditPreview.audit.varianceAmount.toLocaleString()} (+${carrierAuditPreview.audit.variancePct}%)`
                         : carrierAuditPreview.audit.isMatched
-                        ? 'مطابق للتعرفة 100%'
+                        ? t('maritime_freight.job_details_modal.s316', "مطابق للتعرفة 100%")
                         : `وفر: -${currencySymbol} ${Math.abs(carrierAuditPreview.audit.varianceAmount).toLocaleString()}`}
                     </span>
                   </div>
@@ -3551,18 +3553,18 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                         fontWeight: 600,
                       }}
                     >
-                      تنبيه رقابي (فصل المهام Maker-Checker): قيمة الفاتورة تتجاوز التعرفة المتعاقد عليها بمقدار +{currencySymbol} {carrierAuditPreview.audit.varianceAmount.toLocaleString()} (+{carrierAuditPreview.audit.variancePct}%). سيتم حفظ الفاتورة بحالة &quot;زيادة غير معتمدة&quot; لحين مراجعتها واعتمادها من مسؤول مالي آخر، أو يمكنك فتح نزاع رسمي مع الناقل.
+                      {t('maritime_freight.job_details_modal.s317', "تنبيه رقابي (فصل المهام Maker-Checker): قيمة الفاتورة تتجاوز التعرفة المتعاقد عليها بمقدار +")}{currencySymbol} {carrierAuditPreview.audit.varianceAmount.toLocaleString()} (+{carrierAuditPreview.audit.variancePct}{t('maritime_freight.job_details_modal.s318', "%). سيتم حفظ الفاتورة بحالة \"زيادة غير معتمدة\" لحين مراجعتها واعتمادها من مسؤول مالي آخر، أو يمكنك فتح نزاع رسمي مع الناقل.")}
                     </div>
                   )}
                 </div>
               )}
 
-              <Field label="البيان / الوصف">
+              <Field label={t('maritime_freight.job_details_modal.s319', "البيان / الوصف")}>
                 <input
                   type="text"
                   value={expenseNotesInput}
                   onChange={(e) => setExpenseNotesInput(e.target.value)}
-                  placeholder="بيان سند المصروفات..."
+                  placeholder={t('maritime_freight.job_details_modal.s320', "بيان سند المصروفات...")}
                 />
               </Field>
             </div>
@@ -3578,38 +3580,38 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
             setShowSmartParseModal(false);
             setParsedBookingData(null);
           }}
-          title="الاستخراج والتحليل الذكي لبيانات الحجز الملاحي"
+          title={t('maritime_freight.job_details_modal.s321', "الاستخراج والتحليل الذكي لبيانات الحجز الملاحي")}
           subtitle={`العملية: ${job.job_number} | يدعم Maersk, MSC, CMA CGM, Hapag-Lloyd, Cosco, Evergreen والخطوط العالمية`}
           width="min(720px, 95vw)"
           footerActions={
             parsedBookingData ? (
               <StandardDialogFooter
                 onSubmit={() => submitOnce('apply-booking', handleApplyParsedBooking)}
-                submitText={isApplyingParsedData ? 'جاري الاعتماد...' : 'اعتماد وملء بيانات الحجز بالشحنة'}
+                submitText={isApplyingParsedData ? t('maritime_freight.job_details_modal.s322', "جاري الاعتماد...") : t('maritime_freight.job_details_modal.s323', "اعتماد وملء بيانات الحجز بالشحنة")}
                 isSubmitting={isApplyingParsedData}
                 onCancel={() => {
                   setShowSmartParseModal(false);
                   setParsedBookingData(null);
                 }}
-                cancelText="إلغاء"
+                cancelText={t('maritime_freight.job_details_modal.s324', "إلغاء")}
               />
             ) : undefined
           }
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }} dir="rtl">
             <div style={{ background: '#f8fafc', padding: '12px 14px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '0.78rem', color: '#334155', lineHeight: 1.6 }}>
-              انسخ نص إيميل تأكيد الحجز (Booking Confirmation) المستلم من الخط الملاحي أو الوكيل والصقه في الحقل أدناه. سيقوم الذكاء الاصطناعي ومحلل النصوص باستخراج رقم الحجز، اسم السفينة، رقم الرحلة، تواريخ ETD / ETA، موعد Cut-off، ورقم البوليصة والحاويات تمهيداً لمراجعتها واعتمادها بنقرة واحدة.
+              {t('maritime_freight.job_details_modal.s325', "انسخ نص إيميل تأكيد الحجز (Booking Confirmation) المستلم من الخط الملاحي أو الوكيل والصقه في الحقل أدناه. سيقوم الذكاء الاصطناعي ومحلل النصوص باستخراج رقم الحجز، اسم السفينة، رقم الرحلة، تواريخ ETD / ETA، موعد Cut-off، ورقم البوليصة والحاويات تمهيداً لمراجعتها واعتمادها بنقرة واحدة.")}
             </div>
 
             <div>
               <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-                نص تأكيد الحجز أو محتوى الإيميل الملاحي *
+                {t('maritime_freight.job_details_modal.s326', "نص تأكيد الحجز أو محتوى الإيميل الملاحي *")}
               </label>
               <textarea
                 rows={6}
                 value={smartParseText}
                 onChange={(e) => setSmartParseText(e.target.value)}
-                placeholder="الصق نص إيميل تأكيد الحجز هنا (مثال: Booking Confirmation: MSK12345678, Vessel: MAERSK MC-KINNEY MOLLER, Voyage: 2401E, ETD: 2026-09-20, ETA: 2026-10-05, Port Cut-off: 2026-09-18, Containers: MSKU1234567, MSKU7654321)..."
+                placeholder={t('maritime_freight.job_details_modal.s327', "الصق نص إيميل تأكيد الحجز هنا (مثال: Booking Confirmation: MSK12345678, Vessel: MAERSK MC-KINNEY MOLLER, Voyage: 2401E, ETD: 2026-09-20, ETA: 2026-10-05, Port Cut-off: 2026-09-18, Containers: MSKU1234567, MSKU7654321)...")}
                 style={{
                   width: '100%',
                   borderRadius: '8px',
@@ -3644,7 +3646,7 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                 }}
               >
                 <AppIcons.Search size={15} />
-                {isParsingSmartBooking ? 'جاري التحليل والاستخراج...' : 'تحليل واستخراج البيانات'}
+                {isParsingSmartBooking ? t('maritime_freight.job_details_modal.s328', "جاري التحليل والاستخراج...") : t('maritime_freight.job_details_modal.s329', "تحليل واستخراج البيانات")}
               </button>
             </div>
 
@@ -3661,45 +3663,45 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
                   <span style={{ fontSize: '0.84rem', fontWeight: 800, color: '#166534' }}>
-                    نتائج الاستخراج المكتشفة من نص الحجز:
+                    {t('maritime_freight.job_details_modal.s330', "نتائج الاستخراج المكتشفة من نص الحجز:")}
                   </span>
                   {parsedBookingData.shippingLineName && (
                     <span style={{ padding: '3px 10px', background: '#dcfce7', color: '#15803d', borderRadius: '6px', fontSize: '0.74rem', fontWeight: 700 }}>
-                      الخط المكتشف: {parsedBookingData.shippingLineName}
+                      {t('maritime_freight.job_details_modal.s331', "الخط المكتشف:")} {parsedBookingData.shippingLineName}
                     </span>
                   )}
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px' }}>
                   <div style={{ background: '#ffffff', padding: '8px 12px', borderRadius: '6px', border: '1px solid #dcfce7' }}>
-                    <div style={{ fontSize: '0.7rem', color: '#64748b' }}>رقم الحجز (Booking No)</div>
+                    <div style={{ fontSize: '0.7rem', color: '#64748b' }}>{t('maritime_freight.job_details_modal.s332', "رقم الحجز (Booking No)")}</div>
                     <div style={{ fontSize: '0.84rem', fontWeight: 800, color: '#170e5e' }}>{parsedBookingData.bookingNumber || '—'}</div>
                   </div>
 
                   <div style={{ background: '#ffffff', padding: '8px 12px', borderRadius: '6px', border: '1px solid #dcfce7' }}>
-                    <div style={{ fontSize: '0.7rem', color: '#64748b' }}>السفينة والرحلة (Vessel / Voyage)</div>
+                    <div style={{ fontSize: '0.7rem', color: '#64748b' }}>{t('maritime_freight.job_details_modal.s333', "السفينة والرحلة (Vessel / Voyage)")}</div>
                     <div style={{ fontSize: '0.84rem', fontWeight: 800, color: '#170e5e' }}>
                       {parsedBookingData.vesselName || '—'} {parsedBookingData.voyageNumber ? ` / ${parsedBookingData.voyageNumber}` : ''}
                     </div>
                   </div>
 
                   <div style={{ background: '#ffffff', padding: '8px 12px', borderRadius: '6px', border: '1px solid #dcfce7' }}>
-                    <div style={{ fontSize: '0.7rem', color: '#64748b' }}>تاريخ الإبحار (ETD)</div>
+                    <div style={{ fontSize: '0.7rem', color: '#64748b' }}>{t('maritime_freight.job_details_modal.s334', "تاريخ الإبحار (ETD)")}</div>
                     <div style={{ fontSize: '0.84rem', fontWeight: 800, color: '#170e5e' }}>{parsedBookingData.etd || '—'}</div>
                   </div>
 
                   <div style={{ background: '#ffffff', padding: '8px 12px', borderRadius: '6px', border: '1px solid #dcfce7' }}>
-                    <div style={{ fontSize: '0.7rem', color: '#64748b' }}>تاريخ الوصول (ETA)</div>
+                    <div style={{ fontSize: '0.7rem', color: '#64748b' }}>{t('maritime_freight.job_details_modal.s335', "تاريخ الوصول (ETA)")}</div>
                     <div style={{ fontSize: '0.84rem', fontWeight: 800, color: '#170e5e' }}>{parsedBookingData.eta || '—'}</div>
                   </div>
 
                   <div style={{ background: '#ffffff', padding: '8px 12px', borderRadius: '6px', border: '1px solid #dcfce7' }}>
-                    <div style={{ fontSize: '0.7rem', color: '#64748b' }}>إغلاق الميناء (Cut-Off)</div>
+                    <div style={{ fontSize: '0.7rem', color: '#64748b' }}>{t('maritime_freight.job_details_modal.s336', "إغلاق الميناء (Cut-Off)")}</div>
                     <div style={{ fontSize: '0.84rem', fontWeight: 800, color: '#b91c1c' }}>{parsedBookingData.portCutOff || '—'}</div>
                   </div>
 
                   <div style={{ background: '#ffffff', padding: '8px 12px', borderRadius: '6px', border: '1px solid #dcfce7' }}>
-                    <div style={{ fontSize: '0.7rem', color: '#64748b' }}>بوليصة الشحن (MBL)</div>
+                    <div style={{ fontSize: '0.7rem', color: '#64748b' }}>{t('maritime_freight.job_details_modal.s337', "بوليصة الشحن (MBL)")}</div>
                     <div style={{ fontSize: '0.84rem', fontWeight: 800, color: '#170e5e' }}>{parsedBookingData.mblNumber || '—'}</div>
                   </div>
                 </div>
@@ -3707,7 +3709,7 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                 {parsedBookingData.containers && parsedBookingData.containers.length > 0 && (
                   <div style={{ marginTop: '12px', background: '#ffffff', padding: '10px 12px', borderRadius: '6px', border: '1px solid #dcfce7' }}>
                     <div style={{ fontSize: '0.74rem', fontWeight: 700, color: '#166534', marginBottom: '6px' }}>
-                      الحاويات المكتشفة ({parsedBookingData.containers.length} حاوية):
+                      {t('maritime_freight.job_details_modal.s338', "الحاويات المكتشفة (")}{parsedBookingData.containers.length} {t('maritime_freight.job_details_modal.s339', "حاوية):")}
                     </div>
                     <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                       {parsedBookingData.containers.map((cnt: any, idx: number) => (
@@ -3740,23 +3742,23 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
         <StandardDialog
           open={showDisputeDialog}
           onClose={() => setShowDisputeDialog(false)}
-          title="إصدار مذكرة نزاع مالي مع الخط الملاحي"
+          title={t('maritime_freight.job_details_modal.s340', "إصدار مذكرة نزاع مالي مع الخط الملاحي")}
           subtitle={`العملية: ${job.job_number} | الفاتورة: #${disputeInvoice.invoiceNumber}`}
           width="min(560px, 95vw)"
           minHeight="min(440px, 80vh)"
           footerActions={(
             <StandardDialogFooter
               onSubmit={() => submitOnce('dispute', handleConfirmDispute)}
-              submitText={isSubmittingDispute ? 'جاري الإصدار...' : 'إصدار مذكرة النزاع وحجز الفاتورة'}
+              submitText={isSubmittingDispute ? t('maritime_freight.job_details_modal.s341', "جاري الإصدار...") : t('maritime_freight.job_details_modal.s342', "إصدار مذكرة النزاع وحجز الفاتورة")}
               isSubmitting={isSubmittingDispute}
               onCancel={() => setShowDisputeDialog(false)}
-              cancelText="إلغاء"
+              cancelText={t('maritime_freight.job_details_modal.s343', "إلغاء")}
             />
           )}
         >
           <div className="job-submodal-compact" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }} dir="rtl">
             <div style={{ background: '#fef2f2', padding: '10px 14px', borderRadius: '8px', border: '1px solid #fecaca', fontSize: '0.78rem', color: '#991b1b', lineHeight: 1.5 }}>
-              سيتم إنشاء مذكرة نزاع رسمي للخط الملاحي (Carrier Dispute Note) برقم موحد، وحجز صرف الفاتورة حتى ورود إشعار دائن (Credit Note) بالمبلغ الزائد.
+              {t('maritime_freight.job_details_modal.s344', "سيتم إنشاء مذكرة نزاع رسمي للخط الملاحي (Carrier Dispute Note) برقم موحد، وحجز صرف الفاتورة حتى ورود إشعار دائن (Credit Note) بالمبلغ الزائد.")}
             </div>
 
             <div style={{ background: '#f8fafc', padding: '12px 14px', borderRadius: '8px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -3769,7 +3771,7 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                 />
               </Field>
 
-              <Field label="سبب النزاع والتفاصيل *">
+              <Field label={t('maritime_freight.job_details_modal.s345', "سبب النزاع والتفاصيل *")}>
                 <textarea
                   value={disputeReasonInput}
                   onChange={(e) => setDisputeReasonInput(e.target.value)}
@@ -3790,56 +3792,56 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
             setShowOverrideDialog(false);
             setOverrideInvoice(null);
           }}
-          title="اعتماد التجاوز المالي لفاتورة الخط الملاحي"
+          title={t('maritime_freight.job_details_modal.s346', "اعتماد التجاوز المالي لفاتورة الخط الملاحي")}
           subtitle={`العملية: ${job.job_number} | الفاتورة: #${overrideInvoice.invoiceNumber}`}
           width="min(560px, 95vw)"
           minHeight="min(460px, 80vh)"
           footerActions={(
             <StandardDialogFooter
               onSubmit={() => submitOnce('override', handleConfirmOverride)}
-              submitText={isSubmittingOverride ? 'جاري الاعتماد...' : 'اعتماد التجاوز وترحيل القيد'}
+              submitText={isSubmittingOverride ? t('maritime_freight.job_details_modal.s347', "جاري الاعتماد...") : t('maritime_freight.job_details_modal.s348', "اعتماد التجاوز وترحيل القيد")}
               isSubmitting={isSubmittingOverride}
               disabled={Boolean(user?.id && overrideInvoice.createdBy && String(user.id) === String(overrideInvoice.createdBy))}
               onCancel={() => {
                 setShowOverrideDialog(false);
                 setOverrideInvoice(null);
               }}
-              cancelText="إلغاء"
+              cancelText={t('maritime_freight.job_details_modal.s349', "إلغاء")}
             />
           )}
         >
           <div className="job-submodal-compact" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }} dir="rtl">
             {Boolean(user?.id && overrideInvoice.createdBy && String(user.id) === String(overrideInvoice.createdBy)) ? (
               <div style={{ background: '#fef2f2', padding: '12px 14px', borderRadius: '8px', border: '1px solid #fecaca', fontSize: '0.78rem', color: '#991b1b', lineHeight: 1.5, fontWeight: 700 }}>
-                حظر رقابي (فصل المهام Maker-Checker): لقد قمت أنت بتسجيل هذه الفاتورة. يمنع النظام اعتماد التجاوز المالي بواسطة نفس المستخدم. يجب أن يقوم مسؤول مالي أو مدير نظام آخر بمراجعتها واعتمادها.
+                {t('maritime_freight.job_details_modal.s350', "حظر رقابي (فصل المهام Maker-Checker): لقد قمت أنت بتسجيل هذه الفاتورة. يمنع النظام اعتماد التجاوز المالي بواسطة نفس المستخدم. يجب أن يقوم مسؤول مالي أو مدير نظام آخر بمراجعتها واعتمادها.")}
               </div>
             ) : (
               <div style={{ background: '#f5f3ff', padding: '10px 14px', borderRadius: '8px', border: '1px solid #ddd6fe', fontSize: '0.78rem', color: '#6b21a8', lineHeight: 1.5 }}>
-                سيتم اعتماد التجاوز المالي وترحيل القيد المحاسبي المزدوج في الأستاذ العام وتحديث تكلفة العملية، مع توثيق هوية المعتمد والمبرر في سجل التدقيق.
+                {t('maritime_freight.job_details_modal.s351', "سيتم اعتماد التجاوز المالي وترحيل القيد المحاسبي المزدوج في الأستاذ العام وتحديث تكلفة العملية، مع توثيق هوية المعتمد والمبرر في سجل التدقيق.")}
               </div>
             )}
 
             <div style={{ background: '#f8fafc', padding: '12px 14px', borderRadius: '8px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '10px' }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '0.78rem' }}>
                 <div>
-                  <span style={{ color: '#64748b' }}>المبلغ المفوتر: </span>
+                  <span style={{ color: '#64748b' }}>{t('maritime_freight.job_details_modal.s352', "المبلغ المفوتر:")} </span>
                   <strong style={{ color: '#b91c1c' }}>{overrideInvoice.currency} {Number(overrideInvoice.totalInvoicedAmount).toLocaleString()}</strong>
                 </div>
                 <div>
-                  <span style={{ color: '#64748b' }}>التعرفة المتعاقد عليها: </span>
+                  <span style={{ color: '#64748b' }}>{t('maritime_freight.job_details_modal.s353', "التعرفة المتعاقد عليها:")} </span>
                   <strong style={{ color: '#166534' }}>{overrideInvoice.currency} {Number(overrideInvoice.contractedAmount).toLocaleString()}</strong>
                 </div>
                 <div style={{ gridColumn: 'span 2' }}>
-                  <span style={{ color: '#64748b' }}>الزيادة غير المتفق عليها: </span>
+                  <span style={{ color: '#64748b' }}>{t('maritime_freight.job_details_modal.s354', "الزيادة غير المتفق عليها:")} </span>
                   <strong style={{ color: '#dc2626' }}>+{overrideInvoice.currency} {Number(overrideInvoice.varianceAmount).toLocaleString()} (+{overrideInvoice.variancePct}%)</strong>
                 </div>
               </div>
 
-              <Field label="المبرر المالي لاعتماد التجاوز (10 أحرف على الأقل) *">
+              <Field label={t('maritime_freight.job_details_modal.s355', "المبرر المالي لاعتماد التجاوز (10 أحرف على الأقل) *")}>
                 <textarea
                   value={overrideReasonInput}
                   onChange={(e) => setOverrideReasonInput(e.target.value)}
-                  placeholder="مثال: تم قبول الزيادة بعد التحقق من إيميل الخط الملاحي بخصوص رسوم التكدس الطارئة بالميناء وموافقة العميل..."
+                  placeholder={t('maritime_freight.job_details_modal.s356', "مثال: تم قبول الزيادة بعد التحقق من إيميل الخط الملاحي بخصوص رسوم التكدس الطارئة بالميناء وموافقة العميل...")}
                   rows={3}
                   disabled={Boolean(user?.id && overrideInvoice.createdBy && String(user.id) === String(overrideInvoice.createdBy))}
                   style={{ width: '100%', padding: '8px 10px', fontSize: '0.78rem', border: '1px solid #cbd5e1', borderRadius: '6px' }}
@@ -3864,74 +3866,74 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
         <StandardDialog
           open={showAddInsuranceDialog}
           onClose={() => setShowAddInsuranceDialog(false)}
-          title="إصدار وثيقة تأمين بضائع (Cargo Insurance Policy)"
+          title={t('maritime_freight.job_details_modal.s357', "إصدار وثيقة تأمين بضائع (Cargo Insurance Policy)")}
           subtitle={`العملية: ${job.job_number} | العميل: ${job.customer_name}`}
           width="min(640px, 95vw)"
           minHeight="min(480px, 85vh)"
           footerActions={(
             <StandardDialogFooter
               onSubmit={() => submitOnce('insurance', handleSaveAddInsurance)}
-              submitText={isSubmittingInsurance ? 'جاري الإصدار...' : 'إصدار وتأكيد الوثيقة'}
+              submitText={isSubmittingInsurance ? t('maritime_freight.job_details_modal.s358', "جاري الإصدار...") : t('maritime_freight.job_details_modal.s359', "إصدار وتأكيد الوثيقة")}
               isSubmitting={isSubmittingInsurance}
               onCancel={() => setShowAddInsuranceDialog(false)}
-              cancelText="إلغاء"
+              cancelText={t('maritime_freight.job_details_modal.s360', "إلغاء")}
             />
           )}
         >
           <div className="job-submodal-compact" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }} dir="rtl">
             <div style={{ background: '#f8fafc', padding: '10px 14px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '0.78rem', color: '#334155', lineHeight: 1.5 }}>
-              إصدار وثيقة تأمين معتمدة للشحنة لحماية البضائع ضد أخطار النقل البحري / الجوي / البري، مع تحديد نوع التغطية وقيمة البضاعة وقسط التأمين.
+              {t('maritime_freight.job_details_modal.s361', "إصدار وثيقة تأمين معتمدة للشحنة لحماية البضائع ضد أخطار النقل البحري / الجوي / البري، مع تحديد نوع التغطية وقيمة البضاعة وقسط التأمين.")}
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-              <Field label="رقم وثيقة التأمين (Policy No) *">
+              <Field label={t('maritime_freight.job_details_modal.s362', "رقم وثيقة التأمين (Policy No) *")}>
                 <input
                   type="text"
                   value={insuranceForm.policyNumber}
                   onChange={(e) => setInsuranceForm({ ...insuranceForm, policyNumber: e.target.value })}
-                  placeholder="مثال: POL-2026-0918"
+                  placeholder={t('maritime_freight.job_details_modal.s363', "مثال: POL-2026-0918")}
                   style={{ width: '100%', padding: '8px 10px', fontSize: '0.78rem', border: '1px solid #cbd5e1', borderRadius: '6px' }}
                 />
               </Field>
 
-              <Field label="شركة التأمين (Insurance Company) *">
+              <Field label={t('maritime_freight.job_details_modal.s364', "شركة التأمين (Insurance Company) *")}>
                 <input
                   type="text"
                   value={insuranceForm.insuranceCompany}
                   onChange={(e) => setInsuranceForm({ ...insuranceForm, insuranceCompany: e.target.value })}
-                  placeholder="مثال: شركة مصر للتأمين / أليانز"
+                  placeholder={t('maritime_freight.job_details_modal.s365', "مثال: شركة مصر للتأمين / أليانز")}
                   style={{ width: '100%', padding: '8px 10px', fontSize: '0.78rem', border: '1px solid #cbd5e1', borderRadius: '6px' }}
                 />
               </Field>
 
-              <Field label="نوع التغطية التأمينية *">
+              <Field label={t('maritime_freight.job_details_modal.s366', "نوع التغطية التأمينية *")}>
                 <CustomSelect
                   value={insuranceForm.coverageType}
                   onChange={(val) => setInsuranceForm({ ...insuranceForm, coverageType: val as any })}
                   options={[
-                    { value: 'all_risks', label: 'تأمين شامل ضد كافة الأخطار (All Risks)' },
-                    { value: 'clauses_a', label: 'شروط معهد المكتتبين بضائع (أ) - ICC A' },
-                    { value: 'clauses_b', label: 'شروط معهد المكتتبين بضائع (ب) - ICC B' },
-                    { value: 'clauses_c', label: 'شروط معهد المكتتبين بضائع (ج) - ICC C' },
+                    { value: 'all_risks', label: t('maritime_freight.job_details_modal.s367', "تأمين شامل ضد كافة الأخطار (All Risks)") },
+                    { value: 'clauses_a', label: t('maritime_freight.job_details_modal.s368', "شروط معهد المكتتبين بضائع (أ) - ICC A") },
+                    { value: 'clauses_b', label: t('maritime_freight.job_details_modal.s369', "شروط معهد المكتتبين بضائع (ب) - ICC B") },
+                    { value: 'clauses_c', label: t('maritime_freight.job_details_modal.s370', "شروط معهد المكتتبين بضائع (ج) - ICC C") },
                   ]}
                 />
               </Field>
 
-              <Field label="العملة">
+              <Field label={t('maritime_freight.job_details_modal.s371', "العملة")}>
                 <CustomSelect
                   value={insuranceForm.currency}
                   onChange={(val) => setInsuranceForm({ ...insuranceForm, currency: val })}
                   options={[
                     { value: 'USD', label: 'USD ($)' },
                     { value: 'EUR', label: 'EUR (€)' },
-                    { value: 'EGP', label: 'EGP (ج.م)' },
-                    { value: 'SAR', label: 'SAR (ر.س)' },
-                    { value: 'AED', label: 'AED (د.إ)' },
+                    { value: 'EGP', label: t('maritime_freight.job_details_modal.s372', "EGP (ج.م)") },
+                    { value: 'SAR', label: t('maritime_freight.job_details_modal.s373', "SAR (ر.س)") },
+                    { value: 'AED', label: t('maritime_freight.job_details_modal.s374', "AED (د.إ)") },
                   ]}
                 />
               </Field>
 
-              <Field label="القيمة المؤمنة للبضاعة (Insured Value) *">
+              <Field label={t('maritime_freight.job_details_modal.s375', "القيمة المؤمنة للبضاعة (Insured Value) *")}>
                 <input
                   type="number"
                   min="0"
@@ -3943,7 +3945,7 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                 />
               </Field>
 
-              <Field label="مبلغ القسط التأميني (Premium Amount)">
+              <Field label={t('maritime_freight.job_details_modal.s376', "مبلغ القسط التأميني (Premium Amount)")}>
                 <input
                   type="number"
                   min="0"
@@ -3955,7 +3957,7 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                 />
               </Field>
 
-              <Field label="تاريخ الإصدار">
+              <Field label={t('maritime_freight.job_details_modal.s377', "تاريخ الإصدار")}>
                 <input
                   type="date"
                   value={insuranceForm.issueDate}
@@ -3964,7 +3966,7 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                 />
               </Field>
 
-              <Field label="تاريخ انتهاء السريان">
+              <Field label={t('maritime_freight.job_details_modal.s378', "تاريخ انتهاء السريان")}>
                 <input
                   type="date"
                   value={insuranceForm.expiryDate}
@@ -3974,11 +3976,11 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
               </Field>
             </div>
 
-            <Field label="ملاحظات وشروط خاصة">
+            <Field label={t('maritime_freight.job_details_modal.s379', "ملاحظات وشروط خاصة")}>
               <textarea
                 value={insuranceForm.notes}
                 onChange={(e) => setInsuranceForm({ ...insuranceForm, notes: e.target.value })}
-                placeholder="أي شروط خاصة أو بنود استثناء إضافية..."
+                placeholder={t('maritime_freight.job_details_modal.s380', "أي شروط خاصة أو بنود استثناء إضافية...")}
                 rows={2}
                 style={{ width: '100%', padding: '8px 10px', fontSize: '0.78rem', border: '1px solid #cbd5e1', borderRadius: '6px' }}
               />
@@ -3995,40 +3997,40 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
             setShowClaimDialog(false);
             setSelectedInsuranceForClaim(null);
           }}
-          title="تسجيل مطالبة تعويض تأميني (Cargo Insurance Claim)"
+          title={t('maritime_freight.job_details_modal.s381', "تسجيل مطالبة تعويض تأميني (Cargo Insurance Claim)")}
           subtitle={`وثيقة رقم: ${selectedInsuranceForClaim.policy_number} | شركة: ${selectedInsuranceForClaim.insurance_company}`}
           width="min(560px, 95vw)"
           minHeight="min(440px, 80vh)"
           footerActions={(
             <StandardDialogFooter
               onSubmit={() => submitOnce('claim', handleConfirmClaim)}
-              submitText={isSubmittingClaim ? 'جاري التسجيل...' : 'تسجيل المطالبة رسميًا'}
+              submitText={isSubmittingClaim ? t('maritime_freight.job_details_modal.s382', "جاري التسجيل...") : t('maritime_freight.job_details_modal.s383', "تسجيل المطالبة رسميًا")}
               isSubmitting={isSubmittingClaim}
               onCancel={() => {
                 setShowClaimDialog(false);
                 setSelectedInsuranceForClaim(null);
               }}
-              cancelText="إلغاء"
+              cancelText={t('maritime_freight.job_details_modal.s384', "إلغاء")}
             />
           )}
         >
           <div className="job-submodal-compact" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }} dir="rtl">
             <div style={{ background: '#fef2f2', padding: '10px 14px', borderRadius: '8px', border: '1px solid #fecaca', fontSize: '0.78rem', color: '#991b1b', lineHeight: 1.5 }}>
-              سيتم تسجيل المطالبة ضد شركة التأمين وتحويل حالة الوثيقة إلى [مطالبة قيد المعالجة] وتوثيق تفاصيل الحادث أو التلف للمتابعة القانونية والمالية.
+              {t('maritime_freight.job_details_modal.s385', "سيتم تسجيل المطالبة ضد شركة التأمين وتحويل حالة الوثيقة إلى [مطالبة قيد المعالجة] وتوثيق تفاصيل الحادث أو التلف للمتابعة القانونية والمالية.")}
             </div>
 
             <div style={{ background: '#f8fafc', padding: '10px 14px', borderRadius: '8px', border: '1px solid #e2e8f0', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '0.78rem' }}>
               <div>
-                <span style={{ color: '#64748b' }}>القيمة المؤمنة الأصلية: </span>
+                <span style={{ color: '#64748b' }}>{t('maritime_freight.job_details_modal.s386', "القيمة المؤمنة الأصلية:")} </span>
                 <strong style={{ color: '#170e5e' }}>{selectedInsuranceForClaim.currency} {Number(selectedInsuranceForClaim.insured_value).toLocaleString()}</strong>
               </div>
               <div>
-                <span style={{ color: '#64748b' }}>نوع التغطية: </span>
+                <span style={{ color: '#64748b' }}>{t('maritime_freight.job_details_modal.s387', "نوع التغطية:")} </span>
                 <strong style={{ color: '#0f172a' }}>{selectedInsuranceForClaim.coverage_type}</strong>
               </div>
             </div>
 
-            <Field label="مبلغ التعويض المطلوب (Claim Amount) *">
+            <Field label={t('maritime_freight.job_details_modal.s388', "مبلغ التعويض المطلوب (Claim Amount) *")}>
               <input
                 type="number"
                 min="0"
@@ -4040,11 +4042,11 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
               />
             </Field>
 
-            <Field label="بيان سبب المطالبة وتفاصيل التلف أو الفقد *">
+            <Field label={t('maritime_freight.job_details_modal.s389', "بيان سبب المطالبة وتفاصيل التلف أو الفقد *")}>
               <textarea
                 value={claimNotesInput}
                 onChange={(e) => setClaimNotesInput(e.target.value)}
-                placeholder="مثال: تعرضت الشحنة للبلل نتيجة تسرب مياه أثناء الرحلة البحرية، وتم تحرير محضر معاينة مشترك..."
+                placeholder={t('maritime_freight.job_details_modal.s390', "مثال: تعرضت الشحنة للبلل نتيجة تسرب مياه أثناء الرحلة البحرية، وتم تحرير محضر معاينة مشترك...")}
                 rows={3}
                 style={{ width: '100%', padding: '8px 10px', fontSize: '0.78rem', border: '1px solid #cbd5e1', borderRadius: '6px' }}
               />
@@ -4058,27 +4060,27 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
         <StandardDialog
           open={showAddWarehouseReceiptDialog}
           onClose={() => setShowAddWarehouseReceiptDialog(false)}
-          title="إصدار إذن استلام وإيداع مستودع ترانزيت / جمركي (MWR)"
+          title={t('maritime_freight.job_details_modal.s391', "إصدار إذن استلام وإيداع مستودع ترانزيت / جمركي (MWR)")}
           subtitle={`العملية: ${job.job_number} | العميل: ${job.customer_name}`}
           width="min(600px, 95vw)"
           minHeight="min(480px, 85vh)"
           footerActions={(
             <StandardDialogFooter
               onSubmit={() => submitOnce('warehouse-receipt', handleSaveAddWarehouseReceipt)}
-              submitText={isSubmittingWarehouseReceipt ? 'جاري الإصدار...' : 'إصدار إذن الإيداع'}
+              submitText={isSubmittingWarehouseReceipt ? t('maritime_freight.job_details_modal.s392', "جاري الإصدار...") : t('maritime_freight.job_details_modal.s393', "إصدار إذن الإيداع")}
               isSubmitting={isSubmittingWarehouseReceipt}
               onCancel={() => setShowAddWarehouseReceiptDialog(false)}
-              cancelText="إلغاء"
+              cancelText={t('maritime_freight.job_details_modal.s394', "إلغاء")}
             />
           )}
         >
           <div className="job-submodal-compact" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }} dir="rtl">
             <div style={{ background: '#f8fafc', padding: '10px 14px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '0.78rem', color: '#334155', lineHeight: 1.5 }}>
-              إصدار إذن استلام رسمي للبضائع الواردة لمستودع الترانزيت أو الإيداع الجمركي (MWR) لتحديد موقع التخزين (Bay / Rack / Bin) والوزن والحجم تمهيداً للتفتيش أو الإفراج.
+              {t('maritime_freight.job_details_modal.s395', "إصدار إذن استلام رسمي للبضائع الواردة لمستودع الترانزيت أو الإيداع الجمركي (MWR) لتحديد موقع التخزين (Bay / Rack / Bin) والوزن والحجم تمهيداً للتفتيش أو الإفراج.")}
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
-              <Field label="عدد الطرود / الطبالي *">
+              <Field label={t('maritime_freight.job_details_modal.s396', "عدد الطرود / الطبالي *")}>
                 <input
                   type="number"
                   min="1"
@@ -4088,7 +4090,7 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                 />
               </Field>
 
-              <Field label="الوزن الإجمالي الفعلي (كجم)">
+              <Field label={t('maritime_freight.job_details_modal.s397', "الوزن الإجمالي الفعلي (كجم)")}>
                 <input
                   type="number"
                   min="0"
@@ -4100,7 +4102,7 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
                 />
               </Field>
 
-              <Field label="الحجم الإجمالي (CBM)">
+              <Field label={t('maritime_freight.job_details_modal.s398', "الحجم الإجمالي (CBM)")}>
                 <input
                   type="number"
                   min="0"
@@ -4113,21 +4115,21 @@ export function JobDetailsModal({ open, jobId, onClose, onUpdated }: JobDetailsM
               </Field>
             </div>
 
-            <Field label="موقع التخزين والرف (Bay / Rack / Bin Location)">
+            <Field label={t('maritime_freight.job_details_modal.s399', "موقع التخزين والرف (Bay / Rack / Bin Location)")}>
               <input
                 type="text"
                 value={warehouseReceiptForm.bayRackBin}
                 onChange={(e) => setWarehouseReceiptForm({ ...warehouseReceiptForm, bayRackBin: e.target.value })}
-                placeholder="مثال: Bay A-12 / Rack 03 / Bin 04 أو ساحة الترانزيت 2"
+                placeholder={t('maritime_freight.job_details_modal.s400', "مثال: Bay A-12 / Rack 03 / Bin 04 أو ساحة الترانزيت 2")}
                 style={{ width: '100%', padding: '8px 10px', fontSize: '0.78rem', border: '1px solid #cbd5e1', borderRadius: '6px' }}
               />
             </Field>
 
-            <Field label="ملاحظات الفحص الظاهري وحالة الطرود">
+            <Field label={t('maritime_freight.job_details_modal.s401', "ملاحظات الفحص الظاهري وحالة الطرود")}>
               <textarea
                 value={warehouseReceiptForm.notes}
                 onChange={(e) => setWarehouseReceiptForm({ ...warehouseReceiptForm, notes: e.target.value })}
-                placeholder="ملاحظات الفحص الظاهري، حالة الأغلفة، سلامة الأشرطة اللاصقة..."
+                placeholder={t('maritime_freight.job_details_modal.s402', "ملاحظات الفحص الظاهري، حالة الأغلفة، سلامة الأشرطة اللاصقة...")}
                 rows={3}
                 style={{ width: '100%', padding: '8px 10px', fontSize: '0.78rem', border: '1px solid #cbd5e1', borderRadius: '6px' }}
               />

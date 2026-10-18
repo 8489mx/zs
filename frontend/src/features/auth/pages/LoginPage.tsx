@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useLoginForm } from '@/features/auth/hooks/useLoginForm';
@@ -79,6 +80,7 @@ function ChevronLeftIcon() {
 }
 
 export function LoginPage() {
+  const { t: __t } = useTranslation();
   const {
     form,
     onSubmit,
@@ -134,12 +136,12 @@ export function LoginPage() {
           </div>
 
           <h1 className="login-brand-title">
-            <span className="title-part1">مرحباً بك مجدداً في منظومة</span>
+            <span className="title-part1">{__t('auth.login_page.s0', "مرحباً بك مجدداً في منظومة")}</span>
             <span className="title-part2">Z ERP</span>
           </h1>
 
           <p className="login-brand-subtitle">
-            المنصة السحابية الموحدة لإدارة قطاعات الأعمال، المشاريع الهندسية، الشحن وسلاسل الإمداد، والرقابة المالية المركزية.
+            {__t('auth.login_page.s1', "المنصة السحابية الموحدة لإدارة قطاعات الأعمال، المشاريع الهندسية، الشحن وسلاسل الإمداد، والرقابة المالية المركزية.")}
           </p>
 
           <div className="login-features-list">
@@ -158,7 +160,7 @@ export function LoginPage() {
 
           <div className="login-brand-footer">
             <span className="line"></span>
-            المنصة السحابية المؤسسية المعتمدة لإدارة الأعمال والمشاريع
+            {__t('auth.login_page.s2', "المنصة السحابية المؤسسية المعتمدة لإدارة الأعمال والمشاريع")}
             <span className="line"></span>
           </div>
         </div>
@@ -168,8 +170,8 @@ export function LoginPage() {
           <SystemStatusBanner />
           <div className="login-card-pro">
             <div className="login-card-header">
-              <h2>تسجيل الدخول</h2>
-              <p>أدخل بيانات اعتمادك للوصول إلى بيئة العمل الموحدة لمنشأتك</p>
+              <h2>{__t('auth.login_page.s3', "تسجيل الدخول")}</h2>
+              <p>{__t('auth.login_page.s4', "أدخل بيانات اعتمادك للوصول إلى بيئة العمل الموحدة لمنشأتك")}</p>
             </div>
 
             {submitError && (
@@ -185,12 +187,12 @@ export function LoginPage() {
                 onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); submitMfaCode(mfaCode); } }}
               >
                 <p className="auth-note" style={{ marginTop: 0 }}>
-                  الحساب <strong dir="ltr">{mfaChallenge.username}</strong> عليه تحقق بخطوتين. افتح تطبيق المصادقة واكتب الرمز الحالي.
+                  {__t('auth.login_page.s5', "الحساب")} <strong dir="ltr">{mfaChallenge.username}</strong> {__t('auth.login_page.s6', "عليه تحقق بخطوتين. افتح تطبيق المصادقة واكتب الرمز الحالي.")}
                 </p>
 
                 <div className="login-field-group">
                   <div className="login-field-label">
-                    <label htmlFor="login-mfa-code">رمز التحقق</label>
+                    <label htmlFor="login-mfa-code">{__t('auth.login_page.s7', "رمز التحقق")}</label>
                   </div>
                   <div className="login-input-pro-wrap">
                     <input
@@ -209,7 +211,7 @@ export function LoginPage() {
                       autoFocus
                     />
                   </div>
-                  <span className="auth-field-hint">فقدت هاتفك؟ اكتب أحد رموز الاسترداد التي حفظتها عند التفعيل.</span>
+                  <span className="auth-field-hint">{__t('auth.login_page.s8', "فقدت هاتفك؟ اكتب أحد رموز الاسترداد التي حفظتها عند التفعيل.")}</span>
                 </div>
 
                 <button
@@ -218,7 +220,7 @@ export function LoginPage() {
                   disabled={isSubmitting}
                   onClick={() => submitMfaCode(mfaCode)}
                 >
-                  <span>{isSubmitting ? 'جاري التحقق...' : 'تأكيد الرمز'}</span>
+                  <span>{isSubmitting ? __t('auth.login_page.s9', "جاري التحقق...") : __t('auth.login_page.s10', "تأكيد الرمز")}</span>
                   {!isSubmitting && <ArrowLeftIcon />}
                 </button>
 
@@ -227,7 +229,7 @@ export function LoginPage() {
                   className="auth-inline-link-btn"
                   onClick={() => { setMfaCode(''); cancelMfa(); }}
                 >
-                  الرجوع لتسجيل الدخول
+                  {__t('auth.login_page.s11', "الرجوع لتسجيل الدخول")}
                 </button>
               </div>
             ) : (
@@ -238,7 +240,7 @@ export function LoginPage() {
                   ? (isRememberedUuid || rememberedCompanyName === rememberedCompanyCode
                       ? rememberedCompanyName
                       : `${rememberedCompanyName} (${rememberedCompanyCode})`)
-                  : (isRememberedUuid ? 'منشأتك السابقة' : rememberedCompanyCode);
+                  : (isRememberedUuid ? __t('auth.login_page.s12', "منشأتك السابقة") : rememberedCompanyCode);
 
                 return (
                   <div
@@ -257,7 +259,7 @@ export function LoginPage() {
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <BuildingIcon />
-                      <span>تسجيل الدخول لمنشأة: <strong style={{ color: '#0f172a' }}>{rememberedTenantLabel}</strong></span>
+                      <span>{__t('auth.login_page.s13', "تسجيل الدخول لمنشأة:")} <strong style={{ color: '#0f172a' }}>{rememberedTenantLabel}</strong></span>
                     </div>
                     <button
                       type="button"
@@ -272,9 +274,9 @@ export function LoginPage() {
                         cursor: 'pointer',
                         padding: '4px 10px',
                       }}
-                      title="إلغاء المنشأة المحفوظة وتسجيل الدخول لمنشأة أخرى أو البحث التلقائي"
+                      title={__t('auth.login_page.s14', "إلغاء المنشأة المحفوظة وتسجيل الدخول لمنشأة أخرى أو البحث التلقائي")}
                     >
-                      تغيير المنشأة
+                      {__t('auth.login_page.s15', "تغيير المنشأة")}
                     </button>
                   </div>
                 );
@@ -283,14 +285,14 @@ export function LoginPage() {
               {!isDesktop && showCompanyCodeInput ? (
                 <div className="login-field-group">
                   <div className="login-field-label flex-between">
-                    <label htmlFor="login-companyCode">كود أو معرف المنشأة (اختياري)</label>
+                    <label htmlFor="login-companyCode">{__t('auth.login_page.s16', "كود أو معرف المنشأة (اختياري)")}</label>
                     {rememberedCompanyCode ? (
                       <button
                         type="button"
                         onClick={() => setShowCompanyCodeInput(false)}
                         style={{ background: 'none', border: 'none', color: '#64748b', fontSize: '11.5px', cursor: 'pointer' }}
                       >
-                        إلغاء
+                        {__t('auth.login_page.s17', "إلغاء")}
                       </button>
                     ) : null}
                   </div>
@@ -309,19 +311,19 @@ export function LoginPage() {
                       autoCorrect="off"
                       autoCapitalize="off"
                       spellCheck={false}
-                      placeholder="مثال: enterprise-id أو كود المنشأة التعريفي"
+                      placeholder={__t('auth.login_page.s18', "مثال: enterprise-id أو كود المنشأة التعريفي")}
                       className="login-input-pro has-leading-icon"
                     />
                   </div>
                   <div style={{ fontSize: '11px', color: '#64748b', marginTop: '4px' }}>
-                    اتركه فارغاً إذا كنت تريد البحث التلقائي عن حسابك دون تحديد منشأة.
+                    {__t('auth.login_page.s19', "اتركه فارغاً إذا كنت تريد البحث التلقائي عن حسابك دون تحديد منشأة.")}
                   </div>
                 </div>
               ) : null}
 
               <div className="login-field-group">
                 <div className="login-field-label">
-                  <label htmlFor="login-username">رقم الهاتف المحمول أو اسم المستخدم</label>
+                  <label htmlFor="login-username">{__t('auth.login_page.s20', "رقم الهاتف المحمول أو اسم المستخدم")}</label>
                 </div>
                 <div className="login-input-pro-wrap">
                   <span className="login-input-leading-icon">
@@ -338,7 +340,7 @@ export function LoginPage() {
                     autoCorrect="off" 
                     autoCapitalize="off" 
                     spellCheck={false}
-                    placeholder="مثال: 01012345678 أو اسم المستخدم" 
+                    placeholder={__t('auth.login_page.s21', "مثال: 01012345678 أو اسم المستخدم")} 
                     className="login-input-pro has-leading-icon"
                   />
                 </div>
@@ -349,8 +351,8 @@ export function LoginPage() {
 
               <div className="login-field-group">
                 <div className="login-field-label flex-between">
-                  <label htmlFor="login-password">كلمة المرور</label>
-                  {!isDesktop && <Link to="/forgot-password" className="forgot-password-link">نسيت كلمة المرور؟</Link>}
+                  <label htmlFor="login-password">{__t('auth.login_page.s22', "كلمة المرور")}</label>
+                  {!isDesktop && <Link to="/forgot-password" className="forgot-password-link">{__t('auth.login_page.s23', "نسيت كلمة المرور؟")}</Link>}
                 </div>
                 <div className="login-input-pro-wrap">
                   <span className="login-input-leading-icon">
@@ -368,9 +370,9 @@ export function LoginPage() {
                     autoCorrect="off" 
                     autoCapitalize="off" 
                     spellCheck={false}
-                    placeholder="أدخل كلمة المرور الخاصة بك" 
+                    placeholder={__t('auth.login_page.s24', "أدخل كلمة المرور الخاصة بك")} 
                   />
-                  <button type="button" className="login-pwd-toggle-btn" aria-label={showPassword ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور'} onClick={() => setShowPassword(!showPassword)}>
+                  <button type="button" className="login-pwd-toggle-btn" aria-label={showPassword ? __t('auth.login_page.s25', "إخفاء كلمة المرور") : __t('auth.login_page.s26', "إظهار كلمة المرور")} onClick={() => setShowPassword(!showPassword)}>
                     {showPassword ? <EyeOffIcon /> : <EyeIcon />}
                   </button>
                 </div>
@@ -394,13 +396,13 @@ export function LoginPage() {
                       padding: '0',
                     }}
                   >
-                    + تحديد كود منشأة معين
+                    {__t('auth.login_page.s27', "+ تحديد كود منشأة معين")}
                   </button>
                 </div>
               ) : null}
 
               <button type="button" className="login-submit-pro-btn" disabled={isSubmitting} onClick={form.handleSubmit(onSubmit)}>
-                <span>{isSubmitting ? 'جاري التحقق والاتصال...' : 'تسجيل الدخول'}</span>
+                <span>{isSubmitting ? __t('auth.login_page.s28', "جاري التحقق والاتصال...") : __t('auth.login_page.s29', "تسجيل الدخول")}</span>
                 {!isSubmitting && <ArrowLeftIcon />}
               </button>
             </div>
@@ -450,15 +452,15 @@ export function LoginPage() {
                       </div>
                       <div>
                         <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: '#0f172a' }}>
-                          اختر المنشأة للمتابعة
+                          {__t('auth.login_page.s30', "اختر المنشأة للمتابعة")}
                         </h3>
                         <p style={{ margin: 0, fontSize: '13px', color: '#64748b' }}>
-                          بيانات الدخول مسجلة لدى أكثر من منشأة
+                          {__t('auth.login_page.s31', "بيانات الدخول مسجلة لدى أكثر من منشأة")}
                         </p>
                       </div>
                     </div>
                     <p style={{ fontSize: '13.5px', color: '#475569', margin: '8px 0 0', lineHeight: 1.5 }}>
-                      يرجى اختيار المنشأة التي ترغب في تسجيل الدخول إليها ومتابعة العمل:
+                      {__t('auth.login_page.s32', "يرجى اختيار المنشأة التي ترغب في تسجيل الدخول إليها ومتابعة العمل:")}
                     </p>
                   </div>
 
@@ -509,7 +511,7 @@ export function LoginPage() {
                           </div>
                           <div>
                             <div style={{ fontSize: '14px', fontWeight: 700, color: '#0f172a' }}>{t.name}</div>
-                            <div style={{ fontSize: '12px', color: '#64748b' }}>كود المنشأة: {t.slug || t.id}</div>
+                            <div style={{ fontSize: '12px', color: '#64748b' }}>{__t('auth.login_page.s33', "كود المنشأة:")} {t.slug || t.id}</div>
                           </div>
                         </div>
                         <div style={{ color: '#94a3b8' }}>
@@ -535,7 +537,7 @@ export function LoginPage() {
                         cursor: 'pointer',
                       }}
                     >
-                      إلغاء والعودة
+                      {__t('auth.login_page.s34', "إلغاء والعودة")}
                     </button>
                   </div>
                 </div>
@@ -544,7 +546,7 @@ export function LoginPage() {
 
 
             <div className="login-signup-link">
-              <p>ليس لديك حساب؟ <Link to="/trial">ابدأ تجربة مجانية الآن</Link></p>
+              <p>{__t('auth.login_page.s35', "ليس لديك حساب؟")} <Link to="/trial">{__t('auth.login_page.s36', "ابدأ تجربة مجانية الآن")}</Link></p>
               <div style={{ marginTop: '14px', paddingTop: '12px', borderTop: '1px dashed #e2e8f0' }}>
                 <Link
                   to="/hub"
@@ -562,7 +564,7 @@ export function LoginPage() {
                     border: '1px solid #e2e8f0',
                   }}
                 >
-                  <span>مركز البوابات والمحطات التشغيلية (Launchpad)</span>
+                  <span>{__t('auth.login_page.s37', "مركز البوابات والمحطات التشغيلية (Launchpad)")}</span>
                   <span>←</span>
                 </Link>
               </div>

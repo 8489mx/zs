@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
@@ -52,6 +53,7 @@ function createEmptyRow(): JournalLineRow {
 }
 
 export function ManualJournalEntryDialog({ open, onClose, onSuccess }: ManualJournalEntryDialogProps) {
+  const { t } = useTranslation();
   const [entryDate, setEntryDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [description, setDescription] = useState('');
   const [reference, setReference] = useState('');
@@ -188,8 +190,8 @@ export function ManualJournalEntryDialog({ open, onClose, onSuccess }: ManualJou
           onClose();
         }
       }}
-      title="إنشاء قيد يومية يدوي"
-      subtitle="تسجيل قيود التسوية والإقفال المحاسبي مع فحص فوري لتوازن القيد وتواريخ إقفال الفترات."
+      title={t('accounting.manual_journal_entry_dialog.s0', "إنشاء قيد يومية يدوي")}
+      subtitle={t('accounting.manual_journal_entry_dialog.s1', "تسجيل قيود التسوية والإقفال المحاسبي مع فحص فوري لتوازن القيد وتواريخ إقفال الفترات.")}
       width="min(1060px, 96vw)"
       minHeight="min(600px, 90vh)"
       footerActions={
@@ -199,7 +201,7 @@ export function ManualJournalEntryDialog({ open, onClose, onSuccess }: ManualJou
             onClose();
           }}
           onSubmit={() => postMutation.mutate()}
-          submitText={postMutation.isPending ? 'جاري ترحيل القيد...' : 'ترحيل القيد اليومي'}
+          submitText={postMutation.isPending ? t('accounting.manual_journal_entry_dialog.s2', "جاري ترحيل القيد...") : t('accounting.manual_journal_entry_dialog.s3', "ترحيل القيد اليومي")}
           isSubmitting={postMutation.isPending}
           disabled={!canSubmit}
         />
@@ -219,7 +221,7 @@ export function ManualJournalEntryDialog({ open, onClose, onSuccess }: ManualJou
               lineHeight: 1.6,
             }}
           >
-            <strong>تنبيه: </strong> {errorMessage}
+            <strong>{t('accounting.manual_journal_entry_dialog.s4', "تنبيه:")} </strong> {errorMessage}
           </div>
         )}
 
@@ -237,12 +239,12 @@ export function ManualJournalEntryDialog({ open, onClose, onSuccess }: ManualJou
               <FileTextIcon size={18} />
             </span>
             <h4 style={{ margin: 0, fontSize: '13px', fontWeight: 800, color: '#170e5e' }}>
-              بيانات ومعلومات القيد
+              {t('accounting.manual_journal_entry_dialog.s5', "بيانات ومعلومات القيد")}
             </h4>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr 1fr', gap: '14px' }}>
-            <Field label="تاريخ القيد *" hint="تاريخ إثبات الحركة">
+            <Field label={t('accounting.manual_journal_entry_dialog.s6', "تاريخ القيد *")} hint={t('accounting.manual_journal_entry_dialog.s7', "تاريخ إثبات الحركة")}>
               <input
                 type="date"
                 value={entryDate}
@@ -258,12 +260,12 @@ export function ManualJournalEntryDialog({ open, onClose, onSuccess }: ManualJou
               />
             </Field>
 
-            <Field label="البيان العام للقيد *" hint="وصف سبب وتفاصيل القيد">
+            <Field label={t('accounting.manual_journal_entry_dialog.s8', "البيان العام للقيد *")} hint={t('accounting.manual_journal_entry_dialog.s9', "وصف سبب وتفاصيل القيد")}>
               <input
                 type="text"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="مثال: إثبات مصاريف تسوية الإيجار لشهر أغسطس"
+                placeholder={t('accounting.manual_journal_entry_dialog.s10', "مثال: إثبات مصاريف تسوية الإيجار لشهر أغسطس")}
                 style={{
                   width: '100%',
                   padding: '8px 12px',
@@ -275,12 +277,12 @@ export function ManualJournalEntryDialog({ open, onClose, onSuccess }: ManualJou
               />
             </Field>
 
-            <Field label="رقم المرجع (اختياري)" hint="رقم الفاتورة أو المستند">
+            <Field label={t('accounting.manual_journal_entry_dialog.s11', "رقم المرجع (اختياري)")} hint={t('accounting.manual_journal_entry_dialog.s12', "رقم الفاتورة أو المستند")}>
               <input
                 type="text"
                 value={reference}
                 onChange={(e) => setReference(e.target.value)}
-                placeholder="مثال: REF-9082"
+                placeholder={t('accounting.manual_journal_entry_dialog.s13', "مثال: REF-9082")}
                 style={{
                   width: '100%',
                   padding: '8px 12px',
@@ -308,7 +310,7 @@ export function ManualJournalEntryDialog({ open, onClose, onSuccess }: ManualJou
               <ScaleIcon size={18} />
             </span>
             <h4 style={{ margin: 0, fontSize: '13px', fontWeight: 800, color: '#170e5e' }}>
-              أطراف وحسابات القيد اليومي
+              {t('accounting.manual_journal_entry_dialog.s14', "أطراف وحسابات القيد اليومي")}
             </h4>
           </div>
 
@@ -327,11 +329,11 @@ export function ManualJournalEntryDialog({ open, onClose, onSuccess }: ManualJou
                 borderRadius: '9px 9px 0 0',
               }}
             >
-              <div>الحساب المحاسبي *</div>
-              <div>مركز التكلفة</div>
-              <div>البيان / الوصف</div>
-              <div style={{ textAlign: 'left' }}>مدين</div>
-              <div style={{ textAlign: 'left' }}>دائن</div>
+              <div>{t('accounting.manual_journal_entry_dialog.s15', "الحساب المحاسبي *")}</div>
+              <div>{t('accounting.manual_journal_entry_dialog.s16', "مركز التكلفة")}</div>
+              <div>{t('accounting.manual_journal_entry_dialog.s17', "البيان / الوصف")}</div>
+              <div style={{ textAlign: 'left' }}>{t('accounting.manual_journal_entry_dialog.s18', "مدين")}</div>
+              <div style={{ textAlign: 'left' }}>{t('accounting.manual_journal_entry_dialog.s19', "دائن")}</div>
               <div></div>
             </div>
 
@@ -355,7 +357,7 @@ export function ManualJournalEntryDialog({ open, onClose, onSuccess }: ManualJou
                       value={line.accountId}
                       onChange={(val) => handleLineChange(idx, 'accountId', val)}
                       options={accountOptions}
-                      placeholder="-- اختر الحساب --"
+                      placeholder={t('accounting.manual_journal_entry_dialog.s20', "-- اختر الحساب --")}
                       searchable
                     />
                   </div>
@@ -366,7 +368,7 @@ export function ManualJournalEntryDialog({ open, onClose, onSuccess }: ManualJou
                       value={line.costCenterId}
                       onChange={(val) => handleLineChange(idx, 'costCenterId', val)}
                       options={costCenterOptions}
-                      placeholder="-- بدون مركز --"
+                      placeholder={t('accounting.manual_journal_entry_dialog.s21', "-- بدون مركز --")}
                       searchable
                     />
                   </div>
@@ -377,7 +379,7 @@ export function ManualJournalEntryDialog({ open, onClose, onSuccess }: ManualJou
                       type="text"
                       value={line.description}
                       onChange={(e) => handleLineChange(idx, 'description', e.target.value)}
-                      placeholder={description.trim() || 'وصف السطر...'}
+                      placeholder={description.trim() || t('accounting.manual_journal_entry_dialog.s22', "وصف السطر...")}
                       style={{
                         width: '100%',
                         padding: '6px 10px',
@@ -439,7 +441,7 @@ export function ManualJournalEntryDialog({ open, onClose, onSuccess }: ManualJou
                       type="button"
                       onClick={() => handleRemoveLine(idx)}
                       disabled={lines.length <= 2}
-                      title={lines.length <= 2 ? 'القيد يتطلب سطرين على الأقل' : 'حذف السطر'}
+                      title={lines.length <= 2 ? t('accounting.manual_journal_entry_dialog.s23', "القيد يتطلب سطرين على الأقل") : t('accounting.manual_journal_entry_dialog.s24', "حذف السطر")}
                       style={{
                         border: 'none',
                         background: 'transparent',
@@ -473,7 +475,7 @@ export function ManualJournalEntryDialog({ open, onClose, onSuccess }: ManualJou
                 }}
               >
                 <PlusIcon size={14} />
-                إضافة سطر جديد للقيد
+                {t('accounting.manual_journal_entry_dialog.s25', "إضافة سطر جديد للقيد")}
               </Button>
             </div>
           </div>
@@ -494,19 +496,19 @@ export function ManualJournalEntryDialog({ open, onClose, onSuccess }: ManualJou
           <div style={{ display: 'flex', gap: '28px', alignItems: 'center' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               <CalculatorIcon size={16} />
-              <span style={{ fontSize: '12px', color: '#64748b' }}>إجمالي المدين: </span>
+              <span style={{ fontSize: '12px', color: '#64748b' }}>{t('accounting.manual_journal_entry_dialog.s26', "إجمالي المدين:")} </span>
               <strong style={{ fontSize: '14px', color: '#0f172a', fontFamily: 'monospace' }}>
                 {formatCurrency(totals.debit)}
               </strong>
             </div>
             <div>
-              <span style={{ fontSize: '12px', color: '#64748b' }}>إجمالي الدائن: </span>
+              <span style={{ fontSize: '12px', color: '#64748b' }}>{t('accounting.manual_journal_entry_dialog.s27', "إجمالي الدائن:")} </span>
               <strong style={{ fontSize: '14px', color: '#0f172a', fontFamily: 'monospace' }}>
                 {formatCurrency(totals.credit)}
               </strong>
             </div>
             <div>
-              <span style={{ fontSize: '12px', color: '#64748b' }}>الفارق: </span>
+              <span style={{ fontSize: '12px', color: '#64748b' }}>{t('accounting.manual_journal_entry_dialog.s28', "الفارق:")} </span>
               <strong
                 style={{
                   fontSize: '14px',
@@ -532,7 +534,7 @@ export function ManualJournalEntryDialog({ open, onClose, onSuccess }: ManualJou
                   color: '#065f46',
                 }}
               >
-                القيد متزن وجاهز للترحيل
+                {t('accounting.manual_journal_entry_dialog.s29', "القيد متزن وجاهز للترحيل")}
               </span>
             ) : (
               <span
@@ -546,7 +548,7 @@ export function ManualJournalEntryDialog({ open, onClose, onSuccess }: ManualJou
                   color: '#991b1b',
                 }}
               >
-                القيد غير متزن
+                {t('accounting.manual_journal_entry_dialog.s30', "القيد غير متزن")}
               </span>
             )}
           </div>

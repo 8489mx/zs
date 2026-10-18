@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React, { useState } from 'react';
 import { TrashIcon } from '@/shared/components/icons/AppIcons';
 import { StandardDialog } from '@/shared/components/StandardDialog';
@@ -25,6 +26,7 @@ export const PriceListModal: React.FC<PriceListModalProps> = ({
   saving,
   onSave,
 }) => {
+  const { t } = useTranslation();
   const { data: products = [] } = useProductsQuery();
   const [productSearch, setProductSearch] = useState('');
   const [selectedProduct, setSelectedProduct] = useState<any | null>(null);
@@ -78,19 +80,19 @@ export const PriceListModal: React.FC<PriceListModalProps> = ({
     <StandardDialog
       isOpen={isOpen}
       onClose={onClose}
-      title={editingList ? 'تعديل قائمة الأسعار' : 'إنشاء قائمة أسعار جديدة'}
+      title={editingList ? t('sales.price_lists.price_list_modal.s0', "تعديل قائمة الأسعار") : t('sales.price_lists.price_list_modal.s1', "إنشاء قائمة أسعار جديدة")}
       maxWidth="760px"
     >
       <form onSubmit={onSave} dir="rtl">
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '16px' }}>
           <div>
             <label style={{ display: 'block', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
-              اسم القائمة <span style={{ color: '#ef4444' }}>*</span>
+              {t('sales.price_lists.price_list_modal.s2', "اسم القائمة")} <span style={{ color: '#ef4444' }}>*</span>
             </label>
             <input
               type="text"
               required
-              placeholder="مثال: أسعار كبار الموزعين VIP"
+              placeholder={t('sales.price_lists.price_list_modal.s3', "مثال: أسعار كبار الموزعين VIP")}
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               style={{ width: '100%', height: '38px', padding: '0 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: 'var(--font-body)', boxSizing: 'border-box' }}
@@ -99,12 +101,12 @@ export const PriceListModal: React.FC<PriceListModalProps> = ({
 
           <div>
             <label style={{ display: 'block', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
-              كود القائمة (إنجليزي) <span style={{ color: '#ef4444' }}>*</span>
+              {t('sales.price_lists.price_list_modal.s4', "كود القائمة (إنجليزي)")} <span style={{ color: '#ef4444' }}>*</span>
             </label>
             <input
               type="text"
               required
-              placeholder="مثال: WHOLESALE_VIP"
+              placeholder={t('sales.price_lists.price_list_modal.s5', "مثال: WHOLESALE_VIP")}
               value={formData.code}
               onChange={(e) => setFormData({ ...formData, code: e.target.value })}
               style={{ width: '100%', height: '38px', padding: '0 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: 'var(--font-body)', boxSizing: 'border-box' }}
@@ -115,7 +117,7 @@ export const PriceListModal: React.FC<PriceListModalProps> = ({
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '16px', alignItems: 'center' }}>
           <div>
             <label style={{ display: 'block', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
-              نسبة الخصم العام الافتراضية (%)
+              {t('sales.price_lists.price_list_modal.s6', "نسبة الخصم العام الافتراضية (%)")}
             </label>
             <input
               type="number"
@@ -135,7 +137,7 @@ export const PriceListModal: React.FC<PriceListModalProps> = ({
                 checked={formData.is_default}
                 onChange={(e) => setFormData({ ...formData, is_default: e.target.checked })}
               />
-              قائمة افتراضية للعملاء
+              {t('sales.price_lists.price_list_modal.s7', "قائمة افتراضية للعملاء")}
             </label>
 
             <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: 'var(--font-body)', fontWeight: 500, color: '#1e293b' }}>
@@ -144,7 +146,7 @@ export const PriceListModal: React.FC<PriceListModalProps> = ({
                 checked={formData.is_active}
                 onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
               />
-              نشطة
+              {t('sales.price_lists.price_list_modal.s8', "نشطة")}
             </label>
           </div>
         </div>
@@ -152,20 +154,20 @@ export const PriceListModal: React.FC<PriceListModalProps> = ({
         {/* Volume Tiers & Specific Item Rules */}
         <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '16px', marginTop: '16px', marginBottom: '16px' }}>
           <h4 style={{ fontSize: 'var(--font-section-title)', fontWeight: 700, color: '#0f172a', margin: '0 0 4px 0' }}>
-            شرائح الكميات وأسعار الأصناف المحددة
+            {t('sales.price_lists.price_list_modal.s9', "شرائح الكميات وأسعار الأصناف المحددة")}
           </h4>
           <p style={{ fontSize: 'var(--font-micro)', color: '#64748b', margin: '0 0 14px 0' }}>
-            حدد أسعاراً خاصة أو خصومات عند شراء كميات أكبر من حد أدنى معين (مثال: خصم 10% أو سعر ثابت عند شراء 10 قطع فأكثر).
+            {t('sales.price_lists.price_list_modal.s10', "حدد أسعاراً خاصة أو خصومات عند شراء كميات أكبر من حد أدنى معين (مثال: خصم 10% أو سعر ثابت عند شراء 10 قطع فأكثر).")}
           </p>
 
           {/* Add item row */}
           <div style={{ display: 'grid', gridTemplateColumns: '2.5fr 1fr 1fr 1fr auto', gap: '10px', marginBottom: '12px', alignItems: 'end' }}>
             <div>
               <label style={{ fontSize: 'var(--font-micro)', color: '#475569', display: 'block', marginBottom: '4px', fontWeight: 600 }}>
-                الصنف المستهدف <span style={{ color: '#ef4444' }}>*</span>
+                {t('sales.price_lists.price_list_modal.s11', "الصنف المستهدف")} <span style={{ color: '#ef4444' }}>*</span>
               </label>
               <SearchableCombobox
-                placeholder="ابحث باسم الصنف أو الباركود..."
+                placeholder={t('sales.price_lists.price_list_modal.s12', "ابحث باسم الصنف أو الباركود...")}
                 value={productSearch}
                 onChange={(val) => {
                   setProductSearch(val);
@@ -194,11 +196,11 @@ export const PriceListModal: React.FC<PriceListModalProps> = ({
                   }));
                 }}
                 showDropdownOnEmpty={true}
-                emptyLabel="لا توجد أصناف مطابقة"
+                emptyLabel={t('sales.price_lists.price_list_modal.s13', "لا توجد أصناف مطابقة")}
               />
             </div>
             <div>
-              <label style={{ fontSize: 'var(--font-micro)', color: '#475569', display: 'block', marginBottom: '4px', fontWeight: 600 }}>الحد الأدنى للكمية</label>
+              <label style={{ fontSize: 'var(--font-micro)', color: '#475569', display: 'block', marginBottom: '4px', fontWeight: 600 }}>{t('sales.price_lists.price_list_modal.s14', "الحد الأدنى للكمية")}</label>
               <input
                 type="number"
                 min="1"
@@ -208,19 +210,19 @@ export const PriceListModal: React.FC<PriceListModalProps> = ({
               />
             </div>
             <div>
-              <label style={{ fontSize: 'var(--font-micro)', color: '#475569', display: 'block', marginBottom: '4px', fontWeight: 600 }}>سعر ثابت</label>
+              <label style={{ fontSize: 'var(--font-micro)', color: '#475569', display: 'block', marginBottom: '4px', fontWeight: 600 }}>{t('sales.price_lists.price_list_modal.s15', "سعر ثابت")}</label>
               <input
                 type="number"
                 min="0"
                 step="0.1"
-                placeholder="اختياري"
+                placeholder={t('sales.price_lists.price_list_modal.s16', "اختياري")}
                 value={newItem.fixed_price}
                 onChange={(e) => setNewItem({ ...newItem, fixed_price: e.target.value })}
                 style={{ width: '100%', height: '36px', padding: '0 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: 'var(--font-table-head)', boxSizing: 'border-box' }}
               />
             </div>
             <div>
-              <label style={{ fontSize: 'var(--font-micro)', color: '#475569', display: 'block', marginBottom: '4px', fontWeight: 600 }}>أو خصم %</label>
+              <label style={{ fontSize: 'var(--font-micro)', color: '#475569', display: 'block', marginBottom: '4px', fontWeight: 600 }}>{t('sales.price_lists.price_list_modal.s17', "أو خصم %")}</label>
               <input
                 type="number"
                 min="0"
@@ -251,14 +253,14 @@ export const PriceListModal: React.FC<PriceListModalProps> = ({
                   justifyContent: 'center',
                 }}
               >
-                + إضافة
+                {t('sales.price_lists.price_list_modal.s18', "+ إضافة")}
               </button>
             </div>
           </div>
 
           {selectedProduct && (
             <div style={{ fontSize: '0.74rem', color: '#15803d', marginBottom: '10px', fontWeight: 600, background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '4px 10px', borderRadius: '6px', display: 'inline-block' }}>
-              تم تحديد الصنف: <strong>{selectedProduct.name}</strong> (سعر البيع الافتراضي الحالي: {selectedProduct.retail_price} ج.م)
+              {t('sales.price_lists.price_list_modal.s19', "تم تحديد الصنف:")} <strong>{selectedProduct.name}</strong> {t('sales.price_lists.price_list_modal.s20', "(سعر البيع الافتراضي الحالي:")} {selectedProduct.retail_price} {t('sales.price_lists.price_list_modal.s21', "ج.م)")}
             </div>
           )}
 
@@ -268,11 +270,11 @@ export const PriceListModal: React.FC<PriceListModalProps> = ({
               <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right' }}>
                 <thead style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
                   <tr>
-                    <th style={{ padding: '8px 12px', fontSize: 'var(--font-micro)', color: '#475569' }}>الصنف</th>
-                    <th style={{ padding: '8px 12px', fontSize: 'var(--font-micro)', color: '#475569' }}>الحد الأدنى</th>
-                    <th style={{ padding: '8px 12px', fontSize: 'var(--font-micro)', color: '#475569' }}>السعر المحدد</th>
-                    <th style={{ padding: '8px 12px', fontSize: 'var(--font-micro)', color: '#475569' }}>نسبة الخصم</th>
-                    <th style={{ padding: '8px 12px', fontSize: 'var(--font-micro)', color: '#475569', textAlign: 'center' }}>إجراء</th>
+                    <th style={{ padding: '8px 12px', fontSize: 'var(--font-micro)', color: '#475569' }}>{t('sales.price_lists.price_list_modal.s22', "الصنف")}</th>
+                    <th style={{ padding: '8px 12px', fontSize: 'var(--font-micro)', color: '#475569' }}>{t('sales.price_lists.price_list_modal.s23', "الحد الأدنى")}</th>
+                    <th style={{ padding: '8px 12px', fontSize: 'var(--font-micro)', color: '#475569' }}>{t('sales.price_lists.price_list_modal.s24', "السعر المحدد")}</th>
+                    <th style={{ padding: '8px 12px', fontSize: 'var(--font-micro)', color: '#475569' }}>{t('sales.price_lists.price_list_modal.s25', "نسبة الخصم")}</th>
+                    <th style={{ padding: '8px 12px', fontSize: 'var(--font-micro)', color: '#475569', textAlign: 'center' }}>{t('sales.price_lists.price_list_modal.s26', "إجراء")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -286,7 +288,7 @@ export const PriceListModal: React.FC<PriceListModalProps> = ({
                           </span>
                         )}
                       </td>
-                      <td style={{ padding: '8px 12px', fontSize: 'var(--font-table-head)', color: '#0f172a' }}>{it.min_quantity} قطعة+</td>
+                      <td style={{ padding: '8px 12px', fontSize: 'var(--font-table-head)', color: '#0f172a' }}>{it.min_quantity} {t('sales.price_lists.price_list_modal.s27', "قطعة+")}</td>
                       <td style={{ padding: '8px 12px', fontSize: 'var(--font-table-head)', color: '#0f172a', fontWeight: 700 }}>{it.fixed_price != null ? `${it.fixed_price} ج.م` : '-'}</td>
                       <td style={{ padding: '8px 12px', fontSize: 'var(--font-table-head)', color: '#16a34a', fontWeight: 700 }}>{it.discount_percent != null ? `${it.discount_percent}%` : '-'}</td>
                       <td style={{ padding: '8px 12px', textAlign: 'center' }}>
@@ -294,7 +296,7 @@ export const PriceListModal: React.FC<PriceListModalProps> = ({
                           type="button"
                           onClick={() => removeItem(idx)}
                           style={{ background: 'none', border: 'none', color: '#e11d48', cursor: 'pointer', padding: '4px', borderRadius: '4px' }}
-                          title="حذف الصنف من القائمة"
+                          title={t('sales.price_lists.price_list_modal.s28', "حذف الصنف من القائمة")}
                         >
                           <TrashIcon size={14} />
                         </button>
@@ -322,7 +324,7 @@ export const PriceListModal: React.FC<PriceListModalProps> = ({
               fontSize: 'var(--font-body)',
             }}
           >
-            إلغاء
+            {t('sales.price_lists.price_list_modal.s29', "إلغاء")}
           </button>
           <button
             type="submit"
@@ -338,7 +340,7 @@ export const PriceListModal: React.FC<PriceListModalProps> = ({
               fontSize: 'var(--font-body)',
             }}
           >
-            {saving ? 'جاري الحفظ...' : editingList ? 'حفظ التعديلات' : 'إنشاء القائمة'}
+            {saving ? t('sales.price_lists.price_list_modal.s30', "جاري الحفظ...") : editingList ? t('sales.price_lists.price_list_modal.s31', "حفظ التعديلات") : t('sales.price_lists.price_list_modal.s32', "إنشاء القائمة")}
           </button>
         </div>
       </form>

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 import { DataTable } from '@/shared/ui/data-table';
 import { Button } from '@/shared/ui/button';
@@ -26,18 +27,19 @@ export const AttendanceExceptionsTable: React.FC<AttendanceExceptionsTableProps>
   isApprovePending,
   isSkipPending,
 }) => {
+  const { t } = useTranslation();
   return (
     <DataTable
       rows={rows}
       rowKey={(row) => row.id}
       density="compact"
       columns={[
-        { key: 'workDate', header: 'التاريخ', className: 'col-fit', cell: (row) => row.workDate || '—' },
-        { key: 'employeeNo', header: 'كود الموظف', className: 'col-fit', cell: (row) => row.employeeNo || '—' },
-        { key: 'employeeName', header: 'اسم الموظف', className: 'col-main', cell: (row) => row.employeeName || '—' },
+        { key: 'workDate', header: t('hr.attendance.attendance_exceptions_table.s0', "التاريخ"), className: 'col-fit', cell: (row) => row.workDate || '—' },
+        { key: 'employeeNo', header: t('hr.attendance.attendance_exceptions_table.s1', "كود الموظف"), className: 'col-fit', cell: (row) => row.employeeNo || '—' },
+        { key: 'employeeName', header: t('hr.attendance.attendance_exceptions_table.s2', "اسم الموظف"), className: 'col-main', cell: (row) => row.employeeName || '—' },
         {
           key: 'exceptionType',
-          header: 'نوع الاستثناء',
+          header: t('hr.attendance.attendance_exceptions_table.s3', "نوع الاستثناء"),
           className: 'col-fit',
           cell: (row) => {
             const label = exceptionTypeLabel(row.exceptionType);
@@ -45,12 +47,12 @@ export const AttendanceExceptionsTable: React.FC<AttendanceExceptionsTableProps>
             return isRed ? <span style={{ color: '#dc2626', fontWeight: 600 }}>{label}</span> : <span>{label}</span>;
           },
         },
-        { key: 'scheduledTime', header: 'المجدول', className: 'col-fit', cell: (row) => row.scheduledTime || '?' },
-        { key: 'actualTime', header: 'الفعلي', className: 'col-fit', cell: (row) => row.actualTime || '?' },
-        { key: 'durationMinutes', header: 'المدة', className: 'col-fit', cell: (row) => `${row.durationMinutes || 0} د` },
+        { key: 'scheduledTime', header: t('hr.attendance.attendance_exceptions_table.s4', "المجدول"), className: 'col-fit', cell: (row) => row.scheduledTime || '?' },
+        { key: 'actualTime', header: t('hr.attendance.attendance_exceptions_table.s5', "الفعلي"), className: 'col-fit', cell: (row) => row.actualTime || '?' },
+        { key: 'durationMinutes', header: t('hr.attendance.attendance_exceptions_table.s6', "المدة"), className: 'col-fit', cell: (row) => `${row.durationMinutes || 0} د` },
         {
           key: 'status',
-          header: 'الحالة',
+          header: t('hr.attendance.attendance_exceptions_table.s7', "الحالة"),
           className: 'col-fit',
           cell: (row) => {
             const label = exceptionStatusLabel(row.status);
@@ -60,7 +62,7 @@ export const AttendanceExceptionsTable: React.FC<AttendanceExceptionsTableProps>
         },
         {
           key: 'actions',
-          header: 'الإجراء',
+          header: t('hr.attendance.attendance_exceptions_table.s8', "الإجراء"),
           className: 'col-fit',
           cell: (row) => {
             if (row.status !== 'pending') return <span className="muted">{exceptionStatusLabel(row.status)}</span>;
@@ -81,7 +83,7 @@ export const AttendanceExceptionsTable: React.FC<AttendanceExceptionsTableProps>
                     onClick={() => { void onApprove(row.id); }}
                     style={{ padding: '2px 8px', fontSize: '0.75rem' }}
                   >
-                    اعتماد كإضافي
+                    {t('hr.attendance.attendance_exceptions_table.s9', "اعتماد كإضافي")}
                   </Button>
                   <Button
                     type="button"
@@ -90,7 +92,7 @@ export const AttendanceExceptionsTable: React.FC<AttendanceExceptionsTableProps>
                     onClick={() => { void onSkip(row.id); }}
                     style={{ padding: '2px 8px', fontSize: '0.75rem' }}
                   >
-                    تخطي
+                    {t('hr.attendance.attendance_exceptions_table.s10', "تخطي")}
                   </Button>
                 </div>
               );
@@ -113,7 +115,7 @@ export const AttendanceExceptionsTable: React.FC<AttendanceExceptionsTableProps>
                     }}
                     style={{ padding: '2px 8px', fontSize: '0.75rem' }}
                   >
-                    تسجيل {isMissingCheckIn ? 'حضور' : 'انصراف'}
+                    {t('hr.attendance.attendance_exceptions_table.s11', "تسجيل")} {isMissingCheckIn ? t('hr.attendance.attendance_exceptions_table.s12', "حضور") : t('hr.attendance.attendance_exceptions_table.s13', "انصراف")}
                   </Button>
                   <Button
                     type="button"
@@ -122,7 +124,7 @@ export const AttendanceExceptionsTable: React.FC<AttendanceExceptionsTableProps>
                     onClick={() => { void onSkip(row.id); }}
                     style={{ padding: '2px 8px', fontSize: '0.75rem' }}
                   >
-                    تخطي
+                    {t('hr.attendance.attendance_exceptions_table.s14', "تخطي")}
                   </Button>
                 </div>
               );
@@ -138,7 +140,7 @@ export const AttendanceExceptionsTable: React.FC<AttendanceExceptionsTableProps>
                     onClick={() => { void onApprove(row.id); }}
                     style={{ padding: '2px 8px', fontSize: '0.75rem' }}
                   >
-                    تأكيد الخصم
+                    {t('hr.attendance.attendance_exceptions_table.s15', "تأكيد الخصم")}
                   </Button>
                   <Button
                     type="button"
@@ -147,7 +149,7 @@ export const AttendanceExceptionsTable: React.FC<AttendanceExceptionsTableProps>
                     onClick={() => { void onSkip(row.id); }}
                     style={{ padding: '2px 8px', fontSize: '0.75rem' }}
                   >
-                    تجاهل (عذر)
+                    {t('hr.attendance.attendance_exceptions_table.s16', "تجاهل (عذر)")}
                   </Button>
                 </div>
               );
@@ -163,7 +165,7 @@ export const AttendanceExceptionsTable: React.FC<AttendanceExceptionsTableProps>
                     onClick={() => { void onApprove(row.id); }}
                     style={{ padding: '2px 8px', fontSize: '0.75rem' }}
                   >
-                    تأكيد الغياب
+                    {t('hr.attendance.attendance_exceptions_table.s17', "تأكيد الغياب")}
                   </Button>
                   <Button
                     type="button"
@@ -172,7 +174,7 @@ export const AttendanceExceptionsTable: React.FC<AttendanceExceptionsTableProps>
                     onClick={() => { void onSkip(row.id); }}
                     style={{ padding: '2px 8px', fontSize: '0.75rem' }}
                   >
-                    تخطي
+                    {t('hr.attendance.attendance_exceptions_table.s18', "تخطي")}
                   </Button>
                 </div>
               );

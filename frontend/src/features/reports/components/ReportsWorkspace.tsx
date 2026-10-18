@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { PageHeader } from '@/shared/components/page-header';
 import { Button } from '@/shared/ui/button';
 import { ReportsSectionTabs } from '@/features/reports/pages/ReportsSectionTabs';
@@ -12,6 +13,7 @@ import { referenceDataApi } from '@/services/reference-data.api';
 import { userDirectoryApi } from '@/shared/api/user-directory';
 
 export function ReportsWorkspace({ currentSection }: { currentSection: ReportsSectionKey }) {
+  const { t } = useTranslation();
   const controller = useReportsWorkspaceController(currentSection);
   const locationsQuery = useQuery({ queryKey: queryKeys.locations, queryFn: referenceDataApi.locations });
   const usersQuery = useQuery({ queryKey: queryKeys.settingsUsers, queryFn: userDirectoryApi.users });
@@ -20,18 +22,18 @@ export function ReportsWorkspace({ currentSection }: { currentSection: ReportsSe
     <div className="page-stack page-shell reports-workspace reports-animated-shell reports-workspace--compact" dir="rtl">
       <main className="document-prototype-column" style={{ paddingBottom: '100px' }}>
       <PageHeader
-        title="التقارير"
-        description="اختر القسم والفترة ثم راجع التقرير مباشرة بدون صفوف تمهيدية إضافية."
-        badge={<span className="nav-pill">{controller.rangeDays} يوم</span>}
+        title={t('reports.reports_workspace.s0', "التقارير")}
+        description={t('reports.reports_workspace.s1', "اختر القسم والفترة ثم راجع التقرير مباشرة بدون صفوف تمهيدية إضافية.")}
+        badge={<span className="nav-pill">{controller.rangeDays} {t('reports.reports_workspace.s2', "يوم")}</span>}
         actions={(
           <div className="actions compact-actions">
-            <Button variant="secondary" onClick={controller.exportExecutiveSummary} disabled={!controller.report}>تصدير</Button>
+            <Button variant="secondary" onClick={controller.exportExecutiveSummary} disabled={!controller.report}>{t('reports.reports_workspace.s3', "تصدير")}</Button>
             <ReportPrintMenu
               onPrintA4={() => controller.printExecutiveSummary('A4')}
               onPrintReceipt={() => controller.printExecutiveSummary('receipt')}
               disabled={!controller.report}
             />
-            <Button variant="secondary" onClick={() => void controller.copyExecutiveSummary()} disabled={!controller.report}>نسخ</Button>
+            <Button variant="secondary" onClick={() => void controller.copyExecutiveSummary()} disabled={!controller.report}>{t('reports.reports_workspace.s4', "نسخ")}</Button>
           </div>
         )}
       />

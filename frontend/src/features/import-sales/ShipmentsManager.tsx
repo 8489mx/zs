@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { PageHeader } from '@/shared/components/page-header';
 import { Button } from '@/shared/ui/button';
@@ -16,6 +17,7 @@ import {
 import { toast } from '@/shared/components/system-alert';
 
 export default function ShipmentsManager() {
+  const { t } = useTranslation();
   const { data, isLoading, refetch, isRefetching } = useShipmentsQuery();
   const navigate = useNavigate();
   const [isNewShipmentOpen, setIsNewShipmentOpen] = useState(false);
@@ -30,25 +32,25 @@ export default function ShipmentsManager() {
       case 'Pending':
         return (
           <span style={{ fontSize: '0.74rem', background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', padding: '2px 8px', borderRadius: '12px', fontWeight: 700 }}>
-            في البحر (شحن بحري)
+            {t('import_sales.shipments_manager.s0', "في البحر (شحن بحري)")}
           </span>
         );
       case 'In Customs':
         return (
           <span style={{ fontSize: '0.74rem', background: '#fefce8', color: '#a16207', border: '1px solid #fef08a', padding: '2px 8px', borderRadius: '12px', fontWeight: 700 }}>
-            في الجمارك (تخليص)
+            {t('import_sales.shipments_manager.s1', "في الجمارك (تخليص)")}
           </span>
         );
       case 'Arrived':
         return (
           <span style={{ fontSize: '0.74rem', background: '#f0fdf4', color: '#15803d', border: '1px solid #bbf7d0', padding: '2px 8px', borderRadius: '12px', fontWeight: 700 }}>
-            تم الوصول للمخزن
+            {t('import_sales.shipments_manager.s2', "تم الوصول للمخزن")}
           </span>
         );
       default:
         return (
           <span style={{ fontSize: '0.74rem', background: '#f8fafc', color: '#475569', border: '1px solid #e2e8f0', padding: '2px 8px', borderRadius: '12px', fontWeight: 600 }}>
-            {status || 'غير محدد'}
+            {status || t('import_sales.shipments_manager.s3', "غير محدد")}
           </span>
         );
     }
@@ -58,8 +60,8 @@ export default function ShipmentsManager() {
     <div className="page-stack page-shell import-sales-page" dir="rtl">
       <main className="document-prototype-column" style={{ paddingBottom: '80px', maxWidth: '1280px', margin: '0 auto', width: '100%' }}>
         <PageHeader 
-          title="إدارة الحاويات والشحنات المستوردة" 
-          description="متابعة حركة الحاويات من بلد المنشأ والمصنع حتى الوصول للمخازن، وتوزيع تكاليف الشحن والجمارك."
+          title={t('import_sales.shipments_manager.s4', "إدارة الحاويات والشحنات المستوردة")} 
+          description={t('import_sales.shipments_manager.s5', "متابعة حركة الحاويات من بلد المنشأ والمصنع حتى الوصول للمخازن، وتوزيع تكاليف الشحن والجمارك.")}
           actions={
             <div className="actions compact-actions" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
               <Button 
@@ -80,16 +82,16 @@ export default function ShipmentsManager() {
                 }}
               >
                 <PackageIcon size={16} />
-                <span>إضافة حاوية جديدة</span>
+                <span>{t('import_sales.shipments_manager.s6', "إضافة حاوية جديدة")}</span>
               </Button>
               <Button 
                 variant="secondary" 
                 onClick={async () => {
                   try {
                     await refetch();
-                    toast.success('تم تحديث قائمة الحاويات والمؤشرات بنجاح', undefined, 2000);
+                    toast.success(t('import_sales.shipments_manager.s7', "تم تحديث قائمة الحاويات والمؤشرات بنجاح"), undefined, 2000);
                   } catch (err) {
-                    toast.error('فشل تحديث البيانات');
+                    toast.error(t('import_sales.shipments_manager.s8', "فشل تحديث البيانات"));
                   }
                 }}
                 disabled={isLoading || isRefetching}
@@ -107,7 +109,7 @@ export default function ShipmentsManager() {
                   size={15}
                   style={{ animation: isRefetching ? 'spin 0.7s linear infinite' : 'none' }}
                 />
-                <span>{isRefetching ? 'جارٍ التحديث...' : 'تحديث'}</span>
+                <span>{isRefetching ? t('import_sales.shipments_manager.s9', "جارٍ التحديث...") : t('import_sales.shipments_manager.s10', "تحديث")}</span>
               </Button>
             </div>
           } 
@@ -117,9 +119,9 @@ export default function ShipmentsManager() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '14px', marginBottom: '8px' }}>
           <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
             <div>
-              <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>حاويات في البحر (قيد الإبحار)</div>
+              <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>{t('import_sales.shipments_manager.s11', "حاويات في البحر (قيد الإبحار)")}</div>
               <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#0f172a', marginTop: '4px' }}>
-                {seaCount} <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>حاوية</span>
+                {seaCount} <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>{t('import_sales.shipments_manager.s12', "حاوية")}</span>
               </div>
             </div>
             <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#eff6ff', border: '1px solid #dbeafe', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1e40af' }}>
@@ -129,9 +131,9 @@ export default function ShipmentsManager() {
 
           <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
             <div>
-              <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>حاويات في مرحلة التخليص الجمركي</div>
+              <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>{t('import_sales.shipments_manager.s13', "حاويات في مرحلة التخليص الجمركي")}</div>
               <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#0f172a', marginTop: '4px' }}>
-                {customsCount} <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>حاوية</span>
+                {customsCount} <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>{t('import_sales.shipments_manager.s14', "حاوية")}</span>
               </div>
             </div>
             <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#fefce8', border: '1px solid #fef08a', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#a16207' }}>
@@ -141,9 +143,9 @@ export default function ShipmentsManager() {
 
           <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
             <div>
-              <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>حاويات مكتملة التكلفة بالمخازن</div>
+              <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>{t('import_sales.shipments_manager.s15', "حاويات مكتملة التكلفة بالمخازن")}</div>
               <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#0f172a', marginTop: '4px' }}>
-                {arrivedCount} <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>حاوية</span>
+                {arrivedCount} <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>{t('import_sales.shipments_manager.s16', "حاوية")}</span>
               </div>
             </div>
             <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#f0fdf4', border: '1px solid #dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#15803d' }}>
@@ -157,14 +159,14 @@ export default function ShipmentsManager() {
           <div style={{ padding: '16px 20px', borderBottom: '1px solid #e2e8f0', background: '#f8fafc', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
               <h3 style={{ margin: 0, fontSize: '0.94rem', fontWeight: 800, color: '#0f172a' }}>
-                قائمة الحاويات والشحنات
+                {t('import_sales.shipments_manager.s17', "قائمة الحاويات والشحنات")}
               </h3>
               <p style={{ margin: '3px 0 0 0', fontSize: '0.78rem', color: '#64748b' }}>
-                انقر على أي حاوية لاستعراض بنود البضاعة وتفاصيل التكاليف وحساب تكلفة الوحدة
+                {t('import_sales.shipments_manager.s18', "انقر على أي حاوية لاستعراض بنود البضاعة وتفاصيل التكاليف وحساب تكلفة الوحدة")}
               </p>
             </div>
             <span style={{ fontSize: '0.75rem', fontWeight: 700, background: '#ffffff', color: '#475569', border: '1px solid #e2e8f0', padding: '3px 10px', borderRadius: '12px' }}>
-              {rows.length} حاوية
+              {rows.length} {t('import_sales.shipments_manager.s19', "حاوية")}
             </span>
           </div>
 
@@ -172,20 +174,20 @@ export default function ShipmentsManager() {
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.825rem', textAlign: 'right' }}>
               <thead>
                 <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', fontSize: '0.78rem', fontWeight: 700 }}>
-                  <th style={{ padding: '10px 16px', width: '160px' }}>رقم الحاوية</th>
-                  <th style={{ padding: '10px 16px', minWidth: '160px' }}>المصنع / المورد</th>
-                  <th style={{ padding: '10px 16px', width: '150px' }}>حالة الشحنة</th>
-                  <th style={{ padding: '10px 16px', width: '120px' }}>تاريخ الوصول</th>
-                  <th style={{ padding: '10px 16px', width: '140px' }}>تكلفة الشحن ($)</th>
-                  <th style={{ padding: '10px 16px', width: '140px' }}>الجمارك والمصاريف</th>
-                  <th style={{ padding: '10px 16px', width: '110px', textAlign: 'center' }}>الإجراءات</th>
+                  <th style={{ padding: '10px 16px', width: '160px' }}>{t('import_sales.shipments_manager.s20', "رقم الحاوية")}</th>
+                  <th style={{ padding: '10px 16px', minWidth: '160px' }}>{t('import_sales.shipments_manager.s21', "المصنع / المورد")}</th>
+                  <th style={{ padding: '10px 16px', width: '150px' }}>{t('import_sales.shipments_manager.s22', "حالة الشحنة")}</th>
+                  <th style={{ padding: '10px 16px', width: '120px' }}>{t('import_sales.shipments_manager.s23', "تاريخ الوصول")}</th>
+                  <th style={{ padding: '10px 16px', width: '140px' }}>{t('import_sales.shipments_manager.s24', "تكلفة الشحن ($)")}</th>
+                  <th style={{ padding: '10px 16px', width: '140px' }}>{t('import_sales.shipments_manager.s25', "الجمارك والمصاريف")}</th>
+                  <th style={{ padding: '10px 16px', width: '110px', textAlign: 'center' }}>{t('import_sales.shipments_manager.s26', "الإجراءات")}</th>
                 </tr>
               </thead>
               <tbody>
                 {isLoading ? (
                   <tr>
                     <td colSpan={7} style={{ padding: '32px', textAlign: 'center', color: '#64748b' }}>
-                      جاري تحميل بيانات الحاويات...
+                      {t('import_sales.shipments_manager.s27', "جاري تحميل بيانات الحاويات...")}
                     </td>
                   </tr>
                 ) : rows.length === 0 ? (
@@ -194,8 +196,8 @@ export default function ShipmentsManager() {
                       <div style={{ width: '42px', height: '42px', borderRadius: '10px', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 10px auto', color: '#94a3b8' }}>
                         <FileTextIcon size={22} />
                       </div>
-                      <div style={{ fontWeight: 700, color: '#334155', fontSize: '0.88rem' }}>لا توجد حاويات مسجلة بعد</div>
-                      <div style={{ fontSize: '0.76rem', color: '#94a3b8', marginTop: '4px' }}>اضغط على «إضافة حاوية جديدة» لبدء تسجيل وتتبع الشحنات المستوردة.</div>
+                      <div style={{ fontWeight: 700, color: '#334155', fontSize: '0.88rem' }}>{t('import_sales.shipments_manager.s28', "لا توجد حاويات مسجلة بعد")}</div>
+                      <div style={{ fontSize: '0.76rem', color: '#94a3b8', marginTop: '4px' }}>{t('import_sales.shipments_manager.s29', "اضغط على «إضافة حاوية جديدة» لبدء تسجيل وتتبع الشحنات المستوردة.")}</div>
                     </td>
                   </tr>
                 ) : (
@@ -216,7 +218,7 @@ export default function ShipmentsManager() {
                         {row.container_number}
                       </td>
                       <td style={{ padding: '11px 16px', fontWeight: 600, color: '#0f172a' }}>
-                        {row.supplier_name || 'غير محدد'}
+                        {row.supplier_name || t('import_sales.shipments_manager.s30', "غير محدد")}
                       </td>
                       <td style={{ padding: '11px 16px' }}>
                         {getStatusBadge(row.status)}
@@ -246,7 +248,7 @@ export default function ShipmentsManager() {
                             height: '26px',
                           }}
                         >
-                          التفاصيل
+                          {t('import_sales.shipments_manager.s31', "التفاصيل")}
                         </button>
                       </td>
                     </tr>

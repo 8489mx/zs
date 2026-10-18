@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React, { useState } from 'react';
 import { employeePortalApi } from '../../api/employee-portal.api';
 import { CalendarIcon, XIcon } from '@/shared/components/icons/AppIcons';
@@ -17,6 +18,7 @@ export function PortalLeaveModal({
   leaveTypes,
   onSuccess,
 }: PortalLeaveModalProps) {
+  const { t: __t } = useTranslation();
   const [leaveTypeId, setLeaveTypeId] = useState<number>(() => leaveTypes?.[0]?.id || 1);
   const [leaveStart, setLeaveStart] = useState('');
   const [leaveEnd, setLeaveEnd] = useState('');
@@ -57,7 +59,7 @@ export function PortalLeaveModal({
       open={open}
       onClose={onClose}
       width="min(480px, 95vw)"
-      ariaLabel="تقديم طلب إجازة"
+      ariaLabel={__t('hr.portal.portal_leave_modal.s0', "تقديم طلب إجازة")}
     >
       <div
         dir="rtl"
@@ -70,7 +72,7 @@ export function PortalLeaveModal({
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <CalendarIcon size={20} color="#170e5e" />
                 <h3 style={{ margin: 0, fontSize: '17px', fontWeight: 900, color: '#0f172a' }}>
-                  تقديم طلب إجازة جديد
+                  {__t('hr.portal.portal_leave_modal.s1', "تقديم طلب إجازة جديد")}
                 </h3>
               </div>
               <button
@@ -85,7 +87,7 @@ export function PortalLeaveModal({
             <form onSubmit={handleSubmitLeave} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-                  نوع الإجازة:
+                  {__t('hr.portal.portal_leave_modal.s2', "نوع الإجازة:")}
                 </label>
                 <select
                   value={leaveTypeId}
@@ -102,16 +104,16 @@ export function PortalLeaveModal({
                 >
                   {leaveTypes?.map((t: { id: number; name: string; isPaid: boolean }) => (
                     <option key={t.id} value={t.id}>
-                      {t.name} ({t.isPaid ? 'مدفوعة الأجر' : 'غير مدفوعة'})
+                      {t.name} ({t.isPaid ? __t('hr.portal.portal_leave_modal.s3', "مدفوعة الأجر") : __t('hr.portal.portal_leave_modal.s4', "غير مدفوعة")})
                     </option>
-                  )) || <option value={1}>إجازة سنوية</option>}
+                  )) || <option value={1}>{__t('hr.portal.portal_leave_modal.s5', "إجازة سنوية")}</option>}
                 </select>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-                    تاريخ البداية:
+                    {__t('hr.portal.portal_leave_modal.s6', "تاريخ البداية:")}
                   </label>
                   <input
                     type="date"
@@ -131,7 +133,7 @@ export function PortalLeaveModal({
 
                 <div>
                   <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-                    تاريخ النهاية:
+                    {__t('hr.portal.portal_leave_modal.s7', "تاريخ النهاية:")}
                   </label>
                   <input
                     type="date"
@@ -152,13 +154,13 @@ export function PortalLeaveModal({
 
               <div>
                 <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-                  سبب الإجازة والملاحظات:
+                  {__t('hr.portal.portal_leave_modal.s8', "سبب الإجازة والملاحظات:")}
                 </label>
                 <textarea
                   rows={3}
                   value={leaveReason}
                   onChange={(e) => setLeaveReason(e.target.value)}
-                  placeholder="اكتب سبب طلب الإجازة باختصار..."
+                  placeholder={__t('hr.portal.portal_leave_modal.s9', "اكتب سبب طلب الإجازة باختصار...")}
                   style={{
                     width: '100%',
                     padding: '10px',
@@ -187,7 +189,7 @@ export function PortalLeaveModal({
                     cursor: leaveSubmitting ? 'not-allowed' : 'pointer',
                   }}
                 >
-                  {leaveSubmitting ? 'جاري الإرسال...' : 'إرسال طلب الإجازة'}
+                  {leaveSubmitting ? __t('hr.portal.portal_leave_modal.s10', "جاري الإرسال...") : __t('hr.portal.portal_leave_modal.s11', "إرسال طلب الإجازة")}
                 </button>
                 <button
                   type="button"
@@ -202,7 +204,7 @@ export function PortalLeaveModal({
                     cursor: 'pointer',
                   }}
                 >
-                  إلغاء
+                  {__t('hr.portal.portal_leave_modal.s12', "إلغاء")}
                 </button>
               </div>
             </form>

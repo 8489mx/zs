@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
@@ -24,6 +25,7 @@ interface ProductBarcodeDialogProps {
 }
 
 export function ProductBarcodeDialog({ open, product, products, mode = 'scan', onClose, onSaved, onOpenPrint }: ProductBarcodeDialogProps) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [activeMode, setActiveMode] = useState<'scan' | 'generate'>(mode === 'generate' ? 'generate' : 'scan');
   const [unitId, setUnitId] = useState('');
@@ -111,8 +113,8 @@ export function ProductBarcodeDialog({ open, product, products, mode = 'scan', o
     <StandardDialog
       open={open}
       onClose={onClose}
-      title="إدارة باركود الصنف (Product Barcode Management)"
-      subtitle={`${currentProduct.name} · وحدة: ${selectedUnit?.name || 'قطعة'} · الباركود الحالي: ${currentBarcode || 'غير مسجل'}`}
+      title={t('products.product_barcode_dialog.s0', "إدارة باركود الصنف (Product Barcode Management)")}
+      subtitle={`${currentProduct.name} · وحدة: ${selectedUnit?.name || t('products.product_barcode_dialog.s1', "قطعة")} · الباركود الحالي: ${currentBarcode || t('products.product_barcode_dialog.s2', "غير مسجل")}`}
       maxWidth="880px"
       footerActions={
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
@@ -120,14 +122,14 @@ export function ProductBarcodeDialog({ open, product, products, mode = 'scan', o
             {currentBarcode && onOpenPrint ? (
               <Button type="button" variant="secondary" onClick={() => onOpenPrint(currentProduct, selectedUnit)} style={{ fontSize: '0.8rem' }}>
                 <AppIcons.Printer size={14} style={{ marginInlineEnd: '6px' }} />
-                طباعة الملصقات
+                {t('products.product_barcode_dialog.s3', "طباعة الملصقات")}
               </Button>
             ) : null}
           </div>
           <StandardDialogFooter
-            cancelText="إغلاق"
+            cancelText={t('products.product_barcode_dialog.s4', "إغلاق")}
             onCancel={onClose}
-            submitText={activeMode === 'generate' ? 'حفظ الباركود المولد' : 'حفظ قراءة الباركود'}
+            submitText={activeMode === 'generate' ? t('products.product_barcode_dialog.s5', "حفظ الباركود المولد") : t('products.product_barcode_dialog.s6', "حفظ قراءة الباركود")}
             onSubmit={() => void saveBarcode(effectiveBarcode)}
             isSubmitting={mutation.isPending}
             submitDisabled={mutation.isPending || !effectiveBarcode.trim()}
@@ -141,7 +143,7 @@ export function ProductBarcodeDialog({ open, product, products, mode = 'scan', o
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
               <AppIcons.Barcode size={15} />
-              <span>1. إعداد وقراءة الباركود (Barcode Setup)</span>
+              <span>{t('products.product_barcode_dialog.s7', "1. إعداد وقراءة الباركود (Barcode Setup)")}</span>
             </div>
             <div style={{ display: 'inline-flex', gap: '4px', background: '#e2e8f0', padding: '2px', borderRadius: '6px' }}>
               <button
@@ -158,7 +160,7 @@ export function ProductBarcodeDialog({ open, product, products, mode = 'scan', o
                   cursor: 'pointer',
                 }}
               >
-                مسح / إدخال يدوي
+                {t('products.product_barcode_dialog.s8', "مسح / إدخال يدوي")}
               </button>
               <button
                 type="button"
@@ -177,17 +179,17 @@ export function ProductBarcodeDialog({ open, product, products, mode = 'scan', o
                   cursor: 'pointer',
                 }}
               >
-                توليد باركود تلقائي
+                {t('products.product_barcode_dialog.s9', "توليد باركود تلقائي")}
               </button>
             </div>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-            <Field label="اسم الصنف">
+            <Field label={t('products.product_barcode_dialog.s10', "اسم الصنف")}>
               <input value={currentProduct.name} readOnly disabled style={{ background: '#f1f5f9' }} />
             </Field>
 
-            <Field label="الوحدة المستهدفة">
+            <Field label={t('products.product_barcode_dialog.s11', "الوحدة المستهدفة")}>
               <CustomSelect
                 value={unitId || String(selectedUnit?.id || '')}
                 options={unitOptions}
@@ -195,17 +197,17 @@ export function ProductBarcodeDialog({ open, product, products, mode = 'scan', o
               />
             </Field>
 
-            <Field label="الباركود الحالي المسجل">
-              <input value={currentBarcode || 'لا يوجد باركود'} readOnly disabled style={{ background: '#f1f5f9', color: currentBarcode ? '#170e5e' : '#94a3b8', fontWeight: 600 }} />
+            <Field label={t('products.product_barcode_dialog.s12', "الباركود الحالي المسجل")}>
+              <input value={currentBarcode || t('products.product_barcode_dialog.s13', "لا يوجد باركود")} readOnly disabled style={{ background: '#f1f5f9', color: currentBarcode ? '#170e5e' : '#94a3b8', fontWeight: 600 }} />
             </Field>
 
             {activeMode === 'scan' ? (
-              <Field label="قراءة السكانر أو الإدخال اليدوي *">
+              <Field label={t('products.product_barcode_dialog.s14', "قراءة السكانر أو الإدخال اليدوي *")}>
                 <input
                   data-autofocus
                   value={scanValue}
                   onChange={(event) => setScanValue(event.target.value)}
-                  placeholder="وجّه السكانر أو اكتب الباركود..."
+                  placeholder={t('products.product_barcode_dialog.s15', "وجّه السكانر أو اكتب الباركود...")}
                   onKeyDown={(event) => {
                     if (event.key === 'Enter') {
                       event.preventDefault();
@@ -215,7 +217,7 @@ export function ProductBarcodeDialog({ open, product, products, mode = 'scan', o
                 />
               </Field>
             ) : (
-              <Field label="الباركود المولد تلقائياً *">
+              <Field label={t('products.product_barcode_dialog.s16', "الباركود المولد تلقائياً *")}>
                 <div style={{ display: 'flex', gap: '6px' }}>
                   <input data-autofocus value={generatedValue} onChange={(event) => setGeneratedValue(event.target.value)} />
                   <Button
@@ -224,14 +226,14 @@ export function ProductBarcodeDialog({ open, product, products, mode = 'scan', o
                     onClick={() => setGeneratedValue(createGeneratedBarcode(collectExistingBarcodes(products), 'ZS'))}
                     style={{ padding: '0 10px', fontSize: '0.75rem', whiteSpace: 'nowrap' }}
                   >
-                    تجديد
+                    {t('products.product_barcode_dialog.s17', "تجديد")}
                   </Button>
                 </div>
               </Field>
             )}
           </div>
 
-          <MutationFeedback isError={mutation.isError} error={mutation.error} errorFallback="تعذر حفظ الباركود" />
+          <MutationFeedback isError={mutation.isError} error={mutation.error} errorFallback={t('products.product_barcode_dialog.s18', "تعذر حفظ الباركود")} />
           {helperMessage ? (
             <div style={{ marginTop: '10px', padding: '8px 12px', background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: '6px', color: '#065f46', fontSize: '0.8rem', fontWeight: 600 }}>
               {helperMessage}
@@ -243,21 +245,21 @@ export function ProductBarcodeDialog({ open, product, products, mode = 'scan', o
         <div style={{ background: '#f8fafc', padding: '14px 16px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
             <AppIcons.Eye size={15} />
-            <span>2. معاينة الباركود الحية (Code-128 Preview)</span>
+            <span>{t('products.product_barcode_dialog.s19', "2. معاينة الباركود الحية (Code-128 Preview)")}</span>
           </div>
 
           <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '16px', textAlign: 'center', minHeight: '110px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             {previewSvg ? (
               <div className="barcode-preview-panel" dangerouslySetInnerHTML={{ __html: previewSvg }} />
             ) : (
-              <div style={{ color: '#94a3b8', fontSize: '0.82rem' }}>اكتب أو ولّد باركوداً صالحاً لتظهر المعاينة هنا.</div>
+              <div style={{ color: '#94a3b8', fontSize: '0.82rem' }}>{t('products.product_barcode_dialog.s20', "اكتب أو ولّد باركوداً صالحاً لتظهر المعاينة هنا.")}</div>
             )}
           </div>
 
           <p style={{ margin: '10px 0 0 0', fontSize: '0.75rem', color: '#64748b', lineHeight: 1.5 }}>
             {activeMode === 'scan'
-              ? 'عند استخدام جهاز السكانر، ضع المؤشر في خانة القراءة وسيتم التقاط الكود مباشرة، والضغط على Enter يقوم بالحفظ التلقائي.'
-              : 'الباركود المولد يطابق نظام التشفير القياسي Code-128 وجاهز للطباعة على كافة أنواع الملصقات الحرارية وورق A4.'}
+              ? t('products.product_barcode_dialog.s21', "عند استخدام جهاز السكانر، ضع المؤشر في خانة القراءة وسيتم التقاط الكود مباشرة، والضغط على Enter يقوم بالحفظ التلقائي.")
+              : t('products.product_barcode_dialog.s22', "الباركود المولد يطابق نظام التشفير القياسي Code-128 وجاهز للطباعة على كافة أنواع الملصقات الحرارية وورق A4.")}
           </p>
         </div>
       </div>

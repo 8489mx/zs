@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { RefreshCwIcon, XIcon, Trash2Icon } from '@/shared/components/icons/AppIcons';
 
 export interface DraftRestoredBannerProps {
@@ -17,6 +18,7 @@ export function DraftRestoredBanner({
   onDismiss,
   message = 'تم استرجاع بيانات المسودة غير المحفوظة تلقائياً لحماية مدخلاتك من الفقدان.',
 }: DraftRestoredBannerProps) {
+  const { t } = useTranslation();
   if (!show) return null;
 
   return (
@@ -83,13 +85,13 @@ export function DraftRestoredBanner({
           }}
         >
           <Trash2Icon size={12} color="#b91c1c" />
-          <span>مسح المسودة</span>
+          <span>{t('shared.draft_restored_banner.s0', "مسح المسودة")}</span>
         </button>
 
         <button
           type="button"
           onClick={onDismiss}
-          title="إغلاق التنبيه"
+          title={t('shared.draft_restored_banner.s1', "إغلاق التنبيه")}
           style={{
             display: 'inline-flex',
             alignItems: 'center',

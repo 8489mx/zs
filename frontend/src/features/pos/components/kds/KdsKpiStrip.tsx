@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 
 interface KdsKpiStripProps {
@@ -10,6 +11,7 @@ interface KdsKpiStripProps {
 }
 
 export const KdsKpiStrip: React.FC<KdsKpiStripProps> = ({ stats }) => {
+  const { t } = useTranslation();
   return (
     <div
       style={{
@@ -35,7 +37,7 @@ export const KdsKpiStrip: React.FC<KdsKpiStripProps> = ({ stats }) => {
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#170e5e', display: 'inline-block' }} />
-          <span style={{ fontSize: '13px', fontWeight: 700, color: '#475569' }}>ورد للتو (جديد):</span>
+          <span style={{ fontSize: '13px', fontWeight: 700, color: '#475569' }}>{t('pos.kds.kds_kpi_strip.s0', "ورد للتو (جديد):")}</span>
         </div>
         <span style={{ fontSize: '18px', fontWeight: 900, color: '#170e5e' }}>{stats.pendingCount}</span>
       </div>
@@ -54,7 +56,7 @@ export const KdsKpiStrip: React.FC<KdsKpiStripProps> = ({ stats }) => {
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#f59e0b', display: 'inline-block' }} />
-          <span style={{ fontSize: '13px', fontWeight: 700, color: '#475569' }}>قيد التحضير والطهي:</span>
+          <span style={{ fontSize: '13px', fontWeight: 700, color: '#475569' }}>{t('pos.kds.kds_kpi_strip.s1', "قيد التحضير والطهي:")}</span>
         </div>
         <span style={{ fontSize: '18px', fontWeight: 900, color: '#b45309' }}>{stats.cookingCount}</span>
       </div>
@@ -73,7 +75,7 @@ export const KdsKpiStrip: React.FC<KdsKpiStripProps> = ({ stats }) => {
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#10b981', display: 'inline-block' }} />
-          <span style={{ fontSize: '13px', fontWeight: 700, color: '#475569' }}>جاهز للاستلام والتسليم:</span>
+          <span style={{ fontSize: '13px', fontWeight: 700, color: '#475569' }}>{t('pos.kds.kds_kpi_strip.s2', "جاهز للاستلام والتسليم:")}</span>
         </div>
         <span style={{ fontSize: '18px', fontWeight: 900, color: '#15803d' }}>{stats.readyCount}</span>
       </div>
@@ -99,7 +101,7 @@ export const KdsKpiStrip: React.FC<KdsKpiStripProps> = ({ stats }) => {
               color: stats.criticalCount > 0 ? '#991b1b' : '#64748b',
             }}
           >
-            متأخر (&gt;15د):
+            {t('pos.kds.kds_kpi_strip.s3', "متأخر (>15د):")}
           </span>
         </div>
         <span

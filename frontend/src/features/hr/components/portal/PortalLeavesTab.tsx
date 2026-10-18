@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import type { EmployeeLeavesData } from '../../api/employee-portal.api';
 import { PlusIcon } from '@/shared/components/icons/AppIcons';
 
@@ -7,15 +8,16 @@ export interface PortalLeavesTabProps {
 }
 
 export function PortalLeavesTab({ leavesData, onRequestLeave }: PortalLeavesTabProps) {
+  const { t } = useTranslation();
   return (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
             <div className="portal-section-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
               <div>
                 <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 900, color: '#0f172a' }}>
-                  أرصدة وطلبات الإجازات
+                  {t('hr.portal.portal_leaves_tab.s0', "أرصدة وطلبات الإجازات")}
                 </h2>
                 <p style={{ margin: '4px 0 0', fontSize: '13px', color: '#64748b' }}>
-                  استعراض رصيدك من الإجازات ومتابعة حالة الطلبات المقدمة للإدارة.
+                  {t('hr.portal.portal_leaves_tab.s1', "استعراض رصيدك من الإجازات ومتابعة حالة الطلبات المقدمة للإدارة.")}
                 </p>
               </div>
 
@@ -38,7 +40,7 @@ export function PortalLeavesTab({ leavesData, onRequestLeave }: PortalLeavesTabP
                 }}
               >
                 <PlusIcon size={16} color="#ffffff" />
-                <span>تقديم طلب إجازة</span>
+                <span>{t('hr.portal.portal_leaves_tab.s2', "تقديم طلب إجازة")}</span>
               </button>
             </div>
 
@@ -57,10 +59,10 @@ export function PortalLeavesTab({ leavesData, onRequestLeave }: PortalLeavesTabP
                 >
                   <div style={{ fontSize: '13px', fontWeight: 700, color: '#64748b' }}>{b.name}</div>
                   <div style={{ fontSize: '26px', fontWeight: 900, color: '#170e5e', margin: '4px 0' }}>
-                    {b.remainingDays} <span style={{ fontSize: '14px', fontWeight: 700 }}>يوم متبقي</span>
+                    {b.remainingDays} <span style={{ fontSize: '14px', fontWeight: 700 }}>{t('hr.portal.portal_leaves_tab.s3', "يوم متبقي")}</span>
                   </div>
                   <div style={{ fontSize: '11px', color: '#64748b' }}>
-                    إجمالي الرصيد: {b.totalDays} • المستنفذ: {b.usedDays}
+                    {t('hr.portal.portal_leaves_tab.s4', "إجمالي الرصيد:")} {b.totalDays} {t('hr.portal.portal_leaves_tab.s5', "• المستنفذ:")} {b.usedDays}
                   </div>
                 </div>
               ))}
@@ -77,24 +79,24 @@ export function PortalLeavesTab({ leavesData, onRequestLeave }: PortalLeavesTabP
               }}
             >
               <h3 style={{ margin: '0 0 16px', fontSize: '16px', fontWeight: 800, color: '#0f172a' }}>
-                سجل طلبات الإجازة السابقة
+                {t('hr.portal.portal_leaves_tab.s6', "سجل طلبات الإجازة السابقة")}
               </h3>
 
               {!leavesData?.requests || leavesData.requests.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '30px', color: '#94a3b8', fontSize: '14px' }}>
-                  لم تقم بتقديم أي طلبات إجازة حتى الآن.
+                  {t('hr.portal.portal_leaves_tab.s7', "لم تقم بتقديم أي طلبات إجازة حتى الآن.")}
                 </div>
               ) : (
                 <div style={{ overflowX: 'auto' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', textAlign: 'right' }}>
                     <thead>
                       <tr style={{ borderBottom: '2px solid #e2e8f0', color: '#64748b' }}>
-                        <th style={{ padding: '10px 12px' }}>نوع الإجازة</th>
-                        <th style={{ padding: '10px 12px' }}>الفترة</th>
-                        <th style={{ padding: '10px 12px' }}>عدد الأيام</th>
-                        <th style={{ padding: '10px 12px' }}>السبب</th>
-                        <th style={{ padding: '10px 12px' }}>الحالة</th>
-                        <th style={{ padding: '10px 12px' }}>ملاحظات الإدارة</th>
+                        <th style={{ padding: '10px 12px' }}>{t('hr.portal.portal_leaves_tab.s8', "نوع الإجازة")}</th>
+                        <th style={{ padding: '10px 12px' }}>{t('hr.portal.portal_leaves_tab.s9', "الفترة")}</th>
+                        <th style={{ padding: '10px 12px' }}>{t('hr.portal.portal_leaves_tab.s10', "عدد الأيام")}</th>
+                        <th style={{ padding: '10px 12px' }}>{t('hr.portal.portal_leaves_tab.s11', "السبب")}</th>
+                        <th style={{ padding: '10px 12px' }}>{t('hr.portal.portal_leaves_tab.s12', "الحالة")}</th>
+                        <th style={{ padding: '10px 12px' }}>{t('hr.portal.portal_leaves_tab.s13', "ملاحظات الإدارة")}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -107,10 +109,10 @@ export function PortalLeavesTab({ leavesData, onRequestLeave }: PortalLeavesTabP
                               {r.leaveTypeName}
                             </td>
                             <td style={{ padding: '12px', color: '#334155' }}>
-                              {r.startDate} إلى {r.endDate}
+                              {r.startDate} {t('hr.portal.portal_leaves_tab.s14', "إلى")} {r.endDate}
                             </td>
                             <td style={{ padding: '12px', fontWeight: 800, color: '#170e5e' }}>
-                              {r.daysCount} يوم
+                              {r.daysCount} {t('hr.portal.portal_leaves_tab.s15', "يوم")}
                             </td>
                             <td style={{ padding: '12px', color: '#64748b' }}>{r.reason || '-'}</td>
                             <td style={{ padding: '12px' }}>
@@ -125,7 +127,7 @@ export function PortalLeavesTab({ leavesData, onRequestLeave }: PortalLeavesTabP
                                   border: `1px solid ${isApproved ? '#bbf7d0' : isRejected ? '#fecaca' : '#fde68a'}`,
                                 }}
                               >
-                                {isApproved ? 'معتمدة' : isRejected ? 'مرفوضة' : 'قيد المراجعة'}
+                                {isApproved ? t('hr.portal.portal_leaves_tab.s16', "معتمدة") : isRejected ? t('hr.portal.portal_leaves_tab.s17', "مرفوضة") : t('hr.portal.portal_leaves_tab.s18', "قيد المراجعة")}
                               </span>
                             </td>
                             <td style={{ padding: '12px', color: '#64748b' }}>{r.decisionNotes || '-'}</td>

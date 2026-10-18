@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { useCreateShipmentMutation } from './api/shipments.api';
@@ -10,6 +11,7 @@ interface NewShipmentDialogProps {
 }
 
 export function NewShipmentDialog({ open, onClose }: NewShipmentDialogProps) {
+  const { t } = useTranslation();
   const [containerNumber, setContainerNumber] = useState('');
   const [arrivalDate, setArrivalDate] = useState('');
   const [supplierId, setSupplierId] = useState('');
@@ -46,15 +48,15 @@ export function NewShipmentDialog({ open, onClose }: NewShipmentDialogProps) {
     <StandardDialog
       open={open}
       onClose={onClose}
-      title="إضافة حاوية شحن جديدة"
-      subtitle="تسجيل بيانات الحاوية المستوردة وربطها بالمصنع ورقم بوليصة الشحن وتواريخ الإبحار والوصول."
+      title={t('import_sales.new_shipment_dialog.s0', "إضافة حاوية شحن جديدة")}
+      subtitle={t('import_sales.new_shipment_dialog.s1', "تسجيل بيانات الحاوية المستوردة وربطها بالمصنع ورقم بوليصة الشحن وتواريخ الإبحار والوصول.")}
       width="min(580px, 95vw)"
       footerActions={
         <StandardDialogFooter
           onCancel={onClose}
           onSubmit={handleSubmit}
-          submitText={createMutation.isPending ? 'جاري الإضافة...' : 'إضافة الحاوية'}
-          cancelText="إلغاء"
+          submitText={createMutation.isPending ? t('import_sales.new_shipment_dialog.s2', "جاري الإضافة...") : t('import_sales.new_shipment_dialog.s3', "إضافة الحاوية")}
+          cancelText={t('import_sales.new_shipment_dialog.s4', "إلغاء")}
           isSubmitting={createMutation.isPending}
         />
       }
@@ -63,14 +65,14 @@ export function NewShipmentDialog({ open, onClose }: NewShipmentDialogProps) {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '14px' }}>
           <div>
             <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 700, color: '#1e293b', marginBottom: '6px' }}>
-              رقم الحاوية <span style={{ color: '#ef4444' }}>*</span>
+              {t('import_sales.new_shipment_dialog.s5', "رقم الحاوية")} <span style={{ color: '#ef4444' }}>*</span>
             </label>
             <input
               type="text"
               required
               value={containerNumber}
               onChange={(e) => setContainerNumber(e.target.value)}
-              placeholder="مثال: MSCU1234567"
+              placeholder={t('import_sales.new_shipment_dialog.s6', "مثال: MSCU1234567")}
               style={{
                 width: '100%',
                 height: '38px',
@@ -88,7 +90,7 @@ export function NewShipmentDialog({ open, onClose }: NewShipmentDialogProps) {
 
           <div>
             <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 700, color: '#1e293b', marginBottom: '6px' }}>
-              المصنع / المورد الأجنبي
+              {t('import_sales.new_shipment_dialog.s7', "المصنع / المورد الأجنبي")}
             </label>
             <select
               value={supplierId}
@@ -106,7 +108,7 @@ export function NewShipmentDialog({ open, onClose }: NewShipmentDialogProps) {
                 outline: 'none',
               }}
             >
-              <option value="">-- اختر المورد / المصنع --</option>
+              <option value="">{t('import_sales.new_shipment_dialog.s8', "-- اختر المورد / المصنع --")}</option>
               {suppliersData?.suppliers?.map((sup) => (
                 <option key={sup.id} value={sup.id}>
                   {sup.name}
@@ -117,13 +119,13 @@ export function NewShipmentDialog({ open, onClose }: NewShipmentDialogProps) {
 
           <div>
             <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 700, color: '#1e293b', marginBottom: '6px' }}>
-              رقم بوليصة الشحن (B/L)
+              {t('import_sales.new_shipment_dialog.s9', "رقم بوليصة الشحن (B/L)")}
             </label>
             <input
               type="text"
               value={billOfLading}
               onChange={(e) => setBillOfLading(e.target.value)}
-              placeholder="مثال: BL-12345"
+              placeholder={t('import_sales.new_shipment_dialog.s10', "مثال: BL-12345")}
               style={{
                 width: '100%',
                 height: '38px',
@@ -141,7 +143,7 @@ export function NewShipmentDialog({ open, onClose }: NewShipmentDialogProps) {
 
           <div>
             <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 700, color: '#1e293b', marginBottom: '6px' }}>
-              تاريخ الشحن (مغادرة الميناء)
+              {t('import_sales.new_shipment_dialog.s11', "تاريخ الشحن (مغادرة الميناء)")}
             </label>
             <input
               type="date"
@@ -164,7 +166,7 @@ export function NewShipmentDialog({ open, onClose }: NewShipmentDialogProps) {
 
           <div style={{ gridColumn: '1 / -1' }}>
             <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 700, color: '#1e293b', marginBottom: '6px' }}>
-              تاريخ الوصول المتوقع إلى الميناء / المخزن
+              {t('import_sales.new_shipment_dialog.s12', "تاريخ الوصول المتوقع إلى الميناء / المخزن")}
             </label>
             <input
               type="date"

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/shared/ui/button';
@@ -34,6 +35,7 @@ export const DriverTopBar: React.FC<DriverTopBarProps> = ({
   onSwitchTenant,
   onLogout,
 }) => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
 
   return (
@@ -56,7 +58,7 @@ export const DriverTopBar: React.FC<DriverTopBarProps> = ({
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#1e1b4b' }}>
             <SmartphoneIcon size={18} color="#1e1b4b" />
             <div>
-              <strong>تثبيت التطبيق على الموبايل:</strong> شاشة كاملة وسرعة وصول بدون متصفح.
+              <strong>{t('delivery_reps.driver_top_bar.s0', "تثبيت التطبيق على الموبايل:")}</strong> {t('delivery_reps.driver_top_bar.s1', "شاشة كاملة وسرعة وصول بدون متصفح.")}
             </div>
           </div>
           <button
@@ -74,7 +76,7 @@ export const DriverTopBar: React.FC<DriverTopBarProps> = ({
               whiteSpace: 'nowrap',
             }}
           >
-            تثبيت الآن
+            {t('delivery_reps.driver_top_bar.s2', "تثبيت الآن")}
           </button>
         </div>
       )}
@@ -97,7 +99,7 @@ export const DriverTopBar: React.FC<DriverTopBarProps> = ({
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#92400e' }}>
             <PackageIcon size={18} color="#92400e" />
             <div>
-              <strong>شحنات بانتظار المزامنة:</strong> لديك {offlineQueueCount} شحنة سُلمت بدون نت.
+              <strong>{t('delivery_reps.driver_top_bar.s3', "شحنات بانتظار المزامنة:")}</strong> {t('delivery_reps.driver_top_bar.s4', "لديك")} {offlineQueueCount} {t('delivery_reps.driver_top_bar.s5', "شحنة سُلمت بدون نت.")}
             </div>
           </div>
           <button
@@ -116,7 +118,7 @@ export const DriverTopBar: React.FC<DriverTopBarProps> = ({
               whiteSpace: 'nowrap',
             }}
           >
-            {isSyncingOffline ? 'جاري الرفع...' : 'مزامنة الآن'}
+            {isSyncingOffline ? t('delivery_reps.driver_top_bar.s6', "جاري الرفع...") : t('delivery_reps.driver_top_bar.s7', "مزامنة الآن")}
           </button>
         </div>
       )}
@@ -152,7 +154,7 @@ export const DriverTopBar: React.FC<DriverTopBarProps> = ({
           </div>
           <div>
             <div style={{ fontSize: '14px', fontWeight: 900, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span>أهلاً، كابتن {driverUser.name}</span>
+              <span>{t('delivery_reps.driver_top_bar.s8', "أهلاً، كابتن")} {driverUser.name}</span>
               {driverUser.tenantName && (
                 <span
                   style={{
@@ -192,9 +194,9 @@ export const DriverTopBar: React.FC<DriverTopBarProps> = ({
               alignItems: 'center',
               gap: '4px',
             }}
-            title="العودة لمركز البوابات"
+            title={t('delivery_reps.driver_top_bar.s9', "العودة لمركز البوابات")}
           >
-            <span>مركز البوابات</span>
+            <span>{t('delivery_reps.driver_top_bar.s10', "مركز البوابات")}</span>
           </Link>
           <button
             type="button"
@@ -212,10 +214,10 @@ export const DriverTopBar: React.FC<DriverTopBarProps> = ({
               alignItems: 'center',
               gap: '4px',
             }}
-            title="الانتقال إلى شاشة مبيعات سيارة الفان الميدانية"
+            title={t('delivery_reps.driver_top_bar.s11', "الانتقال إلى شاشة مبيعات سيارة الفان الميدانية")}
           >
             <TruckIcon size={14} color="#047857" />
-            <span>مبيعات الفان</span>
+            <span>{t('delivery_reps.driver_top_bar.s12', "مبيعات الفان")}</span>
           </button>
           <Button
             variant="secondary"
@@ -229,7 +231,7 @@ export const DriverTopBar: React.FC<DriverTopBarProps> = ({
               className={isFetching ? 'spin-animation' : undefined}
               style={isFetching ? { animation: 'spin 0.75s linear infinite' } : undefined}
             />
-            <span>{isFetching ? 'جارٍ التحديث...' : 'تحديث'}</span>
+            <span>{isFetching ? t('delivery_reps.driver_top_bar.s13', "جارٍ التحديث...") : t('delivery_reps.driver_top_bar.s14', "تحديث")}</span>
           </Button>
           <button
             type="button"
@@ -247,9 +249,9 @@ export const DriverTopBar: React.FC<DriverTopBarProps> = ({
               alignItems: 'center',
               gap: '4px',
             }}
-            title="التبديل إلى منشأة أخرى"
+            title={t('delivery_reps.driver_top_bar.s15', "التبديل إلى منشأة أخرى")}
           >
-            <span>تبديل المنشأة</span>
+            <span>{t('delivery_reps.driver_top_bar.s16', "تبديل المنشأة")}</span>
           </button>
           <button
             type="button"
@@ -265,7 +267,7 @@ export const DriverTopBar: React.FC<DriverTopBarProps> = ({
               cursor: 'pointer',
             }}
           >
-            خروج
+            {t('delivery_reps.driver_top_bar.s17', "خروج")}
           </button>
         </div>
       </div>

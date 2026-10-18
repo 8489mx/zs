@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { formatCurrency } from '@/lib/format';
 import type { EmployeePayslipItem } from '../../api/employee-portal.api';
 import { ReceiptIcon } from '@/shared/components/icons/AppIcons';
@@ -8,15 +9,16 @@ export interface PortalPayslipsTabProps {
 }
 
 export function PortalPayslipsTab({ payslips, onSelectPayslip }: PortalPayslipsTabProps) {
+  const { t } = useTranslation();
   return (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div>
                 <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 900, color: '#0f172a' }}>
-                  مسيرات وقسائم الرواتب الشهرية
+                  {t('hr.portal.portal_payslips_tab.s0', "مسيرات وقسائم الرواتب الشهرية")}
                 </h2>
                 <p style={{ margin: '4px 0 0', fontSize: '13px', color: '#64748b' }}>
-                  استعراض تفصيلي لصافي الراتب، البدلات، المكافآت، والاستقطاعات لكل شهر معتمد.
+                  {t('hr.portal.portal_payslips_tab.s1', "استعراض تفصيلي لصافي الراتب، البدلات، المكافآت، والاستقطاعات لكل شهر معتمد.")}
                 </p>
               </div>
             </div>
@@ -34,10 +36,10 @@ export function PortalPayslipsTab({ payslips, onSelectPayslip }: PortalPayslipsT
               >
                 <ReceiptIcon size={36} color="#94a3b8" />
                 <div style={{ fontSize: '16px', fontWeight: 700, marginTop: '12px', color: '#0f172a' }}>
-                  لا توجد مسيرات رواتب معتمدة بعد
+                  {t('hr.portal.portal_payslips_tab.s2', "لا توجد مسيرات رواتب معتمدة بعد")}
                 </div>
                 <div style={{ fontSize: '13px', marginTop: '4px' }}>
-                  سيتم إدراج قسيمة الراتب هنا فور اعتماد ومراجعة مسير الرواتب الشهري من قسم الحسابات.
+                  {t('hr.portal.portal_payslips_tab.s3', "سيتم إدراج قسيمة الراتب هنا فور اعتماد ومراجعة مسير الرواتب الشهري من قسم الحسابات.")}
                 </div>
               </div>
             ) : (
@@ -78,16 +80,16 @@ export function PortalPayslipsTab({ payslips, onSelectPayslip }: PortalPayslipsT
                       </div>
                       <div>
                         <div style={{ fontSize: '16px', fontWeight: 800, color: '#0f172a' }}>
-                          راتب شهر: {slip.period}
+                          {t('hr.portal.portal_payslips_tab.s4', "راتب شهر:")} {slip.period}
                         </div>
                         <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>
-                          الأساسي: {formatCurrency(slip.baseSalary)} • البدلات: +{formatCurrency(slip.allowances)} • الخصومات: -{formatCurrency(slip.deductions + slip.loanDeductions)}
+                          {t('hr.portal.portal_payslips_tab.s5', "الأساسي:")} {formatCurrency(slip.baseSalary)} {t('hr.portal.portal_payslips_tab.s6', "• البدلات: +")}{formatCurrency(slip.allowances)} {t('hr.portal.portal_payslips_tab.s7', "• الخصومات: -")}{formatCurrency(slip.deductions + slip.loanDeductions)}
                         </div>
                       </div>
                     </div>
 
                     <div className="portal-payslip-total" style={{ textAlign: 'left' }}>
-                      <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 700 }}>صافي الراتب المستحق</span>
+                      <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 700 }}>{t('hr.portal.portal_payslips_tab.s8', "صافي الراتب المستحق")}</span>
                       <div style={{ fontSize: '20px', fontWeight: 900, color: '#16a34a' }}>
                         {formatCurrency(slip.netPay)}
                       </div>

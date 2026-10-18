@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 import { XIcon } from '@/shared/components/icons/AppIcons';
 
@@ -16,6 +17,7 @@ export const TenantCredentialsHero: React.FC<TenantCredentialsHeroProps> = ({
   onClose,
   onCopy,
 }) => {
+  const { t } = useTranslation();
   if (!result) return null;
 
   return (
@@ -31,10 +33,10 @@ export const TenantCredentialsHero: React.FC<TenantCredentialsHeroProps> = ({
             </div>
             <div>
               <div style={{ fontSize: '15px', fontWeight: 900, color: '#0f172a' }}>
-                تمت إعادة تعيين كلمة مرور المالك بنجاح
+                {t('saas_admin.tenant_credentials_hero.s0', "تمت إعادة تعيين كلمة مرور المالك بنجاح")}
               </div>
               <div style={{ fontSize: '12.5px', color: '#64748b', marginTop: '2px' }}>
-                المنشأة: <strong style={{ color: '#0f172a' }}>{result.tenantName}</strong>
+                {t('saas_admin.tenant_credentials_hero.s1', "المنشأة:")} <strong style={{ color: '#0f172a' }}>{result.tenantName}</strong>
               </div>
             </div>
           </div>
@@ -45,14 +47,14 @@ export const TenantCredentialsHero: React.FC<TenantCredentialsHeroProps> = ({
             style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
           >
             <XIcon size={14} />
-            <span>إغلاق</span>
+            <span>{t('saas_admin.tenant_credentials_hero.s2', "إغلاق")}</span>
           </button>
         </div>
       </div>
 
       <div className="saas-credentials-grid">
         <div className="saas-credential-box">
-          <span className="saas-credential-label">اسم المستخدم</span>
+          <span className="saas-credential-label">{t('saas_admin.tenant_credentials_hero.s3', "اسم المستخدم")}</span>
           <div className="saas-credential-content">
             <code className="saas-credential-code">{result.username}</code>
             <button
@@ -60,13 +62,13 @@ export const TenantCredentialsHero: React.FC<TenantCredentialsHeroProps> = ({
               className="saas-copy-btn"
               onClick={() => onCopy(result.username)}
             >
-              نسخ
+              {t('saas_admin.tenant_credentials_hero.s4', "نسخ")}
             </button>
           </div>
         </div>
 
         <div className="saas-credential-box">
-          <span className="saas-credential-label">كلمة المرور الجديدة</span>
+          <span className="saas-credential-label">{t('saas_admin.tenant_credentials_hero.s5', "كلمة المرور الجديدة")}</span>
           <div className="saas-credential-content">
             <code className="saas-credential-code password-highlight">{result.temporaryPassword}</code>
             <button
@@ -74,7 +76,7 @@ export const TenantCredentialsHero: React.FC<TenantCredentialsHeroProps> = ({
               className="saas-copy-btn"
               onClick={() => onCopy(result.temporaryPassword)}
             >
-              نسخ كلمة المرور
+              {t('saas_admin.tenant_credentials_hero.s6', "نسخ كلمة المرور")}
             </button>
           </div>
         </div>

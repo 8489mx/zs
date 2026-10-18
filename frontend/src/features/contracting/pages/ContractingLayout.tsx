@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { PageHeader } from '@/shared/components/page-header';
@@ -54,6 +55,7 @@ const KeepAliveTabPane = React.memo(
 );
 
 function ContractingLayoutContent({ children }: { children?: React.ReactNode }) {
+  const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -186,8 +188,8 @@ function ContractingLayoutContent({ children }: { children?: React.ReactNode }) 
       >
         {/* هيدر الصفحة القياسي الموحد */}
         <PageHeader
-          title="المقاولات والمشاريع"
-          description="إدارة العقود وجداول الكميات (SOV/BOQ)، الأوامر التغييرية، مستخلصات الدفع (AIA G702/G703)، واليوميات الميدانية."
+          title={t('contracting.contracting_layout.s0', "المقاولات والمشاريع")}
+          description={t('contracting.contracting_layout.s1', "إدارة العقود وجداول الكميات (SOV/BOQ)، الأوامر التغييرية، مستخلصات الدفع (AIA G702/G703)، واليوميات الميدانية.")}
           actions={
             <div className="actions compact-actions" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
               <button
@@ -213,7 +215,7 @@ function ContractingLayoutContent({ children }: { children?: React.ReactNode }) 
                 }}
               >
                 <AppIcons.Sliders size={15} />
-                <span>دراسة وتسعير عطاء جديد</span>
+                <span>{t('contracting.contracting_layout.s2', "دراسة وتسعير عطاء جديد")}</span>
               </button>
               <button
                 type="button"
@@ -235,7 +237,7 @@ function ContractingLayoutContent({ children }: { children?: React.ReactNode }) 
                 }}
               >
                 <AppIcons.Layers size={15} />
-                <span>خريطة مسار المشروع</span>
+                <span>{t('contracting.contracting_layout.s3', "خريطة مسار المشروع")}</span>
               </button>
               <button
                 type="button"
@@ -258,20 +260,20 @@ function ContractingLayoutContent({ children }: { children?: React.ReactNode }) 
                 }}
               >
                 <AppIcons.Plus size={15} />
-                <span>مشروع إنشائي جديد</span>
+                <span>{t('contracting.contracting_layout.s4', "مشروع إنشائي جديد")}</span>
               </button>
               <button
                 type="button"
                 onClick={async () => {
                   try {
                     await reloadProjects();
-                    toast.success('تم تحديث بيانات ومؤشرات المشاريع بنجاح', undefined, 2000);
+                    toast.success(t('contracting.contracting_layout.s5', "تم تحديث بيانات ومؤشرات المشاريع بنجاح"), undefined, 2000);
                   } catch (err) {
-                    toast.error('فشل تحديث بيانات المشاريع');
+                    toast.error(t('contracting.contracting_layout.s6', "فشل تحديث بيانات المشاريع"));
                   }
                 }}
                 disabled={loading}
-                title="تحديث بيانات المشاريع والمؤشرات"
+                title={t('contracting.contracting_layout.s7', "تحديث بيانات المشاريع والمؤشرات")}
                 style={{
                   height: '36px',
                   padding: '0 14px',
@@ -295,7 +297,7 @@ function ContractingLayoutContent({ children }: { children?: React.ReactNode }) 
                     animation: loading ? 'spin 0.7s linear infinite' : 'none',
                   }}
                 />
-                <span>{loading ? 'جارٍ التحديث...' : 'تحديث'}</span>
+                <span>{loading ? t('contracting.contracting_layout.s8', "جارٍ التحديث...") : t('contracting.contracting_layout.s9', "تحديث")}</span>
               </button>
             </div>
           }
@@ -305,9 +307,9 @@ function ContractingLayoutContent({ children }: { children?: React.ReactNode }) 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '14px', marginBottom: '16px' }}>
           <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
             <div>
-              <div style={{ fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#64748b' }}>إجمالي المشاريع الإنشائية</div>
+              <div style={{ fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#64748b' }}>{t('contracting.contracting_layout.s10', "إجمالي المشاريع الإنشائية")}</div>
               <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#0f172a', marginTop: '4px' }}>
-                {projects.length} <span style={{ fontSize: 'var(--font-micro)', fontWeight: 600, color: '#64748b' }}>مشروع</span>
+                {projects.length} <span style={{ fontSize: 'var(--font-micro)', fontWeight: 600, color: '#64748b' }}>{t('contracting.contracting_layout.s11', "مشروع")}</span>
               </div>
             </div>
             <div style={{ width: '42px', height: '42px', borderRadius: '10px', background: '#f8fafc', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#334155' }}>
@@ -317,7 +319,7 @@ function ContractingLayoutContent({ children }: { children?: React.ReactNode }) 
 
           <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
             <div>
-              <div style={{ fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#64748b' }}>إجمالي القيمة التعاقدية الكلية</div>
+              <div style={{ fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#64748b' }}>{t('contracting.contracting_layout.s12', "إجمالي القيمة التعاقدية الكلية")}</div>
               <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#0f172a', marginTop: '4px' }}>
                 {Math.round(Number(kpis?.totalContractValue || 0)).toLocaleString('en-US')}
               </div>
@@ -329,7 +331,7 @@ function ContractingLayoutContent({ children }: { children?: React.ReactNode }) 
 
           <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
             <div>
-              <div style={{ fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#64748b' }}>المستخلصات المعتمدة (Invoiced)</div>
+              <div style={{ fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#64748b' }}>{t('contracting.contracting_layout.s13', "المستخلصات المعتمدة (Invoiced)")}</div>
               <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#0f766e', marginTop: '4px' }}>
                 {Math.round(Number(kpis?.totalBilledToDate || 0)).toLocaleString('en-US')}
               </div>
@@ -341,7 +343,7 @@ function ContractingLayoutContent({ children }: { children?: React.ReactNode }) 
 
           <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
             <div>
-              <div style={{ fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#64748b' }}>ضمان حسن التنفيذ المحتجز</div>
+              <div style={{ fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#64748b' }}>{t('contracting.contracting_layout.s14', "ضمان حسن التنفيذ المحتجز")}</div>
               <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#a16207', marginTop: '4px' }}>
                 {Math.round(Number(kpis?.totalRetentionsHeld || 0)).toLocaleString('en-US')}
               </div>
@@ -381,11 +383,11 @@ function ContractingLayoutContent({ children }: { children?: React.ReactNode }) 
             {projects.length === 0 ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                 <span style={{ fontSize: 'var(--font-body)', fontWeight: 700, color: '#1e293b' }}>
-                  المشروع النشط:
+                  {t('contracting.contracting_layout.s15', "المشروع النشط:")}
                 </span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <span style={{ fontSize: 'var(--font-subtitle)', color: '#64748b' }}>
-                    لا توجد مشاريع مسجلة بعد
+                    {t('contracting.contracting_layout.s16', "لا توجد مشاريع مسجلة بعد")}
                   </span>
                   <button
                     type="button"
@@ -406,14 +408,14 @@ function ContractingLayoutContent({ children }: { children?: React.ReactNode }) 
                     }}
                   >
                     <AppIcons.Plus size={13} />
-                    <span>تأسيس أول مشروع الآن</span>
+                    <span>{t('contracting.contracting_layout.s17', "تأسيس أول مشروع الآن")}</span>
                   </button>
                 </div>
               </div>
             ) : (
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: '340px' }}>
                 <span style={{ fontSize: 'var(--font-body)', fontWeight: 700, color: '#1e293b', whiteSpace: 'nowrap' }}>
-                  المشروع أو العطاء النشط:
+                  {t('contracting.contracting_layout.s18', "المشروع أو العطاء النشط:")}
                 </span>
                 <div style={{ minWidth: '300px', flex: 1 }}>
                   <CustomSelect
@@ -421,7 +423,7 @@ function ContractingLayoutContent({ children }: { children?: React.ReactNode }) 
                     options={projects.map((p) => ({
                       value: p.id,
                       label: `[${p.code}] ${p.name}`,
-                      hint: `${p.status === 'planning' ? 'عطاء قيد الدراسة' : 'مشروع ساري'} - ${p.clientName || 'العميل'}`,
+                      hint: `${p.status === 'planning' ? t('contracting.contracting_layout.s19', "عطاء قيد الدراسة") : t('contracting.contracting_layout.s20', "مشروع ساري")} - ${p.clientName || t('contracting.contracting_layout.s21', "العميل")}`,
                     }))}
                     onChange={(val) => setSelectedProjectId(val || null)}
                   />
@@ -431,16 +433,16 @@ function ContractingLayoutContent({ children }: { children?: React.ReactNode }) 
             {activeProject && (
               <div style={{ display: 'flex', gap: '16px', fontSize: 'var(--font-micro)', color: '#64748b', flexWrap: 'wrap' }}>
                 <span>
-                  القيمة التعاقدية المعدلة:{' '}
+                  {t('contracting.contracting_layout.s22', "القيمة التعاقدية المعدلة:")}{' '}
                   <strong style={{ color: '#0f172a' }}>
                     {Math.round(Number(activeProject.revisedContractValue || activeProject.contractValue || 0)).toLocaleString('en-US')}
                   </strong>
                 </span>
                 <span>
-                  نسبة الحجز: <strong style={{ color: '#0f172a' }}>{activeProject.retentionPercent}%</strong>
+                  {t('contracting.contracting_layout.s23', "نسبة الحجز:")} <strong style={{ color: '#0f172a' }}>{activeProject.retentionPercent}%</strong>
                 </span>
                 <span>
-                  مدير المشروع: <strong style={{ color: '#0f172a' }}>{activeProject.projectManager || 'غير محدد'}</strong>
+                  {t('contracting.contracting_layout.s24', "مدير المشروع:")} <strong style={{ color: '#0f172a' }}>{activeProject.projectManager || t('contracting.contracting_layout.s25', "غير محدد")}</strong>
                 </span>
               </div>
             )}

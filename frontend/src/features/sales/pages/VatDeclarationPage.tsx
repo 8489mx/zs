@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/shared/ui/button';
@@ -12,6 +13,7 @@ import { VatPurchasesTable } from '../components/vat-declaration/VatPurchasesTab
 import { VatSummaryBox } from '../components/vat-declaration/VatSummaryBox';
 
 export function VatDeclarationPage() {
+  const { t } = useTranslation();
   const [country, setCountry] = useState<'EG' | 'SA'>('EG');
   const [periodPreset, setPeriodPreset] = useState<PeriodPreset>('current_month');
   const [customFrom, setCustomFrom] = useState(new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0]);
@@ -96,16 +98,16 @@ export function VatDeclarationPage() {
     <div className="page-stack page-shell vat-declaration-workspace" dir="rtl">
       <main className="document-prototype-column" style={{ paddingBottom: '32px' }}>
         <PageHeader
-          title="الإقرار الضريبي الرسمي (VAT Declaration)"
-          description="توليد واحتساب أوعية وضريبة القيمة المضافة مطابقة لـ نموذج 10 المصري وهيئة الزكاة والضريبة والجمارك ZATCA."
-          badge={<span className="nav-pill">{country === 'EG' ? 'مصر نموذج 10' : 'السعودية ZATCA'}</span>}
+          title={t('sales.vat_declaration_page.s0', "الإقرار الضريبي الرسمي (VAT Declaration)")}
+          description={t('sales.vat_declaration_page.s1', "توليد واحتساب أوعية وضريبة القيمة المضافة مطابقة لـ نموذج 10 المصري وهيئة الزكاة والضريبة والجمارك ZATCA.")}
+          badge={<span className="nav-pill">{country === 'EG' ? t('sales.vat_declaration_page.s2', "مصر نموذج 10") : t('sales.vat_declaration_page.s3', "السعودية ZATCA")}</span>}
           actions={
             <div className="actions compact-actions">
               <Button
                 variant="secondary"
                 onClick={copyAllSummary}
               >
-                {copiedKey === 'all_summary' ? 'تم نسخ الملخص' : 'نسخ الأرقام للتقديم'}
+                {copiedKey === 'all_summary' ? t('sales.vat_declaration_page.s4', "تم نسخ الملخص") : t('sales.vat_declaration_page.s5', "نسخ الأرقام للتقديم")}
               </Button>
               <Button
                 variant="primary"
@@ -113,7 +115,7 @@ export function VatDeclarationPage() {
                 style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
               >
                 <PrinterIcon size={16} color="#ffffff" />
-                <span>طباعة الإقرار (A4)</span>
+                <span>{t('sales.vat_declaration_page.s6', "طباعة الإقرار (A4)")}</span>
               </Button>
             </div>
           }
@@ -149,19 +151,19 @@ export function VatDeclarationPage() {
               <div>
                 <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#0f172a' }}>
                   {country === 'EG'
-                    ? 'جمهورية مصر العربية - مصلحة الضرائب المصرية'
-                    : 'المملكة العربية السعودية - هيئة الزكاة والضريبة والجمارك (ZATCA)'}
+                    ? t('sales.vat_declaration_page.s7', "جمهورية مصر العربية - مصلحة الضرائب المصرية")
+                    : t('sales.vat_declaration_page.s8', "المملكة العربية السعودية - هيئة الزكاة والضريبة والجمارك (ZATCA)")}
                 </div>
                 <div style={{ fontSize: '14px', fontWeight: '600', color: '#475569', marginTop: '2px' }}>
                   {country === 'EG'
-                    ? 'إقرار ضريبة القيمة المضافة (نموذج رقم 10 ض.ق.م)'
-                    : 'إقرار ضريبة القيمة المضافة الدوري'}
+                    ? t('sales.vat_declaration_page.s9', "إقرار ضريبة القيمة المضافة (نموذج رقم 10 ض.ق.م)")
+                    : t('sales.vat_declaration_page.s10', "إقرار ضريبة القيمة المضافة الدوري")}
                 </div>
               </div>
               <div style={{ textAlign: 'left', fontSize: '13px', color: '#475569', lineHeight: '1.6' }}>
-                <div><strong>المنشأة:</strong> {data?.entity.business_name || '-'}</div>
-                <div><strong>الرقم الضريبي:</strong> <span style={{ fontFamily: 'monospace', fontWeight: 'bold' }}>{data?.entity.tax_id || '-'}</span></div>
-                <div><strong>الفترة الضريبية:</strong> من {data?.period.from} إلى {data?.period.to}</div>
+                <div><strong>{t('sales.vat_declaration_page.s11', "المنشأة:")}</strong> {data?.entity.business_name || '-'}</div>
+                <div><strong>{t('sales.vat_declaration_page.s12', "الرقم الضريبي:")}</strong> <span style={{ fontFamily: 'monospace', fontWeight: 'bold' }}>{data?.entity.tax_id || '-'}</span></div>
+                <div><strong>{t('sales.vat_declaration_page.s13', "الفترة الضريبية:")}</strong> {t('sales.vat_declaration_page.s14', "من")} {data?.period.from} {t('sales.vat_declaration_page.s15', "إلى")} {data?.period.to}</div>
               </div>
             </div>
           </div>

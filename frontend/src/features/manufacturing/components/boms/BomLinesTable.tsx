@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { getGlobalCurrencySymbol } from '@/lib/currencies';
 import React from 'react';
@@ -28,20 +29,21 @@ export const BomLinesTable: React.FC<BomLinesTableProps> = ({
   onSelectComponent,
   onQuickModalOpen,
 }) => {
+  const { t } = useTranslation();
   return (
-    <FormSection title="المكونات (المواد الخام)">
+    <FormSection title={t('manufacturing.boms.bom_lines_table.s0', "المكونات (المواد الخام)")}>
       {/* Desktop Table */}
       <div className="purchase-prototype-desktop-table">
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right' }}>
             <thead>
               <tr style={{ borderBottom: '2px solid #e5e7eb' }}>
-                <th style={{ padding: '12px 8px', color: '#6b7280', fontWeight: '500' }}>المكون</th>
-                <th style={{ padding: '12px 8px', color: '#6b7280', fontWeight: '500', width: '120px' }}>الكمية</th>
-                <th style={{ padding: '12px 8px', color: '#6b7280', fontWeight: '500', width: '120px' }}>نسبة الهالك (%)</th>
-                <th style={{ padding: '12px 8px', color: '#6b7280', fontWeight: '500', width: '150px' }}>الوحدة</th>
-                <th style={{ padding: '12px 8px', color: '#6b7280', fontWeight: '500', width: '150px' }}>التكلفة (للوحدة)</th>
-                <th style={{ padding: '12px 8px', color: '#6b7280', fontWeight: '500', width: '150px' }}>الإجمالي</th>
+                <th style={{ padding: '12px 8px', color: '#6b7280', fontWeight: '500' }}>{t('manufacturing.boms.bom_lines_table.s1', "المكون")}</th>
+                <th style={{ padding: '12px 8px', color: '#6b7280', fontWeight: '500', width: '120px' }}>{t('manufacturing.boms.bom_lines_table.s2', "الكمية")}</th>
+                <th style={{ padding: '12px 8px', color: '#6b7280', fontWeight: '500', width: '120px' }}>{t('manufacturing.boms.bom_lines_table.s3', "نسبة الهالك (%)")}</th>
+                <th style={{ padding: '12px 8px', color: '#6b7280', fontWeight: '500', width: '150px' }}>{t('manufacturing.boms.bom_lines_table.s4', "الوحدة")}</th>
+                <th style={{ padding: '12px 8px', color: '#6b7280', fontWeight: '500', width: '150px' }}>{t('manufacturing.boms.bom_lines_table.s5', "التكلفة (للوحدة)")}</th>
+                <th style={{ padding: '12px 8px', color: '#6b7280', fontWeight: '500', width: '150px' }}>{t('manufacturing.boms.bom_lines_table.s6', "الإجمالي")}</th>
                 <th style={{ padding: '12px 8px', width: '50px' }}></th>
               </tr>
             </thead>
@@ -61,13 +63,13 @@ export const BomLinesTable: React.FC<BomLinesTableProps> = ({
                       onCreate={onQuickModalOpen ? ((q) => onQuickModalOpen(q, line.id)) : undefined}
                       createLabel={(q) => `إضافة مادة خام جديدة: "${q}"`}
                       onSelect={(comp) => onSelectComponent(line.id, comp)}
-                      placeholder="ابحث عن مكون أو اكتب اسماً جديداً..."
+                      placeholder={t('manufacturing.boms.bom_lines_table.s7', "ابحث عن مكون أو اكتب اسماً جديداً...")}
                       className="purchase-prototype-inline-combobox"
                       inputClassName="purchase-prototype-field-input purchase-prototype-combobox-input purchase-prototype-combobox-input-inline"
                     />
                     {line.query && !line.componentId && (
                       <div style={{ color: '#ef4444', fontSize: '12px', marginTop: '4px' }}>
-                        هذا المكون غير مسجل بالأسعار!
+                        {t('manufacturing.boms.bom_lines_table.s8', "هذا المكون غير مسجل بالأسعار!")}
                       </div>
                     )}
                   </td>
@@ -119,7 +121,7 @@ export const BomLinesTable: React.FC<BomLinesTableProps> = ({
                       onChange={(e) => onUpdateLine(line.id, 'expectedCost', Number(e.target.value))}
                       style={{ width: '100%', padding: '8px', border: '1px solid #d1d5db', borderRadius: '4px', backgroundColor: '#f9fafb' }}
                       readOnly
-                      title="يتم حسابه تلقائياً بناءً على سعر الوحدة الأساسية"
+                      title={t('manufacturing.boms.bom_lines_table.s9', "يتم حسابه تلقائياً بناءً على سعر الوحدة الأساسية")}
                     />
                   </td>
                   <td style={{ padding: '8px', fontWeight: '500' }}>
@@ -130,7 +132,7 @@ export const BomLinesTable: React.FC<BomLinesTableProps> = ({
                       variant="secondary"
                       onClick={() => onRemoveLine(line.id)}
                       style={{ color: '#ef4444', padding: '6px' }}
-                      title="حذف السطر"
+                      title={t('manufacturing.boms.bom_lines_table.s10', "حذف السطر")}
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M3 6h18" />
@@ -156,16 +158,16 @@ export const BomLinesTable: React.FC<BomLinesTableProps> = ({
             <div key={line.id} className="purchase-prototype-item-card">
               <div className="item-card-header">
                 <div className="item-card-badge">
-                  <span className="item-card-num">مكون #{index + 1}</span>
+                  <span className="item-card-num">{t('manufacturing.boms.bom_lines_table.s11', "مكون #")}{index + 1}</span>
                   <span className="item-card-stock-pill stock-ok">
-                    الإجمالي: {totalItemCost.toLocaleString('ar-EG', { maximumFractionDigits: 2 })} {getGlobalCurrencySymbol()}
+                    {t('manufacturing.boms.bom_lines_table.s12', "الإجمالي:")} {totalItemCost.toLocaleString('ar-EG', { maximumFractionDigits: 2 })} {getGlobalCurrencySymbol()}
                   </span>
                 </div>
                 <button
                   type="button"
                   className="item-card-delete-btn"
                   onClick={() => onRemoveLine(line.id)}
-                  title="حذف المكون"
+                  title={t('manufacturing.boms.bom_lines_table.s13', "حذف المكون")}
                 >
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
@@ -174,7 +176,7 @@ export const BomLinesTable: React.FC<BomLinesTableProps> = ({
               </div>
 
               <div className="item-card-field">
-                <Field label="المكون (المادة الخام)">
+                <Field label={t('manufacturing.boms.bom_lines_table.s14', "المكون (المادة الخام)")}>
                   <AsyncSearchableCombobox<ManufacturingComponent>
                     value={line.query}
                     onChange={(q) => onUpdateLine(line.id, 'query', q)}
@@ -187,7 +189,7 @@ export const BomLinesTable: React.FC<BomLinesTableProps> = ({
                     onCreate={onQuickModalOpen ? ((q) => onQuickModalOpen(q, line.id)) : undefined}
                     createLabel={(q) => `إضافة مادة خام جديدة: "${q}"`}
                     onSelect={(comp) => onSelectComponent(line.id, comp)}
-                    placeholder="ابحث عن مكون أو اكتب اسماً جديداً..."
+                    placeholder={t('manufacturing.boms.bom_lines_table.s15', "ابحث عن مكون أو اكتب اسماً جديداً...")}
                     className="purchase-prototype-inline-combobox"
                     inputClassName="purchase-prototype-field-input purchase-prototype-combobox-input purchase-prototype-combobox-input-inline"
                   />
@@ -196,7 +198,7 @@ export const BomLinesTable: React.FC<BomLinesTableProps> = ({
 
               <div className="item-card-row">
                 <div className="item-card-field">
-                  <Field label="الكمية المطلوبة">
+                  <Field label={t('manufacturing.boms.bom_lines_table.s16', "الكمية المطلوبة")}>
                     <input
                       type="number"
                       className="purchase-prototype-field-input"
@@ -210,7 +212,7 @@ export const BomLinesTable: React.FC<BomLinesTableProps> = ({
                 </div>
 
                 <div className="item-card-field">
-                  <Field label="الوحدة">
+                  <Field label={t('manufacturing.boms.bom_lines_table.s17', "الوحدة")}>
                     <select
                       className="purchase-prototype-field-input"
                       value={line.unitName}
@@ -229,7 +231,7 @@ export const BomLinesTable: React.FC<BomLinesTableProps> = ({
 
               <div className="item-card-row">
                 <div className="item-card-field">
-                  <Field label="نسبة الهالك (%)">
+                  <Field label={t('manufacturing.boms.bom_lines_table.s18', "نسبة الهالك (%)")}>
                     <input
                       type="number"
                       className="purchase-prototype-field-input"
@@ -245,7 +247,7 @@ export const BomLinesTable: React.FC<BomLinesTableProps> = ({
                 </div>
 
                 <div className="item-card-field">
-                  <Field label="تكلفة الوحدة">
+                  <Field label={t('manufacturing.boms.bom_lines_table.s19', "تكلفة الوحدة")}>
                     <input
                       type="number"
                       className="purchase-prototype-field-input"
@@ -266,12 +268,12 @@ export const BomLinesTable: React.FC<BomLinesTableProps> = ({
 
       {lines.length === 0 && (
         <div style={{ textAlign: 'center', padding: '24px', color: '#6b7280' }}>
-          لم يتم إضافة أي مكونات. اضغط على "إضافة مكون" للبدء.
+          {t('manufacturing.boms.bom_lines_table.s20', "لم يتم إضافة أي مكونات. اضغط على \"إضافة مكون\" للبدء.")}
         </div>
       )}
       <div style={{ marginTop: '16px' }}>
         <Button type="button" variant="secondary" onClick={onAddLine} className="purchase-prototype-add-line-btn">
-          + إضافة مكون جديد
+          {t('manufacturing.boms.bom_lines_table.s21', "+ إضافة مكون جديد")}
         </Button>
       </div>
     </FormSection>

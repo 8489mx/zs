@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { MaintenanceTicket } from '@/types/domain-models/maintenance';
 import {
@@ -48,19 +49,20 @@ export function MaintenanceTicketsTable({
   getStatusMeta,
   formatDate,
 }: MaintenanceTicketsTableProps) {
+  const { t: __t } = useTranslation();
   return (
     <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.03)' }}>
       <div style={{ overflowX: 'auto' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem', textAlign: 'right' }}>
           <thead>
             <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', fontSize: '0.8rem', fontWeight: 700 }}>
-              <th style={{ padding: '10px 14px', width: '105px' }}>كود الجهاز</th>
-              <th style={{ padding: '10px 14px', width: '160px' }}>العميل / الهاتف</th>
-              <th style={{ padding: '10px 14px', width: '180px' }}>الجهاز / {serialLabel}</th>
-              <th style={{ padding: '10px 14px', minWidth: '140px' }}>العطل المشتكى منه</th>
-              <th style={{ padding: '10px 14px', width: '150px' }}>الحساب المالي</th>
-              <th style={{ padding: '10px 14px', width: '165px' }}>حالة الصيانة</th>
-              <th style={{ padding: '10px 14px', width: '185px', textAlign: 'center' }}>الإجراءات</th>
+              <th style={{ padding: '10px 14px', width: '105px' }}>{__t('maintenance.tickets.maintenance_tickets_table.s0', "كود الجهاز")}</th>
+              <th style={{ padding: '10px 14px', width: '160px' }}>{__t('maintenance.tickets.maintenance_tickets_table.s1', "العميل / الهاتف")}</th>
+              <th style={{ padding: '10px 14px', width: '180px' }}>{__t('maintenance.tickets.maintenance_tickets_table.s2', "الجهاز /")} {serialLabel}</th>
+              <th style={{ padding: '10px 14px', minWidth: '140px' }}>{__t('maintenance.tickets.maintenance_tickets_table.s3', "العطل المشتكى منه")}</th>
+              <th style={{ padding: '10px 14px', width: '150px' }}>{__t('maintenance.tickets.maintenance_tickets_table.s4', "الحساب المالي")}</th>
+              <th style={{ padding: '10px 14px', width: '165px' }}>{__t('maintenance.tickets.maintenance_tickets_table.s5', "حالة الصيانة")}</th>
+              <th style={{ padding: '10px 14px', width: '185px', textAlign: 'center' }}>{__t('maintenance.tickets.maintenance_tickets_table.s6', "الإجراءات")}</th>
             </tr>
           </thead>
           <tbody>
@@ -69,7 +71,7 @@ export function MaintenanceTicketsTable({
                 <td colSpan={7} style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
                   <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontWeight: 600 }}>
                     <ClockIcon size={18} />
-                    <span>جارٍ تحميل سجل تذاكر الصيانة...</span>
+                    <span>{__t('maintenance.tickets.maintenance_tickets_table.s7', "جارٍ تحميل سجل تذاكر الصيانة...")}</span>
                   </div>
                 </td>
               </tr>
@@ -77,7 +79,7 @@ export function MaintenanceTicketsTable({
               <tr>
                 <td colSpan={7} style={{ padding: '30px', textAlign: 'center', color: '#dc2626' }}>
                   <AlertTriangleIcon size={18} />
-                  <span style={{ marginRight: '8px' }}>فشل جلب سجل تذاكر الصيانة. يرجى إعادة المحاولة.</span>
+                  <span style={{ marginRight: '8px' }}>{__t('maintenance.tickets.maintenance_tickets_table.s8', "فشل جلب سجل تذاكر الصيانة. يرجى إعادة المحاولة.")}</span>
                 </td>
               </tr>
             ) : tickets.length === 0 ? (
@@ -85,10 +87,10 @@ export function MaintenanceTicketsTable({
                 <td colSpan={7} style={{ padding: '50px 20px', textAlign: 'center', color: '#94a3b8' }}>
                   <PackageIcon size={36} />
                   <div style={{ fontWeight: 700, fontSize: '0.95rem', color: '#475569', marginTop: '10px' }}>
-                    لا توجد تذاكر صيانة مطابقة للبحث أو الفلتر
+                    {__t('maintenance.tickets.maintenance_tickets_table.s9', "لا توجد تذاكر صيانة مطابقة للبحث أو الفلتر")}
                   </div>
                   <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '4px' }}>
-                    يمكنك استلام جهاز صيانة جديد بالضغط على زر "استلام جهاز صيانة جديد" بالأعلى
+                    {__t('maintenance.tickets.maintenance_tickets_table.s10', "يمكنك استلام جهاز صيانة جديد بالضغط على زر \"استلام جهاز صيانة جديد\" بالأعلى")}
                   </div>
                 </td>
               </tr>
@@ -140,7 +142,7 @@ export function MaintenanceTicketsTable({
                           </span>
                           <button
                             type="button"
-                            title="نسخ رقم الهاتف"
+                            title={__t('maintenance.tickets.maintenance_tickets_table.s11', "نسخ رقم الهاتف")}
                             onClick={(e) => { e.stopPropagation(); onCopyPhone(t.customerPhone); }}
                             style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '1px', color: copiedPhone === t.customerPhone ? '#16a34a' : '#94a3b8' }}
                           >
@@ -150,7 +152,7 @@ export function MaintenanceTicketsTable({
                             href={`https://wa.me/${t.customerPhone.replace(/\D/g, '')}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            title="مراسلة واتساب"
+                            title={__t('maintenance.tickets.maintenance_tickets_table.s12', "مراسلة واتساب")}
                             onClick={(e) => e.stopPropagation()}
                             style={{ color: '#25d366', display: 'inline-flex', alignItems: 'center' }}
                           >
@@ -188,7 +190,7 @@ export function MaintenanceTicketsTable({
                       </div>
                       {t.technicianName && (
                         <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '2px' }}>
-                          الفني: <strong style={{ color: '#475569' }}>{t.technicianName}</strong>
+                          {__t('maintenance.tickets.maintenance_tickets_table.s13', "الفني:")} <strong style={{ color: '#475569' }}>{t.technicianName}</strong>
                         </div>
                       )}
                     </td>
@@ -201,7 +203,7 @@ export function MaintenanceTicketsTable({
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '3px' }}>
                         {t.advancePayment > 0 && (
                           <span style={{ fontSize: '0.72rem', color: '#16a34a', fontWeight: 700 }}>
-                            مسدد: {t.advancePayment.toFixed(0)}
+                            {__t('maintenance.tickets.maintenance_tickets_table.s14', "مسدد:")} {t.advancePayment.toFixed(0)}
                           </span>
                         )}
                         {hasRemaining ? (
@@ -215,11 +217,11 @@ export function MaintenanceTicketsTable({
                               borderRadius: '4px',
                             }}
                           >
-                            متبقي: {remaining.toFixed(0)}
+                            {__t('maintenance.tickets.maintenance_tickets_table.s15', "متبقي:")} {remaining.toFixed(0)}
                           </span>
                         ) : (
                           <span style={{ fontSize: '0.7rem', color: '#16a34a', fontWeight: 700 }}>
-                            خالص
+                            {__t('maintenance.tickets.maintenance_tickets_table.s16', "خالص")}
                           </span>
                         )}
                       </div>
@@ -242,12 +244,12 @@ export function MaintenanceTicketsTable({
                             outline: 'none',
                           }}
                         >
-                          <option value="received">استلام جديد</option>
-                          <option value="in_progress">قيد الصيانة</option>
-                          <option value="waiting_parts">انتظار قطع غيار</option>
-                          <option value="repaired">جاهز للتسليم</option>
-                          <option value="delivered">تم التسليم</option>
-                          <option value="cancelled">ملغي / غير قابل للإصلاح</option>
+                          <option value="received">{__t('maintenance.tickets.maintenance_tickets_table.s17', "استلام جديد")}</option>
+                          <option value="in_progress">{__t('maintenance.tickets.maintenance_tickets_table.s18', "قيد الصيانة")}</option>
+                          <option value="waiting_parts">{__t('maintenance.tickets.maintenance_tickets_table.s19', "انتظار قطع غيار")}</option>
+                          <option value="repaired">{__t('maintenance.tickets.maintenance_tickets_table.s20', "جاهز للتسليم")}</option>
+                          <option value="delivered">{__t('maintenance.tickets.maintenance_tickets_table.s21', "تم التسليم")}</option>
+                          <option value="cancelled">{__t('maintenance.tickets.maintenance_tickets_table.s22', "ملغي / غير قابل للإصلاح")}</option>
                         </select>
                       </div>
                     </td>
@@ -257,7 +259,7 @@ export function MaintenanceTicketsTable({
                         <button
                           type="button"
                           onClick={() => onOpenDetail(t)}
-                          title="تفاصيل التذكرة والفحص وقطع الغيار"
+                          title={__t('maintenance.tickets.maintenance_tickets_table.s23', "تفاصيل التذكرة والفحص وقطع الغيار")}
                           style={{
                             padding: '5px 8px',
                             borderRadius: '6px',
@@ -273,13 +275,13 @@ export function MaintenanceTicketsTable({
                           }}
                         >
                           <EyeIcon size={14} />
-                          <span>تفاصيل</span>
+                          <span>{__t('maintenance.tickets.maintenance_tickets_table.s24', "تفاصيل")}</span>
                         </button>
 
                         <button
                           type="button"
                           onClick={() => onOpenReceipt(t)}
-                          title="طباعة إيصال الاستلام وباركود الجهاز"
+                          title={__t('maintenance.tickets.maintenance_tickets_table.s25', "طباعة إيصال الاستلام وباركود الجهاز")}
                           style={{
                             padding: '5px 7px',
                             borderRadius: '6px',
@@ -298,7 +300,7 @@ export function MaintenanceTicketsTable({
                           <button
                             type="button"
                             onClick={() => onOpenSettlement(t)}
-                            title="تسليم الجهاز للعميل وتحصيل المتبقي"
+                            title={__t('maintenance.tickets.maintenance_tickets_table.s26', "تسليم الجهاز للعميل وتحصيل المتبقي")}
                             style={{
                               padding: '5px 8px',
                               borderRadius: '6px',
@@ -314,7 +316,7 @@ export function MaintenanceTicketsTable({
                             }}
                           >
                             <CheckCircleIcon size={13} />
-                            <span>تسليم</span>
+                            <span>{__t('maintenance.tickets.maintenance_tickets_table.s27', "تسليم")}</span>
                           </button>
                         )}
                       </div>
@@ -330,7 +332,7 @@ export function MaintenanceTicketsTable({
       {totalPages > 1 && (
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 16px', background: '#f8fafc', borderTop: '1px solid #e2e8f0', fontSize: '0.8rem', color: '#64748b' }}>
           <div>
-            إجمالي التذاكر: <strong>{totalItems}</strong> (صفحة {page} من {totalPages})
+            {__t('maintenance.tickets.maintenance_tickets_table.s28', "إجمالي التذاكر:")} <strong>{totalItems}</strong> {__t('maintenance.tickets.maintenance_tickets_table.s29', "(صفحة")} {page} {__t('maintenance.tickets.maintenance_tickets_table.s30', "من")} {totalPages})
           </div>
           <div style={{ display: 'flex', gap: '6px' }}>
             <button
@@ -348,7 +350,7 @@ export function MaintenanceTicketsTable({
                 fontWeight: 600,
               }}
             >
-              السابق
+              {__t('maintenance.tickets.maintenance_tickets_table.s31', "السابق")}
             </button>
             <button
               type="button"
@@ -365,7 +367,7 @@ export function MaintenanceTicketsTable({
                 fontWeight: 600,
               }}
             >
-              التالي
+              {__t('maintenance.tickets.maintenance_tickets_table.s32', "التالي")}
             </button>
           </div>
         </div>

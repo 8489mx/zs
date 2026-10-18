@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React, { useState, useMemo } from 'react';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { Button } from '@/shared/ui/button';
@@ -27,6 +28,7 @@ export const CreatePurchaseOrderModal: React.FC<CreatePurchaseOrderModalProps> =
   onSubmit,
   isPending,
 }) => {
+  const { t } = useTranslation();
   const [selectedSupplierId, setSelectedSupplierId] = useState<number | null>(null);
   const [supplierName, setSupplierName] = useState('');
   const [supplierPhone, setSupplierPhone] = useState('');
@@ -197,8 +199,8 @@ export const CreatePurchaseOrderModal: React.FC<CreatePurchaseOrderModalProps> =
     <StandardDialog
       open={open}
       onClose={onClose}
-      title="إنشاء أمر شراء جديد (Purchase Order)"
-      subtitle="إصدار أمر الشراء للمورد وحجز الكميات بانتظار استلام البضاعة"
+      title={t('purchases.create_purchase_order_modal.s0', "إنشاء أمر شراء جديد (Purchase Order)")}
+      subtitle={t('purchases.create_purchase_order_modal.s1', "إصدار أمر الشراء للمورد وحجز الكميات بانتظار استلام البضاعة")}
       width="min(940px, 96vw)"
       minHeight="auto"
       footerActions={(
@@ -206,8 +208,8 @@ export const CreatePurchaseOrderModal: React.FC<CreatePurchaseOrderModalProps> =
           onCancel={onClose}
           onSubmit={() => handleSubmit()}
           isSubmitting={isPending}
-          submitText={isPending ? 'جاري الحفظ...' : 'حفظ أمر الشراء كمسودة'}
-          cancelText="إلغاء"
+          submitText={isPending ? t('purchases.create_purchase_order_modal.s2', "جاري الحفظ...") : t('purchases.create_purchase_order_modal.s3', "حفظ أمر الشراء كمسودة")}
+          cancelText={t('purchases.create_purchase_order_modal.s4', "إلغاء")}
         />
       )}
     >
@@ -221,12 +223,12 @@ export const CreatePurchaseOrderModal: React.FC<CreatePurchaseOrderModalProps> =
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px', alignItems: 'start' }}>
             <div className="field" style={{ margin: 0 }}>
               <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '6px', display: 'block', height: '18px', lineHeight: '18px' }}>
-                المورد <span style={{ color: '#ef4444' }}>*</span>
+                {t('purchases.create_purchase_order_modal.s5', "المورد")} <span style={{ color: '#ef4444' }}>*</span>
               </label>
               <SearchableCombobox
                 inline={true}
                 inputStyle={{ width: '100%', height: '38px', padding: '8px 12px', fontSize: '12.5px', border: '1px solid #cbd5e1', borderRadius: '8px', backgroundColor: '#ffffff', boxSizing: 'border-box' }}
-                placeholder="ابحث عن مورد بالاسم أو الهاتف..."
+                placeholder={t('purchases.create_purchase_order_modal.s6', "ابحث عن مورد بالاسم أو الهاتف...")}
                 value={supplierName}
                 onChange={(val) => {
                   setSupplierName(val);
@@ -248,39 +250,39 @@ export const CreatePurchaseOrderModal: React.FC<CreatePurchaseOrderModalProps> =
                   setSupplierPhone(s.phone || '');
                 }}
                 showDropdownOnEmpty={true}
-                emptyLabel="لا يوجد مورد مطابق (يمكنك المتابعة بالاسم المدخل)"
+                emptyLabel={t('purchases.create_purchase_order_modal.s7', "لا يوجد مورد مطابق (يمكنك المتابعة بالاسم المدخل)")}
               />
             </div>
 
             <div className="field" style={{ margin: 0 }}>
               <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '6px', display: 'block', height: '18px', lineHeight: '18px' }}>
-                هاتف المورد
+                {t('purchases.create_purchase_order_modal.s8', "هاتف المورد")}
               </label>
               <input
                 type="text"
                 value={supplierPhone}
                 onChange={(e) => setSupplierPhone(e.target.value)}
-                placeholder="رقم التواصل"
+                placeholder={t('purchases.create_purchase_order_modal.s9', "رقم التواصل")}
                 style={{ width: '100%', height: '38px', padding: '8px 12px', fontSize: '12.5px', border: '1px solid #cbd5e1', borderRadius: '8px', backgroundColor: '#ffffff', boxSizing: 'border-box' }}
               />
             </div>
 
             <div className="field" style={{ margin: 0 }}>
               <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '6px', display: 'block', height: '18px', lineHeight: '18px' }}>
-                مستودع الاستلام
+                {t('purchases.create_purchase_order_modal.s10', "مستودع الاستلام")}
               </label>
               <input
                 type="text"
                 value={warehouseName}
                 onChange={(e) => setWarehouseName(e.target.value)}
-                placeholder="اسم المستودع أو الفرع"
+                placeholder={t('purchases.create_purchase_order_modal.s11', "اسم المستودع أو الفرع")}
                 style={{ width: '100%', height: '38px', padding: '8px 12px', fontSize: '12.5px', border: '1px solid #cbd5e1', borderRadius: '8px', backgroundColor: '#ffffff', boxSizing: 'border-box' }}
               />
             </div>
 
             <div className="field" style={{ margin: 0 }}>
               <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '6px', display: 'block', height: '18px', lineHeight: '18px' }}>
-                تاريخ التوريد المتوقع
+                {t('purchases.create_purchase_order_modal.s12', "تاريخ التوريد المتوقع")}
               </label>
               <input
                 type="date"
@@ -292,13 +294,13 @@ export const CreatePurchaseOrderModal: React.FC<CreatePurchaseOrderModalProps> =
 
             <div className="field" style={{ margin: 0 }}>
               <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '6px', display: 'block', height: '18px', lineHeight: '18px' }}>
-                ملاحظات داخلية
+                {t('purchases.create_purchase_order_modal.s13', "ملاحظات داخلية")}
               </label>
               <input
                 type="text"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                placeholder="أي شروط أو متطلبات خاصة للتوريد"
+                placeholder={t('purchases.create_purchase_order_modal.s14', "أي شروط أو متطلبات خاصة للتوريد")}
                 style={{ width: '100%', height: '38px', padding: '8px 12px', fontSize: '12.5px', border: '1px solid #cbd5e1', borderRadius: '8px', backgroundColor: '#ffffff', boxSizing: 'border-box' }}
               />
             </div>
@@ -307,10 +309,10 @@ export const CreatePurchaseOrderModal: React.FC<CreatePurchaseOrderModalProps> =
           {/* Items Table */}
           <div style={{ border: '1px solid #cbd5e1', borderRadius: '10px', overflow: 'hidden' }}>
             <div style={{ backgroundColor: '#f8fafc', padding: '10px 14px', fontWeight: 700, fontSize: '12px', color: '#334155', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #cbd5e1' }}>
-              <span>بنود وأصناف أمر الشراء</span>
+              <span>{t('purchases.create_purchase_order_modal.s15', "بنود وأصناف أمر الشراء")}</span>
               <Button type="button" variant="secondary" onClick={handleAddItem} style={{ fontSize: '12px', height: '28px', padding: '0 10px' }}>
                 <PlusIcon className="w-3.5 h-3.5 ml-1" />
-                إضافة صنف
+                {t('purchases.create_purchase_order_modal.s16', "إضافة صنف")}
               </Button>
             </div>
 
@@ -318,11 +320,11 @@ export const CreatePurchaseOrderModal: React.FC<CreatePurchaseOrderModalProps> =
               <table style={{ width: '100%', textAlign: 'right', borderCollapse: 'collapse', fontSize: '12px' }}>
                 <thead style={{ color: '#64748b', borderBottom: '1px solid #e2e8f0' }}>
                   <tr>
-                    <th style={{ paddingBottom: '8px', minWidth: '240px' }}>الصنف (بحث بالاسم أو الباركود)</th>
-                    <th style={{ paddingBottom: '8px', width: '85px' }}>الكمية</th>
-                    <th style={{ paddingBottom: '8px', width: '110px' }}>سعر التكلفة</th>
-                    <th style={{ paddingBottom: '8px', width: '90px' }}>الخصم</th>
-                    <th style={{ paddingBottom: '8px', width: '110px' }}>الإجمالي</th>
+                    <th style={{ paddingBottom: '8px', minWidth: '240px' }}>{t('purchases.create_purchase_order_modal.s17', "الصنف (بحث بالاسم أو الباركود)")}</th>
+                    <th style={{ paddingBottom: '8px', width: '85px' }}>{t('purchases.create_purchase_order_modal.s18', "الكمية")}</th>
+                    <th style={{ paddingBottom: '8px', width: '110px' }}>{t('purchases.create_purchase_order_modal.s19', "سعر التكلفة")}</th>
+                    <th style={{ paddingBottom: '8px', width: '90px' }}>{t('purchases.create_purchase_order_modal.s20', "الخصم")}</th>
+                    <th style={{ paddingBottom: '8px', width: '110px' }}>{t('purchases.create_purchase_order_modal.s21', "الإجمالي")}</th>
                     <th style={{ paddingBottom: '8px', width: '36px' }}></th>
                   </tr>
                 </thead>
@@ -333,7 +335,7 @@ export const CreatePurchaseOrderModal: React.FC<CreatePurchaseOrderModalProps> =
                         <SearchableCombobox
                           inline={true}
                           inputStyle={{ width: '100%', height: '32px', fontSize: '12px', padding: '6px 8px', border: '1px solid #cbd5e1', borderRadius: '6px', backgroundColor: '#ffffff', boxSizing: 'border-box' }}
-                          placeholder="ابحث باسم الصنف أو الباركود..."
+                          placeholder={t('purchases.create_purchase_order_modal.s22', "ابحث باسم الصنف أو الباركود...")}
                           value={it.productName || ''}
                           onChange={(val) => {
                             handleItemChange(idx, 'productName', val);
@@ -346,7 +348,7 @@ export const CreatePurchaseOrderModal: React.FC<CreatePurchaseOrderModalProps> =
                           }}
                           onSelect={(p) => handleProductSelect(idx, p)}
                           showDropdownOnEmpty={true}
-                          emptyLabel="لا توجد أصناف مطابقة"
+                          emptyLabel={t('purchases.create_purchase_order_modal.s23', "لا توجد أصناف مطابقة")}
                         />
                       </td>
                       <td style={{ padding: '6px 4px' }}>
@@ -386,7 +388,7 @@ export const CreatePurchaseOrderModal: React.FC<CreatePurchaseOrderModalProps> =
                           type="button"
                           onClick={() => handleRemoveItem(idx)}
                           style={{ color: '#94a3b8', background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}
-                          title="حذف البند"
+                          title={t('purchases.create_purchase_order_modal.s24', "حذف البند")}
                         >
                           <XIcon size={14} />
                         </button>
@@ -401,17 +403,17 @@ export const CreatePurchaseOrderModal: React.FC<CreatePurchaseOrderModalProps> =
             <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '10px 16px', borderTop: '1px solid #cbd5e1', backgroundColor: '#f8fafc' }}>
               <div style={{ textAlign: 'left', fontSize: '12px', display: 'flex', flexDirection: 'column', gap: '4px', minWidth: '200px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748b' }}>
-                  <span>المجموع:</span>
+                  <span>{t('purchases.create_purchase_order_modal.s25', "المجموع:")}</span>
                   <strong>{formatCurrency(subtotal)}</strong>
                 </div>
                 {discountTotal > 0 && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', color: '#dc2626' }}>
-                    <span>إجمالي الخصم:</span>
+                    <span>{t('purchases.create_purchase_order_modal.s26', "إجمالي الخصم:")}</span>
                     <strong>{formatCurrency(discountTotal)}</strong>
                   </div>
                 )}
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 800, fontSize: '13.5px', color: '#170e5e', paddingTop: '4px', borderTop: '1px solid #cbd5e1' }}>
-                  <span>الصافي المطلوب:</span>
+                  <span>{t('purchases.create_purchase_order_modal.s27', "الصافي المطلوب:")}</span>
                   <strong>{formatCurrency(totalAmount)}</strong>
                 </div>
               </div>

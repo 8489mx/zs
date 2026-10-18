@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { formatCurrency } from '@/lib/format';
 import { Button } from '@/shared/ui/button';
 interface PosWorkspaceDockProps {
@@ -29,13 +30,14 @@ export function PosWorkspaceDock({
   onSubmit,
   settings,
 }: PosWorkspaceDockProps) {
+  const { t } = useTranslation();
   return (
-    <section className="pos-workspace-dock" aria-label="شريط الكاشير السريع" style={{ padding: '0', margin: '0' }}>
+    <section className="pos-workspace-dock" aria-label={t('pos.pos_workspace.pos_workspace_dock.s0', "شريط الكاشير السريع")} style={{ padding: '0', margin: '0' }}>
       <div className="pos-workspace-dock-ribbon-track" style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'nowrap', width: '100%', gap: '16px', padding: '4px 8px', minHeight: 'unset' }}>
         
         <div className="pos-workspace-dock-summary pos-workspace-dock-summary-extended" style={{ display: 'flex', alignItems: 'stretch', gap: '0', flexShrink: 0, padding: '0' }}>
           <div className="pos-workspace-dock-chip pos-workspace-dock-chip--surface" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '8px 20px' }}>
-            <span style={{ fontSize: '13px', fontWeight: 'bold' }}>إجمالي الكميات</span>
+            <span style={{ fontSize: '13px', fontWeight: 'bold' }}>{t('pos.pos_workspace.pos_workspace_dock.s1', "إجمالي الكميات")}</span>
             {qtySummaries.length ? (
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px', marginTop: '2px' }}>
                 {qtySummaries.map((s, i) => (
@@ -47,19 +49,19 @@ export function PosWorkspaceDock({
             )}
           </div>
           <div className="pos-workspace-dock-chip pos-workspace-dock-chip--surface" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '8px 20px' }}>
-            <span style={{ fontSize: '13px', fontWeight: 'bold' }}>عدد العناصر</span>
+            <span style={{ fontSize: '13px', fontWeight: 'bold' }}>{t('pos.pos_workspace.pos_workspace_dock.s2', "عدد العناصر")}</span>
             <strong style={{ fontSize: '20px', lineHeight: '1' }}>{itemsCount}</strong>
           </div>
           <div className="pos-workspace-dock-chip" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '8px 24px' }}>
-            <span style={{ fontSize: '14px', fontWeight: 'bold' }}>المطلوب دفعه</span>
+            <span style={{ fontSize: '14px', fontWeight: 'bold' }}>{t('pos.pos_workspace.pos_workspace_dock.s3', "المطلوب دفعه")}</span>
             <strong style={{ fontSize: '28px', lineHeight: '1', color: '#0f172a' }}>{formatCurrency(total)}</strong>
           </div>
         </div>
 
         <div className="pos-workspace-dock-actions pos-workspace-dock-actions-inline" style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0, padding: '0' }}>
           <Button type="button" variant="secondary" className="pos-dock-btn-hold" onClick={onHoldDraft} disabled={itemsCount === 0 || isPending}>
-            <span className="pos-dock-btn-desktop-text">{settings?.restaurantModuleEnabled ? 'إرسال للمطبخ F4' : 'تعليق F4'}</span>
-            <span className="pos-dock-btn-mobile-text">{settings?.restaurantModuleEnabled ? 'المطبخ' : 'تعليق'}</span>
+            <span className="pos-dock-btn-desktop-text">{settings?.restaurantModuleEnabled ? t('pos.pos_workspace.pos_workspace_dock.s4', "إرسال للمطبخ F4") : t('pos.pos_workspace.pos_workspace_dock.s5', "تعليق F4")}</span>
+            <span className="pos-dock-btn-mobile-text">{settings?.restaurantModuleEnabled ? t('pos.pos_workspace.pos_workspace_dock.s6', "المطبخ") : t('pos.pos_workspace.pos_workspace_dock.s7', "تعليق")}</span>
           </Button>
           <Button type="button" variant="secondary" className="pos-dock-btn-drafts" onClick={onOpenHeldDrafts}>
             <span className="pos-dock-btn-desktop-text">{settings?.restaurantModuleEnabled ? `طاولات مفتوحة (${heldDraftsCount}) F3` : `معلقة (${heldDraftsCount}) F3`}</span>
@@ -72,13 +74,13 @@ export function PosWorkspaceDock({
             onClick={onSubmit}
             disabled={isPending || !canOpenCheckout}
             aria-disabled={isPending || !canOpenCheckout}
-            title={isPending ? 'جاري تنفيذ البيع' : (checkoutDisabledReason || undefined)}
+            title={isPending ? t('pos.pos_workspace.pos_workspace_dock.s8', "جاري تنفيذ البيع") : (checkoutDisabledReason || undefined)}
             style={{ fontSize: '18px', padding: '12px 32px', fontWeight: 'bold', height: 'auto', borderRadius: '8px', minWidth: '150px' }}
           >
-            {isPending ? 'جارٍ الحفظ...' : (
+            {isPending ? t('pos.pos_workspace.pos_workspace_dock.s9', "جارٍ الحفظ...") : (
               <>
-                <span className="pos-dock-btn-desktop-text">إتمام البيع F2</span>
-                <span className="pos-dock-btn-mobile-text">إتمام البيع</span>
+                <span className="pos-dock-btn-desktop-text">{t('pos.pos_workspace.pos_workspace_dock.s10', "إتمام البيع F2")}</span>
+                <span className="pos-dock-btn-mobile-text">{t('pos.pos_workspace.pos_workspace_dock.s11', "إتمام البيع")}</span>
               </>
             )}
           </Button>

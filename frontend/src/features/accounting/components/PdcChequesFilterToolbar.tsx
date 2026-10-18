@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 import { SearchIcon } from '@/shared/components/icons/AppIcons';
 import { PdcChequesStats } from '@/features/accounting/api/accounting.api';
@@ -31,6 +32,7 @@ export const PdcChequesFilterToolbar: React.FC<PdcChequesFilterToolbarProps> = (
   stats,
   onReset,
 }) => {
+  const { t } = useTranslation();
   return (
     <div
       style={{
@@ -83,7 +85,7 @@ export const PdcChequesFilterToolbar: React.FC<PdcChequesFilterToolbarProps> = (
               boxShadow: activeTab === 'receivable' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
             }}
           >
-            أوراق القبض (عملاء)
+            {t('accounting.pdc_cheques_filter_toolbar.s0', "أوراق القبض (عملاء)")}
           </button>
           <button
             type="button"
@@ -101,7 +103,7 @@ export const PdcChequesFilterToolbar: React.FC<PdcChequesFilterToolbarProps> = (
               boxShadow: activeTab === 'payable' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
             }}
           >
-            أوراق الدفع (موردين)
+            {t('accounting.pdc_cheques_filter_toolbar.s1', "أوراق الدفع (موردين)")}
           </button>
           <button
             type="button"
@@ -122,7 +124,7 @@ export const PdcChequesFilterToolbar: React.FC<PdcChequesFilterToolbarProps> = (
               boxShadow: activeTab === 'alerts' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
             }}
           >
-            <span>تنبيهات الاستحقاق والارتداد</span>
+            <span>{t('accounting.pdc_cheques_filter_toolbar.s2', "تنبيهات الاستحقاق والارتداد")}</span>
             {(stats?.receivables.overdueCount || 0) + (stats?.receivables.dueSoonCount || 0) > 0 && (
               <span
                 style={{
@@ -141,12 +143,12 @@ export const PdcChequesFilterToolbar: React.FC<PdcChequesFilterToolbarProps> = (
         {activeTab === 'receivable' && (
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
             {[
-              { id: 'all', label: 'الكل' },
-              { id: 'in_safe', label: 'في الخزينة' },
-              { id: 'under_collection', label: 'برسم التحصيل' },
-              { id: 'collected', label: 'محصل' },
-              { id: 'bounced', label: 'مرتد' },
-              { id: 'endorsed', label: 'مظهر' },
+              { id: 'all', label: t('accounting.pdc_cheques_filter_toolbar.s3', "الكل") },
+              { id: 'in_safe', label: t('accounting.pdc_cheques_filter_toolbar.s4', "في الخزينة") },
+              { id: 'under_collection', label: t('accounting.pdc_cheques_filter_toolbar.s5', "برسم التحصيل") },
+              { id: 'collected', label: t('accounting.pdc_cheques_filter_toolbar.s6', "محصل") },
+              { id: 'bounced', label: t('accounting.pdc_cheques_filter_toolbar.s7', "مرتد") },
+              { id: 'endorsed', label: t('accounting.pdc_cheques_filter_toolbar.s8', "مظهر") },
             ].map((s) => {
               const isActive = statusFilter === s.id;
               return (
@@ -177,11 +179,11 @@ export const PdcChequesFilterToolbar: React.FC<PdcChequesFilterToolbarProps> = (
         {activeTab === 'payable' && (
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
             {[
-              { id: 'all', label: 'الكل' },
-              { id: 'issued', label: 'محرر لم يصرف' },
-              { id: 'cleared', label: 'تم الصرف بنكياً' },
-              { id: 'bounced', label: 'مرتد' },
-              { id: 'cancelled', label: 'ملغى' },
+              { id: 'all', label: t('accounting.pdc_cheques_filter_toolbar.s9', "الكل") },
+              { id: 'issued', label: t('accounting.pdc_cheques_filter_toolbar.s10', "محرر لم يصرف") },
+              { id: 'cleared', label: t('accounting.pdc_cheques_filter_toolbar.s11', "تم الصرف بنكياً") },
+              { id: 'bounced', label: t('accounting.pdc_cheques_filter_toolbar.s12', "مرتد") },
+              { id: 'cancelled', label: t('accounting.pdc_cheques_filter_toolbar.s13', "ملغى") },
             ].map((s) => {
               const isActive = statusFilter === s.id;
               return (
@@ -238,7 +240,7 @@ export const PdcChequesFilterToolbar: React.FC<PdcChequesFilterToolbarProps> = (
             type="text"
             value={search}
             onChange={(e) => onSearchChange(e.target.value)}
-            placeholder="بحث برقم الشيك، اسم العميل، اسم المورد، أو اسم البنك..."
+            placeholder={t('accounting.pdc_cheques_filter_toolbar.s14', "بحث برقم الشيك، اسم العميل، اسم المورد، أو اسم البنك...")}
             style={{
               width: '100%',
               paddingRight: '36px',
@@ -256,7 +258,7 @@ export const PdcChequesFilterToolbar: React.FC<PdcChequesFilterToolbarProps> = (
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <span style={{ fontSize: '12px', color: '#64748b', whiteSpace: 'nowrap' }}>استحقاق من:</span>
+          <span style={{ fontSize: '12px', color: '#64748b', whiteSpace: 'nowrap' }}>{t('accounting.pdc_cheques_filter_toolbar.s15', "استحقاق من:")}</span>
           <input
             type="date"
             value={dueFrom}
@@ -275,7 +277,7 @@ export const PdcChequesFilterToolbar: React.FC<PdcChequesFilterToolbarProps> = (
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <span style={{ fontSize: '12px', color: '#64748b', whiteSpace: 'nowrap' }}>إلى:</span>
+          <span style={{ fontSize: '12px', color: '#64748b', whiteSpace: 'nowrap' }}>{t('accounting.pdc_cheques_filter_toolbar.s16', "إلى:")}</span>
           <input
             type="date"
             value={dueTo}
@@ -306,7 +308,7 @@ export const PdcChequesFilterToolbar: React.FC<PdcChequesFilterToolbarProps> = (
                 padding: '0 4px',
               }}
             >
-              إعادة ضبط
+              {t('accounting.pdc_cheques_filter_toolbar.s17', "إعادة ضبط")}
             </button>
           )}
         </div>

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useCallback } from 'react';
 import { StandardDialog } from '@/shared/components/StandardDialog';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
@@ -18,6 +19,7 @@ export function PettyCashModal({
   projectId,
   projectName,
 }: PettyCashModalProps) {
+  const { t } = useTranslation();
   const { currencySymbol, formatCurrency } = useSystemCurrency();
   const [records, setRecords] = useState<ContractingPettyCashRecord[]>([]);
   const [loading, setLoading] = useState(false);
@@ -154,7 +156,7 @@ export function PettyCashModal({
     <StandardDialog
       open={isOpen}
       onClose={onClose}
-      title="إدارة العهد النقدية الميدانية (Site Petty Cash & Expense Settlement)"
+      title={t('contracting.petty_cash_modal.s0', "إدارة العهد النقدية الميدانية (Site Petty Cash & Expense Settlement)")}
       maxWidth="940px"
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }} dir="rtl">
@@ -162,10 +164,10 @@ export function PettyCashModal({
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
           <div>
             <div style={{ fontSize: 'var(--font-section-title)', fontWeight: 700, color: '#1e293b' }}>
-              العهد النثرية لمهندسي ومشرفي الموقع
+              {t('contracting.petty_cash_modal.s1', "العهد النثرية لمهندسي ومشرفي الموقع")}
             </div>
             <div style={{ fontSize: 'var(--font-subtitle)', color: '#64748b' }}>
-              {projectName ? `المشروع: ${projectName}` : 'الرقابة المالية على المصروفات النثرية ومنع ازدواج العهد قبل التصفية المستندية'}
+              {projectName ? `المشروع: ${projectName}` : t('contracting.petty_cash_modal.s2', "الرقابة المالية على المصروفات النثرية ومنع ازدواج العهد قبل التصفية المستندية")}
             </div>
           </div>
           {!isAdding && (
@@ -192,7 +194,7 @@ export function PettyCashModal({
               }}
             >
               <AppIcons.Plus size={14} />
-              <span>صرف عهدة نقدية جديدة</span>
+              <span>{t('contracting.petty_cash_modal.s3', "صرف عهدة نقدية جديدة")}</span>
             </button>
           )}
         </div>
@@ -212,19 +214,19 @@ export function PettyCashModal({
         {/* شريط الإحصائيات المالي */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
           <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '12px 14px' }}>
-            <div style={{ fontSize: 'var(--font-micro)', color: '#64748b', fontWeight: 600 }}>إجمالي العهد المنصرفة بالمشروع</div>
+            <div style={{ fontSize: 'var(--font-micro)', color: '#64748b', fontWeight: 600 }}>{t('contracting.petty_cash_modal.s4', "إجمالي العهد المنصرفة بالمشروع")}</div>
             <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#1e293b', marginTop: '2px' }}>
               {formatCurrency(totalIssued)}
             </div>
           </div>
           <div style={{ background: '#fff1f2', border: '1px solid #fecdd3', borderRadius: '8px', padding: '12px 14px' }}>
-            <div style={{ fontSize: 'var(--font-micro)', color: '#9f1239', fontWeight: 600 }}>العهد المفتوحة قيد العمل (غير مصفاة)</div>
+            <div style={{ fontSize: 'var(--font-micro)', color: '#9f1239', fontWeight: 600 }}>{t('contracting.petty_cash_modal.s5', "العهد المفتوحة قيد العمل (غير مصفاة)")}</div>
             <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#b91c1c', marginTop: '2px' }}>
               {formatCurrency(totalActive)}
             </div>
           </div>
           <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', padding: '12px 14px' }}>
-            <div style={{ fontSize: 'var(--font-micro)', color: '#15803d', fontWeight: 600 }}>المصروفات النثرية المصفاة بالفواتير</div>
+            <div style={{ fontSize: 'var(--font-micro)', color: '#15803d', fontWeight: 600 }}>{t('contracting.petty_cash_modal.s6', "المصروفات النثرية المصفاة بالفواتير")}</div>
             <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#15803d', marginTop: '2px' }}>
               {formatCurrency(totalSpentSettled)}
             </div>
@@ -245,30 +247,30 @@ export function PettyCashModal({
             <div style={{ background: '#f8fafc', padding: '9px 13px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
                 <AppIcons.User size={15} />
-                <span>1. بيانات أمين العهدة وتاريخ الصرف والرقابة</span>
+                <span>{t('contracting.petty_cash_modal.s7', "1. بيانات أمين العهدة وتاريخ الصرف والرقابة")}</span>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '10px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
-                    اسم أمين العهدة (المهندس / المشرف المستلم) *
+                    {t('contracting.petty_cash_modal.s8', "اسم أمين العهدة (المهندس / المشرف المستلم) *")}
                   </label>
                   <input
                     type="text"
                     required
                     value={custodianName}
                     onChange={(e) => setCustodianName(e.target.value)}
-                    placeholder="مثال: م. محمود السيد"
+                    placeholder={t('contracting.petty_cash_modal.s9', "مثال: م. محمود السيد")}
                     style={{ width: '100%', height: '33px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.8125rem', background: '#fff', boxSizing: 'border-box' }}
                   />
                   {custodianName.trim() && hasActiveCustody(custodianName) && (
                     <span style={{ fontSize: '0.72rem', color: '#b91c1c', fontWeight: 600, display: 'block', marginTop: '3px' }}>
-                      تنبيه رقابي: هذا المهندس لديه عهدة سابقة مفتوحة لم تتم تسويتها!
+                      {t('contracting.petty_cash_modal.s10', "تنبيه رقابي: هذا المهندس لديه عهدة سابقة مفتوحة لم تتم تسويتها!")}
                     </span>
                   )}
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
-                    تاريخ الصرف *
+                    {t('contracting.petty_cash_modal.s11', "تاريخ الصرف *")}
                   </label>
                   <input
                     type="date"
@@ -285,12 +287,12 @@ export function PettyCashModal({
             <div style={{ background: '#f8fafc', padding: '9px 13px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
                 <AppIcons.DollarSign size={15} />
-                <span>2. القيمة المالية وأوجه الصرف المصرح بها</span>
+                <span>{t('contracting.petty_cash_modal.s12', "2. القيمة المالية وأوجه الصرف المصرح بها")}</span>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '180px 1fr', gap: '10px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
-                    مبلغ العهدة ({currencySymbol}) *
+                    {t('contracting.petty_cash_modal.s13', "مبلغ العهدة (")}{currencySymbol}) *
                   </label>
                   <input
                     type="number"
@@ -305,13 +307,13 @@ export function PettyCashModal({
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
-                    الغرض من العهدة وبيان أوجه الصرف المصرح بها
+                    {t('contracting.petty_cash_modal.s14', "الغرض من العهدة وبيان أوجه الصرف المصرح بها")}
                   </label>
                   <input
                     type="text"
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
-                    placeholder="مثال: نثريات الموقع، مشال حديد طارئ، وقود المولدات، مستلزمات السلامة والصحة المهنية"
+                    placeholder={t('contracting.petty_cash_modal.s15', "مثال: نثريات الموقع، مشال حديد طارئ، وقود المولدات، مستلزمات السلامة والصحة المهنية")}
                     style={{ width: '100%', height: '33px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.8125rem', background: '#fff', boxSizing: 'border-box' }}
                   />
                 </div>
@@ -324,7 +326,7 @@ export function PettyCashModal({
                 onClick={() => setIsAdding(false)}
                 style={{ height: '33px', padding: '0 14px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#fff', color: '#475569', cursor: 'pointer', fontSize: '0.8125rem', fontWeight: 600 }}
               >
-                إلغاء
+                {t('contracting.petty_cash_modal.s16', "إلغاء")}
               </button>
               <button
                 type="submit"
@@ -341,7 +343,7 @@ export function PettyCashModal({
                   fontSize: '0.8125rem',
                 }}
               >
-                {saving ? 'جارٍ الصرف...' : 'اعتماد وصرف العهدة'}
+                {saving ? t('contracting.petty_cash_modal.s17', "جارٍ الصرف...") : t('contracting.petty_cash_modal.s18', "اعتماد وصرف العهدة")}
               </button>
             </div>
           </form>
@@ -350,20 +352,20 @@ export function PettyCashModal({
         {/* جدول العهد النقدية */}
         <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden' }}>
           {loading ? (
-            <div style={{ padding: '30px', textAlign: 'center', color: '#64748b' }}>جاري تحميل سجل العهد النقدية...</div>
+            <div style={{ padding: '30px', textAlign: 'center', color: '#64748b' }}>{t('contracting.petty_cash_modal.s19', "جاري تحميل سجل العهد النقدية...")}</div>
           ) : records.length === 0 ? (
-            <div style={{ padding: '32px', textAlign: 'center', color: '#64748b' }}>لا توجد عهد نقدية مسجلة لهذا المشروع حتى الآن</div>
+            <div style={{ padding: '32px', textAlign: 'center', color: '#64748b' }}>{t('contracting.petty_cash_modal.s20', "لا توجد عهد نقدية مسجلة لهذا المشروع حتى الآن")}</div>
           ) : (
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right' }}>
               <thead>
                 <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-                  <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>أمين العهدة</th>
-                  <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>مبلغ العهدة ({currencySymbol})</th>
-                  <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>المصروف الفعلي ({currencySymbol})</th>
-                  <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>المتبقي / المردود ({currencySymbol})</th>
-                  <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>تاريخ الصرف</th>
-                  <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>الحالة</th>
-                  <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569', textAlign: 'center' }}>الإجراء والتصفية</th>
+                  <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>{t('contracting.petty_cash_modal.s21', "أمين العهدة")}</th>
+                  <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>{t('contracting.petty_cash_modal.s22', "مبلغ العهدة (")}{currencySymbol})</th>
+                  <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>{t('contracting.petty_cash_modal.s23', "المصروف الفعلي (")}{currencySymbol})</th>
+                  <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>{t('contracting.petty_cash_modal.s24', "المتبقي / المردود (")}{currencySymbol})</th>
+                  <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>{t('contracting.petty_cash_modal.s25', "تاريخ الصرف")}</th>
+                  <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>{t('contracting.petty_cash_modal.s26', "الحالة")}</th>
+                  <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569', textAlign: 'center' }}>{t('contracting.petty_cash_modal.s27', "الإجراء والتصفية")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -404,7 +406,7 @@ export function PettyCashModal({
                             color: r.status === 'active' ? '#991b1b' : '#15803d',
                           }}
                         >
-                          {r.status === 'active' ? 'مفتوحة قيد الصرف' : 'مصفاة ومغلقة'}
+                          {r.status === 'active' ? t('contracting.petty_cash_modal.s28', "مفتوحة قيد الصرف") : t('contracting.petty_cash_modal.s29', "مصفاة ومغلقة")}
                         </span>
                       </td>
                       <td style={{ padding: '10px 12px', textAlign: 'center' }}>
@@ -417,21 +419,21 @@ export function PettyCashModal({
                                 step="any"
                                 value={spentAmount || ''}
                                 onChange={(e) => setSpentAmount(Number(e.target.value))}
-                                placeholder="إجمالي المنصرف الفعلي"
+                                placeholder={t('contracting.petty_cash_modal.s30', "إجمالي المنصرف الفعلي")}
                                 style={{ height: '28px', borderRadius: '4px', border: '1px solid #cbd5e1', padding: '0 6px', fontSize: 'var(--font-micro)', background: '#fff' }}
                               />
                               <input
                                 type="text"
                                 value={receiptNumbers}
                                 onChange={(e) => setReceiptNumbers(e.target.value)}
-                                placeholder="أرقام الفواتير والإيصالات"
+                                placeholder={t('contracting.petty_cash_modal.s31', "أرقام الفواتير والإيصالات")}
                                 style={{ height: '28px', borderRadius: '4px', border: '1px solid #cbd5e1', padding: '0 6px', fontSize: 'var(--font-micro)', background: '#fff' }}
                               />
                               <input
                                 type="text"
                                 value={settlementNotes}
                                 onChange={(e) => setSettlementNotes(e.target.value)}
-                                placeholder="ملاحظات التسوية والتصفية"
+                                placeholder={t('contracting.petty_cash_modal.s32', "ملاحظات التسوية والتصفية")}
                                 style={{ height: '28px', borderRadius: '4px', border: '1px solid #cbd5e1', padding: '0 6px', fontSize: 'var(--font-micro)', background: '#fff' }}
                               />
                               <div style={{ display: 'flex', gap: '4px', justifyContent: 'center' }}>
@@ -441,14 +443,14 @@ export function PettyCashModal({
                                   disabled={saving}
                                   style={{ height: '26px', padding: '0 10px', borderRadius: '4px', background: '#15803d', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 'var(--font-micro)', fontWeight: 600 }}
                                 >
-                                  تأكيد التصفية
+                                  {t('contracting.petty_cash_modal.s33', "تأكيد التصفية")}
                                 </button>
                                 <button
                                   type="button"
                                   onClick={() => setSettlingId(null)}
                                   style={{ height: '26px', padding: '0 8px', borderRadius: '4px', background: '#e2e8f0', color: '#334155', border: 'none', cursor: 'pointer', fontSize: 'var(--font-micro)' }}
                                 >
-                                  إلغاء
+                                  {t('contracting.petty_cash_modal.s34', "إلغاء")}
                                 </button>
                               </div>
                             </div>
@@ -472,13 +474,13 @@ export function PettyCashModal({
                                 fontWeight: 600,
                               }}
                             >
-                              تصفية وإغلاق العهدة
+                              {t('contracting.petty_cash_modal.s35', "تصفية وإغلاق العهدة")}
                             </button>
                           )
                         ) : (
                           <div style={{ fontSize: 'var(--font-micro)', color: '#15803d' }}>
-                            <div>تم الإغلاق: {r.settlementDate || '—'}</div>
-                            {r.receiptNumbers && <div>فواتير: {r.receiptNumbers}</div>}
+                            <div>{t('contracting.petty_cash_modal.s36', "تم الإغلاق:")} {r.settlementDate || '—'}</div>
+                            {r.receiptNumbers && <div>{t('contracting.petty_cash_modal.s37', "فواتير:")} {r.receiptNumbers}</div>}
                           </div>
                         )}
                       </td>

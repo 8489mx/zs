@@ -758,6 +758,78 @@ export function translateUiText(rawText: string): string | null {
     return prefix + `Quantity is ${qtyMinMatch[1]} and minimum is ${qtyMinMatch[2]}.` + suffix;
   }
 
+  // 22. Journal entry descriptions
+  const saleEntryMatch = core.match(/^قيد\s+(?:بيع|مبيعات)\s+تلقائي\s+للفاتورة\s+رقم\s*(.+)$/);
+  if (saleEntryMatch) return prefix + `Auto sale entry for invoice #${saleEntryMatch[1].trim()}` + suffix;
+
+  const purEntryMatch = core.match(/^قيد\s+(?:شراء|مشتريات)\s+تلقائي\s+للفاتورة\s+رقم\s*(.+)$/);
+  if (purEntryMatch) return prefix + `Auto purchase entry for invoice #${purEntryMatch[1].trim()}` + suffix;
+
+  const vanLoadMatch = core.match(/^قيد\s+تحميل\s+بضاعة\s+ل(?:سيارة|مركبة)\s+التوزيع\s*-\s*رحلة\s*#?\s*(.+)$/);
+  if (vanLoadMatch) return prefix + `Van stock load entry - Trip #${vanLoadMatch[1].trim()}` + suffix;
+
+  const vanUnloadMatch = core.match(/^قيد\s+تفريغ\s+وإعادة\s+بضاعة\s+ل(?:سيارة|مركبة)\s+التوزيع\s+للمستودع\s*-\s*رحلة\s*#?\s*(.+)$/);
+  if (vanUnloadMatch) return prefix + `Van stock unload entry - Trip #${vanUnloadMatch[1].trim()}` + suffix;
+
+  const vanSettleMatch = core.match(/^قيد\s+تصفية\s+رحلة\s+توزيع\s*#?\s*(.+)$/);
+  if (vanSettleMatch) return prefix + `Van trip settlement entry #${vanSettleMatch[1].trim()}` + suffix;
+
+  const vanCollectMatch = core.match(/^قيد\s+تحصيل\s+ميداني\s*#?\s*(.+)$/);
+  if (vanCollectMatch) return prefix + `Field collection entry #${vanCollectMatch[1].trim()}` + suffix;
+
+  const depMatch = core.match(/^قيد\s+إهلاك\s+أصل\s*(.+)$/);
+  if (depMatch) return prefix + `Asset depreciation entry: ${depMatch[1].trim()}` + suffix;
+
+  const adjMatch = core.match(/^قيد\s+تسوية\s+مخزنية\s*(.+)$/);
+  if (adjMatch) return prefix + `Inventory adjustment entry: ${adjMatch[1].trim()}` + suffix;
+
+  // 23. HR tasks & reviews
+  const hrLeaveReviewMatch = core.match(/^(.+?)\s+لديه\s+طلب\s+إجازة\s+قيد\s+المراجعة\.?$/);
+  if (hrLeaveReviewMatch) return prefix + `${hrLeaveReviewMatch[1].trim()} has a leave request pending review.` + suffix;
+
+  const hrAttReviewMatch = core.match(/^(.+?)\s+لديه\s+استثناء\s+حضور\s+يحتاج\s+اعتماد\s+أو\s+تخطي\.?$/);
+  if (hrAttReviewMatch) return prefix + `${hrAttReviewMatch[1].trim()} has an attendance exception pending review.` + suffix;
+
+  const hrAssetReviewMatch = core.match(/^(.+?)\s+مسجلة\s+تالفة\s+أو\s+مفقودة\s+وتحتاج\s+مراجعة\.?$/);
+  if (hrAssetReviewMatch) return prefix + `${hrAssetReviewMatch[1].trim()} recorded as damaged or missing and needs review.` + suffix;
+
+  const hrIncompleteMatch = core.match(/^(.+?)\s+يحتاج\s+استكمال\s+بيانات\s+أساسية\s+أو\s+وظيفية\.?$/);
+  if (hrIncompleteMatch) return prefix + `${hrIncompleteMatch[1].trim()} needs basic or employment data completed.` + suffix;
+
+  // 24. Audit descriptions
+  const auditSettingsMatch = core.match(/^تم\s+تعديل\s+الإعدادات\s+بواسطة\s*(.+)$/);
+  if (auditSettingsMatch) return prefix + `Settings modified by user ${auditSettingsMatch[1].trim()}` + suffix;
+
+  const auditInvMatch = core.match(/^تم\s+إنشاء\s+الفاتورة\s*(.+?)\s*بواسطة\s*(.+)$/);
+  if (auditInvMatch) return prefix + `Invoice ${auditInvMatch[1].trim()} created by user ${auditInvMatch[2].trim()}` + suffix;
+
+  const auditLoginMatch = core.match(/^تم\s+تسجيل\s+دخول\s+المستخدم\s*(.+)$/);
+  if (auditLoginMatch) return prefix + `User ${auditLoginMatch[1].trim()} logged in` + suffix;
+
+  const auditModeMatch = core.match(/^تم\s+تغيير\s+نمط\s+المنشأة(?:\s*إلى\s*(.+))?$/);
+  if (auditModeMatch) return prefix + `Business mode changed${auditModeMatch[1] ? ' to ' + auditModeMatch[1].trim() : ''}` + suffix;
+
+  // 25. Counts & KPI metric entities
+  const locMatch = core.match(/^مواقع\s+مرصودة[:：]?\s*(\d+)$/);
+  if (locMatch) return prefix + `Tracked Locations: ${locMatch[1]}` + suffix;
+
+  const locMatchRev = core.match(/^(\d+)\s+مواقع\s+مرصودة$/);
+  if (locMatchRev) return prefix + `${locMatchRev[1]} Tracked Locations` + suffix;
+
+  const centersCountMatch = core.match(/^(\d+)\s+مركز(?:\s+نشط|\s+رئيسي)?$/);
+  if (centersCountMatch) {
+    const isAct = core.includes('نشط');
+    const isRoot = core.includes('رئيسي');
+    const label = isAct ? 'Active Centers' : isRoot ? 'Root Centers' : 'Centers';
+    return prefix + `${centersCountMatch[1]} ${label}` + suffix;
+  }
+
+  const pkgCountMatch = core.match(/^(\d+)\s+حزمة$/);
+  if (pkgCountMatch) return prefix + `${pkgCountMatch[1]} Packages` + suffix;
+
+  const tenantCountMatch = core.match(/^(\d+)\s+منشأة$/);
+  if (tenantCountMatch) return prefix + `${tenantCountMatch[1]} Tenants` + suffix;
+
   return null;
 }
 

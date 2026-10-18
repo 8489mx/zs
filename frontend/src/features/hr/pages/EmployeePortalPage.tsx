@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
 import '@/styles/partials/employee-portal.css';
 import {
@@ -29,6 +30,7 @@ import { PortalAttendanceTab } from '../components/portal/PortalAttendanceTab';
 import { PortalLoansTab } from '../components/portal/PortalLoansTab';
 
 export default function EmployeePortalPage() {
+  const { t } = useTranslation();
   const [token, setToken] = useState<string | null>(() => {
     return employeePortalApi.getStoredToken();
   });
@@ -188,7 +190,7 @@ export default function EmployeePortalPage() {
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <h1 style={{ margin: 0, fontSize: '18px', fontWeight: 900, color: '#0f172a' }}>
-                {user?.name || dashboard?.profile?.name || 'حساب الموظف'}
+                {user?.name || dashboard?.profile?.name || t('hr.employee_portal_page.s0', "حساب الموظف")}
               </h1>
               <span
                 style={{
@@ -201,11 +203,11 @@ export default function EmployeePortalPage() {
                   borderRadius: '6px',
                 }}
               >
-                {dashboard?.profile?.positionName || user?.positionName || 'موظف'}
+                {dashboard?.profile?.positionName || user?.positionName || t('hr.employee_portal_page.s1', "موظف")}
               </span>
             </div>
             <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px', fontWeight: 600 }}>
-              كود الموظف: {user?.employeeNo} • {dashboard?.profile?.branchName || user?.branchName}
+              {t('hr.employee_portal_page.s2', "كود الموظف:")} {user?.employeeNo} • {dashboard?.profile?.branchName || user?.branchName}
             </div>
           </div>
         </div>
@@ -229,7 +231,7 @@ export default function EmployeePortalPage() {
             }}
           >
             <SmartphoneIcon size={16} color="#166534" />
-            <span>بصمة الموبايل (GPS)</span>
+            <span>{t('hr.employee_portal_page.s3', "بصمة الموبايل (GPS)")}</span>
           </a>
 
           <button
@@ -246,7 +248,7 @@ export default function EmployeePortalPage() {
               fontWeight: 700,
             }}
           >
-            تسجيل الخروج
+            {t('hr.employee_portal_page.s4', "تسجيل الخروج")}
           </button>
         </div>
       </header>
@@ -254,11 +256,11 @@ export default function EmployeePortalPage() {
       {/* 2. Navigation Tabs */}
       <nav className="portal-nav">
         {[
-          { key: 'overview', label: 'نظرة عامة', shortLabel: 'نظرة عامة', icon: <UsersIcon size={16} /> },
-          { key: 'payslips', label: 'مسيرات الرواتب', shortLabel: 'الرواتب', icon: <ReceiptIcon size={16} /> },
-          { key: 'leaves', label: 'الإجازات والأذونات', shortLabel: 'الإجازات', icon: <CalendarIcon size={16} /> },
-          { key: 'attendance', label: 'سجل الحضور', shortLabel: 'الحضور', icon: <ClockIcon size={16} /> },
-          { key: 'loans', label: 'السلف والعهد', shortLabel: 'السلف', icon: <CreditCardIcon size={16} /> },
+          { key: 'overview', label: t('hr.employee_portal_page.s5', "نظرة عامة"), shortLabel: t('hr.employee_portal_page.s6', "نظرة عامة"), icon: <UsersIcon size={16} /> },
+          { key: 'payslips', label: t('hr.employee_portal_page.s7', "مسيرات الرواتب"), shortLabel: t('hr.employee_portal_page.s8', "الرواتب"), icon: <ReceiptIcon size={16} /> },
+          { key: 'leaves', label: t('hr.employee_portal_page.s9', "الإجازات والأذونات"), shortLabel: t('hr.employee_portal_page.s10', "الإجازات"), icon: <CalendarIcon size={16} /> },
+          { key: 'attendance', label: t('hr.employee_portal_page.s11', "سجل الحضور"), shortLabel: t('hr.employee_portal_page.s12', "الحضور"), icon: <ClockIcon size={16} /> },
+          { key: 'loans', label: t('hr.employee_portal_page.s13', "السلف والعهد"), shortLabel: t('hr.employee_portal_page.s14', "السلف"), icon: <CreditCardIcon size={16} /> },
         ].map((tab) => {
           const isActive = activeTab === tab.key;
           return (

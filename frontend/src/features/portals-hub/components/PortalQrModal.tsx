@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { XIcon } from '@/shared/components/icons/AppIcons';
 import type { PortalItem } from './portals-data';
@@ -10,6 +11,7 @@ interface PortalQrModalProps {
 }
 
 export function PortalQrModal({ portal, onClose, copied, onCopy }: PortalQrModalProps) {
+  const { t } = useTranslation();
   if (!portal) return null;
 
   const origin = typeof window !== 'undefined' ? window.location.origin : '';
@@ -17,11 +19,11 @@ export function PortalQrModal({ portal, onClose, copied, onCopy }: PortalQrModal
   const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(fullUrl)}`;
 
   return (
-    <DialogShell open={true} onClose={onClose} width="min(440px, 94vw)" ariaLabel="رمز الاستجابة السريعة">
+    <DialogShell open={true} onClose={onClose} width="min(440px, 94vw)" ariaLabel={t('portals_hub.portal_qr_modal.s0', "رمز الاستجابة السريعة")}>
       <div dir="rtl" style={{ padding: '24px', textAlign: 'center' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
           <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: '#0f172a' }}>
-            رمز QR: {portal.title}
+            {t('portals_hub.portal_qr_modal.s1', "رمز QR:")} {portal.title}
           </h3>
           <button
             type="button"
@@ -33,7 +35,7 @@ export function PortalQrModal({ portal, onClose, copied, onCopy }: PortalQrModal
         </div>
 
         <p style={{ margin: '0 0 16px', fontSize: '12.5px', color: '#64748b' }}>
-          امسح الكود بكاميرا الموبايل أو التابلت لفتح البوابة مباشرة
+          {t('portals_hub.portal_qr_modal.s2', "امسح الكود بكاميرا الموبايل أو التابلت لفتح البوابة مباشرة")}
         </p>
 
         <div style={{ padding: '16px', borderRadius: '16px', background: '#f8fafc', border: '1px solid #e2e8f0', display: 'inline-block', marginBottom: '16px' }}>
@@ -59,7 +61,7 @@ export function PortalQrModal({ portal, onClose, copied, onCopy }: PortalQrModal
               whiteSpace: 'nowrap',
             }}
           >
-            {copied ? 'تم النسخ!' : 'نسخ الرابط'}
+            {copied ? t('portals_hub.portal_qr_modal.s3', "تم النسخ!") : t('portals_hub.portal_qr_modal.s4', "نسخ الرابط")}
           </button>
         </div>
       </div>

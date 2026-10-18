@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
 import { FormSection } from '@/shared/components/form-section';
 import { Button } from '@/shared/ui/button';
@@ -5,6 +6,7 @@ import { Field } from '@/shared/ui/field';
 import { systemConfirm } from '@/shared/components/system-alert';
 
 export function SettingsLanModesSection() {
+  const { t } = useTranslation();
   const [mode, setMode] = useState<string>('standalone');
   const [serverUrl, setServerUrl] = useState<string>('');
   const [testResult, setTestResult] = useState<{ ok: boolean; message: string } | null>(null);
@@ -24,7 +26,7 @@ export function SettingsLanModesSection() {
   if (!isElectron) {
     return (
       <div className="error-box">
-        <strong>غير مدعوم:</strong> إعدادات الشبكة المحلية متاحة فقط في النسخة المكتبية (Offline).
+        <strong>{t('settings.workspace_sections.settings_lan_modes_section.s0', "غير مدعوم:")}</strong> {t('settings.workspace_sections.settings_lan_modes_section.s1', "إعدادات الشبكة المحلية متاحة فقط في النسخة المكتبية (Offline).")}
       </div>
     );
   }
@@ -96,29 +98,29 @@ export function SettingsLanModesSection() {
 
   return (
     <div className="page-stack">
-      <FormSection title="وضع التشغيل الحالي">
+      <FormSection title={t('settings.workspace_sections.settings_lan_modes_section.s2', "وضع التشغيل الحالي")}>
         <div style={{ marginBottom: 16 }}>
-          {mode === 'standalone' && <span className="success-box" style={{ display: 'inline-block' }}>جهاز مستقل</span>}
-          {mode === 'lan_server' && <span className="success-box" style={{ display: 'inline-block' }}>جهاز رئيسي للشبكة المحلية</span>}
-          {mode === 'lan_client' && <span className="warning-box" style={{ display: 'inline-block' }}>جهاز ثانوي</span>}
+          {mode === 'standalone' && <span className="success-box" style={{ display: 'inline-block' }}>{t('settings.workspace_sections.settings_lan_modes_section.s3', "جهاز مستقل")}</span>}
+          {mode === 'lan_server' && <span className="success-box" style={{ display: 'inline-block' }}>{t('settings.workspace_sections.settings_lan_modes_section.s4', "جهاز رئيسي للشبكة المحلية")}</span>}
+          {mode === 'lan_client' && <span className="warning-box" style={{ display: 'inline-block' }}>{t('settings.workspace_sections.settings_lan_modes_section.s5', "جهاز ثانوي")}</span>}
         </div>
         {mode !== 'standalone' && (
           <Button variant="secondary" onClick={() => void handleSwitchToStandalone()}>
-            العودة إلى وضع جهاز مستقل
+            {t('settings.workspace_sections.settings_lan_modes_section.s6', "العودة إلى وضع جهاز مستقل")}
           </Button>
         )}
       </FormSection>
 
       {mode === 'standalone' && (
-        <FormSection title="التحويل إلى جهاز رئيسي" description="ستظل بيانات هذا الجهاز كما هي، وسيصبح مصدر البيانات لباقي الأجهزة. يجب أن يظل الجهاز يعمل أثناء استخدام الأجهزة الأخرى.">
-          <Button onClick={() => void handleSwitchToServer()}>تحويل إلى جهاز رئيسي</Button>
+        <FormSection title={t('settings.workspace_sections.settings_lan_modes_section.s7', "التحويل إلى جهاز رئيسي")} description={t('settings.workspace_sections.settings_lan_modes_section.s8', "ستظل بيانات هذا الجهاز كما هي، وسيصبح مصدر البيانات لباقي الأجهزة. يجب أن يظل الجهاز يعمل أثناء استخدام الأجهزة الأخرى.")}>
+          <Button onClick={() => void handleSwitchToServer()}>{t('settings.workspace_sections.settings_lan_modes_section.s9', "تحويل إلى جهاز رئيسي")}</Button>
         </FormSection>
       )}
 
       {(mode === 'standalone' || mode === 'lan_client') && (
-        <FormSection title="التحويل إلى جهاز ثانوي" description="للاتصال بجهاز رئيسي آخر على الشبكة، أدخل عنوانه وتأكد من نجاح الاتصال.">
+        <FormSection title={t('settings.workspace_sections.settings_lan_modes_section.s10', "التحويل إلى جهاز ثانوي")} description={t('settings.workspace_sections.settings_lan_modes_section.s11', "للاتصال بجهاز رئيسي آخر على الشبكة، أدخل عنوانه وتأكد من نجاح الاتصال.")}>
           <div className="form-grid two-col-form" style={{ marginBottom: 16 }}>
-            <Field label="رابط الجهاز الرئيسي (مثال: http://192.168.1.10:3001)">
+            <Field label={t('settings.workspace_sections.settings_lan_modes_section.s12', "رابط الجهاز الرئيسي (مثال: http://192.168.1.10:3001)")}>
               <input
                 type="text"
                 placeholder="http://192.168.1.10:3001"
@@ -129,21 +131,21 @@ export function SettingsLanModesSection() {
             </Field>
             <div className="actions compact-actions" style={{ alignSelf: 'end', marginBottom: 4 }}>
               <Button type="button" variant="secondary" onClick={() => void handleTestConnection()} disabled={!serverUrl || isTesting}>
-                {isTesting ? 'جارِ الاختبار...' : 'اختبار الاتصال'}
+                {isTesting ? t('settings.workspace_sections.settings_lan_modes_section.s13', "جارِ الاختبار...") : t('settings.workspace_sections.settings_lan_modes_section.s14', "اختبار الاتصال")}
               </Button>
             </div>
           </div>
 
           {testResult && (
             <div className={testResult.ok ? 'success-box' : 'error-box'} style={{ marginBottom: 16 }}>
-              <strong>{testResult.ok ? 'تم بنجاح: ' : 'فشل الاختبار: '}</strong>
+              <strong>{testResult.ok ? t('settings.workspace_sections.settings_lan_modes_section.s15', "تم بنجاح: ") : t('settings.workspace_sections.settings_lan_modes_section.s16', "فشل الاختبار: ")}</strong>
               {testResult.message}
             </div>
           )}
 
           {testResult?.ok && (
             <div className="actions">
-              <Button onClick={() => void handleSwitchToClient()}>اعتماد كجهاز ثانوي وإعادة التشغيل</Button>
+              <Button onClick={() => void handleSwitchToClient()}>{t('settings.workspace_sections.settings_lan_modes_section.s17', "اعتماد كجهاز ثانوي وإعادة التشغيل")}</Button>
             </div>
           )}
         </FormSection>

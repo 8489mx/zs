@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useMemo } from 'react';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { Field } from '@/shared/ui/field';
@@ -35,6 +36,7 @@ export function CreateMaterialRequisitionModal({
   onClose,
   onCreated,
 }: CreateMaterialRequisitionModalProps) {
+  const { t } = useTranslation();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const { currencySymbol, formatCurrency } = useSystemCurrency();
@@ -104,15 +106,15 @@ export function CreateMaterialRequisitionModal({
     <StandardDialog
       open={open}
       onClose={onClose}
-      title="إذن صرف وتخصيص مواد وخامات للموقع (Material Requisition)"
-      subtitle={projectName ? `المشروع: ${projectName}` : 'صرف خامات للمشروع وتحميل قيمتها مباشرة على بنود المقايسة ومراكز التكلفة'}
+      title={t('contracting.create_material_requisition_modal.s0', "إذن صرف وتخصيص مواد وخامات للموقع (Material Requisition)")}
+      subtitle={projectName ? `المشروع: ${projectName}` : t('contracting.create_material_requisition_modal.s1', "صرف خامات للمشروع وتحميل قيمتها مباشرة على بنود المقايسة ومراكز التكلفة")}
       width="min(920px, 95vw)"
       minHeight="auto"
       footerActions={(
         <StandardDialogFooter
           onCancel={onClose}
           onSubmit={() => handleSubmit()}
-          submitText="توثيق إذن صرف المواد"
+          submitText={t('contracting.create_material_requisition_modal.s2', "توثيق إذن صرف المواد")}
           isSubmitting={isSubmitting}
         />
       )}
@@ -179,21 +181,21 @@ export function CreateMaterialRequisitionModal({
         <div style={{ background: '#f8fafc', padding: '9px 13px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
             <AppIcons.Layers size={15} />
-            <span>1. بيانات إذن الصرف وبند المقايسة (Requisition & BOQ Allocation)</span>
+            <span>{t('contracting.create_material_requisition_modal.s3', "1. بيانات إذن الصرف وبند المقايسة (Requisition & BOQ Allocation)")}</span>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 2fr', gap: '10px', alignItems: 'start' }}>
-            <Field label="رقم إذن الصرف">
+            <Field label={t('contracting.create_material_requisition_modal.s4', "رقم إذن الصرف")}>
               <input
                 type="text"
                 value={formData.requisitionNumber}
                 onChange={(e) => setFormData({ ...formData, requisitionNumber: e.target.value })}
-                placeholder="تلقائي: MR-260914-0001"
+                placeholder={t('contracting.create_material_requisition_modal.s5', "تلقائي: MR-260914-0001")}
                 style={{ fontFamily: 'monospace', fontWeight: 600 }}
               />
             </Field>
 
-            <Field label="تاريخ الصرف *">
+            <Field label={t('contracting.create_material_requisition_modal.s6', "تاريخ الصرف *")}>
               <input
                 type="date"
                 value={formData.issueDate}
@@ -202,7 +204,7 @@ export function CreateMaterialRequisitionModal({
               />
             </Field>
 
-            <Field label="تحميل على بند المقايسة (BOQ)">
+            <Field label={t('contracting.create_material_requisition_modal.s7', "تحميل على بند المقايسة (BOQ)")}>
               <CustomSelect
                 value={formData.boqItemId}
                 options={boqItemOptions}
@@ -216,21 +218,21 @@ export function CreateMaterialRequisitionModal({
         <div style={{ background: '#f8fafc', padding: '9px 13px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
             <AppIcons.Calculator size={15} />
-            <span>2. مواصفات الخامة والكميات والتكلفة (Material & Cost Specs)</span>
+            <span>{t('contracting.create_material_requisition_modal.s8', "2. مواصفات الخامة والكميات والتكلفة (Material & Cost Specs)")}</span>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1.2fr 1.2fr', gap: '10px', alignItems: 'start' }}>
-            <Field label="بيان واسم المادة / الخامة *">
+            <Field label={t('contracting.create_material_requisition_modal.s9', "بيان واسم المادة / الخامة *")}>
               <input
                 type="text"
                 value={formData.itemName}
                 onChange={(e) => setFormData({ ...formData, itemName: e.target.value })}
-                placeholder="مثال: حديد تسليح مشرشر 16 مم - عز الدخيلة"
+                placeholder={t('contracting.create_material_requisition_modal.s10', "مثال: حديد تسليح مشرشر 16 مم - عز الدخيلة")}
                 required
               />
             </Field>
 
-            <Field label="الوحدة">
+            <Field label={t('contracting.create_material_requisition_modal.s11', "الوحدة")}>
               <CustomSelect
                 value={formData.unit}
                 options={MATERIAL_UNIT_OPTIONS}
@@ -238,7 +240,7 @@ export function CreateMaterialRequisitionModal({
               />
             </Field>
 
-            <Field label="الكمية المصروفة *">
+            <Field label={t('contracting.create_material_requisition_modal.s12', "الكمية المصروفة *")}>
               <input
                 type="number"
                 step="any"
@@ -266,7 +268,7 @@ export function CreateMaterialRequisitionModal({
               />
             </Field>
 
-            <Field label="إجمالي تكلفة الصرف">
+            <Field label={t('contracting.create_material_requisition_modal.s13', "إجمالي تكلفة الصرف")}>
               <div
                 style={{
                   height: '33px',
@@ -292,25 +294,25 @@ export function CreateMaterialRequisitionModal({
         <div style={{ background: '#f8fafc', padding: '9px 13px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
             <AppIcons.Tag size={14} />
-            <span>3. جهة الاستلام والتوثيق المخزني (Recipient & Warehouse Notes)</span>
+            <span>{t('contracting.create_material_requisition_modal.s14', "3. جهة الاستلام والتوثيق المخزني (Recipient & Warehouse Notes)")}</span>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 2fr', gap: '10px', alignItems: 'start' }}>
-            <Field label="المستلم بالموقع">
+            <Field label={t('contracting.create_material_requisition_modal.s15', "المستلم بالموقع")}>
               <input
                 type="text"
                 value={formData.recipientName}
                 onChange={(e) => setFormData({ ...formData, recipientName: e.target.value })}
-                placeholder="اسم المهندس / المشرف المستلم..."
+                placeholder={t('contracting.create_material_requisition_modal.s16', "اسم المهندس / المشرف المستلم...")}
               />
             </Field>
 
-            <Field label="إذن المخزن الورقي / ملاحظات (اختياري)">
+            <Field label={t('contracting.create_material_requisition_modal.s17', "إذن المخزن الورقي / ملاحظات (اختياري)")}>
               <input
                 type="text"
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                placeholder="مثال: مستودع العاشر، إذن تسليم W-449..."
+                placeholder={t('contracting.create_material_requisition_modal.s18', "مثال: مستودع العاشر، إذن تسليم W-449...")}
               />
             </Field>
           </div>

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React, { useRef } from 'react';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 
@@ -31,6 +32,7 @@ export const ReplenishmentPickListPrintModal: React.FC<ReplenishmentPickListPrin
   items,
   createdByName = 'كاشير المحل',
 }) => {
+  const { t } = useTranslation();
   const printAreaRef = useRef<HTMLDivElement>(null);
 
   if (!isOpen) return null;
@@ -228,14 +230,14 @@ export const ReplenishmentPickListPrintModal: React.FC<ReplenishmentPickListPrin
     <StandardDialog
       open={isOpen}
       onClose={onClose}
-      title="أمر تحميل وصرف بضاعة للمستودع"
+      title={t('inventory.replenishment_pick_list_print_modal.s0', "أمر تحميل وصرف بضاعة للمستودع")}
       subtitle={`إذن معتمد رسمي رقم #${docNo}`}
       size="lg"
       footerActions={
         <StandardDialogFooter
           onCancel={onClose}
-          cancelLabel="إغلاق"
-          primaryLabel="طباعة فورية للعامل"
+          cancelLabel={t('inventory.replenishment_pick_list_print_modal.s1', "إغلاق")}
+          primaryLabel={t('inventory.replenishment_pick_list_print_modal.s2', "طباعة فورية للعامل")}
           onPrimary={handlePrint}
         />
       }
@@ -255,9 +257,9 @@ export const ReplenishmentPickListPrintModal: React.FC<ReplenishmentPickListPrin
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #0f172a', paddingBottom: '12px', marginBottom: '16px' }}>
               <div>
                 <h1 style={{ fontSize: '18px', fontWeight: 900, color: '#170e5e', margin: 0 }}>
-                  أمر صرف وتجهيز بضاعة للمحل
+                  {t('inventory.replenishment_pick_list_print_modal.s3', "أمر صرف وتجهيز بضاعة للمحل")}
                 </h1>
-                <p style={{ fontSize: '11px', color: '#64748b', margin: '3px 0 0' }}>كشف نقل معتمد - منظومة Z-Systems</p>
+                <p style={{ fontSize: '11px', color: '#64748b', margin: '3px 0 0' }}>{t('inventory.replenishment_pick_list_print_modal.s4', "كشف نقل معتمد - منظومة Z-Systems")}</p>
               </div>
               <div style={{ fontFamily: 'monospace' }}>
                 <span style={{ backgroundColor: '#f1f5f9', color: '#0f172a', padding: '4px 12px', borderRadius: '6px', fontSize: '13px', fontWeight: 800, border: '1px solid #cbd5e1' }}>
@@ -268,19 +270,19 @@ export const ReplenishmentPickListPrintModal: React.FC<ReplenishmentPickListPrin
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '12px', marginBottom: '16px', fontSize: '12px' }}>
               <div>
-                <span style={{ color: '#64748b' }}>من المستودع المصدر: </span>
+                <span style={{ color: '#64748b' }}>{t('inventory.replenishment_pick_list_print_modal.s5', "من المستودع المصدر:")} </span>
                 <strong style={{ color: '#0f172a' }}>{fromLocationName}</strong>
               </div>
               <div>
-                <span style={{ color: '#64748b' }}>إلى صالة المحل: </span>
+                <span style={{ color: '#64748b' }}>{t('inventory.replenishment_pick_list_print_modal.s6', "إلى صالة المحل:")} </span>
                 <strong style={{ color: '#0f172a' }}>{toLocationName}</strong>
               </div>
               <div>
-                <span style={{ color: '#64748b' }}>التاريخ والوقت: </span>
+                <span style={{ color: '#64748b' }}>{t('inventory.replenishment_pick_list_print_modal.s7', "التاريخ والوقت:")} </span>
                 <span style={{ fontWeight: 600, color: '#334155' }}>{dateStr} - {timeStr}</span>
               </div>
               <div>
-                <span style={{ color: '#64748b' }}>المشرف المعتمد: </span>
+                <span style={{ color: '#64748b' }}>{t('inventory.replenishment_pick_list_print_modal.s8', "المشرف المعتمد:")} </span>
                 <span style={{ fontWeight: 600, color: '#334155' }}>{createdByName}</span>
               </div>
             </div>
@@ -289,11 +291,11 @@ export const ReplenishmentPickListPrintModal: React.FC<ReplenishmentPickListPrin
               <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #cbd5e1', textAlign: 'right', fontSize: '12px' }}>
                 <thead>
                   <tr style={{ backgroundColor: '#f8fafc', color: '#334155' }}>
-                    <th style={{ border: '1px solid #cbd5e1', padding: '8px', width: '40px', textAlign: 'center' }}>تم</th>
+                    <th style={{ border: '1px solid #cbd5e1', padding: '8px', width: '40px', textAlign: 'center' }}>{t('inventory.replenishment_pick_list_print_modal.s9', "تم")}</th>
                     <th style={{ border: '1px solid #cbd5e1', padding: '8px', width: '36px', textAlign: 'center' }}>#</th>
-                    <th style={{ border: '1px solid #cbd5e1', padding: '8px' }}>اسم الصنف والباركود</th>
-                    <th style={{ border: '1px solid #cbd5e1', padding: '8px', textAlign: 'center', width: '120px' }}>الكمية المطلوبة بدقة</th>
-                    <th style={{ border: '1px solid #cbd5e1', padding: '8px', textAlign: 'center', width: '130px' }}>التعبئة المقترحة</th>
+                    <th style={{ border: '1px solid #cbd5e1', padding: '8px' }}>{t('inventory.replenishment_pick_list_print_modal.s10', "اسم الصنف والباركود")}</th>
+                    <th style={{ border: '1px solid #cbd5e1', padding: '8px', textAlign: 'center', width: '120px' }}>{t('inventory.replenishment_pick_list_print_modal.s11', "الكمية المطلوبة بدقة")}</th>
+                    <th style={{ border: '1px solid #cbd5e1', padding: '8px', textAlign: 'center', width: '130px' }}>{t('inventory.replenishment_pick_list_print_modal.s12', "التعبئة المقترحة")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -313,7 +315,7 @@ export const ReplenishmentPickListPrintModal: React.FC<ReplenishmentPickListPrin
                       </td>
                       <td style={{ border: '1px solid #cbd5e1', padding: '8px', textAlign: 'center' }}>
                         <strong style={{ fontSize: '14px', color: '#0f172a' }}>{item.qty}</strong>{' '}
-                        <span style={{ fontSize: '11px', color: '#64748b' }}>قطعة</span>
+                        <span style={{ fontSize: '11px', color: '#64748b' }}>{t('inventory.replenishment_pick_list_print_modal.s13', "قطعة")}</span>
                       </td>
                       <td style={{ border: '1px solid #cbd5e1', padding: '8px', textAlign: 'center' }}>
                         {item.cartonsCount && item.cartonName ? (
@@ -331,17 +333,17 @@ export const ReplenishmentPickListPrintModal: React.FC<ReplenishmentPickListPrin
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#f8fafc', border: '1px dashed #cbd5e1', borderRadius: '8px', padding: '10px 14px', fontWeight: 800, fontSize: '12px', marginBottom: '24px' }}>
-              <span>إجمالي الأصناف: {items.length} صنف</span>
-              <span style={{ color: '#170e5e', fontSize: '13px' }}>إجمالي القطع المنصرفة: {totalPieces} قطعة</span>
+              <span>{t('inventory.replenishment_pick_list_print_modal.s14', "إجمالي الأصناف:")} {items.length} {t('inventory.replenishment_pick_list_print_modal.s15', "صنف")}</span>
+              <span style={{ color: '#170e5e', fontSize: '13px' }}>{t('inventory.replenishment_pick_list_print_modal.s16', "إجمالي القطع المنصرفة:")} {totalPieces} {t('inventory.replenishment_pick_list_print_modal.s17', "قطعة")}</span>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px', borderTop: '1px solid #e2e8f0', paddingTop: '16px', fontSize: '12px' }}>
               <div style={{ textAlign: 'center' }}>
-                <span style={{ color: '#475569', fontWeight: 700 }}>توقيع مسؤول المستودع (المُسلِّم)</span>
+                <span style={{ color: '#475569', fontWeight: 700 }}>{t('inventory.replenishment_pick_list_print_modal.s18', "توقيع مسؤول المستودع (المُسلِّم)")}</span>
                 <div style={{ marginTop: '30px', borderBottom: '1px dashed #94a3b8', marginInline: '20px' }} />
               </div>
               <div style={{ textAlign: 'center' }}>
-                <span style={{ color: '#475569', fontWeight: 700 }}>توقيع المستلم (العامل / الكاشير)</span>
+                <span style={{ color: '#475569', fontWeight: 700 }}>{t('inventory.replenishment_pick_list_print_modal.s19', "توقيع المستلم (العامل / الكاشير)")}</span>
                 <div style={{ marginTop: '30px', borderBottom: '1px dashed #94a3b8', marginInline: '20px' }} />
               </div>
             </div>

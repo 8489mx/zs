@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/shared/ui/button';
@@ -32,6 +33,7 @@ export const SmartReplenishmentModal: React.FC<SmartReplenishmentModalProps> = (
   onSuccess,
   defaultToLocationId,
 }) => {
+  const { t } = useTranslation();
   const { locationsQuery } = useInventoryActionCatalog();
   const locations = locationsQuery.data || [];
 
@@ -217,7 +219,7 @@ export const SmartReplenishmentModal: React.FC<SmartReplenishmentModalProps> = (
       <StandardDialog
         open={isOpen}
         onClose={onClose}
-        title="محرك إمداد الأرفف الذكي وتتبع المخازن"
+        title={t('inventory.smart_replenishment_modal.s0', "محرك إمداد الأرفف الذكي وتتبع المخازن")}
         subtitle={`فحص آلي لأرصدة كافة المخازن وتوجيه الصرف للحاجات المتوفرة فعلياً (تغطية ${coverDays * 24} ساعة)`}
         size="xl"
         footerActions={
@@ -225,7 +227,7 @@ export const SmartReplenishmentModal: React.FC<SmartReplenishmentModalProps> = (
             <div style={{ flex: 1, minWidth: '240px' }}>
               <input
                 type="text"
-                placeholder="ملاحظات إذن الصرف (اختياري)..."
+                placeholder={t('inventory.smart_replenishment_modal.s1', "ملاحظات إذن الصرف (اختياري)...")}
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
                 style={{
@@ -261,8 +263,8 @@ export const SmartReplenishmentModal: React.FC<SmartReplenishmentModalProps> = (
 
               <StandardDialogFooter
                 onCancel={onClose}
-                cancelLabel="إلغاء"
-                primaryLabel={isSubmitting ? 'جاري الاعتماد والترحيل...' : 'اعتماد إذن الصرف وطباعة أمر التحميل'}
+                cancelLabel={t('inventory.smart_replenishment_modal.s2', "إلغاء")}
+                primaryLabel={isSubmitting ? t('inventory.smart_replenishment_modal.s3', "جاري الاعتماد والترحيل...") : t('inventory.smart_replenishment_modal.s4', "اعتماد إذن الصرف وطباعة أمر التحميل")}
                 onPrimary={handleApproveAndPrint}
                 isPrimaryLoading={isSubmitting}
                 isPrimaryDisabled={isSubmitting || activeValidItems.length === 0 || isSameLocation}
@@ -287,37 +289,37 @@ export const SmartReplenishmentModal: React.FC<SmartReplenishmentModalProps> = (
           >
             <div>
               <label style={{ display: 'block', fontWeight: 700, fontSize: '12px', color: '#334155', marginBottom: '6px' }}>
-                المستودع المصدر للصرف:
+                {t('inventory.smart_replenishment_modal.s5', "المستودع المصدر للصرف:")}
               </label>
               <CustomSelect
                 value={fromLocationId ? String(fromLocationId) : ''}
                 onChange={(val) => setFromLocationId(val ? Number(val) : '')}
                 options={locationOptions}
-                placeholder="اختر المستودع المصدر"
+                placeholder={t('inventory.smart_replenishment_modal.s6', "اختر المستودع المصدر")}
               />
             </div>
 
             <div>
               <label style={{ display: 'block', fontWeight: 700, fontSize: '12px', color: '#334155', marginBottom: '6px' }}>
-                موقع الوجهة (صالة عرض المحل):
+                {t('inventory.smart_replenishment_modal.s7', "موقع الوجهة (صالة عرض المحل):")}
               </label>
               <CustomSelect
                 value={toLocationId ? String(toLocationId) : ''}
                 onChange={(val) => setToLocationId(val ? Number(val) : '')}
                 options={locationOptions}
-                placeholder="اختر موقع الوجهة"
+                placeholder={t('inventory.smart_replenishment_modal.s8', "اختر موقع الوجهة")}
               />
             </div>
 
             <div>
               <label style={{ display: 'block', fontWeight: 700, fontSize: '12px', color: '#334155', marginBottom: '6px' }}>
-                فترة تغطية المبيعات:
+                {t('inventory.smart_replenishment_modal.s9', "فترة تغطية المبيعات:")}
               </label>
               <div style={{ display: 'flex', gap: '6px' }}>
                 {[
-                  { label: '24 ساعة (يوم)', days: 1 },
-                  { label: '48 ساعة (يومان)', days: 2 },
-                  { label: '72 ساعة (3 أيام)', days: 3 },
+                  { label: t('inventory.smart_replenishment_modal.s10', "24 ساعة (يوم)"), days: 1 },
+                  { label: t('inventory.smart_replenishment_modal.s11', "48 ساعة (يومان)"), days: 2 },
+                  { label: t('inventory.smart_replenishment_modal.s12', "72 ساعة (3 أيام)"), days: 3 },
                 ].map((opt) => (
                   <button
                     key={opt.days}
@@ -361,12 +363,12 @@ export const SmartReplenishmentModal: React.FC<SmartReplenishmentModalProps> = (
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <AlertTriangleIcon size={18} color="#b45309" />
-                <strong style={{ fontSize: '13px' }}>المستودع المصدر هو نفسه موقع صالة العرض:</strong>
+                <strong style={{ fontSize: '13px' }}>{t('inventory.smart_replenishment_modal.s13', "المستودع المصدر هو نفسه موقع صالة العرض:")}</strong>
               </div>
               <p style={{ margin: 0, fontSize: '12px', lineHeight: 1.5, color: '#92400e' }}>
                 {locations.length > 1
-                  ? 'يرجى اختيار موقعين مختلفين من القائمتين بالأعلى (مستودع التخزين وصالة المحل) لبدء التحليل واحتساب كميات النواقص.'
-                  : 'النظام يحتوي حالياً على موقع مخزن واحد فقط (صالة المحل). يتطلب محرك إمداد الأرفف الذكي وجود موقعين على الأقل لتوجيه أذون الصرف ونقل البضاعة من المستودع إلى الصالة.'}
+                  ? t('inventory.smart_replenishment_modal.s14', "يرجى اختيار موقعين مختلفين من القائمتين بالأعلى (مستودع التخزين وصالة المحل) لبدء التحليل واحتساب كميات النواقص.")
+                  : t('inventory.smart_replenishment_modal.s15', "النظام يحتوي حالياً على موقع مخزن واحد فقط (صالة المحل). يتطلب محرك إمداد الأرفف الذكي وجود موقعين على الأقل لتوجيه أذون الصرف ونقل البضاعة من المستودع إلى الصالة.")}
               </p>
 
               {locations.length <= 1 && (
@@ -376,7 +378,7 @@ export const SmartReplenishmentModal: React.FC<SmartReplenishmentModalProps> = (
                     variant="primary"
                     onClick={() =>
                       createLocationMutation.mutate({
-                        name: 'المستودع الرئيسي (تخزين)',
+                        name: t('inventory.smart_replenishment_modal.s16', "المستودع الرئيسي (تخزين)"),
                         code: 'WH-MAIN',
                         locationType: 'internal_warehouse' as any,
                       })
@@ -399,8 +401,8 @@ export const SmartReplenishmentModal: React.FC<SmartReplenishmentModalProps> = (
                   >
                     <span>
                       {createLocationMutation.isPending
-                        ? 'جاري إنشاء المستودع الرئيسي...'
-                        : '+ إنشاء مستودع رئيسي بنقرة واحدة لتفعيل الإمداد'}
+                        ? t('inventory.smart_replenishment_modal.s17', "جاري إنشاء المستودع الرئيسي...")
+                        : t('inventory.smart_replenishment_modal.s18', "+ إنشاء مستودع رئيسي بنقرة واحدة لتفعيل الإمداد")}
                     </span>
                   </Button>
                 </div>
@@ -424,27 +426,27 @@ export const SmartReplenishmentModal: React.FC<SmartReplenishmentModalProps> = (
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                <span style={{ fontWeight: 800, color: '#334155' }}>تحليل المنظومة:</span>
+                <span style={{ fontWeight: 800, color: '#334155' }}>{t('inventory.smart_replenishment_modal.s19', "تحليل المنظومة:")}</span>
                 <span style={{ backgroundColor: '#fef2f2', color: '#991b1b', border: '1px solid #fee2e2', padding: '3px 8px', borderRadius: '6px', fontWeight: 700, fontSize: '11.5px' }}>
-                  {outOfStockCount} خلص بالمحل
+                  {outOfStockCount} {t('inventory.smart_replenishment_modal.s20', "خلص بالمحل")}
                 </span>
                 <span style={{ backgroundColor: '#fffbeb', color: '#92400e', border: '1px solid #fef3c7', padding: '3px 8px', borderRadius: '6px', fontWeight: 700, fontSize: '11.5px' }}>
-                  {lowStockCount} قرب يخلص
+                  {lowStockCount} {t('inventory.smart_replenishment_modal.s21', "قرب يخلص")}
                 </span>
                 <span style={{ backgroundColor: '#eff6ff', color: '#1e40af', border: '1px solid #dbeafe', padding: '3px 8px', borderRadius: '6px', fontWeight: 700, fontSize: '11.5px' }}>
-                  {salesReplenishCount} تعويض مبيعات
+                  {salesReplenishCount} {t('inventory.smart_replenishment_modal.s22', "تعويض مبيعات")}
                 </span>
                 {unavailableInSourceCount > 0 && (
                   <span style={{ backgroundColor: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0', padding: '3px 8px', borderRadius: '6px', fontWeight: 700, fontSize: '11.5px' }}>
-                    {unavailableInSourceCount} غير متوفر بهذا المستودع (متاح ببدائل)
+                    {unavailableInSourceCount} {t('inventory.smart_replenishment_modal.s23', "غير متوفر بهذا المستودع (متاح ببدائل)")}
                   </span>
                 )}
               </div>
 
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ color: '#64748b', fontWeight: 600 }}>المطلوب سحبه:</span>
+                <span style={{ color: '#64748b', fontWeight: 600 }}>{t('inventory.smart_replenishment_modal.s24', "المطلوب سحبه:")}</span>
                 <span style={{ backgroundColor: '#f8fafc', color: '#0f172a', fontWeight: 900, padding: '4px 12px', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
-                  {activeValidItems.length} أصناف | {totalPieces} قطعة
+                  {activeValidItems.length} {t('inventory.smart_replenishment_modal.s25', "أصناف |")} {totalPieces} {t('inventory.smart_replenishment_modal.s26', "قطعة")}
                 </span>
               </div>
             </div>
@@ -456,19 +458,19 @@ export const SmartReplenishmentModal: React.FC<SmartReplenishmentModalProps> = (
               <div style={{ padding: '60px 0', textAlign: 'center', color: '#64748b' }}>
                 <RefreshCwIcon size={28} color="#94a3b8" style={{ marginBottom: '8px' }} />
                 <p style={{ fontWeight: 700, fontSize: '14px', margin: 0 }}>
-                  جاري احتساب مبيعات الـ {coverDays * 24} ساعة وفحص أرصدة كافة المخازن...
+                  {t('inventory.smart_replenishment_modal.s27', "جاري احتساب مبيعات الـ")} {coverDays * 24} {t('inventory.smart_replenishment_modal.s28', "ساعة وفحص أرصدة كافة المخازن...")}
                 </p>
               </div>
             ) : suggestionsQuery.isError ? (
               <div style={{ padding: '16px', backgroundColor: '#fef2f2', border: '1px solid #fecaca', color: '#991b1b', borderRadius: '8px', fontSize: '13px', fontWeight: 600, textAlign: 'center' }}>
-                تعذر جلب مقترحات الإمداد، تأكد من اتصال السيرفر واختلاف المستودع المصدر عن صالة المحل.
+                {t('inventory.smart_replenishment_modal.s29', "تعذر جلب مقترحات الإمداد، تأكد من اتصال السيرفر واختلاف المستودع المصدر عن صالة المحل.")}
               </div>
             ) : isSameLocation ? null : editableItems.length === 0 ? (
               <div style={{ padding: '50px 20px', textAlign: 'center', backgroundColor: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
                 <CheckCircleIcon size={38} color="#16a34a" style={{ margin: '0 auto 10px' }} />
-                <h3 style={{ margin: 0, fontWeight: 800, color: '#0f172a', fontSize: '16px' }}>الأرفف ممتلئة تماماً!</h3>
+                <h3 style={{ margin: 0, fontWeight: 800, color: '#0f172a', fontSize: '16px' }}>{t('inventory.smart_replenishment_modal.s30', "الأرفف ممتلئة تماماً!")}</h3>
                 <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#64748b' }}>
-                  لا توجد أصناف ناقصة أو مباعة تتطلب تعويضاً من المستودع حالياً في صالة العرض المحددة.
+                  {t('inventory.smart_replenishment_modal.s31', "لا توجد أصناف ناقصة أو مباعة تتطلب تعويضاً من المستودع حالياً في صالة العرض المحددة.")}
                 </p>
               </div>
             ) : (
@@ -476,13 +478,13 @@ export const SmartReplenishmentModal: React.FC<SmartReplenishmentModalProps> = (
                 <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right', fontSize: '12px' }}>
                   <thead>
                     <tr style={{ backgroundColor: '#f8fafc', color: '#475569', borderBottom: '1px solid #e2e8f0', fontWeight: 800 }}>
-                      <th style={{ padding: '10px 12px' }}>حالة الصنف</th>
-                      <th style={{ padding: '10px 12px' }}>اسم الصنف، الباركود، وبدائل المخازن</th>
-                      <th style={{ padding: '10px 12px', textAlign: 'center' }}>رصيد المحل</th>
-                      <th style={{ padding: '10px 12px', textAlign: 'center' }}>مبيعات {coverDays * 24}س</th>
-                      <th style={{ padding: '10px 12px', textAlign: 'center' }}>رصيد المستودع المختار</th>
-                      <th style={{ padding: '10px 12px', textAlign: 'center', width: '160px' }}>الكمية المقترحة للصرف</th>
-                      <th style={{ padding: '10px 12px', textAlign: 'center', width: '60px' }}>حذف</th>
+                      <th style={{ padding: '10px 12px' }}>{t('inventory.smart_replenishment_modal.s32', "حالة الصنف")}</th>
+                      <th style={{ padding: '10px 12px' }}>{t('inventory.smart_replenishment_modal.s33', "اسم الصنف، الباركود، وبدائل المخازن")}</th>
+                      <th style={{ padding: '10px 12px', textAlign: 'center' }}>{t('inventory.smart_replenishment_modal.s34', "رصيد المحل")}</th>
+                      <th style={{ padding: '10px 12px', textAlign: 'center' }}>{t('inventory.smart_replenishment_modal.s35', "مبيعات")} {coverDays * 24}{t('inventory.smart_replenishment_modal.s36', "س")}</th>
+                      <th style={{ padding: '10px 12px', textAlign: 'center' }}>{t('inventory.smart_replenishment_modal.s37', "رصيد المستودع المختار")}</th>
+                      <th style={{ padding: '10px 12px', textAlign: 'center', width: '160px' }}>{t('inventory.smart_replenishment_modal.s38', "الكمية المقترحة للصرف")}</th>
+                      <th style={{ padding: '10px 12px', textAlign: 'center', width: '60px' }}>{t('inventory.smart_replenishment_modal.s39', "حذف")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -497,22 +499,22 @@ export const SmartReplenishmentModal: React.FC<SmartReplenishmentModalProps> = (
                         <td style={{ padding: '10px 12px' }}>
                           {item.urgency === 'unavailable_in_source' && (
                             <span style={{ backgroundColor: '#f1f5f9', color: '#475569', fontSize: '11px', fontWeight: 700, padding: '2px 8px', borderRadius: '4px', border: '1px solid #e2e8f0' }}>
-                              غير متاح بهذا المخزن
+                              {t('inventory.smart_replenishment_modal.s40', "غير متاح بهذا المخزن")}
                             </span>
                           )}
                           {item.urgency === 'out_of_stock' && (
                             <span style={{ backgroundColor: '#fef2f2', color: '#991b1b', fontSize: '11px', fontWeight: 700, padding: '2px 8px', borderRadius: '4px', border: '1px solid #fee2e2' }}>
-                              خلص بالمحل
+                              {t('inventory.smart_replenishment_modal.s41', "خلص بالمحل")}
                             </span>
                           )}
                           {item.urgency === 'low_stock' && (
                             <span style={{ backgroundColor: '#fffbeb', color: '#92400e', fontSize: '11px', fontWeight: 700, padding: '2px 8px', borderRadius: '4px', border: '1px solid #fef3c7' }}>
-                              قرب يخلص
+                              {t('inventory.smart_replenishment_modal.s42', "قرب يخلص")}
                             </span>
                           )}
                           {item.urgency === 'sales_replenish' && (
                             <span style={{ backgroundColor: '#eff6ff', color: '#1e40af', fontSize: '11px', fontWeight: 700, padding: '2px 8px', borderRadius: '4px', border: '1px solid #dbeafe' }}>
-                              تعويض مبيعات
+                              {t('inventory.smart_replenishment_modal.s43', "تعويض مبيعات")}
                             </span>
                           )}
                         </td>
@@ -527,14 +529,14 @@ export const SmartReplenishmentModal: React.FC<SmartReplenishmentModalProps> = (
                           {item.warehouseStock <= 0 && item.alternativeLocations && item.alternativeLocations.length > 0 && (
                             <div style={{ fontSize: '10.5px', color: '#065f46', backgroundColor: '#f0fdf4', borderRadius: '6px', padding: '2px 8px', marginTop: '4px', border: '1px solid #bbf7d0', display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: 600 }}>
                               <LightbulbIcon size={12} color="#059669" />
-                              <span>متوفر في مخازن أخرى: {item.alternativeLocations.map((a) => `${a.locationName} (${a.qty} ق)`).join(' | ')}</span>
+                              <span>{t('inventory.smart_replenishment_modal.s44', "متوفر في مخازن أخرى:")} {item.alternativeLocations.map((a) => `${a.locationName} (${a.qty} ق)`).join(' | ')}</span>
                             </div>
                           )}
 
                           {item.warehouseStock <= 0 && (!item.alternativeLocations || item.alternativeLocations.length === 0) && (
                             <div style={{ fontSize: '10.5px', color: '#b91c1c', backgroundColor: '#fef2f2', borderRadius: '6px', padding: '2px 8px', marginTop: '4px', border: '1px solid #fecaca', display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: 700 }}>
                               <AlertTriangleIcon size={12} color="#dc2626" />
-                              <span>نفد من كافة مخازن المؤسسة بالكامل!</span>
+                              <span>{t('inventory.smart_replenishment_modal.s45', "نفد من كافة مخازن المؤسسة بالكامل!")}</span>
                             </div>
                           )}
 
@@ -542,7 +544,7 @@ export const SmartReplenishmentModal: React.FC<SmartReplenishmentModalProps> = (
                           {item.recommendedPurchaseDeadline && (
                             <div style={{ fontSize: '10.5px', color: '#92400e', backgroundColor: '#fffbeb', borderRadius: '6px', padding: '2px 8px', marginTop: '4px', border: '1px solid #fef3c7', display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: 600 }}>
                               <CalendarIcon size={12} color="#d97706" />
-                              <span>تنبيه شراء: الرصيد يغطي {item.daysOfSupplyRemaining} أيام - يُفضل الشراء قبل <b>{item.recommendedPurchaseDeadline}</b></span>
+                              <span>{t('inventory.smart_replenishment_modal.s46', "تنبيه شراء: الرصيد يغطي")} {item.daysOfSupplyRemaining} {t('inventory.smart_replenishment_modal.s47', "أيام - يُفضل الشراء قبل")} <b>{item.recommendedPurchaseDeadline}</b></span>
                             </div>
                           )}
                         </td>
@@ -571,7 +573,7 @@ export const SmartReplenishmentModal: React.FC<SmartReplenishmentModalProps> = (
                           </span>
                           {item.totalEnterpriseStock > item.warehouseStock && (
                             <div style={{ fontSize: '10px', color: '#94a3b8', fontWeight: 500 }}>
-                              (باقي المخازن: {item.totalEnterpriseStock - item.warehouseStock})
+                              {t('inventory.smart_replenishment_modal.s48', "(باقي المخازن:")} {item.totalEnterpriseStock - item.warehouseStock})
                             </div>
                           )}
                         </td>
@@ -579,7 +581,7 @@ export const SmartReplenishmentModal: React.FC<SmartReplenishmentModalProps> = (
                         <td style={{ padding: '10px 12px', textAlign: 'center' }}>
                           {item.warehouseStock <= 0 ? (
                             <span style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 600 }}>
-                              اختر مخزناً آخر للصرف
+                              {t('inventory.smart_replenishment_modal.s49', "اختر مخزناً آخر للصرف")}
                             </span>
                           ) : (
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
@@ -649,7 +651,7 @@ export const SmartReplenishmentModal: React.FC<SmartReplenishmentModalProps> = (
                               cursor: 'pointer',
                               padding: '4px',
                             }}
-                            title="حذف من هذا الإذن"
+                            title={t('inventory.smart_replenishment_modal.s50', "حذف من هذا الإذن")}
                           >
                             <Trash2Icon size={15} />
                           </button>

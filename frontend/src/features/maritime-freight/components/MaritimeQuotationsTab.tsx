@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
@@ -19,6 +20,7 @@ export function MaritimeQuotationsTab({
   onConvertToJob,
   onUpdateStatus,
 }: MaritimeQuotationsTabProps) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { currencySymbol } = useSystemCurrency();
 
@@ -27,7 +29,7 @@ export function MaritimeQuotationsTab({
       return (
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', background: '#f0f9ff', color: '#0369a1', border: '1px solid #bae6fd', padding: '1px 6px', borderRadius: '4px', fontSize: '0.68rem', fontWeight: 700 }}>
           <AppIcons.Plane size={10} />
-          <span>شحن جوي</span>
+          <span>{t('maritime_freight.maritime_quotations_tab.s0', "شحن جوي")}</span>
         </span>
       );
     }
@@ -35,14 +37,14 @@ export function MaritimeQuotationsTab({
       return (
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', background: '#fef3c7', color: '#b45309', border: '1px solid #fde68a', padding: '1px 6px', borderRadius: '4px', fontSize: '0.68rem', fontWeight: 700 }}>
           <AppIcons.Truck size={10} />
-          <span>شحن بري</span>
+          <span>{t('maritime_freight.maritime_quotations_tab.s1', "شحن بري")}</span>
         </span>
       );
     }
     return (
       <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', padding: '1px 6px', borderRadius: '4px', fontSize: '0.68rem', fontWeight: 700 }}>
         <AppIcons.Ship size={10} />
-        <span>شحن بحري</span>
+        <span>{t('maritime_freight.maritime_quotations_tab.s2', "شحن بحري")}</span>
       </span>
     );
   };
@@ -50,15 +52,15 @@ export function MaritimeQuotationsTab({
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'draft':
-        return <span style={{ padding: '3px 8px', borderRadius: '12px', background: '#f1f5f9', color: '#475569', fontSize: '0.72rem', fontWeight: 700 }}>مسودة</span>;
+        return <span style={{ padding: '3px 8px', borderRadius: '12px', background: '#f1f5f9', color: '#475569', fontSize: '0.72rem', fontWeight: 700 }}>{t('maritime_freight.maritime_quotations_tab.s3', "مسودة")}</span>;
       case 'sent':
-        return <span style={{ padding: '3px 8px', borderRadius: '12px', background: '#eff6ff', color: '#1e40af', fontSize: '0.72rem', fontWeight: 700 }}>مرسل للعميل</span>;
+        return <span style={{ padding: '3px 8px', borderRadius: '12px', background: '#eff6ff', color: '#1e40af', fontSize: '0.72rem', fontWeight: 700 }}>{t('maritime_freight.maritime_quotations_tab.s4', "مرسل للعميل")}</span>;
       case 'approved':
-        return <span style={{ padding: '3px 8px', borderRadius: '12px', background: '#ecfdf5', color: '#047857', fontSize: '0.72rem', fontWeight: 700 }}>معتمد من العميل</span>;
+        return <span style={{ padding: '3px 8px', borderRadius: '12px', background: '#ecfdf5', color: '#047857', fontSize: '0.72rem', fontWeight: 700 }}>{t('maritime_freight.maritime_quotations_tab.s5', "معتمد من العميل")}</span>;
       case 'rejected':
-        return <span style={{ padding: '3px 8px', borderRadius: '12px', background: '#fee2e2', color: '#b91c1c', fontSize: '0.72rem', fontWeight: 700 }}>مرفوض</span>;
+        return <span style={{ padding: '3px 8px', borderRadius: '12px', background: '#fee2e2', color: '#b91c1c', fontSize: '0.72rem', fontWeight: 700 }}>{t('maritime_freight.maritime_quotations_tab.s6', "مرفوض")}</span>;
       case 'converted_to_job':
-        return <span style={{ padding: '3px 8px', borderRadius: '12px', background: '#f8fafc', color: '#475569', border: '1px solid #e2e8f0', fontSize: '0.72rem', fontWeight: 700 }}>تحول لأمر تشغيل</span>;
+        return <span style={{ padding: '3px 8px', borderRadius: '12px', background: '#f8fafc', color: '#475569', border: '1px solid #e2e8f0', fontSize: '0.72rem', fontWeight: 700 }}>{t('maritime_freight.maritime_quotations_tab.s7', "تحول لأمر تشغيل")}</span>;
       default:
         return <span style={{ padding: '3px 8px', borderRadius: '12px', background: '#f1f5f9', color: '#475569', fontSize: '0.72rem', fontWeight: 700 }}>{status}</span>;
     }
@@ -89,9 +91,9 @@ export function MaritimeQuotationsTab({
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '12px' }}>
         <div style={{ background: '#ffffff', padding: '16px 20px', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: '88px', boxSizing: 'border-box' }}>
           <div>
-            <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>إجمالي عروض الأسعار</div>
+            <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>{t('maritime_freight.maritime_quotations_tab.s8', "إجمالي عروض الأسعار")}</div>
             <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#0f172a', marginTop: '4px' }}>
-              {quotations.length} <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>عرض</span>
+              {quotations.length} <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>{t('maritime_freight.maritime_quotations_tab.s9', "عرض")}</span>
             </div>
           </div>
           <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#eff6ff', border: '1px solid #dbeafe', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#2563eb', flexShrink: 0 }}>
@@ -101,9 +103,9 @@ export function MaritimeQuotationsTab({
 
         <div style={{ background: '#ffffff', padding: '16px 20px', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: '88px', boxSizing: 'border-box' }}>
           <div>
-            <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>عروض معتمدة ومحولة</div>
+            <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>{t('maritime_freight.maritime_quotations_tab.s10', "عروض معتمدة ومحولة")}</div>
             <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#0f172a', marginTop: '4px' }}>
-              {approvedCount} <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>عرض</span>
+              {approvedCount} <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>{t('maritime_freight.maritime_quotations_tab.s11', "عرض")}</span>
             </div>
           </div>
           <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#f0fdf4', border: '1px solid #dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#16a34a', flexShrink: 0 }}>
@@ -113,9 +115,9 @@ export function MaritimeQuotationsTab({
 
         <div style={{ background: '#ffffff', padding: '16px 20px', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: '88px', boxSizing: 'border-box' }}>
           <div>
-            <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>عروض جارية وقيد المراجعة</div>
+            <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>{t('maritime_freight.maritime_quotations_tab.s12', "عروض جارية وقيد المراجعة")}</div>
             <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#0f172a', marginTop: '4px' }}>
-              {pendingCount} <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>عرض</span>
+              {pendingCount} <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>{t('maritime_freight.maritime_quotations_tab.s13', "عرض")}</span>
             </div>
           </div>
           <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#fffbeb', border: '1px solid #fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#d97706', flexShrink: 0 }}>
@@ -125,7 +127,7 @@ export function MaritimeQuotationsTab({
 
         <div style={{ background: '#ffffff', padding: '16px 20px', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: '88px', boxSizing: 'border-box' }}>
           <div>
-            <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>إجمالي القيمة التقديرية</div>
+            <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>{t('maritime_freight.maritime_quotations_tab.s14', "إجمالي القيمة التقديرية")}</div>
             <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#0f172a', marginTop: '4px' }}>
               ${totalEstimatedVal.toLocaleString()}
             </div>
@@ -141,14 +143,14 @@ export function MaritimeQuotationsTab({
       <div style={{ padding: '16px 20px', borderBottom: '1px solid #e2e8f0', background: '#f8fafc', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
           <h3 style={{ margin: 0, fontSize: '0.94rem', fontWeight: 800, color: '#0f172a' }}>
-            عروض أسعار العملاء (Client Quotations)
+            {t('maritime_freight.maritime_quotations_tab.s15', "عروض أسعار العملاء (Client Quotations)")}
           </h3>
           <p style={{ margin: '3px 0 0 0', fontSize: '0.78rem', color: '#64748b' }}>
-            إدارة عروض الأسعار الصادرة للعملاء متضمنة الهامش الربحي وتحويل العروض المعتمدة لأوامر تشغيل
+            {t('maritime_freight.maritime_quotations_tab.s16', "إدارة عروض الأسعار الصادرة للعملاء متضمنة الهامش الربحي وتحويل العروض المعتمدة لأوامر تشغيل")}
           </p>
         </div>
         <span style={{ fontSize: '0.75rem', fontWeight: 700, background: '#ffffff', color: '#475569', border: '1px solid #e2e8f0', padding: '3px 10px', borderRadius: '12px' }}>
-          {quotations.length} عرض سعر
+          {quotations.length} {t('maritime_freight.maritime_quotations_tab.s17', "عرض سعر")}
         </span>
       </div>
 
@@ -165,26 +167,26 @@ export function MaritimeQuotationsTab({
           </colgroup>
           <thead>
             <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', fontWeight: 700 }}>
-              <th style={{ padding: '12px 14px', textAlign: 'center', verticalAlign: 'middle' }}>رقم العرض</th>
-              <th style={{ padding: '12px 14px', textAlign: 'center', verticalAlign: 'middle' }}>العميل وبيانات التواصل</th>
-              <th style={{ padding: '12px 14px', textAlign: 'center', verticalAlign: 'middle' }}>التكلفة الأساسية</th>
-              <th style={{ padding: '12px 14px', textAlign: 'center', verticalAlign: 'middle' }}>الهامش الربحي</th>
-              <th style={{ padding: '12px 14px', textAlign: 'center', verticalAlign: 'middle' }}>السعر النهائي للعميل</th>
-              <th style={{ padding: '12px 14px', textAlign: 'center', verticalAlign: 'middle' }}>الحالة</th>
-              <th style={{ padding: '12px 14px', textAlign: 'center', verticalAlign: 'middle' }}>الإجراءات</th>
+              <th style={{ padding: '12px 14px', textAlign: 'center', verticalAlign: 'middle' }}>{t('maritime_freight.maritime_quotations_tab.s18', "رقم العرض")}</th>
+              <th style={{ padding: '12px 14px', textAlign: 'center', verticalAlign: 'middle' }}>{t('maritime_freight.maritime_quotations_tab.s19', "العميل وبيانات التواصل")}</th>
+              <th style={{ padding: '12px 14px', textAlign: 'center', verticalAlign: 'middle' }}>{t('maritime_freight.maritime_quotations_tab.s20', "التكلفة الأساسية")}</th>
+              <th style={{ padding: '12px 14px', textAlign: 'center', verticalAlign: 'middle' }}>{t('maritime_freight.maritime_quotations_tab.s21', "الهامش الربحي")}</th>
+              <th style={{ padding: '12px 14px', textAlign: 'center', verticalAlign: 'middle' }}>{t('maritime_freight.maritime_quotations_tab.s22', "السعر النهائي للعميل")}</th>
+              <th style={{ padding: '12px 14px', textAlign: 'center', verticalAlign: 'middle' }}>{t('maritime_freight.maritime_quotations_tab.s23', "الحالة")}</th>
+              <th style={{ padding: '12px 14px', textAlign: 'center', verticalAlign: 'middle' }}>{t('maritime_freight.maritime_quotations_tab.s24', "الإجراءات")}</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
                 <td colSpan={7} style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
-                  جاري تحميل عروض الأسعار...
+                  {t('maritime_freight.maritime_quotations_tab.s25', "جاري تحميل عروض الأسعار...")}
                 </td>
               </tr>
             ) : quotations.length === 0 ? (
               <tr>
                 <td colSpan={7} style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
-                  لا توجد عروض أسعار مسجلة بعد. يمكنك إنشاء عرض سعر من مصفوفة مقارنة عروض الخطوط الملاحية.
+                  {t('maritime_freight.maritime_quotations_tab.s26', "لا توجد عروض أسعار مسجلة بعد. يمكنك إنشاء عرض سعر من مصفوفة مقارنة عروض الخطوط الملاحية.")}
                 </td>
               </tr>
             ) : (
@@ -198,7 +200,7 @@ export function MaritimeQuotationsTab({
                   </td>
                   <td style={{ padding: '12px 14px', textAlign: 'center', verticalAlign: 'middle' }}>
                     <div style={{ fontWeight: 700, color: '#0f172a' }}>{q.customer_name}</div>
-                    <div style={{ fontSize: '0.74rem', color: '#64748b' }}>{q.customer_phone || q.customer_email || 'بدون بيانات تواصل'}</div>
+                    <div style={{ fontSize: '0.74rem', color: '#64748b' }}>{q.customer_phone || q.customer_email || t('maritime_freight.maritime_quotations_tab.s27', "بدون بيانات تواصل")}</div>
                   </td>
                   <td style={{ padding: '12px 14px', textAlign: 'center', verticalAlign: 'middle', fontWeight: 600 }}>
                     ${Number(q.base_cost).toLocaleString()}
@@ -234,7 +236,7 @@ export function MaritimeQuotationsTab({
                         <button
                           type="button"
                           onClick={() => navigate('/maritime/jobs')}
-                          title="الانتقال لملف أمر التشغيل في الشحن"
+                          title={t('maritime_freight.maritime_quotations_tab.s28', "الانتقال لملف أمر التشغيل في الشحن")}
                           style={{
                             width: '105px',
                             height: '28px',
@@ -264,13 +266,13 @@ export function MaritimeQuotationsTab({
                           }}
                         >
                           <AppIcons.ArrowLeft size={11} strokeWidth={2.2} />
-                          <span>عرض أمر التشغيل</span>
+                          <span>{t('maritime_freight.maritime_quotations_tab.s29', "عرض أمر التشغيل")}</span>
                         </button>
                       ) : (
                         <button
                           type="button"
                           onClick={() => onConvertToJob(q)}
-                          title="تعميد عرض السعر وفتح ملف الشحنة"
+                          title={t('maritime_freight.maritime_quotations_tab.s30', "تعميد عرض السعر وفتح ملف الشحنة")}
                           style={{
                             width: '105px',
                             height: '28px',
@@ -289,7 +291,7 @@ export function MaritimeQuotationsTab({
                             boxShadow: '0 1px 3px rgba(23, 14, 94, 0.2)',
                           }}
                         >
-                          تحويل لأمر تشغيل
+                          {t('maritime_freight.maritime_quotations_tab.s31', "تحويل لأمر تشغيل")}
                         </button>
                       )}
 
@@ -297,7 +299,7 @@ export function MaritimeQuotationsTab({
                       <button
                         type="button"
                         onClick={() => printFreightQuotation(q)}
-                        title="طباعة عرض سعر شحن رسمي A4 معتمد"
+                        title={t('maritime_freight.maritime_quotations_tab.s32', "طباعة عرض سعر شحن رسمي A4 معتمد")}
                         style={{
                           width: '52px',
                           height: '28px',
@@ -315,7 +317,7 @@ export function MaritimeQuotationsTab({
                           whiteSpace: 'nowrap',
                         }}
                       >
-                        طباعة
+                        {t('maritime_freight.maritime_quotations_tab.s33', "طباعة")}
                       </button>
 
                       {/* العمود 3: زر واتساب */}
@@ -323,7 +325,7 @@ export function MaritimeQuotationsTab({
                         <button
                           type="button"
                           onClick={() => handleShareWhatsApp(q)}
-                          title="مشاركة عرض السعر عبر واتساب"
+                          title={t('maritime_freight.maritime_quotations_tab.s34', "مشاركة عرض السعر عبر واتساب")}
                           style={{
                             width: '52px',
                             height: '28px',
@@ -342,7 +344,7 @@ export function MaritimeQuotationsTab({
                             boxShadow: '0 1px 3px rgba(22, 163, 74, 0.2)',
                           }}
                         >
-                          واتساب
+                          {t('maritime_freight.maritime_quotations_tab.s35', "واتساب")}
                         </button>
                       ) : (
                         <div style={{ width: '52px', height: '28px' }} />
@@ -353,7 +355,7 @@ export function MaritimeQuotationsTab({
                         <button
                           type="button"
                           onClick={() => onUpdateStatus(q.id, 'approved')}
-                          title="اعتماد من العميل"
+                          title={t('maritime_freight.maritime_quotations_tab.s36', "اعتماد من العميل")}
                           style={{
                             width: '52px',
                             height: '28px',
@@ -371,7 +373,7 @@ export function MaritimeQuotationsTab({
                             whiteSpace: 'nowrap',
                           }}
                         >
-                          اعتماد
+                          {t('maritime_freight.maritime_quotations_tab.s37', "اعتماد")}
                         </button>
                       ) : (
                         <div style={{ width: '52px', height: '28px' }} />

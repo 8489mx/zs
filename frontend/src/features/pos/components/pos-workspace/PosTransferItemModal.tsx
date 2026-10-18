@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { Button } from '@/shared/ui/button';
@@ -38,6 +39,7 @@ export function PosTransferItemModal({
   occupiedTables,
   onConfirmTransfer,
 }: PosTransferItemModalProps) {
+  const { t: __t } = useTranslation();
   // Map of item index to quantity to transfer
   const [selectedQtys, setSelectedQtys] = useState<Record<number, number>>({});
   const [targetTable, setTargetTable] = useState<string>('');
@@ -116,7 +118,7 @@ export function PosTransferItemModal({
     <DialogShell
       open={open}
       onClose={onClose}
-      ariaLabel="نقل أصناف فردية بين الطاولات"
+      ariaLabel={__t('pos.pos_workspace.pos_transfer_item_modal.s0', __t('pos.pos_workspace.pos_transfer_item_modal.s0', "نقل أصناف فردية بين الطاولات"))}
       width="min(680px, 96vw)"
       zIndex={92}
     >
@@ -135,11 +137,11 @@ export function PosTransferItemModal({
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <span style={{ width: '4px', height: '18px', backgroundColor: '#170e5e', borderRadius: '2px', display: 'inline-block' }} />
               <h3 className="no-pseudo-bar" style={{ margin: 0, fontSize: '16px', fontWeight: 900, color: '#0f172a' }}>
-                نقل أصناف محددة بين الطاولات
+                {__t('pos.pos_workspace.pos_transfer_item_modal.s1', __t('pos.pos_workspace.pos_transfer_item_modal.s1', "نقل أصناف محددة بين الطاولات"))}
               </h3>
             </div>
             <p style={{ margin: '3px 0 0', fontSize: '11.5px', color: '#64748b' }}>
-              نقل جزء من الأصناف من طاولة ({sourceTable}) إلى طاولة أخرى دون ترحيل كامل الفاتورة
+              {__t('pos.pos_workspace.pos_transfer_item_modal.s2', __t('pos.pos_workspace.pos_transfer_item_modal.s2', "نقل جزء من الأصناف من طاولة ("))}{sourceTable}{__t('pos.pos_workspace.pos_transfer_item_modal.s3', __t('pos.pos_workspace.pos_transfer_item_modal.s3', ") إلى طاولة أخرى دون ترحيل كامل الفاتورة"))}
             </p>
           </div>
           <button
@@ -176,7 +178,7 @@ export function PosTransferItemModal({
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <span style={{ fontSize: '12.5px', fontWeight: 800, color: '#0f172a' }}>
-                طاولة المصدر:
+                {__t('pos.pos_workspace.pos_transfer_item_modal.s4', __t('pos.pos_workspace.pos_transfer_item_modal.s4', "طاولة المصدر:"))}
               </span>
               <span
                 style={{
@@ -188,11 +190,11 @@ export function PosTransferItemModal({
                   fontSize: '12px',
                 }}
               >
-                طاولة {sourceTable}
+                {__t('pos.pos_workspace.pos_transfer_item_modal.s5', __t('pos.pos_workspace.pos_transfer_item_modal.s5', "طاولة"))} {sourceTable}
               </span>
               <ArrowLeftIcon size={16} color="#64748b" />
               <span style={{ fontSize: '12.5px', fontWeight: 800, color: '#0f172a' }}>
-                طاولة الوجهة:
+                {__t('pos.pos_workspace.pos_transfer_item_modal.s6', __t('pos.pos_workspace.pos_transfer_item_modal.s6', "طاولة الوجهة:"))}
               </span>
               <select
                 value={targetTable}
@@ -209,14 +211,14 @@ export function PosTransferItemModal({
                   cursor: 'pointer',
                 }}
               >
-                <option value="">-- اختر طاولة الوجهة --</option>
+                <option value="">{__t('pos.pos_workspace.pos_transfer_item_modal.s7', __t('pos.pos_workspace.pos_transfer_item_modal.s7', "-- اختر طاولة الوجهة --"))}</option>
                 {allTables
                   .filter((t) => t !== sourceTable)
                   .map((t) => {
                     const isOccupied = occupiedTables.includes(t);
                     return (
                       <option key={t} value={t}>
-                        طاولة {t} {isOccupied ? '(مشغولة - سيتم الإلحاق)' : '(شاغرة)'}
+                        {__t('pos.pos_workspace.pos_transfer_item_modal.s8', __t('pos.pos_workspace.pos_transfer_item_modal.s8', "طاولة"))} {t} {isOccupied ? __t('pos.pos_workspace.pos_transfer_item_modal.s9', __t('pos.pos_workspace.pos_transfer_item_modal.s9', "(مشغولة - سيتم الإلحاق)")) : __t('pos.pos_workspace.pos_transfer_item_modal.s10', __t('pos.pos_workspace.pos_transfer_item_modal.s10', "(شاغرة)"))}
                       </option>
                     );
                   })}
@@ -238,7 +240,7 @@ export function PosTransferItemModal({
                   cursor: 'pointer',
                 }}
               >
-                تحديد الكل
+                {__t('pos.pos_workspace.pos_transfer_item_modal.s11', __t('pos.pos_workspace.pos_transfer_item_modal.s11', "تحديد الكل"))}
               </button>
               <button
                 type="button"
@@ -254,7 +256,7 @@ export function PosTransferItemModal({
                   cursor: 'pointer',
                 }}
               >
-                إلغاء التحديد
+                {__t('pos.pos_workspace.pos_transfer_item_modal.s12', __t('pos.pos_workspace.pos_transfer_item_modal.s12', "إلغاء التحديد"))}
               </button>
             </div>
           </div>
@@ -271,16 +273,16 @@ export function PosTransferItemModal({
           >
             {sourceItems.length === 0 ? (
               <div style={{ padding: '24px', textAlign: 'center', color: '#64748b', fontSize: '13px' }}>
-                لا توجد أصناف في هذه الطاولة للنقل
+                {__t('pos.pos_workspace.pos_transfer_item_modal.s13', __t('pos.pos_workspace.pos_transfer_item_modal.s13', "لا توجد أصناف في هذه الطاولة للنقل"))}
               </div>
             ) : (
               <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right' }}>
                 <thead>
                   <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', fontSize: '11.5px', color: '#475569' }}>
-                    <th style={{ padding: '8px 12px', fontWeight: 800 }}>الصنف</th>
-                    <th style={{ padding: '8px 10px', fontWeight: 800 }}>السعر</th>
-                    <th style={{ padding: '8px 10px', fontWeight: 800, textAlign: 'center' }}>الكمية الحالية</th>
-                    <th style={{ padding: '8px 12px', fontWeight: 800, textAlign: 'center', width: '150px' }}>الكمية المنقولة</th>
+                    <th style={{ padding: '8px 12px', fontWeight: 800 }}>{__t('pos.pos_workspace.pos_transfer_item_modal.s14', __t('pos.pos_workspace.pos_transfer_item_modal.s14', "الصنف"))}</th>
+                    <th style={{ padding: '8px 10px', fontWeight: 800 }}>{__t('pos.pos_workspace.pos_transfer_item_modal.s15', __t('pos.pos_workspace.pos_transfer_item_modal.s15', "السعر"))}</th>
+                    <th style={{ padding: '8px 10px', fontWeight: 800, textAlign: 'center' }}>{__t('pos.pos_workspace.pos_transfer_item_modal.s16', __t('pos.pos_workspace.pos_transfer_item_modal.s16', "الكمية الحالية"))}</th>
+                    <th style={{ padding: '8px 12px', fontWeight: 800, textAlign: 'center', width: '150px' }}>{__t('pos.pos_workspace.pos_transfer_item_modal.s17', __t('pos.pos_workspace.pos_transfer_item_modal.s17', "الكمية المنقولة"))}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -410,11 +412,11 @@ export function PosTransferItemModal({
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <CheckCircleIcon size={16} color="#16a34a" />
                 <span>
-                  تم تحديد {totalTransferredItemsCount} قطعة للنقل إلى طاولة ({targetTable || '؟'})
+                  {__t('pos.pos_workspace.pos_transfer_item_modal.s18', __t('pos.pos_workspace.pos_transfer_item_modal.s18', "تم تحديد"))} {totalTransferredItemsCount} {__t('pos.pos_workspace.pos_transfer_item_modal.s19', __t('pos.pos_workspace.pos_transfer_item_modal.s19', "قطعة للنقل إلى طاولة ("))}{targetTable || __t('pos.pos_workspace.pos_transfer_item_modal.s20', __t('pos.pos_workspace.pos_transfer_item_modal.s20', "؟"))})
                 </span>
               </div>
               <div>
-                إجمالي القيمة المنقولة: <strong>{formatCurrency(totalTransferredValue)}</strong>
+                {__t('pos.pos_workspace.pos_transfer_item_modal.s21', __t('pos.pos_workspace.pos_transfer_item_modal.s21', "إجمالي القيمة المنقولة:"))} <strong>{formatCurrency(totalTransferredValue)}</strong>
               </div>
             </div>
           )}
@@ -438,7 +440,7 @@ export function PosTransferItemModal({
             disabled={isSubmitting}
             style={{ minHeight: '36px', height: '36px', padding: '0 16px', fontSize: '12px' }}
           >
-            إلغاء
+            {__t('pos.pos_workspace.pos_transfer_item_modal.s22', __t('pos.pos_workspace.pos_transfer_item_modal.s22', "إلغاء"))}
           </Button>
           <Button
             type="button"
@@ -454,7 +456,7 @@ export function PosTransferItemModal({
               background: '#170e5e',
             }}
           >
-            {isSubmitting ? 'جارٍ النقل...' : `تأكيد نقل الأصناف (${totalTransferredItemsCount})`}
+            {isSubmitting ? __t('pos.pos_workspace.pos_transfer_item_modal.s23', __t('pos.pos_workspace.pos_transfer_item_modal.s23', "جارٍ النقل...")) : `تأكيد نقل الأصناف (${totalTransferredItemsCount})`}
           </Button>
         </div>
       </div>

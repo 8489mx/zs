@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 import {
   ShoppingCartIcon,
@@ -30,6 +31,7 @@ export const CfdIdleView: React.FC<CfdIdleViewProps> = ({
   setPromoIndex,
   loyaltyQrSvg,
 }) => {
+  const { t } = useTranslation();
   const activePromo = promotions[promoIndex] || promotions[0];
 
   return (
@@ -43,10 +45,10 @@ export const CfdIdleView: React.FC<CfdIdleViewProps> = ({
             </div>
             <div>
               <h2 className="cfd-idle-headline">
-                أهلاً وسهلاً بكم في {storeName}
+                {t('pos.customer_display.cfd_idle_view.s0', "أهلاً وسهلاً بكم في")} {storeName}
               </h2>
               <p className="cfd-idle-subheadline">
-                نسعد بخدمتكم وتوفير أفضل تجربة تسوق. تفضل بتقديم مشترياتك للكاشير وسيقوم بمسحها على الفور.
+                {t('pos.customer_display.cfd_idle_view.s1', "نسعد بخدمتكم وتوفير أفضل تجربة تسوق. تفضل بتقديم مشترياتك للكاشير وسيقوم بمسحها على الفور.")}
               </p>
             </div>
           </div>
@@ -78,24 +80,24 @@ export const CfdIdleView: React.FC<CfdIdleViewProps> = ({
             <div className="cfd-trust-item">
               <ReceiptIcon size={18} color="#170e5e" />
               <div>
-                <div className="cfd-trust-title">فاتورة إلكترونية معتمدة</div>
-                <div className="cfd-trust-sub">متوافقة ضريبياً وموثقة</div>
+                <div className="cfd-trust-title">{t('pos.customer_display.cfd_idle_view.s2', "فاتورة إلكترونية معتمدة")}</div>
+                <div className="cfd-trust-sub">{t('pos.customer_display.cfd_idle_view.s3', "متوافقة ضريبياً وموثقة")}</div>
               </div>
             </div>
 
             <div className="cfd-trust-item">
               <ShieldCheckIcon size={18} color="#170e5e" />
               <div>
-                <div className="cfd-trust-title">ضمان واستبدال فوري</div>
-                <div className="cfd-trust-sub">جودة وأصالة معتمدة 100%</div>
+                <div className="cfd-trust-title">{t('pos.customer_display.cfd_idle_view.s4', "ضمان واستبدال فوري")}</div>
+                <div className="cfd-trust-sub">{t('pos.customer_display.cfd_idle_view.s5', "جودة وأصالة معتمدة 100%")}</div>
               </div>
             </div>
 
             <div className="cfd-trust-item">
               <CreditCardIcon size={18} color="#170e5e" />
               <div>
-                <div className="cfd-trust-title">سداد إلكتروني آمن</div>
-                <div className="cfd-trust-sub">InstaPay وفيزا ومحافظ</div>
+                <div className="cfd-trust-title">{t('pos.customer_display.cfd_idle_view.s6', "سداد إلكتروني آمن")}</div>
+                <div className="cfd-trust-sub">{t('pos.customer_display.cfd_idle_view.s7', "InstaPay وفيزا ومحافظ")}</div>
               </div>
             </div>
           </div>
@@ -107,11 +109,11 @@ export const CfdIdleView: React.FC<CfdIdleViewProps> = ({
             <div className="cfd-kiosk-header">
               <div className="cfd-kiosk-badge">
                 <QrCodeIcon size={16} color="#170e5e" />
-                <span>تفاعل رقمي ذكي</span>
+                <span>{t('pos.customer_display.cfd_idle_view.s8', "تفاعل رقمي ذكي")}</span>
               </div>
-              <h3 className="cfd-kiosk-title">برنامج الولاء والخصومات</h3>
+              <h3 className="cfd-kiosk-title">{t('pos.customer_display.cfd_idle_view.s9', "برنامج الولاء والخصومات")}</h3>
               <p className="cfd-kiosk-desc">
-                امسح الرمز بهاتفك للانضمام لبرنامج نقاط العملاء وتلقي نسخة إلكترونية من فاتورتك عبر الواتساب فوراً.
+                {t('pos.customer_display.cfd_idle_view.s10', "امسح الرمز بهاتفك للانضمام لبرنامج نقاط العملاء وتلقي نسخة إلكترونية من فاتورتك عبر الواتساب فوراً.")}
               </p>
             </div>
 
@@ -122,15 +124,15 @@ export const CfdIdleView: React.FC<CfdIdleViewProps> = ({
             <div className="cfd-kiosk-steps">
               <div className="cfd-kiosk-step">
                 <span className="cfd-step-num">1</span>
-                <span>افتح الكاميرا</span>
+                <span>{t('pos.customer_display.cfd_idle_view.s11', "افتح الكاميرا")}</span>
               </div>
               <div className="cfd-kiosk-step">
                 <span className="cfd-step-num">2</span>
-                <span>امسح الـ QR</span>
+                <span>{t('pos.customer_display.cfd_idle_view.s12', "امسح الـ QR")}</span>
               </div>
               <div className="cfd-kiosk-step">
                 <span className="cfd-step-num">3</span>
-                <span>اجمع نقاطك</span>
+                <span>{t('pos.customer_display.cfd_idle_view.s13', "اجمع نقاطك")}</span>
               </div>
             </div>
           </div>
@@ -138,22 +140,22 @@ export const CfdIdleView: React.FC<CfdIdleViewProps> = ({
           <div className="cfd-kiosk-payments-box">
             <div className="cfd-payments-header">
               <CreditCardIcon size={16} color="#170e5e" />
-              <span>وسائل الدفع المقبولة بصالة البيع</span>
+              <span>{t('pos.customer_display.cfd_idle_view.s14', "وسائل الدفع المقبولة بصالة البيع")}</span>
             </div>
 
             <div className="cfd-payments-badges-grid">
-              <div className="cfd-payment-chip instapay">InstaPay فوري</div>
-              <div className="cfd-payment-chip cards">فيزا وماستركارد</div>
-              <div className="cfd-payment-chip meeza">كروت ميزة</div>
-              <div className="cfd-payment-chip wallets">المحافظ والموبايل كاش</div>
-              <div className="cfd-payment-chip cash">نقداً بالجنيه المصري</div>
+              <div className="cfd-payment-chip instapay">{t('pos.customer_display.cfd_idle_view.s15', "InstaPay فوري")}</div>
+              <div className="cfd-payment-chip cards">{t('pos.customer_display.cfd_idle_view.s16', "فيزا وماستركارد")}</div>
+              <div className="cfd-payment-chip meeza">{t('pos.customer_display.cfd_idle_view.s17', "كروت ميزة")}</div>
+              <div className="cfd-payment-chip wallets">{t('pos.customer_display.cfd_idle_view.s18', "المحافظ والموبايل كاش")}</div>
+              <div className="cfd-payment-chip cash">{t('pos.customer_display.cfd_idle_view.s19', "نقداً بالجنيه المصري")}</div>
             </div>
           </div>
         </div>
       </div>
 
       <div className="cfd-footer-note">
-        نظام المحاسبة ونقاط البيع السحابي Z-Systems • خدمة العملاء الرقمية المتطورة
+        {t('pos.customer_display.cfd_idle_view.s20', "نظام المحاسبة ونقاط البيع السحابي Z-Systems • خدمة العملاء الرقمية المتطورة")}
       </div>
     </div>
   );

@@ -14,6 +14,7 @@ import { buildPosCatalogVersion } from '../engines/pos-catalog-version.engine';
 type ProductRow = {
   id: number;
   name: string;
+  name_en?: string | null;
   barcode: string | null;
   item_type?: 'product' | 'raw_material' | 'service';
   item_kind: 'standard' | 'fashion' | null;
@@ -85,7 +86,7 @@ type ProductUnitReadRow = {
   is_purchase_unit_default: boolean;
 };
 
-type PosProductLookupRow = Pick<ProductRow, 'id' | 'name' | 'barcode' | 'item_type' | 'item_kind' | 'style_code' | 'color' | 'size' | 'retail_price' | 'wholesale_price' | 'credit_price' | 'consumer_price' | 'min_selling_price' | 'stock_qty' | 'min_stock_qty' | 'bom_id' | 'category_id' | 'track_serials' | 'metadata'> & {
+type PosProductLookupRow = Pick<ProductRow, 'id' | 'name' | 'name_en' | 'barcode' | 'item_type' | 'item_kind' | 'style_code' | 'color' | 'size' | 'retail_price' | 'wholesale_price' | 'credit_price' | 'consumer_price' | 'min_selling_price' | 'stock_qty' | 'min_stock_qty' | 'bom_id' | 'category_id' | 'track_serials' | 'metadata'> & {
   calories?: number | null;
   allergens?: any;
   is_spicy?: boolean | null;
@@ -288,7 +289,7 @@ export class CatalogProductService {
         .selectFrom('products')
         .leftJoin('manufacturing_boms as b', (join) => join.onRef('b.product_id', '=', 'products.id').onRef('b.tenant_id', '=', 'products.tenant_id').on('b.is_active', '=', true))
         .leftJoin('stock_locations as sl', (join) => join.onRef('sl.id', '=', 'products.default_location_id').on(this.tenantPredicate(actor, 'sl')))
-        .select(['products.id', 'products.name', 'products.barcode', 'products.item_type', 'products.item_kind', 'products.style_code', 'products.color', 'products.size', 'products.bin_location', 'products.track_serials', 'products.category_id', 'products.supplier_id', 'products.cost_price', 'products.retail_price', 'products.wholesale_price', 'products.credit_price', 'products.consumer_price', 'products.min_selling_price', 'products.stock_qty', 'products.min_stock_qty', 'sl.id as default_location_id', 'products.notes', 'products.metadata', 'b.id as bom_id', 'sl.name as default_location_name', 'products.is_active', 'products.calories', 'products.allergens', 'products.is_spicy', 'products.is_vegetarian', 'products.is_gluten_free'])
+        .select(['products.id', 'products.name', 'products.name_en', 'products.barcode', 'products.item_type', 'products.item_kind', 'products.style_code', 'products.color', 'products.size', 'products.bin_location', 'products.track_serials', 'products.category_id', 'products.supplier_id', 'products.cost_price', 'products.retail_price', 'products.wholesale_price', 'products.credit_price', 'products.consumer_price', 'products.min_selling_price', 'products.stock_qty', 'products.min_stock_qty', 'sl.id as default_location_id', 'products.notes', 'products.metadata', 'b.id as bom_id', 'sl.name as default_location_name', 'products.is_active', 'products.calories', 'products.allergens', 'products.is_spicy', 'products.is_vegetarian', 'products.is_gluten_free'])
         .where(view === 'archived' ? sql<boolean>`products.is_active = false` : sql<boolean>`products.is_active = true`)
         .where(this.tenantPredicate(actor, 'products'))
         .orderBy('id', 'desc')
@@ -503,7 +504,7 @@ export class CatalogProductService {
     const productMatches = await this.db
       .selectFrom('products as p')
       .leftJoin('manufacturing_boms as b', (join) => join.onRef('b.product_id', '=', 'p.id').on('b.is_active', '=', true))
-      .select(['p.id', 'p.name', 'p.barcode', 'p.item_type', 'p.item_kind', 'p.style_code', 'p.color', 'p.size', 'p.retail_price', 'p.wholesale_price', 'p.credit_price', 'p.consumer_price', 'p.stock_qty', 'p.min_stock_qty', 'b.id as bom_id', 'p.category_id', 'p.track_serials', 'p.metadata'])
+      .select(['p.id', 'p.name', 'p.name_en', 'p.barcode', 'p.item_type', 'p.item_kind', 'p.style_code', 'p.color', 'p.size', 'p.retail_price', 'p.wholesale_price', 'p.credit_price', 'p.consumer_price', 'p.stock_qty', 'p.min_stock_qty', 'b.id as bom_id', 'p.category_id', 'p.track_serials', 'p.metadata'])
       .where('p.is_active', '=', true)
       .where('p.barcode', '=', barcode)
       .where(this.tenantPredicate(actor, 'p'))
@@ -523,6 +524,7 @@ export class CatalogProductService {
         .select([
           'p.id',
           'p.name',
+          'p.name_en',
           'p.barcode',
           'p.item_type',
           'p.item_kind',
@@ -567,6 +569,7 @@ export class CatalogProductService {
       .select([
         'p.id',
         'p.name',
+        'p.name_en',
         'p.barcode',
         'p.item_type',
         'p.item_kind',
@@ -613,6 +616,7 @@ export class CatalogProductService {
       .select([
         'p.id',
         'p.name',
+        'p.name_en',
         'p.barcode',
         'p.item_type',
         'p.item_kind',
@@ -638,6 +642,7 @@ export class CatalogProductService {
       const pattern = `%${token}%`;
       productQuery = productQuery.where(sql<boolean>`(
         TRANSLATE(LOWER(COALESCE(p.name, '')), 'أإآٱٲٳؤئىة', 'ااااااويهه') LIKE ${pattern}
+        OR LOWER(COALESCE(p.name_en, '')) LIKE ${pattern}
         OR LOWER(COALESCE(p.barcode, '')) LIKE ${pattern}
         OR LOWER(COALESCE(p.style_code, '')) LIKE ${pattern}
         OR TRANSLATE(LOWER(COALESCE(p.color, '')), 'أإآٱٲٳؤئىة', 'ااااااويهه') LIKE ${pattern}
@@ -859,6 +864,8 @@ export class CatalogProductService {
     return {
       id: String(product.id),
       name: product.name || '',
+      nameEn: product.name_en || null,
+      name_en: product.name_en || null,
       barcode: product.barcode || '',
       itemType: product.item_type === 'raw_material' ? 'raw_material' : product.item_type === 'service' ? 'service' : 'product',
       itemKind: product.item_kind === 'fashion' ? 'fashion' : 'standard',
@@ -1073,6 +1080,7 @@ export class CatalogProductService {
 
       const haystack = [
         String(product.name || ''),
+        String(product.name_en || ''),
         String(product.barcode || ''),
         context.categoriesById[String(product.category_id || '')] || '',
         context.suppliersById[String(product.supplier_id || '')] || '',
@@ -1181,6 +1189,8 @@ export class CatalogProductService {
       const mapped: Record<string, unknown> = {
         id: String(product.id),
         name: product.name || '',
+        nameEn: product.name_en || '',
+        name_en: product.name_en || '',
         barcode: product.barcode || '',
         categoryId: product.category_id ? String(product.category_id) : '',
         categoryName,
@@ -1341,6 +1351,7 @@ export class CatalogProductService {
 
     return {
       name: normalizeArabicInput(payload.name),
+      nameEn: payload.nameEn ? String(payload.nameEn).trim() : null,
       barcode: String(payload.barcode || '').trim(),
       itemType: payload.itemType === 'raw_material' ? 'raw_material' : payload.itemType === 'service' ? 'service' : 'product',
       itemKind: payload.itemKind === 'fashion' ? 'fashion' : 'standard',
@@ -1677,6 +1688,7 @@ export class CatalogProductService {
           .insertInto('products')
           .values({
             name: draft.name,
+            name_en: draft.nameEn || null,
             barcode: draft.barcode || null,
             item_type: draft.itemType === 'service' ? 'service' : draft.itemType === 'raw_material' ? 'raw_material' : 'product',
             item_kind: draft.itemKind,
@@ -1780,6 +1792,7 @@ export class CatalogProductService {
     await this.db.transaction().execute(async (trx) => {
       await trx.updateTable('products').set({
         name: normalized.name,
+        name_en: normalized.nameEn !== undefined ? (normalized.nameEn || null) : (existing as any).name_en,
         barcode: normalized.barcode || null,
         item_type: normalized.itemType === 'service' ? 'service' : normalized.itemType === 'raw_material' ? 'raw_material' : 'product',
         item_kind: normalized.itemKind,

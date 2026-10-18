@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { PageHeader } from '@/shared/components/page-header';
@@ -11,6 +12,7 @@ import { FleetVehiclesTab } from '../components/FleetVehiclesTab';
 import { VanTripsTab } from '../components/VanTripsTab';
 
 export default function DeliveryRepsPage() {
+  const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
   const mainTab = (searchParams.get('tab') as 'couriers' | 'fleet' | 'trips') || 'couriers';
 
@@ -40,8 +42,8 @@ export default function DeliveryRepsPage() {
       }}
     >
       <PageHeader 
-        title="إدارة المناديب وأسطول التوزيع" 
-        description="إدارة طياري الدليفري، أسطول سيارات الشركة، ورديات الفان، ومتابعة الطلبات والتوريدات المالية." 
+        title={t('delivery_reps.delivery_reps_page.s0', "إدارة المناديب وأسطول التوزيع")} 
+        description={t('delivery_reps.delivery_reps_page.s1', "إدارة طياري الدليفري، أسطول سيارات الشركة، ورديات الفان، ومتابعة الطلبات والتوريدات المالية.")} 
       />
 
       {/* Master Tabs Switcher (Zero Tab-Flicker Standard: uniform font-weight 600, 0ms transition) */}
@@ -59,20 +61,20 @@ export default function DeliveryRepsPage() {
         {[
           {
             key: 'couriers' as const,
-            label: 'مناديب التوصيل والدليفري',
-            subtitle: 'طلبات الدليفري والتسويات',
+            label: t('delivery_reps.delivery_reps_page.s2', "مناديب التوصيل والدليفري"),
+            subtitle: t('delivery_reps.delivery_reps_page.s3', "طلبات الدليفري والتسويات"),
             icon: <UsersIcon size={16} />,
           },
           {
             key: 'fleet' as const,
-            label: 'أسطول سيارات الشركة',
-            subtitle: 'السيارات وتعيين السائقين والورديات',
+            label: t('delivery_reps.delivery_reps_page.s4', "أسطول سيارات الشركة"),
+            subtitle: t('delivery_reps.delivery_reps_page.s5', "السيارات وتعيين السائقين والورديات"),
             icon: <TruckIcon size={16} />,
           },
           {
             key: 'trips' as const,
-            label: 'رحلات وورديات مبيعات الفان',
-            subtitle: 'المبيعات الميدانية، العداد، والكاش',
+            label: t('delivery_reps.delivery_reps_page.s6', "رحلات وورديات مبيعات الفان"),
+            subtitle: t('delivery_reps.delivery_reps_page.s7', "المبيعات الميدانية، العداد، والكاش"),
             icon: <SlidersIcon size={16} />,
           },
         ].map((tab) => {
@@ -121,7 +123,7 @@ export default function DeliveryRepsPage() {
       {/* Tab 1: Delivery Couriers & Orders */}
       {mainTab === 'couriers' && (
         <div className="two-column-layout">
-          <FormSection title="قائمة المناديب">
+          <FormSection title={t('delivery_reps.delivery_reps_page.s8', "قائمة المناديب")}>
             <div style={{ overflow: 'hidden', margin: '-16px' }}>
               <DeliveryRepsList 
                 selectedRepId={selectedRepId} 
@@ -130,13 +132,13 @@ export default function DeliveryRepsPage() {
             </div>
           </FormSection>
 
-          <FormSection title={selectedRepId ? "تفاصيل المندوب" : "طلبات المندوب وتسوية الحساب"}>
+          <FormSection title={selectedRepId ? t('delivery_reps.delivery_reps_page.s9', "تفاصيل المندوب") : t('delivery_reps.delivery_reps_page.s10', "طلبات المندوب وتسوية الحساب")}>
             <div style={{ minHeight: '500px' }}>
               {!selectedRepId ? (
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '400px', color: '#64748b', padding: '40px', textAlign: 'center', gap: '10px' }}>
-                  <strong style={{ fontSize: '16px', color: '#0f172a' }}>اختر مندوباً من القائمة</strong>
+                  <strong style={{ fontSize: '16px', color: '#0f172a' }}>{t('delivery_reps.delivery_reps_page.s11', "اختر مندوباً من القائمة")}</strong>
                   <p style={{ margin: 0, fontSize: '13px', color: '#64748b', maxWidth: '360px', lineHeight: 1.5 }}>
-                    اختر مندوباً لعرض لوحة مؤشرات الأداء، متابعة الطلبات المسندة، وتسوية العهد المالية وسجل التوريدات.
+                    {t('delivery_reps.delivery_reps_page.s12', "اختر مندوباً لعرض لوحة مؤشرات الأداء، متابعة الطلبات المسندة، وتسوية العهد المالية وسجل التوريدات.")}
                   </p>
                 </div>
               ) : (
@@ -175,7 +177,7 @@ export default function DeliveryRepsPage() {
                         transition: 'none',
                       }}
                     >
-                      لوحة الأداء
+                      {t('delivery_reps.delivery_reps_page.s13', "لوحة الأداء")}
                     </button>
                     <button
                       type="button"
@@ -195,7 +197,7 @@ export default function DeliveryRepsPage() {
                         transition: 'none',
                       }}
                     >
-                      الطلبات وتسوية الحساب
+                      {t('delivery_reps.delivery_reps_page.s14', "الطلبات وتسوية الحساب")}
                     </button>
                     <button
                       type="button"
@@ -215,7 +217,7 @@ export default function DeliveryRepsPage() {
                         transition: 'none',
                       }}
                     >
-                      سجل التوريدات
+                      {t('delivery_reps.delivery_reps_page.s15', "سجل التوريدات")}
                     </button>
                   </div>
                   {activeSubTab === 'performance' && <DeliveryRepPerformance repId={selectedRepId} />}

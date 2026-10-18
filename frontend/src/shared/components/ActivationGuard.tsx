@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React, { useEffect, useState } from 'react';
 import { getHardwareId, verifyLicense } from '@/lib/activation';
 
@@ -6,6 +7,7 @@ interface ActivationGuardProps {
 }
 
 export function ActivationGuard({ children }: ActivationGuardProps) {
+  const { t } = useTranslation();
   const [isActivated, setIsActivated] = useState<boolean | null>(null);
   const [hardwareId, setHardwareId] = useState<string>('');
   const [licenseInput, setLicenseInput] = useState('');
@@ -134,7 +136,7 @@ export function ActivationGuard({ children }: ActivationGuardProps) {
         fontSize: '0.9rem',
         fontWeight: 600,
       }}>
-        جاري التحقق من ترخيص المنظومة...
+        {t('shared.activation_guard.s0', "جاري التحقق من ترخيص المنظومة...")}
       </div>
     );
   }
@@ -184,16 +186,16 @@ export function ActivationGuard({ children }: ActivationGuardProps) {
         </div>
 
         <h2 style={{ margin: '0 0 6px', color: '#0f172a', fontSize: '1.25rem', fontWeight: 800 }}>
-          ترخيص وتفعيل المنظومة
+          {t('shared.activation_guard.s1', "ترخيص وتفعيل المنظومة")}
         </h2>
         <p style={{ color: '#64748b', margin: '0 0 20px', fontSize: '0.82rem', lineHeight: 1.5 }}>
-          يرجى إرسال الرمز التعريفي التالي لخدمة العملاء للحصول على مفتاح التفعيل المعتمد لهذا الجهاز.
+          {t('shared.activation_guard.s2', "يرجى إرسال الرمز التعريفي التالي لخدمة العملاء للحصول على مفتاح التفعيل المعتمد لهذا الجهاز.")}
         </p>
 
         {/* Hardware ID Field with 1-Click Copy */}
         <div style={{ marginBottom: '18px', textAlign: 'right' }}>
           <label style={{ display: 'block', marginBottom: '6px', color: '#334155', fontWeight: 700, fontSize: '0.8rem' }}>
-            الرمز التعريفي للجهاز (Hardware ID):
+            {t('shared.activation_guard.s3', "الرمز التعريفي للجهاز (Hardware ID):")}
           </label>
           <div style={{ display: 'flex', gap: '8px' }}>
             <input 
@@ -233,7 +235,7 @@ export function ActivationGuard({ children }: ActivationGuardProps) {
                 transition: 'all 0.15s ease',
               }}
             >
-              {copied ? 'تم النسخ' : 'نسخ'}
+              {copied ? t('shared.activation_guard.s4', "تم النسخ") : t('shared.activation_guard.s5', "نسخ")}
             </button>
           </div>
         </div>
@@ -241,7 +243,7 @@ export function ActivationGuard({ children }: ActivationGuardProps) {
         {/* License Key Input */}
         <div style={{ marginBottom: '18px', textAlign: 'right' }}>
           <label style={{ display: 'block', marginBottom: '6px', color: '#334155', fontWeight: 700, fontSize: '0.8rem' }}>
-            مفتاح التفعيل (License Key):
+            {t('shared.activation_guard.s6', "مفتاح التفعيل (License Key):")}
           </label>
           <input 
             type="text" 
@@ -306,11 +308,11 @@ export function ActivationGuard({ children }: ActivationGuardProps) {
             transition: 'all 0.15s ease',
           }}
         >
-          {isChecking ? 'جاري التحقق...' : 'تفعيل المنظومة الآن'}
+          {isChecking ? t('shared.activation_guard.s7', "جاري التحقق...") : t('shared.activation_guard.s8', "تفعيل المنظومة الآن")}
         </button>
 
         <div style={{ marginTop: '18px', fontSize: '0.72rem', color: '#94a3b8', fontWeight: 500 }}>
-          منظومة Z-Systems المؤسسية • التفعيل الدائم المعتمد
+          {t('shared.activation_guard.s9', "منظومة Z-Systems المؤسسية • التفعيل الدائم المعتمد")}
         </div>
       </div>
     </div>

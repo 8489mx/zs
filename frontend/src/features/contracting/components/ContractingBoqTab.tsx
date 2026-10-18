@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ContractingBoqItem } from '../contracting.types';
@@ -75,6 +76,7 @@ export function ContractingBoqTab({
   onRefresh,
   onAwardProject,
 }: ContractingBoqTabProps) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { currencySymbol } = useSystemCurrency();
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
@@ -227,10 +229,10 @@ export function ContractingBoqTab({
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
         <div>
           <h2 style={{ fontSize: 'var(--font-section-title)', fontWeight: 700, color: '#1e293b', margin: 0 }}>
-            جدول الكميات وفئات البنود التعاقدية (Bill of Quantities / SOV)
+            {t('contracting.contracting_boq_tab.s0', "جدول الكميات وفئات البنود التعاقدية (Bill of Quantities / SOV)")}
           </h2>
           <p style={{ fontSize: 'var(--font-subtitle)', color: '#64748b', margin: '4px 0 0' }}>
-            {projectName ? `المشروع: ${projectName}` : 'إدارة ومتابعة فئات البنود وتكاليفها والكميات المنفذة'}
+            {projectName ? `المشروع: ${projectName}` : t('contracting.contracting_boq_tab.s1', "إدارة ومتابعة فئات البنود وتكاليفها والكميات المنفذة")}
           </p>
         </div>
 
@@ -259,7 +261,7 @@ export function ContractingBoqTab({
             }}
           >
             <AppIcons.Download size={14} />
-            <span>{isExporting ? 'جاري التصدير...' : 'تصدير Excel'}</span>
+            <span>{isExporting ? t('contracting.contracting_boq_tab.s2', "جاري التصدير...") : t('contracting.contracting_boq_tab.s3', "تصدير Excel")}</span>
           </button>
 
           {/* استيراد إكسيل */}
@@ -284,7 +286,7 @@ export function ContractingBoqTab({
               }}
             >
               <AppIcons.FileSpreadsheet size={15} />
-              <span>استيراد من Excel</span>
+              <span>{t('contracting.contracting_boq_tab.s4', "استيراد من Excel")}</span>
             </button>
           )}
 
@@ -310,7 +312,7 @@ export function ContractingBoqTab({
               }}
             >
               <AppIcons.Layers size={15} />
-              <span>بنك البنود المرجعي</span>
+              <span>{t('contracting.contracting_boq_tab.s5', "بنك البنود المرجعي")}</span>
             </button>
           )}
 
@@ -336,7 +338,7 @@ export function ContractingBoqTab({
             }}
           >
             <AppIcons.Plus size={15} />
-            <span>إضافة بند تعاقدي (SOV)</span>
+            <span>{t('contracting.contracting_boq_tab.s6', "إضافة بند تعاقدي (SOV)")}</span>
           </button>
         </div>
       </div>
@@ -375,13 +377,13 @@ export function ContractingBoqTab({
             </div>
             <div>
               <div style={{ fontSize: 'var(--font-body)', fontWeight: 700, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span>هذا المشروع مسجل كـ «عطاء قيد الدراسة والتسعير (Planning)»</span>
+                <span>{t('contracting.contracting_boq_tab.s7', "هذا المشروع مسجل كـ «عطاء قيد الدراسة والتسعير (Planning)»")}</span>
                 <span style={{ fontSize: '10.5px', background: '#eff6ff', border: '1px solid #bfdbfe', padding: '1px 8px', borderRadius: '4px', color: '#1e40af', fontWeight: 600 }}>
-                  عطاء استرشادي
+                  {t('contracting.contracting_boq_tab.s8', "عطاء استرشادي")}
                 </span>
               </div>
               <div style={{ fontSize: 'var(--font-subtitle)', color: '#475569', marginTop: '3px' }}>
-                بنود المقايسة وتكاليفها هنا هي دراسة تقديرية. تظل نسب الإنجاز والتنفيذ 0% تلقائياً حتى الترسية والبدء الميداني.
+                {t('contracting.contracting_boq_tab.s9', "بنود المقايسة وتكاليفها هنا هي دراسة تقديرية. تظل نسب الإنجاز والتنفيذ 0% تلقائياً حتى الترسية والبدء الميداني.")}
               </div>
             </div>
           </div>
@@ -406,7 +408,7 @@ export function ContractingBoqTab({
               }}
             >
               <AppIcons.Sliders size={14} />
-              <span>العودة لدراسة وتسعير العطاء (المرحلة 1)</span>
+              <span>{t('contracting.contracting_boq_tab.s10', "العودة لدراسة وتسعير العطاء (المرحلة 1)")}</span>
             </button>
             {onAwardProject && (
               <button
@@ -429,7 +431,7 @@ export function ContractingBoqTab({
                 }}
               >
                 <AppIcons.CheckCircle size={14} />
-                <span>اعتماد وترسية العطاء كمشروع ساري</span>
+                <span>{t('contracting.contracting_boq_tab.s11', "اعتماد وترسية العطاء كمشروع ساري")}</span>
               </button>
             )}
           </div>
@@ -439,27 +441,27 @@ export function ContractingBoqTab({
       {/* شريط الإحصائيات المصغر للجدول - في مقدمة المقايسة */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
         <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 16px' }}>
-          <div style={{ fontSize: 'var(--font-micro)', color: '#64748b', fontWeight: 600 }}>إجمالي قيمة جدول الكميات</div>
+          <div style={{ fontSize: 'var(--font-micro)', color: '#64748b', fontWeight: 600 }}>{t('contracting.contracting_boq_tab.s12', "إجمالي قيمة جدول الكميات")}</div>
           <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a', marginTop: '2px', display: 'flex', alignItems: 'baseline', gap: '4px' }}>
             <span>{Math.round(totalContractValue).toLocaleString('en-US')}</span>
             <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>{currencySymbol}</span>
           </div>
         </div>
         <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 16px' }}>
-          <div style={{ fontSize: 'var(--font-micro)', color: '#64748b', fontWeight: 600 }}>التكلفة التقديرية المستهدفة</div>
+          <div style={{ fontSize: 'var(--font-micro)', color: '#64748b', fontWeight: 600 }}>{t('contracting.contracting_boq_tab.s13', "التكلفة التقديرية المستهدفة")}</div>
           <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a', marginTop: '2px', display: 'flex', alignItems: 'baseline', gap: '4px' }}>
             <span>{Math.round(totalEstimatedCost).toLocaleString('en-US')}</span>
             <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>{currencySymbol}</span>
           </div>
         </div>
         <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 16px' }}>
-          <div style={{ fontSize: 'var(--font-micro)', color: '#64748b', fontWeight: 600 }}>هامش الربح المخطط</div>
+          <div style={{ fontSize: 'var(--font-micro)', color: '#64748b', fontWeight: 600 }}>{t('contracting.contracting_boq_tab.s14', "هامش الربح المخطط")}</div>
           <div style={{ fontSize: '1.25rem', fontWeight: 800, color: plannedMargin >= 0 ? '#15803d' : '#b91c1c', marginTop: '2px' }}>
             {plannedMargin.toFixed(1)}%
           </div>
         </div>
         <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 16px' }}>
-          <div style={{ fontSize: 'var(--font-micro)', color: '#64748b', fontWeight: 600 }}>نسبة الإنجاز المالي المحقق</div>
+          <div style={{ fontSize: 'var(--font-micro)', color: '#64748b', fontWeight: 600 }}>{t('contracting.contracting_boq_tab.s15', "نسبة الإنجاز المالي المحقق")}</div>
           <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#170e5e', marginTop: '2px' }}>
             {overallProgress.toFixed(1)}%
           </div>
@@ -482,7 +484,7 @@ export function ContractingBoqTab({
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
           <span style={{ fontSize: 'var(--font-micro)', fontWeight: 700, color: '#475569', marginInlineEnd: '4px' }}>
-            أدوات المقايسة المتقدمة:
+            {t('contracting.contracting_boq_tab.s16', "أدوات المقايسة المتقدمة:")}
           </span>
 
           {/* محرك التسعير الهندسي */}
@@ -506,7 +508,7 @@ export function ContractingBoqTab({
             }}
           >
             <AppIcons.Calculator size={14} />
-            <span>محرك التسعير الآلي</span>
+            <span>{t('contracting.contracting_boq_tab.s17', "محرك التسعير الآلي")}</span>
           </button>
 
           {/* تحليل ربحية البنود */}
@@ -531,7 +533,7 @@ export function ContractingBoqTab({
               }}
             >
               <AppIcons.TrendingUp size={14} />
-              <span>تحليل أرباح وخسائر البنود</span>
+              <span>{t('contracting.contracting_boq_tab.s18', "تحليل أرباح وخسائر البنود")}</span>
             </button>
           )}
 
@@ -557,7 +559,7 @@ export function ContractingBoqTab({
               }}
             >
               <AppIcons.Sliders size={14} />
-              <span>توزيع غير المباشر (AACE)</span>
+              <span>{t('contracting.contracting_boq_tab.s19', "توزيع غير المباشر (AACE)")}</span>
             </button>
           )}
 
@@ -583,7 +585,7 @@ export function ContractingBoqTab({
               }}
             >
               <AppIcons.Lock size={14} />
-              <span>تجميد خط الأساس (Baseline Lock)</span>
+              <span>{t('contracting.contracting_boq_tab.s20', "تجميد خط الأساس (Baseline Lock)")}</span>
             </button>
           )}
         </div>
@@ -609,7 +611,7 @@ export function ContractingBoqTab({
             <AppIcons.AlertCircle size={18} />
           </div>
           <div style={{ lineHeight: 1.5 }}>
-            <strong>تنويه:</strong> تم سحب البنود بنجاح من بنك البنود المرجعي. يرجى الضغط على زر <strong style={{ textDecoration: 'underline' }}>"0 (حدد الكمية)"</strong> أو زر التعديل أمام كل بند لتحديد كميات هذا المشروع وحساب إجمالي القيمة تلقائياً.
+            <strong>{t('contracting.contracting_boq_tab.s21', "تنويه:")}</strong> {t('contracting.contracting_boq_tab.s22', "تم سحب البنود بنجاح من بنك البنود المرجعي. يرجى الضغط على زر")} <strong style={{ textDecoration: 'underline' }}>{t('contracting.contracting_boq_tab.s23', "\"0 (حدد الكمية)\"")}</strong> {t('contracting.contracting_boq_tab.s24', "أو زر التعديل أمام كل بند لتحديد كميات هذا المشروع وحساب إجمالي القيمة تلقائياً.")}
           </div>
         </div>
       )}
@@ -618,7 +620,7 @@ export function ContractingBoqTab({
       <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
         {loading ? (
           <div style={{ padding: '40px', textAlign: 'center', color: '#64748b', fontSize: 'var(--font-body)' }}>
-            جاري تحميل جدول الكميات...
+            {t('contracting.contracting_boq_tab.s25', "جاري تحميل جدول الكميات...")}
           </div>
         ) : items.length === 0 ? (
           <div style={{ padding: '48px 24px', textAlign: 'center' }}>
@@ -626,10 +628,10 @@ export function ContractingBoqTab({
               <AppIcons.FileText size={48} />
             </div>
             <div style={{ fontSize: 'var(--font-section-title)', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-              لا توجد بنود تعاقدية مسجلة لهذا المشروع
+              {t('contracting.contracting_boq_tab.s26', "لا توجد بنود تعاقدية مسجلة لهذا المشروع")}
             </div>
             <div style={{ fontSize: 'var(--font-subtitle)', color: '#64748b', maxWidth: '420px', margin: '0 auto 16px' }}>
-              أضف بنود الأعمال والمقايسة للمشروع يدوياً أو قم باستيرادها مباشرة من ملف Excel أو سحبها من بنك البنود المرجعي.
+              {t('contracting.contracting_boq_tab.s27', "أضف بنود الأعمال والمقايسة للمشروع يدوياً أو قم باستيرادها مباشرة من ملف Excel أو سحبها من بنك البنود المرجعي.")}
             </div>
             <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap' }}>
               {projectId && (
@@ -652,7 +654,7 @@ export function ContractingBoqTab({
                   }}
                 >
                   <AppIcons.FileSpreadsheet size={15} />
-                  <span>استيراد جدول المقايسة من Excel</span>
+                  <span>{t('contracting.contracting_boq_tab.s28', "استيراد جدول المقايسة من Excel")}</span>
                 </button>
               )}
               {projectId && (
@@ -675,7 +677,7 @@ export function ContractingBoqTab({
                   }}
                 >
                   <AppIcons.Layers size={15} />
-                  <span>سحب تخصصات جاهزة من بنك البنود</span>
+                  <span>{t('contracting.contracting_boq_tab.s29', "سحب تخصصات جاهزة من بنك البنود")}</span>
                 </button>
               )}
               <button
@@ -693,7 +695,7 @@ export function ContractingBoqTab({
                   fontSize: 'var(--font-body)',
                 }}
               >
-                إضافة بند جديد يدوياً
+                {t('contracting.contracting_boq_tab.s30', "إضافة بند جديد يدوياً")}
               </button>
             </div>
           </div>
@@ -722,16 +724,16 @@ export function ContractingBoqTab({
               </colgroup>
               <thead>
                 <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
-                  <th style={{ padding: '12px 8px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155', textAlign: 'center' }}>كود البند</th>
-                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155', textAlign: 'right' }}>بيان الأعمال والمواصفات</th>
-                  <th style={{ padding: '12px 6px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155', textAlign: 'center' }}>الوحدة</th>
-                  <th style={{ padding: '12px 8px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155', textAlign: 'center' }}>الكمية التعاقدية</th>
-                  <th style={{ padding: '12px 8px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155', textAlign: 'center' }}>الكمية المعدلة</th>
-                  <th style={{ padding: '12px 8px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155', textAlign: 'center' }}>سعر الفئة</th>
-                  <th style={{ padding: '12px 8px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155', textAlign: 'center' }}>إجمالي القيمة</th>
-                  <th style={{ padding: '12px 6px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155', textAlign: 'center' }}>المنفذ</th>
-                  <th style={{ padding: '12px 8px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155', textAlign: 'center' }}>نسبة الإنجاز</th>
-                  <th style={{ padding: '12px 8px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155', textAlign: 'center' }}>الإجراءات</th>
+                  <th style={{ padding: '12px 8px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155', textAlign: 'center' }}>{t('contracting.contracting_boq_tab.s31', "كود البند")}</th>
+                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155', textAlign: 'right' }}>{t('contracting.contracting_boq_tab.s32', "بيان الأعمال والمواصفات")}</th>
+                  <th style={{ padding: '12px 6px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155', textAlign: 'center' }}>{t('contracting.contracting_boq_tab.s33', "الوحدة")}</th>
+                  <th style={{ padding: '12px 8px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155', textAlign: 'center' }}>{t('contracting.contracting_boq_tab.s34', "الكمية التعاقدية")}</th>
+                  <th style={{ padding: '12px 8px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155', textAlign: 'center' }}>{t('contracting.contracting_boq_tab.s35', "الكمية المعدلة")}</th>
+                  <th style={{ padding: '12px 8px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155', textAlign: 'center' }}>{t('contracting.contracting_boq_tab.s36', "سعر الفئة")}</th>
+                  <th style={{ padding: '12px 8px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155', textAlign: 'center' }}>{t('contracting.contracting_boq_tab.s37', "إجمالي القيمة")}</th>
+                  <th style={{ padding: '12px 6px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155', textAlign: 'center' }}>{t('contracting.contracting_boq_tab.s38', "المنفذ")}</th>
+                  <th style={{ padding: '12px 8px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155', textAlign: 'center' }}>{t('contracting.contracting_boq_tab.s39', "نسبة الإنجاز")}</th>
+                  <th style={{ padding: '12px 8px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155', textAlign: 'center' }}>{t('contracting.contracting_boq_tab.s40', "الإجراءات")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -853,7 +855,7 @@ export function ContractingBoqTab({
                           <button
                             type="button"
                             onClick={() => setEditingItem(item)}
-                            title="انقر لتحديد كمية المشروع وحساب إجمالي القيمة"
+                            title={t('contracting.contracting_boq_tab.s41', "انقر لتحديد كمية المشروع وحساب إجمالي القيمة")}
                             style={{
                               background: '#fffbeb',
                               border: '1px dashed #f59e0b',
@@ -879,7 +881,7 @@ export function ContractingBoqTab({
                             }}
                           >
                             <AppIcons.Edit size={12} />
-                            <span>0 (حدد الكمية)</span>
+                            <span>{t('contracting.contracting_boq_tab.s42', "0 (حدد الكمية)")}</span>
                           </button>
                         ) : (
                           <span style={{ fontSize: 'var(--font-body)', fontWeight: 700, color: '#0f172a' }}>
@@ -944,7 +946,7 @@ export function ContractingBoqTab({
                       <td style={{ padding: '12px 10px', textAlign: 'center', verticalAlign: 'middle' }}>
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', width: '100%', maxWidth: '100px', margin: '0 auto' }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', fontSize: '0.72rem', fontWeight: 700, color: completion >= 100 ? '#15803d' : '#334155' }}>
-                            <span>الإنجاز</span>
+                            <span>{t('contracting.contracting_boq_tab.s43', "الإنجاز")}</span>
                             <span>{completion}%</span>
                           </div>
                           <div style={{ width: '100%', height: '6px', background: '#e2e8f0', borderRadius: '3px', overflow: 'hidden' }}>
@@ -967,7 +969,7 @@ export function ContractingBoqTab({
                           {!item.isSectionHeader && (
                             <button
                               type="button"
-                              title="تسعير آلي وحساب تفكيك التكلفة للبند"
+                              title={t('contracting.contracting_boq_tab.s44', "تسعير آلي وحساب تفكيك التكلفة للبند")}
                               onClick={() => {
                                 setEditingItem(item);
                                 setIsAutoPricingOpen(true);
@@ -1000,7 +1002,7 @@ export function ContractingBoqTab({
                           )}
                           <button
                             type="button"
-                            title="شيت حصر كميات لوحات الكاد (CAD Takeoff)"
+                            title={t('contracting.contracting_boq_tab.s45', "شيت حصر كميات لوحات الكاد (CAD Takeoff)")}
                             onClick={() => setTakeoffItem(item)}
                             style={{
                               width: '26px',
@@ -1029,7 +1031,7 @@ export function ContractingBoqTab({
                           </button>
                           <button
                             type="button"
-                            title="تعديل بيانات البند والكميات"
+                            title={t('contracting.contracting_boq_tab.s46', "تعديل بيانات البند والكميات")}
                             onClick={() => setEditingItem(item)}
                             style={{
                               width: '26px',
@@ -1058,7 +1060,7 @@ export function ContractingBoqTab({
                           </button>
                           <button
                             type="button"
-                            title="حذف البند من المقايسة"
+                            title={t('contracting.contracting_boq_tab.s47', "حذف البند من المقايسة")}
                             onClick={() => handleDeleteItem(item.id, itemCode, item.description)}
                             style={{
                               width: '26px',
@@ -1097,7 +1099,7 @@ export function ContractingBoqTab({
           onClose={() => setEditingItem(null)}
           onSuccess={() => {
             setEditingItem(null);
-            setNotification({ type: 'success', text: 'تم تحديث البند بنجاح' });
+            setNotification({ type: 'success', text: t('contracting.contracting_boq_tab.s48', "تم تحديث البند بنجاح") });
             if (onRefresh) onRefresh();
           }}
         />
@@ -1144,7 +1146,7 @@ export function ContractingBoqTab({
           onApplyPrice={async (suggestedUnitPrice, estimatedCost, targetItemId) => {
             const itemIdToUpdate = targetItemId || (editingItem ? String(editingItem.id) : undefined);
             if (!itemIdToUpdate) {
-              setNotification({ type: 'error', text: 'يرجى تحديد البند المستهدف بالتحديث' });
+              setNotification({ type: 'error', text: t('contracting.contracting_boq_tab.s49', "يرجى تحديد البند المستهدف بالتحديث") });
               return;
             }
 
@@ -1162,7 +1164,7 @@ export function ContractingBoqTab({
               console.error('Failed to update BOQ item price:', err);
               setNotification({
                 type: 'error',
-                text: err?.message || 'تعذر تحديث سعر البند في المقايسة',
+                text: err?.message || t('contracting.contracting_boq_tab.s50', "تعذر تحديث سعر البند في المقايسة"),
               });
               throw err;
             }

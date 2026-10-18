@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { StandardDialog } from '@/shared/components/StandardDialog';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
@@ -10,14 +11,15 @@ interface ContractingWorkflowMapModalProps {
 type ScenarioTab = 'all' | 'negotiation' | 'lost' | 'award' | 'execution';
 
 export function ContractingWorkflowMapModal({ open, onClose }: ContractingWorkflowMapModalProps) {
+  const { t } = useTranslation();
   const [activeScenario, setActiveScenario] = useState<ScenarioTab>('all');
 
   return (
     <StandardDialog
       open={open}
       onClose={onClose}
-      title="خريطة مسار دورة حياة المشروع والعطاءات الهندسية (Contracting Lifecycle Blueprint)"
-      subtitle="الدستور الهندسي والتشغيلي المعتمد: من استلام المقايسة حتى التسليم النهائي والإغلاق"
+      title={t('contracting.contracting_workflow_map_modal.s0', "خريطة مسار دورة حياة المشروع والعطاءات الهندسية (Contracting Lifecycle Blueprint)")}
+      subtitle={t('contracting.contracting_workflow_map_modal.s1', "الدستور الهندسي والتشغيلي المعتمد: من استلام المقايسة حتى التسليم النهائي والإغلاق")}
       width="min(1240px, 96vw)"
       compact
     >
@@ -25,14 +27,14 @@ export function ContractingWorkflowMapModal({ open, onClose }: ContractingWorkfl
         {/* Scenario Switcher Tabs - Fixed font weight & 0ms transition */}
         <div style={{ display: 'flex', gap: '8px', borderBottom: '1px solid #e2e8f0', paddingBottom: '10px', flexWrap: 'wrap', alignItems: 'center', flexShrink: 0 }}>
           <span style={{ fontSize: 'var(--font-body)', fontWeight: 700, color: '#170e5e', marginLeft: '6px' }}>
-            مسارات وسيناريوهات العمل:
+            {t('contracting.contracting_workflow_map_modal.s2', "مسارات وسيناريوهات العمل:")}
           </span>
           {[
-            { id: 'all', label: 'المسار الشامل المتكامل (End-to-End)', icon: 'Sliders' },
-            { id: 'negotiation', label: 'السيناريو 1: تفاوض وتعديل سعر (Rev+)', icon: 'RefreshCw' },
-            { id: 'lost', label: 'السيناريو 2: رفض العميل والأرشفة التاريخية', icon: 'Archive' },
-            { id: 'award', label: 'السيناريو 3: الموافقة والترسية والتحويل لمشروع', icon: 'CheckShield' },
-            { id: 'execution', label: 'مراحل التنفيذ الميداني والمستخلصات والإغلاق', icon: 'Tool' },
+            { id: 'all', label: t('contracting.contracting_workflow_map_modal.s3', "المسار الشامل المتكامل (End-to-End)"), icon: 'Sliders' },
+            { id: 'negotiation', label: t('contracting.contracting_workflow_map_modal.s4', "السيناريو 1: تفاوض وتعديل سعر (Rev+)"), icon: 'RefreshCw' },
+            { id: 'lost', label: t('contracting.contracting_workflow_map_modal.s5', "السيناريو 2: رفض العميل والأرشفة التاريخية"), icon: 'Archive' },
+            { id: 'award', label: t('contracting.contracting_workflow_map_modal.s6', "السيناريو 3: الموافقة والترسية والتحويل لمشروع"), icon: 'CheckShield' },
+            { id: 'execution', label: t('contracting.contracting_workflow_map_modal.s7', "مراحل التنفيذ الميداني والمستخلصات والإغلاق"), icon: 'Tool' },
           ].map((tab) => {
             const isSelected = activeScenario === tab.id;
             return (
@@ -83,47 +85,47 @@ export function ContractingWorkflowMapModal({ open, onClose }: ContractingWorkfl
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
                 <div style={{ fontWeight: 800, color: '#170e5e', fontSize: 'var(--font-section-title)', display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <AppIcons.FileText size={18} />
-                  <span>المرحلة الأولى: الاستلام والتسعير والدراسة (Tender Preparation & Pricing)</span>
+                  <span>{t('contracting.contracting_workflow_map_modal.s8', "المرحلة الأولى: الاستلام والتسعير والدراسة (Tender Preparation & Pricing)")}</span>
                 </div>
                 <span style={{ fontSize: 'var(--font-micro)', background: '#e2e8f0', color: '#334155', padding: '2px 8px', borderRadius: '4px', fontWeight: 600 }}>
-                  الشاشة: /contracting/tender
+                  {t('contracting.contracting_workflow_map_modal.s9', "الشاشة: /contracting/tender")}
                 </span>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '10px' }}>
                 {/* Step 1 */}
                 <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '12px' }}>
-                  <div style={{ fontSize: 'var(--font-badge)', fontWeight: 700, color: '#64748b', marginBottom: '4px' }}>الخطوة 1</div>
-                  <div style={{ fontWeight: 700, color: '#0f172a', fontSize: 'var(--font-body)', marginBottom: '4px' }}>استلام المقايسة وحصر المخططات</div>
+                  <div style={{ fontSize: 'var(--font-badge)', fontWeight: 700, color: '#64748b', marginBottom: '4px' }}>{t('contracting.contracting_workflow_map_modal.s10', "الخطوة 1")}</div>
+                  <div style={{ fontWeight: 700, color: '#0f172a', fontSize: 'var(--font-body)', marginBottom: '4px' }}>{t('contracting.contracting_workflow_map_modal.s11', "استلام المقايسة وحصر المخططات")}</div>
                   <div style={{ fontSize: 'var(--font-subtitle)', color: '#475569', lineHeight: 1.5 }}>
-                    سحب ملف Excel أو PDF العميل، أو إدخال حصر لوحات CAD (طول × ارتفاع × عدد) مع تفريغ الحوائط والفتحات.
+                    {t('contracting.contracting_workflow_map_modal.s12', "سحب ملف Excel أو PDF العميل، أو إدخال حصر لوحات CAD (طول × ارتفاع × عدد) مع تفريغ الحوائط والفتحات.")}
                   </div>
                 </div>
 
                 {/* Step 2 */}
                 <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '12px' }}>
-                  <div style={{ fontSize: 'var(--font-badge)', fontWeight: 700, color: '#64748b', marginBottom: '4px' }}>الخطوة 2</div>
-                  <div style={{ fontWeight: 700, color: '#0f172a', fontSize: 'var(--font-body)', marginBottom: '4px' }}>تفكيك الكود (BOM) والتسعير الآلي</div>
+                  <div style={{ fontSize: 'var(--font-badge)', fontWeight: 700, color: '#64748b', marginBottom: '4px' }}>{t('contracting.contracting_workflow_map_modal.s13', "الخطوة 2")}</div>
+                  <div style={{ fontWeight: 700, color: '#0f172a', fontSize: 'var(--font-body)', marginBottom: '4px' }}>{t('contracting.contracting_workflow_map_modal.s14', "تفكيك الكود (BOM) والتسعير الآلي")}</div>
                   <div style={{ fontSize: 'var(--font-subtitle)', color: '#475569', lineHeight: 1.5 }}>
-                    تفكيك البند لخامات ومصنعيات ومعدات، وتطبيق نسب الهالك (5%)، المصاريف الإدارية (7%)، وهامش الربح (15%).
+                    {t('contracting.contracting_workflow_map_modal.s15', "تفكيك البند لخامات ومصنعيات ومعدات، وتطبيق نسب الهالك (5%)، المصاريف الإدارية (7%)، وهامش الربح (15%).")}
                   </div>
                 </div>
 
                 {/* Step 3 */}
                 <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '12px' }}>
-                  <div style={{ fontSize: 'var(--font-badge)', fontWeight: 700, color: '#64748b', marginBottom: '4px' }}>الخطوة 3</div>
-                  <div style={{ fontWeight: 700, color: '#0f172a', fontSize: 'var(--font-body)', marginBottom: '4px' }}>حفظ كعطاء قيد الدراسة (Planning)</div>
+                  <div style={{ fontSize: 'var(--font-badge)', fontWeight: 700, color: '#64748b', marginBottom: '4px' }}>{t('contracting.contracting_workflow_map_modal.s16', "الخطوة 3")}</div>
+                  <div style={{ fontWeight: 700, color: '#0f172a', fontSize: 'var(--font-body)', marginBottom: '4px' }}>{t('contracting.contracting_workflow_map_modal.s17', "حفظ كعطاء قيد الدراسة (Planning)")}</div>
                   <div style={{ fontSize: 'var(--font-subtitle)', color: '#475569', lineHeight: 1.5 }}>
-                    حفظ العطاء برقم كود فريد وقيمة تقديرية. يبقى في مسار العطاءات دون التأثير على الحسابات أو تقارير المشاريع المنفذة.
+                    {t('contracting.contracting_workflow_map_modal.s18', "حفظ العطاء برقم كود فريد وقيمة تقديرية. يبقى في مسار العطاءات دون التأثير على الحسابات أو تقارير المشاريع المنفذة.")}
                   </div>
                 </div>
 
                 {/* Step 4 */}
                 <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '12px' }}>
-                  <div style={{ fontSize: 'var(--font-badge)', fontWeight: 700, color: '#64748b', marginBottom: '4px' }}>الخطوة 4</div>
-                  <div style={{ fontWeight: 700, color: '#0f172a', fontSize: 'var(--font-body)', marginBottom: '4px' }}>تقديم العرض للعميل (Submitted)</div>
+                  <div style={{ fontSize: 'var(--font-badge)', fontWeight: 700, color: '#64748b', marginBottom: '4px' }}>{t('contracting.contracting_workflow_map_modal.s19', "الخطوة 4")}</div>
+                  <div style={{ fontWeight: 700, color: '#0f172a', fontSize: 'var(--font-body)', marginBottom: '4px' }}>{t('contracting.contracting_workflow_map_modal.s20', "تقديم العرض للعميل (Submitted)")}</div>
                   <div style={{ fontSize: 'var(--font-subtitle)', color: '#475569', lineHeight: 1.5 }}>
-                    تصدير شيت العميل الأصلي المسعر أو طباعة عرض السعر المعتمد، وتحويل الحالة لـ (بانتظار رد العميل) وتوثيق تاريخ الإرسال.
+                    {t('contracting.contracting_workflow_map_modal.s21', "تصدير شيت العميل الأصلي المسعر أو طباعة عرض السعر المعتمد، وتحويل الحالة لـ (بانتظار رد العميل) وتوثيق تاريخ الإرسال.")}
                   </div>
                 </div>
               </div>
@@ -136,19 +138,19 @@ export function ContractingWorkflowMapModal({ open, onClose }: ContractingWorkfl
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                 <div style={{ fontWeight: 800, color: '#170e5e', fontSize: 'var(--font-section-title)', display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <AppIcons.RefreshCw size={17} />
-                  <span>السيناريو الأول: طلب العميل تعديل السعر أو الشروط (Negotiation & Revision Rev+)</span>
+                  <span>{t('contracting.contracting_workflow_map_modal.s22', "السيناريو الأول: طلب العميل تعديل السعر أو الشروط (Negotiation & Revision Rev+)")}</span>
                 </div>
                 <span style={{ fontSize: 'var(--font-badge)', background: '#f1f5f9', color: '#170e5e', border: '1px solid #cbd5e1', padding: '2px 8px', borderRadius: '4px', fontWeight: 600 }}>
-                  الإجراء: إنشاء مراجعة تفاوض (Rev+)
+                  {t('contracting.contracting_workflow_map_modal.s23', "الإجراء: إنشاء مراجعة تفاوض (Rev+)")}
                 </span>
               </div>
               <div style={{ fontSize: 'var(--font-body)', color: '#334155', lineHeight: 1.6 }}>
-                <strong>ماذا يحدث في النظام هندسياً وبرمجياً:</strong>
+                <strong>{t('contracting.contracting_workflow_map_modal.s24', "ماذا يحدث في النظام هندسياً وبرمجياً:")}</strong>
                 <ul style={{ margin: '6px 0 0', paddingRight: '20px' }}>
-                  <li>عند الضغط على <code>إنشاء مراجعة تفاوض (Rev+)</code>، يقوم النظام باستنساخ العطاء الأصلي بكامل بنود مقايسته ومكوناته.</li>
-                  <li>يتم توليد كود مراجعة جديد متسلسل تلقائياً (مثال: <code>PRJ-001-R1</code> ثم <code>PRJ-001-R2</code>).</li>
-                  <li>يتم تجميد النسخة السابقة وحفظها في الأرشيف المرجعي كـ Snapshot لمنع ضياع أسعار التفاوض الأولى.</li>
-                  <li>يفتح النظام شاشة التسعير للمراجعة الجديدة لتعديل هوامش الربح أو الخصومات، وإعادة استخراج عرض السعر المحدث للعميل.</li>
+                  <li>{t('contracting.contracting_workflow_map_modal.s25', "عند الضغط على")} <code>{t('contracting.contracting_workflow_map_modal.s26', "إنشاء مراجعة تفاوض (Rev+)")}</code>{t('contracting.contracting_workflow_map_modal.s27', "، يقوم النظام باستنساخ العطاء الأصلي بكامل بنود مقايسته ومكوناته.")}</li>
+                  <li>{t('contracting.contracting_workflow_map_modal.s28', "يتم توليد كود مراجعة جديد متسلسل تلقائياً (مثال:")} <code>PRJ-001-R1</code> {t('contracting.contracting_workflow_map_modal.s29', "ثم")} <code>PRJ-001-R2</code>).</li>
+                  <li>{t('contracting.contracting_workflow_map_modal.s30', "يتم تجميد النسخة السابقة وحفظها في الأرشيف المرجعي كـ Snapshot لمنع ضياع أسعار التفاوض الأولى.")}</li>
+                  <li>{t('contracting.contracting_workflow_map_modal.s31', "يفتح النظام شاشة التسعير للمراجعة الجديدة لتعديل هوامش الربح أو الخصومات، وإعادة استخراج عرض السعر المحدث للعميل.")}</li>
                 </ul>
               </div>
             </div>
@@ -159,19 +161,19 @@ export function ContractingWorkflowMapModal({ open, onClose }: ContractingWorkfl
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                 <div style={{ fontWeight: 800, color: '#475569', fontSize: 'var(--font-section-title)', display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <AppIcons.Archive size={17} />
-                  <span>السيناريو الثاني: الاعتذار أو عدم الترسية (Rejection & Historical Pricing Archive)</span>
+                  <span>{t('contracting.contracting_workflow_map_modal.s32', "السيناريو الثاني: الاعتذار أو عدم الترسية (Rejection & Historical Pricing Archive)")}</span>
                 </div>
                 <span style={{ fontSize: 'var(--font-badge)', background: '#f8fafc', color: '#64748b', border: '1px solid #cbd5e1', padding: '2px 8px', borderRadius: '4px', fontWeight: 600 }}>
-                  الإجراء: أرشفة العطاء (لم يُرسَ)
+                  {t('contracting.contracting_workflow_map_modal.s33', "الإجراء: أرشفة العطاء (لم يُرسَ)")}
                 </span>
               </div>
               <div style={{ fontSize: 'var(--font-body)', color: '#334155', lineHeight: 1.6 }}>
-                <strong>ماذا يحدث في النظام هندسياً وبرمجياً:</strong>
+                <strong>{t('contracting.contracting_workflow_map_modal.s34', "ماذا يحدث في النظام هندسياً وبرمجياً:")}</strong>
                 <ul style={{ margin: '6px 0 0', paddingRight: '20px' }}>
-                  <li><strong>حظر الحذف النهائي:</strong> يُمنع مسح أي عطاء تم تسعيره حتى لا يضيع المجهود الفني وبيانات التسعير.</li>
-                  <li>تفتح نافذة الأرشفة لتوثيق سبب عدم الترسية (السعر أعلى من المنافس، إلغاء المالك للمشروع، شروط الدفع، مواصفات فنية).</li>
-                  <li>تسجيل سعر المنافس الفائز (إن وُجد) ليكون مرجعاً استرشادياً ومؤشراً تسعيرياً للمكتب الفني مستقبلاً.</li>
-                  <li>ينتقل العطاء إلى <code>أرشيف العطاءات غير المرسّاة</code> في تبويب المشاريع مع إمكانية <strong>إعادة التفعيل والإحياء (Revive)</strong> بضغطة زر إذا عاد العميل للتفاوض.</li>
+                  <li><strong>{t('contracting.contracting_workflow_map_modal.s35', "حظر الحذف النهائي:")}</strong> {t('contracting.contracting_workflow_map_modal.s36', "يُمنع مسح أي عطاء تم تسعيره حتى لا يضيع المجهود الفني وبيانات التسعير.")}</li>
+                  <li>{t('contracting.contracting_workflow_map_modal.s37', "تفتح نافذة الأرشفة لتوثيق سبب عدم الترسية (السعر أعلى من المنافس، إلغاء المالك للمشروع، شروط الدفع، مواصفات فنية).")}</li>
+                  <li>{t('contracting.contracting_workflow_map_modal.s38', "تسجيل سعر المنافس الفائز (إن وُجد) ليكون مرجعاً استرشادياً ومؤشراً تسعيرياً للمكتب الفني مستقبلاً.")}</li>
+                  <li>{t('contracting.contracting_workflow_map_modal.s39', "ينتقل العطاء إلى")} <code>{t('contracting.contracting_workflow_map_modal.s40', "أرشيف العطاءات غير المرسّاة")}</code> {t('contracting.contracting_workflow_map_modal.s41', "في تبويب المشاريع مع إمكانية")} <strong>{t('contracting.contracting_workflow_map_modal.s42', "إعادة التفعيل والإحياء (Revive)")}</strong> {t('contracting.contracting_workflow_map_modal.s43', "بضغطة زر إذا عاد العميل للتفاوض.")}</li>
                 </ul>
               </div>
             </div>
@@ -182,19 +184,19 @@ export function ContractingWorkflowMapModal({ open, onClose }: ContractingWorkfl
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                 <div style={{ fontWeight: 800, color: '#170e5e', fontSize: 'var(--font-section-title)', display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <AppIcons.CheckShield size={17} />
-                  <span>السيناريو الثالث: قبول العرض والترسية الرسمية (Award & Baseline Contract Conversion)</span>
+                  <span>{t('contracting.contracting_workflow_map_modal.s44', "السيناريو الثالث: قبول العرض والترسية الرسمية (Award & Baseline Contract Conversion)")}</span>
                 </div>
                 <span style={{ fontSize: 'var(--font-badge)', background: '#f1f5f9', color: '#170e5e', border: '1px solid #170e5e', padding: '2px 8px', borderRadius: '4px', fontWeight: 700 }}>
-                  الإجراء: اعتماد وترسية العطاء
+                  {t('contracting.contracting_workflow_map_modal.s45', "الإجراء: اعتماد وترسية العطاء")}
                 </span>
               </div>
               <div style={{ fontSize: 'var(--font-body)', color: '#334155', lineHeight: 1.6 }}>
-                <strong>ماذا يحدث في النظام هندسياً وبرمجياً:</strong>
+                <strong>{t('contracting.contracting_workflow_map_modal.s46', "ماذا يحدث في النظام هندسياً وبرمجياً:")}</strong>
                 <ul style={{ margin: '6px 0 0', paddingRight: '20px' }}>
-                  <li>تفتح نافذة الترسية لتوثيق رقم العقد التعاقدي، الاستشاري، مدير المشروع، الدفعة المقدمة، ونسبة ضمان الأعمال (Retention %).</li>
-                  <li>يتحول العطاء فورياً من مسار التقديرات إلى <strong>مشروع تنفيذي ساري (Active Project)</strong> في قاعدة البيانات.</li>
-                  <li><strong>قفل المقايسة كـ Baseline SOV:</strong> تصبح بنود المقايسة هي جدول القيم التعاقدي المعتمد غير القابل للتلاعب، والذي سيتم احتساب المستخلصات عليه.</li>
-                  <li>فتح مركز التكلفة المستقل وربطه بالدليل المحاسبي لبدء حركات المشتريات ومقاولي الباطن.</li>
+                  <li>{t('contracting.contracting_workflow_map_modal.s47', "تفتح نافذة الترسية لتوثيق رقم العقد التعاقدي، الاستشاري، مدير المشروع، الدفعة المقدمة، ونسبة ضمان الأعمال (Retention %).")}</li>
+                  <li>{t('contracting.contracting_workflow_map_modal.s48', "يتحول العطاء فورياً من مسار التقديرات إلى")} <strong>{t('contracting.contracting_workflow_map_modal.s49', "مشروع تنفيذي ساري (Active Project)")}</strong> {t('contracting.contracting_workflow_map_modal.s50', "في قاعدة البيانات.")}</li>
+                  <li><strong>{t('contracting.contracting_workflow_map_modal.s51', "قفل المقايسة كـ Baseline SOV:")}</strong> {t('contracting.contracting_workflow_map_modal.s52', "تصبح بنود المقايسة هي جدول القيم التعاقدي المعتمد غير القابل للتلاعب، والذي سيتم احتساب المستخلصات عليه.")}</li>
+                  <li>{t('contracting.contracting_workflow_map_modal.s53', "فتح مركز التكلفة المستقل وربطه بالدليل المحاسبي لبدء حركات المشتريات ومقاولي الباطن.")}</li>
                 </ul>
               </div>
             </div>
@@ -206,46 +208,46 @@ export function ContractingWorkflowMapModal({ open, onClose }: ContractingWorkfl
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
                 <div style={{ fontWeight: 800, color: '#170e5e', fontSize: 'var(--font-section-title)', display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <AppIcons.Layers size={18} />
-                  <span>المرحلة الثانية: دورة التنفيذ والميدان والمالية (Execution, Operations & Invoicing)</span>
+                  <span>{t('contracting.contracting_workflow_map_modal.s54', "المرحلة الثانية: دورة التنفيذ والميدان والمالية (Execution, Operations & Invoicing)")}</span>
                 </div>
                 <span style={{ fontSize: 'var(--font-micro)', background: '#e2e8f0', color: '#334155', padding: '2px 8px', borderRadius: '4px', fontWeight: 600 }}>
-                  المسارات: /contracting/boq, /planning, /procurement, /field, /financials, /closeout
+                  {t('contracting.contracting_workflow_map_modal.s55', "المسارات: /contracting/boq, /planning, /procurement, /field, /financials, /closeout")}
                 </span>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px' }}>
                 <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px' }}>
-                  <div style={{ fontWeight: 700, color: '#170e5e', fontSize: 'var(--font-body)', marginBottom: '3px' }}>1. التجهيز وجانت (Planning)</div>
+                  <div style={{ fontWeight: 700, color: '#170e5e', fontSize: 'var(--font-body)', marginBottom: '3px' }}>{t('contracting.contracting_workflow_map_modal.s56', "1. التجهيز وجانت (Planning)")}</div>
                   <div style={{ fontSize: 'var(--font-subtitle)', color: '#475569', lineHeight: 1.4 }}>
-                    إصدار التراخيص الحكومية وتوليد الجدول الزمني الإنشائي ومخطط جانت وتتبع المسار الحرج (CPM).
+                    {t('contracting.contracting_workflow_map_modal.s57', "إصدار التراخيص الحكومية وتوليد الجدول الزمني الإنشائي ومخطط جانت وتتبع المسار الحرج (CPM).")}
                   </div>
                 </div>
 
                 <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px' }}>
-                  <div style={{ fontWeight: 700, color: '#170e5e', fontSize: 'var(--font-body)', marginBottom: '3px' }}>2. التوريدات والباطن (Procurement)</div>
+                  <div style={{ fontWeight: 700, color: '#170e5e', fontSize: 'var(--font-body)', marginBottom: '3px' }}>{t('contracting.contracting_workflow_map_modal.s58', "2. التوريدات والباطن (Procurement)")}</div>
                   <div style={{ fontSize: 'var(--font-subtitle)', color: '#475569', lineHeight: 1.4 }}>
-                    طلبات الشراء MRP لخامات المقايسة، واعتمادات المواد، وعقود مقاولي الباطن وخصومات Back-charges.
+                    {t('contracting.contracting_workflow_map_modal.s59', "طلبات الشراء MRP لخامات المقايسة، واعتمادات المواد، وعقود مقاولي الباطن وخصومات Back-charges.")}
                   </div>
                 </div>
 
                 <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px' }}>
-                  <div style={{ fontWeight: 700, color: '#170e5e', fontSize: 'var(--font-body)', marginBottom: '3px' }}>3. الميدان واليوميات (Field)</div>
+                  <div style={{ fontWeight: 700, color: '#170e5e', fontSize: 'var(--font-body)', marginBottom: '3px' }}>{t('contracting.contracting_workflow_map_modal.s60', "3. الميدان واليوميات (Field)")}</div>
                   <div style={{ fontSize: 'var(--font-subtitle)', color: '#475569', lineHeight: 1.4 }}>
-                    تسجيل اليوميات، طقس الموقع، العمالة، استلام الأعمال الهندسية WIR، وطلبات الاستفسار RFI.
+                    {t('contracting.contracting_workflow_map_modal.s61', "تسجيل اليوميات، طقس الموقع، العمالة، استلام الأعمال الهندسية WIR، وطلبات الاستفسار RFI.")}
                   </div>
                 </div>
 
                 <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px' }}>
-                  <div style={{ fontWeight: 700, color: '#170e5e', fontSize: 'var(--font-body)', marginBottom: '3px' }}>4. المستخلصات (Financials)</div>
+                  <div style={{ fontWeight: 700, color: '#170e5e', fontSize: 'var(--font-body)', marginBottom: '3px' }}>{t('contracting.contracting_workflow_map_modal.s62', "4. المستخلصات (Financials)")}</div>
                   <div style={{ fontSize: 'var(--font-subtitle)', color: '#475569', lineHeight: 1.4 }}>
-                    إصدار مستخلصات المالك وفق AIA G702/G703، تسوية الدفعة المقدمة، حجز ضمان الأعمال، والأوامر التغييرية.
+                    {t('contracting.contracting_workflow_map_modal.s63', "إصدار مستخلصات المالك وفق AIA G702/G703، تسوية الدفعة المقدمة، حجز ضمان الأعمال، والأوامر التغييرية.")}
                   </div>
                 </div>
 
                 <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px' }}>
-                  <div style={{ fontWeight: 700, color: '#170e5e', fontSize: 'var(--font-body)', marginBottom: '3px' }}>5. التسليم والإغلاق (Closeout)</div>
+                  <div style={{ fontWeight: 700, color: '#170e5e', fontSize: 'var(--font-body)', marginBottom: '3px' }}>{t('contracting.contracting_workflow_map_modal.s64', "5. التسليم والإغلاق (Closeout)")}</div>
                   <div style={{ fontSize: 'var(--font-subtitle)', color: '#475569', lineHeight: 1.4 }}>
-                    قائمة الملاحظات Snag List، التسليم الابتدائي، حساب الختامي النهائي، وإفراج محجوز الضمان بعد فترة الصيانة.
+                    {t('contracting.contracting_workflow_map_modal.s65', "قائمة الملاحظات Snag List، التسليم الابتدائي، حساب الختامي النهائي، وإفراج محجوز الضمان بعد فترة الصيانة.")}
                   </div>
                 </div>
               </div>
@@ -256,7 +258,7 @@ export function ContractingWorkflowMapModal({ open, onClose }: ContractingWorkfl
         {/* Footer */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #e2e8f0', paddingTop: '10px' }}>
           <div style={{ fontSize: 'var(--font-subtitle)', color: '#64748b' }}>
-            المنظومة مصممة لتضمن الربط الكامل بين التقديرات الأولية والتشغيل الميداني دون أي فقدان للبيانات.
+            {t('contracting.contracting_workflow_map_modal.s66', "المنظومة مصممة لتضمن الربط الكامل بين التقديرات الأولية والتشغيل الميداني دون أي فقدان للبيانات.")}
           </div>
           <button
             type="button"
@@ -272,7 +274,7 @@ export function ContractingWorkflowMapModal({ open, onClose }: ContractingWorkfl
               cursor: 'pointer',
             }}
           >
-            فهمت المسار وإغلاق
+            {t('contracting.contracting_workflow_map_modal.s67', "فهمت المسار وإغلاق")}
           </button>
         </div>
       </div>

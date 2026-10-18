@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React, { useState, useEffect } from 'react';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { CustomSelect } from '@/shared/ui/custom-select';
@@ -18,6 +19,7 @@ export const CreateSubscriptionModal: React.FC<CreateSubscriptionModalProps> = (
   onClose,
   onSuccess,
 }) => {
+  const { t } = useTranslation();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
   const [contractNumber, setContractNumber] = useState('');
@@ -140,27 +142,27 @@ export const CreateSubscriptionModal: React.FC<CreateSubscriptionModalProps> = (
     <StandardDialog
       open={open}
       onClose={onClose}
-      title="إنشاء عقد اشتراك تجاري وفوترة دورية (B2B Recurring Contract)"
-      subtitle="إدارة الاشتراكات والفوترة الآلية المتكررة للشركات والجهات المتعاقدة"
+      title={t('sales.create_subscription_modal.s0', "إنشاء عقد اشتراك تجاري وفوترة دورية (B2B Recurring Contract)")}
+      subtitle={t('sales.create_subscription_modal.s1', "إدارة الاشتراكات والفوترة الآلية المتكررة للشركات والجهات المتعاقدة")}
       size="lg"
     >
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px' }}>
           <div>
             <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 600, color: '#334155' }}>
-              العميل التعاقدي *
+              {t('sales.create_subscription_modal.s2', "العميل التعاقدي *")}
             </label>
             <CustomSelect
               value={selectedCustomerId}
               onChange={setSelectedCustomerId}
               options={customerOptions}
-              placeholder="اختر العميل..."
+              placeholder={t('sales.create_subscription_modal.s3', "اختر العميل...")}
             />
           </div>
 
           <div>
             <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 600, color: '#334155' }}>
-              دورية الفوترة *
+              {t('sales.create_subscription_modal.s4', "دورية الفوترة *")}
             </label>
             <CustomSelect
               value={billingPeriod}
@@ -171,13 +173,13 @@ export const CreateSubscriptionModal: React.FC<CreateSubscriptionModalProps> = (
 
           <div>
             <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 600, color: '#334155' }}>
-              رقم العقد (اختياري - يولد تلقائياً)
+              {t('sales.create_subscription_modal.s5', "رقم العقد (اختياري - يولد تلقائياً)")}
             </label>
             <input
               type="text"
               value={contractNumber}
               onChange={(e) => setContractNumber(e.target.value)}
-              placeholder="مثال: SUB-260930-0001"
+              placeholder={t('sales.create_subscription_modal.s6', "مثال: SUB-260930-0001")}
               className="standard-input"
               style={{ width: '100%', height: '36px', padding: '6px 10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
             />
@@ -185,7 +187,7 @@ export const CreateSubscriptionModal: React.FC<CreateSubscriptionModalProps> = (
 
           <div>
             <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 600, color: '#334155' }}>
-              طريقة الدفع
+              {t('sales.create_subscription_modal.s7', "طريقة الدفع")}
             </label>
             <CustomSelect
               value={paymentMethod}
@@ -196,7 +198,7 @@ export const CreateSubscriptionModal: React.FC<CreateSubscriptionModalProps> = (
 
           <div>
             <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 600, color: '#334155' }}>
-              تاريخ بدء الفوترة *
+              {t('sales.create_subscription_modal.s8', "تاريخ بدء الفوترة *")}
             </label>
             <input
               type="date"
@@ -210,7 +212,7 @@ export const CreateSubscriptionModal: React.FC<CreateSubscriptionModalProps> = (
 
           <div>
             <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 600, color: '#334155' }}>
-              تاريخ انتهاء العقد (اختياري)
+              {t('sales.create_subscription_modal.s9', "تاريخ انتهاء العقد (اختياري)")}
             </label>
             <input
               type="date"
@@ -231,7 +233,7 @@ export const CreateSubscriptionModal: React.FC<CreateSubscriptionModalProps> = (
             style={{ width: '16px', height: '16px', cursor: 'pointer' }}
           />
           <label htmlFor="autoRenew" style={{ fontSize: '13px', fontWeight: 600, color: '#1e293b', cursor: 'pointer' }}>
-            تجديد تلقائي بعد انتهاء المدة (Auto-Renew)
+            {t('sales.create_subscription_modal.s10', "تجديد تلقائي بعد انتهاء المدة (Auto-Renew)")}
           </label>
         </div>
 
@@ -239,7 +241,7 @@ export const CreateSubscriptionModal: React.FC<CreateSubscriptionModalProps> = (
         <div style={{ border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px', background: '#f8fafc' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
             <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 700, color: '#1e293b' }}>
-              بنود وقيمة الاشتراك المتكرر
+              {t('sales.create_subscription_modal.s11', "بنود وقيمة الاشتراك المتكرر")}
             </h4>
             <button
               type="button"
@@ -259,18 +261,18 @@ export const CreateSubscriptionModal: React.FC<CreateSubscriptionModalProps> = (
               }}
             >
               <PlusIcon size={14} />
-              إضافة بند
+              {t('sales.create_subscription_modal.s12', "إضافة بند")}
             </button>
           </div>
 
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
             <thead>
               <tr style={{ borderBottom: '1px solid #cbd5e1', color: '#64748b', textAlign: 'right' }}>
-                <th style={{ padding: '8px' }}>الوصف والخدمة</th>
-                <th style={{ padding: '8px', width: '90px' }}>الكمية</th>
-                <th style={{ padding: '8px', width: '120px' }}>سعر الوحدة</th>
-                <th style={{ padding: '8px', width: '90px' }}>الضريبة %</th>
-                <th style={{ padding: '8px', width: '110px' }}>الإجمالي</th>
+                <th style={{ padding: '8px' }}>{t('sales.create_subscription_modal.s13', "الوصف والخدمة")}</th>
+                <th style={{ padding: '8px', width: '90px' }}>{t('sales.create_subscription_modal.s14', "الكمية")}</th>
+                <th style={{ padding: '8px', width: '120px' }}>{t('sales.create_subscription_modal.s15', "سعر الوحدة")}</th>
+                <th style={{ padding: '8px', width: '90px' }}>{t('sales.create_subscription_modal.s16', "الضريبة %")}</th>
+                <th style={{ padding: '8px', width: '110px' }}>{t('sales.create_subscription_modal.s17', "الإجمالي")}</th>
                 <th style={{ padding: '8px', width: '40px' }}></th>
               </tr>
             </thead>
@@ -284,7 +286,7 @@ export const CreateSubscriptionModal: React.FC<CreateSubscriptionModalProps> = (
                         type="text"
                         value={line.description}
                         onChange={(e) => updateLine(idx, 'description', e.target.value)}
-                        placeholder="بيان الخدمة أو الاشتراك..."
+                        placeholder={t('sales.create_subscription_modal.s18', "بيان الخدمة أو الاشتراك...")}
                         style={{ width: '100%', padding: '6px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
                         required
                       />
@@ -341,23 +343,23 @@ export const CreateSubscriptionModal: React.FC<CreateSubscriptionModalProps> = (
           </table>
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '12px', gap: '20px', fontSize: '13px' }}>
-            <div>المجموع: <strong>{formatCurrency(subtotal)}</strong></div>
-            <div>الضريبة: <strong>{formatCurrency(taxTotal)}</strong></div>
+            <div>{t('sales.create_subscription_modal.s19', "المجموع:")} <strong>{formatCurrency(subtotal)}</strong></div>
+            <div>{t('sales.create_subscription_modal.s20', "الضريبة:")} <strong>{formatCurrency(taxTotal)}</strong></div>
             <div style={{ color: '#170e5e', fontSize: '14px', fontWeight: 800 }}>
-              الإجمالي لكل دورة: {formatCurrency(grandTotal)}
+              {t('sales.create_subscription_modal.s21', "الإجمالي لكل دورة:")} {formatCurrency(grandTotal)}
             </div>
           </div>
         </div>
 
         <div>
           <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 600, color: '#334155' }}>
-            ملاحظات وشروط العقد
+            {t('sales.create_subscription_modal.s22', "ملاحظات وشروط العقد")}
           </label>
           <textarea
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             rows={2}
-            placeholder="شروط تجديد الاشتراك، أرقام المراجع، أو بنود الاتفاقية..."
+            placeholder={t('sales.create_subscription_modal.s23', "شروط تجديد الاشتراك، أرقام المراجع، أو بنود الاتفاقية...")}
             style={{ width: '100%', padding: '8px', borderRadius: '8px', border: '1px solid #cbd5e1', resize: 'vertical' }}
           />
         </div>
@@ -365,7 +367,7 @@ export const CreateSubscriptionModal: React.FC<CreateSubscriptionModalProps> = (
         <StandardDialogFooter
           onClose={onClose}
           primaryButton={{
-            label: isSubmitting ? 'جاري الحفظ والتفعيل...' : 'اعتماد وإنشاء العقد',
+            label: isSubmitting ? t('sales.create_subscription_modal.s24', "جاري الحفظ والتفعيل...") : t('sales.create_subscription_modal.s25', "اعتماد وإنشاء العقد"),
             disabled: isSubmitting,
             onClick: () => handleSubmit(),
           }}

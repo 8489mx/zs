@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { getGlobalSystemCurrency } from '@/lib/currencies';
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -14,6 +15,7 @@ import { SignageSettingsDrawer } from '../components/signage/SignageSettingsDraw
 import { SignageNavDrawer } from '../components/signage/SignageNavDrawer';
 
 export function DigitalSignagePage() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const settingsQuery = useSettingsQuery();
   const settings = settingsQuery.data;
@@ -278,7 +280,7 @@ export function DigitalSignagePage() {
               borderRadius: '20px',
             }}
           >
-            جاري تحميل عروض ومنتجات صالة العرض...
+            {t('pos.digital_signage_page.s0', "جاري تحميل عروض ومنتجات صالة العرض...")}
           </div>
         )}
 

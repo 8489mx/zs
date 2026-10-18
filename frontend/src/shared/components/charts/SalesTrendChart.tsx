@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import {
   AreaChart,
   Area,
@@ -20,10 +21,11 @@ interface SalesTrendChartProps {
 }
 
 export function SalesTrendChart({ data, height = 300 }: SalesTrendChartProps) {
+  const { t } = useTranslation();
   if (!data || data.length === 0) {
     return (
       <div style={{ height, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>
-        لا توجد بيانات كافية للرسم البياني
+        {t('shared.charts.sales_trend_chart.s0', "لا توجد بيانات كافية للرسم البياني")}
       </div>
     );
   }

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useMemo } from 'react';
 import { PageHeader } from '@/shared/components/page-header';
 import { FormSection } from '@/shared/components/form-section';
@@ -19,6 +20,7 @@ const LOCATION_TYPE_OPTIONS = [
 ];
 
 export function LocationsManagementPage() {
+  const { t } = useTranslation();
   const { locationsQuery, branchesQuery } = useInventoryActionCatalog();
   
   const [modalOpen, setModalOpen] = useState(false);
@@ -91,10 +93,10 @@ export function LocationsManagementPage() {
       header: '',
       cell: (row) => (
         <div className="actions" style={{ flexWrap: 'nowrap', justifyContent: 'flex-end', display: 'flex', gap: '6px' }}>
-          <Button variant="secondary" onClick={() => handleEdit(row)} title="تعديل" style={{ padding: '4px 8px', height: '32px' }}>
+          <Button variant="secondary" onClick={() => handleEdit(row)} title={t('inventory.locations_management_page.s0', "تعديل")} style={{ padding: '4px 8px', height: '32px' }}>
             <EditIcon size={14} />
           </Button>
-          <Button variant="secondary" onClick={() => handleDelete(row)} title="حذف" style={{ padding: '4px 8px', height: '32px', color: 'var(--text-danger)' }}>
+          <Button variant="secondary" onClick={() => handleDelete(row)} title={t('inventory.locations_management_page.s1', "حذف")} style={{ padding: '4px 8px', height: '32px', color: 'var(--text-danger)' }}>
             <TrashIcon size={14} />
           </Button>
         </div>
@@ -106,17 +108,17 @@ export function LocationsManagementPage() {
     <div className="page-stack page-shell locations-page" dir="rtl">
       <main className="document-prototype-column" style={{ maxWidth: '1280px', margin: '0 auto', width: '100%', paddingBottom: '32px' }}>
       <PageHeader
-        title="إدارة أماكن المخزون"
-        description="إضافة، تعديل، وحذف أماكن المخزون في النظام"
+        title={t('inventory.locations_management_page.s2', "إدارة أماكن المخزون")}
+        description={t('inventory.locations_management_page.s3', "إضافة، تعديل، وحذف أماكن المخزون في النظام")}
         actions={(
           <Button variant="primary" onClick={handleCreate}>
             <PlusIcon size={16} style={{ marginLeft: 8 }} />
-            إضافة مخزن
+            {t('inventory.locations_management_page.s4', "إضافة مخزن")}
           </Button>
         )}
       />
 
-      <FormSection title="قائمة المخازن">
+      <FormSection title={t('inventory.locations_management_page.s5', "قائمة المخازن")}>
         <DataTable
           columns={columns}
           data={locations}
@@ -128,14 +130,14 @@ export function LocationsManagementPage() {
       <StandardDialog
         open={modalOpen}
         onClose={() => setModalOpen(false)}
-        title={editingLocation ? 'تعديل المخزن' : 'إضافة مخزن جديد'}
-        subtitle="تحديد خصائص المخزن والفرع المرتبط ونوعه التشغيلي"
+        title={editingLocation ? t('inventory.locations_management_page.s6', "تعديل المخزن") : t('inventory.locations_management_page.s7', "إضافة مخزن جديد")}
+        subtitle={t('inventory.locations_management_page.s8', "تحديد خصائص المخزن والفرع المرتبط ونوعه التشغيلي")}
         size="md"
         footerActions={
           <StandardDialogFooter
             onCancel={() => setModalOpen(false)}
-            cancelLabel="إلغاء"
-            primaryLabel={editingLocation ? 'حفظ التعديلات' : 'إضافة المخزن'}
+            cancelLabel={t('inventory.locations_management_page.s9', "إلغاء")}
+            primaryLabel={editingLocation ? t('inventory.locations_management_page.s10', "حفظ التعديلات") : t('inventory.locations_management_page.s11', "إضافة المخزن")}
             onPrimary={() => {
               const form = document.getElementById('location-form') as HTMLFormElement | null;
               if (form) form.requestSubmit();
@@ -146,28 +148,28 @@ export function LocationsManagementPage() {
         }
       >
         <form onSubmit={onSave} className="form-grid single-col" id="location-form" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <Field label="اسم المخزن">
-            <input required value={name} onChange={(e) => setName(e.target.value)} disabled={createMutation.isPending || updateMutation.isPending} placeholder="مثال: المخزن الرئيسي" />
+          <Field label={t('inventory.locations_management_page.s12', "اسم المخزن")}>
+            <input required value={name} onChange={(e) => setName(e.target.value)} disabled={createMutation.isPending || updateMutation.isPending} placeholder={t('inventory.locations_management_page.s13', "مثال: المخزن الرئيسي")} />
           </Field>
-          <Field label="كود المخزن">
-            <input value={code} onChange={(e) => setCode(e.target.value)} disabled={createMutation.isPending || updateMutation.isPending} placeholder="اختياري" />
+          <Field label={t('inventory.locations_management_page.s14', "كود المخزن")}>
+            <input value={code} onChange={(e) => setCode(e.target.value)} disabled={createMutation.isPending || updateMutation.isPending} placeholder={t('inventory.locations_management_page.s15', "اختياري")} />
           </Field>
-          <Field label="الفرع">
+          <Field label={t('inventory.locations_management_page.s16', "الفرع")}>
             <CustomSelect
               value={branchId}
               onChange={(val) => setBranchId(val)}
               options={branchOptions}
               disabled={createMutation.isPending || updateMutation.isPending}
-              placeholder="اختر الفرع المرتبط"
+              placeholder={t('inventory.locations_management_page.s17', "اختر الفرع المرتبط")}
             />
           </Field>
-          <Field label="نوع المخزن">
+          <Field label={t('inventory.locations_management_page.s18', "نوع المخزن")}>
             <CustomSelect
               value={locationType}
               onChange={(val) => setLocationType(val as 'internal_warehouse' | 'branch_stock')}
               options={LOCATION_TYPE_OPTIONS}
               disabled={createMutation.isPending || updateMutation.isPending}
-              placeholder="اختر نوع المخزن"
+              placeholder={t('inventory.locations_management_page.s19', "اختر نوع المخزن")}
             />
           </Field>
         </form>

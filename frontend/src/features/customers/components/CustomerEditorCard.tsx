@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useMemo } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -46,6 +47,7 @@ export function CustomerEditorCard({
   onDeleteCustomer,
   deleteLabel,
 }: CustomerEditorCardProps) {
+  const { t: __t } = useTranslation();
   const profile = useCustomerProfile();
   const settingsQuery = useSettingsQuery();
   const importModuleEnabled = settingsQuery.data?.importModuleEnabled === true;
@@ -198,7 +200,7 @@ export function CustomerEditorCard({
   };
 
   if (!customer) {
-    return <div className="muted">اختر عميلًا من الجدول لعرض نموذج التعديل.</div>;
+    return <div className="muted">{__t('customers.customer_editor_card.s0', "اختر عميلًا من الجدول لعرض نموذج التعديل.")}</div>;
   }
 
   return (
@@ -209,8 +211,8 @@ export function CustomerEditorCard({
     >
       <DraftStateNotice
         visible={form.formState.isDirty && !mutation.isPending}
-        title="تعديلات الحساب الحالية غير محفوظة"
-        hint="احفظ التغييرات أو أعد تعيين القيم قبل الانتقال إلى حساب آخر."
+        title={__t('customers.customer_editor_card.s1', "تعديلات الحساب الحالية غير محفوظة")}
+        hint={__t('customers.customer_editor_card.s2', "احفظ التغييرات أو أعد تعيين القيم قبل الانتقال إلى حساب آخر.")}
       />
 
       {/* SECTION 1: بيانات المحل الأساسية والاتصال */}
@@ -227,7 +229,7 @@ export function CustomerEditorCard({
           <span style={{ width: '3px', height: '14px', backgroundColor: '#170e5e', borderRadius: '2px', display: 'inline-block' }} />
           <UsersIcon size={15} color="#170e5e" />
           <h4 style={{ margin: 0, fontSize: '13px', fontWeight: 800, color: '#0f172a' }}>
-            بيانات المحل والاتصال
+            {__t('customers.customer_editor_card.s3', "بيانات المحل والاتصال")}
           </h4>
         </div>
 
@@ -296,14 +298,14 @@ export function CustomerEditorCard({
           <span style={{ width: '3px', height: '14px', backgroundColor: '#170e5e', borderRadius: '2px', display: 'inline-block' }} />
           <CreditCardIcon size={15} color="#170e5e" />
           <h4 style={{ margin: 0, fontSize: '13px', fontWeight: 800, color: '#0f172a' }}>
-            السياسة المالية وحدود الائتمان
+            {__t('customers.customer_editor_card.s4', "السياسة المالية وحدود الائتمان")}
           </h4>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
           <Field
             label={`${profile.balanceLabel} (${getGlobalCurrencySymbol()})`}
-            hint="الرصيد الدفتري الحالي"
+            hint={__t('customers.customer_editor_card.s5', "الرصيد الدفتري الحالي")}
             error={form.formState.errors.balance?.message}
           >
             <input
@@ -347,10 +349,10 @@ export function CustomerEditorCard({
           >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '6px' }}>
               <span style={{ fontSize: '11.5px', fontWeight: 800, color: '#9a3412' }}>
-                مديونية المحل لكل مندوب (نظام عزل الحسابات المستقلة):
+                {__t('customers.customer_editor_card.s6', "مديونية المحل لكل مندوب (نظام عزل الحسابات المستقلة):")}
               </span>
               <span style={{ fontSize: '11.5px', fontWeight: 800, color: '#dc2626' }}>
-                الإجمالي: {Number(customer.balance || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })} {getGlobalCurrencySymbol()}
+                {__t('customers.customer_editor_card.s7', "الإجمالي:")} {Number(customer.balance || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })} {getGlobalCurrencySymbol()}
               </span>
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
@@ -393,25 +395,25 @@ export function CustomerEditorCard({
           <span style={{ width: '3px', height: '14px', backgroundColor: '#170e5e', borderRadius: '2px', display: 'inline-block' }} />
           <MapPinIcon size={15} color="#170e5e" />
           <h4 style={{ margin: 0, fontSize: '13px', fontWeight: 800, color: '#0f172a' }}>
-            بيانات التوزيع الميداني وخط السير وتعيين المناديب
+            {__t('customers.customer_editor_card.s8', "بيانات التوزيع الميداني وخط السير وتعيين المناديب")}
           </h4>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '10px' }}>
-          <Field label="كود المحل / المنفذ الفريد" hint="رمز تعريفي في أجهزة المناديب">
+          <Field label={__t('customers.customer_editor_card.s9', "كود المحل / المنفذ الفريد")} hint={__t('customers.customer_editor_card.s10', "رمز تعريفي في أجهزة المناديب")}>
             <input
               {...form.register('metadata.customer_code')}
               disabled={mutation.isPending}
-              placeholder="مثال: C-1042 أو CUST-01"
+              placeholder={__t('customers.customer_editor_card.s11', "مثال: C-1042 أو CUST-01")}
               style={{ height: '36px', fontSize: '12.5px', fontFamily: 'monospace' }}
             />
           </Field>
 
-          <Field label="خط السير الرئيسي" hint="الخط الجغرافي التابع له المحل">
+          <Field label={__t('customers.customer_editor_card.s12', "خط السير الرئيسي")} hint={__t('customers.customer_editor_card.s13', "الخط الجغرافي التابع له المحل")}>
             <input
               {...form.register('metadata.route')}
               disabled={mutation.isPending}
-              placeholder="مثال: خط الضواحي، خط السوق"
+              placeholder={__t('customers.customer_editor_card.s14', "مثال: خط الضواحي، خط السوق")}
               list="customer-editor-known-routes"
               style={{ height: '36px', fontSize: '12.5px' }}
             />
@@ -427,11 +429,11 @@ export function CustomerEditorCard({
             </datalist>
           </Field>
 
-          <Field label="الحي / المربع السكني (District)" hint="لتجميع المحلات القريبة">
+          <Field label={__t('customers.customer_editor_card.s15', "الحي / المربع السكني (District)")} hint={__t('customers.customer_editor_card.s16', "لتجميع المحلات القريبة")}>
             <input
               {...form.register('metadata.district')}
               disabled={mutation.isPending}
-              placeholder="مثال: حي الزهور، شارع بورسعيد"
+              placeholder={__t('customers.customer_editor_card.s17', "مثال: حي الزهور، شارع بورسعيد")}
               list="customer-editor-known-districts"
               style={{ height: '36px', fontSize: '12.5px' }}
             />
@@ -447,7 +449,7 @@ export function CustomerEditorCard({
             </datalist>
           </Field>
 
-          <Field label="رابط الموقع (Google Maps)" hint="رابط موقع المحل على الخريطة">
+          <Field label={__t('customers.customer_editor_card.s18', "رابط الموقع (Google Maps)")} hint={__t('customers.customer_editor_card.s19', "رابط موقع المحل على الخريطة")}>
             <input
               {...form.register('metadata.location_url')}
               disabled={mutation.isPending}
@@ -474,12 +476,12 @@ export function CustomerEditorCard({
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               <UsersIcon size={14} color="#170e5e" />
               <label style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a', margin: 0 }}>
-                المناديب المسؤولون عن هذا المحل (تخصيص متعدد)
+                {__t('customers.customer_editor_card.s20', "المناديب المسؤولون عن هذا المحل (تخصيص متعدد)")}
               </label>
             </div>
             <span style={{ fontSize: '11px', color: '#64748b' }}>
               {selectedRepIds.length === 0
-                ? 'مشترك (يظهر لأي مندوب في الخط العام)'
+                ? __t('customers.customer_editor_card.s21', "مشترك (يظهر لأي مندوب في الخط العام)")
                 : `تم تخصيص ${selectedRepIds.length} مناديب لهذا المحل`}
             </span>
           </div>
@@ -487,7 +489,7 @@ export function CustomerEditorCard({
           {/* Rep selection pills */}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
             {allReps.length === 0 ? (
-              <span style={{ fontSize: '11.5px', color: '#94a3b8' }}>لا يوجد مناديب مسجلين بالنظام حالياً.</span>
+              <span style={{ fontSize: '11.5px', color: '#94a3b8' }}>{__t('customers.customer_editor_card.s22', "لا يوجد مناديب مسجلين بالنظام حالياً.")}</span>
             ) : (
               allReps.map((rep) => {
                 const isSelected = selectedRepIds.includes(rep.id);
@@ -547,10 +549,10 @@ export function CustomerEditorCard({
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <SlidersIcon size={13} color="#170e5e" />
                 <span style={{ fontSize: '11.5px', fontWeight: 700, color: '#170e5e' }}>
-                  تخصيص جدول زيارات مستقل لكل مندوب
+                  {__t('customers.customer_editor_card.s23', "تخصيص جدول زيارات مستقل لكل مندوب")}
                 </span>
                 <span style={{ fontSize: '10.5px', color: '#64748b' }}>
-                  (مثلاً: مندوب يزوره الأحد ومندوب آخر يزوره الخميس)
+                  {__t('customers.customer_editor_card.s24', "(مثلاً: مندوب يزوره الأحد ومندوب آخر يزوره الخميس)")}
                 </span>
               </div>
 
@@ -569,7 +571,7 @@ export function CustomerEditorCard({
                     cursor: 'pointer',
                   }}
                 >
-                  جدول موحد للجميع
+                  {__t('customers.customer_editor_card.s25', "جدول موحد للجميع")}
                 </button>
                 <button
                   type="button"
@@ -602,7 +604,7 @@ export function CustomerEditorCard({
                     cursor: 'pointer',
                   }}
                 >
-                  تخصيص أيام لكل مندوب
+                  {__t('customers.customer_editor_card.s26', "تخصيص أيام لكل مندوب")}
                 </button>
               </div>
             </div>
@@ -617,7 +619,7 @@ export function CustomerEditorCard({
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <CalendarIcon size={14} color="#170e5e" />
                 <span style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a' }}>
-                  أيام الزيارة الأسبوعية المحددة لكل مندوب:
+                  {__t('customers.customer_editor_card.s27', "أيام الزيارة الأسبوعية المحددة لكل مندوب:")}
                 </span>
               </div>
 
@@ -641,13 +643,13 @@ export function CustomerEditorCard({
                   >
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <span style={{ fontSize: '12px', fontWeight: 800, color: '#170e5e' }}>
-                        المندوب: {repObj?.name || `مندوب #${rId}`}
+                        {__t('customers.customer_editor_card.s28', "المندوب:")} {repObj?.name || `مندوب #${rId}`}
                         {repObj?.vehicle_plate ? ` (${repObj.vehicle_plate})` : ''}
                       </span>
                       <span style={{ fontSize: '11px', color: '#64748b' }}>
                         {assignedDays.length === 0
-                          ? 'متاح للمندوب يومياً طوال الأسبوع'
-                          : `محدد للمندوب في: ${assignedDays.join(' ، ')}`}
+                          ? __t('customers.customer_editor_card.s29', "متاح للمندوب يومياً طوال الأسبوع")
+                          : `محدد للمندوب في: ${assignedDays.join(__t('customers.customer_editor_card.s30', " ، "))}`}
                       </span>
                     </div>
 
@@ -665,8 +667,8 @@ export function CustomerEditorCard({
             /* GENERAL UNIFIED SCHEDULE */
             <div>
               <Field
-                label="أيام الزيارة الأسبوعية المجدولة للمحل"
-                hint="حدد الأيام التي يظهر فيها هذا المحل في خط سير المندوب"
+                label={__t('customers.customer_editor_card.s31', "أيام الزيارة الأسبوعية المجدولة للمحل")}
+                hint={__t('customers.customer_editor_card.s32', "حدد الأيام التي يظهر فيها هذا المحل في خط سير المندوب")}
               >
                 <Controller
                   name="metadata.visit_days"
@@ -702,10 +704,10 @@ export function CustomerEditorCard({
           }}
         >
           <legend style={{ padding: '0 8px', fontWeight: 800, color: '#170e5e', fontSize: '12.5px' }}>
-            إعدادات الاستيراد
+            {__t('customers.customer_editor_card.s33', "إعدادات الاستيراد")}
           </legend>
           <div>
-            <Field label="عملة الحساب">
+            <Field label={__t('customers.customer_editor_card.s34', "عملة الحساب")}>
               <Controller
                 name="metadata.currency"
                 control={form.control}
@@ -715,8 +717,8 @@ export function CustomerEditorCard({
                     onChange={field.onChange}
                     disabled={mutation.isPending}
                     options={[
-                      { value: 'EGP', label: 'جنيه مصري' },
-                      { value: 'USD', label: 'دولار أمريكي' },
+                      { value: 'EGP', label: __t('customers.customer_editor_card.s35', "جنيه مصري") },
+                      { value: 'USD', label: __t('customers.customer_editor_card.s36', "دولار أمريكي") },
                     ]}
                   />
                 )}
@@ -730,8 +732,8 @@ export function CustomerEditorCard({
         isError={mutation.isError}
         isSuccess={mutation.isSuccess}
         error={mutation.error}
-        errorFallback="تعذر تحديث البيانات"
-        successText="تم حفظ وتحديث بيانات المحل وخط السير بنجاح."
+        errorFallback={__t('customers.customer_editor_card.s37', "تعذر تحديث البيانات")}
+        successText={__t('customers.customer_editor_card.s38', "تم حفظ وتحديث بيانات المحل وخط السير بنجاح.")}
       />
 
       {/* FOOTER ACTIONS BAR */}
@@ -765,7 +767,7 @@ export function CustomerEditorCard({
               }}
             >
               <TrashIcon size={13} />
-              <span>{deleteLabel || 'حذف هذا العميل'}</span>
+              <span>{deleteLabel || __t('customers.customer_editor_card.s39', "حذف هذا العميل")}</span>
             </Button>
           )}
         </div>
@@ -779,14 +781,14 @@ export function CustomerEditorCard({
             disabled={mutation.isPending}
             style={{ minHeight: '36px', padding: '0 16px', fontSize: '12px', fontWeight: 700 }}
           >
-            إعادة القيم
+            {__t('customers.customer_editor_card.s40', "إعادة القيم")}
           </Button>
 
           <SubmitButton
             type="submit"
             isPending={mutation.isPending}
-            idleText="حفظ تعديلات المحل وخط السير"
-            pendingText="جارٍ الحفظ والتحديث..."
+            idleText={__t('customers.customer_editor_card.s41', "حفظ تعديلات المحل وخط السير")}
+            pendingText={__t('customers.customer_editor_card.s42', "جارٍ الحفظ والتحديث...")}
             style={{
               minHeight: '36px',
               padding: '0 24px',

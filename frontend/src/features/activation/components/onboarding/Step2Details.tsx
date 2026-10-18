@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Field } from '@/shared/ui/field';
 
 interface Step2Props {
@@ -8,34 +9,35 @@ interface Step2Props {
 }
 
 export function Step2Details({ form, updateField, onNext, onBack }: Step2Props) {
+  const { t } = useTranslation();
   return (
     <div className="wizard-step-content">
       <div className="wizard-header">
-        <h2>حساب المسؤول</h2>
-        <p>قم بإنشاء حساب المدير الأساسي للنظام.</p>
+        <h2>{t('activation.onboarding.step2_details.s0', "حساب المسؤول")}</h2>
+        <p>{t('activation.onboarding.step2_details.s1', "قم بإنشاء حساب المدير الأساسي للنظام.")}</p>
       </div>
 
       <div className="wizard-form-grid single-col">
-        <Field label="الاسم الكامل للمدير">
+        <Field label={t('activation.onboarding.step2_details.s2', "الاسم الكامل للمدير")}>
           <input 
             value={form.adminDisplayName} 
             onChange={(e) => updateField('adminDisplayName', e.target.value)} 
-            placeholder="مثال: محمد أحمد" 
+            placeholder={t('activation.onboarding.step2_details.s3', "مثال: محمد أحمد")} 
           />
         </Field>
       </div>
 
       <div className="wizard-form-grid">
-        <Field label="اسم المستخدم (Username)">
+        <Field label={t('activation.onboarding.step2_details.s4', "اسم المستخدم (Username)")}>
           <input 
             value={form.adminUsername} 
             onChange={(e) => updateField('adminUsername', e.target.value)} 
-            placeholder="مثال: admin" 
+            placeholder={t('activation.onboarding.step2_details.s5', "مثال: admin")} 
             dir="ltr"
             style={{ textAlign: 'left' }}
           />
         </Field>
-        <Field label="كلمة المرور (Password)">
+        <Field label={t('activation.onboarding.step2_details.s6', "كلمة المرور (Password)")}>
           <input 
             type="password"
             className="input secure-password-field"
@@ -56,7 +58,7 @@ export function Step2Details({ form, updateField, onNext, onBack }: Step2Props) 
       </div>
 
       <div className="wizard-footer">
-        <button className="btn-wizard-back" onClick={onBack}>&lt; رجوع</button>
+        <button className="btn-wizard-back" onClick={onBack}>{t('activation.onboarding.step2_details.s7', "< رجوع")}</button>
         <button 
           className="btn-wizard-next" 
           onClick={onNext} 
@@ -77,7 +79,7 @@ export function Step2Details({ form, updateField, onNext, onBack }: Step2Props) 
           }}
           disabled={!form.adminDisplayName || !form.adminUsername || !form.adminPassword || form.adminPassword.length < 6}
         >
-          متابعة &gt;
+          {t('activation.onboarding.step2_details.s8', "متابعة >")}
         </button>
       </div>
     </div>

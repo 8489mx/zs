@@ -25,8 +25,12 @@ export function getReturnDateValue(row: ReturnRecord) {
   return row.createdAt || row.date || '';
 }
 
-export function returnTypeLabel(row: ReturnRecord) {
-  return getReturnTypeValue(row) === 'purchase' ? 'مرتجع شراء' : 'مرتجع بيع';
+export function returnTypeLabel(row: ReturnRecord, t?: (key: string, def: string) => string) {
+  const isPurchase = getReturnTypeValue(row) === 'purchase';
+  if (t) {
+    return isPurchase ? t('returns.type.purchase', 'مرتجع شراء') : t('returns.type.sale', 'مرتجع بيع');
+  }
+  return isPurchase ? 'مرتجع شراء' : 'مرتجع بيع';
 }
 
 export function printReturnsRegister(rows: ReturnRecord[], meta?: { totalItems?: number; totalAmount?: number }) {

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { StorefrontInfo } from '../types/storefront.types';
 import { IconSearch, IconTruck, IconShieldCheck, IconCreditCard, IconCheckCircle } from './StorefrontIcons';
 import { resolveStorefrontBrand } from './StorefrontHeader';
@@ -18,6 +19,7 @@ export function StorefrontHero({
   onSearchChange,
   onQuickSearch,
 }: StorefrontHeroProps) {
+  const { t } = useTranslation();
   const brand = resolveStorefrontBrand(info);
   const quickTags = ['شاي', 'بن', 'أرز', 'زيت', 'أعشاب', 'عسل'];
 
@@ -70,7 +72,7 @@ export function StorefrontHero({
               }}
             >
               <IconCheckCircle size={14} color="#60a5fa" strokeWidth={2.2} />
-              <span>تسوق إلكتروني موثوق</span>
+              <span>{t('storefront.storefront_hero.s0', "تسوق إلكتروني موثوق")}</span>
             </span>
             <span
               style={{
@@ -83,7 +85,7 @@ export function StorefrontHero({
                 fontWeight: 600,
               }}
             >
-              {inStockCount} صنف جاهز للشحن الفوري
+              {inStockCount} {t('storefront.storefront_hero.s1', "صنف جاهز للشحن الفوري")}
             </span>
           </div>
 
@@ -144,7 +146,7 @@ export function StorefrontHero({
               maxWidth: '560px',
             }}
           >
-            {info.bio || 'تسوق تشكيلة واسعة من أجود المنتجات بأفضل الأسعار المباشرة مع خدمة التوصيل السريع لباب منزلك.'}
+            {info.bio || t('storefront.storefront_hero.s2', "تسوق تشكيلة واسعة من أجود المنتجات بأفضل الأسعار المباشرة مع خدمة التوصيل السريع لباب منزلك.")}
           </p>
 
           {/* Search Box */}
@@ -170,7 +172,7 @@ export function StorefrontHero({
                 type="text"
                 value={searchTerm}
                 onChange={(e) => onSearchChange(e.target.value)}
-                placeholder="ابحث عن أي صنف، كود، أو تصنيف..."
+                placeholder={t('storefront.storefront_hero.s3', "ابحث عن أي صنف، كود، أو تصنيف...")}
                 style={{
                   flex: 1,
                   border: 'none',
@@ -201,7 +203,7 @@ export function StorefrontHero({
                 }}
               >
                 <IconSearch size={16} strokeWidth={2.2} />
-                <span>بحث</span>
+                <span>{t('storefront.storefront_hero.s4', "بحث")}</span>
               </button>
             </div>
 
@@ -217,7 +219,7 @@ export function StorefrontHero({
               }}
             >
               <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.7)', fontWeight: 600 }}>
-                الأكثر بحثاً:
+                {t('storefront.storefront_hero.s5', "الأكثر بحثاً:")}
               </span>
               {quickTags.map((tag) => (
                 <button
@@ -260,15 +262,15 @@ export function StorefrontHero({
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'rgba(255,255,255,0.9)', fontSize: '12.5px', fontWeight: 600 }}>
               <IconTruck size={17} strokeWidth={1.8} color="#93c5fd" />
-              <span>توصيل سريع لكافة المناطق</span>
+              <span>{t('storefront.storefront_hero.s6', "توصيل سريع لكافة المناطق")}</span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'rgba(255,255,255,0.9)', fontSize: '12.5px', fontWeight: 600 }}>
               <IconCreditCard size={17} strokeWidth={1.8} color="#93c5fd" />
-              <span>الدفع الآمن عند الاستلام</span>
+              <span>{t('storefront.storefront_hero.s7', "الدفع الآمن عند الاستلام")}</span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'rgba(255,255,255,0.9)', fontSize: '12.5px', fontWeight: 600 }}>
               <IconShieldCheck size={17} strokeWidth={1.8} color="#93c5fd" />
-              <span>منتجات أصلية ومضمونة 100%</span>
+              <span>{t('storefront.storefront_hero.s8', "منتجات أصلية ومضمونة 100%")}</span>
             </div>
           </div>
         </div>

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { PageHeader } from '@/shared/components/page-header';
@@ -24,6 +25,7 @@ import { ReopenFiscalYearModal } from '../components/fiscal-years/ReopenFiscalYe
 import { FiscalPeriodsModal } from '../components/fiscal-years/FiscalPeriodsModal';
 
 export function AccountingFiscalYearsPage() {
+  const { t } = useTranslation();
   useAppToolbar([
     { label: 'المالية والمحاسبة', to: '/accounting/accounts' },
     { label: 'إقفال السنوات المالية' },
@@ -83,8 +85,8 @@ export function AccountingFiscalYearsPage() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', width: '100%', boxSizing: 'border-box' }}>
       {/* Header */}
       <PageHeader
-        title="إقفال السنوات المالية وترحيل الأرباح"
-        description="إدارة الفترات والدورات المحاسبية السنوية، التدقيق المالي الآلي، تصفير حسابات النتيجة، وترحيل الأرباح المحتجزة مع تأمين وتجميد الفترات السابقة"
+        title={t('accounting.accounting_fiscal_years_page.s0', "إقفال السنوات المالية وترحيل الأرباح")}
+        description={t('accounting.accounting_fiscal_years_page.s1', "إدارة الفترات والدورات المحاسبية السنوية، التدقيق المالي الآلي، تصفير حسابات النتيجة، وترحيل الأرباح المحتجزة مع تأمين وتجميد الفترات السابقة")}
         actions={
           <div style={{ display: 'flex', gap: '8px' }}>
             <Button
@@ -94,7 +96,7 @@ export function AccountingFiscalYearsPage() {
               style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
             >
               <RefreshCwIcon size={16} />
-              <span>تحديث</span>
+              <span>{t('accounting.accounting_fiscal_years_page.s2', "تحديث")}</span>
             </Button>
             <Button
               type="button"
@@ -109,7 +111,7 @@ export function AccountingFiscalYearsPage() {
               }}
             >
               <PlusIcon size={16} />
-              <span>إضافة سنة مالية</span>
+              <span>{t('accounting.accounting_fiscal_years_page.s3', "إضافة سنة مالية")}</span>
             </Button>
           </div>
         }
@@ -148,7 +150,7 @@ export function AccountingFiscalYearsPage() {
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-            <span style={{ fontSize: '13px', fontWeight: 600, color: '#64748b' }}>إجمالي السنوات المسجلة</span>
+            <span style={{ fontSize: '13px', fontWeight: 600, color: '#64748b' }}>{t('accounting.accounting_fiscal_years_page.s4', "إجمالي السنوات المسجلة")}</span>
             <div
               style={{
                 width: '36px',
@@ -164,7 +166,7 @@ export function AccountingFiscalYearsPage() {
             </div>
           </div>
           <div style={{ fontSize: '24px', fontWeight: 800, color: '#0f172a' }}>{stats.totalYears}</div>
-          <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '4px' }}>دورات محاسبية موثقة في النظام</div>
+          <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '4px' }}>{t('accounting.accounting_fiscal_years_page.s5', "دورات محاسبية موثقة في النظام")}</div>
         </div>
 
         <div
@@ -177,7 +179,7 @@ export function AccountingFiscalYearsPage() {
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-            <span style={{ fontSize: '13px', fontWeight: 600, color: '#64748b' }}>السنوات المالية المفتوحة</span>
+            <span style={{ fontSize: '13px', fontWeight: 600, color: '#64748b' }}>{t('accounting.accounting_fiscal_years_page.s6', "السنوات المالية المفتوحة")}</span>
             <div
               style={{
                 width: '36px',
@@ -193,7 +195,7 @@ export function AccountingFiscalYearsPage() {
             </div>
           </div>
           <div style={{ fontSize: '24px', fontWeight: 800, color: '#16a34a' }}>{stats.openYears}</div>
-          <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '4px' }}>تستقبل القيود والحركات اليومية</div>
+          <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '4px' }}>{t('accounting.accounting_fiscal_years_page.s7', "تستقبل القيود والحركات اليومية")}</div>
         </div>
 
         <div
@@ -206,7 +208,7 @@ export function AccountingFiscalYearsPage() {
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-            <span style={{ fontSize: '13px', fontWeight: 600, color: '#64748b' }}>السنوات المقفلة والمرحلة</span>
+            <span style={{ fontSize: '13px', fontWeight: 600, color: '#64748b' }}>{t('accounting.accounting_fiscal_years_page.s8', "السنوات المقفلة والمرحلة")}</span>
             <div
               style={{
                 width: '36px',
@@ -222,7 +224,7 @@ export function AccountingFiscalYearsPage() {
             </div>
           </div>
           <div style={{ fontSize: '24px', fontWeight: 800, color: '#1d4ed8' }}>{stats.closedYears}</div>
-          <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '4px' }}>مرحلة للأرباح المحتجزة ومؤمنة</div>
+          <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '4px' }}>{t('accounting.accounting_fiscal_years_page.s9', "مرحلة للأرباح المحتجزة ومؤمنة")}</div>
         </div>
 
         <div
@@ -235,7 +237,7 @@ export function AccountingFiscalYearsPage() {
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-            <span style={{ fontSize: '13px', fontWeight: 600, color: '#64748b' }}>السنة المالية النشطة حالياً</span>
+            <span style={{ fontSize: '13px', fontWeight: 600, color: '#64748b' }}>{t('accounting.accounting_fiscal_years_page.s10', "السنة المالية النشطة حالياً")}</span>
             <div
               style={{
                 width: '36px',
@@ -251,10 +253,10 @@ export function AccountingFiscalYearsPage() {
             </div>
           </div>
           <div style={{ fontSize: '16px', fontWeight: 800, color: '#0f172a' }}>
-            {years.find((y) => y.id === stats.currentYearId)?.name || 'غير محددة'}
+            {years.find((y) => y.id === stats.currentYearId)?.name || t('accounting.accounting_fiscal_years_page.s11', "غير محددة")}
           </div>
           <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '4px' }}>
-            {stats.currentYearId ? 'فترة التاريخ الحالي تطابق هذه السنة' : 'يرجى تسجيل السنة المالية الحالية'}
+            {stats.currentYearId ? t('accounting.accounting_fiscal_years_page.s12', "فترة التاريخ الحالي تطابق هذه السنة") : t('accounting.accounting_fiscal_years_page.s13', "يرجى تسجيل السنة المالية الحالية")}
           </div>
         </div>
       </div>
@@ -288,7 +290,7 @@ export function AccountingFiscalYearsPage() {
               color: statusFilter === 'all' ? '#ffffff' : '#475569',
             }}
           >
-            الكل ({years.length})
+            {t('accounting.accounting_fiscal_years_page.s14', "الكل (")}{years.length})
           </button>
           <button
             type="button"
@@ -304,7 +306,7 @@ export function AccountingFiscalYearsPage() {
               color: statusFilter === 'open' ? '#15803d' : '#475569',
             }}
           >
-            السنوات المفتوحة ({stats.openYears})
+            {t('accounting.accounting_fiscal_years_page.s15', "السنوات المفتوحة (")}{stats.openYears})
           </button>
           <button
             type="button"
@@ -320,7 +322,7 @@ export function AccountingFiscalYearsPage() {
               color: statusFilter === 'closed' ? '#1e40af' : '#475569',
             }}
           >
-            السنوات المقفلة ({stats.closedYears})
+            {t('accounting.accounting_fiscal_years_page.s16', "السنوات المقفلة (")}{stats.closedYears})
           </button>
         </div>
 
@@ -329,7 +331,7 @@ export function AccountingFiscalYearsPage() {
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="بحث بالاسم أو الكود..."
+            placeholder={t('accounting.accounting_fiscal_years_page.s17', "بحث بالاسم أو الكود...")}
             style={{
               width: '100%',
               padding: '8px 12px 8px 36px',
@@ -371,23 +373,23 @@ export function AccountingFiscalYearsPage() {
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', textAlign: 'right' }}>
           <thead>
             <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-              <th style={{ padding: '12px 16px', color: '#475569', fontWeight: 700 }}>السنة المالية</th>
-              <th style={{ padding: '12px 16px', color: '#475569', fontWeight: 700 }}>الكود</th>
-              <th style={{ padding: '12px 16px', color: '#475569', fontWeight: 700 }}>تاريخ البداية</th>
-              <th style={{ padding: '12px 16px', color: '#475569', fontWeight: 700 }}>تاريخ النهاية</th>
-              <th style={{ padding: '12px 16px', color: '#475569', fontWeight: 700 }}>الحالة</th>
-              <th style={{ padding: '12px 16px', color: '#475569', fontWeight: 700, textAlign: 'left' }}>إجمالي الإيرادات</th>
-              <th style={{ padding: '12px 16px', color: '#475569', fontWeight: 700, textAlign: 'left' }}>إجمالي المصروفات</th>
-              <th style={{ padding: '12px 16px', color: '#475569', fontWeight: 700, textAlign: 'left' }}>صافي النتيجة (أرباح/خسائر)</th>
-              <th style={{ padding: '12px 16px', color: '#475569', fontWeight: 700 }}>قيد الإقفال</th>
-              <th style={{ padding: '12px 16px', color: '#475569', fontWeight: 700, textAlign: 'center' }}>الإجراءات</th>
+              <th style={{ padding: '12px 16px', color: '#475569', fontWeight: 700 }}>{t('accounting.accounting_fiscal_years_page.s18', "السنة المالية")}</th>
+              <th style={{ padding: '12px 16px', color: '#475569', fontWeight: 700 }}>{t('accounting.accounting_fiscal_years_page.s19', "الكود")}</th>
+              <th style={{ padding: '12px 16px', color: '#475569', fontWeight: 700 }}>{t('accounting.accounting_fiscal_years_page.s20', "تاريخ البداية")}</th>
+              <th style={{ padding: '12px 16px', color: '#475569', fontWeight: 700 }}>{t('accounting.accounting_fiscal_years_page.s21', "تاريخ النهاية")}</th>
+              <th style={{ padding: '12px 16px', color: '#475569', fontWeight: 700 }}>{t('accounting.accounting_fiscal_years_page.s22', "الحالة")}</th>
+              <th style={{ padding: '12px 16px', color: '#475569', fontWeight: 700, textAlign: 'left' }}>{t('accounting.accounting_fiscal_years_page.s23', "إجمالي الإيرادات")}</th>
+              <th style={{ padding: '12px 16px', color: '#475569', fontWeight: 700, textAlign: 'left' }}>{t('accounting.accounting_fiscal_years_page.s24', "إجمالي المصروفات")}</th>
+              <th style={{ padding: '12px 16px', color: '#475569', fontWeight: 700, textAlign: 'left' }}>{t('accounting.accounting_fiscal_years_page.s25', "صافي النتيجة (أرباح/خسائر)")}</th>
+              <th style={{ padding: '12px 16px', color: '#475569', fontWeight: 700 }}>{t('accounting.accounting_fiscal_years_page.s26', "قيد الإقفال")}</th>
+              <th style={{ padding: '12px 16px', color: '#475569', fontWeight: 700, textAlign: 'center' }}>{t('accounting.accounting_fiscal_years_page.s27', "الإجراءات")}</th>
             </tr>
           </thead>
           <tbody>
             {isLoading ? (
               <tr>
                 <td colSpan={10} style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
-                  جاري تحميل بيانات السنوات المالية...
+                  {t('accounting.accounting_fiscal_years_page.s28', "جاري تحميل بيانات السنوات المالية...")}
                 </td>
               </tr>
             ) : filteredYears.length === 0 ? (
@@ -396,10 +398,10 @@ export function AccountingFiscalYearsPage() {
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
                     <CalendarIcon size={36} color="#94a3b8" />
                     <div style={{ fontSize: '15px', fontWeight: 700, color: '#334155' }}>
-                      لا توجد سنوات مالية مسجلة مطابقة للمحددات
+                      {t('accounting.accounting_fiscal_years_page.s29', "لا توجد سنوات مالية مسجلة مطابقة للمحددات")}
                     </div>
                     <div style={{ fontSize: '13px', color: '#94a3b8' }}>
-                      اضغط على زر «إضافة سنة مالية» لتهيئة السنة المالية الحالية وبدء العمل المحاسبي.
+                      {t('accounting.accounting_fiscal_years_page.s30', "اضغط على زر «إضافة سنة مالية» لتهيئة السنة المالية الحالية وبدء العمل المحاسبي.")}
                     </div>
                   </div>
                 </td>
@@ -431,7 +433,7 @@ export function AccountingFiscalYearsPage() {
                               color: '#3730a3',
                             }}
                           >
-                            الحالية
+                            {t('accounting.accounting_fiscal_years_page.s31', "الحالية")}
                           </span>
                         )}
                       </div>
@@ -462,7 +464,7 @@ export function AccountingFiscalYearsPage() {
                           }}
                         >
                           <LockIcon size={12} />
-                          <span>مقفلة ومرحلة</span>
+                          <span>{t('accounting.accounting_fiscal_years_page.s32', "مقفلة ومرحلة")}</span>
                         </span>
                       ) : (
                         <span
@@ -480,7 +482,7 @@ export function AccountingFiscalYearsPage() {
                           }}
                         >
                           <CheckCircleIcon size={12} />
-                          <span>مفتوحة نشطة</span>
+                          <span>{t('accounting.accounting_fiscal_years_page.s33', "مفتوحة نشطة")}</span>
                         </span>
                       )}
                     </td>
@@ -501,7 +503,7 @@ export function AccountingFiscalYearsPage() {
                           {formatCurrency(fy.net_profit_loss)}
                         </span>
                       ) : (
-                        <span style={{ color: '#94a3b8' }}>تحسب عند الإقفال</span>
+                        <span style={{ color: '#94a3b8' }}>{t('accounting.accounting_fiscal_years_page.s34', "تحسب عند الإقفال")}</span>
                       )}
                     </td>
                     <td style={{ padding: '12px 16px' }}>
@@ -539,10 +541,10 @@ export function AccountingFiscalYearsPage() {
                             borderColor: '#cbd5e1',
                             color: '#1e293b',
                           }}
-                          title="إدارة وإقفال الفترات المحاسبية الشهرية"
+                          title={t('accounting.accounting_fiscal_years_page.s35', "إدارة وإقفال الفترات المحاسبية الشهرية")}
                         >
                           <CalendarIcon size={14} />
-                          <span>الفترات الشهرية</span>
+                          <span>{t('accounting.accounting_fiscal_years_page.s36', "الفترات الشهرية")}</span>
                         </Button>
                         {!isClosed ? (
                           <>
@@ -561,7 +563,7 @@ export function AccountingFiscalYearsPage() {
                               }}
                             >
                               <ScaleIcon size={14} />
-                              <span>إقفال السنة المالية</span>
+                              <span>{t('accounting.accounting_fiscal_years_page.s37', "إقفال السنة المالية")}</span>
                             </Button>
                             <Button
                               type="button"
@@ -572,7 +574,7 @@ export function AccountingFiscalYearsPage() {
                                 padding: '6px 10px',
                                 fontSize: '12px',
                               }}
-                              title="حذف السنة المالية"
+                              title={t('accounting.accounting_fiscal_years_page.s38', "حذف السنة المالية")}
                             >
                               <TrashIcon size={14} />
                             </Button>
@@ -594,7 +596,7 @@ export function AccountingFiscalYearsPage() {
                             }}
                           >
                             <RefreshCwIcon size={14} />
-                            <span>إعادة فتح</span>
+                            <span>{t('accounting.accounting_fiscal_years_page.s39', "إعادة فتح")}</span>
                           </Button>
                         )}
                       </div>
@@ -611,8 +613,8 @@ export function AccountingFiscalYearsPage() {
       <StandardDialog
         open={!!yearToDelete}
         onClose={() => setYearToDelete(null)}
-        title="تأكيد حذف السنة المالية"
-        subtitle="حذف النطاق الزمني للسنة المالية دون المساس بالقيود"
+        title={t('accounting.accounting_fiscal_years_page.s40', "تأكيد حذف السنة المالية")}
+        subtitle={t('accounting.accounting_fiscal_years_page.s41', "حذف النطاق الزمني للسنة المالية دون المساس بالقيود")}
         width="440px"
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '14px' }}>
@@ -632,7 +634,7 @@ export function AccountingFiscalYearsPage() {
             <AlertCircleIcon size={22} color="#dc2626" />
           </div>
           <p style={{ fontSize: '13px', color: '#475569', lineHeight: 1.6, margin: 0 }}>
-            هل أنت متأكد من حذف السنة المالية «{yearToDelete?.name}»؟ لن يتم حذف أي قيود أو حركات يومية، ولكن سيتم حذف النطاق الزمني للسنة المالية.
+            {t('accounting.accounting_fiscal_years_page.s42', "هل أنت متأكد من حذف السنة المالية «")}{yearToDelete?.name}{t('accounting.accounting_fiscal_years_page.s43', "»؟ لن يتم حذف أي قيود أو حركات يومية، ولكن سيتم حذف النطاق الزمني للسنة المالية.")}
           </p>
         </div>
 
@@ -643,7 +645,7 @@ export function AccountingFiscalYearsPage() {
             onClick={() => setYearToDelete(null)}
             disabled={deleteMutation.isPending}
           >
-            إلغاء
+            {t('accounting.accounting_fiscal_years_page.s44', "إلغاء")}
           </Button>
           <Button
             type="button"
@@ -652,7 +654,7 @@ export function AccountingFiscalYearsPage() {
             disabled={deleteMutation.isPending}
             style={{ backgroundColor: '#dc2626', color: '#ffffff' }}
           >
-            {deleteMutation.isPending ? 'جاري الحذف...' : 'تأكيد الحذف'}
+            {deleteMutation.isPending ? t('accounting.accounting_fiscal_years_page.s45', "جاري الحذف...") : t('accounting.accounting_fiscal_years_page.s46', "تأكيد الحذف")}
           </Button>
         </StandardDialogFooter>
       </StandardDialog>
@@ -661,21 +663,21 @@ export function AccountingFiscalYearsPage() {
       <CreateFiscalYearModal
         open={showCreateModal}
         onClose={() => setShowCreateModal(false)}
-        onCreated={() => showNotice('تمت إضافة السنة المالية بنجاح.')}
+        onCreated={() => showNotice(t('accounting.accounting_fiscal_years_page.s47', "تمت إضافة السنة المالية بنجاح."))}
       />
 
       <FiscalYearCloseWizardModal
         open={!!selectedYearForClose}
         onClose={() => setSelectedYearForClose(null)}
         fiscalYear={selectedYearForClose}
-        onClosed={() => showNotice('تم إقفال السنة المالية وترحيل الأرباح وتأمين الفترة بنجاح.')}
+        onClosed={() => showNotice(t('accounting.accounting_fiscal_years_page.s48', "تم إقفال السنة المالية وترحيل الأرباح وتأمين الفترة بنجاح."))}
       />
 
       <ReopenFiscalYearModal
         open={!!selectedYearForReopen}
         onClose={() => setSelectedYearForReopen(null)}
         fiscalYear={selectedYearForReopen}
-        onReopened={() => showNotice('تمت إعادة فتح السنة المالية وإلغاء قيد الإقفال بنجاح.')}
+        onReopened={() => showNotice(t('accounting.accounting_fiscal_years_page.s49', "تمت إعادة فتح السنة المالية وإلغاء قيد الإقفال بنجاح."))}
       />
 
       {selectedYearForPeriods && (

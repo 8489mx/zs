@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { bostaApi } from '../api/bosta.api';
@@ -6,6 +7,7 @@ import { Button } from '@/shared/ui/button';
 import { PackageIcon } from '@/shared/components/icons/AppIcons';
 
 export function BostaSettingsCard() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [formData, setFormData] = useState<BostaSettings>({
     enabled: false,
@@ -45,7 +47,7 @@ export function BostaSettingsCard() {
   if (isLoading) {
     return (
       <div style={{ background: '#ffffff', borderRadius: '16px', padding: '24px', border: '1px solid #e2e8f0', color: '#94a3b8', textAlign: 'center' }}>
-        جاري تحميل إعدادات الربط مع بوسطة...
+        {t('storefront.bosta_settings_card.s0', "جاري تحميل إعدادات الربط مع بوسطة...")}
       </div>
     );
   }
@@ -82,10 +84,10 @@ export function BostaSettingsCard() {
           </div>
           <div>
             <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#0f172a' }}>
-              الربط مع شركة الشحن بوسطة (Bosta Couriers API)
+              {t('storefront.bosta_settings_card.s1', "الربط مع شركة الشحن بوسطة (Bosta Couriers API)")}
             </h3>
             <p style={{ margin: '3px 0 0', fontSize: '0.82rem', color: '#64748b' }}>
-              إنشاء بوالص الشحن بضغطة زر، تتبع الشحنات حياً، وطباعة ملصقات الطرود الحرارية (AWB).
+              {t('storefront.bosta_settings_card.s2', "إنشاء بوالص الشحن بضغطة زر، تتبع الشحنات حياً، وطباعة ملصقات الطرود الحرارية (AWB).")}
             </p>
           </div>
         </div>
@@ -93,7 +95,7 @@ export function BostaSettingsCard() {
         {/* Enable Switch */}
         <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
           <span style={{ fontSize: '0.84rem', fontWeight: 600, color: formData.enabled ? '#059669' : '#64748b' }}>
-            {formData.enabled ? 'مفعل' : 'معطل'}
+            {formData.enabled ? t('storefront.bosta_settings_card.s3', "مفعل") : t('storefront.bosta_settings_card.s4', "معطل")}
           </span>
           <input
             type="checkbox"
@@ -109,7 +111,7 @@ export function BostaSettingsCard() {
         {/* Environment */}
         <div>
           <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
-            بيئة العمل (Environment)
+            {t('storefront.bosta_settings_card.s5', "بيئة العمل (Environment)")}
           </label>
           <select
             value={formData.environment}
@@ -123,21 +125,21 @@ export function BostaSettingsCard() {
               background: '#ffffff',
             }}
           >
-            <option value="sandbox">وضع تجريبي (Sandbox Test Mode)</option>
-            <option value="production">بيئة الإنتاج الحية (Production Live)</option>
+            <option value="sandbox">{t('storefront.bosta_settings_card.s6', "وضع تجريبي (Sandbox Test Mode)")}</option>
+            <option value="production">{t('storefront.bosta_settings_card.s7', "بيئة الإنتاج الحية (Production Live)")}</option>
           </select>
         </div>
 
         {/* API Key */}
         <div>
           <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
-            مفتاح الربط (Bosta API Key)
+            {t('storefront.bosta_settings_card.s8', "مفتاح الربط (Bosta API Key)")}
           </label>
           <input
             type="password"
             value={formData.apiKey}
             onChange={(e) => setFormData({ ...formData, apiKey: e.target.value })}
-            placeholder="أدخل مفتاح الـ API من لوحة بوسطة..."
+            placeholder={t('storefront.bosta_settings_card.s9', "أدخل مفتاح الـ API من لوحة بوسطة...")}
             style={{
               width: '100%',
               padding: '9px 12px',
@@ -151,13 +153,13 @@ export function BostaSettingsCard() {
         {/* Pickup Business Name */}
         <div>
           <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
-            اسم المنشأة للاستلام (Pickup Sender Name)
+            {t('storefront.bosta_settings_card.s10', "اسم المنشأة للاستلام (Pickup Sender Name)")}
           </label>
           <input
             type="text"
             value={formData.pickupBusinessName || ''}
             onChange={(e) => setFormData({ ...formData, pickupBusinessName: e.target.value })}
-            placeholder="اسم المتجر أو الفرع..."
+            placeholder={t('storefront.bosta_settings_card.s11', "اسم المتجر أو الفرع...")}
             style={{
               width: '100%',
               padding: '9px 12px',
@@ -171,7 +173,7 @@ export function BostaSettingsCard() {
         {/* Pickup Phone */}
         <div>
           <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
-            هاتف مسؤول تسليم الطرود
+            {t('storefront.bosta_settings_card.s12', "هاتف مسؤول تسليم الطرود")}
           </label>
           <input
             type="text"
@@ -191,13 +193,13 @@ export function BostaSettingsCard() {
         {/* Pickup City */}
         <div>
           <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
-            مدينة الاستلام الرئيسية
+            {t('storefront.bosta_settings_card.s13', "مدينة الاستلام الرئيسية")}
           </label>
           <input
             type="text"
             value={formData.pickupCity || ''}
             onChange={(e) => setFormData({ ...formData, pickupCity: e.target.value })}
-            placeholder="مثال: القاهرة، الجيزة، الإسكندرية..."
+            placeholder={t('storefront.bosta_settings_card.s14', "مثال: القاهرة، الجيزة، الإسكندرية...")}
             style={{
               width: '100%',
               padding: '9px 12px',
@@ -211,13 +213,13 @@ export function BostaSettingsCard() {
         {/* Pickup Address */}
         <div>
           <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
-            عنوان المخزن أو الفرع بالتفصيل
+            {t('storefront.bosta_settings_card.s15', "عنوان المخزن أو الفرع بالتفصيل")}
           </label>
           <input
             type="text"
             value={formData.pickupAddress || ''}
             onChange={(e) => setFormData({ ...formData, pickupAddress: e.target.value })}
-            placeholder="عنوان الفرع أو المخزن لاستلام مندوب بوسطة للشحنات..."
+            placeholder={t('storefront.bosta_settings_card.s16', "عنوان الفرع أو المخزن لاستلام مندوب بوسطة للشحنات...")}
             style={{
               width: '100%',
               padding: '9px 12px',
@@ -231,7 +233,7 @@ export function BostaSettingsCard() {
 
       {savedSuccess && (
         <div style={{ background: '#ecfdf5', color: '#047857', padding: '10px 14px', borderRadius: '8px', fontSize: '0.85rem', fontWeight: 600 }}>
-          تم حفظ وتحديث إعدادات بوسطة بنجاح!
+          {t('storefront.bosta_settings_card.s17', "تم حفظ وتحديث إعدادات بوسطة بنجاح!")}
         </div>
       )}
 
@@ -243,7 +245,7 @@ export function BostaSettingsCard() {
           rel="noreferrer"
           style={{ fontSize: '0.82rem', color: '#2563eb', textDecoration: 'none', fontWeight: 600 }}
         >
-          ↗ فتح لوحة تحكم بوسطة الرسمية (Bosta Dashboard)
+          {t('storefront.bosta_settings_card.s18', "↗ فتح لوحة تحكم بوسطة الرسمية (Bosta Dashboard)")}
         </a>
 
         <Button
@@ -257,7 +259,7 @@ export function BostaSettingsCard() {
             borderRadius: '8px',
           }}
         >
-          {saveMutation.isPending ? 'جاري الحفظ...' : 'حفظ إعدادات بوسطة'}
+          {saveMutation.isPending ? t('storefront.bosta_settings_card.s19', "جاري الحفظ...") : t('storefront.bosta_settings_card.s20', "حفظ إعدادات بوسطة")}
         </Button>
       </div>
     </div>

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
 import type { ContractingPhaseKey } from './ProjectLifecycleStepper';
@@ -147,6 +148,7 @@ const PHASE_GUIDES: Record<ContractingPhaseKey, PhaseGuideContent> = {
 };
 
 export function SmartNextActionGuide({ phase, activeProject, actions }: SmartNextActionGuideProps) {
+  const { t } = useTranslation();
   const guide = PHASE_GUIDES[phase] || PHASE_GUIDES.projects;
 
   return (
@@ -187,7 +189,7 @@ export function SmartNextActionGuide({ phase, activeProject, actions }: SmartNex
 
         {activeProject && (
           <span style={{ fontSize: 'var(--font-micro)', fontWeight: 600, color: '#64748b' }}>
-            مشروع: {activeProject.name}
+            {t('contracting.smart_next_action_guide.s0', "مشروع:")} {activeProject.name}
           </span>
         )}
       </div>
@@ -222,7 +224,7 @@ export function SmartNextActionGuide({ phase, activeProject, actions }: SmartNex
             whiteSpace: 'nowrap',
           }}
         >
-          الإجراءات المباشرة:
+          {t('contracting.smart_next_action_guide.s1', "الإجراءات المباشرة:")}
         </span>
         {guide.quickActionButtons.map((btn, idx) => {
           const handler = actions[btn.actionKey];

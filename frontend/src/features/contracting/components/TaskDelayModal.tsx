@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useMemo } from 'react';
 import { StandardDialog } from '@/shared/components/StandardDialog';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
@@ -53,6 +54,7 @@ export function TaskDelayModal({
   onClose,
   onSuccess,
 }: TaskDelayModalProps) {
+  const { t: __t } = useTranslation();
   const [delayDays, setDelayDays] = useState<number>(3);
   const [shiftMode, setShiftMode] = useState<ShiftMode>('all_subsequent');
   const [delayReason, setDelayReason] = useState<string>(DELAY_REASONS[0].value);
@@ -247,16 +249,16 @@ export function TaskDelayModal({
     <StandardDialog
       open={open}
       onClose={onClose}
-      title="إثبات تأخير وترحيل مواعيد النشاط والجدول الزمني"
+      title={__t('contracting.task_delay_modal.s0', "إثبات تأخير وترحيل مواعيد النشاط والجدول الزمني")}
       subtitle={`النشاط: ${getTaskName(task)} (${getTaskCode(task)}) | WBS: ${getTaskWbs(task)} | المدة الحالية: ${getTaskDuration(task)} يوم`}
       maxWidth="860px"
       footer={
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
           <div style={{ fontSize: 'var(--font-micro)', color: '#64748b' }}>
-            سيتم تحديث وتعديل مواعيد <strong>{affectedCount} نشاط</strong> بالجدول الزمني.
+            {__t('contracting.task_delay_modal.s1', "سيتم تحديث وتعديل مواعيد")} <strong>{affectedCount} {__t('contracting.task_delay_modal.s2', "نشاط")}</strong> {__t('contracting.task_delay_modal.s3', "بالجدول الزمني.")}
             {saving && progressCount > 0 && (
               <span style={{ marginInlineStart: '8px', color: '#170e5e', fontWeight: 700 }}>
-                (تم تحديث {progressCount} من {affectedCount - 1})
+                {__t('contracting.task_delay_modal.s4', "(تم تحديث")} {progressCount} {__t('contracting.task_delay_modal.s5', "من")} {affectedCount - 1})
               </span>
             )}
           </div>
@@ -275,7 +277,7 @@ export function TaskDelayModal({
                 cursor: 'pointer',
               }}
             >
-              إلغاء
+              {__t('contracting.task_delay_modal.s6', "إلغاء")}
             </button>
             <button
               type="button"
@@ -296,7 +298,7 @@ export function TaskDelayModal({
               }}
             >
               <AppIcons.Clock size={16} />
-              <span>{saving ? 'جارٍ ترحيل وحفظ المواعيد...' : 'تثبيت واعتماد الترحيل الزمني'}</span>
+              <span>{saving ? __t('contracting.task_delay_modal.s7', "جارٍ ترحيل وحفظ المواعيد...") : __t('contracting.task_delay_modal.s8', "تثبيت واعتماد الترحيل الزمني")}</span>
             </button>
           </div>
         </div>
@@ -315,7 +317,7 @@ export function TaskDelayModal({
             {/* Days Input */}
             <div>
               <label style={{ display: 'block', fontSize: 'var(--font-micro)', fontWeight: 700, color: '#1e293b', marginBottom: '6px' }}>
-                عدد أيام التأخير الإضافية *
+                {__t('contracting.task_delay_modal.s9', "عدد أيام التأخير الإضافية *")}
               </label>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <input
@@ -337,7 +339,7 @@ export function TaskDelayModal({
                   }}
                 />
                 <span style={{ fontSize: 'var(--font-body)', fontWeight: 600, color: '#475569', whiteSpace: 'nowrap' }}>
-                  يوم
+                  {__t('contracting.task_delay_modal.s10', "يوم")}
                 </span>
               </div>
 
@@ -369,20 +371,20 @@ export function TaskDelayModal({
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               <div>
                 <label style={{ display: 'block', fontSize: 'var(--font-micro)', fontWeight: 700, color: '#1e293b', marginBottom: '6px' }}>
-                  سبب واقعة التأخير (مرجع تعاقدي للتوثيق)
+                  {__t('contracting.task_delay_modal.s11', "سبب واقعة التأخير (مرجع تعاقدي للتوثيق)")}
                 </label>
                 <CustomSelect
                   options={DELAY_REASONS}
                   value={delayReason}
                   onChange={(val) => setDelayReason(val)}
-                  placeholder="اختر سبب واقعة التأخير..."
+                  placeholder={__t('contracting.task_delay_modal.s12', "اختر سبب واقعة التأخير...")}
                 />
               </div>
 
               <div>
                 <input
                   type="text"
-                  placeholder="ملاحظات تفصيلية أو رقم خطاب المالك / الاستشاري (اختياري)..."
+                  placeholder={__t('contracting.task_delay_modal.s13', "ملاحظات تفصيلية أو رقم خطاب المالك / الاستشاري (اختياري)...")}
                   value={customReason}
                   onChange={(e) => setCustomReason(e.target.value)}
                   style={{
@@ -402,7 +404,7 @@ export function TaskDelayModal({
         {/* Section 2: The 3 Shifting Options (The Contractor Request) */}
         <div>
           <label style={{ display: 'block', fontSize: 'var(--font-body)', fontWeight: 700, color: '#170e5e', marginBottom: '8px' }}>
-            نطاق ترحيل الجدول الزمني المطلوب تطبيقه:
+            {__t('contracting.task_delay_modal.s14', "نطاق ترحيل الجدول الزمني المطلوب تطبيقه:")}
           </label>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
@@ -424,14 +426,14 @@ export function TaskDelayModal({
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
                   <span style={{ fontSize: 'var(--font-body)', fontWeight: 700, color: '#0f172a' }}>
-                    1. البند الحالي فقط
+                    {__t('contracting.task_delay_modal.s15', "1. البند الحالي فقط")}
                   </span>
                   <span style={{ fontSize: 'var(--font-micro)', padding: '2px 6px', borderRadius: '4px', background: '#f1f5f9', color: '#475569', fontWeight: 600 }}>
-                    تعويض داخلي
+                    {__t('contracting.task_delay_modal.s16', "تعويض داخلي")}
                   </span>
                 </div>
                 <p style={{ fontSize: 'var(--font-micro)', color: '#64748b', margin: 0, lineHeight: 1.4 }}>
-                  زيادة مدة هذا البند (+{delayDays} يوم) دون المساس بباقي مواعيد الجدول الزمني للمشروع.
+                  {__t('contracting.task_delay_modal.s17', "زيادة مدة هذا البند (+")}{delayDays} {__t('contracting.task_delay_modal.s18', "يوم) دون المساس بباقي مواعيد الجدول الزمني للمشروع.")}
                 </p>
               </div>
             </div>
@@ -454,14 +456,14 @@ export function TaskDelayModal({
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
                   <span style={{ fontSize: 'var(--font-body)', fontWeight: 700, color: '#0f172a' }}>
-                    2. الحالي وبنود محددة معه
+                    {__t('contracting.task_delay_modal.s19', "2. الحالي وبنود محددة معه")}
                   </span>
                   <span style={{ fontSize: 'var(--font-micro)', padding: '2px 6px', borderRadius: '4px', background: '#fef3c7', color: '#92400e', fontWeight: 600 }}>
-                    ربط انتقائي
+                    {__t('contracting.task_delay_modal.s20', "ربط انتقائي")}
                   </span>
                 </div>
                 <p style={{ fontSize: 'var(--font-micro)', color: '#64748b', margin: 0, lineHeight: 1.4 }}>
-                  ترحيل هذا البند مع اختيار حزم أو أنشطة معينة متأثرة به فقط دون التأثير على باقي المشروع.
+                  {__t('contracting.task_delay_modal.s21', "ترحيل هذا البند مع اختيار حزم أو أنشطة معينة متأثرة به فقط دون التأثير على باقي المشروع.")}
                 </p>
               </div>
             </div>
@@ -484,14 +486,14 @@ export function TaskDelayModal({
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
                   <span style={{ fontSize: 'var(--font-body)', fontWeight: 700, color: '#0f172a' }}>
-                    3. ترحيل شامل لكل ما يليه
+                    {__t('contracting.task_delay_modal.s22', "3. ترحيل شامل لكل ما يليه")}
                   </span>
                   <span style={{ fontSize: 'var(--font-micro)', padding: '2px 6px', borderRadius: '4px', background: '#fee2e2', color: '#991b1b', fontWeight: 700 }}>
-                    مسار حرج CPM
+                    {__t('contracting.task_delay_modal.s23', "مسار حرج CPM")}
                   </span>
                 </div>
                 <p style={{ fontSize: 'var(--font-micro)', color: '#64748b', margin: 0, lineHeight: 1.4 }}>
-                  تزحيف كافة الأنشطة اللاحقة (+{delayDays} يوم) وترحيل موعد تسليم المشروع النهائي تلقائياً.
+                  {__t('contracting.task_delay_modal.s24', "تزحيف كافة الأنشطة اللاحقة (+")}{delayDays} {__t('contracting.task_delay_modal.s25', "يوم) وترحيل موعد تسليم المشروع النهائي تلقائياً.")}
                 </p>
               </div>
             </div>
@@ -503,7 +505,7 @@ export function TaskDelayModal({
           <div style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '12px', background: '#ffffff' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', gap: '10px' }}>
               <span style={{ fontSize: 'var(--font-body)', fontWeight: 700, color: '#1e293b' }}>
-                حدد الأنشطة المرتبطة المطلوب ترحيلها مع هذا البند ({selectedTaskIds.size} محددة):
+                {__t('contracting.task_delay_modal.s26', "حدد الأنشطة المرتبطة المطلوب ترحيلها مع هذا البند (")}{selectedTaskIds.size} {__t('contracting.task_delay_modal.s27', "محددة):")}
               </span>
               <div style={{ display: 'flex', gap: '6px' }}>
                 <button
@@ -511,14 +513,14 @@ export function TaskDelayModal({
                   onClick={handleSelectAllVisible}
                   style={{ fontSize: '11px', padding: '3px 8px', borderRadius: '4px', border: '1px solid #cbd5e1', background: '#f8fafc', cursor: 'pointer', fontWeight: 600 }}
                 >
-                  تحديد الكل
+                  {__t('contracting.task_delay_modal.s28', "تحديد الكل")}
                 </button>
                 <button
                   type="button"
                   onClick={handleClearSelection}
                   style={{ fontSize: '11px', padding: '3px 8px', borderRadius: '4px', border: '1px solid #cbd5e1', background: '#f8fafc', cursor: 'pointer', color: '#64748b' }}
                 >
-                  إلغاء التحديد
+                  {__t('contracting.task_delay_modal.s29', "إلغاء التحديد")}
                 </button>
               </div>
             </div>
@@ -526,7 +528,7 @@ export function TaskDelayModal({
             {/* Quick search */}
             <input
               type="text"
-              placeholder="بحث في الأنشطة بالاسم أو الكود..."
+              placeholder={__t('contracting.task_delay_modal.s30', "بحث في الأنشطة بالاسم أو الكود...")}
               value={searchFilter}
               onChange={(e) => setSearchFilter(e.target.value)}
               style={{
@@ -543,7 +545,7 @@ export function TaskDelayModal({
             <div style={{ maxHeight: '180px', overflowY: 'auto', border: '1px solid #f1f5f9', borderRadius: '6px' }}>
               {filteredChecklistTasks.length === 0 ? (
                 <div style={{ padding: '16px', textAlign: 'center', fontSize: 'var(--font-micro)', color: '#94a3b8' }}>
-                  لا توجد أنشطة مطابقة للبحث
+                  {__t('contracting.task_delay_modal.s31', "لا توجد أنشطة مطابقة للبحث")}
                 </div>
               ) : (
                 filteredChecklistTasks.map((t) => {
@@ -575,10 +577,10 @@ export function TaskDelayModal({
                       </label>
 
                       <div style={{ fontSize: 'var(--font-micro)', color: isChecked ? '#166534' : '#64748b' }}>
-                        <span>من {getTaskStart(t) || '-'} إلى {getTaskEnd(t) || '-'}</span>
+                        <span>{__t('contracting.task_delay_modal.s32', "من")} {getTaskStart(t) || '-'} {__t('contracting.task_delay_modal.s33', "إلى")} {getTaskEnd(t) || '-'}</span>
                         {isChecked && (
                           <span style={{ marginInlineStart: '6px', fontWeight: 700 }}>
-                            ➔ ستصبح إلى: {addDays(getTaskEnd(t), delayDays)}
+                            {__t('contracting.task_delay_modal.s34', "➔ ستصبح إلى:")} {addDays(getTaskEnd(t), delayDays)}
                           </span>
                         )}
                       </div>
@@ -593,43 +595,43 @@ export function TaskDelayModal({
         {/* Section 3: Live Impact Preview Card */}
         <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 16px' }}>
           <h4 style={{ fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#1e293b', margin: '0 0 8px 0' }}>
-            معاينة الأثر الزمني على المشروع والأنشطة:
+            {__t('contracting.task_delay_modal.s35', "معاينة الأثر الزمني على المشروع والأنشطة:")}
           </h4>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
             <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '8px 12px' }}>
-              <div style={{ fontSize: 'var(--font-micro)', color: '#64748b' }}>نهاية البند الحالي المعدلة</div>
+              <div style={{ fontSize: 'var(--font-micro)', color: '#64748b' }}>{__t('contracting.task_delay_modal.s36', "نهاية البند الحالي المعدلة")}</div>
               <div style={{ fontSize: 'var(--font-body)', fontWeight: 700, color: '#c2410c', marginTop: '2px' }}>
-                {newEndDateForCurrent || '-'} (بدلاً من {getTaskEnd(task) || '-'})
+                {newEndDateForCurrent || '-'} {__t('contracting.task_delay_modal.s37', "(بدلاً من")} {getTaskEnd(task) || '-'})
               </div>
               <div style={{ fontSize: '11px', color: '#94a3b8' }}>
-                المدة الجديدة: {getTaskDuration(task) + delayDays} يوم (+{delayDays})
+                {__t('contracting.task_delay_modal.s38', "المدة الجديدة:")} {getTaskDuration(task) + delayDays} {__t('contracting.task_delay_modal.s39', "يوم (+")}{delayDays})
               </div>
             </div>
 
             <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '8px 12px' }}>
-              <div style={{ fontSize: 'var(--font-micro)', color: '#64748b' }}>إجمالي الأنشطة المتأثرة بالترحيل</div>
+              <div style={{ fontSize: 'var(--font-micro)', color: '#64748b' }}>{__t('contracting.task_delay_modal.s40', "إجمالي الأنشطة المتأثرة بالترحيل")}</div>
               <div style={{ fontSize: 'var(--font-body)', fontWeight: 700, color: '#170e5e', marginTop: '2px' }}>
-                {affectedCount} نشاط
+                {affectedCount} {__t('contracting.task_delay_modal.s41', "نشاط")}
               </div>
               <div style={{ fontSize: '11px', color: '#94a3b8' }}>
                 {shiftMode === 'current_only'
-                  ? 'هذا البند فقط دون غيره'
+                  ? __t('contracting.task_delay_modal.s42', "هذا البند فقط دون غيره")
                   : shiftMode === 'selected_tasks'
-                  ? 'البند الحالي + الأنشطة المختارة'
-                  : 'البند الحالي وكافة الأنشطة اللاحقة'}
+                  ? __t('contracting.task_delay_modal.s43', "البند الحالي + الأنشطة المختارة")
+                  : __t('contracting.task_delay_modal.s44', "البند الحالي وكافة الأنشطة اللاحقة")}
               </div>
             </div>
 
             <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '8px 12px' }}>
-              <div style={{ fontSize: 'var(--font-micro)', color: '#64748b' }}>تاريخ تسليم المشروع النهائي</div>
+              <div style={{ fontSize: 'var(--font-micro)', color: '#64748b' }}>{__t('contracting.task_delay_modal.s45', "تاريخ تسليم المشروع النهائي")}</div>
               <div style={{ fontSize: 'var(--font-body)', fontWeight: 700, color: maxEndDateAfter > maxEndDateBefore ? '#dc2626' : '#15803d', marginTop: '2px' }}>
                 {maxEndDateAfter || '-'}
               </div>
               <div style={{ fontSize: '11px', color: '#94a3b8' }}>
                 {maxEndDateAfter > maxEndDateBefore
                   ? `تمديد تسليم المشروع بـ ${delayDays} يوم`
-                  : 'موعد تسليم المشروع لا يتأثر'}
+                  : __t('contracting.task_delay_modal.s46', "موعد تسليم المشروع لا يتأثر")}
               </div>
             </div>
           </div>

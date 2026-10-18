@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useMemo, type CSSProperties } from 'react';
 import { QueryCard } from '@/shared/components/query-card';
 import { AnimatedValue } from '@/shared/components/animated-value';
@@ -17,6 +18,7 @@ export function OverviewReportSection({
   executiveRows,
   formatPercent,
 }: Pick<ReportsSectionContentProps, 'report' | 'reportQuery' | 'accountingFinancialSummary' | 'accountingCashMovement' | 'executiveRows' | 'formatPercent'>) {
+  const { t } = useTranslation();
   const [chartPeriod, setChartPeriod] = useState<string>('6 شهور');
   const financial = accountingFinancialSummary?.cards;
   const cash = accountingCashMovement?.totals;
@@ -190,12 +192,12 @@ export function OverviewReportSection({
       <div className="reports-charts-hub-grid">
         {/* Right (65%): Sales & Purchases Area Trend Chart */}
         <FormSection
-          title="تحليل المبيعات والمشتريات"
-          description="منحنى زمني تفاعلي يقارن بين حركة البيع والشراء."
+          title={t('reports.sections.overview_report_section.s0', "تحليل المبيعات والمشتريات")}
+          description={t('reports.sections.overview_report_section.s1', "منحنى زمني تفاعلي يقارن بين حركة البيع والشراء.")}
           className="reports-chart-motion"
           actions={
             <div style={{ display: 'flex', gap: '6px' }}>
-              {['شهر', '6 شهور', 'سنة', 'الكل'].map((period) => {
+              {[t('reports.sections.overview_report_section.s2', "شهر"), t('reports.sections.overview_report_section.s3', "6 شهور"), t('reports.sections.overview_report_section.s4', "سنة"), t('reports.sections.overview_report_section.s5', "الكل")].map((period) => {
                 const isActive = chartPeriod === period;
                 return (
                   <button
@@ -228,16 +230,16 @@ export function OverviewReportSection({
 
         {/* Left (35%): Profit Margin & Flow Distribution */}
         <FormSection
-          title="نبض الفترة وهامش الربح"
-          description="توزيع السيولة ونسبة مجمل الأرباح المحققة."
-          actions={<span className="nav-pill">الربحية</span>}
+          title={t('reports.sections.overview_report_section.s6', "نبض الفترة وهامش الربح")}
+          description={t('reports.sections.overview_report_section.s7', "توزيع السيولة ونسبة مجمل الأرباح المحققة.")}
+          actions={<span className="nav-pill">{t('reports.sections.overview_report_section.s8', "الربحية")}</span>}
           className="reports-breakdown-card"
         >
           <div className="reports-margin-donut-card" style={{ width: '100%', maxWidth: '340px', margin: '0 auto' }}>
             <div style={{ position: 'relative', marginBottom: '14px' }}>
               <CircularProgress 
                 value={grossMarginPercent} 
-                label="هامش الربح" 
+                label={t('reports.sections.overview_report_section.s9', "هامش الربح")} 
                 size={165} 
                 strokeWidth={14} 
                 color="var(--accent, #8b5cf6)" 
@@ -255,7 +257,7 @@ export function OverviewReportSection({
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#475569', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                   <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#94a3b8', display: 'inline-block' }} />
-                  صافي المبيعات
+                  {t('reports.sections.overview_report_section.s10', "صافي المبيعات")}
                 </span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <span style={{ fontSize: '0.7rem', fontWeight: 700, background: '#f1f5f9', color: '#64748b', padding: '2px 6px', borderRadius: '4px', minWidth: '44px', textAlign: 'center' }}>
@@ -271,7 +273,7 @@ export function OverviewReportSection({
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#475569', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                   <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#94a3b8', display: 'inline-block' }} />
-                  تكلفة البضاعة
+                  {t('reports.sections.overview_report_section.s11', "تكلفة البضاعة")}
                 </span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <span style={{ fontSize: '0.7rem', fontWeight: 700, background: '#f1f5f9', color: '#64748b', padding: '2px 6px', borderRadius: '4px', minWidth: '44px', textAlign: 'center' }}>
@@ -287,7 +289,7 @@ export function OverviewReportSection({
               <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontSize: '0.825rem', fontWeight: 800, color: '#0f172a', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                   <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--accent, #8b5cf6)', display: 'inline-block' }} />
-                  مجمل الربح
+                  {t('reports.sections.overview_report_section.s12', "مجمل الربح")}
                 </span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <span style={{ fontSize: '0.7rem', fontWeight: 800, background: '#ede9fe', color: '#6d28d9', padding: '2px 6px', borderRadius: '4px', minWidth: '44px', textAlign: 'center' }}>
@@ -304,29 +306,29 @@ export function OverviewReportSection({
       </div>
 
       {/* 2. Secondary Bar Chart: Shifts Performance */}
-      <FormSection title="المبيعات حسب فترات العمل (الورديات)" description="مقارنة مبيعات فترات اليوم (النهار مقابل الليل)." actions={<span className="nav-pill">الورديات</span>}>
+      <FormSection title={t('reports.sections.overview_report_section.s13', "المبيعات حسب فترات العمل (الورديات)")} description={t('reports.sections.overview_report_section.s14', "مقارنة مبيعات فترات اليوم (النهار مقابل الليل).")} actions={<span className="nav-pill">{t('reports.sections.overview_report_section.s15', "الورديات")}</span>}>
         <div style={{ marginTop: '12px' }}>
           <ShiftAnalysisChart data={[
-            { shift: 'الوردية الصباحية|من 8ص لـ 4م', sales: Math.round(netSales * 0.45), color: '#3b82f6' },
-            { shift: 'الوردية المسائية|من 4م لـ 12ص', sales: Math.round(netSales * 0.35), color: '#8b5cf6' },
-            { shift: 'الوردية الليلية|من 12ص لـ 8ص', sales: Math.round(netSales * 0.20), color: '#1e293b' }
+            { shift: t('reports.sections.overview_report_section.s16', "الوردية الصباحية|من 8ص لـ 4م"), sales: Math.round(netSales * 0.45), color: '#3b82f6' },
+            { shift: t('reports.sections.overview_report_section.s17', "الوردية المسائية|من 4م لـ 12ص"), sales: Math.round(netSales * 0.35), color: '#8b5cf6' },
+            { shift: t('reports.sections.overview_report_section.s18', "الوردية الليلية|من 12ص لـ 8ص"), sales: Math.round(netSales * 0.20), color: '#1e293b' }
           ]} height={220} />
         </div>
       </FormSection>
 
       {/* 3. Executive Summary KPIs Strip (Now placed after the charts) */}
       <QueryCard
-        title="الملخص التنفيذي للأداء المالي"
+        title={t('reports.sections.overview_report_section.s19', "الملخص التنفيذي للأداء المالي")}
         className="reports-executive-card reports-executive-card--compact"
         isLoading={reportQuery.isLoading}
         isError={reportQuery.isError}
         error={reportQuery.error}
         isEmpty={!report}
-        loadingText="جاري تحميل التقرير..."
-        emptyTitle="لا توجد بيانات للفترة الحالية"
-        emptyHint="جرّب تغيير الفترة أو إضافة عمليات جديدة."
+        loadingText={t('reports.sections.overview_report_section.s20', "جاري تحميل التقرير...")}
+        emptyTitle={t('reports.sections.overview_report_section.s21', "لا توجد بيانات للفترة الحالية")}
+        emptyHint={t('reports.sections.overview_report_section.s22', "جرّب تغيير الفترة أو إضافة عمليات جديدة.")}
       >
-        <div className="reports-premium-summary-strip reports-premium-summary-strip--compact" aria-label="أهم أرقام الفترة">
+        <div className="reports-premium-summary-strip reports-premium-summary-strip--compact" aria-label={t('reports.sections.overview_report_section.s23', "أهم أرقام الفترة")}>
           {premiumStats.map((stat) => (
             <div className={`reports-premium-stat reports-premium-stat-compact reports-premium-stat-${stat.tone}`} key={stat.label}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -344,34 +346,34 @@ export function OverviewReportSection({
 
       {/* 4. Detailed Financial Breakdown Cards (3 Columns) */}
       <div className="three-column-grid reports-unified-grid">
-        <FormSection title="حركة البيع" description="قراءة مختصرة للنطاق الحالي." actions={<span className="nav-pill">المبيعات</span>} className="reports-breakdown-card reports-motion-card reports-hover-scale">
+        <FormSection title={t('reports.sections.overview_report_section.s24', "حركة البيع")} description={t('reports.sections.overview_report_section.s25', "قراءة مختصرة للنطاق الحالي.")} actions={<span className="nav-pill">{t('reports.sections.overview_report_section.s26', "المبيعات")}</span>} className="reports-breakdown-card reports-motion-card reports-hover-scale">
           <div className="list-stack compact-list">
-            <div className="list-row"><span>عدد فواتير البيع</span><strong>{report?.sales.count || 0}</strong></div>
-            <div className="list-row"><span>إجمالي البيع</span><strong>{formatCurrency(salesTotal)}</strong></div>
-            <div className="list-row"><span>صافي البيع</span><strong>{formatCurrency(netSales)}</strong></div>
+            <div className="list-row"><span>{t('reports.sections.overview_report_section.s27', "عدد فواتير البيع")}</span><strong>{report?.sales.count || 0}</strong></div>
+            <div className="list-row"><span>{t('reports.sections.overview_report_section.s28', "إجمالي البيع")}</span><strong>{formatCurrency(salesTotal)}</strong></div>
+            <div className="list-row"><span>{t('reports.sections.overview_report_section.s29', "صافي البيع")}</span><strong>{formatCurrency(netSales)}</strong></div>
           </div>
         </FormSection>
-        <FormSection title="حركة الشراء" description="ملخص مختصر للمشتريات في نفس النطاق." actions={<span className="nav-pill">المشتريات</span>} className="reports-breakdown-card reports-motion-card reports-hover-scale">
+        <FormSection title={t('reports.sections.overview_report_section.s30', "حركة الشراء")} description={t('reports.sections.overview_report_section.s31', "ملخص مختصر للمشتريات في نفس النطاق.")} actions={<span className="nav-pill">{t('reports.sections.overview_report_section.s32', "المشتريات")}</span>} className="reports-breakdown-card reports-motion-card reports-hover-scale">
           <div className="list-stack compact-list">
-            <div className="list-row"><span>عدد فواتير الشراء</span><strong>{report?.purchases.count || 0}</strong></div>
-            <div className="list-row"><span>إجمالي الشراء</span><strong>{formatCurrency(report?.purchases.total || 0)}</strong></div>
-            <div className="list-row"><span>صافي الشراء</span><strong>{formatCurrency(report?.purchases.netPurchases || 0)}</strong></div>
+            <div className="list-row"><span>{t('reports.sections.overview_report_section.s33', "عدد فواتير الشراء")}</span><strong>{report?.purchases.count || 0}</strong></div>
+            <div className="list-row"><span>{t('reports.sections.overview_report_section.s34', "إجمالي الشراء")}</span><strong>{formatCurrency(report?.purchases.total || 0)}</strong></div>
+            <div className="list-row"><span>{t('reports.sections.overview_report_section.s35', "صافي الشراء")}</span><strong>{formatCurrency(report?.purchases.netPurchases || 0)}</strong></div>
           </div>
         </FormSection>
-        <FormSection title="الربحية والخزنة" description="زاوية واحدة تربط الربح بحركة النقد." actions={<span className="nav-pill">الربحية والخزنة</span>} className="reports-breakdown-card reports-motion-card reports-hover-scale">
+        <FormSection title={t('reports.sections.overview_report_section.s36', "الربحية والخزنة")} description={t('reports.sections.overview_report_section.s37', "زاوية واحدة تربط الربح بحركة النقد.")} actions={<span className="nav-pill">{t('reports.sections.overview_report_section.s38', "الربحية والخزنة")}</span>} className="reports-breakdown-card reports-motion-card reports-hover-scale">
           <div className="list-stack compact-list">
-            <div className="list-row"><span>مجمل الربح</span><strong>{formatCurrency(grossProfit)}</strong></div>
-            <div className="list-row"><span>صافي حركة النقدية</span><strong>{formatCurrency(netCashMovement)}</strong></div>
-            <div className="list-row"><span>الفجوة (بيع / شراء)</span><strong>{formatCurrency(netSales - (report?.purchases.netPurchases || 0))}</strong></div>
+            <div className="list-row"><span>{t('reports.sections.overview_report_section.s39', "مجمل الربح")}</span><strong>{formatCurrency(grossProfit)}</strong></div>
+            <div className="list-row"><span>{t('reports.sections.overview_report_section.s40', "صافي حركة النقدية")}</span><strong>{formatCurrency(netCashMovement)}</strong></div>
+            <div className="list-row"><span>{t('reports.sections.overview_report_section.s41', "الفجوة (بيع / شراء)")}</span><strong>{formatCurrency(netSales - (report?.purchases.netPurchases || 0))}</strong></div>
           </div>
         </FormSection>
       </div>
 
       {/* 5. Full Comprehensive Executive Audit Metric Grid */}
       <FormSection
-        title="جدول المؤشرات التنفيذية الشامل"
-        description="تفاصيل رقمية كاملة لجميع بنود الحسابات والأداء المالي مصنفة حسب القطاعات التشغيلية."
-        actions={<span className="nav-pill">بيانات التدقيق المالي</span>}
+        title={t('reports.sections.overview_report_section.s42', "جدول المؤشرات التنفيذية الشامل")}
+        description={t('reports.sections.overview_report_section.s43', "تفاصيل رقمية كاملة لجميع بنود الحسابات والأداء المالي مصنفة حسب القطاعات التشغيلية.")}
+        actions={<span className="nav-pill">{t('reports.sections.overview_report_section.s44', "بيانات التدقيق المالي")}</span>}
         className="reports-motion-card"
       >
         <div className="reports-executive-clusters-grid">

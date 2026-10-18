@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { getGlobalCurrencySymbol } from '@/lib/currencies';
 import React from 'react';
 import { StorefrontProduct } from '../types/storefront.types';
@@ -23,6 +24,7 @@ export const StorefrontAmazonQuadCard = React.memo(function StorefrontAmazonQuad
   onAddToCart,
   cartMap,
 }: StorefrontAmazonQuadCardProps) {
+  const { t } = useTranslation();
   const displayProducts = products.slice(0, 4);
 
   return (
@@ -67,7 +69,7 @@ export const StorefrontAmazonQuadCard = React.memo(function StorefrontAmazonQuad
               lineHeight: 1.3,
             }}
           >
-            أفضل العروض في {categoryName}
+            {t('storefront.storefront_amazon_quad_card.s0', "أفضل العروض في")} {categoryName}
           </h3>
           <span style={{ color: '#170e5e', display: 'flex', alignItems: 'center' }}>
             <IconArrowUpRight size={16} strokeWidth={2.2} />
@@ -136,7 +138,7 @@ export const StorefrontAmazonQuadCard = React.memo(function StorefrontAmazonQuad
                       e.stopPropagation();
                       onAddToCart(p);
                     }}
-                    title="إضافة للسلة"
+                    title={t('storefront.storefront_amazon_quad_card.s1', "إضافة للسلة")}
                     style={{
                       position: 'absolute',
                       bottom: '5px',
@@ -166,7 +168,7 @@ export const StorefrontAmazonQuadCard = React.memo(function StorefrontAmazonQuad
                 {/* Price & Name */}
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', marginBottom: '3px' }}>
                   <span style={{ fontSize: '13.5px', fontWeight: 900, color: '#0f172a' }}>
-                    {p.price > 0 ? `${p.price} ${getGlobalCurrencySymbol()}` : 'تواصل'}
+                    {p.price > 0 ? `${p.price} ${getGlobalCurrencySymbol()}` : t('storefront.storefront_amazon_quad_card.s2', "تواصل")}
                   </span>
                 </div>
 
@@ -214,8 +216,8 @@ export const StorefrontAmazonQuadCard = React.memo(function StorefrontAmazonQuad
           onMouseLeave={(e) => (e.currentTarget.style.textDecoration = 'none')}
         >
           <span>
-            تصفح كل أصناف {categoryName}{' '}
-            <span style={{ whiteSpace: 'nowrap' }}>({totalCount} صنف)</span>
+            {t('storefront.storefront_amazon_quad_card.s3', "تصفح كل أصناف")} {categoryName}{' '}
+            <span style={{ whiteSpace: 'nowrap' }}>({totalCount} {t('storefront.storefront_amazon_quad_card.s4', "صنف)")}</span>
           </span>
           <span>←</span>
         </button>

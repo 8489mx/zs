@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
@@ -84,6 +85,7 @@ export function ScalePluExportModal({
   selectedIds = [],
   categoryNames = {},
 }: ScalePluExportModalProps) {
+  const { t } = useTranslation();
   const { data: settings } = useSettingsQuery();
   const scaleConfig = useMemo(() => getWeightedBarcodeConfig(settings), [settings]);
 
@@ -203,20 +205,20 @@ export function ScalePluExportModal({
     <StandardDialog
       open={open}
       onClose={onClose}
-      title="تصدير ملف موازين الباركود الإلكترونية (PLU Scale Export)"
-      subtitle="توليد ملفات الأصناف والأسعار المتوافقة مع برامج موازين الباركود (Rongta, CAS, Dibal)"
+      title={t('products.scale_plu_export_modal.s0', "تصدير ملف موازين الباركود الإلكترونية (PLU Scale Export)")}
+      subtitle={t('products.scale_plu_export_modal.s1', "توليد ملفات الأصناف والأسعار المتوافقة مع برامج موازين الباركود (Rongta, CAS, Dibal)")}
       maxWidth="920px"
       footerActions={
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
           <Button variant="secondary" onClick={handleExportExcel} disabled={pluRows.length === 0} style={{ fontSize: '0.8rem' }}>
             <AppIcons.FileSpreadsheet size={15} style={{ marginInlineEnd: '6px' }} />
-            تصدير ملف Excel (.xlsx)
+            {t('products.scale_plu_export_modal.s2', "تصدير ملف Excel (.xlsx)")}
           </Button>
 
           <StandardDialogFooter
-            cancelText="إغلاق"
+            cancelText={t('products.scale_plu_export_modal.s3', "إغلاق")}
             onCancel={onClose}
-            submitText="تحميل ملف CSV للميزان"
+            submitText={t('products.scale_plu_export_modal.s4', "تحميل ملف CSV للميزان")}
             onSubmit={handleExportCsv}
             submitDisabled={pluRows.length === 0}
           />
@@ -228,16 +230,16 @@ export function ScalePluExportModal({
         <div style={{ background: '#f8fafc', padding: '12px 16px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
             <AppIcons.Settings size={15} />
-            <span>1. إعدادات الميزان وصيغة التصدير (Scale Settings & Format)</span>
+            <span>{t('products.scale_plu_export_modal.s5', "1. إعدادات الميزان وصيغة التصدير (Scale Settings & Format)")}</span>
           </div>
 
           <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '8px 12px', fontSize: '0.8rem', color: '#334155', marginBottom: '10px' }}>
-            <strong style={{ color: '#170e5e' }}>الربط بنقاط البيع (POS): </strong>
-            يبدأ الباركود الموزون بـ <strong>{scaleConfig.prefix}</strong>، مع كود صنف بطول <strong>{scaleConfig.productCodeLength}</strong> أرقام، و <strong>{scaleConfig.weightDigits}</strong> خانات للوزن.
+            <strong style={{ color: '#170e5e' }}>{t('products.scale_plu_export_modal.s6', "الربط بنقاط البيع (POS):")} </strong>
+            {t('products.scale_plu_export_modal.s7', "يبدأ الباركود الموزون بـ")} <strong>{scaleConfig.prefix}</strong>{t('products.scale_plu_export_modal.s8', "، مع كود صنف بطول")} <strong>{scaleConfig.productCodeLength}</strong> {t('products.scale_plu_export_modal.s9', "أرقام، و")} <strong>{scaleConfig.weightDigits}</strong> {t('products.scale_plu_export_modal.s10', "خانات للوزن.")}
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1.2fr 1fr 1fr', gap: '10px' }}>
-            <Field label="نوع الميزان / البرنامج">
+            <Field label={t('products.scale_plu_export_modal.s11', "نوع الميزان / البرنامج")}>
               <CustomSelect
                 value={preset}
                 options={PRESET_OPTIONS}
@@ -245,7 +247,7 @@ export function ScalePluExportModal({
               />
             </Field>
 
-            <Field label="نطاق الأصناف المشمولة">
+            <Field label={t('products.scale_plu_export_modal.s12', "نطاق الأصناف المشمولة")}>
               <CustomSelect
                 value={scope}
                 options={scopeOptions}
@@ -253,7 +255,7 @@ export function ScalePluExportModal({
               />
             </Field>
 
-            <Field label="بداية ترقيم الـ PLU">
+            <Field label={t('products.scale_plu_export_modal.s13', "بداية ترقيم الـ PLU")}>
               <input
                 type="number"
                 min={1}
@@ -262,7 +264,7 @@ export function ScalePluExportModal({
               />
             </Field>
 
-            <Field label="رقم القسم (Dept)">
+            <Field label={t('products.scale_plu_export_modal.s14', "رقم القسم (Dept)")}>
               <input
                 type="number"
                 min={1}
@@ -279,7 +281,7 @@ export function ScalePluExportModal({
                 checked={padItemCode}
                 onChange={(e) => setPadItemCode(e.target.checked)}
               />
-              <span>تنسيق كود الصنف ليطابق طول إعدادات الباركود الموزون ({scaleConfig.productCodeLength} أرقام مع أصفار يسار مثل 00101)</span>
+              <span>{t('products.scale_plu_export_modal.s15', "تنسيق كود الصنف ليطابق طول إعدادات الباركود الموزون (")}{scaleConfig.productCodeLength} {t('products.scale_plu_export_modal.s16', "أرقام مع أصفار يسار مثل 00101)")}</span>
             </label>
           </div>
         </div>
@@ -289,24 +291,24 @@ export function ScalePluExportModal({
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
               <AppIcons.Layers size={15} />
-              <span>2. معاينة الأصناف الجاهزة للتصدير ({pluRows.length} صنف)</span>
+              <span>{t('products.scale_plu_export_modal.s17', "2. معاينة الأصناف الجاهزة للتصدير (")}{pluRows.length} {t('products.scale_plu_export_modal.s18', "صنف)")}</span>
             </div>
-            <span className="muted small">معروض أول 5 أصناف للمعاينة السريعة</span>
+            <span className="muted small">{t('products.scale_plu_export_modal.s19', "معروض أول 5 أصناف للمعاينة السريعة")}</span>
           </div>
 
           <div style={{ background: '#ffffff', borderRadius: '6px', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
             <DataTable
-              ariaLabel="معاينة أصناف الميزان"
+              ariaLabel={t('products.scale_plu_export_modal.s20', "معاينة أصناف الميزان")}
               columns={[
                 { key: 'plu', header: 'PLU', cell: (r) => <strong>{r.plu}</strong> },
-                { key: 'itemCode', header: 'كود الميزان', cell: (r) => <code style={{ color: '#170e5e', fontWeight: 700 }}>{r.itemCode}</code> },
-                { key: 'name', header: 'اسم الصنف', cell: (r) => r.name },
-                { key: 'price', header: 'السعر للكيلو', cell: (r) => formatCurrency(r.price) },
-                { key: 'category', header: 'القسم', cell: (r) => r.category },
-                { key: 'sample', header: 'شكل الباركود الناتج من الميزان', cell: (r) => <span className="nav-pill" style={{ fontFamily: 'monospace' }}>{r.sampleWeightBarcode}</span> },
+                { key: 'itemCode', header: t('products.scale_plu_export_modal.s21', "كود الميزان"), cell: (r) => <code style={{ color: '#170e5e', fontWeight: 700 }}>{r.itemCode}</code> },
+                { key: 'name', header: t('products.scale_plu_export_modal.s22', "اسم الصنف"), cell: (r) => r.name },
+                { key: 'price', header: t('products.scale_plu_export_modal.s23', "السعر للكيلو"), cell: (r) => formatCurrency(r.price) },
+                { key: 'category', header: t('products.scale_plu_export_modal.s24', "القسم"), cell: (r) => r.category },
+                { key: 'sample', header: t('products.scale_plu_export_modal.s25', "شكل الباركود الناتج من الميزان"), cell: (r) => <span className="nav-pill" style={{ fontFamily: 'monospace' }}>{r.sampleWeightBarcode}</span> },
               ]}
               rows={pluRows.slice(0, 5)}
-              empty={<div className="muted small" style={{ padding: '16px', textAlign: 'center' }}>لا توجد أصناف مطابقة للتصدير.</div>}
+              empty={<div className="muted small" style={{ padding: '16px', textAlign: 'center' }}>{t('products.scale_plu_export_modal.s26', "لا توجد أصناف مطابقة للتصدير.")}</div>}
             />
           </div>
         </div>
@@ -315,8 +317,8 @@ export function ScalePluExportModal({
         <div style={{ background: '#f8fafc', padding: '10px 14px', borderRadius: '8px', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '0.78rem', color: '#64748b' }}>
           <AppIcons.HelpCircle size={15} color="#d97706" style={{ flexShrink: 0, marginTop: '2px' }} />
           <div>
-            <strong style={{ color: '#0f172a' }}>طريقة التنزيل للميزان: </strong>
-            قم بتحميل ملف الـ CSV ثم افتح برنامج الميزان (مثل RLS1000 Tool أو CL-Works)، اختر <strong>Import PLU</strong> وحدد الملف المحمل، ثم اضغط <strong>Download to Scale</strong> لإرسال جميع الأصناف والأسعار إلى شاشة الميزان وأزرار الاختصار السريع.
+            <strong style={{ color: '#0f172a' }}>{t('products.scale_plu_export_modal.s27', "طريقة التنزيل للميزان:")} </strong>
+            {t('products.scale_plu_export_modal.s28', "قم بتحميل ملف الـ CSV ثم افتح برنامج الميزان (مثل RLS1000 Tool أو CL-Works)، اختر")} <strong>Import PLU</strong> {t('products.scale_plu_export_modal.s29', "وحدد الملف المحمل، ثم اضغط")} <strong>Download to Scale</strong> {t('products.scale_plu_export_modal.s30', "لإرسال جميع الأصناف والأسعار إلى شاشة الميزان وأزرار الاختصار السريع.")}
           </div>
         </div>
       </div>

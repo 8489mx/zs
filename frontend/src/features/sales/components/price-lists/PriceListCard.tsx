@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
 import { PriceList } from '../../api/price-lists.api';
@@ -9,6 +10,7 @@ interface PriceListCardProps {
 }
 
 export const PriceListCard: React.FC<PriceListCardProps> = ({ list, onEdit, onDelete }) => {
+  const { t } = useTranslation();
   return (
     <div
       style={{
@@ -40,12 +42,12 @@ export const PriceListCard: React.FC<PriceListCardProps> = ({ list, onEdit, onDe
                     fontWeight: 600,
                   }}
                 >
-                  افتراضية
+                  {t('sales.price_lists.price_list_card.s0', "افتراضية")}
                 </span>
               )}
             </div>
             <span style={{ fontSize: 'var(--font-micro)', color: '#64748b', fontFamily: 'monospace' }}>
-              كود: {list.code}
+              {t('sales.price_lists.price_list_card.s1', "كود:")} {list.code}
             </span>
           </div>
 
@@ -59,7 +61,7 @@ export const PriceListCard: React.FC<PriceListCardProps> = ({ list, onEdit, onDe
               color: list.is_active ? '#166534' : '#991b1b',
             }}
           >
-            {list.is_active ? 'نشطة' : 'معطلة'}
+            {list.is_active ? t('sales.price_lists.price_list_card.s2', "نشطة") : t('sales.price_lists.price_list_card.s3', "معطلة")}
           </span>
         </div>
 
@@ -75,15 +77,15 @@ export const PriceListCard: React.FC<PriceListCardProps> = ({ list, onEdit, onDe
           }}
         >
           <div>
-            <div style={{ fontSize: 'var(--font-micro)', color: '#64748b' }}>الخصم العام</div>
+            <div style={{ fontSize: 'var(--font-micro)', color: '#64748b' }}>{t('sales.price_lists.price_list_card.s4', "الخصم العام")}</div>
             <div style={{ fontSize: 'var(--font-body)', fontWeight: 700, color: '#0f172a' }}>
-              {list.default_discount_percent > 0 ? `${list.default_discount_percent}%` : 'لا يوجد'}
+              {list.default_discount_percent > 0 ? `${list.default_discount_percent}%` : t('sales.price_lists.price_list_card.s5', "لا يوجد")}
             </div>
           </div>
           <div>
-            <div style={{ fontSize: 'var(--font-micro)', color: '#64748b' }}>قواعد الأصناف</div>
+            <div style={{ fontSize: 'var(--font-micro)', color: '#64748b' }}>{t('sales.price_lists.price_list_card.s6', "قواعد الأصناف")}</div>
             <div style={{ fontSize: 'var(--font-body)', fontWeight: 700, color: '#170e5e' }}>
-              {list.items_count || 0} صنف/شريحة
+              {list.items_count || 0} {t('sales.price_lists.price_list_card.s7', "صنف/شريحة")}
             </div>
           </div>
         </div>
@@ -114,7 +116,7 @@ export const PriceListCard: React.FC<PriceListCardProps> = ({ list, onEdit, onDe
             outline: 'none',
           }}
         >
-          <AppIcons.Edit size={14} /> تعديل
+          <AppIcons.Edit size={14} /> {t('sales.price_lists.price_list_card.s8', "تعديل")}
         </button>
         <button
           type="button"
@@ -134,7 +136,7 @@ export const PriceListCard: React.FC<PriceListCardProps> = ({ list, onEdit, onDe
             outline: 'none',
           }}
         >
-          <AppIcons.Trash size={14} /> حذف
+          <AppIcons.Trash size={14} /> {t('sales.price_lists.price_list_card.s9', "حذف")}
         </button>
       </div>
     </div>

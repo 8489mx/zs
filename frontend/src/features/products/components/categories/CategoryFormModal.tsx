@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { FolderIcon } from '@/shared/components/icons/AppIcons';
@@ -26,6 +27,7 @@ export const CategoryFormModal: React.FC<CategoryFormModalProps> = ({
   onSubmit,
   submitLabel,
 }) => {
+  const { t } = useTranslation();
   if (!isOpen) return null;
 
   return (
@@ -33,14 +35,14 @@ export const CategoryFormModal: React.FC<CategoryFormModalProps> = ({
       open={isOpen}
       onClose={onClose}
       title={title}
-      subtitle="إدارة وتعديل بيانات الأقسام والتصنيفات في المنظومة"
+      subtitle={t('products.categories.category_form_modal.s0', "إدارة وتعديل بيانات الأقسام والتصنيفات في المنظومة")}
       maxWidth="480px"
       footerActions={
         <StandardDialogFooter
           onClose={onClose}
           onSubmit={onSubmit}
           submitLabel={submitLabel}
-          loadingText="جاري الحفظ..."
+          loadingText={t('products.categories.category_form_modal.s1', "جاري الحفظ...")}
           isPending={isPending}
           disabled={!name.trim()}
         />
@@ -61,15 +63,15 @@ export const CategoryFormModal: React.FC<CategoryFormModalProps> = ({
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px' }}>
             <FolderIcon size={16} color="#170e5e" />
-            <span style={{ fontSize: '0.84rem', fontWeight: 700, color: '#170e5e' }}>بيانات القسم الأساسية</span>
+            <span style={{ fontSize: '0.84rem', fontWeight: 700, color: '#170e5e' }}>{t('products.categories.category_form_modal.s2', "بيانات القسم الأساسية")}</span>
           </div>
 
-          <Field label="اسم القسم أو التصنيف">
+          <Field label={t('products.categories.category_form_modal.s3', "اسم القسم أو التصنيف")}>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="مثال: مشروبات ساخنة، أدوات مكتبية..."
+              placeholder={t('products.categories.category_form_modal.s4', "مثال: مشروبات ساخنة، أدوات مكتبية...")}
               autoFocus
               className="purchase-prototype-field-input"
               style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #cbd5e1' }}

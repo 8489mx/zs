@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import type { RefObject } from 'react';
 import { FormSection } from '@/shared/components/form-section';
 import { Button } from '@/shared/ui/button';
@@ -55,12 +56,13 @@ export function ServicePresetDialog({
   onAddCustomDraftService,
   onSavePresetServices,
 }: ServicePresetDialogProps) {
+  const { t } = useTranslation();
   return (
     <DialogShell open={open} onClose={onClose} width="min(760px, 100%)" zIndex={75}>
       <FormSection
-        title="تخصيص خدمات النشاط"
+        title={t('services.service_preset_dialog.s0', "تخصيص خدمات النشاط")}
         className="dialog-card"
-        description="اختر قالبًا جاهزًا أو أضف خدماتك يدويًا حسب طبيعة نشاطك."
+        description={t('services.service_preset_dialog.s1', "اختر قالبًا جاهزًا أو أضف خدماتك يدويًا حسب طبيعة نشاطك.")}
       >
         <div className="page-stack" style={{ gap: 12 }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 10 }}>
@@ -85,10 +87,10 @@ export function ServicePresetDialog({
             ))}
           </div>
 
-          <FormSection title="الخدمات المقترحة" description="يمكنك تعديل الأسعار أو إلغاء أي خدمة قبل الحفظ.">
+          <FormSection title={t('services.service_preset_dialog.s2', "الخدمات المقترحة")} description={t('services.service_preset_dialog.s3', "يمكنك تعديل الأسعار أو إلغاء أي خدمة قبل الحفظ.")}>
             <div className="page-stack" style={{ gap: 10 }}>
               {!presetDrafts.length ? (
-                <div className="muted">لا توجد خدمات مقترحة لهذا الاختيار. أضف خدماتك يدويًا من الزر التالي.</div>
+                <div className="muted">{t('services.service_preset_dialog.s4', "لا توجد خدمات مقترحة لهذا الاختيار. أضف خدماتك يدويًا من الزر التالي.")}</div>
               ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 10 }}>
                   {presetDrafts.map((item) => (
@@ -113,14 +115,14 @@ export function ServicePresetDialog({
                         <span style={{ fontWeight: 600 }}>{item.name}</span>
                       </label>
                       <label className="field" style={{ margin: 0 }}>
-                        <span className="muted small">السعر الافتراضي اختياري</span>
+                        <span className="muted small">{t('services.service_preset_dialog.s5', "السعر الافتراضي اختياري")}</span>
                         <input
                           type="number"
                           min="0"
                           step="0.01"
                           value={item.amountInput}
                           onChange={(event) => onDraftAmountChange(item.id, event.target.value)}
-                          placeholder="اختياري"
+                          placeholder={t('services.service_preset_dialog.s6', "اختياري")}
                           style={{ minHeight: 36 }}
                         />
                       </label>
@@ -130,7 +132,7 @@ export function ServicePresetDialog({
               )}
 
               <div className="actions compact-actions" style={{ justifyContent: 'flex-start' }}>
-                <Button type="button" variant="secondary" onClick={onToggleCustomDraftInputs}>إضافة خدمة مخصصة +</Button>
+                <Button type="button" variant="secondary" onClick={onToggleCustomDraftInputs}>{t('services.service_preset_dialog.s7', "إضافة خدمة مخصصة +")}</Button>
               </div>
 
               {showCustomDraftInputs ? (
@@ -144,24 +146,24 @@ export function ServicePresetDialog({
                     gap: 10,
                   }}
                 >
-                  <div className="muted small" style={{ fontWeight: 600 }}>إضافة خدمة مخصصة</div>
+                  <div className="muted small" style={{ fontWeight: 600 }}>{t('services.service_preset_dialog.s8', "إضافة خدمة مخصصة")}</div>
                   <div className="form-grid" style={{ gridTemplateColumns: '2fr 1fr auto', gap: 10 }}>
                     <div className="field" style={{ margin: 0 }}>
                       <label>
-                        <span>اسم الخدمة</span>
+                        <span>{t('services.service_preset_dialog.s9', "اسم الخدمة")}</span>
                         <input
                           ref={customServiceNameInputRef}
                           value={customDraftName}
                           onFocus={() => onCustomNameFocusChange(true)}
                           onBlur={() => onCustomNameFocusChange(false)}
                           onChange={(event) => onCustomDraftNameChange(event.target.value)}
-                          placeholder="اسم الخدمة"
+                          placeholder={t('services.service_preset_dialog.s10', "اسم الخدمة")}
                         />
                       </label>
                     </div>
                     <div className="field" style={{ margin: 0 }}>
                       <label>
-                        <span>السعر (اختياري)</span>
+                        <span>{t('services.service_preset_dialog.s11', "السعر (اختياري)")}</span>
                         <input
                           type="number"
                           min="0"
@@ -173,7 +175,7 @@ export function ServicePresetDialog({
                       </label>
                     </div>
                     <div className="actions compact-actions" style={{ alignItems: 'flex-end' }}>
-                      <Button type="button" onClick={onAddCustomDraftService}>إضافة للقائمة</Button>
+                      <Button type="button" onClick={onAddCustomDraftService}>{t('services.service_preset_dialog.s12', "إضافة للقائمة")}</Button>
                     </div>
                   </div>
                 </div>
@@ -186,9 +188,9 @@ export function ServicePresetDialog({
           ) : null}
 
           <div className="actions sticky-form-actions">
-            <Button type="button" variant="secondary" onClick={onClose} disabled={isPresetSavePending}>إلغاء</Button>
+            <Button type="button" variant="secondary" onClick={onClose} disabled={isPresetSavePending}>{t('services.service_preset_dialog.s13', "إلغاء")}</Button>
             <Button type="button" onClick={onSavePresetServices} disabled={isPresetSavePending}>
-              {isPresetSavePending ? 'جاري الحفظ...' : `حفظ التخصيص (${selectedDraftCount})`}
+              {isPresetSavePending ? t('services.service_preset_dialog.s14', "جاري الحفظ...") : `حفظ التخصيص (${selectedDraftCount})`}
             </Button>
           </div>
         </div>

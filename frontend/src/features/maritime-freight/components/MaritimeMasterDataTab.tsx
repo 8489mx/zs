@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useMemo, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import {
@@ -49,6 +50,7 @@ export function MaritimeMasterDataTab({
   lines,
   onRefresh,
 }: MaritimeMasterDataTabProps) {
+  const { t: __t } = useTranslation();
   const location = useLocation();
   const { pipelineConfig, refreshAll } = useMaritime();
   const enableSeaFreight = pipelineConfig?.enableSeaFreight !== false;
@@ -484,10 +486,10 @@ export function MaritimeMasterDataTab({
         >
           <div>
             <h3 style={{ margin: 0, fontSize: '0.94rem', fontWeight: 800, color: '#0f172a' }}>
-              دليل الخطوط والوكلاء والموانئ (Shipping Lines, Agents & Ports)
+              {__t('maritime_freight.maritime_master_data_tab.s0', "دليل الخطوط والوكلاء والموانئ (Shipping Lines, Agents & Ports)")}
             </h3>
             <p style={{ margin: '3px 0 0 0', fontSize: '0.78rem', color: '#64748b' }}>
-              إدارة شاملة لخطوط الملاحة البحرية، شبكة وكلاء الشحن المعتمدين حول العالم، ودليل الموانئ الدولية
+              {__t('maritime_freight.maritime_master_data_tab.s1', "إدارة شاملة لخطوط الملاحة البحرية، شبكة وكلاء الشحن المعتمدين حول العالم، ودليل الموانئ الدولية")}
             </p>
           </div>
 
@@ -495,7 +497,7 @@ export function MaritimeMasterDataTab({
             <button
               type="button"
               onClick={() => setImportModalOpen(true)}
-              title="استيراد جهات الاتصال وخطوط الشحن من ملف Excel أو CSV"
+              title={__t('maritime_freight.maritime_master_data_tab.s2', "استيراد جهات الاتصال وخطوط الشحن من ملف Excel أو CSV")}
               style={{
                 height: '36px',
                 padding: '0 12px',
@@ -514,12 +516,12 @@ export function MaritimeMasterDataTab({
               }}
             >
               <AppIcons.FileSpreadsheet size={15} color="#0f766e" />
-              <span>استيراد من Excel / CSV</span>
+              <span>{__t('maritime_freight.maritime_master_data_tab.s3', "استيراد من Excel / CSV")}</span>
             </button>
             <button
               type="button"
               onClick={exportMasterDataCsv}
-              title="تصدير السجلات الحالية إلى ملف Excel أو CSV"
+              title={__t('maritime_freight.maritime_master_data_tab.s4', "تصدير السجلات الحالية إلى ملف Excel أو CSV")}
               style={{
                 height: '36px',
                 padding: '0 12px',
@@ -538,14 +540,14 @@ export function MaritimeMasterDataTab({
               }}
             >
               <AppIcons.FileSpreadsheet size={15} color="#15803d" />
-              <span>تصدير إلى Excel / CSV</span>
+              <span>{__t('maritime_freight.maritime_master_data_tab.s5', "تصدير إلى Excel / CSV")}</span>
             </button>
 
             <button
               type="button"
               onClick={handleSeedDefaults}
               disabled={isSeeding}
-              title="استعادة وتحديث الدليل القياسي لخطوط الملاحة وشركات الطيران والموانئ والمطارات"
+              title={__t('maritime_freight.maritime_master_data_tab.s6', "استعادة وتحديث الدليل القياسي لخطوط الملاحة وشركات الطيران والموانئ والمطارات")}
               style={{
                 height: '36px',
                 padding: '0 12px',
@@ -565,7 +567,7 @@ export function MaritimeMasterDataTab({
               }}
             >
               <AppIcons.RotateCcw size={14} />
-              <span>{isSeeding ? 'جاري الاستعادة...' : 'استعادة الدليل القياسي'}</span>
+              <span>{isSeeding ? __t('maritime_freight.maritime_master_data_tab.s7', "جاري الاستعادة...") : __t('maritime_freight.maritime_master_data_tab.s8', "استعادة الدليل القياسي")}</span>
             </button>
 
             <span
@@ -588,7 +590,7 @@ export function MaritimeMasterDataTab({
               {subTab === 'agents' && `${overseasAgentsList.length} وكيل شحن`}
               {subTab === 'ports' && `${seaPortsList.length} ميناء بحري`}
               {subTab === 'airports' && `${airPortsList.length} مطار شحن`}
-              {subTab === 'standards' && 'المواصفات القياسية'}
+              {subTab === 'standards' && __t('maritime_freight.maritime_master_data_tab.s9', "المواصفات القياسية")}
             </span>
 
             {subTab === 'lines' && (
@@ -613,7 +615,7 @@ export function MaritimeMasterDataTab({
                 }}
               >
                 <AppIcons.Plus size={15} />
-                <span>+ إضافة خط ملاحي</span>
+                <span>{__t('maritime_freight.maritime_master_data_tab.s10', "+ إضافة خط ملاحي")}</span>
               </button>
             )}
 
@@ -643,7 +645,7 @@ export function MaritimeMasterDataTab({
                 }}
               >
                 <AppIcons.Plus size={15} />
-                <span>+ إضافة شركة طيران</span>
+                <span>{__t('maritime_freight.maritime_master_data_tab.s11', "+ إضافة شركة طيران")}</span>
               </button>
             )}
 
@@ -669,7 +671,7 @@ export function MaritimeMasterDataTab({
                 }}
               >
                 <AppIcons.Plus size={15} />
-                <span>+ إضافة وكيل خارجي</span>
+                <span>{__t('maritime_freight.maritime_master_data_tab.s12', "+ إضافة وكيل خارجي")}</span>
               </button>
             )}
 
@@ -695,7 +697,7 @@ export function MaritimeMasterDataTab({
                 }}
               >
                 <AppIcons.Plus size={15} />
-                <span>{showAddPortForm ? 'إخفاء نموذج الإضافة' : subTab === 'airports' ? '+ إضافة مطار شحن' : '+ إضافة ميناء جديد'}</span>
+                <span>{showAddPortForm ? __t('maritime_freight.maritime_master_data_tab.s13', "إخفاء نموذج الإضافة") : subTab === 'airports' ? __t('maritime_freight.maritime_master_data_tab.s14', "+ إضافة مطار شحن") : __t('maritime_freight.maritime_master_data_tab.s15', "+ إضافة ميناء جديد")}</span>
               </button>
             )}
           </div>
@@ -741,7 +743,7 @@ export function MaritimeMasterDataTab({
               }}
             >
               <AppIcons.Ship size={14} />
-              <span>الخطوط الملاحية ({shippingLinesList.length})</span>
+              <span>{__t('maritime_freight.maritime_master_data_tab.s16', "الخطوط الملاحية (")}{shippingLinesList.length})</span>
             </button>
           )}
 
@@ -770,7 +772,7 @@ export function MaritimeMasterDataTab({
               }}
             >
               <AppIcons.Plane size={14} />
-              <span>شركات الطيران ({airlinesList.length})</span>
+              <span>{__t('maritime_freight.maritime_master_data_tab.s17', "شركات الطيران (")}{airlinesList.length})</span>
             </button>
           )}
 
@@ -799,7 +801,7 @@ export function MaritimeMasterDataTab({
             }}
           >
             <AppIcons.Users size={14} />
-            <span>وكلاء الشحن ({overseasAgentsList.length})</span>
+            <span>{__t('maritime_freight.maritime_master_data_tab.s18', "وكلاء الشحن (")}{overseasAgentsList.length})</span>
           </button>
 
           {enableSeaFreight && (
@@ -827,7 +829,7 @@ export function MaritimeMasterDataTab({
               }}
             >
               <AppIcons.Globe size={14} />
-              <span>الموانئ البحرية ({seaPortsList.length})</span>
+              <span>{__t('maritime_freight.maritime_master_data_tab.s19', "الموانئ البحرية (")}{seaPortsList.length})</span>
             </button>
           )}
 
@@ -856,7 +858,7 @@ export function MaritimeMasterDataTab({
               }}
             >
               <AppIcons.Plane size={14} />
-              <span>مطارات الشحن ({airPortsList.length})</span>
+              <span>{__t('maritime_freight.maritime_master_data_tab.s20', "مطارات الشحن (")}{airPortsList.length})</span>
             </button>
           )}
 
@@ -884,7 +886,7 @@ export function MaritimeMasterDataTab({
             }}
           >
             <AppIcons.Container size={14} />
-            <span>المواصفات و Incoterms</span>
+            <span>{__t('maritime_freight.maritime_master_data_tab.s21', "المواصفات و Incoterms")}</span>
           </button>
         </div>
 
@@ -916,7 +918,7 @@ export function MaritimeMasterDataTab({
                 data-lpignore="true"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="بحث في الخطوط الملاحية والتوكيلات..."
+                placeholder={__t('maritime_freight.maritime_master_data_tab.s22', "بحث في الخطوط الملاحية والتوكيلات...")}
                 style={{
                   width: '100%',
                   height: '34px',
@@ -935,7 +937,7 @@ export function MaritimeMasterDataTab({
                 <button
                   type="button"
                   onClick={() => setSearchQuery('')}
-                  title="مسح البحث"
+                  title={__t('maritime_freight.maritime_master_data_tab.s23', "مسح البحث")}
                   style={{
                     position: 'absolute',
                     left: '8px',
@@ -958,13 +960,13 @@ export function MaritimeMasterDataTab({
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-              <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600, whiteSpace: 'nowrap' }}>المسار:</span>
+              <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600, whiteSpace: 'nowrap' }}>{__t('maritime_freight.maritime_master_data_tab.s24', "المسار:")}</span>
               {[
-                { id: 'all', label: 'الكل' },
-                { id: 'far_east', label: 'الصين والشرق الأقصى' },
-                { id: 'europe_med', label: 'أوروبا والمتوسط' },
-                { id: 'arabian_gulf', label: 'الخليج والبحر الأحمر' },
-                { id: 'americas', label: 'الأمريكتين' },
+                { id: 'all', label: __t('maritime_freight.maritime_master_data_tab.s25', "الكل") },
+                { id: 'far_east', label: __t('maritime_freight.maritime_master_data_tab.s26', "الصين والشرق الأقصى") },
+                { id: 'europe_med', label: __t('maritime_freight.maritime_master_data_tab.s27', "أوروبا والمتوسط") },
+                { id: 'arabian_gulf', label: __t('maritime_freight.maritime_master_data_tab.s28', "الخليج والبحر الأحمر") },
+                { id: 'americas', label: __t('maritime_freight.maritime_master_data_tab.s29', "الأمريكتين") },
               ].map((lane) => (
                 <button
                   key={lane.id}
@@ -1017,7 +1019,7 @@ export function MaritimeMasterDataTab({
                 data-lpignore="true"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="بحث في شركات الشحن الجوي والبادئات..."
+                placeholder={__t('maritime_freight.maritime_master_data_tab.s30', "بحث في شركات الشحن الجوي والبادئات...")}
                 style={{
                   width: '100%',
                   height: '34px',
@@ -1036,7 +1038,7 @@ export function MaritimeMasterDataTab({
                 <button
                   type="button"
                   onClick={() => setSearchQuery('')}
-                  title="مسح البحث"
+                  title={__t('maritime_freight.maritime_master_data_tab.s31', "مسح البحث")}
                   style={{
                     position: 'absolute',
                     left: '8px',
@@ -1087,7 +1089,7 @@ export function MaritimeMasterDataTab({
                 data-lpignore="true"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="بحث باسم الوكيل، الدولة، أو الكود..."
+                placeholder={__t('maritime_freight.maritime_master_data_tab.s32', "بحث باسم الوكيل، الدولة، أو الكود...")}
                 style={{
                   width: '100%',
                   height: '34px',
@@ -1106,7 +1108,7 @@ export function MaritimeMasterDataTab({
                 <button
                   type="button"
                   onClick={() => setSearchQuery('')}
-                  title="مسح البحث"
+                  title={__t('maritime_freight.maritime_master_data_tab.s33', "مسح البحث")}
                   style={{
                     position: 'absolute',
                     left: '8px',
@@ -1129,7 +1131,7 @@ export function MaritimeMasterDataTab({
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600, whiteSpace: 'nowrap' }}>دولة ومقر الوكيل:</span>
+              <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600, whiteSpace: 'nowrap' }}>{__t('maritime_freight.maritime_master_data_tab.s34', "دولة ومقر الوكيل:")}</span>
               <div style={{ minWidth: '200px' }}>
                 <CustomSelect
                   value={selectedCountry}
@@ -1152,28 +1154,28 @@ export function MaritimeMasterDataTab({
                 }}
               >
                 <h4 style={{ margin: '0 0 12px', fontSize: '0.88rem', fontWeight: 700, color: '#170e5e' }}>
-                  {subTab === 'airports' ? 'بيانات مطار الشحن الدولي الجديد (Cargo Airport)' : 'بيانات الميناء الجديد (UN/LOCODE Seaport)'}
+                  {subTab === 'airports' ? __t('maritime_freight.maritime_master_data_tab.s35', "بيانات مطار الشحن الدولي الجديد (Cargo Airport)") : __t('maritime_freight.maritime_master_data_tab.s36', "بيانات الميناء الجديد (UN/LOCODE Seaport)")}
                 </h4>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '10px', alignItems: 'flex-end' }}>
-                  <Field label={subTab === 'airports' ? 'كود IATA (3 حروف) *' : 'كود الميناء (UN/LOCODE) *'}>
+                  <Field label={subTab === 'airports' ? __t('maritime_freight.maritime_master_data_tab.s37', "كود IATA (3 حروف) *") : __t('maritime_freight.maritime_master_data_tab.s38', "كود الميناء (UN/LOCODE) *")}>
                     <input
                       type="text"
                       value={newPortCode}
                       onChange={(e) => setNewPortCode(e.target.value.toUpperCase())}
-                      placeholder={subTab === 'airports' ? 'مثال: CAI, DXB' : 'مثال: EGALY, CNSHA'}
+                      placeholder={subTab === 'airports' ? __t('maritime_freight.maritime_master_data_tab.s39', "مثال: CAI, DXB") : __t('maritime_freight.maritime_master_data_tab.s40', "مثال: EGALY, CNSHA")}
                       style={{ width: '100%', height: '34px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 8px', fontSize: '0.8125rem' }}
                     />
                   </Field>
-                  <Field label={subTab === 'airports' ? 'اسم المطار بالعربية *' : 'اسم الميناء بالعربية *'}>
+                  <Field label={subTab === 'airports' ? __t('maritime_freight.maritime_master_data_tab.s41', "اسم المطار بالعربية *") : __t('maritime_freight.maritime_master_data_tab.s42', "اسم الميناء بالعربية *")}>
                     <input
                       type="text"
                       value={newPortNameAr}
                       onChange={(e) => setNewPortNameAr(e.target.value)}
-                      placeholder={subTab === 'airports' ? 'مطار القاهرة للشحن' : 'ميناء الإسكندرية'}
+                      placeholder={subTab === 'airports' ? __t('maritime_freight.maritime_master_data_tab.s43', "مطار القاهرة للشحن") : __t('maritime_freight.maritime_master_data_tab.s44', "ميناء الإسكندرية")}
                       style={{ width: '100%', height: '34px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 8px', fontSize: '0.8125rem' }}
                     />
                   </Field>
-                  <Field label={subTab === 'airports' ? 'اسم المطار بالإنجليزية' : 'اسم الميناء بالإنجليزية'}>
+                  <Field label={subTab === 'airports' ? __t('maritime_freight.maritime_master_data_tab.s45', "اسم المطار بالإنجليزية") : __t('maritime_freight.maritime_master_data_tab.s46', "اسم الميناء بالإنجليزية")}>
                     <input
                       type="text"
                       value={newPortNameEn}
@@ -1182,12 +1184,12 @@ export function MaritimeMasterDataTab({
                       style={{ width: '100%', height: '34px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 8px', fontSize: '0.8125rem' }}
                     />
                   </Field>
-                  <Field label="الدولة">
+                  <Field label={__t('maritime_freight.maritime_master_data_tab.s47', "الدولة")}>
                     <input
                       type="text"
                       value={newPortCountryName}
                       onChange={(e) => setNewPortCountryName(e.target.value)}
-                      placeholder="مصر، الإمارات..."
+                      placeholder={__t('maritime_freight.maritime_master_data_tab.s48', "مصر، الإمارات...")}
                       style={{ width: '100%', height: '34px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 8px', fontSize: '0.8125rem' }}
                     />
                   </Field>
@@ -1208,7 +1210,7 @@ export function MaritimeMasterDataTab({
                       whiteSpace: 'nowrap',
                     }}
                   >
-                    {subTab === 'airports' ? 'حفظ المطار' : 'حفظ الميناء'}
+                    {subTab === 'airports' ? __t('maritime_freight.maritime_master_data_tab.s49', "حفظ المطار") : __t('maritime_freight.maritime_master_data_tab.s50', "حفظ الميناء")}
                   </button>
                 </div>
               </div>
@@ -1228,7 +1230,7 @@ export function MaritimeMasterDataTab({
                   data-lpignore="true"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder={subTab === 'airports' ? 'بحث في مطارات الشحن بالكود أو الاسم...' : 'بحث في الموانئ بالكود أو الاسم...'}
+                  placeholder={subTab === 'airports' ? __t('maritime_freight.maritime_master_data_tab.s51', "بحث في مطارات الشحن بالكود أو الاسم...") : __t('maritime_freight.maritime_master_data_tab.s52', "بحث في الموانئ بالكود أو الاسم...")}
                   style={{
                     width: '100%',
                     height: '34px',
@@ -1247,7 +1249,7 @@ export function MaritimeMasterDataTab({
                   <button
                     type="button"
                     onClick={() => setSearchQuery('')}
-                    title="مسح البحث"
+                    title={__t('maritime_freight.maritime_master_data_tab.s53', "مسح البحث")}
                     style={{
                       position: 'absolute',
                       left: '8px',
@@ -1312,7 +1314,7 @@ export function MaritimeMasterDataTab({
                 }}
               >
                 <AppIcons.Container size={14} />
-                <span>مواصفات الحاويات (ISO Containers)</span>
+                <span>{__t('maritime_freight.maritime_master_data_tab.s54', "مواصفات الحاويات (ISO Containers)")}</span>
               </button>
 
               <button
@@ -1337,7 +1339,7 @@ export function MaritimeMasterDataTab({
                 }}
               >
                 <AppIcons.FileCheck size={14} />
-                <span>شروط التجارة الدولية (Incoterms 2020)</span>
+                <span>{__t('maritime_freight.maritime_master_data_tab.s55', "شروط التجارة الدولية (Incoterms 2020)")}</span>
               </button>
 
               <button
@@ -1362,7 +1364,7 @@ export function MaritimeMasterDataTab({
                 }}
               >
                 <AppIcons.Building size={14} />
-                <span>محطات الحاويات بالموانئ (Terminals)</span>
+                <span>{__t('maritime_freight.maritime_master_data_tab.s56', "محطات الحاويات بالموانئ (Terminals)")}</span>
               </button>
             </div>
 
@@ -1371,10 +1373,10 @@ export function MaritimeMasterDataTab({
               {standardsSubCategory === 'containers' && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                   {[
-                    { id: 'all', label: 'الكل' },
-                    { id: 'dry', label: 'جافة (Dry)' },
-                    { id: 'reefer', label: 'مبردة (Reefer)' },
-                    { id: 'special', label: 'خاصة (Special)' },
+                    { id: 'all', label: __t('maritime_freight.maritime_master_data_tab.s57', "الكل") },
+                    { id: 'dry', label: __t('maritime_freight.maritime_master_data_tab.s58', "جافة (Dry)") },
+                    { id: 'reefer', label: __t('maritime_freight.maritime_master_data_tab.s59', "مبردة (Reefer)") },
+                    { id: 'special', label: __t('maritime_freight.maritime_master_data_tab.s60', "خاصة (Special)") },
                   ].map((cat) => (
                     <button
                       key={cat.id}
@@ -1413,10 +1415,10 @@ export function MaritimeMasterDataTab({
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder={
                     standardsSubCategory === 'containers'
-                      ? 'بحث في الحاويات...'
+                      ? __t('maritime_freight.maritime_master_data_tab.s61', "بحث في الحاويات...")
                       : standardsSubCategory === 'incoterms'
-                      ? 'بحث في الـ Incoterms...'
-                      : 'بحث في محطات الموانئ...'
+                      ? __t('maritime_freight.maritime_master_data_tab.s62', "بحث في الـ Incoterms...")
+                      : __t('maritime_freight.maritime_master_data_tab.s63', "بحث في محطات الموانئ...")
                   }
                   style={{
                     width: '100%',
@@ -1436,7 +1438,7 @@ export function MaritimeMasterDataTab({
                   <button
                     type="button"
                     onClick={() => setSearchQuery('')}
-                    title="مسح البحث"
+                    title={__t('maritime_freight.maritime_master_data_tab.s64', "مسح البحث")}
                     style={{
                       position: 'absolute',
                       left: '6px',
@@ -1477,19 +1479,19 @@ export function MaritimeMasterDataTab({
               </colgroup>
               <thead>
                 <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', fontWeight: 700, textAlign: 'center' }}>
-                  <th style={{ padding: '12px 14px', textAlign: 'center', whiteSpace: 'nowrap' }}>كود الخط</th>
-                  <th style={{ padding: '12px 14px', textAlign: 'center' }}>اسم الخط الملاحي</th>
-                  <th style={{ padding: '12px 14px', textAlign: 'center' }}>مسارات الإبحار</th>
-                  <th style={{ padding: '12px 14px', textAlign: 'center' }}>إيميل التسعير والحجز</th>
-                  <th style={{ padding: '12px 14px', textAlign: 'center' }}>الهاتف والتواصل</th>
-                  <th style={{ padding: '12px 14px', textAlign: 'center', whiteSpace: 'nowrap' }}>الإجراءات</th>
+                  <th style={{ padding: '12px 14px', textAlign: 'center', whiteSpace: 'nowrap' }}>{__t('maritime_freight.maritime_master_data_tab.s65', "كود الخط")}</th>
+                  <th style={{ padding: '12px 14px', textAlign: 'center' }}>{__t('maritime_freight.maritime_master_data_tab.s66', "اسم الخط الملاحي")}</th>
+                  <th style={{ padding: '12px 14px', textAlign: 'center' }}>{__t('maritime_freight.maritime_master_data_tab.s67', "مسارات الإبحار")}</th>
+                  <th style={{ padding: '12px 14px', textAlign: 'center' }}>{__t('maritime_freight.maritime_master_data_tab.s68', "إيميل التسعير والحجز")}</th>
+                  <th style={{ padding: '12px 14px', textAlign: 'center' }}>{__t('maritime_freight.maritime_master_data_tab.s69', "الهاتف والتواصل")}</th>
+                  <th style={{ padding: '12px 14px', textAlign: 'center', whiteSpace: 'nowrap' }}>{__t('maritime_freight.maritime_master_data_tab.s70', "الإجراءات")}</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredLines.length === 0 ? (
                   <tr>
                     <td colSpan={6} style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>
-                      لا توجد خطوط ملاحية مطابقة لمعايير البحث
+                      {__t('maritime_freight.maritime_master_data_tab.s71', "لا توجد خطوط ملاحية مطابقة لمعايير البحث")}
                     </td>
                   </tr>
                 ) : (
@@ -1539,7 +1541,7 @@ export function MaritimeMasterDataTab({
                       <td style={{ padding: '12px 14px', overflow: 'hidden' }}>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
                           {!line.trade_lanes ? (
-                            <span style={{ color: '#94a3b8', fontSize: '0.74rem' }}>عالمي</span>
+                            <span style={{ color: '#94a3b8', fontSize: '0.74rem' }}>{__t('maritime_freight.maritime_master_data_tab.s72', "عالمي")}</span>
                           ) : (
                             line.trade_lanes.split(',').slice(0, 3).map((l) => (
                               <span
@@ -1566,7 +1568,7 @@ export function MaritimeMasterDataTab({
                             <button
                               type="button"
                               onClick={() => handleCopyEmail(line.rfq_email!)}
-                              title="نسخ الإيميل"
+                              title={__t('maritime_freight.maritime_master_data_tab.s73', "نسخ الإيميل")}
                               style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', padding: '2px', flexShrink: 0, display: 'inline-flex', alignItems: 'center' }}
                             >
                               <AppIcons.Copy size={13} />
@@ -1588,7 +1590,7 @@ export function MaritimeMasterDataTab({
                             </span>
                           </div>
                         ) : (
-                          <span style={{ color: '#94a3b8' }}>غير مسجل</span>
+                          <span style={{ color: '#94a3b8' }}>{__t('maritime_freight.maritime_master_data_tab.s74', "غير مسجل")}</span>
                         )}
                         {line.booking_email && (
                           <div
@@ -1626,7 +1628,7 @@ export function MaritimeMasterDataTab({
                                 alignItems: 'center',
                                 gap: '4px',
                               }}
-                              title="فتح محادثة واتساب"
+                              title={__t('maritime_freight.maritime_master_data_tab.s75', "فتح محادثة واتساب")}
                             >
                               <span>{line.phone}</span>
                             </a>
@@ -1655,7 +1657,7 @@ export function MaritimeMasterDataTab({
                             cursor: 'pointer',
                           }}
                         >
-                          تعديل
+                          {__t('maritime_freight.maritime_master_data_tab.s76', "تعديل")}
                         </button>
                       </td>
                     </tr>
@@ -1680,19 +1682,19 @@ export function MaritimeMasterDataTab({
               </colgroup>
               <thead>
                 <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', fontWeight: 700, textAlign: 'center' }}>
-                  <th style={{ padding: '12px 14px', textAlign: 'center', whiteSpace: 'nowrap' }}>كود وبادئة AWB</th>
-                  <th style={{ padding: '12px 14px', textAlign: 'center' }}>شركة الطيران / الشحن الجوي</th>
-                  <th style={{ padding: '12px 14px', textAlign: 'center' }}>إيميل التسعير والحجز (RFQ)</th>
-                  <th style={{ padding: '12px 14px', textAlign: 'center' }}>الهاتف والتواصل</th>
-                  <th style={{ padding: '12px 14px', textAlign: 'center' }}>مسؤول الشحن</th>
-                  <th style={{ padding: '12px 14px', textAlign: 'center', whiteSpace: 'nowrap' }}>الإجراءات</th>
+                  <th style={{ padding: '12px 14px', textAlign: 'center', whiteSpace: 'nowrap' }}>{__t('maritime_freight.maritime_master_data_tab.s77', "كود وبادئة AWB")}</th>
+                  <th style={{ padding: '12px 14px', textAlign: 'center' }}>{__t('maritime_freight.maritime_master_data_tab.s78', "شركة الطيران / الشحن الجوي")}</th>
+                  <th style={{ padding: '12px 14px', textAlign: 'center' }}>{__t('maritime_freight.maritime_master_data_tab.s79', "إيميل التسعير والحجز (RFQ)")}</th>
+                  <th style={{ padding: '12px 14px', textAlign: 'center' }}>{__t('maritime_freight.maritime_master_data_tab.s80', "الهاتف والتواصل")}</th>
+                  <th style={{ padding: '12px 14px', textAlign: 'center' }}>{__t('maritime_freight.maritime_master_data_tab.s81', "مسؤول الشحن")}</th>
+                  <th style={{ padding: '12px 14px', textAlign: 'center', whiteSpace: 'nowrap' }}>{__t('maritime_freight.maritime_master_data_tab.s82', "الإجراءات")}</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredAirlines.length === 0 ? (
                   <tr>
                     <td colSpan={6} style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>
-                      لا توجد شركات طيران مطابقة لمعايير البحث
+                      {__t('maritime_freight.maritime_master_data_tab.s83', "لا توجد شركات طيران مطابقة لمعايير البحث")}
                     </td>
                   </tr>
                 ) : (
@@ -1726,7 +1728,7 @@ export function MaritimeMasterDataTab({
                             <button
                               type="button"
                               onClick={() => handleCopyEmail(airline.rfq_email!)}
-                              title="نسخ إيميل التسعير"
+                              title={__t('maritime_freight.maritime_master_data_tab.s84', "نسخ إيميل التسعير")}
                               style={{
                                 background: 'none',
                                 border: 'none',
@@ -1791,7 +1793,7 @@ export function MaritimeMasterDataTab({
                                 alignItems: 'center',
                                 gap: '4px',
                               }}
-                              title="فتح محادثة واتساب"
+                              title={__t('maritime_freight.maritime_master_data_tab.s85', "فتح محادثة واتساب")}
                             >
                               <span>{airline.phone}</span>
                             </a>
@@ -1821,7 +1823,7 @@ export function MaritimeMasterDataTab({
                               cursor: 'pointer',
                             }}
                           >
-                            تعديل
+                            {__t('maritime_freight.maritime_master_data_tab.s86', "تعديل")}
                           </button>
                           <button
                             type="button"
@@ -1837,7 +1839,7 @@ export function MaritimeMasterDataTab({
                               cursor: 'pointer',
                             }}
                           >
-                            حذف
+                            {__t('maritime_freight.maritime_master_data_tab.s87', "حذف")}
                           </button>
                         </div>
                       </td>
@@ -1863,19 +1865,19 @@ export function MaritimeMasterDataTab({
               </colgroup>
               <thead>
                 <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', fontWeight: 700, textAlign: 'center' }}>
-                  <th style={{ padding: '12px 14px', textAlign: 'center', whiteSpace: 'nowrap' }}>كود الوكيل</th>
-                  <th style={{ padding: '12px 14px', textAlign: 'center' }}>اسم الشركة الوكيلة</th>
-                  <th style={{ padding: '12px 14px', textAlign: 'center' }}>الدولة والمدينة</th>
-                  <th style={{ padding: '12px 14px', textAlign: 'center' }}>مسؤول التسعير والتواصل</th>
-                  <th style={{ padding: '12px 14px', textAlign: 'center' }}>البريد الإلكتروني (RFQ)</th>
-                  <th style={{ padding: '12px 14px', textAlign: 'center', whiteSpace: 'nowrap' }}>الإجراءات</th>
+                  <th style={{ padding: '12px 14px', textAlign: 'center', whiteSpace: 'nowrap' }}>{__t('maritime_freight.maritime_master_data_tab.s88', "كود الوكيل")}</th>
+                  <th style={{ padding: '12px 14px', textAlign: 'center' }}>{__t('maritime_freight.maritime_master_data_tab.s89', "اسم الشركة الوكيلة")}</th>
+                  <th style={{ padding: '12px 14px', textAlign: 'center' }}>{__t('maritime_freight.maritime_master_data_tab.s90', "الدولة والمدينة")}</th>
+                  <th style={{ padding: '12px 14px', textAlign: 'center' }}>{__t('maritime_freight.maritime_master_data_tab.s91', "مسؤول التسعير والتواصل")}</th>
+                  <th style={{ padding: '12px 14px', textAlign: 'center' }}>{__t('maritime_freight.maritime_master_data_tab.s92', "البريد الإلكتروني (RFQ)")}</th>
+                  <th style={{ padding: '12px 14px', textAlign: 'center', whiteSpace: 'nowrap' }}>{__t('maritime_freight.maritime_master_data_tab.s93', "الإجراءات")}</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredAgents.length === 0 ? (
                   <tr>
                     <td colSpan={6} style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>
-                      لا يوجد وكلاء شحن مسجلون في هذه الدولة حالياً
+                      {__t('maritime_freight.maritime_master_data_tab.s94', "لا يوجد وكلاء شحن مسجلون في هذه الدولة حالياً")}
                     </td>
                   </tr>
                 ) : (
@@ -1903,11 +1905,11 @@ export function MaritimeMasterDataTab({
                       </td>
                       <td style={{ padding: '12px 14px', overflow: 'hidden' }}>
                         <div style={{ fontWeight: 700, color: '#1e293b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', direction: 'rtl', textAlign: 'right' }}>
-                          {agent.country_name || 'غير محدد'}
+                          {agent.country_name || __t('maritime_freight.maritime_master_data_tab.s95', "غير محدد")}
                         </div>
                         {agent.city_name && (
                           <div style={{ fontSize: '0.74rem', color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', direction: 'rtl', textAlign: 'right', marginTop: '2px' }}>
-                            مدينة: {agent.city_name}
+                            {__t('maritime_freight.maritime_master_data_tab.s96', "مدينة:")} {agent.city_name}
                           </div>
                         )}
                       </td>
@@ -1948,7 +1950,7 @@ export function MaritimeMasterDataTab({
                                 direction: 'ltr',
                                 textAlign: 'left',
                               }}
-                              title="فتح محادثة واتساب فورية"
+                              title={__t('maritime_freight.maritime_master_data_tab.s97', "فتح محادثة واتساب فورية")}
                             >
                               WA: {agent.whatsapp}
                             </a>
@@ -1987,7 +1989,7 @@ export function MaritimeMasterDataTab({
                             <button
                               type="button"
                               onClick={() => handleCopyEmail(agent.rfq_email!)}
-                              title="نسخ الإيميل"
+                              title={__t('maritime_freight.maritime_master_data_tab.s98', "نسخ الإيميل")}
                               style={{
                                 background: 'none',
                                 border: 'none',
@@ -2037,7 +2039,7 @@ export function MaritimeMasterDataTab({
                               cursor: 'pointer',
                             }}
                           >
-                            تعديل
+                            {__t('maritime_freight.maritime_master_data_tab.s99', "تعديل")}
                           </button>
                           <button
                             type="button"
@@ -2053,7 +2055,7 @@ export function MaritimeMasterDataTab({
                               cursor: 'pointer',
                             }}
                           >
-                            حذف
+                            {__t('maritime_freight.maritime_master_data_tab.s100', "حذف")}
                           </button>
                         </div>
                       </td>
@@ -2077,17 +2079,17 @@ export function MaritimeMasterDataTab({
               </colgroup>
               <thead>
                 <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', fontWeight: 700 }}>
-                  <th style={{ padding: '12px 14px', whiteSpace: 'nowrap' }}>كود UN/LOCODE</th>
-                  <th style={{ padding: '12px 14px' }}>الاسم بالعربية</th>
-                  <th style={{ padding: '12px 14px' }}>الاسم بالإنجليزية</th>
-                  <th style={{ padding: '12px 14px' }}>الدولة والرمز</th>
+                  <th style={{ padding: '12px 14px', whiteSpace: 'nowrap' }}>{__t('maritime_freight.maritime_master_data_tab.s101', "كود UN/LOCODE")}</th>
+                  <th style={{ padding: '12px 14px' }}>{__t('maritime_freight.maritime_master_data_tab.s102', "الاسم بالعربية")}</th>
+                  <th style={{ padding: '12px 14px' }}>{__t('maritime_freight.maritime_master_data_tab.s103', "الاسم بالإنجليزية")}</th>
+                  <th style={{ padding: '12px 14px' }}>{__t('maritime_freight.maritime_master_data_tab.s104', "الدولة والرمز")}</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredPorts.length === 0 ? (
                   <tr>
                     <td colSpan={4} style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>
-                      لا توجد موانئ مطابقة لبحثك
+                      {__t('maritime_freight.maritime_master_data_tab.s105', "لا توجد موانئ مطابقة لبحثك")}
                     </td>
                   </tr>
                 ) : (
@@ -2128,17 +2130,17 @@ export function MaritimeMasterDataTab({
               </colgroup>
               <thead>
                 <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', fontWeight: 700 }}>
-                  <th style={{ padding: '12px 14px', whiteSpace: 'nowrap' }}>كود IATA / ICAO</th>
-                  <th style={{ padding: '12px 14px' }}>اسم المطار بالعربية</th>
-                  <th style={{ padding: '12px 14px' }}>الاسم بالإنجليزية</th>
-                  <th style={{ padding: '12px 14px' }}>الدولة والرمز</th>
+                  <th style={{ padding: '12px 14px', whiteSpace: 'nowrap' }}>{__t('maritime_freight.maritime_master_data_tab.s106', "كود IATA / ICAO")}</th>
+                  <th style={{ padding: '12px 14px' }}>{__t('maritime_freight.maritime_master_data_tab.s107', "اسم المطار بالعربية")}</th>
+                  <th style={{ padding: '12px 14px' }}>{__t('maritime_freight.maritime_master_data_tab.s108', "الاسم بالإنجليزية")}</th>
+                  <th style={{ padding: '12px 14px' }}>{__t('maritime_freight.maritime_master_data_tab.s109', "الدولة والرمز")}</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredAirports.length === 0 ? (
                   <tr>
                     <td colSpan={4} style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>
-                      لا توجد مطارات شحن مطابقة لبحثك
+                      {__t('maritime_freight.maritime_master_data_tab.s110', "لا توجد مطارات شحن مطابقة لبحثك")}
                     </td>
                   </tr>
                 ) : (
@@ -2172,21 +2174,21 @@ export function MaritimeMasterDataTab({
           <div style={{ padding: '16px', minHeight: '480px', boxSizing: 'border-box' }}>
             {isLoadingRefData ? (
               <div style={{ padding: '60px', textAlign: 'center', color: '#64748b', fontSize: '0.84rem' }}>
-                جاري تحميل المراجع القياسية ومواصفات الحاويات...
+                {__t('maritime_freight.maritime_master_data_tab.s111', "جاري تحميل المراجع القياسية ومواصفات الحاويات...")}
               </div>
             ) : standardsSubCategory === 'containers' ? (
               <div>
                 <div style={{ marginBottom: '14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div>
                     <h4 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 800, color: '#0f172a' }}>
-                      المواصفات الهندسية للحاويات القياسية (ISO 6346 Container Specifications)
+                      {__t('maritime_freight.maritime_master_data_tab.s112', "المواصفات الهندسية للحاويات القياسية (ISO 6346 Container Specifications)")}
                     </h4>
                     <p style={{ margin: '2px 0 0 0', fontSize: '0.75rem', color: '#64748b' }}>
-                      الأوزان القصوى، السعات الحجمية بالمتر المكعب (CBM)، والأبعاد الداخلية والخارجية المعتمدة دولياً
+                      {__t('maritime_freight.maritime_master_data_tab.s113', "الأوزان القصوى، السعات الحجمية بالمتر المكعب (CBM)، والأبعاد الداخلية والخارجية المعتمدة دولياً")}
                     </p>
                   </div>
                   <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#170e5e', background: '#f8fafc', border: '1px solid #e2e8f0', padding: '3px 10px', borderRadius: '12px' }}>
-                    {filteredContainers.length} نوع حاوية
+                    {filteredContainers.length} {__t('maritime_freight.maritime_master_data_tab.s114', "نوع حاوية")}
                   </span>
                 </div>
 
@@ -2266,10 +2268,10 @@ export function MaritimeMasterDataTab({
                           }}
                         >
                           {c.category === 'dry'
-                            ? 'بضائع عامة جافة'
+                            ? __t('maritime_freight.maritime_master_data_tab.s115', "بضائع عامة جافة")
                             : c.category === 'reefer'
-                            ? 'مبردة ومجمدة'
-                            : 'تجهيز وتداول خاص'}
+                            ? __t('maritime_freight.maritime_master_data_tab.s116', "مبردة ومجمدة")
+                            : __t('maritime_freight.maritime_master_data_tab.s117', "تجهيز وتداول خاص")}
                         </span>
                       </div>
 
@@ -2287,21 +2289,21 @@ export function MaritimeMasterDataTab({
                         }}
                       >
                         <div>
-                          <div style={{ fontSize: '0.6875rem', color: '#64748b' }}>السعة (CBM)</div>
+                          <div style={{ fontSize: '0.6875rem', color: '#64748b' }}>{__t('maritime_freight.maritime_master_data_tab.s118', "السعة (CBM)")}</div>
                           <div style={{ fontSize: '0.84rem', fontWeight: 800, color: '#0369a1', marginTop: '2px' }}>
-                            {c.max_cbm} م³
+                            {c.max_cbm} {__t('maritime_freight.maritime_master_data_tab.s119', "م³")}
                           </div>
                         </div>
                         <div>
-                          <div style={{ fontSize: '0.6875rem', color: '#64748b' }}>أقصى حمولة</div>
+                          <div style={{ fontSize: '0.6875rem', color: '#64748b' }}>{__t('maritime_freight.maritime_master_data_tab.s120', "أقصى حمولة")}</div>
                           <div style={{ fontSize: '0.84rem', fontWeight: 800, color: '#15803d', marginTop: '2px' }}>
-                            {c.max_payload_kg.toLocaleString()} كجم
+                            {c.max_payload_kg.toLocaleString()} {__t('maritime_freight.maritime_master_data_tab.s121', "كجم")}
                           </div>
                         </div>
                         <div>
-                          <div style={{ fontSize: '0.6875rem', color: '#64748b' }}>الوزن فارغ</div>
+                          <div style={{ fontSize: '0.6875rem', color: '#64748b' }}>{__t('maritime_freight.maritime_master_data_tab.s122', "الوزن فارغ")}</div>
                           <div style={{ fontSize: '0.84rem', fontWeight: 700, color: '#475569', marginTop: '2px' }}>
-                            {c.tare_weight_kg.toLocaleString()} كجم
+                            {c.tare_weight_kg.toLocaleString()} {__t('maritime_freight.maritime_master_data_tab.s123', "كجم")}
                           </div>
                         </div>
                       </div>
@@ -2321,14 +2323,14 @@ export function MaritimeMasterDataTab({
                         }}
                       >
                         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                          <span style={{ color: '#64748b' }}>الأبعاد الداخلية (ط × ع × ع):</span>
+                          <span style={{ color: '#64748b' }}>{__t('maritime_freight.maritime_master_data_tab.s124', "الأبعاد الداخلية (ط × ع × ع):")}</span>
                           <span style={{ fontWeight: 600, direction: 'ltr' }}>
                             {c.internal_length_m} × {c.internal_width_m} × {c.internal_height_m} m
                           </span>
                         </div>
                         {c.door_width_m > 0 && (
                           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <span style={{ color: '#64748b' }}>أبعاد فتحة الباب (ع × ع):</span>
+                            <span style={{ color: '#64748b' }}>{__t('maritime_freight.maritime_master_data_tab.s125', "أبعاد فتحة الباب (ع × ع):")}</span>
                             <span style={{ fontWeight: 600, direction: 'ltr' }}>
                               {c.door_width_m} × {c.door_height_m} m
                             </span>
@@ -2359,14 +2361,14 @@ export function MaritimeMasterDataTab({
                 <div style={{ marginBottom: '14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div>
                     <h4 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 800, color: '#0f172a' }}>
-                      قواعد التجارة الدولية (Incoterms 2020 Rules)
+                      {__t('maritime_freight.maritime_master_data_tab.s126', "قواعد التجارة الدولية (Incoterms 2020 Rules)")}
                     </h4>
                     <p style={{ margin: '2px 0 0 0', fontSize: '0.75rem', color: '#64748b' }}>
-                      توزيع التكاليف ومسؤوليات الشحن والتأمين ونقاط انتقال المخاطر القانونية بين البائع والمشتري
+                      {__t('maritime_freight.maritime_master_data_tab.s127', "توزيع التكاليف ومسؤوليات الشحن والتأمين ونقاط انتقال المخاطر القانونية بين البائع والمشتري")}
                     </p>
                   </div>
                   <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#170e5e', background: '#f8fafc', border: '1px solid #e2e8f0', padding: '3px 10px', borderRadius: '12px' }}>
-                    {filteredIncoterms.length} قاعدة تجارية
+                    {filteredIncoterms.length} {__t('maritime_freight.maritime_master_data_tab.s128', "قاعدة تجارية")}
                   </span>
                 </div>
 
@@ -2429,7 +2431,7 @@ export function MaritimeMasterDataTab({
                             whiteSpace: 'nowrap',
                           }}
                         >
-                          {inc.rule_type === 'sea_inland_waterway' ? 'بحري ونهري فقط' : 'متعدد الوسائط'}
+                          {inc.rule_type === 'sea_inland_waterway' ? __t('maritime_freight.maritime_master_data_tab.s129', "بحري ونهري فقط") : __t('maritime_freight.maritime_master_data_tab.s130', "متعدد الوسائط")}
                         </span>
                       </div>
 
@@ -2444,7 +2446,7 @@ export function MaritimeMasterDataTab({
                           color: '#1e293b',
                         }}
                       >
-                        <strong style={{ color: '#170e5e' }}>نقطة انتقال المسؤولية: </strong>
+                        <strong style={{ color: '#170e5e' }}>{__t('maritime_freight.maritime_master_data_tab.s131', "نقطة انتقال المسؤولية:")} </strong>
                         <span>{inc.risk_transfer_point_ar}</span>
                       </div>
 
@@ -2467,9 +2469,9 @@ export function MaritimeMasterDataTab({
                             justifyContent: 'space-between',
                           }}
                         >
-                          <span style={{ color: '#475569' }}>جمارك التصدير:</span>
+                          <span style={{ color: '#475569' }}>{__t('maritime_freight.maritime_master_data_tab.s132', "جمارك التصدير:")}</span>
                           <strong style={{ color: inc.seller_pays_export_customs ? '#166534' : '#64748b' }}>
-                            {inc.seller_pays_export_customs ? 'البائع' : 'المشتري'}
+                            {inc.seller_pays_export_customs ? __t('maritime_freight.maritime_master_data_tab.s133', "البائع") : __t('maritime_freight.maritime_master_data_tab.s134', "المشتري")}
                           </strong>
                         </div>
 
@@ -2483,9 +2485,9 @@ export function MaritimeMasterDataTab({
                             justifyContent: 'space-between',
                           }}
                         >
-                          <span style={{ color: '#475569' }}>شحن المغادرة THC:</span>
+                          <span style={{ color: '#475569' }}>{__t('maritime_freight.maritime_master_data_tab.s135', "شحن المغادرة THC:")}</span>
                           <strong style={{ color: inc.seller_pays_origin_thc ? '#166534' : '#64748b' }}>
-                            {inc.seller_pays_origin_thc ? 'البائع' : 'المشتري'}
+                            {inc.seller_pays_origin_thc ? __t('maritime_freight.maritime_master_data_tab.s136', "البائع") : __t('maritime_freight.maritime_master_data_tab.s137', "المشتري")}
                           </strong>
                         </div>
 
@@ -2499,9 +2501,9 @@ export function MaritimeMasterDataTab({
                             justifyContent: 'space-between',
                           }}
                         >
-                          <span style={{ color: '#475569' }}>نولون الشحن البحري:</span>
+                          <span style={{ color: '#475569' }}>{__t('maritime_freight.maritime_master_data_tab.s138', "نولون الشحن البحري:")}</span>
                           <strong style={{ color: inc.seller_pays_ocean_freight ? '#166534' : '#64748b' }}>
-                            {inc.seller_pays_ocean_freight ? 'البائع' : 'المشتري'}
+                            {inc.seller_pays_ocean_freight ? __t('maritime_freight.maritime_master_data_tab.s139', "البائع") : __t('maritime_freight.maritime_master_data_tab.s140', "المشتري")}
                           </strong>
                         </div>
 
@@ -2515,9 +2517,9 @@ export function MaritimeMasterDataTab({
                             justifyContent: 'space-between',
                           }}
                         >
-                          <span style={{ color: '#475569' }}>شحن الوصول THC:</span>
+                          <span style={{ color: '#475569' }}>{__t('maritime_freight.maritime_master_data_tab.s141', "شحن الوصول THC:")}</span>
                           <strong style={{ color: inc.seller_pays_destination_thc ? '#166534' : '#64748b' }}>
-                            {inc.seller_pays_destination_thc ? 'البائع' : 'المشتري'}
+                            {inc.seller_pays_destination_thc ? __t('maritime_freight.maritime_master_data_tab.s142', "البائع") : __t('maritime_freight.maritime_master_data_tab.s143', "المشتري")}
                           </strong>
                         </div>
 
@@ -2531,9 +2533,9 @@ export function MaritimeMasterDataTab({
                             justifyContent: 'space-between',
                           }}
                         >
-                          <span style={{ color: '#475569' }}>التأمين البحري:</span>
+                          <span style={{ color: '#475569' }}>{__t('maritime_freight.maritime_master_data_tab.s144', "التأمين البحري:")}</span>
                           <strong style={{ color: inc.seller_pays_insurance ? '#1d4ed8' : '#64748b' }}>
-                            {inc.seller_pays_insurance ? 'البائع' : 'المشتري'}
+                            {inc.seller_pays_insurance ? __t('maritime_freight.maritime_master_data_tab.s145', "البائع") : __t('maritime_freight.maritime_master_data_tab.s146', "المشتري")}
                           </strong>
                         </div>
 
@@ -2547,9 +2549,9 @@ export function MaritimeMasterDataTab({
                             justifyContent: 'space-between',
                           }}
                         >
-                          <span style={{ color: '#475569' }}>جمارك الاستيراد:</span>
+                          <span style={{ color: '#475569' }}>{__t('maritime_freight.maritime_master_data_tab.s147', "جمارك الاستيراد:")}</span>
                           <strong style={{ color: inc.seller_pays_import_customs ? '#166534' : '#64748b' }}>
-                            {inc.seller_pays_import_customs ? 'البائع' : 'المشتري'}
+                            {inc.seller_pays_import_customs ? __t('maritime_freight.maritime_master_data_tab.s148', "البائع") : __t('maritime_freight.maritime_master_data_tab.s149', "المشتري")}
                           </strong>
                         </div>
                       </div>
@@ -2577,14 +2579,14 @@ export function MaritimeMasterDataTab({
                 <div style={{ marginBottom: '14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div>
                     <h4 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 800, color: '#0f172a' }}>
-                      محطات الحاويات واللوجستيات بالموانئ (Port Terminals)
+                      {__t('maritime_freight.maritime_master_data_tab.s150', "محطات الحاويات واللوجستيات بالموانئ (Port Terminals)")}
                     </h4>
                     <p style={{ margin: '2px 0 0 0', fontSize: '0.75rem', color: '#64748b' }}>
-                      دليل محطات تداول الحاويات والبضائع بالموانئ المصرية والدولية والربط مع منظومة نافذة
+                      {__t('maritime_freight.maritime_master_data_tab.s151', "دليل محطات تداول الحاويات والبضائع بالموانئ المصرية والدولية والربط مع منظومة نافذة")}
                     </p>
                   </div>
                   <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#170e5e', background: '#f8fafc', border: '1px solid #e2e8f0', padding: '3px 10px', borderRadius: '12px' }}>
-                    {filteredTerminals.length} محطة
+                    {filteredTerminals.length} {__t('maritime_freight.maritime_master_data_tab.s152', "محطة")}
                   </span>
                 </div>
 
@@ -2646,7 +2648,7 @@ export function MaritimeMasterDataTab({
                       </div>
 
                       <div style={{ fontSize: '0.75rem', color: '#334155' }}>
-                        <span style={{ color: '#64748b' }}>المشغل: </span>
+                        <span style={{ color: '#64748b' }}>{__t('maritime_freight.maritime_master_data_tab.s153', "المشغل:")} </span>
                         <strong>{t.terminal_operator}</strong>
                       </div>
 

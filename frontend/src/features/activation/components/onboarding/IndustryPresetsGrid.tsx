@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import {
   INDUSTRY_PRESETS,
   type IndustryPresetId,
@@ -14,6 +15,7 @@ export function IndustryPresetsGrid({
   selectedIndustry,
   onSelectIndustry,
 }: IndustryPresetsGridProps) {
+  const { t } = useTranslation();
   return (
     <div
       style={{
@@ -26,13 +28,13 @@ export function IndustryPresetsGrid({
     >
       <div style={{ marginBottom: '18px' }}>
         <span style={{ fontSize: '12px', fontWeight: 800, color: '#170e5e', display: 'block', marginBottom: '4px' }}>
-          الخطوة 1 من 2: اختر نوع نشاطك التجاري
+          {t('activation.onboarding.industry_presets_grid.s0', "الخطوة 1 من 2: اختر نوع نشاطك التجاري")}
         </span>
         <h2 style={{ fontSize: '18px', fontWeight: 800, color: '#0f172a', margin: 0 }}>
-          قوالب التكوين القطاعية الذكية
+          {t('activation.onboarding.industry_presets_grid.s1', "قوالب التكوين القطاعية الذكية")}
         </h2>
         <p style={{ fontSize: '13px', color: '#64748b', margin: '4px 0 0' }}>
-          حدد نشاط منشأتك لتفعيل الموديولات وشاشات الـ POS وخصائص المخازن المناسبة تلقائياً.
+          {t('activation.onboarding.industry_presets_grid.s2', "حدد نشاط منشأتك لتفعيل الموديولات وشاشات الـ POS وخصائص المخازن المناسبة تلقائياً.")}
         </p>
       </div>
 

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { RestaurantOperationsDialog } from './RestaurantOperationsDialog';
@@ -21,6 +22,7 @@ export function Pos86ItemsModal({
   branchId,
   onBack,
 }: Pos86ItemsModalProps) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedReason, setSelectedReason] = useState('نفاد الكمية بالمطبخ');
@@ -84,9 +86,9 @@ export function Pos86ItemsModal({
       open={open}
       onClose={onClose}
       onBack={onBack}
-      backText="الرجوع لعمليات المطعم"
-      title="إدارة الأصناف المستبعدة والنافذة بالمطبخ (86'd Items Engine)"
-      subtitle="استبعاد وإيقاف بيع الأصناف والمكونات النافذة لحظياً عبر الكاشير، المطبخ KDS، وباركود الطاولات"
+      backText={t('pos.pos_workspace.pos86_items_modal.s0', "الرجوع لعمليات المطعم")}
+      title={t('pos.pos_workspace.pos86_items_modal.s1', "إدارة الأصناف المستبعدة والنافذة بالمطبخ (86'd Items Engine)")}
+      subtitle={t('pos.pos_workspace.pos86_items_modal.s2', "استبعاد وإيقاف بيع الأصناف والمكونات النافذة لحظياً عبر الكاشير، المطبخ KDS، وباركود الطاولات")}
       badge={
         active86Count > 0 ? (
           <span
@@ -99,11 +101,11 @@ export function Pos86ItemsModal({
               borderRadius: '999px',
             }}
           >
-            86: {active86Count} أصناف نافذة
+            86: {active86Count} {t('pos.pos_workspace.pos86_items_modal.s3', "أصناف نافذة")}
           </span>
         ) : undefined
       }
-      footerNote="ملاحظة: الأصناف الموسومة بـ 86 تُحجب فورياً في الكاشير وطلبات الطاولات وتذاكر المطبخ."
+      footerNote={t('pos.pos_workspace.pos86_items_modal.s4', "ملاحظة: الأصناف الموسومة بـ 86 تُحجب فورياً في الكاشير وطلبات الطاولات وتذاكر المطبخ.")}
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
         {/* KPI Strip & Fast Configuration */}
@@ -134,13 +136,13 @@ export function Pos86ItemsModal({
               <BanIcon size={20} />
             </div>
             <div>
-              <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>الأصناف المستبعدة حالياً (86)</div>
-              <div style={{ fontSize: '18px', fontWeight: 900, color: '#991b1b' }}>{active86Count} أصناف</div>
+              <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>{t('pos.pos_workspace.pos86_items_modal.s5', "الأصناف المستبعدة حالياً (86)")}</div>
+              <div style={{ fontSize: '18px', fontWeight: 900, color: '#991b1b' }}>{active86Count} {t('pos.pos_workspace.pos86_items_modal.s6', "أصناف")}</div>
             </div>
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <label style={{ fontSize: '11px', color: '#475569', fontWeight: 700 }}>سبب الاستبعاد الافتراضي:</label>
+            <label style={{ fontSize: '11px', color: '#475569', fontWeight: 700 }}>{t('pos.pos_workspace.pos86_items_modal.s7', "سبب الاستبعاد الافتراضي:")}</label>
             <select
               value={selectedReason}
               onChange={(e) => setSelectedReason(e.target.value)}
@@ -154,15 +156,15 @@ export function Pos86ItemsModal({
                 outline: 'none',
               }}
             >
-              <option value="نفاد الكمية بالمطبخ">نفاد الكمية بالمطبخ</option>
-              <option value="تلف المواد الخام">تلف المواد الخام</option>
-              <option value="عطل بمعدة الطهي">عطل بمعدة الطهي</option>
-              <option value="توقف مؤقت للتجهيز">توقف مؤقت للتجهيز</option>
+              <option value={t('pos.pos_workspace.pos86_items_modal.s8', "نفاد الكمية بالمطبخ")}>{t('pos.pos_workspace.pos86_items_modal.s9', "نفاد الكمية بالمطبخ")}</option>
+              <option value={t('pos.pos_workspace.pos86_items_modal.s10', "تلف المواد الخام")}>{t('pos.pos_workspace.pos86_items_modal.s11', "تلف المواد الخام")}</option>
+              <option value={t('pos.pos_workspace.pos86_items_modal.s12', "عطل بمعدة الطهي")}>{t('pos.pos_workspace.pos86_items_modal.s13', "عطل بمعدة الطهي")}</option>
+              <option value={t('pos.pos_workspace.pos86_items_modal.s14', "توقف مؤقت للتجهيز")}>{t('pos.pos_workspace.pos86_items_modal.s15', "توقف مؤقت للتجهيز")}</option>
             </select>
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <label style={{ fontSize: '11px', color: '#475569', fontWeight: 700 }}>إعادة الإتاحة التلقائية:</label>
+            <label style={{ fontSize: '11px', color: '#475569', fontWeight: 700 }}>{t('pos.pos_workspace.pos86_items_modal.s16', "إعادة الإتاحة التلقائية:")}</label>
             <select
               value={autoHours}
               onChange={(e) => setAutoHours(Number(e.target.value))}
@@ -176,10 +178,10 @@ export function Pos86ItemsModal({
                 outline: 'none',
               }}
             >
-              <option value={0}>يدوي (حتى إعادة التفعيل الصريحة)</option>
-              <option value={8}>بعد 8 ساعات (نهاية الوردية)</option>
-              <option value={12}>بعد 12 ساعة</option>
-              <option value={24}>بعد 24 ساعة (صباح اليوم التالي)</option>
+              <option value={0}>{t('pos.pos_workspace.pos86_items_modal.s17', "يدوي (حتى إعادة التفعيل الصريحة)")}</option>
+              <option value={8}>{t('pos.pos_workspace.pos86_items_modal.s18', "بعد 8 ساعات (نهاية الوردية)")}</option>
+              <option value={12}>{t('pos.pos_workspace.pos86_items_modal.s19', "بعد 12 ساعة")}</option>
+              <option value={24}>{t('pos.pos_workspace.pos86_items_modal.s20', "بعد 24 ساعة (صباح اليوم التالي)")}</option>
             </select>
           </div>
         </div>
@@ -191,7 +193,7 @@ export function Pos86ItemsModal({
           </span>
           <input
             type="text"
-            placeholder="بحث بالصنف، الباركود، أو التصنيف لوضع وسم 86 أو إلغائه..."
+            placeholder={t('pos.pos_workspace.pos86_items_modal.s21', "بحث بالصنف، الباركود، أو التصنيف لوضع وسم 86 أو إلغائه...")}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             style={{
@@ -272,9 +274,9 @@ export function Pos86ItemsModal({
                   </div>
                   <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>
                     {is86ed && itemMeta?.reason ? (
-                      <span style={{ color: '#b91c1c', fontWeight: 600 }}>السبب: {itemMeta.reason}</span>
+                      <span style={{ color: '#b91c1c', fontWeight: 600 }}>{t('pos.pos_workspace.pos86_items_modal.s22', "السبب:")} {itemMeta.reason}</span>
                     ) : (
-                      <span>السعر: {(prod as any).price ?? (prod as any).salePrice ?? 0}</span>
+                      <span>{t('pos.pos_workspace.pos86_items_modal.s23', "السعر:")} {(prod as any).price ?? (prod as any).salePrice ?? 0}</span>
                     )}
                   </div>
                 </div>
@@ -302,12 +304,12 @@ export function Pos86ItemsModal({
                   {is86ed ? (
                     <>
                       <CheckCircleIcon size={14} />
-                      <span>إتاحة الصنف</span>
+                      <span>{t('pos.pos_workspace.pos86_items_modal.s24', "إتاحة الصنف")}</span>
                     </>
                   ) : (
                     <>
                       <BanIcon size={14} />
-                      <span>استبعاد (86)</span>
+                      <span>{t('pos.pos_workspace.pos86_items_modal.s25', "استبعاد (86)")}</span>
                     </>
                   )}
                 </button>
@@ -316,7 +318,7 @@ export function Pos86ItemsModal({
           })}
           {filteredProducts.length === 0 && (
             <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '30px', color: '#94a3b8' }}>
-              لا توجد أصناف مطابقة لكلمة البحث
+              {t('pos.pos_workspace.pos86_items_modal.s26', "لا توجد أصناف مطابقة لكلمة البحث")}
             </div>
           )}
         </div>

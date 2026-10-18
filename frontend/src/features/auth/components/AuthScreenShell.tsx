@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 
@@ -14,6 +15,7 @@ interface AuthScreenShellProps {
  * الحساب العامة، حتى لا تبدو صفحة استعادة كلمة المرور وكأنها من نظام آخر.
  */
 export function AuthScreenShell({ title, subtitle, children, footer }: AuthScreenShellProps) {
+  const { t } = useTranslation();
   return (
     <div className="login-screen-split" dir="rtl">
       <div className="login-pattern-overlay"></div>
@@ -26,17 +28,17 @@ export function AuthScreenShell({ title, subtitle, children, footer }: AuthScree
           </div>
 
           <h1 className="login-brand-title">
-            <span className="title-part1">استعادة الوصول إلى حسابك في</span>
+            <span className="title-part1">{t('auth.auth_screen_shell.s0', "استعادة الوصول إلى حسابك في")}</span>
             <span className="title-part2">Z ERP</span>
           </h1>
 
           <p className="login-brand-subtitle">
-            رابط الاستعادة يصل على البريد الإلكتروني المسجَّل لمالك المنشأة، ويعمل مرة واحدة فقط خلال مدة قصيرة.
+            {t('auth.auth_screen_shell.s1', "رابط الاستعادة يصل على البريد الإلكتروني المسجَّل لمالك المنشأة، ويعمل مرة واحدة فقط خلال مدة قصيرة.")}
           </p>
 
           <div className="login-brand-footer">
             <span className="line"></span>
-            المنصة السحابية المؤسسية المعتمدة لإدارة الأعمال والمشاريع
+            {t('auth.auth_screen_shell.s2', "المنصة السحابية المؤسسية المعتمدة لإدارة الأعمال والمشاريع")}
             <span className="line"></span>
           </div>
         </div>
@@ -51,7 +53,7 @@ export function AuthScreenShell({ title, subtitle, children, footer }: AuthScree
             {children}
 
             <div className="auth-screen-footer">
-              {footer ?? <Link to="/login" className="forgot-password-link">العودة إلى تسجيل الدخول</Link>}
+              {footer ?? <Link to="/login" className="forgot-password-link">{t('auth.auth_screen_shell.s3', "العودة إلى تسجيل الدخول")}</Link>}
             </div>
           </div>
         </div>

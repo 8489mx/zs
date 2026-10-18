@@ -130,6 +130,8 @@ export class AddonsService {
           'pmo.component_product_id',
           'pmo.consumption_qty',
           'pmo.unit_name',
+          'pmo.portion_allowed',
+          'pmo.preparation_time_minutes',
           'p.name as component_product_name',
         ])
         .where('pmo.tenant_id', '=', scope.tenantId)
@@ -150,6 +152,7 @@ export class AddonsService {
         maxSelections: Number(g.max_selections || 10),
         displayOrder: Number(g.display_order || 0),
         isActive: Boolean(g.is_active),
+        isSplittableInHalf: Boolean(g.is_splittable_in_half),
         options: options
           .filter((opt) => Number(opt.group_id) === Number(g.id))
           .map((opt) => ({
@@ -166,6 +169,8 @@ export class AddonsService {
             componentProductName: opt.component_product_name || null,
             consumptionQty: opt.consumption_qty !== null && opt.consumption_qty !== undefined ? Number(opt.consumption_qty) : null,
             unitName: opt.unit_name || null,
+            portionAllowed: (opt.portion_allowed as 'both' | 'half_only' | 'whole_only') || 'both',
+            preparationTimeMinutes: opt.preparation_time_minutes ? Number(opt.preparation_time_minutes) : 0,
           })),
       })),
     };
@@ -187,6 +192,7 @@ export class AddonsService {
           max_selections: Number(payload.maxSelections || 10),
           display_order: Number(payload.displayOrder || 0),
           is_active: payload.isActive !== false,
+          is_splittable_in_half: Boolean(payload.isSplittableInHalf),
         })
         .returning('id')
         .executeTakeFirstOrThrow();
@@ -211,6 +217,8 @@ export class AddonsService {
               component_product_id: opt.componentProductId ? Number(opt.componentProductId) : null,
               consumption_qty: opt.consumptionQty !== null && opt.consumptionQty !== undefined && opt.consumptionQty !== '' ? Number(opt.consumptionQty) : null,
               unit_name: opt.unitName ? String(opt.unitName).trim() : null,
+              portion_allowed: opt.portionAllowed || 'both',
+              preparation_time_minutes: opt.preparationTimeMinutes ? Number(opt.preparationTimeMinutes) : 0,
             }))
           )
           .execute();
@@ -237,6 +245,7 @@ export class AddonsService {
           max_selections: Number(payload.maxSelections || 10),
           display_order: Number(payload.displayOrder || 0),
           is_active: payload.isActive !== false,
+          is_splittable_in_half: Boolean(payload.isSplittableInHalf),
           updated_at: (this.db as any).fn ? undefined : undefined,
         })
         .where('id', '=', id)
@@ -269,6 +278,8 @@ export class AddonsService {
                 component_product_id: opt.componentProductId ? Number(opt.componentProductId) : null,
                 consumption_qty: opt.consumptionQty !== null && opt.consumptionQty !== undefined && opt.consumptionQty !== '' ? Number(opt.consumptionQty) : null,
                 unit_name: opt.unitName ? String(opt.unitName).trim() : null,
+                portion_allowed: opt.portionAllowed || 'both',
+                preparation_time_minutes: opt.preparationTimeMinutes ? Number(opt.preparationTimeMinutes) : 0,
               }))
             )
             .execute();
@@ -350,6 +361,8 @@ export class AddonsService {
           'pmo.component_product_id',
           'pmo.consumption_qty',
           'pmo.unit_name',
+          'pmo.portion_allowed',
+          'pmo.preparation_time_minutes',
           'p.name as component_product_name',
         ])
         .where('pmo.tenant_id', '=', scope.tenantId)
@@ -368,6 +381,7 @@ export class AddonsService {
         isMandatory: Boolean(g.is_mandatory),
         minSelections: Number(g.min_selections || 0),
         maxSelections: Number(g.max_selections || 10),
+        isSplittableInHalf: Boolean(g.is_splittable_in_half),
         options: options
           .filter((opt) => Number(opt.group_id) === Number(g.id))
           .map((opt) => ({
@@ -382,6 +396,8 @@ export class AddonsService {
             componentProductName: opt.component_product_name || null,
             consumptionQty: opt.consumption_qty !== null && opt.consumption_qty !== undefined ? Number(opt.consumption_qty) : null,
             unitName: opt.unit_name || null,
+            portionAllowed: (opt.portion_allowed as 'both' | 'half_only' | 'whole_only') || 'both',
+            preparationTimeMinutes: opt.preparation_time_minutes ? Number(opt.preparation_time_minutes) : 0,
           })),
       })),
     };

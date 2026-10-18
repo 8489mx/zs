@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useRef, useId } from 'react';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
@@ -36,6 +37,7 @@ export function ImportCarriersModal({
   onClose,
   onSuccess,
 }: ImportCarriersModalProps) {
+  const { t } = useTranslation();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const fileInputId = useId();
   const [carrierType, setCarrierType] = useState<'shipping_line' | 'overseas_agent'>(defaultType);
@@ -328,8 +330,8 @@ export function ImportCarriersModal({
     <StandardDialog
       open={open}
       onClose={onClose}
-      title="استيراد البيانات المرجعية من ملف Excel أو CSV"
-      subtitle="سحب واستيراد خطوط الملاحة والوكلاء المعتمدين عالمياً (WCA / Directories) بضغطة زر واحدة"
+      title={t('maritime_freight.import_carriers_modal.s0', "استيراد البيانات المرجعية من ملف Excel أو CSV")}
+      subtitle={t('maritime_freight.import_carriers_modal.s1', "سحب واستيراد خطوط الملاحة والوكلاء المعتمدين عالمياً (WCA / Directories) بضغطة زر واحدة")}
       width="min(880px, 95vw)"
       minHeight="min(520px, 85vh)"
       footerActions={(
@@ -339,7 +341,7 @@ export function ImportCarriersModal({
           submitDisabled={validItems.length === 0 || importing}
           isSubmitting={importing}
           submitText={`تأكيد واستيراد (${validItems.length}) سجل`}
-          cancelText="إلغاء"
+          cancelText={t('maritime_freight.import_carriers_modal.s2', "إلغاء")}
         />
       )}
     >
@@ -360,7 +362,7 @@ export function ImportCarriersModal({
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: '#1e293b' }}>
-              البيانات المستهدفة:
+              {t('maritime_freight.import_carriers_modal.s3', "البيانات المستهدفة:")}
             </span>
             <button
               type="button"
@@ -384,7 +386,7 @@ export function ImportCarriersModal({
               }}
             >
               <AppIcons.Ship size={14} />
-              <span>خطوط ملاحة بحرية (Shipping Lines)</span>
+              <span>{t('maritime_freight.import_carriers_modal.s4', "خطوط ملاحة بحرية (Shipping Lines)")}</span>
             </button>
             <button
               type="button"
@@ -408,7 +410,7 @@ export function ImportCarriersModal({
               }}
             >
               <AppIcons.Globe size={14} />
-              <span>وكلاء شحن دوليون (Overseas Forwarders / WCA)</span>
+              <span>{t('maritime_freight.import_carriers_modal.s5', "وكلاء شحن دوليون (Overseas Forwarders / WCA)")}</span>
             </button>
           </div>
 
@@ -430,7 +432,7 @@ export function ImportCarriersModal({
             }}
           >
             <AppIcons.Download size={13} />
-            <span>تحميل نموذج Excel استرشادي</span>
+            <span>{t('maritime_freight.import_carriers_modal.s6', "تحميل نموذج Excel استرشادي")}</span>
           </button>
         </div>
 
@@ -466,7 +468,7 @@ export function ImportCarriersModal({
               accept=".xlsx,.xls,.csv"
               style={{ display: 'none' }}
               onChange={handleFileChange}
-              aria-label="تحميل ملف إكسيل أو CSV لاستيراد البيانات المرجعية"
+              aria-label={t('maritime_freight.import_carriers_modal.s7', "تحميل ملف إكسيل أو CSV لاستيراد البيانات المرجعية")}
             />
             <div
               style={{
@@ -484,15 +486,15 @@ export function ImportCarriersModal({
             </div>
             <div>
               <div style={{ fontSize: '0.92rem', fontWeight: 700, color: '#0f172a' }}>
-                اضغط هنا لاختيار ملف أو اسحب الملف إلى هذه المساحة
+                {t('maritime_freight.import_carriers_modal.s8', "اضغط هنا لاختيار ملف أو اسحب الملف إلى هذه المساحة")}
               </div>
               <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '4px' }}>
-                يدعم صيغ Excel (.xlsx, .xls) والملفات النصية المفصولة بفواصل (.csv)
+                {t('maritime_freight.import_carriers_modal.s9', "يدعم صيغ Excel (.xlsx, .xls) والملفات النصية المفصولة بفواصل (.csv)")}
               </div>
             </div>
             {isProcessing && (
               <div style={{ fontSize: '0.78rem', color: '#170e5e', fontWeight: 600 }}>
-                جاري قراءة وتحليل بيانات الملف...
+                {t('maritime_freight.import_carriers_modal.s10', "جاري قراءة وتحليل بيانات الملف...")}
               </div>
             )}
           </div>
@@ -517,7 +519,7 @@ export function ImportCarriersModal({
                   {file?.name}
                 </div>
                 <div style={{ fontSize: '0.75rem', color: '#15803d' }}>
-                  تم استخراج {rawRows.length} صف من الملف بنجاح
+                  {t('maritime_freight.import_carriers_modal.s11', "تم استخراج")} {rawRows.length} {t('maritime_freight.import_carriers_modal.s12', "صف من الملف بنجاح")}
                 </div>
               </div>
             </div>
@@ -525,7 +527,7 @@ export function ImportCarriersModal({
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               {sheetNames.length > 1 && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span style={{ fontSize: '0.75rem', color: '#1e293b' }}>الصفحة:</span>
+                  <span style={{ fontSize: '0.75rem', color: '#1e293b' }}>{t('maritime_freight.import_carriers_modal.s13', "الصفحة:")}</span>
                   <div style={{ minWidth: '130px' }}>
                     <CustomSelect
                       value={selectedSheet}
@@ -555,7 +557,7 @@ export function ImportCarriersModal({
                   cursor: 'pointer',
                 }}
               >
-                تغيير الملف
+                {t('maritime_freight.import_carriers_modal.s14', "تغيير الملف")}
               </button>
             </div>
           </div>
@@ -601,7 +603,7 @@ export function ImportCarriersModal({
               <span>{importResult.summary}</span>
             </div>
             <div style={{ fontSize: '0.78rem', color: '#15803d' }}>
-              تم إدراج {importResult.insertedCount} جهة جديدة وتحديث {importResult.updatedCount} جهة موجودة مسبقاً.
+              {t('maritime_freight.import_carriers_modal.s15', "تم إدراج")} {importResult.insertedCount} {t('maritime_freight.import_carriers_modal.s16', "جهة جديدة وتحديث")} {importResult.updatedCount} {t('maritime_freight.import_carriers_modal.s17', "جهة موجودة مسبقاً.")}
             </div>
           </div>
         )}
@@ -627,10 +629,10 @@ export function ImportCarriersModal({
               }}
             >
               <div style={{ fontSize: '0.8125rem', fontWeight: 700, color: '#0f172a' }}>
-                مطابقة الأعمدة (Column Mapping)
+                {t('maritime_freight.import_carriers_modal.s18', "مطابقة الأعمدة (Column Mapping)")}
               </div>
               <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
-                تم التعرف تلقائياً على الأعمدة ويمكنك تعديلها يدوياً
+                {t('maritime_freight.import_carriers_modal.s19', "تم التعرف تلقائياً على الأعمدة ويمكنك تعديلها يدوياً")}
               </span>
             </div>
 
@@ -643,34 +645,34 @@ export function ImportCarriersModal({
             >
               <div>
                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#334155', marginBottom: '3px' }}>
-                  الرمز أو الكود <span style={{ color: '#dc2626' }}>*</span>
+                  {t('maritime_freight.import_carriers_modal.s20', "الرمز أو الكود")} <span style={{ color: '#dc2626' }}>*</span>
                 </label>
                 <CustomSelect
                   value={columnMapping.codeCol}
                   onChange={(val) => setColumnMapping({ ...columnMapping, codeCol: val || '' })}
-                  options={[{ value: '', label: '-- اختر عمود الكود --' }, ...headers.map((h) => ({ value: h, label: h }))]}
+                  options={[{ value: '', label: t('maritime_freight.import_carriers_modal.s21', "-- اختر عمود الكود --") }, ...headers.map((h) => ({ value: h, label: h }))]}
                 />
               </div>
 
               <div>
                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#334155', marginBottom: '3px' }}>
-                  الاسم بالعربي <span style={{ color: '#dc2626' }}>*</span>
+                  {t('maritime_freight.import_carriers_modal.s22', "الاسم بالعربي")} <span style={{ color: '#dc2626' }}>*</span>
                 </label>
                 <CustomSelect
                   value={columnMapping.nameArCol}
                   onChange={(val) => setColumnMapping({ ...columnMapping, nameArCol: val || '' })}
-                  options={[{ value: '', label: '-- اختر عمود الاسم بالعربي --' }, ...headers.map((h) => ({ value: h, label: h }))]}
+                  options={[{ value: '', label: t('maritime_freight.import_carriers_modal.s23', "-- اختر عمود الاسم بالعربي --") }, ...headers.map((h) => ({ value: h, label: h }))]}
                 />
               </div>
 
               <div>
                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#334155', marginBottom: '3px' }}>
-                  الاسم بالإنجليزي
+                  {t('maritime_freight.import_carriers_modal.s24', "الاسم بالإنجليزي")}
                 </label>
                 <CustomSelect
                   value={columnMapping.nameEnCol}
                   onChange={(val) => setColumnMapping({ ...columnMapping, nameEnCol: val || '' })}
-                  options={[{ value: '', label: '-- اختياري (مطابق للاسم) --' }, ...headers.map((h) => ({ value: h, label: h }))]}
+                  options={[{ value: '', label: t('maritime_freight.import_carriers_modal.s25', "-- اختياري (مطابق للاسم) --") }, ...headers.map((h) => ({ value: h, label: h }))]}
                 />
               </div>
 
@@ -678,23 +680,23 @@ export function ImportCarriersModal({
                 <>
                   <div>
                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#334155', marginBottom: '3px' }}>
-                      الدولة
+                      {t('maritime_freight.import_carriers_modal.s26', "الدولة")}
                     </label>
                     <CustomSelect
                       value={columnMapping.countryNameCol}
                       onChange={(val) => setColumnMapping({ ...columnMapping, countryNameCol: val || '' })}
-                      options={[{ value: '', label: '-- اختياري --' }, ...headers.map((h) => ({ value: h, label: h }))]}
+                      options={[{ value: '', label: t('maritime_freight.import_carriers_modal.s27', "-- اختياري --") }, ...headers.map((h) => ({ value: h, label: h }))]}
                     />
                   </div>
 
                   <div>
                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#334155', marginBottom: '3px' }}>
-                      المدينة
+                      {t('maritime_freight.import_carriers_modal.s28', "المدينة")}
                     </label>
                     <CustomSelect
                       value={columnMapping.cityNameCol}
                       onChange={(val) => setColumnMapping({ ...columnMapping, cityNameCol: val || '' })}
-                      options={[{ value: '', label: '-- اختياري --' }, ...headers.map((h) => ({ value: h, label: h }))]}
+                      options={[{ value: '', label: t('maritime_freight.import_carriers_modal.s29', "-- اختياري --") }, ...headers.map((h) => ({ value: h, label: h }))]}
                     />
                   </div>
                 </>
@@ -702,18 +704,18 @@ export function ImportCarriersModal({
 
               <div>
                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#334155', marginBottom: '3px' }}>
-                  جهة الاتصال / المسؤول
+                  {t('maritime_freight.import_carriers_modal.s30', "جهة الاتصال / المسؤول")}
                 </label>
                 <CustomSelect
                   value={columnMapping.contactPersonCol}
                   onChange={(val) => setColumnMapping({ ...columnMapping, contactPersonCol: val || '' })}
-                  options={[{ value: '', label: '-- اختياري --' }, ...headers.map((h) => ({ value: h, label: h }))]}
+                  options={[{ value: '', label: t('maritime_freight.import_carriers_modal.s31', "-- اختياري --") }, ...headers.map((h) => ({ value: h, label: h }))]}
                 />
               </div>
 
               <div>
                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#334155', marginBottom: '3px' }}>
-                  البريد الإلكتروني / RFQ Email
+                  {t('maritime_freight.import_carriers_modal.s32', "البريد الإلكتروني / RFQ Email")}
                 </label>
                 <CustomSelect
                   value={carrierType === 'shipping_line' ? columnMapping.rfqEmailCol : columnMapping.emailCol}
@@ -724,18 +726,18 @@ export function ImportCarriersModal({
                       setColumnMapping({ ...columnMapping, emailCol: val || '' });
                     }
                   }}
-                  options={[{ value: '', label: '-- اختياري --' }, ...headers.map((h) => ({ value: h, label: h }))]}
+                  options={[{ value: '', label: t('maritime_freight.import_carriers_modal.s33', "-- اختياري --") }, ...headers.map((h) => ({ value: h, label: h }))]}
                 />
               </div>
 
               <div>
                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#334155', marginBottom: '3px' }}>
-                  الهاتف
+                  {t('maritime_freight.import_carriers_modal.s34', "الهاتف")}
                 </label>
                 <CustomSelect
                   value={columnMapping.phoneCol}
                   onChange={(val) => setColumnMapping({ ...columnMapping, phoneCol: val || '' })}
-                  options={[{ value: '', label: '-- اختياري --' }, ...headers.map((h) => ({ value: h, label: h }))]}
+                  options={[{ value: '', label: t('maritime_freight.import_carriers_modal.s35', "-- اختياري --") }, ...headers.map((h) => ({ value: h, label: h }))]}
                 />
               </div>
 
@@ -743,34 +745,34 @@ export function ImportCarriersModal({
                 <>
                   <div>
                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#334155', marginBottom: '3px' }}>
-                      واتساب (WhatsApp)
+                      {t('maritime_freight.import_carriers_modal.s36', "واتساب (WhatsApp)")}
                     </label>
                     <CustomSelect
                       value={columnMapping.whatsappCol}
                       onChange={(val) => setColumnMapping({ ...columnMapping, whatsappCol: val || '' })}
-                      options={[{ value: '', label: '-- اختياري --' }, ...headers.map((h) => ({ value: h, label: h }))]}
+                      options={[{ value: '', label: t('maritime_freight.import_carriers_modal.s37', "-- اختياري --") }, ...headers.map((h) => ({ value: h, label: h }))]}
                     />
                   </div>
                   <div>
                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#334155', marginBottom: '3px' }}>
-                      وي شات (WeChat ID)
+                      {t('maritime_freight.import_carriers_modal.s38', "وي شات (WeChat ID)")}
                     </label>
                     <CustomSelect
                       value={columnMapping.wechatCol}
                       onChange={(val) => setColumnMapping({ ...columnMapping, wechatCol: val || '' })}
-                      options={[{ value: '', label: '-- اختياري --' }, ...headers.map((h) => ({ value: h, label: h }))]}
+                      options={[{ value: '', label: t('maritime_freight.import_carriers_modal.s39', "-- اختياري --") }, ...headers.map((h) => ({ value: h, label: h }))]}
                     />
                   </div>
                 </>
               ) : (
                 <div>
                   <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#334155', marginBottom: '3px' }}>
-                    رابط التتبع (Tracking URL)
+                    {t('maritime_freight.import_carriers_modal.s40', "رابط التتبع (Tracking URL)")}
                   </label>
                   <CustomSelect
                     value={columnMapping.trackingUrlCol}
                     onChange={(val) => setColumnMapping({ ...columnMapping, trackingUrlCol: val || '' })}
-                    options={[{ value: '', label: '-- اختياري --' }, ...headers.map((h) => ({ value: h, label: h }))]}
+                    options={[{ value: '', label: t('maritime_freight.import_carriers_modal.s41', "-- اختياري --") }, ...headers.map((h) => ({ value: h, label: h }))]}
                   />
                 </div>
               )}
@@ -799,7 +801,7 @@ export function ImportCarriersModal({
               }}
             >
               <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#1e293b' }}>
-                معاينة أولية للصفوف المستوردة ({validItems.length} من أصل {mappedItems.length} صف صالح)
+                {t('maritime_freight.import_carriers_modal.s42', "معاينة أولية للصفوف المستوردة (")}{validItems.length} {t('maritime_freight.import_carriers_modal.s43', "من أصل")} {mappedItems.length} {t('maritime_freight.import_carriers_modal.s44', "صف صالح)")}
               </div>
               <span
                 style={{
@@ -812,7 +814,7 @@ export function ImportCarriersModal({
                   border: `1px solid ${validItems.length > 0 ? '#bbf7d0' : '#fecaca'}`,
                 }}
               >
-                {validItems.length} صالح للاستيراد
+                {validItems.length} {t('maritime_freight.import_carriers_modal.s45', "صالح للاستيراد")}
               </span>
             </div>
 
@@ -821,11 +823,11 @@ export function ImportCarriersModal({
                 <thead>
                   <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>
                     <th style={{ padding: '6px 10px' }}>#</th>
-                    <th style={{ padding: '6px 10px' }}>الكود</th>
-                    <th style={{ padding: '6px 10px' }}>الاسم بالعربي</th>
-                    <th style={{ padding: '6px 10px' }}>الاسم بالإنجليزي</th>
-                    <th style={{ padding: '6px 10px' }}>{carrierType === 'shipping_line' ? 'إيميل RFQ' : 'الدولة / المدينة'}</th>
-                    <th style={{ padding: '6px 10px' }}>الحالة</th>
+                    <th style={{ padding: '6px 10px' }}>{t('maritime_freight.import_carriers_modal.s46', "الكود")}</th>
+                    <th style={{ padding: '6px 10px' }}>{t('maritime_freight.import_carriers_modal.s47', "الاسم بالعربي")}</th>
+                    <th style={{ padding: '6px 10px' }}>{t('maritime_freight.import_carriers_modal.s48', "الاسم بالإنجليزي")}</th>
+                    <th style={{ padding: '6px 10px' }}>{carrierType === 'shipping_line' ? t('maritime_freight.import_carriers_modal.s49', "إيميل RFQ") : t('maritime_freight.import_carriers_modal.s50', "الدولة / المدينة")}</th>
+                    <th style={{ padding: '6px 10px' }}>{t('maritime_freight.import_carriers_modal.s51', "الحالة")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -840,9 +842,9 @@ export function ImportCarriersModal({
                       </td>
                       <td style={{ padding: '6px 10px' }}>
                         {item.isValid ? (
-                          <span style={{ color: '#15803d', fontWeight: 600 }}>جاهز</span>
+                          <span style={{ color: '#15803d', fontWeight: 600 }}>{t('maritime_freight.import_carriers_modal.s52', "جاهز")}</span>
                         ) : (
-                          <span style={{ color: '#dc2626', fontWeight: 600 }}>الاسم مطلوب</span>
+                          <span style={{ color: '#dc2626', fontWeight: 600 }}>{t('maritime_freight.import_carriers_modal.s53', "الاسم مطلوب")}</span>
                         )}
                       </td>
                     </tr>

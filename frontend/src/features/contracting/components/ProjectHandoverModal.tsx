@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useCallback } from 'react';
 import { StandardDialog } from '@/shared/components/StandardDialog';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
@@ -25,6 +26,7 @@ export function ProjectHandoverModal({
   project,
   onRefreshProject,
 }: ProjectHandoverModalProps) {
+  const { t: __t } = useTranslation();
   const { currencySymbol } = useSystemCurrency();
   const [handovers, setHandovers] = useState<ContractingProjectHandover[]>([]);
   const [loading, setLoading] = useState(true);
@@ -151,7 +153,7 @@ export function ProjectHandoverModal({
       open={open}
       onClose={onClose}
       title={`محاضر الاستلام الابتدائي والنهائي وضمان الأعمال - ${project.name}`}
-      subtitle="بروتوكول لجان التسليم، بدء فترة الضمان والصيانة، والإفراج المالي عن مبالغ حسن التنفيذ (Retentions)"
+      subtitle={__t('contracting.project_handover_modal.s0', "بروتوكول لجان التسليم، بدء فترة الضمان والصيانة، والإفراج المالي عن مبالغ حسن التنفيذ (Retentions)")}
       width="min(1060px, 96vw)"
       minHeight="min(560px, 85vh)"
     >
@@ -159,27 +161,27 @@ export function ProjectHandoverModal({
         {/* بطاقات الموقف التشغيلي للتسليم */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px' }}>
           <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 14px' }}>
-            <div style={{ fontSize: 'var(--font-micro)', color: '#64748b', fontWeight: 600 }}>الاستلام الابتدائي</div>
+            <div style={{ fontSize: 'var(--font-micro)', color: '#64748b', fontWeight: 600 }}>{__t('contracting.project_handover_modal.s1', "الاستلام الابتدائي")}</div>
             <div style={{ fontSize: '1.05rem', fontWeight: 800, color: prelimHandover ? '#15803d' : '#a16207', marginTop: '2px' }}>
-              {prelimHandover ? `معتمد (${prelimHandover.handoverDate})` : 'قيد الإجراء / لم يسلّم'}
+              {prelimHandover ? `معتمد (${prelimHandover.handoverDate})` : __t('contracting.project_handover_modal.s2', "قيد الإجراء / لم يسلّم")}
             </div>
           </div>
           <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 14px' }}>
-            <div style={{ fontSize: 'var(--font-micro)', color: '#64748b', fontWeight: 600 }}>فترة الضمان والصيانة</div>
+            <div style={{ fontSize: 'var(--font-micro)', color: '#64748b', fontWeight: 600 }}>{__t('contracting.project_handover_modal.s3', "فترة الضمان والصيانة")}</div>
             <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#170e5e', marginTop: '2px' }}>
-              {prelimHandover ? `${prelimHandover.warrantyStartDate} ~ ${prelimHandover.warrantyEndDate}` : 'تبدأ فور الاستلام الابتدائي'}
+              {prelimHandover ? `${prelimHandover.warrantyStartDate} ~ ${prelimHandover.warrantyEndDate}` : __t('contracting.project_handover_modal.s4', "تبدأ فور الاستلام الابتدائي")}
             </div>
           </div>
           <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 14px' }}>
-            <div style={{ fontSize: 'var(--font-micro)', color: '#64748b', fontWeight: 600 }}>إجمالي الضمان المحتجز بالمشروع</div>
+            <div style={{ fontSize: 'var(--font-micro)', color: '#64748b', fontWeight: 600 }}>{__t('contracting.project_handover_modal.s5', "إجمالي الضمان المحتجز بالمشروع")}</div>
             <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>
               {totalHeld.toLocaleString('ar-EG')} <span style={{ fontSize: '0.72rem' }}>{currencySymbol}</span>
             </div>
           </div>
           <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 14px' }}>
-            <div style={{ fontSize: 'var(--font-micro)', color: '#64748b', fontWeight: 600 }}>الاستلام النهائي والإبراء التام</div>
+            <div style={{ fontSize: 'var(--font-micro)', color: '#64748b', fontWeight: 600 }}>{__t('contracting.project_handover_modal.s6', "الاستلام النهائي والإبراء التام")}</div>
             <div style={{ fontSize: '1.05rem', fontWeight: 800, color: finalHandover ? '#15803d' : '#64748b', marginTop: '2px' }}>
-              {finalHandover ? `معتمد (${finalHandover.handoverDate})` : 'بانتهاء فترة الضمان'}
+              {finalHandover ? `معتمد (${finalHandover.handoverDate})` : __t('contracting.project_handover_modal.s7', "بانتهاء فترة الضمان")}
             </div>
           </div>
         </div>
@@ -201,7 +203,7 @@ export function ProjectHandoverModal({
               transition: 'all 0.15s ease',
             }}
           >
-            سجل محاضر الاستلام ({handovers.length})
+            {__t('contracting.project_handover_modal.s8', "سجل محاضر الاستلام (")}{handovers.length})
           </button>
           <button
             type="button"
@@ -222,7 +224,7 @@ export function ProjectHandoverModal({
             }}
           >
             <AppIcons.Plus size={14} />
-            <span>تحرير محضر استلام جديد (ابتدائي / نهائي)</span>
+            <span>{__t('contracting.project_handover_modal.s9', "تحرير محضر استلام جديد (ابتدائي / نهائي)")}</span>
           </button>
         </div>
 
@@ -230,7 +232,7 @@ export function ProjectHandoverModal({
         {activeTab === 'create' ? (
           <form onSubmit={handleCreateHandover} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
-              <Field label="نوع محضر الاستلام *">
+              <Field label={__t('contracting.project_handover_modal.s10', "نوع محضر الاستلام *")}>
                 <CustomSelect
                   value={handoverType}
                   onChange={(val) => {
@@ -239,13 +241,13 @@ export function ProjectHandoverModal({
                     setRetentionReleasePercent(t === 'preliminary' ? '50' : '100');
                   }}
                   options={[
-                    { value: 'preliminary', label: 'استلام ابتدائي (Preliminary Handover) - بدء الضمان' },
-                    { value: 'final', label: 'استلام نهائي (Final Handover) - إبراء الذمة التام' },
+                    { value: 'preliminary', label: __t('contracting.project_handover_modal.s11', "استلام ابتدائي (Preliminary Handover) - بدء الضمان") },
+                    { value: 'final', label: __t('contracting.project_handover_modal.s12', "استلام نهائي (Final Handover) - إبراء الذمة التام") },
                   ]}
                 />
               </Field>
 
-              <Field label="رقم / كود المحضر التعاقدي *">
+              <Field label={__t('contracting.project_handover_modal.s13', "رقم / كود المحضر التعاقدي *")}>
                 <input
                   type="text"
                   value={handoverNumber}
@@ -254,7 +256,7 @@ export function ProjectHandoverModal({
                 />
               </Field>
 
-              <Field label="تاريخ المعاينة وتوقيع المحضر *">
+              <Field label={__t('contracting.project_handover_modal.s14', "تاريخ المعاينة وتوقيع المحضر *")}>
                 <input
                   type="date"
                   value={handoverDate}
@@ -263,17 +265,17 @@ export function ProjectHandoverModal({
                 />
               </Field>
 
-              <Field label="ممثل الاستشاري المشرف (رئيس اللجنة)">
+              <Field label={__t('contracting.project_handover_modal.s15', "ممثل الاستشاري المشرف (رئيس اللجنة)")}>
                 <input
                   type="text"
-                  placeholder="اسم المهندس الاستشاري ممثل جهة الإشراف..."
+                  placeholder={__t('contracting.project_handover_modal.s16', "اسم المهندس الاستشاري ممثل جهة الإشراف...")}
                   value={consultantRep}
                   onChange={(e) => setConsultantRep(e.target.value)}
                   style={{ width: '100%', height: '33px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.8125rem' }}
                 />
               </Field>
 
-              <Field label="ممثل المالك / العميل">
+              <Field label={__t('contracting.project_handover_modal.s17', "ممثل المالك / العميل")}>
                 <input
                   type="text"
                   value={clientRep}
@@ -282,7 +284,7 @@ export function ProjectHandoverModal({
                 />
               </Field>
 
-              <Field label="ممثل المقاول (مهندس المشروع)">
+              <Field label={__t('contracting.project_handover_modal.s18', "ممثل المقاول (مهندس المشروع)")}>
                 <input
                   type="text"
                   value={contractorRep}
@@ -291,7 +293,7 @@ export function ProjectHandoverModal({
                 />
               </Field>
 
-              <Field label="عدد الملاحظات المتبقية (Punch List)">
+              <Field label={__t('contracting.project_handover_modal.s19', "عدد الملاحظات المتبقية (Punch List)")}>
                 <input
                   type="number"
                   min="0"
@@ -301,7 +303,7 @@ export function ProjectHandoverModal({
                 />
               </Field>
 
-              <Field label="مدة الضمان والصيانة (بالأشهر)">
+              <Field label={__t('contracting.project_handover_modal.s20', "مدة الضمان والصيانة (بالأشهر)")}>
                 <input
                   type="number"
                   min="1"
@@ -312,7 +314,7 @@ export function ProjectHandoverModal({
                 />
               </Field>
 
-              <Field label="نسبة الإفراج عن ضمان الأعمال المحتجز %">
+              <Field label={__t('contracting.project_handover_modal.s21', "نسبة الإفراج عن ضمان الأعمال المحتجز %")}>
                 <input
                   type="number"
                   min="0"
@@ -325,7 +327,7 @@ export function ProjectHandoverModal({
 
               <div style={{ gridColumn: 'span 3', background: '#f0fdf4', padding: '10px 14px', borderRadius: '6px', border: '1px solid #bbf7d0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontSize: '0.8125rem', color: '#166534', fontWeight: 600 }}>
-                  المبلغ المالي المصرح بالإفراج عنه وصرفه من حساب الضمان:
+                  {__t('contracting.project_handover_modal.s22', "المبلغ المالي المصرح بالإفراج عنه وصرفه من حساب الضمان:")}
                 </span>
                 <strong style={{ fontSize: '1.05rem', color: '#15803d', fontWeight: 800 }}>
                   {calculatedReleaseAmount.toLocaleString('ar-EG')} {currencySymbol}
@@ -333,10 +335,10 @@ export function ProjectHandoverModal({
               </div>
 
               <div style={{ gridColumn: 'span 3' }}>
-                <Field label="نص تقرير لجنة الاستلام وتوصيات الإشراف">
+                <Field label={__t('contracting.project_handover_modal.s23', "نص تقرير لجنة الاستلام وتوصيات الإشراف")}>
                   <textarea
                     rows={3}
-                    placeholder="اجتمعت اللجنة وقامت بالمعاينة الميدانية وتبين اكتمال الأعمال ومطابقتها للمواصفات الفنية والرسومات التنفيذية مع التعهد بإصلاح الملاحظات المرفقة خلال 14 يوماً..."
+                    placeholder={__t('contracting.project_handover_modal.s24', "اجتمعت اللجنة وقامت بالمعاينة الميدانية وتبين اكتمال الأعمال ومطابقتها للمواصفات الفنية والرسومات التنفيذية مع التعهد بإصلاح الملاحظات المرفقة خلال 14 يوماً...")}
                     value={committeeReport}
                     onChange={(e) => setCommitteeReport(e.target.value)}
                     style={{ width: '100%', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '8px 10px', fontSize: '0.8125rem', resize: 'vertical' }}
@@ -345,10 +347,10 @@ export function ProjectHandoverModal({
               </div>
 
               <div style={{ gridColumn: 'span 3' }}>
-                <Field label="ملاحظات وشروط إضافية">
+                <Field label={__t('contracting.project_handover_modal.s25', "ملاحظات وشروط إضافية")}>
                   <input
                     type="text"
-                    placeholder="أي شروط أو ملحوظات ملحقة بمحضر الاستلام..."
+                    placeholder={__t('contracting.project_handover_modal.s26', "أي شروط أو ملحوظات ملحقة بمحضر الاستلام...")}
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
                     style={{ width: '100%', height: '33px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.8125rem' }}
@@ -372,7 +374,7 @@ export function ProjectHandoverModal({
                   cursor: 'pointer',
                 }}
               >
-                إلغاء
+                {__t('contracting.project_handover_modal.s27', "إلغاء")}
               </button>
               <button
                 type="submit"
@@ -392,7 +394,7 @@ export function ProjectHandoverModal({
                 }}
               >
                 <AppIcons.Check size={16} />
-                <span>{isSubmitting ? 'جاري الحفظ...' : 'حفظ محضر الاستلام'}</span>
+                <span>{isSubmitting ? __t('contracting.project_handover_modal.s28', "جاري الحفظ...") : __t('contracting.project_handover_modal.s29', "حفظ محضر الاستلام")}</span>
               </button>
             </div>
           </form>
@@ -402,7 +404,7 @@ export function ProjectHandoverModal({
             {loading ? (
               <div style={{ flex: 1, minHeight: '280px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '12px', padding: '32px' }}>
                 <div style={{ width: '28px', height: '28px', borderRadius: '50%', border: '3px solid #e2e8f0', borderTopColor: '#170e5e', animation: 'spin 0.8s linear infinite' }} />
-                <span style={{ fontSize: 'var(--font-subtitle)', color: '#94a3b8', fontWeight: 600 }}>جاري تحميل محاضر الاستلام...</span>
+                <span style={{ fontSize: 'var(--font-subtitle)', color: '#94a3b8', fontWeight: 600 }}>{__t('contracting.project_handover_modal.s30', "جاري تحميل محاضر الاستلام...")}</span>
               </div>
             ) : handovers.length === 0 ? (
               <div style={{ flex: 1, minHeight: '280px', padding: '40px 20px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
@@ -410,10 +412,10 @@ export function ProjectHandoverModal({
                   <AppIcons.ShieldCheck size={42} />
                 </div>
                 <div style={{ fontSize: 'var(--font-section-title)', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                  لا توجد محاضر استلام مسجلة لهذا المشروع حتى الآن
+                  {__t('contracting.project_handover_modal.s31', "لا توجد محاضر استلام مسجلة لهذا المشروع حتى الآن")}
                 </div>
                 <div style={{ fontSize: 'var(--font-subtitle)', color: '#64748b', maxWidth: '380px', margin: '0 auto 14px' }}>
-                  عند جاهزية المشروع، يتم تحرير محضر الاستلام الابتدائي لبدء سريان الضمان والإفراج عن مستحقات الضمان المحتجزة.
+                  {__t('contracting.project_handover_modal.s32', "عند جاهزية المشروع، يتم تحرير محضر الاستلام الابتدائي لبدء سريان الضمان والإفراج عن مستحقات الضمان المحتجزة.")}
                 </div>
                 <button
                   type="button"
@@ -430,7 +432,7 @@ export function ProjectHandoverModal({
                     fontSize: '0.8125rem',
                   }}
                 >
-                  تحرير أول محضر استلام
+                  {__t('contracting.project_handover_modal.s33', "تحرير أول محضر استلام")}
                 </button>
               </div>
             ) : (
@@ -438,13 +440,13 @@ export function ProjectHandoverModal({
                 <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right' }}>
                   <thead>
                     <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-                      <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>رقم المحضر والنوع</th>
-                      <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>تاريخ التسليم</th>
-                      <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>سريان الضمان</th>
-                      <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>الإفراج عن الضمان</th>
-                      <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>ملاحظات عالقة</th>
-                      <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>الحالة</th>
-                      <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569', textAlign: 'center' }}>الإجراءات</th>
+                      <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>{__t('contracting.project_handover_modal.s34', "رقم المحضر والنوع")}</th>
+                      <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>{__t('contracting.project_handover_modal.s35', "تاريخ التسليم")}</th>
+                      <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>{__t('contracting.project_handover_modal.s36', "سريان الضمان")}</th>
+                      <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>{__t('contracting.project_handover_modal.s37', "الإفراج عن الضمان")}</th>
+                      <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>{__t('contracting.project_handover_modal.s38', "ملاحظات عالقة")}</th>
+                      <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>{__t('contracting.project_handover_modal.s39', "الحالة")}</th>
+                      <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569', textAlign: 'center' }}>{__t('contracting.project_handover_modal.s40', "الإجراءات")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -455,7 +457,7 @@ export function ProjectHandoverModal({
                           <td style={{ padding: '10px 12px', fontSize: 'var(--font-body)', fontWeight: 700, color: '#170e5e' }}>
                             <div>{h.handoverNumber}</div>
                             <span style={{ fontSize: 'var(--font-micro)', color: '#64748b' }}>
-                              {h.handoverType === 'preliminary' ? 'استلام ابتدائي' : 'استلام نهائي'}
+                              {h.handoverType === 'preliminary' ? __t('contracting.project_handover_modal.s41', "استلام ابتدائي") : __t('contracting.project_handover_modal.s42', "استلام نهائي")}
                             </span>
                           </td>
                           <td style={{ padding: '10px 12px', fontSize: 'var(--font-body)', color: '#475569' }}>
@@ -468,7 +470,7 @@ export function ProjectHandoverModal({
                             {Number(h.retentionReleaseAmount || 0).toLocaleString('ar-EG')} {currencySymbol} ({h.retentionReleasePercent}%)
                           </td>
                           <td style={{ padding: '10px 12px', fontSize: 'var(--font-body)', color: h.outstandingSnagCount > 0 ? '#b91c1c' : '#15803d', fontWeight: 600 }}>
-                            {h.outstandingSnagCount > 0 ? `${h.outstandingSnagCount} ملاحظة معلقة` : '0 (مطابق تماماً)'}
+                            {h.outstandingSnagCount > 0 ? `${h.outstandingSnagCount} ملاحظة معلقة` : __t('contracting.project_handover_modal.s43', "0 (مطابق تماماً)")}
                           </td>
                           <td style={{ padding: '10px 12px' }}>
                             <span
@@ -483,7 +485,7 @@ export function ProjectHandoverModal({
                                 border: `1px solid ${isApproved ? '#bbf7d0' : '#fde68a'}`,
                               }}
                             >
-                              {isApproved ? 'معتمد رسمياً' : 'مسودة قيد الاعتماد'}
+                              {isApproved ? __t('contracting.project_handover_modal.s44', "معتمد رسمياً") : __t('contracting.project_handover_modal.s45', "مسودة قيد الاعتماد")}
                             </span>
                           </td>
                           <td style={{ padding: '10px 12px', textAlign: 'center' }}>
@@ -508,7 +510,7 @@ export function ProjectHandoverModal({
                                 }}
                               >
                                 <AppIcons.Check size={12} />
-                                <span>{approvingId === h.id ? 'جاري الاعتماد...' : 'اعتماد المحضر'}</span>
+                                <span>{approvingId === h.id ? __t('contracting.project_handover_modal.s46', "جاري الاعتماد...") : __t('contracting.project_handover_modal.s47', "اعتماد المحضر")}</span>
                               </button>
                             )}
                           </td>

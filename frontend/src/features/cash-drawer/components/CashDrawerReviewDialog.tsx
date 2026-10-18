@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useMemo, useState } from 'react';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { Button } from '@/shared/ui/button';
@@ -59,6 +60,7 @@ interface MovementGroup {
 }
 
 export function CashDrawerReviewDialog(props: CashDrawerReviewDialogProps) {
+  const { t } = useTranslation();
   const shift = props.shift;
   const [expandedKinds, setExpandedKinds] = useState<Record<string, boolean>>({});
   const [showMovements, setShowMovements] = useState(false);
@@ -250,7 +252,7 @@ export function CashDrawerReviewDialog(props: CashDrawerReviewDialogProps) {
     : (!shift?.closeNoteRaw?.startsWith('BLIND_CLOSE:') && shift?.closeNoteRaw ? shift.closeNoteRaw : '');
 
   return (
-    <DialogShell open={props.open} onClose={props.onClose} width="min(1140px, 96vw)" ariaLabel="مراجعة واعتماد إغلاق الوردية">
+    <DialogShell open={props.open} onClose={props.onClose} width="min(1140px, 96vw)" ariaLabel={t('cash_drawer.cash_drawer_review_dialog.s0', "مراجعة واعتماد إغلاق الوردية")}>
       <div style={{
         background: '#ffffff',
         borderRadius: '12px',
@@ -276,13 +278,13 @@ export function CashDrawerReviewDialog(props: CashDrawerReviewDialogProps) {
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                 <div style={{ width: '4px', height: compactView ? '16px' : '22px', background: '#0284c7', borderRadius: '2px', flexShrink: 0 }} />
                 <h3 style={{ margin: 0, fontSize: compactView ? '1.02rem' : '1.15rem', fontWeight: 800, color: '#0f172a' }}>
-                  مراجعة واعتماد إغلاق الوردية
+                  {t('cash_drawer.cash_drawer_review_dialog.s1', "مراجعة واعتماد إغلاق الوردية")}
                 </h3>
               </div>
 
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                 <span style={{ fontSize: '0.78rem', color: '#64748b', background: '#f1f5f9', padding: '3px 8px', borderRadius: '6px' }}>
-                  كاشير: <strong style={{ color: '#0f172a' }}>{shift.openedByName || '—'}</strong> | وردية: <strong style={{ color: '#0284c7' }}>#{shift.id || shift.docNo}</strong>
+                  {t('cash_drawer.cash_drawer_review_dialog.s2', "كاشير:")} <strong style={{ color: '#0f172a' }}>{shift.openedByName || '—'}</strong> {t('cash_drawer.cash_drawer_review_dialog.s3', "| وردية:")} <strong style={{ color: '#0284c7' }}>#{shift.id || shift.docNo}</strong>
                 </span>
 
                 <button
@@ -303,10 +305,10 @@ export function CashDrawerReviewDialog(props: CashDrawerReviewDialogProps) {
                     transition: 'all 0.15s ease',
                     boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
                   }}
-                  title={compactView ? 'التبديل إلى الوضع المريح الطبيعي' : 'التبديل إلى الوضع المضغوط للشاشات الصغيرة'}
+                  title={compactView ? t('cash_drawer.cash_drawer_review_dialog.s4', "التبديل إلى الوضع المريح الطبيعي") : t('cash_drawer.cash_drawer_review_dialog.s5', "التبديل إلى الوضع المضغوط للشاشات الصغيرة")}
                 >
                   <LayersIcon size={14} color={compactView ? '#16a34a' : '#64748b'} />
-                  <span>{compactView ? 'الوضع المريح' : 'الوضع المضغوط'}</span>
+                  <span>{compactView ? t('cash_drawer.cash_drawer_review_dialog.s6', "الوضع المريح") : t('cash_drawer.cash_drawer_review_dialog.s7', "الوضع المضغوط")}</span>
                 </button>
 
                 <span className={shift.status === 'pending_review' ? 'badge badge-warning' : 'badge'} style={{ padding: '3px 9px', fontSize: '0.76rem' }}>{statusLabel}</span>
@@ -327,11 +329,11 @@ export function CashDrawerReviewDialog(props: CashDrawerReviewDialogProps) {
                 border: '1px solid #e2e8f0',
                 fontSize: '0.84rem'
               }}>
-                <div><strong>الحالة:</strong> <span className={shift.status === 'pending_review' ? 'badge badge-warning' : 'badge'}>{statusLabel}</span></div>
-                <div><strong>الفرع / المخزن:</strong> <span>{shift.branchName || '—'} / {shift.locationName || '—'}</span></div>
-                <div><strong>التوقيت:</strong> <span>من {formatTimeOnly(shift.createdAt)} إلى {formatTimeOnly(shift.closedAt)}</span></div>
+                <div><strong>{t('cash_drawer.cash_drawer_review_dialog.s8', "الحالة:")}</strong> <span className={shift.status === 'pending_review' ? 'badge badge-warning' : 'badge'}>{statusLabel}</span></div>
+                <div><strong>{t('cash_drawer.cash_drawer_review_dialog.s9', "الفرع / المخزن:")}</strong> <span>{shift.branchName || '—'} / {shift.locationName || '—'}</span></div>
+                <div><strong>{t('cash_drawer.cash_drawer_review_dialog.s10', "التوقيت:")}</strong> <span>{t('cash_drawer.cash_drawer_review_dialog.s11', "من")} {formatTimeOnly(shift.createdAt)} {t('cash_drawer.cash_drawer_review_dialog.s12', "إلى")} {formatTimeOnly(shift.closedAt)}</span></div>
                 {shift.closedByName && shift.openedByName && shift.closedByName.trim().toLowerCase() !== shift.openedByName.trim().toLowerCase() ? (
-                  <div><strong>أُغلقت إدارياً بواسطة:</strong> <strong style={{ color: '#b45309' }}>{shift.closedByName}</strong></div>
+                  <div><strong>{t('cash_drawer.cash_drawer_review_dialog.s13', "أُغلقت إدارياً بواسطة:")}</strong> <strong style={{ color: '#b45309' }}>{shift.closedByName}</strong></div>
                 ) : null}
               </div>
             )}
@@ -354,16 +356,16 @@ export function CashDrawerReviewDialog(props: CashDrawerReviewDialogProps) {
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700 }}>
                 {reviewMatched ? <CheckCircleIcon size={17} color="#16a34a" /> : <AlertTriangleIcon size={17} color="#dc2626" />}
-                <span>{reviewMatched ? 'الوردية متطابقة بالكامل مع إقرار الكاشير.' : 'تنبيه: يوجد عجز / فارق في إقرار الكاشير مقارنة بالنظام.'}</span>
+                <span>{reviewMatched ? t('cash_drawer.cash_drawer_review_dialog.s14', "الوردية متطابقة بالكامل مع إقرار الكاشير.") : t('cash_drawer.cash_drawer_review_dialog.s15', "تنبيه: يوجد عجز / فارق في إقرار الكاشير مقارنة بالنظام.")}</span>
               </div>
               <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '6px 12px', color: reviewMatched ? '#166534' : '#991b1b' }}>
-                <span><strong>إجمالي الفارق:</strong> <strong style={{ color: totalShiftDiscrepancy < 0 ? '#dc2626' : '#16a34a', fontSize: compactView ? '0.86rem' : '0.92rem' }}>{differenceLabel(totalShiftDiscrepancy)}</strong></span>
+                <span><strong>{t('cash_drawer.cash_drawer_review_dialog.s16', "إجمالي الفارق:")}</strong> <strong style={{ color: totalShiftDiscrepancy < 0 ? '#dc2626' : '#16a34a', fontSize: compactView ? '0.86rem' : '0.92rem' }}>{differenceLabel(totalShiftDiscrepancy)}</strong></span>
                 <span style={{ color: reviewMatched ? '#86efac' : '#fca5a5' }}>|</span>
-                <span><strong>فارق نقدية الدرج:</strong> <strong style={{ color: dynamicVariance < 0 ? '#dc2626' : '#16a34a' }}>{differenceLabel(dynamicVariance)}</strong></span>
+                <span><strong>{t('cash_drawer.cash_drawer_review_dialog.s17', "فارق نقدية الدرج:")}</strong> <strong style={{ color: dynamicVariance < 0 ? '#dc2626' : '#16a34a' }}>{differenceLabel(dynamicVariance)}</strong></span>
                 <span style={{ color: reviewMatched ? '#86efac' : '#fca5a5' }}>|</span>
-                <span><strong>فارق المدفوعات الإلكترونية:</strong> <strong style={{ color: electronicDiff < 0 ? '#dc2626' : '#16a34a' }}>{differenceLabel(electronicDiff)}</strong></span>
+                <span><strong>{t('cash_drawer.cash_drawer_review_dialog.s18', "فارق المدفوعات الإلكترونية:")}</strong> <strong style={{ color: electronicDiff < 0 ? '#dc2626' : '#16a34a' }}>{differenceLabel(electronicDiff)}</strong></span>
                 <span style={{ color: reviewMatched ? '#86efac' : '#fca5a5' }}>|</span>
-                <span><strong>فرق العمليات:</strong> {formatSignedCount(comparison.opsDiffTotal)}</span>
+                <span><strong>{t('cash_drawer.cash_drawer_review_dialog.s19', "فرق العمليات:")}</strong> {formatSignedCount(comparison.opsDiffTotal)}</span>
               </div>
             </div>
 
@@ -388,10 +390,10 @@ export function CashDrawerReviewDialog(props: CashDrawerReviewDialogProps) {
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 800, color: '#0f172a', fontSize: compactView ? '0.85rem' : '0.92rem' }}>
                   <ScaleIcon size={compactView ? 16 : 18} color="#475569" />
-                  <span>1. جرد ومطابقة نقدية الدرج (الكاش الفعلي بالدرج)</span>
+                  <span>{t('cash_drawer.cash_drawer_review_dialog.s20', "1. جرد ومطابقة نقدية الدرج (الكاش الفعلي بالدرج)")}</span>
                 </div>
                 <span style={{ fontSize: compactView ? '0.74rem' : '0.78rem', color: '#64748b' }}>
-                  حساب النقدية الفعلية داخل الدرج = العهدة + مبيعات الكاش + الإيداعات - المنصرفات
+                  {t('cash_drawer.cash_drawer_review_dialog.s21', "حساب النقدية الفعلية داخل الدرج = العهدة + مبيعات الكاش + الإيداعات - المنصرفات")}
                 </span>
               </div>
 
@@ -405,38 +407,38 @@ export function CashDrawerReviewDialog(props: CashDrawerReviewDialogProps) {
               }}>
                 {/* 1. العهدة الافتتاحية */}
                 <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: compactView ? '6px 10px' : '9px 12px' }}>
-                  <div style={{ fontSize: compactView ? '0.72rem' : '0.76rem', color: '#64748b', fontWeight: 600 }}>[1] العهدة الافتتاحية</div>
+                  <div style={{ fontSize: compactView ? '0.72rem' : '0.76rem', color: '#64748b', fontWeight: 600 }}>{t('cash_drawer.cash_drawer_review_dialog.s22', "[1] العهدة الافتتاحية")}</div>
                   <div style={{ fontSize: compactView ? '0.98rem' : '1.1rem', fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>
                     {formatCurrency(shift.openingCash)}
                   </div>
-                  <div style={{ fontSize: '0.68rem', color: '#94a3b8', marginTop: '1px' }}>رصيد بداية الوردية</div>
+                  <div style={{ fontSize: '0.68rem', color: '#94a3b8', marginTop: '1px' }}>{t('cash_drawer.cash_drawer_review_dialog.s23', "رصيد بداية الوردية")}</div>
                 </div>
 
                 {/* 2. (+) مبيعات كاش */}
                 <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: compactView ? '6px 10px' : '9px 12px' }}>
-                  <div style={{ fontSize: compactView ? '0.72rem' : '0.76rem', color: '#64748b', fontWeight: 600 }}>[2] (+) مبيعات كاش النظام</div>
+                  <div style={{ fontSize: compactView ? '0.72rem' : '0.76rem', color: '#64748b', fontWeight: 600 }}>{t('cash_drawer.cash_drawer_review_dialog.s24', "[2] (+) مبيعات كاش النظام")}</div>
                   <div style={{ fontSize: compactView ? '0.98rem' : '1.1rem', fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>
                     +{formatCurrency(expected.rawCashSales)}
                   </div>
-                  <div style={{ fontSize: '0.68rem', color: '#94a3b8', marginTop: '1px' }}>فواتير البيع النقدية</div>
+                  <div style={{ fontSize: '0.68rem', color: '#94a3b8', marginTop: '1px' }}>{t('cash_drawer.cash_drawer_review_dialog.s25', "فواتير البيع النقدية")}</div>
                 </div>
 
                 {/* 3. (+) إيداعات نقدية */}
                 <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: compactView ? '6px 10px' : '9px 12px' }}>
-                  <div style={{ fontSize: compactView ? '0.72rem' : '0.76rem', color: '#64748b', fontWeight: 600 }}>[3] (+) إيداعات نقدية للدرج</div>
+                  <div style={{ fontSize: compactView ? '0.72rem' : '0.76rem', color: '#64748b', fontWeight: 600 }}>{t('cash_drawer.cash_drawer_review_dialog.s26', "[3] (+) إيداعات نقدية للدرج")}</div>
                   <div style={{ fontSize: compactView ? '0.98rem' : '1.1rem', fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>
                     +{formatCurrency(manualCashIn + deliveryCashIn)}
                   </div>
-                  <div style={{ fontSize: '0.68rem', color: '#94a3b8', marginTop: '1px' }}>إيداعات + تسوية مناديب</div>
+                  <div style={{ fontSize: '0.68rem', color: '#94a3b8', marginTop: '1px' }}>{t('cash_drawer.cash_drawer_review_dialog.s27', "إيداعات + تسوية مناديب")}</div>
                 </div>
 
                 {/* 4. (-) منصرفات ومسحوبات */}
                 <div style={{ background: '#fffbfb', border: '1px solid #fecaca', borderRadius: '8px', padding: compactView ? '6px 10px' : '9px 12px' }}>
-                  <div style={{ fontSize: compactView ? '0.72rem' : '0.76rem', color: '#dc2626', fontWeight: 700 }}>[4] (-) منصرفات ومسحوبات</div>
+                  <div style={{ fontSize: compactView ? '0.72rem' : '0.76rem', color: '#dc2626', fontWeight: 700 }}>{t('cash_drawer.cash_drawer_review_dialog.s28', "[4] (-) منصرفات ومسحوبات")}</div>
                   <div style={{ fontSize: compactView ? '0.98rem' : '1.1rem', fontWeight: 800, color: '#dc2626', marginTop: '2px' }}>
                     -{formatCurrency(totalDeductions)}
                   </div>
-                  <div style={{ fontSize: '0.68rem', color: '#f87171', marginTop: '1px' }}>مصروفات وسداد موردين ومرتجع</div>
+                  <div style={{ fontSize: '0.68rem', color: '#f87171', marginTop: '1px' }}>{t('cash_drawer.cash_drawer_review_dialog.s29', "مصروفات وسداد موردين ومرتجع")}</div>
                 </div>
               </div>
 
@@ -466,13 +468,13 @@ export function CashDrawerReviewDialog(props: CashDrawerReviewDialogProps) {
                   fontSize: '0.76rem',
                   lineHeight: '1.4'
                 }}>
-                  <span>العهدة ({formatMoney(shift.openingCash)})</span>
+                  <span>{t('cash_drawer.cash_drawer_review_dialog.s30', "العهدة (")}{formatMoney(shift.openingCash)})</span>
                   <span style={{ color: '#94a3b8' }}>+</span>
-                  <span>مبيعات ({formatMoney(expected.rawCashSales)})</span>
+                  <span>{t('cash_drawer.cash_drawer_review_dialog.s31', "مبيعات (")}{formatMoney(expected.rawCashSales)})</span>
                   <span style={{ color: '#94a3b8' }}>+</span>
-                  <span>إيداعات ({formatMoney(manualCashIn + deliveryCashIn)})</span>
+                  <span>{t('cash_drawer.cash_drawer_review_dialog.s32', "إيداعات (")}{formatMoney(manualCashIn + deliveryCashIn)})</span>
                   <span style={{ color: '#dc2626' }}>-</span>
-                  <span style={{ color: '#dc2626' }}>منصرفات ({formatMoney(totalDeductions)})</span>
+                  <span style={{ color: '#dc2626' }}>{t('cash_drawer.cash_drawer_review_dialog.s33', "منصرفات (")}{formatMoney(totalDeductions)})</span>
                   <span style={{ color: '#475569' }}>=</span>
                   <strong style={{ color: '#0f172a', background: '#ffffff', padding: '1px 6px', borderRadius: '4px', border: '1px solid #cbd5e1' }}>
                     {formatMoney(dynamicExpectedCash)}
@@ -487,11 +489,11 @@ export function CashDrawerReviewDialog(props: CashDrawerReviewDialogProps) {
                   textAlign: 'center',
                 }}>
                   <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '6px 8px' }}>
-                    <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>صافي المتوقع</div>
+                    <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>{t('cash_drawer.cash_drawer_review_dialog.s34', "صافي المتوقع")}</div>
                     <strong style={{ fontSize: '0.88rem', color: '#0f172a', display: 'block', marginTop: '2px' }}>{formatCurrency(dynamicExpectedCash)}</strong>
                   </div>
                   <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '6px 8px' }}>
-                    <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>المعدود الفعلي</div>
+                    <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>{t('cash_drawer.cash_drawer_review_dialog.s35', "المعدود الفعلي")}</div>
                     <strong style={{ fontSize: '0.88rem', color: '#0f172a', display: 'block', marginTop: '2px' }}>{formatCurrency(declared.cash)}</strong>
                   </div>
                   <div style={{
@@ -500,7 +502,7 @@ export function CashDrawerReviewDialog(props: CashDrawerReviewDialogProps) {
                     borderRadius: '6px',
                     padding: '6px 8px',
                   }}>
-                    <div style={{ fontSize: '0.72rem', color: dynamicVariance < 0 ? '#dc2626' : '#15803d', fontWeight: 700 }}>فارق نقدية الدرج</div>
+                    <div style={{ fontSize: '0.72rem', color: dynamicVariance < 0 ? '#dc2626' : '#15803d', fontWeight: 700 }}>{t('cash_drawer.cash_drawer_review_dialog.s36', "فارق نقدية الدرج")}</div>
                     <strong style={{ fontSize: '0.88rem', color: dynamicVariance < 0 ? '#dc2626' : '#15803d', display: 'block', marginTop: '2px' }}>
                       {differenceLabel(dynamicVariance)}
                     </strong>
@@ -531,10 +533,10 @@ export function CashDrawerReviewDialog(props: CashDrawerReviewDialogProps) {
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 800, color: '#0f172a', fontSize: compactView ? '0.85rem' : '0.92rem' }}>
                   <CreditCardIcon size={compactView ? 16 : 18} color="#475569" />
-                  <span>2. مطابقة قنوات الدفع الإلكتروني والآجل (إيصالات POS والمحافظ)</span>
+                  <span>{t('cash_drawer.cash_drawer_review_dialog.s37', "2. مطابقة قنوات الدفع الإلكتروني والآجل (إيصالات POS والمحافظ)")}</span>
                 </div>
                 <span style={{ fontSize: compactView ? '0.74rem' : '0.78rem', color: '#64748b' }}>
-                  مقارنة مباشرة 1 إلى 1 بين مبيعات النظام وإقرار الكاشير
+                  {t('cash_drawer.cash_drawer_review_dialog.s38', "مقارنة مباشرة 1 إلى 1 بين مبيعات النظام وإقرار الكاشير")}
                 </span>
               </div>
 
@@ -542,13 +544,13 @@ export function CashDrawerReviewDialog(props: CashDrawerReviewDialogProps) {
                 <table className="cash-drawer-review-table" style={{ width: '100%', minWidth: '650px', fontSize: compactView ? '0.82rem' : '0.86rem' }}>
                   <thead>
                     <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-                      <th style={{ padding: compactView ? '5px 8px' : '8px 12px', textAlign: 'right' }}>طريقة الدفع / القناة</th>
-                      <th style={{ padding: compactView ? '5px 8px' : '8px 12px', textAlign: 'center' }}>مبيعات النظام</th>
-                      <th style={{ padding: compactView ? '5px 8px' : '8px 12px', textAlign: 'center' }}>إقرار الكاشير (إيصالات)</th>
-                      <th style={{ padding: compactView ? '5px 8px' : '8px 12px', textAlign: 'center' }}>فرق المبلغ</th>
-                      <th style={{ padding: compactView ? '5px 8px' : '8px 12px', textAlign: 'center' }}>عمليات النظام</th>
-                      <th style={{ padding: compactView ? '5px 8px' : '8px 12px', textAlign: 'center' }}>عمليات الكاشير</th>
-                      <th style={{ padding: compactView ? '5px 8px' : '8px 12px', textAlign: 'center' }}>فرق العدد</th>
+                      <th style={{ padding: compactView ? '5px 8px' : '8px 12px', textAlign: 'right' }}>{t('cash_drawer.cash_drawer_review_dialog.s39', "طريقة الدفع / القناة")}</th>
+                      <th style={{ padding: compactView ? '5px 8px' : '8px 12px', textAlign: 'center' }}>{t('cash_drawer.cash_drawer_review_dialog.s40', "مبيعات النظام")}</th>
+                      <th style={{ padding: compactView ? '5px 8px' : '8px 12px', textAlign: 'center' }}>{t('cash_drawer.cash_drawer_review_dialog.s41', "إقرار الكاشير (إيصالات)")}</th>
+                      <th style={{ padding: compactView ? '5px 8px' : '8px 12px', textAlign: 'center' }}>{t('cash_drawer.cash_drawer_review_dialog.s42', "فرق المبلغ")}</th>
+                      <th style={{ padding: compactView ? '5px 8px' : '8px 12px', textAlign: 'center' }}>{t('cash_drawer.cash_drawer_review_dialog.s43', "عمليات النظام")}</th>
+                      <th style={{ padding: compactView ? '5px 8px' : '8px 12px', textAlign: 'center' }}>{t('cash_drawer.cash_drawer_review_dialog.s44', "عمليات الكاشير")}</th>
+                      <th style={{ padding: compactView ? '5px 8px' : '8px 12px', textAlign: 'center' }}>{t('cash_drawer.cash_drawer_review_dialog.s45', "فرق العدد")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -559,11 +561,11 @@ export function CashDrawerReviewDialog(props: CashDrawerReviewDialogProps) {
                         <td style={{ padding: compactView ? '5px 8px' : '8px 12px', textAlign: 'center' }}>
                           {row.key === 'credit' ? (
                             <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '3px', background: '#f1f5f9', color: '#475569', padding: compactView ? '1px 6px' : '2px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600 }}>
-                              <UsersIcon size={12} color="#64748b" /> ذمة عميل (آجل)
+                              <UsersIcon size={12} color="#64748b" /> {t('cash_drawer.cash_drawer_review_dialog.s46', "ذمة عميل (آجل)")}
                             </span>
                           ) : row.key === 'delivery' ? (
                             <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '3px', background: '#f1f5f9', color: '#475569', padding: compactView ? '1px 6px' : '2px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600 }}>
-                              <TruckIcon size={12} color="#64748b" /> مع المناديب (دليفري)
+                              <TruckIcon size={12} color="#64748b" /> {t('cash_drawer.cash_drawer_review_dialog.s47', "مع المناديب (دليفري)")}
                             </span>
                           ) : (
                             formatMoney(row.declaredAmount)
@@ -573,9 +575,9 @@ export function CashDrawerReviewDialog(props: CashDrawerReviewDialogProps) {
                           {row.key === 'credit' || row.key === 'delivery' ? (
                             <span style={{ color: '#94a3b8' }}>—</span>
                           ) : Math.abs(row.amountDiff) <= 0.009 ? (
-                            <span style={{ color: '#15803d', background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '1px 8px', borderRadius: '4px', fontSize: '0.76rem', fontWeight: 700 }}>{formatMoney(0)} (مطابق)</span>
+                            <span style={{ color: '#15803d', background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '1px 8px', borderRadius: '4px', fontSize: '0.76rem', fontWeight: 700 }}>{formatMoney(0)} {t('cash_drawer.cash_drawer_review_dialog.s48', "(مطابق)")}</span>
                           ) : row.amountDiff < 0 ? (
-                            <span style={{ color: '#dc2626', background: '#fef2f2', border: '1px solid #fecaca', padding: '1px 8px', borderRadius: '4px', fontSize: '0.76rem', fontWeight: 800 }}>{differenceLabel(row.amountDiff)} (عجز)</span>
+                            <span style={{ color: '#dc2626', background: '#fef2f2', border: '1px solid #fecaca', padding: '1px 8px', borderRadius: '4px', fontSize: '0.76rem', fontWeight: 800 }}>{differenceLabel(row.amountDiff)} {t('cash_drawer.cash_drawer_review_dialog.s49', "(عجز)")}</span>
                           ) : (
                             <span style={{ color: '#15803d', background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '1px 8px', borderRadius: '4px', fontSize: '0.76rem', fontWeight: 700 }}>{differenceLabel(row.amountDiff)}</span>
                           )}
@@ -586,14 +588,14 @@ export function CashDrawerReviewDialog(props: CashDrawerReviewDialogProps) {
                       </tr>
                     ))}
                     <tr className="cash-drawer-review-total-row" style={{ background: '#f8fafc', borderTop: '2px solid #cbd5e1' }}>
-                      <td style={{ padding: compactView ? '6px 8px' : '9px 12px', textAlign: 'right' }}><strong>إجمالي المدفوعات الإلكترونية</strong></td>
+                      <td style={{ padding: compactView ? '6px 8px' : '9px 12px', textAlign: 'right' }}><strong>{t('cash_drawer.cash_drawer_review_dialog.s50', "إجمالي المدفوعات الإلكترونية")}</strong></td>
                       <td style={{ padding: compactView ? '6px 8px' : '9px 12px', textAlign: 'center' }}><strong style={{ color: '#0f172a' }}>{formatMoney(comparison.systemAmountTotal)}</strong></td>
                       <td style={{ padding: compactView ? '6px 8px' : '9px 12px', textAlign: 'center' }}><strong>{formatMoney(comparison.declaredAmountTotal)}</strong></td>
                       <td style={{ padding: compactView ? '6px 8px' : '9px 12px', textAlign: 'center' }}>
                         {comparison.amountDiffTotal === 0 ? (
-                          <strong style={{ color: '#15803d', background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '2px 8px', borderRadius: '4px' }}>{formatMoney(0)} (مطابق)</strong>
+                          <strong style={{ color: '#15803d', background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '2px 8px', borderRadius: '4px' }}>{formatMoney(0)} {t('cash_drawer.cash_drawer_review_dialog.s51', "(مطابق)")}</strong>
                         ) : comparison.amountDiffTotal < 0 ? (
-                          <span style={{ color: '#dc2626', background: '#fef2f2', border: '1px solid #fecaca', padding: '2px 8px', borderRadius: '4px', fontWeight: 800 }}>{differenceLabel(comparison.amountDiffTotal)} (عجز)</span>
+                          <span style={{ color: '#dc2626', background: '#fef2f2', border: '1px solid #fecaca', padding: '2px 8px', borderRadius: '4px', fontWeight: 800 }}>{differenceLabel(comparison.amountDiffTotal)} {t('cash_drawer.cash_drawer_review_dialog.s52', "(عجز)")}</span>
                         ) : (
                           <strong style={{ color: '#15803d', background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '2px 8px', borderRadius: '4px' }}>{differenceLabel(comparison.amountDiffTotal)}</strong>
                         )}
@@ -628,10 +630,10 @@ export function CashDrawerReviewDialog(props: CashDrawerReviewDialogProps) {
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <RefreshCwIcon size={compactView ? 13 : 15} color="#64748b" />
-                  <span>حركات ومنصرفات الدرج التفصيلية ({shift.movementItems?.length || 0} عملية)</span>
+                  <span>{t('cash_drawer.cash_drawer_review_dialog.s53', "حركات ومنصرفات الدرج التفصيلية (")}{shift.movementItems?.length || 0} {t('cash_drawer.cash_drawer_review_dialog.s54', "عملية)")}</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.74rem', color: '#0284c7' }}>
-                  <span>{showMovements ? 'إخفاء التفاصيل' : 'عرض التفاصيل'}</span>
+                  <span>{showMovements ? t('cash_drawer.cash_drawer_review_dialog.s55', "إخفاء التفاصيل") : t('cash_drawer.cash_drawer_review_dialog.s56', "عرض التفاصيل")}</span>
                   {showMovements ? <ChevronUpIcon size={14} /> : <ChevronDownIcon size={14} />}
                 </div>
               </div>
@@ -670,7 +672,7 @@ export function CashDrawerReviewDialog(props: CashDrawerReviewDialogProps) {
                               {group.label}
                             </span>
                             <span className="badge" style={{ fontSize: '0.7rem', background: '#e2e8f0', color: '#475569', padding: '1px 5px' }}>
-                              {group.items.length} {group.items.length === 1 ? 'عملية' : 'عمليات'}
+                              {group.items.length} {group.items.length === 1 ? t('cash_drawer.cash_drawer_review_dialog.s57', "عملية") : t('cash_drawer.cash_drawer_review_dialog.s58', "عمليات")}
                             </span>
                           </div>
 
@@ -703,9 +705,9 @@ export function CashDrawerReviewDialog(props: CashDrawerReviewDialogProps) {
                             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.78rem' }}>
                               <thead>
                                 <tr style={{ color: '#64748b', borderBottom: '1px solid #f1f5f9' }}>
-                                  <th style={{ padding: '4px 6px', fontWeight: 600, textAlign: 'right' }}>البيان / السبب</th>
-                                  <th style={{ padding: '4px 6px', fontWeight: 600, width: '110px', textAlign: 'center' }}>المبلغ</th>
-                                  <th style={{ padding: '4px 6px', fontWeight: 600, width: '130px', textAlign: 'center' }}>التوقيت</th>
+                                  <th style={{ padding: '4px 6px', fontWeight: 600, textAlign: 'right' }}>{t('cash_drawer.cash_drawer_review_dialog.s59', "البيان / السبب")}</th>
+                                  <th style={{ padding: '4px 6px', fontWeight: 600, width: '110px', textAlign: 'center' }}>{t('cash_drawer.cash_drawer_review_dialog.s60', "المبلغ")}</th>
+                                  <th style={{ padding: '4px 6px', fontWeight: 600, width: '130px', textAlign: 'center' }}>{t('cash_drawer.cash_drawer_review_dialog.s61', "التوقيت")}</th>
                                 </tr>
                               </thead>
                               <tbody>
@@ -753,7 +755,7 @@ export function CashDrawerReviewDialog(props: CashDrawerReviewDialogProps) {
                 boxShadow: '0 1px 2px rgba(0,0,0,0.02)'
               }}>
                 <div>
-                  <div style={{ fontSize: compactView ? '0.74rem' : '0.78rem', color: '#64748b', fontWeight: 600 }}>النقدية المستلمة للخزينة:</div>
+                  <div style={{ fontSize: compactView ? '0.74rem' : '0.78rem', color: '#64748b', fontWeight: 600 }}>{t('cash_drawer.cash_drawer_review_dialog.s62', "النقدية المستلمة للخزينة:")}</div>
                   <div style={{ fontSize: compactView ? '1.15rem' : '1.25rem', fontWeight: 800, color: '#15803d', marginTop: '1px' }}>
                     {formatCurrency(shift.declaredCash ?? shift.countedCash ?? 0)}
                   </div>
@@ -775,9 +777,9 @@ export function CashDrawerReviewDialog(props: CashDrawerReviewDialogProps) {
                 boxShadow: '0 1px 2px rgba(0,0,0,0.02)'
               }}>
                 <div>
-                  <div style={{ fontSize: compactView ? '0.74rem' : '0.78rem', color: '#64748b', fontWeight: 600 }}>فارق نقدية الدرج:</div>
+                  <div style={{ fontSize: compactView ? '0.74rem' : '0.78rem', color: '#64748b', fontWeight: 600 }}>{t('cash_drawer.cash_drawer_review_dialog.s63', "فارق نقدية الدرج:")}</div>
                   <div style={{ fontSize: compactView ? '1.15rem' : '1.25rem', fontWeight: 800, color: dynamicVariance < 0 ? '#dc2626' : '#15803d', marginTop: '1px' }}>
-                    {formatCurrency(dynamicVariance)} <span style={{ fontSize: '0.74rem', fontWeight: 700, color: dynamicVariance < 0 ? '#dc2626' : '#15803d' }}>{dynamicVariance < 0 ? '(عجز)' : dynamicVariance > 0 ? '(زيادة)' : '(مطابق)'}</span>
+                    {formatCurrency(dynamicVariance)} <span style={{ fontSize: '0.74rem', fontWeight: 700, color: dynamicVariance < 0 ? '#dc2626' : '#15803d' }}>{dynamicVariance < 0 ? t('cash_drawer.cash_drawer_review_dialog.s64', "(عجز)") : dynamicVariance > 0 ? t('cash_drawer.cash_drawer_review_dialog.s65', "(زيادة)") : t('cash_drawer.cash_drawer_review_dialog.s66', "(مطابق)")}</span>
                   </div>
                 </div>
                 <div style={{ background: dynamicVariance < 0 ? '#fef2f2' : '#f0fdf4', padding: compactView ? '7px' : '10px', borderRadius: '7px', color: dynamicVariance < 0 ? '#dc2626' : '#16a34a', display: 'flex' }}>
@@ -797,9 +799,9 @@ export function CashDrawerReviewDialog(props: CashDrawerReviewDialogProps) {
                 boxShadow: '0 1px 2px rgba(0,0,0,0.02)'
               }}>
                 <div>
-                  <div style={{ fontSize: compactView ? '0.74rem' : '0.78rem', color: '#64748b', fontWeight: 600 }}>فارق المدفوعات الإلكترونية:</div>
+                  <div style={{ fontSize: compactView ? '0.74rem' : '0.78rem', color: '#64748b', fontWeight: 600 }}>{t('cash_drawer.cash_drawer_review_dialog.s67', "فارق المدفوعات الإلكترونية:")}</div>
                   <div style={{ fontSize: compactView ? '1.15rem' : '1.25rem', fontWeight: 800, color: electronicDiff < 0 ? '#dc2626' : '#15803d', marginTop: '1px' }}>
-                    {formatCurrency(electronicDiff)} <span style={{ fontSize: '0.74rem', fontWeight: 700, color: electronicDiff < 0 ? '#dc2626' : '#15803d' }}>{electronicDiff < 0 ? '(عجز)' : electronicDiff > 0 ? '(زيادة)' : '(مطابق)'}</span>
+                    {formatCurrency(electronicDiff)} <span style={{ fontSize: '0.74rem', fontWeight: 700, color: electronicDiff < 0 ? '#dc2626' : '#15803d' }}>{electronicDiff < 0 ? t('cash_drawer.cash_drawer_review_dialog.s68', "(عجز)") : electronicDiff > 0 ? t('cash_drawer.cash_drawer_review_dialog.s69', "(زيادة)") : t('cash_drawer.cash_drawer_review_dialog.s70', "(مطابق)")}</span>
                   </div>
                 </div>
                 <div style={{ background: electronicDiff < 0 ? '#fef2f2' : '#f0fdf4', padding: compactView ? '7px' : '10px', borderRadius: '7px', color: electronicDiff < 0 ? '#dc2626' : '#16a34a', display: 'flex' }}>
@@ -820,20 +822,20 @@ export function CashDrawerReviewDialog(props: CashDrawerReviewDialogProps) {
             }}>
               <div>
                 <div style={{ fontSize: '0.76rem', color: '#64748b', marginBottom: '2px' }}>
-                  <strong>ملاحظة الافتتاح:</strong> {shift.openingNote || '—'}
+                  <strong>{t('cash_drawer.cash_drawer_review_dialog.s71', "ملاحظة الافتتاح:")}</strong> {shift.openingNote || '—'}
                 </div>
                 <div style={{ fontSize: '0.76rem', color: '#64748b' }}>
-                  <strong>ملاحظة الإغلاق:</strong> {cleanCloseNote || '—'}
+                  <strong>{t('cash_drawer.cash_drawer_review_dialog.s72', "ملاحظة الإغلاق:")}</strong> {cleanCloseNote || '—'}
                 </div>
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                <Field label="ملاحظة المشرف للاعتماد (اختياري)">
+                <Field label={t('cash_drawer.cash_drawer_review_dialog.s73', "ملاحظة المشرف للاعتماد (اختياري)")}>
                   <input
                     type="text"
                     value={props.managerNote}
                     onChange={(event) => props.onManagerNoteChange(event.target.value)}
-                    placeholder="اكتب ملاحظة قصيرة للمراجعة..."
+                    placeholder={t('cash_drawer.cash_drawer_review_dialog.s74', "اكتب ملاحظة قصيرة للمراجعة...")}
                     disabled={props.isPending}
                     style={{ fontSize: '0.8rem', padding: '4px 8px' }}
                   />
@@ -845,7 +847,7 @@ export function CashDrawerReviewDialog(props: CashDrawerReviewDialogProps) {
               isError={props.isError}
               isSuccess={false}
               error={props.error}
-              errorFallback="تعذر اعتماد إغلاق الوردية"
+              errorFallback={t('cash_drawer.cash_drawer_review_dialog.s75', "تعذر اعتماد إغلاق الوردية")}
             />
 
             {/* Action Buttons */}
@@ -857,14 +859,14 @@ export function CashDrawerReviewDialog(props: CashDrawerReviewDialogProps) {
                 disabled={props.isPending}
                 style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: compactView ? '5px 12px' : '7px 16px', fontSize: '0.82rem' }}
               >
-                <PrinterIcon size={15} /> طباعة تقرير Z (Z-Report)
+                <PrinterIcon size={15} /> {t('cash_drawer.cash_drawer_review_dialog.s76', "طباعة تقرير Z (Z-Report)")}
               </Button>
               <div style={{ display: 'flex', gap: '8px' }}>
                 <Button variant="secondary" onClick={props.onClose} disabled={props.isPending} style={{ padding: compactView ? '5px 14px' : '7px 18px', fontSize: '0.82rem' }}>
-                  إلغاء
+                  {t('cash_drawer.cash_drawer_review_dialog.s77', "إلغاء")}
                 </Button>
                 <Button variant="primary" onClick={props.onApprove} disabled={props.isPending} style={{ padding: '5px 16px', fontSize: '0.82rem' }}>
-                  {props.isPending ? 'جاري اعتماد الإغلاق...' : 'اعتماد الإغلاق النهائي'}
+                  {props.isPending ? t('cash_drawer.cash_drawer_review_dialog.s78', "جاري اعتماد الإغلاق...") : t('cash_drawer.cash_drawer_review_dialog.s79', "اعتماد الإغلاق النهائي")}
                 </Button>
               </div>
             </div>

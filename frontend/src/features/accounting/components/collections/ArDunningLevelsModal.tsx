@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect, type FC } from 'react';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { Button } from '@/shared/ui/button';
@@ -15,6 +16,7 @@ export const ArDunningLevelsModal: FC<ArDunningLevelsModalProps> = ({
   onClose,
   onSaved,
 }) => {
+  const { t } = useTranslation();
   const [levels, setLevels] = useState<ArDunningLevel[]>([]);
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState<string | null>(null);
@@ -68,13 +70,13 @@ export const ArDunningLevelsModal: FC<ArDunningLevelsModalProps> = ({
     <StandardDialog
       open={open}
       onClose={onClose}
-      title="إعدادات مستويات المطالبة والتصعيد الآلي (Dunning Tiers)"
-      subtitle="تحديد مدد التأخير بالايام، نصوص خطابات المطالبة، والتفعيل التلقائي لحظر البيع الآجل"
+      title={t('accounting.collections.ar_dunning_levels_modal.s0', "إعدادات مستويات المطالبة والتصعيد الآلي (Dunning Tiers)")}
+      subtitle={t('accounting.collections.ar_dunning_levels_modal.s1', "تحديد مدد التأخير بالايام، نصوص خطابات المطالبة، والتفعيل التلقائي لحظر البيع الآجل")}
       size="lg"
     >
       {loading ? (
         <div style={{ padding: '40px 0', textAlign: 'center', color: '#64748b' }}>
-          جاري تحميل المستويات...
+          {t('accounting.collections.ar_dunning_levels_modal.s2', "جاري تحميل المستويات...")}
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', maxHeight: '480px', overflowY: 'auto', paddingRight: '4px' }}>
@@ -133,14 +135,14 @@ export const ArDunningLevelsModal: FC<ArDunningLevelsModalProps> = ({
                   onClick={() => handleSaveLevel(lvl)}
                   style={{ backgroundColor: '#170e5e', color: '#ffffff', fontSize: '11.5px', padding: '5px 12px' }}
                 >
-                  {savingId === lvl.id ? 'جاري الحفظ...' : 'حفظ المستوى'}
+                  {savingId === lvl.id ? t('accounting.collections.ar_dunning_levels_modal.s3', "جاري الحفظ...") : t('accounting.collections.ar_dunning_levels_modal.s4', "حفظ المستوى")}
                 </Button>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 600, color: '#475569', marginBottom: '3px' }}>
-                    مهلة التأخير (أيام بعد الاستحقاق)
+                    {t('accounting.collections.ar_dunning_levels_modal.s5', "مهلة التأخير (أيام بعد الاستحقاق)")}
                   </label>
                   <input
                     type="number"
@@ -161,7 +163,7 @@ export const ArDunningLevelsModal: FC<ArDunningLevelsModalProps> = ({
 
                 <div>
                   <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 600, color: '#475569', marginBottom: '3px' }}>
-                    نوع الإجراء المعتمد
+                    {t('accounting.collections.ar_dunning_levels_modal.s6', "نوع الإجراء المعتمد")}
                   </label>
                   <select
                     value={lvl.action_type}
@@ -175,16 +177,16 @@ export const ArDunningLevelsModal: FC<ArDunningLevelsModalProps> = ({
                       backgroundColor: '#ffffff',
                     }}
                   >
-                    <option value="whatsapp">محادثة واتساب فورية</option>
-                    <option value="manual_call">اتصال هاتفي مباشر</option>
-                    <option value="legal">تصعيد قانوني رسمي</option>
-                    <option value="email">بريد إلكتروني</option>
+                    <option value="whatsapp">{t('accounting.collections.ar_dunning_levels_modal.s7', "محادثة واتساب فورية")}</option>
+                    <option value="manual_call">{t('accounting.collections.ar_dunning_levels_modal.s8', "اتصال هاتفي مباشر")}</option>
+                    <option value="legal">{t('accounting.collections.ar_dunning_levels_modal.s9', "تصعيد قانوني رسمي")}</option>
+                    <option value="email">{t('accounting.collections.ar_dunning_levels_modal.s10', "بريد إلكتروني")}</option>
                   </select>
                 </div>
 
                 <div>
                   <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 600, color: '#475569', marginBottom: '3px' }}>
-                    حظر البيع الآجل تلقائياً
+                    {t('accounting.collections.ar_dunning_levels_modal.s11', "حظر البيع الآجل تلقائياً")}
                   </label>
                   <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', padding: '6px 0', fontSize: '12.5px', color: '#1e293b' }}>
                     <input
@@ -193,14 +195,14 @@ export const ArDunningLevelsModal: FC<ArDunningLevelsModalProps> = ({
                       onChange={(e) => handleFieldChange(lvl.id, 'auto_block_sales', e.target.checked)}
                       style={{ width: '16px', height: '16px', accentColor: '#170e5e' }}
                     />
-                    <span>حظر الآجل عند بلوغ هذا المستوى</span>
+                    <span>{t('accounting.collections.ar_dunning_levels_modal.s12', "حظر الآجل عند بلوغ هذا المستوى")}</span>
                   </label>
                 </div>
               </div>
 
               <div>
                 <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 600, color: '#475569', marginBottom: '3px' }}>
-                  نص قالب المطالبة (المتغيرات المتاحة: &#123;customer_name&#125;, &#123;total_overdue&#125;, &#123;days_overdue&#125;)
+                  {t('accounting.collections.ar_dunning_levels_modal.s13', "نص قالب المطالبة (المتغيرات المتاحة: {customer_name}, {total_overdue}, {days_overdue})")}
                 </label>
                 <textarea
                   rows={2}
@@ -224,7 +226,7 @@ export const ArDunningLevelsModal: FC<ArDunningLevelsModalProps> = ({
 
       <StandardDialogFooter>
         <Button type="button" variant="secondary" onClick={onClose}>
-          إغلاق
+          {t('accounting.collections.ar_dunning_levels_modal.s14', "إغلاق")}
         </Button>
       </StandardDialogFooter>
     </StandardDialog>

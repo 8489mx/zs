@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React, { useState, useRef, useEffect } from 'react';
 import { StandardDialog } from '@/shared/components/StandardDialog';
 import { Button } from '@/shared/ui/button';
@@ -43,6 +44,7 @@ export const VanSignaturePadModal: React.FC<VanSignaturePadModalProps> = ({
   initialData,
   onConfirm,
 }) => {
+  const { t } = useTranslation();
   const [recipientName, setRecipientName] = useState(initialData?.recipientName || customerName || '');
   const [recipientPhone, setRecipientPhone] = useState(initialData?.recipientPhone || '');
   const [recipientRole, setRecipientRole] = useState(initialData?.recipientRole || 'صاحب المحل');
@@ -150,9 +152,9 @@ export const VanSignaturePadModal: React.FC<VanSignaturePadModalProps> = ({
     <StandardDialog
       open={open}
       onClose={onClose}
-      title="توقيع واستلام العميل على الشاشة"
-      subtitle="توثيق هوية المستلم وتوقيعه الحي لحماية الشركة ومنع إنكار استلام البضاعة الآجلة"
-      badge="حماية الاستلام"
+      title={t('delivery_reps.van_signature_pad_modal.s0', "توقيع واستلام العميل على الشاشة")}
+      subtitle={t('delivery_reps.van_signature_pad_modal.s1', "توثيق هوية المستلم وتوقيعه الحي لحماية الشركة ومنع إنكار استلام البضاعة الآجلة")}
+      badge={t('delivery_reps.van_signature_pad_modal.s2', "حماية الاستلام")}
       compact={true}
       width="min(480px, 95vw)"
       bodyStyle={{ padding: '12px 14px' }}
@@ -186,7 +188,7 @@ export const VanSignaturePadModal: React.FC<VanSignaturePadModalProps> = ({
             }}
           >
             <XIcon size={14} color="#475569" />
-            <span>إلغاء</span>
+            <span>{t('delivery_reps.van_signature_pad_modal.s3', "إلغاء")}</span>
           </Button>
 
           <Button
@@ -210,7 +212,7 @@ export const VanSignaturePadModal: React.FC<VanSignaturePadModalProps> = ({
             }}
           >
             <CheckCircleIcon size={15} color="#ffffff" />
-            <span>اعتماد وتثبيت التوقيع</span>
+            <span>{t('delivery_reps.van_signature_pad_modal.s4', "اعتماد وتثبيت التوقيع")}</span>
           </Button>
         </div>
       }
@@ -229,12 +231,12 @@ export const VanSignaturePadModal: React.FC<VanSignaturePadModalProps> = ({
             }}
           >
             <div>
-              <span style={{ fontSize: '11px', color: '#64748b', display: 'block' }}>إجمالي الفاتورة المطلوب استلامها:</span>
-              <span style={{ fontSize: '14px', fontWeight: 900, color: '#170e5e' }}>{totalAmount.toFixed(2)} ج.م</span>
+              <span style={{ fontSize: '11px', color: '#64748b', display: 'block' }}>{t('delivery_reps.van_signature_pad_modal.s5', "إجمالي الفاتورة المطلوب استلامها:")}</span>
+              <span style={{ fontSize: '14px', fontWeight: 900, color: '#170e5e' }}>{totalAmount.toFixed(2)} {t('delivery_reps.van_signature_pad_modal.s6', "ج.م")}</span>
             </div>
             {customerName && (
               <div style={{ textAlign: 'left' }}>
-                <span style={{ fontSize: '11px', color: '#64748b', display: 'block' }}>المحل / العميل:</span>
+                <span style={{ fontSize: '11px', color: '#64748b', display: 'block' }}>{t('delivery_reps.van_signature_pad_modal.s7', "المحل / العميل:")}</span>
                 <span style={{ fontSize: '12.5px', fontWeight: 800, color: '#0f172a' }}>{customerName}</span>
               </div>
             )}
@@ -246,13 +248,13 @@ export const VanSignaturePadModal: React.FC<VanSignaturePadModalProps> = ({
           <div>
             <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
               <UserIcon size={12} color="#170e5e" />
-              <span>اسم المستلم الفعلي *</span>
+              <span>{t('delivery_reps.van_signature_pad_modal.s8', "اسم المستلم الفعلي *")}</span>
             </label>
             <input
               type="text"
               value={recipientName}
               onChange={(e) => setRecipientName(e.target.value)}
-              placeholder="الاسم الثلاثي أو الرباعي"
+              placeholder={t('delivery_reps.van_signature_pad_modal.s9', "الاسم الثلاثي أو الرباعي")}
               style={{
                 width: '100%',
                 height: '34px',
@@ -269,7 +271,7 @@ export const VanSignaturePadModal: React.FC<VanSignaturePadModalProps> = ({
           <div>
             <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
               <PhoneIcon size={12} color="#170e5e" />
-              <span>رقم هاتف المستلم</span>
+              <span>{t('delivery_reps.van_signature_pad_modal.s10', "رقم هاتف المستلم")}</span>
             </label>
             <input
               type="tel"
@@ -295,7 +297,7 @@ export const VanSignaturePadModal: React.FC<VanSignaturePadModalProps> = ({
         <div>
           <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
             <BriefcaseIcon size={12} color="#170e5e" />
-            <span>صفة المستلم وعلاقته بالمحل *</span>
+            <span>{t('delivery_reps.van_signature_pad_modal.s11', "صفة المستلم وعلاقته بالمحل *")}</span>
           </label>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
             {RECIPIENT_ROLES.map((role) => {
@@ -328,7 +330,7 @@ export const VanSignaturePadModal: React.FC<VanSignaturePadModalProps> = ({
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
             <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', fontWeight: 800, color: '#0f172a' }}>
               <EditIcon size={12} color="#170e5e" />
-              <span>توقيع المستلم الحي بالأصبع على الشاشة:</span>
+              <span>{t('delivery_reps.van_signature_pad_modal.s12', "توقيع المستلم الحي بالأصبع على الشاشة:")}</span>
             </span>
             <button
               type="button"
@@ -346,7 +348,7 @@ export const VanSignaturePadModal: React.FC<VanSignaturePadModalProps> = ({
               }}
             >
               <RefreshCwIcon size={11} color="#dc2626" />
-              <span>مسح التوقيع</span>
+              <span>{t('delivery_reps.van_signature_pad_modal.s13', "مسح التوقيع")}</span>
             </button>
           </div>
 
@@ -384,7 +386,7 @@ export const VanSignaturePadModal: React.FC<VanSignaturePadModalProps> = ({
                   fontWeight: 600,
                 }}
               >
-                وقع هنا بالأصبع (Sign Here)
+                {t('delivery_reps.van_signature_pad_modal.s14', "وقع هنا بالأصبع (Sign Here)")}
               </div>
             )}
           </div>

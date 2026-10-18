@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { buildStorePublicUrl } from '@/lib/store-public-url';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -22,6 +23,7 @@ import { getGlobalCurrencySymbol, getGlobalSystemCurrency, isThreeDecimalCurrenc
 import { TrendingUpIcon, MessageSquareIcon, Trash2Icon, CopyIcon, CheckIcon } from '@/shared/components/icons/AppIcons';
 
 export function MerchantOnlineOrdersPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [statusFilter, setStatusFilter] = useState('all');
@@ -214,11 +216,11 @@ export function MerchantOnlineOrdersPage() {
         }}
       >
         <PageHeader
-          title="إدارة ومتابعة طلبات المتجر الإلكتروني"
-          badge={<span className="nav-pill" style={{ background: '#f0f3ff', color: '#170e5e', border: '1px solid #d8e0fc' }}>مباشر ومربوط بالمخزن</span>}
+          title={t('storefront.merchant_online_orders_page.s0', "إدارة ومتابعة طلبات المتجر الإلكتروني")}
+          badge={<span className="nav-pill" style={{ background: '#f0f3ff', color: '#170e5e', border: '1px solid #d8e0fc' }}>{t('storefront.merchant_online_orders_page.s1', "مباشر ومربوط بالمخزن")}</span>}
           description={
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px' }}>
-              <span style={{ fontSize: '12.5px', color: '#64748b' }}>رابط متجرك للزبائن:</span>
+              <span style={{ fontSize: '12.5px', color: '#64748b' }}>{t('storefront.merchant_online_orders_page.s2', "رابط متجرك للزبائن:")}</span>
               <span style={{ fontSize: '13px', fontFamily: 'monospace', direction: 'ltr', color: '#170e5e', fontWeight: 800 }}>
                 {storeUrl}
               </span>
@@ -251,7 +253,7 @@ export function MerchantOnlineOrdersPage() {
                   }}
                 >
                   <Trash2Icon size={14} color="#dc2626" />
-                  <span>إلغاء الطلبات المعلقة ({pendingOrdersCount.toLocaleString()})</span>
+                  <span>{t('storefront.merchant_online_orders_page.s3', "إلغاء الطلبات المعلقة (")}{pendingOrdersCount.toLocaleString()})</span>
                 </button>
               )}
               <button
@@ -275,7 +277,7 @@ export function MerchantOnlineOrdersPage() {
                 }}
               >
                 {copySuccess ? <CheckIcon size={14} color="#166534" /> : <CopyIcon size={14} color="#64748b" />}
-                <span>{copySuccess ? 'تم نسخ الرابط!' : 'نسخ رابط المتجر'}</span>
+                <span>{copySuccess ? t('storefront.merchant_online_orders_page.s4', "تم نسخ الرابط!") : t('storefront.merchant_online_orders_page.s5', "نسخ رابط المتجر")}</span>
               </button>
               <a
                 href={storeUrl}
@@ -297,7 +299,7 @@ export function MerchantOnlineOrdersPage() {
                   boxSizing: 'border-box',
                 }}
               >
-                <span>معاينة المتجر كزبون</span>
+                <span>{t('storefront.merchant_online_orders_page.s6', "معاينة المتجر كزبون")}</span>
                 <span style={{ fontSize: '13px' }}>↗</span>
               </a>
             </div>
@@ -330,14 +332,14 @@ export function MerchantOnlineOrdersPage() {
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: '#64748b', fontSize: '12px', fontWeight: 600 }}>
-              <span>إجمالي إيرادات المتجر</span>
+              <span>{t('storefront.merchant_online_orders_page.s7', "إجمالي إيرادات المتجر")}</span>
               <TrendingUpIcon size={16} color="#16a34a" />
             </div>
             <div style={{ fontSize: '20px', fontWeight: 800, color: '#0f172a' }}>
               {totalRevenueAmount.toLocaleString()} <span style={{ fontSize: '13px', fontWeight: 600 }}>{getGlobalCurrencySymbol()}</span>
             </div>
             <span style={{ fontSize: '11px', color: '#16a34a', fontWeight: 600 }}>
-              الطلبات الصالحة والمسلمة
+              {t('storefront.merchant_online_orders_page.s8', "الطلبات الصالحة والمسلمة")}
             </span>
           </div>
 
@@ -356,14 +358,14 @@ export function MerchantOnlineOrdersPage() {
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: '#64748b', fontSize: '12px', fontWeight: 600 }}>
-              <span>إجمالي عدد الطلبات</span>
-              <span style={{ fontSize: '11px', color: '#170e5e', fontWeight: 700, background: '#f0f3ff', padding: '1px 6px', borderRadius: '4px' }}>متجر</span>
+              <span>{t('storefront.merchant_online_orders_page.s9', "إجمالي عدد الطلبات")}</span>
+              <span style={{ fontSize: '11px', color: '#170e5e', fontWeight: 700, background: '#f0f3ff', padding: '1px 6px', borderRadius: '4px' }}>{t('storefront.merchant_online_orders_page.s10', "متجر")}</span>
             </div>
             <div style={{ fontSize: '20px', fontWeight: 800, color: '#0f172a' }}>
-              {totalOrdersCount.toLocaleString()} <span style={{ fontSize: '13px', fontWeight: 600 }}>طلب</span>
+              {totalOrdersCount.toLocaleString()} <span style={{ fontSize: '13px', fontWeight: 600 }}>{t('storefront.merchant_online_orders_page.s11', "طلب")}</span>
             </div>
             <span style={{ fontSize: '11px', color: '#64748b' }}>
-              قيد التنفيذ: {pendingOrdersCount} طلبات
+              {t('storefront.merchant_online_orders_page.s12', "قيد التنفيذ:")} {pendingOrdersCount} {t('storefront.merchant_online_orders_page.s13', "طلبات")}
             </span>
           </div>
 
@@ -382,14 +384,14 @@ export function MerchantOnlineOrdersPage() {
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: '#64748b', fontSize: '12px', fontWeight: 600 }}>
-              <span>متوسط قيمة السلة (AOV)</span>
-              <span style={{ fontSize: '11px', color: '#0369a1', fontWeight: 700, background: '#f0f9ff', padding: '1px 6px', borderRadius: '4px' }}>معدل</span>
+              <span>{t('storefront.merchant_online_orders_page.s14', "متوسط قيمة السلة (AOV)")}</span>
+              <span style={{ fontSize: '11px', color: '#0369a1', fontWeight: 700, background: '#f0f9ff', padding: '1px 6px', borderRadius: '4px' }}>{t('storefront.merchant_online_orders_page.s15', "معدل")}</span>
             </div>
             <div style={{ fontSize: '20px', fontWeight: 800, color: '#0f172a' }}>
               {averageOrderVal.toLocaleString()} <span style={{ fontSize: '13px', fontWeight: 600 }}>{getGlobalCurrencySymbol()}</span>
             </div>
             <span style={{ fontSize: '11px', color: '#64748b' }}>
-              متوسط الفاتورة لكل عميل
+              {t('storefront.merchant_online_orders_page.s16', "متوسط الفاتورة لكل عميل")}
             </span>
           </div>
 
@@ -408,14 +410,14 @@ export function MerchantOnlineOrdersPage() {
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: '#64748b', fontSize: '12px', fontWeight: 600 }}>
-              <span>معدل التحويل والسلات</span>
-              <span style={{ fontSize: '11px', color: '#d97706', fontWeight: 700, background: '#fffbeb', padding: '1px 6px', borderRadius: '4px' }}>تحويل</span>
+              <span>{t('storefront.merchant_online_orders_page.s17', "معدل التحويل والسلات")}</span>
+              <span style={{ fontSize: '11px', color: '#d97706', fontWeight: 700, background: '#fffbeb', padding: '1px 6px', borderRadius: '4px' }}>{t('storefront.merchant_online_orders_page.s18', "تحويل")}</span>
             </div>
             <div style={{ fontSize: '20px', fontWeight: 800, color: '#0f172a' }}>
               {conversionRateVal}%
             </div>
             <span style={{ fontSize: '11px', color: '#b45309', fontWeight: 600 }}>
-              سلات متروكة: {unrecoveredCount} سلة
+              {t('storefront.merchant_online_orders_page.s19', "سلات متروكة:")} {unrecoveredCount} {t('storefront.merchant_online_orders_page.s20', "سلة")}
             </span>
           </div>
         </div>
@@ -455,7 +457,7 @@ export function MerchantOnlineOrdersPage() {
               flexShrink: 0,
             }}
           >
-            <span>طلبات المتجر الواردة</span>
+            <span>{t('storefront.merchant_online_orders_page.s21', "طلبات المتجر الواردة")}</span>
             <span style={{
               fontSize: '11px',
               padding: '1px 6px',
@@ -489,7 +491,7 @@ export function MerchantOnlineOrdersPage() {
               flexShrink: 0,
             }}
           >
-            <span>السلات المتروكة (Abandoned Carts)</span>
+            <span>{t('storefront.merchant_online_orders_page.s22', "السلات المتروكة (Abandoned Carts)")}</span>
             {(analyticsQuery.data?.unrecoveredAbandoned ?? 0) > 0 ? (
               <span style={{
                 fontSize: '11px',
@@ -537,13 +539,13 @@ export function MerchantOnlineOrdersPage() {
             }}
           >
             {[
-              { id: 'all', label: 'جميع الطلبات', count: counts?.all },
-              { id: 'pending', label: 'قيد الانتظار (جديدة)', count: counts?.pending },
-              { id: 'confirmed', label: 'تم التأكيد', count: counts?.confirmed },
-              { id: 'processing', label: 'جاري التجهيز', count: counts?.processing },
-              { id: 'shipped', label: 'خرجت للتوصيل', count: counts?.shipped },
-              { id: 'delivered', label: 'مكتملة ومسلمة', count: counts?.delivered },
-              { id: 'cancelled', label: 'ملغية', count: counts?.cancelled },
+              { id: 'all', label: t('storefront.merchant_online_orders_page.s23', "جميع الطلبات"), count: counts?.all },
+              { id: 'pending', label: t('storefront.merchant_online_orders_page.s24', "قيد الانتظار (جديدة)"), count: counts?.pending },
+              { id: 'confirmed', label: t('storefront.merchant_online_orders_page.s25', "تم التأكيد"), count: counts?.confirmed },
+              { id: 'processing', label: t('storefront.merchant_online_orders_page.s26', "جاري التجهيز"), count: counts?.processing },
+              { id: 'shipped', label: t('storefront.merchant_online_orders_page.s27', "خرجت للتوصيل"), count: counts?.shipped },
+              { id: 'delivered', label: t('storefront.merchant_online_orders_page.s28', "مكتملة ومسلمة"), count: counts?.delivered },
+              { id: 'cancelled', label: t('storefront.merchant_online_orders_page.s29', "ملغية"), count: counts?.cancelled },
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -621,7 +623,7 @@ export function MerchantOnlineOrdersPage() {
               }}
             >
               <div style={{ fontSize: '12.5px', color: '#64748b' }}>
-                عرض <strong>{((page - 1) * pageSize) + 1}</strong> إلى <strong>{Math.min(page * pageSize, totalFilteredCount)}</strong> من إجمالي <strong>{totalFilteredCount.toLocaleString()}</strong> طلب
+                {t('storefront.merchant_online_orders_page.s30', "عرض")} <strong>{((page - 1) * pageSize) + 1}</strong> {t('storefront.merchant_online_orders_page.s31', "إلى")} <strong>{Math.min(page * pageSize, totalFilteredCount)}</strong> {t('storefront.merchant_online_orders_page.s32', "من إجمالي")} <strong>{totalFilteredCount.toLocaleString()}</strong> {t('storefront.merchant_online_orders_page.s33', "طلب")}
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <button
@@ -639,10 +641,10 @@ export function MerchantOnlineOrdersPage() {
                     cursor: page <= 1 ? 'not-allowed' : 'pointer',
                   }}
                 >
-                  الصفحة السابقة
+                  {t('storefront.merchant_online_orders_page.s34', "الصفحة السابقة")}
                 </button>
                 <span style={{ fontSize: '12.5px', fontWeight: 700, color: '#170e5e', padding: '0 8px' }}>
-                  صفحة {page} من {totalPages}
+                  {t('storefront.merchant_online_orders_page.s35', "صفحة")} {page} {t('storefront.merchant_online_orders_page.s36', "من")} {totalPages}
                 </span>
                 <button
                   type="button"
@@ -659,7 +661,7 @@ export function MerchantOnlineOrdersPage() {
                     cursor: page >= totalPages ? 'not-allowed' : 'pointer',
                   }}
                 >
-                  الصفحة التالية
+                  {t('storefront.merchant_online_orders_page.s37', "الصفحة التالية")}
                 </button>
               </div>
             </div>
@@ -685,26 +687,26 @@ export function MerchantOnlineOrdersPage() {
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '12px' }}>
               <div>
                 <h3 style={{ margin: 0, fontSize: '14px', fontWeight: 800, color: '#0f172a' }}>
-                  السلات التي بدأ الزبائن بملئها ولم تكتمل
+                  {t('storefront.merchant_online_orders_page.s38', "السلات التي بدأ الزبائن بملئها ولم تكتمل")}
                 </h3>
                 <span style={{ fontSize: '11.5px', color: '#64748b' }}>
-                  تواصل مع هؤلاء الزبائن عبر واتساب مباشرة لتحفيزهم على إتمام الشراء وتقديم خصم تشجيعي
+                  {t('storefront.merchant_online_orders_page.s39', "تواصل مع هؤلاء الزبائن عبر واتساب مباشرة لتحفيزهم على إتمام الشراء وتقديم خصم تشجيعي")}
                 </span>
               </div>
               <span style={{ fontSize: '12px', color: '#166534', background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '3px 10px', borderRadius: '6px', fontWeight: 700 }}>
-                استرداد فوري بنقرة واحدة
+                {t('storefront.merchant_online_orders_page.s40', "استرداد فوري بنقرة واحدة")}
               </span>
             </div>
 
             {abandonedQuery.isLoading ? (
-              <div style={{ padding: '30px', textAlign: 'center', color: '#64748b' }}>جاري تحميل السلات المتروكة...</div>
+              <div style={{ padding: '30px', textAlign: 'center', color: '#64748b' }}>{t('storefront.merchant_online_orders_page.s41', "جاري تحميل السلات المتروكة...")}</div>
             ) : !abandonedQuery.data?.carts || abandonedQuery.data.carts.length === 0 ? (
               <div style={{ padding: '40px 20px', textAlign: 'center', color: '#64748b' }}>
                 <div style={{ fontSize: '14px', fontWeight: 700, color: '#0f172a', marginBottom: '4px' }}>
-                  لا توجد سلات متروكة حالياً
+                  {t('storefront.merchant_online_orders_page.s42', "لا توجد سلات متروكة حالياً")}
                 </div>
                 <div style={{ fontSize: '12px' }}>
-                  جميع العملاء الذين بدأوا الشراء أكملوا طلباتهم بنجاح
+                  {t('storefront.merchant_online_orders_page.s43', "جميع العملاء الذين بدأوا الشراء أكملوا طلباتهم بنجاح")}
                 </div>
               </div>
             ) : (
@@ -712,12 +714,12 @@ export function MerchantOnlineOrdersPage() {
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12.5px' }}>
                   <thead>
                     <tr style={{ background: '#f8fafc', borderBottom: '1.5px solid #e2e8f0', color: '#475569', textAlign: 'right' }}>
-                      <th style={{ padding: '10px 12px' }}>تاريخ السلة</th>
-                      <th style={{ padding: '10px 12px' }}>بيانات العميل والهاتف</th>
-                      <th style={{ padding: '10px 12px' }}>الأصناف في السلة</th>
-                      <th style={{ padding: '10px 12px' }}>قيمة السلة</th>
-                      <th style={{ padding: '10px 12px' }}>الحالة</th>
-                      <th style={{ padding: '10px 12px', textAlign: 'center' }}>إجراءات الاسترداد</th>
+                      <th style={{ padding: '10px 12px' }}>{t('storefront.merchant_online_orders_page.s44', "تاريخ السلة")}</th>
+                      <th style={{ padding: '10px 12px' }}>{t('storefront.merchant_online_orders_page.s45', "بيانات العميل والهاتف")}</th>
+                      <th style={{ padding: '10px 12px' }}>{t('storefront.merchant_online_orders_page.s46', "الأصناف في السلة")}</th>
+                      <th style={{ padding: '10px 12px' }}>{t('storefront.merchant_online_orders_page.s47', "قيمة السلة")}</th>
+                      <th style={{ padding: '10px 12px' }}>{t('storefront.merchant_online_orders_page.s48', "الحالة")}</th>
+                      <th style={{ padding: '10px 12px', textAlign: 'center' }}>{t('storefront.merchant_online_orders_page.s49', "إجراءات الاسترداد")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -725,8 +727,8 @@ export function MerchantOnlineOrdersPage() {
                       const phoneClean = cart.customerPhone.replace(/\D/g, '');
                       const countryDial = cart.countryCode === 'SA' ? '966' : cart.countryCode === 'AE' ? '971' : '20';
                       const fullIntlPhone = phoneClean.startsWith('0') ? `${countryDial}${phoneClean.slice(1)}` : phoneClean;
-                      const itemsText = cart.items.map((i) => `${i.name} (×${i.quantity})`).join('، ');
-                      const waMessage = `مرحباً ${cart.customerName || 'عزيزي العميل'}، لاحظنا اهتمامك بطلب الأصناف التالية من متجرنا: (${itemsText}). هل تود إتمام طلبك الآن وتأكيده؟ يسعدنا مساعدتك وتوصيل طلبك في أسرع وقت!`;
+                      const itemsText = cart.items.map((i) => `${i.name} (×${i.quantity})`).join(t('storefront.merchant_online_orders_page.s50', "، "));
+                      const waMessage = `مرحباً ${cart.customerName || t('storefront.merchant_online_orders_page.s51', "عزيزي العميل")}، لاحظنا اهتمامك بطلب الأصناف التالية من متجرنا: (${itemsText}). هل تود إتمام طلبك الآن وتأكيده؟ يسعدنا مساعدتك وتوصيل طلبك في أسرع وقت!`;
                       const waLink = `https://wa.me/${fullIntlPhone}?text=${encodeURIComponent(waMessage)}`;
 
                       return (
@@ -735,7 +737,7 @@ export function MerchantOnlineOrdersPage() {
                             {new Date(cart.createdAt).toLocaleString('ar-EG', { dateStyle: 'short', timeStyle: 'short' })}
                           </td>
                           <td style={{ padding: '10px 12px' }}>
-                            <div style={{ fontWeight: 800, color: '#0f172a' }}>{cart.customerName || 'عميل المتجر'}</div>
+                            <div style={{ fontWeight: 800, color: '#0f172a' }}>{cart.customerName || t('storefront.merchant_online_orders_page.s52', "عميل المتجر")}</div>
                             <div style={{ fontFamily: 'monospace', direction: 'ltr', textAlign: 'right', fontSize: '12px', color: '#170e5e', fontWeight: 700 }}>
                               {cart.customerPhone} ({cart.countryCode})
                             </div>
@@ -755,11 +757,11 @@ export function MerchantOnlineOrdersPage() {
                           <td style={{ padding: '10px 12px', whiteSpace: 'nowrap' }}>
                             {cart.recovered ? (
                               <span style={{ fontSize: '11px', color: '#166534', background: '#dcfce7', padding: '2px 7px', borderRadius: '4px', fontWeight: 700 }}>
-                                تم الاسترداد والشراء
+                                {t('storefront.merchant_online_orders_page.s53', "تم الاسترداد والشراء")}
                               </span>
                             ) : (
                               <span style={{ fontSize: '11px', color: '#c2410c', background: '#ffedd5', padding: '2px 7px', borderRadius: '4px', fontWeight: 700 }}>
-                                متروكة بانتظار المتابعة
+                                {t('storefront.merchant_online_orders_page.s54', "متروكة بانتظار المتابعة")}
                               </span>
                             )}
                           </td>
@@ -784,12 +786,12 @@ export function MerchantOnlineOrdersPage() {
                                 }}
                               >
                                 <MessageSquareIcon size={13} />
-                                <span>استرداد عبر واتساب</span>
+                                <span>{t('storefront.merchant_online_orders_page.s55', "استرداد عبر واتساب")}</span>
                               </a>
                               <button
                                 type="button"
                                 onClick={() => deleteAbandonedMutation.mutate(cart.id)}
-                                title="حذف من القائمة"
+                                title={t('storefront.merchant_online_orders_page.s56', "حذف من القائمة")}
                                 style={{
                                   padding: '5px 8px',
                                   borderRadius: '6px',
@@ -918,8 +920,8 @@ export function MerchantOnlineOrdersPage() {
             setAdminPassword('');
           }
         }}
-        title="إلغاء جماعي للطلبات المعلقة"
-        subtitle="يتطلب إدخال كلمة مرور مسؤول النظام (Admin) لتأكيد الإلغاء"
+        title={t('storefront.merchant_online_orders_page.s57', "إلغاء جماعي للطلبات المعلقة")}
+        subtitle={t('storefront.merchant_online_orders_page.s58', "يتطلب إدخال كلمة مرور مسؤول النظام (Admin) لتأكيد الإلغاء")}
         width="480px"
         footerActions={
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '8px', width: '100%' }}>
@@ -941,7 +943,7 @@ export function MerchantOnlineOrdersPage() {
                 cursor: bulkCancelMutation.isPending ? 'not-allowed' : 'pointer',
               }}
             >
-              تراجع
+              {t('storefront.merchant_online_orders_page.s59', "تراجع")}
             </button>
             <button
               type="button"
@@ -962,7 +964,7 @@ export function MerchantOnlineOrdersPage() {
                 gap: '6px',
               }}
             >
-              {bulkCancelMutation.isPending ? 'جاري الإلغاء وفك الحجز...' : `تأكيد إلغاء ${pendingOrdersCount.toLocaleString()} طلب`}
+              {bulkCancelMutation.isPending ? t('storefront.merchant_online_orders_page.s60', "جاري الإلغاء وفك الحجز...") : `تأكيد إلغاء ${pendingOrdersCount.toLocaleString()} طلب`}
             </button>
           </div>
         }
@@ -979,18 +981,18 @@ export function MerchantOnlineOrdersPage() {
               lineHeight: 1.5,
             }}
           >
-            <strong>تنبيه أمني وإداري:</strong> سيتم إلغاء كافة الطلبات ذات الحالة &quot;قيد الانتظار&quot; ({pendingOrdersCount.toLocaleString()} طلب) وإلغاء حجز المخزون الخاص بها فوراً. هذا الإجراء مخصص لمسؤولي المنشأة فقط ولا يُسمح للكاشير بتنفيذه.
+            <strong>{t('storefront.merchant_online_orders_page.s61', "تنبيه أمني وإداري:")}</strong> {t('storefront.merchant_online_orders_page.s62', "سيتم إلغاء كافة الطلبات ذات الحالة \"قيد الانتظار\" (")}{pendingOrdersCount.toLocaleString()} {t('storefront.merchant_online_orders_page.s63', "طلب) وإلغاء حجز المخزون الخاص بها فوراً. هذا الإجراء مخصص لمسؤولي المنشأة فقط ولا يُسمح للكاشير بتنفيذه.")}
           </div>
 
           <div>
             <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: '#1e293b', marginBottom: '6px' }}>
-              كلمة مرور المسؤول (Admin Password) <span style={{ color: '#dc2626' }}>*</span>
+              {t('storefront.merchant_online_orders_page.s64', "كلمة مرور المسؤول (Admin Password)")} <span style={{ color: '#dc2626' }}>*</span>
             </label>
             <input
               type="password"
               value={adminPassword}
               onChange={(e) => setAdminPassword(e.target.value)}
-              placeholder="أدخل كلمة مرور الأدمن للتأكيد..."
+              placeholder={t('storefront.merchant_online_orders_page.s65', "أدخل كلمة مرور الأدمن للتأكيد...")}
               autoFocus
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && adminPassword.trim() && !bulkCancelMutation.isPending) {
@@ -1008,7 +1010,7 @@ export function MerchantOnlineOrdersPage() {
               }}
             />
             <span style={{ display: 'block', fontSize: '11px', color: '#64748b', marginTop: '4px' }}>
-              لن يتم قبول كلمة مرور الكاشير أو أي مستخدم لا يملك صلاحية مدير النظام (Admin).
+              {t('storefront.merchant_online_orders_page.s66', "لن يتم قبول كلمة مرور الكاشير أو أي مستخدم لا يملك صلاحية مدير النظام (Admin).")}
             </span>
           </div>
         </div>

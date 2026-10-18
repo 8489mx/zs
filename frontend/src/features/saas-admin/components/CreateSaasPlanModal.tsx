@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { XIcon } from '@/shared/components/icons/AppIcons';
@@ -30,12 +31,13 @@ export function CreateSaasPlanModal({
   isPending,
   featurePlans,
 }: CreateSaasPlanModalProps) {
+  const { t } = useTranslation();
   return (
     <DialogShell
       open={open}
       onClose={onClose}
       width="640px"
-      ariaLabel="إضافة باقة جديدة"
+      ariaLabel={t('saas_admin.create_saas_plan_modal.s0', "إضافة باقة جديدة")}
     >
       <div className="dialog-card" style={{ padding: '6px 0' }} dir="rtl">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '18px', borderBottom: '1px solid #f1f5f9', paddingBottom: '14px' }}>
@@ -49,10 +51,10 @@ export function CreateSaasPlanModal({
             </div>
             <div>
               <h3 style={{ margin: 0, fontSize: '17px', fontWeight: 900, color: '#0f172a' }}>
-                إضافة باقة اشتراك جديدة
+                {t('saas_admin.create_saas_plan_modal.s1', "إضافة باقة اشتراك جديدة")}
               </h3>
               <p style={{ margin: '3px 0 0 0', fontSize: '12px', color: '#64748b' }}>
-                تحديد السعر ومدة الاشتراك وحدود الاستخدام للباقة السحابية.
+                {t('saas_admin.create_saas_plan_modal.s2', "تحديد السعر ومدة الاشتراك وحدود الاستخدام للباقة السحابية.")}
               </p>
             </div>
           </div>
@@ -60,7 +62,7 @@ export function CreateSaasPlanModal({
             type="button"
             className="dialog-shell-close-btn"
             onClick={onClose}
-            title="إغلاق"
+            title={t('saas_admin.create_saas_plan_modal.s3', "إغلاق")}
             style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#64748b', display: 'flex', alignItems: 'center' }}
           >
             <XIcon size={16} />
@@ -70,25 +72,25 @@ export function CreateSaasPlanModal({
         <form onSubmit={onSubmit}>
           <div className="saas-modal-card" style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px', marginBottom: '14px' }}>
             <div className="saas-modal-card-title" style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a', marginBottom: '10px' }}>
-              <span>1. بيانات الباقة الأساسية</span>
+              <span>{t('saas_admin.create_saas_plan_modal.s4', "1. بيانات الباقة الأساسية")}</span>
             </div>
             <div className="saas-modal-grid-2" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
-              <Field label="كود الباقة (إنجليزي) *">
+              <Field label={t('saas_admin.create_saas_plan_modal.s5', "كود الباقة (إنجليزي) *")}>
                 <input 
                   required 
                   value={newPlan.code} 
                   onChange={(e) => setNewPlan({ ...newPlan, code: e.target.value })} 
                   dir="ltr"
-                  placeholder="مثال: BASIC, PRO, ENTERPRISE"
+                  placeholder={t('saas_admin.create_saas_plan_modal.s6', "مثال: BASIC, PRO, ENTERPRISE")}
                   style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px' }}
                 />
               </Field>
-              <Field label="اسم الباقة بالعربية *">
+              <Field label={t('saas_admin.create_saas_plan_modal.s7', "اسم الباقة بالعربية *")}>
                 <input 
                   required 
                   value={newPlan.name} 
                   onChange={(e) => setNewPlan({ ...newPlan, name: e.target.value })} 
-                  placeholder="مثال: الباقة الأساسية"
+                  placeholder={t('saas_admin.create_saas_plan_modal.s8', "مثال: الباقة الأساسية")}
                   style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px' }}
                 />
               </Field>
@@ -97,10 +99,10 @@ export function CreateSaasPlanModal({
 
           <div className="saas-modal-card" style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px', marginBottom: '14px' }}>
             <div className="saas-modal-card-title" style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a', marginBottom: '10px' }}>
-              <span>2. التسعير وفترة الفوترة</span>
+              <span>{t('saas_admin.create_saas_plan_modal.s9', "2. التسعير وفترة الفوترة")}</span>
             </div>
             <div className="saas-modal-grid-3" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
-              <Field label="السعر *">
+              <Field label={t('saas_admin.create_saas_plan_modal.s10', "السعر *")}>
                 <input 
                   required 
                   type="number"
@@ -111,29 +113,29 @@ export function CreateSaasPlanModal({
                   style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px' }}
                 />
               </Field>
-              <Field label="العملة">
+              <Field label={t('saas_admin.create_saas_plan_modal.s11', "العملة")}>
                 <select 
                   value={newPlan.currency} 
                   onChange={(e) => setNewPlan({ ...newPlan, currency: e.target.value })}
                   style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px' }}
                 >
-                  <option value="EGP">EGP (جنيه)</option>
-                  <option value="USD">USD (دولار)</option>
-                  <option value="SAR">SAR (ريال)</option>
-                  <option value="AED">AED (درهم)</option>
+                  <option value="EGP">{t('saas_admin.create_saas_plan_modal.s12', "EGP (جنيه)")}</option>
+                  <option value="USD">{t('saas_admin.create_saas_plan_modal.s13', "USD (دولار)")}</option>
+                  <option value="SAR">{t('saas_admin.create_saas_plan_modal.s14', "SAR (ريال)")}</option>
+                  <option value="AED">{t('saas_admin.create_saas_plan_modal.s15', "AED (درهم)")}</option>
                 </select>
               </Field>
-              <Field label="فترة الفوترة (أشهر)">
+              <Field label={t('saas_admin.create_saas_plan_modal.s16', "فترة الفوترة (أشهر)")}>
                 <select
                   value={newPlan.billing_period_months}
                   onChange={(e) => setNewPlan({ ...newPlan, billing_period_months: Number(e.target.value) })}
                   style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px' }}
                 >
-                  <option value={1}>شهر واحد (1)</option>
-                  <option value={3}>3 أشهر</option>
-                  <option value={6}>6 أشهر</option>
-                  <option value={12}>سنة كاملة (12)</option>
-                  <option value={24}>سنتان (24)</option>
+                  <option value={1}>{t('saas_admin.create_saas_plan_modal.s17', "شهر واحد (1)")}</option>
+                  <option value={3}>{t('saas_admin.create_saas_plan_modal.s18', "3 أشهر")}</option>
+                  <option value={6}>{t('saas_admin.create_saas_plan_modal.s19', "6 أشهر")}</option>
+                  <option value={12}>{t('saas_admin.create_saas_plan_modal.s20', "سنة كاملة (12)")}</option>
+                  <option value={24}>{t('saas_admin.create_saas_plan_modal.s21', "سنتان (24)")}</option>
                 </select>
               </Field>
             </div>
@@ -141,38 +143,38 @@ export function CreateSaasPlanModal({
 
           <div className="saas-modal-card" style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px', marginBottom: '14px' }}>
             <div className="saas-modal-card-title" style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a', marginBottom: '10px' }}>
-              <span>3. الحدود والميزات المرتبطة</span>
+              <span>{t('saas_admin.create_saas_plan_modal.s22', "3. الحدود والميزات المرتبطة")}</span>
             </div>
             <div className="saas-modal-grid-2" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
-              <Field label="الحد الأقصى للمستخدمين (0 = غير محدود)">
+              <Field label={t('saas_admin.create_saas_plan_modal.s23', "الحد الأقصى للمستخدمين (0 = غير محدود)")}>
                 <input 
                   type="number"
                   min="0"
                   value={newPlan.max_users === 0 ? '' : newPlan.max_users} 
                   onChange={(e) => setNewPlan({ ...newPlan, max_users: Number(e.target.value) })} 
-                  placeholder="0 لغير محدود"
+                  placeholder={t('saas_admin.create_saas_plan_modal.s24', "0 لغير محدود")}
                   style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px' }}
                 />
               </Field>
-              <Field label="الحد الأقصى للفروع (0 = غير محدود)">
+              <Field label={t('saas_admin.create_saas_plan_modal.s25', "الحد الأقصى للفروع (0 = غير محدود)")}>
                 <input 
                   type="number"
                   min="0"
                   value={newPlan.max_branches === 0 ? '' : newPlan.max_branches} 
                   onChange={(e) => setNewPlan({ ...newPlan, max_branches: Number(e.target.value) })} 
-                  placeholder="0 لغير محدود"
+                  placeholder={t('saas_admin.create_saas_plan_modal.s26', "0 لغير محدود")}
                   style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px' }}
                 />
               </Field>
             </div>
             <div style={{ marginTop: '10px' }}>
-              <Field label="باقة الميزات الافتراضية (اختياري)">
+              <Field label={t('saas_admin.create_saas_plan_modal.s27', "باقة الميزات الافتراضية (اختياري)")}>
                 <select
                   value={newPlan.feature_plan_id}
                   onChange={(e) => setNewPlan({ ...newPlan, feature_plan_id: e.target.value })}
                   style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px' }}
                 >
-                  <option value="">-- بدون ربط (يتم تحديد الميزات يدوياً) --</option>
+                  <option value="">{t('saas_admin.create_saas_plan_modal.s28', "-- بدون ربط (يتم تحديد الميزات يدوياً) --")}</option>
                   {featurePlans.map((p: any) => (
                     <option key={p.id} value={p.id}>{p.name} ({p.code})</option>
                   ))}
@@ -188,7 +190,7 @@ export function CreateSaasPlanModal({
               onClick={onClose}
               style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#0f172a', fontWeight: 700 }}
             >
-              إلغاء
+              {t('saas_admin.create_saas_plan_modal.s29', "إلغاء")}
             </button>
             <button
               type="submit"
@@ -204,7 +206,7 @@ export function CreateSaasPlanModal({
               }}
               disabled={isPending || !newPlan.code || !newPlan.name}
             >
-              {isPending ? 'جاري الحفظ...' : 'حفظ الباقة'}
+              {isPending ? t('saas_admin.create_saas_plan_modal.s30', "جاري الحفظ...") : t('saas_admin.create_saas_plan_modal.s31', "حفظ الباقة")}
             </button>
           </div>
         </form>

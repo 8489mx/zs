@@ -1,9 +1,11 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useOrderStatusBoard } from '@/features/pos/hooks/useOrderStatusBoard';
 import { ClockIcon, ArrowRightIcon } from '@/shared/components/icons/AppIcons';
 
 export function OrderStatusBoardPage() {
+  const { t: __t } = useTranslation();
   const navigate = useNavigate();
   const [currentTime, setCurrentTime] = useState<string>('');
   const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
@@ -133,16 +135,16 @@ export function OrderStatusBoardPage() {
             }}
           >
             <ArrowRightIcon size={14} color="#170e5e" />
-            <span>بوابة الشاشات</span>
+            <span>{__t('pos.order_status_board_page.s0', __t('pos.order_status_board_page.s0', "بوابة الشاشات"))}</span>
           </button>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <span style={{ width: '4px', height: '24px', backgroundColor: '#170e5e', borderRadius: '2px', display: 'inline-block' }} />
             <div>
               <h1 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 900, color: '#0f172a', letterSpacing: '-0.02em' }}>
-                شاشة إعلان جاهزية الطلبات (Pickup & Order Status Board)
+                {__t('pos.order_status_board_page.s1', __t('pos.order_status_board_page.s1', "شاشة إعلان جاهزية الطلبات (Pickup & Order Status Board)"))}
               </h1>
               <p style={{ margin: '2px 0 0', fontSize: '0.78rem', color: '#64748b' }}>
-                صالة الانتظار والاستلام • نداء حي ولحظي مباشر
+                {__t('pos.order_status_board_page.s2', __t('pos.order_status_board_page.s2', "صالة الانتظار والاستلام • نداء حي ولحظي مباشر"))}
               </p>
             </div>
           </div>
@@ -186,7 +188,7 @@ export function OrderStatusBoardPage() {
             }}
           >
             <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: soundEnabled ? '#10b981' : '#94a3b8', display: 'inline-block' }} />
-            <span>{soundEnabled ? 'التنبيه الصوتي: مفعل' : 'التنبيه الصوتي: صامت'}</span>
+            <span>{soundEnabled ? __t('pos.order_status_board_page.s3', __t('pos.order_status_board_page.s3', "التنبيه الصوتي: مفعل")) : __t('pos.order_status_board_page.s4', __t('pos.order_status_board_page.s4', "التنبيه الصوتي: صامت"))}</span>
           </button>
 
           {/* Fullscreen Button */}
@@ -205,7 +207,7 @@ export function OrderStatusBoardPage() {
               boxShadow: '0 2px 8px rgba(23, 14, 94, 0.25)',
             }}
           >
-            ملء الشاشة (TV Mode)
+            {__t('pos.order_status_board_page.s5', __t('pos.order_status_board_page.s5', "ملء الشاشة (TV Mode)"))}
           </button>
         </div>
       </header>
@@ -246,7 +248,7 @@ export function OrderStatusBoardPage() {
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <span style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#f59e0b', display: 'inline-block' }} />
               <h2 style={{ margin: 0, fontSize: '1.3rem', fontWeight: 900, color: '#0f172a' }}>
-                قيد التجهيز (Preparing)
+                {__t('pos.order_status_board_page.s6', __t('pos.order_status_board_page.s6', "قيد التجهيز (Preparing)"))}
               </h2>
             </div>
             <span
@@ -260,7 +262,7 @@ export function OrderStatusBoardPage() {
                 fontWeight: 800,
               }}
             >
-              {preparingTickets.length} قيد التحضير
+              {preparingTickets.length} {__t('pos.order_status_board_page.s7', __t('pos.order_status_board_page.s7', "قيد التحضير"))}
             </span>
           </div>
 
@@ -293,7 +295,7 @@ export function OrderStatusBoardPage() {
                 <div style={{ width: '50px', height: '50px', borderRadius: '50%', background: '#fffbeb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <ClockIcon size={24} color="#f59e0b" />
                 </div>
-                <span>لا توجد طلبات قيد التحضير حالياً.</span>
+                <span>{__t('pos.order_status_board_page.s8', __t('pos.order_status_board_page.s8', "لا توجد طلبات قيد التحضير حالياً."))}</span>
               </div>
             ) : (
               preparingTickets.map((t) => {
@@ -320,12 +322,12 @@ export function OrderStatusBoardPage() {
                     <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', justifyContent: 'center' }}>
                       {t.tableNumber && (
                         <span style={{ background: '#e2e8f0', color: '#334155', fontSize: '11px', padding: '2px 8px', borderRadius: '4px', fontWeight: 700 }}>
-                          طاولة {t.tableNumber}
+                          {__t('pos.order_status_board_page.s9', __t('pos.order_status_board_page.s9', "طاولة"))} {t.tableNumber}
                         </span>
                       )}
                       {t.pagerNumber && (
                         <span style={{ background: '#fef3c7', color: '#92400e', fontSize: '11px', padding: '2px 8px', borderRadius: '4px', fontWeight: 800 }}>
-                          بيجر: {t.pagerNumber}
+                          {__t('pos.order_status_board_page.s10', __t('pos.order_status_board_page.s10', "بيجر:"))} {t.pagerNumber}
                         </span>
                       )}
                       {t.aggregatorChannel ? (
@@ -334,7 +336,7 @@ export function OrderStatusBoardPage() {
                         </span>
                       ) : (
                         <span style={{ background: '#e2e8f0', color: '#334155', fontSize: '11px', padding: '2px 8px', borderRadius: '4px', fontWeight: 700 }}>
-                          {t.orderType === 'dine_in' ? 'صالة' : t.orderType === 'takeaway' ? 'سفري' : 'توصيل'}
+                          {t.orderType === 'dine_in' ? __t('pos.order_status_board_page.s11', __t('pos.order_status_board_page.s11', "صالة")) : t.orderType === 'takeaway' ? __t('pos.order_status_board_page.s12', __t('pos.order_status_board_page.s12', "سفري")) : __t('pos.order_status_board_page.s13', __t('pos.order_status_board_page.s13', "توصيل"))}
                         </span>
                       )}
                     </div>
@@ -370,7 +372,7 @@ export function OrderStatusBoardPage() {
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <span style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#10b981', display: 'inline-block', boxShadow: '0 0 8px #10b981' }} />
               <h2 style={{ margin: 0, fontSize: '1.3rem', fontWeight: 900, color: '#065f46' }}>
-                جاهز للاستلام (Ready for Pickup)
+                {__t('pos.order_status_board_page.s14', __t('pos.order_status_board_page.s14', "جاهز للاستلام (Ready for Pickup)"))}
               </h2>
             </div>
             <span
@@ -384,7 +386,7 @@ export function OrderStatusBoardPage() {
                 border: '1px solid #059669',
               }}
             >
-              {readyTickets.length} جاهز
+              {readyTickets.length} {__t('pos.order_status_board_page.s15', __t('pos.order_status_board_page.s15', "جاهز"))}
             </span>
           </div>
 
@@ -417,7 +419,7 @@ export function OrderStatusBoardPage() {
                 <div style={{ width: '50px', height: '50px', borderRadius: '50%', background: '#ecfdf5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <span style={{ width: '14px', height: '14px', borderRadius: '50%', background: '#10b981' }} />
                 </div>
-                <span>بانتظار خروج الوجبات والطلبات من المطبخ...</span>
+                <span>{__t('pos.order_status_board_page.s16', __t('pos.order_status_board_page.s16', "بانتظار خروج الوجبات والطلبات من المطبخ..."))}</span>
               </div>
             ) : (
               readyTickets.map((t) => {
@@ -446,12 +448,12 @@ export function OrderStatusBoardPage() {
                     <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', justifyContent: 'center' }}>
                       {t.tableNumber && (
                         <span style={{ background: '#dcfce7', color: '#065f46', fontSize: '11px', padding: '2px 8px', borderRadius: '4px', fontWeight: 700 }}>
-                          طاولة {t.tableNumber}
+                          {__t('pos.order_status_board_page.s17', __t('pos.order_status_board_page.s17', "طاولة"))} {t.tableNumber}
                         </span>
                       )}
                       {t.pagerNumber && (
                         <span style={{ background: '#fef3c7', color: '#92400e', fontSize: '11px', padding: '2px 8px', borderRadius: '4px', fontWeight: 800, border: '1px solid #fde68a' }}>
-                          بيجر: {t.pagerNumber}
+                          {__t('pos.order_status_board_page.s18', __t('pos.order_status_board_page.s18', "بيجر:"))} {t.pagerNumber}
                         </span>
                       )}
                       {t.aggregatorChannel ? (
@@ -460,7 +462,7 @@ export function OrderStatusBoardPage() {
                         </span>
                       ) : (
                         <span style={{ background: '#dcfce7', color: '#065f46', fontSize: '11px', padding: '2px 8px', borderRadius: '4px', fontWeight: 700 }}>
-                          {t.orderType === 'dine_in' ? 'صالة' : t.orderType === 'takeaway' ? 'سفري' : 'توصيل'}
+                          {t.orderType === 'dine_in' ? __t('pos.order_status_board_page.s19', __t('pos.order_status_board_page.s19', "صالة")) : t.orderType === 'takeaway' ? __t('pos.order_status_board_page.s20', __t('pos.order_status_board_page.s20', "سفري")) : __t('pos.order_status_board_page.s21', __t('pos.order_status_board_page.s21', "توصيل"))}
                         </span>
                       )}
                     </div>
@@ -486,8 +488,8 @@ export function OrderStatusBoardPage() {
           fontWeight: 600,
         }}
       >
-        <span>يرجى التوجه إلى كاونتر الاستلام فور ظهور رقم طلبك في قائمة «جاهز للاستلام».</span>
-        <span>منظومة Z-Systems ERP • شاشة عرض العملاء والتوصيل</span>
+        <span>{__t('pos.order_status_board_page.s22', __t('pos.order_status_board_page.s22', "يرجى التوجه إلى كاونتر الاستلام فور ظهور رقم طلبك في قائمة «جاهز للاستلام»."))}</span>
+        <span>{__t('pos.order_status_board_page.s23', __t('pos.order_status_board_page.s23', "منظومة Z-Systems ERP • شاشة عرض العملاء والتوصيل"))}</span>
       </footer>
     </div>
   );

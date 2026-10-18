@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { maritimeApi, MaritimeRfq, ShippingLine } from '../api/maritime-freight.api';
@@ -16,6 +17,7 @@ interface DispatchRfqModalProps {
 }
 
 export function DispatchRfqModal({ open, rfq, onClose, onDispatched }: DispatchRfqModalProps) {
+  const { t } = useTranslation();
   const [carriers, setCarriers] = useState<ShippingLine[]>([]);
   const [selectedLineIds, setSelectedLineIds] = useState<number[]>([]);
   const [showPreview, setShowPreview] = useState(false);
@@ -76,7 +78,7 @@ export function DispatchRfqModal({ open, rfq, onClose, onDispatched }: DispatchR
       open={open}
       onClose={onClose}
       title={`إرسال طلب تسعير ملاحي: ${rfq.rfq_number}`}
-      subtitle="مراجعة بيانات الشحنة وتحديد قائمة الخطوط والوكلاء المستهدفين لإرسال رسائل الاستفسار"
+      subtitle={t('maritime_freight.dispatch_rfq_modal.s0', "مراجعة بيانات الشحنة وتحديد قائمة الخطوط والوكلاء المستهدفين لإرسال رسائل الاستفسار")}
       width="min(880px, 95vw)"
       minHeight="min(480px, 80vh)"
       footerActions={(
@@ -85,7 +87,7 @@ export function DispatchRfqModal({ open, rfq, onClose, onDispatched }: DispatchR
           onSubmit={handleDispatch}
           isSubmitting={isSubmitting}
           submitText={`تأكيد وإرسال الإيميلات (${selectedLineIds.length} جهة)`}
-          cancelText="إلغاء"
+          cancelText={t('maritime_freight.dispatch_rfq_modal.s1', "إلغاء")}
         />
       )}
     >
@@ -108,7 +110,7 @@ export function DispatchRfqModal({ open, rfq, onClose, onDispatched }: DispatchR
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
               <ShipIcon size={16} />
-              <span>1. بيانات الشحنة ومسار الرحلة (Shipment Route & Specs)</span>
+              <span>{t('maritime_freight.dispatch_rfq_modal.s2', "1. بيانات الشحنة ومسار الرحلة (Shipment Route & Specs)")}</span>
             </div>
             <span style={{ fontSize: '0.76rem', fontWeight: 700, background: '#eef2ff', color: '#1e40af', padding: '2px 8px', borderRadius: '6px' }}>
               {rfq.rfq_number}
@@ -117,34 +119,34 @@ export function DispatchRfqModal({ open, rfq, onClose, onDispatched }: DispatchR
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '8px', fontSize: '0.8125rem' }}>
             <div style={{ background: '#ffffff', padding: '8px 10px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-              <div style={{ color: '#64748b', fontSize: '0.72rem', fontWeight: 600, marginBottom: '2px' }}>ميناء الشحن (POL)</div>
+              <div style={{ color: '#64748b', fontSize: '0.72rem', fontWeight: 600, marginBottom: '2px' }}>{t('maritime_freight.dispatch_rfq_modal.s3', "ميناء الشحن (POL)")}</div>
               <div style={{ color: '#0f172a', fontWeight: 700 }}>{rfq.pol_name || rfq.pol_code} <span style={{ color: '#0284c7', fontSize: '0.74rem' }}>({rfq.pol_code})</span></div>
             </div>
 
             <div style={{ background: '#ffffff', padding: '8px 10px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-              <div style={{ color: '#64748b', fontSize: '0.72rem', fontWeight: 600, marginBottom: '2px' }}>ميناء التفريغ (POD)</div>
+              <div style={{ color: '#64748b', fontSize: '0.72rem', fontWeight: 600, marginBottom: '2px' }}>{t('maritime_freight.dispatch_rfq_modal.s4', "ميناء التفريغ (POD)")}</div>
               <div style={{ color: '#0f172a', fontWeight: 700 }}>{rfq.pod_name || rfq.pod_code} <span style={{ color: '#0284c7', fontSize: '0.74rem' }}>({rfq.pod_code})</span></div>
             </div>
 
             <div style={{ background: '#ffffff', padding: '8px 10px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-              <div style={{ color: '#64748b', fontSize: '0.72rem', fontWeight: 600, marginBottom: '2px' }}>الحاويات والنمط</div>
+              <div style={{ color: '#64748b', fontSize: '0.72rem', fontWeight: 600, marginBottom: '2px' }}>{t('maritime_freight.dispatch_rfq_modal.s5', "الحاويات والنمط")}</div>
               <div style={{ color: '#0f172a', fontWeight: 700 }}>{rfq.container_count}x {rfq.container_type} <span style={{ color: '#16a34a', fontSize: '0.74rem' }}>({rfq.cargo_mode})</span></div>
             </div>
 
             <div style={{ background: '#ffffff', padding: '8px 10px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-              <div style={{ color: '#64748b', fontSize: '0.72rem', fontWeight: 600, marginBottom: '2px' }}>توصيف البضاعة</div>
-              <div style={{ color: '#0f172a', fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={rfq.commodity_description || 'عام'}>
-                {rfq.commodity_description || 'بضائع عامة (General Cargo)'}
+              <div style={{ color: '#64748b', fontSize: '0.72rem', fontWeight: 600, marginBottom: '2px' }}>{t('maritime_freight.dispatch_rfq_modal.s6', "توصيف البضاعة")}</div>
+              <div style={{ color: '#0f172a', fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={rfq.commodity_description || t('maritime_freight.dispatch_rfq_modal.s7', "عام")}>
+                {rfq.commodity_description || t('maritime_freight.dispatch_rfq_modal.s8', "بضائع عامة (General Cargo)")}
               </div>
             </div>
 
             <div style={{ background: '#ffffff', padding: '8px 10px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-              <div style={{ color: '#64748b', fontSize: '0.72rem', fontWeight: 600, marginBottom: '2px' }}>مهلة السماح المطلوبة</div>
-              <div style={{ color: '#0f172a', fontWeight: 700 }}>{rfq.target_free_days || 14} يوم سماح (Free Days)</div>
+              <div style={{ color: '#64748b', fontSize: '0.72rem', fontWeight: 600, marginBottom: '2px' }}>{t('maritime_freight.dispatch_rfq_modal.s9', "مهلة السماح المطلوبة")}</div>
+              <div style={{ color: '#0f172a', fontWeight: 700 }}>{rfq.target_free_days || 14} {t('maritime_freight.dispatch_rfq_modal.s10', "يوم سماح (Free Days)")}</div>
             </div>
 
             <div style={{ background: '#ffffff', padding: '8px 10px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-              <div style={{ color: '#64748b', fontSize: '0.72rem', fontWeight: 600, marginBottom: '2px' }}>شروط التعاقد والدفع</div>
+              <div style={{ color: '#64748b', fontSize: '0.72rem', fontWeight: 600, marginBottom: '2px' }}>{t('maritime_freight.dispatch_rfq_modal.s11', "شروط التعاقد والدفع")}</div>
               <div style={{ color: '#0f172a', fontWeight: 700 }}>{rfq.incoterm || 'FOB'} ({rfq.payment_term || 'prepaid'})</div>
             </div>
           </div>
@@ -154,7 +156,7 @@ export function DispatchRfqModal({ open, rfq, onClose, onDispatched }: DispatchR
         <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '12px 14px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem', marginBottom: '10px' }}>
             <MailIcon size={16} />
-            <span>2. تحديد الخطوط والوكلاء المستهدفين للإرسال</span>
+            <span>{t('maritime_freight.dispatch_rfq_modal.s12', "2. تحديد الخطوط والوكلاء المستهدفين للإرسال")}</span>
           </div>
 
           <CarrierSelectionGrid
@@ -184,14 +186,14 @@ export function DispatchRfqModal({ open, rfq, onClose, onDispatched }: DispatchR
               color: '#334155',
             }}
           >
-            <span>معاينة نص وموضوع الرسالة الرسمية (Email Preview)</span>
-            <span style={{ fontSize: '0.74rem', color: '#64748b' }}>{showPreview ? 'إخفاء المعاينة ▲' : 'عرض المعاينة ▼'}</span>
+            <span>{t('maritime_freight.dispatch_rfq_modal.s13', "معاينة نص وموضوع الرسالة الرسمية (Email Preview)")}</span>
+            <span style={{ fontSize: '0.74rem', color: '#64748b' }}>{showPreview ? t('maritime_freight.dispatch_rfq_modal.s14', "إخفاء المعاينة ▲") : t('maritime_freight.dispatch_rfq_modal.s15', "عرض المعاينة ▼")}</span>
           </button>
 
           {showPreview && (
             <div style={{ padding: '12px', fontSize: '0.8rem', color: '#334155', background: '#ffffff', borderTop: '1px solid #e2e8f0' }}>
               <div style={{ marginBottom: '8px', padding: '6px 10px', background: '#f1f5f9', borderRadius: '6px', fontWeight: 600 }}>
-                <strong>الموضوع:</strong> [{rfq.rfq_number}] Ocean Freight Rate Inquiry: {rfq.pol_code} to {rfq.pod_code} ({rfq.container_count}x {rfq.container_type})
+                <strong>{t('maritime_freight.dispatch_rfq_modal.s16', "الموضوع:")}</strong> [{rfq.rfq_number}] Ocean Freight Rate Inquiry: {rfq.pol_code} to {rfq.pod_code} ({rfq.container_count}x {rfq.container_type})
               </div>
               <div style={{ border: '1px solid #e2e8f0', borderRadius: '6px', padding: '10px', background: '#fafafa', lineHeight: 1.6 }}>
                 <p style={{ margin: '0 0 8px 0' }}>Dear Carrier Pricing Desk,</p>
@@ -204,7 +206,7 @@ export function DispatchRfqModal({ open, rfq, onClose, onDispatched }: DispatchR
                   <li><strong>Free Days:</strong> {rfq.target_free_days || 14} Days</li>
                 </ul>
                 <p style={{ margin: '0', color: '#64748b', fontSize: '0.74rem' }}>
-                  * ستتضمن الرسالة رابطاً سحرياً مخصصاً لكل خط لتسجيل عرضه أونلاين بضغطة واحدة، كما يمكنهم الرد مباشرة على الإيميل ليقوم الذكاء الاصطناعي بقراءة السعر آلياً.
+                  {t('maritime_freight.dispatch_rfq_modal.s17', "* ستتضمن الرسالة رابطاً سحرياً مخصصاً لكل خط لتسجيل عرضه أونلاين بضغطة واحدة، كما يمكنهم الرد مباشرة على الإيميل ليقوم الذكاء الاصطناعي بقراءة السعر آلياً.")}
                 </p>
               </div>
             </div>

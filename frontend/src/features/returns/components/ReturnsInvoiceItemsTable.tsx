@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { EmptyState } from '@/shared/ui/empty-state';
 import { formatCurrency } from '@/lib/format';
 import type { PurchaseItem, SaleItem } from '@/types/domain';
@@ -19,22 +20,24 @@ export function ReturnsInvoiceItemsTable({
   onSetSerials: (itemId: string, value: string) => void;
   returnedQtyByProduct?: Record<string, number>;
 }) {
+  const { t } = useTranslation();
+
   if (!invoiceItems.length) {
-    return <EmptyState title="اختر فاتورة أولًا" hint="بعد اختيار الفاتورة ستظهر البنود لتحديد أكثر من بند في نفس المرتجع." />;
+    return <EmptyState title={t('returns.empty_invoice_title', 'اختر فاتورة أولًا')} hint={t('returns.empty_invoice_hint', 'بعد اختيار الفاتورة ستظهر البنود لتحديد أكثر من بند في نفس المرتجع.')} />;
   }
 
   return (
     <div className="section-stack">
-      <div className="surface-note">اختر بندًا أو أكثر ثم حدد الكمية لكل بند. التحقق النهائي يتم من السيرفر عند الحفظ.</div>
+      <div className="surface-note">{t('returns.items_note', 'اختر بندًا أو أكثر ثم حدد الكمية لكل بند. التحقق النهائي يتم من السيرفر عند الحفظ.')}</div>
       <div className="table-shell">
         <table className="data-table">
           <thead>
             <tr>
-              <th>اختيار</th>
-              <th>الصنف</th>
-              <th>الكمية الأصلية</th>
-              <th>الكمية المرتجعة</th>
-              <th>القيمة المتوقعة</th>
+              <th>{t('returns.col_select', 'اختيار')}</th>
+              <th>{t('returns.col_product', 'الصنف')}</th>
+              <th>{t('returns.col_base_qty', 'الكمية الأصلية')}</th>
+              <th>{t('returns.col_return_qty', 'الكمية المرتجعة')}</th>
+              <th>{t('returns.col_expected_val', 'القيمة المتوقعة')}</th>
             </tr>
           </thead>
           <tbody>
@@ -50,18 +53,18 @@ export function ReturnsInvoiceItemsTable({
               return (
                 <tr key={itemId} className={isFullyReturned ? 'muted' : ''} style={isFullyReturned ? { opacity: 0.58 } : undefined}>
                   <td>
-                    <input type="checkbox" checked={isSelected} onChange={(e) => onToggleItem(itemId, e.target.checked)} disabled={isFullyReturned} title={isFullyReturned ? 'هذا الصنف تم إرجاعه بالكامل ولا يمكن إرجاعه مرة أخرى.' : undefined} />
+                    <input type="checkbox" checked={isSelected} onChange={(e) => onToggleItem(itemId, e.target.checked)} disabled={isFullyReturned} title={isFullyReturned ? t('returns.fully_returned_hint', 'هذا الصنف تم إرجاعه بالكامل ولا يمكن إرجاعه مرة أخرى.') : undefined} />
                   </td>
                   <td>
                     <div>{item.name || '—'}</div>
-                    {isFullyReturned ? <span className="status-pill danger">تم إرجاعه بالكامل</span> : alreadyReturnedQty > 0 ? <span className="status-pill warning">متبقي للإرجاع: {remainingQty}</span> : null}
+                    {isFullyReturned ? <span className="status-pill danger">{t('returns.fully_returned_pill', 'تم إرجاعه بالكامل')}</span> : alreadyReturnedQty > 0 ? <span className="status-pill warning">{t('returns.remaining_qty', 'متبقي للإرجاع: {{qty}}', { qty: remainingQty })}</span> : null}
                     {'serials' in item && Array.isArray(item.serials) && item.serials.length > 0 ? (
                       <label style={{ display: 'block', marginTop: 6 }}>
-                        سيريالات المرتجع الجزئي
+                        {t('returns.serials_label', 'سيريالات المرتجع الجزئي')}
                         <input type="text" value={selectedSerials[itemId] || ''}
                           onChange={(event) => onSetSerials(itemId, event.target.value)}
                           placeholder={item.serials.join(', ')} disabled={!isSelected || isFullyReturned}
-                          aria-label={`سيريالات مرتجع ${item.name}`} />
+                          aria-label={t('returns.serials_aria', 'سيريالات مرتجع {{name}}', { name: item.name })} />
                       </label>
                     ) : null}
                   </td>

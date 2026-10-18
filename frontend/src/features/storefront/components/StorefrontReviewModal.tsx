@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { getGlobalCurrencySymbol } from '@/lib/currencies';
 import React, { useState, useEffect } from 'react';
 import { StorefrontProduct, StorefrontReview } from '../types/storefront.types';
@@ -29,6 +30,7 @@ export function StorefrontReviewModal({
   onClose,
   onReviewSubmitted,
 }: StorefrontReviewModalProps) {
+  const { t } = useTranslation();
   const [rating, setRating] = useState<number>(5);
   const [hoverRating, setHoverRating] = useState<number>(0);
   const [customerName, setCustomerName] = useState('');
@@ -157,7 +159,7 @@ export function StorefrontReviewModal({
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <IconStar size={18} fill="#f59e0b" color="#f59e0b" />
             <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>
-              تقييم المنتج ومشاركة رأيك
+              {t('storefront.storefront_review_modal.s0', "تقييم المنتج ومشاركة رأيك")}
             </h3>
           </div>
           <button
@@ -231,7 +233,7 @@ export function StorefrontReviewModal({
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '3px' }}>
               <span style={{ fontSize: '13px', fontWeight: 800, color: '#170e5e' }}>
-                {product.price > 0 ? `${product.price} ${getGlobalCurrencySymbol()}` : 'مجاني'}
+                {product.price > 0 ? `${product.price} ${getGlobalCurrencySymbol()}` : t('storefront.storefront_review_modal.s1', "مجاني")}
               </span>
               <span
                 style={{
@@ -242,7 +244,7 @@ export function StorefrontReviewModal({
                   borderRadius: '4px',
                 }}
               >
-                {product.categoryName || 'عام'}
+                {product.categoryName || t('storefront.storefront_review_modal.s2', "عام")}
               </span>
             </div>
           </div>
@@ -253,7 +255,7 @@ export function StorefrontReviewModal({
           {/* Rating Stars Picker */}
           <div style={{ textAlign: 'center', marginBottom: '18px' }}>
             <div style={{ fontSize: '13px', fontWeight: 700, color: '#334155', marginBottom: '8px' }}>
-              كيف تقيّم هذا المنتج؟
+              {t('storefront.storefront_review_modal.s3', "كيف تقيّم هذا المنتج؟")}
             </div>
             <div
               style={{
@@ -365,13 +367,13 @@ export function StorefrontReviewModal({
                 marginBottom: '5px',
               }}
             >
-              اسمك (اختياري - يظهر مع التقييم):
+              {t('storefront.storefront_review_modal.s4', "اسمك (اختياري - يظهر مع التقييم):")}
             </label>
             <input
               type="text"
               value={customerName}
               onChange={(e) => setCustomerName(e.target.value)}
-              placeholder="مثال: أحمد مصطفى أو عميل المتجر"
+              placeholder={t('storefront.storefront_review_modal.s5', "مثال: أحمد مصطفى أو عميل المتجر")}
               style={{
                 width: '100%',
                 padding: '8px 12px',
@@ -396,13 +398,13 @@ export function StorefrontReviewModal({
                 marginBottom: '5px',
               }}
             >
-              رأيك أو تعليقك على المنتج (اختياري):
+              {t('storefront.storefront_review_modal.s6', "رأيك أو تعليقك على المنتج (اختياري):")}
             </label>
             <textarea
               rows={3}
               value={comment}
               onChange={(e) => setComment(e.target.value)}
-              placeholder="اكتب تجربتك مع المنتج، جودته، وسرعة الاستلام..."
+              placeholder={t('storefront.storefront_review_modal.s7', "اكتب تجربتك مع المنتج، جودته، وسرعة الاستلام...")}
               style={{
                 width: '100%',
                 padding: '8px 12px',
@@ -442,7 +444,7 @@ export function StorefrontReviewModal({
               if (!isSubmitting) e.currentTarget.style.background = '#170e5e';
             }}
           >
-            {isSubmitting ? 'جاري إرسال التقييم...' : 'إرسال التقييم'}
+            {isSubmitting ? t('storefront.storefront_review_modal.s8', "جاري إرسال التقييم...") : t('storefront.storefront_review_modal.s9', "إرسال التقييم")}
           </button>
         </form>
 
@@ -467,7 +469,7 @@ export function StorefrontReviewModal({
               justifyContent: 'space-between',
             }}
           >
-            <span>آراء وتقييمات العملاء السابقة ({reviews.length})</span>
+            <span>{t('storefront.storefront_review_modal.s10', "آراء وتقييمات العملاء السابقة (")}{reviews.length})</span>
             {product.rating && product.rating > 0 ? (
               <span style={{ color: '#d97706', fontSize: '12px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                 <IconStar size={13} fill="#f59e0b" color="#f59e0b" />
@@ -478,7 +480,7 @@ export function StorefrontReviewModal({
 
           {isLoadingReviews ? (
             <div style={{ textAlign: 'center', padding: '12px', fontSize: '12px', color: '#94a3b8' }}>
-              جاري تحميل آراء المشترين...
+              {t('storefront.storefront_review_modal.s11', "جاري تحميل آراء المشترين...")}
             </div>
           ) : reviews.length === 0 ? (
             <div
@@ -492,7 +494,7 @@ export function StorefrontReviewModal({
                 border: '1px dashed #cbd5e1',
               }}
             >
-              لا توجد تقييمات مسجلة بعد لهذا المنتج. كن أول من يقيّمه وشارك رأيك!
+              {t('storefront.storefront_review_modal.s12', "لا توجد تقييمات مسجلة بعد لهذا المنتج. كن أول من يقيّمه وشارك رأيك!")}
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '180px', overflowY: 'auto' }}>
@@ -508,7 +510,7 @@ export function StorefrontReviewModal({
                 >
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
                     <span style={{ fontSize: '12px', fontWeight: 800, color: '#1e293b' }}>
-                      {rev.customerName || 'عميل المتجر'}
+                      {rev.customerName || t('storefront.storefront_review_modal.s13', "عميل المتجر")}
                     </span>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
                       {[...Array(5)].map((_, idx) => (

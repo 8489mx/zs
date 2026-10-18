@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -42,6 +43,7 @@ export const SignageNavDrawer: React.FC<SignageNavDrawerProps> = ({
   onBack,
   storeName = 'Z-Systems ERP',
 }) => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
 
@@ -270,10 +272,10 @@ export const SignageNavDrawer: React.FC<SignageNavDrawerProps> = ({
                 gap: '8px',
               }}
             >
-              <span>القائمة والتنقل السريع</span>
+              <span>{t('pos.signage.signage_nav_drawer.s0', "القائمة والتنقل السريع")}</span>
             </div>
             <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600, marginTop: '2px' }}>
-              {storeName} • اختيار الوجهة المباشرة
+              {storeName} {t('pos.signage.signage_nav_drawer.s1', "• اختيار الوجهة المباشرة")}
             </div>
           </div>
 
@@ -292,7 +294,7 @@ export const SignageNavDrawer: React.FC<SignageNavDrawerProps> = ({
               justifyContent: 'center',
               cursor: 'pointer',
             }}
-            title="إغلاق القائمة (Esc)"
+            title={t('pos.signage.signage_nav_drawer.s2', "إغلاق القائمة (Esc)")}
           >
             <XIcon size={16} />
           </button>
@@ -323,10 +325,10 @@ export const SignageNavDrawer: React.FC<SignageNavDrawerProps> = ({
               boxShadow: '0 2px 6px rgba(23, 14, 94, 0.25)',
               transition: 'background-color 0.15s ease',
             }}
-            title="الرجوع إلى الشاشة السابقة مباشرة"
+            title={t('pos.signage.signage_nav_drawer.s3', "الرجوع إلى الشاشة السابقة مباشرة")}
           >
             <ArrowRightIcon size={16} color="#ffffff" strokeWidth={2.5} />
-            <span>العودة للشاشة السابقة</span>
+            <span>{t('pos.signage.signage_nav_drawer.s4', "العودة للشاشة السابقة")}</span>
           </button>
         </div>
 
@@ -349,7 +351,7 @@ export const SignageNavDrawer: React.FC<SignageNavDrawerProps> = ({
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="بحث سريع عن قسم أو شاشة..."
+              placeholder={t('pos.signage.signage_nav_drawer.s5', "بحث سريع عن قسم أو شاشة...")}
               style={{
                 width: '100%',
                 padding: '8px 34px 8px 12px',
@@ -495,7 +497,7 @@ export const SignageNavDrawer: React.FC<SignageNavDrawerProps> = ({
                 fontWeight: 600,
               }}
             >
-              لا توجد شاشات مطابقة للبحث
+              {t('pos.signage.signage_nav_drawer.s6', "لا توجد شاشات مطابقة للبحث")}
             </div>
           )}
         </div>
@@ -514,7 +516,7 @@ export const SignageNavDrawer: React.FC<SignageNavDrawerProps> = ({
             fontWeight: 600,
           }}
         >
-          <span>نسخة سطح المكتب (Electron)</span>
+          <span>{t('pos.signage.signage_nav_drawer.s7', "نسخة سطح المكتب (Electron)")}</span>
           <span>Z-Systems ERP</span>
         </div>
       </aside>

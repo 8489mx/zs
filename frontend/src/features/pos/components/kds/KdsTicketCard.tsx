@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 import { KdsTicket, KdsItemStatus } from '@/features/pos/api/kds.api';
 import { CheckIcon, ClockIcon, AlertTriangleIcon } from '@/shared/components/icons/AppIcons';
@@ -94,6 +95,7 @@ export const KdsTicketCard: React.FC<KdsTicketCardProps> = ({
   onItemStatusChange,
   isExpoMode = false,
 }) => {
+  const { t } = useTranslation();
   const urgency = getUrgencyBadge(ticket.urgencyLevel, ticket.elapsedMinutes);
   const orderType = getOrderTypeBadge(ticket.orderType, ticket.tableNumber, ticket.aggregatorChannel);
 
@@ -167,7 +169,7 @@ export const KdsTicketCard: React.FC<KdsTicketCardProps> = ({
                   borderRadius: '6px',
                 }}
               >
-                {ticket.course === 'appetizer' ? 'مقبلات' : ticket.course === 'main' ? 'طبق رئيسي' : ticket.course === 'dessert' ? 'حلوى' : 'مشروب'}
+                {ticket.course === 'appetizer' ? t('pos.kds.kds_ticket_card.s0', "مقبلات") : ticket.course === 'main' ? t('pos.kds.kds_ticket_card.s1', "طبق رئيسي") : ticket.course === 'dessert' ? t('pos.kds.kds_ticket_card.s2', "حلوى") : t('pos.kds.kds_ticket_card.s3', "مشروب")}
               </span>
             )}
             {ticket.pagerNumber && (
@@ -182,7 +184,7 @@ export const KdsTicketCard: React.FC<KdsTicketCardProps> = ({
                   borderRadius: '6px',
                 }}
               >
-                بيجر: {ticket.pagerNumber}
+                {t('pos.kds.kds_ticket_card.s4', "بيجر:")} {ticket.pagerNumber}
               </span>
             )}
           </div>
@@ -223,7 +225,7 @@ export const KdsTicketCard: React.FC<KdsTicketCardProps> = ({
         {ticket.items.length > 1 && (
           <div style={{ marginBottom: '10px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '11px', color: '#64748b', marginBottom: '4px' }}>
-              <span>جاهزية الأصناف ({ticket.items.filter(i => i.status === 'ready').length}/{ticket.items.length})</span>
+              <span>{t('pos.kds.kds_ticket_card.s5', "جاهزية الأصناف (")}{ticket.items.filter(i => i.status === 'ready').length}/{ticket.items.length})</span>
               <span style={{ fontWeight: 700, color: ticket.items.filter(i => i.status === 'ready').length === ticket.items.length ? '#16a34a' : '#64748b' }}>
                 {Math.round((ticket.items.filter(i => i.status === 'ready').length / ticket.items.length) * 100)}%
               </span>
@@ -269,7 +271,7 @@ export const KdsTicketCard: React.FC<KdsTicketCardProps> = ({
                     transition: 'all 0.15s ease',
                     opacity: isDone ? 0.65 : 1,
                   }}
-                  title="انقر لتأكيد تجهيز الصنف والشطب عليه"
+                  title={t('pos.kds.kds_ticket_card.s6', "انقر لتأكيد تجهيز الصنف والشطب عليه")}
                 >
                   <div
                     style={{
@@ -337,7 +339,7 @@ export const KdsTicketCard: React.FC<KdsTicketCardProps> = ({
                           color: '#1e40af',
                           border: '1px solid #bfdbfe',
                         }}>
-                          مقعد {item.seatNumber}
+                          {t('pos.kds.kds_ticket_card.s7', "مقعد")} {item.seatNumber}
                         </span>
                       )}
                       {item.station && item.station !== 'all' && item.station !== 'general' && (
@@ -349,7 +351,7 @@ export const KdsTicketCard: React.FC<KdsTicketCardProps> = ({
                           backgroundColor: item.station === 'beverages' ? '#e0f2fe' : item.station === 'grill' ? '#ffedd5' : '#f1f5f9',
                           color: item.station === 'beverages' ? '#0369a1' : item.station === 'grill' ? '#c2410c' : '#475569',
                         }}>
-                          {item.station === 'beverages' ? 'بار' : item.station === 'grill' ? 'شواية' : item.station === 'bakery' ? 'حلويات' : 'مطبخ'}
+                          {item.station === 'beverages' ? t('pos.kds.kds_ticket_card.s8', "بار") : item.station === 'grill' ? t('pos.kds.kds_ticket_card.s9', "شواية") : item.station === 'bakery' ? t('pos.kds.kds_ticket_card.s10', "حلويات") : t('pos.kds.kds_ticket_card.s11', "مطبخ")}
                         </span>
                       )}
 
@@ -368,7 +370,7 @@ export const KdsTicketCard: React.FC<KdsTicketCardProps> = ({
                             }}
                             title={`تنسيق خروج الأطباق معاً: انتظر ${minutesUntilFire} دقيقة قبل بدء طهي هذا الصنف ليتزامن مع الصنف الأطول (${maxTicketPrep} د)`}
                           >
-                            انتظار {minutesUntilFire} د
+                            {t('pos.kds.kds_ticket_card.s12', "انتظار")} {minutesUntilFire} {t('pos.kds.kds_ticket_card.s13', "د")}
                           </span>
                         ) : (
                           <span
@@ -383,7 +385,7 @@ export const KdsTicketCard: React.FC<KdsTicketCardProps> = ({
                             }}
                             title={`وقت الطهي المقدر: ${itemPrepTime} دقيقة`}
                           >
-                            ابدأ الطهي ({itemPrepTime} د)
+                            {t('pos.kds.kds_ticket_card.s14', "ابدأ الطهي (")}{itemPrepTime} {t('pos.kds.kds_ticket_card.s15', "د)")}
                           </span>
                         )
                       )}
@@ -401,7 +403,7 @@ export const KdsTicketCard: React.FC<KdsTicketCardProps> = ({
                     {isDone ? (
                       <>
                         <CheckIcon size={12} color="#16a34a" strokeWidth={2.5} />
-                        <span style={{ fontWeight: 800 }}>تم</span>
+                        <span style={{ fontWeight: 800 }}>{t('pos.kds.kds_ticket_card.s16', "تم")}</span>
                       </>
                     ) : (
                       <ClockIcon size={12} color="#94a3b8" />
@@ -467,7 +469,7 @@ export const KdsTicketCard: React.FC<KdsTicketCardProps> = ({
             }}
           >
             <AlertTriangleIcon size={12} color="#92400e" strokeWidth={2} />
-            <span>ملاحظة عامة: {ticket.notes}</span>
+            <span>{t('pos.kds.kds_ticket_card.s17', "ملاحظة عامة:")} {ticket.notes}</span>
           </div>
         )}
       </div>
@@ -508,14 +510,14 @@ export const KdsTicketCard: React.FC<KdsTicketCardProps> = ({
             {ticket.items.every((i) => i.status === 'ready') ? (
               <>
                 <CheckIcon size={16} color="#ffffff" />
-                <span>تجميع وتسليم الطلب كاملاً (Expo Release)</span>
+                <span>{t('pos.kds.kds_ticket_card.s18', "تجميع وتسليم الطلب كاملاً (Expo Release)")}</span>
               </>
             ) : (
               <>
                 <ClockIcon size={15} color="#ffffff" />
                 <span>
-                  بانتظار اكتمال المحطات ({ticket.items.filter((i) => i.status === 'ready').length} من{' '}
-                  {ticket.items.length} جاهز)
+                  {t('pos.kds.kds_ticket_card.s19', "بانتظار اكتمال المحطات (")}{ticket.items.filter((i) => i.status === 'ready').length} {t('pos.kds.kds_ticket_card.s20', "من")}{' '}
+                  {ticket.items.length} {t('pos.kds.kds_ticket_card.s21', "جاهز)")}
                 </span>
               </>
             )}
@@ -545,7 +547,7 @@ export const KdsTicketCard: React.FC<KdsTicketCardProps> = ({
                   transition: 'all 0.15s ease',
                 }}
               >
-                <span>بدء التحضير</span>
+                <span>{t('pos.kds.kds_ticket_card.s22', "بدء التحضير")}</span>
               </button>
             )}
 
@@ -572,7 +574,7 @@ export const KdsTicketCard: React.FC<KdsTicketCardProps> = ({
                   transition: 'all 0.15s ease',
                 }}
               >
-                <span>جاهز للاستلام</span>
+                <span>{t('pos.kds.kds_ticket_card.s23', "جاهز للاستلام")}</span>
               </button>
             )}
 
@@ -599,7 +601,7 @@ export const KdsTicketCard: React.FC<KdsTicketCardProps> = ({
                   transition: 'all 0.15s ease',
                 }}
               >
-                <span>تم التسليم للعميل</span>
+                <span>{t('pos.kds.kds_ticket_card.s24', "تم التسليم للعميل")}</span>
               </button>
             )}
           </>

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useContracting } from '../context/ContractingContext';
@@ -26,6 +27,7 @@ interface ContractingFieldPageProps {
 }
 
 export function ContractingFieldPage({ initialSubTab }: ContractingFieldPageProps) {
+  const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
   const subParam = (searchParams.get('sub') as 'daily-logs' | 'rfis') || initialSubTab || 'daily-logs';
   const [activeSubTab, setActiveSubTab] = useState<'daily-logs' | 'rfis'>(subParam === 'rfis' ? 'rfis' : 'daily-logs');
@@ -171,7 +173,7 @@ export function ContractingFieldPage({ initialSubTab }: ContractingFieldPageProp
               transition: 'all 0.15s ease',
             }}
           >
-            يوميات الموقع وتقارير التنفيذ
+            {t('contracting.contracting_field_page.s0', "يوميات الموقع وتقارير التنفيذ")}
           </button>
 
           <button
@@ -190,7 +192,7 @@ export function ContractingFieldPage({ initialSubTab }: ContractingFieldPageProp
               transition: 'all 0.15s ease',
             }}
           >
-            الاستفسارات الهندسية (RFI)
+            {t('contracting.contracting_field_page.s1', "الاستفسارات الهندسية (RFI)")}
           </button>
         </div>
 
@@ -216,7 +218,7 @@ export function ContractingFieldPage({ initialSubTab }: ContractingFieldPageProp
             }}
           >
             <AppIcons.CheckCircle size={15} />
-            <span>استلام الأعمال (WIR)</span>
+            <span>{t('contracting.contracting_field_page.s2', "استلام الأعمال (WIR)")}</span>
           </button>
 
           <button
@@ -239,7 +241,7 @@ export function ContractingFieldPage({ initialSubTab }: ContractingFieldPageProp
             }}
           >
             <AppIcons.FileText size={15} />
-            <span>سجل المخططات والمستندات</span>
+            <span>{t('contracting.contracting_field_page.s3', "سجل المخططات والمستندات")}</span>
           </button>
 
           <button
@@ -262,7 +264,7 @@ export function ContractingFieldPage({ initialSubTab }: ContractingFieldPageProp
             }}
           >
             <AppIcons.Users size={15} />
-            <span>محاضر الاجتماعات</span>
+            <span>{t('contracting.contracting_field_page.s4', "محاضر الاجتماعات")}</span>
           </button>
 
           <button
@@ -285,7 +287,7 @@ export function ContractingFieldPage({ initialSubTab }: ContractingFieldPageProp
             }}
           >
             <AppIcons.Users size={15} />
-            <span>حضور العمالة</span>
+            <span>{t('contracting.contracting_field_page.s5', "حضور العمالة")}</span>
           </button>
 
           <button
@@ -308,7 +310,7 @@ export function ContractingFieldPage({ initialSubTab }: ContractingFieldPageProp
             }}
           >
             <AppIcons.DollarSign size={15} />
-            <span>العهدة النقدية</span>
+            <span>{t('contracting.contracting_field_page.s6', "العهدة النقدية")}</span>
           </button>
 
           <button
@@ -331,7 +333,7 @@ export function ContractingFieldPage({ initialSubTab }: ContractingFieldPageProp
             }}
           >
             <AppIcons.Truck size={15} />
-            <span>سجل الوقود والمعدات</span>
+            <span>{t('contracting.contracting_field_page.s7', "سجل الوقود والمعدات")}</span>
           </button>
 
           <button
@@ -354,7 +356,7 @@ export function ContractingFieldPage({ initialSubTab }: ContractingFieldPageProp
             }}
           >
             <AppIcons.Tool size={15} />
-            <span>تتبع المعدات</span>
+            <span>{t('contracting.contracting_field_page.s8', "تتبع المعدات")}</span>
           </button>
         </div>
       </div>

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { StandardDialog } from '@/shared/components/StandardDialog';
@@ -22,6 +23,7 @@ export function AssignDriverModal({
   reps,
   onSuccess,
 }: AssignDriverModalProps) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
 
   const [selectedRepId, setSelectedRepId] = useState<number | ''>('');
@@ -109,19 +111,19 @@ export function AssignDriverModal({
       open={open}
       onClose={onClose}
       title={`إدارة سائقي وورديات المركبة: ${vehicle.plateNumber}`}
-      subtitle={`${vehicle.modelName || 'سيارة توزيع'} • المستودع: ${vehicle.vanLocationName}`}
+      subtitle={`${vehicle.modelName || t('delivery_reps.assign_driver_modal.s0', "سيارة توزيع")} • المستودع: ${vehicle.vanLocationName}`}
       maxWidth="580px"
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }} dir="rtl">
         {/* Current Assigned Drivers List */}
         <div>
           <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 800, color: '#170e5e', marginBottom: '8px' }}>
-            السائقون والورديات المخصصة حالياً على هذه السيارة ({assignedDrivers.length}):
+            {t('delivery_reps.assign_driver_modal.s1', "السائقون والورديات المخصصة حالياً على هذه السيارة (")}{assignedDrivers.length}):
           </label>
 
           {isLoading ? (
             <div style={{ padding: '16px', textAlign: 'center', color: '#94a3b8', fontSize: '12px' }}>
-              جاري فحص السائقين والورديات...
+              {t('delivery_reps.assign_driver_modal.s2', "جاري فحص السائقين والورديات...")}
             </div>
           ) : assignedDrivers.length === 0 ? (
             <div
@@ -135,7 +137,7 @@ export function AssignDriverModal({
                 fontSize: '12px',
               }}
             >
-              المركبة لا يوجد عليها أي سائق مسند حالياً (متاحة للتشغيل).
+              {t('delivery_reps.assign_driver_modal.s3', "المركبة لا يوجد عليها أي سائق مسند حالياً (متاحة للتشغيل).")}
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -174,7 +176,7 @@ export function AssignDriverModal({
                         <span style={{ color: '#170e5e', fontWeight: 700 }}>{d.shiftName}</span>
                         {(d.shiftStartTime || d.shiftEndTime) && (
                           <span>
-                            ({d.shiftStartTime || '—'} إلى {d.shiftEndTime || '—'})
+                            ({d.shiftStartTime || '—'} {t('delivery_reps.assign_driver_modal.s4', "إلى")} {d.shiftEndTime || '—'})
                           </span>
                         )}
                         {d.repPhone && <span>• {d.repPhone}</span>}
@@ -196,7 +198,7 @@ export function AssignDriverModal({
                       alignItems: 'center',
                       justifyContent: 'center',
                     }}
-                    title="فك ارتباط السائق"
+                    title={t('delivery_reps.assign_driver_modal.s5', "فك ارتباط السائق")}
                   >
                     <Trash2Icon size={16} />
                   </button>
@@ -220,12 +222,12 @@ export function AssignDriverModal({
           }}
         >
           <div style={{ fontSize: '12.5px', fontWeight: 800, color: '#0f172a' }}>
-            + تخصيص سائق ووردية جديدة للمركبة:
+            {t('delivery_reps.assign_driver_modal.s6', "+ تخصيص سائق ووردية جديدة للمركبة:")}
           </div>
 
           <div>
             <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-              اختر السائق / مندوب الفان <span style={{ color: '#dc2626' }}>*</span>
+              {t('delivery_reps.assign_driver_modal.s7', "اختر السائق / مندوب الفان")} <span style={{ color: '#dc2626' }}>*</span>
             </label>
             <select
               value={selectedRepId}
@@ -241,10 +243,10 @@ export function AssignDriverModal({
                 background: '#ffffff',
               }}
             >
-              <option value="">-- اختر السائق من قائمة المناديب --</option>
+              <option value="">{t('delivery_reps.assign_driver_modal.s8', "-- اختر السائق من قائمة المناديب --")}</option>
               {reps.map((r) => (
                 <option key={r.id} value={r.id}>
-                  {r.name} {r.phone ? `(${r.phone})` : ''} - {r.is_van_rep ? 'مندوب فان' : 'مندوب توصيل'}
+                  {r.name} {r.phone ? `(${r.phone})` : ''} - {r.is_van_rep ? t('delivery_reps.assign_driver_modal.s9', "مندوب فان") : t('delivery_reps.assign_driver_modal.s10', "مندوب توصيل")}
                 </option>
               ))}
             </select>
@@ -253,7 +255,7 @@ export function AssignDriverModal({
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
             <div>
               <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                مسمى الوردية
+                {t('delivery_reps.assign_driver_modal.s11', "مسمى الوردية")}
               </label>
               <select
                 value={shiftName}
@@ -281,16 +283,16 @@ export function AssignDriverModal({
                   background: '#ffffff',
                 }}
               >
-                <option value="وردية صباحية">وردية صباحية</option>
-                <option value="وردية مسائية">وردية مسائية</option>
-                <option value="وردية ليلية">وردية ليلية</option>
-                <option value="وردية كاملة">وردية كاملة</option>
+                <option value={t('delivery_reps.assign_driver_modal.s12', "وردية صباحية")}>{t('delivery_reps.assign_driver_modal.s13', "وردية صباحية")}</option>
+                <option value={t('delivery_reps.assign_driver_modal.s14', "وردية مسائية")}>{t('delivery_reps.assign_driver_modal.s15', "وردية مسائية")}</option>
+                <option value={t('delivery_reps.assign_driver_modal.s16', "وردية ليلية")}>{t('delivery_reps.assign_driver_modal.s17', "وردية ليلية")}</option>
+                <option value={t('delivery_reps.assign_driver_modal.s18', "وردية كاملة")}>{t('delivery_reps.assign_driver_modal.s19', "وردية كاملة")}</option>
               </select>
             </div>
 
             <div>
               <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                بداية الوردية
+                {t('delivery_reps.assign_driver_modal.s20', "بداية الوردية")}
               </label>
               <input
                 type="time"
@@ -309,7 +311,7 @@ export function AssignDriverModal({
 
             <div>
               <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                نهاية الوردية
+                {t('delivery_reps.assign_driver_modal.s21', "نهاية الوردية")}
               </label>
               <input
                 type="time"
@@ -329,11 +331,11 @@ export function AssignDriverModal({
 
           <div>
             <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-              ملاحظات تشغيلية
+              {t('delivery_reps.assign_driver_modal.s22', "ملاحظات تشغيلية")}
             </label>
             <input
               type="text"
-              placeholder="مثال: تبديل الوردية في محطة الرماية الساعة 4 عصراً..."
+              placeholder={t('delivery_reps.assign_driver_modal.s23', "مثال: تبديل الوردية في محطة الرماية الساعة 4 عصراً...")}
               value={shiftNotes}
               onChange={(e) => setShiftNotes(e.target.value)}
               style={{
@@ -354,7 +356,7 @@ export function AssignDriverModal({
               disabled={assignDriverMutation.isPending}
               style={{ background: '#170e5e', color: '#ffffff', fontSize: '12px', fontWeight: 700 }}
             >
-              {assignDriverMutation.isPending ? 'جاري التخصيص...' : '+ إضافة السائق للمركبة'}
+              {assignDriverMutation.isPending ? t('delivery_reps.assign_driver_modal.s24', "جاري التخصيص...") : t('delivery_reps.assign_driver_modal.s25', "+ إضافة السائق للمركبة")}
             </Button>
           </div>
         </form>
@@ -362,7 +364,7 @@ export function AssignDriverModal({
         {/* Footer */}
         <div style={{ display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid #e2e8f0', paddingTop: '10px' }}>
           <Button variant="secondary" onClick={onClose} style={{ fontSize: '12px' }}>
-            إغلاق
+            {t('delivery_reps.assign_driver_modal.s26', "إغلاق")}
           </Button>
         </div>
       </div>

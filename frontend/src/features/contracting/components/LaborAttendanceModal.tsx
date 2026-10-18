@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useCallback } from 'react';
 import { StandardDialog } from '@/shared/components/StandardDialog';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
@@ -34,6 +35,7 @@ export function LaborAttendanceModal({
   projectName,
   boqItems = [],
 }: LaborAttendanceModalProps) {
+  const { t } = useTranslation();
   const { currencySymbol, formatCurrency } = useSystemCurrency();
   const [records, setRecords] = useState<ContractingLaborAttendance[]>([]);
   const [loading, setLoading] = useState(true);
@@ -137,14 +139,14 @@ export function LaborAttendanceModal({
     <StandardDialog
       isOpen={isOpen}
       onClose={onClose}
-      title="يوميات وتوزيع العمالة والمصنعيات على بنود المقايسة"
-      subtitle={projectName ? `المشروع: ${projectName}` : 'تسجيل يوميات العمالة، وساعات العمل الإضافية، والسهرات الليلية، والربط بالبنود'}
+      title={t('contracting.labor_attendance_modal.s0', "يوميات وتوزيع العمالة والمصنعيات على بنود المقايسة")}
+      subtitle={projectName ? `المشروع: ${projectName}` : t('contracting.labor_attendance_modal.s1', "تسجيل يوميات العمالة، وساعات العمل الإضافية، والسهرات الليلية، والربط بالبنود")}
       width="min(1100px, 95vw)"
       minHeight="min(600px, 85vh)"
       footer={
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
           <div style={{ fontSize: 'var(--font-micro)', color: '#64748b' }}>
-            ربط اليومية ببند المقايسة يحسب التكلفة الفعلية للمصنعيات بالبند بدقة فورية.
+            {t('contracting.labor_attendance_modal.s2', "ربط اليومية ببند المقايسة يحسب التكلفة الفعلية للمصنعيات بالبند بدقة فورية.")}
           </div>
           <button
             type="button"
@@ -160,7 +162,7 @@ export function LaborAttendanceModal({
               cursor: 'pointer',
             }}
           >
-            إغلاق
+            {t('contracting.labor_attendance_modal.s3', "إغلاق")}
           </button>
         </div>
       }
@@ -175,21 +177,21 @@ export function LaborAttendanceModal({
         {/* KPIs */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
           <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '12px 14px' }}>
-            <div style={{ fontSize: 'var(--font-micro)', color: '#64748b', fontWeight: 600 }}>إجمالي تكلفة العمالة المحملة</div>
+            <div style={{ fontSize: 'var(--font-micro)', color: '#64748b', fontWeight: 600 }}>{t('contracting.labor_attendance_modal.s4', "إجمالي تكلفة العمالة المحملة")}</div>
             <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#170e5e', marginTop: '2px' }}>
               {loading ? '—' : formatCurrency(totalCost)}
             </div>
           </div>
 
           <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '12px 14px' }}>
-            <div style={{ fontSize: 'var(--font-micro)', color: '#64748b', fontWeight: 600 }}>إجمالي ساعات العمل المسجلة</div>
+            <div style={{ fontSize: 'var(--font-micro)', color: '#64748b', fontWeight: 600 }}>{t('contracting.labor_attendance_modal.s5', "إجمالي ساعات العمل المسجلة")}</div>
             <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>
               {loading ? '—' : `${totalHours} ساعة`}
             </div>
           </div>
 
           <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '12px 14px' }}>
-            <div style={{ fontSize: 'var(--font-micro)', color: '#64748b', fontWeight: 600 }}>عدد السجلات اليومية</div>
+            <div style={{ fontSize: 'var(--font-micro)', color: '#64748b', fontWeight: 600 }}>{t('contracting.labor_attendance_modal.s6', "عدد السجلات اليومية")}</div>
             <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>
               {loading ? '—' : `${records.length} سجل`}
             </div>
@@ -199,7 +201,7 @@ export function LaborAttendanceModal({
         {/* Action Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <h3 style={{ fontSize: 'var(--font-section-title)', fontWeight: 700, color: '#1e293b', margin: 0 }}>
-            كشف حضور ومصنعيات الموقع
+            {t('contracting.labor_attendance_modal.s7', "كشف حضور ومصنعيات الموقع")}
           </h3>
           <button
             type="button"
@@ -220,7 +222,7 @@ export function LaborAttendanceModal({
             }}
           >
             {isAdding ? <AppIcons.X size={14} /> : <AppIcons.Plus size={14} />}
-            <span>{isAdding ? 'إلغاء الإضافة' : 'تسجيل يومية عامل / صنايعي'}</span>
+            <span>{isAdding ? t('contracting.labor_attendance_modal.s8', "إلغاء الإضافة") : t('contracting.labor_attendance_modal.s9', "تسجيل يومية عامل / صنايعي")}</span>
           </button>
         </div>
 
@@ -238,38 +240,38 @@ export function LaborAttendanceModal({
             <div style={{ background: '#f8fafc', padding: '9px 13px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
                 <AppIcons.User size={15} />
-                <span>1. بيانات العامل والتخصص والربط ببند المقايسة</span>
+                <span>{t('contracting.labor_attendance_modal.s10', "1. بيانات العامل والتخصص والربط ببند المقايسة")}</span>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 1fr 1.3fr', gap: '10px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
-                    اسم العامل / الصنايعي *
+                    {t('contracting.labor_attendance_modal.s11', "اسم العامل / الصنايعي *")}
                   </label>
                   <input
                     type="text"
                     required
                     value={workerName}
                     onChange={(e) => setWorkerName(e.target.value)}
-                    placeholder="مثال: أحمد عبد الله"
+                    placeholder={t('contracting.labor_attendance_modal.s12', "مثال: أحمد عبد الله")}
                     style={{ width: '100%', height: '33px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.8125rem', background: '#fff', boxSizing: 'border-box' }}
                   />
                 </div>
 
                 <div>
                   <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
-                    المهنة / التخصص *
+                    {t('contracting.labor_attendance_modal.s13', "المهنة / التخصص *")}
                   </label>
                   <CustomSelect
                     value={trade}
                     options={TRADE_OPTIONS}
                     onChange={(val) => setTrade(val)}
-                    placeholder="اختر المهنة..."
+                    placeholder={t('contracting.labor_attendance_modal.s14', "اختر المهنة...")}
                   />
                 </div>
 
                 <div>
                   <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
-                    تاريخ العمل *
+                    {t('contracting.labor_attendance_modal.s15', "تاريخ العمل *")}
                   </label>
                   <input
                     type="date"
@@ -282,13 +284,13 @@ export function LaborAttendanceModal({
 
                 <div>
                   <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
-                    بند المقايسة المستهدف
+                    {t('contracting.labor_attendance_modal.s16', "بند المقايسة المستهدف")}
                   </label>
                   <CustomSelect
                     value={selectedBoqId}
                     options={boqSelectOptions}
                     onChange={(val) => setSelectedBoqId(val)}
-                    placeholder="اختر بند المقايسة..."
+                    placeholder={t('contracting.labor_attendance_modal.s17', "اختر بند المقايسة...")}
                   />
                 </div>
               </div>
@@ -298,12 +300,12 @@ export function LaborAttendanceModal({
             <div style={{ background: '#f8fafc', padding: '9px 13px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
                 <AppIcons.DollarSign size={15} />
-                <span>2. أجر اليومية وساعات العمل والإضافي</span>
+                <span>{t('contracting.labor_attendance_modal.s18', "2. أجر اليومية وساعات العمل والإضافي")}</span>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
-                    اليومية الأساسية ({currencySymbol}) *
+                    {t('contracting.labor_attendance_modal.s19', "اليومية الأساسية (")}{currencySymbol}) *
                   </label>
                   <input
                     type="number"
@@ -317,7 +319,7 @@ export function LaborAttendanceModal({
 
                 <div>
                   <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
-                    ساعات العمل الأساسية *
+                    {t('contracting.labor_attendance_modal.s20', "ساعات العمل الأساسية *")}
                   </label>
                   <input
                     type="number"
@@ -332,7 +334,7 @@ export function LaborAttendanceModal({
 
                 <div>
                   <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
-                    ساعات إضافية (سهرة)
+                    {t('contracting.labor_attendance_modal.s21', "ساعات إضافية (سهرة)")}
                   </label>
                   <input
                     type="number"
@@ -346,7 +348,7 @@ export function LaborAttendanceModal({
 
                 <div>
                   <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
-                    سعر الساعة الإضافية ({currencySymbol})
+                    {t('contracting.labor_attendance_modal.s22', "سعر الساعة الإضافية (")}{currencySymbol})
                   </label>
                   <input
                     type="number"
@@ -363,25 +365,25 @@ export function LaborAttendanceModal({
             <div style={{ background: '#f8fafc', padding: '9px 13px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
                 <AppIcons.FileText size={15} />
-                <span>3. طبيعة الأعمال المنفذة ونسبة التحميل على المشروع</span>
+                <span>{t('contracting.labor_attendance_modal.s23', "3. طبيعة الأعمال المنفذة ونسبة التحميل على المشروع")}</span>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 180px', gap: '10px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
-                    بيان وتوصيف الأعمال المنفذة في الوردية
+                    {t('contracting.labor_attendance_modal.s24', "بيان وتوصيف الأعمال المنفذة في الوردية")}
                   </label>
                   <input
                     type="text"
                     value={taskDescription}
                     onChange={(e) => setTaskDescription(e.target.value)}
-                    placeholder="مثال: تسليح سقف الدور الأول وعمل كوابيل البلكونات..."
+                    placeholder={t('contracting.labor_attendance_modal.s25', "مثال: تسليح سقف الدور الأول وعمل كوابيل البلكونات...")}
                     style={{ width: '100%', height: '33px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.8125rem', background: '#fff', boxSizing: 'border-box' }}
                   />
                 </div>
 
                 <div>
                   <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
-                    نسبة التحميل على المشروع %
+                    {t('contracting.labor_attendance_modal.s26', "نسبة التحميل على المشروع %")}
                   </label>
                   <input
                     type="number"
@@ -401,14 +403,14 @@ export function LaborAttendanceModal({
                 onClick={() => setIsAdding(false)}
                 style={{ height: '33px', padding: '0 14px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#fff', color: '#475569', cursor: 'pointer', fontSize: '0.8125rem', fontWeight: 600 }}
               >
-                إلغاء
+                {t('contracting.labor_attendance_modal.s27', "إلغاء")}
               </button>
               <button
                 type="submit"
                 disabled={saving}
                 style={{ height: '33px', padding: '0 18px', borderRadius: '6px', border: 'none', background: '#170e5e', color: '#fff', fontWeight: 700, cursor: 'pointer', fontSize: '0.8125rem' }}
               >
-                {saving ? 'جارٍ الحفظ...' : 'تسجيل اليومية وترحيلها'}
+                {saving ? t('contracting.labor_attendance_modal.s28', "جارٍ الحفظ...") : t('contracting.labor_attendance_modal.s29', "تسجيل اليومية وترحيلها")}
               </button>
             </div>
           </form>
@@ -431,25 +433,25 @@ export function LaborAttendanceModal({
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '280px', gap: '12px', backgroundColor: '#f8fafc', color: '#64748b' }}>
               <div style={{ width: '32px', height: '32px', border: '3px solid #cbd5e1', borderTopColor: '#170e5e', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
               <span style={{ fontSize: 'var(--font-body)', fontWeight: 600 }}>
-                جارٍ تحميل يوميات العمالة والمصنعيات...
+                {t('contracting.labor_attendance_modal.s30', "جارٍ تحميل يوميات العمالة والمصنعيات...")}
               </span>
             </div>
           ) : records.length === 0 ? (
             <div style={{ flex: 1, minHeight: '280px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', padding: '32px' }}>
-              لا توجد يوميات مسجلة لهذا المشروع
+              {t('contracting.labor_attendance_modal.s31', "لا توجد يوميات مسجلة لهذا المشروع")}
             </div>
           ) : (
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right' }}>
               <thead style={{ position: 'sticky', top: 0, zIndex: 1, backgroundColor: '#f8fafc' }}>
                 <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-                  <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>العامل / الفني</th>
-                  <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>التخصص</th>
-                  <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>البند المربوط</th>
-                  <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>التاريخ</th>
-                  <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>ساعات العمل</th>
-                  <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>اليومية</th>
-                  <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>التكلفة المحسوبة</th>
-                  <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>البيان</th>
+                  <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>{t('contracting.labor_attendance_modal.s32', "العامل / الفني")}</th>
+                  <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>{t('contracting.labor_attendance_modal.s33', "التخصص")}</th>
+                  <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>{t('contracting.labor_attendance_modal.s34', "البند المربوط")}</th>
+                  <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>{t('contracting.labor_attendance_modal.s35', "التاريخ")}</th>
+                  <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>{t('contracting.labor_attendance_modal.s36', "ساعات العمل")}</th>
+                  <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>{t('contracting.labor_attendance_modal.s37', "اليومية")}</th>
+                  <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>{t('contracting.labor_attendance_modal.s38', "التكلفة المحسوبة")}</th>
+                  <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>{t('contracting.labor_attendance_modal.s39', "البيان")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -469,14 +471,14 @@ export function LaborAttendanceModal({
                           {r.boqItemCode}
                         </span>
                       ) : (
-                        <span style={{ color: '#94a3b8' }}>عام</span>
+                        <span style={{ color: '#94a3b8' }}>{t('contracting.labor_attendance_modal.s40', "عام")}</span>
                       )}
                     </td>
                     <td style={{ padding: '10px 12px', fontSize: 'var(--font-micro)', color: '#64748b' }}>
                       {r.workDate}
                     </td>
                     <td style={{ padding: '10px 12px', fontSize: 'var(--font-body)', color: '#0f172a' }}>
-                      {r.regularHours} س {Number(r.overtimeHours) > 0 ? `+ ${r.overtimeHours} إضافي` : ''}
+                      {r.regularHours} {t('contracting.labor_attendance_modal.s41', "س")} {Number(r.overtimeHours) > 0 ? `+ ${r.overtimeHours} إضافي` : ''}
                     </td>
                     <td style={{ padding: '10px 12px', fontSize: 'var(--font-body)', color: '#475569' }}>
                       {formatCurrency(r.dailyWage)}

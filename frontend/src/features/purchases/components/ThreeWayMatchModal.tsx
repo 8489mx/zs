@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React, { useState, useEffect } from 'react';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { goodsReceiptsApi, type ThreeWayMatchResult } from '../api/goods-receipts.api';
@@ -19,6 +20,7 @@ export const ThreeWayMatchModal: React.FC<ThreeWayMatchModalProps> = ({
   docNo,
   onSuccess,
 }) => {
+  const { t } = useTranslation();
   const [isLoading, setIsLoading] = useState(true);
   const [matchData, setMatchData] = useState<ThreeWayMatchResult | null>(null);
   const [managerOverride, setManagerOverride] = useState(false);
@@ -84,19 +86,19 @@ export const ThreeWayMatchModal: React.FC<ThreeWayMatchModalProps> = ({
       open={open}
       onClose={onClose}
       title={`فحص واعتماد المطابقة الثلاثية — الفاتورة #${docNo || purchaseId}`}
-      subtitle="مطابقة أمر الشراء (PO) مع أذون الاستلام (GRN) وفاتورة المورد وتسوية وسيط التوريد (GRNI)"
+      subtitle={t('purchases.three_way_match_modal.s0', "مطابقة أمر الشراء (PO) مع أذون الاستلام (GRN) وفاتورة المورد وتسوية وسيط التوريد (GRNI)")}
       maxWidth="min(1080px, 96vw)"
       footerActions={
         <StandardDialogFooter
           onCancel={onClose}
-          cancelLabel="إغلاق"
+          cancelLabel={t('purchases.three_way_match_modal.s1', "إغلاق")}
           onSubmit={handleConfirmMatch}
           submitLabel={
             isSubmitting
-              ? 'جاري التحقق...'
+              ? t('purchases.three_way_match_modal.s2', "جاري التحقق...")
               : isMatched || (managerOverride && overrideReason.trim())
-              ? 'تأكيد واعتماد المطابقة الثلاثية'
-              : 'إغلاق ومراجعة الفروقات'
+              ? t('purchases.three_way_match_modal.s3', "تأكيد واعتماد المطابقة الثلاثية")
+              : t('purchases.three_way_match_modal.s4', "إغلاق ومراجعة الفروقات")
           }
           isSubmitting={isSubmitting}
         />
@@ -114,11 +116,11 @@ export const ThreeWayMatchModal: React.FC<ThreeWayMatchModalProps> = ({
               fontSize: '13px',
             }}
           >
-            جاري فحص ومطابقة بيانات الفاتورة مع أذون الاستلام المخزني وأمر الشراء...
+            {t('purchases.three_way_match_modal.s5', "جاري فحص ومطابقة بيانات الفاتورة مع أذون الاستلام المخزني وأمر الشراء...")}
           </div>
         ) : !result ? (
           <div style={{ textAlign: 'center', padding: '30px', color: '#dc2626' }}>
-            تعذر تحميل بيانات المطابقة الثلاثية لهذه الفاتورة.
+            {t('purchases.three_way_match_modal.s6', "تعذر تحميل بيانات المطابقة الثلاثية لهذه الفاتورة.")}
           </div>
         ) : (
           <>
@@ -143,10 +145,10 @@ export const ThreeWayMatchModal: React.FC<ThreeWayMatchModalProps> = ({
                   }}
                 >
                   {isMatched
-                    ? 'المطابقة الثلاثية مكتملة وناجحة 100%'
+                    ? t('purchases.three_way_match_modal.s7', "المطابقة الثلاثية مكتملة وناجحة 100%")
                     : isToleranceExceeded
-                    ? 'تنبيه: تجاوز نسبة التسامح السعري المسموح بها'
-                    : 'خطأ رقابي: عدم تطابق في كميات الاستلام أو الفوترة'}
+                    ? t('purchases.three_way_match_modal.s8', "تنبيه: تجاوز نسبة التسامح السعري المسموح بها")
+                    : t('purchases.three_way_match_modal.s9', "خطأ رقابي: عدم تطابق في كميات الاستلام أو الفوترة")}
                 </strong>
                 <span
                   style={{
@@ -155,10 +157,10 @@ export const ThreeWayMatchModal: React.FC<ThreeWayMatchModalProps> = ({
                   }}
                 >
                   {isMatched
-                    ? 'كافة الكميات المفوترة مطابقة للمقبول في إذن الاستلام، والأسعار ضمن سقف التسامح المقبول.'
+                    ? t('purchases.three_way_match_modal.s10', "كافة الكميات المفوترة مطابقة للمقبول في إذن الاستلام، والأسعار ضمن سقف التسامح المقبول.")
                     : isToleranceExceeded
-                    ? 'أسعار الفاتورة تختلف عن سعر أمر الشراء بما يتجاوز حد التسامح (2%)، يلزم موافقة المدير المالي.'
-                    : 'الكمية المفوترة تتجاوز الكميات المقبولة في إذن الاستلام المخزني (GRN)، لا يمكن ترحيل الفاتورة.'}
+                    ? t('purchases.three_way_match_modal.s11', "أسعار الفاتورة تختلف عن سعر أمر الشراء بما يتجاوز حد التسامح (2%)، يلزم موافقة المدير المالي.")
+                    : t('purchases.three_way_match_modal.s12', "الكمية المفوترة تتجاوز الكميات المقبولة في إذن الاستلام المخزني (GRN)، لا يمكن ترحيل الفاتورة.")}
                 </span>
               </div>
               <span
@@ -206,14 +208,14 @@ export const ThreeWayMatchModal: React.FC<ThreeWayMatchModalProps> = ({
                   }}
                 >
                   <tr>
-                    <th style={{ padding: '8px 10px' }}>الصنف</th>
-                    <th style={{ padding: '8px 10px', textAlign: 'center' }}>مطلوب PO</th>
-                    <th style={{ padding: '8px 10px', textAlign: 'center' }}>مقبول GRN</th>
-                    <th style={{ padding: '8px 10px', textAlign: 'center' }}>مفوتر Invoice</th>
-                    <th style={{ padding: '8px 10px', textAlign: 'center' }}>سعر PO</th>
-                    <th style={{ padding: '8px 10px', textAlign: 'center' }}>سعر الفاتورة</th>
-                    <th style={{ padding: '8px 10px', textAlign: 'center' }}>فرق السعر (PPV)</th>
-                    <th style={{ padding: '8px 10px', textAlign: 'center' }}>الحالة</th>
+                    <th style={{ padding: '8px 10px' }}>{t('purchases.three_way_match_modal.s13', "الصنف")}</th>
+                    <th style={{ padding: '8px 10px', textAlign: 'center' }}>{t('purchases.three_way_match_modal.s14', "مطلوب PO")}</th>
+                    <th style={{ padding: '8px 10px', textAlign: 'center' }}>{t('purchases.three_way_match_modal.s15', "مقبول GRN")}</th>
+                    <th style={{ padding: '8px 10px', textAlign: 'center' }}>{t('purchases.three_way_match_modal.s16', "مفوتر Invoice")}</th>
+                    <th style={{ padding: '8px 10px', textAlign: 'center' }}>{t('purchases.three_way_match_modal.s17', "سعر PO")}</th>
+                    <th style={{ padding: '8px 10px', textAlign: 'center' }}>{t('purchases.three_way_match_modal.s18', "سعر الفاتورة")}</th>
+                    <th style={{ padding: '8px 10px', textAlign: 'center' }}>{t('purchases.three_way_match_modal.s19', "فرق السعر (PPV)")}</th>
+                    <th style={{ padding: '8px 10px', textAlign: 'center' }}>{t('purchases.three_way_match_modal.s20', "الحالة")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -287,10 +289,10 @@ export const ThreeWayMatchModal: React.FC<ThreeWayMatchModalProps> = ({
                           }}
                         >
                           {line.status === 'matched'
-                            ? 'مطابق'
+                            ? t('purchases.three_way_match_modal.s21', "مطابق")
                             : line.status === 'tolerance_exceeded'
-                            ? 'تجاوز تسامح'
-                            : 'اختلاف كمية'}
+                            ? t('purchases.three_way_match_modal.s22', "تجاوز تسامح")
+                            : t('purchases.three_way_match_modal.s23', "اختلاف كمية")}
                         </span>
                       </td>
                     </tr>
@@ -309,7 +311,7 @@ export const ThreeWayMatchModal: React.FC<ThreeWayMatchModalProps> = ({
               }}
             >
               <h5 style={{ margin: '0 0 10px 0', fontSize: '12.5px', fontWeight: 800, color: '#170e5e' }}>
-                أثر تسوية القيد المحاسبي والمطابقة (Double-Entry Ledger Balancing)
+                {t('purchases.three_way_match_modal.s24', "أثر تسوية القيد المحاسبي والمطابقة (Double-Entry Ledger Balancing)")}
               </h5>
               <div
                 style={{
@@ -320,28 +322,28 @@ export const ThreeWayMatchModal: React.FC<ThreeWayMatchModalProps> = ({
                 }}
               >
                 <div style={{ backgroundColor: '#ffffff', padding: '8px 10px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-                  <span style={{ color: '#64748b', display: 'block', fontSize: '10.5px' }}>تسوية وسيط التوريد (GRNI)</span>
+                  <span style={{ color: '#64748b', display: 'block', fontSize: '10.5px' }}>{t('purchases.three_way_match_modal.s25', "تسوية وسيط التوريد (GRNI)")}</span>
                   <strong style={{ color: '#0369a1' }}>Dr. {formatCurrency(result.financialSummary.totalGrniAmount)}</strong>
                 </div>
                 <div style={{ backgroundColor: '#ffffff', padding: '8px 10px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-                  <span style={{ color: '#64748b', display: 'block', fontSize: '10.5px' }}>فروق أسعار الشراء (PPV)</span>
+                  <span style={{ color: '#64748b', display: 'block', fontSize: '10.5px' }}>{t('purchases.three_way_match_modal.s26', "فروق أسعار الشراء (PPV)")}</span>
                   <strong style={{ color: result.financialSummary.totalPpvVariance >= 0 ? '#b91c1c' : '#166534' }}>
                     {result.financialSummary.totalPpvVariance >= 0 ? 'Dr. ' : 'Cr. '}
                     {formatCurrency(Math.abs(result.financialSummary.totalPpvVariance))}
                   </strong>
                 </div>
                 <div style={{ backgroundColor: '#ffffff', padding: '8px 10px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-                  <span style={{ color: '#64748b', display: 'block', fontSize: '10.5px' }}>ضريبة القيمة المضافة (VAT)</span>
+                  <span style={{ color: '#64748b', display: 'block', fontSize: '10.5px' }}>{t('purchases.three_way_match_modal.s27', "ضريبة القيمة المضافة (VAT)")}</span>
                   <strong style={{ color: '#475569' }}>Dr. {formatCurrency(result.financialSummary.totalVatAmount)}</strong>
                 </div>
                 <div style={{ backgroundColor: '#ffffff', padding: '8px 10px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-                  <span style={{ color: '#64748b', display: 'block', fontSize: '10.5px' }}>استحقاق الموردين (AP)</span>
+                  <span style={{ color: '#64748b', display: 'block', fontSize: '10.5px' }}>{t('purchases.three_way_match_modal.s28', "استحقاق الموردين (AP)")}</span>
                   <strong style={{ color: '#166534' }}>Cr. {formatCurrency(result.financialSummary.totalApAmount)}</strong>
                 </div>
                 <div style={{ backgroundColor: '#ffffff', padding: '8px 10px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-                  <span style={{ color: '#64748b', display: 'block', fontSize: '10.5px' }}>الفارق المحاسبي (Discrepancy)</span>
+                  <span style={{ color: '#64748b', display: 'block', fontSize: '10.5px' }}>{t('purchases.three_way_match_modal.s29', "الفارق المحاسبي (Discrepancy)")}</span>
                   <strong style={{ color: result.financialSummary.discrepancy === 0 ? '#166534' : '#dc2626' }}>
-                    {formatCurrency(result.financialSummary.discrepancy)} ج.م
+                    {formatCurrency(result.financialSummary.discrepancy)} {t('purchases.three_way_match_modal.s30', "ج.م")}
                   </strong>
                 </div>
               </div>
@@ -377,12 +379,12 @@ export const ThreeWayMatchModal: React.FC<ThreeWayMatchModalProps> = ({
                     onChange={(e) => setManagerOverride(e.target.checked)}
                     style={{ width: '16px', height: '16px', cursor: 'pointer' }}
                   />
-                  <span>اعتماد استثنائي بصلاحية المدير المالي لتجاوز نسبة التسامح السعري</span>
+                  <span>{t('purchases.three_way_match_modal.s31', "اعتماد استثنائي بصلاحية المدير المالي لتجاوز نسبة التسامح السعري")}</span>
                 </label>
                 {managerOverride && (
                   <input
                     type="text"
-                    placeholder="اكتب سبب ومبرر اعتماد التجاوز السعري (إلزامي)..."
+                    placeholder={t('purchases.three_way_match_modal.s32', "اكتب سبب ومبرر اعتماد التجاوز السعري (إلزامي)...")}
                     value={overrideReason}
                     onChange={(e) => setOverrideReason(e.target.value)}
                     style={{

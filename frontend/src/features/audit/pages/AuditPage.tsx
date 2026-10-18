@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/shared/ui/button';
@@ -31,27 +32,9 @@ import { resolveCurrentVertical } from '@/shared/verticals/vertical-scope';
 import { CashierFraudRadarSection } from '../components/CashierFraudRadarSection';
 import { TamperAuditTrailTab } from '../components/TamperAuditTrailTab';
 
-const auditFilterOptions = [
-  { value: 'all', label: 'كافة السجلات' },
-  { value: 'today', label: 'نشاط اليوم' },
-  { value: 'withDetails', label: 'سجلات بتفاصيل' },
-] as const;
-
-const auditTypeFilterOptions: Array<{ value: 'all' | Exclude<AuditActivityType, 'general'>; label: string }> = [
-  { value: 'all', label: 'جميع الأنواع' },
-  { value: 'auth', label: 'أمان ودخول' },
-  { value: 'settings', label: 'منظومة وإعدادات' },
-  { value: 'sales', label: 'مبيعات ومدفوعات' },
-  { value: 'purchases', label: 'مشتريات وموردين' },
-  { value: 'inventory', label: 'مخزون وأصناف' },
-  { value: 'maintenance', label: 'تذاكر صيانة' },
-  { value: 'hr', label: 'موارد بشرية' },
-  { value: 'import', label: 'عمليات استيراد' },
-  { value: 'backup', label: 'نسخ احتياطي' },
-  { value: 'sensitive', label: 'عمليات حساسة' },
-];
-
 export function AuditPage() {
+  const { t, i18n } = useTranslation();
+  const isEn = i18n.language === 'en';
   const [activeTab, setActiveTab] = useState<'trail' | 'fraudRadar' | 'tamperTrail'>('trail');
   const [search, setSearch] = useState('');
   const [selectedUserId, setSelectedUserId] = useState('');
@@ -78,20 +61,40 @@ export function AuditPage() {
     }
   }, [showCashierFraudRadar, activeTab]);
 
+  const auditFilterOptions = useMemo(() => [
+    { value: 'all', label: isEn ? 'All Records' : 'كافة السجلات' },
+    { value: 'today', label: isEn ? "Today's Activity" : 'نشاط اليوم' },
+    { value: 'withDetails', label: isEn ? 'Records with Details' : 'سجلات بتفاصيل' },
+  ], [isEn]);
+
+  const auditTypeFilterOptions = useMemo((): Array<{ value: 'all' | Exclude<AuditActivityType, 'general'>; label: string }> => [
+    { value: 'all', label: isEn ? 'All Types' : 'جميع الأنواع' },
+    { value: 'auth', label: isEn ? 'Security & Auth' : 'أمان ودخول' },
+    { value: 'settings', label: isEn ? 'System & Settings' : 'منظومة وإعدادات' },
+    { value: 'sales', label: isEn ? 'Sales & Payments' : 'مبيعات ومدفوعات' },
+    { value: 'purchases', label: isEn ? 'Purchases & Vendors' : 'مشتريات وموردين' },
+    { value: 'inventory', label: isEn ? 'Inventory & Items' : 'مخزون وأصناف' },
+    { value: 'maintenance', label: isEn ? 'Maintenance Tickets' : 'تذاكر صيانة' },
+    { value: 'hr', label: isEn ? 'Human Resources' : 'موارد بشرية' },
+    { value: 'import', label: isEn ? 'Import Operations' : 'عمليات استيراد' },
+    { value: 'backup', label: isEn ? 'Backups' : 'نسخ احتياطي' },
+    { value: 'sensitive', label: isEn ? 'Critical Actions' : 'عمليات حساسة' },
+  ], [isEn]);
+
   const filteredActivityTypeOptions = useMemo(() => {
     return auditTypeFilterOptions.filter((opt) => {
       if (opt.value === 'maintenance' && (currentVertical === 'maritime' || currentVertical === 'contracting')) return false;
       return true;
     });
-  }, [currentVertical]);
+  }, [auditTypeFilterOptions, currentVertical]);
 
   const usersQuery = useQuery({ queryKey: ['audit-users-filter'], queryFn: userDirectoryApi.users });
   const query = useAuditLogs({ page, pageSize, search, mode: filterMode, userId: selectedUserId });
   const rows = query.data?.rows || [];
   const visibleRows = useMemo(() => {
     if (activityTypeFilter === 'all') return rows;
-    return rows.filter((row) => getAuditActivityMeta(row).type === activityTypeFilter);
-  }, [activityTypeFilter, rows]);
+    return rows.filter((row) => getAuditActivityMeta(row, isEn).type === activityTypeFilter);
+  }, [activityTypeFilter, isEn, rows]);
 
   const pagination = query.data?.pagination;
   const summary = query.data?.summary || { distinctUsers: 0, todayCount: 0 };
@@ -106,17 +109,17 @@ export function AuditPage() {
 
   const userOptions = useMemo(() => (usersQuery.data || []).map((user) => ({
     id: String(user.id || ''),
-    label: String(user.name || user.username || 'مستخدم'),
+    label: String(user.name || user.username || (isEn ? 'User' : 'مستخدم')),
     role: String(user.role || ''),
-  })), [usersQuery.data]);
+  })), [isEn, usersQuery.data]);
 
   const selectedUserLabel = userOptions.find((entry) => entry.id === selectedUserId)?.label || '';
 
   const stats = [
-    { key: 'total', label: 'إجمالي السجلات', value: totalRows },
-    { key: 'today', label: 'سجلات اليوم', value: summary.todayCount },
-    { key: 'users', label: 'عدد المنفذين', value: summary.distinctUsers },
-    { key: 'range', label: 'المعروض حالياً', value: totalRows ? `${rangeStart}-${rangeEnd}` : '0' },
+    { key: 'total', label: isEn ? 'Total Records' : 'إجمالي السجلات', value: totalRows },
+    { key: 'today', label: isEn ? "Today's Records" : 'سجلات اليوم', value: summary.todayCount },
+    { key: 'users', label: isEn ? 'Distinct Actors' : 'عدد المنفذين', value: summary.distinctUsers },
+    { key: 'range', label: isEn ? 'Currently Displayed' : 'المعروض حالياً', value: totalRows ? `${rangeStart}-${rangeEnd}` : '0' },
   ] as const;
 
   const { copyFeedback, isExporting, copyAuditSummary, exportAuditRows, printAuditRows } = useAuditPageActions({
@@ -127,6 +130,7 @@ export function AuditPage() {
     summary,
     rangeStart,
     rangeEnd,
+    isEn,
   });
 
   const resetAuditView = () => {
@@ -138,25 +142,25 @@ export function AuditPage() {
   };
 
   return (
-    <div className="page-stack page-shell audit-page" dir="rtl">
+    <div className="page-stack page-shell audit-page" dir={isEn ? 'ltr' : 'rtl'}>
       <main className="document-prototype-column" style={{ paddingBottom: '100px' }}>
         <PageHeader
-          title="سجل التدقيق والمراجعة"
-          description="متابعة وتدقيق كافة العمليات الإدارية والمالية والأمنية وحركات المستخدمين في المنظومة."
+          title={isEn ? 'Audit & Verification Trail' : t('audit.audit_page.s0', "سجل التدقيق والمراجعة")}
+          description={isEn ? 'Track and verify all administrative, financial, operational, and user actions across the system.' : t('audit.audit_page.s1', "متابعة وتدقيق كافة العمليات الإدارية والمالية والأمنية وحركات المستخدمين في المنظومة.")}
           badge={<span className="nav-pill" style={{ background: '#f1f5f9', color: '#334155', borderColor: '#cbd5e1' }}>Audit Trail</span>}
           actions={
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Button variant="secondary" onClick={resetAuditView} style={{ padding: '6px 12px', fontSize: '12.5px' }}>
-                إعادة ضبط
+                {isEn ? 'Reset' : t('audit.audit_page.s2', "إعادة ضبط")}
               </Button>
               <Button variant="secondary" onClick={copyAuditSummary} disabled={!totalRows} style={{ padding: '6px 12px', fontSize: '12.5px' }}>
-                نسخ
+                {isEn ? 'Copy' : t('audit.audit_page.s3', "نسخ")}
               </Button>
               <Button variant="secondary" onClick={() => void exportAuditRows()} disabled={!totalRows || isExporting} style={{ padding: '6px 12px', fontSize: '12.5px' }}>
-                {isExporting ? '...' : 'تصدير'}
+                {isExporting ? '...' : (isEn ? 'Export' : t('audit.audit_page.s4', "تصدير"))}
               </Button>
               <Button variant="secondary" onClick={() => void printAuditRows()} disabled={!totalRows || isExporting} style={{ padding: '6px 12px', fontSize: '12.5px' }}>
-                {isExporting ? '...' : 'طباعة'}
+                {isExporting ? '...' : (isEn ? 'Print' : t('audit.audit_page.s5', "طباعة"))}
               </Button>
             </div>
           }
@@ -203,7 +207,7 @@ export function AuditPage() {
             }}
           >
             <FileTextIcon size={16} />
-            <span>سجل العمليات والأنشطة العام</span>
+            <span>{isEn ? 'General Activity & Audit Trail' : t('audit.audit_page.s6', "سجل العمليات والأنشطة العام")}</span>
           </button>
 
           {showCashierFraudRadar && (
@@ -229,7 +233,7 @@ export function AuditPage() {
               }}
             >
               <ShieldAlertIcon size={16} />
-              <span>رادار كشف التلاعب ومنع الخسائر</span>
+              <span>{isEn ? 'Cashier Fraud & Shrinkage Radar' : t('audit.audit_page.s7', "رادار كشف التلاعب ومنع الخسائر")}</span>
               <span
                 style={{
                   fontSize: '11px',
@@ -269,7 +273,7 @@ export function AuditPage() {
             }}
           >
             <ShieldCheckIcon size={16} />
-            <span>سجل التدقيق الجنائي المشفّر (DB Triggers & Hash Chain)</span>
+            <span>{isEn ? 'Tamper-Proof Audit Trail (DB Triggers & Hash Chain)' : t('audit.audit_page.s8', "سجل التدقيق الجنائي المشفّر (DB Triggers & Hash Chain)")}</span>
             <span
               style={{
                 fontSize: '11px',
@@ -295,25 +299,25 @@ export function AuditPage() {
           <section className="document-prototype-section">
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', flexWrap: 'wrap', gap: '10px' }}>
             <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: '#0f172a' }}>
-              سجل العمليات والأنشطة
+              {isEn ? 'Activity & Operations Log' : t('audit.audit_page.s9', "سجل العمليات والأنشطة")}
             </h3>
             <FilterChipGroup value={filterMode} options={auditFilterOptions} onChange={setFilterMode} />
           </div>
 
-          <SearchToolbar search={search} onSearchChange={setSearch} searchPlaceholder="ابحث بالإجراء أو تفاصيل العملية أو اسم المنفذ...">
-            <Field label="نوع النشاط">
+          <SearchToolbar search={search} onSearchChange={setSearch} searchPlaceholder={isEn ? 'Search by activity, details, or actor name...' : t('audit.audit_page.s10', "ابحث بالإجراء أو تفاصيل العملية أو اسم المنفذ...")}>
+            <Field label={isEn ? 'Activity Type' : t('audit.audit_page.s11', "نوع النشاط")}>
               <CustomSelect
                 value={activityTypeFilter}
                 onChange={(val) => setActivityTypeFilter(val as typeof activityTypeFilter)}
                 options={filteredActivityTypeOptions}
               />
             </Field>
-            <Field label="الموظف / المنفذ">
+            <Field label={isEn ? 'Employee / Actor' : t('audit.audit_page.s12', "الموظف / المنفذ")}>
               <CustomSelect
                 value={selectedUserId}
                 onChange={(val) => setSelectedUserId(val)}
                 options={[
-                  { value: '', label: 'كافة الموظفين' },
+                  { value: '', label: isEn ? 'All Employees' : t('audit.audit_page.s13', "كافة الموظفين") },
                   ...userOptions.map((user) => ({ value: user.id, label: user.label + (user.role ? ` — ${user.role}` : '') })),
                 ]}
               />
@@ -327,14 +331,14 @@ export function AuditPage() {
             isError={query.isError || usersQuery.isError}
             error={query.error || usersQuery.error}
             isEmpty={!totalRows || !visibleRows.length}
-            loadingText="جاري تحميل سجل النشاط..."
-            errorTitle="تعذر تحميل سجل النشاط"
-            emptyTitle={!totalRows ? 'لا توجد سجلات نشاط حاليًا' : 'لا توجد أنشطة مطابقة لهذا الفلتر.'}
-            emptyHint="ستظهر العمليات هنا بمجرد تسجيل أنشطة أو بعد توسيع معايير الفلترة."
+            loadingText={isEn ? 'Loading activity log...' : t('audit.audit_page.s14', "جاري تحميل سجل النشاط...")}
+            errorTitle={isEn ? 'Failed to load activity log' : t('audit.audit_page.s15', "تعذر تحميل سجل النشاط")}
+            emptyTitle={!totalRows ? (isEn ? 'No activity records found' : t('audit.audit_page.s16', "لا توجد سجلات نشاط حاليًا")) : (isEn ? 'No activity matching this filter' : t('audit.audit_page.s17', "لا توجد أنشطة مطابقة لهذا الفلتر."))}
+            emptyHint={isEn ? 'Operations will appear here once activities occur or after broadening filters.' : t('audit.audit_page.s18', "ستظهر العمليات هنا بمجرد تسجيل أنشطة أو بعد توسيع معايير الفلترة.")}
           >
             {selectedUserLabel ? (
               <div className="muted small" style={{ marginBottom: '8px' }}>
-                عرض نشاط الموظف: <strong>{selectedUserLabel}</strong>
+                {isEn ? 'Viewing activity for:' : t('audit.audit_page.s19', "عرض نشاط الموظف:")} <strong>{selectedUserLabel}</strong>
               </div>
             ) : null}
 
@@ -345,15 +349,15 @@ export function AuditPage() {
               columns={[
                 {
                   id: 'action',
-                  header: 'النشاط والتفاصيل',
+                  header: isEn ? 'Activity & Details' : t('audit.audit_page.s20', "النشاط والتفاصيل"),
                   className: 'audit-col-activity',
                   sortable: true,
-                  sortValue: (row) => getAuditActionLabel(row.action || ''),
+                  sortValue: (row) => getAuditActionLabel(row.action || '', isEn),
                   render: (row) => {
-                    const activityMeta = getAuditActivityMeta(row);
-                    const actionLabel = getAuditActionLabel(row.action || '');
+                    const activityMeta = getAuditActivityMeta(row, isEn);
+                    const actionLabel = getAuditActionLabel(row.action || '', isEn);
                     const rawDetail = formatAuditDetails(row);
-                    const detailText = normalizeAuditDetailText(rawDetail);
+                    const detailText = normalizeAuditDetailText(rawDetail, isEn);
                     return (
                       <div className="audit-action-cell" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                         <div className="audit-action-head" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -379,7 +383,7 @@ export function AuditPage() {
                 },
                 {
                   id: 'user',
-                  header: 'المنفذ',
+                  header: isEn ? 'Actor' : t('audit.audit_page.s21', "المنفذ"),
                   className: 'audit-col-user',
                   sortable: true,
                   sortValue: (row) => normalizeAuditUserDisplay(row),
@@ -396,7 +400,7 @@ export function AuditPage() {
                 },
                 {
                   id: 'date',
-                  header: 'التاريخ والوقت',
+                  header: isEn ? 'Date & Time' : t('audit.audit_page.s22', "التاريخ والوقت"),
                   className: 'audit-col-date',
                   sortable: true,
                   sortValue: (row) => row.createdAt || row.created_at || '',
@@ -419,7 +423,7 @@ export function AuditPage() {
               rangeEnd={rangeEnd}
               onPageChange={setPage}
               onPageSizeChange={(value) => { setPageSize(value); setPage(1); }}
-              itemLabel="سجل"
+              itemLabel={isEn ? 'Record' : t('audit.audit_page.s23', "سجل")}
             />
           </QueryFeedback>
         </section>

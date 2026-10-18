@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Fragment, useMemo, useState } from 'react';
 import { getGlobalCurrencySymbol } from '@/lib/currencies';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -84,6 +85,7 @@ function formatLedgerDate(value?: string | null) {
 }
 
 function InvoiceItemsExpandable({ saleId, onSelectAmount }: { saleId: string; onSelectAmount?: (amount: number, invoiceDocNo: string) => void }) {
+  const { t } = useTranslation();
   const { data: sale, isLoading, error } = useQuery<Sale>({
     queryKey: queryKeys.saleDetail(saleId),
     queryFn: () => salesApi.getById(saleId),
@@ -93,7 +95,7 @@ function InvoiceItemsExpandable({ saleId, onSelectAmount }: { saleId: string; on
   if (isLoading) {
     return (
       <div style={{ padding: '12px', background: '#f8fafc', borderRadius: '6px', fontSize: '0.85rem', color: '#64748b' }}>
-        جاري جلب تفاصيل وأصناف الفاتورة #{saleId}...
+        {t('accounts.customer_balance_invoices_card.s0', "جاري جلب تفاصيل وأصناف الفاتورة #")}{saleId}...
       </div>
     );
   }
@@ -101,7 +103,7 @@ function InvoiceItemsExpandable({ saleId, onSelectAmount }: { saleId: string; on
   if (error || !sale) {
     return (
       <div style={{ padding: '12px', background: '#fef2f2', borderRadius: '6px', fontSize: '0.85rem', color: '#b91c1c' }}>
-        تعذر تحميل تفاصيل الفاتورة #{saleId}
+        {t('accounts.customer_balance_invoices_card.s1', "تعذر تحميل تفاصيل الفاتورة #")}{saleId}
       </div>
     );
   }
@@ -117,16 +119,16 @@ function InvoiceItemsExpandable({ saleId, onSelectAmount }: { saleId: string; on
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <strong style={{ fontSize: '0.88rem', color: '#0f172a' }}>
-            أصناف الفاتورة: {docNumber}
+            {t('accounts.customer_balance_invoices_card.s2', "أصناف الفاتورة:")} {docNumber}
           </strong>
           <span style={{ fontSize: '0.78rem', color: '#64748b' }}>
-            ({items.length} أصناف)
+            ({items.length} {t('accounts.customer_balance_invoices_card.s3', "أصناف)")}
           </span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '0.82rem' }}>
-          <span>الإجمالي: <b>{formatCurrency(total)}</b></span>
-          <span>المدفوع: <b style={{ color: '#16a34a' }}>{formatCurrency(paid)}</b></span>
-          <span>المتبقي: <b style={{ color: '#dc2626' }}>{formatCurrency(remaining)}</b></span>
+          <span>{t('accounts.customer_balance_invoices_card.s4', "الإجمالي:")} <b>{formatCurrency(total)}</b></span>
+          <span>{t('accounts.customer_balance_invoices_card.s5', "المدفوع:")} <b style={{ color: '#16a34a' }}>{formatCurrency(paid)}</b></span>
+          <span>{t('accounts.customer_balance_invoices_card.s6', "المتبقي:")} <b style={{ color: '#dc2626' }}>{formatCurrency(remaining)}</b></span>
           {remaining > 0 && onSelectAmount ? (
             <button
               type="button"
@@ -142,7 +144,7 @@ function InvoiceItemsExpandable({ saleId, onSelectAmount }: { saleId: string; on
                 cursor: 'pointer',
               }}
             >
-              تحصيل متبقي هذه الفاتورة ({formatCurrency(remaining)})
+              {t('accounts.customer_balance_invoices_card.s7', "تحصيل متبقي هذه الفاتورة (")}{formatCurrency(remaining)})
             </button>
           ) : null}
         </div>
@@ -152,11 +154,11 @@ function InvoiceItemsExpandable({ saleId, onSelectAmount }: { saleId: string; on
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem', background: '#ffffff', borderRadius: '6px', overflow: 'hidden' }}>
           <thead>
             <tr style={{ background: '#f1f5f9', color: '#475569', textAlign: 'right' }}>
-              <th style={{ padding: '6px 10px', fontWeight: 600 }}>الصنف</th>
-              <th style={{ padding: '6px 10px', fontWeight: 600 }}>الوحدة</th>
-              <th style={{ padding: '6px 10px', fontWeight: 600 }}>الكمية</th>
-              <th style={{ padding: '6px 10px', fontWeight: 600 }}>السعر</th>
-              <th style={{ padding: '6px 10px', fontWeight: 600 }}>الإجمالي</th>
+              <th style={{ padding: '6px 10px', fontWeight: 600 }}>{t('accounts.customer_balance_invoices_card.s8', "الصنف")}</th>
+              <th style={{ padding: '6px 10px', fontWeight: 600 }}>{t('accounts.customer_balance_invoices_card.s9', "الوحدة")}</th>
+              <th style={{ padding: '6px 10px', fontWeight: 600 }}>{t('accounts.customer_balance_invoices_card.s10', "الكمية")}</th>
+              <th style={{ padding: '6px 10px', fontWeight: 600 }}>{t('accounts.customer_balance_invoices_card.s11', "السعر")}</th>
+              <th style={{ padding: '6px 10px', fontWeight: 600 }}>{t('accounts.customer_balance_invoices_card.s12', "الإجمالي")}</th>
             </tr>
           </thead>
           <tbody>
@@ -184,6 +186,7 @@ interface CustomerBalanceInvoicesCardProps {
 }
 
 export function CustomerBalanceInvoicesCard({ customer, disabled = false }: CustomerBalanceInvoicesCardProps) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { data: settings } = useSettingsQuery();
   const customerId = String(customer?.id || '');
@@ -276,8 +279,8 @@ export function CustomerBalanceInvoicesCard({ customer, disabled = false }: Cust
 
   if (!customer) {
     return (
-      <FormSection title="كشف حساب وفواتير العميل" description="اختر عميلاً لعرض فواتيره وتفاصيل الأصناف وسداد المديونية.">
-        <EmptyState title="لم يتم اختيار عميل" hint="ابحث عن العميل بالاسم أو رقم الهاتف لعرض كشف حسابه وفواتيره." />
+      <FormSection title={t('accounts.customer_balance_invoices_card.s13', "كشف حساب وفواتير العميل")} description={t('accounts.customer_balance_invoices_card.s14', "اختر عميلاً لعرض فواتيره وتفاصيل الأصناف وسداد المديونية.")}>
+        <EmptyState title={t('accounts.customer_balance_invoices_card.s15', "لم يتم اختيار عميل")} hint={t('accounts.customer_balance_invoices_card.s16', "ابحث عن العميل بالاسم أو رقم الهاتف لعرض كشف حسابه وفواتيره.")} />
       </FormSection>
     );
   }
@@ -286,11 +289,11 @@ export function CustomerBalanceInvoicesCard({ customer, disabled = false }: Cust
     <div className="customer-balance-invoices-card">
       <FormSection
         title={`حساب وفواتير العميل: ${customerName}`}
-        description="استعرض فواتير العميل السابقة واضغط على أي فاتورة لعرض الأصناف المشتراة أو تحصيل المديونية."
+        description={t('accounts.customer_balance_invoices_card.s17', "استعرض فواتير العميل السابقة واضغط على أي فاتورة لعرض الأصناف المشتراة أو تحصيل المديونية.")}
         actions={
           <div className="actions compact-actions">
             <span className="nav-pill" style={{ background: customerBalance > 0 ? '#fef2f2' : '#f0fdf4', color: customerBalance > 0 ? '#dc2626' : '#16a34a', fontWeight: 700 }}>
-              المديونية: {formatCurrency(customerBalance)}
+              {t('accounts.customer_balance_invoices_card.s18', "المديونية:")} {formatCurrency(customerBalance)}
             </span>
           </div>
         }
@@ -298,24 +301,24 @@ export function CustomerBalanceInvoicesCard({ customer, disabled = false }: Cust
         {/* Top Summary Stats */}
         <div className="stats-grid compact-grid" style={{ marginBottom: '14px' }}>
           <div className="stat-card">
-            <span>رصيد العميل المستحق</span>
+            <span>{t('accounts.customer_balance_invoices_card.s19', "رصيد العميل المستحق")}</span>
             <strong style={{ color: customerBalance > 0 ? '#dc2626' : '#16a34a' }}>
               {formatCurrency(customerBalance)}
             </strong>
           </div>
           <div className="stat-card">
-            <span>عدد الحركات المسجلة</span>
-            <strong>{entries.length} حركات</strong>
+            <span>{t('accounts.customer_balance_invoices_card.s20', "عدد الحركات المسجلة")}</span>
+            <strong>{entries.length} {t('accounts.customer_balance_invoices_card.s21', "حركات")}</strong>
           </div>
           {customer.phone ? (
             <div className="stat-card">
-              <span>رقم الهاتف</span>
+              <span>{t('accounts.customer_balance_invoices_card.s22', "رقم الهاتف")}</span>
               <strong style={{ fontSize: '0.9rem' }}>{customer.phone}</strong>
             </div>
           ) : null}
           {Number(customer.creditLimit || (customer as any).credit_limit || 0) > 0 ? (
             <div className="stat-card">
-              <span>الحد الائتماني المسموح</span>
+              <span>{t('accounts.customer_balance_invoices_card.s23', "الحد الائتماني المسموح")}</span>
               <strong>{formatCurrency(Number(customer.creditLimit || (customer as any).credit_limit))}</strong>
             </div>
           ) : null}
@@ -325,8 +328,8 @@ export function CustomerBalanceInvoicesCard({ customer, disabled = false }: Cust
         <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '12px', marginBottom: '16px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', flexWrap: 'wrap', gap: '8px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <strong style={{ fontSize: '0.92rem', color: '#1e293b' }}>سجل الفواتير والمعاملات</strong>
-              {ledgerQuery.isLoading ? <span style={{ fontSize: '0.78rem', color: '#64748b' }}>(جاري التحميل...)</span> : null}
+              <strong style={{ fontSize: '0.92rem', color: '#1e293b' }}>{t('accounts.customer_balance_invoices_card.s24', "سجل الفواتير والمعاملات")}</strong>
+              {ledgerQuery.isLoading ? <span style={{ fontSize: '0.78rem', color: '#64748b' }}>{t('accounts.customer_balance_invoices_card.s25', "(جاري التحميل...)")}</span> : null}
             </div>
             <div className="actions compact-actions">
               <Button
@@ -334,40 +337,40 @@ export function CustomerBalanceInvoicesCard({ customer, disabled = false }: Cust
                 variant={filter === 'all' ? 'primary' : 'secondary'}
                 onClick={() => setFilter('all')}
               >
-                الكل ({entries.length})
+                {t('accounts.customer_balance_invoices_card.s26', "الكل (")}{entries.length})
               </Button>
               <Button
                 type="button"
                 variant={filter === 'sales' ? 'primary' : 'secondary'}
                 onClick={() => setFilter('sales')}
               >
-                فواتير البيع
+                {t('accounts.customer_balance_invoices_card.s27', "فواتير البيع")}
               </Button>
               <Button
                 type="button"
                 variant={filter === 'payments' ? 'primary' : 'secondary'}
                 onClick={() => setFilter('payments')}
               >
-                سندات التحصيل
+                {t('accounts.customer_balance_invoices_card.s28', "سندات التحصيل")}
               </Button>
             </div>
           </div>
 
           {filteredEntries.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '24px 12px', color: '#64748b', fontSize: '0.85rem' }}>
-              {ledgerQuery.isLoading ? 'جاري تحميل كشف الحساب...' : 'لا توجد حركات مسجلة لهذا العميل في هذه التصفية.'}
+              {ledgerQuery.isLoading ? t('accounts.customer_balance_invoices_card.s29', "جاري تحميل كشف الحساب...") : t('accounts.customer_balance_invoices_card.s30', "لا توجد حركات مسجلة لهذا العميل في هذه التصفية.")}
             </div>
           ) : (
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
                 <thead>
                   <tr style={{ background: '#f8fafc', color: '#475569', borderBottom: '2px solid #e2e8f0', textAlign: 'right' }}>
-                    <th style={{ padding: '8px 10px', fontWeight: 600 }}>التاريخ</th>
-                    <th style={{ padding: '8px 10px', fontWeight: 600 }}>نوع الحركة / البيان</th>
-                    <th style={{ padding: '8px 10px', fontWeight: 600 }}>مدين (فاتورة)</th>
-                    <th style={{ padding: '8px 10px', fontWeight: 600 }}>دائن (مسدد)</th>
-                    <th style={{ padding: '8px 10px', fontWeight: 600 }}>الرصيد بعد الحركة</th>
-                    <th style={{ padding: '8px 10px', fontWeight: 600, textAlign: 'center' }}>الأصناف</th>
+                    <th style={{ padding: '8px 10px', fontWeight: 600 }}>{t('accounts.customer_balance_invoices_card.s31', "التاريخ")}</th>
+                    <th style={{ padding: '8px 10px', fontWeight: 600 }}>{t('accounts.customer_balance_invoices_card.s32', "نوع الحركة / البيان")}</th>
+                    <th style={{ padding: '8px 10px', fontWeight: 600 }}>{t('accounts.customer_balance_invoices_card.s33', "مدين (فاتورة)")}</th>
+                    <th style={{ padding: '8px 10px', fontWeight: 600 }}>{t('accounts.customer_balance_invoices_card.s34', "دائن (مسدد)")}</th>
+                    <th style={{ padding: '8px 10px', fontWeight: 600 }}>{t('accounts.customer_balance_invoices_card.s35', "الرصيد بعد الحركة")}</th>
+                    <th style={{ padding: '8px 10px', fontWeight: 600, textAlign: 'center' }}>{t('accounts.customer_balance_invoices_card.s36', "الأصناف")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -379,7 +382,7 @@ export function CustomerBalanceInvoicesCard({ customer, disabled = false }: Cust
                     const credit = amt < 0 ? Math.abs(amt) : Number(entry.credit || 0);
                     const balanceAfter = entry.balanceAfter != null ? Number(entry.balanceAfter) : (entry.balance_after != null ? Number(entry.balance_after) : null);
                     const dateValue = entry.createdAt || entry.created_at || entry.date;
-                    const isSale = Boolean(saleId) || debit > 0 || String(entry.note || '').includes('فاتورة');
+                    const isSale = Boolean(saleId) || debit > 0 || String(entry.note || '').includes(t('accounts.customer_balance_invoices_card.s37', "فاتورة"));
 
                     return (
                       <Fragment key={entry.id || entry.doc_no || index}>
@@ -398,7 +401,7 @@ export function CustomerBalanceInvoicesCard({ customer, disabled = false }: Cust
                           </td>
                           <td style={{ padding: '8px 10px', fontWeight: 600, color: '#1e293b' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                              <span>{entry.note || entry.doc_no || (isSale ? 'فاتورة بيع' : 'سداد/تحصيل')}</span>
+                              <span>{entry.note || entry.doc_no || (isSale ? t('accounts.customer_balance_invoices_card.s38', "فاتورة بيع") : t('accounts.customer_balance_invoices_card.s39', "سداد/تحصيل"))}</span>
                               {saleId ? (
                                 <span style={{ fontSize: '0.72rem', background: '#eff6ff', color: '#2563eb', padding: '1px 5px', borderRadius: '4px' }}>
                                   #{saleId}
@@ -438,7 +441,7 @@ export function CustomerBalanceInvoicesCard({ customer, disabled = false }: Cust
                                 }}
                               >
                                 <EyeIcon size={13} />
-                                {isExpanded ? 'إخفاء' : 'عرض الأصناف'}
+                                {isExpanded ? t('accounts.customer_balance_invoices_card.s40', "إخفاء") : t('accounts.customer_balance_invoices_card.s41', "عرض الأصناف")}
                                 {isExpanded ? <ChevronUpIcon size={12} /> : <ChevronDownIcon size={12} />}
                               </button>
                             ) : (
@@ -469,7 +472,7 @@ export function CustomerBalanceInvoicesCard({ customer, disabled = false }: Cust
         {/* Collection & Payment Form Section */}
         <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '16px' }}>
           <strong style={{ display: 'block', marginBottom: '10px', fontSize: '0.94rem', color: '#0f172a' }}>
-            تسجيل تحصيل واستلام نقدية من {customerName}
+            {t('accounts.customer_balance_invoices_card.s42', "تسجيل تحصيل واستلام نقدية من")} {customerName}
           </strong>
 
           <div className="form-grid">
@@ -490,17 +493,17 @@ export function CustomerBalanceInvoicesCard({ customer, disabled = false }: Cust
                   onClick={() => setPaymentAmount(String(customerBalance > 0 ? customerBalance : ''))}
                   disabled={paymentMutation.isPending || disabled || customerBalance <= 0}
                 >
-                  تحصيل كامل الرصيد المستحق ({formatCurrency(customerBalance)})
+                  {t('accounts.customer_balance_invoices_card.s43', "تحصيل كامل الرصيد المستحق (")}{formatCurrency(customerBalance)})
                 </Button>
               </div>
             </Field>
 
-            <Field label="ملاحظات التحصيل (اختياري)">
+            <Field label={t('accounts.customer_balance_invoices_card.s44', "ملاحظات التحصيل (اختياري)")}>
               <textarea
                 rows={2}
                 value={paymentNote}
                 onChange={(event) => setPaymentNote(event.target.value)}
-                placeholder="مثال: تحصيل نقدي في الخزينة / سداد فاتورة محددة"
+                placeholder={t('accounts.customer_balance_invoices_card.s45', "مثال: تحصيل نقدي في الخزينة / سداد فاتورة محددة")}
                 disabled={paymentMutation.isPending || disabled}
               />
             </Field>
@@ -512,7 +515,7 @@ export function CustomerBalanceInvoicesCard({ customer, disabled = false }: Cust
               onClick={() => paymentMutation.mutate()}
               disabled={paymentMutation.isPending || !(Number(paymentAmount) > 0) || disabled}
             >
-              {paymentMutation.isPending ? 'جاري تسجيل التحصيل...' : 'تأكيد تحصيل المبلغ من العميل'}
+              {paymentMutation.isPending ? t('accounts.customer_balance_invoices_card.s46', "جاري تسجيل التحصيل...") : t('accounts.customer_balance_invoices_card.s47', "تأكيد تحصيل المبلغ من العميل")}
             </Button>
             <Button
               type="button"
@@ -523,7 +526,7 @@ export function CustomerBalanceInvoicesCard({ customer, disabled = false }: Cust
               }}
               disabled={paymentMutation.isPending}
             >
-              إعادة ضبط
+              {t('accounts.customer_balance_invoices_card.s48', "إعادة ضبط")}
             </Button>
           </div>
 
@@ -531,7 +534,7 @@ export function CustomerBalanceInvoicesCard({ customer, disabled = false }: Cust
             isError={paymentMutation.isError}
             isSuccess={false}
             error={paymentMutation.error}
-            errorFallback="تعذر تسجيل تحصيل العميل"
+            errorFallback={t('accounts.customer_balance_invoices_card.s49', "تعذر تسجيل تحصيل العميل")}
             successText=""
           />
         </div>
@@ -544,14 +547,14 @@ export function CustomerBalanceInvoicesCard({ customer, disabled = false }: Cust
           role="presentation"
           onClick={(e) => { if (e.target === e.currentTarget) setSuccessReceipt(null); }}
         >
-          <div className="dialog-shell supplier-payment-dialog" role="dialog" aria-modal="true" aria-label="تم تسجيل التحصيل بنجاح">
+          <div className="dialog-shell supplier-payment-dialog" role="dialog" aria-modal="true" aria-label={t('accounts.customer_balance_invoices_card.s50', "تم تسجيل التحصيل بنجاح")}>
             <div className="dialog-card supplier-payment-dialog-card" style={{ textAlign: 'center', padding: '2rem 1rem' }}>
               <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1rem', color: '#16a34a' }}>
                 <CheckCircleIcon size={52} />
               </div>
-              <h3 style={{ marginBottom: '0.5rem' }}>تم تسجيل التحصيل بنجاح</h3>
+              <h3 style={{ marginBottom: '0.5rem' }}>{t('accounts.customer_balance_invoices_card.s51', "تم تسجيل التحصيل بنجاح")}</h3>
               <p className="muted" style={{ marginBottom: '1.5rem' }}>
-                تم استلام {formatCurrency(successReceipt.amountPaid)} من العميل {successReceipt.customer.name} (الرصيد المتبقي: {formatCurrency(successReceipt.remainingBalance)}).
+                {t('accounts.customer_balance_invoices_card.s52', "تم استلام")} {formatCurrency(successReceipt.amountPaid)} {t('accounts.customer_balance_invoices_card.s53', "من العميل")} {successReceipt.customer.name} {t('accounts.customer_balance_invoices_card.s54', "(الرصيد المتبقي:")} {formatCurrency(successReceipt.remainingBalance)}).
               </p>
 
               <div className="actions compact-actions supplier-payment-dialog-actions" style={{ justifyContent: 'center', flexWrap: 'wrap' }}>
@@ -575,11 +578,11 @@ export function CustomerBalanceInvoicesCard({ customer, disabled = false }: Cust
                   }}
                 >
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                    <WhatsAppIcon size={16} /> إرسال إيصال للعميل عبر واتساب
+                    <WhatsAppIcon size={16} /> {t('accounts.customer_balance_invoices_card.s55', "إرسال إيصال للعميل عبر واتساب")}
                   </span>
                 </Button>
                 <Button type="button" variant="secondary" onClick={() => setSuccessReceipt(null)}>
-                  إغلاق
+                  {t('accounts.customer_balance_invoices_card.s56', "إغلاق")}
                 </Button>
               </div>
             </div>

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { inventoryApi } from '@/features/inventory/api/inventory.api';
@@ -13,6 +14,7 @@ interface AssignProductsModalProps {
 }
 
 export function AssignProductsModal({ locationId, locationName, onClose }: AssignProductsModalProps) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedProductIds, setSelectedProductIds] = useState<Set<number>>(new Set());
@@ -153,15 +155,15 @@ export function AssignProductsModal({ locationId, locationName, onClose }: Assig
       open={true}
       onClose={onClose}
       title={`ربط أصناف ونقل أرصدة لمخزن ${locationName ? `(${locationName})` : ''}`}
-      subtitle="إضافة أصناف جديدة للمخزن ونقل أرصدة من مخازن أخرى"
+      subtitle={t('inventory.assign_products_modal.s0', "إضافة أصناف جديدة للمخزن ونقل أرصدة من مخازن أخرى")}
       size="lg"
       footerActions={
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-          <span style={{ fontWeight: 600, fontSize: '13px' }}>تم تحديد: {selectedProductIds.size} صنف</span>
+          <span style={{ fontWeight: 600, fontSize: '13px' }}>{t('inventory.assign_products_modal.s1', "تم تحديد:")} {selectedProductIds.size} {t('inventory.assign_products_modal.s2', "صنف")}</span>
           <StandardDialogFooter
             onCancel={onClose}
-            cancelLabel="إلغاء"
-            primaryLabel={assignMutation.isPending ? 'جاري الحفظ ونقل الأرصدة...' : 'حفظ وإضافة'}
+            cancelLabel={t('inventory.assign_products_modal.s3', "إلغاء")}
+            primaryLabel={assignMutation.isPending ? t('inventory.assign_products_modal.s4', "جاري الحفظ ونقل الأرصدة...") : t('inventory.assign_products_modal.s5', "حفظ وإضافة")}
             onPrimary={() => assignMutation.mutate(Array.from(selectedProductIds))}
             isPrimaryLoading={assignMutation.isPending}
             isPrimaryDisabled={selectedProductIds.size === 0 || assignMutation.isPending}
@@ -171,31 +173,31 @@ export function AssignProductsModal({ locationId, locationName, onClose }: Assig
     >
       <div dir="rtl" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
         {isLoading ? (
-          <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-secondary)' }}>جاري التحميل...</div>
+          <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-secondary)' }}>{t('inventory.assign_products_modal.s6', "جاري التحميل...")}</div>
         ) : (
           <>
             <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
               <input 
                 type="text" 
-                placeholder="ابحث بالاسم أو الباركود..." 
+                placeholder={t('inventory.assign_products_modal.s7', "ابحث بالاسم أو الباركود...")} 
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 style={{ flex: 1, padding: '10px 16px', borderRadius: '6px', border: '1px solid var(--border-color)' }}
               />
-              <button type="button" className="secondary-button" onClick={handleSelectAllFiltered}>تحديد الكل (في البحث)</button>
+              <button type="button" className="secondary-button" onClick={handleSelectAllFiltered}>{t('inventory.assign_products_modal.s8', "تحديد الكل (في البحث)")}</button>
             </div>
 
             <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', border: '1px solid var(--border-color)', borderRadius: '6px' }}>
               {filteredProducts.length === 0 ? (
-                <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-secondary)' }}>لا توجد أصناف غير مربوطة تطابق بحثك</div>
+                <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-secondary)' }}>{t('inventory.assign_products_modal.s9', "لا توجد أصناف غير مربوطة تطابق بحثك")}</div>
               ) : (
                 <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right', tableLayout: 'fixed' }}>
                   <thead style={{ backgroundColor: 'var(--surface-color)', position: 'sticky', top: 0, zIndex: 10 }}>
                     <tr>
                       <th style={{ padding: '12px 16px', borderBottom: '1px solid var(--border-color)', width: '40px' }}></th>
-                      <th style={{ padding: '12px 16px', borderBottom: '1px solid var(--border-color)', width: '35%' }}>اسم الصنف</th>
-                      <th style={{ padding: '12px 16px', borderBottom: '1px solid var(--border-color)', width: '30%' }}>القسم</th>
-                      <th style={{ padding: '12px 16px', borderBottom: '1px solid var(--border-color)', width: '35%' }}>إجمالي الرصيد بالنظام</th>
+                      <th style={{ padding: '12px 16px', borderBottom: '1px solid var(--border-color)', width: '35%' }}>{t('inventory.assign_products_modal.s10', "اسم الصنف")}</th>
+                      <th style={{ padding: '12px 16px', borderBottom: '1px solid var(--border-color)', width: '30%' }}>{t('inventory.assign_products_modal.s11', "القسم")}</th>
+                      <th style={{ padding: '12px 16px', borderBottom: '1px solid var(--border-color)', width: '35%' }}>{t('inventory.assign_products_modal.s12', "إجمالي الرصيد بالنظام")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -204,7 +206,7 @@ export function AssignProductsModal({ locationId, locationName, onClose }: Assig
                       const productStocks = stocksData.filter(s => {
                         if (String(s.productId) !== String(p.id) || Number(s.qty) <= 0) return false;
                         const loc = locationsData.find(l => String(l.id) === String(s.locationId));
-                        return loc && !loc.name.includes('(محذوف)');
+                        return loc && !loc.name.includes(t('inventory.assign_products_modal.s13', "(محذوف)"));
                       });
                       const totalStock = productStocks.reduce((sum, s) => sum + Number(s.qty), 0);
                       
@@ -230,21 +232,21 @@ export function AssignProductsModal({ locationId, locationName, onClose }: Assig
                               {categoriesData.find((c: any) => String(c.id) === String(p.categoryId))?.name || '-'}
                             </td>
                             <td style={{ padding: '12px 16px', color: totalStock > 0 ? 'var(--success-color)' : 'var(--text-secondary)', fontWeight: totalStock > 0 ? 600 : 400 }}>
-                              {totalStock} قطعة
+                              {totalStock} {t('inventory.assign_products_modal.s14', "قطعة")}
                             </td>
                           </tr>
                           {isSelected && productStocks.length > 0 && (
                             <tr style={{ borderBottom: '1px solid var(--border-color)', background: 'var(--primary-light)' }}>
                               <td colSpan={4} style={{ padding: '0 16px 16px 48px' }}>
                                 <div style={{ background: '#fff', borderRadius: '8px', padding: '12px', border: '1px solid var(--border-color)' }}>
-                                  <div style={{ fontSize: '0.9rem', fontWeight: 600, marginBottom: '8px', color: 'var(--text-secondary)' }}>خيارات النقل الداخلي المباشر (اختياري)</div>
+                                  <div style={{ fontSize: '0.9rem', fontWeight: 600, marginBottom: '8px', color: 'var(--text-secondary)' }}>{t('inventory.assign_products_modal.s15', "خيارات النقل الداخلي المباشر (اختياري)")}</div>
                                   <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
                                     <div style={{ minWidth: '220px' }}>
                                       <CustomSelect
                                         value={transferSelections[Number(p.id)]?.fromLocationId ? String(transferSelections[Number(p.id)]?.fromLocationId) : ''}
                                         onChange={(val) => updateTransfer(Number(p.id), val ? Number(val) : 0, transferSelections[Number(p.id)]?.qty || 0)}
                                         options={[
-                                          { value: '', label: '-- اختر المخزن لسحب الرصيد --' },
+                                          { value: '', label: t('inventory.assign_products_modal.s16', "-- اختر المخزن لسحب الرصيد --") },
                                           ...productStocks.map((s) => {
                                             const loc = locationsData.find((l) => String(l.id) === String(s.locationId));
                                             return {
@@ -253,7 +255,7 @@ export function AssignProductsModal({ locationId, locationName, onClose }: Assig
                                             };
                                           }),
                                         ]}
-                                        placeholder="-- اختر المخزن لسحب الرصيد --"
+                                        placeholder={t('inventory.assign_products_modal.s17', "-- اختر المخزن لسحب الرصيد --")}
                                       />
                                     </div>
                                     
@@ -267,7 +269,7 @@ export function AssignProductsModal({ locationId, locationName, onClose }: Assig
                                         type="number" 
                                         min={0}
                                         max={productStocks.find(s => String(s.locationId) === String(transferSelections[Number(p.id)]?.fromLocationId))?.qty || 0}
-                                        placeholder="الكمية"
+                                        placeholder={t('inventory.assign_products_modal.s18', "الكمية")}
                                         value={transferSelections[Number(p.id)]?.qty || ''}
                                         onChange={(e) => updateTransfer(Number(p.id), transferSelections[Number(p.id)].fromLocationId, Number(e.target.value))}
                                         style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', width: '120px' }}
@@ -280,7 +282,7 @@ export function AssignProductsModal({ locationId, locationName, onClose }: Assig
                                           const maxQty = productStocks.find(s => String(s.locationId) === String(transferSelections[Number(p.id)]?.fromLocationId))?.qty || 0;
                                           updateTransfer(Number(p.id), transferSelections[Number(p.id)].fromLocationId, Number(maxQty));
                                         }}
-                                      >نقل الكل</button>
+                                      >{t('inventory.assign_products_modal.s19', "نقل الكل")}</button>
                                     </div>
                                   </div>
                                 </div>

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { FormSection } from '@/shared/components/form-section';
 import { EmptyState } from '@/shared/ui/empty-state';
@@ -58,7 +59,8 @@ function ProfitList({ title, rows, emptyTitle }: { title: string; rows: Dashboar
 }
 
 function ProductList({ rows, type }: { rows: DashboardStagnantItem[] | DashboardBuyingItem[]; type: 'stagnant' | 'buying' }) {
-  if (!rows.length) return <div className="manager-overview-inline-empty">لا توجد بيانات كافية للعرض</div>;
+  const { t } = useTranslation();
+  if (!rows.length) return <div className="manager-overview-inline-empty">{t('dashboard.dashboard_manager_overview_sections.s0', "لا توجد بيانات كافية للعرض")}</div>;
 
   return (
     <div className="manager-overview-list">
@@ -66,7 +68,7 @@ function ProductList({ rows, type }: { rows: DashboardStagnantItem[] | Dashboard
         <div className="manager-overview-row" key={`${type}-${row.productId}`}>
           <div>
             <strong>{row.name}</strong>
-            <span>{row.categoryName || 'بدون قسم'}</span>
+            <span>{row.categoryName || t('dashboard.dashboard_manager_overview_sections.s1', "بدون قسم")}</span>
           </div>
           <b>
             {type === 'stagnant'
@@ -80,7 +82,8 @@ function ProductList({ rows, type }: { rows: DashboardStagnantItem[] | Dashboard
 }
 
 function CustomerList({ rows }: { rows: DashboardCollectionItem[] }) {
-  if (!rows.length) return <div className="manager-overview-inline-empty">لا توجد أرصدة تحتاج متابعة الآن</div>;
+  const { t } = useTranslation();
+  if (!rows.length) return <div className="manager-overview-inline-empty">{t('dashboard.dashboard_manager_overview_sections.s2', "لا توجد أرصدة تحتاج متابعة الآن")}</div>;
 
   return (
     <div className="manager-overview-list">
@@ -88,7 +91,7 @@ function CustomerList({ rows }: { rows: DashboardCollectionItem[] }) {
         <div className="manager-overview-row" key={row.customerId}>
           <div>
             <strong>{row.name}</strong>
-            <span>{row.creditLimit > 0 ? `حد الائتمان ${formatCurrency(row.creditLimit)}` : 'بدون حد ائتمان'}</span>
+            <span>{row.creditLimit > 0 ? `حد الائتمان ${formatCurrency(row.creditLimit)}` : t('dashboard.dashboard_manager_overview_sections.s3', "بدون حد ائتمان")}</span>
           </div>
           <b>{formatCurrency(row.balance)}</b>
         </div>
@@ -103,30 +106,31 @@ export function DashboardManagerOverviewSections({
   isError,
   error,
 }: DashboardManagerOverviewSectionsProps) {
+  const { t } = useTranslation();
   if (isLoading && !data) {
-    return <LoadingState title="جاري تحميل ملخص المدير..." hint="نحسب المبيعات والربح والمخزون والذمم من البيانات المحلية." className="status-surface-block" />;
+    return <LoadingState title={t('dashboard.dashboard_manager_overview_sections.s4', "جاري تحميل ملخص المدير...")} hint={t('dashboard.dashboard_manager_overview_sections.s5', "نحسب المبيعات والربح والمخزون والذمم من البيانات المحلية.")} className="status-surface-block" />;
   }
 
   if (isError && !data) {
-    return <ErrorState title="تعذر تحميل ملخص المدير" error={error} hint="ستظل بقية لوحة التحكم متاحة، ويمكن إعادة المحاولة لاحقًا." />;
+    return <ErrorState title={t('dashboard.dashboard_manager_overview_sections.s6', "تعذر تحميل ملخص المدير")} error={error} hint={t('dashboard.dashboard_manager_overview_sections.s7', "ستظل بقية لوحة التحكم متاحة، ويمكن إعادة المحاولة لاحقًا.")} />;
   }
 
   if (!data) {
-    return <EmptyState title="لا توجد بيانات كافية لملخص المدير" hint="سيظهر هذا الملخص بعد تسجيل مبيعات وأصناف وعملاء." />;
+    return <EmptyState title={t('dashboard.dashboard_manager_overview_sections.s8', "لا توجد بيانات كافية لملخص المدير")} hint={t('dashboard.dashboard_manager_overview_sections.s9', "سيظهر هذا الملخص بعد تسجيل مبيعات وأصناف وعملاء.")} />;
   }
 
   const comparison = data.salesLast30.comparisonPercent;
 
   return (
     <div className="manager-overview-sections">
-      <FormSection title="مبيعات آخر 30 يوم" className="dashboard-premium-card dashboard-card-compact manager-overview-card">
+      <FormSection title={t('dashboard.dashboard_manager_overview_sections.s10', "مبيعات آخر 30 يوم")} className="dashboard-premium-card dashboard-card-compact manager-overview-card">
         <div className="manager-overview-metrics-grid">
-          <MetricTile label="مبيعات آخر 30 يوم" value={formatCurrency(data.salesLast30.total)} />
-          <MetricTile label="عدد الفواتير" value={formatNumber(data.salesLast30.count)} />
-          <MetricTile label="متوسط الفاتورة" value={formatCurrency(data.salesLast30.averageInvoice)} />
+          <MetricTile label={t('dashboard.dashboard_manager_overview_sections.s11', "مبيعات آخر 30 يوم")} value={formatCurrency(data.salesLast30.total)} />
+          <MetricTile label={t('dashboard.dashboard_manager_overview_sections.s12', "عدد الفواتير")} value={formatNumber(data.salesLast30.count)} />
+          <MetricTile label={t('dashboard.dashboard_manager_overview_sections.s13', "متوسط الفاتورة")} value={formatCurrency(data.salesLast30.averageInvoice)} />
           {comparison != null ? (
             <MetricTile
-              label="مقارنة بالفترة السابقة"
+              label={t('dashboard.dashboard_manager_overview_sections.s14', "مقارنة بالفترة السابقة")}
               value={`${comparison > 0 ? '+' : ''}${formatNumber(comparison)}%`}
               hint={`الفترة السابقة ${formatCurrency(data.salesLast30.previousTotal || 0)}`}
             />
@@ -134,60 +138,60 @@ export function DashboardManagerOverviewSections({
         </div>
       </FormSection>
 
-      <FormSection title="ملخص الربح" className="dashboard-premium-card dashboard-card-compact manager-overview-card">
+      <FormSection title={t('dashboard.dashboard_manager_overview_sections.s15', "ملخص الربح")} className="dashboard-premium-card dashboard-card-compact manager-overview-card">
         <div className="manager-overview-metrics-grid manager-overview-profit-grid">
-          <MetricTile label="صافي المبيعات" value={formatCurrency(data.profitSummary.netSales)} />
-          <MetricTile label="تكلفة البضاعة" value={formatCurrency(data.profitSummary.cogs)} />
-          <MetricTile label="إجمالي الربح" value={formatCurrency(data.profitSummary.grossProfit)} />
-          <MetricTile label="المصروفات" value={formatCurrency(data.profitSummary.expenses)} />
-          <MetricTile label="صافي الربح" value={formatCurrency(data.profitSummary.netProfit)} />
+          <MetricTile label={t('dashboard.dashboard_manager_overview_sections.s16', "صافي المبيعات")} value={formatCurrency(data.profitSummary.netSales)} />
+          <MetricTile label={t('dashboard.dashboard_manager_overview_sections.s17', "تكلفة البضاعة")} value={formatCurrency(data.profitSummary.cogs)} />
+          <MetricTile label={t('dashboard.dashboard_manager_overview_sections.s18', "إجمالي الربح")} value={formatCurrency(data.profitSummary.grossProfit)} />
+          <MetricTile label={t('dashboard.dashboard_manager_overview_sections.s19', "المصروفات")} value={formatCurrency(data.profitSummary.expenses)} />
+          <MetricTile label={t('dashboard.dashboard_manager_overview_sections.s20', "صافي الربح")} value={formatCurrency(data.profitSummary.netProfit)} />
         </div>
       </FormSection>
 
       <section className="dashboard-content-grid dashboard-content-grid-wide manager-decision-grid">
-        <FormSection title="بيكسب منين؟" className="dashboard-premium-card dashboard-card-compact manager-overview-card">
+        <FormSection title={t('dashboard.dashboard_manager_overview_sections.s21', "بيكسب منين؟")} className="dashboard-premium-card dashboard-card-compact manager-overview-card">
           <div className="manager-overview-three-col">
-            <ProfitList title="أعلى الأصناف ربحًا" rows={data.profitSources.topProducts} emptyTitle="لا توجد أرباح أصناف كافية" />
-            <ProfitList title="أعلى الأقسام ربحًا" rows={data.profitSources.topCategories} emptyTitle="لا توجد أرباح أقسام كافية" />
-            <ProfitList title="بيع عالي وهامش ضعيف" rows={data.profitSources.weakMarginHighSales} emptyTitle="لا توجد أصناف بهامش ضعيف" />
+            <ProfitList title={t('dashboard.dashboard_manager_overview_sections.s22', "أعلى الأصناف ربحًا")} rows={data.profitSources.topProducts} emptyTitle={t('dashboard.dashboard_manager_overview_sections.s23', "لا توجد أرباح أصناف كافية")} />
+            <ProfitList title={t('dashboard.dashboard_manager_overview_sections.s24', "أعلى الأقسام ربحًا")} rows={data.profitSources.topCategories} emptyTitle={t('dashboard.dashboard_manager_overview_sections.s25', "لا توجد أرباح أقسام كافية")} />
+            <ProfitList title={t('dashboard.dashboard_manager_overview_sections.s26', "بيع عالي وهامش ضعيف")} rows={data.profitSources.weakMarginHighSales} emptyTitle={t('dashboard.dashboard_manager_overview_sections.s27', "لا توجد أصناف بهامش ضعيف")} />
           </div>
         </FormSection>
 
         <FormSection
-          title="إيه الراكد؟"
-          actions={<Link className="button button-secondary manager-overview-action" to="/inventory">راجع المخزون</Link>}
+          title={t('dashboard.dashboard_manager_overview_sections.s28', "إيه الراكد؟")}
+          actions={<Link className="button button-secondary manager-overview-action" to="/inventory">{t('dashboard.dashboard_manager_overview_sections.s29', "راجع المخزون")}</Link>}
           className="dashboard-premium-card dashboard-card-compact manager-overview-card"
         >
           <div className="manager-overview-mini-metrics">
             <MetricTile label={`راكد (حد المتجر: ${data.stagnant.thresholdDays || 30} يوم)`} value={formatNumber(data.stagnant.daysConfigured ?? data.stagnant.days30)} />
-            <MetricTile label="راكد أكثر من 90 يوم" value={formatNumber(data.stagnant.days90)} />
-            <MetricTile label="قيمة المخزون الراكد" value={formatCurrency(data.stagnant.inventoryValue)} />
+            <MetricTile label={t('dashboard.dashboard_manager_overview_sections.s30', "راكد أكثر من 90 يوم")} value={formatNumber(data.stagnant.days90)} />
+            <MetricTile label={t('dashboard.dashboard_manager_overview_sections.s31', "قيمة المخزون الراكد")} value={formatCurrency(data.stagnant.inventoryValue)} />
           </div>
           <ProductList rows={data.stagnant.items} type="stagnant" />
         </FormSection>
 
         <FormSection
-          title="إيه أشتريه؟"
-          actions={<Link className="button button-secondary manager-overview-action" to="/inventory">راجع المخزون</Link>}
+          title={t('dashboard.dashboard_manager_overview_sections.s32', "إيه أشتريه؟")}
+          actions={<Link className="button button-secondary manager-overview-action" to="/inventory">{t('dashboard.dashboard_manager_overview_sections.s33', "راجع المخزون")}</Link>}
           className="dashboard-premium-card dashboard-card-compact manager-overview-card"
         >
           <div className="manager-overview-mini-metrics">
-            <MetricTile label="أصناف نافدة" value={formatNumber(data.buying.outOfStockTotal)} />
-            <MetricTile label="أصناف منخفضة" value={formatNumber(data.buying.lowStockTotal)} />
-            <MetricTile label="أولوية شراء" value={formatNumber(data.buying.priorityTotal)} />
+            <MetricTile label={t('dashboard.dashboard_manager_overview_sections.s34', "أصناف نافدة")} value={formatNumber(data.buying.outOfStockTotal)} />
+            <MetricTile label={t('dashboard.dashboard_manager_overview_sections.s35', "أصناف منخفضة")} value={formatNumber(data.buying.lowStockTotal)} />
+            <MetricTile label={t('dashboard.dashboard_manager_overview_sections.s36', "أولوية شراء")} value={formatNumber(data.buying.priorityTotal)} />
           </div>
           <ProductList rows={data.buying.priority} type="buying" />
         </FormSection>
 
         <FormSection
-          title="إيه أُحصّله؟"
-          actions={<Link className="button button-secondary manager-overview-action" to="/accounts">افتح الحسابات</Link>}
+          title={t('dashboard.dashboard_manager_overview_sections.s37', "إيه أُحصّله؟")}
+          actions={<Link className="button button-secondary manager-overview-action" to="/accounts">{t('dashboard.dashboard_manager_overview_sections.s38', "افتح الحسابات")}</Link>}
           className="dashboard-premium-card dashboard-card-compact manager-overview-card"
         >
           <div className="manager-overview-mini-metrics">
-            <MetricTile label="أعلى أرصدة العملاء" value={formatNumber(data.collection.topDebtsTotal)} />
-            <MetricTile label="متجاوز حد الائتمان" value={formatNumber(data.collection.aboveCreditLimitTotal)} />
-            <MetricTile label="قريب من الحد" value={formatNumber(data.collection.nearCreditLimitTotal)} />
+            <MetricTile label={t('dashboard.dashboard_manager_overview_sections.s39', "أعلى أرصدة العملاء")} value={formatNumber(data.collection.topDebtsTotal)} />
+            <MetricTile label={t('dashboard.dashboard_manager_overview_sections.s40', "متجاوز حد الائتمان")} value={formatNumber(data.collection.aboveCreditLimitTotal)} />
+            <MetricTile label={t('dashboard.dashboard_manager_overview_sections.s41', "قريب من الحد")} value={formatNumber(data.collection.nearCreditLimitTotal)} />
           </div>
           <CustomerList rows={data.collection.topDebts} />
         </FormSection>

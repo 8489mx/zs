@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { Card } from '@/shared/ui/card';
@@ -10,17 +11,18 @@ interface PosDeliveryRepsManagementDialogProps {
 }
 
 export function PosDeliveryRepsManagementDialog({ onClose }: PosDeliveryRepsManagementDialogProps) {
+  const { t } = useTranslation();
   const [selectedRepId, setSelectedRepId] = useState<number | null>(null);
 
   return (
-    <DialogShell open={true} onClose={onClose} width="1100px" ariaLabel="إدارة مناديب التوصيل">
-      <Card title="إدارة مناديب التوصيل" className="dialog-card" actions={<Button variant="secondary" onClick={onClose} style={{ padding: '4px 12px' }}>إغلاق (Esc)</Button>}>
+    <DialogShell open={true} onClose={onClose} width="1100px" ariaLabel={t('shared.delivery_reps.pos_delivery_reps_management_dialog.s0', "إدارة مناديب التوصيل")}>
+      <Card title={t('shared.delivery_reps.pos_delivery_reps_management_dialog.s1', "إدارة مناديب التوصيل")} className="dialog-card" actions={<Button variant="secondary" onClick={onClose} style={{ padding: '4px 12px' }}>{t('shared.delivery_reps.pos_delivery_reps_management_dialog.s2', "إغلاق (Esc)")}</Button>}>
         <div style={{ display: 'flex', height: '650px', background: '#f8fafc', borderRadius: '8px', overflow: 'hidden', border: '1px solid #e2e8f0' }}>
           
           {/* Sidebar: Reps List */}
           <div style={{ width: '280px', background: 'white', borderLeft: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column' }}>
             <div style={{ padding: '16px', borderBottom: '1px solid #e2e8f0', background: '#f8fafc' }}>
-              <h3 style={{ margin: 0, fontSize: '14px', color: '#475569' }}>قائمة المناديب</h3>
+              <h3 style={{ margin: 0, fontSize: '14px', color: '#475569' }}>{t('shared.delivery_reps.pos_delivery_reps_management_dialog.s3', "قائمة المناديب")}</h3>
             </div>
             <div style={{ flex: 1, overflowY: 'auto' }}>
               <DeliveryRepsList 

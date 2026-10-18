@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { PageHeader } from '@/shared/components/page-header';
@@ -14,6 +15,7 @@ import { CategoryTransferProductsModal } from '../components/categories/Category
 import { CategoryTransferWarehouseModal } from '../components/categories/CategoryTransferWarehouseModal';
 
 export function ProductCategoriesPage() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const categoriesQuery = useQuery({ queryKey: ['categories'], queryFn: productsApi.categories });
   const productsQuery = useQuery({ queryKey: ['products-all'], queryFn: () => productsApi.listAll() });
@@ -173,8 +175,8 @@ export function ProductCategoriesPage() {
     <div className="page-stack page-shell product-categories-page" dir="rtl">
       <main className="document-prototype-column" style={{ paddingBottom: '60px', maxWidth: '1280px' }}>
         <PageHeader 
-          title="أقسام وتصنيفات الأصناف"
-          description="إدارة وتعديل تصنيفات الأصناف، نقل المنتجات جماعياً، ومناقلة أرصدة الأقسام بين المخازن"
+          title={t('products.product_categories_page.s0', "أقسام وتصنيفات الأصناف")}
+          description={t('products.product_categories_page.s1', "إدارة وتعديل تصنيفات الأصناف، نقل المنتجات جماعياً، ومناقلة أرصدة الأقسام بين المخازن")}
           actions={(
             <div className="actions compact-actions page-header-actions">
               <Button variant="primary" onClick={() => {
@@ -183,7 +185,7 @@ export function ProductCategoriesPage() {
                 setEditError('');
               }}>
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginInlineEnd: 6 }}><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                إضافة قسم جديد
+                {t('products.product_categories_page.s2', "إضافة قسم جديد")}
               </Button>
             </div>
           )}
@@ -209,7 +211,7 @@ export function ProductCategoriesPage() {
             <input 
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="ابحث بالاسم في الأقسام..."
+              placeholder={t('products.product_categories_page.s3', "ابحث بالاسم في الأقسام...")}
               style={{
                 width: '100%',
                 padding: '8px 12px',
@@ -221,7 +223,7 @@ export function ProductCategoriesPage() {
             />
           </div>
           <div style={{ fontSize: '13px', color: '#64748b' }}>
-            إجمالي الأقسام المعروضة: <strong style={{ color: '#0f172a' }}>{filteredCategories.length}</strong> قسم
+            {t('products.product_categories_page.s4', "إجمالي الأقسام المعروضة:")} <strong style={{ color: '#0f172a' }}>{filteredCategories.length}</strong> {t('products.product_categories_page.s5', "قسم")}
           </div>
         </div>
 
@@ -252,27 +254,27 @@ export function ProductCategoriesPage() {
         {/* Edit Modal */}
         <CategoryFormModal
           isOpen={!!editingCategory}
-          title="تعديل اسم القسم"
+          title={t('products.product_categories_page.s6', "تعديل اسم القسم")}
           name={editingCategory?.name || ''}
           setName={(val) => setEditingCategory(c => c ? { ...c, name: val } : null)}
           error={editError}
           isPending={updateMutation.isPending}
           onClose={() => setEditingCategory(null)}
           onSubmit={handleSave}
-          submitLabel="حفظ التعديل"
+          submitLabel={t('products.product_categories_page.s7', "حفظ التعديل")}
         />
 
         {/* Create Modal */}
         <CategoryFormModal
           isOpen={isCreatingCategory}
-          title="إضافة قسم جديد"
+          title={t('products.product_categories_page.s8', "إضافة قسم جديد")}
           name={newCategoryName}
           setName={setNewCategoryName}
           error={editError}
           isPending={createMutation.isPending}
           onClose={() => setIsCreatingCategory(false)}
           onSubmit={handleCreate}
-          submitLabel="إضافة القسم"
+          submitLabel={t('products.product_categories_page.s9', "إضافة القسم")}
         />
 
         {/* Transfer Products Modal */}
@@ -319,9 +321,9 @@ export function ProductCategoriesPage() {
         {deletingCategory && (
           <ActionConfirmDialog
             open={true}
-            title="حذف قسم"
+            title={t('products.product_categories_page.s10', "حذف قسم")}
             description={`هل أنت متأكد من حذف قسم "${deletingCategory.name}"؟`}
-            confirmLabel="حذف"
+            confirmLabel={t('products.product_categories_page.s11', "حذف")}
             confirmVariant="danger"
             isBusy={deleteMutation.isPending}
             onConfirm={async () => {

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 
 interface SignageMarqueeFooterProps {
@@ -15,6 +16,7 @@ export const SignageMarqueeFooter: React.FC<SignageMarqueeFooterProps> = ({
   currentIndex,
   totalItems,
 }) => {
+  const { t } = useTranslation();
   const MarqueeTag = 'marquee' as any;
 
   return (
@@ -44,7 +46,7 @@ export const SignageMarqueeFooter: React.FC<SignageMarqueeFooterProps> = ({
           gap: '6px',
         }}
       >
-        <span>نشرة العروض</span>
+        <span>{t('pos.signage.signage_marquee_footer.s0', "نشرة العروض")}</span>
       </div>
 
       {/* Marquee text */}
@@ -76,7 +78,7 @@ export const SignageMarqueeFooter: React.FC<SignageMarqueeFooterProps> = ({
             transition: 'all 0.15s ease',
           }}
         >
-          {isPaused ? 'استئناف' : 'إيقاف مؤقت'}
+          {isPaused ? t('pos.signage.signage_marquee_footer.s1', "استئناف") : t('pos.signage.signage_marquee_footer.s2', "إيقاف مؤقت")}
         </button>
 
         <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 700 }}>

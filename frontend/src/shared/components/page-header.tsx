@@ -1,6 +1,7 @@
 import { ReactNode } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { translateUiText } from '@/lib/auto-translator';
 import { HrSectionNav } from '@/features/hr/components/HrSectionNav';
 
 interface PageHeaderProps {
@@ -32,10 +33,12 @@ export function PageHeader({
   navigation,
   children,
 }: PageHeaderProps) {
+  const { t: __t, i18n } = useTranslation();
   const { t } = useTranslation();
+  const isEn = i18n.language === 'en';
   const resolvedDescription = description ?? subtitle;
-  const displayTitle = typeof title === 'string' ? t(title, title) : title;
-  const displayDescription = typeof resolvedDescription === 'string' ? t(resolvedDescription, resolvedDescription) : resolvedDescription;
+  const displayTitle = typeof title === 'string' ? (isEn ? (translateUiText(title) || (t(title) !== title ? t(title) : title)) : title) : title;
+  const displayDescription = typeof resolvedDescription === 'string' ? (isEn ? (translateUiText(resolvedDescription) || (t(resolvedDescription) !== resolvedDescription ? t(resolvedDescription) : resolvedDescription)) : resolvedDescription) : resolvedDescription;
   const resolvedActions = actions ?? (actionText && onActionClick ? (
     <button type="button" className="btn btn-primary" onClick={onActionClick}>
       {typeof actionText === 'string' ? t(actionText, actionText) : actionText}
@@ -55,7 +58,7 @@ export function PageHeader({
                 <button
                   type="button"
                   onClick={onBack}
-                  aria-label="العودة"
+                  aria-label={__t('shared.page_header.s0', "العودة")}
                   style={{
                     display: 'inline-flex',
                     alignItems: 'center',

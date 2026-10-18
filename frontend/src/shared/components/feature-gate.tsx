@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next';
+import { translateUiText } from '@/lib/auto-translator';
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { isDesktopOfflineApp } from '@/app/router/access';
@@ -47,6 +49,9 @@ export function FeatureGate({
   children,
   fallback,
 }: FeatureGateProps) {
+  const { t, i18n } = useTranslation();
+  const isEn = i18n.language === 'en';
+  const resolvedFeatureName = isEn ? (translateUiText(featureName) || featureName) : featureName;
   const isEnabled = useFeatureGate(feature);
 
   if (isEnabled) {
@@ -69,7 +74,7 @@ export function FeatureGate({
         border: '1px solid #e2e8f0',
         boxShadow: '0 4px 16px rgba(0, 0, 0, 0.04)',
       }}
-      dir="rtl"
+      dir={isEn ? "ltr" : "rtl"}
     >
       <div
         style={{
@@ -92,7 +97,9 @@ export function FeatureGate({
       </div>
 
       <h2 style={{ fontSize: '20px', fontWeight: 800, color: '#0f172a', margin: '0 0 8px' }}>
-        {isDesktopOfflineApp() ? `موديول ${featureName} غير مضمّن في ترخيصك` : `موديول ${featureName} يتطلب ترقية الباقة`}
+        {isEn
+    ? (isDesktopOfflineApp() ? `Module "${resolvedFeatureName}" is not included in your license` : `Module "${resolvedFeatureName}" requires a plan upgrade`)
+    : (isDesktopOfflineApp() ? `موديول ${featureName} غير مضمّن في ترخيصك` : `موديول ${featureName} يتطلب ترقية الباقة`)}
       </h2>
 
       <p style={{ fontSize: '14px', color: '#64748b', lineHeight: 1.6, maxWidth: '520px', margin: '0 auto 24px' }}>
@@ -118,7 +125,7 @@ export function FeatureGate({
               cursor: 'pointer',
             }}
           >
-            ترقية الباقة الآن
+            {isEn ? 'Upgrade Plan Now' : t('shared.feature_gate.s0', "ترقية الباقة الآن")}
           </Button>
         </Link>
         )}
@@ -132,7 +139,7 @@ export function FeatureGate({
               borderRadius: '8px',
             }}
           >
-            العودة للرئيسية
+            {isEn ? 'Back to Dashboard' : t('shared.feature_gate.s1', "العودة للرئيسية")}
           </Button>
         </Link>
       </div>

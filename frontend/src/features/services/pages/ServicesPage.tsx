@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { DataTable } from '@/shared/ui/data-table';
 import { Button } from '@/shared/ui/button';
@@ -21,6 +22,7 @@ import { buildPresetDrafts, formatServicePaymentChannel, normalizeServiceName, p
 import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
 
 export function ServicesPage() {
+  const { t } = useTranslation();
   const [search, setSearch] = useState('');
   const [viewFilter, setViewFilter] = useState<'all' | 'today' | 'high' | 'notes'>('all');
   const [page, setPage] = useState(1);
@@ -185,8 +187,8 @@ export function ServicesPage() {
 
   const emptyServicesActions = (
     <div className="actions compact-actions" style={{ justifyContent: 'center' }}>
-      <Button type="button" variant="secondary" onClick={openPresetDialog}>تخصيص الخدمات</Button>
-      <Button type="button" onClick={openServiceFormForCreate}>إضافة خدمة جديدة</Button>
+      <Button type="button" variant="secondary" onClick={openPresetDialog}>{t('services.services_page.s0', "تخصيص الخدمات")}</Button>
+      <Button type="button" onClick={openServiceFormForCreate}>{t('services.services_page.s1', "إضافة خدمة جديدة")}</Button>
     </div>
   );
 
@@ -196,15 +198,15 @@ export function ServicesPage() {
     <div className="page-stack page-shell services-page" dir="rtl">
       <main className="document-prototype-column" style={{ paddingBottom: '32px' }}>
       <PageHeader
-        title="الخدمات"
-        description="أضف خدمات نشاطك وحدد أسعارها لتظهر في الكاشير عند الحاجة."
-        badge={<span className="nav-pill">الخدمات</span>}
+        title={t('services.services_page.s2', "الخدمات")}
+        description={t('services.services_page.s3', "أضف خدمات نشاطك وحدد أسعارها لتظهر في الكاشير عند الحاجة.")}
+        badge={<span className="nav-pill">{t('services.services_page.s4', "الخدمات")}</span>}
         actions={
           <div className="actions compact-actions">
-            <Button type="button" variant="primary" onClick={() => setIsCreateOpen(true)}>+ خدمة جديدة</Button>
-            <Button type="button" variant="secondary" onClick={openPresetDialog}>تخصيص</Button>
-            <Button type="button" variant="secondary" onClick={() => void exportServices()} disabled={!insights.totalItems}>تصدير</Button>
-            <Button type="button" variant="secondary" onClick={() => void printServices()} disabled={!insights.totalItems}>طباعة</Button>
+            <Button type="button" variant="primary" onClick={() => setIsCreateOpen(true)}>{t('services.services_page.s5', "+ خدمة جديدة")}</Button>
+            <Button type="button" variant="secondary" onClick={openPresetDialog}>{t('services.services_page.s6', "تخصيص")}</Button>
+            <Button type="button" variant="secondary" onClick={() => void exportServices()} disabled={!insights.totalItems}>{t('services.services_page.s7', "تصدير")}</Button>
+            <Button type="button" variant="secondary" onClick={() => void printServices()} disabled={!insights.totalItems}>{t('services.services_page.s8', "طباعة")}</Button>
           </div>
         }
       />
@@ -213,25 +215,25 @@ export function ServicesPage() {
 
       <section className="document-prototype-section">
         <div className="section-header-compact-row">
-          <h3 className="document-prototype-section-title">سجل الخدمات</h3>
+          <h3 className="document-prototype-section-title">{t('services.services_page.s9', "سجل الخدمات")}</h3>
           <div className="section-header-actions-group">
             <Button type="button" variant="primary" onClick={() => setIsCreateOpen(true)} className="section-header-action-btn">
-              + خدمة جديدة
+              {t('services.services_page.s10', "+ خدمة جديدة")}
             </Button>
             <Button type="button" variant="secondary" onClick={() => { setSearch(''); setViewFilter('all'); setSelectedService(null); setPage(1); }} className="section-header-action-btn">
-              إلغاء الفلاتر
+              {t('services.services_page.s11', "إلغاء الفلاتر")}
             </Button>
           </div>
         </div>
 
         <SearchToolbar
-          title="بحث وتصفية"
-          actions={<span className="nav-pill">{viewFilter === 'all' ? 'كل الخدمات' : viewFilter === 'today' ? 'اليوم' : viewFilter === 'high' ? 'الأعلى قيمة' : 'بملاحظات'}</span>}
+          title={t('services.services_page.s12', "بحث وتصفية")}
+          actions={<span className="nav-pill">{viewFilter === 'all' ? t('services.services_page.s13', "كل الخدمات") : viewFilter === 'today' ? t('services.services_page.s14', "اليوم") : viewFilter === 'high' ? t('services.services_page.s15', "الأعلى قيمة") : t('services.services_page.s16', "بملاحظات")}</span>}
           search={search}
           onSearchChange={(value) => { setSearch(value); setPage(1); }}
-          searchPlaceholder="ابحث باسم الخدمة أو الملاحظات أو المنفذ"
+          searchPlaceholder={t('services.services_page.s17', "ابحث باسم الخدمة أو الملاحظات أو المنفذ")}
           onReset={() => { setSearch(''); setViewFilter('all'); setSelectedService(null); setPage(1); }}
-          resetLabel="تفريغ"
+          resetLabel={t('services.services_page.s18', "تفريغ")}
         >
           <FilterChipGroup value={viewFilter} options={serviceFilterOptions} onChange={(value) => { setViewFilter(value); setPage(1); }} className="filter-chip-row services-filter-row" />
         </SearchToolbar>
@@ -240,10 +242,10 @@ export function ServicesPage() {
           isError={query.isError}
           error={query.error}
           isEmpty={!insights.totalItems}
-          loadingText="جاري تحميل الخدمات..."
-          errorTitle="تعذر تحميل الخدمات"
-          emptyTitle="لا توجد خدمات مسجلة حاليًا."
-          emptyHint="ابدأ بتخصيص خدمات نشاطك أو أضف خدمة جديدة يدويًا."
+          loadingText={t('services.services_page.s19', "جاري تحميل الخدمات...")}
+          errorTitle={t('services.services_page.s20', "تعذر تحميل الخدمات")}
+          emptyTitle={t('services.services_page.s21', "لا توجد خدمات مسجلة حاليًا.")}
+          emptyHint={t('services.services_page.s22', "ابدأ بتخصيص خدمات نشاطك أو أضف خدمة جديدة يدويًا.")}
           emptyAction={emptyServicesActions}
         >
           <DataTable<ServiceRecord>
@@ -252,15 +254,15 @@ export function ServicesPage() {
             onRowClick={(row) => setSelectedService(row)}
             rowClassName={(row) => (selectedService?.id === row.id ? 'table-row-selected' : undefined)}
             columns={[
-              { key: 'name', header: 'الخدمة', cell: (row) => row.name },
-              { key: 'amount', header: 'القيمة', cell: (row) => formatCurrency(row.amount) },
-              { key: 'payment', header: 'التحصيل', cell: (row) => formatServicePaymentChannel(row.paymentChannel) },
-              { key: 'notes', header: 'ملاحظات', cell: (row) => row.notes || '—' },
-              { key: 'user', header: 'المنفذ', cell: (row) => row.createdByName || '—' },
-              { key: 'date', header: 'التاريخ', cell: (row) => formatDate(row.serviceDate) },
-              { key: 'actions', header: 'إجراءات', cell: (row) => <div className="actions compact-actions" style={{ flexWrap: 'nowrap' }}><Button type="button" variant="secondary" onClick={() => printServiceReceipt(row, settingsQuery.data)}>طباعة</Button><Button type="button" variant="secondary" onClick={() => setSelectedService(row)}>تعديل</Button><Button type="button" variant="danger" onClick={() => setServiceToDelete(row)}>حذف</Button></div> },
+              { key: 'name', header: t('services.services_page.s23', "الخدمة"), cell: (row) => row.name },
+              { key: 'amount', header: t('services.services_page.s24', "القيمة"), cell: (row) => formatCurrency(row.amount) },
+              { key: 'payment', header: t('services.services_page.s25', "التحصيل"), cell: (row) => formatServicePaymentChannel(row.paymentChannel) },
+              { key: 'notes', header: t('services.services_page.s26', "ملاحظات"), cell: (row) => row.notes || '—' },
+              { key: 'user', header: t('services.services_page.s27', "المنفذ"), cell: (row) => row.createdByName || '—' },
+              { key: 'date', header: t('services.services_page.s28', "التاريخ"), cell: (row) => formatDate(row.serviceDate) },
+              { key: 'actions', header: t('services.services_page.s29', "إجراءات"), cell: (row) => <div className="actions compact-actions" style={{ flexWrap: 'nowrap' }}><Button type="button" variant="secondary" onClick={() => printServiceReceipt(row, settingsQuery.data)}>{t('services.services_page.s30', "طباعة")}</Button><Button type="button" variant="secondary" onClick={() => setSelectedService(row)}>{t('services.services_page.s31', "تعديل")}</Button><Button type="button" variant="danger" onClick={() => setServiceToDelete(row)}>{t('services.services_page.s32', "حذف")}</Button></div> },
             ]}
-            pagination={{ page, pageSize, totalItems: insights.totalItems || rows.length, onPageChange: setPage, onPageSizeChange: (next) => { setPageSize(next); setPage(1); }, itemLabel: 'خدمة' }}
+            pagination={{ page, pageSize, totalItems: insights.totalItems || rows.length, onPageChange: setPage, onPageSizeChange: (next) => { setPageSize(next); setPage(1); }, itemLabel: t('services.services_page.s33', "خدمة") }}
           />
         </QueryFeedback>
       </section>
@@ -270,13 +272,13 @@ export function ServicesPage() {
         open={isCreateOpen}
         onClose={() => setIsCreateOpen(false)}
         width="min(680px, 95vw)"
-        ariaLabel="إضافة خدمة جديدة"
+        ariaLabel={t('services.services_page.s34', "إضافة خدمة جديدة")}
         showCloseButton={true}
       >
         <div className="dialog-card">
           <div className="mb-4 border-b pb-3">
-            <h3 className="font-bold text-lg text-slate-800 dark:text-slate-100">إضافة خدمة جديدة</h3>
-            <p className="text-xs text-muted-foreground mt-1">أضف خدمة يقدمها نشاطك وحدد سعرها لتظهر في الكاشير عند الحاجة.</p>
+            <h3 className="font-bold text-lg text-slate-800 dark:text-slate-100">{t('services.services_page.s35', "إضافة خدمة جديدة")}</h3>
+            <p className="text-xs text-muted-foreground mt-1">{t('services.services_page.s36', "أضف خدمة يقدمها نشاطك وحدد سعرها لتظهر في الكاشير عند الحاجة.")}</p>
           </div>
           <ServiceFormCard onSaved={() => setIsCreateOpen(false)} suggestions={serviceSuggestionOptions} />
         </div>
@@ -287,14 +289,14 @@ export function ServicesPage() {
         open={Boolean(selectedService)}
         onClose={() => setSelectedService(null)}
         width="min(680px, 95vw)"
-        ariaLabel="تعديل الخدمة"
+        ariaLabel={t('services.services_page.s37', "تعديل الخدمة")}
         showCloseButton={true}
       >
         <div className="dialog-card">
           <div className="flex items-center justify-between mb-4 border-b pb-3">
             <div>
-              <h3 className="font-bold text-lg text-slate-800 dark:text-slate-100">تعديل: {selectedService?.name}</h3>
-              <p className="text-xs text-muted-foreground mt-1">تعديل بيانات الخدمة أو حذفها.</p>
+              <h3 className="font-bold text-lg text-slate-800 dark:text-slate-100">{t('services.services_page.s38', "تعديل:")} {selectedService?.name}</h3>
+              <p className="text-xs text-muted-foreground mt-1">{t('services.services_page.s39', "تعديل بيانات الخدمة أو حذفها.")}</p>
             </div>
             {selectedService && (
               <Button
@@ -305,7 +307,7 @@ export function ServicesPage() {
                   setSelectedService(null);
                 }}
               >
-                حذف الخدمة
+                {t('services.services_page.s40', "حذف الخدمة")}
               </Button>
             )}
           </div>
@@ -340,9 +342,9 @@ export function ServicesPage() {
       />
       <ActionConfirmDialog
         open={Boolean(serviceToDelete)}
-        title="تأكيد حذف الخدمة"
+        title={t('services.services_page.s41', "تأكيد حذف الخدمة")}
         description={serviceToDelete ? `سيتم حذف الخدمة ${serviceToDelete.name}.` : ''}
-        confirmLabel="نعم، حذف الخدمة"
+        confirmLabel={t('services.services_page.s42', "نعم، حذف الخدمة")}
         isBusy={deleteMutation.isPending}
         onCancel={() => setServiceToDelete(null)}
         onConfirm={async () => { if (serviceToDelete) await deleteMutation.mutateAsync(serviceToDelete.id); }}

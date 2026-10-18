@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { getGlobalCurrencySymbol } from '@/lib/currencies';
@@ -18,6 +19,7 @@ const REASON_LABELS: Record<string, { label: string; color: string; bg: string }
 };
 
 export function VanFieldReturnsAdminTab() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [selectedReturn, setSelectedReturn] = useState<VanFieldReturnRecord | null>(null);
@@ -117,28 +119,28 @@ export function VanFieldReturnsAdminTab() {
       {/* KPI Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '14px' }}>
         <div style={{ background: '#ffffff', borderRadius: '12px', padding: '16px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
-          <span style={{ fontSize: '12px', fontWeight: 700, color: '#d97706', display: 'block' }}>مرتجعات قيد المراجعة والاعتماد</span>
+          <span style={{ fontSize: '12px', fontWeight: 700, color: '#d97706', display: 'block' }}>{t('delivery_reps.van_field_returns_admin_tab.s0', "مرتجعات قيد المراجعة والاعتماد")}</span>
           <span style={{ fontSize: '22px', fontWeight: 800, color: '#b45309', display: 'block', marginTop: '4px' }}>
-            {pendingReturns.length} <span style={{ fontSize: '13px', color: '#f59e0b' }}>إذن</span>
+            {pendingReturns.length} <span style={{ fontSize: '13px', color: '#f59e0b' }}>{t('delivery_reps.van_field_returns_admin_tab.s1', "إذن")}</span>
           </span>
         </div>
 
         <div style={{ background: '#ffffff', borderRadius: '12px', padding: '16px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
-          <span style={{ fontSize: '12px', fontWeight: 700, color: '#dc2626', display: 'block' }}>قيمة المرتجعات المعلقة</span>
+          <span style={{ fontSize: '12px', fontWeight: 700, color: '#dc2626', display: 'block' }}>{t('delivery_reps.van_field_returns_admin_tab.s2', "قيمة المرتجعات المعلقة")}</span>
           <span style={{ fontSize: '22px', fontWeight: 800, color: '#991b1b', display: 'block', marginTop: '4px' }}>
             {pendingTotal.toFixed(2)} <span style={{ fontSize: '13px', color: '#fca5a5' }}><CurrencySymbol /></span>
           </span>
         </div>
 
         <div style={{ background: '#ffffff', borderRadius: '12px', padding: '16px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
-          <span style={{ fontSize: '12px', fontWeight: 700, color: '#16a34a', display: 'block' }}>إجمالي المرتجعات المعتمدة</span>
+          <span style={{ fontSize: '12px', fontWeight: 700, color: '#16a34a', display: 'block' }}>{t('delivery_reps.van_field_returns_admin_tab.s3', "إجمالي المرتجعات المعتمدة")}</span>
           <span style={{ fontSize: '22px', fontWeight: 800, color: '#15803d', display: 'block', marginTop: '4px' }}>
-            {approvedReturns.length} <span style={{ fontSize: '13px', color: '#86efac' }}>إذن</span>
+            {approvedReturns.length} <span style={{ fontSize: '13px', color: '#86efac' }}>{t('delivery_reps.van_field_returns_admin_tab.s4', "إذن")}</span>
           </span>
         </div>
 
         <div style={{ background: '#ffffff', borderRadius: '12px', padding: '16px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
-          <span style={{ fontSize: '12px', fontWeight: 700, color: '#170e5e', display: 'block' }}>قيمة المرتجعات المعتمدة</span>
+          <span style={{ fontSize: '12px', fontWeight: 700, color: '#170e5e', display: 'block' }}>{t('delivery_reps.van_field_returns_admin_tab.s5', "قيمة المرتجعات المعتمدة")}</span>
           <span style={{ fontSize: '22px', fontWeight: 800, color: '#170e5e', display: 'block', marginTop: '4px' }}>
             {approvedTotal.toFixed(2)} <span style={{ fontSize: '13px', color: '#a5b4fc' }}><CurrencySymbol /></span>
           </span>
@@ -160,13 +162,13 @@ export function VanFieldReturnsAdminTab() {
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span style={{ fontSize: '12px', fontWeight: 700, color: '#475569' }}>تصفية حسب الحالة:</span>
+          <span style={{ fontSize: '12px', fontWeight: 700, color: '#475569' }}>{t('delivery_reps.van_field_returns_admin_tab.s6', "تصفية حسب الحالة:")}</span>
           <div style={{ display: 'flex', gap: '6px' }}>
             {[
-              { label: 'كافة المرتجعات', value: '' },
-              { label: 'قيد الاعتماد', value: 'pending_approval' },
-              { label: 'تم الاعتماد', value: 'approved' },
-              { label: 'مرفوض', value: 'rejected' },
+              { label: t('delivery_reps.van_field_returns_admin_tab.s7', "كافة المرتجعات"), value: '' },
+              { label: t('delivery_reps.van_field_returns_admin_tab.s8', "قيد الاعتماد"), value: 'pending_approval' },
+              { label: t('delivery_reps.van_field_returns_admin_tab.s9', "تم الاعتماد"), value: 'approved' },
+              { label: t('delivery_reps.van_field_returns_admin_tab.s10', "مرفوض"), value: 'rejected' },
             ].map((f) => (
               <button
                 key={f.value}
@@ -194,7 +196,7 @@ export function VanFieldReturnsAdminTab() {
           type="button"
           disabled={isRefreshing}
           onClick={handleManualRefresh}
-          title="تحديث قائمة مرتجعات الميدان من السيرفر"
+          title={t('delivery_reps.van_field_returns_admin_tab.s11', "تحديث قائمة مرتجعات الميدان من السيرفر")}
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -215,7 +217,7 @@ export function VanFieldReturnsAdminTab() {
             className={isRefreshing ? 'spin-animation' : undefined}
             style={isRefreshing ? { animation: 'spin 0.75s linear infinite' } : undefined}
           />
-          {isRefreshing ? 'جارٍ التحديث...' : 'تحديث'}
+          {isRefreshing ? t('delivery_reps.van_field_returns_admin_tab.s12', "جارٍ التحديث...") : t('delivery_reps.van_field_returns_admin_tab.s13', "تحديث")}
         </button>
       </div>
 
@@ -230,25 +232,25 @@ export function VanFieldReturnsAdminTab() {
         }}
       >
         {isLoading ? (
-          <div style={{ padding: '60px', textAlign: 'center', color: '#94a3b8', fontWeight: 600 }}>جاري تحميل أذونات المرتجعات...</div>
+          <div style={{ padding: '60px', textAlign: 'center', color: '#94a3b8', fontWeight: 600 }}>{t('delivery_reps.van_field_returns_admin_tab.s14', "جاري تحميل أذونات المرتجعات...")}</div>
         ) : returns.length === 0 ? (
           <div style={{ padding: '48px', textAlign: 'center', color: '#94a3b8' }}>
             <FileTextIcon size={40} color="#cbd5e1" />
-            <h4 style={{ margin: '12px 0 4px', color: '#475569', fontSize: '15px', fontWeight: 800 }}>لا توجد أذونات مرتجعات مطابقة</h4>
-            <p style={{ margin: 0, fontSize: '12px' }}>أذونات المرتجع الميدانية التي يسجلها المناديب ستظهر هنا فور إرسالها.</p>
+            <h4 style={{ margin: '12px 0 4px', color: '#475569', fontSize: '15px', fontWeight: 800 }}>{t('delivery_reps.van_field_returns_admin_tab.s15', "لا توجد أذونات مرتجعات مطابقة")}</h4>
+            <p style={{ margin: 0, fontSize: '12px' }}>{t('delivery_reps.van_field_returns_admin_tab.s16', "أذونات المرتجع الميدانية التي يسجلها المناديب ستظهر هنا فور إرسالها.")}</p>
           </div>
         ) : (
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right', fontSize: '12.5px' }}>
             <thead>
               <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>
-                <th style={{ padding: '12px 14px', fontWeight: 700 }}>رقم الإذن</th>
-                <th style={{ padding: '12px 14px', fontWeight: 700 }}>مندوب الفان</th>
-                <th style={{ padding: '12px 14px', fontWeight: 700 }}>العميل / المحل</th>
-                <th style={{ padding: '12px 14px', fontWeight: 700 }}>الفاتورة الأصلية</th>
-                <th style={{ padding: '12px 14px', fontWeight: 700 }}>سبب المرتجع</th>
-                <th style={{ padding: '12px 14px', fontWeight: 700, textAlign: 'center' }}>إجمالي القيمة</th>
-                <th style={{ padding: '12px 14px', fontWeight: 700, textAlign: 'center' }}>الحالة</th>
-                <th style={{ padding: '12px 14px', fontWeight: 700, textAlign: 'center' }}>الإجراءات</th>
+                <th style={{ padding: '12px 14px', fontWeight: 700 }}>{t('delivery_reps.van_field_returns_admin_tab.s17', "رقم الإذن")}</th>
+                <th style={{ padding: '12px 14px', fontWeight: 700 }}>{t('delivery_reps.van_field_returns_admin_tab.s18', "مندوب الفان")}</th>
+                <th style={{ padding: '12px 14px', fontWeight: 700 }}>{t('delivery_reps.van_field_returns_admin_tab.s19', "العميل / المحل")}</th>
+                <th style={{ padding: '12px 14px', fontWeight: 700 }}>{t('delivery_reps.van_field_returns_admin_tab.s20', "الفاتورة الأصلية")}</th>
+                <th style={{ padding: '12px 14px', fontWeight: 700 }}>{t('delivery_reps.van_field_returns_admin_tab.s21', "سبب المرتجع")}</th>
+                <th style={{ padding: '12px 14px', fontWeight: 700, textAlign: 'center' }}>{t('delivery_reps.van_field_returns_admin_tab.s22', "إجمالي القيمة")}</th>
+                <th style={{ padding: '12px 14px', fontWeight: 700, textAlign: 'center' }}>{t('delivery_reps.van_field_returns_admin_tab.s23', "الحالة")}</th>
+                <th style={{ padding: '12px 14px', fontWeight: 700, textAlign: 'center' }}>{t('delivery_reps.van_field_returns_admin_tab.s24', "الإجراءات")}</th>
               </tr>
             </thead>
             <tbody>
@@ -266,7 +268,7 @@ export function VanFieldReturnsAdminTab() {
                       {r.customerName}
                     </td>
                     <td style={{ padding: '12px 14px', color: '#475569', fontFamily: 'monospace' }}>
-                      {r.saleDocNo ? `#${r.saleDocNo}` : 'مرتجع عام'}
+                      {r.saleDocNo ? `#${r.saleDocNo}` : t('delivery_reps.van_field_returns_admin_tab.s25', "مرتجع عام")}
                     </td>
                     <td style={{ padding: '12px 14px' }}>
                       <span
@@ -316,10 +318,10 @@ export function VanFieldReturnsAdminTab() {
                         }}
                       >
                         {r.status === 'approved'
-                          ? 'معتمد ومقيد'
+                          ? t('delivery_reps.van_field_returns_admin_tab.s26', "معتمد ومقيد")
                           : r.status === 'rejected'
-                          ? 'مرفوض'
-                          : 'بانتظار الاعتماد'}
+                          ? t('delivery_reps.van_field_returns_admin_tab.s27', "مرفوض")
+                          : t('delivery_reps.van_field_returns_admin_tab.s28', "بانتظار الاعتماد")}
                       </span>
                     </td>
                     <td style={{ padding: '12px 14px', textAlign: 'center' }}>
@@ -338,7 +340,7 @@ export function VanFieldReturnsAdminTab() {
                             cursor: 'pointer',
                           }}
                         >
-                          معاينة
+                          {t('delivery_reps.van_field_returns_admin_tab.s29', "معاينة")}
                         </button>
                         {r.status === 'pending_approval' && (
                           <>
@@ -357,7 +359,7 @@ export function VanFieldReturnsAdminTab() {
                                 cursor: 'pointer',
                               }}
                             >
-                              قبول
+                              {t('delivery_reps.van_field_returns_admin_tab.s30', "قبول")}
                             </button>
                             <button
                               type="button"
@@ -374,7 +376,7 @@ export function VanFieldReturnsAdminTab() {
                                 cursor: 'pointer',
                               }}
                             >
-                              رفض
+                              {t('delivery_reps.van_field_returns_admin_tab.s31', "رفض")}
                             </button>
                           </>
                         )}
@@ -400,15 +402,15 @@ export function VanFieldReturnsAdminTab() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }} dir="rtl">
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', backgroundColor: '#f8fafc', padding: '12px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
               <div>
-                <span style={{ fontSize: '11px', color: '#64748b', display: 'block' }}>الفاتورة الأصلية:</span>
-                <strong style={{ fontSize: '12.5px', color: '#0f172a' }}>{selectedReturn.saleDocNo ? `#${selectedReturn.saleDocNo}` : 'مرتجع عام'}</strong>
+                <span style={{ fontSize: '11px', color: '#64748b', display: 'block' }}>{t('delivery_reps.van_field_returns_admin_tab.s32', "الفاتورة الأصلية:")}</span>
+                <strong style={{ fontSize: '12.5px', color: '#0f172a' }}>{selectedReturn.saleDocNo ? `#${selectedReturn.saleDocNo}` : t('delivery_reps.van_field_returns_admin_tab.s33', "مرتجع عام")}</strong>
               </div>
               <div>
-                <span style={{ fontSize: '11px', color: '#64748b', display: 'block' }}>سبب المرتجع:</span>
+                <span style={{ fontSize: '11px', color: '#64748b', display: 'block' }}>{t('delivery_reps.van_field_returns_admin_tab.s34', "سبب المرتجع:")}</span>
                 <strong style={{ fontSize: '12.5px', color: '#b91c1c' }}>{REASON_LABELS[selectedReturn.returnReason]?.label || selectedReturn.returnReason}</strong>
               </div>
               <div>
-                <span style={{ fontSize: '11px', color: '#64748b', display: 'block' }}>إجمالي القيمة:</span>
+                <span style={{ fontSize: '11px', color: '#64748b', display: 'block' }}>{t('delivery_reps.van_field_returns_admin_tab.s35', "إجمالي القيمة:")}</span>
                 <strong style={{ fontSize: '14px', color: '#059669' }}>{selectedReturn.totalAmount.toFixed(2)} <CurrencySymbol /></strong>
               </div>
             </div>
@@ -418,10 +420,10 @@ export function VanFieldReturnsAdminTab() {
               <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right', fontSize: '12px' }}>
                 <thead>
                   <tr style={{ background: '#f1f5f9', borderBottom: '1px solid #e2e8f0' }}>
-                    <th style={{ padding: '8px 10px', fontWeight: 700 }}>الصنف</th>
-                    <th style={{ padding: '8px 10px', fontWeight: 700, textAlign: 'center' }}>الكمية</th>
-                    <th style={{ padding: '8px 10px', fontWeight: 700, textAlign: 'center' }}>سعر الوحدة</th>
-                    <th style={{ padding: '8px 10px', fontWeight: 700, textAlign: 'center' }}>الإجمالي</th>
+                    <th style={{ padding: '8px 10px', fontWeight: 700 }}>{t('delivery_reps.van_field_returns_admin_tab.s36', "الصنف")}</th>
+                    <th style={{ padding: '8px 10px', fontWeight: 700, textAlign: 'center' }}>{t('delivery_reps.van_field_returns_admin_tab.s37', "الكمية")}</th>
+                    <th style={{ padding: '8px 10px', fontWeight: 700, textAlign: 'center' }}>{t('delivery_reps.van_field_returns_admin_tab.s38', "سعر الوحدة")}</th>
+                    <th style={{ padding: '8px 10px', fontWeight: 700, textAlign: 'center' }}>{t('delivery_reps.van_field_returns_admin_tab.s39', "الإجمالي")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -439,19 +441,19 @@ export function VanFieldReturnsAdminTab() {
 
             {selectedReturn.notes && (
               <div style={{ fontSize: '12px', color: '#475569', backgroundColor: '#f8fafc', padding: '10px 12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                <strong>ملاحظات المندوب:</strong> {selectedReturn.notes}
+                <strong>{t('delivery_reps.van_field_returns_admin_tab.s40', "ملاحظات المندوب:")}</strong> {selectedReturn.notes}
               </div>
             )}
 
             {selectedReturn.rejectionReason && (
               <div style={{ fontSize: '12px', color: '#991b1b', backgroundColor: '#fef2f2', padding: '10px 12px', borderRadius: '8px', border: '1px solid #fecaca' }}>
-                <strong>سبب الرفض:</strong> {selectedReturn.rejectionReason}
+                <strong>{t('delivery_reps.van_field_returns_admin_tab.s41', "سبب الرفض:")}</strong> {selectedReturn.rejectionReason}
               </div>
             )}
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '10px' }}>
               <Button variant="secondary" onClick={() => setSelectedReturn(null)}>
-                إغلاق
+                {t('delivery_reps.van_field_returns_admin_tab.s42', "إغلاق")}
               </Button>
               {selectedReturn.status === 'pending_approval' && (
                 <>
@@ -460,14 +462,14 @@ export function VanFieldReturnsAdminTab() {
                     onClick={() => handleApprove(selectedReturn)}
                     style={{ backgroundColor: '#15803d', color: '#ffffff' }}
                   >
-                    قبول واعتماد المرتجع
+                    {t('delivery_reps.van_field_returns_admin_tab.s43', "قبول واعتماد المرتجع")}
                   </Button>
                   <Button
                     variant="danger"
                     onClick={() => openRejectDialog(selectedReturn)}
                     style={{ backgroundColor: '#dc2626', color: '#ffffff' }}
                   >
-                    رفض المرتجع
+                    {t('delivery_reps.van_field_returns_admin_tab.s44', "رفض المرتجع")}
                   </Button>
                 </>
               )}
@@ -488,11 +490,11 @@ export function VanFieldReturnsAdminTab() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }} dir="rtl">
             <div>
               <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-                سبب رفض إذن المرتجع <span style={{ color: '#dc2626' }}>*</span>
+                {t('delivery_reps.van_field_returns_admin_tab.s45', "سبب رفض إذن المرتجع")} <span style={{ color: '#dc2626' }}>*</span>
               </label>
               <textarea
                 rows={3}
-                placeholder="وضح سبب الرفض ليظهر للمندوب في سجل المرتجعات الميدانية..."
+                placeholder={t('delivery_reps.van_field_returns_admin_tab.s46', "وضح سبب الرفض ليظهر للمندوب في سجل المرتجعات الميدانية...")}
                 value={rejectReasonInput}
                 onChange={(e) => setRejectReasonInput(e.target.value)}
                 style={{
@@ -507,7 +509,7 @@ export function VanFieldReturnsAdminTab() {
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
               <Button variant="secondary" onClick={() => setRejectModalReturn(null)}>
-                إلغاء
+                {t('delivery_reps.van_field_returns_admin_tab.s47', "إلغاء")}
               </Button>
               <Button
                 variant="danger"
@@ -515,7 +517,7 @@ export function VanFieldReturnsAdminTab() {
                 onClick={confirmReject}
                 style={{ backgroundColor: '#dc2626', color: '#ffffff' }}
               >
-                {rejectMutation.isPending ? 'جاري الرفض...' : 'تأكيد رفض المرتجع'}
+                {rejectMutation.isPending ? t('delivery_reps.van_field_returns_admin_tab.s48', "جاري الرفض...") : t('delivery_reps.van_field_returns_admin_tab.s49', "تأكيد رفض المرتجع")}
               </Button>
             </div>
           </div>

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useMemo } from 'react';
 import { Button } from '@/shared/ui/button';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
@@ -24,6 +25,7 @@ export function MarginProtectionModal({
   onClose,
   onRepricingApplied,
 }: MarginProtectionModalProps) {
+  const { t } = useTranslation();
   const { currencySymbol } = useSystemCurrency();
   const [targetMargin, setTargetMargin] = useState(initialTargetMargin);
   const [loading, setLoading] = useState(false);
@@ -162,15 +164,15 @@ export function MarginProtectionModal({
     <StandardDialog
       open={open}
       onClose={onClose}
-      title="محرك حماية هامش الربح وتحديث الأسعار التلقائي"
+      title={t('purchases.margin_protection_modal.s0', "محرك حماية هامش الربح وتحديث الأسعار التلقائي")}
       subtitle={`فاتورة رقم #${analysis?.docNo || purchaseId} | المورد: ${analysis?.supplierName || '—'}`}
       maxWidth="1100px"
       footerActions={
         <StandardDialogFooter
           onCancel={onClose}
-          cancelLabel="إغلاق"
+          cancelLabel={t('purchases.margin_protection_modal.s1', "إغلاق")}
           onSubmit={handleApply}
-          submitLabel={applying ? 'جاري التحديث...' : `تحديث أسعار ${selectedProductIds.size} صنفاً في الكاشير`}
+          submitLabel={applying ? t('purchases.margin_protection_modal.s2', "جاري التحديث...") : `تحديث أسعار ${selectedProductIds.size} صنفاً في الكاشير`}
           isSubmitting={applying}
           submitDisabled={applying || !selectedProductIds.size}
           extraActions={
@@ -183,7 +185,7 @@ export function MarginProtectionModal({
                   style={{ accentColor: '#170e5e' }}
                 />
                 <MessageSquareIcon size={14} color="#16a34a" />
-                <span>إرسال تقرير بالأسعار المحدثة على واتساب المالك</span>
+                <span>{t('purchases.margin_protection_modal.s3', "إرسال تقرير بالأسعار المحدثة على واتساب المالك")}</span>
               </label>
               <Button
                 type="button"
@@ -193,7 +195,7 @@ export function MarginProtectionModal({
                 style={{ fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}
               >
                 <TagIcon size={14} />
-                <span>طباعة ملصقات الأسعار للأرفف</span>
+                <span>{t('purchases.margin_protection_modal.s4', "طباعة ملصقات الأسعار للأرفف")}</span>
               </Button>
             </div>
           }
@@ -204,29 +206,29 @@ export function MarginProtectionModal({
         {/* Target Margin Controls & Overview Banner */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px', alignItems: 'center', fontSize: '12px' }}>
           <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
-            <span style={{ color: '#64748b', display: 'block', marginBottom: '4px' }}>أصناف الفاتورة:</span>
+            <span style={{ color: '#64748b', display: 'block', marginBottom: '4px' }}>{t('purchases.margin_protection_modal.s5', "أصناف الفاتورة:")}</span>
             <span style={{ fontSize: '16px', fontWeight: 800, color: '#1e293b' }}>
-              {analysis?.totalAffectedItems || 0} أصناف
+              {analysis?.totalAffectedItems || 0} {t('purchases.margin_protection_modal.s6', "أصناف")}
             </span>
           </div>
 
           <div style={{ background: '#fef2f2', padding: '12px', borderRadius: '10px', border: '1px solid #fecaca' }}>
-            <span style={{ color: '#dc2626', display: 'block', fontWeight: 700, marginBottom: '4px' }}>أصناف تحقق خسارة:</span>
+            <span style={{ color: '#dc2626', display: 'block', fontWeight: 700, marginBottom: '4px' }}>{t('purchases.margin_protection_modal.s7', "أصناف تحقق خسارة:")}</span>
             <span style={{ fontSize: '16px', fontWeight: 800, color: '#b91c1c' }}>
-              {analysis?.lossMakingCount || 0} صنف (سعر البيع دون التكلفة!)
+              {analysis?.lossMakingCount || 0} {t('purchases.margin_protection_modal.s8', "صنف (سعر البيع دون التكلفة!)")}
             </span>
           </div>
 
           <div style={{ background: '#fffbeb', padding: '12px', borderRadius: '10px', border: '1px solid #fde68a' }}>
-            <span style={{ color: '#b45309', display: 'block', fontWeight: 700, marginBottom: '4px' }}>أصناف انخفض هامشها:</span>
+            <span style={{ color: '#b45309', display: 'block', fontWeight: 700, marginBottom: '4px' }}>{t('purchases.margin_protection_modal.s9', "أصناف انخفض هامشها:")}</span>
             <span style={{ fontSize: '16px', fontWeight: 800, color: '#92400e' }}>
-              {analysis?.marginCompressedCount || 0} صنف (دون 15%)
+              {analysis?.marginCompressedCount || 0} {t('purchases.margin_protection_modal.s10', "صنف (دون 15%)")}
             </span>
           </div>
 
           <div style={{ background: '#eff6ff', padding: '12px', borderRadius: '10px', border: '1px solid #bfdbfe', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
             <label style={{ color: '#1e3a8a', display: 'block', fontWeight: 800, marginBottom: '4px' }}>
-              هامش الربح المستهدف: <span style={{ color: '#1d4ed8', fontWeight: 900, fontSize: '14px' }}>{targetMargin}%</span>
+              {t('purchases.margin_protection_modal.s11', "هامش الربح المستهدف:")} <span style={{ color: '#1d4ed8', fontWeight: 900, fontSize: '14px' }}>{targetMargin}%</span>
             </label>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <input
@@ -249,7 +251,7 @@ export function MarginProtectionModal({
         <div style={{ overflowY: 'auto' }}>
           {loading ? (
             <div style={{ padding: '48px', textAlign: 'center', color: '#64748b', fontSize: '13px', fontWeight: 700 }}>
-              جاري فحص تغيرات التكلفة واحتساب هوامش الربح المقترحة...
+              {t('purchases.margin_protection_modal.s12', "جاري فحص تغيرات التكلفة واحتساب هوامش الربح المقترحة...")}
             </div>
           ) : errorMessage ? (
             <div style={{ padding: '12px 16px', borderRadius: '8px', background: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', fontSize: '13px', fontWeight: 700, marginBottom: '12px' }}>
@@ -257,7 +259,7 @@ export function MarginProtectionModal({
             </div>
           ) : displayItems.length === 0 ? (
             <div style={{ padding: '48px', textAlign: 'center', color: '#64748b', fontSize: '13px' }}>
-              لم يتم العثور على أصناف تتطلب إعادة تسعير في هذه الفاتورة.
+              {t('purchases.margin_protection_modal.s13', "لم يتم العثور على أصناف تتطلب إعادة تسعير في هذه الفاتورة.")}
             </div>
           ) : (
             <div style={{ border: '1px solid #e2e8f0', borderRadius: '10px', overflow: 'hidden' }}>
@@ -272,12 +274,12 @@ export function MarginProtectionModal({
                         style={{ accentColor: '#170e5e' }}
                       />
                     </th>
-                    <th style={{ padding: '10px 16px', fontWeight: 700 }}>اسم الصنف والباركود</th>
-                    <th style={{ padding: '10px 16px', fontWeight: 700, textAlign: 'center' }}>التكلفة (السابقة ← الجديدة)</th>
-                    <th style={{ padding: '10px 16px', fontWeight: 700, textAlign: 'center' }}>سعر البيع الحالي</th>
-                    <th style={{ padding: '10px 16px', fontWeight: 700, textAlign: 'center' }}>الهامش الحالي</th>
-                    <th style={{ padding: '10px 16px', fontWeight: 700, textAlign: 'center', backgroundColor: '#f0f9ff' }}>السعر المقترح للكاشير</th>
-                    <th style={{ padding: '10px 16px', fontWeight: 700, textAlign: 'center' }}>الهامش بعد التعديل</th>
+                    <th style={{ padding: '10px 16px', fontWeight: 700 }}>{t('purchases.margin_protection_modal.s14', "اسم الصنف والباركود")}</th>
+                    <th style={{ padding: '10px 16px', fontWeight: 700, textAlign: 'center' }}>{t('purchases.margin_protection_modal.s15', "التكلفة (السابقة ← الجديدة)")}</th>
+                    <th style={{ padding: '10px 16px', fontWeight: 700, textAlign: 'center' }}>{t('purchases.margin_protection_modal.s16', "سعر البيع الحالي")}</th>
+                    <th style={{ padding: '10px 16px', fontWeight: 700, textAlign: 'center' }}>{t('purchases.margin_protection_modal.s17', "الهامش الحالي")}</th>
+                    <th style={{ padding: '10px 16px', fontWeight: 700, textAlign: 'center', backgroundColor: '#f0f9ff' }}>{t('purchases.margin_protection_modal.s18', "السعر المقترح للكاشير")}</th>
+                    <th style={{ padding: '10px 16px', fontWeight: 700, textAlign: 'center' }}>{t('purchases.margin_protection_modal.s19', "الهامش بعد التعديل")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -335,7 +337,7 @@ export function MarginProtectionModal({
                               border: item.isLossMaking ? '1px solid #fca5a5' : item.isMarginCompressed ? '1px solid #fcd34d' : '1px solid #e2e8f0',
                             }}
                           >
-                            {item.isLossMaking ? 'خسارة! ' : ''}
+                            {item.isLossMaking ? t('purchases.margin_protection_modal.s20', "خسارة! ") : ''}
                             {item.currentMarginPercent}%
                           </span>
                         </td>
@@ -386,7 +388,7 @@ export function MarginProtectionModal({
         {/* Printable Shelf Labels Container for @media print */}
         <div className="hidden print:block" style={{ padding: '16px', background: '#ffffff' }}>
           <div style={{ textAlign: 'center', fontWeight: 800, fontSize: '16px', marginBottom: '12px', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px' }}>
-            بطاقات الأسعار وملصقات الأرفف المحدثة
+            {t('purchases.margin_protection_modal.s21', "بطاقات الأسعار وملصقات الأرفف المحدثة")}
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
             {displayItems

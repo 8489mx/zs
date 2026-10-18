@@ -15,6 +15,7 @@ export function QuickCreateDialog({
   onCancel: () => void;
   onSubmit: (result: QuickCreateResult) => void;
 }) {
+  const { t: __t } = useTranslation();
   const { t } = useTranslation();
   const [name, setName] = useState('');
   const [contactName, setContactName] = useState('');
@@ -220,7 +221,7 @@ export function QuickCreateDialog({
           {state.kind === 'supplier' ? (
             <>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                <Field label={t("contact_person" as any) || "اسم المسئول"}><input className="purchase-prototype-create-input" value={contactName} onChange={(event) => setContactName(event.target.value)} /></Field>
+                <Field label={t("contact_person" as any) || __t('purchases.new_purchase_order.quick_create_dialog.s0', "اسم المسئول")}><input className="purchase-prototype-create-input" value={contactName} onChange={(event) => setContactName(event.target.value)} /></Field>
                 <Field label={t("phone_number")}><input className="purchase-prototype-create-input" value={phone} onChange={(event) => setPhone(event.target.value)} /></Field>
               </div>
               <Field label={t("tax_number")}><input className="purchase-prototype-create-input" value={taxNumber} onChange={(event) => setTaxNumber(event.target.value)} /></Field>
@@ -263,7 +264,7 @@ export function QuickCreateDialog({
       <ActionConfirmDialog
         open={showUnsavedConfirm}
         title={t('unsaved_changes_title')}
-        description="هل أنت متأكد؟ لن يتم حفظ البيانات المدخلة."
+        description={__t('purchases.new_purchase_order.quick_create_dialog.s1', "هل أنت متأكد؟ لن يتم حفظ البيانات المدخلة.")}
         confirmLabel={t('ok')}
         cancelLabel={t('cancel')}
         onConfirm={() => {

@@ -51,6 +51,7 @@ export function PosSaleSuccessDialog({
   onPrintKitchen,
   onPrintBoth,
 }: PosSaleSuccessDialogProps) {
+  const { t: __t } = useTranslation();
   const { t } = useTranslation();
   const [printError, setPrintError] = useState('');
   const [whatsappError, setWhatsappError] = useState('');
@@ -184,7 +185,7 @@ export function PosSaleSuccessDialog({
       open={open}
       onClose={onClose}
       width="min(760px, 95vw)"
-      ariaLabel="تم البيع بنجاح"
+      ariaLabel={__t('pos.pos_workspace.pos_sale_success_dialog.s0', __t('pos.pos_workspace.pos_sale_success_dialog.s0', "تم البيع بنجاح"))}
       autoFocus={false}
     >
       <div
@@ -240,27 +241,27 @@ export function PosSaleSuccessDialog({
           {isDeliveryOrder ? (
             isDeliveryCod ? (
               <>
-                {paidAmount > 0 && <span><b>المدفوع مقدماً</b>{formatCurrency(paidAmount)}</span>}
-                <span><b>المطلوب تحصيله</b><strong style={{ color: '#d97706' }}>{formatCurrency(remainingDebt)}</strong> (مع المندوب)</span>
-                <span><b>حالة التحصيل</b><strong style={{ color: '#d97706' }}>عهدة مع المندوب</strong></span>
-                {repName && <span><b>المندوب</b>{repName} (تحصيل وتسليم)</span>}
+                {paidAmount > 0 && <span><b>{__t('pos.pos_workspace.pos_sale_success_dialog.s1', __t('pos.pos_workspace.pos_sale_success_dialog.s1', "المدفوع مقدماً"))}</b>{formatCurrency(paidAmount)}</span>}
+                <span><b>{__t('pos.pos_workspace.pos_sale_success_dialog.s2', __t('pos.pos_workspace.pos_sale_success_dialog.s2', "المطلوب تحصيله"))}</b><strong style={{ color: '#d97706' }}>{formatCurrency(remainingDebt)}</strong> {__t('pos.pos_workspace.pos_sale_success_dialog.s3', __t('pos.pos_workspace.pos_sale_success_dialog.s3', "(مع المندوب)"))}</span>
+                <span><b>{__t('pos.pos_workspace.pos_sale_success_dialog.s4', __t('pos.pos_workspace.pos_sale_success_dialog.s4', "حالة التحصيل"))}</b><strong style={{ color: '#d97706' }}>{__t('pos.pos_workspace.pos_sale_success_dialog.s5', __t('pos.pos_workspace.pos_sale_success_dialog.s5', "عهدة مع المندوب"))}</strong></span>
+                {repName && <span><b>{__t('pos.pos_workspace.pos_sale_success_dialog.s6', __t('pos.pos_workspace.pos_sale_success_dialog.s6', "المندوب"))}</b>{repName} {__t('pos.pos_workspace.pos_sale_success_dialog.s7', __t('pos.pos_workspace.pos_sale_success_dialog.s7', "(تحصيل وتسليم)"))}</span>}
               </>
             ) : isDeliveryCreditSale ? (
               <>
-                {paidAmount > 0 && <span><b>المدفوع مقدماً</b>{formatCurrency(paidAmount)}</span>}
-                <span><b>المتبقي على العميل</b><strong style={{ color: '#dc2626' }}>{formatCurrency(remainingDebt)}</strong></span>
-                <span><b>حالة الفاتورة</b><strong style={{ color: '#d97706' }}>{paidAmount === 0 ? 'آجل بالكامل على حساب العميل' : 'سداد جزئي (متبقي آجل)'}</strong></span>
-                {repName && <span><b>المندوب</b>{repName} (تسليم فقط — الحساب مسجل على العميل)</span>}
-                {deliveryFee > 0 && <span><b>أجرة التوصيل</b>{formatCurrency(deliveryFee)} (على حساب العميل)</span>}
+                {paidAmount > 0 && <span><b>{__t('pos.pos_workspace.pos_sale_success_dialog.s8', __t('pos.pos_workspace.pos_sale_success_dialog.s8', "المدفوع مقدماً"))}</b>{formatCurrency(paidAmount)}</span>}
+                <span><b>{__t('pos.pos_workspace.pos_sale_success_dialog.s9', __t('pos.pos_workspace.pos_sale_success_dialog.s9', "المتبقي على العميل"))}</b><strong style={{ color: '#dc2626' }}>{formatCurrency(remainingDebt)}</strong></span>
+                <span><b>{__t('pos.pos_workspace.pos_sale_success_dialog.s10', __t('pos.pos_workspace.pos_sale_success_dialog.s10', "حالة الفاتورة"))}</b><strong style={{ color: '#d97706' }}>{paidAmount === 0 ? __t('pos.pos_workspace.pos_sale_success_dialog.s11', __t('pos.pos_workspace.pos_sale_success_dialog.s11', "آجل بالكامل على حساب العميل")) : __t('pos.pos_workspace.pos_sale_success_dialog.s12', __t('pos.pos_workspace.pos_sale_success_dialog.s12', "سداد جزئي (متبقي آجل)"))}</strong></span>
+                {repName && <span><b>{__t('pos.pos_workspace.pos_sale_success_dialog.s13', __t('pos.pos_workspace.pos_sale_success_dialog.s13', "المندوب"))}</b>{repName} {__t('pos.pos_workspace.pos_sale_success_dialog.s14', __t('pos.pos_workspace.pos_sale_success_dialog.s14', "(تسليم فقط — الحساب مسجل على العميل)"))}</span>}
+                {deliveryFee > 0 && <span><b>{__t('pos.pos_workspace.pos_sale_success_dialog.s15', __t('pos.pos_workspace.pos_sale_success_dialog.s15', "أجرة التوصيل"))}</b>{formatCurrency(deliveryFee)} {__t('pos.pos_workspace.pos_sale_success_dialog.s16', __t('pos.pos_workspace.pos_sale_success_dialog.s16', "(على حساب العميل)"))}</span>}
               </>
             ) : (
               <>
-                {paidAmount > 0 && <span><b>المدفوع</b>{formatCurrency(paidAmount)}</span>}
-                <span><b>حالة التحصيل</b><strong style={{ color: '#16a34a' }}>مدفوع مسبقاً بالكامل</strong></span>
-                {repName && <span><b>المندوب</b>{repName} (تسليم فقط)</span>}
+                {paidAmount > 0 && <span><b>{__t('pos.pos_workspace.pos_sale_success_dialog.s17', __t('pos.pos_workspace.pos_sale_success_dialog.s17', "المدفوع"))}</b>{formatCurrency(paidAmount)}</span>}
+                <span><b>{__t('pos.pos_workspace.pos_sale_success_dialog.s18', __t('pos.pos_workspace.pos_sale_success_dialog.s18', "حالة التحصيل"))}</b><strong style={{ color: '#16a34a' }}>{__t('pos.pos_workspace.pos_sale_success_dialog.s19', __t('pos.pos_workspace.pos_sale_success_dialog.s19', "مدفوع مسبقاً بالكامل"))}</strong></span>
+                {repName && <span><b>{__t('pos.pos_workspace.pos_sale_success_dialog.s20', __t('pos.pos_workspace.pos_sale_success_dialog.s20', "المندوب"))}</b>{repName} {__t('pos.pos_workspace.pos_sale_success_dialog.s21', __t('pos.pos_workspace.pos_sale_success_dialog.s21', "(تسليم فقط)"))}</span>}
                 {deliveryFee > 0 && deliveryFeeMode !== 'store_fleet' && collectionStatus !== 'cod' && collectionStatus !== 'prepaid_by_rep' && (collectionStatus === 'prepaid_online' || sale?.paymentChannel === 'wallet' || sale?.paymentChannel === 'instapay') && (
                   <span style={{ gridColumn: '1 / -1', background: '#fffbeb', padding: '8px 12px', borderRadius: '8px', border: '1px solid #fef3c7', color: '#92400e' }}>
-                    <b>تسوية المندوب:</b> تم صرف {formatCurrency(deliveryFee)} نقداً من الدرج لأجرة التوصيل (الطلب مسدد أونلاين بالكامل)
+                    <b>{__t('pos.pos_workspace.pos_sale_success_dialog.s22', __t('pos.pos_workspace.pos_sale_success_dialog.s22', "تسوية المندوب:"))}</b> {__t('pos.pos_workspace.pos_sale_success_dialog.s23', __t('pos.pos_workspace.pos_sale_success_dialog.s23', "تم صرف"))} {formatCurrency(deliveryFee)} {__t('pos.pos_workspace.pos_sale_success_dialog.s24', __t('pos.pos_workspace.pos_sale_success_dialog.s24', "نقداً من الدرج لأجرة التوصيل (الطلب مسدد أونلاين بالكامل)"))}
                   </span>
                 )}
               </>
@@ -269,7 +270,7 @@ export function PosSaleSuccessDialog({
             <>
               <span><b>{t('pos.paid', 'المدفوع')}</b>{formatCurrency(paidAmount)}</span>
               <span><b>{t('pos.remaining_debt', 'المتبقي على العميل')}</b><strong style={{ color: '#dc2626' }}>{formatCurrency(remainingDebt)}</strong></span>
-              <span><b>{t('pos.invoice_status', 'حالة الفاتورة')}</b><strong style={{ color: '#d97706' }}>{paidAmount === 0 ? 'آجل بالكامل على حساب العميل' : 'سداد جزئي (متبقي آجل)'}</strong></span>
+              <span><b>{t('pos.invoice_status', 'حالة الفاتورة')}</b><strong style={{ color: '#d97706' }}>{paidAmount === 0 ? __t('pos.pos_workspace.pos_sale_success_dialog.s25', __t('pos.pos_workspace.pos_sale_success_dialog.s25', "آجل بالكامل على حساب العميل")) : __t('pos.pos_workspace.pos_sale_success_dialog.s26', __t('pos.pos_workspace.pos_sale_success_dialog.s26', "سداد جزئي (متبقي آجل)"))}</strong></span>
             </>
           ) : (
             <>
@@ -279,21 +280,21 @@ export function PosSaleSuccessDialog({
               {((sale as any).terminalAuthCode || (sale as any).terminal_auth_code) && (
                 <span style={{ gridColumn: '1 / -1', background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '6px 12px', borderRadius: '8px', color: '#166534', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <span>
-                    <b>دفع شبكة إلكتروني معتمد:</b> {((sale as any).cardScheme === 'knet' ? 'كي نت (KNET)' : (sale as any).cardScheme === 'mada' ? 'مدى (Mada)' : ((sale as any).cardScheme || 'بطاقة مصرفية'))}
+                    <b>{__t('pos.pos_workspace.pos_sale_success_dialog.s27', __t('pos.pos_workspace.pos_sale_success_dialog.s27', "دفع شبكة إلكتروني معتمد:"))}</b> {((sale as any).cardScheme === 'knet' ? __t('pos.pos_workspace.pos_sale_success_dialog.s28', __t('pos.pos_workspace.pos_sale_success_dialog.s28', "كي نت (KNET)")) : (sale as any).cardScheme === 'mada' ? __t('pos.pos_workspace.pos_sale_success_dialog.s29', __t('pos.pos_workspace.pos_sale_success_dialog.s29', "مدى (Mada)")) : ((sale as any).cardScheme || __t('pos.pos_workspace.pos_sale_success_dialog.s30', __t('pos.pos_workspace.pos_sale_success_dialog.s30', "بطاقة مصرفية"))))}
                     {((sale as any).cardLastFour || (sale as any).card_last_four) ? ` (**** ${((sale as any).cardLastFour || (sale as any).card_last_four)})` : ''}
                   </span>
                   <span style={{ fontFamily: 'monospace', fontWeight: 800 }}>
-                    تفويض: {((sale as any).terminalAuthCode || (sale as any).terminal_auth_code)}
+                    {__t('pos.pos_workspace.pos_sale_success_dialog.s31', __t('pos.pos_workspace.pos_sale_success_dialog.s31', "تفويض:"))} {((sale as any).terminalAuthCode || (sale as any).terminal_auth_code)}
                     {((sale as any).terminalRrn || (sale as any).terminal_rrn) ? ` | مرجع: ${((sale as any).terminalRrn || (sale as any).terminal_rrn)}` : ''}
                   </span>
                 </span>
               )}
             </>
           )}
-          <span><b>{t('pos.customer', 'العميل')}</b>{sale.customerName || customer?.name || (isDeliveryOrder ? 'عميل دليفري' : 'عميل نقدي')}</span>
+          <span><b>{t('pos.customer', 'العميل')}</b>{sale.customerName || customer?.name || (isDeliveryOrder ? __t('pos.pos_workspace.pos_sale_success_dialog.s32', __t('pos.pos_workspace.pos_sale_success_dialog.s32', "عميل دليفري")) : __t('pos.pos_workspace.pos_sale_success_dialog.s33', __t('pos.pos_workspace.pos_sale_success_dialog.s33', "عميل نقدي")))}</span>
           {Array.isArray(sale.payments) && sale.payments.length > 1 && (
             <span style={{ gridColumn: '1 / -1', background: '#f8fafc', padding: '6px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '12px' }}>
-              <b>تفاصيل المدفوعات:</b>{' '}
+              <b>{__t('pos.pos_workspace.pos_sale_success_dialog.s34', __t('pos.pos_workspace.pos_sale_success_dialog.s34', "تفاصيل المدفوعات:"))}</b>{' '}
               {sale.payments.map((p) => `${paymentLabel(p.paymentChannel)}: ${formatCurrency(Number(p.amount || 0))}`).join(' + ')}
             </span>
           )}
@@ -356,9 +357,9 @@ export function PosSaleSuccessDialog({
                   lineHeight: 1.2,
                 }}
               >
-                <span>طباعة نسختين</span>
+                <span>{__t('pos.pos_workspace.pos_sale_success_dialog.s35', __t('pos.pos_workspace.pos_sale_success_dialog.s35', "طباعة نسختين"))}</span>
                 {' '}
-                <span style={{ fontSize: '10.5px', color: '#475569', fontWeight: 700 }}>(عميل + محل) F4</span>
+                <span style={{ fontSize: '10.5px', color: '#475569', fontWeight: 700 }}>{__t('pos.pos_workspace.pos_sale_success_dialog.s36', __t('pos.pos_workspace.pos_sale_success_dialog.s36', "(عميل + محل) F4"))}</span>
               </Button>
             )}
             <Button
@@ -376,7 +377,7 @@ export function PosSaleSuccessDialog({
                 padding: '4px 6px',
               }}
             >
-              إرسال واتساب F8
+              {__t('pos.pos_workspace.pos_sale_success_dialog.s37', __t('pos.pos_workspace.pos_sale_success_dialog.s37', "إرسال واتساب F8"))}
             </Button>
             <Button
               type="button"
@@ -393,7 +394,7 @@ export function PosSaleSuccessDialog({
                 padding: '4px 6px',
               }}
             >
-              طباعة A4 F10
+              {__t('pos.pos_workspace.pos_sale_success_dialog.s38', __t('pos.pos_workspace.pos_sale_success_dialog.s38', "طباعة A4 F10"))}
             </Button>
             <Button
               type="button"
@@ -411,7 +412,7 @@ export function PosSaleSuccessDialog({
                 padding: '4px 6px',
               }}
             >
-              إغلاق Esc
+              {__t('pos.pos_workspace.pos_sale_success_dialog.s39', __t('pos.pos_workspace.pos_sale_success_dialog.s39', "إغلاق Esc"))}
             </Button>
           </div>
 
@@ -419,11 +420,11 @@ export function PosSaleSuccessDialog({
           {settings?.posKitchenPrinterEnabled && onPrintKitchen && (
             <div className="pos-sale-success-kitchen-grid" style={{ display: 'grid', gridTemplateColumns: onPrintBoth ? '1fr 1fr' : '1fr', gap: '6px', width: '100%', marginTop: '4px' }}>
               <Button type="button" onClick={() => safePrint(onPrintKitchen)} style={{ minHeight: '36px', borderRadius: '8px', padding: '4px 6px', fontSize: '12px' }}>
-                طباعة للمطبخ
+                {__t('pos.pos_workspace.pos_sale_success_dialog.s40', __t('pos.pos_workspace.pos_sale_success_dialog.s40', "طباعة للمطبخ"))}
               </Button>
               {onPrintBoth && (
                 <Button type="button" onClick={() => safePrint(onPrintBoth)} style={{ minHeight: '36px', borderRadius: '8px', padding: '4px 6px', fontSize: '12px' }}>
-                  طباعة الريسيت والمطبخ
+                  {__t('pos.pos_workspace.pos_sale_success_dialog.s41', __t('pos.pos_workspace.pos_sale_success_dialog.s41', "طباعة الريسيت والمطبخ"))}
                 </Button>
               )}
             </div>
@@ -432,14 +433,14 @@ export function PosSaleSuccessDialog({
 
         {showManualPhone ? (
           <div className="pos-sale-success-whatsapp" style={{ marginTop: '8px' }}>
-            <Field label="رقم الهاتف">
+            <Field label={__t('pos.pos_workspace.pos_sale_success_dialog.s42', __t('pos.pos_workspace.pos_sale_success_dialog.s42', "رقم الهاتف"))}>
               <input
                 value={manualPhone}
                 onChange={(event) => setManualPhone(event.target.value)}
-                placeholder="أدخل رقم الهاتف لإرسال الفاتورة"
+                placeholder={__t('pos.pos_workspace.pos_sale_success_dialog.s43', __t('pos.pos_workspace.pos_sale_success_dialog.s43', "أدخل رقم الهاتف لإرسال الفاتورة"))}
               />
             </Field>
-            <Button type="button" variant="secondary" onClick={() => openWhatsapp(manualPhone)}>إرسال مرة واحدة F8</Button>
+            <Button type="button" variant="secondary" onClick={() => openWhatsapp(manualPhone)}>{__t('pos.pos_workspace.pos_sale_success_dialog.s44', __t('pos.pos_workspace.pos_sale_success_dialog.s44', "إرسال مرة واحدة F8"))}</Button>
           </div>
         ) : null}
       </div>

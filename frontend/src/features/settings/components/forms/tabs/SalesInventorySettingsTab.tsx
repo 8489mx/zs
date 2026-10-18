@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect, memo } from 'react';
 import { Link } from 'react-router-dom';
 import { LightbulbIcon, RotateCcwIcon, CheckIcon, ShieldAlertIcon, InfoIcon, PlusCircleIcon, Trash2Icon, CheckCircleIcon, CheckShieldIcon, LockIcon, ClockIcon } from '@/shared/components/icons/AppIcons';
@@ -337,6 +338,7 @@ const PosTerminalCard = memo(function PosTerminalCard({
   isTesting,
   testResult,
 }: PosTerminalCardProps) {
+  const { t } = useTranslation();
   const providerDisplayMap: Record<string, { label: string; badgeBg: string; badgeColor: string; borderColor: string }> = {
     geidea: { label: 'Geidea POS (جيديا)', badgeBg: '#f8fafc', badgeColor: '#334155', borderColor: '#e2e8f0' },
     paymob: { label: 'Paymob Smart POS (باي موب)', badgeBg: '#f8fafc', badgeColor: '#334155', borderColor: '#e2e8f0' },
@@ -405,7 +407,7 @@ const PosTerminalCard = memo(function PosTerminalCard({
                   }}
                 >
                   <CheckCircleIcon size={11} color="#ffffff" />
-                  <span>الافتراضية</span>
+                  <span>{t('settings.forms.tabs.sales_inventory_settings_tab.s0', "الافتراضية")}</span>
                 </span>
               )}
             </div>
@@ -434,7 +436,7 @@ const PosTerminalCard = memo(function PosTerminalCard({
             type="button"
             role="switch"
             aria-checked={terminal.enabled}
-            title={terminal.enabled ? 'الماكينة نشطة ومتاحة في الكاشير' : 'الماكينة معطلة'}
+            title={terminal.enabled ? t('settings.forms.tabs.sales_inventory_settings_tab.s1', "الماكينة نشطة ومتاحة في الكاشير") : t('settings.forms.tabs.sales_inventory_settings_tab.s2', "الماكينة معطلة")}
             onClick={() => onUpdate({ ...terminal, enabled: !terminal.enabled })}
             disabled={disabled || !isMasterEnabled}
             style={{
@@ -477,7 +479,7 @@ const PosTerminalCard = memo(function PosTerminalCard({
               />
             </span>
             <span style={{ fontSize: '0.74rem', fontWeight: 600, color: terminal.enabled ? '#0f172a' : '#64748b' }}>
-              {terminal.enabled ? 'مفعلة' : 'معطلة'}
+              {terminal.enabled ? t('settings.forms.tabs.sales_inventory_settings_tab.s3', "مفعلة") : t('settings.forms.tabs.sales_inventory_settings_tab.s4', "معطلة")}
             </span>
           </button>
 
@@ -513,7 +515,7 @@ const PosTerminalCard = memo(function PosTerminalCard({
                 }
               }}
             >
-              تعيين كافتراضية
+              {t('settings.forms.tabs.sales_inventory_settings_tab.s5', "تعيين كافتراضية")}
             </button>
           )}
 
@@ -523,7 +525,7 @@ const PosTerminalCard = memo(function PosTerminalCard({
               type="button"
               disabled={disabled || !isMasterEnabled}
               onClick={() => onRemove(terminal.id)}
-              title="إزالة هذه الماكينة"
+              title={t('settings.forms.tabs.sales_inventory_settings_tab.s6', "إزالة هذه الماكينة")}
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -563,7 +565,7 @@ const PosTerminalCard = memo(function PosTerminalCard({
         {/* Terminal Name */}
         <div>
           <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-            اسم الماكينة
+            {t('settings.forms.tabs.sales_inventory_settings_tab.s7', "اسم الماكينة")}
           </label>
           <input
             className="purchase-prototype-field-input"
@@ -578,18 +580,18 @@ const PosTerminalCard = memo(function PosTerminalCard({
         {/* Provider */}
         <div>
           <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-            مزود الخدمة
+            {t('settings.forms.tabs.sales_inventory_settings_tab.s8', "مزود الخدمة")}
           </label>
           <CustomSelect
             value={terminal.provider}
             onChange={(val) => onUpdate({ ...terminal, provider: val as any })}
             options={[
-              { value: 'fawry', label: 'Fawry POS / PAX (فوري - مصر)' },
-              { value: 'paymob', label: 'Paymob Smart POS (باي موب - مصر)' },
-              { value: 'knet_pos', label: 'K-NET POS (أجهزة كي-نت - الكويت)' },
-              { value: 'geidea', label: 'Geidea POS (جيديا - السعودية ومصر)' },
-              { value: 'network_international', label: 'Network International (NI - الإمارات والخليج)' },
-              { value: 'mock_sandbox', label: 'محاكي نقاط البيع التجريبي (Mock Simulator)' },
+              { value: 'fawry', label: t('settings.forms.tabs.sales_inventory_settings_tab.s9', "Fawry POS / PAX (فوري - مصر)") },
+              { value: 'paymob', label: t('settings.forms.tabs.sales_inventory_settings_tab.s10', "Paymob Smart POS (باي موب - مصر)") },
+              { value: 'knet_pos', label: t('settings.forms.tabs.sales_inventory_settings_tab.s11', "K-NET POS (أجهزة كي-نت - الكويت)") },
+              { value: 'geidea', label: t('settings.forms.tabs.sales_inventory_settings_tab.s12', "Geidea POS (جيديا - السعودية ومصر)") },
+              { value: 'network_international', label: t('settings.forms.tabs.sales_inventory_settings_tab.s13', "Network International (NI - الإمارات والخليج)") },
+              { value: 'mock_sandbox', label: t('settings.forms.tabs.sales_inventory_settings_tab.s14', "محاكي نقاط البيع التجريبي (Mock Simulator)") },
             ]}
             disabled={isCardDisabled}
           />
@@ -598,7 +600,7 @@ const PosTerminalCard = memo(function PosTerminalCard({
         {/* IP Address */}
         <div>
           <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-            عنوان IP الماكينة (Local IP)
+            {t('settings.forms.tabs.sales_inventory_settings_tab.s15', "عنوان IP الماكينة (Local IP)")}
           </label>
           <input
             className="purchase-prototype-field-input"
@@ -614,7 +616,7 @@ const PosTerminalCard = memo(function PosTerminalCard({
         {/* Port */}
         <div>
           <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-            المنفذ (Port)
+            {t('settings.forms.tabs.sales_inventory_settings_tab.s16', "المنفذ (Port)")}
           </label>
           <input
             type="number"
@@ -631,14 +633,14 @@ const PosTerminalCard = memo(function PosTerminalCard({
         {/* Pairing Key (Optional) */}
         <div>
           <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-            رمز الاقتران الأمني (Pairing Key - اختياري)
+            {t('settings.forms.tabs.sales_inventory_settings_tab.s17', "رمز الاقتران الأمني (Pairing Key - اختياري)")}
           </label>
           <input
             className="purchase-prototype-field-input"
             value={terminal.pairingKey || ''}
             onChange={(e) => onUpdate({ ...terminal, pairingKey: e.target.value })}
             disabled={isCardDisabled}
-            placeholder="مثال: 1234 (إن وُجد بالماكينة)"
+            placeholder={t('settings.forms.tabs.sales_inventory_settings_tab.s18', "مثال: 1234 (إن وُجد بالماكينة)")}
             dir="ltr"
             style={{ ...fieldControlStyle, textAlign: 'left', fontFamily: 'monospace' }}
           />
@@ -647,14 +649,14 @@ const PosTerminalCard = memo(function PosTerminalCard({
         {/* Terminal TID (Optional) */}
         <div>
           <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-            معرف الطرفية السحابي (Terminal TID - اختياري)
+            {t('settings.forms.tabs.sales_inventory_settings_tab.s19', "معرف الطرفية السحابي (Terminal TID - اختياري)")}
           </label>
           <input
             className="purchase-prototype-field-input"
             value={terminal.terminalTid || ''}
             onChange={(e) => onUpdate({ ...terminal, terminalTid: e.target.value })}
             disabled={isCardDisabled}
-            placeholder="مثال: TID-884192"
+            placeholder={t('settings.forms.tabs.sales_inventory_settings_tab.s20', "مثال: TID-884192")}
             dir="ltr"
             style={{ ...fieldControlStyle, textAlign: 'left', fontFamily: 'monospace' }}
           />
@@ -792,14 +794,14 @@ const PosTerminalCard = memo(function PosTerminalCard({
           />
           <span style={{ fontSize: '0.74rem', fontWeight: 600, color: '#334155' }}>
             {!isMasterEnabled || !terminal.enabled
-              ? 'الماكينة معطلة'
+              ? t('settings.forms.tabs.sales_inventory_settings_tab.s21', "الماكينة معطلة")
               : testResult?.portOpen
-              ? 'متصلة وجاهزة للعمليات (Ready)'
+              ? t('settings.forms.tabs.sales_inventory_settings_tab.s22', "متصلة وجاهزة للعمليات (Ready)")
               : testResult?.pingSucceeded
-              ? 'أونلاين (المنفذ مغلق أو يحتاج تفعيل ECR)'
+              ? t('settings.forms.tabs.sales_inventory_settings_tab.s23', "أونلاين (المنفذ مغلق أو يحتاج تفعيل ECR)")
               : testResult
-              ? 'غير متصلة (تعذر الوصول للـ IP)'
-              : 'في انتظار الفحص الشبكي'}
+              ? t('settings.forms.tabs.sales_inventory_settings_tab.s24', "غير متصلة (تعذر الوصول للـ IP)")
+              : t('settings.forms.tabs.sales_inventory_settings_tab.s25', "في انتظار الفحص الشبكي")}
           </span>
         </div>
         <span style={{ fontSize: '0.71rem', color: '#64748b', fontFamily: 'monospace', direction: 'ltr' }}>
@@ -816,6 +818,7 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
   activeTab,
   settings,
 }: SalesInventoryTabProps) {
+  const { t: __t } = useTranslation();
   const rawActivity = String(form.watch('businessIndustry') || settings?.businessIndustry || (settings as any)?.activityType || 'retail_general').trim().toLowerCase();
   const isContractingVertical = rawActivity === 'contracting' || rawActivity === 'construction' || rawActivity === 'مقاولات' || Boolean(form.watch('contractingModuleEnabled'));
   const isMaritimeVertical = rawActivity === 'maritime_freight' || rawActivity === 'maritime' || rawActivity === 'freight' || rawActivity === 'shipping' || rawActivity === 'شحن' || Boolean(form.watch('maritimeFreightModuleEnabled'));
@@ -1038,8 +1041,8 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
     <div style={{ display: activeTab === 'sales_inventory' ? 'block' : 'none' }}>
       {/* ===== إعدادات البيع والضريبة ===== */}
       <FormSection
-        title="إعدادات البيع والضريبة"
-        description="تحديد نسبة الضريبة على المبيعات، وطريقة احتسابها على أسعار الأصناف، والرقم الضريبي."
+        title={__t('settings.forms.tabs.sales_inventory_settings_tab.s26', "إعدادات البيع والضريبة")}
+        description={__t('settings.forms.tabs.sales_inventory_settings_tab.s27', "تحديد نسبة الضريبة على المبيعات، وطريقة احتسابها على أسعار الأصناف، والرقم الضريبي.")}
       >
         <div className="settings-two-col-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '14px' }}>
           {/* Card 1: Tax Mode & Rate */}
@@ -1049,15 +1052,15 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
                 <TaxCalcIcon size={20} />
               </div>
               <div>
-                <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>حساب الضريبة على المبيعات</strong>
-                <span style={{ fontSize: '0.74rem', color: '#64748b', display: 'block' }}>طريقة إضافة القيمة المضافة ونسبتها</span>
+                <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>{__t('settings.forms.tabs.sales_inventory_settings_tab.s28', "حساب الضريبة على المبيعات")}</strong>
+                <span style={{ fontSize: '0.74rem', color: '#64748b', display: 'block' }}>{__t('settings.forms.tabs.sales_inventory_settings_tab.s29', "طريقة إضافة القيمة المضافة ونسبتها")}</span>
               </div>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', alignItems: 'end' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                  نسبة الضريبة (%)
+                  {__t('settings.forms.tabs.sales_inventory_settings_tab.s30', "نسبة الضريبة (%)")}
                 </label>
                 <input
                   type="number"
@@ -1074,14 +1077,14 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
 
               <div>
                 <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                  طريقة احتساب الضريبة
+                  {__t('settings.forms.tabs.sales_inventory_settings_tab.s31', "طريقة احتساب الضريبة")}
                 </label>
                 <CustomSelect
                   value={form.watch('taxMode') || 'exclusive'}
                   onChange={(val) => form.setValue('taxMode', val as any, { shouldDirty: true, shouldValidate: true })}
                   options={[
-                    { value: 'exclusive', label: 'تضاف فوق السعر' },
-                    { value: 'inclusive', label: 'ضمن السعر' },
+                    { value: 'exclusive', label: __t('settings.forms.tabs.sales_inventory_settings_tab.s32', "تضاف فوق السعر") },
+                    { value: 'inclusive', label: __t('settings.forms.tabs.sales_inventory_settings_tab.s33', "ضمن السعر") },
                   ]}
                   disabled={disabled}
                 />
@@ -1092,22 +1095,22 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
           {/* Card 2: Organization Tax Number */}
           <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>الرقم الضريبي للمنشأة</strong>
-              <span style={{ fontSize: '0.72rem', background: '#f1f5f9', color: '#475569', padding: '2px 8px', borderRadius: '4px', border: '1px solid #e2e8f0', fontWeight: 600 }}>الفواتير والإيصالات</span>
+              <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>{__t('settings.forms.tabs.sales_inventory_settings_tab.s34', "الرقم الضريبي للمنشأة")}</strong>
+              <span style={{ fontSize: '0.72rem', background: '#f1f5f9', color: '#475569', padding: '2px 8px', borderRadius: '4px', border: '1px solid #e2e8f0', fontWeight: 600 }}>{__t('settings.forms.tabs.sales_inventory_settings_tab.s35', "الفواتير والإيصالات")}</span>
             </div>
 
             <div>
               <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                رقم التسجيل الضريبي المطبوع على الفاتورة
+                {__t('settings.forms.tabs.sales_inventory_settings_tab.s36', "رقم التسجيل الضريبي المطبوع على الفاتورة")}
               </label>
               <input
                 {...form.register('taxNumber')}
                 disabled={disabled}
-                placeholder="مثال: 123-456-789"
+                placeholder={__t('settings.forms.tabs.sales_inventory_settings_tab.s37', "مثال: 123-456-789")}
                 style={fieldControlStyle}
               />
               <span style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '4px', display: 'block' }}>
-                يظهر هذا الرقم أعلى ترويسة فواتير المبيعات، الإيصالات الحرارية، وتقارير الإقرارات الضريبية.
+                {__t('settings.forms.tabs.sales_inventory_settings_tab.s38', "يظهر هذا الرقم أعلى ترويسة فواتير المبيعات، الإيصالات الحرارية، وتقارير الإقرارات الضريبية.")}
               </span>
             </div>
           </div>
@@ -1115,14 +1118,14 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
           {/* Direct link to Advanced Tax & E-Invoice Integration */}
           <div style={{ gridColumn: '1 / -1', background: '#f8fafc', border: '1px dashed #cbd5e1', borderRadius: '8px', padding: '10px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
             <span style={{ fontSize: '0.78rem', color: '#475569' }}>
-              للربط السحابي المباشر مع مصلحة الضرائب المصرية (ETA) أو هيئة الزكاة والضريبة والجمارك (ZATCA):
+              {__t('settings.forms.tabs.sales_inventory_settings_tab.s39', "للربط السحابي المباشر مع مصلحة الضرائب المصرية (ETA) أو هيئة الزكاة والضريبة والجمارك (ZATCA):")}
             </span>
             <Link
               to="/settings/tax-integration"
               className="btn btn-secondary"
               style={{ padding: '4px 12px', fontSize: '0.78rem', fontWeight: 700 }}
             >
-              إعدادات الضرائب والفاتورة الإلكترونية
+              {__t('settings.forms.tabs.sales_inventory_settings_tab.s40', "إعدادات الضرائب والفاتورة الإلكترونية")}
             </Link>
           </div>
         </div>
@@ -1131,8 +1134,8 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
       {/* ===== مخصص لشركات المقاولات والمشاريع (Contracting Dedicated) ===== */}
       {isContractingVertical && (
         <FormSection
-          title="ضوابط مشاريع المقاولات والمستخلصات والتسعير (BOQ & IPC Controls)"
-          description="تحديد القواعد المالية والتشغيلية لمشاريع المقاولات، نسب ضمان الأعمال المحتجزة، استقطاع الدفعة المقدمة، وهوامش تسعير العطاءات."
+          title={__t('settings.forms.tabs.sales_inventory_settings_tab.s41', "ضوابط مشاريع المقاولات والمستخلصات والتسعير (BOQ & IPC Controls)")}
+          description={__t('settings.forms.tabs.sales_inventory_settings_tab.s42', "تحديد القواعد المالية والتشغيلية لمشاريع المقاولات، نسب ضمان الأعمال المحتجزة، استقطاع الدفعة المقدمة، وهوامش تسعير العطاءات.")}
         >
           <div className="settings-two-col-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '14px' }}>
             {/* Card 1: Retention Percent */}
@@ -1142,8 +1145,8 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
                   <RetentionShieldIcon size={20} />
                 </div>
                 <div>
-                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>نسبة دفعة ضمان الأعمال المحتجزة (Retention %)</strong>
-                  <span style={{ fontSize: '0.74rem', color: '#64748b', display: 'block' }}>النسبة المحتجزة تلقائياً من المستخلص لصالح فترة الضمان والصيانة</span>
+                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>{__t('settings.forms.tabs.sales_inventory_settings_tab.s43', "نسبة دفعة ضمان الأعمال المحتجزة (Retention %)")}</strong>
+                  <span style={{ fontSize: '0.74rem', color: '#64748b', display: 'block' }}>{__t('settings.forms.tabs.sales_inventory_settings_tab.s44', "النسبة المحتجزة تلقائياً من المستخلص لصالح فترة الضمان والصيانة")}</span>
                 </div>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -1158,7 +1161,7 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
                   placeholder="5"
                   style={{ ...fieldControlStyle, width: '100px', textAlign: 'center', fontWeight: 800 }}
                 />
-                <span style={{ fontSize: '0.84rem', fontWeight: 700, color: '#334155' }}>% (النسبة الشائعة 5% - 10%)</span>
+                <span style={{ fontSize: '0.84rem', fontWeight: 700, color: '#334155' }}>{__t('settings.forms.tabs.sales_inventory_settings_tab.s45', "% (النسبة الشائعة 5% - 10%)")}</span>
               </div>
             </div>
 
@@ -1169,16 +1172,16 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
                   <AdvanceRecoveryIcon size={20} />
                 </div>
                 <div>
-                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>استقطاع الدفعة المقدمة من المستخلصات</strong>
-                  <span style={{ fontSize: '0.74rem', color: '#64748b', display: 'block' }}>طريقة إهلاك وخصم الدفعة المقدمة من مستخلصات التنفيذ</span>
+                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>{__t('settings.forms.tabs.sales_inventory_settings_tab.s46', "استقطاع الدفعة المقدمة من المستخلصات")}</strong>
+                  <span style={{ fontSize: '0.74rem', color: '#64748b', display: 'block' }}>{__t('settings.forms.tabs.sales_inventory_settings_tab.s47', "طريقة إهلاك وخصم الدفعة المقدمة من مستخلصات التنفيذ")}</span>
                 </div>
               </div>
               <CustomSelect
                 value={form.watch('contractingAdvanceRecoveryMode') || 'proportional'}
                 onChange={(val) => form.setValue('contractingAdvanceRecoveryMode', val as any, { shouldDirty: true, shouldValidate: true })}
                 options={[
-                  { value: 'proportional', label: 'خصم نسبي تلقائي حسب نسبة إنجاز المستخلص' },
-                  { value: 'fixed', label: 'مبلغ قطعي محدد لكل مستخلص' },
+                  { value: 'proportional', label: __t('settings.forms.tabs.sales_inventory_settings_tab.s48', "خصم نسبي تلقائي حسب نسبة إنجاز المستخلص") },
+                  { value: 'fixed', label: __t('settings.forms.tabs.sales_inventory_settings_tab.s49', "مبلغ قطعي محدد لكل مستخلص") },
                 ]}
                 disabled={disabled}
               />
@@ -1191,15 +1194,15 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
                   <TenderMarginIcon size={20} />
                 </div>
                 <div>
-                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>هوامش ونسب التسعير الافتراضية لدراسة العطاءات (Tender Estimator)</strong>
-                  <span style={{ fontSize: '0.74rem', color: '#64748b', display: 'block' }}>النسب المعتمدة افتراضياً في حاسبة تسعير بنود المقايسة لتوليد سعر الوحدة التنافسي</span>
+                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>{__t('settings.forms.tabs.sales_inventory_settings_tab.s50', "هوامش ونسب التسعير الافتراضية لدراسة العطاءات (Tender Estimator)")}</strong>
+                  <span style={{ fontSize: '0.74rem', color: '#64748b', display: 'block' }}>{__t('settings.forms.tabs.sales_inventory_settings_tab.s51', "النسب المعتمدة افتراضياً في حاسبة تسعير بنود المقايسة لتوليد سعر الوحدة التنافسي")}</span>
                 </div>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '14px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                    هامش الربح المستهدف (Profit %)
+                    {__t('settings.forms.tabs.sales_inventory_settings_tab.s52', "هامش الربح المستهدف (Profit %)")}
                   </label>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <input
@@ -1219,7 +1222,7 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
 
                 <div>
                   <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                    المصاريف الإدارية والعمومية (Overhead %)
+                    {__t('settings.forms.tabs.sales_inventory_settings_tab.s53', "المصاريف الإدارية والعمومية (Overhead %)")}
                   </label>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <input
@@ -1239,7 +1242,7 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
 
                 <div>
                   <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                    نسبة الهالك المتوقع للمواد (Waste %)
+                    {__t('settings.forms.tabs.sales_inventory_settings_tab.s54', "نسبة الهالك المتوقع للمواد (Waste %)")}
                   </label>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <input
@@ -1266,9 +1269,9 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
                   <BoqLinkIcon size={20} />
                 </div>
                 <div style={premiumCardTextStyle}>
-                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>اشتراط ربط إذن الصرف ببند مقايسة محدد</strong>
+                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>{__t('settings.forms.tabs.sales_inventory_settings_tab.s55', "اشتراط ربط إذن الصرف ببند مقايسة محدد")}</strong>
                   <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>
-                    منع صرف أي مواد من مخازن المشاريع دون تحديد بند الأعمال أو المقايسة المرتبط بالصرف لمطابقة تكاليف التنفيذ
+                    {__t('settings.forms.tabs.sales_inventory_settings_tab.s56', "منع صرف أي مواد من مخازن المشاريع دون تحديد بند الأعمال أو المقايسة المرتبط بالصرف لمطابقة تكاليف التنفيذ")}
                   </small>
                 </div>
               </div>
@@ -1287,9 +1290,9 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
                   <ZeroCostIcon size={20} />
                 </div>
                 <div style={premiumCardTextStyle}>
-                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>السماح بتوريدات بتكلفة شراء صفر</strong>
+                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>{__t('settings.forms.tabs.sales_inventory_settings_tab.s57', "السماح بتوريدات بتكلفة شراء صفر")}</strong>
                   <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>
-                    مخصص للمواد الموردة من المالك والعميل مباشرة (Client-Supplied Items) أو العينات الفنية المجانية للاستشاري
+                    {__t('settings.forms.tabs.sales_inventory_settings_tab.s58', "مخصص للمواد الموردة من المالك والعميل مباشرة (Client-Supplied Items) أو العينات الفنية المجانية للاستشاري")}
                   </small>
                 </div>
               </div>
@@ -1308,9 +1311,9 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
                   <LowStockIndicatorIcon size={20} />
                 </div>
                 <div style={premiumCardTextStyle}>
-                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>حد الأمان لنقص تشوينات الموقع</strong>
+                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>{__t('settings.forms.tabs.sales_inventory_settings_tab.s59', "حد الأمان لنقص تشوينات الموقع")}</strong>
                   <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>
-                    يظهر تنبيه نواقص تشوين عندما يصل رصيد المادة بمخزن الموقع لهذا الحد أو أقل لتفادي تعطل الصب والأعمال الميدانية
+                    {__t('settings.forms.tabs.sales_inventory_settings_tab.s60', "يظهر تنبيه نواقص تشوين عندما يصل رصيد المادة بمخزن الموقع لهذا الحد أو أقل لتفادي تعطل الصب والأعمال الميدانية")}
                   </small>
                 </div>
               </div>
@@ -1331,8 +1334,8 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
       {/* ===== مخصص لشركات الشحن واللوجستيات (Maritime Dedicated) ===== */}
       {isMaritimeVertical && (
         <FormSection
-          title="ضوابط الشحن الدولي والعمليات الملاحية (Maritime Operations)"
-          description="تحديد العملة الافتراضية لفواتير الشحن والنولون، وأيام السماح لغرامات الأرضيات والحاويات (Demurrage & Detention)."
+          title={__t('settings.forms.tabs.sales_inventory_settings_tab.s61', "ضوابط الشحن الدولي والعمليات الملاحية (Maritime Operations)")}
+          description={__t('settings.forms.tabs.sales_inventory_settings_tab.s62', "تحديد العملة الافتراضية لفواتير الشحن والنولون، وأيام السماح لغرامات الأرضيات والحاويات (Demurrage & Detention).")}
         >
           <div className="settings-two-col-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '14px' }}>
             <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
@@ -1341,8 +1344,8 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
                   <DemurrageClockIcon size={20} />
                 </div>
                 <div>
-                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>أيام السماح المجانية للحاويات (Demurrage Free Days)</strong>
-                  <span style={{ fontSize: '0.74rem', color: '#64748b', display: 'block' }}>عدد الأيام المسموح بها في الميناء قبل بدء احتساب غرامات التأخير اليومية</span>
+                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>{__t('settings.forms.tabs.sales_inventory_settings_tab.s63', "أيام السماح المجانية للحاويات (Demurrage Free Days)")}</strong>
+                  <span style={{ fontSize: '0.74rem', color: '#64748b', display: 'block' }}>{__t('settings.forms.tabs.sales_inventory_settings_tab.s64', "عدد الأيام المسموح بها في الميناء قبل بدء احتساب غرامات التأخير اليومية")}</span>
                 </div>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -1356,22 +1359,22 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
                   placeholder="14"
                   style={{ ...fieldControlStyle, width: '100px', textAlign: 'center', fontWeight: 800 }}
                 />
-                <span style={{ fontSize: '0.84rem', fontWeight: 700, color: '#334155' }}>يوم (الافتراضي 14 أو 21 يوماً)</span>
+                <span style={{ fontSize: '0.84rem', fontWeight: 700, color: '#334155' }}>{__t('settings.forms.tabs.sales_inventory_settings_tab.s65', "يوم (الافتراضي 14 أو 21 يوماً)")}</span>
               </div>
             </div>
 
             <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
-              <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>عملة تسعير النولون والخدمات البحرية الافتراضية</strong>
-              <span style={{ fontSize: '0.74rem', color: '#64748b' }}>العملة الأساسية لعروض الأسعار الملاحية والتعامل مع الخطوط الدولية</span>
+              <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>{__t('settings.forms.tabs.sales_inventory_settings_tab.s66', "عملة تسعير النولون والخدمات البحرية الافتراضية")}</strong>
+              <span style={{ fontSize: '0.74rem', color: '#64748b' }}>{__t('settings.forms.tabs.sales_inventory_settings_tab.s67', "العملة الأساسية لعروض الأسعار الملاحية والتعامل مع الخطوط الدولية")}</span>
               <CustomSelect
                 value={form.watch('maritimeDefaultCurrency') || 'USD'}
                 onChange={(val) => form.setValue('maritimeDefaultCurrency', val as any, { shouldDirty: true, shouldValidate: true })}
                 options={[
-                  { value: 'USD', label: 'الدولار الأمريكي (USD $)' },
-                  { value: 'EUR', label: 'اليورو الأوروبي (EUR €)' },
-                  { value: 'EGP', label: 'الجنيه المصري (EGP)' },
-                  { value: 'SAR', label: 'الريال السعودي (SAR)' },
-                  { value: 'AED', label: 'الدرهم الإماراتي (AED)' },
+                  { value: 'USD', label: __t('settings.forms.tabs.sales_inventory_settings_tab.s68', "الدولار الأمريكي (USD $)") },
+                  { value: 'EUR', label: __t('settings.forms.tabs.sales_inventory_settings_tab.s69', "اليورو الأوروبي (EUR €)") },
+                  { value: 'EGP', label: __t('settings.forms.tabs.sales_inventory_settings_tab.s70', "الجنيه المصري (EGP)") },
+                  { value: 'SAR', label: __t('settings.forms.tabs.sales_inventory_settings_tab.s71', "الريال السعودي (SAR)") },
+                  { value: 'AED', label: __t('settings.forms.tabs.sales_inventory_settings_tab.s72', "الدرهم الإماراتي (AED)") },
                 ]}
                 disabled={disabled}
               />
@@ -1384,8 +1387,8 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
                   <ZeroCostIcon size={20} />
                 </div>
                 <div style={premiumCardTextStyle}>
-                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>السماح بإصدار حركات تكلفة صفرية</strong>
-                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>مخصص لنقل الحاويات الفارغة وإرجاع المعدات الملاحية دون تكلفة شراء مباشرة</small>
+                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>{__t('settings.forms.tabs.sales_inventory_settings_tab.s73', "السماح بإصدار حركات تكلفة صفرية")}</strong>
+                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>{__t('settings.forms.tabs.sales_inventory_settings_tab.s74', "مخصص لنقل الحاويات الفارغة وإرجاع المعدات الملاحية دون تكلفة شراء مباشرة")}</small>
                 </div>
               </div>
               <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('allowZeroPurchaseCost')} disabled={disabled} />
@@ -1397,8 +1400,8 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
       {/* ===== مخصص لشركات الاستيراد والتصدير (Import/Export Dedicated) ===== */}
       {isImportVertical && (
         <FormSection
-          title="ضوابط الرسائل الجمركية وتكاليف الاستيراد (Landed Cost & Customs)"
-          description="تحديد معيار توزيع مصاريف الشحن والتخليص الجمركي وضريبة الوارد على بنود وأصناف الرسالة الاستيرادية."
+          title={__t('settings.forms.tabs.sales_inventory_settings_tab.s75', "ضوابط الرسائل الجمركية وتكاليف الاستيراد (Landed Cost & Customs)")}
+          description={__t('settings.forms.tabs.sales_inventory_settings_tab.s76', "تحديد معيار توزيع مصاريف الشحن والتخليص الجمركي وضريبة الوارد على بنود وأصناف الرسالة الاستيرادية.")}
         >
           <div className="settings-two-col-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '14px' }}>
             <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
@@ -1407,32 +1410,32 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
                   <LandedCostIcon size={20} />
                 </div>
                 <div>
-                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>أساس توزيع تكلفة الاستيراد الإجمالية (Landed Cost)</strong>
-                  <span style={{ fontSize: '0.74rem', color: '#64748b', display: 'block' }}>المعيار المحاسبي لتوزيع مصاريف الشحن والجمارك على تكلفة الوحدة في المخزن</span>
+                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>{__t('settings.forms.tabs.sales_inventory_settings_tab.s77', "أساس توزيع تكلفة الاستيراد الإجمالية (Landed Cost)")}</strong>
+                  <span style={{ fontSize: '0.74rem', color: '#64748b', display: 'block' }}>{__t('settings.forms.tabs.sales_inventory_settings_tab.s78', "المعيار المحاسبي لتوزيع مصاريف الشحن والجمارك على تكلفة الوحدة في المخزن")}</span>
                 </div>
               </div>
               <CustomSelect
                 value={form.watch('importLandedCostMethod') || 'by_value'}
                 onChange={(val) => form.setValue('importLandedCostMethod', val as any, { shouldDirty: true, shouldValidate: true })}
                 options={[
-                  { value: 'by_value', label: 'حسب القيمة المالية لكل صنف (Value Proportional)' },
-                  { value: 'by_weight', label: 'حسب الوزن الإجمالي (Gross Weight - KG/Ton)' },
-                  { value: 'by_volume', label: 'حسب الحجم بالمتر المكعب (CBM)' },
-                  { value: 'by_quantity', label: 'حسب عدد القطع والوحدات (Quantity)' },
+                  { value: 'by_value', label: __t('settings.forms.tabs.sales_inventory_settings_tab.s79', "حسب القيمة المالية لكل صنف (Value Proportional)") },
+                  { value: 'by_weight', label: __t('settings.forms.tabs.sales_inventory_settings_tab.s80', "حسب الوزن الإجمالي (Gross Weight - KG/Ton)") },
+                  { value: 'by_volume', label: __t('settings.forms.tabs.sales_inventory_settings_tab.s81', "حسب الحجم بالمتر المكعب (CBM)") },
+                  { value: 'by_quantity', label: __t('settings.forms.tabs.sales_inventory_settings_tab.s82', "حسب عدد القطع والوحدات (Quantity)") },
                 ]}
                 disabled={disabled}
               />
             </div>
 
             <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
-              <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>الربط التلقائي للمصاريف البنكية والاعتمادات</strong>
-              <span style={{ fontSize: '0.74rem', color: '#64748b' }}>إدراج عمولات فتح الاعتماد المستندي (LC) وفروق أسعار الصرف ضمن تكلفة الشحنة</span>
+              <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>{__t('settings.forms.tabs.sales_inventory_settings_tab.s83', "الربط التلقائي للمصاريف البنكية والاعتمادات")}</strong>
+              <span style={{ fontSize: '0.74rem', color: '#64748b' }}>{__t('settings.forms.tabs.sales_inventory_settings_tab.s84', "إدراج عمولات فتح الاعتماد المستندي (LC) وفروق أسعار الصرف ضمن تكلفة الشحنة")}</span>
               <CustomSelect
                 value={form.watch('importAutoLinkBankExpenses') || 'auto_link'}
                 onChange={(val) => form.setValue('importAutoLinkBankExpenses', val as any, { shouldDirty: true, shouldValidate: true })}
                 options={[
-                  { value: 'auto_link', label: 'ربط تلقائي بالرسالة الجمركية المفتوحة' },
-                  { value: 'manual', label: 'ترحيل يدوي لحساب المصروفات التمويلية' },
+                  { value: 'auto_link', label: __t('settings.forms.tabs.sales_inventory_settings_tab.s85', "ربط تلقائي بالرسالة الجمركية المفتوحة") },
+                  { value: 'manual', label: __t('settings.forms.tabs.sales_inventory_settings_tab.s86', "ترحيل يدوي لحساب المصروفات التمويلية") },
                 ]}
                 disabled={disabled}
               />
@@ -1444,8 +1447,8 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
                   <ZeroCostIcon size={20} />
                 </div>
                 <div style={premiumCardTextStyle}>
-                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>السماح بعينات استيرادية مجانية</strong>
-                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>إمكانية استلام عينات تجارية واردة بتكلفة شراء صفر</small>
+                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>{__t('settings.forms.tabs.sales_inventory_settings_tab.s87', "السماح بعينات استيرادية مجانية")}</strong>
+                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>{__t('settings.forms.tabs.sales_inventory_settings_tab.s88', "إمكانية استلام عينات تجارية واردة بتكلفة شراء صفر")}</small>
                 </div>
               </div>
               <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('allowZeroPurchaseCost')} disabled={disabled} />
@@ -1457,8 +1460,8 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
                   <LowStockIndicatorIcon size={20} />
                 </div>
                 <div style={premiumCardTextStyle}>
-                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>حد التنبيه لنقص المخزون</strong>
-                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>إشعار ببدء إجراءات فتح رسالة استيرادية جديدة عند وصول الرصيد لهذا الحد</small>
+                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>{__t('settings.forms.tabs.sales_inventory_settings_tab.s89', "حد التنبيه لنقص المخزون")}</strong>
+                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>{__t('settings.forms.tabs.sales_inventory_settings_tab.s90', "إشعار ببدء إجراءات فتح رسالة استيرادية جديدة عند وصول الرصيد لهذا الحد")}</small>
                 </div>
               </div>
               <input
@@ -1478,28 +1481,28 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
       {/* ===== مخصص للمكاتب والشركات الخدمية (Services Dedicated) ===== */}
       {isServicesVertical && (
         <FormSection
-          title="ضوابط العقود والخدمات المهنية والاستشارية"
-          description="تحديد نمط فوترة عقود الخدمات وإدارة فترات الاشتراكات والدفعات التعاقدية."
+          title={__t('settings.forms.tabs.sales_inventory_settings_tab.s91', "ضوابط العقود والخدمات المهنية والاستشارية")}
+          description={__t('settings.forms.tabs.sales_inventory_settings_tab.s92', "تحديد نمط فوترة عقود الخدمات وإدارة فترات الاشتراكات والدفعات التعاقدية.")}
         >
           <div className="settings-two-col-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '14px' }}>
             <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
-              <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>نمط احتساب وإصدار فواتير الخدمات</strong>
-              <span style={{ fontSize: '0.74rem', color: '#64748b' }}>الأساس المعتمد لفوترة الخدمات المهنية والاستشارية لعملاء الشركة</span>
+              <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>{__t('settings.forms.tabs.sales_inventory_settings_tab.s93', "نمط احتساب وإصدار فواتير الخدمات")}</strong>
+              <span style={{ fontSize: '0.74rem', color: '#64748b' }}>{__t('settings.forms.tabs.sales_inventory_settings_tab.s94', "الأساس المعتمد لفوترة الخدمات المهنية والاستشارية لعملاء الشركة")}</span>
               <CustomSelect
                 value={form.watch('servicesBillingMethod') || 'deliverable'}
                 onChange={(val) => form.setValue('servicesBillingMethod', val as any, { shouldDirty: true, shouldValidate: true })}
                 options={[
-                  { value: 'deliverable', label: 'حسب تسليم البنود والمراحل (Milestone / Deliverable)' },
-                  { value: 'subscription', label: 'اشتراكات شهرية متكررة (Retainer / Monthly)' },
-                  { value: 'hourly', label: 'حسب ساعات العمل المسجلة (Time & Material)' },
+                  { value: 'deliverable', label: __t('settings.forms.tabs.sales_inventory_settings_tab.s95', "حسب تسليم البنود والمراحل (Milestone / Deliverable)") },
+                  { value: 'subscription', label: __t('settings.forms.tabs.sales_inventory_settings_tab.s96', "اشتراكات شهرية متكررة (Retainer / Monthly)") },
+                  { value: 'hourly', label: __t('settings.forms.tabs.sales_inventory_settings_tab.s97', "حسب ساعات العمل المسجلة (Time & Material)") },
                 ]}
                 disabled={disabled}
               />
             </div>
 
             <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
-              <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>فترة الإشعار لتجديد عقود الخدمات</strong>
-              <span style={{ fontSize: '0.74rem', color: '#64748b' }}>أيام الإشعار التلقائي قبل انتهاء مدة العقد أو الاشتراك لطلب التجديد</span>
+              <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>{__t('settings.forms.tabs.sales_inventory_settings_tab.s98', "فترة الإشعار لتجديد عقود الخدمات")}</strong>
+              <span style={{ fontSize: '0.74rem', color: '#64748b' }}>{__t('settings.forms.tabs.sales_inventory_settings_tab.s99', "أيام الإشعار التلقائي قبل انتهاء مدة العقد أو الاشتراك لطلب التجديد")}</span>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <input
                   type="number"
@@ -1511,7 +1514,7 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
                   placeholder="30"
                   style={{ ...fieldControlStyle, width: '100px', textAlign: 'center', fontWeight: 800 }}
                 />
-                <span style={{ fontSize: '0.84rem', fontWeight: 700, color: '#334155' }}>يوم قبل الانتهاء</span>
+                <span style={{ fontSize: '0.84rem', fontWeight: 700, color: '#334155' }}>{__t('settings.forms.tabs.sales_inventory_settings_tab.s100', "يوم قبل الانتهاء")}</span>
               </div>
             </div>
           </div>
@@ -1521,20 +1524,20 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
       {/* ===== مخصص للمصانع والإنتاج الصناعي (Manufacturing Dedicated) ===== */}
       {isManufacturingVertical && (
         <FormSection
-          title="ضوابط التصنيع والإنتاج ومخازن المواد الخام"
-          description="تحديد ضوابط حركة المواد الخام ومكونات الإنتاج وأوامر التشغيل بالمصنع."
+          title={__t('settings.forms.tabs.sales_inventory_settings_tab.s101', "ضوابط التصنيع والإنتاج ومخازن المواد الخام")}
+          description={__t('settings.forms.tabs.sales_inventory_settings_tab.s102', "تحديد ضوابط حركة المواد الخام ومكونات الإنتاج وأوامر التشغيل بالمصنع.")}
         >
           <div className="settings-two-col-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '14px' }}>
             {/* Card 1: Default Issue Mode for Materials */}
             <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
-              <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>نمط صرف خامات ومكونات الإنتاج الافتراضي</strong>
-              <span style={{ fontSize: '0.74rem', color: '#64748b' }}>آلية خصم الخامات من المخازن عند إصدار إذن تشغيل الإنتاج</span>
+              <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>{__t('settings.forms.tabs.sales_inventory_settings_tab.s103', "نمط صرف خامات ومكونات الإنتاج الافتراضي")}</strong>
+              <span style={{ fontSize: '0.74rem', color: '#64748b' }}>{__t('settings.forms.tabs.sales_inventory_settings_tab.s104', "آلية خصم الخامات من المخازن عند إصدار إذن تشغيل الإنتاج")}</span>
               <CustomSelect
                 value={form.watch('defaultBranchIssueMode') || 'final_issue'}
                 onChange={(val) => form.setValue('defaultBranchIssueMode', val as any, { shouldDirty: true, shouldValidate: true })}
                 options={[
-                  { value: 'final_issue', label: 'صرف نهائي لأمر التشغيل (يُخصم الرصيد فوراً)' },
-                  { value: 'transfer_to_branch_stock', label: 'تحويل لمستودع تشغيل / خط الإنتاج (قيد الاستخدام)' },
+                  { value: 'final_issue', label: __t('settings.forms.tabs.sales_inventory_settings_tab.s105', "صرف نهائي لأمر التشغيل (يُخصم الرصيد فوراً)") },
+                  { value: 'transfer_to_branch_stock', label: __t('settings.forms.tabs.sales_inventory_settings_tab.s106', "تحويل لمستودع تشغيل / خط الإنتاج (قيد الاستخدام)") },
                 ]}
                 disabled={disabled}
               />
@@ -1542,8 +1545,8 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
 
             {/* Card 2: Raw Materials Low Stock Threshold */}
             <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
-              <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>حد التنبيه لنقص المواد الخام والمكونات</strong>
-              <span style={{ fontSize: '0.74rem', color: '#64748b' }}>إظهار تنبيه نقص المواد الخام في لوحة التحكم عند وصول الرصيد لهذا الحد</span>
+              <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>{__t('settings.forms.tabs.sales_inventory_settings_tab.s107', "حد التنبيه لنقص المواد الخام والمكونات")}</strong>
+              <span style={{ fontSize: '0.74rem', color: '#64748b' }}>{__t('settings.forms.tabs.sales_inventory_settings_tab.s108', "إظهار تنبيه نقص المواد الخام في لوحة التحكم عند وصول الرصيد لهذا الحد")}</span>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <input
                   type="number"
@@ -1554,7 +1557,7 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
                   placeholder="10"
                   style={{ ...fieldControlStyle, width: '100px', textAlign: 'center', fontWeight: 800 }}
                 />
-                <span style={{ fontSize: '0.84rem', fontWeight: 700, color: '#334155' }}>وحدة مخزنية</span>
+                <span style={{ fontSize: '0.84rem', fontWeight: 700, color: '#334155' }}>{__t('settings.forms.tabs.sales_inventory_settings_tab.s109', "وحدة مخزنية")}</span>
               </div>
             </div>
 
@@ -1565,8 +1568,8 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
                   <ZeroCostIcon size={20} />
                 </div>
                 <div style={premiumCardTextStyle}>
-                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>السماح بسعر شراء صفر لخامات وعينات التشغيل</strong>
-                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>مخصص لخامات التشغيل المهداة، العينات المخبرية، ومخلفات التدوير</small>
+                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>{__t('settings.forms.tabs.sales_inventory_settings_tab.s110', "السماح بسعر شراء صفر لخامات وعينات التشغيل")}</strong>
+                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>{__t('settings.forms.tabs.sales_inventory_settings_tab.s111', "مخصص لخامات التشغيل المهداة، العينات المخبرية، ومخلفات التدوير")}</small>
                 </div>
               </div>
               <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('allowZeroPurchaseCost')} disabled={disabled} />
@@ -1579,8 +1582,8 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
                   <NegativeStockIcon size={20} />
                 </div>
                 <div style={premiumCardTextStyle}>
-                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>السماح بصرف الخامات بالسالب</strong>
-                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>تخطي رصيد المخزن لتفادي توقف خطوط الإنتاج قبل وصول أذون الإضافة</small>
+                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>{__t('settings.forms.tabs.sales_inventory_settings_tab.s112', "السماح بصرف الخامات بالسالب")}</strong>
+                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>{__t('settings.forms.tabs.sales_inventory_settings_tab.s113', "تخطي رصيد المخزن لتفادي توقف خطوط الإنتاج قبل وصول أذون الإضافة")}</small>
                 </div>
               </div>
               <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('allowNegativeStockSales')} disabled={disabled} />
@@ -1592,8 +1595,8 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
       {/* ===== خيارات وقواعد البيع والمخزون (للتجارة والتجزئة والأنشطة العامة) ===== */}
       {isRetailCommerce && (
         <FormSection
-          title="خيارات وقواعد البيع والمخزون"
-          description="ضوابط حركة المخازن والأرصدة وعمليات الكاشير وإصدار أذونات الصرف."
+          title={__t('settings.forms.tabs.sales_inventory_settings_tab.s114', "خيارات وقواعد البيع والمخزون")}
+          description={__t('settings.forms.tabs.sales_inventory_settings_tab.s115', "ضوابط حركة المخازن والأرصدة وعمليات الكاشير وإصدار أذونات الصرف.")}
         >
           <div className="settings-two-col-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '12px' }}>
           {/* Card 1: Negative Stock */}
@@ -1604,8 +1607,8 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
                   <NegativeStockIcon size={20} />
                 </div>
                 <div style={premiumCardTextStyle}>
-                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>السماح بالبيع بالسالب</strong>
-                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>تخطي تحذير عدم كفاية المخزون عند إتمام الفاتورة بالكاشير</small>
+                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>{__t('settings.forms.tabs.sales_inventory_settings_tab.s116', "السماح بالبيع بالسالب")}</strong>
+                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>{__t('settings.forms.tabs.sales_inventory_settings_tab.s117', "تخطي تحذير عدم كفاية المخزون عند إتمام الفاتورة بالكاشير")}</small>
                 </div>
               </div>
               <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('allowNegativeStockSales')} disabled={disabled} />
@@ -1619,8 +1622,8 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
                 <ZeroCostIcon size={20} />
               </div>
               <div style={premiumCardTextStyle}>
-                <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>السماح بسعر شراء صفر</strong>
-                <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>مخصص للأصناف المهداة، العينات المجانية، والعطايا الترويجية</small>
+                <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>{__t('settings.forms.tabs.sales_inventory_settings_tab.s118', "السماح بسعر شراء صفر")}</strong>
+                <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>{__t('settings.forms.tabs.sales_inventory_settings_tab.s119', "مخصص للأصناف المهداة، العينات المجانية، والعطايا الترويجية")}</small>
               </div>
             </div>
             <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('allowZeroPurchaseCost')} disabled={disabled} />
@@ -1634,8 +1637,8 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
                   <CashierShiftLockIcon size={20} />
                 </div>
                 <div style={premiumCardTextStyle}>
-                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>إجبار فتح وردية لعمليات الكاشير</strong>
-                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>منع البيع قبل فتح الوردية وتحديد العهدة لضبط الخزينة</small>
+                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>{__t('settings.forms.tabs.sales_inventory_settings_tab.s120', "إجبار فتح وردية لعمليات الكاشير")}</strong>
+                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>{__t('settings.forms.tabs.sales_inventory_settings_tab.s121', "منع البيع قبل فتح الوردية وتحديد العهدة لضبط الخزينة")}</small>
                 </div>
               </div>
               <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('requireCashierShiftForSales')} disabled={disabled} />
@@ -1650,8 +1653,8 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
                   <LowStockIndicatorIcon size={20} />
                 </div>
                 <div style={premiumCardTextStyle}>
-                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>حد التنبيه لنقص المخزون</strong>
-                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>يظهر تنبيه نواقص عندما يصل الرصيد لهذا الحد أو أقل</small>
+                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>{__t('settings.forms.tabs.sales_inventory_settings_tab.s122', "حد التنبيه لنقص المخزون")}</strong>
+                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>{__t('settings.forms.tabs.sales_inventory_settings_tab.s123', "يظهر تنبيه نواقص عندما يصل الرصيد لهذا الحد أو أقل")}</small>
                 </div>
               </div>
               <input
@@ -1675,13 +1678,13 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
                     <CashierShiftLockIcon size={20} />
                   </div>
                   <div>
-                    <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>سقف خصم الكاشير واعتماد المدير (PIN)</strong>
-                    <span style={{ fontSize: '0.74rem', color: '#64748b', display: 'block' }}>اشتراط إدخال PIN المدير عند إعطاء الكاشير خصماً يتجاوز حداً معيناً أو لتعديل العمليات الحساسة</span>
+                    <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>{__t('settings.forms.tabs.sales_inventory_settings_tab.s124', "سقف خصم الكاشير واعتماد المدير (PIN)")}</strong>
+                    <span style={{ fontSize: '0.74rem', color: '#64748b', display: 'block' }}>{__t('settings.forms.tabs.sales_inventory_settings_tab.s125', "اشتراط إدخال PIN المدير عند إعطاء الكاشير خصماً يتجاوز حداً معيناً أو لتعديل العمليات الحساسة")}</span>
                   </div>
                 </div>
                 <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
                   <span style={{ fontSize: '0.8rem', fontWeight: 700, color: form.watch('posMaxDiscountThresholdEnabled') ? '#166534' : '#64748b' }}>
-                    {form.watch('posMaxDiscountThresholdEnabled') ? 'سقف الخصم: مفعّل' : 'سقف الخصم: معطل'}
+                    {form.watch('posMaxDiscountThresholdEnabled') ? __t('settings.forms.tabs.sales_inventory_settings_tab.s126', "سقف الخصم: مفعّل") : __t('settings.forms.tabs.sales_inventory_settings_tab.s127', "سقف الخصم: معطل")}
                   </span>
                   <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('posMaxDiscountThresholdEnabled')} disabled={disabled} />
                 </label>
@@ -1690,14 +1693,14 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '14px', paddingTop: '12px', borderTop: '1px solid #f1f5f9' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                    الرمز السري للمدير (PIN)
+                    {__t('settings.forms.tabs.sales_inventory_settings_tab.s128', "الرمز السري للمدير (PIN)")}
                   </label>
                   {settings?.hasManagerPin && !isChangingPin ? (
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', minHeight: '38px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#16a34a', display: 'inline-block' }} />
                         <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#166534' }}>
-                          تم حفظ وتفعيل رمز سري للمدير
+                          {__t('settings.forms.tabs.sales_inventory_settings_tab.s129', "تم حفظ وتفعيل رمز سري للمدير")}
                         </span>
                       </div>
                       <button
@@ -1718,13 +1721,13 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
                           cursor: 'pointer',
                         }}
                       >
-                        تغيير الرمز
+                        {__t('settings.forms.tabs.sales_inventory_settings_tab.s130', "تغيير الرمز")}
                       </button>
                     </div>
                   ) : !settings?.hasManagerPin && !isChangingPin ? (
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', minHeight: '38px' }}>
                       <span style={{ fontSize: '0.76rem', color: '#64748b' }}>
-                        لم يتم تعيين رمز سري بعد (اختياري)
+                        {__t('settings.forms.tabs.sales_inventory_settings_tab.s131', "لم يتم تعيين رمز سري بعد (اختياري)")}
                       </span>
                       <button
                         type="button"
@@ -1744,7 +1747,7 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
                           cursor: 'pointer',
                         }}
                       >
-                        تعيين رمز PIN
+                        {__t('settings.forms.tabs.sales_inventory_settings_tab.s132', "تعيين رمز PIN")}
                       </button>
                     </div>
                   ) : (
@@ -1764,7 +1767,7 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
                             form.setValue('managerPin', digits, { shouldValidate: true, shouldDirty: true });
                           }}
                           disabled={disabled}
-                          placeholder="أدخل الرمز الجديد (4 - 10 أرقام)"
+                          placeholder={__t('settings.forms.tabs.sales_inventory_settings_tab.s133', "أدخل الرمز الجديد (4 - 10 أرقام)")}
                           style={fieldControlStyle}
                           autoFocus
                         />
@@ -1787,11 +1790,11 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
                             whiteSpace: 'nowrap',
                           }}
                         >
-                          إلغاء
+                          {__t('settings.forms.tabs.sales_inventory_settings_tab.s134', "إلغاء")}
                         </button>
                       </div>
                       <small style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '4px', display: 'block' }}>
-                        الرمز السري المطلوب لاعتماد العمليات الحساسة وتجاوز سقف الخصم بالكاشير.
+                        {__t('settings.forms.tabs.sales_inventory_settings_tab.s135', "الرمز السري المطلوب لاعتماد العمليات الحساسة وتجاوز سقف الخصم بالكاشير.")}
                       </small>
                     </div>
                   )}
@@ -1801,13 +1804,13 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
                   <>
                     <div>
                       <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                        طريقة حساب سقف الخصم
+                        {__t('settings.forms.tabs.sales_inventory_settings_tab.s136', "طريقة حساب سقف الخصم")}
                       </label>
                       <CustomSelect
                         value={form.watch('posMaxDiscountThresholdType') || 'percentage'}
                         onChange={(val) => form.setValue('posMaxDiscountThresholdType', val as any, { shouldDirty: true, shouldValidate: true })}
                         options={[
-                          { value: 'percentage', label: 'نسبة مئوية من إجمالي الفاتورة (%)' },
+                          { value: 'percentage', label: __t('settings.forms.tabs.sales_inventory_settings_tab.s137', "نسبة مئوية من إجمالي الفاتورة (%)") },
                           { value: 'fixed', label: `مبلغ ثابت بالعملة (${getGlobalCurrencySymbol()})` },
                         ]}
                         disabled={disabled}
@@ -1816,7 +1819,7 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
 
                     <div>
                       <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                        قيمة سقف الخصم المسموح به {form.watch('posMaxDiscountThresholdType') === 'fixed' ? `(${getGlobalCurrencySymbol()})` : '(%)'}
+                        {__t('settings.forms.tabs.sales_inventory_settings_tab.s138', "قيمة سقف الخصم المسموح به")} {form.watch('posMaxDiscountThresholdType') === 'fixed' ? `(${getGlobalCurrencySymbol()})` : '(%)'}
                       </label>
                       <input
                         type="number"
@@ -1825,11 +1828,11 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
                         className="purchase-prototype-field-input"
                         {...form.register('posMaxDiscountThresholdValue')}
                         disabled={disabled}
-                        placeholder={form.watch('posMaxDiscountThresholdType') === 'fixed' ? 'مثال: 50' : 'مثال: 15'}
+                        placeholder={form.watch('posMaxDiscountThresholdType') === 'fixed' ? __t('settings.forms.tabs.sales_inventory_settings_tab.s139', "مثال: 50") : __t('settings.forms.tabs.sales_inventory_settings_tab.s140', "مثال: 15")}
                         style={fieldControlStyle}
                       />
                       <small style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '4px', display: 'block' }}>
-                        عند تطبيق خصم أعلى من هذا الحد بالكاشير، لن تكتمل الفاتورة إلا بإدخال رمز مرور المدير (PIN).
+                        {__t('settings.forms.tabs.sales_inventory_settings_tab.s141', "عند تطبيق خصم أعلى من هذا الحد بالكاشير، لن تكتمل الفاتورة إلا بإدخال رمز مرور المدير (PIN).")}
                       </small>
                     </div>
                   </>
@@ -1847,21 +1850,21 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
                 </div>
                 <div style={{ flex: 1 }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
-                    <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>وضع إذن الصرف الافتراضي</strong>
+                    <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>{__t('settings.forms.tabs.sales_inventory_settings_tab.s142', "وضع إذن الصرف الافتراضي")}</strong>
                     <div style={{ minWidth: '280px' }}>
                       <CustomSelect
                         value={form.watch('defaultBranchIssueMode') || 'final_issue'}
                         onChange={(val) => form.setValue('defaultBranchIssueMode', val as any, { shouldDirty: true, shouldValidate: true })}
                         options={[
-                          { value: 'final_issue', label: 'صرف نهائي (يتم خصم الرصيد فوراً)' },
-                          { value: 'transfer_to_branch_stock', label: 'تحويل إلى رصيد فرع (يبقى بانتظار الاستلام)' },
+                          { value: 'final_issue', label: __t('settings.forms.tabs.sales_inventory_settings_tab.s143', "صرف نهائي (يتم خصم الرصيد فوراً)") },
+                          { value: 'transfer_to_branch_stock', label: __t('settings.forms.tabs.sales_inventory_settings_tab.s144', "تحويل إلى رصيد فرع (يبقى بانتظار الاستلام)") },
                         ]}
                         disabled={disabled}
                       />
                     </div>
                   </div>
                   <span style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '4px', display: 'block' }}>
-                    استخدم <strong>الصرف النهائي</strong> إذا كان الفرع لا يدار مخزونه على النظام، أو <strong>تحويل إلى رصيد فرع</strong> إذا كان الفرع يبيع من رصيده على النظام.
+                    {__t('settings.forms.tabs.sales_inventory_settings_tab.s145', "استخدم")} <strong>{__t('settings.forms.tabs.sales_inventory_settings_tab.s146', "الصرف النهائي")}</strong> {__t('settings.forms.tabs.sales_inventory_settings_tab.s147', "إذا كان الفرع لا يدار مخزونه على النظام، أو")} <strong>{__t('settings.forms.tabs.sales_inventory_settings_tab.s148', "تحويل إلى رصيد فرع")}</strong> {__t('settings.forms.tabs.sales_inventory_settings_tab.s149', "إذا كان الفرع يبيع من رصيده على النظام.")}
                   </span>
                 </div>
               </div>
@@ -1878,9 +1881,9 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
                     <DeliveryModeIcon size={20} />
                   </div>
                   <div style={premiumCardTextStyle}>
-                    <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>معالجة رسوم التوصيل</strong>
+                    <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>{__t('settings.forms.tabs.sales_inventory_settings_tab.s150', "معالجة رسوم التوصيل")}</strong>
                     <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>
-                      {isStoreFleet ? 'أسطول المتجر (إيراد للمحل وتُطبق عمولة الطيار)' : 'مناديب حرة / طياري (100% للمندوب ولا تدخل الخزينة)'}
+                      {isStoreFleet ? __t('settings.forms.tabs.sales_inventory_settings_tab.s151', "أسطول المتجر (إيراد للمحل وتُطبق عمولة الطيار)") : __t('settings.forms.tabs.sales_inventory_settings_tab.s152', "مناديب حرة / طياري (100% للمندوب ولا تدخل الخزينة)")}
                     </small>
                   </div>
                 </div>
@@ -1889,8 +1892,8 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
                     value={form.watch('deliveryFeeMode') || 'freelance_courier'}
                     onChange={(val) => form.setValue('deliveryFeeMode', val as any, { shouldDirty: true, shouldValidate: true })}
                     options={[
-                      { value: 'freelance_courier', label: 'مناديب حرة (طياري)' },
-                      { value: 'store_fleet', label: 'أسطول المتجر (داخلي)' },
+                      { value: 'freelance_courier', label: __t('settings.forms.tabs.sales_inventory_settings_tab.s153', "مناديب حرة (طياري)") },
+                      { value: 'store_fleet', label: __t('settings.forms.tabs.sales_inventory_settings_tab.s154', "أسطول المتجر (داخلي)") },
                     ]}
                     disabled={disabled}
                   />
@@ -1904,9 +1907,9 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
                     <DefaultDeliveryFeeIcon size={20} />
                   </div>
                   <div style={premiumCardTextStyle}>
-                    <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>رسوم التوصيل الافتراضية</strong>
+                    <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>{__t('settings.forms.tabs.sales_inventory_settings_tab.s155', "رسوم التوصيل الافتراضية")}</strong>
                     <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>
-                      تُملأ تلقائياً عند اختيار دليفري وقابلة للتعديل بالكاشير
+                      {__t('settings.forms.tabs.sales_inventory_settings_tab.s156', "تُملأ تلقائياً عند اختيار دليفري وقابلة للتعديل بالكاشير")}
                     </small>
                   </div>
                 </div>
@@ -1933,8 +1936,8 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
                       <CourierCommissionIcon size={20} />
                     </div>
                     <div style={premiumCardTextStyle}>
-                      <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>نسبة الطيار من التوصيل</strong>
-                      <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>عمولة طياري الأسطول (0% للثابت)</small>
+                      <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>{__t('settings.forms.tabs.sales_inventory_settings_tab.s157', "نسبة الطيار من التوصيل")}</strong>
+                      <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>{__t('settings.forms.tabs.sales_inventory_settings_tab.s158', "عمولة طياري الأسطول (0% للثابت)")}</small>
                     </div>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -1961,11 +1964,11 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
                     <CheckShieldIcon size={20} color="#170e5e" />
                   </div>
                   <div style={premiumCardTextStyle}>
-                    <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>إلزامية رمز المشرف (PIN) لتصفية رحلات المناديب</strong>
+                    <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>{__t('settings.forms.tabs.sales_inventory_settings_tab.s159', "إلزامية رمز المشرف (PIN) لتصفية رحلات المناديب")}</strong>
                     <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>
                       {form.watch('vanSettlementRequireSupervisorPin')
-                        ? 'مفعل: يلزم إدخال رمز المشرف (PIN) على هاتف المندوب لإتمام التصفية وإبراء العهدة'
-                        : 'معطل: يقفل المندوب ورديته مباشرة وتعتمد التصفية ويستلم الكاش من لوحة الإدارة'}
+                        ? __t('settings.forms.tabs.sales_inventory_settings_tab.s160', "مفعل: يلزم إدخال رمز المشرف (PIN) على هاتف المندوب لإتمام التصفية وإبراء العهدة")
+                        : __t('settings.forms.tabs.sales_inventory_settings_tab.s161', "معطل: يقفل المندوب ورديته مباشرة وتعتمد التصفية ويستلم الكاش من لوحة الإدارة")}
                     </small>
                   </div>
                 </div>
@@ -1987,11 +1990,11 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
                     <LockIcon size={20} color="#170e5e" />
                   </div>
                   <div style={premiumCardTextStyle}>
-                    <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>إلزام التوريد العمياني لكاش المناديب (Blind Settlement)</strong>
+                    <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>{__t('settings.forms.tabs.sales_inventory_settings_tab.s162', "إلزام التوريد العمياني لكاش المناديب (Blind Settlement)")}</strong>
                     <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>
                       {form.watch('vanSettlementBlindMode')
-                        ? 'مفعل: إخفاء صافي النقدية المتوقعة وزر المطابقة؛ يُجبر المندوب على عد الكاش الفعلي واحتساب الفروقات رقابياً'
-                        : 'معطل: يظهر صافي النقدية المتوقعة وزر المطابقة أمام المندوب بشفافية لتسريع التصفية'}
+                        ? __t('settings.forms.tabs.sales_inventory_settings_tab.s163', "مفعل: إخفاء صافي النقدية المتوقعة وزر المطابقة؛ يُجبر المندوب على عد الكاش الفعلي واحتساب الفروقات رقابياً")
+                        : __t('settings.forms.tabs.sales_inventory_settings_tab.s164', "معطل: يظهر صافي النقدية المتوقعة وزر المطابقة أمام المندوب بشفافية لتسريع التصفية")}
                     </small>
                   </div>
                 </div>
@@ -2014,9 +2017,9 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
                       <RestaurantTablesIcon size={20} />
                     </div>
                     <div style={premiumCardTextStyle}>
-                      <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>عدد طاولات الصالة</strong>
+                      <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>{__t('settings.forms.tabs.sales_inventory_settings_tab.s165', "عدد طاولات الصالة")}</strong>
                       <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>
-                        العدد الافتراضي للطاولات المعروضة في خريطة الصالة والمطاعم
+                        {__t('settings.forms.tabs.sales_inventory_settings_tab.s166', "العدد الافتراضي للطاولات المعروضة في خريطة الصالة والمطاعم")}
                       </small>
                     </div>
                   </div>
@@ -2032,7 +2035,7 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
                       placeholder="24"
                       style={{ width: '85px', height: '36px', textAlign: 'center', fontWeight: 800, fontSize: '0.9rem', borderRadius: '6px', border: '1px solid #cbd5e1' }}
                     />
-                    <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#64748b' }}>طاولة</span>
+                    <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#64748b' }}>{__t('settings.forms.tabs.sales_inventory_settings_tab.s167', "طاولة")}</span>
                   </div>
                 </div>
               )}
@@ -2045,9 +2048,9 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
                       <RestaurantServiceChargeIcon size={20} />
                     </div>
                     <div style={premiumCardTextStyle}>
-                      <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>رسوم خدمة الصالة التلقائية (Service Charge)</strong>
+                      <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>{__t('settings.forms.tabs.sales_inventory_settings_tab.s168', "رسوم خدمة الصالة التلقائية (Service Charge)")}</strong>
                       <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>
-                        إضافة نسبة مئوية لخدمة الصالة تلقائياً عند اختيار طلب صالة (Dine-in)
+                        {__t('settings.forms.tabs.sales_inventory_settings_tab.s169', "إضافة نسبة مئوية لخدمة الصالة تلقائياً عند اختيار طلب صالة (Dine-in)")}
                       </small>
                     </div>
                   </div>
@@ -2055,7 +2058,7 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
                     <input
                       type="checkbox"
                       role="switch"
-                      aria-label="تفعيل رسوم خدمة الصالة"
+                      aria-label={__t('settings.forms.tabs.sales_inventory_settings_tab.s170', "تفعيل رسوم خدمة الصالة")}
                       {...form.register('restaurantServiceChargeEnabled')}
                       disabled={disabled}
                       style={{ cursor: 'pointer', transform: 'scale(1.2)' }}
@@ -2086,9 +2089,9 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
                       <ClockIcon size={20} />
                     </div>
                     <div style={premiumCardTextStyle}>
-                      <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>أجهزة بيجر المناداة للزبائن (Guest Pagers)</strong>
+                      <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>{__t('settings.forms.tabs.sales_inventory_settings_tab.s171', "أجهزة بيجر المناداة للزبائن (Guest Pagers)")}</strong>
                       <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>
-                        إظهار خانة إدخال رقم البيجر في شاشة الكاشير لتسليم أجهزة النداء للزبائن في مطاعم الخدمة الذاتية (مفعل تلقائياً للكويت والسعودية)
+                        {__t('settings.forms.tabs.sales_inventory_settings_tab.s172', "إظهار خانة إدخال رقم البيجر في شاشة الكاشير لتسليم أجهزة النداء للزبائن في مطاعم الخدمة الذاتية (مفعل تلقائياً للكويت والسعودية)")}
                       </small>
                     </div>
                   </div>
@@ -2096,7 +2099,7 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
                     <input
                       type="checkbox"
                       role="switch"
-                      aria-label="تفعيل أجهزة بيجر المناداة"
+                      aria-label={__t('settings.forms.tabs.sales_inventory_settings_tab.s173', "تفعيل أجهزة بيجر المناداة")}
                       {...form.register('enableGuestPagers')}
                       disabled={disabled}
                       style={{ cursor: 'pointer', transform: 'scale(1.2)' }}
@@ -2113,8 +2116,8 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
       {/* ===== منظومة المدفوعات والـ QR الذكي (Z-Pay Smart Payment Hub) ===== */}
       {showPosSettings && (
         <FormSection
-          title="منظومة المدفوعات والـ QR الذكي (Z-Pay Smart Payment Hub)"
-          description="إعدادات استقبال المدفوعات الفورية عبر إنستاباي (InstaPay Dynamic QR) والمحافظ الإلكترونية (فودافون كاش وميزة) وروابط البطاقات مباشرة على ماكينات Sunmi وشاشات الكاشير."
+          title={__t('settings.forms.tabs.sales_inventory_settings_tab.s174', "منظومة المدفوعات والـ QR الذكي (Z-Pay Smart Payment Hub)")}
+          description={__t('settings.forms.tabs.sales_inventory_settings_tab.s175', "إعدادات استقبال المدفوعات الفورية عبر إنستاباي (InstaPay Dynamic QR) والمحافظ الإلكترونية (فودافون كاش وميزة) وروابط البطاقات مباشرة على ماكينات Sunmi وشاشات الكاشير.")}
         >
           <div
             style={{
@@ -2131,14 +2134,14 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
               <div>
                 <label style={{ fontSize: '0.8rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '4px' }}>
-                  عنوان أو رقم إنستاباي للمحل (InstaPay IPA / Phone)
+                  {__t('settings.forms.tabs.sales_inventory_settings_tab.s176', "عنوان أو رقم إنستاباي للمحل (InstaPay IPA / Phone)")}
                 </label>
                 <input
                   type="text"
                   dir="ltr"
                   {...form.register('instapayAddress')}
                   disabled={disabled}
-                  placeholder="01018017523 أو username@instapay"
+                  placeholder={__t('settings.forms.tabs.sales_inventory_settings_tab.s177', "01018017523 أو username@instapay")}
                   style={{
                     height: '38px',
                     borderRadius: '8px',
@@ -2152,13 +2155,13 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
                   }}
                 />
                 <small style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '3px', display: 'block' }}>
-                  الرقم أو الحساب الذي يستقبل تحويلات إنستاباي اللحظية عند اختيار دفع InstaPay في الكاشير.
+                  {__t('settings.forms.tabs.sales_inventory_settings_tab.s178', "الرقم أو الحساب الذي يستقبل تحويلات إنستاباي اللحظية عند اختيار دفع InstaPay في الكاشير.")}
                 </small>
               </div>
 
               <div>
                 <label style={{ fontSize: '0.8rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '4px' }}>
-                  رقم المحفظة الإلكترونية (Mobile Wallet Number)
+                  {__t('settings.forms.tabs.sales_inventory_settings_tab.s179', "رقم المحفظة الإلكترونية (Mobile Wallet Number)")}
                 </label>
                 <input
                   type="text"
@@ -2179,19 +2182,19 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
                   }}
                 />
                 <small style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '3px', display: 'block' }}>
-                  رقم المحفظة (فودافون كاش، أورنج، اتصالات، وي، سمارت والت) لاستقبال تحويلات المحافظ.
+                  {__t('settings.forms.tabs.sales_inventory_settings_tab.s180', "رقم المحفظة (فودافون كاش، أورنج، اتصالات، وي، سمارت والت) لاستقبال تحويلات المحافظ.")}
                 </small>
               </div>
 
               <div>
                 <label style={{ fontSize: '0.8rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '4px' }}>
-                  اسم مزود خدمة المحفظة الافتراضي
+                  {__t('settings.forms.tabs.sales_inventory_settings_tab.s181', "اسم مزود خدمة المحفظة الافتراضي")}
                 </label>
                 <input
                   type="text"
                   {...form.register('walletProviderName')}
                   disabled={disabled}
-                  placeholder="فودافون كاش"
+                  placeholder={__t('settings.forms.tabs.sales_inventory_settings_tab.s182', "فودافون كاش")}
                   style={{
                     height: '38px',
                     borderRadius: '8px',
@@ -2204,13 +2207,13 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
                   }}
                 />
                 <small style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '3px', display: 'block' }}>
-                  الاسم التوضيحي الذي يظهر للكاشير والعميل (مثال: فودافون كاش، محفظة البنك الأهلي).
+                  {__t('settings.forms.tabs.sales_inventory_settings_tab.s183', "الاسم التوضيحي الذي يظهر للكاشير والعميل (مثال: فودافون كاش، محفظة البنك الأهلي).")}
                 </small>
               </div>
 
               <div>
                 <label style={{ fontSize: '0.8rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '4px' }}>
-                  رابط بوابة الدفع الإلكتروني للبطاقات (Payment Link URL - اختياري)
+                  {__t('settings.forms.tabs.sales_inventory_settings_tab.s184', "رابط بوابة الدفع الإلكتروني للبطاقات (Payment Link URL - اختياري)")}
                 </label>
                 <input
                   type="url"
@@ -2230,7 +2233,7 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
                   }}
                 />
                 <small style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '3px', display: 'block' }}>
-                  لتوليد كود مسح ودفع بالفيزا والماستركارد وأبل باي أونلاين للعملاء عبر هواتفهم.
+                  {__t('settings.forms.tabs.sales_inventory_settings_tab.s185', "لتوليد كود مسح ودفع بالفيزا والماستركارد وأبل باي أونلاين للعملاء عبر هواتفهم.")}
                 </small>
               </div>
             </div>
@@ -2246,10 +2249,10 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
                 />
                 <div>
                   <strong style={{ fontSize: '0.82rem', color: '#0f172a', fontWeight: 700, display: 'block' }}>
-                    تفعيل عرض كود الـ QR الديناميكي للدفع فورياً على شاشة ماكينة Sunmi ونقاط البيع
+                    {__t('settings.forms.tabs.sales_inventory_settings_tab.s186', "تفعيل عرض كود الـ QR الديناميكي للدفع فورياً على شاشة ماكينة Sunmi ونقاط البيع")}
                   </strong>
                   <small style={{ fontSize: '0.74rem', color: '#64748b' }}>
-                    عرض رمز الـ QR بالمبلغ الصافي ورقم المحفظة فورياً للكاشير والعميل لمسحه بالهاتف.
+                    {__t('settings.forms.tabs.sales_inventory_settings_tab.s187', "عرض رمز الـ QR بالمبلغ الصافي ورقم المحفظة فورياً للكاشير والعميل لمسحه بالهاتف.")}
                   </small>
                 </div>
               </label>
@@ -2263,10 +2266,10 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
                 />
                 <div>
                   <strong style={{ fontSize: '0.82rem', color: '#0f172a', fontWeight: 700, display: 'block' }}>
-                    طباعة رمز الـ QR تلقائياً على بون الفاتورة الحرارية (اختياري)
+                    {__t('settings.forms.tabs.sales_inventory_settings_tab.s188', "طباعة رمز الـ QR تلقائياً على بون الفاتورة الحرارية (اختياري)")}
                   </strong>
                   <small style={{ fontSize: '0.74rem', color: '#64748b' }}>
-                    إدراج كود الدفع السريع أسفل الفاتورة لتمكين العميل من مسح البون المطبوع والدفع لاحقاً.
+                    {__t('settings.forms.tabs.sales_inventory_settings_tab.s189', "إدراج كود الدفع السريع أسفل الفاتورة لتمكين العميل من مسح البون المطبوع والدفع لاحقاً.")}
                   </small>
                 </div>
               </label>
@@ -2276,10 +2279,10 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
                   <div>
                     <strong style={{ fontSize: '0.82rem', color: '#334155', fontWeight: 700, display: 'block' }}>
-                      منظومة الإيصال الإلكتروني لمصلحة الضرائب المصرية (ETA E-Receipt)
+                      {__t('settings.forms.tabs.sales_inventory_settings_tab.s190', "منظومة الإيصال الإلكتروني لمصلحة الضرائب المصرية (ETA E-Receipt)")}
                     </strong>
                     <small style={{ fontSize: '0.74rem', color: '#64748b' }}>
-                      خيار اختياري تماماً للمنشآت الملزمة فقط. يبقى معطلاً للمحلات والأنشطة العادية دون أي قيود ضريبية.
+                      {__t('settings.forms.tabs.sales_inventory_settings_tab.s191', "خيار اختياري تماماً للمنشآت الملزمة فقط. يبقى معطلاً للمحلات والأنشطة العادية دون أي قيود ضريبية.")}
                     </small>
                   </div>
                   <select
@@ -2296,8 +2299,8 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
                       color: '#0f172a',
                     }}
                   >
-                    <option value="disabled">معطل (الافتراضي - بدون أي ربط ضريبي)</option>
-                    <option value="optional_eta">تفعيل تجريبي اختياري لمنظومة مصلحة الضرائب</option>
+                    <option value="disabled">{__t('settings.forms.tabs.sales_inventory_settings_tab.s192', "معطل (الافتراضي - بدون أي ربط ضريبي)")}</option>
+                    <option value="optional_eta">{__t('settings.forms.tabs.sales_inventory_settings_tab.s193', "تفعيل تجريبي اختياري لمنظومة مصلحة الضرائب")}</option>
                   </select>
                 </div>
               </div>
@@ -2309,8 +2312,8 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
       {/* ===== ماكينات نقاط البيع والدفع البنكي الذكية (Smart POS Terminals) ===== */}
       {showPosSettings && (
         <FormSection
-          title="ماكينات نقاط البيع والدفع البنكي الذكية (Smart POS Terminals)"
-          description="الربط الشبكي المباشر مع ماكينات الدفع الإلكتروني البنكية (Geidea, Fawry / PAX, Paymob, Network International) لتمرير مبالغ الفواتير آلياً وقراءة نجاح السحب دون إدخال يدوي. يمكنك ربط عدة ماكينات دفع في نفس الوقت وتعيين الماكينة الافتراضية للكاشير."
+          title={__t('settings.forms.tabs.sales_inventory_settings_tab.s194', "ماكينات نقاط البيع والدفع البنكي الذكية (Smart POS Terminals)")}
+          description={__t('settings.forms.tabs.sales_inventory_settings_tab.s195', "الربط الشبكي المباشر مع ماكينات الدفع الإلكتروني البنكية (Geidea, Fawry / PAX, Paymob, Network International) لتمرير مبالغ الفواتير آلياً وقراءة نجاح السحب دون إدخال يدوي. يمكنك ربط عدة ماكينات دفع في نفس الوقت وتعيين الماكينة الافتراضية للكاشير.")}
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
             {/* Top Control Bar: Master Toggle + Add Button + Terminal Count */}
@@ -2343,10 +2346,10 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
                   </div>
                   <div>
                     <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800, display: 'block' }}>
-                      تفعيل خدمة ربط ماكينات الدفع الإلكتروني (POS Terminals)
+                      {__t('settings.forms.tabs.sales_inventory_settings_tab.s196', "تفعيل خدمة ربط ماكينات الدفع الإلكتروني (POS Terminals)")}
                     </strong>
                     <small style={{ fontSize: '0.76rem', color: '#64748b' }}>
-                      إظهار خيار إرسال المبالغ لماكينة البنك آلياً في شاشة الكاشير عند الدفع بالبطاقة
+                      {__t('settings.forms.tabs.sales_inventory_settings_tab.s197', "إظهار خيار إرسال المبالغ لماكينة البنك آلياً في شاشة الكاشير عند الدفع بالبطاقة")}
                     </small>
                   </div>
                   <input
@@ -2375,7 +2378,7 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
                       borderRadius: '8px',
                     }}
                   >
-                    إجمالي الماكينات: {terminalsList.length}
+                    {__t('settings.forms.tabs.sales_inventory_settings_tab.s198', "إجمالي الماكينات:")} {terminalsList.length}
                   </span>
 
                   <button
@@ -2400,7 +2403,7 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
                     }}
                   >
                     <PlusCircleIcon size={16} />
-                    <span>إضافة ماكينة دفع إضافية</span>
+                    <span>{__t('settings.forms.tabs.sales_inventory_settings_tab.s199', "إضافة ماكينة دفع إضافية")}</span>
                   </button>
                 </div>
               </div>
@@ -2414,11 +2417,11 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
                     disabled={disabled || !isMasterPosTerminalEnabled}
                   />
                   <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#1e293b' }}>
-                    إتمام وطباعة الفاتورة تلقائياً بمجرد موافقة ماكينة الدفع (Zero-Click Checkout)
+                    {__t('settings.forms.tabs.sales_inventory_settings_tab.s200', "إتمام وطباعة الفاتورة تلقائياً بمجرد موافقة ماكينة الدفع (Zero-Click Checkout)")}
                   </span>
                 </label>
                 <span style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '2px', display: 'block', paddingRight: '22px' }}>
-                  يغلق الفاتورة ويطبع إيصال مدى / كي نت آلياً فور اعتماد العميل لسحب البطاقة دون أي نقرات إضافية.
+                  {__t('settings.forms.tabs.sales_inventory_settings_tab.s201', "يغلق الفاتورة ويطبع إيصال مدى / كي نت آلياً فور اعتماد العميل لسحب البطاقة دون أي نقرات إضافية.")}
                 </span>
               </div>
             </div>
@@ -2440,15 +2443,15 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
             >
               <InfoIcon size={16} color="#170e5e" style={{ flexShrink: 0, marginTop: '2px' }} />
               <div>
-                <strong style={{ color: '#1e293b' }}>إرشادات الربط مع الماكينات (ECR / LAN Direct):</strong>
+                <strong style={{ color: '#1e293b' }}>{__t('settings.forms.tabs.sales_inventory_settings_tab.s202', "إرشادات الربط مع الماكينات (ECR / LAN Direct):")}</strong>
                 <span style={{ display: 'block', marginTop: '2px' }}>
-                  • <strong>جيديا (Geidea):</strong> ادخل على إعدادات الماكينة أو تطبيق نقطة البيع &gt; تفعيل ECR / LAN &gt; المنفذ الافتراضي غالبًا <strong>8080</strong> أو <strong>8081</strong>.
+                  • <strong>{__t('settings.forms.tabs.sales_inventory_settings_tab.s203', "جيديا (Geidea):")}</strong> {__t('settings.forms.tabs.sales_inventory_settings_tab.s204', "ادخل على إعدادات الماكينة أو تطبيق نقطة البيع > تفعيل ECR / LAN > المنفذ الافتراضي غالبًا")} <strong>8080</strong> {__t('settings.forms.tabs.sales_inventory_settings_tab.s205', "أو")} <strong>8081</strong>.
                 </span>
                 <span style={{ display: 'block' }}>
-                  • <strong>باكس وفوري (PAX A960 / Fawry):</strong> افتح تطبيق الكاشير أو تطبيق ECR على الماكينة (أو MaxStore) لتفعيل استقبال مبالغ الكاشير &gt; المنفذ الافتراضي <strong>8080</strong> أو <strong>10009</strong>.
+                  • <strong>{__t('settings.forms.tabs.sales_inventory_settings_tab.s206', "باكس وفوري (PAX A960 / Fawry):")}</strong> {__t('settings.forms.tabs.sales_inventory_settings_tab.s207', "افتح تطبيق الكاشير أو تطبيق ECR على الماكينة (أو MaxStore) لتفعيل استقبال مبالغ الكاشير > المنفذ الافتراضي")} <strong>8080</strong> {__t('settings.forms.tabs.sales_inventory_settings_tab.s208', "أو")} <strong>10009</strong>.
                 </span>
                 <span style={{ display: 'block' }}>
-                  • تأكد من اتصال جهاز الكمبيوتر وماكينة الدفع بنفس شبكة الـ Wi-Fi / الراوتر المحلي، ثم اضغط <strong>«فحص الاتصال الفعلي»</strong> للتأكد من وصول البينج واستجابة المنفذ.
+                  {__t('settings.forms.tabs.sales_inventory_settings_tab.s209', "• تأكد من اتصال جهاز الكمبيوتر وماكينة الدفع بنفس شبكة الـ Wi-Fi / الراوتر المحلي، ثم اضغط")} <strong>{__t('settings.forms.tabs.sales_inventory_settings_tab.s210', "«فحص الاتصال الفعلي»")}</strong> {__t('settings.forms.tabs.sales_inventory_settings_tab.s211', "للتأكد من وصول البينج واستجابة المنفذ.")}
                 </span>
               </div>
             </div>
@@ -2485,8 +2488,8 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
       {/* ===== برنامج نقاط وولاء العملاء ===== */}
       {showPosSettings && (
         <FormSection
-          title="برنامج نقاط ومكافآت ولاء العملاء (Customer Loyalty Program)"
-          description="تحفيز العملاء على الشراء المتكرر عبر منحهم نقاطاً مع كل فاتورة، وإمكانية استبدالها برصيد وخصم فوري في الفواتير التالية."
+          title={__t('settings.forms.tabs.sales_inventory_settings_tab.s212', "برنامج نقاط ومكافآت ولاء العملاء (Customer Loyalty Program)")}
+          description={__t('settings.forms.tabs.sales_inventory_settings_tab.s213', "تحفيز العملاء على الشراء المتكرر عبر منحهم نقاطاً مع كل فاتورة، وإمكانية استبدالها برصيد وخصم فوري في الفواتير التالية.")}
         >
           <div className="settings-two-col-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '12px' }}>
             {/* 1. Toggle Loyalty */}
@@ -2496,8 +2499,8 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
                   <LoyaltyPointsIcon size={20} />
                 </div>
                 <div style={premiumCardTextStyle}>
-                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>تفعيل برنامج نقاط الولاء</strong>
-                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>احتساب نقاط تلقائياً للعميل عند البيع وإتاحة استبدالها في الكاشير</small>
+                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>{__t('settings.forms.tabs.sales_inventory_settings_tab.s214', "تفعيل برنامج نقاط الولاء")}</strong>
+                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>{__t('settings.forms.tabs.sales_inventory_settings_tab.s215', "احتساب نقاط تلقائياً للعميل عند البيع وإتاحة استبدالها في الكاشير")}</small>
                 </div>
               </div>
               <input
@@ -2515,8 +2518,8 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
                   <IssueModeDocIcon size={20} />
                 </div>
                 <div style={premiumCardTextStyle}>
-                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>إظهار رصيد النقاط في الفاتورة</strong>
-                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>طباعة النقاط المكتسبة والرصيد الإجمالي في الإيصالات الحرارية وفواتير A4</small>
+                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>{__t('settings.forms.tabs.sales_inventory_settings_tab.s216', "إظهار رصيد النقاط في الفاتورة")}</strong>
+                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>{__t('settings.forms.tabs.sales_inventory_settings_tab.s217', "طباعة النقاط المكتسبة والرصيد الإجمالي في الإيصالات الحرارية وفواتير A4")}</small>
                 </div>
               </div>
               <input
@@ -2535,8 +2538,8 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
                     <LoyaltyPointsIcon size={20} />
                   </div>
                   <div style={premiumCardTextStyle}>
-                    <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>معدل اكتساب النقاط</strong>
-                    <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>عدد النقاط المكتسبة لكل 100 جنيه مشتريات مسددة:</small>
+                    <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>{__t('settings.forms.tabs.sales_inventory_settings_tab.s218', "معدل اكتساب النقاط")}</strong>
+                    <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>{__t('settings.forms.tabs.sales_inventory_settings_tab.s219', "عدد النقاط المكتسبة لكل 100 جنيه مشتريات مسددة:")}</small>
                   </div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -2550,15 +2553,15 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
                     placeholder="10"
                     style={{ width: '75px', height: '36px', textAlign: 'center', fontWeight: 800, fontSize: '0.9rem', borderRadius: '6px', border: '1.5px solid #cbd5e1' }}
                   />
-                  <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#475569' }}>نقطة</span>
+                  <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#475569' }}>{__t('settings.forms.tabs.sales_inventory_settings_tab.s220', "نقطة")}</span>
                 </div>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '4px', paddingTop: '8px', borderTop: '1px dashed #e2e8f0' }}>
                 {[
-                  { label: '5 نقاط', val: 5 },
-                  { label: '10 نقاط', val: 10 },
-                  { label: '20 نقطة', val: 20 },
-                  { label: '50 نقطة', val: 50 },
+                  { label: __t('settings.forms.tabs.sales_inventory_settings_tab.s221', "5 نقاط"), val: 5 },
+                  { label: __t('settings.forms.tabs.sales_inventory_settings_tab.s222', "10 نقاط"), val: 10 },
+                  { label: __t('settings.forms.tabs.sales_inventory_settings_tab.s223', "20 نقطة"), val: 20 },
+                  { label: __t('settings.forms.tabs.sales_inventory_settings_tab.s224', "50 نقطة"), val: 50 },
                 ].map((p) => {
                   const currentVal = Number(form.watch('loyaltyPointsPer100Egp') ?? 10);
                   const isSelected = currentVal === p.val;
@@ -2596,8 +2599,8 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
                     <ZeroCostIcon size={20} />
                   </div>
                   <div style={premiumCardTextStyle}>
-                    <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>قيمة النقطة عند الاستبدال</strong>
-                    <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>القيمة المالية للنقطة الواحدة كخصم بالجنيه:</small>
+                    <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>{__t('settings.forms.tabs.sales_inventory_settings_tab.s225', "قيمة النقطة عند الاستبدال")}</strong>
+                    <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>{__t('settings.forms.tabs.sales_inventory_settings_tab.s226', "القيمة المالية للنقطة الواحدة كخصم بالجنيه:")}</small>
                   </div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -2616,10 +2619,10 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '4px', paddingTop: '8px', borderTop: '1px dashed #e2e8f0' }}>
                 {[
-                  { label: '0.05 ج (5 قروش)', val: 0.05 },
-                  { label: '0.10 ج (10 قروش)', val: 0.1 },
-                  { label: '0.50 ج (نصف جنيه)', val: 0.5 },
-                  { label: '1.00 ج (جنيه كامل)', val: 1 },
+                  { label: __t('settings.forms.tabs.sales_inventory_settings_tab.s227', "0.05 ج (5 قروش)"), val: 0.05 },
+                  { label: __t('settings.forms.tabs.sales_inventory_settings_tab.s228', "0.10 ج (10 قروش)"), val: 0.1 },
+                  { label: __t('settings.forms.tabs.sales_inventory_settings_tab.s229', "0.50 ج (نصف جنيه)"), val: 0.5 },
+                  { label: __t('settings.forms.tabs.sales_inventory_settings_tab.s230', "1.00 ج (جنيه كامل)"), val: 1 },
                 ].map((p) => {
                   const currentVal = Number(form.watch('loyaltyPointRedeemValue') ?? 0.1);
                   const isSelected = Math.abs(currentVal - p.val) < 0.001;
@@ -2656,8 +2659,8 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
                   <LoyaltyPointsIcon size={20} />
                 </div>
                 <div style={premiumCardTextStyle}>
-                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>الحد الأدنى للنقاط للاستبدال</strong>
-                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>أقل رصيد نقاط يجب أن يمتلكه العميل ليتمكن من الخصم</small>
+                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>{__t('settings.forms.tabs.sales_inventory_settings_tab.s231', "الحد الأدنى للنقاط للاستبدال")}</strong>
+                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>{__t('settings.forms.tabs.sales_inventory_settings_tab.s232', "أقل رصيد نقاط يجب أن يمتلكه العميل ليتمكن من الخصم")}</small>
                 </div>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -2671,7 +2674,7 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
                   placeholder="50"
                   style={{ width: '75px', height: '36px', textAlign: 'center', fontWeight: 800, fontSize: '0.9rem', borderRadius: '6px', border: '1.5px solid #cbd5e1' }}
                 />
-                <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#475569' }}>نقطة</span>
+                <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#475569' }}>{__t('settings.forms.tabs.sales_inventory_settings_tab.s233', "نقطة")}</span>
               </div>
             </div>
 
@@ -2682,8 +2685,8 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
                   <TaxCalcIcon size={20} />
                 </div>
                 <div style={premiumCardTextStyle}>
-                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>سقف الخصم بالنقاط من الفاتورة</strong>
-                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>أقصى نسبة مئوية مسموح بخصمها من إجمالي الفاتورة عبر النقاط</small>
+                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>{__t('settings.forms.tabs.sales_inventory_settings_tab.s234', "سقف الخصم بالنقاط من الفاتورة")}</strong>
+                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>{__t('settings.forms.tabs.sales_inventory_settings_tab.s235', "أقصى نسبة مئوية مسموح بخصمها من إجمالي الفاتورة عبر النقاط")}</small>
                 </div>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -2720,15 +2723,15 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <LightbulbIcon size={18} color="#170e5e" />
                 <span style={{ fontSize: '0.84rem', color: '#1e293b', fontWeight: 700 }}>
-                  معاينة حية للمحرك: مشتريات بقيمة <strong>1,000 <CurrencySymbol /></strong> تمنح العميل{' '}
+                  {__t('settings.forms.tabs.sales_inventory_settings_tab.s236', "معاينة حية للمحرك: مشتريات بقيمة")} <strong>1,000 <CurrencySymbol /></strong> {__t('settings.forms.tabs.sales_inventory_settings_tab.s237', "تمنح العميل")}{' '}
                   <strong style={{ color: '#170e5e' }}>
-                    {Math.floor((1000 / 100) * Number(form.watch('loyaltyPointsPer100Egp') || 10))} نقطة
+                    {Math.floor((1000 / 100) * Number(form.watch('loyaltyPointsPer100Egp') || 10))} {__t('settings.forms.tabs.sales_inventory_settings_tab.s238', "نقطة")}
                   </strong>{' '}
-                  قيمتها{' '}
+                  {__t('settings.forms.tabs.sales_inventory_settings_tab.s239', "قيمتها")}{' '}
                   <strong style={{ color: '#170e5e' }}>
                     {(Math.floor((1000 / 100) * Number(form.watch('loyaltyPointsPer100Egp') || 10)) * Number(form.watch('loyaltyPointRedeemValue') || 0.1)).toFixed(2)} <CurrencySymbol />
                   </strong>{' '}
-                  خصم فوري في مشترياته القادمة (معدل استرجاع{' '}
+                  {__t('settings.forms.tabs.sales_inventory_settings_tab.s240', "خصم فوري في مشترياته القادمة (معدل استرجاع")}{' '}
                   <strong>
                     {(((Math.floor((1000 / 100) * Number(form.watch('loyaltyPointsPer100Egp') || 10)) * Number(form.watch('loyaltyPointRedeemValue') || 0.1)) / 1000) * 100).toFixed(1)}%
                   </strong>).
@@ -2742,8 +2745,8 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
       {/* ===== تنبيهات الصلاحية والأصناف الراكدة (تجزئة وتجارة عامة فقط) ===== */}
       {isRetailCommerce && (
         <FormSection
-          title="تنبيهات الصلاحية وحركة المخزون الراكد"
-          description="تخصيص الفترات الزمنية لتنبيهات قرب انتهاء صلاحية المنتجات وتحديد متى يُصنف الصنف كـ 'راكد' في لوحة التحكم والتقارير."
+          title={__t('settings.forms.tabs.sales_inventory_settings_tab.s241', "تنبيهات الصلاحية وحركة المخزون الراكد")}
+          description={__t('settings.forms.tabs.sales_inventory_settings_tab.s242', "تخصيص الفترات الزمنية لتنبيهات قرب انتهاء صلاحية المنتجات وتحديد متى يُصنف الصنف كـ 'راكد' في لوحة التحكم والتقارير.")}
         >
           <div className="settings-two-col-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '12px' }}>
             {/* Card: Expiry Alert Days */}
@@ -2754,8 +2757,8 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
                     <ExpiryAlertIcon size={20} />
                   </div>
                   <div style={premiumCardTextStyle}>
-                    <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>تنبيه قرب انتهاء الصلاحية</strong>
-                    <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>إظهار تنبيهات وتصنيف الأصناف كـ "وشيكة الانتهاء" قبل انتهاء تاريخها بـ:</small>
+                    <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>{__t('settings.forms.tabs.sales_inventory_settings_tab.s243', "تنبيه قرب انتهاء الصلاحية")}</strong>
+                    <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>{__t('settings.forms.tabs.sales_inventory_settings_tab.s244', "إظهار تنبيهات وتصنيف الأصناف كـ \"وشيكة الانتهاء\" قبل انتهاء تاريخها بـ:")}</small>
                   </div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -2768,17 +2771,17 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
                     placeholder="30"
                     style={{ width: '75px', height: '36px', textAlign: 'center', fontWeight: 800, fontSize: '0.9rem', borderRadius: '6px', border: '1.5px solid #cbd5e1' }}
                   />
-                  <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#475569' }}>يوم</span>
+                  <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#475569' }}>{__t('settings.forms.tabs.sales_inventory_settings_tab.s245', "يوم")}</span>
                 </div>
               </div>
               {/* Quick Presets */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', gap: '4px', paddingTop: '8px', borderTop: '1px dashed #e2e8f0' }}>
                 {[
-                  { label: '15 يوم', days: 15 },
-                  { label: '30 يوم', days: 30 },
-                  { label: '60 يوم', days: 60 },
-                  { label: '90 يوم', days: 90 },
-                  { label: '180 يوم', days: 180 },
+                  { label: __t('settings.forms.tabs.sales_inventory_settings_tab.s246', "15 يوم"), days: 15 },
+                  { label: __t('settings.forms.tabs.sales_inventory_settings_tab.s247', "30 يوم"), days: 30 },
+                  { label: __t('settings.forms.tabs.sales_inventory_settings_tab.s248', "60 يوم"), days: 60 },
+                  { label: __t('settings.forms.tabs.sales_inventory_settings_tab.s249', "90 يوم"), days: 90 },
+                  { label: __t('settings.forms.tabs.sales_inventory_settings_tab.s250', "180 يوم"), days: 180 },
                 ].map((p) => {
                   const currentVal = Number(form.watch('expiryAlertDays') || 30);
                   const isSelected = currentVal === p.days;
@@ -2817,8 +2820,8 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
                     <StagnantStockIcon size={20} />
                   </div>
                   <div style={premiumCardTextStyle}>
-                    <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>معيار الأصناف الراكدة</strong>
-                    <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>تصنيف الصنف كـ "راكد" في لوحة التحكم والتقارير إذا لم يُبَع منه منذ:</small>
+                    <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>{__t('settings.forms.tabs.sales_inventory_settings_tab.s251', "معيار الأصناف الراكدة")}</strong>
+                    <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>{__t('settings.forms.tabs.sales_inventory_settings_tab.s252', "تصنيف الصنف كـ \"راكد\" في لوحة التحكم والتقارير إذا لم يُبَع منه منذ:")}</small>
                   </div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -2831,18 +2834,18 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
                     placeholder="30"
                     style={{ width: '75px', height: '36px', textAlign: 'center', fontWeight: 800, fontSize: '0.9rem', borderRadius: '6px', border: '1.5px solid #cbd5e1' }}
                   />
-                  <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#475569' }}>يوم</span>
+                  <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#475569' }}>{__t('settings.forms.tabs.sales_inventory_settings_tab.s253', "يوم")}</span>
                 </div>
               </div>
               {/* Quick Presets */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, minmax(0, 1fr))', gap: '4px', paddingTop: '8px', borderTop: '1px dashed #e2e8f0' }}>
                 {[
-                  { label: '30 يوم', days: 30 },
-                  { label: '60 يوم', days: 60 },
-                  { label: '90 يوم', days: 90 },
-                  { label: '120 يوم', days: 120 },
-                  { label: '180 يوم', days: 180 },
-                  { label: '365 يوم', days: 365 },
+                  { label: __t('settings.forms.tabs.sales_inventory_settings_tab.s254', "30 يوم"), days: 30 },
+                  { label: __t('settings.forms.tabs.sales_inventory_settings_tab.s255', "60 يوم"), days: 60 },
+                  { label: __t('settings.forms.tabs.sales_inventory_settings_tab.s256', "90 يوم"), days: 90 },
+                  { label: __t('settings.forms.tabs.sales_inventory_settings_tab.s257', "120 يوم"), days: 120 },
+                  { label: __t('settings.forms.tabs.sales_inventory_settings_tab.s258', "180 يوم"), days: 180 },
+                  { label: __t('settings.forms.tabs.sales_inventory_settings_tab.s259', "365 يوم"), days: 365 },
                 ].map((p) => {
                   const currentVal = Number(form.watch('stagnantProductDays') || 30);
                   const isSelected = currentVal === p.days;

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useRef, useEffect } from 'react';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { DeliveryOrder, SettleOrderPayload } from '../api/delivery-reps.api';
@@ -20,6 +21,7 @@ export function DeliverySettlementModal({
   onConfirm,
   onClose,
 }: DeliverySettlementModalProps) {
+  const { t } = useTranslation();
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [notes, setNotes] = useState('');
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
@@ -162,7 +164,7 @@ export function DeliverySettlementModal({
       open={isOpen && Boolean(order)}
       onClose={onClose}
       width="min(500px, 95vw)"
-      ariaLabel="تأكيد تسليم وتحصيل الشحنة"
+      ariaLabel={t('delivery_reps.delivery_settlement_modal.s0', "تأكيد تسليم وتحصيل الشحنة")}
     >
       <div
         dir="rtl"
@@ -187,9 +189,9 @@ export function DeliverySettlementModal({
           }}
         >
           <div>
-            <div style={{ fontSize: '16px', fontWeight: 800, color: '#170e5e' }}>تأكيد تسليم وتحصيل الشحنة</div>
+            <div style={{ fontSize: '16px', fontWeight: 800, color: '#170e5e' }}>{t('delivery_reps.delivery_settlement_modal.s1', "تأكيد تسليم وتحصيل الشحنة")}</div>
             <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>
-              طلب رقم: #{order?.docNo} • {order?.customerName}
+              {t('delivery_reps.delivery_settlement_modal.s2', "طلب رقم: #")}{order?.docNo} • {order?.customerName}
             </div>
           </div>
           <button
@@ -228,9 +230,9 @@ export function DeliverySettlementModal({
             }}
           >
             <div>
-              <div style={{ fontSize: '11.5px', color: '#166534', fontWeight: 700 }}>المبلغ المطلوب تحصيله نقداً:</div>
+              <div style={{ fontSize: '11.5px', color: '#166534', fontWeight: 700 }}>{t('delivery_reps.delivery_settlement_modal.s3', "المبلغ المطلوب تحصيله نقداً:")}</div>
               <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>
-                {order.customerPhone ? `هاتف: ${order.customerPhone}` : 'عميل نقدي'}
+                {order.customerPhone ? `هاتف: ${order.customerPhone}` : t('delivery_reps.delivery_settlement_modal.s4', "عميل نقدي")}
               </div>
             </div>
             <div style={{ fontSize: '20px', fontWeight: 900, color: '#15803d' }}>
@@ -242,7 +244,7 @@ export function DeliverySettlementModal({
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
               <label style={{ fontSize: '12.5px', fontWeight: 800, color: '#1e293b' }}>
-                توقيع العميل باللمس (اختياري):
+                {t('delivery_reps.delivery_settlement_modal.s5', "توقيع العميل باللمس (اختياري):")}
               </label>
               {hasSignature && (
                 <button
@@ -261,7 +263,7 @@ export function DeliverySettlementModal({
                   }}
                 >
                   <Trash2Icon size={12} color="#dc2626" />
-                  <span>مسح التوقيع</span>
+                  <span>{t('delivery_reps.delivery_settlement_modal.s6', "مسح التوقيع")}</span>
                 </button>
               )}
             </div>
@@ -307,7 +309,7 @@ export function DeliverySettlementModal({
                     pointerEvents: 'none',
                   }}
                 >
-                  مرر الإصبع هنا للتوقيع
+                  {t('delivery_reps.delivery_settlement_modal.s7', "مرر الإصبع هنا للتوقيع")}
                 </div>
               )}
             </div>
@@ -316,7 +318,7 @@ export function DeliverySettlementModal({
           {/* Section 2: Camera Photo Proof */}
           <div>
             <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 800, color: '#1e293b', marginBottom: '6px' }}>
-              صورة إثبات التسليم (اختياري):
+              {t('delivery_reps.delivery_settlement_modal.s8', "صورة إثبات التسليم (اختياري):")}
             </label>
 
             <input
@@ -362,7 +364,7 @@ export function DeliverySettlementModal({
                   }}
                 >
                   <Trash2Icon size={12} color="#ffffff" />
-                  <span>حذف الصورة</span>
+                  <span>{t('delivery_reps.delivery_settlement_modal.s9', "حذف الصورة")}</span>
                 </button>
               </div>
             ) : (
@@ -386,7 +388,7 @@ export function DeliverySettlementModal({
                 }}
               >
                 <CameraIcon size={16} />
-                <span>التقاط صورة إثبات التسليم بالكاميرا</span>
+                <span>{t('delivery_reps.delivery_settlement_modal.s10', "التقاط صورة إثبات التسليم بالكاميرا")}</span>
               </button>
             )}
           </div>
@@ -394,13 +396,13 @@ export function DeliverySettlementModal({
           {/* Section 3: Notes */}
           <div>
             <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-              ملاحظات المندوب (اختياري):
+              {t('delivery_reps.delivery_settlement_modal.s11', "ملاحظات المندوب (اختياري):")}
             </label>
             <input
               type="text"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="مثال: تم الاستلام من حارس العقار، كاش كامل..."
+              placeholder={t('delivery_reps.delivery_settlement_modal.s12', "مثال: تم الاستلام من حارس العقار، كاش كامل...")}
               style={{
                 width: '100%',
                 padding: '8px 12px',
@@ -427,7 +429,7 @@ export function DeliverySettlementModal({
               }}
             >
               <MapPinIcon size={13} color="#059669" />
-              <span>تم رصد إحداثيات الموقع الحالي: ({coords.lat}, {coords.lng})</span>
+              <span>{t('delivery_reps.delivery_settlement_modal.s13', "تم رصد إحداثيات الموقع الحالي: (")}{coords.lat}, {coords.lng})</span>
             </div>
           )}
         </div>
@@ -448,7 +450,7 @@ export function DeliverySettlementModal({
             disabled={isSubmitting}
             style={{ flex: 1, padding: '10px', fontSize: '13px', borderRadius: '10px' }}
           >
-            إلغاء
+            {t('delivery_reps.delivery_settlement_modal.s14', "إلغاء")}
           </Button>
 
           <Button
@@ -465,7 +467,7 @@ export function DeliverySettlementModal({
               borderRadius: '10px',
             }}
           >
-            {isSubmitting ? 'جاري التأكيد...' : 'تأكيد التسليم والتحصيل'}
+            {isSubmitting ? t('delivery_reps.delivery_settlement_modal.s15', "جاري التأكيد...") : t('delivery_reps.delivery_settlement_modal.s16', "تأكيد التسليم والتحصيل")}
           </Button>
         </div>
     </DialogShell>

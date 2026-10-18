@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/shared/ui/button';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
 import type { PurchaseRfq } from '../../api/purchase-rfqs.api';
@@ -16,6 +17,7 @@ export function PurchaseRfqsTable({
   onOpenMatrix,
   onDelete,
 }: PurchaseRfqsTableProps) {
+  const { t } = useTranslation();
   return (
     <div
       style={{
@@ -29,20 +31,20 @@ export function PurchaseRfqsTable({
       <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'start' }}>
         <thead>
           <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-            <th style={{ padding: '12px 16px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#475569' }}>رقم الطلب</th>
-            <th style={{ padding: '12px 16px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#475569' }}>العنوان والوصف</th>
-            <th style={{ padding: '12px 16px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#475569' }}>تاريخ الإغلاق</th>
-            <th style={{ padding: '12px 16px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#475569' }}>الأصناف المطلوبة</th>
-            <th style={{ padding: '12px 16px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#475569' }}>العروض المستلمة</th>
-            <th style={{ padding: '12px 16px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#475569' }}>الحالة</th>
-            <th style={{ padding: '12px 16px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#475569', textAlign: 'center' }}>الإجراءات والمفاضلة</th>
+            <th style={{ padding: '12px 16px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#475569' }}>{t('purchases.rfq.purchase_rfqs_table.s0', "رقم الطلب")}</th>
+            <th style={{ padding: '12px 16px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#475569' }}>{t('purchases.rfq.purchase_rfqs_table.s1', "العنوان والوصف")}</th>
+            <th style={{ padding: '12px 16px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#475569' }}>{t('purchases.rfq.purchase_rfqs_table.s2', "تاريخ الإغلاق")}</th>
+            <th style={{ padding: '12px 16px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#475569' }}>{t('purchases.rfq.purchase_rfqs_table.s3', "الأصناف المطلوبة")}</th>
+            <th style={{ padding: '12px 16px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#475569' }}>{t('purchases.rfq.purchase_rfqs_table.s4', "العروض المستلمة")}</th>
+            <th style={{ padding: '12px 16px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#475569' }}>{t('purchases.rfq.purchase_rfqs_table.s5', "الحالة")}</th>
+            <th style={{ padding: '12px 16px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#475569', textAlign: 'center' }}>{t('purchases.rfq.purchase_rfqs_table.s6', "الإجراءات والمفاضلة")}</th>
           </tr>
         </thead>
         <tbody>
           {loading ? (
             <tr>
               <td colSpan={7} style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
-                جاري تحميل طلبات عروض الأسعار...
+                {t('purchases.rfq.purchase_rfqs_table.s7', "جاري تحميل طلبات عروض الأسعار...")}
               </td>
             </tr>
           ) : rfqs.length === 0 ? (
@@ -52,10 +54,10 @@ export function PurchaseRfqsTable({
                   <AppIcons.Box size={36} />
                 </div>
                 <div style={{ fontSize: 'var(--font-section-title)', fontWeight: 700, color: '#1e293b', marginBottom: '6px' }}>
-                  لا توجد طلبات عروض أسعار حالياً
+                  {t('purchases.rfq.purchase_rfqs_table.s8', "لا توجد طلبات عروض أسعار حالياً")}
                 </div>
                 <div style={{ fontSize: 'var(--font-subtitle)', color: '#64748b', maxWidth: '440px', margin: '0 auto' }}>
-                  يمكنك بدء استدراج عروض الأسعار والمفاضلة بين الموردين بإنشاء أول طلب الآن.
+                  {t('purchases.rfq.purchase_rfqs_table.s9', "يمكنك بدء استدراج عروض الأسعار والمفاضلة بين الموردين بإنشاء أول طلب الآن.")}
                 </div>
               </td>
             </tr>
@@ -85,10 +87,10 @@ export function PurchaseRfqsTable({
                   )}
                 </td>
                 <td style={{ padding: '14px 16px', fontSize: 'var(--font-body)', color: '#475569' }}>
-                  {rfq.deadline_date ? new Date(rfq.deadline_date).toLocaleDateString('ar-EG') : 'غير محدد'}
+                  {rfq.deadline_date ? new Date(rfq.deadline_date).toLocaleDateString('ar-EG') : t('purchases.rfq.purchase_rfqs_table.s10', "غير محدد")}
                 </td>
                 <td style={{ padding: '14px 16px', fontSize: 'var(--font-body)' }}>
-                  <span style={{ fontWeight: 700, color: '#0f172a' }}>{itemsCount}</span> أصناف
+                  <span style={{ fontWeight: 700, color: '#0f172a' }}>{itemsCount}</span> {t('purchases.rfq.purchase_rfqs_table.s11', "أصناف")}
                 </td>
                 <td style={{ padding: '14px 16px' }}>
                   <span
@@ -101,7 +103,7 @@ export function PurchaseRfqsTable({
                       color: bidsCount > 0 ? '#059669' : '#64748b',
                     }}
                   >
-                    {bidsCount} عروض مقدمة
+                    {bidsCount} {t('purchases.rfq.purchase_rfqs_table.s12', "عروض مقدمة")}
                   </span>
                 </td>
                 <td style={{ padding: '14px 16px' }}>
@@ -133,7 +135,7 @@ export function PurchaseRfqsTable({
                       }}
                     >
                       <AppIcons.FileText size={14} style={{ marginInlineEnd: '4px' }} />
-                      مصفوفة المفاضلة ({bidsCount})
+                      {t('purchases.rfq.purchase_rfqs_table.s13', "مصفوفة المفاضلة (")}{bidsCount})
                     </Button>
 
                     {rfq.status !== 'converted_to_po' && (
@@ -147,7 +149,7 @@ export function PurchaseRfqsTable({
                           cursor: 'pointer',
                           padding: '6px',
                         }}
-                        title="حذف الطلب"
+                        title={t('purchases.rfq.purchase_rfqs_table.s14', "حذف الطلب")}
                       >
                         <AppIcons.Trash size={16} />
                       </button>

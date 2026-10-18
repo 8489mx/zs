@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
@@ -6,6 +7,7 @@ import { maritimeApi, MaritimeJob, MaritimeContainer } from '../api/maritime-fre
 import { useMaritime } from '../context/MaritimeContext';
 
 export function MaritimeFreightDashboard() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { counts, setIsCreateInquiryOpen, setIsCreateRfqOpen } = useMaritime();
   const { currencySymbol } = useSystemCurrency();
@@ -183,13 +185,13 @@ export function MaritimeFreightDashboard() {
         >
           <div style={{ minWidth: 0, flex: 1 }}>
             <div style={{ fontSize: '0.76rem', fontWeight: 600, color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              إيرادات الشحن واللوجستيات
+              {t('maritime_freight.maritime_freight_dashboard_tab.s0', "إيرادات الشحن واللوجستيات")}
             </div>
             <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#0f172a', marginTop: '3px', lineHeight: 1.2, whiteSpace: 'nowrap' }}>
               {currencySymbol} {financialMetrics.totalRevenue.toLocaleString()}
             </div>
             <div style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '3px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              مفوترة من {jobs.length} أمر تشغيل
+              {t('maritime_freight.maritime_freight_dashboard_tab.s1', "مفوترة من")} {jobs.length} {t('maritime_freight.maritime_freight_dashboard_tab.s2', "أمر تشغيل")}
             </div>
           </div>
           <div
@@ -229,13 +231,13 @@ export function MaritimeFreightDashboard() {
         >
           <div style={{ minWidth: 0, flex: 1 }}>
             <div style={{ fontSize: '0.76rem', fontWeight: 600, color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              تكلفة النواقل المباشرة
+              {t('maritime_freight.maritime_freight_dashboard_tab.s3', "تكلفة النواقل المباشرة")}
             </div>
             <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#0f172a', marginTop: '3px', lineHeight: 1.2, whiteSpace: 'nowrap' }}>
               {currencySymbol} {financialMetrics.totalCarrierCost.toLocaleString()}
             </div>
             <div style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '3px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              نولون الخطوط ومصروفات الموانئ
+              {t('maritime_freight.maritime_freight_dashboard_tab.s4', "نولون الخطوط ومصروفات الموانئ")}
             </div>
           </div>
           <div
@@ -275,7 +277,7 @@ export function MaritimeFreightDashboard() {
         >
           <div style={{ minWidth: 0, flex: 1 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '4px' }}>
-              <span style={{ fontSize: '0.76rem', fontWeight: 600, color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>صافي الأرباح</span>
+              <span style={{ fontSize: '0.76rem', fontWeight: 600, color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t('maritime_freight.maritime_freight_dashboard_tab.s5', "صافي الأرباح")}</span>
               <span style={{ padding: '1px 5px', background: '#dcfce7', color: '#15803d', borderRadius: '4px', fontSize: '0.68rem', fontWeight: 700, flexShrink: 0 }}>
                 {financialMetrics.marginPct}%
               </span>
@@ -284,7 +286,7 @@ export function MaritimeFreightDashboard() {
               {currencySymbol} {financialMetrics.netProfit.toLocaleString()}
             </div>
             <div style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '3px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              المساهمة الصافية للعمليات
+              {t('maritime_freight.maritime_freight_dashboard_tab.s6', "المساهمة الصافية للعمليات")}
             </div>
           </div>
           <div
@@ -325,15 +327,15 @@ export function MaritimeFreightDashboard() {
           <div style={{ minWidth: 0, flex: 1 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '4px' }}>
               <span style={{ fontSize: '0.76rem', fontWeight: 600, color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                حركة الحاويات والرادار
+                {t('maritime_freight.maritime_freight_dashboard_tab.s7', "حركة الحاويات والرادار")}
               </span>
               {containerMetrics.overdueCount > 0 ? (
                 <span style={{ padding: '1px 5px', background: '#fee2e2', color: '#b91c1c', borderRadius: '4px', fontSize: '0.68rem', fontWeight: 700, flexShrink: 0 }}>
-                  {containerMetrics.overdueCount} تحت الغرامة
+                  {containerMetrics.overdueCount} {t('maritime_freight.maritime_freight_dashboard_tab.s8', "تحت الغرامة")}
                 </span>
               ) : (
                 <span style={{ padding: '1px 5px', background: '#eff6ff', color: '#1e40af', borderRadius: '4px', fontSize: '0.68rem', fontWeight: 700, flexShrink: 0 }}>
-                  منضبط
+                  {t('maritime_freight.maritime_freight_dashboard_tab.s9', "منضبط")}
                 </span>
               )}
             </div>
@@ -341,7 +343,7 @@ export function MaritimeFreightDashboard() {
               {containerMetrics.totalTeu} <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b' }}>TEU</span>
             </div>
             <div style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '3px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              إجمالي {containerMetrics.totalContainers} حاوية | {containerMetrics.overdueCount + containerMetrics.criticalCount} حرجة
+              {t('maritime_freight.maritime_freight_dashboard_tab.s10', "إجمالي")} {containerMetrics.totalContainers} {t('maritime_freight.maritime_freight_dashboard_tab.s11', "حاوية |")} {containerMetrics.overdueCount + containerMetrics.criticalCount} {t('maritime_freight.maritime_freight_dashboard_tab.s12', "حرجة")}
             </div>
           </div>
           <div
@@ -388,10 +390,10 @@ export function MaritimeFreightDashboard() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
             <div>
               <h3 style={{ margin: 0, fontSize: '0.94rem', fontWeight: 800, color: '#0f172a' }}>
-                توزيع وسائط الشحن (Multimodal Transport Share)
+                {t('maritime_freight.maritime_freight_dashboard_tab.s13', "توزيع وسائط الشحن (Multimodal Transport Share)")}
               </h3>
               <p style={{ margin: '3px 0 0', fontSize: '0.76rem', color: '#64748b' }}>
-                مقارنة حجم العمليات بحسب نمط النقل (بحري / جوي / بري)
+                {t('maritime_freight.maritime_freight_dashboard_tab.s14', "مقارنة حجم العمليات بحسب نمط النقل (بحري / جوي / بري)")}
               </p>
             </div>
             <button
@@ -408,7 +410,7 @@ export function MaritimeFreightDashboard() {
                 cursor: 'pointer',
               }}
             >
-              عرض أوامر التشغيل &larr;
+              {t('maritime_freight.maritime_freight_dashboard_tab.s15', "عرض أوامر التشغيل ←")}
             </button>
           </div>
 
@@ -418,9 +420,9 @@ export function MaritimeFreightDashboard() {
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', fontWeight: 700, marginBottom: '6px' }}>
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: '#170e5e' }}>
                   <AppIcons.Ship size={15} />
-                  <span>الشحن البحري (Ocean Freight - FCL / LCL)</span>
+                  <span>{t('maritime_freight.maritime_freight_dashboard_tab.s16', "الشحن البحري (Ocean Freight - FCL / LCL)")}</span>
                 </span>
-                <span style={{ color: '#0f172a' }}>{modeMetrics.seaCount} شحنة ({modeMetrics.seaPct}%)</span>
+                <span style={{ color: '#0f172a' }}>{modeMetrics.seaCount} {t('maritime_freight.maritime_freight_dashboard_tab.s17', "شحنة (")}{modeMetrics.seaPct}%)</span>
               </div>
               <div style={{ width: '100%', height: '8px', background: '#f1f5f9', borderRadius: '4px', overflow: 'hidden' }}>
                 <div style={{ width: `${modeMetrics.seaPct}%`, height: '100%', background: '#170e5e', borderRadius: '4px' }} />
@@ -432,9 +434,9 @@ export function MaritimeFreightDashboard() {
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', fontWeight: 700, marginBottom: '6px' }}>
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: '#0369a1' }}>
                   <AppIcons.Plane size={15} />
-                  <span>الشحن الجوي السريع (Air Cargo - IATA Standards)</span>
+                  <span>{t('maritime_freight.maritime_freight_dashboard_tab.s18', "الشحن الجوي السريع (Air Cargo - IATA Standards)")}</span>
                 </span>
-                <span style={{ color: '#0f172a' }}>{modeMetrics.airCount} شحنة ({modeMetrics.airPct}%)</span>
+                <span style={{ color: '#0f172a' }}>{modeMetrics.airCount} {t('maritime_freight.maritime_freight_dashboard_tab.s19', "شحنة (")}{modeMetrics.airPct}%)</span>
               </div>
               <div style={{ width: '100%', height: '8px', background: '#f1f5f9', borderRadius: '4px', overflow: 'hidden' }}>
                 <div style={{ width: `${modeMetrics.airPct}%`, height: '100%', background: '#0284c7', borderRadius: '4px' }} />
@@ -446,9 +448,9 @@ export function MaritimeFreightDashboard() {
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', fontWeight: 700, marginBottom: '6px' }}>
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: '#b45309' }}>
                   <AppIcons.Truck size={15} />
-                  <span>النقل البري والترانزيت (Road Freight - CMR)</span>
+                  <span>{t('maritime_freight.maritime_freight_dashboard_tab.s20', "النقل البري والترانزيت (Road Freight - CMR)")}</span>
                 </span>
-                <span style={{ color: '#0f172a' }}>{modeMetrics.roadCount} شحنة ({modeMetrics.roadPct}%)</span>
+                <span style={{ color: '#0f172a' }}>{modeMetrics.roadCount} {t('maritime_freight.maritime_freight_dashboard_tab.s21', "شحنة (")}{modeMetrics.roadPct}%)</span>
               </div>
               <div style={{ width: '100%', height: '8px', background: '#f1f5f9', borderRadius: '4px', overflow: 'hidden' }}>
                 <div style={{ width: `${modeMetrics.roadPct}%`, height: '100%', background: '#d97706', borderRadius: '4px' }} />
@@ -470,10 +472,10 @@ export function MaritimeFreightDashboard() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
             <div>
               <h3 style={{ margin: 0, fontSize: '0.94rem', fontWeight: 800, color: '#0f172a' }}>
-                كبار النواقل المعتمدة (Top Carrier Spend)
+                {t('maritime_freight.maritime_freight_dashboard_tab.s22', "كبار النواقل المعتمدة (Top Carrier Spend)")}
               </h3>
               <p style={{ margin: '3px 0 0', fontSize: '0.76rem', color: '#64748b' }}>
-                أعلى الخطوط الملاحية وشركات الطيران بحسب حجم الإنفاق والشحنات
+                {t('maritime_freight.maritime_freight_dashboard_tab.s23', "أعلى الخطوط الملاحية وشركات الطيران بحسب حجم الإنفاق والشحنات")}
               </p>
             </div>
             <button
@@ -490,21 +492,21 @@ export function MaritimeFreightDashboard() {
                 cursor: 'pointer',
               }}
             >
-              دليل النواقل &larr;
+              {t('maritime_freight.maritime_freight_dashboard_tab.s24', "دليل النواقل ←")}
             </button>
           </div>
 
           {topCarriers.length === 0 ? (
             <div style={{ padding: '24px', textAlign: 'center', color: '#94a3b8', fontSize: '0.8rem' }}>
-              لا توجد عمليات مسجلة حتى الآن.
+              {t('maritime_freight.maritime_freight_dashboard_tab.s25', "لا توجد عمليات مسجلة حتى الآن.")}
             </div>
           ) : (
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem', textAlign: 'right' }}>
               <thead>
                 <tr style={{ color: '#64748b', borderBottom: '1px solid #e2e8f0' }}>
-                  <th style={{ padding: '6px 8px', fontWeight: 700 }}>اسم الناقل</th>
-                  <th style={{ padding: '6px 8px', fontWeight: 700, textAlign: 'center' }}>الشحنات</th>
-                  <th style={{ padding: '6px 8px', fontWeight: 700 }}>إجمالي النولون</th>
+                  <th style={{ padding: '6px 8px', fontWeight: 700 }}>{t('maritime_freight.maritime_freight_dashboard_tab.s26', "اسم الناقل")}</th>
+                  <th style={{ padding: '6px 8px', fontWeight: 700, textAlign: 'center' }}>{t('maritime_freight.maritime_freight_dashboard_tab.s27', "الشحنات")}</th>
+                  <th style={{ padding: '6px 8px', fontWeight: 700 }}>{t('maritime_freight.maritime_freight_dashboard_tab.s28', "إجمالي النولون")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -513,7 +515,7 @@ export function MaritimeFreightDashboard() {
                     <td style={{ padding: '8px', fontWeight: 700, color: '#0f172a' }}>{c.name}</td>
                     <td style={{ padding: '8px', textAlign: 'center' }}>
                       <span style={{ padding: '2px 8px', background: '#f1f5f9', color: '#475569', borderRadius: '4px', fontSize: '0.72rem', fontWeight: 700 }}>
-                        {c.count} أمر
+                        {c.count} {t('maritime_freight.maritime_freight_dashboard_tab.s29', "أمر")}
                       </span>
                     </td>
                     <td style={{ padding: '8px', fontWeight: 800, color: '#b91c1c' }}>
@@ -538,10 +540,10 @@ export function MaritimeFreightDashboard() {
         >
           <div style={{ marginBottom: '14px' }}>
             <h3 style={{ margin: 0, fontSize: '0.94rem', fontWeight: 800, color: '#0f172a' }}>
-              تدفق دورة الشحن والأتمتة (Freight Pipeline Funnel)
+              {t('maritime_freight.maritime_freight_dashboard_tab.s30', "تدفق دورة الشحن والأتمتة (Freight Pipeline Funnel)")}
             </h3>
             <p style={{ margin: '3px 0 0', fontSize: '0.76rem', color: '#64748b' }}>
-              تتبع انتقال العمليات من استفسار العميل المبدئي وحتى التسليم والإفراج الجمركي
+              {t('maritime_freight.maritime_freight_dashboard_tab.s31', "تتبع انتقال العمليات من استفسار العميل المبدئي وحتى التسليم والإفراج الجمركي")}
             </p>
           </div>
 
@@ -554,35 +556,35 @@ export function MaritimeFreightDashboard() {
             }}
           >
             <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 8px' }}>
-              <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748b' }}>الاستفسارات</div>
+              <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748b' }}>{t('maritime_freight.maritime_freight_dashboard_tab.s32', "الاستفسارات")}</div>
               <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#170e5e', marginTop: '2px' }}>
                 {counts.inquiries}
               </div>
-              <div style={{ fontSize: '0.68rem', color: '#94a3b8', marginTop: '2px' }}>طلب عميل</div>
+              <div style={{ fontSize: '0.68rem', color: '#94a3b8', marginTop: '2px' }}>{t('maritime_freight.maritime_freight_dashboard_tab.s33', "طلب عميل")}</div>
             </div>
 
             <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 8px' }}>
-              <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748b' }}>تسعير RFQ</div>
+              <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748b' }}>{t('maritime_freight.maritime_freight_dashboard_tab.s34', "تسعير RFQ")}</div>
               <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#1e40af', marginTop: '2px' }}>
                 {counts.rfqs}
               </div>
-              <div style={{ fontSize: '0.68rem', color: '#94a3b8', marginTop: '2px' }}>جلسة تسعير</div>
+              <div style={{ fontSize: '0.68rem', color: '#94a3b8', marginTop: '2px' }}>{t('maritime_freight.maritime_freight_dashboard_tab.s35', "جلسة تسعير")}</div>
             </div>
 
             <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 8px' }}>
-              <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748b' }}>عروض الأسعار</div>
+              <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748b' }}>{t('maritime_freight.maritime_freight_dashboard_tab.s36', "عروض الأسعار")}</div>
               <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#a16207', marginTop: '2px' }}>
                 {counts.quotations}
               </div>
-              <div style={{ fontSize: '0.68rem', color: '#94a3b8', marginTop: '2px' }}>عرض صادر</div>
+              <div style={{ fontSize: '0.68rem', color: '#94a3b8', marginTop: '2px' }}>{t('maritime_freight.maritime_freight_dashboard_tab.s37', "عرض صادر")}</div>
             </div>
 
             <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 8px' }}>
-              <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748b' }}>أوامر التشغيل</div>
+              <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748b' }}>{t('maritime_freight.maritime_freight_dashboard_tab.s38', "أوامر التشغيل")}</div>
               <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#15803d', marginTop: '2px' }}>
                 {counts.jobs}
               </div>
-              <div style={{ fontSize: '0.68rem', color: '#94a3b8', marginTop: '2px' }}>شحنة قيد التنفيذ</div>
+              <div style={{ fontSize: '0.68rem', color: '#94a3b8', marginTop: '2px' }}>{t('maritime_freight.maritime_freight_dashboard_tab.s39', "شحنة قيد التنفيذ")}</div>
             </div>
           </div>
         </div>
@@ -599,10 +601,10 @@ export function MaritimeFreightDashboard() {
         >
           <div style={{ marginBottom: '14px' }}>
             <h3 style={{ margin: 0, fontSize: '0.94rem', fontWeight: 800, color: '#0f172a' }}>
-              مركز التحكم والإجراءات السريعة (Operational Quick Hub)
+              {t('maritime_freight.maritime_freight_dashboard_tab.s40', "مركز التحكم والإجراءات السريعة (Operational Quick Hub)")}
             </h3>
             <p style={{ margin: '3px 0 0', fontSize: '0.76rem', color: '#64748b' }}>
-              الوصول المباشر إلى الشاشات التخصصية وأدوات الرقابة المالية
+              {t('maritime_freight.maritime_freight_dashboard_tab.s41', "الوصول المباشر إلى الشاشات التخصصية وأدوات الرقابة المالية")}
             </p>
           </div>
 
@@ -626,7 +628,7 @@ export function MaritimeFreightDashboard() {
               }}
             >
               <AppIcons.Plus size={15} />
-              <span>تسجيل طلب شحن عميل</span>
+              <span>{t('maritime_freight.maritime_freight_dashboard_tab.s42', "تسجيل طلب شحن عميل")}</span>
             </button>
 
             <button
@@ -648,7 +650,7 @@ export function MaritimeFreightDashboard() {
               }}
             >
               <AppIcons.Mail size={15} />
-              <span>طلب تسعير خطوط (RFQ)</span>
+              <span>{t('maritime_freight.maritime_freight_dashboard_tab.s43', "طلب تسعير خطوط (RFQ)")}</span>
             </button>
 
             <button
@@ -670,7 +672,7 @@ export function MaritimeFreightDashboard() {
               }}
             >
               <AppIcons.Clock size={15} />
-              <span>رادار الغرامات والسماح</span>
+              <span>{t('maritime_freight.maritime_freight_dashboard_tab.s44', "رادار الغرامات والسماح")}</span>
             </button>
 
             <button
@@ -692,7 +694,7 @@ export function MaritimeFreightDashboard() {
               }}
             >
               <AppIcons.CheckShield size={15} />
-              <span>تدقيق فواتير النواقل</span>
+              <span>{t('maritime_freight.maritime_freight_dashboard_tab.s45', "تدقيق فواتير النواقل")}</span>
             </button>
           </div>
         </div>

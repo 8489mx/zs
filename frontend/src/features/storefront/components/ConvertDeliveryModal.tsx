@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { getGlobalCurrencySymbol } from '@/lib/currencies';
 import { XIcon, UserIcon, PhoneIcon, MapPinIcon, TruckIcon } from '@/shared/components/icons/AppIcons';
 import { useState } from 'react';
@@ -24,6 +25,7 @@ export function ConvertDeliveryModal({
   onSuccess,
   onLoadToPos,
 }: ConvertDeliveryModalProps) {
+  const { t } = useTranslation();
   const [selectedRepId, setSelectedRepId] = useState<number | ''>('');
 
   const deliveryRepsQuery = useQuery({
@@ -85,10 +87,10 @@ export function ConvertDeliveryModal({
         >
           <div>
             <h3 style={{ margin: 0, fontSize: '16.5px', fontWeight: 800, color: '#170e5e' }}>
-              تحويل الطلب #{order.orderNumber}
+              {t('storefront.convert_delivery_modal.s0', "تحويل الطلب #")}{order.orderNumber}
             </h3>
             <span style={{ fontSize: '12px', color: '#64748b' }}>
-              إصدار فاتورة مبيعات دليفري وتعيين مندوب التوصيل
+              {t('storefront.convert_delivery_modal.s1', "إصدار فاتورة مبيعات دليفري وتعيين مندوب التوصيل")}
             </span>
           </div>
           <button
@@ -127,7 +129,7 @@ export function ConvertDeliveryModal({
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               <UserIcon size={14} color="#64748b" />
-              <span style={{ fontSize: '12px', color: '#64748b' }}>العميل:</span>
+              <span style={{ fontSize: '12px', color: '#64748b' }}>{t('storefront.convert_delivery_modal.s2', "العميل:")}</span>
               <span style={{ fontSize: '13.5px', fontWeight: 800, color: '#0f172a' }}>{order.customerName}</span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -139,9 +141,9 @@ export function ConvertDeliveryModal({
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', overflow: 'hidden' }}>
               <MapPinIcon size={14} color="#170e5e" style={{ flexShrink: 0 }} />
-              <span style={{ fontSize: '12px', color: '#64748b', flexShrink: 0 }}>عنوان التوصيل:</span>
+              <span style={{ fontSize: '12px', color: '#64748b', flexShrink: 0 }}>{t('storefront.convert_delivery_modal.s3', "عنوان التوصيل:")}</span>
               <span style={{ fontSize: '12.5px', color: '#334155', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {order.customerAddress || 'استلام من الفرع'}
+                {order.customerAddress || t('storefront.convert_delivery_modal.s4', "استلام من الفرع")}
               </span>
             </div>
             {order.deliveryZoneName && (
@@ -173,7 +175,7 @@ export function ConvertDeliveryModal({
               marginTop: '2px',
             }}
           >
-            <span style={{ fontSize: '13px', fontWeight: 700, color: '#475569' }}>إجمالي الفاتورة المطلوب:</span>
+            <span style={{ fontSize: '13px', fontWeight: 700, color: '#475569' }}>{t('storefront.convert_delivery_modal.s5', "إجمالي الفاتورة المطلوب:")}</span>
             <span style={{ fontSize: '16px', fontWeight: 900, color: '#170e5e' }}>
               {Number(order.totalAmount).toLocaleString('ar-EG')} {getGlobalCurrencySymbol()}
             </span>
@@ -184,16 +186,16 @@ export function ConvertDeliveryModal({
         <div style={{ marginTop: '16px' }}>
           <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12.5px', fontWeight: 700, color: '#1e293b', marginBottom: '8px' }}>
             <TruckIcon size={14} color="#170e5e" />
-            <span>مندوب التوصيل المسؤول عن الطلب:</span>
+            <span>{t('storefront.convert_delivery_modal.s6', "مندوب التوصيل المسؤول عن الطلب:")}</span>
           </label>
           <CustomSelect
             value={selectedRepId ? String(selectedRepId) : ''}
             onChange={(val) => setSelectedRepId(val ? Number(val) : '')}
             options={repOptions}
-            placeholder="اختر مندوب التوصيل..."
+            placeholder={t('storefront.convert_delivery_modal.s7', "اختر مندوب التوصيل...")}
           />
           <span style={{ display: 'block', fontSize: '11px', color: '#64748b', marginTop: '6px', lineHeight: 1.4 }}>
-            سيتم تسجيل عهدة تحصيل الفاتورة على المندوب المختار لمطابقتها في الوردية وتوريد النقدية.
+            {t('storefront.convert_delivery_modal.s8', "سيتم تسجيل عهدة تحصيل الفاتورة على المندوب المختار لمطابقتها في الوردية وتوريد النقدية.")}
           </span>
         </div>
 
@@ -219,7 +221,7 @@ export function ConvertDeliveryModal({
               boxShadow: '0 2px 5px rgba(23,14,94,0.25)',
             }}
           >
-            <span>{convertMutation.isPending ? 'جاري إصدار الفاتورة...' : 'إصدار فاتورة دليفري فورية'}</span>
+            <span>{convertMutation.isPending ? t('storefront.convert_delivery_modal.s9', "جاري إصدار الفاتورة...") : t('storefront.convert_delivery_modal.s10', "إصدار فاتورة دليفري فورية")}</span>
           </button>
 
           <button
@@ -243,7 +245,7 @@ export function ConvertDeliveryModal({
               boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
             }}
           >
-            <span>تنزيل في سلة الكاشير (POS) للتعديل وإتمام البيع</span>
+            <span>{t('storefront.convert_delivery_modal.s11', "تنزيل في سلة الكاشير (POS) للتعديل وإتمام البيع")}</span>
           </button>
         </div>
       </div>

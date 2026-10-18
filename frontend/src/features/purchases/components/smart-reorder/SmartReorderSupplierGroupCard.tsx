@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/shared/ui/button';
 import { formatCurrency } from '@/lib/format';
 import {
@@ -31,6 +32,7 @@ export function SmartReorderSupplierGroupCard({
   handleOpenSupplierConfirm,
   isGeneratePending,
 }: SmartReorderSupplierGroupCardProps) {
+  const { t } = useTranslation();
   const allSupplierItemsSelected = group.items.every((item) => isItemSelected(item));
   const selectedItemsInGroup = group.items.filter((item) => isItemSelected(item));
   const supplierSelectedTotalCost = selectedItemsInGroup.reduce(
@@ -67,7 +69,7 @@ export function SmartReorderSupplierGroupCard({
             checked={allSupplierItemsSelected}
             onChange={() => handleToggleSupplier(group, allSupplierItemsSelected)}
             style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#170e5e' }}
-            title="تحديد أو إلغاء تحديد كافة أصناف هذا المورد"
+            title={t('purchases.smart_reorder.smart_reorder_supplier_group_card.s0', "تحديد أو إلغاء تحديد كافة أصناف هذا المورد")}
           />
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -88,23 +90,23 @@ export function SmartReorderSupplierGroupCard({
                     fontWeight: 600,
                   }}
                 >
-                  يحتاج تعيين مورد في شاشة الأصناف
+                  {t('purchases.smart_reorder.smart_reorder_supplier_group_card.s1', "يحتاج تعيين مورد في شاشة الأصناف")}
                 </span>
               ) : null}
             </div>
             <div style={{ display: 'flex', gap: '12px', fontSize: '12px', color: '#64748b', marginTop: '4px', alignItems: 'center' }}>
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                 <ClockIcon size={13} color="#64748b" />
-                <span>فترة التوريد: <strong>{group.leadTimeDays} أيام</strong></span>
+                <span>{t('purchases.smart_reorder.smart_reorder_supplier_group_card.s2', "فترة التوريد:")} <strong>{group.leadTimeDays} {t('purchases.smart_reorder.smart_reorder_supplier_group_card.s3', "أيام")}</strong></span>
               </span>
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                 <PackageIcon size={13} color="#64748b" />
-                <span>الأصناف المطلوبة: <strong>{group.itemsCount} صنف</strong></span>
+                <span>{t('purchases.smart_reorder.smart_reorder_supplier_group_card.s4', "الأصناف المطلوبة:")} <strong>{group.itemsCount} {t('purchases.smart_reorder.smart_reorder_supplier_group_card.s5', "صنف")}</strong></span>
               </span>
               {group.criticalCount > 0 ? (
                 <span style={{ color: '#dc2626', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                   <AlertTriangleIcon size={13} color="#dc2626" />
-                  <span>{group.criticalCount} أصناف حرجة/نافدة</span>
+                  <span>{group.criticalCount} {t('purchases.smart_reorder.smart_reorder_supplier_group_card.s6', "أصناف حرجة/نافدة")}</span>
                 </span>
               ) : null}
             </div>
@@ -113,7 +115,7 @@ export function SmartReorderSupplierGroupCard({
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
           <div style={{ textAlign: 'left' }}>
-            <div style={{ fontSize: '11px', color: '#64748b' }}>التكلفة التقديرية للمحدد:</div>
+            <div style={{ fontSize: '11px', color: '#64748b' }}>{t('purchases.smart_reorder.smart_reorder_supplier_group_card.s7', "التكلفة التقديرية للمحدد:")}</div>
             <strong style={{ fontSize: '16px', color: '#170e5e' }}>{formatCurrency(supplierSelectedTotalCost)}</strong>
           </div>
           {group.supplierId ? (
@@ -129,7 +131,7 @@ export function SmartReorderSupplierGroupCard({
               disabled={selectedItemsInGroup.length === 0 || isGeneratePending}
               onClick={() => handleOpenSupplierConfirm(group)}
             >
-              إنشاء مسودة أمر شراء لهذا المورد ({selectedItemsInGroup.length})
+              {t('purchases.smart_reorder.smart_reorder_supplier_group_card.s8', "إنشاء مسودة أمر شراء لهذا المورد (")}{selectedItemsInGroup.length})
             </Button>
           ) : null}
         </div>
@@ -139,16 +141,16 @@ export function SmartReorderSupplierGroupCard({
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', textAlign: 'right' }}>
           <thead>
             <tr style={{ background: '#ffffff', borderBottom: '1px solid #f1f5f9', color: '#64748b' }}>
-              <th style={{ padding: '12px 16px', width: '40px' }}>اختيار</th>
-              <th style={{ padding: '12px 16px' }}>الصنف</th>
-              <th style={{ padding: '12px 16px' }}>المخزون الحالي</th>
-              <th style={{ padding: '12px 16px' }}>معدل الاستهلاك (يومياً)</th>
-              <th style={{ padding: '12px 16px' }}>الأيام المتبقية</th>
-              <th style={{ padding: '12px 16px' }}>حد الطلب (ROP)</th>
-              <th style={{ padding: '12px 16px' }}>الحالة</th>
-              <th style={{ padding: '12px 16px', minWidth: '130px' }}>الكمية المقترحة</th>
-              <th style={{ padding: '12px 16px' }}>سعر الشراء</th>
-              <th style={{ padding: '12px 16px' }}>الإجمالي التقديري</th>
+              <th style={{ padding: '12px 16px', width: '40px' }}>{t('purchases.smart_reorder.smart_reorder_supplier_group_card.s9', "اختيار")}</th>
+              <th style={{ padding: '12px 16px' }}>{t('purchases.smart_reorder.smart_reorder_supplier_group_card.s10', "الصنف")}</th>
+              <th style={{ padding: '12px 16px' }}>{t('purchases.smart_reorder.smart_reorder_supplier_group_card.s11', "المخزون الحالي")}</th>
+              <th style={{ padding: '12px 16px' }}>{t('purchases.smart_reorder.smart_reorder_supplier_group_card.s12', "معدل الاستهلاك (يومياً)")}</th>
+              <th style={{ padding: '12px 16px' }}>{t('purchases.smart_reorder.smart_reorder_supplier_group_card.s13', "الأيام المتبقية")}</th>
+              <th style={{ padding: '12px 16px' }}>{t('purchases.smart_reorder.smart_reorder_supplier_group_card.s14', "حد الطلب (ROP)")}</th>
+              <th style={{ padding: '12px 16px' }}>{t('purchases.smart_reorder.smart_reorder_supplier_group_card.s15', "الحالة")}</th>
+              <th style={{ padding: '12px 16px', minWidth: '130px' }}>{t('purchases.smart_reorder.smart_reorder_supplier_group_card.s16', "الكمية المقترحة")}</th>
+              <th style={{ padding: '12px 16px' }}>{t('purchases.smart_reorder.smart_reorder_supplier_group_card.s17', "سعر الشراء")}</th>
+              <th style={{ padding: '12px 16px' }}>{t('purchases.smart_reorder.smart_reorder_supplier_group_card.s18', "الإجمالي التقديري")}</th>
             </tr>
           </thead>
           <tbody>
@@ -157,15 +159,15 @@ export function SmartReorderSupplierGroupCard({
               const qty = getEffectiveQty(item);
               const itemTotal = qty * item.costPrice;
 
-              let urgencyBadge = { label: 'آمن', bg: '#f0fdf4', color: '#166534', border: '#bbf7d0' };
+              let urgencyBadge = { label: t('purchases.smart_reorder.smart_reorder_supplier_group_card.s19', "آمن"), bg: '#f0fdf4', color: '#166534', border: '#bbf7d0' };
               if (item.urgency === 'out_of_stock') {
-                urgencyBadge = { label: 'نفد المخزون', bg: '#fef2f2', color: '#dc2626', border: '#fecaca' };
+                urgencyBadge = { label: t('purchases.smart_reorder.smart_reorder_supplier_group_card.s20', "نفد المخزون"), bg: '#fef2f2', color: '#dc2626', border: '#fecaca' };
               } else if (item.urgency === 'critical') {
-                urgencyBadge = { label: 'حرج جداً', bg: '#fff7ed', color: '#c2410c', border: '#fed7aa' };
+                urgencyBadge = { label: t('purchases.smart_reorder.smart_reorder_supplier_group_card.s21', "حرج جداً"), bg: '#fff7ed', color: '#c2410c', border: '#fed7aa' };
               } else if (item.urgency === 'warning') {
-                urgencyBadge = { label: 'يلزم الطلب', bg: '#fefce8', color: '#a16207', border: '#fef08a' };
+                urgencyBadge = { label: t('purchases.smart_reorder.smart_reorder_supplier_group_card.s22', "يلزم الطلب"), bg: '#fefce8', color: '#a16207', border: '#fef08a' };
               } else if (item.urgency === 'overstocked') {
-                urgencyBadge = { label: 'فائض', bg: '#f8fafc', color: '#475569', border: '#e2e8f0' };
+                urgencyBadge = { label: t('purchases.smart_reorder.smart_reorder_supplier_group_card.s23', "فائض"), bg: '#f8fafc', color: '#475569', border: '#e2e8f0' };
               }
 
               return (
@@ -204,8 +206,8 @@ export function SmartReorderSupplierGroupCard({
                     </span>
                   </td>
                   <td style={{ padding: '12px 16px' }}>
-                    <div><strong>{item.dailyRunRate}</strong> <span style={{ fontSize: '11px', color: '#64748b' }}>وحدة/يوم</span></div>
-                    <div style={{ fontSize: '11px', color: '#94a3b8' }}>مبيعات الفترة: {item.qtySoldPeriod}</div>
+                    <div><strong>{item.dailyRunRate}</strong> <span style={{ fontSize: '11px', color: '#64748b' }}>{t('purchases.smart_reorder.smart_reorder_supplier_group_card.s24', "وحدة/يوم")}</span></div>
+                    <div style={{ fontSize: '11px', color: '#94a3b8' }}>{t('purchases.smart_reorder.smart_reorder_supplier_group_card.s25', "مبيعات الفترة:")} {item.qtySoldPeriod}</div>
                   </td>
                   <td style={{ padding: '12px 16px' }}>
                     <span
@@ -218,8 +220,8 @@ export function SmartReorderSupplierGroupCard({
                     </span>
                   </td>
                   <td style={{ padding: '12px 16px', color: '#475569' }}>
-                    <div>نقطة الطلب: <strong>{item.reorderPoint}</strong></div>
-                    <div style={{ fontSize: '11px', color: '#94a3b8' }}>الحد الأدنى: {item.minStock}</div>
+                    <div>{t('purchases.smart_reorder.smart_reorder_supplier_group_card.s26', "نقطة الطلب:")} <strong>{item.reorderPoint}</strong></div>
+                    <div style={{ fontSize: '11px', color: '#94a3b8' }}>{t('purchases.smart_reorder.smart_reorder_supplier_group_card.s27', "الحد الأدنى:")} {item.minStock}</div>
                   </td>
                   <td style={{ padding: '12px 16px' }}>
                     <span
@@ -256,7 +258,7 @@ export function SmartReorderSupplierGroupCard({
                           backgroundColor: '#ffffff',
                         }}
                       />
-                      <span style={{ fontSize: '11px', color: '#64748b' }}>وحدة</span>
+                      <span style={{ fontSize: '11px', color: '#64748b' }}>{t('purchases.smart_reorder.smart_reorder_supplier_group_card.s28', "وحدة")}</span>
                     </div>
                   </td>
                   <td style={{ padding: '12px 16px', color: '#475569' }}>

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAppToolbar } from '@/stores/toolbar-store';
@@ -18,6 +19,7 @@ const BATCH_STATUS_OPTIONS = [
 ];
 
 export function InventoryBatchesPage() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
 
   useAppToolbar([
@@ -91,14 +93,14 @@ export function InventoryBatchesPage() {
     <div className="page-stack page-shell inventory-batches-page" dir="rtl">
       <main className="document-prototype-column" style={{ paddingBottom: '100px', width: '100%' }}>
         <PageHeader
-          title="إدارة التشغيلات وتواريخ الصلاحية (Lots & Expiration)"
-          description="تتبع أرقام التشغيلات (Batches)، تواريخ الصلاحية، وأرصدة الدفعات عبر المستودعات لجميع الأصناف"
-          badge={<span className="nav-pill">{totalItems} تشغيلة مسجلة</span>}
+          title={t('inventory.inventory_batches_page.s0', "إدارة التشغيلات وتواريخ الصلاحية (Lots & Expiration)")}
+          description={t('inventory.inventory_batches_page.s1', "تتبع أرقام التشغيلات (Batches)، تواريخ الصلاحية، وأرصدة الدفعات عبر المستودعات لجميع الأصناف")}
+          badge={<span className="nav-pill">{totalItems} {t('inventory.inventory_batches_page.s2', "تشغيلة مسجلة")}</span>}
           actions={
             <div className="actions compact-actions page-header-actions">
               <Button type="button" onClick={handleOpenAdd} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <PlusIcon size={16} />
-                <span>إضافة تشغيلة جديدة</span>
+                <span>{t('inventory.inventory_batches_page.s3', "إضافة تشغيلة جديدة")}</span>
               </Button>
             </div>
           }
@@ -110,27 +112,27 @@ export function InventoryBatchesPage() {
             items={[
               {
                 key: 'total',
-                label: 'إجمالي التشغيلات',
+                label: t('inventory.inventory_batches_page.s4', "إجمالي التشغيلات"),
                 value: `${totalItems} تشغيلة`,
               },
               {
                 key: 'active',
-                label: 'تشغيلات صالحة ونشطة',
+                label: t('inventory.inventory_batches_page.s5', "تشغيلات صالحة ونشطة"),
                 value: `${activeCount} صالحة`,
               },
               {
                 key: 'near-expiry',
-                label: 'وشيكة الانتهاء (≤ 60 يوم)',
+                label: t('inventory.inventory_batches_page.s6', "وشيكة الانتهاء (≤ 60 يوم)"),
                 value: `${nearExpiryCount} وشيكة`,
               },
               {
                 key: 'expired',
-                label: 'منتهية الصلاحية',
+                label: t('inventory.inventory_batches_page.s7', "منتهية الصلاحية"),
                 value: `${expiredCount} منتهية`,
               },
               {
                 key: 'returned',
-                label: 'مرتجعة للمورد',
+                label: t('inventory.inventory_batches_page.s8', "مرتجعة للمورد"),
                 value: `${returnedCount} مرتجعة`,
               },
             ]}
@@ -141,8 +143,8 @@ export function InventoryBatchesPage() {
         <section className="document-prototype-section workspace-panel">
           <div className="section-header-compact-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
             <div>
-              <h2 className="document-prototype-section-title" style={{ margin: 0 }}>سجل تشغيلات المخزون وتواريخ الصلاحية</h2>
-              <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: '#64748b' }}>تتبع أرقام التشغيلات، الدفعات، وأرصدة المستودعات</p>
+              <h2 className="document-prototype-section-title" style={{ margin: 0 }}>{t('inventory.inventory_batches_page.s9', "سجل تشغيلات المخزون وتواريخ الصلاحية")}</h2>
+              <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: '#64748b' }}>{t('inventory.inventory_batches_page.s10', "تتبع أرقام التشغيلات، الدفعات، وأرصدة المستودعات")}</p>
             </div>
           </div>
 
@@ -154,7 +156,7 @@ export function InventoryBatchesPage() {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
-                placeholder="بحث برقم التشغيلة، اسم الصنف، الباركود، أو المورد..."
+                placeholder={t('inventory.inventory_batches_page.s11', "بحث برقم التشغيلة، اسم الصنف، الباركود، أو المورد...")}
                 style={{ width: '100%', padding: '8px 12px', fontSize: '0.85rem', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box' }}
               />
             </div>
@@ -165,11 +167,11 @@ export function InventoryBatchesPage() {
               value={statusFilter}
               onChange={(val) => { setStatusFilter(val); setPage(1); }}
               options={[
-                { value: 'all', label: 'جميع الحالات' },
-                { value: 'active', label: 'صالحة ونشطة' },
-                { value: 'near_expiry', label: 'وشيكة الانتهاء' },
-                { value: 'expired', label: 'منتهية الصلاحية' },
-                { value: 'returned', label: 'مرتجعة للمورد' },
+                { value: 'all', label: t('inventory.inventory_batches_page.s12', "جميع الحالات") },
+                { value: 'active', label: t('inventory.inventory_batches_page.s13', "صالحة ونشطة") },
+                { value: 'near_expiry', label: t('inventory.inventory_batches_page.s14', "وشيكة الانتهاء") },
+                { value: 'expired', label: t('inventory.inventory_batches_page.s15', "منتهية الصلاحية") },
+                { value: 'returned', label: t('inventory.inventory_batches_page.s16', "مرتجعة للمورد") },
               ]}
             />
           </div>
@@ -178,26 +180,26 @@ export function InventoryBatchesPage() {
         {/* Table Container */}
         <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.03)' }}>
           {isLoading ? (
-            <div style={{ padding: '30px', textAlign: 'center', color: '#64748b' }}>جارٍ تحميل التشغيلات...</div>
+            <div style={{ padding: '30px', textAlign: 'center', color: '#64748b' }}>{t('inventory.inventory_batches_page.s17', "جارٍ تحميل التشغيلات...")}</div>
           ) : batchesList.length === 0 ? (
             <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
               <PackageIcon size={32} color="#94a3b8" style={{ margin: '0 auto 8px auto', display: 'block' }} />
-              <div>لا توجد تشغيلات مسجلة تطابق معايير البحث.</div>
+              <div>{t('inventory.inventory_batches_page.s18', "لا توجد تشغيلات مسجلة تطابق معايير البحث.")}</div>
             </div>
           ) : (
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem', textAlign: 'right' }}>
                 <thead style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
                   <tr>
-                    <th style={{ padding: '10px 14px', color: '#475569' }}>رقم التشغيلة</th>
-                    <th style={{ padding: '10px 14px', color: '#475569' }}>اسم الصنف</th>
-                    <th style={{ padding: '10px 14px', color: '#475569' }}>الباركود</th>
-                    <th style={{ padding: '10px 14px', color: '#475569' }}>تاريخ الصلاحية</th>
-                    <th style={{ padding: '10px 14px', color: '#475569' }}>الرصيد المتاح</th>
-                    <th style={{ padding: '10px 14px', color: '#475569' }}>تكلفة الوحدة</th>
-                    <th style={{ padding: '10px 14px', color: '#475569' }}>المورد</th>
-                    <th style={{ padding: '10px 14px', color: '#475569' }}>الحالة</th>
-                    <th style={{ padding: '10px 14px', color: '#475569' }}>إجراء</th>
+                    <th style={{ padding: '10px 14px', color: '#475569' }}>{t('inventory.inventory_batches_page.s19', "رقم التشغيلة")}</th>
+                    <th style={{ padding: '10px 14px', color: '#475569' }}>{t('inventory.inventory_batches_page.s20', "اسم الصنف")}</th>
+                    <th style={{ padding: '10px 14px', color: '#475569' }}>{t('inventory.inventory_batches_page.s21', "الباركود")}</th>
+                    <th style={{ padding: '10px 14px', color: '#475569' }}>{t('inventory.inventory_batches_page.s22', "تاريخ الصلاحية")}</th>
+                    <th style={{ padding: '10px 14px', color: '#475569' }}>{t('inventory.inventory_batches_page.s23', "الرصيد المتاح")}</th>
+                    <th style={{ padding: '10px 14px', color: '#475569' }}>{t('inventory.inventory_batches_page.s24', "تكلفة الوحدة")}</th>
+                    <th style={{ padding: '10px 14px', color: '#475569' }}>{t('inventory.inventory_batches_page.s25', "المورد")}</th>
+                    <th style={{ padding: '10px 14px', color: '#475569' }}>{t('inventory.inventory_batches_page.s26', "الحالة")}</th>
+                    <th style={{ padding: '10px 14px', color: '#475569' }}>{t('inventory.inventory_batches_page.s27', "إجراء")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -208,20 +210,20 @@ export function InventoryBatchesPage() {
 
                     let statusBg = '#f0fdf4';
                     let statusColor = '#166534';
-                    let statusLabel = 'صالحة ونشطة';
+                    let statusLabel = t('inventory.inventory_batches_page.s28', "صالحة ونشطة");
 
                     if (isExp) {
                       statusBg = '#fef2f2';
                       statusColor = '#991b1b';
-                      statusLabel = 'منتهية الصلاحية';
+                      statusLabel = t('inventory.inventory_batches_page.s29', "منتهية الصلاحية");
                     } else if (isNear) {
                       statusBg = '#fffbeb';
                       statusColor = '#92400e';
-                      statusLabel = 'وشيكة الانتهاء';
+                      statusLabel = t('inventory.inventory_batches_page.s30', "وشيكة الانتهاء");
                     } else if (isRet) {
                       statusBg = '#f1f5f9';
                       statusColor = '#475569';
-                      statusLabel = 'مرتجعة';
+                      statusLabel = t('inventory.inventory_batches_page.s31', "مرتجعة");
                     }
 
                     return (
@@ -249,7 +251,7 @@ export function InventoryBatchesPage() {
                             onClick={() => { setEditingBatch(batch); setModalOpen(true); }}
                             style={{ padding: '3px 8px', fontSize: '0.75rem' }}
                           >
-                            تعديل
+                            {t('inventory.inventory_batches_page.s32', "تعديل")}
                           </Button>
                         </td>
                       </tr>
@@ -266,14 +268,14 @@ export function InventoryBatchesPage() {
         <StandardDialog
           open={Boolean(modalOpen && editingBatch)}
           onClose={() => setModalOpen(false)}
-          title={editingBatch?.id ? `تعديل التشغيلة #${editingBatch.batch_number}` : 'إضافة تشغيلة جديدة للمستودع'}
-          subtitle="تحديد رقم التشغيلة وتاريخ انتهاء الصلاحية والكميات المستودعية"
+          title={editingBatch?.id ? `تعديل التشغيلة #${editingBatch.batch_number}` : t('inventory.inventory_batches_page.s33', "إضافة تشغيلة جديدة للمستودع")}
+          subtitle={t('inventory.inventory_batches_page.s34', "تحديد رقم التشغيلة وتاريخ انتهاء الصلاحية والكميات المستودعية")}
           size="md"
           footerActions={
             <StandardDialogFooter
               onCancel={() => setModalOpen(false)}
-              cancelLabel="إلغاء"
-              primaryLabel={upsertMutation.isPending ? 'جاري الحفظ...' : 'حفظ بيانات التشغيلة'}
+              cancelLabel={t('inventory.inventory_batches_page.s35', "إلغاء")}
+              primaryLabel={upsertMutation.isPending ? t('inventory.inventory_batches_page.s36', "جاري الحفظ...") : t('inventory.inventory_batches_page.s37', "حفظ بيانات التشغيلة")}
               onPrimary={() => {
                 const form = document.getElementById('batch-form') as HTMLFormElement | null;
                 if (form) form.requestSubmit();
@@ -288,12 +290,12 @@ export function InventoryBatchesPage() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                    رقم التشغيلة (Batch / Lot No) *
+                    {t('inventory.inventory_batches_page.s38', "رقم التشغيلة (Batch / Lot No) *")}
                   </label>
                   <input
                     value={editingBatch.batch_number || ''}
                     onChange={(e) => setEditingBatch((prev) => ({ ...prev, batch_number: e.target.value.toUpperCase() }))}
-                    placeholder="مثال: LOT-2026-X1"
+                    placeholder={t('inventory.inventory_batches_page.s39', "مثال: LOT-2026-X1")}
                     dir="ltr"
                     required
                     style={{ width: '100%', padding: '7px 10px', fontSize: '0.85rem', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box' }}
@@ -302,7 +304,7 @@ export function InventoryBatchesPage() {
 
                 <div>
                   <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                    تاريخ الصلاحية (YYYY-MM أو YYYY-MM-DD) *
+                    {t('inventory.inventory_batches_page.s40', "تاريخ الصلاحية (YYYY-MM أو YYYY-MM-DD) *")}
                   </label>
                   <input
                     value={editingBatch.expiry_date || ''}
@@ -313,16 +315,16 @@ export function InventoryBatchesPage() {
                     style={{ width: '100%', padding: '7px 10px', fontSize: '0.85rem', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box' }}
                   />
                   <div style={{ display: 'flex', gap: '4px', marginTop: '4px' }}>
-                    <button type="button" onClick={() => handleSetQuickExpiry(3)} style={{ fontSize: '0.7rem', padding: '2px 6px', background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: '4px', cursor: 'pointer' }}>+3 أشهر</button>
-                    <button type="button" onClick={() => handleSetQuickExpiry(6)} style={{ fontSize: '0.7rem', padding: '2px 6px', background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: '4px', cursor: 'pointer' }}>+6 أشهر</button>
-                    <button type="button" onClick={() => handleSetQuickExpiry(12)} style={{ fontSize: '0.7rem', padding: '2px 6px', background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: '4px', cursor: 'pointer' }}>+سنة</button>
-                    <button type="button" onClick={() => handleSetQuickExpiry(24)} style={{ fontSize: '0.7rem', padding: '2px 6px', background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: '4px', cursor: 'pointer' }}>+سنتين</button>
+                    <button type="button" onClick={() => handleSetQuickExpiry(3)} style={{ fontSize: '0.7rem', padding: '2px 6px', background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: '4px', cursor: 'pointer' }}>{t('inventory.inventory_batches_page.s41', "+3 أشهر")}</button>
+                    <button type="button" onClick={() => handleSetQuickExpiry(6)} style={{ fontSize: '0.7rem', padding: '2px 6px', background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: '4px', cursor: 'pointer' }}>{t('inventory.inventory_batches_page.s42', "+6 أشهر")}</button>
+                    <button type="button" onClick={() => handleSetQuickExpiry(12)} style={{ fontSize: '0.7rem', padding: '2px 6px', background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: '4px', cursor: 'pointer' }}>{t('inventory.inventory_batches_page.s43', "+سنة")}</button>
+                    <button type="button" onClick={() => handleSetQuickExpiry(24)} style={{ fontSize: '0.7rem', padding: '2px 6px', background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: '4px', cursor: 'pointer' }}>{t('inventory.inventory_batches_page.s44', "+سنتين")}</button>
                   </div>
                 </div>
 
                 <div>
                   <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                    الكمية الرصيد *
+                    {t('inventory.inventory_batches_page.s45', "الكمية الرصيد *")}
                   </label>
                   <input
                     type="number"
@@ -337,7 +339,7 @@ export function InventoryBatchesPage() {
 
                 <div>
                   <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                    تكلفة الوحدة (Unit Cost)
+                    {t('inventory.inventory_batches_page.s46', "تكلفة الوحدة (Unit Cost)")}
                   </label>
                   <input
                     type="number"
@@ -351,37 +353,37 @@ export function InventoryBatchesPage() {
 
                 <div>
                   <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                    المورد / جهة التوريد
+                    {t('inventory.inventory_batches_page.s47', "المورد / جهة التوريد")}
                   </label>
                   <input
                     value={editingBatch.supplier_name || ''}
                     onChange={(e) => setEditingBatch((prev) => ({ ...prev, supplier_name: e.target.value }))}
-                    placeholder="اسم المورد أو شركة التوزيع"
+                    placeholder={t('inventory.inventory_batches_page.s48', "اسم المورد أو شركة التوزيع")}
                     style={{ width: '100%', padding: '7px 10px', fontSize: '0.85rem', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box' }}
                   />
                 </div>
 
                 <div>
                   <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                    الحالة
+                    {t('inventory.inventory_batches_page.s49', "الحالة")}
                   </label>
                   <CustomSelect
                     value={editingBatch.status || 'active'}
                     onChange={(val) => setEditingBatch((prev) => ({ ...prev, status: val as any }))}
                     options={BATCH_STATUS_OPTIONS}
-                    placeholder="اختر حالة التشغيلة"
+                    placeholder={t('inventory.inventory_batches_page.s50', "اختر حالة التشغيلة")}
                   />
                 </div>
               </div>
 
               <div>
                 <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                  ملاحظات
+                  {t('inventory.inventory_batches_page.s51', "ملاحظات")}
                 </label>
                 <input
                   value={editingBatch.notes || ''}
                   onChange={(e) => setEditingBatch((prev) => ({ ...prev, notes: e.target.value }))}
-                  placeholder="أي ملاحظات إضافية حول التشغيلة..."
+                  placeholder={t('inventory.inventory_batches_page.s52', "أي ملاحظات إضافية حول التشغيلة...")}
                   style={{ width: '100%', padding: '7px 10px', fontSize: '0.85rem', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box' }}
                 />
               </div>

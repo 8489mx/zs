@@ -1,9 +1,11 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { maritimeApi } from '../api/maritime-freight.api';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
 
 export function PublicShipmentTrackingPage() {
+  const { t } = useTranslation();
   const { token } = useParams<{ token: string }>();
   const [searchInput, setSearchInput] = useState(token || '');
   const [data, setData] = useState<any>(null);
@@ -83,7 +85,7 @@ export function PublicShipmentTrackingPage() {
             </div>
             <div>
               <div style={{ fontWeight: 800, fontSize: '1.05rem', color: '#170e5e' }}>{company.name}</div>
-              <div style={{ fontSize: '0.72rem', color: '#64748b' }}>بوابة التتبع الملاحي الحي للشحنات والحاويات</div>
+              <div style={{ fontSize: '0.72rem', color: '#64748b' }}>{t('maritime_freight.public_shipment_tracking_page.s0', "بوابة التتبع الملاحي الحي للشحنات والحاويات")}</div>
             </div>
           </div>
 
@@ -93,7 +95,7 @@ export function PublicShipmentTrackingPage() {
                 type="text"
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
-                placeholder="رقم البوليصة B/L، الحاوية، أو كود التتبع..."
+                placeholder={t('maritime_freight.public_shipment_tracking_page.s1', "رقم البوليصة B/L، الحاوية، أو كود التتبع...")}
                 style={{
                   width: '100%',
                   height: '38px',
@@ -123,7 +125,7 @@ export function PublicShipmentTrackingPage() {
                 cursor: 'pointer',
               }}
             >
-              تتبع
+              {t('maritime_freight.public_shipment_tracking_page.s2', "تتبع")}
             </button>
           </form>
         </div>
@@ -133,8 +135,8 @@ export function PublicShipmentTrackingPage() {
       <main style={{ maxWidth: '1100px', margin: '24px auto', padding: '0 16px' }}>
         {loading && (
           <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '60px', textAlign: 'center', color: '#64748b' }}>
-            <div style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '8px' }}>جاري استرجاع بيانات التتبع الملاحي...</div>
-            <div style={{ fontSize: '0.825rem', color: '#94a3b8' }}>يتم الاتصال بقاعدة بيانات الموانئ والخطوط الملاحية</div>
+            <div style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '8px' }}>{t('maritime_freight.public_shipment_tracking_page.s3', "جاري استرجاع بيانات التتبع الملاحي...")}</div>
+            <div style={{ fontSize: '0.825rem', color: '#94a3b8' }}>{t('maritime_freight.public_shipment_tracking_page.s4', "يتم الاتصال بقاعدة بيانات الموانئ والخطوط الملاحية")}</div>
           </div>
         )}
 
@@ -143,10 +145,10 @@ export function PublicShipmentTrackingPage() {
             <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: '#fee2e2', color: '#dc2626', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px' }}>
               <AppIcons.AlertTriangle size={24} />
             </div>
-            <h3 style={{ margin: '0 0 6px', color: '#991b1b', fontSize: '1.05rem' }}>تعذر استرجاع الشحنة</h3>
+            <h3 style={{ margin: '0 0 6px', color: '#991b1b', fontSize: '1.05rem' }}>{t('maritime_freight.public_shipment_tracking_page.s5', "تعذر استرجاع الشحنة")}</h3>
             <p style={{ margin: '0 0 16px', color: '#64748b', fontSize: '0.85rem' }}>{error}</p>
             <div style={{ fontSize: '0.8rem', color: '#475569' }}>
-              يرجى التأكد من إدخال رقم أمر التشغيل أو رقم البوليصة بشكل سليم، أو مراجعة مسؤول الشحن.
+              {t('maritime_freight.public_shipment_tracking_page.s6', "يرجى التأكد من إدخال رقم أمر التشغيل أو رقم البوليصة بشكل سليم، أو مراجعة مسؤول الشحن.")}
             </div>
           </div>
         )}
@@ -159,10 +161,10 @@ export function PublicShipmentTrackingPage() {
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
                     <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '2px 8px', borderRadius: '6px', background: '#eff6ff', color: '#1d4ed8' }}>
-                      {job.direction === 'import' ? 'شحن وارد (Import)' : 'شحن صادر (Export)'}
+                      {job.direction === 'import' ? t('maritime_freight.public_shipment_tracking_page.s7', "شحن وارد (Import)") : t('maritime_freight.public_shipment_tracking_page.s8', "شحن صادر (Export)")}
                     </span>
                     <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#64748b' }}>
-                      أمر تشغيل #{job.jobNumber || job.job_number}
+                      {t('maritime_freight.public_shipment_tracking_page.s9', "أمر تشغيل #")}{job.jobNumber || job.job_number}
                     </span>
                   </div>
                   <h1 style={{ margin: 0, fontSize: '1.35rem', fontWeight: 900, color: '#170e5e' }}>
@@ -171,7 +173,7 @@ export function PublicShipmentTrackingPage() {
                 </div>
 
                 <div style={{ textAlign: 'left', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px' }}>
-                  <div style={{ fontSize: '0.78rem', color: '#64748b' }}>الخط الملاحي الناقل</div>
+                  <div style={{ fontSize: '0.78rem', color: '#64748b' }}>{t('maritime_freight.public_shipment_tracking_page.s10', "الخط الملاحي الناقل")}</div>
                   <div style={{ fontWeight: 800, fontSize: '0.98rem', color: '#0f172a' }}>{job.shippingLineName || job.shipping_line_name}</div>
                   {(job.bookingNumber || job.booking_number) && (
                     <div style={{ fontSize: '0.76rem', color: '#475569', fontFamily: 'monospace' }}>
@@ -184,21 +186,21 @@ export function PublicShipmentTrackingPage() {
               {/* Transit Ports Visualizer */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', background: '#f8fafc', padding: '16px 20px', borderRadius: '10px', border: '1px solid #e2e8f0', marginBottom: '20px' }}>
                 <div>
-                  <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: '2px' }}>ميناء الشحن والتحميل (POL)</div>
+                  <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: '2px' }}>{t('maritime_freight.public_shipment_tracking_page.s11', "ميناء الشحن والتحميل (POL)")}</div>
                   <div style={{ fontWeight: 800, fontSize: '0.98rem', color: '#0f172a' }}>{job.polName || job.pol_name}</div>
                   <div style={{ fontSize: '0.74rem', color: '#475569', marginTop: '2px' }}>
-                    كود الميناء: <strong>{job.polCode || job.pol_code}</strong> {job.etd ? `| الإبحار: ${job.etd}` : ''}
+                    {t('maritime_freight.public_shipment_tracking_page.s12', "كود الميناء:")} <strong>{job.polCode || job.pol_code}</strong> {job.etd ? `| الإبحار: ${job.etd}` : ''}
                   </div>
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#170e5e', fontWeight: 700, fontSize: '0.85rem' }}>
                     <AppIcons.Ship size={18} />
-                    <span>{job.vesselName || job.vessel_name || 'السفينة الناقلة'}</span>
+                    <span>{job.vesselName || job.vessel_name || t('maritime_freight.public_shipment_tracking_page.s13', "السفينة الناقلة")}</span>
                   </div>
                   {job.voyageNumber && (
                     <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '2px' }}>
-                      رحلة رقم: {job.voyageNumber}
+                      {t('maritime_freight.public_shipment_tracking_page.s14', "رحلة رقم:")} {job.voyageNumber}
                     </div>
                   )}
                   {vesselTrackingUrl && (
@@ -208,16 +210,16 @@ export function PublicShipmentTrackingPage() {
                       rel="noopener noreferrer"
                       style={{ fontSize: '0.72rem', color: '#2563eb', fontWeight: 700, textDecoration: 'underline', marginTop: '4px' }}
                     >
-                      رادار القمر الصناعي الحي (AIS)
+                      {t('maritime_freight.public_shipment_tracking_page.s15', "رادار القمر الصناعي الحي (AIS)")}
                     </a>
                   )}
                 </div>
 
                 <div style={{ textAlign: 'left' }}>
-                  <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: '2px' }}>ميناء الوصول والتفريغ (POD)</div>
+                  <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: '2px' }}>{t('maritime_freight.public_shipment_tracking_page.s16', "ميناء الوصول والتفريغ (POD)")}</div>
                   <div style={{ fontWeight: 800, fontSize: '0.98rem', color: '#0f172a' }}>{job.podName || job.pod_name}</div>
                   <div style={{ fontSize: '0.74rem', color: '#475569', marginTop: '2px' }}>
-                    كود الميناء: <strong>{job.podCode || job.pod_code}</strong> {job.eta ? `| موعد الوصول: ${job.eta}` : ''}
+                    {t('maritime_freight.public_shipment_tracking_page.s17', "كود الميناء:")} <strong>{job.podCode || job.pod_code}</strong> {job.eta ? `| موعد الوصول: ${job.eta}` : ''}
                   </div>
                 </div>
               </div>
@@ -225,7 +227,7 @@ export function PublicShipmentTrackingPage() {
               {/* Progress Milestones Timeline */}
               <div>
                 <div style={{ fontSize: '0.84rem', fontWeight: 800, color: '#170e5e', marginBottom: '14px' }}>
-                  خط سير الشحنة الميداني (DCSA Milestone Timeline)
+                  {t('maritime_freight.public_shipment_tracking_page.s18', "خط سير الشحنة الميداني (DCSA Milestone Timeline)")}
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(90px, 1fr))', gap: '8px' }}>
                   {MILESTONE_SEQUENCE.map((step, idx) => {
@@ -247,7 +249,7 @@ export function PublicShipmentTrackingPage() {
                           {idx + 1}. {step.label}
                         </div>
                         <div style={{ fontSize: '0.64rem', opacity: isCurrent ? 0.9 : 0.7 }}>
-                          {isCurrent ? 'المرحلة الحالية' : isCompleted ? 'مكتمل' : 'قادم'}
+                          {isCurrent ? t('maritime_freight.public_shipment_tracking_page.s19', "المرحلة الحالية") : isCompleted ? t('maritime_freight.public_shipment_tracking_page.s20', "مكتمل") : t('maritime_freight.public_shipment_tracking_page.s21', "قادم")}
                         </div>
                       </div>
                     );
@@ -261,18 +263,18 @@ export function PublicShipmentTrackingPage() {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 800, color: '#170e5e', fontSize: '0.98rem' }}>
                   <AppIcons.Container size={20} />
-                  <span>الحاويات وأيام السماح بالميناء ({containers.length} حاوية)</span>
+                  <span>{t('maritime_freight.public_shipment_tracking_page.s22', "الحاويات وأيام السماح بالميناء (")}{containers.length} {t('maritime_freight.public_shipment_tracking_page.s23', "حاوية)")}</span>
                 </div>
                 {job.deliveryOrderReleased && (
                   <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '3px 10px', borderRadius: '6px', background: '#f0fdf4', color: '#15803d', border: '1px solid #bbf7d0' }}>
-                    تم اعتماد وإصدار إذن التسليم (D/O Released)
+                    {t('maritime_freight.public_shipment_tracking_page.s24', "تم اعتماد وإصدار إذن التسليم (D/O Released)")}
                   </span>
                 )}
               </div>
 
               {containers.length === 0 ? (
                 <div style={{ padding: '24px', textAlign: 'center', color: '#94a3b8', fontSize: '0.84rem' }}>
-                  لم يتم قيد أرقام الحاويات في هذا الملف حتى الآن
+                  {t('maritime_freight.public_shipment_tracking_page.s25', "لم يتم قيد أرقام الحاويات في هذا الملف حتى الآن")}
                 </div>
               ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '14px' }}>
@@ -299,29 +301,29 @@ export function PublicShipmentTrackingPage() {
 
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '0.78rem', color: '#475569' }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <span>رقم السيل (Seal No):</span>
+                            <span>{t('maritime_freight.public_shipment_tracking_page.s26', "رقم السيل (Seal No):")}</span>
                             <strong>{c.sealNumber || c.seal_number || '—'}</strong>
                           </div>
                           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <span>فترة السماح (Free Days):</span>
-                            <strong>{c.freeDays || c.free_days || 14} يوم</strong>
+                            <span>{t('maritime_freight.public_shipment_tracking_page.s27', "فترة السماح (Free Days):")}</span>
+                            <strong>{c.freeDays || c.free_days || 14} {t('maritime_freight.public_shipment_tracking_page.s28', "يوم")}</strong>
                           </div>
                           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <span>تاريخ مهلة الإرجاع:</span>
+                            <span>{t('maritime_freight.public_shipment_tracking_page.s29', "تاريخ مهلة الإرجاع:")}</span>
                             <strong style={{ color: isOverdue ? '#dc2626' : '#15803d' }}>
-                              {c.returnDeadline || c.return_deadline || 'تحت الاحتساب'}
+                              {c.returnDeadline || c.return_deadline || t('maritime_freight.public_shipment_tracking_page.s30', "تحت الاحتساب")}
                             </strong>
                           </div>
                           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <span>حالة الحاوية:</span>
+                            <span>{t('maritime_freight.public_shipment_tracking_page.s31', "حالة الحاوية:")}</span>
                             <strong>
                               {c.emptyReturnedAt || c.empty_returned_at
-                                ? 'تم إرجاع الحاوية فارغة'
+                                ? t('maritime_freight.public_shipment_tracking_page.s32', "تم إرجاع الحاوية فارغة")
                                 : c.gatedOutAt || c.gated_out_at
-                                ? 'خرجت من بوابة الميناء'
+                                ? t('maritime_freight.public_shipment_tracking_page.s33', "خرجت من بوابة الميناء")
                                 : c.dischargedAt || c.discharged_at
-                                ? 'تم التفريغ بساحة الميناء'
-                                : 'على متن السفينة'}
+                                ? t('maritime_freight.public_shipment_tracking_page.s34', "تم التفريغ بساحة الميناء")
+                                : t('maritime_freight.public_shipment_tracking_page.s35', "على متن السفينة")}
                             </strong>
                           </div>
                         </div>
@@ -336,7 +338,7 @@ export function PublicShipmentTrackingPage() {
             {milestones.length > 0 && (
               <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '14px', padding: '24px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
                 <div style={{ fontWeight: 800, color: '#170e5e', fontSize: '0.98rem', marginBottom: '14px' }}>
-                  سجل التحديثات الميدانية الموثقة ({milestones.length})
+                  {t('maritime_freight.public_shipment_tracking_page.s36', "سجل التحديثات الميدانية الموثقة (")}{milestones.length})
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                   {milestones.map((m: any, i: number) => (
@@ -374,8 +376,8 @@ export function PublicShipmentTrackingPage() {
 
       {/* Footer */}
       <footer style={{ marginTop: '40px', borderTop: '1px solid #e2e8f0', background: '#ffffff', padding: '24px', textAlign: 'center', fontSize: '0.78rem', color: '#64748b' }}>
-        <div>{company.name} — منظومة إدارة الشحن والعمليات اللوجستية الموحدة</div>
-        {company.phone && <div style={{ marginTop: '4px' }}>هاتف خدمة العملاء: {company.phone}</div>}
+        <div>{company.name} {t('maritime_freight.public_shipment_tracking_page.s37', "— منظومة إدارة الشحن والعمليات اللوجستية الموحدة")}</div>
+        {company.phone && <div style={{ marginTop: '4px' }}>{t('maritime_freight.public_shipment_tracking_page.s38', "هاتف خدمة العملاء:")} {company.phone}</div>}
       </footer>
     </div>
   );

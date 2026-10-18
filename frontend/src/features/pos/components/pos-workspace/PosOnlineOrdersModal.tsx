@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { getGlobalCurrencySymbol } from '@/lib/currencies';
 import { useState, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -25,6 +26,7 @@ interface PosOnlineOrdersModalProps {
 }
 
 export function PosOnlineOrdersModal({ isOpen, onClose }: PosOnlineOrdersModalProps) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [deliveryModalOrder, setDeliveryModalOrder] = useState<OnlineOrderRecord | null>(null);
   const [loadingPosOrderId, setLoadingPosOrderId] = useState<number | null>(null);
@@ -75,7 +77,7 @@ export function PosOnlineOrdersModal({ isOpen, onClose }: PosOnlineOrdersModalPr
         open={isOpen}
         onClose={onClose}
         width="min(1160px, 96vw)"
-        ariaLabel="طلبات المتجر الإلكتروني الواردة"
+        ariaLabel={t('pos.pos_workspace.pos_online_orders_modal.s0', "طلبات المتجر الإلكتروني الواردة")}
       >
         <div
           dir="rtl"
@@ -111,7 +113,7 @@ export function PosOnlineOrdersModal({ isOpen, onClose }: PosOnlineOrdersModalPr
                 }}
               />
               <h3 className="no-pseudo-bar" style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: '#170e5e' }}>
-                طلبات المتجر الإلكتروني الواردة
+                {t('pos.pos_workspace.pos_online_orders_modal.s1', "طلبات المتجر الإلكتروني الواردة")}
               </h3>
               <span
                 style={{
@@ -124,14 +126,14 @@ export function PosOnlineOrdersModal({ isOpen, onClose }: PosOnlineOrdersModalPr
                   border: orders.length > 0 ? '1px solid #fecaca' : '1px solid #e2e8f0',
                 }}
               >
-                {orders.length} {orders.length === 1 ? 'طلب جديد' : 'طلبات جديدة'}
+                {orders.length} {orders.length === 1 ? t('pos.pos_workspace.pos_online_orders_modal.s2', "طلب جديد") : t('pos.pos_workspace.pos_online_orders_modal.s3', "طلبات جديدة")}
               </span>
 
               <button
                 type="button"
                 onClick={() => ordersQuery.refetch()}
                 disabled={ordersQuery.isFetching}
-                title="تحديث فوري لقائمة الطلبات"
+                title={t('pos.pos_workspace.pos_online_orders_modal.s4', "تحديث فوري لقائمة الطلبات")}
                 style={{
                   background: '#f8fafc',
                   border: '1px solid #e2e8f0',
@@ -152,7 +154,7 @@ export function PosOnlineOrdersModal({ isOpen, onClose }: PosOnlineOrdersModalPr
                     animation: ordersQuery.isFetching ? 'spin 1s linear infinite' : 'none',
                   }}
                 />
-                <span>تحديث</span>
+                <span>{t('pos.pos_workspace.pos_online_orders_modal.s5', "تحديث")}</span>
               </button>
             </div>
 
@@ -172,7 +174,7 @@ export function PosOnlineOrdersModal({ isOpen, onClose }: PosOnlineOrdersModalPr
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="بحث برقم الطلب، العميل، الهاتف..."
+                    placeholder={t('pos.pos_workspace.pos_online_orders_modal.s6', "بحث برقم الطلب، العميل، الهاتف...")}
                     style={{
                       width: '100%',
                       height: '32px',
@@ -276,7 +278,7 @@ export function PosOnlineOrdersModal({ isOpen, onClose }: PosOnlineOrdersModalPr
                   color="#170e5e"
                   style={{ animation: 'spin 1s linear infinite' }}
                 />
-                <span style={{ fontSize: '13px', fontWeight: 600 }}>جاري فحص الطلبات الواردة...</span>
+                <span style={{ fontSize: '13px', fontWeight: 600 }}>{t('pos.pos_workspace.pos_online_orders_modal.s7', "جاري فحص الطلبات الواردة...")}</span>
               </div>
             ) : orders.length === 0 ? (
               <div
@@ -293,10 +295,10 @@ export function PosOnlineOrdersModal({ isOpen, onClose }: PosOnlineOrdersModalPr
                   <CheckCircleIcon size={42} color="#10b981" />
                 </div>
                 <h4 style={{ margin: '0 0 6px', fontSize: '15px', fontWeight: 700, color: '#0f172a' }}>
-                  لا توجد طلبات جديدة معلقة
+                  {t('pos.pos_workspace.pos_online_orders_modal.s8', "لا توجد طلبات جديدة معلقة")}
                 </h4>
                 <p style={{ margin: 0, fontSize: '12.5px', color: '#64748b' }}>
-                  أي طلب جديد يجريه العميل من المتجر سيظهر هنا مباشرة على الفور.
+                  {t('pos.pos_workspace.pos_online_orders_modal.s9', "أي طلب جديد يجريه العميل من المتجر سيظهر هنا مباشرة على الفور.")}
                 </p>
               </div>
             ) : filteredOrders.length === 0 ? (
@@ -308,7 +310,7 @@ export function PosOnlineOrdersModal({ isOpen, onClose }: PosOnlineOrdersModalPr
                 }}
               >
                 <p style={{ margin: '0 0 8px', fontSize: '13.5px', fontWeight: 700, color: '#0f172a' }}>
-                  لا توجد طلبات تطابق بحثك عن "{searchQuery}"
+                  {t('pos.pos_workspace.pos_online_orders_modal.s10', "لا توجد طلبات تطابق بحثك عن \"")}{searchQuery}"
                 </p>
                 <button
                   type="button"
@@ -323,7 +325,7 @@ export function PosOnlineOrdersModal({ isOpen, onClose }: PosOnlineOrdersModalPr
                     textDecoration: 'underline',
                   }}
                 >
-                  مسح البحث وعرض كافة الطلبات ({orders.length})
+                  {t('pos.pos_workspace.pos_online_orders_modal.s11', "مسح البحث وعرض كافة الطلبات (")}{orders.length})
                 </button>
               </div>
             ) : (
@@ -380,7 +382,7 @@ export function PosOnlineOrdersModal({ isOpen, onClose }: PosOnlineOrdersModalPr
                                 border: '1px solid #a7f3d0',
                               }}
                             >
-                              طاولة {order.tableNumber || '—'}
+                              {t('pos.pos_workspace.pos_online_orders_modal.s12', "طاولة")} {order.tableNumber || '—'}
                             </span>
                           ) : order.orderType === 'pickup' ? (
                             <span
@@ -394,7 +396,7 @@ export function PosOnlineOrdersModal({ isOpen, onClose }: PosOnlineOrdersModalPr
                                 border: '1px solid #bfdbfe',
                               }}
                             >
-                              استلام من الفرع
+                              {t('pos.pos_workspace.pos_online_orders_modal.s13', "استلام من الفرع")}
                             </span>
                           ) : (
                             <span
@@ -408,7 +410,7 @@ export function PosOnlineOrdersModal({ isOpen, onClose }: PosOnlineOrdersModalPr
                                 border: '1px solid #fde68a',
                               }}
                             >
-                              قيد الانتظار
+                              {t('pos.pos_workspace.pos_online_orders_modal.s14', "قيد الانتظار")}
                             </span>
                           )}
                         </div>
@@ -462,9 +464,9 @@ export function PosOnlineOrdersModal({ isOpen, onClose }: PosOnlineOrdersModalPr
                             textOverflow: 'ellipsis',
                             whiteSpace: 'nowrap',
                           }}
-                          title={order.customerAddress || 'استلام من المتجر'}
+                          title={order.customerAddress || t('pos.pos_workspace.pos_online_orders_modal.s15', "استلام من المتجر")}
                         >
-                          {order.customerAddress || (order.orderType === 'dine_in' ? 'تناول بالصالة' : 'استلام من المتجر')}
+                          {order.customerAddress || (order.orderType === 'dine_in' ? t('pos.pos_workspace.pos_online_orders_modal.s16', "تناول بالصالة") : t('pos.pos_workspace.pos_online_orders_modal.s17', "استلام من المتجر"))}
                         </div>
                         {order.customerNotes && (
                           <div
@@ -478,7 +480,7 @@ export function PosOnlineOrdersModal({ isOpen, onClose }: PosOnlineOrdersModalPr
                               border: '1px solid #fef3c7',
                             }}
                           >
-                            ملاحظات: {order.customerNotes}
+                            {t('pos.pos_workspace.pos_online_orders_modal.s18', "ملاحظات:")} {order.customerNotes}
                           </div>
                         )}
                       </div>
@@ -487,10 +489,10 @@ export function PosOnlineOrdersModal({ isOpen, onClose }: PosOnlineOrdersModalPr
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                           <span style={{ fontWeight: 700, fontSize: '11.5px', color: '#64748b' }}>
-                            الأصناف ({order.items.length}):
+                            {t('pos.pos_workspace.pos_online_orders_modal.s19', "الأصناف (")}{order.items.length}):
                           </span>
                           <span style={{ fontSize: '11px', color: '#94a3b8' }}>
-                            إجمالي: {order.items.reduce((s, it) => s + (it.quantity || 1), 0)} قطعة
+                            {t('pos.pos_workspace.pos_online_orders_modal.s20', "إجمالي:")} {order.items.reduce((s, it) => s + (it.quantity || 1), 0)} {t('pos.pos_workspace.pos_online_orders_modal.s21', "قطعة")}
                           </span>
                         </div>
                         <div
@@ -540,7 +542,7 @@ export function PosOnlineOrdersModal({ isOpen, onClose }: PosOnlineOrdersModalPr
                       >
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                           <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
-                            <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>الإجمالي:</span>
+                            <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>{t('pos.pos_workspace.pos_online_orders_modal.s22', "الإجمالي:")}</span>
                             <span style={{ fontSize: '15px', fontWeight: 900, color: '#170e5e' }}>
                               {order.totalAmount} {getGlobalCurrencySymbol()}
                             </span>
@@ -563,12 +565,12 @@ export function PosOnlineOrdersModal({ isOpen, onClose }: PosOnlineOrdersModalPr
                                 fontSize: '11px',
                                 fontWeight: 700,
                               }}
-                              title="مراسلة العميل عبر واتساب"
+                              title={t('pos.pos_workspace.pos_online_orders_modal.s23', "مراسلة العميل عبر واتساب")}
                             >
                               <svg width="13" height="13" fill="currentColor" viewBox="0 0 24 24">
                                 <path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.77-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.299.045-.677.063-1.092-.069-.252-.08-.575-.187-.988-.365-1.739-.751-2.874-2.502-2.961-2.617-.087-.116-.708-.94-.708-1.793s.448-1.273.607-1.446c.159-.173.346-.217.462-.217l.332.006c.106.005.249-.04.39.298.144.347.491 1.2.534 1.287.043.087.072.188.014.304-.058.116-.087.188-.173.289l-.26.304c-.087.086-.177.181-.076.355.101.174.449.741.964 1.201.662.591 1.221.774 1.394.86.173.086.275.072.376-.044.101-.116.433-.506.549-.68.116-.173.231-.145.39-.087s1.011.477 1.184.564.289.13.332.202c.043.072.043.419-.101.824z" />
                               </svg>
-                              <span>واتساب</span>
+                              <span>{t('pos.pos_workspace.pos_online_orders_modal.s24', "واتساب")}</span>
                             </a>
                           )}
                         </div>
@@ -593,7 +595,7 @@ export function PosOnlineOrdersModal({ isOpen, onClose }: PosOnlineOrdersModalPr
                             }}
                           >
                             <ShoppingCartIcon size={14} />
-                            <span>{loadingPosOrderId === order.id ? 'جاري النقل...' : 'تنزيل بالسلة'}</span>
+                            <span>{loadingPosOrderId === order.id ? t('pos.pos_workspace.pos_online_orders_modal.s25', "جاري النقل...") : t('pos.pos_workspace.pos_online_orders_modal.s26', "تنزيل بالسلة")}</span>
                           </Button>
 
                           <Button
@@ -614,7 +616,7 @@ export function PosOnlineOrdersModal({ isOpen, onClose }: PosOnlineOrdersModalPr
                             }}
                           >
                             <TruckIcon size={14} />
-                            <span>دليفري ومندوب</span>
+                            <span>{t('pos.pos_workspace.pos_online_orders_modal.s27', "دليفري ومندوب")}</span>
                           </Button>
                         </div>
                       </div>
@@ -638,7 +640,7 @@ export function PosOnlineOrdersModal({ isOpen, onClose }: PosOnlineOrdersModalPr
             }}
           >
             <span style={{ color: '#64748b' }}>
-              النظام يسجل العميل تلقائياً ويخصم المخزون فوراً.
+              {t('pos.pos_workspace.pos_online_orders_modal.s28', "النظام يسجل العميل تلقائياً ويخصم المخزون فوراً.")}
             </span>
             <Link
               to="/online-orders"
@@ -652,7 +654,7 @@ export function PosOnlineOrdersModal({ isOpen, onClose }: PosOnlineOrdersModalPr
                 gap: '4px',
               }}
             >
-              <span>شاشة إدارة الطلبات الكاملة</span>
+              <span>{t('pos.pos_workspace.pos_online_orders_modal.s29', "شاشة إدارة الطلبات الكاملة")}</span>
               <span>←</span>
             </Link>
           </div>

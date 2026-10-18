@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -19,6 +20,7 @@ const schema = z.object({
 type FormData = z.infer<typeof schema>;
 
 export function AddShipmentItemDialog({ open, onClose, shipmentId }: { open: boolean, onClose: () => void, shipmentId: string }) {
+  const { t } = useTranslation();
   const { data: products } = useProductsQuery();
   
   const mutation = useAddShipmentItemMutation(shipmentId);
@@ -48,15 +50,15 @@ export function AddShipmentItemDialog({ open, onClose, shipmentId }: { open: boo
     <StandardDialog
       open={open}
       onClose={onClose}
-      title="إضافة صنف وبضاعة للحاوية"
-      subtitle="اختيار الصنف وتحديد الكمية المستوردة وسعر الشراء بالدولار من المصنع."
+      title={t('import_sales.add_shipment_item_dialog.s0', "إضافة صنف وبضاعة للحاوية")}
+      subtitle={t('import_sales.add_shipment_item_dialog.s1', "اختيار الصنف وتحديد الكمية المستوردة وسعر الشراء بالدولار من المصنع.")}
       width="min(640px, 95vw)"
       footerActions={
         <StandardDialogFooter
           onCancel={onClose}
           onSubmit={form.handleSubmit(onSubmit)}
-          submitText={mutation.isPending ? 'جاري الإضافة...' : 'إضافة الصنف'}
-          cancelText="إلغاء"
+          submitText={mutation.isPending ? t('import_sales.add_shipment_item_dialog.s2', "جاري الإضافة...") : t('import_sales.add_shipment_item_dialog.s3', "إضافة الصنف")}
+          cancelText={t('import_sales.add_shipment_item_dialog.s4', "إلغاء")}
           isSubmitting={mutation.isPending}
         />
       }
@@ -64,9 +66,9 @@ export function AddShipmentItemDialog({ open, onClose, shipmentId }: { open: boo
       <form onSubmit={form.handleSubmit(onSubmit)} dir="rtl">
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <div style={{ width: '100%' }}>
-            <Field label="الصنف (بحث بالاسم أو الكود / OEM)" error={form.formState.errors.productId?.message}>
+            <Field label={t('import_sales.add_shipment_item_dialog.s5', "الصنف (بحث بالاسم أو الكود / OEM)")} error={form.formState.errors.productId?.message}>
               <SearchableCombobox
-                placeholder="ابحث عن صنف..."
+                placeholder={t('import_sales.add_shipment_item_dialog.s6', "ابحث عن صنف...")}
                 value={searchTerm}
                 onChange={setSearchTerm}
                 options={products || []}
@@ -92,7 +94,7 @@ export function AddShipmentItemDialog({ open, onClose, shipmentId }: { open: boo
           </div>
           
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px' }}>
-            <Field label="الكمية الواردة" error={form.formState.errors.quantity?.message}>
+            <Field label={t('import_sales.add_shipment_item_dialog.s7', "الكمية الواردة")} error={form.formState.errors.quantity?.message}>
               <input 
                 type="number" 
                 {...form.register('quantity')} 
@@ -112,7 +114,7 @@ export function AddShipmentItemDialog({ open, onClose, shipmentId }: { open: boo
               />
             </Field>
 
-            <Field label="سعر الشراء الفعلي (بالدولار $)" error={form.formState.errors.factoryUnitPriceUsd?.message}>
+            <Field label={t('import_sales.add_shipment_item_dialog.s8', "سعر الشراء الفعلي (بالدولار $)")} error={form.formState.errors.factoryUnitPriceUsd?.message}>
               <input 
                 type="number" 
                 step="0.01" 

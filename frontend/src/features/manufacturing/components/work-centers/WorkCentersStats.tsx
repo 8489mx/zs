@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { PackageIcon, CheckCircleIcon, AlertTriangleIcon } from '@/shared/components/icons/AppIcons';
 import { WorkCenterRecord } from '@/features/manufacturing/api/work-centers.api';
 
@@ -6,6 +7,7 @@ interface WorkCentersStatsProps {
 }
 
 export function WorkCentersStats({ workCenters }: WorkCentersStatsProps) {
+  const { t } = useTranslation();
   const activeCount = workCenters.filter(w => w.status === 'active').length;
   const maintenanceCount = workCenters.filter(w => w.status === 'maintenance').length;
   const totalCapacity = workCenters.reduce((sum, w) => sum + (w.status === 'active' ? Number(w.capacity || 0) : 0), 0);
@@ -17,7 +19,7 @@ export function WorkCentersStats({ workCenters }: WorkCentersStatsProps) {
           <PackageIcon size={20} />
         </div>
         <div>
-          <span style={{ fontSize: '12px', color: '#64748b' }}>إجمالي مراكز العمل</span>
+          <span style={{ fontSize: '12px', color: '#64748b' }}>{t('manufacturing.work_centers.work_centers_stats.s0', "إجمالي مراكز العمل")}</span>
           <div style={{ fontSize: '20px', fontWeight: 800, color: '#0f172a' }}>{workCenters.length}</div>
         </div>
       </div>
@@ -27,7 +29,7 @@ export function WorkCentersStats({ workCenters }: WorkCentersStatsProps) {
           <CheckCircleIcon size={20} />
         </div>
         <div>
-          <span style={{ fontSize: '12px', color: '#64748b' }}>مراكز نشطة وجاهزة</span>
+          <span style={{ fontSize: '12px', color: '#64748b' }}>{t('manufacturing.work_centers.work_centers_stats.s1', "مراكز نشطة وجاهزة")}</span>
           <div style={{ fontSize: '20px', fontWeight: 800, color: '#16a34a' }}>{activeCount}</div>
         </div>
       </div>
@@ -37,7 +39,7 @@ export function WorkCentersStats({ workCenters }: WorkCentersStatsProps) {
           <AlertTriangleIcon size={20} />
         </div>
         <div>
-          <span style={{ fontSize: '12px', color: '#64748b' }}>تحت الصيانة</span>
+          <span style={{ fontSize: '12px', color: '#64748b' }}>{t('manufacturing.work_centers.work_centers_stats.s2', "تحت الصيانة")}</span>
           <div style={{ fontSize: '20px', fontWeight: 800, color: '#d97706' }}>{maintenanceCount}</div>
         </div>
       </div>
@@ -47,8 +49,8 @@ export function WorkCentersStats({ workCenters }: WorkCentersStatsProps) {
           <PackageIcon size={20} />
         </div>
         <div>
-          <span style={{ fontSize: '12px', color: '#64748b' }}>إجمالي الطاقة الإنتاجية/ساعة</span>
-          <div style={{ fontSize: '20px', fontWeight: 800, color: '#7c3aed' }}>{totalCapacity.toFixed(1)} وحدة</div>
+          <span style={{ fontSize: '12px', color: '#64748b' }}>{t('manufacturing.work_centers.work_centers_stats.s3', "إجمالي الطاقة الإنتاجية/ساعة")}</span>
+          <div style={{ fontSize: '20px', fontWeight: 800, color: '#7c3aed' }}>{totalCapacity.toFixed(1)} {t('manufacturing.work_centers.work_centers_stats.s4', "وحدة")}</div>
         </div>
       </div>
     </div>

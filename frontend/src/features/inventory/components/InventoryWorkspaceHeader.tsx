@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { PageHeader } from '@/shared/components/page-header';
@@ -27,6 +28,7 @@ export function InventoryWorkspaceHeader({
   onPrintByCategory?: () => void;
   onPrintByHighestValue?: () => void;
 }) {
+  const { t } = useTranslation();
   const [isSmartRestockOpen, setIsSmartRestockOpen] = useState(false);
 
   const primaryAction = currentSection === 'transfers'
@@ -36,9 +38,9 @@ export function InventoryWorkspaceHeader({
   return (
     <>
       <PageHeader
-        title="المخزون"
+        title={t('inventory.inventory_workspace_header.s0', "المخزون")}
         description={description}
-        badge={<span className="nav-pill">تشغيل المخزون</span>}
+        badge={<span className="nav-pill">{t('inventory.inventory_workspace_header.s1', "تشغيل المخزون")}</span>}
         actions={(
           <div className="actions compact-actions">
             {primaryAction ? (
@@ -47,7 +49,7 @@ export function InventoryWorkspaceHeader({
             <Link to="/inventory/reordering">
               <Button
                 variant="secondary"
-                title="قواعد إعادة الطلب التلقائي وتوليد أوامر الشراء (Min/Max Rules)"
+                title={t('inventory.inventory_workspace_header.s2', "قواعد إعادة الطلب التلقائي وتوليد أوامر الشراء (Min/Max Rules)")}
                 style={{
                   fontWeight: 700,
                   color: '#1e40af',
@@ -55,13 +57,13 @@ export function InventoryWorkspaceHeader({
                   borderColor: '#bfdbfe',
                 }}
               >
-                قواعد إعادة الطلب
+                {t('inventory.inventory_workspace_header.s3', "قواعد إعادة الطلب")}
               </Button>
             </Link>
             <Button
               variant="secondary"
               onClick={() => setIsSmartRestockOpen(true)}
-              title="إمداد الأرفف الذكي وتعويض مبيعات 48 ساعة"
+              title={t('inventory.inventory_workspace_header.s4', "إمداد الأرفف الذكي وتعويض مبيعات 48 ساعة")}
               style={{
                 fontWeight: 700,
                 color: '#047857',
@@ -69,12 +71,12 @@ export function InventoryWorkspaceHeader({
                 borderColor: '#a7f3d0',
               }}
             >
-              إمداد الأرفف الذكي
+              {t('inventory.inventory_workspace_header.s5', "إمداد الأرفف الذكي")}
             </Button>
-            <Button variant="secondary" onClick={onReset}>إعادة ضبط</Button>
-            <Button variant="secondary" onClick={onCopySummary}>نسخ</Button>
-            <Button variant="secondary" onClick={onExportExcel} disabled={!hasRows}>تصدير</Button>
-            <Button variant="secondary" onClick={onPrintList} disabled={!hasRows || !canPrint} title="طباعة تقرير المخزون">طباعة</Button>
+            <Button variant="secondary" onClick={onReset}>{t('inventory.inventory_workspace_header.s6', "إعادة ضبط")}</Button>
+            <Button variant="secondary" onClick={onCopySummary}>{t('inventory.inventory_workspace_header.s7', "نسخ")}</Button>
+            <Button variant="secondary" onClick={onExportExcel} disabled={!hasRows}>{t('inventory.inventory_workspace_header.s8', "تصدير")}</Button>
+            <Button variant="secondary" onClick={onPrintList} disabled={!hasRows || !canPrint} title={t('inventory.inventory_workspace_header.s9', "طباعة تقرير المخزون")}>{t('inventory.inventory_workspace_header.s10', "طباعة")}</Button>
           </div>
         )}
       />

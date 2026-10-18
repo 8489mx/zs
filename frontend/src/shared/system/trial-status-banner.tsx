@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { XIcon } from '@/shared/components/icons/AppIcons';
 import { useState } from 'react';
 import { useLocation, Link } from 'react-router-dom';
@@ -13,6 +14,7 @@ function formatTrialText(days: number | null | undefined): string {
 }
 
 export function TrialStatusBanner() {
+  const { t } = useTranslation();
   const location = useLocation();
   const tenant = useAuthStore((state) => state.tenant);
   const [dismissed, setDismissed] = useState(() => {
@@ -73,7 +75,7 @@ export function TrialStatusBanner() {
             letterSpacing: '0.2px',
           }}
         >
-          نسخة تجريبية
+          {t('shared.system.trial_status_banner.s0', "نسخة تجريبية")}
         </span>
         <span>
           <strong>{businessName}</strong> — {formatTrialText(days)}
@@ -104,7 +106,7 @@ export function TrialStatusBanner() {
             <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>
             <line x1="1" y1="10" x2="23" y2="10"/>
           </svg>
-          <span>تجديد الاشتراك أونلاين</span>
+          <span>{t('shared.system.trial_status_banner.s1', "تجديد الاشتراك أونلاين")}</span>
         </Link>
         <a
           href={supportUrl}
@@ -127,12 +129,12 @@ export function TrialStatusBanner() {
           onMouseEnter={(e) => (e.currentTarget.style.background = isEndingSoon ? '#ffedd5' : '#dcfce7')}
           onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
         >
-          <span>تواصل للتفعيل</span>
+          <span>{t('shared.system.trial_status_banner.s2', "تواصل للتفعيل")}</span>
         </a>
         <button
           type="button"
           onClick={handleDismiss}
-          title="إخفاء التنبيه لهذه الجلسة"
+          title={t('shared.system.trial_status_banner.s3', "إخفاء التنبيه لهذه الجلسة")}
           style={{
             background: 'transparent',
             border: 'none',
@@ -149,7 +151,7 @@ export function TrialStatusBanner() {
           }}
           onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
           onMouseLeave={(e) => (e.currentTarget.style.opacity = '0.65')}
-          aria-label="إغلاق"
+          aria-label={t('shared.system.trial_status_banner.s4', "إغلاق")}
         ><XIcon size={15} /></button>
       </div>
     </div>

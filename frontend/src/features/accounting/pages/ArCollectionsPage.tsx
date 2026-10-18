@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useCallback, type FC } from 'react';
 import { toast } from '@/shared/components/system-alert';
 import { Button } from '@/shared/ui/button';
@@ -24,6 +25,7 @@ import { ArDunningLevelsModal } from '../components/collections/ArDunningLevelsM
 import { ArCaseDetailsModal } from '../components/collections/ArCaseDetailsModal';
 
 export const ArCollectionsPage: FC = () => {
+  const { t } = useTranslation();
   const [overview, setOverview] = useState<ArCollectionsOverview | null>(null);
   const [cases, setCases] = useState<ArCollectionCaseItem[]>([]);
   const [totalCount, setTotalCount] = useState(0);
@@ -133,7 +135,7 @@ export const ArCollectionsPage: FC = () => {
           border: `1px solid ${border}`,
         }}
       >
-        <span>مستوى {order}:</span>
+        <span>{t('accounting.ar_collections_page.s0', "مستوى")} {order}:</span>
         <span>{item.level_name}</span>
       </span>
     );
@@ -144,25 +146,25 @@ export const ArCollectionsPage: FC = () => {
       case 'promised_to_pay':
         return (
           <span style={{ padding: '2px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: 600, backgroundColor: '#ecfdf5', color: '#047857', border: '1px solid #a7f3d0' }}>
-            تعهد بالسداد
+            {t('accounting.ar_collections_page.s1', "تعهد بالسداد")}
           </span>
         );
       case 'escalated':
         return (
           <span style={{ padding: '2px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: 600, backgroundColor: '#fef2f2', color: '#b91c1c', border: '1px solid #fecaca' }}>
-            تصعيد وإنذار
+            {t('accounting.ar_collections_page.s2', "تصعيد وإنذار")}
           </span>
         );
       case 'settled':
         return (
           <span style={{ padding: '2px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: 600, backgroundColor: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1' }}>
-            مسدد بالكامل
+            {t('accounting.ar_collections_page.s3', "مسدد بالكامل")}
           </span>
         );
       default:
         return (
           <span style={{ padding: '2px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: 600, backgroundColor: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe' }}>
-            مفتوح للمتابعة
+            {t('accounting.ar_collections_page.s4', "مفتوح للمتابعة")}
           </span>
         );
     }
@@ -197,7 +199,7 @@ export const ArCollectionsPage: FC = () => {
               margin: '0 0 4px 0',
             }}
           >
-            مركز متابعة وتصعيد التحصيلات (AR Collections & Dunning Hub)
+            {t('accounting.ar_collections_page.s5', "مركز متابعة وتصعيد التحصيلات (AR Collections & Dunning Hub)")}
           </h1>
           <p
             style={{
@@ -206,7 +208,7 @@ export const ArCollectionsPage: FC = () => {
               margin: 0,
             }}
           >
-            إدارة استباقية لمتأخرات العملاء، خطابات المطالبة التدريجية، والتطبيق الآلي لحظر التسهيلات الائتمانية.
+            {t('accounting.ar_collections_page.s6', "إدارة استباقية لمتأخرات العملاء، خطابات المطالبة التدريجية، والتطبيق الآلي لحظر التسهيلات الائتمانية.")}
           </p>
         </div>
 
@@ -218,7 +220,7 @@ export const ArCollectionsPage: FC = () => {
             style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12.5px' }}
           >
             <SlidersIcon size={15} color="#170e5e" />
-            <span>إعدادات مستويات المطالبة</span>
+            <span>{t('accounting.ar_collections_page.s7', "إعدادات مستويات المطالبة")}</span>
           </Button>
 
           <Button
@@ -235,7 +237,7 @@ export const ArCollectionsPage: FC = () => {
             }}
           >
             <RefreshCwIcon size={15} color="#ffffff" className={syncing ? 'animate-spin' : ''} />
-            <span>{syncing ? 'جاري الفحص والمزامنة...' : 'مزامنة التحصيلات والتصعيد الآلي'}</span>
+            <span>{syncing ? t('accounting.ar_collections_page.s8', "جاري الفحص والمزامنة...") : t('accounting.ar_collections_page.s9', "مزامنة التحصيلات والتصعيد الآلي")}</span>
           </Button>
         </div>
       </div>
@@ -269,11 +271,11 @@ export const ArCollectionsPage: FC = () => {
           {/* Status Tabs */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '4px', backgroundColor: '#e2e8f0', padding: '3px', borderRadius: '8px' }}>
             {[
-              { id: 'all', label: 'كافة الملفات' },
-              { id: 'open', label: 'مفتوحة للمتابعة' },
-              { id: 'promised_to_pay', label: 'تعهد بالسداد' },
-              { id: 'escalated', label: 'تحت الإنذار / التصعيد' },
-              { id: 'settled', label: 'مسددة' },
+              { id: 'all', label: t('accounting.ar_collections_page.s10', "كافة الملفات") },
+              { id: 'open', label: t('accounting.ar_collections_page.s11', "مفتوحة للمتابعة") },
+              { id: 'promised_to_pay', label: t('accounting.ar_collections_page.s12', "تعهد بالسداد") },
+              { id: 'escalated', label: t('accounting.ar_collections_page.s13', "تحت الإنذار / التصعيد") },
+              { id: 'settled', label: t('accounting.ar_collections_page.s14', "مسددة") },
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -302,7 +304,7 @@ export const ArCollectionsPage: FC = () => {
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="بحث بالاسم أو رقم الهاتف..."
+              placeholder={t('accounting.ar_collections_page.s15', "بحث بالاسم أو رقم الهاتف...")}
               style={{
                 width: '100%',
                 padding: '6px 32px 6px 12px',
@@ -322,7 +324,7 @@ export const ArCollectionsPage: FC = () => {
         {/* Table Content */}
         {loading ? (
           <div style={{ padding: '60px 0', textAlign: 'center', color: '#64748b', fontSize: '13px' }}>
-            جاري تحميل سجلات وملفات التحصيل...
+            {t('accounting.ar_collections_page.s16', "جاري تحميل سجلات وملفات التحصيل...")}
           </div>
         ) : cases.length === 0 ? (
           <div style={{ padding: '60px 16px', textAlign: 'center' }}>
@@ -330,10 +332,10 @@ export const ArCollectionsPage: FC = () => {
               <CheckShieldIcon size={24} color="#94a3b8" />
             </div>
             <div style={{ fontSize: '14px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-              لا توجد ملفات متأخرات تطابق الفلتر
+              {t('accounting.ar_collections_page.s17', "لا توجد ملفات متأخرات تطابق الفلتر")}
             </div>
             <div style={{ fontSize: '12px', color: '#94a3b8' }}>
-              جميع الحسابات منتظمة أو لا توجد مطالبات في هذه الفئة. اضغط على «مزامنة التحصيلات والتصعيد الآلي» لتحديث السجلات.
+              {t('accounting.ar_collections_page.s18', "جميع الحسابات منتظمة أو لا توجد مطالبات في هذه الفئة. اضغط على «مزامنة التحصيلات والتصعيد الآلي» لتحديث السجلات.")}
             </div>
           </div>
         ) : (
@@ -341,13 +343,13 @@ export const ArCollectionsPage: FC = () => {
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12.5px', textAlign: 'right' }}>
               <thead style={{ backgroundColor: '#f8fafc', color: '#475569', fontWeight: 600, borderBottom: '1px solid #e2e8f0' }}>
                 <tr>
-                  <th style={{ padding: '10px 14px' }}>العميل</th>
-                  <th style={{ padding: '10px 14px' }}>المتأخرات / الرصيد</th>
-                  <th style={{ padding: '10px 14px' }}>أقدم تأخير</th>
-                  <th style={{ padding: '10px 14px' }}>مستوى المطالبة</th>
-                  <th style={{ padding: '10px 14px' }}>الحالة والموعد</th>
-                  <th style={{ padding: '10px 14px' }}>موقف الآجل</th>
-                  <th style={{ padding: '10px 14px', textAlign: 'center' }}>الإجراءات السريعة</th>
+                  <th style={{ padding: '10px 14px' }}>{t('accounting.ar_collections_page.s19', "العميل")}</th>
+                  <th style={{ padding: '10px 14px' }}>{t('accounting.ar_collections_page.s20', "المتأخرات / الرصيد")}</th>
+                  <th style={{ padding: '10px 14px' }}>{t('accounting.ar_collections_page.s21', "أقدم تأخير")}</th>
+                  <th style={{ padding: '10px 14px' }}>{t('accounting.ar_collections_page.s22', "مستوى المطالبة")}</th>
+                  <th style={{ padding: '10px 14px' }}>{t('accounting.ar_collections_page.s23', "الحالة والموعد")}</th>
+                  <th style={{ padding: '10px 14px' }}>{t('accounting.ar_collections_page.s24', "موقف الآجل")}</th>
+                  <th style={{ padding: '10px 14px', textAlign: 'center' }}>{t('accounting.ar_collections_page.s25', "الإجراءات السريعة")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -362,16 +364,16 @@ export const ArCollectionsPage: FC = () => {
                     {/* Customer */}
                     <td style={{ padding: '10px 14px' }}>
                       <div style={{ fontWeight: 700, color: '#0f172a' }}>{c.customer_name}</div>
-                      <div style={{ fontSize: '11px', color: '#64748b' }}>{c.customer_phone || 'بدون هاتف'}</div>
+                      <div style={{ fontSize: '11px', color: '#64748b' }}>{c.customer_phone || t('accounting.ar_collections_page.s26', "بدون هاتف")}</div>
                     </td>
 
                     {/* Overdue / Balance */}
                     <td style={{ padding: '10px 14px' }}>
                       <div style={{ fontWeight: 800, color: '#b91c1c' }}>
-                        {Number(c.total_overdue).toLocaleString('ar-EG')} ج.م
+                        {Number(c.total_overdue).toLocaleString('ar-EG')} {t('accounting.ar_collections_page.s27', "ج.م")}
                       </div>
                       <div style={{ fontSize: '10.5px', color: '#64748b' }}>
-                        من رصيد {Number(c.customer_balance).toLocaleString('ar-EG')} ج.م
+                        {t('accounting.ar_collections_page.s28', "من رصيد")} {Number(c.customer_balance).toLocaleString('ar-EG')} {t('accounting.ar_collections_page.s29', "ج.م")}
                       </div>
                     </td>
 
@@ -387,7 +389,7 @@ export const ArCollectionsPage: FC = () => {
                         }}
                       >
                         <ClockIcon size={13} color={c.oldest_overdue_days >= 30 ? '#c2410c' : '#64748b'} />
-                        <span>{c.oldest_overdue_days} يوم</span>
+                        <span>{c.oldest_overdue_days} {t('accounting.ar_collections_page.s30', "يوم")}</span>
                       </div>
                     </td>
 
@@ -399,7 +401,7 @@ export const ArCollectionsPage: FC = () => {
                       <div style={{ marginBottom: '3px' }}>{getStatusBadge(c.status)}</div>
                       {c.promised_payment_date && (
                         <div style={{ fontSize: '10.5px', color: '#047857', fontWeight: 600 }}>
-                          موعد السداد: {c.promised_payment_date}
+                          {t('accounting.ar_collections_page.s31', "موعد السداد:")} {c.promised_payment_date}
                         </div>
                       )}
                     </td>
@@ -418,7 +420,7 @@ export const ArCollectionsPage: FC = () => {
                             border: `1px solid ${c.is_credit_blocked ? '#fecaca' : '#a7f3d0'}`,
                           }}
                         >
-                          {c.is_credit_blocked ? 'محظور' : 'مسموح'}
+                          {c.is_credit_blocked ? t('accounting.ar_collections_page.s32', "محظور") : t('accounting.ar_collections_page.s33', "مسموح")}
                         </span>
                         <button
                           type="button"
@@ -433,7 +435,7 @@ export const ArCollectionsPage: FC = () => {
                             color: '#334155',
                           }}
                         >
-                          {c.is_credit_blocked ? 'إلغاء' : 'حظر'}
+                          {c.is_credit_blocked ? t('accounting.ar_collections_page.s34', "إلغاء") : t('accounting.ar_collections_page.s35', "حظر")}
                         </button>
                       </div>
                     </td>
@@ -446,7 +448,7 @@ export const ArCollectionsPage: FC = () => {
                             href={c.whatsAppUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            title="إرسال رسالة مطالبة واتساب فورية"
+                            title={t('accounting.ar_collections_page.s36', "إرسال رسالة مطالبة واتساب فورية")}
                             style={{
                               width: '28px',
                               height: '28px',
@@ -463,7 +465,7 @@ export const ArCollectionsPage: FC = () => {
                           </a>
                         ) : (
                           <span
-                            title="رقم الهاتف غير مسجل"
+                            title={t('accounting.ar_collections_page.s37', "رقم الهاتف غير مسجل")}
                             style={{
                               width: '28px',
                               height: '28px',
@@ -482,7 +484,7 @@ export const ArCollectionsPage: FC = () => {
 
                         <button
                           type="button"
-                          title="تسجيل تعهد بالسداد"
+                          title={t('accounting.ar_collections_page.s38', "تسجيل تعهد بالسداد")}
                           onClick={() => {
                             setSelectedCase(c);
                             setShowPromiseModal(true);
@@ -505,7 +507,7 @@ export const ArCollectionsPage: FC = () => {
 
                         <button
                           type="button"
-                          title="توثيق إجراء تواصل ومتابعة"
+                          title={t('accounting.ar_collections_page.s39', "توثيق إجراء تواصل ومتابعة")}
                           onClick={() => {
                             setSelectedCase(c);
                             setShowLogModal(true);
@@ -528,7 +530,7 @@ export const ArCollectionsPage: FC = () => {
 
                         <button
                           type="button"
-                          title="عرض ملف التحصيل الشامل"
+                          title={t('accounting.ar_collections_page.s40', "عرض ملف التحصيل الشامل")}
                           onClick={() => {
                             setSelectedCase(c);
                             setShowDetailsModal(true);
@@ -559,7 +561,7 @@ export const ArCollectionsPage: FC = () => {
 
         {/* Footer Count */}
         <div style={{ padding: '10px 16px', borderTop: '1px solid #e2e8f0', backgroundColor: '#f8fafc', fontSize: '12px', color: '#64748b' }}>
-          إجمالي الملفات المعروضة: {cases.length} من أصل {totalCount} ملف
+          {t('accounting.ar_collections_page.s41', "إجمالي الملفات المعروضة:")} {cases.length} {t('accounting.ar_collections_page.s42', "من أصل")} {totalCount} {t('accounting.ar_collections_page.s43', "ملف")}
         </div>
       </div>
 

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { FormSection } from '@/shared/components/form-section';
 import { DataTable } from '@/shared/ui/data-table';
 import { formatCurrency } from '@/lib/format';
@@ -19,12 +20,13 @@ export function PricingPreviewPanel({
   onPageChange,
   onPageSizeChange,
 }: Props) {
+  const { t } = useTranslation();
   const rows = preview?.rows || [];
 
   return (
     <FormSection
-      title="نتائج المعاينة"
-      description="الجدول يعرض قبل/بعد، مع حالة التوريث، ومفتاح المجموعة، والاستثناءات التي سيتم تخطيها عند التنفيذ."
+      title={t('pricing_center.pricing_preview_panel.s0', "نتائج المعاينة")}
+      description={t('pricing_center.pricing_preview_panel.s1', "الجدول يعرض قبل/بعد، مع حالة التوريث، ومفتاح المجموعة، والاستثناءات التي سيتم تخطيها عند التنفيذ.")}
     >
       <DataTable
         density="compact"
@@ -42,12 +44,12 @@ export function PricingPreviewPanel({
           onPageChange,
           onPageSizeChange,
           pageSizeOptions: [25, 50, 100, 200],
-          itemLabel: 'صنف',
+          itemLabel: t('pricing_center.pricing_preview_panel.s2', "صنف"),
         } : undefined}
         columns={[
           {
             key: 'name',
-            header: 'الصنف',
+            header: t('pricing_center.pricing_preview_panel.s3', "الصنف"),
             cell: (row) => (
               <div>
                 <strong>{row.name}</strong>
@@ -57,12 +59,12 @@ export function PricingPreviewPanel({
           },
           {
             key: 'kind',
-            header: 'النوع',
-            cell: (row) => row.itemKind === 'fashion' ? `ملابس${row.styleCode ? ` / ${row.styleCode}` : ''}` : 'عادي',
+            header: t('pricing_center.pricing_preview_panel.s4', "النوع"),
+            cell: (row) => row.itemKind === 'fashion' ? `ملابس${row.styleCode ? ` / ${row.styleCode}` : ''}` : t('pricing_center.pricing_preview_panel.s5', "عادي"),
           },
           {
             key: 'profile',
-            header: 'ملف التسعير',
+            header: t('pricing_center.pricing_preview_panel.s6', "ملف التسعير"),
             cell: (row) => (
               <div>
                 <strong>{formatPricingMode(row.pricingMode)}</strong>
@@ -70,37 +72,37 @@ export function PricingPreviewPanel({
               </div>
             ),
           },
-          { key: 'stock', header: 'المخزون', cell: (row) => row.stockQty },
+          { key: 'stock', header: t('pricing_center.pricing_preview_panel.s7', "المخزون"), cell: (row) => row.stockQty },
           {
             key: 'retail',
-            header: 'قطاعي قبل/بعد',
+            header: t('pricing_center.pricing_preview_panel.s8', "قطاعي قبل/بعد"),
             cell: (row) => `${formatCurrency(row.retailPriceBefore)} → ${formatCurrency(row.retailPriceAfter)}`,
           },
           {
             key: 'wholesale',
-            header: 'جملة قبل/بعد',
+            header: t('pricing_center.pricing_preview_panel.s9', "جملة قبل/بعد"),
             cell: (row) => `${formatCurrency(row.wholesalePriceBefore)} → ${formatCurrency(row.wholesalePriceAfter)}`,
           },
           {
             key: 'flags',
-            header: 'تنبيهات',
+            header: t('pricing_center.pricing_preview_panel.s10', "تنبيهات"),
             cell: (row) => [
-              row.hasActiveOffer ? 'عرض' : '',
-              row.hasCustomerPrice ? 'سعر خاص' : '',
-              row.belowCostAfter ? 'أقل من الشراء' : '',
+              row.hasActiveOffer ? t('pricing_center.pricing_preview_panel.s11', "عرض") : '',
+              row.hasCustomerPrice ? t('pricing_center.pricing_preview_panel.s12', "سعر خاص") : '',
+              row.belowCostAfter ? t('pricing_center.pricing_preview_panel.s13', "أقل من الشراء") : '',
             ].filter(Boolean).join(' / ') || '—',
           },
           {
             key: 'status',
-            header: 'الحالة',
+            header: t('pricing_center.pricing_preview_panel.s14', "الحالة"),
             cell: (row) => row.skipped
               ? `مستثنى: ${row.skipReasons.map(formatSkipReason).join(' + ')}`
               : row.changed
-                ? 'سيتغير'
-                : 'بدون تغيير',
+                ? t('pricing_center.pricing_preview_panel.s15', "سيتغير")
+                : t('pricing_center.pricing_preview_panel.s16', "بدون تغيير"),
           },
         ]}
-        empty={<div className="empty-state"><p>لا توجد معاينة بعد. اختر النطاق واضغط “معاينة”.</p></div>}
+        empty={<div className="empty-state"><p>{t('pricing_center.pricing_preview_panel.s17', "لا توجد معاينة بعد. اختر النطاق واضغط “معاينة”.")}</p></div>}
       />
     </FormSection>
   );

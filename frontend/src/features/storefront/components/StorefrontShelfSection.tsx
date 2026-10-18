@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import type { StorefrontProduct } from '../types/storefront.types';
 import { StorefrontProductCard } from './StorefrontProductCard';
@@ -53,6 +54,7 @@ export const StorefrontShelfSection = React.memo(function StorefrontShelfSection
   onToggleFavorite,
   onQuickView,
 }: Props) {
+  const { t } = useTranslation();
   const trackRef = useRef<HTMLDivElement | null>(null);
   const [canScroll, setCanScroll] = useState(false);
 
@@ -168,8 +170,8 @@ export const StorefrontShelfSection = React.memo(function StorefrontShelfSection
               <button
                 type="button"
                 onClick={() => scrollBy('prev')}
-                title="السابق"
-                aria-label="السابق"
+                title={t('storefront.storefront_shelf_section.s0', "السابق")}
+                aria-label={t('storefront.storefront_shelf_section.s1', "السابق")}
                 style={arrowStyle}
                 onMouseEnter={(e) => (e.currentTarget.style.background = '#f1f5f9')}
                 onMouseLeave={(e) => (e.currentTarget.style.background = '#ffffff')}
@@ -181,8 +183,8 @@ export const StorefrontShelfSection = React.memo(function StorefrontShelfSection
               <button
                 type="button"
                 onClick={() => scrollBy('next')}
-                title="التالي"
-                aria-label="التالي"
+                title={t('storefront.storefront_shelf_section.s2', "التالي")}
+                aria-label={t('storefront.storefront_shelf_section.s3', "التالي")}
                 style={arrowStyle}
                 onMouseEnter={(e) => (e.currentTarget.style.background = '#f1f5f9')}
                 onMouseLeave={(e) => (e.currentTarget.style.background = '#ffffff')}
@@ -264,8 +266,8 @@ export const StorefrontShelfSection = React.memo(function StorefrontShelfSection
               type="button"
               className="storefront-shelf-floating-arrow storefront-shelf-arrow-prev"
               onClick={() => scrollBy('prev')}
-              aria-label="السابق"
-              title="السابق"
+              aria-label={t('storefront.storefront_shelf_section.s4', "السابق")}
+              title={t('storefront.storefront_shelf_section.s5', "السابق")}
             >
               <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.8" d="M9 5l7 7-7 7" />
@@ -330,10 +332,10 @@ export const StorefrontShelfSection = React.memo(function StorefrontShelfSection
                   </svg>
                 </div>
                 <div style={{ fontSize: '13px', fontWeight: 800, color: '#1e293b', marginBottom: '4px' }}>
-                  قريباً بهذا القسم
+                  {t('storefront.storefront_shelf_section.s6', "قريباً بهذا القسم")}
                 </div>
                 <div style={{ fontSize: '11.5px', color: '#64748b', lineHeight: '1.45' }}>
-                  جاري إضافة المزيد من المنتجات الجديدة لهذا القسم
+                  {t('storefront.storefront_shelf_section.s7', "جاري إضافة المزيد من المنتجات الجديدة لهذا القسم")}
                 </div>
               </div>
             )}
@@ -345,8 +347,8 @@ export const StorefrontShelfSection = React.memo(function StorefrontShelfSection
               type="button"
               className="storefront-shelf-floating-arrow storefront-shelf-arrow-next"
               onClick={() => scrollBy('next')}
-              aria-label="التالي"
-              title="التالي"
+              aria-label={t('storefront.storefront_shelf_section.s8', "التالي")}
+              title={t('storefront.storefront_shelf_section.s9', "التالي")}
             >
               <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.8" d="M15 19l-7-7 7-7" />

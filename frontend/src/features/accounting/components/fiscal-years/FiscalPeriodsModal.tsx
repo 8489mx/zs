@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useEffect, useRef, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
@@ -19,6 +20,7 @@ interface FiscalPeriodsModalProps {
 }
 
 export function FiscalPeriodsModal({ fiscalYear, onClose, onNotice }: FiscalPeriodsModalProps) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [selectedPeriodForClose, setSelectedPeriodForClose] = useState<FiscalPeriodRecord | null>(null);
   const [selectedPeriodForReopen, setSelectedPeriodForReopen] = useState<FiscalPeriodRecord | null>(null);
@@ -129,14 +131,14 @@ export function FiscalPeriodsModal({ fiscalYear, onClose, onNotice }: FiscalPeri
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '13px', color: '#475569' }}>
-            <span><strong>إجمالي الفترات:</strong> {periods.length}</span>
+            <span><strong>{t('accounting.fiscal_years.fiscal_periods_modal.s0', "إجمالي الفترات:")}</strong> {periods.length}</span>
             <span>•</span>
             <span style={{ color: '#16a34a' }}>
-              <strong>المفتوحة:</strong> {periods.filter((p) => p.status === 'open').length}
+              <strong>{t('accounting.fiscal_years.fiscal_periods_modal.s1', "المفتوحة:")}</strong> {periods.filter((p) => p.status === 'open').length}
             </span>
             <span>•</span>
             <span style={{ color: '#1e40af' }}>
-              <strong>المقفلة:</strong> {periods.filter((p) => p.status === 'closed').length}
+              <strong>{t('accounting.fiscal_years.fiscal_periods_modal.s2', "المقفلة:")}</strong> {periods.filter((p) => p.status === 'closed').length}
             </span>
           </div>
 
@@ -147,7 +149,7 @@ export function FiscalPeriodsModal({ fiscalYear, onClose, onNotice }: FiscalPeri
             style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px', padding: '4px 10px' }}
           >
             <RefreshCwIcon size={14} />
-            <span>تحديث</span>
+            <span>{t('accounting.fiscal_years.fiscal_periods_modal.s3', "تحديث")}</span>
           </Button>
         </div>
 
@@ -166,26 +168,26 @@ export function FiscalPeriodsModal({ fiscalYear, onClose, onNotice }: FiscalPeri
             <thead>
               <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0', position: 'sticky', top: 0, zIndex: 1 }}>
                 <th style={{ padding: '10px 14px', color: '#475569', fontWeight: 700 }}>#</th>
-                <th style={{ padding: '10px 14px', color: '#475569', fontWeight: 700 }}>اسم الفترة</th>
-                <th style={{ padding: '10px 14px', color: '#475569', fontWeight: 700 }}>الكود</th>
-                <th style={{ padding: '10px 14px', color: '#475569', fontWeight: 700 }}>تاريخ البداية</th>
-                <th style={{ padding: '10px 14px', color: '#475569', fontWeight: 700 }}>تاريخ النهاية</th>
-                <th style={{ padding: '10px 14px', color: '#475569', fontWeight: 700 }}>الحالة</th>
-                <th style={{ padding: '10px 14px', color: '#475569', fontWeight: 700 }}>تاريخ الإقفال</th>
-                <th style={{ padding: '10px 14px', color: '#475569', fontWeight: 700, textAlign: 'center' }}>الإجراء</th>
+                <th style={{ padding: '10px 14px', color: '#475569', fontWeight: 700 }}>{t('accounting.fiscal_years.fiscal_periods_modal.s4', "اسم الفترة")}</th>
+                <th style={{ padding: '10px 14px', color: '#475569', fontWeight: 700 }}>{t('accounting.fiscal_years.fiscal_periods_modal.s5', "الكود")}</th>
+                <th style={{ padding: '10px 14px', color: '#475569', fontWeight: 700 }}>{t('accounting.fiscal_years.fiscal_periods_modal.s6', "تاريخ البداية")}</th>
+                <th style={{ padding: '10px 14px', color: '#475569', fontWeight: 700 }}>{t('accounting.fiscal_years.fiscal_periods_modal.s7', "تاريخ النهاية")}</th>
+                <th style={{ padding: '10px 14px', color: '#475569', fontWeight: 700 }}>{t('accounting.fiscal_years.fiscal_periods_modal.s8', "الحالة")}</th>
+                <th style={{ padding: '10px 14px', color: '#475569', fontWeight: 700 }}>{t('accounting.fiscal_years.fiscal_periods_modal.s9', "تاريخ الإقفال")}</th>
+                <th style={{ padding: '10px 14px', color: '#475569', fontWeight: 700, textAlign: 'center' }}>{t('accounting.fiscal_years.fiscal_periods_modal.s10', "الإجراء")}</th>
               </tr>
             </thead>
             <tbody>
               {isLoading ? (
                 <tr>
                   <td colSpan={8} style={{ padding: '30px', textAlign: 'center', color: '#64748b' }}>
-                    جاري تحميل الفترات الشهرية...
+                    {t('accounting.fiscal_years.fiscal_periods_modal.s11', "جاري تحميل الفترات الشهرية...")}
                   </td>
                 </tr>
               ) : periods.length === 0 ? (
                 <tr>
                   <td colSpan={8} style={{ padding: '30px', textAlign: 'center', color: '#64748b' }}>
-                    لا توجد فترات مسجلة لهذه السنة المالية.
+                    {t('accounting.fiscal_years.fiscal_periods_modal.s12', "لا توجد فترات مسجلة لهذه السنة المالية.")}
                   </td>
                 </tr>
               ) : (
@@ -235,7 +237,7 @@ export function FiscalPeriodsModal({ fiscalYear, onClose, onNotice }: FiscalPeri
                             }}
                           >
                             <LockIcon size={11} />
-                            <span>مقفلة ومجمدة</span>
+                            <span>{t('accounting.fiscal_years.fiscal_periods_modal.s13', "مقفلة ومجمدة")}</span>
                           </span>
                         ) : (
                           <span
@@ -253,7 +255,7 @@ export function FiscalPeriodsModal({ fiscalYear, onClose, onNotice }: FiscalPeri
                             }}
                           >
                             <CheckCircleIcon size={11} />
-                            <span>مفتوحة نشطة</span>
+                            <span>{t('accounting.fiscal_years.fiscal_periods_modal.s14', "مفتوحة نشطة")}</span>
                           </span>
                         )}
                       </td>
@@ -262,7 +264,7 @@ export function FiscalPeriodsModal({ fiscalYear, onClose, onNotice }: FiscalPeri
                       </td>
                       <td style={{ padding: '10px 14px', textAlign: 'center' }}>
                         {fiscalYear.status === 'closed' ? (
-                          <span style={{ fontSize: '11px', color: '#94a3b8' }}>السنة مقفلة</span>
+                          <span style={{ fontSize: '11px', color: '#94a3b8' }}>{t('accounting.fiscal_years.fiscal_periods_modal.s15', "السنة مقفلة")}</span>
                         ) : !isClosed ? (
                           <Button
                             type="button"
@@ -283,7 +285,7 @@ export function FiscalPeriodsModal({ fiscalYear, onClose, onNotice }: FiscalPeri
                             }}
                           >
                             <LockIcon size={12} />
-                            <span>إقفال الشهر</span>
+                            <span>{t('accounting.fiscal_years.fiscal_periods_modal.s16', "إقفال الشهر")}</span>
                           </Button>
                         ) : (
                           <Button
@@ -301,7 +303,7 @@ export function FiscalPeriodsModal({ fiscalYear, onClose, onNotice }: FiscalPeri
                               borderColor: '#fde68a',
                             }}
                           >
-                            <span>إعادة فتح</span>
+                            <span>{t('accounting.fiscal_years.fiscal_periods_modal.s17', "إعادة فتح")}</span>
                           </Button>
                         )}
                       </td>
@@ -327,14 +329,14 @@ export function FiscalPeriodsModal({ fiscalYear, onClose, onNotice }: FiscalPeri
             }}
           >
             <div style={{ fontSize: '13px', fontWeight: 700, color: '#92400e' }}>
-              تأكيد إقفال الفترة المحاسبية [{selectedPeriodForClose.name}]
+              {t('accounting.fiscal_years.fiscal_periods_modal.s18', "تأكيد إقفال الفترة المحاسبية [")}{selectedPeriodForClose.name}]
             </div>
             <div style={{ fontSize: '12px', color: '#78350f' }}>
-              سيتم تجميد الفترة المحاسبية حتى تاريخ {selectedPeriodForClose.end_date}. لن يتمكن أي مستخدم من ترحيل فواتير أو سندات أو قيود جديدة تقع في هذا الشهر.
+              {t('accounting.fiscal_years.fiscal_periods_modal.s19', "سيتم تجميد الفترة المحاسبية حتى تاريخ")} {selectedPeriodForClose.end_date}{t('accounting.fiscal_years.fiscal_periods_modal.s20', ". لن يتمكن أي مستخدم من ترحيل فواتير أو سندات أو قيود جديدة تقع في هذا الشهر.")}
             </div>
             <input
               type="text"
-              placeholder="ملاحظات الإقفال (اختياري)..."
+              placeholder={t('accounting.fiscal_years.fiscal_periods_modal.s21', "ملاحظات الإقفال (اختياري)...")}
               value={closeNotes}
               onChange={(e) => setCloseNotes(e.target.value)}
               style={{
@@ -353,7 +355,7 @@ export function FiscalPeriodsModal({ fiscalYear, onClose, onNotice }: FiscalPeri
                 onClick={() => setSelectedPeriodForClose(null)}
                 style={{ fontSize: '12px', padding: '4px 12px' }}
               >
-                إلغاء
+                {t('accounting.fiscal_years.fiscal_periods_modal.s22', "إلغاء")}
               </Button>
               <Button
                 type="button"
@@ -372,7 +374,7 @@ export function FiscalPeriodsModal({ fiscalYear, onClose, onNotice }: FiscalPeri
                   padding: '4px 14px',
                 }}
               >
-                {closeMutation.isPending ? 'جاري الإقفال...' : 'تأكيد الإقفال وتجميد الشهر'}
+                {closeMutation.isPending ? t('accounting.fiscal_years.fiscal_periods_modal.s23', "جاري الإقفال...") : t('accounting.fiscal_years.fiscal_periods_modal.s24', "تأكيد الإقفال وتجميد الشهر")}
               </Button>
             </div>
           </div>
@@ -392,14 +394,14 @@ export function FiscalPeriodsModal({ fiscalYear, onClose, onNotice }: FiscalPeri
             }}
           >
             <div style={{ fontSize: '13px', fontWeight: 700, color: '#1e40af' }}>
-              إعادة فتح الفترة المحاسبية [{selectedPeriodForReopen.name}]
+              {t('accounting.fiscal_years.fiscal_periods_modal.s25', "إعادة فتح الفترة المحاسبية [")}{selectedPeriodForReopen.name}]
             </div>
             <div style={{ fontSize: '12px', color: '#1e3a8a' }}>
-              يتطلب فتح الفترة المحاسبية توثيق سبب استثنائي للرقابة المالية والتدقيق. يجب أن تكون كافة الفترات اللاحقة مفتوحة.
+              {t('accounting.fiscal_years.fiscal_periods_modal.s26', "يتطلب فتح الفترة المحاسبية توثيق سبب استثنائي للرقابة المالية والتدقيق. يجب أن تكون كافة الفترات اللاحقة مفتوحة.")}
             </div>
             <input
               type="text"
-              placeholder="سبب إعادة فتح الفترة (إلزامي للرقابة)..."
+              placeholder={t('accounting.fiscal_years.fiscal_periods_modal.s27', "سبب إعادة فتح الفترة (إلزامي للرقابة)...")}
               value={reopenReason}
               onChange={(e) => setReopenReason(e.target.value)}
               style={{
@@ -418,7 +420,7 @@ export function FiscalPeriodsModal({ fiscalYear, onClose, onNotice }: FiscalPeri
                 onClick={() => setSelectedPeriodForReopen(null)}
                 style={{ fontSize: '12px', padding: '4px 12px' }}
               >
-                إلغاء
+                {t('accounting.fiscal_years.fiscal_periods_modal.s28', "إلغاء")}
               </Button>
               <Button
                 type="button"
@@ -437,7 +439,7 @@ export function FiscalPeriodsModal({ fiscalYear, onClose, onNotice }: FiscalPeri
                   padding: '4px 14px',
                 }}
               >
-                {reopenMutation.isPending ? 'جاري الفتح...' : 'تأكيد إعادة فتح الفترة'}
+                {reopenMutation.isPending ? t('accounting.fiscal_years.fiscal_periods_modal.s29', "جاري الفتح...") : t('accounting.fiscal_years.fiscal_periods_modal.s30', "تأكيد إعادة فتح الفترة")}
               </Button>
             </div>
           </div>
@@ -445,7 +447,7 @@ export function FiscalPeriodsModal({ fiscalYear, onClose, onNotice }: FiscalPeri
 
         <StandardDialogFooter
           onClose={onClose}
-          cancelText="إغلاق النافذة"
+          cancelText={t('accounting.fiscal_years.fiscal_periods_modal.s31', "إغلاق النافذة")}
         />
       </div>
     </StandardDialog>

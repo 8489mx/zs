@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { Field } from '@/shared/ui/field';
@@ -15,6 +16,7 @@ interface CreateInquiryModalProps {
 }
 
 export function CreateInquiryModal({ open, onClose, onCreated }: CreateInquiryModalProps) {
+  const { t } = useTranslation();
   const { pipelineConfig } = useMaritime();
   const enableSeaFreight = pipelineConfig?.enableSeaFreight !== false;
   const enableAirFreight = pipelineConfig?.enableAirFreight !== false;
@@ -207,14 +209,14 @@ export function CreateInquiryModal({ open, onClose, onCreated }: CreateInquiryMo
       onClose={onClose}
       title={(
         <span>
-          طلب شحن واستفسار عميل جديد
+          {t('maritime_freight.create_inquiry_modal.s0', "طلب شحن واستفسار عميل جديد")}
           <span className="desktop-only-inline"> (New Freight Inquiry)</span>
         </span>
       )}
       subtitle={(
         <span>
-          نقطة الانطلاق لتسجيل طلب العميل وتمريره لاحقاً
-          <span className="desktop-only-inline"> لطلب عروض تسعير الخطوط بنقرة واحدة</span>
+          {t('maritime_freight.create_inquiry_modal.s1', "نقطة الانطلاق لتسجيل طلب العميل وتمريره لاحقاً")}
+          <span className="desktop-only-inline"> {t('maritime_freight.create_inquiry_modal.s2', "لطلب عروض تسعير الخطوط بنقرة واحدة")}</span>
         </span>
       )}
       width="min(980px, 96vw)"
@@ -224,8 +226,8 @@ export function CreateInquiryModal({ open, onClose, onCreated }: CreateInquiryMo
           onCancel={onClose}
           onSubmit={handleSubmit}
           isSubmitting={isSubmitting}
-          submitText="حفظ طلب الشحن"
-          cancelText="إلغاء"
+          submitText={t('maritime_freight.create_inquiry_modal.s3', "حفظ طلب الشحن")}
+          cancelText={t('maritime_freight.create_inquiry_modal.s4', "إلغاء")}
         />
       )}
     >
@@ -339,7 +341,7 @@ export function CreateInquiryModal({ open, onClose, onCreated }: CreateInquiryMo
                 }}
               >
                 <AppIcons.Ship size={15} />
-                <span>شحن بحري<span className="desktop-only-inline"> (Ocean Freight)</span></span>
+                <span>{t('maritime_freight.create_inquiry_modal.s5', "شحن بحري")}<span className="desktop-only-inline"> (Ocean Freight)</span></span>
               </button>
             )}
             {enableAirFreight && (
@@ -364,7 +366,7 @@ export function CreateInquiryModal({ open, onClose, onCreated }: CreateInquiryMo
                 }}
               >
                 <AppIcons.Plane size={15} />
-                <span>شحن جوي<span className="desktop-only-inline"> (Air Freight / AWB)</span></span>
+                <span>{t('maritime_freight.create_inquiry_modal.s6', "شحن جوي")}<span className="desktop-only-inline"> (Air Freight / AWB)</span></span>
               </button>
             )}
             {enableRoadFreight && (
@@ -389,7 +391,7 @@ export function CreateInquiryModal({ open, onClose, onCreated }: CreateInquiryMo
                 }}
               >
                 <AppIcons.Truck size={15} />
-                <span>شحن بري<span className="desktop-only-inline"> (Road Freight)</span></span>
+                <span>{t('maritime_freight.create_inquiry_modal.s7', "شحن بري")}<span className="desktop-only-inline"> (Road Freight)</span></span>
               </button>
             )}
           </div>
@@ -400,22 +402,22 @@ export function CreateInquiryModal({ open, onClose, onCreated }: CreateInquiryMo
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
             <AppIcons.Users size={15} />
             <span>
-              1. بيانات العميل أو المستورد
+              {t('maritime_freight.create_inquiry_modal.s8', "1. بيانات العميل أو المستورد")}
               <span className="desktop-only-inline"> (Customer Profile)</span>
             </span>
           </div>
 
           <div style={{ marginBottom: '8px' }}>
-            <Field label="اختيار عميل مسجل من الدليل (Customer Lookup) - اختياري">
+            <Field label={t('maritime_freight.create_inquiry_modal.s9', "اختيار عميل مسجل من الدليل (Customer Lookup) - اختياري")}>
               <CustomSelect
                 value={selectedCustomerId}
                 onChange={handleCustomerChange}
-                placeholder="اختر عميلاً مسجلاً لجلب بياناته تلقائياً أو أدخل البيانات يدوياً أدناه..."
+                placeholder={t('maritime_freight.create_inquiry_modal.s10', "اختر عميلاً مسجلاً لجلب بياناته تلقائياً أو أدخل البيانات يدوياً أدناه...")}
                 options={[
-                  { value: '', label: '— إدخال يدوي / عميل جديد —' },
+                  { value: '', label: t('maritime_freight.create_inquiry_modal.s11', "— إدخال يدوي / عميل جديد —") },
                   ...customers.map((c: any) => ({
                     value: String(c.id),
-                    label: `${c.company_name ? `${c.company_name} - ` : ''}${c.name || 'عميل'}${c.phone ? ` (${c.phone})` : ''}`,
+                    label: `${c.company_name ? `${c.company_name} - ` : ''}${c.name || t('maritime_freight.create_inquiry_modal.s12', "عميل")}${c.phone ? ` (${c.phone})` : ''}`,
                   })),
                 ]}
               />
@@ -424,19 +426,19 @@ export function CreateInquiryModal({ open, onClose, onCreated }: CreateInquiryMo
 
           <div className="inquiry-grid-customer">
             <div className="inquiry-col-full-mobile">
-              <Field label="اسم العميل أو الشركة *">
+              <Field label={t('maritime_freight.create_inquiry_modal.s13', "اسم العميل أو الشركة *")}>
                 <input
                   type="text"
                   value={formData.customerName}
                   onChange={(e) => setFormData({ ...formData, customerName: e.target.value })}
-                  placeholder="مثال: شركة الأفق للاستيراد والتصدير"
+                  placeholder={t('maritime_freight.create_inquiry_modal.s14', "مثال: شركة الأفق للاستيراد والتصدير")}
                   style={{ width: '100%', border: '1px solid #cbd5e1' }}
                 />
               </Field>
             </div>
 
             <div>
-              <Field label="رقم الهاتف أو الواتساب">
+              <Field label={t('maritime_freight.create_inquiry_modal.s15', "رقم الهاتف أو الواتساب")}>
                 <input
                   type="tel"
                   value={formData.customerPhone}
@@ -448,7 +450,7 @@ export function CreateInquiryModal({ open, onClose, onCreated }: CreateInquiryMo
             </div>
 
             <div>
-              <Field label="البريد الإلكتروني للعميل">
+              <Field label={t('maritime_freight.create_inquiry_modal.s16', "البريد الإلكتروني للعميل")}>
                 <input
                   type="email"
                   value={formData.customerEmail}
@@ -469,17 +471,17 @@ export function CreateInquiryModal({ open, onClose, onCreated }: CreateInquiryMo
               2.{' '}
               {formData.transportMode === 'air' ? (
                 <>
-                  مسار الشحن الجوي والمطارات
+                  {t('maritime_freight.create_inquiry_modal.s17', "مسار الشحن الجوي والمطارات")}
                   <span className="desktop-only-inline"> (Route & Airports)</span>
                 </>
               ) : formData.transportMode === 'road' ? (
                 <>
-                  مسار النقل البري والمحطات
+                  {t('maritime_freight.create_inquiry_modal.s18', "مسار النقل البري والمحطات")}
                   <span className="desktop-only-inline"> (Route & Terminals)</span>
                 </>
               ) : (
                 <>
-                  مسار الشحن والموانئ المستهدفة
+                  {t('maritime_freight.create_inquiry_modal.s19', "مسار الشحن والموانئ المستهدفة")}
                   <span className="desktop-only-inline"> (Route & Ports)</span>
                 </>
               )}
@@ -487,54 +489,54 @@ export function CreateInquiryModal({ open, onClose, onCreated }: CreateInquiryMo
           </div>
 
           <div className="inquiry-grid-route">
-            <Field label="اتجاه الشحنة *">
+            <Field label={t('maritime_freight.create_inquiry_modal.s20', "اتجاه الشحنة *")}>
               <CustomSelect
                 value={formData.direction}
                 onChange={(val) => setFormData({ ...formData, direction: val as any })}
                 options={[
-                  { value: 'import', label: 'شحن وارد (Import)' },
-                  { value: 'export', label: 'شحن صادر (Export)' },
-                  { value: 'cross_trade', label: 'شحن وسيط (Cross-Trade)' },
+                  { value: 'import', label: t('maritime_freight.create_inquiry_modal.s21', "شحن وارد (Import)") },
+                  { value: 'export', label: t('maritime_freight.create_inquiry_modal.s22', "شحن صادر (Export)") },
+                  { value: 'cross_trade', label: t('maritime_freight.create_inquiry_modal.s23', "شحن وسيط (Cross-Trade)") },
                 ]}
               />
             </Field>
 
-            <Field label="شرط التسليم (Incoterm) *">
+            <Field label={t('maritime_freight.create_inquiry_modal.s24', "شرط التسليم (Incoterm) *")}>
               <CustomSelect
                 value={formData.incoterm}
                 onChange={(val) => setFormData({ ...formData, incoterm: val })}
                 options={
                   formData.transportMode === 'air'
                     ? [
-                        { value: 'FCA', label: 'FCA - تسليم للناقل الجوي' },
-                        { value: 'CPT', label: 'CPT - النولون مدفوع حتى' },
-                        { value: 'CIP', label: 'CIP - النولون والتأمين مدفوعان' },
-                        { value: 'DAP', label: 'DAP - محل الوصول' },
-                        { value: 'DDP', label: 'DDP - خالص الجمارك' },
-                        { value: 'EXW', label: 'EXW - أرض المصنع' },
+                        { value: 'FCA', label: t('maritime_freight.create_inquiry_modal.s25', "FCA - تسليم للناقل الجوي") },
+                        { value: 'CPT', label: t('maritime_freight.create_inquiry_modal.s26', "CPT - النولون مدفوع حتى") },
+                        { value: 'CIP', label: t('maritime_freight.create_inquiry_modal.s27', "CIP - النولون والتأمين مدفوعان") },
+                        { value: 'DAP', label: t('maritime_freight.create_inquiry_modal.s28', "DAP - محل الوصول") },
+                        { value: 'DDP', label: t('maritime_freight.create_inquiry_modal.s29', "DDP - خالص الجمارك") },
+                        { value: 'EXW', label: t('maritime_freight.create_inquiry_modal.s30', "EXW - أرض المصنع") },
                       ]
                     : formData.transportMode === 'road'
                     ? [
-                        { value: 'CPT', label: 'CPT - النولون مدفوع حتى' },
-                        { value: 'CIP', label: 'CIP - النولون والتأمين' },
-                        { value: 'FCA', label: 'FCA - تسليم للناقل' },
-                        { value: 'DAP', label: 'DAP - محل الوصول' },
-                        { value: 'DDP', label: 'DDP - خالص الجمارك' },
-                        { value: 'EXW', label: 'EXW - أرض المصنع' },
+                        { value: 'CPT', label: t('maritime_freight.create_inquiry_modal.s31', "CPT - النولون مدفوع حتى") },
+                        { value: 'CIP', label: t('maritime_freight.create_inquiry_modal.s32', "CIP - النولون والتأمين") },
+                        { value: 'FCA', label: t('maritime_freight.create_inquiry_modal.s33', "FCA - تسليم للناقل") },
+                        { value: 'DAP', label: t('maritime_freight.create_inquiry_modal.s34', "DAP - محل الوصول") },
+                        { value: 'DDP', label: t('maritime_freight.create_inquiry_modal.s35', "DDP - خالص الجمارك") },
+                        { value: 'EXW', label: t('maritime_freight.create_inquiry_modal.s36', "EXW - أرض المصنع") },
                       ]
                     : [
-                        { value: 'FOB', label: 'FOB - على ظهر السفينة' },
-                        { value: 'EXW', label: 'EXW - أرض المصنع' },
-                        { value: 'CFR', label: 'CFR - التكلفة والنولون' },
-                        { value: 'CIF', label: 'CIF - شامل التأمين والنولون' },
-                        { value: 'DDP', label: 'DDP - خالص الجمارك' },
-                        { value: 'DAP', label: 'DAP - محل الوصول' },
+                        { value: 'FOB', label: t('maritime_freight.create_inquiry_modal.s37', "FOB - على ظهر السفينة") },
+                        { value: 'EXW', label: t('maritime_freight.create_inquiry_modal.s38', "EXW - أرض المصنع") },
+                        { value: 'CFR', label: t('maritime_freight.create_inquiry_modal.s39', "CFR - التكلفة والنولون") },
+                        { value: 'CIF', label: t('maritime_freight.create_inquiry_modal.s40', "CIF - شامل التأمين والنولون") },
+                        { value: 'DDP', label: t('maritime_freight.create_inquiry_modal.s41', "DDP - خالص الجمارك") },
+                        { value: 'DAP', label: t('maritime_freight.create_inquiry_modal.s42', "DAP - محل الوصول") },
                       ]
                 }
               />
             </Field>
 
-            <Field label={formData.transportMode === 'air' ? 'مطار الإقلاع والشحن *' : formData.transportMode === 'road' ? 'نقطة الانطلاق والتحميل *' : 'ميناء الشحن والتحميل (POL) *'}>
+            <Field label={formData.transportMode === 'air' ? t('maritime_freight.create_inquiry_modal.s43', "مطار الإقلاع والشحن *") : formData.transportMode === 'road' ? t('maritime_freight.create_inquiry_modal.s44', "نقطة الانطلاق والتحميل *") : t('maritime_freight.create_inquiry_modal.s45', "ميناء الشحن والتحميل (POL) *")}>
               <ComboboxSelect
                 value={formData.polCode}
                 onChange={handlePolChange}
@@ -548,11 +550,11 @@ export function CreateInquiryModal({ open, onClose, onCreated }: CreateInquiryMo
                     id: p.code,
                     label: `${p.name_ar} (${p.code})`,
                   }))}
-                placeholder={formData.transportMode === 'air' ? 'ابحث عن مطار الإقلاع أو الكود...' : 'ابحث عن ميناء الشحن أو الكود...'}
+                placeholder={formData.transportMode === 'air' ? t('maritime_freight.create_inquiry_modal.s46', "ابحث عن مطار الإقلاع أو الكود...") : t('maritime_freight.create_inquiry_modal.s47', "ابحث عن ميناء الشحن أو الكود...")}
               />
             </Field>
 
-            <Field label={formData.transportMode === 'air' ? 'مطار الوصول والمقصد *' : formData.transportMode === 'road' ? 'نقطة الوصول والتسليم *' : 'ميناء التفريغ والمقصد (POD) *'}>
+            <Field label={formData.transportMode === 'air' ? t('maritime_freight.create_inquiry_modal.s48', "مطار الوصول والمقصد *") : formData.transportMode === 'road' ? t('maritime_freight.create_inquiry_modal.s49', "نقطة الوصول والتسليم *") : t('maritime_freight.create_inquiry_modal.s50', "ميناء التفريغ والمقصد (POD) *")}>
               <ComboboxSelect
                 value={formData.podCode}
                 onChange={handlePodChange}
@@ -566,7 +568,7 @@ export function CreateInquiryModal({ open, onClose, onCreated }: CreateInquiryMo
                     id: p.code,
                     label: `${p.name_ar} (${p.code})`,
                   }))}
-                placeholder={formData.transportMode === 'air' ? 'ابحث عن مطار الوصول أو الكود...' : 'ابحث عن ميناء التفريغ أو الكود...'}
+                placeholder={formData.transportMode === 'air' ? t('maritime_freight.create_inquiry_modal.s51', "ابحث عن مطار الوصول أو الكود...") : t('maritime_freight.create_inquiry_modal.s52', "ابحث عن ميناء التفريغ أو الكود...")}
               />
             </Field>
           </div>
@@ -580,17 +582,17 @@ export function CreateInquiryModal({ open, onClose, onCreated }: CreateInquiryMo
               3.{' '}
               {formData.transportMode === 'air' ? (
                 <>
-                  مواصفات البضاعة والشحن الجوي
+                  {t('maritime_freight.create_inquiry_modal.s53', "مواصفات البضاعة والشحن الجوي")}
                   <span className="desktop-only-inline"> IATA (Air Cargo Specs)</span>
                 </>
               ) : formData.transportMode === 'road' ? (
                 <>
-                  مواصفات البضاعة وتجهيز الشاحنات
+                  {t('maritime_freight.create_inquiry_modal.s54', "مواصفات البضاعة وتجهيز الشاحنات")}
                   <span className="desktop-only-inline"> (Road Specs)</span>
                 </>
               ) : (
                 <>
-                  مواصفات البضاعة وتجهيز الحاويات
+                  {t('maritime_freight.create_inquiry_modal.s55', "مواصفات البضاعة وتجهيز الحاويات")}
                   <span className="desktop-only-inline"> (Cargo & Equipment)</span>
                 </>
               )}
@@ -599,21 +601,21 @@ export function CreateInquiryModal({ open, onClose, onCreated }: CreateInquiryMo
 
           {formData.transportMode === 'air' ? (
             <div className="inquiry-grid-air-specs">
-              <Field label="نوع البضاعة الجوية *">
+              <Field label={t('maritime_freight.create_inquiry_modal.s56', "نوع البضاعة الجوية *")}>
                 <CustomSelect
                   value={formData.airCargoType}
                   onChange={(val) => setFormData({ ...formData, airCargoType: val })}
                   options={[
-                    { value: 'general', label: 'بضائع عامة (General Cargo)' },
-                    { value: 'perishable', label: 'سريعة التلف (Perishable)' },
-                    { value: 'dangerous_goods', label: 'بضائع خطرة (DG Cargo)' },
-                    { value: 'pharma', label: 'أدوية ومستحضرات طبية (Pharma)' },
-                    { value: 'valuable', label: 'بضائع ثمينة (Valuable)' },
+                    { value: 'general', label: t('maritime_freight.create_inquiry_modal.s57', "بضائع عامة (General Cargo)") },
+                    { value: 'perishable', label: t('maritime_freight.create_inquiry_modal.s58', "سريعة التلف (Perishable)") },
+                    { value: 'dangerous_goods', label: t('maritime_freight.create_inquiry_modal.s59', "بضائع خطرة (DG Cargo)") },
+                    { value: 'pharma', label: t('maritime_freight.create_inquiry_modal.s60', "أدوية ومستحضرات طبية (Pharma)") },
+                    { value: 'valuable', label: t('maritime_freight.create_inquiry_modal.s61', "بضائع ثمينة (Valuable)") },
                   ]}
                 />
               </Field>
 
-              <Field label="عدد الطرود *">
+              <Field label={t('maritime_freight.create_inquiry_modal.s62', "عدد الطرود *")}>
                 <input
                   type="number"
                   min={1}
@@ -623,88 +625,88 @@ export function CreateInquiryModal({ open, onClose, onCreated }: CreateInquiryMo
                 />
               </Field>
 
-              <Field label="الوزن القائم (كجم) *">
+              <Field label={t('maritime_freight.create_inquiry_modal.s63', "الوزن القائم (كجم) *")}>
                 <input
                   type="number"
                   min={0}
                   step="0.1"
                   value={formData.grossWeightKg || ''}
                   onChange={(e) => handleGrossWeightChange(parseFloat(e.target.value) || 0)}
-                  placeholder="مثال: 450"
+                  placeholder={t('maritime_freight.create_inquiry_modal.s64', "مثال: 450")}
                   style={{ width: '100%', border: '1px solid #cbd5e1' }}
                 />
               </Field>
 
-              <Field label="الحجم (CBM) *">
+              <Field label={t('maritime_freight.create_inquiry_modal.s65', "الحجم (CBM) *")}>
                 <input
                   type="number"
                   min={0}
                   step="0.01"
                   value={formData.cbm || ''}
                   onChange={(e) => handleCbmChange(parseFloat(e.target.value) || 0)}
-                  placeholder="مثال: 3.2"
+                  placeholder={t('maritime_freight.create_inquiry_modal.s66', "مثال: 3.2")}
                   style={{ width: '100%', border: '1px solid #cbd5e1' }}
                 />
               </Field>
 
-              <Field label="الوزن الحجمي (IATA)">
+              <Field label={t('maritime_freight.create_inquiry_modal.s67', "الوزن الحجمي (IATA)")}>
                 <input
                   type="text"
                   readOnly
                   value={`${formData.volumetricWeightKg || 0} كجم`}
-                  title="محسوب تلقائياً: 1 CBM = 166.67 كجم"
+                  title={t('maritime_freight.create_inquiry_modal.s68', "محسوب تلقائياً: 1 CBM = 166.67 كجم")}
                   style={{ width: '100%', border: '1px solid #cbd5e1', background: '#f1f5f9', color: '#475569', fontWeight: 600 }}
                 />
               </Field>
 
-              <Field label="الوزن المحاسبي (Chargeable)">
+              <Field label={t('maritime_freight.create_inquiry_modal.s69', "الوزن المحاسبي (Chargeable)")}>
                 <input
                   type="text"
                   readOnly
                   value={`${formData.chargeableWeightKg || 0} كجم`}
-                  title="الوزن الخاضع للتحصيل: الأكبر بين الوزن القائم والوزن الحجمي"
+                  title={t('maritime_freight.create_inquiry_modal.s70', "الوزن الخاضع للتحصيل: الأكبر بين الوزن القائم والوزن الحجمي")}
                   style={{ width: '100%', border: '1px solid #86efac', background: '#f0fdf4', color: '#15803d', fontWeight: 800 }}
                 />
               </Field>
             </div>
           ) : (
             <div className="inquiry-grid-sea-cargo">
-              <Field label={formData.transportMode === 'road' ? 'نوع النقل *' : 'نمط الشحن *'}>
+              <Field label={formData.transportMode === 'road' ? t('maritime_freight.create_inquiry_modal.s71', "نوع النقل *") : t('maritime_freight.create_inquiry_modal.s72', "نمط الشحن *")}>
                 <CustomSelect
                   value={formData.cargoMode}
                   onChange={(val) => setFormData({ ...formData, cargoMode: val })}
                   options={
                     formData.transportMode === 'road'
                       ? [
-                          { value: 'FTL', label: 'FTL - شاحنة كاملة' },
-                          { value: 'LTL', label: 'LTL - حمولة جزئية' },
+                          { value: 'FTL', label: t('maritime_freight.create_inquiry_modal.s73', "FTL - شاحنة كاملة") },
+                          { value: 'LTL', label: t('maritime_freight.create_inquiry_modal.s74', "LTL - حمولة جزئية") },
                         ]
                       : [
-                          { value: 'FCL', label: 'FCL - حاوية كاملة' },
-                          { value: 'LCL', label: 'LCL - شحن مجزأ' },
+                          { value: 'FCL', label: t('maritime_freight.create_inquiry_modal.s75', "FCL - حاوية كاملة") },
+                          { value: 'LCL', label: t('maritime_freight.create_inquiry_modal.s76', "LCL - شحن مجزأ") },
                         ]
                   }
                 />
               </Field>
 
-              <Field label={formData.transportMode === 'road' ? 'نوع الشاحنة *' : 'نوع الحاوية *'}>
+              <Field label={formData.transportMode === 'road' ? t('maritime_freight.create_inquiry_modal.s77', "نوع الشاحنة *") : t('maritime_freight.create_inquiry_modal.s78', "نوع الحاوية *")}>
                 <CustomSelect
                   value={formData.containerType}
                   onChange={(val) => setFormData({ ...formData, containerType: val })}
                   options={
                     formData.transportMode === 'road'
                       ? [
-                          { value: 'Curtain', label: 'تريلا ستارة (Curtain)' },
-                          { value: 'Box', label: 'صندوق مغلق (Box)' },
-                          { value: 'Reefer', label: 'شاحنة مبردة (Reefer)' },
-                          { value: 'Flatbed', label: 'شاحنة مسطحة (Flatbed)' },
+                          { value: 'Curtain', label: t('maritime_freight.create_inquiry_modal.s79', "تريلا ستارة (Curtain)") },
+                          { value: 'Box', label: t('maritime_freight.create_inquiry_modal.s80', "صندوق مغلق (Box)") },
+                          { value: 'Reefer', label: t('maritime_freight.create_inquiry_modal.s81', "شاحنة مبردة (Reefer)") },
+                          { value: 'Flatbed', label: t('maritime_freight.create_inquiry_modal.s82', "شاحنة مسطحة (Flatbed)") },
                         ]
                       : [
                           { value: '40HC', label: "40' High Cube (40HC)" },
                           { value: '20GP', label: "20' Dry (20GP)" },
                           { value: '40GP', label: "40' Dry (40GP)" },
-                          { value: '40RF', label: "40' Reefer مبرد" },
-                          { value: '20RF', label: "20' Reefer مبرد" },
+                          { value: '40RF', label: t('maritime_freight.create_inquiry_modal.s83', "40' Reefer مبرد") },
+                          { value: '20RF', label: t('maritime_freight.create_inquiry_modal.s84', "20' Reefer مبرد") },
                           { value: '45HC', label: "45' High Cube" },
                           { value: 'OpenTop', label: 'Open Top' },
                           { value: 'FlatRack', label: 'Flat Rack' },
@@ -713,7 +715,7 @@ export function CreateInquiryModal({ open, onClose, onCreated }: CreateInquiryMo
                 />
               </Field>
 
-              <Field label={formData.transportMode === 'road' ? 'عدد الشاحنات *' : 'عدد الحاويات *'}>
+              <Field label={formData.transportMode === 'road' ? t('maritime_freight.create_inquiry_modal.s85', "عدد الشاحنات *") : t('maritime_freight.create_inquiry_modal.s86', "عدد الحاويات *")}>
                 <input
                   type="number"
                   min={1}
@@ -723,7 +725,7 @@ export function CreateInquiryModal({ open, onClose, onCreated }: CreateInquiryMo
                 />
               </Field>
 
-              <Field label="أيام السماح (يوم)">
+              <Field label={t('maritime_freight.create_inquiry_modal.s87', "أيام السماح (يوم)")}>
                 <input
                   type="number"
                   min={7}
@@ -733,7 +735,7 @@ export function CreateInquiryModal({ open, onClose, onCreated }: CreateInquiryMo
                 />
               </Field>
 
-              <Field label="الوزن القائم (كجم)">
+              <Field label={t('maritime_freight.create_inquiry_modal.s88', "الوزن القائم (كجم)")}>
                 <input
                   type="number"
                   min={0}
@@ -744,7 +746,7 @@ export function CreateInquiryModal({ open, onClose, onCreated }: CreateInquiryMo
                 />
               </Field>
 
-              <Field label="الحجم (CBM)">
+              <Field label={t('maritime_freight.create_inquiry_modal.s89', "الحجم (CBM)")}>
                 <input
                   type="number"
                   min={0}
@@ -759,12 +761,12 @@ export function CreateInquiryModal({ open, onClose, onCreated }: CreateInquiryMo
           )}
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '10px' }}>
-            <Field label="توصيف البضاعة والصنف (Commodity) *">
+            <Field label={t('maritime_freight.create_inquiry_modal.s90', "توصيف البضاعة والصنف (Commodity) *")}>
               <input
                 type="text"
                 value={formData.commodityDescription}
                 onChange={(e) => setFormData({ ...formData, commodityDescription: e.target.value })}
-                placeholder="مثال: أدوات ومعدات كهربائية، قطع غيار، أقمشة ومنسوجات، مواد غذائية..."
+                placeholder={t('maritime_freight.create_inquiry_modal.s91', "مثال: أدوات ومعدات كهربائية، قطع غيار، أقمشة ومنسوجات، مواد غذائية...")}
                 style={{ width: '100%', border: '1px solid #cbd5e1' }}
               />
             </Field>

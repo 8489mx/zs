@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/shared/ui/button';
 import { DataTable } from '@/shared/ui/data-table';
 import { MutationFeedback } from '@/shared/components/mutation-feedback';
@@ -81,6 +82,7 @@ export function UserManagementListPanel({
   setupMode?: boolean;
   activeTemplate?: string | null;
 }) {
+  const { t } = useTranslation();
   const tenant = useAuthStore((s) => s.tenant);
   const vertical = resolveCurrentVertical(tenant);
   const isMaritime = vertical === 'maritime';
@@ -136,47 +138,47 @@ export function UserManagementListPanel({
           totalItems,
           onPageChange,
           onPageSizeChange,
-          itemLabel: 'مستخدم'
+          itemLabel: t('settings.user_management_panels.s0', "مستخدم")
         }}
         columns={[
           {
             key: 'identity',
-            header: 'المستخدم',
+            header: t('settings.user_management_panels.s1', "المستخدم"),
             cell: (user) => (
               <div>
                 <strong>{user.name || user.username}</strong>
-                <div className="muted small">{user.username} · {currentRoleLabel[user.role]} · {user.isActive === false ? 'موقوف' : 'نشط'}</div>
+                <div className="muted small">{user.username} · {currentRoleLabel[user.role]} · {user.isActive === false ? t('settings.user_management_panels.s2', "موقوف") : t('settings.user_management_panels.s3', "نشط")}</div>
               </div>
             )
           },
           {
             key: 'access',
-            header: 'الوصول',
+            header: t('settings.user_management_panels.s4', "الوصول"),
             cell: (user) => (
               <div>
-                <div className="muted small">آخر دخول: {formatDateTime(user.lastLoginAt)}</div>
-                <div className="muted small">محاولات فاشلة: {user.failedLoginCount || 0}{user.lockedUntil ? ` · مقفول حتى ${formatDateTime(user.lockedUntil)}` : ''}</div>
+                <div className="muted small">{t('settings.user_management_panels.s5', "آخر دخول:")} {formatDateTime(user.lastLoginAt)}</div>
+                <div className="muted small">{t('settings.user_management_panels.s6', "محاولات فاشلة:")} {user.failedLoginCount || 0}{user.lockedUntil ? ` · مقفول حتى ${formatDateTime(user.lockedUntil)}` : ''}</div>
               </div>
             )
           },
           {
             key: 'branches',
-            header: SINGLE_STORE_MODE ? 'الدور / الصلاحيات' : isMaritime ? 'المكاتب / الصلاحيات' : isContracting ? 'المواقع / الصلاحيات' : 'الفروع / الصلاحيات',
+            header: SINGLE_STORE_MODE ? t('settings.user_management_panels.s7', "الدور / الصلاحيات") : isMaritime ? t('settings.user_management_panels.s8', "المكاتب / الصلاحيات") : isContracting ? t('settings.user_management_panels.s9', "المواقع / الصلاحيات") : t('settings.user_management_panels.s10', "الفروع / الصلاحيات"),
             cell: (user) => (
               <div>
-                {!SINGLE_STORE_MODE ? <div className="muted small">{isMaritime ? 'المكاتب' : isContracting ? 'المواقع' : 'الفروع'}: {(user.branchIds || []).length || 0} · افتراضي: {user.defaultBranchId || '—'}</div> : null}
-                <div className="muted small">الصلاحيات: {(user.permissions || []).length}</div>
+                {!SINGLE_STORE_MODE ? <div className="muted small">{isMaritime ? t('settings.user_management_panels.s11', "المكاتب") : isContracting ? t('settings.user_management_panels.s12', "المواقع") : t('settings.user_management_panels.s13', "الفروع")}: {(user.branchIds || []).length || 0} {t('settings.user_management_panels.s14', "· افتراضي:")} {user.defaultBranchId || '—'}</div> : null}
+                <div className="muted small">{t('settings.user_management_panels.s15', "الصلاحيات:")} {(user.permissions || []).length}</div>
               </div>
             )
           },
           {
             key: 'actions',
-            header: 'إجراءات',
+            header: t('settings.user_management_panels.s16', "إجراءات"),
             cell: (user) => (
               <div className="actions compact-actions">
-                <Button type="button" variant="secondary" onClick={(event) => { event.stopPropagation(); onLoadUser(user); }}>فتح</Button>
-                <Button type="button" variant="secondary" onClick={(event) => { event.stopPropagation(); onOpenDetails(user); }}>تفاصيل</Button>
-                <span className="nav-pill">{user.mustChangePassword ? 'تغيير مطلوب' : 'مستقر'}</span>
+                <Button type="button" variant="secondary" onClick={(event) => { event.stopPropagation(); onLoadUser(user); }}>{t('settings.user_management_panels.s17', "فتح")}</Button>
+                <Button type="button" variant="secondary" onClick={(event) => { event.stopPropagation(); onOpenDetails(user); }}>{t('settings.user_management_panels.s18', "تفاصيل")}</Button>
+                <span className="nav-pill">{user.mustChangePassword ? t('settings.user_management_panels.s19', "تغيير مطلوب") : t('settings.user_management_panels.s20', "مستقر")}</span>
               </div>
             )
           }
@@ -235,6 +237,7 @@ export function UserManagementEditorPanel({
   setupMode?: boolean;
   setupStepKey?: SetupStepKey | null;
 }) {
+  const { t } = useTranslation();
   const showInlineValidationError = Boolean(statusMessage) && !isPending && !isSuccess && !isError;
   const feedbackError = isError ? error : (showInlineValidationError ? statusMessage : null);
 
@@ -273,8 +276,8 @@ export function UserManagementEditorPanel({
         isError={isError || showInlineValidationError}
         isSuccess={isSuccess}
         error={feedbackError}
-        errorFallback={statusMessage || 'تعذرت العملية على المستخدم'}
-        successText={statusMessage || 'تم تحديث بيانات المستخدم.'}
+        errorFallback={statusMessage || t('settings.user_management_panels.s21', "تعذرت العملية على المستخدم")}
+        successText={statusMessage || t('settings.user_management_panels.s22', "تم تحديث بيانات المستخدم.")}
       />
 
       <div className="actions" style={{
@@ -288,12 +291,12 @@ export function UserManagementEditorPanel({
         borderTop: '1px solid #e2e8f0',
       }}>
         <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-          <Button type="button" variant="secondary" onClick={onReset} disabled={isPending} style={{ height: '32px', padding: '0 12px', fontSize: '0.82rem' }}>إعادة القيم</Button>
-          {canUnlockSelected ? <Button type="button" variant="secondary" onClick={onUnlock} disabled={isPending} style={{ height: '32px', padding: '0 12px', fontSize: '0.82rem' }}>فتح القفل</Button> : null}
-          {canDeleteSelected ? <Button type="button" variant="danger" onClick={onDelete} disabled={isPending} style={{ height: '32px', padding: '0 12px', fontSize: '0.82rem' }}>حذف المستخدم</Button> : null}
+          <Button type="button" variant="secondary" onClick={onReset} disabled={isPending} style={{ height: '32px', padding: '0 12px', fontSize: '0.82rem' }}>{t('settings.user_management_panels.s23', "إعادة القيم")}</Button>
+          {canUnlockSelected ? <Button type="button" variant="secondary" onClick={onUnlock} disabled={isPending} style={{ height: '32px', padding: '0 12px', fontSize: '0.82rem' }}>{t('settings.user_management_panels.s24', "فتح القفل")}</Button> : null}
+          {canDeleteSelected ? <Button type="button" variant="danger" onClick={onDelete} disabled={isPending} style={{ height: '32px', padding: '0 12px', fontSize: '0.82rem' }}>{t('settings.user_management_panels.s25', "حذف المستخدم")}</Button> : null}
         </div>
         <Button type="button" onClick={onSave} disabled={isPending} style={{ height: '32px', padding: '0 18px', fontSize: '0.84rem', fontWeight: 700, backgroundColor: '#170e5e', color: '#fff' }}>
-          {isPending ? 'جاري الحفظ...' : 'حفظ المستخدم'}
+          {isPending ? t('settings.user_management_panels.s26', "جاري الحفظ...") : t('settings.user_management_panels.s27', "حفظ المستخدم")}
         </Button>
       </div>
     </div>

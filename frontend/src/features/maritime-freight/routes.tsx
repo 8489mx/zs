@@ -1,15 +1,19 @@
+import { useTranslation } from 'react-i18next';
 import { createLazyRoute } from '@/app/router/lazy-route';
 import type { FeatureRouteModule } from '@/app/router/types';
 import { FeatureGate } from '@/shared/components/feature-gate';
 
 const MaritimeWorkspaceLazy = createLazyRoute(() =>
-  import('./pages/MaritimeLayout').then((m) => ({
+  {
+  const { t } = useTranslation();
+  return import('./pages/MaritimeLayout').then((m) => ({
     default: () => (
-      <FeatureGate feature="maritime_freight" featureName="الشحن واللوجستيات">
+      <FeatureGate feature="maritime_freight" featureName={t('maritime_freight.routes.s0', "الشحن واللوجستيات")}>
         <m.MaritimeLayout />
       </FeatureGate>
     ),
-  })),
+  }));
+},
 );
 
 export const maritimeFreightRouteModule: FeatureRouteModule = {

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { XIcon, ShieldCheckIcon } from '@/shared/components/icons/AppIcons';
 import { useState, useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -53,6 +54,7 @@ const AVAILABLE_FEATURES = [
 ];
 
 export function UpdateTenantPlanModal({ tenant, onClose, onSuccess }: UpdateTenantPlanModalProps) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [planId, setPlanId] = useState<string>('');
   const [activityType, setActivityType] = useState<string>('retail');
@@ -156,22 +158,22 @@ export function UpdateTenantPlanModal({ tenant, onClose, onSuccess }: UpdateTena
     || [];
 
   return (
-    <DialogShell open={true} onClose={onClose} width="min(1060px, 96vw)" ariaLabel="تحديث الباقة والمود القطاعي">
+    <DialogShell open={true} onClose={onClose} width="min(1060px, 96vw)" ariaLabel={t('saas_admin.update_tenant_plan_modal.s0', "تحديث الباقة والمود القطاعي")}>
       <div className="dialog-card" dir="rtl" style={{ maxHeight: '92vh', display: 'flex', flexDirection: 'column' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', flexShrink: 0 }}>
           <div>
             <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: '#170c5c' }}>
-              تحديث نمط المنشأة وباقة النسخة
+              {t('saas_admin.update_tenant_plan_modal.s1', "تحديث نمط المنشأة وباقة النسخة")}
             </h3>
             <p style={{ margin: '4px 0 0 0', fontSize: '12.5px', color: '#64748b' }}>
-              المنشأة: <strong style={{ color: '#0f172a' }}>{tenant.businessName || tenant.slug}</strong> ({tenant.slug})
+              {t('saas_admin.update_tenant_plan_modal.s2', "المنشأة:")} <strong style={{ color: '#0f172a' }}>{tenant.businessName || tenant.slug}</strong> ({tenant.slug})
             </p>
           </div>
           <button
             type="button"
             className="dialog-shell-close-btn"
             onClick={onClose}
-            title="إغلاق"
+            title={t('saas_admin.update_tenant_plan_modal.s3', "إغلاق")}
           ><XIcon size={15} /></button>
         </div>
 
@@ -193,24 +195,24 @@ export function UpdateTenantPlanModal({ tenant, onClose, onSuccess }: UpdateTena
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 800, color: '#170e5e', marginBottom: '3px' }}>
               <ShieldCheckIcon size={15} color="#170e5e" />
-              <span>دستور العزل والأنماط المؤسسية المعتمد ({currentVertical.groupLabel})</span>
+              <span>{t('saas_admin.update_tenant_plan_modal.s4', "دستور العزل والأنماط المؤسسية المعتمد (")}{currentVertical.groupLabel})</span>
             </div>
             <div>
-              <strong>النمط المختار:</strong> {currentVertical.label} — <em>[{currentVertical.badge}]</em><br />
-              <strong>الأقسام والصلاحيات:</strong> {currentVertical.description}<br />
+              <strong>{t('saas_admin.update_tenant_plan_modal.s5', "النمط المختار:")}</strong> {currentVertical.label} — <em>[{currentVertical.badge}]</em><br />
+              <strong>{t('saas_admin.update_tenant_plan_modal.s6', "الأقسام والصلاحيات:")}</strong> {currentVertical.description}<br />
               <span style={{ color: '#059669', fontWeight: 600 }}>
                 {currentVertical.band === 5
-                  ? 'يتم عزل هذا القطاع عزلاً تاماً (حجب نقاط بيع التجزئة، موازين الباركود، والمتجر السحابي على الكمبيوتر والموبايل).'
+                  ? t('saas_admin.update_tenant_plan_modal.s7', "يتم عزل هذا القطاع عزلاً تاماً (حجب نقاط بيع التجزئة، موازين الباركود، والمتجر السحابي على الكمبيوتر والموبايل).")
                   : currentVertical.key === 'wholesale'
-                  ? 'يتم حجب كاشير التجزئة السريع وتفعيل أسطول التوزيع الفان والمبيعات الآجلة.'
-                  : 'تقتصر خيارات الباقات تلقائياً على باقات ومستويات هذا النمط التشغيلي مع تفعيل نقطة البيع والكاشير السريع.'}
+                  ? t('saas_admin.update_tenant_plan_modal.s8', "يتم حجب كاشير التجزئة السريع وتفعيل أسطول التوزيع الفان والمبيعات الآجلة.")
+                  : t('saas_admin.update_tenant_plan_modal.s9', "تقتصر خيارات الباقات تلقائياً على باقات ومستويات هذا النمط التشغيلي مع تفعيل نقطة البيع والكاشير السريع.")}
               </span>
             </div>
           </div>
 
           {/* 1 & 2. نمط المنشأة والباقة في صف ثنائي متوازن */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-            <Field label="نمط المنشأة والمود القطاعي (Vertical Mode) *">
+            <Field label={t('saas_admin.update_tenant_plan_modal.s10', "نمط المنشأة والمود القطاعي (Vertical Mode) *")}>
               <CustomSelect
                 value={activityType}
                 onChange={(val) => handleVerticalChange(val)}
@@ -219,7 +221,7 @@ export function UpdateTenantPlanModal({ tenant, onClose, onSuccess }: UpdateTena
               />
             </Field>
 
-            <Field label="باقة الاشتراك والترخيص المتوافقة مع النمط (Feature Plan) *">
+            <Field label={t('saas_admin.update_tenant_plan_modal.s11', "باقة الاشتراك والترخيص المتوافقة مع النمط (Feature Plan) *")}>
               <CustomSelect
                 value={planId}
                 onChange={(val) => {
@@ -237,10 +239,10 @@ export function UpdateTenantPlanModal({ tenant, onClose, onSuccess }: UpdateTena
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
               <div>
                 <h4 style={{ margin: 0, fontSize: '13px', fontWeight: 800, color: '#1e293b' }}>
-                  الميزات الإضافية والمستثناة:
+                  {t('saas_admin.update_tenant_plan_modal.s12', "الميزات الإضافية والمستثناة:")}
                 </h4>
                 <p style={{ margin: '2px 0 0 0', fontSize: '11.5px', color: '#64748b' }}>
-                  يمكنك تفعيل ميزات إضافية يدوياً، أو استثناء ميزات متوفرة في الباقة المختارة.
+                  {t('saas_admin.update_tenant_plan_modal.s13', "يمكنك تفعيل ميزات إضافية يدوياً، أو استثناء ميزات متوفرة في الباقة المختارة.")}
                 </p>
               </div>
             </div>
@@ -288,8 +290,8 @@ export function UpdateTenantPlanModal({ tenant, onClose, onSuccess }: UpdateTena
                       <span style={{ fontSize: '12.5px', fontWeight: 700, color: isChecked ? '#065f46' : '#334155' }}>
                         {feat.name}
                       </span>
-                      {isBaseIncluded && !isExcluded && <span style={{ fontSize: '10.5px', color: '#10b981', fontWeight: 600 }}>(متوفرة في الباقة)</span>}
-                      {isBaseIncluded && isExcluded && <span style={{ fontSize: '10.5px', color: '#ef4444', fontWeight: 600 }}>(مستثناة من الباقة)</span>}
+                      {isBaseIncluded && !isExcluded && <span style={{ fontSize: '10.5px', color: '#10b981', fontWeight: 600 }}>{t('saas_admin.update_tenant_plan_modal.s14', "(متوفرة في الباقة)")}</span>}
+                      {isBaseIncluded && isExcluded && <span style={{ fontSize: '10.5px', color: '#ef4444', fontWeight: 600 }}>{t('saas_admin.update_tenant_plan_modal.s15', "(مستثناة من الباقة)")}</span>}
                     </div>
                   </label>
                 );
@@ -299,7 +301,7 @@ export function UpdateTenantPlanModal({ tenant, onClose, onSuccess }: UpdateTena
         </div>
 
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '16px', paddingTop: '12px', borderTop: '1px solid #e2e8f0', flexShrink: 0 }}>
-          <button type="button" className="button button-secondary" onClick={onClose} disabled={updateMutation.isPending}>إلغاء</button>
+          <button type="button" className="button button-secondary" onClick={onClose} disabled={updateMutation.isPending}>{t('saas_admin.update_tenant_plan_modal.s16', "إلغاء")}</button>
           <button 
             type="button" 
             className="button button-primary" 
@@ -307,7 +309,7 @@ export function UpdateTenantPlanModal({ tenant, onClose, onSuccess }: UpdateTena
             disabled={updateMutation.isPending}
             style={{ fontWeight: 800, background: '#170e5e', color: '#ffffff' }}
           >
-            {updateMutation.isPending ? 'جاري الحفظ...' : 'حفظ التعديلات'}
+            {updateMutation.isPending ? t('saas_admin.update_tenant_plan_modal.s17', "جاري الحفظ...") : t('saas_admin.update_tenant_plan_modal.s18', "حفظ التعديلات")}
           </button>
         </div>
       </div>

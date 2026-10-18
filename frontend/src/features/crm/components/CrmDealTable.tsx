@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/shared/ui/button';
 import { formatCurrency, formatDateOnly } from '@/lib/format';
 import type { CrmDeal } from '../api/crm.api';
@@ -9,6 +10,7 @@ interface CrmDealTableProps {
 }
 
 export function CrmDealTable({ deals, onSelectDeal }: CrmDealTableProps) {
+  const { t } = useTranslation();
   return (
     <div
       style={{
@@ -21,14 +23,14 @@ export function CrmDealTable({ deals, onSelectDeal }: CrmDealTableProps) {
       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', textAlign: 'right' }}>
         <thead>
           <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>
-            <th style={{ padding: '12px 16px', fontWeight: 600 }}>عنوان الفرصة</th>
-            <th style={{ padding: '12px 16px', fontWeight: 600 }}>العميل / الشركة</th>
-            <th style={{ padding: '12px 16px', fontWeight: 600 }}>المرحلة</th>
-            <th style={{ padding: '12px 16px', fontWeight: 600 }}>القيمة المتوقعة</th>
-            <th style={{ padding: '12px 16px', fontWeight: 600 }}>الاحتمالية</th>
-            <th style={{ padding: '12px 16px', fontWeight: 600 }}>الأولوية</th>
-            <th style={{ padding: '12px 16px', fontWeight: 600 }}>تاريخ الإغلاق</th>
-            <th style={{ padding: '12px 16px', fontWeight: 600, textAlign: 'center' }}>إجراءات</th>
+            <th style={{ padding: '12px 16px', fontWeight: 600 }}>{t('crm.crm_deal_table.s0', "عنوان الفرصة")}</th>
+            <th style={{ padding: '12px 16px', fontWeight: 600 }}>{t('crm.crm_deal_table.s1', "العميل / الشركة")}</th>
+            <th style={{ padding: '12px 16px', fontWeight: 600 }}>{t('crm.crm_deal_table.s2', "المرحلة")}</th>
+            <th style={{ padding: '12px 16px', fontWeight: 600 }}>{t('crm.crm_deal_table.s3', "القيمة المتوقعة")}</th>
+            <th style={{ padding: '12px 16px', fontWeight: 600 }}>{t('crm.crm_deal_table.s4', "الاحتمالية")}</th>
+            <th style={{ padding: '12px 16px', fontWeight: 600 }}>{t('crm.crm_deal_table.s5', "الأولوية")}</th>
+            <th style={{ padding: '12px 16px', fontWeight: 600 }}>{t('crm.crm_deal_table.s6', "تاريخ الإغلاق")}</th>
+            <th style={{ padding: '12px 16px', fontWeight: 600, textAlign: 'center' }}>{t('crm.crm_deal_table.s7', "إجراءات")}</th>
           </tr>
         </thead>
         <tbody>
@@ -90,7 +92,7 @@ export function CrmDealTable({ deals, onSelectDeal }: CrmDealTableProps) {
                     style={{ fontSize: '12px', padding: '4px 10px' }}
                     onClick={() => onSelectDeal(deal.id)}
                   >
-                    عرض التفاصيل
+                    {t('crm.crm_deal_table.s8', "عرض التفاصيل")}
                   </Button>
                 </td>
               </tr>
@@ -100,7 +102,7 @@ export function CrmDealTable({ deals, onSelectDeal }: CrmDealTableProps) {
           {deals.length === 0 && (
             <tr>
               <td colSpan={8} style={{ padding: '32px', textAlign: 'center', color: '#94a3b8' }}>
-                لا توجد فرص بيعية مطابقة للبحث
+                {t('crm.crm_deal_table.s9', "لا توجد فرص بيعية مطابقة للبحث")}
               </td>
             </tr>
           )}

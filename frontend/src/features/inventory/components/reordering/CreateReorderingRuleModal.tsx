@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React, { useState, useEffect } from 'react';
 import { StandardDialog } from '@/shared/components/StandardDialog';
 import { Field } from '@/shared/ui/field';
@@ -36,6 +37,7 @@ export function CreateReorderingRuleModal({
   locations,
   branches,
 }: CreateReorderingRuleModalProps) {
+  const { t } = useTranslation();
   const isEditing = Boolean(ruleToEdit);
 
   const [productId, setProductId] = useState<string>('');
@@ -159,8 +161,8 @@ export function CreateReorderingRuleModal({
     <StandardDialog
       open={open}
       onClose={onClose}
-      title={isEditing ? 'تعديل قاعدة إعادة الطلب التلقائي' : 'إضافة قاعدة إعادة طلب تلقائي جديدة'}
-      subtitle="ضبط حدود الأمان ونقاط إعادة الطلب (Min/Max) لتوليد أوامر الشراء آلياً"
+      title={isEditing ? t('inventory.reordering.create_reordering_rule_modal.s0', "تعديل قاعدة إعادة الطلب التلقائي") : t('inventory.reordering.create_reordering_rule_modal.s1', "إضافة قاعدة إعادة طلب تلقائي جديدة")}
+      subtitle={t('inventory.reordering.create_reordering_rule_modal.s2', "ضبط حدود الأمان ونقاط إعادة الطلب (Min/Max) لتوليد أوامر الشراء آلياً")}
       width="min(860px, 95vw)"
       minHeight="auto"
       footerActions={
@@ -172,7 +174,7 @@ export function CreateReorderingRuleModal({
             disabled={isSubmitting}
             style={{ padding: '8px 18px', borderRadius: '7px', fontWeight: 600 }}
           >
-            إلغاء
+            {t('inventory.reordering.create_reordering_rule_modal.s3', "إلغاء")}
           </button>
           <button
             type="button"
@@ -192,7 +194,7 @@ export function CreateReorderingRuleModal({
             }}
           >
             <CheckShieldIcon size={16} />
-            <span>{isSubmitting ? 'جارٍ الحفظ...' : isEditing ? 'تحديث القاعدة' : 'حفظ وتفعيل القاعدة'}</span>
+            <span>{isSubmitting ? t('inventory.reordering.create_reordering_rule_modal.s4', "جارٍ الحفظ...") : isEditing ? t('inventory.reordering.create_reordering_rule_modal.s5', "تحديث القاعدة") : t('inventory.reordering.create_reordering_rule_modal.s6', "حفظ وتفعيل القاعدة")}</span>
           </button>
         </div>
       }
@@ -212,48 +214,48 @@ export function CreateReorderingRuleModal({
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid #edf2f7', paddingBottom: '8px' }}>
             <LayersIcon size={18} color="#170e5e" />
-            <strong style={{ fontSize: '0.88rem', color: '#170e5e' }}>1. الصنف ونطاق التخزين والمورد</strong>
+            <strong style={{ fontSize: '0.88rem', color: '#170e5e' }}>{t('inventory.reordering.create_reordering_rule_modal.s7', "1. الصنف ونطاق التخزين والمورد")}</strong>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '12px' }}>
-            <Field label="الصنف المستهدف (مطلوب)">
+            <Field label={t('inventory.reordering.create_reordering_rule_modal.s8', "الصنف المستهدف (مطلوب)")}>
               <CustomSelect
                 value={productId}
                 onChange={setProductId}
                 options={productOptions}
-                placeholder="ابحث عن الصنف بالاسم أو الباركود..."
+                placeholder={t('inventory.reordering.create_reordering_rule_modal.s9', "ابحث عن الصنف بالاسم أو الباركود...")}
                 disabled={isEditing || isSubmitting}
               />
             </Field>
 
-            <Field label="المورد المفضل (لأمر الشراء التلقائي)">
+            <Field label={t('inventory.reordering.create_reordering_rule_modal.s10', "المورد المفضل (لأمر الشراء التلقائي)")}>
               <CustomSelect
                 value={preferredSupplierId}
                 onChange={setPreferredSupplierId}
                 options={supplierOptions}
-                placeholder="اختر المورد المعتمد..."
+                placeholder={t('inventory.reordering.create_reordering_rule_modal.s11', "اختر المورد المعتمد...")}
                 disabled={isSubmitting}
               />
             </Field>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '12px' }}>
-            <Field label="المستودع / المخزن">
+            <Field label={t('inventory.reordering.create_reordering_rule_modal.s12', "المستودع / المخزن")}>
               <CustomSelect
                 value={warehouseId}
                 onChange={setWarehouseId}
                 options={locationOptions}
-                placeholder="اختر المستودع..."
+                placeholder={t('inventory.reordering.create_reordering_rule_modal.s13', "اختر المستودع...")}
                 disabled={isSubmitting}
               />
             </Field>
 
-            <Field label="الفرع">
+            <Field label={t('inventory.reordering.create_reordering_rule_modal.s14', "الفرع")}>
               <CustomSelect
                 value={branchId}
                 onChange={setBranchId}
                 options={branchOptions}
-                placeholder="اختر الفرع..."
+                placeholder={t('inventory.reordering.create_reordering_rule_modal.s15', "اختر الفرع...")}
                 disabled={isSubmitting}
               />
             </Field>
@@ -274,11 +276,11 @@ export function CreateReorderingRuleModal({
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid #edf2f7', paddingBottom: '8px' }}>
             <SlidersIcon size={18} color="#170e5e" />
-            <strong style={{ fontSize: '0.88rem', color: '#170e5e' }}>2. معادلة إعادة الطلب ومضاعف التعبئة</strong>
+            <strong style={{ fontSize: '0.88rem', color: '#170e5e' }}>{t('inventory.reordering.create_reordering_rule_modal.s16', "2. معادلة إعادة الطلب ومضاعف التعبئة")}</strong>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
-            <Field label="حد الأمان الأدنى (نقطة التحفيز Min)">
+            <Field label={t('inventory.reordering.create_reordering_rule_modal.s17', "حد الأمان الأدنى (نقطة التحفيز Min)")}>
               <input
                 type="number"
                 min="0"
@@ -298,11 +300,11 @@ export function CreateReorderingRuleModal({
                 }}
               />
               <small className="muted" style={{ fontSize: '0.7rem', display: 'block', marginTop: '3px' }}>
-                عندما يهبط المخزون المتوقع دون هذا الحد يطلق النظام أمر الشراء.
+                {t('inventory.reordering.create_reordering_rule_modal.s18', "عندما يهبط المخزون المتوقع دون هذا الحد يطلق النظام أمر الشراء.")}
               </small>
             </Field>
 
-            <Field label="الحد الأقصى المستهدف (Target Max)">
+            <Field label={t('inventory.reordering.create_reordering_rule_modal.s19', "الحد الأقصى المستهدف (Target Max)")}>
               <input
                 type="number"
                 min="0"
@@ -322,11 +324,11 @@ export function CreateReorderingRuleModal({
                 }}
               />
               <small className="muted" style={{ fontSize: '0.7rem', display: 'block', marginTop: '3px' }}>
-                المستوى المستهدف ملء المخزن به عند اكتمال التوريد.
+                {t('inventory.reordering.create_reordering_rule_modal.s20', "المستوى المستهدف ملء المخزن به عند اكتمال التوريد.")}
               </small>
             </Field>
 
-            <Field label="مضاعف التعبئة / الحزمة (Batch Multiple)">
+            <Field label={t('inventory.reordering.create_reordering_rule_modal.s21', "مضاعف التعبئة / الحزمة (Batch Multiple)")}>
               <input
                 type="number"
                 min="1"
@@ -346,7 +348,7 @@ export function CreateReorderingRuleModal({
                 }}
               />
               <small className="muted" style={{ fontSize: '0.7rem', display: 'block', marginTop: '3px' }}>
-                التقريب لأقرب كرتونة/حزمة (مثال: 12 أو 24 قطعة).
+                {t('inventory.reordering.create_reordering_rule_modal.s22', "التقريب لأقرب كرتونة/حزمة (مثال: 12 أو 24 قطعة).")}
               </small>
             </Field>
           </div>
@@ -366,11 +368,11 @@ export function CreateReorderingRuleModal({
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid #edf2f7', paddingBottom: '8px' }}>
             <TruckIcon size={18} color="#170e5e" />
-            <strong style={{ fontSize: '0.88rem', color: '#170e5e' }}>3. إجراء الأتمتة وحالة التفعيل</strong>
+            <strong style={{ fontSize: '0.88rem', color: '#170e5e' }}>{t('inventory.reordering.create_reordering_rule_modal.s23', "3. إجراء الأتمتة وحالة التفعيل")}</strong>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '12px' }}>
-            <Field label="إجراء التشغيل التلقائي">
+            <Field label={t('inventory.reordering.create_reordering_rule_modal.s24', "إجراء التشغيل التلقائي")}>
               <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
                 <label
                   style={{
@@ -395,7 +397,7 @@ export function CreateReorderingRuleModal({
                     onChange={() => setActionMode('auto_draft_po')}
                     style={{ accentColor: '#170e5e' }}
                   />
-                  <span>توليد مسودة أمر شراء تلقائياً (Draft PO)</span>
+                  <span>{t('inventory.reordering.create_reordering_rule_modal.s25', "توليد مسودة أمر شراء تلقائياً (Draft PO)")}</span>
                 </label>
 
                 <label
@@ -421,12 +423,12 @@ export function CreateReorderingRuleModal({
                     onChange={() => setActionMode('manual_review')}
                     style={{ accentColor: '#170e5e' }}
                   />
-                  <span>تنبيه للمراجعة اليدوية فقط</span>
+                  <span>{t('inventory.reordering.create_reordering_rule_modal.s26', "تنبيه للمراجعة اليدوية فقط")}</span>
                 </label>
               </div>
             </Field>
 
-            <Field label="حالة القاعدة">
+            <Field label={t('inventory.reordering.create_reordering_rule_modal.s27', "حالة القاعدة")}>
               <label
                 style={{
                   display: 'inline-flex',
@@ -444,17 +446,17 @@ export function CreateReorderingRuleModal({
                   onChange={(e) => setIsActive(e.target.checked)}
                   style={{ width: '18px', height: '18px', accentColor: '#170e5e' }}
                 />
-                <span>تفعيل القاعدة للمراقبة الدورية المباشرة</span>
+                <span>{t('inventory.reordering.create_reordering_rule_modal.s28', "تفعيل القاعدة للمراقبة الدورية المباشرة")}</span>
               </label>
             </Field>
           </div>
 
-          <Field label="ملاحظات أو تعليمات الشراء">
+          <Field label={t('inventory.reordering.create_reordering_rule_modal.s29', "ملاحظات أو تعليمات الشراء")}>
             <textarea
               rows={2}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="شروط التوريد الخاصة بهذا الصنف أو تعليمات للمورد..."
+              placeholder={t('inventory.reordering.create_reordering_rule_modal.s30', "شروط التوريد الخاصة بهذا الصنف أو تعليمات للمورد...")}
               disabled={isSubmitting}
               style={{
                 borderRadius: '7px',

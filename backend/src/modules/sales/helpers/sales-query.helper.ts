@@ -31,6 +31,8 @@ export function mapSaleRows(
       id: String(item.id),
       productId: item.product_id ? String(item.product_id) : '',
       name: item.product_name || '',
+      nameEn: item.product_name_en ? String(item.product_name_en) : undefined,
+      name_en: item.product_name_en ? String(item.product_name_en) : undefined,
       qty: Number(item.qty || 0),
       price: Number(item.unit_price || 0),
       originalPrice: offerMeta?.originalPrice ? Number(offerMeta.originalPrice) : undefined,

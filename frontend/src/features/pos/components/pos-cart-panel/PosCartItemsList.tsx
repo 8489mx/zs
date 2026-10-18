@@ -21,6 +21,7 @@ const PosCartItemRow = memo(function PosCartItemRow({
   onChangeLineQtyByDelta,
   onRemoveItem
 }: any) {
+  const { t: __t } = useTranslation();
   const { t } = useTranslation();
   const modifiersTotal = (item.modifiers || []).reduce((sum: any, mod: any) => sum + Number(mod.price || 0), 0);
   const lineTotal = item.qty * (item.price + modifiersTotal);
@@ -128,7 +129,7 @@ const PosCartItemRow = memo(function PosCartItemRow({
                   padding: '1px 6px',
                   cursor: 'pointer',
                 }}
-                title="انقر لتغيير مقعد الضيف على الطاولة"
+                title={__t('pos.pos_cart_panel.pos_cart_items_list.s0', __t('pos.pos_cart_panel.pos_cart_items_list.s0', "انقر لتغيير مقعد الضيف على الطاولة"))}
                 onClick={(e) => {
                   e.stopPropagation();
                   const nextSeat = ((item.seatNumber || 1) % 6) + 1;
@@ -164,7 +165,7 @@ const PosCartItemRow = memo(function PosCartItemRow({
           <input
             type="number"
             inputMode="decimal"
-            aria-label="الكمية"
+            aria-label={__t('pos.pos_cart_panel.pos_cart_items_list.s1', __t('pos.pos_cart_panel.pos_cart_items_list.s1', "الكمية"))}
             dir="ltr"
             style={{
               fontVariantNumeric: 'tabular-nums',
@@ -247,6 +248,7 @@ const PosCartItemRow = memo(function PosCartItemRow({
 });
 
 export function PosCartItemsList({ cart, lastAddedLineKey, selectedLineKey, onQtyChange, onItemNoteChange, onItemModifiersClick, onItemSeatChange, onEditProduct, onRemoveItem, onSelectLine, onChangeLineQtyByDelta }: Pick<PosCartPanelProps, 'cart' | 'lastAddedLineKey' | 'selectedLineKey' | 'onQtyChange' | 'onItemNoteChange' | 'onItemModifiersClick' | 'onItemSeatChange' | 'onEditProduct' | 'onRemoveItem' | 'onSelectLine' | 'onChangeLineQtyByDelta'>) {
+  const { t: __t } = useTranslation();
   const { t } = useTranslation();
   const settingsQuery = useSettingsQuery();
   const allowItemNotes = settingsQuery.data?.manufacturingModuleEnabled === true;
@@ -283,7 +285,7 @@ export function PosCartItemsList({ cart, lastAddedLineKey, selectedLineKey, onQt
           <strong>{t('pos.cart_empty_title', 'السلة جاهزة لأول صنف')}</strong>
           <span>{t('pos.cart_empty_desc', 'اضرب الباركود أو ابحث عن الصنف من لوحة الأصناف، وسيظهر هنا مباشرة مع الكمية والإجمالي.')}</span>
         </div>
-        <div className="pos-cart-empty-hints" aria-label="اختصارات سريعة">
+        <div className="pos-cart-empty-hints" aria-label={__t('pos.pos_cart_panel.pos_cart_items_list.s2', __t('pos.pos_cart_panel.pos_cart_items_list.s2', "اختصارات سريعة"))}>
           <span>{t('pos.hint_enter', 'Enter لإضافة أول نتيجة')}</span>
           <span>{t('pos.hint_f2', 'F2 لإنهاء البيع')}</span>
           <span>{t('pos.hint_f4', 'F4 لتعليق الفاتورة')}</span>
@@ -301,7 +303,7 @@ export function PosCartItemsList({ cart, lastAddedLineKey, selectedLineKey, onQt
   }
 
   return (
-    <section ref={containerRef} className={`pos-cart-table ${responsiveClass}`.trim()} aria-label="عناصر السلة">
+    <section ref={containerRef} className={`pos-cart-table ${responsiveClass}`.trim()} aria-label={__t('pos.pos_cart_panel.pos_cart_items_list.s3', __t('pos.pos_cart_panel.pos_cart_items_list.s3', "عناصر السلة"))}>
       <div className="pos-cart-table-head" aria-hidden="true">
         <div className="pos-cart-col pos-cart-col-index" style={{ textAlign: 'center' }}>{t('pos.table_index', 'م')}</div>
         <div className="pos-cart-col pos-cart-col-product">{t('pos.table_item', 'الصنف')}</div>

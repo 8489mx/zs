@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useContracting } from '../context/ContractingContext';
@@ -18,6 +19,7 @@ interface ContractingProcurementPageProps {
 }
 
 export function ContractingProcurementPage({ initialSubTab }: ContractingProcurementPageProps) {
+  const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
   const subParam = (searchParams.get('sub') as 'subcontracts' | 'materials') || initialSubTab || 'subcontracts';
   const [activeSubTab, setActiveSubTab] = useState<'subcontracts' | 'materials'>(subParam);
@@ -164,7 +166,7 @@ export function ContractingProcurementPage({ initialSubTab }: ContractingProcure
               transition: 'all 0.15s ease',
             }}
           >
-            عقود وإسناد مقاولي الباطن
+            {t('contracting.contracting_procurement_page.s0', "عقود وإسناد مقاولي الباطن")}
           </button>
 
           <button
@@ -183,7 +185,7 @@ export function ContractingProcurementPage({ initialSubTab }: ContractingProcure
               transition: 'all 0.15s ease',
             }}
           >
-            خامات وتشوينات الموقع (MRP)
+            {t('contracting.contracting_procurement_page.s1', "خامات وتشوينات الموقع (MRP)")}
           </button>
         </div>
 
@@ -209,7 +211,7 @@ export function ContractingProcurementPage({ initialSubTab }: ContractingProcure
             }}
           >
             <AppIcons.Package size={15} />
-            <span>خطة الاحتياجات (MRP)</span>
+            <span>{t('contracting.contracting_procurement_page.s2', "خطة الاحتياجات (MRP)")}</span>
           </button>
 
           <button
@@ -232,7 +234,7 @@ export function ContractingProcurementPage({ initialSubTab }: ContractingProcure
             }}
           >
             <AppIcons.FileCheck size={15} />
-            <span>اعتمادات المواد والمخططات (MAR / MAS)</span>
+            <span>{t('contracting.contracting_procurement_page.s3', "اعتمادات المواد والمخططات (MAR / MAS)")}</span>
           </button>
 
           <button
@@ -255,7 +257,7 @@ export function ContractingProcurementPage({ initialSubTab }: ContractingProcure
             }}
           >
             <AppIcons.TrendingUp size={15} />
-            <span>فروق أسعار الخامات (Escalations)</span>
+            <span>{t('contracting.contracting_procurement_page.s4', "فروق أسعار الخامات (Escalations)")}</span>
           </button>
         </div>
       </div>

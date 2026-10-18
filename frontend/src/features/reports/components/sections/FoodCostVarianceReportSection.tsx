@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { reportsApi, type FoodCostVarianceItem } from '@/features/reports/api/reports.api';
@@ -10,6 +11,7 @@ interface FoodCostVarianceReportSectionProps {
 }
 
 export function FoodCostVarianceReportSection({ from, to }: FoodCostVarianceReportSectionProps) {
+  const { t } = useTranslation();
   const [filter, setFilter] = useState<'all' | 'critical' | 'warning' | 'normal'>('all');
   const [search, setSearch] = useState('');
 
@@ -45,7 +47,7 @@ export function FoodCostVarianceReportSection({ from, to }: FoodCostVarianceRepo
   if (isLoading) {
     return (
       <div style={{ padding: '40px', textAlign: 'center', color: '#64748b', fontSize: '13px' }}>
-        جاري تحليل الاستهلاك النظري والفعلي للمكونات والهدر...
+        {t('reports.sections.food_cost_variance_report_section.s0', "جاري تحليل الاستهلاك النظري والفعلي للمكونات والهدر...")}
       </div>
     );
   }
@@ -53,9 +55,9 @@ export function FoodCostVarianceReportSection({ from, to }: FoodCostVarianceRepo
   if (isError) {
     return (
       <div style={{ padding: '30px', textAlign: 'center', color: '#dc2626' }}>
-        <p style={{ margin: '0 0 12px', fontSize: '13px', fontWeight: 600 }}>تعذر تحميل تقرير انحراف استهلاك الأغذية للمطاعم.</p>
+        <p style={{ margin: '0 0 12px', fontSize: '13px', fontWeight: 600 }}>{t('reports.sections.food_cost_variance_report_section.s1', "تعذر تحميل تقرير انحراف استهلاك الأغذية للمطاعم.")}</p>
         <Button variant="secondary" onClick={() => void refetch()}>
-          إعادة المحاولة
+          {t('reports.sections.food_cost_variance_report_section.s2', "إعادة المحاولة")}
         </Button>
       </div>
     );
@@ -73,37 +75,37 @@ export function FoodCostVarianceReportSection({ from, to }: FoodCostVarianceRepo
       >
         <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px 16px' }}>
           <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 600, marginBottom: '6px' }}>
-            الاستهلاك النظري (المفترض من المبيعات)
+            {t('reports.sections.food_cost_variance_report_section.s3', "الاستهلاك النظري (المفترض من المبيعات)")}
           </div>
           <div style={{ fontSize: '18px', fontWeight: 800, color: '#0f172a' }}>
             {formatCurrency(summary.totalTheoreticalCost)}
           </div>
           <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '4px' }}>
-            بناءً على مقادير الوجبات والإضافات المباعة
+            {t('reports.sections.food_cost_variance_report_section.s4', "بناءً على مقادير الوجبات والإضافات المباعة")}
           </div>
         </div>
 
         <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px 16px' }}>
           <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 600, marginBottom: '6px' }}>
-            الاستهلاك الفعلي المنصرف
+            {t('reports.sections.food_cost_variance_report_section.s5', "الاستهلاك الفعلي المنصرف")}
           </div>
           <div style={{ fontSize: '18px', fontWeight: 800, color: '#170e5e' }}>
             {formatCurrency(summary.totalActualCost)}
           </div>
           <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '4px' }}>
-            المسحوب فعلياً من المخزن والمستودع
+            {t('reports.sections.food_cost_variance_report_section.s6', "المسحوب فعلياً من المخزن والمستودع")}
           </div>
         </div>
 
         <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px 16px' }}>
           <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 600, marginBottom: '6px' }}>
-            الهدر المسجل (تالف وتحضير)
+            {t('reports.sections.food_cost_variance_report_section.s7', "الهدر المسجل (تالف وتحضير)")}
           </div>
           <div style={{ fontSize: '18px', fontWeight: 800, color: '#d97706' }}>
             {formatCurrency(summary.totalWasteCost)}
           </div>
           <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '4px' }}>
-            الموثق رسمياً عبر شاشة هدر المطعم
+            {t('reports.sections.food_cost_variance_report_section.s8', "الموثق رسمياً عبر شاشة هدر المطعم")}
           </div>
         </div>
 
@@ -116,13 +118,13 @@ export function FoodCostVarianceReportSection({ from, to }: FoodCostVarianceRepo
           }}
         >
           <div style={{ fontSize: '12px', color: summary.totalVarianceCost > 0 ? '#991b1b' : '#166534', fontWeight: 700, marginBottom: '6px' }}>
-            الفارق غير المبرر (عجز / انحراف)
+            {t('reports.sections.food_cost_variance_report_section.s9', "الفارق غير المبرر (عجز / انحراف)")}
           </div>
           <div style={{ fontSize: '18px', fontWeight: 900, color: summary.totalVarianceCost > 0 ? '#b91c1c' : '#15803d' }}>
             {formatCurrency(summary.totalVarianceCost)}
           </div>
           <div style={{ fontSize: '11px', color: summary.totalVarianceCost > 0 ? '#dc2626' : '#16a34a', marginTop: '4px', fontWeight: 600 }}>
-            نسبة الانحراف: {summary.overallVariancePct}%
+            {t('reports.sections.food_cost_variance_report_section.s10', "نسبة الانحراف:")} {summary.overallVariancePct}%
           </div>
         </div>
       </div>
@@ -144,7 +146,7 @@ export function FoodCostVarianceReportSection({ from, to }: FoodCostVarianceRepo
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
           <input
             type="text"
-            placeholder="بحث باسم المادة الخام أو الكود..."
+            placeholder={t('reports.sections.food_cost_variance_report_section.s11', "بحث باسم المادة الخام أو الكود...")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             style={{
@@ -158,10 +160,10 @@ export function FoodCostVarianceReportSection({ from, to }: FoodCostVarianceRepo
 
           <div style={{ display: 'flex', gap: '4px', background: '#f8fafc', padding: '3px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
             {[
-              { key: 'all', label: 'الكل' },
-              { key: 'critical', label: 'عجز حرج (> 5%)' },
-              { key: 'warning', label: 'تحذير (2% - 5%)' },
-              { key: 'normal', label: 'مطابق (≤ 2%)' },
+              { key: 'all', label: t('reports.sections.food_cost_variance_report_section.s12', "الكل") },
+              { key: 'critical', label: t('reports.sections.food_cost_variance_report_section.s13', "عجز حرج (> 5%)") },
+              { key: 'warning', label: t('reports.sections.food_cost_variance_report_section.s14', "تحذير (2% - 5%)") },
+              { key: 'normal', label: t('reports.sections.food_cost_variance_report_section.s15', "مطابق (≤ 2%)") },
             ].map((tab) => (
               <button
                 key={tab.key}
@@ -185,7 +187,7 @@ export function FoodCostVarianceReportSection({ from, to }: FoodCostVarianceRepo
         </div>
 
         <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 600 }}>
-          عرض {filteredItems.length} مادة خام من أصل {items.length}
+          {t('reports.sections.food_cost_variance_report_section.s16', "عرض")} {filteredItems.length} {t('reports.sections.food_cost_variance_report_section.s17', "مادة خام من أصل")} {items.length}
         </div>
       </div>
 
@@ -202,23 +204,23 @@ export function FoodCostVarianceReportSection({ from, to }: FoodCostVarianceRepo
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right', fontSize: '12.5px' }}>
             <thead>
               <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>
-                <th style={{ padding: '10px 14px', fontWeight: 700 }}>المادة الخام / المكون</th>
-                <th style={{ padding: '10px 14px', fontWeight: 700 }}>سعر التكلفة</th>
-                <th style={{ padding: '10px 14px', fontWeight: 700 }}>الاستهلاك النظري</th>
-                <th style={{ padding: '10px 14px', fontWeight: 700 }}>تكلفة النظري</th>
-                <th style={{ padding: '10px 14px', fontWeight: 700 }}>الهدر المسجل</th>
-                <th style={{ padding: '10px 14px', fontWeight: 700 }}>الاستهلاك الفعلي</th>
-                <th style={{ padding: '10px 14px', fontWeight: 700 }}>كمية الفارق</th>
-                <th style={{ padding: '10px 14px', fontWeight: 700 }}>تكلفة الفارق</th>
-                <th style={{ padding: '10px 14px', fontWeight: 700 }}>نسبة الانحراف</th>
-                <th style={{ padding: '10px 14px', fontWeight: 700 }}>الحالة الرقابية</th>
+                <th style={{ padding: '10px 14px', fontWeight: 700 }}>{t('reports.sections.food_cost_variance_report_section.s18', "المادة الخام / المكون")}</th>
+                <th style={{ padding: '10px 14px', fontWeight: 700 }}>{t('reports.sections.food_cost_variance_report_section.s19', "سعر التكلفة")}</th>
+                <th style={{ padding: '10px 14px', fontWeight: 700 }}>{t('reports.sections.food_cost_variance_report_section.s20', "الاستهلاك النظري")}</th>
+                <th style={{ padding: '10px 14px', fontWeight: 700 }}>{t('reports.sections.food_cost_variance_report_section.s21', "تكلفة النظري")}</th>
+                <th style={{ padding: '10px 14px', fontWeight: 700 }}>{t('reports.sections.food_cost_variance_report_section.s22', "الهدر المسجل")}</th>
+                <th style={{ padding: '10px 14px', fontWeight: 700 }}>{t('reports.sections.food_cost_variance_report_section.s23', "الاستهلاك الفعلي")}</th>
+                <th style={{ padding: '10px 14px', fontWeight: 700 }}>{t('reports.sections.food_cost_variance_report_section.s24', "كمية الفارق")}</th>
+                <th style={{ padding: '10px 14px', fontWeight: 700 }}>{t('reports.sections.food_cost_variance_report_section.s25', "تكلفة الفارق")}</th>
+                <th style={{ padding: '10px 14px', fontWeight: 700 }}>{t('reports.sections.food_cost_variance_report_section.s26', "نسبة الانحراف")}</th>
+                <th style={{ padding: '10px 14px', fontWeight: 700 }}>{t('reports.sections.food_cost_variance_report_section.s27', "الحالة الرقابية")}</th>
               </tr>
             </thead>
             <tbody>
               {filteredItems.length === 0 ? (
                 <tr>
                   <td colSpan={10} style={{ padding: '36px', textAlign: 'center', color: '#94a3b8' }}>
-                    لا توجد مواد خام مسجلة تطابق محددات البحث الحالية.
+                    {t('reports.sections.food_cost_variance_report_section.s28', "لا توجد مواد خام مسجلة تطابق محددات البحث الحالية.")}
                   </td>
                 </tr>
               ) : (
@@ -235,7 +237,7 @@ export function FoodCostVarianceReportSection({ from, to }: FoodCostVarianceRepo
                     >
                       <td style={{ padding: '10px 14px' }}>
                         <div style={{ fontWeight: 700, color: '#0f172a' }}>{item.productName}</div>
-                        {item.sku && <div style={{ fontSize: '11px', color: '#94a3b8' }}>كود: {item.sku}</div>}
+                        {item.sku && <div style={{ fontSize: '11px', color: '#94a3b8' }}>{t('reports.sections.food_cost_variance_report_section.s29', "كود:")} {item.sku}</div>}
                       </td>
                       <td style={{ padding: '10px 14px', color: '#475569' }}>
                         {formatCurrency(item.costPrice)} / {item.unitName}
@@ -284,7 +286,7 @@ export function FoodCostVarianceReportSection({ from, to }: FoodCostVarianceRepo
                             color: isCritical ? '#991b1b' : isWarning ? '#92400e' : '#166534',
                           }}
                         >
-                          {isCritical ? 'عجز غير مبرر' : isWarning ? 'انحراف طفيف' : 'مطابق للوصفة'}
+                          {isCritical ? t('reports.sections.food_cost_variance_report_section.s30', "عجز غير مبرر") : isWarning ? t('reports.sections.food_cost_variance_report_section.s31', "انحراف طفيف") : t('reports.sections.food_cost_variance_report_section.s32', "مطابق للوصفة")}
                         </span>
                       </td>
                     </tr>

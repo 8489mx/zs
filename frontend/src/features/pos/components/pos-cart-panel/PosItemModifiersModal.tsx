@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { addonsApi, type ModifierGroup } from '@/shared/api/addons.api';
@@ -13,6 +14,7 @@ interface PosItemModifiersModalProps {
 }
 
 export function PosItemModifiersModal({ open, onClose, item, onSave }: PosItemModifiersModalProps) {
+  const { t } = useTranslation();
   const [selectedModifiers, setSelectedModifiers] = useState<any[]>([]);
   const [validationError, setValidationError] = useState<string | null>(null);
 
@@ -206,7 +208,7 @@ export function PosItemModifiersModal({ open, onClose, item, onSave }: PosItemMo
       open={open}
       onClose={onClose}
       width="min(750px, 96vw)"
-      ariaLabel="إضافات وتعديلات الصنف"
+      ariaLabel={t('pos.pos_cart_panel.pos_item_modifiers_modal.s0', "إضافات وتعديلات الصنف")}
       shellClassName="pos-modifiers-dialog-shell"
     >
       <div
@@ -264,13 +266,13 @@ export function PosItemModifiersModal({ open, onClose, item, onSave }: PosItemMo
                   wordBreak: 'break-word',
                 }}
               >
-                خيارات ومعدلات: {item.name}
+                {t('pos.pos_cart_panel.pos_item_modifiers_modal.s1', "خيارات ومعدلات:")} {item.name}
               </h2>
               <div
                 className="pos-modifiers-header-sub"
                 style={{ fontSize: '0.8rem', color: '#64748b', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
               >
-                السعر الأساسي: {item.price} ج | الإضافات المختارة: +{totalExtraPrice.toFixed(2)} ج
+                {t('pos.pos_cart_panel.pos_item_modifiers_modal.s2', "السعر الأساسي:")} {item.price} {t('pos.pos_cart_panel.pos_item_modifiers_modal.s3', "ج | الإضافات المختارة: +")}{totalExtraPrice.toFixed(2)} {t('pos.pos_cart_panel.pos_item_modifiers_modal.s4', "ج")}
               </div>
             </div>
           </div>
@@ -278,7 +280,7 @@ export function PosItemModifiersModal({ open, onClose, item, onSave }: PosItemMo
             type="button"
             className="pos-modifiers-close-btn"
             onClick={onClose}
-            aria-label="إغلاق"
+            aria-label={t('pos.pos_cart_panel.pos_item_modifiers_modal.s5', "إغلاق")}
             style={{
               background: 'transparent',
               border: 'none',
@@ -317,7 +319,7 @@ export function PosItemModifiersModal({ open, onClose, item, onSave }: PosItemMo
           )}
 
           {isLoading ? (
-            <div style={{ textAlign: 'center', padding: '40px', color: '#64748b' }}>جاري تحميل خيارات المنتج...</div>
+            <div style={{ textAlign: 'center', padding: '40px', color: '#64748b' }}>{t('pos.pos_cart_panel.pos_item_modifiers_modal.s6', "جاري تحميل خيارات المنتج...")}</div>
           ) : hasGroups ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
               {activeGroups.map(group => {
@@ -359,7 +361,7 @@ export function PosItemModifiersModal({ open, onClose, item, onSave }: PosItemMo
                               borderRadius: 6,
                             }}
                           >
-                            مطلوب إلزامي
+                            {t('pos.pos_cart_panel.pos_item_modifiers_modal.s7', "مطلوب إلزامي")}
                           </span>
                         ) : (
                           <span
@@ -372,15 +374,15 @@ export function PosItemModifiersModal({ open, onClose, item, onSave }: PosItemMo
                               borderRadius: 6,
                             }}
                           >
-                            اختياري
+                            {t('pos.pos_cart_panel.pos_item_modifiers_modal.s8', "اختياري")}
                           </span>
                         )}
                         <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
-                          ({group.selectionType === 'single' ? 'اختيار واحد فقط' : 'خيارات متعددة'})
+                          ({group.selectionType === 'single' ? t('pos.pos_cart_panel.pos_item_modifiers_modal.s9', "اختيار واحد فقط") : t('pos.pos_cart_panel.pos_item_modifiers_modal.s10', "خيارات متعددة")})
                         </span>
                       </div>
                       <span style={{ fontSize: '0.8rem', color: '#64748b' }}>
-                        تم تحديد {groupSelections.length}
+                        {t('pos.pos_cart_panel.pos_item_modifiers_modal.s11', "تم تحديد")} {groupSelections.length}
                       </span>
                     </div>
 
@@ -445,7 +447,7 @@ export function PosItemModifiersModal({ open, onClose, item, onSave }: PosItemMo
                                 color: optPrice > 0 ? '#15803d' : '#64748b',
                               }}
                             >
-                              {optPrice > 0 ? `+${optPrice} ج` : 'مجاني'}
+                              {optPrice > 0 ? `+${optPrice} ج` : t('pos.pos_cart_panel.pos_item_modifiers_modal.s12', "مجاني")}
                             </span>
                           </button>
                         );
@@ -466,7 +468,7 @@ export function PosItemModifiersModal({ open, onClose, item, onSave }: PosItemMo
                 border: '1px dashed #cbd5e1',
               }}
             >
-              لا توجد خيارات أو إضافات معرفة لهذا المنتج
+              {t('pos.pos_cart_panel.pos_item_modifiers_modal.s13', "لا توجد خيارات أو إضافات معرفة لهذا المنتج")}
             </div>
           ) : (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '14px' }}>
@@ -498,7 +500,7 @@ export function PosItemModifiersModal({ open, onClose, item, onSave }: PosItemMo
                     }}
                   >
                     <span style={{ fontWeight: 700, color: '#1e293b', fontSize: '0.95rem' }}>{addon.name}</span>
-                    <span style={{ color: '#15803d', fontSize: '0.9rem', fontWeight: 600 }}>{addon.price} ج</span>
+                    <span style={{ color: '#15803d', fontSize: '0.9rem', fontWeight: 600 }}>{addon.price} {t('pos.pos_cart_panel.pos_item_modifiers_modal.s14', "ج")}</span>
 
                     {isSelected && (
                       <div
@@ -539,7 +541,7 @@ export function PosItemModifiersModal({ open, onClose, item, onSave }: PosItemMo
                           fontSize: '0.8rem',
                         }}
                       >
-                        إزالة / تقليل
+                        {t('pos.pos_cart_panel.pos_item_modifiers_modal.s15', "إزالة / تقليل")}
                       </button>
                     )}
                   </div>
@@ -569,7 +571,7 @@ export function PosItemModifiersModal({ open, onClose, item, onSave }: PosItemMo
             className="pos-modifiers-footer-total"
             style={{ fontSize: '0.9rem', fontWeight: 700, color: '#1e293b', whiteSpace: 'nowrap' }}
           >
-            المجموع الإضافي: <span style={{ color: '#15803d', fontWeight: 800 }}>+{totalExtraPrice.toFixed(2)} ج</span>
+            {t('pos.pos_cart_panel.pos_item_modifiers_modal.s16', "المجموع الإضافي:")} <span style={{ color: '#15803d', fontWeight: 800 }}>+{totalExtraPrice.toFixed(2)} {t('pos.pos_cart_panel.pos_item_modifiers_modal.s17', "ج")}</span>
           </div>
 
           <div
@@ -582,7 +584,7 @@ export function PosItemModifiersModal({ open, onClose, item, onSave }: PosItemMo
               onClick={onClose}
               style={{ height: '38px', padding: '0 16px', fontSize: '13px', fontWeight: 600, minWidth: 0 }}
             >
-              إلغاء
+              {t('pos.pos_cart_panel.pos_item_modifiers_modal.s18', "إلغاء")}
             </button>
             <button
               type="button"
@@ -599,7 +601,7 @@ export function PosItemModifiersModal({ open, onClose, item, onSave }: PosItemMo
                 minWidth: 0,
               }}
             >
-              تأكيد وحفظ الإضافات
+              {t('pos.pos_cart_panel.pos_item_modifiers_modal.s19', "تأكيد وحفظ الإضافات")}
             </button>
           </div>
         </footer>

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { tenantSubscriptionApi, TenantSubscriptionData } from '../api/tenant-subscription.api';
@@ -19,6 +20,8 @@ interface TenantSubscriptionPageProps {
 }
 
 export function TenantSubscriptionPage({ settings: propSettings }: TenantSubscriptionPageProps = {}) {
+  const { t, i18n } = useTranslation();
+  const isEn = i18n.language === 'en';
   const [isAnnual, setIsAnnual] = useState(true);
   // لا منتقي عملات: البلد يُشتق من سجل المنشأة في الخادم لا من اختيار العميل (البند C8).
   const [selectedPlanForUpgrade, setSelectedPlanForUpgrade] = useState<{ id: number; name: string; price: number; currency: string; levelId: string } | null>(null);
@@ -90,7 +93,7 @@ export function TenantSubscriptionPage({ settings: propSettings }: TenantSubscri
     return (
       <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
         <div className="spinner" style={{ margin: '0 auto 12px' }} />
-        <p>جاري تحميل تفاصيل الاشتراك والباقة...</p>
+        <p>{t('settings.tenant_subscription_page.s0', "جاري تحميل تفاصيل الاشتراك والباقة...")}</p>
       </div>
     );
   }
@@ -101,10 +104,10 @@ export function TenantSubscriptionPage({ settings: propSettings }: TenantSubscri
       <div style={{ padding: '40px', textAlign: 'center', color: '#ef4444' }}>
         <p style={{ fontWeight: 700, margin: '0 0 4px' }}>{errorMsg}</p>
         <p style={{ fontSize: '13px', color: '#64748b', margin: '0 0 12px' }}>
-          يرجى إعادة المحاولة، أو التواصل مع إدارة النظام في حال استمرار المشكلة.
+          {t('settings.tenant_subscription_page.s1', "يرجى إعادة المحاولة، أو التواصل مع إدارة النظام في حال استمرار المشكلة.")}
         </p>
         <Button variant="secondary" onClick={() => refetch()} style={{ marginTop: '4px' }}>
-          إعادة المحاولة
+          {t('settings.tenant_subscription_page.s2', "إعادة المحاولة")}
         </Button>
       </div>
     );
@@ -215,7 +218,7 @@ export function TenantSubscriptionPage({ settings: propSettings }: TenantSubscri
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', width: '100%', paddingBottom: '40px' }} dir="rtl">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', width: '100%', paddingBottom: '40px' }} dir={isEn ? 'ltr' : 'rtl'}>
       {/* 1. Request Success Notification Banner */}
       {requestSuccessMessage && (
         <div style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: '12px', padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -227,7 +230,7 @@ export function TenantSubscriptionPage({ settings: propSettings }: TenantSubscri
             onClick={() => setRequestSuccessMessage(null)}
             style={{ background: 'transparent', border: 'none', color: '#065f46', cursor: 'pointer', fontWeight: 700, fontSize: '13px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
           >
-            <span>إغلاق</span>
+            <span>{isEn ? 'Close' : t('settings.tenant_subscription_page.s3', "إغلاق")}</span>
             <XIcon size={14} />
           </button>
         </div>
@@ -258,7 +261,7 @@ export function TenantSubscriptionPage({ settings: propSettings }: TenantSubscri
       {/* 3. Pricing Matrix Controls: Billing Toggle (no currency selector — see C8) */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '14px 20px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span style={{ fontSize: '13px', fontWeight: 700, color: '#334155' }}>دورة الفوترة:</span>
+          <span style={{ fontSize: '13px', fontWeight: 700, color: '#334155' }}>{isEn ? 'Billing Cycle:' : t('settings.tenant_subscription_page.s4', "دورة الفوترة:")}</span>
           <div style={{ display: 'flex', background: '#f1f5f9', padding: '3px', borderRadius: '8px' }}>
             <button
               type="button"
@@ -274,7 +277,7 @@ export function TenantSubscriptionPage({ settings: propSettings }: TenantSubscri
                 cursor: 'pointer',
               }}
             >
-              شهري
+              {isEn ? 'Monthly' : t('settings.tenant_subscription_page.s5', "شهري")}
             </button>
             <button
               type="button"
@@ -293,7 +296,7 @@ export function TenantSubscriptionPage({ settings: propSettings }: TenantSubscri
                 gap: '6px',
               }}
             >
-              <span>سنوي (وفر شهرين مجاناً)</span>
+              <span>{isEn ? 'Annual (Save 2 Months Free)' : t('settings.tenant_subscription_page.s6', "سنوي (وفر شهرين مجاناً)")}</span>
             </button>
           </div>
         </div>

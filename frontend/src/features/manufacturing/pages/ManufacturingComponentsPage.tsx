@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect, type ReactNode } from 'react';
 import { Button } from '@/shared/ui/button';
 import { DataTable } from '@/shared/ui/data-table';
@@ -14,6 +15,7 @@ import { systemAlert } from '@/shared/components/system-alert';
 type Column<T> = { key: string; header: ReactNode; cell: (row: T) => ReactNode; className?: string };
 
 export default function ManufacturingComponentsPage() {
+  const { t } = useTranslation();
   const [components, setComponents] = useState<ManufacturingComponent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
@@ -112,10 +114,10 @@ export default function ManufacturingComponentsPage() {
     { key: 'actions', header: '', cell: (row) => (
       <div style={{ display: 'flex', gap: '8px' }}>
         <Button variant="secondary" onClick={() => startEdit(row)} style={{ padding: '4px 8px', fontSize: '12px' }}>
-          تعديل
+          {t('manufacturing.manufacturing_components_page.s0', "تعديل")}
         </Button>
         <Button variant="danger" onClick={() => handleDelete(row.id)} style={{ padding: '4px 8px', fontSize: '12px' }}>
-          حذف
+          {t('manufacturing.manufacturing_components_page.s1', "حذف")}
         </Button>
       </div>
     )}
@@ -129,10 +131,10 @@ export default function ManufacturingComponentsPage() {
   return (
     <ManufacturingLayout
       breadcrumbs={[
-        { label: 'التصنيع', to: '/manufacturing/work-orders' },
-        { label: 'مكونات التصنيع' }
+        { label: t('manufacturing.manufacturing_components_page.s2', "التصنيع"), to: '/manufacturing/work-orders' },
+        { label: t('manufacturing.manufacturing_components_page.s3', "مكونات التصنيع") }
       ]}
-      title="مكونات التصنيع (المواد الخام)"
+      title={t('manufacturing.manufacturing_components_page.s4', "مكونات التصنيع (المواد الخام)")}
       actions={
         <Button 
           type="button" 
@@ -146,7 +148,7 @@ export default function ManufacturingComponentsPage() {
             setIsFormVisible(!isFormVisible);
           }}
         >
-          <span>{isFormVisible ? 'إلغاء' : 'إضافة مكون جديد'}</span>
+          <span>{isFormVisible ? t('manufacturing.manufacturing_components_page.s5', "إلغاء") : t('manufacturing.manufacturing_components_page.s6', "إضافة مكون جديد")}</span>
         </Button>
       }
     >
@@ -154,13 +156,13 @@ export default function ManufacturingComponentsPage() {
         {isFormVisible && (
           <div className="document-prototype-section card" style={{ padding: '24px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
             <h3 style={{ marginTop: 0, marginBottom: '16px', fontSize: '16px' }}>
-              {editingComponent ? 'تعديل مكون: ' + editingComponent.name : 'إضافة مكون جديد'}
+              {editingComponent ? t('manufacturing.manufacturing_components_page.s7', "تعديل مكون: ") + editingComponent.name : t('manufacturing.manufacturing_components_page.s8', "إضافة مكون جديد")}
             </h3>
             <form onSubmit={handleSave} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', alignItems: 'end' }}>
               <SearchableCombobox
-                label="اسم المكون *"
+                label={t('manufacturing.manufacturing_components_page.s9', "اسم المكون *")}
                 inputClassName="purchase-prototype-field-input"
-                placeholder="مثال: سكر، دقيق..."
+                placeholder={t('manufacturing.manufacturing_components_page.s10', "مثال: سكر، دقيق...")}
                 value={newName}
                 onChange={setNewName}
                 options={components.map(c => ({ id: c.name, label: c.name }))}
@@ -169,34 +171,34 @@ export default function ManufacturingComponentsPage() {
                 onSelect={(option) => setNewName(option.label)}
                 onCreate={setNewName}
                 createLabel={(query) => `استخدام "${query}"`}
-                emptyLabel="اكتب اسماً جديداً"
+                emptyLabel={t('manufacturing.manufacturing_components_page.s11', "اكتب اسماً جديداً")}
                 showDropdownOnEmpty={true}
               />
-              <Field label="الكود">
-                <input className="purchase-prototype-field-input" value={newCode} onChange={e => setNewCode(e.target.value)} placeholder="اختياري" />
+              <Field label={t('manufacturing.manufacturing_components_page.s12', "الكود")}>
+                <input className="purchase-prototype-field-input" value={newCode} onChange={e => setNewCode(e.target.value)} placeholder={t('manufacturing.manufacturing_components_page.s13', "اختياري")} />
               </Field>
-              <Field label="الوحدة الأساسية للتسعير *">
+              <Field label={t('manufacturing.manufacturing_components_page.s14', "الوحدة الأساسية للتسعير *")}>
                 <select required className="purchase-prototype-field-input" value={newBaseUnit} onChange={e => setNewBaseUnit(e.target.value)}>
                   {MANUFACTURING_UNITS.filter(u => u.isBase || u.category === 'weight' || u.category === 'volume').map(u => (
                     <option key={u.id} value={u.id}>{u.name}</option>
                   ))}
                 </select>
               </Field>
-              <Field label="التكلفة للوحدة الأساسية (جنيه) *">
+              <Field label={t('manufacturing.manufacturing_components_page.s15', "التكلفة للوحدة الأساسية (جنيه) *")}>
                 <input required type="number" min="0" step="any" className="purchase-prototype-field-input" value={newCost} onChange={e => setNewCost(e.target.value)} />
               </Field>
               <Button type="submit" variant="primary" style={{ height: '36px' }}>
-                {editingComponent ? 'تحديث المكون' : 'حفظ المكون'}
+                {editingComponent ? t('manufacturing.manufacturing_components_page.s16', "تحديث المكون") : t('manufacturing.manufacturing_components_page.s17', "حفظ المكون")}
               </Button>
             </form>
           </div>
         )}
 
-        <FormSection title="قائمة المكونات" className="document-prototype-section">
+        <FormSection title={t('manufacturing.manufacturing_components_page.s18', "قائمة المكونات")} className="document-prototype-section">
           <div style={{ padding: '16px', borderBottom: '1px solid #e5e7eb' }}>
             <input 
               type="search" 
-              placeholder="بحث في المكونات (بالاسم أو الكود)..." 
+              placeholder={t('manufacturing.manufacturing_components_page.s19', "بحث في المكونات (بالاسم أو الكود)...")} 
               className="purchase-prototype-field-input"
               style={{ width: '100%', maxWidth: '400px' }}
               value={searchQuery}
@@ -204,12 +206,12 @@ export default function ManufacturingComponentsPage() {
             />
           </div>
           {isLoading ? (
-            <div style={{ padding: '40px', textAlign: 'center', color: '#6b7280' }}>جاري التحميل...</div>
+            <div style={{ padding: '40px', textAlign: 'center', color: '#6b7280' }}>{t('manufacturing.manufacturing_components_page.s20', "جاري التحميل...")}</div>
           ) : filteredComponents.length === 0 ? (
             <div style={{ padding: '40px', textAlign: 'center', color: '#6b7280' }}>
-               لا توجد مكونات تطابق بحثك.
+               {t('manufacturing.manufacturing_components_page.s21', "لا توجد مكونات تطابق بحثك.")}
                <br />
-               <Button variant="secondary" style={{ marginTop: '16px' }} onClick={() => setIsFormVisible(true)}>إضافة مكون جديد</Button>
+               <Button variant="secondary" style={{ marginTop: '16px' }} onClick={() => setIsFormVisible(true)}>{t('manufacturing.manufacturing_components_page.s22', "إضافة مكون جديد")}</Button>
             </div>
           ) : (
             <DataTable 

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Suspense, lazy, useEffect, useState } from 'react';
 import { useForm, Controller, useWatch } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
@@ -58,6 +59,7 @@ export function EditProductForm({
   onCancel,
   onSuccess,
 }: EditProductFormProps) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
@@ -270,15 +272,15 @@ export function EditProductForm({
   };
 
   if (isProductLoading) {
-    return <div className="screen-center" style={{ minHeight: mode === 'modal' ? '240px' : undefined }}><div className="loading-card">جاري تحميل الصنف...</div></div>;
+    return <div className="screen-center" style={{ minHeight: mode === 'modal' ? '240px' : undefined }}><div className="loading-card">{t('products.edit_product_form.s0', "جاري تحميل الصنف...")}</div></div>;
   }
 
   if (!product || isProductError) {
     return (
       <div className="screen-center" style={{ minHeight: mode === 'modal' ? '240px' : undefined }}>
         <div className="loading-card">
-          <h2>تعذر تحميل الصنف</h2>
-          <Button variant="secondary" onClick={handleCancelClick}>{mode === 'modal' ? 'إغلاق' : 'العودة للسجل'}</Button>
+          <h2>{t('products.edit_product_form.s1', "تعذر تحميل الصنف")}</h2>
+          <Button variant="secondary" onClick={handleCancelClick}>{mode === 'modal' ? t('products.edit_product_form.s2', "إغلاق") : t('products.edit_product_form.s3', "العودة للسجل")}</Button>
         </div>
       </div>
     );
@@ -291,17 +293,17 @@ export function EditProductForm({
           <div className="purchase-prototype-document-surface">
             <div className="document-prototype-topbar">
               <div className="document-prototype-topbar-right">
-                <button type="button" className="document-prototype-back-link" onClick={handleCancelClick} aria-label="الرجوع">←</button>
-                <h1 style={{ fontSize: mode === 'modal' ? '1.15rem' : undefined }}>تعديل المجموعة: {product.name}</h1>
+                <button type="button" className="document-prototype-back-link" onClick={handleCancelClick} aria-label={t('products.edit_product_form.s4', "الرجوع")}>←</button>
+                <h1 style={{ fontSize: mode === 'modal' ? '1.15rem' : undefined }}>{t('products.edit_product_form.s5', "تعديل المجموعة:")} {product.name}</h1>
               </div>
               <div className="document-prototype-topbar-actions">
-                <Button variant="secondary" onClick={handleCancelClick}>{mode === 'modal' ? 'إلغلاق' : 'الرجوع للسجل'}</Button>
+                <Button variant="secondary" onClick={handleCancelClick}>{mode === 'modal' ? t('products.edit_product_form.s6', "إلغلاق") : t('products.edit_product_form.s7', "الرجوع للسجل")}</Button>
               </div>
             </div>
           </div>
         </div>
         <main className="product-form-container" style={{ padding: mode === 'modal' ? '12px 16px' : undefined }}>
-          <Suspense fallback={<div className="loading-card">جاري التحميل...</div>}>
+          <Suspense fallback={<div className="loading-card">{t('products.edit_product_form.s8', "جاري التحميل...")}</div>}>
             <LazyFashionGroupEditorCard
               product={product}
               categories={categories}
@@ -352,8 +354,8 @@ export function EditProductForm({
                   type="button"
                   className="document-prototype-back-link"
                   onClick={handleCancelClick}
-                  aria-label="الرجوع للأصناف"
-                  title="الرجوع لدليل الأصناف"
+                  aria-label={t('products.edit_product_form.s9', "الرجوع للأصناف")}
+                  title={t('products.edit_product_form.s10', "الرجوع لدليل الأصناف")}
                   style={{
                     display: 'inline-flex',
                     alignItems: 'center',
@@ -373,7 +375,7 @@ export function EditProductForm({
                 </button>
               )}
               <span style={{ fontSize: '0.9rem', fontWeight: 800, color: '#0f172a', whiteSpace: 'nowrap', flexShrink: 0 }}>
-                {groupedEntry ? 'تعديل المجموعة:' : 'تعديل صنف:'}
+                {groupedEntry ? t('products.edit_product_form.s11', "تعديل المجموعة:") : t('products.edit_product_form.s12', "تعديل صنف:")}
               </span>
               <span
                 title={product.name}
@@ -404,7 +406,7 @@ export function EditProductForm({
                     flexShrink: 0,
                   }}
                 >
-                  معطّل / مؤرشف
+                  {t('products.edit_product_form.s13', "معطّل / مؤرشف")}
                 </span>
               ) : (
                 <span
@@ -420,7 +422,7 @@ export function EditProductForm({
                     flexShrink: 0,
                   }}
                 >
-                  نشط
+                  {t('products.edit_product_form.s14', "نشط")}
                 </span>
               )}
             </div>
@@ -440,14 +442,14 @@ export function EditProductForm({
                 size="sm"
                 onClick={handleToggleArchive}
                 disabled={isFormDisabled || isTogglingArchive}
-                title={product.isActive === false ? 'تنشيط الصنف' : 'أرشفة الصنف'}
+                title={product.isActive === false ? t('products.edit_product_form.s15', "تنشيط الصنف") : t('products.edit_product_form.s16', "أرشفة الصنف")}
                 style={
                   product.isActive === false
                     ? { color: '#059669', borderColor: '#a7f3d0', background: '#ecfdf5', fontWeight: 700, height: '32px', minWidth: 'auto', padding: '0 12px', fontSize: '0.8rem' }
                     : { color: '#d97706', borderColor: '#fde68a', background: '#fffbeb', fontWeight: 700, height: '32px', minWidth: 'auto', padding: '0 12px', fontSize: '0.8rem' }
                 }
               >
-                {product.isActive === false ? 'تنشيط' : 'أرشفة'}
+                {product.isActive === false ? t('products.edit_product_form.s17', "تنشيط") : t('products.edit_product_form.s18', "أرشفة")}
               </Button>
               <Button
                 variant="secondary"
@@ -456,7 +458,7 @@ export function EditProductForm({
                 disabled={isFormDisabled}
                 style={{ height: '32px', minWidth: 'auto', padding: '0 14px', fontSize: '0.8rem' }}
               >
-                إلغاء
+                {t('products.edit_product_form.s19', "إلغاء")}
               </Button>
               <Button
                 variant="primary"
@@ -473,7 +475,7 @@ export function EditProductForm({
                   borderColor: '#170e5e',
                 }}
               >
-                {isFormDisabled ? 'جارٍ الحفظ...' : 'حفظ'}
+                {isFormDisabled ? t('products.edit_product_form.s20', "جارٍ الحفظ...") : t('products.edit_product_form.s21', "حفظ")}
               </Button>
             </div>
           </div>
@@ -484,7 +486,7 @@ export function EditProductForm({
         {mutation.isError && (
           <div className="document-prototype-section" style={{ backgroundColor: '#fee2e2', borderColor: '#ef4444', marginBottom: '8px' }}>
             <div style={{ color: '#b91c1c', fontWeight: 600 }}>
-              {(mutation.error as any)?.message || 'تعذر حفظ الصنف. برجاء التحقق من البيانات والمحاولة مرة أخرى.'}
+              {(mutation.error as any)?.message || t('products.edit_product_form.s22', "تعذر حفظ الصنف. برجاء التحقق من البيانات والمحاولة مرة أخرى.")}
             </div>
           </div>
         )}
@@ -504,7 +506,7 @@ export function EditProductForm({
             color: '#92400e',
             fontWeight: 700,
           }}>
-            <span>تعديلات غير محفوظة</span>
+            <span>{t('products.edit_product_form.s23', "تعديلات غير محفوظة")}</span>
           </div>
         )}
 
@@ -512,7 +514,7 @@ export function EditProductForm({
         <div className="product-compact-card">
           <div className="product-compact-card-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', width: '100%', justifyContent: 'space-between' }}>
-              <h3 className="product-compact-card-title" style={{ margin: 0 }}>بيانات الصنف والأسعار</h3>
+              <h3 className="product-compact-card-title" style={{ margin: 0 }}>{t('products.edit_product_form.s24', "بيانات الصنف والأسعار")}</h3>
               {clothingModuleEnabled && (
                 <div style={{
                   display: 'flex',
@@ -541,7 +543,7 @@ export function EditProductForm({
                       whiteSpace: 'nowrap',
                     }}
                   >
-                    صنف عادي
+                    {t('products.edit_product_form.s25', "صنف عادي")}
                   </button>
                   <button
                     type="button"
@@ -561,7 +563,7 @@ export function EditProductForm({
                       whiteSpace: 'nowrap',
                     }}
                   >
-                    صنف بمتغيرات
+                    {t('products.edit_product_form.s26', "صنف بمتغيرات")}
                   </button>
                 </div>
               )}
@@ -571,7 +573,7 @@ export function EditProductForm({
           {/* Row 1: Product Names (Arabic & English side-by-side) */}
           <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.15fr) minmax(0, 0.85fr)', gap: '12px', marginBottom: '0.85rem' }}>
             <div className="field">
-              <label>{watchedItemKind === 'fashion' ? 'اسم الصنف الأساسي (بالعربية)' : 'اسم الصنف (بالعربية)'}</label>
+              <label>{watchedItemKind === 'fashion' ? t('products.edit_product_form.s27', "اسم الصنف الأساسي (بالعربية)") : t('products.edit_product_form.s28', "اسم الصنف (بالعربية)")}</label>
               <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
                 <ProductIconPicker
                   value={form.watch('icon')}
@@ -591,7 +593,7 @@ export function EditProductForm({
                   }}
                   disabled={isFormDisabled}
                   style={{ flex: 1, fontWeight: 600 }}
-                  placeholder={watchedItemKind === 'fashion' ? 'مثال: مزيل عرق نيفيا / تيشيرت بولو' : 'اكتب اسم الصنف بالعربية'}
+                  placeholder={watchedItemKind === 'fashion' ? t('products.edit_product_form.s29', "مثال: مزيل عرق نيفيا / تيشيرت بولو") : t('products.edit_product_form.s30', "اكتب اسم الصنف بالعربية")}
                 />
               </div>
               {form.formState.errors.name && <small className="field-error">{form.formState.errors.name.message}</small>}
@@ -599,8 +601,8 @@ export function EditProductForm({
 
             <div className="field">
               <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span>اسم الصنف بالإنجليزي (Item Name)</span>
-                <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 500 }}>اختياري للفاتورة والكاشير</span>
+                <span>{t('products.edit_product_form.s31', "اسم الصنف بالإنجليزي (Item Name)")}</span>
+                <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 500 }}>{t('products.edit_product_form.s32', "اختياري للفاتورة والكاشير")}</span>
               </label>
               <input
                 className="purchase-prototype-field-input"
@@ -614,24 +616,24 @@ export function EditProductForm({
 
           {/* Row 2: Item Type & Barcode/Model */}
           <div className="product-form-grid-2" style={{ marginBottom: '0.85rem' }}>
-            <Field label="نوع الصنف">
+            <Field label={t('products.edit_product_form.s33', "نوع الصنف")}>
               <select className="purchase-prototype-field-input" {...form.register('itemType')} disabled={isFormDisabled}>
-                <option value="product">منتج تام للبيع (مخزني)</option>
-                <option value="service">خدمة / مصنعية (بدون مخزون)</option>
+                <option value="product">{t('products.edit_product_form.s34', "منتج تام للبيع (مخزني)")}</option>
+                <option value="service">{t('products.edit_product_form.s35', "خدمة / مصنعية (بدون مخزون)")}</option>
                 {manufacturingModuleEnabled ? (
-                  <option value="raw_material">مادة خام / مكون تصنيع</option>
+                  <option value="raw_material">{t('products.edit_product_form.s36', "مادة خام / مكون تصنيع")}</option>
                 ) : null}
               </select>
             </Field>
 
             {watchedItemKind === 'fashion' ? (
               <div className="field">
-                <label>كود الصنف الأساسي / الموديل</label>
+                <label>{t('products.edit_product_form.s37', "كود الصنف الأساسي / الموديل")}</label>
                 <input className="purchase-prototype-field-input" value={watchedStyleCode} onChange={(event) => form.setValue('styleCode', normalizeNumericStyleCode(event.target.value), { shouldDirty: true, shouldValidate: true })} disabled={isFormDisabled} inputMode="numeric" placeholder="1001" />
               </div>
             ) : (
-              <Field label="الباركود">
-                <input className="purchase-prototype-field-input" {...form.register('barcode')} disabled={isFormDisabled} placeholder="اختياري أو امسحه بالماسح" />
+              <Field label={t('products.edit_product_form.s38', "الباركود")}>
+                <input className="purchase-prototype-field-input" {...form.register('barcode')} disabled={isFormDisabled} placeholder={t('products.edit_product_form.s39', "اختياري أو امسحه بالماسح")} />
               </Field>
             )}
           </div>
@@ -639,23 +641,23 @@ export function EditProductForm({
           <div style={{ paddingTop: '0.65rem', borderTop: '1px solid #f1f5f9' }}>
             <div className="product-form-grid-3">
               <div className="field">
-                <label>سعر الشراء (التكلفة)</label>
+                <label>{t('products.edit_product_form.s40', "سعر الشراء (التكلفة)")}</label>
                 <input className="purchase-prototype-field-input" type="number" step="0.01" {...form.register('costPrice')} disabled={isFormDisabled} />
               </div>
               <div className="field product-retail-price-field">
-                <label style={{ color: '#1e3a8a', fontWeight: 700 }}>سعر البيع (قطاعي)</label>
+                <label style={{ color: '#1e3a8a', fontWeight: 700 }}>{t('products.edit_product_form.s41', "سعر البيع (قطاعي)")}</label>
                 <input className="purchase-prototype-field-input" type="number" step="0.01" {...form.register('retailPrice')} disabled={isFormDisabled} />
               </div>
-              <Field label="سعر الجملة">
+              <Field label={t('products.edit_product_form.s42', "سعر الجملة")}>
                 <input className="purchase-prototype-field-input" type="number" step="0.01" {...form.register('wholesalePrice')} disabled={isFormDisabled} />
               </Field>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.75rem', marginTop: '0.65rem' }}>
-              <Field label="سعر البيع الآجل (التوزيع والجملة)">
-                <input className="purchase-prototype-field-input" type="number" step="0.01" {...form.register('creditPrice')} disabled={isFormDisabled} placeholder="اختياري - افتراضياً نفس الكاش" />
+              <Field label={t('products.edit_product_form.s43', "سعر البيع الآجل (التوزيع والجملة)")}>
+                <input className="purchase-prototype-field-input" type="number" step="0.01" {...form.register('creditPrice')} disabled={isFormDisabled} placeholder={t('products.edit_product_form.s44', "اختياري - افتراضياً نفس الكاش")} />
               </Field>
-              <Field label="سعر المستهلك / الجمهور (SRP)">
-                <input className="purchase-prototype-field-input" type="number" step="0.01" {...form.register('consumerPrice')} disabled={isFormDisabled} placeholder="سعر بيع المحل للجمهور لطباعته بالفاتورة" />
+              <Field label={t('products.edit_product_form.s45', "سعر المستهلك / الجمهور (SRP)")}>
+                <input className="purchase-prototype-field-input" type="number" step="0.01" {...form.register('consumerPrice')} disabled={isFormDisabled} placeholder={t('products.edit_product_form.s46', "سعر بيع المحل للجمهور لطباعته بالفاتورة")} />
               </Field>
             </div>
           </div>
@@ -664,34 +666,34 @@ export function EditProductForm({
         {/* 2. Categorization & Inventory Location */}
         <div className="product-compact-card">
           <div className="product-compact-card-header">
-            <h3 className="product-compact-card-title">التصنيف والتخزين والمخزون</h3>
+            <h3 className="product-compact-card-title">{t('products.edit_product_form.s47', "التصنيف والتخزين والمخزون")}</h3>
           </div>
           <div className="product-form-grid-4" style={{ marginBottom: '0.85rem' }}>
-            <Field label="القسم" error={form.formState.errors.categoryId?.message}>
+            <Field label={t('products.edit_product_form.s48', "القسم")} error={form.formState.errors.categoryId?.message}>
               <select className="purchase-prototype-field-input" {...form.register('categoryId')} disabled={isFormDisabled}>
-                <option value="">بدون قسم</option>
+                <option value="">{t('products.edit_product_form.s49', "بدون قسم")}</option>
                 {categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
               </select>
             </Field>
-            <Field label="المورد" error={form.formState.errors.supplierId?.message}>
+            <Field label={t('products.edit_product_form.s50', "المورد")} error={form.formState.errors.supplierId?.message}>
               <select className="purchase-prototype-field-input" {...form.register('supplierId')} disabled={isFormDisabled}>
-                <option value="">بدون مورد</option>
+                <option value="">{t('products.edit_product_form.s51', "بدون مورد")}</option>
                 {suppliers.map((supplier) => <option key={supplier.id} value={supplier.id}>{supplier.name}</option>)}
               </select>
             </Field>
-            <Field label="المخزن" error={form.formState.errors.warehouseId?.message}>
+            <Field label={t('products.edit_product_form.s52', "المخزن")} error={form.formState.errors.warehouseId?.message}>
               <select className="purchase-prototype-field-input" {...form.register('warehouseId')} disabled={isFormDisabled || locations.length === 1}>
-                {locations.length !== 1 && <option value="">اختر المخزن...</option>}
+                {locations.length !== 1 && <option value="">{t('products.edit_product_form.s53', "اختر المخزن...")}</option>}
                 {locations.map((loc) => <option key={loc.id} value={loc.id}>{loc.name}</option>)}
               </select>
             </Field>
-            <Field label="مكان الرف (Bin)">
-              <input className="purchase-prototype-field-input" {...form.register('binLocation')} disabled={isFormDisabled} placeholder="مثال: رف 5" />
+            <Field label={t('products.edit_product_form.s54', "مكان الرف (Bin)")}>
+              <input className="purchase-prototype-field-input" {...form.register('binLocation')} disabled={isFormDisabled} placeholder={t('products.edit_product_form.s55', "مثال: رف 5")} />
             </Field>
           </div>
           <div style={{ paddingTop: '0.65rem', borderTop: '1px solid #f1f5f9' }}>
             <div className="product-form-grid-4">
-              <Field label="المخزون الحالي">
+              <Field label={t('products.edit_product_form.s56', "المخزون الحالي")}>
                 <div
                   style={{
                     display: 'flex',
@@ -722,7 +724,7 @@ export function EditProductForm({
                   >
                     <span>{Number(product?.stock || 0).toLocaleString('en-US')}</span>
                     <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600, marginInlineStart: '4px' }}>
-                      {units[0]?.name || 'قطعة'}
+                      {units[0]?.name || t('products.edit_product_form.s57', "قطعة")}
                     </span>
                   </div>
                   {product?.itemType !== 'service' && (
@@ -757,22 +759,22 @@ export function EditProductForm({
                           e.currentTarget.style.color = '#1d4ed8';
                         }
                       }}
-                      title="تسوية وتعديل رصيد المخزون (إضافة / خصم / تسوية إلى كمية نهائية / تالف)"
+                      title={t('products.edit_product_form.s58', "تسوية وتعديل رصيد المخزون (إضافة / خصم / تسوية إلى كمية نهائية / تالف)")}
                     >
                       <SlidersIcon size={12} />
-                      <span>تسوية</span>
+                      <span>{t('products.edit_product_form.s59', "تسوية")}</span>
                     </button>
                   )}
                 </div>
               </Field>
-              <Field label="الحد الأدنى للتنبيه (نواقص)">
+              <Field label={t('products.edit_product_form.s60', "الحد الأدنى للتنبيه (نواقص)")}>
                 <input className="purchase-prototype-field-input" type="number" {...form.register('minStock')} disabled={isFormDisabled} />
               </Field>
-              <Field label="تاريخ الصلاحية">
+              <Field label={t('products.edit_product_form.s61', "تاريخ الصلاحية")}>
                 <input className="purchase-prototype-field-input" type="date" {...form.register('expiryDate')} disabled={isFormDisabled} />
               </Field>
-              <Field label="ملاحظات">
-                <input className="purchase-prototype-field-input" {...form.register('notes')} disabled={isFormDisabled} placeholder="ملاحظات حول الصنف..." />
+              <Field label={t('products.edit_product_form.s62', "ملاحظات")}>
+                <input className="purchase-prototype-field-input" {...form.register('notes')} disabled={isFormDisabled} placeholder={t('products.edit_product_form.s63', "ملاحظات حول الصنف...")} />
               </Field>
             </div>
           </div>
@@ -782,7 +784,7 @@ export function EditProductForm({
               <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600, color: '#166534' }}>
                 <input type="checkbox" {...form.register('trackSerials')} disabled={isFormDisabled} style={{ width: 18, height: 18 }} />
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                  <SmartphoneIcon size={16} color="#166534" /> تتبع أرقام IMEI / السيريال المنفرد لهذا الصنف (للهواتف والأجهزة الإلكترونية)
+                  <SmartphoneIcon size={16} color="#166534" /> {t('products.edit_product_form.s64', "تتبع أرقام IMEI / السيريال المنفرد لهذا الصنف (للهواتف والأجهزة الإلكترونية)")}
                 </span>
               </label>
             </div>
@@ -793,24 +795,24 @@ export function EditProductForm({
         {(settingsQuery.data?.restaurantModuleEnabled === true || settingsQuery.data?.businessIndustry === 'restaurant' || settingsQuery.data?.businessIndustry === 'cafe') && (
           <div className="product-compact-card">
             <div className="product-compact-card-header">
-              <h3 className="product-compact-card-title">بيانات القيمة الغذائية ومسببات الحساسية (SFDA Compliance)</h3>
+              <h3 className="product-compact-card-title">{t('products.edit_product_form.s65', "بيانات القيمة الغذائية ومسببات الحساسية (SFDA Compliance)")}</h3>
             </div>
             <div className="product-form-grid-3" style={{ marginBottom: '0.85rem' }}>
-              <Field label="السعرات الحرارية (Calories / Kcal)">
+              <Field label={t('products.edit_product_form.s66', "السعرات الحرارية (Calories / Kcal)")}>
                 <input
                   className="purchase-prototype-field-input"
                   type="number"
-                  placeholder="مثال: 450"
+                  placeholder={t('products.edit_product_form.s67', "مثال: 450")}
                   {...form.register('calories', { valueAsNumber: true })}
                   disabled={isFormDisabled}
                 />
               </Field>
-              <Field label="مسببات الحساسية (مفصولة بفواصل)">
+              <Field label={t('products.edit_product_form.s68', "مسببات الحساسية (مفصولة بفواصل)")}>
                 <input
                   className="purchase-prototype-field-input"
                   type="text"
-                  placeholder="مثال: جلوتين، ألبان، مكسرات، بيض"
-                  value={Array.isArray(form.watch('allergens')) ? (form.watch('allergens') as string[]).join('، ') : ''}
+                  placeholder={t('products.edit_product_form.s69', "مثال: جلوتين، ألبان، مكسرات، بيض")}
+                  value={Array.isArray(form.watch('allergens')) ? (form.watch('allergens') as string[]).join(t('products.edit_product_form.s70', "، ")) : ''}
                   onChange={(e) => {
                     const val = e.target.value.split(/[،,]/).map((s) => s.trim()).filter(Boolean);
                     form.setValue('allergens', val, { shouldDirty: true });
@@ -818,19 +820,19 @@ export function EditProductForm({
                   disabled={isFormDisabled}
                 />
               </Field>
-              <Field label="الخصائص الغذائية">
+              <Field label={t('products.edit_product_form.s71', "الخصائص الغذائية")}>
                 <div style={{ display: 'flex', gap: '12px', alignItems: 'center', height: '36px' }}>
                   <label style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}>
                     <input type="checkbox" {...form.register('isSpicy')} disabled={isFormDisabled} />
-                    <span>حار (Spicy)</span>
+                    <span>{t('products.edit_product_form.s72', "حار (Spicy)")}</span>
                   </label>
                   <label style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}>
                     <input type="checkbox" {...form.register('isVegetarian')} disabled={isFormDisabled} />
-                    <span>نباتي (Veg)</span>
+                    <span>{t('products.edit_product_form.s73', "نباتي (Veg)")}</span>
                   </label>
                   <label style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}>
                     <input type="checkbox" {...form.register('isGlutenFree')} disabled={isFormDisabled} />
-                    <span>خالٍ من الجلوتين</span>
+                    <span>{t('products.edit_product_form.s74', "خالٍ من الجلوتين")}</span>
                   </label>
                 </div>
               </Field>
@@ -841,7 +843,7 @@ export function EditProductForm({
         {/* 3. Product Units */}
         <div className="product-compact-card">
           <div className="product-compact-card-header">
-            <h3 className="product-compact-card-title">وحدات الصنف (Units)</h3>
+            <h3 className="product-compact-card-title">{t('products.edit_product_form.s75', "وحدات الصنف (Units)")}</h3>
           </div>
           <ProductUnitsEditor units={units} onChange={setUnits} disabled={isFormDisabled} />
         </div>
@@ -850,12 +852,12 @@ export function EditProductForm({
         {comboModuleEnabled && (
           <div className="product-compact-card">
             <div className="product-compact-card-header">
-              <h3 className="product-compact-card-title">العروض المجمعة والوجبات (Combo)</h3>
+              <h3 className="product-compact-card-title">{t('products.edit_product_form.s76', "العروض المجمعة والوجبات (Combo)")}</h3>
             </div>
             <div style={{ marginBottom: 12 }}>
               <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontWeight: 600 }}>
                 <input type="checkbox" {...form.register('isCombo')} disabled={isFormDisabled} style={{ width: 18, height: 18 }} />
-                هذا الصنف عبارة عن عرض مجمع / وجبة
+                {t('products.edit_product_form.s77', "هذا الصنف عبارة عن عرض مجمع / وجبة")}
               </label>
             </div>
             {watchedIsCombo && (
@@ -879,15 +881,15 @@ export function EditProductForm({
         {autoPartsModuleEnabled && (
           <div className="product-compact-card">
             <div className="product-compact-card-header">
-              <h3 className="product-compact-card-title">بيانات قطعة الغيار (Auto Parts)</h3>
+              <h3 className="product-compact-card-title">{t('products.edit_product_form.s78', "بيانات قطعة الغيار (Auto Parts)")}</h3>
             </div>
             <div className="product-form-grid-2">
-              <Field label="رقم القطعة (OEM)"><input className="purchase-prototype-field-input" {...form.register('metadata.oemNumber')} disabled={isFormDisabled} placeholder="1J0907530" /></Field>
-              <Field label="الماركة"><input className="purchase-prototype-field-input" {...form.register('metadata.carBrand')} disabled={isFormDisabled} placeholder="Toyota" /></Field>
-              <Field label="الموديل"><input className="purchase-prototype-field-input" {...form.register('metadata.carModel')} disabled={isFormDisabled} placeholder="Corolla" /></Field>
+              <Field label={t('products.edit_product_form.s79', "رقم القطعة (OEM)")}><input className="purchase-prototype-field-input" {...form.register('metadata.oemNumber')} disabled={isFormDisabled} placeholder="1J0907530" /></Field>
+              <Field label={t('products.edit_product_form.s80', "الماركة")}><input className="purchase-prototype-field-input" {...form.register('metadata.carBrand')} disabled={isFormDisabled} placeholder="Toyota" /></Field>
+              <Field label={t('products.edit_product_form.s81', "الموديل")}><input className="purchase-prototype-field-input" {...form.register('metadata.carModel')} disabled={isFormDisabled} placeholder="Corolla" /></Field>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                <Field label="من سنة"><input className="purchase-prototype-field-input" type="number" {...form.register('metadata.carYearFrom')} disabled={isFormDisabled} placeholder="2015" /></Field>
-                <Field label="إلى سنة"><input className="purchase-prototype-field-input" type="number" {...form.register('metadata.carYearTo')} disabled={isFormDisabled} placeholder="2020" /></Field>
+                <Field label={t('products.edit_product_form.s82', "من سنة")}><input className="purchase-prototype-field-input" type="number" {...form.register('metadata.carYearFrom')} disabled={isFormDisabled} placeholder="2015" /></Field>
+                <Field label={t('products.edit_product_form.s83', "إلى سنة")}><input className="purchase-prototype-field-input" type="number" {...form.register('metadata.carYearTo')} disabled={isFormDisabled} placeholder="2020" /></Field>
               </div>
             </div>
           </div>
@@ -898,9 +900,9 @@ export function EditProductForm({
           <details>
             <summary className="product-compact-card-header" style={{ marginBottom: 0, paddingBottom: 0, borderBottom: 'none' }}>
               <h3 className="product-compact-card-title">
-                أسعار خاصة للعملاء ({customerPrices.length})
+                {t('products.edit_product_form.s84', "أسعار خاصة للعملاء (")}{customerPrices.length})
               </h3>
-              <span className="muted small" style={{ fontSize: '0.78rem' }}>اضغط لفتح / إغلاق الأسعار المخصصة ▾</span>
+              <span className="muted small" style={{ fontSize: '0.78rem' }}>{t('products.edit_product_form.s85', "اضغط لفتح / إغلاق الأسعار المخصصة ▾")}</span>
             </summary>
             <div style={{ marginTop: '1rem', paddingTop: '0.75rem', borderTop: '1px solid #f1f5f9' }}>
               <ProductCustomerPricesCard product={product} customers={customers} customerPrices={customerPrices} onChange={setCustomerPrices} onSave={saveCustomerPricesOnly} isSaving={mutation.isPending} />

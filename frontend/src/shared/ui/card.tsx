@@ -1,4 +1,6 @@
 import type { CSSProperties, PropsWithChildren, ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
+import { translateUiText } from '@/lib/auto-translator';
 
 interface CardProps {
   title?: ReactNode;
@@ -26,15 +28,19 @@ const reportSectionTitleStyle: CSSProperties = {
 };
 
 export function Card({ title, description, actions, className = '', style, children }: PropsWithChildren<CardProps>) {
-  const isReportSectionCard = className.split(/\s+/).includes('hr-report-section-card');
+  const { i18n } = useTranslation();
+  const isEn = i18n.language === 'en';
+  const displayTitle = typeof title === 'string' && isEn ? (translateUiText(title) || title) : title;
+  const displayDescription = typeof description === 'string' && isEn ? (translateUiText(description) || description) : description;
+  const isReportSectionCard = className.split(/s+/).includes('hr-report-section-card');
 
   return (
     <section className={`card ${className}`.trim()} style={style}>
-      {(title || description || actions) && (
+      {(displayTitle || displayDescription || actions) && (
         <div className="section-title">
           <div className="section-heading-copy">
-            {title ? <h3 style={isReportSectionCard ? reportSectionTitleStyle : undefined}>{title}</h3> : null}
-            {description ? <p className="section-description">{description}</p> : null}
+            {displayTitle ? <h3 style={isReportSectionCard ? reportSectionTitleStyle : undefined}>{displayTitle}</h3> : null}
+            {displayDescription ? <p className="section-description">{displayDescription}</p> : null}
           </div>
           {actions ? <div className="section-title-actions">{actions}</div> : null}
         </div>

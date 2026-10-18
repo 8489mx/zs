@@ -384,6 +384,7 @@ export interface ProductTable {
   account_id: ColumnType<string, string | undefined, string | undefined>;
   id: Generated<number>;
   name: string;
+  name_en?: string | null;
   barcode: string | null;
   category_id: number | null;
   supplier_id: number | null;
@@ -997,6 +998,7 @@ export interface SaleItemTable {
   sale_id: number;
   product_id: number | null;
   product_name: string;
+  product_name_en?: string | null;
   qty: number;
   unit_price: number;
   line_total: number;
@@ -3409,6 +3411,7 @@ export interface PosModifierGroupTable {
   max_selections: ColumnType<number, number | undefined, number | undefined>;
   display_order: ColumnType<number, number | undefined, number | undefined>;
   is_active: ColumnType<boolean, boolean | undefined, boolean | undefined>;
+  is_splittable_in_half: ColumnType<boolean, boolean | undefined, boolean | undefined>;
   created_at: ColumnType<Date, string | Date | undefined, never>;
   updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
@@ -3428,6 +3431,8 @@ export interface PosModifierOptionTable {
   component_product_id: number | null | undefined;
   consumption_qty: ColumnType<number | string, number | string | undefined, number | string | undefined>;
   unit_name: string | null | undefined;
+  portion_allowed: ColumnType<string, string | undefined, string | undefined>;
+  preparation_time_minutes: ColumnType<number, number | undefined, number | undefined>;
   created_at: ColumnType<Date, string | Date | undefined, never>;
 }
 
@@ -3437,6 +3442,9 @@ export interface ProductPosModifierTable {
   account_id: string;
   product_id: number;
   modifier_group_id: number;
+  is_splittable_in_half?: boolean | null;
+  default_options_ids?: any;
+  excluded_options_ids?: any;
   created_at: ColumnType<Date, string | Date | undefined, never>;
 }
 
@@ -3448,6 +3456,8 @@ export interface PosDeliveryAggregatorTable {
   name: string;
   name_en: string | null;
   commission_rate: ColumnType<number | string, number | string | undefined, number | string | undefined>;
+  price_markup_percentage: ColumnType<number | string, number | string | undefined, number | string | undefined>;
+  price_markup_fixed: ColumnType<number | string, number | string | undefined, number | string | undefined>;
   is_active: ColumnType<boolean, boolean | undefined, boolean | undefined>;
   auto_accept_orders: ColumnType<boolean, boolean | undefined, boolean | undefined>;
   api_key: string | null;

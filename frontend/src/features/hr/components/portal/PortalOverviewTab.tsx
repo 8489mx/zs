@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { formatCurrency } from '@/lib/format';
 import type { EmployeeDashboardData } from '../../api/employee-portal.api';
 import {
@@ -20,6 +21,7 @@ export function PortalOverviewTab({
   onRequestLeave,
   onRequestAdvance,
 }: PortalOverviewTabProps) {
+  const { t } = useTranslation();
   return (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
             {/* KPI Metric Cards */}
@@ -27,7 +29,7 @@ export function PortalOverviewTab({
               {/* Today's Punch */}
               <div className="portal-kpi-card">
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                  <span className="kpi-title" style={{ fontSize: '13px', fontWeight: 700, color: '#64748b' }}>بصمة اليوم</span>
+                  <span className="kpi-title" style={{ fontSize: '13px', fontWeight: 700, color: '#64748b' }}>{t('hr.portal.portal_overview_tab.s0', "بصمة اليوم")}</span>
                   <div
                     className="kpi-icon-box"
                     style={{
@@ -54,7 +56,7 @@ export function PortalOverviewTab({
                       }}
                     >
                       <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#16a34a' }} />
-                      حضور: {dashboard.todayAttendance.checkInTime}
+                      {t('hr.portal.portal_overview_tab.s1', "حضور:")} {dashboard.todayAttendance.checkInTime}
                     </span>
                   ) : (
                     <span
@@ -72,7 +74,7 @@ export function PortalOverviewTab({
                       }}
                     >
                       <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#f59e0b' }} />
-                      لم تسجل اليوم
+                      {t('hr.portal.portal_overview_tab.s2', "لم تسجل اليوم")}
                     </span>
                   )}
                 </div>
@@ -80,15 +82,15 @@ export function PortalOverviewTab({
                   {dashboard?.todayAttendance?.hasCheckedOut
                     ? `انصراف: ${dashboard.todayAttendance.checkOutTime}`
                     : dashboard?.todayAttendance?.hasCheckedIn
-                    ? 'تسجيل الانصراف بنهاية اليوم'
-                    : 'تسجيل الحضور عبر GPS'}
+                    ? t('hr.portal.portal_overview_tab.s3', "تسجيل الانصراف بنهاية اليوم")
+                    : t('hr.portal.portal_overview_tab.s4', "تسجيل الحضور عبر GPS")}
                 </div>
               </div>
 
               {/* Leave Balance */}
               <div className="portal-kpi-card">
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                  <span className="kpi-title" style={{ fontSize: '13px', fontWeight: 700, color: '#64748b' }}>رصيد الإجازات</span>
+                  <span className="kpi-title" style={{ fontSize: '13px', fontWeight: 700, color: '#64748b' }}>{t('hr.portal.portal_overview_tab.s5', "رصيد الإجازات")}</span>
                   <div
                     className="kpi-icon-box"
                     style={{
@@ -100,17 +102,17 @@ export function PortalOverviewTab({
                 </div>
                 <div className="kpi-value" style={{ fontSize: '22px', fontWeight: 900, color: '#170e5e', display: 'flex', alignItems: 'baseline', gap: '4px' }}>
                   <span>{dashboard?.leaveBalances?.[0]?.remainingDays ?? 21}</span>
-                  <span style={{ fontSize: '12px', fontWeight: 700, color: '#64748b' }}>يوم</span>
+                  <span style={{ fontSize: '12px', fontWeight: 700, color: '#64748b' }}>{t('hr.portal.portal_overview_tab.s6', "يوم")}</span>
                 </div>
                 <div className="kpi-sub" style={{ fontSize: '11.5px', color: '#64748b', marginTop: '4px' }}>
-                  إجازة سنوية واعتيادية
+                  {t('hr.portal.portal_overview_tab.s7', "إجازة سنوية واعتيادية")}
                 </div>
               </div>
 
               {/* Latest Net Salary */}
               <div className="portal-kpi-card">
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                  <span className="kpi-title" style={{ fontSize: '13px', fontWeight: 700, color: '#64748b' }}>آخر راتب شهري</span>
+                  <span className="kpi-title" style={{ fontSize: '13px', fontWeight: 700, color: '#64748b' }}>{t('hr.portal.portal_overview_tab.s8', "آخر راتب شهري")}</span>
                   <div
                     className="kpi-icon-box"
                     style={{
@@ -121,17 +123,17 @@ export function PortalOverviewTab({
                   </div>
                 </div>
                 <div className="kpi-value" style={{ fontSize: '20px', fontWeight: 900, color: '#16a34a' }}>
-                  {dashboard?.latestPayslip ? formatCurrency(dashboard.latestPayslip.netPay) : 'قيد المعالجة'}
+                  {dashboard?.latestPayslip ? formatCurrency(dashboard.latestPayslip.netPay) : t('hr.portal.portal_overview_tab.s9', "قيد المعالجة")}
                 </div>
                 <div className="kpi-sub" style={{ fontSize: '11.5px', color: '#64748b', marginTop: '4px' }}>
-                  {dashboard?.latestPayslip ? `مستحق شهر ${dashboard.latestPayslip.period}` : 'مسير الرواتب المعتمد'}
+                  {dashboard?.latestPayslip ? `مستحق شهر ${dashboard.latestPayslip.period}` : t('hr.portal.portal_overview_tab.s10', "مسير الرواتب المعتمد")}
                 </div>
               </div>
 
               {/* Month Work Hours */}
               <div className="portal-kpi-card">
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                  <span className="kpi-title" style={{ fontSize: '13px', fontWeight: 700, color: '#64748b' }}>ساعات هذا الشهر</span>
+                  <span className="kpi-title" style={{ fontSize: '13px', fontWeight: 700, color: '#64748b' }}>{t('hr.portal.portal_overview_tab.s11', "ساعات هذا الشهر")}</span>
                   <div
                     className="kpi-icon-box"
                     style={{
@@ -143,10 +145,10 @@ export function PortalOverviewTab({
                 </div>
                 <div className="kpi-value" style={{ fontSize: '22px', fontWeight: 900, color: '#0f172a', display: 'flex', alignItems: 'baseline', gap: '4px' }}>
                   <span>{dashboard?.monthSummary?.totalWorkHours || 0}</span>
-                  <span style={{ fontSize: '12px', fontWeight: 700, color: '#64748b' }}>ساعة</span>
+                  <span style={{ fontSize: '12px', fontWeight: 700, color: '#64748b' }}>{t('hr.portal.portal_overview_tab.s12', "ساعة")}</span>
                 </div>
                 <div className="kpi-sub" style={{ fontSize: '11.5px', color: '#64748b', marginTop: '4px' }}>
-                  خلال {dashboard?.monthSummary?.daysPresent || 0} يوم حضور
+                  {t('hr.portal.portal_overview_tab.s13', "خلال")} {dashboard?.monthSummary?.daysPresent || 0} {t('hr.portal.portal_overview_tab.s14', "يوم حضور")}
                 </div>
               </div>
             </div>
@@ -156,47 +158,47 @@ export function PortalOverviewTab({
               {/* Employee Contract & Details Card */}
               <div className="portal-contract-card">
                 <h3 style={{ margin: '0 0 14px', fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>
-                  بيانات العقد والوظيفة الرسمية
+                  {t('hr.portal.portal_overview_tab.s15', "بيانات العقد والوظيفة الرسمية")}
                 </h3>
 
                 <div className="portal-contract-grid">
                   <div className="contract-item">
-                    <span className="contract-item-label">القسم / الإدارة:</span>
+                    <span className="contract-item-label">{t('hr.portal.portal_overview_tab.s16', "القسم / الإدارة:")}</span>
                     <div className="contract-item-value">
-                      {dashboard?.profile?.departmentName || 'غير محدد'}
+                      {dashboard?.profile?.departmentName || t('hr.portal.portal_overview_tab.s17', "غير محدد")}
                     </div>
                   </div>
 
                   <div className="contract-item">
-                    <span className="contract-item-label">المسمى الوظيفي:</span>
+                    <span className="contract-item-label">{t('hr.portal.portal_overview_tab.s18', "المسمى الوظيفي:")}</span>
                     <div className="contract-item-value">
-                      {dashboard?.profile?.positionName || 'غير محدد'}
+                      {dashboard?.profile?.positionName || t('hr.portal.portal_overview_tab.s19', "غير محدد")}
                     </div>
                   </div>
 
                   <div className="contract-item">
-                    <span className="contract-item-label">فرع العمل:</span>
+                    <span className="contract-item-label">{t('hr.portal.portal_overview_tab.s20', "فرع العمل:")}</span>
                     <div className="contract-item-value">
-                      {dashboard?.profile?.branchName || 'الفرع الرئيسي'}
+                      {dashboard?.profile?.branchName || t('hr.portal.portal_overview_tab.s21', "الفرع الرئيسي")}
                     </div>
                   </div>
 
                   <div className="contract-item">
-                    <span className="contract-item-label">تاريخ التعيين:</span>
+                    <span className="contract-item-label">{t('hr.portal.portal_overview_tab.s22', "تاريخ التعيين:")}</span>
                     <div className="contract-item-value">
-                      {dashboard?.profile?.hireDate || 'مسجل بالنظام'}
+                      {dashboard?.profile?.hireDate || t('hr.portal.portal_overview_tab.s23', "مسجل بالنظام")}
                     </div>
                   </div>
 
                   <div className="contract-item">
-                    <span className="contract-item-label">الراتب التعاقدي:</span>
+                    <span className="contract-item-label">{t('hr.portal.portal_overview_tab.s24', "الراتب التعاقدي:")}</span>
                     <div className="contract-item-value" style={{ color: '#170e5e', fontWeight: 900 }}>
-                      {dashboard?.profile?.baseSalary ? formatCurrency(dashboard.profile.baseSalary) : 'محدد بالمسير'}
+                      {dashboard?.profile?.baseSalary ? formatCurrency(dashboard.profile.baseSalary) : t('hr.portal.portal_overview_tab.s25', "محدد بالمسير")}
                     </div>
                   </div>
 
                   <div className="contract-item">
-                    <span className="contract-item-label">بدل السكن والانتقال:</span>
+                    <span className="contract-item-label">{t('hr.portal.portal_overview_tab.s26', "بدل السكن والانتقال:")}</span>
                     <div className="contract-item-value" style={{ fontWeight: 800 }}>
                       {formatCurrency((dashboard?.profile?.housingAllowance || 0) + (dashboard?.profile?.transportAllowance || 0))}
                     </div>
@@ -208,10 +210,10 @@ export function PortalOverviewTab({
               <div className="portal-quick-card">
                 <div>
                   <h3 style={{ margin: '0 0 8px', fontSize: '16px', fontWeight: 800, color: '#0f172a' }}>
-                    خدمات الموظف السريعة
+                    {t('hr.portal.portal_overview_tab.s27', "خدمات الموظف السريعة")}
                   </h3>
                   <p style={{ margin: '0 0 16px', fontSize: '12px', color: '#64748b', lineHeight: 1.5 }}>
-                    يمكنك تقديم طلباتك مباشرة لإدارة الموارد البشرية ومتابعة حالتها فورياً.
+                    {t('hr.portal.portal_overview_tab.s28', "يمكنك تقديم طلباتك مباشرة لإدارة الموارد البشرية ومتابعة حالتها فورياً.")}
                   </p>
                 </div>
 
@@ -237,7 +239,7 @@ export function PortalOverviewTab({
                     }}
                   >
                     <PlusIcon size={16} color="#ffffff" />
-                    <span>تقديم طلب إجازة أو إذن غياب</span>
+                    <span>{t('hr.portal.portal_overview_tab.s29', "تقديم طلب إجازة أو إذن غياب")}</span>
                   </button>
 
                   <button
@@ -261,7 +263,7 @@ export function PortalOverviewTab({
                     }}
                   >
                     <CreditCardIcon size={16} color="#170e5e" />
-                    <span>طلب سلفة مالية من الراتب</span>
+                    <span>{t('hr.portal.portal_overview_tab.s30', "طلب سلفة مالية من الراتب")}</span>
                   </button>
 
                   <a
@@ -284,7 +286,7 @@ export function PortalOverviewTab({
                     }}
                   >
                     <SmartphoneIcon size={16} color="#1d4ed8" />
-                    <span>تسجيل بصمة الحضور الآن</span>
+                    <span>{t('hr.portal.portal_overview_tab.s31', "تسجيل بصمة الحضور الآن")}</span>
                   </a>
                 </div>
               </div>

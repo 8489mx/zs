@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useCallback, useEffect, useMemo, useRef, type SyntheticEvent } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -76,6 +77,7 @@ function hasDamagedDraft(values: DamagedStockInput, locations: Location[]): bool
 }
 
 export function InventoryActionsPanel({ products, selectedProduct = null, selectedProductToken = 0, branches, locations, locationStocks = [], isCatalogLoading, isCatalogError, catalogError, canManageInventory = true }: InventoryActionsPanelProps) {
+  const { t } = useTranslation();
   const adjustmentDisclosureRef = useRef<HTMLDetailsElement | null>(null);
   const damagedDisclosureRef = useRef<HTMLDetailsElement | null>(null);
   const lastPreparedAdjustmentTokenRef = useRef(0);
@@ -220,21 +222,21 @@ export function InventoryActionsPanel({ products, selectedProduct = null, select
       isLoading={isCatalogLoading}
       isError={isCatalogError}
       error={catalogError}
-      loadingText="جاري تجهيز أدوات المخزون..."
-      errorTitle="تعذر تحميل بيانات تشغيل المخزون"
+      loadingText={t('inventory.inventory_actions_panel.s0', "جاري تجهيز أدوات المخزون...")}
+      errorTitle={t('inventory.inventory_actions_panel.s1', "تعذر تحميل بيانات تشغيل المخزون")}
       isEmpty={!productList.length}
-      emptyTitle="لا توجد أصناف لإجراء حركة مخزون"
-      emptyHint="أضف صنفًا واحدًا على الأقل قبل استخدام أدوات الجرد أو التالف."
+      emptyTitle={t('inventory.inventory_actions_panel.s2', "لا توجد أصناف لإجراء حركة مخزون")}
+      emptyHint={t('inventory.inventory_actions_panel.s3', "أضف صنفًا واحدًا على الأقل قبل استخدام أدوات الجرد أو التالف.")}
     >
       <FormSection
-        title="إجراءات تشغيلية متقدمة"
-        description="استخدمها فقط عند الحاجة: تسوية رصيد، أو تسجيل تالف مباشر، بدل وضعها في مقدمة الصفحة."
-        actions={<span className="nav-pill">إجراءات المخزون</span>}
+        title={t('inventory.inventory_actions_panel.s4', "إجراءات تشغيلية متقدمة")}
+        description={t('inventory.inventory_actions_panel.s5', "استخدمها فقط عند الحاجة: تسوية رصيد، أو تسجيل تالف مباشر، بدل وضعها في مقدمة الصفحة.")}
+        actions={<span className="nav-pill">{t('inventory.inventory_actions_panel.s6', "إجراءات المخزون")}</span>}
       >
         <DraftStateNotice
           visible={hasAnyDraft}
-          title="يوجد إدخال غير محفوظ داخل إجراءات المخزون"
-          hint="احفظ الحركة أو أعد ضبطها قبل مغادرة الصفحة أو التنقل إلى جزء آخر حتى لا تضيع البيانات المدخلة."
+          title={t('inventory.inventory_actions_panel.s7', "يوجد إدخال غير محفوظ داخل إجراءات المخزون")}
+          hint={t('inventory.inventory_actions_panel.s8', "احفظ الحركة أو أعد ضبطها قبل مغادرة الصفحة أو التنقل إلى جزء آخر حتى لا تضيع البيانات المدخلة.")}
         />
         <div className="inventory-actions-disclosure-stack">
           <details
@@ -244,12 +246,12 @@ export function InventoryActionsPanel({ products, selectedProduct = null, select
           >
             <summary>
               <div className="inventory-action-summary-copy">
-                <strong>تسوية / تعديل مخزون</strong>
-                <span>تصحيح الكمية أو إضافة/خصم سريع للصنف المحدد.</span>
+                <strong>{t('inventory.inventory_actions_panel.s9', "تسوية / تعديل مخزون")}</strong>
+                <span>{t('inventory.inventory_actions_panel.s10', "تصحيح الكمية أو إضافة/خصم سريع للصنف المحدد.")}</span>
               </div>
             </summary>
             <div className="form-grid inventory-action-form" onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); adjustmentForm.handleSubmit((values) => adjustmentMutation.mutate(values))(); } }}>
-              <Field label="الصنف" error={adjustmentForm.formState.errors.productId?.message}>
+              <Field label={t('inventory.inventory_actions_panel.s11', "الصنف")} error={adjustmentForm.formState.errors.productId?.message}>
                 <InventoryProductPicker
                   products={productList}
                   value={adjustmentProductId}
@@ -269,9 +271,9 @@ export function InventoryActionsPanel({ products, selectedProduct = null, select
                   showStock
                   showPrice={false}
                 />
-                {selectedAdjustmentProduct ? <div className="muted small">تم تجهيز الصنف المحدد من جدول المتابعة لعمل تسوية أو إضافة/خصم سريع مباشرة.</div> : null}
+                {selectedAdjustmentProduct ? <div className="muted small">{t('inventory.inventory_actions_panel.s12', "تم تجهيز الصنف المحدد من جدول المتابعة لعمل تسوية أو إضافة/خصم سريع مباشرة.")}</div> : null}
               </Field>
-              <Field label="نوع الحركة">
+              <Field label={t('inventory.inventory_actions_panel.s13', "نوع الحركة")}>
                 <Controller
                   control={adjustmentForm.control}
                   name="actionType"
@@ -288,15 +290,15 @@ export function InventoryActionsPanel({ products, selectedProduct = null, select
                       }}
                       options={ACTION_TYPE_OPTIONS}
                       disabled={adjustmentMutation.isPending || !canManageInventory}
-                      placeholder="اختر نوع الحركة"
+                      placeholder={t('inventory.inventory_actions_panel.s14', "اختر نوع الحركة")}
                     />
                   )}
                 />
               </Field>
-              <Field label="الكمية" error={adjustmentForm.formState.errors.qty?.message}><input type="number" min="0" step="0.001" {...adjustmentForm.register('qty')} disabled={adjustmentMutation.isPending || !canManageInventory} /></Field>
-              <Field label="السبب" error={adjustmentForm.formState.errors.reason?.message}><input {...adjustmentForm.register('reason')} disabled={adjustmentMutation.isPending || !canManageInventory} placeholder="مثال: جرد مخزني / توريد إضافي" /></Field>
+              <Field label={t('inventory.inventory_actions_panel.s15', "الكمية")} error={adjustmentForm.formState.errors.qty?.message}><input type="number" min="0" step="0.001" {...adjustmentForm.register('qty')} disabled={adjustmentMutation.isPending || !canManageInventory} /></Field>
+              <Field label={t('inventory.inventory_actions_panel.s16', "السبب")} error={adjustmentForm.formState.errors.reason?.message}><input {...adjustmentForm.register('reason')} disabled={adjustmentMutation.isPending || !canManageInventory} placeholder={t('inventory.inventory_actions_panel.s17', "مثال: جرد مخزني / توريد إضافي")} /></Field>
               {!SINGLE_STORE_MODE ? (
-                <Field label="الفرع">
+                <Field label={t('inventory.inventory_actions_panel.s18', "الفرع")}>
                   <Controller
                     control={adjustmentForm.control}
                     name="branchId"
@@ -306,16 +308,16 @@ export function InventoryActionsPanel({ products, selectedProduct = null, select
                         onChange={(val) => field.onChange(val)}
                         options={branchOptions}
                         disabled={adjustmentMutation.isPending || !canManageInventory}
-                        placeholder="بدون فرع محدد"
+                        placeholder={t('inventory.inventory_actions_panel.s19', "بدون فرع محدد")}
                       />
                     )}
                   />
                 </Field>
               ) : null}
               {SINGLE_STORE_MODE ? (
-                <Field label="المخزن الأساسي"><input value={locationList[0]?.name || 'سيتم الربط تلقائيًا بالمخزن الأساسي'} disabled readOnly /></Field>
+                <Field label={t('inventory.inventory_actions_panel.s20', "المخزن الأساسي")}><input value={locationList[0]?.name || t('inventory.inventory_actions_panel.s21', "سيتم الربط تلقائيًا بالمخزن الأساسي")} disabled readOnly /></Field>
               ) : (
-                <Field label="المخزن">
+                <Field label={t('inventory.inventory_actions_panel.s22', "المخزن")}>
                   <Controller
                     control={adjustmentForm.control}
                     name="locationId"
@@ -325,22 +327,22 @@ export function InventoryActionsPanel({ products, selectedProduct = null, select
                         onChange={(val) => field.onChange(val)}
                         options={locationOptions}
                         disabled={adjustmentMutation.isPending || !canManageInventory}
-                        placeholder="بدون مخزن محدد"
+                        placeholder={t('inventory.inventory_actions_panel.s23', "بدون مخزن محدد")}
                       />
                     )}
                   />
                   <small className="muted" style={{ display: 'block', marginTop: 4 }}>
-                    * هذا الحقل يحدد مكان العملية فقط ولا يقوم بنقل أرصدة من مخازن أخرى.
+                    {t('inventory.inventory_actions_panel.s24', "* هذا الحقل يحدد مكان العملية فقط ولا يقوم بنقل أرصدة من مخازن أخرى.")}
                   </small>
                 </Field>
               )}
-              <Field label="ملاحظات"><textarea rows={3} {...adjustmentForm.register('note')} disabled={adjustmentMutation.isPending || !canManageInventory} /></Field>
-              {!canManageInventory ? <div className="muted small">هذا الحساب يملك صلاحية متابعة المخزون فقط. تنفيذ التسويات والتالف يتطلب canAdjustInventory.</div> : null}
-              <MutationFeedback isError={adjustmentMutation.isError} isSuccess={adjustmentMutation.isSuccess} error={adjustmentMutation.error} errorFallback="تعذر تنفيذ حركة المخزون" successText="تم حفظ حركة المخزون وتحديث الرصيد بنجاح." />
+              <Field label={t('inventory.inventory_actions_panel.s25', "ملاحظات")}><textarea rows={3} {...adjustmentForm.register('note')} disabled={adjustmentMutation.isPending || !canManageInventory} /></Field>
+              {!canManageInventory ? <div className="muted small">{t('inventory.inventory_actions_panel.s26', "هذا الحساب يملك صلاحية متابعة المخزون فقط. تنفيذ التسويات والتالف يتطلب canAdjustInventory.")}</div> : null}
+              <MutationFeedback isError={adjustmentMutation.isError} isSuccess={adjustmentMutation.isSuccess} error={adjustmentMutation.error} errorFallback={t('inventory.inventory_actions_panel.s27', "تعذر تنفيذ حركة المخزون")} successText={t('inventory.inventory_actions_panel.s28', "تم حفظ حركة المخزون وتحديث الرصيد بنجاح.")} />
               <div className="actions">
-                <SubmitButton type="button" onClick={adjustmentForm.handleSubmit((values) => adjustmentMutation.mutate(values))} isPending={adjustmentMutation.isPending} disabled={!canManageInventory} idleText="حفظ حركة المخزون" pendingText="جارٍ الحفظ..." />
-                <Button type="button" variant="secondary" disabled={adjustmentMutation.isPending || !canManageInventory} onClick={resetAdjustmentForm}>تفريغ</Button>
-                <Button type="button" variant="secondary" disabled={adjustmentMutation.isPending} onClick={closeAdjustmentForm}>إلغاء وإغلاق</Button>
+                <SubmitButton type="button" onClick={adjustmentForm.handleSubmit((values) => adjustmentMutation.mutate(values))} isPending={adjustmentMutation.isPending} disabled={!canManageInventory} idleText={t('inventory.inventory_actions_panel.s29', "حفظ حركة المخزون")} pendingText={t('inventory.inventory_actions_panel.s30', "جارٍ الحفظ...")} />
+                <Button type="button" variant="secondary" disabled={adjustmentMutation.isPending || !canManageInventory} onClick={resetAdjustmentForm}>{t('inventory.inventory_actions_panel.s31', "تفريغ")}</Button>
+                <Button type="button" variant="secondary" disabled={adjustmentMutation.isPending} onClick={closeAdjustmentForm}>{t('inventory.inventory_actions_panel.s32', "إلغاء وإغلاق")}</Button>
               </div>
             </div>
           </details>
@@ -354,12 +356,12 @@ export function InventoryActionsPanel({ products, selectedProduct = null, select
           >
             <summary>
               <div className="inventory-action-summary-copy">
-                <strong>تسجيل تالف مباشر</strong>
-                <span>سجّل التالف عند الحاجة مع بقاء الصفحة الأساسية مخصصة للمتابعة والبحث.</span>
+                <strong>{t('inventory.inventory_actions_panel.s33', "تسجيل تالف مباشر")}</strong>
+                <span>{t('inventory.inventory_actions_panel.s34', "سجّل التالف عند الحاجة مع بقاء الصفحة الأساسية مخصصة للمتابعة والبحث.")}</span>
               </div>
             </summary>
             <div className="form-grid inventory-action-form" onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); damagedForm.handleSubmit((values) => damagedMutation.mutate(values))(); } }}>
-              <Field label="الصنف" error={damagedForm.formState.errors.productId?.message}>
+              <Field label={t('inventory.inventory_actions_panel.s35', "الصنف")} error={damagedForm.formState.errors.productId?.message}>
                 <InventoryProductPicker
                   products={productList}
                   value={damagedProductId}
@@ -380,10 +382,10 @@ export function InventoryActionsPanel({ products, selectedProduct = null, select
                   showPrice={false}
                 />
               </Field>
-              <Field label="الكمية" error={damagedForm.formState.errors.qty?.message}><input type="number" min="0.001" step="0.001" {...damagedForm.register('qty')} disabled={damagedMutation.isPending || !canManageInventory} /></Field>
-              <Field label="السبب" error={damagedForm.formState.errors.reason?.message}><input {...damagedForm.register('reason')} disabled={damagedMutation.isPending || !canManageInventory} placeholder="مثال: كسر أثناء النقل / تلف صلاحية" /></Field>
+              <Field label={t('inventory.inventory_actions_panel.s36', "الكمية")} error={damagedForm.formState.errors.qty?.message}><input type="number" min="0.001" step="0.001" {...damagedForm.register('qty')} disabled={damagedMutation.isPending || !canManageInventory} /></Field>
+              <Field label={t('inventory.inventory_actions_panel.s37', "السبب")} error={damagedForm.formState.errors.reason?.message}><input {...damagedForm.register('reason')} disabled={damagedMutation.isPending || !canManageInventory} placeholder={t('inventory.inventory_actions_panel.s38', "مثال: كسر أثناء النقل / تلف صلاحية")} /></Field>
               {!SINGLE_STORE_MODE ? (
-                <Field label="الفرع">
+                <Field label={t('inventory.inventory_actions_panel.s39', "الفرع")}>
                   <Controller
                     control={damagedForm.control}
                     name="branchId"
@@ -393,16 +395,16 @@ export function InventoryActionsPanel({ products, selectedProduct = null, select
                         onChange={(val) => field.onChange(val)}
                         options={branchOptions}
                         disabled={damagedMutation.isPending || !canManageInventory}
-                        placeholder="بدون فرع محدد"
+                        placeholder={t('inventory.inventory_actions_panel.s40', "بدون فرع محدد")}
                       />
                     )}
                   />
                 </Field>
               ) : null}
               {SINGLE_STORE_MODE ? (
-                <Field label="المخزن الأساسي"><input value={locationList[0]?.name || 'سيتم الربط تلقائيًا بالمخزن الأساسي'} disabled readOnly /></Field>
+                <Field label={t('inventory.inventory_actions_panel.s41', "المخزن الأساسي")}><input value={locationList[0]?.name || t('inventory.inventory_actions_panel.s42', "سيتم الربط تلقائيًا بالمخزن الأساسي")} disabled readOnly /></Field>
               ) : (
-                <Field label="المخزن">
+                <Field label={t('inventory.inventory_actions_panel.s43', "المخزن")}>
                   <Controller
                     control={damagedForm.control}
                     name="locationId"
@@ -412,26 +414,26 @@ export function InventoryActionsPanel({ products, selectedProduct = null, select
                         onChange={(val) => field.onChange(val)}
                         options={locationOptions}
                         disabled={damagedMutation.isPending || !canManageInventory}
-                        placeholder="بدون مخزن محدد"
+                        placeholder={t('inventory.inventory_actions_panel.s44', "بدون مخزن محدد")}
                       />
                     )}
                   />
                   <small className="muted" style={{ display: 'block', marginTop: 4 }}>
-                    * هذا الحقل يحدد مكان العملية فقط ولا يقوم بنقل أرصدة من مخازن أخرى.
+                    {t('inventory.inventory_actions_panel.s45', "* هذا الحقل يحدد مكان العملية فقط ولا يقوم بنقل أرصدة من مخازن أخرى.")}
                   </small>
                 </Field>
               )}
-              <Field label="ملاحظات وتفاصيل التلف (8 أحرف على الأقل)" error={damagedForm.formState.errors.note?.message}><textarea rows={3} {...damagedForm.register('note')} disabled={damagedMutation.isPending || !canManageInventory} placeholder="تفاصيل التلف أو محضر الهالك..." /></Field>
+              <Field label={t('inventory.inventory_actions_panel.s46', "ملاحظات وتفاصيل التلف (8 أحرف على الأقل)")} error={damagedForm.formState.errors.note?.message}><textarea rows={3} {...damagedForm.register('note')} disabled={damagedMutation.isPending || !canManageInventory} placeholder={t('inventory.inventory_actions_panel.s47', "تفاصيل التلف أو محضر الهالك...")} /></Field>
               <div className="stats-grid compact-grid workspace-stats-grid inventory-damage-mini-grid" style={{ marginTop: 12 }}>
-                <div className="stat-card"><span>المخزون الحالي</span><strong>{selectedDamagedProduct ? selectedDamagedProduct.stock : 0}</strong></div>
-                <div className="stat-card"><span>الكمية التالفة</span><strong>{damagedQty || 0}</strong></div>
-                <div className="stat-card"><span>المتبقي بعد التسجيل</span><strong>{selectedDamagedProduct ? remainingAfterDamage : 0}</strong></div>
-                <div className="stat-card"><span>المخزن</span><strong>{selectedLocationName}</strong></div>
+                <div className="stat-card"><span>{t('inventory.inventory_actions_panel.s48', "المخزون الحالي")}</span><strong>{selectedDamagedProduct ? selectedDamagedProduct.stock : 0}</strong></div>
+                <div className="stat-card"><span>{t('inventory.inventory_actions_panel.s49', "الكمية التالفة")}</span><strong>{damagedQty || 0}</strong></div>
+                <div className="stat-card"><span>{t('inventory.inventory_actions_panel.s50', "المتبقي بعد التسجيل")}</span><strong>{selectedDamagedProduct ? remainingAfterDamage : 0}</strong></div>
+                <div className="stat-card"><span>{t('inventory.inventory_actions_panel.s51', "المخزن")}</span><strong>{selectedLocationName}</strong></div>
               </div>
-              <MutationFeedback isError={damagedMutation.isError} isSuccess={damagedMutation.isSuccess} error={damagedMutation.error} errorFallback="تعذر تسجيل التالف" successText="تم تسجيل التالف وتحديث المخزون بنجاح." />
+              <MutationFeedback isError={damagedMutation.isError} isSuccess={damagedMutation.isSuccess} error={damagedMutation.error} errorFallback={t('inventory.inventory_actions_panel.s52', "تعذر تسجيل التالف")} successText={t('inventory.inventory_actions_panel.s53', "تم تسجيل التالف وتحديث المخزون بنجاح.")} />
               <div className="actions">
-                <SubmitButton type="button" variant="danger" onClick={damagedForm.handleSubmit((values) => damagedMutation.mutate(values))} isPending={damagedMutation.isPending} disabled={!canManageInventory} idleText="تسجيل التالف" pendingText="جارٍ التسجيل..." />
-                <Button type="button" variant="secondary" disabled={damagedMutation.isPending || !canManageInventory} onClick={resetDamagedForm}>تفريغ</Button>
+                <SubmitButton type="button" variant="danger" onClick={damagedForm.handleSubmit((values) => damagedMutation.mutate(values))} isPending={damagedMutation.isPending} disabled={!canManageInventory} idleText={t('inventory.inventory_actions_panel.s54', "تسجيل التالف")} pendingText={t('inventory.inventory_actions_panel.s55', "جارٍ التسجيل...")} />
+                <Button type="button" variant="secondary" disabled={damagedMutation.isPending || !canManageInventory} onClick={resetDamagedForm}>{t('inventory.inventory_actions_panel.s56', "تفريغ")}</Button>
               </div>
             </div>
           </details>

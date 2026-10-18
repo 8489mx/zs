@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { EditProductForm } from '@/features/products/components/EditProductForm';
 import type { Product } from '@/types/domain';
@@ -17,6 +18,7 @@ export function PosEditProductModal({
   onClose,
   onSuccess,
 }: PosEditProductModalProps) {
+  const { t } = useTranslation();
   if (!isOpen || !productId) return null;
 
   return (
@@ -24,7 +26,7 @@ export function PosEditProductModal({
       open={isOpen}
       onClose={onClose}
       width="min(1060px, 95vw)"
-      ariaLabel="تعديل بيانات الصنف"
+      ariaLabel={t('pos.pos_workspace.pos_edit_product_modal.s0', "تعديل بيانات الصنف")}
     >
       <div style={{ padding: '16px 20px', overflowY: 'auto', maxHeight: '90vh', boxSizing: 'border-box' }}>
         <EditProductForm

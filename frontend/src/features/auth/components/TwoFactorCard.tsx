@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, type CSSProperties } from 'react';
 import { Button } from '@/shared/ui/button';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
@@ -55,6 +56,7 @@ const primaryButtonStyle: CSSProperties = {
  * رابط `otpauth://` يفتح تطبيق المصادقة مباشرة على الهاتف، والسر مكتوب في مجموعات للإدخال اليدوي.
  */
 export function TwoFactorCard() {
+  const { t } = useTranslation();
   const {
     stage, status, setup, recoveryCodes, error, busy,
     beginSetup, confirmSetup, disable, regenerateRecoveryCodes, dismissCodes, cancelSetup,
@@ -80,23 +82,22 @@ export function TwoFactorCard() {
     <div style={{ display: 'grid', gap: '14px' }}>
       {error ? <div style={noticeStyle('warn')}>{error}</div> : null}
 
-      {stage === 'loading' ? <div style={noticeStyle('info')}>جاري قراءة حالة التحقق بخطوتين...</div> : null}
+      {stage === 'loading' ? <div style={noticeStyle('info')}>{t('auth.two_factor_card.s0', "جاري قراءة حالة التحقق بخطوتين...")}</div> : null}
 
       {stage === 'off' ? (
         <>
           {status?.required ? (
             <div style={noticeStyle('warn')}>
-              سياسة المنصة تفرض التحقق بخطوتين على هذا الحساب. فعّله الآن لتجنّب رفض تسجيل الدخول لاحقاً.
+              {t('auth.two_factor_card.s1', "سياسة المنصة تفرض التحقق بخطوتين على هذا الحساب. فعّله الآن لتجنّب رفض تسجيل الدخول لاحقاً.")}
             </div>
           ) : (
             <div style={noticeStyle('info')}>
-              خطوة تانية بعد كلمة المرور: رمز متغيّر كل 30 ثانية من تطبيق على هاتفك. كلمة مرور مسروقة وحدها
-              تبقى غير كافية للدخول.
+              {t('auth.two_factor_card.s2', "خطوة تانية بعد كلمة المرور: رمز متغيّر كل 30 ثانية من تطبيق على هاتفك. كلمة مرور مسروقة وحدها\n              تبقى غير كافية للدخول.")}
             </div>
           )}
           <div>
             <Button type="button" onClick={beginSetup} disabled={busy} style={primaryButtonStyle}>
-              {busy ? 'جاري التجهيز...' : 'تفعيل التحقق بخطوتين'}
+              {busy ? t('auth.two_factor_card.s3', "جاري التجهيز...") : t('auth.two_factor_card.s4', "تفعيل التحقق بخطوتين")}
             </Button>
           </div>
         </>
@@ -105,10 +106,9 @@ export function TwoFactorCard() {
       {stage === 'enrolling' && setup ? (
         <>
           <div style={noticeStyle('info')}>
-            <div style={{ marginBottom: 8 }}>1. افتح تطبيق مصادقة (Google Authenticator أو Authy أو مدير كلمات المرور عندك).</div>
+            <div style={{ marginBottom: 8 }}>{t('auth.two_factor_card.s5', "1. افتح تطبيق مصادقة (Google Authenticator أو Authy أو مدير كلمات المرور عندك).")}</div>
             <div style={{ marginBottom: 8 }}>
-              2. من الهاتف اضغط <a href={setup.otpauthUri} style={{ color: '#170c5c', fontWeight: 700 }}>هذا الرابط</a> ليُضاف الحساب تلقائياً،
-              أو أضِفه يدوياً بالمفتاح التالي:
+              {t('auth.two_factor_card.s6', "2. من الهاتف اضغط")} <a href={setup.otpauthUri} style={{ color: '#170c5c', fontWeight: 700 }}>{t('auth.two_factor_card.s7', "هذا الرابط")}</a> {t('auth.two_factor_card.s8', "ليُضاف الحساب تلقائياً،\n              أو أضِفه يدوياً بالمفتاح التالي:")}
             </div>
             <div
               dir="ltr"
@@ -132,12 +132,12 @@ export function TwoFactorCard() {
               onClick={handleCopySecret}
               style={{ background: 'none', border: 'none', color: '#170c5c', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer', padding: '6px 0 0' }}
             >
-              {copied ? 'تم النسخ' : 'نسخ المفتاح'}
+              {copied ? t('auth.two_factor_card.s9', "تم النسخ") : t('auth.two_factor_card.s10', "نسخ المفتاح")}
             </button>
           </div>
 
           <div>
-            <label htmlFor="mfa-confirm-code" style={labelStyle}>3. اكتب الرمز الظاهر في التطبيق الآن</label>
+            <label htmlFor="mfa-confirm-code" style={labelStyle}>{t('auth.two_factor_card.s11', "3. اكتب الرمز الظاهر في التطبيق الآن")}</label>
             <input
               id="mfa-confirm-code"
               value={code}
@@ -159,10 +159,10 @@ export function TwoFactorCard() {
               disabled={busy || code.trim().length < 6}
               style={primaryButtonStyle}
             >
-              {busy ? 'جاري التأكيد...' : 'تأكيد وتفعيل'}
+              {busy ? t('auth.two_factor_card.s12', "جاري التأكيد...") : t('auth.two_factor_card.s13', "تأكيد وتفعيل")}
             </Button>
             <Button type="button" variant="secondary" onClick={() => { setCode(''); cancelSetup(); }} disabled={busy}>
-              إلغاء
+              {t('auth.two_factor_card.s14', "إلغاء")}
             </Button>
           </div>
         </>
@@ -171,8 +171,7 @@ export function TwoFactorCard() {
       {stage === 'showing-codes' ? (
         <>
           <div style={noticeStyle('warn')}>
-            <strong>احفظ رموز الاسترداد دلوقتي.</strong> دي طريقتك الوحيدة للدخول لو ضاع الهاتف، وكل رمز يعمل
-            مرة واحدة. **لن تُعرض مرة أخرى** — مخزَّنة عندنا مجزَّأة فقط.
+            <strong>{t('auth.two_factor_card.s15', "احفظ رموز الاسترداد دلوقتي.")}</strong> {t('auth.two_factor_card.s16', "دي طريقتك الوحيدة للدخول لو ضاع الهاتف، وكل رمز يعمل\n            مرة واحدة. **لن تُعرض مرة أخرى** — مخزَّنة عندنا مجزَّأة فقط.")}
           </div>
           <div
             dir="ltr"
@@ -197,9 +196,9 @@ export function TwoFactorCard() {
               onClick={() => navigator.clipboard?.writeText(recoveryCodes.join('\n')).catch(() => undefined)}
               variant="secondary"
             >
-              نسخ الرموز
+              {t('auth.two_factor_card.s17', "نسخ الرموز")}
             </Button>
-            <Button type="button" onClick={dismissCodes} style={primaryButtonStyle}>حفظتها، تم</Button>
+            <Button type="button" onClick={dismissCodes} style={primaryButtonStyle}>{t('auth.two_factor_card.s18', "حفظتها، تم")}</Button>
           </div>
         </>
       ) : null}
@@ -209,16 +208,16 @@ export function TwoFactorCard() {
           <div style={noticeStyle('ok')}>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
               <AppIcons.ShieldCheck size={16} />
-              التحقق بخطوتين مفعّل على هذا الحساب.
+              {t('auth.two_factor_card.s19', "التحقق بخطوتين مفعّل على هذا الحساب.")}
             </span>
             <div style={{ marginTop: 4, fontWeight: 600 }}>
-              رموز الاسترداد المتبقية: {status?.recoveryCodesRemaining ?? 0}
-              {(status?.recoveryCodesRemaining ?? 0) <= 2 ? ' — جدّدها قبل ما تخلص.' : ''}
+              {t('auth.two_factor_card.s20', "رموز الاسترداد المتبقية:")} {status?.recoveryCodesRemaining ?? 0}
+              {(status?.recoveryCodesRemaining ?? 0) <= 2 ? t('auth.two_factor_card.s21', " — جدّدها قبل ما تخلص.") : ''}
             </div>
           </div>
 
           <div>
-            <label htmlFor="mfa-action-code" style={labelStyle}>رمز من تطبيق المصادقة</label>
+            <label htmlFor="mfa-action-code" style={labelStyle}>{t('auth.two_factor_card.s22', "رمز من تطبيق المصادقة")}</label>
             <input
               id="mfa-action-code"
               value={code}
@@ -235,7 +234,7 @@ export function TwoFactorCard() {
 
           {showDisableForm ? (
             <div>
-              <label htmlFor="mfa-disable-password" style={labelStyle}>كلمة المرور الحالية</label>
+              <label htmlFor="mfa-disable-password" style={labelStyle}>{t('auth.two_factor_card.s23', "كلمة المرور الحالية")}</label>
               <input
                 id="mfa-disable-password"
                 value={disablePassword}
@@ -248,7 +247,7 @@ export function TwoFactorCard() {
                 style={inputControlStyle}
               />
               <div style={{ ...noticeStyle('info'), marginTop: 8 }}>
-                الإيقاف يحتاج كلمة المرور ورمزاً صالحاً معاً — جلسة مفتوحة وحدها لا تكفي لنزع الحماية.
+                {t('auth.two_factor_card.s24', "الإيقاف يحتاج كلمة المرور ورمزاً صالحاً معاً — جلسة مفتوحة وحدها لا تكفي لنزع الحماية.")}
               </div>
             </div>
           ) : null}
@@ -260,7 +259,7 @@ export function TwoFactorCard() {
               disabled={busy || code.trim().length < 6}
               onClick={async () => { await regenerateRecoveryCodes(code); setCode(''); }}
             >
-              تجديد رموز الاسترداد
+              {t('auth.two_factor_card.s25', "تجديد رموز الاسترداد")}
             </Button>
             {showDisableForm ? (
               <>
@@ -273,15 +272,15 @@ export function TwoFactorCard() {
                     if (done) { setShowDisableForm(false); setDisablePassword(''); setCode(''); }
                   }}
                 >
-                  {busy ? 'جاري الإيقاف...' : 'تأكيد الإيقاف'}
+                  {busy ? t('auth.two_factor_card.s26', "جاري الإيقاف...") : t('auth.two_factor_card.s27', "تأكيد الإيقاف")}
                 </Button>
                 <Button type="button" variant="secondary" onClick={() => { setShowDisableForm(false); setDisablePassword(''); }}>
-                  تراجع
+                  {t('auth.two_factor_card.s28', "تراجع")}
                 </Button>
               </>
             ) : (
               <Button type="button" variant="secondary" onClick={() => setShowDisableForm(true)}>
-                إيقاف التحقق بخطوتين
+                {t('auth.two_factor_card.s29', "إيقاف التحقق بخطوتين")}
               </Button>
             )}
           </div>

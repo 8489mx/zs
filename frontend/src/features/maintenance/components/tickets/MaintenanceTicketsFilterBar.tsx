@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { SearchIcon } from '@/shared/components/icons/AppIcons';
 
 interface MaintenanceTicketsFilterBarProps {
@@ -27,15 +28,16 @@ export function MaintenanceTicketsFilterBar({
   deliveredCount,
   serialLabel,
 }: MaintenanceTicketsFilterBarProps) {
+  const { t } = useTranslation();
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', background: '#ffffff', padding: '10px 14px', borderRadius: '10px', border: '1px solid #e2e8f0', marginBottom: '12px', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}>
       <div style={{ display: 'flex', gap: '4px', background: '#f8fafc', padding: '3px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
         {[
-          { key: 'all', label: 'الكل', count: totalItems },
-          { key: 'received', label: 'استلام جديد', count: receivedCount },
-          { key: 'in_progress', label: 'قيد الصيانة', count: inProgressCount },
-          { key: 'repaired', label: 'جاهز للتسليم', count: readyCount },
-          { key: 'delivered', label: 'تم التسليم', count: deliveredCount },
+          { key: 'all', label: t('maintenance.tickets.maintenance_tickets_filter_bar.s0', "الكل"), count: totalItems },
+          { key: 'received', label: t('maintenance.tickets.maintenance_tickets_filter_bar.s1', "استلام جديد"), count: receivedCount },
+          { key: 'in_progress', label: t('maintenance.tickets.maintenance_tickets_filter_bar.s2', "قيد الصيانة"), count: inProgressCount },
+          { key: 'repaired', label: t('maintenance.tickets.maintenance_tickets_filter_bar.s3', "جاهز للتسليم"), count: readyCount },
+          { key: 'delivered', label: t('maintenance.tickets.maintenance_tickets_filter_bar.s4', "تم التسليم"), count: deliveredCount },
         ].map((tab) => {
           const active = filterStatus === tab.key;
           return (

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { QueryCard } from '@/shared/components/query-card';
@@ -65,6 +66,7 @@ import { http } from '@/lib/http';
 import { useQuery, useMutation } from '@tanstack/react-query';
 
 function DatabaseOptimizationCard({ canManage }: { canManage: boolean }) {
+  const { t } = useTranslation();
   const [feedback, setFeedback] = useState<{ kind: 'success' | 'error'; message: string } | null>(null);
 
   const statsQuery = useQuery({
@@ -101,17 +103,17 @@ function DatabaseOptimizationCard({ canManage }: { canManage: boolean }) {
     }}>
       <div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <strong style={{ fontSize: '0.92rem', color: '#0f172a', fontWeight: 800 }}>صيانة وتسريع قاعدة البيانات</strong>
-          <span style={{ fontSize: '0.72rem', background: '#f1f5f9', color: '#475569', padding: '2px 8px', borderRadius: '4px', border: '1px solid #e2e8f0' }}>أداء النظام</span>
+          <strong style={{ fontSize: '0.92rem', color: '#0f172a', fontWeight: 800 }}>{t('settings.workspace_sections.settings_backup_import_section.s0', "صيانة وتسريع قاعدة البيانات")}</strong>
+          <span style={{ fontSize: '0.72rem', background: '#f1f5f9', color: '#475569', padding: '2px 8px', borderRadius: '4px', border: '1px solid #e2e8f0' }}>{t('settings.workspace_sections.settings_backup_import_section.s1', "أداء النظام")}</span>
         </div>
         <p style={{ margin: '3px 0 0', fontSize: '0.78rem', color: '#64748b' }}>
-          تنظيف البيانات المؤقتة، إعادة بناء الفهارس، وضغط المساحة (VACUUM ANALYZE) لتحسين سرعة واستجابة النظام.
+          {t('settings.workspace_sections.settings_backup_import_section.s2', "تنظيف البيانات المؤقتة، إعادة بناء الفهارس، وضغط المساحة (VACUUM ANALYZE) لتحسين سرعة واستجابة النظام.")}
         </p>
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
         <div style={{ textAlign: 'center', padding: '4px 12px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px' }}>
-          <span style={{ fontSize: '0.68rem', color: '#64748b', display: 'block' }}>حجم البيانات</span>
+          <span style={{ fontSize: '0.68rem', color: '#64748b', display: 'block' }}>{t('settings.workspace_sections.settings_backup_import_section.s3', "حجم البيانات")}</span>
           <strong style={{ fontSize: '0.9rem', color: '#0f172a' }}>{dbSize}</strong>
         </div>
 
@@ -130,7 +132,7 @@ function DatabaseOptimizationCard({ canManage }: { canManage: boolean }) {
             fontWeight: 700,
           }}
         >
-          {optimizeMutation.isPending ? 'جاري التحسين...' : 'تحسين وتسريع الآن'}
+          {optimizeMutation.isPending ? t('settings.workspace_sections.settings_backup_import_section.s4', "جاري التحسين...") : t('settings.workspace_sections.settings_backup_import_section.s5', "تحسين وتسريع الآن")}
         </Button>
       </div>
 
@@ -154,6 +156,7 @@ function DatabaseOptimizationCard({ canManage }: { canManage: boolean }) {
 }
 
 function CloudBackupSettingsCard({ canManage }: { canManage: boolean }) {
+  const { t } = useTranslation();
   const [config, setConfig] = useState<{
     enabled: boolean;
     endpoint: string;
@@ -230,7 +233,7 @@ function CloudBackupSettingsCard({ canManage }: { canManage: boolean }) {
   return (
     <QueryCard
       className="settings-admin-card"
-      title="النسخ الاحتياطي السحابي المباشر (Cloud S3 Backup)"
+      title={t('settings.workspace_sections.settings_backup_import_section.s6', "النسخ الاحتياطي السحابي المباشر (Cloud S3 Backup)")}
       actions={
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <span
@@ -243,30 +246,30 @@ function CloudBackupSettingsCard({ canManage }: { canManage: boolean }) {
               fontWeight: 700
             }}
           >
-            السحابة: {config.enabled ? 'مفعلة' : 'متوقفة'}
+            {t('settings.workspace_sections.settings_backup_import_section.s7', "السحابة:")} {config.enabled ? t('settings.workspace_sections.settings_backup_import_section.s8', "مفعلة") : t('settings.workspace_sections.settings_backup_import_section.s9', "متوقفة")}
           </span>
         </div>
       }
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
         <div style={{ fontSize: '0.8rem', color: '#64748b' }}>
-          ربط النظام بمخزن سحابي متوافق مع S3 (مثل Amazon AWS S3, Cloudflare R2, Wasabi, MinIO) لحفظ نسخ احتياطية مشفرة تلقائياً.
+          {t('settings.workspace_sections.settings_backup_import_section.s10', "ربط النظام بمخزن سحابي متوافق مع S3 (مثل Amazon AWS S3, Cloudflare R2, Wasabi, MinIO) لحفظ نسخ احتياطية مشفرة تلقائياً.")}
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '10px' }}>
           <label className="field" style={{ margin: 0 }}>
-            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#475569', marginBottom: '2px', display: 'block' }}>مزود الخدمة / Endpoint</span>
+            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#475569', marginBottom: '2px', display: 'block' }}>{t('settings.workspace_sections.settings_backup_import_section.s11', "مزود الخدمة / Endpoint")}</span>
             <input
               value={config.endpoint}
               onChange={(e) => setConfig({ ...config, endpoint: e.target.value })}
-              placeholder="s3.amazonaws.com أو wasabisys.com"
+              placeholder={t('settings.workspace_sections.settings_backup_import_section.s12', "s3.amazonaws.com أو wasabisys.com")}
               disabled={!canManage || loading}
               style={{ height: '36px', borderRadius: '6px', fontSize: '0.8rem', border: '1px solid #cbd5e1', padding: '0 8px' }}
             />
           </label>
 
           <label className="field" style={{ margin: 0 }}>
-            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#475569', marginBottom: '2px', display: 'block' }}>اسم الـ Bucket</span>
+            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#475569', marginBottom: '2px', display: 'block' }}>{t('settings.workspace_sections.settings_backup_import_section.s13', "اسم الـ Bucket")}</span>
             <input
               value={config.bucket}
               onChange={(e) => setConfig({ ...config, bucket: e.target.value })}
@@ -311,15 +314,15 @@ function CloudBackupSettingsCard({ canManage }: { canManage: boolean }) {
           </label>
 
           <label className="field" style={{ margin: 0 }}>
-            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#475569', marginBottom: '2px', display: 'block' }}>تفعيل النسخ السحابي</span>
+            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#475569', marginBottom: '2px', display: 'block' }}>{t('settings.workspace_sections.settings_backup_import_section.s14', "تفعيل النسخ السحابي")}</span>
             <select
               value={config.enabled ? 'true' : 'false'}
               onChange={(e) => setConfig({ ...config, enabled: e.target.value === 'true' })}
               disabled={!canManage || loading}
               style={{ height: '36px', borderRadius: '6px', fontSize: '0.8rem', border: '1px solid #cbd5e1', padding: '0 8px' }}
             >
-              <option value="false">متوقف</option>
-              <option value="true">مفعل (تلقائي)</option>
+              <option value="false">{t('settings.workspace_sections.settings_backup_import_section.s15', "متوقف")}</option>
+              <option value="true">{t('settings.workspace_sections.settings_backup_import_section.s16', "مفعل (تلقائي)")}</option>
             </select>
           </label>
         </div>
@@ -340,17 +343,17 @@ function CloudBackupSettingsCard({ canManage }: { canManage: boolean }) {
 
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', paddingTop: '6px', borderTop: '1px solid #f1f5f9' }}>
           <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
-            آخر رفع سحابي: <strong style={{ color: '#0f172a' }}>{config.lastBackupAt ? new Date(config.lastBackupAt).toLocaleString('ar-EG') : 'لا يوجد'}</strong>
+            {t('settings.workspace_sections.settings_backup_import_section.s17', "آخر رفع سحابي:")} <strong style={{ color: '#0f172a' }}>{config.lastBackupAt ? new Date(config.lastBackupAt).toLocaleString('ar-EG') : t('settings.workspace_sections.settings_backup_import_section.s18', "لا يوجد")}</strong>
           </div>
           <div style={{ display: 'flex', gap: '6px' }}>
             <Button type="button" variant="secondary" onClick={handleTest} disabled={!canManage || testing || loading} style={{ fontSize: '0.78rem', padding: '6px 12px' }}>
-              {testing ? 'جاري الفحص...' : 'اختبار الاتصال بالسحابة'}
+              {testing ? t('settings.workspace_sections.settings_backup_import_section.s19', "جاري الفحص...") : t('settings.workspace_sections.settings_backup_import_section.s20', "اختبار الاتصال بالسحابة")}
             </Button>
             <Button type="button" variant="secondary" onClick={handleSave} disabled={!canManage || loading} style={{ fontSize: '0.78rem', padding: '6px 12px' }}>
-              {loading ? 'جاري الحفظ...' : 'حفظ الإعدادات'}
+              {loading ? t('settings.workspace_sections.settings_backup_import_section.s21', "جاري الحفظ...") : t('settings.workspace_sections.settings_backup_import_section.s22', "حفظ الإعدادات")}
             </Button>
             <Button type="button" variant="primary" onClick={handleSyncNow} disabled={!canManage || syncing || loading} style={{ fontSize: '0.78rem', padding: '6px 14px' }}>
-              {syncing ? 'جاري الرفع...' : 'نسخ احتياطي سحابي الآن'}
+              {syncing ? t('settings.workspace_sections.settings_backup_import_section.s23', "جاري الرفع...") : t('settings.workspace_sections.settings_backup_import_section.s24', "نسخ احتياطي سحابي الآن")}
             </Button>
           </div>
         </div>
@@ -360,6 +363,7 @@ function CloudBackupSettingsCard({ canManage }: { canManage: boolean }) {
 }
 
 function DemoDataSandboxCard() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
   const isSuperAdmin = isPlatformAdmin(user);
@@ -438,23 +442,23 @@ function DemoDataSandboxCard() {
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                 <strong style={{ fontSize: '0.98rem', color: '#0f172a', fontWeight: 800 }}>
-                  بيئة العرض التجريبية وتصفير النظام
+                  {t('settings.workspace_sections.settings_backup_import_section.s25', "بيئة العرض التجريبية وتصفير النظام")}
                 </strong>
                 {isEmpty ? (
                   <span style={{ fontSize: '0.72rem', background: '#ecfdf5', color: '#047857', padding: '2px 8px', borderRadius: '4px', fontWeight: 700, border: '1px solid #a7f3d0' }}>
-                    متجر جديد وفارغ (جاهز للملء)
+                    {t('settings.workspace_sections.settings_backup_import_section.s26', "متجر جديد وفارغ (جاهز للملء)")}
                   </span>
                 ) : (
                   <span style={{ fontSize: '0.72rem', background: '#f1f5f9', color: '#334155', padding: '2px 8px', borderRadius: '4px', fontWeight: 700, border: '1px solid #e2e8f0' }}>
-                    منصة الإدارة فقط
+                    {t('settings.workspace_sections.settings_backup_import_section.s27', "منصة الإدارة فقط")}
                   </span>
                 )}
                 <span style={{ fontSize: '0.72rem', background: '#f8fafc', color: '#64748b', padding: '2px 8px', borderRadius: '4px', fontWeight: 700, border: '1px solid #e2e8f0' }}>
-                  نسخ احتياطي تلقائي إجباري
+                  {t('settings.workspace_sections.settings_backup_import_section.s28', "نسخ احتياطي تلقائي إجباري")}
                 </span>
               </div>
               <p style={{ margin: '5px 0 0', fontSize: '0.82rem', color: '#64748b', lineHeight: 1.5 }}>
-                أداة فورية لملء النظام بكافة بيانات المتجر الواقعية لاختبار الكاشير والتقارير والمناديب والمخازن على مدار 6 أشهر، أو تصفير النظام تماماً للبدء الفعلي.
+                {t('settings.workspace_sections.settings_backup_import_section.s29', "أداة فورية لملء النظام بكافة بيانات المتجر الواقعية لاختبار الكاشير والتقارير والمناديب والمخازن على مدار 6 أشهر، أو تصفير النظام تماماً للبدء الفعلي.")}
               </p>
             </div>
           </div>
@@ -476,7 +480,7 @@ function DemoDataSandboxCard() {
                 transition: 'all 0.15s ease',
               }}
             >
-              معالج الأنشطة التجريبية
+              {t('settings.workspace_sections.settings_backup_import_section.s30', "معالج الأنشطة التجريبية")}
             </Button>
 
             <Button
@@ -503,7 +507,7 @@ function DemoDataSandboxCard() {
                 transition: 'all 0.15s ease',
               }}
             >
-              {mutation.isPending && isEmpty ? 'جاري السكب...' : 'ملء سريع (سوبرماركت)'}
+              {mutation.isPending && isEmpty ? t('settings.workspace_sections.settings_backup_import_section.s31', "جاري السكب...") : t('settings.workspace_sections.settings_backup_import_section.s32', "ملء سريع (سوبرماركت)")}
             </Button>
 
             {isSuperAdmin && (
@@ -527,7 +531,7 @@ function DemoDataSandboxCard() {
                   transition: 'all 0.15s ease',
                 }}
               >
-                تصفير ومسح كافة البيانات
+                {t('settings.workspace_sections.settings_backup_import_section.s33', "تصفير ومسح كافة البيانات")}
               </Button>
             )}
           </div>
@@ -545,16 +549,16 @@ function DemoDataSandboxCard() {
           color: '#334155',
         }}>
           <div>
-            <strong style={{ color: '#0f172a' }}>الأصناف والأسعار:</strong> 50 صنفاً تجارياً، نواقص شراء، وأصناف نفدت.
+            <strong style={{ color: '#0f172a' }}>{t('settings.workspace_sections.settings_backup_import_section.s34', "الأصناف والأسعار:")}</strong> {t('settings.workspace_sections.settings_backup_import_section.s35', "50 صنفاً تجارياً، نواقص شراء، وأصناف نفدت.")}
           </div>
           <div>
-            <strong style={{ color: '#0f172a' }}>الشركاء والموظفون:</strong> 10 عملاء، 8 موردين، 6 مناديب، 20 موظفاً (HR).
+            <strong style={{ color: '#0f172a' }}>{t('settings.workspace_sections.settings_backup_import_section.s36', "الشركاء والموظفون:")}</strong> {t('settings.workspace_sections.settings_backup_import_section.s37', "10 عملاء، 8 موردين، 6 مناديب، 20 موظفاً (HR).")}
           </div>
           <div>
-            <strong style={{ color: '#0f172a' }}>الفواتير والتقارير:</strong> مبيعات ومشتريات موزعة على 6 أشهر كاملة.
+            <strong style={{ color: '#0f172a' }}>{t('settings.workspace_sections.settings_backup_import_section.s38', "الفواتير والتقارير:")}</strong> {t('settings.workspace_sections.settings_backup_import_section.s39', "مبيعات ومشتريات موزعة على 6 أشهر كاملة.")}
           </div>
           <div>
-            <strong style={{ color: '#0f172a' }}>حسابات تجريبية:</strong> تُنشأ كلمات مرور مؤقتة عشوائية وتُفرض على المستخدمين عند أول دخول.
+            <strong style={{ color: '#0f172a' }}>{t('settings.workspace_sections.settings_backup_import_section.s40', "حسابات تجريبية:")}</strong> {t('settings.workspace_sections.settings_backup_import_section.s41', "تُنشأ كلمات مرور مؤقتة عشوائية وتُفرض على المستخدمين عند أول دخول.")}
           </div>
         </div>
 
@@ -583,7 +587,7 @@ function DemoDataSandboxCard() {
           }
         }}
         width="min(480px, 95vw)"
-        ariaLabel={modalMode === 'wipe' ? 'مسح بيانات العمليات والمبيعات' : 'ملء بيانات تجريبية مؤسسية'}
+        ariaLabel={modalMode === 'wipe' ? t('settings.workspace_sections.settings_backup_import_section.s42', "مسح بيانات العمليات والمبيعات") : t('settings.workspace_sections.settings_backup_import_section.s43', "ملء بيانات تجريبية مؤسسية")}
       >
         <div style={{
           background: '#ffffff',
@@ -608,10 +612,10 @@ function DemoDataSandboxCard() {
               </div>
               <div>
                 <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: modalMode === 'wipe' ? '#991b1b' : '#0f172a' }}>
-                  {modalMode === 'wipe' ? 'تأكيد تصفير ومسح كافة البيانات' : 'تأكيد ملء النظام بالبيانات التجريبية'}
+                  {modalMode === 'wipe' ? t('settings.workspace_sections.settings_backup_import_section.s44', "تأكيد تصفير ومسح كافة البيانات") : t('settings.workspace_sections.settings_backup_import_section.s45', "تأكيد ملء النظام بالبيانات التجريبية")}
                 </h3>
                 <p style={{ margin: '2px 0 0', fontSize: '0.78rem', color: '#64748b' }}>
-                  {modalMode === 'wipe' ? 'سيتم مسح كل الحركات والبيانات وإعادة النظام لضبط المصنع' : 'سيتم إضافة أصناف وعملاء وموظفين وفواتير 6 أشهر'}
+                  {modalMode === 'wipe' ? t('settings.workspace_sections.settings_backup_import_section.s46', "سيتم مسح كل الحركات والبيانات وإعادة النظام لضبط المصنع") : t('settings.workspace_sections.settings_backup_import_section.s47', "سيتم إضافة أصناف وعملاء وموظفين وفواتير 6 أشهر")}
                 </p>
               </div>
             </div>
@@ -630,19 +634,19 @@ function DemoDataSandboxCard() {
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
                 </svg>
-                <span>أمان إضافي مؤكد:</span>
+                <span>{t('settings.workspace_sections.settings_backup_import_section.s48', "أمان إضافي مؤكد:")}</span>
               </div>
-              سيقوم السستم تلقائياً بأخذ لقطة احتياطية كاملة (Backup) من قاعدة البيانات الحالية وحفظها في المجلد السحابي والمحلي قبل الشروع في التنفيذ لحماية بياناتك تماماً.
+              {t('settings.workspace_sections.settings_backup_import_section.s49', "سيقوم السستم تلقائياً بأخذ لقطة احتياطية كاملة (Backup) من قاعدة البيانات الحالية وحفظها في المجلد السحابي والمحلي قبل الشروع في التنفيذ لحماية بياناتك تماماً.")}
             </div>
 
             <div style={{ marginBottom: '18px' }}>
               <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 800, color: '#0f172a', marginBottom: '6px' }}>
-                كلمة مرور السوبر أدمن (مطلوبة للتنفيذ)
+                {t('settings.workspace_sections.settings_backup_import_section.s50', "كلمة مرور السوبر أدمن (مطلوبة للتنفيذ)")}
               </label>
               <div style={{ position: 'relative' }}>
                 <input
                   type={showPassword ? 'text' : 'password'}
-                  placeholder="أدخل كلمة مرور السوبر أدمن الحالية..."
+                  placeholder={t('settings.workspace_sections.settings_backup_import_section.s51', "أدخل كلمة مرور السوبر أدمن الحالية...")}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   onKeyDown={(e) => {
@@ -729,7 +733,7 @@ function DemoDataSandboxCard() {
                   fontSize: '0.85rem',
                 }}
               >
-                إلغاء
+                {t('settings.workspace_sections.settings_backup_import_section.s52', "إلغاء")}
               </Button>
 
               <Button
@@ -747,7 +751,7 @@ function DemoDataSandboxCard() {
                   boxShadow: modalMode === 'wipe' ? '0 2px 6px rgba(220, 38, 38, 0.3)' : '0 2px 6px rgba(23, 14, 94, 0.25)',
                 }}
               >
-                {mutation.isPending ? 'جاري التنفيذ وأخذ النسخة...' : modalMode === 'wipe' ? 'تأكيد المسح والتصفير' : 'تأكيد ملء البيانات التجريبية'}
+                {mutation.isPending ? t('settings.workspace_sections.settings_backup_import_section.s53', "جاري التنفيذ وأخذ النسخة...") : modalMode === 'wipe' ? t('settings.workspace_sections.settings_backup_import_section.s54', "تأكيد المسح والتصفير") : t('settings.workspace_sections.settings_backup_import_section.s55', "تأكيد ملء البيانات التجريبية")}
               </Button>
             </div>
         </div>
@@ -757,6 +761,7 @@ function DemoDataSandboxCard() {
 }
 
 function InventoryOperationsResetCard({ canManage }: { canManage: boolean }) {
+  const { t } = useTranslation();
   const [modalMode, setModalMode] = useState<'reset_stock' | 'wipe_catalog' | null>(null);
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -795,7 +800,7 @@ function InventoryOperationsResetCard({ canManage }: { canManage: boolean }) {
     <>
       <QueryCard
         className="settings-admin-card"
-        title="إدارة تهيئة المخزون وتصفير البيانات للبدء الفعلي"
+        title={t('settings.workspace_sections.settings_backup_import_section.s56', "إدارة تهيئة المخزون وتصفير البيانات للبدء الفعلي")}
         actions={
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span
@@ -808,14 +813,14 @@ function InventoryOperationsResetCard({ canManage }: { canManage: boolean }) {
                 fontWeight: 700,
               }}
             >
-              صلاحية الإدارة فقط
+              {t('settings.workspace_sections.settings_backup_import_section.s57', "صلاحية الإدارة فقط")}
             </span>
           </div>
         }
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <div style={{ fontSize: '0.82rem', color: '#64748b', lineHeight: 1.5 }}>
-            أدوات إدارية مخصصة لتهيئة المنشأة وبدء التشغيل الفعلي. تتيح لك إما تصفير كميات وحركات المخزون فقط مع الاحتفاظ بأسماء الأصناف وأسعارها، أو مسح كافة الأصناف بالكامل للبدء بكتالوج جديد، مع الحفاظ الصارم في الحالتين على بيانات المنشأة والفروع والمستخدمين والإعدادات.
+            {t('settings.workspace_sections.settings_backup_import_section.s58', "أدوات إدارية مخصصة لتهيئة المنشأة وبدء التشغيل الفعلي. تتيح لك إما تصفير كميات وحركات المخزون فقط مع الاحتفاظ بأسماء الأصناف وأسعارها، أو مسح كافة الأصناف بالكامل للبدء بكتالوج جديد، مع الحفاظ الصارم في الحالتين على بيانات المنشأة والفروع والمستخدمين والإعدادات.")}
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '14px' }}>
@@ -834,20 +839,20 @@ function InventoryOperationsResetCard({ canManage }: { canManage: boolean }) {
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                   <strong style={{ fontSize: '0.92rem', color: '#0f172a', fontWeight: 800 }}>
-                    1. تصفير أرصدة المخزون والحركات
+                    {t('settings.workspace_sections.settings_backup_import_section.s59', "1. تصفير أرصدة المخزون والحركات")}
                   </strong>
                   <span style={{ fontSize: '0.7rem', background: '#eff6ff', color: '#1d4ed8', padding: '2px 8px', borderRadius: '4px', fontWeight: 700, border: '1px solid #bfdbfe' }}>
-                    الأصناف والأسعار محفوظة
+                    {t('settings.workspace_sections.settings_backup_import_section.s60', "الأصناف والأسعار محفوظة")}
                   </span>
                 </div>
                 <p style={{ margin: 0, fontSize: '0.78rem', color: '#64748b', lineHeight: 1.5 }}>
-                  تصفير كميات وأرصدة كافة الأصناف في جميع المخازن لتصبح (0)، ومسح الحركات والفواتير السابقة للبدء الفعلي بجرد نظيف أو إدخال رصيد أول المدة، <strong>مع الحفاظ التام على بيانات الأصناف والباركودات والأسعار والتصنيفات</strong>.
+                  {t('settings.workspace_sections.settings_backup_import_section.s61', "تصفير كميات وأرصدة كافة الأصناف في جميع المخازن لتصبح (0)، ومسح الحركات والفواتير السابقة للبدء الفعلي بجرد نظيف أو إدخال رصيد أول المدة،")} <strong>{t('settings.workspace_sections.settings_backup_import_section.s62', "مع الحفاظ التام على بيانات الأصناف والباركودات والأسعار والتصنيفات")}</strong>.
                 </p>
               </div>
 
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '10px', borderTop: '1px solid #f1f5f9' }}>
                 <span style={{ fontSize: '0.72rem', color: '#059669', fontWeight: 600 }}>
-                  نسخة احتياطية تلقائية
+                  {t('settings.workspace_sections.settings_backup_import_section.s63', "نسخة احتياطية تلقائية")}
                 </span>
                 <Button
                   type="button"
@@ -869,7 +874,7 @@ function InventoryOperationsResetCard({ canManage }: { canManage: boolean }) {
                     boxShadow: '0 2px 4px rgba(23, 14, 94, 0.2)',
                   }}
                 >
-                  تصفير أرصدة المخزون لبدء الشغل
+                  {t('settings.workspace_sections.settings_backup_import_section.s64', "تصفير أرصدة المخزون لبدء الشغل")}
                 </Button>
               </div>
             </div>
@@ -889,20 +894,20 @@ function InventoryOperationsResetCard({ canManage }: { canManage: boolean }) {
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                   <strong style={{ fontSize: '0.92rem', color: '#991b1b', fontWeight: 800 }}>
-                    2. مسح كافة الأصناف والمخزون كلياً
+                    {t('settings.workspace_sections.settings_backup_import_section.s65', "2. مسح كافة الأصناف والمخزون كلياً")}
                   </strong>
                   <span style={{ fontSize: '0.7rem', background: '#fff1f2', color: '#be123c', padding: '2px 8px', borderRadius: '4px', fontWeight: 700, border: '1px solid #fecdd3' }}>
-                    بيانات المنشأة محفوظة
+                    {t('settings.workspace_sections.settings_backup_import_section.s66', "بيانات المنشأة محفوظة")}
                   </span>
                 </div>
                 <p style={{ margin: 0, fontSize: '0.78rem', color: '#64748b', lineHeight: 1.5 }}>
-                  مسح كافة الأصناف والباركودات والتصنيفات والمخزون بالكامل للبدء بقائمة أصناف جديدة، <strong>مع الحفاظ الصارم على اسم المنشأة، الشعار، العنوان، الهواتف، الفروع، المستخدمين، والإعدادات</strong>.
+                  {t('settings.workspace_sections.settings_backup_import_section.s67', "مسح كافة الأصناف والباركودات والتصنيفات والمخزون بالكامل للبدء بقائمة أصناف جديدة،")} <strong>{t('settings.workspace_sections.settings_backup_import_section.s68', "مع الحفاظ الصارم على اسم المنشأة، الشعار، العنوان، الهواتف، الفروع، المستخدمين، والإعدادات")}</strong>.
                 </p>
               </div>
 
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '10px', borderTop: '1px solid #fef2f2' }}>
                 <span style={{ fontSize: '0.72rem', color: '#dc2626', fontWeight: 600 }}>
-                  إجراء جذري بحماية كلمة المرور
+                  {t('settings.workspace_sections.settings_backup_import_section.s69', "إجراء جذري بحماية كلمة المرور")}
                 </span>
                 <Button
                   type="button"
@@ -923,7 +928,7 @@ function InventoryOperationsResetCard({ canManage }: { canManage: boolean }) {
                     cursor: 'pointer',
                   }}
                 >
-                  مسح كافة الأصناف والمخزون
+                  {t('settings.workspace_sections.settings_backup_import_section.s70', "مسح كافة الأصناف والمخزون")}
                 </Button>
               </div>
             </div>
@@ -956,7 +961,7 @@ function InventoryOperationsResetCard({ canManage }: { canManage: boolean }) {
           }
         }}
         width="min(500px, 95vw)"
-        ariaLabel={modalMode === 'wipe_catalog' ? 'مسح وحذف سجل الأصناف بالكامل' : 'تصفير أرصدة المخزون وحركات البيع'}
+        ariaLabel={modalMode === 'wipe_catalog' ? t('settings.workspace_sections.settings_backup_import_section.s71', "مسح وحذف سجل الأصناف بالكامل") : t('settings.workspace_sections.settings_backup_import_section.s72', "تصفير أرصدة المخزون وحركات البيع")}
       >
         <div style={{
           background: '#ffffff',
@@ -981,12 +986,12 @@ function InventoryOperationsResetCard({ canManage }: { canManage: boolean }) {
               </div>
               <div>
                 <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: modalMode === 'wipe_catalog' ? '#991b1b' : '#0f172a' }}>
-                  {modalMode === 'reset_stock' ? 'تأكيد تصفير أرصدة المخزون لبدء التشغيل' : 'تأكيد مسح كافة الأصناف والمخزون كلياً'}
+                  {modalMode === 'reset_stock' ? t('settings.workspace_sections.settings_backup_import_section.s73', "تأكيد تصفير أرصدة المخزون لبدء التشغيل") : t('settings.workspace_sections.settings_backup_import_section.s74', "تأكيد مسح كافة الأصناف والمخزون كلياً")}
                 </h3>
                 <p style={{ margin: '2px 0 0', fontSize: '0.78rem', color: '#64748b' }}>
                   {modalMode === 'reset_stock' 
-                    ? 'سيتم تصفير الكميات ومسح الحركات السابقة مع الإبقاء على قائمة الأصناف والأسعار'
-                    : 'سيتم مسح كافة الأصناف والكتالوج بالكامل مع الحفاظ الصارم على بيانات المنشأة'}
+                    ? t('settings.workspace_sections.settings_backup_import_section.s75', "سيتم تصفير الكميات ومسح الحركات السابقة مع الإبقاء على قائمة الأصناف والأسعار")
+                    : t('settings.workspace_sections.settings_backup_import_section.s76', "سيتم مسح كافة الأصناف والكتالوج بالكامل مع الحفاظ الصارم على بيانات المنشأة")}
                 </p>
               </div>
             </div>
@@ -1007,23 +1012,23 @@ function InventoryOperationsResetCard({ canManage }: { canManage: boolean }) {
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <polyline points="20 6 9 17 4 12"></polyline>
                 </svg>
-                <span>البيانات المحفوظة التي لن يتم المساس بها:</span>
+                <span>{t('settings.workspace_sections.settings_backup_import_section.s77', "البيانات المحفوظة التي لن يتم المساس بها:")}</span>
               </div>
               <div style={{ color: '#334155', paddingRight: '22px', fontSize: '0.78rem', lineHeight: 1.5 }}>
                 {modalMode === 'reset_stock'
-                  ? '• أسماء الأصناف، الأكواد، الباركودات، أسعار التكلفة والبيع، التصنيفات، الوحدات، بيانات المنشأة، الفروع، والمستخدمين.'
-                  : '• اسم المنشأة، الشعار، العنوان، أرقام الهواتف، الفروع، أماكن التخزين، المستخدمين والصلاحيات، وإعدادات النظام.'}
+                  ? t('settings.workspace_sections.settings_backup_import_section.s78', "• أسماء الأصناف، الأكواد، الباركودات، أسعار التكلفة والبيع، التصنيفات، الوحدات، بيانات المنشأة، الفروع، والمستخدمين.")
+                  : t('settings.workspace_sections.settings_backup_import_section.s79', "• اسم المنشأة، الشعار، العنوان، أرقام الهواتف، الفروع، أماكن التخزين، المستخدمين والصلاحيات، وإعدادات النظام.")}
               </div>
             </div>
 
             <div style={{ marginBottom: '18px' }}>
               <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 800, color: '#0f172a', marginBottom: '6px' }}>
-                كلمة مرور حساب المدير (مطلوبة لتأكيد العملية)
+                {t('settings.workspace_sections.settings_backup_import_section.s80', "كلمة مرور حساب المدير (مطلوبة لتأكيد العملية)")}
               </label>
               <div style={{ position: 'relative' }}>
                 <input
                   type={showPassword ? 'text' : 'password'}
-                  placeholder="أدخل كلمة المرور لتأكيد الهوية..."
+                  placeholder={t('settings.workspace_sections.settings_backup_import_section.s81', "أدخل كلمة المرور لتأكيد الهوية...")}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   onKeyDown={(e) => {
@@ -1110,7 +1115,7 @@ function InventoryOperationsResetCard({ canManage }: { canManage: boolean }) {
                   fontSize: '0.85rem',
                 }}
               >
-                إلغاء
+                {t('settings.workspace_sections.settings_backup_import_section.s82', "إلغاء")}
               </Button>
 
               <Button
@@ -1128,7 +1133,7 @@ function InventoryOperationsResetCard({ canManage }: { canManage: boolean }) {
                   boxShadow: modalMode === 'wipe_catalog' ? '0 2px 6px rgba(220, 38, 38, 0.3)' : '0 2px 6px rgba(23, 14, 94, 0.25)',
                 }}
               >
-                {mutation.isPending ? 'جاري التنفيذ...' : modalMode === 'reset_stock' ? 'تأكيد تصفير الأرصدة' : 'تأكيد مسح الأصناف'}
+                {mutation.isPending ? t('settings.workspace_sections.settings_backup_import_section.s83', "جاري التنفيذ...") : modalMode === 'reset_stock' ? t('settings.workspace_sections.settings_backup_import_section.s84', "تأكيد تصفير الأرصدة") : t('settings.workspace_sections.settings_backup_import_section.s85', "تأكيد مسح الأصناف")}
               </Button>
             </div>
         </div>
@@ -1208,6 +1213,7 @@ export function SettingsBackupImportSection({
   downloadTemplate,
   onExportData,
 }: SettingsBackupImportSectionProps) {
+  const { t } = useTranslation();
   const user = useAuthStore((s) => s.user);
   const tenant = useAuthStore((s) => s.tenant);
   const currentVertical = resolveCurrentVertical(tenant);
@@ -1227,11 +1233,11 @@ export function SettingsBackupImportSection({
       {/* Backup & System Health Section */}
       <QueryCard
         className="settings-admin-card"
-        title="النسخ الاحتياطي والأمان"
+        title={t('settings.workspace_sections.settings_backup_import_section.s86', "النسخ الاحتياطي والأمان")}
         actions={
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span className="nav-pill" style={{ background: autoBackupEnabled ? '#ecfdf5' : '#f1f5f9', color: autoBackupEnabled ? '#047857' : '#64748b', border: autoBackupEnabled ? '1px solid #a7f3d0' : '1px solid #e2e8f0', fontSize: '0.74rem', fontWeight: 700 }}>
-              النسخ التلقائي: {autoBackupEnabled ? 'مفعّل' : 'متوقف'}
+              {t('settings.workspace_sections.settings_backup_import_section.s87', "النسخ التلقائي:")} {autoBackupEnabled ? t('settings.workspace_sections.settings_backup_import_section.s88', "مفعّل") : t('settings.workspace_sections.settings_backup_import_section.s89', "متوقف")}
             </span>
           </div>
         }
@@ -1246,7 +1252,7 @@ export function SettingsBackupImportSection({
                 disabled={backupBusy || !canManageBackups}
                 style={{ background: '#0f172a', color: '#ffffff', fontSize: '0.82rem', padding: '7px 14px', fontWeight: 700, flex: '1 1 auto', minWidth: '160px' }}
               >
-                تنزيل نسخة احتياطية
+                {t('settings.workspace_sections.settings_backup_import_section.s90', "تنزيل نسخة احتياطية")}
               </Button>
 
               {(isDesktopOffline || isPlatformSuperAdmin) && (
@@ -1257,7 +1263,7 @@ export function SettingsBackupImportSection({
                   disabled={backupBusy || !canManageBackups}
                   style={{ fontSize: '0.80rem', padding: '7px 12px', flex: '1 1 auto' }}
                 >
-                  حفظ نسخة بالمجلد
+                  {t('settings.workspace_sections.settings_backup_import_section.s91', "حفظ نسخة بالمجلد")}
                 </Button>
               )}
 
@@ -1268,13 +1274,13 @@ export function SettingsBackupImportSection({
                 disabled={backupBusy || !canManageBackups}
                 style={{ fontSize: '0.80rem', padding: '7px 12px', flex: '1 1 auto' }}
               >
-                حزمة الدعم
+                {t('settings.workspace_sections.settings_backup_import_section.s92', "حزمة الدعم")}
               </Button>
             </div>
 
             {(isDesktopOffline || isPlatformSuperAdmin) && (
               <span style={{ fontSize: '0.78rem', color: '#64748b' }}>
-                المسار الافتراضي: <strong style={{ color: '#0f172a' }}>{resolvedFolder}</strong>
+                {t('settings.workspace_sections.settings_backup_import_section.s93', "المسار الافتراضي:")} <strong style={{ color: '#0f172a' }}>{resolvedFolder}</strong>
               </span>
             )}
           </div>
@@ -1284,39 +1290,39 @@ export function SettingsBackupImportSection({
             {/* Column 1: Automated Backups & Folder Config */}
             <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <strong style={{ fontSize: '0.9rem', color: '#0f172a', fontWeight: 800 }}>
-                {isDesktopOffline || isPlatformSuperAdmin ? 'إعدادات النسخ التلقائي ومجلد الحفظ' : 'النسخ الاحتياطي التلقائي'}
+                {isDesktopOffline || isPlatformSuperAdmin ? t('settings.workspace_sections.settings_backup_import_section.s94', "إعدادات النسخ التلقائي ومجلد الحفظ") : t('settings.workspace_sections.settings_backup_import_section.s95', "النسخ الاحتياطي التلقائي")}
               </strong>
 
               {/* Folder Path Row */}
               {(isDesktopOffline || isPlatformSuperAdmin) ? (
                 <div>
                   <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
-                    مسار مجلد النسخ الاحتياطية على السيرفر
+                    {t('settings.workspace_sections.settings_backup_import_section.s96', "مسار مجلد النسخ الاحتياطية على السيرفر")}
                   </label>
                   <div style={{ display: 'flex', gap: '6px' }}>
                     <input
                       value={backupFolderPathDraft}
-                      placeholder="مثال: D:\ZS Backups"
+                      placeholder={t('settings.workspace_sections.settings_backup_import_section.s97', "مثال: D:\\ZS Backups")}
                       onChange={(event) => setBackupFolderPathDraft(event.target.value)}
                       disabled={backupBusy || !canManageBackups}
                       style={{ flex: 1, padding: '7px 12px', fontSize: '0.84rem', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', outline: 'none' }}
                     />
                     <Button type="button" variant="secondary" onClick={() => void testBackupFolder()} disabled={backupBusy || !canManageBackups} style={{ fontSize: '0.78rem', padding: '6px 12px' }}>
-                      اختبار
+                      {t('settings.workspace_sections.settings_backup_import_section.s98', "اختبار")}
                     </Button>
                     <Button type="button" variant="secondary" onClick={() => void saveBackupConfig()} disabled={backupBusy || !canManageBackups} style={{ fontSize: '0.78rem', padding: '6px 12px' }}>
-                      حفظ
+                      {t('settings.workspace_sections.settings_backup_import_section.s99', "حفظ")}
                     </Button>
                   </div>
 
                   {/* Cloud & Drive Quick Presets */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '6px', flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700 }}>سحابة / اختصارات سريعة:</span>
+                    <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700 }}>{t('settings.workspace_sections.settings_backup_import_section.s100', "سحابة / اختصارات سريعة:")}</span>
                     {[
                       { label: 'Google Drive', path: 'C:\\Users\\Public\\Google Drive\\ZS Backups' },
                       { label: 'OneDrive', path: 'C:\\Users\\Public\\OneDrive\\ZS Backups' },
                       { label: 'Dropbox', path: 'C:\\Users\\Public\\Dropbox\\ZS Backups' },
-                      { label: 'قرص D:', path: 'D:\\ZS Backups' },
+                      { label: t('settings.workspace_sections.settings_backup_import_section.s101', "قرص D:"), path: 'D:\\ZS Backups' },
                     ].map((p) => (
                       <button
                         key={p.label}
@@ -1338,45 +1344,45 @@ export function SettingsBackupImportSection({
                     ))}
                   </div>
                   <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '4px' }}>
-                    ملاحظة: عند اختيار مجلد مزامنة سحابية لـ (Google Drive أو OneDrive أو Dropbox)، تُرفع النسخ للسحابة تلقائياً لحظة إنشائها لحماية بياناتك من أي عطل بالهارد ديسك.
+                    {t('settings.workspace_sections.settings_backup_import_section.s102', "ملاحظة: عند اختيار مجلد مزامنة سحابية لـ (Google Drive أو OneDrive أو Dropbox)، تُرفع النسخ للسحابة تلقائياً لحظة إنشائها لحماية بياناتك من أي عطل بالهارد ديسك.")}
                   </div>
                 </div>
               ) : (
                 <div style={{ fontSize: '0.78rem', color: '#475569', lineHeight: 1.6, background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 12px' }}>
-                  يتم حفظ وتأمين نسخ احتياطية دورية لقاعدة بيانات المنشأة تلقائياً على خوادم السحابة المشفرة لضمان استمرارية الأعمال وحماية البيانات.
+                  {t('settings.workspace_sections.settings_backup_import_section.s103', "يتم حفظ وتأمين نسخ احتياطية دورية لقاعدة بيانات المنشأة تلقائياً على خوادم السحابة المشفرة لضمان استمرارية الأعمال وحماية البيانات.")}
                 </div>
               )}
 
               {/* Automation Schedule Grid */}
               <div style={{ display: 'grid', gridTemplateColumns: backupFrequencyDraft === 'weekly' ? '1fr 1fr 1fr 1fr' : '1fr 1fr 1fr', gap: '8px' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#475569', marginBottom: '3px' }}>الحالة</label>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#475569', marginBottom: '3px' }}>{t('settings.workspace_sections.settings_backup_import_section.s104', "الحالة")}</label>
                   <select
                     value={backupAutoEnabledDraft ? 'on' : 'off'}
                     onChange={(event) => setBackupAutoEnabledDraft(event.target.value === 'on')}
                     disabled={backupBusy || !canManageBackups}
                     style={{ width: '100%', padding: '6px 8px', fontSize: '0.8rem', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff' }}
                   >
-                    <option value="on">مفعّل</option>
-                    <option value="off">متوقف</option>
+                    <option value="on">{t('settings.workspace_sections.settings_backup_import_section.s105', "مفعّل")}</option>
+                    <option value="off">{t('settings.workspace_sections.settings_backup_import_section.s106', "متوقف")}</option>
                   </select>
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#475569', marginBottom: '3px' }}>التكرار</label>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#475569', marginBottom: '3px' }}>{t('settings.workspace_sections.settings_backup_import_section.s107', "التكرار")}</label>
                   <select
                     value={backupFrequencyDraft}
                     onChange={(event) => setBackupFrequencyDraft(event.target.value === 'weekly' ? 'weekly' : 'daily')}
                     disabled={backupBusy || !canManageBackups}
                     style={{ width: '100%', padding: '6px 8px', fontSize: '0.8rem', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff' }}
                   >
-                    <option value="daily">يومي</option>
-                    <option value="weekly">أسبوعي</option>
+                    <option value="daily">{t('settings.workspace_sections.settings_backup_import_section.s108', "يومي")}</option>
+                    <option value="weekly">{t('settings.workspace_sections.settings_backup_import_section.s109', "أسبوعي")}</option>
                   </select>
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#475569', marginBottom: '3px' }}>وقت النسخ</label>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#475569', marginBottom: '3px' }}>{t('settings.workspace_sections.settings_backup_import_section.s110', "وقت النسخ")}</label>
                   <input
                     type="time"
                     value={backupTimeDraft || '03:00'}
@@ -1388,7 +1394,7 @@ export function SettingsBackupImportSection({
 
                 {backupFrequencyDraft === 'weekly' && (
                   <div>
-                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#475569', marginBottom: '3px' }}>اليوم</label>
+                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#475569', marginBottom: '3px' }}>{t('settings.workspace_sections.settings_backup_import_section.s111', "اليوم")}</label>
                     <select
                       value={backupWeeklyDayDraft}
                       onChange={(event) => setBackupWeeklyDayDraft(Number(event.target.value || 0))}
@@ -1403,8 +1409,8 @@ export function SettingsBackupImportSection({
 
               {/* Status Row */}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.76rem', color: '#64748b', background: '#ffffff', border: '1px solid #f1f5f9', borderRadius: '6px', padding: '6px 10px', marginTop: 'auto' }}>
-                <span>آخر نسخة ناجحة: <strong style={{ color: '#0f172a' }}>{autoState?.lastSuccessAt ? new Date(autoState.lastSuccessAt).toLocaleString('ar-EG') : 'لا يوجد'}</strong></span>
-                <span>الحالة: <strong style={{ color: autoState?.lastAttemptStatus === 'success' ? '#16a34a' : autoState?.lastAttemptStatus === 'failed' ? '#dc2626' : '#64748b' }}>{autoState?.lastAttemptStatus === 'success' ? 'ناجحة' : autoState?.lastAttemptStatus === 'failed' ? 'فشلت' : '—'}</strong></span>
+                <span>{t('settings.workspace_sections.settings_backup_import_section.s112', "آخر نسخة ناجحة:")} <strong style={{ color: '#0f172a' }}>{autoState?.lastSuccessAt ? new Date(autoState.lastSuccessAt).toLocaleString('ar-EG') : t('settings.workspace_sections.settings_backup_import_section.s113', "لا يوجد")}</strong></span>
+                <span>{t('settings.workspace_sections.settings_backup_import_section.s114', "الحالة:")} <strong style={{ color: autoState?.lastAttemptStatus === 'success' ? '#16a34a' : autoState?.lastAttemptStatus === 'failed' ? '#dc2626' : '#64748b' }}>{autoState?.lastAttemptStatus === 'success' ? t('settings.workspace_sections.settings_backup_import_section.s115', "ناجحة") : autoState?.lastAttemptStatus === 'failed' ? t('settings.workspace_sections.settings_backup_import_section.s116', "فشلت") : '—'}</strong></span>
               </div>
             </div>
 
@@ -1412,22 +1418,22 @@ export function SettingsBackupImportSection({
             <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <strong style={{ fontSize: '0.9rem', color: '#0f172a', fontWeight: 800 }}>
-                  فحص واستعادة النسخ الاحتياطية
+                  {t('settings.workspace_sections.settings_backup_import_section.s117', "فحص واستعادة النسخ الاحتياطية")}
                 </strong>
                 <button
                   type="button"
                   onClick={() => setIsSnapshotsOpen(!isSnapshotsOpen)}
                   style={{ fontSize: '0.76rem', fontWeight: 700, padding: '4px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#1e293b', cursor: 'pointer' }}
                 >
-                  {isSnapshotsOpen ? 'إخفاء سجل اللقطات ▲' : `سجل اللقطات (${snapshots.length}) ▼`}
+                  {isSnapshotsOpen ? t('settings.workspace_sections.settings_backup_import_section.s118', "إخفاء سجل اللقطات ▲") : `سجل اللقطات (${snapshots.length}) ▼`}
                 </button>
               </div>
 
               {/* Custom File Action Buttons */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
                 <label style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '10px', background: '#ffffff', border: '1px dashed #cbd5e1', borderRadius: '8px', cursor: 'pointer', textAlign: 'center', transition: 'border-color 0.15s ease' }}>
-                  <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#0f172a' }}>فحص ملف نسخة</span>
-                  <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>للتأكد من سلامة الملف</span>
+                  <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#0f172a' }}>{t('settings.workspace_sections.settings_backup_import_section.s119', "فحص ملف نسخة")}</span>
+                  <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>{t('settings.workspace_sections.settings_backup_import_section.s120', "للتأكد من سلامة الملف")}</span>
                   <input
                     type="file"
                     style={{ display: 'none' }}
@@ -1439,8 +1445,8 @@ export function SettingsBackupImportSection({
 
                 {canRestore && canManageBackups ? (
                   <label style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '10px', background: '#ffffff', border: '1px dashed #fca5a5', borderRadius: '8px', cursor: 'pointer', textAlign: 'center', transition: 'border-color 0.15s ease' }}>
-                    <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#b91c1c' }}>استعادة من ملف</span>
-                    <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>تستبدل البيانات الحالية</span>
+                    <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#b91c1c' }}>{t('settings.workspace_sections.settings_backup_import_section.s121', "استعادة من ملف")}</span>
+                    <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>{t('settings.workspace_sections.settings_backup_import_section.s122', "تستبدل البيانات الحالية")}</span>
                     <input
                       type="file"
                       style={{ display: 'none' }}
@@ -1451,10 +1457,10 @@ export function SettingsBackupImportSection({
                   </label>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '10px', background: '#f8fafc', border: '1px dashed #cbd5e1', borderRadius: '8px', textAlign: 'center', opacity: 0.8, cursor: 'not-allowed' }}>
-                    <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#64748b' }}>استعادة من ملف</span>
+                    <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#64748b' }}>{t('settings.workspace_sections.settings_backup_import_section.s123', "استعادة من ملف")}</span>
                     <span style={{ fontSize: '0.7rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '3px', marginTop: '2px' }}>
                       <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect width="18" height="11" x="3" y="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
-                      خاص بالإدارة
+                      {t('settings.workspace_sections.settings_backup_import_section.s124', "خاص بالإدارة")}
                     </span>
                   </div>
                 )}
@@ -1523,34 +1529,34 @@ export function SettingsBackupImportSection({
       {/* Import / Export Workbench */}
       <QueryCard
         className="settings-admin-card settings-import-card"
-        title={isMaritime ? 'استيراد وتصدير بيانات الشحن والعملاء' : isContracting ? 'استيراد وتصدير بيانات المقاولات' : 'استيراد وتصدير البيانات'}
-        actions={<span className="nav-pill">ملفات Excel / CSV</span>}
+        title={isMaritime ? t('settings.workspace_sections.settings_backup_import_section.s125', "استيراد وتصدير بيانات الشحن والعملاء") : isContracting ? t('settings.workspace_sections.settings_backup_import_section.s126', "استيراد وتصدير بيانات المقاولات") : t('settings.workspace_sections.settings_backup_import_section.s127', "استيراد وتصدير البيانات")}
+        actions={<span className="nav-pill">{t('settings.workspace_sections.settings_backup_import_section.s128', "ملفات Excel / CSV")}</span>}
       >
         <div className="settings-two-col-grid" style={{ display: 'grid', gridTemplateColumns: isMaritime ? 'repeat(auto-fit, minmax(320px, 1fr))' : 'repeat(2, minmax(0, 1fr))', gap: '16px' }}>
-          {!canManageBackups ? <div className="muted small" style={{ gridColumn: '1 / -1' }}>إدارة النسخ الاحتياطي والاسترداد غير متاحة لهذا الحساب.</div> : null}
+          {!canManageBackups ? <div className="muted small" style={{ gridColumn: '1 / -1' }}>{t('settings.workspace_sections.settings_backup_import_section.s129', "إدارة النسخ الاحتياطي والاسترداد غير متاحة لهذا الحساب.")}</div> : null}
           <ImportWorkbench
-            title={isMaritime ? 'استيراد بنود وتعريفات خدمات الشحن والنولون' : isContracting ? 'استيراد بنود المقايسة وتكاليف المشروعات' : 'استيراد الأصناف'}
-            requiredColumns={[isMaritime ? 'اسم الخدمة / البند' : isContracting ? 'اسم البند' : 'اسم الصنف']}
+            title={isMaritime ? t('settings.workspace_sections.settings_backup_import_section.s130', "استيراد بنود وتعريفات خدمات الشحن والنولون") : isContracting ? t('settings.workspace_sections.settings_backup_import_section.s131', "استيراد بنود المقايسة وتكاليف المشروعات") : t('settings.workspace_sections.settings_backup_import_section.s132', "استيراد الأصناف")}
+            requiredColumns={[isMaritime ? t('settings.workspace_sections.settings_backup_import_section.s133', "اسم الخدمة / البند") : isContracting ? t('settings.workspace_sections.settings_backup_import_section.s134', "اسم البند") : t('settings.workspace_sections.settings_backup_import_section.s135', "اسم الصنف")]}
             requiredFieldKeys={['name']}
             fieldMappings={[
-              { key: 'name', label: isMaritime ? 'اسم الخدمة / البند' : isContracting ? 'اسم البند' : 'اسم الصنف', aliases: ['اسم الصنف (إجباري)', 'اسم الخدمة', 'اسم البند', 'اسم الصنف', 'الاسم', 'name'] },
-              { key: 'categoryName', label: isMaritime ? 'التصنيف اللوجستي' : isContracting ? 'المجموعة / المرحلة' : 'الصنف', aliases: ['القسم', 'category', 'التصنيف'] },
-              { key: 'supplierName', label: 'المورد', aliases: ['المورد', 'اسم المورد', 'supplier', 'supplierName'] },
-              { key: 'itemType', label: 'النوع', aliases: ['النوع', 'تصنيف', 'type', 'itemType', 'item_type'] },
-              { key: 'barcode', label: isMaritime ? 'كود التعريفة' : isContracting ? 'كود البند' : 'الباركود', aliases: ['barcode', 'كود', 'code'] },
-              { key: 'costPrice', label: isMaritime ? 'التكلفة المرجعية' : 'التكلفة', aliases: ['سعر التكلفة', 'cost', 'cost_price'] },
-              { key: 'retailPrice', label: isMaritime ? 'سعر الخدمة / النولون' : isContracting ? 'فئة البند التعاقدية' : 'السعر', aliases: ['سعر البيع', 'price', 'retail_price', 'تعريفة'] },
-              { key: 'wholesalePrice', label: 'سعر الجملة', aliases: ['سعر الجملة', 'الجملة', 'wholesalePrice', 'wholesale_price'] },
-              { key: 'minStockQty', label: 'الحد الأدنى', aliases: ['الحد الأدنى', 'حد الطلب', 'minStockQty', 'minQty', 'min_stock'] },
-              { key: 'stockQty', label: 'الكمية الافتتاحية', aliases: ['الكمية', 'stock', 'stockQty', 'qty'] },
-              { key: 'warehouseName', label: isMaritime ? 'الميناء / المحطة' : isContracting ? 'موقع التشوين' : 'المخزن', aliases: ['المخزن', 'warehouse', 'store', 'الميناء'] },
-              { key: 'unitName', label: 'وحدة القياس الأساسية', aliases: ['وحدة القياس الأساسية', 'وحدة القياس', 'الوحدة الأساسية', 'الوحدة', 'unit', 'unitName', 'القياس'] },
-              { key: 'saleUnit', label: 'وحدة البيع', aliases: ['وحدة البيع', 'saleUnit', 'sale_unit'] },
-              { key: 'purchaseUnit', label: 'وحدة الشراء', aliases: ['وحدة الشراء', 'purchaseUnit', 'purchase_unit'] },
-              { key: 'extraUnitName', label: 'اسم وحدة إضافية', aliases: ['اسم وحدة إضافية', 'وحدة إضافية', 'الوحدة الكبرى', 'اسم الوحدة الكبرى', 'extraUnit', 'extraUnitName', 'extra_unit'] },
-              { key: 'extraUnitMultiplier', label: 'معامل الوحدة الإضافية', aliases: ['معامل الوحدة الإضافية', 'معامل التحويل', 'معامل الوحدة', 'التحويل', 'المعامل', 'عدد القطع في الوحدة الكبرى', 'extraUnitMultiplier', 'multiplier', 'factor'] },
-              { key: 'extraUnitBarcode', label: 'باركود الوحدة الإضافية', aliases: ['باركود الوحدة الإضافية', 'باركود الوحدة', 'باركود الكرتونة', 'extraUnitBarcode', 'extra_barcode'] },
-              { key: 'notes', label: 'ملاحظات', aliases: ['ملاحظات', 'الوصف', 'notes', 'description'] },
+              { key: 'name', label: isMaritime ? t('settings.workspace_sections.settings_backup_import_section.s136', "اسم الخدمة / البند") : isContracting ? t('settings.workspace_sections.settings_backup_import_section.s137', "اسم البند") : t('settings.workspace_sections.settings_backup_import_section.s138', "اسم الصنف"), aliases: [t('settings.workspace_sections.settings_backup_import_section.s139', "اسم الصنف (إجباري)"), t('settings.workspace_sections.settings_backup_import_section.s140', "اسم الخدمة"), t('settings.workspace_sections.settings_backup_import_section.s141', "اسم البند"), t('settings.workspace_sections.settings_backup_import_section.s142', "اسم الصنف"), t('settings.workspace_sections.settings_backup_import_section.s143', "الاسم"), 'name'] },
+              { key: 'categoryName', label: isMaritime ? t('settings.workspace_sections.settings_backup_import_section.s144', "التصنيف اللوجستي") : isContracting ? t('settings.workspace_sections.settings_backup_import_section.s145', "المجموعة / المرحلة") : t('settings.workspace_sections.settings_backup_import_section.s146', "الصنف"), aliases: [t('settings.workspace_sections.settings_backup_import_section.s147', "القسم"), 'category', t('settings.workspace_sections.settings_backup_import_section.s148', "التصنيف")] },
+              { key: 'supplierName', label: t('settings.workspace_sections.settings_backup_import_section.s149', "المورد"), aliases: [t('settings.workspace_sections.settings_backup_import_section.s150', "المورد"), t('settings.workspace_sections.settings_backup_import_section.s151', "اسم المورد"), 'supplier', 'supplierName'] },
+              { key: 'itemType', label: t('settings.workspace_sections.settings_backup_import_section.s152', "النوع"), aliases: [t('settings.workspace_sections.settings_backup_import_section.s153', "النوع"), t('settings.workspace_sections.settings_backup_import_section.s154', "تصنيف"), 'type', 'itemType', 'item_type'] },
+              { key: 'barcode', label: isMaritime ? t('settings.workspace_sections.settings_backup_import_section.s155', "كود التعريفة") : isContracting ? t('settings.workspace_sections.settings_backup_import_section.s156', "كود البند") : t('settings.workspace_sections.settings_backup_import_section.s157', "الباركود"), aliases: ['barcode', t('settings.workspace_sections.settings_backup_import_section.s158', "كود"), 'code'] },
+              { key: 'costPrice', label: isMaritime ? t('settings.workspace_sections.settings_backup_import_section.s159', "التكلفة المرجعية") : t('settings.workspace_sections.settings_backup_import_section.s160', "التكلفة"), aliases: [t('settings.workspace_sections.settings_backup_import_section.s161', "سعر التكلفة"), 'cost', 'cost_price'] },
+              { key: 'retailPrice', label: isMaritime ? t('settings.workspace_sections.settings_backup_import_section.s162', "سعر الخدمة / النولون") : isContracting ? t('settings.workspace_sections.settings_backup_import_section.s163', "فئة البند التعاقدية") : t('settings.workspace_sections.settings_backup_import_section.s164', "السعر"), aliases: [t('settings.workspace_sections.settings_backup_import_section.s165', "سعر البيع"), 'price', 'retail_price', t('settings.workspace_sections.settings_backup_import_section.s166', "تعريفة")] },
+              { key: 'wholesalePrice', label: t('settings.workspace_sections.settings_backup_import_section.s167', "سعر الجملة"), aliases: [t('settings.workspace_sections.settings_backup_import_section.s168', "سعر الجملة"), t('settings.workspace_sections.settings_backup_import_section.s169', "الجملة"), 'wholesalePrice', 'wholesale_price'] },
+              { key: 'minStockQty', label: t('settings.workspace_sections.settings_backup_import_section.s170', "الحد الأدنى"), aliases: [t('settings.workspace_sections.settings_backup_import_section.s171', "الحد الأدنى"), t('settings.workspace_sections.settings_backup_import_section.s172', "حد الطلب"), 'minStockQty', 'minQty', 'min_stock'] },
+              { key: 'stockQty', label: t('settings.workspace_sections.settings_backup_import_section.s173', "الكمية الافتتاحية"), aliases: [t('settings.workspace_sections.settings_backup_import_section.s174', "الكمية"), 'stock', 'stockQty', 'qty'] },
+              { key: 'warehouseName', label: isMaritime ? t('settings.workspace_sections.settings_backup_import_section.s175', "الميناء / المحطة") : isContracting ? t('settings.workspace_sections.settings_backup_import_section.s176', "موقع التشوين") : t('settings.workspace_sections.settings_backup_import_section.s177', "المخزن"), aliases: [t('settings.workspace_sections.settings_backup_import_section.s178', "المخزن"), 'warehouse', 'store', t('settings.workspace_sections.settings_backup_import_section.s179', "الميناء")] },
+              { key: 'unitName', label: t('settings.workspace_sections.settings_backup_import_section.s180', "وحدة القياس الأساسية"), aliases: [t('settings.workspace_sections.settings_backup_import_section.s181', "وحدة القياس الأساسية"), t('settings.workspace_sections.settings_backup_import_section.s182', "وحدة القياس"), t('settings.workspace_sections.settings_backup_import_section.s183', "الوحدة الأساسية"), t('settings.workspace_sections.settings_backup_import_section.s184', "الوحدة"), 'unit', 'unitName', t('settings.workspace_sections.settings_backup_import_section.s185', "القياس")] },
+              { key: 'saleUnit', label: t('settings.workspace_sections.settings_backup_import_section.s186', "وحدة البيع"), aliases: [t('settings.workspace_sections.settings_backup_import_section.s187', "وحدة البيع"), 'saleUnit', 'sale_unit'] },
+              { key: 'purchaseUnit', label: t('settings.workspace_sections.settings_backup_import_section.s188', "وحدة الشراء"), aliases: [t('settings.workspace_sections.settings_backup_import_section.s189', "وحدة الشراء"), 'purchaseUnit', 'purchase_unit'] },
+              { key: 'extraUnitName', label: t('settings.workspace_sections.settings_backup_import_section.s190', "اسم وحدة إضافية"), aliases: [t('settings.workspace_sections.settings_backup_import_section.s191', "اسم وحدة إضافية"), t('settings.workspace_sections.settings_backup_import_section.s192', "وحدة إضافية"), t('settings.workspace_sections.settings_backup_import_section.s193', "الوحدة الكبرى"), t('settings.workspace_sections.settings_backup_import_section.s194', "اسم الوحدة الكبرى"), 'extraUnit', 'extraUnitName', 'extra_unit'] },
+              { key: 'extraUnitMultiplier', label: t('settings.workspace_sections.settings_backup_import_section.s195', "معامل الوحدة الإضافية"), aliases: [t('settings.workspace_sections.settings_backup_import_section.s196', "معامل الوحدة الإضافية"), t('settings.workspace_sections.settings_backup_import_section.s197', "معامل التحويل"), t('settings.workspace_sections.settings_backup_import_section.s198', "معامل الوحدة"), t('settings.workspace_sections.settings_backup_import_section.s199', "التحويل"), t('settings.workspace_sections.settings_backup_import_section.s200', "المعامل"), t('settings.workspace_sections.settings_backup_import_section.s201', "عدد القطع في الوحدة الكبرى"), 'extraUnitMultiplier', 'multiplier', 'factor'] },
+              { key: 'extraUnitBarcode', label: t('settings.workspace_sections.settings_backup_import_section.s202', "باركود الوحدة الإضافية"), aliases: [t('settings.workspace_sections.settings_backup_import_section.s203', "باركود الوحدة الإضافية"), t('settings.workspace_sections.settings_backup_import_section.s204', "باركود الوحدة"), t('settings.workspace_sections.settings_backup_import_section.s205', "باركود الكرتونة"), 'extraUnitBarcode', 'extra_barcode'] },
+              { key: 'notes', label: t('settings.workspace_sections.settings_backup_import_section.s206', "ملاحظات"), aliases: [t('settings.workspace_sections.settings_backup_import_section.s207', "ملاحظات"), t('settings.workspace_sections.settings_backup_import_section.s208', "الوصف"), 'notes', 'description'] },
             ]}
             onDownloadTemplate={() => downloadTemplate('products')}
             onExportData={onExportData ? () => onExportData('products') : undefined}
@@ -1559,14 +1565,14 @@ export function SettingsBackupImportSection({
           />
           {!isMaritime && (
             <ImportWorkbench
-              title={isContracting ? 'استيراد رصيد تشوينات الموقع الافتتاحي' : 'استيراد/تعديل المخزون'}
-              requiredColumns={['الكمية']}
+              title={isContracting ? t('settings.workspace_sections.settings_backup_import_section.s209', "استيراد رصيد تشوينات الموقع الافتتاحي") : t('settings.workspace_sections.settings_backup_import_section.s210', "استيراد/تعديل المخزون")}
+              requiredColumns={[t('settings.workspace_sections.settings_backup_import_section.s211', "الكمية")]}
               requiredFieldKeys={['qty']}
               fieldMappings={[
-                { key: 'barcode', label: 'الباركود', aliases: ['الباركود', 'barcode', 'كود'] },
-                { key: 'name', label: 'اسم الصنف', aliases: ['اسم الصنف (إجباري)', 'اسم الصنف', 'name'] },
-                { key: 'qty', label: 'الكمية', aliases: ['الكمية', 'qty', 'quantity', 'stock'] },
-                { key: 'warehouseName', label: isContracting ? 'موقع التشوين' : 'المخزن', aliases: ['المخزن', 'warehouse', 'store'] },
+                { key: 'barcode', label: t('settings.workspace_sections.settings_backup_import_section.s212', "الباركود"), aliases: [t('settings.workspace_sections.settings_backup_import_section.s213', "الباركود"), 'barcode', t('settings.workspace_sections.settings_backup_import_section.s214', "كود")] },
+                { key: 'name', label: t('settings.workspace_sections.settings_backup_import_section.s215', "اسم الصنف"), aliases: [t('settings.workspace_sections.settings_backup_import_section.s216', "اسم الصنف (إجباري)"), t('settings.workspace_sections.settings_backup_import_section.s217', "اسم الصنف"), 'name'] },
+                { key: 'qty', label: t('settings.workspace_sections.settings_backup_import_section.s218', "الكمية"), aliases: [t('settings.workspace_sections.settings_backup_import_section.s219', "الكمية"), 'qty', 'quantity', 'stock'] },
+                { key: 'warehouseName', label: isContracting ? t('settings.workspace_sections.settings_backup_import_section.s220', "موقع التشوين") : t('settings.workspace_sections.settings_backup_import_section.s221', "المخزن"), aliases: [t('settings.workspace_sections.settings_backup_import_section.s222', "المخزن"), 'warehouse', 'store'] },
               ]}
               onDownloadTemplate={() => downloadTemplate('opening-stock')}
               onExportData={onExportData ? () => onExportData('opening-stock') : undefined}
@@ -1575,43 +1581,43 @@ export function SettingsBackupImportSection({
             />
           )}
           <ImportWorkbench
-            title={isMaritime ? 'استيراد العملاء والمشحون إليهم (Shippers & Consignees)' : isContracting ? 'استيراد جهات الإسناد والملاك' : 'استيراد العملاء والمحلات'}
-            requiredColumns={['اسم العميل']}
+            title={isMaritime ? t('settings.workspace_sections.settings_backup_import_section.s223', "استيراد العملاء والمشحون إليهم (Shippers & Consignees)") : isContracting ? t('settings.workspace_sections.settings_backup_import_section.s224', "استيراد جهات الإسناد والملاك") : t('settings.workspace_sections.settings_backup_import_section.s225', "استيراد العملاء والمحلات")}
+            requiredColumns={[t('settings.workspace_sections.settings_backup_import_section.s226', "اسم العميل")]}
             requiredFieldKeys={['name']}
             fieldMappings={[
-              { key: 'name', label: 'اسم العميل / المحل', aliases: ['اسم العميل (إجباري)', 'اسم العميل / المحل (إجباري)', 'اسم العميل / المحل', 'اسم العميل', 'اسم المحل', 'العميل', 'المحل', 'الاسم', 'name'] },
-              { key: 'customerCode', label: 'كود المحل / العميل', aliases: ['كود المحل / العميل', 'كود العميل', 'كود المحل', 'كود المحل الفريد', 'الكود', 'customerCode', 'customer_code', 'code'] },
-              { key: 'phone', label: 'الموبايل', aliases: ['رقم الموبايل', 'الموبايل', 'الهاتف', 'phone', 'mobile'] },
-              { key: 'route', label: 'خط السير', aliases: ['خط السير / مسار التوزيع', 'خط السير / المنطقة', 'خط السير', 'مسار التوزيع', 'route'] },
-              { key: 'district', label: 'الحي / المربع السكني', aliases: ['الحي / المربع السكني', 'الحي', 'المنطقة', 'المربع السكني', 'district', 'area'] },
-              { key: 'address', label: 'العنوان التفصيلي', aliases: ['العنوان التفصيلي', 'العنوان', 'address'] },
-              { key: 'visitDay', label: 'يوم الزيارة الأسبوعي', aliases: ['يوم الزيارة الأسبوعي', 'يوم الزيارة', 'visitDay', 'visit_day'] },
-              { key: 'visitDays', label: 'أيام الزيارة', aliases: ['أيام الزيارة (إن تعددت)', 'أيام الزيارة', 'visitDays', 'visit_days'] },
-              { key: 'routeSequence', label: 'ترتيب خط السير', aliases: ['ترتيب خط السير', 'ترتيب الزيارة', 'التسلسل', 'routeSequence', 'route_sequence', 'sequence'] },
-              { key: 'assignedRepName', label: 'المندوب المخصص', aliases: ['المندوب المسؤول / المخصص', 'المندوب المسؤول', 'المندوب المخصص', 'المندوب', 'assignedRep', 'assignedRepName', 'rep'] },
-              { key: 'locationUrl', label: 'رابط الموقع / GPS', aliases: ['رابط الموقع / GPS', 'رابط الموقع', 'رابط الخريطة', 'موقع المحل', 'locationUrl', 'location_url', 'maps', 'gps'] },
-              { key: 'priceTier', label: 'فئة السعر', aliases: ['فئة السعر', 'فئة التسعير', 'قائمة الأسعار', 'priceTier', 'price_tier'] },
-              { key: 'category', label: 'نوع النشاط / التصنيف', aliases: ['نوع النشاط / التصنيف', 'نوع النشاط', 'تصنيف المحل', 'التصنيف', 'category', 'businessType'] },
-              { key: 'type', label: 'النوع', aliases: ['نوع العميل (نقدي / آجل)', 'نوع العميل', 'النوع', 'type'] },
-              { key: 'creditLimit', label: 'الحد الائتماني', aliases: ['الحد الائتماني', 'creditLimit'] },
-              { key: 'openingBalance', label: 'رصيد افتتاحي', aliases: ['رصيد افتتاحي', 'openingBalance', 'balance'] },
-              { key: 'storeCreditBalance', label: 'رصيد محفظة', aliases: ['رصيد محفظة', 'storeCreditBalance'] },
-              { key: 'companyName', label: 'اسم المنشأة / الشركة', aliases: ['اسم المنشأة / الشركة', 'اسم الشركة', 'اسم المنشأة', 'companyName'] },
-              { key: 'taxNumber', label: 'الرقم الضريبي', aliases: ['الرقم الضريبي', 'البطاقة الضريبية', 'taxNumber'] },
-              { key: 'notes', label: 'ملاحظات', aliases: ['ملاحظات', 'notes'] },
+              { key: 'name', label: t('settings.workspace_sections.settings_backup_import_section.s227', "اسم العميل / المحل"), aliases: [t('settings.workspace_sections.settings_backup_import_section.s228', "اسم العميل (إجباري)"), t('settings.workspace_sections.settings_backup_import_section.s229', "اسم العميل / المحل (إجباري)"), t('settings.workspace_sections.settings_backup_import_section.s230', "اسم العميل / المحل"), t('settings.workspace_sections.settings_backup_import_section.s231', "اسم العميل"), t('settings.workspace_sections.settings_backup_import_section.s232', "اسم المحل"), t('settings.workspace_sections.settings_backup_import_section.s233', "العميل"), t('settings.workspace_sections.settings_backup_import_section.s234', "المحل"), t('settings.workspace_sections.settings_backup_import_section.s235', "الاسم"), 'name'] },
+              { key: 'customerCode', label: t('settings.workspace_sections.settings_backup_import_section.s236', "كود المحل / العميل"), aliases: [t('settings.workspace_sections.settings_backup_import_section.s237', "كود المحل / العميل"), t('settings.workspace_sections.settings_backup_import_section.s238', "كود العميل"), t('settings.workspace_sections.settings_backup_import_section.s239', "كود المحل"), t('settings.workspace_sections.settings_backup_import_section.s240', "كود المحل الفريد"), t('settings.workspace_sections.settings_backup_import_section.s241', "الكود"), 'customerCode', 'customer_code', 'code'] },
+              { key: 'phone', label: t('settings.workspace_sections.settings_backup_import_section.s242', "الموبايل"), aliases: [t('settings.workspace_sections.settings_backup_import_section.s243', "رقم الموبايل"), t('settings.workspace_sections.settings_backup_import_section.s244', "الموبايل"), t('settings.workspace_sections.settings_backup_import_section.s245', "الهاتف"), 'phone', 'mobile'] },
+              { key: 'route', label: t('settings.workspace_sections.settings_backup_import_section.s246', "خط السير"), aliases: [t('settings.workspace_sections.settings_backup_import_section.s247', "خط السير / مسار التوزيع"), t('settings.workspace_sections.settings_backup_import_section.s248', "خط السير / المنطقة"), t('settings.workspace_sections.settings_backup_import_section.s249', "خط السير"), t('settings.workspace_sections.settings_backup_import_section.s250', "مسار التوزيع"), 'route'] },
+              { key: 'district', label: t('settings.workspace_sections.settings_backup_import_section.s251', "الحي / المربع السكني"), aliases: [t('settings.workspace_sections.settings_backup_import_section.s252', "الحي / المربع السكني"), t('settings.workspace_sections.settings_backup_import_section.s253', "الحي"), t('settings.workspace_sections.settings_backup_import_section.s254', "المنطقة"), t('settings.workspace_sections.settings_backup_import_section.s255', "المربع السكني"), 'district', 'area'] },
+              { key: 'address', label: t('settings.workspace_sections.settings_backup_import_section.s256', "العنوان التفصيلي"), aliases: [t('settings.workspace_sections.settings_backup_import_section.s257', "العنوان التفصيلي"), t('settings.workspace_sections.settings_backup_import_section.s258', "العنوان"), 'address'] },
+              { key: 'visitDay', label: t('settings.workspace_sections.settings_backup_import_section.s259', "يوم الزيارة الأسبوعي"), aliases: [t('settings.workspace_sections.settings_backup_import_section.s260', "يوم الزيارة الأسبوعي"), t('settings.workspace_sections.settings_backup_import_section.s261', "يوم الزيارة"), 'visitDay', 'visit_day'] },
+              { key: 'visitDays', label: t('settings.workspace_sections.settings_backup_import_section.s262', "أيام الزيارة"), aliases: [t('settings.workspace_sections.settings_backup_import_section.s263', "أيام الزيارة (إن تعددت)"), t('settings.workspace_sections.settings_backup_import_section.s264', "أيام الزيارة"), 'visitDays', 'visit_days'] },
+              { key: 'routeSequence', label: t('settings.workspace_sections.settings_backup_import_section.s265', "ترتيب خط السير"), aliases: [t('settings.workspace_sections.settings_backup_import_section.s266', "ترتيب خط السير"), t('settings.workspace_sections.settings_backup_import_section.s267', "ترتيب الزيارة"), t('settings.workspace_sections.settings_backup_import_section.s268', "التسلسل"), 'routeSequence', 'route_sequence', 'sequence'] },
+              { key: 'assignedRepName', label: t('settings.workspace_sections.settings_backup_import_section.s269', "المندوب المخصص"), aliases: [t('settings.workspace_sections.settings_backup_import_section.s270', "المندوب المسؤول / المخصص"), t('settings.workspace_sections.settings_backup_import_section.s271', "المندوب المسؤول"), t('settings.workspace_sections.settings_backup_import_section.s272', "المندوب المخصص"), t('settings.workspace_sections.settings_backup_import_section.s273', "المندوب"), 'assignedRep', 'assignedRepName', 'rep'] },
+              { key: 'locationUrl', label: t('settings.workspace_sections.settings_backup_import_section.s274', "رابط الموقع / GPS"), aliases: [t('settings.workspace_sections.settings_backup_import_section.s275', "رابط الموقع / GPS"), t('settings.workspace_sections.settings_backup_import_section.s276', "رابط الموقع"), t('settings.workspace_sections.settings_backup_import_section.s277', "رابط الخريطة"), t('settings.workspace_sections.settings_backup_import_section.s278', "موقع المحل"), 'locationUrl', 'location_url', 'maps', 'gps'] },
+              { key: 'priceTier', label: t('settings.workspace_sections.settings_backup_import_section.s279', "فئة السعر"), aliases: [t('settings.workspace_sections.settings_backup_import_section.s280', "فئة السعر"), t('settings.workspace_sections.settings_backup_import_section.s281', "فئة التسعير"), t('settings.workspace_sections.settings_backup_import_section.s282', "قائمة الأسعار"), 'priceTier', 'price_tier'] },
+              { key: 'category', label: t('settings.workspace_sections.settings_backup_import_section.s283', "نوع النشاط / التصنيف"), aliases: [t('settings.workspace_sections.settings_backup_import_section.s284', "نوع النشاط / التصنيف"), t('settings.workspace_sections.settings_backup_import_section.s285', "نوع النشاط"), t('settings.workspace_sections.settings_backup_import_section.s286', "تصنيف المحل"), t('settings.workspace_sections.settings_backup_import_section.s287', "التصنيف"), 'category', 'businessType'] },
+              { key: 'type', label: t('settings.workspace_sections.settings_backup_import_section.s288', "النوع"), aliases: [t('settings.workspace_sections.settings_backup_import_section.s289', "نوع العميل (نقدي / آجل)"), t('settings.workspace_sections.settings_backup_import_section.s290', "نوع العميل"), t('settings.workspace_sections.settings_backup_import_section.s291', "النوع"), 'type'] },
+              { key: 'creditLimit', label: t('settings.workspace_sections.settings_backup_import_section.s292', "الحد الائتماني"), aliases: [t('settings.workspace_sections.settings_backup_import_section.s293', "الحد الائتماني"), 'creditLimit'] },
+              { key: 'openingBalance', label: t('settings.workspace_sections.settings_backup_import_section.s294', "رصيد افتتاحي"), aliases: [t('settings.workspace_sections.settings_backup_import_section.s295', "رصيد افتتاحي"), 'openingBalance', 'balance'] },
+              { key: 'storeCreditBalance', label: t('settings.workspace_sections.settings_backup_import_section.s296', "رصيد محفظة"), aliases: [t('settings.workspace_sections.settings_backup_import_section.s297', "رصيد محفظة"), 'storeCreditBalance'] },
+              { key: 'companyName', label: t('settings.workspace_sections.settings_backup_import_section.s298', "اسم المنشأة / الشركة"), aliases: [t('settings.workspace_sections.settings_backup_import_section.s299', "اسم المنشأة / الشركة"), t('settings.workspace_sections.settings_backup_import_section.s300', "اسم الشركة"), t('settings.workspace_sections.settings_backup_import_section.s301', "اسم المنشأة"), 'companyName'] },
+              { key: 'taxNumber', label: t('settings.workspace_sections.settings_backup_import_section.s302', "الرقم الضريبي"), aliases: [t('settings.workspace_sections.settings_backup_import_section.s303', "الرقم الضريبي"), t('settings.workspace_sections.settings_backup_import_section.s304', "البطاقة الضريبية"), 'taxNumber'] },
+              { key: 'notes', label: t('settings.workspace_sections.settings_backup_import_section.s305', "ملاحظات"), aliases: [t('settings.workspace_sections.settings_backup_import_section.s306', "ملاحظات"), 'notes'] },
             ]}
             onDownloadTemplate={() => downloadTemplate('customers')}
             templateOptions={[
               {
-                label: 'قالب تجزئة ونقدي',
+                label: t('settings.workspace_sections.settings_backup_import_section.s307', "قالب تجزئة ونقدي"),
                 onDownload: () => downloadTemplate('customers-retail'),
-                description: 'تحميل نموذج Excel مخصص لعملاء التجزئة والقطاعي',
+                description: t('settings.workspace_sections.settings_backup_import_section.s308', "تحميل نموذج Excel مخصص لعملاء التجزئة والقطاعي"),
               },
               {
-                label: 'قالب جملة وتوزيع (فان)',
+                label: t('settings.workspace_sections.settings_backup_import_section.s309', "قالب جملة وتوزيع (فان)"),
                 variant: 'primary',
                 onDownload: () => downloadTemplate('customers-van'),
-                description: 'تحميل نموذج Excel شامل لعملاء الجملة والتوزيع الميداني وخطوط السير',
+                description: t('settings.workspace_sections.settings_backup_import_section.s310', "تحميل نموذج Excel شامل لعملاء الجملة والتوزيع الميداني وخطوط السير"),
               },
             ]}
             onExportData={onExportData ? () => onExportData('customers') : undefined}
@@ -1619,15 +1625,15 @@ export function SettingsBackupImportSection({
             isPending={importCustomersPending || !canManageBackups}
           />
           <ImportWorkbench
-            title={isMaritime ? 'استيراد الخطوط الملاحية والوكلاء والناقلين' : isContracting ? 'استيراد الموردين ومقاولي الباطن' : 'استيراد الموردين'}
-            requiredColumns={['اسم المورد']}
+            title={isMaritime ? t('settings.workspace_sections.settings_backup_import_section.s311', "استيراد الخطوط الملاحية والوكلاء والناقلين") : isContracting ? t('settings.workspace_sections.settings_backup_import_section.s312', "استيراد الموردين ومقاولي الباطن") : t('settings.workspace_sections.settings_backup_import_section.s313', "استيراد الموردين")}
+            requiredColumns={[t('settings.workspace_sections.settings_backup_import_section.s314', "اسم المورد")]}
             requiredFieldKeys={['name']}
             fieldMappings={[
-              { key: 'name', label: isMaritime ? 'اسم الخط الملاحي / المورد' : isContracting ? 'اسم المورد / مقاول الباطن' : 'اسم المورد', aliases: ['اسم المورد (إجباري)', 'اسم المورد', 'الاسم', 'name'] },
-              { key: 'phone', label: 'الموبايل', aliases: ['رقم الموبايل', 'phone'] },
-              { key: 'address', label: 'العنوان', aliases: ['العنوان', 'address'] },
-              { key: 'openingBalance', label: 'رصيد افتتاحي', aliases: ['رصيد افتتاحي', 'openingBalance'] },
-              { key: 'notes', label: 'ملاحظات', aliases: ['ملاحظات', 'notes'] },
+              { key: 'name', label: isMaritime ? t('settings.workspace_sections.settings_backup_import_section.s315', "اسم الخط الملاحي / المورد") : isContracting ? t('settings.workspace_sections.settings_backup_import_section.s316', "اسم المورد / مقاول الباطن") : t('settings.workspace_sections.settings_backup_import_section.s317', "اسم المورد"), aliases: [t('settings.workspace_sections.settings_backup_import_section.s318', "اسم المورد (إجباري)"), t('settings.workspace_sections.settings_backup_import_section.s319', "اسم المورد"), t('settings.workspace_sections.settings_backup_import_section.s320', "الاسم"), 'name'] },
+              { key: 'phone', label: t('settings.workspace_sections.settings_backup_import_section.s321', "الموبايل"), aliases: [t('settings.workspace_sections.settings_backup_import_section.s322', "رقم الموبايل"), 'phone'] },
+              { key: 'address', label: t('settings.workspace_sections.settings_backup_import_section.s323', "العنوان"), aliases: [t('settings.workspace_sections.settings_backup_import_section.s324', "العنوان"), 'address'] },
+              { key: 'openingBalance', label: t('settings.workspace_sections.settings_backup_import_section.s325', "رصيد افتتاحي"), aliases: [t('settings.workspace_sections.settings_backup_import_section.s326', "رصيد افتتاحي"), 'openingBalance'] },
+              { key: 'notes', label: t('settings.workspace_sections.settings_backup_import_section.s327', "ملاحظات"), aliases: [t('settings.workspace_sections.settings_backup_import_section.s328', "ملاحظات"), 'notes'] },
             ]}
             onDownloadTemplate={() => downloadTemplate('suppliers')}
             onExportData={onExportData ? () => onExportData('suppliers') : undefined}

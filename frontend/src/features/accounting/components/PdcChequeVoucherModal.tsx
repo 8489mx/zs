@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { Button } from '@/shared/ui/button';
 import { PrinterIcon } from '@/shared/components/icons/AppIcons';
@@ -27,6 +28,7 @@ export function PdcChequeVoucherModal({
   onClose,
   statusLabels,
 }: PdcChequeVoucherModalProps) {
+  const { t } = useTranslation();
   if (!open || !cheque) return null;
 
   const statusText = statusLabels?.[cheque.status]?.text || DEFAULT_STATUS_LABELS[cheque.status]?.text || cheque.status;
@@ -35,8 +37,8 @@ export function PdcChequeVoucherModal({
     <StandardDialog
       open={open}
       onClose={onClose}
-      title="سند استلام / تسليم شيك بنكي"
-      subtitle="معاينة وطباعة السند المالي المعتمد للشيك في الحافظة"
+      title={t('accounting.pdc_cheque_voucher_modal.s0', "سند استلام / تسليم شيك بنكي")}
+      subtitle={t('accounting.pdc_cheque_voucher_modal.s1', "معاينة وطباعة السند المالي المعتمد للشيك في الحافظة")}
       size="lg"
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -60,61 +62,61 @@ export function PdcChequeVoucherModal({
           }}>
             <div>
               <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#0f172a', margin: '0 0 4px 0' }}>
-                {cheque.type === 'receivable' ? 'سند استلام شيك (ورقة قبض)' : 'سند تسليم شيك (ورقة دفع)'}
+                {cheque.type === 'receivable' ? t('accounting.pdc_cheque_voucher_modal.s2', "سند استلام شيك (ورقة قبض)") : t('accounting.pdc_cheque_voucher_modal.s3', "سند تسليم شيك (ورقة دفع)")}
               </h3>
               <p style={{ fontSize: '11px', color: '#64748b', fontFamily: 'monospace', margin: 0 }}>
-                رقم الإيصال: REC-CHK-{cheque.id}
+                {t('accounting.pdc_cheque_voucher_modal.s4', "رقم الإيصال: REC-CHK-")}{cheque.id}
               </p>
             </div>
             <div style={{ textAlign: 'left', fontFamily: 'monospace', fontSize: '11px', color: '#475569' }}>
-              <div>التاريخ: {cheque.issue_date}</div>
-              <div>الحالة: {statusText}</div>
+              <div>{t('accounting.pdc_cheque_voucher_modal.s5', "التاريخ:")} {cheque.issue_date}</div>
+              <div>{t('accounting.pdc_cheque_voucher_modal.s6', "الحالة:")} {statusText}</div>
             </div>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', padding: '8px 0' }}>
             <div style={{ padding: '8px 12px', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #f1f5f9' }}>
-              <span style={{ color: '#64748b', display: 'block', fontSize: '11px', marginBottom: '2px' }}>وصلنا من / سلم إلى:</span>
+              <span style={{ color: '#64748b', display: 'block', fontSize: '11px', marginBottom: '2px' }}>{t('accounting.pdc_cheque_voucher_modal.s7', "وصلنا من / سلم إلى:")}</span>
               <span style={{ fontWeight: 700, fontSize: '13px', color: '#0f172a' }}>{cheque.partner_name}</span>
             </div>
             <div style={{ padding: '8px 12px', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #f1f5f9' }}>
-              <span style={{ color: '#64748b', display: 'block', fontSize: '11px', marginBottom: '2px' }}>المبلغ وقدره:</span>
+              <span style={{ color: '#64748b', display: 'block', fontSize: '11px', marginBottom: '2px' }}>{t('accounting.pdc_cheque_voucher_modal.s8', "المبلغ وقدره:")}</span>
               <span style={{ fontWeight: 800, fontSize: '14px', color: '#047857' }}>
                 {formatCurrency(cheque.amount)} {cheque.currency}
               </span>
             </div>
             <div style={{ padding: '8px 12px', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #f1f5f9' }}>
-              <span style={{ color: '#64748b', display: 'block', fontSize: '11px', marginBottom: '2px' }}>رقم الشيك:</span>
+              <span style={{ color: '#64748b', display: 'block', fontSize: '11px', marginBottom: '2px' }}>{t('accounting.pdc_cheque_voucher_modal.s9', "رقم الشيك:")}</span>
               <span style={{ fontFamily: 'monospace', fontWeight: 700, fontSize: '13px', color: '#0f172a' }}>{cheque.cheque_number}</span>
             </div>
             <div style={{ padding: '8px 12px', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #f1f5f9' }}>
-              <span style={{ color: '#64748b', display: 'block', fontSize: '11px', marginBottom: '2px' }}>مسحوب على بنك:</span>
+              <span style={{ color: '#64748b', display: 'block', fontSize: '11px', marginBottom: '2px' }}>{t('accounting.pdc_cheque_voucher_modal.s10', "مسحوب على بنك:")}</span>
               <span style={{ fontWeight: 600, fontSize: '13px', color: '#334155' }}>{cheque.bank_name}</span>
             </div>
             <div style={{ padding: '8px 12px', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #f1f5f9' }}>
-              <span style={{ color: '#64748b', display: 'block', fontSize: '11px', marginBottom: '2px' }}>تاريخ الاستحقاق:</span>
+              <span style={{ color: '#64748b', display: 'block', fontSize: '11px', marginBottom: '2px' }}>{t('accounting.pdc_cheque_voucher_modal.s11', "تاريخ الاستحقاق:")}</span>
               <span style={{ fontWeight: 700, fontSize: '13px', color: '#0f172a' }}>{cheque.due_date}</span>
             </div>
             <div style={{ padding: '8px 12px', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #f1f5f9' }}>
-              <span style={{ color: '#64748b', display: 'block', fontSize: '11px', marginBottom: '2px' }}>الفرع:</span>
-              <span style={{ fontSize: '13px', color: '#334155' }}>{cheque.branch_name || 'الفرع الرئيسي'}</span>
+              <span style={{ color: '#64748b', display: 'block', fontSize: '11px', marginBottom: '2px' }}>{t('accounting.pdc_cheque_voucher_modal.s12', "الفرع:")}</span>
+              <span style={{ fontSize: '13px', color: '#334155' }}>{cheque.branch_name || t('accounting.pdc_cheque_voucher_modal.s13', "الفرع الرئيسي")}</span>
             </div>
           </div>
 
           {cheque.notes && (
             <div style={{ backgroundColor: '#f8fafc', padding: '10px 14px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-              <span style={{ color: '#64748b', display: 'block', fontSize: '11px', marginBottom: '2px' }}>ملاحظات:</span>
+              <span style={{ color: '#64748b', display: 'block', fontSize: '11px', marginBottom: '2px' }}>{t('accounting.pdc_cheque_voucher_modal.s14', "ملاحظات:")}</span>
               <span style={{ color: '#334155', fontSize: '12px' }}>{cheque.notes}</span>
             </div>
           )}
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px', paddingTop: '24px', borderTop: '1px solid #e2e8f0', textAlign: 'center' }}>
             <div>
-              <span style={{ fontSize: '11px', color: '#64748b', display: 'block', marginBottom: '32px' }}>توقيع المستلم / أمين الخزينة</span>
+              <span style={{ fontSize: '11px', color: '#64748b', display: 'block', marginBottom: '32px' }}>{t('accounting.pdc_cheque_voucher_modal.s15', "توقيع المستلم / أمين الخزينة")}</span>
               <div style={{ borderBottom: '1px solid #cbd5e1', width: '130px', margin: '0 auto' }} />
             </div>
             <div>
-              <span style={{ fontSize: '11px', color: '#64748b', display: 'block', marginBottom: '32px' }}>توقيع المعتمد / الإدارة المالية</span>
+              <span style={{ fontSize: '11px', color: '#64748b', display: 'block', marginBottom: '32px' }}>{t('accounting.pdc_cheque_voucher_modal.s16', "توقيع المعتمد / الإدارة المالية")}</span>
               <div style={{ borderBottom: '1px solid #cbd5e1', width: '130px', margin: '0 auto' }} />
             </div>
           </div>
@@ -128,7 +130,7 @@ export function PdcChequeVoucherModal({
           onClick={onClose}
           style={{ padding: '8px 18px', fontSize: '13px', borderRadius: '8px' }}
         >
-          إغلاق
+          {t('accounting.pdc_cheque_voucher_modal.s17', "إغلاق")}
         </Button>
         <Button
           type="button"
@@ -148,7 +150,7 @@ export function PdcChequeVoucherModal({
           }}
         >
           <PrinterIcon size={14} />
-          <span>طباعة السند</span>
+          <span>{t('accounting.pdc_cheque_voucher_modal.s18', "طباعة السند")}</span>
         </Button>
       </StandardDialogFooter>
     </StandardDialog>

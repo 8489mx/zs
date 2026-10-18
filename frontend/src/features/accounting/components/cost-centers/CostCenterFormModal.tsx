@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { Button } from '@/shared/ui/button';
@@ -36,6 +37,7 @@ export function CostCenterFormModal({
   isPending,
   availableParents,
 }: CostCenterFormModalProps) {
+  const { t } = useTranslation();
   if (!isOpen) return null;
 
   const dimensionOptions = Object.entries(COST_CENTER_DIMENSIONS).map(([key, item]) => ({
@@ -56,8 +58,8 @@ export function CostCenterFormModal({
     <StandardDialog
       open={isOpen}
       onClose={onClose}
-      title={isEditing ? 'تعديل مركز تكلفة' : 'إضافة مركز تكلفة جديد'}
-      subtitle="تحديد كود واسم المركز والبعد التحليلي والموازنة التقديرية"
+      title={isEditing ? t('accounting.cost_centers.cost_center_form_modal.s0', "تعديل مركز تكلفة") : t('accounting.cost_centers.cost_center_form_modal.s1', "إضافة مركز تكلفة جديد")}
+      subtitle={t('accounting.cost_centers.cost_center_form_modal.s2', "تحديد كود واسم المركز والبعد التحليلي والموازنة التقديرية")}
       size="md"
     >
       <form id="cost-center-form" onSubmit={onSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
@@ -73,13 +75,13 @@ export function CostCenterFormModal({
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid #e2e8f0', paddingBottom: '6px' }}>
             <LayersIcon size={15} style={{ color: '#170e5e' }} />
-            <span style={{ fontSize: '12px', fontWeight: 700, color: '#1e293b' }}>بيانات التعريف والتبويب</span>
+            <span style={{ fontSize: '12px', fontWeight: 700, color: '#1e293b' }}>{t('accounting.cost_centers.cost_center_form_modal.s3', "بيانات التعريف والتبويب")}</span>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '12px' }}>
             <div>
               <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '4px' }}>
-                كود المركز <span style={{ color: '#e11d48' }}>*</span>
+                {t('accounting.cost_centers.cost_center_form_modal.s4', "كود المركز")} <span style={{ color: '#e11d48' }}>*</span>
               </label>
               <input
                 type="text"
@@ -93,14 +95,14 @@ export function CostCenterFormModal({
 
             <div>
               <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '4px' }}>
-                اسم مركز التكلفة <span style={{ color: '#e11d48' }}>*</span>
+                {t('accounting.cost_centers.cost_center_form_modal.s5', "اسم مركز التكلفة")} <span style={{ color: '#e11d48' }}>*</span>
               </label>
               <input
                 type="text"
                 required
                 value={formData.name}
                 onChange={(e) => onChange({ ...formData, name: e.target.value })}
-                placeholder="مثال: فرع مدينة نصر، مشروع البرج..."
+                placeholder={t('accounting.cost_centers.cost_center_form_modal.s6', "مثال: فرع مدينة نصر، مشروع البرج...")}
                 style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '12.5px', boxSizing: 'border-box' }}
               />
             </div>
@@ -109,7 +111,7 @@ export function CostCenterFormModal({
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
             <div>
               <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '4px' }}>
-                البُعد التحليلي
+                {t('accounting.cost_centers.cost_center_form_modal.s7', "البُعد التحليلي")}
               </label>
               <CustomSelect
                 value={formData.dimension}
@@ -120,7 +122,7 @@ export function CostCenterFormModal({
 
             <div>
               <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '4px' }}>
-                المركز الأب (إن وجد)
+                {t('accounting.cost_centers.cost_center_form_modal.s8', "المركز الأب (إن وجد)")}
               </label>
               <CustomSelect
                 value={formData.parentId}
@@ -143,12 +145,12 @@ export function CostCenterFormModal({
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid #e2e8f0', paddingBottom: '6px' }}>
             <DollarSignIcon size={15} style={{ color: '#170e5e' }} />
-            <span style={{ fontSize: '12px', fontWeight: 700, color: '#1e293b' }}>الموازنة والحالة التشغيلية</span>
+            <span style={{ fontSize: '12px', fontWeight: 700, color: '#1e293b' }}>{t('accounting.cost_centers.cost_center_form_modal.s9', "الموازنة والحالة التشغيلية")}</span>
           </div>
 
           <div>
             <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '4px' }}>
-              الموازنة التقديرية (اختياري - {getGlobalCurrencySymbol()})
+              {t('accounting.cost_centers.cost_center_form_modal.s10', "الموازنة التقديرية (اختياري -")} {getGlobalCurrencySymbol()})
             </label>
             <input
               type="number"
@@ -163,13 +165,13 @@ export function CostCenterFormModal({
 
           <div>
             <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '4px' }}>
-              الوصف أو الملاحظات
+              {t('accounting.cost_centers.cost_center_form_modal.s11', "الوصف أو الملاحظات")}
             </label>
             <textarea
               rows={2}
               value={formData.description}
               onChange={(e) => onChange({ ...formData, description: e.target.value })}
-              placeholder="ملاحظات توضيحية حول طبيعة المركز..."
+              placeholder={t('accounting.cost_centers.cost_center_form_modal.s12', "ملاحظات توضيحية حول طبيعة المركز...")}
               style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '12.5px', boxSizing: 'border-box', resize: 'none' }}
             />
           </div>
@@ -183,7 +185,7 @@ export function CostCenterFormModal({
               style={{ width: '16px', height: '16px', accentColor: '#170e5e' }}
             />
             <label htmlFor="isActive" style={{ fontSize: '12.5px', fontWeight: 600, color: '#334155', cursor: 'pointer' }}>
-              مركز تكلفة نشط ومتاح للقيود والعمليات
+              {t('accounting.cost_centers.cost_center_form_modal.s13', "مركز تكلفة نشط ومتاح للقيود والعمليات")}
             </label>
           </div>
         </div>
@@ -191,7 +193,7 @@ export function CostCenterFormModal({
 
       <StandardDialogFooter>
         <Button variant="secondary" onClick={onClose} style={{ padding: '8px 18px', fontSize: '13px', borderRadius: '8px' }}>
-          إلغاء
+          {t('accounting.cost_centers.cost_center_form_modal.s14', "إلغاء")}
         </Button>
         <Button
           type="submit"
@@ -209,7 +211,7 @@ export function CostCenterFormModal({
             opacity: isPending ? 0.6 : 1,
           }}
         >
-          {isPending ? 'جاري الحفظ...' : isEditing ? 'تحديث المركز' : 'إضافة المركز'}
+          {isPending ? t('accounting.cost_centers.cost_center_form_modal.s15', "جاري الحفظ...") : isEditing ? t('accounting.cost_centers.cost_center_form_modal.s16', "تحديث المركز") : t('accounting.cost_centers.cost_center_form_modal.s17', "إضافة المركز")}
         </Button>
       </StandardDialogFooter>
     </StandardDialog>

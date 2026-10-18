@@ -35,6 +35,7 @@ interface CustomersRegisterCardProps {
 }
 
 export function CustomersRegisterCard(props: CustomersRegisterCardProps) {
+  const { t: __t } = useTranslation();
   const { t, i18n } = useTranslation();
   const profile = useCustomerProfile();
 
@@ -68,13 +69,13 @@ export function CustomersRegisterCard(props: CustomersRegisterCardProps) {
                   rel="noreferrer"
                   onClick={(e) => e.stopPropagation()}
                   style={{ fontSize: '11px', color: '#0284c7', textDecoration: 'underline', fontWeight: 600 }}
-                  title="فتح الموقع الجغرافي للمحل على خرائط جوجل"
+                  title={__t('customers.customers_page.customers_register_card.s0', "فتح الموقع الجغرافي للمحل على خرائط جوجل")}
                 >
-                  اللوكيشن ↗
+                  {__t('customers.customers_page.customers_register_card.s1', "اللوكيشن ↗")}
                 </a>
               )}
             </div>
-            <div className="muted small">{customer.phone || (i18n.language === 'en' ? 'No phone' : 'بدون هاتف')} · {customer.address || (i18n.language === 'en' ? 'No address' : 'بدون عنوان')}</div>
+            <div className="muted small">{customer.phone || (i18n.language === 'en' ? 'No phone' : __t('customers.customers_page.customers_register_card.s2', "بدون هاتف"))} · {customer.address || (i18n.language === 'en' ? 'No address' : __t('customers.customers_page.customers_register_card.s3', "بدون عنوان"))}</div>
           </div>
         );
       }
@@ -143,7 +144,7 @@ export function CustomersRegisterCard(props: CustomersRegisterCardProps) {
                       whiteSpace: 'nowrap',
                     }}
                   >
-                    مباشر/إدارة: {formatCurrency(customer.unassignedBalance || 0)}
+                    {__t('customers.customers_page.customers_register_card.s4', "مباشر/إدارة:")} {formatCurrency(customer.unassignedBalance || 0)}
                   </span>
                 )}
               </div>
@@ -162,7 +163,7 @@ export function CustomersRegisterCard(props: CustomersRegisterCardProps) {
       header: i18n.language === 'en' ? 'Loyalty Points' : 'نقاط الولاء',
       cell: (customer: Customer) => (
         <span style={{ background: '#fdf2f8', color: '#be185d', fontWeight: 800, padding: '2px 8px', borderRadius: '6px', fontSize: '12px' }}>
-          {Number((customer as any).loyaltyPoints || 0)} {i18n.language === 'en' ? 'pts' : 'نقطة'}
+          {Number((customer as any).loyaltyPoints || 0)} {i18n.language === 'en' ? 'pts' : __t('customers.customers_page.customers_register_card.s5', "نقطة")}
         </span>
       )
     }] : []),
@@ -177,7 +178,7 @@ export function CustomersRegisterCard(props: CustomersRegisterCardProps) {
               onClick={(event) => { event.stopPropagation(); props.onOpenLoyalty?.(customer); }}
               style={{ color: '#be185d', borderColor: '#fbcfe8', background: '#fdf2f8' }}
             >
-              {i18n.language === 'en' ? 'Loyalty' : 'نقاط الولاء'}
+              {i18n.language === 'en' ? 'Loyalty' : __t('customers.customers_page.customers_register_card.s6', "نقاط الولاء")}
             </Button>
           )}
           <Button variant="secondary" onClick={(event) => { event.stopPropagation(); props.setSelectedCustomer(customer); }}>
@@ -195,7 +196,7 @@ export function CustomersRegisterCard(props: CustomersRegisterCardProps) {
     <section className="document-prototype-section">
       <div className="section-header-compact-row">
         <h3 className="document-prototype-section-title">
-          {profile.id === 'maritime' ? 'الشاحنون والمستوردون الحاليون' : profile.id === 'contracting' ? 'جهات الإسناد والملاك الحاليون' : (i18n.language === 'en' ? 'Current Customers' : 'العملاء الحاليون')}
+          {profile.id === 'maritime' ? __t('customers.customers_page.customers_register_card.s7', "الشاحنون والمستوردون الحاليون") : profile.id === 'contracting' ? __t('customers.customers_page.customers_register_card.s8', "جهات الإسناد والملاك الحاليون") : (i18n.language === 'en' ? 'Current Customers' : __t('customers.customers_page.customers_register_card.s9', "العملاء الحاليون"))}
         </h3>
         <div className="section-header-actions-group">
           {props.onOpenCreate && <Button variant="primary" onClick={props.onOpenCreate} className="section-header-action-btn">{profile.addBtnText}</Button>}
@@ -203,34 +204,34 @@ export function CustomersRegisterCard(props: CustomersRegisterCardProps) {
         </div>
       </div>
       <p className="muted small section-header-subtitle">
-        {i18n.language === 'en' ? 'Quick filtering with summaries and direct editing/adding.' : 'فلترة سريعة مع ملخصات وإمكانية التعديل والإضافة المباشرة.'}
+        {i18n.language === 'en' ? 'Quick filtering with summaries and direct editing/adding.' : __t('customers.customers_page.customers_register_card.s10', "فلترة سريعة مع ملخصات وإمكانية التعديل والإضافة المباشرة.")}
       </p>
       <SearchToolbar
         search={props.search}
         onSearchChange={(value) => { props.setSearch(value); props.setPage(1); }}
-        searchPlaceholder={i18n.language === 'en' ? 'Search by name, phone, code, or address...' : 'ابحث بالاسم أو كود المحل (مثل 0002) أو الهاتف أو العنوان'}
+        searchPlaceholder={i18n.language === 'en' ? 'Search by name, phone, code, or address...' : __t('customers.customers_page.customers_register_card.s11', "ابحث بالاسم أو كود المحل (مثل 0002) أو الهاتف أو العنوان")}
         title={t('common.search_and_filter', 'بحث وتصفية')}
-        description={i18n.language === 'en' ? 'Select a customer to view or edit account details.' : 'ابدأ بالفلتر المناسب ثم اختر السجل المطلوب لتظهر لوحة التعديل فورًا.'}
-        actions={<span className="nav-pill">{props.filterMode === 'all' ? (profile.id === 'maritime' ? 'كل الشاحنين' : profile.id === 'contracting' ? 'كل جهات الإسناد' : 'كل العملاء') : props.filterMode === 'vip' ? (profile.id === 'maritime' ? 'شاحن VIP' : 'VIP') : props.filterMode === 'debt' ? 'عليهم رصيد' : 'نقدي'}</span>}
+        description={i18n.language === 'en' ? 'Select a customer to view or edit account details.' : __t('customers.customers_page.customers_register_card.s12', "ابدأ بالفلتر المناسب ثم اختر السجل المطلوب لتظهر لوحة التعديل فورًا.")}
+        actions={<span className="nav-pill">{props.filterMode === 'all' ? (profile.id === 'maritime' ? __t('customers.customers_page.customers_register_card.s13', "كل الشاحنين") : profile.id === 'contracting' ? __t('customers.customers_page.customers_register_card.s14', "كل جهات الإسناد") : __t('customers.customers_page.customers_register_card.s15', "كل العملاء")) : props.filterMode === 'vip' ? (profile.id === 'maritime' ? __t('customers.customers_page.customers_register_card.s16', "شاحن VIP") : 'VIP') : props.filterMode === 'debt' ? __t('customers.customers_page.customers_register_card.s17', "عليهم رصيد") : __t('customers.customers_page.customers_register_card.s18', "نقدي")}</span>}
         meta={(
           <>
-            <span className="toolbar-meta-pill">النتائج: {props.summary?.totalCustomers || props.rows.length}</span>
-            <span className="toolbar-meta-pill">الرصيد: {props.selectedCustomer ? formatCurrency(props.selectedCustomer.balance || 0) : formatCurrency(props.totalBalance)}</span>
-            {props.selectedCustomer ? <span className="toolbar-meta-pill">المحدد: {props.selectedCustomer.name}</span> : null}
+            <span className="toolbar-meta-pill">{__t('customers.customers_page.customers_register_card.s19', "النتائج:")} {props.summary?.totalCustomers || props.rows.length}</span>
+            <span className="toolbar-meta-pill">{__t('customers.customers_page.customers_register_card.s20', "الرصيد:")} {props.selectedCustomer ? formatCurrency(props.selectedCustomer.balance || 0) : formatCurrency(props.totalBalance)}</span>
+            {props.selectedCustomer ? <span className="toolbar-meta-pill">{__t('customers.customers_page.customers_register_card.s21', "المحدد:")} {props.selectedCustomer.name}</span> : null}
           </>
         )}
         onReset={() => { props.setSearch(''); props.setFilterMode('all'); props.setPage(1); }}
-        resetLabel="تفريغ"
+        resetLabel={__t('customers.customers_page.customers_register_card.s22', "تفريغ")}
       >
         <div className="filter-chip-row toolbar-chip-row">
-          <Button variant={props.filterMode === 'all' ? 'primary' : 'secondary'} onClick={() => { props.setFilterMode('all'); props.setPage(1); }}>الكل</Button>
+          <Button variant={props.filterMode === 'all' ? 'primary' : 'secondary'} onClick={() => { props.setFilterMode('all'); props.setPage(1); }}>{__t('customers.customers_page.customers_register_card.s23', "الكل")}</Button>
           <Button variant={props.filterMode === 'vip' ? 'primary' : 'secondary'} onClick={() => { props.setFilterMode('vip'); props.setPage(1); }}>VIP</Button>
-          <Button variant={props.filterMode === 'debt' ? 'primary' : 'secondary'} onClick={() => { props.setFilterMode('debt'); props.setPage(1); }}>عليهم رصيد</Button>
-          <Button variant={props.filterMode === 'cash' ? 'primary' : 'secondary'} onClick={() => { props.setFilterMode('cash'); props.setPage(1); }}>نقدي</Button>
+          <Button variant={props.filterMode === 'debt' ? 'primary' : 'secondary'} onClick={() => { props.setFilterMode('debt'); props.setPage(1); }}>{__t('customers.customers_page.customers_register_card.s24', "عليهم رصيد")}</Button>
+          <Button variant={props.filterMode === 'cash' ? 'primary' : 'secondary'} onClick={() => { props.setFilterMode('cash'); props.setPage(1); }}>{__t('customers.customers_page.customers_register_card.s25', "نقدي")}</Button>
         </div>
       </SearchToolbar>
-      {props.selectedIds.length ? <div className="bulk-toolbar"><div className="bulk-toolbar-meta"><strong>تحديد نشط: {props.selectedIds.length}</strong><span className="muted small">يمكنك حذف السجلات المحددة دفعة واحدة أو مسح التحديد الحالي.</span></div><div className="actions compact-actions"><Button variant="secondary" onClick={() => props.setSelectedIds([])}>مسح التحديد</Button><Button variant="danger" onClick={() => props.setBulkDeleteOpen(true)} disabled={!props.canDelete}>حذف المحدد</Button></div></div> : null}
-      <QueryFeedback isLoading={props.customersQuery.isLoading} isError={props.customersQuery.isError} error={props.customersQuery.error} isEmpty={!props.rows.length} loadingText="جاري تحميل البيانات..." errorTitle="تعذر تحميل البيانات" emptyTitle="لا توجد نتائج مطابقة" emptyHint="جرّب تغيير الفلاتر أو أضف سجلًا جديدًا.">
+      {props.selectedIds.length ? <div className="bulk-toolbar"><div className="bulk-toolbar-meta"><strong>{__t('customers.customers_page.customers_register_card.s26', "تحديد نشط:")} {props.selectedIds.length}</strong><span className="muted small">{__t('customers.customers_page.customers_register_card.s27', "يمكنك حذف السجلات المحددة دفعة واحدة أو مسح التحديد الحالي.")}</span></div><div className="actions compact-actions"><Button variant="secondary" onClick={() => props.setSelectedIds([])}>{__t('customers.customers_page.customers_register_card.s28', "مسح التحديد")}</Button><Button variant="danger" onClick={() => props.setBulkDeleteOpen(true)} disabled={!props.canDelete}>{__t('customers.customers_page.customers_register_card.s29', "حذف المحدد")}</Button></div></div> : null}
+      <QueryFeedback isLoading={props.customersQuery.isLoading} isError={props.customersQuery.isError} error={props.customersQuery.error} isEmpty={!props.rows.length} loadingText={__t('customers.customers_page.customers_register_card.s30', "جاري تحميل البيانات...")} errorTitle={__t('customers.customers_page.customers_register_card.s31', "تعذر تحميل البيانات")} emptyTitle={__t('customers.customers_page.customers_register_card.s32', "لا توجد نتائج مطابقة")} emptyHint={__t('customers.customers_page.customers_register_card.s33', "جرّب تغيير الفلاتر أو أضف سجلًا جديدًا.")}>
         <DataTable
           rows={props.rows as Customer[]}
           rowKey={(customer) => String(customer.id)}

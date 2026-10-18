@@ -1,7 +1,8 @@
 import { z } from 'zod';
 
 export const productFormSchema = z.object({
-  name: z.string().min(2, 'اسم الصنف مطلوب'),
+  name: z.string().default(''),
+  nameEn: z.string().default(''),
   barcode: z.string().optional(),
   itemType: z.enum(['product', 'raw_material', 'service']).default('product'),
   itemKind: z.enum(['standard', 'fashion']).default('standard'),
@@ -48,6 +49,16 @@ export const productFormSchema = z.object({
     origin: z.string().optional(),
     condition: z.string().optional(),
   }).optional()
+}).superRefine((data, ctx) => {
+  const hasName = Boolean(data.name && data.name.trim().length > 0);
+  const hasNameEn = Boolean(data.nameEn && data.nameEn.trim().length > 0);
+  if (!hasName && !hasNameEn) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'اسم الصنف مطلوب (بالعربية أو الإنجليزية)',
+      path: ['name'],
+    });
+  }
 });
 
 export type ProductFormInput = z.input<typeof productFormSchema>;

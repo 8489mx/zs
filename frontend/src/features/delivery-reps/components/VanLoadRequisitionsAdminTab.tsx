@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/shared/ui/button';
@@ -41,6 +42,7 @@ export interface AdminReviewLine {
 }
 
 export function VanLoadRequisitionsAdminTab() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [viewMode, setViewMode] = useState<'list' | 'create'>('list');
   const [statusFilter, setStatusFilter] = useState<string>('');
@@ -912,30 +914,30 @@ export function VanLoadRequisitionsAdminTab() {
       {/* KPI Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '14px' }}>
         <div style={{ background: '#ffffff', borderRadius: '12px', padding: '16px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
-          <span style={{ fontSize: '12px', fontWeight: 700, color: '#d97706', display: 'block' }}>طلبات قيد المراجعة والصرف</span>
+          <span style={{ fontSize: '12px', fontWeight: 700, color: '#d97706', display: 'block' }}>{t('delivery_reps.van_load_requisitions_admin_tab.s0', "طلبات قيد المراجعة والصرف")}</span>
           <span style={{ fontSize: '22px', fontWeight: 800, color: '#b45309', display: 'block', marginTop: '4px' }}>
-            {pendingReqs.length} <span style={{ fontSize: '13px', color: '#f59e0b' }}>طلب تحميل</span>
+            {pendingReqs.length} <span style={{ fontSize: '13px', color: '#f59e0b' }}>{t('delivery_reps.van_load_requisitions_admin_tab.s1', "طلب تحميل")}</span>
           </span>
         </div>
 
         <div style={{ background: '#ffffff', borderRadius: '12px', padding: '16px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
-          <span style={{ fontSize: '12px', fontWeight: 700, color: '#16a34a', display: 'block' }}>طلبات تم صرفها وبدء رحلتها</span>
+          <span style={{ fontSize: '12px', fontWeight: 700, color: '#16a34a', display: 'block' }}>{t('delivery_reps.van_load_requisitions_admin_tab.s2', "طلبات تم صرفها وبدء رحلتها")}</span>
           <span style={{ fontSize: '22px', fontWeight: 800, color: '#15803d', display: 'block', marginTop: '4px' }}>
-            {dispatchedReqs.length} <span style={{ fontSize: '13px', color: '#86efac' }}>رحلة منطلقة</span>
+            {dispatchedReqs.length} <span style={{ fontSize: '13px', color: '#86efac' }}>{t('delivery_reps.van_load_requisitions_admin_tab.s3', "رحلة منطلقة")}</span>
           </span>
         </div>
 
         <div style={{ background: '#ffffff', borderRadius: '12px', padding: '16px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
-          <span style={{ fontSize: '12px', fontWeight: 700, color: '#dc2626', display: 'block' }}>طلبات تحميل مرفوضة</span>
+          <span style={{ fontSize: '12px', fontWeight: 700, color: '#dc2626', display: 'block' }}>{t('delivery_reps.van_load_requisitions_admin_tab.s4', "طلبات تحميل مرفوضة")}</span>
           <span style={{ fontSize: '22px', fontWeight: 800, color: '#991b1b', display: 'block', marginTop: '4px' }}>
-            {rejectedReqs.length} <span style={{ fontSize: '13px', color: '#f87171' }}>طلب</span>
+            {rejectedReqs.length} <span style={{ fontSize: '13px', color: '#f87171' }}>{t('delivery_reps.van_load_requisitions_admin_tab.s5', "طلب")}</span>
           </span>
         </div>
 
         <div style={{ background: '#ffffff', borderRadius: '12px', padding: '16px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
-          <span style={{ fontSize: '12px', fontWeight: 700, color: '#4338ca', display: 'block' }}>إجمالي أذونات التحميل المسجلة</span>
+          <span style={{ fontSize: '12px', fontWeight: 700, color: '#4338ca', display: 'block' }}>{t('delivery_reps.van_load_requisitions_admin_tab.s6', "إجمالي أذونات التحميل المسجلة")}</span>
           <span style={{ fontSize: '22px', fontWeight: 800, color: '#312e81', display: 'block', marginTop: '4px' }}>
-            {requisitions.length} <span style={{ fontSize: '13px', color: '#a5b4fc' }}>إذن</span>
+            {requisitions.length} <span style={{ fontSize: '13px', color: '#a5b4fc' }}>{t('delivery_reps.van_load_requisitions_admin_tab.s7', "إذن")}</span>
           </span>
         </div>
       </div>
@@ -955,13 +957,13 @@ export function VanLoadRequisitionsAdminTab() {
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span style={{ fontSize: '12px', fontWeight: 700, color: '#475569' }}>تصفية حسب الحالة:</span>
+          <span style={{ fontSize: '12px', fontWeight: 700, color: '#475569' }}>{t('delivery_reps.van_load_requisitions_admin_tab.s8', "تصفية حسب الحالة:")}</span>
           <div style={{ display: 'flex', gap: '6px' }}>
             {[
-              { label: 'كافة الطلبات', value: '' },
+              { label: t('delivery_reps.van_load_requisitions_admin_tab.s9', "كافة الطلبات"), value: '' },
               { label: `بانتظار الصرف (${pendingReqs.length})`, value: 'pending' },
-              { label: 'تم الصرف', value: 'dispatched' },
-              { label: 'مرفوض', value: 'rejected' },
+              { label: t('delivery_reps.van_load_requisitions_admin_tab.s10', "تم الصرف"), value: 'dispatched' },
+              { label: t('delivery_reps.van_load_requisitions_admin_tab.s11', "مرفوض"), value: 'rejected' },
             ].map((f) => (
               <button
                 key={f.value}
@@ -987,7 +989,7 @@ export function VanLoadRequisitionsAdminTab() {
 
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
           <span style={{ fontSize: '12px', color: '#94a3b8', fontWeight: 600 }}>
-            إجمالي السجلات: {requisitions.length}
+            {t('delivery_reps.van_load_requisitions_admin_tab.s12', "إجمالي السجلات:")} {requisitions.length}
           </span>
           <Button
             variant="secondary"
@@ -1001,14 +1003,14 @@ export function VanLoadRequisitionsAdminTab() {
               opacity: isRefreshing ? 0.75 : 1,
             }}
             onClick={handleManualRefresh}
-            title="تحديث قائمة أذونات التحميل من السيرفر"
+            title={t('delivery_reps.van_load_requisitions_admin_tab.s13', "تحديث قائمة أذونات التحميل من السيرفر")}
           >
             <RefreshCwIcon
               size={13}
               className={isRefreshing ? 'spin-animation' : undefined}
               style={isRefreshing ? { animation: 'spin 0.75s linear infinite' } : undefined}
             />
-            {isRefreshing ? 'جارٍ التحديث...' : 'تحديث'}
+            {isRefreshing ? t('delivery_reps.van_load_requisitions_admin_tab.s14', "جارٍ التحديث...") : t('delivery_reps.van_load_requisitions_admin_tab.s15', "تحديث")}
           </Button>
           <Button
             variant="primary"
@@ -1024,7 +1026,7 @@ export function VanLoadRequisitionsAdminTab() {
             onClick={() => setViewMode('create')}
           >
             <PlusIcon size={14} />
-            إنشاء إذن تحميل مباشر
+            {t('delivery_reps.van_load_requisitions_admin_tab.s16', "إنشاء إذن تحميل مباشر")}
           </Button>
         </div>
       </div>
@@ -1043,11 +1045,11 @@ export function VanLoadRequisitionsAdminTab() {
       >
         {isLoading ? (
           <div style={{ padding: '60px', textAlign: 'center', color: '#64748b', fontWeight: 700 }}>
-            جاري تحميل أذونات التحميل...
+            {t('delivery_reps.van_load_requisitions_admin_tab.s17', "جاري تحميل أذونات التحميل...")}
           </div>
         ) : requisitions.length === 0 ? (
           <div style={{ padding: '60px', textAlign: 'center', color: '#64748b', fontWeight: 600 }}>
-            لا توجد أذونات تحميل مطابقة للفلتر المحدد.
+            {t('delivery_reps.van_load_requisitions_admin_tab.s18', "لا توجد أذونات تحميل مطابقة للفلتر المحدد.")}
           </div>
         ) : (
           <table
@@ -1073,15 +1075,15 @@ export function VanLoadRequisitionsAdminTab() {
             </colgroup>
             <thead>
               <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>
-                <th style={{ padding: '10px 8px', fontWeight: 700, fontSize: '11.5px', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>رقم الإذن</th>
-                <th style={{ padding: '10px 8px', fontWeight: 700, fontSize: '11.5px', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>مندوب التوزيع</th>
-                <th style={{ padding: '10px 6px', fontWeight: 700, fontSize: '11.5px', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>المركبة</th>
-                <th style={{ padding: '10px 6px', fontWeight: 700, fontSize: '11.5px', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>المستودع</th>
-                <th style={{ padding: '10px 6px', fontWeight: 700, textAlign: 'center', fontSize: '11.5px', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>الأصناف</th>
-                <th style={{ padding: '10px 6px', fontWeight: 700, textAlign: 'center', fontSize: '11.5px', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>القطع</th>
-                <th style={{ padding: '10px 6px', fontWeight: 700, fontSize: '11.5px', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>تاريخ الطلب</th>
-                <th style={{ padding: '10px 6px', fontWeight: 700, textAlign: 'center', fontSize: '11.5px', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>حالة الإذن والقرار</th>
-                <th style={{ padding: '10px 8px', fontWeight: 700, textAlign: 'center', fontSize: '11.5px', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>المعاينة والطباعة</th>
+                <th style={{ padding: '10px 8px', fontWeight: 700, fontSize: '11.5px', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>{t('delivery_reps.van_load_requisitions_admin_tab.s19', "رقم الإذن")}</th>
+                <th style={{ padding: '10px 8px', fontWeight: 700, fontSize: '11.5px', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>{t('delivery_reps.van_load_requisitions_admin_tab.s20', "مندوب التوزيع")}</th>
+                <th style={{ padding: '10px 6px', fontWeight: 700, fontSize: '11.5px', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>{t('delivery_reps.van_load_requisitions_admin_tab.s21', "المركبة")}</th>
+                <th style={{ padding: '10px 6px', fontWeight: 700, fontSize: '11.5px', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>{t('delivery_reps.van_load_requisitions_admin_tab.s22', "المستودع")}</th>
+                <th style={{ padding: '10px 6px', fontWeight: 700, textAlign: 'center', fontSize: '11.5px', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>{t('delivery_reps.van_load_requisitions_admin_tab.s23', "الأصناف")}</th>
+                <th style={{ padding: '10px 6px', fontWeight: 700, textAlign: 'center', fontSize: '11.5px', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>{t('delivery_reps.van_load_requisitions_admin_tab.s24', "القطع")}</th>
+                <th style={{ padding: '10px 6px', fontWeight: 700, fontSize: '11.5px', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>{t('delivery_reps.van_load_requisitions_admin_tab.s25', "تاريخ الطلب")}</th>
+                <th style={{ padding: '10px 6px', fontWeight: 700, textAlign: 'center', fontSize: '11.5px', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>{t('delivery_reps.van_load_requisitions_admin_tab.s26', "حالة الإذن والقرار")}</th>
+                <th style={{ padding: '10px 8px', fontWeight: 700, textAlign: 'center', fontSize: '11.5px', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>{t('delivery_reps.van_load_requisitions_admin_tab.s27', "المعاينة والطباعة")}</th>
               </tr>
             </thead>
             <tbody>
@@ -1102,20 +1104,20 @@ export function VanLoadRequisitionsAdminTab() {
                     <td style={{ padding: '8px 6px', verticalAlign: 'middle' }}>
                       {r.vehiclePlate ? (
                         <span style={{ fontSize: '10.5px', background: '#f1f5f9', color: '#334155', padding: '1px 5px', borderRadius: '4px', border: '1px solid #e2e8f0', fontWeight: 700, whiteSpace: 'nowrap' }}>
-                          لوحة: {r.vehiclePlate}
+                          {t('delivery_reps.van_load_requisitions_admin_tab.s28', "لوحة:")} {r.vehiclePlate}
                         </span>
                       ) : (
-                        <span style={{ fontSize: '11px', color: '#94a3b8' }}>غير محددة</span>
+                        <span style={{ fontSize: '11px', color: '#94a3b8' }}>{t('delivery_reps.van_load_requisitions_admin_tab.s29', "غير محددة")}</span>
                       )}
                     </td>
                     <td style={{ padding: '8px 6px', color: '#475569', fontWeight: 600, fontSize: '11.5px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', verticalAlign: 'middle' }}>
                       {r.sourceWarehouseName}
                     </td>
                     <td style={{ padding: '8px 6px', textAlign: 'center', fontWeight: 700, fontSize: '11.5px', verticalAlign: 'middle' }}>
-                      {(r.requestedItems || []).length} صنف
+                      {(r.requestedItems || []).length} {t('delivery_reps.van_load_requisitions_admin_tab.s30', "صنف")}
                     </td>
                     <td style={{ padding: '8px 6px', textAlign: 'center', fontWeight: 800, color: '#1e293b', fontSize: '11.5px', verticalAlign: 'middle' }}>
-                      {totalReqPieces} قطعة
+                      {totalReqPieces} {t('delivery_reps.van_load_requisitions_admin_tab.s31', "قطعة")}
                     </td>
                     <td style={{ padding: '8px 6px', fontSize: '10.5px', color: '#64748b', whiteSpace: 'nowrap', verticalAlign: 'middle' }}>
                       {new Date(r.createdAt).toLocaleDateString('ar-EG', {
@@ -1129,33 +1131,33 @@ export function VanLoadRequisitionsAdminTab() {
                       {isPending && (
                         <div style={{ display: 'inline-flex', gap: '4px', alignItems: 'center', justifyContent: 'center' }}>
                           <span style={{ fontSize: '10px', padding: '2px 6px', borderRadius: '10px', background: '#fef3c7', color: '#b45309', border: '1px solid #fde68a', fontWeight: 700, whiteSpace: 'nowrap' }}>
-                            بانتظار الصرف
+                            {t('delivery_reps.van_load_requisitions_admin_tab.s32', "بانتظار الصرف")}
                           </span>
                           <Button
                             variant="primary"
                             style={{ fontSize: '11px', padding: '3px 7px', background: '#15803d', color: '#ffffff', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: '2px' }}
                             onClick={() => handleDispatch(r)}
                             disabled={dispatchMutation.isPending}
-                            title="صرف وتحميل السيارة فوراً"
+                            title={t('delivery_reps.van_load_requisitions_admin_tab.s33', "صرف وتحميل السيارة فوراً")}
                           >
                             <TruckIcon size={12} />
-                            صرف
+                            {t('delivery_reps.van_load_requisitions_admin_tab.s34', "صرف")}
                           </Button>
                           <Button
                             variant="danger"
                             style={{ fontSize: '11px', padding: '3px 6px', background: '#fef2f2', color: '#b91c1c', border: '1px solid #fecaca', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: '2px' }}
                             onClick={() => openRejectDialog(r)}
-                            title="رفض أو إلغاء الطلب"
+                            title={t('delivery_reps.van_load_requisitions_admin_tab.s35', "رفض أو إلغاء الطلب")}
                           >
                             <XCircleIcon size={12} />
-                            رفض
+                            {t('delivery_reps.van_load_requisitions_admin_tab.s36', "رفض")}
                           </Button>
                           <Button
                             variant="danger"
                             style={{ fontSize: '11px', padding: '3px 5px', color: '#ef4444', background: '#fef2f2', border: '1px solid #fee2e2', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
                             onClick={() => handleDeleteRequisition(r)}
                             disabled={deleteMutation.isPending}
-                            title="حذف الطلب نهائياً"
+                            title={t('delivery_reps.van_load_requisitions_admin_tab.s37', "حذف الطلب نهائياً")}
                           >
                             <Trash2Icon size={12} />
                           </Button>
@@ -1163,20 +1165,20 @@ export function VanLoadRequisitionsAdminTab() {
                       )}
                       {isDispatched && (
                         <span style={{ fontSize: '11px', padding: '3px 8px', borderRadius: '10px', background: '#dcfce7', color: '#15803d', border: '1px solid #bbf7d0', fontWeight: 700, whiteSpace: 'nowrap' }}>
-                          تم الصرف #{r.tripId}
+                          {t('delivery_reps.van_load_requisitions_admin_tab.s38', "تم الصرف #")}{r.tripId}
                         </span>
                       )}
                       {isRejected && (
                         <div style={{ display: 'inline-flex', gap: '5px', alignItems: 'center', justifyContent: 'center' }}>
                           <span style={{ fontSize: '11px', padding: '3px 8px', borderRadius: '10px', background: '#fee2e2', color: '#b91c1c', border: '1px solid #fecaca', fontWeight: 700, whiteSpace: 'nowrap' }}>
-                            مرفوض
+                            {t('delivery_reps.van_load_requisitions_admin_tab.s39', "مرفوض")}
                           </span>
                           <Button
                             variant="danger"
                             style={{ fontSize: '11px', padding: '3px 5px', color: '#ef4444', background: '#fef2f2', border: '1px solid #fee2e2', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
                             onClick={() => handleDeleteRequisition(r)}
                             disabled={deleteMutation.isPending}
-                            title="حذف الطلب نهائياً"
+                            title={t('delivery_reps.van_load_requisitions_admin_tab.s40', "حذف الطلب نهائياً")}
                           >
                             <Trash2Icon size={12} />
                           </Button>
@@ -1189,10 +1191,10 @@ export function VanLoadRequisitionsAdminTab() {
                           variant="secondary"
                           style={{ fontSize: '11px', padding: '4px 8px', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: '3px' }}
                           onClick={() => openReviewModal(r)}
-                          title="معاينة ومراجعة الأصناف والكميات"
+                          title={t('delivery_reps.van_load_requisitions_admin_tab.s41', "معاينة ومراجعة الأصناف والكميات")}
                         >
                           <FileTextIcon size={12} />
-                          معاينة
+                          {t('delivery_reps.van_load_requisitions_admin_tab.s42', "معاينة")}
                         </Button>
                         {/* Split Print Button */}
                         <div style={{ display: 'inline-flex', alignItems: 'stretch', position: 'relative' }}>
@@ -1216,10 +1218,10 @@ export function VanLoadRequisitionsAdminTab() {
                               lineHeight: '1.2',
                             }}
                             onClick={() => handlePrintRequisition(r)}
-                            title={`طباعة مباشرة (${defaultPaperSize === 'receipt' ? 'إيصال حراري 80mm' : 'نموذج A4'})`}
+                            title={`طباعة مباشرة (${defaultPaperSize === 'receipt' ? t('delivery_reps.van_load_requisitions_admin_tab.s43', "إيصال حراري 80mm") : t('delivery_reps.van_load_requisitions_admin_tab.s44', "نموذج A4")})`}
                           >
                             <PrinterIcon size={12} />
-                            طباعة
+                            {t('delivery_reps.van_load_requisitions_admin_tab.s45', "طباعة")}
                           </button>
                           <button
                             type="button"
@@ -1239,7 +1241,7 @@ export function VanLoadRequisitionsAdminTab() {
                               e.stopPropagation();
                               setActivePrintMenuId(activePrintMenuId === r.id ? null : r.id);
                             }}
-                            title="خيارات الطباعة (A4 أو حراري)"
+                            title={t('delivery_reps.van_load_requisitions_admin_tab.s46', "خيارات الطباعة (A4 أو حراري)")}
                           >
                             <ChevronDownIcon size={11} />
                           </button>
@@ -1287,8 +1289,8 @@ export function VanLoadRequisitionsAdminTab() {
                                   handlePrintRequisition(r, 'a4');
                                 }}
                               >
-                                <span>طباعة A4 (المستودع)</span>
-                                {defaultPaperSize === 'a4' && <span style={{ fontSize: '10px', color: '#15803d' }}>افتراضي</span>}
+                                <span>{t('delivery_reps.van_load_requisitions_admin_tab.s47', "طباعة A4 (المستودع)")}</span>
+                                {defaultPaperSize === 'a4' && <span style={{ fontSize: '10px', color: '#15803d' }}>{t('delivery_reps.van_load_requisitions_admin_tab.s48', "افتراضي")}</span>}
                               </button>
                               <button
                                 type="button"
@@ -1312,8 +1314,8 @@ export function VanLoadRequisitionsAdminTab() {
                                   handlePrintRequisition(r, 'receipt');
                                 }}
                               >
-                                <span>إيصال حراري (80mm)</span>
-                                {defaultPaperSize === 'receipt' && <span style={{ fontSize: '10px', color: '#15803d' }}>افتراضي</span>}
+                                <span>{t('delivery_reps.van_load_requisitions_admin_tab.s49', "إيصال حراري (80mm)")}</span>
+                                {defaultPaperSize === 'receipt' && <span style={{ fontSize: '10px', color: '#15803d' }}>{t('delivery_reps.van_load_requisitions_admin_tab.s50', "افتراضي")}</span>}
                               </button>
                             </div>
                           )}
@@ -1350,15 +1352,15 @@ export function VanLoadRequisitionsAdminTab() {
             {/* Header summary cards */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', backgroundColor: '#f8fafc', padding: '12px 16px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
               <div>
-                <span style={{ fontSize: '11px', color: '#64748b', display: 'block', marginBottom: '2px' }}>المندوب والسائق:</span>
+                <span style={{ fontSize: '11px', color: '#64748b', display: 'block', marginBottom: '2px' }}>{t('delivery_reps.van_load_requisitions_admin_tab.s51', "المندوب والسائق:")}</span>
                 <strong style={{ fontSize: '13px', color: '#0f172a' }}>{selectedReq.repName}</strong>
               </div>
               <div>
-                <span style={{ fontSize: '11px', color: '#64748b', display: 'block', marginBottom: '2px' }}>المركبة المسندة:</span>
+                <span style={{ fontSize: '11px', color: '#64748b', display: 'block', marginBottom: '2px' }}>{t('delivery_reps.van_load_requisitions_admin_tab.s52', "المركبة المسندة:")}</span>
                 <strong style={{ fontSize: '13px', color: '#0f172a' }}>{selectedReq.vehiclePlate || '—'}</strong>
               </div>
               <div>
-                <span style={{ fontSize: '11px', color: '#64748b', display: 'block', marginBottom: '2px' }}>مستودع الصرف:</span>
+                <span style={{ fontSize: '11px', color: '#64748b', display: 'block', marginBottom: '2px' }}>{t('delivery_reps.van_load_requisitions_admin_tab.s53', "مستودع الصرف:")}</span>
                 {selectedReq.status === 'pending' ? (
                   <CustomSelect
                     value={String(activeWarehouseId || '')}
@@ -1367,14 +1369,14 @@ export function VanLoadRequisitionsAdminTab() {
                       value: String(w.id),
                       label: w.name,
                     }))}
-                    placeholder="اختر مستودع الصرف..."
+                    placeholder={t('delivery_reps.van_load_requisitions_admin_tab.s54', "اختر مستودع الصرف...")}
                   />
                 ) : (
                   <strong style={{ fontSize: '13px', color: '#0369a1' }}>{selectedReq.sourceWarehouseName}</strong>
                 )}
               </div>
               <div>
-                <span style={{ fontSize: '11px', color: '#64748b', display: 'block', marginBottom: '2px' }}>حالة الإذن:</span>
+                <span style={{ fontSize: '11px', color: '#64748b', display: 'block', marginBottom: '2px' }}>{t('delivery_reps.van_load_requisitions_admin_tab.s55', "حالة الإذن:")}</span>
                 <span
                   style={{
                     display: 'inline-block',
@@ -1387,7 +1389,7 @@ export function VanLoadRequisitionsAdminTab() {
                     border: `1px solid ${selectedReq.status === 'dispatched' ? '#bbf7d0' : selectedReq.status === 'rejected' ? '#fecaca' : '#fde68a'}`,
                   }}
                 >
-                  {selectedReq.status === 'dispatched' ? 'تم الصرف وبدء الرحلة' : selectedReq.status === 'rejected' ? 'مرفوض' : 'بانتظار الصرف'}
+                  {selectedReq.status === 'dispatched' ? t('delivery_reps.van_load_requisitions_admin_tab.s56', "تم الصرف وبدء الرحلة") : selectedReq.status === 'rejected' ? t('delivery_reps.van_load_requisitions_admin_tab.s57', "مرفوض") : t('delivery_reps.van_load_requisitions_admin_tab.s58', "بانتظار الصرف")}
                 </span>
               </div>
             </div>
@@ -1396,15 +1398,15 @@ export function VanLoadRequisitionsAdminTab() {
             <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden' }}>
               <div style={{ padding: '10px 14px', background: '#f1f5f9', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontSize: '12.5px', fontWeight: 800, color: '#334155' }}>
-                  الأصناف ومطابقة رصيد المستودع ({reviewLines.length} أصناف)
+                  {t('delivery_reps.van_load_requisitions_admin_tab.s59', "الأصناف ومطابقة رصيد المستودع (")}{reviewLines.length} {t('delivery_reps.van_load_requisitions_admin_tab.s60', "أصناف)")}
                 </span>
                 {selectedReq.status === 'pending' ? (
                   <span style={{ fontSize: '11px', color: '#64748b' }}>
-                    يمكنك تعديل الكمية المعتمدة، إضافة أصناف جديدة، أو استبعاد صنف
+                    {t('delivery_reps.van_load_requisitions_admin_tab.s61', "يمكنك تعديل الكمية المعتمدة، إضافة أصناف جديدة، أو استبعاد صنف")}
                   </span>
                 ) : (
                   <span style={{ fontSize: '11px', color: '#15803d', fontWeight: 700 }}>
-                    تم اعتماد وصرف البضاعة وتحميلها لسيارة المندوب
+                    {t('delivery_reps.van_load_requisitions_admin_tab.s62', "تم اعتماد وصرف البضاعة وتحميلها لسيارة المندوب")}
                   </span>
                 )}
               </div>
@@ -1420,12 +1422,12 @@ export function VanLoadRequisitionsAdminTab() {
                   </colgroup>
                   <thead>
                     <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', position: 'sticky', top: 0, zIndex: 2 }}>
-                      <th style={{ padding: '9px 12px', fontWeight: 700 }}>الصنف والباركود</th>
-                      <th style={{ padding: '9px 12px', fontWeight: 700, textAlign: 'center' }}>طلب المندوب</th>
-                      <th style={{ padding: '9px 12px', fontWeight: 700, textAlign: 'center' }}>المتاح بالمستودع</th>
-                      <th style={{ padding: '9px 12px', fontWeight: 700, textAlign: 'center' }}>المعتمد للصرف</th>
+                      <th style={{ padding: '9px 12px', fontWeight: 700 }}>{t('delivery_reps.van_load_requisitions_admin_tab.s63', "الصنف والباركود")}</th>
+                      <th style={{ padding: '9px 12px', fontWeight: 700, textAlign: 'center' }}>{t('delivery_reps.van_load_requisitions_admin_tab.s64', "طلب المندوب")}</th>
+                      <th style={{ padding: '9px 12px', fontWeight: 700, textAlign: 'center' }}>{t('delivery_reps.van_load_requisitions_admin_tab.s65', "المتاح بالمستودع")}</th>
+                      <th style={{ padding: '9px 12px', fontWeight: 700, textAlign: 'center' }}>{t('delivery_reps.van_load_requisitions_admin_tab.s66', "المعتمد للصرف")}</th>
                       {selectedReq.status === 'pending' && (
-                        <th style={{ padding: '9px 12px', textAlign: 'center' }}>حذف</th>
+                        <th style={{ padding: '9px 12px', textAlign: 'center' }}>{t('delivery_reps.van_load_requisitions_admin_tab.s67', "حذف")}</th>
                       )}
                     </tr>
                   </thead>
@@ -1433,7 +1435,7 @@ export function VanLoadRequisitionsAdminTab() {
                     {reviewLines.length === 0 ? (
                       <tr>
                         <td colSpan={selectedReq.status === 'pending' ? 5 : 4} style={{ padding: '24px', textAlign: 'center', color: '#94a3b8', fontSize: '13px' }}>
-                          لا توجد أصناف في هذا الإذن. يمكنك إضافة أصناف بالأسفل.
+                          {t('delivery_reps.van_load_requisitions_admin_tab.s68', "لا توجد أصناف في هذا الإذن. يمكنك إضافة أصناف بالأسفل.")}
                         </td>
                       </tr>
                     ) : (
@@ -1461,18 +1463,18 @@ export function VanLoadRequisitionsAdminTab() {
                                       display: 'inline-block',
                                     }}
                                   >
-                                    إضافة المشرف
+                                    {t('delivery_reps.van_load_requisitions_admin_tab.s69', "إضافة المشرف")}
                                   </span>
                                 )}
                               </div>
                               {it.barcode && (
                                 <span style={{ fontSize: '10.5px', color: '#64748b', fontFamily: 'monospace', display: 'block', marginTop: '2px' }}>
-                                  باركود: {it.barcode}
+                                  {t('delivery_reps.van_load_requisitions_admin_tab.s70', "باركود:")} {it.barcode}
                                 </span>
                               )}
                               {isCarton && (
                                 <span style={{ fontSize: '10px', color: '#170e5e', fontWeight: 600, display: 'inline-block', marginTop: '2px', backgroundColor: '#eef2ff', padding: '1px 5px', borderRadius: '4px' }}>
-                                  الكرتونة = {mult} {it.unit || 'قطعة'}
+                                  {t('delivery_reps.van_load_requisitions_admin_tab.s71', "الكرتونة =")} {mult} {it.unit || t('delivery_reps.van_load_requisitions_admin_tab.s72', "قطعة")}
                                 </span>
                               )}
                             </td>
@@ -1480,7 +1482,7 @@ export function VanLoadRequisitionsAdminTab() {
                               {it.requestedQty > 0 ? (
                                 <div>
                                   <div>
-                                    <span>{it.requestedQty}</span> <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 500 }}>{it.unit || 'قطعة'}</span>
+                                    <span>{it.requestedQty}</span> <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 500 }}>{it.unit || t('delivery_reps.van_load_requisitions_admin_tab.s73', "قطعة")}</span>
                                   </div>
                                   {it.requestedPackingText ? (
                                     <div style={{ fontSize: '10.5px', color: '#170e5e', fontWeight: 700, marginTop: '2px' }}>
@@ -1489,7 +1491,7 @@ export function VanLoadRequisitionsAdminTab() {
                                   ) : isCarton && it.packagingUnit ? (
                                     <div style={{ fontSize: '10.5px', color: '#170e5e', fontWeight: 700, marginTop: '2px' }}>
                                       {Math.floor(it.requestedQty / mult)} {it.packagingUnit.name}
-                                      {it.requestedQty % mult > 0 ? ` + ${it.requestedQty % mult} ${it.unit || 'قطعة'}` : ''}
+                                      {it.requestedQty % mult > 0 ? ` + ${it.requestedQty % mult} ${it.unit || t('delivery_reps.van_load_requisitions_admin_tab.s74', "قطعة")}` : ''}
                                     </div>
                                   ) : null}
                                 </div>
@@ -1510,7 +1512,7 @@ export function VanLoadRequisitionsAdminTab() {
                                   border: `1px solid ${isShortage ? '#fca5a5' : '#bbf7d0'}`,
                                 }}
                               >
-                                {avail} {it.unit || 'قطعة'} {isShortage ? '(عجز)' : '(متوفر)'}
+                                {avail} {it.unit || t('delivery_reps.van_load_requisitions_admin_tab.s75', "قطعة")} {isShortage ? t('delivery_reps.van_load_requisitions_admin_tab.s76', "(عجز)") : t('delivery_reps.van_load_requisitions_admin_tab.s77', "(متوفر)")}
                               </span>
                               {isShortage && it.warehouseStocks && it.warehouseStocks.length > 0 && (
                                 (() => {
@@ -1518,7 +1520,7 @@ export function VanLoadRequisitionsAdminTab() {
                                   if (!other) return null;
                                   return (
                                     <div style={{ fontSize: '10px', color: '#0369a1', marginTop: '3px', fontWeight: 700 }}>
-                                      متوفر في {other.warehouseName}: {other.qty} {it.unit || 'قطعة'}
+                                      {t('delivery_reps.van_load_requisitions_admin_tab.s78', "متوفر في")} {other.warehouseName}: {other.qty} {it.unit || t('delivery_reps.van_load_requisitions_admin_tab.s79', "قطعة")}
                                     </div>
                                   );
                                 })()
@@ -1526,7 +1528,7 @@ export function VanLoadRequisitionsAdminTab() {
                               {isCarton && it.packagingUnit && (
                                 <div style={{ fontSize: '10px', color: '#64748b', marginTop: '2px', fontWeight: 600 }}>
                                   {Math.floor(avail / mult)} {it.packagingUnit.name}
-                                  {avail % mult > 0 ? ` + ${avail % mult} ${it.unit || 'قطعة'}` : ''}
+                                  {avail % mult > 0 ? ` + ${avail % mult} ${it.unit || t('delivery_reps.van_load_requisitions_admin_tab.s80', "قطعة")}` : ''}
                                 </div>
                               )}
                             </td>
@@ -1563,7 +1565,7 @@ export function VanLoadRequisitionsAdminTab() {
                                               justifyContent: 'center',
                                               borderInlineEnd: '1px solid #e2e8f0',
                                             }}
-                                            title={`زيادة ${it.packagingUnit?.name || 'كرتونة'}`}
+                                            title={`زيادة ${it.packagingUnit?.name || t('delivery_reps.van_load_requisitions_admin_tab.s81', "كرتونة")}`}
                                           >
                                             <PlusIcon size={11} />
                                           </button>
@@ -1604,13 +1606,13 @@ export function VanLoadRequisitionsAdminTab() {
                                               justifyContent: 'center',
                                               borderInlineStart: '1px solid #e2e8f0',
                                             }}
-                                            title={`إنقاص ${it.packagingUnit?.name || 'كرتونة'}`}
+                                            title={`إنقاص ${it.packagingUnit?.name || t('delivery_reps.van_load_requisitions_admin_tab.s82', "كرتونة")}`}
                                           >
                                             <MinusIcon size={11} />
                                           </button>
                                         </div>
                                         <span style={{ fontSize: '10.5px', fontWeight: 700, color: '#475569', whiteSpace: 'nowrap' }}>
-                                          {it.packagingUnit?.name || 'كرتونة'}
+                                          {it.packagingUnit?.name || t('delivery_reps.van_load_requisitions_admin_tab.s83', "كرتونة")}
                                         </span>
                                       </div>
 
@@ -1642,7 +1644,7 @@ export function VanLoadRequisitionsAdminTab() {
                                               justifyContent: 'center',
                                               borderInlineEnd: '1px solid #e2e8f0',
                                             }}
-                                            title={`زيادة ${it.unit || 'قطع'}`}
+                                            title={`زيادة ${it.unit || t('delivery_reps.van_load_requisitions_admin_tab.s84', "قطع")}`}
                                           >
                                             <PlusIcon size={11} />
                                           </button>
@@ -1683,13 +1685,13 @@ export function VanLoadRequisitionsAdminTab() {
                                               justifyContent: 'center',
                                               borderInlineStart: '1px solid #e2e8f0',
                                             }}
-                                            title={`إنقاص ${it.unit || 'قطع'}`}
+                                            title={`إنقاص ${it.unit || t('delivery_reps.van_load_requisitions_admin_tab.s85', "قطع")}`}
                                           >
                                             <MinusIcon size={11} />
                                           </button>
                                         </div>
                                         <span style={{ fontSize: '10.5px', fontWeight: 700, color: '#475569', whiteSpace: 'nowrap' }}>
-                                          {it.unit || 'قطع'}
+                                          {it.unit || t('delivery_reps.van_load_requisitions_admin_tab.s86', "قطع")}
                                         </span>
                                       </div>
                                     </div>
@@ -1706,7 +1708,7 @@ export function VanLoadRequisitionsAdminTab() {
                                         border: `1px solid ${isShortage ? '#fca5a5' : '#cbd5e1'}`,
                                       }}
                                     >
-                                      إجمالي المعتمد: {it.approvedQty} {it.unit || 'قطعة'}
+                                      {t('delivery_reps.van_load_requisitions_admin_tab.s87', "إجمالي المعتمد:")} {it.approvedQty} {it.unit || t('delivery_reps.van_load_requisitions_admin_tab.s88', "قطعة")}
                                     </span>
                                   </div>
                                 ) : (
@@ -1737,7 +1739,7 @@ export function VanLoadRequisitionsAdminTab() {
                                           justifyContent: 'center',
                                           borderInlineEnd: '1px solid #e2e8f0',
                                         }}
-                                        title="زيادة الكمية"
+                                        title={t('delivery_reps.van_load_requisitions_admin_tab.s89', "زيادة الكمية")}
                                       >
                                         <PlusIcon size={12} />
                                       </button>
@@ -1779,13 +1781,13 @@ export function VanLoadRequisitionsAdminTab() {
                                           justifyContent: 'center',
                                           borderInlineStart: '1px solid #e2e8f0',
                                         }}
-                                        title="تقليل الكمية"
+                                        title={t('delivery_reps.van_load_requisitions_admin_tab.s90', "تقليل الكمية")}
                                       >
                                         <MinusIcon size={12} />
                                       </button>
                                     </div>
                                     <span style={{ fontSize: '11px', fontWeight: 700, color: '#475569' }}>
-                                      {it.unit || 'قطعة'}
+                                      {it.unit || t('delivery_reps.van_load_requisitions_admin_tab.s91', "قطعة")}
                                     </span>
                                   </div>
                                 )
@@ -1803,7 +1805,7 @@ export function VanLoadRequisitionsAdminTab() {
                                       border: '1px solid #bbf7d0',
                                     }}
                                   >
-                                    {it.approvedQty} {it.unit || 'قطعة'}
+                                    {it.approvedQty} {it.unit || t('delivery_reps.van_load_requisitions_admin_tab.s92', "قطعة")}
                                   </span>
                                   {it.packingText ? (
                                     <span style={{ fontSize: '10.5px', color: '#170e5e', fontWeight: 700 }}>
@@ -1812,7 +1814,7 @@ export function VanLoadRequisitionsAdminTab() {
                                   ) : isCarton && it.packagingUnit ? (
                                     <span style={{ fontSize: '10.5px', color: '#170e5e', fontWeight: 700 }}>
                                       {Math.floor(it.approvedQty / mult)} {it.packagingUnit.name}
-                                      {it.approvedQty % mult > 0 ? ` + ${it.approvedQty % mult} ${it.unit || 'قطعة'}` : ''}
+                                      {it.approvedQty % mult > 0 ? ` + ${it.approvedQty % mult} ${it.unit || t('delivery_reps.van_load_requisitions_admin_tab.s93', "قطعة")}` : ''}
                                     </span>
                                   ) : null}
                                 </div>
@@ -1831,7 +1833,7 @@ export function VanLoadRequisitionsAdminTab() {
                                     padding: '4px',
                                     borderRadius: '4px',
                                   }}
-                                  title="استبعاد هذا الصنف"
+                                  title={t('delivery_reps.van_load_requisitions_admin_tab.s94', "استبعاد هذا الصنف")}
                                 >
                                   <Trash2Icon size={14} />
                                 </button>
@@ -1846,16 +1848,16 @@ export function VanLoadRequisitionsAdminTab() {
                     <tfoot style={{ backgroundColor: '#f8fafc', borderTop: '2px solid #e2e8f0', fontWeight: 800 }}>
                       <tr>
                         <td style={{ padding: '9px 12px', color: '#334155' }}>
-                          إجمالي الأصناف: <span style={{ color: '#170e5e' }}>{reviewLines.length} صنف</span>
+                          {t('delivery_reps.van_load_requisitions_admin_tab.s95', "إجمالي الأصناف:")} <span style={{ color: '#170e5e' }}>{reviewLines.length} {t('delivery_reps.van_load_requisitions_admin_tab.s96', "صنف")}</span>
                         </td>
                         <td style={{ padding: '9px 12px', textAlign: 'center', color: '#0f172a' }}>
-                          {reviewLines.reduce((acc, l) => acc + (l.requestedQty || 0), 0)} <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 500 }}>وحدة</span>
+                          {reviewLines.reduce((acc, l) => acc + (l.requestedQty || 0), 0)} <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 500 }}>{t('delivery_reps.van_load_requisitions_admin_tab.s97', "وحدة")}</span>
                         </td>
                         <td style={{ padding: '9px 12px', textAlign: 'center', color: '#64748b' }}>
                           —
                         </td>
                         <td style={{ padding: '9px 12px', textAlign: 'center', color: '#15803d' }}>
-                          {reviewLines.reduce((acc, l) => acc + (l.approvedQty || 0), 0)} <span style={{ fontSize: '11px', color: '#15803d', fontWeight: 500 }}>وحدة</span>
+                          {reviewLines.reduce((acc, l) => acc + (l.approvedQty || 0), 0)} <span style={{ fontSize: '11px', color: '#15803d', fontWeight: 500 }}>{t('delivery_reps.van_load_requisitions_admin_tab.s98', "وحدة")}</span>
                         </td>
                         {selectedReq.status === 'pending' && <td />}
                       </tr>
@@ -1875,13 +1877,13 @@ export function VanLoadRequisitionsAdminTab() {
                       style={{ fontSize: '12px', fontWeight: 700, color: '#170e5e', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
                     >
                       <PlusIcon size={14} />
-                      + إضافة صنف إضافي للإذن
+                      {t('delivery_reps.van_load_requisitions_admin_tab.s99', "+ إضافة صنف إضافي للإذن")}
                     </Button>
                   ) : (
                     <div style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '10px 12px' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                         <span style={{ fontSize: '12px', fontWeight: 800, color: '#170e5e' }}>
-                          اختر صنفاً لإضافته من مستودع "{selectedReq.sourceWarehouseName}":
+                          {t('delivery_reps.van_load_requisitions_admin_tab.s100', "اختر صنفاً لإضافته من مستودع \"")}{selectedReq.sourceWarehouseName}":
                         </span>
                         <button
                           type="button"
@@ -1899,7 +1901,7 @@ export function VanLoadRequisitionsAdminTab() {
                         type="text"
                         value={productSearch}
                         onChange={(e) => setProductSearch(e.target.value)}
-                        placeholder="ابحث بالاسم أو الباركود..."
+                        placeholder={t('delivery_reps.van_load_requisitions_admin_tab.s101', "ابحث بالاسم أو الباركود...")}
                         style={{
                           width: '100%',
                           height: '36px',
@@ -1952,7 +1954,7 @@ export function VanLoadRequisitionsAdminTab() {
                                 <div>
                                   <span style={{ fontWeight: 700, color: '#0f172a' }}>{p.name}</span>
                                   <span style={{ fontSize: '10.5px', color: '#94a3b8', marginRight: '6px' }}>
-                                    {p.barcode || 'بدون باركود'}
+                                    {p.barcode || t('delivery_reps.van_load_requisitions_admin_tab.s102', "بدون باركود")}
                                   </span>
                                 </div>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -1963,10 +1965,10 @@ export function VanLoadRequisitionsAdminTab() {
                                       color: p.totalStock > 0 ? '#15803d' : '#dc2626',
                                     }}
                                   >
-                                    متاح: {p.totalStock} قطعة
+                                    {t('delivery_reps.van_load_requisitions_admin_tab.s103', "متاح:")} {p.totalStock} {t('delivery_reps.van_load_requisitions_admin_tab.s104', "قطعة")}
                                   </span>
                                   <span style={{ fontSize: '11.5px', color: '#170e5e', fontWeight: 800 }}>
-                                    {alreadyInReview ? '+ زيادة كمية' : '+ إضافة'}
+                                    {alreadyInReview ? t('delivery_reps.van_load_requisitions_admin_tab.s105', "+ زيادة كمية") : t('delivery_reps.van_load_requisitions_admin_tab.s106', "+ إضافة")}
                                   </span>
                                 </div>
                               </div>
@@ -1982,11 +1984,11 @@ export function VanLoadRequisitionsAdminTab() {
             {selectedReq.status === 'pending' && (
               <div>
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
-                  ملاحظات وتوجيهات الإدارة:
+                  {t('delivery_reps.van_load_requisitions_admin_tab.s107', "ملاحظات وتوجيهات الإدارة:")}
                 </label>
                 <input
                   type="text"
-                  placeholder="ملاحظات تظهر للمندوب في تقرير الصرف والرحلة..."
+                  placeholder={t('delivery_reps.van_load_requisitions_admin_tab.s108', "ملاحظات تظهر للمندوب في تقرير الصرف والرحلة...")}
                   value={adminNotes}
                   onChange={(e) => setAdminNotes(e.target.value)}
                   style={{
@@ -2003,13 +2005,13 @@ export function VanLoadRequisitionsAdminTab() {
 
             {selectedReq.rejectionReason && (
               <div style={{ fontSize: '12px', color: '#991b1b', backgroundColor: '#fef2f2', padding: '10px 12px', borderRadius: '8px', border: '1px solid #fecaca' }}>
-                <strong>سبب الرفض:</strong> {selectedReq.rejectionReason}
+                <strong>{t('delivery_reps.van_load_requisitions_admin_tab.s109', "سبب الرفض:")}</strong> {selectedReq.rejectionReason}
               </div>
             )}
 
             {selectedReq.reviewedByName && (
               <div style={{ fontSize: '11px', color: '#64748b' }}>
-                تمت المراجعة بواسطة: <strong>{selectedReq.reviewedByName}</strong>{' '}
+                {t('delivery_reps.van_load_requisitions_admin_tab.s110', "تمت المراجعة بواسطة:")} <strong>{selectedReq.reviewedByName}</strong>{' '}
                 {selectedReq.reviewedAt && `بتاريخ ${new Date(selectedReq.reviewedAt).toLocaleString('ar-EG')}`}
               </div>
             )}
@@ -2017,25 +2019,25 @@ export function VanLoadRequisitionsAdminTab() {
             {/* Modal Actions */}
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '10px' }}>
               <Button variant="secondary" onClick={() => setSelectedReq(null)}>
-                إغلاق
+                {t('delivery_reps.van_load_requisitions_admin_tab.s111', "إغلاق")}
               </Button>
               <Button
                 variant="secondary"
                 onClick={() => handlePrintRequisition(selectedReq, 'a4')}
                 style={{ fontSize: '12px', display: 'flex', alignItems: 'center', gap: '5px' }}
-                title="طباعة نموذج المستودع الرسمي A4"
+                title={t('delivery_reps.van_load_requisitions_admin_tab.s112', "طباعة نموذج المستودع الرسمي A4")}
               >
                 <PrinterIcon size={13} />
-                طباعة A4
+                {t('delivery_reps.van_load_requisitions_admin_tab.s113', "طباعة A4")}
               </Button>
               <Button
                 variant="secondary"
                 onClick={() => handlePrintRequisition(selectedReq, 'receipt')}
                 style={{ fontSize: '12px', display: 'flex', alignItems: 'center', gap: '5px' }}
-                title="طباعة إيصال حراري 80mm للمندوب"
+                title={t('delivery_reps.van_load_requisitions_admin_tab.s114', "طباعة إيصال حراري 80mm للمندوب")}
               >
                 <PrinterIcon size={13} />
-                إيصال حراري (80mm)
+                {t('delivery_reps.van_load_requisitions_admin_tab.s115', "إيصال حراري (80mm)")}
               </Button>
               {selectedReq.status === 'pending' && (
                 <>
@@ -2045,14 +2047,14 @@ export function VanLoadRequisitionsAdminTab() {
                     disabled={reviewMutation.isPending}
                     style={{ fontSize: '12px' }}
                   >
-                    {reviewMutation.isPending ? 'جاري الحفظ...' : 'حفظ تعديل الكميات'}
+                    {reviewMutation.isPending ? t('delivery_reps.van_load_requisitions_admin_tab.s116', "جاري الحفظ...") : t('delivery_reps.van_load_requisitions_admin_tab.s117', "حفظ تعديل الكميات")}
                   </Button>
                   <Button
                     variant="danger"
                     onClick={() => openRejectDialog(selectedReq)}
                     style={{ backgroundColor: '#dc2626', color: '#ffffff', fontSize: '12px' }}
                   >
-                    رفض / إلغاء الطلب
+                    {t('delivery_reps.van_load_requisitions_admin_tab.s118', "رفض / إلغاء الطلب")}
                   </Button>
                   <Button
                     variant="danger"
@@ -2061,7 +2063,7 @@ export function VanLoadRequisitionsAdminTab() {
                     style={{ backgroundColor: '#fef2f2', color: '#b91c1c', border: '1px solid #fecaca', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '5px' }}
                   >
                     <Trash2Icon size={13} />
-                    حذف الطلب
+                    {t('delivery_reps.van_load_requisitions_admin_tab.s119', "حذف الطلب")}
                   </Button>
                   <Button
                     variant="primary"
@@ -2070,7 +2072,7 @@ export function VanLoadRequisitionsAdminTab() {
                     style={{ backgroundColor: '#15803d', color: '#ffffff', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}
                   >
                     <TruckIcon size={14} />
-                    {dispatchMutation.isPending ? 'جاري الصرف والتحميل...' : 'اعتماد وصرف وتحميل وبدء الرحلة'}
+                    {dispatchMutation.isPending ? t('delivery_reps.van_load_requisitions_admin_tab.s120', "جاري الصرف والتحميل...") : t('delivery_reps.van_load_requisitions_admin_tab.s121', "اعتماد وصرف وتحميل وبدء الرحلة")}
                   </Button>
                 </>
               )}
@@ -2091,11 +2093,11 @@ export function VanLoadRequisitionsAdminTab() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }} dir="rtl">
             <div>
               <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-                سبب رفض إذن التحميل <span style={{ color: '#dc2626' }}>*</span>
+                {t('delivery_reps.van_load_requisitions_admin_tab.s122', "سبب رفض إذن التحميل")} <span style={{ color: '#dc2626' }}>*</span>
               </label>
               <textarea
                 rows={3}
-                placeholder="وضح سبب رفض طلب التحميل ليظهر للمندوب في تطبيق الفان..."
+                placeholder={t('delivery_reps.van_load_requisitions_admin_tab.s123', "وضح سبب رفض طلب التحميل ليظهر للمندوب في تطبيق الفان...")}
                 value={rejectReasonInput}
                 onChange={(e) => setRejectReasonInput(e.target.value)}
                 style={{
@@ -2110,7 +2112,7 @@ export function VanLoadRequisitionsAdminTab() {
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
               <Button variant="secondary" onClick={() => setRejectModalReq(null)}>
-                إلغاء
+                {t('delivery_reps.van_load_requisitions_admin_tab.s124', "إلغاء")}
               </Button>
               <Button
                 variant="danger"
@@ -2118,7 +2120,7 @@ export function VanLoadRequisitionsAdminTab() {
                 onClick={confirmReject}
                 style={{ backgroundColor: '#dc2626', color: '#ffffff' }}
               >
-                {rejectMutation.isPending ? 'جاري الرفض...' : 'تأكيد رفض الإذن'}
+                {rejectMutation.isPending ? t('delivery_reps.van_load_requisitions_admin_tab.s125', "جاري الرفض...") : t('delivery_reps.van_load_requisitions_admin_tab.s126', "تأكيد رفض الإذن")}
               </Button>
             </div>
           </div>

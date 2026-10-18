@@ -63,6 +63,7 @@ interface HeaderSectionProps {
 }
 
 export function PurchaseOrderHeaderSection(props: HeaderSectionProps) {
+  const { t: __t } = useTranslation();
   const { t } = useTranslation();
 
   return (
@@ -76,11 +77,11 @@ export function PurchaseOrderHeaderSection(props: HeaderSectionProps) {
               {props.documentStatus === 'confirmed' ? t('status_confirmed') : t('status_draft')}
             </span>
             <span className="nav-pill" style={{ fontWeight: 700, color: '#0f172a' }}>
-              الإجمالي: {formatMoney(props.total, props.language)}
+              {__t('purchases.new_purchase_order.purchase_order_header_section.s0', "الإجمالي:")} {formatMoney(props.total, props.language)}
             </span>
             {props.attachmentsCount > 0 && (
               <span className="nav-pill">
-                أوامر مرفقة ({props.attachmentsCount})
+                {__t('purchases.new_purchase_order.purchase_order_header_section.s1', "أوامر مرفقة (")}{props.attachmentsCount})
               </span>
             )}
           </div>
@@ -101,7 +102,7 @@ export function PurchaseOrderHeaderSection(props: HeaderSectionProps) {
                   <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
                 </svg>
               </span>
-              <span>إلغاء المسودة</span>
+              <span>{__t('purchases.new_purchase_order.purchase_order_header_section.s2', "إلغاء المسودة")}</span>
             </Button>
             <Button
               variant="secondary"
@@ -171,14 +172,14 @@ export function PurchaseOrderHeaderSection(props: HeaderSectionProps) {
                 <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
                 <circle cx="12" cy="13" r="4" />
               </svg>
-              <span>كاميرا</span>
+              <span>{__t('purchases.new_purchase_order.purchase_order_header_section.s3', "كاميرا")}</span>
             </label>
             <label className="section-header-action-btn" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', cursor: 'pointer', margin: 0 }}>
               <input type="file" multiple onChange={props.onFileUpload} style={{ display: 'none' }} />
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="13" height="13">
                 <path d="M21 12.5 12.8 20.7a5 5 0 0 1-7.1-7.1L14.2 5.1a3.5 3.5 0 0 1 4.9 4.9L9.9 19.2" />
               </svg>
-              <span>{props.isUploading ? 'رفع...' : 'إرفاق'}</span>
+              <span>{props.isUploading ? __t('purchases.new_purchase_order.purchase_order_header_section.s4', "رفع...") : __t('purchases.new_purchase_order.purchase_order_header_section.s5', "إرفاق")}</span>
               {props.attachments.length > 0 && <span className="nav-pill" style={{ fontSize: '0.65rem', padding: '1px 4px', marginInlineStart: '2px' }}>{props.attachments.length}</span>}
             </label>
           </div>
@@ -208,8 +209,8 @@ export function PurchaseOrderHeaderSection(props: HeaderSectionProps) {
             error={props.validationErrors.supplier}
           />
           <SearchableCombobox
-            label={t('phone_number') || 'رقم التليفون'}
-            placeholder="ابحث عن رقم تليفون..."
+            label={t('phone_number') || __t('purchases.new_purchase_order.purchase_order_header_section.s6', "رقم التليفون")}
+            placeholder={__t('purchases.new_purchase_order.purchase_order_header_section.s7', "ابحث عن رقم تليفون...")}
             value={props.contact}
             onChange={(value) => {
               props.markDocumentDirty();
@@ -226,7 +227,7 @@ export function PurchaseOrderHeaderSection(props: HeaderSectionProps) {
             inputClassName="purchase-prototype-field-input purchase-prototype-contact-input"
             dropdownClassName={props.purchaseDropdownClassName}
           />
-          <Field label="طريقة الدفع">
+          <Field label={__t('purchases.new_purchase_order.purchase_order_header_section.s8', "طريقة الدفع")}>
             <CustomSelect
               value={props.paymentType}
               onChange={(val) => {
@@ -234,8 +235,8 @@ export function PurchaseOrderHeaderSection(props: HeaderSectionProps) {
                 props.setPaymentType(val as 'cash' | 'credit');
               }}
               options={[
-                { value: 'credit', label: 'آجل (يضاف لمديونية المورد)' },
-                { value: 'cash', label: 'كاش (دفع فوري من الخزينة)' },
+                { value: 'credit', label: __t('purchases.new_purchase_order.purchase_order_header_section.s9', "آجل (يضاف لمديونية المورد)") },
+                { value: 'cash', label: __t('purchases.new_purchase_order.purchase_order_header_section.s10', "كاش (دفع فوري من الخزينة)") },
               ]}
             />
           </Field>

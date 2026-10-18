@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { StandardDialog } from '@/shared/components/StandardDialog';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
@@ -20,6 +21,7 @@ export function CapitalTransactionDialog({
   open: boolean, 
   onClose: () => void 
 }) {
+  const { t } = useTranslation();
   const [amount, setAmount] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [note, setNote] = useState('');
@@ -64,7 +66,7 @@ export function CapitalTransactionDialog({
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }} dir="rtl">
         <div>
           <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', marginBottom: '6px' }}>
-            المبلغ المطلوب {isDeposit ? 'إيداعه' : 'سحبه'} <span style={{ color: '#ef4444' }}>*</span>
+            {t('import_sales.partner_ledger_components.s0', "المبلغ المطلوب")} {isDeposit ? t('import_sales.partner_ledger_components.s1', "إيداعه") : t('import_sales.partner_ledger_components.s2', "سحبه")} <span style={{ color: '#ef4444' }}>*</span>
           </label>
           <input 
             type="number" 
@@ -92,7 +94,7 @@ export function CapitalTransactionDialog({
 
         <div>
           <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', marginBottom: '6px' }}>
-            تاريخ الحركة <span style={{ color: '#ef4444' }}>*</span>
+            {t('import_sales.partner_ledger_components.s3', "تاريخ الحركة")} <span style={{ color: '#ef4444' }}>*</span>
           </label>
           <input 
             type="date" 
@@ -116,7 +118,7 @@ export function CapitalTransactionDialog({
 
         <div>
           <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', marginBottom: '6px' }}>
-            {isDeposit ? 'الخزينة / الحساب البنكي للإيداع' : 'الخزينة / الحساب البنكي للصرف'} <span style={{ color: '#ef4444' }}>*</span>
+            {isDeposit ? t('import_sales.partner_ledger_components.s4', "الخزينة / الحساب البنكي للإيداع") : t('import_sales.partner_ledger_components.s5', "الخزينة / الحساب البنكي للصرف")} <span style={{ color: '#ef4444' }}>*</span>
           </label>
           <select 
             value={accountId} 
@@ -135,7 +137,7 @@ export function CapitalTransactionDialog({
               outline: 'none',
             }}
           >
-            <option value="">-- اختر الخزينة أو البنك --</option>
+            <option value="">{t('import_sales.partner_ledger_components.s6', "-- اختر الخزينة أو البنك --")}</option>
             {treasuryAccounts?.map((a: any) => (
               <option key={a.id} value={a.id}>{a.nameAr || a.name}</option>
             ))}
@@ -144,13 +146,13 @@ export function CapitalTransactionDialog({
 
         <div>
           <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', marginBottom: '6px' }}>
-            ملاحظات أو بيان الحركة (اختياري)
+            {t('import_sales.partner_ledger_components.s7', "ملاحظات أو بيان الحركة (اختياري)")}
           </label>
           <textarea 
             rows={3} 
             value={note} 
             onChange={e => setNote(e.target.value)} 
-            placeholder="تفاصيل إضافية عن الحركة..."
+            placeholder={t('import_sales.partner_ledger_components.s8', "تفاصيل إضافية عن الحركة...")}
             style={{
               width: '100%',
               borderRadius: '6px',
@@ -173,7 +175,7 @@ export function CapitalTransactionDialog({
             onClick={onClose}
             style={{ height: '36px', padding: '0 16px', fontSize: '0.82rem', fontWeight: 600, borderRadius: '6px' }}
           >
-            إلغاء
+            {t('import_sales.partner_ledger_components.s9', "إلغاء")}
           </Button>
           <Button 
             type="submit" 
@@ -189,7 +191,7 @@ export function CapitalTransactionDialog({
               border: 'none',
             }}
           >
-            {mutation.isPending ? 'جاري الحفظ...' : (isDeposit ? 'حفظ وإيداع بالخزينة' : 'حفظ وصرف من الخزينة')}
+            {mutation.isPending ? t('import_sales.partner_ledger_components.s10', "جاري الحفظ...") : (isDeposit ? t('import_sales.partner_ledger_components.s11', "حفظ وإيداع بالخزينة") : t('import_sales.partner_ledger_components.s12', "حفظ وصرف من الخزينة"))}
           </Button>
         </div>
         <MutationFeedback isError={mutation.isError} isSuccess={mutation.isSuccess} error={mutation.error} />
@@ -199,6 +201,7 @@ export function CapitalTransactionDialog({
 }
 
 export function PartnerLedgerDialog({ partner, open, onClose }: { partner: Partner | null, open: boolean, onClose: () => void }) {
+  const { t } = useTranslation();
   const { data: ledger, isLoading } = usePartnerLedgerQuery(partner?.id || '');
 
   return (
@@ -206,20 +209,20 @@ export function PartnerLedgerDialog({ partner, open, onClose }: { partner: Partn
       open={open} 
       onClose={onClose} 
       title={`كشف حساب رأس مال: ${partner?.name || ''}`}
-      subtitle="سجل تفصيلي لكافة حركات الإيداع والسحب وصرف الأرباح الخاصة بالشريك."
+      subtitle={t('import_sales.partner_ledger_components.s13', "سجل تفصيلي لكافة حركات الإيداع والسحب وصرف الأرباح الخاصة بالشريك.")}
       width="min(760px, 95vw)"
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }} dir="rtl">
         {/* Partner Header Summary */}
         <div style={{ background: '#f8fafc', padding: '14px 18px', borderRadius: '8px', border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
           <div>
-            <span style={{ fontSize: '0.78rem', color: '#64748b', display: 'block', marginBottom: '2px' }}>رأس المال الحالي المسجل</span>
+            <span style={{ fontSize: '0.78rem', color: '#64748b', display: 'block', marginBottom: '2px' }}>{t('import_sales.partner_ledger_components.s14', "رأس المال الحالي المسجل")}</span>
             <span style={{ fontSize: '1.25rem', fontWeight: 800, color: '#170e5e' }}>
               {Number(partner?.capital_amount || 0).toLocaleString()} <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}><CurrencySymbol /></span>
             </span>
           </div>
           <div>
-            <span style={{ fontSize: '0.78rem', color: '#64748b', display: 'block', marginBottom: '2px' }}>نسبة الأرباح المعتمدة</span>
+            <span style={{ fontSize: '0.78rem', color: '#64748b', display: 'block', marginBottom: '2px' }}>{t('import_sales.partner_ledger_components.s15', "نسبة الأرباح المعتمدة")}</span>
             <span style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0f172a' }}>
               {partner?.profit_share_percentage ?? 0}%
             </span>
@@ -227,16 +230,16 @@ export function PartnerLedgerDialog({ partner, open, onClose }: { partner: Partn
         </div>
 
         {isLoading ? (
-          <p style={{ color: '#64748b', textAlign: 'center', padding: '32px' }}>جاري التحميل...</p>
+          <p style={{ color: '#64748b', textAlign: 'center', padding: '32px' }}>{t('import_sales.partner_ledger_components.s16', "جاري التحميل...")}</p>
         ) : (
           <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden', background: '#ffffff' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right', fontSize: '0.825rem' }}>
               <thead>
                 <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', fontSize: '0.78rem', fontWeight: 700 }}>
-                  <th style={{ padding: '10px 14px' }}>التاريخ</th>
-                  <th style={{ padding: '10px 14px' }}>نوع الحركة</th>
-                  <th style={{ padding: '10px 14px', textAlign: 'left' }}>المبلغ</th>
-                  <th style={{ padding: '10px 14px' }}>البيان والملاحظات</th>
+                  <th style={{ padding: '10px 14px' }}>{t('import_sales.partner_ledger_components.s17', "التاريخ")}</th>
+                  <th style={{ padding: '10px 14px' }}>{t('import_sales.partner_ledger_components.s18', "نوع الحركة")}</th>
+                  <th style={{ padding: '10px 14px', textAlign: 'left' }}>{t('import_sales.partner_ledger_components.s19', "المبلغ")}</th>
+                  <th style={{ padding: '10px 14px' }}>{t('import_sales.partner_ledger_components.s20', "البيان والملاحظات")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -248,17 +251,17 @@ export function PartnerLedgerDialog({ partner, open, onClose }: { partner: Partn
                     <td style={{ padding: '10px 14px' }}>
                       {entry.type === 'DEPOSIT' && (
                         <span style={{ display: 'inline-block', padding: '3px 8px', borderRadius: '4px', background: '#dcfce7', color: '#16a34a', fontSize: '0.74rem', fontWeight: 700 }}>
-                          إيداع رأس مال
+                          {t('import_sales.partner_ledger_components.s21', "إيداع رأس مال")}
                         </span>
                       )}
                       {entry.type === 'WITHDRAWAL' && (
                         <span style={{ display: 'inline-block', padding: '3px 8px', borderRadius: '4px', background: '#fee2e2', color: '#dc2626', fontSize: '0.74rem', fontWeight: 700 }}>
-                          سحب رأس مال
+                          {t('import_sales.partner_ledger_components.s22', "سحب رأس مال")}
                         </span>
                       )}
                       {entry.type === 'PROFIT_PAYOUT' && (
                         <span style={{ display: 'inline-block', padding: '3px 8px', borderRadius: '4px', background: '#dbeafe', color: '#2563eb', fontSize: '0.74rem', fontWeight: 700 }}>
-                          صرف أرباح
+                          {t('import_sales.partner_ledger_components.s23', "صرف أرباح")}
                         </span>
                       )}
                     </td>
@@ -278,8 +281,8 @@ export function PartnerLedgerDialog({ partner, open, onClose }: { partner: Partn
                       <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 8px auto', color: '#94a3b8' }}>
                         <FileTextIcon size={20} />
                       </div>
-                      <div style={{ fontWeight: 700, color: '#334155', fontSize: '0.84rem' }}>لا توجد حركات مسجلة</div>
-                      <div style={{ fontSize: '0.74rem', color: '#94a3b8', marginTop: '3px' }}>لم يتم تسجيل أي عمليات إيداع أو سحب لهذا الشريك حتى الآن.</div>
+                      <div style={{ fontWeight: 700, color: '#334155', fontSize: '0.84rem' }}>{t('import_sales.partner_ledger_components.s24', "لا توجد حركات مسجلة")}</div>
+                      <div style={{ fontSize: '0.74rem', color: '#94a3b8', marginTop: '3px' }}>{t('import_sales.partner_ledger_components.s25', "لم يتم تسجيل أي عمليات إيداع أو سحب لهذا الشريك حتى الآن.")}</div>
                     </td>
                   </tr>
                 )}
@@ -294,7 +297,7 @@ export function PartnerLedgerDialog({ partner, open, onClose }: { partner: Partn
             onClick={onClose}
             style={{ height: '36px', padding: '0 20px', fontSize: '0.82rem', fontWeight: 600, borderRadius: '6px' }}
           >
-            إغلاق
+            {t('import_sales.partner_ledger_components.s26', "إغلاق")}
           </Button>
         </div>
       </div>

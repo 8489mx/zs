@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 import { SmartphoneIcon, AlertTriangleIcon, UsersIcon } from '@/shared/components/icons/AppIcons';
 import { Link } from 'react-router-dom';
@@ -23,6 +24,7 @@ export function MobilePunchLoginScreen({
   errorMsg,
   disambiguationTenants,
 }: MobilePunchLoginScreenProps) {
+  const { t: __t } = useTranslation();
   return (
     <div
       dir="rtl"
@@ -69,7 +71,7 @@ export function MobilePunchLoginScreen({
             <SmartphoneIcon size={30} color="#ffffff" strokeWidth={2} />
           </div>
           <h1 style={{ margin: 0, fontSize: '22px', fontWeight: 900, color: '#0f172a' }}>
-            بصمة الموبايل والـ GPS
+            {__t('hr.punch.mobile_punch_login_screen.s0', "بصمة الموبايل والـ GPS")}
           </h1>
           <p style={{ margin: '6px 0 0', fontSize: '13px', color: '#64748b', fontWeight: 600 }}>
             Z-Systems Mobile Attendance & GPS Punch
@@ -109,7 +111,7 @@ export function MobilePunchLoginScreen({
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#1d4ed8', fontWeight: 800, fontSize: '13px', marginBottom: '10px' }}>
               <UsersIcon size={16} />
-              <span>اختر المنشأة التابع لها:</span>
+              <span>{__t('hr.punch.mobile_punch_login_screen.s1', "اختر المنشأة التابع لها:")}</span>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {disambiguationTenants.map((t) => (
@@ -143,7 +145,7 @@ export function MobilePunchLoginScreen({
         <form onSubmit={(e) => onSubmit(e)} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <div>
             <label style={{ fontSize: '13px', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '6px' }}>
-              رقم الهاتف المسجل *
+              {__t('hr.punch.mobile_punch_login_screen.s2', "رقم الهاتف المسجل *")}
             </label>
             <input
               type="tel"
@@ -165,7 +167,7 @@ export function MobilePunchLoginScreen({
 
           <div>
             <label style={{ fontSize: '13px', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '6px' }}>
-              رمز الدخول السريع (PIN Code) *
+              {__t('hr.punch.mobile_punch_login_screen.s3', "رمز الدخول السريع (PIN Code) *")}
             </label>
             <input
               type="password"
@@ -205,13 +207,13 @@ export function MobilePunchLoginScreen({
               marginTop: '8px',
             }}
           >
-            {loading ? 'جارٍ التحقق...' : 'تسجيل الدخول لبصمة الموبايل'}
+            {loading ? __t('hr.punch.mobile_punch_login_screen.s4', "جارٍ التحقق...") : __t('hr.punch.mobile_punch_login_screen.s5', "تسجيل الدخول لبصمة الموبايل")}
           </button>
         </form>
 
         <div style={{ marginTop: '24px', textAlign: 'center', fontSize: '12px', color: '#64748b' }}>
           <Link to="/login" style={{ color: '#170e5e', textDecoration: 'none', fontWeight: 700 }}>
-            الرجوع لتسجيل الدخول كمسؤول أو كاشير
+            {__t('hr.punch.mobile_punch_login_screen.s6', "الرجوع لتسجيل الدخول كمسؤول أو كاشير")}
           </Link>
         </div>
       </div>

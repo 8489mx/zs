@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { DialogShell } from '@/shared/components/dialog-shell';
@@ -27,6 +28,7 @@ export function TableQrPrintDialog({
   slug,
   businessName,
 }: TableQrPrintDialogProps) {
+  const { t } = useTranslation();
   const { data: settings } = useSettingsQuery();
   const { data: storefrontSettings } = useQuery({
     queryKey: ['storefront-admin-settings'],
@@ -254,7 +256,7 @@ export function TableQrPrintDialog({
     <DialogShell
       open={open}
       onClose={onClose}
-      ariaLabel="طباعة كروت واستيكرات الـ QR لطاولات الصالة"
+      ariaLabel={t('pos.pos_workspace.table_qr_print_dialog.s0', "طباعة كروت واستيكرات الـ QR لطاولات الصالة")}
       width="900px"
       zIndex={99}
     >
@@ -267,10 +269,10 @@ export function TableQrPrintDialog({
             </div>
             <div>
               <h3 style={{ margin: 0, fontSize: '16.5px', fontWeight: 900, color: '#0f172a' }}>
-                طباعة كروت واستيكرات الـ QR لطاولات الصالة
+                {t('pos.pos_workspace.table_qr_print_dialog.s1', "طباعة كروت واستيكرات الـ QR لطاولات الصالة")}
               </h3>
               <p style={{ margin: '3px 0 0', fontSize: '12px', color: '#64748b' }}>
-                توليد كروت طاولات مؤسسية مع الرمز المشفر المباشر لكل طاولة لطلب الوجبات ذاتياً بدون انتظار
+                {t('pos.pos_workspace.table_qr_print_dialog.s2', "توليد كروت طاولات مؤسسية مع الرمز المشفر المباشر لكل طاولة لطلب الوجبات ذاتياً بدون انتظار")}
               </p>
             </div>
           </div>
@@ -289,7 +291,7 @@ export function TableQrPrintDialog({
               cursor: 'pointer',
               color: '#64748b',
             }}
-            title="إغلاق"
+            title={t('pos.pos_workspace.table_qr_print_dialog.s3', "إغلاق")}
           >
             <XIcon size={16} />
           </button>
@@ -312,10 +314,10 @@ export function TableQrPrintDialog({
           {/* Range Inputs */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
             <span style={{ fontSize: '12px', fontWeight: 800, color: '#1e293b' }}>
-              نطاق الطاولات:
+              {t('pos.pos_workspace.table_qr_print_dialog.s4', "نطاق الطاولات:")}
             </span>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span style={{ fontSize: '12px', color: '#64748b' }}>من طاولة:</span>
+              <span style={{ fontSize: '12px', color: '#64748b' }}>{t('pos.pos_workspace.table_qr_print_dialog.s5', "من طاولة:")}</span>
               <input
                 type="number"
                 min="1"
@@ -326,7 +328,7 @@ export function TableQrPrintDialog({
               />
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span style={{ fontSize: '12px', color: '#64748b' }}>إلى طاولة:</span>
+              <span style={{ fontSize: '12px', color: '#64748b' }}>{t('pos.pos_workspace.table_qr_print_dialog.s6', "إلى طاولة:")}</span>
               <input
                 type="number"
                 min={fromTable}
@@ -337,13 +339,13 @@ export function TableQrPrintDialog({
               />
             </div>
             <span style={{ fontSize: '11.5px', color: '#166534', fontWeight: 700, background: '#dcfce7', padding: '2px 8px', borderRadius: '6px' }}>
-              إجمالي {tablesList.length} طاولة
+              {t('pos.pos_workspace.table_qr_print_dialog.s7', "إجمالي")} {tablesList.length} {t('pos.pos_workspace.table_qr_print_dialog.s8', "طاولة")}
             </span>
           </div>
 
           {/* Card Layout Switcher */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ fontSize: '12px', fontWeight: 700, color: '#475569' }}>نمط الكارت:</span>
+            <span style={{ fontSize: '12px', fontWeight: 700, color: '#475569' }}>{t('pos.pos_workspace.table_qr_print_dialog.s9', "نمط الكارت:")}</span>
             <div style={{ display: 'inline-flex', background: '#e2e8f0', padding: '2px', borderRadius: '8px' }}>
               <button
                 type="button"
@@ -359,7 +361,7 @@ export function TableQrPrintDialog({
                   color: cardType === 'tent' ? '#ffffff' : '#475569',
                 }}
               >
-                أستاند طاولة (Tent)
+                {t('pos.pos_workspace.table_qr_print_dialog.s10', "أستاند طاولة (Tent)")}
               </button>
               <button
                 type="button"
@@ -375,7 +377,7 @@ export function TableQrPrintDialog({
                   color: cardType === 'sticker' ? '#ffffff' : '#475569',
                 }}
               >
-                ملصق مربع (Sticker)
+                {t('pos.pos_workspace.table_qr_print_dialog.s11', "ملصق مربع (Sticker)")}
               </button>
             </div>
           </div>
@@ -419,7 +421,7 @@ export function TableQrPrintDialog({
                     marginBottom: '10px',
                   }}
                 >
-                  طاولة رقم [ {tbl.num} ]
+                  {t('pos.pos_workspace.table_qr_print_dialog.s12', "طاولة رقم [")} {tbl.num} ]
                 </div>
                 <div
                   style={{
@@ -447,11 +449,11 @@ export function TableQrPrintDialog({
         {/* Footer Actions */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '8px', borderTop: '1px solid #e2e8f0' }}>
           <div style={{ fontSize: '11.5px', color: '#64748b' }}>
-            الرابط الأساسي: <strong style={{ color: '#170e5e', fontFamily: 'monospace' }}>{baseUrl}</strong>
+            {t('pos.pos_workspace.table_qr_print_dialog.s13', "الرابط الأساسي:")} <strong style={{ color: '#170e5e', fontFamily: 'monospace' }}>{baseUrl}</strong>
           </div>
           <div style={{ display: 'flex', gap: '8px' }}>
             <Button type="button" variant="secondary" onClick={onClose} style={{ minHeight: '34px', height: '34px', fontSize: '12.5px' }}>
-              إغلاق
+              {t('pos.pos_workspace.table_qr_print_dialog.s14', "إغلاق")}
             </Button>
             <Button
               type="button"
@@ -468,7 +470,7 @@ export function TableQrPrintDialog({
               }}
             >
               <PrinterIcon size={15} color="#ffffff" />
-              <span>طباعة {tablesList.length} كارت الآن</span>
+              <span>{t('pos.pos_workspace.table_qr_print_dialog.s15', "طباعة")} {tablesList.length} {t('pos.pos_workspace.table_qr_print_dialog.s16', "كارت الآن")}</span>
             </Button>
           </div>
         </div>

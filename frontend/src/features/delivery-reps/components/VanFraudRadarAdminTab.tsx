@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { vanSalesApi, type VanFraudRadarEvent, type VanRepRiskProfile } from '../api/van-sales.api';
@@ -154,6 +155,7 @@ function getEventCodeMeta(code: string) {
 }
 
 export function VanFraudRadarAdminTab() {
+  const { t } = useTranslation();
   const [periodDays, setPeriodDays] = useState<string>('30');
   const [selectedRepId, setSelectedRepId] = useState<string>('all');
   const [selectedEventCode, setSelectedEventCode] = useState<string>('all');
@@ -264,11 +266,11 @@ export function VanFraudRadarAdminTab() {
                 }}
               />
               <h3 style={{ margin: 0, fontSize: '15.6px', fontWeight: 800, color: '#0f172a' }}>
-                رادار الشبهات ومكافحة التلاعب الميداني (Van Anti-Theft & Fraud Radar)
+                {t('delivery_reps.van_fraud_radar_admin_tab.s0', "رادار الشبهات ومكافحة التلاعب الميداني (Van Anti-Theft & Fraud Radar)")}
               </h3>
             </div>
             <p style={{ margin: '4px 0 0', fontSize: '12.5px', color: '#64748b' }}>
-              رصد لحظي لكافة محاولات التلاعب المصدودة (الأسعار، البونص، التحصيل المتقاطع، المرتجعات الوهمية، العداد، والـ GPS) مع إشعار فوري لصاحب المنشأة والمشرف.
+              {t('delivery_reps.van_fraud_radar_admin_tab.s1', "رصد لحظي لكافة محاولات التلاعب المصدودة (الأسعار، البونص، التحصيل المتقاطع، المرتجعات الوهمية، العداد، والـ GPS) مع إشعار فوري لصاحب المنشأة والمشرف.")}
             </p>
           </div>
         </div>
@@ -287,7 +289,7 @@ export function VanFraudRadarAdminTab() {
           }}
         >
           <RefreshCwIcon size={14} />
-          {isFetching ? 'جارٍ الفحص...' : 'تحديث الرادار الآن'}
+          {isFetching ? t('delivery_reps.van_fraud_radar_admin_tab.s2', "جارٍ الفحص...") : t('delivery_reps.van_fraud_radar_admin_tab.s3', "تحديث الرادار الآن")}
         </Button>
       </div>
 
@@ -309,13 +311,13 @@ export function VanFraudRadarAdminTab() {
           }}
         >
           <div style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', marginBottom: '6px' }}>
-            محاولات التلاعب المصدودة آلياً
+            {t('delivery_reps.van_fraud_radar_admin_tab.s4', "محاولات التلاعب المصدودة آلياً")}
           </div>
           <div style={{ fontSize: '22px', fontWeight: 800, color: '#dc2626' }}>
             {isLoading ? '—' : kpis?.blockedTamperAttemptsCount ?? 0}
           </div>
           <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '4px' }}>
-            تم إحباطها ومنع تأثيرها المالي فوراً
+            {t('delivery_reps.van_fraud_radar_admin_tab.s5', "تم إحباطها ومنع تأثيرها المالي فوراً")}
           </div>
         </div>
 
@@ -329,7 +331,7 @@ export function VanFraudRadarAdminTab() {
           }}
         >
           <div style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', marginBottom: '6px' }}>
-            مناديب في دائرة الخطر العالي
+            {t('delivery_reps.van_fraud_radar_admin_tab.s6', "مناديب في دائرة الخطر العالي")}
           </div>
           <div
             style={{
@@ -340,11 +342,11 @@ export function VanFraudRadarAdminTab() {
           >
             {isLoading ? '—' : kpis?.highRiskRepsCount ?? 0}
             <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', marginRight: '6px' }}>
-              من أصل {isLoading ? '—' : kpis?.totalRepsMonitored ?? 0} مندوب
+              {t('delivery_reps.van_fraud_radar_admin_tab.s7', "من أصل")} {isLoading ? '—' : kpis?.totalRepsMonitored ?? 0} {t('delivery_reps.van_fraud_radar_admin_tab.s8', "مندوب")}
             </span>
           </div>
           <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '4px' }}>
-            تحت المراقبة المتوسطة: {isLoading ? '—' : kpis?.watchRepsCount ?? 0}
+            {t('delivery_reps.van_fraud_radar_admin_tab.s9', "تحت المراقبة المتوسطة:")} {isLoading ? '—' : kpis?.watchRepsCount ?? 0}
           </div>
         </div>
 
@@ -358,7 +360,7 @@ export function VanFraudRadarAdminTab() {
           }}
         >
           <div style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', marginBottom: '6px' }}>
-            وقائع عجز التصفية (نقدية / بضاعة)
+            {t('delivery_reps.van_fraud_radar_admin_tab.s10', "وقائع عجز التصفية (نقدية / بضاعة)")}
           </div>
           <div
             style={{
@@ -370,7 +372,7 @@ export function VanFraudRadarAdminTab() {
             {isLoading ? '—' : kpis?.settlementShortageEventsCount ?? 0}
           </div>
           <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '4px' }}>
-            تم قيدها محاسبياً على ذمة المناديب
+            {t('delivery_reps.van_fraud_radar_admin_tab.s11', "تم قيدها محاسبياً على ذمة المناديب")}
           </div>
         </div>
 
@@ -384,13 +386,13 @@ export function VanFraudRadarAdminTab() {
           }}
         >
           <div style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', marginBottom: '6px' }}>
-            إجمالي المبالغ محل الشبهة أو العجز
+            {t('delivery_reps.van_fraud_radar_admin_tab.s12', "إجمالي المبالغ محل الشبهة أو العجز")}
           </div>
           <div style={{ fontSize: '22px', fontWeight: 800, color: '#170e5e' }}>
             {isLoading ? '—' : `${formatMoney(kpis?.totalAmountAtRisk || 0)} ج.م`}
           </div>
           <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '4px' }}>
-            شبهات حرجة: {isLoading ? '—' : kpis?.criticalEventsCount ?? 0} واقعة
+            {t('delivery_reps.van_fraud_radar_admin_tab.s13', "شبهات حرجة:")} {isLoading ? '—' : kpis?.criticalEventsCount ?? 0} {t('delivery_reps.van_fraud_radar_admin_tab.s14', "واقعة")}
           </div>
         </div>
       </div>
@@ -410,7 +412,7 @@ export function VanFraudRadarAdminTab() {
       >
         <div>
           <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
-            الفترة الزمنية للفحص
+            {t('delivery_reps.van_fraud_radar_admin_tab.s15', "الفترة الزمنية للفحص")}
           </label>
           <CustomSelect
             value={periodDays}
@@ -421,7 +423,7 @@ export function VanFraudRadarAdminTab() {
 
         <div>
           <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
-            تصفية حسب المندوب
+            {t('delivery_reps.van_fraud_radar_admin_tab.s16', "تصفية حسب المندوب")}
           </label>
           <CustomSelect
             value={selectedRepId}
@@ -432,7 +434,7 @@ export function VanFraudRadarAdminTab() {
 
         <div>
           <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
-            تصفية حسب نوع المخالفة
+            {t('delivery_reps.van_fraud_radar_admin_tab.s17', "تصفية حسب نوع المخالفة")}
           </label>
           <CustomSelect
             value={selectedEventCode}
@@ -443,14 +445,14 @@ export function VanFraudRadarAdminTab() {
 
         <div>
           <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
-            بحث سريع (مندوب، عميل، تفاصيل)
+            {t('delivery_reps.van_fraud_radar_admin_tab.s18', "بحث سريع (مندوب، عميل، تفاصيل)")}
           </label>
           <div style={{ position: 'relative' }}>
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="ابحث باسم المندوب أو العميل..."
+              placeholder={t('delivery_reps.van_fraud_radar_admin_tab.s19', "ابحث باسم المندوب أو العميل...")}
               style={{
                 width: '100%',
                 height: '36px',
@@ -496,7 +498,7 @@ export function VanFraudRadarAdminTab() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <UsersIcon size={16} color="#170e5e" />
             <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 800, color: '#0f172a' }}>
-              مصفوفة تقييم المخاطر والانضباط لمناديب التوزيع
+              {t('delivery_reps.van_fraud_radar_admin_tab.s20', "مصفوفة تقييم المخاطر والانضباط لمناديب التوزيع")}
             </h4>
           </div>
           <span
@@ -510,7 +512,7 @@ export function VanFraudRadarAdminTab() {
               borderRadius: '20px',
             }}
           >
-            إجمالي المناديب: {filteredProfiles.length}
+            {t('delivery_reps.van_fraud_radar_admin_tab.s21', "إجمالي المناديب:")} {filteredProfiles.length}
           </span>
         </div>
 
@@ -523,11 +525,11 @@ export function VanFraudRadarAdminTab() {
         >
           {isLoading ? (
             <div style={{ padding: '40px', textAlign: 'center', color: '#64748b', fontWeight: 700 }}>
-              جارٍ تحليل سجلات الرقابة الميدانية...
+              {t('delivery_reps.van_fraud_radar_admin_tab.s22', "جارٍ تحليل سجلات الرقابة الميدانية...")}
             </div>
           ) : filteredProfiles.length === 0 ? (
             <div style={{ padding: '40px', textAlign: 'center', color: '#64748b', fontWeight: 600 }}>
-              لا توجد بيانات مطابقة لمعايير البحث.
+              {t('delivery_reps.van_fraud_radar_admin_tab.s23', "لا توجد بيانات مطابقة لمعايير البحث.")}
             </div>
           ) : (
             <table
@@ -562,16 +564,16 @@ export function VanFraudRadarAdminTab() {
                     fontWeight: 700,
                   }}
                 >
-                  <th style={{ padding: '10px 14px' }}>المندوب</th>
-                  <th style={{ padding: '10px 14px' }}>مؤشر المخاطرة</th>
-                  <th style={{ padding: '10px 14px', textAlign: 'center' }}>إجمالي الشبهات</th>
-                  <th style={{ padding: '10px 14px', textAlign: 'center' }}>تلاعب أسعار/بونص</th>
-                  <th style={{ padding: '10px 14px', textAlign: 'center' }}>تحصيل مشترك/ائتمان</th>
-                  <th style={{ padding: '10px 14px', textAlign: 'center' }}>مرتجعات/كارت وهمي</th>
-                  <th style={{ padding: '10px 14px', textAlign: 'center' }}>مصروفات/عداد/GPS</th>
-                  <th style={{ padding: '10px 14px', textAlign: 'center' }}>عجز تصفية</th>
-                  <th style={{ padding: '10px 14px', textAlign: 'center' }}>المبلغ محل الشبهة</th>
-                  <th style={{ padding: '10px 14px' }}>أبرز المؤشرات الرقابية</th>
+                  <th style={{ padding: '10px 14px' }}>{t('delivery_reps.van_fraud_radar_admin_tab.s24', "المندوب")}</th>
+                  <th style={{ padding: '10px 14px' }}>{t('delivery_reps.van_fraud_radar_admin_tab.s25', "مؤشر المخاطرة")}</th>
+                  <th style={{ padding: '10px 14px', textAlign: 'center' }}>{t('delivery_reps.van_fraud_radar_admin_tab.s26', "إجمالي الشبهات")}</th>
+                  <th style={{ padding: '10px 14px', textAlign: 'center' }}>{t('delivery_reps.van_fraud_radar_admin_tab.s27', "تلاعب أسعار/بونص")}</th>
+                  <th style={{ padding: '10px 14px', textAlign: 'center' }}>{t('delivery_reps.van_fraud_radar_admin_tab.s28', "تحصيل مشترك/ائتمان")}</th>
+                  <th style={{ padding: '10px 14px', textAlign: 'center' }}>{t('delivery_reps.van_fraud_radar_admin_tab.s29', "مرتجعات/كارت وهمي")}</th>
+                  <th style={{ padding: '10px 14px', textAlign: 'center' }}>{t('delivery_reps.van_fraud_radar_admin_tab.s30', "مصروفات/عداد/GPS")}</th>
+                  <th style={{ padding: '10px 14px', textAlign: 'center' }}>{t('delivery_reps.van_fraud_radar_admin_tab.s31', "عجز تصفية")}</th>
+                  <th style={{ padding: '10px 14px', textAlign: 'center' }}>{t('delivery_reps.van_fraud_radar_admin_tab.s32', "المبلغ محل الشبهة")}</th>
+                  <th style={{ padding: '10px 14px' }}>{t('delivery_reps.van_fraud_radar_admin_tab.s33', "أبرز المؤشرات الرقابية")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -661,7 +663,7 @@ export function VanFraudRadarAdminTab() {
                             <span style={{ fontSize: '12px', fontWeight: 800, color: '#dc2626', fontFamily: 'monospace' }}>
                               {formatMoney(p.totalAmountAtRisk)}
                             </span>
-                            <span style={{ fontSize: '9px', fontWeight: 700, color: '#991b1b' }}>ج.م</span>
+                            <span style={{ fontSize: '9px', fontWeight: 700, color: '#991b1b' }}>{t('delivery_reps.van_fraud_radar_admin_tab.s34', "ج.م")}</span>
                           </span>
                         ) : (
                           <span style={{ color: '#94a3b8', fontWeight: 600 }}>0.00</span>
@@ -670,7 +672,7 @@ export function VanFraudRadarAdminTab() {
                       <td style={{ padding: '10px 14px' }}>
                         {p.flags.length === 0 ? (
                           <span style={{ fontSize: '11px', color: '#059669', fontWeight: 600 }}>
-                            سجل نظيف ومطابق للحوكمة
+                            {t('delivery_reps.van_fraud_radar_admin_tab.s35', "سجل نظيف ومطابق للحوكمة")}
                           </span>
                         ) : (
                           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
@@ -731,7 +733,7 @@ export function VanFraudRadarAdminTab() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <ClockIcon size={16} color="#dc2626" />
             <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 800, color: '#0f172a' }}>
-              السجل الزمني التفصيلي للوقائع ومحاولات التلاعب المصدودة
+              {t('delivery_reps.van_fraud_radar_admin_tab.s36', "السجل الزمني التفصيلي للوقائع ومحاولات التلاعب المصدودة")}
             </h4>
           </div>
           <span
@@ -745,7 +747,7 @@ export function VanFraudRadarAdminTab() {
               borderRadius: '20px',
             }}
           >
-            عدد الوقائع المسجلة: {filteredEvents.length}
+            {t('delivery_reps.van_fraud_radar_admin_tab.s37', "عدد الوقائع المسجلة:")} {filteredEvents.length}
           </span>
         </div>
 
@@ -758,16 +760,16 @@ export function VanFraudRadarAdminTab() {
         >
           {isLoading ? (
             <div style={{ padding: '40px', textAlign: 'center', color: '#64748b', fontWeight: 700 }}>
-              جارٍ تحميل السجل الزمني للشبهات...
+              {t('delivery_reps.van_fraud_radar_admin_tab.s38', "جارٍ تحميل السجل الزمني للشبهات...")}
             </div>
           ) : filteredEvents.length === 0 ? (
             <div style={{ padding: '48px 16px', textAlign: 'center', color: '#64748b' }}>
               <CheckShieldIcon size={32} color="#10b981" />
               <div style={{ fontWeight: 800, fontSize: '14px', color: '#0f172a', marginTop: '8px' }}>
-                لا توجد أي محاولات تلاعب أو شبهات مسجلة في هذه الفترة
+                {t('delivery_reps.van_fraud_radar_admin_tab.s39', "لا توجد أي محاولات تلاعب أو شبهات مسجلة في هذه الفترة")}
               </div>
               <div style={{ fontSize: '12px', marginTop: '4px' }}>
-                جميع عمليات البيع والتحصيل والمرتجعات الميدانية تسير وفق الضوابط المعتمدة.
+                {t('delivery_reps.van_fraud_radar_admin_tab.s40', "جميع عمليات البيع والتحصيل والمرتجعات الميدانية تسير وفق الضوابط المعتمدة.")}
               </div>
             </div>
           ) : (
@@ -800,13 +802,13 @@ export function VanFraudRadarAdminTab() {
                     fontWeight: 700,
                   }}
                 >
-                  <th style={{ padding: '8px 10px' }}>التوقيت</th>
-                  <th style={{ padding: '8px 10px' }}>المندوب</th>
-                  <th style={{ padding: '8px 6px', textAlign: 'center' }}>الخطورة</th>
-                  <th style={{ padding: '8px 10px' }}>نوع المخالفة المرصودة</th>
-                  <th style={{ padding: '8px 10px' }}>التفاصيل الكاملة للواقعة</th>
-                  <th style={{ padding: '8px 10px' }}>العميل / الرحلة</th>
-                  <th style={{ padding: '8px 10px', textAlign: 'center' }}>القيمة المالية</th>
+                  <th style={{ padding: '8px 10px' }}>{t('delivery_reps.van_fraud_radar_admin_tab.s41', "التوقيت")}</th>
+                  <th style={{ padding: '8px 10px' }}>{t('delivery_reps.van_fraud_radar_admin_tab.s42', "المندوب")}</th>
+                  <th style={{ padding: '8px 6px', textAlign: 'center' }}>{t('delivery_reps.van_fraud_radar_admin_tab.s43', "الخطورة")}</th>
+                  <th style={{ padding: '8px 10px' }}>{t('delivery_reps.van_fraud_radar_admin_tab.s44', "نوع المخالفة المرصودة")}</th>
+                  <th style={{ padding: '8px 10px' }}>{t('delivery_reps.van_fraud_radar_admin_tab.s45', "التفاصيل الكاملة للواقعة")}</th>
+                  <th style={{ padding: '8px 10px' }}>{t('delivery_reps.van_fraud_radar_admin_tab.s46', "العميل / الرحلة")}</th>
+                  <th style={{ padding: '8px 10px', textAlign: 'center' }}>{t('delivery_reps.van_fraud_radar_admin_tab.s47', "القيمة المالية")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -866,7 +868,7 @@ export function VanFraudRadarAdminTab() {
                           {ev.repName}
                         </div>
                         <div style={{ fontSize: '10px', color: '#64748b', marginTop: '2px' }}>
-                          مندوب فان #{ev.repId}
+                          {t('delivery_reps.van_fraud_radar_admin_tab.s48', "مندوب فان #")}{ev.repId}
                         </div>
                       </td>
 
@@ -889,7 +891,7 @@ export function VanFraudRadarAdminTab() {
                           }}
                         >
                           <AlertTriangleIcon size={11} />
-                          {isCrit ? 'حرجة جداً' : isHigh ? 'خطورة عالية' : 'متوسطة'}
+                          {isCrit ? t('delivery_reps.van_fraud_radar_admin_tab.s49', "حرجة جداً") : isHigh ? t('delivery_reps.van_fraud_radar_admin_tab.s50', "خطورة عالية") : t('delivery_reps.van_fraud_radar_admin_tab.s51', "متوسطة")}
                         </span>
                       </td>
 
@@ -983,7 +985,7 @@ export function VanFraudRadarAdminTab() {
                                 whiteSpace: 'nowrap',
                               }}
                             >
-                              رحلة #{ev.tripId}
+                              {t('delivery_reps.van_fraud_radar_admin_tab.s52', "رحلة #")}{ev.tripId}
                             </span>
                           ) : null}
                           {!ev.customerName && !ev.tripId ? (
@@ -1009,7 +1011,7 @@ export function VanFraudRadarAdminTab() {
                             <span style={{ fontSize: '11.5px', fontWeight: 800, color: '#dc2626', fontFamily: 'monospace' }}>
                               {formatMoney(ev.amountInvolved)}
                             </span>
-                            <span style={{ fontSize: '9px', fontWeight: 700, color: '#991b1b' }}>ج.م</span>
+                            <span style={{ fontSize: '9px', fontWeight: 700, color: '#991b1b' }}>{t('delivery_reps.van_fraud_radar_admin_tab.s53', "ج.م")}</span>
                           </span>
                         ) : (
                           <span style={{ color: '#94a3b8', fontWeight: 600 }}>—</span>

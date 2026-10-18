@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { StandardDialog } from '@/shared/components/StandardDialog';
@@ -130,6 +131,7 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
   isSubmitting,
   onConfirmCheckout,
 }) => {
+  const { t } = useTranslation();
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'credit' | 'card' | 'instapay' | 'vodafone_cash'>('cash');
   const [cashInput, setCashInput] = useState<string>(cartTotal.toFixed(2));
   const [cashDiscountAmount, setCashDiscountAmount] = useState<number>(0);
@@ -421,9 +423,9 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
     <StandardDialog
       open={open}
       onClose={onClose}
-      title="إتمام الفاتورة والسداد الميداني"
-      subtitle="تأكيد طريقة الدفع وإصدار الفاتورة فورياً"
-      badge="نقطة توزيع الفان"
+      title={t('delivery_reps.van_sale_checkout_modal.s0', "إتمام الفاتورة والسداد الميداني")}
+      subtitle={t('delivery_reps.van_sale_checkout_modal.s1', "تأكيد طريقة الدفع وإصدار الفاتورة فورياً")}
+      badge={t('delivery_reps.van_sale_checkout_modal.s2', "نقطة توزيع الفان")}
       compact={true}
       width="min(500px, 95vw)"
       bodyStyle={{ padding: '10px 14px' }}
@@ -459,7 +461,7 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
             }}
           >
             <SlidersIcon size={15} color="#475569" />
-            <span>تعديل السلة</span>
+            <span>{t('delivery_reps.van_sale_checkout_modal.s3', "تعديل السلة")}</span>
           </Button>
 
           <Button
@@ -485,7 +487,7 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
             }}
           >
             <CheckCircleIcon size={16} color="#ffffff" />
-            <span>{isSubmitting ? 'جاري الإصدار...' : 'تأكيد وإصدار الفاتورة'}</span>
+            <span>{isSubmitting ? t('delivery_reps.van_sale_checkout_modal.s4', "جاري الإصدار...") : t('delivery_reps.van_sale_checkout_modal.s5', "تأكيد وإصدار الفاتورة")}</span>
           </Button>
         </div>
       }
@@ -506,7 +508,7 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
         >
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span style={{ fontSize: '11.5px', color: '#64748b', fontWeight: 700 }}>العميل:</span>
+              <span style={{ fontSize: '11.5px', color: '#64748b', fontWeight: 700 }}>{t('delivery_reps.van_sale_checkout_modal.s6', "العميل:")}</span>
               <strong style={{ fontSize: '13px', color: '#0f172a', fontWeight: 800 }}>
                 {customerDisplayName}
               </strong>
@@ -519,17 +521,17 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
             {customer && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '2px', fontSize: '11px', color: '#475569' }}>
                 <span>
-                  المديونية: <strong style={{ color: customer.balance > 0 ? '#b91c1c' : '#15803d' }}>{customer.balance.toFixed(2)} ج.م</strong>
+                  {t('delivery_reps.van_sale_checkout_modal.s7', "المديونية:")} <strong style={{ color: customer.balance > 0 ? '#b91c1c' : '#15803d' }}>{customer.balance.toFixed(2)} {t('delivery_reps.van_sale_checkout_modal.s8', "ج.م")}</strong>
                 </span>
                 {customer.creditLimit ? (
-                  <span>سقف الائتمان: <strong>{customer.creditLimit.toFixed(2)} ج.م</strong></span>
+                  <span>{t('delivery_reps.van_sale_checkout_modal.s9', "سقف الائتمان:")} <strong>{customer.creditLimit.toFixed(2)} {t('delivery_reps.van_sale_checkout_modal.s10', "ج.م")}</strong></span>
                 ) : null}
               </div>
             )}
           </div>
 
           <div style={{ textAlign: 'left' }}>
-            <span style={{ fontSize: '10.5px', color: '#64748b', display: 'block' }}>المطلوب سداده</span>
+            <span style={{ fontSize: '10.5px', color: '#64748b', display: 'block' }}>{t('delivery_reps.van_sale_checkout_modal.s11', "المطلوب سداده")}</span>
             <span style={{ fontSize: '16px', fontWeight: 900, color: '#170e5e' }}>
               {cartTotal.toFixed(2)} <CurrencySymbol />
             </span>
@@ -566,11 +568,11 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                 <PackageIcon size={14} color="#170e5e" />
                 <span>
-                  معاينة الفاتورة: <strong>{cartItemsCount} أصناف</strong> ({cartTotalPieces} قطعة)
+                  {t('delivery_reps.van_sale_checkout_modal.s12', "معاينة الفاتورة:")} <strong>{cartItemsCount} {t('delivery_reps.van_sale_checkout_modal.s13', "أصناف")}</strong> ({cartTotalPieces} {t('delivery_reps.van_sale_checkout_modal.s14', "قطعة)")}
                 </span>
               </span>
               <span style={{ color: '#170e5e', fontSize: '11px', fontWeight: 800 }}>
-                {showItemsPreview ? 'إخفاء ▲' : 'عرض الأصناف ▼'}
+                {showItemsPreview ? t('delivery_reps.van_sale_checkout_modal.s15', "إخفاء ▲") : t('delivery_reps.van_sale_checkout_modal.s16', "عرض الأصناف ▼")}
               </span>
             </button>
 
@@ -579,10 +581,10 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px', textAlign: 'right' }}>
                   <thead>
                     <tr style={{ backgroundColor: '#f1f5f9', color: '#475569', borderBottom: '1px solid #e2e8f0' }}>
-                      <th style={{ padding: '4px 8px', fontWeight: 700 }}>الصنف</th>
-                      <th style={{ padding: '4px 6px', fontWeight: 700, textAlign: 'center' }}>الكمية</th>
-                      <th style={{ padding: '4px 6px', fontWeight: 700, textAlign: 'center' }}>السعر</th>
-                      <th style={{ padding: '4px 8px', fontWeight: 700, textAlign: 'left' }}>الإجمالي</th>
+                      <th style={{ padding: '4px 8px', fontWeight: 700 }}>{t('delivery_reps.van_sale_checkout_modal.s17', "الصنف")}</th>
+                      <th style={{ padding: '4px 6px', fontWeight: 700, textAlign: 'center' }}>{t('delivery_reps.van_sale_checkout_modal.s18', "الكمية")}</th>
+                      <th style={{ padding: '4px 6px', fontWeight: 700, textAlign: 'center' }}>{t('delivery_reps.van_sale_checkout_modal.s19', "السعر")}</th>
+                      <th style={{ padding: '4px 8px', fontWeight: 700, textAlign: 'left' }}>{t('delivery_reps.van_sale_checkout_modal.s20', "الإجمالي")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -608,12 +610,12 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
                                 fontWeight: 800,
                               }}
                             >
-                              هدية
+                              {t('delivery_reps.van_sale_checkout_modal.s21', "هدية")}
                             </span>
                           )}
                         </td>
                         <td style={{ padding: '4px 6px', textAlign: 'center', fontWeight: 800, color: '#170e5e' }}>
-                          {item.qty} {item.unitName || 'قطعة'}
+                          {item.qty} {item.unitName || t('delivery_reps.van_sale_checkout_modal.s22', "قطعة")}
                         </td>
                         <td style={{ padding: '4px 6px', textAlign: 'center', color: '#334155' }}>
                           {item.unitPrice.toFixed(2)}
@@ -678,7 +680,7 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
                 boxShadow: paymentMethod === 'cash' ? '0 1px 3px rgba(5, 150, 105, 0.15)' : 'none',
               }}
             >
-              <span>نقدي (كاش)</span>
+              <span>{t('delivery_reps.van_sale_checkout_modal.s23', "نقدي (كاش)")}</span>
             </button>
 
             <button
@@ -706,7 +708,7 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
               }}
             >
               <SmartphoneIcon size={13} color={(paymentMethod === 'instapay' || paymentMethod === 'vodafone_cash') ? '#6d28d9' : '#64748b'} />
-              <span>إنستاباي / محفظة</span>
+              <span>{t('delivery_reps.van_sale_checkout_modal.s24', "إنستاباي / محفظة")}</span>
             </button>
 
             <button
@@ -732,7 +734,7 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
                 boxShadow: paymentMethod === 'credit' ? '0 1px 3px rgba(217, 119, 6, 0.15)' : 'none',
               }}
             >
-              <span>آجل (بالكامل)</span>
+              <span>{t('delivery_reps.van_sale_checkout_modal.s25', "آجل (بالكامل)")}</span>
             </button>
           </div>
 
@@ -753,7 +755,7 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
                   cursor: 'pointer',
                 }}
               >
-                إلغاء الشبكة والعودة للنقدي
+                {t('delivery_reps.van_sale_checkout_modal.s26', "إلغاء الشبكة والعودة للنقدي")}
               </button>
             ) : (
               <button
@@ -772,7 +774,7 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
                   textDecoration: 'underline',
                 }}
               >
-                سداد عبر بطاقة بنكية / شبكة POS
+                {t('delivery_reps.van_sale_checkout_modal.s27', "سداد عبر بطاقة بنكية / شبكة POS")}
               </button>
             )}
           </div>
@@ -794,10 +796,10 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <span style={{ fontSize: '11.5px', fontWeight: 800, color: '#5b21b6', display: 'flex', alignItems: 'center', gap: '4px' }}>
                 <SmartphoneIcon size={14} color="#7c3aed" />
-                <span>تحويل إلكتروني مباشر لحساب الشركة:</span>
+                <span>{t('delivery_reps.van_sale_checkout_modal.s28', "تحويل إلكتروني مباشر لحساب الشركة:")}</span>
               </span>
               <span style={{ fontSize: '14px', fontWeight: 900, color: '#5b21b6' }}>
-                {cartTotal.toFixed(2)} ج.م
+                {cartTotal.toFixed(2)} {t('delivery_reps.van_sale_checkout_modal.s29', "ج.م")}
               </span>
             </div>
 
@@ -819,7 +821,7 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
                   cursor: 'pointer',
                 }}
               >
-                إنستاباي (InstaPay)
+                {t('delivery_reps.van_sale_checkout_modal.s30', "إنستاباي (InstaPay)")}
               </button>
 
               <button
@@ -839,13 +841,13 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
                   cursor: 'pointer',
                 }}
               >
-                فودافون كاش / محفظة
+                {t('delivery_reps.van_sale_checkout_modal.s31', "فودافون كاش / محفظة")}
               </button>
             </div>
 
             <div>
               <label style={{ fontSize: '11px', fontWeight: 700, color: '#4c1d95', display: 'block', marginBottom: '2px' }}>
-                رقم العملية / المرجع البنكي (Reference No) *
+                {t('delivery_reps.van_sale_checkout_modal.s32', "رقم العملية / المرجع البنكي (Reference No) *")}
               </label>
               <input
                 type="text"
@@ -854,7 +856,7 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
                   setTransferReference(e.target.value);
                   setValidationError('');
                 }}
-                placeholder="رقم مرجع التحويل أو آخر 6 أرقام من الإشعار"
+                placeholder={t('delivery_reps.van_sale_checkout_modal.s33', "رقم مرجع التحويل أو آخر 6 أرقام من الإشعار")}
                 style={{
                   width: '100%',
                   height: '32px',
@@ -880,7 +882,7 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
                 fontWeight: 600,
               }}
             >
-              فصل مالي تلقائي: المبلغ محول مباشرة لحساب الشركة/المحفظة، ولا يُطالب به المندوب ككاش في تصفية اليوم.
+              {t('delivery_reps.van_sale_checkout_modal.s34', "فصل مالي تلقائي: المبلغ محول مباشرة لحساب الشركة/المحفظة، ولا يُطالب به المندوب ككاش في تصفية اليوم.")}
             </div>
           </div>
         )}
@@ -902,7 +904,7 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
               <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                 <span style={{ fontSize: '12px', fontWeight: 800, color: '#334155', whiteSpace: 'nowrap' }}>
-                  المستلم كاش:
+                  {t('delivery_reps.van_sale_checkout_modal.s35', "المستلم كاش:")}
                 </span>
                 <input
                   type="number"
@@ -939,7 +941,7 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
                     whiteSpace: 'nowrap',
                   }}
                 >
-                  المبلغ بالضبط
+                  {t('delivery_reps.van_sale_checkout_modal.s36', "المبلغ بالضبط")}
                 </button>
               </div>
 
@@ -958,9 +960,9 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
                     justifyContent: 'space-between',
                   }}
                 >
-                  <span>سداد جزئي (المتبقي آجل على الحساب):</span>
+                  <span>{t('delivery_reps.van_sale_checkout_modal.s37', "سداد جزئي (المتبقي آجل على الحساب):")}</span>
                   <strong style={{ color: '#b91c1c', fontSize: '12.5px' }}>
-                    {splitCreditDebt.toFixed(2)} ج.م
+                    {splitCreditDebt.toFixed(2)} {t('delivery_reps.van_sale_checkout_modal.s38', "ج.م")}
                   </strong>
                 </div>
               )}
@@ -980,9 +982,9 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
                     justifyContent: 'space-between',
                   }}
                 >
-                  <span>الباقي للعميل:</span>
+                  <span>{t('delivery_reps.van_sale_checkout_modal.s39', "الباقي للعميل:")}</span>
                   <strong style={{ color: '#1d4ed8', fontSize: '12.5px' }}>
-                    {changeDue.toFixed(2)} ج.م
+                    {changeDue.toFixed(2)} {t('delivery_reps.van_sale_checkout_modal.s40', "ج.م")}
                   </strong>
                 </div>
               )}
@@ -1003,7 +1005,7 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
                       textDecoration: 'underline',
                     }}
                   >
-                    + إضافة خصم تسوية نقدي (اختياري)
+                    {t('delivery_reps.van_sale_checkout_modal.s41', "+ إضافة خصم تسوية نقدي (اختياري)")}
                   </button>
                 ) : (
                   <div
@@ -1018,7 +1020,7 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
                       flexWrap: 'wrap',
                     }}
                   >
-                    <span style={{ fontSize: '11px', fontWeight: 700, color: '#334155' }}>خصم نقدي:</span>
+                    <span style={{ fontSize: '11px', fontWeight: 700, color: '#334155' }}>{t('delivery_reps.van_sale_checkout_modal.s42', "خصم نقدي:")}</span>
                     <input
                       type="number"
                       step="0.5"
@@ -1063,7 +1065,7 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
                             cursor: 'pointer',
                           }}
                         >
-                          {pct * 100}% ({discountVal} ج)
+                          {pct * 100}% ({discountVal} {t('delivery_reps.van_sale_checkout_modal.s43', "ج)")}
                         </button>
                       );
                     })}
@@ -1084,7 +1086,7 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
                         marginRight: 'auto',
                       }}
                     >
-                      إلغاء
+                      {t('delivery_reps.van_sale_checkout_modal.s44', "إلغاء")}
                     </button>
                   </div>
                 )}
@@ -1097,17 +1099,17 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
               {!hasCustomer ? (
                 <div style={{ backgroundColor: '#fffbeb', border: '1px solid #fde68a', borderRadius: '6px', padding: '8px 10px', fontSize: '11.5px', color: '#92400e' }}>
-                  <strong>تنبيه:</strong> لم يتم تحديد عميل. البيع الآجل يتطلب تحديد العميل لتسجيل المديونية.
+                  <strong>{t('delivery_reps.van_sale_checkout_modal.s45', "تنبيه:")}</strong> {t('delivery_reps.van_sale_checkout_modal.s46', "لم يتم تحديد عميل. البيع الآجل يتطلب تحديد العميل لتسجيل المديونية.")}
                 </div>
               ) : (
                 <div style={{ backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px', padding: '8px 10px', display: 'flex', flexDirection: 'column', gap: '3px', fontSize: '11.5px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ color: '#166534' }}>المديونية السابقة:</span>
-                    <strong>{(customer?.balance || 0).toFixed(2)} ج.م</strong>
+                    <span style={{ color: '#166534' }}>{t('delivery_reps.van_sale_checkout_modal.s47', "المديونية السابقة:")}</span>
+                    <strong>{(customer?.balance || 0).toFixed(2)} {t('delivery_reps.van_sale_checkout_modal.s48', "ج.م")}</strong>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px dashed #86efac', paddingTop: '3px' }}>
-                    <span style={{ color: '#166534', fontWeight: 800 }}>الرصيد بعد إضافة الفاتورة:</span>
-                    <strong style={{ color: '#b91c1c', fontSize: '12.5px' }}>{customerBalanceAfter.toFixed(2)} ج.م</strong>
+                    <span style={{ color: '#166534', fontWeight: 800 }}>{t('delivery_reps.van_sale_checkout_modal.s49', "الرصيد بعد إضافة الفاتورة:")}</span>
+                    <strong style={{ color: '#b91c1c', fontSize: '12.5px' }}>{customerBalanceAfter.toFixed(2)} {t('delivery_reps.van_sale_checkout_modal.s50', "ج.م")}</strong>
                   </div>
                 </div>
               )}
@@ -1120,10 +1122,10 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
               <CreditCardIcon size={20} color="#0284c7" />
               <div>
                 <div style={{ fontSize: '12px', fontWeight: 800, color: '#0369a1' }}>
-                  الدفع عبر البطاقة البنكية / ماكينة الدفع
+                  {t('delivery_reps.van_sale_checkout_modal.s51', "الدفع عبر البطاقة البنكية / ماكينة الدفع")}
                 </div>
                 <div style={{ fontSize: '10.5px', color: '#0284c7' }}>
-                  تسجيل الفاتورة كدفع إلكتروني بقيمة {cartTotal.toFixed(2)} ج.م
+                  {t('delivery_reps.van_sale_checkout_modal.s52', "تسجيل الفاتورة كدفع إلكتروني بقيمة")} {cartTotal.toFixed(2)} {t('delivery_reps.van_sale_checkout_modal.s53', "ج.م")}
                 </div>
               </div>
             </div>
@@ -1155,8 +1157,8 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
                   : isNewCustomerCredit
                   ? `اعتماد المشرف مطلوب: بيع آجل لعميل جديد ("${newCustomerName}")`
                   : isCardPayment
-                  ? 'اعتماد المشرف ورقم إيصال الشبكة مطلوبان'
-                  : 'اعتماد المشرف مطلوب لصرف البونص العيني'}
+                  ? t('delivery_reps.van_sale_checkout_modal.s54', "اعتماد المشرف ورقم إيصال الشبكة مطلوبان")
+                  : t('delivery_reps.van_sale_checkout_modal.s55', "اعتماد المشرف مطلوب لصرف البونص العيني")}
               </span>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '100px 1fr', gap: '6px' }}>
@@ -1165,7 +1167,7 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
                 maxLength={6}
                 value={supervisorPin}
                 onChange={(e) => setSupervisorPin(e.target.value)}
-                placeholder="PIN المشرف"
+                placeholder={t('delivery_reps.van_sale_checkout_modal.s56', "PIN المشرف")}
                 style={{
                   height: '32px',
                   borderRadius: '5px',
@@ -1181,7 +1183,7 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
                 type="text"
                 value={supervisorReason}
                 onChange={(e) => setSupervisorReason(e.target.value)}
-                placeholder={isCardPayment ? 'رقم إيصال الشبكة' : 'سبب الاعتماد'}
+                placeholder={isCardPayment ? t('delivery_reps.van_sale_checkout_modal.s57', "رقم إيصال الشبكة") : t('delivery_reps.van_sale_checkout_modal.s58', "سبب الاعتماد")}
                 style={{
                   height: '32px',
                   borderRadius: '5px',
@@ -1212,7 +1214,7 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               <PackageIcon size={14} color="#170e5e" />
-              <span style={{ fontSize: '11.5px', fontWeight: 700, color: '#334155' }}>عدد الطرود:</span>
+              <span style={{ fontSize: '11.5px', fontWeight: 700, color: '#334155' }}>{t('delivery_reps.van_sale_checkout_modal.s59', "عدد الطرود:")}</span>
               <input
                 type="number"
                 min="0"
@@ -1241,7 +1243,7 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
                     alt="Proof"
                     style={{ width: '28px', height: '22px', borderRadius: '4px', objectFit: 'contain', border: '1px solid #cbd5e1', backgroundColor: '#ffffff' }}
                   />
-                  <span style={{ fontSize: '10.5px', color: '#16a34a', fontWeight: 700 }}>تم التوثيق</span>
+                  <span style={{ fontSize: '10.5px', color: '#16a34a', fontWeight: 700 }}>{t('delivery_reps.van_sale_checkout_modal.s60', "تم التوثيق")}</span>
                   <button
                     type="button"
                     onClick={() => {
@@ -1250,7 +1252,7 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
                     }}
                     style={{ color: '#dc2626', background: 'none', border: 'none', cursor: 'pointer', fontSize: '10px', fontWeight: 700 }}
                   >
-                    حذف
+                    {t('delivery_reps.van_sale_checkout_modal.s61', "حذف")}
                   </button>
                 </div>
               ) : (
@@ -1272,7 +1274,7 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
                   }}
                 >
                   <CameraIcon size={12} color="#170e5e" />
-                  <span>+ صورة</span>
+                  <span>{t('delivery_reps.van_sale_checkout_modal.s62', "+ صورة")}</span>
                   <input
                     type="file"
                     accept="image/*"
@@ -1297,14 +1299,14 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
                 >
                   <CheckCircleIcon size={12} color="#15803d" />
                   <span style={{ fontSize: '10.5px', fontWeight: 800, color: '#15803d' }}>
-                    مستلم: {recipientSignatureData.recipientName} ({recipientSignatureData.recipientRole})
+                    {t('delivery_reps.van_sale_checkout_modal.s63', "مستلم:")} {recipientSignatureData.recipientName} ({recipientSignatureData.recipientRole})
                   </span>
                   <button
                     type="button"
                     onClick={() => setShowSignatureModal(true)}
                     style={{ color: '#15803d', background: 'none', border: 'none', cursor: 'pointer', fontSize: '10px', fontWeight: 700 }}
                   >
-                    تعديل
+                    {t('delivery_reps.van_sale_checkout_modal.s64', "تعديل")}
                   </button>
                 </div>
               ) : (
@@ -1328,7 +1330,7 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
                   }}
                 >
                   <EditIcon size={12} color={isCreditOrSplitDebt ? '#92400e' : '#170e5e'} />
-                  <span>+ هوية وتوقيع المستلم</span>
+                  <span>{t('delivery_reps.van_sale_checkout_modal.s65', "+ هوية وتوقيع المستلم")}</span>
                 </button>
               )}
             </div>
@@ -1342,7 +1344,7 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
               setLocalNotes(e.target.value);
               onNotesChange?.(e.target.value);
             }}
-            placeholder="ملاحظات على الفاتورة أو التسليم (اختياري)..."
+            placeholder={t('delivery_reps.van_sale_checkout_modal.s66', "ملاحظات على الفاتورة أو التسليم (اختياري)...")}
             style={{
               width: '100%',
               height: '30px',
@@ -1382,7 +1384,7 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
             />
             <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
               <SendIcon size={13} color={autoShareWhatsApp ? '#16a34a' : '#64748b'} />
-              <span>مشاركة الفاتورة مع العميل عبر واتساب فور الإصدار</span>
+              <span>{t('delivery_reps.van_sale_checkout_modal.s67', "مشاركة الفاتورة مع العميل عبر واتساب فور الإصدار")}</span>
             </div>
           </label>
 
@@ -1401,7 +1403,7 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontSize: '10.5px', fontWeight: 800, color: '#0f172a' }}>
-                  توقيع العميل / المستلم على الشاشة:
+                  {t('delivery_reps.van_sale_checkout_modal.s68', "توقيع العميل / المستلم على الشاشة:")}
                 </span>
                 <button
                   type="button"
@@ -1415,7 +1417,7 @@ export const VanSaleCheckoutModal: React.FC<VanSaleCheckoutModalProps> = ({
                     cursor: 'pointer',
                   }}
                 >
-                  مسح
+                  {t('delivery_reps.van_sale_checkout_modal.s69', "مسح")}
                 </button>
               </div>
               <canvas

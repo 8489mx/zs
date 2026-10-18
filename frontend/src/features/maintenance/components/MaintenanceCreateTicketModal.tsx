@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -39,6 +40,7 @@ export function MaintenanceCreateTicketModal({
   onSuccess,
   maintenanceProfile,
 }: MaintenanceCreateTicketModalProps) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [formData, setFormData] = useState<UpsertMaintenanceTicketPayload>(initialFormData);
   const [lockType, setLockType] = useState<'pin' | 'pattern'>('pin');
@@ -71,7 +73,7 @@ export function MaintenanceCreateTicketModal({
       open={open}
       onClose={onClose}
       width="min(1040px, 96vw)"
-      ariaLabel="استلام جهاز صيانة جديد"
+      ariaLabel={t('maintenance.maintenance_create_ticket_modal.s0', "استلام جهاز صيانة جديد")}
     >
       <div style={{ padding: '24px 28px' }}>
         <form onSubmit={handleCreateSubmit} dir="rtl" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -81,15 +83,15 @@ export function MaintenanceCreateTicketModal({
                 <Icons.Device />
               </div>
               <div>
-                <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: '#0f172a' }}>استلام جهاز صيانة جديد</h3>
-                <p style={{ margin: '2px 0 0', fontSize: '0.8rem', color: '#64748b' }}>تسجيل بيانات العميل، فحص العطل المشتكى منه، وتوليد كود الصيانة</p>
+                <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: '#0f172a' }}>{t('maintenance.maintenance_create_ticket_modal.s1', "استلام جهاز صيانة جديد")}</h3>
+                <p style={{ margin: '2px 0 0', fontSize: '0.8rem', color: '#64748b' }}>{t('maintenance.maintenance_create_ticket_modal.s2', "تسجيل بيانات العميل، فحص العطل المشتكى منه، وتوليد كود الصيانة")}</p>
               </div>
             </div>
             <button
               type="button"
               onClick={onClose}
               style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', width: '30px', height: '30px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}
-              title="إغلاق"
+              title={t('maintenance.maintenance_create_ticket_modal.s3', "إغلاق")}
             >
               <XIcon size={14} />
             </button>
@@ -102,12 +104,12 @@ export function MaintenanceCreateTicketModal({
               <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '14px' }}>
                 <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1e293b', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <span style={{ color: '#64748b' }}><Icons.User /></span>
-                  <span>بيانات العميل</span>
+                  <span>{t('maintenance.maintenance_create_ticket_modal.s4', "بيانات العميل")}</span>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                   <div>
                     <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                      اسم العميل <span style={{ color: '#dc2626' }}>*</span>
+                      {t('maintenance.maintenance_create_ticket_modal.s5', "اسم العميل")} <span style={{ color: '#dc2626' }}>*</span>
                     </label>
                     <input
                       type="text"
@@ -115,13 +117,13 @@ export function MaintenanceCreateTicketModal({
                       className="purchase-prototype-field-input"
                       value={formData.customerName}
                       onChange={(e) => setFormData({ ...formData, customerName: e.target.value })}
-                      placeholder="الاسم الثلاثي أو الثنائي"
+                      placeholder={t('maintenance.maintenance_create_ticket_modal.s6', "الاسم الثلاثي أو الثنائي")}
                       style={{ width: '100%', background: '#fff', padding: '7px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box', fontSize: '0.85rem' }}
                     />
                   </div>
                   <div>
                     <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                      رقم الهاتف <span style={{ color: '#dc2626' }}>*</span>
+                      {t('maintenance.maintenance_create_ticket_modal.s7', "رقم الهاتف")} <span style={{ color: '#dc2626' }}>*</span>
                     </label>
                     <input
                       type="tel"
@@ -141,12 +143,12 @@ export function MaintenanceCreateTicketModal({
               <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '14px' }}>
                 <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1e293b', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <span style={{ color: '#64748b' }}><Icons.Device /></span>
-                  <span>مواصفات الجهاز و {maintenanceProfile.serialLabel}</span>
+                  <span>{t('maintenance.maintenance_create_ticket_modal.s8', "مواصفات الجهاز و")} {maintenanceProfile.serialLabel}</span>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '8px' }}>
                   <div>
                     <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                      الماركة
+                      {t('maintenance.maintenance_create_ticket_modal.s9', "الماركة")}
                     </label>
                     <BrandCombobox
                       value={formData.deviceBrand || ''}
@@ -158,7 +160,7 @@ export function MaintenanceCreateTicketModal({
                   </div>
                   <div>
                     <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                      موديل الجهاز <span style={{ color: '#dc2626' }}>*</span>
+                      {t('maintenance.maintenance_create_ticket_modal.s10', "موديل الجهاز")} <span style={{ color: '#dc2626' }}>*</span>
                     </label>
                     <input
                       type="text"
@@ -173,7 +175,7 @@ export function MaintenanceCreateTicketModal({
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                    {maintenanceProfile.serialLabel} (مسح بالسكانر أو كتابة)
+                    {maintenanceProfile.serialLabel} {t('maintenance.maintenance_create_ticket_modal.s11', "(مسح بالسكانر أو كتابة)")}
                   </label>
                   <input
                     type="text"
@@ -194,12 +196,12 @@ export function MaintenanceCreateTicketModal({
               <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '14px' }}>
                 <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1e293b', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <span style={{ color: '#64748b' }}><Icons.Wrench /></span>
-                  <span>وصف العطل والفحص الفني</span>
+                  <span>{t('maintenance.maintenance_create_ticket_modal.s12', "وصف العطل والفحص الفني")}</span>
                 </div>
                 <div style={{ marginBottom: '8px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
                     <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#475569', margin: 0 }}>
-                      العطل المشتكى منه <span style={{ color: '#dc2626' }}>*</span>
+                      {t('maintenance.maintenance_create_ticket_modal.s13', "العطل المشتكى منه")} <span style={{ color: '#dc2626' }}>*</span>
                     </label>
                     {maintenanceProfile.commonFaults?.length > 0 && (
                       <button
@@ -219,7 +221,7 @@ export function MaintenanceCreateTicketModal({
                           gap: '4px',
                         }}
                       >
-                        <span>أعطال شائعة</span>
+                        <span>{t('maintenance.maintenance_create_ticket_modal.s14', "أعطال شائعة")}</span>
                         <span style={{ fontSize: '0.65rem' }}>{showFaultsPopover ? '▲' : '▼'}</span>
                       </button>
                     )}
@@ -230,12 +232,12 @@ export function MaintenanceCreateTicketModal({
                     className="purchase-prototype-field-input"
                     value={formData.problemDescription}
                     onChange={(e) => setFormData({ ...formData, problemDescription: e.target.value })}
-                    placeholder="مثال: الشاشة مكسورة، الجهاز لا يشحن..."
+                    placeholder={t('maintenance.maintenance_create_ticket_modal.s15', "مثال: الشاشة مكسورة، الجهاز لا يشحن...")}
                     style={{ width: '100%', background: '#fff', padding: '7px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box', fontSize: '0.85rem' }}
                   />
                   {showFaultsPopover && maintenanceProfile.commonFaults?.length > 0 && (
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', marginTop: '6px', padding: '8px', background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '6px' }}>
-                      <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 700, width: '100%', marginBottom: '2px' }}>اضغط للإضافة السريعة:</span>
+                      <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 700, width: '100%', marginBottom: '2px' }}>{t('maintenance.maintenance_create_ticket_modal.s16', "اضغط للإضافة السريعة:")}</span>
                       {maintenanceProfile.commonFaults.map((fault) => (
                         <button
                           key={fault}
@@ -266,7 +268,7 @@ export function MaintenanceCreateTicketModal({
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: '22px', marginBottom: '4px' }}>
                       <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#475569', margin: 0, whiteSpace: 'nowrap' }}>
-                        الحالة والملحقات
+                        {t('maintenance.maintenance_create_ticket_modal.s17', "الحالة والملحقات")}
                       </label>
                       {maintenanceProfile.defaultAccessories?.length > 0 && (
                         <button
@@ -286,7 +288,7 @@ export function MaintenanceCreateTicketModal({
                             gap: '3px',
                           }}
                         >
-                          <span>ملحقات</span>
+                          <span>{t('maintenance.maintenance_create_ticket_modal.s18', "ملحقات")}</span>
                           <span style={{ fontSize: '0.62rem' }}>{showAccessoriesPopover ? '▲' : '▼'}</span>
                         </button>
                       )}
@@ -296,12 +298,12 @@ export function MaintenanceCreateTicketModal({
                       className="purchase-prototype-field-input"
                       value={formData.deviceCondition || ''}
                       onChange={(e) => setFormData({ ...formData, deviceCondition: e.target.value })}
-                      placeholder="خدوش بالظهر، مستلم بدون شاحن..."
+                      placeholder={t('maintenance.maintenance_create_ticket_modal.s19', "خدوش بالظهر، مستلم بدون شاحن...")}
                       style={{ width: '100%', background: '#fff', padding: '7px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box', fontSize: '0.85rem' }}
                     />
                     {showAccessoriesPopover && maintenanceProfile.defaultAccessories?.length > 0 && (
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', marginTop: '6px', padding: '8px', background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '6px' }}>
-                        <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 700, width: '100%', marginBottom: '2px' }}>اضغط لإضافة الملحق:</span>
+                        <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 700, width: '100%', marginBottom: '2px' }}>{t('maintenance.maintenance_create_ticket_modal.s20', "اضغط لإضافة الملحق:")}</span>
                         {maintenanceProfile.defaultAccessories.map((acc) => (
                           <button
                             key={acc}
@@ -331,7 +333,7 @@ export function MaintenanceCreateTicketModal({
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', height: '22px', marginBottom: '4px' }}>
                       <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#475569', margin: 0, whiteSpace: 'nowrap' }}>
-                        الفني المسؤول
+                        {t('maintenance.maintenance_create_ticket_modal.s21', "الفني المسؤول")}
                       </label>
                     </div>
                     <input
@@ -339,7 +341,7 @@ export function MaintenanceCreateTicketModal({
                       className="purchase-prototype-field-input"
                       value={formData.technicianName || ''}
                       onChange={(e) => setFormData({ ...formData, technicianName: e.target.value })}
-                      placeholder="اسم الفني..."
+                      placeholder={t('maintenance.maintenance_create_ticket_modal.s22', "اسم الفني...")}
                       style={{ width: '100%', background: '#fff', padding: '7px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box', fontSize: '0.85rem' }}
                     />
                   </div>
@@ -372,7 +374,7 @@ export function MaintenanceCreateTicketModal({
                           transition: 'background-color 0.15s ease, color 0.15s ease',
                         }}
                       >
-                        PIN / رمز
+                        {t('maintenance.maintenance_create_ticket_modal.s23', "PIN / رمز")}
                       </button>
                       <button
                         type="button"
@@ -391,7 +393,7 @@ export function MaintenanceCreateTicketModal({
                           transition: 'background-color 0.15s ease, color 0.15s ease',
                         }}
                       >
-                        نمط الشاشة
+                        {t('maintenance.maintenance_create_ticket_modal.s24', "نمط الشاشة")}
                       </button>
                     </div>
                   )}
@@ -404,7 +406,7 @@ export function MaintenanceCreateTicketModal({
                       onChange={(pat) => setFormData({ ...formData, passcode: pat })}
                     />
                     <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
-                      النمط المسجل: <strong dir="ltr" style={{ color: '#0f172a', fontFamily: 'monospace' }}>{formData.passcode || 'لم يتم الرسم بعد'}</strong>
+                      {t('maintenance.maintenance_create_ticket_modal.s25', "النمط المسجل:")} <strong dir="ltr" style={{ color: '#0f172a', fontFamily: 'monospace' }}>{formData.passcode || t('maintenance.maintenance_create_ticket_modal.s26', "لم يتم الرسم بعد")}</strong>
                     </div>
                   </div>
                 ) : (
@@ -428,12 +430,12 @@ export function MaintenanceCreateTicketModal({
           <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '14px 18px' }}>
             <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1e293b', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
               <span style={{ color: '#64748b' }}><Icons.Coins /></span>
-              <span>الحساب المالي والضمان</span>
+              <span>{t('maintenance.maintenance_create_ticket_modal.s27', "الحساب المالي والضمان")}</span>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px' }}>
               <div style={{ background: '#fff', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1' }}>
                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
-                  التكلفة التقديرية
+                  {t('maintenance.maintenance_create_ticket_modal.s28', "التكلفة التقديرية")}
                 </label>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                   <input
@@ -452,7 +454,7 @@ export function MaintenanceCreateTicketModal({
 
               <div style={{ background: '#fff', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1' }}>
                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
-                  الدفعة المقدمة (عربون)
+                  {t('maintenance.maintenance_create_ticket_modal.s29', "الدفعة المقدمة (عربون)")}
                 </label>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                   <input
@@ -471,7 +473,7 @@ export function MaintenanceCreateTicketModal({
 
               <div style={{ background: '#fff', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1' }}>
                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
-                  المتبقي المتوقع
+                  {t('maintenance.maintenance_create_ticket_modal.s30', "المتبقي المتوقع")}
                 </label>
                 <div style={{ fontSize: '1rem', fontWeight: 800, color: '#0f172a', padding: '5px 0' }}>
                   {Math.max(0, (formData.expectedCost || 0) - (formData.advancePayment || 0)).toFixed(2)}{' '}
@@ -481,7 +483,7 @@ export function MaintenanceCreateTicketModal({
 
               <div style={{ background: '#fff', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1' }}>
                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
-                  أيام الضمان
+                  {t('maintenance.maintenance_create_ticket_modal.s31', "أيام الضمان")}
                 </label>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                   <input
@@ -493,7 +495,7 @@ export function MaintenanceCreateTicketModal({
                     placeholder="30"
                     style={{ width: '100%', padding: '5px 8px', border: '1px solid #cbd5e1', borderRadius: '5px', fontWeight: 700, fontSize: '0.9rem' }}
                   />
-                  <span style={{ fontSize: '0.75rem', color: '#64748b', whiteSpace: 'nowrap' }}>يوم</span>
+                  <span style={{ fontSize: '0.75rem', color: '#64748b', whiteSpace: 'nowrap' }}>{t('maintenance.maintenance_create_ticket_modal.s32', "يوم")}</span>
                 </div>
               </div>
             </div>
@@ -501,10 +503,10 @@ export function MaintenanceCreateTicketModal({
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', borderTop: '1px solid #e2e8f0', paddingTop: '14px' }}>
             <Button type="button" variant="secondary" onClick={onClose} style={{ padding: '7px 20px', fontSize: '0.85rem' }}>
-              إلغاء
+              {t('maintenance.maintenance_create_ticket_modal.s33', "إلغاء")}
             </Button>
             <Button type="submit" variant="primary" disabled={createMutation.isPending} style={{ padding: '7px 24px', fontWeight: 700, fontSize: '0.85rem' }}>
-              {createMutation.isPending ? 'جارٍ الحفظ...' : 'حفظ واستخراج إيصال الاستلام'}
+              {createMutation.isPending ? t('maintenance.maintenance_create_ticket_modal.s34', "جارٍ الحفظ...") : t('maintenance.maintenance_create_ticket_modal.s35', "حفظ واستخراج إيصال الاستلام")}
             </Button>
           </div>
         </form>

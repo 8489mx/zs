@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useRef, useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -34,6 +35,7 @@ import type { SetupStepKey } from '@/features/settings/hooks/useFirstRunSetupFlo
 import { useAuthStore } from '@/stores/auth-store';
 
 export function UserManagementSection({ branches, setupMode = false, setupStepKey = null, onSetupAdvance }: { branches: Branch[]; setupMode?: boolean; setupStepKey?: SetupStepKey | null; onSetupAdvance?: () => void }) {
+  const { t } = useTranslation();
   const controller = useUserManagementController({ branches, setupMode, setupStepKey, onSetupAdvance });
   const tenant = useAuthStore((s) => s.tenant);
   const vertical = resolveCurrentVertical(tenant);
@@ -169,13 +171,13 @@ export function UserManagementSection({ branches, setupMode = false, setupStepKe
       <section className="document-prototype-section settings-users-card">
         <div className="section-header-compact-row">
           <div>
-            <h3 className="document-prototype-section-title">إدارة المستخدمين والهويات والوصول</h3>
+            <h3 className="document-prototype-section-title">{t('settings.user_management_section.s0', "إدارة المستخدمين والهويات والوصول")}</h3>
             <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#64748b' }}>
               {isMaritime
-                ? 'التحكم الشامل في حسابات تشغيل وتتبع الشحن الملاحي والتخليص وموظفي المكاتب والموانئ.'
+                ? t('settings.user_management_section.s1', "التحكم الشامل في حسابات تشغيل وتتبع الشحن الملاحي والتخليص وموظفي المكاتب والموانئ.")
                 : isContracting
-                ? 'التحكم الشامل في حسابات مديري المشاريع ومهندسي المواقع ولوحة الإدارة والموظفين.'
-                : 'التحكم الشامل في حسابات دخول لوحة التحكم، مناديب الدليفري والتوزيع، وموظفي الخدمة الذاتية والبصمة.'}
+                ? t('settings.user_management_section.s2', "التحكم الشامل في حسابات مديري المشاريع ومهندسي المواقع ولوحة الإدارة والموظفين.")
+                : t('settings.user_management_section.s3', "التحكم الشامل في حسابات دخول لوحة التحكم، مناديب الدليفري والتوزيع، وموظفي الخدمة الذاتية والبصمة.")}
             </p>
           </div>
           {activeTab === 'erp-users' && (
@@ -198,11 +200,11 @@ export function UserManagementSection({ branches, setupMode = false, setupStepKe
                     }}
                     title={`وصلت للحد الأقصى في باقتك (${maxAllowedUsers} مستخدمين).`}
                   >
-                    حد الباقة ({maxAllowedUsers})
+                    {t('settings.user_management_section.s4', "حد الباقة (")}{maxAllowedUsers})
                   </span>
                 ) : (
                   <Button type="button" variant="primary" className="section-header-action-btn" onClick={() => { startNewUser('cashier'); setIsEditorOpen(true); }}>
-                    + مستخدم جديد
+                    {t('settings.user_management_section.s5', "+ مستخدم جديد")}
                   </Button>
                 )
               ) : null}
@@ -216,7 +218,7 @@ export function UserManagementSection({ branches, setupMode = false, setupStepKe
                     exportUsersCsv('users-results.csv', payload.rows.map(normalizeUserRecord));
                   }}
                 >
-                  تصدير
+                  {t('settings.user_management_section.s6', "تصدير")}
                 </Button>
               ) : null}
               {!setupMode ? (
@@ -226,10 +228,10 @@ export function UserManagementSection({ branches, setupMode = false, setupStepKe
                   className="section-header-action-btn"
                   onClick={async () => {
                     const payload = await settingsApi.listAllUsers({ search: userSearch, filter: userFilter });
-                    printUsersList('قائمة المستخدمين', payload.rows.map(normalizeUserRecord));
+                    printUsersList(t('settings.user_management_section.s7', "قائمة المستخدمين"), payload.rows.map(normalizeUserRecord));
                   }}
                 >
-                  طباعة
+                  {t('settings.user_management_section.s8', "طباعة")}
                 </Button>
               ) : null}
             </div>
@@ -276,7 +278,7 @@ export function UserManagementSection({ branches, setupMode = false, setupStepKe
               }}
             >
               <UsersIcon size={16} color={activeTab === 'erp-users' ? '#ffffff' : '#64748b'} />
-              <span>مستخدمو لوحة الإدارة (ERP)</span>
+              <span>{t('settings.user_management_section.s9', "مستخدمو لوحة الإدارة (ERP)")}</span>
               <span
                 style={{
                   background: activeTab === 'erp-users' ? 'rgba(255,255,255,0.2)' : '#e2e8f0',
@@ -313,7 +315,7 @@ export function UserManagementSection({ branches, setupMode = false, setupStepKe
                 }}
               >
                 <TruckIcon size={16} color={activeTab === 'drivers' ? '#ffffff' : '#64748b'} />
-                <span>مناديب التوصيل والفان (Drivers)</span>
+                <span>{t('settings.user_management_section.s10', "مناديب التوصيل والفان (Drivers)")}</span>
               </button>
             )}
 
@@ -338,7 +340,7 @@ export function UserManagementSection({ branches, setupMode = false, setupStepKe
               }}
             >
               <SmartphoneIcon size={16} color={activeTab === 'employees' ? '#ffffff' : '#64748b'} />
-              <span>موظفو الخدمة الذاتية والبصمة (Staff)</span>
+              <span>{t('settings.user_management_section.s11', "موظفو الخدمة الذاتية والبصمة (Staff)")}</span>
             </button>
           </div>
         )}
@@ -354,9 +356,9 @@ export function UserManagementSection({ branches, setupMode = false, setupStepKe
             isError={usersQuery.isError}
             error={usersQuery.error}
             isEmpty={!userSummary.totalItems}
-            loadingText="جاري تحميل المستخدمين..."
-            emptyTitle="لا توجد بيانات مستخدمين"
-            emptyHint="سيظهر هنا المستخدمون بمجرد تحميلهم من الخادم، ويمكنك إنشاء مستخدم جديد من نفس الشاشة."
+            loadingText={t('settings.user_management_section.s12', "جاري تحميل المستخدمين...")}
+            emptyTitle={t('settings.user_management_section.s13', "لا توجد بيانات مستخدمين")}
+            emptyHint={t('settings.user_management_section.s14', "سيظهر هنا المستخدمون بمجرد تحميلهم من الخادم، ويمكنك إنشاء مستخدم جديد من نفس الشاشة.")}
           >
             <div className="page-stack">
               <UserManagementListPanel
@@ -425,7 +427,7 @@ export function UserManagementSection({ branches, setupMode = false, setupStepKe
           open={isEditorOpen}
           onClose={() => setIsEditorOpen(false)}
           width="min(1280px, 97vw)"
-          ariaLabel="تعديل المستخدم والصلاحيات"
+          ariaLabel={t('settings.user_management_section.s15', "تعديل المستخدم والصلاحيات")}
           showCloseButton={false}
           shellClassName="dialog-compact"
         >
@@ -440,10 +442,10 @@ export function UserManagementSection({ branches, setupMode = false, setupStepKe
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <h3 style={{ fontSize: '0.98rem', fontWeight: 800, margin: 0, color: '#0f172a' }}>
-                  {draft.id ? `تعديل المستخدم: ${draft.name || draft.username}` : (isMaritime ? 'إضافة مسؤول عمليات / مستخدم جديد' : isContracting ? 'إضافة مهندس موقع / مستخدم جديد' : 'إضافة مستخدم جديد')}
+                  {draft.id ? `تعديل المستخدم: ${draft.name || draft.username}` : (isMaritime ? t('settings.user_management_section.s16', "إضافة مسؤول عمليات / مستخدم جديد") : isContracting ? t('settings.user_management_section.s17', "إضافة مهندس موقع / مستخدم جديد") : t('settings.user_management_section.s18', "إضافة مستخدم جديد"))}
                 </h3>
                 <span style={{ fontSize: '0.76rem', color: '#64748b', fontWeight: 500 }}>
-                  (تحديد بيانات الحساب، المقرات، ومجموعات الصلاحيات)
+                  {t('settings.user_management_section.s19', "(تحديد بيانات الحساب، المقرات، ومجموعات الصلاحيات)")}
                 </span>
               </div>
               <button
@@ -460,7 +462,7 @@ export function UserManagementSection({ branches, setupMode = false, setupStepKe
                   alignItems: 'center',
                   justifyContent: 'center',
                 }}
-                title="إغلاق"
+                title={t('settings.user_management_section.s20', "إغلاق")}
               >
                 <XIcon size={18} />
               </button>
@@ -507,35 +509,35 @@ export function UserManagementSection({ branches, setupMode = false, setupStepKe
         onConfirm={(payload) => void deleteSelectedUser(payload)}
       />
 
-      <DialogShell open={Boolean(detailsUserId)} onClose={() => setDetailsUserId('')} width="min(980px, 100%)" ariaLabel="تفاصيل المستخدم">
+      <DialogShell open={Boolean(detailsUserId)} onClose={() => setDetailsUserId('')} width="min(980px, 100%)" ariaLabel={t('settings.user_management_section.s21', "تفاصيل المستخدم")}>
         <div className="page-stack">
           <div className="actions" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
-              <h3 style={{ margin: 0 }}>تفاصيل المستخدم</h3>
-              <div className="muted small">{detailsQuery.data?.employee ? `${detailsQuery.data.employee.name} · ${detailsQuery.data.employee.username}` : 'جاري التحميل...'}</div>
+              <h3 style={{ margin: 0 }}>{t('settings.user_management_section.s22', "تفاصيل المستخدم")}</h3>
+              <div className="muted small">{detailsQuery.data?.employee ? `${detailsQuery.data.employee.name} · ${detailsQuery.data.employee.username}` : t('settings.user_management_section.s23', "جاري التحميل...")}</div>
             </div>
-            <Button variant="secondary" onClick={() => setDetailsUserId('')}>إغلاق</Button>
+            <Button variant="secondary" onClick={() => setDetailsUserId('')}>{t('settings.user_management_section.s24', "إغلاق")}</Button>
           </div>
-          {detailsQuery.isLoading ? <div className="muted small">جاري تحميل التفاصيل...</div> : null}
-          {detailsQuery.isError ? <div className="warning-box">تعذر تحميل تفاصيل المستخدم.</div> : null}
+          {detailsQuery.isLoading ? <div className="muted small">{t('settings.user_management_section.s25', "جاري تحميل التفاصيل...")}</div> : null}
+          {detailsQuery.isError ? <div className="warning-box">{t('settings.user_management_section.s26', "تعذر تحميل تفاصيل المستخدم.")}</div> : null}
           {detailsQuery.data?.employee ? <>
             <div className="reports-spotlight-grid section-spotlight-grid compact-spotlight-grid">
-              <ReportMetricCard label="المبيعات" value={detailsQuery.data.employee.salesTotal || 0} helper={`${detailsQuery.data.employee.salesCount || 0} فاتورة`} tone="primary" formatter={formatCurrency} progress={0} />
-              <ReportMetricCard label="المشتريات" value={detailsQuery.data.employee.purchasesTotal || 0} helper={`${detailsQuery.data.employee.purchasesCount || 0} فاتورة`} tone="warning" formatter={formatCurrency} progress={0} />
-              <ReportMetricCard label="المرتجعات" value={detailsQuery.data.employee.returnsTotal || 0} helper={`${detailsQuery.data.employee.returnsCount || 0} مستند`} tone="danger" formatter={formatCurrency} progress={0} />
-              <ReportMetricCard label="السجل" value={detailsQuery.data.employee.auditCount || 0} helper="أحداث رقابية" tone="success" progress={0} />
+              <ReportMetricCard label={t('settings.user_management_section.s27', "المبيعات")} value={detailsQuery.data.employee.salesTotal || 0} helper={`${detailsQuery.data.employee.salesCount || 0} فاتورة`} tone="primary" formatter={formatCurrency} progress={0} />
+              <ReportMetricCard label={t('settings.user_management_section.s28', "المشتريات")} value={detailsQuery.data.employee.purchasesTotal || 0} helper={`${detailsQuery.data.employee.purchasesCount || 0} فاتورة`} tone="warning" formatter={formatCurrency} progress={0} />
+              <ReportMetricCard label={t('settings.user_management_section.s29', "المرتجعات")} value={detailsQuery.data.employee.returnsTotal || 0} helper={`${detailsQuery.data.employee.returnsCount || 0} مستند`} tone="danger" formatter={formatCurrency} progress={0} />
+              <ReportMetricCard label={t('settings.user_management_section.s30', "السجل")} value={detailsQuery.data.employee.auditCount || 0} helper={t('settings.user_management_section.s31', "أحداث رقابية")} tone="success" progress={0} />
             </div>
             <DataTable
-              ariaLabel="نشاط المستخدم"
+              ariaLabel={t('settings.user_management_section.s32', "نشاط المستخدم")}
               rows={detailsQuery.data.activities || []}
               columns={[
-                { key: 'title', header: 'العنوان', cell: (row) => row.title },
-                { key: 'details', header: 'التفاصيل', cell: (row) => row.details || '—' },
-                { key: 'amount', header: 'القيمة', cell: (row) => row.amount == null ? '—' : formatCurrency(row.amount || 0) },
-                { key: 'date', header: 'التاريخ والوقت', cell: (row) => formatDate(row.createdAt) },
-                { key: 'ref', header: 'المرجع', cell: (row) => row.referenceLabel || '—' },
+                { key: 'title', header: t('settings.user_management_section.s33', "العنوان"), cell: (row) => row.title },
+                { key: 'details', header: t('settings.user_management_section.s34', "التفاصيل"), cell: (row) => row.details || '—' },
+                { key: 'amount', header: t('settings.user_management_section.s35', "القيمة"), cell: (row) => row.amount == null ? '—' : formatCurrency(row.amount || 0) },
+                { key: 'date', header: t('settings.user_management_section.s36', "التاريخ والوقت"), cell: (row) => formatDate(row.createdAt) },
+                { key: 'ref', header: t('settings.user_management_section.s37', "المرجع"), cell: (row) => row.referenceLabel || '—' },
               ]}
-              empty={<div className="muted small">لا توجد حركات للمستخدم في النطاق الحالي.</div>}
+              empty={<div className="muted small">{t('settings.user_management_section.s38', "لا توجد حركات للمستخدم في النطاق الحالي.")}</div>}
             />
           </> : null}
         </div>

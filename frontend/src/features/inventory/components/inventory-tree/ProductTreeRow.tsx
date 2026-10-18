@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { memo } from 'react';
 import type { ProductRow } from './inventoryTree.types';
 import { AlertTriangleIcon , XIcon } from '@/shared/components/icons/AppIcons';
@@ -21,6 +22,7 @@ const ProductTreeRow = memo(function ProductTreeRow({
   onConsolidate?: (p: ProductRow) => void;
   onRemoveLocation: (productId: string, locationId: string) => void;
 }) {
+  const { t } = useTranslation();
   const visibleStocks = filterLocationId
     ? product.locationStocks.filter((s) => s.locationId === filterLocationId)
     : product.locationStocks;
@@ -60,7 +62,7 @@ const ProductTreeRow = memo(function ProductTreeRow({
         {product.barcode && <span style={{ fontSize: '11px', color: '#94a3b8', fontFamily: 'monospace' }}>{product.barcode}</span>}
         {isUnassigned && (
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', marginTop: '2px', fontSize: '10.5px', fontWeight: 700, padding: '1px 8px', borderRadius: '12px', background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a', width: 'fit-content' }}>
-            <AlertTriangleIcon size={12} color="#d97706" /> غير مربوط بمخزن
+            <AlertTriangleIcon size={12} color="#d97706" /> {t('inventory.inventory_tree.product_tree_row.s0', "غير مربوط بمخزن")}
           </span>
         )}
       </div>
@@ -102,7 +104,7 @@ const ProductTreeRow = memo(function ProductTreeRow({
                     onRemoveLocation(product.id, s.locationId);
                   }}
                   style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '0 2px', fontSize: '12px', fontWeight: 'bold' }}
-                  title="حذف هذا المخزن من الصنف"
+                  title={t('inventory.inventory_tree.product_tree_row.s1', "حذف هذا المخزن من الصنف")}
                 ><XIcon size={15} /></button>
               )}
             </div>
@@ -118,7 +120,7 @@ const ProductTreeRow = memo(function ProductTreeRow({
             onClick={() => onAssign(product)} 
             style={{ padding: '4px 10px', borderRadius: '6px', border: '1px solid #f59e0b', background: '#fffbeb', color: '#b45309', fontSize: '11.5px', cursor: 'pointer', fontWeight: 700 }}
           >
-            ربط بمخزن
+            {t('inventory.inventory_tree.product_tree_row.s2', "ربط بمخزن")}
           </button>
         ) : (
           <>
@@ -127,14 +129,14 @@ const ProductTreeRow = memo(function ProductTreeRow({
               onClick={() => onTransfer(product)} 
               style={{ padding: '4px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', color: 'var(--primary, #170c5c)', fontSize: '11.5px', cursor: 'pointer', fontWeight: 700 }}
             >
-              نقل ↔
+              {t('inventory.inventory_tree.product_tree_row.s3', "نقل ↔")}
             </button>
             <button 
               type="button"
               onClick={() => onConsolidate?.(product)} 
               style={{ padding: '4px 8px', borderRadius: '6px', border: '1px solid #e2e8f0', background: '#f8fafc', color: '#64748b', fontSize: '11.5px', cursor: 'pointer', fontWeight: 600 }}
             >
-              توحيد
+              {t('inventory.inventory_tree.product_tree_row.s4', "توحيد")}
             </button>
           </>
         )}

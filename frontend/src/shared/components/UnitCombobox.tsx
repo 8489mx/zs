@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useRef, useEffect } from 'react';
 import { matchesArabic } from '@/lib/arabic-normalization';
 
@@ -35,6 +36,7 @@ interface UnitComboboxProps {
 }
 
 export function UnitCombobox({ value, onChange, placeholder = 'اختر أو اكتب...', disabled = false, style }: UnitComboboxProps) {
+  const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState(value || '');
   const [highlightedIndex, setHighlightedIndex] = useState<number>(0);
@@ -284,7 +286,7 @@ export function UnitCombobox({ value, onChange, placeholder = 'اختر أو ا�
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
                     <span style={{ fontSize: '0.9rem', fontWeight: 800 }}>+</span>
-                    <span>استخدام <strong>"{searchTerm}"</strong> كوحدة</span>
+                    <span>{t('shared.unit_combobox.s0', "استخدام")} <strong>"{searchTerm}"</strong> {t('shared.unit_combobox.s1', "كوحدة")}</span>
                   </div>
                   <span style={{ fontSize: '0.65rem', color: '#475569', background: '#ffffff', padding: '1px 5px', borderRadius: '3px', border: '1px solid #cbd5e1', flexShrink: 0 }}>
                     Enter ↵
@@ -302,7 +304,7 @@ export function UnitCombobox({ value, onChange, placeholder = 'اختر أو ا�
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
                 <span style={{ fontSize: '0.9rem', fontWeight: 800 }}>+</span>
-                <span>استخدام <strong>"{searchTerm}"</strong> كوحدة</span>
+                <span>{t('shared.unit_combobox.s2', "استخدام")} <strong>"{searchTerm}"</strong> {t('shared.unit_combobox.s3', "كوحدة")}</span>
               </div>
               <span style={{ fontSize: '0.65rem', color: '#475569', background: '#ffffff', padding: '1px 5px', borderRadius: '3px', border: '1px solid #cbd5e1', flexShrink: 0 }}>
                 Enter ↵

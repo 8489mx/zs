@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useMemo } from 'react';
 import {
   PRODUCT_SVG_ICONS,
@@ -20,6 +21,7 @@ export function ProductIconPicker({
   industry,
   disabled = false,
 }: ProductIconPickerProps) {
+  const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   
@@ -69,7 +71,7 @@ export function ProductIconPicker({
         type="button"
         disabled={disabled}
         onClick={() => setIsOpen(true)}
-        title={selectedIcon ? `أيقونة الصنف: ${selectedIcon.name} (اضغط للتغيير)` : 'اختر أيقونة الصنف (SVG)'}
+        title={selectedIcon ? `أيقونة الصنف: ${selectedIcon.name} (اضغط للتغيير)` : t('shared.icons.product_icon_picker.s0', "اختر أيقونة الصنف (SVG)")}
         style={{
           display: 'inline-flex',
           alignItems: 'center',
@@ -98,7 +100,7 @@ export function ProductIconPicker({
             e.stopPropagation();
             onChange('');
           }}
-          title="إزالة الأيقونة"
+          title={t('shared.icons.product_icon_picker.s1', "إزالة الأيقونة")}
           style={{
             position: 'absolute',
             top: '-5px',
@@ -127,13 +129,13 @@ export function ProductIconPicker({
       <DialogShell
         open={isOpen}
         onClose={() => setIsOpen(false)}
-        ariaLabel="مكتبة أيقونات الأصناف"
+        ariaLabel={t('shared.icons.product_icon_picker.s2', "مكتبة أيقونات الأصناف")}
         width="min(760px, 95vw)"
       >
         <div style={{ padding: '16px 20px 8px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#0f172a' }}>مكتبة أيقونات الأصناف (SVG فائقة الخفة)</h3>
-            <p style={{ margin: '3px 0 0', fontSize: '0.78rem', color: '#64748b' }}>اختر أيقونة معبرة عن الصنف لتمييزه سريعاً في شاشات الكاشير والمبيعات</p>
+            <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#0f172a' }}>{t('shared.icons.product_icon_picker.s3', "مكتبة أيقونات الأصناف (SVG فائقة الخفة)")}</h3>
+            <p style={{ margin: '3px 0 0', fontSize: '0.78rem', color: '#64748b' }}>{t('shared.icons.product_icon_picker.s4', "اختر أيقونة معبرة عن الصنف لتمييزه سريعاً في شاشات الكاشير والمبيعات")}</p>
           </div>
           <button
             type="button"
@@ -150,7 +152,7 @@ export function ProductIconPicker({
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="ابحث عن أيقونة (مثال: بهارات، قهوة، تيشيرت، عطر، موبايل، علاج)..."
+              placeholder={t('shared.icons.product_icon_picker.s5', "ابحث عن أيقونة (مثال: بهارات، قهوة، تيشيرت، عطر، موبايل، علاج)...")}
               autoFocus
               className="purchase-prototype-field-input"
               style={{
@@ -233,7 +235,7 @@ export function ProductIconPicker({
                 transition: 'all 0.15s ease',
               }}
             >
-              بدون أيقونة
+              {t('shared.icons.product_icon_picker.s6', "بدون أيقونة")}
             </button>
             <button
               type="button"
@@ -251,7 +253,7 @@ export function ProductIconPicker({
                 transition: 'all 0.15s ease',
               }}
             >
-              الكل ({PRODUCT_SVG_ICONS.length})
+              {t('shared.icons.product_icon_picker.s7', "الكل (")}{PRODUCT_SVG_ICONS.length})
             </button>
             {PRODUCT_ICON_CATEGORIES.map((cat) => {
               const count = PRODUCT_SVG_ICONS.filter((i) => i.category === cat.id).length;
@@ -280,7 +282,7 @@ export function ProductIconPicker({
                 >
                   <span>{cat.title}</span>
                   <span style={{ fontSize: '0.7rem', opacity: 0.85 }}>({count})</span>
-                  {isTenantIndustry && <span style={{ fontSize: '0.65rem', background: '#3b82f6', color: '#fff', borderRadius: '4px', padding: '1px 4px' }}>نشاطك</span>}
+                  {isTenantIndustry && <span style={{ fontSize: '0.65rem', background: '#3b82f6', color: '#fff', borderRadius: '4px', padding: '1px 4px' }}>{t('shared.icons.product_icon_picker.s8', "نشاطك")}</span>}
                 </button>
               );
             })}
@@ -364,7 +366,7 @@ export function ProductIconPicker({
 
           {filteredIcons.length === 0 && (
             <div style={{ textAlign: 'center', padding: '30px', color: '#94a3b8', fontSize: '0.85rem' }}>
-              لا توجد أيقونات تطابق بحثك "{searchQuery}"
+              {t('shared.icons.product_icon_picker.s9', "لا توجد أيقونات تطابق بحثك \"")}{searchQuery}"
             </div>
           )}
         </div>

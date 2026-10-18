@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { ActionConfirmDialog } from '@/shared/components/action-confirm-dialog';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import type { HeldPosDraftSummary } from '@/features/pos/components/pos-cart-panel/posCartPanel.types';
@@ -34,6 +35,7 @@ export function PosWorkspaceConfirmDialogs({
   onCancelClearHeld,
   onConfirmClearHeld,
 }: PosWorkspaceConfirmDialogsProps) {
+  const { t } = useTranslation();
   return (
     <>
       <DialogShell
@@ -89,7 +91,7 @@ export function PosWorkspaceConfirmDialogs({
               letterSpacing: '-0.01em',
             }}
           >
-            هل تريد تفريغ الفاتورة الحالية؟
+            {t('pos.pos_workspace.pos_workspace_confirm_dialogs.s0', "هل تريد تفريغ الفاتورة الحالية؟")}
           </h3>
 
           {/* Description */}
@@ -103,7 +105,7 @@ export function PosWorkspaceConfirmDialogs({
               padding: '0 10px',
             }}
           >
-            سيتم حذف كل بنود الفاتورة الحالية فقط، ولن يتم حذف أي فاتورة معلقة.
+            {t('pos.pos_workspace.pos_workspace_confirm_dialogs.s1', "سيتم حذف كل بنود الفاتورة الحالية فقط، ولن يتم حذف أي فاتورة معلقة.")}
           </p>
 
           {/* Actions */}
@@ -140,7 +142,7 @@ export function PosWorkspaceConfirmDialogs({
                 e.currentTarget.style.color = '#475569';
               }}
             >
-              إلغاء
+              {t('pos.pos_workspace.pos_workspace_confirm_dialogs.s2', "إلغاء")}
             </button>
 
             <button
@@ -176,7 +178,7 @@ export function PosWorkspaceConfirmDialogs({
                 <polyline points="3 6 5 6 21 6"></polyline>
                 <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
               </svg>
-              تفريغ
+              {t('pos.pos_workspace.pos_workspace_confirm_dialogs.s3', "تفريغ")}
             </button>
           </div>
         </div>
@@ -186,10 +188,10 @@ export function PosWorkspaceConfirmDialogs({
         open={Boolean(lineDeleteConfirmItem)}
         overlayClassName="pos-destructive-confirm-overlay"
         shellClassName="pos-destructive-confirm-shell"
-        title="تأكيد حذف البند"
+        title={t('pos.pos_workspace.pos_workspace_confirm_dialogs.s4', "تأكيد حذف البند")}
         description={lineDeleteConfirmItem ? `سيتم حذف ${lineDeleteConfirmItem.name} من الفاتورة الحالية.` : ''}
-        confirmLabel="حذف"
-        cancelLabel="إلغاء"
+        confirmLabel={t('pos.pos_workspace.pos_workspace_confirm_dialogs.s5', "حذف")}
+        cancelLabel={t('pos.pos_workspace.pos_workspace_confirm_dialogs.s6', "إلغاء")}
         confirmVariant="danger"
         onCancel={onCancelLineDelete}
         onConfirm={onConfirmLineDelete}
@@ -199,10 +201,10 @@ export function PosWorkspaceConfirmDialogs({
         open={Boolean(heldDeleteConfirmDraft)}
         overlayClassName="pos-destructive-confirm-overlay"
         shellClassName="pos-destructive-confirm-shell"
-        title="تأكيد حذف الفاتورة المعلقة"
+        title={t('pos.pos_workspace.pos_workspace_confirm_dialogs.s7', "تأكيد حذف الفاتورة المعلقة")}
         description={heldDeleteConfirmDraft ? `سيتم حذف ${heldDeleteConfirmDraft.label} من الفواتير المعلقة.` : ''}
-        confirmLabel="حذف"
-        cancelLabel="إلغاء"
+        confirmLabel={t('pos.pos_workspace.pos_workspace_confirm_dialogs.s8', "حذف")}
+        cancelLabel={t('pos.pos_workspace.pos_workspace_confirm_dialogs.s9', "إلغاء")}
         confirmVariant="danger"
         onCancel={onCancelHeldDelete}
         onConfirm={onConfirmHeldDelete}
@@ -212,11 +214,11 @@ export function PosWorkspaceConfirmDialogs({
         open={clearHeldConfirmOpen}
         overlayClassName="pos-destructive-confirm-overlay"
         shellClassName="pos-destructive-confirm-shell"
-        title="تأكيد حذف كل الفواتير المعلقة"
+        title={t('pos.pos_workspace.pos_workspace_confirm_dialogs.s10', "تأكيد حذف كل الفواتير المعلقة")}
         description={`سيتم حذف ${heldDraftsCount} فاتورة معلقة من هذه الشاشة. اكتب حذف الكل للتأكيد.`}
-        confirmationKeyword="حذف الكل"
-        confirmLabel="حذف"
-        cancelLabel="إلغاء"
+        confirmationKeyword={t('pos.pos_workspace.pos_workspace_confirm_dialogs.s11', "حذف الكل")}
+        confirmLabel={t('pos.pos_workspace.pos_workspace_confirm_dialogs.s12', "حذف")}
+        cancelLabel={t('pos.pos_workspace.pos_workspace_confirm_dialogs.s13', "إلغاء")}
         confirmVariant="danger"
         onCancel={onCancelClearHeld}
         onConfirm={onConfirmClearHeld}

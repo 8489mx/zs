@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useCallback } from 'react';
 import { StandardDialog } from '@/shared/components/StandardDialog';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
@@ -13,6 +14,7 @@ interface ProjectEvmMetricsModalProps {
 }
 
 export function ProjectEvmMetricsModal({ open, onClose, projectId, projectName }: ProjectEvmMetricsModalProps) {
+  const { t } = useTranslation();
   const [metrics, setMetrics] = useState<ContractingProjectEvmMetrics | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -67,7 +69,7 @@ export function ProjectEvmMetricsModal({ open, onClose, projectId, projectName }
     if (!metrics || !metrics.sCurvePoints || metrics.sCurvePoints.length === 0) {
       return (
         <div style={{ padding: '32px', textAlign: 'center', color: '#64748b', fontSize: '13px' }}>
-          لا توجد بيانات تاريخية كافية لرسم منحنى S-Curve تراكمي لهذا المشروع.
+          {t('contracting.project_evm_metrics_modal.s0', "لا توجد بيانات تاريخية كافية لرسم منحنى S-Curve تراكمي لهذا المشروع.")}
         </div>
       );
     }
@@ -97,20 +99,20 @@ export function ProjectEvmMetricsModal({ open, onClose, projectId, projectName }
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
           <div style={{ fontWeight: 700, fontSize: '13.5px', color: '#170e5e', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <AppIcons.TrendingUp size={16} />
-            منحنى الإنجاز التراكمي (S-Curve) - مخطط المقارنة الزمني والمالي
+            {t('contracting.project_evm_metrics_modal.s1', "منحنى الإنجاز التراكمي (S-Curve) - مخطط المقارنة الزمني والمالي")}
           </div>
           <div style={{ display: 'flex', gap: '16px', fontSize: '12px', fontWeight: 600 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               <span style={{ width: '12px', height: '3px', background: '#3b82f6', display: 'inline-block', borderRadius: '2px' }} />
-              <span style={{ color: '#1e40af' }}>المخطط له (PV)</span>
+              <span style={{ color: '#1e40af' }}>{t('contracting.project_evm_metrics_modal.s2', "المخطط له (PV)")}</span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               <span style={{ width: '12px', height: '3px', background: '#10b981', display: 'inline-block', borderRadius: '2px' }} />
-              <span style={{ color: '#047857' }}>القيمة المكتسبة (EV)</span>
+              <span style={{ color: '#047857' }}>{t('contracting.project_evm_metrics_modal.s3', "القيمة المكتسبة (EV)")}</span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               <span style={{ width: '12px', height: '3px', background: '#f59e0b', display: 'inline-block', borderRadius: '2px' }} />
-              <span style={{ color: '#b45309' }}>التكلفة الفعلية (AC)</span>
+              <span style={{ color: '#b45309' }}>{t('contracting.project_evm_metrics_modal.s4', "التكلفة الفعلية (AC)")}</span>
             </div>
           </div>
         </div>
@@ -168,8 +170,8 @@ export function ProjectEvmMetricsModal({ open, onClose, projectId, projectName }
     <StandardDialog
       open={open}
       onClose={onClose}
-      title="مؤشرات القيمة المكتسبة ومنحنى الأداء التراكمي (EVM & S-Curve)"
-      subtitle={`تحليل المعايير العالمية (Primavera / Oracle Unifier) لمشروع: ${projectName || metrics?.projectName || 'المشروع المحدد'}`}
+      title={t('contracting.project_evm_metrics_modal.s5', "مؤشرات القيمة المكتسبة ومنحنى الأداء التراكمي (EVM & S-Curve)")}
+      subtitle={`تحليل المعايير العالمية (Primavera / Oracle Unifier) لمشروع: ${projectName || metrics?.projectName || t('contracting.project_evm_metrics_modal.s6', "المشروع المحدد")}`}
       width="1180px"
       compact
       minHeight="min(600px, 88vh)"
@@ -177,11 +179,11 @@ export function ProjectEvmMetricsModal({ open, onClose, projectId, projectName }
       {loading ? (
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '340px', gap: '14px' }}>
           <div className="spinner" style={{ width: '32px', height: '32px', border: '3px solid #e2e8f0', borderTopColor: '#170e5e', borderRadius: '50%' }} />
-          <div style={{ color: '#64748b', fontSize: '13px', fontWeight: 600 }}>جاري حساب وتحليل مصفوفة القيمة المكتسبة وتوليد منحنيات الـ S-Curve...</div>
+          <div style={{ color: '#64748b', fontSize: '13px', fontWeight: 600 }}>{t('contracting.project_evm_metrics_modal.s7', "جاري حساب وتحليل مصفوفة القيمة المكتسبة وتوليد منحنيات الـ S-Curve...")}</div>
         </div>
       ) : !metrics ? (
         <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
-          لا توجد بيانات مقايسة أو أعمال مسجلة للمشروع لحساب مؤشرات EVM.
+          {t('contracting.project_evm_metrics_modal.s8', "لا توجد بيانات مقايسة أو أعمال مسجلة للمشروع لحساب مؤشرات EVM.")}
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -215,10 +217,10 @@ export function ProjectEvmMetricsModal({ open, onClose, projectId, projectName }
                 }}
               >
                 <AppIcons.CheckShield size={14} />
-                حالة المشروع العامة: {healthBadge?.label}
+                {t('contracting.project_evm_metrics_modal.s9', "حالة المشروع العامة:")} {healthBadge?.label}
               </div>
               <div style={{ color: '#64748b', fontSize: '12.5px' }}>
-                كود المشروع: <strong style={{ color: '#0f172a' }}>{metrics.projectCode || 'PROJ'}</strong>
+                {t('contracting.project_evm_metrics_modal.s10', "كود المشروع:")} <strong style={{ color: '#0f172a' }}>{metrics.projectCode || 'PROJ'}</strong>
               </div>
             </div>
 
@@ -241,7 +243,7 @@ export function ProjectEvmMetricsModal({ open, onClose, projectId, projectName }
                 }}
               >
                 <AppIcons.RefreshCw size={13} />
-                إعادة التحديث
+                {t('contracting.project_evm_metrics_modal.s11', "إعادة التحديث")}
               </button>
             </div>
           </div>
@@ -250,28 +252,28 @@ export function ProjectEvmMetricsModal({ open, onClose, projectId, projectName }
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px' }}>
             {/* 1. BAC */}
             <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 14px' }}>
-              <div style={{ fontSize: '11.5px', color: '#64748b', fontWeight: 600 }}>إجمالي الميزانية التعاقدية (BAC)</div>
+              <div style={{ fontSize: '11.5px', color: '#64748b', fontWeight: 600 }}>{t('contracting.project_evm_metrics_modal.s12', "إجمالي الميزانية التعاقدية (BAC)")}</div>
               <div style={{ fontSize: '16px', fontWeight: 800, color: '#0f172a', margin: '4px 0' }}>{formatCurrency(metrics.budgetAtCompletion)}</div>
               <div style={{ fontSize: '11px', color: '#94a3b8' }}>Budget At Completion</div>
             </div>
 
             {/* 2. PV */}
             <div style={{ background: '#ffffff', border: '1px solid #bfdbfe', borderRadius: '10px', padding: '12px 14px' }}>
-              <div style={{ fontSize: '11.5px', color: '#1e40af', fontWeight: 600 }}>القيمة المخططة الحالية (PV)</div>
+              <div style={{ fontSize: '11.5px', color: '#1e40af', fontWeight: 600 }}>{t('contracting.project_evm_metrics_modal.s13', "القيمة المخططة الحالية (PV)")}</div>
               <div style={{ fontSize: '16px', fontWeight: 800, color: '#1d4ed8', margin: '4px 0' }}>{formatCurrency(metrics.plannedValue)}</div>
               <div style={{ fontSize: '11px', color: '#3b82f6' }}>Planned Value</div>
             </div>
 
             {/* 3. EV */}
             <div style={{ background: '#ffffff', border: '1px solid #bbf7d0', borderRadius: '10px', padding: '12px 14px' }}>
-              <div style={{ fontSize: '11.5px', color: '#15803d', fontWeight: 600 }}>القيمة المكتسبة المنفذة (EV)</div>
+              <div style={{ fontSize: '11.5px', color: '#15803d', fontWeight: 600 }}>{t('contracting.project_evm_metrics_modal.s14', "القيمة المكتسبة المنفذة (EV)")}</div>
               <div style={{ fontSize: '16px', fontWeight: 800, color: '#15803d', margin: '4px 0' }}>{formatCurrency(metrics.earnedValue)}</div>
               <div style={{ fontSize: '11px', color: '#10b981' }}>Earned Value</div>
             </div>
 
             {/* 4. AC */}
             <div style={{ background: '#ffffff', border: '1px solid #fed7aa', borderRadius: '10px', padding: '12px 14px' }}>
-              <div style={{ fontSize: '11.5px', color: '#c2410c', fontWeight: 600 }}>التكلفة الفعلية المنصرفة (AC)</div>
+              <div style={{ fontSize: '11.5px', color: '#c2410c', fontWeight: 600 }}>{t('contracting.project_evm_metrics_modal.s15', "التكلفة الفعلية المنصرفة (AC)")}</div>
               <div style={{ fontSize: '16px', fontWeight: 800, color: '#c2410c', margin: '4px 0' }}>{formatCurrency(metrics.actualCost)}</div>
               <div style={{ fontSize: '11px', color: '#f97316' }}>Actual Cost</div>
             </div>
@@ -282,7 +284,7 @@ export function ProjectEvmMetricsModal({ open, onClose, projectId, projectName }
             {/* CPI */}
             <div style={{ background: cpiStyle?.bg, border: `1px solid ${cpiStyle?.border}`, borderRadius: '10px', padding: '12px 14px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '11.5px', fontWeight: 700, color: cpiStyle?.color }}>مؤشر أداء التكلفة (CPI)</span>
+                <span style={{ fontSize: '11.5px', fontWeight: 700, color: cpiStyle?.color }}>{t('contracting.project_evm_metrics_modal.s16', "مؤشر أداء التكلفة (CPI)")}</span>
                 <span style={{ fontSize: '10.5px', fontWeight: 700, color: cpiStyle?.color }}>EV / AC</span>
               </div>
               <div style={{ fontSize: '19px', fontWeight: 800, color: cpiStyle?.color, margin: '4px 0' }}>{formatIndex(metrics.cpi)}</div>
@@ -292,7 +294,7 @@ export function ProjectEvmMetricsModal({ open, onClose, projectId, projectName }
             {/* SPI */}
             <div style={{ background: spiStyle?.bg, border: `1px solid ${spiStyle?.border}`, borderRadius: '10px', padding: '12px 14px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '11.5px', fontWeight: 700, color: spiStyle?.color }}>مؤشر أداء الجدول (SPI)</span>
+                <span style={{ fontSize: '11.5px', fontWeight: 700, color: spiStyle?.color }}>{t('contracting.project_evm_metrics_modal.s17', "مؤشر أداء الجدول (SPI)")}</span>
                 <span style={{ fontSize: '10.5px', fontWeight: 700, color: spiStyle?.color }}>EV / PV</span>
               </div>
               <div style={{ fontSize: '19px', fontWeight: 800, color: spiStyle?.color, margin: '4px 0' }}>{formatIndex(metrics.spi)}</div>
@@ -301,7 +303,7 @@ export function ProjectEvmMetricsModal({ open, onClose, projectId, projectName }
 
             {/* CV */}
             <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 14px' }}>
-              <div style={{ fontSize: '11.5px', color: '#64748b', fontWeight: 600 }}>وفر / عجز التكاليف (CV)</div>
+              <div style={{ fontSize: '11.5px', color: '#64748b', fontWeight: 600 }}>{t('contracting.project_evm_metrics_modal.s18', "وفر / عجز التكاليف (CV)")}</div>
               <div
                 style={{
                   fontSize: '15px',
@@ -313,12 +315,12 @@ export function ProjectEvmMetricsModal({ open, onClose, projectId, projectName }
                 {metrics.costVariance >= 0 ? '+' : ''}
                 {formatCurrency(metrics.costVariance)}
               </div>
-              <div style={{ fontSize: '11px', color: '#94a3b8' }}>EV - AC (وفر التكلفة)</div>
+              <div style={{ fontSize: '11px', color: '#94a3b8' }}>{t('contracting.project_evm_metrics_modal.s19', "EV - AC (وفر التكلفة)")}</div>
             </div>
 
             {/* SV */}
             <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 14px' }}>
-              <div style={{ fontSize: '11.5px', color: '#64748b', fontWeight: 600 }}>فارق الجدول الزمني (SV)</div>
+              <div style={{ fontSize: '11.5px', color: '#64748b', fontWeight: 600 }}>{t('contracting.project_evm_metrics_modal.s20', "فارق الجدول الزمني (SV)")}</div>
               <div
                 style={{
                   fontSize: '15px',
@@ -330,7 +332,7 @@ export function ProjectEvmMetricsModal({ open, onClose, projectId, projectName }
                 {metrics.scheduleVariance >= 0 ? '+' : ''}
                 {formatCurrency(metrics.scheduleVariance)}
               </div>
-              <div style={{ fontSize: '11px', color: '#94a3b8' }}>EV - PV (القيمة المنفذة)</div>
+              <div style={{ fontSize: '11px', color: '#94a3b8' }}>{t('contracting.project_evm_metrics_modal.s21', "EV - PV (القيمة المنفذة)")}</div>
             </div>
           </div>
 
@@ -347,13 +349,13 @@ export function ProjectEvmMetricsModal({ open, onClose, projectId, projectName }
             }}
           >
             <div>
-              <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 600 }}>التكلفة المتوقعة عند الاكتمال (EAC)</div>
+              <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 600 }}>{t('contracting.project_evm_metrics_modal.s22', "التكلفة المتوقعة عند الاكتمال (EAC)")}</div>
               <div style={{ fontSize: '16px', fontWeight: 800, color: '#170e5e', margin: '4px 0' }}>{formatCurrency(metrics.estimateAtCompletion)}</div>
               <div style={{ fontSize: '11px', color: '#94a3b8' }}>Estimate At Completion (BAC / CPI)</div>
             </div>
 
             <div>
-              <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 600 }}>الفارق المتوقع عند النهاية (VAC)</div>
+              <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 600 }}>{t('contracting.project_evm_metrics_modal.s23', "الفارق المتوقع عند النهاية (VAC)")}</div>
               <div
                 style={{
                   fontSize: '16px',
@@ -369,7 +371,7 @@ export function ProjectEvmMetricsModal({ open, onClose, projectId, projectName }
             </div>
 
             <div>
-              <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 600 }}>مؤشر الأداء المطلوب لإتمام الميزانية (TCPI)</div>
+              <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 600 }}>{t('contracting.project_evm_metrics_modal.s24', "مؤشر الأداء المطلوب لإتمام الميزانية (TCPI)")}</div>
               <div style={{ fontSize: '16px', fontWeight: 800, color: '#0f172a', margin: '4px 0' }}>{formatIndex(metrics.toCompletePerformanceIndex)}</div>
               <div style={{ fontSize: '11px', color: '#94a3b8' }}>To-Complete Performance Index</div>
             </div>

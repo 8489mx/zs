@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useRef, useEffect } from 'react';
 import type { StorefrontProduct, StorefrontCategory, StorefrontInfo } from '../types/storefront.types';
 import { StorefrontProductCard } from './StorefrontProductCard';
@@ -57,6 +58,7 @@ export function StorefrontFilteredGrid({
   onToggleFavorite,
   onQuickView,
 }: StorefrontFilteredGridProps) {
+  const { t } = useTranslation();
   const [isSortOpen, setIsSortOpen] = useState(false);
   const sortRef = useRef<HTMLDivElement>(null);
 
@@ -110,8 +112,8 @@ export function StorefrontFilteredGrid({
         <button
           type="button"
           onClick={onGoHome}
-          title="العودة للصفحة الرئيسية"
-          aria-label="العودة للصفحة الرئيسية"
+          title={t('storefront.storefront_filtered_grid.s0', "العودة للصفحة الرئيسية")}
+          aria-label={t('storefront.storefront_filtered_grid.s1', "العودة للصفحة الرئيسية")}
           style={{
             display: 'inline-flex',
             alignItems: 'center',
@@ -189,7 +191,7 @@ export function StorefrontFilteredGrid({
               whiteSpace: 'nowrap',
             }}
           >
-            {filteredProducts.length} صنف
+            {filteredProducts.length} {t('storefront.storefront_filtered_grid.s2', "صنف")}
           </span>
         </div>
 
@@ -201,8 +203,8 @@ export function StorefrontFilteredGrid({
           <button
             type="button"
             onClick={() => setIsSortOpen((prev) => !prev)}
-            title="ترتيب المنتجات"
-            aria-label="ترتيب المنتجات"
+            title={t('storefront.storefront_filtered_grid.s3', "ترتيب المنتجات")}
+            aria-label={t('storefront.storefront_filtered_grid.s4', "ترتيب المنتجات")}
             aria-expanded={isSortOpen}
             aria-haspopup="true"
             style={{
@@ -230,7 +232,7 @@ export function StorefrontFilteredGrid({
             </svg>
             {sortBy !== 'featured' && (
               <span style={{ fontSize: '11px', fontWeight: 700 }}>
-                {SORT_OPTIONS.find((o) => o.id === sortBy)?.label.split(':')[0] || 'ترتيب'}
+                {SORT_OPTIONS.find((o) => o.id === sortBy)?.label.split(':')[0] || t('storefront.storefront_filtered_grid.s5', "ترتيب")}
               </span>
             )}
           </button>
@@ -264,7 +266,7 @@ export function StorefrontFilteredGrid({
                   justifyContent: 'space-between',
                 }}
               >
-                <span>ترتيب حسب</span>
+                <span>{t('storefront.storefront_filtered_grid.s6', "ترتيب حسب")}</span>
                 {sortBy !== 'featured' && (
                   <button
                     type="button"
@@ -282,7 +284,7 @@ export function StorefrontFilteredGrid({
                       textDecoration: 'underline',
                     }}
                   >
-                    استعادة الافتراضي
+                    {t('storefront.storefront_filtered_grid.s7', "استعادة الافتراضي")}
                   </button>
                 )}
               </div>
@@ -366,12 +368,12 @@ export function StorefrontFilteredGrid({
             )}
           </div>
           <h3 style={{ margin: '0 0 6px', fontSize: '16px', fontWeight: 800, color: '#1e293b' }}>
-            {onlyFavorites ? 'قائمتك المفضلة فارغة حالياً' : 'لا توجد منتجات مطابقة'}
+            {onlyFavorites ? t('storefront.storefront_filtered_grid.s8', "قائمتك المفضلة فارغة حالياً") : t('storefront.storefront_filtered_grid.s9', "لا توجد منتجات مطابقة")}
           </h3>
           <p style={{ margin: '0 0 14px', fontSize: '13px', color: '#94a3b8' }}>
             {onlyFavorites
-              ? 'اضغط على رمز القلب في أي منتج لإضافته إلى قائمتك المفضلة والوصول إليه بسرعة في أي وقت.'
-              : 'جرب البحث باسم صنف آخر أو تصفح الأقسام الأخرى.'}
+              ? t('storefront.storefront_filtered_grid.s10', "اضغط على رمز القلب في أي منتج لإضافته إلى قائمتك المفضلة والوصول إليه بسرعة في أي وقت.")
+              : t('storefront.storefront_filtered_grid.s11', "جرب البحث باسم صنف آخر أو تصفح الأقسام الأخرى.")}
           </p>
           <button
             type="button"
@@ -387,7 +389,7 @@ export function StorefrontFilteredGrid({
               cursor: 'pointer',
             }}
           >
-            {onlyFavorites ? 'تصفح جميع المنتجات' : 'العودة للصفحة الرئيسية'}
+            {onlyFavorites ? t('storefront.storefront_filtered_grid.s12', "تصفح جميع المنتجات") : t('storefront.storefront_filtered_grid.s13', "العودة للصفحة الرئيسية")}
           </button>
         </div>
       ) : (
@@ -428,7 +430,7 @@ export function StorefrontFilteredGrid({
                   boxShadow: '0 2px 6px rgba(0,0,0,0.03)',
                 }}
               >
-                عرض المزيد من المنتجات ({filteredProducts.length - paginatedProducts.length} متبقي) ↓
+                {t('storefront.storefront_filtered_grid.s14', "عرض المزيد من المنتجات (")}{filteredProducts.length - paginatedProducts.length} {t('storefront.storefront_filtered_grid.s15', "متبقي) ↓")}
               </button>
             </div>
           )}

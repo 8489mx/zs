@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -105,6 +106,7 @@ function downloadEmployeesTemplate() {
 }
 
 export function EmployeesPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
@@ -143,12 +145,12 @@ export function EmployeesPage() {
     <div className="page-stack page-shell" dir="rtl">
       <main className="document-prototype-column" style={{ paddingBottom: '20px' }}>
         <PageHeader
-          title="الموظفون"
-          description="إدارة بيانات الموظفين وعقود العمل واستكمال الملفات الوظيفية."
+          title={t('hr.employees_page.s0', "الموظفون")}
+          description={t('hr.employees_page.s1', "إدارة بيانات الموظفين وعقود العمل واستكمال الملفات الوظيفية.")}
           actions={
             <div className="actions compact-actions">
-              <Button onClick={() => navigate('/hr/employees/new')}>إضافة موظف</Button>
-              <Button type="button" variant={importOpen ? 'primary' : 'secondary'} onClick={() => setImportOpen((current) => !current)}>استيراد</Button>
+              <Button onClick={() => navigate('/hr/employees/new')}>{t('hr.employees_page.s2', "إضافة موظف")}</Button>
+              <Button type="button" variant={importOpen ? 'primary' : 'secondary'} onClick={() => setImportOpen((current) => !current)}>{t('hr.employees_page.s3', "استيراد")}</Button>
             </div>
           }
         />
@@ -157,23 +159,23 @@ export function EmployeesPage() {
           {importOpen ? (
             <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '16px', marginBottom: '16px' }}>
               <ImportWorkbench
-                title="استيراد الموظفين"
-                description="يدعم الأعمدة العربية أو الإنجليزية المكافئة. يتم تحديث الموظف عند التطابق، أو إضافته إذا لم يوجد."
-                requiredColumns={['اسم الموظف']}
+                title={t('hr.employees_page.s4', "استيراد الموظفين")}
+                description={t('hr.employees_page.s5', "يدعم الأعمدة العربية أو الإنجليزية المكافئة. يتم تحديث الموظف عند التطابق، أو إضافته إذا لم يوجد.")}
+                requiredColumns={[t('hr.employees_page.s6', "اسم الموظف")]}
                 requiredFieldKeys={['name']}
                 fieldMappings={[
-                  { key: 'name', label: 'اسم الموظف', aliases: ['name', 'employeeName', 'fullName', 'displayName', 'employee_name', 'employee name', 'اسم الموظف', 'اسم العامل', 'الموظف'] },
-                  { key: 'phone', label: 'رقم الهاتف', aliases: ['phone', 'mobile', 'phoneNumber', 'رقم الهاتف', 'الموبايل'] },
-                  { key: 'email', label: 'البريد الإلكتروني', aliases: ['email', 'البريد الإلكتروني'] },
-                  { key: 'department', label: 'القسم', aliases: ['department', 'القسم', 'الإدارة'] },
-                  { key: 'jobTitle', label: 'الوظيفة', aliases: ['jobTitle', 'job_title', 'job title', 'الوظيفة', 'المسمى الوظيفي'] },
-                  { key: 'hireDate', label: 'تاريخ التعيين', aliases: ['hireDate', 'hire_date', 'hire date', 'تاريخ التعيين'] },
-                  { key: 'baseSalary', label: 'الراتب الأساسي', aliases: ['baseSalary', 'base_salary', 'salary', 'الراتب', 'الراتب الأساسي'] },
-                  { key: 'contractType', label: 'نوع العقد', aliases: ['contractType', 'contract_type', 'نوع العقد'] },
-                  { key: 'status', label: 'الحالة', aliases: ['status', 'الحالة'] },
-                  { key: 'nationalId', label: 'الرقم القومي', aliases: ['nationalId', 'national_id', 'national id', 'الرقم القومي', 'رقم قومي'] },
-                  { key: 'address', label: 'العنوان', aliases: ['address', 'العنوان'] },
-                  { key: 'notes', label: 'ملاحظات', aliases: ['notes', 'ملاحظات'] },
+                  { key: 'name', label: t('hr.employees_page.s7', "اسم الموظف"), aliases: ['name', 'employeeName', 'fullName', 'displayName', 'employee_name', 'employee name', t('hr.employees_page.s8', "اسم الموظف"), t('hr.employees_page.s9', "اسم العامل"), t('hr.employees_page.s10', "الموظف")] },
+                  { key: 'phone', label: t('hr.employees_page.s11', "رقم الهاتف"), aliases: ['phone', 'mobile', 'phoneNumber', t('hr.employees_page.s12', "رقم الهاتف"), t('hr.employees_page.s13', "الموبايل")] },
+                  { key: 'email', label: t('hr.employees_page.s14', "البريد الإلكتروني"), aliases: ['email', t('hr.employees_page.s15', "البريد الإلكتروني")] },
+                  { key: 'department', label: t('hr.employees_page.s16', "القسم"), aliases: ['department', t('hr.employees_page.s17', "القسم"), t('hr.employees_page.s18', "الإدارة")] },
+                  { key: 'jobTitle', label: t('hr.employees_page.s19', "الوظيفة"), aliases: ['jobTitle', 'job_title', 'job title', t('hr.employees_page.s20', "الوظيفة"), t('hr.employees_page.s21', "المسمى الوظيفي")] },
+                  { key: 'hireDate', label: t('hr.employees_page.s22', "تاريخ التعيين"), aliases: ['hireDate', 'hire_date', 'hire date', t('hr.employees_page.s23', "تاريخ التعيين")] },
+                  { key: 'baseSalary', label: t('hr.employees_page.s24', "الراتب الأساسي"), aliases: ['baseSalary', 'base_salary', 'salary', t('hr.employees_page.s25', "الراتب"), t('hr.employees_page.s26', "الراتب الأساسي")] },
+                  { key: 'contractType', label: t('hr.employees_page.s27', "نوع العقد"), aliases: ['contractType', 'contract_type', t('hr.employees_page.s28', "نوع العقد")] },
+                  { key: 'status', label: t('hr.employees_page.s29', "الحالة"), aliases: ['status', t('hr.employees_page.s30', "الحالة")] },
+                  { key: 'nationalId', label: t('hr.employees_page.s31', "الرقم القومي"), aliases: ['nationalId', 'national_id', 'national id', t('hr.employees_page.s32', "الرقم القومي"), t('hr.employees_page.s33', "رقم قومي")] },
+                  { key: 'address', label: t('hr.employees_page.s34', "العنوان"), aliases: ['address', t('hr.employees_page.s35', "العنوان")] },
+                  { key: 'notes', label: t('hr.employees_page.s36', "ملاحظات"), aliases: ['notes', t('hr.employees_page.s37', "ملاحظات")] },
                 ]}
                 onDownloadTemplate={downloadEmployeesTemplate}
                 onImportRows={(rows) => importEmployeesMutation.mutateAsync(rows)}
@@ -185,17 +187,17 @@ export function EmployeesPage() {
           {/* Compact Single-Row KPI Summary Bar */}
           <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 14px', marginBottom: '16px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-              <span style={{ fontSize: '0.825rem', fontWeight: 800, color: '#0f172a' }}>مؤشرات استكمال بيانات الموظفين</span>
-              <span style={{ fontSize: '0.725rem', color: '#64748b' }}>اضغط على أي مؤشر لتصفية القائمة فوراً</span>
+              <span style={{ fontSize: '0.825rem', fontWeight: 800, color: '#0f172a' }}>{t('hr.employees_page.s38', "مؤشرات استكمال بيانات الموظفين")}</span>
+              <span style={{ fontSize: '0.725rem', color: '#64748b' }}>{t('hr.employees_page.s39', "اضغط على أي مؤشر لتصفية القائمة فوراً")}</span>
             </div>
             
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', gap: '8px' }}>
               {[
-                { label: 'إجمالي النتائج', value: totalItems, onClick: () => { setCompletionFilter(''); setPage(1); }, isAlert: false, active: !completionFilter },
-                { label: 'نشط (فلتر حالي)', value: visibleStats.active, onClick: () => { setStatus('active'); setPage(1); }, isAlert: false, active: status === 'active' },
-                { label: 'ناقص موبايل', value: visibleStats.missingMobile, onClick: () => { setCompletionFilter('missingMobile'); setPage(1); }, isAlert: visibleStats.missingMobile > 0, active: completionFilter === 'missingMobile' },
-                { label: 'ناقص رقم قومي', value: visibleStats.missingNationalId, onClick: () => { setCompletionFilter('missingNationalId'); setPage(1); }, isAlert: visibleStats.missingNationalId > 0, active: completionFilter === 'missingNationalId' },
-                { label: 'ناقص بيانات وظيفية', value: visibleStats.missingOrgData, onClick: () => { setCompletionFilter('missingOrgData'); setPage(1); }, isAlert: visibleStats.missingOrgData > 0, active: completionFilter === 'missingOrgData' },
+                { label: t('hr.employees_page.s40', "إجمالي النتائج"), value: totalItems, onClick: () => { setCompletionFilter(''); setPage(1); }, isAlert: false, active: !completionFilter },
+                { label: t('hr.employees_page.s41', "نشط (فلتر حالي)"), value: visibleStats.active, onClick: () => { setStatus('active'); setPage(1); }, isAlert: false, active: status === 'active' },
+                { label: t('hr.employees_page.s42', "ناقص موبايل"), value: visibleStats.missingMobile, onClick: () => { setCompletionFilter('missingMobile'); setPage(1); }, isAlert: visibleStats.missingMobile > 0, active: completionFilter === 'missingMobile' },
+                { label: t('hr.employees_page.s43', "ناقص رقم قومي"), value: visibleStats.missingNationalId, onClick: () => { setCompletionFilter('missingNationalId'); setPage(1); }, isAlert: visibleStats.missingNationalId > 0, active: completionFilter === 'missingNationalId' },
+                { label: t('hr.employees_page.s44', "ناقص بيانات وظيفية"), value: visibleStats.missingOrgData, onClick: () => { setCompletionFilter('missingOrgData'); setPage(1); }, isAlert: visibleStats.missingOrgData > 0, active: completionFilter === 'missingOrgData' },
               ].map((stat, idx) => (
                 <div
                   key={idx}
@@ -235,7 +237,7 @@ export function EmployeesPage() {
                 setSearch(e.target.value);
                 setPage(1);
               }}
-              placeholder="بحث بالاسم أو كود الموظف أو الموبايل..."
+              placeholder={t('hr.employees_page.s45', "بحث بالاسم أو كود الموظف أو الموبايل...")}
               style={{ width: '220px', minWidth: '170px', padding: '5px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.825rem', background: '#fff', boxSizing: 'border-box' }}
             />
 
@@ -263,7 +265,7 @@ export function EmployeesPage() {
                 onClick={() => { setSearch(''); setStatus(''); setCompletionFilter(''); setPage(1); }}
                 style={{ padding: '4px 8px', fontSize: '0.75rem', marginRight: 'auto' }}
               >
-                مسح الفلاتر
+                {t('hr.employees_page.s46', "مسح الفلاتر")}
               </Button>
             )}
           </div>
@@ -273,9 +275,9 @@ export function EmployeesPage() {
             isError={workspace.employees.isError}
             error={workspace.employees.error}
             isEmpty={!rows.length}
-            loadingText="جاري تحميل بيانات الموظفين..."
-            errorTitle="تعذر تحميل بيانات الموظفين"
-            emptyTitle={search || status || completionFilter ? 'لا توجد نتائج مطابقة للفلاتر الحالية.' : 'لا توجد بيانات حتى الآن.'}
+            loadingText={t('hr.employees_page.s47', "جاري تحميل بيانات الموظفين...")}
+            errorTitle={t('hr.employees_page.s48', "تعذر تحميل بيانات الموظفين")}
+            emptyTitle={search || status || completionFilter ? t('hr.employees_page.s49', "لا توجد نتائج مطابقة للفلاتر الحالية.") : t('hr.employees_page.s50', "لا توجد بيانات حتى الآن.")}
           >
             <DataTable
               rows={rows}
@@ -293,19 +295,19 @@ export function EmployeesPage() {
                   setPageSize(next);
                   setPage(1);
                 },
-                itemLabel: 'موظف',
+                itemLabel: t('hr.employees_page.s51', "موظف"),
               }}
               columns={[
-                { key: 'employeeNo', header: 'كود الموظف', cell: (row) => fallbackText(row.employeeNo) },
-                { key: 'name', header: 'الاسم', cell: (row) => fallbackText(row.displayName || `${row.firstName || ''} ${row.lastName || ''}`.trim()) },
-                { key: 'mobile', header: 'الموبايل', cell: (row) => pickMobile(row) },
-                { key: 'department', header: 'القسم', cell: (row) => fallbackText(row.departmentName) },
-                { key: 'jobTitle', header: 'المسمى الوظيفي', cell: (row) => fallbackText(row.jobTitleName) },
-                { key: 'hireDate', header: 'تاريخ التعيين', cell: (row) => fallbackText(row.hireDate) },
-                { key: 'status', header: 'الحالة', cell: (row) => statusLabel(String(row.status || '')) },
+                { key: 'employeeNo', header: t('hr.employees_page.s52', "كود الموظف"), cell: (row) => fallbackText(row.employeeNo) },
+                { key: 'name', header: t('hr.employees_page.s53', "الاسم"), cell: (row) => fallbackText(row.displayName || `${row.firstName || ''} ${row.lastName || ''}`.trim()) },
+                { key: 'mobile', header: t('hr.employees_page.s54', "الموبايل"), cell: (row) => pickMobile(row) },
+                { key: 'department', header: t('hr.employees_page.s55', "القسم"), cell: (row) => fallbackText(row.departmentName) },
+                { key: 'jobTitle', header: t('hr.employees_page.s56', "المسمى الوظيفي"), cell: (row) => fallbackText(row.jobTitleName) },
+                { key: 'hireDate', header: t('hr.employees_page.s57', "تاريخ التعيين"), cell: (row) => fallbackText(row.hireDate) },
+                { key: 'status', header: t('hr.employees_page.s58', "الحالة"), cell: (row) => statusLabel(String(row.status || '')) },
                 {
                   key: 'profile',
-                  header: 'الإجراء',
+                  header: t('hr.employees_page.s59', "الإجراء"),
                   cell: (row) => (
                     <Button
                       type="button"
@@ -316,7 +318,7 @@ export function EmployeesPage() {
                       }}
                       style={{ padding: '2px 10px', fontSize: '0.8rem' }}
                     >
-                      فتح الملف
+                      {t('hr.employees_page.s60', "فتح الملف")}
                     </Button>
                   ),
                 },

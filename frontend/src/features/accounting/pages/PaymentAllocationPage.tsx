@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React, { useState, useEffect } from 'react';
 import { PageHeader } from '@/shared/components/page-header';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
@@ -14,6 +15,7 @@ import { UnallocatedPaymentsCard } from '../components/payment-allocation/Unallo
 import { OpenInvoicesCard } from '../components/payment-allocation/OpenInvoicesCard';
 
 export const PaymentAllocationPage: React.FC = () => {
+  const { t } = useTranslation();
   const [partnerType, setPartnerType] = useState<'customer' | 'supplier'>('customer');
   const [partnerId, setPartnerId] = useState<number | null>(null);
 
@@ -167,9 +169,9 @@ export const PaymentAllocationPage: React.FC = () => {
     <div className="page-stack page-shell" dir="rtl">
       <main className="document-prototype-column" style={{ paddingBottom: '100px' }}>
         <PageHeader
-          title="تسوية وتخصيص المدفوعات على الفواتير (Payment Allocation & Reconciliation)"
-          description="مطابقة وتوزيع سندات القبض والدفع النقدية والبنكية على الفواتير المفتوحة وفق المعايير المحاسبية المعتمدة (FIFO و IFRS)."
-          badge={<span className="nav-pill">المحاسبة والتسويات</span>}
+          title={t('accounting.payment_allocation_page.s0', "تسوية وتخصيص المدفوعات على الفواتير (Payment Allocation & Reconciliation)")}
+          description={t('accounting.payment_allocation_page.s1', "مطابقة وتوزيع سندات القبض والدفع النقدية والبنكية على الفواتير المفتوحة وفق المعايير المحاسبية المعتمدة (FIFO و IFRS).")}
+          badge={<span className="nav-pill">{t('accounting.payment_allocation_page.s2', "المحاسبة والتسويات")}</span>}
         />
 
         {feedback && (
@@ -201,7 +203,7 @@ export const PaymentAllocationPage: React.FC = () => {
 
         {loadingData ? (
           <div style={{ textAlign: 'center', padding: '40px', color: '#64748b', fontSize: '14px' }}>
-            جاري تحميل الفواتير والسندات...
+            {t('accounting.payment_allocation_page.s3', "جاري تحميل الفواتير والسندات...")}
           </div>
         ) : partnerId ? (
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.3fr', gap: '20px', alignItems: 'start' }}>
@@ -243,10 +245,10 @@ export const PaymentAllocationPage: React.FC = () => {
           >
             <AppIcons.FileText size={42} color="#94a3b8" />
             <div style={{ marginTop: '12px', fontSize: '15px', fontWeight: 700, color: '#334155' }}>
-              اختر عميلاً أو مورداً للبدء في تخصيص ومطابقة المدفوعات
+              {t('accounting.payment_allocation_page.s4', "اختر عميلاً أو مورداً للبدء في تخصيص ومطابقة المدفوعات")}
             </div>
             <div style={{ marginTop: '4px', fontSize: '13px', color: '#94a3b8' }}>
-              يمكنك ربط كل سند دفع أو تحصيل بفاتورة معينة أو إجراء تسوية أوتوماتيكية بنظام FIFO
+              {t('accounting.payment_allocation_page.s5', "يمكنك ربط كل سند دفع أو تحصيل بفاتورة معينة أو إجراء تسوية أوتوماتيكية بنظام FIFO")}
             </div>
           </div>
         )}

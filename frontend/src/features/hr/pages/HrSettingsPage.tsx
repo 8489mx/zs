@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '@/shared/components/page-header';
@@ -40,6 +41,7 @@ const SETTINGS_SECTIONS: { key: SettingsSection; label: string }[] = [
 function shouldShowSection(activeSection: SettingsSection, section: SettingsSection) { return activeSection === 'all' || activeSection === section; }
 
 export function HrSettingsPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const workspace = useHrWorkspace({ page: 1, pageSize: 200 });
   const leaveTypesQuery = useHrLeaveTypes({ page: 1, pageSize: 200 });
@@ -112,12 +114,12 @@ export function HrSettingsPage() {
     <div className="page-stack page-shell" dir="rtl">
       <main className="document-prototype-column" style={{ paddingBottom: '20px' }}>
         <PageHeader
-          title="إعدادات الموارد البشرية"
-          description="إدارة الهيكل التنظيمي، أنواع الإجازات، العطلات، وسياسات الحضور والمرتبات."
+          title={t('hr.hr_settings_page.s0', "إعدادات الموارد البشرية")}
+          description={t('hr.hr_settings_page.s1', "إدارة الهيكل التنظيمي، أنواع الإجازات، العطلات، وسياسات الحضور والمرتبات.")}
           actions={
             <div className="actions compact-actions">
-              <Button variant="secondary" onClick={() => navigate('/hr/employees/new')}>إضافة موظف</Button>
-              <Button variant="secondary" onClick={() => navigate('/hr/employees')}>رجوع للموظفين</Button>
+              <Button variant="secondary" onClick={() => navigate('/hr/employees/new')}>{t('hr.hr_settings_page.s2', "إضافة موظف")}</Button>
+              <Button variant="secondary" onClick={() => navigate('/hr/employees')}>{t('hr.hr_settings_page.s3', "رجوع للموظفين")}</Button>
             </div>
           }
         />
@@ -145,33 +147,33 @@ export function HrSettingsPage() {
               <input
                 value={settingsSearch}
                 onChange={(event) => setSettingsSearch(event.target.value)}
-                placeholder="بحث داخل الإعدادات..."
+                placeholder={t('hr.hr_settings_page.s4', "بحث داخل الإعدادات...")}
                 style={{ width: '100%', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.8rem' }}
               />
             </div>
           </div>
 
-          <QueryFeedback isLoading={workspace.departments.isLoading || workspace.jobTitles.isLoading || workspace.positions.isLoading || leaveTypesQuery.isLoading} isError={workspace.departments.isError || workspace.jobTitles.isError || workspace.positions.isError || leaveTypesQuery.isError} error={workspace.departments.error || workspace.jobTitles.error || workspace.positions.error || leaveTypesQuery.error} isEmpty={false} loadingText="جاري تحميل إعدادات الموارد البشرية..." errorTitle="تعذر تحميل إعدادات الموارد البشرية">
+          <QueryFeedback isLoading={workspace.departments.isLoading || workspace.jobTitles.isLoading || workspace.positions.isLoading || leaveTypesQuery.isLoading} isError={workspace.departments.isError || workspace.jobTitles.isError || workspace.positions.isError || leaveTypesQuery.isError} error={workspace.departments.error || workspace.jobTitles.error || workspace.positions.error || leaveTypesQuery.error} isEmpty={false} loadingText={t('hr.hr_settings_page.s5', "جاري تحميل إعدادات الموارد البشرية...")} errorTitle={t('hr.hr_settings_page.s6', "تعذر تحميل إعدادات الموارد البشرية")}>
             {shouldShowSection(activeSection, 'organization') ? <HrSettingsOrganizationSection departmentStatsTotal={departmentStats.total} jobTitleStatsTotal={jobTitleStats.total} positionStatsTotal={positionStats.total} departmentDraft={departmentDraft} jobTitleDraft={jobTitleDraft} positionDraft={positionDraft} errors={{ departments: errors.departments, 'job-titles': errors['job-titles'], positions: errors.positions }} isBusy={isBusy} departments={departments} jobTitles={jobTitles} filteredDepartments={filteredDepartments} filteredJobTitles={filteredJobTitles} filteredPositions={filteredPositions} onDepartmentDraftChange={setDepartmentDraft} onJobTitleDraftChange={setJobTitleDraft} onPositionDraftChange={setPositionDraft} onSaveDepartment={() => { void saveKind('departments'); }} onSaveJobTitle={() => { void saveKind('job-titles'); }} onSavePosition={() => { void saveKind('positions'); }} /> : null}
 
             {shouldShowSection(activeSection, 'leaves') ? (
               <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '16px' }}>
                 <strong style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.95rem', color: '#0f172a', marginBottom: '4px' }}>
                   <CalendarIcon size={18} style={{ color: 'var(--primary, #170c5c)' }} />
-                  <span>أنواع الإجازات</span>
+                  <span>{t('hr.hr_settings_page.s7', "أنواع الإجازات")}</span>
                 </strong>
-                <small style={{ display: 'block', color: '#64748b', marginBottom: '12px', fontSize: '0.8rem' }}>إدارة أنواع الإجازات المعتمدة وتأثيرها على الخصومات والمرتبات.</small>
+                <small style={{ display: 'block', color: '#64748b', marginBottom: '12px', fontSize: '0.8rem' }}>{t('hr.hr_settings_page.s8', "إدارة أنواع الإجازات المعتمدة وتأثيرها على الخصومات والمرتبات.")}</small>
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px', marginBottom: '10px' }}>
-                  <div><label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '2px' }}>الاسم *</label><input value={leaveTypeDraft.name} onChange={(e) => setLeaveTypeDraft((current) => ({ ...current, name: e.target.value }))} style={{ width: '100%', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }} /></div>
-                  <div><label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '2px' }}>الكود</label><input value={leaveTypeDraft.code} onChange={(e) => setLeaveTypeDraft((current) => ({ ...current, code: e.target.value }))} style={{ width: '100%', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }} /></div>
-                  <div><label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '2px' }}>النوع</label><select value={leaveTypeDraft.isPaid} onChange={(e) => setLeaveTypeDraft((current) => ({ ...current, isPaid: e.target.value as 'paid' | 'unpaid' }))} style={{ width: '100%', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}><option value="paid">مدفوعة</option><option value="unpaid">غير مدفوعة</option></select></div>
-                  <div style={{ gridColumn: 'span 2' }}><label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '2px' }}>الوصف</label><input value={leaveTypeDraft.description} onChange={(e) => setLeaveTypeDraft((current) => ({ ...current, description: e.target.value }))} style={{ width: '100%', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }} /></div>
+                  <div><label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '2px' }}>{t('hr.hr_settings_page.s9', "الاسم *")}</label><input value={leaveTypeDraft.name} onChange={(e) => setLeaveTypeDraft((current) => ({ ...current, name: e.target.value }))} style={{ width: '100%', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }} /></div>
+                  <div><label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '2px' }}>{t('hr.hr_settings_page.s10', "الكود")}</label><input value={leaveTypeDraft.code} onChange={(e) => setLeaveTypeDraft((current) => ({ ...current, code: e.target.value }))} style={{ width: '100%', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }} /></div>
+                  <div><label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '2px' }}>{t('hr.hr_settings_page.s11', "النوع")}</label><select value={leaveTypeDraft.isPaid} onChange={(e) => setLeaveTypeDraft((current) => ({ ...current, isPaid: e.target.value as 'paid' | 'unpaid' }))} style={{ width: '100%', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}><option value="paid">{t('hr.hr_settings_page.s12', "مدفوعة")}</option><option value="unpaid">{t('hr.hr_settings_page.s13', "غير مدفوعة")}</option></select></div>
+                  <div style={{ gridColumn: 'span 2' }}><label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '2px' }}>{t('hr.hr_settings_page.s14', "الوصف")}</label><input value={leaveTypeDraft.description} onChange={(e) => setLeaveTypeDraft((current) => ({ ...current, description: e.target.value }))} style={{ width: '100%', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }} /></div>
                 </div>
                 {errors['leave-types'] ? <div style={{ color: '#dc2626', fontSize: '0.8rem', marginBottom: '8px' }}>{errors['leave-types']}</div> : null}
                 <div className="compact-actions" style={{ marginBottom: '12px' }}>
-                  <Button onClick={() => { void saveLeaveType(); }} disabled={isBusy} style={{ padding: '4px 12px', fontSize: '0.8rem' }}>{isBusy ? 'جاري الحفظ...' : 'حفظ نوع الإجازة'}</Button>
-                  <Button type="button" variant="secondary" onClick={() => navigate('/hr/leaves')} style={{ padding: '4px 12px', fontSize: '0.8rem' }}>فتح صفحة الإجازات</Button>
+                  <Button onClick={() => { void saveLeaveType(); }} disabled={isBusy} style={{ padding: '4px 12px', fontSize: '0.8rem' }}>{isBusy ? t('hr.hr_settings_page.s15', "جاري الحفظ...") : t('hr.hr_settings_page.s16', "حفظ نوع الإجازة")}</Button>
+                  <Button type="button" variant="secondary" onClick={() => navigate('/hr/leaves')} style={{ padding: '4px 12px', fontSize: '0.8rem' }}>{t('hr.hr_settings_page.s17', "فتح صفحة الإجازات")}</Button>
                 </div>
                 {filteredLeaveTypes.length ? (
                   <DataTable
@@ -179,14 +181,14 @@ export function HrSettingsPage() {
                     rowKey={(row) => String(row.id)}
                     density="compact"
                     columns={[
-                      { key: 'name', header: 'الاسم', cell: (row) => text(row.name) },
-                      { key: 'code', header: 'الكود', cell: (row) => text(row.code) },
-                      { key: 'paid', header: 'مدفوعة / غير مدفوعة', cell: (row) => paidLabel(row.isPaid) },
-                      { key: 'status', header: 'الحالة', cell: (row) => statusLabel(row.isActive) },
-                      { key: 'description', header: 'الوصف', cell: (row) => text(row.description) },
+                      { key: 'name', header: t('hr.hr_settings_page.s18', "الاسم"), cell: (row) => text(row.name) },
+                      { key: 'code', header: t('hr.hr_settings_page.s19', "الكود"), cell: (row) => text(row.code) },
+                      { key: 'paid', header: t('hr.hr_settings_page.s20', "مدفوعة / غير مدفوعة"), cell: (row) => paidLabel(row.isPaid) },
+                      { key: 'status', header: t('hr.hr_settings_page.s21', "الحالة"), cell: (row) => statusLabel(row.isActive) },
+                      { key: 'description', header: t('hr.hr_settings_page.s22', "الوصف"), cell: (row) => text(row.description) },
                     ]}
                   />
-                ) : <p className="muted" style={{ margin: 0, fontSize: '0.85rem' }}>لا توجد أنواع إجازات حتى الآن.</p>}
+                ) : <p className="muted" style={{ margin: 0, fontSize: '0.85rem' }}>{t('hr.hr_settings_page.s23', "لا توجد أنواع إجازات حتى الآن.")}</p>}
               </div>
             ) : null}
 

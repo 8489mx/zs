@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { getGlobalCurrencySymbol } from '@/lib/currencies';
 import { useState, useEffect } from 'react';
@@ -12,6 +13,7 @@ import { SmartphoneIcon, BellIcon } from '@/shared/components/icons/AppIcons';
 import type { DashboardTopItem } from '../api/dashboard.types';
 
 export function OwnerCompanionPage() {
+  const { t } = useTranslation();
   const user = useAuthStore((s) => s.user);
   const isPlatformAdminUser = isPlatformAdmin(user);
   const hasReportsFeature = useHasFeature('reports') || isPlatformAdminUser;
@@ -81,8 +83,8 @@ export function OwnerCompanionPage() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <SmartphoneIcon size={20} color="#4338ca" />
             <div>
-              <div style={{ fontSize: '12.5px', fontWeight: 800, color: '#1e1b4b' }}>تثبيت شاشة المتابعة على الهاتف</div>
-              <div style={{ fontSize: '11px', color: '#4338ca' }}>وصول فوري وشاشة كاملة كأي تطبيق أندرويد/آيفون</div>
+              <div style={{ fontSize: '12.5px', fontWeight: 800, color: '#1e1b4b' }}>{t('dashboard.owner_companion_page.s0', "تثبيت شاشة المتابعة على الهاتف")}</div>
+              <div style={{ fontSize: '11px', color: '#4338ca' }}>{t('dashboard.owner_companion_page.s1', "وصول فوري وشاشة كاملة كأي تطبيق أندرويد/آيفون")}</div>
             </div>
           </div>
           <button
@@ -100,7 +102,7 @@ export function OwnerCompanionPage() {
               whiteSpace: 'nowrap',
             }}
           >
-            تثبيت الآن
+            {t('dashboard.owner_companion_page.s2', "تثبيت الآن")}
           </button>
         </div>
       )}
@@ -122,7 +124,7 @@ export function OwnerCompanionPage() {
       >
         <BellIcon size={18} color="#166534" />
         <div>
-          <strong>تنبيهات الواتساب الحية مفعلة:</strong> ستصلك إشعارات إغلاق الورديات والعجز/الزيادة وطلبات المتجر فورياً على هاتفك.
+          <strong>{t('dashboard.owner_companion_page.s3', "تنبيهات الواتساب الحية مفعلة:")}</strong> {t('dashboard.owner_companion_page.s4', "ستصلك إشعارات إغلاق الورديات والعجز/الزيادة وطلبات المتجر فورياً على هاتفك.")}
         </div>
       </div>
 
@@ -143,11 +145,11 @@ export function OwnerCompanionPage() {
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981', display: 'inline-block' }} />
-            <span style={{ fontSize: '12px', fontWeight: 700, color: '#10b981' }}>متابعة حية للمالك</span>
+            <span style={{ fontSize: '12px', fontWeight: 700, color: '#10b981' }}>{t('dashboard.owner_companion_page.s5', "متابعة حية للمالك")}</span>
           </div>
           <h2 style={{ margin: '4px 0 0', fontSize: '18px', fontWeight: 900, color: '#0f172a' }}>{businessName}</h2>
           <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>
-            اليوم: {new Date().toLocaleDateString('ar-EG', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+            {t('dashboard.owner_companion_page.s6', "اليوم:")} {new Date().toLocaleDateString('ar-EG', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
           </div>
         </div>
 
@@ -157,7 +159,7 @@ export function OwnerCompanionPage() {
           disabled={isFetching}
           style={{ padding: '6px 12px', fontSize: '12px', fontWeight: 700, borderRadius: '8px' }}
         >
-          {isFetching ? '...' : 'تحديث'}
+          {isFetching ? '...' : t('dashboard.owner_companion_page.s7', "تحديث")}
         </Button>
       </div>
 
@@ -165,45 +167,45 @@ export function OwnerCompanionPage() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px', marginBottom: '14px' }}>
         {/* Sales Today */}
         <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '14px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
-          <div style={{ fontSize: '12px', fontWeight: 700, color: '#64748b', marginBottom: '4px' }}>مبيعات اليوم</div>
+          <div style={{ fontSize: '12px', fontWeight: 700, color: '#64748b', marginBottom: '4px' }}>{t('dashboard.owner_companion_page.s8', "مبيعات اليوم")}</div>
           <div style={{ fontSize: '20px', fontWeight: 900, color: '#170e5e' }}>
             {isLoading ? '...' : `${Number(stats?.todaySalesAmount || 0).toLocaleString('ar-EG')} ${getGlobalCurrencySymbol()}`}
           </div>
           <div style={{ fontSize: '11px', color: '#059669', fontWeight: 600, marginTop: '2px' }}>
-            {stats?.todaySalesCount || 0} فاتورة بيع
+            {stats?.todaySalesCount || 0} {t('dashboard.owner_companion_page.s9', "فاتورة بيع")}
           </div>
         </div>
 
         {/* Purchases Today */}
         <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '14px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
-          <div style={{ fontSize: '12px', fontWeight: 700, color: '#64748b', marginBottom: '4px' }}>مشتريات وتوريد اليوم</div>
+          <div style={{ fontSize: '12px', fontWeight: 700, color: '#64748b', marginBottom: '4px' }}>{t('dashboard.owner_companion_page.s10', "مشتريات وتوريد اليوم")}</div>
           <div style={{ fontSize: '20px', fontWeight: 900, color: '#c2410c' }}>
             {isLoading ? '...' : `${Number(stats?.todayPurchasesAmount || 0).toLocaleString('ar-EG')} ${getGlobalCurrencySymbol()}`}
           </div>
           <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>
-            {stats?.todayPurchasesCount || 0} حركة شراء
+            {stats?.todayPurchasesCount || 0} {t('dashboard.owner_companion_page.s11', "حركة شراء")}
           </div>
         </div>
 
         {/* Customer Debt */}
         <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '14px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
-          <div style={{ fontSize: '12px', fontWeight: 700, color: '#64748b', marginBottom: '4px' }}>ديون العملاء الإجمالية</div>
+          <div style={{ fontSize: '12px', fontWeight: 700, color: '#64748b', marginBottom: '4px' }}>{t('dashboard.owner_companion_page.s12', "ديون العملاء الإجمالية")}</div>
           <div style={{ fontSize: '20px', fontWeight: 900, color: '#b91c1c' }}>
             {isLoading ? '...' : `${Number(stats?.customerDebt || 0).toLocaleString('ar-EG')} ${getGlobalCurrencySymbol()}`}
           </div>
           <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>
-            مستحقات آجلة لدى العملاء
+            {t('dashboard.owner_companion_page.s13', "مستحقات آجلة لدى العملاء")}
           </div>
         </div>
 
         {/* Inventory Value */}
         <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '14px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
-          <div style={{ fontSize: '12px', fontWeight: 700, color: '#64748b', marginBottom: '4px' }}>قيمة المخزون الحالي</div>
+          <div style={{ fontSize: '12px', fontWeight: 700, color: '#64748b', marginBottom: '4px' }}>{t('dashboard.owner_companion_page.s14', "قيمة المخزون الحالي")}</div>
           <div style={{ fontSize: '20px', fontWeight: 900, color: '#2563eb' }}>
             {isLoading ? '...' : `${Number(stats?.inventoryCost || 0).toLocaleString('ar-EG')} ${getGlobalCurrencySymbol()}`}
           </div>
           <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>
-            بسعر تكلفة البضاعة
+            {t('dashboard.owner_companion_page.s15', "بسعر تكلفة البضاعة")}
           </div>
         </div>
       </div>
@@ -211,13 +213,13 @@ export function OwnerCompanionPage() {
       {/* Top Products Sold Today */}
       <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '14px', padding: '16px', marginBottom: '14px', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-          <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 800, color: '#0f172a' }}>الأكثر مبيعاً اليوم</h4>
-          <span style={{ fontSize: '11px', color: '#64748b' }}>أعلى الأصناف حركة</span>
+          <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 800, color: '#0f172a' }}>{t('dashboard.owner_companion_page.s16', "الأكثر مبيعاً اليوم")}</h4>
+          <span style={{ fontSize: '11px', color: '#64748b' }}>{t('dashboard.owner_companion_page.s17', "أعلى الأصناف حركة")}</span>
         </div>
 
         {topToday.length === 0 ? (
           <div style={{ padding: '20px', textAlign: 'center', color: '#94a3b8', fontSize: '12.5px' }}>
-            لا توجد مبيعات مسجلة لليوم بعد.
+            {t('dashboard.owner_companion_page.s18', "لا توجد مبيعات مسجلة لليوم بعد.")}
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -242,7 +244,7 @@ export function OwnerCompanionPage() {
                 </div>
                 <div style={{ textAlign: 'left' }}>
                   <span style={{ fontWeight: 800, color: '#170e5e' }}>{Number(p.total).toLocaleString('ar-EG')} <CurrencySymbol /></span>
-                  <span style={{ fontSize: '11px', color: '#64748b', marginInlineStart: '4px' }}>({p.qty} قطعة)</span>
+                  <span style={{ fontSize: '11px', color: '#64748b', marginInlineStart: '4px' }}>({p.qty} {t('dashboard.owner_companion_page.s19', "قطعة)")}</span>
                 </div>
               </div>
             ))}
@@ -252,7 +254,7 @@ export function OwnerCompanionPage() {
 
       {/* Footer Info */}
       <div style={{ textAlign: 'center', fontSize: '11px', color: '#94a3b8', marginTop: '16px' }}>
-        آخر تحديث: {lastUpdated} · تحديث تلقائي كل 30 ثانية
+        {t('dashboard.owner_companion_page.s20', "آخر تحديث:")} {lastUpdated} {t('dashboard.owner_companion_page.s21', "· تحديث تلقائي كل 30 ثانية")}
       </div>
     </div>
   );

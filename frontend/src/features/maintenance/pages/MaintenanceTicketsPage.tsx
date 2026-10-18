@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { PageHeader } from '@/shared/components/page-header';
@@ -15,6 +16,7 @@ import { MaintenanceTicketsFilterBar } from '../components/tickets/MaintenanceTi
 import { MaintenanceTicketsTable } from '../components/tickets/MaintenanceTicketsTable';
 
 export function MaintenanceTicketsPage() {
+  const { t: __t } = useTranslation();
   const queryClient = useQueryClient();
   const maintenanceProfile = getMaintenanceProfile();
 
@@ -143,7 +145,7 @@ export function MaintenanceTicketsPage() {
         <PageHeader
           title={`تذاكر الصيانة وإصلاح ${maintenanceProfile.shortTitle}`}
           description={`إدارة استلام، فحص، صيانة وتسليم ${maintenanceProfile.shortTitle} مع قطع الغيار والتكاليف المالية المترتبة`}
-          badge={<span className="nav-pill" style={{ background: '#f8fafc', color: '#475569', border: '1px solid #e2e8f0' }}>{totalItems} تذكرة</span>}
+          badge={<span className="nav-pill" style={{ background: '#f8fafc', color: '#475569', border: '1px solid #e2e8f0' }}>{totalItems} {__t('maintenance.maintenance_tickets_page.s0', "تذكرة")}</span>}
           actions={
             <div className="actions compact-actions" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
               <Button
@@ -152,7 +154,7 @@ export function MaintenanceTicketsPage() {
                 style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700 }}
               >
                 <PlusIcon size={16} />
-                <span>استلام جهاز صيانة جديد</span>
+                <span>{__t('maintenance.maintenance_tickets_page.s1', "استلام جهاز صيانة جديد")}</span>
               </Button>
               <Button
                 variant="secondary"
@@ -161,7 +163,7 @@ export function MaintenanceTicketsPage() {
                 style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
               >
                 <RefreshCwIcon size={16} />
-                <span>تحديث</span>
+                <span>{__t('maintenance.maintenance_tickets_page.s2', "تحديث")}</span>
               </Button>
             </div>
           }

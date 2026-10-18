@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { FormSection } from '@/shared/components/form-section';
 import { Button } from '@/shared/ui/button';
@@ -53,6 +54,7 @@ export function StockTransferComposerCard({
   onRemoveItem,
   onSubmit
 }: StockTransferComposerCardProps) {
+  const { t } = useTranslation();
   const warehouseList = warehouses || locations || [];
   const warehouseOptions = useMemo(
     () => [
@@ -63,28 +65,28 @@ export function StockTransferComposerCard({
   );
 
   return (
-    <FormSection title="إذن صرف / نقل مخزون" description="تجميع الأصناف أولًا ثم اعتماد إذن الصرف مع إبقاء المراجعة السريعة للعناصر قبل الإرسال." actions={<span className="nav-pill">أذونات الصرف</span>}>
+    <FormSection title={t('inventory.sections.inventory_composer_cards.s0', "إذن صرف / نقل مخزون")} description={t('inventory.sections.inventory_composer_cards.s1', "تجميع الأصناف أولًا ثم اعتماد إذن الصرف مع إبقاء المراجعة السريعة للعناصر قبل الإرسال.")} actions={<span className="nav-pill">{t('inventory.sections.inventory_composer_cards.s2', "أذونات الصرف")}</span>}>
       <div className="form-grid">
-        <Field label="من مخزن">
+        <Field label={t('inventory.sections.inventory_composer_cards.s3', "من مخزن")}>
           <CustomSelect
             value={form.fromLocationId}
             onChange={(val) => onFormChange({ fromLocationId: val })}
             options={warehouseOptions}
-            placeholder="اختر المصدر"
+            placeholder={t('inventory.sections.inventory_composer_cards.s4', "اختر المصدر")}
           />
         </Field>
-        <Field label="إلى مخزن / فرع">
+        <Field label={t('inventory.sections.inventory_composer_cards.s5', "إلى مخزن / فرع")}>
           <CustomSelect
             value={form.toLocationId}
             onChange={(val) => onFormChange({ toLocationId: val })}
             options={warehouseOptions}
-            placeholder="اختر الوجهة"
+            placeholder={t('inventory.sections.inventory_composer_cards.s6', "اختر الوجهة")}
           />
         </Field>
-        <Field label="مستلم البضاعة / السائق">
-          <input type="text" placeholder="اسم المستلم (اختياري)" value={form.recipientName || ''} onChange={(e) => onFormChange({ recipientName: e.target.value })} />
+        <Field label={t('inventory.sections.inventory_composer_cards.s7', "مستلم البضاعة / السائق")}>
+          <input type="text" placeholder={t('inventory.sections.inventory_composer_cards.s8', "اسم المستلم (اختياري)")} value={form.recipientName || ''} onChange={(e) => onFormChange({ recipientName: e.target.value })} />
         </Field>
-        <Field label="الصنف">
+        <Field label={t('inventory.sections.inventory_composer_cards.s9', "الصنف")}>
           <InventoryProductPicker
             products={products}
             value={form.productId}
@@ -93,31 +95,31 @@ export function StockTransferComposerCard({
             showPrice={false}
           />
         </Field>
-        <Field label="الكمية">
+        <Field label={t('inventory.sections.inventory_composer_cards.s10', "الكمية")}>
           <input type="number" min="0.001" step="0.001" value={form.qty} onChange={(e) => onFormChange({ qty: e.target.value })} />
         </Field>
-        <Field label="ملاحظات">
+        <Field label={t('inventory.sections.inventory_composer_cards.s11', "ملاحظات")}>
           <textarea rows={3} value={form.note} onChange={(e) => onFormChange({ note: e.target.value })} />
         </Field>
         <div className="field">
-          <span>العناصر</span>
+          <span>{t('inventory.sections.inventory_composer_cards.s12', "العناصر")}</span>
           <div className="actions compact-actions">
-            <Button type="button" variant="secondary" onClick={onAddItem}>إضافة إلى إذن الصرف</Button>
-            <SubmitButton type="button" onClick={onSubmit} isPending={isPending} disabled={!items.length} idleText="حفظ إذن الصرف" pendingText="جارٍ الحفظ..." />
+            <Button type="button" variant="secondary" onClick={onAddItem}>{t('inventory.sections.inventory_composer_cards.s13', "إضافة إلى إذن الصرف")}</Button>
+            <SubmitButton type="button" onClick={onSubmit} isPending={isPending} disabled={!items.length} idleText={t('inventory.sections.inventory_composer_cards.s14', "حفظ إذن الصرف")} pendingText={t('inventory.sections.inventory_composer_cards.s15', "جارٍ الحفظ...")} />
           </div>
         </div>
       </div>
-      <MutationFeedback isError={isError} isSuccess={isSuccess} error={error} errorFallback="تعذر إنشاء إذن الصرف" successText="تم إنشاء إذن الصرف بنجاح." />
+      <MutationFeedback isError={isError} isSuccess={isSuccess} error={error} errorFallback={t('inventory.sections.inventory_composer_cards.s16', "تعذر إنشاء إذن الصرف")} successText={t('inventory.sections.inventory_composer_cards.s17', "تم إنشاء إذن الصرف بنجاح.")} />
       <div className="list-stack" style={{ marginTop: 12 }}>
         {items.length ? items.map((item, index) => (
           <div className="list-row stacked-row" key={item.id}>
             <div>
               <strong>{item.productName}</strong>
-              <div className="muted small">الكمية: {item.qty}</div>
+              <div className="muted small">{t('inventory.sections.inventory_composer_cards.s18', "الكمية:")} {item.qty}</div>
             </div>
-            <Button type="button" variant="danger" onClick={() => onRemoveItem(index)}>حذف</Button>
+            <Button type="button" variant="danger" onClick={() => onRemoveItem(index)}>{t('inventory.sections.inventory_composer_cards.s19', "حذف")}</Button>
           </div>
-        )) : <EmptyState title="لا توجد عناصر مضافة لإذن الصرف" hint="أضف صنفًا واحدًا على الأقل ثم احفظ." />}
+        )) : <EmptyState title={t('inventory.sections.inventory_composer_cards.s20', "لا توجد عناصر مضافة لإذن الصرف")} hint={t('inventory.sections.inventory_composer_cards.s21', "أضف صنفًا واحدًا على الأقل ثم احفظ.")} />}
       </div>
     </FormSection>
   );
@@ -164,6 +166,7 @@ export function StockCountComposerCard({
   onRemoveItem: _onRemoveItem,
   onSubmit
 }: StockCountComposerCardProps) {
+  const { t } = useTranslation();
   const warehouseList = warehouses || locations || [];
   const selectedLocation = warehouseList.find((location) => String(location.id) === String(form.locationId));
   const categoriesQuery = useCategoriesQuery();
@@ -544,9 +547,9 @@ export function StockCountComposerCard({
 
   return (
     <FormSection
-      title="جلسة جرد مخزون"
-      description={isCountStarted ? 'راجع الأصناف، أدخل الكميات الفعلية، ثم أنشئ جلسة الجرد بعد المراجعة.' : 'ابدأ بخطوات قليلة: اختر طريقة الجرد، النطاق، وطريقة العد.'}
-      actions={<span className="nav-pill">{isCountStarted ? 'مرحلة العد والمراجعة' : 'إنشاء الجلسة'}</span>}
+      title={t('inventory.sections.inventory_composer_cards.s22', "جلسة جرد مخزون")}
+      description={isCountStarted ? t('inventory.sections.inventory_composer_cards.s23', "راجع الأصناف، أدخل الكميات الفعلية، ثم أنشئ جلسة الجرد بعد المراجعة.") : t('inventory.sections.inventory_composer_cards.s24', "ابدأ بخطوات قليلة: اختر طريقة الجرد، النطاق، وطريقة العد.")}
+      actions={<span className="nav-pill">{isCountStarted ? t('inventory.sections.inventory_composer_cards.s25', "مرحلة العد والمراجعة") : t('inventory.sections.inventory_composer_cards.s26', "إنشاء الجلسة")}</span>}
     >
       {!isCountStarted ? (
         <div className="stock-count-setup-stack">
@@ -554,8 +557,8 @@ export function StockCountComposerCard({
             <div className="stock-count-step-heading">
               <span>1</span>
               <div>
-                <strong>طريقة الجرد</strong>
-                <small>اختر نمط الجرد المناسب للعملية الحالية</small>
+                <strong>{t('inventory.sections.inventory_composer_cards.s27', "طريقة الجرد")}</strong>
+                <small>{t('inventory.sections.inventory_composer_cards.s28', "اختر نمط الجرد المناسب للعملية الحالية")}</small>
               </div>
             </div>
             <div className="stock-count-method-grid">
@@ -577,31 +580,31 @@ export function StockCountComposerCard({
             <div className="stock-count-step-heading">
               <span>2</span>
               <div>
-                <strong>نطاق الجرد والإعدادات</strong>
-                <small>حدد المخزن والملاحظة وخيارات العد</small>
+                <strong>{t('inventory.sections.inventory_composer_cards.s29', "نطاق الجرد والإعدادات")}</strong>
+                <small>{t('inventory.sections.inventory_composer_cards.s30', "حدد المخزن والملاحظة وخيارات العد")}</small>
               </div>
             </div>
             <div className="stock-count-inline-form">
               {!SINGLE_STORE_MODE ? (
-                <Field label="الفرع">
+                <Field label={t('inventory.sections.inventory_composer_cards.s31', "الفرع")}>
                   <CustomSelect
                     value={form.branchId}
                     onChange={(val) => onFormChange({ branchId: val })}
                     options={branchOptions}
-                    placeholder="بدون فرع"
+                    placeholder={t('inventory.sections.inventory_composer_cards.s32', "بدون فرع")}
                   />
                 </Field>
               ) : null}
-              <Field label="المخزن *">
+              <Field label={t('inventory.sections.inventory_composer_cards.s33', "المخزن *")}>
                 <CustomSelect
                   value={form.locationId}
                   onChange={(val) => onFormChange({ locationId: val })}
                   options={stockCountWarehouseOptions}
-                  placeholder="اختر المخزن"
+                  placeholder={t('inventory.sections.inventory_composer_cards.s34', "اختر المخزن")}
                 />
               </Field>
               {countType === 'category' ? (
-                <Field label="القسم / التصنيف">
+                <Field label={t('inventory.sections.inventory_composer_cards.s35', "القسم / التصنيف")}>
                   <CustomSelect
                     value={selectedCategoryId}
                     onChange={(val) => {
@@ -609,12 +612,12 @@ export function StockCountComposerCard({
                       onItemsChange(() => []);
                     }}
                     options={categorySelectOptions}
-                    placeholder="اختر القسم"
+                    placeholder={t('inventory.sections.inventory_composer_cards.s36', "اختر القسم")}
                   />
                 </Field>
               ) : null}
               {countType === 'supplier' ? (
-                <Field label="المورد / الشركة">
+                <Field label={t('inventory.sections.inventory_composer_cards.s37', "المورد / الشركة")}>
                   <CustomSelect
                     value={selectedSupplierId}
                     onChange={(val) => {
@@ -622,16 +625,16 @@ export function StockCountComposerCard({
                       onItemsChange(() => []);
                     }}
                     options={supplierSelectOptions}
-                    placeholder="اختر المورد"
+                    placeholder={t('inventory.sections.inventory_composer_cards.s38', "اختر المورد")}
                   />
                 </Field>
               ) : null}
-              <Field label="ملاحظة الجلسة">
+              <Field label={t('inventory.sections.inventory_composer_cards.s39', "ملاحظة الجلسة")}>
                 <input
                   type="text"
                   value={form.note}
                   onChange={(e) => onFormChange({ note: e.target.value })}
-                  placeholder="مثال: جرد أسبوعي / جرد قبل طلبية المورد"
+                  placeholder={t('inventory.sections.inventory_composer_cards.s40', "مثال: جرد أسبوعي / جرد قبل طلبية المورد")}
                 />
               </Field>
             </div>
@@ -639,13 +642,13 @@ export function StockCountComposerCard({
             <div className="stock-count-bottom-bar">
               <label className="stock-count-expected-toggle">
                 <input type="checkbox" checked={showExpectedInElectronicCount} onChange={(event) => setShowExpectedInElectronicCount(event.target.checked)} disabled={!canReviewStock} />
-                <span>إظهار كمية النظام أثناء الإدخال الإلكتروني</span>
+                <span>{t('inventory.sections.inventory_composer_cards.s41', "إظهار كمية النظام أثناء الإدخال الإلكتروني")}</span>
               </label>
               <div className="stock-count-start-actions">
-                <Button type="button" variant="primary" onClick={handleStartCount}>ابدأ جلسة الجرد</Button>
+                <Button type="button" variant="primary" onClick={handleStartCount}>{t('inventory.sections.inventory_composer_cards.s42', "ابدأ جلسة الجرد")}</Button>
               </div>
             </div>
-            {!canReviewStock ? <div className="surface-note" style={{ marginTop: 8 }}>وضع العد المخفي مفعل لهذا المستخدم لضمان عد فعلي بدون التأثر برصيد النظام.</div> : null}
+            {!canReviewStock ? <div className="surface-note" style={{ marginTop: 8 }}>{t('inventory.sections.inventory_composer_cards.s43', "وضع العد المخفي مفعل لهذا المستخدم لضمان عد فعلي بدون التأثر برصيد النظام.")}</div> : null}
           </div>
 
           {startCountMessage ? <div className="warning-box">{startCountMessage}</div> : null}
@@ -657,24 +660,24 @@ export function StockCountComposerCard({
             <div className="stock-count-session-meta">
               <div className="session-title-group">
                 <span className="stock-count-badge">{selectedCountType.label}</span>
-                <strong>{selectedLocation?.name ? `المخزن: ${selectedLocation.name}` : 'المخزن'}</strong>
-                {selectedCategoryId ? <span className="meta-tag">القسم: {categoryOptions.find((c) => c.id === selectedCategoryId)?.label || selectedCategoryId}</span> : null}
-                {selectedSupplierId ? <span className="meta-tag">المورد: {supplierOptions.find((s) => s.id === selectedSupplierId)?.label || selectedSupplierId}</span> : null}
+                <strong>{selectedLocation?.name ? `المخزن: ${selectedLocation.name}` : t('inventory.sections.inventory_composer_cards.s44', "المخزن")}</strong>
+                {selectedCategoryId ? <span className="meta-tag">{t('inventory.sections.inventory_composer_cards.s45', "القسم:")} {categoryOptions.find((c) => c.id === selectedCategoryId)?.label || selectedCategoryId}</span> : null}
+                {selectedSupplierId ? <span className="meta-tag">{t('inventory.sections.inventory_composer_cards.s46', "المورد:")} {supplierOptions.find((s) => s.id === selectedSupplierId)?.label || selectedSupplierId}</span> : null}
               </div>
 
               <div className="stock-count-stat-pills">
-                <span className="stat-pill">الأصناف: <strong>{items.length}</strong></span>
-                <span className="stat-pill">المعدود: <strong>{totalCounted}</strong></span>
-                <span className="stat-pill">الفروقات: <strong>{totalVariance}</strong></span>
+                <span className="stat-pill">{t('inventory.sections.inventory_composer_cards.s47', "الأصناف:")} <strong>{items.length}</strong></span>
+                <span className="stat-pill">{t('inventory.sections.inventory_composer_cards.s48', "المعدود:")} <strong>{totalCounted}</strong></span>
+                <span className="stat-pill">{t('inventory.sections.inventory_composer_cards.s49', "الفروقات:")} <strong>{totalVariance}</strong></span>
                 {canShowExpectedCount && financialSummary.deficitCost > 0 ? (
-                  <span className="stat-pill stat-pill--deficit">قيمة العجز: <strong>{financialSummary.deficitCost.toLocaleString('ar-EG')} {getGlobalCurrencySymbol()}</strong></span>
+                  <span className="stat-pill stat-pill--deficit">{t('inventory.sections.inventory_composer_cards.s50', "قيمة العجز:")} <strong>{financialSummary.deficitCost.toLocaleString('ar-EG')} {getGlobalCurrencySymbol()}</strong></span>
                 ) : null}
               </div>
             </div>
 
             <div className="actions compact-actions">
-              <Button type="button" variant="secondary" onClick={handleBackToSetup} disabled={isPending}>تعديل الإعدادات</Button>
-              <SubmitButton type="button" onClick={() => onSubmit({ noteOverride: buildSessionNoteWithType(form.note) })} disabled={isPending || !items.length || !form.locationId} idleText="إنشاء وحفظ الجلسة" pendingText="جارٍ الإنشاء..." />
+              <Button type="button" variant="secondary" onClick={handleBackToSetup} disabled={isPending}>{t('inventory.sections.inventory_composer_cards.s51', "تعديل الإعدادات")}</Button>
+              <SubmitButton type="button" onClick={() => onSubmit({ noteOverride: buildSessionNoteWithType(form.note) })} disabled={isPending || !items.length || !form.locationId} idleText={t('inventory.sections.inventory_composer_cards.s52', "إنشاء وحفظ الجلسة")} pendingText={t('inventory.sections.inventory_composer_cards.s53', "جارٍ الإنشاء...")} />
             </div>
           </div>
 
@@ -683,40 +686,40 @@ export function StockCountComposerCard({
             <div className="stock-count-scanner-group">
               <span className="scanner-tag">
                 <BarcodeIcon size={16} />
-                <span>مسح سريع</span>
+                <span>{t('inventory.sections.inventory_composer_cards.s54', "مسح سريع")}</span>
               </span>
               <input
                 ref={barcodeInputRef}
                 type="text"
                 className="stock-count-scanner-field"
-                placeholder="امسح الباركود للعد السريع (+1 تلقائياً)..."
+                placeholder={t('inventory.sections.inventory_composer_cards.s55', "امسح الباركود للعد السريع (+1 تلقائياً)...")}
                 value={barcodeScanInput}
                 onChange={(e) => setBarcodeScanInput(e.target.value)}
                 onKeyDown={handleBarcodeKeyDown}
               />
-              <Button type="button" variant="secondary" onClick={() => handleBarcodeScan(barcodeScanInput)}>عد</Button>
+              <Button type="button" variant="secondary" onClick={() => handleBarcodeScan(barcodeScanInput)}>{t('inventory.sections.inventory_composer_cards.s56', "عد")}</Button>
             </div>
 
             <div className="stock-count-tools-group">
               {canReviewStock ? (
-                <label className="stock-count-sheet-expected-toggle" title="إظهار كميات النظام في شيت الطباعة والإكسيل">
+                <label className="stock-count-sheet-expected-toggle" title={t('inventory.sections.inventory_composer_cards.s57', "إظهار كميات النظام في شيت الطباعة والإكسيل")}>
                   <input
                     type="checkbox"
                     checked={showExpectedInElectronicCount}
                     onChange={(e) => setShowExpectedInElectronicCount(e.target.checked)}
                   />
-                  <span>رصيد النظام</span>
+                  <span>{t('inventory.sections.inventory_composer_cards.s58', "رصيد النظام")}</span>
                 </label>
               ) : null}
               {(countType === 'category' || countType === 'supplier' || countType === 'full') && !items.length ? (
                 <Button type="button" variant="primary" onClick={handlePopulateScopeItems}>
                   <DownloadIcon size={15} />
-                  <span>إدخال إلكتروني ({scopeProducts.length} صنف)</span>
+                  <span>{t('inventory.sections.inventory_composer_cards.s59', "إدخال إلكتروني (")}{scopeProducts.length} {t('inventory.sections.inventory_composer_cards.s60', "صنف)")}</span>
                 </Button>
               ) : null}
               <Button type="button" variant="secondary" onClick={handlePrintSheet} disabled={!sheetRows.length}>
                 <PrinterIcon size={15} />
-                <span>طباعة الشيت</span>
+                <span>{t('inventory.sections.inventory_composer_cards.s61', "طباعة الشيت")}</span>
               </Button>
               <Button type="button" variant="secondary" onClick={handleExportExcel} disabled={!sheetRows.length}>
                 <FileSpreadsheetIcon size={15} />
@@ -728,13 +731,13 @@ export function StockCountComposerCard({
           {lastScannedItem ? (
             <div className="stock-count-scan-alert">
               <CheckCircleIcon size={16} color="#059669" />
-              <span>تم مسح وعد: <strong>{lastScannedItem.name}</strong> (الكمية المعدودة: {lastScannedItem.qty})</span>
+              <span>{t('inventory.sections.inventory_composer_cards.s62', "تم مسح وعد:")} <strong>{lastScannedItem.name}</strong> {t('inventory.sections.inventory_composer_cards.s63', "(الكمية المعدودة:")} {lastScannedItem.qty})</span>
             </div>
           ) : null}
 
           {/* Quick Manual Add Row */}
           <div className="stock-count-quick-entry-row">
-            <span className="entry-row-title">إضافة صنف:</span>
+            <span className="entry-row-title">{t('inventory.sections.inventory_composer_cards.s64', "إضافة صنف:")}</span>
             <div className="entry-row-picker">
               <InventoryProductPicker products={products} value={form.productId} onChange={(productId) => onFormChange({ productId })} showStock showPrice={false} hideHint={true} />
             </div>
@@ -745,23 +748,23 @@ export function StockCountComposerCard({
               className="entry-row-qty"
               value={form.countedQty}
               onChange={(e) => onFormChange({ countedQty: e.target.value })}
-              placeholder="الكمية"
+              placeholder={t('inventory.sections.inventory_composer_cards.s65', "الكمية")}
             />
             <input
               type="text"
               className="entry-row-reason"
               value={form.reason}
               onChange={(e) => onFormChange({ reason: e.target.value })}
-              placeholder="سبب الفرق (مثال: عجز / كسر)"
+              placeholder={t('inventory.sections.inventory_composer_cards.s66', "سبب الفرق (مثال: عجز / كسر)")}
             />
             <Button type="button" variant="secondary" onClick={onAddItem}>
               <PlusIcon size={15} />
-              <span>إضافة صنف</span>
+              <span>{t('inventory.sections.inventory_composer_cards.s67', "إضافة صنف")}</span>
             </Button>
           </div>
 
           {startCountMessage ? <div className="warning-box">{startCountMessage}</div> : null}
-          <MutationFeedback isError={isError} isSuccess={isSuccess} error={error} errorFallback="تعذر إنشاء جلسة الجرد" successText="تم إنشاء جلسة الجرد بنجاح." />
+          <MutationFeedback isError={isError} isSuccess={isSuccess} error={error} errorFallback={t('inventory.sections.inventory_composer_cards.s68', "تعذر إنشاء جلسة الجرد")} successText={t('inventory.sections.inventory_composer_cards.s69', "تم إنشاء جلسة الجرد بنجاح.")} />
 
           {/* Table Search & Filter Bar */}
           {items.length > 3 ? (
@@ -771,7 +774,7 @@ export function StockCountComposerCard({
                 <input
                   type="text"
                   className="table-search-input"
-                  placeholder="ابحث في جدول الجلسة باسم الصنف أو الباركود..."
+                  placeholder={t('inventory.sections.inventory_composer_cards.s70', "ابحث في جدول الجلسة باسم الصنف أو الباركود...")}
                   value={tableSearchQuery}
                   onChange={(e) => setTableSearchQuery(e.target.value)}
                 />
@@ -786,21 +789,21 @@ export function StockCountComposerCard({
                   className={`filter-pill-btn ${tableFilterTab === 'all' ? 'filter-pill-btn--active' : ''}`}
                   onClick={() => setTableFilterTab('all')}
                 >
-                  الكل ({items.length})
+                  {t('inventory.sections.inventory_composer_cards.s71', "الكل (")}{items.length})
                 </button>
                 <button
                   type="button"
                   className={`filter-pill-btn ${tableFilterTab === 'variance' ? 'filter-pill-btn--active' : ''}`}
                   onClick={() => setTableFilterTab('variance')}
                 >
-                  فروقات ({varianceItems})
+                  {t('inventory.sections.inventory_composer_cards.s72', "فروقات (")}{varianceItems})
                 </button>
                 <button
                   type="button"
                   className={`filter-pill-btn ${tableFilterTab === 'matched' ? 'filter-pill-btn--active' : ''}`}
                   onClick={() => setTableFilterTab('matched')}
                 >
-                  مطابق ({items.length - varianceItems})
+                  {t('inventory.sections.inventory_composer_cards.s73', "مطابق (")}{items.length - varianceItems})
                 </button>
               </div>
             </div>
@@ -813,12 +816,12 @@ export function StockCountComposerCard({
                 <thead>
                   <tr>
                     <th style={{ width: '40px', textAlign: 'center' }}>#</th>
-                    <th>الصنف</th>
-                    {canShowExpectedCount ? <th style={{ textAlign: 'center' }}>كمية النظام</th> : null}
-                    <th style={{ width: '130px', textAlign: 'center' }}>الكمية المعدودة</th>
-                    {canShowExpectedCount ? <th style={{ textAlign: 'center' }}>الفرق</th> : null}
-                    <th>سبب الفرق</th>
-                    <th style={{ width: '70px', textAlign: 'center' }}>إجراء</th>
+                    <th>{t('inventory.sections.inventory_composer_cards.s74', "الصنف")}</th>
+                    {canShowExpectedCount ? <th style={{ textAlign: 'center' }}>{t('inventory.sections.inventory_composer_cards.s75', "كمية النظام")}</th> : null}
+                    <th style={{ width: '130px', textAlign: 'center' }}>{t('inventory.sections.inventory_composer_cards.s76', "الكمية المعدودة")}</th>
+                    {canShowExpectedCount ? <th style={{ textAlign: 'center' }}>{t('inventory.sections.inventory_composer_cards.s77', "الفرق")}</th> : null}
+                    <th>{t('inventory.sections.inventory_composer_cards.s78', "سبب الفرق")}</th>
+                    <th style={{ width: '70px', textAlign: 'center' }}>{t('inventory.sections.inventory_composer_cards.s79', "إجراء")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -840,19 +843,19 @@ export function StockCountComposerCard({
                       {canShowExpectedCount ? (
                         <td style={{ textAlign: 'center' }}>
                           {Number(item.varianceQty || 0) === 0 ? (
-                            <span className="stock-count-variance stock-count-variance--zero">مطابق (0)</span>
+                            <span className="stock-count-variance stock-count-variance--zero">{t('inventory.sections.inventory_composer_cards.s80', "مطابق (0)")}</span>
                           ) : Number(item.varianceQty || 0) < 0 ? (
-                            <span className="stock-count-variance stock-count-variance--deficit">عجز {item.varianceQty}</span>
+                            <span className="stock-count-variance stock-count-variance--deficit">{t('inventory.sections.inventory_composer_cards.s81', "عجز")} {item.varianceQty}</span>
                           ) : (
-                            <span className="stock-count-variance stock-count-variance--surplus">زيادة +{item.varianceQty}</span>
+                            <span className="stock-count-variance stock-count-variance--surplus">{t('inventory.sections.inventory_composer_cards.s82', "زيادة +")}{item.varianceQty}</span>
                           )}
                         </td>
                       ) : null}
                       <td>
-                        <input value={item.reason || ''} onChange={(event) => updateCountItemById(item.id, { reason: event.target.value })} placeholder="سبب الفرق" />
+                        <input value={item.reason || ''} onChange={(event) => updateCountItemById(item.id, { reason: event.target.value })} placeholder={t('inventory.sections.inventory_composer_cards.s83', "سبب الفرق")} />
                       </td>
                       <td style={{ textAlign: 'center' }}>
-                        <Button type="button" variant="secondary" onClick={() => removeCountItemById(item.id)}>إزالة</Button>
+                        <Button type="button" variant="secondary" onClick={() => removeCountItemById(item.id)}>{t('inventory.sections.inventory_composer_cards.s84', "إزالة")}</Button>
                       </td>
                     </tr>
                   ))}
@@ -860,13 +863,13 @@ export function StockCountComposerCard({
               </table>
             ) : items.length ? (
               <EmptyState
-                title="لا توجد نتائج مطابقة للبحث"
-                hint="جرب البحث بكلمة أخرى أو اضغط على تصنيف (الكل)."
+                title={t('inventory.sections.inventory_composer_cards.s85', "لا توجد نتائج مطابقة للبحث")}
+                hint={t('inventory.sections.inventory_composer_cards.s86', "جرب البحث بكلمة أخرى أو اضغط على تصنيف (الكل).")}
               />
             ) : (
               <EmptyState
-                title="لا توجد عناصر في جلسة الجرد حتى الآن"
-                hint={countType === 'category' || countType === 'supplier' || countType === 'full' ? 'اضغط على زر (إدخال إلكتروني) بالأعلى لتنزيل الأصناف، أو استخدم مسح الباركود.' : 'استخدم ماسح الباركود أو الإضافة اليدوية بالأعلى لبدء تسجيل الأصناف.'}
+                title={t('inventory.sections.inventory_composer_cards.s87', "لا توجد عناصر في جلسة الجرد حتى الآن")}
+                hint={countType === 'category' || countType === 'supplier' || countType === 'full' ? t('inventory.sections.inventory_composer_cards.s88', "اضغط على زر (إدخال إلكتروني) بالأعلى لتنزيل الأصناف، أو استخدم مسح الباركود.") : t('inventory.sections.inventory_composer_cards.s89', "استخدم ماسح الباركود أو الإضافة اليدوية بالأعلى لبدء تسجيل الأصناف.")}
               />
             )}
           </div>

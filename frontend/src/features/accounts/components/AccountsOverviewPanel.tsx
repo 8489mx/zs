@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { SpotlightCardStrip } from '@/shared/components/spotlight-card-strip';
 import { Button } from '@/shared/ui/button';
 
@@ -18,6 +19,7 @@ export function AccountsOverviewPanel({
   disableTopCustomer: boolean;
   disableTopSupplier: boolean;
 }) {
+  const { t } = useTranslation();
   return (
     <>
       <div className="stats-grid compact-grid">
@@ -29,12 +31,12 @@ export function AccountsOverviewPanel({
         ))}
       </div>
 
-      <SpotlightCardStrip cards={guidanceCards} ariaLabel="إرشاد سريع لشاشة الحسابات" />
+      <SpotlightCardStrip cards={guidanceCards} ariaLabel={t('accounts.accounts_overview_panel.s0', "إرشاد سريع لشاشة الحسابات")} />
 
       <div className="filter-chip-row accounts-shortcuts-row">
-        <Button variant="secondary" onClick={onTopCustomer} disabled={disableTopCustomer}>أعلى عميل رصيدًا</Button>
-        <Button variant="secondary" onClick={onTopSupplier} disabled={disableTopSupplier}>أعلى مورد رصيدًا</Button>
-        <Button variant="secondary" onClick={onClearSelection}>إلغاء الاختيار</Button>
+        <Button variant="secondary" onClick={onTopCustomer} disabled={disableTopCustomer}>{t('accounts.accounts_overview_panel.s1', "أعلى عميل رصيدًا")}</Button>
+        <Button variant="secondary" onClick={onTopSupplier} disabled={disableTopSupplier}>{t('accounts.accounts_overview_panel.s2', "أعلى مورد رصيدًا")}</Button>
+        <Button variant="secondary" onClick={onClearSelection}>{t('accounts.accounts_overview_panel.s3', "إلغاء الاختيار")}</Button>
       </div>
     </>
   );

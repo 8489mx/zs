@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next';
+import { translateUiText } from '@/lib/auto-translator';
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { PageHeader } from '@/shared/components/page-header';
@@ -65,6 +67,8 @@ const MARITIME_ALLOWED_KEYS = new Set([
 ]);
 
 export function AppsStorePage() {
+  const { t, i18n } = useTranslation();
+  const isEn = i18n.language === 'en';
   const queryClient = useQueryClient();
   const user = useAuthStore((s) => s.user);
   const tenant = useAuthStore((s) => s.tenant);
@@ -267,20 +271,20 @@ export function AppsStorePage() {
   }, [visibleCatalog, settings, tenant, isSuperAdmin, isContractingVertical, isMaritimeVertical]);
 
   const currentPlanName = useMemo(() => {
-    if (isContractingVertical) return 'باقة المقاولات الشاملة (All-Inclusive)';
-    if (isMaritimeVertical) return 'باقة الشحن واللوجستيات (All-Inclusive)';
+    if (isContractingVertical) return isEn ? 'Contracting All-Inclusive Suite' : 'باقة المقاولات الشاملة (All-Inclusive)';
+    if (isMaritimeVertical) return isEn ? 'Maritime Freight All-Inclusive Suite' : 'باقة الشحن واللوجستيات (All-Inclusive)';
     const raw = String(tenant?.plan || tenant?.planId || 'pro').toLowerCase();
     const map: Record<string, string> = {
-      basic: PLAN_TIERS.plan_basic.name,
-      pro: PLAN_TIERS.plan_pro.name,
-      ultimate: PLAN_TIERS.plan_ultimate.name,
-      omnichannel: PLAN_TIERS.plan_omnichannel.name,
+      basic: isEn ? 'Basic Plan' : PLAN_TIERS.plan_basic.name,
+      pro: isEn ? 'Pro Enterprise Plan' : PLAN_TIERS.plan_pro.name,
+      ultimate: isEn ? 'Ultimate Enterprise Plan' : PLAN_TIERS.plan_ultimate.name,
+      omnichannel: isEn ? 'Omnichannel Enterprise Plan' : PLAN_TIERS.plan_omnichannel.name,
     };
-    return map[raw] || PLAN_TIERS.plan_ultimate.name;
-  }, [tenant, isContractingVertical, isMaritimeVertical]);
+    return map[raw] || (isEn ? 'Ultimate Enterprise Plan' : PLAN_TIERS.plan_ultimate.name);
+  }, [tenant, isContractingVertical, isMaritimeVertical, isEn]);
 
   return (
-    <div className="page-stack page-shell apps-store-page" dir="rtl">
+    <div className="page-stack page-shell apps-store-page">
       <main
         className="document-prototype-column"
         style={{
@@ -291,9 +295,9 @@ export function AppsStorePage() {
         }}
       >
         <PageHeader
-          title="متجر التطبيقات والموديولات (Apps Store)"
-          description="مركز تطبيقات وإضافات المنظومة الشامل: قم بتثبيت وتفعيل التطبيقات التخصصية لنشاطك، وتخصيص بيئة العمل بمرونة تامة بضغطة زر واحدة."
-          badge={<span className="nav-pill">{activeAppsCount} من أصل {visibleCatalog.length} تطبيقاً نشطاً</span>}
+          title={t('apps_store.apps_store_page.s0', "متجر التطبيقات والموديولات (Apps Store)")}
+          description={t('apps_store.apps_store_page.s1', "مركز تطبيقات وإضافات المنظومة الشامل: قم بتثبيت وتفعيل التطبيقات التخصصية لنشاطك، وتخصيص بيئة العمل بمرونة تامة بضغطة زر واحدة.")}
+          badge={<span className="nav-pill">{activeAppsCount} {t('apps_store.apps_store_page.s2', "من أصل")} {visibleCatalog.length} {t('apps_store.apps_store_page.s3', "تطبيقاً نشطاً")}</span>}
         />
 
         {/* All-Inclusive Suite Banners for Vertical Modes */}
@@ -328,10 +332,10 @@ export function AppsStorePage() {
             </div>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#166534', marginBottom: '2px' }}>
-                باقة المقاولات الشاملة (All-Inclusive Suite)
+                {t('apps_store.apps_store_page.s4', "باقة المقاولات الشاملة (All-Inclusive Suite)")}
               </div>
               <div style={{ fontSize: '0.78rem', color: '#15803d', lineHeight: 1.5 }}>
-                تم ضبط المتجر تلقائياً لقطاع المقاولات والهندسة الإنشائية؛ كافة الموديولات الداعمة (المشاريع، المستخلصات، مقاولو الباطن، مستودعات المواقع، الأصول، والمحاسبة) مدمجة بالكامل ومفعلة ضمن باقتك الموحدة دون الحاجة لاشتراكات إضافية.
+                {t('apps_store.apps_store_page.s5', "تم ضبط المتجر تلقائياً لقطاع المقاولات والهندسة الإنشائية؛ كافة الموديولات الداعمة (المشاريع، المستخلصات، مقاولو الباطن، مستودعات المواقع، الأصول، والمحاسبة) مدمجة بالكامل ومفعلة ضمن باقتك الموحدة دون الحاجة لاشتراكات إضافية.")}
               </div>
             </div>
             <span
@@ -345,7 +349,7 @@ export function AppsStorePage() {
                 whiteSpace: 'nowrap',
               }}
             >
-              باقة قطاعية مدمجة
+              {t('apps_store.apps_store_page.s6', "باقة قطاعية مدمجة")}
             </span>
           </div>
         )}
@@ -381,10 +385,10 @@ export function AppsStorePage() {
             </div>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#0369a1', marginBottom: '2px' }}>
-                باقة الشحن واللوجستيات الملاحية (All-Inclusive Suite)
+                {t('apps_store.apps_store_page.s7', "باقة الشحن واللوجستيات الملاحية (All-Inclusive Suite)")}
               </div>
               <div style={{ fontSize: '0.78rem', color: '#0284c7', lineHeight: 1.5 }}>
-                تم ضبط المتجر تلقائياً لقطاع التوكيلات الملاحية والشحن الدولي؛ كافة الموديولات المتخصصة (الشحن، خطوط الملاحة، المشتريات، المحاسبة ومراكز التكلفة، وشؤون الموظفين) مدمجة بالكامل ومحمية ضمن الباقة الشاملة.
+                {t('apps_store.apps_store_page.s8', "تم ضبط المتجر تلقائياً لقطاع التوكيلات الملاحية والشحن الدولي؛ كافة الموديولات المتخصصة (الشحن، خطوط الملاحة، المشتريات، المحاسبة ومراكز التكلفة، وشؤون الموظفين) مدمجة بالكامل ومحمية ضمن الباقة الشاملة.")}
               </div>
             </div>
             <span
@@ -398,7 +402,7 @@ export function AppsStorePage() {
                 whiteSpace: 'nowrap',
               }}
             >
-              باقة قطاعية مدمجة
+              {t('apps_store.apps_store_page.s9', "باقة قطاعية مدمجة")}
             </span>
           </div>
         )}
@@ -435,7 +439,7 @@ export function AppsStorePage() {
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="ابحث في التطبيقات، الموديولات، أو المزايا..."
+              placeholder={t('apps_store.apps_store_page.s10', "ابحث في التطبيقات، الموديولات، أو المزايا...")}
               style={{
                 width: '100%',
                 paddingRight: '38px',
@@ -495,7 +499,7 @@ export function AppsStorePage() {
                     transition: 'all 0.15s ease',
                   }}
                 >
-                  <span>{tab.label}</span>
+                  <span>{isEn ? (translateUiText(tab.label) || tab.label) : tab.label}</span>
                   <span
                     style={{
                       fontSize: '0.7rem',
@@ -529,7 +533,7 @@ export function AppsStorePage() {
               fontSize: '0.88rem',
             }}
           >
-            جاري تحميل كتالوج التطبيقات...
+            {t('apps_store.apps_store_page.s11', "جاري تحميل كتالوج التطبيقات...")}
           </div>
         ) : filteredApps.length === 0 ? (
           <div
@@ -547,10 +551,10 @@ export function AppsStorePage() {
             }}
           >
             <div style={{ fontSize: '1rem', fontWeight: 800, color: '#0f172a', marginBottom: '6px' }}>
-              لا توجد تطبيقات مطابقة لبحثك
+              {t('apps_store.apps_store_page.s12', "لا توجد تطبيقات مطابقة لبحثك")}
             </div>
             <p style={{ fontSize: '0.8125rem', color: '#64748b', maxWidth: '400px', margin: '0 0 16px 0' }}>
-              لم نعثر على أي تطبيق يطابق كلمة البحث &quot;{search}&quot; أو التصنيف المحدد.
+              {t('apps_store.apps_store_page.s13', "لم نعثر على أي تطبيق يطابق كلمة البحث \"")}{search}{t('apps_store.apps_store_page.s14', "\" أو التصنيف المحدد.")}
             </p>
             <button
               type="button"
@@ -569,7 +573,7 @@ export function AppsStorePage() {
                 cursor: 'pointer',
               }}
             >
-              عرض كافة التطبيقات
+              {t('apps_store.apps_store_page.s15', "عرض كافة التطبيقات")}
             </button>
           </div>
         ) : (

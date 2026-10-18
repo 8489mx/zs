@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/shared/ui/button';
@@ -24,6 +25,7 @@ import { ExtractWhtModal } from '../components/withholding-tax/ExtractWhtModal';
 import { PrintWhtModal } from '../components/withholding-tax/PrintWhtModal';
 
 export function WithholdingTaxPage() {
+  const { t: __t } = useTranslation();
   useAppToolbar([{ label: 'المالية والمحاسبة', to: '/accounting' }, { label: 'الخصم والإضافة ن41' }]);
   const queryClient = useQueryClient();
   const currentYear = new Date().getFullYear();
@@ -198,9 +200,9 @@ export function WithholdingTaxPage() {
     <div className="page-stack page-shell withholding-tax-page" dir="rtl">
       <main className="document-prototype-column" style={{ paddingBottom: '100px', maxWidth: '1280px', margin: '0 auto', width: '100%' }}>
         <PageHeader
-          title="ضريبة الخصم والإضافة ونموذج 41 ضرائب"
-          description="إعداد واستخراج إقرار نموذج 41 الربع سنوي المعتمد لمصلحة الضرائب المصرية (ETA) وتصدير شيت البوابة الرسمية."
-          badge={<span className="nav-pill">{reportData?.total_count || 0} معاملة</span>}
+          title={__t('accounting.withholding_tax_page.s0', "ضريبة الخصم والإضافة ونموذج 41 ضرائب")}
+          description={__t('accounting.withholding_tax_page.s1', "إعداد واستخراج إقرار نموذج 41 الربع سنوي المعتمد لمصلحة الضرائب المصرية (ETA) وتصدير شيت البوابة الرسمية.")}
+          badge={<span className="nav-pill">{reportData?.total_count || 0} {__t('accounting.withholding_tax_page.s2', "معاملة")}</span>}
           actions={(
             <div className="actions compact-actions page-header-actions">
               <Button
@@ -212,7 +214,7 @@ export function WithholdingTaxPage() {
                 style={{ backgroundColor: '#170e5e', color: '#ffffff', display: 'flex', alignItems: 'center', gap: '6px' }}
               >
                 <PlusIcon size={15} />
-                <span>+ إضافة معاملة</span>
+                <span>{__t('accounting.withholding_tax_page.s3', "+ إضافة معاملة")}</span>
               </Button>
 
               {selectedDirection === 'payable' && (
@@ -222,7 +224,7 @@ export function WithholdingTaxPage() {
                   style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#065f46', borderColor: '#a7f3d0' }}
                 >
                   <RefreshCwIcon size={15} />
-                  <span>استيراد آلي من المشتريات</span>
+                  <span>{__t('accounting.withholding_tax_page.s4', "استيراد آلي من المشتريات")}</span>
                 </Button>
               )}
 
@@ -230,10 +232,10 @@ export function WithholdingTaxPage() {
                 onClick={handleExportEtaCsv}
                 variant="secondary"
                 style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
-                title="تصدير شيت البوابة الإلكترونية لمصلحة الضرائب"
+                title={__t('accounting.withholding_tax_page.s5', "تصدير شيت البوابة الإلكترونية لمصلحة الضرائب")}
               >
                 <DownloadIcon size={14} />
-                <span>تصدير CSV</span>
+                <span>{__t('accounting.withholding_tax_page.s6', "تصدير CSV")}</span>
               </Button>
 
               <Button
@@ -242,17 +244,17 @@ export function WithholdingTaxPage() {
                 style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
               >
                 <PrinterIcon size={14} />
-                <span>طباعة A4</span>
+                <span>{__t('accounting.withholding_tax_page.s7', "طباعة A4")}</span>
               </Button>
 
               <Button
                 onClick={() => queryClient.invalidateQueries({ queryKey: ['wht-form41'] })}
                 variant="secondary"
                 style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
-                title="تحديث البيانات"
+                title={__t('accounting.withholding_tax_page.s8', "تحديث البيانات")}
               >
                 <RefreshCwIcon size={14} />
-                <span>تحديث</span>
+                <span>{__t('accounting.withholding_tax_page.s9', "تحديث")}</span>
               </Button>
             </div>
           )}
@@ -279,7 +281,7 @@ export function WithholdingTaxPage() {
                   transition: 'all 0.15s ease',
                 }}
               >
-                نموذج 41 (خصم من الموردين لتوريده للضرائب)
+                {__t('accounting.withholding_tax_page.s10', "نموذج 41 (خصم من الموردين لتوريده للضرائب)")}
               </button>
               <button
                 type="button"
@@ -297,14 +299,14 @@ export function WithholdingTaxPage() {
                   transition: 'all 0.15s ease',
                 }}
               >
-                إشعارات الخصم من العملاء (مبالغ مستردة للشركة)
+                {__t('accounting.withholding_tax_page.s11', "إشعارات الخصم من العملاء (مبالغ مستردة للشركة)")}
               </button>
             </div>
 
             {/* Quarter & Year Selector */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span style={{ fontSize: '12px', fontWeight: 700, color: '#475569' }}>السنة الضريبية:</span>
+                <span style={{ fontSize: '12px', fontWeight: 700, color: '#475569' }}>{__t('accounting.withholding_tax_page.s12', "السنة الضريبية:")}</span>
                 <select
                   value={selectedYear}
                   onChange={(e) => setSelectedYear(Number(e.target.value))}
@@ -354,22 +356,22 @@ export function WithholdingTaxPage() {
             items={[
               {
                 key: 'tax',
-                label: selectedDirection === 'payable' ? 'إجمالي الضريبة واجبة التوريد' : 'إجمالي مبالغ الخصم المستردة',
+                label: selectedDirection === 'payable' ? __t('accounting.withholding_tax_page.s13', "إجمالي الضريبة واجبة التوريد") : __t('accounting.withholding_tax_page.s14', "إجمالي مبالغ الخصم المستردة"),
                 value: formatCurrencyWithSymbol(reportData?.total_tax_amount || 0),
               },
               {
                 key: 'goods',
-                label: 'وعاء توريدات السلع (1%)',
+                label: __t('accounting.withholding_tax_page.s15', "وعاء توريدات السلع (1%)"),
                 value: formatCurrencyWithSymbol(reportData?.breakdown.goods.base_amount || 0),
               },
               {
                 key: 'services',
-                label: 'وعاء الخدمات والمصنعيات (3%)',
+                label: __t('accounting.withholding_tax_page.s16', "وعاء الخدمات والمصنعيات (3%)"),
                 value: formatCurrencyWithSymbol(reportData?.breakdown.services.base_amount || 0),
               },
               {
                 key: 'prof',
-                label: 'وعاء المهن الحرة والعمولات (5%)',
+                label: __t('accounting.withholding_tax_page.s17', "وعاء المهن الحرة والعمولات (5%)"),
                 value: formatCurrencyWithSymbol(reportData?.breakdown.professional.base_amount || 0),
               },
             ]}

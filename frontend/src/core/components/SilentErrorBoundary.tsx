@@ -1,4 +1,5 @@
 import { Component, ErrorInfo, ReactNode } from 'react';
+import i18n from '@/lib/i18n';
 import { captureErrorToTracking } from '@/lib/error-tracking';
 
 interface Props {
@@ -28,7 +29,6 @@ export class SilentErrorBoundary extends Component<Props, State> {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        // 'Authorization' could be attached if we check local storage, but for an error endpoint, it might not be strictly needed or we can let the interceptor handle it if we use standard api fetch.
       },
       body: JSON.stringify({
         message: error.message,
@@ -43,18 +43,23 @@ export class SilentErrorBoundary extends Component<Props, State> {
   }
 
   public render() {
+    const isEn = i18n.language === 'en';
     if (this.state.hasError) {
       return (
-        <div style={{ padding: '2rem', textAlign: 'center', direction: 'rtl', fontFamily: 'system-ui, sans-serif' }}>
-          <h2 style={{ color: '#ef4444' }}>حدث خطأ غير متوقع وتم تسجيله تلقائياً.</h2>
+        <div style={{ padding: '2rem', textAlign: 'center', direction: isEn ? 'ltr' : 'rtl', fontFamily: 'system-ui, sans-serif' }}>
+          <h2 style={{ color: '#ef4444' }}>
+            {isEn ? 'An unexpected error occurred and was logged automatically.' : 'حدث خطأ غير متوقع وتم تسجيله تلقائياً.'}
+          </h2>
           <p style={{ color: '#6b7280', marginTop: '1rem' }}>
-            نعتذر عن هذا العطل. لقد تم إرسال تفاصيل المشكلة للنظام تلقائياً. يرجى إعادة تحديث الصفحة للاستمرار.
+            {isEn
+              ? 'We apologize for the inconvenience. Error details have been submitted. Please reload the page to continue.'
+              : 'نعتذر عن هذا العطل. لقد تم إرسال تفاصيل المشكلة للنظام تلقائياً. يرجى إعادة تحديث الصفحة للاستمرار.'}
           </p>
           <button 
             onClick={() => window.location.reload()}
             style={{ marginTop: '2rem', padding: '0.5rem 1rem', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
           >
-            تحديث الصفحة
+            {isEn ? 'Reload Page' : 'تحديث الصفحة'}
           </button>
         </div>
       );

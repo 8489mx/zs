@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
 import { StandardDialog } from '@/shared/components/StandardDialog';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
@@ -38,6 +39,7 @@ export function EquipmentTrackingModal({
   onClose,
   onSuccess,
 }: EquipmentTrackingModalProps) {
+  const { t } = useTranslation();
   const { currencySymbol } = useSystemCurrency();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -168,14 +170,14 @@ export function EquipmentTrackingModal({
     <StandardDialog
       open={open}
       onClose={onClose}
-      title="تكويد وتتبع العِدة والآلات والمعدات بالمواقع"
-      subtitle={projectName ? `المشروع: ${projectName}` : 'إدارة ومتابعة أماكن تواجد الهلتيات، الخلاطات، السقالات، وأجهزة المساحة'}
+      title={t('contracting.equipment_tracking_modal.s0', "تكويد وتتبع العِدة والآلات والمعدات بالمواقع")}
+      subtitle={projectName ? `المشروع: ${projectName}` : t('contracting.equipment_tracking_modal.s1', "إدارة ومتابعة أماكن تواجد الهلتيات، الخلاطات، السقالات، وأجهزة المساحة")}
       width="min(1100px, 95vw)"
       minHeight="min(600px, 85vh)"
       footer={
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
           <div style={{ fontSize: 'var(--font-micro)', color: '#64748b' }}>
-            تتبع العِدة يمنع فقدان الأدوات ويوثق عهدة كل مشرف وموقع ميدانياً.
+            {t('contracting.equipment_tracking_modal.s2', "تتبع العِدة يمنع فقدان الأدوات ويوثق عهدة كل مشرف وموقع ميدانياً.")}
           </div>
           <button
             type="button"
@@ -191,7 +193,7 @@ export function EquipmentTrackingModal({
               cursor: 'pointer',
             }}
           >
-            إغلاق النافذة
+            {t('contracting.equipment_tracking_modal.s3', "إغلاق النافذة")}
           </button>
         </div>
       }
@@ -206,28 +208,28 @@ export function EquipmentTrackingModal({
         {/* KPI Strip */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px' }}>
           <div style={{ padding: '12px 14px', borderRadius: '10px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0' }}>
-            <span style={{ fontSize: 'var(--font-micro)', color: '#64748b', fontWeight: 600 }}>إجمالي الأصول والعدد</span>
+            <span style={{ fontSize: 'var(--font-micro)', color: '#64748b', fontWeight: 600 }}>{t('contracting.equipment_tracking_modal.s4', "إجمالي الأصول والعدد")}</span>
             <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#170e5e', marginTop: '2px' }}>
               {loading ? '—' : `${equipmentList.length} أصل / عِدة`}
             </div>
           </div>
 
           <div style={{ padding: '12px 14px', borderRadius: '10px', backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0' }}>
-            <span style={{ fontSize: 'var(--font-micro)', color: '#166534', fontWeight: 600 }}>تعمل بالموقع حالياً</span>
+            <span style={{ fontSize: 'var(--font-micro)', color: '#166534', fontWeight: 600 }}>{t('contracting.equipment_tracking_modal.s5', "تعمل بالموقع حالياً")}</span>
             <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#15803d', marginTop: '2px' }}>
               {loading ? '—' : `${activeCount} عِدة نشطة`}
             </div>
           </div>
 
           <div style={{ padding: '12px 14px', borderRadius: '10px', backgroundColor: '#fffbeb', border: '1px solid #fde68a' }}>
-            <span style={{ fontSize: 'var(--font-micro)', color: '#92400e', fontWeight: 600 }}>تحت الصيانة والإصلاح</span>
+            <span style={{ fontSize: 'var(--font-micro)', color: '#92400e', fontWeight: 600 }}>{t('contracting.equipment_tracking_modal.s6', "تحت الصيانة والإصلاح")}</span>
             <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#b45309', marginTop: '2px' }}>
               {loading ? '—' : `${maintenanceCount} عِدة`}
             </div>
           </div>
 
           <div style={{ padding: '12px 14px', borderRadius: '10px', backgroundColor: '#eff6ff', border: '1px solid #bfdbfe' }}>
-            <span style={{ fontSize: 'var(--font-micro)', color: '#1e40af', fontWeight: 600 }}>بالمخزن الرئيسي (متاحة)</span>
+            <span style={{ fontSize: 'var(--font-micro)', color: '#1e40af', fontWeight: 600 }}>{t('contracting.equipment_tracking_modal.s7', "بالمخزن الرئيسي (متاحة)")}</span>
             <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#1d4ed8', marginTop: '2px' }}>
               {loading ? '—' : `${storeCount} عِدة جاهزة`}
             </div>
@@ -241,7 +243,7 @@ export function EquipmentTrackingModal({
               value={selectedCategory}
               options={CATEGORY_OPTIONS}
               onChange={(val) => setSelectedCategory(val)}
-              placeholder="تصفية حسب فئة العِدة..."
+              placeholder={t('contracting.equipment_tracking_modal.s8', "تصفية حسب فئة العِدة...")}
             />
           </div>
 
@@ -266,7 +268,7 @@ export function EquipmentTrackingModal({
             }}
           >
             {showAddForm ? <AppIcons.X size={15} /> : <AppIcons.Plus size={15} />}
-            <span>{showAddForm ? 'إلغاء التكويد' : 'تكويد عِدة / معدة جديدة'}</span>
+            <span>{showAddForm ? t('contracting.equipment_tracking_modal.s9', "إلغاء التكويد") : t('contracting.equipment_tracking_modal.s10', "تكويد عِدة / معدة جديدة")}</span>
           </button>
         </div>
 
@@ -285,19 +287,19 @@ export function EquipmentTrackingModal({
             }}
           >
             <div style={{ fontWeight: 700, color: '#170e5e', fontSize: 'var(--font-body)' }}>
-              إدخال وتكويد أصل أو عِدة جديدة للشركة
+              {t('contracting.equipment_tracking_modal.s11', "إدخال وتكويد أصل أو عِدة جديدة للشركة")}
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '2fr 1.5fr 1fr 1fr', gap: '12px' }}>
               <div>
                 <label style={{ display: 'block', fontSize: 'var(--font-micro)', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                  اسم العِدة أو الأداة *
+                  {t('contracting.equipment_tracking_modal.s12', "اسم العِدة أو الأداة *")}
                 </label>
                 <input
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="مثال: هلتي تكسير بوش 16 كجم، أو خلاطة نصف برميل..."
+                  placeholder={t('contracting.equipment_tracking_modal.s13', "مثال: هلتي تكسير بوش 16 كجم، أو خلاطة نصف برميل...")}
                   required
                   style={{
                     width: '100%',
@@ -312,19 +314,19 @@ export function EquipmentTrackingModal({
 
               <div>
                 <label style={{ display: 'block', fontSize: 'var(--font-micro)', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                  الفئة والتصنيف *
+                  {t('contracting.equipment_tracking_modal.s14', "الفئة والتصنيف *")}
                 </label>
                 <CustomSelect
                   value={category}
                   options={CATEGORY_OPTIONS.filter((o) => o.value !== 'all')}
                   onChange={(val) => setCategory(val)}
-                  placeholder="اختر الفئة..."
+                  placeholder={t('contracting.equipment_tracking_modal.s15', "اختر الفئة...")}
                 />
               </div>
 
               <div>
                 <label style={{ display: 'block', fontSize: 'var(--font-micro)', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                  الرقم التسلسلي (سيريال)
+                  {t('contracting.equipment_tracking_modal.s16', "الرقم التسلسلي (سيريال)")}
                 </label>
                 <input
                   type="text"
@@ -344,7 +346,7 @@ export function EquipmentTrackingModal({
 
               <div>
                 <label style={{ display: 'block', fontSize: 'var(--font-micro)', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                  تكلفة الشراء ({currencySymbol})
+                  {t('contracting.equipment_tracking_modal.s17', "تكلفة الشراء (")}{currencySymbol})
                 </label>
                 <input
                   type="number"
@@ -368,13 +370,13 @@ export function EquipmentTrackingModal({
             <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1.5fr 1fr', gap: '12px' }}>
               <div>
                 <label style={{ display: 'block', fontSize: 'var(--font-micro)', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                  مكان التواجد الميداني الحالي
+                  {t('contracting.equipment_tracking_modal.s18', "مكان التواجد الميداني الحالي")}
                 </label>
                 <input
                   type="text"
                   value={currentLocationDesc}
                   onChange={(e) => setCurrentLocationDesc(e.target.value)}
-                  placeholder="مثال: مخزن الموقع الرئيسي - القطاع الغربي..."
+                  placeholder={t('contracting.equipment_tracking_modal.s19', "مثال: مخزن الموقع الرئيسي - القطاع الغربي...")}
                   style={{
                     width: '100%',
                     height: '36px',
@@ -388,13 +390,13 @@ export function EquipmentTrackingModal({
 
               <div>
                 <label style={{ display: 'block', fontSize: 'var(--font-micro)', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                  المشرف المسؤول عن العهدة
+                  {t('contracting.equipment_tracking_modal.s20', "المشرف المسؤول عن العهدة")}
                 </label>
                 <input
                   type="text"
                   value={assignedSupervisor}
                   onChange={(e) => setAssignedSupervisor(e.target.value)}
-                  placeholder="اسم المشرف / أمين المخزن..."
+                  placeholder={t('contracting.equipment_tracking_modal.s21', "اسم المشرف / أمين المخزن...")}
                   style={{
                     width: '100%',
                     height: '36px',
@@ -408,17 +410,17 @@ export function EquipmentTrackingModal({
 
               <div>
                 <label style={{ display: 'block', fontSize: 'var(--font-micro)', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                  الحالة التشغيلية
+                  {t('contracting.equipment_tracking_modal.s22', "الحالة التشغيلية")}
                 </label>
                 <CustomSelect
                   value={operationalStatus}
                   options={[
-                    { value: 'active_working', label: 'تعمل بالموقع' },
-                    { value: 'idle_in_store', label: 'بالمخزن الرئيسي' },
-                    { value: 'under_maintenance', label: 'تحت الصيانة' },
+                    { value: 'active_working', label: t('contracting.equipment_tracking_modal.s23', "تعمل بالموقع") },
+                    { value: 'idle_in_store', label: t('contracting.equipment_tracking_modal.s24', "بالمخزن الرئيسي") },
+                    { value: 'under_maintenance', label: t('contracting.equipment_tracking_modal.s25', "تحت الصيانة") },
                   ]}
                   onChange={(val) => setOperationalStatus(val)}
-                  placeholder="الحالة..."
+                  placeholder={t('contracting.equipment_tracking_modal.s26', "الحالة...")}
                 />
               </div>
             </div>
@@ -437,7 +439,7 @@ export function EquipmentTrackingModal({
                   cursor: 'pointer',
                 }}
               >
-                إلغاء
+                {t('contracting.equipment_tracking_modal.s27', "إلغاء")}
               </button>
               <button
                 type="submit"
@@ -453,7 +455,7 @@ export function EquipmentTrackingModal({
                   cursor: saving ? 'not-allowed' : 'pointer',
                 }}
               >
-                {saving ? 'جارٍ التكويد...' : 'حفظ وتكويد العِدة'}
+                {saving ? t('contracting.equipment_tracking_modal.s28', "جارٍ التكويد...") : t('contracting.equipment_tracking_modal.s29', "حفظ وتكويد العِدة")}
               </button>
             </div>
           </form>
@@ -475,7 +477,7 @@ export function EquipmentTrackingModal({
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div style={{ fontWeight: 700, color: '#1e40af', fontSize: 'var(--font-body)' }}>
-                نقل العِدة: [{transferAsset.assetCode}] {transferAsset.name}
+                {t('contracting.equipment_tracking_modal.s30', "نقل العِدة: [")}{transferAsset.assetCode}] {transferAsset.name}
               </div>
               <button
                 type="button"
@@ -489,13 +491,13 @@ export function EquipmentTrackingModal({
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
               <div>
                 <label style={{ display: 'block', fontSize: 'var(--font-micro)', fontWeight: 600, color: '#1e3a8a', marginBottom: '4px' }}>
-                  الموقع / المشروع المنقول إليه *
+                  {t('contracting.equipment_tracking_modal.s31', "الموقع / المشروع المنقول إليه *")}
                 </label>
                 <input
                   type="text"
                   value={toProjectName}
                   onChange={(e) => setToProjectName(e.target.value)}
-                  placeholder="مشروع التجمع الخامس / المخزن الرئيسي..."
+                  placeholder={t('contracting.equipment_tracking_modal.s32', "مشروع التجمع الخامس / المخزن الرئيسي...")}
                   required
                   style={{
                     width: '100%',
@@ -510,13 +512,13 @@ export function EquipmentTrackingModal({
 
               <div>
                 <label style={{ display: 'block', fontSize: 'var(--font-micro)', fontWeight: 600, color: '#1e3a8a', marginBottom: '4px' }}>
-                  المشرف المُسلِّم (المسؤول) *
+                  {t('contracting.equipment_tracking_modal.s33', "المشرف المُسلِّم (المسؤول) *")}
                 </label>
                 <input
                   type="text"
                   value={dispatchedBy}
                   onChange={(e) => setDispatchedBy(e.target.value)}
-                  placeholder="اسم المشرف القائم بالتسليم..."
+                  placeholder={t('contracting.equipment_tracking_modal.s34', "اسم المشرف القائم بالتسليم...")}
                   required
                   style={{
                     width: '100%',
@@ -531,13 +533,13 @@ export function EquipmentTrackingModal({
 
               <div>
                 <label style={{ display: 'block', fontSize: 'var(--font-micro)', fontWeight: 600, color: '#1e3a8a', marginBottom: '4px' }}>
-                  المشرف المُستلِم بالموقع الجديد *
+                  {t('contracting.equipment_tracking_modal.s35', "المشرف المُستلِم بالموقع الجديد *")}
                 </label>
                 <input
                   type="text"
                   value={receivedBy}
                   onChange={(e) => setReceivedBy(e.target.value)}
-                  placeholder="اسم مهندس / مشرف الاستلام..."
+                  placeholder={t('contracting.equipment_tracking_modal.s36', "اسم مهندس / مشرف الاستلام...")}
                   required
                   style={{
                     width: '100%',
@@ -553,13 +555,13 @@ export function EquipmentTrackingModal({
 
             <div>
               <label style={{ display: 'block', fontSize: 'var(--font-micro)', fontWeight: 600, color: '#1e3a8a', marginBottom: '4px' }}>
-                حالة العِدة وقت التسليم وملاحظات
+                {t('contracting.equipment_tracking_modal.s37', "حالة العِدة وقت التسليم وملاحظات")}
               </label>
               <input
                 type="text"
                 value={conditionOnDispatch}
                 onChange={(e) => setConditionOnDispatch(e.target.value)}
-                placeholder="سليمة وجاهزة للعمل / بها سلك يحتاج تغيير..."
+                placeholder={t('contracting.equipment_tracking_modal.s38', "سليمة وجاهزة للعمل / بها سلك يحتاج تغيير...")}
                 style={{
                   width: '100%',
                   height: '34px',
@@ -585,7 +587,7 @@ export function EquipmentTrackingModal({
                   cursor: 'pointer',
                 }}
               >
-                إلغاء
+                {t('contracting.equipment_tracking_modal.s39', "إلغاء")}
               </button>
               <button
                 type="submit"
@@ -601,7 +603,7 @@ export function EquipmentTrackingModal({
                   cursor: saving ? 'not-allowed' : 'pointer',
                 }}
               >
-                {saving ? 'جارٍ التسليم...' : 'تأكيد نقل العِدة وتحديث العهدة'}
+                {saving ? t('contracting.equipment_tracking_modal.s40', "جارٍ التسليم...") : t('contracting.equipment_tracking_modal.s41', "تأكيد نقل العِدة وتحديث العهدة")}
               </button>
             </div>
           </form>
@@ -624,27 +626,27 @@ export function EquipmentTrackingModal({
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '280px', gap: '12px', backgroundColor: '#f8fafc', color: '#64748b' }}>
               <div style={{ width: '32px', height: '32px', border: '3px solid #cbd5e1', borderTopColor: '#170e5e', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
               <span style={{ fontSize: 'var(--font-body)', fontWeight: 600 }}>
-                جارٍ تحميل سجل العِدة والمعدات...
+                {t('contracting.equipment_tracking_modal.s42', "جارٍ تحميل سجل العِدة والمعدات...")}
               </span>
             </div>
           ) : equipmentList.length === 0 ? (
             <div style={{ flex: 1, minHeight: '280px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '36px', textAlign: 'center', color: '#64748b' }}>
               <AppIcons.Tool size={32} style={{ color: '#94a3b8' }} />
-              <div style={{ fontWeight: 600 }}>لا توجد عِدة مسجلة في هذا التصنيف.</div>
+              <div style={{ fontWeight: 600 }}>{t('contracting.equipment_tracking_modal.s43', "لا توجد عِدة مسجلة في هذا التصنيف.")}</div>
               <div style={{ fontSize: 'var(--font-micro)', color: '#94a3b8' }}>
-                اضغط على "تكويد عِدة / معدة جديدة" لبدء حصر الهلتيات والأدوات وسقالات الموقع.
+                {t('contracting.equipment_tracking_modal.s44', "اضغط على \"تكويد عِدة / معدة جديدة\" لبدء حصر الهلتيات والأدوات وسقالات الموقع.")}
               </div>
             </div>
           ) : (
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right' }}>
                 <thead style={{ position: 'sticky', top: 0, background: '#f8fafc', zIndex: 1 }}>
                   <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
-                    <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>الكود</th>
-                    <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>اسم المعدة والأداة</th>
-                    <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>الموقع والتواجد الحالي</th>
-                    <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>المشرف المسؤول</th>
-                    <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>الحالة التشغيلية</th>
-                    <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569', textAlign: 'center' }}>إجراء</th>
+                    <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>{t('contracting.equipment_tracking_modal.s45', "الكود")}</th>
+                    <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>{t('contracting.equipment_tracking_modal.s46', "اسم المعدة والأداة")}</th>
+                    <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>{t('contracting.equipment_tracking_modal.s47', "الموقع والتواجد الحالي")}</th>
+                    <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>{t('contracting.equipment_tracking_modal.s48', "المشرف المسؤول")}</th>
+                    <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>{t('contracting.equipment_tracking_modal.s49', "الحالة التشغيلية")}</th>
+                    <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569', textAlign: 'center' }}>{t('contracting.equipment_tracking_modal.s50', "إجراء")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -663,15 +665,15 @@ export function EquipmentTrackingModal({
                           {asset.name}
                           {asset.serialNumber && (
                             <span style={{ fontSize: 'var(--font-micro)', color: '#64748b', marginRight: '6px' }}>
-                              (سيريال: {asset.serialNumber})
+                              {t('contracting.equipment_tracking_modal.s51', "(سيريال:")} {asset.serialNumber})
                             </span>
                           )}
                         </td>
                         <td style={{ padding: '10px 12px', fontSize: 'var(--font-body)', color: '#334155' }}>
-                          {asset.currentLocationDesc || asset.currentProjectName || 'المخزن الرئيسي'}
+                          {asset.currentLocationDesc || asset.currentProjectName || t('contracting.equipment_tracking_modal.s52', "المخزن الرئيسي")}
                         </td>
                         <td style={{ padding: '10px 12px', fontSize: 'var(--font-body)', color: '#64748b' }}>
-                          {asset.assignedSupervisor || 'غير محدد'}
+                          {asset.assignedSupervisor || t('contracting.equipment_tracking_modal.s53', "غير محدد")}
                         </td>
                         <td style={{ padding: '10px 12px', fontSize: 'var(--font-body)' }}>
                           <span
@@ -705,7 +707,7 @@ export function EquipmentTrackingModal({
                               cursor: 'pointer',
                             }}
                           >
-                            نقل / تسليم
+                            {t('contracting.equipment_tracking_modal.s54', "نقل / تسليم")}
                           </button>
                         </td>
                       </tr>

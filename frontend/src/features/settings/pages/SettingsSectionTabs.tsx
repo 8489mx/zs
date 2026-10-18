@@ -3,6 +3,7 @@ import { useEffect, useRef } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
+import { translateUiText } from '@/lib/auto-translator';
 import { settingsSections, type SettingsSectionKey } from '@/features/settings/pages/settings.page-config';
 import { demoDataApi } from '@/features/settings/api/demo-data.api';
 import { settingsApi } from '@/features/settings/api/settings.api';
@@ -13,7 +14,8 @@ import { prefetchRouteData } from '@/app/router/route-prefetch';
 import { resolveCurrentVertical, isRouteAllowedInVertical } from '@/shared/verticals/vertical-scope';
 
 export function SettingsSectionTabs({ currentSection, currentUserRole }: { currentSection: SettingsSectionKey; currentUserRole: string }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isEn = i18n.language === 'en';
   const isPrivilegedUser = currentUserRole === 'super_admin' || currentUserRole === 'admin';
   const user = useAuthStore((state) => state.user);
   const tenant = useAuthStore((state) => state.tenant);
@@ -81,19 +83,21 @@ export function SettingsSectionTabs({ currentSection, currentUserRole }: { curre
       {visibleSections.map((section) => {
         const isCurrentActive = activeSectionKey === section.key;
         const labels = getSectionLabels(section);
+        const fullLabel = isEn ? (translateUiText(labels.label) || labels.label) : labels.label;
+        const shortLabel = isEn ? (translateUiText(labels.shortLabel) || labels.shortLabel) : labels.shortLabel;
         return (
           <NavLink
             key={section.key}
             ref={isCurrentActive ? activeTabRef : undefined}
             to={`/settings/${section.key}`}
             // Both labels are in the DOM (CSS picks one per screen size); the full label is the name.
-            aria-label={labels.label}
+            aria-label={fullLabel}
             onMouseEnter={() => prefetchRouteData(`/settings/${section.key}`)}
             onTouchStart={() => prefetchRouteData(`/settings/${section.key}`)}
             className={({ isActive }) => `btn ${isActive || isCurrentActive ? 'btn-primary' : 'btn-secondary'}`}
           >
-            <span className="settings-tab-full-label">{t(labels.label, labels.label)}</span>
-            <span className="settings-tab-short-label">{t(labels.shortLabel, labels.shortLabel)}</span>
+            <span className="settings-tab-full-label">{fullLabel}</span>
+            <span className="settings-tab-short-label">{shortLabel}</span>
           </NavLink>
         );
       })}

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React, { useState } from 'react';
 import { employeePortalApi, type PortalEmployeeUser } from '../../api/employee-portal.api';
 import {
@@ -36,6 +37,7 @@ export interface EmployeePortalLoginProps {
 }
 
 export function EmployeePortalLogin({ onLoginSuccess }: EmployeePortalLoginProps) {
+  const { t: __t } = useTranslation();
   const [identifier, setIdentifier] = useState('');
   const [pinCode, setPinCode] = useState('');
   const [loginLoading, setLoginLoading] = useState(false);
@@ -150,7 +152,7 @@ export function EmployeePortalLogin({ onLoginSuccess }: EmployeePortalLoginProps
               <UsersIcon size={30} color="#ffffff" strokeWidth={2} />
             </div>
             <h1 style={{ margin: 0, fontSize: '22px', fontWeight: 900, color: '#0f172a' }}>
-              بوابة الموظف الذاتية
+              {__t('hr.portal.employee_portal_login.s0', "بوابة الموظف الذاتية")}
             </h1>
             <p style={{ margin: '6px 0 0', fontSize: '13px', color: '#64748b', fontWeight: 600 }}>
               Z-Systems Employee Self-Service (ESS)
@@ -181,13 +183,13 @@ export function EmployeePortalLogin({ onLoginSuccess }: EmployeePortalLoginProps
           <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
             <div>
               <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-                رقم الهاتف المحمول:
+                {__t('hr.portal.employee_portal_login.s1', "رقم الهاتف المحمول:")}
               </label>
               <input
                 type="text"
                 value={identifier}
                 onChange={(e) => setIdentifier(e.target.value)}
-                placeholder="مثال: 01012345678"
+                placeholder={__t('hr.portal.employee_portal_login.s2', "مثال: 01012345678")}
                 required
                 style={{
                   width: '100%',
@@ -204,14 +206,14 @@ export function EmployeePortalLogin({ onLoginSuccess }: EmployeePortalLoginProps
 
             <div>
               <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-                رمز الدخول السري (PIN):
+                {__t('hr.portal.employee_portal_login.s3', "رمز الدخول السري (PIN):")}
               </label>
               <input
                 type="password"
                 maxLength={8}
                 value={pinCode}
                 onChange={(e) => setPinCode(e.target.value)}
-                placeholder="الرمز السري المكون من 4 إلى 6 أرقام"
+                placeholder={__t('hr.portal.employee_portal_login.s4', "الرمز السري المكون من 4 إلى 6 أرقام")}
                 required
                 style={{
                   width: '100%',
@@ -244,7 +246,7 @@ export function EmployeePortalLogin({ onLoginSuccess }: EmployeePortalLoginProps
                 transition: 'all 0.15s ease',
               }}
             >
-              {loginLoading ? 'جاري التحقق...' : 'تسجيل الدخول إلى حسابي'}
+              {loginLoading ? __t('hr.portal.employee_portal_login.s5', "جاري التحقق...") : __t('hr.portal.employee_portal_login.s6', "تسجيل الدخول إلى حسابي")}
             </button>
           </form>
 
@@ -261,7 +263,7 @@ export function EmployeePortalLogin({ onLoginSuccess }: EmployeePortalLoginProps
               textAlign: 'center',
             }}
           >
-            لأول تسجيل دخول: يمكنك استخدام رمز PIN الافتراضي <strong style={{ color: '#170e5e' }}>1234</strong> أو التواصل مع قسم الموارد البشرية.
+            {__t('hr.portal.employee_portal_login.s7', "لأول تسجيل دخول: يمكنك استخدام رمز PIN الافتراضي")} <strong style={{ color: '#170e5e' }}>1234</strong> {__t('hr.portal.employee_portal_login.s8', "أو التواصل مع قسم الموارد البشرية.")}
           </div>
 
           <div style={{ marginTop: '16px', textAlign: 'center' }}>
@@ -278,7 +280,7 @@ export function EmployeePortalLogin({ onLoginSuccess }: EmployeePortalLoginProps
               }}
             >
               <SmartphoneIcon size={16} color="#170e5e" />
-              <span>تسجيل بصمة الحضور بالـ GPS والسيلفي</span>
+              <span>{__t('hr.portal.employee_portal_login.s9', "تسجيل بصمة الحضور بالـ GPS والسيلفي")}</span>
             </a>
           </div>
         </div>
@@ -327,15 +329,15 @@ export function EmployeePortalLogin({ onLoginSuccess }: EmployeePortalLoginProps
                   </div>
                   <div>
                     <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: '#0f172a' }}>
-                      اختر المنشأة للمتابعة
+                      {__t('hr.portal.employee_portal_login.s10', "اختر المنشأة للمتابعة")}
                     </h3>
                     <p style={{ margin: 0, fontSize: '13px', color: '#64748b' }}>
-                      رقم هاتفك مسجل كموظف لدى أكثر من منشأة
+                      {__t('hr.portal.employee_portal_login.s11', "رقم هاتفك مسجل كموظف لدى أكثر من منشأة")}
                     </p>
                   </div>
                 </div>
                 <p style={{ fontSize: '13px', color: '#475569', margin: '8px 0 0', lineHeight: 1.5 }}>
-                  يرجى تحديد المنشأة التي ترغب في تسجيل الدخول لبوابتها الذاتية:
+                  {__t('hr.portal.employee_portal_login.s12', "يرجى تحديد المنشأة التي ترغب في تسجيل الدخول لبوابتها الذاتية:")}
                 </p>
               </div>
 
@@ -386,7 +388,7 @@ export function EmployeePortalLogin({ onLoginSuccess }: EmployeePortalLoginProps
                       </div>
                       <div>
                         <div style={{ fontSize: '14px', fontWeight: 700, color: '#0f172a' }}>{t.name}</div>
-                        <div style={{ fontSize: '12px', color: '#64748b' }}>كود المنشأة: {t.slug || t.id}</div>
+                        <div style={{ fontSize: '12px', color: '#64748b' }}>{__t('hr.portal.employee_portal_login.s13', "كود المنشأة:")} {t.slug || t.id}</div>
                       </div>
                     </div>
                     <div style={{ color: '#94a3b8' }}>
@@ -412,7 +414,7 @@ export function EmployeePortalLogin({ onLoginSuccess }: EmployeePortalLoginProps
                     cursor: 'pointer',
                   }}
                 >
-                  إلغاء
+                  {__t('hr.portal.employee_portal_login.s14', "إلغاء")}
                 </button>
               </div>
             </div>

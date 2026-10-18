@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { XIcon } from '@/shared/components/icons/AppIcons';
 import type { ProductUnit } from '@/types/domain';
 import { Button } from '@/shared/ui/button';
@@ -83,6 +84,7 @@ function unitName(unit: ProductUnit, fallback = 'وحدة') {
 }
 
 export function ProductUnitsEditor({ units, onChange, disabled = false, title = 'وحدات الصنف' }: ProductUnitsEditorProps) {
+  const { t } = useTranslation();
   const normalized = normalizeUnits(units);
   const baseUnit = normalized.find((unit) => unit.isBaseUnit) || normalized[0];
   const baseUnitName = unitName(baseUnit, 'الوحدة الأساسية');
@@ -113,10 +115,10 @@ export function ProductUnitsEditor({ units, onChange, disabled = false, title = 
     <div className="product-units-table-container">
       {/* Header Row */}
       <div className="product-units-header-row">
-        <div style={{ flex: '1.4' }}>اسم / نوع الوحدة</div>
+        <div style={{ flex: '1.4' }}>{t('products.product_units_editor.s0', "اسم / نوع الوحدة")}</div>
         <div style={{ flex: '0.9' }}>{`المضاعف (${baseUnitName})`}</div>
-        <div style={{ flex: '1.3' }}>باركود الوحدة</div>
-        <div style={{ flex: '2.5' }}>دور واستخدام الوحدة الافتراضي</div>
+        <div style={{ flex: '1.3' }}>{t('products.product_units_editor.s1', "باركود الوحدة")}</div>
+        <div style={{ flex: '2.5' }}>{t('products.product_units_editor.s2', "دور واستخدام الوحدة الافتراضي")}</div>
         {normalized.length > 1 && <div style={{ width: '36px' }}></div>}
       </div>
 
@@ -131,7 +133,7 @@ export function ProductUnitsEditor({ units, onChange, disabled = false, title = 
                   value={unit.name}
                   disabled={disabled}
                   onChange={(val) => patchRow(index, { name: val })}
-                  placeholder="ابحث أو اكتب..."
+                  placeholder={t('products.product_units_editor.s3', "ابحث أو اكتب...")}
                 />
               </div>
 
@@ -156,11 +158,11 @@ export function ProductUnitsEditor({ units, onChange, disabled = false, title = 
                           border: isInvalid ? '1.5px solid #ef4444' : undefined,
                           cursor: unit.isBaseUnit ? 'not-allowed' : 'text',
                         }}
-                        title={unit.isBaseUnit ? 'الوحدة الأساسية مضاعفها دائماً 1' : (isInvalid ? 'تنبيه: مضاعف الوحدة الإضافية يجب أن يكون أكبر من 1' : `تحتوي على كم ${baseUnitName}`)}
+                        title={unit.isBaseUnit ? t('products.product_units_editor.s4', "الوحدة الأساسية مضاعفها دائماً 1") : (isInvalid ? t('products.product_units_editor.s5', "تنبيه: مضاعف الوحدة الإضافية يجب أن يكون أكبر من 1") : `تحتوي على كم ${baseUnitName}`)}
                       />
                       {isInvalid && (
                         <span style={{ fontSize: '10px', color: '#dc2626', fontWeight: 700, display: 'block', marginTop: '2px', whiteSpace: 'nowrap' }}>
-                          يجب أن يكون أكبر من 1
+                          {t('products.product_units_editor.s6', "يجب أن يكون أكبر من 1")}
                         </span>
                       )}
                     </>
@@ -175,7 +177,7 @@ export function ProductUnitsEditor({ units, onChange, disabled = false, title = 
                   value={unit.barcode}
                   disabled={disabled}
                   onChange={(event) => patchRow(index, { barcode: event.target.value })}
-                  placeholder="باركود الوحدة (اختياري)"
+                  placeholder={t('products.product_units_editor.s7', "باركود الوحدة (اختياري)")}
                   style={{ height: '34px', fontSize: '0.86rem' }}
                 />
               </div>
@@ -197,11 +199,11 @@ export function ProductUnitsEditor({ units, onChange, disabled = false, title = 
                       fontWeight: 600,
                     }}
                   >
-                    <span>وحدة افتراضية شاملة (المخزون • البيع • الشراء)</span>
+                    <span>{t('products.product_units_editor.s8', "وحدة افتراضية شاملة (المخزون • البيع • الشراء)")}</span>
                   </span>
                 ) : (
                   <>
-                    <label className={`product-unit-chip-btn ${unit.isBaseUnit ? 'active' : ''}`} title="أساس حساب المخزون والتحويلات">
+                    <label className={`product-unit-chip-btn ${unit.isBaseUnit ? 'active' : ''}`} title={t('products.product_units_editor.s9', "أساس حساب المخزون والتحويلات")}>
                       <input
                         type="radio"
                         name={`${title}-isBaseUnit`}
@@ -209,9 +211,9 @@ export function ProductUnitsEditor({ units, onChange, disabled = false, title = 
                         disabled={disabled}
                         onChange={() => setExclusive(index, 'isBaseUnit')}
                       />
-                      <span>أساسية (المخزون)</span>
+                      <span>{t('products.product_units_editor.s10', "أساسية (المخزون)")}</span>
                     </label>
-                    <label className={`product-unit-chip-btn ${unit.isSaleUnit ? 'active' : ''}`} title="الوحدة الافتراضية للبيع في شاشة الكاشير">
+                    <label className={`product-unit-chip-btn ${unit.isSaleUnit ? 'active' : ''}`} title={t('products.product_units_editor.s11', "الوحدة الافتراضية للبيع في شاشة الكاشير")}>
                       <input
                         type="radio"
                         name={`${title}-isSaleUnit`}
@@ -219,9 +221,9 @@ export function ProductUnitsEditor({ units, onChange, disabled = false, title = 
                         disabled={disabled}
                         onChange={() => setExclusive(index, 'isSaleUnit')}
                       />
-                      <span>بيع (الكاشير)</span>
+                      <span>{t('products.product_units_editor.s12', "بيع (الكاشير)")}</span>
                     </label>
-                    <label className={`product-unit-chip-btn ${unit.isPurchaseUnit ? 'active' : ''}`} title="الوحدة الافتراضية في فواتير الشراء">
+                    <label className={`product-unit-chip-btn ${unit.isPurchaseUnit ? 'active' : ''}`} title={t('products.product_units_editor.s13', "الوحدة الافتراضية في فواتير الشراء")}>
                       <input
                         type="radio"
                         name={`${title}-isPurchaseUnit`}
@@ -229,7 +231,7 @@ export function ProductUnitsEditor({ units, onChange, disabled = false, title = 
                         disabled={disabled}
                         onChange={() => setExclusive(index, 'isPurchaseUnit')}
                       />
-                      <span>شراء (المورد)</span>
+                      <span>{t('products.product_units_editor.s14', "شراء (المورد)")}</span>
                     </label>
                   </>
                 )}
@@ -243,7 +245,7 @@ export function ProductUnitsEditor({ units, onChange, disabled = false, title = 
                     onClick={() => removeRow(index)}
                     disabled={disabled}
                     className="unit-delete-btn"
-                    title="حذف هذه الوحدة"
+                    title={t('products.product_units_editor.s15', "حذف هذه الوحدة")}
                   ><XIcon size={15} /></button>
                 </div>
               )}
@@ -255,7 +257,7 @@ export function ProductUnitsEditor({ units, onChange, disabled = false, title = 
       {/* Footer Helper & Add Button */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.65rem', paddingTop: '0.45rem', borderTop: '1px solid #f1f5f9' }}>
         <span className="muted small" style={{ fontSize: '0.78rem' }}>
-          * حدد أصغر وحدة كأساسية للمخزون، واختر وحدة البيع الافتراضية للكاشير ووحدة الشراء للموردين.
+          {t('products.product_units_editor.s16', "* حدد أصغر وحدة كأساسية للمخزون، واختر وحدة البيع الافتراضية للكاشير ووحدة الشراء للموردين.")}
         </span>
         <Button
           type="button"
@@ -264,7 +266,7 @@ export function ProductUnitsEditor({ units, onChange, disabled = false, title = 
           disabled={disabled}
           style={{ minHeight: '30px', padding: '3px 12px', fontSize: '0.82rem' }}
         >
-          + إضافة وحدة جديدة
+          {t('products.product_units_editor.s17', "+ إضافة وحدة جديدة")}
         </Button>
       </div>
     </div>

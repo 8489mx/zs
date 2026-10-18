@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 import { ApprovalRequest } from '../api/approvals.api';
 import { Button } from '@/shared/ui/button';
@@ -14,6 +15,8 @@ export const ApprovalRequestsTable: React.FC<ApprovalRequestsTableProps> = ({
   loading,
   onSelectRequest,
 }) => {
+  const { t, i18n } = useTranslation();
+  const isEn = i18n.language === 'en';
   const moduleLabels: Record<string, string> = {
     purchase_orders: 'أمر شراء',
     purchases: 'فاتورة مشتريات',
@@ -39,7 +42,7 @@ export const ApprovalRequestsTable: React.FC<ApprovalRequestsTableProps> = ({
             }}
           >
             <ClockIcon size={12} />
-            قيد الاعتماد
+            {t('approvals.approval_requests_table.s0', "قيد الاعتماد")}
           </span>
         );
       case 'approved':
@@ -58,7 +61,7 @@ export const ApprovalRequestsTable: React.FC<ApprovalRequestsTableProps> = ({
             }}
           >
             <CheckIcon size={12} />
-            معتمد رسمياً
+            {t('approvals.approval_requests_table.s1', "معتمد رسمياً")}
           </span>
         );
       case 'rejected':
@@ -77,7 +80,7 @@ export const ApprovalRequestsTable: React.FC<ApprovalRequestsTableProps> = ({
             }}
           >
             <XIcon size={12} />
-            مرفوض
+            {t('approvals.approval_requests_table.s2', "مرفوض")}
           </span>
         );
       default:
@@ -110,27 +113,27 @@ export const ApprovalRequestsTable: React.FC<ApprovalRequestsTableProps> = ({
       <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right' }}>
         <thead>
           <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-            <th style={{ padding: '12px 16px', fontSize: 'var(--font-table-head)', color: '#475569' }}>المعاملة المرجعية</th>
-            <th style={{ padding: '12px 16px', fontSize: 'var(--font-table-head)', color: '#475569' }}>الموديول</th>
-            <th style={{ padding: '12px 16px', fontSize: 'var(--font-table-head)', color: '#475569' }}>القيمة المالية</th>
-            <th style={{ padding: '12px 16px', fontSize: 'var(--font-table-head)', color: '#475569' }}>المستوى المرحلي</th>
-            <th style={{ padding: '12px 16px', fontSize: 'var(--font-table-head)', color: '#475569' }}>مقدم الطلب</th>
-            <th style={{ padding: '12px 16px', fontSize: 'var(--font-table-head)', color: '#475569' }}>التاريخ والوقت</th>
-            <th style={{ padding: '12px 16px', fontSize: 'var(--font-table-head)', color: '#475569' }}>الحالة</th>
-            <th style={{ padding: '12px 16px', fontSize: 'var(--font-table-head)', color: '#475569', textAlign: 'center' }}>الإجراء</th>
+            <th style={{ padding: '12px 16px', fontSize: 'var(--font-table-head)', color: '#475569' }}>{t('approvals.approval_requests_table.s3', "المعاملة المرجعية")}</th>
+            <th style={{ padding: '12px 16px', fontSize: 'var(--font-table-head)', color: '#475569' }}>{t('approvals.approval_requests_table.s4', "الموديول")}</th>
+            <th style={{ padding: '12px 16px', fontSize: 'var(--font-table-head)', color: '#475569' }}>{t('approvals.approval_requests_table.s5', "القيمة المالية")}</th>
+            <th style={{ padding: '12px 16px', fontSize: 'var(--font-table-head)', color: '#475569' }}>{t('approvals.approval_requests_table.s6', "المستوى المرحلي")}</th>
+            <th style={{ padding: '12px 16px', fontSize: 'var(--font-table-head)', color: '#475569' }}>{t('approvals.approval_requests_table.s7', "مقدم الطلب")}</th>
+            <th style={{ padding: '12px 16px', fontSize: 'var(--font-table-head)', color: '#475569' }}>{t('approvals.approval_requests_table.s8', "التاريخ والوقت")}</th>
+            <th style={{ padding: '12px 16px', fontSize: 'var(--font-table-head)', color: '#475569' }}>{t('approvals.approval_requests_table.s9', "الحالة")}</th>
+            <th style={{ padding: '12px 16px', fontSize: 'var(--font-table-head)', color: '#475569', textAlign: 'center' }}>{t('approvals.approval_requests_table.s10', "الإجراء")}</th>
           </tr>
         </thead>
         <tbody>
           {loading ? (
             <tr>
               <td colSpan={8} style={{ padding: '32px', textAlign: 'center', color: '#64748b' }}>
-                جاري استدعاء طلبات الاعتماد...
+                {t('approvals.approval_requests_table.s11', "جاري استدعاء طلبات الاعتماد...")}
               </td>
             </tr>
           ) : requests.length === 0 ? (
             <tr>
               <td colSpan={8} style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>
-                لا توجد أي طلبات اعتماد مسجلة مطابقة للفلاتر الحالية.
+                {t('approvals.approval_requests_table.s12', "لا توجد أي طلبات اعتماد مسجلة مطابقة للفلاتر الحالية.")}
               </td>
             </tr>
           ) : (
@@ -163,11 +166,11 @@ export const ApprovalRequestsTable: React.FC<ApprovalRequestsTableProps> = ({
                       fontWeight: 600,
                     }}
                   >
-                    مستوى {req.current_tier} / {req.max_tier}
+                    {t('approvals.approval_requests_table.s13', "مستوى")} {req.current_tier} / {req.max_tier}
                   </span>
                 </td>
                 <td style={{ padding: '12px 16px', color: '#475569', fontSize: 'var(--font-body)' }}>
-                  {req.requested_by_name || 'مستخدم'}
+                  {req.requested_by_name || t('approvals.approval_requests_table.s14', "مستخدم")}
                 </td>
                 <td style={{ padding: '12px 16px', color: '#64748b', fontSize: 'var(--font-micro)' }}>
                   {new Date(req.created_at).toLocaleString('ar-EG')}
@@ -179,7 +182,7 @@ export const ApprovalRequestsTable: React.FC<ApprovalRequestsTableProps> = ({
                     onClick={() => onSelectRequest(req)}
                     style={{ padding: '4px 10px', fontSize: 'var(--font-micro)' }}
                   >
-                    {req.status === 'pending' ? 'فحص واعتماد' : 'استعراض السجل'}
+                    {req.status === 'pending' ? t('approvals.approval_requests_table.s15', "فحص واعتماد") : t('approvals.approval_requests_table.s16', "استعراض السجل")}
                   </Button>
                 </td>
               </tr>

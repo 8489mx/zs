@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '@/shared/components/page-header';
@@ -25,6 +26,7 @@ import { DailyAttendanceTable } from '../components/attendance/DailyAttendanceTa
 import { ManualAttendanceModal } from '../components/attendance/ManualAttendanceModal';
 
 export function HrAttendancePage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const mutations = useHrMutations();
   const [date, setDate] = useState(todayDate());
@@ -145,13 +147,13 @@ export function HrAttendancePage() {
     <div className="page-stack page-shell" dir="rtl">
       <main className="document-prototype-column" style={{ paddingBottom: '20px' }}>
         <PageHeader
-          title="الحضور والانصراف"
-          description="تسجيل الحضور اليومي، مراجعة الاستثناءات والتأخير والأوفر تايم في شاشة واحدة."
+          title={t('hr.hr_attendance_page.s0', "الحضور والانصراف")}
+          description={t('hr.hr_attendance_page.s1', "تسجيل الحضور اليومي، مراجعة الاستثناءات والتأخير والأوفر تايم في شاشة واحدة.")}
           actions={
             <div className="actions compact-actions">
-              <Button variant={importOpen ? 'primary' : 'secondary'} onClick={() => setImportOpen(!importOpen)}>استيراد</Button>
-              <Button variant="secondary" onClick={() => navigate('/hr/payroll')}>المرتبات</Button>
-              <Button variant="secondary" onClick={() => navigate('/hr/employees')}>الموظفون</Button>
+              <Button variant={importOpen ? 'primary' : 'secondary'} onClick={() => setImportOpen(!importOpen)}>{t('hr.hr_attendance_page.s2', "استيراد")}</Button>
+              <Button variant="secondary" onClick={() => navigate('/hr/payroll')}>{t('hr.hr_attendance_page.s3', "المرتبات")}</Button>
+              <Button variant="secondary" onClick={() => navigate('/hr/employees')}>{t('hr.hr_attendance_page.s4', "الموظفون")}</Button>
             </div>
           }
         />
@@ -160,33 +162,33 @@ export function HrAttendancePage() {
           {importOpen && (
             <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '16px', marginBottom: '16px' }}>
               <ImportWorkbench
-                title="استيراد الحضور من إكسيل"
-                description="يدعم الأعمدة العربية أو الإنجليزية المكافئة."
+                title={t('hr.hr_attendance_page.s5', "استيراد الحضور من إكسيل")}
+                description={t('hr.hr_attendance_page.s6', "يدعم الأعمدة العربية أو الإنجليزية المكافئة.")}
                 defaultCollapsed={false}
-                requiredColumns={['كود الموظف', 'التاريخ']}
+                requiredColumns={[t('hr.hr_attendance_page.s7', "كود الموظف"), t('hr.hr_attendance_page.s8', "التاريخ")]}
                 fieldMappings={[
-                  { key: 'employeeNo', label: 'كود الموظف (مطلوب)' },
-                  { key: 'workDate', label: 'التاريخ (مطلوب)' },
-                  { key: 'checkInAt', label: 'وقت الحضور' },
-                  { key: 'checkOutAt', label: 'وقت الانصراف' },
+                  { key: 'employeeNo', label: t('hr.hr_attendance_page.s9', "كود الموظف (مطلوب)") },
+                  { key: 'workDate', label: t('hr.hr_attendance_page.s10', "التاريخ (مطلوب)") },
+                  { key: 'checkInAt', label: t('hr.hr_attendance_page.s11', "وقت الحضور") },
+                  { key: 'checkOutAt', label: t('hr.hr_attendance_page.s12', "وقت الانصراف") },
                 ]}
                 isPending={mutations.bulkImportAttendanceRecords.isPending}
                 onDownloadTemplate={() => {
-                  const csv = 'كود الموظف,التاريخ,وقت الحضور,وقت الانصراف\n101,2026-07-25,09:00,17:00';
+                  const csv = t('hr.hr_attendance_page.s13', "كود الموظف,التاريخ,وقت الحضور,وقت الانصراف\n101,2026-07-25,09:00,17:00");
                   const blob = new Blob([new Uint8Array([0xef, 0xbb, 0xbf]), csv], { type: 'text/csv;charset=utf-8;' });
                   const link = document.createElement('a');
                   link.href = URL.createObjectURL(blob);
-                  link.download = 'نموذج_الحضور.csv';
+                  link.download = t('hr.hr_attendance_page.s14', "نموذج_الحضور.csv");
                   link.click();
                 }}
                 onImportRows={async (rows) => {
                   const records = rows.map((row) => {
-                    const workDate = String(row['التاريخ'] || row.workDate || '');
+                    const workDate = String(row[t('hr.hr_attendance_page.s15', "التاريخ")] || row.workDate || '');
                     return {
-                      employeeNo: String(row['كود الموظف'] || row.employeeNo || ''),
+                      employeeNo: String(row[t('hr.hr_attendance_page.s16', "كود الموظف")] || row.employeeNo || ''),
                       workDate,
-                      checkInAt: toDateTime(workDate, row['وقت الحضور'] || row.checkInAt || ''),
-                      checkOutAt: toDateTime(workDate, row['وقت الانصراف'] || row.checkOutAt || ''),
+                      checkInAt: toDateTime(workDate, row[t('hr.hr_attendance_page.s17', "وقت الحضور")] || row.checkInAt || ''),
+                      checkOutAt: toDateTime(workDate, row[t('hr.hr_attendance_page.s18', "وقت الانصراف")] || row.checkOutAt || ''),
                     };
                   }).filter(r => r.employeeNo && r.workDate);
                   return mutations.bulkImportAttendanceRecords.mutateAsync({ records });
@@ -220,7 +222,7 @@ export function HrAttendancePage() {
                 onClick={() => setActiveTab('attendance')}
                 style={{ padding: '5px 12px', fontSize: '0.825rem' }}
               >
-                سجل الحضور اليومي
+                {t('hr.hr_attendance_page.s19', "سجل الحضور اليومي")}
               </Button>
               <Button
                 type="button"
@@ -228,7 +230,7 @@ export function HrAttendancePage() {
                 onClick={() => setActiveTab('exceptions')}
                 style={{ padding: '5px 12px', fontSize: '0.825rem', position: 'relative' }}
               >
-                استثناءات الشهر
+                {t('hr.hr_attendance_page.s20', "استثناءات الشهر")}
                 {summary.needsAction > 0 && (
                   <span style={{ marginRight: '6px', background: '#dc2626', color: '#ffffff', borderRadius: '10px', padding: '1px 6px', fontSize: '0.7rem', fontWeight: 800 }}>
                     {summary.needsAction}
@@ -241,14 +243,14 @@ export function HrAttendancePage() {
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="بحث بالاسم أو الكود..."
+              placeholder={t('hr.hr_attendance_page.s21', "بحث بالاسم أو الكود...")}
               style={{ width: '190px', minWidth: '150px', padding: '5px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.825rem', background: '#fff', boxSizing: 'border-box' }}
             />
 
             {activeTab === 'attendance' ? (
               <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#475569', whiteSpace: 'nowrap' }}>التاريخ:</span>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#475569', whiteSpace: 'nowrap' }}>{t('hr.hr_attendance_page.s22', "التاريخ:")}</span>
                   <input
                     type="date"
                     value={date}
@@ -257,15 +259,15 @@ export function HrAttendancePage() {
                   />
                 </div>
                 <div style={{ display: 'flex', gap: '4px' }}>
-                  <Button type="button" variant={attendanceFilter === 'all' ? 'primary' : 'secondary'} onClick={() => setAttendanceFilter('all')} style={{ padding: '4px 10px', fontSize: '0.8rem' }}>الكل</Button>
-                  <Button type="button" variant={attendanceFilter === 'unmarked' ? 'primary' : 'secondary'} onClick={() => setAttendanceFilter('unmarked')} style={{ padding: '4px 10px', fontSize: '0.8rem' }}>لم يسجل</Button>
-                  <Button type="button" variant={attendanceFilter === 'recorded' ? 'primary' : 'secondary'} onClick={() => setAttendanceFilter('recorded')} style={{ padding: '4px 10px', fontSize: '0.8rem' }}>مسجل</Button>
+                  <Button type="button" variant={attendanceFilter === 'all' ? 'primary' : 'secondary'} onClick={() => setAttendanceFilter('all')} style={{ padding: '4px 10px', fontSize: '0.8rem' }}>{t('hr.hr_attendance_page.s23', "الكل")}</Button>
+                  <Button type="button" variant={attendanceFilter === 'unmarked' ? 'primary' : 'secondary'} onClick={() => setAttendanceFilter('unmarked')} style={{ padding: '4px 10px', fontSize: '0.8rem' }}>{t('hr.hr_attendance_page.s24', "لم يسجل")}</Button>
+                  <Button type="button" variant={attendanceFilter === 'recorded' ? 'primary' : 'secondary'} onClick={() => setAttendanceFilter('recorded')} style={{ padding: '4px 10px', fontSize: '0.8rem' }}>{t('hr.hr_attendance_page.s25', "مسجل")}</Button>
                 </div>
               </div>
             ) : (
               <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#475569', whiteSpace: 'nowrap' }}>الشهر:</span>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#475569', whiteSpace: 'nowrap' }}>{t('hr.hr_attendance_page.s26', "الشهر:")}</span>
                   <input
                     type="month"
                     value={exceptionMonth}
@@ -274,10 +276,10 @@ export function HrAttendancePage() {
                   />
                 </div>
                 <div style={{ display: 'flex', gap: '4px' }}>
-                  <Button type="button" variant={exceptionFilter === 'needs_action' ? 'primary' : 'secondary'} onClick={() => setExceptionFilter('needs_action')} style={{ padding: '4px 10px', fontSize: '0.8rem' }}>يحتاج إجراء</Button>
-                  <Button type="button" variant={exceptionFilter === 'overtime' ? 'primary' : 'secondary'} onClick={() => setExceptionFilter('overtime')} style={{ padding: '4px 10px', fontSize: '0.8rem' }}>إضافي</Button>
-                  <Button type="button" variant={exceptionFilter === 'deduction' ? 'primary' : 'secondary'} onClick={() => setExceptionFilter('deduction')} style={{ padding: '4px 10px', fontSize: '0.8rem' }}>خصم</Button>
-                  <Button type="button" variant={exceptionFilter === 'all' ? 'primary' : 'secondary'} onClick={() => setExceptionFilter('all')} style={{ padding: '4px 10px', fontSize: '0.8rem' }}>الكل</Button>
+                  <Button type="button" variant={exceptionFilter === 'needs_action' ? 'primary' : 'secondary'} onClick={() => setExceptionFilter('needs_action')} style={{ padding: '4px 10px', fontSize: '0.8rem' }}>{t('hr.hr_attendance_page.s27', "يحتاج إجراء")}</Button>
+                  <Button type="button" variant={exceptionFilter === 'overtime' ? 'primary' : 'secondary'} onClick={() => setExceptionFilter('overtime')} style={{ padding: '4px 10px', fontSize: '0.8rem' }}>{t('hr.hr_attendance_page.s28', "إضافي")}</Button>
+                  <Button type="button" variant={exceptionFilter === 'deduction' ? 'primary' : 'secondary'} onClick={() => setExceptionFilter('deduction')} style={{ padding: '4px 10px', fontSize: '0.8rem' }}>{t('hr.hr_attendance_page.s29', "خصم")}</Button>
+                  <Button type="button" variant={exceptionFilter === 'all' ? 'primary' : 'secondary'} onClick={() => setExceptionFilter('all')} style={{ padding: '4px 10px', fontSize: '0.8rem' }}>{t('hr.hr_attendance_page.s30', "الكل")}</Button>
                 </div>
               </div>
             )}
@@ -290,9 +292,9 @@ export function HrAttendancePage() {
               isError={attendance.isError}
               error={attendance.error}
               isEmpty={!filteredAttendanceRows.length}
-              loadingText="جاري تحميل سجلات الحضور..."
-              errorTitle="تعذر تحميل سجلات الحضور."
-              emptyTitle="لا توجد سجلات مطابقة للفلتر الحالي."
+              loadingText={t('hr.hr_attendance_page.s31', "جاري تحميل سجلات الحضور...")}
+              errorTitle={t('hr.hr_attendance_page.s32', "تعذر تحميل سجلات الحضور.")}
+              emptyTitle={t('hr.hr_attendance_page.s33', "لا توجد سجلات مطابقة للفلتر الحالي.")}
             >
               <DailyAttendanceTable
                 rows={filteredAttendanceRows}
@@ -307,9 +309,9 @@ export function HrAttendancePage() {
               isError={exceptions.isError}
               error={exceptions.error}
               isEmpty={!exceptionRows.length}
-              loadingText="جاري تحميل الاستثناءات..."
-              errorTitle="تعذر تحميل الاستثناءات."
-              emptyTitle="لا توجد استثناءات مطابقة لهذا الفلتر."
+              loadingText={t('hr.hr_attendance_page.s34', "جاري تحميل الاستثناءات...")}
+              errorTitle={t('hr.hr_attendance_page.s35', "تعذر تحميل الاستثناءات.")}
+              emptyTitle={t('hr.hr_attendance_page.s36', "لا توجد استثناءات مطابقة لهذا الفلتر.")}
             >
               <AttendanceExceptionsTable
                 rows={exceptionRows}

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { createBrowserRouter, createHashRouter, Navigate, Outlet, RouterProvider, useLocation, useNavigate } from 'react-router-dom';
 import { lazy, Suspense, type ReactNode } from 'react';
 import { createLazyRoute } from '@/app/router/lazy-route';
@@ -49,6 +50,7 @@ function storeHostRoutes() {
 }
 
 function NoWorkspaceAccess() {
+  const { t } = useTranslation();
   const clearSession = useAuthStore((state) => state.clearSession);
   const navigate = useNavigate();
 
@@ -60,11 +62,11 @@ function NoWorkspaceAccess() {
   return (
     <div className="screen-center">
       <div className="loading-card stack gap-12" style={{ maxWidth: 420, textAlign: 'center' }}>
-        <h2 style={{ margin: 0 }}>لا توجد صلاحيات مفعّلة لهذا الحساب</h2>
+        <h2 style={{ margin: 0 }}>{t('app.router.root_router.s0', "لا توجد صلاحيات مفعّلة لهذا الحساب")}</h2>
         <p className="muted" style={{ margin: 0 }}>
-          لا يمكن فتح أي مساحة عمل حاليًا. راجع مسؤول النظام لتفعيل صلاحيات مناسبة لهذا المستخدم.
+          {t('app.router.root_router.s1', "لا يمكن فتح أي مساحة عمل حاليًا. راجع مسؤول النظام لتفعيل صلاحيات مناسبة لهذا المستخدم.")}
         </p>
-        <Button type="button" variant="secondary" onClick={handleExit}>تسجيل الخروج</Button>
+        <Button type="button" variant="secondary" onClick={handleExit}>{t('app.router.root_router.s2', "تسجيل الخروج")}</Button>
       </div>
     </div>
   );

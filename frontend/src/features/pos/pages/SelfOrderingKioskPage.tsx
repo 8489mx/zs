@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useMemo } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '@/stores/auth-store';
@@ -111,6 +112,7 @@ function getSmartProductImage(product: any): string {
 }
 
 export function SelfOrderingKioskPage() {
+  const { t: __t } = useTranslation();
   const { slug: routeSlug } = useParams<{ slug?: string }>();
   const [searchParams] = useSearchParams();
   const querySlug = searchParams.get('store') || searchParams.get('slug');
@@ -577,7 +579,7 @@ export function SelfOrderingKioskPage() {
                 transition: 'all 0.15s ease',
               }}
             >
-              مطعم المشويات والسندوتشات (75 وجبة)
+              {__t('pos.self_ordering_kiosk_page.s0', __t('pos.self_ordering_kiosk_page.s0', "مطعم المشويات والسندوتشات (75 وجبة)"))}
             </button>
             <button
               type="button"
@@ -594,7 +596,7 @@ export function SelfOrderingKioskPage() {
                 transition: 'all 0.15s ease',
               }}
             >
-              متجر الأجهزة والهواتف
+              {__t('pos.self_ordering_kiosk_page.s1', __t('pos.self_ordering_kiosk_page.s1', "متجر الأجهزة والهواتف"))}
             </button>
           </div>
 
@@ -602,7 +604,7 @@ export function SelfOrderingKioskPage() {
             {storeDisplayName}
           </h1>
           <p style={{ fontSize: '16px', color: '#64748b', margin: '0 0 42px', lineHeight: 1.6 }}>
-            شاشة الخدمة الذاتية • تفضل باختيار طريقة استلام وجبتك
+            {__t('pos.self_ordering_kiosk_page.s2', __t('pos.self_ordering_kiosk_page.s2', "شاشة الخدمة الذاتية • تفضل باختيار طريقة استلام وجبتك"))}
           </p>
 
           {/* بطاقتي الاختيار للمس المريح */}
@@ -640,10 +642,10 @@ export function SelfOrderingKioskPage() {
               </div>
               <div>
                 <div style={{ fontSize: '23px', fontWeight: 900, color: '#0f172a' }}>
-                  تناول بالصالة
+                  {__t('pos.self_ordering_kiosk_page.s3', __t('pos.self_ordering_kiosk_page.s3', "تناول بالصالة"))}
                 </div>
                 <div style={{ fontSize: '13px', color: '#64748b', marginTop: '6px' }}>
-                  Dine In • استمتع بوجبتك ساخنة على الطاولة
+                  {__t('pos.self_ordering_kiosk_page.s4', __t('pos.self_ordering_kiosk_page.s4', "Dine In • استمتع بوجبتك ساخنة على الطاولة"))}
                 </div>
               </div>
             </button>
@@ -681,10 +683,10 @@ export function SelfOrderingKioskPage() {
               </div>
               <div>
                 <div style={{ fontSize: '23px', fontWeight: 900, color: '#0f172a' }}>
-                  استلام سفري
+                  {__t('pos.self_ordering_kiosk_page.s5', __t('pos.self_ordering_kiosk_page.s5', "استلام سفري"))}
                 </div>
                 <div style={{ fontSize: '13px', color: '#64748b', marginTop: '6px' }}>
-                  Takeaway • استلم وجبتك مغلفة من الكاونتر
+                  {__t('pos.self_ordering_kiosk_page.s6', __t('pos.self_ordering_kiosk_page.s6', "Takeaway • استلم وجبتك مغلفة من الكاونتر"))}
                 </div>
               </div>
             </button>
@@ -742,7 +744,7 @@ export function SelfOrderingKioskPage() {
               </div>
 
               <h2 style={{ fontSize: '25px', fontWeight: 900, color: '#0f172a', margin: '0 0 8px' }}>
-                تم تسجيل طلبك بنجاح!
+                {__t('pos.self_ordering_kiosk_page.s7', __t('pos.self_ordering_kiosk_page.s7', "تم تسجيل طلبك بنجاح!"))}
               </h2>
               <div
                 style={{
@@ -757,7 +759,7 @@ export function SelfOrderingKioskPage() {
                   lineHeight: 1.5,
                 }}
               >
-                تذكرتك غير مدفوعة حالياً • يرجى أخذ التذكرة والتوجه لكاونتر الكاشير لسداد {formatCurrency(orderConfirmedData.total)} (نقداً أو بالفيزا) لتأكيد الطلب وبدء تحضيره فوراً
+                {__t('pos.self_ordering_kiosk_page.s8', __t('pos.self_ordering_kiosk_page.s8', "تذكرتك غير مدفوعة حالياً • يرجى أخذ التذكرة والتوجه لكاونتر الكاشير لسداد"))} {formatCurrency(orderConfirmedData.total)} {__t('pos.self_ordering_kiosk_page.s9', __t('pos.self_ordering_kiosk_page.s9', "(نقداً أو بالفيزا) لتأكيد الطلب وبدء تحضيره فوراً"))}
               </div>
             </>
           ) : (
@@ -778,10 +780,10 @@ export function SelfOrderingKioskPage() {
               </div>
 
               <h2 style={{ fontSize: '26px', fontWeight: 900, color: '#0f172a', margin: '0 0 8px' }}>
-                تم استلام ودفع طلبك بنجاح!
+                {__t('pos.self_ordering_kiosk_page.s10', __t('pos.self_ordering_kiosk_page.s10', "تم استلام ودفع طلبك بنجاح!"))}
               </h2>
               <p style={{ fontSize: '14.5px', color: '#64748b', margin: '0 0 24px' }}>
-                طلبك أُرسل لشاشات المطبخ ويتم تجهيزه الآن بكل عناية
+                {__t('pos.self_ordering_kiosk_page.s11', __t('pos.self_ordering_kiosk_page.s11', "طلبك أُرسل لشاشات المطبخ ويتم تجهيزه الآن بكل عناية"))}
               </p>
             </>
           )}
@@ -795,7 +797,7 @@ export function SelfOrderingKioskPage() {
             }}
           >
             <div style={{ fontSize: '13px', fontWeight: 700, color: '#64748b', marginBottom: '6px' }}>
-              رقم تذكرتك في شاشة المناداة:
+              {__t('pos.self_ordering_kiosk_page.s12', __t('pos.self_ordering_kiosk_page.s12', "رقم تذكرتك في شاشة المناداة:"))}
             </div>
             <div style={{ fontSize: '48px', fontWeight: 900, color: '#170e5e', letterSpacing: '2px' }}>
               #{orderConfirmedData.orderNumber}
@@ -815,7 +817,7 @@ export function SelfOrderingKioskPage() {
                     fontWeight: 900,
                   }}
                 >
-                  تذكرة غير مدفوعة • يلزم السداد لدى الكاشير
+                  {__t('pos.self_ordering_kiosk_page.s13', __t('pos.self_ordering_kiosk_page.s13', "تذكرة غير مدفوعة • يلزم السداد لدى الكاشير"))}
                 </span>
               ) : (
                 <span
@@ -829,23 +831,23 @@ export function SelfOrderingKioskPage() {
                     fontWeight: 900,
                   }}
                 >
-                  مدفوع بالكامل • {orderConfirmedData.paymentMethodLabel}
+                  {__t('pos.self_ordering_kiosk_page.s14', __t('pos.self_ordering_kiosk_page.s14', "مدفوع بالكامل •"))} {orderConfirmedData.paymentMethodLabel}
                 </span>
               )}
             </div>
 
             {orderConfirmedData.tableNumber && (
               <div style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a', marginTop: '10px' }}>
-                طاولة رقم: {orderConfirmedData.tableNumber}
+                {__t('pos.self_ordering_kiosk_page.s15', __t('pos.self_ordering_kiosk_page.s15', "طاولة رقم:"))} {orderConfirmedData.tableNumber}
               </div>
             )}
             <div style={{ fontSize: '13.5px', color: '#475569', marginTop: '10px' }}>
-              المبلغ الإجمالي: <strong>{formatCurrency(orderConfirmedData.total)}</strong> ({orderConfirmedData.diningMode})
+              {__t('pos.self_ordering_kiosk_page.s16', __t('pos.self_ordering_kiosk_page.s16', "المبلغ الإجمالي:"))} <strong>{formatCurrency(orderConfirmedData.total)}</strong> ({orderConfirmedData.diningMode})
             </div>
           </div>
 
           <p style={{ fontSize: '12.5px', color: '#94a3b8', marginBottom: '20px' }}>
-            ستعود الشاشة للرئيسية تلقائياً خلال {resetCountdown} ثانية...
+            {__t('pos.self_ordering_kiosk_page.s17', __t('pos.self_ordering_kiosk_page.s17', "ستعود الشاشة للرئيسية تلقائياً خلال"))} {resetCountdown} {__t('pos.self_ordering_kiosk_page.s18', __t('pos.self_ordering_kiosk_page.s18', "ثانية..."))}
           </p>
 
           <div style={{ display: 'flex', gap: '12px', marginBottom: '14px' }}>
@@ -872,8 +874,8 @@ export function SelfOrderingKioskPage() {
               <PrinterIcon size={20} color="#170e5e" />
               <span>
                 {orderConfirmedData.paymentStatus === 'unpaid'
-                  ? 'طباعة تذكرة السداد لدى الكاشير'
-                  : 'طباعة إيصال الطلب والنداء'}
+                  ? __t('pos.self_ordering_kiosk_page.s19', __t('pos.self_ordering_kiosk_page.s19', "طباعة تذكرة السداد لدى الكاشير"))
+                  : __t('pos.self_ordering_kiosk_page.s20', __t('pos.self_ordering_kiosk_page.s20', "طباعة إيصال الطلب والنداء"))}
               </span>
             </Button>
           </div>
@@ -890,7 +892,7 @@ export function SelfOrderingKioskPage() {
               borderRadius: '14px',
             }}
           >
-            طلب جديد الآن
+            {__t('pos.self_ordering_kiosk_page.s21', __t('pos.self_ordering_kiosk_page.s21', "طلب جديد الآن"))}
           </Button>
 
           {/* Hidden Thermal Printable Receipt */}
@@ -914,16 +916,16 @@ export function SelfOrderingKioskPage() {
             `}</style>
             <div style={{ textAlign: 'center', borderBottom: '1px dashed #000', paddingBottom: '8px', marginBottom: '8px' }}>
               <h3 style={{ margin: '0 0 4px', fontSize: '18px', fontWeight: 900 }}>{storeDisplayName}</h3>
-              <div style={{ fontSize: '12px' }}>طلب خدمة ذاتية - كشك ذكي</div>
+              <div style={{ fontSize: '12px' }}>{__t('pos.self_ordering_kiosk_page.s22', __t('pos.self_ordering_kiosk_page.s22', "طلب خدمة ذاتية - كشك ذكي"))}</div>
               <div style={{ fontSize: '11px', marginTop: '2px' }}>{orderConfirmedData.placedAt || ''}</div>
             </div>
 
             <div style={{ textAlign: 'center', margin: '12px 0', borderBottom: '1px dashed #000', paddingBottom: '10px' }}>
-              <div style={{ fontSize: '13px', fontWeight: 700 }}>رقم التذكرة والاستلام:</div>
+              <div style={{ fontSize: '13px', fontWeight: 700 }}>{__t('pos.self_ordering_kiosk_page.s23', __t('pos.self_ordering_kiosk_page.s23', "رقم التذكرة والاستلام:"))}</div>
               <div style={{ fontSize: '38px', fontWeight: 900, margin: '4px 0' }}>#{orderConfirmedData.orderNumber}</div>
               <div style={{ fontSize: '13px', fontWeight: 800 }}>{orderConfirmedData.diningMode}</div>
               {orderConfirmedData.tableNumber && (
-                <div style={{ fontSize: '14px', fontWeight: 900, marginTop: '4px' }}>طاولة: {orderConfirmedData.tableNumber}</div>
+                <div style={{ fontSize: '14px', fontWeight: 900, marginTop: '4px' }}>{__t('pos.self_ordering_kiosk_page.s24', __t('pos.self_ordering_kiosk_page.s24', "طاولة:"))} {orderConfirmedData.tableNumber}</div>
               )}
 
               {/* تحذير صريح على الورقة المطبوعة إذا كان غير مدفوع */}
@@ -938,18 +940,18 @@ export function SelfOrderingKioskPage() {
                     lineHeight: 1.4,
                   }}
                 >
-                  *** تذكرة غير مدفوعة - UNPAID ***
+                  {__t('pos.self_ordering_kiosk_page.s25', __t('pos.self_ordering_kiosk_page.s25', "*** تذكرة غير مدفوعة - UNPAID ***"))}
                   <br />
-                  يرجى التوجه للكاشير لسداد {formatCurrency(orderConfirmedData.total)}
+                  {__t('pos.self_ordering_kiosk_page.s26', __t('pos.self_ordering_kiosk_page.s26', "يرجى التوجه للكاشير لسداد"))} {formatCurrency(orderConfirmedData.total)}
                   <br />
-                  (نقداً أو بالبطاقة البنكية)
+                  {__t('pos.self_ordering_kiosk_page.s27', __t('pos.self_ordering_kiosk_page.s27', "(نقداً أو بالبطاقة البنكية)"))}
                 </div>
               ) : (
                 <div style={{ fontSize: '12px', fontWeight: 800, marginTop: '6px' }}>
-                  *** طلب مدفوع بالكامل - PAID ***
-                  <div>طريقة الدفع: {orderConfirmedData.paymentMethodLabel}</div>
-                  {orderConfirmedData.authCode && <div>رقم التفويض: {orderConfirmedData.authCode}</div>}
-                  {orderConfirmedData.rrn && <div>رقم المرجع: {orderConfirmedData.rrn}</div>}
+                  {__t('pos.self_ordering_kiosk_page.s28', __t('pos.self_ordering_kiosk_page.s28', "*** طلب مدفوع بالكامل - PAID ***"))}
+                  <div>{__t('pos.self_ordering_kiosk_page.s29', __t('pos.self_ordering_kiosk_page.s29', "طريقة الدفع:"))} {orderConfirmedData.paymentMethodLabel}</div>
+                  {orderConfirmedData.authCode && <div>{__t('pos.self_ordering_kiosk_page.s30', __t('pos.self_ordering_kiosk_page.s30', "رقم التفويض:"))} {orderConfirmedData.authCode}</div>}
+                  {orderConfirmedData.rrn && <div>{__t('pos.self_ordering_kiosk_page.s31', __t('pos.self_ordering_kiosk_page.s31', "رقم المرجع:"))} {orderConfirmedData.rrn}</div>}
                 </div>
               )}
             </div>
@@ -965,13 +967,13 @@ export function SelfOrderingKioskPage() {
               </div>
             )}
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '15px', fontWeight: 900, marginBottom: '12px' }}>
-              <span>الإجمالي:</span>
+              <span>{__t('pos.self_ordering_kiosk_page.s32', __t('pos.self_ordering_kiosk_page.s32', "الإجمالي:"))}</span>
               <span>{formatCurrency(orderConfirmedData.total)}</span>
             </div>
             <div style={{ textAlign: 'center', fontSize: '11px' }}>
               {orderConfirmedData.paymentStatus === 'unpaid'
-                ? 'يرجى سداد هذه التذكرة لدى الكاشير لتأكيد طلبك وبدء تحضيره في المطبخ.'
-                : 'شكراً لزيارتكم! يرجى الانتظار حتى مناداة رقمك على الشاشة.'}
+                ? __t('pos.self_ordering_kiosk_page.s33', __t('pos.self_ordering_kiosk_page.s33', "يرجى سداد هذه التذكرة لدى الكاشير لتأكيد طلبك وبدء تحضيره في المطبخ."))
+                : __t('pos.self_ordering_kiosk_page.s34', __t('pos.self_ordering_kiosk_page.s34', "شكراً لزيارتكم! يرجى الانتظار حتى مناداة رقمك على الشاشة."))}
             </div>
           </div>
         </div>
@@ -1062,7 +1064,7 @@ export function SelfOrderingKioskPage() {
                     color: diningMode === 'dine_in' ? '#1e40af' : '#15803d',
                   }}
                 >
-                  الوضع: {diningMode === 'dine_in' ? 'تناول بالصالة' : 'استلام سفري'}
+                  {__t('pos.self_ordering_kiosk_page.s35', __t('pos.self_ordering_kiosk_page.s35', "الوضع:"))} {diningMode === 'dine_in' ? __t('pos.self_ordering_kiosk_page.s36', __t('pos.self_ordering_kiosk_page.s36', "تناول بالصالة")) : __t('pos.self_ordering_kiosk_page.s37', __t('pos.self_ordering_kiosk_page.s37', "استلام سفري"))}
                 </span>
                 <button
                   type="button"
@@ -1078,7 +1080,7 @@ export function SelfOrderingKioskPage() {
                     padding: 0,
                   }}
                 >
-                  (تغيير)
+                  {__t('pos.self_ordering_kiosk_page.s38', __t('pos.self_ordering_kiosk_page.s38', "(تغيير)"))}
                 </button>
               </div>
             </div>
@@ -1103,7 +1105,7 @@ export function SelfOrderingKioskPage() {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="ابحث عن وجبة أو مشروب..."
+              placeholder={__t('pos.self_ordering_kiosk_page.s39', __t('pos.self_ordering_kiosk_page.s39', "ابحث عن وجبة أو مشروب..."))}
               style={{
                 width: '100%',
                 height: '38px',
@@ -1180,7 +1182,7 @@ export function SelfOrderingKioskPage() {
                   cursor: 'pointer',
                 }}
               >
-                المطعم
+                {__t('pos.self_ordering_kiosk_page.s40', __t('pos.self_ordering_kiosk_page.s40', "المطعم"))}
               </button>
               <button
                 type="button"
@@ -1199,7 +1201,7 @@ export function SelfOrderingKioskPage() {
                   cursor: 'pointer',
                 }}
               >
-                الأجهزة
+                {__t('pos.self_ordering_kiosk_page.s41', __t('pos.self_ordering_kiosk_page.s41', "الأجهزة"))}
               </button>
             </div>
 
@@ -1221,7 +1223,7 @@ export function SelfOrderingKioskPage() {
               }}
             >
               <ArrowRightIcon size={14} />
-              <span>البدء من جديد</span>
+              <span>{__t('pos.self_ordering_kiosk_page.s42', __t('pos.self_ordering_kiosk_page.s42', "البدء من جديد"))}</span>
             </button>
           </div>
         </header>
@@ -1253,7 +1255,7 @@ export function SelfOrderingKioskPage() {
             }}
           >
             <div style={{ fontSize: '11px', fontWeight: 800, color: '#94a3b8', padding: '0 8px 4px' }}>
-              أقسام القائمة
+              {__t('pos.self_ordering_kiosk_page.s43', __t('pos.self_ordering_kiosk_page.s43', "أقسام القائمة"))}
             </div>
 
             {/* كافة الأصناف */}
@@ -1276,7 +1278,7 @@ export function SelfOrderingKioskPage() {
                 transition: 'all 0.15s ease',
               }}
             >
-              <span>كافة الأصناف</span>
+              <span>{__t('pos.self_ordering_kiosk_page.s44', __t('pos.self_ordering_kiosk_page.s44', "كافة الأصناف"))}</span>
               <span
                 style={{
                   fontSize: '10.5px',
@@ -1284,7 +1286,7 @@ export function SelfOrderingKioskPage() {
                   fontWeight: 600,
                 }}
               >
-                {products.length} وجبة
+                {products.length} {__t('pos.self_ordering_kiosk_page.s45', __t('pos.self_ordering_kiosk_page.s45', "وجبة"))}
               </span>
             </button>
 
@@ -1324,7 +1326,7 @@ export function SelfOrderingKioskPage() {
                       fontWeight: 600,
                     }}
                   >
-                    {countInCat} وجبة
+                    {countInCat} {__t('pos.self_ordering_kiosk_page.s46', __t('pos.self_ordering_kiosk_page.s46', "وجبة"))}
                   </span>
                 </button>
               );
@@ -1347,7 +1349,7 @@ export function SelfOrderingKioskPage() {
                 <div style={{ display: 'inline-block', marginBottom: '12px' }}>
                   <RefreshCwIcon size={28} color="#170e5e" />
                 </div>
-                <div style={{ fontSize: '15px', fontWeight: 800 }}>جارٍ تحميل قائمة الوجبات...</div>
+                <div style={{ fontSize: '15px', fontWeight: 800 }}>{__t('pos.self_ordering_kiosk_page.s47', __t('pos.self_ordering_kiosk_page.s47', "جارٍ تحميل قائمة الوجبات..."))}</div>
               </div>
             ) : filteredProducts.length === 0 ? (
               <div
@@ -1363,10 +1365,10 @@ export function SelfOrderingKioskPage() {
               >
                 <UtensilsIcon size={36} color="#cbd5e1" />
                 <div style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a', marginTop: '10px' }}>
-                  لا توجد وجبات في هذا القسم
+                  {__t('pos.self_ordering_kiosk_page.s48', __t('pos.self_ordering_kiosk_page.s48', "لا توجد وجبات في هذا القسم"))}
                 </div>
                 <div style={{ fontSize: '12px', color: '#64748b', marginTop: '4px' }}>
-                  جرب اختيار قسم آخر أو إلغاء كلمة البحث
+                  {__t('pos.self_ordering_kiosk_page.s49', __t('pos.self_ordering_kiosk_page.s49', "جرب اختيار قسم آخر أو إلغاء كلمة البحث"))}
                 </div>
               </div>
             ) : (
@@ -1432,7 +1434,7 @@ export function SelfOrderingKioskPage() {
                               boxShadow: '0 2px 6px rgba(0,0,0,0.25)',
                             }}
                           >
-                            {inCartQty} بالسلة
+                            {inCartQty} {__t('pos.self_ordering_kiosk_page.s50', __t('pos.self_ordering_kiosk_page.s50', "بالسلة"))}
                           </span>
                         )}
                       </div>
@@ -1485,7 +1487,7 @@ export function SelfOrderingKioskPage() {
                               }}
                             >
                               <PlusCircleIcon size={14} />
-                              <span>إضافة</span>
+                              <span>{__t('pos.self_ordering_kiosk_page.s51', __t('pos.self_ordering_kiosk_page.s51', "إضافة"))}</span>
                             </button>
                           ) : (
                             /* عداد تفاعلي مباشر داخل الكارت: [+] (الكمية) [-] */
@@ -1579,10 +1581,10 @@ export function SelfOrderingKioskPage() {
             >
               <div>
                 <h3 style={{ margin: 0, fontSize: '15.5px', fontWeight: 900, color: '#0f172a' }}>
-                  صينية طلبك
+                  {__t('pos.self_ordering_kiosk_page.s52', __t('pos.self_ordering_kiosk_page.s52', "صينية طلبك"))}
                 </h3>
                 <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>
-                  {diningMode === 'dine_in' ? 'تناول بالصالة' : 'استلام سفري'} • {totalItemsCount} وجبة
+                  {diningMode === 'dine_in' ? __t('pos.self_ordering_kiosk_page.s53', __t('pos.self_ordering_kiosk_page.s53', "تناول بالصالة")) : __t('pos.self_ordering_kiosk_page.s54', __t('pos.self_ordering_kiosk_page.s54', "استلام سفري"))} • {totalItemsCount} {__t('pos.self_ordering_kiosk_page.s55', __t('pos.self_ordering_kiosk_page.s55', "وجبة"))}
                 </div>
               </div>
 
@@ -1600,7 +1602,7 @@ export function SelfOrderingKioskPage() {
                     padding: 0,
                   }}
                 >
-                  إفراغ الصينية
+                  {__t('pos.self_ordering_kiosk_page.s56', __t('pos.self_ordering_kiosk_page.s56', "إفراغ الصينية"))}
                 </button>
               )}
             </div>
@@ -1644,10 +1646,10 @@ export function SelfOrderingKioskPage() {
                     <ShoppingBagIcon size={26} color="#94a3b8" />
                   </div>
                   <div style={{ fontSize: '14px', fontWeight: 800, color: '#475569' }}>
-                    صينيتك فارغة حالياً
+                    {__t('pos.self_ordering_kiosk_page.s57', __t('pos.self_ordering_kiosk_page.s57', "صينيتك فارغة حالياً"))}
                   </div>
                   <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '4px' }}>
-                    اختر وجباتك المفضلة من القائمة لتظهر هنا فوراً
+                    {__t('pos.self_ordering_kiosk_page.s58', __t('pos.self_ordering_kiosk_page.s58', "اختر وجباتك المفضلة من القائمة لتظهر هنا فوراً"))}
                   </div>
                 </div>
               ) : (
@@ -1781,8 +1783,8 @@ export function SelfOrderingKioskPage() {
               }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                <span style={{ fontSize: '11.5px', color: '#64748b' }}>عدد الوجبات:</span>
-                <span style={{ fontSize: '12.5px', fontWeight: 800, color: '#0f172a' }}>{totalItemsCount} وجبة</span>
+                <span style={{ fontSize: '11.5px', color: '#64748b' }}>{__t('pos.self_ordering_kiosk_page.s59', __t('pos.self_ordering_kiosk_page.s59', "عدد الوجبات:"))}</span>
+                <span style={{ fontSize: '12.5px', fontWeight: 800, color: '#0f172a' }}>{totalItemsCount} {__t('pos.self_ordering_kiosk_page.s60', __t('pos.self_ordering_kiosk_page.s60', "وجبة"))}</span>
               </div>
               <div
                 style={{
@@ -1792,7 +1794,7 @@ export function SelfOrderingKioskPage() {
                   marginBottom: '12px',
                 }}
               >
-                <span style={{ fontSize: '13.5px', fontWeight: 900, color: '#0f172a' }}>المجموع الإجمالي:</span>
+                <span style={{ fontSize: '13.5px', fontWeight: 900, color: '#0f172a' }}>{__t('pos.self_ordering_kiosk_page.s61', __t('pos.self_ordering_kiosk_page.s61', "المجموع الإجمالي:"))}</span>
                 <span style={{ fontSize: '19px', fontWeight: 900, color: '#170e5e' }}>
                   {formatCurrency(totalCartAmount)}
                 </span>
@@ -1812,7 +1814,7 @@ export function SelfOrderingKioskPage() {
                   boxShadow: cart.length > 0 ? '0 4px 14px rgba(23, 14, 94, 0.25)' : 'none',
                 }}
               >
-                إتمام الطلب والدفع
+                {__t('pos.self_ordering_kiosk_page.s62', __t('pos.self_ordering_kiosk_page.s62', "إتمام الطلب والدفع"))}
               </Button>
             </div>
           </aside>
@@ -1828,7 +1830,7 @@ export function SelfOrderingKioskPage() {
       <DialogShell
         open={isReviewOpen}
         onClose={() => setIsReviewOpen(false)}
-        ariaLabel="تأكيد ودفع الطلب بالكشك"
+        ariaLabel={__t('pos.self_ordering_kiosk_page.s63', __t('pos.self_ordering_kiosk_page.s63', "تأكيد ودفع الطلب بالكشك"))}
         width="min(520px, 95vw)"
         zIndex={90}
       >
@@ -1846,10 +1848,10 @@ export function SelfOrderingKioskPage() {
           >
             <div>
               <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 900, color: '#0f172a' }}>
-                تأكيد الطلب وطريقة الدفع
+                {__t('pos.self_ordering_kiosk_page.s64', __t('pos.self_ordering_kiosk_page.s64', "تأكيد الطلب وطريقة الدفع"))}
               </h3>
               <div style={{ fontSize: '12px', color: '#64748b', marginTop: '3px' }}>
-                {storeDisplayName} • خطوة أخيرة لاستلام إيصالك
+                {storeDisplayName} {__t('pos.self_ordering_kiosk_page.s65', __t('pos.self_ordering_kiosk_page.s65', "• خطوة أخيرة لاستلام إيصالك"))}
               </div>
             </div>
             <button
@@ -1904,15 +1906,15 @@ export function SelfOrderingKioskPage() {
               </div>
               <div>
                 <div style={{ fontSize: '13.5px', fontWeight: 900, color: '#0f172a' }}>
-                  {diningMode === 'dine_in' ? 'تناول بالصالة (Dine In)' : 'استلام سفري (Takeaway)'}
+                  {diningMode === 'dine_in' ? __t('pos.self_ordering_kiosk_page.s66', __t('pos.self_ordering_kiosk_page.s66', "تناول بالصالة (Dine In)")) : __t('pos.self_ordering_kiosk_page.s67', __t('pos.self_ordering_kiosk_page.s67', "استلام سفري (Takeaway)"))}
                 </div>
                 <div style={{ fontSize: '11.5px', color: '#64748b', marginTop: '1px' }}>
-                  إجمالي {totalItemsCount} وجبة في الصينية
+                  {__t('pos.self_ordering_kiosk_page.s68', __t('pos.self_ordering_kiosk_page.s68', "إجمالي"))} {totalItemsCount} {__t('pos.self_ordering_kiosk_page.s69', __t('pos.self_ordering_kiosk_page.s69', "وجبة في الصينية"))}
                 </div>
               </div>
             </div>
             <div style={{ textAlign: 'left' }}>
-              <div style={{ fontSize: '11px', color: '#64748b' }}>المبلغ الإجمالي</div>
+              <div style={{ fontSize: '11px', color: '#64748b' }}>{__t('pos.self_ordering_kiosk_page.s70', __t('pos.self_ordering_kiosk_page.s70', "المبلغ الإجمالي"))}</div>
               <div style={{ fontSize: '18px', fontWeight: 900, color: '#170e5e' }}>
                 {formatCurrency(totalCartAmount)}
               </div>
@@ -1937,7 +1939,7 @@ export function SelfOrderingKioskPage() {
                     color: '#0f172a',
                   }}
                 >
-                  رقم الطاولة أو جهاز النداء:
+                  {__t('pos.self_ordering_kiosk_page.s71', __t('pos.self_ordering_kiosk_page.s71', "رقم الطاولة أو جهاز النداء:"))}
                 </label>
                 {tableNumber && (
                   <span
@@ -1950,7 +1952,7 @@ export function SelfOrderingKioskPage() {
                       borderRadius: '6px',
                     }}
                   >
-                    طاولة {tableNumber} مختارة
+                    {__t('pos.self_ordering_kiosk_page.s72', __t('pos.self_ordering_kiosk_page.s72', "طاولة"))} {tableNumber} {__t('pos.self_ordering_kiosk_page.s73', __t('pos.self_ordering_kiosk_page.s73', "مختارة"))}
                   </span>
                 )}
               </div>
@@ -1992,7 +1994,7 @@ export function SelfOrderingKioskPage() {
                 type="text"
                 value={tableNumber}
                 onChange={(e) => setTableNumber(e.target.value)}
-                placeholder="أو اكتب رقم طاولة أخرى يدوياً..."
+                placeholder={__t('pos.self_ordering_kiosk_page.s74', __t('pos.self_ordering_kiosk_page.s74', "أو اكتب رقم طاولة أخرى يدوياً..."))}
                 style={{
                   width: '100%',
                   height: '38px',
@@ -2020,7 +2022,7 @@ export function SelfOrderingKioskPage() {
                 marginBottom: '8px',
               }}
             >
-              اختر طريقة الدفع:
+              {__t('pos.self_ordering_kiosk_page.s75', __t('pos.self_ordering_kiosk_page.s75', "اختر طريقة الدفع:"))}
             </label>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
               {/* خيار 1: ماكينة الفيزا بالكشك */}
@@ -2066,15 +2068,15 @@ export function SelfOrderingKioskPage() {
                         borderRadius: '5px',
                       }}
                     >
-                      محدد
+                      {__t('pos.self_ordering_kiosk_page.s76', __t('pos.self_ordering_kiosk_page.s76', "محدد"))}
                     </span>
                   )}
                 </div>
                 <div style={{ fontSize: '12.5px', fontWeight: 900, color: '#0f172a' }}>
-                  ماكينة الكشك
+                  {__t('pos.self_ordering_kiosk_page.s77', __t('pos.self_ordering_kiosk_page.s77', "ماكينة الكشك"))}
                 </div>
                 <div style={{ fontSize: '10.5px', color: '#64748b', lineHeight: 1.3 }}>
-                  تمرير البطاقة أو مدى
+                  {__t('pos.self_ordering_kiosk_page.s78', __t('pos.self_ordering_kiosk_page.s78', "تمرير البطاقة أو مدى"))}
                 </div>
               </button>
 
@@ -2121,15 +2123,15 @@ export function SelfOrderingKioskPage() {
                         borderRadius: '5px',
                       }}
                     >
-                      محدد
+                      {__t('pos.self_ordering_kiosk_page.s79', __t('pos.self_ordering_kiosk_page.s79', "محدد"))}
                     </span>
                   )}
                 </div>
                 <div style={{ fontSize: '12.5px', fontWeight: 900, color: '#0f172a' }}>
-                  رمز QR بالهاتف
+                  {__t('pos.self_ordering_kiosk_page.s80', __t('pos.self_ordering_kiosk_page.s80', "رمز QR بالهاتف"))}
                 </div>
                 <div style={{ fontSize: '10.5px', color: '#64748b', lineHeight: 1.3 }}>
-                  إنستاباي أو المحافظ
+                  {__t('pos.self_ordering_kiosk_page.s81', __t('pos.self_ordering_kiosk_page.s81', "إنستاباي أو المحافظ"))}
                 </div>
               </button>
 
@@ -2176,15 +2178,15 @@ export function SelfOrderingKioskPage() {
                         borderRadius: '5px',
                       }}
                     >
-                      محدد
+                      {__t('pos.self_ordering_kiosk_page.s82', __t('pos.self_ordering_kiosk_page.s82', "محدد"))}
                     </span>
                   )}
                 </div>
                 <div style={{ fontSize: '12.5px', fontWeight: 900, color: '#0f172a' }}>
-                  دفع بالكاونتر
+                  {__t('pos.self_ordering_kiosk_page.s83', __t('pos.self_ordering_kiosk_page.s83', "دفع بالكاونتر"))}
                 </div>
                 <div style={{ fontSize: '10.5px', color: '#64748b', lineHeight: 1.3 }}>
-                  تذكرة للكاشير (كاش/فيزا)
+                  {__t('pos.self_ordering_kiosk_page.s84', __t('pos.self_ordering_kiosk_page.s84', "تذكرة للكاشير (كاش/فيزا)"))}
                 </div>
               </button>
             </div>
@@ -2219,15 +2221,15 @@ export function SelfOrderingKioskPage() {
             }}
           >
             {isSubmitting ? (
-              'جارٍ معالجة الطلب...'
+              __t('pos.self_ordering_kiosk_page.s85', __t('pos.self_ordering_kiosk_page.s85', "جارٍ معالجة الطلب..."))
             ) : diningMode === 'dine_in' && !tableNumber.trim() ? (
-              'يرجى تحديد رقم طاولتك بالأعلى أولاً'
+              __t('pos.self_ordering_kiosk_page.s86', __t('pos.self_ordering_kiosk_page.s86', "يرجى تحديد رقم طاولتك بالأعلى أولاً"))
             ) : paymentChoice === 'card_terminal' ? (
-              <span>المتابعة للدفع بجهاز الكشك • {formatCurrency(totalCartAmount)}</span>
+              <span>{__t('pos.self_ordering_kiosk_page.s87', __t('pos.self_ordering_kiosk_page.s87', "المتابعة للدفع بجهاز الكشك •"))} {formatCurrency(totalCartAmount)}</span>
             ) : paymentChoice === 'qr_mobile' ? (
-              <span>عرض رمز QR وسداد الفاتورة • {formatCurrency(totalCartAmount)}</span>
+              <span>{__t('pos.self_ordering_kiosk_page.s88', __t('pos.self_ordering_kiosk_page.s88', "عرض رمز QR وسداد الفاتورة •"))} {formatCurrency(totalCartAmount)}</span>
             ) : (
-              <span>طباعة تذكرة وسدادها عند الكاونتر • {formatCurrency(totalCartAmount)}</span>
+              <span>{__t('pos.self_ordering_kiosk_page.s89', __t('pos.self_ordering_kiosk_page.s89', "طباعة تذكرة وسدادها عند الكاونتر •"))} {formatCurrency(totalCartAmount)}</span>
             )}
           </Button>
         </div>
@@ -2241,7 +2243,7 @@ export function SelfOrderingKioskPage() {
         onClose={() => {
           if (terminalStep !== 'approved') setIsTerminalModalOpen(false);
         }}
-        ariaLabel="جهاز الدفع بالبطاقة بالكشك"
+        ariaLabel={__t('pos.self_ordering_kiosk_page.s90', __t('pos.self_ordering_kiosk_page.s90', "جهاز الدفع بالبطاقة بالكشك"))}
         width="min(460px, 94vw)"
         zIndex={95}
       >
@@ -2249,7 +2251,7 @@ export function SelfOrderingKioskPage() {
           {/* Header */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px' }}>
             <span style={{ fontSize: '12px', fontWeight: 800, color: '#64748b' }}>
-              معاملة #{activeTransactionId || 'ECR-001'}
+              {__t('pos.self_ordering_kiosk_page.s91', __t('pos.self_ordering_kiosk_page.s91', "معاملة #"))}{activeTransactionId || 'ECR-001'}
             </span>
             <button
               type="button"
@@ -2278,10 +2280,10 @@ export function SelfOrderingKioskPage() {
                 <RefreshCwIcon size={28} color="#170e5e" className="animate-spin" />
               </div>
               <h3 style={{ fontSize: '18px', fontWeight: 900, color: '#0f172a', margin: '0 0 8px' }}>
-                جاري الاتصال بماكينة الدفع
+                {__t('pos.self_ordering_kiosk_page.s92', __t('pos.self_ordering_kiosk_page.s92', "جاري الاتصال بماكينة الدفع"))}
               </h3>
               <p style={{ fontSize: '13px', color: '#64748b', margin: 0 }}>
-                {terminalMessage || 'جاري إرسال قيمة الفاتورة للماكينة...'}
+                {terminalMessage || __t('pos.self_ordering_kiosk_page.s93', __t('pos.self_ordering_kiosk_page.s93', "جاري إرسال قيمة الفاتورة للماكينة..."))}
               </p>
             </div>
           )}
@@ -2305,10 +2307,10 @@ export function SelfOrderingKioskPage() {
                 <CreditCardIcon size={36} color="#170e5e" />
               </div>
               <h3 style={{ fontSize: '20px', fontWeight: 900, color: '#0f172a', margin: '0 0 6px' }}>
-                مرر أو أدخل البطاقة البنكية
+                {__t('pos.self_ordering_kiosk_page.s94', __t('pos.self_ordering_kiosk_page.s94', "مرر أو أدخل البطاقة البنكية"))}
               </h3>
               <p style={{ fontSize: '13px', color: '#64748b', margin: '0 0 16px' }}>
-                في جهاز الدفع بالأسفل (يدعم فيزا، ماستركارد، ميزا، ومدى، وApple Pay)
+                {__t('pos.self_ordering_kiosk_page.s95', __t('pos.self_ordering_kiosk_page.s95', "في جهاز الدفع بالأسفل (يدعم فيزا، ماستركارد، ميزا، ومدى، وApple Pay)"))}
               </p>
 
               {/* Amount Box */}
@@ -2321,7 +2323,7 @@ export function SelfOrderingKioskPage() {
                   marginBottom: '16px',
                 }}
               >
-                <div style={{ fontSize: '12px', color: '#64748b' }}>المبلغ المطلوب سحبه:</div>
+                <div style={{ fontSize: '12px', color: '#64748b' }}>{__t('pos.self_ordering_kiosk_page.s96', __t('pos.self_ordering_kiosk_page.s96', "المبلغ المطلوب سحبه:"))}</div>
                 <div style={{ fontSize: '26px', fontWeight: 900, color: '#170e5e', marginTop: '2px' }}>
                   {formatCurrency(totalCartAmount)}
                 </div>
@@ -2343,7 +2345,7 @@ export function SelfOrderingKioskPage() {
                 }}
               >
                 <ClockIcon size={14} color="#64748b" />
-                <span>متبقي {terminalCountdown} ثانية</span>
+                <span>{__t('pos.self_ordering_kiosk_page.s97', __t('pos.self_ordering_kiosk_page.s97', "متبقي"))} {terminalCountdown} {__t('pos.self_ordering_kiosk_page.s98', __t('pos.self_ordering_kiosk_page.s98', "ثانية"))}</span>
               </div>
 
               <div>
@@ -2359,7 +2361,7 @@ export function SelfOrderingKioskPage() {
                     fontWeight: 800,
                   }}
                 >
-                  إلغاء والعودة
+                  {__t('pos.self_ordering_kiosk_page.s99', __t('pos.self_ordering_kiosk_page.s99', "إلغاء والعودة"))}
                 </Button>
               </div>
             </div>
@@ -2383,10 +2385,10 @@ export function SelfOrderingKioskPage() {
                 <CheckCircleIcon size={36} color="#16a34a" />
               </div>
               <h3 style={{ fontSize: '20px', fontWeight: 900, color: '#15803d', margin: '0 0 6px' }}>
-                تمت الموافقة وخصم المبلغ بنجاح!
+                {__t('pos.self_ordering_kiosk_page.s100', __t('pos.self_ordering_kiosk_page.s100', "تمت الموافقة وخصم المبلغ بنجاح!"))}
               </h3>
               <p style={{ fontSize: '13px', color: '#64748b', margin: 0 }}>
-                {terminalMessage || 'تم تأكيد التفويض البنكي، جاري إصدار تذكرتك...'}
+                {terminalMessage || __t('pos.self_ordering_kiosk_page.s101', __t('pos.self_ordering_kiosk_page.s101', "تم تأكيد التفويض البنكي، جاري إصدار تذكرتك..."))}
               </p>
             </div>
           )}
@@ -2409,10 +2411,10 @@ export function SelfOrderingKioskPage() {
                 <AlertCircleIcon size={36} color="#dc2626" />
               </div>
               <h3 style={{ fontSize: '19px', fontWeight: 900, color: '#b91c1c', margin: '0 0 6px' }}>
-                تعذر إتمام الدفع بالبطاقة
+                {__t('pos.self_ordering_kiosk_page.s102', __t('pos.self_ordering_kiosk_page.s102', "تعذر إتمام الدفع بالبطاقة"))}
               </h3>
               <p style={{ fontSize: '13px', color: '#64748b', margin: '0 0 20px' }}>
-                {terminalMessage || 'تم رفض العملية من البنك أو تم إلغاؤها.'}
+                {terminalMessage || __t('pos.self_ordering_kiosk_page.s103', __t('pos.self_ordering_kiosk_page.s103', "تم رفض العملية من البنك أو تم إلغاؤها."))}
               </p>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -2431,7 +2433,7 @@ export function SelfOrderingKioskPage() {
                     fontWeight: 800,
                   }}
                 >
-                  إعادة المحاولة ببطاقة أخرى
+                  {__t('pos.self_ordering_kiosk_page.s104', __t('pos.self_ordering_kiosk_page.s104', "إعادة المحاولة ببطاقة أخرى"))}
                 </Button>
                 <Button
                   type="button"
@@ -2442,7 +2444,7 @@ export function SelfOrderingKioskPage() {
                     void handleFinalizeOrder({
                       paymentMethod: 'cash',
                       paymentStatus: 'unpaid',
-                      paymentLabel: 'غير مدفوع - محاسبة عند الكاونتر',
+                      paymentLabel: __t('pos.self_ordering_kiosk_page.s105', __t('pos.self_ordering_kiosk_page.s105', "غير مدفوع - محاسبة عند الكاونتر")),
                     });
                   }}
                   style={{
@@ -2453,7 +2455,7 @@ export function SelfOrderingKioskPage() {
                     fontWeight: 800,
                   }}
                 >
-                  التحويل للدفع نقداً عند الكاشير
+                  {__t('pos.self_ordering_kiosk_page.s106', __t('pos.self_ordering_kiosk_page.s106', "التحويل للدفع نقداً عند الكاشير"))}
                 </Button>
               </div>
             </div>
@@ -2477,12 +2479,12 @@ export function SelfOrderingKioskPage() {
                 <AlertTriangleIcon size={32} color="#d97706" />
               </div>
               <h3 style={{ fontSize: '18px', fontWeight: 900, color: '#0f172a', margin: '0 0 6px' }}>
-                ماكينة الدفع غير متصلة بهذا الكشك
+                {__t('pos.self_ordering_kiosk_page.s107', __t('pos.self_ordering_kiosk_page.s107', "ماكينة الدفع غير متصلة بهذا الكشك"))}
               </h3>
               <p style={{ fontSize: '12.5px', color: '#64748b', lineHeight: 1.5, margin: '0 0 20px' }}>
                 {terminalMessage}
                 <br />
-                يمكنك مسح رمز QR والدفع بهاتفك فوراً، أو طباعة تذكرة والتوجه لكاونتر الكاشير للمحاسبة بالفيزا أو نقداً.
+                {__t('pos.self_ordering_kiosk_page.s108', __t('pos.self_ordering_kiosk_page.s108', "يمكنك مسح رمز QR والدفع بهاتفك فوراً، أو طباعة تذكرة والتوجه لكاونتر الكاشير للمحاسبة بالفيزا أو نقداً."))}
               </p>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -2511,7 +2513,7 @@ export function SelfOrderingKioskPage() {
                   }}
                 >
                   <QrCodeIcon size={16} color="#ffffff" />
-                  <span>الدفع بمسح رمز QR بالهاتف</span>
+                  <span>{__t('pos.self_ordering_kiosk_page.s109', __t('pos.self_ordering_kiosk_page.s109', "الدفع بمسح رمز QR بالهاتف"))}</span>
                 </Button>
 
                 <Button
@@ -2523,7 +2525,7 @@ export function SelfOrderingKioskPage() {
                     void handleFinalizeOrder({
                       paymentMethod: 'cash',
                       paymentStatus: 'unpaid',
-                      paymentLabel: 'غير مدفوع - محاسبة عند الكاونتر',
+                      paymentLabel: __t('pos.self_ordering_kiosk_page.s110', __t('pos.self_ordering_kiosk_page.s110', "غير مدفوع - محاسبة عند الكاونتر")),
                     });
                   }}
                   style={{
@@ -2534,7 +2536,7 @@ export function SelfOrderingKioskPage() {
                     fontWeight: 800,
                   }}
                 >
-                  طباعة تذكرة والسداد لدى الكاشير
+                  {__t('pos.self_ordering_kiosk_page.s111', __t('pos.self_ordering_kiosk_page.s111', "طباعة تذكرة والسداد لدى الكاشير"))}
                 </Button>
               </div>
             </div>
@@ -2548,7 +2550,7 @@ export function SelfOrderingKioskPage() {
       <DialogShell
         open={isQrModalOpen}
         onClose={() => setIsQrModalOpen(false)}
-        ariaLabel="الدفع الإلكتروني برمز QR"
+        ariaLabel={__t('pos.self_ordering_kiosk_page.s112', __t('pos.self_ordering_kiosk_page.s112', "الدفع الإلكتروني برمز QR"))}
         width="min(460px, 94vw)"
         zIndex={95}
       >
@@ -2556,7 +2558,7 @@ export function SelfOrderingKioskPage() {
           {/* Header */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
             <span style={{ fontSize: '12px', fontWeight: 800, color: '#64748b' }}>
-              معاملة #{qrRef || 'QR-100'}
+              {__t('pos.self_ordering_kiosk_page.s113', __t('pos.self_ordering_kiosk_page.s113', "معاملة #"))}{qrRef || 'QR-100'}
             </span>
             <button
               type="button"
@@ -2568,10 +2570,10 @@ export function SelfOrderingKioskPage() {
           </div>
 
           <h3 style={{ fontSize: '19px', fontWeight: 900, color: '#0f172a', margin: '0 0 4px' }}>
-            امسح الرمز بهاتفك لإتمام الدفع
+            {__t('pos.self_ordering_kiosk_page.s114', __t('pos.self_ordering_kiosk_page.s114', "امسح الرمز بهاتفك لإتمام الدفع"))}
           </h3>
           <p style={{ fontSize: '12px', color: '#64748b', margin: '0 0 16px' }}>
-            يدعم تطبيق إنستاباي، المحافظ الإلكترونية الذكية (فودافون/أورانج/اتصالات كاش)، أو تطبيق بنكك
+            {__t('pos.self_ordering_kiosk_page.s115', __t('pos.self_ordering_kiosk_page.s115', "يدعم تطبيق إنستاباي، المحافظ الإلكترونية الذكية (فودافون/أورانج/اتصالات كاش)، أو تطبيق بنكك"))}
           </p>
 
           {/* Dynamic QR Code Box */}
@@ -2596,7 +2598,7 @@ export function SelfOrderingKioskPage() {
                   storeDisplayName
                 )}`
               )}`}
-              alt="رمز QR للدفع"
+              alt={__t('pos.self_ordering_kiosk_page.s116', __t('pos.self_ordering_kiosk_page.s116', "رمز QR للدفع"))}
               style={{ width: '190px', height: '190px', borderRadius: '10px', display: 'block' }}
             />
           </div>
@@ -2611,7 +2613,7 @@ export function SelfOrderingKioskPage() {
               marginBottom: '16px',
             }}
           >
-            <div style={{ fontSize: '11.5px', color: '#64748b' }}>إجمالي الفاتورة المطلوب سداده:</div>
+            <div style={{ fontSize: '11.5px', color: '#64748b' }}>{__t('pos.self_ordering_kiosk_page.s117', __t('pos.self_ordering_kiosk_page.s117', "إجمالي الفاتورة المطلوب سداده:"))}</div>
             <div style={{ fontSize: '24px', fontWeight: 900, color: '#170e5e', marginTop: '2px' }}>
               {formatCurrency(totalCartAmount)}
             </div>
@@ -2634,7 +2636,7 @@ export function SelfOrderingKioskPage() {
           >
             <ClockIcon size={14} color="#64748b" />
             <span>
-              متبقي {Math.floor(qrCountdown / 60)}:{(qrCountdown % 60).toString().padStart(2, '0')} دقيقة
+              {__t('pos.self_ordering_kiosk_page.s118', __t('pos.self_ordering_kiosk_page.s118', "متبقي"))} {Math.floor(qrCountdown / 60)}:{(qrCountdown % 60).toString().padStart(2, '0')} {__t('pos.self_ordering_kiosk_page.s119', __t('pos.self_ordering_kiosk_page.s119', "دقيقة"))}
             </span>
           </div>
 
@@ -2647,7 +2649,7 @@ export function SelfOrderingKioskPage() {
                 void handleFinalizeOrder({
                   paymentMethod: 'qr_mobile',
                   paymentStatus: 'paid',
-                  paymentLabel: 'مدفوع إلكترونياً (رمز QR بالهاتف)',
+                  paymentLabel: __t('pos.self_ordering_kiosk_page.s120', __t('pos.self_ordering_kiosk_page.s120', "مدفوع إلكترونياً (رمز QR بالهاتف)")),
                   rrn: qrRef,
                 });
               }}
@@ -2664,7 +2666,7 @@ export function SelfOrderingKioskPage() {
                 boxShadow: '0 4px 14px rgba(22, 128, 61, 0.25)',
               }}
             >
-              تم التحويل بنجاح • استلام التذكرة
+              {__t('pos.self_ordering_kiosk_page.s121', __t('pos.self_ordering_kiosk_page.s121', "تم التحويل بنجاح • استلام التذكرة"))}
             </Button>
 
             <Button
@@ -2676,7 +2678,7 @@ export function SelfOrderingKioskPage() {
                 void handleFinalizeOrder({
                   paymentMethod: 'cash',
                   paymentStatus: 'unpaid',
-                  paymentLabel: 'غير مدفوع - محاسبة عند الكاونتر',
+                  paymentLabel: __t('pos.self_ordering_kiosk_page.s122', __t('pos.self_ordering_kiosk_page.s122', "غير مدفوع - محاسبة عند الكاونتر")),
                 });
               }}
               style={{
@@ -2687,7 +2689,7 @@ export function SelfOrderingKioskPage() {
                 fontWeight: 800,
               }}
             >
-              تعذر التحويل؟ سداد نقداً عند الكاشير
+              {__t('pos.self_ordering_kiosk_page.s123', __t('pos.self_ordering_kiosk_page.s123', "تعذر التحويل؟ سداد نقداً عند الكاشير"))}
             </Button>
           </div>
         </div>

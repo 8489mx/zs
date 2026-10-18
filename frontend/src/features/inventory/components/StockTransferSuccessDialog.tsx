@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { Button } from '@/shared/ui/button';
 import { CheckCircleIcon, PrinterIcon } from '@/shared/components/icons/AppIcons';
@@ -16,18 +17,19 @@ export function StockTransferSuccessDialog({
   onPrintA4: () => void;
   onPrintReceipt: () => void;
 }) {
+  const { t } = useTranslation();
   return (
     <StandardDialog
       open={open}
       onClose={onClose}
-      title="تم تحويل المخزون بنجاح"
-      subtitle="تم تسجيل حركة التحويل وإصدار الوثيقة المخزنية بنجاح"
+      title={t('inventory.stock_transfer_success_dialog.s0', "تم تحويل المخزون بنجاح")}
+      subtitle={t('inventory.stock_transfer_success_dialog.s1', "تم تسجيل حركة التحويل وإصدار الوثيقة المخزنية بنجاح")}
       size="sm"
       footerActions={
         <StandardDialogFooter
           onCancel={onClose}
-          cancelLabel="إغلاق"
-          primaryLabel="طباعة وثيقة (A4)"
+          cancelLabel={t('inventory.stock_transfer_success_dialog.s2', "إغلاق")}
+          primaryLabel={t('inventory.stock_transfer_success_dialog.s3', "طباعة وثيقة (A4)")}
           onPrimary={onPrintA4}
         />
       }
@@ -39,10 +41,10 @@ export function StockTransferSuccessDialog({
 
         <div>
           <p style={{ margin: '0 0 6px 0', fontSize: '0.95rem', color: '#334155' }}>
-            تم إنشاء التحويل رقم <strong style={{ color: '#0f172a' }}>{transfer?.docNo || transfer?.id}</strong>
+            {t('inventory.stock_transfer_success_dialog.s4', "تم إنشاء التحويل رقم")} <strong style={{ color: '#0f172a' }}>{transfer?.docNo || transfer?.id}</strong>
           </p>
           <p style={{ margin: 0, fontSize: '0.85rem', color: '#64748b' }}>
-            يمكنك طباعة إيصال أو وثيقة A4 لمرافقة البضاعة المنقولة.
+            {t('inventory.stock_transfer_success_dialog.s5', "يمكنك طباعة إيصال أو وثيقة A4 لمرافقة البضاعة المنقولة.")}
           </p>
         </div>
 
@@ -54,7 +56,7 @@ export function StockTransferSuccessDialog({
             style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
           >
             <PrinterIcon size={14} />
-            <span>طباعة ريسيت (Thermal)</span>
+            <span>{t('inventory.stock_transfer_success_dialog.s6', "طباعة ريسيت (Thermal)")}</span>
           </Button>
         </div>
       </div>

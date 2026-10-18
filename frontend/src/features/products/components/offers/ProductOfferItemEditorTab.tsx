@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/shared/ui/button';
 import { Field } from '@/shared/ui/field';
 import { MutationFeedback } from '@/shared/components/mutation-feedback';
@@ -98,6 +99,7 @@ export function ProductOfferItemEditorTab({
   resetForm,
   mutation,
 }: ProductOfferItemEditorTabProps) {
+  const { t } = useTranslation();
   return (
     <div className="two-column-grid" style={{ alignItems: 'start', gap: 16 }}>
       {/* Form Column */}
@@ -122,7 +124,7 @@ export function ProductOfferItemEditorTab({
                 background: editingIndex != null ? '#6366f1' : '#2563eb'
               }} />
               <strong style={{ fontSize: '0.92rem', color: '#1e293b' }}>
-                {editingIndex != null ? `تعديل بيانات العرض #${editingIndex + 1}` : 'إعداد عرض ترويجي جديد'}
+                {editingIndex != null ? `تعديل بيانات العرض #${editingIndex + 1}` : t('products.offers.product_offer_item_editor_tab.s0', "إعداد عرض ترويجي جديد")}
               </strong>
             </div>
             {editingIndex != null && (
@@ -138,7 +140,7 @@ export function ProductOfferItemEditorTab({
                   fontWeight: 600
                 }}
               >
-                إلغاء التعديل
+                {t('products.offers.product_offer_item_editor_tab.s1', "إلغاء التعديل")}
               </button>
             )}
           </div>
@@ -146,7 +148,7 @@ export function ProductOfferItemEditorTab({
           {/* Segmented Type Selector */}
           <div style={{ marginBottom: 14 }}>
             <label style={{ fontSize: '0.82rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: 6 }}>
-              نوع العرض والخصم
+              {t('products.offers.product_offer_item_editor_tab.s2', "نوع العرض والخصم")}
             </label>
             <div style={{
               display: 'grid',
@@ -181,7 +183,7 @@ export function ProductOfferItemEditorTab({
                   <circle cx="6.5" cy="6.5" r="2.5" />
                   <circle cx="17.5" cy="17.5" r="2.5" />
                 </svg>
-                نسبة %
+                {t('products.offers.product_offer_item_editor_tab.s3', "نسبة %")}
               </button>
 
               <button
@@ -208,7 +210,7 @@ export function ProductOfferItemEditorTab({
                   <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
                   <line x1="7" y1="7" x2="7.01" y2="7" />
                 </svg>
-                خصم مبلغ
+                {t('products.offers.product_offer_item_editor_tab.s4', "خصم مبلغ")}
               </button>
 
               <button
@@ -236,7 +238,7 @@ export function ProductOfferItemEditorTab({
                   <path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8" />
                   <path d="M12 18V6" />
                 </svg>
-                سعر محدد
+                {t('products.offers.product_offer_item_editor_tab.s5', "سعر محدد")}
               </button>
 
               <button
@@ -266,7 +268,7 @@ export function ProductOfferItemEditorTab({
                   <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
                   <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
                 </svg>
-                باقة كميات
+                {t('products.offers.product_offer_item_editor_tab.s6', "باقة كميات")}
               </button>
 
               <button
@@ -289,7 +291,7 @@ export function ProductOfferItemEditorTab({
                   transition: 'all 0.15s ease'
                 }}
               >
-                <span>BOGO اشترِ X</span>
+                <span>{t('products.offers.product_offer_item_editor_tab.s7', "BOGO اشترِ X")}</span>
               </button>
             </div>
           </div>
@@ -307,7 +309,7 @@ export function ProductOfferItemEditorTab({
                 gap: 8,
               }}>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                  <Field label="اشترِ كمية (X) *">
+                  <Field label={t('products.offers.product_offer_item_editor_tab.s8', "اشترِ كمية (X) *")}>
                     <input
                       type="number"
                       min="1"
@@ -316,7 +318,7 @@ export function ProductOfferItemEditorTab({
                       style={{ fontWeight: 700 }}
                     />
                   </Field>
-                  <Field label="واحصل على كمية (Y) *">
+                  <Field label={t('products.offers.product_offer_item_editor_tab.s9', "واحصل على كمية (Y) *")}>
                     <input
                       type="number"
                       min="1"
@@ -326,7 +328,7 @@ export function ProductOfferItemEditorTab({
                     />
                   </Field>
                 </div>
-                <Field label="نسبة الخصم على الكمية الإضافية Y (%)">
+                <Field label={t('products.offers.product_offer_item_editor_tab.s10', "نسبة الخصم على الكمية الإضافية Y (%)")}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                     <input
                       type="number"
@@ -350,7 +352,7 @@ export function ProductOfferItemEditorTab({
                         cursor: 'pointer'
                       }}
                     >
-                      100% (مجاناً تماماً)
+                      {t('products.offers.product_offer_item_editor_tab.s11', "100% (مجاناً تماماً)")}
                     </button>
                     <button
                       type="button"
@@ -366,7 +368,7 @@ export function ProductOfferItemEditorTab({
                         cursor: 'pointer'
                       }}
                     >
-                      50% (نصف السعر)
+                      {t('products.offers.product_offer_item_editor_tab.s12', "50% (نصف السعر)")}
                     </button>
                   </div>
                 </Field>
@@ -376,7 +378,7 @@ export function ProductOfferItemEditorTab({
               <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 10 }}>
                 <Field label={
                   offerType === 'percent'
-                    ? 'نسبة الخصم (%)'
+                    ? t('products.offers.product_offer_item_editor_tab.s13', "نسبة الخصم (%)")
                     : offerType === 'fixed'
                       ? `قيمة الخصم للقطعة (${getGlobalCurrencySymbol()})`
                       : offerType === 'bundle'
@@ -387,14 +389,14 @@ export function ProductOfferItemEditorTab({
                     type="number"
                     min="0.01"
                     step="0.01"
-                    placeholder={offerType === 'percent' ? 'مثال: 20' : offerType === 'fixed' ? 'مثال: 15' : offerType === 'bundle' ? 'مثال: 500' : 'مثال: 80'}
+                    placeholder={offerType === 'percent' ? t('products.offers.product_offer_item_editor_tab.s14', "مثال: 20") : offerType === 'fixed' ? t('products.offers.product_offer_item_editor_tab.s15', "مثال: 15") : offerType === 'bundle' ? t('products.offers.product_offer_item_editor_tab.s16', "مثال: 500") : t('products.offers.product_offer_item_editor_tab.s17', "مثال: 80")}
                     value={offerValue}
                     onChange={(event) => setOfferValue(event.target.value)}
                     style={{ fontWeight: 600 }}
                   />
                 </Field>
 
-                <Field label={offerType === 'bundle' ? 'عدد قطع الباقة *' : 'الكمية الأدنى'}>
+                <Field label={offerType === 'bundle' ? t('products.offers.product_offer_item_editor_tab.s18', "عدد قطع الباقة *") : t('products.offers.product_offer_item_editor_tab.s19', "الكمية الأدنى")}>
                   <input
                     type="number"
                     min="1"
@@ -408,7 +410,7 @@ export function ProductOfferItemEditorTab({
 
             {/* Row: Dates on a single line */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-              <Field label="تاريخ البداية">
+              <Field label={t('products.offers.product_offer_item_editor_tab.s20', "تاريخ البداية")}>
                 <input
                   type="date"
                   value={offerStartDate}
@@ -416,7 +418,7 @@ export function ProductOfferItemEditorTab({
                 />
               </Field>
 
-              <Field label="تاريخ الانتهاء (اختياري)">
+              <Field label={t('products.offers.product_offer_item_editor_tab.s21', "تاريخ الانتهاء (اختياري)")}>
                 <input
                   type="date"
                   value={offerEndDate}
@@ -442,13 +444,13 @@ export function ProductOfferItemEditorTab({
                 />
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                   <ClockIcon size={14} color={happyHourEnabled ? '#92400e' : '#475569'} />
-                  <span>تفعيل الساعات الذهبية ومواعيد محددة (Happy Hours)</span>
+                  <span>{t('products.offers.product_offer_item_editor_tab.s22', "تفعيل الساعات الذهبية ومواعيد محددة (Happy Hours)")}</span>
                 </span>
               </label>
 
               {happyHourEnabled && (
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1.4fr', gap: 8, marginTop: 8 }}>
-                  <Field label="من الساعة">
+                  <Field label={t('products.offers.product_offer_item_editor_tab.s23', "من الساعة")}>
                     <input
                       type="time"
                       value={happyHourStart}
@@ -456,7 +458,7 @@ export function ProductOfferItemEditorTab({
                       style={{ fontSize: '12px' }}
                     />
                   </Field>
-                  <Field label="إلى الساعة">
+                  <Field label={t('products.offers.product_offer_item_editor_tab.s24', "إلى الساعة")}>
                     <input
                       type="time"
                       value={happyHourEnd}
@@ -464,16 +466,16 @@ export function ProductOfferItemEditorTab({
                       style={{ fontSize: '12px' }}
                     />
                   </Field>
-                  <Field label="أيام التطبيق">
+                  <Field label={t('products.offers.product_offer_item_editor_tab.s25', "أيام التطبيق")}>
                     <select
                       value={daysOfWeek}
                       onChange={(e) => setDaysOfWeek(e.target.value)}
                       style={{ fontSize: '12px' }}
                     >
-                      <option value="">كل أيام الأسبوع</option>
-                      <option value="5,6">الجمعة والسبت فقط (العطلة)</option>
-                      <option value="5">يوم الجمعة فقط</option>
-                      <option value="0,1,2,3,4">أيام العمل (الأحد - الخميس)</option>
+                      <option value="">{t('products.offers.product_offer_item_editor_tab.s26', "كل أيام الأسبوع")}</option>
+                      <option value="5,6">{t('products.offers.product_offer_item_editor_tab.s27', "الجمعة والسبت فقط (العطلة)")}</option>
+                      <option value="5">{t('products.offers.product_offer_item_editor_tab.s28', "يوم الجمعة فقط")}</option>
+                      <option value="0,1,2,3,4">{t('products.offers.product_offer_item_editor_tab.s29', "أيام العمل (الأحد - الخميس)")}</option>
                     </select>
                   </Field>
                 </div>
@@ -505,7 +507,7 @@ export function ProductOfferItemEditorTab({
                 onMouseEnter={(e) => e.currentTarget.style.background = '#e2e8f0'}
                 onMouseLeave={(e) => e.currentTarget.style.background = '#f8fafc'}
               >
-                يوم
+                {t('products.offers.product_offer_item_editor_tab.s30', "يوم")}
               </button>
               <button
                 type="button"
@@ -525,7 +527,7 @@ export function ProductOfferItemEditorTab({
                 onMouseEnter={(e) => e.currentTarget.style.background = '#e2e8f0'}
                 onMouseLeave={(e) => e.currentTarget.style.background = '#f8fafc'}
               >
-                أسبوع
+                {t('products.offers.product_offer_item_editor_tab.s31', "أسبوع")}
               </button>
               <button
                 type="button"
@@ -545,7 +547,7 @@ export function ProductOfferItemEditorTab({
                 onMouseEnter={(e) => e.currentTarget.style.background = '#e2e8f0'}
                 onMouseLeave={(e) => e.currentTarget.style.background = '#f8fafc'}
               >
-                أسبوعين
+                {t('products.offers.product_offer_item_editor_tab.s32', "أسبوعين")}
               </button>
               <button
                 type="button"
@@ -565,7 +567,7 @@ export function ProductOfferItemEditorTab({
                 onMouseEnter={(e) => e.currentTarget.style.background = '#e2e8f0'}
                 onMouseLeave={(e) => e.currentTarget.style.background = '#f8fafc'}
               >
-                شهر
+                {t('products.offers.product_offer_item_editor_tab.s33', "شهر")}
               </button>
               <button
                 type="button"
@@ -585,7 +587,7 @@ export function ProductOfferItemEditorTab({
                 onMouseEnter={(e) => e.currentTarget.style.background = '#dcfce7'}
                 onMouseLeave={(e) => e.currentTarget.style.background = '#f0fdf4'}
               >
-                دائم
+                {t('products.offers.product_offer_item_editor_tab.s34', "دائم")}
               </button>
             </div>
 
@@ -606,11 +608,11 @@ export function ProductOfferItemEditorTab({
                     {offerType === 'bundle'
                       ? `معاينة الباقة (${minQty} قطع):`
                       : offerType === 'bogo'
-                        ? `معاينة عرض BOGO (${bogoBuyQty + bogoGetQty} قطع: اشترِ ${bogoBuyQty} واحصل على ${bogoGetQty} ${bogoDiscountPercent === 100 ? 'مجاناً' : `بخصم ${bogoDiscountPercent}%`}):`
-                        : 'معاينة السعر في الكاشير:'}
+                        ? `معاينة عرض BOGO (${bogoBuyQty + bogoGetQty} قطع: اشترِ ${bogoBuyQty} واحصل على ${bogoGetQty} ${bogoDiscountPercent === 100 ? t('products.offers.product_offer_item_editor_tab.s35', "مجاناً") : `بخصم ${bogoDiscountPercent}%`}):`
+                        : t('products.offers.product_offer_item_editor_tab.s36', "معاينة السعر في الكاشير:")}
                   </span>
                   <span style={{ fontSize: '0.74rem', background: '#16a34a', color: '#ffffff', padding: '1px 6px', borderRadius: 4, fontWeight: 700 }}>
-                    وفرت {simulatedSavingsPercent.toFixed(0)}%
+                    {t('products.offers.product_offer_item_editor_tab.s37', "وفرت")} {simulatedSavingsPercent.toFixed(0)}%
                   </span>
                 </div>
 
@@ -650,7 +652,7 @@ export function ProductOfferItemEditorTab({
                       <line x1="12" y1="9" x2="12" y2="13" />
                       <line x1="12" y1="17" x2="12.01" y2="17" />
                     </svg>
-                    <span>سعر العرض أقل من سعر التكلفة ({formatCurrency(costPrice)})</span>
+                    <span>{t('products.offers.product_offer_item_editor_tab.s38', "سعر العرض أقل من سعر التكلفة (")}{formatCurrency(costPrice)})</span>
                   </div>
                 ) : null}
               </div>
@@ -675,7 +677,7 @@ export function ProductOfferItemEditorTab({
                 padding: '8px 16px'
               }}
             >
-              {mutation.isPending ? 'جاري الحفظ...' : editingIndex != null ? 'حفظ تعديل العرض' : 'إضافة العرض للصنف'}
+              {mutation.isPending ? t('products.offers.product_offer_item_editor_tab.s39', "جاري الحفظ...") : editingIndex != null ? t('products.offers.product_offer_item_editor_tab.s40', "حفظ تعديل العرض") : t('products.offers.product_offer_item_editor_tab.s41', "إضافة العرض للصنف")}
             </Button>
             <Button
               type="button"
@@ -683,12 +685,12 @@ export function ProductOfferItemEditorTab({
               onClick={resetForm}
               disabled={mutation.isPending}
             >
-              إعادة التهيئة
+              {t('products.offers.product_offer_item_editor_tab.s42', "إعادة التهيئة")}
             </Button>
           </div>
 
-          <MutationFeedback isError={mutation.isError} error={mutation.error} errorFallback="تعذر حفظ العرض" />
-          <MutationFeedback isSuccess={mutation.isSuccess && !mutation.isPending} successText="تم حفظ العروض وتحديثها بنجاح." />
+          <MutationFeedback isError={mutation.isError} error={mutation.error} errorFallback={t('products.offers.product_offer_item_editor_tab.s43', "تعذر حفظ العرض")} />
+          <MutationFeedback isSuccess={mutation.isSuccess && !mutation.isPending} successText={t('products.offers.product_offer_item_editor_tab.s44', "تم حفظ العروض وتحديثها بنجاح.")} />
         </div>
       </div>
 
@@ -705,10 +707,10 @@ export function ProductOfferItemEditorTab({
       }}>
         <div style={{ marginBottom: 10 }}>
           <strong style={{ fontSize: '0.92rem', color: '#1e293b', display: 'block' }}>
-            العروض المسجلة
+            {t('products.offers.product_offer_item_editor_tab.s45', "العروض المسجلة")}
           </strong>
           <span style={{ fontSize: '0.76rem', color: '#64748b' }}>
-            إدارة وتعديل أو حذف العروض الحالية والسابقة
+            {t('products.offers.product_offer_item_editor_tab.s46', "إدارة وتعديل أو حذف العروض الحالية والسابقة")}
           </span>
         </div>
 
@@ -750,7 +752,7 @@ export function ProductOfferItemEditorTab({
               borderRadius: '50%',
               background: '#10b981'
             }} />
-            عروض نشطة ({activeOffers.length})
+            {t('products.offers.product_offer_item_editor_tab.s47', "عروض نشطة (")}{activeOffers.length})
           </button>
 
           <button
@@ -781,7 +783,7 @@ export function ProductOfferItemEditorTab({
               borderRadius: '50%',
               background: '#ef4444'
             }} />
-            عروض منتهية ({expiredOffers.length})
+            {t('products.offers.product_offer_item_editor_tab.s48', "عروض منتهية (")}{expiredOffers.length})
           </button>
 
           <button
@@ -806,7 +808,7 @@ export function ProductOfferItemEditorTab({
               transition: 'background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease'
             }}
           >
-            الكل ({offers.length})
+            {t('products.offers.product_offer_item_editor_tab.s49', "الكل (")}{offers.length})
           </button>
         </div>
 
@@ -818,16 +820,16 @@ export function ProductOfferItemEditorTab({
             const isBogo = offer.type === 'bogo';
             const minQ = Math.max(1, Number(offer.minQty || 1));
             const typeName = isBogo
-              ? 'عرض BOGO'
+              ? t('products.offers.product_offer_item_editor_tab.s50', "عرض BOGO")
               : offer.type === 'bundle'
                 ? `باقة (${minQ} قطع)`
                 : offer.type === 'price'
-                  ? 'سعر محدد'
+                  ? t('products.offers.product_offer_item_editor_tab.s51', "سعر محدد")
                   : offer.type === 'fixed'
-                    ? 'خصم مبلغ'
-                    : 'خصم نسبة';
+                    ? t('products.offers.product_offer_item_editor_tab.s52', "خصم مبلغ")
+                    : t('products.offers.product_offer_item_editor_tab.s53', "خصم نسبة");
             const valText = isBogo
-              ? `اشترِ ${offer.bogoBuyQty || 1} واحصل على ${offer.bogoGetQty || 1} ${Number(offer.bogoDiscountPercent ?? 100) === 100 ? 'مجاناً' : `بخصم ${offer.bogoDiscountPercent}%`}`
+              ? `اشترِ ${offer.bogoBuyQty || 1} واحصل على ${offer.bogoGetQty || 1} ${Number(offer.bogoDiscountPercent ?? 100) === 100 ? t('products.offers.product_offer_item_editor_tab.s54', "مجاناً") : `بخصم ${offer.bogoDiscountPercent}%`}`
               : offer.type === 'percent'
                 ? `${offer.value}%`
                 : `${formatCurrency(Number(offer.value || 0))}`;
@@ -857,7 +859,7 @@ export function ProductOfferItemEditorTab({
                         fontSize: '0.72rem',
                         fontWeight: 600
                       }}>
-                        {minQ > 1 ? `من ${minQ} قطع` : 'من أول قطعة'}
+                        {minQ > 1 ? `من ${minQ} قطع` : t('products.offers.product_offer_item_editor_tab.s55', "من أول قطعة")}
                       </span>
                     )}
                   </div>
@@ -889,8 +891,8 @@ export function ProductOfferItemEditorTab({
                   }}>
                     <ClockIcon size={12} color="#92400e" />
                     <span>
-                      ساعات العرض: {offer.happyHourStart} إلى {offer.happyHourEnd}
-                      {offer.daysOfWeek ? ` (${offer.daysOfWeek === '5,6' ? 'عطلة الأسبوع' : offer.daysOfWeek === '5' ? 'الجمعة فقط' : 'أيام العمل'})` : ' (يومياً)'}
+                      {t('products.offers.product_offer_item_editor_tab.s56', "ساعات العرض:")} {offer.happyHourStart} {t('products.offers.product_offer_item_editor_tab.s57', "إلى")} {offer.happyHourEnd}
+                      {offer.daysOfWeek ? ` (${offer.daysOfWeek === '5,6' ? t('products.offers.product_offer_item_editor_tab.s58', "عطلة الأسبوع") : offer.daysOfWeek === '5' ? t('products.offers.product_offer_item_editor_tab.s59', "الجمعة فقط") : t('products.offers.product_offer_item_editor_tab.s60', "أيام العمل")})` : t('products.offers.product_offer_item_editor_tab.s61', " (يومياً)")}
                     </span>
                   </div>
                 )}
@@ -902,9 +904,9 @@ export function ProductOfferItemEditorTab({
                     <line x1="8" y1="2" x2="8" y2="6" />
                     <line x1="3" y1="10" x2="21" y2="10" />
                   </svg>
-                  <span>يبدأ: {offer.from || todayIsoDate()}</span>
+                  <span>{t('products.offers.product_offer_item_editor_tab.s62', "يبدأ:")} {offer.from || todayIsoDate()}</span>
                   <span>·</span>
-                  <span>ينتهي: {offer.to ? offer.to : 'مفتوح (دائم)'}</span>
+                  <span>{t('products.offers.product_offer_item_editor_tab.s63', "ينتهي:")} {offer.to ? offer.to : t('products.offers.product_offer_item_editor_tab.s64', "مفتوح (دائم)")}</span>
                 </div>
 
                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6 }}>
@@ -930,7 +932,7 @@ export function ProductOfferItemEditorTab({
                       <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
                       <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
                     </svg>
-                    تعديل
+                    {t('products.offers.product_offer_item_editor_tab.s65', "تعديل")}
                   </button>
 
                   <button
@@ -955,7 +957,7 @@ export function ProductOfferItemEditorTab({
                       <polyline points="3 6 5 6 21 6" />
                       <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
                     </svg>
-                    حذف
+                    {t('products.offers.product_offer_item_editor_tab.s66', "حذف")}
                   </button>
                 </div>
               </div>
@@ -981,10 +983,10 @@ export function ProductOfferItemEditorTab({
                 </svg>
               </div>
               <div style={{ fontWeight: 600, fontSize: '0.88rem', color: '#64748b' }}>
-                {selectedOffersTab === 'expired' ? 'لا توجد عروض منتهية' : 'لا توجد عروض نشطة'}
+                {selectedOffersTab === 'expired' ? t('products.offers.product_offer_item_editor_tab.s67', "لا توجد عروض منتهية") : t('products.offers.product_offer_item_editor_tab.s68', "لا توجد عروض نشطة")}
               </div>
               <div style={{ fontSize: '0.78rem', marginTop: 4 }}>
-                {selectedOffersTab === 'expired' ? 'جميع العروض المسجلة لا تزال سارية ونشطة' : 'استخدم النموذج لإنشاء أول عرض ترويجي للصنف'}
+                {selectedOffersTab === 'expired' ? t('products.offers.product_offer_item_editor_tab.s69', "جميع العروض المسجلة لا تزال سارية ونشطة") : t('products.offers.product_offer_item_editor_tab.s70', "استخدم النموذج لإنشاء أول عرض ترويجي للصنف")}
               </div>
             </div>
           )}

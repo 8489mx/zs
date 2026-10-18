@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import { getGlobalCurrencySymbol } from '@/lib/currencies';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -120,6 +121,7 @@ function extractPurchaseId(entry: any): string | null {
 }
 
 function PurchaseItemsExpandable({ purchaseId, onSelectAmount }: { purchaseId: string; onSelectAmount?: (amount: number, invoiceDocNo: string) => void }) {
+  const { t } = useTranslation();
   const { data: purchase, isLoading, error } = useQuery<Purchase>({
     queryKey: queryKeys.purchaseDetail(purchaseId),
     queryFn: () => purchasesApi.getById(purchaseId),
@@ -129,7 +131,7 @@ function PurchaseItemsExpandable({ purchaseId, onSelectAmount }: { purchaseId: s
   if (isLoading) {
     return (
       <div style={{ padding: '12px', background: '#f8fafc', borderRadius: '6px', fontSize: '0.85rem', color: '#64748b' }}>
-        جاري جلب تفاصيل وأصناف فاتورة المشتريات #{purchaseId}...
+        {t('accounts.supplier_balance_schedule_card.s0', "جاري جلب تفاصيل وأصناف فاتورة المشتريات #")}{purchaseId}...
       </div>
     );
   }
@@ -137,7 +139,7 @@ function PurchaseItemsExpandable({ purchaseId, onSelectAmount }: { purchaseId: s
   if (error || !purchase) {
     return (
       <div style={{ padding: '12px', background: '#fef2f2', borderRadius: '6px', fontSize: '0.85rem', color: '#b91c1c' }}>
-        تعذر تحميل تفاصيل فاتورة المشتريات #{purchaseId}
+        {t('accounts.supplier_balance_schedule_card.s1', "تعذر تحميل تفاصيل فاتورة المشتريات #")}{purchaseId}
       </div>
     );
   }
@@ -151,15 +153,15 @@ function PurchaseItemsExpandable({ purchaseId, onSelectAmount }: { purchaseId: s
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <strong style={{ fontSize: '0.88rem', color: '#0f172a' }}>
-            أصناف فاتورة المشتريات: {docNumber}
+            {t('accounts.supplier_balance_schedule_card.s2', "أصناف فاتورة المشتريات:")} {docNumber}
           </strong>
           <span style={{ fontSize: '0.78rem', color: '#64748b' }}>
-            ({items.length} أصناف)
+            ({items.length} {t('accounts.supplier_balance_schedule_card.s3', "أصناف)")}
           </span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '0.82rem' }}>
-          <span>إجمالي الفاتورة: <b>{formatCurrency(total)}</b></span>
-          <span>طريقة الدفع: <b>{purchase.paymentType === 'credit' ? 'آجل' : 'نقدي'}</b></span>
+          <span>{t('accounts.supplier_balance_schedule_card.s4', "إجمالي الفاتورة:")} <b>{formatCurrency(total)}</b></span>
+          <span>{t('accounts.supplier_balance_schedule_card.s5', "طريقة الدفع:")} <b>{purchase.paymentType === 'credit' ? t('accounts.supplier_balance_schedule_card.s6', "آجل") : t('accounts.supplier_balance_schedule_card.s7', "نقدي")}</b></span>
           {total > 0 && onSelectAmount ? (
             <button
               type="button"
@@ -175,7 +177,7 @@ function PurchaseItemsExpandable({ purchaseId, onSelectAmount }: { purchaseId: s
                 cursor: 'pointer',
               }}
             >
-              سداد قيمة هذه الفاتورة ({formatCurrency(total)})
+              {t('accounts.supplier_balance_schedule_card.s8', "سداد قيمة هذه الفاتورة (")}{formatCurrency(total)})
             </button>
           ) : null}
         </div>
@@ -185,16 +187,16 @@ function PurchaseItemsExpandable({ purchaseId, onSelectAmount }: { purchaseId: s
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem', background: '#ffffff', borderRadius: '6px', overflow: 'hidden' }}>
           <thead>
             <tr style={{ background: '#f1f5f9', color: '#475569', textAlign: 'right' }}>
-              <th style={{ padding: '6px 10px', fontWeight: 600 }}>الصنف</th>
-              <th style={{ padding: '6px 10px', fontWeight: 600 }}>الوحدة</th>
-              <th style={{ padding: '6px 10px', fontWeight: 600 }}>الكمية</th>
-              <th style={{ padding: '6px 10px', fontWeight: 600 }}>سعر الشراء</th>
-              <th style={{ padding: '6px 10px', fontWeight: 600 }}>الإجمالي</th>
+              <th style={{ padding: '6px 10px', fontWeight: 600 }}>{t('accounts.supplier_balance_schedule_card.s9', "الصنف")}</th>
+              <th style={{ padding: '6px 10px', fontWeight: 600 }}>{t('accounts.supplier_balance_schedule_card.s10', "الوحدة")}</th>
+              <th style={{ padding: '6px 10px', fontWeight: 600 }}>{t('accounts.supplier_balance_schedule_card.s11', "الكمية")}</th>
+              <th style={{ padding: '6px 10px', fontWeight: 600 }}>{t('accounts.supplier_balance_schedule_card.s12', "سعر الشراء")}</th>
+              <th style={{ padding: '6px 10px', fontWeight: 600 }}>{t('accounts.supplier_balance_schedule_card.s13', "الإجمالي")}</th>
             </tr>
           </thead>
           <tbody>
             {items.map((item: any, idx: number) => {
-              const name = item.productName || item.name || item.product?.name || 'صنف';
+              const name = item.productName || item.name || item.product?.name || t('accounts.supplier_balance_schedule_card.s14', "صنف");
               const unit = item.unitName || item.unit || '—';
               const qty = Number(item.qty || item.quantity || 1);
               const price = Number(item.costPrice ?? item.price ?? item.unitCost ?? 0);
@@ -242,6 +244,7 @@ interface SupplierBalanceScheduleCardProps {
 }
 
 export function SupplierBalanceScheduleCard({ supplier, disabled = false }: SupplierBalanceScheduleCardProps) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { data: settings } = useSettingsQuery();
   const supplierId = String(supplier?.id || '');
@@ -443,8 +446,8 @@ export function SupplierBalanceScheduleCard({ supplier, disabled = false }: Supp
 
   if (!supplier) {
     return (
-      <FormSection title="مستحقات وحساب المورد" description="اختر موردًا أولًا لعرض فواتيره أو جدول دفعاته.">
-        <EmptyState title="لم يتم اختيار مورد" hint="اختر المورد من القائمة بالأعلى لعرض كشف حسابه وفواتيره." />
+      <FormSection title={t('accounts.supplier_balance_schedule_card.s15', "مستحقات وحساب المورد")} description={t('accounts.supplier_balance_schedule_card.s16', "اختر موردًا أولًا لعرض فواتيره أو جدول دفعاته.")}>
+        <EmptyState title={t('accounts.supplier_balance_schedule_card.s17', "لم يتم اختيار مورد")} hint={t('accounts.supplier_balance_schedule_card.s18', "اختر المورد من القائمة بالأعلى لعرض كشف حسابه وفواتيره.")} />
       </FormSection>
     );
   }
@@ -453,11 +456,11 @@ export function SupplierBalanceScheduleCard({ supplier, disabled = false }: Supp
     <div className="supplier-balance-schedule-card">
       <FormSection
         title={`مستحقات وحساب المورد: ${supplierName}`}
-        description="استعرض فواتير المشتريات وتفاصيل الأصناف وسداد المستحقات أو قسّم المديونية لدفعات مجدولة."
+        description={t('accounts.supplier_balance_schedule_card.s19', "استعرض فواتير المشتريات وتفاصيل الأصناف وسداد المستحقات أو قسّم المديونية لدفعات مجدولة.")}
         actions={
           <div className="actions compact-actions">
             <span className="nav-pill" style={{ background: supplierBalance > 0 ? '#fef2f2' : '#f0fdf4', color: supplierBalance > 0 ? '#dc2626' : '#16a34a', fontWeight: 700 }}>
-              المستحق: {formatCurrency(supplierBalance)}
+              {t('accounts.supplier_balance_schedule_card.s20', "المستحق:")} {formatCurrency(supplierBalance)}
             </span>
           </div>
         }
@@ -465,21 +468,21 @@ export function SupplierBalanceScheduleCard({ supplier, disabled = false }: Supp
         {/* Top Summary Stats */}
         <div className="stats-grid compact-grid" style={{ marginBottom: '14px' }}>
           <div className="stat-card">
-            <span>رصيد المورد المستحق</span>
+            <span>{t('accounts.supplier_balance_schedule_card.s21', "رصيد المورد المستحق")}</span>
             <strong style={{ color: supplierBalance > 0 ? '#dc2626' : '#16a34a' }}>
               {formatCurrency(supplierBalance)}
             </strong>
           </div>
           <div className="stat-card">
-            <span>إجمالي المجدول</span>
+            <span>{t('accounts.supplier_balance_schedule_card.s22', "إجمالي المجدول")}</span>
             <strong>{formatCurrency(summary.total)}</strong>
           </div>
           <div className="stat-card">
-            <span>مدفوع من الجدول</span>
+            <span>{t('accounts.supplier_balance_schedule_card.s23', "مدفوع من الجدول")}</span>
             <strong>{formatCurrency(summary.paid)}</strong>
           </div>
           <div className="stat-card">
-            <span>متبقي مجدول</span>
+            <span>{t('accounts.supplier_balance_schedule_card.s24', "متبقي مجدول")}</span>
             <strong>{formatCurrency(summary.remaining)}</strong>
           </div>
         </div>
@@ -492,7 +495,7 @@ export function SupplierBalanceScheduleCard({ supplier, disabled = false }: Supp
             onClick={() => setActiveSubTab('invoices')}
             style={{ fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '6px' }}
           >
-            <ClipboardIcon size={16} /> فواتير المشتريات والمعاملات ({ledgerEntries.length})
+            <ClipboardIcon size={16} /> {t('accounts.supplier_balance_schedule_card.s25', "فواتير المشتريات والمعاملات (")}{ledgerEntries.length})
           </Button>
           <Button
             type="button"
@@ -500,7 +503,7 @@ export function SupplierBalanceScheduleCard({ supplier, disabled = false }: Supp
             onClick={() => setActiveSubTab('schedule')}
             style={{ fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '6px' }}
           >
-            <CalendarIcon size={16} /> جدول الأقساط والدفعات ({rows.length})
+            <CalendarIcon size={16} /> {t('accounts.supplier_balance_schedule_card.s26', "جدول الأقساط والدفعات (")}{rows.length})
           </Button>
         </div>
 
@@ -510,8 +513,8 @@ export function SupplierBalanceScheduleCard({ supplier, disabled = false }: Supp
             <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '12px', marginBottom: '16px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', flexWrap: 'wrap', gap: '8px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <strong style={{ fontSize: '0.92rem', color: '#1e293b' }}>سجل فواتير المشتريات والمعاملات</strong>
-                  {ledgerQuery.isLoading ? <span style={{ fontSize: '0.78rem', color: '#64748b' }}>(جاري التحميل...)</span> : null}
+                  <strong style={{ fontSize: '0.92rem', color: '#1e293b' }}>{t('accounts.supplier_balance_schedule_card.s27', "سجل فواتير المشتريات والمعاملات")}</strong>
+                  {ledgerQuery.isLoading ? <span style={{ fontSize: '0.78rem', color: '#64748b' }}>{t('accounts.supplier_balance_schedule_card.s28', "(جاري التحميل...)")}</span> : null}
                 </div>
                 <div className="actions compact-actions">
                   <Button
@@ -519,40 +522,40 @@ export function SupplierBalanceScheduleCard({ supplier, disabled = false }: Supp
                     variant={ledgerFilter === 'all' ? 'primary' : 'secondary'}
                     onClick={() => setLedgerFilter('all')}
                   >
-                    الكل ({ledgerEntries.length})
+                    {t('accounts.supplier_balance_schedule_card.s29', "الكل (")}{ledgerEntries.length})
                   </Button>
                   <Button
                     type="button"
                     variant={ledgerFilter === 'purchases' ? 'primary' : 'secondary'}
                     onClick={() => setLedgerFilter('purchases')}
                   >
-                    فواتير الشراء
+                    {t('accounts.supplier_balance_schedule_card.s30', "فواتير الشراء")}
                   </Button>
                   <Button
                     type="button"
                     variant={ledgerFilter === 'payments' ? 'primary' : 'secondary'}
                     onClick={() => setLedgerFilter('payments')}
                   >
-                    سندات الصرف
+                    {t('accounts.supplier_balance_schedule_card.s31', "سندات الصرف")}
                   </Button>
                 </div>
               </div>
 
               {filteredLedgerEntries.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '24px 12px', color: '#64748b', fontSize: '0.85rem' }}>
-                  {ledgerQuery.isLoading ? 'جاري تحميل كشف الحساب...' : 'لا توجد حركات مسجلة لهذا المورد في هذه التصفية.'}
+                  {ledgerQuery.isLoading ? t('accounts.supplier_balance_schedule_card.s32', "جاري تحميل كشف الحساب...") : t('accounts.supplier_balance_schedule_card.s33', "لا توجد حركات مسجلة لهذا المورد في هذه التصفية.")}
                 </div>
               ) : (
                 <div style={{ overflowX: 'auto' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
                     <thead>
                       <tr style={{ background: '#f8fafc', color: '#475569', borderBottom: '2px solid #e2e8f0', textAlign: 'right' }}>
-                        <th style={{ padding: '8px 10px', fontWeight: 600 }}>التاريخ</th>
-                        <th style={{ padding: '8px 10px', fontWeight: 600 }}>نوع الحركة / البيان</th>
-                        <th style={{ padding: '8px 10px', fontWeight: 600 }}>دائن (فاتورة شراء)</th>
-                        <th style={{ padding: '8px 10px', fontWeight: 600 }}>مدين (صرف وسداد)</th>
-                        <th style={{ padding: '8px 10px', fontWeight: 600 }}>الرصيد بعد الحركة</th>
-                        <th style={{ padding: '8px 10px', fontWeight: 600, textAlign: 'center' }}>الأصناف</th>
+                        <th style={{ padding: '8px 10px', fontWeight: 600 }}>{t('accounts.supplier_balance_schedule_card.s34', "التاريخ")}</th>
+                        <th style={{ padding: '8px 10px', fontWeight: 600 }}>{t('accounts.supplier_balance_schedule_card.s35', "نوع الحركة / البيان")}</th>
+                        <th style={{ padding: '8px 10px', fontWeight: 600 }}>{t('accounts.supplier_balance_schedule_card.s36', "دائن (فاتورة شراء)")}</th>
+                        <th style={{ padding: '8px 10px', fontWeight: 600 }}>{t('accounts.supplier_balance_schedule_card.s37', "مدين (صرف وسداد)")}</th>
+                        <th style={{ padding: '8px 10px', fontWeight: 600 }}>{t('accounts.supplier_balance_schedule_card.s38', "الرصيد بعد الحركة")}</th>
+                        <th style={{ padding: '8px 10px', fontWeight: 600, textAlign: 'center' }}>{t('accounts.supplier_balance_schedule_card.s39', "الأصناف")}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -564,7 +567,7 @@ export function SupplierBalanceScheduleCard({ supplier, disabled = false }: Supp
                         const debit = amt < 0 ? Math.abs(amt) : Number(entry.debit || 0);
                         const balanceAfter = entry.balanceAfter != null ? Number(entry.balanceAfter) : (entry.balance_after != null ? Number(entry.balance_after) : null);
                         const dateValue = entry.createdAt || entry.created_at || entry.date;
-                        const isPurchase = Boolean(purchaseId) || credit > 0 || String(entry.note || '').includes('فاتورة');
+                        const isPurchase = Boolean(purchaseId) || credit > 0 || String(entry.note || '').includes(t('accounts.supplier_balance_schedule_card.s40', "فاتورة"));
 
                         return (
                           <Fragment key={entry.id || entry.doc_no || index}>
@@ -583,7 +586,7 @@ export function SupplierBalanceScheduleCard({ supplier, disabled = false }: Supp
                               </td>
                               <td style={{ padding: '8px 10px', fontWeight: 600, color: '#1e293b' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                  <span>{entry.note || entry.doc_no || (isPurchase ? 'فاتورة مشتريات' : 'سداد/صرف')}</span>
+                                  <span>{entry.note || entry.doc_no || (isPurchase ? t('accounts.supplier_balance_schedule_card.s41', "فاتورة مشتريات") : t('accounts.supplier_balance_schedule_card.s42', "سداد/صرف"))}</span>
                                   {purchaseId ? (
                                     <span style={{ fontSize: '0.72rem', background: '#eff6ff', color: '#2563eb', padding: '1px 5px', borderRadius: '4px' }}>
                                       #{purchaseId}
@@ -623,7 +626,7 @@ export function SupplierBalanceScheduleCard({ supplier, disabled = false }: Supp
                                     }}
                                   >
                                     <EyeIcon size={13} />
-                                    {isExpanded ? 'إخفاء' : 'عرض الأصناف'}
+                                    {isExpanded ? t('accounts.supplier_balance_schedule_card.s43', "إخفاء") : t('accounts.supplier_balance_schedule_card.s44', "عرض الأصناف")}
                                     {isExpanded ? <ChevronUpIcon size={12} /> : <ChevronDownIcon size={12} />}
                                   </button>
                                 ) : (
@@ -654,7 +657,7 @@ export function SupplierBalanceScheduleCard({ supplier, disabled = false }: Supp
             {/* Direct Payment Panel */}
             <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '16px' }}>
               <strong style={{ display: 'block', marginBottom: '10px', fontSize: '0.94rem', color: '#0f172a' }}>
-                تسجيل صرف وسداد مستحقات للمورد {supplierName}
+                {t('accounts.supplier_balance_schedule_card.s45', "تسجيل صرف وسداد مستحقات للمورد")} {supplierName}
               </strong>
 
               <div className="form-grid">
@@ -675,17 +678,17 @@ export function SupplierBalanceScheduleCard({ supplier, disabled = false }: Supp
                       onClick={() => setDirectPaymentAmount(String(supplierBalance > 0 ? supplierBalance : ''))}
                       disabled={directPaymentMutation.isPending || disabled || supplierBalance <= 0}
                     >
-                      سداد كامل الرصيد المستحق ({formatCurrency(supplierBalance)})
+                      {t('accounts.supplier_balance_schedule_card.s46', "سداد كامل الرصيد المستحق (")}{formatCurrency(supplierBalance)})
                     </Button>
                   </div>
                 </Field>
 
-                <Field label="ملاحظات الصرف (اختياري)">
+                <Field label={t('accounts.supplier_balance_schedule_card.s47', "ملاحظات الصرف (اختياري)")}>
                   <textarea
                     rows={2}
                     value={directPaymentNote}
                     onChange={(event) => setDirectPaymentNote(event.target.value)}
-                    placeholder="مثال: تم التسليم نقداً لمندوب المورد / سداد فاتورة مشتريات محددة"
+                    placeholder={t('accounts.supplier_balance_schedule_card.s48', "مثال: تم التسليم نقداً لمندوب المورد / سداد فاتورة مشتريات محددة")}
                     disabled={directPaymentMutation.isPending || disabled}
                   />
                 </Field>
@@ -697,7 +700,7 @@ export function SupplierBalanceScheduleCard({ supplier, disabled = false }: Supp
                   onClick={() => directPaymentMutation.mutate()}
                   disabled={directPaymentMutation.isPending || !(Number(directPaymentAmount) > 0) || disabled}
                 >
-                  {directPaymentMutation.isPending ? 'جاري تسجيل الدفع...' : 'تأكيد صرف المبلغ للمورد'}
+                  {directPaymentMutation.isPending ? t('accounts.supplier_balance_schedule_card.s49', "جاري تسجيل الدفع...") : t('accounts.supplier_balance_schedule_card.s50', "تأكيد صرف المبلغ للمورد")}
                 </Button>
                 <Button
                   type="button"
@@ -708,7 +711,7 @@ export function SupplierBalanceScheduleCard({ supplier, disabled = false }: Supp
                   }}
                   disabled={directPaymentMutation.isPending}
                 >
-                  إعادة ضبط
+                  {t('accounts.supplier_balance_schedule_card.s51', "إعادة ضبط")}
                 </Button>
               </div>
 
@@ -716,7 +719,7 @@ export function SupplierBalanceScheduleCard({ supplier, disabled = false }: Supp
                 isError={directPaymentMutation.isError}
                 isSuccess={false}
                 error={directPaymentMutation.error}
-                errorFallback="تعذر تسجيل صرف المبلغ للمورد"
+                errorFallback={t('accounts.supplier_balance_schedule_card.s52', "تعذر تسجيل صرف المبلغ للمورد")}
                 successText=""
               />
             </div>
@@ -727,56 +730,56 @@ export function SupplierBalanceScheduleCard({ supplier, disabled = false }: Supp
             {nextDue ? (
               <div className="supplier-schedule-next-payment">
                 <div>
-                  <span>الدفعة القادمة إلى {supplierName}</span>
+                  <span>{t('accounts.supplier_balance_schedule_card.s53', "الدفعة القادمة إلى")} {supplierName}</span>
                   <strong>{formatCurrency(nextDue.remainingAmount || nextDue.amount)}</strong>
-                  <small>تستحق في {formatDateOnly(nextDue.dueDate)}</small>
+                  <small>{t('accounts.supplier_balance_schedule_card.s54', "تستحق في")} {formatDateOnly(nextDue.dueDate)}</small>
                 </div>
-                <Button type="button" variant="secondary" disabled={disabled || settleMutation.isPending} onClick={() => openPaymentDialog(nextDue)}>تسجيل دفع</Button>
+                <Button type="button" variant="secondary" disabled={disabled || settleMutation.isPending} onClick={() => openPaymentDialog(nextDue)}>{t('accounts.supplier_balance_schedule_card.s55', "تسجيل دفع")}</Button>
               </div>
             ) : null}
 
             {canSchedule && (!rows.length || showAppendForm) ? (
               <div className="form-grid" style={{ marginTop: 12 }}>
-                <Field label="المبلغ المراد جدولته">
+                <Field label={t('accounts.supplier_balance_schedule_card.s56', "المبلغ المراد جدولته")}>
                   <input type="number" min="1" max={unscheduledBalance} step="0.01" value={scheduleAmount} onChange={(event) => setScheduleAmount(event.target.value)} placeholder={String(unscheduledBalance || '')} />
                 </Field>
-                <Field label="طريقة التقسيم">
+                <Field label={t('accounts.supplier_balance_schedule_card.s57', "طريقة التقسيم")}>
                   <CustomSelect
                     value={mode}
                     onChange={(val) => setMode(val as 'count' | 'amount')}
                     options={[
-                      { value: 'count', label: 'حسب عدد الدفعات' },
-                      { value: 'amount', label: 'حسب مبلغ الدفعة' },
+                      { value: 'count', label: t('accounts.supplier_balance_schedule_card.s58', "حسب عدد الدفعات") },
+                      { value: 'amount', label: t('accounts.supplier_balance_schedule_card.s59', "حسب مبلغ الدفعة") },
                     ]}
                   />
                 </Field>
                 {mode === 'count' ? (
-                  <Field label="عدد الدفعات"><input type="number" min="1" value={installmentCount} onChange={(event) => setInstallmentCount(event.target.value)} /></Field>
+                  <Field label={t('accounts.supplier_balance_schedule_card.s60', "عدد الدفعات")}><input type="number" min="1" value={installmentCount} onChange={(event) => setInstallmentCount(event.target.value)} /></Field>
                 ) : (
-                  <Field label="مبلغ كل دفعة"><input type="number" min="1" step="0.01" value={installmentAmount} onChange={(event) => setInstallmentAmount(event.target.value)} /></Field>
+                  <Field label={t('accounts.supplier_balance_schedule_card.s61', "مبلغ كل دفعة")}><input type="number" min="1" step="0.01" value={installmentAmount} onChange={(event) => setInstallmentAmount(event.target.value)} /></Field>
                 )}
-                <Field label="تاريخ أول دفعة"><input type="date" value={firstDueDate} onChange={(event) => setFirstDueDate(event.target.value)} /></Field>
-                <Field label="تكرار الاستحقاق كل كام يوم"><input type="number" min="1" value={intervalDays} onChange={(event) => setIntervalDays(event.target.value)} /></Field>
-                <Field label="تقريب الدفعات لأقرب"><input type="number" min="1" value={roundingStep} onChange={(event) => setRoundingStep(event.target.value)} /></Field>
-                <Field label="ملاحظة"><input value={note} onChange={(event) => setNote(event.target.value)} placeholder="مثال: اتفاق سداد رصيد المورد" /></Field>
-                <div className="field"><span>إنشاء الجدول</span><Button type="button" onClick={() => createMutation.mutate()} disabled={createMutation.isPending}>جدولة المستحقات</Button></div>
+                <Field label={t('accounts.supplier_balance_schedule_card.s62', "تاريخ أول دفعة")}><input type="date" value={firstDueDate} onChange={(event) => setFirstDueDate(event.target.value)} /></Field>
+                <Field label={t('accounts.supplier_balance_schedule_card.s63', "تكرار الاستحقاق كل كام يوم")}><input type="number" min="1" value={intervalDays} onChange={(event) => setIntervalDays(event.target.value)} /></Field>
+                <Field label={t('accounts.supplier_balance_schedule_card.s64', "تقريب الدفعات لأقرب")}><input type="number" min="1" value={roundingStep} onChange={(event) => setRoundingStep(event.target.value)} /></Field>
+                <Field label={t('accounts.supplier_balance_schedule_card.s65', "ملاحظة")}><input value={note} onChange={(event) => setNote(event.target.value)} placeholder={t('accounts.supplier_balance_schedule_card.s66', "مثال: اتفاق سداد رصيد المورد")} /></Field>
+                <div className="field"><span>{t('accounts.supplier_balance_schedule_card.s67', "إنشاء الجدول")}</span><Button type="button" onClick={() => createMutation.mutate()} disabled={createMutation.isPending}>{t('accounts.supplier_balance_schedule_card.s68', "جدولة المستحقات")}</Button></div>
               </div>
             ) : null}
 
             {canSchedule && rows.length && !showAppendForm ? (
               <div className="surface-note" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span>يوجد رصيد غير مجدول بقيمة {formatCurrency(unscheduledBalance)}. يمكنك إضافته كدفعات إضافية.</span>
-                <Button type="button" variant="secondary" onClick={() => setShowAppendForm(true)}>إضافة دفعات للرصيد المتبقي</Button>
+                <span>{t('accounts.supplier_balance_schedule_card.s69', "يوجد رصيد غير مجدول بقيمة")} {formatCurrency(unscheduledBalance)}{t('accounts.supplier_balance_schedule_card.s70', ". يمكنك إضافته كدفعات إضافية.")}</span>
+                <Button type="button" variant="secondary" onClick={() => setShowAppendForm(true)}>{t('accounts.supplier_balance_schedule_card.s71', "إضافة دفعات للرصيد المتبقي")}</Button>
               </div>
             ) : null}
 
-            {!canSchedule && supplierBalance <= 0 ? <div className="surface-note">لا توجد مستحقات موجبة على هذا المورد يمكن جدولتها حاليًا.</div> : null}
-            {!canSchedule && supplierBalance > 0 && unscheduledBalance <= 0 ? <div className="surface-note">تمت جدولة جميع مستحقات هذا المورد بالكامل.</div> : null}
+            {!canSchedule && supplierBalance <= 0 ? <div className="surface-note">{t('accounts.supplier_balance_schedule_card.s72', "لا توجد مستحقات موجبة على هذا المورد يمكن جدولتها حاليًا.")}</div> : null}
+            {!canSchedule && supplierBalance > 0 && unscheduledBalance <= 0 ? <div className="surface-note">{t('accounts.supplier_balance_schedule_card.s73', "تمت جدولة جميع مستحقات هذا المورد بالكامل.")}</div> : null}
 
-            <MutationFeedback isError={createMutation.isError || settleMutation.isError} isSuccess={createMutation.isSuccess || settleMutation.isSuccess} error={createMutation.error || settleMutation.error} errorFallback={((createMutation.error as any)?.message) || ((settleMutation.error as any)?.message) || "تعذر تنفيذ عملية جدولة المورد"} successText="تم تحديث جدول مستحقات المورد." />
+            <MutationFeedback isError={createMutation.isError || settleMutation.isError} isSuccess={createMutation.isSuccess || settleMutation.isSuccess} error={createMutation.error || settleMutation.error} errorFallback={((createMutation.error as any)?.message) || ((settleMutation.error as any)?.message) || t('accounts.supplier_balance_schedule_card.s74', "تعذر تنفيذ عملية جدولة المورد")} successText={t('accounts.supplier_balance_schedule_card.s75', "تم تحديث جدول مستحقات المورد.")} />
 
             {rows.length ? (
-              <div className="supplier-schedule-filter-bar" aria-label="فلترة دفعات المورد" style={{ marginTop: 16 }}>
+              <div className="supplier-schedule-filter-bar" aria-label={t('accounts.supplier_balance_schedule_card.s76', "فلترة دفعات المورد")} style={{ marginTop: 16 }}>
                 {FILTER_OPTIONS.map((option) => (
                   <button
                     key={option.key}
@@ -794,7 +797,7 @@ export function SupplierBalanceScheduleCard({ supplier, disabled = false }: Supp
             <div className="table-wrap supplier-schedule-table-wrap" style={{ marginTop: 12 }}>
               {filteredRows.length ? (
                 <table className="supplier-schedule-table">
-                  <thead><tr><th>#</th><th>الاستحقاق</th><th>المبلغ</th><th>المدفوع</th><th>المتبقي</th><th>الحالة</th><th>الإجراء</th></tr></thead>
+                  <thead><tr><th>#</th><th>{t('accounts.supplier_balance_schedule_card.s77', "الاستحقاق")}</th><th>{t('accounts.supplier_balance_schedule_card.s78', "المبلغ")}</th><th>{t('accounts.supplier_balance_schedule_card.s79', "المدفوع")}</th><th>{t('accounts.supplier_balance_schedule_card.s80', "المتبقي")}</th><th>{t('accounts.supplier_balance_schedule_card.s81', "الحالة")}</th><th>{t('accounts.supplier_balance_schedule_card.s82', "الإجراء")}</th></tr></thead>
                   <tbody>
                     {filteredRows.map((row) => {
                       const isSettled = row.status === 'paid' || row.status === 'cancelled';
@@ -814,7 +817,7 @@ export function SupplierBalanceScheduleCard({ supplier, disabled = false }: Supp
                             }}
                           >
                             <td>
-                              <span className="supplier-schedule-installment-label">دفعة {row.installmentNo} {isExpanded ? '▴' : '▾'}</span>
+                              <span className="supplier-schedule-installment-label">{t('accounts.supplier_balance_schedule_card.s83', "دفعة")} {row.installmentNo} {isExpanded ? '▴' : '▾'}</span>
                             </td>
                             <td>{formatDateOnly(row.dueDate)}</td>
                             <td>{formatCurrency(row.amount)}</td>
@@ -823,7 +826,7 @@ export function SupplierBalanceScheduleCard({ supplier, disabled = false }: Supp
                             <td><span className={statusClass(row.status)}>{statusLabel(row.status)}</span></td>
                             <td>
                               {isSettled ? (
-                                <span className="supplier-schedule-completed-label">مكتملة</span>
+                                <span className="supplier-schedule-completed-label">{t('accounts.supplier_balance_schedule_card.s84', "مكتملة")}</span>
                               ) : (
                                 <Button
                                   type="button"
@@ -834,7 +837,7 @@ export function SupplierBalanceScheduleCard({ supplier, disabled = false }: Supp
                                     openPaymentDialog(row);
                                   }}
                                 >
-                                  تسجيل دفع
+                                  {t('accounts.supplier_balance_schedule_card.s85', "تسجيل دفع")}
                                 </Button>
                               )}
                             </td>
@@ -844,8 +847,8 @@ export function SupplierBalanceScheduleCard({ supplier, disabled = false }: Supp
                               <td colSpan={7}>
                                 <div className="supplier-schedule-details-panel">
                                   <div className="supplier-schedule-details-heading">
-                                    <strong>سجل دفع الدفعة {row.installmentNo}</strong>
-                                    <span>{payments.length ? `${payments.length} عملية` : 'لا يوجد دفع مسجل'}</span>
+                                    <strong>{t('accounts.supplier_balance_schedule_card.s86', "سجل دفع الدفعة")} {row.installmentNo}</strong>
+                                    <span>{payments.length ? `${payments.length} عملية` : t('accounts.supplier_balance_schedule_card.s87', "لا يوجد دفع مسجل")}</span>
                                   </div>
                                   {payments.length ? (
                                     <div className="supplier-schedule-payment-log">
@@ -853,12 +856,12 @@ export function SupplierBalanceScheduleCard({ supplier, disabled = false }: Supp
                                         <div key={payment.id} className="supplier-schedule-payment-log-item">
                                           <strong>{formatCurrency(payment.amount)}</strong>
                                           <span>{formatDateTime(payment.createdAt)}</span>
-                                          <span>تم تسجيل الدفع بواسطة المستخدم: {payment.createdByName || payment.createdBy || '—'}</span>
-                                          {payment.note ? <em>ملاحظة: {payment.note}</em> : null}
+                                          <span>{t('accounts.supplier_balance_schedule_card.s88', "تم تسجيل الدفع بواسطة المستخدم:")} {payment.createdByName || payment.createdBy || '—'}</span>
+                                          {payment.note ? <em>{t('accounts.supplier_balance_schedule_card.s89', "ملاحظة:")} {payment.note}</em> : null}
                                         </div>
                                       ))}
                                     </div>
-                                  ) : <div className="muted small">لم يتم تسجيل أي دفع على هذه الدفعة بعد.</div>}
+                                  ) : <div className="muted small">{t('accounts.supplier_balance_schedule_card.s90', "لم يتم تسجيل أي دفع على هذه الدفعة بعد.")}</div>}
                                 </div>
                               </td>
                             </tr>
@@ -869,9 +872,9 @@ export function SupplierBalanceScheduleCard({ supplier, disabled = false }: Supp
                   </tbody>
                 </table>
               ) : rows.length ? (
-                <EmptyState title="لا توجد دفعات مطابقة للفلتر" hint="غيّر فلتر الحالة لعرض باقي دفعات المورد." />
+                <EmptyState title={t('accounts.supplier_balance_schedule_card.s91', "لا توجد دفعات مطابقة للفلتر")} hint={t('accounts.supplier_balance_schedule_card.s92', "غيّر فلتر الحالة لعرض باقي دفعات المورد.")} />
               ) : (
-                <EmptyState title="لا يوجد جدول مستحقات لهذا المورد" hint="استخدم نموذج الجدولة لتقسيم رصيد المورد أو جزء منه على دفعات." />
+                <EmptyState title={t('accounts.supplier_balance_schedule_card.s93', "لا يوجد جدول مستحقات لهذا المورد")} hint={t('accounts.supplier_balance_schedule_card.s94', "استخدم نموذج الجدولة لتقسيم رصيد المورد أو جزء منه على دفعات.")} />
               )}
             </div>
           </div>
@@ -884,21 +887,21 @@ export function SupplierBalanceScheduleCard({ supplier, disabled = false }: Supp
               <div className="dialog-card supplier-payment-dialog-card">
                 <div className="supplier-payment-dialog-header supplier-payment-dialog-header--centered">
                   <div>
-                    <h3>تأكيد تسليم الدفعة إلى {supplierName}</h3>
-                    <p className="muted">دفعة {paymentTarget.installmentNo} — المتبقي {formatCurrency(paymentTarget.remainingAmount)}</p>
+                    <h3>{t('accounts.supplier_balance_schedule_card.s95', "تأكيد تسليم الدفعة إلى")} {supplierName}</h3>
+                    <p className="muted">{t('accounts.supplier_balance_schedule_card.s96', "دفعة")} {paymentTarget.installmentNo} {t('accounts.supplier_balance_schedule_card.s97', "— المتبقي")} {formatCurrency(paymentTarget.remainingAmount)}</p>
                   </div>
                 </div>
                 <div className="form-grid supplier-payment-dialog-form">
-                  <Field label="المبلغ المدفوع">
+                  <Field label={t('accounts.supplier_balance_schedule_card.s98', "المبلغ المدفوع")}>
                     <input type="number" min="0.01" step="0.01" max={paymentTarget.remainingAmount} value={paymentAmount} onChange={(event) => setPaymentAmount(event.target.value)} />
                   </Field>
-                  <Field label="ملاحظات اختيارية">
-                    <textarea rows={3} value={paymentNote} onChange={(event) => setPaymentNote(event.target.value)} placeholder="مثال: تم التسليم لمندوب المورد / رقم إيصال / ملاحظة داخلية" />
+                  <Field label={t('accounts.supplier_balance_schedule_card.s99', "ملاحظات اختيارية")}>
+                    <textarea rows={3} value={paymentNote} onChange={(event) => setPaymentNote(event.target.value)} placeholder={t('accounts.supplier_balance_schedule_card.s100', "مثال: تم التسليم لمندوب المورد / رقم إيصال / ملاحظة داخلية")} />
                   </Field>
                 </div>
                 <div className="actions compact-actions supplier-payment-dialog-actions">
-                  <Button type="button" onClick={() => settleMutation.mutate({ row: paymentTarget, amount: paymentAmount ? Number(paymentAmount) : undefined, paymentNote })} disabled={settleMutation.isPending}>تأكيد تسليم الدفعة للمورد</Button>
-                  <Button type="button" variant="secondary" onClick={() => setPaymentTarget(null)} disabled={settleMutation.isPending}>إلغاء</Button>
+                  <Button type="button" onClick={() => settleMutation.mutate({ row: paymentTarget, amount: paymentAmount ? Number(paymentAmount) : undefined, paymentNote })} disabled={settleMutation.isPending}>{t('accounts.supplier_balance_schedule_card.s101', "تأكيد تسليم الدفعة للمورد")}</Button>
+                  <Button type="button" variant="secondary" onClick={() => setPaymentTarget(null)} disabled={settleMutation.isPending}>{t('accounts.supplier_balance_schedule_card.s102', "إلغاء")}</Button>
                 </div>
               </div>
             </div>
@@ -908,14 +911,14 @@ export function SupplierBalanceScheduleCard({ supplier, disabled = false }: Supp
         {/* Schedule Installment Success WhatsApp Receipt */}
         {successReceipt ? (
           <div className="dialog-overlay supplier-payment-dialog-overlay" role="presentation" onClick={(e) => { if (e.target === e.currentTarget) setSuccessReceipt(null); }}>
-            <div className="dialog-shell supplier-payment-dialog" role="dialog" aria-modal="true" aria-label="تم الدفع بنجاح">
+            <div className="dialog-shell supplier-payment-dialog" role="dialog" aria-modal="true" aria-label={t('accounts.supplier_balance_schedule_card.s103', "تم الدفع بنجاح")}>
               <div className="dialog-card supplier-payment-dialog-card" style={{ textAlign: 'center', padding: '2rem 1rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1rem', color: '#16a34a' }}>
                   <CheckCircleIcon size={52} />
                 </div>
-                <h3 style={{ marginBottom: '0.5rem' }}>تم تسجيل الدفعة بنجاح</h3>
+                <h3 style={{ marginBottom: '0.5rem' }}>{t('accounts.supplier_balance_schedule_card.s104', "تم تسجيل الدفعة بنجاح")}</h3>
                 <p className="muted" style={{ marginBottom: '1.5rem' }}>
-                  تم سداد {formatCurrency(successReceipt.amountPaid)} لصالح {supplierName} (المتبقي: {formatCurrency(successReceipt.remainingBalance)}).
+                  {t('accounts.supplier_balance_schedule_card.s105', "تم سداد")} {formatCurrency(successReceipt.amountPaid)} {t('accounts.supplier_balance_schedule_card.s106', "لصالح")} {supplierName} {t('accounts.supplier_balance_schedule_card.s107', "(المتبقي:")} {formatCurrency(successReceipt.remainingBalance)}).
                 </p>
                 
                 <div className="actions compact-actions supplier-payment-dialog-actions" style={{ justifyContent: 'center', flexWrap: 'wrap' }}>
@@ -939,10 +942,10 @@ export function SupplierBalanceScheduleCard({ supplier, disabled = false }: Supp
                     }}
                   >
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                      <WhatsAppIcon size={16} /> إرسال للمورد عبر واتساب
+                      <WhatsAppIcon size={16} /> {t('accounts.supplier_balance_schedule_card.s108', "إرسال للمورد عبر واتساب")}
                     </span>
                   </Button>
-                  <Button type="button" variant="secondary" onClick={() => setSuccessReceipt(null)}>إغلاق النافذة</Button>
+                  <Button type="button" variant="secondary" onClick={() => setSuccessReceipt(null)}>{t('accounts.supplier_balance_schedule_card.s109', "إغلاق النافذة")}</Button>
                 </div>
               </div>
             </div>
@@ -952,14 +955,14 @@ export function SupplierBalanceScheduleCard({ supplier, disabled = false }: Supp
         {/* Direct Supplier Payment Success WhatsApp Receipt */}
         {directSuccessReceipt ? (
           <div className="dialog-overlay supplier-payment-dialog-overlay" role="presentation" onClick={(e) => { if (e.target === e.currentTarget) setDirectSuccessReceipt(null); }}>
-            <div className="dialog-shell supplier-payment-dialog" role="dialog" aria-modal="true" aria-label="تم تسجيل السداد بنجاح">
+            <div className="dialog-shell supplier-payment-dialog" role="dialog" aria-modal="true" aria-label={t('accounts.supplier_balance_schedule_card.s110', "تم تسجيل السداد بنجاح")}>
               <div className="dialog-card supplier-payment-dialog-card" style={{ textAlign: 'center', padding: '2rem 1rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1rem', color: '#16a34a' }}>
                   <CheckCircleIcon size={52} />
                 </div>
-                <h3 style={{ marginBottom: '0.5rem' }}>تم تسجيل صرف المبلغ بنجاح</h3>
+                <h3 style={{ marginBottom: '0.5rem' }}>{t('accounts.supplier_balance_schedule_card.s111', "تم تسجيل صرف المبلغ بنجاح")}</h3>
                 <p className="muted" style={{ marginBottom: '1.5rem' }}>
-                  تم سداد {formatCurrency(directSuccessReceipt.amountPaid)} لصالح المورد {supplierName} (الرصيد المتبقي له: {formatCurrency(directSuccessReceipt.remainingBalance)}).
+                  {t('accounts.supplier_balance_schedule_card.s112', "تم سداد")} {formatCurrency(directSuccessReceipt.amountPaid)} {t('accounts.supplier_balance_schedule_card.s113', "لصالح المورد")} {supplierName} {t('accounts.supplier_balance_schedule_card.s114', "(الرصيد المتبقي له:")} {formatCurrency(directSuccessReceipt.remainingBalance)}).
                 </p>
 
                 <div className="actions compact-actions supplier-payment-dialog-actions" style={{ justifyContent: 'center', flexWrap: 'wrap' }}>
@@ -983,11 +986,11 @@ export function SupplierBalanceScheduleCard({ supplier, disabled = false }: Supp
                     }}
                   >
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                      <WhatsAppIcon size={16} /> إرسال إيصال للمورد عبر واتساب
+                      <WhatsAppIcon size={16} /> {t('accounts.supplier_balance_schedule_card.s115', "إرسال إيصال للمورد عبر واتساب")}
                     </span>
                   </Button>
                   <Button type="button" variant="secondary" onClick={() => setDirectSuccessReceipt(null)}>
-                    إغلاق
+                    {t('accounts.supplier_balance_schedule_card.s116', "إغلاق")}
                   </Button>
                 </div>
               </div>

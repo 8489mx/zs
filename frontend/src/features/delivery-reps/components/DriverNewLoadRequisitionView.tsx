@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useMemo, useEffect, useCallback, memo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/shared/ui/button';
@@ -212,6 +213,7 @@ export function DriverNewLoadRequisitionView({
   onBack,
   onRequisitionSubmitted,
 }: DriverNewLoadRequisitionViewProps) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const isAdmin = mode === 'admin';
   const isMobile = useIsMobile(768);
@@ -1060,8 +1062,8 @@ export function DriverNewLoadRequisitionView({
 
           <h2 style={{ fontSize: '18px', fontWeight: 800, color: '#0f172a', margin: '0 0 8px' }}>
             {adminSubmitResult.dispatched
-              ? 'تم صرف البضاعة وتحميل السيارة وبدء رحلة التوزيع!'
-              : 'تم حفظ إذن التحميل كمسودة معلقة بنجاح!'}
+              ? t('delivery_reps.driver_new_load_requisition_view.s0', "تم صرف البضاعة وتحميل السيارة وبدء رحلة التوزيع!")
+              : t('delivery_reps.driver_new_load_requisition_view.s1', "تم حفظ إذن التحميل كمسودة معلقة بنجاح!")}
           </h2>
 
           <div
@@ -1077,7 +1079,7 @@ export function DriverNewLoadRequisitionView({
             }}
           >
             <div>
-              <span style={{ fontSize: '11.5px', color: '#64748b', display: 'block' }}>رقم إذن التحميل:</span>
+              <span style={{ fontSize: '11.5px', color: '#64748b', display: 'block' }}>{t('delivery_reps.driver_new_load_requisition_view.s2', "رقم إذن التحميل:")}</span>
               <span style={{ fontSize: '17px', fontWeight: 900, color: '#170e5e', fontFamily: 'monospace' }}>
                 #{adminSubmitResult.docNo}
               </span>
@@ -1086,7 +1088,7 @@ export function DriverNewLoadRequisitionView({
               <>
                 <div style={{ height: '28px', width: '1px', backgroundColor: '#cbd5e1' }} />
                 <div>
-                  <span style={{ fontSize: '11.5px', color: '#64748b', display: 'block' }}>رقم رحلة التوزيع:</span>
+                  <span style={{ fontSize: '11.5px', color: '#64748b', display: 'block' }}>{t('delivery_reps.driver_new_load_requisition_view.s3', "رقم رحلة التوزيع:")}</span>
                   <span style={{ fontSize: '17px', fontWeight: 900, color: '#15803d', fontFamily: 'monospace' }}>
                     #{adminSubmitResult.tripId}
                   </span>
@@ -1114,7 +1116,7 @@ export function DriverNewLoadRequisitionView({
               borderRadius: '10px',
             }}
           >
-            العودة لقائمة أذونات التحميل
+            {t('delivery_reps.driver_new_load_requisition_view.s4', "العودة لقائمة أذونات التحميل")}
           </Button>
         </div>
       </div>
@@ -1163,7 +1165,7 @@ export function DriverNewLoadRequisitionView({
           </div>
 
           <h2 style={{ fontSize: '18px', fontWeight: 800, color: '#0f172a', margin: '0 0 8px' }}>
-            تم إرسال طلب شحن البضاعة بنجاح!
+            {t('delivery_reps.driver_new_load_requisition_view.s5', "تم إرسال طلب شحن البضاعة بنجاح!")}
           </h2>
 
           <div
@@ -1175,14 +1177,14 @@ export function DriverNewLoadRequisitionView({
               display: 'inline-block',
             }}
           >
-            <span style={{ fontSize: '12px', color: '#64748b', display: 'block' }}>رقم إذن التحميل المقترح:</span>
+            <span style={{ fontSize: '12px', color: '#64748b', display: 'block' }}>{t('delivery_reps.driver_new_load_requisition_view.s6', "رقم إذن التحميل المقترح:")}</span>
             <span style={{ fontSize: '18px', fontWeight: 900, color: '#170e5e', fontFamily: 'monospace' }}>
               #{submittedDocNo}
             </span>
           </div>
 
           <p style={{ fontSize: '13px', color: '#475569', lineHeight: 1.6, margin: '0 0 24px' }}>
-            تم رفع الطلب إلى المشرف المختص لمراجعة الأرصدة وإصدار أمر الصرف الفعلي لسيارتك.
+            {t('delivery_reps.driver_new_load_requisition_view.s7', "تم رفع الطلب إلى المشرف المختص لمراجعة الأرصدة وإصدار أمر الصرف الفعلي لسيارتك.")}
           </p>
 
           <Button
@@ -1198,7 +1200,7 @@ export function DriverNewLoadRequisitionView({
               borderRadius: '10px',
             }}
           >
-            العودة للرئيسية
+            {t('delivery_reps.driver_new_load_requisition_view.s8', "العودة للرئيسية")}
           </Button>
         </div>
       </div>
@@ -1219,7 +1221,7 @@ export function DriverNewLoadRequisitionView({
             fontSize: '12px',
           }}
         >
-          <span>لا توجد أصناف متوفرة حالياً بالبحث أو القسم المحدد بالمخزن.</span>
+          <span>{t('delivery_reps.driver_new_load_requisition_view.s9', "لا توجد أصناف متوفرة حالياً بالبحث أو القسم المحدد بالمخزن.")}</span>
           {outOfStockCount > 0 && !showOutOfStock && (
             <div style={{ marginTop: '8px' }}>
               <button
@@ -1235,7 +1237,7 @@ export function DriverNewLoadRequisitionView({
                   textDecoration: 'underline',
                 }}
               >
-                عرض الأصناف غير المتوفرة ({outOfStockCount})
+                {t('delivery_reps.driver_new_load_requisition_view.s10', "عرض الأصناف غير المتوفرة (")}{outOfStockCount})
               </button>
             </div>
           )}
@@ -1299,7 +1301,7 @@ export function DriverNewLoadRequisitionView({
                     flexShrink: 0,
                   }}
                 >
-                  {prod.supplierName || 'الشركة العامة'}
+                  {prod.supplierName || t('delivery_reps.driver_new_load_requisition_view.s11', "الشركة العامة")}
                 </span>
               </div>
 
@@ -1307,21 +1309,21 @@ export function DriverNewLoadRequisitionView({
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11px', flexWrap: 'wrap', gap: '4px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
                   <span style={{ color: '#170e5e', fontWeight: 800 }}>
-                    سعر: {prod.retailPrice.toFixed(2)} <CurrencySymbol />
+                    {t('delivery_reps.driver_new_load_requisition_view.s12', "سعر:")} {prod.retailPrice.toFixed(2)} <CurrencySymbol />
                   </span>
                   {prod.expiryStatus === 'expired' && (
                     <span style={{ fontSize: '9.5px', backgroundColor: '#fee2e2', color: '#b91c1c', border: '1px solid #fecaca', padding: '1px 5px', borderRadius: '4px', fontWeight: 800 }}>
-                      منتهي الصلاحية ({prod.earliestExpiryDate})
+                      {t('delivery_reps.driver_new_load_requisition_view.s13', "منتهي الصلاحية (")}{prod.earliestExpiryDate})
                     </span>
                   )}
                   {prod.expiryStatus === 'near_expiry' && (
                     <span style={{ fontSize: '9.5px', backgroundColor: '#fef3c7', color: '#b45309', border: '1px solid #fde68a', padding: '1px 5px', borderRadius: '4px', fontWeight: 800 }}>
-                      FEFO قريب الانتهاء ({prod.daysToExpiry} يوم)
+                      {t('delivery_reps.driver_new_load_requisition_view.s14', "FEFO قريب الانتهاء (")}{prod.daysToExpiry} {t('delivery_reps.driver_new_load_requisition_view.s15', "يوم)")}
                     </span>
                   )}
                   {prod.expiryStatus === 'valid' && prod.earliestExpiryDate && (
                     <span style={{ fontSize: '9.5px', backgroundColor: '#f1f5f9', color: '#475569', padding: '1px 5px', borderRadius: '4px', fontWeight: 600 }}>
-                      صلاحية: {prod.earliestExpiryDate}
+                      {t('delivery_reps.driver_new_load_requisition_view.s16', "صلاحية:")} {prod.earliestExpiryDate}
                     </span>
                   )}
                 </div>
@@ -1340,13 +1342,13 @@ export function DriverNewLoadRequisitionView({
                   {!isOutOfStock ? (
                     isCartonItem ? (
                       <>
-                        {availCartons} {prod.packagingUnit?.name} {availPieces > 0 ? `+ ${availPieces}ق` : ''} ({prod.totalStock}ق)
+                        {availCartons} {prod.packagingUnit?.name} {availPieces > 0 ? `+ ${availPieces}ق` : ''} ({prod.totalStock}{t('delivery_reps.driver_new_load_requisition_view.s17', "ق)")}
                       </>
                     ) : (
                       `متاح: ${prod.totalStock} ${prod.unit}`
                     )
                   ) : (
-                    'نافد من المخزن'
+                    t('delivery_reps.driver_new_load_requisition_view.s18', "نافد من المخزن")
                   )}
                 </span>
               </div>
@@ -1378,7 +1380,7 @@ export function DriverNewLoadRequisitionView({
                         }}
                       >
                         <PlusIcon size={12} />
-                        <span>+ حجز {prod.packagingUnit?.name || 'كرتونة'}</span>
+                        <span>{t('delivery_reps.driver_new_load_requisition_view.s19', "+ حجز")} {prod.packagingUnit?.name || t('delivery_reps.driver_new_load_requisition_view.s20', "كرتونة")}</span>
                       </button>
                       <button
                         type="button"
@@ -1402,7 +1404,7 @@ export function DriverNewLoadRequisitionView({
                         }}
                       >
                         <PlusIcon size={11} color="#64748b" />
-                        <span>+ بالقطعة</span>
+                        <span>{t('delivery_reps.driver_new_load_requisition_view.s21', "+ بالقطعة")}</span>
                       </button>
                     </div>
                   ) : (
@@ -1428,18 +1430,18 @@ export function DriverNewLoadRequisitionView({
                       }}
                     >
                       <PlusIcon size={12} />
-                      <span>إضافة للتحميل</span>
+                      <span>{t('delivery_reps.driver_new_load_requisition_view.s22', "إضافة للتحميل")}</span>
                     </button>
                   )
                 ) : isCartonItem ? (
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
                     <span style={{ fontSize: '11px', fontWeight: 800, color: '#170e5e' }}>
-                      المطلوب: {totalChosen} قطعة
+                      {t('delivery_reps.driver_new_load_requisition_view.s23', "المطلوب:")} {totalChosen} {t('delivery_reps.driver_new_load_requisition_view.s24', "قطعة")}
                     </span>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                       <CompactStepper
                         value={currentCartons}
-                        unitLabel={prod.packagingUnit?.name || 'كرتونة'}
+                        unitLabel={prod.packagingUnit?.name || t('delivery_reps.driver_new_load_requisition_view.s25', "كرتونة")}
                         onIncrement={() => handleCartonIncrement(prod, currentCartons, currentPieces)}
                         onDecrement={() => handleCartonDecrement(prod, currentCartons, currentPieces)}
                         onChange={(val) => handleUpdateProductUnits(prod, val, currentPieces)}
@@ -1450,7 +1452,7 @@ export function DriverNewLoadRequisitionView({
                       <span style={{ fontWeight: 800, color: '#94a3b8', fontSize: '11px' }}>+</span>
                       <CompactStepper
                         value={currentPieces}
-                        unitLabel="قطع"
+                        unitLabel={t('delivery_reps.driver_new_load_requisition_view.s26', "قطع")}
                         onIncrement={() => handlePieceIncrement(prod, currentCartons, currentPieces)}
                         onDecrement={() => handlePieceDecrement(prod, currentCartons, currentPieces)}
                         onChange={(val) => handleUpdateProductUnits(prod, currentCartons, val)}
@@ -1463,11 +1465,11 @@ export function DriverNewLoadRequisitionView({
                 ) : (
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
                     <span style={{ fontSize: '11px', fontWeight: 800, color: '#170e5e' }}>
-                      القيمة: {(totalChosen * prod.retailPrice).toFixed(2)} <CurrencySymbol />
+                      {t('delivery_reps.driver_new_load_requisition_view.s27', "القيمة:")} {(totalChosen * prod.retailPrice).toFixed(2)} <CurrencySymbol />
                     </span>
                     <CompactStepper
                       value={totalChosen}
-                      unitLabel={prod.unit || 'قطعة'}
+                      unitLabel={prod.unit || t('delivery_reps.driver_new_load_requisition_view.s28', "قطعة")}
                       isDecimal={Boolean(prod.isWeight)}
                       step={prod.isWeight ? 0.5 : 1}
                       min={0}
@@ -1545,14 +1547,14 @@ export function DriverNewLoadRequisitionView({
                 color: '#475569',
                 flexShrink: 0,
               }}
-              title="العودة للقائمة"
+              title={t('delivery_reps.driver_new_load_requisition_view.s29', "العودة للقائمة")}
             >
               <ArrowRightIcon size={16} />
             </button>
             <div style={{ minWidth: 0, flex: 1 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
                 <h1 style={{ margin: 0, fontSize: isMobile ? '13px' : '14px', fontWeight: 800, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {isAdmin ? 'إسناد وصرف إذن تحميل السيارة' : 'طلب شحن وتحميل سيارة التوزيع'}
+                  {isAdmin ? t('delivery_reps.driver_new_load_requisition_view.s30', "إسناد وصرف إذن تحميل السيارة") : t('delivery_reps.driver_new_load_requisition_view.s31', "طلب شحن وتحميل سيارة التوزيع")}
                 </h1>
                 <span
                   style={{
@@ -1566,7 +1568,7 @@ export function DriverNewLoadRequisitionView({
                     flexShrink: 0,
                   }}
                 >
-                  {isAdmin ? 'إسناد إداري' : 'مسودة جديدة'}
+                  {isAdmin ? t('delivery_reps.driver_new_load_requisition_view.s32', "إسناد إداري") : t('delivery_reps.driver_new_load_requisition_view.s33', "مسودة جديدة")}
                 </span>
                 {isMobile && distinctItemsCount > 0 && (
                   <span
@@ -1581,7 +1583,7 @@ export function DriverNewLoadRequisitionView({
                       flexShrink: 0,
                     }}
                   >
-                    ({distinctItemsCount} بالطلب)
+                    ({distinctItemsCount} {t('delivery_reps.driver_new_load_requisition_view.s34', "بالطلب)")}
                   </span>
                 )}
               </div>
@@ -1606,7 +1608,7 @@ export function DriverNewLoadRequisitionView({
                     height: '32px',
                   }}
                 >
-                  {adminSubmitMutation.isPending ? 'جاري الصرف...' : `صرف وتحميل (${distinctItemsCount})`}
+                  {adminSubmitMutation.isPending ? t('delivery_reps.driver_new_load_requisition_view.s35', "جاري الصرف...") : `صرف وتحميل (${distinctItemsCount})`}
                 </Button>
               ) : pendingRequisition ? (
                 <Button
@@ -1629,7 +1631,7 @@ export function DriverNewLoadRequisitionView({
                   title={`لديك طلب معلق #${pendingRequisition.docNo} - انقر لإلغائه وتعديل أصنافه`}
                 >
                   <RefreshCwIcon size={12} />
-                  {isCancellingRequisition ? 'جاري الإلغاء...' : 'إلغاء المعلق وتعديل الأصناف'}
+                  {isCancellingRequisition ? t('delivery_reps.driver_new_load_requisition_view.s36', "جاري الإلغاء...") : t('delivery_reps.driver_new_load_requisition_view.s37', "إلغاء المعلق وتعديل الأصناف")}
                 </Button>
               ) : (
                 <Button
@@ -1647,7 +1649,7 @@ export function DriverNewLoadRequisitionView({
                     height: '32px',
                   }}
                 >
-                  {isSubmitting ? 'جارٍ الإرسال...' : `إرسال للمشرف (${distinctItemsCount})`}
+                  {isSubmitting ? t('delivery_reps.driver_new_load_requisition_view.s38', "جارٍ الإرسال...") : `إرسال للمشرف (${distinctItemsCount})`}
                 </Button>
               )}
             </div>
@@ -1689,13 +1691,13 @@ export function DriverNewLoadRequisitionView({
               </div>
               <div style={{ minWidth: 0 }}>
                 <div style={{ fontSize: '13px', fontWeight: 800, color: '#92400e', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span>طلب إذن تحميل معلق برقم #{pendingRequisition.docNo}</span>
+                  <span>{t('delivery_reps.driver_new_load_requisition_view.s39', "طلب إذن تحميل معلق برقم #")}{pendingRequisition.docNo}</span>
                   <span style={{ fontSize: '10.5px', padding: '1px 6px', borderRadius: '4px', backgroundColor: '#fef3c7', color: '#b45309', fontWeight: 700 }}>
-                    قيد انتظار مراجعة المشرف
+                    {t('delivery_reps.driver_new_load_requisition_view.s40', "قيد انتظار مراجعة المشرف")}
                   </span>
                 </div>
                 <div style={{ fontSize: '11.5px', color: '#78350f', marginTop: '3px' }}>
-                  المستودع: <strong>{pendingRequisition.sourceWarehouseName || 'المستودع الرئيسي'}</strong> | الأصناف: <strong>{pendingRequisition.requestedItems?.length || 0} صنف</strong>. لمنع تكرار الطلبات، يلزم إلغاء الطلب المعلق أولاً لتعديل كمياته أو انتظار اعتماده وصرفه.
+                  {t('delivery_reps.driver_new_load_requisition_view.s41', "المستودع:")} <strong>{pendingRequisition.sourceWarehouseName || t('delivery_reps.driver_new_load_requisition_view.s42', "المستودع الرئيسي")}</strong> {t('delivery_reps.driver_new_load_requisition_view.s43', "| الأصناف:")} <strong>{pendingRequisition.requestedItems?.length || 0} {t('delivery_reps.driver_new_load_requisition_view.s44', "صنف")}</strong>{t('delivery_reps.driver_new_load_requisition_view.s45', ". لمنع تكرار الطلبات، يلزم إلغاء الطلب المعلق أولاً لتعديل كمياته أو انتظار اعتماده وصرفه.")}
                 </div>
               </div>
             </div>
@@ -1720,7 +1722,7 @@ export function DriverNewLoadRequisitionView({
                 }}
               >
                 <RefreshCwIcon size={13} />
-                {isCancellingRequisition ? 'جاري الإلغاء...' : 'إلغاء الطلب المعلق وتعديل الأصناف'}
+                {isCancellingRequisition ? t('delivery_reps.driver_new_load_requisition_view.s46', "جاري الإلغاء...") : t('delivery_reps.driver_new_load_requisition_view.s47', "إلغاء الطلب المعلق وتعديل الأصناف")}
               </Button>
             </div>
           </div>
@@ -1745,7 +1747,7 @@ export function DriverNewLoadRequisitionView({
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#1e40af' }}>
               <CheckCircleIcon size={15} />
               <span>
-                <strong>تم استرجاع المسودة تلقائياً:</strong> ({validLines.length} صنف محفوظ).
+                <strong>{t('delivery_reps.driver_new_load_requisition_view.s48', "تم استرجاع المسودة تلقائياً:")}</strong> ({validLines.length} {t('delivery_reps.driver_new_load_requisition_view.s49', "صنف محفوظ).")}
               </span>
             </div>
             <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
@@ -1763,7 +1765,7 @@ export function DriverNewLoadRequisitionView({
                   padding: '2px 4px',
                 }}
               >
-                حذف
+                {t('delivery_reps.driver_new_load_requisition_view.s50', "حذف")}
               </button>
               <button
                 type="button"
@@ -1779,7 +1781,7 @@ export function DriverNewLoadRequisitionView({
                   padding: '2px 8px',
                 }}
               >
-                إغلاق
+                {t('delivery_reps.driver_new_load_requisition_view.s51', "إغلاق")}
               </button>
             </div>
           </div>
@@ -1808,20 +1810,20 @@ export function DriverNewLoadRequisitionView({
           >
             <div style={{ width: '3px', height: '14px', backgroundColor: '#170e5e', borderRadius: '2px' }} />
             <span style={{ fontSize: '12.5px', fontWeight: 800, color: '#0f172a' }}>
-              المعلومات الأساسية لطلب التحميل
+              {t('delivery_reps.driver_new_load_requisition_view.s52', "المعلومات الأساسية لطلب التحميل")}
             </span>
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
             <div>
               <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#475569', marginBottom: '2px' }}>
-                من مخزن (مستودع الصرف)
+                {t('delivery_reps.driver_new_load_requisition_view.s53', "من مخزن (مستودع الصرف)")}
               </label>
               <CustomSelect
                 value={selectedWarehouseFilter}
                 onChange={(val) => setSelectedWarehouseFilter(val)}
                 options={warehouseSelectOptions}
-                placeholder="اختر المستودع..."
+                placeholder={t('delivery_reps.driver_new_load_requisition_view.s54', "اختر المستودع...")}
                 disabled={isLoadingWarehouses}
               />
             </div>
@@ -1829,14 +1831,14 @@ export function DriverNewLoadRequisitionView({
             <div style={{ display: 'flex', flexDirection: 'row', gap: '8px', width: '100%', boxSizing: 'border-box' }}>
               <div style={{ flex: '1 1 50%', minWidth: 0 }}>
                 <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#475569', marginBottom: '2px', whiteSpace: 'nowrap' }}>
-                  {isAdmin ? 'المندوب (السائق) *' : 'المندوب (المستلم)'}
+                  {isAdmin ? t('delivery_reps.driver_new_load_requisition_view.s55', "المندوب (السائق) *") : t('delivery_reps.driver_new_load_requisition_view.s56', "المندوب (المستلم)")}
                 </label>
                 {isAdmin ? (
                   <CustomSelect
                     value={selectedRepId}
                     onChange={(val) => setSelectedRepId(val)}
                     options={repSelectOptions}
-                    placeholder="اختر المندوب..."
+                    placeholder={t('delivery_reps.driver_new_load_requisition_view.s57', "اختر المندوب...")}
                     disabled={adminRepsQuery.isLoading}
                   />
                 ) : (
@@ -1862,7 +1864,7 @@ export function DriverNewLoadRequisitionView({
 
               <div style={{ flex: '1 1 50%', minWidth: 0 }}>
                 <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#475569', marginBottom: '2px', whiteSpace: 'nowrap' }}>
-                  السيارة
+                  {t('delivery_reps.driver_new_load_requisition_view.s58', "السيارة")}
                 </label>
                 <input
                   type="text"
@@ -1917,7 +1919,7 @@ export function DriverNewLoadRequisitionView({
             }}
           >
             <BoxesIcon size={14} />
-            <span>كتالوج أصناف المخزن ({displayedProducts.length})</span>
+            <span>{t('delivery_reps.driver_new_load_requisition_view.s59', "كتالوج أصناف المخزن (")}{displayedProducts.length})</span>
           </button>
 
           <button
@@ -1940,7 +1942,7 @@ export function DriverNewLoadRequisitionView({
             }}
           >
             <CheckCircleIcon size={14} />
-            <span>الأصناف المطلوبة للتحميل ({distinctItemsCount})</span>
+            <span>{t('delivery_reps.driver_new_load_requisition_view.s60', "الأصناف المطلوبة للتحميل (")}{distinctItemsCount})</span>
           </button>
         </div>
 
@@ -1951,7 +1953,7 @@ export function DriverNewLoadRequisitionView({
             <div style={{ position: 'relative', width: '100%' }}>
               <input
                 type="text"
-                placeholder="ابحث بالاسم أو الباركود في كافة المخزن..."
+                placeholder={t('delivery_reps.driver_new_load_requisition_view.s61', "ابحث بالاسم أو الباركود في كافة المخزن...")}
                 value={catalogSearchQuery}
                 onChange={(e) => setCatalogSearchQuery(e.target.value)}
                 style={{
@@ -1998,7 +2000,7 @@ export function DriverNewLoadRequisitionView({
                     color: '#64748b',
                     padding: 0,
                   }}
-                  title="مسح البحث"
+                  title={t('delivery_reps.driver_new_load_requisition_view.s62', "مسح البحث")}
                 >
                   <XIcon size={13} />
                 </button>
@@ -2011,7 +2013,7 @@ export function DriverNewLoadRequisitionView({
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 4px', fontSize: '11.5px' }}>
                   <span style={{ color: '#475569', fontWeight: 700 }}>
-                    نتائج البحث: ({displayedProducts.length} صنف)
+                    {t('delivery_reps.driver_new_load_requisition_view.s63', "نتائج البحث: (")}{displayedProducts.length} {t('delivery_reps.driver_new_load_requisition_view.s64', "صنف)")}
                   </span>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     {outOfStockCount > 0 && (
@@ -2029,7 +2031,7 @@ export function DriverNewLoadRequisitionView({
                           padding: 0,
                         }}
                       >
-                        {showOutOfStock ? 'إخفاء غير المتوفر' : `عرض غير المتوفر (${outOfStockCount})`}
+                        {showOutOfStock ? t('delivery_reps.driver_new_load_requisition_view.s65', "إخفاء غير المتوفر") : `عرض غير المتوفر (${outOfStockCount})`}
                       </button>
                     )}
                     <button
@@ -2037,7 +2039,7 @@ export function DriverNewLoadRequisitionView({
                       onClick={() => setCatalogSearchQuery('')}
                       style={{ background: 'none', border: 'none', color: '#170e5e', fontWeight: 700, cursor: 'pointer', padding: 0 }}
                     >
-                      العودة لتصفح الشركات
+                      {t('delivery_reps.driver_new_load_requisition_view.s66', "العودة لتصفح الشركات")}
                     </button>
                   </div>
                 </div>
@@ -2051,7 +2053,7 @@ export function DriverNewLoadRequisitionView({
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <span style={{ width: '3px', height: '14px', backgroundColor: '#170e5e', borderRadius: '2px', display: 'inline-block' }} />
                     <span style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a' }}>
-                      شركات وموردي البضاعة ({companies.length})
+                      {t('delivery_reps.driver_new_load_requisition_view.s67', "شركات وموردي البضاعة (")}{companies.length})
                     </span>
                   </div>
                   {companies.some((c) => c.availableProducts === 0) && (
@@ -2068,14 +2070,14 @@ export function DriverNewLoadRequisitionView({
                         padding: 0,
                       }}
                     >
-                      {hideOutOfStockCompanies ? 'عرض كل الشركات' : 'المتوفر فقط'}
+                      {hideOutOfStockCompanies ? t('delivery_reps.driver_new_load_requisition_view.s68', "عرض كل الشركات") : t('delivery_reps.driver_new_load_requisition_view.s69', "المتوفر فقط")}
                     </button>
                   )}
                 </div>
 
                 {displayedCompanies.length === 0 ? (
                   <div style={{ backgroundColor: '#ffffff', borderRadius: '12px', padding: '24px', textAlign: 'center', color: '#64748b', fontSize: '12px' }}>
-                    لا توجد شركات مطابقة بالمخزن حالياً
+                    {t('delivery_reps.driver_new_load_requisition_view.s70', "لا توجد شركات مطابقة بالمخزن حالياً")}
                   </div>
                 ) : (
                   <div
@@ -2130,9 +2132,9 @@ export function DriverNewLoadRequisitionView({
                           textOverflow: 'ellipsis',
                           whiteSpace: 'nowrap',
                         }}
-                        title="كافة أصناف المخزن"
+                        title={t('delivery_reps.driver_new_load_requisition_view.s71', "كافة أصناف المخزن")}
                       >
-                        كافة الأصناف
+                        {t('delivery_reps.driver_new_load_requisition_view.s72', "كافة الأصناف")}
                       </span>
 
                       <div style={{ display: 'flex', alignItems: 'center', gap: '3px', flexWrap: 'wrap', justifyContent: 'center' }}>
@@ -2161,7 +2163,7 @@ export function DriverNewLoadRequisitionView({
                               borderRadius: '10px',
                             }}
                           >
-                            {distinctItemsCount} بالطلب
+                            {distinctItemsCount} {t('delivery_reps.driver_new_load_requisition_view.s73', "بالطلب")}
                           </span>
                         )}
                       </div>
@@ -2233,7 +2235,7 @@ export function DriverNewLoadRequisitionView({
                                 borderRadius: '10px',
                               }}
                             >
-                              {comp.availableProducts > 0 ? `${comp.availableProducts} صنف متاح` : 'نفد الرصيد'}
+                              {comp.availableProducts > 0 ? `${comp.availableProducts} صنف متاح` : t('delivery_reps.driver_new_load_requisition_view.s74', "نفد الرصيد")}
                             </span>
                             {inReqCount > 0 && (
                               <span
@@ -2247,7 +2249,7 @@ export function DriverNewLoadRequisitionView({
                                   borderRadius: '10px',
                                 }}
                               >
-                                {inReqCount} بالطلب
+                                {inReqCount} {t('delivery_reps.driver_new_load_requisition_view.s75', "بالطلب")}
                               </span>
                             )}
                           </div>
@@ -2297,10 +2299,10 @@ export function DriverNewLoadRequisitionView({
                         whiteSpace: 'nowrap',
                         flexShrink: 0,
                       }}
-                      title="الرجوع لقائمة الشركات"
+                      title={t('delivery_reps.driver_new_load_requisition_view.s76', "الرجوع لقائمة الشركات")}
                     >
                       <ArrowRightIcon size={13} />
-                      <span>الشركات</span>
+                      <span>{t('delivery_reps.driver_new_load_requisition_view.s77', "الشركات")}</span>
                     </button>
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
@@ -2313,9 +2315,9 @@ export function DriverNewLoadRequisitionView({
                           textOverflow: 'ellipsis',
                           whiteSpace: 'nowrap',
                         }}
-                        title={selectedCompany === '__ALL__' ? 'كافة أصناف المخزن' : selectedCompany || ''}
+                        title={selectedCompany === '__ALL__' ? t('delivery_reps.driver_new_load_requisition_view.s78', "كافة أصناف المخزن") : selectedCompany || ''}
                       >
-                        {selectedCompany === '__ALL__' ? 'كافة أصناف المخزن' : selectedCompany}
+                        {selectedCompany === '__ALL__' ? t('delivery_reps.driver_new_load_requisition_view.s79', "كافة أصناف المخزن") : selectedCompany}
                       </span>
                       <span
                         style={{
@@ -2329,7 +2331,7 @@ export function DriverNewLoadRequisitionView({
                           flexShrink: 0,
                         }}
                       >
-                        {displayedProducts.length} صنف
+                        {displayedProducts.length} {t('delivery_reps.driver_new_load_requisition_view.s80', "صنف")}
                       </span>
                     </div>
                   </div>
@@ -2354,7 +2356,7 @@ export function DriverNewLoadRequisitionView({
                           alignItems: 'center',
                         }}
                       >
-                        {showOutOfStock ? 'إخفاء غير المتوفر' : `عرض غير المتوفر (${outOfStockCount})`}
+                        {showOutOfStock ? t('delivery_reps.driver_new_load_requisition_view.s81', "إخفاء غير المتوفر") : `عرض غير المتوفر (${outOfStockCount})`}
                       </button>
                     )}
                   </div>
@@ -2391,9 +2393,9 @@ export function DriverNewLoadRequisitionView({
                       flexShrink: 0,
                     }}
                   >
-                    <span>الكل</span>
+                    <span>{t('delivery_reps.driver_new_load_requisition_view.s82', "الكل")}</span>
                     <span style={{ opacity: selectedCategory === 'all' ? 0.9 : 0.7, fontSize: '10px' }}>
-                      ({selectedCompany === '__ALL__' ? (availableProducts || []).length : (availableProducts || []).filter((p) => ((p.supplierName || '').trim() || 'الشركة العامة') === selectedCompany).length})
+                      ({selectedCompany === '__ALL__' ? (availableProducts || []).length : (availableProducts || []).filter((p) => ((p.supplierName || '').trim() || t('delivery_reps.driver_new_load_requisition_view.s83', "الشركة العامة")) === selectedCompany).length})
                     </span>
                   </button>
 
@@ -2450,7 +2452,7 @@ export function DriverNewLoadRequisitionView({
               >
                 <BoxesIcon size={32} style={{ margin: '0 auto 8px', color: '#94a3b8' }} />
                 <p style={{ margin: '0 0 12px', fontSize: '13px', fontWeight: 700 }}>
-                  لم تقم بتحديد أي أصناف للتحميل حتى الآن.
+                  {t('delivery_reps.driver_new_load_requisition_view.s84', "لم تقم بتحديد أي أصناف للتحميل حتى الآن.")}
                 </p>
                 <Button
                   variant="primary"
@@ -2463,7 +2465,7 @@ export function DriverNewLoadRequisitionView({
                     padding: '7px 16px',
                   }}
                 >
-                  تصفح كتالوج المخزن واختيار الأصناف
+                  {t('delivery_reps.driver_new_load_requisition_view.s85', "تصفح كتالوج المخزن واختيار الأصناف")}
                 </Button>
               </div>
             ) : (
@@ -2521,7 +2523,7 @@ export function DriverNewLoadRequisitionView({
                               height: '24px',
                               width: '24px',
                             }}
-                            title="حذف هذا السطر"
+                            title={t('delivery_reps.driver_new_load_requisition_view.s86', "حذف هذا السطر")}
                           >
                             <Trash2Icon size={12} />
                           </button>
@@ -2532,7 +2534,7 @@ export function DriverNewLoadRequisitionView({
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11px' }}>
                         {selectedWarehouseFilter === 'all' && (line.warehouseStocks || []).filter((w) => w.qty > 0).length > 1 ? (
                           <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                            <span style={{ color: '#64748b', fontWeight: 700 }}>المخزن:</span>
+                            <span style={{ color: '#64748b', fontWeight: 700 }}>{t('delivery_reps.driver_new_load_requisition_view.s87', "المخزن:")}</span>
                             <select
                               value={line.sourceWarehouseId ? String(line.sourceWarehouseId) : ''}
                               onChange={(e) => handleChangeLineWarehouse(line.id, e.target.value)}
@@ -2550,33 +2552,33 @@ export function DriverNewLoadRequisitionView({
                                 .filter((w) => w.qty > 0)
                                 .map((w) => (
                                   <option key={w.warehouseId} value={w.warehouseId}>
-                                    {w.warehouseName} (متاح: {w.qty})
+                                    {w.warehouseName} {t('delivery_reps.driver_new_load_requisition_view.s88', "(متاح:")} {w.qty})
                                   </option>
                                 ))}
                             </select>
                           </div>
                         ) : (
                           <span style={{ color: '#64748b' }}>
-                            مخزن: {line.sourceWarehouseName || 'المستودع المختار'}
+                            {t('delivery_reps.driver_new_load_requisition_view.s89', "مخزن:")} {line.sourceWarehouseName || t('delivery_reps.driver_new_load_requisition_view.s90', "المستودع المختار")}
                           </span>
                         )}
 
                         <span style={{ color: '#15803d', fontWeight: 700 }}>
-                          متاح: {line.availableInWarehouse} {line.unit}
+                          {t('delivery_reps.driver_new_load_requisition_view.s91', "متاح:")} {line.availableInWarehouse} {line.unit}
                         </span>
                       </div>
 
                       {/* Bottom: Stepper controls */}
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #f1f5f9', paddingTop: '4px' }}>
                         <span style={{ fontSize: '11px', fontWeight: 800, color: '#170e5e' }}>
-                          إجمالي الكمية: {line.qty} {line.unit}
+                          {t('delivery_reps.driver_new_load_requisition_view.s92', "إجمالي الكمية:")} {line.qty} {line.unit}
                         </span>
 
                         {isCartonItem && prod ? (
                           <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                             <CompactStepper
                               value={line.cartons || 0}
-                              unitLabel={line.packagingUnit?.name || 'كرتونة'}
+                              unitLabel={line.packagingUnit?.name || t('delivery_reps.driver_new_load_requisition_view.s93', "كرتونة")}
                               onIncrement={() => handleCartonIncrement(prod, line.cartons || 0, line.pieces || 0)}
                               onDecrement={() => handleCartonDecrement(prod, line.cartons || 0, line.pieces || 0)}
                               onChange={(val) => handleUpdateProductUnits(prod, val, line.pieces || 0)}
@@ -2587,7 +2589,7 @@ export function DriverNewLoadRequisitionView({
                             <span style={{ fontWeight: 800, color: '#94a3b8', fontSize: '11px' }}>+</span>
                             <CompactStepper
                               value={line.pieces || 0}
-                              unitLabel="قطع"
+                              unitLabel={t('delivery_reps.driver_new_load_requisition_view.s94', "قطع")}
                               onIncrement={() => handlePieceIncrement(prod, line.cartons || 0, line.pieces || 0)}
                               onDecrement={() => handlePieceDecrement(prod, line.cartons || 0, line.pieces || 0)}
                               onChange={(val) => handleUpdateProductUnits(prod, line.cartons || 0, val)}
@@ -2599,7 +2601,7 @@ export function DriverNewLoadRequisitionView({
                         ) : prod ? (
                           <CompactStepper
                             value={line.qty}
-                            unitLabel={line.unit || 'قطعة'}
+                            unitLabel={line.unit || t('delivery_reps.driver_new_load_requisition_view.s95', "قطعة")}
                             isDecimal={Boolean(line.isWeight)}
                             step={line.isWeight ? 0.5 : 1}
                             min={0}
@@ -2625,13 +2627,13 @@ export function DriverNewLoadRequisitionView({
                   }}
                 >
                   <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#475569', marginBottom: '3px' }}>
-                    ملاحظات إضافية لمشرف المستودع
+                    {t('delivery_reps.driver_new_load_requisition_view.s96', "ملاحظات إضافية لمشرف المستودع")}
                   </label>
                   <textarea
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
                     rows={1}
-                    placeholder="أي ملاحظات إضافية على طلب الشحن..."
+                    placeholder={t('delivery_reps.driver_new_load_requisition_view.s97', "أي ملاحظات إضافية على طلب الشحن...")}
                     style={{
                       width: '100%',
                       backgroundColor: '#ffffff',
@@ -2682,7 +2684,7 @@ export function DriverNewLoadRequisitionView({
                 textAlign: 'center',
               }}
             >
-              الأصناف المطلوبة تتوزع على ({distinctWarehousesCount}) مستودعات مختلفة. سيقوم النظام تلقائياً بإصدار إذن تحميل مستقل لكل مستودع لضمان دقة الصرف المخزني.
+              {t('delivery_reps.driver_new_load_requisition_view.s98', "الأصناف المطلوبة تتوزع على (")}{distinctWarehousesCount}{t('delivery_reps.driver_new_load_requisition_view.s99', ") مستودعات مختلفة. سيقوم النظام تلقائياً بإصدار إذن تحميل مستقل لكل مستودع لضمان دقة الصرف المخزني.")}
             </div>
           )}
 
@@ -2702,17 +2704,17 @@ export function DriverNewLoadRequisitionView({
             }}
           >
             <div style={{ textAlign: 'center' }}>
-              <span style={{ fontSize: '10px', color: '#64748b', display: 'block' }}>الأصناف</span>
-              <strong style={{ fontSize: '12.5px', color: '#0f172a' }}>{distinctItemsCount} صنف</strong>
+              <span style={{ fontSize: '10px', color: '#64748b', display: 'block' }}>{t('delivery_reps.driver_new_load_requisition_view.s100', "الأصناف")}</span>
+              <strong style={{ fontSize: '12.5px', color: '#0f172a' }}>{distinctItemsCount} {t('delivery_reps.driver_new_load_requisition_view.s101', "صنف")}</strong>
             </div>
             <div style={{ height: '18px', width: '1px', backgroundColor: '#cbd5e1' }} />
             <div style={{ textAlign: 'center' }}>
-              <span style={{ fontSize: '10px', color: '#64748b', display: 'block' }}>القطع</span>
-              <strong style={{ fontSize: '12.5px', color: '#0f172a' }}>{totalUnitsCount} قطعة</strong>
+              <span style={{ fontSize: '10px', color: '#64748b', display: 'block' }}>{t('delivery_reps.driver_new_load_requisition_view.s102', "القطع")}</span>
+              <strong style={{ fontSize: '12.5px', color: '#0f172a' }}>{totalUnitsCount} {t('delivery_reps.driver_new_load_requisition_view.s103', "قطعة")}</strong>
             </div>
             <div style={{ height: '18px', width: '1px', backgroundColor: '#cbd5e1' }} />
             <div style={{ textAlign: 'center' }}>
-              <span style={{ fontSize: '10px', color: '#64748b', display: 'block' }}>القيمة المقدرة</span>
+              <span style={{ fontSize: '10px', color: '#64748b', display: 'block' }}>{t('delivery_reps.driver_new_load_requisition_view.s104', "القيمة المقدرة")}</span>
               <strong style={{ fontSize: '13px', color: '#170e5e', fontWeight: 900 }}>
                 {totalEstimatedValue.toFixed(2)} <CurrencySymbol />
               </strong>
@@ -2738,7 +2740,7 @@ export function DriverNewLoadRequisitionView({
             >
               {activeViewTab === 'catalog'
                 ? `مراجعة الأصناف (${distinctItemsCount})`
-                : '+ كتالوج الأصناف'}
+                : t('delivery_reps.driver_new_load_requisition_view.s105', "+ كتالوج الأصناف")}
             </Button>
 
             {isAdmin ? (
@@ -2760,7 +2762,7 @@ export function DriverNewLoadRequisitionView({
                     whiteSpace: 'nowrap',
                   }}
                 >
-                  {adminSubmitMutation.isPending ? 'جاري الصرف...' : `صرف وتحميل (${distinctItemsCount})`}
+                  {adminSubmitMutation.isPending ? t('delivery_reps.driver_new_load_requisition_view.s106', "جاري الصرف...") : `صرف وتحميل (${distinctItemsCount})`}
                 </Button>
                 <Button
                   variant="secondary"
@@ -2778,7 +2780,7 @@ export function DriverNewLoadRequisitionView({
                     whiteSpace: 'nowrap',
                   }}
                 >
-                  إذن معلق
+                  {t('delivery_reps.driver_new_load_requisition_view.s107', "إذن معلق")}
                 </Button>
               </>
             ) : pendingRequisition ? (
@@ -2805,7 +2807,7 @@ export function DriverNewLoadRequisitionView({
                 title={`لديك طلب معلق #${pendingRequisition.docNo} - انقر لإلغائه وتعديل أصنافه`}
               >
                 <RefreshCwIcon size={13} />
-                {isCancellingRequisition ? 'جاري الإلغاء...' : `إلغاء المعلق (#${pendingRequisition.docNo}) وتعديل الأصناف`}
+                {isCancellingRequisition ? t('delivery_reps.driver_new_load_requisition_view.s108', "جاري الإلغاء...") : `إلغاء المعلق (#${pendingRequisition.docNo}) وتعديل الأصناف`}
               </Button>
             ) : (
               <Button
@@ -2825,7 +2827,7 @@ export function DriverNewLoadRequisitionView({
                   whiteSpace: 'nowrap',
                 }}
               >
-                {isSubmitting ? 'جارٍ الإرسال...' : `إرسال للمشرف (${distinctItemsCount})`}
+                {isSubmitting ? t('delivery_reps.driver_new_load_requisition_view.s109', "جارٍ الإرسال...") : `إرسال للمشرف (${distinctItemsCount})`}
               </Button>
             )}
 
@@ -2846,7 +2848,7 @@ export function DriverNewLoadRequisitionView({
                   flex: '0 0 auto',
                 }}
               >
-                حذف المسودة
+                {t('delivery_reps.driver_new_load_requisition_view.s110', "حذف المسودة")}
               </Button>
             )}
           </div>
@@ -2857,7 +2859,7 @@ export function DriverNewLoadRequisitionView({
       <VanFloatingActionBar
         visible={activeViewTab === 'catalog' && distinctItemsCount > 0}
         itemCount={distinctItemsCount}
-        actionText="مراجعة الإذن"
+        actionText={t('delivery_reps.driver_new_load_requisition_view.s111', "مراجعة الإذن")}
         onAction={() => {
           setActiveViewTab('selected');
           window.scrollTo({ top: 0, behavior: 'smooth' });

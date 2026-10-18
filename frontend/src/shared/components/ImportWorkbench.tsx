@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useMemo, useState } from 'react';
 import { Button } from '@/shared/ui/button';
 import { parseImportFile } from '@/lib/browser';
@@ -72,6 +73,7 @@ export function ImportWorkbench({
   isPending = false,
   defaultCollapsed = false,
 }: ImportWorkbenchProps) {
+  const { t } = useTranslation();
   const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
   const [isExporting, setIsExporting] = useState(false);
   const [fileName, setFileName] = useState('');
@@ -217,7 +219,7 @@ export function ImportWorkbench({
               onMouseEnter={(e) => { if (!isExporting) e.currentTarget.style.background = '#1e293b'; }}
               onMouseLeave={(e) => { if (!isExporting) e.currentTarget.style.background = '#0f172a'; }}
             >
-              {isExporting ? 'جاري التصدير...' : 'تصدير البيانات'}
+              {isExporting ? t('shared.import_workbench.s0', "جاري التصدير...") : t('shared.import_workbench.s1', "تصدير البيانات")}
             </button>
           )}
 
@@ -277,7 +279,7 @@ export function ImportWorkbench({
               onMouseEnter={(e) => { e.currentTarget.style.background = '#f1f5f9'; e.currentTarget.style.borderColor = '#94a3b8'; }}
               onMouseLeave={(e) => { e.currentTarget.style.background = '#f8fafc'; e.currentTarget.style.borderColor = '#cbd5e1'; }}
             >
-              قالب فارغ
+              {t('shared.import_workbench.s2', "قالب فارغ")}
             </button>
           ) : null}
 
@@ -295,7 +297,7 @@ export function ImportWorkbench({
               cursor: 'pointer',
             }}
           >
-            {isCollapsed ? 'فتح' : 'طي'}
+            {isCollapsed ? t('shared.import_workbench.s3', "فتح") : t('shared.import_workbench.s4', "طي")}
           </button>
         </div>
       </div>
@@ -304,7 +306,7 @@ export function ImportWorkbench({
         <>
           {/* Required Fields Pill Tags */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', fontSize: '0.78rem', color: '#64748b' }}>
-            <span style={{ fontWeight: 700, color: '#475569' }}>الأعمدة المطلوبة:</span>
+            <span style={{ fontWeight: 700, color: '#475569' }}>{t('shared.import_workbench.s5', "الأعمدة المطلوبة:")}</span>
             {requiredColumns.map((col) => (
               <span
                 key={col}
@@ -365,26 +367,26 @@ export function ImportWorkbench({
                       padding: '3px 8px',
                       borderRadius: '5px',
                     }}>
-                      ملف محدد
+                      {t('shared.import_workbench.s6', "ملف محدد")}
                     </div>
                     <span style={{ fontSize: '0.88rem', fontWeight: 700, color: '#0f172a' }}>
                       {fileName}
                     </span>
                     <span style={{ fontSize: '0.78rem', color: '#64748b', background: '#f1f5f9', padding: '2px 8px', borderRadius: '4px' }}>
-                      {rows.length} صف
+                      {rows.length} {t('shared.import_workbench.s7', "صف")}
                     </span>
                   </div>
                   <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#2563eb' }}>
-                    انقر لتغيير الملف
+                    {t('shared.import_workbench.s8', "انقر لتغيير الملف")}
                   </span>
                 </div>
               ) : (
                 <>
                   <span style={{ fontSize: '0.86rem', fontWeight: 700, color: '#1e293b' }}>
-                    اضغط هنا لاختيار ملف Excel أو CSV
+                    {t('shared.import_workbench.s9', "اضغط هنا لاختيار ملف Excel أو CSV")}
                   </span>
                   <span style={{ fontSize: '0.76rem', color: '#94a3b8' }}>
-                    يدعم ملفات (.xlsx, .xls, .csv)
+                    {t('shared.import_workbench.s10', "يدعم ملفات (.xlsx, .xls, .csv)")}
                   </span>
                 </>
               )}
@@ -395,14 +397,14 @@ export function ImportWorkbench({
           {rows.length > 0 && missingRequiredFields.length > 0 && (
             <div style={{ background: '#fffbeb', border: '1px solid #fde68a', color: '#92400e', padding: '10px 14px', borderRadius: '8px', fontSize: '0.82rem', fontWeight: 600 }}>
               {missingRequiredFields.map((field) => (
-                <div key={field.key}>العمود المطلوب غير موجود: {field.label}</div>
+                <div key={field.key}>{t('shared.import_workbench.s11', "العمود المطلوب غير موجود:")} {field.label}</div>
               ))}
             </div>
           )}
 
           {rows.length > 0 && rowIssueCount > 0 && (
             <div style={{ background: '#fffbeb', border: '1px solid #fde68a', color: '#92400e', padding: '10px 14px', borderRadius: '8px', fontSize: '0.82rem', fontWeight: 600 }}>
-              يوجد {rowIssueCount} صف يفتقد قيمة واحدة أو أكثر من الحقول المطلوبة.
+              {t('shared.import_workbench.s12', "يوجد")} {rowIssueCount} {t('shared.import_workbench.s13', "صف يفتقد قيمة واحدة أو أكثر من الحقول المطلوبة.")}
             </div>
           )}
 
@@ -457,7 +459,7 @@ export function ImportWorkbench({
                 onClick={() => { setFileName(''); setRows([]); setHeaders([]); setStatus({ kind: '', text: '' }); }}
                 style={{ fontSize: '0.82rem', padding: '6px 14px' }}
               >
-                مسح المعاينة
+                {t('shared.import_workbench.s14', "مسح المعاينة")}
               </Button>
             )}
 
@@ -473,7 +475,7 @@ export function ImportWorkbench({
                 color: rows.length && !missingRequiredFields.length ? '#ffffff' : undefined,
               }}
             >
-              {isPending ? 'جارٍ الاستيراد...' : 'استيراد الآن'}
+              {isPending ? t('shared.import_workbench.s15', "جارٍ الاستيراد...") : t('shared.import_workbench.s16', "استيراد الآن")}
             </Button>
           </div>
         </>

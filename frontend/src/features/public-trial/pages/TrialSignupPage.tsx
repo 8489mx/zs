@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -44,6 +45,7 @@ function ArrowLeftIcon() {
 }
 
 export function TrialSignupPage() {
+  const { t } = useTranslation();
   const [submitError, setSubmitError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [debugCredentials, setDebugCredentials] = useState<TrialDebugCredentials | null>(null);
@@ -110,12 +112,12 @@ export function TrialSignupPage() {
           </div>
 
           <h1 className="login-brand-title">
-            <span className="title-part1">مرحباً بك مجدداً في منظومة</span>
+            <span className="title-part1">{t('public_trial.trial_signup_page.s0', "مرحباً بك مجدداً في منظومة")}</span>
             <span className="title-part2">Z ERP</span>
           </h1>
 
           <p className="login-brand-subtitle">
-            المنصة السحابية الموحدة لإدارة قطاعات الأعمال، المشاريع الهندسية، الشحن وسلاسل الإمداد، والرقابة المالية المركزية.
+            {t('public_trial.trial_signup_page.s1', "المنصة السحابية الموحدة لإدارة قطاعات الأعمال، المشاريع الهندسية، الشحن وسلاسل الإمداد، والرقابة المالية المركزية.")}
           </p>
 
           <div className="login-features-list">
@@ -134,7 +136,7 @@ export function TrialSignupPage() {
 
           <div className="login-brand-footer">
             <span className="line"></span>
-            المنصة السحابية المؤسسية المعتمدة لإدارة الأعمال والمشاريع
+            {t('public_trial.trial_signup_page.s2', "المنصة السحابية المؤسسية المعتمدة لإدارة الأعمال والمشاريع")}
             <span className="line"></span>
           </div>
         </div>
@@ -143,8 +145,8 @@ export function TrialSignupPage() {
         <div className="login-form-side">
           <div className="login-card-pro">
             <div className="login-card-header">
-              <h2>ابدأ التجربة المجانية</h2>
-              <p>استلم بيانات الدخول على بريدك الالكتروني فوراً</p>
+              <h2>{t('public_trial.trial_signup_page.s3', "ابدأ التجربة المجانية")}</h2>
+              <p>{t('public_trial.trial_signup_page.s4', "استلم بيانات الدخول على بريدك الالكتروني فوراً")}</p>
             </div>
 
             {submitError && (
@@ -159,20 +161,20 @@ export function TrialSignupPage() {
                 <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '48px', height: '48px', borderRadius: '50%', background: '#d1fae5', color: '#10b981', marginBottom: '16px' }}>
                   <CheckIcon />
                 </div>
-                <h3 style={{ margin: '0 0 8px 0', color: '#065f46', fontSize: '18px', fontWeight: '700' }}>تم انشاء نسختك التجريبية بنجاح</h3>
-                <p style={{ margin: '0 0 4px 0', color: '#047857', fontSize: '14px', fontWeight: '500' }}>ارسلنا بيانات الدخول على بريدك الالكتروني.</p>
-                <p style={{ margin: '0 0 16px 0', color: '#047857', fontSize: '14px', fontWeight: '500' }}>يرجى مراجعة البريد غير الهام إذا لم تجد الرسالة.</p>
+                <h3 style={{ margin: '0 0 8px 0', color: '#065f46', fontSize: '18px', fontWeight: '700' }}>{t('public_trial.trial_signup_page.s5', "تم انشاء نسختك التجريبية بنجاح")}</h3>
+                <p style={{ margin: '0 0 4px 0', color: '#047857', fontSize: '14px', fontWeight: '500' }}>{t('public_trial.trial_signup_page.s6', "ارسلنا بيانات الدخول على بريدك الالكتروني.")}</p>
+                <p style={{ margin: '0 0 16px 0', color: '#047857', fontSize: '14px', fontWeight: '500' }}>{t('public_trial.trial_signup_page.s7', "يرجى مراجعة البريد غير الهام إذا لم تجد الرسالة.")}</p>
                 
                 {debugCredentials && (
                   <div style={{ background: '#ffffff', borderRadius: '8px', padding: '12px', border: '1px solid #a7f3d0', textAlign: 'right', marginTop: '16px' }}>
-                    <div style={{ fontSize: '12px', color: '#6ee7b7', fontWeight: '600', marginBottom: '8px' }}>بيانات التطوير المحلي:</div>
-                    <div style={{ fontSize: '14px', color: '#065f46', marginBottom: '4px' }}><strong>اسم المستخدم:</strong> {debugCredentials.username}</div>
-                    <div style={{ fontSize: '14px', color: '#065f46' }}><strong>كلمة المرور المؤقتة:</strong> {debugCredentials.temporaryPassword}</div>
+                    <div style={{ fontSize: '12px', color: '#6ee7b7', fontWeight: '600', marginBottom: '8px' }}>{t('public_trial.trial_signup_page.s8', "بيانات التطوير المحلي:")}</div>
+                    <div style={{ fontSize: '14px', color: '#065f46', marginBottom: '4px' }}><strong>{t('public_trial.trial_signup_page.s9', "اسم المستخدم:")}</strong> {debugCredentials.username}</div>
+                    <div style={{ fontSize: '14px', color: '#065f46' }}><strong>{t('public_trial.trial_signup_page.s10', "كلمة المرور المؤقتة:")}</strong> {debugCredentials.temporaryPassword}</div>
                   </div>
                 )}
                 
                 <Link to="/login" style={{ display: 'inline-block', marginTop: '24px', color: '#10b981', fontWeight: '700', textDecoration: 'underline' }}>
-                  الذهاب لتسجيل الدخول
+                  {t('public_trial.trial_signup_page.s11', "الذهاب لتسجيل الدخول")}
                 </Link>
               </div>
             ) : (
@@ -180,13 +182,13 @@ export function TrialSignupPage() {
                 
                 <div className="login-field-group">
                   <div className="login-field-label">
-                    <label>اسم النشاط / المتجر</label>
+                    <label>{t('public_trial.trial_signup_page.s12', "اسم النشاط / المتجر")}</label>
                   </div>
                   <div className="login-input-pro-wrap">
                     <input 
                       {...form.register('businessName')} 
                       autoComplete="organization" 
-                      placeholder="أدخل اسم النشاط أو المتجر الخاص بك" 
+                      placeholder={t('public_trial.trial_signup_page.s13', "أدخل اسم النشاط أو المتجر الخاص بك")} 
                       className="login-input-pro"
                     />
                   </div>
@@ -194,20 +196,20 @@ export function TrialSignupPage() {
                     <span className="login-field-error-text">{form.formState.errors.businessName?.message}</span>
                   ) : (
                     <span style={{ display: 'block', marginTop: '4px', fontSize: '11.5px', color: '#94a3b8' }}>
-                      يفضّل كتابته بحروف إنجليزية لأنه سيتحول تلقائياً لرابط متجرك الإلكتروني
+                      {t('public_trial.trial_signup_page.s14', "يفضّل كتابته بحروف إنجليزية لأنه سيتحول تلقائياً لرابط متجرك الإلكتروني")}
                     </span>
                   )}
                 </div>
 
                 <div className="login-field-group">
                   <div className="login-field-label">
-                    <label>رقم واتساب</label>
+                    <label>{t('public_trial.trial_signup_page.s15', "رقم واتساب")}</label>
                   </div>
                   <div className="login-input-pro-wrap">
                     <input 
                       {...form.register('ownerPhone')} 
                       autoComplete="tel" 
-                      placeholder="رقم الواتساب للتواصل والدعم" 
+                      placeholder={t('public_trial.trial_signup_page.s16', "رقم الواتساب للتواصل والدعم")} 
                       className="login-input-pro"
                     />
                   </div>
@@ -218,14 +220,14 @@ export function TrialSignupPage() {
 
                 <div className="login-field-group">
                   <div className="login-field-label">
-                    <label>البريد الإلكتروني</label>
+                    <label>{t('public_trial.trial_signup_page.s17', "البريد الإلكتروني")}</label>
                   </div>
                   <div className="login-input-pro-wrap">
                     <input 
                       {...form.register('ownerEmail')} 
                       type="email"
                       autoComplete="email" 
-                      placeholder="أدخل البريد الإلكتروني الخاص بك" 
+                      placeholder={t('public_trial.trial_signup_page.s18', "أدخل البريد الإلكتروني الخاص بك")} 
                       className="login-input-pro"
                     />
                   </div>
@@ -245,17 +247,17 @@ export function TrialSignupPage() {
 
                 <button type="submit" disabled={form.formState.isSubmitting} className="login-submit-pro-btn" style={{ marginTop: '16px' }}>
                   {form.formState.isSubmitting ? (
-                    <span>جاري الإنشاء...</span>
+                    <span>{t('public_trial.trial_signup_page.s19', "جاري الإنشاء...")}</span>
                   ) : (
                     <>
-                      <span>ابدأ التجربة المجانية</span>
+                      <span>{t('public_trial.trial_signup_page.s20', "ابدأ التجربة المجانية")}</span>
                       <ArrowLeftIcon />
                     </>
                   )}
                 </button>
 
                 <div className="login-signup-link">
-                  <p>لديك حساب بالفعل؟ <Link to="/login">تسجيل الدخول</Link></p>
+                  <p>{t('public_trial.trial_signup_page.s21', "لديك حساب بالفعل؟")} <Link to="/login">{t('public_trial.trial_signup_page.s22', "تسجيل الدخول")}</Link></p>
                 </div>
               </form>
             )}

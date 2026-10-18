@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/shared/ui/button';
@@ -73,28 +74,29 @@ export const HrReportsDetailSections: React.FC<HrReportsDetailSectionsProps> = (
   assetsReport,
   alerts,
 }) => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Button variant="secondary" onClick={() => setReportType('all')} style={{ padding: '4px 12px', fontSize: '0.8rem' }}>&rarr; رجوع لجميع التقارير</Button>
+        <Button variant="secondary" onClick={() => setReportType('all')} style={{ padding: '4px 12px', fontSize: '0.8rem' }}>{t('hr.reports.hr_reports_detail_sections.s0', "→ رجوع لجميع التقارير")}</Button>
       </div>
 
       {reportType === 'employees' && (
         <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-            <strong style={{ fontSize: '0.95rem', color: '#0f172a' }}>تقرير الموظفين التفصيلي</strong>
-            <Button variant="secondary" onClick={() => navigate('/hr/employees')} style={{ padding: '2px 8px', fontSize: '0.75rem' }}>فتح صفحة الموظفين</Button>
+            <strong style={{ fontSize: '0.95rem', color: '#0f172a' }}>{t('hr.reports.hr_reports_detail_sections.s1', "تقرير الموظفين التفصيلي")}</strong>
+            <Button variant="secondary" onClick={() => navigate('/hr/employees')} style={{ padding: '2px 8px', fontSize: '0.75rem' }}>{t('hr.reports.hr_reports_detail_sections.s2', "فتح صفحة الموظفين")}</Button>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, minmax(0, 1fr))', gap: '8px', marginBottom: 12 }}>
             {[
-              { label: 'إجمالي النتائج', value: employeesReport.total },
-              { label: 'نشط', value: employeesReport.active },
-              { label: 'غير نشط', value: employeesReport.inactive },
-              { label: 'بدون رقم قومي', value: employeesReport.missingNationalId, isAlert: employeesReport.missingNationalId > 0 },
-              { label: 'بدون قسم/مسمى', value: employeesReport.missingDepartmentOrTitle, isAlert: employeesReport.missingDepartmentOrTitle > 0 },
-              { label: 'دوام ناقص', value: employeesReport.missingWorkSchedule, isAlert: employeesReport.missingWorkSchedule > 0 },
+              { label: t('hr.reports.hr_reports_detail_sections.s3', "إجمالي النتائج"), value: employeesReport.total },
+              { label: t('hr.reports.hr_reports_detail_sections.s4', "نشط"), value: employeesReport.active },
+              { label: t('hr.reports.hr_reports_detail_sections.s5', "غير نشط"), value: employeesReport.inactive },
+              { label: t('hr.reports.hr_reports_detail_sections.s6', "بدون رقم قومي"), value: employeesReport.missingNationalId, isAlert: employeesReport.missingNationalId > 0 },
+              { label: t('hr.reports.hr_reports_detail_sections.s7', "بدون قسم/مسمى"), value: employeesReport.missingDepartmentOrTitle, isAlert: employeesReport.missingDepartmentOrTitle > 0 },
+              { label: t('hr.reports.hr_reports_detail_sections.s8', "دوام ناقص"), value: employeesReport.missingWorkSchedule, isAlert: employeesReport.missingWorkSchedule > 0 },
             ].map((stat, idx) => (
               <div key={idx} style={{ background: '#ffffff', border: `1px solid ${stat.isAlert ? '#fca5a5' : '#e2e8f0'}`, borderRadius: '6px', padding: '6px 8px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
                 <span style={{ fontSize: '0.7rem', fontWeight: 600, color: '#64748b' }}>{stat.label}</span>
@@ -108,12 +110,12 @@ export const HrReportsDetailSections: React.FC<HrReportsDetailSectionsProps> = (
             rows={filteredEmployees.slice(0, 40)}
             onRowClick={(row) => navigate(`/hr/employees/${row.id}`)}
             columns={[
-              { key: 'employeeNo', header: 'كود الموظف', cell: (row) => text(row.employeeNo) },
-              { key: 'name', header: 'اسم الموظف', cell: employeeName },
-              { key: 'department', header: 'القسم', cell: (row) => text(row.departmentName) },
-              { key: 'jobTitle', header: 'المسمى الوظيفي', cell: (row) => text(row.jobTitleName) },
-              { key: 'nationalId', header: 'الرقم القومي', cell: (row) => normalize(row.nationalId) ? 'موجود' : 'غير مسجل' },
-              { key: 'status', header: 'الحالة', cell: (row) => isActiveEmployee(row) ? 'نشط' : 'غير نشط' }
+              { key: 'employeeNo', header: t('hr.reports.hr_reports_detail_sections.s9', "كود الموظف"), cell: (row) => text(row.employeeNo) },
+              { key: 'name', header: t('hr.reports.hr_reports_detail_sections.s10', "اسم الموظف"), cell: employeeName },
+              { key: 'department', header: t('hr.reports.hr_reports_detail_sections.s11', "القسم"), cell: (row) => text(row.departmentName) },
+              { key: 'jobTitle', header: t('hr.reports.hr_reports_detail_sections.s12', "المسمى الوظيفي"), cell: (row) => text(row.jobTitleName) },
+              { key: 'nationalId', header: t('hr.reports.hr_reports_detail_sections.s13', "الرقم القومي"), cell: (row) => normalize(row.nationalId) ? t('hr.reports.hr_reports_detail_sections.s14', "موجود") : t('hr.reports.hr_reports_detail_sections.s15', "غير مسجل") },
+              { key: 'status', header: t('hr.reports.hr_reports_detail_sections.s16', "الحالة"), cell: (row) => isActiveEmployee(row) ? t('hr.reports.hr_reports_detail_sections.s17', "نشط") : t('hr.reports.hr_reports_detail_sections.s18', "غير نشط") }
             ]}
           />
         </div>
@@ -122,16 +124,16 @@ export const HrReportsDetailSections: React.FC<HrReportsDetailSectionsProps> = (
       {reportType === 'attendance' && (
         <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-            <strong style={{ fontSize: '0.95rem', color: '#0f172a' }}>تقرير الحضور التفصيلي</strong>
-            <Button variant="secondary" onClick={() => navigate('/hr/attendance')} style={{ padding: '2px 8px', fontSize: '0.75rem' }}>فتح الحضور</Button>
+            <strong style={{ fontSize: '0.95rem', color: '#0f172a' }}>{t('hr.reports.hr_reports_detail_sections.s19', "تقرير الحضور التفصيلي")}</strong>
+            <Button variant="secondary" onClick={() => navigate('/hr/attendance')} style={{ padding: '2px 8px', fontSize: '0.75rem' }}>{t('hr.reports.hr_reports_detail_sections.s20', "فتح الحضور")}</Button>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', gap: '8px' }}>
             {[
-              { label: 'إجمالي سجلات الفترة', value: attendanceReport.total },
-              { label: 'حاضر', value: attendanceReport.present },
-              { label: 'غائب', value: attendanceReport.absent, isAlert: attendanceReport.absent !== '0' },
-              { label: 'متأخر', value: attendanceReport.late },
-              { label: 'غير مسجل / يحتاج مراجعة', value: attendanceReport.needsReview, isAlert: attendanceReport.needsReview !== '0' },
+              { label: t('hr.reports.hr_reports_detail_sections.s21', "إجمالي سجلات الفترة"), value: attendanceReport.total },
+              { label: t('hr.reports.hr_reports_detail_sections.s22', "حاضر"), value: attendanceReport.present },
+              { label: t('hr.reports.hr_reports_detail_sections.s23', "غائب"), value: attendanceReport.absent, isAlert: attendanceReport.absent !== '0' },
+              { label: t('hr.reports.hr_reports_detail_sections.s24', "متأخر"), value: attendanceReport.late },
+              { label: t('hr.reports.hr_reports_detail_sections.s25', "غير مسجل / يحتاج مراجعة"), value: attendanceReport.needsReview, isAlert: attendanceReport.needsReview !== '0' },
             ].map((stat, idx) => (
               <div key={idx} style={{ background: '#ffffff', border: `1px solid ${stat.isAlert ? '#fca5a5' : '#e2e8f0'}`, borderRadius: '6px', padding: '6px 8px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
                 <span style={{ fontSize: '0.7rem', fontWeight: 600, color: '#64748b' }}>{stat.label}</span>
@@ -145,16 +147,16 @@ export const HrReportsDetailSections: React.FC<HrReportsDetailSectionsProps> = (
       {reportType === 'leaves' && (
         <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-            <strong style={{ fontSize: '0.95rem', color: '#0f172a' }}>تقرير الإجازات التفصيلي</strong>
-            <Button variant="secondary" onClick={() => navigate('/hr/leaves')} style={{ padding: '2px 8px', fontSize: '0.75rem' }}>فتح الإجازات</Button>
+            <strong style={{ fontSize: '0.95rem', color: '#0f172a' }}>{t('hr.reports.hr_reports_detail_sections.s26', "تقرير الإجازات التفصيلي")}</strong>
+            <Button variant="secondary" onClick={() => navigate('/hr/leaves')} style={{ padding: '2px 8px', fontSize: '0.75rem' }}>{t('hr.reports.hr_reports_detail_sections.s27', "فتح الإجازات")}</Button>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', gap: '8px' }}>
             {[
-              { label: 'إجمالي الطلبات', value: leavesReport.total },
-              { label: 'قيد المراجعة', value: leavesReport.pending, isAlert: leavesReport.pending !== '0' },
-              { label: 'معتمدة', value: leavesReport.approved },
-              { label: 'مرفوضة', value: leavesReport.rejected },
-              { label: 'غير مدفوعة / أيام', value: leavesReport.unpaid },
+              { label: t('hr.reports.hr_reports_detail_sections.s28', "إجمالي الطلبات"), value: leavesReport.total },
+              { label: t('hr.reports.hr_reports_detail_sections.s29', "قيد المراجعة"), value: leavesReport.pending, isAlert: leavesReport.pending !== '0' },
+              { label: t('hr.reports.hr_reports_detail_sections.s30', "معتمدة"), value: leavesReport.approved },
+              { label: t('hr.reports.hr_reports_detail_sections.s31', "مرفوضة"), value: leavesReport.rejected },
+              { label: t('hr.reports.hr_reports_detail_sections.s32', "غير مدفوعة / أيام"), value: leavesReport.unpaid },
             ].map((stat, idx) => (
               <div key={idx} style={{ background: '#ffffff', border: `1px solid ${stat.isAlert ? '#fca5a5' : '#e2e8f0'}`, borderRadius: '6px', padding: '6px 8px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
                 <span style={{ fontSize: '0.7rem', fontWeight: 600, color: '#64748b' }}>{stat.label}</span>
@@ -168,16 +170,16 @@ export const HrReportsDetailSections: React.FC<HrReportsDetailSectionsProps> = (
       {reportType === 'loans' && (
         <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-            <strong style={{ fontSize: '0.95rem', color: '#0f172a' }}>تقرير السلف والخصومات</strong>
-            <Button variant="secondary" onClick={() => navigate('/hr/loans')} style={{ padding: '2px 8px', fontSize: '0.75rem' }}>فتح السلف</Button>
+            <strong style={{ fontSize: '0.95rem', color: '#0f172a' }}>{t('hr.reports.hr_reports_detail_sections.s33', "تقرير السلف والخصومات")}</strong>
+            <Button variant="secondary" onClick={() => navigate('/hr/loans')} style={{ padding: '2px 8px', fontSize: '0.75rem' }}>{t('hr.reports.hr_reports_detail_sections.s34', "فتح السلف")}</Button>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', gap: '8px' }}>
             {[
-              { label: 'إجمالي السلف', value: loansReport.total },
-              { label: 'سلف مفتوحة', value: loansReport.open },
-              { label: 'أقساط مستحقة', value: loansReport.dueCount, isAlert: loansReport.dueCount > 0 },
-              { label: 'مستحق هذا الشهر', value: money(loansReport.dueAmount) },
-              { label: 'إجمالي المتبقي', value: money(loansReport.remainingAmount) },
+              { label: t('hr.reports.hr_reports_detail_sections.s35', "إجمالي السلف"), value: loansReport.total },
+              { label: t('hr.reports.hr_reports_detail_sections.s36', "سلف مفتوحة"), value: loansReport.open },
+              { label: t('hr.reports.hr_reports_detail_sections.s37', "أقساط مستحقة"), value: loansReport.dueCount, isAlert: loansReport.dueCount > 0 },
+              { label: t('hr.reports.hr_reports_detail_sections.s38', "مستحق هذا الشهر"), value: money(loansReport.dueAmount) },
+              { label: t('hr.reports.hr_reports_detail_sections.s39', "إجمالي المتبقي"), value: money(loansReport.remainingAmount) },
             ].map((stat, idx) => (
               <div key={idx} style={{ background: '#ffffff', border: `1px solid ${stat.isAlert ? '#fca5a5' : '#e2e8f0'}`, borderRadius: '6px', padding: '6px 8px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
                 <span style={{ fontSize: '0.7rem', fontWeight: 600, color: '#64748b' }}>{stat.label}</span>
@@ -191,19 +193,19 @@ export const HrReportsDetailSections: React.FC<HrReportsDetailSectionsProps> = (
       {reportType === 'payroll' && (
         <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-            <strong style={{ fontSize: '0.95rem', color: '#0f172a' }}>تقرير المرتبات</strong>
-            <Button variant="secondary" onClick={() => navigate('/hr/payroll')} style={{ padding: '2px 8px', fontSize: '0.75rem' }}>فتح المرتبات</Button>
+            <strong style={{ fontSize: '0.95rem', color: '#0f172a' }}>{t('hr.reports.hr_reports_detail_sections.s40', "تقرير المرتبات")}</strong>
+            <Button variant="secondary" onClick={() => navigate('/hr/payroll')} style={{ padding: '2px 8px', fontSize: '0.75rem' }}>{t('hr.reports.hr_reports_detail_sections.s41', "فتح المرتبات")}</Button>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8, minmax(0, 1fr))', gap: '8px' }}>
             {[
-              { label: 'عدد المسيرات', value: payrollReport.runs },
-              { label: 'حالة المسير', value: payrollReport.selectedRunStatus },
-              { label: 'الموظفون', value: payrollReport.employeesInRun },
-              { label: 'إجمالي الأساسي', value: payrollReport.totalBase },
-              { label: 'إجمالي الخصومات', value: payrollReport.totalDeduction },
-              { label: 'السلف / الأقساط', value: payrollReport.totalLoan },
-              { label: 'صافي المرتبات', value: payrollReport.totalNet },
-              { label: 'يحتاج مراجعة', value: payrollReport.needsReview, isAlert: payrollReport.needsReview !== '0' },
+              { label: t('hr.reports.hr_reports_detail_sections.s42', "عدد المسيرات"), value: payrollReport.runs },
+              { label: t('hr.reports.hr_reports_detail_sections.s43', "حالة المسير"), value: payrollReport.selectedRunStatus },
+              { label: t('hr.reports.hr_reports_detail_sections.s44', "الموظفون"), value: payrollReport.employeesInRun },
+              { label: t('hr.reports.hr_reports_detail_sections.s45', "إجمالي الأساسي"), value: payrollReport.totalBase },
+              { label: t('hr.reports.hr_reports_detail_sections.s46', "إجمالي الخصومات"), value: payrollReport.totalDeduction },
+              { label: t('hr.reports.hr_reports_detail_sections.s47', "السلف / الأقساط"), value: payrollReport.totalLoan },
+              { label: t('hr.reports.hr_reports_detail_sections.s48', "صافي المرتبات"), value: payrollReport.totalNet },
+              { label: t('hr.reports.hr_reports_detail_sections.s49', "يحتاج مراجعة"), value: payrollReport.needsReview, isAlert: payrollReport.needsReview !== '0' },
             ].map((stat, idx) => (
               <div key={idx} style={{ background: '#ffffff', border: `1px solid ${stat.isAlert ? '#fca5a5' : '#e2e8f0'}`, borderRadius: '6px', padding: '6px 8px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
                 <span style={{ fontSize: '0.7rem', fontWeight: 600, color: '#64748b' }}>{stat.label}</span>
@@ -217,18 +219,18 @@ export const HrReportsDetailSections: React.FC<HrReportsDetailSectionsProps> = (
       {reportType === 'assets' && (
         <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-            <strong style={{ fontSize: '0.95rem', color: '#0f172a' }}>تقرير العُهد</strong>
-            <Button variant="secondary" onClick={() => navigate('/hr/assets')} style={{ padding: '2px 8px', fontSize: '0.75rem' }}>فتح العُهد</Button>
+            <strong style={{ fontSize: '0.95rem', color: '#0f172a' }}>{t('hr.reports.hr_reports_detail_sections.s50', "تقرير العُهد")}</strong>
+            <Button variant="secondary" onClick={() => navigate('/hr/assets')} style={{ padding: '2px 8px', fontSize: '0.75rem' }}>{t('hr.reports.hr_reports_detail_sections.s51', "فتح العُهد")}</Button>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: '8px' }}>
             {[
-              { label: 'إجمالي العُهد', value: assetsReport.total },
-              { label: 'مسلّمة', value: assetsReport.assigned },
-              { label: 'مرتجعة', value: assetsReport.returned },
-              { label: 'تالفة', value: assetsReport.damaged, isAlert: assetsReport.damaged > 0 },
-              { label: 'مفقودة', value: assetsReport.lost, isAlert: assetsReport.lost > 0 },
-              { label: 'مفتوحة', value: assetsReport.open },
-              { label: 'تحتاج مراجعة', value: assetsReport.needsReview, isAlert: assetsReport.needsReview > 0 },
+              { label: t('hr.reports.hr_reports_detail_sections.s52', "إجمالي العُهد"), value: assetsReport.total },
+              { label: t('hr.reports.hr_reports_detail_sections.s53', "مسلّمة"), value: assetsReport.assigned },
+              { label: t('hr.reports.hr_reports_detail_sections.s54', "مرتجعة"), value: assetsReport.returned },
+              { label: t('hr.reports.hr_reports_detail_sections.s55', "تالفة"), value: assetsReport.damaged, isAlert: assetsReport.damaged > 0 },
+              { label: t('hr.reports.hr_reports_detail_sections.s56', "مفقودة"), value: assetsReport.lost, isAlert: assetsReport.lost > 0 },
+              { label: t('hr.reports.hr_reports_detail_sections.s57', "مفتوحة"), value: assetsReport.open },
+              { label: t('hr.reports.hr_reports_detail_sections.s58', "تحتاج مراجعة"), value: assetsReport.needsReview, isAlert: assetsReport.needsReview > 0 },
             ].map((stat, idx) => (
               <div key={idx} style={{ background: '#ffffff', border: `1px solid ${stat.isAlert ? '#fca5a5' : '#e2e8f0'}`, borderRadius: '6px', padding: '6px 8px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
                 <span style={{ fontSize: '0.7rem', fontWeight: 600, color: '#64748b' }}>{stat.label}</span>
@@ -241,7 +243,7 @@ export const HrReportsDetailSections: React.FC<HrReportsDetailSectionsProps> = (
 
       {reportType === 'alerts' && (
         <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px' }}>
-          <strong style={{ display: 'block', fontSize: '0.95rem', color: '#0f172a', marginBottom: '8px' }}>تنبيهات تحتاج مراجعة</strong>
+          <strong style={{ display: 'block', fontSize: '0.95rem', color: '#0f172a', marginBottom: '8px' }}>{t('hr.reports.hr_reports_detail_sections.s59', "تنبيهات تحتاج مراجعة")}</strong>
           {alerts.length ? (
             <DataTable
               density="compact"
@@ -249,14 +251,14 @@ export const HrReportsDetailSections: React.FC<HrReportsDetailSectionsProps> = (
               rowKey={(row) => row.id}
               onRowClick={(row) => navigate(row.to)}
               columns={[
-                { key: 'type', header: 'النوع', cell: (row) => row.type },
-                { key: 'target', header: 'الموظف/الفترة', cell: (row) => row.target },
-                { key: 'note', header: 'التنبيه', cell: (row) => row.note },
-                { key: 'action', header: 'الإجراء', cell: (row) => <Button type="button" variant="secondary" onClick={(event) => { event.stopPropagation(); navigate(row.to); }} style={{ padding: '2px 8px', fontSize: '0.75rem' }}>{row.action}</Button> },
+                { key: 'type', header: t('hr.reports.hr_reports_detail_sections.s60', "النوع"), cell: (row) => row.type },
+                { key: 'target', header: t('hr.reports.hr_reports_detail_sections.s61', "الموظف/الفترة"), cell: (row) => row.target },
+                { key: 'note', header: t('hr.reports.hr_reports_detail_sections.s62', "التنبيه"), cell: (row) => row.note },
+                { key: 'action', header: t('hr.reports.hr_reports_detail_sections.s63', "الإجراء"), cell: (row) => <Button type="button" variant="secondary" onClick={(event) => { event.stopPropagation(); navigate(row.to); }} style={{ padding: '2px 8px', fontSize: '0.75rem' }}>{row.action}</Button> },
               ]}
             />
           ) : (
-            <p className="muted" style={{ margin: 0 }}>لا توجد تنبيهات ظاهرة حسب الفلاتر الحالية.</p>
+            <p className="muted" style={{ margin: 0 }}>{t('hr.reports.hr_reports_detail_sections.s64', "لا توجد تنبيهات ظاهرة حسب الفلاتر الحالية.")}</p>
           )}
         </div>
       )}

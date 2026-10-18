@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { buildStorePublicUrl } from '@/lib/store-public-url';
 import { XIcon } from '@/shared/components/icons/AppIcons';
 import { useState, useEffect } from 'react';
@@ -14,6 +15,7 @@ interface EditTenantSlugModalProps {
 }
 
 export function EditTenantSlugModal({ tenant, onClose, onSuccess }: EditTenantSlugModalProps) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [newSlug, setNewSlug] = useState('');
   const [error, setError] = useState('');
@@ -55,19 +57,19 @@ export function EditTenantSlugModal({ tenant, onClose, onSuccess }: EditTenantSl
       open={Boolean(tenant)}
       onClose={onClose}
       width="520px"
-      ariaLabel="تعديل معرّف النسخة (Slug)"
+      ariaLabel={t('saas_admin.edit_tenant_slug_modal.s0', "تعديل معرّف النسخة (Slug)")}
     >
       <div className="dialog-card" dir="rtl" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #e2e8f0', paddingBottom: '12px' }}>
           <div>
             <h3 style={{ margin: 0, fontSize: '17px', fontWeight: 800, color: '#0f172a' }}>
-              تعديل معرّف النسخة (Slug)
+              {t('saas_admin.edit_tenant_slug_modal.s1', "تعديل معرّف النسخة (Slug)")}
             </h3>
             <p style={{ margin: '3px 0 0', fontSize: '12.5px', color: '#64748b' }}>
-              تعديل الرابط الفريد لنشاط: {tenant.businessName || tenant.ownerName}
+              {t('saas_admin.edit_tenant_slug_modal.s2', "تعديل الرابط الفريد لنشاط:")} {tenant.businessName || tenant.ownerName}
             </p>
           </div>
-          <button type="button" className="dialog-shell-close-btn" onClick={onClose} title="إغلاق"><XIcon size={15} /></button>
+          <button type="button" className="dialog-shell-close-btn" onClick={onClose} title={t('saas_admin.edit_tenant_slug_modal.s3', "إغلاق")}><XIcon size={15} /></button>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -79,20 +81,20 @@ export function EditTenantSlugModal({ tenant, onClose, onSuccess }: EditTenantSl
 
         <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 space-y-2 text-sm">
           <div className="flex items-center justify-between">
-            <span className="text-slate-500 font-medium">المعرّف الحالي:</span>
+            <span className="text-slate-500 font-medium">{t('saas_admin.edit_tenant_slug_modal.s4', "المعرّف الحالي:")}</span>
             <span className="font-mono font-bold text-slate-800 bg-white px-2.5 py-0.5 rounded border border-slate-200">
               {currentSlug}
             </span>
           </div>
           <div className="flex items-center justify-between text-xs text-slate-500">
-            <span>رابط المتجر الحالي:</span>
+            <span>{t('saas_admin.edit_tenant_slug_modal.s5', "رابط المتجر الحالي:")}</span>
             <span className="font-mono text-indigo-700 font-semibold" dir="ltr">
               /st/{currentSlug}
             </span>
           </div>
         </div>
 
-        <Field label="معرّف النسخة الجديد (Slug)" hint="أحرف إنجليزية صغيرة، أرقام، وشرطات فقط بدون مسافات (مثلاً: al-mohandes)">
+        <Field label={t('saas_admin.edit_tenant_slug_modal.s6', "معرّف النسخة الجديد (Slug)")} hint={t('saas_admin.edit_tenant_slug_modal.s7', "أحرف إنجليزية صغيرة، أرقام، وشرطات فقط بدون مسافات (مثلاً: al-mohandes)")}>
           <div className="relative">
             <input
               type="text"
@@ -101,7 +103,7 @@ export function EditTenantSlugModal({ tenant, onClose, onSuccess }: EditTenantSl
                 setNewSlug(e.target.value.toLowerCase().replace(/\s+/g, '-'));
                 setError('');
               }}
-              placeholder="مثال: al-mohandes"
+              placeholder={t('saas_admin.edit_tenant_slug_modal.s8', "مثال: al-mohandes")}
               className="w-full text-left font-mono font-bold tracking-wide rounded-lg border border-slate-300 px-3.5 py-2 text-sm focus:border-indigo-600 focus:outline-none focus:ring-1 focus:ring-indigo-600"
               dir="ltr"
               autoFocus
@@ -111,7 +113,7 @@ export function EditTenantSlugModal({ tenant, onClose, onSuccess }: EditTenantSl
 
         {cleanInput && cleanInput !== currentSlug && (
           <div className="p-3 bg-indigo-50/70 border border-indigo-100 rounded-xl space-y-1">
-            <span className="text-xs font-bold text-indigo-900">معاينة الرابط الجديد للعميل:</span>
+            <span className="text-xs font-bold text-indigo-900">{t('saas_admin.edit_tenant_slug_modal.s9', "معاينة الرابط الجديد للعميل:")}</span>
             <div className="text-xs font-mono font-bold text-indigo-700 break-all" dir="ltr">
               {buildStorePublicUrl(cleanInput)}
             </div>
@@ -119,7 +121,7 @@ export function EditTenantSlugModal({ tenant, onClose, onSuccess }: EditTenantSl
         )}
 
         <div className="p-3 bg-amber-50 text-amber-800 text-xs rounded-xl border border-amber-200 leading-relaxed">
-          <strong>تنبيه:</strong> تغيير المعرّف سيؤدي إلى تغيير رابط المتجر الإلكتروني للعميل فوراً. أي روابط قديمة أرسلها العميل لزبائنه ستحتاج إلى التحديث للرابط الجديد.
+          <strong>{t('saas_admin.edit_tenant_slug_modal.s10', "تنبيه:")}</strong> {t('saas_admin.edit_tenant_slug_modal.s11', "تغيير المعرّف سيؤدي إلى تغيير رابط المتجر الإلكتروني للعميل فوراً. أي روابط قديمة أرسلها العميل لزبائنه ستحتاج إلى التحديث للرابط الجديد.")}
         </div>
 
         <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
@@ -128,14 +130,14 @@ export function EditTenantSlugModal({ tenant, onClose, onSuccess }: EditTenantSl
             onClick={onClose}
             className="px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
           >
-            إلغاء
+            {t('saas_admin.edit_tenant_slug_modal.s12', "إلغاء")}
           </button>
           <button
             type="submit"
             disabled={!hasChanged || updateMutation.isPending}
             className="px-5 py-2 text-sm font-bold text-white bg-[#170e5e] hover:bg-[#110a47] disabled:opacity-50 disabled:cursor-not-allowed rounded-lg shadow-sm transition-all"
           >
-            {updateMutation.isPending ? 'جاري الحفظ...' : 'حفظ المعرّف الجديد'}
+            {updateMutation.isPending ? t('saas_admin.edit_tenant_slug_modal.s13', "جاري الحفظ...") : t('saas_admin.edit_tenant_slug_modal.s14', "حفظ المعرّف الجديد")}
           </button>
         </div>
       </form>

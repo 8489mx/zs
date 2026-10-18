@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { NewProductForm } from '@/features/products/components/NewProductForm';
 import type { Product } from '@/types/domain';
@@ -17,12 +18,13 @@ export function PosNewProductModal({
   initialBarcode = '',
   onSuccess,
 }: PosNewProductModalProps) {
+  const { t } = useTranslation();
   return (
     <DialogShell
       open={isOpen}
       onClose={onClose}
       width="min(960px, 95vw)"
-      ariaLabel="إضافة صنف جديد"
+      ariaLabel={t('pos.pos_workspace.pos_new_product_modal.s0', "إضافة صنف جديد")}
     >
       <div style={{ padding: '8px 12px', overflowY: 'auto', maxHeight: '90vh' }}>
         <NewProductForm

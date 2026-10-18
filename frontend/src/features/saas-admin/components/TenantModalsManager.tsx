@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 import { CreateTrialTenantModal } from './CreateTrialTenantModal';
 import { ResetTenantPasswordModal } from './ResetTenantPasswordModal';
@@ -22,6 +23,7 @@ interface TenantModalsManagerProps {
 }
 
 export const TenantModalsManager: React.FC<TenantModalsManagerProps> = ({ vm }) => {
+  const { t } = useTranslation();
   return (
     <>
       <CreateTrialTenantModal
@@ -186,11 +188,11 @@ export const TenantModalsManager: React.FC<TenantModalsManagerProps> = ({ vm }) 
           onImpersonate={async (id, name) => {
             vm.setActionHubTenant(null);
             const confirmed = await systemConfirm({
-              title: 'تسجيل الدخول كمالك للنسخة',
+              title: t('saas_admin.tenant_modals_manager.s0', "تسجيل الدخول كمالك للنسخة"),
               message: `هل تريد تسجيل الدخول وتصفح نسخة (${name}) كمالك؟`,
               variant: 'info',
-              confirmText: 'تصفح كمالك',
-              cancelText: 'إلغاء',
+              confirmText: t('saas_admin.tenant_modals_manager.s1', "تصفح كمالك"),
+              cancelText: t('saas_admin.tenant_modals_manager.s2', "إلغاء"),
             });
             if (confirmed) {
               vm.impersonateMutation.mutate(id);
@@ -246,11 +248,11 @@ export const TenantModalsManager: React.FC<TenantModalsManagerProps> = ({ vm }) 
           onSuspend={async (id) => {
             vm.setActionHubTenant(null);
             const confirmed = await systemConfirm({
-              title: 'إيقاف النسخة مؤقتاً',
-              message: 'هل تريد إيقاف هذه النسخة مؤقتاً؟ لن يتمكن المستخدمون من الدخول حتى إعادة التفعيل.',
+              title: t('saas_admin.tenant_modals_manager.s3', "إيقاف النسخة مؤقتاً"),
+              message: t('saas_admin.tenant_modals_manager.s4', "هل تريد إيقاف هذه النسخة مؤقتاً؟ لن يتمكن المستخدمون من الدخول حتى إعادة التفعيل."),
               variant: 'warning',
-              confirmText: 'إيقاف مؤقت',
-              cancelText: 'تراجع',
+              confirmText: t('saas_admin.tenant_modals_manager.s5', "إيقاف مؤقت"),
+              cancelText: t('saas_admin.tenant_modals_manager.s6', "تراجع"),
             });
             if (confirmed) {
               vm.tenantActionMutation.mutate({ action: 'suspend', tenantId: id });
@@ -267,11 +269,11 @@ export const TenantModalsManager: React.FC<TenantModalsManagerProps> = ({ vm }) 
           onDelete={async (id, name) => {
             vm.setActionHubTenant(null);
             const confirmed = await systemConfirm({
-              title: 'تأكيد حذف النسخة نهائياً',
+              title: t('saas_admin.tenant_modals_manager.s7', "تأكيد حذف النسخة نهائياً"),
               message: `هل أنت متأكد تماماً من حذف نسخة (${name}) بجميع قواعد بياناتها وسجلاتها؟\nلا يمكن التراجع عن هذا الإجراء!`,
               variant: 'danger',
-              confirmText: 'تأكيد الحذف النهائي',
-              cancelText: 'تراجع',
+              confirmText: t('saas_admin.tenant_modals_manager.s8', "تأكيد الحذف النهائي"),
+              cancelText: t('saas_admin.tenant_modals_manager.s9', "تراجع"),
             });
             if (confirmed) {
               vm.tenantActionMutation.mutate({ action: 'delete', tenantId: id });

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { Field } from '@/shared/ui/field';
@@ -13,6 +14,7 @@ interface CarrierBidEntryModalProps {
 }
 
 export function CarrierBidEntryModal({ open, rfq, onClose, onSaved }: CarrierBidEntryModalProps) {
+  const { t } = useTranslation();
   const [lineName, setLineName] = useState('ميرسك (Maersk)');
   const [oceanFreight, setOceanFreight] = useState<number>(1800);
   const [currency, setCurrency] = useState('USD');
@@ -90,7 +92,7 @@ export function CarrierBidEntryModal({ open, rfq, onClose, onSaved }: CarrierBid
     <StandardDialog
       open={open}
       onClose={onClose}
-      title="تسجيل عرض سعر خط ملاحي (Record Carrier Bid)"
+      title={t('maritime_freight.carrier_bid_entry_modal.s0', "تسجيل عرض سعر خط ملاحي (Record Carrier Bid)")}
       subtitle={`تسجيل وإدراج عرض سعر للطلب: ${rfq.rfq_number} (${rfq.pol_code} إلى ${rfq.pod_code})`}
       width="min(880px, 95vw)"
       minHeight="min(500px, 85vh)"
@@ -99,8 +101,8 @@ export function CarrierBidEntryModal({ open, rfq, onClose, onSaved }: CarrierBid
           onCancel={onClose}
           onSubmit={handleSave}
           isSubmitting={isSubmitting}
-          submitText="حفظ العرض وإدراجه بالمصفوفة"
-          cancelText="إلغاء"
+          submitText={t('maritime_freight.carrier_bid_entry_modal.s1', "حفظ العرض وإدراجه بالمصفوفة")}
+          cancelText={t('maritime_freight.carrier_bid_entry_modal.s2', "إلغاء")}
         />
       )}
     >
@@ -153,7 +155,7 @@ export function CarrierBidEntryModal({ open, rfq, onClose, onSaved }: CarrierBid
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '5px' }}>
             <span style={{ fontSize: '0.76rem', fontWeight: 700, color: '#170e5e', display: 'flex', alignItems: 'center', gap: '5px' }}>
               <AppIcons.Download size={13} color="#170e5e" />
-              <span>استخراج بيانات العرض تلقائياً من نص رد الإيميل (AI Copilot Fast Ingestion):</span>
+              <span>{t('maritime_freight.carrier_bid_entry_modal.s3', "استخراج بيانات العرض تلقائياً من نص رد الإيميل (AI Copilot Fast Ingestion):")}</span>
             </span>
             <button
               type="button"
@@ -173,14 +175,14 @@ export function CarrierBidEntryModal({ open, rfq, onClose, onSaved }: CarrierBid
                 gap: '4px',
               }}
             >
-              <span>تحليل واستخراج</span>
+              <span>{t('maritime_freight.carrier_bid_entry_modal.s4', "تحليل واستخراج")}</span>
             </button>
           </div>
           <textarea
             rows={1}
             value={rawText}
             onChange={(e) => setRawText(e.target.value)}
-            placeholder="انسخ نص رد الخط الملاحي هنا (مثال: OF: 2100 USD, THC: 150 USD, Free Days: 14, TT: 18 days)..."
+            placeholder={t('maritime_freight.carrier_bid_entry_modal.s5', "انسخ نص رد الخط الملاحي هنا (مثال: OF: 2100 USD, THC: 150 USD, Free Days: 14, TT: 18 days)...")}
             style={{
               width: '100%',
               height: '32px',
@@ -199,29 +201,29 @@ export function CarrierBidEntryModal({ open, rfq, onClose, onSaved }: CarrierBid
         {/* 2. شبكة الحقول المتناسقة هندسياً: 4 أعمدة متساوية العرض لمحاذاة بصرية تامة */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px 10px' }}>
           {/* الصف الأول: الأساسيات */}
-          <Field label="الخط الملاحي / الوكيل *">
+          <Field label={t('maritime_freight.carrier_bid_entry_modal.s6', "الخط الملاحي / الوكيل *")}>
             <input
               type="text"
               value={lineName}
               onChange={(e) => setLineName(e.target.value)}
-              placeholder="مثال: Maersk / MSC / COSCO"
+              placeholder={t('maritime_freight.carrier_bid_entry_modal.s7', "مثال: Maersk / MSC / COSCO")}
             />
           </Field>
 
-          <Field label="عملة التسعير *">
+          <Field label={t('maritime_freight.carrier_bid_entry_modal.s8', "عملة التسعير *")}>
             <CustomSelect
               value={currency}
               onChange={(val) => setCurrency(val || 'USD')}
               options={[
-                { value: 'USD', label: 'USD - دولار أمريكي' },
-                { value: 'EUR', label: 'EUR - يورو أوروبي' },
-                { value: 'EGP', label: 'EGP - جنيه مصري' },
-                { value: 'SAR', label: 'SAR - ريال سعودي' },
+                { value: 'USD', label: t('maritime_freight.carrier_bid_entry_modal.s9', "USD - دولار أمريكي") },
+                { value: 'EUR', label: t('maritime_freight.carrier_bid_entry_modal.s10', "EUR - يورو أوروبي") },
+                { value: 'EGP', label: t('maritime_freight.carrier_bid_entry_modal.s11', "EGP - جنيه مصري") },
+                { value: 'SAR', label: t('maritime_freight.carrier_bid_entry_modal.s12', "SAR - ريال سعودي") },
               ]}
             />
           </Field>
 
-          <Field label="النولون الأساسي (Ocean Freight) *">
+          <Field label={t('maritime_freight.carrier_bid_entry_modal.s13', "النولون الأساسي (Ocean Freight) *")}>
             <input
               type="number"
               min={0}
@@ -230,7 +232,7 @@ export function CarrierBidEntryModal({ open, rfq, onClose, onSaved }: CarrierBid
             />
           </Field>
 
-          <Field label="أيام السماح المجانية (Free Days) *">
+          <Field label={t('maritime_freight.carrier_bid_entry_modal.s14', "أيام السماح المجانية (Free Days) *")}>
             <input
               type="number"
               min={1}
@@ -240,7 +242,7 @@ export function CarrierBidEntryModal({ open, rfq, onClose, onSaved }: CarrierBid
           </Field>
 
           {/* الصف الثاني: العوائد والمصاريف */}
-          <Field label="عوائد ميناء الشحن (Origin THC)">
+          <Field label={t('maritime_freight.carrier_bid_entry_modal.s15', "عوائد ميناء الشحن (Origin THC)")}>
             <input
               type="number"
               min={0}
@@ -249,7 +251,7 @@ export function CarrierBidEntryModal({ open, rfq, onClose, onSaved }: CarrierBid
             />
           </Field>
 
-          <Field label="عوائد ميناء الوصول (Destination THC)">
+          <Field label={t('maritime_freight.carrier_bid_entry_modal.s16', "عوائد ميناء الوصول (Destination THC)")}>
             <input
               type="number"
               min={0}
@@ -258,7 +260,7 @@ export function CarrierBidEntryModal({ open, rfq, onClose, onSaved }: CarrierBid
             />
           </Field>
 
-          <Field label="رسوم الوقود (BAF)">
+          <Field label={t('maritime_freight.carrier_bid_entry_modal.s17', "رسوم الوقود (BAF)")}>
             <input
               type="number"
               min={0}
@@ -267,7 +269,7 @@ export function CarrierBidEntryModal({ open, rfq, onClose, onSaved }: CarrierBid
             />
           </Field>
 
-          <Field label="مصاريف أخرى (Other Charges)">
+          <Field label={t('maritime_freight.carrier_bid_entry_modal.s18', "مصاريف أخرى (Other Charges)")}>
             <input
               type="number"
               min={0}
@@ -277,17 +279,17 @@ export function CarrierBidEntryModal({ open, rfq, onClose, onSaved }: CarrierBid
           </Field>
 
           {/* الصف الثالث: المواعيد والتفاصيل */}
-          <Field label="مدة الإبحار المتوقعة (Transit Days)">
+          <Field label={t('maritime_freight.carrier_bid_entry_modal.s19', "مدة الإبحار المتوقعة (Transit Days)")}>
             <input
               type="number"
               min={0}
               value={transitTimeDays}
               onChange={(e) => setTransitTimeDays(parseInt(e.target.value, 10) || 0)}
-              placeholder="18 يوم"
+              placeholder={t('maritime_freight.carrier_bid_entry_modal.s20', "18 يوم")}
             />
           </Field>
 
-          <Field label="صلاحية العرض حتى تاريخ">
+          <Field label={t('maritime_freight.carrier_bid_entry_modal.s21', "صلاحية العرض حتى تاريخ")}>
             <input
               type="date"
               value={validityDate}
@@ -296,12 +298,12 @@ export function CarrierBidEntryModal({ open, rfq, onClose, onSaved }: CarrierBid
           </Field>
 
           <div style={{ gridColumn: 'span 2' }}>
-            <Field label="ملاحظات وشروط العرض (Notes & Terms)">
+            <Field label={t('maritime_freight.carrier_bid_entry_modal.s22', "ملاحظات وشروط العرض (Notes & Terms)")}>
               <input
                 type="text"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                placeholder="شروط إضافية، تفاصيل الحجز، قيود الوزن..."
+                placeholder={t('maritime_freight.carrier_bid_entry_modal.s23', "شروط إضافية، تفاصيل الحجز، قيود الوزن...")}
               />
             </Field>
           </div>
@@ -323,10 +325,10 @@ export function CarrierBidEntryModal({ open, rfq, onClose, onSaved }: CarrierBid
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span style={{ fontWeight: 700, color: '#334155', fontSize: '0.8125rem' }}>
-              إجمالي تكلفة الشحن (Total Freight Cost):
+              {t('maritime_freight.carrier_bid_entry_modal.s24', "إجمالي تكلفة الشحن (Total Freight Cost):")}
             </span>
             <span style={{ fontSize: '0.74rem', color: '#64748b' }}>
-              (النولون: {oceanFreight.toLocaleString()} + المصاريف الإضافية: {(thcOrigin + thcDestination + bafCharges + otherCharges).toLocaleString()} {currency})
+              {t('maritime_freight.carrier_bid_entry_modal.s25', "(النولون:")} {oceanFreight.toLocaleString()} {t('maritime_freight.carrier_bid_entry_modal.s26', "+ المصاريف الإضافية:")} {(thcOrigin + thcDestination + bafCharges + otherCharges).toLocaleString()} {currency})
             </span>
           </div>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>

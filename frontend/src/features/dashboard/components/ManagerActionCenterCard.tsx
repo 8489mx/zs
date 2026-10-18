@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { FormSection } from '@/shared/components/form-section';
 import { EmptyState } from '@/shared/ui/empty-state';
@@ -24,35 +25,36 @@ export function ManagerActionCenterCard({
   isError,
   error,
 }: ManagerActionCenterCardProps) {
+  const { t } = useTranslation();
   const topInsights = sortManagerActionsByImportance(insights).slice(0, 8);
 
   return (
     <FormSection
-      title="مركز قرارات المدير"
-      description="تنبيهات عملية من بياناتك المحلية بدون اتصال خارجي."
+      title={t('dashboard.manager_action_center_card.s0', "مركز قرارات المدير")}
+      description={t('dashboard.manager_action_center_card.s1', "تنبيهات عملية من بياناتك المحلية بدون اتصال خارجي.")}
       className="dashboard-premium-card dashboard-card-compact manager-action-center-card"
     >
       {isLoading ? (
         <LoadingState
-          title="جاري تحليل البيانات..."
-          hint="نراجع التسعير والمخزون والمبيعات والحسابات."
+          title={t('dashboard.manager_action_center_card.s2', "جاري تحليل البيانات...")}
+          hint={t('dashboard.manager_action_center_card.s3', "نراجع التسعير والمخزون والمبيعات والحسابات.")}
           className="dashboard-inline-state"
         />
       ) : null}
 
       {!isLoading && isError ? (
         <ErrorState
-          title="تعذر تحميل قرارات المدير"
+          title={t('dashboard.manager_action_center_card.s4', "تعذر تحميل قرارات المدير")}
           error={error}
-          hint="يمكنك متابعة لوحة التحكم، ثم إعادة المحاولة بعد تشغيل الخادم."
+          hint={t('dashboard.manager_action_center_card.s5', "يمكنك متابعة لوحة التحكم، ثم إعادة المحاولة بعد تشغيل الخادم.")}
           className="dashboard-inline-state"
         />
       ) : null}
 
       {!isLoading && !isError && !insights.length ? (
         <EmptyState
-          title="لا توجد قرارات عاجلة الآن"
-          hint="ستظهر هنا التنبيهات عند وجود تسعير خاسر أو مخزون منخفض أو ذمم تحتاج مراجعة."
+          title={t('dashboard.manager_action_center_card.s6', "لا توجد قرارات عاجلة الآن")}
+          hint={t('dashboard.manager_action_center_card.s7', "ستظهر هنا التنبيهات عند وجود تسعير خاسر أو مخزون منخفض أو ذمم تحتاج مراجعة.")}
           className="dashboard-empty-state"
         />
       ) : null}

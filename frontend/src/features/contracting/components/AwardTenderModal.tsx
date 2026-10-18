@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React, { useState } from 'react';
 import { StandardDialog } from '@/shared/components/StandardDialog';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
@@ -30,6 +31,7 @@ export function AwardTenderModal({
   onClose,
   onSuccess,
 }: AwardTenderModalProps) {
+  const { t } = useTranslation();
   const { currencySymbol, formatCurrency } = useSystemCurrency();
 
   const [contractRef, setContractRef] = useState(`CNT-${new Date().toISOString().slice(2, 10).replace(/-/g, '')}-0001`);
@@ -68,22 +70,22 @@ export function AwardTenderModal({
     <StandardDialog
       open={open}
       onClose={onClose}
-      title="اعتماد وترسية العطاء وتوقيع العقد الرسمي"
-      subtitle={`المشروع: [${projectCode || ''}] ${projectName || ''} - العميل: ${clientName || 'العميل الموقر'}`}
+      title={t('contracting.award_tender_modal.s0', "اعتماد وترسية العطاء وتوقيع العقد الرسمي")}
+      subtitle={`المشروع: [${projectCode || ''}] ${projectName || ''} - العميل: ${clientName || t('contracting.award_tender_modal.s1', "العميل الموقر")}`}
       width="720px"
     >
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }} dir="rtl">
         <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
           <div>
             <div style={{ fontSize: 'var(--font-body)', fontWeight: 700, color: '#166534' }}>
-              الترسية الرسمية والتحويل لمشروع تنفيذي ساري (Active Project)
+              {t('contracting.award_tender_modal.s2', "الترسية الرسمية والتحويل لمشروع تنفيذي ساري (Active Project)")}
             </div>
             <div style={{ fontSize: 'var(--font-subtitle)', color: '#15803d', marginTop: '2px' }}>
-              سيتم تثبيت مقايسة العطاء كـ خط أساس تعاقدي (Contractual SOV Baseline) وفتح بوابات التوريدات والمستخلصات وجانت.
+              {t('contracting.award_tender_modal.s3', "سيتم تثبيت مقايسة العطاء كـ خط أساس تعاقدي (Contractual SOV Baseline) وفتح بوابات التوريدات والمستخلصات وجانت.")}
             </div>
           </div>
           <div style={{ textAlign: 'left' }}>
-            <div style={{ fontSize: 'var(--font-micro)', color: '#15803d', fontWeight: 600 }}>إجمالي القيمة التعاقدية</div>
+            <div style={{ fontSize: 'var(--font-micro)', color: '#15803d', fontWeight: 600 }}>{t('contracting.award_tender_modal.s4', "إجمالي القيمة التعاقدية")}</div>
             <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#166534' }}>
               {formatCurrency(contractValue)}
             </div>
@@ -93,13 +95,13 @@ export function AwardTenderModal({
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
           <div>
             <label style={{ display: 'block', fontSize: 'var(--font-body)', fontWeight: 700, color: '#1e293b', marginBottom: '6px' }}>
-              رقم العقد التعاقدي الرسمي
+              {t('contracting.award_tender_modal.s5', "رقم العقد التعاقدي الرسمي")}
             </label>
             <input
               type="text"
               value={contractRef}
               onChange={(e) => setContractRef(e.target.value)}
-              placeholder="مثال: CNT-260918-0001"
+              placeholder={t('contracting.award_tender_modal.s6', "مثال: CNT-260918-0001")}
               style={{
                 width: '100%',
                 height: '38px',
@@ -115,7 +117,7 @@ export function AwardTenderModal({
 
           <div>
             <label style={{ display: 'block', fontSize: 'var(--font-body)', fontWeight: 700, color: '#1e293b', marginBottom: '6px' }}>
-              تاريخ توقيع العقد
+              {t('contracting.award_tender_modal.s7', "تاريخ توقيع العقد")}
             </label>
             <input
               type="date"
@@ -138,7 +140,7 @@ export function AwardTenderModal({
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
           <div>
             <label style={{ display: 'block', fontSize: 'var(--font-body)', fontWeight: 700, color: '#1e293b', marginBottom: '6px' }}>
-              قيمة الدفعة المقدمة التعاقدية ({currencySymbol})
+              {t('contracting.award_tender_modal.s8', "قيمة الدفعة المقدمة التعاقدية (")}{currencySymbol})
             </label>
             <input
               type="number"
@@ -162,7 +164,7 @@ export function AwardTenderModal({
 
           <div>
             <label style={{ display: 'block', fontSize: 'var(--font-body)', fontWeight: 700, color: '#1e293b', marginBottom: '6px' }}>
-              نسبة ضمان الأعمال المحتجزة (Retention %)
+              {t('contracting.award_tender_modal.s9', "نسبة ضمان الأعمال المحتجزة (Retention %)")}
             </label>
             <input
               type="number"
@@ -189,13 +191,13 @@ export function AwardTenderModal({
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
           <div>
             <label style={{ display: 'block', fontSize: 'var(--font-body)', fontWeight: 700, color: '#1e293b', marginBottom: '6px' }}>
-              مهندس / مدير المشروع المسؤول
+              {t('contracting.award_tender_modal.s10', "مهندس / مدير المشروع المسؤول")}
             </label>
             <input
               type="text"
               value={projectManager}
               onChange={(e) => setProjectManager(e.target.value)}
-              placeholder="مثال: م. أحمد عبد العزيز"
+              placeholder={t('contracting.award_tender_modal.s11', "مثال: م. أحمد عبد العزيز")}
               style={{
                 width: '100%',
                 height: '38px',
@@ -211,13 +213,13 @@ export function AwardTenderModal({
 
           <div>
             <label style={{ display: 'block', fontSize: 'var(--font-body)', fontWeight: 700, color: '#1e293b', marginBottom: '6px' }}>
-              الاستشاري المشرف أو ممثل المالك
+              {t('contracting.award_tender_modal.s12', "الاستشاري المشرف أو ممثل المالك")}
             </label>
             <input
               type="text"
               value={consultantName}
               onChange={(e) => setConsultantName(e.target.value)}
-              placeholder="مثال: مكتب صبور للاستشارات الهندسية"
+              placeholder={t('contracting.award_tender_modal.s13', "مثال: مكتب صبور للاستشارات الهندسية")}
               style={{
                 width: '100%',
                 height: '38px',
@@ -248,7 +250,7 @@ export function AwardTenderModal({
               fontSize: 'var(--font-body)',
             }}
           >
-            إلغاء
+            {t('contracting.award_tender_modal.s14', "إلغاء")}
           </button>
           <button
             type="submit"
@@ -271,7 +273,7 @@ export function AwardTenderModal({
             }}
           >
             <AppIcons.CheckShield size={16} />
-            <span>{isSubmitting ? 'جاري الترسية والتحويل...' : 'اعتماد وترسية العطاء رسمياً'}</span>
+            <span>{isSubmitting ? t('contracting.award_tender_modal.s15', "جاري الترسية والتحويل...") : t('contracting.award_tender_modal.s16', "اعتماد وترسية العطاء رسمياً")}</span>
           </button>
         </div>
       </form>

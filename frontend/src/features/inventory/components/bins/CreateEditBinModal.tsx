@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React, { useMemo } from 'react';
 import { StandardDialog } from '@/shared/components/StandardDialog';
 import { CustomSelect } from '@/shared/ui/custom-select';
@@ -54,6 +55,7 @@ export const CreateEditBinModal: React.FC<CreateEditBinModalProps> = ({
   modalFeedback,
   onSave,
 }) => {
+  const { t } = useTranslation();
   const locationOptions = useMemo(() => [
     ...locations.map((loc) => ({ value: String(loc.id), label: loc.name })),
   ], [locations]);
@@ -64,8 +66,8 @@ export const CreateEditBinModal: React.FC<CreateEditBinModalProps> = ({
       onClose={() => {
         if (!saving) onClose();
       }}
-      title={editingBin ? 'تعديل مكان التخزين (Edit Bin)' : 'إضافة مكان تخزين جديد (New Bin)'}
-      subtitle="تحديد المستودع، رمز المكان، الممر، الحامل، والباركود لسهولة التوجيه والجرد"
+      title={editingBin ? t('inventory.bins.create_edit_bin_modal.s0', "تعديل مكان التخزين (Edit Bin)") : t('inventory.bins.create_edit_bin_modal.s1', "إضافة مكان تخزين جديد (New Bin)")}
+      subtitle={t('inventory.bins.create_edit_bin_modal.s2', "تحديد المستودع، رمز المكان، الممر، الحامل، والباركود لسهولة التوجيه والجرد")}
       width="560px"
       footerActions={
         <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', width: '100%' }}>
@@ -84,7 +86,7 @@ export const CreateEditBinModal: React.FC<CreateEditBinModalProps> = ({
               cursor: saving ? 'not-allowed' : 'pointer',
             }}
           >
-            إلغاء
+            {t('inventory.bins.create_edit_bin_modal.s3', "إلغاء")}
           </button>
           <button
             type="button"
@@ -101,7 +103,7 @@ export const CreateEditBinModal: React.FC<CreateEditBinModalProps> = ({
               cursor: saving ? 'not-allowed' : 'pointer',
             }}
           >
-            {saving ? 'جاري الحفظ...' : editingBin ? 'تحديث البيانات' : 'حفظ المكان'}
+            {saving ? t('inventory.bins.create_edit_bin_modal.s4', "جاري الحفظ...") : editingBin ? t('inventory.bins.create_edit_bin_modal.s5', "تحديث البيانات") : t('inventory.bins.create_edit_bin_modal.s6', "حفظ المكان")}
           </button>
         </div>
       }
@@ -125,27 +127,27 @@ export const CreateEditBinModal: React.FC<CreateEditBinModalProps> = ({
 
         <div>
           <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-            المستودع / مكان التخزين الرئيسي <span style={{ color: '#dc2626' }}>*</span>
+            {t('inventory.bins.create_edit_bin_modal.s7', "المستودع / مكان التخزين الرئيسي")} <span style={{ color: '#dc2626' }}>*</span>
           </label>
           <CustomSelect
             value={formLocationId ? String(formLocationId) : ''}
             onChange={(val) => setFormLocationId(val ? Number(val) : '')}
             options={locationOptions}
             disabled={Boolean(editingBin)}
-            placeholder="اختر المستودع"
+            placeholder={t('inventory.bins.create_edit_bin_modal.s8', "اختر المستودع")}
           />
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
           <div>
             <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-              رمز مكان التخزين (Code) <span style={{ color: '#dc2626' }}>*</span>
+              {t('inventory.bins.create_edit_bin_modal.s9', "رمز مكان التخزين (Code)")} <span style={{ color: '#dc2626' }}>*</span>
             </label>
             <input
               type="text"
               value={formCode}
               onChange={(e) => setFormCode(e.target.value.toUpperCase())}
-              placeholder="مثال: A1-R02-S3-B05"
+              placeholder={t('inventory.bins.create_edit_bin_modal.s10', "مثال: A1-R02-S3-B05")}
               style={{
                 width: '100%',
                 padding: '8px 12px',
@@ -160,13 +162,13 @@ export const CreateEditBinModal: React.FC<CreateEditBinModalProps> = ({
 
           <div>
             <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-              الباركود (Barcode)
+              {t('inventory.bins.create_edit_bin_modal.s11', "الباركود (Barcode)")}
             </label>
             <input
               type="text"
               value={formBarcode}
               onChange={(e) => setFormBarcode(e.target.value)}
-              placeholder="اتركه فارغاً للتوليد التلقائي..."
+              placeholder={t('inventory.bins.create_edit_bin_modal.s12', "اتركه فارغاً للتوليد التلقائي...")}
               style={{
                 width: '100%',
                 padding: '8px 12px',
@@ -183,7 +185,7 @@ export const CreateEditBinModal: React.FC<CreateEditBinModalProps> = ({
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px' }}>
           <div>
             <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#64748b', marginBottom: '4px' }}>
-              الممر (Aisle)
+              {t('inventory.bins.create_edit_bin_modal.s13', "الممر (Aisle)")}
             </label>
             <input
               type="text"
@@ -195,7 +197,7 @@ export const CreateEditBinModal: React.FC<CreateEditBinModalProps> = ({
           </div>
           <div>
             <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#64748b', marginBottom: '4px' }}>
-              الحامل (Rack)
+              {t('inventory.bins.create_edit_bin_modal.s14', "الحامل (Rack)")}
             </label>
             <input
               type="text"
@@ -207,7 +209,7 @@ export const CreateEditBinModal: React.FC<CreateEditBinModalProps> = ({
           </div>
           <div>
             <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#64748b', marginBottom: '4px' }}>
-              المستوى (Shelf)
+              {t('inventory.bins.create_edit_bin_modal.s15', "المستوى (Shelf)")}
             </label>
             <input
               type="text"
@@ -219,7 +221,7 @@ export const CreateEditBinModal: React.FC<CreateEditBinModalProps> = ({
           </div>
           <div>
             <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#64748b', marginBottom: '4px' }}>
-              العين (Bin)
+              {t('inventory.bins.create_edit_bin_modal.s16', "العين (Bin)")}
             </label>
             <input
               type="text"
@@ -233,12 +235,12 @@ export const CreateEditBinModal: React.FC<CreateEditBinModalProps> = ({
 
         <div>
           <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-            ملاحظات
+            {t('inventory.bins.create_edit_bin_modal.s17', "ملاحظات")}
           </label>
           <textarea
             value={formNotes}
             onChange={(e) => setFormNotes(e.target.value)}
-            placeholder="ملاحظات أو مواصفات خاصة بمكان التخزين..."
+            placeholder={t('inventory.bins.create_edit_bin_modal.s18', "ملاحظات أو مواصفات خاصة بمكان التخزين...")}
             rows={2}
             style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', outline: 'none' }}
           />

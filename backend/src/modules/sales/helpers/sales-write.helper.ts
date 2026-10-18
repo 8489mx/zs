@@ -22,6 +22,7 @@ export type SaleProductOfferRow = {
 export type SaleProductRow = {
   id?: number | string | null;
   name?: string | null;
+  name_en?: string | null;
   stock_qty?: number | string | null;
   cost_price?: number | string | null;
   retail_price?: number | string | null;
@@ -31,6 +32,7 @@ export type SaleProductRow = {
 export type PreparedSaleItem = {
   productId: number;
   productName: string;
+  productNameEn?: string | null;
   qty: number;
   unitPrice: number;
   originalPrice?: number;
@@ -74,6 +76,7 @@ export function buildPreparedSaleItem(
   return {
     productId: Number(product.id || item.productId),
     productName,
+    productNameEn: product.name_en ? String(product.name_en).trim() : null,
     qty: Number(item.qty || 0),
     unitPrice: Number(item.price || 0),
     ...(item.originalPrice !== undefined ? { originalPrice: Number(item.originalPrice) } : {}),

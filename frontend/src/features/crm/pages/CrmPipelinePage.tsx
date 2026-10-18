@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAppToolbar } from '@/stores/toolbar-store';
@@ -23,6 +24,7 @@ import { CustomSelect } from '@/shared/ui/custom-select';
 import { toast } from '@/shared/components/system-alert';
 
 export function CrmPipelinePage() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
 
   useAppToolbar([
@@ -105,9 +107,9 @@ export function CrmPipelinePage() {
       <main className="document-prototype-column" style={{ paddingBottom: '100px', maxWidth: '1280px', margin: '0 auto', width: '100%' }}>
         {/* Top Header */}
         <PageHeader
-          title="إدارة علاقات العملاء والصفقات (CRM Pipeline)"
-          description="تتبع مسار المبيعات والفرص التجارية، إدارة الأنشطة والمهام، والتحويل الفوري إلى عملاء وفواتير بيع."
-          badge={<span className="nav-pill">خط المبيعات</span>}
+          title={t('crm.crm_pipeline_page.s0', "إدارة علاقات العملاء والصفقات (CRM Pipeline)")}
+          description={t('crm.crm_pipeline_page.s1', "تتبع مسار المبيعات والفرص التجارية، إدارة الأنشطة والمهام، والتحويل الفوري إلى عملاء وفواتير بيع.")}
+          badge={<span className="nav-pill">{t('crm.crm_pipeline_page.s2', "خط المبيعات")}</span>}
           actions={
             <div className="actions compact-actions page-header-actions">
               <Button
@@ -116,7 +118,7 @@ export function CrmPipelinePage() {
                 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
               >
                 <PlusIcon size={16} />
-                <span>إضافة فرصة بيعية</span>
+                <span>{t('crm.crm_pipeline_page.s3', "إضافة فرصة بيعية")}</span>
               </Button>
             </div>
           }
@@ -128,22 +130,22 @@ export function CrmPipelinePage() {
             items={[
               {
                 key: 'active-deals',
-                label: 'إجمالي الفرص النشطة',
+                label: t('crm.crm_pipeline_page.s4', "إجمالي الفرص النشطة"),
                 value: `${summary?.totalActiveCount ?? 0} فرصة`,
               },
               {
                 key: 'pipeline-amount',
-                label: 'قيمة المسار النشط',
+                label: t('crm.crm_pipeline_page.s5', "قيمة المسار النشط"),
                 value: formatCurrency(summary?.totalActiveAmount ?? 0),
               },
               {
                 key: 'weighted-amount',
-                label: 'القيمة الموزونة المتوقعة',
+                label: t('crm.crm_pipeline_page.s6', "القيمة الموزونة المتوقعة"),
                 value: formatCurrency(summary?.weightedAmount ?? 0),
               },
               {
                 key: 'win-rate',
-                label: 'معدل الإغلاق والنجاح',
+                label: t('crm.crm_pipeline_page.s7', "معدل الإغلاق والنجاح"),
                 value: `${summary?.winRate ?? 0}%`,
               },
             ]}
@@ -154,8 +156,8 @@ export function CrmPipelinePage() {
         <section className="document-prototype-section workspace-panel">
           <div className="section-header-compact-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
             <div>
-              <h2 className="document-prototype-section-title" style={{ margin: 0 }}>مسار الصفقات والمتابعات</h2>
-              <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: '#64748b' }}>إدارة ومتابعة تحويل الفرص البيعية والأنشطة</p>
+              <h2 className="document-prototype-section-title" style={{ margin: 0 }}>{t('crm.crm_pipeline_page.s8', "مسار الصفقات والمتابعات")}</h2>
+              <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: '#64748b' }}>{t('crm.crm_pipeline_page.s9', "إدارة ومتابعة تحويل الفرص البيعية والأنشطة")}</p>
             </div>
           </div>
 
@@ -175,7 +177,7 @@ export function CrmPipelinePage() {
           <div style={{ position: 'relative', flex: 1, maxWidth: '340px' }}>
             <input
               type="text"
-              placeholder="بحث بالفرصة، العميل، الهاتف..."
+              placeholder={t('crm.crm_pipeline_page.s10', "بحث بالفرصة، العميل، الهاتف...")}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               style={{
@@ -198,13 +200,13 @@ export function CrmPipelinePage() {
               value={priorityFilter}
               onChange={(val) => setPriorityFilter(val)}
               options={[
-                { value: 'all', label: 'كافة الأولويات' },
-                { value: 'urgent', label: 'عاجلة جداً' },
-                { value: 'high', label: 'مرتفعة' },
-                { value: 'medium', label: 'متوسطة' },
-                { value: 'low', label: 'منخفضة' },
+                { value: 'all', label: t('crm.crm_pipeline_page.s11', "كافة الأولويات") },
+                { value: 'urgent', label: t('crm.crm_pipeline_page.s12', "عاجلة جداً") },
+                { value: 'high', label: t('crm.crm_pipeline_page.s13', "مرتفعة") },
+                { value: 'medium', label: t('crm.crm_pipeline_page.s14', "متوسطة") },
+                { value: 'low', label: t('crm.crm_pipeline_page.s15', "منخفضة") },
               ]}
-              placeholder="الأولوية..."
+              placeholder={t('crm.crm_pipeline_page.s16', "الأولوية...")}
             />
           </div>
 
@@ -215,11 +217,11 @@ export function CrmPipelinePage() {
                 value={stageFilter}
                 onChange={(val) => setStageFilter(val)}
                 options={[
-                  { value: 'all', label: 'كافة المراحل' },
+                  { value: 'all', label: t('crm.crm_pipeline_page.s17', "كافة المراحل") },
                   ...STAGES.map((s) => ({ value: s.key, label: s.label })),
-                  { value: 'lost', label: 'صفقة خاسرة' },
+                  { value: 'lost', label: t('crm.crm_pipeline_page.s18', "صفقة خاسرة") },
                 ]}
-                placeholder="المرحلة..."
+                placeholder={t('crm.crm_pipeline_page.s19', "المرحلة...")}
               />
             </div>
           )}
@@ -241,7 +243,7 @@ export function CrmPipelinePage() {
               boxShadow: viewMode === 'kanban' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
             }}
           >
-            لوحة كانبان (Kanban)
+            {t('crm.crm_pipeline_page.s20', "لوحة كانبان (Kanban)")}
           </button>
           <button
             onClick={() => setViewMode('table')}
@@ -257,7 +259,7 @@ export function CrmPipelinePage() {
               boxShadow: viewMode === 'table' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
             }}
           >
-            جدول تفصيلي (Table)
+            {t('crm.crm_pipeline_page.s21', "جدول تفصيلي (Table)")}
           </button>
         </div>
       </div>

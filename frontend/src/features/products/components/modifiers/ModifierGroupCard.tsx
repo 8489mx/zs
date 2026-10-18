@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 import { formatCurrency } from '@/lib/format';
 import type { ModifierGroup } from '@/shared/api/addons.api';
@@ -13,6 +14,7 @@ export const ModifierGroupCard: React.FC<ModifierGroupCardProps> = ({
   onEdit,
   onDelete,
 }) => {
+  const { t } = useTranslation();
   return (
     <div
       style={{
@@ -41,7 +43,7 @@ export const ModifierGroupCard: React.FC<ModifierGroupCardProps> = ({
                 color: group.selectionType === 'single' ? '#1d4ed8' : '#166534',
               }}
             >
-              {group.selectionType === 'single' ? 'اختيار أحادي (Single)' : 'اختيار متعدد (Multiple)'}
+              {group.selectionType === 'single' ? t('products.modifiers.modifier_group_card.s0', "اختيار أحادي (Single)") : t('products.modifiers.modifier_group_card.s1', "اختيار متعدد (Multiple)")}
             </span>
             {group.isMandatory && (
               <span
@@ -54,7 +56,7 @@ export const ModifierGroupCard: React.FC<ModifierGroupCardProps> = ({
                   color: '#dc2626',
                 }}
               >
-                إلزامي
+                {t('products.modifiers.modifier_group_card.s2', "إلزامي")}
               </span>
             )}
           </div>
@@ -74,7 +76,7 @@ export const ModifierGroupCard: React.FC<ModifierGroupCardProps> = ({
               color: '#475569',
             }}
           >
-            تعديل
+            {t('products.modifiers.modifier_group_card.s3', "تعديل")}
           </button>
           <button
             type="button"
@@ -89,14 +91,14 @@ export const ModifierGroupCard: React.FC<ModifierGroupCardProps> = ({
               color: '#dc2626',
             }}
           >
-            حذف
+            {t('products.modifiers.modifier_group_card.s4', "حذف")}
           </button>
         </div>
       </div>
 
       <div style={{ flex: 1, borderTop: '1px solid #f1f5f9', paddingTop: '12px', marginTop: '8px' }}>
         <div style={{ fontSize: '12px', fontWeight: 700, color: '#64748b', marginBottom: '8px' }}>
-          الخيارات المتاحة ({group.options?.length || 0}):
+          {t('products.modifiers.modifier_group_card.s5', "الخيارات المتاحة (")}{group.options?.length || 0}):
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
           {group.options?.map((opt) => (
@@ -114,16 +116,16 @@ export const ModifierGroupCard: React.FC<ModifierGroupCardProps> = ({
             >
               <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                 <span style={{ fontWeight: 600, color: '#1e293b' }}>
-                  {opt.name} {opt.isDefault ? '(افتراضي)' : ''}
+                  {opt.name} {opt.isDefault ? t('products.modifiers.modifier_group_card.s6', "(افتراضي)") : ''}
                 </span>
                 {opt.componentProductName && (
                   <span style={{ fontSize: '10.5px', color: '#6366f1', fontWeight: 600 }}>
-                    خصم مخزني: {opt.consumptionQty || 1} {opt.unitName || 'وحدة'} من [{opt.componentProductName}]
+                    {t('products.modifiers.modifier_group_card.s7', "خصم مخزني:")} {opt.consumptionQty || 1} {opt.unitName || t('products.modifiers.modifier_group_card.s8', "وحدة")} {t('products.modifiers.modifier_group_card.s9', "من [")}{opt.componentProductName}]
                   </span>
                 )}
               </div>
               <span style={{ fontWeight: 700, color: Number(opt.price) > 0 ? '#059669' : '#64748b' }}>
-                {Number(opt.price) > 0 ? `+${formatCurrency(opt.price)}` : 'مجاناً'}
+                {Number(opt.price) > 0 ? `+${formatCurrency(opt.price)}` : t('products.modifiers.modifier_group_card.s10', "مجاناً")}
               </span>
             </div>
           ))}

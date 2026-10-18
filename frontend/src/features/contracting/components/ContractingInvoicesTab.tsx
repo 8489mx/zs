@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { ContractingInvoice, ContractingProject } from '../contracting.types';
 import { contractingApi } from '../api/contracting.api';
@@ -25,6 +26,7 @@ export function ContractingInvoicesTab({
   ipcFilter,
   onFilterChange,
 }: ContractingInvoicesTabProps) {
+  const { t } = useTranslation();
   const [approvingId, setApprovingId] = useState<string | null>(null);
   const [postingJournalId, setPostingJournalId] = useState<string | null>(null);
 
@@ -74,16 +76,16 @@ export function ContractingInvoicesTab({
         return (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
             <span style={{ padding: '3px 8px', borderRadius: '6px', fontSize: 'var(--font-badge)', fontWeight: 600, background: '#dcfce7', color: '#15803d', border: '1px solid #bbf7d0', width: 'fit-content' }}>
-              معتمد
+              {t('contracting.contracting_invoices_tab.s0', "معتمد")}
             </span>
             {journalEntryId ? (
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: 'var(--font-micro)', fontWeight: 700, color: '#047857' }}>
                 <AppIcons.FileCheck size={11} />
-                قيد #{journalEntryId}
+                {t('contracting.contracting_invoices_tab.s1', "قيد #")}{journalEntryId}
               </span>
             ) : (
               <span style={{ fontSize: 'var(--font-micro)', color: '#d97706', fontWeight: 600 }}>
-                غير مرحل دفترياً
+                {t('contracting.contracting_invoices_tab.s2', "غير مرحل دفترياً")}
               </span>
             )}
           </div>
@@ -92,20 +94,20 @@ export function ContractingInvoicesTab({
         return (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
             <span style={{ padding: '3px 8px', borderRadius: '6px', fontSize: 'var(--font-badge)', fontWeight: 600, background: '#e0e7ff', color: '#3730a3', border: '1px solid #c7d2fe', width: 'fit-content' }}>
-              تم الصرف والتحصيل
+              {t('contracting.contracting_invoices_tab.s3', "تم الصرف والتحصيل")}
             </span>
             {journalEntryId && (
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: 'var(--font-micro)', fontWeight: 700, color: '#4338ca' }}>
                 <AppIcons.FileCheck size={11} />
-                قيد #{journalEntryId}
+                {t('contracting.contracting_invoices_tab.s4', "قيد #")}{journalEntryId}
               </span>
             )}
           </div>
         );
       case 'submitted':
-        return <span style={{ padding: '3px 8px', borderRadius: '6px', fontSize: 'var(--font-badge)', fontWeight: 600, background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a' }}>مقدم للاستشاري</span>;
+        return <span style={{ padding: '3px 8px', borderRadius: '6px', fontSize: 'var(--font-badge)', fontWeight: 600, background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a' }}>{t('contracting.contracting_invoices_tab.s5', "مقدم للاستشاري")}</span>;
       default:
-        return <span style={{ padding: '3px 8px', borderRadius: '6px', fontSize: 'var(--font-badge)', fontWeight: 600, background: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0' }}>مسودة داخلية</span>;
+        return <span style={{ padding: '3px 8px', borderRadius: '6px', fontSize: 'var(--font-badge)', fontWeight: 600, background: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0' }}>{t('contracting.contracting_invoices_tab.s6', "مسودة داخلية")}</span>;
     }
   };
 
@@ -128,10 +130,10 @@ export function ContractingInvoicesTab({
       >
         <div style={{ minWidth: '280px', flex: '1 1 auto' }}>
           <h2 style={{ fontSize: 'var(--font-section-title)', fontWeight: 700, color: '#1e293b', margin: 0 }}>
-            المستخلصات وشهادات الدفع الجارية (Interim Payment Certificates - IPC)
+            {t('contracting.contracting_invoices_tab.s7', "المستخلصات وشهادات الدفع الجارية (Interim Payment Certificates - IPC)")}
           </h2>
           <p style={{ fontSize: 'var(--font-subtitle)', color: '#64748b', margin: '4px 0 0' }}>
-            {project ? `المشروع: ${project.name}` : 'مطابقة الأعمال المنفذة، التشوينات بالموقع، واحتساب الاستقطاعات النظامية'}
+            {project ? `المشروع: ${project.name}` : t('contracting.contracting_invoices_tab.s8', "مطابقة الأعمال المنفذة، التشوينات بالموقع، واحتساب الاستقطاعات النظامية")}
           </p>
         </div>
         <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
@@ -152,7 +154,7 @@ export function ContractingInvoicesTab({
                 boxShadow: ipcFilter === 'client' ? '0 1px 3px rgba(0,0,0,0.05)' : 'none',
               }}
             >
-              مستخلصات المالك (العميل)
+              {t('contracting.contracting_invoices_tab.s9', "مستخلصات المالك (العميل)")}
             </button>
             <button
               type="button"
@@ -169,7 +171,7 @@ export function ContractingInvoicesTab({
                 boxShadow: ipcFilter === 'subcontractor' ? '0 1px 3px rgba(0,0,0,0.05)' : 'none',
               }}
             >
-              مستخلصات مقاولي الباطن
+              {t('contracting.contracting_invoices_tab.s10', "مستخلصات مقاولي الباطن")}
             </button>
           </div>
 
@@ -192,7 +194,7 @@ export function ContractingInvoicesTab({
             }}
           >
             <AppIcons.Plus size={15} />
-            <span>إصدار مستخلص جديد (IPC)</span>
+            <span>{t('contracting.contracting_invoices_tab.s11', "إصدار مستخلص جديد (IPC)")}</span>
           </button>
         </div>
       </div>
@@ -200,19 +202,19 @@ export function ContractingInvoicesTab({
       {/* شريط الإحصائيات للمستخلصات المعتمدة */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
         <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 16px' }}>
-          <div style={{ fontSize: 'var(--font-micro)', color: '#64748b', fontWeight: 600 }}>إجمالي الأعمال المعتمدة تراكمياً</div>
+          <div style={{ fontSize: 'var(--font-micro)', color: '#64748b', fontWeight: 600 }}>{t('contracting.contracting_invoices_tab.s12', "إجمالي الأعمال المعتمدة تراكمياً")}</div>
           <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>
             {totalCumulativeAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
           </div>
         </div>
         <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 16px' }}>
-          <div style={{ fontSize: 'var(--font-micro)', color: '#64748b', fontWeight: 600 }}>صافي المستحقات المالية المعتمدة للصرف</div>
+          <div style={{ fontSize: 'var(--font-micro)', color: '#64748b', fontWeight: 600 }}>{t('contracting.contracting_invoices_tab.s13', "صافي المستحقات المالية المعتمدة للصرف")}</div>
           <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#15803d', marginTop: '2px' }}>
             {totalNetPayable.toLocaleString('en-US', { minimumFractionDigits: 2 })}
           </div>
         </div>
         <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 16px' }}>
-          <div style={{ fontSize: 'var(--font-micro)', color: '#64748b', fontWeight: 600 }}>إجمالي ضمان حسن التنفيذ المحتجز (Retentions)</div>
+          <div style={{ fontSize: 'var(--font-micro)', color: '#64748b', fontWeight: 600 }}>{t('contracting.contracting_invoices_tab.s14', "إجمالي ضمان حسن التنفيذ المحتجز (Retentions)")}</div>
           <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#a16207', marginTop: '2px' }}>
             {totalRetentions.toLocaleString('en-US', { minimumFractionDigits: 2 })}
           </div>
@@ -224,7 +226,7 @@ export function ContractingInvoicesTab({
         {loading ? (
           <div style={{ flex: 1, minHeight: '280px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '12px', padding: '32px' }}>
             <div style={{ width: '28px', height: '28px', borderRadius: '50%', border: '3px solid #e2e8f0', borderTopColor: '#170e5e', animation: 'spin 0.8s linear infinite' }} />
-            <span style={{ fontSize: 'var(--font-subtitle)', color: '#94a3b8', fontWeight: 600 }}>جاري تحميل المستخلصات...</span>
+            <span style={{ fontSize: 'var(--font-subtitle)', color: '#94a3b8', fontWeight: 600 }}>{t('contracting.contracting_invoices_tab.s15', "جاري تحميل المستخلصات...")}</span>
           </div>
         ) : invoices.length === 0 ? (
           <div style={{ flex: 1, minHeight: '280px', padding: '48px 24px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
@@ -232,10 +234,10 @@ export function ContractingInvoicesTab({
               <AppIcons.Receipt size={48} />
             </div>
             <div style={{ fontSize: 'var(--font-section-title)', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-              لا توجد مستخلصات مسجلة لهذا المشروع ({ipcFilter === 'client' ? 'المالك' : 'مقاولو الباطن'})
+              {t('contracting.contracting_invoices_tab.s16', "لا توجد مستخلصات مسجلة لهذا المشروع (")}{ipcFilter === 'client' ? t('contracting.contracting_invoices_tab.s17', "المالك") : t('contracting.contracting_invoices_tab.s18', "مقاولو الباطن")})
             </div>
             <div style={{ fontSize: 'var(--font-subtitle)', color: '#64748b', maxWidth: '420px', margin: '0 auto 16px' }}>
-              أنشئ مستخلصاً جارياً بمطابقة بنود جدول الكميات والمواد المشونة لتوليد شهادة الدفع المعتمدة.
+              {t('contracting.contracting_invoices_tab.s19', "أنشئ مستخلصاً جارياً بمطابقة بنود جدول الكميات والمواد المشونة لتوليد شهادة الدفع المعتمدة.")}
             </div>
             <button
               type="button"
@@ -252,7 +254,7 @@ export function ContractingInvoicesTab({
                 fontSize: 'var(--font-body)',
               }}
             >
-              إصدار مستخلص جديد
+              {t('contracting.contracting_invoices_tab.s20', "إصدار مستخلص جديد")}
             </button>
           </div>
         ) : (
@@ -260,16 +262,16 @@ export function ContractingInvoicesTab({
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right' }}>
               <thead>
                 <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
-                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155' }}>رقم المستخلص</th>
-                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155' }}>التسلسل والفترة</th>
-                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155' }}>الأعمال الحالية</th>
-                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155' }}>المواد المشونة</th>
-                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155' }}>الإجمالي التراكمي</th>
-                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155' }}>استقطاع الدفعة المقدمة</th>
-                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155' }}>ضمان حسن التنفيذ</th>
-                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155' }}>صافي المستحق</th>
-                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155' }}>الحالة</th>
-                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155', textAlign: 'center' }}>الإجراءات</th>
+                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155' }}>{t('contracting.contracting_invoices_tab.s21', "رقم المستخلص")}</th>
+                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155' }}>{t('contracting.contracting_invoices_tab.s22', "التسلسل والفترة")}</th>
+                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155' }}>{t('contracting.contracting_invoices_tab.s23', "الأعمال الحالية")}</th>
+                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155' }}>{t('contracting.contracting_invoices_tab.s24', "المواد المشونة")}</th>
+                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155' }}>{t('contracting.contracting_invoices_tab.s25', "الإجمالي التراكمي")}</th>
+                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155' }}>{t('contracting.contracting_invoices_tab.s26', "استقطاع الدفعة المقدمة")}</th>
+                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155' }}>{t('contracting.contracting_invoices_tab.s27', "ضمان حسن التنفيذ")}</th>
+                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155' }}>{t('contracting.contracting_invoices_tab.s28', "صافي المستحق")}</th>
+                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155' }}>{t('contracting.contracting_invoices_tab.s29', "الحالة")}</th>
+                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155', textAlign: 'center' }}>{t('contracting.contracting_invoices_tab.s30', "الإجراءات")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -279,20 +281,20 @@ export function ContractingInvoicesTab({
                       {inv.ipcNumber}
                       {inv.ipcType === 'subcontractor' && inv.subcontractorName && (
                         <span style={{ display: 'block', fontSize: 'var(--font-micro)', color: '#2563eb', fontWeight: 600 }}>
-                          مقاول: {inv.subcontractorName}
+                          {t('contracting.contracting_invoices_tab.s31', "مقاول:")} {inv.subcontractorName}
                         </span>
                       )}
-                      {inv.notes?.includes('ختامي') && (
+                      {inv.notes?.includes(t('contracting.contracting_invoices_tab.s32', "ختامي")) && (
                         <span style={{ display: 'block', fontSize: 'var(--font-micro)', color: '#b91c1c' }}>
-                          مستخلص ختامي
+                          {t('contracting.contracting_invoices_tab.s33', "مستخلص ختامي")}
                         </span>
                       )}
                     </td>
                     <td style={{ padding: '12px 14px', fontSize: 'var(--font-body)', color: '#475569' }}>
-                      <div style={{ fontWeight: 600 }}>مستخلص رقم #{inv.sequenceOrder}</div>
+                      <div style={{ fontWeight: 600 }}>{t('contracting.contracting_invoices_tab.s34', "مستخلص رقم #")}{inv.sequenceOrder}</div>
                       {inv.periodStart && (
                         <div style={{ fontSize: 'var(--font-micro)', color: '#94a3b8' }}>
-                          من {inv.periodStart} إلى {inv.periodEnd || 'الآن'}
+                          {t('contracting.contracting_invoices_tab.s35', "من")} {inv.periodStart} {t('contracting.contracting_invoices_tab.s36', "إلى")} {inv.periodEnd || t('contracting.contracting_invoices_tab.s37', "الآن")}
                         </div>
                       )}
                     </td>
@@ -340,7 +342,7 @@ export function ContractingInvoicesTab({
                               cursor: 'pointer',
                             }}
                           >
-                            اعتماد
+                            {t('contracting.contracting_invoices_tab.s38', "اعتماد")}
                           </button>
                         )}
                         {inv.status === 'approved' && !inv.journalEntryId && (
@@ -362,10 +364,10 @@ export function ContractingInvoicesTab({
                               alignItems: 'center',
                               gap: '4px',
                             }}
-                            title="ترحيل القيد لدفتر الأستاذ العام"
+                            title={t('contracting.contracting_invoices_tab.s39', "ترحيل القيد لدفتر الأستاذ العام")}
                           >
                             <AppIcons.FileCheck size={12} />
-                            <span>{postingJournalId === inv.id ? 'جاري...' : 'ترحيل القيد'}</span>
+                            <span>{postingJournalId === inv.id ? t('contracting.contracting_invoices_tab.s40', "جاري...") : t('contracting.contracting_invoices_tab.s41', "ترحيل القيد")}</span>
                           </button>
                         )}
                         <button
@@ -387,7 +389,7 @@ export function ContractingInvoicesTab({
                           }}
                         >
                           <AppIcons.Printer size={13} />
-                          <span>شهادة الدفع</span>
+                          <span>{t('contracting.contracting_invoices_tab.s42', "شهادة الدفع")}</span>
                         </button>
                       </div>
                     </td>

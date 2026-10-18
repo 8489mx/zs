@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { PageHeader } from '@/shared/components/page-header';
 import { Button } from '@/shared/ui/button';
 import { useAppToolbar } from '@/stores/toolbar-store';
@@ -10,6 +11,7 @@ import { IssueOrderMobileCards } from '../components/issue-order/IssueOrderMobil
 import { useNewIssueOrderController } from '../components/issue-order/useNewIssueOrderController';
 
 export function NewIssueOrderPage() {
+  const { t } = useTranslation();
   const {
     navigate,
     user,
@@ -75,9 +77,9 @@ export function NewIssueOrderPage() {
 
       <div className="document-prototype-column" style={{ paddingBottom: '100px', maxWidth: '1280px', width: 'min(100%, 1280px)', margin: '0 auto' }}>
         <PageHeader
-          title="إذن صرف جديد"
+          title={t('inventory.new_issue_order_page.s0', "إذن صرف جديد")}
           onBack={() => navigate('/inventory')}
-          badge={<span className="document-prototype-status-badge is-draft">مسودة</span>}
+          badge={<span className="document-prototype-status-badge is-draft">{t('inventory.new_issue_order_page.s1', "مسودة")}</span>}
           actions={
             <div className="document-prototype-topbar-actions" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
               <Button
@@ -90,7 +92,7 @@ export function NewIssueOrderPage() {
                 }}
                 style={{ color: 'var(--danger-color)', borderColor: 'rgba(239, 68, 68, 0.3)' }}
               >
-                <span>إلغاء المسودة</span>
+                <span>{t('inventory.new_issue_order_page.s2', "إلغاء المسودة")}</span>
               </Button>
 
               <Button
@@ -99,7 +101,7 @@ export function NewIssueOrderPage() {
                 onClick={handleSubmit}
                 disabled={isSubmitting || !!createdTransfers.length}
               >
-                <span>{isPolling ? 'جارٍ تأكيد العملية...' : isSubmitting ? 'جارٍ الحفظ...' : 'اعتماد إذن الصرف'}</span>
+                <span>{isPolling ? t('inventory.new_issue_order_page.s3', "جارٍ تأكيد العملية...") : isSubmitting ? t('inventory.new_issue_order_page.s4', "جارٍ الحفظ...") : t('inventory.new_issue_order_page.s5', "اعتماد إذن الصرف")}</span>
               </Button>
             </div>
           }
@@ -149,7 +151,7 @@ export function NewIssueOrderPage() {
         />
 
         <section className="document-prototype-section">
-          <h3 className="document-prototype-section-title">الأصناف</h3>
+          <h3 className="document-prototype-section-title">{t('inventory.new_issue_order_page.s6', "الأصناف")}</h3>
           <div className="document-prototype-grid">
             <IssueOrderItemsTable
               lines={lines}
@@ -196,20 +198,20 @@ export function NewIssueOrderPage() {
                   gap: '6px',
                 }}
               >
-                <span>+</span> إضافة صنف جديد
+                <span>+</span> {t('inventory.new_issue_order_page.s7', "إضافة صنف جديد")}
               </button>
             </div>
           </div>
         </section>
 
         <section className="document-prototype-section">
-          <h3 className="document-prototype-section-title">ملاحظات</h3>
+          <h3 className="document-prototype-section-title">{t('inventory.new_issue_order_page.s8', "ملاحظات")}</h3>
           <div className="document-prototype-grid">
             <textarea
               className="purchase-prototype-field-input"
               value={note}
               onChange={e => setNote(e.target.value)}
-              placeholder="أي ملاحظات إضافية على إذن الصرف..."
+              placeholder={t('inventory.new_issue_order_page.s9', "أي ملاحظات إضافية على إذن الصرف...")}
               style={{ minHeight: '100px', resize: 'vertical', width: '100%' }}
             />
           </div>
@@ -220,7 +222,7 @@ export function NewIssueOrderPage() {
         isOpen={cameraScanLineId !== null}
         onClose={() => setCameraScanLineId(null)}
         onScan={handleCameraScanForLine}
-        title="مسح باركود الصنف بكاميرا الهاتف"
+        title={t('inventory.new_issue_order_page.s10', "مسح باركود الصنف بكاميرا الهاتف")}
       />
     </div>
   );

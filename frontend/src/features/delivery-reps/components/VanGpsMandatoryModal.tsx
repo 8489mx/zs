@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { Button } from '@/shared/ui/button';
@@ -25,15 +26,16 @@ export const VanGpsMandatoryModal: React.FC<VanGpsMandatoryModalProps> = ({
   isChecking = false,
   onRetry,
 }) => {
+  const { t } = useTranslation();
   return (
     <StandardDialog
       open={open}
       onClose={onClose}
-      title="تفعيل خدمة تحديد المواقع (GPS) إلزامي"
+      title={t('delivery_reps.van_gps_mandatory_modal.s0', "تفعيل خدمة تحديد المواقع (GPS) إلزامي")}
       subtitle={
         customerName
           ? `للتحقق من التواجد الميداني الفعلي أمام متجر "${customerName}"`
-          : 'متطلب نظام إلزامي لبدء الزيارات الميدانية وعمليات البيع'
+          : t('delivery_reps.van_gps_mandatory_modal.s1', "متطلب نظام إلزامي لبدء الزيارات الميدانية وعمليات البيع")
       }
       width="min(480px, 94vw)"
       compact
@@ -84,7 +86,7 @@ export const VanGpsMandatoryModal: React.FC<VanGpsMandatoryModalProps> = ({
                 lineHeight: 1.3,
               }}
             >
-              خدمة تحديد المواقع (GPS) مقفولة أو يتعذر التقاط الإحداثيات
+              {t('delivery_reps.van_gps_mandatory_modal.s2', "خدمة تحديد المواقع (GPS) مقفولة أو يتعذر التقاط الإحداثيات")}
             </h4>
             <p
               style={{
@@ -94,7 +96,7 @@ export const VanGpsMandatoryModal: React.FC<VanGpsMandatoryModalProps> = ({
                 lineHeight: 1.45,
               }}
             >
-              لا يمكن بدء الزيارة الميدانية أو إصدار فواتير بيع أو تحصيلات للعميل دون تفعيل الـ GPS والتقاط إحداثيات المتجر بدقة.
+              {t('delivery_reps.van_gps_mandatory_modal.s3', "لا يمكن بدء الزيارة الميدانية أو إصدار فواتير بيع أو تحصيلات للعميل دون تفعيل الـ GPS والتقاط إحداثيات المتجر بدقة.")}
             </p>
           </div>
         </div>
@@ -141,7 +143,7 @@ export const VanGpsMandatoryModal: React.FC<VanGpsMandatoryModalProps> = ({
             }}
           >
             <CheckShieldIcon size={13} color="#170e5e" />
-            <span>لماذا يفرض النظام تفعيل الـ GPS؟</span>
+            <span>{t('delivery_reps.van_gps_mandatory_modal.s4', "لماذا يفرض النظام تفعيل الـ GPS؟")}</span>
           </div>
           <p
             style={{
@@ -152,7 +154,7 @@ export const VanGpsMandatoryModal: React.FC<VanGpsMandatoryModalProps> = ({
               textAlign: 'justify',
             }}
           >
-            تطبق المنظومة سياسة النطاق الجغرافي الذكي لتوثيق الحضور الفعلي للمندوب أمام دكان العميل، ومنع الزيارات والفواتير الوهمية من خارج النطاق، وضمان دقة حساب معدل ضرب الزيارات (Strike Rate) وزمن المكوث في المتجر.
+            {t('delivery_reps.van_gps_mandatory_modal.s5', "تطبق المنظومة سياسة النطاق الجغرافي الذكي لتوثيق الحضور الفعلي للمندوب أمام دكان العميل، ومنع الزيارات والفواتير الوهمية من خارج النطاق، وضمان دقة حساب معدل ضرب الزيارات (Strike Rate) وزمن المكوث في المتجر.")}
           </p>
         </div>
 
@@ -169,7 +171,7 @@ export const VanGpsMandatoryModal: React.FC<VanGpsMandatoryModalProps> = ({
           }}
         >
           <span style={{ fontSize: '11.5px', fontWeight: 800, color: '#0f172a' }}>
-            خطوات التفعيل السريع للمتابعة:
+            {t('delivery_reps.van_gps_mandatory_modal.s6', "خطوات التفعيل السريع للمتابعة:")}
           </span>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11px', color: '#334155' }}>
             <span
@@ -189,7 +191,7 @@ export const VanGpsMandatoryModal: React.FC<VanGpsMandatoryModalProps> = ({
             >
               1
             </span>
-            <span>اسحب شريط الإشعارات العلوي بهاتفك وقم بتشغيل أيقونة "الموقع الجغرافي / Location".</span>
+            <span>{t('delivery_reps.van_gps_mandatory_modal.s7', "اسحب شريط الإشعارات العلوي بهاتفك وقم بتشغيل أيقونة \"الموقع الجغرافي / Location\".")}</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11px', color: '#334155' }}>
             <span
@@ -209,7 +211,7 @@ export const VanGpsMandatoryModal: React.FC<VanGpsMandatoryModalProps> = ({
             >
               2
             </span>
-            <span>إذا طلب المتصفح الصلاحية، اختر "السماح بالوصول للموقع" (Allow).</span>
+            <span>{t('delivery_reps.van_gps_mandatory_modal.s8', "إذا طلب المتصفح الصلاحية، اختر \"السماح بالوصول للموقع\" (Allow).")}</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11px', color: '#334155' }}>
             <span
@@ -229,7 +231,7 @@ export const VanGpsMandatoryModal: React.FC<VanGpsMandatoryModalProps> = ({
             >
               3
             </span>
-            <span>اضغط على زر "إعادة الفحص والتقاط الموقع الآن" بالأسفل لبدء الزيارة.</span>
+            <span>{t('delivery_reps.van_gps_mandatory_modal.s9', "اضغط على زر \"إعادة الفحص والتقاط الموقع الآن\" بالأسفل لبدء الزيارة.")}</span>
           </div>
         </div>
 
@@ -246,7 +248,7 @@ export const VanGpsMandatoryModal: React.FC<VanGpsMandatoryModalProps> = ({
               padding: '0 14px',
             }}
           >
-            إلغاء الزيارة
+            {t('delivery_reps.van_gps_mandatory_modal.s10', "إلغاء الزيارة")}
           </Button>
 
           <Button
@@ -272,7 +274,7 @@ export const VanGpsMandatoryModal: React.FC<VanGpsMandatoryModalProps> = ({
                 animation: isChecking ? 'spin 1s linear infinite' : 'none',
               }}
             />
-            <span>{isChecking ? 'جاري فحص الـ GPS...' : 'إعادة الفحص والتقاط الموقع الآن'}</span>
+            <span>{isChecking ? t('delivery_reps.van_gps_mandatory_modal.s11', "جاري فحص الـ GPS...") : t('delivery_reps.van_gps_mandatory_modal.s12', "إعادة الفحص والتقاط الموقع الآن")}</span>
           </Button>
         </StandardDialogFooter>
       </div>

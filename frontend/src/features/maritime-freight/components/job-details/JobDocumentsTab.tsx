@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
 import { toast, systemConfirm } from '@/shared/components/system-alert';
@@ -38,6 +39,7 @@ const DOCUMENT_TYPES = [
 ];
 
 export function JobDocumentsTab({ job, onUpdated }: Props) {
+  const { t: __t } = useTranslation();
   const [documents, setDocuments] = useState<MaritimeJobDocument[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterType, setFilterType] = useState<string>('all');
@@ -199,13 +201,13 @@ export function JobDocumentsTab({ job, onUpdated }: Props) {
             </div>
             <div>
               <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#170e5e', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span>الحافظة الرقمية الإلكترونية للشحنة (e-Folder Document Binder)</span>
+                <span>{__t('maritime_freight.job_details.job_documents_tab.s0', "الحافظة الرقمية الإلكترونية للشحنة (e-Folder Document Binder)")}</span>
                 <span style={{ fontSize: '0.72rem', padding: '2px 8px', borderRadius: '12px', background: '#e2e8f0', color: '#334155' }}>
-                  {documents.length} مستند
+                  {documents.length} {__t('maritime_freight.job_details.job_documents_tab.s1', "مستند")}
                 </span>
               </div>
               <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '2px' }}>
-                أرشفة وحفظ المرفقات الرقمية للشحنة: بوالص، فواتير، شهادات منشأ، كشوف عبوة، ونماذج جمركية مع إمكانية التحميل والمعاينة
+                {__t('maritime_freight.job_details.job_documents_tab.s2', "أرشفة وحفظ المرفقات الرقمية للشحنة: بوالص، فواتير، شهادات منشأ، كشوف عبوة، ونماذج جمركية مع إمكانية التحميل والمعاينة")}
               </div>
             </div>
           </div>
@@ -224,7 +226,7 @@ export function JobDocumentsTab({ job, onUpdated }: Props) {
                 fontWeight: 600,
               }}
             >
-              <option value="all">كافة أنواع المستندات</option>
+              <option value="all">{__t('maritime_freight.job_details.job_documents_tab.s3', "كافة أنواع المستندات")}</option>
               {DOCUMENT_TYPES.map((t) => (
                 <option key={t.value} value={t.value}>{t.label}</option>
               ))}
@@ -248,23 +250,23 @@ export function JobDocumentsTab({ job, onUpdated }: Props) {
               }}
             >
               <AppIcons.PlusCircle size={15} />
-              <span>إرفاق مستند جديد</span>
+              <span>{__t('maritime_freight.job_details.job_documents_tab.s4', "إرفاق مستند جديد")}</span>
             </button>
           </div>
         </div>
 
         {loading ? (
           <div style={{ padding: '28px', textAlign: 'center', color: '#64748b', fontSize: '0.82rem' }}>
-            جاري تحميل المستندات المرفقة...
+            {__t('maritime_freight.job_details.job_documents_tab.s5', "جاري تحميل المستندات المرفقة...")}
           </div>
         ) : filteredDocs.length === 0 ? (
           <div style={{ padding: '32px 16px', textAlign: 'center', color: '#94a3b8' }}>
             <AppIcons.FileText size={32} style={{ margin: '0 auto 8px', opacity: 0.5 }} />
             <div style={{ fontSize: '0.84rem', fontWeight: 700, color: '#64748b' }}>
-              لا توجد مستندات مرفقة في حافظة هذه الشحنة بعد
+              {__t('maritime_freight.job_details.job_documents_tab.s6', "لا توجد مستندات مرفقة في حافظة هذه الشحنة بعد")}
             </div>
             <div style={{ fontSize: '0.74rem', color: '#94a3b8', marginTop: '4px' }}>
-              اضغط على "إرفاق مستند جديد" لرفع بوالص الشحن، الفواتير التجارية، شهادات المنشأ، أو إذن التسليم.
+              {__t('maritime_freight.job_details.job_documents_tab.s7', "اضغط على \"إرفاق مستند جديد\" لرفع بوالص الشحن، الفواتير التجارية، شهادات المنشأ، أو إذن التسليم.")}
             </div>
           </div>
         ) : (
@@ -272,12 +274,12 @@ export function JobDocumentsTab({ job, onUpdated }: Props) {
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.78rem' }}>
               <thead>
                 <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', textAlign: 'right' }}>
-                  <th style={{ padding: '10px 14px', fontWeight: 700 }}>نوع المستند</th>
-                  <th style={{ padding: '10px 14px', fontWeight: 700 }}>اسم المستند / الوصف</th>
-                  <th style={{ padding: '10px 14px', fontWeight: 700 }}>رقم المستند</th>
-                  <th style={{ padding: '10px 14px', fontWeight: 700 }}>تاريخ الإصدار / الصلاحية</th>
-                  <th style={{ padding: '10px 14px', fontWeight: 700 }}>الملف والحجم</th>
-                  <th style={{ padding: '10px 14px', fontWeight: 700, textAlign: 'center' }}>الإجراءات</th>
+                  <th style={{ padding: '10px 14px', fontWeight: 700 }}>{__t('maritime_freight.job_details.job_documents_tab.s8', "نوع المستند")}</th>
+                  <th style={{ padding: '10px 14px', fontWeight: 700 }}>{__t('maritime_freight.job_details.job_documents_tab.s9', "اسم المستند / الوصف")}</th>
+                  <th style={{ padding: '10px 14px', fontWeight: 700 }}>{__t('maritime_freight.job_details.job_documents_tab.s10', "رقم المستند")}</th>
+                  <th style={{ padding: '10px 14px', fontWeight: 700 }}>{__t('maritime_freight.job_details.job_documents_tab.s11', "تاريخ الإصدار / الصلاحية")}</th>
+                  <th style={{ padding: '10px 14px', fontWeight: 700 }}>{__t('maritime_freight.job_details.job_documents_tab.s12', "الملف والحجم")}</th>
+                  <th style={{ padding: '10px 14px', fontWeight: 700, textAlign: 'center' }}>{__t('maritime_freight.job_details.job_documents_tab.s13', "الإجراءات")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -308,9 +310,9 @@ export function JobDocumentsTab({ job, onUpdated }: Props) {
                         {doc.document_number || '—'}
                       </td>
                       <td style={{ padding: '10px 14px', color: '#475569', fontSize: '0.74rem' }}>
-                        <div>إصدار: {doc.issue_date ? new Date(doc.issue_date).toLocaleDateString('ar-EG') : '—'}</div>
+                        <div>{__t('maritime_freight.job_details.job_documents_tab.s14', "إصدار:")} {doc.issue_date ? new Date(doc.issue_date).toLocaleDateString('ar-EG') : '—'}</div>
                         {doc.expiry_date && (
-                          <div style={{ color: '#b45309' }}>انتهاء: {new Date(doc.expiry_date).toLocaleDateString('ar-EG')}</div>
+                          <div style={{ color: '#b45309' }}>{__t('maritime_freight.job_details.job_documents_tab.s15', "انتهاء:")} {new Date(doc.expiry_date).toLocaleDateString('ar-EG')}</div>
                         )}
                       </td>
                       <td style={{ padding: '10px 14px', color: '#64748b', fontSize: '0.74rem' }}>
@@ -340,7 +342,7 @@ export function JobDocumentsTab({ job, onUpdated }: Props) {
                               }}
                             >
                               <AppIcons.Download size={13} />
-                              تحميل / عرض
+                              {__t('maritime_freight.job_details.job_documents_tab.s16', "تحميل / عرض")}
                             </a>
                           )}
                           <button
@@ -357,7 +359,7 @@ export function JobDocumentsTab({ job, onUpdated }: Props) {
                               cursor: 'pointer',
                             }}
                           >
-                            حذف
+                            {__t('maritime_freight.job_details.job_documents_tab.s17', "حذف")}
                           </button>
                         </div>
                       </td>
@@ -383,10 +385,10 @@ export function JobDocumentsTab({ job, onUpdated }: Props) {
         <div style={{ marginBottom: '14px' }}>
           <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#170e5e', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <AppIcons.Printer size={18} />
-            <span>مركز إصدار وطباعة المستندات القياسية (Standard Printing Hub)</span>
+            <span>{__t('maritime_freight.job_details.job_documents_tab.s18', "مركز إصدار وطباعة المستندات القياسية (Standard Printing Hub)")}</span>
           </div>
           <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '2px' }}>
-            طباعة بوالص الشحن الدولية ونماذج الإفراج والتسليم والتأمين المعتمدة وفق معايير المنظمات الدولية (FIATA, BIMCO, IATA, DCSA)
+            {__t('maritime_freight.job_details.job_documents_tab.s19', "طباعة بوالص الشحن الدولية ونماذج الإفراج والتسليم والتأمين المعتمدة وفق معايير المنظمات الدولية (FIATA, BIMCO, IATA, DCSA)")}
           </div>
         </div>
 
@@ -395,8 +397,8 @@ export function JobDocumentsTab({ job, onUpdated }: Props) {
           {job.transport_mode !== 'air' && (
             <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '10px' }}>
               <div>
-                <div style={{ fontSize: '0.84rem', fontWeight: 800, color: '#170e5e' }}>بوليصة الشحن البحري (HBL)</div>
-                <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '2px' }}>بوليصة فياتا وبيمكو البحرية المعتمدة تتضمن بيانات النافذة (ACI) وبيانات الحاويات</div>
+                <div style={{ fontSize: '0.84rem', fontWeight: 800, color: '#170e5e' }}>{__t('maritime_freight.job_details.job_documents_tab.s20', "بوليصة الشحن البحري (HBL)")}</div>
+                <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '2px' }}>{__t('maritime_freight.job_details.job_documents_tab.s21', "بوليصة فياتا وبيمكو البحرية المعتمدة تتضمن بيانات النافذة (ACI) وبيانات الحاويات")}</div>
               </div>
               <button
                 type="button"
@@ -418,7 +420,7 @@ export function JobDocumentsTab({ job, onUpdated }: Props) {
                 }}
               >
                 <AppIcons.Printer size={14} />
-                طباعة بوليصة HBL
+                {__t('maritime_freight.job_details.job_documents_tab.s22', "طباعة بوليصة HBL")}
               </button>
             </div>
           )}
@@ -427,8 +429,8 @@ export function JobDocumentsTab({ job, onUpdated }: Props) {
           {(job.transport_mode === 'air' || job.mawb_number) && (
             <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '10px' }}>
               <div>
-                <div style={{ fontSize: '0.84rem', fontWeight: 800, color: '#0369a1' }}>بوليصة الشحن الجوي (AWB)</div>
-                <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '2px' }}>بوليصة إياتا القياسية (IATA Neutral AWB) مع تفكيك الوزن الحجمي والمحاسبي</div>
+                <div style={{ fontSize: '0.84rem', fontWeight: 800, color: '#0369a1' }}>{__t('maritime_freight.job_details.job_documents_tab.s23', "بوليصة الشحن الجوي (AWB)")}</div>
+                <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '2px' }}>{__t('maritime_freight.job_details.job_documents_tab.s24', "بوليصة إياتا القياسية (IATA Neutral AWB) مع تفكيك الوزن الحجمي والمحاسبي")}</div>
               </div>
               <button
                 type="button"
@@ -450,7 +452,7 @@ export function JobDocumentsTab({ job, onUpdated }: Props) {
                 }}
               >
                 <AppIcons.Printer size={14} />
-                طباعة بوليصة AWB
+                {__t('maritime_freight.job_details.job_documents_tab.s25', "طباعة بوليصة AWB")}
               </button>
             </div>
           )}
@@ -458,8 +460,8 @@ export function JobDocumentsTab({ job, onUpdated }: Props) {
           {/* 3. إذن التسليم D/O */}
           <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '10px' }}>
             <div>
-              <div style={{ fontSize: '0.84rem', fontWeight: 800, color: '#15803d' }}>إذن التسليم (Delivery Order)</div>
-              <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '2px' }}>إذن صرف وتسليم الشحنة الموجه لساحات الموانئ ومستودعات الترانزيت</div>
+              <div style={{ fontSize: '0.84rem', fontWeight: 800, color: '#15803d' }}>{__t('maritime_freight.job_details.job_documents_tab.s26', "إذن التسليم (Delivery Order)")}</div>
+              <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '2px' }}>{__t('maritime_freight.job_details.job_documents_tab.s27', "إذن صرف وتسليم الشحنة الموجه لساحات الموانئ ومستودعات الترانزيت")}</div>
             </div>
             <button
               type="button"
@@ -481,15 +483,15 @@ export function JobDocumentsTab({ job, onUpdated }: Props) {
               }}
             >
               <AppIcons.Printer size={14} />
-              طباعة إذن التسليم (D/O)
+              {__t('maritime_freight.job_details.job_documents_tab.s28', "طباعة إذن التسليم (D/O)")}
             </button>
           </div>
 
           {/* 4. إشعار الوصول Arrival Notice */}
           <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '10px' }}>
             <div>
-              <div style={{ fontSize: '0.84rem', fontWeight: 800, color: '#b45309' }}>إشعار وصول الشحنة (Arrival Notice)</div>
-              <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '2px' }}>إخطار رسمي للعميل بوصول السفينة وتفاصيل سداد المستحقات واستلام البضاعة</div>
+              <div style={{ fontSize: '0.84rem', fontWeight: 800, color: '#b45309' }}>{__t('maritime_freight.job_details.job_documents_tab.s29', "إشعار وصول الشحنة (Arrival Notice)")}</div>
+              <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '2px' }}>{__t('maritime_freight.job_details.job_documents_tab.s30', "إخطار رسمي للعميل بوصول السفينة وتفاصيل سداد المستحقات واستلام البضاعة")}</div>
             </div>
             <button
               type="button"
@@ -511,15 +513,15 @@ export function JobDocumentsTab({ job, onUpdated }: Props) {
               }}
             >
               <AppIcons.Printer size={14} />
-              طباعة إشعار الوصول
+              {__t('maritime_freight.job_details.job_documents_tab.s31', "طباعة إشعار الوصول")}
             </button>
           </div>
 
           {/* 5. فاتورة النولون والخدمات Freight Invoice */}
           <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '10px' }}>
             <div>
-              <div style={{ fontSize: '0.84rem', fontWeight: 800, color: '#4338ca' }}>فاتورة النولون المعتمدة (Freight Invoice)</div>
-              <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '2px' }}>فاتورة ضريبية رسمية تتضمن تفكيك الرسوم، سعر الصرف التعاقدي، وبنود ACI</div>
+              <div style={{ fontSize: '0.84rem', fontWeight: 800, color: '#4338ca' }}>{__t('maritime_freight.job_details.job_documents_tab.s32', "فاتورة النولون المعتمدة (Freight Invoice)")}</div>
+              <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '2px' }}>{__t('maritime_freight.job_details.job_documents_tab.s33', "فاتورة ضريبية رسمية تتضمن تفكيك الرسوم، سعر الصرف التعاقدي، وبنود ACI")}</div>
             </div>
             <button
               type="button"
@@ -541,7 +543,7 @@ export function JobDocumentsTab({ job, onUpdated }: Props) {
               }}
             >
               <AppIcons.Printer size={14} />
-              طباعة فاتورة النولون
+              {__t('maritime_freight.job_details.job_documents_tab.s34', "طباعة فاتورة النولون")}
             </button>
           </div>
 
@@ -549,8 +551,8 @@ export function JobDocumentsTab({ job, onUpdated }: Props) {
           {job.transport_mode !== 'air' && (
             <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '10px' }}>
               <div>
-                <div style={{ fontSize: '0.84rem', fontWeight: 800, color: '#334155' }}>شهادة الوزن المؤكد (SOLAS VGM)</div>
-                <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '2px' }}>شهادة معتمدة للوزن الإجمالي المتحقق للحاويات وفق اتفاقية سولاس الدولية</div>
+                <div style={{ fontSize: '0.84rem', fontWeight: 800, color: '#334155' }}>{__t('maritime_freight.job_details.job_documents_tab.s35', "شهادة الوزن المؤكد (SOLAS VGM)")}</div>
+                <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '2px' }}>{__t('maritime_freight.job_details.job_documents_tab.s36', "شهادة معتمدة للوزن الإجمالي المتحقق للحاويات وفق اتفاقية سولاس الدولية")}</div>
               </div>
               <button
                 type="button"
@@ -572,7 +574,7 @@ export function JobDocumentsTab({ job, onUpdated }: Props) {
                 }}
               >
                 <AppIcons.Printer size={14} />
-                طباعة شهادة VGM
+                {__t('maritime_freight.job_details.job_documents_tab.s37', "طباعة شهادة VGM")}
               </button>
             </div>
           )}
@@ -580,8 +582,8 @@ export function JobDocumentsTab({ job, onUpdated }: Props) {
           {/* 7. تعليمات الشحن Shipping Instructions */}
           <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '10px' }}>
             <div>
-              <div style={{ fontSize: '0.84rem', fontWeight: 800, color: '#0f766e' }}>تعليمات الشحن (Shipping Instructions)</div>
-              <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '2px' }}>وثيقة التعليمات الملاحية الموجهة للخط الملاحي لإصدار البوليصة الرسمية</div>
+              <div style={{ fontSize: '0.84rem', fontWeight: 800, color: '#0f766e' }}>{__t('maritime_freight.job_details.job_documents_tab.s38', "تعليمات الشحن (Shipping Instructions)")}</div>
+              <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '2px' }}>{__t('maritime_freight.job_details.job_documents_tab.s39', "وثيقة التعليمات الملاحية الموجهة للخط الملاحي لإصدار البوليصة الرسمية")}</div>
             </div>
             <button
               type="button"
@@ -603,15 +605,15 @@ export function JobDocumentsTab({ job, onUpdated }: Props) {
               }}
             >
               <AppIcons.Printer size={14} />
-              طباعة تعليمات SI
+              {__t('maritime_freight.job_details.job_documents_tab.s40', "طباعة تعليمات SI")}
             </button>
           </div>
 
           {/* 8. كشف ربحية الشحنة Job Profitability Sheet */}
           <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '10px' }}>
             <div>
-              <div style={{ fontSize: '0.84rem', fontWeight: 800, color: '#475569' }}>كشف ربحية العملية (Job P&L)</div>
-              <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '2px' }}>تقرير داخلي تفصيلي للإيرادات، المصروفات، وهامش الربح الفعلي للعملية</div>
+              <div style={{ fontSize: '0.84rem', fontWeight: 800, color: '#475569' }}>{__t('maritime_freight.job_details.job_documents_tab.s41', "كشف ربحية العملية (Job P&L)")}</div>
+              <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '2px' }}>{__t('maritime_freight.job_details.job_documents_tab.s42', "تقرير داخلي تفصيلي للإيرادات، المصروفات، وهامش الربح الفعلي للعملية")}</div>
             </div>
             <button
               type="button"
@@ -633,7 +635,7 @@ export function JobDocumentsTab({ job, onUpdated }: Props) {
               }}
             >
               <AppIcons.Printer size={14} />
-              طباعة كشف الربحية
+              {__t('maritime_freight.job_details.job_documents_tab.s43', "طباعة كشف الربحية")}
             </button>
           </div>
         </div>
@@ -644,21 +646,21 @@ export function JobDocumentsTab({ job, onUpdated }: Props) {
         <StandardDialog
           open={showAddModal}
           onClose={() => setShowAddModal(false)}
-          title="إرفاق مستند إلكتروني في ملف الشحنة"
+          title={__t('maritime_freight.job_details.job_documents_tab.s44', "إرفاق مستند إلكتروني في ملف الشحنة")}
           subtitle={`العملية: ${job.job_number} | العميل: ${job.customer_name}`}
           width="min(560px, 95vw)"
           footerActions={(
             <StandardDialogFooter
               onCancel={() => setShowAddModal(false)}
               onConfirm={handleUploadSubmit}
-              confirmText="حفظ المستند"
-              cancelText="إلغاء"
+              confirmText={__t('maritime_freight.job_details.job_documents_tab.s45', "حفظ المستند")}
+              cancelText={__t('maritime_freight.job_details.job_documents_tab.s46', "إلغاء")}
               isSubmitting={isSubmitting}
             />
           )}
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }} dir="rtl">
-            <Field label="نوع المستند *">
+            <Field label={__t('maritime_freight.job_details.job_documents_tab.s47', "نوع المستند *")}>
               <CustomSelect
                 value={form.documentType}
                 onChange={(val) => setForm({ ...form, documentType: val })}
@@ -666,12 +668,12 @@ export function JobDocumentsTab({ job, onUpdated }: Props) {
               />
             </Field>
 
-            <Field label="اسم / وصف المستند *">
+            <Field label={__t('maritime_freight.job_details.job_documents_tab.s48', "اسم / وصف المستند *")}>
               <input
                 type="text"
                 value={form.title}
                 onChange={(e) => setForm({ ...form, title: e.target.value })}
-                placeholder="مثال: صورة بوليصة الشحن الأصلية MBL موثقة"
+                placeholder={__t('maritime_freight.job_details.job_documents_tab.s49', "مثال: صورة بوليصة الشحن الأصلية MBL موثقة")}
                 style={{
                   width: '100%',
                   padding: '8px 12px',
@@ -683,12 +685,12 @@ export function JobDocumentsTab({ job, onUpdated }: Props) {
             </Field>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              <Field label="رقم المستند (إن وجد)">
+              <Field label={__t('maritime_freight.job_details.job_documents_tab.s50', "رقم المستند (إن وجد)")}>
                 <input
                   type="text"
                   value={form.documentNumber}
                   onChange={(e) => setForm({ ...form, documentNumber: e.target.value })}
-                  placeholder="مثال: INV-9921 / CO-2026"
+                  placeholder={__t('maritime_freight.job_details.job_documents_tab.s51', "مثال: INV-9921 / CO-2026")}
                   style={{
                     width: '100%',
                     padding: '8px 12px',
@@ -699,7 +701,7 @@ export function JobDocumentsTab({ job, onUpdated }: Props) {
                 />
               </Field>
 
-              <Field label="تاريخ الإصدار">
+              <Field label={__t('maritime_freight.job_details.job_documents_tab.s52', "تاريخ الإصدار")}>
                 <input
                   type="date"
                   value={form.issueDate}
@@ -715,7 +717,7 @@ export function JobDocumentsTab({ job, onUpdated }: Props) {
               </Field>
             </div>
 
-            <Field label="تاريخ الصلاحية / الانتهاء (إن وجد)">
+            <Field label={__t('maritime_freight.job_details.job_documents_tab.s53', "تاريخ الصلاحية / الانتهاء (إن وجد)")}>
               <input
                 type="date"
                 value={form.expiryDate}
@@ -730,7 +732,7 @@ export function JobDocumentsTab({ job, onUpdated }: Props) {
               />
             </Field>
 
-            <Field label="اختيار الملف الرقمي *">
+            <Field label={__t('maritime_freight.job_details.job_documents_tab.s54', "اختيار الملف الرقمي *")}>
               <input
                 type="file"
                 onChange={handleFileChange}
@@ -745,17 +747,17 @@ export function JobDocumentsTab({ job, onUpdated }: Props) {
               />
               {form.fileName && (
                 <div style={{ fontSize: '0.72rem', color: '#15803d', marginTop: '4px', fontWeight: 600 }}>
-                  تم اختيار الملف: {form.fileName} ({(form.fileSize / 1024).toFixed(1)} KB)
+                  {__t('maritime_freight.job_details.job_documents_tab.s55', "تم اختيار الملف:")} {form.fileName} ({(form.fileSize / 1024).toFixed(1)} KB)
                 </div>
               )}
             </Field>
 
-            <Field label="ملاحظات توضيحية">
+            <Field label={__t('maritime_freight.job_details.job_documents_tab.s56', "ملاحظات توضيحية")}>
               <textarea
                 value={form.notes}
                 onChange={(e) => setForm({ ...form, notes: e.target.value })}
                 rows={2}
-                placeholder="أي ملاحظات تخص النسخ، الترخيص، أو التصديق القنصلي..."
+                placeholder={__t('maritime_freight.job_details.job_documents_tab.s57', "أي ملاحظات تخص النسخ، الترخيص، أو التصديق القنصلي...")}
                 style={{
                   width: '100%',
                   padding: '8px 12px',

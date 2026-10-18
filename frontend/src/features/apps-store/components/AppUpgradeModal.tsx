@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { isDesktopOfflineApp } from '@/shared/system/runtime-environment';
 import { StandardDialog } from '@/shared/components/StandardDialog';
@@ -12,6 +13,7 @@ interface AppUpgradeModalProps {
 }
 
 export function AppUpgradeModal({ app, isOpen, onClose }: AppUpgradeModalProps) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   if (!app) return null;
 
@@ -31,7 +33,7 @@ export function AppUpgradeModal({ app, isOpen, onClose }: AppUpgradeModalProps) 
       isOpen={isOpen}
       onClose={onClose}
       title={isOffline ? `تفعيل تطبيق ${app.title}` : `ترقية الباقة لتفعيل تطبيق ${app.title}`}
-      subtitle={isOffline ? 'هذا التطبيق متاح في مستوى أعلى من ترخيصك الحالي' : 'هذا التطبيق مخصص لباقات المنظومة المتقدمة'}
+      subtitle={isOffline ? t('apps_store.app_upgrade_modal.s0', "هذا التطبيق متاح في مستوى أعلى من ترخيصك الحالي") : t('apps_store.app_upgrade_modal.s1', "هذا التطبيق مخصص لباقات المنظومة المتقدمة")}
       maxWidth="580px"
     >
       <div style={{ padding: '8px 0', display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -97,7 +99,7 @@ export function AppUpgradeModal({ app, isOpen, onClose }: AppUpgradeModalProps) 
         }}>
           <div>
             <div style={{ fontSize: '0.84rem', fontWeight: 800, color: '#170e5e', marginBottom: '2px' }}>
-              متاح ضمن: {planInfo.name}
+              {t('apps_store.app_upgrade_modal.s2', "متاح ضمن:")} {planInfo.name}
             </div>
             <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
               {planInfo.summary}
@@ -108,7 +110,7 @@ export function AppUpgradeModal({ app, isOpen, onClose }: AppUpgradeModalProps) 
         {/* Included Capabilities */}
         <div>
           <h4 style={{ fontSize: '0.84rem', fontWeight: 700, color: '#1e293b', marginBottom: '10px' }}>
-            أبرز المزايا التي ستحصل عليها:
+            {t('apps_store.app_upgrade_modal.s3', "أبرز المزايا التي ستحصل عليها:")}
           </h4>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
             {app.features.map((feat, idx) => (
@@ -157,7 +159,7 @@ export function AppUpgradeModal({ app, isOpen, onClose }: AppUpgradeModalProps) 
               cursor: 'pointer',
             }}
           >
-            إغلاق
+            {t('apps_store.app_upgrade_modal.s4', "إغلاق")}
           </button>
           <button
             type="button"
@@ -176,7 +178,7 @@ export function AppUpgradeModal({ app, isOpen, onClose }: AppUpgradeModalProps) 
               gap: '8px',
             }}
           >
-            <span>{isOffline ? 'تواصل معنا لترقية الترخيص' : 'ترقية الباقة الآن'}</span>
+            <span>{isOffline ? t('apps_store.app_upgrade_modal.s5', "تواصل معنا لترقية الترخيص") : t('apps_store.app_upgrade_modal.s6', "ترقية الباقة الآن")}</span>
             <ArrowRightIcon size={14} />
           </button>
         </div>

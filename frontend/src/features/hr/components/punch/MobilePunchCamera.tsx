@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 
 interface MobilePunchCameraProps {
@@ -15,6 +16,7 @@ export function MobilePunchCamera({
   capturedSelfie,
   onRetake,
 }: MobilePunchCameraProps) {
+  const { t } = useTranslation();
   return (
     <div style={{ background: '#ffffff', borderRadius: '16px', border: '1px solid #e2e8f0', padding: '16px', textAlign: 'center' }}>
       <div style={{ position: 'relative', width: '220px', height: '220px', margin: '0 auto', borderRadius: '50%', overflow: 'hidden', border: '4px solid #170e5e', boxShadow: '0 4px 14px rgba(23, 14, 94, 0.15)', background: '#0f172a' }}>
@@ -35,7 +37,7 @@ export function MobilePunchCamera({
 
       <div style={{ marginTop: '10px' }}>
         <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 600 }}>
-          {capturedSelfie ? 'تم التقاط الصورة بنجاح' : cameraActive ? 'وجه وجهك للكاميرا لتسجيل البصمة' : 'الكاميرا غير متاحة'}
+          {capturedSelfie ? t('hr.punch.mobile_punch_camera.s0', "تم التقاط الصورة بنجاح") : cameraActive ? t('hr.punch.mobile_punch_camera.s1', "وجه وجهك للكاميرا لتسجيل البصمة") : t('hr.punch.mobile_punch_camera.s2', "الكاميرا غير متاحة")}
         </span>
         {capturedSelfie && (
           <button
@@ -43,7 +45,7 @@ export function MobilePunchCamera({
             onClick={onRetake}
             style={{ display: 'block', margin: '4px auto 0', border: 'none', background: 'transparent', color: '#170e5e', fontSize: '11.5px', fontWeight: 700, cursor: 'pointer' }}
           >
-            إعادة التقاط الصورة
+            {t('hr.punch.mobile_punch_camera.s3', "إعادة التقاط الصورة")}
           </button>
         )}
       </div>

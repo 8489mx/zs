@@ -1,6 +1,8 @@
+import { useTranslation } from 'react-i18next';
 import { useEffect, useState } from 'react';
 
 export function Step4Loading() {
+  const { t } = useTranslation();
   const [activePhase, setActivePhase] = useState(0);
 
   useEffect(() => {
@@ -23,7 +25,7 @@ export function Step4Loading() {
     <div className="wizard-step-content" style={{ animation: 'none' }}>
       <div className="wizard-loading-screen">
         <div className="wizard-spinner"></div>
-        <h3 style={{ marginBottom: 24 }}>تجهيز مساحة العمل الخاصة بك...</h3>
+        <h3 style={{ marginBottom: 24 }}>{t('activation.onboarding.step4_loading.s0', "تجهيز مساحة العمل الخاصة بك...")}</h3>
         
         <div className="wizard-loading-steps">
           {steps.map((step, idx) => {

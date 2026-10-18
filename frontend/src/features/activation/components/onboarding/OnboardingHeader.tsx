@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/shared/ui/button';
 import type { PlanTierInfo } from '@/features/settings/components/modular-configurator/modular-presets';
 
@@ -18,6 +19,7 @@ export function OnboardingHeader({
   onSkip,
   onAdvanced,
 }: OnboardingHeaderProps) {
+  const { t } = useTranslation();
   return (
     <div
       style={{
@@ -35,13 +37,13 @@ export function OnboardingHeader({
     >
       <div style={{ maxWidth: '600px' }}>
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '3px 10px', borderRadius: '20px', backgroundColor: '#eff6ff', color: '#1d4ed8', fontSize: '11.5px', fontWeight: 700, marginBottom: '8px' }}>
-          <span>تهيئة النظام السحابية لأول مرة</span>
+          <span>{t('activation.onboarding.onboarding_header.s0', "تهيئة النظام السحابية لأول مرة")}</span>
         </div>
         <h1 style={{ fontSize: '22px', fontWeight: 900, color: '#0f172a', margin: '0 0 6px' }}>
-          مرحباً بك في Z-Systems ERP
+          {t('activation.onboarding.onboarding_header.s1', "مرحباً بك في Z-Systems ERP")}
         </h1>
         <p style={{ fontSize: '13px', color: '#64748b', margin: 0, lineHeight: 1.6 }}>
-          صممنا المنظومة لتتكيف بالكامل مع هوية وطبيعة نشاطك التجاري. اختر نشاطك لتجهيز المصطلحات والقوائم تلقائياً.
+          {t('activation.onboarding.onboarding_header.s2', "صممنا المنظومة لتتكيف بالكامل مع هوية وطبيعة نشاطك التجاري. اختر نشاطك لتجهيز المصطلحات والقوائم تلقائياً.")}
         </p>
       </div>
 
@@ -58,9 +60,9 @@ export function OnboardingHeader({
         }}
       >
         <div style={{ textAlign: 'right' }}>
-          <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>الباقة الموصى بها لاحتياجك:</div>
+          <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>{t('activation.onboarding.onboarding_header.s3', "الباقة الموصى بها لاحتياجك:")}</div>
           <div style={{ fontSize: '15px', fontWeight: 800, color: '#170e5e' }}>{currentCalculatedPlan.name}</div>
-          <div style={{ fontSize: '11px', color: '#059669', fontWeight: 600 }}>{activeCount} موديول مفعل</div>
+          <div style={{ fontSize: '11px', color: '#059669', fontWeight: 600 }}>{activeCount} {t('activation.onboarding.onboarding_header.s4', "موديول مفعل")}</div>
         </div>
 
         <div style={{ display: 'flex', gap: '8px' }}>
@@ -69,7 +71,7 @@ export function OnboardingHeader({
             disabled={isSubmitting}
             style={{ backgroundColor: '#170e5e', color: '#ffffff', fontWeight: 700, fontSize: '13px', padding: '10px 20px', borderRadius: '10px' }}
           >
-            {isSubmitting ? 'جاري التهيئة...' : 'حفظ وبدء العمل'}
+            {isSubmitting ? t('activation.onboarding.onboarding_header.s5', "جاري التهيئة...") : t('activation.onboarding.onboarding_header.s6', "حفظ وبدء العمل")}
           </Button>
 
           <Button
@@ -78,7 +80,7 @@ export function OnboardingHeader({
             disabled={isSubmitting}
             style={{ fontSize: '12px', padding: '10px 14px' }}
           >
-            تخطي
+            {t('activation.onboarding.onboarding_header.s7', "تخطي")}
           </Button>
 
           <Button
@@ -87,7 +89,7 @@ export function OnboardingHeader({
             disabled={isSubmitting}
             style={{ fontSize: '12px', padding: '10px 14px' }}
           >
-            تخصيص متقدم
+            {t('activation.onboarding.onboarding_header.s8', "تخصيص متقدم")}
           </Button>
         </div>
       </div>

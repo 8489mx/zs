@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { NavLink } from 'react-router-dom';
 import type { SettingsSectionKey } from '@/features/settings/pages/settings.page-config';
 import {
@@ -51,6 +52,7 @@ interface SettingsSectionContentProps extends SharedSettingsSectionProps {
 }
 
 export function SettingsSectionContent({ section, ...props }: SettingsSectionContentProps) {
+  const { t } = useTranslation();
   if (section === 'core') return renderCoreSection(props);
   if (section === 'demo-data') {
     return <SettingsDemoDataWizardSection />;
@@ -78,8 +80,8 @@ export function SettingsSectionContent({ section, ...props }: SettingsSectionCon
               whiteSpace: 'nowrap',
             }}
           >
-            <span className="subnav-full-label">المتجر الإلكتروني الخاص</span>
-            <span className="subnav-short-label">المتجر الخاص</span>
+            <span className="subnav-full-label">{t('settings.settings_section_content.s0', "المتجر الإلكتروني الخاص")}</span>
+            <span className="subnav-short-label">{t('settings.settings_section_content.s1', "المتجر الخاص")}</span>
           </NavLink>
           <NavLink
             to="/settings/marketplaces"
@@ -97,8 +99,8 @@ export function SettingsSectionContent({ section, ...props }: SettingsSectionCon
               whiteSpace: 'nowrap',
             }}
           >
-            <span className="subnav-full-label">الربط مع أمازون ونون</span>
-            <span className="subnav-short-label">أمازون ونون</span>
+            <span className="subnav-full-label">{t('settings.settings_section_content.s2', "الربط مع أمازون ونون")}</span>
+            <span className="subnav-short-label">{t('settings.settings_section_content.s3', "أمازون ونون")}</span>
           </NavLink>
         </div>
         {section === 'storefront' ? <StorefrontSettingsTab /> : <SettingsMarketplacesSection />}
@@ -125,8 +127,8 @@ export function SettingsSectionContent({ section, ...props }: SettingsSectionCon
               whiteSpace: 'nowrap',
             }}
           >
-            <span className="subnav-full-label">بوابة الواتساب والرد الآلي الذكي</span>
-            <span className="subnav-short-label">بوابة الواتساب</span>
+            <span className="subnav-full-label">{t('settings.settings_section_content.s4', "بوابة الواتساب والرد الآلي الذكي")}</span>
+            <span className="subnav-short-label">{t('settings.settings_section_content.s5', "بوابة الواتساب")}</span>
           </NavLink>
           <NavLink
             to="/settings/daily-digest"
@@ -144,8 +146,8 @@ export function SettingsSectionContent({ section, ...props }: SettingsSectionCon
               whiteSpace: 'nowrap',
             }}
           >
-            <span className="subnav-full-label">الملخص اليومي للمدير</span>
-            <span className="subnav-short-label">الملخص اليومي</span>
+            <span className="subnav-full-label">{t('settings.settings_section_content.s6', "الملخص اليومي للمدير")}</span>
+            <span className="subnav-short-label">{t('settings.settings_section_content.s7', "الملخص اليومي")}</span>
           </NavLink>
         </div>
         {section === 'whatsapp' ? <SettingsWhatsAppGatewaySection /> : <SettingsDailyDigestSection />}

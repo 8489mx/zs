@@ -300,6 +300,7 @@ export function buildSettingsUpdatePayload(
     printShowFooter: values.printShowFooter !== undefined ? values.printShowFooter !== false : current?.printShowFooter !== false,
     printCompactReceipt: values.printCompactReceipt !== undefined ? values.printCompactReceipt !== false : current?.printCompactReceipt !== false,
     posReceiptTheme: values.posReceiptTheme || current?.posReceiptTheme || 'classic',
+    receiptItemLanguageMode: values.receiptItemLanguageMode || current?.receiptItemLanguageMode || 'ar_only',
     printNumberFormat: values.printNumberFormat !== undefined
       ? (values.printNumberFormat === 'english' ? 'english' : 'arabic')
       : (current?.printNumberFormat === 'english' ? 'english' : 'arabic'),

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import React, { useState } from 'react';
 import { Card } from '@/shared/ui/card';
@@ -50,7 +51,7 @@ interface CashDrawerShiftsCardProps {
 }
 
 
-function renderStatusBadge(status: string) {
+function renderStatusBadge(status: string, isEn = false) {
   if (status === 'open') {
     return (
       <span style={{
@@ -66,7 +67,7 @@ function renderStatusBadge(status: string) {
         border: '1px solid #a7f3d0'
       }}>
         <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#10b981' }} />
-        مفتوحة
+        {isEn ? 'Open' : 'مفتوحة'}
       </span>
     );
   }
@@ -85,7 +86,7 @@ function renderStatusBadge(status: string) {
         border: '1px solid #fde68a'
       }}>
         <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#f59e0b' }} />
-        بانتظار المراجعة
+        {isEn ? 'Pending Review' : 'بانتظار المراجعة'}
       </span>
     );
   }
@@ -103,7 +104,7 @@ function renderStatusBadge(status: string) {
       border: '1px solid #e2e8f0'
     }}>
       <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#94a3b8' }} />
-      مغلقة
+      {isEn ? 'Closed' : 'مغلقة'}
     </span>
   );
 }
@@ -155,6 +156,8 @@ function ShiftDetailsGrid({
   toggleSubGroup: (shiftId: string, groupKey: string) => void;
   isMobileModal?: boolean;
 }) {
+  const { t, i18n } = useTranslation();
+  const isEn = i18n.language === 'en';
   const movementItems = row.movementItems || [];
   const manualCashInItems = movementItems.filter((i) => i.kind === 'cash_in');
   const deliveryItems = movementItems.filter((i) => i.kind === 'delivery');
@@ -191,7 +194,7 @@ function ShiftDetailsGrid({
             userSelect: 'none',
             gap: '8px',
           }}
-          title={hasItems ? 'اضغط لعرض تفاصيل الحركات' : undefined}
+          title={hasItems ? t('cash_drawer.cash_drawer_shifts_card.s0', "اضغط لعرض تفاصيل الحركات") : undefined}
         >
           <div style={{ display: 'flex', alignItems: 'center', flex: 1, minWidth: 0 }}>
             <span style={{ color: '#64748b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -268,60 +271,60 @@ function ShiftDetailsGrid({
       {/* Card 1: Sales breakdown */}
       <div style={{ background: '#f8fafc', padding: '14px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
         <h4 style={{ margin: '0 0 10px', fontSize: '0.90rem', fontWeight: 800, color: '#1e293b', borderBottom: '1px solid #e2e8f0', paddingBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <CreditCardIcon size={16} /> المبيعات وطرق الدفع
+          <CreditCardIcon size={16} /> {t('cash_drawer.cash_drawer_shifts_card.s1', "المبيعات وطرق الدفع")}
         </h4>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '7px', fontSize: '0.84rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span style={{ color: '#64748b' }}>مبيعات نقدية (كاش):</span>
+            <span style={{ color: '#64748b' }}>{t('cash_drawer.cash_drawer_shifts_card.s2', "مبيعات نقدية (كاش):")}</span>
             <strong style={{ color: '#0f172a' }}>{formatCurrency(row.cashSalesTotal || 0)}</strong>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span style={{ color: '#64748b' }}>مبيعات بطاقات (فيزا):</span>
+            <span style={{ color: '#64748b' }}>{t('cash_drawer.cash_drawer_shifts_card.s3', "مبيعات بطاقات (فيزا):")}</span>
             <strong style={{ color: '#0f172a' }}>{formatCurrency(row.cardSalesTotal || 0)}</strong>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span style={{ color: '#64748b' }}>محافظ إلكترونية:</span>
+            <span style={{ color: '#64748b' }}>{t('cash_drawer.cash_drawer_shifts_card.s4', "محافظ إلكترونية:")}</span>
             <strong style={{ color: '#0f172a' }}>{formatCurrency(row.walletSalesTotal || 0)}</strong>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span style={{ color: '#64748b' }}>تحويلات إنستاباي:</span>
+            <span style={{ color: '#64748b' }}>{t('cash_drawer.cash_drawer_shifts_card.s5', "تحويلات إنستاباي:")}</span>
             <strong style={{ color: '#0f172a' }}>{formatCurrency(row.instapaySalesTotal || 0)}</strong>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span style={{ color: '#64748b' }}>مبيعات آجلة (ذمم عملاء):</span>
+            <span style={{ color: '#64748b' }}>{t('cash_drawer.cash_drawer_shifts_card.s6', "مبيعات آجلة (ذمم عملاء):")}</span>
             <strong style={{ color: '#0f172a' }}>{formatCurrency(row.creditSalesTotal || 0)}</strong>
           </div>
           {Number(row.deliverySalesTotal || 0) > 0 && (
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ color: '#64748b' }}>مبيعات دليفري (تحصيل مناديب):</span>
+              <span style={{ color: '#64748b' }}>{t('cash_drawer.cash_drawer_shifts_card.s7', "مبيعات دليفري (تحصيل مناديب):")}</span>
               <strong style={{ color: '#0f172a' }}>{formatCurrency(row.deliverySalesTotal || 0)}</strong>
             </div>
           )}
           {Number(row.serviceTotal || (Number(row.serviceCashTotal || 0) + Number(row.serviceCardTotal || 0))) > 0 && (
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ color: '#64748b' }}>خدمات وصيانة سريعة:</span>
+              <span style={{ color: '#64748b' }}>{t('cash_drawer.cash_drawer_shifts_card.s8', "خدمات وصيانة سريعة:")}</span>
               <strong style={{ color: '#0f172a' }}>{formatCurrency(row.serviceTotal || (Number(row.serviceCashTotal || 0) + Number(row.serviceCardTotal || 0)))}</strong>
             </div>
           )}
           <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px dashed #cbd5e1', paddingTop: '6px', marginTop: '2px' }}>
-            <span style={{ fontWeight: 800, color: '#0f172a' }}>إجمالي مبيعات الفواتير:</span>
+            <span style={{ fontWeight: 800, color: '#0f172a' }}>{t('cash_drawer.cash_drawer_shifts_card.s9', "إجمالي مبيعات الفواتير:")}</span>
             <strong style={{ fontWeight: 800, color: '#0284c7' }}>{formatCurrency(row.shiftSalesTotal || 0)}</strong>
           </div>
           {Number(row.freelanceDeliveryFeeTotal || 0) > 0 && (
             <>
               <div style={{ display: 'flex', justifyContent: 'space-between', color: '#dc2626', fontSize: '0.82rem' }}>
-                <span>(-) رسوم توصيل طيارين:</span>
+                <span>{t('cash_drawer.cash_drawer_shifts_card.s10', "(-) رسوم توصيل طيارين:")}</span>
                 <strong>-{formatCurrency(row.freelanceDeliveryFeeTotal || 0)}</strong>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #e2e8f0', paddingTop: '4px', marginTop: '2px' }}>
-                <span style={{ fontWeight: 800, color: '#16a34a' }}>صافي مبيعات المتجر:</span>
+                <span style={{ fontWeight: 800, color: '#16a34a' }}>{t('cash_drawer.cash_drawer_shifts_card.s11', "صافي مبيعات المتجر:")}</span>
                 <strong style={{ fontWeight: 800, color: '#16a34a' }}>{formatCurrency((row.shiftSalesTotal || 0) - (row.freelanceDeliveryFeeTotal || 0))}</strong>
               </div>
             </>
           )}
           {Number(row.tipSalesTotal || 0) > 0 && (
             <div style={{ display: 'flex', justifyContent: 'space-between', color: '#170e5e', fontSize: '0.82rem', background: '#eef2ff', padding: '3px 6px', borderRadius: '4px', marginTop: '2px' }}>
-              <span>إكراميات مستحقة للعمالة (Tips):</span>
+              <span>{t('cash_drawer.cash_drawer_shifts_card.s12', "إكراميات مستحقة للعمالة (Tips):")}</span>
               <strong>{formatCurrency(row.tipSalesTotal || 0)}</strong>
             </div>
           )}
@@ -331,23 +334,23 @@ function ShiftDetailsGrid({
       {/* Card 2: Movements & Returns */}
       <div style={{ background: '#f8fafc', padding: '14px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
         <h4 style={{ margin: '0 0 10px', fontSize: '0.90rem', fontWeight: 800, color: '#1e293b', borderBottom: '1px solid #e2e8f0', paddingBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <RefreshCwIcon size={16} /> حركات ومنصرفات الدرج
+          <RefreshCwIcon size={16} /> {t('cash_drawer.cash_drawer_shifts_card.s13', "حركات ومنصرفات الدرج")}
         </h4>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '7px', fontSize: '0.84rem' }}>
-          {renderMovementAccordionRow('cash_in', 'إيداعات نقدية بالدرج (يدوياً)', Number(row.cashDrawerManualCashInTotal || 0), manualCashInItems, true)}
+          {renderMovementAccordionRow('cash_in', t('cash_drawer.cash_drawer_shifts_card.s14', "إيداعات نقدية بالدرج (يدوياً)"), Number(row.cashDrawerManualCashInTotal || 0), manualCashInItems, true)}
           {Number(row.cashDrawerDeliveryCashInTotal || 0) > 0 && (
-            renderMovementAccordionRow('delivery', 'تحصيلات وتسويات مناديب دليفري', Number(row.cashDrawerDeliveryCashInTotal || 0), deliveryItems, true)
+            renderMovementAccordionRow('delivery', t('cash_drawer.cash_drawer_shifts_card.s15', "تحصيلات وتسويات مناديب دليفري"), Number(row.cashDrawerDeliveryCashInTotal || 0), deliveryItems, true)
           )}
-          {renderMovementAccordionRow('cash_out', 'مسحوبات نقدية من الدرج', Number(row.cashDrawerCashOutTotal || 0), cashOutItems, false)}
-          {renderMovementAccordionRow('expense', 'مصروفات تشغيلية ونثرية', Number(row.expensesTotal || 0), expenseItems, false)}
-          {renderMovementAccordionRow('supplier_payment', 'سداد دفعات موردين', Number(row.supplierPaymentsTotal || 0), supplierItems, false)}
-          {renderMovementAccordionRow('return_cash', 'مرتجع مبيعات نقدي', Number(row.saleReturnCashRefundTotal || 0), returnItems.filter(i => i.note.includes('كاش')), false)}
+          {renderMovementAccordionRow('cash_out', t('cash_drawer.cash_drawer_shifts_card.s16', "مسحوبات نقدية من الدرج"), Number(row.cashDrawerCashOutTotal || 0), cashOutItems, false)}
+          {renderMovementAccordionRow('expense', t('cash_drawer.cash_drawer_shifts_card.s17', "مصروفات تشغيلية ونثرية"), Number(row.expensesTotal || 0), expenseItems, false)}
+          {renderMovementAccordionRow('supplier_payment', t('cash_drawer.cash_drawer_shifts_card.s18', "سداد دفعات موردين"), Number(row.supplierPaymentsTotal || 0), supplierItems, false)}
+          {renderMovementAccordionRow('return_cash', t('cash_drawer.cash_drawer_shifts_card.s19', "مرتجع مبيعات نقدي"), Number(row.saleReturnCashRefundTotal || 0), returnItems.filter(i => i.note.includes(t('cash_drawer.cash_drawer_shifts_card.s20', "كاش"))), false)}
           {Number(row.saleReturnCardRefundTotal || 0) > 0 && (
-            renderMovementAccordionRow('return_card', 'مرتجع مبيعات بطاقات', Number(row.saleReturnCardRefundTotal || 0), returnItems.filter(i => i.note.includes('فيزا')), false)
+            renderMovementAccordionRow('return_card', t('cash_drawer.cash_drawer_shifts_card.s21', "مرتجع مبيعات بطاقات"), Number(row.saleReturnCardRefundTotal || 0), returnItems.filter(i => i.note.includes(t('cash_drawer.cash_drawer_shifts_card.s22', "فيزا"))), false)
           )}
 
           <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px dashed #cbd5e1', paddingTop: '6px', marginTop: '4px' }}>
-            <span style={{ fontWeight: 800, color: '#0f172a' }}>إجمالي المنصرف من الدرج:</span>
+            <span style={{ fontWeight: 800, color: '#0f172a' }}>{t('cash_drawer.cash_drawer_shifts_card.s23', "إجمالي المنصرف من الدرج:")}</span>
             <strong style={{ fontWeight: 800, color: '#dc2626' }}>
               -{formatCurrency(
                 Number(row.cashDrawerCashOutTotal || 0) +
@@ -373,41 +376,41 @@ function ShiftDetailsGrid({
         return (
           <div style={{ background: '#f8fafc', padding: '14px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
             <h4 style={{ margin: '0 0 10px', fontSize: '0.90rem', fontWeight: 800, color: '#1e293b', borderBottom: '1px solid #e2e8f0', paddingBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <ScaleIcon size={16} /> جرد ومطابقة نقدية الدرج
+              <ScaleIcon size={16} /> {t('cash_drawer.cash_drawer_shifts_card.s24', "جرد ومطابقة نقدية الدرج")}
             </h4>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '7px', fontSize: '0.84rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: '#64748b' }}>رصيد الافتتاح (العهدة):</span>
+                <span style={{ color: '#64748b' }}>{t('cash_drawer.cash_drawer_shifts_card.s25', "رصيد الافتتاح (العهدة):")}</span>
                 <strong style={{ color: '#0f172a' }}>{formatCurrency(openingCash)}</strong>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: '#64748b' }}>(+) مبيعات نقدية (كاش):</span>
+                <span style={{ color: '#64748b' }}>{t('cash_drawer.cash_drawer_shifts_card.s26', "(+) مبيعات نقدية (كاش):")}</span>
                 <strong style={{ color: '#0f172a' }}>+{formatCurrency(cashSales)}</strong>
               </div>
               {manualIn > 0 && (
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ color: '#64748b' }}>(+) إيداعات نقدية بالدرج:</span>
+                  <span style={{ color: '#64748b' }}>{t('cash_drawer.cash_drawer_shifts_card.s27', "(+) إيداعات نقدية بالدرج:")}</span>
                   <strong style={{ color: '#0f172a' }}>+{formatCurrency(manualIn)}</strong>
                 </div>
               )}
               {deliveryIn > 0 && (
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ color: '#64748b' }}>(+) تحصيلات مناديب دليفري:</span>
+                  <span style={{ color: '#64748b' }}>{t('cash_drawer.cash_drawer_shifts_card.s28', "(+) تحصيلات مناديب دليفري:")}</span>
                   <strong style={{ color: '#0f172a' }}>+{formatCurrency(deliveryIn)}</strong>
                 </div>
               )}
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: '#64748b' }}>(-) إجمالي المنصرف من الدرج:</span>
+                <span style={{ color: '#64748b' }}>{t('cash_drawer.cash_drawer_shifts_card.s29', "(-) إجمالي المنصرف من الدرج:")}</span>
                 <strong style={{ color: '#dc2626' }}>
                   -{formatCurrency(totalOut)}
                 </strong>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px dashed #cbd5e1', paddingTop: '6px', marginTop: '2px' }}>
-                <span style={{ fontWeight: 800, color: '#0f172a' }}>صافي النقدية المتوقعة:</span>
+                <span style={{ fontWeight: 800, color: '#0f172a' }}>{t('cash_drawer.cash_drawer_shifts_card.s30', "صافي النقدية المتوقعة:")}</span>
                 <strong style={{ fontWeight: 800, color: '#0284c7' }}>{formatCurrency(dynamicExpectedCash)}</strong>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: '#64748b' }}>النقدية الفعلية (المعدودة):</span>
+                <span style={{ color: '#64748b' }}>{t('cash_drawer.cash_drawer_shifts_card.s31', "النقدية الفعلية (المعدودة):")}</span>
                 <strong style={{ color: '#0f172a' }}>{formatCurrency(row.countedCash || 0)}</strong>
               </div>
               {(() => {
@@ -422,15 +425,15 @@ function ShiftDetailsGrid({
                   return (
                     <>
                       <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <span style={{ color: '#64748b' }}>فارق نقدية الدرج:</span>
+                        <span style={{ color: '#64748b' }}>{t('cash_drawer.cash_drawer_shifts_card.s32', "فارق نقدية الدرج:")}</span>
                         <strong>{renderVarianceBadge(dynamicVariance)}</strong>
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <span style={{ color: '#64748b' }}>فارق الإلكتروني:</span>
+                        <span style={{ color: '#64748b' }}>{t('cash_drawer.cash_drawer_shifts_card.s33', "فارق الإلكتروني:")}</span>
                         <strong>{renderVarianceBadge(electronicDiff)}</strong>
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1.5px solid #cbd5e1', paddingTop: '4px', marginTop: '2px' }}>
-                        <span style={{ fontWeight: 800, color: '#0f172a' }}>إجمالي فارق الوردية:</span>
+                        <span style={{ fontWeight: 800, color: '#0f172a' }}>{t('cash_drawer.cash_drawer_shifts_card.s34', "إجمالي فارق الوردية:")}</span>
                         <strong>{renderVarianceBadge(dynamicVariance + electronicDiff)}</strong>
                       </div>
                     </>
@@ -439,18 +442,18 @@ function ShiftDetailsGrid({
 
                 return (
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ color: '#64748b' }}>الفارق النهائي (عجز / زيادة):</span>
+                    <span style={{ color: '#64748b' }}>{t('cash_drawer.cash_drawer_shifts_card.s35', "الفارق النهائي (عجز / زيادة):")}</span>
                     <strong>{renderVarianceBadge(dynamicVariance)}</strong>
                   </div>
                 );
               })()}
               <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px dashed #cbd5e1', paddingTop: '6px', marginTop: '2px' }}>
-                <span style={{ color: '#64748b' }}>تاريخ الإغلاق:</span>
-                <strong style={{ color: '#334155' }}>{row.closedAt ? formatDate(row.closedAt) : 'مفتوحة حاليًا'}</strong>
+                <span style={{ color: '#64748b' }}>{t('cash_drawer.cash_drawer_shifts_card.s36', "تاريخ الإغلاق:")}</span>
+                <strong style={{ color: '#334155' }}>{row.closedAt ? formatDate(row.closedAt) : t('cash_drawer.cash_drawer_shifts_card.s37', "مفتوحة حاليًا")}</strong>
               </div>
               {row.closedByName ? (
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ color: '#64748b' }}>أُغلقت بواسطة:</span>
+                  <span style={{ color: '#64748b' }}>{t('cash_drawer.cash_drawer_shifts_card.s38', "أُغلقت بواسطة:")}</span>
                   <strong style={{ color: '#334155' }}>{row.closedByName}</strong>
                 </div>
               ) : null}
@@ -462,30 +465,30 @@ function ShiftDetailsGrid({
       {/* Card 4: Notes & Manager Approval */}
       <div style={{ background: '#f8fafc', padding: '14px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
         <h4 style={{ margin: '0 0 10px', fontSize: '0.90rem', fontWeight: 800, color: '#1e293b', borderBottom: '1px solid #e2e8f0', paddingBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <FileTextIcon size={16} /> الملاحظات والاعتماد
+          <FileTextIcon size={16} /> {t('cash_drawer.cash_drawer_shifts_card.s39', "الملاحظات والاعتماد")}
         </h4>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '7px', fontSize: '0.84rem' }}>
           <div>
-            <span style={{ color: '#64748b', display: 'block', marginBottom: '2px' }}>ملاحظة الافتتاح:</span>
+            <span style={{ color: '#64748b', display: 'block', marginBottom: '2px' }}>{t('cash_drawer.cash_drawer_shifts_card.s40', "ملاحظة الافتتاح:")}</span>
             <span style={{ color: '#1e293b', fontWeight: 500 }}>{row.openingNote || '—'}</span>
           </div>
           <div>
-            <span style={{ color: '#64748b', display: 'block', marginBottom: '2px' }}>ملاحظة الإغلاق:</span>
+            <span style={{ color: '#64748b', display: 'block', marginBottom: '2px' }}>{t('cash_drawer.cash_drawer_shifts_card.s41', "ملاحظة الإغلاق:")}</span>
             <span style={{ color: '#1e293b', fontWeight: 500 }}>{row.closeNote || '—'}</span>
           </div>
           {row.closedByName && row.openedByName && row.closedByName.trim().toLowerCase() !== row.openedByName.trim().toLowerCase() ? (
             <div style={{ borderTop: '1px dashed #f59e0b', paddingTop: '6px', marginTop: '2px', background: '#fffbeb', padding: '8px 10px', borderRadius: '6px', border: '1px solid #fde68a' }}>
               <span style={{ color: '#b45309', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '2px', fontWeight: 700 }}>
-                <AlertTriangleIcon size={14} color="#b45309" /> إغلاق إداري:
+                <AlertTriangleIcon size={14} color="#b45309" /> {t('cash_drawer.cash_drawer_shifts_card.s42', "إغلاق إداري:")}
               </span>
               <span style={{ color: '#92400e', fontWeight: 600 }}>
-                تم إغلاق الوردية بواسطة ({row.closedByName})
+                {t('cash_drawer.cash_drawer_shifts_card.s43', "تم إغلاق الوردية بواسطة (")}{row.closedByName})
               </span>
             </div>
           ) : null}
           {row.managerReviewedByName ? (
             <div style={{ borderTop: '1px dashed #cbd5e1', paddingTop: '6px', marginTop: '4px' }}>
-              <span style={{ color: '#64748b', display: 'block', marginBottom: '2px' }}>اعتماد ومراجعة المدير:</span>
+              <span style={{ color: '#64748b', display: 'block', marginBottom: '2px' }}>{t('cash_drawer.cash_drawer_shifts_card.s44', "اعتماد ومراجعة المدير:")}</span>
               <span style={{ color: '#065f46', fontWeight: 700 }}>
                 {row.managerReviewedByName} {row.managerReviewNote ? `(${row.managerReviewNote})` : ''}
               </span>
@@ -498,6 +501,8 @@ function ShiftDetailsGrid({
 }
 
 export function CashDrawerShiftsCard(props: CashDrawerShiftsCardProps) {
+  const { t, i18n } = useTranslation();
+  const isEn = i18n.language === 'en';
   const isMobile = useIsMobile();
   const [mobileSelectedShift, setMobileSelectedShift] = useState<CashierShift | null>(null);
   const [expandedIds, setExpandedIds] = useState<Record<string, boolean>>({});
@@ -523,38 +528,38 @@ export function CashDrawerShiftsCard(props: CashDrawerShiftsCardProps) {
 
   return (
     <Card
-      title="ورديات نقطة البيع الحالية"
+      title={t('cash_drawer.cash_drawer_shifts_card.s45', "ورديات نقطة البيع الحالية")}
       actions={canViewSensitiveTotals ? (
         <div className="actions compact-actions" style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
           <Button variant="secondary" onClick={props.onCopySummary} disabled={!props.totalItems} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-            <CopyIcon size={13} /> <span>نسخ</span>
+            <CopyIcon size={13} /> <span>{t('cash_drawer.cash_drawer_shifts_card.s46', "نسخ")}</span>
           </Button>
           <Button variant="secondary" onClick={props.onExportRows} disabled={!props.totalItems} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-            <DownloadIcon size={13} /> <span>تصدير</span>
+            <DownloadIcon size={13} /> <span>{t('cash_drawer.cash_drawer_shifts_card.s47', "تصدير")}</span>
           </Button>
           <Button variant="secondary" onClick={props.onPrintRows} disabled={!props.totalItems} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-            <PrinterIcon size={13} /> <span>طباعة</span>
+            <PrinterIcon size={13} /> <span>{t('cash_drawer.cash_drawer_shifts_card.s48', "طباعة")}</span>
           </Button>
         </div>
       ) : undefined}
       className="cash-drawer-shifts-card"
     >
       <div className="filter-chip-row">
-        <Button variant={props.shiftFilter === 'all' ? 'primary' : 'secondary'} onClick={() => props.onShiftFilterChange('all')}>الكل</Button>
-        <Button variant={props.shiftFilter === 'open' ? 'primary' : 'secondary'} onClick={() => props.onShiftFilterChange('open')}>مفتوحة</Button>
-        <Button variant={props.shiftFilter === 'closed' ? 'primary' : 'secondary'} onClick={() => props.onShiftFilterChange('closed')}>مغلقة</Button>
+        <Button variant={props.shiftFilter === 'all' ? 'primary' : 'secondary'} onClick={() => props.onShiftFilterChange('all')}>{t('cash_drawer.cash_drawer_shifts_card.s49', "الكل")}</Button>
+        <Button variant={props.shiftFilter === 'open' ? 'primary' : 'secondary'} onClick={() => props.onShiftFilterChange('open')}>{t('cash_drawer.cash_drawer_shifts_card.s50', "مفتوحة")}</Button>
+        <Button variant={props.shiftFilter === 'closed' ? 'primary' : 'secondary'} onClick={() => props.onShiftFilterChange('closed')}>{t('cash_drawer.cash_drawer_shifts_card.s51', "مغلقة")}</Button>
         {canReviewPending ? (
           <Button variant={props.shiftFilter === 'pending_review' ? 'primary' : 'secondary'} onClick={() => props.onShiftFilterChange('pending_review')}>
-            المراجعة{typeof props.pendingReviewCount === 'number' ? ` (${props.pendingReviewCount})` : ''}
+            {t('cash_drawer.cash_drawer_shifts_card.s52', "المراجعة")}{typeof props.pendingReviewCount === 'number' ? ` (${props.pendingReviewCount})` : ''}
           </Button>
         ) : null}
-        <Button variant={props.shiftFilter === 'variance' ? 'primary' : 'secondary'} onClick={() => props.onShiftFilterChange('variance')}>فروقات</Button>
-        <Button variant={props.shiftFilter === 'today' ? 'primary' : 'secondary'} onClick={() => props.onShiftFilterChange('today')}>اليوم</Button>
+        <Button variant={props.shiftFilter === 'variance' ? 'primary' : 'secondary'} onClick={() => props.onShiftFilterChange('variance')}>{t('cash_drawer.cash_drawer_shifts_card.s53', "فروقات")}</Button>
+        <Button variant={props.shiftFilter === 'today' ? 'primary' : 'secondary'} onClick={() => props.onShiftFilterChange('today')}>{t('cash_drawer.cash_drawer_shifts_card.s54', "اليوم")}</Button>
       </div>
 
       <SearchToolbar search={props.search} onSearchChange={props.onSearchChange} searchPlaceholder={searchPlaceholder}>
         <Button variant="secondary" onClick={props.onReset} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-          <RefreshCwIcon size={13} /> <span>إعادة ضبط</span>
+          <RefreshCwIcon size={13} /> <span>{t('cash_drawer.cash_drawer_shifts_card.s55', "إعادة ضبط")}</span>
         </Button>
       </SearchToolbar>
 
@@ -563,23 +568,23 @@ export function CashDrawerShiftsCard(props: CashDrawerShiftsCardProps) {
         isError={props.isError}
         error={props.error}
         isEmpty={!props.totalItems}
-        loadingText="جاري تحميل ورديات نقطة البيع..."
-        errorTitle="تعذر تحميل ورديات نقطة البيع"
-        emptyTitle="لا توجد ورديات نقطة بيع مطابقة حاليًا"
-        emptyHint="افتح وردية نقطة بيع جديدة أو وسّع شروط البحث الحالية."
+        loadingText={t('cash_drawer.cash_drawer_shifts_card.s56', "جاري تحميل ورديات نقطة البيع...")}
+        errorTitle={t('cash_drawer.cash_drawer_shifts_card.s57', "تعذر تحميل ورديات نقطة البيع")}
+        emptyTitle={t('cash_drawer.cash_drawer_shifts_card.s58', "لا توجد ورديات نقطة بيع مطابقة حاليًا")}
+        emptyHint={t('cash_drawer.cash_drawer_shifts_card.s59', "افتح وردية نقطة بيع جديدة أو وسّع شروط البحث الحالية.")}
       >
         <div className="table-wrap table-wrap-sticky">
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
-                <th style={{ padding: '14px 16px', textAlign: 'right', verticalAlign: 'middle', fontWeight: 700, color: '#334155' }}>الوردية / الكاشير</th>
-                {!SINGLE_STORE_MODE && <th style={{ padding: '14px 16px', textAlign: 'right', verticalAlign: 'middle', fontWeight: 700, color: '#334155' }}>الفرع والمخزن</th>}
-                {SINGLE_STORE_MODE && <th style={{ padding: '14px 16px', textAlign: 'right', verticalAlign: 'middle', fontWeight: 700, color: '#334155' }}>المخزن</th>}
-                <th style={{ padding: '14px 16px', textAlign: 'right', verticalAlign: 'middle', fontWeight: 700, color: '#334155' }}>الحالة</th>
-                <th style={{ padding: '14px 16px', textAlign: 'center', verticalAlign: 'middle', fontWeight: 700, color: '#334155' }}>رصيد الفتح</th>
-                {canViewSensitiveTotals && <th style={{ padding: '14px 16px', textAlign: 'center', verticalAlign: 'middle', fontWeight: 700, color: '#334155' }}>إجمالي المبيعات</th>}
-                {canViewSensitiveTotals && <th style={{ padding: '14px 16px', textAlign: 'center', verticalAlign: 'middle', fontWeight: 700, color: '#334155' }}>الفرق</th>}
-                <th style={{ padding: '14px 16px', textAlign: 'left', verticalAlign: 'middle', fontWeight: 700, color: '#334155', minWidth: '170px' }}>الإجراءات</th>
+                <th style={{ padding: '14px 16px', textAlign: 'right', verticalAlign: 'middle', fontWeight: 700, color: '#334155' }}>{t('cash_drawer.cash_drawer_shifts_card.s60', "الوردية / الكاشير")}</th>
+                {!SINGLE_STORE_MODE && <th style={{ padding: '14px 16px', textAlign: 'right', verticalAlign: 'middle', fontWeight: 700, color: '#334155' }}>{t('cash_drawer.cash_drawer_shifts_card.s61', "الفرع والمخزن")}</th>}
+                {SINGLE_STORE_MODE && <th style={{ padding: '14px 16px', textAlign: 'right', verticalAlign: 'middle', fontWeight: 700, color: '#334155' }}>{t('cash_drawer.cash_drawer_shifts_card.s62', "المخزن")}</th>}
+                <th style={{ padding: '14px 16px', textAlign: 'right', verticalAlign: 'middle', fontWeight: 700, color: '#334155' }}>{t('cash_drawer.cash_drawer_shifts_card.s63', "الحالة")}</th>
+                <th style={{ padding: '14px 16px', textAlign: 'center', verticalAlign: 'middle', fontWeight: 700, color: '#334155' }}>{t('cash_drawer.cash_drawer_shifts_card.s64', "رصيد الفتح")}</th>
+                {canViewSensitiveTotals && <th style={{ padding: '14px 16px', textAlign: 'center', verticalAlign: 'middle', fontWeight: 700, color: '#334155' }}>{t('cash_drawer.cash_drawer_shifts_card.s65', "إجمالي المبيعات")}</th>}
+                {canViewSensitiveTotals && <th style={{ padding: '14px 16px', textAlign: 'center', verticalAlign: 'middle', fontWeight: 700, color: '#334155' }}>{t('cash_drawer.cash_drawer_shifts_card.s66', "الفرق")}</th>}
+                <th style={{ padding: '14px 16px', textAlign: 'left', verticalAlign: 'middle', fontWeight: 700, color: '#334155', minWidth: '170px' }}>{t('cash_drawer.cash_drawer_shifts_card.s67', "الإجراءات")}</th>
               </tr>
             </thead>
             <tbody>
@@ -623,20 +628,20 @@ export function CashDrawerShiftsCard(props: CashDrawerShiftsCardProps) {
                       {!SINGLE_STORE_MODE && (
                         <td style={{ padding: '14px 16px', verticalAlign: 'middle' }}>
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                            <span style={{ fontWeight: 600, color: '#1e293b', fontSize: '0.9rem' }}>{row.branchName || 'الفرع الرئيسي'}</span>
-                            <span style={{ fontSize: '0.8rem', color: '#64748b' }}>{row.locationName || 'المخزن الرئيسي'}</span>
+                            <span style={{ fontWeight: 600, color: '#1e293b', fontSize: '0.9rem' }}>{row.branchName || t('cash_drawer.cash_drawer_shifts_card.s68', "الفرع الرئيسي")}</span>
+                            <span style={{ fontSize: '0.8rem', color: '#64748b' }}>{row.locationName || t('cash_drawer.cash_drawer_shifts_card.s69', "المخزن الرئيسي")}</span>
                           </div>
                         </td>
                       )}
 
                       {SINGLE_STORE_MODE && (
                         <td style={{ padding: '14px 16px', verticalAlign: 'middle', color: '#1e293b', fontWeight: 600 }}>
-                          {row.locationName || 'المخزن الرئيسي'}
+                          {row.locationName || t('cash_drawer.cash_drawer_shifts_card.s70', "المخزن الرئيسي")}
                         </td>
                       )}
 
                       <td style={{ padding: '14px 16px', verticalAlign: 'middle', textAlign: 'right' }}>
-                        {renderStatusBadge(String(row.status || ''))}
+                        {renderStatusBadge(String(row.status || ''), isEn)}
                       </td>
 
                       <td style={{ padding: '14px 16px', verticalAlign: 'middle', textAlign: 'center', fontWeight: 600, color: '#334155' }}>
@@ -648,7 +653,7 @@ export function CashDrawerShiftsCard(props: CashDrawerShiftsCardProps) {
                           <div>{formatCurrency(row.shiftSalesTotal || 0)}</div>
                           {Number(row.freelanceDeliveryFeeTotal || 0) > 0 && (
                             <div style={{ fontSize: '0.74rem', fontWeight: 600, color: '#16a34a', marginTop: '2px' }}>
-                              صافي المتجر: {formatCurrency((row.shiftSalesTotal || 0) - (row.freelanceDeliveryFeeTotal || 0))}
+                              {t('cash_drawer.cash_drawer_shifts_card.s71', "صافي المتجر:")} {formatCurrency((row.shiftSalesTotal || 0) - (row.freelanceDeliveryFeeTotal || 0))}
                             </div>
                           )}
                         </td>
@@ -678,7 +683,7 @@ export function CashDrawerShiftsCard(props: CashDrawerShiftsCardProps) {
                                 <div>{renderVarianceBadge(totalShiftVariance)}</div>
                                 {hasElectronicDeclarations && Math.abs(electronicDiff) > 0.009 && (
                                   <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '2px', whiteSpace: 'nowrap' }}>
-                                    درج: {formatCurrency(drawerVariance)} | إلكتروني: {formatCurrency(electronicDiff)}
+                                    {t('cash_drawer.cash_drawer_shifts_card.s72', "درج:")} {formatCurrency(drawerVariance)} {t('cash_drawer.cash_drawer_shifts_card.s73', "| إلكتروني:")} {formatCurrency(electronicDiff)}
                                   </div>
                                 )}
                               </div>
@@ -704,7 +709,7 @@ export function CashDrawerShiftsCard(props: CashDrawerShiftsCardProps) {
                                 cursor: 'pointer',
                               }}
                             >
-                              مراجعة
+                              {t('cash_drawer.cash_drawer_shifts_card.s74', "مراجعة")}
                             </button>
                           ) : null}
 
@@ -713,7 +718,7 @@ export function CashDrawerShiftsCard(props: CashDrawerShiftsCardProps) {
                               <button
                                 type="button"
                                 onClick={() => printCashDrawerShiftReceipt(row)}
-                                title={row.status === 'open' ? 'طباعة تقرير X الاسترشادي (Thermal 80mm)' : 'طباعة تقرير Z النهائي (Thermal 80mm)'}
+                                title={row.status === 'open' ? t('cash_drawer.cash_drawer_shifts_card.s75', "طباعة تقرير X الاسترشادي (Thermal 80mm)") : t('cash_drawer.cash_drawer_shifts_card.s76', "طباعة تقرير Z النهائي (Thermal 80mm)")}
                                 style={{
                                   display: 'inline-flex',
                                   alignItems: 'center',
@@ -754,7 +759,7 @@ export function CashDrawerShiftsCard(props: CashDrawerShiftsCardProps) {
                                   transition: 'all 0.15s',
                                 }}
                               >
-                                <span>{(isExpanded && !isMobile) ? 'إخفاء' : 'التفاصيل'}</span>
+                                <span>{(isExpanded && !isMobile) ? t('cash_drawer.cash_drawer_shifts_card.s77', "إخفاء") : t('cash_drawer.cash_drawer_shifts_card.s78', "التفاصيل")}</span>
                                 {!isMobile && (
                                   <svg
                                     viewBox="0 0 24 24"
@@ -807,7 +812,7 @@ export function CashDrawerShiftsCard(props: CashDrawerShiftsCardProps) {
           rangeEnd={rangeEnd}
           onPageChange={props.onPageChange}
           onPageSizeChange={props.onPageSizeChange}
-          itemLabel="وردية نقطة بيع"
+          itemLabel={t('cash_drawer.cash_drawer_shifts_card.s79', "وردية نقطة بيع")}
         />
 
         {/* Mobile Details Dialog */}
@@ -832,7 +837,7 @@ export function CashDrawerShiftsCard(props: CashDrawerShiftsCardProps) {
                   </div>
                 </div>
                 <div>
-                  {renderStatusBadge(String(mobileSelectedShift.status || ''))}
+                  {renderStatusBadge(String(mobileSelectedShift.status || ''), isEn)}
                 </div>
               </div>
 
@@ -884,7 +889,7 @@ export function CashDrawerShiftsCard(props: CashDrawerShiftsCardProps) {
                       gap: '6px'
                     }}
                   >
-                    مراجعة واعتماد
+                    {t('cash_drawer.cash_drawer_shifts_card.s80', "مراجعة واعتماد")}
                   </button>
                 )}
                 <button
@@ -906,7 +911,7 @@ export function CashDrawerShiftsCard(props: CashDrawerShiftsCardProps) {
                     gap: '6px'
                   }}
                 >
-                  <PrinterIcon size={16} /> {mobileSelectedShift?.status === 'open' ? 'طباعة تقرير X' : 'طباعة تقرير Z (Z-Report)'}
+                  <PrinterIcon size={16} /> {mobileSelectedShift?.status === 'open' ? t('cash_drawer.cash_drawer_shifts_card.s81', "طباعة تقرير X") : t('cash_drawer.cash_drawer_shifts_card.s82', "طباعة تقرير Z (Z-Report)")}
                 </button>
                 <button
                   type="button"
@@ -922,7 +927,7 @@ export function CashDrawerShiftsCard(props: CashDrawerShiftsCardProps) {
                     cursor: 'pointer'
                   }}
                 >
-                  إغلاق
+                  {t('cash_drawer.cash_drawer_shifts_card.s83', "إغلاق")}
                 </button>
               </div>
             </div>

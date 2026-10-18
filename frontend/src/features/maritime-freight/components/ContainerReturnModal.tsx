@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { Field } from '@/shared/ui/field';
@@ -12,6 +13,7 @@ interface ContainerReturnModalProps {
 }
 
 export function ContainerReturnModal({ open, container, onClose, onUpdated }: ContainerReturnModalProps) {
+  const { t } = useTranslation();
   const [emptyReturnedAt, setEmptyReturnedAt] = useState(new Date().toISOString().split('T')[0]);
   const [depositStatus, setDepositStatus] = useState<'held_by_line' | 'pending_return_proof' | 'refunded_to_treasury'>('pending_return_proof');
   const [emptyReturnProofUrl, setEmptyReturnProofUrl] = useState('');
@@ -53,8 +55,8 @@ export function ContainerReturnModal({ open, container, onClose, onUpdated }: Co
           onCancel={onClose}
           onSubmit={handleSave}
           isSubmitting={isSubmitting}
-          submitText="تأكيد إرجاع الحاوية وتحديث التأمين"
-          cancelText="إلغاء"
+          submitText={t('maritime_freight.container_return_modal.s0', "تأكيد إرجاع الحاوية وتحديث التأمين")}
+          cancelText={t('maritime_freight.container_return_modal.s1', "إلغاء")}
         />
       )}
     >
@@ -67,20 +69,20 @@ export function ContainerReturnModal({ open, container, onClose, onUpdated }: Co
 
         <div style={{ background: '#f8fafc', padding: '14px', borderRadius: '10px', border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <div style={{ fontSize: '0.78rem', color: '#64748b' }}>مبلغ التأمين المحتجز لدى التوكيل</div>
+            <div style={{ fontSize: '0.78rem', color: '#64748b' }}>{t('maritime_freight.container_return_modal.s2', "مبلغ التأمين المحتجز لدى التوكيل")}</div>
             <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#170e5e', marginTop: '2px' }}>
               {Number(container.deposit_amount).toLocaleString()} {container.deposit_currency}
             </div>
           </div>
           <div style={{ textAlign: 'left' }}>
-            <div style={{ fontSize: '0.78rem', color: '#64748b' }}>أيام السماح / الموعد النهائي</div>
+            <div style={{ fontSize: '0.78rem', color: '#64748b' }}>{t('maritime_freight.container_return_modal.s3', "أيام السماح / الموعد النهائي")}</div>
             <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155' }}>
-              {container.free_days} يوم ({container.return_deadline || 'غير محدد'})
+              {container.free_days} {t('maritime_freight.container_return_modal.s4', "يوم (")}{container.return_deadline || t('maritime_freight.container_return_modal.s5', "غير محدد")})
             </div>
           </div>
         </div>
 
-        <Field label="تاريخ إرجاع الحاوية الفارغة للساحة (Return Date) *">
+        <Field label={t('maritime_freight.container_return_modal.s6', "تاريخ إرجاع الحاوية الفارغة للساحة (Return Date) *")}>
           <input
             type="date"
             value={emptyReturnedAt}
@@ -89,34 +91,34 @@ export function ContainerReturnModal({ open, container, onClose, onUpdated }: Co
           />
         </Field>
 
-        <Field label="حالة مبلغ تأمين الحاوية *">
+        <Field label={t('maritime_freight.container_return_modal.s7', "حالة مبلغ تأمين الحاوية *")}>
           <CustomSelect
             value={depositStatus}
             onChange={(val) => setDepositStatus(val as any)}
             options={[
-              { value: 'pending_return_proof', label: 'بانتظار إشعار ومطابقة إيصال الرد من التوكيل (Pending Return Proof)' },
-              { value: 'refunded_to_treasury', label: 'تم استرداد التأمين نقداً وإيداعه بالخزينة (Refunded to Treasury)' },
-              { value: 'held_by_line', label: 'محتجز لدى الخط لوجود مطالبات أو غرامات (Held by Line)' },
+              { value: 'pending_return_proof', label: t('maritime_freight.container_return_modal.s8', "بانتظار إشعار ومطابقة إيصال الرد من التوكيل (Pending Return Proof)") },
+              { value: 'refunded_to_treasury', label: t('maritime_freight.container_return_modal.s9', "تم استرداد التأمين نقداً وإيداعه بالخزينة (Refunded to Treasury)") },
+              { value: 'held_by_line', label: t('maritime_freight.container_return_modal.s10', "محتجز لدى الخط لوجود مطالبات أو غرامات (Held by Line)") },
             ]}
           />
         </Field>
 
-        <Field label="رقم أو رابط إيصال إرجاع الفارغ (EIR / Yard Receipt)">
+        <Field label={t('maritime_freight.container_return_modal.s11', "رقم أو رابط إيصال إرجاع الفارغ (EIR / Yard Receipt)")}>
           <input
             type="text"
             value={emptyReturnProofUrl}
             onChange={(e) => setEmptyReturnProofUrl(e.target.value)}
-            placeholder="مثال: رقم إيصال ساحة المستودع EIR-88231"
+            placeholder={t('maritime_freight.container_return_modal.s12', "مثال: رقم إيصال ساحة المستودع EIR-88231")}
             style={{ width: '100%', height: '38px', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.85rem' }}
           />
         </Field>
 
-        <Field label="ملاحظات">
+        <Field label={t('maritime_freight.container_return_modal.s13', "ملاحظات")}>
           <input
             type="text"
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            placeholder="حالة الحاوية عند التسليم، نظافة الأرضيات، إلخ"
+            placeholder={t('maritime_freight.container_return_modal.s14', "حالة الحاوية عند التسليم، نظافة الأرضيات، إلخ")}
             style={{ width: '100%', height: '38px', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.85rem' }}
           />
         </Field>

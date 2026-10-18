@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { XIcon } from '@/shared/components/icons/AppIcons';
 import React, { useState, useEffect, useRef } from 'react';
@@ -9,6 +10,7 @@ import { playOrderChime, isOrderSoundEnabled, setOrderSoundEnabled } from '@/sha
 import { useAuthStore } from '@/stores/auth-store';
 
 export function LiveOrderNotificationBanner() {
+  const { t } = useTranslation();
   const user = useAuthStore((state) => state.user);
   const queryClient = useQueryClient();
   const location = useLocation();
@@ -161,7 +163,7 @@ export function LiveOrderNotificationBanner() {
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
             <strong style={{ fontSize: '13.5px', color: '#0f172a', fontWeight: 800, whiteSpace: 'nowrap' }}>
-              طلب أونلاين جديد!
+              {t('storefront.live_order_notification_banner.s0', "طلب أونلاين جديد!")}
             </strong>
             <span
               style={{
@@ -188,7 +190,7 @@ export function LiveOrderNotificationBanner() {
           <button
             type="button"
             onClick={handleToggleSound}
-            title={soundEnabled ? 'كتم التنبيه الصوتي' : 'تشغيل التنبيه الصوتي'}
+            title={soundEnabled ? t('storefront.live_order_notification_banner.s1', "كتم التنبيه الصوتي") : t('storefront.live_order_notification_banner.s2', "تشغيل التنبيه الصوتي")}
             style={{
               background: soundEnabled ? '#eff6ff' : '#f8fafc',
               border: `1px solid ${soundEnabled ? '#bfdbfe' : '#e2e8f0'}`,
@@ -221,7 +223,7 @@ export function LiveOrderNotificationBanner() {
           <button
             type="button"
             onClick={handleDismissAlert}
-            title="إغلاق"
+            title={t('storefront.live_order_notification_banner.s3', "إغلاق")}
             style={{
               background: '#f8fafc',
               border: '1px solid #e2e8f0',
@@ -267,7 +269,7 @@ export function LiveOrderNotificationBanner() {
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', minWidth: 0, flex: 1 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12.5px', color: '#475569' }}>
-            <span style={{ color: '#64748b', fontSize: '11.5px', flexShrink: 0 }}>العميل:</span>
+            <span style={{ color: '#64748b', fontSize: '11.5px', flexShrink: 0 }}>{t('storefront.live_order_notification_banner.s4', "العميل:")}</span>
             <strong
               style={{
                 color: '#0f172a',
@@ -278,18 +280,18 @@ export function LiveOrderNotificationBanner() {
               }}
               title={latestNewOrder.customerName}
             >
-              {latestNewOrder.customerName || 'عميل بدون اسم'}
+              {latestNewOrder.customerName || t('storefront.live_order_notification_banner.s5', "عميل بدون اسم")}
             </strong>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12px' }}>
-            <span style={{ color: '#64748b', fontSize: '11.5px', flexShrink: 0 }}>الإجمالي:</span>
+            <span style={{ color: '#64748b', fontSize: '11.5px', flexShrink: 0 }}>{t('storefront.live_order_notification_banner.s6', "الإجمالي:")}</span>
             <span style={{ color: '#166534', fontWeight: 800, fontSize: '12.5px' }}>
               {Number(latestNewOrder.totalAmount).toLocaleString('ar-EG')} <CurrencySymbol />
             </span>
             {latestNewOrder.items && latestNewOrder.items.length > 0 && (
               <span style={{ color: '#94a3b8', fontSize: '11px', marginRight: '4px' }}>
-                ({latestNewOrder.items.length} {latestNewOrder.items.length === 1 ? 'صنف' : 'أصناف'})
+                ({latestNewOrder.items.length} {latestNewOrder.items.length === 1 ? t('storefront.live_order_notification_banner.s7', "صنف") : t('storefront.live_order_notification_banner.s8', "أصناف")})
               </span>
             )}
           </div>
@@ -323,7 +325,7 @@ export function LiveOrderNotificationBanner() {
             e.currentTarget.style.transform = 'translateY(0)';
           }}
         >
-          <span>عرض الطلبات</span>
+          <span>{t('storefront.live_order_notification_banner.s9', "عرض الطلبات")}</span>
           <span style={{ fontSize: '13px' }}>←</span>
         </Link>
       </div>

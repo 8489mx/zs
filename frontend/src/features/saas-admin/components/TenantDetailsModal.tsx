@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useEffect, useState } from 'react';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { saasAdminApi, SaasTenantRow, TenantTimelineEvent } from '../api/saas-admin.api';
@@ -11,6 +12,7 @@ interface TenantDetailsModalProps {
 }
 
 export function TenantDetailsModal({ tenantId, onClose, onOpenActionHub }: TenantDetailsModalProps) {
+  const { t } = useTranslation();
   const [tenant, setTenant] = useState<SaasTenantRow | null>(null);
   const [events, setEvents] = useState<TenantTimelineEvent[]>([]);
   const [loading, setLoading] = useState(false);
@@ -68,7 +70,7 @@ export function TenantDetailsModal({ tenantId, onClose, onOpenActionHub }: Tenan
   };
 
   return (
-    <DialogShell open={Boolean(tenantId)} onClose={onClose} width="780px" ariaLabel="تفاصيل النسخة وسجل النشاط">
+    <DialogShell open={Boolean(tenantId)} onClose={onClose} width="780px" ariaLabel={t('saas_admin.tenant_details_modal.s0', "تفاصيل النسخة وسجل النشاط")}>
       <div className="dialog-card" dir="rtl" style={{ padding: '22px' }}>
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '16px', borderBottom: '1px solid #f1f5f9', marginBottom: '18px' }}>
@@ -92,20 +94,20 @@ export function TenantDetailsModal({ tenantId, onClose, onOpenActionHub }: Tenan
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: '#0f172a' }}>
-                  {tenant?.businessName || tenant?.slug || 'تفاصيل النسخة'}
+                  {tenant?.businessName || tenant?.slug || t('saas_admin.tenant_details_modal.s1', "تفاصيل النسخة")}
                 </h3>
                 {isPlatform ? (
                   <span style={{ fontSize: '11px', background: '#f5f3ff', color: '#6d28d9', border: '1px solid #ddd6fe', padding: '2px 10px', borderRadius: '9999px', fontWeight: 800 }}>
-                    النسخة الأم المركزية (محمية)
+                    {t('saas_admin.tenant_details_modal.s2', "النسخة الأم المركزية (محمية)")}
                   </span>
                 ) : tenant ? (
                   <span className={`tenant-status-pill ${tenant.status === 'active' ? 'active' : tenant.status === 'trial' ? 'trial' : 'suspended'}`} style={{ fontSize: '11px' }}>
-                    {tenant.status === 'active' ? 'مفعلة' : tenant.status === 'trial' ? 'تجريبية' : tenant.status}
+                    {tenant.status === 'active' ? t('saas_admin.tenant_details_modal.s3', "مفعلة") : tenant.status === 'trial' ? t('saas_admin.tenant_details_modal.s4', "تجريبية") : tenant.status}
                   </span>
                 ) : null}
               </div>
               <p style={{ margin: '3px 0 0 0', fontSize: '12px', color: '#64748b' }}>
-                {isPlatform ? 'مراجعة بيانات نسخة النظام الأساسي وسجل العمليات والأحداث المركزية.' : 'مراجعة بيانات المنشأة والمالك وتاريخ الاشتراكات والعمليات.'}
+                {isPlatform ? t('saas_admin.tenant_details_modal.s5', "مراجعة بيانات نسخة النظام الأساسي وسجل العمليات والأحداث المركزية.") : t('saas_admin.tenant_details_modal.s6', "مراجعة بيانات المنشأة والمالك وتاريخ الاشتراكات والعمليات.")}
               </p>
             </div>
           </div>
@@ -114,7 +116,7 @@ export function TenantDetailsModal({ tenantId, onClose, onOpenActionHub }: Tenan
             type="button"
             className="dialog-shell-close-btn"
             onClick={onClose}
-            title="إغلاق"
+            title={t('saas_admin.tenant_details_modal.s7', "إغلاق")}
             style={{ width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '8px', border: 'none', background: '#f1f5f9', cursor: 'pointer', color: '#64748b' }}
           >
             <XIcon size={16} />
@@ -124,7 +126,7 @@ export function TenantDetailsModal({ tenantId, onClose, onOpenActionHub }: Tenan
         {loading ? (
           <div style={{ padding: '40px 20px', textAlign: 'center', color: '#64748b', fontSize: '14px' }}>
             <div style={{ display: 'inline-block', width: '28px', height: '28px', border: '3px solid #e2e8f0', borderTopColor: '#312e81', borderRadius: '50%', animation: 'spin 0.8s linear infinite', marginBottom: '12px' }} />
-            <div>جاري تحميل تفاصيل النسخة وسجل الأحداث...</div>
+            <div>{t('saas_admin.tenant_details_modal.s8', "جاري تحميل تفاصيل النسخة وسجل الأحداث...")}</div>
           </div>
         ) : error ? (
           <div className="warning-box">{error}</div>
@@ -139,17 +141,17 @@ export function TenantDetailsModal({ tenantId, onClose, onOpenActionHub }: Tenan
                     <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
                     <circle cx="12" cy="7" r="4"/>
                   </svg>
-                  <strong style={{ fontSize: '13px', color: '#0f172a' }}>بيانات المنشأة والمالك</strong>
+                  <strong style={{ fontSize: '13px', color: '#0f172a' }}>{t('saas_admin.tenant_details_modal.s9', "بيانات المنشأة والمالك")}</strong>
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '12.5px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ color: '#64748b' }}>اسم المنشأة:</span>
+                    <span style={{ color: '#64748b' }}>{t('saas_admin.tenant_details_modal.s10', "اسم المنشأة:")}</span>
                     <strong style={{ color: '#0f172a' }}>{tenant.businessName || tenant.slug}</strong>
                   </div>
 
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ color: '#64748b' }}>المعرف (Slug):</span>
+                    <span style={{ color: '#64748b' }}>{t('saas_admin.tenant_details_modal.s11', "المعرف (Slug):")}</span>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <span className="tenant-slug-badge" style={{ margin: 0 }}>{tenant.slug}</span>
                       <button
@@ -157,18 +159,18 @@ export function TenantDetailsModal({ tenantId, onClose, onOpenActionHub }: Tenan
                         onClick={() => copyText('slug', tenant.slug)}
                         style={{ border: 'none', background: 'transparent', color: '#6366f1', cursor: 'pointer', fontSize: '11px', padding: '1px 4px', fontWeight: 700 }}
                       >
-                        {copiedKey === 'slug' ? 'تم النسخ' : 'نسخ'}
+                        {copiedKey === 'slug' ? t('saas_admin.tenant_details_modal.s12', "تم النسخ") : t('saas_admin.tenant_details_modal.s13', "نسخ")}
                       </button>
                     </div>
                   </div>
 
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ color: '#64748b' }}>اسم المالك:</span>
-                    <strong style={{ color: '#0f172a' }}>{tenant.ownerName || 'المسؤول'}</strong>
+                    <span style={{ color: '#64748b' }}>{t('saas_admin.tenant_details_modal.s14', "اسم المالك:")}</span>
+                    <strong style={{ color: '#0f172a' }}>{tenant.ownerName || t('saas_admin.tenant_details_modal.s15', "المسؤول")}</strong>
                   </div>
 
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ color: '#64748b' }}>اسم الدخول (Username):</span>
+                    <span style={{ color: '#64748b' }}>{t('saas_admin.tenant_details_modal.s16', "اسم الدخول (Username):")}</span>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <code style={{ fontFamily: 'monospace', color: '#170e5e', fontWeight: 800, background: '#f1f5f9', padding: '2px 8px', borderRadius: '5px', border: '1px solid #e2e8f0', direction: 'ltr' }}>
                         {tenant.ownerUsername || '-'}
@@ -179,14 +181,14 @@ export function TenantDetailsModal({ tenantId, onClose, onOpenActionHub }: Tenan
                           onClick={() => copyText('username', tenant.ownerUsername || '')}
                           style={{ border: 'none', background: 'transparent', color: '#6366f1', cursor: 'pointer', fontSize: '11px', padding: '1px 4px', fontWeight: 700 }}
                         >
-                          {copiedKey === 'username' ? 'تم النسخ' : 'نسخ'}
+                          {copiedKey === 'username' ? t('saas_admin.tenant_details_modal.s17', "تم النسخ") : t('saas_admin.tenant_details_modal.s18', "نسخ")}
                         </button>
                       )}
                     </div>
                   </div>
 
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ color: '#64748b' }}>رقم الهاتف:</span>
+                    <span style={{ color: '#64748b' }}>{t('saas_admin.tenant_details_modal.s19', "رقم الهاتف:")}</span>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <strong style={{ direction: 'ltr', color: '#0f172a' }}>{tenant.ownerPhone || '-'}</strong>
                       {tenant.ownerPhone && (
@@ -195,7 +197,7 @@ export function TenantDetailsModal({ tenantId, onClose, onOpenActionHub }: Tenan
                           target="_blank"
                           rel="noreferrer"
                           style={{ color: '#16a34a', display: 'inline-flex', alignItems: 'center' }}
-                          title="مراسلة عبر واتساب"
+                          title={t('saas_admin.tenant_details_modal.s20', "مراسلة عبر واتساب")}
                         >
                           <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
                             <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
@@ -206,7 +208,7 @@ export function TenantDetailsModal({ tenantId, onClose, onOpenActionHub }: Tenan
                   </div>
 
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ color: '#64748b' }}>البريد الإلكتروني:</span>
+                    <span style={{ color: '#64748b' }}>{t('saas_admin.tenant_details_modal.s21', "البريد الإلكتروني:")}</span>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <span style={{ direction: 'ltr', color: '#334155', fontSize: '11.5px' }}>{tenant.ownerEmail || '-'}</span>
                       {tenant.ownerEmail && (
@@ -215,14 +217,14 @@ export function TenantDetailsModal({ tenantId, onClose, onOpenActionHub }: Tenan
                           onClick={() => copyText('email', tenant.ownerEmail || '')}
                           style={{ border: 'none', background: 'transparent', color: '#6366f1', cursor: 'pointer', fontSize: '11px', padding: '1px 4px', fontWeight: 700 }}
                         >
-                          {copiedKey === 'email' ? 'تم النسخ' : 'نسخ'}
+                          {copiedKey === 'email' ? t('saas_admin.tenant_details_modal.s22', "تم النسخ") : t('saas_admin.tenant_details_modal.s23', "نسخ")}
                         </button>
                       )}
                     </div>
                   </div>
 
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ color: '#64748b' }}>تاريخ الإنشاء:</span>
+                    <span style={{ color: '#64748b' }}>{t('saas_admin.tenant_details_modal.s24', "تاريخ الإنشاء:")}</span>
                     <span style={{ color: '#475569', fontSize: '11.5px' }}>{tenant.createdAt ? formatDate(tenant.createdAt) : '-'}</span>
                   </div>
                 </div>
@@ -236,27 +238,27 @@ export function TenantDetailsModal({ tenantId, onClose, onOpenActionHub }: Tenan
                     <line x1="2" y1="10" x2="22" y2="10"/>
                   </svg>
                   <strong style={{ fontSize: '13px', color: '#0f172a' }}>
-                    {isPlatform ? 'ترخيص المنظومة وحالة التشغيل' : 'الاشتراك وحالة التشغيل'}
+                    {isPlatform ? t('saas_admin.tenant_details_modal.s25', "ترخيص المنظومة وحالة التشغيل") : t('saas_admin.tenant_details_modal.s26', "الاشتراك وحالة التشغيل")}
                   </strong>
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '12.5px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ color: '#64748b' }}>الباقة الحالية:</span>
+                    <span style={{ color: '#64748b' }}>{t('saas_admin.tenant_details_modal.s27', "الباقة الحالية:")}</span>
                     {isPlatform ? (
                       <span className="tenant-plan-badge" style={{ margin: 0, background: '#ede9fe', color: '#5b21b6', border: '1px solid #c4b5fd', fontWeight: 800, fontSize: '11.5px' }}>
-                        مالك المنظومة (كامل الصلاحيات والأنظمة)
+                        {t('saas_admin.tenant_details_modal.s28', "مالك المنظومة (كامل الصلاحيات والأنظمة)")}
                       </span>
                     ) : (
-                      <span className="tenant-plan-badge" style={{ margin: 0 }}>{tenant.planName || 'بدون باقة'}</span>
+                      <span className="tenant-plan-badge" style={{ margin: 0 }}>{tenant.planName || t('saas_admin.tenant_details_modal.s29', "بدون باقة")}</span>
                     )}
                   </div>
 
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ color: '#64748b' }}>نهاية الصلاحية:</span>
+                    <span style={{ color: '#64748b' }}>{t('saas_admin.tenant_details_modal.s30', "نهاية الصلاحية:")}</span>
                     {isPlatform ? (
                       <strong style={{ color: '#059669', fontWeight: 800, fontSize: '12.5px' }}>
-                        دائمة مدى الحياة (Lifetime)
+                        {t('saas_admin.tenant_details_modal.s31', "دائمة مدى الحياة (Lifetime)")}
                       </strong>
                     ) : (
                       <strong style={{ color: '#0f172a' }}>
@@ -266,10 +268,10 @@ export function TenantDetailsModal({ tenantId, onClose, onOpenActionHub }: Tenan
                   </div>
 
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ color: '#64748b' }}>الأيام المتبقية:</span>
+                    <span style={{ color: '#64748b' }}>{t('saas_admin.tenant_details_modal.s32', "الأيام المتبقية:")}</span>
                     {isPlatform ? (
                       <span style={{ fontWeight: 800, color: '#059669', fontSize: '12.5px' }}>
-                        غير محدودة بأجل (مستمر)
+                        {t('saas_admin.tenant_details_modal.s33', "غير محدودة بأجل (مستمر)")}
                       </span>
                     ) : (
                       <span style={{ fontWeight: 700, color: (tenant.trialDaysRemaining ?? 0) > 0 ? '#15803d' : '#b91c1c' }}>
@@ -279,21 +281,21 @@ export function TenantDetailsModal({ tenantId, onClose, onOpenActionHub }: Tenan
                   </div>
 
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ color: '#64748b' }}>آخر تسجيل دخول:</span>
+                    <span style={{ color: '#64748b' }}>{t('saas_admin.tenant_details_modal.s34', "آخر تسجيل دخول:")}</span>
                     <span style={{ color: tenant.lastLoginAt ? '#059669' : '#94a3b8', fontWeight: 600, fontSize: '11.5px' }}>
-                      {tenant.lastLoginAt ? formatDate(tenant.lastLoginAt) : 'لم يسجل دخول بعد'}
+                      {tenant.lastLoginAt ? formatDate(tenant.lastLoginAt) : t('saas_admin.tenant_details_modal.s35', "لم يسجل دخول بعد")}
                     </span>
                   </div>
 
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ color: '#64748b' }}>آخر نشاط (Last Seen):</span>
+                    <span style={{ color: '#64748b' }}>{t('saas_admin.tenant_details_modal.s36', "آخر نشاط (Last Seen):")}</span>
                     <span style={{ color: '#475569', fontSize: '11.5px' }}>{tenant.lastSeenAt ? formatDate(tenant.lastSeenAt) : '-'}</span>
                   </div>
 
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ color: '#64748b' }}>حالة الحساب:</span>
+                    <span style={{ color: '#64748b' }}>{t('saas_admin.tenant_details_modal.s37', "حالة الحساب:")}</span>
                     <span style={{ fontSize: '11.5px', fontWeight: 700, color: tenant.ownerLocked ? '#b91c1c' : '#15803d' }}>
-                      {tenant.ownerLocked ? 'مقفل (محاولات خاطئة)' : 'طبيعي (نشط)'}
+                      {tenant.ownerLocked ? t('saas_admin.tenant_details_modal.s38', "مقفل (محاولات خاطئة)") : t('saas_admin.tenant_details_modal.s39', "طبيعي (نشط)")}
                     </span>
                   </div>
                 </div>
@@ -309,17 +311,17 @@ export function TenantDetailsModal({ tenantId, onClose, onOpenActionHub }: Tenan
                     <polyline points="12 6 12 12 16 14"/>
                   </svg>
                   <h4 style={{ margin: 0, fontSize: '13.5px', fontWeight: 800, color: '#0f172a' }}>
-                    سجل العمليات والأحداث
+                    {t('saas_admin.tenant_details_modal.s40', "سجل العمليات والأحداث")}
                   </h4>
                 </div>
                 <span style={{ fontSize: '11px', background: '#f1f5f9', color: '#475569', padding: '2px 8px', borderRadius: '6px', fontWeight: 700 }}>
-                  {events.length} حدث مسجل
+                  {events.length} {t('saas_admin.tenant_details_modal.s41', "حدث مسجل")}
                 </span>
               </div>
 
               {events.length === 0 ? (
                 <div style={{ padding: '24px', background: '#f8fafc', borderRadius: '8px', border: '1px dashed #cbd5e1', textAlign: 'center', color: '#64748b', fontSize: '13px' }}>
-                  لا توجد أحداث أو عمليات مسجلة لهذه النسخة حتى الآن.
+                  {t('saas_admin.tenant_details_modal.s42', "لا توجد أحداث أو عمليات مسجلة لهذه النسخة حتى الآن.")}
                 </div>
               ) : (
                 <div style={{ maxHeight: '240px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px', paddingLeft: '4px' }}>
@@ -360,7 +362,7 @@ export function TenantDetailsModal({ tenantId, onClose, onOpenActionHub }: Tenan
                           </div>
                         )}
                         <div style={{ fontSize: '10.5px', color: '#94a3b8' }}>
-                          بواسطة: <strong style={{ color: '#64748b' }}>{ev.actorName || 'النظام'}</strong>
+                          {t('saas_admin.tenant_details_modal.s43', "بواسطة:")} <strong style={{ color: '#64748b' }}>{ev.actorName || t('saas_admin.tenant_details_modal.s44', "النظام")}</strong>
                         </div>
                       </div>
                     );
@@ -385,7 +387,7 @@ export function TenantDetailsModal({ tenantId, onClose, onOpenActionHub }: Tenan
                     <circle cx="12" cy="12" r="3"/>
                     <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
                   </svg>
-                  <span>مركز الإجراءات الكاملة</span>
+                  <span>{t('saas_admin.tenant_details_modal.s45', "مركز الإجراءات الكاملة")}</span>
                 </button>
               ) : <div />}
 
@@ -395,7 +397,7 @@ export function TenantDetailsModal({ tenantId, onClose, onOpenActionHub }: Tenan
                 style={{ background: '#0f172a', color: '#ffffff', padding: '7px 20px', fontWeight: 800, borderRadius: '8px' }}
                 onClick={onClose}
               >
-                إغلاق
+                {t('saas_admin.tenant_details_modal.s46', "إغلاق")}
               </button>
             </div>
           </div>

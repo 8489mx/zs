@@ -28,6 +28,7 @@ interface SaleEditDialogProps {
 }
 
 export function SaleEditDialog({ open, sale, isBusy = false, errorMessage = '', onCancel, onSave }: SaleEditDialogProps) {
+  const { t: __t } = useTranslation();
   const { t } = useTranslation();
   const [paymentType, setPaymentType] = useState('cash');
   const [paymentChannel, setPaymentChannel] = useState('cash');
@@ -210,7 +211,7 @@ export function SaleEditDialog({ open, sale, isBusy = false, errorMessage = '', 
       isOpen={open}
       onClose={handleCancel}
       title={`تعديل الفاتورة: ${sale.docNo || sale.id}`}
-      subtitle="تعديل بنود الفاتورة وطريقة السداد مع التدقيق الإداري والرقابي"
+      subtitle={__t('sales.sale_edit_dialog.s0', "تعديل بنود الفاتورة وطريقة السداد مع التدقيق الإداري والرقابي")}
       maxWidth="980px"
       zIndex={70}
       footer={modalFooter}
@@ -231,7 +232,7 @@ export function SaleEditDialog({ open, sale, isBusy = false, errorMessage = '', 
           }}
         >
           <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#170e5e', borderBottom: '1px solid #e2e8f0', paddingBottom: 6 }}>
-            بيانات السداد والتدقيق الرقابي
+            {__t('sales.sale_edit_dialog.s1', "بيانات السداد والتدقيق الرقابي")}
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>

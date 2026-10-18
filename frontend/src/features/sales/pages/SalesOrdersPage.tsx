@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -22,6 +23,7 @@ import { SalesOrderDetailsModal } from '../components/SalesOrderDetailsModal';
 import { toast } from '@/shared/components/system-alert';
 
 export function SalesOrdersPage() {
+  const { t } = useTranslation();
   useAppToolbar([{ label: 'المبيعات', to: '/sales' }, { label: 'أوامر البيع وحجز المخزون' }]);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -112,9 +114,9 @@ export function SalesOrdersPage() {
     <div className="page-stack page-shell sales-orders-page" dir="rtl">
       <main className="document-prototype-column" style={{ paddingBottom: '100px', maxWidth: '1280px', margin: '0 auto', width: '100%' }}>
         <PageHeader
-          title="أوامر البيع وحجز المخزون"
-          description="إدارة وتأكيد أوامر البيع التجارية وحجز الكميات مؤقتاً في المستودع ومنع البيع المزدوج قبل إصدار الفاتورة النهائية."
-          badge={<span className="nav-pill">{summary.all} أمر بيع</span>}
+          title={t('sales.sales_orders_page.s0', "أوامر البيع وحجز المخزون")}
+          description={t('sales.sales_orders_page.s1', "إدارة وتأكيد أوامر البيع التجارية وحجز الكميات مؤقتاً في المستودع ومنع البيع المزدوج قبل إصدار الفاتورة النهائية.")}
+          badge={<span className="nav-pill">{summary.all} {t('sales.sales_orders_page.s2', "أمر بيع")}</span>}
           actions={
             <div className="actions compact-actions page-header-actions">
               <Button
@@ -124,7 +126,7 @@ export function SalesOrdersPage() {
                 style={{ backgroundColor: '#170e5e', color: '#ffffff' }}
               >
                 <PlusIcon size={16} color="#ffffff" />
-                <span>+ أمر بيع جديد</span>
+                <span>{t('sales.sales_orders_page.s3', "+ أمر بيع جديد")}</span>
               </Button>
               <Button
                 variant="secondary"
@@ -132,7 +134,7 @@ export function SalesOrdersPage() {
                   try {
                     setIsRefreshing(true);
                     await queryClient.invalidateQueries({ queryKey: ['sales-orders-list'] });
-                    toast.success('تم تحديث قائمة أوامر البيع بنجاح', undefined, 2000);
+                    toast.success(t('sales.sales_orders_page.s4', "تم تحديث قائمة أوامر البيع بنجاح"), undefined, 2000);
                   } finally {
                     setIsRefreshing(false);
                   }
@@ -144,7 +146,7 @@ export function SalesOrdersPage() {
                   size={14}
                   style={{ animation: isRefreshing ? 'spin 0.7s linear infinite' : 'none' }}
                 />
-                <span>{isRefreshing ? 'جارٍ التحديث...' : 'تحديث'}</span>
+                <span>{isRefreshing ? t('sales.sales_orders_page.s5', "جارٍ التحديث...") : t('sales.sales_orders_page.s6', "تحديث")}</span>
               </Button>
             </div>
           }
@@ -156,22 +158,22 @@ export function SalesOrdersPage() {
             items={[
               {
                 key: 'all',
-                label: 'إجمالي أوامر البيع',
+                label: t('sales.sales_orders_page.s7', "إجمالي أوامر البيع"),
                 value: `${summary.all} أمر`,
               },
               {
                 key: 'confirmed',
-                label: 'أوامر مؤكدة وحاجزة للمخزون',
+                label: t('sales.sales_orders_page.s8', "أوامر مؤكدة وحاجزة للمخزون"),
                 value: `${summary.confirmed} أمر`,
               },
               {
                 key: 'draft',
-                label: 'مسودات قيد المراجعة',
+                label: t('sales.sales_orders_page.s9', "مسودات قيد المراجعة"),
                 value: `${summary.draft} مسودة`,
               },
               {
                 key: 'converted',
-                label: 'مكتملة ومحولة لفواتير',
+                label: t('sales.sales_orders_page.s10', "مكتملة ومحولة لفواتير"),
                 value: `${summary.converted} فاتورة`,
               },
             ]}
@@ -181,13 +183,13 @@ export function SalesOrdersPage() {
         {/* Main Workspace Panel & Table */}
         <section className="document-prototype-section workspace-panel">
           <div className="section-header-compact-row">
-            <h3 className="document-prototype-section-title">سجل أوامر البيع وحجز المخزون</h3>
+            <h3 className="document-prototype-section-title">{t('sales.sales_orders_page.s11', "سجل أوامر البيع وحجز المخزون")}</h3>
             <div className="section-header-actions-group">
-              <span className="text-xs text-slate-500 font-medium">عرض {orders.length} من أصل {summary.all}</span>
+              <span className="text-xs text-slate-500 font-medium">{t('sales.sales_orders_page.s12', "عرض")} {orders.length} {t('sales.sales_orders_page.s13', "من أصل")} {summary.all}</span>
             </div>
           </div>
           <p className="muted small section-header-subtitle">
-            متابعة حجز المخزون المؤقت، فحص الجاهزية والربط بالتصنيع MTO، والتحويل لفواتير معتمدة.
+            {t('sales.sales_orders_page.s14', "متابعة حجز المخزون المؤقت، فحص الجاهزية والربط بالتصنيع MTO، والتحويل لفواتير معتمدة.")}
           </p>
 
           {/* Filters and Search Bar */}
@@ -195,11 +197,11 @@ export function SalesOrdersPage() {
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', width: '100%', flexWrap: 'wrap' }}>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', alignItems: 'center' }}>
                 {[
-                  { key: 'all', label: 'الكل' },
-                  { key: 'confirmed', label: 'المؤكدة والحاجزة للمخزون' },
-                  { key: 'draft', label: 'المسودات' },
-                  { key: 'converted', label: 'المحولة لفواتير' },
-                  { key: 'cancelled', label: 'الملغاة' },
+                  { key: 'all', label: t('sales.sales_orders_page.s15', "الكل") },
+                  { key: 'confirmed', label: t('sales.sales_orders_page.s16', "المؤكدة والحاجزة للمخزون") },
+                  { key: 'draft', label: t('sales.sales_orders_page.s17', "المسودات") },
+                  { key: 'converted', label: t('sales.sales_orders_page.s18', "المحولة لفواتير") },
+                  { key: 'cancelled', label: t('sales.sales_orders_page.s19', "الملغاة") },
                 ].map((st) => {
                   const isActive = statusFilter === st.key;
                   return (
@@ -229,7 +231,7 @@ export function SalesOrdersPage() {
               <div style={{ position: 'relative', minWidth: '280px' }}>
                 <input
                   type="text"
-                  placeholder="بحث برقم الأمر أو العميل أو الهاتف..."
+                  placeholder={t('sales.sales_orders_page.s20', "بحث برقم الأمر أو العميل أو الهاتف...")}
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   style={{

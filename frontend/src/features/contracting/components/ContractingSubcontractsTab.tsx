@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { ContractingProject, ContractingSubcontract } from '../contracting.types';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
@@ -29,6 +30,7 @@ export function ContractingSubcontractsTab({
   onNewSubcontract,
   onRefresh,
 }: ContractingSubcontractsTabProps) {
+  const { t } = useTranslation();
   const { currencySymbol } = useSystemCurrency();
   const [isRetentionModalOpen, setIsRetentionModalOpen] = useState(false);
   const [isPaymentHoldsOpen, setIsPaymentHoldsOpen] = useState(false);
@@ -46,13 +48,13 @@ export function ContractingSubcontractsTab({
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'active':
-        return <span style={{ padding: '3px 8px', borderRadius: '6px', fontSize: 'var(--font-badge)', fontWeight: 600, background: '#dcfce7', color: '#15803d', border: '1px solid #bbf7d0' }}>عقد ساري</span>;
+        return <span style={{ padding: '3px 8px', borderRadius: '6px', fontSize: 'var(--font-badge)', fontWeight: 600, background: '#dcfce7', color: '#15803d', border: '1px solid #bbf7d0' }}>{t('contracting.contracting_subcontracts_tab.s0', "عقد ساري")}</span>;
       case 'completed':
-        return <span style={{ padding: '3px 8px', borderRadius: '6px', fontSize: 'var(--font-badge)', fontWeight: 600, background: '#e0e7ff', color: '#3730a3', border: '1px solid #c7d2fe' }}>مكتمل ومسلّم</span>;
+        return <span style={{ padding: '3px 8px', borderRadius: '6px', fontSize: 'var(--font-badge)', fontWeight: 600, background: '#e0e7ff', color: '#3730a3', border: '1px solid #c7d2fe' }}>{t('contracting.contracting_subcontracts_tab.s1', "مكتمل ومسلّم")}</span>;
       case 'terminated':
-        return <span style={{ padding: '3px 8px', borderRadius: '6px', fontSize: 'var(--font-badge)', fontWeight: 600, background: '#fee2e2', color: '#991b1b', border: '1px solid #fecaca' }}>مفسوخ</span>;
+        return <span style={{ padding: '3px 8px', borderRadius: '6px', fontSize: 'var(--font-badge)', fontWeight: 600, background: '#fee2e2', color: '#991b1b', border: '1px solid #fecaca' }}>{t('contracting.contracting_subcontracts_tab.s2', "مفسوخ")}</span>;
       default:
-        return <span style={{ padding: '3px 8px', borderRadius: '6px', fontSize: 'var(--font-badge)', fontWeight: 600, background: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0' }}>مسودة</span>;
+        return <span style={{ padding: '3px 8px', borderRadius: '6px', fontSize: 'var(--font-badge)', fontWeight: 600, background: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0' }}>{t('contracting.contracting_subcontracts_tab.s3', "مسودة")}</span>;
     }
   };
 
@@ -83,10 +85,10 @@ export function ContractingSubcontractsTab({
       >
         <div style={{ minWidth: '280px', flex: '1 1 auto' }}>
           <h2 style={{ fontSize: 'var(--font-section-title)', fontWeight: 700, color: '#1e293b', margin: 0 }}>
-            إسناد أعمال مقاولي الباطن والالتزامات (Subcontract Commitments)
+            {t('contracting.contracting_subcontracts_tab.s4', "إسناد أعمال مقاولي الباطن والالتزامات (Subcontract Commitments)")}
           </h2>
           <p style={{ fontSize: 'var(--font-subtitle)', color: '#64748b', margin: '4px 0 0' }}>
-            {projectName ? `المشروع: ${projectName}` : 'إدارة أوامر الإسناد، نسب الحجز، ونطاق الأعمال الموكولة للمقاولين'}
+            {projectName ? `المشروع: ${projectName}` : t('contracting.contracting_subcontracts_tab.s5', "إدارة أوامر الإسناد، نسب الحجز، ونطاق الأعمال الموكولة للمقاولين")}
           </p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', justifyContent: 'flex-start' }}>
@@ -112,7 +114,7 @@ export function ContractingSubcontractsTab({
             }}
           >
             <AppIcons.Users size={15} />
-            <span>دليل وسجل مقاولي الباطن</span>
+            <span>{t('contracting.contracting_subcontracts_tab.s6', "دليل وسجل مقاولي الباطن")}</span>
           </button>
 
           {/* تسجيل صرف دفعة لمقاول */}
@@ -140,7 +142,7 @@ export function ContractingSubcontractsTab({
             }}
           >
             <AppIcons.CreditCard size={15} />
-            <span>صرف دفعة لمقاول</span>
+            <span>{t('contracting.contracting_subcontracts_tab.s7', "صرف دفعة لمقاول")}</span>
           </button>
 
           {/* خطابات الضمان البنكية والبوابة الرقابية G1 */}
@@ -168,7 +170,7 @@ export function ContractingSubcontractsTab({
             }}
           >
             <AppIcons.CheckShield size={15} />
-            <span>خطابات الضمان البنكية (G1)</span>
+            <span>{t('contracting.contracting_subcontracts_tab.s8', "خطابات الضمان البنكية (G1)")}</span>
           </button>
 
           {/* سجل ضمان الأعمال */}
@@ -193,7 +195,7 @@ export function ContractingSubcontractsTab({
             }}
           >
             <AppIcons.ShieldCheck size={15} />
-            <span>ضمان الأعمال المحتجز ({totalRetention.toLocaleString('ar-EG')} {currencySymbol})</span>
+            <span>{t('contracting.contracting_subcontracts_tab.s9', "ضمان الأعمال المحتجز (")}{totalRetention.toLocaleString('ar-EG')} {currencySymbol})</span>
           </button>
 
           {/* حجز الدفعات للملاحظات الفنية */}
@@ -218,7 +220,7 @@ export function ContractingSubcontractsTab({
             }}
           >
             <AppIcons.AlertTriangle size={15} />
-            <span>حجز الدفعات والملاحظات الفنية</span>
+            <span>{t('contracting.contracting_subcontracts_tab.s10', "حجز الدفعات والملاحظات الفنية")}</span>
           </button>
 
           {/* زر إضافة إسناد */}
@@ -243,7 +245,7 @@ export function ContractingSubcontractsTab({
             }}
           >
             <AppIcons.Plus size={15} />
-            <span>إسناد أعمال لمقاول باطن</span>
+            <span>{t('contracting.contracting_subcontracts_tab.s11', "إسناد أعمال لمقاول باطن")}</span>
           </button>
         </div>
       </div>
@@ -251,25 +253,25 @@ export function ContractingSubcontractsTab({
       {/* بطاقة إجمالي الالتزامات والمؤشرات المالية */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px' }}>
         <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 16px' }}>
-          <div style={{ fontSize: 'var(--font-micro)', color: '#64748b', fontWeight: 600 }}>إجمالي عقود مقاولي الباطن</div>
+          <div style={{ fontSize: 'var(--font-micro)', color: '#64748b', fontWeight: 600 }}>{t('contracting.contracting_subcontracts_tab.s12', "إجمالي عقود مقاولي الباطن")}</div>
           <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>
-            {subcontracts.length} <span style={{ fontSize: 'var(--font-micro)', color: '#64748b' }}>عقد</span>
+            {subcontracts.length} <span style={{ fontSize: 'var(--font-micro)', color: '#64748b' }}>{t('contracting.contracting_subcontracts_tab.s13', "عقد")}</span>
           </div>
         </div>
         <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 16px' }}>
-          <div style={{ fontSize: 'var(--font-micro)', color: '#64748b', fontWeight: 600 }}>إجمالي الالتزامات التعاقدية</div>
+          <div style={{ fontSize: 'var(--font-micro)', color: '#64748b', fontWeight: 600 }}>{t('contracting.contracting_subcontracts_tab.s14', "إجمالي الالتزامات التعاقدية")}</div>
           <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#170e5e', marginTop: '2px' }}>
             {totalCommitted.toLocaleString('en-US', { minimumFractionDigits: 2 })} <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>{currencySymbol}</span>
           </div>
         </div>
         <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 16px' }}>
-          <div style={{ fontSize: 'var(--font-micro)', color: '#64748b', fontWeight: 600 }}>المستخلص المنفذ للمقاولين</div>
+          <div style={{ fontSize: 'var(--font-micro)', color: '#64748b', fontWeight: 600 }}>{t('contracting.contracting_subcontracts_tab.s15', "المستخلص المنفذ للمقاولين")}</div>
           <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#2563eb', marginTop: '2px' }}>
             {totalInvoiced.toLocaleString('en-US', { minimumFractionDigits: 2 })} <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>{currencySymbol}</span>
           </div>
         </div>
         <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 16px' }}>
-          <div style={{ fontSize: 'var(--font-micro)', color: '#64748b', fontWeight: 600 }}>المتبقي من الالتزامات</div>
+          <div style={{ fontSize: 'var(--font-micro)', color: '#64748b', fontWeight: 600 }}>{t('contracting.contracting_subcontracts_tab.s16', "المتبقي من الالتزامات")}</div>
           <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#15803d', marginTop: '2px' }}>
             {totalRemaining.toLocaleString('en-US', { minimumFractionDigits: 2 })} <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>{currencySymbol}</span>
           </div>
@@ -281,7 +283,7 @@ export function ContractingSubcontractsTab({
         {loading ? (
           <div style={{ flex: 1, minHeight: '280px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '12px', padding: '32px' }}>
             <div style={{ width: '28px', height: '28px', borderRadius: '50%', border: '3px solid #e2e8f0', borderTopColor: '#170e5e', animation: 'spin 0.8s linear infinite' }} />
-            <span style={{ fontSize: 'var(--font-subtitle)', color: '#94a3b8', fontWeight: 600 }}>جاري تحميل عقود مقاولي الباطن...</span>
+            <span style={{ fontSize: 'var(--font-subtitle)', color: '#94a3b8', fontWeight: 600 }}>{t('contracting.contracting_subcontracts_tab.s17', "جاري تحميل عقود مقاولي الباطن...")}</span>
           </div>
         ) : subcontracts.length === 0 ? (
           <div style={{ flex: 1, minHeight: '280px', padding: '48px 24px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
@@ -289,10 +291,10 @@ export function ContractingSubcontractsTab({
               <AppIcons.Users size={48} />
             </div>
             <div style={{ fontSize: 'var(--font-section-title)', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-              لا توجد عقود مقاولي باطن مسجلة لهذا المشروع
+              {t('contracting.contracting_subcontracts_tab.s18', "لا توجد عقود مقاولي باطن مسجلة لهذا المشروع")}
             </div>
             <div style={{ fontSize: 'var(--font-subtitle)', color: '#64748b', maxWidth: '420px', margin: '0 auto 16px' }}>
-              قم بإسناد الحزم التخصصية (أعمال كهروميكانيكية، عزل، دهانات...) لمقاولي الباطن لمتابعة التكاليف والمستخلصات.
+              {t('contracting.contracting_subcontracts_tab.s19', "قم بإسناد الحزم التخصصية (أعمال كهروميكانيكية، عزل، دهانات...) لمقاولي الباطن لمتابعة التكاليف والمستخلصات.")}
             </div>
             <button
               type="button"
@@ -309,7 +311,7 @@ export function ContractingSubcontractsTab({
                 fontSize: 'var(--font-body)',
               }}
             >
-              إسناد أعمال جديد
+              {t('contracting.contracting_subcontracts_tab.s20', "إسناد أعمال جديد")}
             </button>
           </div>
         ) : (
@@ -327,14 +329,14 @@ export function ContractingSubcontractsTab({
               </colgroup>
               <thead>
                 <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
-                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155' }}>رقم العقد ومقاول الباطن</th>
-                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155' }}>نطاق الأعمال المسندة</th>
-                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155' }}>القيمة التعاقدية</th>
-                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155' }}>المستخلص حتى الآن</th>
-                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155' }}>المتبقي من الالتزام</th>
-                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155' }}>ضمان الأعمال</th>
-                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155' }}>الحالة</th>
-                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155', textAlign: 'center' }}>إجراءات</th>
+                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155' }}>{t('contracting.contracting_subcontracts_tab.s21', "رقم العقد ومقاول الباطن")}</th>
+                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155' }}>{t('contracting.contracting_subcontracts_tab.s22', "نطاق الأعمال المسندة")}</th>
+                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155' }}>{t('contracting.contracting_subcontracts_tab.s23', "القيمة التعاقدية")}</th>
+                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155' }}>{t('contracting.contracting_subcontracts_tab.s24', "المستخلص حتى الآن")}</th>
+                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155' }}>{t('contracting.contracting_subcontracts_tab.s25', "المتبقي من الالتزام")}</th>
+                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155' }}>{t('contracting.contracting_subcontracts_tab.s26', "ضمان الأعمال")}</th>
+                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155' }}>{t('contracting.contracting_subcontracts_tab.s27', "الحالة")}</th>
+                  <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#334155', textAlign: 'center' }}>{t('contracting.contracting_subcontracts_tab.s28', "إجراءات")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -387,7 +389,7 @@ export function ContractingSubcontractsTab({
                             <button
                               type="button"
                               onClick={() => setSelectedSubcontractForIpc(sc)}
-                              title="إصدار مستخلص باطن (IPC)"
+                              title={t('contracting.contracting_subcontracts_tab.s29', "إصدار مستخلص باطن (IPC)")}
                               style={{
                                 height: '28px',
                                 padding: '0 8px',
@@ -404,7 +406,7 @@ export function ContractingSubcontractsTab({
                               }}
                             >
                               <AppIcons.Receipt size={13} />
-                              <span>مستخلص</span>
+                              <span>{t('contracting.contracting_subcontracts_tab.s30', "مستخلص")}</span>
                             </button>
                           )}
                           {sc.subcontractorId ? (
@@ -412,7 +414,7 @@ export function ContractingSubcontractsTab({
                               <button
                                 type="button"
                                 onClick={() => setSelectedLedgerSubId(sc.subcontractorId)}
-                                title="كشف حساب مقاول الباطن وموقف المستحقات"
+                                title={t('contracting.contracting_subcontracts_tab.s31', "كشف حساب مقاول الباطن وموقف المستحقات")}
                                 style={{
                                   height: '28px',
                                   padding: '0 8px',
@@ -429,7 +431,7 @@ export function ContractingSubcontractsTab({
                                 }}
                               >
                                 <AppIcons.FileText size={13} />
-                                <span>كشف حساب</span>
+                                <span>{t('contracting.contracting_subcontracts_tab.s32', "كشف حساب")}</span>
                               </button>
                               <button
                                 type="button"
@@ -437,7 +439,7 @@ export function ContractingSubcontractsTab({
                                   setSelectedPaymentSubId(sc.subcontractorId);
                                   setIsPaymentModalOpen(true);
                                 }}
-                                title="صرف دفعة نقدية أو تحويل لمقاول الباطن"
+                                title={t('contracting.contracting_subcontracts_tab.s33', "صرف دفعة نقدية أو تحويل لمقاول الباطن")}
                                 style={{
                                   height: '28px',
                                   padding: '0 8px',
@@ -454,7 +456,7 @@ export function ContractingSubcontractsTab({
                                 }}
                               >
                                 <AppIcons.CreditCard size={13} />
-                                <span>صرف دفعة</span>
+                                <span>{t('contracting.contracting_subcontracts_tab.s34', "صرف دفعة")}</span>
                               </button>
                               <button
                                 type="button"
@@ -462,7 +464,7 @@ export function ContractingSubcontractsTab({
                                   setSelectedSubcontractIdForGuarantees(sc.id);
                                   setIsGuaranteesDirectoryOpen(true);
                                 }}
-                                title="خطابات الضمان البنكية للعقد (G1)"
+                                title={t('contracting.contracting_subcontracts_tab.s35', "خطابات الضمان البنكية للعقد (G1)")}
                                 style={{
                                   height: '28px',
                                   padding: '0 8px',
@@ -479,7 +481,7 @@ export function ContractingSubcontractsTab({
                                 }}
                               >
                                 <AppIcons.ShieldCheck size={13} />
-                                <span>الضمانات</span>
+                                <span>{t('contracting.contracting_subcontracts_tab.s36', "الضمانات")}</span>
                               </button>
                             </>
                           ) : null}

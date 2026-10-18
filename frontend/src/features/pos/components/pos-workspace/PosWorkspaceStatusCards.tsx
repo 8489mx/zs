@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { Card } from '@/shared/ui/card';
 import { Button } from '@/shared/ui/button';
@@ -5,8 +6,9 @@ import { AlertTriangleIcon } from '@/shared/components/icons/AppIcons';
 import { POS_SHORTCUTS, getStartupIssues, type PosWorkspaceState } from '@/features/pos/components/pos-workspace/posWorkspace.helpers';
 
 export function PosWorkspaceQuickShortcuts() {
+  const { t } = useTranslation();
   return (
-    <Card className="pos-shortcuts-strip-card pos-secondary-tools-card" title="اختصارات التشغيل السريع" description="اختصارات لوحة المفاتيح المهمة في العمل اليومي داخل الكاشير.">
+    <Card className="pos-shortcuts-strip-card pos-secondary-tools-card" title={t('pos.pos_workspace.pos_workspace_status_cards.s0', "اختصارات التشغيل السريع")} description={t('pos.pos_workspace.pos_workspace_status_cards.s1', "اختصارات لوحة المفاتيح المهمة في العمل اليومي داخل الكاشير.")}>
       <div className="pos-shortcuts-inline-row">
         {POS_SHORTCUTS.map((shortcut) => (
           <div key={shortcut.key} className="pos-shortcut-inline-item">
@@ -20,6 +22,7 @@ export function PosWorkspaceQuickShortcuts() {
 }
 
 export function PosWorkspaceStartupIssues({ pos, onRequestOpenShift }: { pos: PosWorkspaceState; onRequestOpenShift?: () => void }) {
+  const { t } = useTranslation();
   const issues = getStartupIssues(pos);
 
   if (pos.isLoading || !issues.length) return null;
@@ -50,7 +53,7 @@ export function PosWorkspaceStartupIssues({ pos, onRequestOpenShift }: { pos: Po
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0, overflow: 'hidden' }}>
             <AlertTriangleIcon size={14} color="#d97706" style={{ flexShrink: 0 }} />
             <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontWeight: 600 }}>
-              لا توجد وردية مفتوحة — يلزم فتح وردية لتسجيل المبيعات.
+              {t('pos.pos_workspace.pos_workspace_status_cards.s2', "لا توجد وردية مفتوحة — يلزم فتح وردية لتسجيل المبيعات.")}
             </span>
           </div>
           <button
@@ -75,19 +78,19 @@ export function PosWorkspaceStartupIssues({ pos, onRequestOpenShift }: { pos: Po
               boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
             }}
           >
-            فتح وردية
+            {t('pos.pos_workspace.pos_workspace_status_cards.s3', "فتح وردية")}
           </button>
         </div>
       )}
 
-      {issues.filter(i => !i.includes('وردية')).length > 0 && (
-        <Card className="pos-shortcuts-strip-card pos-alert-strip-card" title="راجع هذه النقاط قبل بدء البيع" description="حل النقاط التالية سيجعل الكاشير جاهزًا للاستخدام بدون تعطيل.">
+      {issues.filter(i => !i.includes(t('pos.pos_workspace.pos_workspace_status_cards.s4', "وردية"))).length > 0 && (
+        <Card className="pos-shortcuts-strip-card pos-alert-strip-card" title={t('pos.pos_workspace.pos_workspace_status_cards.s5', "راجع هذه النقاط قبل بدء البيع")} description={t('pos.pos_workspace.pos_workspace_status_cards.s6', "حل النقاط التالية سيجعل الكاشير جاهزًا للاستخدام بدون تعطيل.")}>
           <div className="pos-alert-inline-row" style={{ alignItems: 'stretch' }}>
-            {issues.filter(i => !i.includes('وردية')).map((issue, index) => (
+            {issues.filter(i => !i.includes(t('pos.pos_workspace.pos_workspace_status_cards.s7', "وردية"))).map((issue, index) => (
               <div key={`${index}-${issue}`} className="pos-alert-inline-item" style={{ display: 'grid', gap: 8 }}>
                 <div>{issue}</div>
                 <div className="actions compact-actions">
-                  {!pos.hasOperationalSetup ? <Link to="/settings/core"><Button variant="secondary">إكمال الإعدادات</Button></Link> : null}
+                  {!pos.hasOperationalSetup ? <Link to="/settings/core"><Button variant="secondary">{t('pos.pos_workspace.pos_workspace_status_cards.s8', "إكمال الإعدادات")}</Button></Link> : null}
                 </div>
               </div>
             ))}

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { getGlobalCurrencySymbol, getGlobalSystemCurrency, getSystemCountryCode, isKuwait, isSaudi } from '@/lib/currencies';
 import { useState, useEffect, useMemo, type FormEvent, type RefObject } from 'react';
@@ -60,6 +61,7 @@ export function PosCheckoutCustomerSection({
   isManualOpen,
   onManualOpen,
 }: PosCheckoutCustomerSectionProps) {
+  const { t } = useTranslation();
   const [addressDropdownOpen, setAddressDropdownOpen] = useState(false);
   const addressesQuery = useQuery({
     queryKey: ['customerAddresses', pos.customerId],
@@ -98,7 +100,7 @@ export function PosCheckoutCustomerSection({
     return (
       <section className="pos-checkout-dialog-section pos-checkout-customer-section" style={{ padding: 0, marginBottom: '6px' }}>
         <Button type="button" variant="secondary" onClick={onManualOpen} style={{ width: '100%', borderStyle: 'dashed', minHeight: '34px', fontSize: '13px' }}>
-          + ربط الفاتورة ببيانات عميل (اختياري)
+          {t('pos.pos_workspace.pos_checkout_dialog_sections.s0', "+ ربط الفاتورة ببيانات عميل (اختياري)")}
         </Button>
       </section>
     );
@@ -113,29 +115,29 @@ export function PosCheckoutCustomerSection({
               autoFocus
               value={pos.quickCustomerName}
               onChange={(event) => pos.setQuickCustomerName(event.target.value)}
-              placeholder="اسم العميل *"
+              placeholder={t('pos.pos_workspace.pos_checkout_dialog_sections.s1', "اسم العميل *")}
               disabled={pos.quickCustomerMutation.isPending}
               style={{ flex: 1.5, padding: '6px 10px', fontSize: '13px', borderRadius: '6px', border: '1px solid #cbd5e1', height: '38px' }}
             />
             <input
               value={pos.quickCustomerPhone}
               onChange={(event) => pos.setQuickCustomerPhone(event.target.value)}
-              placeholder="الهاتف"
+              placeholder={t('pos.pos_workspace.pos_checkout_dialog_sections.s2', "الهاتف")}
               disabled={pos.quickCustomerMutation.isPending}
               style={{ flex: 1.2, padding: '6px 10px', fontSize: '13px', borderRadius: '6px', border: '1px solid #cbd5e1', height: '38px' }}
             />
             <input
               value={pos.quickCustomerAddress}
               onChange={(event) => pos.setQuickCustomerAddress(event.target.value)}
-              placeholder="العنوان (اختياري)"
+              placeholder={t('pos.pos_workspace.pos_checkout_dialog_sections.s3', "العنوان (اختياري)")}
               disabled={pos.quickCustomerMutation.isPending}
               style={{ flex: 2, padding: '6px 10px', fontSize: '13px', borderRadius: '6px', border: '1px solid #cbd5e1', height: '38px' }}
             />
             <Button type="submit" variant="primary" style={{ flex: '0 0 auto', height: '38px', whiteSpace: 'nowrap', fontSize: '13px', borderRadius: '6px', padding: '0 12px' }} disabled={pos.quickCustomerMutation.isPending || !pos.quickCustomerName.trim()}>
-              {pos.quickCustomerMutation.isPending ? 'جاري...' : 'حفظ'}
+              {pos.quickCustomerMutation.isPending ? t('pos.pos_workspace.pos_checkout_dialog_sections.s4', "جاري...") : t('pos.pos_workspace.pos_checkout_dialog_sections.s5', "حفظ")}
             </Button>
             <Button type="button" variant="secondary" style={{ flex: '0 0 auto', height: '38px', whiteSpace: 'nowrap', fontSize: '13px', borderRadius: '6px', padding: '0 10px' }} onClick={() => setIsAddingCustomer(false)}>
-              إلغاء
+              {t('pos.pos_workspace.pos_checkout_dialog_sections.s6', "إلغاء")}
             </Button>
           </form>
         ) : (
@@ -145,7 +147,7 @@ export function PosCheckoutCustomerSection({
                 autoFocus
                 value={customerQuery}
                 onChange={(event) => onCustomerQueryChange(event.target.value)}
-                placeholder="ابحث عن عميل بالاسم أو رقم الهاتف..."
+                placeholder={t('pos.pos_workspace.pos_checkout_dialog_sections.s7', "ابحث عن عميل بالاسم أو رقم الهاتف...")}
                 style={{ width: '100%', padding: '8px 12px', fontSize: '13px', borderRadius: '6px', border: '1px solid #cbd5e1', height: '38px' }}
               />
               {customerQuery.trim() && (
@@ -161,17 +163,17 @@ export function PosCheckoutCustomerSection({
                         style={{ width: '100%', textAlign: 'right', display: 'flex', justifyContent: 'space-between', padding: '8px 10px', borderRadius: '4px', border: 'none', background: isSelected ? '#eff6ff' : 'transparent', cursor: 'pointer' }}
                       >
                         <strong>{customer.name}</strong>
-                        <span className="muted small">{customer.phone || 'بدون هاتف'}</span>
+                        <span className="muted small">{customer.phone || t('pos.pos_workspace.pos_checkout_dialog_sections.s8', "بدون هاتف")}</span>
                       </button>
                     );
                   }) : (
                     <div className="surface-note" style={{ padding: '8px', fontSize: '13px' }}>
-                      لا توجد نتائج لـ "{customerQuery}".
+                      {t('pos.pos_workspace.pos_checkout_dialog_sections.s9', "لا توجد نتائج لـ \"")}{customerQuery}".
                       <Button type="button" variant="secondary" style={{ marginTop: '8px', width: '100%', height: '34px' }} onClick={() => {
                         pos.setQuickCustomerName(customerQuery);
                         setIsAddingCustomer(true);
                       }}>
-                        إضافة "{customerQuery}" كعميل جديد
+                        {t('pos.pos_workspace.pos_checkout_dialog_sections.s10', "إضافة \"")}{customerQuery}{t('pos.pos_workspace.pos_checkout_dialog_sections.s11', "\" كعميل جديد")}
                       </Button>
                     </div>
                   )}
@@ -187,7 +189,7 @@ export function PosCheckoutCustomerSection({
               }}
               style={{ flex: '0 0 auto', height: '38px', whiteSpace: 'nowrap', fontSize: '13px', borderRadius: '6px', padding: '0 12px' }}
             >
-              + عميل جديد
+              {t('pos.pos_workspace.pos_checkout_dialog_sections.s12', "+ عميل جديد")}
             </Button>
           </div>
         )
@@ -205,16 +207,16 @@ export function PosCheckoutCustomerSection({
           boxShadow: '0 1px 3px rgba(0,0,0,0.03)'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
-            <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 700, flexShrink: 0 }}>العميل:</span>
+            <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 700, flexShrink: 0 }}>{t('pos.pos_workspace.pos_checkout_dialog_sections.s13', "العميل:")}</span>
             <strong style={{ fontSize: '14px', color: '#0f172a', fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              {selectedCustomer?.name || pos.quickCustomerName || (selectedCustomerName !== 'عميل نقدي' ? selectedCustomerName : '') || 'عميل نقدي'}
+              {selectedCustomer?.name || pos.quickCustomerName || (selectedCustomerName !== 'عميل نقدي' ? selectedCustomerName : '') || t('pos.pos_workspace.pos_checkout_dialog_sections.s14', "عميل نقدي")}
             </strong>
           </div>
           <div style={{ minWidth: 0 }}>
             <input
               value={pos.quickCustomerPhone || selectedCustomer?.phone || ''}
               onChange={(event) => pos.setQuickCustomerPhone(event.target.value)}
-              placeholder="رقم الهاتف"
+              placeholder={t('pos.pos_workspace.pos_checkout_dialog_sections.s15', "رقم الهاتف")}
               style={{ width: '100%', padding: '6px 10px', fontSize: '13px', height: '36px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#fff' }}
             />
           </div>
@@ -224,7 +226,7 @@ export function PosCheckoutCustomerSection({
               onChange={(event) => pos.setQuickCustomerAddress(event.target.value)}
               onFocus={() => setAddressDropdownOpen(true)}
               onBlur={() => setTimeout(() => setAddressDropdownOpen(false), 200)}
-              placeholder="العنوان أو المكان"
+              placeholder={t('pos.pos_workspace.pos_checkout_dialog_sections.s16', "العنوان أو المكان")}
               style={{ width: '100%', padding: '6px 10px', fontSize: '13px', height: '36px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#fff' }}
             />
             {addressDropdownOpen && addresses.length > 0 && (
@@ -253,7 +255,7 @@ export function PosCheckoutCustomerSection({
             onClick={() => handleSelectCustomer('', '', '')}
             style={{ flexShrink: 0, height: '36px', padding: '0 14px', fontSize: '12px', borderRadius: '6px' }}
           >
-            تغيير
+            {t('pos.pos_workspace.pos_checkout_dialog_sections.s17', "تغيير")}
           </Button>
         </div>
       )}
@@ -283,7 +285,7 @@ export function PosCheckoutCustomerSection({
               <>
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                   <StarIcon size={14} color="#059669" />
-                  <span>تم استبدال <strong>{(pos.loyaltyPointsRedeemed || 0).toLocaleString()} نقطة</strong> بخصم <strong>{discountInCurrency.toLocaleString()} <CurrencySymbol /></strong></span>
+                  <span>{t('pos.pos_workspace.pos_checkout_dialog_sections.s18', "تم استبدال")} <strong>{(pos.loyaltyPointsRedeemed || 0).toLocaleString()} {t('pos.pos_workspace.pos_checkout_dialog_sections.s19', "نقطة")}</strong> {t('pos.pos_workspace.pos_checkout_dialog_sections.s20', "بخصم")} <strong>{discountInCurrency.toLocaleString()} <CurrencySymbol /></strong></span>
                 </span>
                 <Button
                   type="button"
@@ -300,18 +302,18 @@ export function PosCheckoutCustomerSection({
                     borderRadius: '4px'
                   }}
                 >
-                  إلغاء الاستبدال
+                  {t('pos.pos_workspace.pos_checkout_dialog_sections.s21', "إلغاء الاستبدال")}
                 </Button>
               </>
             ) : (
               <>
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                   <StarIcon size={14} color="#b45309" />
-                  <span>رصيد نقاط الولاء: <strong>{loyaltyPoints.toLocaleString()} نقطة</strong> (تساوي {totalValueInCurrency.toLocaleString()} {getGlobalCurrencySymbol()} خصم)</span>
+                  <span>{t('pos.pos_workspace.pos_checkout_dialog_sections.s22', "رصيد نقاط الولاء:")} <strong>{loyaltyPoints.toLocaleString()} {t('pos.pos_workspace.pos_checkout_dialog_sections.s23', "نقطة")}</strong> {t('pos.pos_workspace.pos_checkout_dialog_sections.s24', "(تساوي")} {totalValueInCurrency.toLocaleString()} {getGlobalCurrencySymbol()} {t('pos.pos_workspace.pos_checkout_dialog_sections.s25', "خصم)")}</span>
                 </span>
                 {loyaltyPoints < minPoints ? (
                   <span style={{ fontSize: '11px', color: '#92400e', fontWeight: 600 }}>
-                    (الحد الأدنى للاستبدال: {minPoints} نقطة)
+                    {t('pos.pos_workspace.pos_checkout_dialog_sections.s26', "(الحد الأدنى للاستبدال:")} {minPoints} {t('pos.pos_workspace.pos_checkout_dialog_sections.s27', "نقطة)")}
                   </span>
                 ) : (
                   <Button
@@ -336,7 +338,7 @@ export function PosCheckoutCustomerSection({
                       borderRadius: '4px'
                     }}
                   >
-                    استبدال النقاط بخصم
+                    {t('pos.pos_workspace.pos_checkout_dialog_sections.s28', "استبدال النقاط بخصم")}
                   </Button>
                 )}
               </>
@@ -385,6 +387,7 @@ export function PosCheckoutPaymentSection({
   onSelectPaymentPreset,
   onConfirmSale,
 }: PosCheckoutPaymentSectionProps) {
+  const { t: __t } = useTranslation();
   const balance = getBalancePreview(pos);
   const paidAmount = Number(pos.paidAmount || 0);
   const isCreditSale = pos.paymentType === 'credit';
@@ -672,7 +675,7 @@ export function PosCheckoutPaymentSection({
         }}
       >
         <label className="field" style={{ margin: 0 }}>
-          <span style={{ fontSize: '12px', fontWeight: 700, color: '#64748b', marginBottom: '2px', display: 'block', textAlign: 'center' }}>نقدي</span>
+          <span style={{ fontSize: '12px', fontWeight: 700, color: '#64748b', marginBottom: '2px', display: 'block', textAlign: 'center' }}>{__t('pos.pos_workspace.pos_checkout_dialog_sections.s29', __t('pos.pos_workspace.pos_checkout_dialog_sections.s0', "نقدي"))}</span>
           <input
             ref={cashAmountInputRef}
             data-autofocus={!customerPickerOpen ? true : undefined}
@@ -687,13 +690,13 @@ export function PosCheckoutPaymentSection({
           <span style={{ fontSize: '12px', fontWeight: 700, color: '#64748b', marginBottom: '2px', display: 'block', textAlign: 'center' }}>
             {transferSelected
               ? (pos.paymentChannel === 'instapay'
-                  ? (isKwdStore ? 'رابط دفع' : 'InstaPay')
-                  : (isKwdStore ? 'محفظة رقمية' : 'محافظ إلكترونية'))
+                  ? (isKwdStore ? __t('pos.pos_workspace.pos_checkout_dialog_sections.s30', __t('pos.pos_workspace.pos_checkout_dialog_sections.s1', "رابط دفع")) : 'InstaPay')
+                  : (isKwdStore ? __t('pos.pos_workspace.pos_checkout_dialog_sections.s31', __t('pos.pos_workspace.pos_checkout_dialog_sections.s2', "محفظة رقمية")) : __t('pos.pos_workspace.pos_checkout_dialog_sections.s32', __t('pos.pos_workspace.pos_checkout_dialog_sections.s3', "محافظ إلكترونية"))))
               : (isKwdStore && pos.terminalPaymentDetails?.cardScheme === 'knet'
-                  ? 'كي نت K-NET'
+                  ? __t('pos.pos_workspace.pos_checkout_dialog_sections.s33', __t('pos.pos_workspace.pos_checkout_dialog_sections.s4', "كي نت K-NET"))
                   : isKsaStore && pos.terminalPaymentDetails?.cardScheme === 'mada'
-                  ? 'مدى mada'
-                  : 'فيزا / كارت')}
+                  ? __t('pos.pos_workspace.pos_checkout_dialog_sections.s34', __t('pos.pos_workspace.pos_checkout_dialog_sections.s5', "مدى mada"))
+                  : __t('pos.pos_workspace.pos_checkout_dialog_sections.s35', __t('pos.pos_workspace.pos_checkout_dialog_sections.s6', "فيزا / كارت")))}
           </span>
           <input
             type="number"
@@ -708,7 +711,7 @@ export function PosCheckoutPaymentSection({
           />
         </label>
         <label className="field" style={{ margin: 0 }}>
-          <span style={{ fontSize: '12px', fontWeight: 700, color: '#64748b', marginBottom: '2px', display: 'block', textAlign: 'center' }}>الخصم (مبلغ)</span>
+          <span style={{ fontSize: '12px', fontWeight: 700, color: '#64748b', marginBottom: '2px', display: 'block', textAlign: 'center' }}>{__t('pos.pos_workspace.pos_checkout_dialog_sections.s36', __t('pos.pos_workspace.pos_checkout_dialog_sections.s7', "الخصم (مبلغ)"))}</span>
           <input
             type="number"
             step="0.01"
@@ -720,7 +723,7 @@ export function PosCheckoutPaymentSection({
           />
         </label>
         <label className="field" style={{ margin: 0 }}>
-          <span style={{ fontSize: '12px', fontWeight: 700, color: '#64748b', marginBottom: '2px', display: 'block', textAlign: 'center' }}>الخصم (%)</span>
+          <span style={{ fontSize: '12px', fontWeight: 700, color: '#64748b', marginBottom: '2px', display: 'block', textAlign: 'center' }}>{__t('pos.pos_workspace.pos_checkout_dialog_sections.s37', __t('pos.pos_workspace.pos_checkout_dialog_sections.s8', "الخصم (%)"))}</span>
           <input
             type="number"
             step="0.01"
@@ -750,7 +753,7 @@ export function PosCheckoutPaymentSection({
             disabled={pos.discountAuthorizationMutation.isPending}
             style={{ height: '38px', alignSelf: 'end', fontSize: '12px' }}
           >
-            {pos.discountAuthorizationMutation.isPending ? 'جاري...' : (pos.discountApprovalGranted ? 'معتمد' : 'اعتماد المدير')}
+            {pos.discountAuthorizationMutation.isPending ? __t('pos.pos_workspace.pos_checkout_dialog_sections.s38', __t('pos.pos_workspace.pos_checkout_dialog_sections.s9', "جاري...")) : (pos.discountApprovalGranted ? __t('pos.pos_workspace.pos_checkout_dialog_sections.s39', __t('pos.pos_workspace.pos_checkout_dialog_sections.s10', "معتمد")) : __t('pos.pos_workspace.pos_checkout_dialog_sections.s40', __t('pos.pos_workspace.pos_checkout_dialog_sections.s11', "اعتماد المدير")))}
           </Button>
         ) : null}
       </div>
@@ -768,7 +771,7 @@ export function PosCheckoutPaymentSection({
             }}
             style={{ minHeight: '38px', fontSize: '12.5px', fontWeight: 700 }}
           >
-            نقدي
+            {__t('pos.pos_workspace.pos_checkout_dialog_sections.s41', __t('pos.pos_workspace.pos_checkout_dialog_sections.s12', "نقدي"))}
           </Button>
           <Button
             type="button"
@@ -789,7 +792,7 @@ export function PosCheckoutPaymentSection({
             }}
             style={{ minHeight: '38px', fontSize: '11.5px', fontWeight: 800 }}
           >
-            كي نت K-NET
+            {__t('pos.pos_workspace.pos_checkout_dialog_sections.s42', __t('pos.pos_workspace.pos_checkout_dialog_sections.s13', "كي نت K-NET"))}
           </Button>
           <Button
             type="button"
@@ -807,7 +810,7 @@ export function PosCheckoutPaymentSection({
             }}
             style={{ minHeight: '38px', fontSize: '12px', fontWeight: 700 }}
           >
-            فيزا / ماستر
+            {__t('pos.pos_workspace.pos_checkout_dialog_sections.s43', __t('pos.pos_workspace.pos_checkout_dialog_sections.s14', "فيزا / ماستر"))}
           </Button>
           <Button
             type="button"
@@ -818,7 +821,7 @@ export function PosCheckoutPaymentSection({
             }}
             style={{ minHeight: '38px', fontSize: '12.5px', fontWeight: 700 }}
           >
-            آجل
+            {__t('pos.pos_workspace.pos_checkout_dialog_sections.s44', __t('pos.pos_workspace.pos_checkout_dialog_sections.s15', "آجل"))}
           </Button>
           <Button
             type="button"
@@ -829,7 +832,7 @@ export function PosCheckoutPaymentSection({
             }}
             style={{ minHeight: '38px', fontSize: '11.5px', fontWeight: 700 }}
           >
-            روابط دفع / تحويل
+            {__t('pos.pos_workspace.pos_checkout_dialog_sections.s45', __t('pos.pos_workspace.pos_checkout_dialog_sections.s16', "روابط دفع / تحويل"))}
           </Button>
         </div>
       ) : isKsaStore ? (
@@ -844,7 +847,7 @@ export function PosCheckoutPaymentSection({
             }}
             style={{ minHeight: '38px', fontSize: '12.5px', fontWeight: 700 }}
           >
-            نقدي
+            {__t('pos.pos_workspace.pos_checkout_dialog_sections.s46', __t('pos.pos_workspace.pos_checkout_dialog_sections.s17', "نقدي"))}
           </Button>
           <Button
             type="button"
@@ -865,7 +868,7 @@ export function PosCheckoutPaymentSection({
             }}
             style={{ minHeight: '38px', fontSize: '11.5px', fontWeight: 800 }}
           >
-            مدى mada
+            {__t('pos.pos_workspace.pos_checkout_dialog_sections.s47', __t('pos.pos_workspace.pos_checkout_dialog_sections.s18', "مدى mada"))}
           </Button>
           <Button
             type="button"
@@ -883,7 +886,7 @@ export function PosCheckoutPaymentSection({
             }}
             style={{ minHeight: '38px', fontSize: '12px', fontWeight: 700 }}
           >
-            فيزا / ماستر
+            {__t('pos.pos_workspace.pos_checkout_dialog_sections.s48', __t('pos.pos_workspace.pos_checkout_dialog_sections.s19', "فيزا / ماستر"))}
           </Button>
           <Button
             type="button"
@@ -894,7 +897,7 @@ export function PosCheckoutPaymentSection({
             }}
             style={{ minHeight: '38px', fontSize: '12.5px', fontWeight: 700 }}
           >
-            آجل
+            {__t('pos.pos_workspace.pos_checkout_dialog_sections.s49', __t('pos.pos_workspace.pos_checkout_dialog_sections.s20', "آجل"))}
           </Button>
           <Button
             type="button"
@@ -905,7 +908,7 @@ export function PosCheckoutPaymentSection({
             }}
             style={{ minHeight: '38px', fontSize: '11.5px', fontWeight: 700 }}
           >
-            دفع إلكتروني / محافظ
+            {__t('pos.pos_workspace.pos_checkout_dialog_sections.s50', __t('pos.pos_workspace.pos_checkout_dialog_sections.s21', "دفع إلكتروني / محافظ"))}
           </Button>
         </div>
       ) : (
@@ -920,7 +923,7 @@ export function PosCheckoutPaymentSection({
             }}
             style={{ minHeight: '38px', fontSize: '12.5px', fontWeight: 700 }}
           >
-            نقدي
+            {__t('pos.pos_workspace.pos_checkout_dialog_sections.s51', __t('pos.pos_workspace.pos_checkout_dialog_sections.s22', "نقدي"))}
           </Button>
           <Button
             type="button"
@@ -934,7 +937,7 @@ export function PosCheckoutPaymentSection({
             }}
             style={{ minHeight: '38px', fontSize: '12px', fontWeight: 700 }}
           >
-            {isKwdStore ? 'KNET كي نت' : isKsaStore ? 'شبكة / مدى' : 'فيزا / كارت'}
+            {isKwdStore ? __t('pos.pos_workspace.pos_checkout_dialog_sections.s52', __t('pos.pos_workspace.pos_checkout_dialog_sections.s23', "KNET كي نت")) : isKsaStore ? __t('pos.pos_workspace.pos_checkout_dialog_sections.s53', __t('pos.pos_workspace.pos_checkout_dialog_sections.s24', "شبكة / مدى")) : __t('pos.pos_workspace.pos_checkout_dialog_sections.s54', __t('pos.pos_workspace.pos_checkout_dialog_sections.s25', "فيزا / كارت"))}
           </Button>
           <Button
             type="button"
@@ -945,7 +948,7 @@ export function PosCheckoutPaymentSection({
             }}
             style={{ minHeight: '38px', fontSize: '11.5px', fontWeight: 700 }}
           >
-            تحويلات / محافظ
+            {__t('pos.pos_workspace.pos_checkout_dialog_sections.s55', __t('pos.pos_workspace.pos_checkout_dialog_sections.s26', "تحويلات / محافظ"))}
           </Button>
           <Button
             type="button"
@@ -956,7 +959,7 @@ export function PosCheckoutPaymentSection({
             }}
             style={{ minHeight: '38px', fontSize: '12.5px', fontWeight: 700 }}
           >
-            آجل
+            {__t('pos.pos_workspace.pos_checkout_dialog_sections.s56', __t('pos.pos_workspace.pos_checkout_dialog_sections.s27', "آجل"))}
           </Button>
         </div>
       )}
@@ -967,19 +970,19 @@ export function PosCheckoutPaymentSection({
           {isKwdStore ? (
             <>
               <Button type="button" variant={pos.paymentChannel === 'instapay' ? 'primary' : 'secondary'} onClick={() => onSelectPaymentPreset('instapay')} style={{ minHeight: '34px', fontSize: '11.5px', fontWeight: 700 }}>
-                رابط دفع K-NET
+                {__t('pos.pos_workspace.pos_checkout_dialog_sections.s57', __t('pos.pos_workspace.pos_checkout_dialog_sections.s28', "رابط دفع K-NET"))}
               </Button>
               <Button type="button" variant={pos.paymentChannel === 'wallet' ? 'primary' : 'secondary'} onClick={() => onSelectPaymentPreset('wallet')} style={{ minHeight: '34px', fontSize: '11.5px', fontWeight: 700 }}>
-                Apple Pay / محفظة
+                {__t('pos.pos_workspace.pos_checkout_dialog_sections.s58', __t('pos.pos_workspace.pos_checkout_dialog_sections.s29', "Apple Pay / محفظة"))}
               </Button>
             </>
           ) : isKsaStore ? (
             <>
               <Button type="button" variant={pos.paymentChannel === 'wallet' ? 'primary' : 'secondary'} onClick={() => onSelectPaymentPreset('wallet')} style={{ minHeight: '34px', fontSize: '11.5px', fontWeight: 700 }}>
-                STC Pay / محفظة
+                {__t('pos.pos_workspace.pos_checkout_dialog_sections.s59', __t('pos.pos_workspace.pos_checkout_dialog_sections.s30', "STC Pay / محفظة"))}
               </Button>
               <Button type="button" variant={pos.paymentChannel === 'instapay' ? 'primary' : 'secondary'} onClick={() => onSelectPaymentPreset('instapay')} style={{ minHeight: '34px', fontSize: '11.5px', fontWeight: 700 }}>
-                Apple Pay / سداد
+                {__t('pos.pos_workspace.pos_checkout_dialog_sections.s60', __t('pos.pos_workspace.pos_checkout_dialog_sections.s31', "Apple Pay / سداد"))}
               </Button>
             </>
           ) : (
@@ -988,7 +991,7 @@ export function PosCheckoutPaymentSection({
                 InstaPay
               </Button>
               <Button type="button" variant={pos.paymentChannel === 'wallet' ? 'primary' : 'secondary'} onClick={() => onSelectPaymentPreset('wallet')} style={{ minHeight: '34px', fontSize: '12px', fontWeight: 700 }}>
-                محافظ إلكترونية
+                {__t('pos.pos_workspace.pos_checkout_dialog_sections.s61', __t('pos.pos_workspace.pos_checkout_dialog_sections.s32', "محافظ إلكترونية"))}
               </Button>
             </>
           )}
@@ -1009,7 +1012,7 @@ export function PosCheckoutPaymentSection({
           {/* Active Terminal Selector if multiple terminals exist */}
           {activeTerminals.length > 1 && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-              <span style={{ fontSize: '11px', fontWeight: 700, color: '#475569' }}>ماكينة الدفع:</span>
+              <span style={{ fontSize: '11px', fontWeight: 700, color: '#475569' }}>{__t('pos.pos_workspace.pos_checkout_dialog_sections.s62', __t('pos.pos_workspace.pos_checkout_dialog_sections.s33', "ماكينة الدفع:"))}</span>
               {activeTerminals.map((term) => {
                 const isSelected = (selectedTerminalId || activeTerminals[0].id) === term.id;
                 return (
@@ -1032,7 +1035,7 @@ export function PosCheckoutPaymentSection({
                     }}
                   >
                     {term.name || term.provider}
-                    {term.isDefault && <span style={{ fontSize: '9px', opacity: 0.8 }}>(افتراضية)</span>}
+                    {term.isDefault && <span style={{ fontSize: '9px', opacity: 0.8 }}>{__t('pos.pos_workspace.pos_checkout_dialog_sections.s63', __t('pos.pos_workspace.pos_checkout_dialog_sections.s34', "(افتراضية)"))}</span>}
                   </button>
                 );
               })}
@@ -1044,10 +1047,10 @@ export function PosCheckoutPaymentSection({
               <CreditCardIcon size={18} color="#170e5e" />
               <div>
                 <div style={{ fontSize: '12px', fontWeight: 700, color: '#1e293b' }}>
-                  {activeTerminals.find((t) => t.id === selectedTerminalId)?.name || pos.settingsQuery?.data?.posTerminalName || 'ماكينة الدفع (Sunmi / EDC)'}
+                  {activeTerminals.find((t) => t.id === selectedTerminalId)?.name || pos.settingsQuery?.data?.posTerminalName || __t('pos.pos_workspace.pos_checkout_dialog_sections.s64', __t('pos.pos_workspace.pos_checkout_dialog_sections.s35', "ماكينة الدفع (Sunmi / EDC)"))}
                 </div>
                 <div style={{ fontSize: '11px', color: '#64748b' }}>
-                  إرسال {formatCurrency(pos.cardAmount > 0 ? pos.cardAmount : pos.totals.total)} إلى شاشة جهاز الدفع آلياً
+                  {__t('pos.pos_workspace.pos_checkout_dialog_sections.s65', __t('pos.pos_workspace.pos_checkout_dialog_sections.s36', "إرسال"))} {formatCurrency(pos.cardAmount > 0 ? pos.cardAmount : pos.totals.total)} {__t('pos.pos_workspace.pos_checkout_dialog_sections.s66', __t('pos.pos_workspace.pos_checkout_dialog_sections.s37', "إلى شاشة جهاز الدفع آلياً"))}
                 </div>
               </div>
             </div>
@@ -1058,17 +1061,17 @@ export function PosCheckoutPaymentSection({
                 onClick={handleDispatchTerminal}
                 style={{ minHeight: '32px', fontSize: '12px', fontWeight: 700, whiteSpace: 'nowrap' }}
               >
-                إرسال للماكينة
+                {__t('pos.pos_workspace.pos_checkout_dialog_sections.s67', __t('pos.pos_workspace.pos_checkout_dialog_sections.s38', "إرسال للماكينة"))}
               </Button>
             ) : terminalSession.status === 'approved' ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span style={{ fontSize: '12px', fontWeight: 800, color: '#16a34a', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                   <CheckIcon size={14} color="#16a34a" />
-                  <span>معتمد ({terminalSession.approvalCode})</span>
+                  <span>{__t('pos.pos_workspace.pos_checkout_dialog_sections.s68', __t('pos.pos_workspace.pos_checkout_dialog_sections.s39', "معتمد ("))}{terminalSession.approvalCode})</span>
                 </span>
                 {pos.terminalPaymentDetails?.cardScheme ? (
                   <span style={{ background: '#dcfce7', color: '#166534', padding: '1px 6px', borderRadius: '4px', fontSize: '11px', fontWeight: 800 }}>
-                    {pos.terminalPaymentDetails.cardScheme === 'knet' ? 'KNET كي نت' : pos.terminalPaymentDetails.cardScheme === 'mada' ? 'مدى mada' : pos.terminalPaymentDetails.cardScheme}
+                    {pos.terminalPaymentDetails.cardScheme === 'knet' ? __t('pos.pos_workspace.pos_checkout_dialog_sections.s69', __t('pos.pos_workspace.pos_checkout_dialog_sections.s40', "KNET كي نت")) : pos.terminalPaymentDetails.cardScheme === 'mada' ? __t('pos.pos_workspace.pos_checkout_dialog_sections.s70', __t('pos.pos_workspace.pos_checkout_dialog_sections.s41', "مدى mada")) : pos.terminalPaymentDetails.cardScheme}
                   </span>
                 ) : null}
                 {onConfirmSale ? (
@@ -1078,7 +1081,7 @@ export function PosCheckoutPaymentSection({
                     onClick={() => onConfirmSale()}
                     style={{ minHeight: '30px', padding: '0 10px', fontSize: '11.5px', fontWeight: 800 }}
                   >
-                    تأكيد الفاتورة (F2)
+                    {__t('pos.pos_workspace.pos_checkout_dialog_sections.s71', __t('pos.pos_workspace.pos_checkout_dialog_sections.s42', "تأكيد الفاتورة (F2)"))}
                   </Button>
                 ) : null}
               </div>
@@ -1089,7 +1092,7 @@ export function PosCheckoutPaymentSection({
                 onClick={handleCancelTerminal}
                 style={{ minHeight: '30px', fontSize: '11px', color: '#dc2626' }}
               >
-                إلغاء
+                {__t('pos.pos_workspace.pos_checkout_dialog_sections.s72', __t('pos.pos_workspace.pos_checkout_dialog_sections.s43', "إلغاء"))}
               </Button>
             )}
           </div>
@@ -1123,19 +1126,19 @@ export function PosCheckoutPaymentSection({
 
       {managerApprovalOpen && isDiscountLocked && !pos.discountApprovalGranted ? (
         <div className="pos-checkout-manager-approval" onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); onInlineManagerApproval(); } }}>
-          <label className="field field-wide"><span>PIN المدير</span><input ref={managerPinInputRef} type="text" className="secure-password-field" inputMode="numeric" autoComplete="off" value={managerPinDraft} onChange={(event) => { onManagerPinDraftChange(event.target.value); if (managerPinError) onManagerPinErrorChange(''); }} placeholder="اكتب PIN المدير" disabled={pos.discountAuthorizationMutation.isPending} /></label>
-          <div className="surface-note">يُستخدم PIN للتحقق فقط داخل هذه الفاتورة، ثم يتم مسحه ولا يُحفظ في المسودة.</div>
+          <label className="field field-wide"><span>{__t('pos.pos_workspace.pos_checkout_dialog_sections.s73', __t('pos.pos_workspace.pos_checkout_dialog_sections.s44', "PIN المدير"))}</span><input ref={managerPinInputRef} type="text" className="secure-password-field" inputMode="numeric" autoComplete="off" value={managerPinDraft} onChange={(event) => { onManagerPinDraftChange(event.target.value); if (managerPinError) onManagerPinErrorChange(''); }} placeholder={__t('pos.pos_workspace.pos_checkout_dialog_sections.s74', __t('pos.pos_workspace.pos_checkout_dialog_sections.s45', "اكتب PIN المدير"))} disabled={pos.discountAuthorizationMutation.isPending} /></label>
+          <div className="surface-note">{__t('pos.pos_workspace.pos_checkout_dialog_sections.s75', __t('pos.pos_workspace.pos_checkout_dialog_sections.s46', "يُستخدم PIN للتحقق فقط داخل هذه الفاتورة، ثم يتم مسحه ولا يُحفظ في المسودة."))}</div>
           {managerPinError ? <div className="error-box">{managerPinError}</div> : null}
           <div className="actions compact-actions">
-            <Button type="button" disabled={pos.discountAuthorizationMutation.isPending} onClick={() => onInlineManagerApproval()}>{pos.discountAuthorizationMutation.isPending ? 'جاري التحقق...' : 'اعتماد الخصم'}</Button>
-            <Button type="button" variant="secondary" onClick={() => { onManagerApprovalOpenChange(false); onManagerPinDraftChange(''); onManagerPinErrorChange(''); approvedManagerPinRef.current = ''; }} disabled={pos.discountAuthorizationMutation.isPending}>إلغاء</Button>
+            <Button type="button" disabled={pos.discountAuthorizationMutation.isPending} onClick={() => onInlineManagerApproval()}>{pos.discountAuthorizationMutation.isPending ? __t('pos.pos_workspace.pos_checkout_dialog_sections.s76', __t('pos.pos_workspace.pos_checkout_dialog_sections.s47', "جاري التحقق...")) : __t('pos.pos_workspace.pos_checkout_dialog_sections.s77', __t('pos.pos_workspace.pos_checkout_dialog_sections.s48', "اعتماد الخصم"))}</Button>
+            <Button type="button" variant="secondary" onClick={() => { onManagerApprovalOpenChange(false); onManagerPinDraftChange(''); onManagerPinErrorChange(''); approvedManagerPinRef.current = ''; }} disabled={pos.discountAuthorizationMutation.isPending}>{__t('pos.pos_workspace.pos_checkout_dialog_sections.s78', __t('pos.pos_workspace.pos_checkout_dialog_sections.s49', "إلغاء"))}</Button>
           </div>
         </div>
       ) : null}
 
       {isRestaurant && Number(pos.totals.serviceCharge || 0) > 0 && (
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '5px 10px', fontSize: '11.5px', fontWeight: 700, color: '#334155' }}>
-          <span>رسوم خدمة الصالة ({pos.totals.serviceChargePercent}%):</span>
+          <span>{__t('pos.pos_workspace.pos_checkout_dialog_sections.s79', __t('pos.pos_workspace.pos_checkout_dialog_sections.s50', "رسوم خدمة الصالة ("))}{pos.totals.serviceChargePercent}%):</span>
           <strong style={{ color: '#170e5e' }}>{formatCurrency(pos.totals.serviceCharge)}</strong>
         </div>
       )}
@@ -1155,11 +1158,11 @@ export function PosCheckoutPaymentSection({
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <span style={{ fontSize: '11.5px', fontWeight: 700, color: '#475569', whiteSpace: 'nowrap' }}>
-              إكرامية / بقشيش (Tip):
+              {__t('pos.pos_workspace.pos_checkout_dialog_sections.s80', __t('pos.pos_workspace.pos_checkout_dialog_sections.s51', "إكرامية / بقشيش (Tip):"))}
             </span>
             {Number(pos.tipAmount || 0) > 0 ? (
               <span style={{ background: '#eef2ff', color: '#170e5e', padding: '1px 6px', borderRadius: '4px', fontSize: '11px', fontWeight: 800 }}>
-                +{formatCurrency(pos.tipAmount)} مضاف للمطلوب
+                +{formatCurrency(pos.tipAmount)} {__t('pos.pos_workspace.pos_checkout_dialog_sections.s81', __t('pos.pos_workspace.pos_checkout_dialog_sections.s52', "مضاف للمطلوب"))}
               </span>
             ) : null}
           </div>
@@ -1170,7 +1173,7 @@ export function PosCheckoutPaymentSection({
               ? [0, 5, 10, 15, 20]
               : [0, 5, 10, 20, 50];
             const tipStep = isKwdStore ? '0.050' : '1';
-            const tipUnit = isKwdStore ? 'د.ك' : isKsaStore ? 'ر.س' : 'ج.م';
+            const tipUnit = isKwdStore ? __t('pos.pos_workspace.pos_checkout_dialog_sections.s82', __t('pos.pos_workspace.pos_checkout_dialog_sections.s53', "د.ك")) : isKsaStore ? __t('pos.pos_workspace.pos_checkout_dialog_sections.s83', __t('pos.pos_workspace.pos_checkout_dialog_sections.s54', "ر.س")) : __t('pos.pos_workspace.pos_checkout_dialog_sections.s84', __t('pos.pos_workspace.pos_checkout_dialog_sections.s55', "ج.م"));
             const applyTipChange = (nextTip: number) => {
               const prevTip = Number(pos.tipAmount || 0);
               const diff = nextTip - prevTip;
@@ -1206,9 +1209,9 @@ export function PosCheckoutPaymentSection({
                     }}
                   >
                     {preset === 0
-                      ? 'بدون'
+                      ? __t('pos.pos_workspace.pos_checkout_dialog_sections.s85', __t('pos.pos_workspace.pos_checkout_dialog_sections.s56', "بدون"))
                       : isKwdStore
-                      ? (preset === 0.25 ? '¼ د.ك' : preset === 0.5 ? '½ د.ك' : `${preset} د.ك`)
+                      ? (preset === 0.25 ? __t('pos.pos_workspace.pos_checkout_dialog_sections.s86', __t('pos.pos_workspace.pos_checkout_dialog_sections.s57', "¼ د.ك")) : preset === 0.5 ? __t('pos.pos_workspace.pos_checkout_dialog_sections.s87', __t('pos.pos_workspace.pos_checkout_dialog_sections.s58', "½ د.ك")) : `${preset} د.ك`)
                       : `${preset} ${tipUnit}`}
                   </button>
                 ))}
@@ -1218,7 +1221,7 @@ export function PosCheckoutPaymentSection({
                   step={tipStep}
                   value={pos.tipAmount || ''}
                   onChange={(e) => applyTipChange(Math.max(0, Number(e.target.value || 0)))}
-                  placeholder="مخصص"
+                  placeholder={__t('pos.pos_workspace.pos_checkout_dialog_sections.s88', __t('pos.pos_workspace.pos_checkout_dialog_sections.s59', "مخصص"))}
                   style={{
                     width: isKwdStore ? '68px' : '55px',
                     height: '24px',
@@ -1238,11 +1241,11 @@ export function PosCheckoutPaymentSection({
       {/* Summary 3-Column Chips: Centered and Balanced */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '8px' }}>
         <div className="pos-checkout-dialog-chip" style={{ minHeight: '48px', padding: '6px 8px', borderRadius: '6px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-          <span style={{ fontSize: '11.5px', whiteSpace: 'nowrap', textAlign: 'center' }}>المطلوب دفعه</span>
+          <span style={{ fontSize: '11.5px', whiteSpace: 'nowrap', textAlign: 'center' }}>{__t('pos.pos_workspace.pos_checkout_dialog_sections.s89', __t('pos.pos_workspace.pos_checkout_dialog_sections.s60', "المطلوب دفعه"))}</span>
           <strong className="is-primary" style={{ fontSize: '15px', textAlign: 'center' }}>{formatCurrency(pos.totals.total)}</strong>
         </div>
         <div className="pos-checkout-dialog-chip" style={{ minHeight: '48px', padding: '6px 8px', borderRadius: '6px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-          <span style={{ fontSize: '11.5px', whiteSpace: 'nowrap', textAlign: 'center' }}>المدفوع</span>
+          <span style={{ fontSize: '11.5px', whiteSpace: 'nowrap', textAlign: 'center' }}>{__t('pos.pos_workspace.pos_checkout_dialog_sections.s90', __t('pos.pos_workspace.pos_checkout_dialog_sections.s61', "المدفوع"))}</span>
           <strong className="is-success" style={{ fontSize: '15px', textAlign: 'center' }}>{formatCurrency(paidAmount)}</strong>
         </div>
         <div className="pos-checkout-dialog-chip" style={{ minHeight: '48px', padding: '6px 8px', borderRadius: '6px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
@@ -1251,9 +1254,9 @@ export function PosCheckoutPaymentSection({
         </div>
       </div>
 
-      {needsCreditCustomer ? <div className="error-box" style={{ margin: 0, textAlign: 'center' }}>البيع الآجل يحتاج اختيار عميل.</div> : null}
-      {!pos.canApplyDiscount ? <div className="pos-payment-strip-notes" style={{ margin: 0 }}><span className="pos-payment-strip-note">{pos.discountApprovalGranted ? 'تم اعتماد الخصم لهذه الفاتورة فقط.' : 'لا تملك صلاحية تعديل الخصم. استخدم اعتماد المدير لهذه الفاتورة.'}</span></div> : null}
-      {pos.hasDiscountPermissionViolation ? <div className="error-box" style={{ margin: 0, textAlign: 'center' }}>تم اكتشاف خصم غير مسموح به في هذه الفاتورة.</div> : null}
+      {needsCreditCustomer ? <div className="error-box" style={{ margin: 0, textAlign: 'center' }}>{__t('pos.pos_workspace.pos_checkout_dialog_sections.s91', __t('pos.pos_workspace.pos_checkout_dialog_sections.s62', "البيع الآجل يحتاج اختيار عميل."))}</div> : null}
+      {!pos.canApplyDiscount ? <div className="pos-payment-strip-notes" style={{ margin: 0 }}><span className="pos-payment-strip-note">{pos.discountApprovalGranted ? __t('pos.pos_workspace.pos_checkout_dialog_sections.s92', __t('pos.pos_workspace.pos_checkout_dialog_sections.s63', "تم اعتماد الخصم لهذه الفاتورة فقط.")) : __t('pos.pos_workspace.pos_checkout_dialog_sections.s93', __t('pos.pos_workspace.pos_checkout_dialog_sections.s64', "لا تملك صلاحية تعديل الخصم. استخدم اعتماد المدير لهذه الفاتورة."))}</span></div> : null}
+      {pos.hasDiscountPermissionViolation ? <div className="error-box" style={{ margin: 0, textAlign: 'center' }}>{__t('pos.pos_workspace.pos_checkout_dialog_sections.s94', __t('pos.pos_workspace.pos_checkout_dialog_sections.s65', "تم اكتشاف خصم غير مسموح به في هذه الفاتورة."))}</div> : null}
     </div>
   );
 }
@@ -1265,6 +1268,7 @@ export function PosCheckoutOrderTypeSection({
   pos: PosWorkspaceState;
   onDeliverySelected?: () => void;
 }) {
+  const { t } = useTranslation();
   const currentSettings = pos.settingsQuery?.data;
   const isRestaurant = currentSettings?.restaurantModuleEnabled === true;
   const isKwdStore = isKuwait(currentSettings);
@@ -1281,7 +1285,7 @@ export function PosCheckoutOrderTypeSection({
         onClick={() => pos.setOrderType('takeaway')}
         style={{ flex: 1, minHeight: '38px', fontSize: '13px', fontWeight: 700 }}
       >
-        {isRestaurant ? 'تيك أواي' : 'بيع مباشر (استلام)'}
+        {isRestaurant ? t('pos.pos_workspace.pos_checkout_dialog_sections.s95', "تيك أواي") : t('pos.pos_workspace.pos_checkout_dialog_sections.s96', "بيع مباشر (استلام)")}
       </Button>
       <Button 
         type="button" 
@@ -1294,7 +1298,7 @@ export function PosCheckoutOrderTypeSection({
         }}
         style={{ flex: 1, minHeight: '38px', fontSize: '13px', fontWeight: 700 }}
       >
-        دليفري (توصيل)
+        {t('pos.pos_workspace.pos_checkout_dialog_sections.s97', "دليفري (توصيل)")}
       </Button>
       {isRestaurant && (
         <Button
@@ -1303,7 +1307,7 @@ export function PosCheckoutOrderTypeSection({
           onClick={() => pos.setOrderType('dine_in')}
           style={{ flex: 1, minHeight: '38px', fontSize: '13px', fontWeight: 700 }}
         >
-          صالة (طاولات)
+          {t('pos.pos_workspace.pos_checkout_dialog_sections.s98', "صالة (طاولات)")}
         </Button>
       )}
       {showPager && (
@@ -1320,12 +1324,12 @@ export function PosCheckoutOrderTypeSection({
             boxSizing: 'border-box',
           }}
         >
-          <span style={{ fontSize: '11px', fontWeight: 700, color: '#475569', whiteSpace: 'nowrap' }}>البيجر:</span>
+          <span style={{ fontSize: '11px', fontWeight: 700, color: '#475569', whiteSpace: 'nowrap' }}>{t('pos.pos_workspace.pos_checkout_dialog_sections.s99', "البيجر:")}</span>
           <input
             type="text"
             value={(pos as any).pagerNumber || ''}
             onChange={(e) => (pos as any).setPagerNumber?.(e.target.value)}
-            placeholder="رقم البيجر..."
+            placeholder={t('pos.pos_workspace.pos_checkout_dialog_sections.s100', "رقم البيجر...")}
             style={{
               width: '90px',
               height: '28px',
@@ -1345,6 +1349,7 @@ export function PosCheckoutOrderTypeSection({
 }
 
 export function PosCheckoutDeliverySection({ pos, deliveryReps }: { pos: PosWorkspaceState, deliveryReps: DeliveryRep[] }) {
+  const { t } = useTranslation();
   const [repSearchOpen, setRepSearchOpen] = useState(false);
   const [repSearchQuery, setRepSearchQuery] = useState('');
 
@@ -1372,10 +1377,10 @@ export function PosCheckoutDeliverySection({ pos, deliveryReps }: { pos: PosWork
         <div style={{ position: 'relative' }}>
           <label className="field" style={{ margin: 0 }}>
             <span style={{ fontSize: '12px', fontWeight: 700, color: isRepMissing ? '#dc2626' : '#64748b', marginBottom: '2px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span>مندوب التوصيل {isRepRequired ? <span style={{ color: '#dc2626' }}>*</span> : <span style={{ fontWeight: 400, color: '#94a3b8', fontSize: '11px' }}>(اختياري)</span>}</span>
+              <span>{t('pos.pos_workspace.pos_checkout_dialog_sections.s101', "مندوب التوصيل")} {isRepRequired ? <span style={{ color: '#dc2626' }}>*</span> : <span style={{ fontWeight: 400, color: '#94a3b8', fontSize: '11px' }}>{t('pos.pos_workspace.pos_checkout_dialog_sections.s102', "(اختياري)")}</span>}</span>
             </span>
             <input
-              placeholder={selectedRep?.name || (isRepRequired ? "-- اختر مندوب التوصيل --" : "-- مندوب التوصيل (اختياري) --")}
+              placeholder={selectedRep?.name || (isRepRequired ? t('pos.pos_workspace.pos_checkout_dialog_sections.s103', "-- اختر مندوب التوصيل --") : t('pos.pos_workspace.pos_checkout_dialog_sections.s104', "-- مندوب التوصيل (اختياري) --"))}
               value={repSearchOpen ? repSearchQuery : (selectedRep?.name || '')}
               onFocus={() => { setRepSearchOpen(true); setRepSearchQuery(''); }}
               onBlur={() => setTimeout(() => setRepSearchOpen(false), 200)}
@@ -1403,7 +1408,7 @@ export function PosCheckoutDeliverySection({ pos, deliveryReps }: { pos: PosWork
             >
               {filteredReps.length === 0 && (
                 <div style={{ padding: '8px 12px', color: '#dc2626', fontSize: '12px', fontWeight: 600 }}>
-                  {activeReps.length === 0 ? 'لا يوجد مناديب مسجلين بالنظام' : 'لا توجد نتائج مطابقة'}
+                  {activeReps.length === 0 ? t('pos.pos_workspace.pos_checkout_dialog_sections.s105', "لا يوجد مناديب مسجلين بالنظام") : t('pos.pos_workspace.pos_checkout_dialog_sections.s106', "لا توجد نتائج مطابقة")}
                 </div>
               )}
               {filteredReps.map(rep => (
@@ -1433,7 +1438,7 @@ export function PosCheckoutDeliverySection({ pos, deliveryReps }: { pos: PosWork
                   }}
                 >
                   {rep.name} {rep.phone ? <span style={{ color: '#94a3b8', fontSize: '11px' }}>({rep.phone})</span> : null}
-                  {(rep as any).rep_type === 'store_fleet' ? <span style={{ color: '#059669', fontSize: '10px', marginRight: '6px' }}>[أسطول المحل]</span> : null}
+                  {(rep as any).rep_type === 'store_fleet' ? <span style={{ color: '#059669', fontSize: '10px', marginRight: '6px' }}>{t('pos.pos_workspace.pos_checkout_dialog_sections.s107', "[أسطول المحل]")}</span> : null}
                 </div>
               ))}
             </div>
@@ -1441,7 +1446,7 @@ export function PosCheckoutDeliverySection({ pos, deliveryReps }: { pos: PosWork
         </div>
 
         <div className="field" style={{ margin: 0 }}>
-          <span style={{ fontSize: '12px', fontWeight: 700, color: '#64748b', marginBottom: '2px', display: 'block', textAlign: 'center' }}>رسوم التوصيل ({getGlobalCurrencySymbol()})</span>
+          <span style={{ fontSize: '12px', fontWeight: 700, color: '#64748b', marginBottom: '2px', display: 'block', textAlign: 'center' }}>{t('pos.pos_workspace.pos_checkout_dialog_sections.s108', "رسوم التوصيل (")}{getGlobalCurrencySymbol()})</span>
           <input
             type="number"
             min="0"
@@ -1457,18 +1462,18 @@ export function PosCheckoutDeliverySection({ pos, deliveryReps }: { pos: PosWork
       {/* Aggregator / Channel Source Tag Selector */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
         <span style={{ fontSize: '11px', fontWeight: 700, color: '#64748b' }}>
-          مصدر طلب التوصيل (قناة الاستلام):
+          {t('pos.pos_workspace.pos_checkout_dialog_sections.s109', "مصدر طلب التوصيل (قناة الاستلام):")}
         </span>
         <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
           {[
-            { id: 'direct', label: 'مباشر (المحل)' },
-            { id: 'talabat', label: 'طلبات Talabat' },
-            { id: 'deliveroo', label: 'دليفرو Deliveroo' },
-            { id: 'jahez', label: 'جاهز Jahez' },
-            { id: 'cari', label: 'كاري Cari' },
+            { id: 'direct', label: t('pos.pos_workspace.pos_checkout_dialog_sections.s110', "مباشر (المحل)") },
+            { id: 'talabat', label: t('pos.pos_workspace.pos_checkout_dialog_sections.s111', "طلبات Talabat") },
+            { id: 'deliveroo', label: t('pos.pos_workspace.pos_checkout_dialog_sections.s112', "دليفرو Deliveroo") },
+            { id: 'jahez', label: t('pos.pos_workspace.pos_checkout_dialog_sections.s113', "جاهز Jahez") },
+            { id: 'cari', label: t('pos.pos_workspace.pos_checkout_dialog_sections.s114', "كاري Cari") },
           ].map((channel) => {
             const isSelected = channel.id === 'direct'
-              ? !['طلبات', 'دليفرو', 'جاهز', 'كاري'].some(k => (pos.note || '').includes(k))
+              ? ![t('pos.pos_workspace.pos_checkout_dialog_sections.s115', "طلبات"), t('pos.pos_workspace.pos_checkout_dialog_sections.s116', "دليفرو"), t('pos.pos_workspace.pos_checkout_dialog_sections.s117', "جاهز"), t('pos.pos_workspace.pos_checkout_dialog_sections.s118', "كاري")].some(k => (pos.note || '').includes(k))
               : (pos.note || '').includes(channel.label.split(' ')[0]);
 
             return (
@@ -1534,7 +1539,7 @@ export function PosCheckoutDeliverySection({ pos, deliveryReps }: { pos: PosWork
             }}
             style={{ flex: 1, fontSize: '13px', padding: '6px 4px', minHeight: '38px', fontWeight: 700 }}
           >
-            {status === 'cod' ? 'تحصيل من العميل' : status === 'prepaid_by_rep' ? 'خالص من المندوب' : 'خالص أونلاين'}
+            {status === 'cod' ? t('pos.pos_workspace.pos_checkout_dialog_sections.s119', "تحصيل من العميل") : status === 'prepaid_by_rep' ? t('pos.pos_workspace.pos_checkout_dialog_sections.s120', "خالص من المندوب") : t('pos.pos_workspace.pos_checkout_dialog_sections.s121', "خالص أونلاين")}
           </Button>
         ))}
       </div>

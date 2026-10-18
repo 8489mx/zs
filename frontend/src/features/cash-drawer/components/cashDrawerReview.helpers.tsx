@@ -1,4 +1,6 @@
+import i18n from '@/lib/i18n';
 import { getGlobalCurrencySymbol } from '@/lib/currencies';
+
 export type ComparisonRow = {
   key: string;
   label: string;
@@ -46,8 +48,9 @@ export function formatSignedCount(value: number): string {
 }
 
 export function differenceLabel(value: number): string {
+  const isEn = i18n.language === 'en';
   const money = formatMoney(Math.abs(value));
-  if (Math.abs(value) <= 0.009) return `${formatMoney(0)} (مطابق)`;
+  if (Math.abs(value) <= 0.009) return isEn ? `${formatMoney(0)} (Matched)` : `${formatMoney(0)} (مطابق)`;
   if (value < 0) return `-${money}`;
   return `+${money}`;
 }
@@ -72,13 +75,16 @@ export function formatTimeOnly(value?: string): string {
 }
 
 export function formatDuration(startIso?: string, endIso?: string): string {
+  const isEn = i18n.language === 'en';
   const start = parseIso(startIso);
   const end = parseIso(endIso);
   if (!start || !end || end <= start) return '—';
   const totalMinutes = Math.floor((end.getTime() - start.getTime()) / 60000);
   const hours = Math.floor(totalMinutes / 60);
   const minutes = totalMinutes % 60;
-  return `${formatCount(hours)} ساعات و ${formatCount(minutes)} دقيقة`;
+  return isEn
+    ? `${formatCount(hours)} hrs & ${formatCount(minutes)} mins`
+    : `${formatCount(hours)} ساعات و ${formatCount(minutes)} دقيقة`;
 }
 
 export function toDisplayCount(value?: number | null): string {
@@ -92,6 +98,7 @@ export function renderOperationDetails(
   declaredCount?: number | null,
   declaredTotal?: number | null,
 ) {
+  const isEn = i18n.language === 'en';
   const safeRows = Array.isArray(rows) ? rows : [];
   const count = safeRows.length;
   const total = safeRows.reduce((sum, row) => sum + toMoney(row.amount || 0), 0);
@@ -100,19 +107,38 @@ export function renderOperationDetails(
 
   return (
     <details className="cash-drawer-review-accordion">
-      <summary><span>{title}</span><span className="muted small">{formatCount(summaryCount)} عملية — {formatMoney(summaryTotal)}</span></summary>
+      <summary>
+        <span>{title}</span>
+        <span className="muted small">
+          {formatCount(summaryCount)} {isEn ? 'txns' : 'عملية'} — {formatMoney(summaryTotal)}
+        </span>
+      </summary>
       {safeRows.length ? (
         <div className="table-wrap">
           <table>
-            <thead><tr><th>رقم العملية</th><th>المبلغ</th><th>المرجع</th></tr></thead>
+            <thead>
+              <tr>
+                <th>{isEn ? 'Tx No.' : 'رقم العملية'}</th>
+                <th>{isEn ? 'Amount' : 'المبلغ'}</th>
+                <th>{isEn ? 'Reference' : 'المرجع'}</th>
+              </tr>
+            </thead>
             <tbody>
               {safeRows.map((row, index) => (
-                <tr key={`${title}-${index}`}><td>{formatCount(index + 1)}</td><td>{formatMoney(toMoney(row.amount || 0))}</td><td>{row.reference || '—'}</td></tr>
+                <tr key={`${title}-${index}`}>
+                  <td>{formatCount(index + 1)}</td>
+                  <td>{formatMoney(toMoney(row.amount || 0))}</td>
+                  <td>{row.reference || '—'}</td>
+                </tr>
               ))}
             </tbody>
           </table>
         </div>
-      ) : <p className="muted small" style={{ margin: 0 }}>لا توجد تفاصيل مسجلة لهذا البند.</p>}
+      ) : (
+        <p className="muted small" style={{ margin: 0 }}>
+          {isEn ? 'No details recorded for this item.' : 'لا توجد تفاصيل مسجلة لهذا البند.'}
+        </p>
+      )}
     </details>
   );
 }

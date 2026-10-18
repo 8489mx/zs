@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
@@ -13,6 +14,7 @@ export interface CreateFiscalYearModalProps {
 }
 
 export function CreateFiscalYearModal({ open, onClose, onCreated }: CreateFiscalYearModalProps) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const currentYear = new Date().getFullYear();
 
@@ -75,8 +77,8 @@ export function CreateFiscalYearModal({ open, onClose, onCreated }: CreateFiscal
     <StandardDialog
       open={open}
       onClose={onClose}
-      title="إضافة سنة مالية جديدة"
-      subtitle="تحديد النطاق الزمني والبيانات التعريفية للدورة المحاسبية السنوية"
+      title={t('accounting.fiscal_years.create_fiscal_year_modal.s0', "إضافة سنة مالية جديدة")}
+      subtitle={t('accounting.fiscal_years.create_fiscal_year_modal.s1', "تحديد النطاق الزمني والبيانات التعريفية للدورة المحاسبية السنوية")}
       size="md"
     >
       <form id="create-fiscal-year-form" onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
@@ -111,19 +113,19 @@ export function CreateFiscalYearModal({ open, onClose, onCreated }: CreateFiscal
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid #e2e8f0', paddingBottom: '6px' }}>
             <FileTextIcon size={15} style={{ color: '#170e5e' }} />
-            <span style={{ fontSize: '12px', fontWeight: 700, color: '#1e293b' }}>البيانات التعريفية</span>
+            <span style={{ fontSize: '12px', fontWeight: 700, color: '#1e293b' }}>{t('accounting.fiscal_years.create_fiscal_year_modal.s2', "البيانات التعريفية")}</span>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '12px' }}>
             <div>
               <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                اسم السنة المالية <span style={{ color: '#e11d48' }}>*</span>
+                {t('accounting.fiscal_years.create_fiscal_year_modal.s3', "اسم السنة المالية")} <span style={{ color: '#e11d48' }}>*</span>
               </label>
               <input
                 type="text"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="مثال: السنة المالية 2025"
+                placeholder={t('accounting.fiscal_years.create_fiscal_year_modal.s4', "مثال: السنة المالية 2025")}
                 style={{
                   width: '100%',
                   padding: '8px 12px',
@@ -139,13 +141,13 @@ export function CreateFiscalYearModal({ open, onClose, onCreated }: CreateFiscal
 
             <div>
               <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                كود السنة المالية
+                {t('accounting.fiscal_years.create_fiscal_year_modal.s5', "كود السنة المالية")}
               </label>
               <input
                 type="text"
                 value={formData.code || ''}
                 onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-                placeholder="مثال: FY-2025"
+                placeholder={t('accounting.fiscal_years.create_fiscal_year_modal.s6', "مثال: FY-2025")}
                 dir="ltr"
                 style={{
                   width: '100%',
@@ -174,13 +176,13 @@ export function CreateFiscalYearModal({ open, onClose, onCreated }: CreateFiscal
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid #e2e8f0', paddingBottom: '6px' }}>
             <CalendarIcon size={15} style={{ color: '#170e5e' }} />
-            <span style={{ fontSize: '12px', fontWeight: 700, color: '#1e293b' }}>النطاق الزمني للدورة</span>
+            <span style={{ fontSize: '12px', fontWeight: 700, color: '#1e293b' }}>{t('accounting.fiscal_years.create_fiscal_year_modal.s7', "النطاق الزمني للدورة")}</span>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
             <div>
               <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                تاريخ بداية السنة <span style={{ color: '#e11d48' }}>*</span>
+                {t('accounting.fiscal_years.create_fiscal_year_modal.s8', "تاريخ بداية السنة")} <span style={{ color: '#e11d48' }}>*</span>
               </label>
               <input
                 type="date"
@@ -201,7 +203,7 @@ export function CreateFiscalYearModal({ open, onClose, onCreated }: CreateFiscal
 
             <div>
               <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                تاريخ نهاية السنة <span style={{ color: '#e11d48' }}>*</span>
+                {t('accounting.fiscal_years.create_fiscal_year_modal.s9', "تاريخ نهاية السنة")} <span style={{ color: '#e11d48' }}>*</span>
               </label>
               <input
                 type="date"
@@ -232,14 +234,14 @@ export function CreateFiscalYearModal({ open, onClose, onCreated }: CreateFiscal
               lineHeight: 1.6,
             }}
           >
-            تنبيه: يجب ألا تتداخل التواريخ المحددة مع أي سنة مالية أخرى مسجلة لنفس المنشأة. ستكون حالة السنة المالية تلقائياً «مفتوحة» لاستقبال القيود والعمليات حتى يحين موعد إقفالها.
+            {t('accounting.fiscal_years.create_fiscal_year_modal.s10', "تنبيه: يجب ألا تتداخل التواريخ المحددة مع أي سنة مالية أخرى مسجلة لنفس المنشأة. ستكون حالة السنة المالية تلقائياً «مفتوحة» لاستقبال القيود والعمليات حتى يحين موعد إقفالها.")}
           </div>
         </div>
       </form>
 
       <StandardDialogFooter>
         <Button type="button" variant="secondary" onClick={onClose} disabled={createMutation.isPending} style={{ padding: '8px 18px', fontSize: '13px', borderRadius: '8px' }}>
-          إلغاء
+          {t('accounting.fiscal_years.create_fiscal_year_modal.s11', "إلغاء")}
         </Button>
         <Button
           type="submit"
@@ -257,7 +259,7 @@ export function CreateFiscalYearModal({ open, onClose, onCreated }: CreateFiscal
             opacity: createMutation.isPending ? 0.6 : 1,
           }}
         >
-          {createMutation.isPending ? 'جاري الحفظ...' : 'حفظ السنة المالية'}
+          {createMutation.isPending ? t('accounting.fiscal_years.create_fiscal_year_modal.s12', "جاري الحفظ...") : t('accounting.fiscal_years.create_fiscal_year_modal.s13', "حفظ السنة المالية")}
         </Button>
       </StandardDialogFooter>
     </StandardDialog>

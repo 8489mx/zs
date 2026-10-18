@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useMemo, useRef } from 'react';
 import { SearchIcon, CompassIcon } from '@/shared/components/icons/AppIcons';
 import { PORTALS_LIST, type PortalItem } from '../components/portals-data';
@@ -5,6 +6,7 @@ import { PortalCard } from '../components/PortalCard';
 import { PortalQrModal } from '../components/PortalQrModal';
 
 export function PortalsHubPage() {
+  const { t } = useTranslation();
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [activeQrPortal, setActiveQrPortal] = useState<PortalItem | null>(null);
@@ -120,7 +122,7 @@ export function PortalsHubPage() {
                 whiteSpace: 'nowrap',
               }}
             >
-              مركز البوابات الرقمية وشاشات الخدمة الذاتية
+              {t('portals_hub.portals_hub_page.s0', "مركز البوابات الرقمية وشاشات الخدمة الذاتية")}
             </h1>
             <span
               style={{
@@ -131,7 +133,7 @@ export function PortalsHubPage() {
                 whiteSpace: 'nowrap',
               }}
             >
-              دليل الوصول الموحد لكافة بوابات وشاشات المنظومة
+              {t('portals_hub.portals_hub_page.s1', "دليل الوصول الموحد لكافة بوابات وشاشات المنظومة")}
             </span>
           </div>
         </div>
@@ -169,7 +171,7 @@ export function PortalsHubPage() {
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="ابحث عن بوابة، شاشة، أو دور وظيفي..."
+              placeholder={t('portals_hub.portals_hub_page.s2', "ابحث عن بوابة، شاشة، أو دور وظيفي...")}
               style={{
                 width: '100%',
                 height: '32px',
@@ -202,8 +204,8 @@ export function PortalsHubPage() {
                   tabsContainerRef.current.scrollBy({ left: -140, behavior: 'smooth' });
                 }
               }}
-              title="تمرير لليسار"
-              aria-label="تمرير لليسار"
+              title={t('portals_hub.portals_hub_page.s3', "تمرير لليسار")}
+              aria-label={t('portals_hub.portals_hub_page.s4', "تمرير لليسار")}
               style={{
                 width: '24px',
                 height: '24px',
@@ -258,12 +260,12 @@ export function PortalsHubPage() {
             >
               {[
                 { id: 'all', label: `الكل (${PORTALS_LIST.length})` },
-                { id: 'logistics', label: 'شحن ولوجستيات' },
-                { id: 'projects', label: 'مشاريع ومقاولات' },
-                { id: 'staff', label: 'خدمة ذاتية' },
-                { id: 'field', label: 'توزيع وميداني' },
-                { id: 'branch', label: 'تشغيل وصالة' },
-                { id: 'management', label: 'إدارة ورقابة' },
+                { id: 'logistics', label: t('portals_hub.portals_hub_page.s5', "شحن ولوجستيات") },
+                { id: 'projects', label: t('portals_hub.portals_hub_page.s6', "مشاريع ومقاولات") },
+                { id: 'staff', label: t('portals_hub.portals_hub_page.s7', "خدمة ذاتية") },
+                { id: 'field', label: t('portals_hub.portals_hub_page.s8', "توزيع وميداني") },
+                { id: 'branch', label: t('portals_hub.portals_hub_page.s9', "تشغيل وصالة") },
+                { id: 'management', label: t('portals_hub.portals_hub_page.s10', "إدارة ورقابة") },
               ].map((tab) => {
                 const isActive = selectedCategory === tab.id;
                 return (
@@ -309,8 +311,8 @@ export function PortalsHubPage() {
                   tabsContainerRef.current.scrollBy({ left: 140, behavior: 'smooth' });
                 }
               }}
-              title="تمرير لليمين"
-              aria-label="تمرير لليمين"
+              title={t('portals_hub.portals_hub_page.s11', "تمرير لليمين")}
+              aria-label={t('portals_hub.portals_hub_page.s12', "تمرير لليمين")}
               style={{
                 width: '24px',
                 height: '24px',

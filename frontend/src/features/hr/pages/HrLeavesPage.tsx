@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useCallback, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '@/shared/components/page-header';
@@ -30,6 +31,7 @@ type LeaveFormState = {
 type QuickFilter = 'all' | 'pending' | 'approved' | 'rejected' | 'unpaid';
 
 export function HrLeavesPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const mutations = useHrMutations();
   const [showCreate, setShowCreate] = useState(false);
@@ -198,15 +200,15 @@ export function HrLeavesPage() {
     <div className="page-stack page-shell" dir="rtl">
       <main className="document-prototype-column" style={{ paddingBottom: '20px' }}>
         <PageHeader
-          title="الإجازات"
-          description="إدارة ومراجعة طلبات الإجازات ومتابعة الإجازات غير المدفوعة المؤثرة على المرتبات."
+          title={t('hr.hr_leaves_page.s0', "الإجازات")}
+          description={t('hr.hr_leaves_page.s1', "إدارة ومراجعة طلبات الإجازات ومتابعة الإجازات غير المدفوعة المؤثرة على المرتبات.")}
           actions={
             <div className="actions compact-actions">
               <Button type="button" onClick={() => setShowCreate((current) => !current)}>
-                {showCreate ? 'إغلاق النموذج' : '+ طلب إجازة'}
+                {showCreate ? t('hr.hr_leaves_page.s2', "إغلاق النموذج") : t('hr.hr_leaves_page.s3', "+ طلب إجازة")}
               </Button>
-              <Button variant="secondary" onClick={() => navigate('/hr/payroll')}>المرتبات</Button>
-              <Button variant="secondary" onClick={() => navigate('/hr/employees')}>الموظفون</Button>
+              <Button variant="secondary" onClick={() => navigate('/hr/payroll')}>{t('hr.hr_leaves_page.s4', "المرتبات")}</Button>
+              <Button variant="secondary" onClick={() => navigate('/hr/employees')}>{t('hr.hr_leaves_page.s5', "الموظفون")}</Button>
             </div>
           }
         />
@@ -235,18 +237,18 @@ export function HrLeavesPage() {
           {/* Compact Single-Row KPI Summary Bar */}
           <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 14px', marginBottom: '16px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-              <span style={{ fontSize: '0.825rem', fontWeight: 800, color: '#0f172a' }}>ملخص طلبات الإجازات</span>
-              <span style={{ fontSize: '0.725rem', color: '#64748b' }}>اضغط على أي مؤشر لتصفية الطلبات فوراً</span>
+              <span style={{ fontSize: '0.825rem', fontWeight: 800, color: '#0f172a' }}>{t('hr.hr_leaves_page.s6', "ملخص طلبات الإجازات")}</span>
+              <span style={{ fontSize: '0.725rem', color: '#64748b' }}>{t('hr.hr_leaves_page.s7', "اضغط على أي مؤشر لتصفية الطلبات فوراً")}</span>
             </div>
             
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, minmax(0, 1fr))', gap: '8px' }}>
               {[
-                { label: 'إجمالي الطلبات', value: summary.total, onClick: () => { setQuickFilter('all'); setStatusFilter(''); setPage(1); }, isAlert: false, active: quickFilter === 'all' && !statusFilter },
-                { label: 'قيد المراجعة', value: summary.pending, onClick: () => { setQuickFilter('pending'); setStatusFilter(''); setPage(1); }, isAlert: summary.pending > 0, active: quickFilter === 'pending' },
-                { label: 'معتمدة', value: summary.approved, onClick: () => { setQuickFilter('approved'); setStatusFilter(''); setPage(1); }, isAlert: false, active: quickFilter === 'approved' },
-                { label: 'مرفوضة', value: summary.rejected, onClick: () => { setQuickFilter('rejected'); setStatusFilter(''); setPage(1); }, isAlert: false, active: quickFilter === 'rejected' },
-                { label: 'غير مدفوعة', value: summary.unpaid, onClick: () => { setQuickFilter('unpaid'); setStatusFilter(''); setPage(1); }, isAlert: false, active: quickFilter === 'unpaid' },
-                { label: 'ظاهر حالياً', value: summary.visible, onClick: () => {}, isAlert: false, active: false },
+                { label: t('hr.hr_leaves_page.s8', "إجمالي الطلبات"), value: summary.total, onClick: () => { setQuickFilter('all'); setStatusFilter(''); setPage(1); }, isAlert: false, active: quickFilter === 'all' && !statusFilter },
+                { label: t('hr.hr_leaves_page.s9', "قيد المراجعة"), value: summary.pending, onClick: () => { setQuickFilter('pending'); setStatusFilter(''); setPage(1); }, isAlert: summary.pending > 0, active: quickFilter === 'pending' },
+                { label: t('hr.hr_leaves_page.s10', "معتمدة"), value: summary.approved, onClick: () => { setQuickFilter('approved'); setStatusFilter(''); setPage(1); }, isAlert: false, active: quickFilter === 'approved' },
+                { label: t('hr.hr_leaves_page.s11', "مرفوضة"), value: summary.rejected, onClick: () => { setQuickFilter('rejected'); setStatusFilter(''); setPage(1); }, isAlert: false, active: quickFilter === 'rejected' },
+                { label: t('hr.hr_leaves_page.s12', "غير مدفوعة"), value: summary.unpaid, onClick: () => { setQuickFilter('unpaid'); setStatusFilter(''); setPage(1); }, isAlert: false, active: quickFilter === 'unpaid' },
+                { label: t('hr.hr_leaves_page.s13', "ظاهر حالياً"), value: summary.visible, onClick: () => {}, isAlert: false, active: false },
               ].map((stat, idx) => (
                 <div
                   key={idx}
@@ -283,7 +285,7 @@ export function HrLeavesPage() {
             <input
               value={search}
               onChange={(event) => { setSearch(event.target.value); setPage(1); }}
-              placeholder="بحث باسم الموظف أو الكود..."
+              placeholder={t('hr.hr_leaves_page.s14', "بحث باسم الموظف أو الكود...")}
               style={{ width: '190px', minWidth: '150px', padding: '5px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.825rem', background: '#fff', boxSizing: 'border-box' }}
             />
 
@@ -292,7 +294,7 @@ export function HrLeavesPage() {
                 value={leaveTypeFilter}
                 onChange={(val) => { setLeaveTypeFilter(val); setPage(1); }}
                 options={[
-                  { value: 'all', label: 'كل أنواع الإجازات' },
+                  { value: 'all', label: t('hr.hr_leaves_page.s15', "كل أنواع الإجازات") },
                   ...leaveTypes.map((type) => ({ value: String(type.id), label: text(type.name) || '—' })),
                 ]}
               />
@@ -300,22 +302,22 @@ export function HrLeavesPage() {
 
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#475569', whiteSpace: 'nowrap' }}>من:</span>
+              <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#475569', whiteSpace: 'nowrap' }}>{t('hr.hr_leaves_page.s16', "من:")}</span>
               <input type="date" value={fromDateFilter} onChange={(event) => { setFromDateFilter(normalizeArabicDigits(event.target.value)); setPage(1); }} style={{ padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.8rem', background: '#fff' }} />
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#475569', whiteSpace: 'nowrap' }}>إلى:</span>
+              <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#475569', whiteSpace: 'nowrap' }}>{t('hr.hr_leaves_page.s17', "إلى:")}</span>
               <input type="date" value={toDateFilter} onChange={(event) => { setToDateFilter(normalizeArabicDigits(event.target.value)); setPage(1); }} style={{ padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.8rem', background: '#fff' }} />
             </div>
 
             <div style={{ display: 'flex', gap: '4px', alignItems: 'center', flexWrap: 'wrap', marginRight: 'auto' }}>
               {[
-                { label: 'الكل', value: 'all' },
-                { label: 'قيد المراجعة', value: 'pending' },
-                { label: 'معتمدة', value: 'approved' },
-                { label: 'مرفوضة', value: 'rejected' },
-                { label: 'غير مدفوعة', value: 'unpaid' },
+                { label: t('hr.hr_leaves_page.s18', "الكل"), value: 'all' },
+                { label: t('hr.hr_leaves_page.s19', "قيد المراجعة"), value: 'pending' },
+                { label: t('hr.hr_leaves_page.s20', "معتمدة"), value: 'approved' },
+                { label: t('hr.hr_leaves_page.s21', "مرفوضة"), value: 'rejected' },
+                { label: t('hr.hr_leaves_page.s22', "غير مدفوعة"), value: 'unpaid' },
               ].map((tab) => (
                 <Button
                   key={tab.value}
@@ -330,7 +332,7 @@ export function HrLeavesPage() {
 
               {isSearchOrFilterActive && (
                 <Button type="button" variant="secondary" onClick={resetFilters} style={{ padding: '4px 8px', fontSize: '0.75rem' }}>
-                  مسح
+                  {t('hr.hr_leaves_page.s23', "مسح")}
                 </Button>
               )}
             </div>
@@ -341,10 +343,10 @@ export function HrLeavesPage() {
             isError={leaveRequestsQuery.isError}
             error={leaveRequestsQuery.error}
             isEmpty={!requests.length || !visibleRequests.length}
-            loadingText="جاري تحميل طلبات الإجازة..."
-            errorTitle="تعذر تحميل طلبات الإجازة."
-            emptyTitle={isSearchOrFilterActive ? 'لا توجد نتائج مطابقة للفلاتر الحالية.' : 'لا توجد طلبات إجازة حتى الآن.'}
-            emptyHint={isSearchOrFilterActive ? 'جرّب تعديل الفلاتر أو إزالة البحث.' : 'ابدأ بإضافة طلب إجازة جديد من الزر أعلى الصفحة.'}
+            loadingText={t('hr.hr_leaves_page.s24', "جاري تحميل طلبات الإجازة...")}
+            errorTitle={t('hr.hr_leaves_page.s25', "تعذر تحميل طلبات الإجازة.")}
+            emptyTitle={isSearchOrFilterActive ? t('hr.hr_leaves_page.s26', "لا توجد نتائج مطابقة للفلاتر الحالية.") : t('hr.hr_leaves_page.s27', "لا توجد طلبات إجازة حتى الآن.")}
+            emptyHint={isSearchOrFilterActive ? t('hr.hr_leaves_page.s28', "جرّب تعديل الفلاتر أو إزالة البحث.") : t('hr.hr_leaves_page.s29', "ابدأ بإضافة طلب إجازة جديد من الزر أعلى الصفحة.")}
           >
             <DataTable
               rows={visibleRequests}
@@ -359,30 +361,30 @@ export function HrLeavesPage() {
                   setPageSize(next);
                   setPage(1);
                 },
-                itemLabel: 'طلب',
+                itemLabel: t('hr.hr_leaves_page.s30', "طلب"),
               }}
               columns={[
-                { key: 'employeeNo', header: 'كود الموظف', cell: (row) => text(row.employeeNo) || '—' },
-                { key: 'employeeName', header: 'اسم الموظف', cell: (row) => text(row.employeeName) || '—' },
-                { key: 'leaveType', header: 'نوع الإجازة', cell: (row) => text(row.leaveTypeName || row.leaveType) || '—' },
-                { key: 'startDate', header: 'من تاريخ', cell: (row) => toDateOnly(row.startDate) || '—' },
-                { key: 'endDate', header: 'إلى تاريخ', cell: (row) => toDateOnly(row.endDate) || '—' },
-                { key: 'daysCount', header: 'عدد الأيام', cell: (row) => Number(row.daysCount || 0).toFixed(2) },
-                { key: 'status', header: 'الحالة', cell: (row) => leaveStatusLabel(row.status) },
-                { key: 'isPaid', header: 'النوع المالي', cell: (row) => (!isUnpaidLeave(row) ? 'مدفوعة' : 'غير مدفوعة') },
-                { key: 'notes', header: 'ملاحظات', cell: (row) => text(row.notes || row.reason || '') || '—' },
+                { key: 'employeeNo', header: t('hr.hr_leaves_page.s31', "كود الموظف"), cell: (row) => text(row.employeeNo) || '—' },
+                { key: 'employeeName', header: t('hr.hr_leaves_page.s32', "اسم الموظف"), cell: (row) => text(row.employeeName) || '—' },
+                { key: 'leaveType', header: t('hr.hr_leaves_page.s33', "نوع الإجازة"), cell: (row) => text(row.leaveTypeName || row.leaveType) || '—' },
+                { key: 'startDate', header: t('hr.hr_leaves_page.s34', "من تاريخ"), cell: (row) => toDateOnly(row.startDate) || '—' },
+                { key: 'endDate', header: t('hr.hr_leaves_page.s35', "إلى تاريخ"), cell: (row) => toDateOnly(row.endDate) || '—' },
+                { key: 'daysCount', header: t('hr.hr_leaves_page.s36', "عدد الأيام"), cell: (row) => Number(row.daysCount || 0).toFixed(2) },
+                { key: 'status', header: t('hr.hr_leaves_page.s37', "الحالة"), cell: (row) => leaveStatusLabel(row.status) },
+                { key: 'isPaid', header: t('hr.hr_leaves_page.s38', "النوع المالي"), cell: (row) => (!isUnpaidLeave(row) ? t('hr.hr_leaves_page.s39', "مدفوعة") : t('hr.hr_leaves_page.s40', "غير مدفوعة")) },
+                { key: 'notes', header: t('hr.hr_leaves_page.s41', "ملاحظات"), cell: (row) => text(row.notes || row.reason || '') || '—' },
                 {
                   key: 'actions',
-                  header: 'إجراء',
+                  header: t('hr.hr_leaves_page.s42', "إجراء"),
                   cell: (row) => {
                     const rowId = String(row.id);
                     const isUnpaid = isUnpaidLeave(row);
                     return (
                       <div className="actions compact-actions">
-                        {row.status === 'pending' ? <Button type="button" variant="secondary" onClick={() => void approveRequest(rowId)} disabled={mutations.approveLeaveRequest.isPending} style={{ padding: '2px 8px', fontSize: '0.75rem' }}>اعتماد</Button> : null}
-                        {row.status === 'pending' ? <Button type="button" variant="secondary" onClick={() => { setRejectTargetId(rowId); setRejectNotes(''); }} disabled={mutations.rejectLeaveRequest.isPending} style={{ padding: '2px 8px', fontSize: '0.75rem' }}>رفض</Button> : null}
-                        {row.status !== 'cancelled' ? <Button type="button" variant="secondary" onClick={() => void cancelRequest(rowId)} disabled={mutations.cancelLeaveRequest.isPending} style={{ padding: '2px 8px', fontSize: '0.75rem' }}>إلغاء</Button> : null}
-                        {isUnpaid ? <span className="muted small" style={{ fontSize: '0.7rem' }}>تؤثر بالمرتب</span> : null}
+                        {row.status === 'pending' ? <Button type="button" variant="secondary" onClick={() => void approveRequest(rowId)} disabled={mutations.approveLeaveRequest.isPending} style={{ padding: '2px 8px', fontSize: '0.75rem' }}>{t('hr.hr_leaves_page.s43', "اعتماد")}</Button> : null}
+                        {row.status === 'pending' ? <Button type="button" variant="secondary" onClick={() => { setRejectTargetId(rowId); setRejectNotes(''); }} disabled={mutations.rejectLeaveRequest.isPending} style={{ padding: '2px 8px', fontSize: '0.75rem' }}>{t('hr.hr_leaves_page.s44', "رفض")}</Button> : null}
+                        {row.status !== 'cancelled' ? <Button type="button" variant="secondary" onClick={() => void cancelRequest(rowId)} disabled={mutations.cancelLeaveRequest.isPending} style={{ padding: '2px 8px', fontSize: '0.75rem' }}>{t('hr.hr_leaves_page.s45', "إلغاء")}</Button> : null}
+                        {isUnpaid ? <span className="muted small" style={{ fontSize: '0.7rem' }}>{t('hr.hr_leaves_page.s46', "تؤثر بالمرتب")}</span> : null}
                       </div>
                     );
                   },
@@ -393,19 +395,19 @@ export function HrLeavesPage() {
 
           {rejectTargetId ? (
             <div style={{ marginTop: '16px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', padding: '12px' }}>
-              <div style={{ fontWeight: 700, color: '#991b1b', marginBottom: '8px', fontSize: '0.85rem' }}>سبب رفض طلب الإجازة:</div>
+              <div style={{ fontWeight: 700, color: '#991b1b', marginBottom: '8px', fontSize: '0.85rem' }}>{t('hr.hr_leaves_page.s47', "سبب رفض طلب الإجازة:")}</div>
               <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                 <input
                   type="text"
                   value={rejectNotes}
                   onChange={(event) => setRejectNotes(event.target.value)}
-                  placeholder="اكتب سبب الرفض هنا..."
+                  placeholder={t('hr.hr_leaves_page.s48', "اكتب سبب الرفض هنا...")}
                   style={{ flex: 1, padding: '4px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
                 />
                 <Button type="button" onClick={() => void rejectRequest(rejectTargetId)} disabled={mutations.rejectLeaveRequest.isPending} style={{ padding: '4px 12px', fontSize: '0.85rem' }}>
-                  {mutations.rejectLeaveRequest.isPending ? 'جاري الرفض...' : 'تأكيد الرفض'}
+                  {mutations.rejectLeaveRequest.isPending ? t('hr.hr_leaves_page.s49', "جاري الرفض...") : t('hr.hr_leaves_page.s50', "تأكيد الرفض")}
                 </Button>
-                <Button type="button" variant="secondary" onClick={() => { setRejectTargetId(''); setRejectNotes(''); }} style={{ padding: '4px 12px', fontSize: '0.85rem' }}>إلغاء</Button>
+                <Button type="button" variant="secondary" onClick={() => { setRejectTargetId(''); setRejectNotes(''); }} style={{ padding: '4px 12px', fontSize: '0.85rem' }}>{t('hr.hr_leaves_page.s51', "إلغاء")}</Button>
               </div>
               {errors.reject ? <small style={{ color: '#dc2626', display: 'block', marginTop: '4px' }}>{errors.reject}</small> : null}
             </div>

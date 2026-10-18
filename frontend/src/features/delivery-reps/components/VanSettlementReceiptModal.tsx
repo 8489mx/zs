@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
@@ -21,6 +22,7 @@ export const VanSettlementReceiptModal: React.FC<VanSettlementReceiptModalProps>
   onClose,
   storeName,
 }) => {
+  const { t } = useTranslation();
   if (!receipt) return null;
 
   const isShortage = receipt.variance < -0.05;
@@ -53,14 +55,14 @@ export const VanSettlementReceiptModal: React.FC<VanSettlementReceiptModalProps>
     <StandardDialog
       open={true}
       onClose={onClose}
-      title="سند توريد واستلام نقدية الخزينة"
+      title={t('delivery_reps.van_settlement_receipt_modal.s0', "سند توريد واستلام نقدية الخزينة")}
       subtitle={`سند إخلاء طرف للرحلة #${receipt.tripId} | رقم السند: #${receipt.receiptNo}`}
-      badge="إبراء عهدة معتمد"
+      badge={t('delivery_reps.van_settlement_receipt_modal.s1', "إبراء عهدة معتمد")}
       width="min(480px, 96vw)"
       footerActions={
         <StandardDialogFooter
           onClose={onClose}
-          cancelText="إغلاق ومتابعة"
+          cancelText={t('delivery_reps.van_settlement_receipt_modal.s2', "إغلاق ومتابعة")}
           extraActions={
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
               <Button
@@ -77,7 +79,7 @@ export const VanSettlementReceiptModal: React.FC<VanSettlementReceiptModalProps>
                   height: '38px',
                 }}
               >
-                <span>مشاركة السند</span>
+                <span>{t('delivery_reps.van_settlement_receipt_modal.s3', "مشاركة السند")}</span>
               </Button>
               <Button
                 variant="primary"
@@ -94,7 +96,7 @@ export const VanSettlementReceiptModal: React.FC<VanSettlementReceiptModalProps>
                 }}
               >
                 <PrinterIcon size={15} />
-                <span>طباعة السند الحراري (80mm)</span>
+                <span>{t('delivery_reps.van_settlement_receipt_modal.s4', "طباعة السند الحراري (80mm)")}</span>
               </Button>
             </div>
           }
@@ -134,10 +136,10 @@ export const VanSettlementReceiptModal: React.FC<VanSettlementReceiptModalProps>
         </div>
 
         <h3 style={{ fontSize: '15px', fontWeight: 900, color: '#0f172a', margin: '0 0 2px' }}>
-          تم استلام النقدية واعتماد تصفية اليومية
+          {t('delivery_reps.van_settlement_receipt_modal.s5', "تم استلام النقدية واعتماد تصفية اليومية")}
         </h3>
         <p style={{ fontSize: '11.5px', color: '#64748b', margin: '0 0 12px' }}>
-          وثيقة رسمية ثنائية التوقيع تثبت استلام أمين الخزينة للمبالغ المورَّدة من المندوب
+          {t('delivery_reps.van_settlement_receipt_modal.s6', "وثيقة رسمية ثنائية التوقيع تثبت استلام أمين الخزينة للمبالغ المورَّدة من المندوب")}
         </p>
 
         {/* Official Voucher Preview Card */}
@@ -157,11 +159,11 @@ export const VanSettlementReceiptModal: React.FC<VanSettlementReceiptModalProps>
           {/* Header Info */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px dashed #e2e8f0', paddingBottom: '8px' }}>
             <div>
-              <div style={{ fontSize: '10.5px', color: '#64748b', fontWeight: 600 }}>المندوب المسلِّم:</div>
+              <div style={{ fontSize: '10.5px', color: '#64748b', fontWeight: 600 }}>{t('delivery_reps.van_settlement_receipt_modal.s7', "المندوب المسلِّم:")}</div>
               <div style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a' }}>{receipt.repName}</div>
             </div>
             <div style={{ textAlign: 'left' }}>
-              <div style={{ fontSize: '10.5px', color: '#64748b', fontWeight: 600 }}>أمين الخزينة المستلم:</div>
+              <div style={{ fontSize: '10.5px', color: '#64748b', fontWeight: 600 }}>{t('delivery_reps.van_settlement_receipt_modal.s8', "أمين الخزينة المستلم:")}</div>
               <div style={{ fontSize: '13px', fontWeight: 800, color: '#170e5e' }}>{receipt.cashierName}</div>
             </div>
           </div>
@@ -169,30 +171,30 @@ export const VanSettlementReceiptModal: React.FC<VanSettlementReceiptModalProps>
           {/* Financial Breakdown Table */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', fontSize: '11.5px', backgroundColor: '#f8fafc', padding: '8px 10px', borderRadius: '8px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', color: '#475569', fontWeight: 600 }}>
-              <span>إجمالي مبيعات الرحلة:</span>
+              <span>{t('delivery_reps.van_settlement_receipt_modal.s9', "إجمالي مبيعات الرحلة:")}</span>
               <span style={{ fontWeight: 800, color: '#0f172a' }}>{receipt.salesAmount.toFixed(2)} <CurrencySymbol /></span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', color: '#15803d', paddingRight: '10px' }}>
-              <span>• مبيعات كاش بالسيارة:</span>
+              <span>{t('delivery_reps.van_settlement_receipt_modal.s10', "• مبيعات كاش بالسيارة:")}</span>
               <span style={{ fontWeight: 700 }}>+{receipt.cashSales.toFixed(2)}</span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', color: '#b45309', paddingRight: '10px' }}>
-              <span>• مبيعات آجلة بالذمة:</span>
+              <span>{t('delivery_reps.van_settlement_receipt_modal.s11', "• مبيعات آجلة بالذمة:")}</span>
               <span style={{ fontWeight: 700 }}>{receipt.creditSales.toFixed(2)}</span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', color: '#0284c7', fontWeight: 700, borderTop: '1px dashed #e2e8f0', paddingTop: '4px' }}>
-              <span>تحصيلات نقدية (سندات قبض):</span>
+              <span>{t('delivery_reps.van_settlement_receipt_modal.s12', "تحصيلات نقدية (سندات قبض):")}</span>
               <span style={{ fontWeight: 800 }}>+{receipt.collectionsTotal.toFixed(2)} <CurrencySymbol /></span>
             </div>
             {receipt.cashRefunds > 0 && (
               <div style={{ display: 'flex', justifyContent: 'space-between', color: '#dc2626' }}>
-                <span>مرتجعات نقدية صُرفت كاش:</span>
+                <span>{t('delivery_reps.van_settlement_receipt_modal.s13', "مرتجعات نقدية صُرفت كاش:")}</span>
                 <span style={{ fontWeight: 700 }}>-{receipt.cashRefunds.toFixed(2)} <CurrencySymbol /></span>
               </div>
             )}
             {receipt.tripExpenses > 0 && (
               <div style={{ display: 'flex', justifyContent: 'space-between', color: '#dc2626' }}>
-                <span>مصروفات الرحلة المعتمدة:</span>
+                <span>{t('delivery_reps.van_settlement_receipt_modal.s14', "مصروفات الرحلة المعتمدة:")}</span>
                 <span style={{ fontWeight: 700 }}>-{receipt.tripExpenses.toFixed(2)} <CurrencySymbol /></span>
               </div>
             )}
@@ -209,7 +211,7 @@ export const VanSettlementReceiptModal: React.FC<VanSettlementReceiptModalProps>
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
               <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 700 }}>
-                صافي النقدية المطالب بها:
+                {t('delivery_reps.van_settlement_receipt_modal.s15', "صافي النقدية المطالب بها:")}
               </span>
               <span style={{ fontSize: '12.5px', fontWeight: 800, color: '#334155' }}>
                 {receipt.expectedCash.toFixed(2)} <CurrencySymbol />
@@ -218,7 +220,7 @@ export const VanSettlementReceiptModal: React.FC<VanSettlementReceiptModalProps>
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid rgba(0,0,0,0.06)', paddingTop: '6px' }}>
               <span style={{ fontSize: '13px', fontWeight: 900, color: '#0f172a' }}>
-                المبلغ المسلَّم فعلياً للخزينة:
+                {t('delivery_reps.van_settlement_receipt_modal.s16', "المبلغ المسلَّم فعلياً للخزينة:")}
               </span>
               <span style={{ fontSize: '17px', fontWeight: 900, color: '#0f172a' }}>
                 {receipt.countedCash.toFixed(2)} <CurrencySymbol />
@@ -240,9 +242,9 @@ export const VanSettlementReceiptModal: React.FC<VanSettlementReceiptModalProps>
               }}
             >
               {isMatched
-                ? 'الكاش مطابق تماماً للعهدة بنسبة 100% (إبراء ذمة المندوب)'
+                ? t('delivery_reps.van_settlement_receipt_modal.s17', "الكاش مطابق تماماً للعهدة بنسبة 100% (إبراء ذمة المندوب)")
                 : isShortage
-                ? `عجز نقدي مثبت: ${Math.abs(receipt.variance).toFixed(2)} ${receipt.variance < 0 ? 'ج.م' : ''} (تم قيده محاسبياً على عهدة المندوب)`
+                ? `عجز نقدي مثبت: ${Math.abs(receipt.variance).toFixed(2)} ${receipt.variance < 0 ? t('delivery_reps.van_settlement_receipt_modal.s18', "ج.م") : ''} (تم قيده محاسبياً على عهدة المندوب)`
                 : `فائض نقدي مثبت: +${receipt.variance.toFixed(2)} ج.م (تم قيده لحساب المنشأة)`}
             </div>
           </div>
@@ -263,14 +265,14 @@ export const VanSettlementReceiptModal: React.FC<VanSettlementReceiptModalProps>
                 alignItems: 'center',
               }}
             >
-              <span>عجز بضاعة السيارة بالجرد الفعلي:</span>
+              <span>{t('delivery_reps.van_settlement_receipt_modal.s19', "عجز بضاعة السيارة بالجرد الفعلي:")}</span>
               <span style={{ fontWeight: 900 }}>{receipt.stockVarianceAmount.toFixed(2)} <CurrencySymbol /></span>
             </div>
           )}
 
           {/* Clearance Notice */}
           <div style={{ fontSize: '10.5px', color: '#64748b', textAlign: 'center', lineHeight: 1.4 }}>
-            هذا السند يعتبر إخلاء طرف نهائي للمندوب عن النقدية المورّدة للرحلة المذكورة بموجب اعتماد المشرف وأمين الخزينة.
+            {t('delivery_reps.van_settlement_receipt_modal.s20', "هذا السند يعتبر إخلاء طرف نهائي للمندوب عن النقدية المورّدة للرحلة المذكورة بموجب اعتماد المشرف وأمين الخزينة.")}
           </div>
         </div>
       </div>

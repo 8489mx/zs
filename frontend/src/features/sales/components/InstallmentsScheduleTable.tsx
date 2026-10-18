@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 import { Button } from '@/shared/ui/button';
 import { formatCurrency } from '@/lib/format';
@@ -26,33 +27,34 @@ export const InstallmentsScheduleTable: React.FC<InstallmentsScheduleTableProps>
   onPay,
   onSendReminder,
 }) => {
+  const { t } = useTranslation();
   return (
     <div style={{ overflowX: 'auto' }}>
       <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right', fontSize: '13px' }}>
         <thead>
           <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>
-            <th style={{ padding: '12px 16px' }}>رقم العقد</th>
-            <th style={{ padding: '12px 16px' }}>العميل</th>
-            <th style={{ padding: '12px 16px' }}>رقم القسط</th>
-            <th style={{ padding: '12px 16px' }}>تاريخ الاستحقاق</th>
-            <th style={{ padding: '12px 16px' }}>قيمة القسط</th>
-            <th style={{ padding: '12px 16px' }}>المبلغ المسدد</th>
-            <th style={{ padding: '12px 16px' }}>المتبقي</th>
-            <th style={{ padding: '12px 16px' }}>الحالة</th>
-            <th style={{ padding: '12px 16px', textAlign: 'center' }}>إجراء السداد والتذكير</th>
+            <th style={{ padding: '12px 16px' }}>{t('sales.installments_schedule_table.s0', "رقم العقد")}</th>
+            <th style={{ padding: '12px 16px' }}>{t('sales.installments_schedule_table.s1', "العميل")}</th>
+            <th style={{ padding: '12px 16px' }}>{t('sales.installments_schedule_table.s2', "رقم القسط")}</th>
+            <th style={{ padding: '12px 16px' }}>{t('sales.installments_schedule_table.s3', "تاريخ الاستحقاق")}</th>
+            <th style={{ padding: '12px 16px' }}>{t('sales.installments_schedule_table.s4', "قيمة القسط")}</th>
+            <th style={{ padding: '12px 16px' }}>{t('sales.installments_schedule_table.s5', "المبلغ المسدد")}</th>
+            <th style={{ padding: '12px 16px' }}>{t('sales.installments_schedule_table.s6', "المتبقي")}</th>
+            <th style={{ padding: '12px 16px' }}>{t('sales.installments_schedule_table.s7', "الحالة")}</th>
+            <th style={{ padding: '12px 16px', textAlign: 'center' }}>{t('sales.installments_schedule_table.s8', "إجراء السداد والتذكير")}</th>
           </tr>
         </thead>
         <tbody>
           {isLoading ? (
             <tr>
               <td colSpan={9} style={{ textAlign: 'center', padding: '32px', color: '#64748b' }}>
-                جاري تحميل جدول الأقساط...
+                {t('sales.installments_schedule_table.s9', "جاري تحميل جدول الأقساط...")}
               </td>
             </tr>
           ) : installments.length === 0 ? (
             <tr>
               <td colSpan={9} style={{ textAlign: 'center', padding: '32px', color: '#94a3b8' }}>
-                لا توجد أقساط مطابقة للشروط المحددة
+                {t('sales.installments_schedule_table.s10', "لا توجد أقساط مطابقة للشروط المحددة")}
               </td>
             </tr>
           ) : (
@@ -107,7 +109,7 @@ export const InstallmentsScheduleTable: React.FC<InstallmentsScheduleTableProps>
                           onClick={() => onPay(inst)}
                           style={{ padding: '4px 10px', fontSize: '12px' }}
                         >
-                          تحصيل دفعة
+                          {t('sales.installments_schedule_table.s11', "تحصيل دفعة")}
                         </Button>
                         <Button
                           variant="secondary"
@@ -123,16 +125,16 @@ export const InstallmentsScheduleTable: React.FC<InstallmentsScheduleTableProps>
                             borderColor: '#bbf7d0',
                             color: '#15803d',
                           }}
-                          title={inst.customer_phone ? 'إرسال تذكير بموعد القسط عبر واتساب' : 'رقم الهاتف غير مسجل'}
+                          title={inst.customer_phone ? t('sales.installments_schedule_table.s12', "إرسال تذكير بموعد القسط عبر واتساب") : t('sales.installments_schedule_table.s13', "رقم الهاتف غير مسجل")}
                         >
                           <MessageSquareIcon size={13} />
-                          <span>تذكير</span>
+                          <span>{t('sales.installments_schedule_table.s14', "تذكير")}</span>
                         </Button>
                       </div>
                     ) : (
                       <span style={{ fontSize: '12px', color: '#166534', fontWeight: '600', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                         <CheckIcon size={13} />
-                        <span>مسدد بالكامل {inst.receipt_no ? `(${inst.receipt_no})` : ''}</span>
+                        <span>{t('sales.installments_schedule_table.s15', "مسدد بالكامل")} {inst.receipt_no ? `(${inst.receipt_no})` : ''}</span>
                       </span>
                     )}
                   </td>

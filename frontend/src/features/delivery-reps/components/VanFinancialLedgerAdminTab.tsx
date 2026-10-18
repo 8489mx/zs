@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
@@ -25,6 +26,8 @@ import {
 } from '@/shared/components/icons/AppIcons';
 
 export function VanFinancialLedgerAdminTab() {
+  const { t, i18n } = useTranslation();
+  const isEn = i18n.language === 'en';
   const queryClient = useQueryClient();
 
   // Filters state
@@ -320,18 +323,18 @@ export function VanFinancialLedgerAdminTab() {
   const getStatusBadge = (status: string, _method?: string | null, voucher?: string | null) => {
     switch (status) {
       case 'pending':
-        return { label: 'معلق وغير مسدد', bg: '#fef2f2', color: '#991b1b', border: '#fecaca' };
+        return { label: isEn ? 'Pending & Unsettled' : 'معلق وغير مسدد', bg: '#fef2f2', color: '#991b1b', border: '#fecaca' };
       case 'settled':
         return {
-          label: voucher ? `سداد نقدي (#${voucher})` : 'تم السداد بالخزينة',
+          label: voucher ? (isEn ? `Cash Payment (#${voucher})` : `سداد نقدي (#${voucher})`) : (isEn ? 'Settled in Safe' : 'تم السداد بالخزينة'),
           bg: '#f0fdf4',
           color: '#166534',
           border: '#bbf7d0',
         };
       case 'pushed_to_payroll':
-        return { label: 'مرحل لمسير الرواتب', bg: '#f8fafc', color: '#170e5e', border: '#e2e8f0' };
+        return { label: isEn ? 'Transferred to Payroll' : 'مرحل لمسير الرواتب', bg: '#f8fafc', color: '#170e5e', border: '#e2e8f0' };
       case 'waived':
-        return { label: 'إعفاء إداري معتمد', bg: '#f8fafc', color: '#475569', border: '#e2e8f0' };
+        return { label: isEn ? 'Administrative Waiver' : 'إعفاء إداري معتمد', bg: '#f8fafc', color: '#475569', border: '#e2e8f0' };
       default:
         return { label: status, bg: '#f8fafc', color: '#475569', border: '#e2e8f0' };
     }
@@ -374,7 +377,7 @@ export function VanFinancialLedgerAdminTab() {
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
             <span style={{ fontSize: '11.5px', color: '#475569', fontWeight: 700 }}>
-              إجمالي العجوزات المعلقة
+              {t('delivery_reps.van_financial_ledger_admin_tab.s0', "إجمالي العجوزات المعلقة")}
             </span>
             <div
               style={{
@@ -396,7 +399,7 @@ export function VanFinancialLedgerAdminTab() {
             <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748b' }}><CurrencySymbol /></span>
           </div>
           <div style={{ fontSize: '10.5px', color: '#94a3b8', marginTop: '4px' }}>
-            مطالب بها المناديب ولم تسدد
+            {t('delivery_reps.van_financial_ledger_admin_tab.s1', "مطالب بها المناديب ولم تسدد")}
           </div>
         </div>
 
@@ -416,7 +419,7 @@ export function VanFinancialLedgerAdminTab() {
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
             <span style={{ fontSize: '11.5px', color: '#475569', fontWeight: 700 }}>
-              مسدد نقداً بالخزينة
+              {t('delivery_reps.van_financial_ledger_admin_tab.s2', "مسدد نقداً بالخزينة")}
             </span>
             <div
               style={{
@@ -438,7 +441,7 @@ export function VanFinancialLedgerAdminTab() {
             <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748b' }}><CurrencySymbol /></span>
           </div>
           <div style={{ fontSize: '10.5px', color: '#94a3b8', marginTop: '4px' }}>
-            تم توريدها بموجب سندات قبض
+            {t('delivery_reps.van_financial_ledger_admin_tab.s3', "تم توريدها بموجب سندات قبض")}
           </div>
         </div>
 
@@ -458,7 +461,7 @@ export function VanFinancialLedgerAdminTab() {
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
             <span style={{ fontSize: '11.5px', color: '#475569', fontWeight: 700 }}>
-              مرحل لمسير الرواتب
+              {t('delivery_reps.van_financial_ledger_admin_tab.s4', "مرحل لمسير الرواتب")}
             </span>
             <div
               style={{
@@ -480,7 +483,7 @@ export function VanFinancialLedgerAdminTab() {
             <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748b' }}><CurrencySymbol /></span>
           </div>
           <div style={{ fontSize: '10.5px', color: '#94a3b8', marginTop: '4px' }}>
-            استقطاعات معتمدة بمسير الشهور
+            {t('delivery_reps.van_financial_ledger_admin_tab.s5', "استقطاعات معتمدة بمسير الشهور")}
           </div>
         </div>
 
@@ -500,7 +503,7 @@ export function VanFinancialLedgerAdminTab() {
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
             <span style={{ fontSize: '11.5px', color: '#475569', fontWeight: 700 }}>
-              العمولات والمكافآت
+              {t('delivery_reps.van_financial_ledger_admin_tab.s6', "العمولات والمكافآت")}
             </span>
             <div
               style={{
@@ -522,7 +525,7 @@ export function VanFinancialLedgerAdminTab() {
             <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748b' }}><CurrencySymbol /></span>
           </div>
           <div style={{ fontSize: '10.5px', color: '#94a3b8', marginTop: '4px' }}>
-            بونص تارجت وعمولات مبيعات
+            {t('delivery_reps.van_financial_ledger_admin_tab.s7', "بونص تارجت وعمولات مبيعات")}
           </div>
         </div>
 
@@ -542,7 +545,7 @@ export function VanFinancialLedgerAdminTab() {
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
             <span style={{ fontSize: '11.5px', color: '#475569', fontWeight: 700 }}>
-              صافي رصيد العهد المعلقة
+              {t('delivery_reps.van_financial_ledger_admin_tab.s8', "صافي رصيد العهد المعلقة")}
             </span>
             <div
               style={{
@@ -571,7 +574,7 @@ export function VanFinancialLedgerAdminTab() {
             <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748b' }}><CurrencySymbol /></span>
           </div>
           <div style={{ fontSize: '10.5px', color: '#94a3b8', marginTop: '4px' }}>
-            {summary.netRepBalance < 0 ? 'صافي مطلوب من المناديب' : 'صافي مستحق للمناديب'}
+            {summary.netRepBalance < 0 ? t('delivery_reps.van_financial_ledger_admin_tab.s9', "صافي مطلوب من المناديب") : t('delivery_reps.van_financial_ledger_admin_tab.s10', "صافي مستحق للمناديب")}
           </div>
         </div>
       </div>
@@ -606,13 +609,13 @@ export function VanFinancialLedgerAdminTab() {
                 value={selectedRepId}
                 onChange={(val) => setSelectedRepId(val)}
                 options={[
-                  { value: '', label: 'كافة مناديب التوزيع' },
+                  { value: '', label: t('delivery_reps.van_financial_ledger_admin_tab.s11', "كافة مناديب التوزيع") },
                   ...allReps.map((r) => ({
                     value: String(r.id),
                     label: `${r.name} ${r.phone ? `(${r.phone})` : ''}`,
                   })),
                 ]}
-                placeholder="اختر المندوب"
+                placeholder={t('delivery_reps.van_financial_ledger_admin_tab.s12', "اختر المندوب")}
               />
             </div>
 
@@ -622,13 +625,13 @@ export function VanFinancialLedgerAdminTab() {
                 value={selectedStatus}
                 onChange={(val) => setSelectedStatus(val)}
                 options={[
-                  { value: 'all', label: 'كافة الحالات' },
-                  { value: 'pending', label: 'المعلقة فقط (عجز)' },
-                  { value: 'settled', label: 'المسددة بالخزينة' },
-                  { value: 'pushed_to_payroll', label: 'المرحلة للرواتب' },
-                  { value: 'waived', label: 'المعفاة إدارياً' },
+                  { value: 'all', label: t('delivery_reps.van_financial_ledger_admin_tab.s13', "كافة الحالات") },
+                  { value: 'pending', label: t('delivery_reps.van_financial_ledger_admin_tab.s14', "المعلقة فقط (عجز)") },
+                  { value: 'settled', label: t('delivery_reps.van_financial_ledger_admin_tab.s15', "المسددة بالخزينة") },
+                  { value: 'pushed_to_payroll', label: t('delivery_reps.van_financial_ledger_admin_tab.s16', "المرحلة للرواتب") },
+                  { value: 'waived', label: t('delivery_reps.van_financial_ledger_admin_tab.s17', "المعفاة إدارياً") },
                 ]}
-                placeholder="حالة التسوية"
+                placeholder={t('delivery_reps.van_financial_ledger_admin_tab.s18', "حالة التسوية")}
               />
             </div>
 
@@ -647,9 +650,9 @@ export function VanFinancialLedgerAdminTab() {
                   fontWeight: 600,
                   color: '#334155',
                 }}
-                title="من تاريخ"
+                title={t('delivery_reps.van_financial_ledger_admin_tab.s19', "من تاريخ")}
               />
-              <span style={{ fontSize: '11px', color: '#64748b' }}>إلى</span>
+              <span style={{ fontSize: '11px', color: '#64748b' }}>{t('delivery_reps.van_financial_ledger_admin_tab.s20', "إلى")}</span>
               <input
                 type="date"
                 value={dateTo}
@@ -663,7 +666,7 @@ export function VanFinancialLedgerAdminTab() {
                   fontWeight: 600,
                   color: '#334155',
                 }}
-                title="إلى تاريخ"
+                title={t('delivery_reps.van_financial_ledger_admin_tab.s21', "إلى تاريخ")}
               />
               {(dateFrom || dateTo) && (
                 <button
@@ -682,7 +685,7 @@ export function VanFinancialLedgerAdminTab() {
                     padding: '0 4px',
                   }}
                 >
-                  إلغاء
+                  {t('delivery_reps.van_financial_ledger_admin_tab.s22', "إلغاء")}
                 </button>
               )}
             </div>
@@ -693,7 +696,7 @@ export function VanFinancialLedgerAdminTab() {
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="بحث برقم الرحلة، السند، السبب..."
+                placeholder={t('delivery_reps.van_financial_ledger_admin_tab.s23', "بحث برقم الرحلة، السند، السبب...")}
                 style={{
                   width: '100%',
                   height: '32px',
@@ -737,7 +740,7 @@ export function VanFinancialLedgerAdminTab() {
               }}
             >
               <RefreshCwIcon size={13} className={isRefreshing ? 'animate-spin' : ''} />
-              <span>تحديث</span>
+              <span>{t('delivery_reps.van_financial_ledger_admin_tab.s24', "تحديث")}</span>
             </Button>
 
             <Button
@@ -757,7 +760,7 @@ export function VanFinancialLedgerAdminTab() {
               }}
             >
               <PlusCircleIcon size={13} color="#170e5e" />
-              <span>+ إضافة بونص / عمولة</span>
+              <span>{t('delivery_reps.van_financial_ledger_admin_tab.s25', "+ إضافة بونص / عمولة")}</span>
             </Button>
 
             <Button
@@ -777,7 +780,7 @@ export function VanFinancialLedgerAdminTab() {
               }}
             >
               <SendIcon size={13} color="#ffffff" />
-              <span>ترحيل للمرتبات ({selectedIds.length})</span>
+              <span>{t('delivery_reps.van_financial_ledger_admin_tab.s26', "ترحيل للمرتبات (")}{selectedIds.length})</span>
             </Button>
           </div>
         </div>
@@ -797,7 +800,7 @@ export function VanFinancialLedgerAdminTab() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
             <span style={{ width: '3px', height: '14px', backgroundColor: '#170e5e', borderRadius: '2px', display: 'inline-block' }} />
             <h4 style={{ margin: 0, fontSize: '12.5px', fontWeight: 800, color: '#0f172a' }}>
-              موقف ذمم وعجوزات مناديب التوزيع ({summary.repsBreakdown.length} مندوب)
+              {t('delivery_reps.van_financial_ledger_admin_tab.s27', "موقف ذمم وعجوزات مناديب التوزيع (")}{summary.repsBreakdown.length} {t('delivery_reps.van_financial_ledger_admin_tab.s28', "مندوب)")}
             </h4>
           </div>
 
@@ -828,17 +831,17 @@ export function VanFinancialLedgerAdminTab() {
                     {r.repName}
                   </div>
                   <div style={{ fontSize: '10px', color: '#64748b', display: 'flex', gap: '4px', alignItems: 'center', marginTop: '2px' }}>
-                    <span>{r.itemsCount} حركات</span>
+                    <span>{r.itemsCount} {t('delivery_reps.van_financial_ledger_admin_tab.s29', "حركات")}</span>
                     {r.employeeName ? (
                       <span
                         style={{ color: '#166534', fontWeight: 600, cursor: 'pointer' }}
-                        title="انقر لتعديل ربط موظف HR"
+                        title={t('delivery_reps.van_financial_ledger_admin_tab.s30', "انقر لتعديل ربط موظف HR")}
                         onClick={() => {
                           setLinkingRep({ repId: r.repId, repName: r.repName, employeeId: r.employeeId || null });
                           setSelectedCandidateEmployeeId(r.employeeId ? String(r.employeeId) : '');
                         }}
                       >
-                        • موظف: {r.employeeName}
+                        {t('delivery_reps.van_financial_ledger_admin_tab.s31', "• موظف:")} {r.employeeName}
                       </span>
                     ) : (
                       <button
@@ -857,9 +860,9 @@ export function VanFinancialLedgerAdminTab() {
                           fontWeight: 700,
                           cursor: 'pointer',
                         }}
-                        title="انقر لربط المندوب بملف موظف HR"
+                        title={t('delivery_reps.van_financial_ledger_admin_tab.s32', "انقر لربط المندوب بملف موظف HR")}
                       >
-                        + ربط بـ HR
+                        {t('delivery_reps.van_financial_ledger_admin_tab.s33', "+ ربط بـ HR")}
                       </button>
                     )}
                   </div>
@@ -883,7 +886,7 @@ export function VanFinancialLedgerAdminTab() {
                         padding: 0,
                       }}
                     >
-                      كشف الحساب ←
+                      {t('delivery_reps.van_financial_ledger_admin_tab.s34', "كشف الحساب ←")}
                     </button>
                     <button
                       type="button"
@@ -898,9 +901,9 @@ export function VanFinancialLedgerAdminTab() {
                         cursor: 'pointer',
                         padding: '1px 6px',
                       }}
-                      title="قيد مكافأة أو عمولة لهذا المندوب"
+                      title={t('delivery_reps.van_financial_ledger_admin_tab.s35', "قيد مكافأة أو عمولة لهذا المندوب")}
                     >
-                      + بونص
+                      {t('delivery_reps.van_financial_ledger_admin_tab.s36', "+ بونص")}
                     </button>
                   </div>
                 </div>
@@ -934,7 +937,7 @@ export function VanFinancialLedgerAdminTab() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <span style={{ width: '3px', height: '14px', backgroundColor: '#170e5e', borderRadius: '2px', display: 'inline-block' }} />
             <h4 style={{ margin: 0, fontSize: '13px', fontWeight: 800, color: '#0f172a' }}>
-              سجل حركات العجوزات والعهد والعمولات ({displayItems.length} حركة)
+              {t('delivery_reps.van_financial_ledger_admin_tab.s37', "سجل حركات العجوزات والعهد والعمولات (")}{displayItems.length} {t('delivery_reps.van_financial_ledger_admin_tab.s38', "حركة)")}
             </h4>
             {selectedRepId && (
               <span
@@ -948,7 +951,7 @@ export function VanFinancialLedgerAdminTab() {
                   fontWeight: 700,
                 }}
               >
-                المندوب: {allReps.find((r) => String(r.id) === selectedRepId)?.name || `#${selectedRepId}`}
+                {t('delivery_reps.van_financial_ledger_admin_tab.s39', "المندوب:")} {allReps.find((r) => String(r.id) === selectedRepId)?.name || `#${selectedRepId}`}
               </span>
             )}
           </div>
@@ -966,23 +969,23 @@ export function VanFinancialLedgerAdminTab() {
                 cursor: 'pointer',
               }}
             >
-              عرض كافة المناديب ✕
+              {t('delivery_reps.van_financial_ledger_admin_tab.s40', "عرض كافة المناديب ✕")}
             </button>
           )}
         </div>
 
         {isLoading ? (
           <div style={{ textAlign: 'center', padding: '40px', color: '#64748b', fontSize: '13px' }}>
-            جاري تحميل حركات المركز المالي...
+            {t('delivery_reps.van_financial_ledger_admin_tab.s41', "جاري تحميل حركات المركز المالي...")}
           </div>
         ) : displayItems.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '40px 20px', color: '#64748b' }}>
             <CheckCircleIcon size={36} color="#16a34a" style={{ margin: '0 auto 8px', display: 'block' }} />
             <div style={{ fontSize: '14px', fontWeight: 800, color: '#0f172a', marginBottom: '4px' }}>
-              لا توجد حركات مالية مطابقة للفلتر المحدد
+              {t('delivery_reps.van_financial_ledger_admin_tab.s42', "لا توجد حركات مالية مطابقة للفلتر المحدد")}
             </div>
             <div style={{ fontSize: '12px', color: '#94a3b8' }}>
-              كافة عهد المناديب مطابقة تماماً ومسواة بنسبة 100%.
+              {t('delivery_reps.van_financial_ledger_admin_tab.s43', "كافة عهد المناديب مطابقة تماماً ومسواة بنسبة 100%.")}
             </div>
           </div>
         ) : (
@@ -999,17 +1002,17 @@ export function VanFinancialLedgerAdminTab() {
                       }
                       onChange={handleToggleSelectAll}
                       style={{ cursor: 'pointer' }}
-                      title="تحديد الكل"
+                      title={t('delivery_reps.van_financial_ledger_admin_tab.s44', "تحديد الكل")}
                     />
                   </th>
-                  <th style={{ padding: '9px 8px', fontWeight: 700 }}>التاريخ والتوقيت</th>
-                  <th style={{ padding: '9px 8px', fontWeight: 700 }}>المندوب</th>
-                  <th style={{ padding: '9px 8px', fontWeight: 700 }}>الرحلة / المركبة</th>
-                  <th style={{ padding: '9px 8px', fontWeight: 700, textAlign: 'center' }}>نوع الحركة</th>
-                  <th style={{ padding: '9px 8px', fontWeight: 700, textAlign: 'center' }}>المبلغ</th>
-                  <th style={{ padding: '9px 8px', fontWeight: 700 }}>البيان والسبب</th>
-                  <th style={{ padding: '9px 8px', fontWeight: 700, textAlign: 'center' }}>حالة التسوية</th>
-                  <th style={{ padding: '9px 8px', fontWeight: 700, textAlign: 'center' }}>إجراءات التسوية</th>
+                  <th style={{ padding: '9px 8px', fontWeight: 700 }}>{t('delivery_reps.van_financial_ledger_admin_tab.s45', "التاريخ والتوقيت")}</th>
+                  <th style={{ padding: '9px 8px', fontWeight: 700 }}>{t('delivery_reps.van_financial_ledger_admin_tab.s46', "المندوب")}</th>
+                  <th style={{ padding: '9px 8px', fontWeight: 700 }}>{t('delivery_reps.van_financial_ledger_admin_tab.s47', "الرحلة / المركبة")}</th>
+                  <th style={{ padding: '9px 8px', fontWeight: 700, textAlign: 'center' }}>{t('delivery_reps.van_financial_ledger_admin_tab.s48', "نوع الحركة")}</th>
+                  <th style={{ padding: '9px 8px', fontWeight: 700, textAlign: 'center' }}>{t('delivery_reps.van_financial_ledger_admin_tab.s49', "المبلغ")}</th>
+                  <th style={{ padding: '9px 8px', fontWeight: 700 }}>{t('delivery_reps.van_financial_ledger_admin_tab.s50', "البيان والسبب")}</th>
+                  <th style={{ padding: '9px 8px', fontWeight: 700, textAlign: 'center' }}>{t('delivery_reps.van_financial_ledger_admin_tab.s51', "حالة التسوية")}</th>
+                  <th style={{ padding: '9px 8px', fontWeight: 700, textAlign: 'center' }}>{t('delivery_reps.van_financial_ledger_admin_tab.s52', "إجراءات التسوية")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -1056,13 +1059,13 @@ export function VanFinancialLedgerAdminTab() {
                           {it.employeeName ? (
                             <span
                               style={{ color: '#15803d', cursor: 'pointer' }}
-                              title="انقر لتعديل ربط الموظف"
+                              title={t('delivery_reps.van_financial_ledger_admin_tab.s53', "انقر لتعديل ربط الموظف")}
                               onClick={() => {
                                 setLinkingRep({ repId: it.repId, repName: it.repName, employeeId: it.employeeId || null });
                                 setSelectedCandidateEmployeeId(it.employeeId ? String(it.employeeId) : '');
                               }}
                             >
-                              موظف HR: {it.employeeName}
+                              {t('delivery_reps.van_financial_ledger_admin_tab.s54', "موظف HR:")} {it.employeeName}
                             </span>
                           ) : (
                             <button
@@ -1080,9 +1083,9 @@ export function VanFinancialLedgerAdminTab() {
                                 cursor: 'pointer',
                                 padding: 0,
                               }}
-                              title="انقر لربط المندوب بملف موظف HR"
+                              title={t('delivery_reps.van_financial_ledger_admin_tab.s55', "انقر لربط المندوب بملف موظف HR")}
                             >
-                              + ربط بملف HR
+                              {t('delivery_reps.van_financial_ledger_admin_tab.s56', "+ ربط بملف HR")}
                             </button>
                           )}
                         </div>
@@ -1093,14 +1096,14 @@ export function VanFinancialLedgerAdminTab() {
                         {it.tripId ? (
                           <div>
                             <span style={{ fontWeight: 800, fontFamily: 'monospace', color: '#170e5e' }}>
-                              رحلة #{it.tripId}
+                              {t('delivery_reps.van_financial_ledger_admin_tab.s57', "رحلة #")}{it.tripId}
                             </span>
                             <div style={{ fontSize: '10px', color: '#64748b' }}>
-                              {it.vehiclePlate || it.shiftName || 'تصفية مسائية'}
+                              {it.vehiclePlate || it.shiftName || t('delivery_reps.van_financial_ledger_admin_tab.s58', "تصفية مسائية")}
                             </div>
                           </div>
                         ) : (
-                          <span style={{ color: '#94a3b8' }}>تسوية إدارية مباشرة</span>
+                          <span style={{ color: '#94a3b8' }}>{t('delivery_reps.van_financial_ledger_admin_tab.s59', "تسوية إدارية مباشرة")}</span>
                         )}
                       </td>
 
@@ -1142,11 +1145,11 @@ export function VanFinancialLedgerAdminTab() {
                       {/* Notes / Reason */}
                       <td style={{ padding: '8px 8px', maxWidth: '240px', fontSize: '11px', color: '#334155' }}>
                         <div style={{ whiteSpace: 'normal', wordBreak: 'break-word', lineHeight: 1.4 }}>
-                          {it.notes || 'لا توجد ملاحظات مدونة'}
+                          {it.notes || t('delivery_reps.van_financial_ledger_admin_tab.s60', "لا توجد ملاحظات مدونة")}
                         </div>
                         {it.settledByName && (
                           <div style={{ fontSize: '10px', color: '#94a3b8', marginTop: '2px' }}>
-                            بواسطة: {it.settledByName}
+                            {t('delivery_reps.van_financial_ledger_admin_tab.s61', "بواسطة:")} {it.settledByName}
                           </div>
                         )}
                       </td>
@@ -1194,9 +1197,9 @@ export function VanFinancialLedgerAdminTab() {
                                 whiteSpace: 'nowrap',
                                 boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
                               }}
-                              title="تسجيل سداد نقدي بالخزينة وإصدار سند قبض"
+                              title={t('delivery_reps.van_financial_ledger_admin_tab.s62', "تسجيل سداد نقدي بالخزينة وإصدار سند قبض")}
                             >
-                              سداد كاش
+                              {t('delivery_reps.van_financial_ledger_admin_tab.s63', "سداد كاش")}
                             </button>
 
                             <button
@@ -1219,9 +1222,9 @@ export function VanFinancialLedgerAdminTab() {
                                 whiteSpace: 'nowrap',
                                 boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
                               }}
-                              title="إعفاء وتسوية إدارية"
+                              title={t('delivery_reps.van_financial_ledger_admin_tab.s64', "إعفاء وتسوية إدارية")}
                             >
-                              إعفاء
+                              {t('delivery_reps.van_financial_ledger_admin_tab.s65', "إعفاء")}
                             </button>
 
                             {isShortage && (
@@ -1244,16 +1247,16 @@ export function VanFinancialLedgerAdminTab() {
                                   whiteSpace: 'nowrap',
                                   boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
                                 }}
-                                title="ترحيل كاستقطاع لمسير الرواتب"
+                                title={t('delivery_reps.van_financial_ledger_admin_tab.s66', "ترحيل كاستقطاع لمسير الرواتب")}
                               >
-                                للمرتبات ↗
+                                {t('delivery_reps.van_financial_ledger_admin_tab.s67', "للمرتبات ↗")}
                               </button>
                             )}
                           </div>
                         ) : (
                           <span style={{ fontSize: '11px', color: '#166534', fontWeight: 700 }}>
                             <CheckIcon size={12} color="#166534" style={{ display: 'inline', verticalAlign: 'middle', marginInlineEnd: '2px' }} />
-                            تم الإقفال
+                            {t('delivery_reps.van_financial_ledger_admin_tab.s68', "تم الإقفال")}
                           </span>
                         )}
                       </td>
@@ -1271,7 +1274,7 @@ export function VanFinancialLedgerAdminTab() {
         <StandardDialog
           isOpen={Boolean(settleModalItem)}
           onClose={() => setSettleModalItem(null)}
-          title={settleMethod === 'cash' ? 'إثبات سداد نقدي وتوريد للخزينة' : 'تسوية وإعفاء إداري معتمد'}
+          title={settleMethod === 'cash' ? t('delivery_reps.van_financial_ledger_admin_tab.s69', "إثبات سداد نقدي وتوريد للخزينة") : t('delivery_reps.van_financial_ledger_admin_tab.s70', "تسوية وإعفاء إداري معتمد")}
           subtitle={`المندوب: ${settleModalItem.repName} | المبلغ: ${Number(settleModalItem.amount).toFixed(2)} ج.م`}
           width="480px"
         >
@@ -1292,7 +1295,7 @@ export function VanFinancialLedgerAdminTab() {
                   cursor: 'pointer',
                 }}
               >
-                سداد نقدي بالخزينة (سند قبض)
+                {t('delivery_reps.van_financial_ledger_admin_tab.s71', "سداد نقدي بالخزينة (سند قبض)")}
               </button>
               <button
                 type="button"
@@ -1309,7 +1312,7 @@ export function VanFinancialLedgerAdminTab() {
                   cursor: 'pointer',
                 }}
               >
-                إعفاء / تسوية إدارية
+                {t('delivery_reps.van_financial_ledger_admin_tab.s72', "إعفاء / تسوية إدارية")}
               </button>
             </div>
 
@@ -1326,23 +1329,23 @@ export function VanFinancialLedgerAdminTab() {
             >
               {settleMethod === 'cash' ? (
                 <div>
-                  سيتم تسجيل استلام مبلغ <strong>{Number(settleModalItem.amount).toFixed(2)} ج.م</strong> نقداً من المندوب في الخزينة الرئيسية، وتوليد رقم سند قبض رسمي وتصفير هذا العجز نهائياً.
+                  {t('delivery_reps.van_financial_ledger_admin_tab.s73', "سيتم تسجيل استلام مبلغ")} <strong>{Number(settleModalItem.amount).toFixed(2)} {t('delivery_reps.van_financial_ledger_admin_tab.s74', "ج.م")}</strong> {t('delivery_reps.van_financial_ledger_admin_tab.s75', "نقداً من المندوب في الخزينة الرئيسية، وتوليد رقم سند قبض رسمي وتصفير هذا العجز نهائياً.")}
                 </div>
               ) : (
                 <div>
-                  سيتم إعفاء المندوب من هذا المبلغ واعتباره تسوية إدارية مبررة دون خصمها من المندوب أو سدادها نقدياً.
+                  {t('delivery_reps.van_financial_ledger_admin_tab.s76', "سيتم إعفاء المندوب من هذا المبلغ واعتباره تسوية إدارية مبررة دون خصمها من المندوب أو سدادها نقدياً.")}
                 </div>
               )}
             </div>
 
             <div>
               <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 800, color: '#0f172a', marginBottom: '4px' }}>
-                ملاحظات ومبررات التسوية:
+                {t('delivery_reps.van_financial_ledger_admin_tab.s77', "ملاحظات ومبررات التسوية:")}
               </label>
               <textarea
                 value={settleNotes}
                 onChange={(e) => setSettleNotes(e.target.value)}
-                placeholder={settleMethod === 'cash' ? 'مثال: تم التوريد نقداً لأمين الخزينة...' : 'مثال: إعفاء بنسبة العجز المقبولة بقرار الإدارة...'}
+                placeholder={settleMethod === 'cash' ? t('delivery_reps.van_financial_ledger_admin_tab.s78', "مثال: تم التوريد نقداً لأمين الخزينة...") : t('delivery_reps.van_financial_ledger_admin_tab.s79', "مثال: إعفاء بنسبة العجز المقبولة بقرار الإدارة...")}
                 rows={3}
                 style={{
                   width: '100%',
@@ -1374,14 +1377,14 @@ export function VanFinancialLedgerAdminTab() {
                   fontWeight: 800,
                 }}
               >
-                {settleMutation.isPending ? 'جاري الحفظ...' : settleMethod === 'cash' ? 'تأكيد استلام النقدية وإصدار السند' : 'اعتماد الإعفاء والتسوية'}
+                {settleMutation.isPending ? t('delivery_reps.van_financial_ledger_admin_tab.s80', "جاري الحفظ...") : settleMethod === 'cash' ? t('delivery_reps.van_financial_ledger_admin_tab.s81', "تأكيد استلام النقدية وإصدار السند") : t('delivery_reps.van_financial_ledger_admin_tab.s82', "اعتماد الإعفاء والتسوية")}
               </Button>
               <Button
                 variant="secondary"
                 onClick={() => setSettleModalItem(null)}
                 style={{ height: '36px' }}
               >
-                إلغاء
+                {t('delivery_reps.van_financial_ledger_admin_tab.s83', "إلغاء")}
               </Button>
             </div>
           </div>
@@ -1393,26 +1396,26 @@ export function VanFinancialLedgerAdminTab() {
         <StandardDialog
           isOpen={isAddBonusOpen}
           onClose={() => setIsAddBonusOpen(false)}
-          title="قيد مكافأة تميز أو عمولة بيع للمندوب"
-          subtitle="تضاف لرصيد المندوب في المركز المالي ويمكن ترحيلها مع مسير الرواتب"
+          title={t('delivery_reps.van_financial_ledger_admin_tab.s84', "قيد مكافأة تميز أو عمولة بيع للمندوب")}
+          subtitle={t('delivery_reps.van_financial_ledger_admin_tab.s85', "تضاف لرصيد المندوب في المركز المالي ويمكن ترحيلها مع مسير الرواتب")}
           width="480px"
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', padding: '8px 0' }}>
             <div>
               <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 800, color: '#0f172a', marginBottom: '4px' }}>
-                اختيار المندوب:
+                {t('delivery_reps.van_financial_ledger_admin_tab.s86', "اختيار المندوب:")}
               </label>
               <CustomSelect
                 value={bonusRepId}
                 onChange={(val) => setBonusRepId(val)}
                 options={[
-                  { value: '', label: '-- اختر المندوب --' },
+                  { value: '', label: t('delivery_reps.van_financial_ledger_admin_tab.s87', "-- اختر المندوب --") },
                   ...allReps.map((r) => ({
                     value: String(r.id),
                     label: `${r.name} ${r.phone ? `(${r.phone})` : ''}`,
                   })),
                 ]}
-                placeholder="اختر المندوب"
+                placeholder={t('delivery_reps.van_financial_ledger_admin_tab.s88', "اختر المندوب")}
               />
             </div>
 
@@ -1432,7 +1435,7 @@ export function VanFinancialLedgerAdminTab() {
                   cursor: 'pointer',
                 }}
               >
-                مكافأة / بونص تحقيق تارجت
+                {t('delivery_reps.van_financial_ledger_admin_tab.s89', "مكافأة / بونص تحقيق تارجت")}
               </button>
               <button
                 type="button"
@@ -1449,13 +1452,13 @@ export function VanFinancialLedgerAdminTab() {
                   cursor: 'pointer',
                 }}
               >
-                عمولة بيع وتوزيع
+                {t('delivery_reps.van_financial_ledger_admin_tab.s90', "عمولة بيع وتوزيع")}
               </button>
             </div>
 
             <div>
               <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 800, color: '#0f172a', marginBottom: '4px' }}>
-                المبلغ بالجنية (ج.م):
+                {t('delivery_reps.van_financial_ledger_admin_tab.s91', "المبلغ بالجنية (ج.م):")}
               </label>
               <input
                 type="number"
@@ -1478,12 +1481,12 @@ export function VanFinancialLedgerAdminTab() {
 
             <div>
               <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 800, color: '#0f172a', marginBottom: '4px' }}>
-                البيان وسبب الصرف:
+                {t('delivery_reps.van_financial_ledger_admin_tab.s92', "البيان وسبب الصرف:")}
               </label>
               <textarea
                 value={bonusNotes}
                 onChange={(e) => setBonusNotes(e.target.value)}
-                placeholder="مثال: تحقيق 110% من المستهدف البيعي للأسبوع الثاني..."
+                placeholder={t('delivery_reps.van_financial_ledger_admin_tab.s93', "مثال: تحقيق 110% من المستهدف البيعي للأسبوع الثاني...")}
                 rows={2}
                 style={{
                   width: '100%',
@@ -1516,14 +1519,14 @@ export function VanFinancialLedgerAdminTab() {
                   fontWeight: 800,
                 }}
               >
-                {addBonusMutation.isPending ? 'جاري القيد...' : 'اعتماد وقيد المكافأة'}
+                {addBonusMutation.isPending ? t('delivery_reps.van_financial_ledger_admin_tab.s94', "جاري القيد...") : t('delivery_reps.van_financial_ledger_admin_tab.s95', "اعتماد وقيد المكافأة")}
               </Button>
               <Button
                 variant="secondary"
                 onClick={() => setIsAddBonusOpen(false)}
                 style={{ height: '36px' }}
               >
-                إلغاء
+                {t('delivery_reps.van_financial_ledger_admin_tab.s96', "إلغاء")}
               </Button>
             </div>
           </div>
@@ -1535,7 +1538,7 @@ export function VanFinancialLedgerAdminTab() {
         <StandardDialog
           isOpen={isPushPayrollOpen}
           onClose={() => setIsPushPayrollOpen(false)}
-          title="ترحيل العجوزات المحددة كاستقطاعات لمسير الرواتب"
+          title={t('delivery_reps.van_financial_ledger_admin_tab.s97', "ترحيل العجوزات المحددة كاستقطاعات لمسير الرواتب")}
           subtitle={`تم تحديد ${selectedIds.length} بند للتسوية والخصم الرسمي من راتب المندوب`}
           width="480px"
         >
@@ -1551,12 +1554,12 @@ export function VanFinancialLedgerAdminTab() {
                 lineHeight: 1.5,
               }}
             >
-              سيتم نقل هذه العجوزات مباشرة إلى موديول الرواتب والأجور (HR) كبند استقطاع رسمي تحت مسمى (عجز عهدة سيارة توزيع) في مسير الشهر المحدد، وبذلك تقفل في كشف حساب المندوب.
+              {t('delivery_reps.van_financial_ledger_admin_tab.s98', "سيتم نقل هذه العجوزات مباشرة إلى موديول الرواتب والأجور (HR) كبند استقطاع رسمي تحت مسمى (عجز عهدة سيارة توزيع) في مسير الشهر المحدد، وبذلك تقفل في كشف حساب المندوب.")}
             </div>
 
             <div>
               <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 800, color: '#0f172a', marginBottom: '4px' }}>
-                مسير راتب شهر الاستحقاق:
+                {t('delivery_reps.van_financial_ledger_admin_tab.s99', "مسير راتب شهر الاستحقاق:")}
               </label>
               <input
                 type="month"
@@ -1593,14 +1596,14 @@ export function VanFinancialLedgerAdminTab() {
                   fontWeight: 800,
                 }}
               >
-                {pushPayrollMutation.isPending ? 'جاري الترحيل...' : 'تأكيد الترحيل لمسير الرواتب'}
+                {pushPayrollMutation.isPending ? t('delivery_reps.van_financial_ledger_admin_tab.s100', "جاري الترحيل...") : t('delivery_reps.van_financial_ledger_admin_tab.s101', "تأكيد الترحيل لمسير الرواتب")}
               </Button>
               <Button
                 variant="secondary"
                 onClick={() => setIsPushPayrollOpen(false)}
                 style={{ height: '36px' }}
               >
-                إلغاء
+                {t('delivery_reps.van_financial_ledger_admin_tab.s102', "إلغاء")}
               </Button>
             </div>
           </div>
@@ -1612,7 +1615,7 @@ export function VanFinancialLedgerAdminTab() {
         <StandardDialog
           isOpen={Boolean(linkingRep)}
           onClose={() => setLinkingRep(null)}
-          title="ربط مندوب التوزيع بملف موظف في الموارد البشرية (HR)"
+          title={t('delivery_reps.van_financial_ledger_admin_tab.s103', "ربط مندوب التوزيع بملف موظف في الموارد البشرية (HR)")}
           subtitle={`المندوب: ${linkingRep.repName} (معرف #${linkingRep.repId})`}
           width="480px"
         >
@@ -1628,30 +1631,30 @@ export function VanFinancialLedgerAdminTab() {
                 lineHeight: 1.5,
               }}
             >
-              ربط المندوب بموظف HR يسمح بترحيل أي عجوزات مالية مباشرة كاستقطاعات رسمية في مسير رواتب الموظف، وكذلك صرف العمولات والمكافآت مع الراتب الشهري.
+              {t('delivery_reps.van_financial_ledger_admin_tab.s104', "ربط المندوب بموظف HR يسمح بترحيل أي عجوزات مالية مباشرة كاستقطاعات رسمية في مسير رواتب الموظف، وكذلك صرف العمولات والمكافآت مع الراتب الشهري.")}
             </div>
 
             <div>
               <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 800, color: '#0f172a', marginBottom: '6px' }}>
-                اختر الموظف المطابق من شجرة الموارد البشرية:
+                {t('delivery_reps.van_financial_ledger_admin_tab.s105', "اختر الموظف المطابق من شجرة الموارد البشرية:")}
               </label>
               <CustomSelect
                 value={selectedCandidateEmployeeId}
                 onChange={(val) => setSelectedCandidateEmployeeId(val)}
                 options={[
-                  { value: '', label: '-- غير مربوط بأي موظف (فصل الارتباط) --' },
+                  { value: '', label: t('delivery_reps.van_financial_ledger_admin_tab.s106', "-- غير مربوط بأي موظف (فصل الارتباط) --") },
                   ...candidateEmployees.map((emp) => ({
                     value: String(emp.id),
                     label: `${emp.displayName} ${emp.employeeNo ? `(كود: ${emp.employeeNo})` : ''} ${emp.nationalId ? `(رقم قومي: ${emp.nationalId})` : ''}`,
                   })),
                 ]}
-                placeholder="اختر موظف HR"
+                placeholder={t('delivery_reps.van_financial_ledger_admin_tab.s107', "اختر موظف HR")}
               />
             </div>
 
             {candidateEmployees.length === 0 && (
               <div style={{ fontSize: '11.5px', color: '#b45309', backgroundColor: '#fef3c7', padding: '8px 10px', borderRadius: '6px', border: '1px solid #fde68a' }}>
-                لا يوجد موظفون متاحون حالياً في دليل الموارد البشرية. يمكنك إنشاء ملف موظف رسمي للمندوب فوراً بالزر أدناه:
+                {t('delivery_reps.van_financial_ledger_admin_tab.s108', "لا يوجد موظفون متاحون حالياً في دليل الموارد البشرية. يمكنك إنشاء ملف موظف رسمي للمندوب فوراً بالزر أدناه:")}
               </div>
             )}
 
@@ -1674,7 +1677,7 @@ export function VanFinancialLedgerAdminTab() {
                   gap: '6px',
                 }}
               >
-                <span>{autoCreateEmployeeMutation.isPending ? 'جاري إنشاء ملف الموظف والربط...' : `+ إنشاء ملف موظف جديد في HR للمندوب (${linkingRep.repName}) وربطه فوراً`}</span>
+                <span>{autoCreateEmployeeMutation.isPending ? t('delivery_reps.van_financial_ledger_admin_tab.s109', "جاري إنشاء ملف الموظف والربط...") : `+ إنشاء ملف موظف جديد في HR للمندوب (${linkingRep.repName}) وربطه فوراً`}</span>
               </Button>
             </div>
 
@@ -1696,14 +1699,14 @@ export function VanFinancialLedgerAdminTab() {
                   fontWeight: 800,
                 }}
               >
-                {linkRepMutation.isPending ? 'جاري الحفظ...' : 'حفظ وتحديث الربط'}
+                {linkRepMutation.isPending ? t('delivery_reps.van_financial_ledger_admin_tab.s110', "جاري الحفظ...") : t('delivery_reps.van_financial_ledger_admin_tab.s111', "حفظ وتحديث الربط")}
               </Button>
               <Button
                 variant="secondary"
                 onClick={() => setLinkingRep(null)}
                 style={{ height: '36px' }}
               >
-                إلغاء
+                {t('delivery_reps.van_financial_ledger_admin_tab.s112', "إلغاء")}
               </Button>
             </div>
           </div>

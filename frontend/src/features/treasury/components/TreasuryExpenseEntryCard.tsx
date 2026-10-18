@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/shared/ui/button';
@@ -43,6 +44,7 @@ export function TreasuryExpenseEntryCard({ expenseForm, setExpenseForm, branches
   expenseMutation: { isError: boolean; isSuccess: boolean; error: unknown; isPending: boolean; mutate: (values: ExpenseFormState) => void };
   onReset: () => void;
 }) {
+  const { t } = useTranslation();
   const warehouseList = warehouses || locations || [];
   const [customPresets, setCustomPresets] = useState<string[]>([]);
   const [receiptImage, setReceiptImage] = useState<string | null>(null);
@@ -112,13 +114,13 @@ export function TreasuryExpenseEntryCard({ expenseForm, setExpenseForm, branches
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px' }}>
           <ReceiptIcon size={16} color="#170e5e" />
-          <span style={{ fontSize: '0.84rem', fontWeight: 700, color: '#170e5e' }}>بيانات المصروف الأساسية</span>
+          <span style={{ fontSize: '0.84rem', fontWeight: 700, color: '#170e5e' }}>{t('treasury.treasury_expense_entry_card.s0', "بيانات المصروف الأساسية")}</span>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: '12px' }}>
           <SearchableCombobox
-            label="نوع / اسم المصروف"
-            placeholder="اختر من القائمة أو اكتب مصروف جديد..."
+            label={t('treasury.treasury_expense_entry_card.s1', "نوع / اسم المصروف")}
+            placeholder={t('treasury.treasury_expense_entry_card.s2', "اختر من القائمة أو اكتب مصروف جديد...")}
             value={expenseForm.title}
             onChange={(val) => setExpenseForm(current => ({ ...current, title: val }))}
             options={presetOptions}
@@ -127,11 +129,11 @@ export function TreasuryExpenseEntryCard({ expenseForm, setExpenseForm, branches
             onSelect={(option) => setExpenseForm(current => ({ ...current, title: option.label }))}
             onCreate={(query) => setExpenseForm(current => ({ ...current, title: query }))}
             createLabel={(query) => `إضافة وتسجيل "${query}"`}
-            emptyLabel="لا يوجد مصروف بهذا الاسم"
+            emptyLabel={t('treasury.treasury_expense_entry_card.s3', "لا يوجد مصروف بهذا الاسم")}
             showDropdownOnEmpty={true}
           />
 
-          <Field label="المبلغ">
+          <Field label={t('treasury.treasury_expense_entry_card.s4', "المبلغ")}>
             <input
               type="number"
               min="0.01"
@@ -143,7 +145,7 @@ export function TreasuryExpenseEntryCard({ expenseForm, setExpenseForm, branches
           </Field>
         </div>
 
-        <Field label="التاريخ والوقت">
+        <Field label={t('treasury.treasury_expense_entry_card.s5', "التاريخ والوقت")}>
           <input
             type="datetime-local"
             value={expenseForm.date}
@@ -166,12 +168,12 @@ export function TreasuryExpenseEntryCard({ expenseForm, setExpenseForm, branches
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px' }}>
           <BuildingIcon size={16} color="#170e5e" />
-          <span style={{ fontSize: '0.84rem', fontWeight: 700, color: '#170e5e' }}>التوجيه الإداري والمالي والمخزني</span>
+          <span style={{ fontSize: '0.84rem', fontWeight: 700, color: '#170e5e' }}>{t('treasury.treasury_expense_entry_card.s6', "التوجيه الإداري والمالي والمخزني")}</span>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
           {!SINGLE_STORE_MODE && (
-            <Field label="الفرع">
+            <Field label={t('treasury.treasury_expense_entry_card.s7', "الفرع")}>
               <CustomSelect
                 options={branchOptions}
                 value={expenseForm.branchId}
@@ -187,35 +189,35 @@ export function TreasuryExpenseEntryCard({ expenseForm, setExpenseForm, branches
                     };
                   });
                 }}
-                placeholder="اختر الفرع..."
+                placeholder={t('treasury.treasury_expense_entry_card.s8', "اختر الفرع...")}
                 searchable
               />
             </Field>
           )}
 
           {SINGLE_STORE_MODE ? (
-            <Field label="المخزن الأساسي">
-              <input value={warehouseList[0]?.name || 'المخزن الرئيسي'} disabled readOnly />
+            <Field label={t('treasury.treasury_expense_entry_card.s9', "المخزن الأساسي")}>
+              <input value={warehouseList[0]?.name || t('treasury.treasury_expense_entry_card.s10', "المخزن الرئيسي")} disabled readOnly />
             </Field>
           ) : (
-            <Field label="المخزن / الخزينة">
+            <Field label={t('treasury.treasury_expense_entry_card.s11', "المخزن / الخزينة")}>
               <CustomSelect
                 options={locationOptions}
                 value={expenseForm.locationId}
                 onChange={(val) => setExpenseForm((current) => ({ ...current, locationId: val }))}
-                placeholder="اختر المخزن..."
+                placeholder={t('treasury.treasury_expense_entry_card.s12', "اختر المخزن...")}
                 searchable
               />
             </Field>
           )}
 
           <div style={{ gridColumn: '1 / -1' }}>
-            <Field label="مركز التكلفة (اختياري)">
+            <Field label={t('treasury.treasury_expense_entry_card.s13', "مركز التكلفة (اختياري)")}>
               <CustomSelect
                 options={costCenterOptions}
                 value={expenseForm.costCenterId || ''}
                 onChange={(val) => setExpenseForm((current) => ({ ...current, costCenterId: val }))}
-                placeholder="بدون مركز تكلفة..."
+                placeholder={t('treasury.treasury_expense_entry_card.s14', "بدون مركز تكلفة...")}
                 searchable
               />
             </Field>
@@ -237,20 +239,20 @@ export function TreasuryExpenseEntryCard({ expenseForm, setExpenseForm, branches
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px' }}>
           <FileTextIcon size={16} color="#170e5e" />
-          <span style={{ fontSize: '0.84rem', fontWeight: 700, color: '#170e5e' }}>البيان والمستندات المرفقة</span>
+          <span style={{ fontSize: '0.84rem', fontWeight: 700, color: '#170e5e' }}>{t('treasury.treasury_expense_entry_card.s15', "البيان والمستندات المرفقة")}</span>
         </div>
 
-        <Field label="ملاحظات وبيان المصروف">
+        <Field label={t('treasury.treasury_expense_entry_card.s16', "ملاحظات وبيان المصروف")}>
           <textarea
             rows={2}
             value={expenseForm.note}
-            placeholder="تفاصيل إضافية عن سبب المصروف..."
+            placeholder={t('treasury.treasury_expense_entry_card.s17', "تفاصيل إضافية عن سبب المصروف...")}
             onChange={(e) => setExpenseForm((current) => ({ ...current, note: e.target.value }))}
           />
         </Field>
 
         <CameraCaptureUpload
-          label="إرفاق صورة إيصال / فاتورة المصروف"
+          label={t('treasury.treasury_expense_entry_card.s18', "إرفاق صورة إيصال / فاتورة المصروف")}
           previewUrl={receiptImage}
           onFileSelect={(_file, preview) => {
             setReceiptImage(preview || null);
@@ -263,19 +265,19 @@ export function TreasuryExpenseEntryCard({ expenseForm, setExpenseForm, branches
         isError={expenseMutation.isError}
         isSuccess={expenseMutation.isSuccess}
         error={expenseMutation.error}
-        errorFallback="تعذر تسجيل المصروف"
-        successText="تم تسجيل المصروف وتحديث الخزينة بنجاح."
+        errorFallback={t('treasury.treasury_expense_entry_card.s19', "تعذر تسجيل المصروف")}
+        successText={t('treasury.treasury_expense_entry_card.s20', "تم تسجيل المصروف وتحديث الخزينة بنجاح.")}
       />
 
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '4px' }}>
-        <Button type="button" variant="secondary" onClick={onReset}>تفريغ</Button>
+        <Button type="button" variant="secondary" onClick={onReset}>{t('treasury.treasury_expense_entry_card.s21', "تفريغ")}</Button>
         <SubmitButton
           type="button"
           onClick={handleSave}
           isPending={expenseMutation.isPending}
           disabled={expenseValidationErrors.length > 0}
-          idleText="حفظ وتسجيل المصروف"
-          pendingText="جارٍ الحفظ..."
+          idleText={t('treasury.treasury_expense_entry_card.s22', "حفظ وتسجيل المصروف")}
+          pendingText={t('treasury.treasury_expense_entry_card.s23', "جارٍ الحفظ...")}
         />
       </div>
     </div>

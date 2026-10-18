@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/shared/ui/button';
@@ -22,6 +23,7 @@ const PROMO_TYPE_LABELS: Record<string, string> = {
 };
 
 export function VanPromotionsAdminTab() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
@@ -362,13 +364,13 @@ export function VanPromotionsAdminTab() {
           }}
         >
           <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 600, marginBottom: '6px' }}>
-            إجمالي العروض الترويجية
+            {t('delivery_reps.van_promotions_admin_tab.s0', "إجمالي العروض الترويجية")}
           </div>
           <div style={{ fontSize: '24px', fontWeight: 800, color: '#0f172a' }}>
             {promotions.length}
           </div>
           <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '4px' }}>
-            كافة الخطط والسياسات المسجلة
+            {t('delivery_reps.van_promotions_admin_tab.s1', "كافة الخطط والسياسات المسجلة")}
           </div>
         </div>
 
@@ -382,13 +384,13 @@ export function VanPromotionsAdminTab() {
           }}
         >
           <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 600, marginBottom: '6px' }}>
-            العروض المفعلة حالياً
+            {t('delivery_reps.van_promotions_admin_tab.s2', "العروض المفعلة حالياً")}
           </div>
           <div style={{ fontSize: '24px', fontWeight: 800, color: '#16a34a' }}>
             {activeCount}
           </div>
           <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '4px' }}>
-            تطبق فورياً في سلة المناديب
+            {t('delivery_reps.van_promotions_admin_tab.s3', "تطبق فورياً في سلة المناديب")}
           </div>
         </div>
 
@@ -402,13 +404,13 @@ export function VanPromotionsAdminTab() {
           }}
         >
           <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 600, marginBottom: '6px' }}>
-            باقات وخلطات (Mix & Match)
+            {t('delivery_reps.van_promotions_admin_tab.s4', "باقات وخلطات (Mix & Match)")}
           </div>
           <div style={{ fontSize: '24px', fontWeight: 800, color: '#170e5e' }}>
             {mixMatchCount}
           </div>
           <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '4px' }}>
-            توليفات الأصناف المتزامنة
+            {t('delivery_reps.van_promotions_admin_tab.s5', "توليفات الأصناف المتزامنة")}
           </div>
         </div>
 
@@ -422,13 +424,13 @@ export function VanPromotionsAdminTab() {
           }}
         >
           <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 600, marginBottom: '6px' }}>
-            شرائح الكميات وسقف الفاتورة
+            {t('delivery_reps.van_promotions_admin_tab.s6', "شرائح الكميات وسقف الفاتورة")}
           </div>
           <div style={{ fontSize: '24px', fontWeight: 800, color: '#d97706' }}>
             {tieredCount}
           </div>
           <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '4px' }}>
-            حوافز زيادة حجم الطلبية
+            {t('delivery_reps.van_promotions_admin_tab.s7', "حوافز زيادة حجم الطلبية")}
           </div>
         </div>
       </div>
@@ -456,7 +458,7 @@ export function VanPromotionsAdminTab() {
             />
             <input
               type="text"
-              placeholder="البحث باسم العرض أو الكود..."
+              placeholder={t('delivery_reps.van_promotions_admin_tab.s8', "البحث باسم العرض أو الكود...")}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               style={{
@@ -477,10 +479,10 @@ export function VanPromotionsAdminTab() {
             value={typeFilter}
             onChange={(val) => setTypeFilter(val)}
             options={[
-              { value: 'all', label: 'كافة أنواع العروض' },
-              { value: 'mix_and_match', label: 'خلطات وباقات (Mix & Match)' },
-              { value: 'tiered_qty', label: 'شرائح كميات وبونص' },
-              { value: 'invoice_threshold', label: 'سقف قيمة الفاتورة' },
+              { value: 'all', label: t('delivery_reps.van_promotions_admin_tab.s9', "كافة أنواع العروض") },
+              { value: 'mix_and_match', label: t('delivery_reps.van_promotions_admin_tab.s10', "خلطات وباقات (Mix & Match)") },
+              { value: 'tiered_qty', label: t('delivery_reps.van_promotions_admin_tab.s11', "شرائح كميات وبونص") },
+              { value: 'invoice_threshold', label: t('delivery_reps.van_promotions_admin_tab.s12', "سقف قيمة الفاتورة") },
             ]}
             style={{ minWidth: '170px' }}
           />
@@ -489,9 +491,9 @@ export function VanPromotionsAdminTab() {
             value={statusFilter}
             onChange={(val: any) => setStatusFilter(val)}
             options={[
-              { value: 'all', label: 'كافة الحالات' },
-              { value: 'active', label: 'المفعلة فقط' },
-              { value: 'inactive', label: 'المعطلة' },
+              { value: 'all', label: t('delivery_reps.van_promotions_admin_tab.s13', "كافة الحالات") },
+              { value: 'active', label: t('delivery_reps.van_promotions_admin_tab.s14', "المفعلة فقط") },
+              { value: 'inactive', label: t('delivery_reps.van_promotions_admin_tab.s15', "المعطلة") },
             ]}
             style={{ minWidth: '130px' }}
           />
@@ -503,7 +505,7 @@ export function VanPromotionsAdminTab() {
             style={{ height: '38px', display: 'flex', alignItems: 'center', gap: '6px' }}
           >
             <RefreshCwIcon size={14} className={isRefreshing ? 'animate-spin' : ''} />
-            تحديث
+            {t('delivery_reps.van_promotions_admin_tab.s16', "تحديث")}
           </Button>
 
           <Button
@@ -520,7 +522,7 @@ export function VanPromotionsAdminTab() {
             }}
           >
             <PlusIcon size={16} />
-            إضافة عرض ترويجي
+            {t('delivery_reps.van_promotions_admin_tab.s17', "إضافة عرض ترويجي")}
           </Button>
         </div>
       </div>
@@ -539,20 +541,20 @@ export function VanPromotionsAdminTab() {
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right', fontSize: '13px' }}>
             <thead>
               <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', fontSize: '12.5px' }}>
-                <th style={{ padding: '12px 16px', fontWeight: 600 }}>العرض والكود</th>
-                <th style={{ padding: '12px 16px', fontWeight: 600 }}>نوع العرض</th>
-                <th style={{ padding: '12px 16px', fontWeight: 600 }}>شروط الشراء والتفعيل</th>
-                <th style={{ padding: '12px 16px', fontWeight: 600 }}>المكافأة الممنوحة</th>
-                <th style={{ padding: '12px 16px', fontWeight: 600 }}>فترة الصلاحية</th>
-                <th style={{ padding: '12px 16px', fontWeight: 600 }}>الحالة</th>
-                <th style={{ padding: '12px 16px', fontWeight: 600, textAlign: 'center' }}>الإجراءات</th>
+                <th style={{ padding: '12px 16px', fontWeight: 600 }}>{t('delivery_reps.van_promotions_admin_tab.s18', "العرض والكود")}</th>
+                <th style={{ padding: '12px 16px', fontWeight: 600 }}>{t('delivery_reps.van_promotions_admin_tab.s19', "نوع العرض")}</th>
+                <th style={{ padding: '12px 16px', fontWeight: 600 }}>{t('delivery_reps.van_promotions_admin_tab.s20', "شروط الشراء والتفعيل")}</th>
+                <th style={{ padding: '12px 16px', fontWeight: 600 }}>{t('delivery_reps.van_promotions_admin_tab.s21', "المكافأة الممنوحة")}</th>
+                <th style={{ padding: '12px 16px', fontWeight: 600 }}>{t('delivery_reps.van_promotions_admin_tab.s22', "فترة الصلاحية")}</th>
+                <th style={{ padding: '12px 16px', fontWeight: 600 }}>{t('delivery_reps.van_promotions_admin_tab.s23', "الحالة")}</th>
+                <th style={{ padding: '12px 16px', fontWeight: 600, textAlign: 'center' }}>{t('delivery_reps.van_promotions_admin_tab.s24', "الإجراءات")}</th>
               </tr>
             </thead>
             <tbody>
               {isLoading ? (
                 <tr>
                   <td colSpan={7} style={{ padding: '36px', textAlign: 'center', color: '#94a3b8' }}>
-                    جاري تحميل العروض الترويجية...
+                    {t('delivery_reps.van_promotions_admin_tab.s25', "جاري تحميل العروض الترويجية...")}
                   </td>
                 </tr>
               ) : filteredPromotions.length === 0 ? (
@@ -560,9 +562,9 @@ export function VanPromotionsAdminTab() {
                   <td colSpan={7} style={{ padding: '48px', textAlign: 'center', color: '#94a3b8' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
                       <LayersIcon size={32} style={{ color: '#cbd5e1' }} />
-                      <div style={{ fontWeight: 600, color: '#64748b' }}>لا توجد عروض ترويجية مسجلة حالياً</div>
+                      <div style={{ fontWeight: 600, color: '#64748b' }}>{t('delivery_reps.van_promotions_admin_tab.s26', "لا توجد عروض ترويجية مسجلة حالياً")}</div>
                       <div style={{ fontSize: '12px', color: '#94a3b8' }}>
-                        اضغط على «إضافة عرض ترويجي» لبدء برمجة باقات الخلطات وبونص الكميات
+                        {t('delivery_reps.van_promotions_admin_tab.s27', "اضغط على «إضافة عرض ترويجي» لبدء برمجة باقات الخلطات وبونص الكميات")}
                       </div>
                     </div>
                   </td>
@@ -575,14 +577,14 @@ export function VanPromotionsAdminTab() {
                     conditionSummary = conds.map((c: any) => `${c.minQty}x ${c.productName || `صنف #${c.productId}`}`).join(' + ');
                   } else if (p.promoType === 'tiered_qty') {
                     const cond = Array.isArray(p.buyConditions) ? p.buyConditions[0] : p.buyConditions;
-                    conditionSummary = `شراء ${cond?.minQty || 1} قطعة فأكثر من ${cond?.productName || 'الصنف'}`;
+                    conditionSummary = `شراء ${cond?.minQty || 1} قطعة فأكثر من ${cond?.productName || t('delivery_reps.van_promotions_admin_tab.s28', "الصنف")}`;
                   } else if (p.promoType === 'invoice_threshold') {
                     conditionSummary = `فاتورة تتجاوز ${Number(p.buyConditions?.minInvoiceTotal || 0).toLocaleString()} ج.م`;
                   }
 
                   let rewardSummary = '';
                   if (p.applyType === 'free_bonus') {
-                    rewardSummary = `بونص: ${p.reward?.bonusQty || 1}x ${p.reward?.bonusProductName || 'صنف مجاني'} (0.00 ج.م)`;
+                    rewardSummary = `بونص: ${p.reward?.bonusQty || 1}x ${p.reward?.bonusProductName || t('delivery_reps.van_promotions_admin_tab.s29', "صنف مجاني")} (0.00 ج.م)`;
                   } else if (p.applyType === 'discount_percent') {
                     rewardSummary = `خصم ${p.reward?.discountPercent}%`;
                   } else if (p.applyType === 'discount_amount') {
@@ -653,11 +655,11 @@ export function VanPromotionsAdminTab() {
                       <td style={{ padding: '14px 16px', color: '#64748b', fontSize: '11.5px' }}>
                         {p.startDate || p.endDate ? (
                           <div>
-                            <div>من: {p.startDate || 'البداية'}</div>
-                            <div>إلى: {p.endDate || 'حتى إشعار آخر'}</div>
+                            <div>{t('delivery_reps.van_promotions_admin_tab.s30', "من:")} {p.startDate || t('delivery_reps.van_promotions_admin_tab.s31', "البداية")}</div>
+                            <div>{t('delivery_reps.van_promotions_admin_tab.s32', "إلى:")} {p.endDate || t('delivery_reps.van_promotions_admin_tab.s33', "حتى إشعار آخر")}</div>
                           </div>
                         ) : (
-                          'مستمر دائم'
+                          t('delivery_reps.van_promotions_admin_tab.s34', "مستمر دائم")
                         )}
                       </td>
 
@@ -688,7 +690,7 @@ export function VanPromotionsAdminTab() {
                               backgroundColor: p.isActive ? '#16a34a' : '#94a3b8',
                             }}
                           />
-                          {p.isActive ? 'مفعل' : 'معطل'}
+                          {p.isActive ? t('delivery_reps.van_promotions_admin_tab.s35', "مفعل") : t('delivery_reps.van_promotions_admin_tab.s36', "معطل")}
                         </button>
                       </td>
 
@@ -697,7 +699,7 @@ export function VanPromotionsAdminTab() {
                           <button
                             type="button"
                             onClick={() => openEditDialog(p)}
-                            title="تعديل العرض"
+                            title={t('delivery_reps.van_promotions_admin_tab.s37', "تعديل العرض")}
                             style={{
                               border: '1px solid #e2e8f0',
                               backgroundColor: '#ffffff',
@@ -713,7 +715,7 @@ export function VanPromotionsAdminTab() {
                           <button
                             type="button"
                             onClick={() => handleDelete(p)}
-                            title="حذف العرض"
+                            title={t('delivery_reps.van_promotions_admin_tab.s38', "حذف العرض")}
                             style={{
                               border: '1px solid #fee2e2',
                               backgroundColor: '#fff5f5',
@@ -741,8 +743,8 @@ export function VanPromotionsAdminTab() {
         <StandardDialog
           open={isDialogOpen}
           onClose={() => setIsDialogOpen(false)}
-          title={editingPromo ? 'تعديل العرض الترويجي' : 'برمجة عرض ترويجي جديد'}
-          subtitle="تحديد باقات الخلطات (Mix & Match) والشرائح الكمية والبونص العيني التلقائي"
+          title={editingPromo ? t('delivery_reps.van_promotions_admin_tab.s39', "تعديل العرض الترويجي") : t('delivery_reps.van_promotions_admin_tab.s40', "برمجة عرض ترويجي جديد")}
+          subtitle={t('delivery_reps.van_promotions_admin_tab.s41', "تحديد باقات الخلطات (Mix & Match) والشرائح الكمية والبونص العيني التلقائي")}
           width="780px"
           minHeight="540px"
         >
@@ -751,12 +753,12 @@ export function VanPromotionsAdminTab() {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
-                  اسم العرض الترويجي *
+                  {t('delivery_reps.van_promotions_admin_tab.s42', "اسم العرض الترويجي *")}
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder="مثال: باقة عصير 5+2 = 1 مجاناً"
+                  placeholder={t('delivery_reps.van_promotions_admin_tab.s43', "مثال: باقة عصير 5+2 = 1 مجاناً")}
                   value={formName}
                   onChange={(e) => setFormName(e.target.value)}
                   style={{
@@ -772,11 +774,11 @@ export function VanPromotionsAdminTab() {
 
               <div>
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
-                  كود العرض (اختياري)
+                  {t('delivery_reps.van_promotions_admin_tab.s44', "كود العرض (اختياري)")}
                 </label>
                 <input
                   type="text"
-                  placeholder="مثال: PROMO-JUICE-01"
+                  placeholder={t('delivery_reps.van_promotions_admin_tab.s45', "مثال: PROMO-JUICE-01")}
                   value={formCode}
                   onChange={(e) => setFormCode(e.target.value)}
                   style={{
@@ -795,15 +797,15 @@ export function VanPromotionsAdminTab() {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
-                  نوع العرض الترويجي *
+                  {t('delivery_reps.van_promotions_admin_tab.s46', "نوع العرض الترويجي *")}
                 </label>
                 <CustomSelect
                   value={formPromoType}
                   onChange={(val: any) => setFormPromoType(val)}
                   options={[
-                    { value: 'mix_and_match', label: 'خلطات وباقات (Mix & Match)' },
-                    { value: 'tiered_qty', label: 'شرائح كميات الصنف' },
-                    { value: 'invoice_threshold', label: 'سقف قيمة الفاتورة' },
+                    { value: 'mix_and_match', label: t('delivery_reps.van_promotions_admin_tab.s47', "خلطات وباقات (Mix & Match)") },
+                    { value: 'tiered_qty', label: t('delivery_reps.van_promotions_admin_tab.s48', "شرائح كميات الصنف") },
+                    { value: 'invoice_threshold', label: t('delivery_reps.van_promotions_admin_tab.s49', "سقف قيمة الفاتورة") },
                   ]}
                   style={{ width: '100%' }}
                 />
@@ -811,15 +813,15 @@ export function VanPromotionsAdminTab() {
 
               <div>
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
-                  نوع المكافأة الممنوحة *
+                  {t('delivery_reps.van_promotions_admin_tab.s50', "نوع المكافأة الممنوحة *")}
                 </label>
                 <CustomSelect
                   value={formApplyType}
                   onChange={(val: any) => setFormApplyType(val)}
                   options={[
-                    { value: 'free_bonus', label: 'بونص عيني مجاني (0.00 ج.م)' },
-                    { value: 'discount_percent', label: 'خصم نسبة مئوية (%)' },
-                    { value: 'discount_amount', label: 'خصم نقدي مقطوع (ج.م)' },
+                    { value: 'free_bonus', label: t('delivery_reps.van_promotions_admin_tab.s51', "بونص عيني مجاني (0.00 ج.م)") },
+                    { value: 'discount_percent', label: t('delivery_reps.van_promotions_admin_tab.s52', "خصم نسبة مئوية (%)") },
+                    { value: 'discount_amount', label: t('delivery_reps.van_promotions_admin_tab.s53', "خصم نقدي مقطوع (ج.م)") },
                   ]}
                   style={{ width: '100%' }}
                 />
@@ -836,13 +838,13 @@ export function VanPromotionsAdminTab() {
               }}
             >
               <div style={{ fontSize: '13px', fontWeight: 700, color: '#1e293b', marginBottom: '8px' }}>
-                شروط الشراء والتفعيل
+                {t('delivery_reps.van_promotions_admin_tab.s54', "شروط الشراء والتفعيل")}
               </div>
 
               {formPromoType === 'invoice_threshold' ? (
                 <div>
                   <label style={{ display: 'block', fontSize: '12px', color: '#64748b', marginBottom: '4px' }}>
-                    الحد الأدنى لقيمة الفاتورة (ج.م) *
+                    {t('delivery_reps.van_promotions_admin_tab.s55', "الحد الأدنى لقيمة الفاتورة (ج.م) *")}
                   </label>
                   <input
                     type="number"
@@ -882,7 +884,7 @@ export function VanPromotionsAdminTab() {
                           </div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                             <span style={{ fontSize: '12px', color: '#64748b' }}>
-                              الكمية المطلوبة: <b>{c.minQty}</b>
+                              {t('delivery_reps.van_promotions_admin_tab.s56', "الكمية المطلوبة:")} <b>{c.minQty}</b>
                             </span>
                             <button
                               type="button"
@@ -904,7 +906,7 @@ export function VanPromotionsAdminTab() {
                         value={selectedProdForCondition ? String(selectedProdForCondition) : ''}
                         onChange={(val) => setSelectedProdForCondition(Number(val))}
                         options={[
-                          { value: '', label: 'اختر الصنف المطلوب...' },
+                          { value: '', label: t('delivery_reps.van_promotions_admin_tab.s57', "اختر الصنف المطلوب...") },
                           ...availableProducts.map((p) => ({
                             value: String(p.id),
                             label: `${p.name} (${p.price} ج.م)`,
@@ -916,7 +918,7 @@ export function VanPromotionsAdminTab() {
                     <input
                       type="number"
                       min="1"
-                      placeholder="الكمية"
+                      placeholder={t('delivery_reps.van_promotions_admin_tab.s58', "الكمية")}
                       value={selectedProdQty}
                       onChange={(e) => setSelectedProdQty(e.target.value)}
                       style={{
@@ -935,7 +937,7 @@ export function VanPromotionsAdminTab() {
                       onClick={handleAddConditionItem}
                       style={{ height: '36px', fontSize: '12px' }}
                     >
-                      + إضافة صنف
+                      {t('delivery_reps.van_promotions_admin_tab.s59', "+ إضافة صنف")}
                     </Button>
                   </div>
                 </div>
@@ -952,14 +954,14 @@ export function VanPromotionsAdminTab() {
               }}
             >
               <div style={{ fontSize: '13px', fontWeight: 700, color: '#1e293b', marginBottom: '8px' }}>
-                المكافأة الممنوحة عند التفعيل
+                {t('delivery_reps.van_promotions_admin_tab.s60', "المكافأة الممنوحة عند التفعيل")}
               </div>
 
               {formApplyType === 'free_bonus' ? (
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 120px', gap: '10px', alignItems: 'center' }}>
                   <div>
                     <label style={{ display: 'block', fontSize: '11.5px', color: '#64748b', marginBottom: '4px' }}>
-                      صنف الهدية / البونص المجاني *
+                      {t('delivery_reps.van_promotions_admin_tab.s61', "صنف الهدية / البونص المجاني *")}
                     </label>
                     <CustomSelect
                       value={rewardBonusProductId ? String(rewardBonusProductId) : ''}
@@ -970,7 +972,7 @@ export function VanPromotionsAdminTab() {
                         setRewardBonusProductName(p ? p.name : '');
                       }}
                       options={[
-                        { value: '', label: 'اختر صنف البونص المجاني...' },
+                        { value: '', label: t('delivery_reps.van_promotions_admin_tab.s62', "اختر صنف البونص المجاني...") },
                         ...availableProducts.map((p) => ({
                           value: String(p.id),
                           label: p.name,
@@ -981,7 +983,7 @@ export function VanPromotionsAdminTab() {
                   </div>
                   <div>
                     <label style={{ display: 'block', fontSize: '11.5px', color: '#64748b', marginBottom: '4px' }}>
-                      كمية البونص *
+                      {t('delivery_reps.van_promotions_admin_tab.s63', "كمية البونص *")}
                     </label>
                     <input
                       type="number"
@@ -1003,7 +1005,7 @@ export function VanPromotionsAdminTab() {
               ) : formApplyType === 'discount_percent' ? (
                 <div>
                   <label style={{ display: 'block', fontSize: '11.5px', color: '#64748b', marginBottom: '4px' }}>
-                    نسبة الخصم المئوية (%) *
+                    {t('delivery_reps.van_promotions_admin_tab.s64', "نسبة الخصم المئوية (%) *")}
                   </label>
                   <input
                     type="number"
@@ -1025,7 +1027,7 @@ export function VanPromotionsAdminTab() {
               ) : (
                 <div>
                   <label style={{ display: 'block', fontSize: '11.5px', color: '#64748b', marginBottom: '4px' }}>
-                    مبلغ الخصم النقدي (ج.م) *
+                    {t('delivery_reps.van_promotions_admin_tab.s65', "مبلغ الخصم النقدي (ج.م) *")}
                   </label>
                   <input
                     type="number"
@@ -1049,7 +1051,7 @@ export function VanPromotionsAdminTab() {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 120px', gap: '12px' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '11.5px', color: '#64748b', marginBottom: '4px' }}>
-                  تاريخ البداية (اختياري)
+                  {t('delivery_reps.van_promotions_admin_tab.s66', "تاريخ البداية (اختياري)")}
                 </label>
                 <input
                   type="date"
@@ -1068,7 +1070,7 @@ export function VanPromotionsAdminTab() {
 
               <div>
                 <label style={{ display: 'block', fontSize: '11.5px', color: '#64748b', marginBottom: '4px' }}>
-                  تاريخ الانتهاء (اختياري)
+                  {t('delivery_reps.van_promotions_admin_tab.s67', "تاريخ الانتهاء (اختياري)")}
                 </label>
                 <input
                   type="date"
@@ -1087,7 +1089,7 @@ export function VanPromotionsAdminTab() {
 
               <div>
                 <label style={{ display: 'block', fontSize: '11.5px', color: '#64748b', marginBottom: '4px' }}>
-                  تكرار الباقة بالفاتورة
+                  {t('delivery_reps.van_promotions_admin_tab.s68', "تكرار الباقة بالفاتورة")}
                 </label>
                 <input
                   type="number"
@@ -1109,7 +1111,7 @@ export function VanPromotionsAdminTab() {
 
             <StandardDialogFooter>
               <Button type="button" variant="secondary" onClick={() => setIsDialogOpen(false)}>
-                إلغاء
+                {t('delivery_reps.van_promotions_admin_tab.s69', "إلغاء")}
               </Button>
               <Button
                 type="submit"
@@ -1121,7 +1123,7 @@ export function VanPromotionsAdminTab() {
                   fontSize: '13px',
                 }}
               >
-                {editingPromo ? 'حفظ التعديلات' : 'إنشاء وتفعيل العرض'}
+                {editingPromo ? t('delivery_reps.van_promotions_admin_tab.s70', "حفظ التعديلات") : t('delivery_reps.van_promotions_admin_tab.s71', "إنشاء وتفعيل العرض")}
               </Button>
             </StandardDialogFooter>
           </form>

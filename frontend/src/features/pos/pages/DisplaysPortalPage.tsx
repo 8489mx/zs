@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '@/shared/components/page-header';
@@ -27,6 +28,7 @@ interface DisplayCard {
 }
 
 export function DisplaysPortalPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { data: settings } = useSettingsQuery();
 
@@ -98,7 +100,7 @@ export function DisplaysPortalPage() {
   };
 
   return (
-    <FeatureGate feature="restaurant" featureName="شاشات العرض والتفاعل">
+    <FeatureGate feature="restaurant" featureName={t('pos.displays_portal_page.s0', "شاشات العرض والتفاعل")}>
       <div className="page-stack page-shell displays-portal-page" dir="rtl">
         <main
           className="document-prototype-column"
@@ -110,9 +112,9 @@ export function DisplaysPortalPage() {
           }}
         >
           <PageHeader
-            title="شاشات العرض والتفاعل"
-            description="مركز تشغيل شاشات العرض المباشرة التفاعلية لنقاط البيع وصالة العرض ومحطات التحضير والمطبخ"
-            badge={<span className="nav-pill">{cards.length} شاشات مفعلة</span>}
+            title={t('pos.displays_portal_page.s1', "شاشات العرض والتفاعل")}
+            description={t('pos.displays_portal_page.s2', "مركز تشغيل شاشات العرض المباشرة التفاعلية لنقاط البيع وصالة العرض ومحطات التحضير والمطبخ")}
+            badge={<span className="nav-pill">{cards.length} {t('pos.displays_portal_page.s3', "شاشات مفعلة")}</span>}
           />
 
           {/* KPI & Live Infrastructure Strip */}
@@ -137,9 +139,9 @@ export function DisplaysPortalPage() {
               }}
             >
               <div>
-                <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>إجمالي محطات العرض</div>
+                <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>{t('pos.displays_portal_page.s4', "إجمالي محطات العرض")}</div>
                 <div style={{ fontSize: '16px', fontWeight: 900, color: '#170e5e', marginTop: '2px' }}>
-                  {cards.length} شاشات تفاعلية
+                  {cards.length} {t('pos.displays_portal_page.s5', "شاشات تفاعلية")}
                 </div>
               </div>
               <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#eef2ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -160,9 +162,9 @@ export function DisplaysPortalPage() {
               }}
             >
               <div>
-                <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>نمط التشغيل المدعوم</div>
+                <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>{t('pos.displays_portal_page.s6', "نمط التشغيل المدعوم")}</div>
                 <div style={{ fontSize: '14px', fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>
-                  Dual-Screen / HDMI / تابلت
+                  {t('pos.displays_portal_page.s7', "Dual-Screen / HDMI / تابلت")}
                 </div>
               </div>
               <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -183,9 +185,9 @@ export function DisplaysPortalPage() {
               }}
             >
               <div>
-                <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>زمن المزامنة اللحظية</div>
+                <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>{t('pos.displays_portal_page.s8', "زمن المزامنة اللحظية")}</div>
                 <div style={{ fontSize: '14px', fontWeight: 800, color: '#047857', marginTop: '2px' }}>
-                  0ms لحظي (Local Channel)
+                  {t('pos.displays_portal_page.s9', "0ms لحظي (Local Channel)")}
                 </div>
               </div>
               <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#ecfdf5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -206,10 +208,10 @@ export function DisplaysPortalPage() {
               }}
             >
               <div>
-                <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>جاهزية المنظومة</div>
+                <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>{t('pos.displays_portal_page.s10', "جاهزية المنظومة")}</div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
                   <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#10b981', display: 'inline-block' }} />
-                  <span style={{ fontSize: '13.5px', fontWeight: 800, color: '#0f172a' }}>متصل وجاهز للبث</span>
+                  <span style={{ fontSize: '13.5px', fontWeight: 800, color: '#0f172a' }}>{t('pos.displays_portal_page.s11', "متصل وجاهز للبث")}</span>
                 </div>
               </div>
               <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -370,7 +372,7 @@ export function DisplaysPortalPage() {
                     }}
                   >
                     <Maximize2Icon size={14} color="#ffffff" />
-                    <span>تشغيل الشاشة (ملء الشاشة)</span>
+                    <span>{t('pos.displays_portal_page.s12', "تشغيل الشاشة (ملء الشاشة)")}</span>
                     <ArrowRightIcon size={14} color="#ffffff" />
                   </button>
 
@@ -402,9 +404,9 @@ export function DisplaysPortalPage() {
                       e.currentTarget.style.backgroundColor = '#ffffff';
                       e.currentTarget.style.borderColor = '#cbd5e1';
                     }}
-                    title="فتح الشاشة في نافذة منفصلة لعرضها على شاشة ثانية HDMI"
+                    title={t('pos.displays_portal_page.s13', "فتح الشاشة في نافذة منفصلة لعرضها على شاشة ثانية HDMI")}
                   >
-                    <span>فتح في نافذة مستقلة (شاشة ثانية)</span>
+                    <span>{t('pos.displays_portal_page.s14', "فتح في نافذة مستقلة (شاشة ثانية)")}</span>
                   </button>
                 </div>
               </div>

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { isDesktopOfflineApp } from '@/shared/system/runtime-environment';
@@ -56,6 +57,7 @@ export function AppsKpiHeader({
   currentPlanName,
   isSuperAdmin,
 }: AppsKpiHeaderProps) {
+  const { t } = useTranslation();
   // Balanced plan name display (prevents awkward line wrapping)
   const planDisplay = useMemo(() => {
     if (isSuperAdmin) {
@@ -101,7 +103,7 @@ export function AppsKpiHeader({
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-          <span style={{ fontSize: '0.76rem', color: '#64748b', fontWeight: 700 }}>إجمالي التطبيقات</span>
+          <span style={{ fontSize: '0.76rem', color: '#64748b', fontWeight: 700 }}>{t('apps_store.apps_kpi_header.s0', "إجمالي التطبيقات")}</span>
           <div
             style={{
               width: '36px',
@@ -121,11 +123,11 @@ export function AppsKpiHeader({
         </div>
 
         <div style={{ fontSize: '1.45rem', fontWeight: 800, color: '#0f172a', lineHeight: 1.2, margin: '2px 0 6px 0' }}>
-          {totalApps} <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#64748b' }}>تطبيقاً</span>
+          {totalApps} <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#64748b' }}>{t('apps_store.apps_kpi_header.s1', "تطبيقاً")}</span>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px' }}>
-          <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>كتالوج المنظومة الشامل</span>
+          <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>{t('apps_store.apps_kpi_header.s2', "كتالوج المنظومة الشامل")}</span>
           <span
             style={{
               fontSize: '0.68rem',
@@ -137,7 +139,7 @@ export function AppsKpiHeader({
               border: '1px solid #e2e8f0',
             }}
           >
-            الكتالوج العام
+            {t('apps_store.apps_kpi_header.s3', "الكتالوج العام")}
           </span>
         </div>
       </div>
@@ -157,7 +159,7 @@ export function AppsKpiHeader({
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-          <span style={{ fontSize: '0.76rem', color: '#065f46', fontWeight: 700 }}>المثبتة والنشطة</span>
+          <span style={{ fontSize: '0.76rem', color: '#065f46', fontWeight: 700 }}>{t('apps_store.apps_kpi_header.s4', "المثبتة والنشطة")}</span>
           <div
             style={{
               width: '36px',
@@ -177,11 +179,11 @@ export function AppsKpiHeader({
         </div>
 
         <div style={{ fontSize: '1.45rem', fontWeight: 800, color: '#059669', lineHeight: 1.2, margin: '2px 0 6px 0' }}>
-          {activeAppsCount} <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#047857' }}>نشط</span>
+          {activeAppsCount} <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#047857' }}>{t('apps_store.apps_kpi_header.s5', "نشط")}</span>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px' }}>
-          <span style={{ fontSize: '0.7rem', color: '#059669' }}>تظهر في القائمة والشاشات</span>
+          <span style={{ fontSize: '0.7rem', color: '#059669' }}>{t('apps_store.apps_kpi_header.s6', "تظهر في القائمة والشاشات")}</span>
           <span
             style={{
               fontSize: '0.68rem',
@@ -193,7 +195,7 @@ export function AppsKpiHeader({
               border: '1px solid #a7f3d0',
             }}
           >
-            جاهز للعمل
+            {t('apps_store.apps_kpi_header.s7', "جاهز للعمل")}
           </span>
         </div>
       </div>
@@ -214,7 +216,7 @@ export function AppsKpiHeader({
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
           <span style={{ fontSize: '0.76rem', color: '#64748b', fontWeight: 700 }}>
-            {isSuperAdmin ? 'متاح للتثبيت الفوري' : 'موديولات إضافية للترقية'}
+            {isSuperAdmin ? t('apps_store.apps_kpi_header.s8', "متاح للتثبيت الفوري") : t('apps_store.apps_kpi_header.s9', "موديولات إضافية للترقية")}
           </span>
           <div
             style={{
@@ -236,12 +238,12 @@ export function AppsKpiHeader({
 
         <div style={{ fontSize: '1.45rem', fontWeight: 800, color: '#0f172a', lineHeight: 1.2, margin: '2px 0 6px 0' }}>
           {isSuperAdmin ? availableToInstallCount : Math.max(0, totalApps - activeAppsCount)}{' '}
-          <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#64748b' }}>موديول</span>
+          <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#64748b' }}>{t('apps_store.apps_kpi_header.s10', "موديول")}</span>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px' }}>
           <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>
-            {isSuperAdmin ? 'ضمن باقتك الحالية مباشرة' : 'تتطلب ترقية أو تفعيل من الإدارة'}
+            {isSuperAdmin ? t('apps_store.apps_kpi_header.s11', "ضمن باقتك الحالية مباشرة") : t('apps_store.apps_kpi_header.s12', "تتطلب ترقية أو تفعيل من الإدارة")}
           </span>
           <span
             style={{
@@ -254,7 +256,7 @@ export function AppsKpiHeader({
               border: isSuperAdmin ? '1px solid #e2e8f0' : '1px solid #bfdbfe',
             }}
           >
-            {isSuperAdmin ? 'تثبيت فوري' : 'تواصل مع الإدارة'}
+            {isSuperAdmin ? t('apps_store.apps_kpi_header.s13', "تثبيت فوري") : t('apps_store.apps_kpi_header.s14', "تواصل مع الإدارة")}
           </span>
         </div>
       </div>
@@ -275,7 +277,7 @@ export function AppsKpiHeader({
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
           <span style={{ fontSize: '0.76rem', color: '#64748b', fontWeight: 700 }}>
-            {isSuperAdmin ? 'رتبة الحساب' : 'باقتك الحالية'}
+            {isSuperAdmin ? t('apps_store.apps_kpi_header.s15', "رتبة الحساب") : t('apps_store.apps_kpi_header.s16', "باقتك الحالية")}
           </span>
           <div
             style={{
@@ -341,7 +343,7 @@ export function AppsKpiHeader({
                 e.currentTarget.style.borderColor = '#cbd5e1';
               }}
             >
-              ترقية الباقة
+              {t('apps_store.apps_kpi_header.s17', "ترقية الباقة")}
             </Link>
           )}
         </div>

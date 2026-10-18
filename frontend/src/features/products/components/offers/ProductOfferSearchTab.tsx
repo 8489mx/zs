@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { formatCurrency } from '@/lib/format';
 import { todayIsoDate } from './product-offer.utils';
 import type { Product } from '@/types/domain';
@@ -35,6 +36,7 @@ export function ProductOfferSearchTab({
   isSearching,
   onSelectProduct,
 }: ProductOfferSearchTabProps) {
+  const { t } = useTranslation();
   return (
     <div style={{
       background: '#ffffff',
@@ -53,7 +55,7 @@ export function ProductOfferSearchTab({
           autoFocus
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="ابحث باسم الصنف، الباركود، أو كود الموديل..."
+          placeholder={t('products.offers.product_offer_search_tab.s0', "ابحث باسم الصنف، الباركود، أو كود الموديل...")}
           style={{
             width: '100%',
             height: 44,
@@ -133,7 +135,7 @@ export function ProductOfferSearchTab({
             <rect x="14" y="14" width="7" height="7" />
             <rect x="3" y="14" width="7" height="7" />
           </svg>
-          الكل
+          {t('products.offers.product_offer_search_tab.s1', "الكل")}
           <span style={{
             background: searchFilter === 'all' ? 'rgba(255,255,255,0.2)' : '#e2e8f0',
             color: searchFilter === 'all' ? '#ffffff' : '#64748b',
@@ -170,7 +172,7 @@ export function ProductOfferSearchTab({
             <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
             <line x1="7" y1="7" x2="7.01" y2="7" />
           </svg>
-          عليها عروض
+          {t('products.offers.product_offer_search_tab.s2', "عليها عروض")}
           <span style={{
             background: searchFilter === 'offers' ? 'rgba(255,255,255,0.25)' : '#dbeafe',
             color: searchFilter === 'offers' ? '#ffffff' : '#1d4ed8',
@@ -208,7 +210,7 @@ export function ProductOfferSearchTab({
             <circle cx="12" cy="12" r="10" />
             <polyline points="12 6 12 12 14 14" />
           </svg>
-          قريبة الانتهاء
+          {t('products.offers.product_offer_search_tab.s3', "قريبة الانتهاء")}
           <span style={{
             background: searchFilter === 'near_expiry' ? 'rgba(255,255,255,0.25)' : '#fee2e2',
             color: searchFilter === 'near_expiry' ? '#ffffff' : '#b91c1c',
@@ -246,7 +248,7 @@ export function ProductOfferSearchTab({
             <circle cx="12" cy="12" r="10" />
             <polyline points="12 6 12 12 16 14" />
           </svg>
-          راكدة للتصريف
+          {t('products.offers.product_offer_search_tab.s4', "راكدة للتصريف")}
           <span style={{
             background: searchFilter === 'stagnant' ? 'rgba(255,255,255,0.25)' : '#fef3c7',
             color: searchFilter === 'stagnant' ? '#ffffff' : '#b45309',
@@ -283,7 +285,7 @@ export function ProductOfferSearchTab({
             <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
             <polyline points="17 6 23 6 23 12" />
           </svg>
-          أعلى ربحية
+          {t('products.offers.product_offer_search_tab.s5', "أعلى ربحية")}
           <span style={{
             background: searchFilter === 'high_margin' ? 'rgba(255,255,255,0.25)' : '#d1fae5',
             color: searchFilter === 'high_margin' ? '#ffffff' : '#047857',
@@ -321,7 +323,7 @@ export function ProductOfferSearchTab({
             <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
             <line x1="12" y1="22.08" x2="12" y2="12" />
           </svg>
-          فائض مخزون
+          {t('products.offers.product_offer_search_tab.s6', "فائض مخزون")}
           <span style={{
             background: searchFilter === 'overstock' ? 'rgba(255,255,255,0.25)' : '#ede9fe',
             color: searchFilter === 'overstock' ? '#ffffff' : '#6d28d9',
@@ -359,7 +361,7 @@ export function ProductOfferSearchTab({
             <line x1="12" y1="8" x2="12" y2="16" />
             <line x1="8" y1="12" x2="16" y2="12" />
           </svg>
-          بدون عروض
+          {t('products.offers.product_offer_search_tab.s7', "بدون عروض")}
           <span style={{
             background: searchFilter === 'no_offers' ? 'rgba(255,255,255,0.25)' : '#f1f5f9',
             color: searchFilter === 'no_offers' ? '#ffffff' : '#64748b',
@@ -376,7 +378,7 @@ export function ProductOfferSearchTab({
       <div style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
         {isSearching ? (
           <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
-            جاري البحث في قاعدة الأصناف...
+            {t('products.offers.product_offer_search_tab.s8', "جاري البحث في قاعدة الأصناف...")}
           </div>
         ) : filteredSearchResults.length > 0 ? (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(270px, 1fr))', gap: 10, padding: '2px 4px' }}>
@@ -463,7 +465,7 @@ export function ProductOfferSearchTab({
                             <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
                             <line x1="7" y1="7" x2="7.01" y2="7" />
                           </svg>
-                          {prodOffers.length} {prodOffers.length === 1 ? 'عرض' : 'عروض'}
+                          {prodOffers.length} {prodOffers.length === 1 ? t('products.offers.product_offer_search_tab.s9', "عرض") : t('products.offers.product_offer_search_tab.s10', "عروض")}
                         </span>
                       )}
                       {exp ? (
@@ -476,7 +478,7 @@ export function ProductOfferSearchTab({
                           fontSize: '0.68rem',
                           fontWeight: expDays !== null && expDays <= 45 ? 700 : 500
                         }}>
-                          {expDays !== null && expDays <= 0 ? 'منتهي' : expDays !== null && expDays <= 45 ? `باقي ${expDays} يوم` : String(exp).slice(0, 10)}
+                          {expDays !== null && expDays <= 0 ? t('products.offers.product_offer_search_tab.s11', "منتهي") : expDays !== null && expDays <= 45 ? `باقي ${expDays} يوم` : String(exp).slice(0, 10)}
                         </span>
                       ) : null}
                     </div>
@@ -485,18 +487,18 @@ export function ProductOfferSearchTab({
                   {/* Row 2 (Middle): Barcode (Right) + Stock (Left) */}
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.74rem', color: '#64748b' }}>
                     <span style={{ fontFamily: 'monospace', color: prod.barcode ? '#475569' : '#94a3b8' }}>
-                      {prod.barcode ? `باركود: ${prod.barcode}` : 'بدون باركود'}
+                      {prod.barcode ? `باركود: ${prod.barcode}` : t('products.offers.product_offer_search_tab.s12', "بدون باركود")}
                     </span>
 
                     <span style={{ background: '#f1f5f9', color: '#475569', padding: '1px 6px', borderRadius: 4, fontSize: '0.7rem', fontWeight: 600 }}>
-                      المخزون: {prodStock}
+                      {t('products.offers.product_offer_search_tab.s13', "المخزون:")} {prodStock}
                     </span>
                   </div>
 
                   {/* Row 3 (Bottom): Price (Right) + Profit Margin Badge (Left) */}
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 4, borderTop: '1px dashed #f1f5f9' }}>
                     <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
-                      <span style={{ fontSize: '0.72rem', color: '#64748b' }}>سعر البيع:</span>
+                      <span style={{ fontSize: '0.72rem', color: '#64748b' }}>{t('products.offers.product_offer_search_tab.s14', "سعر البيع:")}</span>
                       <span style={{ fontWeight: 800, fontSize: '0.96rem', color: '#0f172a' }}>
                         {formatCurrency(prodRetail)}
                       </span>
@@ -512,11 +514,11 @@ export function ProductOfferSearchTab({
                         fontSize: '0.68rem',
                         fontWeight: 600
                       }}>
-                        ربح {prodMargin.toFixed(0)}%
+                        {t('products.offers.product_offer_search_tab.s15', "ربح")} {prodMargin.toFixed(0)}%
                       </span>
                     ) : (
                       <span style={{ fontSize: '0.68rem', color: '#94a3b8' }}>
-                        اضغط للضبط
+                        {t('products.offers.product_offer_search_tab.s16', "اضغط للضبط")}
                       </span>
                     )}
                   </div>
@@ -532,8 +534,8 @@ export function ProductOfferSearchTab({
                 <line x1="21" y1="21" x2="16.65" y2="16.65" />
               </svg>
             </div>
-            <div style={{ fontWeight: 600, color: '#64748b' }}>لا توجد أصناف مطابقة للبحث أو الفلتر المحدد</div>
-            <div style={{ fontSize: '0.78rem', marginTop: 4 }}>جرب اختيار فلتر آخر أو تعديل نص البحث</div>
+            <div style={{ fontWeight: 600, color: '#64748b' }}>{t('products.offers.product_offer_search_tab.s17', "لا توجد أصناف مطابقة للبحث أو الفلتر المحدد")}</div>
+            <div style={{ fontSize: '0.78rem', marginTop: 4 }}>{t('products.offers.product_offer_search_tab.s18', "جرب اختيار فلتر آخر أو تعديل نص البحث")}</div>
           </div>
         ) : (
           <div style={{ padding: '60px 20px', textAlign: 'center', color: '#94a3b8' }}>
@@ -543,8 +545,8 @@ export function ProductOfferSearchTab({
                 <line x1="7" y1="7" x2="7.01" y2="7" />
               </svg>
             </div>
-            <div style={{ fontWeight: 600, color: '#475569', fontSize: '0.95rem' }}>ابحث عن أي صنف لإدارة العروض الترويجية والخصومات الخاصة به</div>
-            <div style={{ fontSize: '0.8rem', marginTop: 4, color: '#94a3b8' }}>اكتب اسم الصنف أو امسح الباركود للبدء مباشرة</div>
+            <div style={{ fontWeight: 600, color: '#475569', fontSize: '0.95rem' }}>{t('products.offers.product_offer_search_tab.s19', "ابحث عن أي صنف لإدارة العروض الترويجية والخصومات الخاصة به")}</div>
+            <div style={{ fontSize: '0.8rem', marginTop: 4, color: '#94a3b8' }}>{t('products.offers.product_offer_search_tab.s20', "اكتب اسم الصنف أو امسح الباركود للبدء مباشرة")}</div>
           </div>
         )}
       </div>

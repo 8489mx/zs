@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useRef } from 'react';
 import { IconSearch } from './StorefrontIcons';
 import { XIcon, TagIcon, PlusIcon, ArrowRightIcon } from '@/shared/components/icons/AppIcons';
@@ -23,6 +24,7 @@ export function StorefrontPredictiveSearch({
   onSelectProduct,
   onAddToCart,
 }: StorefrontPredictiveSearchProps) {
+  const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const [suggestions, setSuggestions] = useState<{
     categories: Array<{ id: number; name: string }>;
@@ -115,7 +117,7 @@ export function StorefrontPredictiveSearch({
               setIsOpen(true);
             }
           }}
-          placeholder="ابحث عن أي منتج، كود، أو تصنيف..."
+          placeholder={t('storefront.storefront_predictive_search.s0', "ابحث عن أي منتج، كود، أو تصنيف...")}
           style={{
             flex: 1,
             border: 'none',
@@ -148,7 +150,7 @@ export function StorefrontPredictiveSearch({
               display: 'flex',
               alignItems: 'center',
             }}
-            title="مسح البحث"
+            title={t('storefront.storefront_predictive_search.s1', "مسح البحث")}
           >
             <XIcon size={15} />
           </button>
@@ -177,7 +179,7 @@ export function StorefrontPredictiveSearch({
           }}
         >
           <IconSearch size={15} strokeWidth={2.2} />
-          <span className="storefront-search-btn-text">بحث</span>
+          <span className="storefront-search-btn-text">{t('storefront.storefront_predictive_search.s2', "بحث")}</span>
         </button>
       </div>
 
@@ -215,7 +217,7 @@ export function StorefrontPredictiveSearch({
                 }}
               >
                 <TagIcon size={12} />
-                <span>أقسام مطابقة:</span>
+                <span>{t('storefront.storefront_predictive_search.s3', "أقسام مطابقة:")}</span>
               </div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                 {suggestions.categories.map((cat) => (
@@ -265,7 +267,7 @@ export function StorefrontPredictiveSearch({
                   marginBottom: '4px',
                 }}
               >
-                المنتجات المقترحة:
+                {t('storefront.storefront_predictive_search.s4', "المنتجات المقترحة:")}
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                 {suggestions.products.map((prod) => (
@@ -317,7 +319,7 @@ export function StorefrontPredictiveSearch({
                           {prod.name}
                         </div>
                         <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>
-                          {prod.categoryName || 'عام'}
+                          {prod.categoryName || t('storefront.storefront_predictive_search.s5', "عام")}
                         </div>
                       </div>
                     </div>
@@ -351,7 +353,7 @@ export function StorefrontPredictiveSearch({
                             justifyContent: 'center',
                             cursor: 'pointer',
                           }}
-                          title="إضافة للسلة"
+                          title={t('storefront.storefront_predictive_search.s6', "إضافة للسلة")}
                         >
                           <PlusIcon size={14} strokeWidth={2.5} />
                         </button>
@@ -381,7 +383,7 @@ export function StorefrontPredictiveSearch({
               gap: '4px',
             }}
           >
-            <span>عرض نتائج البحث عن "{searchTerm}"</span>
+            <span>{t('storefront.storefront_predictive_search.s7', "عرض نتائج البحث عن \"")}{searchTerm}"</span>
             <ArrowRightIcon size={13} style={{ transform: 'rotate(180deg)' }} />
           </div>
         </div>

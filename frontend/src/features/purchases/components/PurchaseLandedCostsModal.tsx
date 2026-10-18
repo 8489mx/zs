@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React, { useState, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
@@ -31,6 +32,7 @@ export function PurchaseLandedCostsModal({
   onClose,
   onApplied,
 }: PurchaseLandedCostsModalProps) {
+  const { t } = useTranslation();
   const { currencySymbol } = useSystemCurrency();
   const queryClient = useQueryClient();
   const [allocationMethod, setAllocationMethod] = useState<'value' | 'qty' | 'equal'>('value');
@@ -152,14 +154,14 @@ export function PurchaseLandedCostsModal({
     <StandardDialog
       open={open}
       onClose={onClose}
-      title="تحميل وتوزيع تكلفة الوصول على فاتورة المشتريات (Landed Costs Engine)"
+      title={t('purchases.purchase_landed_costs_modal.s0', "تحميل وتوزيع تكلفة الوصول على فاتورة المشتريات (Landed Costs Engine)")}
       subtitle={`فاتورة شراء: ${query.data?.purchase?.docNo || `#${purchaseId}`} (${query.data?.purchase?.supplierName || ''})`}
       maxWidth="980px"
       footerActions={
         <StandardDialogFooter
           onCancel={onClose}
-          submitLabel={applyMutation.isPending ? 'جارٍ التحميل والتوزيع...' : 'تطبيق وتحديث تكلفة المخزون'}
-          cancelLabel="إلغاء"
+          submitLabel={applyMutation.isPending ? t('purchases.purchase_landed_costs_modal.s1', "جارٍ التحميل والتوزيع...") : t('purchases.purchase_landed_costs_modal.s2', "تطبيق وتحديث تكلفة المخزون")}
+          cancelLabel={t('purchases.purchase_landed_costs_modal.s3', "إلغاء")}
           isSubmitting={applyMutation.isPending}
           submitDisabled={applyMutation.isPending || totalLandedCost <= 0}
           onSubmit={handleSubmit}
@@ -171,10 +173,10 @@ export function PurchaseLandedCostsModal({
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0', paddingBottom: '10px' }}>
           <div>
             <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: '#0f172a' }}>
-              فاتورة شراء: {query.data?.purchase?.docNo || `#${purchaseId}`} ({query.data?.purchase?.supplierName})
+              {t('purchases.purchase_landed_costs_modal.s4', "فاتورة شراء:")} {query.data?.purchase?.docNo || `#${purchaseId}`} ({query.data?.purchase?.supplierName})
             </h3>
             <span style={{ fontSize: '12.5px', color: '#64748b' }}>
-              قيمة البضاعة الأساسية: <strong style={{ color: '#0f172a' }}>{formatCurrency(query.data?.purchase?.subtotal || 0)}</strong> • {purchaseItems.length} بنود
+              {t('purchases.purchase_landed_costs_modal.s5', "قيمة البضاعة الأساسية:")} <strong style={{ color: '#0f172a' }}>{formatCurrency(query.data?.purchase?.subtotal || 0)}</strong> • {purchaseItems.length} {t('purchases.purchase_landed_costs_modal.s6', "بنود")}
             </span>
           </div>
 
@@ -188,7 +190,7 @@ export function PurchaseLandedCostsModal({
               fontSize: '12px',
               fontWeight: 700,
             }}>
-              تم تطبيق تكلفة وصول سابقة: {formatCurrency(query.data.purchase.landedCostTotal)}
+              {t('purchases.purchase_landed_costs_modal.s7', "تم تطبيق تكلفة وصول سابقة:")} {formatCurrency(query.data.purchase.landedCostTotal)}
             </span>
           )}
         </div>
@@ -213,7 +215,7 @@ export function PurchaseLandedCostsModal({
           <div style={{ background: '#f8fafc', padding: '12px 16px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
               <strong style={{ fontSize: '13.5px', color: '#0f172a' }}>
-                بنود المصاريف الإضافية (شحن، تفريغ، جمارك، تأمين):
+                {t('purchases.purchase_landed_costs_modal.s8', "بنود المصاريف الإضافية (شحن، تفريغ، جمارك، تأمين):")}
               </strong>
               <Button
                 type="button"
@@ -221,7 +223,7 @@ export function PurchaseLandedCostsModal({
                 onClick={handleAddCostRow}
                 style={{ fontSize: '12px', padding: '3px 10px' }}
               >
-                + إضافة بند مصروف
+                {t('purchases.purchase_landed_costs_modal.s9', "+ إضافة بند مصروف")}
               </Button>
             </div>
 
@@ -239,7 +241,7 @@ export function PurchaseLandedCostsModal({
 
                   <input
                     type="text"
-                    placeholder="البيان (مثال: نولون سيارة نقل رقم 5)"
+                    placeholder={t('purchases.purchase_landed_costs_modal.s10', "البيان (مثال: نولون سيارة نقل رقم 5)")}
                       value={cost.description}
                       onChange={(e) => {
                         const val = e.target.value;
@@ -283,7 +285,7 @@ export function PurchaseLandedCostsModal({
               {/* Total Landed Cost Bar */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #e2e8f0', paddingTop: '10px', marginTop: '10px' }}>
                 <span style={{ fontSize: '12.5px', color: '#64748b', fontWeight: 700 }}>
-                  إجمالي المصاريف المراد تحميلها:
+                  {t('purchases.purchase_landed_costs_modal.s11', "إجمالي المصاريف المراد تحميلها:")}
                 </span>
                 <strong style={{ fontSize: '16px', fontWeight: 900, color: '#170e5e' }}>
                   {formatCurrency(totalLandedCost)}
@@ -294,12 +296,12 @@ export function PurchaseLandedCostsModal({
             {/* 2. Allocation Controls */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 16px', flexWrap: 'wrap', gap: '10px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <span style={{ fontSize: '13px', fontWeight: 800, color: '#334155' }}>طريقة التوزيع:</span>
+                <span style={{ fontSize: '13px', fontWeight: 800, color: '#334155' }}>{t('purchases.purchase_landed_costs_modal.s12', "طريقة التوزيع:")}</span>
                 <div style={{ display: 'flex', gap: '6px' }}>
                   {[
-                    { id: 'value', label: 'حسب قيمة الأصناف (الأعلى دقة)' },
-                    { id: 'qty', label: 'حسب كمية الأصناف' },
-                    { id: 'equal', label: 'بالتساوي على البنود' },
+                    { id: 'value', label: t('purchases.purchase_landed_costs_modal.s13', "حسب قيمة الأصناف (الأعلى دقة)") },
+                    { id: 'qty', label: t('purchases.purchase_landed_costs_modal.s14', "حسب كمية الأصناف") },
+                    { id: 'equal', label: t('purchases.purchase_landed_costs_modal.s15', "بالتساوي على البنود") },
                   ].map((m) => (
                     <button
                       key={m.id}
@@ -325,7 +327,7 @@ export function PurchaseLandedCostsModal({
               <div style={{ flex: 1, minWidth: '200px' }}>
                 <input
                   type="text"
-                  placeholder="ملاحظات اختيارية على التوزيع..."
+                  placeholder={t('purchases.purchase_landed_costs_modal.s16', "ملاحظات اختيارية على التوزيع...")}
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   style={{ width: '100%', padding: '6px 10px', fontSize: '12px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }}
@@ -337,10 +339,10 @@ export function PurchaseLandedCostsModal({
             <div style={{ border: '1px solid #e2e8f0', borderRadius: '10px', overflow: 'hidden' }}>
               <div style={{ background: '#f8fafc', padding: '8px 14px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <strong style={{ fontSize: '12.5px', color: '#0f172a' }}>
-                  معاينة الأثر على تكلفة الوحدة لكل صنف في المخزون:
+                  {t('purchases.purchase_landed_costs_modal.s17', "معاينة الأثر على تكلفة الوحدة لكل صنف في المخزون:")}
                 </strong>
                 <span style={{ fontSize: '11.5px', color: '#64748b' }}>
-                  سيتم تحديث تكلفة الشراء للمنتج في بطاقة الصنف آلياً
+                  {t('purchases.purchase_landed_costs_modal.s18', "سيتم تحديث تكلفة الشراء للمنتج في بطاقة الصنف آلياً")}
                 </span>
               </div>
 
@@ -348,12 +350,12 @@ export function PurchaseLandedCostsModal({
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
                   <thead>
                     <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', textAlign: 'right' }}>
-                      <th style={{ padding: '8px 10px', color: '#64748b' }}>الصنف</th>
-                      <th style={{ padding: '8px 10px', color: '#64748b' }}>الكمية</th>
-                      <th style={{ padding: '8px 10px', color: '#64748b' }}>التكلفة الأصلية للقطعة</th>
-                      <th style={{ padding: '8px 10px', color: '#64748b' }}>المصروف المحمل</th>
-                      <th style={{ padding: '8px 10px', color: '#64748b' }}>تكلفة القطعة الواصلة</th>
-                      <th style={{ padding: '8px 10px', color: '#64748b' }}>نسبة الزيادة</th>
+                      <th style={{ padding: '8px 10px', color: '#64748b' }}>{t('purchases.purchase_landed_costs_modal.s19', "الصنف")}</th>
+                      <th style={{ padding: '8px 10px', color: '#64748b' }}>{t('purchases.purchase_landed_costs_modal.s20', "الكمية")}</th>
+                      <th style={{ padding: '8px 10px', color: '#64748b' }}>{t('purchases.purchase_landed_costs_modal.s21', "التكلفة الأصلية للقطعة")}</th>
+                      <th style={{ padding: '8px 10px', color: '#64748b' }}>{t('purchases.purchase_landed_costs_modal.s22', "المصروف المحمل")}</th>
+                      <th style={{ padding: '8px 10px', color: '#64748b' }}>{t('purchases.purchase_landed_costs_modal.s23', "تكلفة القطعة الواصلة")}</th>
+                      <th style={{ padding: '8px 10px', color: '#64748b' }}>{t('purchases.purchase_landed_costs_modal.s24', "نسبة الزيادة")}</th>
                     </tr>
                   </thead>
                   <tbody>

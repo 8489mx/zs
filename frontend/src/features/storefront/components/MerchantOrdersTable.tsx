@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import type { OnlineOrderRecord } from '../types/storefront.types';
@@ -29,20 +30,20 @@ interface MerchantOrdersTableProps {
   isGccConfigured?: boolean;
 }
 
-export function getStatusBadge(status: string) {
+export function getStatusBadge(status: string, isEn = false) {
   switch (status) {
     case 'pending':
-      return { label: 'جديد / قيد الانتظار', bg: '#fefce8', text: '#854d0e', border: '#fef08a' };
+      return { label: isEn ? 'Pending / New' : 'جديد / قيد الانتظار', bg: '#fefce8', text: '#854d0e', border: '#fef08a' };
     case 'confirmed':
-      return { label: 'تم التأكيد', bg: '#eff6ff', text: '#1e40af', border: '#bfdbfe' };
+      return { label: isEn ? 'Confirmed' : 'تم التأكيد', bg: '#eff6ff', text: '#1e40af', border: '#bfdbfe' };
     case 'processing':
-      return { label: 'جاري التجهيز', bg: '#f0f9ff', text: '#0369a1', border: '#bae6fd' };
+      return { label: isEn ? 'Processing' : 'جاري التجهيز', bg: '#f0f9ff', text: '#0369a1', border: '#bae6fd' };
     case 'shipped':
-      return { label: 'خرج للتوصيل', bg: '#fff7ed', text: '#c2410c', border: '#ffedd5' };
+      return { label: isEn ? 'Out for Delivery' : 'خرج للتوصيل', bg: '#fff7ed', text: '#c2410c', border: '#ffedd5' };
     case 'delivered':
-      return { label: 'مكتمل / تم التسليم', bg: '#f0fdf4', text: '#15803d', border: '#dcfce7' };
+      return { label: isEn ? 'Delivered / Completed' : 'مكتمل / تم التسليم', bg: '#f0fdf4', text: '#15803d', border: '#dcfce7' };
     case 'cancelled':
-      return { label: 'ملغي', bg: '#fef2f2', text: '#b91c1c', border: '#fee2e2' };
+      return { label: isEn ? 'Cancelled' : 'ملغي', bg: '#fef2f2', text: '#b91c1c', border: '#fee2e2' };
     default:
       return { label: status, bg: '#f8fafc', text: '#475569', border: '#e2e8f0' };
   }
@@ -70,6 +71,8 @@ function OrderShippingDropdown({
   onShipBosta: (order: OnlineOrderRecord) => void;
   onShipGcc: (order: OnlineOrderRecord) => void;
 }) {
+  const { t, i18n } = useTranslation();
+  const isEn = i18n.language === 'en';
   const [isOpen, setIsOpen] = useState(false);
   const buttonRef = useRef<HTMLButtonElement | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
@@ -84,7 +87,7 @@ function OrderShippingDropdown({
       <button
         type="button"
         onClick={() => onConvertToDelivery(order)}
-        title="إصدار فاتورة وتعيين مندوب توصيل داخلي"
+        title={t('storefront.merchant_orders_table.s0', "إصدار فاتورة وتعيين مندوب توصيل داخلي")}
         style={{
           width: '100%',
           height: '32px',
@@ -106,7 +109,7 @@ function OrderShippingDropdown({
         }}
       >
         <TruckIcon size={13} color="#ffffff" />
-        <span>مندوب دليفري</span>
+        <span>{t('storefront.merchant_orders_table.s1', "مندوب دليفري")}</span>
       </button>
     );
   }
@@ -180,7 +183,7 @@ function OrderShippingDropdown({
         ref={buttonRef}
         type="button"
         onClick={handleToggle}
-        title="تحديد مسار الشحن والتوصيل"
+        title={t('storefront.merchant_orders_table.s2', "تحديد مسار الشحن والتوصيل")}
         style={{
           width: '100%',
           height: '32px',
@@ -202,7 +205,7 @@ function OrderShippingDropdown({
         }}
       >
         <TruckIcon size={13} color="#ffffff" />
-        <span>شحن وتوصيل</span>
+        <span>{t('storefront.merchant_orders_table.s3', "شحن وتوصيل")}</span>
         <ChevronDownIcon
           size={11}
           color="#ffffff"
@@ -236,7 +239,7 @@ function OrderShippingDropdown({
           onClick={(e) => e.stopPropagation()}
         >
           <div style={{ fontSize: '10.5px', fontWeight: 800, color: '#64748b', padding: '4px 8px 6px', borderBottom: '1px solid #f1f5f9' }}>
-            توجيه الشحن والتسليم:
+            {t('storefront.merchant_orders_table.s4', "توجيه الشحن والتسليم:")}
           </div>
 
           <button
@@ -277,8 +280,8 @@ function OrderShippingDropdown({
               <TruckIcon size={14} color="#170e5e" />
             </div>
             <div>
-              <div style={{ fontSize: '12px', fontWeight: 700, color: '#0f172a' }}>مندوب دليفري داخلي</div>
-              <div style={{ fontSize: '10.5px', color: '#64748b' }}>إصدار فاتورة وتعيين مندوب</div>
+              <div style={{ fontSize: '12px', fontWeight: 700, color: '#0f172a' }}>{t('storefront.merchant_orders_table.s5', "مندوب دليفري داخلي")}</div>
+              <div style={{ fontSize: '10.5px', color: '#64748b' }}>{t('storefront.merchant_orders_table.s6', "إصدار فاتورة وتعيين مندوب")}</div>
             </div>
           </button>
 
@@ -321,8 +324,8 @@ function OrderShippingDropdown({
                 <PackageIcon size={14} color="#e11d48" />
               </div>
               <div>
-                <div style={{ fontSize: '12px', fontWeight: 700, color: '#e11d48' }}>شحن بوسطة إكسبريس</div>
-                <div style={{ fontSize: '10.5px', color: '#64748b' }}>توليد بوليصة AWB مصر</div>
+                <div style={{ fontSize: '12px', fontWeight: 700, color: '#e11d48' }}>{t('storefront.merchant_orders_table.s7', "شحن بوسطة إكسبريس")}</div>
+                <div style={{ fontSize: '10.5px', color: '#64748b' }}>{t('storefront.merchant_orders_table.s8', "توليد بوليصة AWB مصر")}</div>
               </div>
             </button>
           )}
@@ -366,8 +369,8 @@ function OrderShippingDropdown({
                 <TruckIcon size={14} color="#ea580c" />
               </div>
               <div>
-                <div style={{ fontSize: '12px', fontWeight: 700, color: '#ea580c' }}>شحن خليجي (أرامكس / سمسا)</div>
-                <div style={{ fontSize: '10.5px', color: '#64748b' }}>بوليصة دولية للسعودية والخليج</div>
+                <div style={{ fontSize: '12px', fontWeight: 700, color: '#ea580c' }}>{t('storefront.merchant_orders_table.s9', "شحن خليجي (أرامكس / سمسا)")}</div>
+                <div style={{ fontSize: '10.5px', color: '#64748b' }}>{t('storefront.merchant_orders_table.s10', "بوليصة دولية للسعودية والخليج")}</div>
               </div>
             </button>
           )}
@@ -392,10 +395,12 @@ export function MerchantOrdersTable({
   isBostaConfigured = false,
   isGccConfigured = false,
 }: MerchantOrdersTableProps) {
+  const { t, i18n } = useTranslation();
+  const isEn = i18n.language === 'en';
   if (isLoading) {
     return (
       <div style={{ padding: '60px', textAlign: 'center', color: '#64748b' }}>
-        جاري تحميل الطلبات...
+        {t('storefront.merchant_orders_table.s11', "جاري تحميل الطلبات...")}
       </div>
     );
   }
@@ -407,10 +412,10 @@ export function MerchantOrdersTable({
           <PackageIcon size={44} />
         </div>
         <h3 style={{ margin: '0 0 6px', fontSize: '16px', fontWeight: 700, color: '#1e293b' }}>
-          لا توجد طلبات في هذا القسم
+          {t('storefront.merchant_orders_table.s12', "لا توجد طلبات في هذا القسم")}
         </h3>
         <p style={{ margin: 0, fontSize: '13px', color: '#94a3b8' }}>
-          عندما يطلب أي عميل من رابط متجرك سيظهر طلبه هنا فوراً مع تنبيه بالبيانات والمخزون.
+          {t('storefront.merchant_orders_table.s13', "عندما يطلب أي عميل من رابط متجرك سيظهر طلبه هنا فوراً مع تنبيه بالبيانات والمخزون.")}
         </p>
       </div>
     );
@@ -421,18 +426,18 @@ export function MerchantOrdersTable({
       <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'center', fontSize: '13px' }}>
         <thead>
           <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>
-            <th style={{ padding: '12px 14px', fontWeight: 700, textAlign: 'center' }}>رقم الطلب</th>
-            <th style={{ padding: '12px 14px', fontWeight: 700, textAlign: 'center' }}>العميل والهاتف</th>
-            <th style={{ padding: '12px 14px', fontWeight: 700, textAlign: 'center' }}>عنوان التوصيل</th>
-            <th style={{ padding: '12px 14px', fontWeight: 700, textAlign: 'center' }}>الأصناف</th>
-            <th style={{ padding: '12px 14px', fontWeight: 700, textAlign: 'center' }}>الإجمالي</th>
-            <th style={{ padding: '12px 14px', fontWeight: 700, textAlign: 'center' }}>الحالة</th>
-            <th style={{ padding: '12px 14px', fontWeight: 700, textAlign: 'center', minWidth: '344px' }}>الإجراءات</th>
+            <th style={{ padding: '12px 14px', fontWeight: 700, textAlign: 'center' }}>{t('storefront.merchant_orders_table.s14', "رقم الطلب")}</th>
+            <th style={{ padding: '12px 14px', fontWeight: 700, textAlign: 'center' }}>{t('storefront.merchant_orders_table.s15', "العميل والهاتف")}</th>
+            <th style={{ padding: '12px 14px', fontWeight: 700, textAlign: 'center' }}>{t('storefront.merchant_orders_table.s16', "عنوان التوصيل")}</th>
+            <th style={{ padding: '12px 14px', fontWeight: 700, textAlign: 'center' }}>{t('storefront.merchant_orders_table.s17', "الأصناف")}</th>
+            <th style={{ padding: '12px 14px', fontWeight: 700, textAlign: 'center' }}>{t('storefront.merchant_orders_table.s18', "الإجمالي")}</th>
+            <th style={{ padding: '12px 14px', fontWeight: 700, textAlign: 'center' }}>{t('storefront.merchant_orders_table.s19', "الحالة")}</th>
+            <th style={{ padding: '12px 14px', fontWeight: 700, textAlign: 'center', minWidth: '344px' }}>{t('storefront.merchant_orders_table.s20', "الإجراءات")}</th>
           </tr>
         </thead>
         <tbody>
           {orders.map((order) => {
-            const badge = getStatusBadge(order.status);
+            const badge = getStatusBadge(order.status, isEn);
             const cleanPhone = order.customerPhone.replace(/\D/g, '');
             const waPhone = cleanPhone.startsWith('01') ? `2${cleanPhone}` : cleanPhone;
 
@@ -476,7 +481,7 @@ export function MerchantOrdersTable({
                     }}
                     title={order.customerAddress || ''}
                   >
-                    {order.customerAddress || 'غير محدد'}
+                    {order.customerAddress || t('storefront.merchant_orders_table.s21', "غير محدد")}
                   </div>
                   {order.deliveryZoneName && (
                     <div
@@ -501,10 +506,10 @@ export function MerchantOrdersTable({
                 </td>
                 <td style={{ padding: '12px 14px', whiteSpace: 'nowrap', textAlign: 'center', verticalAlign: 'middle' }}>
                   <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '12.5px', textAlign: 'center' }}>
-                    {order.items.length} صنف
+                    {order.items.length} {t('storefront.merchant_orders_table.s22', "صنف")}
                   </div>
                   <div style={{ fontSize: '11px', color: '#64748b', marginTop: '1px', textAlign: 'center' }}>
-                    ({order.items.reduce((acc, i) => acc + i.quantity, 0)} قطعة)
+                    ({order.items.reduce((acc, i) => acc + i.quantity, 0)} {t('storefront.merchant_orders_table.s23', "قطعة)")}
                   </div>
                 </td>
                 <td style={{ padding: '12px 14px', fontWeight: 800, color: '#0f172a', whiteSpace: 'nowrap', fontSize: '13.5px', textAlign: 'center', verticalAlign: 'middle' }}>
@@ -557,7 +562,7 @@ export function MerchantOrdersTable({
                           boxSizing: 'border-box',
                         }}
                       >
-                        ملغي من العميل
+                        {t('storefront.merchant_orders_table.s24', "ملغي من العميل")}
                       </span>
                     ) : order.saleId ? (
                       <span
@@ -579,14 +584,14 @@ export function MerchantOrdersTable({
                         }}
                       >
                         <CheckIcon size={13} color="#059669" strokeWidth={2.5} />
-                        <span>فاتورة #{order.saleId}</span>
+                        <span>{t('storefront.merchant_orders_table.s25', "فاتورة #")}{order.saleId}</span>
                       </span>
                     ) : (
                       <button
                         type="button"
                         onClick={() => onLoadToPos(order.id)}
                         disabled={loadingPosOrderId === order.id}
-                        title="فتح شاشة الكاشير وتنزيل الأصناف والعميل في السلة لتعديلها وإتمام البيع"
+                        title={t('storefront.merchant_orders_table.s26', "فتح شاشة الكاشير وتنزيل الأصناف والعميل في السلة لتعديلها وإتمام البيع")}
                         style={{
                           width: '100%',
                           height: '32px',
@@ -605,7 +610,7 @@ export function MerchantOrdersTable({
                           boxSizing: 'border-box',
                         }}
                       >
-                        <span>{loadingPosOrderId === order.id ? 'جاري...' : 'بالسلة (POS)'}</span>
+                        <span>{loadingPosOrderId === order.id ? t('storefront.merchant_orders_table.s27', "جاري...") : t('storefront.merchant_orders_table.s28', "بالسلة (POS)")}</span>
                       </button>
                     )}
 
@@ -629,14 +634,14 @@ export function MerchantOrdersTable({
                         }}
                       >
                         <CheckIcon size={13} color="#059669" strokeWidth={2.5} />
-                        <span>مكتمل</span>
+                        <span>{t('storefront.merchant_orders_table.s29', "مكتمل")}</span>
                       </div>
                     ) : order.status === 'processing' && order.saleId ? (
                       <button
                         type="button"
                         onClick={() => onUpdateStatus(order.id, 'shipped')}
                         disabled={isUpdatingStatus}
-                        title="تسليم الأوردر والفاتورة لمندوب التوصيل"
+                        title={t('storefront.merchant_orders_table.s30', "تسليم الأوردر والفاتورة لمندوب التوصيل")}
                         style={{
                           width: '100%',
                           height: '32px',
@@ -657,14 +662,14 @@ export function MerchantOrdersTable({
                         }}
                       >
                         <TruckIcon size={13} color="#ffffff" />
-                        <span>تسليم للمندوب</span>
+                        <span>{t('storefront.merchant_orders_table.s31', "تسليم للمندوب")}</span>
                       </button>
                     ) : order.status === 'shipped' ? (
                       <button
                         type="button"
                         onClick={() => onUpdateStatus(order.id, 'delivered')}
                         disabled={isUpdatingStatus}
-                        title="تأكيد تسليم الأوردر للعميل بنجاح"
+                        title={t('storefront.merchant_orders_table.s32', "تأكيد تسليم الأوردر للعميل بنجاح")}
                         style={{
                           width: '100%',
                           height: '32px',
@@ -685,13 +690,13 @@ export function MerchantOrdersTable({
                         }}
                       >
                         <CheckIcon size={13} color="#ffffff" strokeWidth={2.5} />
-                        <span>تم التسليم</span>
+                        <span>{t('storefront.merchant_orders_table.s33', "تم التسليم")}</span>
                       </button>
                     ) : order.bostaTrackingNumber ? (
                       <button
                         type="button"
                         onClick={() => window.open(`/api/bosta/awb/${order.bostaDeliveryId || order.bostaTrackingNumber}`, '_blank')}
-                        title="طباعة بوليصة شحن بوسطة AWB"
+                        title={t('storefront.merchant_orders_table.s34', "طباعة بوليصة شحن بوسطة AWB")}
                         style={{
                           width: '100%',
                           height: '32px',
@@ -712,13 +717,13 @@ export function MerchantOrdersTable({
                         }}
                       >
                         <PackageIcon size={13} color="#e11d48" />
-                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>بوسطة #{order.bostaTrackingNumber}</span>
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{t('storefront.merchant_orders_table.s35', "بوسطة #")}{order.bostaTrackingNumber}</span>
                       </button>
                     ) : (order.gccTrackingNumber || order.gcc_tracking_number) ? (
                       <button
                         type="button"
                         onClick={() => onShipGcc(order)}
-                        title="عرض تتبع وطباعة بوليصة الشحن الخليجي"
+                        title={t('storefront.merchant_orders_table.s36', "عرض تتبع وطباعة بوليصة الشحن الخليجي")}
                         style={{
                           width: '100%',
                           height: '32px',
@@ -740,7 +745,7 @@ export function MerchantOrdersTable({
                       >
                         <TruckIcon size={13} color={(order.gccShippingCarrier || order.gcc_shipping_carrier) === 'aramex' ? '#dc2626' : '#ea580c'} />
                         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                          {(order.gccShippingCarrier || order.gcc_shipping_carrier) === 'aramex' ? 'أرامكس' : 'سمسا'} #{order.gccTrackingNumber || order.gcc_tracking_number}
+                          {(order.gccShippingCarrier || order.gcc_shipping_carrier) === 'aramex' ? t('storefront.merchant_orders_table.s37', "أرامكس") : t('storefront.merchant_orders_table.s38', "سمسا")} #{order.gccTrackingNumber || order.gcc_tracking_number}
                         </span>
                       </button>
                     ) : !order.saleId && order.status !== 'cancelled' ? (
@@ -786,7 +791,7 @@ export function MerchantOrdersTable({
                         e.currentTarget.style.borderColor = '#cbd5e1';
                       }}
                     >
-                      تفاصيل
+                      {t('storefront.merchant_orders_table.s39', "تفاصيل")}
                     </button>
 
                     {/* Col 4: WhatsApp Button */}
@@ -795,7 +800,7 @@ export function MerchantOrdersTable({
                         href={`https://wa.me/${waPhone}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        title="مراسلة العميل واتساب"
+                        title={t('storefront.merchant_orders_table.s40', "مراسلة العميل واتساب")}
                         style={{
                           display: 'inline-flex',
                           alignItems: 'center',

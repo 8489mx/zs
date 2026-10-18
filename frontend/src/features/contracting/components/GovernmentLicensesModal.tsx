@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
@@ -34,6 +35,7 @@ const STATUS_COLORS: Record<string, { bg: string; color: string; border: string;
 };
 
 export function GovernmentLicensesModal({ open, onClose, projectId, projectName }: GovernmentLicensesModalProps) {
+  const { t } = useTranslation();
   const [licenses, setLicenses] = useState<ContractingGovernmentLicense[]>([]);
   const [loading, setLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
@@ -89,14 +91,14 @@ export function GovernmentLicensesModal({ open, onClose, projectId, projectName 
     <StandardDialog
       open={open}
       onClose={onClose}
-      title="تراخيص وموافقات المشروع الحكومية"
+      title={t('contracting.government_licenses_modal.s0', "تراخيص وموافقات المشروع الحكومية")}
       subtitle={projectName || projectId}
       width="min(960px, 95vw)"
       minHeight="auto"
       footerActions={(
         <StandardDialogFooter
           onCancel={onClose}
-          cancelText="إغلاق"
+          cancelText={t('contracting.government_licenses_modal.s1', "إغلاق")}
         />
       )}
     >
@@ -105,7 +107,7 @@ export function GovernmentLicensesModal({ open, onClose, projectId, projectName 
           <div style={{ padding: '8px 12px', background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <AppIcons.AlertTriangle size={15} style={{ color: '#ea580c', flexShrink: 0 }} />
             <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#9a3412' }}>
-              تحذير رقابي: {expiring.length} ترخيص قارب على الانتهاء أو منتهي الصلاحية
+              {t('contracting.government_licenses_modal.s2', "تحذير رقابي:")} {expiring.length} {t('contracting.government_licenses_modal.s3', "ترخيص قارب على الانتهاء أو منتهي الصلاحية")}
             </span>
           </div>
         )}
@@ -118,7 +120,7 @@ export function GovernmentLicensesModal({ open, onClose, projectId, projectName 
                 style={{ height: '33px', padding: '0 14px', borderRadius: '6px', fontWeight: 700, background: '#170e5e', color: '#fff', border: 'none', cursor: 'pointer', fontSize: '0.8125rem', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
               >
                 <AppIcons.Plus size={14} />
-                <span>إضافة ترخيص جديد</span>
+                <span>{t('contracting.government_licenses_modal.s4', "إضافة ترخيص جديد")}</span>
               </button>
             </div>
           ) : (
@@ -127,11 +129,11 @@ export function GovernmentLicensesModal({ open, onClose, projectId, projectName 
               <div style={{ background: '#f8fafc', padding: '9px 13px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
                   <AppIcons.Shield size={15} />
-                  <span>1. بيانات ونوع الترخيص والجهة المصدِرة</span>
+                  <span>{t('contracting.government_licenses_modal.s5', "1. بيانات ونوع الترخيص والجهة المصدِرة")}</span>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
                   <div>
-                    <label style={lbl}>نوع الترخيص *</label>
+                    <label style={lbl}>{t('contracting.government_licenses_modal.s6', "نوع الترخيص *")}</label>
                     <CustomSelect
                       value={form.licenseType}
                       options={LICENSE_TYPE_OPTIONS}
@@ -139,7 +141,7 @@ export function GovernmentLicensesModal({ open, onClose, projectId, projectName 
                     />
                   </div>
                   <div>
-                    <label style={lbl}>رقم الترخيص / الوثيقة *</label>
+                    <label style={lbl}>{t('contracting.government_licenses_modal.s7', "رقم الترخيص / الوثيقة *")}</label>
                     <input
                       value={form.licenseNumber}
                       onChange={e => setForm(p => ({ ...p, licenseNumber: e.target.value }))}
@@ -149,11 +151,11 @@ export function GovernmentLicensesModal({ open, onClose, projectId, projectName 
                     />
                   </div>
                   <div>
-                    <label style={lbl}>الجهة الحكومية المصدِرة *</label>
+                    <label style={lbl}>{t('contracting.government_licenses_modal.s8', "الجهة الحكومية المصدِرة *")}</label>
                     <input
                       value={form.issuingAuthority}
                       onChange={e => setForm(p => ({ ...p, issuingAuthority: e.target.value }))}
-                      placeholder="حي غرب / الدفاع المدني"
+                      placeholder={t('contracting.government_licenses_modal.s9', "حي غرب / الدفاع المدني")}
                       style={inp}
                       required
                     />
@@ -165,29 +167,29 @@ export function GovernmentLicensesModal({ open, onClose, projectId, projectName 
               <div style={{ background: '#f8fafc', padding: '9px 13px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
                   <AppIcons.Calendar size={15} />
-                  <span>2. الصلاحية والتواريخ والرسوم والتنبيهات</span>
+                  <span>{t('contracting.government_licenses_modal.s10', "2. الصلاحية والتواريخ والرسوم والتنبيهات")}</span>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px' }}>
                   <div>
-                    <label style={lbl}>تاريخ الإصدار</label>
+                    <label style={lbl}>{t('contracting.government_licenses_modal.s11', "تاريخ الإصدار")}</label>
                     <input type="date" value={form.issueDate} onChange={e => setForm(p => ({ ...p, issueDate: e.target.value }))} style={inp} />
                   </div>
                   <div>
-                    <label style={lbl}>تاريخ الانتهاء *</label>
+                    <label style={lbl}>{t('contracting.government_licenses_modal.s12', "تاريخ الانتهاء *")}</label>
                     <input type="date" value={form.expiryDate} onChange={e => setForm(p => ({ ...p, expiryDate: e.target.value }))} style={inp} required />
                   </div>
                   <div>
-                    <label style={lbl}>قيمة الرسوم</label>
+                    <label style={lbl}>{t('contracting.government_licenses_modal.s13', "قيمة الرسوم")}</label>
                     <input type="number" value={form.feeAmount} onChange={e => setForm(p => ({ ...p, feeAmount: e.target.value }))} placeholder="0.00" style={inp} />
                   </div>
                   <div>
-                    <label style={lbl}>تنبيه قبل (يوم)</label>
+                    <label style={lbl}>{t('contracting.government_licenses_modal.s14', "تنبيه قبل (يوم)")}</label>
                     <input type="number" value={form.alertLeadDays} onChange={e => setForm(p => ({ ...p, alertLeadDays: e.target.value }))} style={inp} />
                   </div>
                 </div>
                 <div style={{ marginTop: '8px' }}>
-                  <label style={lbl}>ملاحظات واشتراطات الترخيص</label>
-                  <input value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} placeholder="اشتراطات فنية، بنود خاصة، أو رقم الإيصال" style={inp} />
+                  <label style={lbl}>{t('contracting.government_licenses_modal.s15', "ملاحظات واشتراطات الترخيص")}</label>
+                  <input value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} placeholder={t('contracting.government_licenses_modal.s16', "اشتراطات فنية، بنود خاصة، أو رقم الإيصال")} style={inp} />
                 </div>
               </div>
 
@@ -198,7 +200,7 @@ export function GovernmentLicensesModal({ open, onClose, projectId, projectName 
                   onClick={() => setShowForm(false)}
                   style={{ height: '33px', padding: '0 14px', borderRadius: '6px', fontWeight: 600, background: '#ffffff', color: '#475569', border: '1px solid #cbd5e1', cursor: 'pointer', fontSize: '0.8125rem' }}
                 >
-                  إلغاء
+                  {t('contracting.government_licenses_modal.s17', "إلغاء")}
                 </button>
                 <button
                   type="button"
@@ -206,30 +208,30 @@ export function GovernmentLicensesModal({ open, onClose, projectId, projectName 
                   disabled={submitting || !form.licenseNumber || !form.issuingAuthority || !form.expiryDate}
                   style={{ height: '33px', padding: '0 18px', borderRadius: '6px', fontWeight: 700, background: '#170e5e', color: '#fff', border: 'none', cursor: 'pointer', fontSize: '0.8125rem', opacity: submitting ? 0.7 : 1 }}
                 >
-                  {submitting ? 'جارٍ الحفظ...' : 'حفظ الترخيص'}
+                  {submitting ? t('contracting.government_licenses_modal.s18', "جارٍ الحفظ...") : t('contracting.government_licenses_modal.s19', "حفظ الترخيص")}
                 </button>
               </div>
             </div>
           )}
           {loading ? (
-            <div style={{ textAlign: 'center', padding: '30px', color: '#64748b' }}>جاري تحميل التراخيص...</div>
+            <div style={{ textAlign: 'center', padding: '30px', color: '#64748b' }}>{t('contracting.government_licenses_modal.s20', "جاري تحميل التراخيص...")}</div>
           ) : licenses.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '40px 20px', color: '#94a3b8' }}>
               <AppIcons.FileText size={36} style={{ marginBottom: '10px' }} />
-              <div style={{ fontSize: 'var(--font-body)', fontWeight: 600, color: '#475569' }}>لا توجد تراخيص مسجلة لهذا المشروع</div>
+              <div style={{ fontSize: 'var(--font-body)', fontWeight: 600, color: '#475569' }}>{t('contracting.government_licenses_modal.s21', "لا توجد تراخيص مسجلة لهذا المشروع")}</div>
             </div>
           ) : (
             <div style={{ border: '1px solid #e2e8f0', borderRadius: '10px', overflow: 'hidden' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right' }}>
                 <thead>
                   <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-                    <th style={{ padding: '10px 14px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>نوع الترخيص</th>
-                    <th style={{ padding: '10px 14px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>رقم الترخيص</th>
-                    <th style={{ padding: '10px 14px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>الجهة المصدِرة</th>
-                    <th style={{ padding: '10px 14px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>تاريخ الانتهاء</th>
-                    <th style={{ padding: '10px 14px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>الأيام المتبقية</th>
-                    <th style={{ padding: '10px 14px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>الحالة</th>
-                    <th style={{ padding: '10px 14px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>الرسوم</th>
+                    <th style={{ padding: '10px 14px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>{t('contracting.government_licenses_modal.s22', "نوع الترخيص")}</th>
+                    <th style={{ padding: '10px 14px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>{t('contracting.government_licenses_modal.s23', "رقم الترخيص")}</th>
+                    <th style={{ padding: '10px 14px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>{t('contracting.government_licenses_modal.s24', "الجهة المصدِرة")}</th>
+                    <th style={{ padding: '10px 14px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>{t('contracting.government_licenses_modal.s25', "تاريخ الانتهاء")}</th>
+                    <th style={{ padding: '10px 14px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>{t('contracting.government_licenses_modal.s26', "الأيام المتبقية")}</th>
+                    <th style={{ padding: '10px 14px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>{t('contracting.government_licenses_modal.s27', "الحالة")}</th>
+                    <th style={{ padding: '10px 14px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>{t('contracting.government_licenses_modal.s28', "الرسوم")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -237,7 +239,7 @@ export function GovernmentLicensesModal({ open, onClose, projectId, projectName 
                     const sc = STATUS_COLORS[lic.status] || STATUS_COLORS['active'];
                     const d = lic.daysUntilExpiry;
                     const dc = d !== undefined && d < 0 ? '#b91c1c' : d !== undefined && d <= 30 ? '#a16207' : '#15803d';
-                    const dl = d !== undefined ? (d < 0 ? 'منتهي منذ ' + Math.abs(d) + ' يوم' : d + ' يوم') : '—';
+                    const dl = d !== undefined ? (d < 0 ? t('contracting.government_licenses_modal.s29', "منتهي منذ ") + Math.abs(d) + t('contracting.government_licenses_modal.s30', " يوم") : d + t('contracting.government_licenses_modal.s31', " يوم")) : '—';
                     return (
                       <tr key={lic.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                         <td style={{ padding: '10px 14px', fontSize: 'var(--font-body)', fontWeight: 600, color: '#0f172a' }}>{LICENSE_TYPE_LABELS[lic.licenseType] || lic.licenseType}</td>

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 /**
  * ==============================================================================
  * Universal Document Form Template (النموذج المرجعي القياسي لوثائق وفورمز المعاملات الكبرى)
@@ -41,6 +42,7 @@ export interface TemplateLineItem {
 }
 
 export function UniversalDocumentFormTemplate() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
 
   // 1. Header State
@@ -201,13 +203,13 @@ export function UniversalDocumentFormTemplate() {
       <main className="document-prototype-column" style={{ paddingBottom: '32px', maxWidth: '1280px', margin: '0 auto', width: '100%' }}>
         {/* Universal Header */}
         <PageHeader
-          title="وثيقة معاملات نموذجية (عنوان الوثيقة)"
+          title={t('shared.universal_document_form_template.s0', "وثيقة معاملات نموذجية (عنوان الوثيقة)")}
           onBack={() => navigate(-1)}
           badge={
             <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-              <span className="document-prototype-status-badge is-draft">مسودة</span>
+              <span className="document-prototype-status-badge is-draft">{t('shared.universal_document_form_template.s1', "مسودة")}</span>
               <span className="nav-pill" style={{ fontWeight: 700, color: '#0f172a' }}>
-                الإجمالي: {formatCurrencyWithSymbol(totalAmount, currency)}
+                {t('shared.universal_document_form_template.s2', "الإجمالي:")} {formatCurrencyWithSymbol(totalAmount, currency)}
               </span>
             </div>
           }
@@ -220,22 +222,22 @@ export function UniversalDocumentFormTemplate() {
                 onClick={() => navigate(-1)}
                 style={{ color: 'var(--danger-color)', borderColor: 'rgba(239, 68, 68, 0.3)' }}
               >
-                <span>إلغاء المسودة</span>
+                <span>{t('shared.universal_document_form_template.s3', "إلغاء المسودة")}</span>
               </Button>
               <Button
                 variant="secondary"
                 type="button"
                 className="purchase-prototype-toolbar-action purchase-prototype-toolbar-action-secondary"
-                onClick={() => toast.success('تم حفظ المسودة بنجاح')}
+                onClick={() => toast.success(t('shared.universal_document_form_template.s4', "تم حفظ المسودة بنجاح"))}
               >
-                <span>حفظ كمسودة</span>
+                <span>{t('shared.universal_document_form_template.s5', "حفظ كمسودة")}</span>
               </Button>
               <Button
                 type="button"
                 className="purchase-prototype-toolbar-action purchase-prototype-toolbar-action-primary"
                 onClick={() => handleSubmit()}
               >
-                <span>اعتماد الوثيقة</span>
+                <span>{t('shared.universal_document_form_template.s6', "اعتماد الوثيقة")}</span>
               </Button>
             </div>
           }
@@ -250,7 +252,7 @@ export function UniversalDocumentFormTemplate() {
         {/* Section 1: Basic Info */}
         <section className="document-prototype-section" style={{ marginTop: '12px' }}>
           <div className="section-header-compact-row" style={{ marginBottom: '0.6rem' }}>
-            <h3 className="document-prototype-section-title">المعلومات الأساسية</h3>
+            <h3 className="document-prototype-section-title">{t('shared.universal_document_form_template.s7', "المعلومات الأساسية")}</h3>
             <div className="section-header-actions-group" style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
               <label className="section-header-action-btn purchase-camera-btn" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', cursor: 'pointer', margin: 0 }}>
                 <input type="file" accept="image/*" capture="environment" onChange={handleFileUpload} style={{ display: 'none' }} />
@@ -258,14 +260,14 @@ export function UniversalDocumentFormTemplate() {
                   <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
                   <circle cx="12" cy="13" r="4" />
                 </svg>
-                <span>كاميرا</span>
+                <span>{t('shared.universal_document_form_template.s8', "كاميرا")}</span>
               </label>
               <label className="section-header-action-btn" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', cursor: 'pointer', margin: 0 }}>
                 <input type="file" multiple onChange={handleFileUpload} style={{ display: 'none' }} />
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="13" height="13">
                   <path d="M21 12.5 12.8 20.7a5 5 0 0 1-7.1-7.1L14.2 5.1a3.5 3.5 0 0 1 4.9 4.9L9.9 19.2" />
                 </svg>
-                <span>إرفاق</span>
+                <span>{t('shared.universal_document_form_template.s9', "إرفاق")}</span>
                 {attachments.length > 0 && <span className="nav-pill" style={{ fontSize: '0.65rem', padding: '1px 4px', marginInlineStart: '2px' }}>{attachments.length}</span>}
               </label>
             </div>
@@ -273,8 +275,8 @@ export function UniversalDocumentFormTemplate() {
 
           <div className="purchase-prototype-form-grid">
             <SearchableCombobox
-              label="الطرف المتعامل *"
-              placeholder="ابحث بالاسم أو الهاتف..."
+              label={t('shared.universal_document_form_template.s10', "الطرف المتعامل *")}
+              placeholder={t('shared.universal_document_form_template.s11', "ابحث بالاسم أو الهاتف...")}
               value={partnerName}
               onChange={setPartnerName}
               options={partnerOptions}
@@ -284,33 +286,33 @@ export function UniversalDocumentFormTemplate() {
               onSelect={(p) => setPartnerName(p.name)}
               inputClassName="purchase-prototype-field-input"
             />
-            <Field label="رقم الهاتف">
-              <input className="purchase-prototype-field-input" type="text" placeholder="رقم التواصل..." value={partnerPhone} onChange={(e) => setPartnerPhone(e.target.value)} />
+            <Field label={t('shared.universal_document_form_template.s12', "رقم الهاتف")}>
+              <input className="purchase-prototype-field-input" type="text" placeholder={t('shared.universal_document_form_template.s13', "رقم التواصل...")} value={partnerPhone} onChange={(e) => setPartnerPhone(e.target.value)} />
             </Field>
-            <Field label="طريقة الدفع">
+            <Field label={t('shared.universal_document_form_template.s14', "طريقة الدفع")}>
               <CustomSelect
                 value={paymentType}
                 onChange={(val) => setPaymentType(val as 'cash' | 'credit')}
                 options={[
-                  { value: 'credit', label: 'آجل (حساب المديونية)' },
-                  { value: 'cash', label: 'نقدي (فوري)' },
+                  { value: 'credit', label: t('shared.universal_document_form_template.s15', "آجل (حساب المديونية)") },
+                  { value: 'cash', label: t('shared.universal_document_form_template.s16', "نقدي (فوري)") },
                 ]}
               />
             </Field>
-            <Field label="تاريخ الوثيقة">
+            <Field label={t('shared.universal_document_form_template.s17', "تاريخ الوثيقة")}>
               <input className="purchase-prototype-field-input" type="date" value={documentDate} onChange={(e) => setDocumentDate(e.target.value)} />
             </Field>
-            <Field label="تاريخ الاستحقاق / التوريد">
+            <Field label={t('shared.universal_document_form_template.s18', "تاريخ الاستحقاق / التوريد")}>
               <input className="purchase-prototype-field-input" type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
             </Field>
-            <Field label="العملة">
+            <Field label={t('shared.universal_document_form_template.s19', "العملة")}>
               <CustomSelect
                 value={currency}
                 onChange={(val) => setCurrency(val)}
                 options={[
-                  { value: 'EGP', label: 'EGP - جنيه مصري' },
-                  { value: 'USD', label: 'USD - دولار أمريكي' },
-                  { value: 'SAR', label: 'SAR - ريال سعودي' },
+                  { value: 'EGP', label: t('shared.universal_document_form_template.s20', "EGP - جنيه مصري") },
+                  { value: 'USD', label: t('shared.universal_document_form_template.s21', "USD - دولار أمريكي") },
+                  { value: 'SAR', label: t('shared.universal_document_form_template.s22', "SAR - ريال سعودي") },
                 ]}
               />
             </Field>
@@ -320,11 +322,11 @@ export function UniversalDocumentFormTemplate() {
         {/* Section 2: Items Table */}
         <section className="document-prototype-section" style={{ marginTop: '12px' }}>
           <div className="section-header-compact-row" style={{ marginBottom: '0.6rem' }}>
-            <h3 className="document-prototype-section-title">الأصناف</h3>
+            <h3 className="document-prototype-section-title">{t('shared.universal_document_form_template.s23', "الأصناف")}</h3>
             <div className="purchase-prototype-quick-actions">
               <button type="button" className="purchase-prototype-quick-action" onClick={handleAddItem} style={{ fontWeight: 700, color: '#1e40af' }}>
                 <span aria-hidden="true">+</span>
-                <span>صنف</span>
+                <span>{t('shared.universal_document_form_template.s24', "صنف")}</span>
               </button>
               <button
                 type="button"
@@ -333,7 +335,7 @@ export function UniversalDocumentFormTemplate() {
                 style={taxRate > 0 ? { borderColor: '#2563eb', color: '#1d4ed8', backgroundColor: '#eff6ff', fontWeight: 700 } : undefined}
               >
                 <span aria-hidden="true">%</span>
-                <span>ضريبة{taxRate > 0 ? ` ${taxRate}%` : ''}</span>
+                <span>{t('shared.universal_document_form_template.s25', "ضريبة")}{taxRate > 0 ? ` ${taxRate}%` : ''}</span>
               </button>
               <button
                 type="button"
@@ -341,7 +343,7 @@ export function UniversalDocumentFormTemplate() {
                 onClick={() => setDiscountValue((curr: number) => (curr > 0 ? 0 : 10))}
                 style={discountValue > 0 ? { borderColor: '#16a34a', color: '#15803d', backgroundColor: '#f0fdf4', fontWeight: 700 } : undefined}
               >
-                <span>خصم{discountValue > 0 ? (discountMode === 'percent' ? ` ${discountValue}%` : ` ${discountValue}`) : ''}</span>
+                <span>{t('shared.universal_document_form_template.s26', "خصم")}{discountValue > 0 ? (discountMode === 'percent' ? ` ${discountValue}%` : ` ${discountValue}`) : ''}</span>
               </button>
             </div>
           </div>
@@ -350,12 +352,12 @@ export function UniversalDocumentFormTemplate() {
             <table className="document-line-items-table">
               <thead>
                 <tr>
-                  <th className="purchase-prototype-table-head purchase-prototype-table-head-product" style={{ width: '35%', textAlign: 'right' }}>الصنف</th>
-                  <th className="purchase-prototype-table-head purchase-prototype-table-head-category" style={{ width: '15%', textAlign: 'center' }}>الوحدة</th>
-                  <th className="purchase-prototype-table-head purchase-prototype-table-head-warehouse" style={{ width: '15%', textAlign: 'center' }}>المخزن</th>
-                  <th className="purchase-prototype-table-head purchase-prototype-table-head-qty" style={{ width: '10%', textAlign: 'center' }}>الكمية</th>
-                  <th className="purchase-prototype-table-head purchase-prototype-table-head-price" style={{ width: '10%', textAlign: 'center' }}>السعر</th>
-                  <th className="purchase-prototype-table-head purchase-prototype-table-head-amount" style={{ width: '10%', textAlign: 'center' }}>المبلغ</th>
+                  <th className="purchase-prototype-table-head purchase-prototype-table-head-product" style={{ width: '35%', textAlign: 'right' }}>{t('shared.universal_document_form_template.s27', "الصنف")}</th>
+                  <th className="purchase-prototype-table-head purchase-prototype-table-head-category" style={{ width: '15%', textAlign: 'center' }}>{t('shared.universal_document_form_template.s28', "الوحدة")}</th>
+                  <th className="purchase-prototype-table-head purchase-prototype-table-head-warehouse" style={{ width: '15%', textAlign: 'center' }}>{t('shared.universal_document_form_template.s29', "المخزن")}</th>
+                  <th className="purchase-prototype-table-head purchase-prototype-table-head-qty" style={{ width: '10%', textAlign: 'center' }}>{t('shared.universal_document_form_template.s30', "الكمية")}</th>
+                  <th className="purchase-prototype-table-head purchase-prototype-table-head-price" style={{ width: '10%', textAlign: 'center' }}>{t('shared.universal_document_form_template.s31', "السعر")}</th>
+                  <th className="purchase-prototype-table-head purchase-prototype-table-head-amount" style={{ width: '10%', textAlign: 'center' }}>{t('shared.universal_document_form_template.s32', "المبلغ")}</th>
                   <th className="purchase-prototype-table-head purchase-prototype-table-head-actions" style={{ width: '5%', textAlign: 'center' }}></th>
                 </tr>
               </thead>
@@ -366,7 +368,7 @@ export function UniversalDocumentFormTemplate() {
                       <SearchableCombobox
                         inline
                         inputClassName="purchase-prototype-field-input purchase-prototype-combobox-input purchase-prototype-combobox-input-inline"
-                        placeholder="ابحث عن صنف أو اكتب صنفاً جديداً..."
+                        placeholder={t('shared.universal_document_form_template.s33', "ابحث عن صنف أو اكتب صنفاً جديداً...")}
                         value={line.productName}
                         onChange={(value) => handleUpdateLine(line.id, 'productName', value)}
                         options={productOptions}
@@ -379,7 +381,7 @@ export function UniversalDocumentFormTemplate() {
                           handleUpdateLine(line.id, 'unitName', p.unit);
                         }}
                         showDropdownOnEmpty={true}
-                        emptyLabel="صنف جديد (يمكنك المتابعة بالاسم المدخل)"
+                        emptyLabel={t('shared.universal_document_form_template.s34', "صنف جديد (يمكنك المتابعة بالاسم المدخل)")}
                       />
                     </td>
                     <td className="purchase-prototype-table-cell" style={{ textAlign: 'center' }}>
@@ -411,43 +413,43 @@ export function UniversalDocumentFormTemplate() {
           <div className="document-line-items-actions" style={{ marginTop: '12px' }}>
             <Button type="button" variant="dashedAction" onClick={handleAddItem}>
               <span aria-hidden="true">+</span>
-              <span>إضافة صنف</span>
+              <span>{t('shared.universal_document_form_template.s35', "إضافة صنف")}</span>
             </Button>
-            <Button type="button" variant="dashedAction" onClick={() => toast.info('فتح ماسح الباركود...')}>
+            <Button type="button" variant="dashedAction" onClick={() => toast.info(t('shared.universal_document_form_template.s36', "فتح ماسح الباركود..."))}>
               <span aria-hidden="true" className="purchase-prototype-scan-icon">
                 <svg viewBox="0 0 16 16" role="img" focusable="false" aria-hidden="true" width="14" height="14">
                   <path d="M3 4.2V3.1A.6.6 0 0 1 3.6 2.5h1.1M11.3 2.5h1.1a.6.6 0 0 1 .6.6v1.1M13 11.8v1.1a.6.6 0 0 1-.6.6h-1.1M4.7 13.5H3.6a.6.6 0 0 1-.6-.6v-1.1" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                   <path d="M5.1 5.2v5.6M7 5.2v5.6M9 5.2v5.6M10.9 5.2v5.6" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
                 </svg>
               </span>
-              <span>مسح باركود</span>
+              <span>{t('shared.universal_document_form_template.s37', "مسح باركود")}</span>
             </Button>
             <Button type="button" variant="dashedAction" onClick={handleAddItem}>
               <span aria-hidden="true">+</span>
-              <span>منتج جديد</span>
+              <span>{t('shared.universal_document_form_template.s38', "منتج جديد")}</span>
             </Button>
           </div>
         </section>
 
         {/* Section 3: Advanced Operations */}
         <section className="document-prototype-section" style={{ marginTop: '12px' }}>
-          <h3 className="document-prototype-section-title">موديول الشركات والعمليات المتقدمة</h3>
+          <h3 className="document-prototype-section-title">{t('shared.universal_document_form_template.s39', "موديول الشركات والعمليات المتقدمة")}</h3>
           <div className="document-prototype-grid compact-grid-3" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px' }}>
-            <Field label="مستودع الاستلام (المخزن أو الفرع)">
+            <Field label={t('shared.universal_document_form_template.s40', "مستودع الاستلام (المخزن أو الفرع)")}>
               <input className="purchase-prototype-field-input" type="text" value={warehouseName} onChange={(e) => setWarehouseName(e.target.value)} />
             </Field>
-            <Field label="مركز التكلفة">
-              <input className="purchase-prototype-field-input" type="text" disabled value="المركز الرئيسي - عام" style={{ backgroundColor: '#f8fafc', color: '#64748b' }} />
+            <Field label={t('shared.universal_document_form_template.s41', "مركز التكلفة")}>
+              <input className="purchase-prototype-field-input" type="text" disabled value={t('shared.universal_document_form_template.s42', "المركز الرئيسي - عام")} style={{ backgroundColor: '#f8fafc', color: '#64748b' }} />
             </Field>
-            <Field label="المشروع">
-              <input className="purchase-prototype-field-input" type="text" disabled value="عام / بدون مشروع محدد" style={{ backgroundColor: '#f8fafc', color: '#64748b' }} />
+            <Field label={t('shared.universal_document_form_template.s43', "المشروع")}>
+              <input className="purchase-prototype-field-input" type="text" disabled value={t('shared.universal_document_form_template.s44', "عام / بدون مشروع محدد")} style={{ backgroundColor: '#f8fafc', color: '#64748b' }} />
             </Field>
           </div>
         </section>
 
         {/* Section 4: Terms & Conditions */}
         <section className="document-prototype-section" style={{ marginTop: '12px' }}>
-          <h3 className="document-prototype-section-title">الشروط والأحكام</h3>
+          <h3 className="document-prototype-section-title">{t('shared.universal_document_form_template.s45', "الشروط والأحكام")}</h3>
           <textarea
             className="purchase-prototype-notes-textarea"
             rows={3}
@@ -460,36 +462,36 @@ export function UniversalDocumentFormTemplate() {
         {/* Section 5: Notes & Totals */}
         <section className="document-prototype-bottom-grid" style={{ marginTop: '12px' }}>
           <div className="document-prototype-section">
-            <h3 className="document-prototype-section-title">ملاحظات</h3>
+            <h3 className="document-prototype-section-title">{t('shared.universal_document_form_template.s46', "ملاحظات")}</h3>
             <textarea
               className="purchase-prototype-notes-textarea"
               rows={4}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="أي ملاحظات خاصة بالمعاملة..."
+              placeholder={t('shared.universal_document_form_template.s47', "أي ملاحظات خاصة بالمعاملة...")}
               style={{ width: '100%', boxSizing: 'border-box' }}
             />
           </div>
 
           <div className="document-prototype-section document-totals-card">
-            <h3 className="document-prototype-section-title">الإجماليات</h3>
+            <h3 className="document-prototype-section-title">{t('shared.universal_document_form_template.s48', "الإجماليات")}</h3>
             <div className="document-totals-panel">
               <div>
-                <span>الإجمالي الفرعي:</span>
+                <span>{t('shared.universal_document_form_template.s49', "الإجمالي الفرعي:")}</span>
                 <strong>{formatCurrencyWithSymbol(subtotal, currency)}</strong>
               </div>
               {discountTotal > 0 && (
                 <div style={{ color: '#16a34a' }}>
-                  <span>الخصم:</span>
+                  <span>{t('shared.universal_document_form_template.s50', "الخصم:")}</span>
                   <strong>- {formatCurrencyWithSymbol(discountTotal, currency)}</strong>
                 </div>
               )}
               <div>
-                <span>الضريبة ({taxRate}%):</span>
+                <span>{t('shared.universal_document_form_template.s51', "الضريبة (")}{taxRate}%):</span>
                 <strong>{formatCurrencyWithSymbol(taxAmount, currency)}</strong>
               </div>
               <div className="document-total-grand" style={{ borderTop: '2px solid #e2e8f0', paddingTop: '8px', marginTop: '6px' }}>
-                <span>الإجمالي:</span>
+                <span>{t('shared.universal_document_form_template.s52', "الإجمالي:")}</span>
                 <strong>{formatCurrencyWithSymbol(totalAmount, currency)}</strong>
               </div>
             </div>

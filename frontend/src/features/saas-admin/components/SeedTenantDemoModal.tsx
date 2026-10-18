@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { DialogShell } from '@/shared/components/dialog-shell';
@@ -21,6 +22,7 @@ const ACTIVITIES = [
 ];
 
 export function SeedTenantDemoModal({ tenant, onClose, onSuccess }: SeedTenantDemoModalProps) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [selectedActivity, setSelectedActivity] = useState<string>(tenant.activityType || 'supermarket');
   const [wipeExisting, setWipeExisting] = useState<boolean>(true);
@@ -50,17 +52,17 @@ export function SeedTenantDemoModal({ tenant, onClose, onSuccess }: SeedTenantDe
       open={true}
       onClose={onClose}
       width="620px"
-      ariaLabel="سكب بيانات تجريبية للمشترك"
+      ariaLabel={t('saas_admin.seed_tenant_demo_modal.s0', "سكب بيانات تجريبية للمشترك")}
     >
       <div className="dialog-card" dir="rtl" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #e2e8f0', paddingBottom: '12px' }}>
           <div>
             <h3 style={{ margin: 0, fontSize: '17px', fontWeight: 800, color: '#0f172a' }}>
-              سكب بيانات تجريبية للمشترك
+              {t('saas_admin.seed_tenant_demo_modal.s1', "سكب بيانات تجريبية للمشترك")}
             </h3>
             <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>
-              النسخة: <strong style={{ color: '#0f172a' }}>{tenant.businessName || tenant.slug}</strong> ({tenant.slug})
+              {t('saas_admin.seed_tenant_demo_modal.s2', "النسخة:")} <strong style={{ color: '#0f172a' }}>{tenant.businessName || tenant.slug}</strong> ({tenant.slug})
             </div>
           </div>
           <button
@@ -82,7 +84,7 @@ export function SeedTenantDemoModal({ tenant, onClose, onSuccess }: SeedTenantDe
         {/* Activity Selection Cards */}
         <div>
           <label style={{ fontSize: '13px', fontWeight: 700, color: '#1e293b', marginBottom: '8px', display: 'block' }}>
-            اختر نوع النشاط التجاري لتوليد البيانات المطابقة له:
+            {t('saas_admin.seed_tenant_demo_modal.s3', "اختر نوع النشاط التجاري لتوليد البيانات المطابقة له:")}
           </label>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '8px' }}>
             {ACTIVITIES.map((act) => {
@@ -146,7 +148,7 @@ export function SeedTenantDemoModal({ tenant, onClose, onSuccess }: SeedTenantDe
               checked={wipeExisting}
               onChange={(e) => setWipeExisting(e.target.checked)}
             />
-            <span>تفريغ وتصفير أي بيانات سابقة للمشترك قبل سكب الحزمة الجديدة (موصى به)</span>
+            <span>{t('saas_admin.seed_tenant_demo_modal.s4', "تفريغ وتصفير أي بيانات سابقة للمشترك قبل سكب الحزمة الجديدة (موصى به)")}</span>
           </label>
           <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '12.5px', color: '#334155' }}>
             <input
@@ -154,7 +156,7 @@ export function SeedTenantDemoModal({ tenant, onClose, onSuccess }: SeedTenantDe
               checked={seedSales}
               onChange={(e) => setSeedSales(e.target.checked)}
             />
-            <span>توليد فواتير ومبيعات سابقة لرؤية الرسوم البيانية وتقارير الأرباح</span>
+            <span>{t('saas_admin.seed_tenant_demo_modal.s5', "توليد فواتير ومبيعات سابقة لرؤية الرسوم البيانية وتقارير الأرباح")}</span>
           </label>
           <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '12.5px', color: '#334155' }}>
             <input
@@ -162,14 +164,14 @@ export function SeedTenantDemoModal({ tenant, onClose, onSuccess }: SeedTenantDe
               checked={seedOnlineOrders}
               onChange={(e) => setSeedOnlineOrders(e.target.checked)}
             />
-            <span>توليد طلبات متجر إلكتروني تجريبية لاختبار دورة الطلبات الأونلاين</span>
+            <span>{t('saas_admin.seed_tenant_demo_modal.s6', "توليد طلبات متجر إلكتروني تجريبية لاختبار دورة الطلبات الأونلاين")}</span>
           </label>
         </div>
 
         {/* Actions */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '10px', paddingTop: '12px', borderTop: '1px solid #e2e8f0' }}>
           <Button type="button" variant="secondary" onClick={onClose} disabled={seedMutation.isPending}>
-            إلغاء
+            {t('saas_admin.seed_tenant_demo_modal.s7', "إلغاء")}
           </Button>
           <Button
             type="button"
@@ -177,7 +179,7 @@ export function SeedTenantDemoModal({ tenant, onClose, onSuccess }: SeedTenantDe
             disabled={seedMutation.isPending}
             style={{ background: '#170e5e', color: '#ffffff', fontWeight: 800 }}
           >
-            {seedMutation.isPending ? 'جاري السكب...' : 'تأكيد وسكب البيانات'}
+            {seedMutation.isPending ? t('saas_admin.seed_tenant_demo_modal.s8', "جاري السكب...") : t('saas_admin.seed_tenant_demo_modal.s9', "تأكيد وسكب البيانات")}
           </Button>
         </div>
       </div>

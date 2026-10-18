@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect, FormEvent } from 'react';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { Button } from '@/shared/ui/button';
@@ -8,6 +9,7 @@ import { http } from '@/lib/http';
 import { useHasAnyPermission } from '@/shared/hooks/use-permission';
 
 export function QuickCashAdvanceModal() {
+  const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const [employeeId, setEmployeeId] = useState('');
   const [amount, setAmount] = useState('');
@@ -94,46 +96,46 @@ export function QuickCashAdvanceModal() {
   return (
     <DialogShell open={isOpen} onClose={() => setIsOpen(false)} width="400px">
       <div style={{ padding: '24px' }}>
-        <h2 style={{ marginTop: 0 }}>صرف سلفة سريعة</h2>
+        <h2 style={{ marginTop: 0 }}>{t('hr.quick_cash_advance_modal.s0', "صرف سلفة سريعة")}</h2>
         
         {!canManageLoans ? (
-          <p className="muted">لا تملك صلاحية الوصول لقسم السلف.</p>
+          <p className="muted">{t('hr.quick_cash_advance_modal.s1', "لا تملك صلاحية الوصول لقسم السلف.")}</p>
         ) : (
           <form className="form-grid" onSubmit={handleSubmit}>
             <div className="field field-wide" style={{ marginBottom: 12 }}>
-              <span style={{ fontSize: '0.84rem', fontWeight: 600, color: '#334155', marginBottom: 4, display: 'block' }}>الموظف *</span>
+              <span style={{ fontSize: '0.84rem', fontWeight: 600, color: '#334155', marginBottom: 4, display: 'block' }}>{t('hr.quick_cash_advance_modal.s2', "الموظف *")}</span>
               <CustomSelect
                 value={employeeId}
                 onChange={(val) => setEmployeeId(val)}
                 options={[
-                  { value: '', label: 'اختيار الموظف' },
+                  { value: '', label: t('hr.quick_cash_advance_modal.s3', "اختيار الموظف") },
                   ...employees.map((emp: any) => ({ value: emp.id, label: `${emp.firstName || ''} ${emp.lastName || ''}`.trim() || emp.name })),
                 ]}
               />
             </div>
             
             <label className="field field-wide">
-              <span>المبلغ *</span>
+              <span>{t('hr.quick_cash_advance_modal.s4', "المبلغ *")}</span>
               <input type="number" min="1" step="any" value={amount} onChange={e => setAmount(e.target.value)} required />
             </label>
 
             <label className="field field-wide">
-              <span>ملاحظات</span>
-              <input value={notes} onChange={e => setNotes(e.target.value)} placeholder="سلفة سريعة من الكاشير" />
+              <span>{t('hr.quick_cash_advance_modal.s5', "ملاحظات")}</span>
+              <input value={notes} onChange={e => setNotes(e.target.value)} placeholder={t('hr.quick_cash_advance_modal.s6', "سلفة سريعة من الكاشير")} />
             </label>
 
             {activeShift ? (
-              <p className="muted" style={{ margin: 0, fontSize: 13 }}>سيتم الخصم من عهدة الكاشير (الوردية الحالية).</p>
+              <p className="muted" style={{ margin: 0, fontSize: 13 }}>{t('hr.quick_cash_advance_modal.s7', "سيتم الخصم من عهدة الكاشير (الوردية الحالية).")}</p>
             ) : (
-              <p className="muted" style={{ margin: 0, fontSize: 13 }}>سيتم الخصم من الخزينة الرئيسية.</p>
+              <p className="muted" style={{ margin: 0, fontSize: 13 }}>{t('hr.quick_cash_advance_modal.s8', "سيتم الخصم من الخزينة الرئيسية.")}</p>
             )}
 
             {formError && <div className="error-box">{formError}</div>}
 
             <div className="actions compact-actions field-wide" style={{ marginTop: 16 }}>
-              <Button type="button" variant="secondary" onClick={() => setIsOpen(false)}>إلغاء</Button>
+              <Button type="button" variant="secondary" onClick={() => setIsOpen(false)}>{t('hr.quick_cash_advance_modal.s9', "إلغاء")}</Button>
               <Button type="submit" disabled={mutation.isPending}>
-                {mutation.isPending ? 'جاري الحفظ...' : 'تسجيل السلفة'}
+                {mutation.isPending ? t('hr.quick_cash_advance_modal.s10', "جاري الحفظ...") : t('hr.quick_cash_advance_modal.s11', "تسجيل السلفة")}
               </Button>
             </div>
           </form>

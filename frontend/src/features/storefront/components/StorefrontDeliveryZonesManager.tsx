@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { getGlobalCurrencySymbol, getGlobalSystemCurrency, isThreeDecimalCurrency } from '@/lib/currencies';
 import React, { useState } from 'react';
@@ -17,6 +18,7 @@ import {
 } from '@/shared/components/icons/AppIcons';
 
 export function StorefrontDeliveryZonesManager() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const currCode = getGlobalSystemCurrency();
   const isThreeDec = isThreeDecimalCurrency(currCode);
@@ -237,7 +239,7 @@ export function StorefrontDeliveryZonesManager() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
             <TruckIcon size={18} color="#170e5e" />
             <h2 style={{ margin: 0, fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>
-              تسعير التوصيل الذكي حسب المناطق والمحافظات (Shipping Zones Matrix)
+              {t('storefront.storefront_delivery_zones_manager.s0', "تسعير التوصيل الذكي حسب المناطق والمحافظات (Shipping Zones Matrix)")}
             </h2>
             <span
               style={{
@@ -250,11 +252,11 @@ export function StorefrontDeliveryZonesManager() {
                 border: activeZonesCount > 0 ? '1px solid #bbf7d0' : '1px solid #e2e8f0',
               }}
             >
-              {activeZonesCount} مناطق نشطة
+              {activeZonesCount} {t('storefront.storefront_delivery_zones_manager.s1', "مناطق نشطة")}
             </span>
           </div>
           <p style={{ margin: 0, fontSize: '12px', color: '#64748b' }}>
-            حدد تكلفة التوصيل الدقيقة ومواعيد الوصول التقديرية لكل حي أو محافظة تخدمها، مع دعم التوصيل المجاني فوق حد معين.
+            {t('storefront.storefront_delivery_zones_manager.s2', "حدد تكلفة التوصيل الدقيقة ومواعيد الوصول التقديرية لكل حي أو محافظة تخدمها، مع دعم التوصيل المجاني فوق حد معين.")}
           </p>
         </div>
 
@@ -276,7 +278,7 @@ export function StorefrontDeliveryZonesManager() {
             boxShadow: '0 2px 4px rgba(23, 14, 94, 0.2)',
           }}
         >
-          <span>+ إضافة منطقة توصيل</span>
+          <span>{t('storefront.storefront_delivery_zones_manager.s3', "+ إضافة منطقة توصيل")}</span>
         </button>
       </div>
 
@@ -296,10 +298,10 @@ export function StorefrontDeliveryZonesManager() {
       >
         <div>
           <span style={{ fontSize: '12px', fontWeight: 800, color: '#1e293b', display: 'block' }}>
-            قوالب تسعير سريعة بضغطة زر واحدة:
+            {t('storefront.storefront_delivery_zones_manager.s4', "قوالب تسعير سريعة بضغطة زر واحدة:")}
           </span>
           <span style={{ fontSize: '11px', color: '#64748b' }}>
-            أنشئ مصفوفة توصيل متكاملة جاهزة وفورية تناسب نشاطك
+            {t('storefront.storefront_delivery_zones_manager.s5', "أنشئ مصفوفة توصيل متكاملة جاهزة وفورية تناسب نشاطك")}
           </span>
         </div>
 
@@ -328,8 +330,8 @@ export function StorefrontDeliveryZonesManager() {
             <BuildingIcon size={14} />
             <span>
               {isKuwait
-                ? 'قالب توصيل سريع (نفس المنطقة 0.500 / المجاورة 1.000 / البعيدة 1.500 د.ك)'
-                : 'قالب دليفري محلي (أحياء قريبة / متوسطة / بعيدة)'}
+                ? t('storefront.storefront_delivery_zones_manager.s6', "قالب توصيل سريع (نفس المنطقة 0.500 / المجاورة 1.000 / البعيدة 1.500 د.ك)")
+                : t('storefront.storefront_delivery_zones_manager.s7', "قالب دليفري محلي (أحياء قريبة / متوسطة / بعيدة)")}
             </span>
           </button>
 
@@ -357,8 +359,8 @@ export function StorefrontDeliveryZonesManager() {
             <TruckIcon size={14} />
             <span>
               {isKuwait
-                ? 'قالب محافظات الكويت (العاصمة وحولي 1.000 / الفروانية 1.500 / الأحمدي والجهراء 2.000 / الشاليهات 2.500)'
-                : 'قالب شحن محافظات (القاهرة / الإسكندرية / القناة / الصعيد)'}
+                ? t('storefront.storefront_delivery_zones_manager.s8', "قالب محافظات الكويت (العاصمة وحولي 1.000 / الفروانية 1.500 / الأحمدي والجهراء 2.000 / الشاليهات 2.500)")
+                : t('storefront.storefront_delivery_zones_manager.s9', "قالب شحن محافظات (القاهرة / الإسكندرية / القناة / الصعيد)")}
             </span>
           </button>
         </div>
@@ -377,7 +379,7 @@ export function StorefrontDeliveryZonesManager() {
             fontSize: '13px',
           }}
         >
-          جاري تحميل مناطق التوصيل...
+          {t('storefront.storefront_delivery_zones_manager.s10', "جاري تحميل مناطق التوصيل...")}
         </div>
       ) : zones.length === 0 ? (
         <div
@@ -408,10 +410,10 @@ export function StorefrontDeliveryZonesManager() {
             <MapPinIcon size={20} color="#170e5e" />
           </div>
           <h3 style={{ margin: 0, fontSize: '14px', fontWeight: 800, color: '#0f172a' }}>
-            لم تقم بإضافة مناطق توصيل مخصصة بعد
+            {t('storefront.storefront_delivery_zones_manager.s11', "لم تقم بإضافة مناطق توصيل مخصصة بعد")}
           </h3>
           <p style={{ margin: 0, fontSize: '12px', color: '#64748b', maxWidth: '460px', lineHeight: 1.5 }}>
-            حالياً يعتمد متجرك على قيمة التوصيل الثابتة المحددة في الإعدادات العامة. يمكنك تفعيل مصفوفة التوصيل الذكي بالضغط على أحد القوالب الجاهزة أعلاه أو إضافة مناطقك يدوياً.
+            {t('storefront.storefront_delivery_zones_manager.s12', "حالياً يعتمد متجرك على قيمة التوصيل الثابتة المحددة في الإعدادات العامة. يمكنك تفعيل مصفوفة التوصيل الذكي بالضغط على أحد القوالب الجاهزة أعلاه أو إضافة مناطقك يدوياً.")}
           </p>
           <div style={{ display: 'flex', gap: '8px', marginTop: '6px' }}>
             <button
@@ -428,7 +430,7 @@ export function StorefrontDeliveryZonesManager() {
                 cursor: 'pointer',
               }}
             >
-              + إضافة أول منطقة
+              {t('storefront.storefront_delivery_zones_manager.s13', "+ إضافة أول منطقة")}
             </button>
             <button
               type="button"
@@ -447,7 +449,7 @@ export function StorefrontDeliveryZonesManager() {
                 gap: '6px',
               }}
             >
-              <span>تطبيق قالب سريع</span>
+              <span>{t('storefront.storefront_delivery_zones_manager.s14', "تطبيق قالب سريع")}</span>
             </button>
           </div>
         </div>
@@ -474,12 +476,12 @@ export function StorefrontDeliveryZonesManager() {
               color: '#475569',
             }}
           >
-            <div>اسم المنطقة / الحي</div>
-            <div>رسوم التوصيل</div>
-            <div>الوقت المتوقع</div>
-            <div style={{ textAlign: 'center' }}>الترتيب</div>
-            <div style={{ textAlign: 'center' }}>الحالة</div>
-            <div style={{ textAlign: 'center' }}>إجراءات</div>
+            <div>{t('storefront.storefront_delivery_zones_manager.s15', "اسم المنطقة / الحي")}</div>
+            <div>{t('storefront.storefront_delivery_zones_manager.s16', "رسوم التوصيل")}</div>
+            <div>{t('storefront.storefront_delivery_zones_manager.s17', "الوقت المتوقع")}</div>
+            <div style={{ textAlign: 'center' }}>{t('storefront.storefront_delivery_zones_manager.s18', "الترتيب")}</div>
+            <div style={{ textAlign: 'center' }}>{t('storefront.storefront_delivery_zones_manager.s19', "الحالة")}</div>
+            <div style={{ textAlign: 'center' }}>{t('storefront.storefront_delivery_zones_manager.s20', "إجراءات")}</div>
           </div>
 
           {/* Table Rows */}
@@ -527,7 +529,7 @@ export function StorefrontDeliveryZonesManager() {
                           border: '1px solid #bbf7d0',
                         }}
                       >
-                        توصيل مجاني
+                        {t('storefront.storefront_delivery_zones_manager.s21', "توصيل مجاني")}
                       </span>
                     ) : (
                       <span
@@ -563,7 +565,7 @@ export function StorefrontDeliveryZonesManager() {
                         <span>{zone.estimatedTime}</span>
                       </span>
                     ) : (
-                      <span style={{ fontSize: '11px', color: '#94a3b8' }}>غير محدد</span>
+                      <span style={{ fontSize: '11px', color: '#94a3b8' }}>{t('storefront.storefront_delivery_zones_manager.s22', "غير محدد")}</span>
                     )}
                   </div>
 
@@ -589,11 +591,11 @@ export function StorefrontDeliveryZonesManager() {
                         cursor: 'pointer',
                         transition: 'all 0.15s ease',
                       }}
-                      title="انقر لتغيير حالة التفعيل"
+                      title={t('storefront.storefront_delivery_zones_manager.s23', "انقر لتغيير حالة التفعيل")}
                     >
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                         {isZoneActive ? <CheckIcon size={12} /> : <XIcon size={12} />}
-                        <span>{isZoneActive ? 'نشطة' : 'معطلة'}</span>
+                        <span>{isZoneActive ? t('storefront.storefront_delivery_zones_manager.s24', "نشطة") : t('storefront.storefront_delivery_zones_manager.s25', "معطلة")}</span>
                       </span>
                     </button>
                   </div>
@@ -613,9 +615,9 @@ export function StorefrontDeliveryZonesManager() {
                         color: '#334155',
                         cursor: 'pointer',
                       }}
-                      title="تعديل المنطقة"
+                      title={t('storefront.storefront_delivery_zones_manager.s26', "تعديل المنطقة")}
                     >
-                      تعديل
+                      {t('storefront.storefront_delivery_zones_manager.s27', "تعديل")}
                     </button>
                     <button
                       type="button"
@@ -631,9 +633,9 @@ export function StorefrontDeliveryZonesManager() {
                         color: '#b91c1c',
                         cursor: 'pointer',
                       }}
-                      title="حذف المنطقة"
+                      title={t('storefront.storefront_delivery_zones_manager.s28', "حذف المنطقة")}
                     >
-                      حذف
+                      {t('storefront.storefront_delivery_zones_manager.s29', "حذف")}
                     </button>
                   </div>
                 </div>
@@ -648,7 +650,7 @@ export function StorefrontDeliveryZonesManager() {
         open={isModalOpen}
         onClose={handleCloseModal}
         width="min(480px, 95vw)"
-        ariaLabel={editingZone ? 'تعديل منطقة التوصيل' : 'إضافة منطقة توصيل جديدة'}
+        ariaLabel={editingZone ? t('storefront.storefront_delivery_zones_manager.s30', "تعديل منطقة التوصيل") : t('storefront.storefront_delivery_zones_manager.s31', "إضافة منطقة توصيل جديدة")}
       >
         <div
           dir="rtl"
@@ -671,7 +673,7 @@ export function StorefrontDeliveryZonesManager() {
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <TruckIcon size={18} color="#170e5e" />
                 <h3 style={{ margin: 0, fontSize: '14px', fontWeight: 800, color: '#0f172a' }}>
-                  {editingZone ? 'تعديل منطقة التوصيل' : 'إضافة منطقة توصيل جديدة'}
+                  {editingZone ? t('storefront.storefront_delivery_zones_manager.s32', "تعديل منطقة التوصيل") : t('storefront.storefront_delivery_zones_manager.s33', "إضافة منطقة توصيل جديدة")}
                 </h3>
               </div>
               <button
@@ -718,14 +720,14 @@ export function StorefrontDeliveryZonesManager() {
                 {/* Zone Name */}
                 <div>
                   <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                    اسم المنطقة أو الحي أو المحافظة: <span style={{ color: '#ef4444' }}>*</span>
+                    {t('storefront.storefront_delivery_zones_manager.s34', "اسم المنطقة أو الحي أو المحافظة:")} <span style={{ color: '#ef4444' }}>*</span>
                   </label>
                   <input
                     type="text"
                     required
                     value={formName}
                     onChange={(e) => setFormName(e.target.value)}
-                    placeholder={isKuwait ? 'مثال: السالمية وحولي، أو العاصمة، أو الفروانية' : 'مثال: مدينة نصر ومصر الجديدة، أو داخل الحي، أو الإسكندرية'}
+                    placeholder={isKuwait ? t('storefront.storefront_delivery_zones_manager.s35', "مثال: السالمية وحولي، أو العاصمة، أو الفروانية") : t('storefront.storefront_delivery_zones_manager.s36', "مثال: مدينة نصر ومصر الجديدة، أو داخل الحي، أو الإسكندرية")}
                     style={{
                       width: '100%',
                       padding: '7px 10px',
@@ -742,7 +744,7 @@ export function StorefrontDeliveryZonesManager() {
                 <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: '10px' }}>
                   <div>
                     <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                      رسوم التوصيل ({getGlobalCurrencySymbol()}): <span style={{ color: '#ef4444' }}>*</span>
+                      {t('storefront.storefront_delivery_zones_manager.s37', "رسوم التوصيل (")}{getGlobalCurrencySymbol()}): <span style={{ color: '#ef4444' }}>*</span>
                     </label>
                     <input
                       type="number"
@@ -751,7 +753,7 @@ export function StorefrontDeliveryZonesManager() {
                       step={isThreeDec ? '0.05' : '0.5'}
                       value={formDeliveryFee}
                       onChange={(e) => setFormDeliveryFee(Number(e.target.value))}
-                      placeholder={isThreeDec ? 'مثال: 1.500' : 'مثال: 25'}
+                      placeholder={isThreeDec ? t('storefront.storefront_delivery_zones_manager.s38', "مثال: 1.500") : t('storefront.storefront_delivery_zones_manager.s39', "مثال: 25")}
                       style={{
                         width: '100%',
                         padding: '7px 10px',
@@ -763,13 +765,13 @@ export function StorefrontDeliveryZonesManager() {
                       }}
                     />
                     <span style={{ fontSize: '10.5px', color: '#64748b', display: 'block', marginTop: '2px' }}>
-                      اكتب 0 إذا كان التوصيل لهذه المنطقة مجانياً
+                      {t('storefront.storefront_delivery_zones_manager.s40', "اكتب 0 إذا كان التوصيل لهذه المنطقة مجانياً")}
                     </span>
                   </div>
 
                   <div>
                     <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                      ترتيب الظهور:
+                      {t('storefront.storefront_delivery_zones_manager.s41', "ترتيب الظهور:")}
                     </label>
                     <input
                       type="number"
@@ -793,13 +795,13 @@ export function StorefrontDeliveryZonesManager() {
                 {/* Estimated Delivery Time */}
                 <div>
                   <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                    الوقت المتوقع للتوصيل (اختياري):
+                    {t('storefront.storefront_delivery_zones_manager.s42', "الوقت المتوقع للتوصيل (اختياري):")}
                   </label>
                   <input
                     type="text"
                     value={formEstimatedTime}
                     onChange={(e) => setFormEstimatedTime(e.target.value)}
-                    placeholder="مثال: 45 - 60 دقيقة، أو خلال 24 ساعة"
+                    placeholder={t('storefront.storefront_delivery_zones_manager.s43', "مثال: 45 - 60 دقيقة، أو خلال 24 ساعة")}
                     style={{
                       width: '100%',
                       padding: '7px 10px',
@@ -811,7 +813,7 @@ export function StorefrontDeliveryZonesManager() {
                     }}
                   />
                   <span style={{ fontSize: '10.5px', color: '#64748b', display: 'block', marginTop: '2px' }}>
-                    يظهر للعميل في شاشة الدفع ليمنحه ثقة ووضوحاً عن موعد وصول شحنته
+                    {t('storefront.storefront_delivery_zones_manager.s44', "يظهر للعميل في شاشة الدفع ليمنحه ثقة ووضوحاً عن موعد وصول شحنته")}
                   </span>
                 </div>
 
@@ -829,7 +831,7 @@ export function StorefrontDeliveryZonesManager() {
                   }}
                 >
                   <label htmlFor="modalZoneActive" style={{ fontSize: '12px', fontWeight: 700, color: '#0f172a', cursor: 'pointer' }}>
-                    تفعيل المنطقة للعملاء في المتجر
+                    {t('storefront.storefront_delivery_zones_manager.s45', "تفعيل المنطقة للعملاء في المتجر")}
                   </label>
                   <input
                     id="modalZoneActive"
@@ -866,7 +868,7 @@ export function StorefrontDeliveryZonesManager() {
                     cursor: 'pointer',
                   }}
                 >
-                  إلغاء
+                  {t('storefront.storefront_delivery_zones_manager.s46', "إلغاء")}
                 </button>
                 <button
                   type="submit"
@@ -883,7 +885,7 @@ export function StorefrontDeliveryZonesManager() {
                     boxShadow: '0 1px 3px rgba(23, 14, 94, 0.2)',
                   }}
                 >
-                  {createMutation.isPending || updateMutation.isPending ? 'جاري الحفظ...' : 'حفظ المنطقة'}
+                  {createMutation.isPending || updateMutation.isPending ? t('storefront.storefront_delivery_zones_manager.s47', "جاري الحفظ...") : t('storefront.storefront_delivery_zones_manager.s48', "حفظ المنطقة")}
                 </button>
               </div>
             </form>

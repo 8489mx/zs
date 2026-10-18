@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 import type { ExceptionFilter } from './attendance-types';
 
@@ -29,6 +30,7 @@ export const AttendanceKpiSummary: React.FC<AttendanceKpiSummaryProps> = ({
   onSelectAttendanceFilter,
   onSelectExceptionFilter,
 }) => {
+  const { t } = useTranslation();
   const stats = [
     {
       label: 'إجمالي اليوم',
@@ -89,8 +91,8 @@ export const AttendanceKpiSummary: React.FC<AttendanceKpiSummaryProps> = ({
   return (
     <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 14px', marginBottom: '16px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-        <span style={{ fontSize: '0.825rem', fontWeight: 800, color: '#0f172a' }}>ملخص حضور اليوم والاستثناءات</span>
-        <span style={{ fontSize: '0.725rem', color: '#64748b' }}>اضغط على أي مؤشر للتبديل والتصفية الفورية</span>
+        <span style={{ fontSize: '0.825rem', fontWeight: 800, color: '#0f172a' }}>{t('hr.attendance.attendance_kpi_summary.s0', "ملخص حضور اليوم والاستثناءات")}</span>
+        <span style={{ fontSize: '0.725rem', color: '#64748b' }}>{t('hr.attendance.attendance_kpi_summary.s1', "اضغط على أي مؤشر للتبديل والتصفية الفورية")}</span>
       </div>
 
       <div className="hr-operational-summary-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(8, minmax(0, 1fr))', gap: '8px' }}>

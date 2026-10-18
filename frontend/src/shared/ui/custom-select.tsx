@@ -34,6 +34,7 @@ export function CustomSelect({
   dropdownAlign = 'right',
   openOnFocus = false,
 }: CustomSelectProps) {
+  const { t } = useTranslation();
   const { i18n } = useTranslation();
   const isEn = i18n.language === 'en';
   const isRtl = !isEn && (typeof document !== 'undefined' ? document.documentElement.dir !== 'ltr' : true);
@@ -380,7 +381,7 @@ export function CustomSelect({
             })
           ) : (
             <div style={{ padding: '8px 10px', fontSize: '0.8rem', color: '#94a3b8', textAlign: 'center' }}>
-              {isEn ? 'No results found' : 'لا توجد نتائج'}
+              {isEn ? 'No results found' : t('shared.ui.custom_select.s0', "لا توجد نتائج")}
             </div>
           )}
         </div>

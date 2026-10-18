@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useEffect, useMemo, useState } from 'react';
 import { Button } from '@/shared/ui/button';
 import { Field } from '@/shared/ui/field';
@@ -25,6 +26,7 @@ interface PurchaseEditDialogProps {
 }
 
 export function PurchaseEditDialog({ open, purchase, isBusy = false, errorMessage = '', onCancel, onSave }: PurchaseEditDialogProps) {
+  const { t } = useTranslation();
   const { user } = useAuthStore();
   const isAdmin = isAdminUser(user);
 
@@ -162,26 +164,26 @@ export function PurchaseEditDialog({ open, purchase, isBusy = false, errorMessag
         open={open}
         onClose={handleCancel}
         title={`تعديل فاتورة مشتريات ${purchase.docNo || purchase.id}`}
-        subtitle="تعديل بيانات وأصناف فاتورة الشراء مع توثيق سبب التعديل"
+        subtitle={t('purchases.purchase_edit_dialog.s0', "تعديل بيانات وأصناف فاتورة الشراء مع توثيق سبب التعديل")}
         maxWidth="980px"
         footerActions={
           <StandardDialogFooter
             onCancel={handleCancel}
-            cancelLabel="إغلاق"
+            cancelLabel={t('purchases.purchase_edit_dialog.s1', "إغلاق")}
             onSubmit={handleSaveClick}
-            submitLabel={isBusy ? 'جارٍ حفظ التعديل...' : 'حفظ التعديل'}
+            submitLabel={isBusy ? t('purchases.purchase_edit_dialog.s2', "جارٍ حفظ التعديل...") : t('purchases.purchase_edit_dialog.s3', "حفظ التعديل")}
             isSubmitting={isBusy}
             extraActions={
               <Button variant="secondary" onClick={handleReset} disabled={isBusy || !isDirty}>
-                إعادة القيم
+                {t('purchases.purchase_edit_dialog.s4', "إعادة القيم")}
               </Button>
             }
           />
         }
       >
-        <DraftStateNotice visible={isDirty && !isBusy} title="تعديلات فاتورة الشراء الحالية غير محفوظة" hint="أعد القيم الأصلية أو احفظ التعديلات قبل إغلاق نافذة التعديل." />
+        <DraftStateNotice visible={isDirty && !isBusy} title={t('purchases.purchase_edit_dialog.s5', "تعديلات فاتورة الشراء الحالية غير محفوظة")} hint={t('purchases.purchase_edit_dialog.s6', "أعد القيم الأصلية أو احفظ التعديلات قبل إغلاق نافذة التعديل.")} />
         <div className="form-grid" style={{ marginTop: 12 }}>
-          <Field label="نوع السداد">
+          <Field label={t('purchases.purchase_edit_dialog.s7', "نوع السداد")}>
             <CustomSelect
               value={paymentType}
               onChange={(val) => setPaymentType(String(val))}
@@ -190,16 +192,16 @@ export function PurchaseEditDialog({ open, purchase, isBusy = false, errorMessag
               disabled={isBusy}
             />
           </Field>
-          <Field label="خصم الفاتورة"><input type="number" min="0" step="0.01" value={discount} onChange={(e) => setDiscount(Number(e.target.value || 0))} disabled={isBusy} /></Field>
-          <div style={{ gridColumn: '1 / -1' }}><Field label="ملاحظات"><textarea rows={3} value={note} onChange={(e) => setNote(e.target.value)} disabled={isBusy} /></Field></div>
-          <div style={{ gridColumn: '1 / -1' }}><Field label="سبب التعديل"><textarea rows={2} value={editReason} onChange={(e) => setEditReason(e.target.value)} disabled={isBusy} placeholder="مثال: تعديل التكلفة بعد مراجعة فاتورة المورد" /></Field></div>
-          {!isAdmin && <Field label="رمز اعتماد المدير"><input type="text" className="secure-password-field" inputMode="numeric" value={managerPin} onChange={(e) => setManagerPin(e.target.value)} disabled={isBusy} placeholder="أدخل رمز المدير" autoComplete="off" data-lpignore="true" data-1p-ignore="true" data-form-type="other" autoCorrect="off" autoCapitalize="off" spellCheck={false} /></Field>}
+          <Field label={t('purchases.purchase_edit_dialog.s8', "خصم الفاتورة")}><input type="number" min="0" step="0.01" value={discount} onChange={(e) => setDiscount(Number(e.target.value || 0))} disabled={isBusy} /></Field>
+          <div style={{ gridColumn: '1 / -1' }}><Field label={t('purchases.purchase_edit_dialog.s9', "ملاحظات")}><textarea rows={3} value={note} onChange={(e) => setNote(e.target.value)} disabled={isBusy} /></Field></div>
+          <div style={{ gridColumn: '1 / -1' }}><Field label={t('purchases.purchase_edit_dialog.s10', "سبب التعديل")}><textarea rows={2} value={editReason} onChange={(e) => setEditReason(e.target.value)} disabled={isBusy} placeholder={t('purchases.purchase_edit_dialog.s11', "مثال: تعديل التكلفة بعد مراجعة فاتورة المورد")} /></Field></div>
+          {!isAdmin && <Field label={t('purchases.purchase_edit_dialog.s12', "رمز اعتماد المدير")}><input type="text" className="secure-password-field" inputMode="numeric" value={managerPin} onChange={(e) => setManagerPin(e.target.value)} disabled={isBusy} placeholder={t('purchases.purchase_edit_dialog.s13', "أدخل رمز المدير")} autoComplete="off" data-lpignore="true" data-1p-ignore="true" data-form-type="other" autoCorrect="off" autoCapitalize="off" spellCheck={false} /></Field>}
         </div>
 
         <div className="table-wrap" style={{ marginTop: 12 }}>
           <table>
             <thead>
-              <tr><th>الصنف</th><th>الوحدة</th><th>الكمية</th><th>التكلفة</th><th>الإجمالي</th></tr>
+              <tr><th>{t('purchases.purchase_edit_dialog.s14', "الصنف")}</th><th>{t('purchases.purchase_edit_dialog.s15', "الوحدة")}</th><th>{t('purchases.purchase_edit_dialog.s16', "الكمية")}</th><th>{t('purchases.purchase_edit_dialog.s17', "التكلفة")}</th><th>{t('purchases.purchase_edit_dialog.s18', "الإجمالي")}</th></tr>
             </thead>
             <tbody>
               {items.map((item, index) => (
@@ -216,9 +218,9 @@ export function PurchaseEditDialog({ open, purchase, isBusy = false, errorMessag
         </div>
 
         <div className="stats-grid compact-grid" style={{ marginTop: 12 }}>
-          <div className="stat-card"><span>قبل الضريبة</span><strong>{formatCurrency(computedSubTotal)}</strong></div>
-          <div className="stat-card"><span>الضريبة</span><strong>{formatCurrency(computedTax)}</strong></div>
-          <div className="stat-card"><span>الإجمالي</span><strong>{formatCurrency(computedTotal)}</strong></div>
+          <div className="stat-card"><span>{t('purchases.purchase_edit_dialog.s19', "قبل الضريبة")}</span><strong>{formatCurrency(computedSubTotal)}</strong></div>
+          <div className="stat-card"><span>{t('purchases.purchase_edit_dialog.s20', "الضريبة")}</span><strong>{formatCurrency(computedTax)}</strong></div>
+          <div className="stat-card"><span>{t('purchases.purchase_edit_dialog.s21', "الإجمالي")}</span><strong>{formatCurrency(computedTotal)}</strong></div>
         </div>
 
         {(localError || errorMessage) ? <div className="error-box" style={{ marginTop: 12 }}>{localError || errorMessage}</div> : null}
@@ -226,10 +228,10 @@ export function PurchaseEditDialog({ open, purchase, isBusy = false, errorMessag
 
       <ActionConfirmDialog
         open={showDiscardConfirm}
-        title="إلغاء التعديلات"
-        description="هل أنت متأكد؟ لن يتم حفظ هذه التغييرات."
-        confirmLabel="نعم، إلغاء"
-        cancelLabel="تراجع"
+        title={t('purchases.purchase_edit_dialog.s22', "إلغاء التعديلات")}
+        description={t('purchases.purchase_edit_dialog.s23', "هل أنت متأكد؟ لن يتم حفظ هذه التغييرات.")}
+        confirmLabel={t('purchases.purchase_edit_dialog.s24', "نعم، إلغاء")}
+        cancelLabel={t('purchases.purchase_edit_dialog.s25', "تراجع")}
         onConfirm={() => {
           setShowDiscardConfirm(false);
           onCancel();

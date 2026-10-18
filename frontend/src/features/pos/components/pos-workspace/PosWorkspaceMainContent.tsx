@@ -72,6 +72,7 @@ export function PosWorkspaceMainContent({
   onOpenNewProduct,
   onPriceTypeChange,
 }: PosWorkspaceMainContentProps) {
+  const { t: __t } = useTranslation();
   const user = useAuthStore((state) => state.user);
   const { i18n, t } = useTranslation();
   const isEn = Boolean(i18n.language && i18n.language.startsWith('en'));
@@ -98,10 +99,10 @@ export function PosWorkspaceMainContent({
       isLoading={catalogsLoading}
       isError={Boolean(catalogsError)}
       error={catalogsError}
-      loadingText="جارٍ تحميل بيانات الكاشير..."
-      errorTitle="تعذر تحميل بيانات الكاشير"
-      errorHint="تحقق من الاتصال ثم أعد المحاولة."
-      errorAction={<Button variant="secondary" onClick={() => { void pos.refetchCatalogs(); }}>إعادة المحاولة</Button>}
+      loadingText={__t('pos.pos_workspace.pos_workspace_main_content.s0', __t('pos.pos_workspace.pos_workspace_main_content.s0', "جارٍ تحميل بيانات الكاشير..."))}
+      errorTitle={__t('pos.pos_workspace.pos_workspace_main_content.s1', __t('pos.pos_workspace.pos_workspace_main_content.s1', "تعذر تحميل بيانات الكاشير"))}
+      errorHint={__t('pos.pos_workspace.pos_workspace_main_content.s2', __t('pos.pos_workspace.pos_workspace_main_content.s2', "تحقق من الاتصال ثم أعد المحاولة."))}
+      errorAction={<Button variant="secondary" onClick={() => { void pos.refetchCatalogs(); }}>{__t('pos.pos_workspace.pos_workspace_main_content.s3', __t('pos.pos_workspace.pos_workspace_main_content.s3', "إعادة المحاولة"))}</Button>}
     >
       <div style={{ position: 'relative', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
         {/* Mobile Tab Switcher (displayed only on small mobile screens via media query) */}
@@ -114,7 +115,7 @@ export function PosWorkspaceMainContent({
             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M21 8l-9-5-9 5 9 5 9-5zM3 8v8l9 5 9-5V8M12 13v8" />
             </svg>
-            <span>الأصناف ({pos.filteredSaleProducts.length})</span>
+            <span>{__t('pos.pos_workspace.pos_workspace_main_content.s4', __t('pos.pos_workspace.pos_workspace_main_content.s4', "الأصناف ("))}{pos.filteredSaleProducts.length})</span>
           </button>
 
           <button
@@ -127,7 +128,7 @@ export function PosWorkspaceMainContent({
               <circle cx="20" cy="21" r="1"></circle>
               <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
             </svg>
-            <span>السلة ({cartItemsCount})</span>
+            <span>{__t('pos.pos_workspace.pos_workspace_main_content.s5', __t('pos.pos_workspace.pos_workspace_main_content.s5', "السلة ("))}{cartItemsCount})</span>
             {pos.totals.total > 0 && <span className="pos-mobile-tab-total">{formatCurrency(pos.totals.total)}</span>}
           </button>
         </div>
@@ -264,7 +265,7 @@ export function PosWorkspaceMainContent({
             itemsCount={cartItemsCount}
             total={pos.totals.total}
             canOpenCheckout={pos.canOpenCheckout}
-            checkoutDisabledReason={pos.createSale.isPending ? 'جاري تنفيذ البيع' : pos.checkoutDisabledReason}
+            checkoutDisabledReason={pos.createSale.isPending ? __t('pos.pos_workspace.pos_workspace_main_content.s6', __t('pos.pos_workspace.pos_workspace_main_content.s6', "جاري تنفيذ البيع")) : pos.checkoutDisabledReason}
             isPending={pos.createSale.isPending}
             heldDraftsCount={heldDraftsCount}
             onFocusSearch={onFocusBarcodeEntry}
@@ -294,7 +295,7 @@ export function PosWorkspaceMainContent({
             alignItems: 'center',
             justifyContent: 'center',
           }}
-          title={isEn ? "Drag to resize panels" : "اسحب لتعديل مقاس الشاشة"}
+          title={isEn ? "Drag to resize panels" : __t('pos.pos_workspace.pos_workspace_main_content.s7', __t('pos.pos_workspace.pos_workspace_main_content.s7', "اسحب لتعديل مقاس الشاشة"))}
         >
           <div style={{ width: '4px', height: '40px', background: 'rgba(15, 23, 42, 0.15)', borderRadius: '8px' }} />
         </div>
@@ -326,8 +327,8 @@ export function PosWorkspaceMainContent({
                   type="button"
                   className="pos-mobile-floating-cart-toggle-btn"
                   onClick={() => setIsFloatingCartExpanded((prev) => !prev)}
-                  aria-label={isFloatingCartExpanded ? 'تصغير قائمة الأصناف' : 'عرض أصناف السلة'}
-                  title={isFloatingCartExpanded ? 'تصغير' : 'عرض الأصناف'}
+                  aria-label={isFloatingCartExpanded ? __t('pos.pos_workspace.pos_workspace_main_content.s8', __t('pos.pos_workspace.pos_workspace_main_content.s8', "تصغير قائمة الأصناف")) : __t('pos.pos_workspace.pos_workspace_main_content.s9', __t('pos.pos_workspace.pos_workspace_main_content.s9', "عرض أصناف السلة"))}
+                  title={isFloatingCartExpanded ? __t('pos.pos_workspace.pos_workspace_main_content.s10', __t('pos.pos_workspace.pos_workspace_main_content.s10', "تصغير")) : __t('pos.pos_workspace.pos_workspace_main_content.s11', __t('pos.pos_workspace.pos_workspace_main_content.s11', "عرض الأصناف"))}
                 >
                   <div className="pos-mobile-floating-cart-badge">{cartItemsCount}</div>
                   <div className="pos-mobile-floating-cart-text">
@@ -336,7 +337,7 @@ export function PosWorkspaceMainContent({
                       <span className="pos-mobile-floating-cart-unit"><CurrencySymbol /></span>
                     </div>
                     <span className="pos-mobile-floating-cart-sub">
-                      {isFloatingCartExpanded ? 'أصناف السلة (انقر للإغلاق)' : `${cartItemsCount} صنف بالسلة • اضغط لمعاينة الأصناف`}
+                      {isFloatingCartExpanded ? __t('pos.pos_workspace.pos_workspace_main_content.s12', __t('pos.pos_workspace.pos_workspace_main_content.s12', "أصناف السلة (انقر للإغلاق)")) : `${cartItemsCount} صنف بالسلة • اضغط لمعاينة الأصناف`}
                     </span>
                   </div>
                   <span className="pos-mobile-floating-cart-chevron">
@@ -372,7 +373,7 @@ export function PosWorkspaceMainContent({
                       }
                     }}
                   >
-                    <span>الدفع (F10)</span>
+                    <span>{__t('pos.pos_workspace.pos_workspace_main_content.s13', __t('pos.pos_workspace.pos_workspace_main_content.s13', "الدفع (F10)"))}</span>
                     <svg
                       viewBox="0 0 24 24"
                       width="14"
@@ -402,7 +403,7 @@ export function PosWorkspaceMainContent({
                         <div key={item.lineKey || idx} className="pos-mobile-floating-cart-item-row">
                           <div className="pos-mobile-floating-cart-item-name-col">
                             <strong className="pos-mobile-floating-cart-item-name">{item.name}</strong>
-                            <span className="pos-mobile-floating-cart-item-price-each">{formatCurrency(item.price)} <CurrencySymbol /> / للوحدة</span>
+                            <span className="pos-mobile-floating-cart-item-price-each">{formatCurrency(item.price)} <CurrencySymbol /> {__t('pos.pos_workspace.pos_workspace_main_content.s14', __t('pos.pos_workspace.pos_workspace_main_content.s14', "/ للوحدة"))}</span>
                           </div>
 
                           <div className="pos-mobile-floating-cart-item-qty-col">
@@ -410,7 +411,7 @@ export function PosWorkspaceMainContent({
                               type="button"
                               className="pos-mobile-floating-qty-btn"
                               onClick={() => pos.changeLineQtyByDelta(item.lineKey, 1)}
-                              aria-label="زيادة الكمية"
+                              aria-label={__t('pos.pos_workspace.pos_workspace_main_content.s15', __t('pos.pos_workspace.pos_workspace_main_content.s15', "زيادة الكمية"))}
                             >
                               +
                             </button>
@@ -419,7 +420,7 @@ export function PosWorkspaceMainContent({
                               type="button"
                               className="pos-mobile-floating-qty-btn"
                               onClick={() => pos.changeLineQtyByDelta(item.lineKey, -1)}
-                              aria-label="تقليل الكمية"
+                              aria-label={__t('pos.pos_workspace.pos_workspace_main_content.s16', __t('pos.pos_workspace.pos_workspace_main_content.s16', "تقليل الكمية"))}
                             >
                               -
                             </button>
@@ -434,8 +435,8 @@ export function PosWorkspaceMainContent({
                             type="button"
                             className="pos-mobile-floating-item-delete-btn"
                             onClick={() => onRequestLineDelete(item.lineKey)}
-                            title="حذف الصنف"
-                            aria-label="حذف"
+                            title={__t('pos.pos_workspace.pos_workspace_main_content.s17', __t('pos.pos_workspace.pos_workspace_main_content.s17', "حذف الصنف"))}
+                            aria-label={__t('pos.pos_workspace.pos_workspace_main_content.s18', __t('pos.pos_workspace.pos_workspace_main_content.s18', "حذف"))}
                           ><XIcon size={15} /></button>
                         </div>
                       );
@@ -450,7 +451,7 @@ export function PosWorkspaceMainContent({
                         setMobileActiveTab('cart');
                       }}
                     >
-                      عرض صفحة السلة الكاملة والملاحظات ←
+                      {__t('pos.pos_workspace.pos_workspace_main_content.s19', __t('pos.pos_workspace.pos_workspace_main_content.s19', "عرض صفحة السلة الكاملة والملاحظات ←"))}
                     </button>
                   </div>
                 </div>

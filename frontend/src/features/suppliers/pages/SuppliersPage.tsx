@@ -12,6 +12,7 @@ import { SuppliersRegisterCard } from '@/features/suppliers/pages/suppliers-page
 import { useSuppliersPageController } from '@/features/suppliers/pages/suppliers-page/useSuppliersPageController';
 
 export function SuppliersPage() {
+  const { t: __t } = useTranslation();
   const { t } = useTranslation();
   const controller = useSuppliersPageController();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -61,7 +62,7 @@ export function SuppliersPage() {
           open={Boolean(controller.selectedSupplier)}
           onClose={() => controller.setSelectedSupplier(null)}
           title={controller.selectedSupplier ? `تعديل: ${controller.selectedSupplier.name}` : ''}
-          subtitle="تحديث بيانات المورد أو ضبط الرصيد الافتتاحي والملاحظات"
+          subtitle={__t('suppliers.suppliers_page.s0', "تحديث بيانات المورد أو ضبط الرصيد الافتتاحي والملاحظات")}
           width="min(680px, 95vw)"
           minHeight="auto"
         >
@@ -77,7 +78,7 @@ export function SuppliersPage() {
                   fontWeight: 700,
                 }}
               >
-                حذف المورد
+                {__t('suppliers.suppliers_page.s1', "حذف المورد")}
               </Button>
             </div>
           )}
@@ -89,9 +90,9 @@ export function SuppliersPage() {
 
         <ActionConfirmDialog
           open={Boolean(controller.supplierToDelete)}
-          title="تأكيد حذف المورد"
+          title={__t('suppliers.suppliers_page.s2', "تأكيد حذف المورد")}
           description={controller.supplierToDelete ? `سيتم حذف المورد ${controller.supplierToDelete.name}. إذا كان المورد مستخدمًا داخل أصناف فعالة فسيمنع الخادم الحذف، وسيظهر السبب مباشرة.` : ''}
-          confirmLabel="نعم، حذف المورد"
+          confirmLabel={__t('suppliers.suppliers_page.s3', "نعم، حذف المورد")}
           isBusy={controller.deleteMutation.isPending}
           onCancel={() => controller.setSupplierToDelete(null)}
           onConfirm={async () => {
@@ -106,9 +107,9 @@ export function SuppliersPage() {
 
         <ActionConfirmDialog
           open={controller.bulkDeleteOpen}
-          title="تأكيد حذف الموردين المحددين"
-          description={controller.selectedSuppliers.length ? `سيتم محاولة حذف ${controller.selectedSuppliers.length} موردًا دفعة واحدة. أي مورد مستخدم داخل أصناف أو حركات قائمة سيرفضه الخادم وسيظهر السبب بعد المحاولة.` : 'لا يوجد موردون محددون.'}
-          confirmLabel="نعم، حذف المحدد"
+          title={__t('suppliers.suppliers_page.s4', "تأكيد حذف الموردين المحددين")}
+          description={controller.selectedSuppliers.length ? `سيتم محاولة حذف ${controller.selectedSuppliers.length} موردًا دفعة واحدة. أي مورد مستخدم داخل أصناف أو حركات قائمة سيرفضه الخادم وسيظهر السبب بعد المحاولة.` : __t('suppliers.suppliers_page.s5', "لا يوجد موردون محددون.")}
+          confirmLabel={__t('suppliers.suppliers_page.s6', "نعم، حذف المحدد")}
           isBusy={controller.bulkDeleteMutation.isPending}
           onCancel={() => controller.setBulkDeleteOpen(false)}
           onConfirm={async () => {

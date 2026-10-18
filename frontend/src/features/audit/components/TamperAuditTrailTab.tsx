@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { Button } from '@/shared/ui/button';
@@ -39,6 +40,7 @@ const OP_OPTIONS = [
 ];
 
 export function TamperAuditTrailTab() {
+  const { t } = useTranslation();
   const [page, setPage] = useState(1);
   const [pageSize] = useState(50);
   const [tableName, setTableName] = useState('');
@@ -133,11 +135,11 @@ export function TamperAuditTrailTab() {
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <LockIcon size={20} color="#170e5e" />
               <h3 style={{ margin: 0, fontSize: '15.5px', fontWeight: 700, color: '#0f172a' }}>
-                نزاهة السلسلة التشفيرية وسجلات قاعدة البيانات (DB Trigger Audit Engine)
+                {t('audit.tamper_audit_trail_tab.s0', "نزاهة السلسلة التشفيرية وسجلات قاعدة البيانات (DB Trigger Audit Engine)")}
               </h3>
             </div>
             <p style={{ margin: 0, fontSize: '13px', color: '#64748b', maxWidth: '780px' }}>
-              تسجيل جنائي غير قابل للتلاعب يعمل بقوادح آلية في PostgreSQL وسلاسل تجزئة SHA-256 متسلسلة تضمن رصد أي حركة أو تعديل يتم من داخل السيرفر أو التطبيق بدقة فائقة.
+              {t('audit.tamper_audit_trail_tab.s1', "تسجيل جنائي غير قابل للتلاعب يعمل بقوادح آلية في PostgreSQL وسلاسل تجزئة SHA-256 متسلسلة تضمن رصد أي حركة أو تعديل يتم من داخل السيرفر أو التطبيق بدقة فائقة.")}
             </p>
           </div>
 
@@ -161,7 +163,7 @@ export function TamperAuditTrailTab() {
               }}
             >
               <RefreshCwIcon size={14} className={verifyMutation.isPending ? 'animate-spin' : ''} />
-              <span>{verifyMutation.isPending ? 'جارٍ الفحص التشفيري...' : 'فحص سلامة السلسلة الآن'}</span>
+              <span>{verifyMutation.isPending ? t('audit.tamper_audit_trail_tab.s2', "جارٍ الفحص التشفيري...") : t('audit.tamper_audit_trail_tab.s3', "فحص سلامة السلسلة الآن")}</span>
             </Button>
           </div>
         </div>
@@ -191,8 +193,8 @@ export function TamperAuditTrailTab() {
               <div>
                 <span style={{ fontSize: '13.5px', fontWeight: 700, color: verificationResult.isValid ? '#166534' : '#991b1b' }}>
                   {verificationResult.isValid
-                    ? 'السلسلة التشفيرية موثقة وسليمة 100% (Cryptographically Intact & Verified)'
-                    : 'تحذير جنائي: تم اكتشاف انقطاع أو تلاعب في سلسلة التجزئة التشفيرية!'}
+                    ? t('audit.tamper_audit_trail_tab.s4', "السلسلة التشفيرية موثقة وسليمة 100% (Cryptographically Intact & Verified)")
+                    : t('audit.tamper_audit_trail_tab.s5', "تحذير جنائي: تم اكتشاف انقطاع أو تلاعب في سلسلة التجزئة التشفيرية!")}
                 </span>
                 {verificationResult.violationReason ? (
                   <p style={{ margin: '4px 0 0', fontSize: '12.5px', color: '#b91c1c', fontWeight: 600 }}>
@@ -200,7 +202,7 @@ export function TamperAuditTrailTab() {
                   </p>
                 ) : (
                   <p style={{ margin: '2px 0 0', fontSize: '12px', color: '#15803d' }}>
-                    تم التحقق بنجاح من كافة كتل التجزئة المتسلسلة دون أي شبهة حذف أو تعديل يدوي في قاعدة البيانات.
+                    {t('audit.tamper_audit_trail_tab.s6', "تم التحقق بنجاح من كافة كتل التجزئة المتسلسلة دون أي شبهة حذف أو تعديل يدوي في قاعدة البيانات.")}
                   </p>
                 )}
               </div>
@@ -208,11 +210,11 @@ export function TamperAuditTrailTab() {
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '16px', fontSize: '12px', color: '#475569' }}>
               <div>
-                <span style={{ color: '#64748b' }}>الكتل المفحوصة: </span>
-                <strong style={{ color: '#0f172a' }}>{verificationResult.totalRecords} كتلة</strong>
+                <span style={{ color: '#64748b' }}>{t('audit.tamper_audit_trail_tab.s7', "الكتل المفحوصة:")} </span>
+                <strong style={{ color: '#0f172a' }}>{verificationResult.totalRecords} {t('audit.tamper_audit_trail_tab.s8', "كتلة")}</strong>
               </div>
               <div>
-                <span style={{ color: '#64748b' }}>توقيت الفحص: </span>
+                <span style={{ color: '#64748b' }}>{t('audit.tamper_audit_trail_tab.s9', "توقيت الفحص:")} </span>
                 <strong style={{ color: '#0f172a' }}>{formatDate(verificationResult.verifiedAt)}</strong>
               </div>
             </div>
@@ -231,7 +233,7 @@ export function TamperAuditTrailTab() {
         }}
       >
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
-          <Field label="الجدول الخاضع للرقابة">
+          <Field label={t('audit.tamper_audit_trail_tab.s10', "الجدول الخاضع للرقابة")}>
             <select
               value={tableName}
               onChange={(e) => {
@@ -257,7 +259,7 @@ export function TamperAuditTrailTab() {
             </select>
           </Field>
 
-          <Field label="نوع العملية">
+          <Field label={t('audit.tamper_audit_trail_tab.s11', "نوع العملية")}>
             <select
               value={operation}
               onChange={(e) => {
@@ -283,11 +285,11 @@ export function TamperAuditTrailTab() {
             </select>
           </Field>
 
-          <Field label="بحث سريع (مستخدم، IP، رقم مستند)">
+          <Field label={t('audit.tamper_audit_trail_tab.s12', "بحث سريع (مستخدم، IP، رقم مستند)")}>
             <div style={{ position: 'relative' }}>
               <input
                 type="text"
-                placeholder="ابحث برقم المعاملة أو المستخدم..."
+                placeholder={t('audit.tamper_audit_trail_tab.s13', "ابحث برقم المعاملة أو المستخدم...")}
                 value={search}
                 onChange={(e) => {
                   setSearch(e.target.value);
@@ -310,7 +312,7 @@ export function TamperAuditTrailTab() {
             </div>
           </Field>
 
-          <Field label="من تاريخ">
+          <Field label={t('audit.tamper_audit_trail_tab.s14', "من تاريخ")}>
             <input
               type="date"
               value={fromDate}
@@ -331,7 +333,7 @@ export function TamperAuditTrailTab() {
             />
           </Field>
 
-          <Field label="إلى تاريخ">
+          <Field label={t('audit.tamper_audit_trail_tab.s15', "إلى تاريخ")}>
             <input
               type="date"
               value={toDate}
@@ -355,7 +357,7 @@ export function TamperAuditTrailTab() {
 
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '12px' }}>
           <Button variant="secondary" onClick={resetFilters} style={{ padding: '6px 14px', fontSize: '12.5px' }}>
-            تصفير الفلاتر
+            {t('audit.tamper_audit_trail_tab.s16', "تصفير الفلاتر")}
           </Button>
         </div>
       </div>
@@ -374,11 +376,11 @@ export function TamperAuditTrailTab() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <FilterIcon size={16} color="#475569" />
             <h4 style={{ margin: 0, fontSize: '13.5px', fontWeight: 700, color: '#0f172a' }}>
-              سجلات الرصد والتدقيق الجنائي ({total} سجل)
+              {t('audit.tamper_audit_trail_tab.s17', "سجلات الرصد والتدقيق الجنائي (")}{total} {t('audit.tamper_audit_trail_tab.s18', "سجل)")}
             </h4>
           </div>
           {listQuery.isFetching ? (
-            <span style={{ fontSize: '12px', color: '#64748b' }}>جارٍ تحديث البيانات...</span>
+            <span style={{ fontSize: '12px', color: '#64748b' }}>{t('audit.tamper_audit_trail_tab.s19', "جارٍ تحديث البيانات...")}</span>
           ) : null}
         </div>
 
@@ -387,15 +389,15 @@ export function TamperAuditTrailTab() {
             <thead>
               <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
                 <th style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 600, color: '#475569' }}>#</th>
-                <th style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 600, color: '#475569' }}>الجدول المستهدف</th>
-                <th style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 600, color: '#475569' }}>رقم المعاملة (Record ID)</th>
-                <th style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 600, color: '#475569' }}>العملية</th>
-                <th style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 600, color: '#475569' }}>الحقول المتأثرة</th>
-                <th style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 600, color: '#475569' }}>المنفذ</th>
-                <th style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 600, color: '#475569' }}>IP الشبكة</th>
-                <th style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 600, color: '#475569' }}>بصمة الهاش الرقمية</th>
-                <th style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 600, color: '#475569' }}>التاريخ والوقت</th>
-                <th style={{ padding: '10px 14px', textAlign: 'center', fontWeight: 600, color: '#475569' }}>الإجراءات</th>
+                <th style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 600, color: '#475569' }}>{t('audit.tamper_audit_trail_tab.s20', "الجدول المستهدف")}</th>
+                <th style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 600, color: '#475569' }}>{t('audit.tamper_audit_trail_tab.s21', "رقم المعاملة (Record ID)")}</th>
+                <th style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 600, color: '#475569' }}>{t('audit.tamper_audit_trail_tab.s22', "العملية")}</th>
+                <th style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 600, color: '#475569' }}>{t('audit.tamper_audit_trail_tab.s23', "الحقول المتأثرة")}</th>
+                <th style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 600, color: '#475569' }}>{t('audit.tamper_audit_trail_tab.s24', "المنفذ")}</th>
+                <th style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 600, color: '#475569' }}>{t('audit.tamper_audit_trail_tab.s25', "IP الشبكة")}</th>
+                <th style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 600, color: '#475569' }}>{t('audit.tamper_audit_trail_tab.s26', "بصمة الهاش الرقمية")}</th>
+                <th style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 600, color: '#475569' }}>{t('audit.tamper_audit_trail_tab.s27', "التاريخ والوقت")}</th>
+                <th style={{ padding: '10px 14px', textAlign: 'center', fontWeight: 600, color: '#475569' }}>{t('audit.tamper_audit_trail_tab.s28', "الإجراءات")}</th>
               </tr>
             </thead>
             <tbody>
@@ -405,10 +407,10 @@ export function TamperAuditTrailTab() {
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
                       <CheckCircleIcon size={32} color="#94a3b8" />
                       <span style={{ fontSize: '13.5px', fontWeight: 600, color: '#334155' }}>
-                        لا توجد سجلات تدقيق مطابقة لمعايير البحث الحالية
+                        {t('audit.tamper_audit_trail_tab.s29', "لا توجد سجلات تدقيق مطابقة لمعايير البحث الحالية")}
                       </span>
                       <span style={{ fontSize: '12px', color: '#94a3b8' }}>
-                        جميع العمليات على الجداول المالية تخضع للحفظ التلقائي عبر Database Triggers
+                        {t('audit.tamper_audit_trail_tab.s30', "جميع العمليات على الجداول المالية تخضع للحفظ التلقائي عبر Database Triggers")}
                       </span>
                     </div>
                   </td>
@@ -433,16 +435,16 @@ export function TamperAuditTrailTab() {
                       <td style={{ padding: '10px 14px' }}>
                         {item.operation === 'UPDATE' ? (
                           <span style={{ fontSize: '11.5px', color: '#475569' }}>
-                            {changedCount > 0 ? `${changedCount} حقول متغيرة` : 'تحديث عام'}
+                            {changedCount > 0 ? `${changedCount} حقول متغيرة` : t('audit.tamper_audit_trail_tab.s31', "تحديث عام")}
                           </span>
                         ) : item.operation === 'INSERT' ? (
-                          <span style={{ fontSize: '11.5px', color: '#166534' }}>إنشاء سجل كامل</span>
+                          <span style={{ fontSize: '11.5px', color: '#166534' }}>{t('audit.tamper_audit_trail_tab.s32', "إنشاء سجل كامل")}</span>
                         ) : (
-                          <span style={{ fontSize: '11.5px', color: '#991b1b' }}>حذف السجل نهائياً</span>
+                          <span style={{ fontSize: '11.5px', color: '#991b1b' }}>{t('audit.tamper_audit_trail_tab.s33', "حذف السجل نهائياً")}</span>
                         )}
                       </td>
                       <td style={{ padding: '10px 14px', color: '#334155' }}>
-                        {item.user_username || item.db_user || 'نظام / DB'}
+                        {item.user_username || item.db_user || t('audit.tamper_audit_trail_tab.s34', "نظام / DB")}
                       </td>
                       <td style={{ padding: '10px 14px', color: '#64748b', direction: 'ltr', textAlign: 'right' }}>
                         {item.client_ip || '127.0.0.1'}
@@ -468,7 +470,7 @@ export function TamperAuditTrailTab() {
                           }}
                         >
                           <EyeIcon size={13} />
-                          <span>عرض الفروقات</span>
+                          <span>{t('audit.tamper_audit_trail_tab.s35', "عرض الفروقات")}</span>
                         </Button>
                       </td>
                     </tr>
@@ -483,7 +485,7 @@ export function TamperAuditTrailTab() {
         {totalPages > 1 ? (
           <div style={{ padding: '12px 18px', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ fontSize: '12px', color: '#64748b' }}>
-              الصفحة {page} من {totalPages} (إجمالي السجلات: {total})
+              {t('audit.tamper_audit_trail_tab.s36', "الصفحة")} {page} {t('audit.tamper_audit_trail_tab.s37', "من")} {totalPages} {t('audit.tamper_audit_trail_tab.s38', "(إجمالي السجلات:")} {total})
             </span>
             <div style={{ display: 'flex', gap: '8px' }}>
               <Button
@@ -492,7 +494,7 @@ export function TamperAuditTrailTab() {
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 style={{ padding: '4px 12px', fontSize: '12px' }}
               >
-                السابق
+                {t('audit.tamper_audit_trail_tab.s39', "السابق")}
               </Button>
               <Button
                 variant="secondary"
@@ -500,7 +502,7 @@ export function TamperAuditTrailTab() {
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 style={{ padding: '4px 12px', fontSize: '12px' }}
               >
-                التالي
+                {t('audit.tamper_audit_trail_tab.s40', "التالي")}
               </Button>
             </div>
           </div>

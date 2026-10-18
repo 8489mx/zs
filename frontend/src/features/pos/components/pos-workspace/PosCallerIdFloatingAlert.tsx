@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useEffect, useState } from 'react';
 import { callerIdService, type CallerIdCallEvent } from '@/features/pos/lib/pos-caller-id-service';
 import { playNotificationChime } from '@/lib/audio-chime';
@@ -9,6 +10,7 @@ interface PosCallerIdFloatingAlertProps {
 }
 
 export function PosCallerIdFloatingAlert({ onOpenPhoneOrder }: PosCallerIdFloatingAlertProps) {
+  const { t } = useTranslation();
   const [activeCall, setActiveCall] = useState<CallerIdCallEvent | null>(null);
 
   useEffect(() => {
@@ -69,7 +71,7 @@ export function PosCallerIdFloatingAlert({ onOpenPhoneOrder }: PosCallerIdFloati
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           <span style={{ fontSize: '0.72rem', fontWeight: 600, color: '#93c5fd', textTransform: 'uppercase' }}>
-            اتصال هاتفي وارد (Caller ID)
+            {t('pos.pos_workspace.pos_caller_id_floating_alert.s0', "اتصال هاتفي وارد (Caller ID)")}
           </span>
         </div>
         <div style={{ fontSize: '1.1rem', fontWeight: 800, letterSpacing: '0.5px', marginTop: '2px' }}>
@@ -103,7 +105,7 @@ export function PosCallerIdFloatingAlert({ onOpenPhoneOrder }: PosCallerIdFloati
           }}
         >
           <CheckCircleIcon size={15} style={{ marginLeft: '4px' }} />
-          فتح الطلب
+          {t('pos.pos_workspace.pos_caller_id_floating_alert.s1', "فتح الطلب")}
         </Button>
         <Button
           size="sm"
@@ -119,7 +121,7 @@ export function PosCallerIdFloatingAlert({ onOpenPhoneOrder }: PosCallerIdFloati
           onClick={() => setActiveCall(null)}
         >
           <XIcon size={14} style={{ marginLeft: '3px' }} />
-          تجاهل
+          {t('pos.pos_workspace.pos_caller_id_floating_alert.s2', "تجاهل")}
         </Button>
       </div>
     </div>

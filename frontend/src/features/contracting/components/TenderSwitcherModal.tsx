@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useMemo } from 'react';
 import { StandardDialog } from '@/shared/components/StandardDialog';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
@@ -31,6 +32,7 @@ export function TenderSwitcherModal({
   onNewTender,
   currentProjectId,
 }: TenderSwitcherModalProps) {
+  const { t } = useTranslation();
   const { projects, reloadProjects, loading } = useContracting();
   const { formatCurrency } = useSystemCurrency();
   const [searchQuery, setSearchQuery] = useState('');
@@ -76,8 +78,8 @@ export function TenderSwitcherModal({
     <StandardDialog
       open={open}
       onClose={onClose}
-      title="سجل العطاءات والمشاريع السابقة (Tender Repository)"
-      subtitle="تصفح العطاءات والمشاريع المحفوظة للرجوع إليها أو تسعير عطاء جديد فارغ"
+      title={t('contracting.tender_switcher_modal.s0', "سجل العطاءات والمشاريع السابقة (Tender Repository)")}
+      subtitle={t('contracting.tender_switcher_modal.s1', "تصفح العطاءات والمشاريع المحفوظة للرجوع إليها أو تسعير عطاء جديد فارغ")}
       width="min(1080px, 95vw)"
       compact
     >
@@ -89,7 +91,7 @@ export function TenderSwitcherModal({
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="بحث بكود العطاء، اسم المشروع، أو اسم العميل..."
+              placeholder={t('contracting.tender_switcher_modal.s2', "بحث بكود العطاء، اسم المشروع، أو اسم العميل...")}
               style={{
                 width: '100%',
                 height: '36px',
@@ -131,14 +133,14 @@ export function TenderSwitcherModal({
               }}
             >
               <AppIcons.Plus size={15} />
-              <span>تسعير عطاء جديد فارغ</span>
+              <span>{t('contracting.tender_switcher_modal.s3', "تسعير عطاء جديد فارغ")}</span>
             </button>
 
             <button
               type="button"
               onClick={() => reloadProjects()}
               disabled={loading}
-              title="تحديث القائمة"
+              title={t('contracting.tender_switcher_modal.s4', "تحديث القائمة")}
               style={{
                 height: '36px',
                 width: '36px',
@@ -160,11 +162,11 @@ export function TenderSwitcherModal({
         {/* Filter Tabs - Fixed font weight & 0ms transition to prevent horizontal tab flicker */}
         <div style={{ display: 'flex', gap: '6px', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px', flexWrap: 'wrap', flexShrink: 0 }}>
           {[
-            { id: 'all', label: 'كافة المشاريع والعطاءات', count: counts.all },
-            { id: 'planning', label: 'عطاءات قيد الدراسة والتسعير', count: counts.planning },
-            { id: 'submitted', label: 'عطاءات قُدّمت للعميل / تفاوض', count: counts.submitted },
-            { id: 'active', label: 'مشاريع تنفيذية سارية', count: counts.active },
-            { id: 'lost', label: 'أرشيف العطاءات (لم يُرسَ)', count: counts.lost },
+            { id: 'all', label: t('contracting.tender_switcher_modal.s5', "كافة المشاريع والعطاءات"), count: counts.all },
+            { id: 'planning', label: t('contracting.tender_switcher_modal.s6', "عطاءات قيد الدراسة والتسعير"), count: counts.planning },
+            { id: 'submitted', label: t('contracting.tender_switcher_modal.s7', "عطاءات قُدّمت للعميل / تفاوض"), count: counts.submitted },
+            { id: 'active', label: t('contracting.tender_switcher_modal.s8', "مشاريع تنفيذية سارية"), count: counts.active },
+            { id: 'lost', label: t('contracting.tender_switcher_modal.s9', "أرشيف العطاءات (لم يُرسَ)"), count: counts.lost },
           ].map((tab) => {
             const isActive = filterCategory === tab.id;
             return (
@@ -236,20 +238,20 @@ export function TenderSwitcherModal({
               }}
             >
               <AppIcons.FileText size={32} style={{ margin: '0 auto 8px', color: '#94a3b8' }} />
-              <div style={{ fontWeight: 600, fontSize: 'var(--font-body)' }}>لا توجد عطاءات أو مشاريع في هذا التبويب</div>
+              <div style={{ fontWeight: 600, fontSize: 'var(--font-body)' }}>{t('contracting.tender_switcher_modal.s10', "لا توجد عطاءات أو مشاريع في هذا التبويب")}</div>
               <div style={{ fontSize: 'var(--font-subtitle)', color: '#94a3b8', marginTop: '4px' }}>
-                يمكنك الضغط على زر (تسعير عطاء جديد فارغ) لبدء إدخال أو استيراد مقايسة جديدة.
+                {t('contracting.tender_switcher_modal.s11', "يمكنك الضغط على زر (تسعير عطاء جديد فارغ) لبدء إدخال أو استيراد مقايسة جديدة.")}
               </div>
             </div>
           ) : (
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right' }}>
               <thead>
                 <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-                  <th style={{ padding: '8px 12px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#475569' }}>كود العطاء</th>
-                  <th style={{ padding: '8px 12px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#475569' }}>اسم المشروع والجهة المالكة</th>
-                  <th style={{ padding: '8px 12px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#475569' }}>القيمة المالية</th>
-                  <th style={{ padding: '8px 12px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#475569' }}>الحالة</th>
-                  <th style={{ padding: '8px 12px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#475569', textAlign: 'center' }}>الإجراء</th>
+                  <th style={{ padding: '8px 12px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#475569' }}>{t('contracting.tender_switcher_modal.s12', "كود العطاء")}</th>
+                  <th style={{ padding: '8px 12px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#475569' }}>{t('contracting.tender_switcher_modal.s13', "اسم المشروع والجهة المالكة")}</th>
+                  <th style={{ padding: '8px 12px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#475569' }}>{t('contracting.tender_switcher_modal.s14', "القيمة المالية")}</th>
+                  <th style={{ padding: '8px 12px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#475569' }}>{t('contracting.tender_switcher_modal.s15', "الحالة")}</th>
+                  <th style={{ padding: '8px 12px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#475569', textAlign: 'center' }}>{t('contracting.tender_switcher_modal.s16', "الإجراء")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -295,7 +297,7 @@ export function TenderSwitcherModal({
                               fontWeight: 700,
                             }}
                           >
-                            المعروض حالياً
+                            {t('contracting.tender_switcher_modal.s17', "المعروض حالياً")}
                           </span>
                         )}
                       </td>
@@ -304,7 +306,7 @@ export function TenderSwitcherModal({
                       <td style={{ padding: '10px 12px' }}>
                         <div style={{ fontWeight: 700, color: '#0f172a', fontSize: 'var(--font-body)' }}>{p.name}</div>
                         <div style={{ fontSize: 'var(--font-subtitle)', color: '#64748b', marginTop: '2px' }}>
-                          العميل: {p.clientName || 'غير محدد'}
+                          {t('contracting.tender_switcher_modal.s18', "العميل:")} {p.clientName || t('contracting.tender_switcher_modal.s19', "غير محدد")}
                         </div>
                       </td>
 
@@ -315,7 +317,7 @@ export function TenderSwitcherModal({
                         </div>
                         {p.downPaymentAmount ? (
                           <div style={{ fontSize: 'var(--font-micro)', color: '#64748b' }}>
-                            مقدم: {formatCurrency(p.downPaymentAmount)}
+                            {t('contracting.tender_switcher_modal.s20', "مقدم:")} {formatCurrency(p.downPaymentAmount)}
                           </div>
                         ) : null}
                       </td>
@@ -357,7 +359,7 @@ export function TenderSwitcherModal({
                             transition: 'all 0.15s ease',
                           }}
                         >
-                          {isCurrent ? 'معروض الآن' : 'فتح للتسعير'}
+                          {isCurrent ? t('contracting.tender_switcher_modal.s21', "معروض الآن") : t('contracting.tender_switcher_modal.s22', "فتح للتسعير")}
                         </button>
                       </td>
                     </tr>
@@ -370,7 +372,7 @@ export function TenderSwitcherModal({
 
         {/* Footer info */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 'var(--font-subtitle)', color: '#64748b', paddingTop: '4px' }}>
-          <div>إجمالي العطاءات والمشاريع: {filteredProjects.length} من أصل {projects.length}</div>
+          <div>{t('contracting.tender_switcher_modal.s23', "إجمالي العطاءات والمشاريع:")} {filteredProjects.length} {t('contracting.tender_switcher_modal.s24', "من أصل")} {projects.length}</div>
           <button
             type="button"
             onClick={onClose}
@@ -384,7 +386,7 @@ export function TenderSwitcherModal({
               cursor: 'pointer',
             }}
           >
-            إغلاق
+            {t('contracting.tender_switcher_modal.s25', "إغلاق")}
           </button>
         </div>
       </div>

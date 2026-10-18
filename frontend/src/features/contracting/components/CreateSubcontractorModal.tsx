@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { Field } from '@/shared/ui/field';
@@ -38,6 +39,7 @@ export function CreateSubcontractorModal({
   onClose,
   onSuccess,
 }: CreateSubcontractorModalProps) {
+  const { t } = useTranslation();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -155,8 +157,8 @@ export function CreateSubcontractorModal({
     <StandardDialog
       open={open}
       onClose={onClose}
-      title={subcontractor ? 'تعديل بيانات مقاول باطن' : 'تسجيل مقاول باطن جديد (Subcontractor Registry)'}
-      subtitle="إضافة مقاول باطن إلى السجل المعتمد لتكليفه بحزم الأعمال ومتابعة كشف حسابه ومستحقاته"
+      title={subcontractor ? t('contracting.create_subcontractor_modal.s0', "تعديل بيانات مقاول باطن") : t('contracting.create_subcontractor_modal.s1', "تسجيل مقاول باطن جديد (Subcontractor Registry)")}
+      subtitle={t('contracting.create_subcontractor_modal.s2', "إضافة مقاول باطن إلى السجل المعتمد لتكليفه بحزم الأعمال ومتابعة كشف حسابه ومستحقاته")}
       maxWidth="820px"
     >
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }} dir="rtl">
@@ -178,15 +180,15 @@ export function CreateSubcontractorModal({
         {/* 1. البيانات الأساسية والتخصص */}
         <div style={{ background: '#f8fafc', padding: '14px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
           <div style={{ fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#170e5e', marginBottom: '12px' }}>
-            1. البيانات الأساسية والتخصص المهني
+            {t('contracting.create_subcontractor_modal.s3', "1. البيانات الأساسية والتخصص المهني")}
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-            <Field label="اسم مقاول الباطن / ورشة التنفيذ *">
+            <Field label={t('contracting.create_subcontractor_modal.s4', "اسم مقاول الباطن / ورشة التنفيذ *")}>
               <input
                 type="text"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="مثال: مؤسسة الأهرام للخرسانات المسلحة"
+                placeholder={t('contracting.create_subcontractor_modal.s5', "مثال: مؤسسة الأهرام للخرسانات المسلحة")}
                 style={{
                   width: '100%',
                   height: '38px',
@@ -200,23 +202,23 @@ export function CreateSubcontractorModal({
               />
             </Field>
 
-            <Field label="التخصص المهني / الحرفة *">
+            <Field label={t('contracting.create_subcontractor_modal.s6', "التخصص المهني / الحرفة *")}>
               <CustomSelect
                 value={formData.tradeSpecialty}
                 onChange={(val) => setFormData({ ...formData, tradeSpecialty: val })}
                 options={specialtyOptions}
-                placeholder="اختر التخصص المهني..."
+                placeholder={t('contracting.create_subcontractor_modal.s7', "اختر التخصص المهني...")}
               />
             </Field>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', marginTop: '12px' }}>
-            <Field label="المسؤول / المهندس المشرف">
+            <Field label={t('contracting.create_subcontractor_modal.s8', "المسؤول / المهندس المشرف")}>
               <input
                 type="text"
                 value={formData.contactPerson}
                 onChange={(e) => setFormData({ ...formData, contactPerson: e.target.value })}
-                placeholder="اسم الشخص المسؤول"
+                placeholder={t('contracting.create_subcontractor_modal.s9', "اسم الشخص المسؤول")}
                 style={{
                   width: '100%',
                   height: '38px',
@@ -229,12 +231,12 @@ export function CreateSubcontractorModal({
               />
             </Field>
 
-            <Field label="رقم الهاتف">
+            <Field label={t('contracting.create_subcontractor_modal.s10', "رقم الهاتف")}>
               <input
                 type="text"
                 value={formData.phone}
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                placeholder="مثال: 01012345678"
+                placeholder={t('contracting.create_subcontractor_modal.s11', "مثال: 01012345678")}
                 style={{
                   width: '100%',
                   height: '38px',
@@ -249,12 +251,12 @@ export function CreateSubcontractorModal({
               />
             </Field>
 
-            <Field label="رقم الجوال الإضافي">
+            <Field label={t('contracting.create_subcontractor_modal.s12', "رقم الجوال الإضافي")}>
               <input
                 type="text"
                 value={formData.mobile}
                 onChange={(e) => setFormData({ ...formData, mobile: e.target.value })}
-                placeholder="جوال بديل"
+                placeholder={t('contracting.create_subcontractor_modal.s13', "جوال بديل")}
                 style={{
                   width: '100%',
                   height: '38px',
@@ -271,12 +273,12 @@ export function CreateSubcontractorModal({
           </div>
 
           <div style={{ marginTop: '12px' }}>
-            <Field label="العنوان أو المقر الرئيسي">
+            <Field label={t('contracting.create_subcontractor_modal.s14', "العنوان أو المقر الرئيسي")}>
               <input
                 type="text"
                 value={formData.address}
                 onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                placeholder="المدينة، المنطقة، اسم الشارع"
+                placeholder={t('contracting.create_subcontractor_modal.s15', "المدينة، المنطقة، اسم الشارع")}
                 style={{
                   width: '100%',
                   height: '38px',
@@ -294,15 +296,15 @@ export function CreateSubcontractorModal({
         {/* 2. البيانات الرسمية والبنكية */}
         <div style={{ background: '#f8fafc', padding: '14px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
           <div style={{ fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#170e5e', marginBottom: '12px' }}>
-            2. البيانات النظامية والبنكية لسندات الصرف
+            {t('contracting.create_subcontractor_modal.s16', "2. البيانات النظامية والبنكية لسندات الصرف")}
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
-            <Field label="الرقم الضريبي">
+            <Field label={t('contracting.create_subcontractor_modal.s17', "الرقم الضريبي")}>
               <input
                 type="text"
                 value={formData.taxNumber}
                 onChange={(e) => setFormData({ ...formData, taxNumber: e.target.value })}
-                placeholder="الرقم الضريبي للمقاول"
+                placeholder={t('contracting.create_subcontractor_modal.s18', "الرقم الضريبي للمقاول")}
                 style={{
                   width: '100%',
                   height: '38px',
@@ -315,12 +317,12 @@ export function CreateSubcontractorModal({
               />
             </Field>
 
-            <Field label="السجل التجاري">
+            <Field label={t('contracting.create_subcontractor_modal.s19', "السجل التجاري")}>
               <input
                 type="text"
                 value={formData.commercialReg}
                 onChange={(e) => setFormData({ ...formData, commercialReg: e.target.value })}
-                placeholder="رقم السجل التجاري"
+                placeholder={t('contracting.create_subcontractor_modal.s20', "رقم السجل التجاري")}
                 style={{
                   width: '100%',
                   height: '38px',
@@ -333,12 +335,12 @@ export function CreateSubcontractorModal({
               />
             </Field>
 
-            <Field label="الرقم القومي (لمقاولي الأنفار/المصنعيات)">
+            <Field label={t('contracting.create_subcontractor_modal.s21', "الرقم القومي (لمقاولي الأنفار/المصنعيات)")}>
               <input
                 type="text"
                 value={formData.nationalId}
                 onChange={(e) => setFormData({ ...formData, nationalId: e.target.value })}
-                placeholder="14 رقم قومي"
+                placeholder={t('contracting.create_subcontractor_modal.s22', "14 رقم قومي")}
                 style={{
                   width: '100%',
                   height: '38px',
@@ -353,12 +355,12 @@ export function CreateSubcontractorModal({
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: '12px' }}>
-            <Field label="اسم البنك المعتمد">
+            <Field label={t('contracting.create_subcontractor_modal.s23', "اسم البنك المعتمد")}>
               <input
                 type="text"
                 value={formData.bankName}
                 onChange={(e) => setFormData({ ...formData, bankName: e.target.value })}
-                placeholder="مثال: البنك الأهلي المصري"
+                placeholder={t('contracting.create_subcontractor_modal.s24', "مثال: البنك الأهلي المصري")}
                 style={{
                   width: '100%',
                   height: '38px',
@@ -371,7 +373,7 @@ export function CreateSubcontractorModal({
               />
             </Field>
 
-            <Field label="رقم الحساب / الآيبان (IBAN)">
+            <Field label={t('contracting.create_subcontractor_modal.s25', "رقم الحساب / الآيبان (IBAN)")}>
               <input
                 type="text"
                 value={formData.bankIban}
@@ -395,12 +397,12 @@ export function CreateSubcontractorModal({
 
         {/* 3. ملاحظات وشروط */}
         <div>
-          <Field label="ملاحظات وشروط التعامل الفنية">
+          <Field label={t('contracting.create_subcontractor_modal.s26', "ملاحظات وشروط التعامل الفنية")}>
             <textarea
               rows={2}
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              placeholder="شروط خاصة، أسلوب محاسبة المتر/المصنعية، سابقات أعمال مميزة..."
+              placeholder={t('contracting.create_subcontractor_modal.s27', "شروط خاصة، أسلوب محاسبة المتر/المصنعية، سابقات أعمال مميزة...")}
               style={{
                 width: '100%',
                 borderRadius: '8px',
@@ -416,7 +418,7 @@ export function CreateSubcontractorModal({
 
         <StandardDialogFooter
           onClose={onClose}
-          submitText={isSubmitting ? 'جاري الحفظ...' : subcontractor ? 'حفظ التعديلات' : 'تسجيل مقاول الباطن'}
+          submitText={isSubmitting ? t('contracting.create_subcontractor_modal.s28', "جاري الحفظ...") : subcontractor ? t('contracting.create_subcontractor_modal.s29', "حفظ التعديلات") : t('contracting.create_subcontractor_modal.s30', "تسجيل مقاول الباطن")}
           isSubmitting={isSubmitting}
         />
       </form>

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -17,6 +18,7 @@ interface TaxSettingsFormData {
 }
 
 export function TaxIntegrationSection() {
+  const { t } = useTranslation();
   const [showSecret, setShowSecret] = useState(false);
   const [testResult, setTestResult] = useState<{ kind: 'success' | 'error'; message: string } | null>(null);
 
@@ -102,7 +104,7 @@ export function TaxIntegrationSection() {
         
         {/* Column 1: API Credentials Card */}
         <QueryCard
-          title="بيانات الاعتماد والربط المباشر (ETA API)"
+          title={t('shared.tax_integration_section.s0', "بيانات الاعتماد والربط المباشر (ETA API)")}
           className="settings-admin-card"
           actions={
             <span
@@ -116,7 +118,7 @@ export function TaxIntegrationSection() {
                 border: isActive ? '1px solid #a7f3d0' : '1px solid #e2e8f0',
               }}
             >
-              {isActive ? 'الربط الضريبي: مفعّل' : 'الربط الضريبي: متوقف'}
+              {isActive ? t('shared.tax_integration_section.s1', "الربط الضريبي: مفعّل") : t('shared.tax_integration_section.s2', "الربط الضريبي: متوقف")}
             </span>
           }
           isLoading={isLoading}
@@ -125,14 +127,14 @@ export function TaxIntegrationSection() {
             {/* Provider Select */}
             <div>
               <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: '#334155', marginBottom: '3px' }}>
-                منظومة الفاتورة الإلكترونية المعتمدة
+                {t('shared.tax_integration_section.s3', "منظومة الفاتورة الإلكترونية المعتمدة")}
               </label>
               <select
                 {...form.register('provider')}
                 style={{ width: '100%', height: '36px', padding: '0 10px', fontSize: '0.82rem', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', boxSizing: 'border-box' }}
               >
-                <option value="ETA_EGYPT">مصلحة الضرائب المصرية (ETA E-Invoicing - مصر)</option>
-                <option value="ZATCA_SAUDI">هيئة الزكاة والضريبة والجمارك (ZATCA Phase 2 - السعودية)</option>
+                <option value="ETA_EGYPT">{t('shared.tax_integration_section.s4', "مصلحة الضرائب المصرية (ETA E-Invoicing - مصر)")}</option>
+                <option value="ZATCA_SAUDI">{t('shared.tax_integration_section.s5', "هيئة الزكاة والضريبة والجمارك (ZATCA Phase 2 - السعودية)")}</option>
               </select>
             </div>
 
@@ -141,11 +143,11 @@ export function TaxIntegrationSection() {
               <div>
                 <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: '#334155', marginBottom: '3px' }}>
 
-                  الرقم الضريبي للشركة
+                  {t('shared.tax_integration_section.s6', "الرقم الضريبي للشركة")}
                 </label>
                 <input
                   type="text"
-                  placeholder="مثال: 123-456-789"
+                  placeholder={t('shared.tax_integration_section.s7', "مثال: 123-456-789")}
                   {...form.register('tax_id')}
                   style={{ width: '100%', height: '36px', padding: '0 10px', fontSize: '0.82rem', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }}
                   autoComplete="off"
@@ -154,14 +156,14 @@ export function TaxIntegrationSection() {
 
               <div>
                 <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: '#334155', marginBottom: '3px' }}>
-                  بيئة التشغيل
+                  {t('shared.tax_integration_section.s8', "بيئة التشغيل")}
                 </label>
                 <select
                   {...form.register('environment')}
                   style={{ width: '100%', height: '36px', padding: '0 10px', fontSize: '0.82rem', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', boxSizing: 'border-box' }}
                 >
-                  <option value="sandbox">بيئة تجريبية (Sandbox)</option>
-                  <option value="production">بيئة إنتاجية فعلية (Production)</option>
+                  <option value="sandbox">{t('shared.tax_integration_section.s9', "بيئة تجريبية (Sandbox)")}</option>
+                  <option value="production">{t('shared.tax_integration_section.s10', "بيئة إنتاجية فعلية (Production)")}</option>
                 </select>
               </div>
             </div>
@@ -169,11 +171,11 @@ export function TaxIntegrationSection() {
             {/* Client ID */}
             <div>
               <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: '#334155', marginBottom: '3px' }}>
-                Client ID (معرف المنظومة)
+                {t('shared.tax_integration_section.s11', "Client ID (معرف المنظومة)")}
               </label>
               <input
                 type="text"
-                placeholder="أدخل المعرف المستخرج من بوابة الممولين"
+                placeholder={t('shared.tax_integration_section.s12', "أدخل المعرف المستخرج من بوابة الممولين")}
                 {...form.register('client_id')}
                 style={{ width: '100%', height: '36px', padding: '0 10px', fontSize: '0.82rem', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }}
                 autoComplete="off"
@@ -184,20 +186,20 @@ export function TaxIntegrationSection() {
             <div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '3px' }}>
                 <label style={{ fontSize: '0.76rem', fontWeight: 700, color: '#334155' }}>
-                  Client Secret (المفتاح السري)
+                  {t('shared.tax_integration_section.s13', "Client Secret (المفتاح السري)")}
                 </label>
                 <button
                   type="button"
                   onClick={() => setShowSecret(!showSecret)}
                   style={{ fontSize: '0.72rem', color: '#0369a1', background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}
                 >
-                  {showSecret ? 'إخفاء' : 'إظهار'}
+                  {showSecret ? t('shared.tax_integration_section.s14', "إخفاء") : t('shared.tax_integration_section.s15', "إظهار")}
                 </button>
               </div>
               <input
                 type="text"
                 className={showSecret ? '' : 'secure-password-field'}
-                placeholder={settingsData?.settings?.hasClientSecret ? 'محفوظ — اتركه فارغاً للإبقاء عليه' : 'أدخل الـ Secret المستخرج من البوابة'}
+                placeholder={settingsData?.settings?.hasClientSecret ? t('shared.tax_integration_section.s16', "محفوظ — اتركه فارغاً للإبقاء عليه") : t('shared.tax_integration_section.s17', "أدخل الـ Secret المستخرج من البوابة")}
                 {...form.register('client_secret')}
                 style={{ width: '100%', height: '36px', padding: '0 10px', fontSize: '0.82rem', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }}
                 autoComplete="new-password"
@@ -233,7 +235,7 @@ export function TaxIntegrationSection() {
                 {...form.register('is_active')}
                 style={{ width: '16px', height: '16px', margin: 0, cursor: 'pointer' }}
               />
-              <span>تفعيل الربط الضريبي المباشر وإرسال الفواتير لهذه النسخة</span>
+              <span>{t('shared.tax_integration_section.s18', "تفعيل الربط الضريبي المباشر وإرسال الفواتير لهذه النسخة")}</span>
             </label>
 
             {/* Test Result Message */}
@@ -261,7 +263,7 @@ export function TaxIntegrationSection() {
                 disabled={mutation.isPending}
                 style={{ padding: '6px 18px', background: '#0f172a', fontWeight: 800, fontSize: '0.82rem' }}
               >
-                {mutation.isPending ? 'جاري الحفظ...' : 'حفظ إعدادات الربط'}
+                {mutation.isPending ? t('shared.tax_integration_section.s19', "جاري الحفظ...") : t('shared.tax_integration_section.s20', "حفظ إعدادات الربط")}
               </Button>
               <Button
                 type="button"
@@ -269,7 +271,7 @@ export function TaxIntegrationSection() {
                 onClick={handleTestCredentials}
                 style={{ padding: '6px 14px', fontSize: '0.82rem' }}
               >
-                فحص البيانات
+                {t('shared.tax_integration_section.s21', "فحص البيانات")}
               </Button>
             </div>
           </form>
@@ -278,14 +280,14 @@ export function TaxIntegrationSection() {
         {/* Column 2: Guidelines & Status Card */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
           <QueryCard
-            title="معايير وتوثيق الفوترة (ETA Guidelines)"
+            title={t('shared.tax_integration_section.s22', "معايير وتوثيق الفوترة (ETA Guidelines)")}
             className="settings-admin-card"
             actions={<span className="nav-pill">v1.0 Standard</span>}
           >
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '0.78rem' }}>
               {/* Endpoint Status Box */}
               <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 12px' }}>
-                <div style={{ fontSize: '0.72rem', color: '#64748b', marginBottom: '2px' }}>نقطة الاتصال النشطة (API Endpoint):</div>
+                <div style={{ fontSize: '0.72rem', color: '#64748b', marginBottom: '2px' }}>{t('shared.tax_integration_section.s23', "نقطة الاتصال النشطة (API Endpoint):")}</div>
                 <strong style={{ color: '#0f172a', fontSize: '0.76rem', direction: 'ltr', display: 'block', textAlign: 'right', fontFamily: 'monospace', wordBreak: 'break-all' }}>
                   {currentEnv === 'production' ? 'https://api.invoicing.eta.gov.eg' : 'https://api.preprod.invoicing.eta.gov.eg'}
                 </strong>
@@ -294,22 +296,22 @@ export function TaxIntegrationSection() {
               {/* Supported Document Types */}
               <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 12px', background: '#ffffff' }}>
                 <strong style={{ fontSize: '0.8rem', color: '#0f172a', display: 'block', marginBottom: '6px' }}>
-                  أنواع الوثائق المدعومة
+                  {t('shared.tax_integration_section.s24', "أنواع الوثائق المدعومة")}
                 </strong>
                 <ul style={{ margin: 0, paddingInlineStart: '18px', color: '#475569', lineHeight: 1.6 }}>
-                  <li><strong>فواتير مبيعات (i01)</strong>: فواتير B2B الضريبية مع التوقيع الإلكتروني.</li>
-                  <li><strong>إيصالات إلكترونية (r01)</strong>: إيصالات B2C الفورية لنقاط البيع والكاشير.</li>
-                  <li><strong>إشعارات دائنة / مدينة (c01 / d01)</strong>: المرتجعات والتسويات الضريبية.</li>
+                  <li><strong>{t('shared.tax_integration_section.s25', "فواتير مبيعات (i01)")}</strong>{t('shared.tax_integration_section.s26', ": فواتير B2B الضريبية مع التوقيع الإلكتروني.")}</li>
+                  <li><strong>{t('shared.tax_integration_section.s27', "إيصالات إلكترونية (r01)")}</strong>{t('shared.tax_integration_section.s28', ": إيصالات B2C الفورية لنقاط البيع والكاشير.")}</li>
+                  <li><strong>{t('shared.tax_integration_section.s29', "إشعارات دائنة / مدينة (c01 / d01)")}</strong>{t('shared.tax_integration_section.s30', ": المرتجعات والتسويات الضريبية.")}</li>
                 </ul>
               </div>
 
               {/* E-Seal Notice */}
               <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 12px', background: '#ffffff' }}>
                 <strong style={{ fontSize: '0.8rem', color: '#0f172a', display: 'block', marginBottom: '4px' }}>
-                  الختم الإلكتروني (E-Seal USB Token)
+                  {t('shared.tax_integration_section.s31', "الختم الإلكتروني (E-Seal USB Token)")}
                 </strong>
                 <p style={{ margin: 0, color: '#64748b', lineHeight: 1.5 }}>
-                  لتوقيع الفواتير، تأكد من توصيل توكن الختم الإلكتروني المعتمد من (مصر للمقاصة أو إيجيبت تراست) على جهاز السيرفر أو استخدام الختم السحابي.
+                  {t('shared.tax_integration_section.s32', "لتوقيع الفواتير، تأكد من توصيل توكن الختم الإلكتروني المعتمد من (مصر للمقاصة أو إيجيبت تراست) على جهاز السيرفر أو استخدام الختم السحابي.")}
                 </p>
               </div>
             </div>

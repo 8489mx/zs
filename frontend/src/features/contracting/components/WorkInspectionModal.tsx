@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useCallback } from 'react';
 import { StandardDialog } from '@/shared/components/StandardDialog';
 import { DialogShell } from '@/shared/components/dialog-shell';
@@ -52,6 +53,7 @@ const STATUS_CONFIG: Record<InspectionStatus, { bg: string; color: string; borde
 };
 
 export function WorkInspectionModal({ open, onClose, projectId, projectName }: WorkInspectionModalProps) {
+  const { t } = useTranslation();
   const [requests, setRequests] = useState<ContractingInspectionRequest[]>([]);
   const [boqItems, setBoqItems] = useState<ContractingBoqItem[]>([]);
   const [subcontracts, setSubcontracts] = useState<ContractingSubcontract[]>([]);
@@ -195,8 +197,8 @@ export function WorkInspectionModal({ open, onClose, projectId, projectName }: W
     <StandardDialog
       open={open}
       onClose={onClose}
-      title={`طلبات استلام الأعمال وضبط الجودة (WIR) - ${projectName || 'المشروع'}`}
-      subtitle="محاضر الاستلام الميداني للمهندس الاستشاري، فحص حدادة ونجارة الصب، والمطابقة الفنية قبل المستخلصات"
+      title={`طلبات استلام الأعمال وضبط الجودة (WIR) - ${projectName || t('contracting.work_inspection_modal.s0', "المشروع")}`}
+      subtitle={t('contracting.work_inspection_modal.s1', "محاضر الاستلام الميداني للمهندس الاستشاري، فحص حدادة ونجارة الصب، والمطابقة الفنية قبل المستخلصات")}
       width="min(1080px, 96vw)"
       minHeight="min(560px, 85vh)"
     >
@@ -204,31 +206,31 @@ export function WorkInspectionModal({ open, onClose, projectId, projectName }: W
         {/* شريط المؤشرات الهندسية */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '10px' }}>
           <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 14px' }}>
-            <div style={{ fontSize: 'var(--font-micro)', color: '#64748b', fontWeight: 600 }}>إجمالي طلبات الفحص</div>
+            <div style={{ fontSize: 'var(--font-micro)', color: '#64748b', fontWeight: 600 }}>{t('contracting.work_inspection_modal.s2', "إجمالي طلبات الفحص")}</div>
             <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>
               {loading ? '—' : totalCount}
             </div>
           </div>
           <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 14px' }}>
-            <div style={{ fontSize: 'var(--font-micro)', color: '#a16207', fontWeight: 600 }}>قيد الفحص الميداني</div>
+            <div style={{ fontSize: 'var(--font-micro)', color: '#a16207', fontWeight: 600 }}>{t('contracting.work_inspection_modal.s3', "قيد الفحص الميداني")}</div>
             <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#a16207', marginTop: '2px' }}>
               {loading ? '—' : pendingCount}
             </div>
           </div>
           <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 14px' }}>
-            <div style={{ fontSize: 'var(--font-micro)', color: '#15803d', fontWeight: 600 }}>معتمد نهائياً ومصرح</div>
+            <div style={{ fontSize: 'var(--font-micro)', color: '#15803d', fontWeight: 600 }}>{t('contracting.work_inspection_modal.s4', "معتمد نهائياً ومصرح")}</div>
             <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#15803d', marginTop: '2px' }}>
               {loading ? '—' : approvedCount}
             </div>
           </div>
           <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 14px' }}>
-            <div style={{ fontSize: 'var(--font-micro)', color: '#3730a3', fontWeight: 600 }}>معتمد بملاحظات</div>
+            <div style={{ fontSize: 'var(--font-micro)', color: '#3730a3', fontWeight: 600 }}>{t('contracting.work_inspection_modal.s5', "معتمد بملاحظات")}</div>
             <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#3730a3', marginTop: '2px' }}>
               {loading ? '—' : approvedWithNotesCount}
             </div>
           </div>
           <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 14px' }}>
-            <div style={{ fontSize: 'var(--font-micro)', color: '#b91c1c', fontWeight: 600 }}>مرفوض - إعادة فحص</div>
+            <div style={{ fontSize: 'var(--font-micro)', color: '#b91c1c', fontWeight: 600 }}>{t('contracting.work_inspection_modal.s6', "مرفوض - إعادة فحص")}</div>
             <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#b91c1c', marginTop: '2px' }}>
               {loading ? '—' : rejectedCount}
             </div>
@@ -253,7 +255,7 @@ export function WorkInspectionModal({ open, onClose, projectId, projectName }: W
                 transition: 'all 0.15s ease',
               }}
             >
-              سجل طلبات الاستلام بالموقع ({requests.length})
+              {t('contracting.work_inspection_modal.s7', "سجل طلبات الاستلام بالموقع (")}{requests.length})
             </button>
             <button
               type="button"
@@ -274,19 +276,19 @@ export function WorkInspectionModal({ open, onClose, projectId, projectName }: W
               }}
             >
               <AppIcons.Plus size={14} />
-              <span>تقديم طلب استلام جديد (WIR)</span>
+              <span>{t('contracting.work_inspection_modal.s8', "تقديم طلب استلام جديد (WIR)")}</span>
             </button>
           </div>
 
           {activeTab === 'list' && (
             <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-              <span style={{ fontSize: 'var(--font-micro)', color: '#64748b', fontWeight: 600 }}>تصفية:</span>
+              <span style={{ fontSize: 'var(--font-micro)', color: '#64748b', fontWeight: 600 }}>{t('contracting.work_inspection_modal.s9', "تصفية:")}</span>
               {[
-                { key: 'all', label: 'الكل' },
-                { key: 'submitted', label: 'قيد الفحص' },
-                { key: 'approved', label: 'معتمد' },
-                { key: 'approved_with_notes', label: 'بملاحظات' },
-                { key: 'rejected', label: 'مرفوض' },
+                { key: 'all', label: t('contracting.work_inspection_modal.s10', "الكل") },
+                { key: 'submitted', label: t('contracting.work_inspection_modal.s11', "قيد الفحص") },
+                { key: 'approved', label: t('contracting.work_inspection_modal.s12', "معتمد") },
+                { key: 'approved_with_notes', label: t('contracting.work_inspection_modal.s13', "بملاحظات") },
+                { key: 'rejected', label: t('contracting.work_inspection_modal.s14', "مرفوض") },
               ].map((f) => (
                 <button
                   key={f.key}
@@ -315,7 +317,7 @@ export function WorkInspectionModal({ open, onClose, projectId, projectName }: W
         {activeTab === 'create' ? (
           <form onSubmit={handleCreateRequest} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
-              <Field label="التخصص الهندسي *">
+              <Field label={t('contracting.work_inspection_modal.s15', "التخصص الهندسي *")}>
                 <CustomSelect
                   value={tradeCategory}
                   onChange={setTradeCategory}
@@ -323,7 +325,7 @@ export function WorkInspectionModal({ open, onClose, projectId, projectName }: W
                 />
               </Field>
 
-              <Field label="نوع إجراء الاستلام *">
+              <Field label={t('contracting.work_inspection_modal.s16', "نوع إجراء الاستلام *")}>
                 <CustomSelect
                   value={inspectionType}
                   onChange={setInspectionType}
@@ -331,7 +333,7 @@ export function WorkInspectionModal({ open, onClose, projectId, projectName }: W
                 />
               </Field>
 
-              <Field label="تاريخ المعاينة الميدانية المقترح *">
+              <Field label={t('contracting.work_inspection_modal.s17', "تاريخ المعاينة الميدانية المقترح *")}>
                 <input
                   type="date"
                   value={scheduledDate}
@@ -340,23 +342,23 @@ export function WorkInspectionModal({ open, onClose, projectId, projectName }: W
                 />
               </Field>
 
-              <Field label="المحاور وموقع العمل التفصيلي (Grid/Location) *">
+              <Field label={t('contracting.work_inspection_modal.s18', "المحاور وموقع العمل التفصيلي (Grid/Location) *")}>
                 <input
                   type="text"
-                  placeholder="مثال: سقف الدور الأول - المحاور A1 إلى D4"
+                  placeholder={t('contracting.work_inspection_modal.s19', "مثال: سقف الدور الأول - المحاور A1 إلى D4")}
                   value={locationGrid}
                   onChange={(e) => setLocationGrid(e.target.value)}
                   style={{ width: '100%', height: '33px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.8125rem' }}
                 />
               </Field>
 
-              <Field label="بند المقايسة المرتبط (اختياري)">
+              <Field label={t('contracting.work_inspection_modal.s20', "بند المقايسة المرتبط (اختياري)")}>
                 <CustomSelect
                   value={selectedBoqItemId}
                   onChange={setSelectedBoqItemId}
-                  placeholder="اختر بند المقايسة..."
+                  placeholder={t('contracting.work_inspection_modal.s21', "اختر بند المقايسة...")}
                   options={[
-                    { value: '', label: 'بدون ارتباط ببند مقايسة' },
+                    { value: '', label: t('contracting.work_inspection_modal.s22', "بدون ارتباط ببند مقايسة") },
                     ...boqItems.map((b) => ({
                       value: b.id,
                       label: `${b.itemCode} - ${b.description.slice(0, 35)}...`,
@@ -365,25 +367,25 @@ export function WorkInspectionModal({ open, onClose, projectId, projectName }: W
                 />
               </Field>
 
-              <Field label="عقد مقاول الباطن المنفذ (اختياري)">
+              <Field label={t('contracting.work_inspection_modal.s23', "عقد مقاول الباطن المنفذ (اختياري)")}>
                 <CustomSelect
                   value={selectedSubcontractId}
                   onChange={setSelectedSubcontractId}
-                  placeholder="اختر مقاول الباطن..."
+                  placeholder={t('contracting.work_inspection_modal.s24', "اختر مقاول الباطن...")}
                   options={[
-                    { value: '', label: 'تنفيذ ذاتي (الشركة الرئيسية)' },
+                    { value: '', label: t('contracting.work_inspection_modal.s25', "تنفيذ ذاتي (الشركة الرئيسية)") },
                     ...subcontracts.map((s) => ({
                       value: s.id,
-                      label: `${s.contractNumber} - ${s.subcontractorName || 'مقاول باطن'}`,
+                      label: `${s.contractNumber} - ${s.subcontractorName || t('contracting.work_inspection_modal.s26', "مقاول باطن")}`,
                     })),
                   ]}
                 />
               </Field>
 
-              <Field label="اسم المهندس الاستشاري المشرف">
+              <Field label={t('contracting.work_inspection_modal.s27', "اسم المهندس الاستشاري المشرف")}>
                 <input
                   type="text"
-                  placeholder="مثال: م. أحمد عبد الرحمن (دار الهندسة)"
+                  placeholder={t('contracting.work_inspection_modal.s28', "مثال: م. أحمد عبد الرحمن (دار الهندسة)")}
                   value={consultantName}
                   onChange={(e) => setConsultantName(e.target.value)}
                   style={{ width: '100%', height: '33px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.8125rem' }}
@@ -391,10 +393,10 @@ export function WorkInspectionModal({ open, onClose, projectId, projectName }: W
               </Field>
 
               <div style={{ gridColumn: 'span 2' }}>
-                <Field label="شروط ومعايير الفحص وملاحظات مهندس الموقع">
+                <Field label={t('contracting.work_inspection_modal.s29', "شروط ومعايير الفحص وملاحظات مهندس الموقع")}>
                   <input
                     type="text"
-                    placeholder="تم الانتهاء من تربيط أسياخ التسليح واختبار ضغط مواسير السباكة المدمجة..."
+                    placeholder={t('contracting.work_inspection_modal.s30', "تم الانتهاء من تربيط أسياخ التسليح واختبار ضغط مواسير السباكة المدمجة...")}
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
                     style={{ width: '100%', height: '33px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.8125rem' }}
@@ -418,7 +420,7 @@ export function WorkInspectionModal({ open, onClose, projectId, projectName }: W
                   cursor: 'pointer',
                 }}
               >
-                إلغاء
+                {t('contracting.work_inspection_modal.s31', "إلغاء")}
               </button>
               <button
                 type="submit"
@@ -438,7 +440,7 @@ export function WorkInspectionModal({ open, onClose, projectId, projectName }: W
                 }}
               >
                 <AppIcons.Check size={16} />
-                <span>{isSubmitting ? 'جاري الإرسال...' : 'تقديم طلب الاستلام للاستشاري'}</span>
+                <span>{isSubmitting ? t('contracting.work_inspection_modal.s32', "جاري الإرسال...") : t('contracting.work_inspection_modal.s33', "تقديم طلب الاستلام للاستشاري")}</span>
               </button>
             </div>
           </form>
@@ -448,7 +450,7 @@ export function WorkInspectionModal({ open, onClose, projectId, projectName }: W
             {loading ? (
               <div style={{ flex: 1, minHeight: '280px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '12px', padding: '32px' }}>
                 <div style={{ width: '28px', height: '28px', borderRadius: '50%', border: '3px solid #e2e8f0', borderTopColor: '#170e5e', animation: 'spin 0.8s linear infinite' }} />
-                <span style={{ fontSize: 'var(--font-subtitle)', color: '#94a3b8', fontWeight: 600 }}>جاري تحميل طلبات الاستلام...</span>
+                <span style={{ fontSize: 'var(--font-subtitle)', color: '#94a3b8', fontWeight: 600 }}>{t('contracting.work_inspection_modal.s34', "جاري تحميل طلبات الاستلام...")}</span>
               </div>
             ) : filteredRequests.length === 0 ? (
               <div style={{ flex: 1, minHeight: '280px', padding: '40px 20px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
@@ -456,10 +458,10 @@ export function WorkInspectionModal({ open, onClose, projectId, projectName }: W
                   <AppIcons.FileText size={42} />
                 </div>
                 <div style={{ fontSize: 'var(--font-section-title)', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                  لا توجد طلبات استلام أعمال تطابق الفلتر الحالي
+                  {t('contracting.work_inspection_modal.s35', "لا توجد طلبات استلام أعمال تطابق الفلتر الحالي")}
                 </div>
                 <div style={{ fontSize: 'var(--font-subtitle)', color: '#64748b', maxWidth: '380px', margin: '0 auto 14px' }}>
-                  سجل طلبات الفحص والاستلام (WIR) يضمن توثيق موافقة الاستشاري قبل صب الخرسانات أو ترحيل المستخلصات.
+                  {t('contracting.work_inspection_modal.s36', "سجل طلبات الفحص والاستلام (WIR) يضمن توثيق موافقة الاستشاري قبل صب الخرسانات أو ترحيل المستخلصات.")}
                 </div>
                 <button
                   type="button"
@@ -476,7 +478,7 @@ export function WorkInspectionModal({ open, onClose, projectId, projectName }: W
                     fontSize: '0.8125rem',
                   }}
                 >
-                  تقديم أول طلب استلام
+                  {t('contracting.work_inspection_modal.s37', "تقديم أول طلب استلام")}
                 </button>
               </div>
             ) : (
@@ -484,12 +486,12 @@ export function WorkInspectionModal({ open, onClose, projectId, projectName }: W
                 <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right' }}>
                   <thead>
                     <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-                      <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>رقم الطلب (WIR)</th>
-                      <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>التخصص والمحاور</th>
-                      <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>تاريخ المعاينة</th>
-                      <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>الاستشاري المشرف</th>
-                      <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>الحالة</th>
-                      <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569', textAlign: 'center' }}>الإجراءات</th>
+                      <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>{t('contracting.work_inspection_modal.s38', "رقم الطلب (WIR)")}</th>
+                      <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>{t('contracting.work_inspection_modal.s39', "التخصص والمحاور")}</th>
+                      <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>{t('contracting.work_inspection_modal.s40', "تاريخ المعاينة")}</th>
+                      <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>{t('contracting.work_inspection_modal.s41', "الاستشاري المشرف")}</th>
+                      <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>{t('contracting.work_inspection_modal.s42', "الحالة")}</th>
+                      <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569', textAlign: 'center' }}>{t('contracting.work_inspection_modal.s43', "الإجراءات")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -503,11 +505,11 @@ export function WorkInspectionModal({ open, onClose, projectId, projectName }: W
                           <td style={{ padding: '10px 12px', fontSize: 'var(--font-body)' }}>
                             <div style={{ fontWeight: 700, color: '#0f172a' }}>{TRADE_LABELS[r.discipline] || r.discipline}</div>
                             <div style={{ fontSize: 'var(--font-micro)', color: '#64748b', marginTop: '2px' }}>
-                              الموقع: {r.locationDetails}
+                              {t('contracting.work_inspection_modal.s44', "الموقع:")} {r.locationDetails}
                             </div>
                             {r.boqItemDescription && (
                               <div style={{ fontSize: 'var(--font-micro)', color: '#2563eb' }}>
-                                البند: {r.boqItemDescription.slice(0, 30)}...
+                                {t('contracting.work_inspection_modal.s45', "البند:")} {r.boqItemDescription.slice(0, 30)}...
                               </div>
                             )}
                           </td>
@@ -518,7 +520,7 @@ export function WorkInspectionModal({ open, onClose, projectId, projectName }: W
                             <div>{r.consultantName || '—'}</div>
                             {r.consultantNotes && (
                               <div style={{ fontSize: 'var(--font-micro)', color: '#64748b', marginTop: '2px' }}>
-                                ملاحظة: {r.consultantNotes}
+                                {t('contracting.work_inspection_modal.s46', "ملاحظة:")} {r.consultantNotes}
                               </div>
                             )}
                           </td>
@@ -559,7 +561,7 @@ export function WorkInspectionModal({ open, onClose, projectId, projectName }: W
                                 }}
                               >
                                 <AppIcons.Edit size={12} />
-                                <span>قرار الاستشاري</span>
+                                <span>{t('contracting.work_inspection_modal.s47', "قرار الاستشاري")}</span>
                               </button>
                               {r.status === 'submitted' && (
                                 <button
@@ -602,51 +604,51 @@ export function WorkInspectionModal({ open, onClose, projectId, projectName }: W
             <div className="standard-dialog-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0', padding: '16px 20px' }}>
               <div>
                 <h3 className="standard-dialog-title" style={{ fontSize: '1rem', fontWeight: 800, color: '#170e5e', margin: 0 }}>
-                  توثيق قرار الاستشاري
+                  {t('contracting.work_inspection_modal.s48', "توثيق قرار الاستشاري")}
                 </h3>
                 <span className="standard-dialog-subtitle" style={{ fontSize: '0.8rem', color: '#64748b' }}>
-                  طلب فحص رقم {reviewingItem.requestNumber}
+                  {t('contracting.work_inspection_modal.s49', "طلب فحص رقم")} {reviewingItem.requestNumber}
                 </span>
               </div>
               <button
                 type="button"
                 className="standard-dialog-close-btn"
                 onClick={() => setReviewingItem(null)}
-                aria-label="إغلاق"
+                aria-label={t('contracting.work_inspection_modal.s50', "إغلاق")}
               >
                 <AppIcons.X size={18} />
               </button>
             </div>
 
             <div className="standard-dialog-body" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <Field label="قرار المعاينة والاستلام *">
+              <Field label={t('contracting.work_inspection_modal.s51', "قرار المعاينة والاستلام *")}>
                 <CustomSelect
                   value={reviewStatus}
                   onChange={(val) => setReviewStatus(val as InspectionStatus)}
                   options={[
-                    { value: 'approved', label: 'معتمد ومقبول (Approved) - مصرح ببدء المرحلة التالية' },
-                    { value: 'approved_with_notes', label: 'معتمد بملاحظات (Approved with Notes) - تدارك قبل المرحلة اللاحقة' },
-                    { value: 'rejected', label: 'مرفوض (Rejected) - يتطلب معالجة وإعادة تقديم فحص جديد' },
+                    { value: 'approved', label: t('contracting.work_inspection_modal.s52', "معتمد ومقبول (Approved) - مصرح ببدء المرحلة التالية") },
+                    { value: 'approved_with_notes', label: t('contracting.work_inspection_modal.s53', "معتمد بملاحظات (Approved with Notes) - تدارك قبل المرحلة اللاحقة") },
+                    { value: 'rejected', label: t('contracting.work_inspection_modal.s54', "مرفوض (Rejected) - يتطلب معالجة وإعادة تقديم فحص جديد") },
                   ]}
                 />
               </Field>
 
-              <Field label="اسم الاستشاري / المهندس الموقع">
+              <Field label={t('contracting.work_inspection_modal.s55', "اسم الاستشاري / المهندس الموقع")}>
                 <input
                   type="text"
                   value={reviewConsultantName}
                   onChange={(e) => setReviewConsultantName(e.target.value)}
-                  placeholder="اسم الاستشاري الممضي على المحضر..."
+                  placeholder={t('contracting.work_inspection_modal.s56', "اسم الاستشاري الممضي على المحضر...")}
                   style={{ width: '100%', height: '36px', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.8125rem', boxSizing: 'border-box' }}
                 />
               </Field>
 
-              <Field label="ملاحظات وتوجيهات الاستشاري الفنية">
+              <Field label={t('contracting.work_inspection_modal.s57', "ملاحظات وتوجيهات الاستشاري الفنية")}>
                 <textarea
                   rows={3}
                   value={reviewNotes}
                   onChange={(e) => setReviewNotes(e.target.value)}
-                  placeholder="اكتب التوجيهات الفنية أو شروط الصب أو أسباب الرفض بدقة..."
+                  placeholder={t('contracting.work_inspection_modal.s58', "اكتب التوجيهات الفنية أو شروط الصب أو أسباب الرفض بدقة...")}
                   style={{ width: '100%', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '8px 10px', fontSize: '0.8125rem', resize: 'vertical', boxSizing: 'border-box' }}
                 />
               </Field>
@@ -668,7 +670,7 @@ export function WorkInspectionModal({ open, onClose, projectId, projectName }: W
                   cursor: 'pointer',
                 }}
               >
-                إلغاء
+                {t('contracting.work_inspection_modal.s59', "إلغاء")}
               </button>
               <button
                 type="button"
@@ -686,7 +688,7 @@ export function WorkInspectionModal({ open, onClose, projectId, projectName }: W
                   cursor: 'pointer',
                 }}
               >
-                {isSavingDecision ? 'جاري الحفظ...' : 'تثبيت القرار الهندسي'}
+                {isSavingDecision ? t('contracting.work_inspection_modal.s60', "جاري الحفظ...") : t('contracting.work_inspection_modal.s61', "تثبيت القرار الهندسي")}
               </button>
             </div>
           </DialogShell>

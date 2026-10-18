@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
 import { PageHeader } from '@/shared/components/page-header';
 import { useAppToolbar } from '@/stores/toolbar-store';
@@ -20,6 +21,7 @@ import {
 } from '../components/PharmacyIcons';
 
 export default function PharmacyDrugsDirectoryPage() {
+  const { t } = useTranslation();
   const [drugs, setDrugs] = useState<PharmacyDrug[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -154,8 +156,8 @@ export default function PharmacyDrugsDirectoryPage() {
     <div className="page-stack page-shell pharmacy-workspace" dir="rtl">
       <main className="document-prototype-column" style={{ paddingBottom: '80px', maxWidth: '1280px', margin: '0 auto', width: '100%' }}>
         <PageHeader
-          title="دليل الأدوية المصري والمواد الفعالة (Drug Directory)"
-          description="إدارة الأسماء التجارية، المواد الفعالة، التسعيرة الجبرية، وجداول الرقابة الدوائية مع محرك البدائل"
+          title={t('pharmacy.pharmacy_drugs_directory_page.s0', "دليل الأدوية المصري والمواد الفعالة (Drug Directory)")}
+          description={t('pharmacy.pharmacy_drugs_directory_page.s1', "إدارة الأسماء التجارية، المواد الفعالة، التسعيرة الجبرية، وجداول الرقابة الدوائية مع محرك البدائل")}
           actions={
             <div className="actions compact-actions" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
               <Button
@@ -164,7 +166,7 @@ export default function PharmacyDrugsDirectoryPage() {
                 style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 800, background: '#1e1b4b', border: 'none' }}
               >
                 <IconBox />
-                <span>تحميل الدليل الدوائي المصري (EDA)</span>
+                <span>{t('pharmacy.pharmacy_drugs_directory_page.s2', "تحميل الدليل الدوائي المصري (EDA)")}</span>
               </Button>
 
               <Button
@@ -172,7 +174,7 @@ export default function PharmacyDrugsDirectoryPage() {
                 onClick={() => setIsInvoiceModalOpen(true)}
                 style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700 }}
               >
-                <span>استيراد فاتورة الموزع (Excel/PDF)</span>
+                <span>{t('pharmacy.pharmacy_drugs_directory_page.s3', "استيراد فاتورة الموزع (Excel/PDF)")}</span>
               </Button>
 
               <Button
@@ -181,7 +183,7 @@ export default function PharmacyDrugsDirectoryPage() {
                 style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700 }}
               >
                 <IconPlus />
-                <span>إضافة دواء جديد</span>
+                <span>{t('pharmacy.pharmacy_drugs_directory_page.s4', "إضافة دواء جديد")}</span>
               </Button>
 
               <Button
@@ -191,7 +193,7 @@ export default function PharmacyDrugsDirectoryPage() {
                 style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
               >
                 <IconRefresh />
-                <span>تحديث</span>
+                <span>{t('pharmacy.pharmacy_drugs_directory_page.s5', "تحديث")}</span>
               </Button>
             </div>
           }
@@ -208,7 +210,7 @@ export default function PharmacyDrugsDirectoryPage() {
             </span>
             <input
               type="text"
-              placeholder="بحث بالاسم التجاري، المادة الفعالة، أو الباركود الدولي..."
+              placeholder={t('pharmacy.pharmacy_drugs_directory_page.s6', "بحث بالاسم التجاري، المادة الفعالة، أو الباركود الدولي...")}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               style={{ width: '100%', padding: '7px 32px 7px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.82rem', outline: 'none' }}
@@ -220,10 +222,10 @@ export default function PharmacyDrugsDirectoryPage() {
               value={selectedControlled}
               onChange={(val) => setSelectedControlled(val)}
               options={[
-                { value: 'all', label: 'جميع الجداول' },
-                { value: 'none', label: 'عادي (غير مجدول)' },
-                { value: 'table_1', label: 'جدول أول (مؤثر)' },
-                { value: 'table_2', label: 'جدول ثانٍ (رقابة)' },
+                { value: 'all', label: t('pharmacy.pharmacy_drugs_directory_page.s7', "جميع الجداول") },
+                { value: 'none', label: t('pharmacy.pharmacy_drugs_directory_page.s8', "عادي (غير مجدول)") },
+                { value: 'table_1', label: t('pharmacy.pharmacy_drugs_directory_page.s9', "جدول أول (مؤثر)") },
+                { value: 'table_2', label: t('pharmacy.pharmacy_drugs_directory_page.s10', "جدول ثانٍ (رقابة)") },
               ]}
             />
           </div>
@@ -233,12 +235,12 @@ export default function PharmacyDrugsDirectoryPage() {
               value={selectedDosageForm}
               onChange={(val) => setSelectedDosageForm(val)}
               options={[
-                { value: 'all', label: 'جميع الأشكال الصيدلية' },
-                { value: 'أقراص (Tablets)', label: 'أقراص' },
-                { value: 'كبسولات (Capsules)', label: 'كبسولات' },
-                { value: 'شراب (Syrup)', label: 'شراب' },
-                { value: 'أمبولات حقن (Ampoules)', label: 'أمبولات' },
-                { value: 'كريم جلدي (Cream)', label: 'كريمات' },
+                { value: 'all', label: t('pharmacy.pharmacy_drugs_directory_page.s11', "جميع الأشكال الصيدلية") },
+                { value: t('pharmacy.pharmacy_drugs_directory_page.s12', "أقراص (Tablets)"), label: t('pharmacy.pharmacy_drugs_directory_page.s13', "أقراص") },
+                { value: t('pharmacy.pharmacy_drugs_directory_page.s14', "كبسولات (Capsules)"), label: t('pharmacy.pharmacy_drugs_directory_page.s15', "كبسولات") },
+                { value: t('pharmacy.pharmacy_drugs_directory_page.s16', "شراب (Syrup)"), label: t('pharmacy.pharmacy_drugs_directory_page.s17', "شراب") },
+                { value: t('pharmacy.pharmacy_drugs_directory_page.s18', "أمبولات حقن (Ampoules)"), label: t('pharmacy.pharmacy_drugs_directory_page.s19', "أمبولات") },
+                { value: t('pharmacy.pharmacy_drugs_directory_page.s20', "كريم جلدي (Cream)"), label: t('pharmacy.pharmacy_drugs_directory_page.s21', "كريمات") },
               ]}
             />
           </div>

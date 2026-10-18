@@ -93,6 +93,7 @@ function formatWorkspaceName(name: string, isEn = false) {
 }
 
 export function AppShell({ children }: PropsWithChildren) {
+  const { t: __t } = useTranslation();
   const { t, i18n } = useTranslation();
   const isEn = Boolean(i18n.language && i18n.language.startsWith('en'));
 
@@ -1941,8 +1942,8 @@ export function AppShell({ children }: PropsWithChildren) {
               <button 
                 type="button" 
                 className="sidebar-search-icon-btn" 
-                data-tooltip={effectiveSidebarCollapsed ? (isEn ? "Quick search (Ctrl + K)" : "البحث السريع (Ctrl + K)") : undefined}
-                title={isSidebarSearchOpen ? (isEn ? 'Search' : 'بحث') : (effectiveSidebarCollapsed ? undefined : (isEn ? 'Quick search in menus & tabs' : 'بحث سريع في القوائم والتابات'))}
+                data-tooltip={effectiveSidebarCollapsed ? (isEn ? "Quick search (Ctrl + K)" : __t('shared.layout.app_shell.s0', "البحث السريع (Ctrl + K)")) : undefined}
+                title={isSidebarSearchOpen ? (isEn ? 'Search' : __t('shared.layout.app_shell.s1', "بحث")) : (effectiveSidebarCollapsed ? undefined : (isEn ? 'Quick search in menus & tabs' : __t('shared.layout.app_shell.s2', "بحث سريع في القوائم والتابات")))}
                 onClick={(e) => {
                   if (!isSidebarSearchOpen) {
                     e.stopPropagation();
@@ -1958,7 +1959,7 @@ export function AppShell({ children }: PropsWithChildren) {
                     ref={sidebarSearchInputRef}
                     type="text"
                     className="sidebar-search-input"
-                    placeholder={isEn ? "Search in tabs & menus..." : "ابحث في التابات والقوائم..."}
+                    placeholder={isEn ? "Search in tabs & menus..." : __t('shared.layout.app_shell.s3', "ابحث في التابات والقوائم...")}
                     value={sidebarSearchQuery}
                     onChange={(e) => setSidebarSearchQuery(e.target.value)}
                     onKeyDown={(e) => {
@@ -1971,7 +1972,7 @@ export function AppShell({ children }: PropsWithChildren) {
                   <button
                     type="button"
                     className="sidebar-search-close-btn"
-                    title={isEn ? "Close search" : "إغلاق البحث"}
+                    title={isEn ? "Close search" : __t('shared.layout.app_shell.s4', "إغلاق البحث")}
                     onClick={(e) => {
                       e.stopPropagation();
                       if (sidebarSearchQuery) {
@@ -1986,7 +1987,7 @@ export function AppShell({ children }: PropsWithChildren) {
               ) : (
                 !effectiveSidebarCollapsed && (
                   <span className="sidebar-search-placeholder-text">
-                    {isEn ? "Quick search in menus..." : "بحث سريع في القوائم..."}
+                    {isEn ? "Quick search in menus..." : __t('shared.layout.app_shell.s5', "بحث سريع في القوائم...")}
                   </span>
                 )
               )}
@@ -2022,7 +2023,7 @@ export function AppShell({ children }: PropsWithChildren) {
             {isSearchingSidebar && totalMatchingItemsCount === 0 ? (
               <div className="sidebar-search-empty-state">
                 <span className="sidebar-search-empty-state-icon"><SearchIcon size={24} color="#94a3b8" /></span>
-                <p className="sidebar-search-empty-state-text">لا توجد قوائم تطابق "{sidebarSearchQuery}"</p>
+                <p className="sidebar-search-empty-state-text">{__t('shared.layout.app_shell.s6', "لا توجد قوائم تطابق \"")}{sidebarSearchQuery}"</p>
               </div>
             ) : null}
           </nav>
@@ -2030,9 +2031,9 @@ export function AppShell({ children }: PropsWithChildren) {
             <div className="sidebar-footer-info" style={{ marginBottom: 5 }}>
               <div className="muted small" style={{ lineHeight: 1.2 }}>{t("sidebar.welcome_msg")} {displayName}</div>
               <div className="muted small" style={{ opacity: 0.85, marginTop: 2, fontSize: '0.72rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                <span>الإصدار: {typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '1.0.0'}</span>
+                <span>{__t('shared.layout.app_shell.s7', "الإصدار:")} {typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '1.0.0'}</span>
                 {updateInfo?.updateAvailable && (
-                  <span style={{ display: 'inline-block', width: 7, height: 7, borderRadius: '50%', background: 'var(--color-warning)', flexShrink: 0 }} title="تحديث جديد متاح" />
+                  <span style={{ display: 'inline-block', width: 7, height: 7, borderRadius: '50%', background: 'var(--color-warning)', flexShrink: 0 }} title={__t('shared.layout.app_shell.s8', "تحديث جديد متاح")} />
                 )}
               </div>
             </div>
@@ -2113,7 +2114,7 @@ export function AppShell({ children }: PropsWithChildren) {
               Z Systems ERP
             </h2>
             <p style={{ margin: '0 0 14px 0', fontSize: '12.5px', color: '#64748b' }}>
-              منظومة إدارة المبيعات، المخازن، الحسابات، ونقاط البيع
+              {__t('shared.layout.app_shell.s9', "منظومة إدارة المبيعات، المخازن، الحسابات، ونقاط البيع")}
             </p>
 
             <div style={{
@@ -2129,9 +2130,9 @@ export function AppShell({ children }: PropsWithChildren) {
               color: '#334155',
               marginBottom: '18px'
             }}>
-              <span>الإصدار:</span>
+              <span>{__t('shared.layout.app_shell.s10', "الإصدار:")}</span>
               <span style={{ color: '#2563eb' }}>v{typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '1.1.14'}</span>
-              <span style={{ color: '#10b981' }}>● نسخة مفعلة</span>
+              <span style={{ color: '#10b981' }}>{__t('shared.layout.app_shell.s11', "● نسخة مفعلة")}</span>
             </div>
 
             <div style={{
@@ -2147,17 +2148,17 @@ export function AppShell({ children }: PropsWithChildren) {
               marginBottom: '20px'
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ color: '#64748b' }}>المؤسسة:</span>
+                <span style={{ color: '#64748b' }}>{__t('shared.layout.app_shell.s12', "المؤسسة:")}</span>
                 <strong style={{ color: '#0f172a' }}>{cleanWorkspaceName}</strong>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ color: '#64748b' }}>المستخدم النشط:</span>
+                <span style={{ color: '#64748b' }}>{__t('shared.layout.app_shell.s13', "المستخدم النشط:")}</span>
                 <strong style={{ color: '#0f172a' }}>{displayName}</strong>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ color: '#64748b' }}>حالة الربط والبيانات:</span>
+                <span style={{ color: '#64748b' }}>{__t('shared.layout.app_shell.s14', "حالة الربط والبيانات:")}</span>
                 <span style={{ color: '#059669', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                  <CheckCircleIcon size={14} color="#059669" /> متصل ومؤمّن
+                  <CheckCircleIcon size={14} color="#059669" /> {__t('shared.layout.app_shell.s15', "متصل ومؤمّن")}
                 </span>
               </div>
             </div>
@@ -2191,14 +2192,14 @@ export function AppShell({ children }: PropsWithChildren) {
                 <svg viewBox="0 0 24 24" width="18" height="18" fill="#25D366">
                   <path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91C2.13 13.66 2.59 15.36 3.45 16.86L2.05 22L7.3 20.62C8.75 21.41 10.38 21.83 12.04 21.83C17.5 21.83 21.95 17.38 21.95 11.92C21.95 9.27 20.92 6.78 19.05 4.91C17.18 3.03 14.69 2 12.04 2M12.05 3.67C14.25 3.67 16.31 4.53 17.87 6.09C19.42 7.65 20.28 9.72 20.28 11.92C20.28 16.46 16.58 20.15 12.04 20.15C10.56 20.15 9.11 19.76 7.85 19L7.55 18.83L4.43 19.65L5.26 16.61L5.06 16.29C4.24 15 3.8 13.47 3.8 11.91C3.81 7.37 7.5 3.67 12.05 3.67M9.53 7.04C9.36 7.04 9.09 7.11 8.87 7.34C8.64 7.58 8 8.18 8 9.4C8 10.62 8.89 11.8 9.01 11.96C9.14 12.12 10.76 14.62 13.23 15.69C13.82 15.94 14.28 16.09 14.64 16.21C15.23 16.4 15.77 16.37 16.2 16.31C16.68 16.24 17.68 15.7 17.89 15.12C18.09 14.54 18.09 14.04 18.03 13.94C17.97 13.84 17.81 13.78 17.56 13.66C17.31 13.53 16.09 12.93 15.86 12.85C15.63 12.77 15.47 12.73 15.3 12.97C15.13 13.22 14.65 13.78 14.51 13.94C14.36 14.11 14.22 14.13 13.97 14C13.72 13.88 12.92 13.62 11.97 12.77C11.23 12.11 10.73 11.29 10.59 11.04C10.44 10.79 10.57 10.66 10.7 10.53C10.81 10.42 10.95 10.24 11.07 10.1C11.19 9.96 11.23 9.85 11.31 9.69C11.39 9.53 11.35 9.39 11.29 9.27C11.23 9.15 10.73 7.93 10.53 7.43C10.33 6.95 10.13 7.01 9.97 7C9.83 7 9.67 7.04 9.53 7.04Z"/>
                 </svg>
-                الدعم الفني عبر واتساب
+                {__t('shared.layout.app_shell.s16', "الدعم الفني عبر واتساب")}
               </button>
               <Button 
                 variant="secondary" 
                 onClick={() => setIsAboutModalOpen(false)}
                 style={{ padding: '10px 20px', fontSize: '13px' }}
               >
-                إغلاق
+                {__t('shared.layout.app_shell.s17', "إغلاق")}
               </Button>
             </div>
           </div>
@@ -2222,7 +2223,7 @@ export function AppShell({ children }: PropsWithChildren) {
         }}
         onOpenInNewWindow={(target) => {
           openExternalWindow(target.path);
-          toast.info('تم فتح الصفحة في نافذة مستقلة');
+          toast.info(__t('shared.layout.app_shell.s18', "تم فتح الصفحة في نافذة مستقلة"));
         }}
         onCopyLink={(target) => {
           try {
@@ -2231,9 +2232,9 @@ export function AppShell({ children }: PropsWithChildren) {
               ? `${window.location.origin}${window.location.pathname}#${target.path.replace(/^#?\/?/, '/')}`
               : `${window.location.origin}${target.path}`;
             navigator.clipboard.writeText(fullUrl);
-            toast.success('تم نسخ رابط الصفحة إلى الحافظة');
+            toast.success(__t('shared.layout.app_shell.s19', "تم نسخ رابط الصفحة إلى الحافظة"));
           } catch (_) {
-            toast.error('تعذر نسخ الرابط');
+            toast.error(__t('shared.layout.app_shell.s20', "تعذر نسخ الرابط"));
           }
         }}
       />

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { formatCurrency } from '@/lib/format';
 import type { Product } from '@/types/domain';
@@ -52,6 +53,7 @@ export function InventoryProductPicker({
   helperText,
   hideHint = false,
 }: InventoryProductPickerProps) {
+  const { t } = useTranslation();
   const rootRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [search, setSearch] = useState('');
@@ -171,14 +173,14 @@ export function InventoryProductPicker({
       {selectedProduct ? (
         <div className="inventory-product-picker__selected">
           <div className="inventory-product-picker__selected-copy">
-            <span className="inventory-product-picker__selected-label">الصنف المختار</span>
+            <span className="inventory-product-picker__selected-label">{t('inventory.inventory_product_picker.s0', "الصنف المختار")}</span>
             <strong>{selectedProduct.name}</strong>
             <div className="inventory-product-picker__selected-meta">
-              {getProductText(selectedProduct, 'barcode') ? <span>الباركود: {getProductText(selectedProduct, 'barcode')}</span> : null}
+              {getProductText(selectedProduct, 'barcode') ? <span>{t('inventory.inventory_product_picker.s1', "الباركود:")} {getProductText(selectedProduct, 'barcode')}</span> : null}
               {!getProductText(selectedProduct, 'barcode') && getProductText(selectedProduct, 'sku') ? <span>SKU: {getProductText(selectedProduct, 'sku')}</span> : null}
               {!getProductText(selectedProduct, 'barcode') && !getProductText(selectedProduct, 'sku') && getProductText(selectedProduct, 'code') ? <span>CODE: {getProductText(selectedProduct, 'code')}</span> : null}
-              {showStock ? <span>الكمية المتاحة: {Number((selectedProduct as { stock?: number }).stock || 0)}</span> : null}
-              {showPrice ? <span>السعر: {formatCurrency(Number((selectedProduct as { retailPrice?: number }).retailPrice || 0))}</span> : null}
+              {showStock ? <span>{t('inventory.inventory_product_picker.s2', "الكمية المتاحة:")} {Number((selectedProduct as { stock?: number }).stock || 0)}</span> : null}
+              {showPrice ? <span>{t('inventory.inventory_product_picker.s3', "السعر:")} {formatCurrency(Number((selectedProduct as { retailPrice?: number }).retailPrice || 0))}</span> : null}
             </div>
           </div>
           <button
@@ -193,17 +195,17 @@ export function InventoryProductPicker({
             }}
             disabled={disabled}
           >
-            امسح الاختيار
+            {t('inventory.inventory_product_picker.s4', "امسح الاختيار")}
           </button>
         </div>
       ) : !hideHint ? (
         <div className="inventory-product-picker__hint">
-          {helperText || 'اكتب اسم الصنف أو امسح الباركود لاختيار الصنف.'}
+          {helperText || t('inventory.inventory_product_picker.s5', "اكتب اسم الصنف أو امسح الباركود لاختيار الصنف.")}
         </div>
       ) : null}
 
       {shouldShowDropdown ? (
-        <div className="inventory-product-picker__dropdown" role="listbox" aria-label="اختيار الصنف">
+        <div className="inventory-product-picker__dropdown" role="listbox" aria-label={t('inventory.inventory_product_picker.s6', "اختيار الصنف")}>
           {filteredProducts.length ? filteredProducts.map((product) => {
             const barcode = getProductText(product, 'barcode');
             const sku = getProductText(product, 'sku');
@@ -218,20 +220,20 @@ export function InventoryProductPicker({
               >
                 <div className="inventory-product-picker__option-head">
                   <strong>{product.name}</strong>
-                  {showStock ? <span>الكمية المتاحة: {Number((product as { stock?: number }).stock || 0)}</span> : null}
+                  {showStock ? <span>{t('inventory.inventory_product_picker.s7', "الكمية المتاحة:")} {Number((product as { stock?: number }).stock || 0)}</span> : null}
                 </div>
                 <div className="inventory-product-picker__option-meta">
-                  {barcode ? <span>الباركود: {barcode}</span> : null}
+                  {barcode ? <span>{t('inventory.inventory_product_picker.s8', "الباركود:")} {barcode}</span> : null}
                   {!barcode && sku ? <span>SKU: {sku}</span> : null}
                   {!barcode && !sku && code ? <span>CODE: {code}</span> : null}
-                  {showPrice ? <span>السعر: {formatCurrency(Number((product as { retailPrice?: number }).retailPrice || 0))}</span> : null}
+                  {showPrice ? <span>{t('inventory.inventory_product_picker.s9', "السعر:")} {formatCurrency(Number((product as { retailPrice?: number }).retailPrice || 0))}</span> : null}
                 </div>
               </button>
             );
           }) : null}
           {!filteredProducts.length ? (
             <div className="inventory-product-picker__empty">
-              {statusMessage || (showBarcodeHint ? 'لم يتم العثور على صنف بهذا الباركود.' : 'لا توجد نتائج مطابقة.')}
+              {statusMessage || (showBarcodeHint ? t('inventory.inventory_product_picker.s10', "لم يتم العثور على صنف بهذا الباركود.") : t('inventory.inventory_product_picker.s11', "لا توجد نتائج مطابقة."))}
             </div>
           ) : null}
         </div>

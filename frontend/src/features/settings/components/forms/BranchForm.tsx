@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -15,6 +16,7 @@ import { useAuthStore } from '@/stores/auth-store';
 import { resolveCurrentVertical } from '@/shared/verticals/vertical-scope';
 
 export function BranchForm({ canManageSettings, setupMode = false, onSetupAdvance, hasExistingLocations = false, initialValues, onCreated }: BranchFormProps) {
+  const { t } = useTranslation();
   const tenant = useAuthStore((s) => s.tenant);
   const vertical = resolveCurrentVertical(tenant);
   const isMaritime = vertical === 'maritime';
@@ -83,8 +85,8 @@ export function BranchForm({ canManageSettings, setupMode = false, onSetupAdvanc
 
       <DraftStateNotice
         visible={form.formState.isDirty && !mutation.isPending}
-        title={isMaritime ? 'بيانات المقر الملاحي غير محفوظة' : SINGLE_STORE_MODE ? 'بيانات النشاط الرئيسي غير محفوظة' : 'بيانات الفرع الجديد غير محفوظة'}
-        hint={isMaritime ? 'احفظ تعريف المقر الملاحي قبل الانتقال إلى بقية الإعدادات.' : SINGLE_STORE_MODE ? 'احفظ تعريف النشاط الرئيسي قبل الانتقال إلى بقية الإعدادات.' : 'يمكنك الإضافة أو تفريغ النموذج قبل الانتقال إلى جزء آخر من الإعدادات.'}
+        title={isMaritime ? t('settings.forms.branch_form.s0', "بيانات المقر الملاحي غير محفوظة") : SINGLE_STORE_MODE ? t('settings.forms.branch_form.s1', "بيانات النشاط الرئيسي غير محفوظة") : t('settings.forms.branch_form.s2', "بيانات الفرع الجديد غير محفوظة")}
+        hint={isMaritime ? t('settings.forms.branch_form.s3', "احفظ تعريف المقر الملاحي قبل الانتقال إلى بقية الإعدادات.") : SINGLE_STORE_MODE ? t('settings.forms.branch_form.s4', "احفظ تعريف النشاط الرئيسي قبل الانتقال إلى بقية الإعدادات.") : t('settings.forms.branch_form.s5', "يمكنك الإضافة أو تفريغ النموذج قبل الانتقال إلى جزء آخر من الإعدادات.")}
       />
 
       <div className="actions compact-actions sticky-form-actions">
@@ -96,7 +98,7 @@ export function BranchForm({ canManageSettings, setupMode = false, onSetupAdvanc
           }}
           disabled={mutation.isPending || !form.formState.isDirty}
         >
-          تفريغ
+          {t('settings.forms.branch_form.s6', "تفريغ")}
         </button>
       </div>
 
@@ -104,7 +106,7 @@ export function BranchForm({ canManageSettings, setupMode = false, onSetupAdvanc
         isError={mutation.isError}
         isSuccess={mutation.isSuccess}
         error={mutation.error}
-        errorFallback="هذا الاسم أو الكود مستخدم بالفعل."
+        errorFallback={t('settings.forms.branch_form.s7', "هذا الاسم أو الكود مستخدم بالفعل.")}
         successText={successText}
       />
 
@@ -118,7 +120,7 @@ export function BranchForm({ canManageSettings, setupMode = false, onSetupAdvanc
           void handleSaveBranch();
         }}
         idleText={idleText}
-        pendingText="جارٍ الحفظ..."
+        pendingText={t('settings.forms.branch_form.s8', "جارٍ الحفظ...")}
       />
     </div>
   );

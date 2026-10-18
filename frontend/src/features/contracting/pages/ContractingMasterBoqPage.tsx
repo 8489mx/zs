@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useMemo, useCallback, type ReactNode } from 'react';
 import { PageHeader } from '@/shared/components/page-header';
 import { useAppToolbar } from '@/stores/toolbar-store';
@@ -86,6 +87,7 @@ const TRADE_ICONS: Record<string, (props: any) => ReactNode> = {
 };
 
 export function ContractingMasterBoqPage() {
+  const { t: __t } = useTranslation();
   useAppToolbar([
     { label: 'الرئيسية', to: '/dashboard' },
     { label: 'المقاولات والمشاريع', to: '/contracting' },
@@ -344,8 +346,8 @@ export function ContractingMasterBoqPage() {
       <main className="document-prototype-column" style={{ paddingBottom: '80px', maxWidth: '1280px', margin: '0 auto', width: '100%' }}>
         {/* هيدر الصفحة القياسي المستقل */}
         <PageHeader
-          title="إعدادات وبنك بنود المقاولات العام"
-          description="دليل البنود والمقايسات القياسي لكافة التخصصات الإنشائية والكهروميكانيكية وثوابت التسعير للشركة — تسحب منها كافة المشاريع بضغطة زر."
+          title={__t('contracting.contracting_master_boq_page.s0', "إعدادات وبنك بنود المقاولات العام")}
+          description={__t('contracting.contracting_master_boq_page.s1', "دليل البنود والمقايسات القياسي لكافة التخصصات الإنشائية والكهروميكانيكية وثوابت التسعير للشركة — تسحب منها كافة المشاريع بضغطة زر.")}
           actions={
             <div className="actions compact-actions" style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
               <button
@@ -367,7 +369,7 @@ export function ContractingMasterBoqPage() {
                 }}
               >
                 <AppIcons.Upload size={14} />
-                <span>استيراد Excel</span>
+                <span>{__t('contracting.contracting_master_boq_page.s2', "استيراد Excel")}</span>
               </button>
 
               <button
@@ -391,7 +393,7 @@ export function ContractingMasterBoqPage() {
                 }}
               >
                 <AppIcons.Download size={14} />
-                <span>تصدير Excel</span>
+                <span>{__t('contracting.contracting_master_boq_page.s3', "تصدير Excel")}</span>
               </button>
 
               <button
@@ -417,7 +419,7 @@ export function ContractingMasterBoqPage() {
                 }}
               >
                 <AppIcons.RefreshCw size={14} />
-                <span>تحديث</span>
+                <span>{__t('contracting.contracting_master_boq_page.s4', "تحديث")}</span>
               </button>
             </div>
           }
@@ -473,11 +475,11 @@ export function ContractingMasterBoqPage() {
             }}
           >
             <div style={{ fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#64748b' }}>
-              إجمالي البنود بالبنك
+              {__t('contracting.contracting_master_boq_page.s5', "إجمالي البنود بالبنك")}
             </div>
             <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'baseline', gap: '6px' }}>
               <span>{totalItemsCount.toLocaleString('en-US')}</span>
-              <span style={{ fontSize: 'var(--font-micro)', fontWeight: 500, color: '#64748b' }}>بند معتمد</span>
+              <span style={{ fontSize: 'var(--font-micro)', fontWeight: 500, color: '#64748b' }}>{__t('contracting.contracting_master_boq_page.s6', "بند معتمد")}</span>
             </div>
           </div>
 
@@ -495,11 +497,11 @@ export function ContractingMasterBoqPage() {
             }}
           >
             <div style={{ fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#64748b' }}>
-              التخصصات الإنشائية
+              {__t('contracting.contracting_master_boq_page.s7', "التخصصات الإنشائية")}
             </div>
             <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#170e5e', display: 'flex', alignItems: 'baseline', gap: '6px' }}>
               <span>{totalTradesCount}</span>
-              <span style={{ fontSize: 'var(--font-micro)', fontWeight: 500, color: '#64748b' }}>تخصص هندسي</span>
+              <span style={{ fontSize: 'var(--font-micro)', fontWeight: 500, color: '#64748b' }}>{__t('contracting.contracting_master_boq_page.s8', "تخصص هندسي")}</span>
             </div>
           </div>
 
@@ -517,11 +519,11 @@ export function ContractingMasterBoqPage() {
             }}
           >
             <div style={{ fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#64748b' }}>
-              بنود الشركة المخصصة
+              {__t('contracting.contracting_master_boq_page.s9', "بنود الشركة المخصصة")}
             </div>
             <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#1e40af', display: 'flex', alignItems: 'baseline', gap: '6px' }}>
               <span>{customItemsCount.toLocaleString('en-US')}</span>
-              <span style={{ fontSize: 'var(--font-micro)', fontWeight: 500, color: '#64748b' }}>بند مخصص</span>
+              <span style={{ fontSize: 'var(--font-micro)', fontWeight: 500, color: '#64748b' }}>{__t('contracting.contracting_master_boq_page.s10', "بند مخصص")}</span>
             </div>
           </div>
 
@@ -539,11 +541,11 @@ export function ContractingMasterBoqPage() {
             }}
           >
             <div style={{ fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#64748b' }}>
-              متوسط هامش الربح المرجعي
+              {__t('contracting.contracting_master_boq_page.s11', "متوسط هامش الربح المرجعي")}
             </div>
             <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#10b981', display: 'flex', alignItems: 'baseline', gap: '6px' }}>
               <span>{avgMargin}%</span>
-              <span style={{ fontSize: 'var(--font-micro)', fontWeight: 500, color: '#64748b' }}>تقديري</span>
+              <span style={{ fontSize: 'var(--font-micro)', fontWeight: 500, color: '#64748b' }}>{__t('contracting.contracting_master_boq_page.s12', "تقديري")}</span>
             </div>
           </div>
         </div>
@@ -570,7 +572,7 @@ export function ContractingMasterBoqPage() {
               </span>
               <input
                 type="text"
-                placeholder="ابحث بكود البند أو المسمى أو المواصفات..."
+                placeholder={__t('contracting.contracting_master_boq_page.s13', "ابحث بكود البند أو المسمى أو المواصفات...")}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 style={{
@@ -605,7 +607,7 @@ export function ContractingMasterBoqPage() {
                   boxShadow: statusFilter === 'active' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none',
                 }}
               >
-                النشطة والمعتمدة
+                {__t('contracting.contracting_master_boq_page.s14', "النشطة والمعتمدة")}
               </button>
               <button
                 type="button"
@@ -623,7 +625,7 @@ export function ContractingMasterBoqPage() {
                   boxShadow: statusFilter === 'all' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none',
                 }}
               >
-                كافة البنود
+                {__t('contracting.contracting_master_boq_page.s15', "كافة البنود")}
               </button>
               <button
                 type="button"
@@ -641,12 +643,12 @@ export function ContractingMasterBoqPage() {
                   boxShadow: statusFilter === 'inactive' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none',
                 }}
               >
-                المستبعدة والمخفية
+                {__t('contracting.contracting_master_boq_page.s16', "المستبعدة والمخفية")}
               </button>
             </div>
 
             <div style={{ fontSize: 'var(--font-subtitle)', color: '#64748b', marginInlineStart: '6px' }}>
-              معروض: <strong style={{ color: '#0f172a' }}>{filteredItems.length}</strong> بند
+              {__t('contracting.contracting_master_boq_page.s17', "معروض:")} <strong style={{ color: '#0f172a' }}>{filteredItems.length}</strong> {__t('contracting.contracting_master_boq_page.s18', "بند")}
             </div>
           </div>
         </div>
@@ -673,7 +675,7 @@ export function ContractingMasterBoqPage() {
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
               <AppIcons.Sliders size={16} color="#170e5e" />
               <span style={{ fontSize: '13px', fontWeight: 700, color: '#1e293b' }}>
-                القطاعات الهندسية الرئيسية:
+                {__t('contracting.contracting_master_boq_page.s19', "القطاعات الهندسية الرئيسية:")}
               </span>
             </div>
 
@@ -746,7 +748,7 @@ export function ContractingMasterBoqPage() {
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
               <AppIcons.Tool size={15} color="#170e5e" />
               <span style={{ fontSize: '13px', fontWeight: 700, color: '#1e293b' }}>
-                التخصصات التنفيذية:
+                {__t('contracting.contracting_master_boq_page.s20', "التخصصات التنفيذية:")}
               </span>
             </div>
 
@@ -783,7 +785,7 @@ export function ContractingMasterBoqPage() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flex: 1 }}>
                   <AppIcons.Layers size={15} color={selectedTrade === 'all' ? '#ffffff' : '#64748b'} style={{ flexShrink: 0 }} />
                   <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'right' }}>
-                    {selectedSector === 'all' ? 'كافة التخصصات' : `كافة بنود ${SECTORS.find(s => s.id === selectedSector)?.name || ''}`}
+                    {selectedSector === 'all' ? __t('contracting.contracting_master_boq_page.s21', "كافة التخصصات") : `كافة بنود ${SECTORS.find(s => s.id === selectedSector)?.name || ''}`}
                   </span>
                 </div>
                 <span
@@ -867,7 +869,7 @@ export function ContractingMasterBoqPage() {
           }}
         >
           <div style={{ fontSize: 'var(--font-section-title)', fontWeight: 700, color: '#1e293b' }}>
-            قائمة البنود القياسية والمواصفات الفنية
+            {__t('contracting.contracting_master_boq_page.s22', "قائمة البنود القياسية والمواصفات الفنية")}
           </div>
 
           <button
@@ -893,7 +895,7 @@ export function ContractingMasterBoqPage() {
             }}
           >
             <AppIcons.Plus size={15} />
-            <span>إضافة بند مرجعي مخصص</span>
+            <span>{__t('contracting.contracting_master_boq_page.s23', "إضافة بند مرجعي مخصص")}</span>
           </button>
         </div>
 
@@ -909,7 +911,7 @@ export function ContractingMasterBoqPage() {
         >
           {loading ? (
             <div style={{ padding: '60px 24px', textAlign: 'center', color: '#64748b' }}>
-              جاري تحميل بنك البنود المرجعي...
+              {__t('contracting.contracting_master_boq_page.s24', "جاري تحميل بنك البنود المرجعي...")}
             </div>
           ) : filteredItems.length === 0 ? (
             <div style={{ padding: '60px 24px', textAlign: 'center' }}>
@@ -917,10 +919,10 @@ export function ContractingMasterBoqPage() {
                 <AppIcons.FileText size={48} />
               </div>
               <div style={{ fontSize: 'var(--font-section-title)', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-                لا توجد بنود مطابقة
+                {__t('contracting.contracting_master_boq_page.s25', "لا توجد بنود مطابقة")}
               </div>
               <div style={{ fontSize: 'var(--font-subtitle)', color: '#64748b', maxWidth: '420px', margin: '0 auto' }}>
-                لم يتم العثور على أي بنود في هذا التخصص أو بكلمة البحث المحددة.
+                {__t('contracting.contracting_master_boq_page.s26', "لم يتم العثور على أي بنود في هذا التخصص أو بكلمة البحث المحددة.")}
               </div>
             </div>
           ) : (
@@ -940,31 +942,31 @@ export function ContractingMasterBoqPage() {
                 <thead>
                   <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
                     <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>
-                      كود البند
+                      {__t('contracting.contracting_master_boq_page.s27', "كود البند")}
                     </th>
                     <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>
-                      التخصص
+                      {__t('contracting.contracting_master_boq_page.s28', "التخصص")}
                     </th>
                     <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>
-                      مسمى البند والمواصفات الفنية
+                      {__t('contracting.contracting_master_boq_page.s29', "مسمى البند والمواصفات الفنية")}
                     </th>
                     <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569', textAlign: 'center' }}>
-                      الوحدة
+                      {__t('contracting.contracting_master_boq_page.s30', "الوحدة")}
                     </th>
                     <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>
-                      التكلفة
+                      {__t('contracting.contracting_master_boq_page.s31', "التكلفة")}
                     </th>
                     <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>
-                      سعر البيع
+                      {__t('contracting.contracting_master_boq_page.s32', "سعر البيع")}
                     </th>
                     <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569', textAlign: 'center' }}>
-                      الهامش
+                      {__t('contracting.contracting_master_boq_page.s33', "الهامش")}
                     </th>
                     <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569', textAlign: 'center' }}>
-                      النوع
+                      {__t('contracting.contracting_master_boq_page.s34', "النوع")}
                     </th>
                     <th style={{ padding: '12px 14px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569', textAlign: 'center' }}>
-                      الإجراءات
+                      {__t('contracting.contracting_master_boq_page.s35', "الإجراءات")}
                     </th>
                   </tr>
                 </thead>
@@ -1080,7 +1082,7 @@ export function ContractingMasterBoqPage() {
                               fontWeight: 600,
                             }}
                           >
-                            {item.isCustom ? 'مخصص للشركة' : 'نظام قياسي'}
+                            {item.isCustom ? __t('contracting.contracting_master_boq_page.s36', "مخصص للشركة") : __t('contracting.contracting_master_boq_page.s37', "نظام قياسي")}
                           </span>
                         </td>
                         <td style={{ padding: '12px 14px', textAlign: 'center' }}>
@@ -1088,7 +1090,7 @@ export function ContractingMasterBoqPage() {
                             {/* زر التعديل */}
                             <button
                               type="button"
-                              title="تعديل السعر والمواصفات"
+                              title={__t('contracting.contracting_master_boq_page.s38', "تعديل السعر والمواصفات")}
                               disabled={isBusy}
                               onClick={() => {
                                 setEditingItem(item);
@@ -1112,7 +1114,7 @@ export function ContractingMasterBoqPage() {
                             {item.isActive ? (
                               <button
                                 type="button"
-                                title={item.isCustom ? 'حذف البند المخصص نهائياً' : 'استبعاد وإخفاء البند من مكتبة الشركة'}
+                                title={item.isCustom ? __t('contracting.contracting_master_boq_page.s39', "حذف البند المخصص نهائياً") : __t('contracting.contracting_master_boq_page.s40', "استبعاد وإخفاء البند من مكتبة الشركة")}
                                 disabled={isBusy}
                                 onClick={() => handleDeleteItem(item)}
                                 style={{
@@ -1131,7 +1133,7 @@ export function ContractingMasterBoqPage() {
                             ) : (
                               <button
                                 type="button"
-                                title="إعادة تفعيل وإظهار البند في المكتبة"
+                                title={__t('contracting.contracting_master_boq_page.s41', "إعادة تفعيل وإظهار البند في المكتبة")}
                                 disabled={isBusy}
                                 onClick={() => handleToggleItemStatus(item, true)}
                                 style={{
@@ -1176,7 +1178,7 @@ export function ContractingMasterBoqPage() {
               loadTrades();
               setNotification({
                 type: 'success',
-                text: editingItem ? 'تم تحديث بيانات البند بنجاح' : 'تمت إضافة البند إلى بنك البنود المرجعي بنجاح',
+                text: editingItem ? __t('contracting.contracting_master_boq_page.s42', "تم تحديث بيانات البند بنجاح") : __t('contracting.contracting_master_boq_page.s43', "تمت إضافة البند إلى بنك البنود المرجعي بنجاح"),
               });
             }}
           />
@@ -1193,7 +1195,7 @@ export function ContractingMasterBoqPage() {
               loadTrades();
               setNotification({
                 type: 'success',
-                text: 'تم استيراد بنود المقاولات من ملف Excel بنجاح إلى بنك البنود المرجعي',
+                text: __t('contracting.contracting_master_boq_page.s44', "تم استيراد بنود المقاولات من ملف Excel بنجاح إلى بنك البنود المرجعي"),
               });
             }}
           />

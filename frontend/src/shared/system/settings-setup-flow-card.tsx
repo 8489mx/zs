@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from 'react-router-dom';
 import { FormSection } from '@/shared/components/form-section';
 import { Button } from '@/shared/ui/button';
@@ -8,6 +9,7 @@ interface SettingsSetupFlowCardProps {
 }
 
 export function SettingsSetupFlowCard({ currentSection }: SettingsSetupFlowCardProps) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const flow = useFirstRunSetupFlow();
 
@@ -56,27 +58,27 @@ export function SettingsSetupFlowCard({ currentSection }: SettingsSetupFlowCardP
         <div className="setup-flow-card-actions">
           {previousStep ? (
             <Button variant="secondary" onClick={handlePrevious}>
-              الخطوة السابقة
+              {t('shared.system.settings_setup_flow_card.s0', "الخطوة السابقة")}
             </Button>
           ) : null}
           {!onStepSection ? (
             <Link className="button button-secondary" to={activeStep.to}>{activeStep.ctaLabel}</Link>
           ) : null}
           {canSubmitCurrentStep ? (
-            <Button variant="primary" type="submit" form="settings-main-form" title="احفظ بيانات النشاط اولا للانتقال إلى الخطوة التالية">
-              حفظ والانتقال للخطوة التالية
+            <Button variant="primary" type="submit" form="settings-main-form" title={t('shared.system.settings_setup_flow_card.s1', "احفظ بيانات النشاط اولا للانتقال إلى الخطوة التالية")}>
+              {t('shared.system.settings_setup_flow_card.s2', "حفظ والانتقال للخطوة التالية")}
             </Button>
           ) : canSubmitReferenceStep ? (
-            <Button variant="secondary" disabled title="أكمل تجهيز النشاط ونقطة التشغيل للمتابعة">
-              أكمل تعريف النشاط ونقطة التشغيل اولا
+            <Button variant="secondary" disabled title={t('shared.system.settings_setup_flow_card.s3', "أكمل تجهيز النشاط ونقطة التشغيل للمتابعة")}>
+              {t('shared.system.settings_setup_flow_card.s4', "أكمل تعريف النشاط ونقطة التشغيل اولا")}
             </Button>
           ) : canSecureBootstrapAccount ? (
-            <Button variant="secondary" disabled title="استخدم نموذج المستخدم الحالي أو نافذة تغيير كلمة المرور لتأمين حساب التثبيت">
-              غيّر كلمة مرور حساب التثبيت لإكمال التهيئة
+            <Button variant="secondary" disabled title={t('shared.system.settings_setup_flow_card.s5', "استخدم نموذج المستخدم الحالي أو نافذة تغيير كلمة المرور لتأمين حساب التثبيت")}>
+              {t('shared.system.settings_setup_flow_card.s6', "غيّر كلمة مرور حساب التثبيت لإكمال التهيئة")}
             </Button>
           ) : (
-            <Button variant="secondary" onClick={handleNext} disabled={!canAdvance} title={!canAdvance ? 'أكمل هذه الخطوة أولًا ثم انتقل للتالية' : undefined}>
-              {nextStep ? activeStep.nextLabel : 'إنهاء التهيئة'}
+            <Button variant="secondary" onClick={handleNext} disabled={!canAdvance} title={!canAdvance ? t('shared.system.settings_setup_flow_card.s7', "أكمل هذه الخطوة أولًا ثم انتقل للتالية") : undefined}>
+              {nextStep ? activeStep.nextLabel : t('shared.system.settings_setup_flow_card.s8', "إنهاء التهيئة")}
             </Button>
           )}
         </div>

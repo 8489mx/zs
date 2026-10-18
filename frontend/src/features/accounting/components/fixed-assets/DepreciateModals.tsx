@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { Button } from '@/shared/ui/button';
@@ -25,6 +26,7 @@ export const DepreciateAssetModal: React.FC<DepreciateAssetModalProps> = ({
   onClose,
   onSubmit,
 }) => {
+  const { t } = useTranslation();
   if (!asset) return null;
 
   return (
@@ -32,7 +34,7 @@ export const DepreciateAssetModal: React.FC<DepreciateAssetModalProps> = ({
       open={!!asset}
       onClose={onClose}
       title={`إهلاك الأصل: ${asset.name}`}
-      subtitle="احتساب الإهلاك وتوليد قيد اليومية الآلي في شجرة الحسابات"
+      subtitle={t('accounting.fixed_assets.depreciate_modals.s0', "احتساب الإهلاك وتوليد قيد اليومية الآلي في شجرة الحسابات")}
       size="md"
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
@@ -50,7 +52,7 @@ export const DepreciateAssetModal: React.FC<DepreciateAssetModalProps> = ({
         }}>
           <AlertCircleIcon size={18} style={{ flexShrink: 0, marginTop: '2px' }} />
           <span>
-            سيقوم النظام بحساب الإهلاك للفترة المحددة وتوليد قيد يومية محاسبي آلي في شجرة الحسابات (من حـ/ مصروف الإهلاك إلى حـ/ مجمع الإهلاك).
+            {t('accounting.fixed_assets.depreciate_modals.s1', "سيقوم النظام بحساب الإهلاك للفترة المحددة وتوليد قيد يومية محاسبي آلي في شجرة الحسابات (من حـ/ مصروف الإهلاك إلى حـ/ مجمع الإهلاك).")}
           </span>
         </div>
 
@@ -65,12 +67,12 @@ export const DepreciateAssetModal: React.FC<DepreciateAssetModalProps> = ({
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid #e2e8f0', paddingBottom: '6px' }}>
             <CalendarIcon size={15} style={{ color: '#170e5e' }} />
-            <span style={{ fontSize: '12px', fontWeight: 700, color: '#1e293b' }}>فترة الإهلاك والبيان المحاسبي</span>
+            <span style={{ fontSize: '12px', fontWeight: 700, color: '#1e293b' }}>{t('accounting.fixed_assets.depreciate_modals.s2', "فترة الإهلاك والبيان المحاسبي")}</span>
           </div>
 
           <div>
             <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-              عدد الشهور المطلوب إهلاكها <span style={{ color: '#e11d48' }}>*</span>
+              {t('accounting.fixed_assets.depreciate_modals.s3', "عدد الشهور المطلوب إهلاكها")} <span style={{ color: '#e11d48' }}>*</span>
             </label>
             <input
               type="number"
@@ -84,11 +86,11 @@ export const DepreciateAssetModal: React.FC<DepreciateAssetModalProps> = ({
 
           <div>
             <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-              ملاحظة أو بيان القيد (اختياري)
+              {t('accounting.fixed_assets.depreciate_modals.s4', "ملاحظة أو بيان القيد (اختياري)")}
             </label>
             <input
               type="text"
-              placeholder="مثال: إهلاك شهر سبتمبر 2026"
+              placeholder={t('accounting.fixed_assets.depreciate_modals.s5', "مثال: إهلاك شهر سبتمبر 2026")}
               value={note}
               onChange={(e) => setNote(e.target.value)}
               style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '12.5px', boxSizing: 'border-box' }}
@@ -99,7 +101,7 @@ export const DepreciateAssetModal: React.FC<DepreciateAssetModalProps> = ({
 
       <StandardDialogFooter>
         <Button type="button" variant="secondary" onClick={onClose} style={{ padding: '8px 18px', fontSize: '13px', borderRadius: '8px' }}>
-          إلغاء
+          {t('accounting.fixed_assets.depreciate_modals.s6', "إلغاء")}
         </Button>
         <Button
           type="button"
@@ -117,7 +119,7 @@ export const DepreciateAssetModal: React.FC<DepreciateAssetModalProps> = ({
             opacity: isPending ? 0.6 : 1,
           }}
         >
-          {isPending ? 'جاري التنفيذ والتسجيل...' : 'تأكيد وتوليد القيد'}
+          {isPending ? t('accounting.fixed_assets.depreciate_modals.s7', "جاري التنفيذ والتسجيل...") : t('accounting.fixed_assets.depreciate_modals.s8', "تأكيد وتوليد القيد")}
         </Button>
       </StandardDialogFooter>
     </StandardDialog>
@@ -143,11 +145,12 @@ export const BatchDepreciateModal: React.FC<BatchDepreciateModalProps> = ({
   onClose,
   onSubmit,
 }) => {
+  const { t } = useTranslation();
   return (
     <StandardDialog
       open={isOpen}
       onClose={onClose}
-      title="إهلاك شهري شامل لجميع الأصول النشطة"
+      title={t('accounting.fixed_assets.depreciate_modals.s9', "إهلاك شهري شامل لجميع الأصول النشطة")}
       subtitle={`فحص واحتساب الدورة لعدد (${activeCount}) أصل نشط وتحديث مجمع الإهلاك`}
       size="md"
     >
@@ -166,7 +169,7 @@ export const BatchDepreciateModal: React.FC<BatchDepreciateModalProps> = ({
         }}>
           <AlertCircleIcon size={18} style={{ flexShrink: 0, marginTop: '2px' }} />
           <span>
-            سيتم فحص كافة الأصول النشطة ({activeCount} أصل) واحتساب إهلاك الدورة وتوليد القيود المحاسبية وتحديث مجمع الإهلاك لكل أصل تلقائياً.
+            {t('accounting.fixed_assets.depreciate_modals.s10', "سيتم فحص كافة الأصول النشطة (")}{activeCount} {t('accounting.fixed_assets.depreciate_modals.s11', "أصل) واحتساب إهلاك الدورة وتوليد القيود المحاسبية وتحديث مجمع الإهلاك لكل أصل تلقائياً.")}
           </span>
         </div>
 
@@ -181,12 +184,12 @@ export const BatchDepreciateModal: React.FC<BatchDepreciateModalProps> = ({
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid #e2e8f0', paddingBottom: '6px' }}>
             <CalendarIcon size={15} style={{ color: '#170e5e' }} />
-            <span style={{ fontSize: '12px', fontWeight: 700, color: '#1e293b' }}>تحديد مدة دورة الإهلاك</span>
+            <span style={{ fontSize: '12px', fontWeight: 700, color: '#1e293b' }}>{t('accounting.fixed_assets.depreciate_modals.s12', "تحديد مدة دورة الإهلاك")}</span>
           </div>
 
           <div>
             <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-              عدد شهور الإهلاك <span style={{ color: '#e11d48' }}>*</span>
+              {t('accounting.fixed_assets.depreciate_modals.s13', "عدد شهور الإهلاك")} <span style={{ color: '#e11d48' }}>*</span>
             </label>
             <input
               type="number"
@@ -202,7 +205,7 @@ export const BatchDepreciateModal: React.FC<BatchDepreciateModalProps> = ({
 
       <StandardDialogFooter>
         <Button type="button" variant="secondary" onClick={onClose} style={{ padding: '8px 18px', fontSize: '13px', borderRadius: '8px' }}>
-          إلغاء
+          {t('accounting.fixed_assets.depreciate_modals.s14', "إلغاء")}
         </Button>
         <Button
           type="button"
@@ -220,7 +223,7 @@ export const BatchDepreciateModal: React.FC<BatchDepreciateModalProps> = ({
             opacity: isPending ? 0.6 : 1,
           }}
         >
-          {isPending ? 'جاري المعالجة والترحيل...' : 'بدء الإهلاك الشامل'}
+          {isPending ? t('accounting.fixed_assets.depreciate_modals.s15', "جاري المعالجة والترحيل...") : t('accounting.fixed_assets.depreciate_modals.s16', "بدء الإهلاك الشامل")}
         </Button>
       </StandardDialogFooter>
     </StandardDialog>

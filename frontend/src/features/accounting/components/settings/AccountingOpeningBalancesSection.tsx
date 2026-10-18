@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { FormSection } from '@/shared/components/form-section';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { Button } from '@/shared/ui/button';
@@ -39,21 +40,22 @@ export function AccountingOpeningBalancesSection({
   isBalanced,
   openingEntry,
 }: AccountingOpeningBalancesSectionProps) {
+  const { t } = useTranslation();
   return (
     <>
-      <FormSection title="الأرصدة الافتتاحية" description="استخدم هذه الصفحة لتسجيل أرصدة بداية استخدام النظام. يتم ترحيل الأرصدة الافتتاحية مرة واحدة فقط لكل منشأة.">
+      <FormSection title={t('accounting.settings.accounting_opening_balances_section.s0', "الأرصدة الافتتاحية")} description={t('accounting.settings.accounting_opening_balances_section.s1', "استخدم هذه الصفحة لتسجيل أرصدة بداية استخدام النظام. يتم ترحيل الأرصدة الافتتاحية مرة واحدة فقط لكل منشأة.")}>
         <div className="page-stack">
           <p className="muted">
-            أرصدة العملاء والموردين والمخزون يتم حسابها من البيانات المسجلة داخل النظام، بينما رصيد الخزنة والبنك يتم إدخالهما يدويًا.
+            {t('accounting.settings.accounting_opening_balances_section.s2', "أرصدة العملاء والموردين والمخزون يتم حسابها من البيانات المسجلة داخل النظام، بينما رصيد الخزنة والبنك يتم إدخالهما يدويًا.")}
           </p>
 
           <div className="form-grid three-col-form">
             <label className="field">
-              <span>تاريخ بداية النظام</span>
+              <span>{t('accounting.settings.accounting_opening_balances_section.s3', "تاريخ بداية النظام")}</span>
               <input type="date" value={systemStartDate} onChange={(event) => setSystemStartDate(event.target.value)} />
             </label>
             <label className="field">
-              <span>رصيد الخزنة الافتتاحي</span>
+              <span>{t('accounting.settings.accounting_opening_balances_section.s4', "رصيد الخزنة الافتتاحي")}</span>
               <input
                 inputMode="decimal"
                 value={cashOpeningInput}
@@ -62,7 +64,7 @@ export function AccountingOpeningBalancesSection({
               />
             </label>
             <label className="field">
-              <span>رصيد البنك الافتتاحي</span>
+              <span>{t('accounting.settings.accounting_opening_balances_section.s5', "رصيد البنك الافتتاحي")}</span>
               <input
                 inputMode="decimal"
                 value={bankOpeningInput}
@@ -79,7 +81,7 @@ export function AccountingOpeningBalancesSection({
               onClick={() => previewMutation.mutate()}
               disabled={previewMutation.isPending}
             >
-              معاينة القيد الافتتاحي
+              {t('accounting.settings.accounting_opening_balances_section.s6', "معاينة القيد الافتتاحي")}
             </Button>
             <Button
               type="button"
@@ -87,27 +89,27 @@ export function AccountingOpeningBalancesSection({
               onClick={() => setShowPostConfirm(true)}
               disabled={!canPost || postMutation.isPending}
             >
-              ترحيل الأرصدة الافتتاحية
+              {t('accounting.settings.accounting_opening_balances_section.s7', "ترحيل الأرصدة الافتتاحية")}
             </Button>
           </div>
 
           {previewMutation.isError && (
-            <div className="error-box">تعذر تجهيز معاينة الأرصدة الافتتاحية</div>
+            <div className="error-box">{t('accounting.settings.accounting_opening_balances_section.s8', "تعذر تجهيز معاينة الأرصدة الافتتاحية")}</div>
           )}
           {previewMutation.isSuccess && (
-            <div className="success-box">تم تجهيز معاينة القيد الافتتاحي بنجاح.</div>
+            <div className="success-box">{t('accounting.settings.accounting_opening_balances_section.s9', "تم تجهيز معاينة القيد الافتتاحي بنجاح.")}</div>
           )}
 
           {postMutation.isError && (
-            <div className="error-box">تعذر ترحيل الأرصدة الافتتاحية</div>
+            <div className="error-box">{t('accounting.settings.accounting_opening_balances_section.s10', "تعذر ترحيل الأرصدة الافتتاحية")}</div>
           )}
           {postMutation.isSuccess && (
-            <div className="success-box">تم ترحيل الأرصدة الافتتاحية بنجاح.</div>
+            <div className="success-box">{t('accounting.settings.accounting_opening_balances_section.s11', "تم ترحيل الأرصدة الافتتاحية بنجاح.")}</div>
           )}
 
           {openingEntry && (
             <div className="alert alert-info">
-              تم ترحيل الأرصدة الافتتاحية بالفعل برقم القيد {openingEntry.entryNumber} بتاريخ {formatDate(openingEntry.entryDate)}.
+              {t('accounting.settings.accounting_opening_balances_section.s12', "تم ترحيل الأرصدة الافتتاحية بالفعل برقم القيد")} {openingEntry.entryNumber} {t('accounting.settings.accounting_opening_balances_section.s13', "بتاريخ")} {formatDate(openingEntry.entryDate)}.
             </div>
           )}
 
@@ -115,17 +117,17 @@ export function AccountingOpeningBalancesSection({
             <div className="page-stack">
               <div className="kpi-grid">
                 <div className="kpi-card">
-                  <span className="muted small">إجمالي المدين</span>
+                  <span className="muted small">{t('accounting.settings.accounting_opening_balances_section.s14', "إجمالي المدين")}</span>
                   <strong>{formatCurrency((previewData as any).totalDebit ?? 0)}</strong>
                 </div>
                 <div className="kpi-card">
-                  <span className="muted small">إجمالي الدائن</span>
+                  <span className="muted small">{t('accounting.settings.accounting_opening_balances_section.s15', "إجمالي الدائن")}</span>
                   <strong>{formatCurrency((previewData as any).totalCredit ?? 0)}</strong>
                 </div>
                 <div className="kpi-card">
-                  <span className="muted small">حالة القيد</span>
+                  <span className="muted small">{t('accounting.settings.accounting_opening_balances_section.s16', "حالة القيد")}</span>
                   <strong className={isBalanced ? 'text-success' : 'text-danger'}>
-                    {isBalanced ? 'القيد متزن' : 'القيد غير متزن'}
+                    {isBalanced ? t('accounting.settings.accounting_opening_balances_section.s17', "القيد متزن") : t('accounting.settings.accounting_opening_balances_section.s18', "القيد غير متزن")}
                   </strong>
                 </div>
               </div>
@@ -133,10 +135,10 @@ export function AccountingOpeningBalancesSection({
               <table className="table-shell">
                 <thead>
                   <tr>
-                    <th>الحساب</th>
-                    <th>البيان</th>
-                    <th>مدين</th>
-                    <th>دائن</th>
+                    <th>{t('accounting.settings.accounting_opening_balances_section.s19', "الحساب")}</th>
+                    <th>{t('accounting.settings.accounting_opening_balances_section.s20', "البيان")}</th>
+                    <th>{t('accounting.settings.accounting_opening_balances_section.s21', "مدين")}</th>
+                    <th>{t('accounting.settings.accounting_opening_balances_section.s22', "دائن")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -158,15 +160,15 @@ export function AccountingOpeningBalancesSection({
       <StandardDialog
         isOpen={showPostConfirm}
         onClose={() => setShowPostConfirm(false)}
-        title="تأكيد ترحيل الأرصدة الافتتاحية"
-        subtitle="إنشاء القيد الافتتاحي واعتماد الأرصدة التأسيسية للمنشأة"
+        title={t('accounting.settings.accounting_opening_balances_section.s23', "تأكيد ترحيل الأرصدة الافتتاحية")}
+        subtitle={t('accounting.settings.accounting_opening_balances_section.s24', "إنشاء القيد الافتتاحي واعتماد الأرصدة التأسيسية للمنشأة")}
         maxWidth="520px"
         footer={
           <StandardDialogFooter
             onClose={() => setShowPostConfirm(false)}
-            closeLabel="إلغاء"
+            closeLabel={t('accounting.settings.accounting_opening_balances_section.s25', "إلغاء")}
             primaryButton={{
-              label: postMutation.isPending ? 'جاري الترحيل...' : 'تأكيد الترحيل النهائي',
+              label: postMutation.isPending ? t('accounting.settings.accounting_opening_balances_section.s26', "جاري الترحيل...") : t('accounting.settings.accounting_opening_balances_section.s27', "تأكيد الترحيل النهائي"),
               onClick: () => postMutation.mutate(),
               disabled: !canPost || postMutation.isPending,
               variant: 'danger',
@@ -186,7 +188,7 @@ export function AccountingOpeningBalancesSection({
               lineHeight: 1.6,
             }}
           >
-            <strong>تنبيه مالي رقابي:</strong> سيتم إنشاء قيد افتتاحي محاسبي مرحّل تلقائياً، ولا يمكن ترحيل الأرصدة الافتتاحية مرة أخرى لنفس المنشأة بعد الاعتماد. هل أنت متأكد من رغبتك في المتابعة؟
+            <strong>{t('accounting.settings.accounting_opening_balances_section.s28', "تنبيه مالي رقابي:")}</strong> {t('accounting.settings.accounting_opening_balances_section.s29', "سيتم إنشاء قيد افتتاحي محاسبي مرحّل تلقائياً، ولا يمكن ترحيل الأرصدة الافتتاحية مرة أخرى لنفس المنشأة بعد الاعتماد. هل أنت متأكد من رغبتك في المتابعة؟")}
           </div>
         </div>
       </StandardDialog>

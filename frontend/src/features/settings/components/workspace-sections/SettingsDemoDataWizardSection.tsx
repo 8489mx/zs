@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -41,6 +42,7 @@ function getActivityIcon(key: string, isSelected: boolean, size = 20) {
 }
 
 export function SettingsDemoDataWizardSection() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const isQuickStart = searchParams.get('setup') === 'quickstart' || searchParams.get('setup') === '1';
@@ -177,7 +179,7 @@ export function SettingsDemoDataWizardSection() {
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <strong style={{ fontSize: '0.96rem', color: '#0f172a' }}>
-                  دليل التجهيز السريع — الخطوة 2 من 3: إضافة وتجهيز الأصناف في المخزون
+                  {t('settings.workspace_sections.settings_demo_data_wizard_section.s0', "دليل التجهيز السريع — الخطوة 2 من 3: إضافة وتجهيز الأصناف في المخزون")}
                 </strong>
                 <span
                   style={{
@@ -190,11 +192,11 @@ export function SettingsDemoDataWizardSection() {
                     borderRadius: '6px',
                   }}
                 >
-                  الخطوة 2 من 3
+                  {t('settings.workspace_sections.settings_demo_data_wizard_section.s1', "الخطوة 2 من 3")}
                 </span>
               </div>
               <p style={{ margin: '3px 0 0', fontSize: '0.83rem', color: '#64748b' }}>
-                اختر نشاطك التجاري واضغط استيراد لملء المخزن فورياً بـ 50 صنفاً وفواتير جاهزة، أو يمكنك إضافة أصناف يدوياً.
+                {t('settings.workspace_sections.settings_demo_data_wizard_section.s2', "اختر نشاطك التجاري واضغط استيراد لملء المخزن فورياً بـ 50 صنفاً وفواتير جاهزة، أو يمكنك إضافة أصناف يدوياً.")}
               </p>
             </div>
 
@@ -214,7 +216,7 @@ export function SettingsDemoDataWizardSection() {
                 cursor: 'pointer',
               }}
             >
-              إضافة أصناف يدوياً
+              {t('settings.workspace_sections.settings_demo_data_wizard_section.s3', "إضافة أصناف يدوياً")}
             </button>
             <button
               type="button"
@@ -230,7 +232,7 @@ export function SettingsDemoDataWizardSection() {
                 cursor: 'pointer',
               }}
             >
-              تخطي للخطوة 3 (الكاشير)
+              {t('settings.workspace_sections.settings_demo_data_wizard_section.s4', "تخطي للخطوة 3 (الكاشير)")}
             </button>
             <button
               type="button"
@@ -245,7 +247,7 @@ export function SettingsDemoDataWizardSection() {
                 textDecoration: 'underline',
               }}
             >
-              العودة للرئيسية
+              {t('settings.workspace_sections.settings_demo_data_wizard_section.s5', "العودة للرئيسية")}
             </button>
           </div>
         </div>
@@ -268,17 +270,17 @@ export function SettingsDemoDataWizardSection() {
       >
         <div style={{ flex: '1 1 400px' }}>
           <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: '#0f172a' }}>
-            معالج استيراد البيانات التجريبية حسب النشاط (Demo Wizard)
+            {t('settings.workspace_sections.settings_demo_data_wizard_section.s6', "معالج استيراد البيانات التجريبية حسب النشاط (Demo Wizard)")}
           </h2>
           <p style={{ margin: '4px 0 0', fontSize: '0.88rem', color: '#64748b', lineHeight: 1.5 }}>
-            اختر تخصص نشاطك التجاري لملء النظام فورياً بـ ~50 صنفاً وفواتير كاشير وموردين وحركات مبيعات حقيقية في 5 ثوانٍ، لترى كافة لوحات التحكم والتقارير نابضة بالحياة.
+            {t('settings.workspace_sections.settings_demo_data_wizard_section.s7', "اختر تخصص نشاطك التجاري لملء النظام فورياً بـ ~50 صنفاً وفواتير كاشير وموردين وحركات مبيعات حقيقية في 5 ثوانٍ، لترى كافة لوحات التحكم والتقارير نابضة بالحياة.")}
           </p>
         </div>
 
         {/* Status Badge */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           {statusQuery.isLoading ? (
-            <span style={{ fontSize: '0.85rem', color: '#64748b' }}>جاري فحص حالة النظام...</span>
+            <span style={{ fontSize: '0.85rem', color: '#64748b' }}>{t('settings.workspace_sections.settings_demo_data_wizard_section.s8', "جاري فحص حالة النظام...")}</span>
           ) : status?.isEmpty ? (
             <div
               style={{
@@ -295,7 +297,7 @@ export function SettingsDemoDataWizardSection() {
               }}
             >
               <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981' }} />
-              النظام فارغ (جاهز للاستيراد الفوري بنقرة واحدة)
+              {t('settings.workspace_sections.settings_demo_data_wizard_section.s9', "النظام فارغ (جاهز للاستيراد الفوري بنقرة واحدة)")}
             </div>
           ) : (
             <div
@@ -314,12 +316,12 @@ export function SettingsDemoDataWizardSection() {
             >
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                 <PackageIcon size={14} />
-                <span>{status?.productCount || 0} صنف مسجل</span>
+                <span>{status?.productCount || 0} {t('settings.workspace_sections.settings_demo_data_wizard_section.s10', "صنف مسجل")}</span>
               </span>
               <span style={{ color: '#cbd5e1' }}>|</span>
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                 <ReceiptIcon size={14} />
-                <span>{status?.saleCount || 0} فاتورة</span>
+                <span>{status?.saleCount || 0} {t('settings.workspace_sections.settings_demo_data_wizard_section.s11', "فاتورة")}</span>
               </span>
             </div>
           )}
@@ -355,10 +357,10 @@ export function SettingsDemoDataWizardSection() {
       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#0f172a' }}>
-            1. اختر مجال نشاطك التجاري:
+            {t('settings.workspace_sections.settings_demo_data_wizard_section.s12', "1. اختر مجال نشاطك التجاري:")}
           </h3>
           <span style={{ fontSize: '0.82rem', color: '#64748b' }}>
-            5 باقات متكاملة معدة مسبقاً بأدق التفاصيل والأسعار والباركودات
+            {t('settings.workspace_sections.settings_demo_data_wizard_section.s13', "5 باقات متكاملة معدة مسبقاً بأدق التفاصيل والأسعار والباركودات")}
           </span>
         </div>
 
@@ -375,7 +377,7 @@ export function SettingsDemoDataWizardSection() {
           {activitiesQuery.isLoading && (
             <div style={{ padding: '32px', textAlign: 'center', color: '#64748b', fontSize: '0.9rem', gridColumn: '1 / -1' }}>
               <RefreshCwIcon size={20} className="animate-spin" style={{ margin: '0 auto 8px', display: 'block' }} />
-              <span>جاري تحميل باقات الأنشطة التجارية...</span>
+              <span>{t('settings.workspace_sections.settings_demo_data_wizard_section.s14', "جاري تحميل باقات الأنشطة التجارية...")}</span>
             </div>
           )}
 
@@ -511,7 +513,7 @@ export function SettingsDemoDataWizardSection() {
         }}
       >
         <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#0f172a' }}>
-          2. خيارات التجهيز السريع:
+          {t('settings.workspace_sections.settings_demo_data_wizard_section.s15', "2. خيارات التجهيز السريع:")}
         </h3>
 
         <div
@@ -543,10 +545,10 @@ export function SettingsDemoDataWizardSection() {
               />
               <div>
                 <span style={{ fontSize: '0.88rem', fontWeight: 700, color: '#991b1b' }}>
-                  تصفير البيانات السابقة واستبدالها بنظافة (صلاحية السوبر أدمن)
+                  {t('settings.workspace_sections.settings_demo_data_wizard_section.s16', "تصفير البيانات السابقة واستبدالها بنظافة (صلاحية السوبر أدمن)")}
                 </span>
                 <p style={{ margin: '2px 0 0', fontSize: '0.78rem', color: '#64748b' }}>
-                  يتطلب إدخال كلمة مرور السوبر أدمن لتأكيد تفريغ كافة البيانات القديمة للنسخة.
+                  {t('settings.workspace_sections.settings_demo_data_wizard_section.s17', "يتطلب إدخال كلمة مرور السوبر أدمن لتأكيد تفريغ كافة البيانات القديمة للنسخة.")}
                 </p>
               </div>
             </label>
@@ -573,10 +575,10 @@ export function SettingsDemoDataWizardSection() {
             />
             <div>
               <span style={{ fontSize: '0.88rem', fontWeight: 700, color: '#0f172a' }}>
-                توليد فواتير مبيعات سابقة (موزعة على 6 أشهر)
+                {t('settings.workspace_sections.settings_demo_data_wizard_section.s18', "توليد فواتير مبيعات سابقة (موزعة على 6 أشهر)")}
               </span>
               <p style={{ margin: '2px 0 0', fontSize: '0.78rem', color: '#64748b' }}>
-                يملأ الداشبورد والرسوم البيانية وحركات الكاشير بحوالي 100 فاتورة واقعية مع هوامش ربح متزنة.
+                {t('settings.workspace_sections.settings_demo_data_wizard_section.s19', "يملأ الداشبورد والرسوم البيانية وحركات الكاشير بحوالي 100 فاتورة واقعية مع هوامش ربح متزنة.")}
               </p>
             </div>
           </label>
@@ -602,10 +604,10 @@ export function SettingsDemoDataWizardSection() {
             />
             <div>
               <span style={{ fontSize: '0.88rem', fontWeight: 700, color: '#0f172a' }}>
-                توليد طلبات متجر إلكتروني سحابية
+                {t('settings.workspace_sections.settings_demo_data_wizard_section.s20', "توليد طلبات متجر إلكتروني سحابية")}
               </span>
               <p style={{ margin: '2px 0 0', fontSize: '0.78rem', color: '#64748b' }}>
-                يضيف 4-5 طلبات متجر بحالات مختلفة (قيد التجهيز، شحن، تسليم) لتجربة بوابة الشحن والطلبات.
+                {t('settings.workspace_sections.settings_demo_data_wizard_section.s21', "يضيف 4-5 طلبات متجر بحالات مختلفة (قيد التجهيز، شحن، تسليم) لتجربة بوابة الشحن والطلبات.")}
               </p>
             </div>
           </label>
@@ -633,10 +635,10 @@ export function SettingsDemoDataWizardSection() {
               </div>
               <div>
                 <strong style={{ fontSize: '0.92rem', color: '#0f172a', display: 'block' }}>
-                  المتجر قيد التشغيل الفعلي ويحتوي على بيانات مسجلة ({status.productCount} صنف و {status.saleCount} فاتورة)
+                  {t('settings.workspace_sections.settings_demo_data_wizard_section.s22', "المتجر قيد التشغيل الفعلي ويحتوي على بيانات مسجلة (")}{status.productCount} {t('settings.workspace_sections.settings_demo_data_wizard_section.s23', "صنف و")} {status.saleCount} {t('settings.workspace_sections.settings_demo_data_wizard_section.s24', "فاتورة)")}
                 </strong>
                 <span style={{ fontSize: '0.8rem', color: '#64748b' }}>
-                  لحماية بيانات متجرك من التداخل، تم قفل استيراد البيانات التجريبية. لتصفير المتجر وإعادته فارغاً للبدء الفعلي، يرجى التواصل مع إدارة المنصة (السوبر أدمن).
+                  {t('settings.workspace_sections.settings_demo_data_wizard_section.s25', "لحماية بيانات متجرك من التداخل، تم قفل استيراد البيانات التجريبية. لتصفير المتجر وإعادته فارغاً للبدء الفعلي، يرجى التواصل مع إدارة المنصة (السوبر أدمن).")}
                 </span>
               </div>
             </div>
@@ -654,7 +656,7 @@ export function SettingsDemoDataWizardSection() {
             }}
           >
             <div style={{ fontSize: '0.86rem', color: '#475569' }}>
-              النشاط المحدد: <strong style={{ color: '#170e5e' }}>{selectedActivity?.name || selectedActivityKey}</strong> ({(selectedActivity?.productCount ?? selectedActivity?.productsCount ?? 0)} صنفاً)
+              {t('settings.workspace_sections.settings_demo_data_wizard_section.s26', "النشاط المحدد:")} <strong style={{ color: '#170e5e' }}>{selectedActivity?.name || selectedActivityKey}</strong> ({(selectedActivity?.productCount ?? selectedActivity?.productsCount ?? 0)} {t('settings.workspace_sections.settings_demo_data_wizard_section.s27', "صنفاً)")}
             </div>
 
             <Button
@@ -680,10 +682,10 @@ export function SettingsDemoDataWizardSection() {
               {seedMutation.isPending ? (
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                   <RefreshCwIcon size={16} className="animate-spin" />
-                  <span>جاري ملء النظام بالبيانات (5 ثوانٍ)...</span>
+                  <span>{t('settings.workspace_sections.settings_demo_data_wizard_section.s28', "جاري ملء النظام بالبيانات (5 ثوانٍ)...")}</span>
                 </span>
               ) : (
-                <span>استيراد بيانات النشاط فورياً بنقرة واحدة</span>
+                <span>{t('settings.workspace_sections.settings_demo_data_wizard_section.s29', "استيراد بيانات النشاط فورياً بنقرة واحدة")}</span>
               )}
             </Button>
           </div>
@@ -724,10 +726,10 @@ export function SettingsDemoDataWizardSection() {
         >
           <div>
             <h4 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 800, color: '#0f172a' }}>
-              تفريغ البيانات التجريبية وبدء العمل الفعلي (Clean Production Reset)
+              {t('settings.workspace_sections.settings_demo_data_wizard_section.s30', "تفريغ البيانات التجريبية وبدء العمل الفعلي (Clean Production Reset)")}
             </h4>
             <p style={{ margin: '4px 0 0', fontSize: '0.82rem', color: '#64748b', maxWidth: '650px', lineHeight: 1.5 }}>
-              عند الانتهاء من تجربة وفحص النظام ورغبتك في بدء العمل الحقيقي، يمكنك مسح كافة الأصناف والفواتير التجريبية بأمان دون التأثير على إعداداتك أو مستخدميك.
+              {t('settings.workspace_sections.settings_demo_data_wizard_section.s31', "عند الانتهاء من تجربة وفحص النظام ورغبتك في بدء العمل الحقيقي، يمكنك مسح كافة الأصناف والفواتير التجريبية بأمان دون التأثير على إعداداتك أو مستخدميك.")}
             </p>
           </div>
 
@@ -756,7 +758,7 @@ export function SettingsDemoDataWizardSection() {
             }}
           >
             <Trash2Icon size={16} />
-            <span>تفريغ ومسح البيانات التجريبية فقط</span>
+            <span>{t('settings.workspace_sections.settings_demo_data_wizard_section.s32', "تفريغ ومسح البيانات التجريبية فقط")}</span>
           </button>
         </div>
       )}
@@ -806,12 +808,12 @@ export function SettingsDemoDataWizardSection() {
               <RefreshCwIcon size={32} color="#170e5e" className="animate-spin" />
             </div>
             <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: '#0f172a' }}>
-              جاري تجهيز وسكب البيانات التجريبية...
+              {t('settings.workspace_sections.settings_demo_data_wizard_section.s33', "جاري تجهيز وسكب البيانات التجريبية...")}
             </h3>
             <p style={{ margin: 0, fontSize: '0.88rem', color: '#64748b', lineHeight: 1.6 }}>
-              يتم الآن إنشاء الأصناف، الباركودات، فواتير المبيعات، وحركات الخزينة لنشاط ({selectedActivity?.name || selectedActivityKey}).
+              {t('settings.workspace_sections.settings_demo_data_wizard_section.s34', "يتم الآن إنشاء الأصناف، الباركودات، فواتير المبيعات، وحركات الخزينة لنشاط (")}{selectedActivity?.name || selectedActivityKey}).
               <br />
-              يرجى الانتظار ثوانٍ معدودة...
+              {t('settings.workspace_sections.settings_demo_data_wizard_section.s35', "يرجى الانتظار ثوانٍ معدودة...")}
             </p>
           </div>
         </div>
@@ -846,10 +848,10 @@ export function SettingsDemoDataWizardSection() {
               </div>
               <div>
                 <h3 className="standard-dialog-title" style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#170e5e' }}>
-                  تأكيد استبدال البيانات الحالية
+                  {t('settings.workspace_sections.settings_demo_data_wizard_section.s36', "تأكيد استبدال البيانات الحالية")}
                 </h3>
                 <span className="standard-dialog-subtitle" style={{ fontSize: '0.8rem', color: '#64748b' }}>
-                  يوجد حالياً بيانات مسجلة في المتجر، سيتم أخذ نسخة احتياطية تلقائياً
+                  {t('settings.workspace_sections.settings_demo_data_wizard_section.s37', "يوجد حالياً بيانات مسجلة في المتجر، سيتم أخذ نسخة احتياطية تلقائياً")}
                 </span>
               </div>
             </div>
@@ -861,7 +863,7 @@ export function SettingsDemoDataWizardSection() {
                 setPassword('');
                 setErrorMessage(null);
               }}
-              aria-label="إغلاق"
+              aria-label={t('settings.workspace_sections.settings_demo_data_wizard_section.s38', "إغلاق")}
             >
               <XIcon size={18} />
             </button>
@@ -869,13 +871,13 @@ export function SettingsDemoDataWizardSection() {
 
           <div className="standard-dialog-body" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <p style={{ margin: 0, fontSize: '0.85rem', color: '#475569', lineHeight: 1.5 }}>
-              يرجى إدخال كلمة مرور السوبر أدمن لتأكيد تفريغ البيانات القديمة واستيراد نشاط (
+              {t('settings.workspace_sections.settings_demo_data_wizard_section.s39', "يرجى إدخال كلمة مرور السوبر أدمن لتأكيد تفريغ البيانات القديمة واستيراد نشاط (")}
               <strong>{selectedActivity?.name}</strong>):
             </p>
 
             <input
               type="password"
-              placeholder="كلمة مرور السوبر أدمن"
+              placeholder={t('settings.workspace_sections.settings_demo_data_wizard_section.s40', "كلمة مرور السوبر أدمن")}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               autoFocus
@@ -922,7 +924,7 @@ export function SettingsDemoDataWizardSection() {
                 cursor: 'pointer',
               }}
             >
-              إلغاء
+              {t('settings.workspace_sections.settings_demo_data_wizard_section.s41', "إلغاء")}
             </button>
 
             <Button
@@ -940,7 +942,7 @@ export function SettingsDemoDataWizardSection() {
                 cursor: 'pointer',
               }}
             >
-              {seedMutation.isPending ? 'جاري الاستيراد...' : 'تأكيد واستيراد الآن'}
+              {seedMutation.isPending ? t('settings.workspace_sections.settings_demo_data_wizard_section.s42', "جاري الاستيراد...") : t('settings.workspace_sections.settings_demo_data_wizard_section.s43', "تأكيد واستيراد الآن")}
             </Button>
           </div>
         </DialogShell>
@@ -974,10 +976,10 @@ export function SettingsDemoDataWizardSection() {
               </div>
               <div>
                 <h3 className="standard-dialog-title" style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#170e5e' }}>
-                  تفريغ الأصناف والبيانات التجريبية
+                  {t('settings.workspace_sections.settings_demo_data_wizard_section.s44', "تفريغ الأصناف والبيانات التجريبية")}
                 </h3>
                 <span className="standard-dialog-subtitle" style={{ fontSize: '0.8rem', color: '#64748b' }}>
-                  سيتم حذف الأصناف والفواتير التجريبية فقط بأمان
+                  {t('settings.workspace_sections.settings_demo_data_wizard_section.s45', "سيتم حذف الأصناف والفواتير التجريبية فقط بأمان")}
                 </span>
               </div>
             </div>
@@ -988,7 +990,7 @@ export function SettingsDemoDataWizardSection() {
                 setShowClearModal(false);
                 setClearPassword('');
               }}
-              aria-label="إغلاق"
+              aria-label={t('settings.workspace_sections.settings_demo_data_wizard_section.s46', "إغلاق")}
             >
               <XIcon size={18} />
             </button>
@@ -996,12 +998,12 @@ export function SettingsDemoDataWizardSection() {
 
           <div className="standard-dialog-body" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <p style={{ margin: 0, fontSize: '0.85rem', color: '#475569', lineHeight: 1.5 }}>
-              سيتم إزالة كافة الأصناف والعملاء والموردين التجريبيين الذين تم استيرادهم بواسطة المعالج، وتهيئة المخزن للعمل الحقيقي. أدخل كلمة مرور الأدمن للتأكيد:
+              {t('settings.workspace_sections.settings_demo_data_wizard_section.s47', "سيتم إزالة كافة الأصناف والعملاء والموردين التجريبيين الذين تم استيرادهم بواسطة المعالج، وتهيئة المخزن للعمل الحقيقي. أدخل كلمة مرور الأدمن للتأكيد:")}
             </p>
 
             <input
               type="password"
-              placeholder="كلمة المرور (اختياري للأدمن في مرحلة التجربة)"
+              placeholder={t('settings.workspace_sections.settings_demo_data_wizard_section.s48', "كلمة المرور (اختياري للأدمن في مرحلة التجربة)")}
               value={clearPassword}
               onChange={(e) => setClearPassword(e.target.value)}
               style={{
@@ -1035,7 +1037,7 @@ export function SettingsDemoDataWizardSection() {
                 cursor: 'pointer',
               }}
             >
-              إلغاء
+              {t('settings.workspace_sections.settings_demo_data_wizard_section.s49', "إلغاء")}
             </button>
 
             <button
@@ -1053,7 +1055,7 @@ export function SettingsDemoDataWizardSection() {
                 cursor: 'pointer',
               }}
             >
-              {clearMutation.isPending ? 'جاري الحذف...' : 'تأكيد الحذف والتنظيف'}
+              {clearMutation.isPending ? t('settings.workspace_sections.settings_demo_data_wizard_section.s50', "جاري الحذف...") : t('settings.workspace_sections.settings_demo_data_wizard_section.s51', "تأكيد الحذف والتنظيف")}
             </button>
           </div>
         </DialogShell>
@@ -1084,10 +1086,10 @@ export function SettingsDemoDataWizardSection() {
 
             <div>
               <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: '#0f172a' }}>
-                تم استيراد البيانات التجريبية بنجاح!
+                {t('settings.workspace_sections.settings_demo_data_wizard_section.s52', "تم استيراد البيانات التجريبية بنجاح!")}
               </h3>
               <p style={{ margin: '6px 0 0', fontSize: '0.9rem', color: '#64748b' }}>
-                أصبح النظام الآن ممتلئاً بالحياة والبيانات الواقعية لنشاط (
+                {t('settings.workspace_sections.settings_demo_data_wizard_section.s53', "أصبح النظام الآن ممتلئاً بالحياة والبيانات الواقعية لنشاط (")}
                 <strong>{selectedActivity?.name}</strong>)
               </p>
             </div>
@@ -1106,28 +1108,28 @@ export function SettingsDemoDataWizardSection() {
                 <span style={{ fontSize: '1.35rem', fontWeight: 800, color: '#170e5e', display: 'block' }}>
                   {successResult.productsCount || 0}
                 </span>
-                <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>أصناف بالمخزن</span>
+                <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>{t('settings.workspace_sections.settings_demo_data_wizard_section.s54', "أصناف بالمخزن")}</span>
               </div>
 
               <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '12px 8px' }}>
                 <span style={{ fontSize: '1.35rem', fontWeight: 800, color: '#10b981', display: 'block' }}>
                   {successResult.salesCount || 0}
                 </span>
-                <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>فواتير مبيعات</span>
+                <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>{t('settings.workspace_sections.settings_demo_data_wizard_section.s55', "فواتير مبيعات")}</span>
               </div>
 
               <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '12px 8px' }}>
                 <span style={{ fontSize: '1.35rem', fontWeight: 800, color: '#0284c7', display: 'block' }}>
                   {successResult.onlineOrdersCount || 0}
                 </span>
-                <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>طلبات متجر</span>
+                <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>{t('settings.workspace_sections.settings_demo_data_wizard_section.s56', "طلبات متجر")}</span>
               </div>
             </div>
 
             {successResult.demoCredentials && successResult.demoCredentials.length > 0 && (
               <div style={{ width: '100%', textAlign: 'right', background: '#fffbeb', border: '1px solid #fcd34d', borderRadius: '10px', padding: '12px' }}>
-                <strong style={{ display: 'block', color: '#92400e', marginBottom: '8px' }}>بيانات الدخول المؤقتة</strong>
-                <p style={{ margin: '0 0 8px', color: '#78350f', fontSize: '0.8rem' }}>احفظها الآن؛ سيُطلب تغيير كلمة المرور عند أول دخول.</p>
+                <strong style={{ display: 'block', color: '#92400e', marginBottom: '8px' }}>{t('settings.workspace_sections.settings_demo_data_wizard_section.s57', "بيانات الدخول المؤقتة")}</strong>
+                <p style={{ margin: '0 0 8px', color: '#78350f', fontSize: '0.8rem' }}>{t('settings.workspace_sections.settings_demo_data_wizard_section.s58', "احفظها الآن؛ سيُطلب تغيير كلمة المرور عند أول دخول.")}</p>
                 {successResult.demoCredentials.map((credential) => (
                   <div key={credential.username} style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', direction: 'rtl', fontFamily: 'monospace', fontSize: '0.86rem', padding: '4px 0' }}>
                     <span>{credential.username}</span>
@@ -1156,7 +1158,7 @@ export function SettingsDemoDataWizardSection() {
               >
                 <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
                   <ShoppingCartIcon size={16} />
-                  <span>الخطوة 3 والأخيرة: فتح شاشة الكاشير (POS) وبدء البيع</span>
+                  <span>{t('settings.workspace_sections.settings_demo_data_wizard_section.s59', "الخطوة 3 والأخيرة: فتح شاشة الكاشير (POS) وبدء البيع")}</span>
                 </span>
               </Button>
 
@@ -1177,7 +1179,7 @@ export function SettingsDemoDataWizardSection() {
                 >
                   <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
                     <BarChartIcon size={15} />
-                    <span>لوحة التحكم الرئيسية</span>
+                    <span>{t('settings.workspace_sections.settings_demo_data_wizard_section.s60', "لوحة التحكم الرئيسية")}</span>
                   </span>
                 </button>
 
@@ -1197,7 +1199,7 @@ export function SettingsDemoDataWizardSection() {
                 >
                   <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
                     <PackageIcon size={15} />
-                    <span>مراجعة الأصناف والمخزون</span>
+                    <span>{t('settings.workspace_sections.settings_demo_data_wizard_section.s61', "مراجعة الأصناف والمخزون")}</span>
                   </span>
                 </button>
               </div>
@@ -1214,7 +1216,7 @@ export function SettingsDemoDataWizardSection() {
                   marginTop: '4px',
                 }}
               >
-                إغلاق والبقاء في الإعدادات
+                {t('settings.workspace_sections.settings_demo_data_wizard_section.s62', "إغلاق والبقاء في الإعدادات")}
               </button>
             </div>
           </div>

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useMemo } from 'react';
 import type { StorefrontInfo } from '../types/storefront.types';
 import { IconTruck } from './StorefrontIcons';
@@ -29,6 +30,7 @@ function formatMoney(value: number, currency: string): string {
  * - رسوم التوصيل العادية تُعرض بشفافية تامة داخل السلة وشاشة إتمام الطلب حسب منطقة العميل.
  */
 export function StorefrontDeliveryInfoBar({ info }: Props) {
+  const { t } = useTranslation();
   const signals = useMemo(() => {
     const currency = info.currency === 'EGP' ? 'ج.م' : (info.currency || 'ج.م');
     const freeShippingAt = info.freeShippingEnabled ? Number(info.freeShippingMinOrder || 0) : 0;
@@ -141,7 +143,7 @@ export function StorefrontDeliveryInfoBar({ info }: Props) {
         </div>
         {signals.estimatedTime && (
           <div className="storefront-delivery-info-time" style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--storefront-primary-color, #170e5e)', opacity: 0.85, fontSize: '0.78rem' }}>
-            <span>• التوصيل المتوقع:</span>
+            <span>{t('storefront.storefront_delivery_info_bar.s0', "• التوصيل المتوقع:")}</span>
             <strong>{signals.estimatedTime}</strong>
           </div>
         )}

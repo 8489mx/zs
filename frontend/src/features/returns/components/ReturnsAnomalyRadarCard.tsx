@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { FormSection } from '@/shared/components/form-section';
 import { StatsGrid } from '@/shared/components/stats-grid';
 import { DataTable } from '@/shared/ui/data-table';
@@ -32,6 +33,7 @@ export function ReturnsAnomalyRadarCard({
   sales,
   onSelectReturn,
 }: ReturnsAnomalyRadarCardProps) {
+  const { t } = useTranslation();
   const [subView, setSubView] = useState<'suspects' | 'cashiers'>('suspects');
   const [selectedCashier, setSelectedCashier] = useState<string>('all');
   const [riskFilter, setRiskFilter] = useState<'all' | 'high' | 'rapid' | 'medium'>('all');
@@ -73,17 +75,33 @@ export function ReturnsAnomalyRadarCard({
   }, [summary.analyzedRecords, selectedCashier, riskFilter, searchQuery]);
 
   const handleCopyCctvTime = (record: AnalyzedReturnRecord) => {
-    const text = `فحص كاميرا المراقبة:\nالكاشير: ${record.cashierName}\nتاريخ الفاتورة: ${record.saleDate ? formatDate(record.saleDate) : '—'}\nتاريخ المرتجع: ${record.returnDate ? formatDate(record.returnDate) : '—'}\nالفارق الزمني: ${record.timeGapMinutes !== null ? `${record.timeGapMinutes} دقيقة` : 'غير محدد'}\nالصنف: ${record.record.productName}\nالمبلغ: ${record.record.total} ${getGlobalCurrencySymbol()}`;
+    const text = `${t('returns.cctv_check', 'فحص كاميرا المراقبة')}:\n${t('returns.col_cashier', 'الكاشير')}: ${record.cashierName}\n${t('returns.cctv_sale_date', 'تاريخ الفاتورة')}: ${record.saleDate ? formatDate(record.saleDate) : '—'}\n${t('returns.cctv_return_date', 'تاريخ المرتجع')}: ${record.returnDate ? formatDate(record.returnDate) : '—'}\n${t('returns.cctv_time_gap', 'الفارق الزمني')}: ${record.timeGapMinutes !== null ? `${record.timeGapMinutes} ${t('returns.unit_minute', 'دقيقة')}` : t('returns.undefined', 'غير محدد')}\n${t('returns.col_product', 'الصنف')}: ${record.record.productName}\n${t('returns.amount', 'المبلغ')}: ${record.record.total} ${getGlobalCurrencySymbol()}`;
     navigator.clipboard.writeText(text);
     setCopiedId(record.record.id);
     setTimeout(() => setCopiedId(null), 2500);
   };
 
+  const getFlagLabel = (flag: SuspectFlag, row: AnalyzedReturnRecord) => {
+    if (flag.id === 'rapid_return') {
+      return t('returns.flag_rapid', 'مرتجع فوري سريع (بعد {{minutes}} دقيقة فقط من البيع)', { minutes: row.timeGapMinutes });
+    }
+    if (flag.id === 'high_value') {
+      return t('returns.flag_high_value', 'قيمة مرتجع عالية ({{amount}} {{symbol}})', { amount: Number(row.record.total || 0).toLocaleString(), symbol: getGlobalCurrencySymbol() });
+    }
+    if (flag.id === 'anonymous_cash') {
+      return t('returns.flag_anonymous_cash', 'مرتجع نقدي لعميل غير مسجل');
+    }
+    if (flag.id === 'unmatched_sale') {
+      return t('returns.flag_unmatched_sale', 'فاتورة غير مسجلة مباشرة');
+    }
+    return flag.label;
+  };
+
   const stats = [
-    { key: 'suspect', label: 'حركات مشبوهة مرصودة', value: summary.totalSuspectReturnsCount },
-    { key: 'rapid', label: 'مرتجعات سريعة (أقل من 15 دقيقة)', value: summary.totalRapidReturnsCount },
-    { key: 'cashiers', label: 'كاشيرات تحت الملاحظة', value: summary.highRiskCashiersCount },
-    { key: 'rate', label: 'معدل المرتجعات العام', value: `${summary.overallReturnRatePercent}%` },
+    { key: 'suspect', label: t('returns.stats_suspect', 'حركات مشبوهة مرصودة'), value: summary.totalSuspectReturnsCount },
+    { key: 'rapid', label: t('returns.stats_rapid', 'مرتجعات سريعة (أقل من 15 دقيقة)'), value: summary.totalRapidReturnsCount },
+    { key: 'cashiers', label: t('returns.stats_cashiers', 'كاشيرات تحت الملاحظة'), value: summary.highRiskCashiersCount },
+    { key: 'rate', label: t('returns.stats_rate', 'معدل المرتجعات العام'), value: `${summary.overallReturnRatePercent}%` },
   ] as const;
 
   return (
@@ -93,8 +111,8 @@ export function ReturnsAnomalyRadarCard({
 
       {/* 2. Main Radar Form Section */}
       <FormSection
-        title="رقابة وتدقيق شبهات المرتجعات"
-        description="تحليل ذكي يكشف عمليات إرجاع الفواتير المتروكة ونسب الشبهات لكل كاشير."
+        title={t('returns.radar_title', 'رقابة وتدقيق شبهات المرتجعات')}
+        description={t('returns.radar_desc', 'تحليل ذكي يكشف عمليات إرجاع الفواتير المتروكة ونسب الشبهات لكل كاشير.')}
         actions={
           <div className="actions compact-actions">
             <Button
@@ -104,7 +122,7 @@ export function ReturnsAnomalyRadarCard({
               disabled={!summary.analyzedRecords.length}
             >
               <PrinterIcon size={14} />
-              <span>طباعة تقرير الرقابة</span>
+              <span>{t('returns.print_radar_report', 'طباعة تقرير الرقابة')}</span>
             </Button>
             <Button
               type="button"
@@ -113,7 +131,7 @@ export function ReturnsAnomalyRadarCard({
               disabled={!summary.analyzedRecords.length}
             >
               <FileSpreadsheetIcon size={14} />
-              <span>تصدير Excel</span>
+              <span>{t('returns.export_excel', 'تصدير Excel')}</span>
             </Button>
           </div>
         }
@@ -123,19 +141,19 @@ export function ReturnsAnomalyRadarCard({
         <SearchToolbar
           search={searchQuery}
           onSearchChange={(val) => { setSearchQuery(val); setPage(1); }}
-          searchPlaceholder="ابحث برقم المستند أو الفاتورة الأصلية أو الصنف أو الكاشير..."
+          searchPlaceholder={t('returns.radar_search_placeholder', 'ابحث برقم المستند أو الفاتورة الأصلية أو الصنف أو الكاشير...')}
         >
           <Button
             variant={subView === 'suspects' ? 'primary' : 'secondary'}
             onClick={() => { setSubView('suspects'); setPage(1); }}
           >
-            سجل تدقيق الحركات ({filteredRecords.length})
+            {t('returns.subview_suspects', 'سجل تدقيق الحركات')} ({filteredRecords.length})
           </Button>
           <Button
             variant={subView === 'cashiers' ? 'primary' : 'secondary'}
             onClick={() => { setSubView('cashiers'); setPage(1); }}
           >
-            مخاطر الكاشيرات ({summary.cashierMetrics.length})
+            {t('returns.subview_cashiers', 'مخاطر الكاشيرات')} ({summary.cashierMetrics.length})
           </Button>
         </SearchToolbar>
 
@@ -145,20 +163,20 @@ export function ReturnsAnomalyRadarCard({
             <input
               value={selectedCashier === 'all' ? '' : selectedCashier}
               onChange={(e) => { setSelectedCashier(e.target.value || 'all'); setPage(1); }}
-              placeholder="فلترة باسم الكاشير"
+              placeholder={t('returns.filter_cashier_placeholder', 'فلترة باسم الكاشير')}
               style={{ minWidth: 200 }}
             />
             <Button variant={riskFilter === 'all' ? 'primary' : 'secondary'} onClick={() => { setRiskFilter('all'); setPage(1); }}>
-              كافة الحركات
+              {t('returns.all_movements', 'كافة الحركات')}
             </Button>
             <Button variant={riskFilter === 'high' ? 'primary' : 'secondary'} onClick={() => { setRiskFilter('high'); setPage(1); }}>
-              شبهة مرتفعة ({summary.totalSuspectReturnsCount})
+              {t('returns.high_suspect', 'شبهة مرتفعة')} ({summary.totalSuspectReturnsCount})
             </Button>
             <Button variant={riskFilter === 'rapid' ? 'primary' : 'secondary'} onClick={() => { setRiskFilter('rapid'); setPage(1); }}>
-              مرتجعات سريعة ({summary.totalRapidReturnsCount})
+              {t('returns.rapid_returns', 'مرتجعات سريعة')} ({summary.totalRapidReturnsCount})
             </Button>
             <Button variant={riskFilter === 'medium' ? 'primary' : 'secondary'} onClick={() => { setRiskFilter('medium'); setPage(1); }}>
-              متابعة وتدقيق
+              {t('returns.medium_suspect', 'متابعة وتدقيق')}
             </Button>
           </div>
         )}
@@ -171,25 +189,25 @@ export function ReturnsAnomalyRadarCard({
                 rows={filteredRecords.slice((page - 1) * pageSize, page * pageSize)}
                 rowKey={(row) => row.record.id}
                 onRowClick={(row) => onSelectReturn?.(row.record.id)}
-                rowTitle={() => 'انقر لعرض تفاصيل المرتجع'}
+                rowTitle={() => t('returns.row_click_hint', 'انقر لعرض تفاصيل المرتجع')}
                 pagination={{
                   page,
                   pageSize,
                   totalItems: filteredRecords.length,
                   onPageChange: setPage,
                   onPageSizeChange: (nextPageSize) => { setPageSize(nextPageSize); setPage(1); },
-                  itemLabel: 'حركة مشبوهة',
+                  itemLabel: t('returns.item_suspect', 'حركة مشبوهة'),
                 }}
                 columns={[
                   {
                     key: 'docNo',
-                    header: 'رقم المستند',
+                    header: t('returns.col_doc_no', 'رقم المستند'),
                     cell: (row) => (
                       <div>
                         <strong>{row.returnDocNo}</strong>
                         {row.invoiceDocNo ? (
                           <div className="muted small" style={{ fontSize: '0.78rem' }}>
-                            أصل: {row.invoiceDocNo}
+                            {t('returns.original_doc', 'أصل')}: {row.invoiceDocNo}
                           </div>
                         ) : null}
                       </div>
@@ -197,31 +215,31 @@ export function ReturnsAnomalyRadarCard({
                   },
                   {
                     key: 'product',
-                    header: 'الصنف',
+                    header: t('returns.col_product', 'الصنف'),
                     cell: (row) => (
                       <div>
                         <strong>{row.record.productName || '—'}</strong>
-                        <div className="muted small" style={{ fontSize: '0.78rem' }}>الكمية: {row.record.qty}</div>
+                        <div className="muted small" style={{ fontSize: '0.78rem' }}>{t('returns.col_qty', 'الكمية')}: {row.record.qty}</div>
                       </div>
                     ),
                   },
                   {
                     key: 'total',
-                    header: 'المبلغ المسترد',
+                    header: t('returns.refund_amount', 'المبلغ المسترد'),
                     cell: (row) => <strong>{formatCurrency(Number(row.record.total || 0))}</strong>,
                   },
                   {
                     key: 'cashier',
-                    header: 'الكاشير',
+                    header: t('returns.col_cashier', 'الكاشير'),
                     cell: (row) => row.cashierName,
                   },
                   {
                     key: 'timeGap',
-                    header: 'الفارق الزمني',
+                    header: t('returns.col_time_gap', 'الفارق الزمني'),
                     cell: (row) => (
                       row.timeGapMinutes !== null ? (
                         <span className={row.timeGapMinutes <= 15 ? 'badge badge-danger' : 'badge'}>
-                          {row.timeGapMinutes <= 0 ? 'في نفس الدقيقة' : `بعد ${row.timeGapMinutes} دقيقة`}
+                          {row.timeGapMinutes <= 0 ? t('returns.same_minute', 'في نفس الدقيقة') : t('returns.after_minutes', 'بعد {{minutes}} دقيقة', { minutes: row.timeGapMinutes })}
                         </span>
                       ) : (
                         <span className="muted">—</span>
@@ -230,7 +248,7 @@ export function ReturnsAnomalyRadarCard({
                   },
                   {
                     key: 'flags',
-                    header: 'مؤشرات الشبهة',
+                    header: t('returns.col_flags', 'مؤشرات الشبهة'),
                     cell: (row) => (
                       <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
                         {row.flags.map((flag) => (
@@ -239,7 +257,7 @@ export function ReturnsAnomalyRadarCard({
                             className={flag.severity === 'danger' ? 'badge badge-danger' : 'badge badge-warning'}
                             style={{ fontSize: '0.75rem' }}
                           >
-                            {flag.label}
+                            {getFlagLabel(flag, row)}
                           </span>
                         ))}
                       </div>
@@ -247,12 +265,12 @@ export function ReturnsAnomalyRadarCard({
                   },
                   {
                     key: 'date',
-                    header: 'التاريخ',
+                    header: t('returns.col_date', 'التاريخ'),
                     cell: (row) => formatDate(row.returnDate),
                   },
                   {
                     key: 'actions',
-                    header: 'إجراءات',
+                    header: t('common.actions', 'إجراءات'),
                     cell: (row) => (
                       <div className="actions compact-actions" style={{ flexWrap: 'nowrap' }}>
                         <Button
@@ -261,9 +279,9 @@ export function ReturnsAnomalyRadarCard({
                             e.stopPropagation();
                             handleCopyCctvTime(row);
                           }}
-                          title="نسخ توقيت البيع والمرتجع لمطابقة الكاميرات"
+                          title={t('returns.copy_cctv_hint', 'نسخ توقيت البيع والمرتجع لمطابقة الكاميرات')}
                         >
-                          {copiedId === row.record.id ? 'تم النسخ' : 'نسخ للكاميرا'}
+                          {copiedId === row.record.id ? t('returns.copied', 'تم النسخ') : t('returns.copy_cctv', 'نسخ للكاميرا')}
                         </Button>
                         {onSelectReturn && (
                           <Button
@@ -273,7 +291,7 @@ export function ReturnsAnomalyRadarCard({
                               onSelectReturn(row.record.id);
                             }}
                           >
-                            عرض
+                            {t('common.view', 'عرض')}
                           </Button>
                         )}
                       </div>
@@ -282,7 +300,7 @@ export function ReturnsAnomalyRadarCard({
                 ]}
               />
             ) : (
-              <div className="empty-state-card">لا توجد حركات مشبوهة مطابقة لمعايير البحث</div>
+              <div className="empty-state-card">{t('returns.empty_suspects', 'لا توجد حركات مشبوهة مطابقة لمعايير البحث')}</div>
             )}
           </div>
         ) : (
@@ -293,14 +311,14 @@ export function ReturnsAnomalyRadarCard({
                 rows={summary.cashierMetrics}
                 rowKey={(c) => c.cashierKey}
                 columns={[
-                  { key: 'name', header: 'الكاشير / الموظف', cell: (c) => <strong>{c.cashierName}</strong> },
-                  { key: 'salesCount', header: 'فواتير البيع', cell: (c) => c.salesCount },
-                  { key: 'salesTotal', header: 'إجمالي المبيعات', cell: (c) => formatCurrency(c.salesTotal) },
-                  { key: 'returnsCount', header: 'عدد المرتجعات', cell: (c) => <strong>{c.returnsCount}</strong> },
-                  { key: 'returnsTotal', header: 'إجمالي المرتجعات', cell: (c) => <strong>{formatCurrency(c.returnsTotal)}</strong> },
+                  { key: 'name', header: t('returns.col_cashier_employee', 'الكاشير / الموظف'), cell: (c) => <strong>{c.cashierName}</strong> },
+                  { key: 'salesCount', header: t('returns.col_sales_count', 'فواتير البيع'), cell: (c) => c.salesCount },
+                  { key: 'salesTotal', header: t('returns.col_sales_total', 'إجمالي المبيعات'), cell: (c) => formatCurrency(c.salesTotal) },
+                  { key: 'returnsCount', header: t('returns.col_returns_count', 'عدد المرتجعات'), cell: (c) => <strong>{c.returnsCount}</strong> },
+                  { key: 'returnsTotal', header: t('returns.col_returns_total', 'إجمالي المرتجعات'), cell: (c) => <strong>{formatCurrency(c.returnsTotal)}</strong> },
                   {
                     key: 'rate',
-                    header: 'نسبة المرتجع %',
+                    header: t('returns.col_return_rate', 'نسبة المرتجع %'),
                     cell: (c) => (
                       <span className={c.returnRatePercent > 5 ? 'badge badge-danger' : c.returnRatePercent > 2.5 ? 'badge badge-warning' : 'badge'}>
                         {c.returnRatePercent}%
@@ -309,7 +327,7 @@ export function ReturnsAnomalyRadarCard({
                   },
                   {
                     key: 'rapid',
-                    header: 'مرتجعات سريعة (< 15د)',
+                    header: t('returns.col_rapid_returns_col', 'مرتجعات سريعة (< 15د)'),
                     cell: (c) => (
                       <span className={c.rapidReturnsCount > 0 ? 'badge badge-danger' : 'badge'}>
                         {c.rapidReturnsCount}
@@ -318,17 +336,17 @@ export function ReturnsAnomalyRadarCard({
                   },
                   {
                     key: 'risk',
-                    header: 'التقييم الرقابي',
+                    header: t('returns.col_audit_evaluation', 'التقييم الرقابي'),
                     cell: (c) => (
                       <span className={c.riskLevel === 'high' ? 'badge badge-danger' : c.riskLevel === 'medium' ? 'badge badge-warning' : 'badge badge-success'}>
-                        {c.riskLevel === 'high' ? 'شبهة مرتفعة' : c.riskLevel === 'medium' ? 'متابعة وتدقيق' : 'طبيعي'}
+                        {c.riskLevel === 'high' ? t('returns.high_suspect', 'شبهة مرتفعة') : c.riskLevel === 'medium' ? t('returns.medium_suspect', 'متابعة وتدقيق') : t('returns.risk_normal', 'طبيعي')}
                       </span>
                     ),
                   },
                 ]}
               />
             ) : (
-              <div className="empty-state-card">لا توجد بيانات كافية لتقييم الكاشيرات</div>
+              <div className="empty-state-card">{t('returns.empty_cashiers', 'لا توجد بيانات كافية لتقييم الكاشيرات')}</div>
             )}
           </div>
         )}

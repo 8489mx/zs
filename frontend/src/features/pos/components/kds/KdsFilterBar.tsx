@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 import { KdsStation } from '@/features/pos/api/kds.api';
 
@@ -41,6 +42,7 @@ export const KdsFilterBar: React.FC<KdsFilterBarProps> = ({
   selectedCourse = 'all',
   onSelectCourse,
 }) => {
+  const { t } = useTranslation();
   return (
     <div
       style={{
@@ -56,7 +58,7 @@ export const KdsFilterBar: React.FC<KdsFilterBarProps> = ({
     >
       {/* Station Filter Pills */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-        <span style={{ fontSize: '12px', fontWeight: 700, color: '#64748b' }}>المحطة:</span>
+        <span style={{ fontSize: '12px', fontWeight: 700, color: '#64748b' }}>{t('pos.kds.kds_filter_bar.s0', "المحطة:")}</span>
         {STATIONS.map((s) => {
           const isActive = selectedStation === s.key;
           return (
@@ -85,7 +87,7 @@ export const KdsFilterBar: React.FC<KdsFilterBarProps> = ({
       {/* Course Filter Pills */}
       {onSelectCourse && (
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-          <span style={{ fontSize: '12px', fontWeight: 700, color: '#64748b' }}>المسار:</span>
+          <span style={{ fontSize: '12px', fontWeight: 700, color: '#64748b' }}>{t('pos.kds.kds_filter_bar.s1', "المسار:")}</span>
           {COURSES.map((c) => {
             const isActive = selectedCourse === c.key;
             return (
@@ -114,7 +116,7 @@ export const KdsFilterBar: React.FC<KdsFilterBarProps> = ({
 
       {/* Order Type Filter Pills */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-        <span style={{ fontSize: '12px', fontWeight: 700, color: '#64748b' }}>النوع:</span>
+        <span style={{ fontSize: '12px', fontWeight: 700, color: '#64748b' }}>{t('pos.kds.kds_filter_bar.s2', "النوع:")}</span>
         {ORDER_TYPES.map((ot) => {
           const isActive = selectedOrderType === ot.key;
           return (

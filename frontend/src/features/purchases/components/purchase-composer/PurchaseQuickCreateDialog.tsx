@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useCallback, useMemo } from 'react';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { CustomSelect } from '@/shared/ui/custom-select';
@@ -40,6 +41,7 @@ export function PurchaseQuickCreateDialog({
   onDraftChange,
   onSubmit,
 }: PurchaseQuickCreateDialogProps) {
+  const { t } = useTranslation();
   const handleClose = useCallback(() => {
     if (isPending) return;
     onClose();
@@ -59,14 +61,14 @@ export function PurchaseQuickCreateDialog({
     <StandardDialog
       open={open}
       onClose={handleClose}
-      title="إضافة صنف جديد"
-      subtitle="أضف الحد الأدنى من بيانات الصنف ثم ارجعه مباشرة إلى فاتورة الشراء الحالية"
+      title={t('purchases.purchase_composer.purchase_quick_create_dialog.s0', "إضافة صنف جديد")}
+      subtitle={t('purchases.purchase_composer.purchase_quick_create_dialog.s1', "أضف الحد الأدنى من بيانات الصنف ثم ارجعه مباشرة إلى فاتورة الشراء الحالية")}
       maxWidth="760px"
       footerActions={
         <StandardDialogFooter
           onCancel={handleClose}
-          cancelLabel="إغلاق"
-          submitLabel={isPending ? 'جارٍ إنشاء الصنف...' : 'حفظ الصنف وإضافته'}
+          cancelLabel={t('purchases.purchase_composer.purchase_quick_create_dialog.s2', "إغلاق")}
+          submitLabel={isPending ? t('purchases.purchase_composer.purchase_quick_create_dialog.s3', "جارٍ إنشاء الصنف...") : t('purchases.purchase_composer.purchase_quick_create_dialog.s4', "حفظ الصنف وإضافته")}
           isSubmitting={isPending}
           onSubmit={onSubmit}
         />
@@ -80,7 +82,7 @@ export function PurchaseQuickCreateDialog({
         }}
       >
         <div className="form-grid">
-          <Field label="اسم الصنف">
+          <Field label={t('purchases.purchase_composer.purchase_quick_create_dialog.s5', "اسم الصنف")}>
             <input
               value={draft.name}
               onChange={(event) => onDraftChange({ ...draft, name: event.target.value })}
@@ -88,15 +90,15 @@ export function PurchaseQuickCreateDialog({
               data-autofocus
             />
           </Field>
-          <Field label="الكود / الباركود">
+          <Field label={t('purchases.purchase_composer.purchase_quick_create_dialog.s6', "الكود / الباركود")}>
             <input
               value={draft.barcode}
               onChange={(event) => onDraftChange({ ...draft, barcode: event.target.value })}
               disabled={isPending}
-              placeholder="اختياري"
+              placeholder={t('purchases.purchase_composer.purchase_quick_create_dialog.s7', "اختياري")}
             />
           </Field>
-          <Field label="المجموعة">
+          <Field label={t('purchases.purchase_composer.purchase_quick_create_dialog.s8', "المجموعة")}>
             <CustomSelect
               value={draft.categoryId}
               onChange={(val) => onDraftChange({ ...draft, categoryId: String(val) })}
@@ -105,7 +107,7 @@ export function PurchaseQuickCreateDialog({
               searchable
             />
           </Field>
-          <Field label="المورد">
+          <Field label={t('purchases.purchase_composer.purchase_quick_create_dialog.s9', "المورد")}>
             <CustomSelect
               value={draft.supplierId}
               onChange={(val) => onDraftChange({ ...draft, supplierId: String(val) })}
@@ -114,15 +116,15 @@ export function PurchaseQuickCreateDialog({
               searchable
             />
           </Field>
-          <Field label="الوحدة الأساسية">
+          <Field label={t('purchases.purchase_composer.purchase_quick_create_dialog.s10', "الوحدة الأساسية")}>
             <input
               value={draft.unitName}
               onChange={(event) => onDraftChange({ ...draft, unitName: event.target.value })}
               disabled={isPending}
-              placeholder="قطعة"
+              placeholder={t('purchases.purchase_composer.purchase_quick_create_dialog.s11', "قطعة")}
             />
           </Field>
-          <Field label="سعر الشراء">
+          <Field label={t('purchases.purchase_composer.purchase_quick_create_dialog.s12', "سعر الشراء")}>
             <input
               type="number"
               min="0"
@@ -132,7 +134,7 @@ export function PurchaseQuickCreateDialog({
               disabled={isPending}
             />
           </Field>
-          <Field label="سعر البيع">
+          <Field label={t('purchases.purchase_composer.purchase_quick_create_dialog.s13', "سعر البيع")}>
             <input
               type="number"
               min="0"
@@ -142,7 +144,7 @@ export function PurchaseQuickCreateDialog({
               disabled={isPending}
             />
           </Field>
-          <Field label="سعر الجملة">
+          <Field label={t('purchases.purchase_composer.purchase_quick_create_dialog.s14', "سعر الجملة")}>
             <input
               type="number"
               min="0"
@@ -152,7 +154,7 @@ export function PurchaseQuickCreateDialog({
               disabled={isPending}
             />
           </Field>
-          <Field label="الحد الأدنى">
+          <Field label={t('purchases.purchase_composer.purchase_quick_create_dialog.s15', "الحد الأدنى")}>
             <input
               type="number"
               min="0"
@@ -164,7 +166,7 @@ export function PurchaseQuickCreateDialog({
           </Field>
         </div>
 
-        <MutationFeedback isError={Boolean(error)} error={error} errorFallback="تعذر إنشاء الصنف الجديد من صفحة المشتريات." />
+        <MutationFeedback isError={Boolean(error)} error={error} errorFallback={t('purchases.purchase_composer.purchase_quick_create_dialog.s16', "تعذر إنشاء الصنف الجديد من صفحة المشتريات.")} />
       </form>
     </StandardDialog>
   );

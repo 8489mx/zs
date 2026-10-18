@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect, type FC, type FormEvent } from 'react';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { CustomSelect } from '@/shared/ui/custom-select';
@@ -23,6 +24,7 @@ export const CreatePackageModal: FC<CreatePackageModalProps> = ({
   onSuccess,
   existingPackages,
 }) => {
+  const { t } = useTranslation();
   const [packageType, setPackageType] = useState<'pallet' | 'crate' | 'carton' | 'box'>('box');
   const [parentPackageId, setParentPackageId] = useState<string>('');
   const [packageNumber, setPackageNumber] = useState('');
@@ -116,15 +118,15 @@ export const CreatePackageModal: FC<CreatePackageModalProps> = ({
     <StandardDialog
       open={open}
       onClose={onClose}
-      title="إنشاء وترميز طرد / بالتة جديدة (Multi-level Packaging & Pallets)"
-      subtitle="إدارة التعبئة متعددة الطبقات (طبلية - كرتونة - قطعة) والترميز التسلسلي الباركودي"
+      title={t('inventory.create_package_modal.s0', "إنشاء وترميز طرد / بالتة جديدة (Multi-level Packaging & Pallets)")}
+      subtitle={t('inventory.create_package_modal.s1', "إدارة التعبئة متعددة الطبقات (طبلية - كرتونة - قطعة) والترميز التسلسلي الباركودي")}
       size="lg"
     >
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px' }}>
           <div>
             <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 600, color: '#334155' }}>
-              نوع ومستوى الطرد *
+              {t('inventory.create_package_modal.s2', "نوع ومستوى الطرد *")}
             </label>
             <CustomSelect
               value={packageType}
@@ -135,32 +137,32 @@ export const CreatePackageModal: FC<CreatePackageModalProps> = ({
 
           <div>
             <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 600, color: '#334155' }}>
-              الطرد الأب الحاوي (Pack-in-Pack)
+              {t('inventory.create_package_modal.s3', "الطرد الأب الحاوي (Pack-in-Pack)")}
             </label>
             <CustomSelect
               value={parentPackageId}
               onChange={setParentPackageId}
               options={parentOptions}
-              placeholder="اختر الطبلية أو الحاوية الحاوية..."
+              placeholder={t('inventory.create_package_modal.s4', "اختر الطبلية أو الحاوية الحاوية...")}
             />
           </div>
 
           <div>
             <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 600, color: '#334155' }}>
-              باركود / كود الطرد (يولد تلقائياً إن تُرِك فارغاً)
+              {t('inventory.create_package_modal.s5', "باركود / كود الطرد (يولد تلقائياً إن تُرِك فارغاً)")}
             </label>
             <input
               type="text"
               value={packageNumber}
               onChange={(e) => setPackageNumber(e.target.value)}
-              placeholder="مثال: PAL-260930-0001 أو BOX-..."
+              placeholder={t('inventory.create_package_modal.s6', "مثال: PAL-260930-0001 أو BOX-...")}
               style={{ width: '100%', height: '36px', padding: '6px 10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
             />
           </div>
 
           <div>
             <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 600, color: '#334155' }}>
-              الوزن القائم التقريبي (Gross Weight - كجم)
+              {t('inventory.create_package_modal.s7', "الوزن القائم التقريبي (Gross Weight - كجم)")}
             </label>
             <input
               type="number"
@@ -168,14 +170,14 @@ export const CreatePackageModal: FC<CreatePackageModalProps> = ({
               min="0"
               value={grossWeightKg}
               onChange={(e) => setGrossWeightKg(e.target.value)}
-              placeholder="مثال: 45.5"
+              placeholder={t('inventory.create_package_modal.s8', "مثال: 45.5")}
               style={{ width: '100%', height: '36px', padding: '6px 10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
             />
           </div>
 
           <div>
             <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 600, color: '#334155' }}>
-              الوزن الصافي التقريبي (Net Weight - كجم)
+              {t('inventory.create_package_modal.s9', "الوزن الصافي التقريبي (Net Weight - كجم)")}
             </label>
             <input
               type="number"
@@ -183,7 +185,7 @@ export const CreatePackageModal: FC<CreatePackageModalProps> = ({
               min="0"
               value={netWeightKg}
               onChange={(e) => setNetWeightKg(e.target.value)}
-              placeholder="مثال: 42.0"
+              placeholder={t('inventory.create_package_modal.s10', "مثال: 42.0")}
               style={{ width: '100%', height: '36px', padding: '6px 10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
             />
           </div>
@@ -193,7 +195,7 @@ export const CreatePackageModal: FC<CreatePackageModalProps> = ({
         <div style={{ border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px', background: '#f8fafc' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
             <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 700, color: '#1e293b' }}>
-              الأصناف المعبأة داخل هذا الطرد مباشرة
+              {t('inventory.create_package_modal.s11', "الأصناف المعبأة داخل هذا الطرد مباشرة")}
             </h4>
             <button
               type="button"
@@ -213,22 +215,22 @@ export const CreatePackageModal: FC<CreatePackageModalProps> = ({
               }}
             >
               <PlusIcon size={14} />
-              إضافة صنف
+              {t('inventory.create_package_modal.s12', "إضافة صنف")}
             </button>
           </div>
 
           {items.length === 0 ? (
             <div style={{ padding: '16px', textAlign: 'center', color: '#64748b', fontSize: '13px' }}>
-              لا توجد أصناف معبأة مباشرة (يمكن أن يكون طرداً مجمعاً يحتوي فقط على طرود داخلية)
+              {t('inventory.create_package_modal.s13', "لا توجد أصناف معبأة مباشرة (يمكن أن يكون طرداً مجمعاً يحتوي فقط على طرود داخلية)")}
             </div>
           ) : (
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid #cbd5e1', color: '#64748b', textAlign: 'right' }}>
-                  <th style={{ padding: '8px' }}>الصنف</th>
-                  <th style={{ padding: '8px', width: '120px' }}>الكمية</th>
-                  <th style={{ padding: '8px', width: '100px' }}>الوحدة</th>
-                  <th style={{ padding: '8px', width: '130px' }}>رقم التشغيلة (Batch)</th>
+                  <th style={{ padding: '8px' }}>{t('inventory.create_package_modal.s14', "الصنف")}</th>
+                  <th style={{ padding: '8px', width: '120px' }}>{t('inventory.create_package_modal.s15', "الكمية")}</th>
+                  <th style={{ padding: '8px', width: '100px' }}>{t('inventory.create_package_modal.s16', "الوحدة")}</th>
+                  <th style={{ padding: '8px', width: '130px' }}>{t('inventory.create_package_modal.s17', "رقم التشغيلة (Batch)")}</th>
                   <th style={{ padding: '8px', width: '40px' }}></th>
                 </tr>
               </thead>
@@ -240,7 +242,7 @@ export const CreatePackageModal: FC<CreatePackageModalProps> = ({
                         value={String(row.productId)}
                         onChange={(val) => updateItemRow(idx, 'productId', Number(val))}
                         options={productOptions}
-                        placeholder="اختر الصنف..."
+                        placeholder={t('inventory.create_package_modal.s18', "اختر الصنف...")}
                       />
                     </td>
                     <td style={{ padding: '6px' }}>
@@ -283,7 +285,7 @@ export const CreatePackageModal: FC<CreatePackageModalProps> = ({
                         type="text"
                         value={row.batchNumber}
                         onChange={(e) => updateItemRow(idx, 'batchNumber', e.target.value)}
-                        placeholder="اختياري"
+                        placeholder={t('inventory.create_package_modal.s19', "اختياري")}
                         style={{ width: '100%', height: '30px', padding: '4px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
                       />
                     </td>
@@ -305,13 +307,13 @@ export const CreatePackageModal: FC<CreatePackageModalProps> = ({
 
         <div>
           <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 600, color: '#334155' }}>
-            ملاحظات وشروط التخزين
+            {t('inventory.create_package_modal.s20', "ملاحظات وشروط التخزين")}
           </label>
           <textarea
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             rows={2}
-            placeholder="ملاحظات حول قابلية الكسر، اتجاه الرص، أو قيود النقل..."
+            placeholder={t('inventory.create_package_modal.s21', "ملاحظات حول قابلية الكسر، اتجاه الرص، أو قيود النقل...")}
             style={{ width: '100%', padding: '8px', borderRadius: '8px', border: '1px solid #cbd5e1', resize: 'vertical' }}
           />
         </div>
@@ -319,7 +321,7 @@ export const CreatePackageModal: FC<CreatePackageModalProps> = ({
         <StandardDialogFooter
           onClose={onClose}
           primaryButton={{
-            label: isSubmitting ? 'جاري الترميز والحفظ...' : 'تأكيد وترميز الطرد',
+            label: isSubmitting ? t('inventory.create_package_modal.s22', "جاري الترميز والحفظ...") : t('inventory.create_package_modal.s23', "تأكيد وترميز الطرد"),
             disabled: isSubmitting,
             onClick: () => handleSubmit(),
           }}

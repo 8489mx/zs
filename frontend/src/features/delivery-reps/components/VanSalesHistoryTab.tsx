@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React, { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
@@ -41,6 +42,7 @@ export const VanSalesHistoryTab: React.FC<VanSalesHistoryTabProps> = ({
   onGoToNewSale,
   storeName,
 }) => {
+  const { t } = useTranslation();
   const [dateScope, setDateScope] = useState<'today' | 'yesterday' | 'week' | 'all'>('today');
   const [paymentFilter, setPaymentFilter] = useState<'all' | 'cash' | 'credit' | 'card' | 'split'>('all');
   const [selectedCustomerId, setSelectedCustomerId] = useState<number | ''>('');
@@ -225,7 +227,7 @@ export const VanSalesHistoryTab: React.FC<VanSalesHistoryTabProps> = ({
           <div style={{ display: 'flex', alignItems: 'center', gap: '5px', minWidth: 0 }}>
             <ReceiptIcon size={15} color="#170e5e" />
             <h2 style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a', margin: 0, whiteSpace: 'nowrap' }}>
-              سجل الفواتير
+              {t('delivery_reps.van_sales_history_tab.s0', "سجل الفواتير")}
             </h2>
             <span
               style={{
@@ -238,7 +240,7 @@ export const VanSalesHistoryTab: React.FC<VanSalesHistoryTabProps> = ({
                 whiteSpace: 'nowrap',
               }}
             >
-              {metrics.count} فاتورة
+              {metrics.count} {t('delivery_reps.van_sales_history_tab.s1', "فاتورة")}
             </span>
           </div>
 
@@ -261,10 +263,10 @@ export const VanSalesHistoryTab: React.FC<VanSalesHistoryTabProps> = ({
                 cursor: 'pointer',
                 height: '26px',
               }}
-              title="تحديث قائمة الفواتير"
+              title={t('delivery_reps.van_sales_history_tab.s2', "تحديث قائمة الفواتير")}
             >
               <RefreshCwIcon size={11} className={isRefetching || isManualRefreshing ? 'spin-icon' : ''} />
-              <span>{isManualRefreshing ? 'جاري...' : 'تحديث'}</span>
+              <span>{isManualRefreshing ? t('delivery_reps.van_sales_history_tab.s3', "جاري...") : t('delivery_reps.van_sales_history_tab.s4', "تحديث")}</span>
             </button>
 
             {onGoToNewSale && (
@@ -288,7 +290,7 @@ export const VanSalesHistoryTab: React.FC<VanSalesHistoryTabProps> = ({
                 }}
               >
                 <PlusIcon size={11} color="#ffffff" />
-                <span>+ فاتورة</span>
+                <span>{t('delivery_reps.van_sales_history_tab.s5', "+ فاتورة")}</span>
               </button>
             )}
           </div>
@@ -311,30 +313,30 @@ export const VanSalesHistoryTab: React.FC<VanSalesHistoryTabProps> = ({
           }}
         >
           <div style={{ flex: '1 1 0', minWidth: 0, borderInlineEnd: '1px solid #e2e8f0', padding: '2px 4px' }}>
-            <div style={{ fontSize: '9.5px', color: '#64748b', fontWeight: 700, marginBottom: '2px' }}>المبيعات</div>
+            <div style={{ fontSize: '9.5px', color: '#64748b', fontWeight: 700, marginBottom: '2px' }}>{t('delivery_reps.van_sales_history_tab.s6', "المبيعات")}</div>
             <div style={{ fontSize: '11.5px', fontWeight: 900, color: '#170e5e', whiteSpace: 'nowrap' }}>
               {metrics.totalSales.toFixed(2)} <CurrencySymbol />
             </div>
           </div>
 
           <div style={{ flex: '1 1 0', minWidth: 0, borderInlineEnd: '1px solid #e2e8f0', padding: '2px 4px' }}>
-            <div style={{ fontSize: '9.5px', color: '#166534', fontWeight: 700, marginBottom: '2px' }}>النقدي</div>
+            <div style={{ fontSize: '9.5px', color: '#166534', fontWeight: 700, marginBottom: '2px' }}>{t('delivery_reps.van_sales_history_tab.s7', "النقدي")}</div>
             <div style={{ fontSize: '11.5px', fontWeight: 900, color: '#166534', whiteSpace: 'nowrap' }}>
               {metrics.cashSales.toFixed(2)} <CurrencySymbol />
             </div>
           </div>
 
           <div style={{ flex: '1 1 0', minWidth: 0, borderInlineEnd: '1px solid #e2e8f0', padding: '2px 4px' }}>
-            <div style={{ fontSize: '9.5px', color: '#1e40af', fontWeight: 700, marginBottom: '2px' }}>الآجل</div>
+            <div style={{ fontSize: '9.5px', color: '#1e40af', fontWeight: 700, marginBottom: '2px' }}>{t('delivery_reps.van_sales_history_tab.s8', "الآجل")}</div>
             <div style={{ fontSize: '11.5px', fontWeight: 900, color: '#1e40af', whiteSpace: 'nowrap' }}>
               {metrics.creditSales.toFixed(2)} <CurrencySymbol />
             </div>
           </div>
 
           <div style={{ flex: '1 1 0', minWidth: 0, padding: '2px 4px' }}>
-            <div style={{ fontSize: '9.5px', color: '#86198f', fontWeight: 700, marginBottom: '2px' }}>الطرود</div>
+            <div style={{ fontSize: '9.5px', color: '#86198f', fontWeight: 700, marginBottom: '2px' }}>{t('delivery_reps.van_sales_history_tab.s9', "الطرود")}</div>
             <div style={{ fontSize: '11.5px', fontWeight: 900, color: '#86198f', whiteSpace: 'nowrap' }}>
-              {metrics.totalPieces} قطعة
+              {metrics.totalPieces} {t('delivery_reps.van_sales_history_tab.s10', "قطعة")}
             </div>
           </div>
         </div>
@@ -355,12 +357,12 @@ export const VanSalesHistoryTab: React.FC<VanSalesHistoryTabProps> = ({
         {/* ROW 1: DATE PERIOD + TRIP CHECKBOX */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '6px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
-            <span style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', marginInlineEnd: '4px' }}>الفترة:</span>
+            <span style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', marginInlineEnd: '4px' }}>{t('delivery_reps.van_sales_history_tab.s11', "الفترة:")}</span>
             {[
-              { id: 'today', label: 'اليوم' },
-              { id: 'yesterday', label: 'أمس' },
-              { id: 'week', label: 'آخر 7 أيام' },
-              { id: 'all', label: 'الكل' },
+              { id: 'today', label: t('delivery_reps.van_sales_history_tab.s12', "اليوم") },
+              { id: 'yesterday', label: t('delivery_reps.van_sales_history_tab.s13', "أمس") },
+              { id: 'week', label: t('delivery_reps.van_sales_history_tab.s14', "آخر 7 أيام") },
+              { id: 'all', label: t('delivery_reps.van_sales_history_tab.s15', "الكل") },
             ].map((p) => {
               const active = dateScope === p.id;
               return (
@@ -409,20 +411,20 @@ export const VanSalesHistoryTab: React.FC<VanSalesHistoryTabProps> = ({
                 onChange={(e) => setTripOnly(e.target.checked)}
                 style={{ accentColor: '#170e5e' }}
               />
-              <span>رحلة اليوم (#{tripId})</span>
+              <span>{t('delivery_reps.van_sales_history_tab.s16', "رحلة اليوم (#")}{tripId})</span>
             </label>
           )}
         </div>
 
         {/* ROW 2: PAYMENT METHOD PILLS */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '3px', flexWrap: 'wrap' }}>
-          <span style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', marginInlineEnd: '4px' }}>الدفع:</span>
+          <span style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', marginInlineEnd: '4px' }}>{t('delivery_reps.van_sales_history_tab.s17', "الدفع:")}</span>
           {[
-            { id: 'all', label: 'الكل' },
-            { id: 'cash', label: 'نقدي' },
-            { id: 'credit', label: 'آجل' },
-            { id: 'split', label: 'دفع مركب' },
-            { id: 'card', label: 'شبكة/فيزا' },
+            { id: 'all', label: t('delivery_reps.van_sales_history_tab.s18', "الكل") },
+            { id: 'cash', label: t('delivery_reps.van_sales_history_tab.s19', "نقدي") },
+            { id: 'credit', label: t('delivery_reps.van_sales_history_tab.s20', "آجل") },
+            { id: 'split', label: t('delivery_reps.van_sales_history_tab.s21', "دفع مركب") },
+            { id: 'card', label: t('delivery_reps.van_sales_history_tab.s22', "شبكة/فيزا") },
           ].map((pm) => {
             const active = paymentFilter === pm.id;
             return (
@@ -457,7 +459,7 @@ export const VanSalesHistoryTab: React.FC<VanSalesHistoryTabProps> = ({
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="بحث بالفاتورة أو الهاتف..."
+              placeholder={t('delivery_reps.van_sales_history_tab.s23', "بحث بالفاتورة أو الهاتف...")}
               style={{
                 width: '100%',
                 height: '32px',
@@ -513,13 +515,13 @@ export const VanSalesHistoryTab: React.FC<VanSalesHistoryTabProps> = ({
                 value={selectedCustomerId ? String(selectedCustomerId) : ''}
                 onChange={(val) => setSelectedCustomerId(val ? Number(val) : '')}
                 options={[
-                  { value: '', label: 'كافة العملاء' },
+                  { value: '', label: t('delivery_reps.van_sales_history_tab.s24', "كافة العملاء") },
                   ...customers.map((c) => ({
                     value: String(c.id),
                     label: `${c.name} ${c.customerCode ? `[${c.customerCode.replace(/^#/, '')}]` : ''}`,
                   })),
                 ]}
-                placeholder="كافة العملاء"
+                placeholder={t('delivery_reps.van_sales_history_tab.s25', "كافة العملاء")}
               />
             </div>
           )}
@@ -549,7 +551,7 @@ export const VanSalesHistoryTab: React.FC<VanSalesHistoryTabProps> = ({
             }}
           />
           <div style={{ fontSize: '12px', fontWeight: 700, color: '#475569' }}>
-            جاري جلب سجل الفواتير والمبيعات...
+            {t('delivery_reps.van_sales_history_tab.s26', "جاري جلب سجل الفواتير والمبيعات...")}
           </div>
         </div>
       ) : sales.length === 0 ? (
@@ -578,10 +580,10 @@ export const VanSalesHistoryTab: React.FC<VanSalesHistoryTabProps> = ({
             <ReceiptIcon size={22} />
           </div>
           <h3 style={{ fontSize: '13.5px', fontWeight: 800, color: '#0f172a', margin: '0 0 4px' }}>
-            لا توجد فواتير بيع مسجلة
+            {t('delivery_reps.van_sales_history_tab.s27', "لا توجد فواتير بيع مسجلة")}
           </h3>
           <p style={{ fontSize: '11.5px', color: '#64748b', margin: '0 auto 12px', maxWidth: '320px' }}>
-            لم يتم العثور على أية فواتير مطابقة لخيارات التصفية المحددة.
+            {t('delivery_reps.van_sales_history_tab.s28', "لم يتم العثور على أية فواتير مطابقة لخيارات التصفية المحددة.")}
           </p>
           {onGoToNewSale && (
             <button
@@ -602,7 +604,7 @@ export const VanSalesHistoryTab: React.FC<VanSalesHistoryTabProps> = ({
               }}
             >
               <PlusIcon size={13} color="#ffffff" />
-              <span>إصدار فاتورة بيع جديدة</span>
+              <span>{t('delivery_reps.van_sales_history_tab.s29', "إصدار فاتورة بيع جديدة")}</span>
             </button>
           )}
         </div>
@@ -676,12 +678,12 @@ export const VanSalesHistoryTab: React.FC<VanSalesHistoryTabProps> = ({
                       }}
                     >
                       {sale.paymentMethod === 'cash'
-                        ? 'نقدي (مسلم)'
+                        ? t('delivery_reps.van_sales_history_tab.s30', "نقدي (مسلم)")
                         : sale.paymentMethod === 'card'
-                        ? 'شبكة / فيزا'
+                        ? t('delivery_reps.van_sales_history_tab.s31', "شبكة / فيزا")
                         : sale.paymentMethod === 'split'
-                        ? 'دفع مركب'
-                        : 'آجل (على الحساب)'}
+                        ? t('delivery_reps.van_sales_history_tab.s32', "دفع مركب")
+                        : t('delivery_reps.van_sales_history_tab.s33', "آجل (على الحساب)")}
                     </span>
                   </div>
 
@@ -703,14 +705,14 @@ export const VanSalesHistoryTab: React.FC<VanSalesHistoryTabProps> = ({
                     </div>
                     {sale.customerPhone && (
                       <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>
-                        هاتف: {sale.customerPhone}
+                        {t('delivery_reps.van_sales_history_tab.s34', "هاتف:")} {sale.customerPhone}
                       </div>
                     )}
                   </div>
 
                   {/* TOTAL AMOUNT */}
                   <div style={{ textAlign: 'left' }}>
-                    <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>إجمالي الفاتورة</div>
+                    <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>{t('delivery_reps.van_sales_history_tab.s35', "إجمالي الفاتورة")}</div>
                     <div style={{ fontSize: '16px', fontWeight: 800, color: '#166534', marginTop: '1px' }}>
                       {Number(sale.total || 0).toFixed(2)} <CurrencySymbol />
                     </div>
@@ -732,19 +734,19 @@ export const VanSalesHistoryTab: React.FC<VanSalesHistoryTabProps> = ({
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span style={{ color: '#475569', fontWeight: 700 }}>
-                      محتوى الشحنة: {sale.packagingBreakdown?.cartonsCount ? `${sale.packagingBreakdown.cartonsCount} كرتونة | ` : ''}
-                      {sale.packagingBreakdown?.piecesCount || sale.items?.reduce((s, it) => s + it.qty, 0) || 0} قطعة ({sale.itemsCount} صنف)
+                      {t('delivery_reps.van_sales_history_tab.s36', "محتوى الشحنة:")} {sale.packagingBreakdown?.cartonsCount ? `${sale.packagingBreakdown.cartonsCount} كرتونة | ` : ''}
+                      {sale.packagingBreakdown?.piecesCount || sale.items?.reduce((s, it) => s + it.qty, 0) || 0} {t('delivery_reps.van_sales_history_tab.s37', "قطعة (")}{sale.itemsCount} {t('delivery_reps.van_sales_history_tab.s38', "صنف)")}
                     </span>
                     {sale.repName && (
                       <span style={{ color: '#64748b', fontSize: '10.5px' }}>
-                        المندوب: {sale.repName} {sale.vehiclePlate ? `(${sale.vehiclePlate})` : ''}
+                        {t('delivery_reps.van_sales_history_tab.s39', "المندوب:")} {sale.repName} {sale.vehiclePlate ? `(${sale.vehiclePlate})` : ''}
                       </span>
                     )}
                   </div>
 
                   {sale.items && sale.items.length > 0 && (
                     <div style={{ color: '#64748b', fontSize: '11px', lineHeight: 1.4, marginTop: '2px' }}>
-                      {sale.items.map((it) => `${it.name} × ${it.qty}`).join(' ، ')}
+                      {sale.items.map((it) => `${it.name} × ${it.qty}`).join(t('delivery_reps.van_sales_history_tab.s40', " ، "))}
                     </div>
                   )}
                 </div>
@@ -778,9 +780,9 @@ export const VanSalesHistoryTab: React.FC<VanSalesHistoryTabProps> = ({
                         fontWeight: 700,
                         cursor: 'pointer',
                       }}
-                      title="مشاركة تفاصيل الفاتورة عبر واتساب"
+                      title={t('delivery_reps.van_sales_history_tab.s41', "مشاركة تفاصيل الفاتورة عبر واتساب")}
                     >
-                      <span>واتساب</span>
+                      <span>{t('delivery_reps.van_sales_history_tab.s42', "واتساب")}</span>
                     </button>
                   )}
 
@@ -800,10 +802,10 @@ export const VanSalesHistoryTab: React.FC<VanSalesHistoryTabProps> = ({
                       fontWeight: 700,
                       cursor: 'pointer',
                     }}
-                    title="معاينة إيصال الفاتورة التفصيلي"
+                    title={t('delivery_reps.van_sales_history_tab.s43', "معاينة إيصال الفاتورة التفصيلي")}
                   >
                     <ReceiptIcon size={14} />
-                    <span>معاينة الإيصال</span>
+                    <span>{t('delivery_reps.van_sales_history_tab.s44', "معاينة الإيصال")}</span>
                   </button>
 
                   <button
@@ -822,10 +824,10 @@ export const VanSalesHistoryTab: React.FC<VanSalesHistoryTabProps> = ({
                       fontWeight: 800,
                       cursor: 'pointer',
                     }}
-                    title="إعادة طباعة الإيصال الحراري 80 مم فورياً"
+                    title={t('delivery_reps.van_sales_history_tab.s45', "إعادة طباعة الإيصال الحراري 80 مم فورياً")}
                   >
                     <PrinterIcon size={14} color="#ffffff" />
-                    <span>إعادة طباعة (80mm)</span>
+                    <span>{t('delivery_reps.van_sales_history_tab.s46', "إعادة طباعة (80mm)")}</span>
                   </button>
                 </div>
               </div>

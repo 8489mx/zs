@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 
 export type PeriodPreset = 'current_month' | 'last_month' | 'q1' | 'q2' | 'q3' | 'q4' | 'custom';
@@ -23,6 +24,7 @@ export const VatPeriodSelector: React.FC<VatPeriodSelectorProps> = ({
   customTo,
   setCustomTo,
 }) => {
+  const { t } = useTranslation();
   return (
     <div
       style={{
@@ -58,7 +60,7 @@ export const VatPeriodSelector: React.FC<VatPeriodSelectorProps> = ({
             gap: '6px',
           }}
         >
-          <span>نموذج 10 (مصلحة الضرائب المصرية 14%)</span>
+          <span>{t('sales.vat_declaration.vat_period_selector.s0', "نموذج 10 (مصلحة الضرائب المصرية 14%)")}</span>
         </button>
         <button
           type="button"
@@ -77,13 +79,13 @@ export const VatPeriodSelector: React.FC<VatPeriodSelectorProps> = ({
             gap: '6px',
           }}
         >
-          <span>إقرار القيمة المضافة (ZATCA السعودية 15%)</span>
+          <span>{t('sales.vat_declaration.vat_period_selector.s1', "إقرار القيمة المضافة (ZATCA السعودية 15%)")}</span>
         </button>
       </div>
 
       {/* Period Selector */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-        <span style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>الفترة:</span>
+        <span style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>{t('sales.vat_declaration.vat_period_selector.s2', "الفترة:")}</span>
         <select
           value={periodPreset}
           onChange={(e) => setPeriodPreset(e.target.value as any)}
@@ -96,13 +98,13 @@ export const VatPeriodSelector: React.FC<VatPeriodSelectorProps> = ({
             outline: 'none',
           }}
         >
-          <option value="current_month">الشهر الحالي</option>
-          <option value="last_month">الشهر السابق</option>
-          <option value="q1">الربع الأول (Q1)</option>
-          <option value="q2">الربع الثاني (Q2)</option>
-          <option value="q3">الربع الثالث (Q3)</option>
-          <option value="q4">الربع الرابع (Q4)</option>
-          <option value="custom">فترة مخصصة</option>
+          <option value="current_month">{t('sales.vat_declaration.vat_period_selector.s3', "الشهر الحالي")}</option>
+          <option value="last_month">{t('sales.vat_declaration.vat_period_selector.s4', "الشهر السابق")}</option>
+          <option value="q1">{t('sales.vat_declaration.vat_period_selector.s5', "الربع الأول (Q1)")}</option>
+          <option value="q2">{t('sales.vat_declaration.vat_period_selector.s6', "الربع الثاني (Q2)")}</option>
+          <option value="q3">{t('sales.vat_declaration.vat_period_selector.s7', "الربع الثالث (Q3)")}</option>
+          <option value="q4">{t('sales.vat_declaration.vat_period_selector.s8', "الربع الرابع (Q4)")}</option>
+          <option value="custom">{t('sales.vat_declaration.vat_period_selector.s9', "فترة مخصصة")}</option>
         </select>
 
         {periodPreset === 'custom' && (
@@ -113,7 +115,7 @@ export const VatPeriodSelector: React.FC<VatPeriodSelectorProps> = ({
               onChange={(e) => setCustomFrom(e.target.value)}
               style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '12px' }}
             />
-            <span>إلى</span>
+            <span>{t('sales.vat_declaration.vat_period_selector.s10', "إلى")}</span>
             <input
               type="date"
               value={customTo}

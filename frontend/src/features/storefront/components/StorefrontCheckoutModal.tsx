@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { getGlobalCurrencySymbol, getCurrencySymbol, isThreeDecimalCurrency } from '@/lib/currencies';
 import React, { useState, useEffect, useRef } from 'react';
@@ -146,6 +147,7 @@ export function StorefrontCheckoutModal({
   onOrderSuccess,
   onSubmitOrder,
 }: StorefrontCheckoutModalProps) {
+  const { t } = useTranslation();
   const isDineIn = Boolean(tableNumber) || orderType === 'dine_in';
   const [fulfillmentType, setFulfillmentType] = useState<'delivery' | 'pickup'>('delivery');
   const [selectedCountry, setSelectedCountry] = useState<string>(() => {
@@ -744,11 +746,11 @@ export function StorefrontCheckoutModal({
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <span style={{ width: '3px', height: '12px', backgroundColor: '#170e5e', borderRadius: '2px', display: 'inline-block' }} />
                 <h2 style={{ margin: 0, fontSize: '14.5px', fontWeight: 800, color: '#0f172a' }}>
-                  {editingOrderNumber ? `تعديل الطلب #${editingOrderNumber}` : 'إتمام وتأكيد الطلب'}
+                  {editingOrderNumber ? `تعديل الطلب #${editingOrderNumber}` : t('storefront.storefront_checkout_modal.s0', "إتمام وتأكيد الطلب")}
                 </h2>
               </div>
               <p style={{ margin: '1px 0 0', fontSize: '10.5px', color: '#64748b' }}>
-                {editingOrderNumber ? 'تعديل بيانات وأصناف طلبك قبل اعتماده من المتجر' : 'الدفع نقداً عند استلام الطلب'}
+                {editingOrderNumber ? t('storefront.storefront_checkout_modal.s1', "تعديل بيانات وأصناف طلبك قبل اعتماده من المتجر") : t('storefront.storefront_checkout_modal.s2', "الدفع نقداً عند استلام الطلب")}
               </p>
             </div>
           </div>
@@ -774,7 +776,7 @@ export function StorefrontCheckoutModal({
             }}
             onMouseEnter={(e) => (e.currentTarget.style.background = '#e2e8f0')}
             onMouseLeave={(e) => (e.currentTarget.style.background = '#f8fafc')}
-            title="إغلاق (Esc)"
+            title={t('storefront.storefront_checkout_modal.s3', "إغلاق (Esc)")}
           >
             <XIcon size={14} color="#64748b" strokeWidth={2.2} />
           </button>
@@ -858,7 +860,7 @@ export function StorefrontCheckoutModal({
                       }}
                     >
                       <TruckIcon size={14} color={fulfillmentType === 'delivery' ? brandColor : '#64748b'} />
-                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>توصيل للمنزل</span>
+                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{t('storefront.storefront_checkout_modal.s4', "توصيل للمنزل")}</span>
                     </button>
                     <button
                       type="button"
@@ -885,8 +887,8 @@ export function StorefrontCheckoutModal({
                       }}
                     >
                       <PackageIcon size={14} color={fulfillmentType === 'pickup' ? brandColor : '#64748b'} />
-                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>استلام من الفرع</span>
-                      <span style={{ fontSize: '9px', fontWeight: 800, background: '#dcfce7', color: '#166534', padding: '1px 3px', borderRadius: '4px', flexShrink: 0 }}>مجاني</span>
+                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{t('storefront.storefront_checkout_modal.s5', "استلام من الفرع")}</span>
+                      <span style={{ fontSize: '9px', fontWeight: 800, background: '#dcfce7', color: '#166534', padding: '1px 3px', borderRadius: '4px', flexShrink: 0 }}>{t('storefront.storefront_checkout_modal.s6', "مجاني")}</span>
                     </button>
                   </div>
                 )}
@@ -908,7 +910,7 @@ export function StorefrontCheckoutModal({
                     <div style={{ minWidth: 0 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
                         <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 700 }}>
-                          {isDineIn ? 'الطلب باسم' : isPickup ? 'الاستلام باسم' : 'بيانات التوصيل'}
+                          {isDineIn ? t('storefront.storefront_checkout_modal.s7', "الطلب باسم") : isPickup ? t('storefront.storefront_checkout_modal.s8', "الاستلام باسم") : t('storefront.storefront_checkout_modal.s9', "بيانات التوصيل")}
                         </span>
                         <span
                           style={{
@@ -924,7 +926,7 @@ export function StorefrontCheckoutModal({
                           }}
                         >
                           <CheckIcon size={10} color="#15803d" strokeWidth={3} />
-                          بيانات محفوظة
+                          {t('storefront.storefront_checkout_modal.s10', "بيانات محفوظة")}
                         </span>
                       </div>
                       <div style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a' }}>{customerName}</div>
@@ -953,7 +955,7 @@ export function StorefrontCheckoutModal({
                         padding: '4px 8px',
                       }}
                     >
-                      تعديل
+                      {t('storefront.storefront_checkout_modal.s11', "تعديل")}
                     </button>
                   </div>
                 )}
@@ -964,7 +966,7 @@ export function StorefrontCheckoutModal({
                     <div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2px' }}>
                         <label style={{ fontSize: '11px', fontWeight: 700, color: '#1e293b' }}>
-                          رقم الهاتف (للتواصل وتأكيد الطلب) <span style={{ color: '#ef4444' }}>*</span>
+                          {t('storefront.storefront_checkout_modal.s12', "رقم الهاتف (للتواصل وتأكيد الطلب)")} <span style={{ color: '#ef4444' }}>*</span>
                         </label>
                         {customerPhone.length > 0 && (
                           <span
@@ -1015,7 +1017,7 @@ export function StorefrontCheckoutModal({
                           value={customerPhone}
                           onChange={(e) => handlePhoneChange(e.target.value)}
                           onBlur={recordAbandonedCartSilent}
-                          placeholder={COUNTRY_OPTIONS.find((c) => c.code === selectedCountry)?.placeholder || 'رقم الهاتف'}
+                          placeholder={COUNTRY_OPTIONS.find((c) => c.code === selectedCountry)?.placeholder || t('storefront.storefront_checkout_modal.s13', "رقم الهاتف")}
                           style={{
                             flex: 1,
                             padding: '4px 10px',
@@ -1055,7 +1057,7 @@ export function StorefrontCheckoutModal({
                           }}
                         >
                           <span>
-                            <strong>تم استرجاع بياناتك تلقائياً:</strong> لأنك طلبت مسبقاً.
+                            <strong>{t('storefront.storefront_checkout_modal.s14', "تم استرجاع بياناتك تلقائياً:")}</strong> {t('storefront.storefront_checkout_modal.s15', "لأنك طلبت مسبقاً.")}
                           </span>
                           <button
                             type="button"
@@ -1076,7 +1078,7 @@ export function StorefrontCheckoutModal({
                               marginRight: '6px',
                             }}
                           >
-                            تغيير
+                            {t('storefront.storefront_checkout_modal.s16', "تغيير")}
                           </button>
                         </div>
                       )}
@@ -1085,7 +1087,7 @@ export function StorefrontCheckoutModal({
                     {/* Customer Name */}
                     <div>
                       <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#1e293b', marginBottom: '2px' }}>
-                        الاسم بالكامل <span style={{ color: '#ef4444' }}>*</span>
+                        {t('storefront.storefront_checkout_modal.s17', "الاسم بالكامل")} <span style={{ color: '#ef4444' }}>*</span>
                       </label>
                       <input
                         type="text"
@@ -1093,7 +1095,7 @@ export function StorefrontCheckoutModal({
                         value={customerName}
                         onChange={(e) => setCustomerName(e.target.value)}
                         onBlur={recordAbandonedCartSilent}
-                        placeholder="مثال: علي محمد / مازن أحمد"
+                        placeholder={t('storefront.storefront_checkout_modal.s18', "مثال: علي محمد / مازن أحمد")}
                         style={{
                           width: '100%',
                           padding: '4px 10px',
@@ -1122,7 +1124,7 @@ export function StorefrontCheckoutModal({
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2px' }}>
                       <label style={{ fontSize: '11px', fontWeight: 700, color: '#1e293b' }}>
-                        منطقة / حي التوصيل <span style={{ color: '#ef4444' }}>*</span>
+                        {t('storefront.storefront_checkout_modal.s19', "منطقة / حي التوصيل")} <span style={{ color: '#ef4444' }}>*</span>
                       </label>
                       {selectedZone?.estimatedTime && (
                         <span style={{ fontSize: '10px', color: '#15803d', background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '1px 5px', borderRadius: '4px', fontWeight: 600 }}>
@@ -1151,7 +1153,7 @@ export function StorefrontCheckoutModal({
                     >
                       {activeDeliveryZones.map((z) => (
                         <option key={z.id} value={z.id}>
-                          {z.name} — {z.deliveryFee === 0 ? 'توصيل مجاني (0 ج)' : `${z.deliveryFee} ${getGlobalCurrencySymbol()}`} {z.estimatedTime ? `(${z.estimatedTime})` : ''}
+                          {z.name} — {z.deliveryFee === 0 ? t('storefront.storefront_checkout_modal.s20', "توصيل مجاني (0 ج)") : `${z.deliveryFee} ${getGlobalCurrencySymbol()}`} {z.estimatedTime ? `(${z.estimatedTime})` : ''}
                         </option>
                       ))}
                     </select>
@@ -1176,10 +1178,10 @@ export function StorefrontCheckoutModal({
                     </div>
                     <div>
                       <div style={{ fontWeight: 800, color: '#166534', fontSize: '11.5px' }}>
-                        طلب مباشر من الصالة / الكافيه
+                        {t('storefront.storefront_checkout_modal.s21', "طلب مباشر من الصالة / الكافيه")}
                       </div>
                       <div style={{ color: '#15803d', fontSize: '10.5px' }}>
-                        طاولة رقم: <strong>{tableNumber || 'غير محدد'}</strong>
+                        {t('storefront.storefront_checkout_modal.s22', "طاولة رقم:")} <strong>{tableNumber || t('storefront.storefront_checkout_modal.s23', "غير محدد")}</strong>
                       </div>
                     </div>
                   </div>
@@ -1200,17 +1202,17 @@ export function StorefrontCheckoutModal({
                     </div>
                     <div>
                       <div style={{ fontWeight: 800, color: '#1e40af', fontSize: '11.5px' }}>
-                        استلام ذاتي من الفرع (Click & Collect)
+                        {t('storefront.storefront_checkout_modal.s24', "استلام ذاتي من الفرع (Click & Collect)")}
                       </div>
                       <div style={{ color: '#2563eb', fontSize: '10.5px' }}>
-                        تجهيز الطلب للاستلام المباشر بدون رسوم شحن.
+                        {t('storefront.storefront_checkout_modal.s25', "تجهيز الطلب للاستلام المباشر بدون رسوم شحن.")}
                       </div>
                     </div>
                   </div>
                 ) : canExpress ? null : (
                   <div>
                     <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#1e293b', marginBottom: '2px' }}>
-                      عنوان التوصيل بالتفصيل <span style={{ color: '#ef4444' }}>*</span>
+                      {t('storefront.storefront_checkout_modal.s26', "عنوان التوصيل بالتفصيل")} <span style={{ color: '#ef4444' }}>*</span>
                     </label>
                     <textarea
                       required
@@ -1218,7 +1220,7 @@ export function StorefrontCheckoutModal({
                       value={customerAddress}
                       onChange={(e) => setCustomerAddress(e.target.value)}
                       onBlur={recordAbandonedCartSilent}
-                      placeholder="اسم الشارع، رقم العمارة، الطابق، الشقة، وعلامة مميزة..."
+                      placeholder={t('storefront.storefront_checkout_modal.s27', "اسم الشارع، رقم العمارة، الطابق، الشقة، وعلامة مميزة...")}
                       style={{
                         width: '100%',
                         padding: '4px 10px',
@@ -1261,10 +1263,10 @@ export function StorefrontCheckoutModal({
                         fontFamily: 'inherit',
                       }}
                     >
-                      + إضافة ملاحظات للطلب (اختياري)
+                      {t('storefront.storefront_checkout_modal.s28', "+ إضافة ملاحظات للطلب (اختياري)")}
                     </button>
                   ) : (
-                    <span style={{ fontSize: '11px', fontWeight: 700, color: '#475569' }}>ملاحظات الطلب</span>
+                    <span style={{ fontSize: '11px', fontWeight: 700, color: '#475569' }}>{t('storefront.storefront_checkout_modal.s29', "ملاحظات الطلب")}</span>
                   )}
 
                   {!showCouponInput && !appliedCoupon?.ok ? (
@@ -1286,7 +1288,7 @@ export function StorefrontCheckoutModal({
                       }}
                     >
                       <TagIcon size={12} color="#b45309" />
-                      <span>لديك كوبون خصم؟</span>
+                      <span>{t('storefront.storefront_checkout_modal.s30', "لديك كوبون خصم؟")}</span>
                     </button>
                   ) : null}
                 </div>
@@ -1299,7 +1301,7 @@ export function StorefrontCheckoutModal({
                       autoFocus={showNotes && !customerNotes}
                       value={customerNotes}
                       onChange={(e) => setCustomerNotes(e.target.value)}
-                      placeholder="اكتب أي تعليمات لتحضير طلبك أو للتوصيل (اختياري)..."
+                      placeholder={t('storefront.storefront_checkout_modal.s31', "اكتب أي تعليمات لتحضير طلبك أو للتوصيل (اختياري)...")}
                       style={{
                         width: '100%',
                         padding: '6px 10px',
@@ -1325,7 +1327,7 @@ export function StorefrontCheckoutModal({
                 {/* Payment Method Selector */}
                 <div>
                   <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#1e293b', marginBottom: '3px' }}>
-                    طريقة الدفع
+                    {t('storefront.storefront_checkout_modal.s32', "طريقة الدفع")}
                   </label>
 
                   <div
@@ -1375,7 +1377,7 @@ export function StorefrontCheckoutModal({
                           textOverflow: 'ellipsis',
                         }}
                       >
-                        {isDineIn ? 'في الصالة' : fulfillmentType === 'pickup' ? 'عند الاستلام' : 'الدفع عند الاستلام'}
+                        {isDineIn ? t('storefront.storefront_checkout_modal.s33', "في الصالة") : fulfillmentType === 'pickup' ? t('storefront.storefront_checkout_modal.s34', "عند الاستلام") : t('storefront.storefront_checkout_modal.s35', "الدفع عند الاستلام")}
                       </span>
                     </div>
 
@@ -1418,7 +1420,7 @@ export function StorefrontCheckoutModal({
                           textOverflow: 'ellipsis',
                         }}
                       >
-                        {isKuwait ? 'تحويل بنكي / رابط دفع' : 'إنستاباي / محفظة'}
+                        {isKuwait ? t('storefront.storefront_checkout_modal.s36', "تحويل بنكي / رابط دفع") : t('storefront.storefront_checkout_modal.s37', "إنستاباي / محفظة")}
                       </span>
                     </div>
 
@@ -1462,7 +1464,7 @@ export function StorefrontCheckoutModal({
                             textOverflow: 'ellipsis',
                           }}
                         >
-                          {isKuwait ? 'بطاقة / كي نت K-NET' : 'بطاقة بنكية'}
+                          {isKuwait ? t('storefront.storefront_checkout_modal.s38', "بطاقة / كي نت K-NET") : t('storefront.storefront_checkout_modal.s39', "بطاقة بنكية")}
                         </span>
                       </div>
                     )}
@@ -1485,7 +1487,7 @@ export function StorefrontCheckoutModal({
                       }}
                     >
                       <div style={{ fontWeight: 800 }}>
-                        {isKuwait ? 'دفع إلكتروني فوري وآمن (كي نت / بطاقات بنكية):' : 'دفع إلكتروني فوري وآمن:'}
+                        {isKuwait ? t('storefront.storefront_checkout_modal.s40', "دفع إلكتروني فوري وآمن (كي نت / بطاقات بنكية):") : t('storefront.storefront_checkout_modal.s41', "دفع إلكتروني فوري وآمن:")}
                       </div>
                       <div style={{ color: '#0c4a6e', fontSize: '10.5px', lineHeight: '1.3' }}>
                         {isKuwait
@@ -1512,9 +1514,9 @@ export function StorefrontCheckoutModal({
                       }}
                     >
                       <div style={{ fontWeight: 800 }}>
-                        {isKuwait ? 'بيانات التحويل البنكي / الرابط:' : 'رقم التحويل (إنستاباي / كاش):'}{' '}
+                        {isKuwait ? t('storefront.storefront_checkout_modal.s42', "بيانات التحويل البنكي / الرابط:") : t('storefront.storefront_checkout_modal.s43', "رقم التحويل (إنستاباي / كاش):")}{' '}
                         <span style={{ direction: 'ltr', display: 'inline-block', color: brandColor, fontWeight: 900 }}>
-                          {info?.whatsappPhone || 'يرجى التواصل عبر الواتساب'}
+                          {info?.whatsappPhone || t('storefront.storefront_checkout_modal.s44', "يرجى التواصل عبر الواتساب")}
                         </span>
                       </div>
                       <div style={{ color: '#15803d', fontSize: '10.5px', lineHeight: '1.3' }}>
@@ -1545,7 +1547,7 @@ export function StorefrontCheckoutModal({
                         }}
                       >
                         <span>
-                          مبروك! مشترياتك تجاوزت {formatMoney(freeShippingThreshold)} <CurrencySymbol currency={storeCurrency} /> وحصلت على شحن مجاني{rawDeliveryFee > 0 ? <> (توفير {formatMoney(rawDeliveryFee)} <CurrencySymbol currency={storeCurrency} />)</> : ''}.
+                          {t('storefront.storefront_checkout_modal.s45', "مبروك! مشترياتك تجاوزت")} {formatMoney(freeShippingThreshold)} <CurrencySymbol currency={storeCurrency} /> {t('storefront.storefront_checkout_modal.s46', "وحصلت على شحن مجاني")}{rawDeliveryFee > 0 ? <> {t('storefront.storefront_checkout_modal.s47', "(توفير")} {formatMoney(rawDeliveryFee)} <CurrencySymbol currency={storeCurrency} />)</> : ''}.
                         </span>
                       </div>
                     ) : freeShippingRemaining > 0 ? (
@@ -1565,7 +1567,7 @@ export function StorefrontCheckoutModal({
                         <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
                           <TruckIcon size={12} color="#0284c7" />
                           <span>
-                            أضف بـ <strong style={{ color: '#0284c7' }}>{formatMoney(freeShippingRemaining)} <CurrencySymbol currency={storeCurrency} /></strong> لشحن مجاني!
+                            {t('storefront.storefront_checkout_modal.s48', "أضف بـ")} <strong style={{ color: '#0284c7' }}>{formatMoney(freeShippingRemaining)} <CurrencySymbol currency={storeCurrency} /></strong> {t('storefront.storefront_checkout_modal.s49', "لشحن مجاني!")}
                           </span>
                         </div>
                         <span
@@ -1578,7 +1580,7 @@ export function StorefrontCheckoutModal({
                             fontWeight: 700,
                           }}
                         >
-                          عرض الشحن
+                          {t('storefront.storefront_checkout_modal.s50', "عرض الشحن")}
                         </span>
                       </div>
                     ) : null}
@@ -1597,12 +1599,12 @@ export function StorefrontCheckoutModal({
                   >
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '3px' }}>
                       <label style={{ fontSize: '11px', fontWeight: 700, color: '#334155' }}>
-                        كود الخصم أو الكوبون:
+                        {t('storefront.storefront_checkout_modal.s51', "كود الخصم أو الكوبون:")}
                       </label>
                       {appliedCoupon?.ok && (
                         <span style={{ fontSize: '10px', color: '#16a34a', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                           <CheckIcon size={11} color="#16a34a" strokeWidth={2.5} />
-                          <span>تم التطبيق</span>
+                          <span>{t('storefront.storefront_checkout_modal.s52', "تم التطبيق")}</span>
                         </span>
                       )}
                     </div>
@@ -1625,7 +1627,7 @@ export function StorefrontCheckoutModal({
                             {appliedCoupon.code}
                           </span>
                           <span style={{ fontSize: '10px', color: '#15803d', marginRight: '4px' }}>
-                            {appliedCoupon.isFreeShipping ? '(شحن مجاني)' : `(خصم ${formatMoney(discountAmount)} ${activeCurrencySymbol})`}
+                            {appliedCoupon.isFreeShipping ? t('storefront.storefront_checkout_modal.s53', "(شحن مجاني)") : `(خصم ${formatMoney(discountAmount)} ${activeCurrencySymbol})`}
                           </span>
                         </div>
                         <button
@@ -1641,7 +1643,7 @@ export function StorefrontCheckoutModal({
                             padding: '1px 3px',
                           }}
                         >
-                          إلغاء
+                          {t('storefront.storefront_checkout_modal.s54', "إلغاء")}
                         </button>
                       </div>
                     ) : (
@@ -1660,7 +1662,7 @@ export function StorefrontCheckoutModal({
                                 handleApplyCoupon();
                               }
                             }}
-                            placeholder="أدخل كود الكوبون هنا..."
+                            placeholder={t('storefront.storefront_checkout_modal.s55', "أدخل كود الكوبون هنا...")}
                             style={{
                               flex: 1,
                               padding: '4px 8px',
@@ -1694,7 +1696,7 @@ export function StorefrontCheckoutModal({
                               whiteSpace: 'nowrap',
                             }}
                           >
-                            {couponLoading ? 'جاري...' : 'تطبيق'}
+                            {couponLoading ? t('storefront.storefront_checkout_modal.s56', "جاري...") : t('storefront.storefront_checkout_modal.s57', "تطبيق")}
                           </button>
                         </div>
                         {couponError && (
@@ -1720,27 +1722,27 @@ export function StorefrontCheckoutModal({
                   }}
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10.5px', color: '#64748b' }}>
-                    <span>مجموع الأصناف:</span>
+                    <span>{t('storefront.storefront_checkout_modal.s58', "مجموع الأصناف:")}</span>
                     <span style={{ fontWeight: 600, color: '#334155' }}>{formatMoney(subtotal)} <CurrencySymbol currency={storeCurrency} /></span>
                   </div>
 
                   {bogoSavings > 0 && (
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10.5px', color: '#059669', background: '#ecfdf5', padding: '2px 5px', borderRadius: '4px' }}>
-                      <span style={{ fontWeight: 700 }}>وفرت من عروض المتجر (BOGO):</span>
+                      <span style={{ fontWeight: 700 }}>{t('storefront.storefront_checkout_modal.s59', "وفرت من عروض المتجر (BOGO):")}</span>
                       <strong style={{ fontWeight: 800 }}>- {formatMoney(bogoSavings)} <CurrencySymbol currency={storeCurrency} /></strong>
                     </div>
                   )}
 
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10.5px', color: '#64748b' }}>
-                    <span>{isDineIn ? 'خدمة الصالة / الطاولة:' : `خدمة التوصيل ${selectedZone ? `(${selectedZone.name})` : ''}:`}</span>
+                    <span>{isDineIn ? t('storefront.storefront_checkout_modal.s60', "خدمة الصالة / الطاولة:") : `خدمة التوصيل ${selectedZone ? `(${selectedZone.name})` : ''}:`}</span>
                     {isDineIn ? (
-                      <strong style={{ color: '#166534' }}>مجاناً (طلب صالة)</strong>
+                      <strong style={{ color: '#166534' }}>{t('storefront.storefront_checkout_modal.s61', "مجاناً (طلب صالة)")}</strong>
                     ) : effectiveDeliveryFee === 0 ? (
                       <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                         {rawDeliveryFee > 0 && (
                           <span style={{ textDecoration: 'line-through', color: '#94a3b8' }}>{formatMoney(rawDeliveryFee)} {activeCurrencySymbol}</span>
                         )}
-                        <strong style={{ color: '#166534' }}>توصيل مجاني</strong>
+                        <strong style={{ color: '#166534' }}>{t('storefront.storefront_checkout_modal.s62', "توصيل مجاني")}</strong>
                       </div>
                     ) : (
                       <span style={{ fontWeight: 600, color: '#334155' }}>{formatMoney(effectiveDeliveryFee)} <CurrencySymbol currency={storeCurrency} /></span>
@@ -1749,7 +1751,7 @@ export function StorefrontCheckoutModal({
 
                   {discountAmount > 0 && (
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10.5px', color: '#16a34a' }}>
-                      <span>خصم الكوبون ({appliedCoupon?.code}):</span>
+                      <span>{t('storefront.storefront_checkout_modal.s63', "خصم الكوبون (")}{appliedCoupon?.code}):</span>
                       <strong style={{ fontWeight: 800 }}>- {formatMoney(discountAmount)} <CurrencySymbol currency={storeCurrency} /></strong>
                     </div>
                   )}
@@ -1765,7 +1767,7 @@ export function StorefrontCheckoutModal({
                     }}
                   >
                     <span style={{ fontSize: '11.5px', fontWeight: 800, color: '#0f172a' }}>
-                      المبلغ الإجمالي للدفع:
+                      {t('storefront.storefront_checkout_modal.s64', "المبلغ الإجمالي للدفع:")}
                     </span>
                     <span style={{ fontSize: '14.5px', fontWeight: 900, color: '#0f172a' }}>
                       {formatMoney(total)} <CurrencySymbol currency={storeCurrency} />
@@ -1799,7 +1801,7 @@ export function StorefrontCheckoutModal({
                     }}
                   />
                   <span style={{ fontWeight: 600, color: '#334155', whiteSpace: 'nowrap' }}>
-                    تذكر بياناتي على هذا الجهاز لتسريع الطلب في المرات القادمة
+                    {t('storefront.storefront_checkout_modal.s65', "تذكر بياناتي على هذا الجهاز لتسريع الطلب في المرات القادمة")}
                   </span>
                 </label>
               </div>
@@ -1840,7 +1842,7 @@ export function StorefrontCheckoutModal({
               transition: 'all 0.15s ease',
             }}
           >
-            {loading ? 'جاري الحفظ...' : editingOrderNumber ? 'حفظ تعديلات الطلب' : isDineIn ? `إرسال للمطبخ (طاولة ${tableNumber || ''})` : 'إرسال وتأكيد الطلب الآن'}
+            {loading ? t('storefront.storefront_checkout_modal.s66', "جاري الحفظ...") : editingOrderNumber ? t('storefront.storefront_checkout_modal.s67', "حفظ تعديلات الطلب") : isDineIn ? `إرسال للمطبخ (طاولة ${tableNumber || ''})` : t('storefront.storefront_checkout_modal.s68', "إرسال وتأكيد الطلب الآن")}
           </button>
           <button
             type="button"
@@ -1861,7 +1863,7 @@ export function StorefrontCheckoutModal({
               justifyContent: 'center',
             }}
           >
-            إلغاء
+            {t('storefront.storefront_checkout_modal.s69', "إلغاء")}
           </button>
         </div>
       </form>

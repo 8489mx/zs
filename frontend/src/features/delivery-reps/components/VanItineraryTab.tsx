@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { Button } from '@/shared/ui/button';
@@ -139,6 +140,7 @@ const VanItineraryPagination: React.FC<VanItineraryPaginationProps> = ({
   onPageChange,
   onPageSizeChange,
 }) => {
+  const { t } = useTranslation();
   if (totalCount === 0 || totalPages <= 1) return null;
 
   return (
@@ -162,7 +164,7 @@ const VanItineraryPagination: React.FC<VanItineraryPaginationProps> = ({
       <div style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', flexShrink: 0 }}>
         <span style={{ fontSize: '11px', fontWeight: 800, color: '#0f172a', whiteSpace: 'nowrap' }}>
           {startIdx + 1}-{Math.min(startIdx + pageSize, totalCount)}
-          <span style={{ color: '#64748b', fontSize: '10.5px', fontWeight: 500, margin: '0 2px' }}>من</span>
+          <span style={{ color: '#64748b', fontSize: '10.5px', fontWeight: 500, margin: '0 2px' }}>{t('delivery_reps.van_itinerary_tab.s0', "من")}</span>
           {totalCount}
         </span>
 
@@ -171,7 +173,7 @@ const VanItineraryPagination: React.FC<VanItineraryPaginationProps> = ({
         <select
           value={pageSize}
           onChange={(e) => onPageSizeChange(Number(e.target.value))}
-          title="عدد العناصر المعروضة لكل صفحة"
+          title={t('delivery_reps.van_itinerary_tab.s1', "عدد العناصر المعروضة لكل صفحة")}
           style={{
             backgroundColor: '#f8fafc',
             border: '1px solid #cbd5e1',
@@ -219,7 +221,7 @@ const VanItineraryPagination: React.FC<VanItineraryPaginationProps> = ({
             }}
           >
             <ArrowRightIcon size={11} />
-            <span>السابق</span>
+            <span>{t('delivery_reps.van_itinerary_tab.s2', "السابق")}</span>
           </button>
 
           <span
@@ -259,7 +261,7 @@ const VanItineraryPagination: React.FC<VanItineraryPaginationProps> = ({
               boxShadow: currentPage >= totalPages ? 'none' : '0 1px 2px rgba(0,0,0,0.03)',
             }}
           >
-            <span>التالي</span>
+            <span>{t('delivery_reps.van_itinerary_tab.s3', "التالي")}</span>
             <ArrowLeftIcon size={11} />
           </button>
         </div>
@@ -283,6 +285,7 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
   inventory,
   allAvailableCustomers,
 }) => {
+  const { t } = useTranslation();
   const [searchTerm, setSearchTerm] = useState('');
   const [routeFilter, setRouteFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'positive' | 'negative'>('all');
@@ -1003,7 +1006,7 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
                   }}
                 >
                   <ArrowRightIcon size={13} color="#170e5e" />
-                  <span>خط السير</span>
+                  <span>{t('delivery_reps.van_itinerary_tab.s4', "خط السير")}</span>
                 </button>
 
                 <h2
@@ -1044,7 +1047,7 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
                     title={selectedCustomerForHub.customerPhone}
                   >
                     <PhoneIcon size={12} color="#170e5e" />
-                    <span>اتصال</span>
+                    <span>{t('delivery_reps.van_itinerary_tab.s5', "اتصال")}</span>
                   </a>
                 ) : null}
 
@@ -1104,17 +1107,17 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
               <div style={{ flexShrink: 0 }}>
                 {selectedCustomerForHub.visitStatus === 'positive' && (
                   <span style={{ backgroundColor: '#dcfce7', color: '#15803d', fontSize: '10px', fontWeight: 800, padding: '2px 7px', borderRadius: '6px', border: '1px solid #86efac' }}>
-                    تم البيع
+                    {t('delivery_reps.van_itinerary_tab.s6', "تم البيع")}
                   </span>
                 )}
                 {selectedCustomerForHub.visitStatus === 'negative' && (
                   <span style={{ backgroundColor: '#fee2e2', color: '#b91c1c', fontSize: '10px', fontWeight: 800, padding: '2px 7px', borderRadius: '6px', border: '1px solid #fca5a5' }}>
-                    زيارة سلبية
+                    {t('delivery_reps.van_itinerary_tab.s7', "زيارة سلبية")}
                   </span>
                 )}
                 {selectedCustomerForHub.visitStatus === 'pending' && (
                   <span style={{ backgroundColor: '#f1f5f9', color: '#475569', fontSize: '10px', fontWeight: 700, padding: '2px 7px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-                    بانتظار الزيارة
+                    {t('delivery_reps.van_itinerary_tab.s8', "بانتظار الزيارة")}
                   </span>
                 )}
               </div>
@@ -1147,14 +1150,14 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
               }}
             >
               <span style={{ fontSize: '10px', color: '#64748b', fontWeight: 600, display: 'block', marginBottom: '2px' }}>
-                المديونية المستحقة
+                {t('delivery_reps.van_itinerary_tab.s9', "المديونية المستحقة")}
               </span>
               <strong style={{ fontSize: '14px', fontWeight: 900, color: selectedCustomerForHub.balance > 0 ? '#b91c1c' : '#0f172a', display: 'block', lineHeight: 1.15 }}>
                 {Number(selectedCustomerForHub.balance.toFixed(0)).toLocaleString()} <CurrencySymbol />
               </strong>
               {selectedCustomerForHub.creditLimit > 0 && selectedCustomerForHub.balance > selectedCustomerForHub.creditLimit && (
                 <span style={{ backgroundColor: '#fef2f2', color: '#b91c1c', border: '1px solid #fecaca', fontSize: '9px', fontWeight: 800, padding: '1px 5px', borderRadius: '4px', display: 'inline-block', marginTop: '2px' }}>
-                  تجاوز سقف الائتمان
+                  {t('delivery_reps.van_itinerary_tab.s10', "تجاوز سقف الائتمان")}
                 </span>
               )}
             </div>
@@ -1174,7 +1177,7 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
               }}
             >
               <span style={{ fontSize: '10px', color: '#64748b', fontWeight: 600, display: 'block', marginBottom: '2px' }}>
-                سقف الائتمان
+                {t('delivery_reps.van_itinerary_tab.s11', "سقف الائتمان")}
               </span>
               <strong style={{ fontSize: '14px', fontWeight: 900, color: '#0f172a', display: 'block', lineHeight: 1.15 }}>
                 {Number(selectedCustomerForHub.creditLimit.toFixed(0)).toLocaleString()} <CurrencySymbol />
@@ -1182,16 +1185,16 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
               {selectedCustomerForHub.creditLimit > 0 ? (
                 selectedCustomerForHub.balance >= selectedCustomerForHub.creditLimit ? (
                   <span style={{ fontSize: '9px', color: '#b91c1c', fontWeight: 700, display: 'block', marginTop: '2px' }}>
-                    المتاح: 0 <CurrencySymbol />
+                    {t('delivery_reps.van_itinerary_tab.s12', "المتاح: 0")} <CurrencySymbol />
                   </span>
                 ) : (
                   <span style={{ fontSize: '9px', color: '#15803d', fontWeight: 700, display: 'block', marginTop: '2px' }}>
-                    المتاح: {Number((selectedCustomerForHub.creditLimit - selectedCustomerForHub.balance).toFixed(0)).toLocaleString()} <CurrencySymbol />
+                    {t('delivery_reps.van_itinerary_tab.s13', "المتاح:")} {Number((selectedCustomerForHub.creditLimit - selectedCustomerForHub.balance).toFixed(0)).toLocaleString()} <CurrencySymbol />
                   </span>
                 )
               ) : (
                 <span style={{ fontSize: '9px', color: '#64748b', fontWeight: 600, display: 'block', marginTop: '2px' }}>
-                  بيع نقدي فوري
+                  {t('delivery_reps.van_itinerary_tab.s14', "بيع نقدي فوري")}
                 </span>
               )}
             </div>
@@ -1232,7 +1235,7 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
                 </div>
                 <div>
                   <span style={{ fontSize: '10.5px', color: '#64748b', fontWeight: 700, display: 'block' }}>
-                    الزيارة الميدانية جارية الآن
+                    {t('delivery_reps.van_itinerary_tab.s15', "الزيارة الميدانية جارية الآن")}
                   </span>
                   <span
                     style={{
@@ -1267,7 +1270,7 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
                   boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
                 }}
               >
-                <span>إنهاء الزيارة</span>
+                <span>{t('delivery_reps.van_itinerary_tab.s16', "إنهاء الزيارة")}</span>
               </button>
             </div>
           ) : (
@@ -1306,7 +1309,7 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
               >
                 <PlayIcon size={12} color="#ffffff" />
               </div>
-              <span style={{ fontSize: '13px', fontWeight: 800 }}>بدء الزيارة الميدانية وتفعيل المؤقت</span>
+              <span style={{ fontSize: '13px', fontWeight: 800 }}>{t('delivery_reps.van_itinerary_tab.s17', "بدء الزيارة الميدانية وتفعيل المؤقت")}</span>
             </button>
           )}
 
@@ -1314,9 +1317,9 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '2px 4px 0' }}>
             <h3 style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: 800, color: '#0f172a', margin: 0 }}>
               <span style={{ width: '3.5px', height: '14px', backgroundColor: '#170e5e', borderRadius: '2px', display: 'inline-block' }} />
-              <span>إجراءات الزيارة الميدانية</span>
+              <span>{t('delivery_reps.van_itinerary_tab.s18', "إجراءات الزيارة الميدانية")}</span>
             </h3>
-            <span style={{ fontSize: '10.5px', color: '#64748b' }}>اختر الإجراء المطلوب</span>
+            <span style={{ fontSize: '10.5px', color: '#64748b' }}>{t('delivery_reps.van_itinerary_tab.s19', "اختر الإجراء المطلوب")}</span>
           </div>
 
           {/* 4. FOUR OPERATIONAL ACTION TILES (Z-Systems Squircle 2x2 Grid - CALM PREMIUM EXECUTIVE PALETTE) */}
@@ -1372,10 +1375,10 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
                   <ReceiptIcon size={18} color="#170e5e" strokeWidth={2} />
                 </div>
                 <h4 style={{ margin: '0 0 2px', fontSize: '12px', fontWeight: 800, color: '#0f172a', lineHeight: 1.2 }}>
-                  فاتورة بيع جديدة
+                  {t('delivery_reps.van_itinerary_tab.s20', "فاتورة بيع جديدة")}
                 </h4>
                 <p style={{ margin: 0, fontSize: '10px', color: '#64748b', fontWeight: 500 }}>
-                  بيع وصرف بضاعة
+                  {t('delivery_reps.van_itinerary_tab.s21', "بيع وصرف بضاعة")}
                 </p>
               </div>
 
@@ -1432,10 +1435,10 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
                   <RotateCcwIcon size={18} color="#334155" strokeWidth={2} />
                 </div>
                 <h4 style={{ margin: '0 0 2px', fontSize: '12px', fontWeight: 800, color: '#0f172a', lineHeight: 1.2 }}>
-                  مرتجع بضاعة
+                  {t('delivery_reps.van_itinerary_tab.s22', "مرتجع بضاعة")}
                 </h4>
                 <p style={{ margin: 0, fontSize: '10px', color: '#64748b', fontWeight: 500 }}>
-                  من فواتير العميل
+                  {t('delivery_reps.van_itinerary_tab.s23', "من فواتير العميل")}
                 </p>
               </div>
             </div>
@@ -1493,10 +1496,10 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
                   <CreditCardIcon size={18} color="#047857" strokeWidth={2} />
                 </div>
                 <h4 style={{ margin: '0 0 2px', fontSize: '12px', fontWeight: 800, color: '#0f172a', lineHeight: 1.2 }}>
-                  سند تحصيل نقدية
+                  {t('delivery_reps.van_itinerary_tab.s24', "سند تحصيل نقدية")}
                 </h4>
                 <p style={{ margin: 0, fontSize: '10px', color: '#64748b', fontWeight: 500 }}>
-                  سداد وتخفيض مديونية
+                  {t('delivery_reps.van_itinerary_tab.s25', "سداد وتخفيض مديونية")}
                 </p>
               </div>
 
@@ -1539,10 +1542,10 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
                   <FileTextIcon size={18} color="#170e5e" strokeWidth={2} />
                 </div>
                 <h4 style={{ margin: '0 0 2px', fontSize: '12px', fontWeight: 800, color: '#0f172a', lineHeight: 1.2 }}>
-                  كشف حساب
+                  {t('delivery_reps.van_itinerary_tab.s26', "كشف حساب")}
                 </h4>
                 <p style={{ margin: 0, fontSize: '10px', color: '#64748b', fontWeight: 500 }}>
-                  مطابقة وإيصال حراري
+                  {t('delivery_reps.van_itinerary_tab.s27', "مطابقة وإيصال حراري")}
                 </p>
               </div>
             </div>
@@ -1597,10 +1600,10 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
                   <RefreshCwIcon size={18} color="#9f1239" strokeWidth={2} />
                 </div>
                 <h4 style={{ margin: '0 0 2px', fontSize: '12px', fontWeight: 800, color: '#0f172a', lineHeight: 1.2 }}>
-                  استبدال تالف / كسر
+                  {t('delivery_reps.van_itinerary_tab.s28', "استبدال تالف / كسر")}
                 </h4>
                 <p style={{ margin: 0, fontSize: '10px', color: '#64748b', fontWeight: 500 }}>
-                  تبديل فوري وحساب الفارق
+                  {t('delivery_reps.van_itinerary_tab.s29', "تبديل فوري وحساب الفارق")}
                 </p>
               </div>
 
@@ -1652,10 +1655,10 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
                   <PackageIcon size={18} color="#334155" strokeWidth={2} />
                 </div>
                 <h4 style={{ margin: '0 0 2px', fontSize: '12px', fontWeight: 800, color: '#0f172a', lineHeight: 1.2 }}>
-                  جرد الرف (اختياري)
+                  {t('delivery_reps.van_itinerary_tab.s30', "جرد الرف (اختياري)")}
                 </h4>
                 <p style={{ margin: 0, fontSize: '10px', color: '#64748b', fontWeight: 500 }}>
-                  عد المخزون المتبقي
+                  {t('delivery_reps.van_itinerary_tab.s31', "عد المخزون المتبقي")}
                 </p>
               </div>
             </div>
@@ -1710,10 +1713,10 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
                   <SearchIcon size={18} color="#475569" strokeWidth={2} />
                 </div>
                 <h4 style={{ margin: '0 0 2px', fontSize: '12px', fontWeight: 800, color: '#0f172a', lineHeight: 1.2 }}>
-                  تفتيش ومنافسين
+                  {t('delivery_reps.van_itinerary_tab.s32', "تفتيش ومنافسين")}
                 </h4>
                 <p style={{ margin: 0, fontSize: '10px', color: '#64748b', fontWeight: 500 }}>
-                  ثلاجة الشركة وأسعار السوق
+                  {t('delivery_reps.van_itinerary_tab.s33', "ثلاجة الشركة وأسعار السوق")}
                 </p>
               </div>
 
@@ -1757,10 +1760,10 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
                   <XCircleIcon size={18} color="#64748b" strokeWidth={2} />
                 </div>
                 <h4 style={{ margin: '0 0 2px', fontSize: '12px', fontWeight: 800, color: '#0f172a', lineHeight: 1.2 }}>
-                  تسجيل زيارة سلبية
+                  {t('delivery_reps.van_itinerary_tab.s34', "تسجيل زيارة سلبية")}
                 </h4>
                 <p style={{ margin: 0, fontSize: '10px', color: '#64748b', fontWeight: 500 }}>
-                  محل مغلق / لم يشترِ
+                  {t('delivery_reps.van_itinerary_tab.s35', "محل مغلق / لم يشترِ")}
                 </p>
               </div>
             </div>
@@ -1784,11 +1787,11 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <ClockIcon size={13} color="#64748b" />
-                <span style={{ fontWeight: 700, color: '#475569', flexShrink: 0 }}>زيارة سابقة اليوم:</span>
+                <span style={{ fontWeight: 700, color: '#475569', flexShrink: 0 }}>{t('delivery_reps.van_itinerary_tab.s36', "زيارة سابقة اليوم:")}</span>
               </div>
               {selectedCustomerForHub.todayVisit.visitType === 'positive' ? (
                 <span style={{ color: '#15803d', fontWeight: 800 }}>
-                  فاتورة #{selectedCustomerForHub.todayVisit.saleDocNo} ({selectedCustomerForHub.todayVisit.saleTotal} <CurrencySymbol />)
+                  {t('delivery_reps.van_itinerary_tab.s37', "فاتورة #")}{selectedCustomerForHub.todayVisit.saleDocNo} ({selectedCustomerForHub.todayVisit.saleTotal} <CurrencySymbol />)
                 </span>
               ) : (
                 <span style={{ color: '#b91c1c', fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
@@ -1837,10 +1840,10 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
               height: '28px',
               transition: 'all 0.15s ease',
             }}
-            title="المحلات التي تم البيع لها"
+            title={t('delivery_reps.van_itinerary_tab.s38', "المحلات التي تم البيع لها")}
           >
             <CheckCircleIcon size={12} color={statusFilter === 'positive' ? '#ffffff' : '#166534'} />
-            <span style={{ fontSize: '10px', color: statusFilter === 'positive' ? '#ffffff' : '#166534', fontWeight: 700, whiteSpace: 'nowrap' }}>تم البيع:</span>
+            <span style={{ fontSize: '10px', color: statusFilter === 'positive' ? '#ffffff' : '#166534', fontWeight: 700, whiteSpace: 'nowrap' }}>{t('delivery_reps.van_itinerary_tab.s39', "تم البيع:")}</span>
             <strong style={{ fontSize: '12px', fontWeight: 900, color: statusFilter === 'positive' ? '#ffffff' : '#15803d' }}>{positiveCount}</strong>
           </div>
 
@@ -1862,10 +1865,10 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
               height: '28px',
               transition: 'all 0.15s ease',
             }}
-            title="الزيارات السلبية"
+            title={t('delivery_reps.van_itinerary_tab.s40', "الزيارات السلبية")}
           >
             <XCircleIcon size={12} color={statusFilter === 'negative' ? '#ffffff' : '#991b1b'} />
-            <span style={{ fontSize: '10px', color: statusFilter === 'negative' ? '#ffffff' : '#991b1b', fontWeight: 700, whiteSpace: 'nowrap' }}>سلبية:</span>
+            <span style={{ fontSize: '10px', color: statusFilter === 'negative' ? '#ffffff' : '#991b1b', fontWeight: 700, whiteSpace: 'nowrap' }}>{t('delivery_reps.van_itinerary_tab.s41', "سلبية:")}</span>
             <strong style={{ fontSize: '12px', fontWeight: 900, color: statusFilter === 'negative' ? '#ffffff' : '#b91c1c' }}>{negativeCount}</strong>
           </div>
 
@@ -1887,10 +1890,10 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
               height: '28px',
               transition: 'all 0.15s ease',
             }}
-            title="المحلات المتبقية للزيارة"
+            title={t('delivery_reps.van_itinerary_tab.s42', "المحلات المتبقية للزيارة")}
           >
             <ClockIcon size={12} color={statusFilter === 'pending' ? '#ffffff' : '#475569'} />
-            <span style={{ fontSize: '10px', color: statusFilter === 'pending' ? '#ffffff' : '#475569', fontWeight: 700, whiteSpace: 'nowrap' }}>متبقي:</span>
+            <span style={{ fontSize: '10px', color: statusFilter === 'pending' ? '#ffffff' : '#475569', fontWeight: 700, whiteSpace: 'nowrap' }}>{t('delivery_reps.van_itinerary_tab.s43', "متبقي:")}</span>
             <strong style={{ fontSize: '12px', fontWeight: 900, color: statusFilter === 'pending' ? '#ffffff' : '#0f172a' }}>{pendingCount}</strong>
           </div>
         </div>
@@ -1973,7 +1976,7 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
               height: '30px',
             }}
           >
-            <span style={{ whiteSpace: 'nowrap' }}>كافة المحلات</span>
+            <span style={{ whiteSpace: 'nowrap' }}>{t('delivery_reps.van_itinerary_tab.s44', "كافة المحلات")}</span>
             <span
               style={{
                 backgroundColor: dayFilter === 'all' ? 'rgba(255,255,255,0.25)' : '#e2e8f0',
@@ -2024,7 +2027,7 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
               <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {dayFilter !== 'today' && dayFilter !== 'all' && normalizeDayKey(dayFilter) !== normalizeDayKey(todayArabicName)
                   ? dayFilter
-                  : 'يوم...'}
+                  : t('delivery_reps.van_itinerary_tab.s45', "يوم...")}
               </span>
               <ChevronDownIcon size={11} style={{ flexShrink: 0 }} />
             </button>
@@ -2063,7 +2066,7 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
                     backgroundColor: dayFilter === 'all' ? '#eef2ff' : 'transparent',
                   }}
                 >
-                  كافة الأيام
+                  {t('delivery_reps.van_itinerary_tab.s46', "كافة الأيام")}
                 </div>
                 {arabicDayNames.map((d) => {
                   const isCurrent = d === todayArabicName;
@@ -2092,9 +2095,9 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
                         alignItems: 'center',
                       }}
                     >
-                      <span>يوم {d}</span>
+                      <span>{t('delivery_reps.van_itinerary_tab.s47', "يوم")} {d}</span>
                       {isCurrent && (
-                        <span style={{ fontSize: '9px', color: '#16a34a', fontWeight: 800 }}>اليوم</span>
+                        <span style={{ fontSize: '9px', color: '#16a34a', fontWeight: 800 }}>{t('delivery_reps.van_itinerary_tab.s48', "اليوم")}</span>
                       )}
                     </div>
                   );
@@ -2110,7 +2113,7 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="بحث باسم المحل، الكود، الحي، أو الهاتف..."
+            placeholder={t('delivery_reps.van_itinerary_tab.s49', "بحث باسم المحل، الكود، الحي، أو الهاتف...")}
             style={{
               width: '100%',
               boxSizing: 'border-box',
@@ -2153,10 +2156,10 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
                 whiteSpace: 'nowrap',
                 boxShadow: '0 1px 2px rgba(23, 14, 94, 0.15)',
               }}
-              title="إضافة محل جديد لخط السير"
+              title={t('delivery_reps.van_itinerary_tab.s50', "إضافة محل جديد لخط السير")}
             >
               <PlusIcon size={12} color="#ffffff" />
-              <span>+ إضافة محل جديد</span>
+              <span>{t('delivery_reps.van_itinerary_tab.s51', "+ إضافة محل جديد")}</span>
             </button>
 
             {routes.length > 1 && (
@@ -2166,10 +2169,10 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
                   onChange={(val) => setRouteFilter(val || 'all')}
                   dropdownAlign="left"
                   options={[
-                    { value: 'all', label: 'كافة الخطوط' },
+                    { value: 'all', label: t('delivery_reps.van_itinerary_tab.s52', "كافة الخطوط") },
                     ...routes.map((r) => ({ value: r, label: r })),
                   ]}
-                  placeholder="تصفية بالخط"
+                  placeholder={t('delivery_reps.van_itinerary_tab.s53', "تصفية بالخط")}
                   style={{ height: '32px', fontSize: '11.5px' }}
                 />
               </div>
@@ -2212,11 +2215,11 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
                 whiteSpace: 'nowrap',
                 boxSizing: 'border-box',
               }}
-              title="إعادة ترتيب خط السير يدوياً"
+              title={t('delivery_reps.van_itinerary_tab.s54', "إعادة ترتيب خط السير يدوياً")}
             >
               <SlidersIcon size={12} color={isReorderingMode ? '#ffffff' : '#475569'} />
               <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {isReorderingMode ? 'إنهاء الترتيب' : 'ترتيب السير'}
+                {isReorderingMode ? t('delivery_reps.van_itinerary_tab.s55', "إنهاء الترتيب") : t('delivery_reps.van_itinerary_tab.s56', "ترتيب السير")}
               </span>
             </button>
 
@@ -2245,11 +2248,11 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
                 whiteSpace: 'nowrap',
                 boxSizing: 'border-box',
               }}
-              title="تحسين مسار السير بأقصر مسار جغرافي لتوفير استهلاك الوقود وزمن الرحلة"
+              title={t('delivery_reps.van_itinerary_tab.s57', "تحسين مسار السير بأقصر مسار جغرافي لتوفير استهلاك الوقود وزمن الرحلة")}
             >
               <MapPinIcon size={12} color="#170e5e" />
               <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {isOptimizingRoute ? 'جاري التحسين...' : 'أقصر مسار (GPS)'}
+                {isOptimizingRoute ? t('delivery_reps.van_itinerary_tab.s58', "جاري التحسين...") : t('delivery_reps.van_itinerary_tab.s59', "أقصر مسار (GPS)")}
               </span>
             </button>
           </div>
@@ -2296,7 +2299,7 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
                 whiteSpace: 'nowrap',
               }}
             >
-              وضع إعادة الترتيب نشط: استخدم الأسهم (▲/▼) لترتيب خط السير
+              {t('delivery_reps.van_itinerary_tab.s60', "وضع إعادة الترتيب نشط: استخدم الأسهم (▲/▼) لترتيب خط السير")}
             </span>
           </div>
           <button
@@ -2318,10 +2321,10 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
               whiteSpace: 'nowrap',
               boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
             }}
-            title="استعادة ترتيب خط السير الافتراضي"
+            title={t('delivery_reps.van_itinerary_tab.s61', "استعادة ترتيب خط السير الافتراضي")}
           >
             <RotateCcwIcon size={11} color="#dc2626" />
-            استعادة الترتيب
+            {t('delivery_reps.van_itinerary_tab.s62', "استعادة الترتيب")}
           </button>
         </div>
       )}
@@ -2342,20 +2345,20 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
           }}
         >
           <span>
-            تصفية نشطة:{' '}
+            {t('delivery_reps.van_itinerary_tab.s63', "تصفية نشطة:")}{' '}
             {dayFilter !== 'today' && dayFilter !== 'all' && (
-              <strong style={{ color: '#170e5e', marginInlineEnd: '4px' }}>يوم {dayFilter}</strong>
+              <strong style={{ color: '#170e5e', marginInlineEnd: '4px' }}>{t('delivery_reps.van_itinerary_tab.s64', "يوم")} {dayFilter}</strong>
             )}
             {statusFilter !== 'all' && (
               <strong>
                 {statusFilter === 'pending'
-                  ? 'المحلات المتبقية فقط'
+                  ? t('delivery_reps.van_itinerary_tab.s65', "المحلات المتبقية فقط")
                   : statusFilter === 'positive'
-                  ? 'المحلات التي تم البيع لها'
-                  : 'الزيارات السلبية'}
+                  ? t('delivery_reps.van_itinerary_tab.s66', "المحلات التي تم البيع لها")
+                  : t('delivery_reps.van_itinerary_tab.s67', "الزيارات السلبية")}
               </strong>
             )}{' '}
-            ({filtered.length} محل)
+            ({filtered.length} {t('delivery_reps.van_itinerary_tab.s68', "محل)")}
           </span>
           <button
             type="button"
@@ -2373,7 +2376,7 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
               padding: 0,
             }}
           >
-            إلغاء التصفية
+            {t('delivery_reps.van_itinerary_tab.s69', "إلغاء التصفية")}
           </button>
         </div>
       )}
@@ -2381,7 +2384,7 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
       {/* Customers List */}
       {isLoading ? (
         <div style={{ textAlign: 'center', padding: '40px 0', color: '#94a3b8', fontSize: '13px' }}>
-          جاري تحميل خط السير...
+          {t('delivery_reps.van_itinerary_tab.s70', "جاري تحميل خط السير...")}
         </div>
       ) : filtered.length === 0 ? (
         <div
@@ -2394,7 +2397,7 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
             color: '#64748b',
           }}
         >
-          لا توجد محلات مسجلة تطابق معايير البحث
+          {t('delivery_reps.van_itinerary_tab.s71', "لا توجد محلات مسجلة تطابق معايير البحث")}
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -2458,7 +2461,7 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
                           marginInlineStart: '6px',
                         }}
                       >
-                        {group.visitedCount} من {group.totalCount} تمت زيارتهم
+                        {group.visitedCount} {t('delivery_reps.van_itinerary_tab.s72', "من")} {group.totalCount} {t('delivery_reps.van_itinerary_tab.s73', "تمت زيارتهم")}
                       </span>
                     </div>
                   </div>
@@ -2486,7 +2489,7 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
                           color: '#1e293b',
                           boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
                         }}
-                        title="تقديم الحي في خط السير"
+                        title={t('delivery_reps.van_itinerary_tab.s74', "تقديم الحي في خط السير")}
                       >
                         ▲
                       </button>
@@ -2510,7 +2513,7 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
                           color: '#1e293b',
                           boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
                         }}
-                        title="تأخير الحي في خط السير"
+                        title={t('delivery_reps.van_itinerary_tab.s75', "تأخير الحي في خط السير")}
                       >
                         ▼
                       </button>
@@ -2607,7 +2610,7 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
                                 }}
                               >
                                 <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#2563eb', animation: 'pulse 1.5s infinite' }} />
-                                <span>الزيارة جارية ({formatElapsed(elapsedVisitSeconds)})</span>
+                                <span>{t('delivery_reps.van_itinerary_tab.s76', "الزيارة جارية (")}{formatElapsed(elapsedVisitSeconds)})</span>
                               </span>
                             )}
                             {isPositive && (
@@ -2626,7 +2629,7 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
                                 }}
                               >
                                 <CheckCircleIcon size={11} color="#047857" />
-                                <span>تم البيع</span>
+                                <span>{t('delivery_reps.van_itinerary_tab.s77', "تم البيع")}</span>
                               </span>
                             )}
                             {isNegative && (
@@ -2645,7 +2648,7 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
                                 }}
                               >
                                 <XCircleIcon size={11} color="#b91c1c" />
-                                <span>سلبية</span>
+                                <span>{t('delivery_reps.van_itinerary_tab.s78', "سلبية")}</span>
                               </span>
                             )}
                             {isPending && !isActiveVisiting && (
@@ -2664,7 +2667,7 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
                                 }}
                               >
                                 <ClockIcon size={11} color="#64748b" />
-                                <span>بالانتظار</span>
+                                <span>{t('delivery_reps.van_itinerary_tab.s79', "بالانتظار")}</span>
                               </span>
                             )}
 
@@ -2691,7 +2694,7 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
                                     color: '#1e293b',
                                     boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
                                   }}
-                                  title="تقديم المحل"
+                                  title={t('delivery_reps.van_itinerary_tab.s80', "تقديم المحل")}
                                 >
                                   ▲
                                 </button>
@@ -2715,7 +2718,7 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
                                     color: '#1e293b',
                                     boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
                                   }}
-                                  title="تأخير المحل"
+                                  title={t('delivery_reps.van_itinerary_tab.s81', "تأخير المحل")}
                                 >
                                   ▼
                                 </button>
@@ -2741,7 +2744,7 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
                             }}
                           >
                             <AlertTriangleIcon size={12} color="#b45309" />
-                            <span>تنبيه: {item.repeatedNegativesCount} زيارات سابقة بدون بيع</span>
+                            <span>{t('delivery_reps.van_itinerary_tab.s82', "تنبيه:")} {item.repeatedNegativesCount} {t('delivery_reps.van_itinerary_tab.s83', "زيارات سابقة بدون بيع")}</span>
                           </div>
                         )}
 
@@ -2756,10 +2759,10 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
                             <span style={{ fontSize: '10.5px', color: '#64748b' }}>{item.route}</span>
                           </div>
                           <div>
-                            <span style={{ color: '#64748b', fontSize: '10.5px' }}>المديونية: </span>
+                            <span style={{ color: '#64748b', fontSize: '10.5px' }}>{t('delivery_reps.van_itinerary_tab.s84', "المديونية:")} </span>
                             <strong style={{ color: item.balance > 0 ? '#b91c1c' : item.balance < 0 ? '#0284c7' : '#475569', fontSize: '11.5px' }}>
                               {item.balance === 0
-                                ? 'خالص (0)'
+                                ? t('delivery_reps.van_itinerary_tab.s85', "خالص (0)")
                                 : item.balance < 0
                                 ? `دائن (${Math.abs(item.balance).toFixed(0)})`
                                 : item.balance.toFixed(0)}{' '}
@@ -2773,11 +2776,11 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
                           <div style={{ backgroundColor: '#f8fafc', padding: '3px 8px', borderRadius: '4px', fontSize: '10.5px', color: '#475569', border: '1px solid #e2e8f0' }}>
                             {item.todayVisit.visitType === 'positive' ? (
                               <span>
-                                فاتورة #{item.todayVisit.saleDocNo} بمبلغ <strong>{item.todayVisit.saleTotal} <CurrencySymbol /></strong>
+                                {t('delivery_reps.van_itinerary_tab.s86', "فاتورة #")}{item.todayVisit.saleDocNo} {t('delivery_reps.van_itinerary_tab.s87', "بمبلغ")} <strong>{item.todayVisit.saleTotal} <CurrencySymbol /></strong>
                               </span>
                             ) : (
                               <span>
-                                السبب: <strong>{getReasonLabel(item.todayVisit.negativeReason)}</strong>
+                                {t('delivery_reps.van_itinerary_tab.s88', "السبب:")} <strong>{getReasonLabel(item.todayVisit.negativeReason)}</strong>
                                 {item.todayVisit.postponedToDate && ` (تم التأجيل إلى: ${item.todayVisit.postponedToDate})`}
                                 {item.todayVisit.notes && ` — "${item.todayVisit.notes}"`}
                               </span>
@@ -2799,13 +2802,13 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
         <StandardDialog
           open={addCustomerModalOpen}
           onClose={() => setAddCustomerModalOpen(false)}
-          title="إضافة محل جديد لخط السير"
-          subtitle="تسجيل بيانات المحل وإدراجه بخط سير اليوم"
+          title={t('delivery_reps.van_itinerary_tab.s89', "إضافة محل جديد لخط السير")}
+          subtitle={t('delivery_reps.van_itinerary_tab.s90', "تسجيل بيانات المحل وإدراجه بخط سير اليوم")}
           minHeight="490px"
           footerActions={
             <StandardDialogFooter
               onClose={() => setAddCustomerModalOpen(false)}
-              cancelText="إلغاء"
+              cancelText={t('delivery_reps.van_itinerary_tab.s91', "إلغاء")}
               extraActions={
                 <Button
                   variant="primary"
@@ -2813,7 +2816,7 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
                   disabled={isCreatingCustomer || !newCustName.trim()}
                   style={{ backgroundColor: '#170e5e', color: '#ffffff', fontWeight: 800 }}
                 >
-                  {isCreatingCustomer ? 'جاري الحفظ...' : 'حفظ وإدراج في خط السير'}
+                  {isCreatingCustomer ? t('delivery_reps.van_itinerary_tab.s92', "جاري الحفظ...") : t('delivery_reps.van_itinerary_tab.s93', "حفظ وإدراج في خط السير")}
                 </Button>
               }
             />
@@ -2823,13 +2826,13 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
             {/* 1. Store Name */}
             <div>
               <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#0f172a', marginBottom: '3px' }}>
-                اسم المحل / العميل *
+                {t('delivery_reps.van_itinerary_tab.s94', "اسم المحل / العميل *")}
               </label>
               <input
                 type="text"
                 value={newCustName}
                 onChange={(e) => setNewCustName(e.target.value)}
-                placeholder="مثال: سوبرماركت البركة"
+                placeholder={t('delivery_reps.van_itinerary_tab.s95', "مثال: سوبرماركت البركة")}
                 style={{ width: '100%', height: '36px', padding: '0 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '12.5px', boxSizing: 'border-box' }}
               />
             </div>
@@ -2838,7 +2841,7 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#0f172a', marginBottom: '3px' }}>
-                  رقم الهاتف / الموبايل
+                  {t('delivery_reps.van_itinerary_tab.s96', "رقم الهاتف / الموبايل")}
                 </label>
                 <input
                   type="tel"
@@ -2853,7 +2856,7 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
               {/* District Custom Combobox */}
               <div ref={districtContainerRef} style={{ position: 'relative' }}>
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#0f172a', marginBottom: '3px' }}>
-                  الحي / المربع السكني
+                  {t('delivery_reps.van_itinerary_tab.s97', "الحي / المربع السكني")}
                 </label>
                 <div style={{ position: 'relative' }}>
                   <input
@@ -2864,7 +2867,7 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
                       if (!districtDropdownOpen) setDistrictDropdownOpen(true);
                     }}
                     onFocus={() => setDistrictDropdownOpen(true)}
-                    placeholder="اختر أو اكتب الحي..."
+                    placeholder={t('delivery_reps.van_itinerary_tab.s98', "اختر أو اكتب الحي...")}
                     style={{
                       width: '100%',
                       height: '36px',
@@ -2923,11 +2926,11 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
                     }}
                   >
                     <div style={{ padding: '6px 10px', fontSize: '10.5px', fontWeight: 700, color: '#64748b', backgroundColor: '#f8fafc', borderBottom: '1px solid #f1f5f9' }}>
-                      الأحياء المحفوظة ({savedDistrictsList.length}):
+                      {t('delivery_reps.van_itinerary_tab.s99', "الأحياء المحفوظة (")}{savedDistrictsList.length}):
                     </div>
                     {filteredDistricts.length === 0 && !newCustDistrict.trim() && (
                       <div style={{ padding: '10px 12px', fontSize: '11.5px', color: '#94a3b8', textAlign: 'center' }}>
-                        لا توجد أحياء مسجلة سابقاً
+                        {t('delivery_reps.van_itinerary_tab.s100', "لا توجد أحياء مسجلة سابقاً")}
                       </div>
                     )}
                     {filteredDistricts.map((d) => (
@@ -2977,7 +2980,7 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
                         }}
                       >
                         <PlusIcon size={12} color="#2563eb" />
-                        <span>إضافة حي جديد: &quot;{newCustDistrict.trim()}&quot;</span>
+                        <span>{t('delivery_reps.van_itinerary_tab.s101', "إضافة حي جديد: \"")}{newCustDistrict.trim()}&quot;</span>
                       </div>
                     )}
                   </div>
@@ -2989,7 +2992,7 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
             <div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '3px' }}>
                 <label style={{ fontSize: '12px', fontWeight: 700, color: '#0f172a' }}>
-                  العنوان التفصيلي / علامة مميزة
+                  {t('delivery_reps.van_itinerary_tab.s102', "العنوان التفصيلي / علامة مميزة")}
                 </label>
                 <button
                   type="button"
@@ -3012,10 +3015,10 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
                   <MapPinIcon size={12} color={newCustGps ? '#15803d' : '#64748b'} />
                   <span>
                     {isLocatingGps
-                      ? 'جاري التحديد...'
+                      ? t('delivery_reps.van_itinerary_tab.s103', "جاري التحديد...")
                       : newCustGps
-                        ? 'تم تثبيت GPS'
-                        : 'التقاط موقع المحل (GPS)'}
+                        ? t('delivery_reps.van_itinerary_tab.s104', "تم تثبيت GPS")
+                        : t('delivery_reps.van_itinerary_tab.s105', "التقاط موقع المحل (GPS)")}
                   </span>
                 </button>
               </div>
@@ -3023,7 +3026,7 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
                 type="text"
                 value={newCustAddress}
                 onChange={(e) => setNewCustAddress(e.target.value)}
-                placeholder="مثال: شارع الجمهورية - بجوار مسجد النور"
+                placeholder={t('delivery_reps.van_itinerary_tab.s106', "مثال: شارع الجمهورية - بجوار مسجد النور")}
                 style={{ width: '100%', height: '36px', padding: '0 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '12.5px', boxSizing: 'border-box' }}
               />
             </div>
@@ -3032,7 +3035,7 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
             <div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '5px' }}>
                 <label style={{ fontSize: '12px', fontWeight: 700, color: '#0f172a' }}>
-                  أيام الزيارة الأسبوعية المجدولة
+                  {t('delivery_reps.van_itinerary_tab.s107', "أيام الزيارة الأسبوعية المجدولة")}
                 </label>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <button
@@ -3049,7 +3052,7 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
                       textDecoration: 'underline',
                     }}
                   >
-                    كل الأيام
+                    {t('delivery_reps.van_itinerary_tab.s108', "كل الأيام")}
                   </button>
                   <span style={{ fontSize: '10px', color: '#cbd5e1' }}>•</span>
                   <button
@@ -3065,7 +3068,7 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
                       cursor: 'pointer',
                     }}
                   >
-                    اليوم فقط
+                    {t('delivery_reps.van_itinerary_tab.s109', "اليوم فقط")}
                   </button>
                 </div>
               </div>
@@ -3088,7 +3091,7 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
                               prev.filter((d) => normalizeDayKey(d) !== normalizeDayKey(day))
                             );
                           } else {
-                            toast.warning('يجب تحديد يوم واحد على الأقل لزيارة العميل');
+                            toast.warning(t('delivery_reps.van_itinerary_tab.s110', "يجب تحديد يوم واحد على الأقل لزيارة العميل"));
                           }
                         } else {
                           setNewCustVisitDays((prev) => [...prev, day]);
@@ -3130,7 +3133,7 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
                 })}
               </div>
               <span style={{ fontSize: '10px', color: '#64748b', marginTop: '3px', display: 'block' }}>
-                يظهر المحل في خط سير المندوب تلقائياً في الأيام المختارة فقط.
+                {t('delivery_reps.van_itinerary_tab.s111', "يظهر المحل في خط سير المندوب تلقائياً في الأيام المختارة فقط.")}
               </span>
             </div>
 
@@ -3138,10 +3141,10 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
             <div ref={routeContainerRef} style={{ position: 'relative' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '3px' }}>
                 <label style={{ fontSize: '12px', fontWeight: 700, color: '#0f172a' }}>
-                  خط السير الرئيسي (Route)
+                  {t('delivery_reps.van_itinerary_tab.s112', "خط السير الرئيسي (Route)")}
                 </label>
                 <span style={{ fontSize: '10px', color: '#64748b' }}>
-                  مسار الرحلة الجغرافي
+                  {t('delivery_reps.van_itinerary_tab.s113', "مسار الرحلة الجغرافي")}
                 </span>
               </div>
               <div style={{ position: 'relative' }}>
@@ -3153,7 +3156,7 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
                     if (!routeDropdownOpen) setRouteDropdownOpen(true);
                   }}
                   onFocus={() => setRouteDropdownOpen(true)}
-                  placeholder={routes[0] || 'مثال: خط فيصل الرئيسي'}
+                  placeholder={routes[0] || t('delivery_reps.van_itinerary_tab.s114', "مثال: خط فيصل الرئيسي")}
                   style={{
                     width: '100%',
                     height: '36px',
@@ -3214,7 +3217,7 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
                   }}
                 >
                   <div style={{ padding: '6px 10px', fontSize: '10.5px', fontWeight: 700, color: '#64748b', backgroundColor: '#f8fafc', borderBottom: '1px solid #f1f5f9' }}>
-                    خطوط سير الرحلة الحالية:
+                    {t('delivery_reps.van_itinerary_tab.s115', "خطوط سير الرحلة الحالية:")}
                   </div>
                   {filteredRoutes.map((r) => (
                     <div
@@ -3248,7 +3251,7 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
             {/* Hint Notice */}
             <div style={{ fontSize: '11px', color: '#64748b', backgroundColor: '#f8fafc', padding: '6px 10px', borderRadius: '6px', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '6px' }}>
               <CheckCircleIcon size={13} color="#15803d" />
-              <span>المحل يُسجل بنظام (سداد نقدي) ويُدرج في خط سير اليوم لتبدأ زيارته فوراً، ويتكرر أسبوعياً في الأيام المحددة.</span>
+              <span>{t('delivery_reps.van_itinerary_tab.s116', "المحل يُسجل بنظام (سداد نقدي) ويُدرج في خط سير اليوم لتبدأ زيارته فوراً، ويتكرر أسبوعياً في الأيام المحددة.")}</span>
             </div>
           </div>
         </StandardDialog>
@@ -3272,15 +3275,15 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
         <StandardDialog
           open={true}
           onClose={() => setNegativeModalOpen(false)}
-          title="تسجيل زيارة غير موفقة"
+          title={t('delivery_reps.van_itinerary_tab.s117', "تسجيل زيارة غير موفقة")}
           subtitle={`${activeCustomer.customerName} [${activeCustomer.customerCode.replace(/^#/, '')}]`}
-          badge="خط السير الميداني"
+          badge={t('delivery_reps.van_itinerary_tab.s118', "خط السير الميداني")}
           width="min(460px, 95vw)"
           compact={true}
           footerActions={
             <StandardDialogFooter
               onClose={() => setNegativeModalOpen(false)}
-              cancelText="إلغاء"
+              cancelText={t('delivery_reps.van_itinerary_tab.s119', "إلغاء")}
               extraActions={
                 <Button
                   variant="primary"
@@ -3288,7 +3291,7 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
                   disabled={isSubmitting}
                   style={{ backgroundColor: '#dc2626', color: '#ffffff', fontSize: '12px', fontWeight: 800, padding: '6px 14px' }}
                 >
-                  {isSubmitting ? 'جاري الحفظ...' : 'تأكيد وحفظ الزيارة السلبية'}
+                  {isSubmitting ? t('delivery_reps.van_itinerary_tab.s120', "جاري الحفظ...") : t('delivery_reps.van_itinerary_tab.s121', "تأكيد وحفظ الزيارة السلبية")}
                 </Button>
               }
             />
@@ -3297,7 +3300,7 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
           <div dir="rtl" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             <div>
               <label style={{ display: 'block', fontSize: '12px', fontWeight: 800, color: '#334155', marginBottom: '6px' }}>
-                حدد سبب عدم إتمام البيع (لمسة واحدة):
+                {t('delivery_reps.van_itinerary_tab.s122', "حدد سبب عدم إتمام البيع (لمسة واحدة):")}
               </label>
               <div
                 style={{
@@ -3307,12 +3310,12 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
                 }}
               >
                 {[
-                  { value: 'shop_closed', label: 'المحل مغلق' },
-                  { value: 'no_cash', label: 'مفيش نقدية / رفض الدفع' },
-                  { value: 'sufficient_stock', label: 'لديه بضاعة كافية' },
-                  { value: 'item_unavailable', label: 'الصنف غير متوفر بالسيارة' },
-                  { value: 'postponed', label: 'تأجيل الزيارة لموعد لاحق' },
-                  { value: 'other', label: 'أسباب أخرى' },
+                  { value: 'shop_closed', label: t('delivery_reps.van_itinerary_tab.s123', "المحل مغلق") },
+                  { value: 'no_cash', label: t('delivery_reps.van_itinerary_tab.s124', "مفيش نقدية / رفض الدفع") },
+                  { value: 'sufficient_stock', label: t('delivery_reps.van_itinerary_tab.s125', "لديه بضاعة كافية") },
+                  { value: 'item_unavailable', label: t('delivery_reps.van_itinerary_tab.s126', "الصنف غير متوفر بالسيارة") },
+                  { value: 'postponed', label: t('delivery_reps.van_itinerary_tab.s127', "تأجيل الزيارة لموعد لاحق") },
+                  { value: 'other', label: t('delivery_reps.van_itinerary_tab.s128', "أسباب أخرى") },
                 ].map((item) => {
                   const isSelected = negativeReason === item.value;
                   return (
@@ -3351,7 +3354,7 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
             {negativeReason === 'postponed' && (
               <div style={{ backgroundColor: '#eff6ff', padding: '8px 10px', borderRadius: '8px', border: '1px solid #bfdbfe' }}>
                 <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 800, color: '#1e40af', marginBottom: '4px' }}>
-                  تاريخ التأجيل المقترح:
+                  {t('delivery_reps.van_itinerary_tab.s129', "تاريخ التأجيل المقترح:")}
                 </label>
                 <input
                   type="date"
@@ -3373,12 +3376,12 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
 
             <div>
               <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: '#475569', marginBottom: '3px' }}>
-                ملاحظات المندوب الميدانية (اختياري):
+                {t('delivery_reps.van_itinerary_tab.s130', "ملاحظات المندوب الميدانية (اختياري):")}
               </label>
               <textarea
                 value={negativeNotes}
                 onChange={(e) => setNegativeNotes(e.target.value)}
-                placeholder="أية ملاحظات إضافية حول سبب الزيارة..."
+                placeholder={t('delivery_reps.van_itinerary_tab.s131', "أية ملاحظات إضافية حول سبب الزيارة...")}
                 rows={2}
                 style={{
                   width: '100%',
@@ -3406,7 +3409,7 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
               }}
             >
               <MapPinIcon size={13} color="#0284c7" />
-              <span>سيتم التقاط إحداثيات الموقع الجغرافي (GPS) تلقائياً لتوثيق وصول المندوب للمحل.</span>
+              <span>{t('delivery_reps.van_itinerary_tab.s132', "سيتم التقاط إحداثيات الموقع الجغرافي (GPS) تلقائياً لتوثيق وصول المندوب للمحل.")}</span>
             </div>
           </div>
         </StandardDialog>
@@ -3427,8 +3430,8 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
         <StandardDialog
           open={isOptimizeModalOpen}
           onClose={() => setIsOptimizeModalOpen(false)}
-          title="تحسين المسار الجغرافي بأقصر طريق (TSP Route Optimization)"
-          subtitle="محرك الذكاء المكاني لحساب أقصر مسار بين المحلات وتوفير استهلاك الوقود وزمن الرحلة"
+          title={t('delivery_reps.van_itinerary_tab.s133', "تحسين المسار الجغرافي بأقصر طريق (TSP Route Optimization)")}
+          subtitle={t('delivery_reps.van_itinerary_tab.s134', "محرك الذكاء المكاني لحساب أقصر مسار بين المحلات وتوفير استهلاك الوقود وزمن الرحلة")}
           width="680px"
           minHeight="480px"
         >
@@ -3436,30 +3439,30 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
             {/* KPI Stats Ribbon */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
               <div style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '12px', textAlign: 'center' }}>
-                <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>المسافة قبل التحسين</div>
+                <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>{t('delivery_reps.van_itinerary_tab.s135', "المسافة قبل التحسين")}</div>
                 <div style={{ fontSize: '18px', fontWeight: 800, color: '#64748b' }}>
-                  {routeOptimizationResult.stats.originalDistanceKm} كم
+                  {routeOptimizationResult.stats.originalDistanceKm} {t('delivery_reps.van_itinerary_tab.s136', "كم")}
                 </div>
               </div>
 
               <div style={{ backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', padding: '12px', textAlign: 'center' }}>
-                <div style={{ fontSize: '11px', color: '#166534', fontWeight: 600 }}>المسافة بعد التحسين</div>
+                <div style={{ fontSize: '11px', color: '#166534', fontWeight: 600 }}>{t('delivery_reps.van_itinerary_tab.s137', "المسافة بعد التحسين")}</div>
                 <div style={{ fontSize: '18px', fontWeight: 800, color: '#16a34a' }}>
-                  {routeOptimizationResult.stats.optimizedDistanceKm} كم
+                  {routeOptimizationResult.stats.optimizedDistanceKm} {t('delivery_reps.van_itinerary_tab.s138', "كم")}
                 </div>
               </div>
 
               <div style={{ backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '8px', padding: '12px', textAlign: 'center' }}>
-                <div style={{ fontSize: '11px', color: '#1e40af', fontWeight: 600 }}>التوفير في استهلاك الوقود</div>
+                <div style={{ fontSize: '11px', color: '#1e40af', fontWeight: 600 }}>{t('delivery_reps.van_itinerary_tab.s139', "التوفير في استهلاك الوقود")}</div>
                 <div style={{ fontSize: '18px', fontWeight: 800, color: '#1d4ed8' }}>
-                  {routeOptimizationResult.stats.savedDistanceKm} كم ({routeOptimizationResult.stats.savingsPercent}%)
+                  {routeOptimizationResult.stats.savedDistanceKm} {t('delivery_reps.van_itinerary_tab.s140', "كم (")}{routeOptimizationResult.stats.savingsPercent}%)
                 </div>
               </div>
             </div>
 
             {/* Stops Preview List */}
             <div style={{ fontSize: '12.5px', fontWeight: 700, color: '#1e293b' }}>
-              تسلسل المحطات المقترح ({routeOptimizationResult.orderedStops.length} محطة):
+              {t('delivery_reps.van_itinerary_tab.s141', "تسلسل المحطات المقترح (")}{routeOptimizationResult.orderedStops.length} {t('delivery_reps.van_itinerary_tab.s142', "محطة):")}
             </div>
 
             <div style={{ maxHeight: '250px', overflowY: 'auto', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '6px' }}>
@@ -3495,17 +3498,17 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
                     <div>
                       <div style={{ fontSize: '12.5px', fontWeight: 600, color: '#0f172a' }}>{stop.name}</div>
                       <div style={{ fontSize: '11px', color: '#64748b' }}>
-                        {stop.district ? `${stop.district} - ` : ''}{stop.address || 'بدون عنوان تفصيلي'}
+                        {stop.district ? `${stop.district} - ` : ''}{stop.address || t('delivery_reps.van_itinerary_tab.s143', "بدون عنوان تفصيلي")}
                       </div>
                     </div>
                   </div>
 
                   <div style={{ textAlign: 'left', fontSize: '11.5px' }}>
                     {stop.isUnmappedGps ? (
-                      <span style={{ color: '#d97706', fontWeight: 600 }}>بدون GPS (في النهاية)</span>
+                      <span style={{ color: '#d97706', fontWeight: 600 }}>{t('delivery_reps.van_itinerary_tab.s144', "بدون GPS (في النهاية)")}</span>
                     ) : (
                       <span style={{ color: '#475569', fontWeight: 600 }}>
-                        {sIdx === 0 ? 'نقطة الانطلاق' : `+${(stop.legDistanceMeters / 1000).toFixed(1)} كم`}
+                        {sIdx === 0 ? t('delivery_reps.van_itinerary_tab.s145', "نقطة الانطلاق") : `+${(stop.legDistanceMeters / 1000).toFixed(1)} كم`}
                       </span>
                     )}
                   </div>
@@ -3515,7 +3518,7 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
 
             <StandardDialogFooter>
               <Button type="button" variant="secondary" onClick={() => setIsOptimizeModalOpen(false)}>
-                إلغاء
+                {t('delivery_reps.van_itinerary_tab.s146', "إلغاء")}
               </Button>
               <Button
                 type="button"
@@ -3528,7 +3531,7 @@ export const VanItineraryTab: React.FC<VanItineraryTabProps> = ({
                   fontSize: '13px',
                 }}
               >
-                {isOptimizingRoute ? 'جاري الاعتماد...' : 'اعتماد وحفظ المسار الأمثل'}
+                {isOptimizingRoute ? t('delivery_reps.van_itinerary_tab.s147', "جاري الاعتماد...") : t('delivery_reps.van_itinerary_tab.s148', "اعتماد وحفظ المسار الأمثل")}
               </Button>
             </StandardDialogFooter>
           </div>

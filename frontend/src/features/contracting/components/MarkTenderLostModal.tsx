@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React, { useState } from 'react';
 import { StandardDialog } from '@/shared/components/StandardDialog';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
@@ -31,6 +32,7 @@ export function MarkTenderLostModal({
   onClose,
   onSuccess,
 }: MarkTenderLostModalProps) {
+  const { t } = useTranslation();
   const [lossReason, setLossReason] = useState('price_higher_than_competitor');
   const [competitorPrice, setCompetitorPrice] = useState<number | ''>('');
   const [lossNotes, setLossNotes] = useState('');
@@ -64,18 +66,18 @@ export function MarkTenderLostModal({
     <StandardDialog
       open={open}
       onClose={onClose}
-      title="أرشفة العطاء كـ (غير مرسّى / لم يُوفّق فيه)"
+      title={t('contracting.mark_tender_lost_modal.s0', "أرشفة العطاء كـ (غير مرسّى / لم يُوفّق فيه)")}
       subtitle={`العطاء: [${projectCode || ''}] ${projectName || ''} - حفظ مرجعي دائم في قاعدة البيانات`}
       width="640px"
     >
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }} dir="rtl">
         <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '12px 14px', fontSize: 'var(--font-subtitle)', color: '#475569', lineHeight: 1.5 }}>
-          <strong>تنبيه هندسي:</strong> العطاء لن يتم حذفه من المنظومة، بل سيتم نقله إلى <strong>«أرشيف العطاءات التاريخية المرجعية»</strong> للاحتفاظ بحسابات التكلفة وتفكيك أسعار الخامات والمصنعيات كمرجع تسعيري للعمليات المستقبلية.
+          <strong>{t('contracting.mark_tender_lost_modal.s1', "تنبيه هندسي:")}</strong> {t('contracting.mark_tender_lost_modal.s2', "العطاء لن يتم حذفه من المنظومة، بل سيتم نقله إلى")} <strong>{t('contracting.mark_tender_lost_modal.s3', "«أرشيف العطاءات التاريخية المرجعية»")}</strong> {t('contracting.mark_tender_lost_modal.s4', "للاحتفاظ بحسابات التكلفة وتفكيك أسعار الخامات والمصنعيات كمرجع تسعيري للعمليات المستقبلية.")}
         </div>
 
         <div>
           <label style={{ display: 'block', fontSize: 'var(--font-body)', fontWeight: 700, color: '#1e293b', marginBottom: '6px' }}>
-            سبب عدم الترسية أو الرفض <span style={{ color: '#dc2626' }}>*</span>
+            {t('contracting.mark_tender_lost_modal.s5', "سبب عدم الترسية أو الرفض")} <span style={{ color: '#dc2626' }}>*</span>
           </label>
           <CustomSelect
             value={lossReason}
@@ -86,7 +88,7 @@ export function MarkTenderLostModal({
 
         <div>
           <label style={{ display: 'block', fontSize: 'var(--font-body)', fontWeight: 700, color: '#1e293b', marginBottom: '6px' }}>
-            السعر الفائز للمنافس (إن توفر للدراسة التحليلية)
+            {t('contracting.mark_tender_lost_modal.s6', "السعر الفائز للمنافس (إن توفر للدراسة التحليلية)")}
           </label>
           <input
             type="number"
@@ -94,7 +96,7 @@ export function MarkTenderLostModal({
             step="any"
             value={competitorPrice}
             onChange={(e) => setCompetitorPrice(e.target.value === '' ? '' : Number(e.target.value))}
-            placeholder="مثال: 1450000"
+            placeholder={t('contracting.mark_tender_lost_modal.s7', "مثال: 1450000")}
             style={{
               width: '100%',
               height: '38px',
@@ -110,13 +112,13 @@ export function MarkTenderLostModal({
 
         <div>
           <label style={{ display: 'block', fontSize: 'var(--font-body)', fontWeight: 700, color: '#1e293b', marginBottom: '6px' }}>
-            ملاحظات ودروس مستفادة للمكتب الفني
+            {t('contracting.mark_tender_lost_modal.s8', "ملاحظات ودروس مستفادة للمكتب الفني")}
           </label>
           <textarea
             rows={3}
             value={lossNotes}
             onChange={(e) => setLossNotes(e.target.value)}
-            placeholder="اكتب أي تفاصيل بخصوص أسعار السوق، عروض المنافسين، أو ملاحظات العميل..."
+            placeholder={t('contracting.mark_tender_lost_modal.s9', "اكتب أي تفاصيل بخصوص أسعار السوق، عروض المنافسين، أو ملاحظات العميل...")}
             style={{
               width: '100%',
               padding: '8px 12px',
@@ -147,7 +149,7 @@ export function MarkTenderLostModal({
               fontSize: 'var(--font-body)',
             }}
           >
-            إلغاء
+            {t('contracting.mark_tender_lost_modal.s10', "إلغاء")}
           </button>
           <button
             type="submit"
@@ -170,7 +172,7 @@ export function MarkTenderLostModal({
             }}
           >
             <AppIcons.Archive size={15} />
-            <span>{isSubmitting ? 'جاري الأرشفة...' : 'أرشفة العطاء في السجل التاريخي'}</span>
+            <span>{isSubmitting ? t('contracting.mark_tender_lost_modal.s11', "جاري الأرشفة...") : t('contracting.mark_tender_lost_modal.s12', "أرشفة العطاء في السجل التاريخي")}</span>
           </button>
         </div>
       </form>

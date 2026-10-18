@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Card } from '@/shared/ui/card';
@@ -12,6 +13,8 @@ import {
 } from '@/features/accounting/api/accounting.api';
 
 export function BalanceSheetPage() {
+  const { t, i18n } = useTranslation();
+  const isEn = i18n.language === 'en';
   const today = new Date().toISOString().slice(0, 10);
   const oneYearAgo = new Date(new Date().setFullYear(new Date().getFullYear() - 1)).toISOString().slice(0, 10);
 
@@ -70,21 +73,21 @@ export function BalanceSheetPage() {
   };
 
   return (
-    <div className="page-stack page-shell balance-sheet-page" dir="rtl">
+    <div className="page-stack page-shell balance-sheet-page">
       <main className="document-prototype-column" style={{ paddingBottom: '100px' }}>
         <PageHeader
-          title="الميزانية العمومية وقائمة المركز المالي"
-          description="Statement of Financial Position (IAS 1 / IFRS Standard) مع التحقق المحاسبي الآلي للتوازن"
-          badge={<span className="nav-pill">القوائم المالية المعتمدة</span>}
+          title={t('accounting.balance_sheet_page.s0', "الميزانية العمومية وقائمة المركز المالي")}
+          description={t('accounting.balance_sheet_page.s1', "Statement of Financial Position (IAS 1 / IFRS Standard) مع التحقق المحاسبي الآلي للتوازن")}
+          badge={<span className="nav-pill">{t('accounting.balance_sheet_page.s2', "القوائم المالية المعتمدة")}</span>}
           actions={
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
               <Button type="button" variant="secondary" onClick={handleExportCsv} disabled={!report}>
                 <DownloadIcon size={14} style={{ marginInlineEnd: '6px' }} />
-                تصدير CSV
+                {t('accounting.balance_sheet_page.s3', "تصدير CSV")}
               </Button>
               <Button type="button" variant="secondary" onClick={handlePrint} disabled={!report}>
                 <PrinterIcon size={14} style={{ marginInlineEnd: '6px' }} />
-                طباعة معتمدة
+                {t('accounting.balance_sheet_page.s4', "طباعة معتمدة")}
               </Button>
             </div>
           }
@@ -95,7 +98,7 @@ export function BalanceSheetPage() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', alignItems: 'flex-end' }}>
           <div>
             <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#475569', marginBottom: '6px' }}>
-              تاريخ الميزانية (حتى تاريخ)
+              {t('accounting.balance_sheet_page.s5', "تاريخ الميزانية (حتى تاريخ)")}
             </label>
             <input
               type="date"
@@ -107,23 +110,23 @@ export function BalanceSheetPage() {
 
           <div>
             <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#475569', marginBottom: '6px' }}>
-              المقارنة مع فترة سابقة
+              {t('accounting.balance_sheet_page.s6', "المقارنة مع فترة سابقة")}
             </label>
             <select
               value={compareMode}
               onChange={(e) => setCompareMode(e.target.value as any)}
               style={{ width: '100%', height: '36px', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '0 10px', fontSize: '0.875rem' }}
             >
-              <option value="none">بدون مقارنة</option>
-              <option value="last_year">نفس التاريخ من العام السابق</option>
-              <option value="custom">تاريخ مخصص</option>
+              <option value="none">{t('accounting.balance_sheet_page.s7', "بدون مقارنة")}</option>
+              <option value="last_year">{t('accounting.balance_sheet_page.s8', "نفس التاريخ من العام السابق")}</option>
+              <option value="custom">{t('accounting.balance_sheet_page.s9', "تاريخ مخصص")}</option>
             </select>
           </div>
 
           {compareMode === 'custom' && (
             <div>
               <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#475569', marginBottom: '6px' }}>
-                تاريخ المقارنة المخصص
+                {t('accounting.balance_sheet_page.s10', "تاريخ المقارنة المخصص")}
               </label>
               <input
                 type="date"
@@ -141,7 +144,7 @@ export function BalanceSheetPage() {
               onClick={() => void query.refetch()}
               style={{ height: '36px', backgroundColor: '#170e5e', color: '#fff', fontWeight: 700 }}
             >
-              تحديث التقرير
+              {t('accounting.balance_sheet_page.s11', "تحديث التقرير")}
             </Button>
           </div>
         </div>
@@ -150,13 +153,13 @@ export function BalanceSheetPage() {
       {/* Loading & Error feedback */}
       {query.isLoading && (
         <Card style={{ padding: '32px', textAlign: 'center', color: '#64748b' }}>
-          جاري احتساب الميزانية العمومية والتحقق من التوازن المالي...
+          {t('accounting.balance_sheet_page.s12', "جاري احتساب الميزانية العمومية والتحقق من التوازن المالي...")}
         </Card>
       )}
 
       {query.isError && (
         <Card style={{ padding: '24px', backgroundColor: '#fef2f2', border: '1px solid #fecaca', color: '#991b1b', borderRadius: '12px' }}>
-          تعذر احتساب الميزانية العمومية. يرجى التحقق من الاتصال بالخادم.
+          {t('accounting.balance_sheet_page.s13', "تعذر احتساب الميزانية العمومية. يرجى التحقق من الاتصال بالخادم.")}
         </Card>
       )}
 
@@ -193,17 +196,17 @@ export function BalanceSheetPage() {
               <div>
                 <strong style={{ fontSize: '0.95rem', color: report.isBalanced ? '#166534' : '#991b1b' }}>
                   {report.isBalanced
-                    ? 'الميزانية العمومية متوازنة محاسبياً بدقة 100%'
+                    ? t('accounting.balance_sheet_page.s14', "الميزانية العمومية متوازنة محاسبياً بدقة 100%")
                     : `يوجد فارق عدم توازن قدره: ${formatCurrency(Math.abs(report.difference))}`}
                 </strong>
                 <div style={{ fontSize: '0.78rem', color: '#475569', marginTop: '2px' }}>
-                  معادلة المركز المالي: إجمالي الأصول ({formatCurrency(report.assets.totalAssets)}) = الخصوم ({formatCurrency(report.liabilities.totalLiabilities)}) + حقوق الملكية ({formatCurrency(report.equity.totalEquity)})
+                  {t('accounting.balance_sheet_page.s15', "معادلة المركز المالي: إجمالي الأصول (")}{formatCurrency(report.assets.totalAssets)}{t('accounting.balance_sheet_page.s16', ") = الخصوم (")}{formatCurrency(report.liabilities.totalLiabilities)}{t('accounting.balance_sheet_page.s17', ") + حقوق الملكية (")}{formatCurrency(report.equity.totalEquity)})
                 </div>
               </div>
             </div>
 
             <div style={{ textAlign: 'left' }}>
-              <span style={{ fontSize: '0.75rem', color: '#64748b' }}>حتى تاريخ:</span>
+              <span style={{ fontSize: '0.75rem', color: '#64748b' }}>{t('accounting.balance_sheet_page.s18', "حتى تاريخ:")}</span>
               <strong style={{ display: 'block', fontSize: '0.9rem', color: '#0f172a' }}>{report.asOfDate}</strong>
             </div>
           </div>
@@ -211,31 +214,31 @@ export function BalanceSheetPage() {
           {/* 4 Financial Highlight Cards */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', marginBottom: '20px' }}>
             <Card style={{ padding: '16px', backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px' }}>
-              <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#64748b' }}>إجمالي الأصول</span>
+              <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#64748b' }}>{t('accounting.balance_sheet_page.s19', "إجمالي الأصول")}</span>
               <div style={{ fontSize: '1.3rem', fontWeight: 800, color: '#0f172a', marginTop: '4px' }}>
                 {formatCurrency(report.assets.totalAssets)}
               </div>
               {report.assets.compareTotalAssets !== undefined && (
                 <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '4px' }}>
-                  مقارنة: {formatCurrency(report.assets.compareTotalAssets)}
+                  {t('accounting.balance_sheet_page.s20', "مقارنة:")} {formatCurrency(report.assets.compareTotalAssets)}
                 </div>
               )}
             </Card>
 
             <Card style={{ padding: '16px', backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px' }}>
-              <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#64748b' }}>إجمالي الالتزامات (الخصوم)</span>
+              <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#64748b' }}>{t('accounting.balance_sheet_page.s21', "إجمالي الالتزامات (الخصوم)")}</span>
               <div style={{ fontSize: '1.3rem', fontWeight: 800, color: '#dc2626', marginTop: '4px' }}>
                 {formatCurrency(report.liabilities.totalLiabilities)}
               </div>
               {report.liabilities.compareTotalLiabilities !== undefined && (
                 <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '4px' }}>
-                  مقارنة: {formatCurrency(report.liabilities.compareTotalLiabilities)}
+                  {t('accounting.balance_sheet_page.s22', "مقارنة:")} {formatCurrency(report.liabilities.compareTotalLiabilities)}
                 </div>
               )}
             </Card>
 
             <Card style={{ padding: '16px', backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px' }}>
-              <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#64748b' }}>صافي أرباح الفترة الحالية</span>
+              <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#64748b' }}>{t('accounting.balance_sheet_page.s23', "صافي أرباح الفترة الحالية")}</span>
               <div
                 style={{
                   fontSize: '1.3rem',
@@ -247,18 +250,18 @@ export function BalanceSheetPage() {
                 {formatCurrency(report.equity.currentPeriodNetProfit)}
               </div>
               <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '4px' }}>
-                منقولة آلياً من قائمة الدخل
+                {t('accounting.balance_sheet_page.s24', "منقولة آلياً من قائمة الدخل")}
               </div>
             </Card>
 
             <Card style={{ padding: '16px', backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px' }}>
-              <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#64748b' }}>إجمالي حقوق الملكية</span>
+              <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#64748b' }}>{t('accounting.balance_sheet_page.s25', "إجمالي حقوق الملكية")}</span>
               <div style={{ fontSize: '1.3rem', fontWeight: 800, color: '#170e5e', marginTop: '4px' }}>
                 {formatCurrency(report.equity.totalEquity)}
               </div>
               {report.equity.compareTotalEquity !== undefined && (
                 <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '4px' }}>
-                  مقارنة: {formatCurrency(report.equity.compareTotalEquity)}
+                  {t('accounting.balance_sheet_page.s26', "مقارنة:")} {formatCurrency(report.equity.compareTotalEquity)}
                 </div>
               )}
             </Card>
@@ -287,14 +290,14 @@ export function BalanceSheetPage() {
                 }}
               >
                 <div>
-                  <span style={{ fontSize: '0.85rem', color: '#94a3b8' }}>المجموع العام</span>
-                  <strong style={{ display: 'block', fontSize: '1.15rem' }}>إجمالي الأصول (Total Assets)</strong>
+                  <span style={{ fontSize: '0.85rem', color: '#94a3b8' }}>{t('accounting.balance_sheet_page.s27', "المجموع العام")}</span>
+                  <strong style={{ display: 'block', fontSize: '1.15rem' }}>{t('accounting.balance_sheet_page.s28', "إجمالي الأصول (Total Assets)")}</strong>
                 </div>
                 <div style={{ textAlign: 'left' }}>
                   <div style={{ fontSize: '1.35rem', fontWeight: 800 }}>{formatCurrency(report.assets.totalAssets)}</div>
                   {report.assets.compareTotalAssets !== undefined && (
                     <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
-                      السابق: {formatCurrency(report.assets.compareTotalAssets)}
+                      {t('accounting.balance_sheet_page.s29', "السابق:")} {formatCurrency(report.assets.compareTotalAssets)}
                     </div>
                   )}
                 </div>
@@ -322,7 +325,7 @@ export function BalanceSheetPage() {
                       {report.equity.section.accounts.map((acc) => (
                         <tr key={acc.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                           <td style={{ padding: '8px 4px', color: '#64748b', width: '80px' }}>{acc.code}</td>
-                          <td style={{ padding: '8px 4px', fontWeight: 600, color: '#1e293b' }}>{acc.nameAr}</td>
+                          <td style={{ padding: '8px 4px', fontWeight: 600, color: '#1e293b' }}>{isEn ? (acc.nameEn || translateUiText(acc.nameAr) || acc.nameAr) : acc.nameAr}</td>
                           <td style={{ padding: '8px 4px', textAlign: 'left', fontWeight: 700, color: '#0f172a' }}>
                             {formatCurrency(acc.amount)}
                           </td>
@@ -338,7 +341,7 @@ export function BalanceSheetPage() {
                       <tr style={{ borderBottom: '1px solid #f1f5f9', backgroundColor: '#f8fafc' }}>
                         <td style={{ padding: '8px 4px', color: '#64748b' }}>—</td>
                         <td style={{ padding: '8px 4px', fontWeight: 700, color: report.equity.currentPeriodNetProfit >= 0 ? '#166534' : '#991b1b' }}>
-                          أرباح / (خسائر) الفترة الحالية من قائمة الدخل
+                          {t('accounting.balance_sheet_page.s30', "أرباح / (خسائر) الفترة الحالية من قائمة الدخل")}
                         </td>
                         <td style={{ padding: '8px 4px', textAlign: 'left', fontWeight: 700, color: report.equity.currentPeriodNetProfit >= 0 ? '#166534' : '#991b1b' }}>
                           {formatCurrency(report.equity.currentPeriodNetProfit)}
@@ -354,7 +357,7 @@ export function BalanceSheetPage() {
                 </div>
 
                 <div style={{ padding: '12px 18px', borderTop: '1px solid #e2e8f0', backgroundColor: '#f8fafc', display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ fontWeight: 700, color: '#334155' }}>إجمالي حقوق الملكية</span>
+                  <span style={{ fontWeight: 700, color: '#334155' }}>{t('accounting.balance_sheet_page.s31', "إجمالي حقوق الملكية")}</span>
                   <strong style={{ fontSize: '1.05rem', color: '#170e5e' }}>{formatCurrency(report.equity.totalEquity)}</strong>
                 </div>
               </Card>
@@ -372,14 +375,14 @@ export function BalanceSheetPage() {
                 }}
               >
                 <div>
-                  <span style={{ fontSize: '0.85rem', color: '#94a3b8' }}>المجموع العام</span>
-                  <strong style={{ display: 'block', fontSize: '1.15rem' }}>إجمالي الخصوم وحقوق الملكية</strong>
+                  <span style={{ fontSize: '0.85rem', color: '#94a3b8' }}>{t('accounting.balance_sheet_page.s32', "المجموع العام")}</span>
+                  <strong style={{ display: 'block', fontSize: '1.15rem' }}>{t('accounting.balance_sheet_page.s33', "إجمالي الخصوم وحقوق الملكية")}</strong>
                 </div>
                 <div style={{ textAlign: 'left' }}>
                   <div style={{ fontSize: '1.35rem', fontWeight: 800 }}>{formatCurrency(report.totalLiabilitiesAndEquity)}</div>
                   {report.compareTotalLiabilitiesAndEquity !== undefined && (
                     <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
-                      السابق: {formatCurrency(report.compareTotalLiabilitiesAndEquity)}
+                      {t('accounting.balance_sheet_page.s34', "السابق:")} {formatCurrency(report.compareTotalLiabilitiesAndEquity)}
                     </div>
                   )}
                 </div>
@@ -394,42 +397,50 @@ export function BalanceSheetPage() {
 }
 
 function SectionCard({ section, hasCompare }: { section: BalanceSheetSection; hasCompare: boolean }) {
+  const { t, i18n } = useTranslation();
+  const isEn = i18n.language === 'en';
+  const title = isEn ? (section.titleEn || translateUiText(section.titleAr) || section.titleAr) : section.titleAr;
+  const subTitle = isEn ? undefined : section.titleEn;
+
   return (
     <Card style={{ padding: '0', backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', overflow: 'hidden' }}>
       <div style={{ padding: '14px 18px', borderBottom: '1px solid #e2e8f0', backgroundColor: '#f8fafc', display: 'flex', justifyContent: 'space-between' }}>
-        <strong style={{ fontSize: '0.95rem', color: '#0f172a' }}>{section.titleAr}</strong>
-        <span style={{ fontSize: '0.8rem', color: '#64748b' }}>{section.titleEn}</span>
+        <strong style={{ fontSize: '0.95rem', color: '#0f172a' }}>{title}</strong>
+        {subTitle && <span style={{ fontSize: '0.8rem', color: '#64748b' }}>{subTitle}</span>}
       </div>
 
       <div style={{ padding: '12px 16px' }}>
         {section.accounts.length === 0 ? (
           <div style={{ padding: '16px', textAlign: 'center', color: '#94a3b8', fontSize: '0.85rem' }}>
-            لا توجد أرصدة في هذا القسم
+            {t('accounting.balance_sheet_page.s35', "لا توجد أرصدة في هذا القسم")}
           </div>
         ) : (
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
             <tbody>
-              {section.accounts.map((acc) => (
-                <tr key={acc.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                  <td style={{ padding: '8px 4px', color: '#64748b', width: '80px' }}>{acc.code}</td>
-                  <td style={{ padding: '8px 4px', fontWeight: 600, color: '#1e293b' }}>{acc.nameAr}</td>
-                  <td style={{ padding: '8px 4px', textAlign: 'left', fontWeight: 700, color: acc.amount < 0 ? '#dc2626' : '#0f172a' }}>
-                    {formatCurrency(acc.amount)}
-                  </td>
-                  {hasCompare && (
-                    <td style={{ padding: '8px 4px', textAlign: 'left', color: '#64748b', fontSize: '0.8rem' }}>
-                      {formatCurrency(acc.compareAmount || 0)}
+              {section.accounts.map((acc) => {
+                const accName = isEn ? (acc.nameEn || translateUiText(acc.nameAr) || acc.nameAr) : acc.nameAr;
+                return (
+                  <tr key={acc.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                    <td style={{ padding: '8px 4px', color: '#64748b', width: '80px' }}>{acc.code}</td>
+                    <td style={{ padding: '8px 4px', fontWeight: 600, color: '#1e293b' }}>{accName}</td>
+                    <td style={{ padding: '8px 4px', textAlign: isEn ? 'right' : 'left', fontWeight: 700, color: acc.amount < 0 ? '#dc2626' : '#0f172a' }}>
+                      {formatCurrency(acc.amount)}
                     </td>
-                  )}
-                </tr>
-              ))}
+                    {hasCompare && (
+                      <td style={{ padding: '8px 4px', textAlign: isEn ? 'right' : 'left', color: '#64748b', fontSize: '0.8rem' }}>
+                        {formatCurrency(acc.compareAmount || 0)}
+                      </td>
+                    )}
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         )}
       </div>
 
       <div style={{ padding: '12px 18px', borderTop: '1px solid #e2e8f0', backgroundColor: '#f8fafc', display: 'flex', justifyContent: 'space-between' }}>
-        <span style={{ fontWeight: 700, color: '#334155' }}>إجمالي {section.titleAr}</span>
+        <span style={{ fontWeight: 700, color: '#334155' }}>{t('accounting.balance_sheet_page.s36', "إجمالي")} {title}</span>
         <strong style={{ fontSize: '1.05rem', color: '#0f172a' }}>{formatCurrency(section.total)}</strong>
       </div>
     </Card>

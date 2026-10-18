@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { PageHeader } from '@/shared/components/page-header';
@@ -14,6 +15,7 @@ import { ShortagesTable } from '../components/shortages/ShortagesTable';
 import { ShortageDetailModal } from '../components/shortages/ShortageDetailModal';
 
 export default function PharmacyShortagesPage() {
+  const { t } = useTranslation();
   useAppToolbar([
     { label: 'الرئيسية', to: '/' },
     { label: 'الصيدلية والأدوية', to: '/pharmacy' },
@@ -112,9 +114,9 @@ export default function PharmacyShortagesPage() {
     <div className="page-stack page-shell" dir="rtl">
       <main className="document-prototype-column" style={{ paddingBottom: '80px', maxWidth: '1280px', margin: '0 auto', width: '100%' }}>
         <PageHeader
-          title="كشكول النواقص الرقمي اليومي (Shortages Book)"
-          description="تسجيل الأدوية الناقصة، طلبات العملاء العاجلة، وإعداد طلبيات شركات التوزيع"
-          badge={<span className="cashier-chip" style={{ fontWeight: 700, color: 'var(--primary, #1e1b4b)', background: '#f1f5f9', border: '1px solid #e2e8f0' }}>{totalItems} صنف مسجل</span>}
+          title={t('pharmacy.pharmacy_shortages_page.s0', "كشكول النواقص الرقمي اليومي (Shortages Book)")}
+          description={t('pharmacy.pharmacy_shortages_page.s1', "تسجيل الأدوية الناقصة، طلبات العملاء العاجلة، وإعداد طلبيات شركات التوزيع")}
+          badge={<span className="cashier-chip" style={{ fontWeight: 700, color: 'var(--primary, #1e1b4b)', background: '#f1f5f9', border: '1px solid #e2e8f0' }}>{totalItems} {t('pharmacy.pharmacy_shortages_page.s2', "صنف مسجل")}</span>}
           actions={
             <div className="actions compact-actions">
               <Button
@@ -123,7 +125,7 @@ export default function PharmacyShortagesPage() {
                 style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
               >
                 <IconPlus size={15} />
-                <span>تسجيل صنف مفصل</span>
+                <span>{t('pharmacy.pharmacy_shortages_page.s3', "تسجيل صنف مفصل")}</span>
               </Button>
               <Button
                 variant="secondary"
@@ -131,7 +133,7 @@ export default function PharmacyShortagesPage() {
                 style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
               >
                 <IconRefresh size={15} />
-                <span>تحديث</span>
+                <span>{t('pharmacy.pharmacy_shortages_page.s4', "تحديث")}</span>
               </Button>
             </div>
           }

@@ -44,6 +44,7 @@ export function DashboardExecutiveHero({
   treasuryNet,
   totalStockAlerts,
 }: DashboardExecutiveHeroProps) {
+  const { t: __t } = useTranslation();
   const { t, i18n } = useTranslation();
   const isEn = i18n.language !== 'ar';
 
@@ -193,7 +194,7 @@ export function DashboardExecutiveHero({
         border: isDark ? '1px solid rgba(255, 255, 255, 0.14)' : '1px solid #e2e8f0',
         transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
       }}
-      aria-label="الموجز التنفيذي التفاعلي"
+      aria-label={__t('dashboard.dashboard_executive_hero.s0', "الموجز التنفيذي التفاعلي")}
     >
       {/* High-Tech Subtle Dot Grid for Depth */}
       <div
@@ -285,8 +286,8 @@ export function DashboardExecutiveHero({
               type="button"
               className="dashboard-hero-theme-toggle"
               onClick={handleToggleTheme}
-              title={isDark ? (isEn ? 'Switch to Light Mode' : 'التبديل إلى المظهر الفاتح') : (isEn ? 'Switch to Dark Mode' : 'التبديل إلى المظهر الليلي')}
-              aria-label={isDark ? (isEn ? 'Switch to Light Mode' : 'التبديل إلى المظهر الفاتح') : (isEn ? 'Switch to Dark Mode' : 'التبديل إلى المظهر الليلي')}
+              title={isDark ? (isEn ? 'Switch to Light Mode' : __t('dashboard.dashboard_executive_hero.s1', "التبديل إلى المظهر الفاتح")) : (isEn ? 'Switch to Dark Mode' : __t('dashboard.dashboard_executive_hero.s2', "التبديل إلى المظهر الليلي"))}
+              aria-label={isDark ? (isEn ? 'Switch to Light Mode' : __t('dashboard.dashboard_executive_hero.s3', "التبديل إلى المظهر الفاتح")) : (isEn ? 'Switch to Dark Mode' : __t('dashboard.dashboard_executive_hero.s4', "التبديل إلى المظهر الليلي"))}
               style={{
                 background: isDark ? 'rgba(255, 255, 255, 0.08)' : '#ffffff',
                 border: isDark ? '1px solid rgba(255, 255, 255, 0.16)' : '1px solid #cbd5e1',
@@ -729,7 +730,7 @@ export function DashboardExecutiveHero({
                             marginBottom: '2px',
                           }}
                         >
-                          <span>{entry.name === 'sales' ? (isEn ? `${t('dashboard.sales', 'المبيعات')}:` : 'المبيعات:') : (isEn ? `${t('dashboard.purchases', 'المشتريات')}:` : 'المشتريات:')}</span>
+                          <span>{entry.name === 'sales' ? (isEn ? `${t('dashboard.sales', 'المبيعات')}:` : __t('dashboard.dashboard_executive_hero.s5', "المبيعات:")) : (isEn ? `${t('dashboard.purchases', 'المشتريات')}:` : __t('dashboard.dashboard_executive_hero.s6', "المشتريات:"))}</span>
                           <span dir="ltr">{formatCurrency(Number(entry.value || 0))} {getGlobalCurrencySymbol()}</span>
                         </div>
                       ))}

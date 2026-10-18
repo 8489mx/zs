@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
 import { toast } from '@/shared/components/system-alert';
@@ -13,6 +14,7 @@ interface Props {
 }
 
 export function JobConsolidationTab({ job, onUpdated, onSelectSubJob }: Props) {
+  const { t } = useTranslation();
   const { currencySymbol } = useSystemCurrency();
   const [subJobs, setSubJobs] = useState<MaritimeJob[]>([]);
   const [loading, setLoading] = useState(false);
@@ -143,10 +145,10 @@ export function JobConsolidationTab({ job, onUpdated, onSelectSubJob }: Props) {
             </div>
             <div>
               <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#1e40af' }}>
-                شحنة مجمعة فرعية (House Sub-Job)
+                {t('maritime_freight.job_details.job_consolidation_tab.s0', "شحنة مجمعة فرعية (House Sub-Job)")}
               </div>
               <div style={{ fontSize: '0.76rem', color: '#3b82f6', marginTop: '2px' }}>
-                هذه العملية مرتبطة ومحمولة ضمن حاوية مجمعة تحت الشحنة الأم الرئيسية (Master Job #{job.master_job_id})
+                {t('maritime_freight.job_details.job_consolidation_tab.s1', "هذه العملية مرتبطة ومحمولة ضمن حاوية مجمعة تحت الشحنة الأم الرئيسية (Master Job #")}{job.master_job_id})
               </div>
             </div>
           </div>
@@ -165,7 +167,7 @@ export function JobConsolidationTab({ job, onUpdated, onSelectSubJob }: Props) {
                 cursor: 'pointer',
               }}
             >
-              الانتقال للشحنة الأم (Master)
+              {t('maritime_freight.job_details.job_consolidation_tab.s2', "الانتقال للشحنة الأم (Master)")}
             </button>
           )}
         </div>
@@ -185,7 +187,7 @@ export function JobConsolidationTab({ job, onUpdated, onSelectSubJob }: Props) {
           <div>
             <div style={{ fontSize: '0.92rem', fontWeight: 800, color: '#170e5e', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <AppIcons.Layers size={18} />
-              <span>إدارة تجميع الشحنات والحاويات المشتركة (LCL / Consolidation Hub)</span>
+              <span>{t('maritime_freight.job_details.job_consolidation_tab.s3', "إدارة تجميع الشحنات والحاويات المشتركة (LCL / Consolidation Hub)")}</span>
               {isMaster && (
                 <span style={{ fontSize: '0.72rem', padding: '2px 8px', borderRadius: '4px', background: '#dcfce7', color: '#15803d', fontWeight: 700 }}>
                   Master Consolidation
@@ -193,7 +195,7 @@ export function JobConsolidationTab({ job, onUpdated, onSelectSubJob }: Props) {
               )}
             </div>
             <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px' }}>
-              دمج وتجميع عدة بوالص هاوس (House B/Ls) لعدة عملاء داخل نفس بوليصة الماستر والحاوية الواحدة، وتتبع أوزانهم وإيراداتهم
+              {t('maritime_freight.job_details.job_consolidation_tab.s4', "دمج وتجميع عدة بوالص هاوس (House B/Ls) لعدة عملاء داخل نفس بوليصة الماستر والحاوية الواحدة، وتتبع أوزانهم وإيراداتهم")}
             </div>
           </div>
 
@@ -216,7 +218,7 @@ export function JobConsolidationTab({ job, onUpdated, onSelectSubJob }: Props) {
               }}
             >
               <AppIcons.PlusCircle size={15} />
-              <span>تفعيل نمط التجميع (تحويل لـ Master Job)</span>
+              <span>{t('maritime_freight.job_details.job_consolidation_tab.s5', "تفعيل نمط التجميع (تحويل لـ Master Job)")}</span>
             </button>
           )}
 
@@ -239,7 +241,7 @@ export function JobConsolidationTab({ job, onUpdated, onSelectSubJob }: Props) {
               }}
             >
               <AppIcons.PlusCircle size={15} />
-              <span>+ إضافة شحنة هاوس مجمعة (Sub-Job)</span>
+              <span>{t('maritime_freight.job_details.job_consolidation_tab.s6', "+ إضافة شحنة هاوس مجمعة (Sub-Job)")}</span>
             </button>
           )}
         </div>
@@ -257,35 +259,35 @@ export function JobConsolidationTab({ job, onUpdated, onSelectSubJob }: Props) {
             }}
           >
             <div style={{ background: '#f8fafc', padding: '10px 12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-              <div style={{ fontSize: '0.72rem', color: '#64748b' }}>عدد الشحنات الفرعية</div>
+              <div style={{ fontSize: '0.72rem', color: '#64748b' }}>{t('maritime_freight.job_details.job_consolidation_tab.s7', "عدد الشحنات الفرعية")}</div>
               <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#170e5e', marginTop: '4px' }}>
-                {subJobs.length} شحنات
+                {subJobs.length} {t('maritime_freight.job_details.job_consolidation_tab.s8', "شحنات")}
               </div>
             </div>
 
             <div style={{ background: '#f8fafc', padding: '10px 12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-              <div style={{ fontSize: '0.72rem', color: '#64748b' }}>إجمالي الطرود المجمعة</div>
+              <div style={{ fontSize: '0.72rem', color: '#64748b' }}>{t('maritime_freight.job_details.job_consolidation_tab.s9', "إجمالي الطرود المجمعة")}</div>
               <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0f172a', marginTop: '4px' }}>
-                {totalSubPackages.toLocaleString()} طرد
+                {totalSubPackages.toLocaleString()} {t('maritime_freight.job_details.job_consolidation_tab.s10', "طرد")}
               </div>
             </div>
 
             <div style={{ background: '#f8fafc', padding: '10px 12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-              <div style={{ fontSize: '0.72rem', color: '#64748b' }}>إجمالي الوزن القائم (Gross)</div>
+              <div style={{ fontSize: '0.72rem', color: '#64748b' }}>{t('maritime_freight.job_details.job_consolidation_tab.s11', "إجمالي الوزن القائم (Gross)")}</div>
               <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0369a1', marginTop: '4px' }}>
-                {totalSubWeight.toLocaleString()} كجم
+                {totalSubWeight.toLocaleString()} {t('maritime_freight.job_details.job_consolidation_tab.s12', "كجم")}
               </div>
             </div>
 
             <div style={{ background: '#f8fafc', padding: '10px 12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-              <div style={{ fontSize: '0.72rem', color: '#64748b' }}>إجمالي الحجم التكعيبي (CBM)</div>
+              <div style={{ fontSize: '0.72rem', color: '#64748b' }}>{t('maritime_freight.job_details.job_consolidation_tab.s13', "إجمالي الحجم التكعيبي (CBM)")}</div>
               <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#d97706', marginTop: '4px' }}>
-                {totalSubCbm.toFixed(2)} م³
+                {totalSubCbm.toFixed(2)} {t('maritime_freight.job_details.job_consolidation_tab.s14', "م³")}
               </div>
             </div>
 
             <div style={{ background: '#f8fafc', padding: '10px 12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-              <div style={{ fontSize: '0.72rem', color: '#64748b' }}>إجمالي إيراد الهاوس المفوتر</div>
+              <div style={{ fontSize: '0.72rem', color: '#64748b' }}>{t('maritime_freight.job_details.job_consolidation_tab.s15', "إجمالي إيراد الهاوس المفوتر")}</div>
               <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#15803d', marginTop: '4px' }}>
                 {currencySymbol} {totalSubRevenue.toLocaleString()}
               </div>
@@ -307,25 +309,25 @@ export function JobConsolidationTab({ job, onUpdated, onSelectSubJob }: Props) {
         >
           <div style={{ padding: '12px 16px', background: '#f8fafc', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div style={{ fontSize: '0.84rem', fontWeight: 800, color: '#1e293b' }}>
-              قائمة بوالص الهاوس المجمعة في هذه الحاوية (House Bills of Lading)
+              {t('maritime_freight.job_details.job_consolidation_tab.s16', "قائمة بوالص الهاوس المجمعة في هذه الحاوية (House Bills of Lading)")}
             </div>
             <span style={{ fontSize: '0.74rem', color: '#64748b' }}>
-              {subJobs.length} شحنة فرعية مسجلة
+              {subJobs.length} {t('maritime_freight.job_details.job_consolidation_tab.s17', "شحنة فرعية مسجلة")}
             </span>
           </div>
 
           {loading ? (
             <div style={{ padding: '24px', textAlign: 'center', color: '#64748b', fontSize: '0.8rem' }}>
-              جاري تحميل شحنات التجميع...
+              {t('maritime_freight.job_details.job_consolidation_tab.s18', "جاري تحميل شحنات التجميع...")}
             </div>
           ) : subJobs.length === 0 ? (
             <div style={{ padding: '32px 16px', textAlign: 'center', color: '#94a3b8' }}>
               <AppIcons.Layers size={30} style={{ margin: '0 auto 8px', opacity: 0.5 }} />
               <div style={{ fontSize: '0.84rem', fontWeight: 700, color: '#64748b' }}>
-                لا توجد شحنات هاوس مجمعة مسجلة تحت هذا الماستر بعد
+                {t('maritime_freight.job_details.job_consolidation_tab.s19', "لا توجد شحنات هاوس مجمعة مسجلة تحت هذا الماستر بعد")}
               </div>
               <div style={{ fontSize: '0.74rem', color: '#94a3b8', marginTop: '4px' }}>
-                اضغط على "+ إضافة شحنة هاوس مجمعة" لتقسيم الحاوية على عدة عملاء وبوالص فرعية
+                {t('maritime_freight.job_details.job_consolidation_tab.s20', "اضغط على \"+ إضافة شحنة هاوس مجمعة\" لتقسيم الحاوية على عدة عملاء وبوالص فرعية")}
               </div>
             </div>
           ) : (
@@ -333,14 +335,14 @@ export function JobConsolidationTab({ job, onUpdated, onSelectSubJob }: Props) {
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.78rem' }}>
                 <thead>
                   <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', textAlign: 'right' }}>
-                    <th style={{ padding: '10px 14px', fontWeight: 700 }}>رقم العملية (Job #)</th>
-                    <th style={{ padding: '10px 14px', fontWeight: 700 }}>العميل / المستورد</th>
-                    <th style={{ padding: '10px 14px', fontWeight: 700 }}>رقم بوليصة الهاوس (HBL)</th>
-                    <th style={{ padding: '10px 14px', fontWeight: 700 }}>وصف البضاعة والطرود</th>
-                    <th style={{ padding: '10px 14px', fontWeight: 700 }}>الوزن / الحجم</th>
-                    <th style={{ padding: '10px 14px', fontWeight: 700 }}>قيمة الفاتورة</th>
-                    <th style={{ padding: '10px 14px', fontWeight: 700, textAlign: 'center' }}>الحالة</th>
-                    <th style={{ padding: '10px 14px', fontWeight: 700, textAlign: 'center' }}>فتح</th>
+                    <th style={{ padding: '10px 14px', fontWeight: 700 }}>{t('maritime_freight.job_details.job_consolidation_tab.s21', "رقم العملية (Job #)")}</th>
+                    <th style={{ padding: '10px 14px', fontWeight: 700 }}>{t('maritime_freight.job_details.job_consolidation_tab.s22', "العميل / المستورد")}</th>
+                    <th style={{ padding: '10px 14px', fontWeight: 700 }}>{t('maritime_freight.job_details.job_consolidation_tab.s23', "رقم بوليصة الهاوس (HBL)")}</th>
+                    <th style={{ padding: '10px 14px', fontWeight: 700 }}>{t('maritime_freight.job_details.job_consolidation_tab.s24', "وصف البضاعة والطرود")}</th>
+                    <th style={{ padding: '10px 14px', fontWeight: 700 }}>{t('maritime_freight.job_details.job_consolidation_tab.s25', "الوزن / الحجم")}</th>
+                    <th style={{ padding: '10px 14px', fontWeight: 700 }}>{t('maritime_freight.job_details.job_consolidation_tab.s26', "قيمة الفاتورة")}</th>
+                    <th style={{ padding: '10px 14px', fontWeight: 700, textAlign: 'center' }}>{t('maritime_freight.job_details.job_consolidation_tab.s27', "الحالة")}</th>
+                    <th style={{ padding: '10px 14px', fontWeight: 700, textAlign: 'center' }}>{t('maritime_freight.job_details.job_consolidation_tab.s28', "فتح")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -356,12 +358,12 @@ export function JobConsolidationTab({ job, onUpdated, onSelectSubJob }: Props) {
                         {sj.hbl_number || '—'}
                       </td>
                       <td style={{ padding: '10px 14px', color: '#475569' }}>
-                        <div>{sj.cargo_description || 'بضائع عامة'}</div>
-                        <div style={{ fontSize: '0.7rem', color: '#64748b' }}>{sj.package_count || 1} طرد</div>
+                        <div>{sj.cargo_description || t('maritime_freight.job_details.job_consolidation_tab.s29', "بضائع عامة")}</div>
+                        <div style={{ fontSize: '0.7rem', color: '#64748b' }}>{sj.package_count || 1} {t('maritime_freight.job_details.job_consolidation_tab.s30', "طرد")}</div>
                       </td>
                       <td style={{ padding: '10px 14px', color: '#334155' }}>
-                        <div>{Number(sj.gross_weight_kg || 0).toLocaleString()} كجم</div>
-                        <div style={{ fontSize: '0.7rem', color: '#64748b' }}>{Number(sj.cbm || 0).toFixed(2)} م³</div>
+                        <div>{Number(sj.gross_weight_kg || 0).toLocaleString()} {t('maritime_freight.job_details.job_consolidation_tab.s31', "كجم")}</div>
+                        <div style={{ fontSize: '0.7rem', color: '#64748b' }}>{Number(sj.cbm || 0).toFixed(2)} {t('maritime_freight.job_details.job_consolidation_tab.s32', "م³")}</div>
                       </td>
                       <td style={{ padding: '10px 14px', fontWeight: 700, color: '#15803d' }}>
                         {currencySymbol} {Number(sj.client_invoiced_total || 0).toLocaleString()}
@@ -377,7 +379,7 @@ export function JobConsolidationTab({ job, onUpdated, onSelectSubJob }: Props) {
                             color: sj.status === 'completed' ? '#15803d' : '#475569',
                           }}
                         >
-                          {sj.status === 'completed' ? 'مكتملة' : 'قيد التشغيل'}
+                          {sj.status === 'completed' ? t('maritime_freight.job_details.job_consolidation_tab.s33', "مكتملة") : t('maritime_freight.job_details.job_consolidation_tab.s34', "قيد التشغيل")}
                         </span>
                       </td>
                       <td style={{ padding: '10px 14px', textAlign: 'center' }}>
@@ -396,7 +398,7 @@ export function JobConsolidationTab({ job, onUpdated, onSelectSubJob }: Props) {
                               cursor: 'pointer',
                             }}
                           >
-                            عرض الملف
+                            {t('maritime_freight.job_details.job_consolidation_tab.s35', "عرض الملف")}
                           </button>
                         )}
                       </td>
@@ -414,26 +416,26 @@ export function JobConsolidationTab({ job, onUpdated, onSelectSubJob }: Props) {
         <StandardDialog
           open={showAddModal}
           onClose={() => setShowAddModal(false)}
-          title="إضافة شحنة هاوس مجمعة (House Sub-Job)"
+          title={t('maritime_freight.job_details.job_consolidation_tab.s36', "إضافة شحنة هاوس مجمعة (House Sub-Job)")}
           subtitle={`تحت الشحنة الأم الماستر: ${job.job_number} | مسار الرحلة: ${job.pol_name} إلى ${job.pod_name}`}
           width="min(560px, 95vw)"
           footerActions={(
             <StandardDialogFooter
               onCancel={() => setShowAddModal(false)}
               onConfirm={handleCreateSubJob}
-              confirmText="إنشاء شحنة الهاوس"
-              cancelText="إلغاء"
+              confirmText={t('maritime_freight.job_details.job_consolidation_tab.s37', "إنشاء شحنة الهاوس")}
+              cancelText={t('maritime_freight.job_details.job_consolidation_tab.s38', "إلغاء")}
               isSubmitting={isSubmitting}
             />
           )}
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }} dir="rtl">
-            <Field label="اسم العميل / المستورد *">
+            <Field label={t('maritime_freight.job_details.job_consolidation_tab.s39', "اسم العميل / المستورد *")}>
               <input
                 type="text"
                 value={form.customerName}
                 onChange={(e) => setForm({ ...form, customerName: e.target.value })}
-                placeholder="اسم العميل صاحب البضاعة الجزئية..."
+                placeholder={t('maritime_freight.job_details.job_consolidation_tab.s40', "اسم العميل صاحب البضاعة الجزئية...")}
                 style={{
                   width: '100%',
                   padding: '8px 12px',
@@ -445,12 +447,12 @@ export function JobConsolidationTab({ job, onUpdated, onSelectSubJob }: Props) {
             </Field>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              <Field label="رقم بوليصة الهاوس (HBL Number)">
+              <Field label={t('maritime_freight.job_details.job_consolidation_tab.s41', "رقم بوليصة الهاوس (HBL Number)")}>
                 <input
                   type="text"
                   value={form.hblNumber}
                   onChange={(e) => setForm({ ...form, hblNumber: e.target.value })}
-                  placeholder="مثال: HBL-EGY-001"
+                  placeholder={t('maritime_freight.job_details.job_consolidation_tab.s42', "مثال: HBL-EGY-001")}
                   style={{
                     width: '100%',
                     padding: '8px 12px',
@@ -461,7 +463,7 @@ export function JobConsolidationTab({ job, onUpdated, onSelectSubJob }: Props) {
                 />
               </Field>
 
-              <Field label="عدد الطرود / الصناديق">
+              <Field label={t('maritime_freight.job_details.job_consolidation_tab.s43', "عدد الطرود / الصناديق")}>
                 <input
                   type="number"
                   value={form.packageCount}
@@ -479,12 +481,12 @@ export function JobConsolidationTab({ job, onUpdated, onSelectSubJob }: Props) {
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              <Field label="الوزن القائم (Gross Weight Kg)">
+              <Field label={t('maritime_freight.job_details.job_consolidation_tab.s44', "الوزن القائم (Gross Weight Kg)")}>
                 <input
                   type="number"
                   value={form.grossWeightKg}
                   onChange={(e) => setForm({ ...form, grossWeightKg: e.target.value })}
-                  placeholder="مثال: 1200"
+                  placeholder={t('maritime_freight.job_details.job_consolidation_tab.s45', "مثال: 1200")}
                   style={{
                     width: '100%',
                     padding: '8px 12px',
@@ -495,13 +497,13 @@ export function JobConsolidationTab({ job, onUpdated, onSelectSubJob }: Props) {
                 />
               </Field>
 
-              <Field label="الحجم التكعيبي (CBM)">
+              <Field label={t('maritime_freight.job_details.job_consolidation_tab.s46', "الحجم التكعيبي (CBM)")}>
                 <input
                   type="number"
                   step="0.01"
                   value={form.cbm}
                   onChange={(e) => setForm({ ...form, cbm: e.target.value })}
-                  placeholder="مثال: 3.5"
+                  placeholder={t('maritime_freight.job_details.job_consolidation_tab.s47', "مثال: 3.5")}
                   style={{
                     width: '100%',
                     padding: '8px 12px',
@@ -514,12 +516,12 @@ export function JobConsolidationTab({ job, onUpdated, onSelectSubJob }: Props) {
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '12px' }}>
-              <Field label="قيمة فاتورة المبيعات للعميل">
+              <Field label={t('maritime_freight.job_details.job_consolidation_tab.s48', "قيمة فاتورة المبيعات للعميل")}>
                 <input
                   type="number"
                   value={form.clientInvoicedTotal}
                   onChange={(e) => setForm({ ...form, clientInvoicedTotal: e.target.value })}
-                  placeholder="مثال: 1500"
+                  placeholder={t('maritime_freight.job_details.job_consolidation_tab.s49', "مثال: 1500")}
                   style={{
                     width: '100%',
                     padding: '8px 12px',
@@ -530,7 +532,7 @@ export function JobConsolidationTab({ job, onUpdated, onSelectSubJob }: Props) {
                 />
               </Field>
 
-              <Field label="العملة">
+              <Field label={t('maritime_freight.job_details.job_consolidation_tab.s50', "العملة")}>
                 <input
                   type="text"
                   value={form.currency}
@@ -546,12 +548,12 @@ export function JobConsolidationTab({ job, onUpdated, onSelectSubJob }: Props) {
               </Field>
             </div>
 
-            <Field label="وصف البضاعة">
+            <Field label={t('maritime_freight.job_details.job_consolidation_tab.s51', "وصف البضاعة")}>
               <input
                 type="text"
                 value={form.cargoDescription}
                 onChange={(e) => setForm({ ...form, cargoDescription: e.target.value })}
-                placeholder="مثال: قطع غيار، أقمشة ومنسوجات..."
+                placeholder={t('maritime_freight.job_details.job_consolidation_tab.s52', "مثال: قطع غيار، أقمشة ومنسوجات...")}
                 style={{
                   width: '100%',
                   padding: '8px 12px',

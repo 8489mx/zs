@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { XIcon } from '@/shared/components/icons/AppIcons';
 import { useEffect, useMemo, useState, useRef } from 'react';
@@ -36,6 +37,7 @@ export interface QuickProductModalProps {
 }
 
 function QuickProductModalContent({ isOpen, onClose, initialName = '', itemType, onSuccess }: QuickProductModalProps) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { data: categories = [] } = useCategoriesQuery();
   const { data: locations = [] } = useLocationsQuery();
@@ -252,7 +254,7 @@ function QuickProductModalContent({ isOpen, onClose, initialName = '', itemType,
       open={isOpen} 
       onClose={onClose}
       width="min(560px, 95vw)"
-      ariaLabel={itemType === 'service' ? 'إضافة خدمة سريعة' : itemType === 'product' ? 'إضافة منتج سريع' : 'إضافة مادة خام سريعة'}
+      ariaLabel={itemType === 'service' ? t('shared.quick_product_modal.s0', "إضافة خدمة سريعة") : itemType === 'product' ? t('shared.quick_product_modal.s1', "إضافة منتج سريع") : t('shared.quick_product_modal.s2', "إضافة مادة خام سريعة")}
     >
       <div style={{ padding: '20px 24px' }}>
         <form onSubmit={handleSubmit(handleFormSubmit)} dir="rtl" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
@@ -261,17 +263,17 @@ function QuickProductModalContent({ isOpen, onClose, initialName = '', itemType,
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0', paddingBottom: '12px' }}>
             <div>
               <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: '#0f172a' }}>
-                {itemType === 'service' ? 'إضافة خدمة سريعة' : itemType === 'product' ? 'إضافة منتج سريع' : 'إضافة مادة خام سريعة'}
+                {itemType === 'service' ? t('shared.quick_product_modal.s3', "إضافة خدمة سريعة") : itemType === 'product' ? t('shared.quick_product_modal.s4', "إضافة منتج سريع") : t('shared.quick_product_modal.s5', "إضافة مادة خام سريعة")}
               </h3>
               <p style={{ margin: '3px 0 0', fontSize: '0.825rem', color: '#64748b' }}>
-                {itemType === 'service' ? 'أدخل اسم الخدمة والمبلغ لتضاف مباشرة إلى السلة والريسيت' : 'إدخال بيانات الصنف الأساسية وموقعه في المخزن للتسجيل الفوري'}
+                {itemType === 'service' ? t('shared.quick_product_modal.s6', "أدخل اسم الخدمة والمبلغ لتضاف مباشرة إلى السلة والريسيت") : t('shared.quick_product_modal.s7', "إدخال بيانات الصنف الأساسية وموقعه في المخزن للتسجيل الفوري")}
               </p>
             </div>
             <button
               type="button"
               onClick={onClose}
               style={{ background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: '8px', width: '34px', height: '34px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b', fontSize: '1rem', fontWeight: 700, transition: 'all 0.15s ease' }}
-              title="إغلاق"
+              title={t('shared.quick_product_modal.s8', "إغلاق")}
             ><XIcon size={15} /></button>
           </div>
 
@@ -280,18 +282,18 @@ function QuickProductModalContent({ isOpen, onClose, initialName = '', itemType,
               {/* Section 1: بيانات الخدمة مع الاقتراحات الذكية */}
               <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px 16px' }} ref={dropdownRef}>
                 <div style={{ fontSize: '0.875rem', fontWeight: 700, color: '#1e293b', marginBottom: '8px' }}>
-                  بيانات الخدمة
+                  {t('shared.quick_product_modal.s9', "بيانات الخدمة")}
                 </div>
 
                 <div style={{ position: 'relative' }}>
                   <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                    اسم الخدمة / المصنعية <span style={{ color: '#dc2626' }}>*</span>
+                    {t('shared.quick_product_modal.s10', "اسم الخدمة / المصنعية")} <span style={{ color: '#dc2626' }}>*</span>
                   </label>
                   <input
                     type="text"
                     required
                     className="purchase-prototype-field-input"
-                    placeholder="اكتب اسم الخدمة (مثال: تنزيل ويندوز، تغيير شاشة، تصليح، نولون...)"
+                    placeholder={t('shared.quick_product_modal.s11', "اكتب اسم الخدمة (مثال: تنزيل ويندوز، تغيير شاشة، تصليح، نولون...)")}
                     {...register('name')}
                     autoFocus
                     autoComplete="off"
@@ -321,7 +323,7 @@ function QuickProductModalContent({ isOpen, onClose, initialName = '', itemType,
                       }}
                     >
                       <div style={{ padding: '6px 10px', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', background: '#f1f5f9', borderBottom: '1px solid #e2e8f0' }}>
-                        خدمات مسجلة ومستخدمة مسبقاً (اضغط للاختيار والتعبئة التلقائية):
+                        {t('shared.quick_product_modal.s12', "خدمات مسجلة ومستخدمة مسبقاً (اضغط للاختيار والتعبئة التلقائية):")}
                       </div>
                       {filteredServices.map((srv) => (
                         <button
@@ -356,7 +358,7 @@ function QuickProductModalContent({ isOpen, onClose, initialName = '', itemType,
                 {/* Quick Chips of previously used services if available */}
                 {existingServices.length > 0 && (
                   <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '10px', alignItems: 'center' }}>
-                    <span style={{ fontSize: '0.75rem', color: '#64748b' }}>من خدماتك السابقة:</span>
+                    <span style={{ fontSize: '0.75rem', color: '#64748b' }}>{t('shared.quick_product_modal.s13', "من خدماتك السابقة:")}</span>
                     {existingServices.slice(0, 6).map((srv) => (
                       <button
                         key={srv.name}
@@ -386,12 +388,12 @@ function QuickProductModalContent({ isOpen, onClose, initialName = '', itemType,
               {/* Section 2: الحساب المالي والتسعير - حقل سعر واحد فقط */}
               <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px 16px' }}>
                 <div style={{ fontSize: '0.875rem', fontWeight: 700, color: '#1e293b', marginBottom: '8px' }}>
-                  الحساب المالي
+                  {t('shared.quick_product_modal.s14', "الحساب المالي")}
                 </div>
 
                 <div style={{ background: '#fff', padding: '10px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}>
                   <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 700, color: '#475569', marginBottom: '6px' }}>
-                    سعر الخدمة <span style={{ color: '#dc2626' }}>*</span>
+                    {t('shared.quick_product_modal.s15', "سعر الخدمة")} <span style={{ color: '#dc2626' }}>*</span>
                   </label>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <input
@@ -416,17 +418,17 @@ function QuickProductModalContent({ isOpen, onClose, initialName = '', itemType,
               {/* Standard Product & Raw Material Cards */}
               <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px 16px' }}>
                 <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#1e293b', marginBottom: '10px' }}>
-                  بيانات الصنف والتخزين
+                  {t('shared.quick_product_modal.s16', "بيانات الصنف والتخزين")}
                 </div>
                 <div style={{ marginBottom: '10px' }}>
                   <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                    اسم الصنف <span style={{ color: '#dc2626' }}>*</span>
+                    {t('shared.quick_product_modal.s17', "اسم الصنف")} <span style={{ color: '#dc2626' }}>*</span>
                   </label>
                   <input
                     type="text"
                     required
                     className="purchase-prototype-field-input"
-                    placeholder="اكتب اسم الصنف..."
+                    placeholder={t('shared.quick_product_modal.s18', "اكتب اسم الصنف...")}
                     {...register('name')}
                     autoFocus
                     style={{ width: '100%', background: '#fff', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box', fontSize: '0.9rem' }}
@@ -439,7 +441,7 @@ function QuickProductModalContent({ isOpen, onClose, initialName = '', itemType,
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                   <div>
                     <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                      المخزن (موقع التخزين)
+                      {t('shared.quick_product_modal.s19', "المخزن (موقع التخزين)")}
                     </label>
                     <select
                       className="purchase-prototype-field-input"
@@ -447,7 +449,7 @@ function QuickProductModalContent({ isOpen, onClose, initialName = '', itemType,
                       disabled={locations.length === 1}
                       style={{ width: '100%', background: '#fff', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box', fontSize: '0.9rem' }}
                     >
-                      {locations.length !== 1 && <option value="">اختر المخزن...</option>}
+                      {locations.length !== 1 && <option value="">{t('shared.quick_product_modal.s20', "اختر المخزن...")}</option>}
                       {locations.map((loc) => (
                         <option key={loc.id} value={String(loc.id)}>{loc.name}</option>
                       ))}
@@ -455,14 +457,14 @@ function QuickProductModalContent({ isOpen, onClose, initialName = '', itemType,
                   </div>
                   <div>
                     <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                      القسم (اختياري)
+                      {t('shared.quick_product_modal.s21', "القسم (اختياري)")}
                     </label>
                     <select
                       className="purchase-prototype-field-input"
                       {...register('categoryId')}
                       style={{ width: '100%', background: '#fff', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box', fontSize: '0.9rem' }}
                     >
-                      <option value="">بدون قسم</option>
+                      <option value="">{t('shared.quick_product_modal.s22', "بدون قسم")}</option>
                       {categories.map((c) => (
                         <option key={c.id} value={String(c.id)}>{c.name}</option>
                       ))}
@@ -473,26 +475,26 @@ function QuickProductModalContent({ isOpen, onClose, initialName = '', itemType,
 
               <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px 16px' }}>
                 <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#1e293b', marginBottom: '10px' }}>
-                  التكاليف والمخزون والتسعير
+                  {t('shared.quick_product_modal.s23', "التكاليف والمخزون والتسعير")}
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginBottom: '10px' }}>
                   <div>
-                    <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>وحدة القياس</label>
+                    <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>{t('shared.quick_product_modal.s24', "وحدة القياس")}</label>
                     <select
                       className="purchase-prototype-field-input"
                       {...register('unitType')}
                       style={{ width: '100%', background: '#fff', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box', fontSize: '0.9rem' }}
                     >
-                      <option value="piece">قطعة</option>
-                      <option value="kg">كيلوجرام (جرام)</option>
-                      <option value="liter">لتر (ملي)</option>
-                      <option value="gram">جرام فقط</option>
-                      <option value="meter">متر</option>
+                      <option value="piece">{t('shared.quick_product_modal.s25', "قطعة")}</option>
+                      <option value="kg">{t('shared.quick_product_modal.s26', "كيلوجرام (جرام)")}</option>
+                      <option value="liter">{t('shared.quick_product_modal.s27', "لتر (ملي)")}</option>
+                      <option value="gram">{t('shared.quick_product_modal.s28', "جرام فقط")}</option>
+                      <option value="meter">{t('shared.quick_product_modal.s29', "متر")}</option>
                     </select>
                   </div>
                   <div>
-                    <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>سعر التكلفة</label>
+                    <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>{t('shared.quick_product_modal.s30', "سعر التكلفة")}</label>
                     <input
                       type="number"
                       step="0.01"
@@ -503,7 +505,7 @@ function QuickProductModalContent({ isOpen, onClose, initialName = '', itemType,
                     />
                   </div>
                   <div>
-                    <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>المخزون الافتتاحي</label>
+                    <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>{t('shared.quick_product_modal.s31', "المخزون الافتتاحي")}</label>
                     <input
                       type="number"
                       step="0.001"
@@ -518,7 +520,7 @@ function QuickProductModalContent({ isOpen, onClose, initialName = '', itemType,
                 {itemType === 'product' && (
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                     <div>
-                      <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>سعر البيع (قطاعي)</label>
+                      <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>{t('shared.quick_product_modal.s32', "سعر البيع (قطاعي)")}</label>
                       <input
                         type="number"
                         step="0.01"
@@ -529,7 +531,7 @@ function QuickProductModalContent({ isOpen, onClose, initialName = '', itemType,
                       />
                     </div>
                     <div>
-                      <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>سعر الجملة</label>
+                      <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>{t('shared.quick_product_modal.s33', "سعر الجملة")}</label>
                       <input
                         type="number"
                         step="0.01"
@@ -554,7 +556,7 @@ function QuickProductModalContent({ isOpen, onClose, initialName = '', itemType,
               disabled={mutation.isPending}
               style={{ padding: '8px 24px', fontSize: '0.9rem' }}
             >
-              إلغاء
+              {t('shared.quick_product_modal.s34', "إلغاء")}
             </Button>
             <Button
               type="submit"
@@ -562,7 +564,7 @@ function QuickProductModalContent({ isOpen, onClose, initialName = '', itemType,
               disabled={mutation.isPending}
               style={{ padding: '8px 28px', fontWeight: 700, fontSize: '0.9rem', background: '#0f172a' }}
             >
-              {mutation.isPending ? 'جارٍ الحفظ...' : itemType === 'service' ? 'حفظ وإضافة للسلة' : 'حفظ الصنف'}
+              {mutation.isPending ? t('shared.quick_product_modal.s35', "جارٍ الحفظ...") : itemType === 'service' ? t('shared.quick_product_modal.s36', "حفظ وإضافة للسلة") : t('shared.quick_product_modal.s37', "حفظ الصنف")}
             </Button>
           </div>
         </form>

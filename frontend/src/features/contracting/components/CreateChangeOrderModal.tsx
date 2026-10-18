@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { Field } from '@/shared/ui/field';
@@ -29,6 +30,7 @@ const IMPACT_OPTIONS = [
 ];
 
 export function CreateChangeOrderModal({ open, projectId, projectName, onClose, onCreated }: CreateChangeOrderModalProps) {
+  const { t } = useTranslation();
   const { currencySymbol } = useSystemCurrency();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -72,15 +74,15 @@ export function CreateChangeOrderModal({ open, projectId, projectName, onClose, 
     <StandardDialog
       open={open}
       onClose={onClose}
-      title="إصدار أمر تغيير / ملحق تعاقدي (Change Order)"
-      subtitle={projectName ? `المشروع: ${projectName}` : 'توثيق التعديلات في بنود العقد، الأثر المالي على قيمة المشروع، والمدة الزمنية الإضافية'}
+      title={t('contracting.create_change_order_modal.s0', "إصدار أمر تغيير / ملحق تعاقدي (Change Order)")}
+      subtitle={projectName ? `المشروع: ${projectName}` : t('contracting.create_change_order_modal.s1', "توثيق التعديلات في بنود العقد، الأثر المالي على قيمة المشروع، والمدة الزمنية الإضافية")}
       width="min(880px, 95vw)"
       minHeight="auto"
       footerActions={(
         <StandardDialogFooter
           onCancel={onClose}
           onSubmit={() => handleSubmit()}
-          submitText={isSubmitting ? 'جاري الحفظ...' : 'حفظ كمسودة أمر تغيير'}
+          submitText={isSubmitting ? t('contracting.create_change_order_modal.s2', "جاري الحفظ...") : t('contracting.create_change_order_modal.s3', "حفظ كمسودة أمر تغيير")}
           isSubmitting={isSubmitting}
         />
       )}
@@ -137,21 +139,21 @@ export function CreateChangeOrderModal({ open, projectId, projectName, onClose, 
         <div style={{ background: '#f8fafc', padding: '9px 13px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
             <AppIcons.FileText size={15} />
-            <span>1. موضوع وسبب التعديل التعاقدي (Change Scope & Reason)</span>
+            <span>{t('contracting.create_change_order_modal.s4', "1. موضوع وسبب التعديل التعاقدي (Change Scope & Reason)")}</span>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: '10px', alignItems: 'start' }}>
-            <Field label="موضوع / بيان أمر التغيير *">
+            <Field label={t('contracting.create_change_order_modal.s5', "موضوع / بيان أمر التغيير *")}>
               <input
                 type="text"
                 required
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                placeholder="مثال: زيادة عمق الخوازيق أو تعديل مواصفات السيراميك..."
+                placeholder={t('contracting.create_change_order_modal.s6', "مثال: زيادة عمق الخوازيق أو تعديل مواصفات السيراميك...")}
               />
             </Field>
 
-            <Field label="سبب التغيير التعاقدي">
+            <Field label={t('contracting.create_change_order_modal.s7', "سبب التغيير التعاقدي")}>
               <CustomSelect
                 value={formData.reason}
                 options={REASON_OPTIONS}
@@ -159,7 +161,7 @@ export function CreateChangeOrderModal({ open, projectId, projectName, onClose, 
               />
             </Field>
 
-            <Field label="نوع الأثر التعاقدي">
+            <Field label={t('contracting.create_change_order_modal.s8', "نوع الأثر التعاقدي")}>
               <CustomSelect
                 value={formData.impactType}
                 options={IMPACT_OPTIONS}
@@ -173,7 +175,7 @@ export function CreateChangeOrderModal({ open, projectId, projectName, onClose, 
         <div style={{ background: '#f8fafc', padding: '9px 13px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
             <AppIcons.Calculator size={15} />
-            <span>2. الأثر المالي والزمني على المشروع (Financial & Time Impact)</span>
+            <span>{t('contracting.create_change_order_modal.s9', "2. الأثر المالي والزمني على المشروع (Financial & Time Impact)")}</span>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', alignItems: 'start' }}>
@@ -186,7 +188,7 @@ export function CreateChangeOrderModal({ open, projectId, projectName, onClose, 
                 disabled={formData.impactType === 'time_only'}
                 value={formData.costImpact}
                 onChange={(e) => setFormData({ ...formData, costImpact: e.target.value })}
-                placeholder="0.00 (موجب/سالب)"
+                placeholder={t('contracting.create_change_order_modal.s10', "0.00 (موجب/سالب)")}
                 style={{
                   fontWeight: 800,
                   color: '#170e5e',
@@ -195,7 +197,7 @@ export function CreateChangeOrderModal({ open, projectId, projectName, onClose, 
               />
             </Field>
 
-            <Field label="الأثر الزمني (أيام إضافية)">
+            <Field label={t('contracting.create_change_order_modal.s11', "الأثر الزمني (أيام إضافية)")}>
               <input
                 type="number"
                 min="0"
@@ -214,15 +216,15 @@ export function CreateChangeOrderModal({ open, projectId, projectName, onClose, 
         <div style={{ background: '#f8fafc', padding: '9px 13px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
             <AppIcons.Tag size={14} />
-            <span>3. المبررات الفنية والاشتراطات (Technical Notes & Justification)</span>
+            <span>{t('contracting.create_change_order_modal.s12', "3. المبررات الفنية والاشتراطات (Technical Notes & Justification)")}</span>
           </div>
 
-          <Field label="المبررات والمرفقات الفنية (اختياري)">
+          <Field label={t('contracting.create_change_order_modal.s13', "المبررات والمرفقات الفنية (اختياري)")}>
             <input
               type="text"
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              placeholder="تفاصيل التبرير الفني، رقم خطاب الاستشاري أو محضر الاجتماع..."
+              placeholder={t('contracting.create_change_order_modal.s14', "تفاصيل التبرير الفني، رقم خطاب الاستشاري أو محضر الاجتماع...")}
             />
           </Field>
         </div>

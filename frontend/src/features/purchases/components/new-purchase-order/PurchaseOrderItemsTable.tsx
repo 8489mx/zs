@@ -46,6 +46,7 @@ interface ItemsTableProps {
 }
 
 export function PurchaseOrderItemsTable(props: ItemsTableProps) {
+  const { t: __t } = useTranslation();
   const { t } = useTranslation();
 
   return (
@@ -53,13 +54,13 @@ export function PurchaseOrderItemsTable(props: ItemsTableProps) {
       <div className="section-header-compact-row" style={{ marginBottom: '0.6rem' }}>
         <h3 className="document-prototype-section-title" style={{ margin: 0, whiteSpace: 'nowrap', flexShrink: 0 }}>{t('items_section')}</h3>
         <div className="purchase-prototype-quick-actions" aria-label={t('quick_item_actions')}>
-          <button type="button" className="purchase-prototype-quick-action" title="إضافة صنف جديد" onClick={() => props.onOpenQuickCreate('product', '', null)} style={{ fontWeight: 700, color: '#1e40af' }}>
+          <button type="button" className="purchase-prototype-quick-action" title={__t('purchases.new_purchase_order.purchase_order_items_table.s0', "إضافة صنف جديد")} onClick={() => props.onOpenQuickCreate('product', '', null)} style={{ fontWeight: 700, color: '#1e40af' }}>
             <span aria-hidden="true">+</span>
-            <span>صنف</span>
+            <span>{__t('purchases.new_purchase_order.purchase_order_items_table.s1', "صنف")}</span>
           </button>
           <button type="button" className="purchase-prototype-quick-action" title={t('add_service_line')} onClick={props.onAddServiceLine}>
             <span aria-hidden="true">+</span>
-            <span>خدمة</span>
+            <span>{__t('purchases.new_purchase_order.purchase_order_items_table.s2', "خدمة")}</span>
           </button>
           <button
             type="button"
@@ -69,15 +70,15 @@ export function PurchaseOrderItemsTable(props: ItemsTableProps) {
             style={props.taxRate && props.taxRate > 0 ? { borderColor: '#2563eb', color: '#1d4ed8', backgroundColor: '#eff6ff', fontWeight: 700 } : undefined}
           >
             <span aria-hidden="true">%</span>
-            <span>ضريبة{props.taxRate && props.taxRate > 0 ? ` ${props.taxRate}%` : ''}</span>
+            <span>{__t('purchases.new_purchase_order.purchase_order_items_table.s3', "ضريبة")}{props.taxRate && props.taxRate > 0 ? ` ${props.taxRate}%` : ''}</span>
           </button>
           <button
             type="button"
             className="purchase-prototype-quick-action"
-            title="إضافة خصم على الفاتورة"
+            title={__t('purchases.new_purchase_order.purchase_order_items_table.s4', "إضافة خصم على الفاتورة")}
             onClick={() => props.setActiveQuickAction((curr: any) => (curr === 'discount' ? null : 'discount'))}
           >
-            <span>خصم</span>
+            <span>{__t('purchases.new_purchase_order.purchase_order_items_table.s5', "خصم")}</span>
           </button>
         </div>
       </div>
@@ -91,7 +92,7 @@ export function PurchaseOrderItemsTable(props: ItemsTableProps) {
               onClick={() => props.applyTaxPreset(0)}
               style={!props.taxRate || props.taxRate === 0 ? { backgroundColor: '#e0e7ff', borderColor: '#4338ca', color: '#3730a3', fontWeight: 700 } : undefined}
             >
-              بدون ضريبة
+              {__t('purchases.new_purchase_order.purchase_order_items_table.s6', "بدون ضريبة")}
             </button>
             <button
               type="button"
@@ -115,7 +116,7 @@ export function PurchaseOrderItemsTable(props: ItemsTableProps) {
               aria-label={t('custom_value')}
             />
             <button type="button" className="purchase-prototype-popover-apply" onClick={props.applyCustomTaxRate}>
-              تطبيق
+              {__t('purchases.new_purchase_order.purchase_order_items_table.s7', "تطبيق")}
             </button>
           </div>
         </div>
@@ -132,7 +133,7 @@ export function PurchaseOrderItemsTable(props: ItemsTableProps) {
                 props.setDiscountMode('percent');
               }}
             >
-              نسبة
+              {__t('purchases.new_purchase_order.purchase_order_items_table.s8', "نسبة")}
             </button>
             <button
               type="button"
@@ -142,7 +143,7 @@ export function PurchaseOrderItemsTable(props: ItemsTableProps) {
                 props.setDiscountMode('value');
               }}
             >
-              قيمة
+              {__t('purchases.new_purchase_order.purchase_order_items_table.s9', "قيمة")}
             </button>
             <input
               className="purchase-prototype-popover-input purchase-prototype-discount-input"
@@ -158,7 +159,7 @@ export function PurchaseOrderItemsTable(props: ItemsTableProps) {
               aria-label={t('discount_value_label')}
             />
             <button type="button" className="purchase-prototype-popover-apply" onClick={props.applyDiscount}>
-              تطبيق
+              {__t('purchases.new_purchase_order.purchase_order_items_table.s10', "تطبيق")}
             </button>
           </div>
         </div>
@@ -171,8 +172,8 @@ export function PurchaseOrderItemsTable(props: ItemsTableProps) {
             <thead>
               <tr>
                 <th className="purchase-prototype-table-head purchase-prototype-table-head-product" style={{ width: '35%', textAlign: 'right' }}>{t('item_label')}</th>
-                <th className="purchase-prototype-table-head purchase-prototype-table-head-category" style={{ width: '15%', textAlign: 'center' }}>القسم</th>
-                <th className="purchase-prototype-table-head purchase-prototype-table-head-warehouse" style={{ width: '15%', textAlign: 'center' }}>المخزن</th>
+                <th className="purchase-prototype-table-head purchase-prototype-table-head-category" style={{ width: '15%', textAlign: 'center' }}>{__t('purchases.new_purchase_order.purchase_order_items_table.s11', "القسم")}</th>
+                <th className="purchase-prototype-table-head purchase-prototype-table-head-warehouse" style={{ width: '15%', textAlign: 'center' }}>{__t('purchases.new_purchase_order.purchase_order_items_table.s12', "المخزن")}</th>
                 <th className="purchase-prototype-table-head purchase-prototype-table-head-qty" style={{ width: '10%', textAlign: 'center' }}>{t('quantity')}</th>
                 <th className="purchase-prototype-table-head purchase-prototype-table-head-price" style={{ width: '10%', textAlign: 'center' }}>{t('price_title')}</th>
                 <th className="purchase-prototype-table-head purchase-prototype-table-head-amount" style={{ width: '10%', textAlign: 'center' }}>{t('total_amount')}</th>
@@ -258,14 +259,14 @@ export function PurchaseOrderItemsTable(props: ItemsTableProps) {
                             }}
                           >
                             <SmartphoneIcon size={12} color="#7e22ce" />
-                            <span>{line.serials && line.serials.length > 0 ? `سيريالات: (${line.serials.length} أجهزة مسجلة)` : '+ إدخال أرقام السيريال / الـ IMEI'}</span>
+                            <span>{line.serials && line.serials.length > 0 ? `سيريالات: (${line.serials.length} أجهزة مسجلة)` : __t('purchases.new_purchase_order.purchase_order_items_table.s13', "+ إدخال أرقام السيريال / الـ IMEI")}</span>
                           </button>
                         </div>
                       ) : null}
                     </td>
                     <td className="purchase-prototype-table-cell purchase-prototype-table-cell-category" style={{ textAlign: 'center' }}>
                       {line.isService ? (
-                        <input className="purchase-prototype-table-input purchase-prototype-table-input-readonly" value="لا يؤثر على المخزون" disabled readOnly style={{ textAlign: 'center' }} />
+                        <input className="purchase-prototype-table-input purchase-prototype-table-input-readonly" value={__t('purchases.new_purchase_order.purchase_order_items_table.s14', "لا يؤثر على المخزون")} disabled readOnly style={{ textAlign: 'center' }} />
                       ) : (
                         <SearchableCombobox
                           inline
@@ -273,7 +274,7 @@ export function PurchaseOrderItemsTable(props: ItemsTableProps) {
                           inputId={`category-input-${line.id}`}
                           inputClassName="purchase-prototype-field-input purchase-prototype-combobox-input purchase-prototype-combobox-input-inline"
                           inputStyle={{ textAlign: 'center' }}
-                          placeholder="ابحث عن قسم..."
+                          placeholder={__t('purchases.new_purchase_order.purchase_order_items_table.s15', "ابحث عن قسم...")}
                           value={line.category || ''}
                           onChange={(value) => {
                             props.markDocumentDirty();
@@ -293,7 +294,7 @@ export function PurchaseOrderItemsTable(props: ItemsTableProps) {
                     </td>
                     <td className="purchase-prototype-table-cell purchase-prototype-table-cell-warehouse" style={{ textAlign: 'center' }}>
                       {line.isService ? (
-                        <input className="purchase-prototype-table-input purchase-prototype-table-input-readonly" value="لا يؤثر على المخزون" disabled readOnly style={{ textAlign: 'center' }} />
+                        <input className="purchase-prototype-table-input purchase-prototype-table-input-readonly" value={__t('purchases.new_purchase_order.purchase_order_items_table.s16', "لا يؤثر على المخزون")} disabled readOnly style={{ textAlign: 'center' }} />
                       ) : (
                         <SearchableCombobox
                           inline
@@ -301,7 +302,7 @@ export function PurchaseOrderItemsTable(props: ItemsTableProps) {
                           inputId={`warehouse-input-${line.id}`}
                           inputClassName="purchase-prototype-field-input purchase-prototype-combobox-input purchase-prototype-combobox-input-inline"
                           inputStyle={{ textAlign: 'center' }}
-                          placeholder="ابحث عن مخزن..."
+                          placeholder={__t('purchases.new_purchase_order.purchase_order_items_table.s17', "ابحث عن مخزن...")}
                           value={line.warehouse}
                           onChange={(value) => {
                             props.markDocumentDirty();
@@ -384,9 +385,9 @@ export function PurchaseOrderItemsTable(props: ItemsTableProps) {
             <div key={line.id} className="purchase-prototype-item-card">
               <div className="item-card-header">
                 <div className="item-card-badge">
-                  <span className="item-card-num">بند #{index + 1}</span>
+                  <span className="item-card-num">{__t('purchases.new_purchase_order.purchase_order_items_table.s18', "بند #")}{index + 1}</span>
                   <span className="item-card-stock-pill stock-ok">
-                    الإجمالي: {formatMoney(amount, props.language)}
+                    {__t('purchases.new_purchase_order.purchase_order_items_table.s19', "الإجمالي:")} {formatMoney(amount, props.language)}
                   </span>
                 </div>
                 <button
@@ -394,7 +395,7 @@ export function PurchaseOrderItemsTable(props: ItemsTableProps) {
                   className="item-card-delete-btn"
                   onClick={() => props.onRemoveLine(line.id)}
                   disabled={props.lines.length === 1}
-                  title="حذف البند"
+                  title={__t('purchases.new_purchase_order.purchase_order_items_table.s20', "حذف البند")}
                 >
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
@@ -468,7 +469,7 @@ export function PurchaseOrderItemsTable(props: ItemsTableProps) {
                       }}
                     >
                       <SmartphoneIcon size={14} color="#7e22ce" />
-                      <span>{line.serials && line.serials.length > 0 ? `سيريالات: (${line.serials.length} أجهزة مسجلة)` : '+ إدخال أرقام السيريال / IMEI'}</span>
+                      <span>{line.serials && line.serials.length > 0 ? `سيريالات: (${line.serials.length} أجهزة مسجلة)` : __t('purchases.new_purchase_order.purchase_order_items_table.s21', "+ إدخال أرقام السيريال / IMEI")}</span>
                     </button>
                   </div>
                 ) : null}
@@ -476,16 +477,16 @@ export function PurchaseOrderItemsTable(props: ItemsTableProps) {
 
               <div className="item-card-row">
                 <div className="item-card-field">
-                  <Field label="المخزن" error={rowErrors.warehouse}>
+                  <Field label={__t('purchases.new_purchase_order.purchase_order_items_table.s22', "المخزن")} error={rowErrors.warehouse}>
                     {line.isService ? (
-                      <input className="purchase-prototype-field-input" value="لا يؤثر على المخزون" disabled readOnly />
+                      <input className="purchase-prototype-field-input" value={__t('purchases.new_purchase_order.purchase_order_items_table.s23', "لا يؤثر على المخزون")} disabled readOnly />
                     ) : (
                       <SearchableCombobox
                         inline
                         className="purchase-prototype-inline-combobox"
                         inputId={`warehouse-input-mobile-${line.id}`}
                         inputClassName="purchase-prototype-field-input purchase-prototype-combobox-input purchase-prototype-combobox-input-inline"
-                        placeholder="اختر المخزن..."
+                        placeholder={__t('purchases.new_purchase_order.purchase_order_items_table.s24', "اختر المخزن...")}
                         value={line.warehouse}
                         onChange={(value) => {
                           props.markDocumentDirty();
@@ -506,16 +507,16 @@ export function PurchaseOrderItemsTable(props: ItemsTableProps) {
                 </div>
 
                 <div className="item-card-field">
-                  <Field label="القسم" error={rowErrors.category}>
+                  <Field label={__t('purchases.new_purchase_order.purchase_order_items_table.s25', "القسم")} error={rowErrors.category}>
                     {line.isService ? (
-                      <input className="purchase-prototype-field-input" value="خدمي" disabled readOnly />
+                      <input className="purchase-prototype-field-input" value={__t('purchases.new_purchase_order.purchase_order_items_table.s26', "خدمي")} disabled readOnly />
                     ) : (
                       <SearchableCombobox
                         inline
                         className="purchase-prototype-inline-combobox"
                         inputId={`category-input-mobile-${line.id}`}
                         inputClassName="purchase-prototype-field-input purchase-prototype-combobox-input purchase-prototype-combobox-input-inline"
-                        placeholder="اختر القسم..."
+                        placeholder={__t('purchases.new_purchase_order.purchase_order_items_table.s27', "اختر القسم...")}
                         value={line.category || ''}
                         onChange={(value) => {
                           props.markDocumentDirty();

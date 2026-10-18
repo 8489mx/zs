@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React, { useState } from 'react';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { Button } from '@/shared/ui/button';
@@ -24,6 +25,7 @@ export const SavePivotTemplateModal: React.FC<SavePivotTemplateModalProps> = ({
   onSaved,
   currentConfig,
 }) => {
+  const { t } = useTranslation();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [isFavorite, setIsFavorite] = useState(false);
@@ -65,21 +67,21 @@ export const SavePivotTemplateModal: React.FC<SavePivotTemplateModalProps> = ({
     <StandardDialog
       open={open}
       onClose={onClose}
-      title="حفظ التقرير المحوري كقالب مخصص"
-      subtitle="إتاحة التقرير في الوصول السريع للمديرين والمحاسبين بنقرة واحدة"
+      title={t('reports.pivot.save_pivot_template_modal.s0', "حفظ التقرير المحوري كقالب مخصص")}
+      subtitle={t('reports.pivot.save_pivot_template_modal.s1', "إتاحة التقرير في الوصول السريع للمديرين والمحاسبين بنقرة واحدة")}
       size="sm"
     >
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
         <div>
           <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-            اسم التقرير المخصص *
+            {t('reports.pivot.save_pivot_template_modal.s2', "اسم التقرير المخصص *")}
           </label>
           <input
             type="text"
             required
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="مثال: تحليل مبيعات الفروع شهرياً، ربحية المندوبين..."
+            placeholder={t('reports.pivot.save_pivot_template_modal.s3', "مثال: تحليل مبيعات الفروع شهرياً، ربحية المندوبين...")}
             style={{
               width: '100%',
               padding: '8px 12px',
@@ -94,13 +96,13 @@ export const SavePivotTemplateModal: React.FC<SavePivotTemplateModalProps> = ({
 
         <div>
           <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-            وصف أو ملاحظات التقرير
+            {t('reports.pivot.save_pivot_template_modal.s4', "وصف أو ملاحظات التقرير")}
           </label>
           <textarea
             rows={2}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder="وصف مختصر للغرض التحليلي أو الإداري من هذا التقرير..."
+            placeholder={t('reports.pivot.save_pivot_template_modal.s5', "وصف مختصر للغرض التحليلي أو الإداري من هذا التقرير...")}
             style={{
               width: '100%',
               padding: '8px 12px',
@@ -115,9 +117,9 @@ export const SavePivotTemplateModal: React.FC<SavePivotTemplateModalProps> = ({
         </div>
 
         <div style={{ backgroundColor: '#f8fafc', padding: '10px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '12px', color: '#64748b' }}>
-          <div><strong>المصدر:</strong> {currentConfig.dataset}</div>
-          <div><strong>أبعاد التحليل:</strong> {currentConfig.rowDimension} {currentConfig.colDimension ? `× ${currentConfig.colDimension}` : ''}</div>
-          <div><strong>المؤشر:</strong> {currentConfig.metric}</div>
+          <div><strong>{t('reports.pivot.save_pivot_template_modal.s6', "المصدر:")}</strong> {currentConfig.dataset}</div>
+          <div><strong>{t('reports.pivot.save_pivot_template_modal.s7', "أبعاد التحليل:")}</strong> {currentConfig.rowDimension} {currentConfig.colDimension ? `× ${currentConfig.colDimension}` : ''}</div>
+          <div><strong>{t('reports.pivot.save_pivot_template_modal.s8', "المؤشر:")}</strong> {currentConfig.metric}</div>
         </div>
 
         <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12.5px', color: '#1e293b', cursor: 'pointer' }}>
@@ -127,19 +129,19 @@ export const SavePivotTemplateModal: React.FC<SavePivotTemplateModalProps> = ({
             onChange={(e) => setIsFavorite(e.target.checked)}
             style={{ width: '16px', height: '16px', accentColor: '#170e5e' }}
           />
-          <span>تثبيت في القوالب المفضلة بأعلى الصفحة</span>
+          <span>{t('reports.pivot.save_pivot_template_modal.s9', "تثبيت في القوالب المفضلة بأعلى الصفحة")}</span>
         </label>
 
         <StandardDialogFooter>
           <Button type="button" variant="secondary" onClick={onClose} disabled={saving}>
-            إلغاء
+            {t('reports.pivot.save_pivot_template_modal.s10', "إلغاء")}
           </Button>
           <Button
             type="submit"
             disabled={saving}
             style={{ backgroundColor: '#170e5e', color: '#ffffff' }}
           >
-            {saving ? 'جاري الحفظ...' : 'حفظ القالب'}
+            {saving ? t('reports.pivot.save_pivot_template_modal.s11', "جاري الحفظ...") : t('reports.pivot.save_pivot_template_modal.s12', "حفظ القالب")}
           </Button>
         </StandardDialogFooter>
       </form>

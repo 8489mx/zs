@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { RestaurantOperationsDialog } from './RestaurantOperationsDialog';
 import { Button } from '@/shared/ui/button';
@@ -27,6 +28,7 @@ export function PosSmartUpsellModal({
   onAcceptUpsell,
   onBack,
 }: PosSmartUpsellModalProps) {
+  const { t } = useTranslation();
   const [addedIds, setAddedIds] = useState<Set<number>>(new Set());
 
   if (!open || recommendations.length === 0) return null;
@@ -49,10 +51,10 @@ export function PosSmartUpsellModal({
       open={open}
       onClose={onClose}
       onBack={onBack}
-      backText="الرجوع لعمليات المطعم"
-      title="ترقية الطلب واقتراحات مكملة (Upsell & Cross-Sell)"
-      subtitle={`اقتراحات موصى بها تناسب طبق: ${triggerItemName || 'الوجبة الحالية'}`}
-      footerNote="الاقتراحات تعتمد على الأصناف الموجودة في سلة العميل حالياً"
+      backText={t('pos.pos_workspace.pos_smart_upsell_modal.s0', "الرجوع لعمليات المطعم")}
+      title={t('pos.pos_workspace.pos_smart_upsell_modal.s1', "ترقية الطلب واقتراحات مكملة (Upsell & Cross-Sell)")}
+      subtitle={`اقتراحات موصى بها تناسب طبق: ${triggerItemName || t('pos.pos_workspace.pos_smart_upsell_modal.s2', "الوجبة الحالية")}`}
+      footerNote={t('pos.pos_workspace.pos_smart_upsell_modal.s3', "الاقتراحات تعتمد على الأصناف الموجودة في سلة العميل حالياً")}
       icon={<LayersIcon size={18} color="#170e5e" />}
       footerActions={
         <Button
@@ -66,7 +68,7 @@ export function PosSmartUpsellModal({
             color: '#ffffff',
           }}
         >
-          متابعة الطلب
+          {t('pos.pos_workspace.pos_smart_upsell_modal.s4', "متابعة الطلب")}
         </Button>
       }
     >
@@ -111,7 +113,7 @@ export function PosSmartUpsellModal({
                       </span>
                     )}
                     <span style={{ fontSize: '13px', fontWeight: 800, color: '#166534' }}>
-                      {originalPrice > 0 ? formatCurrency(finalPrice) : 'إضافة مباشرة'}
+                      {originalPrice > 0 ? formatCurrency(finalPrice) : t('pos.pos_workspace.pos_smart_upsell_modal.s5', "إضافة مباشرة")}
                     </span>
                     {discount > 0 && (
                       <span
@@ -124,7 +126,7 @@ export function PosSmartUpsellModal({
                           borderRadius: '4px',
                         }}
                       >
-                        وفر {formatCurrency(discount)}
+                        {t('pos.pos_workspace.pos_smart_upsell_modal.s6', "وفر")} {formatCurrency(discount)}
                       </span>
                     )}
                   </div>
@@ -149,12 +151,12 @@ export function PosSmartUpsellModal({
                   {isAdded ? (
                     <>
                       <CheckCircleIcon size={14} color="#166534" />
-                      تمت الإضافة
+                      {t('pos.pos_workspace.pos_smart_upsell_modal.s7', "تمت الإضافة")}
                     </>
                   ) : (
                     <>
                       <PlusCircleIcon size={14} color="#ffffff" />
-                      إضافة للسلة
+                      {t('pos.pos_workspace.pos_smart_upsell_modal.s8', "إضافة للسلة")}
                     </>
                   )}
                 </Button>

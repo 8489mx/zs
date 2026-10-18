@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import type { StorefrontInfo } from '../types/storefront.types';
 import { resolveStorefrontBrand } from './StorefrontHeader';
 import { IconCheckCircle } from './StorefrontIcons';
@@ -19,6 +20,7 @@ export function StorefrontFooter({
   onGoHome,
   onToggleDeals,
 }: StorefrontFooterProps) {
+  const { t } = useTranslation();
   const brand = resolveStorefrontBrand(info);
   const whatsappNumber = (info.whatsappPhone || '').replace(/[^0-9]/g, '');
   const cleanPhone = whatsappNumber.startsWith('01') ? `2${whatsappNumber}` : whatsappNumber;
@@ -375,12 +377,12 @@ export function StorefrontFooter({
         type="button"
         onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
         className="sf-footer-back-to-top"
-        title="الرجوع إلى أعلى الصفحة"
+        title={t('storefront.storefront_footer.s0', "الرجوع إلى أعلى الصفحة")}
       >
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
           <polyline points="18 15 12 9 6 15" />
         </svg>
-        <span>الرجوع إلى أعلى الصفحة</span>
+        <span>{t('storefront.storefront_footer.s1', "الرجوع إلى أعلى الصفحة")}</span>
       </button>
 
       {/* Top Enterprise Trust Strip - Unified Subtle Slate Palette */}
@@ -412,10 +414,10 @@ export function StorefrontFooter({
               </div>
               <div>
                 <h4 className="sf-footer-trust-title" style={{ margin: '0 0 2px', fontSize: '13.5px', fontWeight: 800, color: '#0f172a' }}>
-                  توصيل سريع وآمن
+                  {t('storefront.storefront_footer.s2', "توصيل سريع وآمن")}
                 </h4>
                 <p className="sf-footer-trust-desc" style={{ margin: 0, fontSize: '12px', color: '#475569', lineHeight: 1.45, fontWeight: 500 }}>
-                  شحن مباشر مع متابعة دقيقة لحالة الطلب
+                  {t('storefront.storefront_footer.s3', "شحن مباشر مع متابعة دقيقة لحالة الطلب")}
                 </p>
               </div>
             </div>
@@ -443,10 +445,10 @@ export function StorefrontFooter({
               </div>
               <div>
                 <h4 className="sf-footer-trust-title" style={{ margin: '0 0 2px', fontSize: '13.5px', fontWeight: 800, color: '#0f172a' }}>
-                  منتجات أصلية 100%
+                  {t('storefront.storefront_footer.s4', "منتجات أصلية 100%")}
                 </h4>
                 <p className="sf-footer-trust-desc" style={{ margin: 0, fontSize: '12px', color: '#475569', lineHeight: 1.45, fontWeight: 500 }}>
-                  فحص وضمان جودة لكافة الأصناف المعروضة
+                  {t('storefront.storefront_footer.s5', "فحص وضمان جودة لكافة الأصناف المعروضة")}
                 </p>
               </div>
             </div>
@@ -474,10 +476,10 @@ export function StorefrontFooter({
               </div>
               <div>
                 <h4 className="sf-footer-trust-title" style={{ margin: '0 0 2px', fontSize: '13.5px', fontWeight: 800, color: '#0f172a' }}>
-                  دفع آمن ومرن
+                  {t('storefront.storefront_footer.s6', "دفع آمن ومرن")}
                 </h4>
                 <p className="sf-footer-trust-desc" style={{ margin: 0, fontSize: '12px', color: '#475569', lineHeight: 1.45, fontWeight: 500 }}>
-                  كاش عند الاستلام أو بطاقات ومحافظ رقمية
+                  {t('storefront.storefront_footer.s7', "كاش عند الاستلام أو بطاقات ومحافظ رقمية")}
                 </p>
               </div>
             </div>
@@ -504,10 +506,10 @@ export function StorefrontFooter({
               </div>
               <div>
                 <h4 className="sf-footer-trust-title" style={{ margin: '0 0 2px', fontSize: '13.5px', fontWeight: 800, color: '#0f172a' }}>
-                  خدمة عملاء مباشرة
+                  {t('storefront.storefront_footer.s8', "خدمة عملاء مباشرة")}
                 </h4>
                 <p className="sf-footer-trust-desc" style={{ margin: 0, fontSize: '12px', color: '#475569', lineHeight: 1.45, fontWeight: 500 }}>
-                  دعم واستفسارات فورية عبر محادثة واتساب
+                  {t('storefront.storefront_footer.s9', "دعم واستفسارات فورية عبر محادثة واتساب")}
                 </p>
               </div>
             </div>
@@ -558,7 +560,7 @@ export function StorefrontFooter({
               <div className="sf-footer-brand-title-wrap">
                 <h3 style={{ margin: 0, fontSize: '15.5px', fontWeight: 900, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <span>{brand.title}</span>
-                  <span title="متجر موثق" style={{ display: 'inline-flex', alignItems: 'center' }}>
+                  <span title={t('storefront.storefront_footer.s10', "متجر موثق")} style={{ display: 'inline-flex', alignItems: 'center' }}>
                     <IconCheckCircle size={13} color="var(--storefront-primary-color, #170e5e)" strokeWidth={2.5} />
                   </span>
                 </h3>
@@ -566,7 +568,7 @@ export function StorefrontFooter({
             </div>
 
             <p className="sf-footer-brand-desc" style={{ margin: '0 0 14px', fontSize: '12.5px', color: '#475569', lineHeight: 1.6, maxWidth: '340px' }}>
-              {info.bio || 'وجهتك الأولى لتسوق أفضل المنتجات بأفضل الأسعار، جودة مضمونة وسرعة في تنفيذ وتوصيل الطلبات.'}
+              {info.bio || t('storefront.storefront_footer.s11', "وجهتك الأولى لتسوق أفضل المنتجات بأفضل الأسعار، جودة مضمونة وسرعة في تنفيذ وتوصيل الطلبات.")}
             </p>
 
             {brand.address && (
@@ -584,7 +586,7 @@ export function StorefrontFooter({
           <div className="sf-footer-links-col">
             <h4 className="sf-footer-section-title" style={{ margin: '0 0 14px', fontSize: '13.5px', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
               <span style={{ width: '3px', height: '14px', backgroundColor: 'var(--storefront-primary-color, #170e5e)', borderRadius: '2px', display: 'inline-block' }} />
-              <span>روابط سريعة</span>
+              <span>{t('storefront.storefront_footer.s12', "روابط سريعة")}</span>
             </h4>
             <div className="sf-footer-quick-links" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '10px 12px' }}>
               {onGoHome && (
@@ -592,7 +594,7 @@ export function StorefrontFooter({
                   <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.5 }}>
                     <polyline points="15 18 9 12 15 6" />
                   </svg>
-                  <span>الرئيسية</span>
+                  <span>{t('storefront.storefront_footer.s13', "الرئيسية")}</span>
                 </button>
               )}
               {onOpenCategories && (
@@ -600,7 +602,7 @@ export function StorefrontFooter({
                   <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.5 }}>
                     <polyline points="15 18 9 12 15 6" />
                   </svg>
-                  <span><span className="sf-hide-mobile">تصفح </span>الأقسام</span>
+                  <span><span className="sf-hide-mobile">{t('storefront.storefront_footer.s14', "تصفح")} </span>{t('storefront.storefront_footer.s15', "الأقسام")}</span>
                 </button>
               )}
               {onToggleDeals && (
@@ -608,7 +610,7 @@ export function StorefrontFooter({
                   <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.5 }}>
                     <polyline points="15 18 9 12 15 6" />
                   </svg>
-                  <span>العروض<span className="sf-hide-mobile"> الحصرية</span></span>
+                  <span>{t('storefront.storefront_footer.s16', "العروض")}<span className="sf-hide-mobile"> {t('storefront.storefront_footer.s17', "الحصرية")}</span></span>
                 </button>
               )}
               {onOpenOrders && (
@@ -616,7 +618,7 @@ export function StorefrontFooter({
                   <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.5 }}>
                     <polyline points="15 18 9 12 15 6" />
                   </svg>
-                  <span><span className="sf-hide-mobile">تتبع </span>طلباتي</span>
+                  <span><span className="sf-hide-mobile">{t('storefront.storefront_footer.s18', "تتبع")} </span>{t('storefront.storefront_footer.s19', "طلباتي")}</span>
                 </button>
               )}
               {onOpenCart && (
@@ -624,7 +626,7 @@ export function StorefrontFooter({
                   <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.5 }}>
                     <polyline points="15 18 9 12 15 6" />
                   </svg>
-                  <span>سلة المشتريات</span>
+                  <span>{t('storefront.storefront_footer.s20', "سلة المشتريات")}</span>
                 </button>
               )}
             </div>
@@ -634,10 +636,10 @@ export function StorefrontFooter({
           <div className="sf-footer-care-col">
             <h4 className="sf-footer-section-title" style={{ margin: '0 0 14px', fontSize: '13.5px', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
               <span style={{ width: '3px', height: '14px', backgroundColor: 'var(--storefront-primary-color, #170e5e)', borderRadius: '2px', display: 'inline-block' }} />
-              <span>خدمة العملاء</span>
+              <span>{t('storefront.storefront_footer.s21', "خدمة العملاء")}</span>
             </h4>
             <p className="sf-footer-care-desc" style={{ margin: '0 0 12px', fontSize: '12px', color: '#475569', lineHeight: 1.5 }}>
-              فريقنا متواجد للرد على كافة الاستفسارات ومساعدتك في اختيار المنتجات:
+              {t('storefront.storefront_footer.s22', "فريقنا متواجد للرد على كافة الاستفسارات ومساعدتك في اختيار المنتجات:")}
             </p>
             {cleanPhone ? (
               <a
@@ -675,11 +677,11 @@ export function StorefrontFooter({
                 <svg width="17" height="17" fill="#16a34a" viewBox="0 0 24 24">
                   <path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0 0 12.04 2m.01 1.67c2.2 0 4.26.86 5.82 2.42a8.225 8.225 0 0 1 2.41 5.83c0 4.54-3.7 8.23-8.24 8.23-1.48 0-2.93-.39-4.19-1.15l-.3-.17-3.12.82.83-3.04-.2-.31a8.216 8.216 0 0 1-1.26-4.38c0-4.54 3.7-8.24 8.25-8.24m4.52 11.64c-.25-.13-1.47-.72-1.7-.81-.23-.08-.39-.13-.56.13-.17.25-.64.81-.79.97-.14.17-.29.19-.54.06-.25-.13-1.06-.39-2.02-1.25-.75-.67-1.26-1.5-1.41-1.75-.15-.25-.02-.39.11-.51.11-.11.25-.29.38-.44.13-.14.17-.25.25-.42.08-.17.04-.31-.02-.44s-.56-1.35-.77-1.85c-.2-.48-.41-.42-.56-.43h-.48c-.17 0-.44.06-.67.31-.23.25-.88.86-.88 2.1 0 1.24.9 2.44 1.03 2.61.13.17 1.77 2.71 4.3 3.8 2.52 1.09 2.52.73 2.98.68.45-.04 1.47-.6 1.68-1.18.21-.58.21-1.07.15-1.18-.06-.11-.23-.17-.48-.3" />
                 </svg>
-                <span>محادثة واتساب فورية</span>
+                <span>{t('storefront.storefront_footer.s23', "محادثة واتساب فورية")}</span>
               </a>
             ) : null}
             <div className="sf-footer-care-hours" style={{ fontSize: '11px', color: '#94a3b8' }}>
-              الطلبات متاحة أونلاين على مدار الساعة
+              {t('storefront.storefront_footer.s24', "الطلبات متاحة أونلاين على مدار الساعة")}
             </div>
           </div>
 
@@ -687,7 +689,7 @@ export function StorefrontFooter({
           <div className="sf-footer-pay-col">
             <h4 className="sf-footer-section-title" style={{ margin: '0 0 14px', fontSize: '13.5px', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
               <span style={{ width: '3px', height: '14px', backgroundColor: 'var(--storefront-primary-color, #170e5e)', borderRadius: '2px', display: 'inline-block' }} />
-              <span>طرق الدفع والضمان</span>
+              <span>{t('storefront.storefront_footer.s25', "طرق الدفع والضمان")}</span>
             </h4>
             
             <div className="sf-footer-pay-badges" style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '12px' }}>
@@ -698,7 +700,7 @@ export function StorefrontFooter({
                   <circle cx="12" cy="12" r="2" />
                   <path d="M6 12h.01M18 12h.01" />
                 </svg>
-                <span>كاش عند الاستلام</span>
+                <span>{t('storefront.storefront_footer.s26', "كاش عند الاستلام")}</span>
               </div>
 
               {/* Visa */}
@@ -720,7 +722,7 @@ export function StorefrontFooter({
 
               {/* Mobile Wallets */}
               <div className="sf-pay-badge" style={{ color: '#334155' }}>
-                <span>محافظ إلكترونية</span>
+                <span>{t('storefront.storefront_footer.s27', "محافظ إلكترونية")}</span>
               </div>
             </div>
 
@@ -744,7 +746,7 @@ export function StorefrontFooter({
                 <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
                 <path d="M7 11V7a5 5 0 0 1 10 0v4" />
               </svg>
-              <span>تسوق آمن ومعاملات مشفرة 100%</span>
+              <span>{t('storefront.storefront_footer.s28', "تسوق آمن ومعاملات مشفرة 100%")}</span>
             </div>
           </div>
         </div>
@@ -774,7 +776,7 @@ export function StorefrontFooter({
           }}
         >
           <div style={{ textAlign: 'center' }}>
-            جميع الحقوق محفوظة © {currentYear} <strong style={{ color: '#0f172a' }}>{brand.title}</strong>
+            {t('storefront.storefront_footer.s29', "جميع الحقوق محفوظة ©")} {currentYear} <strong style={{ color: '#0f172a' }}>{brand.title}</strong>
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'center' }}>

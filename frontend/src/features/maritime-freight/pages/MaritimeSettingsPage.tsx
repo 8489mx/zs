@@ -1,9 +1,11 @@
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { MaritimeSettingsTab } from '../components/MaritimeSettingsTab';
 import { MaritimePipelineSettingsTab } from '../components/MaritimePipelineSettingsTab';
 import { SlidersIcon, MailIcon } from '@/shared/components/icons/AppIcons';
 
 export function MaritimeSettingsPage() {
+  const { t } = useTranslation();
   const [subTab, setSubTab] = useState<'pipeline' | 'mail'>('pipeline');
 
   return (
@@ -65,8 +67,8 @@ export function MaritimeSettingsPage() {
         >
           <SlidersIcon size={16} />
           <span>
-            <span className="desktop-only-inline">قواعد وسياسات الشحن وهامش الربح (Shipping Policies & Margins)</span>
-            <span className="mobile-only-inline">سياسات وهوامش الشحن</span>
+            <span className="desktop-only-inline">{t('maritime_freight.maritime_settings_page.s0', "قواعد وسياسات الشحن وهامش الربح (Shipping Policies & Margins)")}</span>
+            <span className="mobile-only-inline">{t('maritime_freight.maritime_settings_page.s1', "سياسات وهوامش الشحن")}</span>
           </span>
         </button>
 
@@ -91,8 +93,8 @@ export function MaritimeSettingsPage() {
         >
           <MailIcon size={16} />
           <span>
-            <span className="desktop-only-inline">خوادم البريد الإلكتروني والمراسلات (Mail & SMTP/IMAP)</span>
-            <span className="mobile-only-inline">خوادم البريد والمراسلات</span>
+            <span className="desktop-only-inline">{t('maritime_freight.maritime_settings_page.s2', "خوادم البريد الإلكتروني والمراسلات (Mail & SMTP/IMAP)")}</span>
+            <span className="mobile-only-inline">{t('maritime_freight.maritime_settings_page.s3', "خوادم البريد والمراسلات")}</span>
           </span>
         </button>
       </div>

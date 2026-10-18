@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import {
   BarChart,
   Bar,
@@ -30,10 +31,11 @@ const CustomTick = ({ x, y, payload }: any) => {
 };
 
 export function ShiftAnalysisChart({ data, height = 300 }: ShiftAnalysisChartProps) {
+  const { t } = useTranslation();
   if (!data || data.length === 0) {
     return (
       <div style={{ height, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>
-        لا توجد بيانات كافية للرسم البياني
+        {t('shared.charts.shift_analysis_chart.s0', "لا توجد بيانات كافية للرسم البياني")}
       </div>
     );
   }
@@ -68,7 +70,7 @@ export function ShiftAnalysisChart({ data, height = 300 }: ShiftAnalysisChartPro
             width={60}
           />
           <Tooltip 
-            formatter={(value: any) => [formatCurrency(value), 'المبيعات']}
+            formatter={(value: any) => [formatCurrency(value), t('shared.charts.shift_analysis_chart.s1', "المبيعات")]}
             labelFormatter={(label) => label.replace('|', ' ')}
             cursor={{ fill: 'transparent' }}
             contentStyle={{ borderRadius: 8, border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}

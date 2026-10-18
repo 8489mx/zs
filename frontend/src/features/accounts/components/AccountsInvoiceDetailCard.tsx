@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { QueryFeedback } from '@/shared/components/query-feedback';
 import { SharedSaleDetailCard, SharedPurchaseDetailCard } from '@/shared/components/invoice-detail-cards';
 import type { Purchase, Sale } from '@/types/domain';
@@ -176,6 +177,7 @@ export function AccountsInvoiceDetailCard({
   sale,
   purchase,
 }: AccountsInvoiceDetailCardProps) {
+  const { t } = useTranslation();
   const normalizedSale = documentType === 'sale' ? normalizeSale(sale) : null;
   const normalizedPurchase = documentType === 'purchase' ? normalizePurchase(purchase) : null;
   const hasSelectedDocument = Boolean(documentType);
@@ -185,18 +187,18 @@ export function AccountsInvoiceDetailCard({
       isLoading={isLoading}
       isError={Boolean(error)}
       error={error}
-      loadingText="جارٍ تحميل تفاصيل الفاتورة..."
-      errorTitle="تعذر تحميل تفاصيل الفاتورة"
+      loadingText={t('accounts.accounts_invoice_detail_card.s0', "جارٍ تحميل تفاصيل الفاتورة...")}
+      errorTitle={t('accounts.accounts_invoice_detail_card.s1', "تعذر تحميل تفاصيل الفاتورة")}
       isEmpty={!hasSelectedDocument || (!normalizedSale && !normalizedPurchase)}
-      emptyTitle="اختر فاتورة من القيود لعرض تفاصيلها"
-      emptyHint="سيظهر هنا محتوى الفاتورة بالأصناف والأسعار."
+      emptyTitle={t('accounts.accounts_invoice_detail_card.s2', "اختر فاتورة من القيود لعرض تفاصيلها")}
+      emptyHint={t('accounts.accounts_invoice_detail_card.s3', "سيظهر هنا محتوى الفاتورة بالأصناف والأسعار.")}
     >
       {documentType === 'sale' ? (
         <SharedSaleDetailCard sale={normalizedSale || undefined} />
       ) : documentType === 'purchase' ? (
         <SharedPurchaseDetailCard purchase={normalizedPurchase || undefined} />
       ) : null}
-      {selectedLabel ? <div className="muted small">المرجع المحدد: {selectedLabel}</div> : null}
+      {selectedLabel ? <div className="muted small">{t('accounts.accounts_invoice_detail_card.s4', "المرجع المحدد:")} {selectedLabel}</div> : null}
     </QueryFeedback>
   );
 }

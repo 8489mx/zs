@@ -18,7 +18,10 @@ i18n
       en: { translation: en },
     },
     lng: activeMeta.code,
-    fallbackLng: 'ar',
+    fallbackLng: {
+      en: [],
+      default: ['ar'],
+    },
     interpolation: {
       escapeValue: false
     },

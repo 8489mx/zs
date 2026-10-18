@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { DataTable } from '@/shared/components/data-table';
 import { formatDate } from '@/lib/format';
 import type { SaasTenantRow, SaasTenantStatus } from '@/features/saas-admin/api/saas-admin.api';
@@ -44,6 +45,7 @@ export function TenantDataTable({
   onRenew,
   onOpenActionHub,
 }: TenantDataTableProps) {
+  const { t } = useTranslation();
   const now = new Date();
 
   const getDaysRemaining = (endDateStr: string | null) => {
@@ -71,7 +73,7 @@ export function TenantDataTable({
       columns={[
         {
           id: 'company',
-          header: 'المنشأة والبيانات',
+          header: t('saas_admin.tenant_data_table.s0', "المنشأة والبيانات"),
           sortable: true,
           sortValue: (row) => row.businessName || row.slug,
           render: (row) => {
@@ -83,13 +85,13 @@ export function TenantDataTable({
                     type="button"
                     onClick={() => onShowDetails(row.id)}
                     className="tenant-name-link"
-                    title="عرض بطاقة تفاصيل المنشأة"
+                    title={t('saas_admin.tenant_data_table.s1', "عرض بطاقة تفاصيل المنشأة")}
                   >
                     {row.businessName || row.slug}
                   </button>
                   {isPlatform && (
                     <span style={{ fontSize: '10px', background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a', padding: '1px 5px', borderRadius: '4px', fontWeight: 800, whiteSpace: 'nowrap' }}>
-                      المنصة
+                      {t('saas_admin.tenant_data_table.s2', "المنصة")}
                     </span>
                   )}
                 </div>
@@ -103,14 +105,14 @@ export function TenantDataTable({
         },
         {
           id: 'owner',
-          header: 'المالك والاتصال',
+          header: t('saas_admin.tenant_data_table.s3', "المالك والاتصال"),
           align: 'center',
           sortable: true,
           sortValue: (row) => row.ownerName,
           render: (row) => (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
               <strong style={{ fontSize: '13px', color: '#0f172a', display: 'block' }}>
-                {row.ownerName || 'المسؤول'}
+                {row.ownerName || t('saas_admin.tenant_data_table.s4', "المسؤول")}
               </strong>
               {row.ownerPhone ? (
                 <span style={{ fontSize: '12px', fontWeight: 700, color: '#475569', direction: 'ltr', display: 'inline-block', marginTop: '1px' }}>
@@ -134,9 +136,9 @@ export function TenantDataTable({
                     color: '#170e5e',
                     fontWeight: 700,
                   }}
-                  title="اسم المستخدم لتسجيل الدخول"
+                  title={t('saas_admin.tenant_data_table.s5', "اسم المستخدم لتسجيل الدخول")}
                 >
-                  <span style={{ color: '#64748b', fontSize: '10px' }}>يوزر:</span>
+                  <span style={{ color: '#64748b', fontSize: '10px' }}>{t('saas_admin.tenant_data_table.s6', "يوزر:")}</span>
                   <code style={{ fontFamily: 'monospace', direction: 'ltr' }}>{row.ownerUsername}</code>
                 </div>
               ) : null}
@@ -145,7 +147,7 @@ export function TenantDataTable({
         },
         {
           id: 'billing',
-          header: 'الباقة',
+          header: t('saas_admin.tenant_data_table.s7', "الباقة"),
           align: 'center',
           render: (row) => {
             const isPlatform = isPlatformTenantRow(row, platformTenantId, currentTenantId);
@@ -153,7 +155,7 @@ export function TenantDataTable({
               return (
                 <div style={{ display: 'flex', justifyContent: 'center' }}>
                   <span className="tenant-plan-badge" style={{ background: '#f5f3ff', color: '#6b21a8', border: '1px solid #ddd6fe', fontWeight: 800, fontSize: '11px' }}>
-                    حساب المؤسس
+                    {t('saas_admin.tenant_data_table.s8', "حساب المؤسس")}
                   </span>
                 </div>
               );
@@ -161,7 +163,7 @@ export function TenantDataTable({
             return (
               <div style={{ display: 'flex', justifyContent: 'center' }}>
                 <span className="tenant-plan-badge">
-                  {row.planName || 'بدون باقة'}
+                  {row.planName || t('saas_admin.tenant_data_table.s9', "بدون باقة")}
                 </span>
               </div>
             );
@@ -169,7 +171,7 @@ export function TenantDataTable({
         },
         {
           id: 'validity',
-          header: 'الصلاحية',
+          header: t('saas_admin.tenant_data_table.s10', "الصلاحية"),
           align: 'center',
           sortable: true,
           sortValue: (row) => row.subscriptionEndDate || row.trialEndsAt || '',
@@ -179,7 +181,7 @@ export function TenantDataTable({
               return (
                 <div style={{ display: 'flex', justifyContent: 'center' }}>
                   <span style={{ fontSize: '12px', fontWeight: 800, color: '#059669' }}>
-                    دائم ∞
+                    {t('saas_admin.tenant_data_table.s11', "دائم ∞")}
                   </span>
                 </div>
               );
@@ -195,7 +197,7 @@ export function TenantDataTable({
                   </span>
                   {days != null && (
                     <span className={`tenant-trial-badge ${days > 5 ? 'healthy' : days > 0 ? 'warning' : 'danger'}`}>
-                      {days > 0 ? `باقي ${days} يوم` : 'منتهية'}
+                      {days > 0 ? `باقي ${days} يوم` : t('saas_admin.tenant_data_table.s12', "منتهية")}
                     </span>
                   )}
                 </div>
@@ -215,15 +217,15 @@ export function TenantDataTable({
                 </span>
                 {expired ? (
                   <span className="tenant-status-pill expired" style={{ fontSize: '10px', padding: '1px 5px' }}>
-                    منتهي الصلاحية
+                    {t('saas_admin.tenant_data_table.s13', "منتهي الصلاحية")}
                   </span>
                 ) : expiring ? (
                   <span className="tenant-status-pill expiring-soon" style={{ fontSize: '10px', padding: '1px 5px' }}>
-                    ينتهي خلال {days} أيام
+                    {t('saas_admin.tenant_data_table.s14', "ينتهي خلال")} {days} {t('saas_admin.tenant_data_table.s15', "أيام")}
                   </span>
                 ) : days !== null && days > 7 ? (
                   <span className="muted small" style={{ color: '#15803d', fontSize: '10.5px' }}>
-                    ● متبقي {days} يوم
+                    {t('saas_admin.tenant_data_table.s16', "● متبقي")} {days} {t('saas_admin.tenant_data_table.s17', "يوم")}
                   </span>
                 ) : null}
               </div>
@@ -232,7 +234,7 @@ export function TenantDataTable({
         },
         {
           id: 'status',
-          header: 'الحالة',
+          header: t('saas_admin.tenant_data_table.s18', "الحالة"),
           align: 'center',
           sortable: true,
           sortValue: (row) => row.status,
@@ -242,7 +244,7 @@ export function TenantDataTable({
               return (
                 <div style={{ display: 'flex', justifyContent: 'center' }}>
                   <span className="tenant-status-pill active" style={{ background: '#f5f3ff', border: '1px solid #c4b5fd', color: '#6d28d9', fontWeight: 800 }}>
-                    الرئيسية
+                    {t('saas_admin.tenant_data_table.s19', "الرئيسية")}
                   </span>
                 </div>
               );
@@ -258,7 +260,7 @@ export function TenantDataTable({
         },
         {
           id: 'actions',
-          header: 'الإجراءات',
+          header: t('saas_admin.tenant_data_table.s20', "الإجراءات"),
           align: 'center',
           render: (row) => (
             <div style={{ display: 'flex', justifyContent: 'center' }}>

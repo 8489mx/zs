@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
 import { maritimeApi, MaritimeJob } from '../api/maritime-freight.api';
@@ -6,6 +7,7 @@ import { StandardDialog, StandardDialogFooter } from '@/shared/components/Standa
 import { Field } from '@/shared/ui/field';
 
 export function InlandTruckingTab() {
+  const { t: __t } = useTranslation();
   const [trips, setTrips] = useState<any[]>([]);
   const [jobs, setJobs] = useState<MaritimeJob[]>([]);
   const [loading, setLoading] = useState(true);
@@ -120,10 +122,10 @@ export function InlandTruckingTab() {
         <div>
           <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#170e5e', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <AppIcons.Truck size={20} />
-            <span>إدارة النقل البري وترحيل الحاويات (Inland Haulage & Container Dispatch)</span>
+            <span>{__t('maritime_freight.inland_trucking_tab.s0', "إدارة النقل البري وترحيل الحاويات (Inland Haulage & Container Dispatch)")}</span>
           </div>
           <div style={{ fontSize: '0.8125rem', color: '#64748b', marginTop: '4px' }}>
-            متابعة ترحيل الحاويات من الموانئ إلى مستودعات ومصانع المستوردين وتتبع السائقين ومقاولات النقل وإرجاع الحاويات الفارغة
+            {__t('maritime_freight.inland_trucking_tab.s1', "متابعة ترحيل الحاويات من الموانئ إلى مستودعات ومصانع المستوردين وتتبع السائقين ومقاولات النقل وإرجاع الحاويات الفارغة")}
           </div>
         </div>
 
@@ -146,7 +148,7 @@ export function InlandTruckingTab() {
           }}
         >
           <AppIcons.Plus size={16} />
-          <span>إصدار أمر ترحيل حاوية</span>
+          <span>{__t('maritime_freight.inland_trucking_tab.s2', "إصدار أمر ترحيل حاوية")}</span>
         </button>
       </div>
 
@@ -154,9 +156,9 @@ export function InlandTruckingTab() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '12px' }}>
         <div style={{ background: '#ffffff', padding: '16px 20px', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: '88px', boxSizing: 'border-box' }}>
           <div>
-            <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>إجمالي رحلات النقل البري</div>
+            <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>{__t('maritime_freight.inland_trucking_tab.s3', "إجمالي رحلات النقل البري")}</div>
             <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#0f172a', marginTop: '4px' }}>
-              {trips.length} <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>رحلة</span>
+              {trips.length} <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>{__t('maritime_freight.inland_trucking_tab.s4', "رحلة")}</span>
             </div>
           </div>
           <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#eff6ff', border: '1px solid #dbeafe', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#2563eb', flexShrink: 0 }}>
@@ -166,9 +168,9 @@ export function InlandTruckingTab() {
 
         <div style={{ background: '#ffffff', padding: '16px 20px', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: '88px', boxSizing: 'border-box' }}>
           <div>
-            <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>رحلات جارية وقيد النقل</div>
+            <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>{__t('maritime_freight.inland_trucking_tab.s5', "رحلات جارية وقيد النقل")}</div>
             <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#0f172a', marginTop: '4px' }}>
-              {trips.filter((t) => t.trip_status === 'in_transit' || t.trip_status === 'loading' || t.trip_status === 'assigned').length} <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>رحلة</span>
+              {trips.filter((t) => t.trip_status === 'in_transit' || t.trip_status === 'loading' || t.trip_status === 'assigned').length} <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>{__t('maritime_freight.inland_trucking_tab.s6', "رحلة")}</span>
             </div>
           </div>
           <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#fffbeb', border: '1px solid #fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#d97706', flexShrink: 0 }}>
@@ -178,9 +180,9 @@ export function InlandTruckingTab() {
 
         <div style={{ background: '#ffffff', padding: '16px 20px', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: '88px', boxSizing: 'border-box' }}>
           <div>
-            <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>تم التسليم للوجهة</div>
+            <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>{__t('maritime_freight.inland_trucking_tab.s7', "تم التسليم للوجهة")}</div>
             <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#0f172a', marginTop: '4px' }}>
-              {trips.filter((t) => t.trip_status === 'delivered').length} <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>شحنة</span>
+              {trips.filter((t) => t.trip_status === 'delivered').length} <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>{__t('maritime_freight.inland_trucking_tab.s8', "شحنة")}</span>
             </div>
           </div>
           <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#f0fdf4', border: '1px solid #dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#16a34a', flexShrink: 0 }}>
@@ -190,9 +192,9 @@ export function InlandTruckingTab() {
 
         <div style={{ background: '#ffffff', padding: '16px 20px', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: '88px', boxSizing: 'border-box' }}>
           <div>
-            <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>تم رد الحاويات الفارغة</div>
+            <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>{__t('maritime_freight.inland_trucking_tab.s9', "تم رد الحاويات الفارغة")}</div>
             <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#0f172a', marginTop: '4px' }}>
-              {trips.filter((t) => t.trip_status === 'empty_returned').length} <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>حاوية</span>
+              {trips.filter((t) => t.trip_status === 'empty_returned').length} <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>{__t('maritime_freight.inland_trucking_tab.s10', "حاوية")}</span>
             </div>
           </div>
           <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#faf5ff', border: '1px solid #f3e8ff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#7c3aed', flexShrink: 0 }}>
@@ -203,7 +205,7 @@ export function InlandTruckingTab() {
 
       {/* 3. Filters */}
       <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 14px', display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
-        <div style={{ fontSize: '0.8125rem', fontWeight: 700, color: '#475569' }}>تصفية حسب حالة الرحلة:</div>
+        <div style={{ fontSize: '0.8125rem', fontWeight: 700, color: '#475569' }}>{__t('maritime_freight.inland_trucking_tab.s11', "تصفية حسب حالة الرحلة:")}</div>
         {['all', 'assigned', 'loading', 'in_transit', 'delivered', 'empty_returned'].map((st) => (
           <button
             key={st}
@@ -221,7 +223,7 @@ export function InlandTruckingTab() {
               transition: 'none',
             }}
           >
-            {st === 'all' ? 'الكل' : st === 'assigned' ? 'تم التعيين' : st === 'loading' ? 'جاري التحميل' : st === 'in_transit' ? 'في الطريق' : st === 'delivered' ? 'تم التسليم' : 'تم رد الفارغ'}
+            {st === 'all' ? __t('maritime_freight.inland_trucking_tab.s12', "الكل") : st === 'assigned' ? __t('maritime_freight.inland_trucking_tab.s13', "تم التعيين") : st === 'loading' ? __t('maritime_freight.inland_trucking_tab.s14', "جاري التحميل") : st === 'in_transit' ? __t('maritime_freight.inland_trucking_tab.s15', "في الطريق") : st === 'delivered' ? __t('maritime_freight.inland_trucking_tab.s16', "تم التسليم") : __t('maritime_freight.inland_trucking_tab.s17', "تم رد الفارغ")}
           </button>
         ))}
       </div>
@@ -231,27 +233,27 @@ export function InlandTruckingTab() {
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8125rem', textAlign: 'right' }}>
           <thead>
             <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-              <th style={{ padding: '10px 14px', fontWeight: 700, color: '#475569' }}>رقم الرحلة</th>
-              <th style={{ padding: '10px 14px', fontWeight: 700, color: '#475569' }}>رقم الحاوية</th>
-              <th style={{ padding: '10px 14px', fontWeight: 700, color: '#475569' }}>شركة النقل / السائق</th>
-              <th style={{ padding: '10px 14px', fontWeight: 700, color: '#475569' }}>لوحة الشاحنة</th>
-              <th style={{ padding: '10px 14px', fontWeight: 700, color: '#475569' }}>محطة القيام ➔ جهة التسليم</th>
-              <th style={{ padding: '10px 14px', fontWeight: 700, color: '#475569' }}>التكلفة / الإيراد</th>
-              <th style={{ padding: '10px 14px', fontWeight: 700, color: '#475569' }}>الحالة</th>
-              <th style={{ padding: '10px 14px', fontWeight: 700, color: '#475569', textAlign: 'center' }}>الإجراءات</th>
+              <th style={{ padding: '10px 14px', fontWeight: 700, color: '#475569' }}>{__t('maritime_freight.inland_trucking_tab.s18', "رقم الرحلة")}</th>
+              <th style={{ padding: '10px 14px', fontWeight: 700, color: '#475569' }}>{__t('maritime_freight.inland_trucking_tab.s19', "رقم الحاوية")}</th>
+              <th style={{ padding: '10px 14px', fontWeight: 700, color: '#475569' }}>{__t('maritime_freight.inland_trucking_tab.s20', "شركة النقل / السائق")}</th>
+              <th style={{ padding: '10px 14px', fontWeight: 700, color: '#475569' }}>{__t('maritime_freight.inland_trucking_tab.s21', "لوحة الشاحنة")}</th>
+              <th style={{ padding: '10px 14px', fontWeight: 700, color: '#475569' }}>{__t('maritime_freight.inland_trucking_tab.s22', "محطة القيام ➔ جهة التسليم")}</th>
+              <th style={{ padding: '10px 14px', fontWeight: 700, color: '#475569' }}>{__t('maritime_freight.inland_trucking_tab.s23', "التكلفة / الإيراد")}</th>
+              <th style={{ padding: '10px 14px', fontWeight: 700, color: '#475569' }}>{__t('maritime_freight.inland_trucking_tab.s24', "الحالة")}</th>
+              <th style={{ padding: '10px 14px', fontWeight: 700, color: '#475569', textAlign: 'center' }}>{__t('maritime_freight.inland_trucking_tab.s25', "الإجراءات")}</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
                 <td colSpan={8} style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
-                  جاري تحميل رحلات النقل البري...
+                  {__t('maritime_freight.inland_trucking_tab.s26', "جاري تحميل رحلات النقل البري...")}
                 </td>
               </tr>
             ) : filteredTrips.length === 0 ? (
               <tr>
                 <td colSpan={8} style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
-                  لا توجد رحلات نقل بري مسجلة
+                  {__t('maritime_freight.inland_trucking_tab.s27', "لا توجد رحلات نقل بري مسجلة")}
                 </td>
               </tr>
             ) : (
@@ -271,12 +273,12 @@ export function InlandTruckingTab() {
                     {trip.truck_plate}
                   </td>
                   <td style={{ padding: '10px 14px', fontSize: '0.75rem', color: '#475569' }}>
-                    <div><strong>من:</strong> {trip.origin_port_terminal}</div>
-                    <div><strong>إلى:</strong> {trip.delivery_destination}</div>
+                    <div><strong>{__t('maritime_freight.inland_trucking_tab.s28', "من:")}</strong> {trip.origin_port_terminal}</div>
+                    <div><strong>{__t('maritime_freight.inland_trucking_tab.s29', "إلى:")}</strong> {trip.delivery_destination}</div>
                   </td>
                   <td style={{ padding: '10px 14px', fontFamily: 'monospace' }}>
-                    <div style={{ color: '#15803d', fontWeight: 700 }}>+{Number(trip.sell_amount).toLocaleString()} ج.م</div>
-                    <div style={{ color: '#b91c1c', fontSize: '0.72rem' }}>-{Number(trip.cost_amount).toLocaleString()} ج.م</div>
+                    <div style={{ color: '#15803d', fontWeight: 700 }}>+{Number(trip.sell_amount).toLocaleString()} {__t('maritime_freight.inland_trucking_tab.s30', "ج.م")}</div>
+                    <div style={{ color: '#b91c1c', fontSize: '0.72rem' }}>-{Number(trip.cost_amount).toLocaleString()} {__t('maritime_freight.inland_trucking_tab.s31', "ج.م")}</div>
                   </td>
                   <td style={{ padding: '10px 14px' }}>
                     <span
@@ -300,14 +302,14 @@ export function InlandTruckingTab() {
                       }}
                     >
                       {trip.trip_status === 'assigned'
-                        ? 'تم التعيين'
+                        ? __t('maritime_freight.inland_trucking_tab.s32', "تم التعيين")
                         : trip.trip_status === 'loading'
-                        ? 'جاري التحميل'
+                        ? __t('maritime_freight.inland_trucking_tab.s33', "جاري التحميل")
                         : trip.trip_status === 'in_transit'
-                        ? 'في الطريق'
+                        ? __t('maritime_freight.inland_trucking_tab.s34', "في الطريق")
                         : trip.trip_status === 'delivered'
-                        ? 'تم تسليم المصنع'
-                        : 'تم رد الحاوية فارغة'}
+                        ? __t('maritime_freight.inland_trucking_tab.s35', "تم تسليم المصنع")
+                        : __t('maritime_freight.inland_trucking_tab.s36', "تم رد الحاوية فارغة")}
                     </span>
                   </td>
                   <td style={{ padding: '10px 14px', textAlign: 'center' }}>
@@ -318,7 +320,7 @@ export function InlandTruckingTab() {
                           onClick={() => handleUpdateStatus(trip.id, 'in_transit')}
                           style={{ padding: '3px 8px', background: '#b45309', color: '#ffffff', border: 'none', borderRadius: '4px', fontSize: '0.72rem', cursor: 'pointer' }}
                         >
-                          خروج من الميناء
+                          {__t('maritime_freight.inland_trucking_tab.s37', "خروج من الميناء")}
                         </button>
                       )}
                       {trip.trip_status === 'in_transit' && (
@@ -327,7 +329,7 @@ export function InlandTruckingTab() {
                           onClick={() => handleUpdateStatus(trip.id, 'delivered')}
                           style={{ padding: '3px 8px', background: '#166534', color: '#ffffff', border: 'none', borderRadius: '4px', fontSize: '0.72rem', cursor: 'pointer' }}
                         >
-                          تم التسليم
+                          {__t('maritime_freight.inland_trucking_tab.s38', "تم التسليم")}
                         </button>
                       )}
                       {trip.trip_status === 'delivered' && (
@@ -336,7 +338,7 @@ export function InlandTruckingTab() {
                           onClick={() => handleUpdateStatus(trip.id, 'empty_returned')}
                           style={{ padding: '3px 8px', background: '#170e5e', color: '#ffffff', border: 'none', borderRadius: '4px', fontSize: '0.72rem', cursor: 'pointer' }}
                         >
-                          رد الفارغ للساحة
+                          {__t('maritime_freight.inland_trucking_tab.s39', "رد الفارغ للساحة")}
                         </button>
                       )}
                     </div>
@@ -352,12 +354,12 @@ export function InlandTruckingTab() {
       <StandardDialog
         open={showCreateModal}
         onClose={() => setShowCreateModal(false)}
-        title="إصدار أمر نقل وترحيل حاوية من الميناء"
-        subtitle="تعيين مقاول النقل البري والسائق والمقطورة وتوجيه الشحنة لمقر المستورد"
+        title={__t('maritime_freight.inland_trucking_tab.s40', "إصدار أمر نقل وترحيل حاوية من الميناء")}
+        subtitle={__t('maritime_freight.inland_trucking_tab.s41', "تعيين مقاول النقل البري والسائق والمقطورة وتوجيه الشحنة لمقر المستورد")}
         width="600px"
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          <Field label="أمر تشغيل الشحنة (Job)">
+          <Field label={__t('maritime_freight.inland_trucking_tab.s42', "أمر تشغيل الشحنة (Job)")}>
             <select
               value={formData.jobId}
               onChange={(e) => {
@@ -371,7 +373,7 @@ export function InlandTruckingTab() {
               }}
               style={{ width: '100%', height: '36px', padding: '0 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
             >
-              <option value="">اختر الشحنة...</option>
+              <option value="">{__t('maritime_freight.inland_trucking_tab.s43', "اختر الشحنة...")}</option>
               {jobs.map((j) => (
                 <option key={j.id} value={j.id}>{j.job_number} - {j.customer_name} ({j.shipping_line_name})</option>
               ))}
@@ -379,7 +381,7 @@ export function InlandTruckingTab() {
           </Field>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-            <Field label="رقم الحاوية">
+            <Field label={__t('maritime_freight.inland_trucking_tab.s44', "رقم الحاوية")}>
               <input
                 type="text"
                 placeholder="MSCU1234567"
@@ -389,10 +391,10 @@ export function InlandTruckingTab() {
               />
             </Field>
 
-            <Field label="شركة النقل البري / المقاول">
+            <Field label={__t('maritime_freight.inland_trucking_tab.s45', "شركة النقل البري / المقاول")}>
               <input
                 type="text"
-                placeholder="شركة الوفاق للنقل الثقيل..."
+                placeholder={__t('maritime_freight.inland_trucking_tab.s46', "شركة الوفاق للنقل الثقيل...")}
                 value={formData.truckingCompany}
                 onChange={(e) => setFormData({ ...formData, truckingCompany: e.target.value })}
                 style={{ width: '100%', height: '36px', padding: '0 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
@@ -401,17 +403,17 @@ export function InlandTruckingTab() {
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
-            <Field label="اسم السائق">
+            <Field label={__t('maritime_freight.inland_trucking_tab.s47', "اسم السائق")}>
               <input
                 type="text"
-                placeholder="السائق المسؤول..."
+                placeholder={__t('maritime_freight.inland_trucking_tab.s48', "السائق المسؤول...")}
                 value={formData.driverName}
                 onChange={(e) => setFormData({ ...formData, driverName: e.target.value })}
                 style={{ width: '100%', height: '36px', padding: '0 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
               />
             </Field>
 
-            <Field label="هاتف السائق">
+            <Field label={__t('maritime_freight.inland_trucking_tab.s49', "هاتف السائق")}>
               <input
                 type="text"
                 placeholder="010XXXXXXXX"
@@ -421,10 +423,10 @@ export function InlandTruckingTab() {
               />
             </Field>
 
-            <Field label="رقم لوحة الشاحنة">
+            <Field label={__t('maritime_freight.inland_trucking_tab.s50', "رقم لوحة الشاحنة")}>
               <input
                 type="text"
-                placeholder="أ ب ج 123"
+                placeholder={__t('maritime_freight.inland_trucking_tab.s51', "أ ب ج 123")}
                 value={formData.truckPlate}
                 onChange={(e) => setFormData({ ...formData, truckPlate: e.target.value })}
                 style={{ width: '100%', height: '36px', padding: '0 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
@@ -432,7 +434,7 @@ export function InlandTruckingTab() {
             </Field>
           </div>
 
-          <Field label="محطة الميناء (مكان التحميل)">
+          <Field label={__t('maritime_freight.inland_trucking_tab.s52', "محطة الميناء (مكان التحميل)")}>
             <input
               type="text"
               value={formData.originPortTerminal}
@@ -441,10 +443,10 @@ export function InlandTruckingTab() {
             />
           </Field>
 
-          <Field label="عنوان وموقع التسليم (المصنع / المستودع)">
+          <Field label={__t('maritime_freight.inland_trucking_tab.s53', "عنوان وموقع التسليم (المصنع / المستودع)")}>
             <input
               type="text"
-              placeholder="المنطقة الصناعية - العاشر من رمضان..."
+              placeholder={__t('maritime_freight.inland_trucking_tab.s54', "المنطقة الصناعية - العاشر من رمضان...")}
               value={formData.deliveryDestination}
               onChange={(e) => setFormData({ ...formData, deliveryDestination: e.target.value })}
               style={{ width: '100%', height: '36px', padding: '0 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
@@ -452,7 +454,7 @@ export function InlandTruckingTab() {
           </Field>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-            <Field label="تكلفة النقل (للسائق) ج.م">
+            <Field label={__t('maritime_freight.inland_trucking_tab.s55', "تكلفة النقل (للسائق) ج.م")}>
               <input
                 type="number"
                 placeholder="0"
@@ -462,7 +464,7 @@ export function InlandTruckingTab() {
               />
             </Field>
 
-            <Field label="سعر البيع (للعميل) ج.م">
+            <Field label={__t('maritime_freight.inland_trucking_tab.s56', "سعر البيع (للعميل) ج.م")}>
               <input
                 type="number"
                 placeholder="0"
@@ -480,7 +482,7 @@ export function InlandTruckingTab() {
             onClick={() => setShowCreateModal(false)}
             style={{ padding: '8px 16px', background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '6px', cursor: 'pointer', fontWeight: 600 }}
           >
-            إلغاء
+            {__t('maritime_freight.inland_trucking_tab.s57', "إلغاء")}
           </button>
           <button
             type="button"
@@ -488,7 +490,7 @@ export function InlandTruckingTab() {
             disabled={isSubmitting}
             style={{ padding: '8px 20px', background: '#170e5e', color: '#ffffff', border: 'none', borderRadius: '6px', cursor: isSubmitting ? 'not-allowed' : 'pointer', fontWeight: 700 }}
           >
-            {isSubmitting ? 'جاري الإصدار...' : 'إصدار أمر النقل'}
+            {isSubmitting ? __t('maritime_freight.inland_trucking_tab.s58', "جاري الإصدار...") : __t('maritime_freight.inland_trucking_tab.s59', "إصدار أمر النقل")}
           </button>
         </StandardDialogFooter>
       </StandardDialog>

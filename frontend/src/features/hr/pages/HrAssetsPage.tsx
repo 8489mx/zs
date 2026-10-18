@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { XIcon } from '@/shared/components/icons/AppIcons';
 import { getGlobalCurrencySymbol } from '@/lib/currencies';
 import { useMemo, useState } from 'react';
@@ -37,6 +38,7 @@ import {
 } from '@/features/hr/pages/assets/hr-assets.helpers';
 
 export function HrAssetsPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const mutations = useHrMutations();
 
@@ -160,17 +162,17 @@ export function HrAssetsPage() {
     if (isCashCustody(row)) {
       return (
         <div className="compact-actions">
-          <Button type="button" variant="secondary" onClick={() => navigate(`/hr/employees/${row.employeeId}`)}>ملف الموظف</Button>
-          {status === 'assigned' ? <Button type="button" variant="secondary" onClick={() => { setSettlementId(String(row.id)); setSettlementDraft({ spentAmount: '', returnedAmount: '', notes: '' }); setSettlementError(''); }}>تسوية</Button> : null}
+          <Button type="button" variant="secondary" onClick={() => navigate(`/hr/employees/${row.employeeId}`)}>{t('hr.hr_assets_page.s0', "ملف الموظف")}</Button>
+          {status === 'assigned' ? <Button type="button" variant="secondary" onClick={() => { setSettlementId(String(row.id)); setSettlementDraft({ spentAmount: '', returnedAmount: '', notes: '' }); setSettlementError(''); }}>{t('hr.hr_assets_page.s1', "تسوية")}</Button> : null}
         </div>
       );
     }
     return (
       <div className="compact-actions">
-        <Button type="button" variant="secondary" onClick={() => navigate(`/hr/employees/${row.employeeId}`)}>ملف الموظف</Button>
-        {status === 'assigned' ? <Button type="button" variant="secondary" onClick={() => mutations.returnEmployeeAsset.mutate({ id: String(row.id), payload: { notes: row.notes || undefined } })}>استرجاع</Button> : null}
-        {status === 'assigned' ? <Button type="button" variant="secondary" onClick={() => mutations.markEmployeeAssetDamaged.mutate({ id: String(row.id), payload: { notes: row.notes || undefined } })}>تالفة</Button> : null}
-        {status === 'assigned' ? <Button type="button" variant="secondary" onClick={() => mutations.markEmployeeAssetLost.mutate({ id: String(row.id), payload: { notes: row.notes || undefined } })}>مفقودة</Button> : null}
+        <Button type="button" variant="secondary" onClick={() => navigate(`/hr/employees/${row.employeeId}`)}>{t('hr.hr_assets_page.s2', "ملف الموظف")}</Button>
+        {status === 'assigned' ? <Button type="button" variant="secondary" onClick={() => mutations.returnEmployeeAsset.mutate({ id: String(row.id), payload: { notes: row.notes || undefined } })}>{t('hr.hr_assets_page.s3', "استرجاع")}</Button> : null}
+        {status === 'assigned' ? <Button type="button" variant="secondary" onClick={() => mutations.markEmployeeAssetDamaged.mutate({ id: String(row.id), payload: { notes: row.notes || undefined } })}>{t('hr.hr_assets_page.s4', "تالفة")}</Button> : null}
+        {status === 'assigned' ? <Button type="button" variant="secondary" onClick={() => mutations.markEmployeeAssetLost.mutate({ id: String(row.id), payload: { notes: row.notes || undefined } })}>{t('hr.hr_assets_page.s5', "مفقودة")}</Button> : null}
       </div>
     );
   };
@@ -179,18 +181,18 @@ export function HrAssetsPage() {
     <div className="page-stack page-shell" dir="rtl">
       <main className="document-prototype-column" style={{ paddingBottom: '20px' }}>
         <PageHeader
-          title="العُهد والأصول"
-          description="إدارة ومتابعة العُهد العينية والنقدية المسلّمة للموظفين وتتبع الاسترجاع والتسوية."
+          title={t('hr.hr_assets_page.s6', "العُهد والأصول")}
+          description={t('hr.hr_assets_page.s7', "إدارة ومتابعة العُهد العينية والنقدية المسلّمة للموظفين وتتبع الاسترجاع والتسوية.")}
           actions={
             <div className="actions compact-actions">
               <div style={{ display: 'flex', gap: '4px', background: '#f1f5f9', padding: '3px', borderRadius: '8px' }}>
-                <Button type="button" variant={activeTab === 'physical' ? 'primary' : 'secondary'} onClick={() => switchTab('physical')} style={{ padding: '4px 12px', fontSize: '0.825rem' }}>عُهد عينية</Button>
-                <Button type="button" variant={activeTab === 'cash' ? 'primary' : 'secondary'} onClick={() => switchTab('cash')} style={{ padding: '4px 12px', fontSize: '0.825rem' }}>عُهد نقدية</Button>
+                <Button type="button" variant={activeTab === 'physical' ? 'primary' : 'secondary'} onClick={() => switchTab('physical')} style={{ padding: '4px 12px', fontSize: '0.825rem' }}>{t('hr.hr_assets_page.s8', "عُهد عينية")}</Button>
+                <Button type="button" variant={activeTab === 'cash' ? 'primary' : 'secondary'} onClick={() => switchTab('cash')} style={{ padding: '4px 12px', fontSize: '0.825rem' }}>{t('hr.hr_assets_page.s9', "عُهد نقدية")}</Button>
               </div>
               <Button type="button" onClick={() => setShowCreate((current) => !current)}>
-                {showCreate ? 'إغلاق النموذج' : activeTab === 'cash' ? 'تسليم عهدة نقدية' : 'تسليم عهدة عينية'}
+                {showCreate ? t('hr.hr_assets_page.s10', "إغلاق النموذج") : activeTab === 'cash' ? t('hr.hr_assets_page.s11', "تسليم عهدة نقدية") : t('hr.hr_assets_page.s12', "تسليم عهدة عينية")}
               </Button>
-              <Button variant="secondary" onClick={() => navigate('/hr/employees')}>رجوع للموظفين</Button>
+              <Button variant="secondary" onClick={() => navigate('/hr/employees')}>{t('hr.hr_assets_page.s13', "رجوع للموظفين")}</Button>
             </div>
           }
         />
@@ -200,20 +202,20 @@ export function HrAssetsPage() {
             <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '16px', marginBottom: '16px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px' }}>
                 <div>
-                  <strong style={{ fontSize: '1rem', fontWeight: 800, color: '#0f172a' }}>{activeTab === 'cash' ? 'تسليم عهدة نقدية' : 'تسليم عهدة عينية'}</strong>
-                  <small style={{ fontSize: '0.8rem', color: '#64748b', display: 'block' }}>{activeTab === 'cash' ? 'سجّل المبلغ والغرض. التسوية تتم لاحقًا من قائمة العهد النقدية.' : 'سجّل العهدة على الموظف الصحيح لمتابعتها في ملفه.'}</small>
+                  <strong style={{ fontSize: '1rem', fontWeight: 800, color: '#0f172a' }}>{activeTab === 'cash' ? t('hr.hr_assets_page.s14', "تسليم عهدة نقدية") : t('hr.hr_assets_page.s15', "تسليم عهدة عينية")}</strong>
+                  <small style={{ fontSize: '0.8rem', color: '#64748b', display: 'block' }}>{activeTab === 'cash' ? t('hr.hr_assets_page.s16', "سجّل المبلغ والغرض. التسوية تتم لاحقًا من قائمة العهد النقدية.") : t('hr.hr_assets_page.s17', "سجّل العهدة على الموظف الصحيح لمتابعتها في ملفه.")}</small>
                 </div>
                 <Button type="button" variant="secondary" onClick={() => setShowCreate(false)} style={{ padding: '2px 8px', fontSize: '0.8rem' }}><XIcon size={15} /></Button>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px', marginBottom: '12px' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>الموظف <span style={{ color: '#dc2626' }}>*</span></label>
+                  <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>{t('hr.hr_assets_page.s18', "الموظف")} <span style={{ color: '#dc2626' }}>*</span></label>
                   <CustomSelect
                     value={form.employeeId}
                     onChange={(val) => setForm((prev) => ({ ...prev, employeeId: val }))}
                     options={[
-                      { value: '', label: 'اختر الموظف...' },
+                      { value: '', label: t('hr.hr_assets_page.s19', "اختر الموظف...") },
                       ...employees.map((employee) => ({ value: employee.id, label: employeeDisplay(employee) })),
                     ]}
                   />
@@ -222,18 +224,18 @@ export function HrAssetsPage() {
 
                 {activeTab === 'cash' ? (
                   <div>
-                    <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>مبلغ العهدة ({getGlobalCurrencySymbol()}) <span style={{ color: '#dc2626' }}>*</span></label>
-                    <input inputMode="decimal" value={form.cashAmount} onChange={(event) => setForm((prev) => ({ ...prev, cashAmount: event.target.value }))} placeholder="مثال: 5000" style={{ width: '100%', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '6px 10px', fontSize: '0.85rem', boxSizing: 'border-box' }} />
+                    <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>{t('hr.hr_assets_page.s20', "مبلغ العهدة (")}{getGlobalCurrencySymbol()}) <span style={{ color: '#dc2626' }}>*</span></label>
+                    <input inputMode="decimal" value={form.cashAmount} onChange={(event) => setForm((prev) => ({ ...prev, cashAmount: event.target.value }))} placeholder={t('hr.hr_assets_page.s21', "مثال: 5000")} style={{ width: '100%', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '6px 10px', fontSize: '0.85rem', boxSizing: 'border-box' }} />
                     {errors.cashAmount ? <small style={{ color: '#dc2626', fontSize: '0.75rem', marginTop: '2px', display: 'block' }}>{errors.cashAmount}</small> : null}
                   </div>
                 ) : (
                   <div>
-                    <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>نوع العهدة <span style={{ color: '#dc2626' }}>*</span></label>
+                    <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>{t('hr.hr_assets_page.s22', "نوع العهدة")} <span style={{ color: '#dc2626' }}>*</span></label>
                     <CustomSelect
                       value={form.assetType}
                       onChange={(val) => setForm((prev) => ({ ...prev, assetType: val }))}
                       options={[
-                        { value: '', label: 'اختر النوع...' },
+                        { value: '', label: t('hr.hr_assets_page.s23', "اختر النوع...") },
                         ...assetTypeOptions.map((opt) => ({ value: opt, label: opt })),
                       ]}
                     />
@@ -243,34 +245,34 @@ export function HrAssetsPage() {
 
 
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>{activeTab === 'cash' ? 'الغرض / البيان *' : 'اسم العهدة / الأصل *'}</label>
-                  <input value={form.assetName} onChange={(event) => setForm((prev) => ({ ...prev, assetName: event.target.value }))} placeholder={activeTab === 'cash' ? 'مثال: شراء مستلزمات للنشاط' : 'اسم العهدة'} style={{ width: '100%', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '6px 10px', fontSize: '0.85rem', boxSizing: 'border-box' }} />
+                  <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>{activeTab === 'cash' ? t('hr.hr_assets_page.s24', "الغرض / البيان *") : t('hr.hr_assets_page.s25', "اسم العهدة / الأصل *")}</label>
+                  <input value={form.assetName} onChange={(event) => setForm((prev) => ({ ...prev, assetName: event.target.value }))} placeholder={activeTab === 'cash' ? t('hr.hr_assets_page.s26', "مثال: شراء مستلزمات للنشاط") : t('hr.hr_assets_page.s27', "اسم العهدة")} style={{ width: '100%', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '6px 10px', fontSize: '0.85rem', boxSizing: 'border-box' }} />
                   {errors.assetName ? <small style={{ color: '#dc2626', fontSize: '0.75rem', marginTop: '2px', display: 'block' }}>{errors.assetName}</small> : null}
                 </div>
 
                 {activeTab === 'physical' ? (
                   <div>
-                    <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>الكود / السيريال</label>
-                    <input value={form.assetCode} onChange={(event) => setForm((prev) => ({ ...prev, assetCode: event.target.value, serialNo: event.target.value }))} placeholder="اختياري" style={{ width: '100%', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '6px 10px', fontSize: '0.85rem', boxSizing: 'border-box' }} />
+                    <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>{t('hr.hr_assets_page.s28', "الكود / السيريال")}</label>
+                    <input value={form.assetCode} onChange={(event) => setForm((prev) => ({ ...prev, assetCode: event.target.value, serialNo: event.target.value }))} placeholder={t('hr.hr_assets_page.s29', "اختياري")} style={{ width: '100%', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '6px 10px', fontSize: '0.85rem', boxSizing: 'border-box' }} />
                   </div>
                 ) : null}
 
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>تاريخ التسليم</label>
+                  <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>{t('hr.hr_assets_page.s30', "تاريخ التسليم")}</label>
                   <input type="date" value={form.assignedAt} onChange={(event) => setForm((prev) => ({ ...prev, assignedAt: event.target.value }))} style={{ width: '100%', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '6px 10px', fontSize: '0.85rem', boxSizing: 'border-box' }} />
                 </div>
 
                 <div style={{ gridColumn: 'span 2' }}>
-                  <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>ملاحظات</label>
-                  <input value={form.notes} onChange={(event) => setForm((prev) => ({ ...prev, notes: event.target.value }))} placeholder="أي ملاحظات إضافية..." style={{ width: '100%', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '6px 10px', fontSize: '0.85rem', boxSizing: 'border-box' }} />
+                  <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>{t('hr.hr_assets_page.s31', "ملاحظات")}</label>
+                  <input value={form.notes} onChange={(event) => setForm((prev) => ({ ...prev, notes: event.target.value }))} placeholder={t('hr.hr_assets_page.s32', "أي ملاحظات إضافية...")} style={{ width: '100%', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '6px 10px', fontSize: '0.85rem', boxSizing: 'border-box' }} />
                 </div>
               </div>
 
               <div className="actions compact-actions" style={{ justifyContent: 'flex-start', gap: '8px' }}>
                 <Button type="button" onClick={submitAsset} disabled={mutations.saveEmployeeAsset.isPending} style={{ padding: '6px 14px', fontSize: '0.85rem' }}>
-                  {mutations.saveEmployeeAsset.isPending ? 'جاري التسجيل...' : activeTab === 'cash' ? 'تسليم عهدة نقدية' : 'تسليم عهدة عينية'}
+                  {mutations.saveEmployeeAsset.isPending ? t('hr.hr_assets_page.s33', "جاري التسجيل...") : activeTab === 'cash' ? t('hr.hr_assets_page.s34', "تسليم عهدة نقدية") : t('hr.hr_assets_page.s35', "تسليم عهدة عينية")}
                 </Button>
-                <Button type="button" variant="secondary" onClick={() => setShowCreate(false)} style={{ padding: '6px 14px', fontSize: '0.85rem' }}>إلغاء</Button>
+                <Button type="button" variant="secondary" onClick={() => setShowCreate(false)} style={{ padding: '6px 14px', fontSize: '0.85rem' }}>{t('hr.hr_assets_page.s36', "إلغاء")}</Button>
               </div>
               {mutations.saveEmployeeAsset.isError ? <p className="muted" style={{ margin: '8px 0 0', color: '#dc2626' }}>{getErrorMessage(mutations.saveEmployeeAsset.error)}</p> : null}
             </div>
@@ -279,27 +281,27 @@ export function HrAssetsPage() {
           {/* Compact Single-Row KPI Summary Bar */}
           <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 14px', marginBottom: '16px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-              <span style={{ fontSize: '0.825rem', fontWeight: 800, color: '#0f172a' }}>{activeTab === 'cash' ? 'ملخص العُهد النقدية' : 'ملخص العُهد العينية'}</span>
-              <span style={{ fontSize: '0.725rem', color: '#64748b' }}>اضغط على أي مؤشر لتصفية القائمة فوراً</span>
+              <span style={{ fontSize: '0.825rem', fontWeight: 800, color: '#0f172a' }}>{activeTab === 'cash' ? t('hr.hr_assets_page.s37', "ملخص العُهد النقدية") : t('hr.hr_assets_page.s38', "ملخص العُهد العينية")}</span>
+              <span style={{ fontSize: '0.725rem', color: '#64748b' }}>{t('hr.hr_assets_page.s39', "اضغط على أي مؤشر لتصفية القائمة فوراً")}</span>
             </div>
             
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: '8px' }}>
               {(activeTab === 'cash' ? [
-                { label: 'الإجمالي', value: summary.total, onClick: () => setFilter('all'), isAlert: false, active: statusFilter === 'all' },
-                { label: 'مفتوحة', value: summary.assigned, onClick: () => setFilter('assigned'), isAlert: false, active: statusFilter === 'assigned' },
-                { label: 'مقفولة / مسواة', value: summary.returned, onClick: () => setFilter('returned'), isAlert: false, active: statusFilter === 'returned' },
-                { label: 'تحتاج مراجعة', value: summary.needsReview, onClick: () => setFilter('needs_review'), isAlert: summary.needsReview > 0, active: statusFilter === 'needs_review' },
-                { label: 'إجمالي المبالغ', value: money(summary.cashTotalAmount), onClick: () => {}, isAlert: false, active: false },
-                { label: 'مبالغ مفتوحة', value: money(summary.cashOpenAmount), onClick: () => {}, isAlert: false, active: false },
-                { label: 'ظاهر حالياً', value: summary.visible, onClick: () => {}, isAlert: false, active: false },
+                { label: t('hr.hr_assets_page.s40', "الإجمالي"), value: summary.total, onClick: () => setFilter('all'), isAlert: false, active: statusFilter === 'all' },
+                { label: t('hr.hr_assets_page.s41', "مفتوحة"), value: summary.assigned, onClick: () => setFilter('assigned'), isAlert: false, active: statusFilter === 'assigned' },
+                { label: t('hr.hr_assets_page.s42', "مقفولة / مسواة"), value: summary.returned, onClick: () => setFilter('returned'), isAlert: false, active: statusFilter === 'returned' },
+                { label: t('hr.hr_assets_page.s43', "تحتاج مراجعة"), value: summary.needsReview, onClick: () => setFilter('needs_review'), isAlert: summary.needsReview > 0, active: statusFilter === 'needs_review' },
+                { label: t('hr.hr_assets_page.s44', "إجمالي المبالغ"), value: money(summary.cashTotalAmount), onClick: () => {}, isAlert: false, active: false },
+                { label: t('hr.hr_assets_page.s45', "مبالغ مفتوحة"), value: money(summary.cashOpenAmount), onClick: () => {}, isAlert: false, active: false },
+                { label: t('hr.hr_assets_page.s46', "ظاهر حالياً"), value: summary.visible, onClick: () => {}, isAlert: false, active: false },
               ] : [
-                { label: 'الإجمالي', value: summary.total, onClick: () => setFilter('all'), isAlert: false, active: statusFilter === 'all' },
-                { label: 'مسلّمة', value: summary.assigned, onClick: () => setFilter('assigned'), isAlert: false, active: statusFilter === 'assigned' },
-                { label: 'مرتجعة', value: summary.returned, onClick: () => setFilter('returned'), isAlert: false, active: statusFilter === 'returned' },
-                { label: 'تالفة', value: summary.damaged, onClick: () => setFilter('damaged'), isAlert: summary.damaged > 0, active: statusFilter === 'damaged' },
-                { label: 'مفقودة', value: summary.lost, onClick: () => setFilter('lost'), isAlert: summary.lost > 0, active: statusFilter === 'lost' },
-                { label: 'تحتاج مراجعة', value: summary.needsReview, onClick: () => setFilter('needs_review'), isAlert: summary.needsReview > 0, active: statusFilter === 'needs_review' },
-                { label: 'ظاهر حالياً', value: summary.visible, onClick: () => {}, isAlert: false, active: false },
+                { label: t('hr.hr_assets_page.s47', "الإجمالي"), value: summary.total, onClick: () => setFilter('all'), isAlert: false, active: statusFilter === 'all' },
+                { label: t('hr.hr_assets_page.s48', "مسلّمة"), value: summary.assigned, onClick: () => setFilter('assigned'), isAlert: false, active: statusFilter === 'assigned' },
+                { label: t('hr.hr_assets_page.s49', "مرتجعة"), value: summary.returned, onClick: () => setFilter('returned'), isAlert: false, active: statusFilter === 'returned' },
+                { label: t('hr.hr_assets_page.s50', "تالفة"), value: summary.damaged, onClick: () => setFilter('damaged'), isAlert: summary.damaged > 0, active: statusFilter === 'damaged' },
+                { label: t('hr.hr_assets_page.s51', "مفقودة"), value: summary.lost, onClick: () => setFilter('lost'), isAlert: summary.lost > 0, active: statusFilter === 'lost' },
+                { label: t('hr.hr_assets_page.s52', "تحتاج مراجعة"), value: summary.needsReview, onClick: () => setFilter('needs_review'), isAlert: summary.needsReview > 0, active: statusFilter === 'needs_review' },
+                { label: t('hr.hr_assets_page.s53', "ظاهر حالياً"), value: summary.visible, onClick: () => {}, isAlert: false, active: false },
               ]).map((stat, idx) => (
                 <div
                   key={idx}
@@ -337,7 +339,7 @@ export function HrAssetsPage() {
               type="text"
               value={search}
               onChange={(value) => { setSearch(value.target.value); setPage(1); }}
-              placeholder={activeTab === 'cash' ? 'بحث بالموظف أو الغرض...' : 'بحث بالموظف أو الكود...'}
+              placeholder={activeTab === 'cash' ? t('hr.hr_assets_page.s54', "بحث بالموظف أو الغرض...") : t('hr.hr_assets_page.s55', "بحث بالموظف أو الكود...")}
               style={{ width: '190px', minWidth: '150px', padding: '5px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.825rem', background: '#fff', boxSizing: 'border-box' }}
             />
 
@@ -346,7 +348,7 @@ export function HrAssetsPage() {
                 value={departmentFilter}
                 onChange={(val) => { setDepartmentFilter(val); setPage(1); }}
                 options={[
-                  { value: 'all', label: 'كل الأقسام' },
+                  { value: 'all', label: t('hr.hr_assets_page.s56', "كل الأقسام") },
                   ...departmentOptions.map((option) => ({ value: option.value, label: option.label })),
                 ]}
               />
@@ -368,53 +370,53 @@ export function HrAssetsPage() {
             </div>
           </div>
 
-          <QueryFeedback isLoading={assetsQuery.isLoading} isError={assetsQuery.isError} error={assetsQuery.error} isEmpty={!assets.length} loadingText="جاري تحميل العُهد..." errorTitle="تعذر تحميل بيانات العُهد" emptyTitle={statusFilter === 'needs_review' ? 'لا توجد عُهد تحتاج مراجعة حاليًا.' : 'لا توجد نتائج مطابقة للفلاتر الحالية.'} emptyHint={statusFilter === 'needs_review' ? 'يمكنك عرض كل العُهد أو تسليم عهدة جديدة من أعلى الصفحة.' : 'جرّب تغيير الفلتر أو البحث.'}>
+          <QueryFeedback isLoading={assetsQuery.isLoading} isError={assetsQuery.isError} error={assetsQuery.error} isEmpty={!assets.length} loadingText={t('hr.hr_assets_page.s57', "جاري تحميل العُهد...")} errorTitle={t('hr.hr_assets_page.s58', "تعذر تحميل بيانات العُهد")} emptyTitle={statusFilter === 'needs_review' ? t('hr.hr_assets_page.s59', "لا توجد عُهد تحتاج مراجعة حاليًا.") : t('hr.hr_assets_page.s60', "لا توجد نتائج مطابقة للفلاتر الحالية.")} emptyHint={statusFilter === 'needs_review' ? t('hr.hr_assets_page.s61', "يمكنك عرض كل العُهد أو تسليم عهدة جديدة من أعلى الصفحة.") : t('hr.hr_assets_page.s62', "جرّب تغيير الفلتر أو البحث.")}>
             <DataTable
               rows={assets}
               rowKey={(row) => String(row.id)}
               density="compact"
-              pagination={{ page, pageSize, totalItems, onPageChange: setPage, onPageSizeChange: (next) => { setPageSize(next); setPage(1); }, itemLabel: 'عهدة' }}
+              pagination={{ page, pageSize, totalItems, onPageChange: setPage, onPageSizeChange: (next) => { setPageSize(next); setPage(1); }, itemLabel: t('hr.hr_assets_page.s63', "عهدة") }}
               columns={activeTab === 'cash' ? [
-                { key: 'employeeNo', header: 'كود الموظف', cell: (row) => fallbackText(row.employeeNo) },
-                { key: 'employeeName', header: 'اسم الموظف', cell: (row) => fallbackText(row.employeeName) },
-                { key: 'assetName', header: 'الغرض / البيان', cell: (row) => fallbackText(row.assetName) },
-                { key: 'cashAmount', header: 'المبلغ المسلم', cell: (row) => money(cashAmount(row)) },
-                { key: 'spentAmount', header: 'المصروف', cell: (row) => money(settlementParts(row).spentAmount) },
-                { key: 'returnedAmount', header: 'المرتجع', cell: (row) => money(settlementParts(row).returnedAmount) },
-                { key: 'difference', header: 'فرق التسوية', cell: (row) => money(Math.abs(cashDifference(row))) },
-                { key: 'assignedAt', header: 'تاريخ التسليم', cell: (row) => fallbackText(row.assignedAt) },
-                { key: 'returnedAt', header: 'تاريخ التسوية', cell: (row) => fallbackText(row.returnedAt) },
-                { key: 'status', header: 'الحالة', cell: (row) => statusLabel(row.status, 'cash') },
-                { key: 'notes', header: 'ملاحظات', cell: (row) => fallbackText(row.returnNotes || row.notes) },
-                { key: 'actions', header: 'إجراء', cell: (row) => renderActions(row) },
+                { key: 'employeeNo', header: t('hr.hr_assets_page.s64', "كود الموظف"), cell: (row) => fallbackText(row.employeeNo) },
+                { key: 'employeeName', header: t('hr.hr_assets_page.s65', "اسم الموظف"), cell: (row) => fallbackText(row.employeeName) },
+                { key: 'assetName', header: t('hr.hr_assets_page.s66', "الغرض / البيان"), cell: (row) => fallbackText(row.assetName) },
+                { key: 'cashAmount', header: t('hr.hr_assets_page.s67', "المبلغ المسلم"), cell: (row) => money(cashAmount(row)) },
+                { key: 'spentAmount', header: t('hr.hr_assets_page.s68', "المصروف"), cell: (row) => money(settlementParts(row).spentAmount) },
+                { key: 'returnedAmount', header: t('hr.hr_assets_page.s69', "المرتجع"), cell: (row) => money(settlementParts(row).returnedAmount) },
+                { key: 'difference', header: t('hr.hr_assets_page.s70', "فرق التسوية"), cell: (row) => money(Math.abs(cashDifference(row))) },
+                { key: 'assignedAt', header: t('hr.hr_assets_page.s71', "تاريخ التسليم"), cell: (row) => fallbackText(row.assignedAt) },
+                { key: 'returnedAt', header: t('hr.hr_assets_page.s72', "تاريخ التسوية"), cell: (row) => fallbackText(row.returnedAt) },
+                { key: 'status', header: t('hr.hr_assets_page.s73', "الحالة"), cell: (row) => statusLabel(row.status, 'cash') },
+                { key: 'notes', header: t('hr.hr_assets_page.s74', "ملاحظات"), cell: (row) => fallbackText(row.returnNotes || row.notes) },
+                { key: 'actions', header: t('hr.hr_assets_page.s75', "إجراء"), cell: (row) => renderActions(row) },
               ] : [
-                { key: 'employeeNo', header: 'كود الموظف', cell: (row) => fallbackText(row.employeeNo) },
-                { key: 'employeeName', header: 'اسم الموظف', cell: (row) => fallbackText(row.employeeName) },
-                { key: 'departmentName', header: 'القسم', cell: (row) => fallbackText(row.departmentName || employeesMap.get(String(row.employeeId))?.departmentName) },
-                { key: 'assetType', header: 'نوع العهدة', cell: (row) => fallbackText(row.assetType) },
-                { key: 'assetName', header: 'اسم العهدة / الأصل', cell: (row) => fallbackText(row.assetName) },
-                { key: 'assetCode', header: 'الكود / السيريال', cell: (row) => fallbackText(row.assetCode || row.serialNo) },
-                { key: 'assignedAt', header: 'تاريخ التسليم', cell: (row) => fallbackText(row.assignedAt) },
-                { key: 'returnedAt', header: 'تاريخ الاسترجاع', cell: (row) => fallbackText(row.returnedAt) },
-                { key: 'status', header: 'الحالة', cell: (row) => statusLabel(row.status, 'physical') },
-                { key: 'notes', header: 'ملاحظات', cell: (row) => fallbackText(row.notes || row.returnNotes) },
-                { key: 'actions', header: 'إجراء', cell: (row) => renderActions(row) },
+                { key: 'employeeNo', header: t('hr.hr_assets_page.s76', "كود الموظف"), cell: (row) => fallbackText(row.employeeNo) },
+                { key: 'employeeName', header: t('hr.hr_assets_page.s77', "اسم الموظف"), cell: (row) => fallbackText(row.employeeName) },
+                { key: 'departmentName', header: t('hr.hr_assets_page.s78', "القسم"), cell: (row) => fallbackText(row.departmentName || employeesMap.get(String(row.employeeId))?.departmentName) },
+                { key: 'assetType', header: t('hr.hr_assets_page.s79', "نوع العهدة"), cell: (row) => fallbackText(row.assetType) },
+                { key: 'assetName', header: t('hr.hr_assets_page.s80', "اسم العهدة / الأصل"), cell: (row) => fallbackText(row.assetName) },
+                { key: 'assetCode', header: t('hr.hr_assets_page.s81', "الكود / السيريال"), cell: (row) => fallbackText(row.assetCode || row.serialNo) },
+                { key: 'assignedAt', header: t('hr.hr_assets_page.s82', "تاريخ التسليم"), cell: (row) => fallbackText(row.assignedAt) },
+                { key: 'returnedAt', header: t('hr.hr_assets_page.s83', "تاريخ الاسترجاع"), cell: (row) => fallbackText(row.returnedAt) },
+                { key: 'status', header: t('hr.hr_assets_page.s84', "الحالة"), cell: (row) => statusLabel(row.status, 'physical') },
+                { key: 'notes', header: t('hr.hr_assets_page.s85', "ملاحظات"), cell: (row) => fallbackText(row.notes || row.returnNotes) },
+                { key: 'actions', header: t('hr.hr_assets_page.s86', "إجراء"), cell: (row) => renderActions(row) },
               ]}
             />
 
             {selectedSettlementRow ? (
               <div style={{ marginTop: '16px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '16px' }}>
-                <strong style={{ display: 'block', marginBottom: '10px', fontSize: '0.95rem' }}>تسوية عهدة نقدية: {fallbackText(selectedSettlementRow.assetName)}</strong>
+                <strong style={{ display: 'block', marginBottom: '10px', fontSize: '0.95rem' }}>{t('hr.hr_assets_page.s87', "تسوية عهدة نقدية:")} {fallbackText(selectedSettlementRow.assetName)}</strong>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px' }}>
-                  <label className="field"><span>المبلغ المسلم</span><input value={money(cashAmount(selectedSettlementRow))} disabled style={{ padding: '6px 10px', background: '#e2e8f0' }} /></label>
-                  <label className="field"><span>المبلغ المصروف</span><input inputMode="decimal" value={settlementDraft.spentAmount} onChange={(event) => setSettlementDraft((prev) => ({ ...prev, spentAmount: event.target.value }))} style={{ padding: '6px 10px' }} /></label>
-                  <label className="field"><span>المبلغ المرتجع</span><input inputMode="decimal" value={settlementDraft.returnedAmount} onChange={(event) => setSettlementDraft((prev) => ({ ...prev, returnedAmount: event.target.value }))} style={{ padding: '6px 10px' }} /></label>
-                  <label className="field" style={{ gridColumn: 'span 2' }}><span>ملاحظات التسوية / الفواتير</span><input value={settlementDraft.notes} onChange={(event) => setSettlementDraft((prev) => ({ ...prev, notes: event.target.value }))} placeholder="مثال: فواتير شراء مستلزمات + رد الباقي" style={{ padding: '6px 10px' }} /></label>
+                  <label className="field"><span>{t('hr.hr_assets_page.s88', "المبلغ المسلم")}</span><input value={money(cashAmount(selectedSettlementRow))} disabled style={{ padding: '6px 10px', background: '#e2e8f0' }} /></label>
+                  <label className="field"><span>{t('hr.hr_assets_page.s89', "المبلغ المصروف")}</span><input inputMode="decimal" value={settlementDraft.spentAmount} onChange={(event) => setSettlementDraft((prev) => ({ ...prev, spentAmount: event.target.value }))} style={{ padding: '6px 10px' }} /></label>
+                  <label className="field"><span>{t('hr.hr_assets_page.s90', "المبلغ المرتجع")}</span><input inputMode="decimal" value={settlementDraft.returnedAmount} onChange={(event) => setSettlementDraft((prev) => ({ ...prev, returnedAmount: event.target.value }))} style={{ padding: '6px 10px' }} /></label>
+                  <label className="field" style={{ gridColumn: 'span 2' }}><span>{t('hr.hr_assets_page.s91', "ملاحظات التسوية / الفواتير")}</span><input value={settlementDraft.notes} onChange={(event) => setSettlementDraft((prev) => ({ ...prev, notes: event.target.value }))} placeholder={t('hr.hr_assets_page.s92', "مثال: فواتير شراء مستلزمات + رد الباقي")} style={{ padding: '6px 10px' }} /></label>
                 </div>
                 {settlementError ? <div style={{ color: '#dc2626', marginTop: '8px', fontSize: '0.85rem' }}>{settlementError}</div> : null}
                 <div className="actions compact-actions" style={{ marginTop: '12px' }}>
-                  <Button type="button" onClick={submitSettlement} disabled={mutations.returnEmployeeAsset.isPending} style={{ padding: '6px 14px', fontSize: '0.85rem' }}>{mutations.returnEmployeeAsset.isPending ? 'جاري التسوية...' : 'تسجيل التسوية'}</Button>
-                  <Button type="button" variant="secondary" onClick={() => { setSettlementId(''); setSettlementError(''); }} style={{ padding: '6px 14px', fontSize: '0.85rem' }}>إلغاء</Button>
+                  <Button type="button" onClick={submitSettlement} disabled={mutations.returnEmployeeAsset.isPending} style={{ padding: '6px 14px', fontSize: '0.85rem' }}>{mutations.returnEmployeeAsset.isPending ? t('hr.hr_assets_page.s93', "جاري التسوية...") : t('hr.hr_assets_page.s94', "تسجيل التسوية")}</Button>
+                  <Button type="button" variant="secondary" onClick={() => { setSettlementId(''); setSettlementError(''); }} style={{ padding: '6px 14px', fontSize: '0.85rem' }}>{t('hr.hr_assets_page.s95', "إلغاء")}</Button>
                 </div>
               </div>
             ) : null}

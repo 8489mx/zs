@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -16,6 +17,7 @@ function getCurrentMonthString() {
 }
 
 export function VanRepTargetsAdminTab() {
+  const { t: __t } = useTranslation();
   const queryClient = useQueryClient();
   const [selectedMonth, setSelectedMonth] = useState<string>(getCurrentMonthString());
   const [editingTargetRep, setEditingTargetRep] = useState<RepTargetSummary | null>(null);
@@ -192,34 +194,34 @@ export function VanRepTargetsAdminTab() {
       {/* KPI Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '12px' }}>
         <div style={{ background: '#ffffff', borderRadius: '12px', padding: '14px 16px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
-          <span style={{ fontSize: '12px', fontWeight: 700, color: '#4338ca', display: 'block' }}>إجمالي مستهدف مبيعات الشهر</span>
+          <span style={{ fontSize: '12px', fontWeight: 700, color: '#4338ca', display: 'block' }}>{__t('delivery_reps.van_rep_targets_admin_tab.s0', __t('delivery_reps.van_rep_targets_admin_tab.s0', "إجمالي مستهدف مبيعات الشهر"))}</span>
           <span style={{ fontSize: '20px', fontWeight: 800, color: '#312e81', display: 'block', marginTop: '4px' }}>
             {Math.round(totalTargetAmount).toLocaleString()} <span style={{ fontSize: '13px', color: '#a5b4fc' }}><CurrencySymbol /></span>
           </span>
         </div>
 
         <div style={{ background: '#ffffff', borderRadius: '12px', padding: '14px 16px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
-          <span style={{ fontSize: '12px', fontWeight: 700, color: '#16a34a', display: 'block' }}>المبيعات الفعلية المحققة حتى الآن</span>
+          <span style={{ fontSize: '12px', fontWeight: 700, color: '#16a34a', display: 'block' }}>{__t('delivery_reps.van_rep_targets_admin_tab.s1', __t('delivery_reps.van_rep_targets_admin_tab.s1', "المبيعات الفعلية المحققة حتى الآن"))}</span>
           <span style={{ fontSize: '20px', fontWeight: 800, color: '#15803d', display: 'block', marginTop: '4px' }}>
             {totalActualSales % 1 === 0 ? Math.round(totalActualSales).toLocaleString() : totalActualSales.toFixed(2)} <span style={{ fontSize: '13px', color: '#86efac' }}><CurrencySymbol /></span>
           </span>
         </div>
 
         <div style={{ background: '#ffffff', borderRadius: '12px', padding: '14px 16px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
-          <span style={{ fontSize: '12px', fontWeight: 700, color: '#0284c7', display: 'block' }}>نسبة تحقيق المستهدف العام</span>
+          <span style={{ fontSize: '12px', fontWeight: 700, color: '#0284c7', display: 'block' }}>{__t('delivery_reps.van_rep_targets_admin_tab.s2', __t('delivery_reps.van_rep_targets_admin_tab.s2', "نسبة تحقيق المستهدف العام"))}</span>
           <span style={{ fontSize: '20px', fontWeight: 800, color: '#0369a1', display: 'block', marginTop: '4px' }}>
-            {overallAchievementRate.toFixed(1)}% <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 600 }}>({achievedRepsCount}/{targets.length} محقق)</span>
+            {overallAchievementRate.toFixed(1)}% <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 600 }}>({achievedRepsCount}/{targets.length} {__t('delivery_reps.van_rep_targets_admin_tab.s3', __t('delivery_reps.van_rep_targets_admin_tab.s3', "محقق)"))}</span>
           </span>
         </div>
 
         <div style={{ background: '#ffffff', borderRadius: '12px', padding: '14px 16px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
-          <span style={{ fontSize: '12px', fontWeight: 700, color: '#7c3aed', display: 'block' }}>إجمالي العمولات والحوافز المكتسبة</span>
+          <span style={{ fontSize: '12px', fontWeight: 700, color: '#7c3aed', display: 'block' }}>{__t('delivery_reps.van_rep_targets_admin_tab.s4', __t('delivery_reps.van_rep_targets_admin_tab.s4', "إجمالي العمولات والحوافز المكتسبة"))}</span>
           <span style={{ fontSize: '20px', fontWeight: 800, color: '#5b21b6', display: 'block', marginTop: '4px' }}>
             {totalCommissionsEarned.toFixed(2)} <span style={{ fontSize: '13px', color: '#a78bfa' }}><CurrencySymbol /></span>
           </span>
           {totalRemainingCommissions > 0 && (
             <span style={{ fontSize: '10.5px', color: '#b45309', fontWeight: 700 }}>
-              متبقي للصرف: {totalRemainingCommissions.toFixed(2)} <CurrencySymbol />
+              {__t('delivery_reps.van_rep_targets_admin_tab.s5', __t('delivery_reps.van_rep_targets_admin_tab.s5', "متبقي للصرف:"))} {totalRemainingCommissions.toFixed(2)} <CurrencySymbol />
             </span>
           )}
         </div>
@@ -241,7 +243,7 @@ export function VanRepTargetsAdminTab() {
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <label style={{ fontSize: '13px', fontWeight: 700, color: '#334155' }}>
-            شهر التارجت والمبيعات والعمولات:
+            {__t('delivery_reps.van_rep_targets_admin_tab.s6', __t('delivery_reps.van_rep_targets_admin_tab.s6', "شهر التارجت والمبيعات والعمولات:"))}
           </label>
           <input
             type="month"
@@ -258,13 +260,13 @@ export function VanRepTargetsAdminTab() {
             }}
           />
           <span style={{ fontSize: '11.5px', color: '#64748b' }}>
-            (الحسابات اليومية تستبعد أيام الجمعة والعطلات الرسمية تلقائياً)
+            {__t('delivery_reps.van_rep_targets_admin_tab.s7', __t('delivery_reps.van_rep_targets_admin_tab.s7', "(الحسابات اليومية تستبعد أيام الجمعة والعطلات الرسمية تلقائياً)"))}
           </span>
         </div>
 
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
           <span style={{ fontSize: '12px', color: '#94a3b8', fontWeight: 600 }}>
-            إجمالي المناديب: {targets.length}
+            {__t('delivery_reps.van_rep_targets_admin_tab.s8', __t('delivery_reps.van_rep_targets_admin_tab.s8', "إجمالي المناديب:"))} {targets.length}
           </span>
           <Button
             variant="secondary"
@@ -278,14 +280,14 @@ export function VanRepTargetsAdminTab() {
               opacity: isRefreshing ? 0.75 : 1,
             }}
             onClick={handleManualRefresh}
-            title="تحديث مستهدفات المناديب من السيرفر"
+            title={__t('delivery_reps.van_rep_targets_admin_tab.s9', __t('delivery_reps.van_rep_targets_admin_tab.s9', "تحديث مستهدفات المناديب من السيرفر"))}
           >
             <RefreshCwIcon
               size={13}
               className={isRefreshing ? 'spin-animation' : undefined}
               style={isRefreshing ? { animation: 'spin 0.75s linear infinite' } : undefined}
             />
-            {isRefreshing ? 'جارٍ التحديث...' : 'تحديث'}
+            {isRefreshing ? __t('delivery_reps.van_rep_targets_admin_tab.s10', __t('delivery_reps.van_rep_targets_admin_tab.s10', "جارٍ التحديث...")) : __t('delivery_reps.van_rep_targets_admin_tab.s11', __t('delivery_reps.van_rep_targets_admin_tab.s11', "تحديث"))}
           </Button>
         </div>
       </div>
@@ -304,11 +306,11 @@ export function VanRepTargetsAdminTab() {
       >
         {isLoading ? (
           <div style={{ padding: '60px', textAlign: 'center', color: '#64748b', fontWeight: 700 }}>
-            جاري احتساب مستهدفات ومبيعات وعمولات المناديب...
+            {__t('delivery_reps.van_rep_targets_admin_tab.s12', __t('delivery_reps.van_rep_targets_admin_tab.s12', "جاري احتساب مستهدفات ومبيعات وعمولات المناديب..."))}
           </div>
         ) : targets.length === 0 ? (
           <div style={{ padding: '60px', textAlign: 'center', color: '#64748b', fontWeight: 600 }}>
-            لا يوجد مناديب مسجلين بالنظام حالياً.
+            {__t('delivery_reps.van_rep_targets_admin_tab.s13', __t('delivery_reps.van_rep_targets_admin_tab.s13', "لا يوجد مناديب مسجلين بالنظام حالياً."))}
           </div>
         ) : (
           <table
@@ -334,16 +336,16 @@ export function VanRepTargetsAdminTab() {
             </colgroup>
             <thead>
               <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>
-                <th style={{ padding: '9px 6px', fontWeight: 700, fontSize: '11.5px' }}>مندوب التوزيع</th>
-                <th style={{ padding: '9px 6px', fontWeight: 700, fontSize: '11.5px' }}>المركبة</th>
-                <th style={{ padding: '9px 6px', fontWeight: 700, textAlign: 'center', fontSize: '11.5px' }}>مستهدف الشهر</th>
-                <th style={{ padding: '9px 6px', fontWeight: 700, textAlign: 'center', fontSize: '11.5px' }}>المبيعات</th>
-                <th style={{ padding: '9px 6px', fontWeight: 700, textAlign: 'center', fontSize: '11.5px' }}>نسبة الإنجاز</th>
-                <th style={{ padding: '9px 6px', fontWeight: 700, textAlign: 'center', fontSize: '11.5px' }}>المتبقي</th>
-                <th style={{ padding: '9px 6px', fontWeight: 700, textAlign: 'center', fontSize: '11.5px' }}>أيام متبقية</th>
-                <th style={{ padding: '9px 6px', fontWeight: 700, textAlign: 'center', fontSize: '11.5px' }}>المطلوب يومياً</th>
-                <th style={{ padding: '9px 6px', fontWeight: 700, textAlign: 'center', fontSize: '11.5px' }}>العمولة والحوافز</th>
-                <th style={{ padding: '9px 6px', fontWeight: 700, textAlign: 'center', fontSize: '11.5px' }}>الإجراءات</th>
+                <th style={{ padding: '9px 6px', fontWeight: 700, fontSize: '11.5px' }}>{__t('delivery_reps.van_rep_targets_admin_tab.s14', __t('delivery_reps.van_rep_targets_admin_tab.s14', "مندوب التوزيع"))}</th>
+                <th style={{ padding: '9px 6px', fontWeight: 700, fontSize: '11.5px' }}>{__t('delivery_reps.van_rep_targets_admin_tab.s15', __t('delivery_reps.van_rep_targets_admin_tab.s15', "المركبة"))}</th>
+                <th style={{ padding: '9px 6px', fontWeight: 700, textAlign: 'center', fontSize: '11.5px' }}>{__t('delivery_reps.van_rep_targets_admin_tab.s16', __t('delivery_reps.van_rep_targets_admin_tab.s16', "مستهدف الشهر"))}</th>
+                <th style={{ padding: '9px 6px', fontWeight: 700, textAlign: 'center', fontSize: '11.5px' }}>{__t('delivery_reps.van_rep_targets_admin_tab.s17', __t('delivery_reps.van_rep_targets_admin_tab.s17', "المبيعات"))}</th>
+                <th style={{ padding: '9px 6px', fontWeight: 700, textAlign: 'center', fontSize: '11.5px' }}>{__t('delivery_reps.van_rep_targets_admin_tab.s18', __t('delivery_reps.van_rep_targets_admin_tab.s18', "نسبة الإنجاز"))}</th>
+                <th style={{ padding: '9px 6px', fontWeight: 700, textAlign: 'center', fontSize: '11.5px' }}>{__t('delivery_reps.van_rep_targets_admin_tab.s19', __t('delivery_reps.van_rep_targets_admin_tab.s19', "المتبقي"))}</th>
+                <th style={{ padding: '9px 6px', fontWeight: 700, textAlign: 'center', fontSize: '11.5px' }}>{__t('delivery_reps.van_rep_targets_admin_tab.s20', __t('delivery_reps.van_rep_targets_admin_tab.s20', "أيام متبقية"))}</th>
+                <th style={{ padding: '9px 6px', fontWeight: 700, textAlign: 'center', fontSize: '11.5px' }}>{__t('delivery_reps.van_rep_targets_admin_tab.s21', __t('delivery_reps.van_rep_targets_admin_tab.s21', "المطلوب يومياً"))}</th>
+                <th style={{ padding: '9px 6px', fontWeight: 700, textAlign: 'center', fontSize: '11.5px' }}>{__t('delivery_reps.van_rep_targets_admin_tab.s22', __t('delivery_reps.van_rep_targets_admin_tab.s22', "العمولة والحوافز"))}</th>
+                <th style={{ padding: '9px 6px', fontWeight: 700, textAlign: 'center', fontSize: '11.5px' }}>{__t('delivery_reps.van_rep_targets_admin_tab.s23', __t('delivery_reps.van_rep_targets_admin_tab.s23', "الإجراءات"))}</th>
               </tr>
             </thead>
             <tbody>
@@ -368,7 +370,7 @@ export function VanRepTargetsAdminTab() {
                           {t.vehiclePlate}
                         </span>
                       ) : (
-                        <span style={{ fontSize: '11px', color: '#94a3b8' }}>بدون سيارة</span>
+                        <span style={{ fontSize: '11px', color: '#94a3b8' }}>{__t('delivery_reps.van_rep_targets_admin_tab.s24', __t('delivery_reps.van_rep_targets_admin_tab.s24', "بدون سيارة"))}</span>
                       )}
                     </td>
                     <td style={{ padding: '8px 6px', textAlign: 'center', fontSize: '11.5px', whiteSpace: 'nowrap' }}>
@@ -377,16 +379,16 @@ export function VanRepTargetsAdminTab() {
                           {Math.round(t.targetAmount).toLocaleString()} <CurrencySymbol />
                         </div>
                       ) : (
-                        <span style={{ fontSize: '11px', color: '#94a3b8' }}>غير محدد</span>
+                        <span style={{ fontSize: '11px', color: '#94a3b8' }}>{__t('delivery_reps.van_rep_targets_admin_tab.s25', __t('delivery_reps.van_rep_targets_admin_tab.s25', "غير محدد"))}</span>
                       )}
                       {t.collectionTarget && t.collectionTarget > 0 ? (
                         <div style={{ fontSize: '10px', color: '#0369a1', marginTop: '2px', fontWeight: 600 }}>
-                          تحصيل: {Math.round(t.collectionTarget).toLocaleString()} <CurrencySymbol />
+                          {__t('delivery_reps.van_rep_targets_admin_tab.s26', __t('delivery_reps.van_rep_targets_admin_tab.s26', "تحصيل:"))} {Math.round(t.collectionTarget).toLocaleString()} <CurrencySymbol />
                         </div>
                       ) : null}
                       {t.visitsTarget && t.visitsTarget > 0 ? (
                         <div style={{ fontSize: '10px', color: '#7c3aed', marginTop: '1px', fontWeight: 600 }}>
-                          زيارات: {t.visitsTarget.toLocaleString()}
+                          {__t('delivery_reps.van_rep_targets_admin_tab.s27', __t('delivery_reps.van_rep_targets_admin_tab.s27', "زيارات:"))} {t.visitsTarget.toLocaleString()}
                         </div>
                       ) : null}
                     </td>
@@ -396,12 +398,12 @@ export function VanRepTargetsAdminTab() {
                       </div>
                       {t.collectionTarget && t.collectionTarget > 0 ? (
                         <div style={{ fontSize: '10px', color: '#0284c7', marginTop: '2px', fontWeight: 600 }}>
-                          محصل: {Math.round(t.actualCollections || 0).toLocaleString()} ({t.collectionAchievementRate ?? 0}%)
+                          {__t('delivery_reps.van_rep_targets_admin_tab.s28', __t('delivery_reps.van_rep_targets_admin_tab.s28', "محصل:"))} {Math.round(t.actualCollections || 0).toLocaleString()} ({t.collectionAchievementRate ?? 0}%)
                         </div>
                       ) : null}
                       {t.visitsTarget && t.visitsTarget > 0 ? (
                         <div style={{ fontSize: '10px', color: '#6d28d9', marginTop: '1px', fontWeight: 600 }}>
-                          زار: {(t.actualVisits || 0).toLocaleString()} ({t.visitsAchievementRate ?? 0}%)
+                          {__t('delivery_reps.van_rep_targets_admin_tab.s29', __t('delivery_reps.van_rep_targets_admin_tab.s29', "زار:"))} {(t.actualVisits || 0).toLocaleString()} ({t.visitsAchievementRate ?? 0}%)
                         </div>
                       ) : null}
                     </td>
@@ -410,7 +412,7 @@ export function VanRepTargetsAdminTab() {
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', alignItems: 'center' }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', fontSize: '10.5px', fontWeight: 700, color: progressColor }}>
                             <span>{rate.toFixed(1)}%</span>
-                            {t.isTargetAchieved && <span>تم الإنجاز</span>}
+                            {t.isTargetAchieved && <span>{__t('delivery_reps.van_rep_targets_admin_tab.s30', __t('delivery_reps.van_rep_targets_admin_tab.s30', "تم الإنجاز"))}</span>}
                           </div>
                           <div style={{ width: '100%', height: '6px', backgroundColor: '#f1f5f9', borderRadius: '4px', overflow: 'hidden' }}>
                             <div
@@ -432,7 +434,7 @@ export function VanRepTargetsAdminTab() {
                         <>
                           {t.isTargetAchieved ? (
                             <span style={{ fontSize: '10.5px', color: '#16a34a', fontWeight: 800, background: '#f0fdf4', padding: '1px 6px', borderRadius: '4px', border: '1px solid #bbf7d0', whiteSpace: 'nowrap' }}>
-                              تم الإنجاز
+                              {__t('delivery_reps.van_rep_targets_admin_tab.s31', __t('delivery_reps.van_rep_targets_admin_tab.s31', "تم الإنجاز"))}
                             </span>
                           ) : (
                             <div style={{ color: '#b91c1c', fontWeight: 700 }}>
@@ -441,12 +443,12 @@ export function VanRepTargetsAdminTab() {
                           )}
                           {t.collectionTarget && t.collectionTarget > 0 ? (
                             <div style={{ fontSize: '10px', color: t.isCollectionAchieved ? '#16a34a' : '#c2410c', marginTop: '2px', fontWeight: 600 }}>
-                              {t.isCollectionAchieved ? 'تحصيل مكتمل' : `متبقي تحصيل: ${Math.round(t.remainingCollection || 0).toLocaleString()}`}
+                              {t.isCollectionAchieved ? __t('delivery_reps.van_rep_targets_admin_tab.s32', __t('delivery_reps.van_rep_targets_admin_tab.s32', "تحصيل مكتمل")) : `متبقي تحصيل: ${Math.round(t.remainingCollection || 0).toLocaleString()}`}
                             </div>
                           ) : null}
                           {t.visitsTarget && t.visitsTarget > 0 ? (
                             <div style={{ fontSize: '10px', color: t.isVisitsAchieved ? '#16a34a' : '#6d28d9', marginTop: '1px', fontWeight: 600 }}>
-                              {t.isVisitsAchieved ? 'زيارات مكتملة' : `متبقي زيارات: ${(t.remainingVisits || 0).toLocaleString()}`}
+                              {t.isVisitsAchieved ? __t('delivery_reps.van_rep_targets_admin_tab.s33', __t('delivery_reps.van_rep_targets_admin_tab.s33', "زيارات مكتملة")) : `متبقي زيارات: ${(t.remainingVisits || 0).toLocaleString()}`}
                             </div>
                           ) : null}
                         </>
@@ -455,7 +457,7 @@ export function VanRepTargetsAdminTab() {
                       )}
                     </td>
                     <td style={{ padding: '8px 6px', textAlign: 'center', fontWeight: 700, color: '#475569', fontSize: '11.5px', whiteSpace: 'nowrap' }}>
-                      {t.remainingWorkingDays} <span style={{ fontSize: '10.5px', color: '#94a3b8' }}>يوم</span>
+                      {t.remainingWorkingDays} <span style={{ fontSize: '10.5px', color: '#94a3b8' }}>{__t('delivery_reps.van_rep_targets_admin_tab.s34', __t('delivery_reps.van_rep_targets_admin_tab.s34', "يوم"))}</span>
                     </td>
                     <td style={{ padding: '8px 6px', textAlign: 'center', fontSize: '11.5px', whiteSpace: 'nowrap' }}>
                       {t.isTargetAchieved ? (
@@ -469,12 +471,12 @@ export function VanRepTargetsAdminTab() {
                       )}
                       {t.collectionTarget && t.collectionTarget > 0 ? (
                         <div style={{ fontSize: '10px', color: '#0369a1', marginTop: '2px', fontWeight: 600 }}>
-                          تحصيل: {Math.ceil(t.requiredDailyCollection || 0).toLocaleString()} <CurrencySymbol />/يوم
+                          {__t('delivery_reps.van_rep_targets_admin_tab.s35', __t('delivery_reps.van_rep_targets_admin_tab.s35', "تحصيل:"))} {Math.ceil(t.requiredDailyCollection || 0).toLocaleString()} <CurrencySymbol />{__t('delivery_reps.van_rep_targets_admin_tab.s36', __t('delivery_reps.van_rep_targets_admin_tab.s36', "/يوم"))}
                         </div>
                       ) : null}
                       {t.visitsTarget && t.visitsTarget > 0 ? (
                         <div style={{ fontSize: '10px', color: '#7c3aed', marginTop: '1px', fontWeight: 600 }}>
-                          زيارات: {(t.requiredDailyVisits || 0).toLocaleString()} زيارة/يوم
+                          {__t('delivery_reps.van_rep_targets_admin_tab.s37', __t('delivery_reps.van_rep_targets_admin_tab.s37', "زيارات:"))} {(t.requiredDailyVisits || 0).toLocaleString()} {__t('delivery_reps.van_rep_targets_admin_tab.s38', __t('delivery_reps.van_rep_targets_admin_tab.s38', "زيارة/يوم"))}
                         </div>
                       ) : null}
                     </td>
@@ -484,16 +486,16 @@ export function VanRepTargetsAdminTab() {
                       </div>
                       {(t.targetBonusEarned || 0) > 0 && (
                         <div style={{ fontSize: '9.5px', color: '#15803d', fontWeight: 700 }}>
-                          شامل بونص هدف: {Number(t.targetBonusEarned).toFixed(2)}
+                          {__t('delivery_reps.van_rep_targets_admin_tab.s39', __t('delivery_reps.van_rep_targets_admin_tab.s39', "شامل بونص هدف:"))} {Number(t.targetBonusEarned).toFixed(2)}
                         </div>
                       )}
                       {t.isCommissionSettled ? (
                         <span style={{ fontSize: '9.5px', backgroundColor: '#dcfce7', color: '#15803d', padding: '1px 5px', borderRadius: '4px', fontWeight: 700 }}>
-                          تم الصرف بالكامل
+                          {__t('delivery_reps.van_rep_targets_admin_tab.s40', __t('delivery_reps.van_rep_targets_admin_tab.s40', "تم الصرف بالكامل"))}
                         </span>
                       ) : (t.remainingCommissionPayable || 0) > 0 ? (
                         <div style={{ fontSize: '9.5px', color: '#b45309', fontWeight: 700 }}>
-                          مستحق: {Number(t.remainingCommissionPayable).toFixed(2)}
+                          {__t('delivery_reps.van_rep_targets_admin_tab.s41', __t('delivery_reps.van_rep_targets_admin_tab.s41', "مستحق:"))} {Number(t.remainingCommissionPayable).toFixed(2)}
                         </div>
                       ) : null}
                     </td>
@@ -505,7 +507,7 @@ export function VanRepTargetsAdminTab() {
                           onClick={() => openSetTargetModal(t)}
                         >
                           <SlidersIcon size={11} />
-                          ضبط التارجت
+                          {__t('delivery_reps.van_rep_targets_admin_tab.s42', __t('delivery_reps.van_rep_targets_admin_tab.s42', "ضبط التارجت"))}
                         </Button>
                         {(t.remainingCommissionPayable || 0) > 0 && (
                           <Button
@@ -513,7 +515,7 @@ export function VanRepTargetsAdminTab() {
                             style={{ fontSize: '10.5px', padding: '2px 7px', backgroundColor: '#170e5e', color: '#ffffff', whiteSpace: 'nowrap' }}
                             onClick={() => openSettleCommissionModal(t)}
                           >
-                            صرف العمولة
+                            {__t('delivery_reps.van_rep_targets_admin_tab.s43', __t('delivery_reps.van_rep_targets_admin_tab.s43', "صرف العمولة"))}
                           </Button>
                         )}
                       </div>
@@ -538,22 +540,22 @@ export function VanRepTargetsAdminTab() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }} dir="rtl">
             <div style={{ backgroundColor: '#f8fafc', padding: '10px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '4px' }}>
               <div style={{ fontSize: '12px', color: '#334155' }}>
-                <strong>المبيعات الفعلية حتى اليوم:</strong> {editingTargetRep.actualSales.toFixed(2)} <CurrencySymbol />
+                <strong>{__t('delivery_reps.van_rep_targets_admin_tab.s44', __t('delivery_reps.van_rep_targets_admin_tab.s44', "المبيعات الفعلية حتى اليوم:"))}</strong> {editingTargetRep.actualSales.toFixed(2)} <CurrencySymbol />
               </div>
               {editingTargetRep.actualCollections !== undefined && editingTargetRep.actualCollections > 0 && (
                 <div style={{ fontSize: '12px', color: '#334155' }}>
-                  <strong>التحصيل النقدي الفعلي:</strong> {editingTargetRep.actualCollections.toFixed(2)} <CurrencySymbol />
+                  <strong>{__t('delivery_reps.van_rep_targets_admin_tab.s45', __t('delivery_reps.van_rep_targets_admin_tab.s45', "التحصيل النقدي الفعلي:"))}</strong> {editingTargetRep.actualCollections.toFixed(2)} <CurrencySymbol />
                 </div>
               )}
               <div style={{ fontSize: '11.5px', color: '#64748b' }}>
-                أيام العمل المتبقية بالشهر (باستثناء الجمع والعطلات): <strong>{editingTargetRep.remainingWorkingDays} يوم</strong>
+                {__t('delivery_reps.van_rep_targets_admin_tab.s46', __t('delivery_reps.van_rep_targets_admin_tab.s46', "أيام العمل المتبقية بالشهر (باستثناء الجمع والعطلات):"))} <strong>{editingTargetRep.remainingWorkingDays} {__t('delivery_reps.van_rep_targets_admin_tab.s47', __t('delivery_reps.van_rep_targets_admin_tab.s47', "يوم"))}</strong>
               </div>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                  مستهدف المبيعات <span style={{ color: '#dc2626' }}>*</span>
+                  {__t('delivery_reps.van_rep_targets_admin_tab.s48', __t('delivery_reps.van_rep_targets_admin_tab.s48', "مستهدف المبيعات"))} <span style={{ color: '#dc2626' }}>*</span>
                 </label>
                 <input
                   type="number"
@@ -576,7 +578,7 @@ export function VanRepTargetsAdminTab() {
 
               <div>
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                  مستهدف التحصيل
+                  {__t('delivery_reps.van_rep_targets_admin_tab.s49', __t('delivery_reps.van_rep_targets_admin_tab.s49', "مستهدف التحصيل"))}
                 </label>
                 <input
                   type="number"
@@ -599,7 +601,7 @@ export function VanRepTargetsAdminTab() {
 
               <div>
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                  مستهدف الزيارات
+                  {__t('delivery_reps.van_rep_targets_admin_tab.s50', __t('delivery_reps.van_rep_targets_admin_tab.s50', "مستهدف الزيارات"))}
                 </label>
                 <input
                   type="number"
@@ -624,12 +626,12 @@ export function VanRepTargetsAdminTab() {
             {/* Commission Rates Section */}
             <div style={{ backgroundColor: '#faf5ff', padding: '10px 12px', borderRadius: '10px', border: '1px solid #e9d5ff' }}>
               <div style={{ fontSize: '12px', fontWeight: 800, color: '#5b21b6', marginBottom: '8px' }}>
-                معادلة احتساب العمولات والحوافز للمندوب (%)
+                {__t('delivery_reps.van_rep_targets_admin_tab.s51', __t('delivery_reps.van_rep_targets_admin_tab.s51', "معادلة احتساب العمولات والحوافز للمندوب (%)"))}
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#4c1d95', marginBottom: '3px' }}>
-                    عمولة المبيعات (%)
+                    {__t('delivery_reps.van_rep_targets_admin_tab.s52', __t('delivery_reps.van_rep_targets_admin_tab.s52', "عمولة المبيعات (%)"))}
                   </label>
                   <input
                     type="number"
@@ -651,7 +653,7 @@ export function VanRepTargetsAdminTab() {
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#4c1d95', marginBottom: '3px' }}>
-                    عمولة التحصيل النقدي (%)
+                    {__t('delivery_reps.van_rep_targets_admin_tab.s53', __t('delivery_reps.van_rep_targets_admin_tab.s53', "عمولة التحصيل النقدي (%)"))}
                   </label>
                   <input
                     type="number"
@@ -673,7 +675,7 @@ export function VanRepTargetsAdminTab() {
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#4c1d95', marginBottom: '3px' }}>
-                    مكافأة تحقيق التارجت (%)
+                    {__t('delivery_reps.van_rep_targets_admin_tab.s54', __t('delivery_reps.van_rep_targets_admin_tab.s54', "مكافأة تحقيق التارجت (%)"))}
                   </label>
                   <input
                     type="number"
@@ -712,7 +714,7 @@ export function VanRepTargetsAdminTab() {
                 }}
               >
                 <div style={{ fontWeight: 800, color: '#170e5e', marginBottom: '6px' }}>
-                  المطلوب تحقيقه يومياً للمندوب خلال الأيام المتبقية ({editingTargetRep.remainingWorkingDays} يوم عمل):
+                  {__t('delivery_reps.van_rep_targets_admin_tab.s55', __t('delivery_reps.van_rep_targets_admin_tab.s55', "المطلوب تحقيقه يومياً للمندوب خلال الأيام المتبقية ("))}{editingTargetRep.remainingWorkingDays} {__t('delivery_reps.van_rep_targets_admin_tab.s56', __t('delivery_reps.van_rep_targets_admin_tab.s56', "يوم عمل):"))}
                 </div>
                 <div
                   style={{
@@ -723,7 +725,7 @@ export function VanRepTargetsAdminTab() {
                 >
                   {parseFloat(targetAmountInput) > 0 && (
                     <div style={{ backgroundColor: '#eff6ff', padding: '6px 8px', borderRadius: '8px', border: '1px solid #bfdbfe' }}>
-                      <span style={{ fontSize: '11px', color: '#1e40af', display: 'block', fontWeight: 600 }}>مبيعات يومية:</span>
+                      <span style={{ fontSize: '11px', color: '#1e40af', display: 'block', fontWeight: 600 }}>{__t('delivery_reps.van_rep_targets_admin_tab.s57', __t('delivery_reps.van_rep_targets_admin_tab.s57', "مبيعات يومية:"))}</span>
                       <strong style={{ fontSize: '12.5px', color: '#1d4ed8' }}>
                         {Math.ceil(
                           Math.max(
@@ -731,14 +733,14 @@ export function VanRepTargetsAdminTab() {
                             (parseFloat(targetAmountInput) - (editingTargetRep.actualSales || 0)) / editingTargetRep.remainingWorkingDays,
                           ),
                         ).toLocaleString()}{' '}
-                        <CurrencySymbol /> / يوم
+                        <CurrencySymbol /> {__t('delivery_reps.van_rep_targets_admin_tab.s58', __t('delivery_reps.van_rep_targets_admin_tab.s58', "/ يوم"))}
                       </strong>
                     </div>
                   )}
 
                   {parseFloat(collectionTargetInput) > 0 && (
                     <div style={{ backgroundColor: '#f0fdf4', padding: '6px 8px', borderRadius: '8px', border: '1px solid #bbf7d0' }}>
-                      <span style={{ fontSize: '11px', color: '#166534', display: 'block', fontWeight: 600 }}>تحصيل يومي:</span>
+                      <span style={{ fontSize: '11px', color: '#166534', display: 'block', fontWeight: 600 }}>{__t('delivery_reps.van_rep_targets_admin_tab.s59', __t('delivery_reps.van_rep_targets_admin_tab.s59', "تحصيل يومي:"))}</span>
                       <strong style={{ fontSize: '12.5px', color: '#15803d' }}>
                         {Math.ceil(
                           Math.max(
@@ -746,14 +748,14 @@ export function VanRepTargetsAdminTab() {
                             (parseFloat(collectionTargetInput) - (editingTargetRep.actualCollections || 0)) / editingTargetRep.remainingWorkingDays,
                           ),
                         ).toLocaleString()}{' '}
-                        <CurrencySymbol /> / يوم
+                        <CurrencySymbol /> {__t('delivery_reps.van_rep_targets_admin_tab.s60', __t('delivery_reps.van_rep_targets_admin_tab.s60', "/ يوم"))}
                       </strong>
                     </div>
                   )}
 
                   {parseFloat(visitsTargetInput) > 0 && (
                     <div style={{ backgroundColor: '#faf5ff', padding: '6px 8px', borderRadius: '8px', border: '1px solid #e9d5ff' }}>
-                      <span style={{ fontSize: '11px', color: '#6b21a8', display: 'block', fontWeight: 600 }}>زيارات يومية:</span>
+                      <span style={{ fontSize: '11px', color: '#6b21a8', display: 'block', fontWeight: 600 }}>{__t('delivery_reps.van_rep_targets_admin_tab.s61', __t('delivery_reps.van_rep_targets_admin_tab.s61', "زيارات يومية:"))}</span>
                       <strong style={{ fontSize: '12.5px', color: '#7c3aed' }}>
                         {Math.ceil(
                           Math.max(
@@ -761,7 +763,7 @@ export function VanRepTargetsAdminTab() {
                             (parseFloat(visitsTargetInput) - (editingTargetRep.actualVisits || 0)) / editingTargetRep.remainingWorkingDays,
                           ),
                         ).toLocaleString()}{' '}
-                        زيارة / يوم
+                        {__t('delivery_reps.van_rep_targets_admin_tab.s62', __t('delivery_reps.van_rep_targets_admin_tab.s62', "زيارة / يوم"))}
                       </strong>
                     </div>
                   )}
@@ -771,7 +773,7 @@ export function VanRepTargetsAdminTab() {
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '4px' }}>
               <Button variant="secondary" onClick={() => setEditingTargetRep(null)}>
-                إلغاء
+                {__t('delivery_reps.van_rep_targets_admin_tab.s63', __t('delivery_reps.van_rep_targets_admin_tab.s63', "إلغاء"))}
               </Button>
               <Button
                 variant="primary"
@@ -779,7 +781,7 @@ export function VanRepTargetsAdminTab() {
                 onClick={handleSaveTarget}
                 style={{ backgroundColor: '#170e5e', color: '#ffffff' }}
               >
-                {setTargetMutation.isPending ? 'جاري الحفظ...' : 'حفظ المستهدفات ونسب العمولة'}
+                {setTargetMutation.isPending ? __t('delivery_reps.van_rep_targets_admin_tab.s64', __t('delivery_reps.van_rep_targets_admin_tab.s64', "جاري الحفظ...")) : __t('delivery_reps.van_rep_targets_admin_tab.s65', __t('delivery_reps.van_rep_targets_admin_tab.s65', "حفظ المستهدفات ونسب العمولة"))}
               </Button>
             </div>
           </div>
@@ -798,26 +800,26 @@ export function VanRepTargetsAdminTab() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }} dir="rtl">
             <div style={{ backgroundColor: '#f8fafc', padding: '10px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '12px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                <span style={{ color: '#64748b' }}>عمولة المبيعات ({settlingCommissionRep.salesCommissionRate ?? 1}%):</span>
+                <span style={{ color: '#64748b' }}>{__t('delivery_reps.van_rep_targets_admin_tab.s66', __t('delivery_reps.van_rep_targets_admin_tab.s66', "عمولة المبيعات ("))}{settlingCommissionRep.salesCommissionRate ?? 1}%):</span>
                 <strong>{Number(settlingCommissionRep.salesCommissionEarned || 0).toFixed(2)} <CurrencySymbol /></strong>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                <span style={{ color: '#64748b' }}>عمولة التحصيل ({settlingCommissionRep.collectionCommissionRate ?? 0.5}%):</span>
+                <span style={{ color: '#64748b' }}>{__t('delivery_reps.van_rep_targets_admin_tab.s67', __t('delivery_reps.van_rep_targets_admin_tab.s67', "عمولة التحصيل ("))}{settlingCommissionRep.collectionCommissionRate ?? 0.5}%):</span>
                 <strong>{Number(settlingCommissionRep.collectionCommissionEarned || 0).toFixed(2)} <CurrencySymbol /></strong>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                <span style={{ color: '#64748b' }}>مكافأة تحقيق الهدف ({settlingCommissionRep.targetBonusRate ?? 1}%):</span>
+                <span style={{ color: '#64748b' }}>{__t('delivery_reps.van_rep_targets_admin_tab.s68', __t('delivery_reps.van_rep_targets_admin_tab.s68', "مكافأة تحقيق الهدف ("))}{settlingCommissionRep.targetBonusRate ?? 1}%):</span>
                 <strong style={{ color: '#15803d' }}>{Number(settlingCommissionRep.targetBonusEarned || 0).toFixed(2)} <CurrencySymbol /></strong>
               </div>
               <div style={{ borderTop: '1px solid #cbd5e1', paddingTop: '6px', marginTop: '4px', display: 'flex', justifyContent: 'space-between', fontWeight: 800 }}>
-                <span style={{ color: '#170e5e' }}>صافي العمولة المتبقية للصرف:</span>
+                <span style={{ color: '#170e5e' }}>{__t('delivery_reps.van_rep_targets_admin_tab.s69', __t('delivery_reps.van_rep_targets_admin_tab.s69', "صافي العمولة المتبقية للصرف:"))}</span>
                 <span style={{ color: '#170e5e', fontSize: '13.5px' }}>{Number(settlingCommissionRep.remainingCommissionPayable || 0).toFixed(2)} <CurrencySymbol /></span>
               </div>
             </div>
 
             <div>
               <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                المبلغ المراد صرفه الآن <span style={{ color: '#dc2626' }}>*</span>
+                {__t('delivery_reps.van_rep_targets_admin_tab.s70', __t('delivery_reps.van_rep_targets_admin_tab.s70', "المبلغ المراد صرفه الآن"))} <span style={{ color: '#dc2626' }}>*</span>
               </label>
               <input
                 type="number"
@@ -839,7 +841,7 @@ export function VanRepTargetsAdminTab() {
 
             <div>
               <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                طريقة الصرف من الخزينة / البنك
+                {__t('delivery_reps.van_rep_targets_admin_tab.s71', __t('delivery_reps.van_rep_targets_admin_tab.s71', "طريقة الصرف من الخزينة / البنك"))}
               </label>
               <select
                 value={settlePaymentMethod}
@@ -854,20 +856,20 @@ export function VanRepTargetsAdminTab() {
                   color: '#0f172a',
                 }}
               >
-                <option value="cash">صرف نقدي من الخزينة (Cash)</option>
-                <option value="bank_transfer">تحويل بنكي (Bank Transfer)</option>
+                <option value="cash">{__t('delivery_reps.van_rep_targets_admin_tab.s72', __t('delivery_reps.van_rep_targets_admin_tab.s72', "صرف نقدي من الخزينة (Cash)"))}</option>
+                <option value="bank_transfer">{__t('delivery_reps.van_rep_targets_admin_tab.s73', __t('delivery_reps.van_rep_targets_admin_tab.s73', "تحويل بنكي (Bank Transfer)"))}</option>
               </select>
             </div>
 
             <div>
               <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                بيان / ملاحظات سند الصرف (اختياري)
+                {__t('delivery_reps.van_rep_targets_admin_tab.s74', __t('delivery_reps.van_rep_targets_admin_tab.s74', "بيان / ملاحظات سند الصرف (اختياري)"))}
               </label>
               <input
                 type="text"
                 value={settleNotesInput}
                 onChange={(e) => setSettleNotesInput(e.target.value)}
-                placeholder="مثال: صرف عمولة وحافز مبيعات الشهر..."
+                placeholder={__t('delivery_reps.van_rep_targets_admin_tab.s75', __t('delivery_reps.van_rep_targets_admin_tab.s75', "مثال: صرف عمولة وحافز مبيعات الشهر..."))}
                 style={{
                   width: '100%',
                   padding: '8px 10px',
@@ -881,7 +883,7 @@ export function VanRepTargetsAdminTab() {
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '4px' }}>
               <Button variant="secondary" onClick={() => setSettlingCommissionRep(null)}>
-                إلغاء
+                {__t('delivery_reps.van_rep_targets_admin_tab.s76', __t('delivery_reps.van_rep_targets_admin_tab.s76', "إلغاء"))}
               </Button>
               <Button
                 variant="primary"
@@ -889,7 +891,7 @@ export function VanRepTargetsAdminTab() {
                 onClick={handleConfirmSettleCommission}
                 style={{ backgroundColor: '#170e5e', color: '#ffffff' }}
               >
-                {settleCommissionMutation.isPending ? 'جاري الصرف والترحيل...' : 'تأكيد صرف العمولة وترحيل القيد'}
+                {settleCommissionMutation.isPending ? __t('delivery_reps.van_rep_targets_admin_tab.s77', __t('delivery_reps.van_rep_targets_admin_tab.s77', "جاري الصرف والترحيل...")) : __t('delivery_reps.van_rep_targets_admin_tab.s78', __t('delivery_reps.van_rep_targets_admin_tab.s78', "تأكيد صرف العمولة وترحيل القيد"))}
               </Button>
             </div>
           </div>

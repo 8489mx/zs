@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { Field } from '@/shared/ui/field';
@@ -26,6 +27,7 @@ export function RecordSubcontractorPaymentModal({
   onClose,
   onSuccess,
 }: RecordSubcontractorPaymentModalProps) {
+  const { t } = useTranslation();
   const { currencySymbol } = useSystemCurrency();
   const { projects } = useContracting();
 
@@ -140,8 +142,8 @@ export function RecordSubcontractorPaymentModal({
     <StandardDialog
       open={open}
       onClose={onClose}
-      title="تسجيل دفعة وسند صرف لمقاول باطن (Subcontractor Disbursement)"
-      subtitle="إثبات صرف دفعة مالية وقيدها في كشف حساب مقاول الباطن لتسوية مستحقاته"
+      title={t('contracting.record_subcontractor_payment_modal.s0', "تسجيل دفعة وسند صرف لمقاول باطن (Subcontractor Disbursement)")}
+      subtitle={t('contracting.record_subcontractor_payment_modal.s1', "إثبات صرف دفعة مالية وقيدها في كشف حساب مقاول الباطن لتسوية مستحقاته")}
       maxWidth="680px"
     >
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }} dir="rtl">
@@ -166,12 +168,12 @@ export function RecordSubcontractorPaymentModal({
             <div>
               <div style={{ fontWeight: 700, color: '#0f172a', fontSize: 'var(--font-body)' }}>{currentSubcontractor.name}</div>
               <div style={{ fontSize: 'var(--font-micro)', color: '#64748b', marginTop: '2px' }}>
-                التخصص: {currentSubcontractor.tradeSpecialty || 'مقاولات عامة'} {currentSubcontractor.phone && `• هاتف: ${currentSubcontractor.phone}`}
+                {t('contracting.record_subcontractor_payment_modal.s2', "التخصص:")} {currentSubcontractor.tradeSpecialty || t('contracting.record_subcontractor_payment_modal.s3', "مقاولات عامة")} {currentSubcontractor.phone && `• هاتف: ${currentSubcontractor.phone}`}
               </div>
             </div>
             {currentSubcontractor.netBalance !== undefined && (
               <div style={{ textAlign: 'left' }}>
-                <div style={{ fontSize: 'var(--font-micro)', color: '#64748b' }}>الرصيد المستحق الحالي</div>
+                <div style={{ fontSize: 'var(--font-micro)', color: '#64748b' }}>{t('contracting.record_subcontractor_payment_modal.s4', "الرصيد المستحق الحالي")}</div>
                 <div style={{ fontSize: '1.1rem', fontWeight: 800, color: currentSubcontractor.netBalance > 0 ? '#15803d' : '#475569' }}>
                   {currentSubcontractor.netBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })} {currencySymbol}
                 </div>
@@ -181,18 +183,18 @@ export function RecordSubcontractorPaymentModal({
         )}
 
         {!subcontractor && (
-          <Field label="مقاول الباطن المستفيد *">
+          <Field label={t('contracting.record_subcontractor_payment_modal.s5', "مقاول الباطن المستفيد *")}>
             <CustomSelect
               value={selectedSubId}
               onChange={(val) => setSelectedSubId(val)}
               options={subOptions}
-              placeholder="اختر مقاول الباطن..."
+              placeholder={t('contracting.record_subcontractor_payment_modal.s6', "اختر مقاول الباطن...")}
             />
           </Field>
         )}
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-          <Field label="طبيعة وسياق الدفعة *">
+          <Field label={t('contracting.record_subcontractor_payment_modal.s7', "طبيعة وسياق الدفعة *")}>
             <CustomSelect
               value={formData.paymentCategory}
               onChange={(val) => setFormData({ ...formData, paymentCategory: val as any })}
@@ -200,12 +202,12 @@ export function RecordSubcontractorPaymentModal({
             />
           </Field>
 
-          <Field label="المشروع الإنشائي">
+          <Field label={t('contracting.record_subcontractor_payment_modal.s8', "المشروع الإنشائي")}>
             <CustomSelect
               value={formData.projectId}
               onChange={(val) => setFormData({ ...formData, projectId: val })}
               options={projectOptions}
-              placeholder="اختر المشروع (اختياري)..."
+              placeholder={t('contracting.record_subcontractor_payment_modal.s9', "اختر المشروع (اختياري)...")}
             />
           </Field>
         </div>
@@ -227,7 +229,7 @@ export function RecordSubcontractorPaymentModal({
           >
             <AppIcons.ShieldCheck size={18} />
             <span>
-              <strong>بوابة الاعتماد الرقابية G1 مفعلة:</strong> سيتم التحقق الفوري من وجود وسريان خطاب ضمان الدفعة المقدمة البنكي للمقاول وتغطية كامل المبلغ قبل الموافقة على الصرف.
+              <strong>{t('contracting.record_subcontractor_payment_modal.s10', "بوابة الاعتماد الرقابية G1 مفعلة:")}</strong> {t('contracting.record_subcontractor_payment_modal.s11', "سيتم التحقق الفوري من وجود وسريان خطاب ضمان الدفعة المقدمة البنكي للمقاول وتغطية كامل المبلغ قبل الموافقة على الصرف.")}
             </span>
           </div>
         )}
@@ -259,7 +261,7 @@ export function RecordSubcontractorPaymentModal({
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
-          <Field label="تاريخ الصرف *">
+          <Field label={t('contracting.record_subcontractor_payment_modal.s12', "تاريخ الصرف *")}>
             <input
               type="date"
               value={formData.paymentDate}
@@ -277,21 +279,21 @@ export function RecordSubcontractorPaymentModal({
             />
           </Field>
 
-          <Field label="طريقة السداد *">
+          <Field label={t('contracting.record_subcontractor_payment_modal.s13', "طريقة السداد *")}>
             <CustomSelect
               value={formData.paymentMethod}
               onChange={(val) => setFormData({ ...formData, paymentMethod: val as any })}
               options={paymentMethodOptions}
-              placeholder="طريقة السداد..."
+              placeholder={t('contracting.record_subcontractor_payment_modal.s14', "طريقة السداد...")}
             />
           </Field>
 
-          <Field label="رقم السند أو الشيك المرجعي">
+          <Field label={t('contracting.record_subcontractor_payment_modal.s15', "رقم السند أو الشيك المرجعي")}>
             <input
               type="text"
               value={formData.referenceNumber}
               onChange={(e) => setFormData({ ...formData, referenceNumber: e.target.value })}
-              placeholder="رقم التحويل / الشيك"
+              placeholder={t('contracting.record_subcontractor_payment_modal.s16', "رقم التحويل / الشيك")}
               style={{
                 width: '100%',
                 height: '38px',
@@ -306,12 +308,12 @@ export function RecordSubcontractorPaymentModal({
         </div>
 
         <div>
-          <Field label="البيان وملاحظات الصرف">
+          <Field label={t('contracting.record_subcontractor_payment_modal.s17', "البيان وملاحظات الصرف")}>
             <textarea
               rows={2}
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              placeholder="مثال: دفعة تحت حساب مستخلص أعمال الخرسانة المسلحة للدور الأرضي..."
+              placeholder={t('contracting.record_subcontractor_payment_modal.s18', "مثال: دفعة تحت حساب مستخلص أعمال الخرسانة المسلحة للدور الأرضي...")}
               style={{
                 width: '100%',
                 borderRadius: '8px',
@@ -327,7 +329,7 @@ export function RecordSubcontractorPaymentModal({
 
         <StandardDialogFooter
           onClose={onClose}
-          submitText={isSubmitting ? 'جاري الصرف والتسجيل...' : 'تأكيد تسجيل سند الصرف'}
+          submitText={isSubmitting ? t('contracting.record_subcontractor_payment_modal.s19', "جاري الصرف والتسجيل...") : t('contracting.record_subcontractor_payment_modal.s20', "تأكيد تسجيل سند الصرف")}
           isSubmitting={isSubmitting}
         />
       </form>

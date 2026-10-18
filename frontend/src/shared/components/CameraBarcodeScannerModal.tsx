@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { lazy, Suspense, useEffect, useState } from 'react';
 import type { CameraBarcodeScannerModalProps } from './CameraBarcodeScannerView';
 
@@ -12,13 +13,14 @@ const CameraBarcodeScannerView = lazy(() =>
 export type { CameraBarcodeScannerModalProps };
 
 function ScannerLoadingFallback() {
+  const { t } = useTranslation();
   return (
     <div className="z-scanner-backdrop" role="dialog" aria-modal="true" aria-busy="true" dir="rtl">
       <div className="z-scanner-card">
         <div className="z-scanner-viewport-wrap">
           <div className="z-scanner-overlay-state">
             <div className="z-scanner-spinner" />
-            <span className="z-scanner-state-text">جاري تشغيل الكاميرا...</span>
+            <span className="z-scanner-state-text">{t('shared.camera_barcode_scanner_modal.s0', "جاري تشغيل الكاميرا...")}</span>
           </div>
         </div>
       </div>

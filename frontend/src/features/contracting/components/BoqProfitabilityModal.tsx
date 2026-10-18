@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
 import { StandardDialog } from '@/shared/components/StandardDialog';
 import { contractingApi } from '../api/contracting.api';
@@ -18,6 +19,7 @@ export function BoqProfitabilityModal({
   projectId,
   projectName,
 }: BoqProfitabilityModalProps) {
+  const { t } = useTranslation();
   const { currencySymbol, formatCurrency } = useSystemCurrency();
   const [summary, setSummary] = useState<BoqProfitabilitySummary | null>(null);
   const [loading, setLoading] = useState(true);
@@ -46,8 +48,8 @@ export function BoqProfitabilityModal({
     <StandardDialog
       open={isOpen}
       onClose={onClose}
-      title="تحليل ربحية بنود المقايسة (BOQ Profitability & Margin Analysis)"
-      subtitle={projectName ? `المشروع: ${projectName}` : 'تحليل ومقارنة أسعار بيع البنود مقابل التكاليف التقديرية وهامش الربح'}
+      title={t('contracting.boq_profitability_modal.s0', "تحليل ربحية بنود المقايسة (BOQ Profitability & Margin Analysis)")}
+      subtitle={projectName ? `المشروع: ${projectName}` : t('contracting.boq_profitability_modal.s1', "تحليل ومقارنة أسعار بيع البنود مقابل التكاليف التقديرية وهامش الربح")}
       width="min(1080px, 95vw)"
       minHeight="min(560px, 85vh)"
       footer={
@@ -66,7 +68,7 @@ export function BoqProfitabilityModal({
               cursor: 'pointer',
             }}
           >
-            إغلاق
+            {t('contracting.boq_profitability_modal.s2', "إغلاق")}
           </button>
         </div>
       }
@@ -75,28 +77,28 @@ export function BoqProfitabilityModal({
         {/* ملخص المؤشرات المالية للبنود */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '10px' }}>
           <div style={{ padding: '10px', borderRadius: '8px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0' }}>
-            <span style={{ fontSize: 'var(--font-micro)', color: '#64748b' }}>إجمالي قيمة التعاقد</span>
+            <span style={{ fontSize: 'var(--font-micro)', color: '#64748b' }}>{t('contracting.boq_profitability_modal.s3', "إجمالي قيمة التعاقد")}</span>
             <strong style={{ display: 'block', fontSize: '1.05rem', color: '#1e293b', marginTop: '2px' }}>
               {loading ? '—' : formatCurrency(summary?.totalProjectRevenue || 0)}
             </strong>
           </div>
 
           <div style={{ padding: '10px', borderRadius: '8px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0' }}>
-            <span style={{ fontSize: 'var(--font-micro)', color: '#64748b' }}>التكلفة التقديرية للمقايسة</span>
+            <span style={{ fontSize: 'var(--font-micro)', color: '#64748b' }}>{t('contracting.boq_profitability_modal.s4', "التكلفة التقديرية للمقايسة")}</span>
             <strong style={{ display: 'block', fontSize: '1.05rem', color: '#475569', marginTop: '2px' }}>
               {loading ? '—' : formatCurrency(summary?.totalProjectEstimatedCost || 0)}
             </strong>
           </div>
 
           <div style={{ padding: '10px', borderRadius: '8px', backgroundColor: '#eff6ff', border: '1px solid #bfdbfe' }}>
-            <span style={{ fontSize: 'var(--font-micro)', color: '#1e40af' }}>التكلفة الفعلية الشاملة (Direct + Indirect)</span>
+            <span style={{ fontSize: 'var(--font-micro)', color: '#1e40af' }}>{t('contracting.boq_profitability_modal.s5', "التكلفة الفعلية الشاملة (Direct + Indirect)")}</span>
             <strong style={{ display: 'block', fontSize: '1.05rem', color: '#1d4ed8', marginTop: '2px' }}>
               {loading ? '—' : formatCurrency(summary?.totalProjectActualCost || 0)}
             </strong>
           </div>
 
           <div style={{ padding: '10px', borderRadius: '8px', backgroundColor: '#ecfdf5', border: '1px solid #a7f3d0' }}>
-            <span style={{ fontSize: 'var(--font-micro)', color: '#065f46' }}>صافي الربح المتوقع الإجمالي</span>
+            <span style={{ fontSize: 'var(--font-micro)', color: '#065f46' }}>{t('contracting.boq_profitability_modal.s6', "صافي الربح المتوقع الإجمالي")}</span>
             <strong style={{ display: 'block', fontSize: '1.05rem', color: '#047857', marginTop: '2px' }}>
               {loading ? '—' : `${formatCurrency(summary?.totalProjectProfit || 0)} (${summary?.overallMarginPercent || 0}%)`}
             </strong>
@@ -104,7 +106,7 @@ export function BoqProfitabilityModal({
 
           <div style={{ padding: '10px', borderRadius: '8px', backgroundColor: (summary?.lossMakingItemsCount || 0) > 0 ? '#fef2f2' : '#f8fafc', border: (summary?.lossMakingItemsCount || 0) > 0 ? '1px solid #fecaca' : '1px solid #e2e8f0' }}>
             <span style={{ fontSize: 'var(--font-micro)', color: (summary?.lossMakingItemsCount || 0) > 0 ? '#b91c1c' : '#64748b' }}>
-              البنود الخاسرة أو المتعثرة
+              {t('contracting.boq_profitability_modal.s7', "البنود الخاسرة أو المتعثرة")}
             </span>
             <strong style={{ display: 'block', fontSize: '1.05rem', color: (summary?.lossMakingItemsCount || 0) > 0 ? '#b91c1c' : '#475569', marginTop: '2px' }}>
               {loading ? '—' : summary?.lossMakingItemsCount || 0}
@@ -116,7 +118,7 @@ export function BoqProfitabilityModal({
         <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
           <input
             type="text"
-            placeholder="ابحث عن كود أو وصف بند..."
+            placeholder={t('contracting.boq_profitability_modal.s8', "ابحث عن كود أو وصف بند...")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             style={{
@@ -144,7 +146,7 @@ export function BoqProfitabilityModal({
                 cursor: 'pointer',
               }}
             >
-              الكل ({summary?.itemsCount || 0})
+              {t('contracting.boq_profitability_modal.s9', "الكل (")}{summary?.itemsCount || 0})
             </button>
             <button
               type="button"
@@ -160,7 +162,7 @@ export function BoqProfitabilityModal({
                 cursor: 'pointer',
               }}
             >
-              رابحة
+              {t('contracting.boq_profitability_modal.s10', "رابحة")}
             </button>
             <button
               type="button"
@@ -176,7 +178,7 @@ export function BoqProfitabilityModal({
                 cursor: 'pointer',
               }}
             >
-              تحت الملاحظة
+              {t('contracting.boq_profitability_modal.s11', "تحت الملاحظة")}
             </button>
             <button
               type="button"
@@ -192,7 +194,7 @@ export function BoqProfitabilityModal({
                 cursor: 'pointer',
               }}
             >
-              خاسرة ({summary?.lossMakingItemsCount || 0})
+              {t('contracting.boq_profitability_modal.s12', "خاسرة (")}{summary?.lossMakingItemsCount || 0})
             </button>
           </div>
         </div>
@@ -215,33 +217,33 @@ export function BoqProfitabilityModal({
             <div style={{ flex: 1, minHeight: '320px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '12px', color: '#64748b', backgroundColor: '#f8fafc' }}>
               <div style={{ width: '32px', height: '32px', border: '3px solid #cbd5e1', borderTopColor: '#170e5e', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
               <span style={{ fontSize: 'var(--font-body)', fontWeight: 600 }}>
-                جارٍ تحليل ربحية بنود المقايسة ومقارنة التكاليف...
+                {t('contracting.boq_profitability_modal.s13', "جارٍ تحليل ربحية بنود المقايسة ومقارنة التكاليف...")}
               </span>
             </div>
           ) : filteredItems.length === 0 ? (
             <div style={{ flex: 1, minHeight: '320px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '8px', color: '#94a3b8', padding: '24px' }}>
               <span style={{ fontSize: 'var(--font-body)', fontWeight: 600, color: '#64748b' }}>
-                لا توجد بنود مطابقة
+                {t('contracting.boq_profitability_modal.s14', "لا توجد بنود مطابقة")}
               </span>
               <span style={{ fontSize: 'var(--font-subtitle)', color: '#94a3b8' }}>
-                تأكد من اختيار التصفية المناسبة أو إضافة بنود لمقايسة المشروع
+                {t('contracting.boq_profitability_modal.s15', "تأكد من اختيار التصفية المناسبة أو إضافة بنود لمقايسة المشروع")}
               </span>
             </div>
           ) : (
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right' }}>
               <thead style={{ position: 'sticky', top: 0, zIndex: 1, backgroundColor: '#f8fafc' }}>
                 <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
-                  <th style={{ padding: '8px 10px', fontSize: 'var(--font-table-head)', color: '#475569' }}>كود البند</th>
-                  <th style={{ padding: '8px 10px', fontSize: 'var(--font-table-head)', color: '#475569' }}>بيان الأعمال</th>
-                  <th style={{ padding: '8px 10px', fontSize: 'var(--font-table-head)', color: '#475569' }}>الكمية</th>
-                  <th style={{ padding: '8px 10px', fontSize: 'var(--font-table-head)', color: '#475569' }}>سعر البيع ({currencySymbol})</th>
-                  <th style={{ padding: '8px 10px', fontSize: 'var(--font-table-head)', color: '#475569' }}>التقديري</th>
-                  <th style={{ padding: '8px 10px', fontSize: 'var(--font-table-head)', color: '#475569' }}>المباشر الفعلي</th>
-                  <th style={{ padding: '8px 10px', fontSize: 'var(--font-table-head)', color: '#1e40af' }}>غير المباشر الموزع</th>
-                  <th style={{ padding: '8px 10px', fontSize: 'var(--font-table-head)', color: '#475569' }}>التكلفة الكلية الفعلية</th>
-                  <th style={{ padding: '8px 10px', fontSize: 'var(--font-table-head)', color: '#475569' }}>الربح المحقق</th>
-                  <th style={{ padding: '8px 10px', fontSize: 'var(--font-table-head)', color: '#475569' }}>الهامش %</th>
-                  <th style={{ padding: '8px 10px', fontSize: 'var(--font-table-head)', color: '#475569' }}>حالة البند</th>
+                  <th style={{ padding: '8px 10px', fontSize: 'var(--font-table-head)', color: '#475569' }}>{t('contracting.boq_profitability_modal.s16', "كود البند")}</th>
+                  <th style={{ padding: '8px 10px', fontSize: 'var(--font-table-head)', color: '#475569' }}>{t('contracting.boq_profitability_modal.s17', "بيان الأعمال")}</th>
+                  <th style={{ padding: '8px 10px', fontSize: 'var(--font-table-head)', color: '#475569' }}>{t('contracting.boq_profitability_modal.s18', "الكمية")}</th>
+                  <th style={{ padding: '8px 10px', fontSize: 'var(--font-table-head)', color: '#475569' }}>{t('contracting.boq_profitability_modal.s19', "سعر البيع (")}{currencySymbol})</th>
+                  <th style={{ padding: '8px 10px', fontSize: 'var(--font-table-head)', color: '#475569' }}>{t('contracting.boq_profitability_modal.s20', "التقديري")}</th>
+                  <th style={{ padding: '8px 10px', fontSize: 'var(--font-table-head)', color: '#475569' }}>{t('contracting.boq_profitability_modal.s21', "المباشر الفعلي")}</th>
+                  <th style={{ padding: '8px 10px', fontSize: 'var(--font-table-head)', color: '#1e40af' }}>{t('contracting.boq_profitability_modal.s22', "غير المباشر الموزع")}</th>
+                  <th style={{ padding: '8px 10px', fontSize: 'var(--font-table-head)', color: '#475569' }}>{t('contracting.boq_profitability_modal.s23', "التكلفة الكلية الفعلية")}</th>
+                  <th style={{ padding: '8px 10px', fontSize: 'var(--font-table-head)', color: '#475569' }}>{t('contracting.boq_profitability_modal.s24', "الربح المحقق")}</th>
+                  <th style={{ padding: '8px 10px', fontSize: 'var(--font-table-head)', color: '#475569' }}>{t('contracting.boq_profitability_modal.s25', "الهامش %")}</th>
+                  <th style={{ padding: '8px 10px', fontSize: 'var(--font-table-head)', color: '#475569' }}>{t('contracting.boq_profitability_modal.s26', "حالة البند")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -329,7 +331,7 @@ export function BoqProfitabilityModal({
                               item.status === 'profitable' ? '#15803d' : item.status === 'at_risk' ? '#b45309' : '#b91c1c',
                           }}
                         >
-                          {item.status === 'profitable' ? 'رابح' : item.status === 'at_risk' ? 'هامش منخفض' : 'خاسر'}
+                          {item.status === 'profitable' ? t('contracting.boq_profitability_modal.s27', "رابح") : item.status === 'at_risk' ? t('contracting.boq_profitability_modal.s28', "هامش منخفض") : t('contracting.boq_profitability_modal.s29', "خاسر")}
                         </span>
                       </td>
                     </tr>

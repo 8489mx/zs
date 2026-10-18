@@ -1,6 +1,8 @@
+import { useTranslation } from 'react-i18next';
 import { FormSection } from '@/shared/components/form-section';
 
 export function HrPayrollWorkflowCard() {
+  const { t } = useTranslation();
   const steps = [
     ['1. إنشاء/اختيار المسير', 'اختر شهر المرتبات ثم افتح كشف الشهر.'],
     ['2. مراجعة الحضور', 'تأكد من اعتماد أو تخطي الاستثناءات المؤثرة على الأجر.'],
@@ -9,7 +11,7 @@ export function HrPayrollWorkflowCard() {
   ];
 
   return (
-    <FormSection title="تسلسل المرتبات الشهري" description="لا تعتمد المرتبات قبل المرور على نقاط المراجعة الأساسية.">
+    <FormSection title={t('hr.payroll.hr_payroll_static_cards.s0', "تسلسل المرتبات الشهري")} description={t('hr.payroll.hr_payroll_static_cards.s1', "لا تعتمد المرتبات قبل المرور على نقاط المراجعة الأساسية.")}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
         {steps.map(([title, hint]) => (
           <div key={title}><strong>{title}:</strong> <span className="muted">{hint}</span></div>
@@ -20,10 +22,11 @@ export function HrPayrollWorkflowCard() {
 }
 
 export function HrPayrollOperationalNote() {
+  const { t } = useTranslation();
   return (
-    <FormSection title="ملاحظة تشغيلية">
+    <FormSection title={t('hr.payroll.hr_payroll_static_cards.s2', "ملاحظة تشغيلية")}>
       <p className="muted" style={{ margin: 0 }}>
-        اعتمد المرتبات بعد مراجعة الحضور، الإجازات، والسلف. أي خصومات مقترحة تظهر للمراجعة ولا تُعامل كقرار نهائي إلا بعد اعتماد المسؤول.
+        {t('hr.payroll.hr_payroll_static_cards.s3', "اعتمد المرتبات بعد مراجعة الحضور، الإجازات، والسلف. أي خصومات مقترحة تظهر للمراجعة ولا تُعامل كقرار نهائي إلا بعد اعتماد المسؤول.")}
       </p>
     </FormSection>
   );

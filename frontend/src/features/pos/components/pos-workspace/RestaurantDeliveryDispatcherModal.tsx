@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { RestaurantOperationsDialog } from './RestaurantOperationsDialog';
@@ -27,6 +28,7 @@ export function RestaurantDeliveryDispatcherModal({
   onClose,
   onBack,
 }: RestaurantDeliveryDispatcherModalProps) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const currencySymbol = getGlobalCurrencySymbol();
   const isKwd = isKuwait();
@@ -104,10 +106,10 @@ export function RestaurantDeliveryDispatcherModal({
       open={open}
       onClose={onClose}
       onBack={onBack}
-      backText="الرجوع لعمليات المطعم"
-      title="لوحة توجيه وإسناد طلبات الدليفري (Restaurant Dispatcher)"
-      subtitle="توجيه الطلبات الجاهزة لكباتن المطعم بنقرة واحدة مع إشعارات واتساب فورية للعملاء"
-      footerNote="توجيه الطلبات يرسل إشعارات واتساب تلقائية للعملاء مع بيانات السائق"
+      backText={t('pos.pos_workspace.restaurant_delivery_dispatcher_modal.s0', "الرجوع لعمليات المطعم")}
+      title={t('pos.pos_workspace.restaurant_delivery_dispatcher_modal.s1', "لوحة توجيه وإسناد طلبات الدليفري (Restaurant Dispatcher)")}
+      subtitle={t('pos.pos_workspace.restaurant_delivery_dispatcher_modal.s2', "توجيه الطلبات الجاهزة لكباتن المطعم بنقرة واحدة مع إشعارات واتساب فورية للعملاء")}
+      footerNote={t('pos.pos_workspace.restaurant_delivery_dispatcher_modal.s3', "توجيه الطلبات يرسل إشعارات واتساب تلقائية للعملاء مع بيانات السائق")}
       icon={<TruckIcon size={18} color="#170e5e" />}
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
@@ -128,7 +130,7 @@ export function RestaurantDeliveryDispatcherModal({
           >
             <div style={{ fontSize: '12px', fontWeight: 800, color: '#166534', display: 'flex', alignItems: 'center', gap: '5px' }}>
               <CheckCircleIcon size={14} color="#166534" />
-              <span>تم انطلاق الطلبات! إشعارات الواتساب الجاهزة للعملاء:</span>
+              <span>{t('pos.pos_workspace.restaurant_delivery_dispatcher_modal.s4', "تم انطلاق الطلبات! إشعارات الواتساب الجاهزة للعملاء:")}</span>
             </div>
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
               {recentNotifications.map((notif, idx) => (
@@ -151,7 +153,7 @@ export function RestaurantDeliveryDispatcherModal({
                   }}
                 >
                   <SendIcon size={11} color="#ffffff" />
-                  <span>إرسال واتساب لطلب #{notif.orderNumber}</span>
+                  <span>{t('pos.pos_workspace.restaurant_delivery_dispatcher_modal.s5', "إرسال واتساب لطلب #")}{notif.orderNumber}</span>
                 </a>
               ))}
             </div>
@@ -191,10 +193,10 @@ export function RestaurantDeliveryDispatcherModal({
             >
               <div>
                 <strong style={{ fontSize: '13px', color: '#1e293b' }}>
-                  الطلبات الجاهزة للإسناد والتوصيل
+                  {t('pos.pos_workspace.restaurant_delivery_dispatcher_modal.s6', "الطلبات الجاهزة للإسناد والتوصيل")}
                 </strong>
                 <span style={{ fontSize: '11px', color: '#64748b', marginRight: '6px' }}>
-                  ({pendingOrders.length} طلب جاهز)
+                  ({pendingOrders.length} {t('pos.pos_workspace.restaurant_delivery_dispatcher_modal.s7', "طلب جاهز)")}
                 </span>
               </div>
               {pendingOrders.length > 0 && (
@@ -210,7 +212,7 @@ export function RestaurantDeliveryDispatcherModal({
                     cursor: 'pointer',
                   }}
                 >
-                  {selectedOrderIds.length === pendingOrders.length ? 'إلغاء تحديد الكل' : 'تحديد الكل'}
+                  {selectedOrderIds.length === pendingOrders.length ? t('pos.pos_workspace.restaurant_delivery_dispatcher_modal.s8', "إلغاء تحديد الكل") : t('pos.pos_workspace.restaurant_delivery_dispatcher_modal.s9', "تحديد الكل")}
                 </button>
               )}
             </div>
@@ -230,7 +232,7 @@ export function RestaurantDeliveryDispatcherModal({
                   }}
                 >
                   <CheckShieldIcon size={24} color="#94a3b8" />
-                  <span>لا توجد طلبات دليفري معلقة بانتظار التوجيه حالياً</span>
+                  <span>{t('pos.pos_workspace.restaurant_delivery_dispatcher_modal.s10', "لا توجد طلبات دليفري معلقة بانتظار التوجيه حالياً")}</span>
                 </div>
               ) : (
                 pendingOrders.map((order) => {
@@ -260,7 +262,7 @@ export function RestaurantDeliveryDispatcherModal({
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                           <strong style={{ fontSize: '13px', color: '#0f172a' }}>
-                            طلب #{order.orderNumber}
+                            {t('pos.pos_workspace.restaurant_delivery_dispatcher_modal.s11', "طلب #")}{order.orderNumber}
                           </strong>
                           <span style={{ fontSize: '12px', fontWeight: 800, color: '#170e5e' }}>
                             {order.totalAmount} {currencySymbol}
@@ -295,7 +297,7 @@ export function RestaurantDeliveryDispatcherModal({
                               color: order.paymentStatus === 'paid' ? '#166534' : '#92400e',
                             }}
                           >
-                            {order.paymentStatus === 'paid' ? 'مسدد إلكترونياً' : 'مطلوب تحصيل كاش (COD)'}
+                            {order.paymentStatus === 'paid' ? t('pos.pos_workspace.restaurant_delivery_dispatcher_modal.s12', "مسدد إلكترونياً") : t('pos.pos_workspace.restaurant_delivery_dispatcher_modal.s13', "مطلوب تحصيل كاش (COD)")}
                           </span>
                           {order.customerPhone ? (
                             <button
@@ -307,7 +309,7 @@ export function RestaurantDeliveryDispatcherModal({
                                   orderNumber: order.orderNumber,
                                   total: Number(order.totalAmount || 0),
                                   deliveryFee: Number(order.deliveryFee || 0),
-                                  storeName: 'المطعم',
+                                  storeName: t('pos.pos_workspace.restaurant_delivery_dispatcher_modal.s14', "المطعم"),
                                   currency: currencySymbol,
                                 });
                                 openWhatsAppChat(order.customerPhone!, msg);
@@ -325,10 +327,10 @@ export function RestaurantDeliveryDispatcherModal({
                                 padding: '2px 7px',
                                 cursor: 'pointer',
                               }}
-                              title={isKwd ? "إرسال رسالة تفاصيل الطلب وخيارات السداد K-NET عبر الواتساب" : "إرسال تفاصيل الطلب وخيارات السداد للعميل عبر الواتساب"}
+                              title={isKwd ? t('pos.pos_workspace.restaurant_delivery_dispatcher_modal.s15', "إرسال رسالة تفاصيل الطلب وخيارات السداد K-NET عبر الواتساب") : t('pos.pos_workspace.restaurant_delivery_dispatcher_modal.s16', "إرسال تفاصيل الطلب وخيارات السداد للعميل عبر الواتساب")}
                             >
                               <SendIcon size={11} color="#166534" />
-                              <span>{isKwd ? 'واتساب K-NET' : 'إرسال واتساب'}</span>
+                              <span>{isKwd ? t('pos.pos_workspace.restaurant_delivery_dispatcher_modal.s17', "واتساب K-NET") : t('pos.pos_workspace.restaurant_delivery_dispatcher_modal.s18', "إرسال واتساب")}</span>
                             </button>
                           ) : null}
                         </div>
@@ -355,12 +357,12 @@ export function RestaurantDeliveryDispatcherModal({
           >
             <div>
               <strong style={{ fontSize: '13px', color: '#1e293b', display: 'block', marginBottom: '8px' }}>
-                كباتن وسائقو المطعم المتاحون
+                {t('pos.pos_workspace.restaurant_delivery_dispatcher_modal.s19', "كباتن وسائقو المطعم المتاحون")}
               </strong>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '180px', overflowY: 'auto' }}>
                 {activeReps.length === 0 ? (
                   <div style={{ fontSize: '12px', color: '#94a3b8', padding: '12px', textAlign: 'center' }}>
-                    لم يتم تسجيل مناديب توصيل نشطين في النظام حتى الآن.
+                    {t('pos.pos_workspace.restaurant_delivery_dispatcher_modal.s20', "لم يتم تسجيل مناديب توصيل نشطين في النظام حتى الآن.")}
                   </div>
                 ) : (
                   activeReps.map((rep) => {
@@ -398,7 +400,7 @@ export function RestaurantDeliveryDispatcherModal({
                             color: isSelected ? '#ffffff' : '#475569',
                           }}
                         >
-                          {isSelected ? 'محدد' : 'متاح'}
+                          {isSelected ? t('pos.pos_workspace.restaurant_delivery_dispatcher_modal.s21', "محدد") : t('pos.pos_workspace.restaurant_delivery_dispatcher_modal.s22', "متاح")}
                         </span>
                       </div>
                     );
@@ -409,11 +411,11 @@ export function RestaurantDeliveryDispatcherModal({
               {/* Dispatch Notes */}
               <div style={{ marginTop: '12px' }}>
                 <label style={{ fontSize: '11.5px', color: '#475569', fontWeight: 700, display: 'block', marginBottom: '4px' }}>
-                  ملاحظات الرحلة والتسليم (اختياري):
+                  {t('pos.pos_workspace.restaurant_delivery_dispatcher_modal.s23', "ملاحظات الرحلة والتسليم (اختياري):")}
                 </label>
                 <input
                   type="text"
-                  placeholder="مثال: توصيل مجمع في حي النزهة، صوص إضافي..."
+                  placeholder={t('pos.pos_workspace.restaurant_delivery_dispatcher_modal.s24', "مثال: توصيل مجمع في حي النزهة، صوص إضافي...")}
                   value={dispatchNotes}
                   onChange={(e) => setDispatchNotes(e.target.value)}
                   style={{
@@ -433,8 +435,8 @@ export function RestaurantDeliveryDispatcherModal({
             {/* Action CTA */}
             <div style={{ marginTop: '14px', paddingTop: '10px', borderTop: '1px solid #e2e8f0' }}>
               <div style={{ fontSize: '12px', color: '#475569', marginBottom: '8px', display: 'flex', justifyContent: 'space-between' }}>
-                <span>الطلبات المحددة: <strong>{selectedOrderIds.length}</strong></span>
-                <span>الكابتن: <strong>{selectedRep ? selectedRep.name : 'لم يُحدد'}</strong></span>
+                <span>{t('pos.pos_workspace.restaurant_delivery_dispatcher_modal.s25', "الطلبات المحددة:")} <strong>{selectedOrderIds.length}</strong></span>
+                <span>{t('pos.pos_workspace.restaurant_delivery_dispatcher_modal.s26', "الكابتن:")} <strong>{selectedRep ? selectedRep.name : t('pos.pos_workspace.restaurant_delivery_dispatcher_modal.s27', "لم يُحدد")}</strong></span>
               </div>
               <Button
                 variant="primary"
@@ -459,7 +461,7 @@ export function RestaurantDeliveryDispatcherModal({
                 <TruckIcon size={16} color="#ffffff" />
                 <span>
                   {dispatchMutation.isPending
-                    ? 'جارٍ الإسناد والتوجيه...'
+                    ? t('pos.pos_workspace.restaurant_delivery_dispatcher_modal.s28', "جارٍ الإسناد والتوجيه...")
                     : `انطلاق وتوجيه ${selectedOrderIds.length} طلب للكابتن`}
                 </span>
               </Button>

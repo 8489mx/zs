@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuthStore } from '@/stores/auth-store';
@@ -25,6 +26,7 @@ interface MobileModuleTile {
 }
 
 export function MobileHubPage() {
+  const { t } = useTranslation();
   const user = useAuthStore((s) => s.user);
   const tenant = useAuthStore((s) => s.tenant);
   const clearSession = useAuthStore((s) => s.clearSession);
@@ -164,14 +166,14 @@ export function MobileHubPage() {
                     display: 'inline-block',
                   }}
                 />
-                {isOnline ? 'متصل' : 'أوفلاين'}
+                {isOnline ? t('dashboard.mobile_hub_page.s0', "متصل") : t('dashboard.mobile_hub_page.s1', "أوفلاين")}
               </span>
             </div>
             <h1 style={{ fontSize: '18px', fontWeight: 800, margin: '8px 0 2px', color: '#ffffff' }}>
-              {tenant?.businessName || 'منظومة Z-Systems ERP'}
+              {tenant?.businessName || t('dashboard.mobile_hub_page.s2', "منظومة Z-Systems ERP")}
             </h1>
             <p style={{ fontSize: '11.5px', margin: 0, opacity: 0.85 }}>
-              مرحباً، {user?.displayName || user?.username || 'المستخدم'} • {user?.role === 'admin' || user?.role === 'super_admin' ? 'مدير المنشأة' : 'مستخدم مصرح'}
+              {t('dashboard.mobile_hub_page.s3', "مرحباً،")} {user?.displayName || user?.username || t('dashboard.mobile_hub_page.s4', "المستخدم")} • {user?.role === 'admin' || user?.role === 'super_admin' ? t('dashboard.mobile_hub_page.s5', "مدير المنشأة") : t('dashboard.mobile_hub_page.s6', "مستخدم مصرح")}
             </p>
           </div>
 
@@ -180,7 +182,7 @@ export function MobileHubPage() {
               clearSession();
               window.location.href = '/login';
             }}
-            title="تسجيل الخروج"
+            title={t('dashboard.mobile_hub_page.s7', "تسجيل الخروج")}
             style={{
               background: 'rgba(255, 255, 255, 0.12)',
               border: '1px solid rgba(255, 255, 255, 0.2)',
@@ -209,7 +211,7 @@ export function MobileHubPage() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
           <span style={{ width: '3px', height: '14px', backgroundColor: '#170e5e', borderRadius: '2px', display: 'inline-block' }} />
           <h2 style={{ fontSize: '13.5px', fontWeight: 800, color: '#0f172a', margin: 0 }}>
-            تطبيقات ومساحات العمل الميدانية
+            {t('dashboard.mobile_hub_page.s8', "تطبيقات ومساحات العمل الميدانية")}
           </h2>
         </div>
 
@@ -272,7 +274,7 @@ export function MobileHubPage() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', marginTop: '16px' }}>
           <span style={{ width: '3px', height: '14px', backgroundColor: '#170e5e', borderRadius: '2px', display: 'inline-block' }} />
           <h3 style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a', margin: 0 }}>
-            جاهزية الجهاز والاتصال
+            {t('dashboard.mobile_hub_page.s9', "جاهزية الجهاز والاتصال")}
           </h3>
         </div>
 
@@ -286,18 +288,18 @@ export function MobileHubPage() {
           }}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: '1px solid #f1f5f9' }}>
-            <span style={{ fontSize: '11.5px', color: '#64748b' }}>إصدار المنظومة:</span>
+            <span style={{ fontSize: '11.5px', color: '#64748b' }}>{t('dashboard.mobile_hub_page.s10', "إصدار المنظومة:")}</span>
             <span style={{ fontSize: '11.5px', fontWeight: 700, color: '#0f172a' }}>v1.1.31 (Release Store Build)</span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: '1px solid #f1f5f9' }}>
-            <span style={{ fontSize: '11.5px', color: '#64748b' }}>بيئة التشغيل:</span>
+            <span style={{ fontSize: '11.5px', color: '#64748b' }}>{t('dashboard.mobile_hub_page.s11', "بيئة التشغيل:")}</span>
             <span style={{ fontSize: '11.5px', fontWeight: 700, color: '#170e5e' }}>
               {isNative ? `${platform.toUpperCase()} Native App` : 'Web Client'}
             </span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0' }}>
-            <span style={{ fontSize: '11.5px', color: '#64748b' }}>قاعدة البيانات المحلية:</span>
-            <span style={{ fontSize: '11.5px', fontWeight: 700, color: '#16a34a' }}>IndexedDB Offline Cache جاهزة</span>
+            <span style={{ fontSize: '11.5px', color: '#64748b' }}>{t('dashboard.mobile_hub_page.s12', "قاعدة البيانات المحلية:")}</span>
+            <span style={{ fontSize: '11.5px', fontWeight: 700, color: '#16a34a' }}>{t('dashboard.mobile_hub_page.s13', "IndexedDB Offline Cache جاهزة")}</span>
           </div>
         </div>
       </main>
@@ -333,7 +335,7 @@ export function MobileHubPage() {
           }}
         >
           <SmartphoneIcon size={20} color="#170e5e" strokeWidth={2.4} />
-          <span style={{ fontSize: '11px', fontWeight: 800 }}>الرئيسية</span>
+          <span style={{ fontSize: '11px', fontWeight: 800 }}>{t('dashboard.mobile_hub_page.s14', "الرئيسية")}</span>
         </Link>
         <Link
           to="/owner-mobile"
@@ -348,7 +350,7 @@ export function MobileHubPage() {
           }}
         >
           <BuildingIcon size={20} color="#64748b" strokeWidth={2} />
-          <span style={{ fontSize: '11px', fontWeight: 600 }}>المالك</span>
+          <span style={{ fontSize: '11px', fontWeight: 600 }}>{t('dashboard.mobile_hub_page.s15', "المالك")}</span>
         </Link>
         <Link
           to="/van-sales/mobile"
@@ -363,7 +365,7 @@ export function MobileHubPage() {
           }}
         >
           <TruckIcon size={20} color="#64748b" strokeWidth={2} />
-          <span style={{ fontSize: '11px', fontWeight: 600 }}>الفان سيلز</span>
+          <span style={{ fontSize: '11px', fontWeight: 600 }}>{t('dashboard.mobile_hub_page.s16', "الفان سيلز")}</span>
         </Link>
         <Link
           to="/mobile/punch"
@@ -378,7 +380,7 @@ export function MobileHubPage() {
           }}
         >
           <ClockIcon size={20} color="#64748b" strokeWidth={2} />
-          <span style={{ fontSize: '11px', fontWeight: 600 }}>البصمة</span>
+          <span style={{ fontSize: '11px', fontWeight: 600 }}>{t('dashboard.mobile_hub_page.s17', "البصمة")}</span>
         </Link>
       </nav>
     </div>

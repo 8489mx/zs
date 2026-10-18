@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { FormEvent, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '@/shared/components/page-header';
@@ -35,6 +36,7 @@ const initialDraft: PayrollDraft = {
 };
 
 export function HrPayrollPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const mutations = useHrMutations();
   const canViewPayroll = useHasAnyPermission(['hrPayrollView', 'hrPayrollManage', 'hrPayrollApprove']);
@@ -319,25 +321,25 @@ export function HrPayrollPage() {
     <div className="page-stack page-shell" dir="rtl">
       <main className="document-prototype-column" style={{ paddingBottom: '20px' }}>
         <PageHeader
-          title="المرتبات"
-          description="مسار شهري واضح: جهّز المسير، راجع الحضور والإجازات والسلف، ثم اعتمد عند اكتمال المراجعة."
+          title={t('hr.hr_payroll_page.s0', "المرتبات")}
+          description={t('hr.hr_payroll_page.s1', "مسار شهري واضح: جهّز المسير، راجع الحضور والإجازات والسلف، ثم اعتمد عند اكتمال المراجعة.")}
           actions={
             <div className="actions compact-actions">
               {hasCreatePayrollRun && canManagePayroll ? (
                 <Button onClick={() => { setDraft((current) => ({ ...current, periodMonth: current.periodMonth || monthFilter })); setShowCreateRun(true); }}>
-                  إنشاء مسير الشهر
+                  {t('hr.hr_payroll_page.s2', "إنشاء مسير الشهر")}
                 </Button>
               ) : null}
-              <Button variant="secondary" onClick={() => navigate('/hr/attendance')}>مراجعة الحضور</Button>
-              <Button variant="secondary" onClick={() => navigate('/hr/loans')}>مراجعة السلف</Button>
-              <Button variant="secondary" onClick={() => navigate('/hr/employees')}>رجوع للموظفين</Button>
+              <Button variant="secondary" onClick={() => navigate('/hr/attendance')}>{t('hr.hr_payroll_page.s3', "مراجعة الحضور")}</Button>
+              <Button variant="secondary" onClick={() => navigate('/hr/loans')}>{t('hr.hr_payroll_page.s4', "مراجعة السلف")}</Button>
+              <Button variant="secondary" onClick={() => navigate('/hr/employees')}>{t('hr.hr_payroll_page.s5', "رجوع للموظفين")}</Button>
             </div>
           }
         />
         <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
           {!canViewPayroll ? (
             <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '10px', textAlign: 'center', color: '#64748b' }}>
-              <p style={{ margin: 0 }}>ليس لديك صلاحية للوصول إلى بيانات المرتبات.</p>
+              <p style={{ margin: 0 }}>{t('hr.hr_payroll_page.s6', "ليس لديك صلاحية للوصول إلى بيانات المرتبات.")}</p>
             </div>
           ) : (
             <>
@@ -392,7 +394,7 @@ export function HrPayrollPage() {
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                   <div style={{ fontWeight: 800, fontSize: '0.9rem', color: '#0f172a' }}>
-                    تفاصيل ومراجعة موظفي المسير {selectedRun ? `(${text(selectedRun.periodMonth)})` : ''}
+                    {t('hr.hr_payroll_page.s7', "تفاصيل ومراجعة موظفي المسير")} {selectedRun ? `(${text(selectedRun.periodMonth)})` : ''}
                   </div>
                   <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                     {selectedRun && (
@@ -402,42 +404,42 @@ export function HrPayrollPage() {
                         onClick={() => setShowWpsModal(true)}
                         style={{ padding: '2px 10px', fontSize: '0.8rem', background: '#f0fdf4', color: '#166534', borderColor: '#bbf7d0', fontWeight: 600 }}
                       >
-                        تصدير ملف حماية الأجور (WPS / SIF)
+                        {t('hr.hr_payroll_page.s8', "تصدير ملف حماية الأجور (WPS / SIF)")}
                       </Button>
                     )}
                     {runIsFinal && (
-                      <Button variant="secondary" onClick={() => printPayrollSignatureSheet()} style={{ padding: '2px 10px', fontSize: '0.8rem' }}>طباعة كشف تسليم الرواتب</Button>
+                      <Button variant="secondary" onClick={() => printPayrollSignatureSheet()} style={{ padding: '2px 10px', fontSize: '0.8rem' }}>{t('hr.hr_payroll_page.s9', "طباعة كشف تسليم الرواتب")}</Button>
                     )}
                   </div>
                 </div>
 
                 {!selectedRunId ? (
                   <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '8px', textAlign: 'center', color: '#64748b', fontSize: '0.85rem' }}>
-                    اضغط على أي كشف من الجدول أعلاه لعرض وتفصيل رواتب الموظفين الخاصة به.
+                    {t('hr.hr_payroll_page.s10', "اضغط على أي كشف من الجدول أعلاه لعرض وتفصيل رواتب الموظفين الخاصة به.")}
                   </div>
                 ) : (
-                  <QueryFeedback isLoading={payrollRunDetails.isLoading} isError={payrollRunDetails.isError} error={payrollRunDetails.error} isEmpty={false} loadingText="جارٍ تحميل تفاصيل المسير..." errorTitle="تعذر تحميل تفاصيل المسير">
+                  <QueryFeedback isLoading={payrollRunDetails.isLoading} isError={payrollRunDetails.isError} error={payrollRunDetails.error} isEmpty={false} loadingText={t('hr.hr_payroll_page.s11', "جارٍ تحميل تفاصيل المسير...")} errorTitle={t('hr.hr_payroll_page.s12', "تعذر تحميل تفاصيل المسير")}>
                     {!selectedRun ? (
-                      <p className="muted">تفاصيل المسير غير متاحة.</p>
+                      <p className="muted">{t('hr.hr_payroll_page.s13', "تفاصيل المسير غير متاحة.")}</p>
                     ) : filteredRunItems.length ? (
                       <DataTable
                         rows={filteredRunItems}
                         rowKey={(row) => String(row.id)}
                         density="compact"
                         columns={[
-                          { key: 'employeeNo', header: 'كود الموظف', cell: (row) => text(row.employeeNo) },
-                          { key: 'employeeName', header: 'اسم الموظف', cell: (row) => text(row.employeeName) },
-                          { key: 'baseSalary', header: 'الراتب الأساسي', cell: (row) => canViewSalaryAmounts ? money(row.baseSalary) : '—' },
-                          { key: 'allowanceAmount', header: 'البدلات والإضافي', cell: (row) => canViewSalaryAmounts ? money(row.allowanceAmount) : '—' },
-                          { key: 'deductionAmount', header: 'الخصومات', cell: (row) => canViewSalaryAmounts ? money(row.deductionAmount) : '—' },
-                          { key: 'loanDeductionAmount', header: 'السلف/الأقساط', cell: (row) => canViewSalaryAmounts ? money(row.loanDeductionAmount) : '—' },
-                          { key: 'netPay', header: 'صافي الراتب', cell: (row) => canViewSalaryAmounts ? money(row.netPay) : '—' },
-                          { key: 'status', header: 'الحالة', cell: (row) => statusLabel(row.status) },
-                          { key: 'details', header: 'التفاصيل', cell: (row) => <Button variant="secondary" onClick={() => setSelectedReviewItem(row)} style={{ padding: '2px 8px', fontSize: '0.75rem' }}>تفاصيل</Button> },
+                          { key: 'employeeNo', header: t('hr.hr_payroll_page.s14', "كود الموظف"), cell: (row) => text(row.employeeNo) },
+                          { key: 'employeeName', header: t('hr.hr_payroll_page.s15', "اسم الموظف"), cell: (row) => text(row.employeeName) },
+                          { key: 'baseSalary', header: t('hr.hr_payroll_page.s16', "الراتب الأساسي"), cell: (row) => canViewSalaryAmounts ? money(row.baseSalary) : '—' },
+                          { key: 'allowanceAmount', header: t('hr.hr_payroll_page.s17', "البدلات والإضافي"), cell: (row) => canViewSalaryAmounts ? money(row.allowanceAmount) : '—' },
+                          { key: 'deductionAmount', header: t('hr.hr_payroll_page.s18', "الخصومات"), cell: (row) => canViewSalaryAmounts ? money(row.deductionAmount) : '—' },
+                          { key: 'loanDeductionAmount', header: t('hr.hr_payroll_page.s19', "السلف/الأقساط"), cell: (row) => canViewSalaryAmounts ? money(row.loanDeductionAmount) : '—' },
+                          { key: 'netPay', header: t('hr.hr_payroll_page.s20', "صافي الراتب"), cell: (row) => canViewSalaryAmounts ? money(row.netPay) : '—' },
+                          { key: 'status', header: t('hr.hr_payroll_page.s21', "الحالة"), cell: (row) => statusLabel(row.status) },
+                          { key: 'details', header: t('hr.hr_payroll_page.s22', "التفاصيل"), cell: (row) => <Button variant="secondary" onClick={() => setSelectedReviewItem(row)} style={{ padding: '2px 8px', fontSize: '0.75rem' }}>{t('hr.hr_payroll_page.s23', "تفاصيل")}</Button> },
                         ]}
                       />
                     ) : (
-                      <p className="muted" style={{ padding: '16px', textAlign: 'center' }}>لا توجد نتائج مطابقة للبحث أو الفلاتر الحالية.</p>
+                      <p className="muted" style={{ padding: '16px', textAlign: 'center' }}>{t('hr.hr_payroll_page.s24', "لا توجد نتائج مطابقة للبحث أو الفلاتر الحالية.")}</p>
                     )}
                   </QueryFeedback>
                 )}
@@ -486,18 +488,18 @@ export function HrPayrollPage() {
         onClose={() => setSelectedReviewItem(null)}
         canViewSalaryAmounts={canViewSalaryAmounts}
         runIsFinal={Boolean(runIsFinal)}
-        onPrintSummary={(item) => alert('طباعة ملخص للموظف ' + item.employeeName)}
-        onPrintDetailed={(item) => alert('طباعة تفصيلي للموظف ' + item.employeeName)}
+        onPrintSummary={(item) => alert(t('hr.hr_payroll_page.s25', "طباعة ملخص للموظف ") + item.employeeName)}
+        onPrintDetailed={(item) => alert(t('hr.hr_payroll_page.s26', "طباعة تفصيلي للموظف ") + item.employeeName)}
       />
 
       {pendingApprovalAction && (
         <DialogShell open={true} onClose={() => setPendingApprovalAction(null)} width="600px">
           <div style={{ padding: '24px' }}>
-            <h2 style={{ marginTop: 0, color: '#dc2626' }}>تنبيه: استثناءات معلقة</h2>
-            <p>يوجد استثناءات حضور وانصراف معلقة للموظفين بحاجة للمراجعة. هل أنت متأكد من رغبتك بالاستمرار دون معالجتها؟</p>
+            <h2 style={{ marginTop: 0, color: '#dc2626' }}>{t('hr.hr_payroll_page.s27', "تنبيه: استثناءات معلقة")}</h2>
+            <p>{t('hr.hr_payroll_page.s28', "يوجد استثناءات حضور وانصراف معلقة للموظفين بحاجة للمراجعة. هل أنت متأكد من رغبتك بالاستمرار دون معالجتها؟")}</p>
             <div className="actions">
-              <Button variant="secondary" onClick={() => setPendingApprovalAction(null)}>إلغاء ومراجعة الاستثناءات</Button>
-              <Button variant="danger" onClick={() => executeRunAction(pendingApprovalAction.runId, pendingApprovalAction.type)}>نعم، تابع الاعتماد</Button>
+              <Button variant="secondary" onClick={() => setPendingApprovalAction(null)}>{t('hr.hr_payroll_page.s29', "إلغاء ومراجعة الاستثناءات")}</Button>
+              <Button variant="danger" onClick={() => executeRunAction(pendingApprovalAction.runId, pendingApprovalAction.type)}>{t('hr.hr_payroll_page.s30', "نعم، تابع الاعتماد")}</Button>
             </div>
           </div>
         </DialogShell>

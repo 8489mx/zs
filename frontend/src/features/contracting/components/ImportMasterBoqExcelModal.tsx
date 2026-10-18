@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useRef } from 'react';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
@@ -135,6 +136,7 @@ export function ImportMasterBoqExcelModal({
   onClose,
   onImported,
 }: ImportMasterBoqExcelModalProps) {
+  const { t: __t } = useTranslation();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [fileName, setFileName] = useState<string>('');
   const [parsedRows, setParsedRows] = useState<ParsedMasterRow[]>([]);
@@ -358,8 +360,8 @@ export function ImportMasterBoqExcelModal({
     <StandardDialog
       open={open}
       onClose={onClose}
-      title="استيراد بنود المقاولات من ملف Excel"
-      subtitle="رفع ومعالجة شيتات المقايسات والتسعير وإدراجها دفعة واحدة في بنك البنود المرجعي للشركة."
+      title={__t('contracting.import_master_boq_excel_modal.s0', "استيراد بنود المقاولات من ملف Excel")}
+      subtitle={__t('contracting.import_master_boq_excel_modal.s1', "رفع ومعالجة شيتات المقايسات والتسعير وإدراجها دفعة واحدة في بنك البنود المرجعي للشركة.")}
       size="xl"
       minHeight="min(640px, 85vh)"
     >
@@ -384,10 +386,10 @@ export function ImportMasterBoqExcelModal({
             </div>
             <div>
               <div style={{ fontSize: 'var(--font-body)', fontWeight: 700, color: '#0f172a' }}>
-                نموذج الإكسيل القياسي
+                {__t('contracting.import_master_boq_excel_modal.s2', "نموذج الإكسيل القياسي")}
               </div>
               <div style={{ fontSize: 'var(--font-micro)', color: '#64748b' }}>
-                يدعم ملفات .xlsx و .xls و .csv مع المطابقة التلقائية لأسماء وتخصصات البنود.
+                {__t('contracting.import_master_boq_excel_modal.s3', "يدعم ملفات .xlsx و .xls و .csv مع المطابقة التلقائية لأسماء وتخصصات البنود.")}
               </div>
             </div>
           </div>
@@ -411,7 +413,7 @@ export function ImportMasterBoqExcelModal({
             }}
           >
             <AppIcons.Download size={14} />
-            <span>تحميل نموذج Excel الاسترشادي</span>
+            <span>{__t('contracting.import_master_boq_excel_modal.s4', "تحميل نموذج Excel الاسترشادي")}</span>
           </button>
         </div>
 
@@ -487,14 +489,14 @@ export function ImportMasterBoqExcelModal({
               <AppIcons.Upload size={40} />
             </div>
             <div style={{ fontSize: 'var(--font-section-title)', fontWeight: 700, color: '#0f172a', marginBottom: '6px' }}>
-              انقر لاختيار ملف Excel أو اسحب الملف هنا
+              {__t('contracting.import_master_boq_excel_modal.s5', "انقر لاختيار ملف Excel أو اسحب الملف هنا")}
             </div>
             <div style={{ fontSize: 'var(--font-subtitle)', color: '#64748b' }}>
-              يدعم ملفات مقايسات المشاريع وشيتات التسعير (.xlsx, .xls, .csv)
+              {__t('contracting.import_master_boq_excel_modal.s6', "يدعم ملفات مقايسات المشاريع وشيتات التسعير (.xlsx, .xls, .csv)")}
             </div>
             {isParsing && (
               <div style={{ marginTop: '14px', fontSize: 'var(--font-body)', color: '#170e5e', fontWeight: 600 }}>
-                جاري فحص وقراءة البنود من الملف...
+                {__t('contracting.import_master_boq_excel_modal.s7', "جاري فحص وقراءة البنود من الملف...")}
               </div>
             )}
           </div>
@@ -513,7 +515,7 @@ export function ImportMasterBoqExcelModal({
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span style={{ fontSize: 'var(--font-section-title)', fontWeight: 700, color: '#0f172a' }}>
-                  معاينة البنود المقروءة:
+                  {__t('contracting.import_master_boq_excel_modal.s8', "معاينة البنود المقروءة:")}
                 </span>
                 <span
                   style={{
@@ -526,10 +528,10 @@ export function ImportMasterBoqExcelModal({
                     fontWeight: 700,
                   }}
                 >
-                  {selectedCount} من أصل {parsedRows.length} محدد للاستيراد
+                  {selectedCount} {__t('contracting.import_master_boq_excel_modal.s9', "من أصل")} {parsedRows.length} {__t('contracting.import_master_boq_excel_modal.s10', "محدد للاستيراد")}
                 </span>
                 <span style={{ fontSize: 'var(--font-micro)', color: '#64748b' }}>
-                  (الملف: {fileName})
+                  {__t('contracting.import_master_boq_excel_modal.s11', "(الملف:")} {fileName})
                 </span>
               </div>
 
@@ -548,7 +550,7 @@ export function ImportMasterBoqExcelModal({
                     cursor: 'pointer',
                   }}
                 >
-                  تحديد الكل
+                  {__t('contracting.import_master_boq_excel_modal.s12', "تحديد الكل")}
                 </button>
                 <button
                   type="button"
@@ -564,7 +566,7 @@ export function ImportMasterBoqExcelModal({
                     cursor: 'pointer',
                   }}
                 >
-                  إلغاء التحديد
+                  {__t('contracting.import_master_boq_excel_modal.s13', "إلغاء التحديد")}
                 </button>
                 <button
                   type="button"
@@ -583,7 +585,7 @@ export function ImportMasterBoqExcelModal({
                     cursor: 'pointer',
                   }}
                 >
-                  تغيير الملف
+                  {__t('contracting.import_master_boq_excel_modal.s14', "تغيير الملف")}
                 </button>
               </div>
             </div>
@@ -620,25 +622,25 @@ export function ImportMasterBoqExcelModal({
                       />
                     </th>
                     <th style={{ padding: '8px 10px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>
-                      كود البند
+                      {__t('contracting.import_master_boq_excel_modal.s15', "كود البند")}
                     </th>
                     <th style={{ padding: '8px 10px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>
-                      التخصص
+                      {__t('contracting.import_master_boq_excel_modal.s16', "التخصص")}
                     </th>
                     <th style={{ padding: '8px 10px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>
-                      مسمى البند والمواصفات
+                      {__t('contracting.import_master_boq_excel_modal.s17', "مسمى البند والمواصفات")}
                     </th>
                     <th style={{ padding: '8px 10px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569', textAlign: 'center' }}>
-                      الوحدة
+                      {__t('contracting.import_master_boq_excel_modal.s18', "الوحدة")}
                     </th>
                     <th style={{ padding: '8px 10px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>
-                      التكلفة
+                      {__t('contracting.import_master_boq_excel_modal.s19', "التكلفة")}
                     </th>
                     <th style={{ padding: '8px 10px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569' }}>
-                      سعر البيع
+                      {__t('contracting.import_master_boq_excel_modal.s20', "سعر البيع")}
                     </th>
                     <th style={{ padding: '8px 10px', fontSize: 'var(--font-table-head)', fontWeight: 600, color: '#475569', textAlign: 'center' }}>
-                      الهامش
+                      {__t('contracting.import_master_boq_excel_modal.s21', "الهامش")}
                     </th>
                   </tr>
                 </thead>
@@ -740,7 +742,7 @@ export function ImportMasterBoqExcelModal({
             cursor: 'pointer',
           }}
         >
-          إلغاء
+          {__t('contracting.import_master_boq_excel_modal.s22', "إلغاء")}
         </button>
 
         {parsedRows.length > 0 && (
@@ -767,7 +769,7 @@ export function ImportMasterBoqExcelModal({
           >
             <AppIcons.CheckCircle size={15} />
             <span>
-              {isSubmitting ? 'جاري الاستيراد والحفظ...' : `تأكيد استيراد (${selectedCount}) بند إلى البنك`}
+              {isSubmitting ? __t('contracting.import_master_boq_excel_modal.s23', "جاري الاستيراد والحفظ...") : `تأكيد استيراد (${selectedCount}) بند إلى البنك`}
             </span>
           </button>
         )}

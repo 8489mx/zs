@@ -1,4 +1,6 @@
 import { Children, cloneElement, isValidElement, useId, type PropsWithChildren, type ReactElement, type ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
+import { translateUiText } from '@/lib/auto-translator';
 
 interface FieldProps {
   label: ReactNode;
@@ -19,6 +21,12 @@ const LABELABLE = new Set(['input', 'select', 'textarea']);
  * Styling is unchanged: `base.css` already covers `.field > span, .field > label`.
  */
 export function Field({ label, error, hint, className = '', children }: PropsWithChildren<FieldProps>) {
+  const { i18n } = useTranslation();
+  const isEn = i18n.language === 'en';
+  const displayLabel = typeof label === 'string' && isEn ? (translateUiText(label) || label) : label;
+  const displayHint = typeof hint === 'string' && isEn ? (translateUiText(hint) || hint) : hint;
+  const displayError = typeof error === 'string' && isEn ? (translateUiText(error) || error) : error;
+
   const generatedId = useId();
   let controlId: string | undefined;
 
@@ -33,10 +41,10 @@ export function Field({ label, error, hint, className = '', children }: PropsWit
 
   return (
     <div className={`field ${className}`.trim()}>
-      <label htmlFor={controlId}>{label}</label>
+      <label htmlFor={controlId}>{displayLabel}</label>
       {content}
-      {hint && !error ? <small className="field-hint text-xs text-slate-500 mt-1 block">{hint}</small> : null}
-      {error ? <small className="field-error">{error}</small> : null}
+      {displayHint && !displayError ? <small className="field-hint text-xs text-slate-500 mt-1 block">{displayHint}</small> : null}
+      {displayError ? <small className="field-error">{displayError}</small> : null}
     </div>
   );
 }

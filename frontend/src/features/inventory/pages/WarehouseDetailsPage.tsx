@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -11,6 +12,7 @@ import { AssignProductsModal } from '../components/AssignProductsModal';
 import { formatCurrency } from '@/lib/format';
 
 export function WarehouseDetailsPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const locationId = Number(id);
@@ -112,15 +114,15 @@ export function WarehouseDetailsPage() {
       <main className="document-prototype-column" style={{ maxWidth: '1280px', paddingBottom: '32px' }}>
       <PageHeader 
         title={`مخزن: ${location?.name || '...'}`} 
-        description={`عرض تفصيلي لأرصدة وأقسام ${location?.name || 'المخزن'} وقيمتها المالية`} 
+        description={`عرض تفصيلي لأرصدة وأقسام ${location?.name || t('inventory.warehouse_details_page.s0', "المخزن")} وقيمتها المالية`} 
         actions={(
           <div className="actions compact-actions page-header-actions">
             <Button variant="primary" onClick={() => setIsAssignModalOpen(true)}>
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginInlineEnd: 6 }}><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-              إضافة أصناف للمخزن
+              {t('inventory.warehouse_details_page.s1', "إضافة أصناف للمخزن")}
             </Button>
             <Button variant="secondary" onClick={() => navigate('/inventory/warehouses')}>
-              العودة للمخازن
+              {t('inventory.warehouse_details_page.s2', "العودة للمخازن")}
             </Button>
           </div>
         )}
@@ -194,7 +196,7 @@ export function WarehouseDetailsPage() {
         <div style={{ position: 'relative', width: '320px', maxWidth: '100%' }}>
           <input
             type="text"
-            placeholder="بحث باسم الصنف أو الباركود..."
+            placeholder={t('inventory.warehouse_details_page.s3', "بحث باسم الصنف أو الباركود...")}
             value={productSearch}
             onChange={(e) => setProductSearch(e.target.value)}
             style={{
@@ -216,10 +218,10 @@ export function WarehouseDetailsPage() {
               onChange={(e) => setShowZeroStock(e.target.checked)}
               style={{ width: '15px', height: '15px', accentColor: 'var(--primary, #170c5c)' }}
             />
-            إظهار الأرصدة الصفرية
+            {t('inventory.warehouse_details_page.s4', "إظهار الأرصدة الصفرية")}
           </label>
           <span style={{ fontSize: '13px', color: '#64748b' }}>
-            النتائج: <strong style={{ color: '#0f172a' }}>{visibleProducts.length}</strong> صنف
+            {t('inventory.warehouse_details_page.s5', "النتائج:")} <strong style={{ color: '#0f172a' }}>{visibleProducts.length}</strong> {t('inventory.warehouse_details_page.s6', "صنف")}
           </span>
         </div>
       </div>
@@ -228,26 +230,26 @@ export function WarehouseDetailsPage() {
         <AssignProductsModal locationId={locationId} locationName={location?.name} onClose={() => setIsAssignModalOpen(false)} />
       )}
 
-      <FormSection title="أصناف المخزن">
+      <FormSection title={t('inventory.warehouse_details_page.s7', "أصناف المخزن")}>
         {isLoading ? (
-          <div className="muted small" style={{ padding: 32, textAlign: 'center' }}>جاري التحميل...</div>
+          <div className="muted small" style={{ padding: 32, textAlign: 'center' }}>{t('inventory.warehouse_details_page.s8', "جاري التحميل...")}</div>
         ) : (
           <div style={{ overflowX: 'auto', border: '1px solid var(--border, #e2e8f0)', borderRadius: '12px', background: '#ffffff', boxShadow: '0 2px 8px rgba(15, 23, 42, 0.03)' }}>
             <table style={{ width: '100%', minWidth: '700px', borderCollapse: 'collapse', textAlign: 'right' }}>
               <thead style={{ backgroundColor: 'var(--surface-2, #f8fafc)', borderBottom: '1px solid var(--border, #e2e8f0)' }}>
                 <tr>
-                  <th style={{ padding: '12px 18px', color: '#475569', fontWeight: 700, fontSize: '13px' }}>اسم الصنف</th>
-                  <th style={{ padding: '12px 18px', color: '#475569', fontWeight: 700, fontSize: '13px' }}>الباركود</th>
-                  <th style={{ padding: '12px 18px', color: '#475569', fontWeight: 700, fontSize: '13px' }}>القسم</th>
-                  <th style={{ padding: '12px 18px', color: '#475569', fontWeight: 700, fontSize: '13px', textAlign: 'center' }}>الرصيد في المخزن</th>
-                  <th style={{ padding: '12px 18px', color: '#475569', fontWeight: 700, fontSize: '13px', textAlign: 'center' }}>الرصيد الكلي للنظام</th>
+                  <th style={{ padding: '12px 18px', color: '#475569', fontWeight: 700, fontSize: '13px' }}>{t('inventory.warehouse_details_page.s9', "اسم الصنف")}</th>
+                  <th style={{ padding: '12px 18px', color: '#475569', fontWeight: 700, fontSize: '13px' }}>{t('inventory.warehouse_details_page.s10', "الباركود")}</th>
+                  <th style={{ padding: '12px 18px', color: '#475569', fontWeight: 700, fontSize: '13px' }}>{t('inventory.warehouse_details_page.s11', "القسم")}</th>
+                  <th style={{ padding: '12px 18px', color: '#475569', fontWeight: 700, fontSize: '13px', textAlign: 'center' }}>{t('inventory.warehouse_details_page.s12', "الرصيد في المخزن")}</th>
+                  <th style={{ padding: '12px 18px', color: '#475569', fontWeight: 700, fontSize: '13px', textAlign: 'center' }}>{t('inventory.warehouse_details_page.s13', "الرصيد الكلي للنظام")}</th>
                 </tr>
               </thead>
               <tbody>
                 {visibleProducts.map((product: any) => {
                   const isZero = Number(product.stockQty ?? 0) <= 0;
                   const cat = categories.find((c: any) => String(c.id) === String(product.categoryId));
-                  const catName = cat ? cat.name : (product.categoryName || 'بدون قسم');
+                  const catName = cat ? cat.name : (product.categoryName || t('inventory.warehouse_details_page.s14', "بدون قسم"));
 
                   return (
                     <tr 
@@ -285,7 +287,7 @@ export function WarehouseDetailsPage() {
                 {visibleProducts.length === 0 && (
                   <tr>
                     <td colSpan={5} style={{ padding: '36px', textAlign: 'center', color: '#94a3b8' }}>
-                      {showZeroStock ? 'لا توجد أصناف مسجلة في هذا المخزن' : 'لا توجد أصناف متاحة برصيد إيجابي'}
+                      {showZeroStock ? t('inventory.warehouse_details_page.s15', "لا توجد أصناف مسجلة في هذا المخزن") : t('inventory.warehouse_details_page.s16', "لا توجد أصناف متاحة برصيد إيجابي")}
                     </td>
                   </tr>
                 )}

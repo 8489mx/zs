@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
@@ -15,6 +16,7 @@ import {
 } from '@/shared/components/icons/AppIcons';
 
 export function TenantQuickStartChecklist() {
+  const { t } = useTranslation();
   const user = useAuthStore((s) => s.user);
   const tenant = useAuthStore((s) => s.tenant);
   const settingsQuery = useSettingsQuery();
@@ -186,7 +188,7 @@ export function TenantQuickStartChecklist() {
                   color: '#0f172a',
                 }}
               >
-                دليل البداية السريعة لتشغيل المنشأة
+                {t('shared.system.tenant_quick_start_checklist.s0', "دليل البداية السريعة لتشغيل المنشأة")}
               </h3>
               <span
                 style={{
@@ -199,7 +201,7 @@ export function TenantQuickStartChecklist() {
                   border: `1px solid ${completedCount === 3 ? '#a7f3d0' : '#bfdbfe'}`,
                 }}
               >
-                {completedCount === 3 ? 'مكتمل بنجاح' : `إنجاز ${completedCount} من 3 خطوات`}
+                {completedCount === 3 ? t('shared.system.tenant_quick_start_checklist.s1', "مكتمل بنجاح") : `إنجاز ${completedCount} من 3 خطوات`}
               </span>
               <Link
                 to="/onboarding?onboarding=1"
@@ -218,11 +220,11 @@ export function TenantQuickStartChecklist() {
                 }}
               >
                 <CompassIcon size={12} color="#475569" />
-                <span>تخصيص الموديولات والنشاط</span>
+                <span>{t('shared.system.tenant_quick_start_checklist.s2', "تخصيص الموديولات والنشاط")}</span>
               </Link>
             </div>
             <p style={{ margin: '3px 0 0', fontSize: '0.84rem', color: '#64748b' }}>
-              أكمل الخطوات الثلاث الأساسية لتجهيز حسابك وإصدار أولى فواتيرك التشغيلية.
+              {t('shared.system.tenant_quick_start_checklist.s3', "أكمل الخطوات الثلاث الأساسية لتجهيز حسابك وإصدار أولى فواتيرك التشغيلية.")}
             </p>
           </div>
         </div>
@@ -231,7 +233,7 @@ export function TenantQuickStartChecklist() {
           {/* Progress Tracker */}
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
             <span style={{ fontSize: '0.78rem', color: '#475569', fontWeight: 700 }}>
-              نسبة الجاهزية: <strong style={{ color: '#170e5e' }}>{progressPercent}%</strong>
+              {t('shared.system.tenant_quick_start_checklist.s4', "نسبة الجاهزية:")} <strong style={{ color: '#170e5e' }}>{progressPercent}%</strong>
             </span>
             <div
               style={{
@@ -257,7 +259,7 @@ export function TenantQuickStartChecklist() {
           <button
             type="button"
             onClick={handleDismiss}
-            title="إخفاء الدليل"
+            title={t('shared.system.tenant_quick_start_checklist.s5', "إخفاء الدليل")}
             style={{
               background: 'transparent',
               border: 'none',
@@ -346,7 +348,7 @@ export function TenantQuickStartChecklist() {
                         borderRadius: '4px',
                       }}
                     >
-                      مكتمل
+                      {t('shared.system.tenant_quick_start_checklist.s6', "مكتمل")}
                     </span>
                   )}
                 </div>

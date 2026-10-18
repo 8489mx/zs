@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useMemo, useState } from 'react';
 import { Button } from '@/shared/ui/button';
 import { Field } from '@/shared/ui/field';
@@ -48,6 +49,7 @@ export function StockCountSheetTools({
   isCountStarted,
   onItemsChange,
 }: StockCountSheetToolsProps) {
+  const { t } = useTranslation();
   const [includeExpectedQty, setIncludeExpectedQty] = useState(false);
   const categoriesQuery = useCategoriesQuery();
   const categories = Array.isArray(categoriesQuery.data) ? categoriesQuery.data : [];
@@ -121,9 +123,9 @@ export function StockCountSheetTools({
   }
 
   return (
-    <Field label="طريقة العد">
+    <Field label={t('inventory.sections.stock_count_sheet_tools.s0', "طريقة العد")}>
       <div className="surface-note">
-        اختر بين شيت ورقي/CSV للعد خارج النظام، أو إدخال إلكتروني يفتح أصناف النطاق داخل الجلسة وتكتب أمام كل صنف الكمية المعدودة.
+        {t('inventory.sections.stock_count_sheet_tools.s1', "اختر بين شيت ورقي/CSV للعد خارج النظام، أو إدخال إلكتروني يفتح أصناف النطاق داخل الجلسة وتكتب أمام كل صنف الكمية المعدودة.")}
       </div>
       <label className="checkbox-row" style={{ marginTop: 10 }}>
         <input
@@ -131,7 +133,7 @@ export function StockCountSheetTools({
           checked={includeExpectedQty}
           onChange={(event) => setIncludeExpectedQty(event.target.checked)}
         />
-        <span>إظهار كمية النظام في شيت العد</span>
+        <span>{t('inventory.sections.stock_count_sheet_tools.s2', "إظهار كمية النظام في شيت العد")}</span>
       </label>
       <div className="actions compact-actions" style={{ marginTop: 10 }}>
         <Button
@@ -139,12 +141,12 @@ export function StockCountSheetTools({
           variant="secondary"
           disabled={disabled}
           onClick={() => printStockCountSheet(sheetRows, {
-            title: `شيت عد - ${countType === 'full' ? 'جرد كامل' : countType === 'category' ? 'جرد قسم' : 'جرد أصناف'}`,
+            title: `شيت عد - ${countType === 'full' ? t('inventory.sections.stock_count_sheet_tools.s3', "جرد كامل") : countType === 'category' ? t('inventory.sections.stock_count_sheet_tools.s4', "جرد قسم") : t('inventory.sections.stock_count_sheet_tools.s5', "جرد أصناف")}`,
             locationName,
             includeExpectedQty,
           })}
         >
-          طباعة شيت العد
+          {t('inventory.sections.stock_count_sheet_tools.s6', "طباعة شيت العد")}
         </Button>
         <Button
           type="button"
@@ -152,7 +154,7 @@ export function StockCountSheetTools({
           disabled={disabled}
           onClick={() => exportStockCountSheetExcel(sheetRows, { includeExpectedQty, locationName })}
         >
-          تصدير Excel
+          {t('inventory.sections.stock_count_sheet_tools.s7', "تصدير Excel")}
         </Button>
         <Button
           type="button"
@@ -160,7 +162,7 @@ export function StockCountSheetTools({
           disabled={disabled}
           onClick={prepareElectronicCount}
         >
-          إدخال إلكتروني
+          {t('inventory.sections.stock_count_sheet_tools.s8', "إدخال إلكتروني")}
         </Button>
       </div>
       <div className="muted small" style={{ marginTop: 8 }}>{helperText}</div>

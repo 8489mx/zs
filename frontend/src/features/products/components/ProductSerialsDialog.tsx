@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
@@ -13,6 +14,7 @@ interface ProductSerialsDialogProps {
 }
 
 export function ProductSerialsDialog({ open, product, onClose }: ProductSerialsDialogProps) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [bulkInput, setBulkInput] = useState('');
@@ -72,12 +74,12 @@ export function ProductSerialsDialog({ open, product, onClose }: ProductSerialsD
     <StandardDialog
       open={open}
       onClose={onClose}
-      title="إدارة أرقام السيريال والـ IMEI (Serial Tracking)"
+      title={t('products.product_serials_dialog.s0', "إدارة أرقام السيريال والـ IMEI (Serial Tracking)")}
       subtitle={`${product.name} · تتبع حركة الأجهزة وتواريخ البيع والشراء`}
       maxWidth="860px"
       footerActions={
         <StandardDialogFooter
-          cancelText="إغلاق"
+          cancelText={t('products.product_serials_dialog.s1', "إغلاق")}
           onCancel={onClose}
         />
       }
@@ -87,20 +89,20 @@ export function ProductSerialsDialog({ open, product, onClose }: ProductSerialsD
         <div style={{ background: '#f8fafc', padding: '12px 16px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
             <AppIcons.Layers size={15} />
-            <span>1. ملخص أرصدة السيريالات الحالية (Serial Status Overview)</span>
+            <span>{t('products.product_serials_dialog.s2', "1. ملخص أرصدة السيريالات الحالية (Serial Status Overview)")}</span>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
             <div style={{ background: '#ffffff', padding: '10px 14px', borderRadius: '8px', border: '1px solid #bbf7d0', textAlign: 'center' }}>
-              <div style={{ fontSize: '0.78rem', color: '#166534', fontWeight: 600 }}>المتاح في المخزن</div>
+              <div style={{ fontSize: '0.78rem', color: '#166534', fontWeight: 600 }}>{t('products.product_serials_dialog.s3', "المتاح في المخزن")}</div>
               <strong style={{ fontSize: '1.25rem', color: '#15803d' }}>{inStockCount}</strong>
             </div>
             <div style={{ background: '#ffffff', padding: '10px 14px', borderRadius: '8px', border: '1px solid #bfdbfe', textAlign: 'center' }}>
-              <div style={{ fontSize: '0.78rem', color: '#1e40af', fontWeight: 600 }}>المباع للعملاء</div>
+              <div style={{ fontSize: '0.78rem', color: '#1e40af', fontWeight: 600 }}>{t('products.product_serials_dialog.s4', "المباع للعملاء")}</div>
               <strong style={{ fontSize: '1.25rem', color: '#2563eb' }}>{soldCount}</strong>
             </div>
             <div style={{ background: '#ffffff', padding: '10px 14px', borderRadius: '8px', border: '1px solid #e2e8f0', textAlign: 'center' }}>
-              <div style={{ fontSize: '0.78rem', color: '#475569', fontWeight: 600 }}>إجمالي المسجل</div>
+              <div style={{ fontSize: '0.78rem', color: '#475569', fontWeight: 600 }}>{t('products.product_serials_dialog.s5', "إجمالي المسجل")}</div>
               <strong style={{ fontSize: '1.25rem', color: '#0f172a' }}>{serials.length}</strong>
             </div>
           </div>
@@ -111,21 +113,21 @@ export function ProductSerialsDialog({ open, product, onClose }: ProductSerialsD
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: isAdding ? '10px' : 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
               <AppIcons.Plus size={15} />
-              <span>2. تسجيل أرقام تسلسلية جديدة (Bulk Serial Entry)</span>
+              <span>{t('products.product_serials_dialog.s6', "2. تسجيل أرقام تسلسلية جديدة (Bulk Serial Entry)")}</span>
             </div>
             <Button
               variant={isAdding ? 'secondary' : 'primary'}
               onClick={() => setIsAdding(!isAdding)}
               style={{ fontSize: '0.78rem', padding: '4px 12px' }}
             >
-              {isAdding ? 'إلغاء الإدخال' : '+ إضافة سيريالات / IMEI'}
+              {isAdding ? t('products.product_serials_dialog.s7', "إلغاء الإدخال") : t('products.product_serials_dialog.s8', "+ إضافة سيريالات / IMEI")}
             </Button>
           </div>
 
           {isAdding && (
             <div style={{ marginTop: '10px' }}>
               <label style={{ display: 'block', fontWeight: 600, color: '#334155', fontSize: '0.8rem', marginBottom: '6px' }}>
-                أدخل أرقام الـ IMEI / السيريال (رقم في كل سطر أو مفصولة بفواصل):
+                {t('products.product_serials_dialog.s9', "أدخل أرقام الـ IMEI / السيريال (رقم في كل سطر أو مفصولة بفواصل):")}
               </label>
               <textarea
                 dir="ltr"
@@ -142,14 +144,14 @@ export function ProductSerialsDialog({ open, product, onClose }: ProductSerialsD
                   onClick={handleAddSerials}
                   disabled={addMutation.isPending || !bulkInput.trim()}
                 >
-                  {addMutation.isPending ? 'جارٍ الإضافة...' : 'حفظ السيريالات المدخلة'}
+                  {addMutation.isPending ? t('products.product_serials_dialog.s10', "جارٍ الإضافة...") : t('products.product_serials_dialog.s11', "حفظ السيريالات المدخلة")}
                 </Button>
               </div>
             </div>
           )}
 
           {feedback && (
-            <div style={{ marginTop: '8px', padding: '8px 12px', borderRadius: '6px', background: feedback.includes('نجاح') ? '#dcfce7' : '#fee2e2', color: feedback.includes('نجاح') ? '#166534' : '#991b1b', fontSize: '0.82rem', fontWeight: 600 }}>
+            <div style={{ marginTop: '8px', padding: '8px 12px', borderRadius: '6px', background: feedback.includes(t('products.product_serials_dialog.s12', "نجاح")) ? '#dcfce7' : '#fee2e2', color: feedback.includes(t('products.product_serials_dialog.s13', "نجاح")) ? '#166534' : '#991b1b', fontSize: '0.82rem', fontWeight: 600 }}>
               {feedback}
             </div>
           )}
@@ -160,7 +162,7 @@ export function ProductSerialsDialog({ open, product, onClose }: ProductSerialsD
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', flexWrap: 'wrap', gap: '8px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
               <AppIcons.Package size={15} />
-              <span>3. سجل أرقام السيريال التفصيلي (Serial Log)</span>
+              <span>{t('products.product_serials_dialog.s14', "3. سجل أرقام السيريال التفصيلي (Serial Log)")}</span>
             </div>
 
             <div style={{ display: 'inline-flex', gap: '4px', background: '#e2e8f0', padding: '2px', borderRadius: '6px' }}>
@@ -178,7 +180,7 @@ export function ProductSerialsDialog({ open, product, onClose }: ProductSerialsD
                 }}
                 onClick={() => setFilterStatus('all')}
               >
-                الكل ({serials.length})
+                {t('products.product_serials_dialog.s15', "الكل (")}{serials.length})
               </button>
               <button
                 type="button"
@@ -194,7 +196,7 @@ export function ProductSerialsDialog({ open, product, onClose }: ProductSerialsD
                 }}
                 onClick={() => setFilterStatus('in_stock')}
               >
-                المتاح بالمخزن ({inStockCount})
+                {t('products.product_serials_dialog.s16', "المتاح بالمخزن (")}{inStockCount})
               </button>
               <button
                 type="button"
@@ -210,28 +212,28 @@ export function ProductSerialsDialog({ open, product, onClose }: ProductSerialsD
                 }}
                 onClick={() => setFilterStatus('sold')}
               >
-                المباع ({soldCount})
+                {t('products.product_serials_dialog.s17', "المباع (")}{soldCount})
               </button>
             </div>
           </div>
 
           <div style={{ maxHeight: '260px', overflowY: 'auto', border: '1px solid #e2e8f0', borderRadius: '6px', background: '#ffffff' }}>
             {isLoading ? (
-              <div style={{ padding: '20px', textAlign: 'center', color: '#64748b' }}>جاري تحميل أرقام السيريال...</div>
+              <div style={{ padding: '20px', textAlign: 'center', color: '#64748b' }}>{t('products.product_serials_dialog.s18', "جاري تحميل أرقام السيريال...")}</div>
             ) : serials.length === 0 ? (
               <div style={{ padding: '20px', textAlign: 'center', color: '#64748b', fontSize: '0.85rem' }}>
-                لا توجد أرقام سيريال مسجلة لهذا الصنف حالياً.
+                {t('products.product_serials_dialog.s19', "لا توجد أرقام سيريال مسجلة لهذا الصنف حالياً.")}
               </div>
             ) : (
               <table className="table" style={{ width: '100%', margin: 0, fontSize: '0.8125rem' }}>
                 <thead>
                   <tr>
                     <th>#</th>
-                    <th>رقم السيريال / IMEI</th>
-                    <th>الحالة</th>
-                    <th>فاتورة البيع / العميل</th>
-                    <th>فاتورة الشراء / المورد</th>
-                    <th>الموقع / الفرع</th>
+                    <th>{t('products.product_serials_dialog.s20', "رقم السيريال / IMEI")}</th>
+                    <th>{t('products.product_serials_dialog.s21', "الحالة")}</th>
+                    <th>{t('products.product_serials_dialog.s22', "فاتورة البيع / العميل")}</th>
+                    <th>{t('products.product_serials_dialog.s23', "فاتورة الشراء / المورد")}</th>
+                    <th>{t('products.product_serials_dialog.s24', "الموقع / الفرع")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -257,7 +259,7 @@ export function ProductSerialsDialog({ open, product, onClose }: ProductSerialsD
                           }}
                         >
                           <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: s.status === 'in_stock' ? '#16a34a' : s.status === 'sold' ? '#2563eb' : '#d97706' }} />
-                          {s.status === 'in_stock' ? 'متاح بالمخزن' : s.status === 'sold' ? 'تم البيع' : s.status === 'returned' ? 'مرتجع' : s.status}
+                          {s.status === 'in_stock' ? t('products.product_serials_dialog.s25', "متاح بالمخزن") : s.status === 'sold' ? t('products.product_serials_dialog.s26', "تم البيع") : s.status === 'returned' ? t('products.product_serials_dialog.s27', "مرتجع") : s.status}
                         </span>
                       </td>
                       <td style={{ fontSize: '0.78rem' }}>

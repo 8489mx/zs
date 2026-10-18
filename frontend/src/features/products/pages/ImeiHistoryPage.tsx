@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
@@ -87,6 +88,7 @@ const statusMap: Record<string, { label: string; bg: string; border: string; col
 };
 
 export function ImeiHistoryPage() {
+  const { t: __t } = useTranslation();
   const settingsQuery = useSettingsQuery();
   const profile = getMaintenanceProfile(settingsQuery.data?.maintenanceProfile);
 
@@ -162,7 +164,7 @@ export function ImeiHistoryPage() {
       <main className="document-prototype-column" style={{ paddingBottom: '80px', maxWidth: '1280px', margin: '0 auto', width: '100%' }}>
         <PageHeader
           title={`سجل وتتبع دورة حياة الأجهزة والسيريالات (${profile.serialLabel})`}
-          description="استعلام شامل وفحص أمني عن أي سيريال أو باركود: تاريخ الشراء، فواتير البيع والعميل، الضمان، سجل الصيانة، وتجارة المستعمل."
+          description={__t('products.imei_history_page.s0', "استعلام شامل وفحص أمني عن أي سيريال أو باركود: تاريخ الشراء، فواتير البيع والعميل، الضمان، سجل الصيانة، وتجارة المستعمل.")}
         />
 
         {/* Big Search Bar - Calm Neutral Styling */}
@@ -184,14 +186,14 @@ export function ImeiHistoryPage() {
               />
             </div>
             <Button type="submit" variant="primary" style={{ padding: '0 24px', fontSize: '0.9rem', fontWeight: 700 }}>
-              فحص واستعلام
+              {__t('products.imei_history_page.s1', "فحص واستعلام")}
             </Button>
           </form>
 
           {/* Recent Lookups Quick Tags */}
           {recentLookups.length > 0 && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '12px', flexWrap: 'wrap' }}>
-              <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>عمليات بحث حديثة:</span>
+              <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>{__t('products.imei_history_page.s2', "عمليات بحث حديثة:")}</span>
               {recentLookups.map((s) => (
                 <button
                   key={s}
@@ -227,19 +229,19 @@ export function ImeiHistoryPage() {
             <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '16px 20px', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid #e2e8f0', paddingBottom: '12px', marginBottom: '14px', flexWrap: 'wrap', gap: '8px' }}>
                 <div>
-                  <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>بيانات ومواصفات الجهاز المستعلم عنه:</div>
+                  <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>{__t('products.imei_history_page.s3', "بيانات ومواصفات الجهاز المستعلم عنه:")}</div>
                   <h3 style={{ margin: '4px 0 2px', fontSize: '1.2rem', fontWeight: 800, color: '#0f172a' }}>
-                    {serialItem?.productName || (tradeins[0] ? `${tradeins[0].deviceBrand ? `${tradeins[0].deviceBrand} ` : ''}${tradeins[0].deviceModel}` : (tickets[0] ? `${tickets[0].deviceBrand ? `${tickets[0].deviceBrand} ` : ''}${tickets[0].deviceModel}` : 'جهاز غير مسجل كصنف مباشر'))}
+                    {serialItem?.productName || (tradeins[0] ? `${tradeins[0].deviceBrand ? `${tradeins[0].deviceBrand} ` : ''}${tradeins[0].deviceModel}` : (tickets[0] ? `${tickets[0].deviceBrand ? `${tickets[0].deviceBrand} ` : ''}${tickets[0].deviceModel}` : __t('products.imei_history_page.s4', "جهاز غير مسجل كصنف مباشر")))}
                   </h3>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontFamily: 'monospace', fontSize: '0.85rem', color: '#475569', direction: 'ltr', textAlign: 'right', marginTop: '2px' }}>
                     <span>{profile.serialLabel}: <strong>{activeSerial}</strong></span>
                     <button
                       type="button"
                       onClick={(e) => handleCopy(activeSerial, e)}
-                      title="نسخ السيريال"
+                      title={__t('products.imei_history_page.s5', "نسخ السيريال")}
                       style={{ background: 'transparent', border: 'none', padding: 0, color: '#64748b', cursor: 'pointer', display: 'inline-flex', alignItems: 'center' }}
                     >
-                      {copiedText === activeSerial ? <span style={{ fontSize: '0.68rem', color: '#16a34a', fontWeight: 700 }}>تم النسخ</span> : <Icons.Copy />}
+                      {copiedText === activeSerial ? <span style={{ fontSize: '0.68rem', color: '#16a34a', fontWeight: 700 }}>{__t('products.imei_history_page.s6', "تم النسخ")}</span> : <Icons.Copy />}
                     </button>
                     {serialItem?.imei2 && <span style={{ color: '#64748b', marginInlineStart: '12px' }}>IMEI 2: {serialItem.imei2}</span>}
                   </div>
@@ -248,7 +250,7 @@ export function ImeiHistoryPage() {
                 <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
                   <Button variant="secondary" onClick={() => window.print()} style={{ fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '5px' }}>
                     <Icons.Printer />
-                    <span>طباعة تقرير الفحص</span>
+                    <span>{__t('products.imei_history_page.s7', "طباعة تقرير الفحص")}</span>
                   </Button>
                   {serialItem && (
                     <span
@@ -273,30 +275,30 @@ export function ImeiHistoryPage() {
                 <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
                   <div style={{ color: '#64748b', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '2px' }}>
                     <Icons.Warehouse />
-                    <span>الموقع الحالي / الفرع:</span>
+                    <span>{__t('products.imei_history_page.s8', "الموقع الحالي / الفرع:")}</span>
                   </div>
-                  <strong style={{ color: '#0f172a' }}>{serialItem?.locationName || serialItem?.branchName || 'متاح بالسجل العام'}</strong>
+                  <strong style={{ color: '#0f172a' }}>{serialItem?.locationName || serialItem?.branchName || __t('products.imei_history_page.s9', "متاح بالسجل العام")}</strong>
                 </div>
 
                 <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
                   <div style={{ color: '#64748b', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '2px' }}>
                     <Icons.Package />
-                    <span>فاتورة وتاريخ الشراء:</span>
+                    <span>{__t('products.imei_history_page.s10', "فاتورة وتاريخ الشراء:")}</span>
                   </div>
                   <strong style={{ color: '#0f172a' }}>{serialItem?.purchaseDocNo || (tradeins[0] ? `إقرار شراء ${tradeins[0].docNo}` : '—')}</strong>
-                  {serialItem?.supplierName && <div style={{ color: '#475569', fontSize: '0.78rem', marginTop: '1px' }}>المورد: {serialItem.supplierName}</div>}
-                  {!serialItem?.supplierName && tradeins[0] && <div style={{ color: '#475569', fontSize: '0.78rem', marginTop: '1px' }}>البائع: {tradeins[0].sellerName}</div>}
+                  {serialItem?.supplierName && <div style={{ color: '#475569', fontSize: '0.78rem', marginTop: '1px' }}>{__t('products.imei_history_page.s11', "المورد:")} {serialItem.supplierName}</div>}
+                  {!serialItem?.supplierName && tradeins[0] && <div style={{ color: '#475569', fontSize: '0.78rem', marginTop: '1px' }}>{__t('products.imei_history_page.s12', "البائع:")} {tradeins[0].sellerName}</div>}
                 </div>
 
                 <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
                   <div style={{ color: '#64748b', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '2px' }}>
                     <Icons.Cart />
-                    <span>فاتورة وتاريخ البيع:</span>
+                    <span>{__t('products.imei_history_page.s13', "فاتورة وتاريخ البيع:")}</span>
                   </div>
-                  <strong style={{ color: '#0f172a' }}>{serialItem?.saleDocNo || 'لم يتم بيعه بعد'}</strong>
+                  <strong style={{ color: '#0f172a' }}>{serialItem?.saleDocNo || __t('products.imei_history_page.s14', "لم يتم بيعه بعد")}</strong>
                   {serialItem?.customerName && (
                     <div style={{ color: '#475569', fontSize: '0.78rem', marginTop: '1px' }}>
-                      العميل: {serialItem.customerName} {serialItem.customerPhone ? `(${serialItem.customerPhone})` : ''}
+                      {__t('products.imei_history_page.s15', "العميل:")} {serialItem.customerName} {serialItem.customerPhone ? `(${serialItem.customerPhone})` : ''}
                     </div>
                   )}
                 </div>
@@ -304,11 +306,11 @@ export function ImeiHistoryPage() {
                 <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
                   <div style={{ color: '#64748b', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '2px' }}>
                     <Icons.Shield />
-                    <span>موقف الضمان:</span>
+                    <span>{__t('products.imei_history_page.s16', "موقف الضمان:")}</span>
                   </div>
                   {serialItem?.warrantyEndDate ? (
                     <strong style={{ color: new Date(serialItem.warrantyEndDate) >= new Date() ? '#166534' : '#9f1239' }}>
-                      {new Date(serialItem.warrantyEndDate) >= new Date() ? 'ساري حتى: ' : 'منتهي في: '}
+                      {new Date(serialItem.warrantyEndDate) >= new Date() ? __t('products.imei_history_page.s17', "ساري حتى: ") : __t('products.imei_history_page.s18', "منتهي في: ")}
                       {new Date(serialItem.warrantyEndDate).toLocaleDateString('ar-EG')}
                     </strong>
                   ) : (
@@ -322,20 +324,20 @@ export function ImeiHistoryPage() {
             <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '16px 20px', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}>
               <h4 style={{ margin: '0 0 10px', fontSize: '0.95rem', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <Icons.Wrench />
-                <span>سجل عمليات الصيانة لهذا الجهاز ({tickets.length})</span>
+                <span>{__t('products.imei_history_page.s19', "سجل عمليات الصيانة لهذا الجهاز (")}{tickets.length})</span>
               </h4>
               {tickets.length === 0 ? (
-                <div style={{ color: '#94a3b8', fontSize: '0.8rem', padding: '12px 0' }}>لا توجد سجلات صيانة مسجلة لهذا الجهاز.</div>
+                <div style={{ color: '#94a3b8', fontSize: '0.8rem', padding: '12px 0' }}>{__t('products.imei_history_page.s20', "لا توجد سجلات صيانة مسجلة لهذا الجهاز.")}</div>
               ) : (
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.825rem', textAlign: 'right' }}>
                   <thead>
                     <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', fontSize: '0.78rem', fontWeight: 700 }}>
-                      <th style={{ padding: '8px 12px' }}>رقم التذكرة</th>
-                      <th style={{ padding: '8px 12px' }}>العميل</th>
-                      <th style={{ padding: '8px 12px' }}>العطل المشتكى منه</th>
-                      <th style={{ padding: '8px 12px' }}>الحالة</th>
-                      <th style={{ padding: '8px 12px' }}>التكلفة</th>
-                      <th style={{ padding: '8px 12px' }}>التاريخ</th>
+                      <th style={{ padding: '8px 12px' }}>{__t('products.imei_history_page.s21', "رقم التذكرة")}</th>
+                      <th style={{ padding: '8px 12px' }}>{__t('products.imei_history_page.s22', "العميل")}</th>
+                      <th style={{ padding: '8px 12px' }}>{__t('products.imei_history_page.s23', "العطل المشتكى منه")}</th>
+                      <th style={{ padding: '8px 12px' }}>{__t('products.imei_history_page.s24', "الحالة")}</th>
+                      <th style={{ padding: '8px 12px' }}>{__t('products.imei_history_page.s25', "التكلفة")}</th>
+                      <th style={{ padding: '8px 12px' }}>{__t('products.imei_history_page.s26', "التاريخ")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -362,19 +364,19 @@ export function ImeiHistoryPage() {
             <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '16px 20px', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}>
               <h4 style={{ margin: '0 0 10px', fontSize: '0.95rem', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <Icons.Exchange />
-                <span>سجلات الشراء المستعمل وعقود التنازل ({tradeins.length})</span>
+                <span>{__t('products.imei_history_page.s27', "سجلات الشراء المستعمل وعقود التنازل (")}{tradeins.length})</span>
               </h4>
               {tradeins.length === 0 ? (
-                <div style={{ color: '#94a3b8', fontSize: '0.8rem', padding: '12px 0' }}>لا توجد عمليات شراء مستعمل مسجلة لهذا السيريال.</div>
+                <div style={{ color: '#94a3b8', fontSize: '0.8rem', padding: '12px 0' }}>{__t('products.imei_history_page.s28', "لا توجد عمليات شراء مستعمل مسجلة لهذا السيريال.")}</div>
               ) : (
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.825rem', textAlign: 'right' }}>
                   <thead>
                     <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', fontSize: '0.78rem', fontWeight: 700 }}>
-                      <th style={{ padding: '8px 12px' }}>رقم الإيصال</th>
-                      <th style={{ padding: '8px 12px' }}>البائع</th>
-                      <th style={{ padding: '8px 12px' }}>الرقم القومي</th>
-                      <th style={{ padding: '8px 12px' }}>سعر الشراء</th>
-                      <th style={{ padding: '8px 12px' }}>التاريخ</th>
+                      <th style={{ padding: '8px 12px' }}>{__t('products.imei_history_page.s29', "رقم الإيصال")}</th>
+                      <th style={{ padding: '8px 12px' }}>{__t('products.imei_history_page.s30', "البائع")}</th>
+                      <th style={{ padding: '8px 12px' }}>{__t('products.imei_history_page.s31', "الرقم القومي")}</th>
+                      <th style={{ padding: '8px 12px' }}>{__t('products.imei_history_page.s32', "سعر الشراء")}</th>
+                      <th style={{ padding: '8px 12px' }}>{__t('products.imei_history_page.s33', "التاريخ")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -399,9 +401,9 @@ export function ImeiHistoryPage() {
               <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: '#f8fafc', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b', marginBottom: '12px' }}>
                 <Icons.Cart />
               </div>
-              <h4 style={{ margin: '0 0 6px', fontSize: '0.95rem', fontWeight: 800, color: '#0f172a' }}>1. تتبع المخزون وفواتير البيع</h4>
+              <h4 style={{ margin: '0 0 6px', fontSize: '0.95rem', fontWeight: 800, color: '#0f172a' }}>{__t('products.imei_history_page.s34', "1. تتبع المخزون وفواتير البيع")}</h4>
               <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b', lineHeight: 1.5 }}>
-                معرفة فاتورة شراء الجهاز من المورد، تاريخ البيع للعميل، الفرع الحالي، وفترة سريان الضمان الفعلي.
+                {__t('products.imei_history_page.s35', "معرفة فاتورة شراء الجهاز من المورد، تاريخ البيع للعميل، الفرع الحالي، وفترة سريان الضمان الفعلي.")}
               </p>
             </div>
 
@@ -409,9 +411,9 @@ export function ImeiHistoryPage() {
               <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: '#f8fafc', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b', marginBottom: '12px' }}>
                 <Icons.Wrench />
               </div>
-              <h4 style={{ margin: '0 0 6px', fontSize: '0.95rem', fontWeight: 800, color: '#0f172a' }}>2. أرشيف الصيانة والإصلاح</h4>
+              <h4 style={{ margin: '0 0 6px', fontSize: '0.95rem', fontWeight: 800, color: '#0f172a' }}>{__t('products.imei_history_page.s36', "2. أرشيف الصيانة والإصلاح")}</h4>
               <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b', lineHeight: 1.5 }}>
-                سجل تذاكر الصيانة السابقة للجهاز، الأعطال المشتكى منها، وقطع الغيار المستبدلة وتواريخ استلامه.
+                {__t('products.imei_history_page.s37', "سجل تذاكر الصيانة السابقة للجهاز، الأعطال المشتكى منها، وقطع الغيار المستبدلة وتواريخ استلامه.")}
               </p>
             </div>
 
@@ -419,9 +421,9 @@ export function ImeiHistoryPage() {
               <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: '#f8fafc', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b', marginBottom: '12px' }}>
                 <Icons.Exchange />
               </div>
-              <h4 style={{ margin: '0 0 6px', fontSize: '0.95rem', fontWeight: 800, color: '#0f172a' }}>3. تجارة المستعمل وعقود التنازل</h4>
+              <h4 style={{ margin: '0 0 6px', fontSize: '0.95rem', fontWeight: 800, color: '#0f172a' }}>{__t('products.imei_history_page.s38', "3. تجارة المستعمل وعقود التنازل")}</h4>
               <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b', lineHeight: 1.5 }}>
-                سجل شراء الجهاز كمستعمل (Trade-In)، بيانات البائع الأصلي ورقمه القومي، وعقد التنازل الأمني.
+                {__t('products.imei_history_page.s39', "سجل شراء الجهاز كمستعمل (Trade-In)، بيانات البائع الأصلي ورقمه القومي، وعقد التنازل الأمني.")}
               </p>
             </div>
           </div>

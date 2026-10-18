@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useRef, useState, ChangeEvent } from 'react';
 import { triggerHaptic } from '@/shared/utils/haptics';
 
@@ -16,6 +17,7 @@ export function CameraCaptureUpload({
   previewUrl = null,
   className = '',
 }: CameraCaptureUploadProps) {
+  const { t } = useTranslation();
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [localPreview, setLocalPreview] = useState<string | null>(previewUrl);
@@ -80,10 +82,10 @@ export function CameraCaptureUpload({
       {displayPreview ? (
         <div className="camera-capture-preview-card">
           <div className="camera-capture-preview-img-wrap">
-            <img src={displayPreview} alt="معاينة المرفق" className="camera-capture-preview-img" />
+            <img src={displayPreview} alt={t('shared.camera_capture_upload.s0', "معاينة المرفق")} className="camera-capture-preview-img" />
           </div>
           <div className="camera-capture-preview-info">
-            <span className="camera-capture-file-name">{fileName || 'صورة الإيصال المرفقة'}</span>
+            <span className="camera-capture-file-name">{fileName || t('shared.camera_capture_upload.s1', "صورة الإيصال المرفقة")}</span>
             <div className="camera-capture-preview-actions">
               <button
                 type="button"
@@ -95,16 +97,16 @@ export function CameraCaptureUpload({
                     <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
                     <circle cx="12" cy="13" r="4"/>
                   </svg>
-                  <span>إعادة التصوير</span>
+                  <span>{t('shared.camera_capture_upload.s2', "إعادة التصوير")}</span>
                 </span>
               </button>
               <button
                 type="button"
                 className="camera-capture-btn-remove"
                 onClick={handleClear}
-                aria-label="حذف المرفق"
+                aria-label={t('shared.camera_capture_upload.s3', "حذف المرفق")}
               >
-                حذف
+                {t('shared.camera_capture_upload.s4', "حذف")}
               </button>
             </div>
           </div>
@@ -124,7 +126,7 @@ export function CameraCaptureUpload({
               <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
               <circle cx="12" cy="13" r="4" />
             </svg>
-            <span>تصوير بالكاميرا</span>
+            <span>{t('shared.camera_capture_upload.s5', "تصوير بالكاميرا")}</span>
           </button>
 
           <button
@@ -138,7 +140,7 @@ export function CameraCaptureUpload({
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
             </svg>
-            <span>اختيار ملف / صورة</span>
+            <span>{t('shared.camera_capture_upload.s6', "اختيار ملف / صورة")}</span>
           </button>
         </div>
       )}

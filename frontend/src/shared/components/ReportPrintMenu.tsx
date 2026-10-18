@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/shared/ui/button';
 import { PrinterIcon, ReceiptIcon, FileTextIcon, ChevronDownIcon } from '@/shared/components/icons/AppIcons';
@@ -25,6 +26,7 @@ export function ReportPrintMenu({
   style,
   className,
 }: ReportPrintMenuProps) {
+  const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -67,7 +69,7 @@ export function ReportPrintMenu({
             variant={buttonVariant}
             onClick={() => void onPrintA4()}
             disabled={disabled}
-            title="طباعة A4 (مستند قياسي)"
+            title={t('shared.report_print_menu.s0', "طباعة A4 (مستند قياسي)")}
             style={{ fontSize: '12px', padding: '0 10px', minHeight: '30px' }}
           >
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
@@ -81,12 +83,12 @@ export function ReportPrintMenu({
             variant={buttonVariant}
             onClick={() => void onPrintReceipt()}
             disabled={disabled}
-            title="طباعة ريسيت حراري (80mm)"
+            title={t('shared.report_print_menu.s1', "طباعة ريسيت حراري (80mm)")}
             style={{ fontSize: '12px', padding: '0 10px', minHeight: '30px' }}
           >
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
               <ReceiptIcon size={13} />
-              <span>{label} ريسيت</span>
+              <span>{label} {t('shared.report_print_menu.s2', "ريسيت")}</span>
             </span>
           </Button>
         )}
@@ -157,8 +159,8 @@ export function ReportPrintMenu({
                 <FileTextIcon size={14} />
               </div>
               <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <span style={{ fontWeight: 700 }}>طباعة A4 (قياسي / PDF)</span>
-                <span style={{ fontSize: '10.5px', color: '#64748b' }}>مستند عريض كامل للمكاتب والأرشفة</span>
+                <span style={{ fontWeight: 700 }}>{t('shared.report_print_menu.s3', "طباعة A4 (قياسي / PDF)")}</span>
+                <span style={{ fontSize: '10.5px', color: '#64748b' }}>{t('shared.report_print_menu.s4', "مستند عريض كامل للمكاتب والأرشفة")}</span>
               </div>
             </button>
           )}
@@ -193,8 +195,8 @@ export function ReportPrintMenu({
                 <ReceiptIcon size={14} />
               </div>
               <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <span style={{ fontWeight: 700, color: '#166534' }}>طباعة ريسيت حراري (80mm)</span>
-                <span style={{ fontSize: '10.5px', color: '#64748b' }}>مضغوط وموفر للورق لطابعات البون</span>
+                <span style={{ fontWeight: 700, color: '#166534' }}>{t('shared.report_print_menu.s5', "طباعة ريسيت حراري (80mm)")}</span>
+                <span style={{ fontSize: '10.5px', color: '#64748b' }}>{t('shared.report_print_menu.s6', "مضغوط وموفر للورق لطابعات البون")}</span>
               </div>
             </button>
           )}

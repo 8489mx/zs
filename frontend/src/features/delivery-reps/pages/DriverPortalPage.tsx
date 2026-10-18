@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -18,6 +19,7 @@ interface OfflineQueueItem {
 }
 
 export function DriverPortalPage() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
 
   const [driverUser, setDriverUser] = useState<DriverPortalUser | null>(() => {
@@ -219,15 +221,15 @@ export function DriverPortalPage() {
       {/* KPI Counters */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginBottom: '14px' }}>
         <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '10px', textAlign: 'center' }}>
-          <div style={{ fontSize: '11px', color: '#64748b' }}>مطلوب تسليمها</div>
+          <div style={{ fontSize: '11px', color: '#64748b' }}>{t('delivery_reps.driver_portal_page.s0', "مطلوب تسليمها")}</div>
           <div style={{ fontSize: '18px', fontWeight: 900, color: '#ea580c', marginTop: '2px' }}>{pendingCount}</div>
         </div>
         <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '10px', textAlign: 'center' }}>
-          <div style={{ fontSize: '11px', color: '#64748b' }}>المطلوب تحصيله</div>
+          <div style={{ fontSize: '11px', color: '#64748b' }}>{t('delivery_reps.driver_portal_page.s1', "المطلوب تحصيله")}</div>
           <div style={{ fontSize: '15px', fontWeight: 900, color: '#170e5e', marginTop: '2px' }}>{pendingAmount.toLocaleString('ar-EG')} <CurrencySymbol /></div>
         </div>
         <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '10px', textAlign: 'center' }}>
-          <div style={{ fontSize: '11px', color: '#64748b' }}>تم تسليمها</div>
+          <div style={{ fontSize: '11px', color: '#64748b' }}>{t('delivery_reps.driver_portal_page.s2', "تم تسليمها")}</div>
           <div style={{ fontSize: '18px', fontWeight: 900, color: '#16a34a', marginTop: '2px' }}>{settledCount}</div>
         </div>
       </div>
@@ -252,7 +254,7 @@ export function DriverPortalPage() {
               userSelect: 'none',
             }}
           >
-            قيد التسليم ({pendingCount})
+            {t('delivery_reps.driver_portal_page.s3', "قيد التسليم (")}{pendingCount})
           </button>
           <button
             type="button"
@@ -271,7 +273,7 @@ export function DriverPortalPage() {
               userSelect: 'none',
             }}
           >
-            تم تسليمها ({settledCount})
+            {t('delivery_reps.driver_portal_page.s4', "تم تسليمها (")}{settledCount})
           </button>
           <button
             type="button"
@@ -290,13 +292,13 @@ export function DriverPortalPage() {
               userSelect: 'none',
             }}
           >
-            الكل ({orders.length})
+            {t('delivery_reps.driver_portal_page.s5', "الكل (")}{orders.length})
           </button>
         </div>
 
         <input
           type="text"
-          placeholder="ابحث برقم الفاتورة أو اسم العميل أو الموبايل..."
+          placeholder={t('delivery_reps.driver_portal_page.s6', "ابحث برقم الفاتورة أو اسم العميل أو الموبايل...")}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           style={{
@@ -316,7 +318,7 @@ export function DriverPortalPage() {
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
         {isLoading && (
           <div style={{ padding: '30px', textAlign: 'center', color: '#64748b' }}>
-            جاري تحميل الشحنات...
+            {t('delivery_reps.driver_portal_page.s7', "جاري تحميل الشحنات...")}
           </div>
         )}
 
@@ -325,9 +327,9 @@ export function DriverPortalPage() {
             <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '8px' }}>
               <PackageIcon size={32} color="#94a3b8" />
             </div>
-            <strong style={{ fontSize: '14px', color: '#0f172a' }}>لا توجد شحنات مطابقة</strong>
+            <strong style={{ fontSize: '14px', color: '#0f172a' }}>{t('delivery_reps.driver_portal_page.s8', "لا توجد شحنات مطابقة")}</strong>
             <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#64748b' }}>
-              لا توجد أي طلبات حالياً تحت هذا القسم أو البحث
+              {t('delivery_reps.driver_portal_page.s9', "لا توجد أي طلبات حالياً تحت هذا القسم أو البحث")}
             </p>
           </div>
         )}

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 import { ScanAuditResponse } from '../../api/warehouse-bins.api';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
@@ -25,6 +26,7 @@ export const BinBarcodeAuditPanel: React.FC<BinBarcodeAuditPanelProps> = ({
   onAuditInputChange,
   onSaveAuditItem,
 }) => {
+  const { t } = useTranslation();
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
       {/* Scanner Input Card */}
@@ -39,7 +41,7 @@ export const BinBarcodeAuditPanel: React.FC<BinBarcodeAuditPanelProps> = ({
       >
         <form onSubmit={onScanSubmit}>
           <label style={{ display: 'block', fontSize: '13px', fontWeight: 800, color: '#1e293b', marginBottom: '8px' }}>
-            امسح باركود الرف أو باركود الصنف (Scan Barcode)
+            {t('inventory.bins.bin_barcode_audit_panel.s0', "امسح باركود الرف أو باركود الصنف (Scan Barcode)")}
           </label>
           <div style={{ display: 'flex', gap: '12px' }}>
             <div style={{ position: 'relative', flex: 1 }}>
@@ -47,7 +49,7 @@ export const BinBarcodeAuditPanel: React.FC<BinBarcodeAuditPanelProps> = ({
                 type="text"
                 value={scanQuery}
                 onChange={(e) => onScanQueryChange(e.target.value)}
-                placeholder="امسح باركود الرف (مثل BIN-1-A01) أو باركود الصنف..."
+                placeholder={t('inventory.bins.bin_barcode_audit_panel.s1', "امسح باركود الرف (مثل BIN-1-A01) أو باركود الصنف...")}
                 autoFocus
                 style={{
                   width: '100%',
@@ -79,7 +81,7 @@ export const BinBarcodeAuditPanel: React.FC<BinBarcodeAuditPanelProps> = ({
               }}
             >
               <AppIcons.Barcode size={18} />
-              {scanning ? 'جاري الفحص...' : 'فحص وجرد (Scan)'}
+              {scanning ? t('inventory.bins.bin_barcode_audit_panel.s2', "جاري الفحص...") : t('inventory.bins.bin_barcode_audit_panel.s3', "فحص وجرد (Scan)")}
             </button>
           </div>
         </form>
@@ -115,12 +117,12 @@ export const BinBarcodeAuditPanel: React.FC<BinBarcodeAuditPanelProps> = ({
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f1f5f9', paddingBottom: '16px', marginBottom: '20px' }}>
             <div>
-              <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 700 }}>مكان التخزين المفحوص</span>
+              <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 700 }}>{t('inventory.bins.bin_barcode_audit_panel.s4', "مكان التخزين المفحوص")}</span>
               <h2 style={{ fontSize: '20px', fontWeight: 800, color: '#170e5e', margin: '4px 0 0 0' }}>
                 {auditResult.bin.code}
               </h2>
               <div style={{ fontSize: '13px', color: '#475569', marginTop: '4px' }}>
-                المستودع: <strong>{auditResult.bin.locationName}</strong> | الممر: <strong>{auditResult.bin.aisle || '-'}</strong> | الحامل: <strong>{auditResult.bin.rack || '-'}</strong> | المستوى: <strong>{auditResult.bin.shelf || '-'}</strong>
+                {t('inventory.bins.bin_barcode_audit_panel.s5', "المستودع:")} <strong>{auditResult.bin.locationName}</strong> {t('inventory.bins.bin_barcode_audit_panel.s6', "| الممر:")} <strong>{auditResult.bin.aisle || '-'}</strong> {t('inventory.bins.bin_barcode_audit_panel.s7', "| الحامل:")} <strong>{auditResult.bin.rack || '-'}</strong> {t('inventory.bins.bin_barcode_audit_panel.s8', "| المستوى:")} <strong>{auditResult.bin.shelf || '-'}</strong>
               </div>
             </div>
             <div style={{ textAlign: 'left' }}>
@@ -134,30 +136,30 @@ export const BinBarcodeAuditPanel: React.FC<BinBarcodeAuditPanelProps> = ({
                   fontSize: '12px',
                 }}
               >
-                باركود الرف: {auditResult.bin.barcode}
+                {t('inventory.bins.bin_barcode_audit_panel.s9', "باركود الرف:")} {auditResult.bin.barcode}
               </span>
             </div>
           </div>
 
           <h4 style={{ fontSize: '14px', fontWeight: 800, color: '#0f172a', marginBottom: '12px' }}>
-            الأصناف المتواجدة بهذا الرف حالياً ({auditResult.items?.length || 0} صنف)
+            {t('inventory.bins.bin_barcode_audit_panel.s10', "الأصناف المتواجدة بهذا الرف حالياً (")}{auditResult.items?.length || 0} {t('inventory.bins.bin_barcode_audit_panel.s11', "صنف)")}
           </h4>
 
           {(!auditResult.items || auditResult.items.length === 0) ? (
             <div style={{ padding: '30px', textAlign: 'center', color: '#94a3b8', fontSize: '13px' }}>
-              هذا الرف فارغ ولا توجد به أصناف مسجلة حالياً.
+              {t('inventory.bins.bin_barcode_audit_panel.s12', "هذا الرف فارغ ولا توجد به أصناف مسجلة حالياً.")}
             </div>
           ) : (
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
                 <thead>
                   <tr style={{ borderBottom: '1px solid #e2e8f0', color: '#64748b', textAlign: 'right' }}>
-                    <th style={{ padding: '10px' }}>اسم الصنف</th>
-                    <th style={{ padding: '10px' }}>الباركود</th>
-                    <th style={{ padding: '10px' }}>الكمية المسجلة</th>
-                    <th style={{ padding: '10px', width: '140px' }}>الكمية الفعلية (الجرد)</th>
-                    <th style={{ padding: '10px', textAlign: 'center' }}>فارق الجرد</th>
-                    <th style={{ padding: '10px', textAlign: 'center' }}>تحديث</th>
+                    <th style={{ padding: '10px' }}>{t('inventory.bins.bin_barcode_audit_panel.s13', "اسم الصنف")}</th>
+                    <th style={{ padding: '10px' }}>{t('inventory.bins.bin_barcode_audit_panel.s14', "الباركود")}</th>
+                    <th style={{ padding: '10px' }}>{t('inventory.bins.bin_barcode_audit_panel.s15', "الكمية المسجلة")}</th>
+                    <th style={{ padding: '10px', width: '140px' }}>{t('inventory.bins.bin_barcode_audit_panel.s16', "الكمية الفعلية (الجرد)")}</th>
+                    <th style={{ padding: '10px', textAlign: 'center' }}>{t('inventory.bins.bin_barcode_audit_panel.s17', "فارق الجرد")}</th>
+                    <th style={{ padding: '10px', textAlign: 'center' }}>{t('inventory.bins.bin_barcode_audit_panel.s18', "تحديث")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -199,15 +201,15 @@ export const BinBarcodeAuditPanel: React.FC<BinBarcodeAuditPanelProps> = ({
                         <td style={{ padding: '12px', textAlign: 'center' }}>
                           {variance === 0 ? (
                             <span style={{ padding: '2px 8px', borderRadius: '4px', backgroundColor: '#ecfdf5', color: '#065f46', fontWeight: 700, fontSize: '11px' }}>
-                              مطابق (0)
+                              {t('inventory.bins.bin_barcode_audit_panel.s19', "مطابق (0)")}
                             </span>
                           ) : variance > 0 ? (
                             <span style={{ padding: '2px 8px', borderRadius: '4px', backgroundColor: '#eff6ff', color: '#1d4ed8', fontWeight: 700, fontSize: '11px' }}>
-                              زيادة (+{variance})
+                              {t('inventory.bins.bin_barcode_audit_panel.s20', "زيادة (+")}{variance})
                             </span>
                           ) : (
                             <span style={{ padding: '2px 8px', borderRadius: '4px', backgroundColor: '#fef2f2', color: '#dc2626', fontWeight: 700, fontSize: '11px' }}>
-                              عجز ({variance})
+                              {t('inventory.bins.bin_barcode_audit_panel.s21', "عجز (")}{variance})
                             </span>
                           )}
                         </td>
@@ -226,7 +228,7 @@ export const BinBarcodeAuditPanel: React.FC<BinBarcodeAuditPanelProps> = ({
                               cursor: 'pointer',
                             }}
                           >
-                            حفظ الرصيد
+                            {t('inventory.bins.bin_barcode_audit_panel.s22', "حفظ الرصيد")}
                           </button>
                         </td>
                       </tr>
@@ -251,22 +253,22 @@ export const BinBarcodeAuditPanel: React.FC<BinBarcodeAuditPanelProps> = ({
           }}
         >
           <div style={{ borderBottom: '1px solid #f1f5f9', paddingBottom: '16px', marginBottom: '20px' }}>
-            <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 700 }}>نتيجة فحص الصنف</span>
+            <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 700 }}>{t('inventory.bins.bin_barcode_audit_panel.s23', "نتيجة فحص الصنف")}</span>
             <h2 style={{ fontSize: '18px', fontWeight: 800, color: '#170e5e', margin: '4px 0 0 0' }}>
               {auditResult.product.name}
             </h2>
             <div style={{ fontSize: '13px', color: '#475569', marginTop: '4px' }}>
-              الباركود: <strong>{auditResult.product.barcode}</strong> | إجمالي المخزون الكلي: <strong>{auditResult.product.stockQty}</strong>
+              {t('inventory.bins.bin_barcode_audit_panel.s24', "الباركود:")} <strong>{auditResult.product.barcode}</strong> {t('inventory.bins.bin_barcode_audit_panel.s25', "| إجمالي المخزون الكلي:")} <strong>{auditResult.product.stockQty}</strong>
             </div>
           </div>
 
           <h4 style={{ fontSize: '14px', fontWeight: 800, color: '#0f172a', marginBottom: '12px' }}>
-            الأرفف وأماكن التخزين المسجل بها هذا الصنف:
+            {t('inventory.bins.bin_barcode_audit_panel.s26', "الأرفف وأماكن التخزين المسجل بها هذا الصنف:")}
           </h4>
 
           {(!auditResult.allocatedBins || auditResult.allocatedBins.length === 0) ? (
             <div style={{ padding: '20px', textAlign: 'center', color: '#94a3b8', fontSize: '13px' }}>
-              هذا الصنف غير مربوط بأي رف محدد في المستودعات حتى الآن.
+              {t('inventory.bins.bin_barcode_audit_panel.s27', "هذا الصنف غير مربوط بأي رف محدد في المستودعات حتى الآن.")}
             </div>
           ) : (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '14px' }}>
@@ -285,10 +287,10 @@ export const BinBarcodeAuditPanel: React.FC<BinBarcodeAuditPanelProps> = ({
                     <span style={{ fontSize: '11px', color: '#64748b' }}>{b.locationName}</span>
                   </div>
                   <div style={{ fontSize: '12px', color: '#475569', marginTop: '6px' }}>
-                    الممر: {b.aisle || '-'} | الحامل: {b.rack || '-'} | المستوى: {b.shelf || '-'}
+                    {t('inventory.bins.bin_barcode_audit_panel.s28', "الممر:")} {b.aisle || '-'} {t('inventory.bins.bin_barcode_audit_panel.s29', "| الحامل:")} {b.rack || '-'} {t('inventory.bins.bin_barcode_audit_panel.s30', "| المستوى:")} {b.shelf || '-'}
                   </div>
                   <div style={{ fontSize: '13px', fontWeight: 700, color: '#059669', marginTop: '6px' }}>
-                    الكمية في هذا الرف: {b.quantity}
+                    {t('inventory.bins.bin_barcode_audit_panel.s31', "الكمية في هذا الرف:")} {b.quantity}
                   </div>
                 </div>
               ))}

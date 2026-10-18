@@ -10,6 +10,8 @@ export interface AggregatorChannelDto {
   name: string;
   name_en?: string;
   commission_rate: number;
+  price_markup_percentage?: number;
+  price_markup_fixed?: number;
   is_active: boolean;
   auto_accept_orders: boolean;
   api_key?: string;
@@ -205,6 +207,8 @@ export class DeliveryAggregatorsService {
       updated_at: new Date(),
     };
     if (payload.commission_rate !== undefined) updateObj.commission_rate = payload.commission_rate;
+    if (payload.price_markup_percentage !== undefined) updateObj.price_markup_percentage = payload.price_markup_percentage;
+    if (payload.price_markup_fixed !== undefined) updateObj.price_markup_fixed = payload.price_markup_fixed;
     if (payload.is_active !== undefined) updateObj.is_active = payload.is_active;
     if (payload.auto_accept_orders !== undefined) updateObj.auto_accept_orders = payload.auto_accept_orders;
     if (payload.api_key !== undefined) updateObj.api_key = payload.api_key;

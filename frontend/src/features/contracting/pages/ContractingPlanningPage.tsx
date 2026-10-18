@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useCallback } from 'react';
 import { useContracting } from '../context/ContractingContext';
 import { contractingApi } from '../api/contracting.api';
@@ -10,6 +11,7 @@ import { SiteMobilizationModal } from '../components/SiteMobilizationModal';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
 
 export function ContractingPlanningPage() {
+  const { t } = useTranslation();
   const { projects, selectedProjectId, setSelectedProjectId, activeProject, setIsCreateProjectOpen } = useContracting();
 
   const [tasks, setTasks] = useState<ContractingScheduleTask[]>([]);
@@ -81,10 +83,10 @@ export function ContractingPlanningPage() {
         <div>
           <h2 style={{ fontSize: 'var(--font-section-title)', fontWeight: 700, color: '#170e5e', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
             <AppIcons.Calendar size={20} />
-            <span>المرحلة 3: التجهيز الميداني والجدول الزمني الإنشائي (Mobilization & Schedule)</span>
+            <span>{t('contracting.contracting_planning_page.s0', "المرحلة 3: التجهيز الميداني والجدول الزمني الإنشائي (Mobilization & Schedule)")}</span>
           </h2>
           <p style={{ fontSize: 'var(--font-subtitle)', color: '#64748b', margin: '4px 0 0' }}>
-            {effectiveProject ? `المشروع: [${effectiveProject.code}] ${effectiveProject.name}` : 'متابعة تراخيص البناء، تجهيز الموقع والمرافق، ومخطط جانت للمسار الحرج (CPM)'}
+            {effectiveProject ? `المشروع: [${effectiveProject.code}] ${effectiveProject.name}` : t('contracting.contracting_planning_page.s1', "متابعة تراخيص البناء، تجهيز الموقع والمرافق، ومخطط جانت للمسار الحرج (CPM)")}
           </p>
         </div>
 
@@ -109,7 +111,7 @@ export function ContractingPlanningPage() {
             }}
           >
             <AppIcons.CheckShield size={15} />
-            <span>التراخيص والموافقات الحكومية</span>
+            <span>{t('contracting.contracting_planning_page.s2', "التراخيص والموافقات الحكومية")}</span>
           </button>
 
           <button
@@ -132,7 +134,7 @@ export function ContractingPlanningPage() {
             }}
           >
             <AppIcons.Tool size={15} />
-            <span>تجهيزات الموقع (Mobilization)</span>
+            <span>{t('contracting.contracting_planning_page.s3', "تجهيزات الموقع (Mobilization)")}</span>
           </button>
         </div>
       </div>

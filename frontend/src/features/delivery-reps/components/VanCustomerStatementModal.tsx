@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React, { useEffect, useState } from 'react';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { StandardDialog } from '@/shared/components/StandardDialog';
@@ -27,6 +28,7 @@ export const VanCustomerStatementModal: React.FC<VanCustomerStatementModalProps>
   customerName,
   storeName = 'Z-Systems Distribution',
 }) => {
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
@@ -261,11 +263,11 @@ export const VanCustomerStatementModal: React.FC<VanCustomerStatementModalProps>
       onClose={onClose}
       title={
         <span style={{ fontSize: 'clamp(13px, 3.8vw, 15px)', fontWeight: 800, color: '#0f172a' }}>
-          كشف حساب عميل
+          {t('delivery_reps.van_customer_statement_modal.s0', "كشف حساب عميل")}
         </span>
       }
-      subtitle={data?.customer ? `العميل: ${data.customer.name}` : customerName || 'جاري التحميل...'}
-      badge="تدقيق الذمم"
+      subtitle={data?.customer ? `العميل: ${data.customer.name}` : customerName || t('delivery_reps.van_customer_statement_modal.s1', "جاري التحميل...")}
+      badge={t('delivery_reps.van_customer_statement_modal.s2', "تدقيق الذمم")}
       width="min(520px, 96vw)"
       minHeight="auto"
       compact
@@ -308,7 +310,7 @@ export const VanCustomerStatementModal: React.FC<VanCustomerStatementModalProps>
             }}
           >
             <SendIcon size={13} color="#ffffff" style={{ flexShrink: 0 }} />
-            <span>واتساب</span>
+            <span>{t('delivery_reps.van_customer_statement_modal.s3', "واتساب")}</span>
           </button>
 
           <button
@@ -334,10 +336,10 @@ export const VanCustomerStatementModal: React.FC<VanCustomerStatementModalProps>
               whiteSpace: 'nowrap',
               boxSizing: 'border-box',
             }}
-            title="نسخ كشف الحساب للحافظة"
+            title={t('delivery_reps.van_customer_statement_modal.s4', "نسخ كشف الحساب للحافظة")}
           >
             <CopyIcon size={13} color="#475569" style={{ flexShrink: 0 }} />
-            <span>نسخ</span>
+            <span>{t('delivery_reps.van_customer_statement_modal.s5', "نسخ")}</span>
           </button>
 
           <button
@@ -366,7 +368,7 @@ export const VanCustomerStatementModal: React.FC<VanCustomerStatementModalProps>
             }}
           >
             <PrinterIcon size={14} color="#ffffff" style={{ flexShrink: 0 }} />
-            <span>طباعة (80 مم)</span>
+            <span>{t('delivery_reps.van_customer_statement_modal.s6', "طباعة (80 مم)")}</span>
           </button>
         </div>
       }
@@ -375,11 +377,11 @@ export const VanCustomerStatementModal: React.FC<VanCustomerStatementModalProps>
         {loading ? (
           <div style={{ textAlign: 'center', padding: '30px 10px', color: '#64748b', fontSize: '13px' }}>
             <RefreshCwIcon size={22} color="#170e5e" className="animate-spin" />
-            <div style={{ marginTop: '6px', fontWeight: 700 }}>جاري استخراج كشف الحساب وتدقيق الذمم...</div>
+            <div style={{ marginTop: '6px', fontWeight: 700 }}>{t('delivery_reps.van_customer_statement_modal.s7', "جاري استخراج كشف الحساب وتدقيق الذمم...")}</div>
           </div>
         ) : error || !data ? (
           <div style={{ padding: '12px', borderRadius: '8px', backgroundColor: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', fontSize: '12px' }}>
-            {error || 'تعذر تحميل كشف الحساب'}
+            {error || t('delivery_reps.van_customer_statement_modal.s8', "تعذر تحميل كشف الحساب")}
           </div>
         ) : (
           <>
@@ -402,7 +404,7 @@ export const VanCustomerStatementModal: React.FC<VanCustomerStatementModalProps>
               >
                 <AlertTriangleIcon size={14} color="#dc2626" style={{ flexShrink: 0 }} />
                 <span>
-                  تنبيه: فواتير متأخرة منذ ({data.overdueAnalysis.oldestOverdueDays}) يوماً بإجمالي ({Number(data.overdueAnalysis.totalOverdueAmount || 0).toLocaleString('en-US', { maximumFractionDigits: 0 })} <CurrencySymbol />).
+                  {t('delivery_reps.van_customer_statement_modal.s9', "تنبيه: فواتير متأخرة منذ (")}{data.overdueAnalysis.oldestOverdueDays}{t('delivery_reps.van_customer_statement_modal.s10', ") يوماً بإجمالي (")}{Number(data.overdueAnalysis.totalOverdueAmount || 0).toLocaleString('en-US', { maximumFractionDigits: 0 })} <CurrencySymbol />).
                 </span>
               </div>
             )}
@@ -428,7 +430,7 @@ export const VanCustomerStatementModal: React.FC<VanCustomerStatementModalProps>
                 }}
               >
                 <div style={{ fontSize: '10px', color: data.customer.balance > 0 ? '#991b1b' : '#166534', fontWeight: 700, whiteSpace: 'nowrap' }}>
-                  الرصيد المستحق
+                  {t('delivery_reps.van_customer_statement_modal.s11', "الرصيد المستحق")}
                 </div>
                 <div
                   style={{
@@ -443,7 +445,7 @@ export const VanCustomerStatementModal: React.FC<VanCustomerStatementModalProps>
                   title={`${Number(data.customer.balance || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })} ج.م`}
                 >
                   {Number(data.customer.balance || 0).toLocaleString('en-US', { maximumFractionDigits: 0 })}{' '}
-                  <span style={{ fontSize: '9px' }}>ج.م</span>
+                  <span style={{ fontSize: '9px' }}>{t('delivery_reps.van_customer_statement_modal.s12', "ج.م")}</span>
                 </div>
               </div>
 
@@ -459,7 +461,7 @@ export const VanCustomerStatementModal: React.FC<VanCustomerStatementModalProps>
                 }}
               >
                 <div style={{ fontSize: '10px', color: '#64748b', fontWeight: 700, whiteSpace: 'nowrap' }}>
-                  سقف الائتمان
+                  {t('delivery_reps.van_customer_statement_modal.s13', "سقف الائتمان")}
                 </div>
                 <div
                   style={{
@@ -471,12 +473,12 @@ export const VanCustomerStatementModal: React.FC<VanCustomerStatementModalProps>
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
                   }}
-                  title={data.customer.creditLimit > 0 ? `${Number(data.customer.creditLimit).toLocaleString('en-US')} ج.م` : 'غير محدد'}
+                  title={data.customer.creditLimit > 0 ? `${Number(data.customer.creditLimit).toLocaleString('en-US')} ج.م` : t('delivery_reps.van_customer_statement_modal.s14', "غير محدد")}
                 >
                   {data.customer.creditLimit > 0
                     ? `${Number(data.customer.creditLimit).toLocaleString('en-US', { maximumFractionDigits: 0 })} `
                     : '—'}
-                  {data.customer.creditLimit > 0 && <span style={{ fontSize: '9px', color: '#64748b' }}>ج.م</span>}
+                  {data.customer.creditLimit > 0 && <span style={{ fontSize: '9px', color: '#64748b' }}>{t('delivery_reps.van_customer_statement_modal.s15', "ج.م")}</span>}
                 </div>
               </div>
 
@@ -492,7 +494,7 @@ export const VanCustomerStatementModal: React.FC<VanCustomerStatementModalProps>
                 }}
               >
                 <div style={{ fontSize: '10px', color: '#64748b', fontWeight: 700, whiteSpace: 'nowrap' }}>
-                  فترة السماح
+                  {t('delivery_reps.van_customer_statement_modal.s16', "فترة السماح")}
                 </div>
                 <div
                   style={{
@@ -505,7 +507,7 @@ export const VanCustomerStatementModal: React.FC<VanCustomerStatementModalProps>
                     textOverflow: 'ellipsis',
                   }}
                 >
-                  {data.customer.allowedCreditDays} <span style={{ fontSize: '9.5px', color: '#64748b' }}>يوم</span>
+                  {data.customer.allowedCreditDays} <span style={{ fontSize: '9.5px', color: '#64748b' }}>{t('delivery_reps.van_customer_statement_modal.s17', "يوم")}</span>
                 </div>
               </div>
             </div>
@@ -513,7 +515,7 @@ export const VanCustomerStatementModal: React.FC<VanCustomerStatementModalProps>
             {/* Returnable Packaging / Empties Ledger if exists */}
             {data.packagingBalance?.length > 0 && (
               <div style={{ padding: '5px 8px', borderRadius: '6px', backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', fontSize: '10.5px' }}>
-                <span style={{ fontWeight: 800, color: '#166534', marginLeft: '6px' }}>عهدة الفوارغ:</span>
+                <span style={{ fontWeight: 800, color: '#166534', marginLeft: '6px' }}>{t('delivery_reps.van_customer_statement_modal.s18', "عهدة الفوارغ:")}</span>
                 <span style={{ color: '#15803d', fontWeight: 600 }}>
                   {data.packagingBalance.map((p: any) => `${p.packageType}: ${p.netOwedToCompany}`).join(' • ')}
                 </span>
@@ -523,7 +525,7 @@ export const VanCustomerStatementModal: React.FC<VanCustomerStatementModalProps>
             {/* Recent Sales Table */}
             <div>
               <div style={{ fontSize: '11px', fontWeight: 800, color: '#1e293b', marginBottom: '4px' }}>
-                آخر الفواتير ({data.recentSales?.length || 0}):
+                {t('delivery_reps.van_customer_statement_modal.s19', "آخر الفواتير (")}{data.recentSales?.length || 0}):
               </div>
               <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden', backgroundColor: '#ffffff', maxHeight: '140px', overflowY: 'auto' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '10.5px', textAlign: 'right', tableLayout: 'fixed' }}>
@@ -534,14 +536,14 @@ export const VanCustomerStatementModal: React.FC<VanCustomerStatementModalProps>
                   </colgroup>
                   <thead>
                     <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>
-                      <th style={{ padding: '4px 6px', fontWeight: 700 }}>الفاتورة / التاريخ</th>
-                      <th style={{ padding: '4px 6px', fontWeight: 700 }}>الإجمالي / المسدد</th>
-                      <th style={{ padding: '4px 6px', fontWeight: 700, textAlign: 'left' }}>المتبقي</th>
+                      <th style={{ padding: '4px 6px', fontWeight: 700 }}>{t('delivery_reps.van_customer_statement_modal.s20', "الفاتورة / التاريخ")}</th>
+                      <th style={{ padding: '4px 6px', fontWeight: 700 }}>{t('delivery_reps.van_customer_statement_modal.s21', "الإجمالي / المسدد")}</th>
+                      <th style={{ padding: '4px 6px', fontWeight: 700, textAlign: 'left' }}>{t('delivery_reps.van_customer_statement_modal.s22', "المتبقي")}</th>
                     </tr>
                   </thead>
                   <tbody>
                     {(!data.recentSales || data.recentSales.length === 0) ? (
-                      <tr><td colSpan={3} style={{ padding: '8px', textAlign: 'center', color: '#94a3b8' }}>لا توجد فواتير سابقة</td></tr>
+                      <tr><td colSpan={3} style={{ padding: '8px', textAlign: 'center', color: '#94a3b8' }}>{t('delivery_reps.van_customer_statement_modal.s23', "لا توجد فواتير سابقة")}</td></tr>
                     ) : (
                       data.recentSales.map((s: any) => (
                         <tr key={s.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
@@ -550,7 +552,7 @@ export const VanCustomerStatementModal: React.FC<VanCustomerStatementModalProps>
                               {s.docNo}
                             </div>
                             <div style={{ fontSize: '9px', color: '#64748b' }}>
-                              {s.saleDate ? s.saleDate.slice(0, 10) : '—'} • {s.paymentType === 'credit' ? 'آجل' : 'نقدي'}
+                              {s.saleDate ? s.saleDate.slice(0, 10) : '—'} • {s.paymentType === 'credit' ? t('delivery_reps.van_customer_statement_modal.s24', "آجل") : t('delivery_reps.van_customer_statement_modal.s25', "نقدي")}
                             </div>
                           </td>
                           <td style={{ padding: '4px 6px' }}>
@@ -558,7 +560,7 @@ export const VanCustomerStatementModal: React.FC<VanCustomerStatementModalProps>
                               {Number(s.total || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </div>
                             <div style={{ fontSize: '9px', color: '#059669' }}>
-                              مسدد: {Number(s.paidAmount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              {t('delivery_reps.van_customer_statement_modal.s26', "مسدد:")} {Number(s.paidAmount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </div>
                           </td>
                           <td style={{ padding: '4px 6px', textAlign: 'left' }}>
@@ -577,7 +579,7 @@ export const VanCustomerStatementModal: React.FC<VanCustomerStatementModalProps>
             {/* Recent Collections Table */}
             <div>
               <div style={{ fontSize: '11px', fontWeight: 800, color: '#1e293b', marginBottom: '4px' }}>
-                آخر التحصيلات ({data.recentCollections?.length || 0}):
+                {t('delivery_reps.van_customer_statement_modal.s27', "آخر التحصيلات (")}{data.recentCollections?.length || 0}):
               </div>
               <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden', backgroundColor: '#ffffff', maxHeight: '140px', overflowY: 'auto' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '10.5px', textAlign: 'right', tableLayout: 'fixed' }}>
@@ -588,21 +590,21 @@ export const VanCustomerStatementModal: React.FC<VanCustomerStatementModalProps>
                   </colgroup>
                   <thead>
                     <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>
-                      <th style={{ padding: '4px 6px', fontWeight: 700 }}>السند / التاريخ</th>
-                      <th style={{ padding: '4px 6px', fontWeight: 700, textAlign: 'center' }}>طريقة السداد</th>
-                      <th style={{ padding: '4px 6px', fontWeight: 700, textAlign: 'left' }}>المبلغ</th>
+                      <th style={{ padding: '4px 6px', fontWeight: 700 }}>{t('delivery_reps.van_customer_statement_modal.s28', "السند / التاريخ")}</th>
+                      <th style={{ padding: '4px 6px', fontWeight: 700, textAlign: 'center' }}>{t('delivery_reps.van_customer_statement_modal.s29', "طريقة السداد")}</th>
+                      <th style={{ padding: '4px 6px', fontWeight: 700, textAlign: 'left' }}>{t('delivery_reps.van_customer_statement_modal.s30', "المبلغ")}</th>
                     </tr>
                   </thead>
                   <tbody>
                     {(!data.recentCollections || data.recentCollections.length === 0) ? (
-                      <tr><td colSpan={3} style={{ padding: '8px', textAlign: 'center', color: '#94a3b8' }}>لا توجد تحصيلات سابقة</td></tr>
+                      <tr><td colSpan={3} style={{ padding: '8px', textAlign: 'center', color: '#94a3b8' }}>{t('delivery_reps.van_customer_statement_modal.s31', "لا توجد تحصيلات سابقة")}</td></tr>
                     ) : (
                       data.recentCollections.map((c: any) => {
                         const methodLabel =
-                          c.paymentMethod === 'cash' ? 'نقدي' :
-                          c.paymentMethod === 'instapay' ? 'إنستاباي' :
-                          c.paymentMethod === 'vodafone_cash' ? 'فودافون' :
-                          c.paymentMethod === 'bank_transfer' ? 'تحويل' :
+                          c.paymentMethod === 'cash' ? t('delivery_reps.van_customer_statement_modal.s32', "نقدي") :
+                          c.paymentMethod === 'instapay' ? t('delivery_reps.van_customer_statement_modal.s33', "إنستاباي") :
+                          c.paymentMethod === 'vodafone_cash' ? t('delivery_reps.van_customer_statement_modal.s34', "فودافون") :
+                          c.paymentMethod === 'bank_transfer' ? t('delivery_reps.van_customer_statement_modal.s35', "تحويل") :
                           c.paymentMethod;
 
                         return (
@@ -634,7 +636,7 @@ export const VanCustomerStatementModal: React.FC<VanCustomerStatementModalProps>
                               <span style={{ fontWeight: 800, color: '#059669', fontSize: '11px' }}>
                                 {Number(c.amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                               </span>{' '}
-                              <span style={{ fontSize: '9px', color: '#64748b' }}>ج.م</span>
+                              <span style={{ fontSize: '9px', color: '#64748b' }}>{t('delivery_reps.van_customer_statement_modal.s36', "ج.م")}</span>
                             </td>
                           </tr>
                         );

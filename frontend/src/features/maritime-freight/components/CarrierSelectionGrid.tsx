@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React, { useState, useMemo, useEffect } from 'react';
 import { ShippingLine } from '../api/maritime-freight.api';
 import { AppIcons, XIcon } from '@/shared/components/icons/AppIcons';
@@ -59,6 +60,7 @@ export function CarrierSelectionGrid({
   maxHeight = '240px',
   defaultCategory = 'overseas_agent',
 }: CarrierSelectionGridProps) {
+  const { t } = useTranslation();
   const [categoryFilter, setCategoryFilter] = useState<'overseas_agent' | 'shipping_line' | 'all'>(defaultCategory);
   const [tradeLaneFilter, setTradeLaneFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -274,12 +276,12 @@ export function CarrierSelectionGrid({
             checked={areAllAgentsSelected}
             onClick={handleToggleAllAgents}
             onChange={() => {}}
-            title="تحديد أو إلغاء تحديد كافة وكلاء الشحن الدوليين"
+            title={t('maritime_freight.carrier_selection_grid.s0', "تحديد أو إلغاء تحديد كافة وكلاء الشحن الدوليين")}
             style={{ width: '16px', height: '16px', cursor: 'pointer', accentColor: '#059669' }}
           />
           <span className="carrier-btn-label" style={{ fontWeight: 700, fontSize: '0.82rem' }}>
-            <span className="desktop-only-inline">وكلاء الشحن الدوليين بالخارج</span>
-            <span className="mobile-only-inline">وكلاء دوليين</span>
+            <span className="desktop-only-inline">{t('maritime_freight.carrier_selection_grid.s1', "وكلاء الشحن الدوليين بالخارج")}</span>
+            <span className="mobile-only-inline">{t('maritime_freight.carrier_selection_grid.s2', "وكلاء دوليين")}</span>
           </span>
           <span
             className="carrier-btn-badge"
@@ -322,12 +324,12 @@ export function CarrierSelectionGrid({
             checked={areAllLinesSelected}
             onClick={handleToggleAllLines}
             onChange={() => {}}
-            title="تحديد أو إلغاء تحديد كافة الخطوط الملاحية"
+            title={t('maritime_freight.carrier_selection_grid.s3', "تحديد أو إلغاء تحديد كافة الخطوط الملاحية")}
             style={{ width: '16px', height: '16px', cursor: 'pointer', accentColor: '#170e5e' }}
           />
           <span className="carrier-btn-label" style={{ fontWeight: 700, fontSize: '0.82rem' }}>
-            <span className="desktop-only-inline">الخطوط والتوكيلات الملاحية</span>
-            <span className="mobile-only-inline">خطوط ملاحية</span>
+            <span className="desktop-only-inline">{t('maritime_freight.carrier_selection_grid.s4', "الخطوط والتوكيلات الملاحية")}</span>
+            <span className="mobile-only-inline">{t('maritime_freight.carrier_selection_grid.s5', "خطوط ملاحية")}</span>
           </span>
           <span
             className="carrier-btn-badge"
@@ -369,12 +371,12 @@ export function CarrierSelectionGrid({
             checked={areAllTotalSelected}
             onClick={handleToggleAllTotal}
             onChange={() => {}}
-            title="تحديد أو إلغاء تحديد كافة الجهات (خطوط ووكلاء)"
+            title={t('maritime_freight.carrier_selection_grid.s6', "تحديد أو إلغاء تحديد كافة الجهات (خطوط ووكلاء)")}
             style={{ width: '16px', height: '16px', cursor: 'pointer', accentColor: '#170e5e' }}
           />
           <span className="carrier-btn-label" style={{ fontWeight: 700, fontSize: '0.82rem' }}>
-            <span className="desktop-only-inline">الكل (خطوط ووكلاء)</span>
-            <span className="mobile-only-inline">الكل</span>
+            <span className="desktop-only-inline">{t('maritime_freight.carrier_selection_grid.s7', "الكل (خطوط ووكلاء)")}</span>
+            <span className="mobile-only-inline">{t('maritime_freight.carrier_selection_grid.s8', "الكل")}</span>
           </span>
           <span
             className="carrier-btn-badge"
@@ -409,8 +411,8 @@ export function CarrierSelectionGrid({
         <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 700, marginLeft: '6px', display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
           <AppIcons.Globe size={14} />
           <span>
-            <span className="desktop-only-inline">الأقاليم والممرات:</span>
-            <span className="mobile-only-inline">الأقاليم:</span>
+            <span className="desktop-only-inline">{t('maritime_freight.carrier_selection_grid.s9', "الأقاليم والممرات:")}</span>
+            <span className="mobile-only-inline">{t('maritime_freight.carrier_selection_grid.s10', "الأقاليم:")}</span>
           </span>
         </div>
 
@@ -493,7 +495,7 @@ export function CarrierSelectionGrid({
             data-lpignore="true"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="بحث باسم الخط، الوكيل، الكود، أو الدولة..."
+            placeholder={t('maritime_freight.carrier_selection_grid.s11', "بحث باسم الخط، الوكيل، الكود، أو الدولة...")}
             style={{
               width: '100%',
               height: '30px',
@@ -512,7 +514,7 @@ export function CarrierSelectionGrid({
             <button
               type="button"
               onClick={() => setSearchQuery('')}
-              title="مسح البحث"
+              title={t('maritime_freight.carrier_selection_grid.s12', "مسح البحث")}
               style={{
                 position: 'absolute',
                 left: '6px',
@@ -548,11 +550,11 @@ export function CarrierSelectionGrid({
               textDecoration: 'underline',
             }}
           >
-            تحديد / إلغاء المعروض ({displayedCarriers.length})
+            {t('maritime_freight.carrier_selection_grid.s13', "تحديد / إلغاء المعروض (")}{displayedCarriers.length})
           </button>
           <span style={{ color: '#cbd5e1' }}>|</span>
           <span style={{ fontSize: '0.76rem', fontWeight: 700, color: '#170e5e' }}>
-            {totalSelectedCount} محدد من {carriers.length}
+            {totalSelectedCount} {t('maritime_freight.carrier_selection_grid.s14', "محدد من")} {carriers.length}
           </span>
         </div>
       </div>
@@ -573,7 +575,7 @@ export function CarrierSelectionGrid({
       >
         {displayedCarriers.length === 0 ? (
           <div style={{ padding: '24px', textAlign: 'center', color: '#94a3b8', fontSize: '0.8rem', gridColumn: '1 / -1' }}>
-            لا توجد جهات مطابقة للفلتر أو البحث الحالي
+            {t('maritime_freight.carrier_selection_grid.s15', "لا توجد جهات مطابقة للفلتر أو البحث الحالي")}
           </div>
         ) : (
           displayedCarriers.map((carrier) => {
@@ -632,7 +634,7 @@ export function CarrierSelectionGrid({
                       color: isAgent ? '#15803d' : '#1e40af',
                     }}
                   >
-                    {isAgent ? 'وكيل شحن بالخارج' : 'خط ملاحي رسمي'}
+                    {isAgent ? t('maritime_freight.carrier_selection_grid.s16', "وكيل شحن بالخارج") : t('maritime_freight.carrier_selection_grid.s17', "خط ملاحي رسمي")}
                   </span>
                 </div>
 
@@ -654,7 +656,7 @@ export function CarrierSelectionGrid({
                 {/* الصف الثالث: الدولة والمدينة + الإيميل */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.7rem', color: '#64748b', gap: '6px' }}>
                   <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flexShrink: 0, maxWidth: '50%' }}>
-                    {carrier.country_name || carrier.country_code || 'دولي'}
+                    {carrier.country_name || carrier.country_code || t('maritime_freight.carrier_selection_grid.s18', "دولي")}
                     {carrier.city_name ? ` - ${carrier.city_name}` : ''}
                   </span>
 

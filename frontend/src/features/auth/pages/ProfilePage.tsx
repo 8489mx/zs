@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { useAuthStore } from '@/stores/auth-store';
 import { http } from '@/lib/http';
@@ -70,6 +71,7 @@ const roleLabelMap: Record<string, string> = {
 };
 
 export function ProfilePage() {
+  const { t } = useTranslation();
   const user = useAuthStore((s) => s.user);
   const tenant = useAuthStore((s) => s.tenant);
   const updateUser = useAuthStore((s) => s.updateUser);
@@ -195,15 +197,15 @@ export function ProfilePage() {
               </span>
             </div>
             <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-              <span>اسم الدخول: <strong>@{username}</strong></span>
+              <span>{t('auth.profile_page.s0', "اسم الدخول:")} <strong>@{username}</strong></span>
               {tenant?.slug && (
                 <>
                   <span>•</span>
-                  <span>معرّف النسخة (Slug): <strong style={{ color: '#170e5e', fontFamily: 'monospace' }}>{tenant.slug}</strong></span>
+                  <span>{t('auth.profile_page.s1', "معرّف النسخة (Slug):")} <strong style={{ color: '#170e5e', fontFamily: 'monospace' }}>{tenant.slug}</strong></span>
                 </>
               )}
               <span>•</span>
-              <span style={{ color: '#166534', fontWeight: 700 }}>● الحساب نشط ومتصل</span>
+              <span style={{ color: '#166534', fontWeight: 700 }}>{t('auth.profile_page.s2', "● الحساب نشط ومتصل")}</span>
             </div>
           </div>
         </div>
@@ -222,7 +224,7 @@ export function ProfilePage() {
             fontWeight: 700,
           }}>
             <ShieldCheckIcon />
-            <span>جلسة دخول مؤمنة ومحمية</span>
+            <span>{t('auth.profile_page.s3', "جلسة دخول مؤمنة ومحمية")}</span>
           </div>
         </div>
       </div>
@@ -247,44 +249,44 @@ export function ProfilePage() {
             </div>
             <div>
               <h3 style={{ margin: 0, fontSize: '0.96rem', fontWeight: 800, color: '#0f172a' }}>
-                البيانات الشخصية
+                {t('auth.profile_page.s4', "البيانات الشخصية")}
               </h3>
-              <span style={{ fontSize: '0.74rem', color: '#64748b' }}>تعديل الاسم المعروض والبيانات العامة</span>
+              <span style={{ fontSize: '0.74rem', color: '#64748b' }}>{t('auth.profile_page.s5', "تعديل الاسم المعروض والبيانات العامة")}</span>
             </div>
           </div>
 
           <form onSubmit={handleProfileSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
             <div>
-              <label htmlFor="profileDisplayName" style={labelStyle}>الاسم المعروض (Display Name)</label>
+              <label htmlFor="profileDisplayName" style={labelStyle}>{t('auth.profile_page.s6', "الاسم المعروض (Display Name)")}</label>
               <input
                 id="profileDisplayName"
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 style={inputControlStyle}
-                placeholder="أدخل اسمك المعروض"
+                placeholder={t('auth.profile_page.s7', "أدخل اسمك المعروض")}
                 required
               />
             </div>
 
             <div>
-              <label htmlFor="profileUsername" style={labelStyle}>اسم المستخدم (Login ID)</label>
+              <label htmlFor="profileUsername" style={labelStyle}>{t('auth.profile_page.s8', "اسم المستخدم (Login ID)")}</label>
               <input
                 id="profileUsername"
                 type="text"
                 value={username}
                 disabled
                 style={{ ...inputControlStyle, background: '#f8fafc', color: '#64748b', cursor: 'not-allowed' }}
-                title="لا يمكن تغيير اسم المستخدم لأسباب أمنية"
+                title={t('auth.profile_page.s9', "لا يمكن تغيير اسم المستخدم لأسباب أمنية")}
                 dir="ltr"
               />
               <span style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: '3px', display: 'block' }}>
-                اسم المستخدم ثابت ومربوط بسجل العمليات ولا يمكن تعديله.
+                {t('auth.profile_page.s10', "اسم المستخدم ثابت ومربوط بسجل العمليات ولا يمكن تعديله.")}
               </span>
             </div>
 
             <div>
-              <label style={labelStyle}>المستوى الوظيفي (Role)</label>
+              <label style={labelStyle}>{t('auth.profile_page.s11', "المستوى الوظيفي (Role)")}</label>
               <div style={{
                 height: '38px',
                 padding: '0 12px',
@@ -322,7 +324,7 @@ export function ProfilePage() {
                   padding: '0 20px',
                 }}
               >
-                {isSavingProfile ? 'جاري الحفظ...' : 'حفظ التعديلات'}
+                {isSavingProfile ? t('auth.profile_page.s12', "جاري الحفظ...") : t('auth.profile_page.s13', "حفظ التعديلات")}
               </Button>
             </div>
           </form>
@@ -346,15 +348,15 @@ export function ProfilePage() {
             </div>
             <div>
               <h3 style={{ margin: 0, fontSize: '0.96rem', fontWeight: 800, color: '#0f172a' }}>
-                أمان الحساب وكلمة المرور
+                {t('auth.profile_page.s14', "أمان الحساب وكلمة المرور")}
               </h3>
-              <span style={{ fontSize: '0.74rem', color: '#64748b' }}>تحديث كلمة المرور لحماية حسابك</span>
+              <span style={{ fontSize: '0.74rem', color: '#64748b' }}>{t('auth.profile_page.s15', "تحديث كلمة المرور لحماية حسابك")}</span>
             </div>
           </div>
 
           <form onSubmit={handlePasswordSubmit} autoComplete="off" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
             <div>
-              <label htmlFor="profileCurrentPassword" style={labelStyle}>كلمة المرور الحالية</label>
+              <label htmlFor="profileCurrentPassword" style={labelStyle}>{t('auth.profile_page.s16', "كلمة المرور الحالية")}</label>
               <input
                 id="profileCurrentPassword"
                 type="text"
@@ -376,7 +378,7 @@ export function ProfilePage() {
             </div>
 
             <div>
-              <label htmlFor="profileNewPassword" style={labelStyle}>كلمة المرور الجديدة</label>
+              <label htmlFor="profileNewPassword" style={labelStyle}>{t('auth.profile_page.s17', "كلمة المرور الجديدة")}</label>
               <input
                 id="profileNewPassword"
                 type="text"
@@ -398,7 +400,7 @@ export function ProfilePage() {
             </div>
 
             <div>
-              <label htmlFor="profileConfirmPassword" style={labelStyle}>تأكيد كلمة المرور الجديدة</label>
+              <label htmlFor="profileConfirmPassword" style={labelStyle}>{t('auth.profile_page.s18', "تأكيد كلمة المرور الجديدة")}</label>
               <input
                 id="profileConfirmPassword"
                 type="text"
@@ -446,7 +448,7 @@ export function ProfilePage() {
                   padding: '0 20px',
                 }}
               >
-                {isSavingPassword ? 'جاري التحديث...' : 'تحديث كلمة المرور'}
+                {isSavingPassword ? t('auth.profile_page.s19', "جاري التحديث...") : t('auth.profile_page.s20', "تحديث كلمة المرور")}
               </Button>
             </div>
           </form>
@@ -456,9 +458,9 @@ export function ProfilePage() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '18px' }}>
             <ShieldCheckIcon />
             <div>
-              <h2 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: '#0f172a' }}>التحقق بخطوتين</h2>
+              <h2 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: '#0f172a' }}>{t('auth.profile_page.s21', "التحقق بخطوتين")}</h2>
               <p style={{ margin: '2px 0 0', fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>
-                طبقة حماية ثانية بعد كلمة المرور
+                {t('auth.profile_page.s22', "طبقة حماية ثانية بعد كلمة المرور")}
               </p>
             </div>
           </div>

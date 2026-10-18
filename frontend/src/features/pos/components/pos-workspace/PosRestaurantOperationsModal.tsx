@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 import { RestaurantOperationsDialog } from './RestaurantOperationsDialog';
 import {
@@ -149,6 +150,7 @@ export function PosRestaurantOperationsModal({
   onOpenAggregators,
   onOpenDriverDispatch,
 }: PosRestaurantOperationsModalProps) {
+  const { t } = useTranslation();
   const trigger = (action: () => void) => {
     onClose();
     action();
@@ -252,8 +254,8 @@ export function PosRestaurantOperationsModal({
     <RestaurantOperationsDialog
       open={open}
       onClose={onClose}
-      title="مركز عمليات وتشغيل المطعم"
-      subtitle="التحكم الموحد في خدمات الصالة والبيع، أسطول التوصيل، والمطبخ والرقابة الإشرافية"
+      title={t('pos.pos_workspace.pos_restaurant_operations_modal.s0', "مركز عمليات وتشغيل المطعم")}
+      subtitle={t('pos.pos_workspace.pos_restaurant_operations_modal.s1', "التحكم الموحد في خدمات الصالة والبيع، أسطول التوصيل، والمطبخ والرقابة الإشرافية")}
       icon={<UtensilsIcon size={18} color="#170e5e" />}
       badge={
         count86 > 0 ? (
@@ -267,7 +269,7 @@ export function PosRestaurantOperationsModal({
               borderRadius: '999px',
             }}
           >
-            86: {count86} أصناف نافذة
+            86: {count86} {t('pos.pos_workspace.pos_restaurant_operations_modal.s2', "أصناف نافذة")}
           </span>
         ) : undefined
       }
@@ -284,8 +286,8 @@ export function PosRestaurantOperationsModal({
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <span style={{ width: '3px', height: '13px', backgroundColor: '#170e5e', borderRadius: '2px', display: 'inline-block' }} />
-            <span style={{ fontSize: '12.5px', fontWeight: 800, color: '#0f172a' }}>أدوات الصالة والمبيعات المباشرة</span>
-            <span style={{ fontSize: '11px', color: '#64748b' }}>— لخدمة الزبائن وبناء الوجبات أثناء المحاسبة</span>
+            <span style={{ fontSize: '12.5px', fontWeight: 800, color: '#0f172a' }}>{t('pos.pos_workspace.pos_restaurant_operations_modal.s3', "أدوات الصالة والمبيعات المباشرة")}</span>
+            <span style={{ fontSize: '11px', color: '#64748b' }}>{t('pos.pos_workspace.pos_restaurant_operations_modal.s4', "— لخدمة الزبائن وبناء الوجبات أثناء المحاسبة")}</span>
           </div>
         </div>
 
@@ -309,15 +311,15 @@ export function PosRestaurantOperationsModal({
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <ShieldCheckIcon size={15} color="#170e5e" />
             <span style={{ fontSize: '12.5px', fontWeight: 800, color: '#170e5e' }}>
-              أدوات الإشراف والرقابة
+              {t('pos.pos_workspace.pos_restaurant_operations_modal.s5', "أدوات الإشراف والرقابة")}
             </span>
             {!isManager ? (
               <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>
-                — (تتطلب صلاحية مشرف أو رمز اعتماد PIN)
+                {t('pos.pos_workspace.pos_restaurant_operations_modal.s6', "— (تتطلب صلاحية مشرف أو رمز اعتماد PIN)")}
               </span>
             ) : (
               <span style={{ fontSize: '11px', color: '#64748b' }}>
-                — للرقابة على التكاليف، هوامش الأرباح، وتالف المطبخ
+                {t('pos.pos_workspace.pos_restaurant_operations_modal.s7', "— للرقابة على التكاليف، هوامش الأرباح، وتالف المطبخ")}
               </span>
             )}
           </div>

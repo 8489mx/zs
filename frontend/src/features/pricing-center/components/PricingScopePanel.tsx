@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { memo, useEffect, useMemo, useState, type Dispatch, type SetStateAction } from 'react';
 import type { PricingPreviewPayload, PricingPreviewResponse } from '@/shared/api/pricing.api';
 import { FormSection } from '@/shared/components/form-section';
@@ -19,6 +20,7 @@ interface Props {
 }
 
 function PricingScopePanelComponent({ payload, setPayload, categories, suppliers, preview }: Props) {
+  const { t } = useTranslation();
   const [searchInput, setSearchInput] = useState(payload.filters.q || '');
   const [styleCodeInput, setStyleCodeInput] = useState(payload.filters.styleCode || '');
   const debouncedSearchInput = useDebouncedValue(searchInput, 250);
@@ -58,9 +60,9 @@ function PricingScopePanelComponent({ payload, setPayload, categories, suppliers
 
   return (
     <div className="two-column-grid panel-grid">
-      <FormSection title="النطاق والعملية" description="اختر المورد والقسم ونوع العملية وقواعد التوسيع والاستثناء قبل المعاينة.">
+      <FormSection title={t('pricing_center.pricing_scope_panel.s0', "النطاق والعملية")} description={t('pricing_center.pricing_scope_panel.s1', "اختر المورد والقسم ونوع العملية وقواعد التوسيع والاستثناء قبل المعاينة.")}>
         <div className="form-grid compact-form-grid">
-          <Field label="المورد">
+          <Field label={t('pricing_center.pricing_scope_panel.s2', "المورد")}>
             <select
               value={payload.filters.supplierId || ''}
               onChange={(event) => setPayload((current) => ({
@@ -68,12 +70,12 @@ function PricingScopePanelComponent({ payload, setPayload, categories, suppliers
                 filters: { ...current.filters, supplierId: event.target.value ? Number(event.target.value) : undefined },
               }))}
             >
-              <option value="">كل الموردين</option>
+              <option value="">{t('pricing_center.pricing_scope_panel.s3', "كل الموردين")}</option>
               {suppliers.map((supplier) => <option key={supplier.id} value={supplier.id}>{supplier.name}</option>)}
             </select>
           </Field>
 
-          <Field label="القسم">
+          <Field label={t('pricing_center.pricing_scope_panel.s4', "القسم")}>
             <select
               value={payload.filters.categoryId || ''}
               onChange={(event) => setPayload((current) => ({
@@ -81,12 +83,12 @@ function PricingScopePanelComponent({ payload, setPayload, categories, suppliers
                 filters: { ...current.filters, categoryId: event.target.value ? Number(event.target.value) : undefined },
               }))}
             >
-              <option value="">كل الأقسام</option>
+              <option value="">{t('pricing_center.pricing_scope_panel.s5', "كل الأقسام")}</option>
               {categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
             </select>
           </Field>
 
-          <Field label="نوع الصنف">
+          <Field label={t('pricing_center.pricing_scope_panel.s6', "نوع الصنف")}>
             <select
               value={payload.filters.itemKind || ''}
               onChange={(event) => setPayload((current) => ({
@@ -97,29 +99,29 @@ function PricingScopePanelComponent({ payload, setPayload, categories, suppliers
                 },
               }))}
             >
-              <option value="">الكل</option>
-              <option value="standard">عادي</option>
-              <option value="fashion">ملابس</option>
+              <option value="">{t('pricing_center.pricing_scope_panel.s7', "الكل")}</option>
+              <option value="standard">{t('pricing_center.pricing_scope_panel.s8', "عادي")}</option>
+              <option value="fashion">{t('pricing_center.pricing_scope_panel.s9', "ملابس")}</option>
             </select>
           </Field>
 
-          <Field label="كود الموديل / المجموعة">
+          <Field label={t('pricing_center.pricing_scope_panel.s10', "كود الموديل / المجموعة")}>
             <input
               value={styleCodeInput}
               onChange={(event) => setStyleCodeInput(event.target.value)}
-              placeholder="مثل STYLE-100 أو مجموعة-منظفات"
+              placeholder={t('pricing_center.pricing_scope_panel.s11', "مثل STYLE-100 أو مجموعة-منظفات")}
             />
           </Field>
 
-          <Field label="بحث">
+          <Field label={t('pricing_center.pricing_scope_panel.s12', "بحث")}>
             <input
               value={searchInput}
               onChange={(event) => setSearchInput(event.target.value)}
-              placeholder="اسم أو باركود"
+              placeholder={t('pricing_center.pricing_scope_panel.s13', "اسم أو باركود")}
             />
           </Field>
 
-          <Field label="نوع العملية">
+          <Field label={t('pricing_center.pricing_scope_panel.s14', "نوع العملية")}>
             <select
               value={payload.operation.type}
               onChange={(event) => setPayload((current) => ({
@@ -127,16 +129,16 @@ function PricingScopePanelComponent({ payload, setPayload, categories, suppliers
                 operation: { ...current.operation, type: event.target.value as PricingPreviewPayload['operation']['type'] },
               }))}
             >
-              <option value="percent_increase">زيادة نسبة</option>
-              <option value="percent_decrease">خصم نسبة</option>
-              <option value="fixed_increase">زيادة مبلغ</option>
-              <option value="fixed_decrease">خصم مبلغ</option>
-              <option value="set_price">تثبيت سعر</option>
-              <option value="margin_from_cost">هامش من الشراء</option>
+              <option value="percent_increase">{t('pricing_center.pricing_scope_panel.s15', "زيادة نسبة")}</option>
+              <option value="percent_decrease">{t('pricing_center.pricing_scope_panel.s16', "خصم نسبة")}</option>
+              <option value="fixed_increase">{t('pricing_center.pricing_scope_panel.s17', "زيادة مبلغ")}</option>
+              <option value="fixed_decrease">{t('pricing_center.pricing_scope_panel.s18', "خصم مبلغ")}</option>
+              <option value="set_price">{t('pricing_center.pricing_scope_panel.s19', "تثبيت سعر")}</option>
+              <option value="margin_from_cost">{t('pricing_center.pricing_scope_panel.s20', "هامش من الشراء")}</option>
             </select>
           </Field>
 
-          <Field label="القيمة">
+          <Field label={t('pricing_center.pricing_scope_panel.s21', "القيمة")}>
             <input
               type="number"
               step="0.01"
@@ -148,7 +150,7 @@ function PricingScopePanelComponent({ payload, setPayload, categories, suppliers
             />
           </Field>
 
-          <Field label="استهداف الأسعار">
+          <Field label={t('pricing_center.pricing_scope_panel.s22', "استهداف الأسعار")}>
             <div className="stack gap-sm">
               <label>
                 <input
@@ -161,7 +163,7 @@ function PricingScopePanelComponent({ payload, setPayload, categories, suppliers
                       : current.targets.filter((entry) => entry !== 'retail'),
                   }))}
                 />{' '}
-                قطاعي
+                {t('pricing_center.pricing_scope_panel.s23', "قطاعي")}
               </label>
               <label>
                 <input
@@ -174,12 +176,12 @@ function PricingScopePanelComponent({ payload, setPayload, categories, suppliers
                       : current.targets.filter((entry) => entry !== 'wholesale'),
                   }))}
                 />{' '}
-                جملة
+                {t('pricing_center.pricing_scope_panel.s24', "جملة")}
               </label>
             </div>
           </Field>
 
-          <Field label="التقريب">
+          <Field label={t('pricing_center.pricing_scope_panel.s25', "التقريب")}>
             <select
               value={payload.rounding.mode}
               onChange={(event) => setPayload((current) => ({
@@ -187,14 +189,14 @@ function PricingScopePanelComponent({ payload, setPayload, categories, suppliers
                 rounding: { ...current.rounding, mode: event.target.value as PricingPreviewPayload['rounding']['mode'] },
               }))}
             >
-              <option value="none">بدون تقريب</option>
-              <option value="nearest">لأقرب قيمة</option>
-              <option value="ending">نهاية سعر</option>
+              <option value="none">{t('pricing_center.pricing_scope_panel.s26', "بدون تقريب")}</option>
+              <option value="nearest">{t('pricing_center.pricing_scope_panel.s27', "لأقرب قيمة")}</option>
+              <option value="ending">{t('pricing_center.pricing_scope_panel.s28', "نهاية سعر")}</option>
             </select>
           </Field>
 
           {payload.rounding.mode === 'nearest' ? (
-            <Field label="أقرب قيمة">
+            <Field label={t('pricing_center.pricing_scope_panel.s29', "أقرب قيمة")}>
               <input
                 type="number"
                 step="0.01"
@@ -208,7 +210,7 @@ function PricingScopePanelComponent({ payload, setPayload, categories, suppliers
           ) : null}
 
           {payload.rounding.mode === 'ending' ? (
-            <Field label="نهاية السعر">
+            <Field label={t('pricing_center.pricing_scope_panel.s30', "نهاية السعر")}>
               <select
                 value={payload.rounding.ending || 95}
                 onChange={(event) => setPayload((current) => ({
@@ -225,17 +227,17 @@ function PricingScopePanelComponent({ payload, setPayload, categories, suppliers
         </div>
 
         <div className="stack gap-sm section-actions">
-          <label><input type="checkbox" checked={Boolean(payload.filters.activeOnly)} onChange={(event) => setPayload((current) => ({ ...current, filters: { ...current.filters, activeOnly: event.target.checked } }))} /> الأصناف النشطة فقط</label>
-          <label><input type="checkbox" checked={Boolean(payload.filters.inStockOnly)} onChange={(event) => setPayload((current) => ({ ...current, filters: { ...current.filters, inStockOnly: event.target.checked } }))} /> الأصناف التي لها مخزون فقط</label>
-          <label><input type="checkbox" checked={payload.options.applyToWholeStyleCode} onChange={(event) => setPayload((current) => ({ ...current, options: { ...current.options, applyToWholeStyleCode: event.target.checked } }))} /> توسعة الموجة على كل الملابس بنفس كود الموديل</label>
-          <label><input type="checkbox" checked={payload.options.applyToPricingGroup} onChange={(event) => setPayload((current) => ({ ...current, options: { ...current.options, applyToPricingGroup: event.target.checked } }))} /> توسعة الموجة على مجموعة التسعير المعتمدة</label>
-          <label><input type="checkbox" checked={payload.options.skipActiveOffers} onChange={(event) => setPayload((current) => ({ ...current, options: { ...current.options, skipActiveOffers: event.target.checked } }))} /> تخطّي الأصناف التي عليها عروض</label>
-          <label><input type="checkbox" checked={payload.options.skipCustomerPrices} onChange={(event) => setPayload((current) => ({ ...current, options: { ...current.options, skipCustomerPrices: event.target.checked } }))} /> تخطّي الأصناف التي عليها أسعار خاصة</label>
-          <label><input type="checkbox" checked={payload.options.skipManualExceptions} onChange={(event) => setPayload((current) => ({ ...current, options: { ...current.options, skipManualExceptions: event.target.checked } }))} /> تخطّي الأصناف المعلّمة كاستثناء يدوي</label>
+          <label><input type="checkbox" checked={Boolean(payload.filters.activeOnly)} onChange={(event) => setPayload((current) => ({ ...current, filters: { ...current.filters, activeOnly: event.target.checked } }))} /> {t('pricing_center.pricing_scope_panel.s31', "الأصناف النشطة فقط")}</label>
+          <label><input type="checkbox" checked={Boolean(payload.filters.inStockOnly)} onChange={(event) => setPayload((current) => ({ ...current, filters: { ...current.filters, inStockOnly: event.target.checked } }))} /> {t('pricing_center.pricing_scope_panel.s32', "الأصناف التي لها مخزون فقط")}</label>
+          <label><input type="checkbox" checked={payload.options.applyToWholeStyleCode} onChange={(event) => setPayload((current) => ({ ...current, options: { ...current.options, applyToWholeStyleCode: event.target.checked } }))} /> {t('pricing_center.pricing_scope_panel.s33', "توسعة الموجة على كل الملابس بنفس كود الموديل")}</label>
+          <label><input type="checkbox" checked={payload.options.applyToPricingGroup} onChange={(event) => setPayload((current) => ({ ...current, options: { ...current.options, applyToPricingGroup: event.target.checked } }))} /> {t('pricing_center.pricing_scope_panel.s34', "توسعة الموجة على مجموعة التسعير المعتمدة")}</label>
+          <label><input type="checkbox" checked={payload.options.skipActiveOffers} onChange={(event) => setPayload((current) => ({ ...current, options: { ...current.options, skipActiveOffers: event.target.checked } }))} /> {t('pricing_center.pricing_scope_panel.s35', "تخطّي الأصناف التي عليها عروض")}</label>
+          <label><input type="checkbox" checked={payload.options.skipCustomerPrices} onChange={(event) => setPayload((current) => ({ ...current, options: { ...current.options, skipCustomerPrices: event.target.checked } }))} /> {t('pricing_center.pricing_scope_panel.s36', "تخطّي الأصناف التي عليها أسعار خاصة")}</label>
+          <label><input type="checkbox" checked={payload.options.skipManualExceptions} onChange={(event) => setPayload((current) => ({ ...current, options: { ...current.options, skipManualExceptions: event.target.checked } }))} /> {t('pricing_center.pricing_scope_panel.s37', "تخطّي الأصناف المعلّمة كاستثناء يدوي")}</label>
         </div>
       </FormSection>
 
-      <FormSection title="ملخص المعاينة" description="راجع أثر الموجة على قيمة المخزون وهامش الربح قبل الاعتماد.">
+      <FormSection title={t('pricing_center.pricing_scope_panel.s38', "ملخص المعاينة")} description={t('pricing_center.pricing_scope_panel.s39', "راجع أثر الموجة على قيمة المخزون وهامش الربح قبل الاعتماد.")}>
         <div className="stack gap-sm">
           {summaryCards.map((item) => (
             <div key={item.label} className="stat-card">
@@ -244,7 +246,7 @@ function PricingScopePanelComponent({ payload, setPayload, categories, suppliers
             </div>
           ))}
           <div className="muted small">
-            اعتماد الموجة يحتاج صلاحية تعديل السعر. يمكنك تحميل قاعدة محفوظة أو حفظ النطاق الحالي كقاعدة جديدة.
+            {t('pricing_center.pricing_scope_panel.s40', "اعتماد الموجة يحتاج صلاحية تعديل السعر. يمكنك تحميل قاعدة محفوظة أو حفظ النطاق الحالي كقاعدة جديدة.")}
           </div>
         </div>
       </FormSection>

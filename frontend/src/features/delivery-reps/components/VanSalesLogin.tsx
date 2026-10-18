@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { TruckIcon } from '@/shared/components/icons/AppIcons';
@@ -8,6 +9,7 @@ interface VanSalesLoginProps {
 }
 
 export const VanSalesLogin: React.FC<VanSalesLoginProps> = ({ onLoginSuccess }) => {
+  const { t: __t } = useTranslation();
   const cachedAuth = driverPortalApi.getOfflineAuthCache();
   const [phoneInput, setPhoneInput] = useState(() => {
     return cachedAuth?.phone || (typeof localStorage !== 'undefined' ? localStorage.getItem('zs_van_driver_last_phone') : '') || '';
@@ -129,14 +131,14 @@ export const VanSalesLogin: React.FC<VanSalesLoginProps> = ({ onLoginSuccess }) 
                 marginBottom: '8px',
               }}
             >
-              فان كاشير • بيع وتوزيع ميداني
+              {__t('delivery_reps.van_sales_login.s0', __t('delivery_reps.van_sales_login.s0', "فان كاشير • بيع وتوزيع ميداني"))}
             </span>
           </div>
           <h1 style={{ margin: 0, fontSize: '20px', fontWeight: 900, color: '#0f172a' }}>
-            بوابة مبيعات سيارات التوزيع والفان
+            {__t('delivery_reps.van_sales_login.s1', __t('delivery_reps.van_sales_login.s1', "بوابة مبيعات سيارات التوزيع والفان"))}
           </h1>
           <p style={{ margin: '6px 0 0', fontSize: '12.5px', color: '#64748b', lineHeight: 1.5 }}>
-            أدخل رقم الهاتف والرمز السري (PIN) لمباشرة خط السير وفواتير السيارة
+            {__t('delivery_reps.van_sales_login.s2', __t('delivery_reps.van_sales_login.s2', "أدخل رقم الهاتف والرمز السري (PIN) لمباشرة خط السير وفواتير السيارة"))}
           </p>
         </div>
 
@@ -157,7 +159,7 @@ export const VanSalesLogin: React.FC<VanSalesLoginProps> = ({ onLoginSuccess }) 
               gap: '6px',
             }}
           >
-            <span>الجهاز مسجل للمندوب: <strong>{cachedAuth.rep.name}</strong> • متاح الدخول بالـ PIN أوفلاين</span>
+            <span>{__t('delivery_reps.van_sales_login.s3', __t('delivery_reps.van_sales_login.s3', "الجهاز مسجل للمندوب:"))} <strong>{cachedAuth.rep.name}</strong> {__t('delivery_reps.van_sales_login.s4', __t('delivery_reps.van_sales_login.s4', "• متاح الدخول بالـ PIN أوفلاين"))}</span>
           </div>
         )}
 
@@ -182,13 +184,13 @@ export const VanSalesLogin: React.FC<VanSalesLoginProps> = ({ onLoginSuccess }) 
         <form onSubmit={handleLoginSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <div>
             <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-              رقم هاتف المندوب
+              {__t('delivery_reps.van_sales_login.s5', __t('delivery_reps.van_sales_login.s5', "رقم هاتف المندوب"))}
             </label>
             <input
               type="tel"
               inputMode="tel"
               autoComplete="tel"
-              placeholder="مثال: 01012345678"
+              placeholder={__t('delivery_reps.van_sales_login.s6', __t('delivery_reps.van_sales_login.s6', "مثال: 01012345678"))}
               value={phoneInput}
               onChange={(e) => setPhoneInput(e.target.value)}
               required
@@ -210,7 +212,7 @@ export const VanSalesLogin: React.FC<VanSalesLoginProps> = ({ onLoginSuccess }) 
 
           <div>
             <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-              رمز الدخول السريع (PIN Code)
+              {__t('delivery_reps.van_sales_login.s7', __t('delivery_reps.van_sales_login.s7', "رمز الدخول السريع (PIN Code)"))}
             </label>
             <input
               type="password"
@@ -237,7 +239,7 @@ export const VanSalesLogin: React.FC<VanSalesLoginProps> = ({ onLoginSuccess }) 
               }}
             />
             <span style={{ display: 'block', fontSize: '11px', color: '#94a3b8', marginTop: '4px' }}>
-              * الرمز السري المخصص لمندوب الفان من إدارة المستودعات
+              {__t('delivery_reps.van_sales_login.s8', __t('delivery_reps.van_sales_login.s8', "* الرمز السري المخصص لمندوب الفان من إدارة المستودعات"))}
             </span>
           </div>
 
@@ -263,7 +265,7 @@ export const VanSalesLogin: React.FC<VanSalesLoginProps> = ({ onLoginSuccess }) 
               justifyContent: 'center',
             }}
           >
-            {isLoggingIn ? 'جاري التحقق...' : 'تسجيل الدخول ومباشرة البيع'}
+            {isLoggingIn ? __t('delivery_reps.van_sales_login.s9', __t('delivery_reps.van_sales_login.s9', "جاري التحقق...")) : __t('delivery_reps.van_sales_login.s10', __t('delivery_reps.van_sales_login.s10', "تسجيل الدخول ومباشرة البيع"))}
           </button>
         </form>
 
@@ -281,7 +283,7 @@ export const VanSalesLogin: React.FC<VanSalesLoginProps> = ({ onLoginSuccess }) 
               gap: '6px',
             }}
           >
-            <span>الانتقال لبوابة طياري التوصيل والدليفري ←</span>
+            <span>{__t('delivery_reps.van_sales_login.s11', __t('delivery_reps.van_sales_login.s11', "الانتقال لبوابة طياري التوصيل والدليفري ←"))}</span>
           </Link>
           <Link
             to="/hub"
@@ -296,7 +298,7 @@ export const VanSalesLogin: React.FC<VanSalesLoginProps> = ({ onLoginSuccess }) 
               gap: '6px',
             }}
           >
-            <span>← العودة لمركز البوابات</span>
+            <span>{__t('delivery_reps.van_sales_login.s12', __t('delivery_reps.van_sales_login.s12', "← العودة لمركز البوابات"))}</span>
           </Link>
         </div>
       </div>
@@ -328,10 +330,10 @@ export const VanSalesLogin: React.FC<VanSalesLoginProps> = ({ onLoginSuccess }) 
           >
             <div style={{ padding: '20px 24px', borderBottom: '1px solid #f1f5f9' }}>
               <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#0f172a', margin: '0 0 6px' }}>
-                تعدد حسابات المنشآت
+                {__t('delivery_reps.van_sales_login.s13', __t('delivery_reps.van_sales_login.s13', "تعدد حسابات المنشآت"))}
               </h3>
               <p style={{ fontSize: '13px', color: '#64748b', margin: 0 }}>
-                رقم الهاتف مسجل لدى أكثر من شركة. اختر المنشأة المراد إدارة سيارات التوزيع فيها:
+                {__t('delivery_reps.van_sales_login.s14', __t('delivery_reps.van_sales_login.s14', "رقم الهاتف مسجل لدى أكثر من شركة. اختر المنشأة المراد إدارة سيارات التوزيع فيها:"))}
               </p>
             </div>
 
@@ -358,7 +360,7 @@ export const VanSalesLogin: React.FC<VanSalesLoginProps> = ({ onLoginSuccess }) 
                 >
                   <div>
                     <div style={{ fontSize: '14px', fontWeight: 700, color: '#0f172a' }}>{t.name}</div>
-                    <div style={{ fontSize: '12px', color: '#64748b' }}>كود المنشأة: {t.slug || t.id}</div>
+                    <div style={{ fontSize: '12px', color: '#64748b' }}>{__t('delivery_reps.van_sales_login.s15', __t('delivery_reps.van_sales_login.s15', "كود المنشأة:"))} {t.slug || t.id}</div>
                   </div>
                 </button>
               ))}
@@ -380,7 +382,7 @@ export const VanSalesLogin: React.FC<VanSalesLoginProps> = ({ onLoginSuccess }) 
                   cursor: 'pointer',
                 }}
               >
-                إلغاء
+                {__t('delivery_reps.van_sales_login.s16', __t('delivery_reps.van_sales_login.s16', "إلغاء"))}
               </button>
             </div>
           </div>

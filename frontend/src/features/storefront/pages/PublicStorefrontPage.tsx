@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import '@/styles/partials/storefront.css';
 import { useParams, useSearchParams, useLocation, useNavigate } from 'react-router-dom';
@@ -25,6 +26,7 @@ import { TableBillModal } from '../components/TableBillModal';
 import { setGlobalSystemCurrency } from '@/lib/currencies';
 
 export function PublicStorefrontPage() {
+  const { t } = useTranslation();
   const { slug, tableNo, productId, orderNumber: trackOrderNumber } = useParams<{ slug?: string; tableNo?: string; productId?: string; orderNumber?: string }>();
   const [searchParams] = useSearchParams();
   const location = useLocation();
@@ -234,10 +236,10 @@ export function PublicStorefrontPage() {
           <IconStore size={48} color="#94a3b8" />
         </div>
         <h2 style={{ fontSize: '20px', fontWeight: 800, color: '#0f172a', marginBottom: '8px' }}>
-          عفواً، المتجر متوقف حالياً
+          {t('storefront.public_storefront_page.s0', "عفواً، المتجر متوقف حالياً")}
         </h2>
         <p style={{ color: '#64748b', fontSize: '14px', maxWidth: '400px' }}>
-          المتجر غير متاح لاستقبال الطلبات في الوقت الحالي. تواصل مع إدارة المتجر لمزيد من التفاصيل.
+          {t('storefront.public_storefront_page.s1', "المتجر غير متاح لاستقبال الطلبات في الوقت الحالي. تواصل مع إدارة المتجر لمزيد من التفاصيل.")}
         </p>
       </div>
     );
@@ -263,10 +265,10 @@ export function PublicStorefrontPage() {
           <IconStore size={48} color="#94a3b8" />
         </div>
         <h2 style={{ fontSize: '20px', fontWeight: 800, color: '#0f172a', marginBottom: '8px' }}>
-          عفواً، المتجر غير متاح حالياً
+          {t('storefront.public_storefront_page.s2', "عفواً، المتجر غير متاح حالياً")}
         </h2>
         <p style={{ color: '#64748b', fontSize: '14px', maxWidth: '400px' }}>
-          تأكد من اتصالك بالإنترنت وصحة الرابط، أو تواصل مع إدارة المتجر لمزيد من التفاصيل.
+          {t('storefront.public_storefront_page.s3', "تأكد من اتصالك بالإنترنت وصحة الرابط، أو تواصل مع إدارة المتجر لمزيد من التفاصيل.")}
         </p>
       </div>
     );
@@ -332,10 +334,10 @@ export function PublicStorefrontPage() {
             </div>
             <div>
               <div style={{ fontWeight: 800, fontSize: '13.5px' }}>
-                أهلاً بك! أنت تطلب الآن مباشرة من <strong>طاولة رقم ({tableParam})</strong>
+                {t('storefront.public_storefront_page.s4', "أهلاً بك! أنت تطلب الآن مباشرة من")} <strong>{t('storefront.public_storefront_page.s5', "طاولة رقم (")}{tableParam})</strong>
               </div>
               <div style={{ fontSize: '11px', opacity: 0.9 }}>
-                اختر وجبتك وأرسل الطلب، وسيقوم المطبخ بتحضيره وتقديمه لطاولتك فوراً
+                {t('storefront.public_storefront_page.s6', "اختر وجبتك وأرسل الطلب، وسيقوم المطبخ بتحضيره وتقديمه لطاولتك فوراً")}
               </div>
             </div>
           </div>
@@ -362,7 +364,7 @@ export function PublicStorefrontPage() {
               }}
             >
               <BellIcon size={13} color="#15803d" />
-              <span>{isCallingService ? 'جارٍ الإرسال...' : 'استدعاء الويتر'}</span>
+              <span>{isCallingService ? t('storefront.public_storefront_page.s7', "جارٍ الإرسال...") : t('storefront.public_storefront_page.s8', "استدعاء الويتر")}</span>
             </button>
             <button
               type="button"
@@ -385,7 +387,7 @@ export function PublicStorefrontPage() {
               }}
             >
               <CreditCardIcon size={13} color="#ffffff" />
-              <span>{isCallingService ? 'جارٍ الطلب...' : 'طلب الحساب'}</span>
+              <span>{isCallingService ? t('storefront.public_storefront_page.s9', "جارٍ الطلب...") : t('storefront.public_storefront_page.s10', "طلب الحساب")}</span>
             </button>
             <button
               type="button"
@@ -406,7 +408,7 @@ export function PublicStorefrontPage() {
               }}
             >
               <ReceiptIcon size={13} color="#ffffff" />
-              <span>سداد الشيك إلكترونياً</span>
+              <span>{t('storefront.public_storefront_page.s11', "سداد الشيك إلكترونياً")}</span>
             </button>
             <div
               style={{
@@ -417,7 +419,7 @@ export function PublicStorefrontPage() {
                 fontWeight: 700,
               }}
             >
-              طلب صالة
+              {t('storefront.public_storefront_page.s12', "طلب صالة")}
             </div>
           </div>
         </div>
@@ -609,12 +611,12 @@ export function PublicStorefrontPage() {
         onReorder={(order) => {
           const { added, skipped } = handleReorder(order);
           if (added === 0) {
-            toast.warning('أصناف هذا الطلب غير متاحة حالياً في المتجر.');
+            toast.warning(t('storefront.public_storefront_page.s13', "أصناف هذا الطلب غير متاحة حالياً في المتجر."));
             return;
           }
           setIsMyOrdersOpen(false);
           if (skipped.length > 0) {
-            toast.info(`أضفنا ${added} صنف للسلة. غير متاح حالياً: ${skipped.join('، ')}`);
+            toast.info(`أضفنا ${added} صنف للسلة. غير متاح حالياً: ${skipped.join(t('storefront.public_storefront_page.s14', "، "))}`);
           }
         }}
         isReviewModalOpen={isReviewModalOpen}

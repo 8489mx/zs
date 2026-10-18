@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { getGlobalCurrencySymbol } from '@/lib/currencies';
 import { useState, useEffect } from 'react';
 import { Button } from '@/shared/ui/button';
@@ -42,6 +43,7 @@ export function HrLoanCreateForm({
   onChange,
   onSubmit,
 }: HrLoanCreateFormProps) {
+  const { t } = useTranslation();
   const [employeeQuery, setEmployeeQuery] = useState('');
 
   useEffect(() => {
@@ -56,7 +58,7 @@ export function HrLoanCreateForm({
   }, [loanDraft.employeeId, employees]);
 
   if (!canManageLoans) {
-    return <p className="muted" style={{ margin: 0 }}>لا تملك صلاحية تنفيذ هذا الإجراء.</p>;
+    return <p className="muted" style={{ margin: 0 }}>{t('hr.loans.hr_loan_create_form.s0', "لا تملك صلاحية تنفيذ هذا الإجراء.")}</p>;
   }
 
   return (
@@ -65,12 +67,12 @@ export function HrLoanCreateForm({
         
         {/* Card 1: Essential Loan Details */}
         <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          <span style={{ fontSize: '0.9rem', fontWeight: 800, color: '#0f172a', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px' }}>بيانات السلفة *</span>
+          <span style={{ fontSize: '0.9rem', fontWeight: 800, color: '#0f172a', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px' }}>{t('hr.loans.hr_loan_create_form.s1', "بيانات السلفة *")}</span>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
             <div style={{ gridColumn: 'span 2' }}>
               <SearchableCombobox
-                label="الموظف *"
-                placeholder="اختر الموظف..."
+                label={t('hr.loans.hr_loan_create_form.s2', "الموظف *")}
+                placeholder={t('hr.loans.hr_loan_create_form.s3', "اختر الموظف...")}
                 value={employeeQuery}
                 onChange={(q) => {
                   setEmployeeQuery(q);
@@ -90,7 +92,7 @@ export function HrLoanCreateForm({
               />
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>قيمة السلفة ({getGlobalCurrencySymbol()}) <span style={{ color: '#dc2626' }}>*</span></label>
+              <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>{t('hr.loans.hr_loan_create_form.s4', "قيمة السلفة (")}{getGlobalCurrencySymbol()}) <span style={{ color: '#dc2626' }}>*</span></label>
               <input
                 inputMode="decimal"
                 value={loanDraft.principalAmount}
@@ -101,7 +103,7 @@ export function HrLoanCreateForm({
               />
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>تاريخ السلفة <span style={{ color: '#dc2626' }}>*</span></label>
+              <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>{t('hr.loans.hr_loan_create_form.s5', "تاريخ السلفة")} <span style={{ color: '#dc2626' }}>*</span></label>
               <input
                 type="date"
                 value={loanDraft.issueDate}
@@ -116,7 +118,7 @@ export function HrLoanCreateForm({
         {/* Card 2: Repayment Plan */}
         <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px' }}>
-            <span style={{ fontSize: '0.9rem', fontWeight: 800, color: '#0f172a' }}>طريقة وخطة السداد</span>
+            <span style={{ fontSize: '0.9rem', fontWeight: 800, color: '#0f172a' }}>{t('hr.loans.hr_loan_create_form.s6', "طريقة وخطة السداد")}</span>
             <div style={{ display: 'flex', gap: '4px', background: '#e2e8f0', padding: '3px', borderRadius: '8px' }}>
               <button
                 type="button"
@@ -133,7 +135,7 @@ export function HrLoanCreateForm({
                   transition: 'all 0.15s ease',
                 }}
               >
-                خصم كامل من الراتب القادم
+                {t('hr.loans.hr_loan_create_form.s7', "خصم كامل من الراتب القادم")}
               </button>
               <button
                 type="button"
@@ -150,7 +152,7 @@ export function HrLoanCreateForm({
                   transition: 'all 0.15s ease',
                 }}
               >
-                تقسيط على دفعات شهرية
+                {t('hr.loans.hr_loan_create_form.s8', "تقسيط على دفعات شهرية")}
               </button>
             </div>
           </div>
@@ -158,18 +160,18 @@ export function HrLoanCreateForm({
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px' }}>
             {loanDraft.repaymentMethod === 'installments' ? (
               <div>
-                <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>عدد الأقساط (شهور) <span style={{ color: '#dc2626' }}>*</span></label>
+                <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>{t('hr.loans.hr_loan_create_form.s9', "عدد الأقساط (شهور)")} <span style={{ color: '#dc2626' }}>*</span></label>
                 <input
                   inputMode="numeric"
                   value={loanDraft.installmentCount}
                   onChange={(event) => onChange({ installmentCount: normalizeArabicDigits(event.target.value).replace(/\D/g, '') })}
-                  placeholder="مثال: 3"
+                  placeholder={t('hr.loans.hr_loan_create_form.s10', "مثال: 3")}
                   style={{ width: '100%', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '8px 10px', fontSize: '0.875rem', boxSizing: 'border-box' }}
                 />
               </div>
             ) : null}
             <div>
-              <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>شهر بدء الخصم</label>
+              <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>{t('hr.loans.hr_loan_create_form.s11', "شهر بدء الخصم")}</label>
               <select
                 value={loanDraft.firstDeductionMonth}
                 onChange={(event) => onChange({ firstDeductionMonth: event.target.value })}
@@ -182,7 +184,7 @@ export function HrLoanCreateForm({
               </select>
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>سنة الخصم</label>
+              <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>{t('hr.loans.hr_loan_create_form.s12', "سنة الخصم")}</label>
               <input
                 inputMode="numeric"
                 value={loanDraft.firstDeductionYear}
@@ -191,11 +193,11 @@ export function HrLoanCreateForm({
               />
             </div>
             <div style={{ gridColumn: 'span 2' }}>
-              <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>ملاحظات إضافية</label>
+              <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>{t('hr.loans.hr_loan_create_form.s13', "ملاحظات إضافية")}</label>
               <input
                 value={loanDraft.notes}
                 onChange={(event) => onChange({ notes: event.target.value })}
-                placeholder="سبب أو ملاحظات السلفة..."
+                placeholder={t('hr.loans.hr_loan_create_form.s14', "سبب أو ملاحظات السلفة...")}
                 style={{ width: '100%', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '8px 10px', fontSize: '0.875rem', boxSizing: 'border-box' }}
               />
             </div>
@@ -208,7 +210,7 @@ export function HrLoanCreateForm({
         {formError ? <div className="error-box" style={{ margin: 0 }}>{formError}</div> : null}
 
         <div className="actions compact-actions" style={{ justifyContent: 'flex-start', marginTop: '4px' }}>
-          <Button type="submit" disabled={isPending} style={{ minWidth: '140px' }}>{isPending ? 'جاري الحفظ...' : 'حفظ السلفة'}</Button>
+          <Button type="submit" disabled={isPending} style={{ minWidth: '140px' }}>{isPending ? t('hr.loans.hr_loan_create_form.s15', "جاري الحفظ...") : t('hr.loans.hr_loan_create_form.s16', "حفظ السلفة")}</Button>
         </div>
       </div>
     </form>

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { RestaurantOperationsDialog } from './RestaurantOperationsDialog';
 import { toast } from '@/shared/components/system-alert';
@@ -19,6 +20,7 @@ export function PosCustomerPunchCardModal({
   customerName = 'العميل',
   onBack,
 }: PosCustomerPunchCardModalProps) {
+  const { t } = useTranslation();
   const { data: card, refetch } = useQuery({
     queryKey: ['restaurant-stamp-card', customerId],
     queryFn: () => restaurantAdvancedFnbApi.getStampCard(customerId),
@@ -48,10 +50,10 @@ export function PosCustomerPunchCardModal({
       open={open}
       onClose={onClose}
       onBack={onBack}
-      backText="الرجوع لعمليات المطعم"
-      title="كرت الأختام الرقمي للعميل (Digital Stamp Loyalty Card)"
+      backText={t('pos.pos_workspace.pos_customer_punch_card_modal.s0', "الرجوع لعمليات المطعم")}
+      title={t('pos.pos_workspace.pos_customer_punch_card_modal.s1', "كرت الأختام الرقمي للعميل (Digital Stamp Loyalty Card)")}
       subtitle={`برنامج ولاء المقاهي والمطاعم المباشر للعميل: ${customerName}`}
-      footerNote="الأختام الرقمية تتزامن فورياً مع حساب العميل وبرنامج مكافآت المتجر"
+      footerNote={t('pos.pos_workspace.pos_customer_punch_card_modal.s2', "الأختام الرقمية تتزامن فورياً مع حساب العميل وبرنامج مكافآت المتجر")}
       bodyStyle={{
         display: 'flex',
         flexDirection: 'column',
@@ -76,8 +78,8 @@ export function PosCustomerPunchCardModal({
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
             <div>
-              <div style={{ fontSize: '11px', color: '#c4b5fd', fontWeight: 600 }}>كوبون الولاء الرقمي</div>
-              <div style={{ fontSize: '16px', fontWeight: 900, letterSpacing: '0.3px' }}>{card?.program_name || 'كوبون المشروبات والقهوة'}</div>
+              <div style={{ fontSize: '11px', color: '#c4b5fd', fontWeight: 600 }}>{t('pos.pos_workspace.pos_customer_punch_card_modal.s3', "كوبون الولاء الرقمي")}</div>
+              <div style={{ fontSize: '16px', fontWeight: 900, letterSpacing: '0.3px' }}>{card?.program_name || t('pos.pos_workspace.pos_customer_punch_card_modal.s4', "كوبون المشروبات والقهوة")}</div>
             </div>
             <div
               style={{
@@ -89,7 +91,7 @@ export function PosCustomerPunchCardModal({
                 color: '#fef08a',
               }}
             >
-              {completed} كروت مكتملة
+              {completed} {t('pos.pos_workspace.pos_customer_punch_card_modal.s5', "كروت مكتملة")}
             </div>
           </div>
 
@@ -138,9 +140,9 @@ export function PosCustomerPunchCardModal({
               fontSize: '12px',
             }}
           >
-            <span>المكافأة: <strong>{rewardDesc}</strong></span>
+            <span>{t('pos.pos_workspace.pos_customer_punch_card_modal.s6', "المكافأة:")} <strong>{rewardDesc}</strong></span>
             <span style={{ color: '#c4b5fd', fontWeight: 700 }}>
-              {target - current > 0 ? `متبقي ${target - current} أختام` : 'مكافأة جاهزة!'}
+              {target - current > 0 ? `متبقي ${target - current} أختام` : t('pos.pos_workspace.pos_customer_punch_card_modal.s7', "مكافأة جاهزة!")}
             </span>
           </div>
         </div>
@@ -169,7 +171,7 @@ export function PosCustomerPunchCardModal({
             }}
           >
             <PlusCircleIcon size={16} />
-            <span>ختم الكرت الآن (+1 ختم للعميل)</span>
+            <span>{t('pos.pos_workspace.pos_customer_punch_card_modal.s8', "ختم الكرت الآن (+1 ختم للعميل)")}</span>
           </button>
         </div>
       </div>

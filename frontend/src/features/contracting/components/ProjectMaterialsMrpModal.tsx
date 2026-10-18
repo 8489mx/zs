@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
 import { StandardDialog } from '@/shared/components/StandardDialog';
 import { contractingApi } from '../api/contracting.api';
@@ -17,6 +18,7 @@ export function ProjectMaterialsMrpModal({
   projectId,
   projectName,
 }: ProjectMaterialsMrpModalProps) {
+  const { t } = useTranslation();
   const { formatCurrency } = useSystemCurrency();
   const [summary, setSummary] = useState<ProjectMaterialRequirementsSummary | null>(null);
   const [loading, setLoading] = useState(true);
@@ -47,8 +49,8 @@ export function ProjectMaterialsMrpModal({
     <StandardDialog
       open={isOpen}
       onClose={onClose}
-      title="حصر احتياجات المواد ومخطط التوريدات (Project MRP & Materials Takeoff)"
-      subtitle={projectName ? `المشروع: ${projectName}` : 'تجميع تلقائي لإجمالي كميات وتكاليف المواد الخام المطلوبة من واقع بنود المقايسة'}
+      title={t('contracting.project_materials_mrp_modal.s0', "حصر احتياجات المواد ومخطط التوريدات (Project MRP & Materials Takeoff)")}
+      subtitle={projectName ? `المشروع: ${projectName}` : t('contracting.project_materials_mrp_modal.s1', "تجميع تلقائي لإجمالي كميات وتكاليف المواد الخام المطلوبة من واقع بنود المقايسة")}
       width="min(980px, 95vw)"
       minHeight="min(560px, 85vh)"
       footer={
@@ -67,7 +69,7 @@ export function ProjectMaterialsMrpModal({
               cursor: 'pointer',
             }}
           >
-            إغلاق
+            {t('contracting.project_materials_mrp_modal.s2', "إغلاق")}
           </button>
         </div>
       }
@@ -82,13 +84,13 @@ export function ProjectMaterialsMrpModal({
         {/* كروت الإجماليات */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px' }}>
           <div style={{ padding: '12px', borderRadius: '8px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0' }}>
-            <span style={{ fontSize: 'var(--font-micro)', color: '#64748b' }}>إجمالي أصناف المواد والموارد</span>
+            <span style={{ fontSize: 'var(--font-micro)', color: '#64748b' }}>{t('contracting.project_materials_mrp_modal.s3', "إجمالي أصناف المواد والموارد")}</span>
             <strong style={{ display: 'block', fontSize: '1.2rem', color: '#1e293b', marginTop: '4px' }}>
               {loading ? '—' : `${summary?.totalDistinctMaterialsCount || 0} صنف`}
             </strong>
           </div>
           <div style={{ padding: '12px', borderRadius: '8px', backgroundColor: '#eef2ff', border: '1px solid #c7d2fe' }}>
-            <span style={{ fontSize: 'var(--font-micro)', color: '#4338ca' }}>إجمالي التكلفة التقديرية للخامات</span>
+            <span style={{ fontSize: 'var(--font-micro)', color: '#4338ca' }}>{t('contracting.project_materials_mrp_modal.s4', "إجمالي التكلفة التقديرية للخامات")}</span>
             <strong style={{ display: 'block', fontSize: '1.2rem', color: '#170e5e', marginTop: '4px' }}>
               {loading ? '—' : formatCurrency(summary?.totalMaterialsCost || 0)}
             </strong>
@@ -99,7 +101,7 @@ export function ProjectMaterialsMrpModal({
         <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
           <input
             type="text"
-            placeholder="ابحث عن خامة (مثلاً: أسمنت، حديد، رمل، سن، خرسانة)..."
+            placeholder={t('contracting.project_materials_mrp_modal.s5', "ابحث عن خامة (مثلاً: أسمنت، حديد، رمل، سن، خرسانة)...")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             style={{
@@ -151,7 +153,7 @@ export function ProjectMaterialsMrpModal({
                 }}
               />
               <span style={{ fontSize: 'var(--font-body)', fontWeight: 600 }}>
-                جارٍ تحليل مقايسة المشروع وحصر إجمالي الخامات والمعدات...
+                {t('contracting.project_materials_mrp_modal.s6', "جارٍ تحليل مقايسة المشروع وحصر إجمالي الخامات والمعدات...")}
               </span>
             </div>
           ) : filteredItems.length === 0 ? (
@@ -169,23 +171,23 @@ export function ProjectMaterialsMrpModal({
               }}
             >
               <span style={{ fontSize: 'var(--font-body)', fontWeight: 600, color: '#64748b' }}>
-                لا توجد خامات مسجلة للمشروع حتى الآن
+                {t('contracting.project_materials_mrp_modal.s7', "لا توجد خامات مسجلة للمشروع حتى الآن")}
               </span>
               <span style={{ fontSize: 'var(--font-subtitle)', color: '#94a3b8' }}>
-                أضف بنوداً تعاقدية لمقايسة المشروع ليتم حصر الخامات والموارد تلقائياً
+                {t('contracting.project_materials_mrp_modal.s8', "أضف بنوداً تعاقدية لمقايسة المشروع ليتم حصر الخامات والموارد تلقائياً")}
               </span>
             </div>
           ) : (
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right' }}>
               <thead style={{ position: 'sticky', top: 0, zIndex: 1, backgroundColor: '#f8fafc' }}>
                 <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
-                  <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>كود المورد</th>
-                  <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>اسم الخامة / المورد</th>
-                  <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>الوحدة</th>
-                  <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>الكمية المطلوبة بالمشروع</th>
-                  <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>المنصرف للموقع فعلياً</th>
-                  <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>المتبقي للتوريد</th>
-                  <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>نسبة التشوين</th>
+                  <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>{t('contracting.project_materials_mrp_modal.s9', "كود المورد")}</th>
+                  <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>{t('contracting.project_materials_mrp_modal.s10', "اسم الخامة / المورد")}</th>
+                  <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>{t('contracting.project_materials_mrp_modal.s11', "الوحدة")}</th>
+                  <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>{t('contracting.project_materials_mrp_modal.s12', "الكمية المطلوبة بالمشروع")}</th>
+                  <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>{t('contracting.project_materials_mrp_modal.s13', "المنصرف للموقع فعلياً")}</th>
+                  <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>{t('contracting.project_materials_mrp_modal.s14', "المتبقي للتوريد")}</th>
+                  <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>{t('contracting.project_materials_mrp_modal.s15', "نسبة التشوين")}</th>
                 </tr>
               </thead>
               <tbody>

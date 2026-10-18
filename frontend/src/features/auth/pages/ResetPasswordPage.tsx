@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
@@ -5,6 +6,7 @@ import { AuthScreenShell } from '@/features/auth/components/AuthScreenShell';
 import { useResetPasswordForm } from '@/features/auth/hooks/useResetPasswordForm';
 
 export function ResetPasswordPage() {
+  const { t } = useTranslation();
   const {
     form,
     onSubmit,
@@ -20,16 +22,16 @@ export function ResetPasswordPage() {
   if (isDone) {
     return (
       <AuthScreenShell
-        title="تم تعيين كلمة المرور"
-        subtitle="يمكنك الآن الدخول بكلمة المرور الجديدة"
+        title={t('auth.reset_password_page.s0', "تم تعيين كلمة المرور")}
+        subtitle={t('auth.reset_password_page.s1', "يمكنك الآن الدخول بكلمة المرور الجديدة")}
       >
         <div className="login-success-alert">
           <AppIcons.CheckCircle size={16} />
-          <span>تم تحديث كلمة المرور وإنهاء كل الجلسات المفتوحة على هذا الحساب.</span>
+          <span>{t('auth.reset_password_page.s2', "تم تحديث كلمة المرور وإنهاء كل الجلسات المفتوحة على هذا الحساب.")}</span>
         </div>
 
         <Link to="/login" className="login-submit-pro-btn auth-link-btn">
-          <span>الدخول إلى النظام</span>
+          <span>{t('auth.reset_password_page.s3', "الدخول إلى النظام")}</span>
           <AppIcons.ArrowLeft size={16} />
         </Link>
       </AuthScreenShell>
@@ -38,8 +40,8 @@ export function ResetPasswordPage() {
 
   if (tokenStatus === 'checking') {
     return (
-      <AuthScreenShell title="جاري التحقق من الرابط" subtitle="لحظة واحدة من فضلك">
-        <div className="auth-note" role="status">جاري التحقق من صلاحية رابط إعادة التعيين...</div>
+      <AuthScreenShell title={t('auth.reset_password_page.s4', "جاري التحقق من الرابط")} subtitle={t('auth.reset_password_page.s5', "لحظة واحدة من فضلك")}>
+        <div className="auth-note" role="status">{t('auth.reset_password_page.s6', "جاري التحقق من صلاحية رابط إعادة التعيين...")}</div>
       </AuthScreenShell>
     );
   }
@@ -47,8 +49,8 @@ export function ResetPasswordPage() {
   if (tokenStatus === 'invalid') {
     return (
       <AuthScreenShell
-        title="الرابط لم يعد صالحاً"
-        subtitle="روابط إعادة التعيين قصيرة العمر وتعمل مرة واحدة فقط"
+        title={t('auth.reset_password_page.s7', "الرابط لم يعد صالحاً")}
+        subtitle={t('auth.reset_password_page.s8', "روابط إعادة التعيين قصيرة العمر وتعمل مرة واحدة فقط")}
       >
         <div className="login-error-alert">
           <AppIcons.AlertTriangle size={16} />
@@ -56,7 +58,7 @@ export function ResetPasswordPage() {
         </div>
 
         <Link to="/forgot-password" className="login-submit-pro-btn auth-link-btn">
-          <span>اطلب رابطاً جديداً</span>
+          <span>{t('auth.reset_password_page.s9', "اطلب رابطاً جديداً")}</span>
           <AppIcons.ArrowLeft size={16} />
         </Link>
       </AuthScreenShell>
@@ -65,8 +67,8 @@ export function ResetPasswordPage() {
 
   return (
     <AuthScreenShell
-      title="تعيين كلمة مرور جديدة"
-      subtitle={accountLabel ? `الحساب: ${accountLabel.username} — ${accountLabel.businessName}` : 'اختر كلمة مرور جديدة لحسابك'}
+      title={t('auth.reset_password_page.s10', "تعيين كلمة مرور جديدة")}
+      subtitle={accountLabel ? `الحساب: ${accountLabel.username} — ${accountLabel.businessName}` : t('auth.reset_password_page.s11', "اختر كلمة مرور جديدة لحسابك")}
     >
       {submitError && (
         <div className="login-error-alert">
@@ -86,7 +88,7 @@ export function ResetPasswordPage() {
       >
         <div className="login-field-group">
           <div className="login-field-label">
-            <label htmlFor="reset-new-password">كلمة المرور الجديدة</label>
+            <label htmlFor="reset-new-password">{t('auth.reset_password_page.s12', "كلمة المرور الجديدة")}</label>
           </div>
           <div className="login-input-pro-wrap">
             <input
@@ -98,12 +100,12 @@ export function ResetPasswordPage() {
               autoCorrect="off"
               autoCapitalize="off"
               spellCheck={false}
-              placeholder="أدخل كلمة المرور الجديدة"
+              placeholder={t('auth.reset_password_page.s13', "أدخل كلمة المرور الجديدة")}
             />
             <button
               type="button"
               className="login-pwd-toggle-btn"
-              aria-label={showPassword ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور'}
+              aria-label={showPassword ? t('auth.reset_password_page.s14', "إخفاء كلمة المرور") : t('auth.reset_password_page.s15', "إظهار كلمة المرور")}
               onClick={() => setShowPassword(!showPassword)}
             >
               <AppIcons.Eye size={16} />
@@ -116,7 +118,7 @@ export function ResetPasswordPage() {
 
         <div className="login-field-group">
           <div className="login-field-label">
-            <label htmlFor="reset-confirm-password">تأكيد كلمة المرور</label>
+            <label htmlFor="reset-confirm-password">{t('auth.reset_password_page.s16', "تأكيد كلمة المرور")}</label>
           </div>
           <div className="login-input-pro-wrap">
             <input
@@ -128,7 +130,7 @@ export function ResetPasswordPage() {
               autoCorrect="off"
               autoCapitalize="off"
               spellCheck={false}
-              placeholder="أعد إدخال كلمة المرور"
+              placeholder={t('auth.reset_password_page.s17', "أعد إدخال كلمة المرور")}
             />
           </div>
           {form.formState.errors.confirmPassword?.message && (
@@ -142,13 +144,13 @@ export function ResetPasswordPage() {
           disabled={isSubmitting}
           onClick={form.handleSubmit(onSubmit)}
         >
-          <span>{isSubmitting ? 'جاري الحفظ...' : 'حفظ كلمة المرور'}</span>
+          <span>{isSubmitting ? t('auth.reset_password_page.s18', "جاري الحفظ...") : t('auth.reset_password_page.s19', "حفظ كلمة المرور")}</span>
           {!isSubmitting && <AppIcons.Lock size={16} />}
         </button>
       </div>
 
       <p className="auth-note">
-        حفظ كلمة المرور ينهي كل الجلسات المفتوحة على هذا الحساب على كل الأجهزة.
+        {t('auth.reset_password_page.s20', "حفظ كلمة المرور ينهي كل الجلسات المفتوحة على هذا الحساب على كل الأجهزة.")}
       </p>
     </AuthScreenShell>
   );

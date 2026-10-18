@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useCallback } from 'react';
 import { StandardDialog } from '@/shared/components/StandardDialog';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
@@ -36,6 +37,7 @@ const STATUS_CONFIG: Record<SubmittalStatus, { bg: string; color: string; border
 };
 
 export function MaterialSubmittalsModal({ open, onClose, projectId, projectName }: MaterialSubmittalsModalProps) {
+  const { t } = useTranslation();
   const [submittals, setSubmittals] = useState<ContractingSubmittal[]>([]);
   const [boqItems, setBoqItems] = useState<ContractingBoqItem[]>([]);
   const [subcontracts, setSubcontracts] = useState<ContractingSubcontract[]>([]);
@@ -152,7 +154,7 @@ export function MaterialSubmittalsModal({ open, onClose, projectId, projectName 
     <StandardDialog
       open={open}
       onClose={onClose}
-      title="اعتمادات المواد والمخططات التنفيذية (Material & Shop Drawing Submittals)"
+      title={t('contracting.material_submittals_modal.s0', "اعتمادات المواد والمخططات التنفيذية (Material & Shop Drawing Submittals)")}
       subtitle={`إدارة دورة اعتماد العينات والمواصفات ولوحات الشوب دروينج مع الاستشاري — ${projectName || ''}`}
       maxWidth="1100px"
     >
@@ -174,7 +176,7 @@ export function MaterialSubmittalsModal({ open, onClose, projectId, projectName 
                 cursor: 'pointer',
               }}
             >
-              سجل الاعتمادات ({submittals.length})
+              {t('contracting.material_submittals_modal.s1', "سجل الاعتمادات (")}{submittals.length})
             </button>
             <button
               type="button"
@@ -190,23 +192,23 @@ export function MaterialSubmittalsModal({ open, onClose, projectId, projectName 
                 cursor: 'pointer',
               }}
             >
-              تقديم طلب اعتماد جديد (MAR / MAS)
+              {t('contracting.material_submittals_modal.s2', "تقديم طلب اعتماد جديد (MAR / MAS)")}
             </button>
           </div>
 
           {activeTab === 'list' && (
             <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-              <span style={{ fontSize: 'var(--font-micro)', fontWeight: 600, color: '#64748b' }}>تصفية الحالة:</span>
+              <span style={{ fontSize: 'var(--font-micro)', fontWeight: 600, color: '#64748b' }}>{t('contracting.material_submittals_modal.s3', "تصفية الحالة:")}</span>
               <CustomSelect
                 value={statusFilter}
                 onChange={(val) => setStatusFilter(val || 'all')}
                 options={[
-                  { value: 'all', label: 'كافة الحالات' },
-                  { value: 'submitted', label: 'قيد المراجعة' },
-                  { value: 'approved', label: 'معتمد كود A' },
-                  { value: 'approved_as_noted', label: 'معتمد بملاحظات كود B' },
-                  { value: 'revise_and_resubmit', label: 'مرفوض ويعدل كود C' },
-                  { value: 'rejected', label: 'مرفوض كود D' },
+                  { value: 'all', label: t('contracting.material_submittals_modal.s4', "كافة الحالات") },
+                  { value: 'submitted', label: t('contracting.material_submittals_modal.s5', "قيد المراجعة") },
+                  { value: 'approved', label: t('contracting.material_submittals_modal.s6', "معتمد كود A") },
+                  { value: 'approved_as_noted', label: t('contracting.material_submittals_modal.s7', "معتمد بملاحظات كود B") },
+                  { value: 'revise_and_resubmit', label: t('contracting.material_submittals_modal.s8', "مرفوض ويعدل كود C") },
+                  { value: 'rejected', label: t('contracting.material_submittals_modal.s9', "مرفوض كود D") },
                 ]}
               />
             </div>
@@ -217,7 +219,7 @@ export function MaterialSubmittalsModal({ open, onClose, projectId, projectName 
         {activeTab === 'create' && (
           <form onSubmit={handleCreateSubmittal} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '12px' }}>
-              <Field label="نوع الاعتماد الهندسي (Submittal Type)">
+              <Field label={t('contracting.material_submittals_modal.s10', "نوع الاعتماد الهندسي (Submittal Type)")}>
                 <CustomSelect
                   value={submittalType}
                   onChange={(val) => setSubmittalType((val as SubmittalType) || 'material')}
@@ -229,42 +231,42 @@ export function MaterialSubmittalsModal({ open, onClose, projectId, projectName 
                 />
               </Field>
 
-              <Field label="عنوان ووصف المادة / اللوحة التنفيذية">
+              <Field label={t('contracting.material_submittals_modal.s11', "عنوان ووصف المادة / اللوحة التنفيذية")}>
                 <input
                   type="text"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  placeholder="مثال: اعتماد كابلات نحاس معزولة 4×35 مم² — السويدي للكابلات"
+                  placeholder={t('contracting.material_submittals_modal.s12', "مثال: اعتماد كابلات نحاس معزولة 4×35 مم² — السويدي للكابلات")}
                   style={{ width: '100%', height: '36px', padding: '0 10px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
                 />
               </Field>
 
-              <Field label="بند المواصفة التعاقدية (Specification Code)">
+              <Field label={t('contracting.material_submittals_modal.s13', "بند المواصفة التعاقدية (Specification Code)")}>
                 <input
                   type="text"
                   value={specificationSection}
                   onChange={(e) => setSpecificationSection(e.target.value)}
-                  placeholder="مثال: Section 16120 - Low Voltage Cables"
+                  placeholder={t('contracting.material_submittals_modal.s14', "مثال: Section 16120 - Low Voltage Cables")}
                   style={{ width: '100%', height: '36px', padding: '0 10px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
                 />
               </Field>
 
-              <Field label="الشركة المصنعة / المورد المقترح">
+              <Field label={t('contracting.material_submittals_modal.s15', "الشركة المصنعة / المورد المقترح")}>
                 <input
                   type="text"
                   value={supplierManufacturer}
                   onChange={(e) => setSupplierManufacturer(e.target.value)}
-                  placeholder="مثال: شركة السويدي إليكتريك / سيمنس"
+                  placeholder={t('contracting.material_submittals_modal.s16', "مثال: شركة السويدي إليكتريك / سيمنس")}
                   style={{ width: '100%', height: '36px', padding: '0 10px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
                 />
               </Field>
 
-              <Field label="ربط ببند المقايسة المعتمد (BOQ Item)">
+              <Field label={t('contracting.material_submittals_modal.s17', "ربط ببند المقايسة المعتمد (BOQ Item)")}>
                 <CustomSelect
                   value={boqItemId}
                   onChange={(val) => setBoqItemId(val || '')}
                   options={[
-                    { value: '', label: '— اختياري: غير مرتبط ببند محدد —' },
+                    { value: '', label: t('contracting.material_submittals_modal.s18', "— اختياري: غير مرتبط ببند محدد —") },
                     ...boqItems.map((b) => ({
                       value: b.id,
                       label: `[${b.itemCode}] ${b.description}`,
@@ -273,12 +275,12 @@ export function MaterialSubmittalsModal({ open, onClose, projectId, projectName 
                 />
               </Field>
 
-              <Field label="مقاول الباطن التابع للتقديم">
+              <Field label={t('contracting.material_submittals_modal.s19', "مقاول الباطن التابع للتقديم")}>
                 <CustomSelect
                   value={subcontractId}
                   onChange={(val) => setSubcontractId(val || '')}
                   options={[
-                    { value: '', label: '— اختياري: المقاول العام الرئيسي —' },
+                    { value: '', label: t('contracting.material_submittals_modal.s20', "— اختياري: المقاول العام الرئيسي —") },
                     ...subcontracts.map((s) => ({
                       value: s.id,
                       label: `[${s.contractNumber || (s as any).subcontractNumber || ''}] ${s.subcontractorName || ''} (${s.scopeOfWork || (s as any).workScope || ''})`,
@@ -287,7 +289,7 @@ export function MaterialSubmittalsModal({ open, onClose, projectId, projectName 
                 />
               </Field>
 
-              <Field label="تاريخ التقديم الرسمي">
+              <Field label={t('contracting.material_submittals_modal.s21', "تاريخ التقديم الرسمي")}>
                 <input
                   type="date"
                   value={submissionDate}
@@ -296,7 +298,7 @@ export function MaterialSubmittalsModal({ open, onClose, projectId, projectName 
                 />
               </Field>
 
-              <Field label="موعد استحقاق رد الاستشاري (Review Due Date)">
+              <Field label={t('contracting.material_submittals_modal.s22', "موعد استحقاق رد الاستشاري (Review Due Date)")}>
                 <input
                   type="date"
                   value={reviewDueDate}
@@ -306,11 +308,11 @@ export function MaterialSubmittalsModal({ open, onClose, projectId, projectName 
               </Field>
             </div>
 
-            <Field label="ملاحظات تفصيلية أو روابط المرفقات والكتالوجات">
+            <Field label={t('contracting.material_submittals_modal.s23', "ملاحظات تفصيلية أو روابط المرفقات والكتالوجات")}>
               <textarea
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                placeholder="تدوين أي شروط خاصة أو بيانات اختبار المصنع أو متطلبات استشارية خاصة..."
+                placeholder={t('contracting.material_submittals_modal.s24', "تدوين أي شروط خاصة أو بيانات اختبار المصنع أو متطلبات استشارية خاصة...")}
                 rows={3}
                 style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
               />
@@ -322,14 +324,14 @@ export function MaterialSubmittalsModal({ open, onClose, projectId, projectName 
                 onClick={() => setActiveTab('list')}
                 style={{ height: '36px', padding: '0 16px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#475569', cursor: 'pointer', fontWeight: 600 }}
               >
-                إلغاء
+                {t('contracting.material_submittals_modal.s25', "إلغاء")}
               </button>
               <button
                 type="submit"
                 disabled={isSubmitting}
                 style={{ height: '36px', padding: '0 20px', borderRadius: '6px', border: 'none', background: '#170e5e', color: '#ffffff', cursor: 'pointer', fontWeight: 700 }}
               >
-                {isSubmitting ? 'جارٍ الإرسال...' : 'تسجيل وإرسال طلب الاعتماد للاستشاري'}
+                {isSubmitting ? t('contracting.material_submittals_modal.s26', "جارٍ الإرسال...") : t('contracting.material_submittals_modal.s27', "تسجيل وإرسال طلب الاعتماد للاستشاري")}
               </button>
             </div>
           </form>
@@ -339,24 +341,24 @@ export function MaterialSubmittalsModal({ open, onClose, projectId, projectName 
         {activeTab === 'list' && (
           <div style={{ maxHeight: '420px', overflowY: 'auto', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
             {loading ? (
-              <div style={{ padding: '30px', textAlign: 'center', color: '#64748b' }}>جارٍ تحميل سجل الاعتمادات...</div>
+              <div style={{ padding: '30px', textAlign: 'center', color: '#64748b' }}>{t('contracting.material_submittals_modal.s28', "جارٍ تحميل سجل الاعتمادات...")}</div>
             ) : filteredSubmittals.length === 0 ? (
               <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
                 <AppIcons.FileText size={36} style={{ color: '#94a3b8', margin: '0 auto 8px' }} />
-                <div style={{ fontWeight: 700, color: '#334155' }}>لا توجد اعتمادات مسجلة مطابقة للفلاتر</div>
-                <div style={{ fontSize: 'var(--font-subtitle)', marginTop: '4px' }}>اضغط على "تقديم طلب اعتماد جديد" لتوثيق عينات وخامات المشروع</div>
+                <div style={{ fontWeight: 700, color: '#334155' }}>{t('contracting.material_submittals_modal.s29', "لا توجد اعتمادات مسجلة مطابقة للفلاتر")}</div>
+                <div style={{ fontSize: 'var(--font-subtitle)', marginTop: '4px' }}>{t('contracting.material_submittals_modal.s30', "اضغط على \"تقديم طلب اعتماد جديد\" لتوثيق عينات وخامات المشروع")}</div>
               </div>
             ) : (
               <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right', fontSize: 'var(--font-body)' }}>
                 <thead style={{ background: '#f8fafc', borderBottom: '1.5px solid #e2e8f0', position: 'sticky', top: 0 }}>
                   <tr>
-                    <th style={{ padding: '10px 12px', fontWeight: 700, color: '#334155' }}>رقم الاعتماد</th>
-                    <th style={{ padding: '10px 12px', fontWeight: 700, color: '#334155' }}>النوع</th>
-                    <th style={{ padding: '10px 12px', fontWeight: 700, color: '#334155' }}>عنوان المادة / المخطط</th>
-                    <th style={{ padding: '10px 12px', fontWeight: 700, color: '#334155' }}>المصنع / المورد</th>
-                    <th style={{ padding: '10px 12px', fontWeight: 700, color: '#334155' }}>تاريخ التقديم</th>
-                    <th style={{ padding: '10px 12px', fontWeight: 700, color: '#334155' }}>حالة الاعتماد</th>
-                    <th style={{ padding: '10px 12px', fontWeight: 700, color: '#334155', textAlign: 'center' }}>الإجراءات</th>
+                    <th style={{ padding: '10px 12px', fontWeight: 700, color: '#334155' }}>{t('contracting.material_submittals_modal.s31', "رقم الاعتماد")}</th>
+                    <th style={{ padding: '10px 12px', fontWeight: 700, color: '#334155' }}>{t('contracting.material_submittals_modal.s32', "النوع")}</th>
+                    <th style={{ padding: '10px 12px', fontWeight: 700, color: '#334155' }}>{t('contracting.material_submittals_modal.s33', "عنوان المادة / المخطط")}</th>
+                    <th style={{ padding: '10px 12px', fontWeight: 700, color: '#334155' }}>{t('contracting.material_submittals_modal.s34', "المصنع / المورد")}</th>
+                    <th style={{ padding: '10px 12px', fontWeight: 700, color: '#334155' }}>{t('contracting.material_submittals_modal.s35', "تاريخ التقديم")}</th>
+                    <th style={{ padding: '10px 12px', fontWeight: 700, color: '#334155' }}>{t('contracting.material_submittals_modal.s36', "حالة الاعتماد")}</th>
+                    <th style={{ padding: '10px 12px', fontWeight: 700, color: '#334155', textAlign: 'center' }}>{t('contracting.material_submittals_modal.s37', "الإجراءات")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -371,7 +373,7 @@ export function MaterialSubmittalsModal({ open, onClose, projectId, projectName 
                         <td style={{ padding: '10px 12px' }}>
                           <div style={{ fontWeight: 700, color: '#0f172a' }}>{sub.title}</div>
                           {sub.specificationSection && (
-                            <div style={{ fontSize: 'var(--font-micro)', color: '#64748b' }}>كود: {sub.specificationSection}</div>
+                            <div style={{ fontSize: 'var(--font-micro)', color: '#64748b' }}>{t('contracting.material_submittals_modal.s38', "كود:")} {sub.specificationSection}</div>
                           )}
                         </td>
                         <td style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#334155' }}>
@@ -416,7 +418,7 @@ export function MaterialSubmittalsModal({ open, onClose, projectId, projectName 
                               cursor: 'pointer',
                             }}
                           >
-                            مراجعة الاستشاري
+                            {t('contracting.material_submittals_modal.s39', "مراجعة الاستشاري")}
                           </button>
                         </td>
                       </tr>
@@ -440,38 +442,38 @@ export function MaterialSubmittalsModal({ open, onClose, projectId, projectName 
             }}
           >
             <h4 style={{ margin: '0 0 10px', fontSize: 'var(--font-section-title)', fontWeight: 700, color: '#170e5e' }}>
-              توثيق قرار واعتماد استشاري المشروع: [{reviewingSubmittal.submittalNumber}] {reviewingSubmittal.title}
+              {t('contracting.material_submittals_modal.s40', "توثيق قرار واعتماد استشاري المشروع: [")}{reviewingSubmittal.submittalNumber}] {reviewingSubmittal.title}
             </h4>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '10px' }}>
-              <Field label="قرار الاعتماد الرسمي (Consultant Code)">
+              <Field label={t('contracting.material_submittals_modal.s41', "قرار الاعتماد الرسمي (Consultant Code)")}>
                 <CustomSelect
                   value={newStatus}
                   onChange={(val) => setNewStatus((val as SubmittalStatus) || 'approved')}
                   options={[
-                    { value: 'approved', label: 'Code A: معتمد نهائياً بدون ملاحظات (Approved)' },
-                    { value: 'approved_as_noted', label: 'Code B: معتمد مع ملاحظات استشارية (Approved as Noted)' },
-                    { value: 'revise_and_resubmit', label: 'Code C: مرفوض ويعدل ويعاد تقديمه (Revise & Resubmit)' },
-                    { value: 'rejected', label: 'Code D: مرفوض كلياً وغير مطابق (Rejected)' },
+                    { value: 'approved', label: t('contracting.material_submittals_modal.s42', "Code A: معتمد نهائياً بدون ملاحظات (Approved)") },
+                    { value: 'approved_as_noted', label: t('contracting.material_submittals_modal.s43', "Code B: معتمد مع ملاحظات استشارية (Approved as Noted)") },
+                    { value: 'revise_and_resubmit', label: t('contracting.material_submittals_modal.s44', "Code C: مرفوض ويعدل ويعاد تقديمه (Revise & Resubmit)") },
+                    { value: 'rejected', label: t('contracting.material_submittals_modal.s45', "Code D: مرفوض كلياً وغير مطابق (Rejected)") },
                   ]}
                 />
               </Field>
 
-              <Field label="اسم الاستشاري / مهندس المراجعة">
+              <Field label={t('contracting.material_submittals_modal.s46', "اسم الاستشاري / مهندس المراجعة")}>
                 <input
                   type="text"
                   value={consultantName}
                   onChange={(e) => setConsultantName(e.target.value)}
-                  placeholder="مثال: د. م. أحمد خليل — الاستشاري العام"
+                  placeholder={t('contracting.material_submittals_modal.s47', "مثال: د. م. أحمد خليل — الاستشاري العام")}
                   style={{ width: '100%', height: '36px', padding: '0 10px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
                 />
               </Field>
             </div>
 
-            <Field label="ملاحظات وتوجيهات الاستشاري الفنية">
+            <Field label={t('contracting.material_submittals_modal.s48', "ملاحظات وتوجيهات الاستشاري الفنية")}>
               <textarea
                 value={consultantComments}
                 onChange={(e) => setConsultantComments(e.target.value)}
-                placeholder="تدوين ملاحظات الاعتماد، شروط الموقع، أو أسباب الرفض وإعادة التقديم..."
+                placeholder={t('contracting.material_submittals_modal.s49', "تدوين ملاحظات الاعتماد، شروط الموقع، أو أسباب الرفض وإعادة التقديم...")}
                 rows={2}
                 style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
               />
@@ -483,7 +485,7 @@ export function MaterialSubmittalsModal({ open, onClose, projectId, projectName 
                 onClick={() => setReviewingSubmittal(null)}
                 style={{ height: '32px', padding: '0 14px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#475569', cursor: 'pointer', fontWeight: 600 }}
               >
-                إلغاء
+                {t('contracting.material_submittals_modal.s50', "إلغاء")}
               </button>
               <button
                 type="button"
@@ -491,7 +493,7 @@ export function MaterialSubmittalsModal({ open, onClose, projectId, projectName 
                 disabled={isSubmitting}
                 style={{ height: '32px', padding: '0 18px', borderRadius: '6px', border: 'none', background: '#15803d', color: '#ffffff', cursor: 'pointer', fontWeight: 700 }}
               >
-                {isSubmitting ? 'جارٍ الحفظ...' : 'اعتماد وحفظ قرار الاستشاري'}
+                {isSubmitting ? t('contracting.material_submittals_modal.s51', "جارٍ الحفظ...") : t('contracting.material_submittals_modal.s52', "اعتماد وحفظ قرار الاستشاري")}
               </button>
             </div>
           </div>

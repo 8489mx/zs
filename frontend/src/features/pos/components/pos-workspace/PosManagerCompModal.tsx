@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { RestaurantOperationsDialog } from './RestaurantOperationsDialog';
 import { Button } from '@/shared/ui/button';
@@ -37,6 +38,7 @@ export function PosManagerCompModal({
   cartSummary,
   onApplyComp,
 }: PosManagerCompModalProps) {
+  const { t: __t } = useTranslation();
   const currentUser = useAuthStore((s: any) => s.user);
   const [compType, setCompType] = useState<'vip_guest' | 'customer_complaint' | 'staff_meal' | 'promotional_tasting'>('vip_guest');
   const [isFullComp, setIsFullComp] = useState(true);
@@ -97,10 +99,10 @@ export function PosManagerCompModal({
       open={open}
       onClose={onClose}
       onBack={onBack}
-      title="ضيافة الإدارة (Manager Comps & House Account)"
-      subtitle="اعتماد ضيافة رسمية وقيدها على حسابات الضيافة والتسويق مع التوثيق المحاسبي"
+      title={__t('pos.pos_workspace.pos_manager_comp_modal.s0', __t('pos.pos_workspace.pos_manager_comp_modal.s0', "ضيافة الإدارة (Manager Comps & House Account)"))}
+      subtitle={__t('pos.pos_workspace.pos_manager_comp_modal.s1', __t('pos.pos_workspace.pos_manager_comp_modal.s1', "اعتماد ضيافة رسمية وقيدها على حسابات الضيافة والتسويق مع التوثيق المحاسبي"))}
       icon={<ShieldCheckIcon size={18} color="#170e5e" />}
-      footerNote="يتم توثيق القيد وإدراجه تلقائياً في كشف ضيافات الإدارة وحسابات الأرباح والخسائر"
+      footerNote={__t('pos.pos_workspace.pos_manager_comp_modal.s2', __t('pos.pos_workspace.pos_manager_comp_modal.s2', "يتم توثيق القيد وإدراجه تلقائياً في كشف ضيافات الإدارة وحسابات الأرباح والخسائر"))}
       scrollableBody={false}
       bodyStyle={{
         padding: '16px 20px',
@@ -119,7 +121,7 @@ export function PosManagerCompModal({
             disabled={isSubmitting}
             style={{ minHeight: '34px', height: '34px', padding: '0 16px', fontSize: '12px' }}
           >
-            إلغاء
+            {__t('pos.pos_workspace.pos_manager_comp_modal.s3', __t('pos.pos_workspace.pos_manager_comp_modal.s3', "إلغاء"))}
           </Button>
           <Button
             type="button"
@@ -135,7 +137,7 @@ export function PosManagerCompModal({
               backgroundColor: '#170e5e',
             }}
           >
-            {isSubmitting ? 'جارٍ الاعتماد...' : `اعتماد الضيافة (${formatCurrency(finalCompAmount)})`}
+            {isSubmitting ? __t('pos.pos_workspace.pos_manager_comp_modal.s4', __t('pos.pos_workspace.pos_manager_comp_modal.s4', "جارٍ الاعتماد...")) : `اعتماد الضيافة (${formatCurrency(finalCompAmount)})`}
           </Button>
         </div>
       }
@@ -156,14 +158,14 @@ export function PosManagerCompModal({
           <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '12px 14px' }}>
             <label style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
               <FileTextIcon size={14} color="#170e5e" />
-              <span>نوع ومبرر الضيافة المعتمد:</span>
+              <span>{__t('pos.pos_workspace.pos_manager_comp_modal.s5', __t('pos.pos_workspace.pos_manager_comp_modal.s5', "نوع ومبرر الضيافة المعتمد:"))}</span>
             </label>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
               {[
-                { key: 'vip_guest', label: 'ضيافة زائر VIP أو شريك', desc: 'House Hospitality' },
-                { key: 'customer_complaint', label: 'تعويض شكوى عميل / خدمة', desc: 'Service Recovery' },
-                { key: 'staff_meal', label: 'وجبة موظف / طاقم العمل', desc: 'Staff Meal Allowance' },
-                { key: 'promotional_tasting', label: 'تذوق ترويجي / صنف جديد', desc: 'Promotional Tasting' },
+                { key: 'vip_guest', label: __t('pos.pos_workspace.pos_manager_comp_modal.s6', __t('pos.pos_workspace.pos_manager_comp_modal.s6', "ضيافة زائر VIP أو شريك")), desc: 'House Hospitality' },
+                { key: 'customer_complaint', label: __t('pos.pos_workspace.pos_manager_comp_modal.s7', __t('pos.pos_workspace.pos_manager_comp_modal.s7', "تعويض شكوى عميل / خدمة")), desc: 'Service Recovery' },
+                { key: 'staff_meal', label: __t('pos.pos_workspace.pos_manager_comp_modal.s8', __t('pos.pos_workspace.pos_manager_comp_modal.s8', "وجبة موظف / طاقم العمل")), desc: 'Staff Meal Allowance' },
+                { key: 'promotional_tasting', label: __t('pos.pos_workspace.pos_manager_comp_modal.s9', __t('pos.pos_workspace.pos_manager_comp_modal.s9', "تذوق ترويجي / صنف جديد")), desc: 'Promotional Tasting' },
               ].map((t) => {
                 const isSelected = compType === t.key;
                 return (
@@ -203,7 +205,7 @@ export function PosManagerCompModal({
               <div>
                 <label style={{ fontSize: '11.5px', fontWeight: 700, color: '#334155', display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '4px' }}>
                   <UserIcon size={13} color="#170e5e" />
-                  <span>اسم المدير المعتمد:</span>
+                  <span>{__t('pos.pos_workspace.pos_manager_comp_modal.s10', __t('pos.pos_workspace.pos_manager_comp_modal.s10', "اسم المدير المعتمد:"))}</span>
                 </label>
                 <input
                   type="text"
@@ -224,7 +226,7 @@ export function PosManagerCompModal({
               <div>
                 <label style={{ fontSize: '11.5px', fontWeight: 700, color: '#334155', display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '4px' }}>
                   <LockIcon size={13} color="#170e5e" />
-                  <span>رمز PIN الأمني (اختياري):</span>
+                  <span>{__t('pos.pos_workspace.pos_manager_comp_modal.s11', __t('pos.pos_workspace.pos_manager_comp_modal.s11', "رمز PIN الأمني (اختياري):"))}</span>
                 </label>
                 <input
                   type="password"
@@ -251,13 +253,13 @@ export function PosManagerCompModal({
           {/* Box 3: Notes & Audit Justification */}
           <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '12px 14px' }}>
             <label style={{ fontSize: '11.5px', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '4px' }}>
-              ملاحظات وتفاصيل الضيافة للتقرير المحاسبي:
+              {__t('pos.pos_workspace.pos_manager_comp_modal.s12', __t('pos.pos_workspace.pos_manager_comp_modal.s12', "ملاحظات وتفاصيل الضيافة للتقرير المحاسبي:"))}
             </label>
             <input
               type="text"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="مثال: زيارة مالك العقار، أو تعويض عن تأخر طبق الشوربة"
+              placeholder={__t('pos.pos_workspace.pos_manager_comp_modal.s13', __t('pos.pos_workspace.pos_manager_comp_modal.s13', "مثال: زيارة مالك العقار، أو تعويض عن تأخر طبق الشوربة"))}
               style={{
                 width: '100%',
                 height: '34px',
@@ -286,13 +288,13 @@ export function PosManagerCompModal({
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px', marginBottom: '10px' }}>
               <div>
-                <div style={{ fontSize: '11px', color: '#64748b' }}>إجمالي الفاتورة الحالية:</div>
+                <div style={{ fontSize: '11px', color: '#64748b' }}>{__t('pos.pos_workspace.pos_manager_comp_modal.s14', __t('pos.pos_workspace.pos_manager_comp_modal.s14', "إجمالي الفاتورة الحالية:"))}</div>
                 <div style={{ fontSize: '17px', fontWeight: 900, color: '#0f172a', marginTop: '2px' }}>
-                  {formatCurrency(currentCartTotal)} {currentTableNumber && <span style={{ fontSize: '12px', color: '#170e5e', fontWeight: 700 }}>(طاولة {currentTableNumber})</span>}
+                  {formatCurrency(currentCartTotal)} {currentTableNumber && <span style={{ fontSize: '12px', color: '#170e5e', fontWeight: 700 }}>{__t('pos.pos_workspace.pos_manager_comp_modal.s15', __t('pos.pos_workspace.pos_manager_comp_modal.s15', "(طاولة"))} {currentTableNumber})</span>}
                 </div>
               </div>
               <div style={{ textAlign: 'left' }}>
-                <div style={{ fontSize: '11px', color: '#64748b' }}>مبلغ الضيافة المعتمد:</div>
+                <div style={{ fontSize: '11px', color: '#64748b' }}>{__t('pos.pos_workspace.pos_manager_comp_modal.s16', __t('pos.pos_workspace.pos_manager_comp_modal.s16', "مبلغ الضيافة المعتمد:"))}</div>
                 <div style={{ fontSize: '18px', fontWeight: 900, color: '#16a34a', marginTop: '2px' }}>
                   {formatCurrency(finalCompAmount)}
                 </div>
@@ -300,9 +302,9 @@ export function PosManagerCompModal({
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11.5px', color: '#475569' }}>
-              <span>المطلوب تحصيله بعد الضيافة:</span>
+              <span>{__t('pos.pos_workspace.pos_manager_comp_modal.s17', __t('pos.pos_workspace.pos_manager_comp_modal.s17', "المطلوب تحصيله بعد الضيافة:"))}</span>
               <span style={{ fontWeight: 800, color: netPayable > 0 ? '#ea580c' : '#16a34a' }}>
-                {netPayable === 0 ? '0.00 ج.م (إعفاء تام)' : formatCurrency(netPayable)}
+                {netPayable === 0 ? __t('pos.pos_workspace.pos_manager_comp_modal.s18', __t('pos.pos_workspace.pos_manager_comp_modal.s18', "0.00 ج.م (إعفاء تام)")) : formatCurrency(netPayable)}
               </span>
             </div>
           </div>
@@ -310,7 +312,7 @@ export function PosManagerCompModal({
           {/* Amount Mode: Full 100% vs Partial */}
           <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '12px 14px' }}>
             <label style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a', display: 'block', marginBottom: '8px' }}>
-              تحديد نسبة وقيمة الضيافة:
+              {__t('pos.pos_workspace.pos_manager_comp_modal.s19', __t('pos.pos_workspace.pos_manager_comp_modal.s19', "تحديد نسبة وقيمة الضيافة:"))}
             </label>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '8px' }}>
               <button
@@ -330,7 +332,7 @@ export function PosManagerCompModal({
                   cursor: 'pointer',
                 }}
               >
-                ضيافة كاملة (100% إعفاء)
+                {__t('pos.pos_workspace.pos_manager_comp_modal.s20', __t('pos.pos_workspace.pos_manager_comp_modal.s20', "ضيافة كاملة (100% إعفاء)"))}
               </button>
               <button
                 type="button"
@@ -346,7 +348,7 @@ export function PosManagerCompModal({
                   cursor: 'pointer',
                 }}
               >
-                ضيافة جزئية بمبلغ محدد
+                {__t('pos.pos_workspace.pos_manager_comp_modal.s21', __t('pos.pos_workspace.pos_manager_comp_modal.s21', "ضيافة جزئية بمبلغ محدد"))}
               </button>
             </div>
 
@@ -360,7 +362,7 @@ export function PosManagerCompModal({
                     step="0.5"
                     value={customAmount}
                     onChange={(e) => setCustomAmount(e.target.value)}
-                    placeholder="أدخل مبلغ الضيافة"
+                    placeholder={__t('pos.pos_workspace.pos_manager_comp_modal.s22', __t('pos.pos_workspace.pos_manager_comp_modal.s22', "أدخل مبلغ الضيافة"))}
                     style={{
                       flex: 1,
                       height: '34px',
@@ -412,7 +414,7 @@ export function PosManagerCompModal({
           >
             <ShieldCheckIcon size={20} color="#16a34a" />
             <div style={{ fontSize: '11px', color: '#166534', lineHeight: 1.45 }}>
-              <strong>الرقابة المحاسبية:</strong> يُرحّل القيد تلقائياً إلى حساب مصروفات الضيافة والتسويق مع توثيق اسم المدير ورقم الطاولة لمنع أي تلاعب مالي.
+              <strong>{__t('pos.pos_workspace.pos_manager_comp_modal.s23', __t('pos.pos_workspace.pos_manager_comp_modal.s23', "الرقابة المحاسبية:"))}</strong> {__t('pos.pos_workspace.pos_manager_comp_modal.s24', __t('pos.pos_workspace.pos_manager_comp_modal.s24', "يُرحّل القيد تلقائياً إلى حساب مصروفات الضيافة والتسويق مع توثيق اسم المدير ورقم الطاولة لمنع أي تلاعب مالي."))}
             </div>
           </div>
         </div>

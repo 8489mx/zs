@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React, { useState } from 'react';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { Button } from '@/shared/ui/button';
@@ -26,6 +27,7 @@ export const VanFleetTab: React.FC<VanFleetTabProps> = ({
   fuelLogs,
   onRefreshFuel,
 }) => {
+  const { t } = useTranslation();
   const [odometer, setOdometer] = useState<string>('');
   const [liters, setLiters] = useState<string>('');
   const [pricePerLiter, setPricePerLiter] = useState<string>('');
@@ -113,10 +115,10 @@ export const VanFleetTab: React.FC<VanFleetTabProps> = ({
           </div>
           <div>
             <h4 style={{ margin: 0, fontSize: '13.5px', fontWeight: 800, color: '#0f172a' }}>
-              سيارة التوزيع: {vehicle?.plate || 'غير محدد'}
+              {t('delivery_reps.van_fleet_tab.s0', "سيارة التوزيع:")} {vehicle?.plate || t('delivery_reps.van_fleet_tab.s1', "غير محدد")}
             </h4>
             <span style={{ fontSize: '11.5px', color: '#64748b' }}>
-              {vehicle?.model || 'مركبة أسطول'} {vehicle?.startOdometer ? ` | عداد البداية: ${vehicle.startOdometer} كم` : ''}
+              {vehicle?.model || t('delivery_reps.van_fleet_tab.s2', "مركبة أسطول")} {vehicle?.startOdometer ? ` | عداد البداية: ${vehicle.startOdometer} كم` : ''}
             </span>
           </div>
         </div>
@@ -168,7 +170,7 @@ export const VanFleetTab: React.FC<VanFleetTabProps> = ({
             }}
           >
             <CheckCircleIcon size={14} color="#16a34a" />
-            <span>حالة السيارة ممتازة: لا توجد تنبيهات غيار زيت أو انتهاء رخصة معلقة.</span>
+            <span>{t('delivery_reps.van_fleet_tab.s3', "حالة السيارة ممتازة: لا توجد تنبيهات غيار زيت أو انتهاء رخصة معلقة.")}</span>
           </div>
         )}
       </div>
@@ -184,21 +186,21 @@ export const VanFleetTab: React.FC<VanFleetTabProps> = ({
         }}
       >
         <h4 style={{ margin: '0 0 10px', fontSize: '13px', fontWeight: 800, color: '#170e5e', borderBottom: '1px solid #f1f5f9', paddingBottom: '6px' }}>
-          تسجيل تفويل وقود وحساب معدل الاستهلاك
+          {t('delivery_reps.van_fleet_tab.s4', "تسجيل تفويل وقود وحساب معدل الاستهلاك")}
         </h4>
 
         <form onSubmit={handleRecordFuel} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '10px' }}>
             <div>
               <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: '#334155', marginBottom: '3px' }}>
-                قراءة العداد (كم):
+                {t('delivery_reps.van_fleet_tab.s5', "قراءة العداد (كم):")}
               </label>
               <input
                 type="number"
                 step="0.1"
                 value={odometer}
                 onChange={(e) => setOdometer(e.target.value)}
-                placeholder="مثال: 45200"
+                placeholder={t('delivery_reps.van_fleet_tab.s6', "مثال: 45200")}
                 required
                 style={{ width: '100%', padding: '7px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '12.5px', boxSizing: 'border-box' }}
               />
@@ -206,14 +208,14 @@ export const VanFleetTab: React.FC<VanFleetTabProps> = ({
 
             <div>
               <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: '#334155', marginBottom: '3px' }}>
-                الكمية (لتر):
+                {t('delivery_reps.van_fleet_tab.s7', "الكمية (لتر):")}
               </label>
               <input
                 type="number"
                 step="0.1"
                 value={liters}
                 onChange={(e) => setLiters(e.target.value)}
-                placeholder="مثال: 40"
+                placeholder={t('delivery_reps.van_fleet_tab.s8', "مثال: 40")}
                 required
                 style={{ width: '100%', padding: '7px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '12.5px', boxSizing: 'border-box' }}
               />
@@ -221,14 +223,14 @@ export const VanFleetTab: React.FC<VanFleetTabProps> = ({
 
             <div>
               <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: '#334155', marginBottom: '3px' }}>
-                سعر اللتر:
+                {t('delivery_reps.van_fleet_tab.s9', "سعر اللتر:")}
               </label>
               <input
                 type="number"
                 step="0.01"
                 value={pricePerLiter}
                 onChange={(e) => setPricePerLiter(e.target.value)}
-                placeholder="مثال: 15.50"
+                placeholder={t('delivery_reps.van_fleet_tab.s10', "مثال: 15.50")}
                 required
                 style={{ width: '100%', padding: '7px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '12.5px', boxSizing: 'border-box' }}
               />
@@ -236,13 +238,13 @@ export const VanFleetTab: React.FC<VanFleetTabProps> = ({
 
             <div>
               <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: '#334155', marginBottom: '3px' }}>
-                محطة الوقود:
+                {t('delivery_reps.van_fleet_tab.s11', "محطة الوقود:")}
               </label>
               <input
                 type="text"
                 value={stationName}
                 onChange={(e) => setStationName(e.target.value)}
-                placeholder="محطة مصر للبترول / التعاون"
+                placeholder={t('delivery_reps.van_fleet_tab.s12', "محطة مصر للبترول / التعاون")}
                 style={{ width: '100%', padding: '7px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '12.5px', boxSizing: 'border-box' }}
               />
             </div>
@@ -259,7 +261,7 @@ export const VanFleetTab: React.FC<VanFleetTabProps> = ({
               fontSize: '12px',
             }}
           >
-            <span>التكلفة الإجمالية المحسوبة:</span>
+            <span>{t('delivery_reps.van_fleet_tab.s13', "التكلفة الإجمالية المحسوبة:")}</span>
             <strong style={{ color: '#059669', fontSize: '14px' }}>
               {calculatedTotal} <CurrencySymbol />
             </strong>
@@ -271,7 +273,7 @@ export const VanFleetTab: React.FC<VanFleetTabProps> = ({
             disabled={isSubmitting}
             style={{ backgroundColor: '#170e5e', color: '#ffffff', fontSize: '12.5px', fontWeight: 800, height: '36px' }}
           >
-            {isSubmitting ? 'جاري الحفظ...' : 'حفظ عملية التفويل وحساب الاستهلاك'}
+            {isSubmitting ? t('delivery_reps.van_fleet_tab.s14', "جاري الحفظ...") : t('delivery_reps.van_fleet_tab.s15', "حفظ عملية التفويل وحساب الاستهلاك")}
           </Button>
         </form>
       </div>
@@ -288,7 +290,7 @@ export const VanFleetTab: React.FC<VanFleetTabProps> = ({
           }}
         >
           <h4 style={{ margin: '0 0 10px', fontSize: '13px', fontWeight: 800, color: '#0f172a' }}>
-            سجل التفويلات السابقة للمركبة
+            {t('delivery_reps.van_fleet_tab.s16', "سجل التفويلات السابقة للمركبة")}
           </h4>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -309,10 +311,10 @@ export const VanFleetTab: React.FC<VanFleetTabProps> = ({
                 }}
               >
                 <div>
-                  <strong style={{ color: '#0f172a' }}>{log.liters} لتر</strong>
-                  <span style={{ color: '#64748b' }}> بسعر {log.pricePerLiter} (الإجمالي: {log.totalCost} <CurrencySymbol />)</span>
+                  <strong style={{ color: '#0f172a' }}>{log.liters} {t('delivery_reps.van_fleet_tab.s17', "لتر")}</strong>
+                  <span style={{ color: '#64748b' }}> {t('delivery_reps.van_fleet_tab.s18', "بسعر")} {log.pricePerLiter} {t('delivery_reps.van_fleet_tab.s19', "(الإجمالي:")} {log.totalCost} <CurrencySymbol />)</span>
                   <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '2px' }}>
-                    قراءة العداد: {log.odometer} كم {log.stationName ? `| ${log.stationName}` : ''}
+                    {t('delivery_reps.van_fleet_tab.s20', "قراءة العداد:")} {log.odometer} {t('delivery_reps.van_fleet_tab.s21', "كم")} {log.stationName ? `| ${log.stationName}` : ''}
                   </div>
                 </div>
 
@@ -329,11 +331,11 @@ export const VanFleetTab: React.FC<VanFleetTabProps> = ({
                         display: 'block',
                       }}
                     >
-                      {log.consumptionRate} كم / لتر
+                      {log.consumptionRate} {t('delivery_reps.van_fleet_tab.s22', "كم / لتر")}
                     </span>
                   )}
                   <span style={{ fontSize: '10.5px', color: '#64748b', display: 'block', marginTop: '2px' }}>
-                    قطع {log.kmSinceLastFuel} كم
+                    {t('delivery_reps.van_fleet_tab.s23', "قطع")} {log.kmSinceLastFuel} {t('delivery_reps.van_fleet_tab.s24', "كم")}
                   </span>
                 </div>
               </div>

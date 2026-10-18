@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
 import { StandardDialog } from '@/shared/components/StandardDialog';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
@@ -10,6 +11,7 @@ import { useQuery } from '@tanstack/react-query';
 import { http } from '@/lib/http';
 
 export function ManagePartnersDialog({ open, onClose }: { open: boolean, onClose: () => void }) {
+  const { t } = useTranslation();
   const { data: partners, isLoading } = usePartnersQuery();
   const createMutation = useCreatePartnerMutation();
   const deleteMutation = useDeletePartnerMutation();
@@ -93,28 +95,28 @@ export function ManagePartnersDialog({ open, onClose }: { open: boolean, onClose
       <StandardDialog 
         open={open} 
         onClose={onClose} 
-        title="إدارة الشركاء ورأس المال وتوزيع الأرباح"
-        subtitle="تحديد رأس مال كل شريك، إدارة عمليات السحب والإيداع، وضبط نسب توزيع الأرباح تلقائياً أو يدوياً."
+        title={t('import_sales.manage_partners_dialog.s0', "إدارة الشركاء ورأس المال وتوزيع الأرباح")}
+        subtitle={t('import_sales.manage_partners_dialog.s1', "تحديد رأس مال كل شريك، إدارة عمليات السحب والإيداع، وضبط نسب توزيع الأرباح تلقائياً أو يدوياً.")}
         width="min(860px, 95vw)"
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }} dir="rtl">
           {/* Add Partner Section */}
           <div style={{ background: '#f8fafc', padding: '16px 20px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
             <h4 style={{ margin: '0 0 12px 0', fontSize: '0.88rem', fontWeight: 800, color: '#170e5e', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span>إضافة شريك جديد</span>
+              <span>{t('import_sales.manage_partners_dialog.s2', "إضافة شريك جديد")}</span>
             </h4>
             <form onSubmit={handleAdd}>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px', alignItems: 'end' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', marginBottom: '5px' }}>
-                    اسم الشريك <span style={{ color: '#ef4444' }}>*</span>
+                    {t('import_sales.manage_partners_dialog.s3', "اسم الشريك")} <span style={{ color: '#ef4444' }}>*</span>
                   </label>
                   <input 
                     type="text" 
                     value={name} 
                     onChange={e => setName(e.target.value)} 
                     required 
-                    placeholder="مثال: أحمد محمد"
+                    placeholder={t('import_sales.manage_partners_dialog.s4', "مثال: أحمد محمد")}
                     style={{
                       width: '100%',
                       height: '36px',
@@ -132,7 +134,7 @@ export function ManagePartnersDialog({ open, onClose }: { open: boolean, onClose
 
                 <div>
                   <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', marginBottom: '5px' }}>
-                    النسبة المئوية (%)
+                    {t('import_sales.manage_partners_dialog.s5', "النسبة المئوية (%)")}
                   </label>
                   <input 
                     type="number" 
@@ -141,7 +143,7 @@ export function ManagePartnersDialog({ open, onClose }: { open: boolean, onClose
                     max="100" 
                     value={percentage} 
                     onChange={e => setPercentage(e.target.value)} 
-                    placeholder="اختياري %"
+                    placeholder={t('import_sales.manage_partners_dialog.s6', "اختياري %")}
                     style={{
                       width: '100%',
                       height: '36px',
@@ -159,7 +161,7 @@ export function ManagePartnersDialog({ open, onClose }: { open: boolean, onClose
 
                 <div>
                   <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', marginBottom: '5px' }}>
-                    رأس المال الافتتاحي
+                    {t('import_sales.manage_partners_dialog.s7', "رأس المال الافتتاحي")}
                   </label>
                   <input 
                     type="number" 
@@ -185,7 +187,7 @@ export function ManagePartnersDialog({ open, onClose }: { open: boolean, onClose
 
                 <div>
                   <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', marginBottom: '5px' }}>
-                    الخزينة / البنك للإيداع
+                    {t('import_sales.manage_partners_dialog.s8', "الخزينة / البنك للإيداع")}
                   </label>
                   <select 
                     value={accountId} 
@@ -204,7 +206,7 @@ export function ManagePartnersDialog({ open, onClose }: { open: boolean, onClose
                       outline: 'none',
                     }}
                   >
-                    <option value="">-- اختر الخزينة --</option>
+                    <option value="">{t('import_sales.manage_partners_dialog.s9', "-- اختر الخزينة --")}</option>
                     {treasuryAccounts?.map((a: any) => (
                       <option key={a.id} value={a.id}>{a.nameAr || a.name}</option>
                     ))}
@@ -231,7 +233,7 @@ export function ManagePartnersDialog({ open, onClose }: { open: boolean, onClose
                       gap: '6px',
                     }}
                   >
-                    <span>إضافة شريك</span>
+                    <span>{t('import_sales.manage_partners_dialog.s10', "إضافة شريك")}</span>
                   </Button>
                 </div>
               </div>
@@ -244,20 +246,20 @@ export function ManagePartnersDialog({ open, onClose }: { open: boolean, onClose
             <div style={{ padding: '12px 16px', background: '#f8fafc', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
               <div>
                 <h4 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 800, color: '#0f172a' }}>
-                  الشركاء الحاليين وتوزيع النسب
+                  {t('import_sales.manage_partners_dialog.s11', "الشركاء الحاليين وتوزيع النسب")}
                 </h4>
                 <span style={{ fontSize: '0.74rem', color: '#64748b' }}>
-                  {localPartners.length} شركاء مسجلين
+                  {localPartners.length} {t('import_sales.manage_partners_dialog.s12', "شركاء مسجلين")}
                 </span>
               </div>
               <div style={{ display: 'flex', gap: '8px' }}>
                 <Button 
                   variant="secondary" 
                   onClick={recalculateFromCapital} 
-                  title="يتم حساب النسبة تلقائياً بناءً على مبالغ رأس المال لكل شريك"
+                  title={t('import_sales.manage_partners_dialog.s13', "يتم حساب النسبة تلقائياً بناءً على مبالغ رأس المال لكل شريك")}
                   style={{ height: '32px', padding: '0 10px', fontSize: '0.76rem', fontWeight: 700, borderRadius: '6px' }}
                 >
-                  إعادة حساب النسب من رأس المال
+                  {t('import_sales.manage_partners_dialog.s14', "إعادة حساب النسب من رأس المال")}
                 </Button>
                 <Button 
                   variant="primary" 
@@ -265,22 +267,22 @@ export function ManagePartnersDialog({ open, onClose }: { open: boolean, onClose
                   disabled={updateMutation.isPending}
                   style={{ height: '32px', padding: '0 14px', fontSize: '0.76rem', fontWeight: 700, background: '#170e5e', color: '#ffffff', border: 'none', borderRadius: '6px' }}
                 >
-                  {updateMutation.isPending ? 'جاري الحفظ...' : 'حفظ تعديلات النسب'}
+                  {updateMutation.isPending ? t('import_sales.manage_partners_dialog.s15', "جاري الحفظ...") : t('import_sales.manage_partners_dialog.s16', "حفظ تعديلات النسب")}
                 </Button>
               </div>
             </div>
 
             {isLoading ? (
-              <p style={{ color: '#64748b', textAlign: 'center', padding: '24px' }}>جاري التحميل...</p>
+              <p style={{ color: '#64748b', textAlign: 'center', padding: '24px' }}>{t('import_sales.manage_partners_dialog.s17', "جاري التحميل...")}</p>
             ) : (
               <div style={{ overflowX: 'auto' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.825rem', textAlign: 'right' }}>
                   <thead>
                     <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', fontSize: '0.78rem', fontWeight: 700 }}>
-                      <th style={{ padding: '10px 14px' }}>اسم الشريك</th>
-                      <th style={{ padding: '10px 14px', width: '240px' }}>رأس المال الحالي</th>
-                      <th style={{ padding: '10px 14px', width: '140px' }}>نسبة الأرباح (%)</th>
-                      <th style={{ padding: '10px 14px', width: '180px', textAlign: 'center' }}>إجراءات</th>
+                      <th style={{ padding: '10px 14px' }}>{t('import_sales.manage_partners_dialog.s18', "اسم الشريك")}</th>
+                      <th style={{ padding: '10px 14px', width: '240px' }}>{t('import_sales.manage_partners_dialog.s19', "رأس المال الحالي")}</th>
+                      <th style={{ padding: '10px 14px', width: '140px' }}>{t('import_sales.manage_partners_dialog.s20', "نسبة الأرباح (%)")}</th>
+                      <th style={{ padding: '10px 14px', width: '180px', textAlign: 'center' }}>{t('import_sales.manage_partners_dialog.s21', "إجراءات")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -297,19 +299,19 @@ export function ManagePartnersDialog({ open, onClose }: { open: boolean, onClose
                                 type="button" 
                                 className="btn btn-secondary" 
                                 onClick={() => setTxPartner({ partner: p, type: 'DEPOSIT' })} 
-                                title="إيداع رأس مال"
+                                title={t('import_sales.manage_partners_dialog.s22', "إيداع رأس مال")}
                                 style={{ padding: '1px 7px', fontSize: '0.72rem', fontWeight: 700, height: '22px', borderRadius: '4px' }}
                               >
-                                + إيداع
+                                {t('import_sales.manage_partners_dialog.s23', "+ إيداع")}
                               </button>
                               <button 
                                 type="button" 
                                 className="btn btn-secondary" 
                                 onClick={() => setTxPartner({ partner: p, type: 'WITHDRAWAL' })} 
-                                title="سحب رأس مال"
+                                title={t('import_sales.manage_partners_dialog.s24', "سحب رأس مال")}
                                 style={{ padding: '1px 7px', fontSize: '0.72rem', fontWeight: 700, height: '22px', borderRadius: '4px' }}
                               >
-                                - سحب
+                                {t('import_sales.manage_partners_dialog.s25', "- سحب")}
                               </button>
                             </div>
                           </div>
@@ -346,7 +348,7 @@ export function ManagePartnersDialog({ open, onClose }: { open: boolean, onClose
                               onClick={() => setLedgerPartner(p)}
                               style={{ padding: '3px 8px', fontSize: '0.72rem', fontWeight: 600, height: '26px', borderRadius: '4px' }}
                             >
-                              كشف حساب
+                              {t('import_sales.manage_partners_dialog.s26', "كشف حساب")}
                             </button>
                             <button 
                               type="button" 
@@ -355,7 +357,7 @@ export function ManagePartnersDialog({ open, onClose }: { open: boolean, onClose
                               disabled={deleteMutation.isPending}
                               style={{ padding: '3px 8px', fontSize: '0.72rem', fontWeight: 600, height: '26px', borderRadius: '4px' }}
                             >
-                              حذف
+                              {t('import_sales.manage_partners_dialog.s27', "حذف")}
                             </button>
                           </div>
                         </td>
@@ -367,8 +369,8 @@ export function ManagePartnersDialog({ open, onClose }: { open: boolean, onClose
                           <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 8px auto', color: '#94a3b8' }}>
                             <UsersIcon size={20} />
                           </div>
-                          <div style={{ fontWeight: 700, color: '#334155', fontSize: '0.84rem' }}>لا يوجد شركاء مسجلين</div>
-                          <div style={{ fontSize: '0.74rem', color: '#94a3b8', marginTop: '3px' }}>قم بإضافة شريك جديد من النموذج أعلاه لبدء توزيع الأرباح.</div>
+                          <div style={{ fontWeight: 700, color: '#334155', fontSize: '0.84rem' }}>{t('import_sales.manage_partners_dialog.s28', "لا يوجد شركاء مسجلين")}</div>
+                          <div style={{ fontSize: '0.74rem', color: '#94a3b8', marginTop: '3px' }}>{t('import_sales.manage_partners_dialog.s29', "قم بإضافة شريك جديد من النموذج أعلاه لبدء توزيع الأرباح.")}</div>
                         </td>
                       </tr>
                     )}
@@ -380,7 +382,7 @@ export function ManagePartnersDialog({ open, onClose }: { open: boolean, onClose
                       return (
                         <>
                           <tr style={{ background: '#f8fafc', fontWeight: 800, color: '#0f172a', borderTop: '2px solid #e2e8f0' }}>
-                            <td style={{ padding: '12px 14px' }}>الإجمالي الكلي</td>
+                            <td style={{ padding: '12px 14px' }}>{t('import_sales.manage_partners_dialog.s30', "الإجمالي الكلي")}</td>
                             <td style={{ padding: '12px 14px', fontSize: '0.88rem', color: '#170e5e' }}>
                               {totalCapital.toLocaleString()} <span style={{ fontSize: '0.72rem', fontWeight: 600, color: '#64748b' }}><CurrencySymbol /></span>
                             </td>
@@ -394,7 +396,7 @@ export function ManagePartnersDialog({ open, onClose }: { open: boolean, onClose
                               <td colSpan={4} style={{ padding: '8px 14px', background: '#fef2f2', color: '#991b1b', fontSize: '0.76rem', textAlign: 'center', borderTop: '1px solid #fee2e2' }}>
                                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', justifyContent: 'center' }}>
                                   <AlertTriangleIcon size={15} color="#b91c1c" />
-                                  <span>تنبيه: إجمالي نسب الأرباح لا يساوي 100%. يرجى الضغط على زر "إعادة حساب النسب" أو تعديلها يدوياً.</span>
+                                  <span>{t('import_sales.manage_partners_dialog.s31', "تنبيه: إجمالي نسب الأرباح لا يساوي 100%. يرجى الضغط على زر \"إعادة حساب النسب\" أو تعديلها يدوياً.")}</span>
                                 </span>
                               </td>
                             </tr>

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { FormSection } from '@/shared/components/form-section';
 import { Button } from '@/shared/ui/button';
 
@@ -24,15 +25,16 @@ export function AccountingLockDatesSection({
   onSave,
   isPending,
 }: AccountingLockDatesSectionProps) {
+  const { t } = useTranslation();
   return (
     <FormSection
-      title="إقفال الفترات المالية والعمليات المحاسبية"
-      description="حدد تواريخ الحماية لمنع أي إدخال أو تعديل في العمليات المالية أو الإقرارات الضريبية قبل تاريخ محدد."
+      title={t('accounting.settings.accounting_lock_dates_section.s0', "إقفال الفترات المالية والعمليات المحاسبية")}
+      description={t('accounting.settings.accounting_lock_dates_section.s1', "حدد تواريخ الحماية لمنع أي إدخال أو تعديل في العمليات المالية أو الإقرارات الضريبية قبل تاريخ محدد.")}
       actions={
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           {lockDatesSavedNotice && (
             <span style={{ fontSize: '12px', color: '#16a34a', fontWeight: 700 }}>
-              تم حفظ تواريخ الإقفال بنجاح
+              {t('accounting.settings.accounting_lock_dates_section.s2', "تم حفظ تواريخ الإقفال بنجاح")}
             </span>
           )}
           <Button
@@ -41,7 +43,7 @@ export function AccountingLockDatesSection({
             disabled={isPending}
             onClick={onSave}
           >
-            {isPending ? 'جاري الحفظ...' : 'حفظ تواريخ الإقفال'}
+            {isPending ? t('accounting.settings.accounting_lock_dates_section.s3', "جاري الحفظ...") : t('accounting.settings.accounting_lock_dates_section.s4', "حفظ تواريخ الإقفال")}
           </Button>
         </div>
       }
@@ -62,7 +64,7 @@ export function AccountingLockDatesSection({
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ fontSize: '15px', fontWeight: 800, color: '#170e5e' }}>
-              الإقفال الشامل (النهائي)
+              {t('accounting.settings.accounting_lock_dates_section.s5', "الإقفال الشامل (النهائي)")}
             </span>
             <span
               style={{
@@ -74,15 +76,15 @@ export function AccountingLockDatesSection({
                 color: lockDateAll ? '#991b1b' : '#64748b',
               }}
             >
-              {lockDateAll ? 'إقفال نشط' : 'غير محدد'}
+              {lockDateAll ? t('accounting.settings.accounting_lock_dates_section.s6', "إقفال نشط") : t('accounting.settings.accounting_lock_dates_section.s7', "غير محدد")}
             </span>
           </div>
           <p style={{ margin: 0, fontSize: '13px', color: '#64748b', lineHeight: 1.6 }}>
-            يمنع تماماً إضافة أو تعديل أي قيد يومية أو فاتورة بيع أو شراء أو سند دفع/قبض يسبق أو يطابق هذا التاريخ <strong>لكافة المستخدمين بما فيهم الإدارة العامة والمدير المالي</strong>.
+            {t('accounting.settings.accounting_lock_dates_section.s8', "يمنع تماماً إضافة أو تعديل أي قيد يومية أو فاتورة بيع أو شراء أو سند دفع/قبض يسبق أو يطابق هذا التاريخ")} <strong>{t('accounting.settings.accounting_lock_dates_section.s9', "لكافة المستخدمين بما فيهم الإدارة العامة والمدير المالي")}</strong>.
           </p>
           <div style={{ marginTop: 'auto', paddingTop: '10px' }}>
             <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-              تاريخ الإقفال النهائي
+              {t('accounting.settings.accounting_lock_dates_section.s10', "تاريخ الإقفال النهائي")}
             </label>
             <input
               type="date"
@@ -115,7 +117,7 @@ export function AccountingLockDatesSection({
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ fontSize: '15px', fontWeight: 800, color: '#170e5e' }}>
-              إقفال العمليات التشغيلية
+              {t('accounting.settings.accounting_lock_dates_section.s11', "إقفال العمليات التشغيلية")}
             </span>
             <span
               style={{
@@ -127,15 +129,15 @@ export function AccountingLockDatesSection({
                 color: lockDateNonAdviser ? '#92400e' : '#64748b',
               }}
             >
-              {lockDateNonAdviser ? 'إقفال نشط' : 'غير محدد'}
+              {lockDateNonAdviser ? t('accounting.settings.accounting_lock_dates_section.s12', "إقفال نشط") : t('accounting.settings.accounting_lock_dates_section.s13', "غير محدد")}
             </span>
           </div>
           <p style={{ margin: 0, fontSize: '13px', color: '#64748b', lineHeight: 1.6 }}>
-            يمنع تسجيل أو تعديل العمليات التشغيلية (فواتير المبيعات، المشتريات، المصروفات، المرتجعات) بأثر رجعي قبل هذا التاريخ لمدخلي البيانات وموظفي نقاط البيع، ويسمح فقط للمدقق والمدير المالي.
+            {t('accounting.settings.accounting_lock_dates_section.s14', "يمنع تسجيل أو تعديل العمليات التشغيلية (فواتير المبيعات، المشتريات، المصروفات، المرتجعات) بأثر رجعي قبل هذا التاريخ لمدخلي البيانات وموظفي نقاط البيع، ويسمح فقط للمدقق والمدير المالي.")}
           </p>
           <div style={{ marginTop: 'auto', paddingTop: '10px' }}>
             <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-              تاريخ إقفال العمليات التشغيلية
+              {t('accounting.settings.accounting_lock_dates_section.s15', "تاريخ إقفال العمليات التشغيلية")}
             </label>
             <input
               type="date"
@@ -168,7 +170,7 @@ export function AccountingLockDatesSection({
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ fontSize: '15px', fontWeight: 800, color: '#170e5e' }}>
-              إقفال الإقرار الضريبي
+              {t('accounting.settings.accounting_lock_dates_section.s16', "إقفال الإقرار الضريبي")}
             </span>
             <span
               style={{
@@ -180,15 +182,15 @@ export function AccountingLockDatesSection({
                 color: lockDateTax ? '#3730a3' : '#64748b',
               }}
             >
-              {lockDateTax ? 'إقفال نشط' : 'غير محدد'}
+              {lockDateTax ? t('accounting.settings.accounting_lock_dates_section.s17', "إقفال نشط") : t('accounting.settings.accounting_lock_dates_section.s18', "غير محدد")}
             </span>
           </div>
           <p style={{ margin: 0, fontSize: '13px', color: '#64748b', lineHeight: 1.6 }}>
-            يمنع تعديل أو إدراج أي عمليات تؤثر على حسابات ضريبة القيمة المضافة للفترات التي تم تقديم واعتماد إقرارها الضريبي لدى الهيئة الضريبية.
+            {t('accounting.settings.accounting_lock_dates_section.s19', "يمنع تعديل أو إدراج أي عمليات تؤثر على حسابات ضريبة القيمة المضافة للفترات التي تم تقديم واعتماد إقرارها الضريبي لدى الهيئة الضريبية.")}
           </p>
           <div style={{ marginTop: 'auto', paddingTop: '10px' }}>
             <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-              تاريخ إقفال الإقرار الضريبي
+              {t('accounting.settings.accounting_lock_dates_section.s20', "تاريخ إقفال الإقرار الضريبي")}
             </label>
             <input
               type="date"

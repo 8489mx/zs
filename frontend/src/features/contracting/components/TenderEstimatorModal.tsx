@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React, { useState, useEffect, useMemo } from 'react';
 import { StandardDialog } from '@/shared/components/StandardDialog';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
@@ -182,6 +183,7 @@ export function TenderEstimatorModal({
   onClose,
   onProjectCreated,
 }: TenderEstimatorModalProps) {
+  const { t } = useTranslation();
   const { formatCurrency } = useSystemCurrency();
 
   // Basic Tender Information
@@ -623,8 +625,8 @@ export function TenderEstimatorModal({
     <StandardDialog
       isOpen={isOpen}
       onClose={onClose}
-      title="دراسة وتسعير العطاءات والمشروعات المحتملة (Tender & Bid Estimator)"
-      subtitle="حساب الكميات وتفكيك الكود الهندسي القياسي (BOM)، تسعير الخامات والمصنعيات، وهوامش الربح وإصدار عروض الأسعار"
+      title={t('contracting.tender_estimator_modal.s0', "دراسة وتسعير العطاءات والمشروعات المحتملة (Tender & Bid Estimator)")}
+      subtitle={t('contracting.tender_estimator_modal.s1', "حساب الكميات وتفكيك الكود الهندسي القياسي (BOM)، تسعير الخامات والمصنعيات، وهوامش الربح وإصدار عروض الأسعار")}
       width="min(1240px, 98vw)"
       minHeight="min(720px, 94vh)"
       compact={true}
@@ -633,13 +635,13 @@ export function TenderEstimatorModal({
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', flexWrap: 'wrap', gap: '8px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
-              <span style={{ fontSize: 'var(--font-subtitle)', color: '#64748b' }}>إجمالي قيمة العطاء (المقترح للعميل):</span>
+              <span style={{ fontSize: 'var(--font-subtitle)', color: '#64748b' }}>{t('contracting.tender_estimator_modal.s2', "إجمالي قيمة العطاء (المقترح للعميل):")}</span>
               <strong style={{ fontSize: '1.2rem', color: '#170e5e', fontWeight: 800 }}>
                 {formatCurrency(tenderSummary.totalSellingPrice)}
               </strong>
             </div>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', background: '#dcfce7', padding: '3px 8px', borderRadius: '6px', border: '1px solid #bbf7d0' }}>
-              <span style={{ fontSize: 'var(--font-micro)', color: '#166534', fontWeight: 700 }}>صافي الربح المتوقع:</span>
+              <span style={{ fontSize: 'var(--font-micro)', color: '#166534', fontWeight: 700 }}>{t('contracting.tender_estimator_modal.s3', "صافي الربح المتوقع:")}</span>
               <strong style={{ fontSize: 'var(--font-body)', color: '#15803d', fontWeight: 800 }}>
                 {formatCurrency(tenderSummary.totalProfit)} ({tenderSummary.overallMargin}%)
               </strong>
@@ -661,7 +663,7 @@ export function TenderEstimatorModal({
                 fontSize: 'var(--font-body)',
               }}
             >
-              إلغاء
+              {t('contracting.tender_estimator_modal.s4', "إلغاء")}
             </button>
             <button
               type="button"
@@ -685,7 +687,7 @@ export function TenderEstimatorModal({
               }}
             >
               <AppIcons.CheckShield size={15} />
-              <span>{isSubmitting ? 'جاري الاعتماد والإنشاء...' : 'اعتماد وترسية العطاء كمشروع رسمي'}</span>
+              <span>{isSubmitting ? t('contracting.tender_estimator_modal.s5', "جاري الاعتماد والإنشاء...") : t('contracting.tender_estimator_modal.s6', "اعتماد وترسية العطاء كمشروع رسمي")}</span>
             </button>
           </div>
         </div>
@@ -702,7 +704,7 @@ export function TenderEstimatorModal({
           }}>
             <div>
               <label style={{ display: 'block', fontSize: 'var(--font-micro)', fontWeight: 700, color: '#475569', marginBottom: '3px' }}>
-                اسم المشروع / العطاء المقترح
+                {t('contracting.tender_estimator_modal.s7', "اسم المشروع / العطاء المقترح")}
               </label>
               <input
                 type="text"
@@ -713,7 +715,7 @@ export function TenderEstimatorModal({
             </div>
             <div>
               <label style={{ display: 'block', fontSize: 'var(--font-micro)', fontWeight: 700, color: '#475569', marginBottom: '3px' }}>
-                العميل / جهة الإسناد المستهدفة
+                {t('contracting.tender_estimator_modal.s8', "العميل / جهة الإسناد المستهدفة")}
               </label>
               <input
                 type="text"
@@ -724,7 +726,7 @@ export function TenderEstimatorModal({
             </div>
             <div>
               <label style={{ display: 'block', fontSize: 'var(--font-micro)', fontWeight: 700, color: '#475569', marginBottom: '3px' }}>
-                هامش الربح %
+                {t('contracting.tender_estimator_modal.s9', "هامش الربح %")}
               </label>
               <input
                 type="number"
@@ -737,7 +739,7 @@ export function TenderEstimatorModal({
             </div>
             <div>
               <label style={{ display: 'block', fontSize: 'var(--font-micro)', fontWeight: 700, color: '#475569', marginBottom: '3px' }}>
-                المصاريف الإدارية %
+                {t('contracting.tender_estimator_modal.s10', "المصاريف الإدارية %")}
               </label>
               <input
                 type="number"
@@ -750,7 +752,7 @@ export function TenderEstimatorModal({
             </div>
             <div>
               <label style={{ display: 'block', fontSize: 'var(--font-micro)', fontWeight: 700, color: '#475569', marginBottom: '3px' }}>
-                الهالك العام %
+                {t('contracting.tender_estimator_modal.s11', "الهالك العام %")}
               </label>
               <input
                 type="number"
@@ -765,7 +767,7 @@ export function TenderEstimatorModal({
               <button
                 type="button"
                 onClick={handleApplyGlobalMargins}
-                title="تعميم نسب الربح والمصاريف والهالك على كافة البنود"
+                title={t('contracting.tender_estimator_modal.s12', "تعميم نسب الربح والمصاريف والهالك على كافة البنود")}
                 style={{
                   height: '32px',
                   padding: '0 12px',
@@ -783,7 +785,7 @@ export function TenderEstimatorModal({
                 }}
               >
                 <AppIcons.Sliders size={13} />
-                <span>تعميم النسب للكل</span>
+                <span>{t('contracting.tender_estimator_modal.s13', "تعميم النسب للكل")}</span>
               </button>
             </div>
           </div>
@@ -793,7 +795,7 @@ export function TenderEstimatorModal({
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span style={{ fontSize: 'var(--font-section-title)', fontWeight: 800, color: '#1e293b' }}>
-              بنود العطاء ومقايسة المشروع ({items.length} بند)
+              {t('contracting.tender_estimator_modal.s14', "بنود العطاء ومقايسة المشروع (")}{items.length} {t('contracting.tender_estimator_modal.s15', "بند)")}
             </span>
           </div>
 
@@ -817,7 +819,7 @@ export function TenderEstimatorModal({
               }}
             >
               <AppIcons.FileSpreadsheet size={14} />
-              <span>استيراد مقايسة Excel (BOQ)</span>
+              <span>{t('contracting.tender_estimator_modal.s16', "استيراد مقايسة Excel (BOQ)")}</span>
             </button>
 
             <button
@@ -839,7 +841,7 @@ export function TenderEstimatorModal({
               }}
             >
               <AppIcons.Layers size={14} />
-              <span>سحب من المقايسة المرجعية (124 بند)</span>
+              <span>{t('contracting.tender_estimator_modal.s17', "سحب من المقايسة المرجعية (124 بند)")}</span>
             </button>
 
             <button
@@ -861,7 +863,7 @@ export function TenderEstimatorModal({
               }}
             >
               <AppIcons.PlusCircle size={14} />
-              <span>حصر سريع من أبعاد الرسومات (CAD Takeoff)</span>
+              <span>{t('contracting.tender_estimator_modal.s18', "حصر سريع من أبعاد الرسومات (CAD Takeoff)")}</span>
             </button>
           </div>
         </div>
@@ -871,7 +873,7 @@ export function TenderEstimatorModal({
           <div style={{ background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: '10px', padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <div style={{ fontSize: 'var(--font-body)', fontWeight: 700, color: '#0369a1', display: 'flex', alignItems: 'center', gap: '6px' }}>
               <AppIcons.CheckShield size={16} />
-              <span>حاسبة الحصر الهندسي السريع من واقع اللوحات والمخططات المعمارية والإنشائية</span>
+              <span>{t('contracting.tender_estimator_modal.s19', "حاسبة الحصر الهندسي السريع من واقع اللوحات والمخططات المعمارية والإنشائية")}</span>
             </div>
             <div style={{
               display: 'grid',
@@ -880,7 +882,7 @@ export function TenderEstimatorModal({
               alignItems: 'end',
             }}>
               <div>
-                <label style={{ display: 'block', fontSize: 'var(--font-micro)', fontWeight: 600, color: '#0369a1', marginBottom: '2px' }}>نوع البند الهندسي</label>
+                <label style={{ display: 'block', fontSize: 'var(--font-micro)', fontWeight: 600, color: '#0369a1', marginBottom: '2px' }}>{t('contracting.tender_estimator_modal.s20', "نوع البند الهندسي")}</label>
                 <CustomSelect
                   value={cadItemCode}
                   onChange={(val) => setCadItemCode(String(val))}
@@ -889,11 +891,11 @@ export function TenderEstimatorModal({
                     label: `${c.itemName} (${c.unit})`,
                     hint: c.itemCode,
                   }))}
-                  placeholder="اختر كود البند..."
+                  placeholder={t('contracting.tender_estimator_modal.s21', "اختر كود البند...")}
                 />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: 'var(--font-micro)', fontWeight: 600, color: '#0369a1', marginBottom: '2px', textAlign: 'center' }}>الطول (م)</label>
+                <label style={{ display: 'block', fontSize: 'var(--font-micro)', fontWeight: 600, color: '#0369a1', marginBottom: '2px', textAlign: 'center' }}>{t('contracting.tender_estimator_modal.s22', "الطول (م)")}</label>
                 <input
                   type="number"
                   value={cadLength}
@@ -902,7 +904,7 @@ export function TenderEstimatorModal({
                 />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: 'var(--font-micro)', fontWeight: 600, color: '#0369a1', marginBottom: '2px', textAlign: 'center' }}>العرض (م)</label>
+                <label style={{ display: 'block', fontSize: 'var(--font-micro)', fontWeight: 600, color: '#0369a1', marginBottom: '2px', textAlign: 'center' }}>{t('contracting.tender_estimator_modal.s23', "العرض (م)")}</label>
                 <input
                   type="number"
                   value={cadWidth}
@@ -911,7 +913,7 @@ export function TenderEstimatorModal({
                 />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: 'var(--font-micro)', fontWeight: 600, color: '#0369a1', marginBottom: '2px', textAlign: 'center' }}>الارتفاع (م)</label>
+                <label style={{ display: 'block', fontSize: 'var(--font-micro)', fontWeight: 600, color: '#0369a1', marginBottom: '2px', textAlign: 'center' }}>{t('contracting.tender_estimator_modal.s24', "الارتفاع (م)")}</label>
                 <input
                   type="number"
                   value={cadHeight}
@@ -920,7 +922,7 @@ export function TenderEstimatorModal({
                 />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: 'var(--font-micro)', fontWeight: 600, color: '#0369a1', marginBottom: '2px', textAlign: 'center' }}>التكرار</label>
+                <label style={{ display: 'block', fontSize: 'var(--font-micro)', fontWeight: 600, color: '#0369a1', marginBottom: '2px', textAlign: 'center' }}>{t('contracting.tender_estimator_modal.s25', "التكرار")}</label>
                 <input
                   type="number"
                   value={cadCount}
@@ -929,7 +931,7 @@ export function TenderEstimatorModal({
                 />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: 'var(--font-micro)', fontWeight: 600, color: '#0369a1', marginBottom: '2px', textAlign: 'center' }}>خصومات الفتحات</label>
+                <label style={{ display: 'block', fontSize: 'var(--font-micro)', fontWeight: 600, color: '#0369a1', marginBottom: '2px', textAlign: 'center' }}>{t('contracting.tender_estimator_modal.s26', "خصومات الفتحات")}</label>
                 <input
                   type="number"
                   value={cadDeductions}
@@ -945,32 +947,32 @@ export function TenderEstimatorModal({
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '6px' }}>
                   <span style={{ fontSize: 'var(--font-micro)', fontWeight: 700, color: '#0369a1', display: 'flex', alignItems: 'center', gap: '5px' }}>
                     <AppIcons.Sliders size={13} />
-                    <span>مواصفات وأبعاد الطوبة / البلوك المستخدم (Brick & Block Dimensions):</span>
+                    <span>{t('contracting.tender_estimator_modal.s27', "مواصفات وأبعاد الطوبة / البلوك المستخدم (Brick & Block Dimensions):")}</span>
                   </span>
                   <span style={{ fontSize: '11px', color: '#166534', background: '#dcfce7', padding: '2px 8px', borderRadius: '4px', fontWeight: 700 }}>
-                    المعدل الهندسي المحسوب: {calculatedBrickRate.ratePerM2} طوبة/م² | رمل: {calculatedBrickRate.sandPerM2} م³ | أسمنت: {calculatedBrickRate.cementPerM2} طن
+                    {t('contracting.tender_estimator_modal.s28', "المعدل الهندسي المحسوب:")} {calculatedBrickRate.ratePerM2} {t('contracting.tender_estimator_modal.s29', "طوبة/م² | رمل:")} {calculatedBrickRate.sandPerM2} {t('contracting.tender_estimator_modal.s30', "م³ | أسمنت:")} {calculatedBrickRate.cementPerM2} {t('contracting.tender_estimator_modal.s31', "طن")}
                   </span>
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: cadBrickPreset === 'CUSTOM' ? 'minmax(260px, 1.4fr) 85px 85px 85px 95px' : '1fr', gap: '8px', alignItems: 'end' }}>
                   <div>
-                    <label style={{ display: 'block', fontSize: '10px', fontWeight: 600, color: '#64748b', marginBottom: '2px' }}>اختر مقاس الطوب أو البلوك الشائع:</label>
+                    <label style={{ display: 'block', fontSize: '10px', fontWeight: 600, color: '#64748b', marginBottom: '2px' }}>{t('contracting.tender_estimator_modal.s32', "اختر مقاس الطوب أو البلوك الشائع:")}</label>
                     <CustomSelect
                       value={cadBrickPreset}
                       onChange={(val) => setCadBrickPreset(String(val))}
                       options={BRICK_SIZE_PRESETS.map((p) => ({
                         value: p.id,
                         label: p.name,
-                        hint: `${p.ratePerM2OrM3} ${p.unit === 'm3' ? 'طوبة/م³' : 'طوبة/م²'}`,
+                        hint: `${p.ratePerM2OrM3} ${p.unit === 'm3' ? t('contracting.tender_estimator_modal.s33', "طوبة/م³") : t('contracting.tender_estimator_modal.s34', "طوبة/م²")}`,
                       }))}
-                      placeholder="اختر مقاس الطوب..."
+                      placeholder={t('contracting.tender_estimator_modal.s35', "اختر مقاس الطوب...")}
                     />
                   </div>
 
                   {cadBrickPreset === 'CUSTOM' && (
                     <>
                       <div>
-                        <label style={{ display: 'block', fontSize: '10px', fontWeight: 600, color: '#0369a1', textAlign: 'center', marginBottom: '2px' }}>طول الطوبة (سم)</label>
+                        <label style={{ display: 'block', fontSize: '10px', fontWeight: 600, color: '#0369a1', textAlign: 'center', marginBottom: '2px' }}>{t('contracting.tender_estimator_modal.s36', "طول الطوبة (سم)")}</label>
                         <input
                           type="number"
                           value={customBrickLength}
@@ -979,7 +981,7 @@ export function TenderEstimatorModal({
                         />
                       </div>
                       <div>
-                        <label style={{ display: 'block', fontSize: '10px', fontWeight: 600, color: '#0369a1', textAlign: 'center', marginBottom: '2px' }}>عرض/سمك (سم)</label>
+                        <label style={{ display: 'block', fontSize: '10px', fontWeight: 600, color: '#0369a1', textAlign: 'center', marginBottom: '2px' }}>{t('contracting.tender_estimator_modal.s37', "عرض/سمك (سم)")}</label>
                         <input
                           type="number"
                           value={customBrickWidth}
@@ -988,7 +990,7 @@ export function TenderEstimatorModal({
                         />
                       </div>
                       <div>
-                        <label style={{ display: 'block', fontSize: '10px', fontWeight: 600, color: '#0369a1', textAlign: 'center', marginBottom: '2px' }}>ارتفاع (سم)</label>
+                        <label style={{ display: 'block', fontSize: '10px', fontWeight: 600, color: '#0369a1', textAlign: 'center', marginBottom: '2px' }}>{t('contracting.tender_estimator_modal.s38', "ارتفاع (سم)")}</label>
                         <input
                           type="number"
                           value={customBrickHeight}
@@ -997,7 +999,7 @@ export function TenderEstimatorModal({
                         />
                       </div>
                       <div>
-                        <label style={{ display: 'block', fontSize: '10px', fontWeight: 600, color: '#0369a1', textAlign: 'center', marginBottom: '2px' }}>عرموس مونة (سم)</label>
+                        <label style={{ display: 'block', fontSize: '10px', fontWeight: 600, color: '#0369a1', textAlign: 'center', marginBottom: '2px' }}>{t('contracting.tender_estimator_modal.s39', "عرموس مونة (سم)")}</label>
                         <input
                           type="number"
                           step="0.1"
@@ -1018,14 +1020,14 @@ export function TenderEstimatorModal({
                 onClick={() => setIsCadTakeoffFormOpen(false)}
                 style={{ height: '30px', padding: '0 12px', borderRadius: '6px', border: '1px solid #bae6fd', background: '#ffffff', color: '#0369a1', fontSize: 'var(--font-micro)', fontWeight: 600, cursor: 'pointer' }}
               >
-                إغلاق
+                {t('contracting.tender_estimator_modal.s40', "إغلاق")}
               </button>
               <button
                 type="button"
                 onClick={handleAddFromCadTakeoff}
                 style={{ height: '30px', padding: '0 16px', borderRadius: '6px', border: 'none', background: '#0284c7', color: '#ffffff', fontSize: 'var(--font-micro)', fontWeight: 700, cursor: 'pointer' }}
               >
-                إضافة البند المحصور للعطاء
+                {t('contracting.tender_estimator_modal.s41', "إضافة البند المحصور للعطاء")}
               </button>
             </div>
           </div>
@@ -1035,7 +1037,7 @@ export function TenderEstimatorModal({
         <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
           {items.length === 0 ? (
             <div style={{ padding: '30px', textAlign: 'center', color: '#64748b' }}>
-              لا توجد بنود مضافة للعطاء حتى الآن. انقر على <strong>استيراد مقايسة Excel</strong> أو <strong>سحب من المقايسة المرجعية</strong> أو <strong>حصر سريع من الرسومات</strong> لبدء التسعير والتفكيك الهندسي.
+              {t('contracting.tender_estimator_modal.s42', "لا توجد بنود مضافة للعطاء حتى الآن. انقر على")} <strong>{t('contracting.tender_estimator_modal.s43', "استيراد مقايسة Excel")}</strong> {t('contracting.tender_estimator_modal.s44', "أو")} <strong>{t('contracting.tender_estimator_modal.s45', "سحب من المقايسة المرجعية")}</strong> {t('contracting.tender_estimator_modal.s46', "أو")} <strong>{t('contracting.tender_estimator_modal.s47', "حصر سريع من الرسومات")}</strong> {t('contracting.tender_estimator_modal.s48', "لبدء التسعير والتفكيك الهندسي.")}
             </div>
           ) : (
             <div
@@ -1061,15 +1063,15 @@ export function TenderEstimatorModal({
                 </colgroup>
                 <thead>
                   <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', fontSize: 'var(--font-table-head)', position: 'sticky', top: 0, zIndex: 2 }}>
-                    <th style={{ padding: '8px 12px', textAlign: 'start' }}>البند والوصف الهندسي</th>
-                    <th style={{ padding: '8px 4px', textAlign: 'center' }}>الوحدة</th>
-                    <th style={{ padding: '8px 4px', textAlign: 'center' }}>الكمية</th>
-                    <th style={{ padding: '8px 4px', textAlign: 'center' }}>ت. الوحدة (BOM)</th>
-                    <th style={{ padding: '8px 4px', textAlign: 'center' }}>هامش الربح</th>
-                    <th style={{ padding: '8px 4px', textAlign: 'center' }}>سعر البيع</th>
-                    <th style={{ padding: '8px 8px', textAlign: 'center' }}>إجمالي القيمة للعميل</th>
-                    <th style={{ padding: '8px 4px', textAlign: 'center' }}>تفكيك الكود</th>
-                    <th style={{ padding: '8px 4px', textAlign: 'center' }}>حذف</th>
+                    <th style={{ padding: '8px 12px', textAlign: 'start' }}>{t('contracting.tender_estimator_modal.s49', "البند والوصف الهندسي")}</th>
+                    <th style={{ padding: '8px 4px', textAlign: 'center' }}>{t('contracting.tender_estimator_modal.s50', "الوحدة")}</th>
+                    <th style={{ padding: '8px 4px', textAlign: 'center' }}>{t('contracting.tender_estimator_modal.s51', "الكمية")}</th>
+                    <th style={{ padding: '8px 4px', textAlign: 'center' }}>{t('contracting.tender_estimator_modal.s52', "ت. الوحدة (BOM)")}</th>
+                    <th style={{ padding: '8px 4px', textAlign: 'center' }}>{t('contracting.tender_estimator_modal.s53', "هامش الربح")}</th>
+                    <th style={{ padding: '8px 4px', textAlign: 'center' }}>{t('contracting.tender_estimator_modal.s54', "سعر البيع")}</th>
+                    <th style={{ padding: '8px 8px', textAlign: 'center' }}>{t('contracting.tender_estimator_modal.s55', "إجمالي القيمة للعميل")}</th>
+                    <th style={{ padding: '8px 4px', textAlign: 'center' }}>{t('contracting.tender_estimator_modal.s56', "تفكيك الكود")}</th>
+                    <th style={{ padding: '8px 4px', textAlign: 'center' }}>{t('contracting.tender_estimator_modal.s57', "حذف")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1153,14 +1155,14 @@ export function TenderEstimatorModal({
                               }}
                             >
                               <AppIcons.Sliders size={11} />
-                              <span>{isExpanded ? 'إخفاء' : 'BOM'}</span>
+                              <span>{isExpanded ? t('contracting.tender_estimator_modal.s58', "إخفاء") : 'BOM'}</span>
                             </button>
                           </td>
                           <td style={{ padding: '8px 4px', textAlign: 'center' }}>
                             <button
                               type="button"
                               onClick={() => setItems((prev) => prev.filter((it) => it.id !== item.id))}
-                              title="حذف البند من العطاء"
+                              title={t('contracting.tender_estimator_modal.s59', "حذف البند من العطاء")}
                               style={{ border: 'none', background: 'transparent', color: '#ef4444', cursor: 'pointer', padding: '2px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
                             >
                               <AppIcons.Trash2 size={15} />
@@ -1176,10 +1178,10 @@ export function TenderEstimatorModal({
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '6px' }}>
                                   <strong style={{ fontSize: 'var(--font-subtitle)', color: '#170e5e', display: 'flex', alignItems: 'center', gap: '6px' }}>
                                     <AppIcons.CheckShield size={14} />
-                                    <span>مكونات واستهلاكات الكود الهندسي للبند: {item.description} (إجمالي كمية البند: {item.estimatedQty} {item.unit})</span>
+                                    <span>{t('contracting.tender_estimator_modal.s60', "مكونات واستهلاكات الكود الهندسي للبند:")} {item.description} {t('contracting.tender_estimator_modal.s61', "(إجمالي كمية البند:")} {item.estimatedQty} {item.unit})</span>
                                   </strong>
                                   <span style={{ fontSize: 'var(--font-micro)', color: '#64748b' }}>
-                                    هالك: {item.wastePercent}% | إداريات: {item.overheadPercent}% | ربح: {item.profitMarkupPercent}%
+                                    {t('contracting.tender_estimator_modal.s62', "هالك:")} {item.wastePercent}{t('contracting.tender_estimator_modal.s63', "% | إداريات:")} {item.overheadPercent}{t('contracting.tender_estimator_modal.s64', "% | ربح:")} {item.profitMarkupPercent}%
                                   </span>
                                 </div>
 
@@ -1204,7 +1206,7 @@ export function TenderEstimatorModal({
 
                                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px', marginTop: '6px', paddingTop: '4px', borderTop: '1px dashed #e2e8f0' }}>
                                         <div>
-                                          <label style={{ display: 'block', fontSize: '9.5px', color: '#64748b', marginBottom: '1px' }}>المعدل/{item.unit}:</label>
+                                          <label style={{ display: 'block', fontSize: '9.5px', color: '#64748b', marginBottom: '1px' }}>{t('contracting.tender_estimator_modal.s65', "المعدل/")}{item.unit}:</label>
                                           <input
                                             type="number"
                                             step="any"
@@ -1226,7 +1228,7 @@ export function TenderEstimatorModal({
                                           />
                                         </div>
                                         <div>
-                                          <label style={{ display: 'block', fontSize: '9.5px', color: '#64748b', marginBottom: '1px' }}>سعر الوحدة:</label>
+                                          <label style={{ display: 'block', fontSize: '9.5px', color: '#64748b', marginBottom: '1px' }}>{t('contracting.tender_estimator_modal.s66', "سعر الوحدة:")}</label>
                                           <input
                                             type="number"
                                             step="any"
@@ -1253,9 +1255,9 @@ export function TenderEstimatorModal({
                                 </div>
 
                                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '14px', fontSize: 'var(--font-micro)', borderTop: '1px solid #e2e8f0', paddingTop: '6px', flexWrap: 'wrap' }}>
-                                  <span>التكلفة المباشرة: <strong>{formatCurrency(calc.totalDirectCost)}</strong></span>
-                                  <span>التكلفة الشاملة بالإداريات: <strong>{formatCurrency(calc.totalTenderCost)}</strong></span>
-                                  <span style={{ color: '#15803d' }}>صافي ربح البند: <strong>{formatCurrency(calc.totalProfit)}</strong></span>
+                                  <span>{t('contracting.tender_estimator_modal.s67', "التكلفة المباشرة:")} <strong>{formatCurrency(calc.totalDirectCost)}</strong></span>
+                                  <span>{t('contracting.tender_estimator_modal.s68', "التكلفة الشاملة بالإداريات:")} <strong>{formatCurrency(calc.totalTenderCost)}</strong></span>
+                                  <span style={{ color: '#15803d' }}>{t('contracting.tender_estimator_modal.s69', "صافي ربح البند:")} <strong>{formatCurrency(calc.totalProfit)}</strong></span>
                                 </div>
                               </div>
                             </td>
@@ -1275,7 +1277,7 @@ export function TenderEstimatorModal({
           <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '10px 14px' }}>
             <h4 style={{ margin: '0 0 8px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#1e293b', display: 'flex', alignItems: 'center', gap: '6px' }}>
               <AppIcons.Layers size={15} />
-              <span>إجمالي الموارد والخامات التقديرية لتنفيذ العطاء بالكامل (Pre-Procurement Materials Takeoff)</span>
+              <span>{t('contracting.tender_estimator_modal.s70', "إجمالي الموارد والخامات التقديرية لتنفيذ العطاء بالكامل (Pre-Procurement Materials Takeoff)")}</span>
             </h4>
             <div
               style={{
@@ -1296,7 +1298,7 @@ export function TenderEstimatorModal({
                     </strong>
                   </div>
                   <div style={{ fontSize: '11px', color: '#475569', marginTop: '2px' }}>
-                    تقديري: <strong>{formatCurrency(res.totalCost)}</strong>
+                    {t('contracting.tender_estimator_modal.s71', "تقديري:")} <strong>{formatCurrency(res.totalCost)}</strong>
                   </div>
                 </div>
               ))}

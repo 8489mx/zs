@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { deliveryRepsApi } from '../api/delivery-reps.api';
@@ -30,6 +31,7 @@ function getDelayStatus(orderDateStr: string, settleDateStr: string) {
 }
 
 export function DeliveryRepSettlements({ repId }: { repId: number | null }) {
+  const { t } = useTranslation();
   const [filterDateFrom, setFilterDateFrom] = useState('');
   const [filterDateTo, setFilterDateTo] = useState('');
   const [viewingSaleId, setViewingSaleId] = useState<number | null>(null);
@@ -60,14 +62,14 @@ export function DeliveryRepSettlements({ repId }: { repId: number | null }) {
       {/* Stats Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
         <div style={{ background: '#f8fafc', padding: '12px 16px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-          <div style={{ color: '#64748b', fontSize: '12px', fontWeight: 'bold' }}>عدد التوريدات المسددة</div>
+          <div style={{ color: '#64748b', fontSize: '12px', fontWeight: 'bold' }}>{t('delivery_reps.delivery_rep_settlements.s0', "عدد التوريدات المسددة")}</div>
           <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#0f172a', marginTop: '4px' }}>
             {settlementsQuery.isLoading ? '...' : totalSettledCount}
           </div>
         </div>
 
         <div style={{ background: '#f0fdf4', padding: '12px 16px', borderRadius: '8px', border: '1px solid #bbf7d0' }}>
-          <div style={{ color: '#166534', fontSize: '12px', fontWeight: 'bold' }}>إجمالي المبالغ الموردة</div>
+          <div style={{ color: '#166534', fontSize: '12px', fontWeight: 'bold' }}>{t('delivery_reps.delivery_rep_settlements.s1', "إجمالي المبالغ الموردة")}</div>
           <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#15803d', marginTop: '4px' }}>
             {settlementsQuery.isLoading ? '...' : formatCurrency(totalSettledAmount)}
           </div>
@@ -77,7 +79,7 @@ export function DeliveryRepSettlements({ repId }: { repId: number | null }) {
       {/* Filters Bar */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center', justifyContent: 'space-between', background: '#f8fafc', padding: '10px 12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
         <div style={{ display: 'flex', gap: '4px', alignItems: 'center', flexWrap: 'wrap' }}>
-          <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 'bold', marginLeft: '6px' }}>فلترة التوريدات:</span>
+          <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 'bold', marginLeft: '6px' }}>{t('delivery_reps.delivery_rep_settlements.s2', "فلترة التوريدات:")}</span>
           <Button 
             variant={filterDateFrom === getLocalDateStr() && filterDateTo === getLocalDateStr() ? 'primary' : 'secondary'} 
             onClick={() => {
@@ -87,7 +89,7 @@ export function DeliveryRepSettlements({ repId }: { repId: number | null }) {
             }}
             style={{ fontSize: '12px', padding: '4px 10px', minHeight: '30px' }}
           >
-            توريدات اليوم
+            {t('delivery_reps.delivery_rep_settlements.s3', "توريدات اليوم")}
           </Button>
           <Button 
             variant={!filterDateFrom && !filterDateTo ? 'primary' : 'secondary'} 
@@ -97,7 +99,7 @@ export function DeliveryRepSettlements({ repId }: { repId: number | null }) {
             }}
             style={{ fontSize: '12px', padding: '4px 10px', minHeight: '30px' }}
           >
-            عرض الكل (مسح الفلاتر)
+            {t('delivery_reps.delivery_rep_settlements.s4', "عرض الكل (مسح الفلاتر)")}
           </Button>
         </div>
 
@@ -108,7 +110,7 @@ export function DeliveryRepSettlements({ repId }: { repId: number | null }) {
             onChange={(e) => setFilterDateFrom(e.target.value)}
             style={{ padding: '4px 8px', fontSize: '12px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
           />
-          <span style={{ fontSize: '11px', color: '#64748b' }}>إلى</span>
+          <span style={{ fontSize: '11px', color: '#64748b' }}>{t('delivery_reps.delivery_rep_settlements.s5', "إلى")}</span>
           <input 
             type="date" 
             value={filterDateTo} 
@@ -123,18 +125,18 @@ export function DeliveryRepSettlements({ repId }: { repId: number | null }) {
         <table className="table" style={{ width: '100%', minWidth: '680px', margin: 0, fontSize: '13px' }}>
           <thead style={{ background: '#f8fafc' }}>
             <tr>
-              <th style={{ padding: '8px 4px', whiteSpace: 'nowrap' }}>الطلب</th>
-              <th style={{ padding: '8px 4px', whiteSpace: 'nowrap' }}>تاريخ الطلب</th>
-              <th style={{ padding: '8px 4px', whiteSpace: 'nowrap' }}>وقت التسوية</th>
-              <th style={{ padding: '8px 4px', whiteSpace: 'nowrap' }}>مدة التأخير</th>
-              <th style={{ padding: '8px 4px', whiteSpace: 'nowrap' }}>المبلغ</th>
-              <th style={{ padding: '8px 4px', whiteSpace: 'nowrap' }}>الكاشير</th>
-              <th style={{ padding: '8px 4px', whiteSpace: 'nowrap' }}>مستلم المبلغ</th>
+              <th style={{ padding: '8px 4px', whiteSpace: 'nowrap' }}>{t('delivery_reps.delivery_rep_settlements.s6', "الطلب")}</th>
+              <th style={{ padding: '8px 4px', whiteSpace: 'nowrap' }}>{t('delivery_reps.delivery_rep_settlements.s7', "تاريخ الطلب")}</th>
+              <th style={{ padding: '8px 4px', whiteSpace: 'nowrap' }}>{t('delivery_reps.delivery_rep_settlements.s8', "وقت التسوية")}</th>
+              <th style={{ padding: '8px 4px', whiteSpace: 'nowrap' }}>{t('delivery_reps.delivery_rep_settlements.s9', "مدة التأخير")}</th>
+              <th style={{ padding: '8px 4px', whiteSpace: 'nowrap' }}>{t('delivery_reps.delivery_rep_settlements.s10', "المبلغ")}</th>
+              <th style={{ padding: '8px 4px', whiteSpace: 'nowrap' }}>{t('delivery_reps.delivery_rep_settlements.s11', "الكاشير")}</th>
+              <th style={{ padding: '8px 4px', whiteSpace: 'nowrap' }}>{t('delivery_reps.delivery_rep_settlements.s12', "مستلم المبلغ")}</th>
             </tr>
           </thead>
           <tbody>
-            {settlementsQuery.isLoading && <tr><td colSpan={7} style={{ padding: '8px', textAlign: 'center', color: '#64748b' }}>جاري التحميل...</td></tr>}
-            {settlementsQuery.data?.length === 0 && <tr><td colSpan={7} style={{ padding: '8px', textAlign: 'center', color: '#64748b' }}>لا يوجد طلبات تمت تسويتها</td></tr>}
+            {settlementsQuery.isLoading && <tr><td colSpan={7} style={{ padding: '8px', textAlign: 'center', color: '#64748b' }}>{t('delivery_reps.delivery_rep_settlements.s13', "جاري التحميل...")}</td></tr>}
+            {settlementsQuery.data?.length === 0 && <tr><td colSpan={7} style={{ padding: '8px', textAlign: 'center', color: '#64748b' }}>{t('delivery_reps.delivery_rep_settlements.s14', "لا يوجد طلبات تمت تسويتها")}</td></tr>}
             {settlementsQuery.data?.map((settlement: any) => {
               const delay = getDelayStatus(settlement.orderDate, settlement.createdAt);
               return (
@@ -153,7 +155,7 @@ export function DeliveryRepSettlements({ repId }: { repId: number | null }) {
                         textDecoration: 'underline',
                         fontSize: '13px'
                       }}
-                      title="انقر لعرض تفاصيل وأصناف الفاتورة"
+                      title={t('delivery_reps.delivery_rep_settlements.s15', "انقر لعرض تفاصيل وأصناف الفاتورة")}
                     >
                       {settlement.docNo}
                     </button>
@@ -183,15 +185,15 @@ export function DeliveryRepSettlements({ repId }: { repId: number | null }) {
                     <div>{formatCurrency(settlement.amount)}</div>
                     {Number(settlement.deliveryFee || 0) > 0 ? (
                       <div style={{ fontSize: '11px', color: '#059669', fontWeight: 600 }}>
-                        أجرة: {formatCurrency(Number(settlement.deliveryFee))}
+                        {t('delivery_reps.delivery_rep_settlements.s16', "أجرة:")} {formatCurrency(Number(settlement.deliveryFee))}
                       </div>
                     ) : null}
                   </td>
                   <td style={{ padding: '10px 8px', whiteSpace: 'nowrap', color: '#334155', fontWeight: 600, fontSize: '12px' }}>
-                    {settlement.createdByName || 'غير معروف'}
+                    {settlement.createdByName || t('delivery_reps.delivery_rep_settlements.s17', "غير معروف")}
                   </td>
                   <td style={{ padding: '10px 8px', whiteSpace: 'nowrap', color: '#64748b', fontSize: '12px' }}>
-                    {settlement.settledByName || settlement.createdByName || 'غير معروف'}
+                    {settlement.settledByName || settlement.createdByName || t('delivery_reps.delivery_rep_settlements.s18', "غير معروف")}
                   </td>
                 </tr>
               );
@@ -206,13 +208,13 @@ export function DeliveryRepSettlements({ repId }: { repId: number | null }) {
           open={true}
           onClose={() => setViewingSaleId(null)}
           width="min(720px, 96vw)"
-          title={viewingSaleQuery.data ? `تفاصيل الفاتورة #${viewingSaleQuery.data.docNo || viewingSaleQuery.data.id}` : 'تفاصيل الفاتورة'}
-          subtitle="معاينة تفاصيل وبيانات الفاتورة الميدانية"
-          badge="مبيعات التوصيل"
+          title={viewingSaleQuery.data ? `تفاصيل الفاتورة #${viewingSaleQuery.data.docNo || viewingSaleQuery.data.id}` : t('delivery_reps.delivery_rep_settlements.s19', "تفاصيل الفاتورة")}
+          subtitle={t('delivery_reps.delivery_rep_settlements.s20', "معاينة تفاصيل وبيانات الفاتورة الميدانية")}
+          badge={t('delivery_reps.delivery_rep_settlements.s21', "مبيعات التوصيل")}
           footerActions={
             <StandardDialogFooter
               onClose={() => setViewingSaleId(null)}
-              cancelText="إغلاق"
+              cancelText={t('delivery_reps.delivery_rep_settlements.s22', "إغلاق")}
               extraActions={
                 viewingSaleQuery.data ? (
                   <Button
@@ -222,7 +224,7 @@ export function DeliveryRepSettlements({ repId }: { repId: number | null }) {
                     }}
                     style={{ fontSize: '12px', padding: '6px 14px', backgroundColor: '#170e5e', color: '#ffffff' }}
                   >
-                    طباعة الفاتورة
+                    {t('delivery_reps.delivery_rep_settlements.s23', "طباعة الفاتورة")}
                   </Button>
                 ) : undefined
               }
@@ -230,13 +232,13 @@ export function DeliveryRepSettlements({ repId }: { repId: number | null }) {
           }
         >
           {viewingSaleQuery.isLoading ? (
-            <div style={{ padding: '30px', textAlign: 'center', color: '#64748b' }}>جاري تحميل تفاصيل الفاتورة...</div>
+            <div style={{ padding: '30px', textAlign: 'center', color: '#64748b' }}>{t('delivery_reps.delivery_rep_settlements.s24', "جاري تحميل تفاصيل الفاتورة...")}</div>
           ) : viewingSaleQuery.data ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', fontSize: '13px' }}>
               {/* Meta Grid */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '8px', background: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
                 <div>
-                  <span style={{ color: '#64748b', fontSize: '11px', display: 'block' }}>العميل</span>
+                  <span style={{ color: '#64748b', fontSize: '11px', display: 'block' }}>{t('delivery_reps.delivery_rep_settlements.s25', "العميل")}</span>
                   {viewingSaleQuery.data.customerPhone && (
                     <div style={{ fontSize: '11px', color: '#475569', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
                       <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -256,15 +258,15 @@ export function DeliveryRepSettlements({ repId }: { repId: number | null }) {
                   )}
                 </div>
                 <div>
-                  <span style={{ color: '#64748b', fontSize: '11px', display: 'block' }}>الكاشير</span>
+                  <span style={{ color: '#64748b', fontSize: '11px', display: 'block' }}>{t('delivery_reps.delivery_rep_settlements.s26', "الكاشير")}</span>
                   <strong>{viewingSaleQuery.data.cashierName || viewingSaleQuery.data.createdByName || '-'}</strong>
                 </div>
                 <div>
-                  <span style={{ color: '#64748b', fontSize: '11px', display: 'block' }}>المندوب</span>
+                  <span style={{ color: '#64748b', fontSize: '11px', display: 'block' }}>{t('delivery_reps.delivery_rep_settlements.s27', "المندوب")}</span>
                   <strong>{viewingSaleQuery.data.deliveryRepName || '-'}</strong>
                 </div>
                 <div>
-                  <span style={{ color: '#64748b', fontSize: '11px', display: 'block' }}>التاريخ والوقت</span>
+                  <span style={{ color: '#64748b', fontSize: '11px', display: 'block' }}>{t('delivery_reps.delivery_rep_settlements.s28', "التاريخ والوقت")}</span>
                   <strong style={{ direction: 'ltr', display: 'inline-block' }}>{formatDate(viewingSaleQuery.data.createdAt || viewingSaleQuery.data.date)}</strong>
                 </div>
               </div>
@@ -274,10 +276,10 @@ export function DeliveryRepSettlements({ repId }: { repId: number | null }) {
                 <table className="table" style={{ width: '100%', margin: 0, fontSize: '12px' }}>
                   <thead style={{ background: '#f1f5f9' }}>
                     <tr>
-                      <th style={{ padding: '6px 8px' }}>الصنف</th>
-                      <th style={{ padding: '6px 8px', textAlign: 'center' }}>الكمية</th>
-                      <th style={{ padding: '6px 8px', textAlign: 'center' }}>السعر</th>
-                      <th style={{ padding: '6px 8px', textAlign: 'left' }}>الإجمالي</th>
+                      <th style={{ padding: '6px 8px' }}>{t('delivery_reps.delivery_rep_settlements.s29', "الصنف")}</th>
+                      <th style={{ padding: '6px 8px', textAlign: 'center' }}>{t('delivery_reps.delivery_rep_settlements.s30', "الكمية")}</th>
+                      <th style={{ padding: '6px 8px', textAlign: 'center' }}>{t('delivery_reps.delivery_rep_settlements.s31', "السعر")}</th>
+                      <th style={{ padding: '6px 8px', textAlign: 'left' }}>{t('delivery_reps.delivery_rep_settlements.s32', "الإجمالي")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -297,24 +299,24 @@ export function DeliveryRepSettlements({ repId }: { repId: number | null }) {
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '16px', background: '#f8fafc', padding: '10px 14px', borderRadius: '6px', border: '1px solid #e2e8f0', flexWrap: 'wrap' }}>
                 {Number(viewingSaleQuery.data.deliveryFee || 0) > 0 && (
                   <div style={{ color: '#059669', fontWeight: 600 }}>
-                    <span>أجرة التوصيل: </span>
+                    <span>{t('delivery_reps.delivery_rep_settlements.s33', "أجرة التوصيل:")} </span>
                     <strong>{formatCurrency(Number(viewingSaleQuery.data.deliveryFee))}</strong>
                   </div>
                 )}
                 {Number(viewingSaleQuery.data.discount || 0) > 0 && (
                   <div style={{ color: '#dc2626', fontWeight: 600 }}>
-                    <span>الخصم: </span>
+                    <span>{t('delivery_reps.delivery_rep_settlements.s34', "الخصم:")} </span>
                     <strong>{formatCurrency(Number(viewingSaleQuery.data.discount))}</strong>
                   </div>
                 )}
                 <div>
-                  <span style={{ fontWeight: 700, color: '#0f172a' }}>الإجمالي النهائي: </span>
+                  <span style={{ fontWeight: 700, color: '#0f172a' }}>{t('delivery_reps.delivery_rep_settlements.s35', "الإجمالي النهائي:")} </span>
                   <strong style={{ fontSize: '15px', color: '#170c5c', fontWeight: 900 }}>{formatCurrency(Number(viewingSaleQuery.data.total || 0))}</strong>
                 </div>
               </div>
             </div>
           ) : (
-            <div style={{ padding: '20px', textAlign: 'center', color: '#dc2626' }}>تعذر تحميل بيانات الفاتورة</div>
+            <div style={{ padding: '20px', textAlign: 'center', color: '#dc2626' }}>{t('delivery_reps.delivery_rep_settlements.s36', "تعذر تحميل بيانات الفاتورة")}</div>
           )}
         </StandardDialog>
       )}

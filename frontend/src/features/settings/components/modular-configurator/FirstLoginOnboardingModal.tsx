@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import {
@@ -160,6 +161,7 @@ export function FirstLoginOnboardingModal({
   onClose,
   onOpenAdvancedConfigurator,
 }: FirstLoginOnboardingModalProps) {
+  const { t } = useTranslation();
   const { data: currentSettings } = useSettingsQuery();
   const updateSettingsMutation = useSettingsUpdateMutation(currentSettings as any, () => {
     onClose();
@@ -205,19 +207,19 @@ export function FirstLoginOnboardingModal({
         // Prevent accidental closing without explicit skip or apply
       }}
       width="820px"
-      ariaLabel="تخصيص المنظومة وتجهيز بيئة العمل"
+      ariaLabel={t('settings.modular_configurator.first_login_onboarding_modal.s0', "تخصيص المنظومة وتجهيز بيئة العمل")}
     >
       <div dir="rtl" style={{ padding: '8px 4px' }}>
         {/* الترويسة المؤسسية الناصعة */}
         <div style={{ marginBottom: '20px', textAlign: 'start' }}>
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#eef2ff', color: '#170e5e', padding: '4px 10px', borderRadius: '6px', fontSize: '0.76rem', fontWeight: 800, marginBottom: '8px' }}>
-            تهيئة المنشأة لأول مرة
+            {t('settings.modular_configurator.first_login_onboarding_modal.s1', "تهيئة المنشأة لأول مرة")}
           </div>
           <h2 style={{ fontSize: '1.35rem', fontWeight: 900, color: '#0f172a', margin: '0 0 6px' }}>
-            تخصيص المنظومة وتجهيز بيئة العمل
+            {t('settings.modular_configurator.first_login_onboarding_modal.s2', "تخصيص المنظومة وتجهيز بيئة العمل")}
           </h2>
           <p style={{ fontSize: '0.86rem', color: '#64748b', margin: 0, lineHeight: 1.5 }}>
-            أهلاً بك في Z-Systems. لمساعدتك في الحصول على تجربة سريعة وسلسة ومناسبة لطبيعة عملك، اختر نشاطك التجاري لتهيئة الموديولات والشاشات وإخفاء ما لا تحتاجه فورياً:
+            {t('settings.modular_configurator.first_login_onboarding_modal.s3', "أهلاً بك في Z-Systems. لمساعدتك في الحصول على تجربة سريعة وسلسة ومناسبة لطبيعة عملك، اختر نشاطك التجاري لتهيئة الموديولات والشاشات وإخفاء ما لا تحتاجه فورياً:")}
           </p>
         </div>
 
@@ -304,7 +306,7 @@ export function FirstLoginOnboardingModal({
         <div style={{ padding: '12px 14px', borderRadius: '8px', background: '#f8fafc', border: '1px solid #e2e8f0', marginBottom: '20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
           <div>
             <div style={{ fontSize: '0.8rem', color: '#475569' }}>
-              النشاط المختار: <strong style={{ color: '#0f172a' }}>{currentPreset.name}</strong>
+              {t('settings.modular_configurator.first_login_onboarding_modal.s4', "النشاط المختار:")} <strong style={{ color: '#0f172a' }}>{currentPreset.name}</strong>
             </div>
             <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '2px' }}>
               {currentPreset.description}
@@ -328,7 +330,7 @@ export function FirstLoginOnboardingModal({
                 padding: 0,
               }}
             >
-              تخصيص متقدم بنداً ببند
+              {t('settings.modular_configurator.first_login_onboarding_modal.s5', "تخصيص متقدم بنداً ببند")}
             </button>
           )}
         </div>
@@ -350,7 +352,7 @@ export function FirstLoginOnboardingModal({
               cursor: isSubmitting ? 'not-allowed' : 'pointer',
             }}
           >
-            تخطي والبدء بالإعدادات العامة
+            {t('settings.modular_configurator.first_login_onboarding_modal.s6', "تخطي والبدء بالإعدادات العامة")}
           </button>
 
           <button
@@ -372,7 +374,7 @@ export function FirstLoginOnboardingModal({
               gap: '6px',
             }}
           >
-            {isSubmitting ? 'جاري التجهيز...' : 'تأكيد وبدء العمل'}
+            {isSubmitting ? t('settings.modular_configurator.first_login_onboarding_modal.s7', "جاري التجهيز...") : t('settings.modular_configurator.first_login_onboarding_modal.s8', "تأكيد وبدء العمل")}
           </button>
         </div>
       </div>

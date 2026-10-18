@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -10,6 +11,7 @@ import { printQuotation } from '../components/quotations/printQuotation';
 import { toast } from '@/shared/components/system-alert';
 
 export function QuotationsPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -128,31 +130,31 @@ export function QuotationsPage() {
       case 'converted':
         return (
           <span style={{ background: '#dcfce7', color: '#15803d', padding: '3px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: 800 }}>
-            تم التحويل لفاتورة #{saleId}
+            {t('sales.quotations_page.s0', "تم التحويل لفاتورة #")}{saleId}
           </span>
         );
       case 'accepted':
         return (
           <span style={{ background: '#dbeafe', color: '#1d4ed8', padding: '3px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: 800 }}>
-            مقبول
+            {t('sales.quotations_page.s1', "مقبول")}
           </span>
         );
       case 'rejected':
         return (
           <span style={{ background: '#fee2e2', color: '#b91c1c', padding: '3px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: 800 }}>
-            مرفوض
+            {t('sales.quotations_page.s2', "مرفوض")}
           </span>
         );
       case 'sent':
         return (
           <span style={{ background: '#fef3c7', color: '#b45309', padding: '3px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: 800 }}>
-            مرسل للعميل
+            {t('sales.quotations_page.s3', "مرسل للعميل")}
           </span>
         );
       default:
         return (
           <span style={{ background: '#f1f5f9', color: '#475569', padding: '3px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: 800 }}>
-            مسودة
+            {t('sales.quotations_page.s4', "مسودة")}
           </span>
         );
     }
@@ -162,9 +164,9 @@ export function QuotationsPage() {
     <div className="page-stack page-shell quotations-workspace">
       <div className="document-prototype-column" style={{ paddingBottom: '32px' }}>
         <PageHeader
-          title="عروض الأسعار (Quotations)"
-          description="إنشاء وإدارة عروض الأسعار الرسمية للعملاء، طباعتها أو تحويلها مباشرة إلى فواتير مبيعات نهائية."
-          badge={<span className="nav-pill">{data?.quotations?.length || 0} عرض سعر</span>}
+          title={t('sales.quotations_page.s5', "عروض الأسعار (Quotations)")}
+          description={t('sales.quotations_page.s6', "إنشاء وإدارة عروض الأسعار الرسمية للعملاء، طباعتها أو تحويلها مباشرة إلى فواتير مبيعات نهائية.")}
+          badge={<span className="nav-pill">{data?.quotations?.length || 0} {t('sales.quotations_page.s7', "عرض سعر")}</span>}
           actions={
             <div className="actions compact-actions">
               <Button
@@ -172,7 +174,7 @@ export function QuotationsPage() {
                 onClick={() => navigate('/sales/quotations/new')}
                 style={{ backgroundColor: '#170e5e', color: '#ffffff' }}
               >
-                + إنشاء عرض سعر جديد
+                {t('sales.quotations_page.s8', "+ إنشاء عرض سعر جديد")}
               </Button>
             </div>
           }
@@ -183,11 +185,11 @@ export function QuotationsPage() {
           <div className="section-header-compact-row" style={{ marginBottom: '14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
             <div style={{ display: 'flex', gap: '8px' }}>
               {[
-                { key: 'all', label: 'الكل' },
-                { key: 'draft', label: 'مسودات' },
-                { key: 'sent', label: 'مرسلة' },
-                { key: 'accepted', label: 'مقبولة' },
-                { key: 'converted', label: 'محولة لفواتير' },
+                { key: 'all', label: t('sales.quotations_page.s9', "الكل") },
+                { key: 'draft', label: t('sales.quotations_page.s10', "مسودات") },
+                { key: 'sent', label: t('sales.quotations_page.s11', "مرسلة") },
+                { key: 'accepted', label: t('sales.quotations_page.s12', "مقبولة") },
+                { key: 'converted', label: t('sales.quotations_page.s13', "محولة لفواتير") },
               ].map((tab) => (
                 <Button
                   key={tab.key}
@@ -202,7 +204,7 @@ export function QuotationsPage() {
 
             <input
               type="text"
-              placeholder="بحث برقم العرض أو اسم العميل..."
+              placeholder={t('sales.quotations_page.s14', "بحث برقم العرض أو اسم العميل...")}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               style={{
@@ -217,10 +219,10 @@ export function QuotationsPage() {
           </div>
 
           {isLoading ? (
-            <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>جاري تحميل عروض الأسعار...</div>
+            <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>{t('sales.quotations_page.s15', "جاري تحميل عروض الأسعار...")}</div>
           ) : !data?.quotations || data.quotations.length === 0 ? (
             <div style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>
-              لا توجد عروض أسعار مسجلة حتى الآن. انقر على "+ إنشاء عرض سعر جديد" للبدء.
+              {t('sales.quotations_page.s16', "لا توجد عروض أسعار مسجلة حتى الآن. انقر على \"+ إنشاء عرض سعر جديد\" للبدء.")}
             </div>
           ) : (
             <QuotationsTable

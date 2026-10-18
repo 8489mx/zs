@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { PageHeader } from '@/shared/components/page-header';
@@ -26,12 +27,19 @@ function parseMoneyInput(value: string): number {
   return Number(parsed.toFixed(2));
 }
 
-function renderAccountRef(value: AccountRef) {
+import { translateUiText } from '@/lib/auto-translator';
+
+function renderAccountRef(value: AccountRef, isEn?: boolean) {
   if (!value) return '—';
   const code = String(value.code || '').trim();
-  const nameAr = String(value.nameAr || '').trim();
-  if (code && nameAr) return `${code} - ${nameAr}`;
-  return code || nameAr || String(value.id || '—');
+  const name = isEn && value.nameEn
+    ? value.nameEn
+    : isEn
+      ? translateUiText(value.nameAr || '') || value.nameAr
+      : value.nameAr || value.nameEn;
+  const nameClean = String(name || '').trim();
+  if (code && nameClean) return `${code} - ${nameClean}`;
+  return code || nameClean || String(value.id || '—');
 }
 
 function todayIsoDate() {
@@ -39,6 +47,8 @@ function todayIsoDate() {
 }
 
 export function AccountingSettingsPage() {
+  const { t, i18n } = useTranslation();
+  const isEn = i18n.language === 'en';
   const queryClient = useQueryClient();
   const [activeSection, setActiveSection] = useState<SettingsSection>('accounts-map');
   const [systemStartDate, setSystemStartDate] = useState(todayIsoDate());
@@ -152,8 +162,8 @@ export function AccountingSettingsPage() {
     <div className="page-stack page-shell accounting-settings-workspace" dir="rtl">
       <main className="document-prototype-column" style={{ paddingBottom: '32px' }}>
         <PageHeader
-          title="إعدادات الحسابات والأرصدة الافتتاحية"
-          description="إدارة شجرة الحسابات المرتبطة تلقائياً، إدخال الأرصدة الافتتاحية، وتحديد تواريخ إقفال الفترات المالية والضريبية."
+          title={t('accounting.accounting_settings_page.s0', "إعدادات الحسابات والأرصدة الافتتاحية")}
+          description={t('accounting.accounting_settings_page.s1', "إدارة شجرة الحسابات المرتبطة تلقائياً، إدخال الأرصدة الافتتاحية، وتحديد تواريخ إقفال الفترات المالية والضريبية.")}
         />
 
         <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
@@ -162,21 +172,21 @@ export function AccountingSettingsPage() {
             variant={activeSection === 'accounts-map' ? 'primary' : 'secondary'}
             onClick={() => setActiveSection('accounts-map')}
           >
-            ربط الحسابات
+            {t('accounting.accounting_settings_page.s2', "ربط الحسابات")}
           </Button>
           <Button
             type="button"
             variant={activeSection === 'opening-balances' ? 'primary' : 'secondary'}
             onClick={() => setActiveSection('opening-balances')}
           >
-            الأرصدة الافتتاحية
+            {t('accounting.accounting_settings_page.s3', "الأرصدة الافتتاحية")}
           </Button>
           <Button
             type="button"
             variant={activeSection === 'lock-dates' ? 'primary' : 'secondary'}
             onClick={() => setActiveSection('lock-dates')}
           >
-            إقفال الفترات المالية
+            {t('accounting.accounting_settings_page.s4', "إقفال الفترات المالية")}
           </Button>
         </div>
 
@@ -191,7 +201,7 @@ export function AccountingSettingsPage() {
             setSettingsForm={setSettingsForm}
             rows={rows}
             settings={settings}
-            renderAccountRef={renderAccountRef}
+            renderAccountRef={(val) => renderAccountRef(val, isEn)}
           />
         ) : activeSection === 'opening-balances' ? (
           <AccountingOpeningBalancesSection

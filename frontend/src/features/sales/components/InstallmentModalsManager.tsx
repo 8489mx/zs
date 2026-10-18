@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { Button } from '@/shared/ui/button';
@@ -61,6 +62,7 @@ export const InstallmentModalsManager: React.FC<InstallmentModalsManagerProps> =
   planDetailsSchedule,
   onOpenPayForInstallment,
 }) => {
+  const { t } = useTranslation();
   return (
     <>
       {/* 1. Pay Installment Modal */}
@@ -68,15 +70,15 @@ export const InstallmentModalsManager: React.FC<InstallmentModalsManagerProps> =
         <StandardDialog
           isOpen={true}
           onClose={onClosePayModal}
-          title="تحصيل قسط عميل"
-          subtitle="تسجيل دفعة نقدية أو بنكية لحساب القسط"
+          title={t('sales.installment_modals_manager.s0', "تحصيل قسط عميل")}
+          subtitle={t('sales.installment_modals_manager.s1', "تسجيل دفعة نقدية أو بنكية لحساب القسط")}
           maxWidth="500px"
           footer={
             <StandardDialogFooter
               onClose={onClosePayModal}
-              closeLabel="إلغاء"
+              closeLabel={t('sales.installment_modals_manager.s2', "إلغاء")}
               primaryButton={{
-                label: isPaying ? 'جاري تسجيل السداد...' : 'تأكيد التحصيل وإصدار الإيصال',
+                label: isPaying ? t('sales.installment_modals_manager.s3', "جاري تسجيل السداد...") : t('sales.installment_modals_manager.s4', "تأكيد التحصيل وإصدار الإيصال"),
                 onClick: onConfirmPay,
                 disabled: !Number(payAmount) || isPaying,
               }}
@@ -98,23 +100,23 @@ export const InstallmentModalsManager: React.FC<InstallmentModalsManagerProps> =
               }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: '#64748b' }}>العميل:</span>
+                <span style={{ color: '#64748b' }}>{t('sales.installment_modals_manager.s5', "العميل:")}</span>
                 <strong style={{ color: '#0f172a' }}>{payModalInstallment.customer_name}</strong>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: '#64748b' }}>القسط:</span>
+                <span style={{ color: '#64748b' }}>{t('sales.installment_modals_manager.s6', "القسط:")}</span>
                 <span style={{ fontWeight: 600, color: '#0f172a' }}>
-                  رقم #{payModalInstallment.installment_number}
+                  {t('sales.installment_modals_manager.s7', "رقم #")}{payModalInstallment.installment_number}
                 </span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: '#64748b' }}>تاريخ الاستحقاق:</span>
+                <span style={{ color: '#64748b' }}>{t('sales.installment_modals_manager.s8', "تاريخ الاستحقاق:")}</span>
                 <span style={{ color: '#334155' }}>
                   {new Date(payModalInstallment.due_date).toLocaleDateString('ar-EG')}
                 </span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #e2e8f0', paddingTop: '6px' }}>
-                <span style={{ color: '#64748b' }}>قيمة القسط الكاملة:</span>
+                <span style={{ color: '#64748b' }}>{t('sales.installment_modals_manager.s9', "قيمة القسط الكاملة:")}</span>
                 <strong style={{ color: '#166534', fontSize: '13.5px' }}>
                   {formatCurrency(payModalInstallment.amount)}
                 </strong>
@@ -124,7 +126,7 @@ export const InstallmentModalsManager: React.FC<InstallmentModalsManagerProps> =
             {/* حقول التحصيل */}
             <div>
               <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-                المبلغ المراد تحصيله الآن *
+                {t('sales.installment_modals_manager.s10', "المبلغ المراد تحصيله الآن *")}
               </label>
               <input
                 type="number"
@@ -136,7 +138,7 @@ export const InstallmentModalsManager: React.FC<InstallmentModalsManagerProps> =
 
             <div>
               <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-                طريقة الدفع *
+                {t('sales.installment_modals_manager.s11', "طريقة الدفع *")}
               </label>
               <CustomSelect
                 value={payMethod}
@@ -147,11 +149,11 @@ export const InstallmentModalsManager: React.FC<InstallmentModalsManagerProps> =
 
             <div>
               <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-                ملاحظات التحصيل
+                {t('sales.installment_modals_manager.s12', "ملاحظات التحصيل")}
               </label>
               <input
                 type="text"
-                placeholder="مثلاً: دفعة عن طريق الحساب البنكي، أو نقداً بالفرع"
+                placeholder={t('sales.installment_modals_manager.s13', "مثلاً: دفعة عن طريق الحساب البنكي، أو نقداً بالفرع")}
                 value={payNotes}
                 onChange={(e) => onChangePayNotes(e.target.value)}
                 style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', fontSize: '12.5px', boxSizing: 'border-box' }}
@@ -166,8 +168,8 @@ export const InstallmentModalsManager: React.FC<InstallmentModalsManagerProps> =
         <StandardDialog
           isOpen={true}
           onClose={onCloseReceipt}
-          title="تم التحصيل بنجاح"
-          subtitle="تم إيداع المبلغ وتحديث رصيد العميل وإصدار الإيصال"
+          title={t('sales.installment_modals_manager.s14', "تم التحصيل بنجاح")}
+          subtitle={t('sales.installment_modals_manager.s15', "تم إيداع المبلغ وتحديث رصيد العميل وإصدار الإيصال")}
           maxWidth="460px"
           footer={
             <div style={{ display: 'flex', gap: '8px', width: '100%' }}>
@@ -177,17 +179,17 @@ export const InstallmentModalsManager: React.FC<InstallmentModalsManagerProps> =
                 style={{ flex: 1, backgroundColor: '#170e5e', color: '#ffffff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
               >
                 <PrinterIcon size={15} />
-                <span>طباعة الإيصال</span>
+                <span>{t('sales.installment_modals_manager.s16', "طباعة الإيصال")}</span>
               </Button>
               <Button
                 onClick={onSendReceiptWhatsApp}
                 style={{ flex: 1, backgroundColor: '#16a34a', color: '#ffffff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
               >
                 <MessageSquareIcon size={15} color="#ffffff" />
-                <span>إرسال واتساب</span>
+                <span>{t('sales.installment_modals_manager.s17', "إرسال واتساب")}</span>
               </Button>
               <Button variant="secondary" onClick={onCloseReceipt}>
-                إغلاق
+                {t('sales.installment_modals_manager.s18', "إغلاق")}
               </Button>
             </div>
           }
@@ -210,14 +212,14 @@ export const InstallmentModalsManager: React.FC<InstallmentModalsManagerProps> =
               }}
             >
               <div style={{ textAlign: 'center', fontWeight: 800, fontSize: '13.5px', color: '#170e5e', marginBottom: '8px' }}>
-                سند قبض واستلام قسط
+                {t('sales.installment_modals_manager.s19', "سند قبض واستلام قسط")}
               </div>
-              <div><span style={{ color: '#64748b' }}>رقم الإيصال: </span><strong>{receiptData.receipt_no}</strong></div>
-              <div><span style={{ color: '#64748b' }}>العميل: </span><strong>{receiptData.customer_name}</strong></div>
-              <div><span style={{ color: '#64748b' }}>القسط: </span><strong>رقم #{receiptData.installment_number}</strong></div>
-              <div><span style={{ color: '#64748b' }}>المبلغ المحصل: </span><strong style={{ color: '#166534', fontSize: '13px' }}>{formatCurrency(receiptData.paid_amount)}</strong></div>
-              <div><span style={{ color: '#64748b' }}>طريقة الدفع: </span><strong>{receiptData.payment_method}</strong></div>
-              <div><span style={{ color: '#64748b' }}>التاريخ: </span><span>{new Date(receiptData.paid_at).toLocaleString('ar-EG')}</span></div>
+              <div><span style={{ color: '#64748b' }}>{t('sales.installment_modals_manager.s20', "رقم الإيصال:")} </span><strong>{receiptData.receipt_no}</strong></div>
+              <div><span style={{ color: '#64748b' }}>{t('sales.installment_modals_manager.s21', "العميل:")} </span><strong>{receiptData.customer_name}</strong></div>
+              <div><span style={{ color: '#64748b' }}>{t('sales.installment_modals_manager.s22', "القسط:")} </span><strong>{t('sales.installment_modals_manager.s23', "رقم #")}{receiptData.installment_number}</strong></div>
+              <div><span style={{ color: '#64748b' }}>{t('sales.installment_modals_manager.s24', "المبلغ المحصل:")} </span><strong style={{ color: '#166534', fontSize: '13px' }}>{formatCurrency(receiptData.paid_amount)}</strong></div>
+              <div><span style={{ color: '#64748b' }}>{t('sales.installment_modals_manager.s25', "طريقة الدفع:")} </span><strong>{receiptData.payment_method}</strong></div>
+              <div><span style={{ color: '#64748b' }}>{t('sales.installment_modals_manager.s26', "التاريخ:")} </span><span>{new Date(receiptData.paid_at).toLocaleString('ar-EG')}</span></div>
             </div>
           </div>
         </StandardDialog>
@@ -234,7 +236,7 @@ export const InstallmentModalsManager: React.FC<InstallmentModalsManagerProps> =
           footer={
             <StandardDialogFooter
               onClose={onClosePlanDetails}
-              closeLabel="إغلاق"
+              closeLabel={t('sales.installment_modals_manager.s27', "إغلاق")}
             />
           }
         >
@@ -242,13 +244,13 @@ export const InstallmentModalsManager: React.FC<InstallmentModalsManagerProps> =
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right', fontSize: '12px' }}>
               <thead>
                 <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', fontWeight: 700 }}>
-                  <th style={{ padding: '10px 14px' }}>القسط</th>
-                  <th style={{ padding: '10px 14px' }}>تاريخ الاستحقاق</th>
-                  <th style={{ padding: '10px 14px' }}>القيمة</th>
-                  <th style={{ padding: '10px 14px' }}>المسدد</th>
-                  <th style={{ padding: '10px 14px' }}>تاريخ السداد</th>
-                  <th style={{ padding: '10px 14px' }}>الحالة</th>
-                  <th style={{ padding: '10px 14px', textAlign: 'center' }}>إجراء</th>
+                  <th style={{ padding: '10px 14px' }}>{t('sales.installment_modals_manager.s28', "القسط")}</th>
+                  <th style={{ padding: '10px 14px' }}>{t('sales.installment_modals_manager.s29', "تاريخ الاستحقاق")}</th>
+                  <th style={{ padding: '10px 14px' }}>{t('sales.installment_modals_manager.s30', "القيمة")}</th>
+                  <th style={{ padding: '10px 14px' }}>{t('sales.installment_modals_manager.s31', "المسدد")}</th>
+                  <th style={{ padding: '10px 14px' }}>{t('sales.installment_modals_manager.s32', "تاريخ السداد")}</th>
+                  <th style={{ padding: '10px 14px' }}>{t('sales.installment_modals_manager.s33', "الحالة")}</th>
+                  <th style={{ padding: '10px 14px', textAlign: 'center' }}>{t('sales.installment_modals_manager.s34', "إجراء")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -275,7 +277,7 @@ export const InstallmentModalsManager: React.FC<InstallmentModalsManagerProps> =
                             onClick={() => onOpenPayForInstallment(inst)}
                             style={{ backgroundColor: '#170e5e', color: '#ffffff', border: 'none', padding: '4px 10px', borderRadius: '6px', fontSize: '11.5px', fontWeight: 600, cursor: 'pointer' }}
                           >
-                            تحصيل
+                            {t('sales.installment_modals_manager.s35', "تحصيل")}
                           </button>
                         )}
                       </td>

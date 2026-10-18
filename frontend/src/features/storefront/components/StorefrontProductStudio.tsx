@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { getGlobalCurrencySymbol } from '@/lib/currencies';
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -11,6 +12,7 @@ interface StorefrontProductStudioProps {
 }
 
 export function StorefrontProductStudio({ slug }: StorefrontProductStudioProps) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [studioMode, setStudioMode] = useState<'products' | 'categories'>('products');
   const [searchTerm, setSearchTerm] = useState('');
@@ -164,7 +166,7 @@ export function StorefrontProductStudio({ slug }: StorefrontProductStudioProps) 
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
             <h2 style={{ margin: 0, fontSize: '15px', fontWeight: 800, color: '#170e5e' }}>
-              استوديو وسائط المتجر الإلكتروني (Media Studio)
+              {t('storefront.storefront_product_studio.s0', "استوديو وسائط المتجر الإلكتروني (Media Studio)")}
             </h2>
             <span
               style={{
@@ -177,11 +179,11 @@ export function StorefrontProductStudio({ slug }: StorefrontProductStudioProps) 
                 border: '1px solid #bbf7d0',
               }}
             >
-              WebP فائق السرعة
+              {t('storefront.storefront_product_studio.s1', "WebP فائق السرعة")}
             </span>
           </div>
           <p style={{ margin: 0, fontSize: '12px', color: '#64748b' }}>
-            ارفع صور حقيقية للأصناف والأقسام. يقوم المحرك بضغط الصور تلقائياً لأقل من 35KB للحفاظ على سرعة المتجر.
+            {t('storefront.storefront_product_studio.s2', "ارفع صور حقيقية للأصناف والأقسام. يقوم المحرك بضغط الصور تلقائياً لأقل من 35KB للحفاظ على سرعة المتجر.")}
           </p>
         </div>
 
@@ -202,7 +204,7 @@ export function StorefrontProductStudio({ slug }: StorefrontProductStudioProps) 
               transition: 'all 0.15s ease',
             }}
           >
-            صور الأصناف ({products.length})
+            {t('storefront.storefront_product_studio.s3', "صور الأصناف (")}{products.length})
           </button>
           <button
             type="button"
@@ -219,7 +221,7 @@ export function StorefrontProductStudio({ slug }: StorefrontProductStudioProps) 
               transition: 'all 0.15s ease',
             }}
           >
-            صور الأقسام ({categories.length})
+            {t('storefront.storefront_product_studio.s4', "صور الأقسام (")}{categories.length})
           </button>
         </div>
       </div>
@@ -248,7 +250,7 @@ export function StorefrontProductStudio({ slug }: StorefrontProductStudioProps) 
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="ابحث باسم الصنف أو الباركود لرفع صورته..."
+                placeholder={t('storefront.storefront_product_studio.s5', "ابحث باسم الصنف أو الباركود لرفع صورته...")}
                 style={{
                   width: '100%',
                   maxWidth: '340px',
@@ -261,7 +263,7 @@ export function StorefrontProductStudio({ slug }: StorefrontProductStudioProps) 
                 }}
               />
               <span style={{ fontSize: '12.5px', color: '#64748b', whiteSpace: 'nowrap', fontWeight: 700 }}>
-                ({filtered.length} صنف)
+                ({filtered.length} {t('storefront.storefront_product_studio.s6', "صنف)")}
               </span>
             </div>
 
@@ -281,7 +283,7 @@ export function StorefrontProductStudio({ slug }: StorefrontProductStudioProps) 
                   whiteSpace: 'nowrap',
                 }}
               >
-                الكل
+                {t('storefront.storefront_product_studio.s7', "الكل")}
               </button>
               {categories.map((c) => (
                 <button
@@ -308,10 +310,10 @@ export function StorefrontProductStudio({ slug }: StorefrontProductStudioProps) 
 
           {/* Products Grid for Fast Bulk Image Upload */}
           {catalogQuery.isLoading ? (
-            <div style={{ padding: '60px', textAlign: 'center', color: '#64748b' }}>جاري تحميل الأصناف...</div>
+            <div style={{ padding: '60px', textAlign: 'center', color: '#64748b' }}>{t('storefront.storefront_product_studio.s8', "جاري تحميل الأصناف...")}</div>
           ) : filtered.length === 0 ? (
             <div style={{ padding: '60px', textAlign: 'center', color: '#64748b', background: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-              لا توجد أصناف مطابقة للبحث
+              {t('storefront.storefront_product_studio.s9', "لا توجد أصناف مطابقة للبحث")}
             </div>
           ) : (
             <div
@@ -386,7 +388,7 @@ export function StorefrontProductStudio({ slug }: StorefrontProductStudioProps) 
                               borderRadius: '4px',
                             }}
                           >
-                            صورة مخصصة
+                            {t('storefront.storefront_product_studio.s10', "صورة مخصصة")}
                           </div>
                         ) : (
                           <div
@@ -402,7 +404,7 @@ export function StorefrontProductStudio({ slug }: StorefrontProductStudioProps) 
                               borderRadius: '4px',
                             }}
                           >
-                            صورة ذكية
+                            {t('storefront.storefront_product_studio.s11', "صورة ذكية")}
                           </div>
                         )}
 
@@ -411,7 +413,7 @@ export function StorefrontProductStudio({ slug }: StorefrontProductStudioProps) 
                             type="button"
                             onClick={() => handleRemoveImage(product.id)}
                             disabled={isUploading}
-                            title="حذف الصورة والعودة للصورة التلقائية"
+                            title={t('storefront.storefront_product_studio.s12', "حذف الصورة والعودة للصورة التلقائية")}
                             style={{
                               position: 'absolute',
                               top: '6px',
@@ -444,7 +446,7 @@ export function StorefrontProductStudio({ slug }: StorefrontProductStudioProps) 
                           fontWeight: 700,
                         }}
                       >
-                        {product.categoryName || 'عام'}
+                        {product.categoryName || t('storefront.storefront_product_studio.s13', "عام")}
                       </span>
                       <h4
                         style={{
@@ -460,7 +462,7 @@ export function StorefrontProductStudio({ slug }: StorefrontProductStudioProps) 
                         {product.name}
                       </h4>
                       <div style={{ fontSize: '12.5px', fontWeight: 800, color: '#170e5e' }}>
-                        {product.price > 0 ? `${product.price} ${getGlobalCurrencySymbol()}` : 'غير مسعر'}
+                        {product.price > 0 ? `${product.price} ${getGlobalCurrencySymbol()}` : t('storefront.storefront_product_studio.s14', "غير مسعر")}
                       </div>
                     </div>
 
@@ -511,7 +513,7 @@ export function StorefrontProductStudio({ slug }: StorefrontProductStudioProps) 
                             e.target.value = '';
                           }}
                         />
-                        <span>{isUploading ? 'جاري الحفظ...' : product.imageUrl ? 'تغيير صورة الصنف' : 'رفع صورة الصنف'}</span>
+                        <span>{isUploading ? t('storefront.storefront_product_studio.s15', "جاري الحفظ...") : product.imageUrl ? t('storefront.storefront_product_studio.s16', "تغيير صورة الصنف") : t('storefront.storefront_product_studio.s17', "رفع صورة الصنف")}</span>
                       </label>
                     </div>
                   </div>
@@ -564,7 +566,7 @@ export function StorefrontProductStudio({ slug }: StorefrontProductStudioProps) 
                       <h3 style={{ margin: '0 0 2px', fontSize: '13.5px', fontWeight: 800, color: '#0f172a' }}>
                         {cat.name}
                       </h3>
-                      <span style={{ fontSize: '11px', color: '#64748b' }}>{count} صنف</span>
+                      <span style={{ fontSize: '11px', color: '#64748b' }}>{count} {t('storefront.storefront_product_studio.s18', "صنف")}</span>
                     </div>
                     <span
                       style={{
@@ -577,7 +579,7 @@ export function StorefrontProductStudio({ slug }: StorefrontProductStudioProps) 
                         border: cat.imageUrl ? '1px solid #a7f3d0' : '1px solid #e2e8f0',
                       }}
                     >
-                      {cat.imageUrl ? 'صورة مخصصة' : 'صورة تلقائية'}
+                      {cat.imageUrl ? t('storefront.storefront_product_studio.s19', "صورة مخصصة") : t('storefront.storefront_product_studio.s20', "صورة تلقائية")}
                     </span>
                   </div>
 
@@ -657,7 +659,7 @@ export function StorefrontProductStudio({ slug }: StorefrontProductStudioProps) 
                           e.target.value = '';
                         }}
                       />
-                      <span>{isUploading ? 'جاري الرفع...' : cat.imageUrl ? 'تغيير صورة القسم' : 'رفع صورة للقسم'}</span>
+                      <span>{isUploading ? t('storefront.storefront_product_studio.s21', "جاري الرفع...") : cat.imageUrl ? t('storefront.storefront_product_studio.s22', "تغيير صورة القسم") : t('storefront.storefront_product_studio.s23', "رفع صورة للقسم")}</span>
                     </label>
 
                     {cat.imageUrl && (
@@ -665,7 +667,7 @@ export function StorefrontProductStudio({ slug }: StorefrontProductStudioProps) 
                         type="button"
                         onClick={() => handleRemoveCatImage(cat.id)}
                         disabled={isUploading}
-                        title="حذف الصورة والعودة للصورة التلقائية"
+                        title={t('storefront.storefront_product_studio.s24', "حذف الصورة والعودة للصورة التلقائية")}
                         style={{
                           padding: '7px 10px',
                           borderRadius: '6px',

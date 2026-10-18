@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { bostaApi, BostaShipmentResult } from '../api/bosta.api';
@@ -23,6 +24,7 @@ interface BostaShipmentModalProps {
 }
 
 export function BostaShipmentModal({ order, onClose, onSuccess }: BostaShipmentModalProps) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
 
   const isPaidOnline = order.paymentStatus === 'paid';
@@ -70,7 +72,7 @@ export function BostaShipmentModal({ order, onClose, onSuccess }: BostaShipmentM
       open={true}
       onClose={onClose}
       width="min(580px, 95vw)"
-      ariaLabel="شحن الطلب عبر بوسطة"
+      ariaLabel={t('storefront.bosta_shipment_modal.s0', "شحن الطلب عبر بوسطة")}
     >
       <div
         dir="rtl"
@@ -97,10 +99,10 @@ export function BostaShipmentModal({ order, onClose, onSuccess }: BostaShipmentM
             <PackageIcon size={22} color="#170e5e" />
             <div>
               <h3 style={{ margin: 0, fontSize: '16.5px', fontWeight: 800, color: '#170e5e' }}>
-                شحن الطلب عبر بوسطة (Bosta Express)
+                {t('storefront.bosta_shipment_modal.s1', "شحن الطلب عبر بوسطة (Bosta Express)")}
               </h3>
               <p style={{ margin: '2px 0 0', fontSize: '12px', color: '#64748b' }}>
-                طلب رقم #{order.orderNumber} • العميل: {order.customerName}
+                {t('storefront.bosta_shipment_modal.s2', "طلب رقم #")}{order.orderNumber} {t('storefront.bosta_shipment_modal.s3', "• العميل:")} {order.customerName}
               </p>
             </div>
           </div>
@@ -143,7 +145,7 @@ export function BostaShipmentModal({ order, onClose, onSuccess }: BostaShipmentM
             >
               <CheckCircleIcon size={48} color="#16a34a" />
               <h4 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: '#166534' }}>
-                تم إنشاء وتوثيق شحنة بوسطة بنجاح!
+                {t('storefront.bosta_shipment_modal.s4', "تم إنشاء وتوثيق شحنة بوسطة بنجاح!")}
               </h4>
               <p style={{ margin: 0, fontSize: '0.88rem', color: '#15803d' }}>
                 {successResult.message}
@@ -159,7 +161,7 @@ export function BostaShipmentModal({ order, onClose, onSuccess }: BostaShipmentM
                   marginTop: '8px',
                 }}
               >
-                <div style={{ fontSize: '0.8rem', color: '#64748b' }}>رقم التتبع (Airway Bill)</div>
+                <div style={{ fontSize: '0.8rem', color: '#64748b' }}>{t('storefront.bosta_shipment_modal.s5', "رقم التتبع (Airway Bill)")}</div>
                 <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#0f172a', letterSpacing: '1px' }}>
                   #{successResult.trackingNumber}
                 </div>
@@ -182,14 +184,14 @@ export function BostaShipmentModal({ order, onClose, onSuccess }: BostaShipmentM
                   }}
                 >
                   <PrinterIcon size={16} color="#ffffff" />
-                  <span>طباعة بوليصة الشحن (AWB)</span>
+                  <span>{t('storefront.bosta_shipment_modal.s6', "طباعة بوليصة الشحن (AWB)")}</span>
                 </Button>
                 <Button
                   variant="secondary"
                   onClick={onClose}
                   style={{ flex: 1, padding: '10px', borderRadius: '8px' }}
                 >
-                  إغلاق النافذة
+                  {t('storefront.bosta_shipment_modal.s7', "إغلاق النافذة")}
                 </Button>
               </div>
             </div>
@@ -214,17 +216,17 @@ export function BostaShipmentModal({ order, onClose, onSuccess }: BostaShipmentM
                     {isPaidOnline ? (
                       <>
                         <CreditCardIcon size={16} color="#065f46" />
-                        <span>مسدد إلكترونياً بالكامل</span>
+                        <span>{t('storefront.bosta_shipment_modal.s8', "مسدد إلكترونياً بالكامل")}</span>
                       </>
                     ) : (
                       <>
                         <DollarSignIcon size={16} color="#92400e" />
-                        <span>دفع عند الاستلام (COD)</span>
+                        <span>{t('storefront.bosta_shipment_modal.s9', "دفع عند الاستلام (COD)")}</span>
                       </>
                     )}
                   </span>
                   <span style={{ margin: '0 6px', color: '#94a3b8' }}>•</span>
-                  <span style={{ color: '#64748b' }}>إجمالي الفاتورة: {formatCurrency(order.totalAmount)}</span>
+                  <span style={{ color: '#64748b' }}>{t('storefront.bosta_shipment_modal.s10', "إجمالي الفاتورة:")} {formatCurrency(order.totalAmount)}</span>
                 </div>
                 <span
                   style={{
@@ -236,7 +238,7 @@ export function BostaShipmentModal({ order, onClose, onSuccess }: BostaShipmentM
                     fontWeight: 700,
                   }}
                 >
-                  {isPaidOnline ? 'تحصيل صفر COD' : `المطلوب تحصيله: ${formatCurrency(codAmount)}`}
+                  {isPaidOnline ? t('storefront.bosta_shipment_modal.s11', "تحصيل صفر COD") : `المطلوب تحصيله: ${formatCurrency(codAmount)}`}
                 </span>
               </div>
 
@@ -244,7 +246,7 @@ export function BostaShipmentModal({ order, onClose, onSuccess }: BostaShipmentM
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                    اسم المستلم
+                    {t('storefront.bosta_shipment_modal.s12', "اسم المستلم")}
                   </label>
                   <input
                     type="text"
@@ -262,7 +264,7 @@ export function BostaShipmentModal({ order, onClose, onSuccess }: BostaShipmentM
 
                 <div>
                   <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                    رقم الهاتف
+                    {t('storefront.bosta_shipment_modal.s13', "رقم الهاتف")}
                   </label>
                   <input
                     type="text"
@@ -282,13 +284,13 @@ export function BostaShipmentModal({ order, onClose, onSuccess }: BostaShipmentM
               <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '14px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                    عنوان التسليم التفصيلي
+                    {t('storefront.bosta_shipment_modal.s14', "عنوان التسليم التفصيلي")}
                   </label>
                   <input
                     type="text"
                     value={receiverAddress}
                     onChange={(e) => setReceiverAddress(e.target.value)}
-                    placeholder="الشارع، رقم العمارة، الشقة..."
+                    placeholder={t('storefront.bosta_shipment_modal.s15', "الشارع، رقم العمارة، الشقة...")}
                     style={{
                       width: '100%',
                       padding: '8px 12px',
@@ -301,7 +303,7 @@ export function BostaShipmentModal({ order, onClose, onSuccess }: BostaShipmentM
 
                 <div>
                   <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                    المحافظة / المدينة
+                    {t('storefront.bosta_shipment_modal.s16', "المحافظة / المدينة")}
                   </label>
                   <input
                     type="text"
@@ -321,7 +323,7 @@ export function BostaShipmentModal({ order, onClose, onSuccess }: BostaShipmentM
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '14px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                    مبلغ التحصيل (COD)
+                    {t('storefront.bosta_shipment_modal.s17', "مبلغ التحصيل (COD)")}
                   </label>
                   <input
                     type="number"
@@ -341,7 +343,7 @@ export function BostaShipmentModal({ order, onClose, onSuccess }: BostaShipmentM
 
                 <div>
                   <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                    وصف محتويات الشحنة
+                    {t('storefront.bosta_shipment_modal.s18', "وصف محتويات الشحنة")}
                   </label>
                   <input
                     type="text"
@@ -360,13 +362,13 @@ export function BostaShipmentModal({ order, onClose, onSuccess }: BostaShipmentM
 
               <div>
                 <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                  ملاحظات لمندوب بوسطة
+                  {t('storefront.bosta_shipment_modal.s19', "ملاحظات لمندوب بوسطة")}
                 </label>
                 <input
                   type="text"
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
-                  placeholder="مثال: يرجى الاتصال قبل الوصول بنصف ساعة..."
+                  placeholder={t('storefront.bosta_shipment_modal.s20', "مثال: يرجى الاتصال قبل الوصول بنصف ساعة...")}
                   style={{
                     width: '100%',
                     padding: '8px 12px',
@@ -392,7 +394,7 @@ export function BostaShipmentModal({ order, onClose, onSuccess }: BostaShipmentM
                   }}
                 >
                   <AlertTriangleIcon size={16} color="#dc2626" />
-                  <span>{(shipMutation.error as any)?.message || 'تعذر إنشاء الشحنة في بوسطة.'}</span>
+                  <span>{(shipMutation.error as any)?.message || t('storefront.bosta_shipment_modal.s21', "تعذر إنشاء الشحنة في بوسطة.")}</span>
                 </div>
               )}
             </>
@@ -418,7 +420,7 @@ export function BostaShipmentModal({ order, onClose, onSuccess }: BostaShipmentM
               disabled={shipMutation.isPending}
               style={{ padding: '8px 16px', borderRadius: '8px' }}
             >
-              إلغاء
+              {t('storefront.bosta_shipment_modal.s22', "إلغاء")}
             </Button>
             <Button
               onClick={() => shipMutation.mutate()}
@@ -435,11 +437,11 @@ export function BostaShipmentModal({ order, onClose, onSuccess }: BostaShipmentM
               }}
             >
               {shipMutation.isPending ? (
-                'جاري إنشاء الشحنة...'
+                t('storefront.bosta_shipment_modal.s23', "جاري إنشاء الشحنة...")
               ) : (
                 <>
                   <TruckIcon size={16} color="#ffffff" />
-                  <span>إنشاء شحنة بوسطة وتوليد البوليصة</span>
+                  <span>{t('storefront.bosta_shipment_modal.s24', "إنشاء شحنة بوسطة وتوليد البوليصة")}</span>
                 </>
               )}
             </Button>

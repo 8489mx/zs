@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 import { TruckIcon, CheckIcon } from '@/shared/components/icons/AppIcons';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
@@ -18,6 +19,7 @@ export const StorefrontFreeShippingBar = React.memo(function StorefrontFreeShipp
   currency,
   compact = false,
 }: StorefrontFreeShippingBarProps) {
+  const { t } = useTranslation();
   if (!freeShippingEnabled || freeShippingMinOrder <= 0) {
     return null;
   }
@@ -77,10 +79,10 @@ export const StorefrontFreeShippingBar = React.memo(function StorefrontFreeShipp
             }}
           >
             {isUnlocked ? (
-              <span>تهانينا! حصلت على <strong>شحن مجاني</strong> لطلبك!</span>
+              <span>{t('storefront.storefront_free_shipping_bar.s0', "تهانينا! حصلت على")} <strong>{t('storefront.storefront_free_shipping_bar.s1', "شحن مجاني")}</strong> {t('storefront.storefront_free_shipping_bar.s2', "لطلبك!")}</span>
             ) : (
               <span>
-                أضف بـ <strong>{formattedRemaining} <CurrencySymbol /></strong> إضافية لـ <strong>شحن مجاني</strong>
+                {t('storefront.storefront_free_shipping_bar.s3', "أضف بـ")} <strong>{formattedRemaining} <CurrencySymbol /></strong> {t('storefront.storefront_free_shipping_bar.s4', "إضافية لـ")} <strong>{t('storefront.storefront_free_shipping_bar.s5', "شحن مجاني")}</strong>
               </span>
             )}
           </span>

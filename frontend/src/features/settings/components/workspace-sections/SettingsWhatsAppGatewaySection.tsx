@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { http } from '@/lib/http';
@@ -41,6 +42,7 @@ interface SimChatMessage {
 }
 
 export function SettingsWhatsAppGatewaySection() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const tenant = useAuthStore((s) => s.tenant);
   const currentVertical = resolveCurrentVertical(tenant);
@@ -368,7 +370,7 @@ export function SettingsWhatsAppGatewaySection() {
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
               <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 900, color: '#0f172a' }}>
-                محرك ومفتاح الذكاء الاصطناعي (Universal AI Engine)
+                {t('settings.workspace_sections.settings_whats_app_gateway_section.s0', "محرك ومفتاح الذكاء الاصطناعي (Universal AI Engine)")}
               </h3>
               <span
                 style={{
@@ -381,12 +383,12 @@ export function SettingsWhatsAppGatewaySection() {
                 }}
               >
                 {aiConfig?.hasApiKey
-                  ? `${aiConfig.provider === 'openai' ? 'OpenAI' : aiConfig.provider === 'custom' ? 'محرك مخصص' : 'Gemini'} متصل ونشط${aiConfig.model ? ` (${aiConfig.model})` : ''}`
-                  : 'يعمل بالمحرك المحلي المدمج'}
+                  ? `${aiConfig.provider === 'openai' ? 'OpenAI' : aiConfig.provider === 'custom' ? t('settings.workspace_sections.settings_whats_app_gateway_section.s1', "محرك مخصص") : 'Gemini'} متصل ونشط${aiConfig.model ? ` (${aiConfig.model})` : ''}`
+                  : t('settings.workspace_sections.settings_whats_app_gateway_section.s2', "يعمل بالمحرك المحلي المدمج")}
               </span>
             </div>
             <p style={{ margin: '4px 0 0', fontSize: '12.5px', color: '#64748b' }}>
-              يدعم كلاً من <strong>Google Gemini</strong> و <strong>OpenAI (ChatGPT)</strong> ومزودي النماذج المتوافقة مثل <strong>DeepSeek</strong>. يغذي <strong>مستشار الإدارة (زاد AI)</strong> وبوت <strong>الرد الآلي على الواتساب</strong>.
+              {t('settings.workspace_sections.settings_whats_app_gateway_section.s3', "يدعم كلاً من")} <strong>Google Gemini</strong> {t('settings.workspace_sections.settings_whats_app_gateway_section.s4', "و")} <strong>OpenAI (ChatGPT)</strong> {t('settings.workspace_sections.settings_whats_app_gateway_section.s5', "ومزودي النماذج المتوافقة مثل")} <strong>DeepSeek</strong>{t('settings.workspace_sections.settings_whats_app_gateway_section.s6', ". يغذي")} <strong>{t('settings.workspace_sections.settings_whats_app_gateway_section.s7', "مستشار الإدارة (زاد AI)")}</strong> {t('settings.workspace_sections.settings_whats_app_gateway_section.s8', "وبوت")} <strong>{t('settings.workspace_sections.settings_whats_app_gateway_section.s9', "الرد الآلي على الواتساب")}</strong>.
             </p>
           </div>
         </div>
@@ -396,13 +398,13 @@ export function SettingsWhatsAppGatewaySection() {
           {/* Provider Selector Tabs */}
           <div>
             <label style={{ display: 'block', fontSize: '12px', fontWeight: 800, color: '#1e293b', marginBottom: '6px' }}>
-              اختر مزود الذكاء الاصطناعي (AI Provider):
+              {t('settings.workspace_sections.settings_whats_app_gateway_section.s10', "اختر مزود الذكاء الاصطناعي (AI Provider):")}
             </label>
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
               {[
-                { id: 'gemini', label: 'Google Gemini', tag: 'موصى به' },
-                { id: 'openai', label: 'OpenAI / ChatGPT (GPT-4o & Mini)', tag: 'متقدم' },
-                { id: 'custom', label: 'مزود مخصص (DeepSeek / Groq / Local)', tag: 'مفتوح' },
+                { id: 'gemini', label: 'Google Gemini', tag: t('settings.workspace_sections.settings_whats_app_gateway_section.s11', "موصى به") },
+                { id: 'openai', label: 'OpenAI / ChatGPT (GPT-4o & Mini)', tag: t('settings.workspace_sections.settings_whats_app_gateway_section.s12', "متقدم") },
+                { id: 'custom', label: t('settings.workspace_sections.settings_whats_app_gateway_section.s13', "مزود مخصص (DeepSeek / Groq / Local)"), tag: t('settings.workspace_sections.settings_whats_app_gateway_section.s14', "مفتوح") },
               ].map((p) => {
                 const active = selectedProvider === p.id;
                 return (
@@ -448,10 +450,10 @@ export function SettingsWhatsAppGatewaySection() {
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
               <label style={{ fontSize: '12px', fontWeight: 800, color: '#1e293b' }}>
                 {selectedProvider === 'gemini'
-                  ? 'مفتاح Google Gemini API:'
+                  ? t('settings.workspace_sections.settings_whats_app_gateway_section.s15', "مفتاح Google Gemini API:")
                   : selectedProvider === 'openai'
-                  ? 'مفتاح OpenAI API (sk-...):'
-                  : 'مفتاح API الخاص بالمزود المخصص:'}
+                  ? t('settings.workspace_sections.settings_whats_app_gateway_section.s16', "مفتاح OpenAI API (sk-...):")
+                  : t('settings.workspace_sections.settings_whats_app_gateway_section.s17', "مفتاح API الخاص بالمزود المخصص:")}
               </label>
               <button
                 type="button"
@@ -466,7 +468,7 @@ export function SettingsWhatsAppGatewaySection() {
                   padding: '2px 4px',
                 }}
               >
-                {showApiKey ? 'إخفاء الرمز' : 'إظهار الرمز'}
+                {showApiKey ? t('settings.workspace_sections.settings_whats_app_gateway_section.s18', "إخفاء الرمز") : t('settings.workspace_sections.settings_whats_app_gateway_section.s19', "إظهار الرمز")}
               </button>
             </div>
             <input
@@ -485,10 +487,10 @@ export function SettingsWhatsAppGatewaySection() {
                 aiConfig?.hasApiKey
                   ? `المفتاح مسجل: ${aiConfig.maskedKey}`
                   : selectedProvider === 'gemini'
-                  ? 'الصق مفتاح AIzaSy... الخاص بك هنا'
+                  ? t('settings.workspace_sections.settings_whats_app_gateway_section.s20', "الصق مفتاح AIzaSy... الخاص بك هنا")
                   : selectedProvider === 'openai'
-                  ? 'الصق مفتاح sk-... الخاص بك هنا'
-                  : 'الصق مفتاح API الخاص بك هنا'
+                  ? t('settings.workspace_sections.settings_whats_app_gateway_section.s21', "الصق مفتاح sk-... الخاص بك هنا")
+                  : t('settings.workspace_sections.settings_whats_app_gateway_section.s22', "الصق مفتاح API الخاص بك هنا")
               }
               value={customApiKey}
               onChange={(e) => handleApiKeyChange(e.target.value)}
@@ -511,7 +513,7 @@ export function SettingsWhatsAppGatewaySection() {
             <div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
                 <label style={{ fontSize: '12px', fontWeight: 800, color: '#1e293b' }}>
-                  اختيار نموذج Google Gemini (Model):
+                  {t('settings.workspace_sections.settings_whats_app_gateway_section.s23', "اختيار نموذج Google Gemini (Model):")}
                 </label>
                 {(customApiKey.trim() || aiConfig?.hasApiKey) && (
                   <button
@@ -530,10 +532,10 @@ export function SettingsWhatsAppGatewaySection() {
                       gap: '4px',
                       padding: '2px 6px',
                     }}
-                    title="استعراض كافة النماذج التي يدعمها مفتاحك من سيرفرات جوجل مباشرة"
+                    title={t('settings.workspace_sections.settings_whats_app_gateway_section.s24', "استعراض كافة النماذج التي يدعمها مفتاحك من سيرفرات جوجل مباشرة")}
                   >
                     <RefreshCwIcon size={12} className={fetchingModels ? 'animate-spin' : ''} />
-                    <span>{fetchingModels ? 'جاري الفحص من جوجل...' : 'استعراض نماذج مفتاحك من جوجل'}</span>
+                    <span>{fetchingModels ? t('settings.workspace_sections.settings_whats_app_gateway_section.s25', "جاري الفحص من جوجل...") : t('settings.workspace_sections.settings_whats_app_gateway_section.s26', "استعراض نماذج مفتاحك من جوجل")}</span>
                   </button>
                 )}
               </div>
@@ -550,17 +552,17 @@ export function SettingsWhatsAppGatewaySection() {
                     lineHeight: 1.5,
                   }}
                 >
-                  أدخل مفتاح Google Gemini أعلاه لاختيار نموذج من النماذج المتاحة لمفتاحك.
+                  {t('settings.workspace_sections.settings_whats_app_gateway_section.s27', "أدخل مفتاح Google Gemini أعلاه لاختيار نموذج من النماذج المتاحة لمفتاحك.")}
                 </div>
               ) : (
                 <CustomSelect
                   value={customModel || ''}
                   onChange={(val) => setCustomModel(val)}
-                  placeholder={customModel || 'اختر نموذجاً أو اتركه تلقائياً'}
+                  placeholder={customModel || t('settings.workspace_sections.settings_whats_app_gateway_section.s28', "اختر نموذجاً أو اتركه تلقائياً")}
                   options={[
-                    { value: '', label: 'تلقائي (اختيار أحدث نموذج متاح ومستقر لمفتاحك تلقائياً)', hint: 'تلقائي' },
+                    { value: '', label: t('settings.workspace_sections.settings_whats_app_gateway_section.s29', "تلقائي (اختيار أحدث نموذج متاح ومستقر لمفتاحك تلقائياً)"), hint: t('settings.workspace_sections.settings_whats_app_gateway_section.s30', "تلقائي") },
                     ...(customModel && !geminiAvailableModels.some((m) => m.id === customModel)
-                      ? [{ value: customModel, label: customModel, hint: 'النموذج المحفوظ حالياً' }]
+                      ? [{ value: customModel, label: customModel, hint: t('settings.workspace_sections.settings_whats_app_gateway_section.s31', "النموذج المحفوظ حالياً") }]
                       : []),
                     ...geminiAvailableModels.map((m) => ({
                       value: m.id,
@@ -578,11 +580,11 @@ export function SettingsWhatsAppGatewaySection() {
             <div style={{ display: 'grid', gridTemplateColumns: selectedProvider === 'custom' ? '1fr 1fr' : '1fr', gap: '12px' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
-                  اسم النموذج (Model) - اختياري:
+                  {t('settings.workspace_sections.settings_whats_app_gateway_section.s32', "اسم النموذج (Model) - اختياري:")}
                 </label>
                 <input
                   type="text"
-                  placeholder={selectedProvider === 'openai' ? 'gpt-4o-mini (الافتراضي)' : 'deepseek-chat أو أي نموذج'}
+                  placeholder={selectedProvider === 'openai' ? t('settings.workspace_sections.settings_whats_app_gateway_section.s33', "gpt-4o-mini (الافتراضي)") : t('settings.workspace_sections.settings_whats_app_gateway_section.s34', "deepseek-chat أو أي نموذج")}
                   value={customModel}
                   onChange={(e) => setCustomModel(e.target.value)}
                   style={{
@@ -601,11 +603,11 @@ export function SettingsWhatsAppGatewaySection() {
               {selectedProvider === 'custom' && (
                 <div>
                   <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
-                    عنوان الرابط الأساسي (API Base URL) - اختياري:
+                    {t('settings.workspace_sections.settings_whats_app_gateway_section.s35', "عنوان الرابط الأساسي (API Base URL) - اختياري:")}
                   </label>
                   <input
                     type="text"
-                    placeholder="مثال: https://api.deepseek.com/v1"
+                    placeholder={t('settings.workspace_sections.settings_whats_app_gateway_section.s36', "مثال: https://api.deepseek.com/v1")}
                     value={customBaseUrl}
                     onChange={(e) => setCustomBaseUrl(e.target.value)}
                     style={{
@@ -641,7 +643,7 @@ export function SettingsWhatsAppGatewaySection() {
               }
               style={{ background: '#170e5e', fontSize: '12.5px', padding: '8px 18px', fontWeight: 800 }}
             >
-              {saveAiKeyMutation.isPending ? 'جاري الحفظ...' : 'حفظ إعدادات المحرك'}
+              {saveAiKeyMutation.isPending ? t('settings.workspace_sections.settings_whats_app_gateway_section.s37', "جاري الحفظ...") : t('settings.workspace_sections.settings_whats_app_gateway_section.s38', "حفظ إعدادات المحرك")}
             </Button>
 
             <Button
@@ -658,7 +660,7 @@ export function SettingsWhatsAppGatewaySection() {
               }
               style={{ fontSize: '12.5px', padding: '8px 16px', fontWeight: 800 }}
             >
-              {testAiKeyMutation.isPending ? 'جاري فحص الاتصال...' : 'فحص الاتصال بالمحرك'}
+              {testAiKeyMutation.isPending ? t('settings.workspace_sections.settings_whats_app_gateway_section.s39', "جاري فحص الاتصال...") : t('settings.workspace_sections.settings_whats_app_gateway_section.s40', "فحص الاتصال بالمحرك")}
             </Button>
 
             {aiConfig?.isCustomKey && (
@@ -668,9 +670,9 @@ export function SettingsWhatsAppGatewaySection() {
                 disabled={deleteAiKeyMutation.isPending}
                 onClick={() => deleteAiKeyMutation.mutate()}
                 style={{ fontSize: '12px', padding: '8px 12px', color: '#dc2626' }}
-                title="حذف المفتاح المخصص والرجوع للإعداد الافتراضي"
+                title={t('settings.workspace_sections.settings_whats_app_gateway_section.s41', "حذف المفتاح المخصص والرجوع للإعداد الافتراضي")}
               >
-                {deleteAiKeyMutation.isPending ? 'جاري الحذف...' : 'حذف المفتاح المخصص'}
+                {deleteAiKeyMutation.isPending ? t('settings.workspace_sections.settings_whats_app_gateway_section.s42', "جاري الحذف...") : t('settings.workspace_sections.settings_whats_app_gateway_section.s43', "حذف المفتاح المخصص")}
               </Button>
             )}
           </div>
@@ -711,7 +713,7 @@ export function SettingsWhatsAppGatewaySection() {
                 <MessageSquareIcon size={18} color="#15803d" />
               </div>
               <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 900, color: '#0f172a' }}>
-                بوت واتساب التفاعلي لخدمة ومبيعات العملاء (Conversational AI Bot)
+                {t('settings.workspace_sections.settings_whats_app_gateway_section.s44', "بوت واتساب التفاعلي لخدمة ومبيعات العملاء (Conversational AI Bot)")}
               </h3>
               <span
                 style={{
@@ -723,21 +725,21 @@ export function SettingsWhatsAppGatewaySection() {
                   fontWeight: 800,
                 }}
               >
-                {currentConfig.aiBotEnabled ? 'الرد الآلي مفعل' : 'الرد الآلي متوقف'}
+                {currentConfig.aiBotEnabled ? t('settings.workspace_sections.settings_whats_app_gateway_section.s45', "الرد الآلي مفعل") : t('settings.workspace_sections.settings_whats_app_gateway_section.s46', "الرد الآلي متوقف")}
               </span>
             </div>
             <p style={{ margin: '4px 0 0', fontSize: '12.5px', color: '#64748b' }}>
               {isMaritime
-                ? 'يقوم البوت بالرد التلقائي الذكي على استفسارات العملاء حول مواعيد وصول السفن، تتبع الحاويات، رسوم النولون وخدمات التخليص الملاحي.'
+                ? t('settings.workspace_sections.settings_whats_app_gateway_section.s47', "يقوم البوت بالرد التلقائي الذكي على استفسارات العملاء حول مواعيد وصول السفن، تتبع الحاويات، رسوم النولون وخدمات التخليص الملاحي.")
                 : isContracting
-                ? 'يقوم البوت بالرد التلقائي الذكي على استفسارات الملاك والاستشاريين ومقاولي الباطن حول بنود المقايسات وحالات المستخلصات.'
-                : 'يقوم البوت بالرد التلقائي الذكي على استفسارات الزبائن حول أسعار المنتجات وتوفر المقاسات والألوان في المخزن لحظياً، مع إرسال روابط الشراء المباشرة.'}
+                ? t('settings.workspace_sections.settings_whats_app_gateway_section.s48', "يقوم البوت بالرد التلقائي الذكي على استفسارات الملاك والاستشاريين ومقاولي الباطن حول بنود المقايسات وحالات المستخلصات.")
+                : t('settings.workspace_sections.settings_whats_app_gateway_section.s49', "يقوم البوت بالرد التلقائي الذكي على استفسارات الزبائن حول أسعار المنتجات وتوفر المقاسات والألوان في المخزن لحظياً، مع إرسال روابط الشراء المباشرة.")}
             </p>
           </div>
 
           <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
             <span style={{ fontSize: '13px', fontWeight: 800, color: currentConfig.aiBotEnabled ? '#166534' : '#475569' }}>
-              {currentConfig.aiBotEnabled ? 'مفعل' : 'تفعيل البوت'}
+              {currentConfig.aiBotEnabled ? t('settings.workspace_sections.settings_whats_app_gateway_section.s50', "مفعل") : t('settings.workspace_sections.settings_whats_app_gateway_section.s51', "تفعيل البوت")}
             </span>
             <input
               type="checkbox"
@@ -752,9 +754,9 @@ export function SettingsWhatsAppGatewaySection() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '16px', marginBottom: '16px' }}>
           {/* Webhook Configuration */}
           <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            <strong style={{ fontSize: '13px', color: '#0f172a', fontWeight: 800 }}>رابط استقبال رسائل الزبائن (Inbound Webhook URL):</strong>
+            <strong style={{ fontSize: '13px', color: '#0f172a', fontWeight: 800 }}>{t('settings.workspace_sections.settings_whats_app_gateway_section.s52', "رابط استقبال رسائل الزبائن (Inbound Webhook URL):")}</strong>
             <p style={{ margin: 0, fontSize: '12px', color: '#64748b' }}>
-              انسخ هذا الرابط وضعه في خانة <strong>Webhook URL</strong> في لوحة UltraMsg أو GreenAPI أو Meta Official API لاستقبال رسائل العملاء فورياً:
+              {t('settings.workspace_sections.settings_whats_app_gateway_section.s53', "انسخ هذا الرابط وضعه في خانة")} <strong>Webhook URL</strong> {t('settings.workspace_sections.settings_whats_app_gateway_section.s54', "في لوحة UltraMsg أو GreenAPI أو Meta Official API لاستقبال رسائل العملاء فورياً:")}
             </p>
             <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
               <input
@@ -779,23 +781,23 @@ export function SettingsWhatsAppGatewaySection() {
                 onClick={handleCopyWebhook}
                 style={{ fontSize: '11.5px', padding: '7px 12px', whiteSpace: 'nowrap' }}
               >
-                {copiedWebhook ? 'تم النسخ!' : 'نسخ الرابط'}
+                {copiedWebhook ? t('settings.workspace_sections.settings_whats_app_gateway_section.s55', "تم النسخ!") : t('settings.workspace_sections.settings_whats_app_gateway_section.s56', "نسخ الرابط")}
               </Button>
             </div>
             <span style={{ fontSize: '11px', color: '#059669', fontWeight: 700 }}>
-              يدعم كود المحاكاة، UltraMsg، GreenAPI، و Meta Cloud API بنظام Webhook تلقائي موحد.
+              {t('settings.workspace_sections.settings_whats_app_gateway_section.s57', "يدعم كود المحاكاة، UltraMsg، GreenAPI، و Meta Cloud API بنظام Webhook تلقائي موحد.")}
             </span>
           </div>
 
           {/* Custom Personality Prompt */}
           <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <strong style={{ fontSize: '13px', color: '#0f172a', fontWeight: 800 }}>توجيهات مخصصة للبوت (Shop Prompt Rules):</strong>
+            <strong style={{ fontSize: '13px', color: '#0f172a', fontWeight: 800 }}>{t('settings.workspace_sections.settings_whats_app_gateway_section.s58', "توجيهات مخصصة للبوت (Shop Prompt Rules):")}</strong>
             <label style={{ display: 'block', fontSize: '11.5px', color: '#64748b' }}>
-              اكتب أي شروط أو سياسات خاصة بمتجرك (مثال: نبرة الصوت، التوصيل المجاني، سياسة الاستبدال):
+              {t('settings.workspace_sections.settings_whats_app_gateway_section.s59', "اكتب أي شروط أو سياسات خاصة بمتجرك (مثال: نبرة الصوت، التوصيل المجاني، سياسة الاستبدال):")}
             </label>
             <textarea
               rows={3}
-              placeholder="مثال: رحب بالعميل باسم متجرنا، واذكر أن مصاريف الشحن 35 ج فقط داخل القاهرة، ولدينا استبدال مجاني خلال 14 يوم..."
+              placeholder={t('settings.workspace_sections.settings_whats_app_gateway_section.s60', "مثال: رحب بالعميل باسم متجرنا، واذكر أن مصاريف الشحن 35 ج فقط داخل القاهرة، ولدينا استبدال مجاني خلال 14 يوم...")}
               value={currentConfig.aiBotPrompt || ''}
               onChange={(e) => setForm({ ...currentConfig, aiBotPrompt: e.target.value })}
               style={{
@@ -829,10 +831,10 @@ export function SettingsWhatsAppGatewaySection() {
             </div>
             <div>
               <h3 style={{ margin: 0, fontSize: '15.5px', fontWeight: 900, color: '#0f172a' }}>
-                محاكي محادثة واتساب التفاعلي (WhatsApp AI Live Simulator)
+                {t('settings.workspace_sections.settings_whats_app_gateway_section.s61', "محاكي محادثة واتساب التفاعلي (WhatsApp AI Live Simulator)")}
               </h3>
               <p style={{ margin: '3px 0 0', fontSize: '12px', color: '#64748b' }}>
-                اختبر ردود بوت الذكاء الاصطناعي مباشرة كأنك عميل على واتساب وتحقق من دقته في فحص أسعار ومخزون منتجاتك الحالية:
+                {t('settings.workspace_sections.settings_whats_app_gateway_section.s62', "اختبر ردود بوت الذكاء الاصطناعي مباشرة كأنك عميل على واتساب وتحقق من دقته في فحص أسعار ومخزون منتجاتك الحالية:")}
               </p>
             </div>
           </div>
@@ -877,12 +879,12 @@ export function SettingsWhatsAppGatewaySection() {
                 <MessageSquareIcon size={18} />
               </div>
               <div>
-                <div style={{ fontSize: '13.5px', fontWeight: 800 }}>مساعد المتجر الذكي (WhatsApp AI Bot)</div>
-                <div style={{ fontSize: '11px', opacity: 0.85 }}>متصل الآن • بالذكاء الاصطناعي</div>
+                <div style={{ fontSize: '13.5px', fontWeight: 800 }}>{t('settings.workspace_sections.settings_whats_app_gateway_section.s63', "مساعد المتجر الذكي (WhatsApp AI Bot)")}</div>
+                <div style={{ fontSize: '11px', opacity: 0.85 }}>{t('settings.workspace_sections.settings_whats_app_gateway_section.s64', "متصل الآن • بالذكاء الاصطناعي")}</div>
               </div>
             </div>
             <span style={{ fontSize: '11px', background: 'rgba(255,255,255,0.2)', padding: '2px 8px', borderRadius: '12px' }}>
-              تجربة حية
+              {t('settings.workspace_sections.settings_whats_app_gateway_section.s65', "تجربة حية")}
             </span>
           </div>
 
@@ -945,7 +947,7 @@ export function SettingsWhatsAppGatewaySection() {
             })}
             {simulateMutation.isPending && (
               <div style={{ alignSelf: 'flex-start', background: '#ffffff', padding: '8px 14px', borderRadius: '10px', fontSize: '12px', color: '#64748b' }}>
-                جاري التفكير وصياغة الرد بالذكاء الاصطناعي...
+                {t('settings.workspace_sections.settings_whats_app_gateway_section.s66', "جاري التفكير وصياغة الرد بالذكاء الاصطناعي...")}
               </div>
             )}
           </div>
@@ -953,10 +955,10 @@ export function SettingsWhatsAppGatewaySection() {
           {/* Quick Suggestion Chips */}
           <div style={{ background: '#f8fafc', padding: '8px 12px', borderTop: '1px solid #e2e8f0', display: 'flex', gap: '6px', overflowX: 'auto' }}>
             {[
-              'بكام المنتجات عندكم؟',
-              'عندكم مقاس L متوفر وبكام؟',
-              'عايز أطلب أونلاين يوصلني إمتى؟',
-              'في عروض أو تخفيضات النهاردة؟',
+              t('settings.workspace_sections.settings_whats_app_gateway_section.s67', "بكام المنتجات عندكم؟"),
+              t('settings.workspace_sections.settings_whats_app_gateway_section.s68', "عندكم مقاس L متوفر وبكام؟"),
+              t('settings.workspace_sections.settings_whats_app_gateway_section.s69', "عايز أطلب أونلاين يوصلني إمتى؟"),
+              t('settings.workspace_sections.settings_whats_app_gateway_section.s70', "في عروض أو تخفيضات النهاردة؟"),
             ].map((chip, idx) => (
               <button
                 key={idx}
@@ -982,7 +984,7 @@ export function SettingsWhatsAppGatewaySection() {
           <div style={{ background: '#f0f2f5', padding: '10px 14px', display: 'flex', gap: '8px', alignItems: 'center' }}>
             <input
               type="text"
-              placeholder="اكتب سؤالك كأنك زبون يراسل المتجر على واتساب..."
+              placeholder={t('settings.workspace_sections.settings_whats_app_gateway_section.s71', "اكتب سؤالك كأنك زبون يراسل المتجر على واتساب...")}
               value={simQuestion}
               onChange={(e) => setSimQuestion(e.target.value)}
               onKeyDown={(e) => {
@@ -1007,7 +1009,7 @@ export function SettingsWhatsAppGatewaySection() {
               onClick={() => handleSendSim()}
               style={{ background: '#075e54', fontSize: '12px', padding: '8px 16px', fontWeight: 800 }}
             >
-              إرسال
+              {t('settings.workspace_sections.settings_whats_app_gateway_section.s72', "إرسال")}
             </Button>
           </div>
         </div>
@@ -1030,20 +1032,20 @@ export function SettingsWhatsAppGatewaySection() {
                 <MessageSquareIcon size={18} color="#166534" />
               </div>
               <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 900, color: '#0f172a' }}>
-                إعدادات حساب واتساب السحابي (Cloud WhatsApp Credentials)
+                {t('settings.workspace_sections.settings_whats_app_gateway_section.s73', "إعدادات حساب واتساب السحابي (Cloud WhatsApp Credentials)")}
               </h3>
               <span style={{ fontSize: '11px', background: currentConfig.enabled ? '#dcfce7' : '#f1f5f9', color: currentConfig.enabled ? '#166534' : '#64748b', padding: '2px 8px', borderRadius: '6px', fontWeight: 800 }}>
-                {currentConfig.enabled ? 'البوابة مفعلة' : 'متوقفة'}
+                {currentConfig.enabled ? t('settings.workspace_sections.settings_whats_app_gateway_section.s74', "البوابة مفعلة") : t('settings.workspace_sections.settings_whats_app_gateway_section.s75', "متوقفة")}
               </span>
             </div>
             <p style={{ margin: '4px 0 0', fontSize: '12.5px', color: '#64748b' }}>
-              بيانات الاتصال برقم الواتساب لإرسال الفواتير الإلكترونية وإشعارات المتجر للعملاء.
+              {t('settings.workspace_sections.settings_whats_app_gateway_section.s76', "بيانات الاتصال برقم الواتساب لإرسال الفواتير الإلكترونية وإشعارات المتجر للعملاء.")}
             </p>
           </div>
 
           <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
             <span style={{ fontSize: '13px', fontWeight: 800, color: currentConfig.enabled ? '#166534' : '#475569' }}>
-              {currentConfig.enabled ? 'البوابة مفعلة' : 'تفعيل البوابة'}
+              {currentConfig.enabled ? t('settings.workspace_sections.settings_whats_app_gateway_section.s77', "البوابة مفعلة") : t('settings.workspace_sections.settings_whats_app_gateway_section.s78', "تفعيل البوابة")}
             </span>
             <input
               type="checkbox"
@@ -1058,30 +1060,30 @@ export function SettingsWhatsAppGatewaySection() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '16px', marginBottom: '16px' }}>
           {/* Provider & Credentials */}
           <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            <strong style={{ fontSize: '13px', color: '#0f172a', fontWeight: 800 }}>مزود خدمة الواتساب السحابي:</strong>
+            <strong style={{ fontSize: '13px', color: '#0f172a', fontWeight: 800 }}>{t('settings.workspace_sections.settings_whats_app_gateway_section.s79', "مزود خدمة الواتساب السحابي:")}</strong>
 
             <div>
               <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: '#475569', marginBottom: '3px' }}>
-                المزود المعتمد:
+                {t('settings.workspace_sections.settings_whats_app_gateway_section.s80', "المزود المعتمد:")}
               </label>
               <select
                 value={currentConfig.provider}
                 onChange={(e) => setForm({ ...currentConfig, provider: e.target.value as any })}
                 style={{ width: '100%', padding: '7px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '12.5px', background: '#ffffff', fontWeight: 700 }}
               >
-                <option value="ultramsg">UltraMsg (الأشهر في مصر والوطن العربي)</option>
-                <option value="greenapi">Green API (بوابة عالمية مستقرة)</option>
-                <option value="custom_webhook">Custom Webhook (بوابة أو سيرفر خاص بك)</option>
+                <option value="ultramsg">{t('settings.workspace_sections.settings_whats_app_gateway_section.s81', "UltraMsg (الأشهر في مصر والوطن العربي)")}</option>
+                <option value="greenapi">{t('settings.workspace_sections.settings_whats_app_gateway_section.s82', "Green API (بوابة عالمية مستقرة)")}</option>
+                <option value="custom_webhook">{t('settings.workspace_sections.settings_whats_app_gateway_section.s83', "Custom Webhook (بوابة أو سيرفر خاص بك)")}</option>
               </select>
             </div>
 
             <div>
               <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: '#475569', marginBottom: '3px' }}>
-                معرّف الحساب / Instance ID:
+                {t('settings.workspace_sections.settings_whats_app_gateway_section.s84', "معرّف الحساب / Instance ID:")}
               </label>
               <input
                 type="text"
-                placeholder="مثال: instance98765"
+                placeholder={t('settings.workspace_sections.settings_whats_app_gateway_section.s85', "مثال: instance98765")}
                 value={currentConfig.instanceId || ''}
                 onChange={(e) => setForm({ ...currentConfig, instanceId: e.target.value })}
                 style={{ width: '100%', padding: '7px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '12.5px', background: '#ffffff', direction: 'ltr', textAlign: 'left', boxSizing: 'border-box' }}
@@ -1090,11 +1092,11 @@ export function SettingsWhatsAppGatewaySection() {
 
             <div>
               <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: '#475569', marginBottom: '3px' }}>
-                مفتاح الاتصال / Token:
+                {t('settings.workspace_sections.settings_whats_app_gateway_section.s86', "مفتاح الاتصال / Token:")}
               </label>
               <input
                 type="password"
-                placeholder="رمز الـ Token السري الخاص بحسابك..."
+                placeholder={t('settings.workspace_sections.settings_whats_app_gateway_section.s87', "رمز الـ Token السري الخاص بحسابك...")}
                 value={currentConfig.token || ''}
                 onChange={(e) => setForm({ ...currentConfig, token: e.target.value })}
                 style={{ width: '100%', padding: '7px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '12.5px', background: '#ffffff', direction: 'ltr', textAlign: 'left', boxSizing: 'border-box' }}
@@ -1104,7 +1106,7 @@ export function SettingsWhatsAppGatewaySection() {
             {currentConfig.provider === 'custom_webhook' && (
               <div>
                 <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: '#475569', marginBottom: '3px' }}>
-                  رابط الويب هوك (Webhook URL):
+                  {t('settings.workspace_sections.settings_whats_app_gateway_section.s88', "رابط الويب هوك (Webhook URL):")}
                 </label>
                 <input
                   type="url"
@@ -1119,7 +1121,7 @@ export function SettingsWhatsAppGatewaySection() {
 
           {/* Automation Rules */}
           <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            <strong style={{ fontSize: '13px', color: '#0f172a', fontWeight: 800 }}>قواعد الإرسال التلقائي الصامت:</strong>
+            <strong style={{ fontSize: '13px', color: '#0f172a', fontWeight: 800 }}>{t('settings.workspace_sections.settings_whats_app_gateway_section.s89', "قواعد الإرسال التلقائي الصامت:")}</strong>
 
             <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '12.5px', color: '#1e293b' }}>
               <input
@@ -1130,10 +1132,10 @@ export function SettingsWhatsAppGatewaySection() {
               />
               <span>
                 {isMaritime
-                  ? 'إرسال رابط الفاتورة والمستندات للعميل تلقائياً فور إصدار واعتماد فاتورة الشحن.'
+                  ? t('settings.workspace_sections.settings_whats_app_gateway_section.s90', "إرسال رابط الفاتورة والمستندات للعميل تلقائياً فور إصدار واعتماد فاتورة الشحن.")
                   : isContracting
-                  ? 'إرسال رابط المستخلص للجهة المالكة تلقائياً فور اعتماده.'
-                  : 'إرسال رابط الفاتورة الإلكترونية للعميل تلقائياً فور حفظ الفاتورة بالكاشير.'}
+                  ? t('settings.workspace_sections.settings_whats_app_gateway_section.s91', "إرسال رابط المستخلص للجهة المالكة تلقائياً فور اعتماده.")
+                  : t('settings.workspace_sections.settings_whats_app_gateway_section.s92', "إرسال رابط الفاتورة الإلكترونية للعميل تلقائياً فور حفظ الفاتورة بالكاشير.")}
               </span>
             </label>
 
@@ -1145,13 +1147,13 @@ export function SettingsWhatsAppGatewaySection() {
                   onChange={(e) => setForm({ ...currentConfig, autoSendOnlineOrder: e.target.checked })}
                   style={{ width: '16px', height: '16px' }}
                 />
-                <span>إرسال رسالة تأكيد للعميل فور وصول طلب من المتجر الإلكتروني.</span>
+                <span>{t('settings.workspace_sections.settings_whats_app_gateway_section.s93', "إرسال رسالة تأكيد للعميل فور وصول طلب من المتجر الإلكتروني.")}</span>
               </label>
             )}
 
             <div>
               <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: '#475569', marginBottom: '3px' }}>
-                قالب رسالة الفاتورة (تتغير المتغيرات تلقائياً):
+                {t('settings.workspace_sections.settings_whats_app_gateway_section.s94', "قالب رسالة الفاتورة (تتغير المتغيرات تلقائياً):")}
               </label>
               <textarea
                 rows={3}
@@ -1160,7 +1162,7 @@ export function SettingsWhatsAppGatewaySection() {
                 style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '12px', background: '#ffffff', boxSizing: 'border-box' }}
               />
               <span style={{ fontSize: '10.5px', color: '#64748b' }}>
-                المتغيرات المتاحة: {'{customerName}'}, {'{businessName}'}, {'{invoiceNo}'}, {'{totalAmount}'}, {'{invoiceLink}'}
+                {t('settings.workspace_sections.settings_whats_app_gateway_section.s95', "المتغيرات المتاحة:")} {'{customerName}'}, {'{businessName}'}, {'{invoiceNo}'}, {'{totalAmount}'}, {'{invoiceLink}'}
               </span>
             </div>
           </div>
@@ -1189,7 +1191,7 @@ export function SettingsWhatsAppGatewaySection() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <input
               type="tel"
-              placeholder="رقم الهاتف للتجربة (مثلاً 010...)"
+              placeholder={t('settings.workspace_sections.settings_whats_app_gateway_section.s96', "رقم الهاتف للتجربة (مثلاً 010...)")}
               value={testPhone}
               onChange={(e) => setTestPhone(e.target.value)}
               style={{ width: '190px', padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '12px', background: '#ffffff', direction: 'ltr', textAlign: 'left' }}
@@ -1200,7 +1202,7 @@ export function SettingsWhatsAppGatewaySection() {
               disabled={testMutation.isPending || !currentConfig.enabled}
               onClick={() => {
                 if (!testPhone.trim()) {
-                  setFeedback({ kind: 'error', message: 'يرجى إدخال رقم الهاتف لإجراء الاختبار' });
+                  setFeedback({ kind: 'error', message: t('settings.workspace_sections.settings_whats_app_gateway_section.s97', "يرجى إدخال رقم الهاتف لإجراء الاختبار") });
                   return;
                 }
                 setFeedback(null);
@@ -1208,7 +1210,7 @@ export function SettingsWhatsAppGatewaySection() {
               }}
               style={{ fontSize: '12px', padding: '6px 12px' }}
             >
-              {testMutation.isPending ? 'جاري الإرسال...' : 'إرسال رسالة اختبار'}
+              {testMutation.isPending ? t('settings.workspace_sections.settings_whats_app_gateway_section.s98', "جاري الإرسال...") : t('settings.workspace_sections.settings_whats_app_gateway_section.s99', "إرسال رسالة اختبار")}
             </Button>
           </div>
 
@@ -1219,7 +1221,7 @@ export function SettingsWhatsAppGatewaySection() {
             onClick={handleSaveAll}
             style={{ background: '#170e5e', fontSize: '13px', padding: '8px 20px', fontWeight: 800 }}
           >
-            {saveMutation.isPending ? 'جاري الحفظ...' : 'حفظ الإعدادات بالكامل'}
+            {saveMutation.isPending ? t('settings.workspace_sections.settings_whats_app_gateway_section.s100', "جاري الحفظ...") : t('settings.workspace_sections.settings_whats_app_gateway_section.s101', "حفظ الإعدادات بالكامل")}
           </Button>
         </div>
       </div>

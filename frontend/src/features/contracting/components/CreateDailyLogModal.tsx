@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { Field } from '@/shared/ui/field';
@@ -20,6 +21,7 @@ export function CreateDailyLogModal({
   onClose,
   onCreated,
 }: CreateDailyLogModalProps) {
+  const { t } = useTranslation();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -75,15 +77,15 @@ export function CreateDailyLogModal({
     <StandardDialog
       open={open}
       onClose={onClose}
-      title="تقرير الموقع اليومي (Site Daily Diary Log)"
-      subtitle={projectName ? `المشروع: ${projectName}` : 'توثيق العمالة والمعدات والأعمال والمعوقات الميدانية'}
+      title={t('contracting.create_daily_log_modal.s0', "تقرير الموقع اليومي (Site Daily Diary Log)")}
+      subtitle={projectName ? `المشروع: ${projectName}` : t('contracting.create_daily_log_modal.s1', "توثيق العمالة والمعدات والأعمال والمعوقات الميدانية")}
       width="min(920px, 95vw)"
       minHeight="auto"
       footerActions={(
         <StandardDialogFooter
           onCancel={onClose}
           onSubmit={() => handleSubmit()}
-          submitText="حفظ وتوثيق التقرير اليومي"
+          submitText={t('contracting.create_daily_log_modal.s2', "حفظ وتوثيق التقرير اليومي")}
           isSubmitting={isSubmitting}
         />
       )}
@@ -150,11 +152,11 @@ export function CreateDailyLogModal({
         <div style={{ background: '#f8fafc', padding: '9px 13px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
             <AppIcons.Calendar size={15} />
-            <span>1. بيانات اليومية والظروف الميدانية (Log Date & Site Conditions)</span>
+            <span>{t('contracting.create_daily_log_modal.s3', "1. بيانات اليومية والظروف الميدانية (Log Date & Site Conditions)")}</span>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1.5fr 1.5fr', gap: '10px', alignItems: 'start' }}>
-            <Field label="تاريخ التقرير *">
+            <Field label={t('contracting.create_daily_log_modal.s4', "تاريخ التقرير *")}>
               <input
                 type="date"
                 value={formData.logDate}
@@ -163,21 +165,21 @@ export function CreateDailyLogModal({
               />
             </Field>
 
-            <Field label="حالة الطقس والأجواء">
+            <Field label={t('contracting.create_daily_log_modal.s5', "حالة الطقس والأجواء")}>
               <input
                 type="text"
                 value={formData.weatherConditions}
                 onChange={(e) => setFormData({ ...formData, weatherConditions: e.target.value })}
-                placeholder="مثال: مشمس 28°C / معتدل"
+                placeholder={t('contracting.create_daily_log_modal.s6', "مثال: مشمس 28°C / معتدل")}
               />
             </Field>
 
-            <Field label="مهندس الموقع / مُعد التقرير">
+            <Field label={t('contracting.create_daily_log_modal.s7', "مهندس الموقع / مُعد التقرير")}>
               <input
                 type="text"
                 value={formData.loggedBy}
                 onChange={(e) => setFormData({ ...formData, loggedBy: e.target.value })}
-                placeholder="اسم المهندس المشرف..."
+                placeholder={t('contracting.create_daily_log_modal.s8', "اسم المهندس المشرف...")}
               />
             </Field>
           </div>
@@ -187,11 +189,11 @@ export function CreateDailyLogModal({
         <div style={{ background: '#f8fafc', padding: '9px 13px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
             <AppIcons.Users size={15} />
-            <span>2. الموارد والمعدات بالموقع (Resources & Equipment on Site)</span>
+            <span>{t('contracting.create_daily_log_modal.s9', "2. الموارد والمعدات بالموقع (Resources & Equipment on Site)")}</span>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1.5fr 1.5fr', gap: '10px', alignItems: 'start' }}>
-            <Field label="عمالة الشركة (الذاتية)">
+            <Field label={t('contracting.create_daily_log_modal.s10', "عمالة الشركة (الذاتية)")}>
               <input
                 type="number"
                 min="0"
@@ -202,7 +204,7 @@ export function CreateDailyLogModal({
               />
             </Field>
 
-            <Field label="عمالة مقاولي الباطن">
+            <Field label={t('contracting.create_daily_log_modal.s11', "عمالة مقاولي الباطن")}>
               <input
                 type="number"
                 min="0"
@@ -213,7 +215,7 @@ export function CreateDailyLogModal({
               />
             </Field>
 
-            <Field label="إجمالي القوى العاملة">
+            <Field label={t('contracting.create_daily_log_modal.s12', "إجمالي القوى العاملة")}>
               <div
                 style={{
                   height: '33px',
@@ -229,25 +231,25 @@ export function CreateDailyLogModal({
                   boxSizing: 'border-box',
                 }}
               >
-                {totalLabor} عامل
+                {totalLabor} {t('contracting.create_daily_log_modal.s13', "عامل")}
               </div>
             </Field>
 
-            <Field label="المعدات والآليات بالموقع">
+            <Field label={t('contracting.create_daily_log_modal.s14', "المعدات والآليات بالموقع")}>
               <input
                 type="text"
                 value={formData.equipmentOnSite}
                 onChange={(e) => setFormData({ ...formData, equipmentOnSite: e.target.value })}
-                placeholder="مثال: ونش برجي، لودر CAT..."
+                placeholder={t('contracting.create_daily_log_modal.s15', "مثال: ونش برجي، لودر CAT...")}
               />
             </Field>
 
-            <Field label="المواد والتوريدات المستلمة اليوم">
+            <Field label={t('contracting.create_daily_log_modal.s16', "المواد والتوريدات المستلمة اليوم")}>
               <input
                 type="text"
                 value={formData.materialsReceived}
                 onChange={(e) => setFormData({ ...formData, materialsReceived: e.target.value })}
-                placeholder="مثال: 50 طن حديد عز..."
+                placeholder={t('contracting.create_daily_log_modal.s17', "مثال: 50 طن حديد عز...")}
               />
             </Field>
           </div>
@@ -257,26 +259,26 @@ export function CreateDailyLogModal({
         <div style={{ background: '#f8fafc', padding: '9px 13px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
             <AppIcons.FileText size={15} />
-            <span>3. الأعمال المنفذة والمعوقات الميدانية (Executed Works & Obstacles)</span>
+            <span>{t('contracting.create_daily_log_modal.s18', "3. الأعمال المنفذة والمعوقات الميدانية (Executed Works & Obstacles)")}</span>
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <Field label="الأعمال المنفذة والإنجاز اليومي *">
+            <Field label={t('contracting.create_daily_log_modal.s19', "الأعمال المنفذة والإنجاز اليومي *")}>
               <textarea
                 rows={2}
                 value={formData.workPerformed}
                 onChange={(e) => setFormData({ ...formData, workPerformed: e.target.value })}
-                placeholder="مثال: استكمال حدادة ونجارة سقف الدور الثاني وتمديد شبكة الكهرباء وصب الأعمدة..."
+                placeholder={t('contracting.create_daily_log_modal.s20', "مثال: استكمال حدادة ونجارة سقف الدور الثاني وتمديد شبكة الكهرباء وصب الأعمدة...")}
                 required
               />
             </Field>
 
-            <Field label="معوقات أو ملاحظات طارئة (اختياري)">
+            <Field label={t('contracting.create_daily_log_modal.s21', "معوقات أو ملاحظات طارئة (اختياري)")}>
               <input
                 type="text"
                 value={formData.delaysOrObstacles}
                 onChange={(e) => setFormData({ ...formData, delaysOrObstacles: e.target.value })}
-                placeholder="مثال: تأخر اعتماد عينات الاستشاري أو أعمال صيانة طارئة..."
+                placeholder={t('contracting.create_daily_log_modal.s22', "مثال: تأخر اعتماد عينات الاستشاري أو أعمال صيانة طارئة...")}
               />
             </Field>
           </div>

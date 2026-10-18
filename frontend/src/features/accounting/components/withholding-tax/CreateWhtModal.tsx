@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { Button } from '@/shared/ui/button';
 import { CustomSelect } from '@/shared/ui/custom-select';
@@ -29,6 +30,7 @@ export function CreateWhtModal({
   onSubmit,
   isPending,
 }: CreateWhtModalProps) {
+  const { t } = useTranslation();
   if (!isOpen) return null;
 
   const handleWhtTypeChange = (type: 'goods' | 'services' | 'professional' | 'custom') => {
@@ -47,8 +49,8 @@ export function CreateWhtModal({
     <StandardDialog
       open={isOpen}
       onClose={onClose}
-      title="تسجيل معاملة خصم وتحصيل جديدة (نموذج 41)"
-      subtitle="إثبات خصم الضريبة من منبع الفاتورة وتوريدها لمصلحة الضرائب"
+      title={t('accounting.withholding_tax.create_wht_modal.s0', "تسجيل معاملة خصم وتحصيل جديدة (نموذج 41)")}
+      subtitle={t('accounting.withholding_tax.create_wht_modal.s1', "إثبات خصم الضريبة من منبع الفاتورة وتوريدها لمصلحة الضرائب")}
       size="lg"
     >
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
@@ -64,18 +66,18 @@ export function CreateWhtModal({
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px' }}>
             <FileTextIcon size={16} style={{ color: '#170e5e' }} />
-            <h4 style={{ fontSize: '13px', fontWeight: 700, color: '#1e293b', margin: 0 }}>بيانات المورد والفاتورة</h4>
+            <h4 style={{ fontSize: '13px', fontWeight: 700, color: '#1e293b', margin: 0 }}>{t('accounting.withholding_tax.create_wht_modal.s2', "بيانات المورد والفاتورة")}</h4>
           </div>
 
           <div>
             <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>
-              اسم المورد / الممول <span style={{ color: '#e11d48' }}>*</span>
+              {t('accounting.withholding_tax.create_wht_modal.s3', "اسم المورد / الممول")} <span style={{ color: '#e11d48' }}>*</span>
             </label>
             <input
               type="text"
               value={newTx.partner_name}
               onChange={(e) => onChange({ ...newTx, partner_name: e.target.value })}
-              placeholder="اسم الشركة أو التاجر أو المهني"
+              placeholder={t('accounting.withholding_tax.create_wht_modal.s4', "اسم الشركة أو التاجر أو المهني")}
               style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '12.5px', backgroundColor: '#ffffff', boxSizing: 'border-box' }}
             />
           </div>
@@ -83,7 +85,7 @@ export function CreateWhtModal({
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
             <div>
               <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>
-                رقم الفاتورة <span style={{ color: '#e11d48' }}>*</span>
+                {t('accounting.withholding_tax.create_wht_modal.s5', "رقم الفاتورة")} <span style={{ color: '#e11d48' }}>*</span>
               </label>
               <input
                 type="text"
@@ -96,7 +98,7 @@ export function CreateWhtModal({
 
             <div>
               <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>
-                تاريخ الفاتورة <span style={{ color: '#e11d48' }}>*</span>
+                {t('accounting.withholding_tax.create_wht_modal.s6', "تاريخ الفاتورة")} <span style={{ color: '#e11d48' }}>*</span>
               </label>
               <input
                 type="date"
@@ -110,7 +112,7 @@ export function CreateWhtModal({
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
             <div>
               <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>
-                الرقم الضريبي (9 أرقام)
+                {t('accounting.withholding_tax.create_wht_modal.s7', "الرقم الضريبي (9 أرقام)")}
               </label>
               <input
                 type="text"
@@ -123,13 +125,13 @@ export function CreateWhtModal({
 
             <div>
               <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>
-                المأمورية الضريبية
+                {t('accounting.withholding_tax.create_wht_modal.s8', "المأمورية الضريبية")}
               </label>
               <input
                 type="text"
                 value={newTx.tax_office_code || ''}
                 onChange={(e) => onChange({ ...newTx, tax_office_code: e.target.value })}
-                placeholder="مأمورية قصر النيل"
+                placeholder={t('accounting.withholding_tax.create_wht_modal.s9', "مأمورية قصر النيل")}
                 style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '12.5px', backgroundColor: '#ffffff', boxSizing: 'border-box' }}
               />
             </div>
@@ -148,13 +150,13 @@ export function CreateWhtModal({
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px' }}>
             <DollarSignIcon size={16} style={{ color: '#170e5e' }} />
-            <h4 style={{ fontSize: '13px', fontWeight: 700, color: '#1e293b', margin: 0 }}>وعاء الخصم والنسبة المحتسبة</h4>
+            <h4 style={{ fontSize: '13px', fontWeight: 700, color: '#1e293b', margin: 0 }}>{t('accounting.withholding_tax.create_wht_modal.s10', "وعاء الخصم والنسبة المحتسبة")}</h4>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1.3fr 0.7fr', gap: '10px' }}>
             <div>
               <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>
-                نوع التعامل <span style={{ color: '#e11d48' }}>*</span>
+                {t('accounting.withholding_tax.create_wht_modal.s11', "نوع التعامل")} <span style={{ color: '#e11d48' }}>*</span>
               </label>
               <CustomSelect
                 value={newTx.wht_type}
@@ -165,7 +167,7 @@ export function CreateWhtModal({
 
             <div>
               <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>
-                نسبة الخصم (%)
+                {t('accounting.withholding_tax.create_wht_modal.s12', "نسبة الخصم (%)")}
               </label>
               <input
                 type="number"
@@ -179,7 +181,7 @@ export function CreateWhtModal({
 
           <div>
             <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>
-              القيمة الإجمالية للتعامل (وعاء الخصم قبل الضريبة) <span style={{ color: '#e11d48' }}>*</span>
+              {t('accounting.withholding_tax.create_wht_modal.s13', "القيمة الإجمالية للتعامل (وعاء الخصم قبل الضريبة)")} <span style={{ color: '#e11d48' }}>*</span>
             </label>
             <input
               type="number"
@@ -201,7 +203,7 @@ export function CreateWhtModal({
               justifyContent: 'space-between',
               alignItems: 'center',
             }}>
-              <span style={{ fontSize: '12px', color: '#047857' }}>قيمة الضريبة المحتسبة:</span>
+              <span style={{ fontSize: '12px', color: '#047857' }}>{t('accounting.withholding_tax.create_wht_modal.s14', "قيمة الضريبة المحتسبة:")}</span>
               <span style={{ fontSize: '15px', fontWeight: 800, color: '#047857' }}>
                 {formatCurrencyWithSymbol(newTx.base_amount * ((newTx.wht_rate || 1) / 100))}
               </span>
@@ -212,7 +214,7 @@ export function CreateWhtModal({
 
       <StandardDialogFooter>
         <Button variant="secondary" onClick={onClose} style={{ padding: '8px 18px', fontSize: '13px', borderRadius: '8px' }}>
-          إلغاء
+          {t('accounting.withholding_tax.create_wht_modal.s15', "إلغاء")}
         </Button>
         <Button
           onClick={onSubmit}
@@ -234,7 +236,7 @@ export function CreateWhtModal({
             opacity: isPending || !newTx.partner_name || !newTx.invoice_number || !newTx.base_amount ? 0.6 : 1,
           }}
         >
-          {isPending ? 'جاري الحفظ...' : 'حفظ المعاملة'}
+          {isPending ? t('accounting.withholding_tax.create_wht_modal.s16', "جاري الحفظ...") : t('accounting.withholding_tax.create_wht_modal.s17', "حفظ المعاملة")}
         </Button>
       </StandardDialogFooter>
     </StandardDialog>

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { XIcon } from '@/shared/components/icons/AppIcons';
 import { useCallback, useEffect, useState } from 'react';
 import { DialogShell } from '@/shared/components/dialog-shell';
@@ -27,6 +28,7 @@ export function PosHeldDraftsDialog({
   onClearAll,
   settings,
 }: PosHeldDraftsDialogProps) {
+  const { t } = useTranslation();
   const [pendingRecallId, setPendingRecallId] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
 
@@ -115,7 +117,7 @@ export function PosHeldDraftsDialog({
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '18px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <h2 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: '#0f172a', letterSpacing: '-0.01em' }}>
-              {isRestaurant ? 'الطاولات المفتوحة' : 'الفواتير المعلقة'}
+              {isRestaurant ? t('pos.pos_workspace.pos_held_drafts_dialog.s0', "الطاولات المفتوحة") : t('pos.pos_workspace.pos_held_drafts_dialog.s1', "الفواتير المعلقة")}
             </h2>
             <span style={{
               background: '#f1f5f9',
@@ -165,12 +167,12 @@ export function PosHeldDraftsDialog({
           color: '#64748b',
           border: '1px solid #e2e8f0',
         }}>
-          <span><kbd style={{ background: '#fff', border: '1px solid #cbd5e1', padding: '1px 5px', borderRadius: 4, fontWeight: 700, color: '#334155' }}>↑ ↓</kbd> للتنقل</span>
+          <span><kbd style={{ background: '#fff', border: '1px solid #cbd5e1', padding: '1px 5px', borderRadius: 4, fontWeight: 700, color: '#334155' }}>↑ ↓</kbd> {t('pos.pos_workspace.pos_held_drafts_dialog.s2', "للتنقل")}</span>
           <span>•</span>
-          <span><kbd style={{ background: '#fff', border: '1px solid #cbd5e1', padding: '1px 5px', borderRadius: 4, fontWeight: 700, color: '#334155' }}>Enter</kbd> للاسترجاع</span>
+          <span><kbd style={{ background: '#fff', border: '1px solid #cbd5e1', padding: '1px 5px', borderRadius: 4, fontWeight: 700, color: '#334155' }}>Enter</kbd> {t('pos.pos_workspace.pos_held_drafts_dialog.s3', "للاسترجاع")}</span>
           <span>•</span>
-          <span><kbd style={{ background: '#fff', border: '1px solid #cbd5e1', padding: '1px 5px', borderRadius: 4, fontWeight: 700, color: '#334155' }}>Del</kbd> للحذف</span>
-          <span style={{ marginInlineStart: 'auto', color: '#94a3b8' }}>أو انقر نقراً مزدوجاً بالماوس</span>
+          <span><kbd style={{ background: '#fff', border: '1px solid #cbd5e1', padding: '1px 5px', borderRadius: 4, fontWeight: 700, color: '#334155' }}>Del</kbd> {t('pos.pos_workspace.pos_held_drafts_dialog.s4', "للحذف")}</span>
+          <span style={{ marginInlineStart: 'auto', color: '#94a3b8' }}>{t('pos.pos_workspace.pos_held_drafts_dialog.s5', "أو انقر نقراً مزدوجاً بالماوس")}</span>
         </div>
 
         {/* Drafts List */}
@@ -210,7 +212,7 @@ export function PosHeldDraftsDialog({
                         #{idx + 1}
                       </span>
                       <strong style={{ fontSize: '0.92rem', color: '#0f172a', fontWeight: 700 }}>
-                        {draft.label || 'عميل نقدي'}
+                        {draft.label || t('pos.pos_workspace.pos_held_drafts_dialog.s6', "عميل نقدي")}
                       </strong>
                       {isRestaurant && draft.orderType ? (
                         <span style={{
@@ -222,15 +224,15 @@ export function PosHeldDraftsDialog({
                           borderRadius: '4px',
                           border: '1px solid #e2e8f0',
                         }}>
-                          {draft.orderType === 'dine_in' ? `طاولة: ${draft.tableNumber || 'غير محدد'}` : draft.orderType === 'delivery' ? 'دليفري' : 'تيك أواي'}
+                          {draft.orderType === 'dine_in' ? `طاولة: ${draft.tableNumber || t('pos.pos_workspace.pos_held_drafts_dialog.s7', "غير محدد")}` : draft.orderType === 'delivery' ? t('pos.pos_workspace.pos_held_drafts_dialog.s8', "دليفري") : t('pos.pos_workspace.pos_held_drafts_dialog.s9', "تيك أواي")}
                         </span>
                       ) : null}
                     </div>
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8rem', color: '#64748b' }}>
-                      <span>{draft.itemsCount} {draft.itemsCount === 1 ? 'صنف' : 'أصناف'}</span>
+                      <span>{draft.itemsCount} {draft.itemsCount === 1 ? t('pos.pos_workspace.pos_held_drafts_dialog.s10', "صنف") : t('pos.pos_workspace.pos_held_drafts_dialog.s11', "أصناف")}</span>
                       <span>•</span>
-                      <span>الإجمالي: <strong style={{ color: '#0f172a', fontWeight: 800 }}>{formatCurrency(draft.total)}</strong></span>
+                      <span>{t('pos.pos_workspace.pos_held_drafts_dialog.s12', "الإجمالي:")} <strong style={{ color: '#0f172a', fontWeight: 800 }}>{formatCurrency(draft.total)}</strong></span>
                     </div>
                   </div>
 
@@ -255,7 +257,7 @@ export function PosHeldDraftsDialog({
                         transition: 'all 0.15s ease',
                       }}
                     >
-                      {isPending ? 'جاري الاسترجاع...' : 'استرجاع'}
+                      {isPending ? t('pos.pos_workspace.pos_held_drafts_dialog.s13', "جاري الاسترجاع...") : t('pos.pos_workspace.pos_held_drafts_dialog.s14', "استرجاع")}
                     </button>
                     <button
                       type="button"
@@ -284,7 +286,7 @@ export function PosHeldDraftsDialog({
                         e.currentTarget.style.background = 'transparent';
                       }}
                     >
-                      حذف
+                      {t('pos.pos_workspace.pos_held_drafts_dialog.s15', "حذف")}
                     </button>
                   </div>
                 </div>
@@ -294,7 +296,7 @@ export function PosHeldDraftsDialog({
         ) : (
           <div style={{ textAlign: 'center', padding: '40px 20px', background: '#f8fafc', borderRadius: '10px', border: '1px dashed #e2e8f0' }}>
             <p style={{ margin: 0, fontSize: '0.92rem', color: '#64748b', fontWeight: 600 }}>
-              {isRestaurant ? 'لا توجد طاولات مفتوحة حالياً.' : 'لا توجد فواتير معلقة حالياً.'}
+              {isRestaurant ? t('pos.pos_workspace.pos_held_drafts_dialog.s16', "لا توجد طاولات مفتوحة حالياً.") : t('pos.pos_workspace.pos_held_drafts_dialog.s17', "لا توجد فواتير معلقة حالياً.")}
             </p>
           </div>
         )}
@@ -329,7 +331,7 @@ export function PosHeldDraftsDialog({
               }
             }}
           >
-            حذف الكل
+            {t('pos.pos_workspace.pos_held_drafts_dialog.s18', "حذف الكل")}
           </button>
           <button
             type="button"
@@ -354,7 +356,7 @@ export function PosHeldDraftsDialog({
               e.currentTarget.style.color = '#334155';
             }}
           >
-            إغلاق
+            {t('pos.pos_workspace.pos_held_drafts_dialog.s19', "إغلاق")}
           </button>
         </div>
       </div>

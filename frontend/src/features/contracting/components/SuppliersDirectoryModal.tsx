@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
 import { StandardDialog } from '@/shared/components/StandardDialog';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
@@ -38,6 +39,7 @@ export function SuppliersDirectoryModal({
   onClose,
   onSelectSupplier,
 }: SuppliersDirectoryModalProps) {
+  const { t: __t } = useTranslation();
   const { currencySymbol, formatCurrency } = useSystemCurrency();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -139,14 +141,14 @@ export function SuppliersDirectoryModal({
     <StandardDialog
       open={open}
       onClose={onClose}
-      title="دليل وسجل الموردين المتقدم والذاكرة السعرية"
-      subtitle="تتبع آخر أسعار التوريد، وتقييم جودة وسرعة الموردين، وسداد الكاش والآجل حسب المحافظة"
+      title={__t('contracting.suppliers_directory_modal.s0', "دليل وسجل الموردين المتقدم والذاكرة السعرية")}
+      subtitle={__t('contracting.suppliers_directory_modal.s1', "تتبع آخر أسعار التوريد، وتقييم جودة وسرعة الموردين، وسداد الكاش والآجل حسب المحافظة")}
       width="min(1150px, 95vw)"
       minHeight="min(600px, 85vh)"
       footer={
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
           <div style={{ fontSize: 'var(--font-micro)', color: '#64748b' }}>
-            تساعد الذاكرة السعرية في سرعة تسعير المناقصات الجديدة بأحدث أسعار الشراء الحقيقية.
+            {__t('contracting.suppliers_directory_modal.s2', "تساعد الذاكرة السعرية في سرعة تسعير المناقصات الجديدة بأحدث أسعار الشراء الحقيقية.")}
           </div>
           <button
             type="button"
@@ -162,7 +164,7 @@ export function SuppliersDirectoryModal({
               cursor: 'pointer',
             }}
           >
-            إغلاق النافذة
+            {__t('contracting.suppliers_directory_modal.s3', "إغلاق النافذة")}
           </button>
         </div>
       }
@@ -181,7 +183,7 @@ export function SuppliersDirectoryModal({
               type="text"
               value={searchMaterial}
               onChange={(e) => setSearchMaterial(e.target.value)}
-              placeholder="بحث بالخامة (حديد، أسمنت، رمل، سن...) أو اسم المورد..."
+              placeholder={__t('contracting.suppliers_directory_modal.s4', "بحث بالخامة (حديد، أسمنت، رمل، سن...) أو اسم المورد...")}
               style={{
                 width: '100%',
                 height: '36px',
@@ -198,7 +200,7 @@ export function SuppliersDirectoryModal({
               value={selectedGov}
               options={GOVERNORATE_OPTIONS}
               onChange={(val) => setSelectedGov(val)}
-              placeholder="المحافظة..."
+              placeholder={__t('contracting.suppliers_directory_modal.s5', "المحافظة...")}
             />
           </div>
 
@@ -207,7 +209,7 @@ export function SuppliersDirectoryModal({
               value={selectedTerms}
               options={PAYMENT_TERMS_OPTIONS}
               onChange={(val) => setSelectedTerms(val)}
-              placeholder="شروط السداد..."
+              placeholder={__t('contracting.suppliers_directory_modal.s6', "شروط السداد...")}
             />
           </div>
 
@@ -231,7 +233,7 @@ export function SuppliersDirectoryModal({
             }}
           >
             {showAddForm ? <AppIcons.X size={15} /> : <AppIcons.Plus size={15} />}
-            <span>{showAddForm ? 'إلغاء الإضافة' : 'إضافة سعر لمورد'}</span>
+            <span>{showAddForm ? __t('contracting.suppliers_directory_modal.s7', "إلغاء الإضافة") : __t('contracting.suppliers_directory_modal.s8', "إضافة سعر لمورد")}</span>
           </button>
         </div>
 
@@ -250,19 +252,19 @@ export function SuppliersDirectoryModal({
             }}
           >
             <div style={{ fontWeight: 700, color: '#170e5e', fontSize: 'var(--font-body)' }}>
-              تسجيل سعر خامة جديد في ذاكرة الموردين
+              {__t('contracting.suppliers_directory_modal.s9', "تسجيل سعر خامة جديد في ذاكرة الموردين")}
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '2fr 2fr 1fr 1.5fr', gap: '12px' }}>
               <div>
                 <label style={{ display: 'block', fontSize: 'var(--font-micro)', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                  اسم المورد أو الشركة *
+                  {__t('contracting.suppliers_directory_modal.s10', "اسم المورد أو الشركة *")}
                 </label>
                 <input
                   type="text"
                   value={supplierName}
                   onChange={(e) => setSupplierName(e.target.value)}
-                  placeholder="شركة الأهرام للأسمنت، مخزن السعادة..."
+                  placeholder={__t('contracting.suppliers_directory_modal.s11', "شركة الأهرام للأسمنت، مخزن السعادة...")}
                   required
                   style={{
                     width: '100%',
@@ -277,13 +279,13 @@ export function SuppliersDirectoryModal({
 
               <div>
                 <label style={{ display: 'block', fontSize: 'var(--font-micro)', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                  اسم الخامة / الصنف *
+                  {__t('contracting.suppliers_directory_modal.s12', "اسم الخامة / الصنف *")}
                 </label>
                 <input
                   type="text"
                   value={materialName}
                   onChange={(e) => setMaterialName(e.target.value)}
-                  placeholder="أسمنت بورتلاندي رتبة 42.5، حديد عز 16 مم..."
+                  placeholder={__t('contracting.suppliers_directory_modal.s13', "أسمنت بورتلاندي رتبة 42.5، حديد عز 16 مم...")}
                   required
                   style={{
                     width: '100%',
@@ -298,13 +300,13 @@ export function SuppliersDirectoryModal({
 
               <div>
                 <label style={{ display: 'block', fontSize: 'var(--font-micro)', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                  الوحدة
+                  {__t('contracting.suppliers_directory_modal.s14', "الوحدة")}
                 </label>
                 <input
                   type="text"
                   value={unit}
                   onChange={(e) => setUnit(e.target.value)}
-                  placeholder="طن / م³ / ألف..."
+                  placeholder={__t('contracting.suppliers_directory_modal.s15', "طن / م³ / ألف...")}
                   style={{
                     width: '100%',
                     height: '36px',
@@ -318,7 +320,7 @@ export function SuppliersDirectoryModal({
 
               <div>
                 <label style={{ display: 'block', fontSize: 'var(--font-micro)', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                  سعر الوحدة الأخير ({currencySymbol}) *
+                  {__t('contracting.suppliers_directory_modal.s16', "سعر الوحدة الأخير (")}{currencySymbol}) *
                 </label>
                 <input
                   type="number"
@@ -344,31 +346,31 @@ export function SuppliersDirectoryModal({
             <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1.5fr 1.5fr 1fr 1fr', gap: '12px' }}>
               <div>
                 <label style={{ display: 'block', fontSize: 'var(--font-micro)', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                  المحافظة / النطاق
+                  {__t('contracting.suppliers_directory_modal.s17', "المحافظة / النطاق")}
                 </label>
                 <CustomSelect
                   value={governorate}
                   options={GOVERNORATE_OPTIONS.filter((o) => o.value !== 'all')}
                   onChange={(val) => setGovernorate(val)}
-                  placeholder="المحافظة..."
+                  placeholder={__t('contracting.suppliers_directory_modal.s18', "المحافظة...")}
                 />
               </div>
 
               <div>
                 <label style={{ display: 'block', fontSize: 'var(--font-micro)', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                  شروط السداد
+                  {__t('contracting.suppliers_directory_modal.s19', "شروط السداد")}
                 </label>
                 <CustomSelect
                   value={paymentTerms}
                   options={PAYMENT_TERMS_OPTIONS.filter((o) => o.value !== 'all')}
                   onChange={(val) => setPaymentTerms(val)}
-                  placeholder="السداد..."
+                  placeholder={__t('contracting.suppliers_directory_modal.s20', "السداد...")}
                 />
               </div>
 
               <div>
                 <label style={{ display: 'block', fontSize: 'var(--font-micro)', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                  تاريخ التعامل الأخير
+                  {__t('contracting.suppliers_directory_modal.s21', "تاريخ التعامل الأخير")}
                 </label>
                 <input
                   type="date"
@@ -387,7 +389,7 @@ export function SuppliersDirectoryModal({
 
               <div>
                 <label style={{ display: 'block', fontSize: 'var(--font-micro)', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                  تقييم الجودة (1-5)
+                  {__t('contracting.suppliers_directory_modal.s22', "تقييم الجودة (1-5)")}
                 </label>
                 <input
                   type="number"
@@ -409,7 +411,7 @@ export function SuppliersDirectoryModal({
 
               <div>
                 <label style={{ display: 'block', fontSize: 'var(--font-micro)', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                  سرعة التوريد (1-5)
+                  {__t('contracting.suppliers_directory_modal.s23', "سرعة التوريد (1-5)")}
                 </label>
                 <input
                   type="number"
@@ -432,13 +434,13 @@ export function SuppliersDirectoryModal({
 
             <div>
               <label style={{ display: 'block', fontSize: 'var(--font-micro)', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                ملاحظات التعامل وخبرة الموقع
+                {__t('contracting.suppliers_directory_modal.s24', "ملاحظات التعامل وخبرة الموقع")}
               </label>
               <input
                 type="text"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                placeholder="السعر شامل النقل والتعتيق / ملتزم بمواعيد الصب..."
+                placeholder={__t('contracting.suppliers_directory_modal.s25', "السعر شامل النقل والتعتيق / ملتزم بمواعيد الصب...")}
                 style={{
                   width: '100%',
                   height: '34px',
@@ -464,7 +466,7 @@ export function SuppliersDirectoryModal({
                   cursor: 'pointer',
                 }}
               >
-                إلغاء
+                {__t('contracting.suppliers_directory_modal.s26', "إلغاء")}
               </button>
               <button
                 type="submit"
@@ -480,7 +482,7 @@ export function SuppliersDirectoryModal({
                   cursor: saving ? 'not-allowed' : 'pointer',
                 }}
               >
-                {saving ? 'جارٍ الحفظ...' : 'حفظ بالذاكرة السعرية'}
+                {saving ? __t('contracting.suppliers_directory_modal.s27', "جارٍ الحفظ...") : __t('contracting.suppliers_directory_modal.s28', "حفظ بالذاكرة السعرية")}
               </button>
             </div>
           </form>
@@ -503,30 +505,30 @@ export function SuppliersDirectoryModal({
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '280px', gap: '12px', backgroundColor: '#f8fafc', color: '#64748b' }}>
               <div style={{ width: '32px', height: '32px', border: '3px solid #cbd5e1', borderTopColor: '#170e5e', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
               <span style={{ fontSize: 'var(--font-body)', fontWeight: 600 }}>
-                جارٍ تحميل دليل الموردين والذاكرة السعرية...
+                {__t('contracting.suppliers_directory_modal.s29', "جارٍ تحميل دليل الموردين والذاكرة السعرية...")}
               </span>
             </div>
           ) : filteredSuppliers.length === 0 ? (
             <div style={{ flex: 1, minHeight: '280px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '36px', textAlign: 'center', color: '#64748b' }}>
               <AppIcons.ShoppingBag size={32} style={{ color: '#94a3b8' }} />
-              <div style={{ fontWeight: 600 }}>لا توجد خامات أو موردين يطابقون شروط البحث.</div>
+              <div style={{ fontWeight: 600 }}>{__t('contracting.suppliers_directory_modal.s30', "لا توجد خامات أو موردين يطابقون شروط البحث.")}</div>
               <div style={{ fontSize: 'var(--font-micro)', color: '#94a3b8' }}>
-                اضغط على "إضافة سعر لمورد" لتسجيل أول تسعيرة خامة في الذاكرة.
+                {__t('contracting.suppliers_directory_modal.s31', "اضغط على \"إضافة سعر لمورد\" لتسجيل أول تسعيرة خامة في الذاكرة.")}
               </div>
             </div>
           ) : (
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right' }}>
                 <thead style={{ position: 'sticky', top: 0, background: '#f8fafc', zIndex: 1 }}>
                   <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
-                    <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>المورد</th>
-                    <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>الخامة / الصنف</th>
-                    <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>آخر سعر شراء</th>
-                    <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>المحافظة</th>
-                    <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>شروط السداد</th>
-                    <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>تاريخ التعامل</th>
-                    <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>التقييم</th>
+                    <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>{__t('contracting.suppliers_directory_modal.s32', "المورد")}</th>
+                    <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>{__t('contracting.suppliers_directory_modal.s33', "الخامة / الصنف")}</th>
+                    <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>{__t('contracting.suppliers_directory_modal.s34', "آخر سعر شراء")}</th>
+                    <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>{__t('contracting.suppliers_directory_modal.s35', "المحافظة")}</th>
+                    <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>{__t('contracting.suppliers_directory_modal.s36', "شروط السداد")}</th>
+                    <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>{__t('contracting.suppliers_directory_modal.s37', "تاريخ التعامل")}</th>
+                    <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569' }}>{__t('contracting.suppliers_directory_modal.s38', "التقييم")}</th>
                     {onSelectSupplier && (
-                      <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569', textAlign: 'center' }}>إجراء</th>
+                      <th style={{ padding: '10px 12px', fontSize: 'var(--font-table-head)', color: '#475569', textAlign: 'center' }}>{__t('contracting.suppliers_directory_modal.s39', "إجراء")}</th>
                     )}
                   </tr>
                 </thead>
@@ -570,7 +572,7 @@ export function SuppliersDirectoryModal({
                           {sup.lastPurchaseDate}
                         </td>
                         <td style={{ padding: '10px 12px', fontSize: 'var(--font-body)', color: '#334155' }}>
-                          جودة: {sup.qualityRating}/5 | سرعة: {sup.deliverySpeedRating}/5
+                          {__t('contracting.suppliers_directory_modal.s40', "جودة:")} {sup.qualityRating}{__t('contracting.suppliers_directory_modal.s41', "/5 | سرعة:")} {sup.deliverySpeedRating}/5
                         </td>
                         {onSelectSupplier && (
                           <td style={{ padding: '10px 12px', textAlign: 'center' }}>
@@ -591,7 +593,7 @@ export function SuppliersDirectoryModal({
                                 cursor: 'pointer',
                               }}
                             >
-                              اختيار للتسعير
+                              {__t('contracting.suppliers_directory_modal.s42', "اختيار للتسعير")}
                             </button>
                           </td>
                         )}

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 
 import { memo, useState } from 'react';
 import type { ProductRow } from './inventoryTree.types';
@@ -31,6 +32,7 @@ const CategorySection = memo(function CategorySection({
   onTransferCategory: (categoryName: string, products: ProductRow[]) => void;
   onRemoveLocation: (productId: string, locationId: string) => void;
 }) {
+  const { t } = useTranslation();
   const [visibleCount, setVisibleCount] = useState(50);
   const displayedProducts = products.slice(0, visibleCount);
 
@@ -80,12 +82,12 @@ const CategorySection = memo(function CategorySection({
           <span style={{ fontSize: '11px', color: '#64748b', flexShrink: 0 }}>{collapsed ? '◀' : '▼'}</span>
           <span style={{ fontWeight: 800, fontSize: '14px', color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{categoryName}</span>
           <span style={{ background: '#e2e8f0', color: '#334155', borderRadius: '12px', padding: '1px 7px', fontSize: '10.5px', fontWeight: 700, whiteSpace: 'nowrap', flexShrink: 0 }}>
-            {products.length} صنف
+            {products.length} {t('inventory.inventory_tree.category_section.s0', "صنف")}
           </span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
           <span style={{ background: '#eef2ff', color: 'var(--primary, #170c5c)', borderRadius: '6px', padding: '3px 8px', fontWeight: 800, fontSize: '11.5px', border: '1px solid #c7d2fe', whiteSpace: 'nowrap' }}>
-            الإجمالي: {totalQty.toLocaleString()}
+            {t('inventory.inventory_tree.category_section.s1', "الإجمالي:")} {totalQty.toLocaleString()}
           </span>
           <button
             type="button"
@@ -106,7 +108,7 @@ const CategorySection = memo(function CategorySection({
               boxShadow: '0 1px 2px rgba(0, 0, 0, 0.04)',
             }}
           >
-            ← نقل القسم
+            {t('inventory.inventory_tree.category_section.s2', "← نقل القسم")}
           </button>
         </div>
       </div>
@@ -117,11 +119,11 @@ const CategorySection = memo(function CategorySection({
           <div style={{ minWidth: '760px' }}>
             <div style={{ display: 'grid', gridTemplateColumns: '40px minmax(200px, 2fr) 120px 100px minmax(220px, 3fr) 150px', gap: '12px', padding: '10px 18px', background: '#f8fafc', borderBottom: '1px solid var(--border, #e2e8f0)', alignItems: 'center' }}>
               <span />
-              <span style={{ fontSize: '12px', fontWeight: 700, color: '#475569', textAlign: 'start' }}>الصنف</span>
-              <span style={{ fontSize: '12px', fontWeight: 700, color: '#475569', textAlign: 'start' }}>القسم</span>
-              <span style={{ fontSize: '12px', fontWeight: 700, color: '#475569', textAlign: 'center' }}>الرصيد الكلي</span>
-              <span style={{ fontSize: '12px', fontWeight: 700, color: '#475569', textAlign: 'start' }}>أماكن التخزين والرصيد</span>
-              <span style={{ fontSize: '12px', fontWeight: 700, color: '#475569', textAlign: 'end', paddingInlineEnd: '8px' }}>إجراءات</span>
+              <span style={{ fontSize: '12px', fontWeight: 700, color: '#475569', textAlign: 'start' }}>{t('inventory.inventory_tree.category_section.s3', "الصنف")}</span>
+              <span style={{ fontSize: '12px', fontWeight: 700, color: '#475569', textAlign: 'start' }}>{t('inventory.inventory_tree.category_section.s4', "القسم")}</span>
+              <span style={{ fontSize: '12px', fontWeight: 700, color: '#475569', textAlign: 'center' }}>{t('inventory.inventory_tree.category_section.s5', "الرصيد الكلي")}</span>
+              <span style={{ fontSize: '12px', fontWeight: 700, color: '#475569', textAlign: 'start' }}>{t('inventory.inventory_tree.category_section.s6', "أماكن التخزين والرصيد")}</span>
+              <span style={{ fontSize: '12px', fontWeight: 700, color: '#475569', textAlign: 'end', paddingInlineEnd: '8px' }}>{t('inventory.inventory_tree.category_section.s7', "إجراءات")}</span>
             </div>
             {displayedProducts.map((product) => (
               <ProductTreeRow
@@ -164,7 +166,7 @@ const CategorySection = memo(function CategorySection({
                     boxShadow: '0 1px 2px rgba(0, 0, 0, 0.04)',
                   }}
                 >
-                  عرض 50 صنف إضافي ({products.length - visibleCount} متبقٍ)
+                  {t('inventory.inventory_tree.category_section.s8', "عرض 50 صنف إضافي (")}{products.length - visibleCount} {t('inventory.inventory_tree.category_section.s9', "متبقٍ)")}
                 </button>
                 <button
                   type="button"
@@ -181,7 +183,7 @@ const CategorySection = memo(function CategorySection({
                     textDecoration: 'underline',
                   }}
                 >
-                  عرض كافة الأصناف في هذا القسم ({products.length})
+                  {t('inventory.inventory_tree.category_section.s10', "عرض كافة الأصناف في هذا القسم (")}{products.length})
                 </button>
               </div>
             )}

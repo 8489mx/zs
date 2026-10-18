@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useMemo, useEffect } from 'react';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import {
@@ -192,6 +193,7 @@ export function SmartModularConfiguratorModal({
   onApply,
   disabled,
 }: SmartModularConfiguratorModalProps) {
+  const { t } = useTranslation();
   const [activeStep, setActiveStep] = useState<1 | 2 | 3>(1);
   const [selectedIndustry, setSelectedIndustry] = useState<IndustryPresetId>('retail');
   const [selectedModules, setSelectedModules] = useState<Record<string, boolean>>({});
@@ -328,7 +330,7 @@ export function SmartModularConfiguratorModal({
   if (!open) return null;
 
   return (
-    <DialogShell open={open} onClose={onClose} width="960px" ariaLabel="معالج التخصيص الذكي للموديولات">
+    <DialogShell open={open} onClose={onClose} width="960px" ariaLabel={t('settings.modular_configurator.smart_modular_configurator_modal.s0', "معالج التخصيص الذكي للموديولات")}>
       <div
         dir="rtl"
         style={{
@@ -367,11 +369,11 @@ export function SmartModularConfiguratorModal({
                 <CustomSettingsIcon size={20} />
               </span>
               <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 900, color: '#0f172a' }}>
-                معالج تخصيص النظام الذكي (Modular Configurator)
+                {t('settings.modular_configurator.smart_modular_configurator_modal.s1', "معالج تخصيص النظام الذكي (Modular Configurator)")}
               </h2>
             </div>
             <p style={{ margin: '4px 0 0 0', fontSize: '0.82rem', color: '#64748b' }}>
-              خصص موديولات المنظومة وقوائمها وفق طبيعة نشاطك للحصول على واجهة سريعة ومباشرة تناسب حجم عملك.
+              {t('settings.modular_configurator.smart_modular_configurator_modal.s2', "خصص موديولات المنظومة وقوائمها وفق طبيعة نشاطك للحصول على واجهة سريعة ومباشرة تناسب حجم عملك.")}
             </p>
           </div>
           <button
@@ -385,7 +387,7 @@ export function SmartModularConfiguratorModal({
               padding: '6px',
               borderRadius: '8px',
             }}
-            title="إغلاق"
+            title={t('settings.modular_configurator.smart_modular_configurator_modal.s3', "إغلاق")}
           >
             <XIcon size={18} />
           </button>
@@ -435,7 +437,7 @@ export function SmartModularConfiguratorModal({
             >
               1
             </span>
-            <span>طبيعة النشاط التجاري</span>
+            <span>{t('settings.modular_configurator.smart_modular_configurator_modal.s4', "طبيعة النشاط التجاري")}</span>
           </button>
 
           <button
@@ -472,7 +474,7 @@ export function SmartModularConfiguratorModal({
             >
               2
             </span>
-            <span>قائمة الموديولات (Menu)</span>
+            <span>{t('settings.modular_configurator.smart_modular_configurator_modal.s5', "قائمة الموديولات (Menu)")}</span>
             <span
               style={{
                 background: '#e2e8f0',
@@ -483,7 +485,7 @@ export function SmartModularConfiguratorModal({
                 fontWeight: 700,
               }}
             >
-              {activeKeys.length} مفعّل
+              {activeKeys.length} {t('settings.modular_configurator.smart_modular_configurator_modal.s6', "مفعّل")}
             </span>
           </button>
 
@@ -521,7 +523,7 @@ export function SmartModularConfiguratorModal({
             >
               3
             </span>
-            <span>مطابقة الباقة والملخص</span>
+            <span>{t('settings.modular_configurator.smart_modular_configurator_modal.s7', "مطابقة الباقة والملخص")}</span>
             <span
               style={{
                 background: recommendedPlan.badgeBg,
@@ -565,10 +567,10 @@ export function SmartModularConfiguratorModal({
             <div>
               <div style={{ marginBottom: '16px' }}>
                 <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: '#0f172a' }}>
-                  اختر طبيعة نشاطك التجاري
+                  {t('settings.modular_configurator.smart_modular_configurator_modal.s8', "اختر طبيعة نشاطك التجاري")}
                 </h3>
                 <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: '#64748b' }}>
-                  سيقوم النظام تلقائياً بتحديد الموديولات الموصى بها لهذا القطاع وإخفاء الموديولات الزائدة.
+                  {t('settings.modular_configurator.smart_modular_configurator_modal.s9', "سيقوم النظام تلقائياً بتحديد الموديولات الموصى بها لهذا القطاع وإخفاء الموديولات الزائدة.")}
                 </p>
               </div>
 
@@ -672,7 +674,7 @@ export function SmartModularConfiguratorModal({
                         }}
                       >
                         <span>
-                          <strong>{item.recommendedModules.length}</strong> موديولات موصى بها
+                          <strong>{item.recommendedModules.length}</strong> {t('settings.modular_configurator.smart_modular_configurator_modal.s10', "موديولات موصى بها")}
                         </span>
                         <span style={{ fontWeight: 800, color: '#170e5e' }}>
                           {PLAN_TIERS[item.recommendedPlan].name}
@@ -701,12 +703,12 @@ export function SmartModularConfiguratorModal({
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
                   {[
-                    { id: 'all', label: 'كافة الموديولات' },
-                    { id: 'pos', label: 'المبيعات ونقاط البيع' },
-                    { id: 'inventory', label: 'المخزون وسلاسل الإمداد' },
-                    { id: 'specialized', label: 'الخدمات والتشغيل' },
-                    { id: 'logistics', label: 'التجارة والتوصيل' },
-                    { id: 'finance', label: 'المالية والمؤسسات' },
+                    { id: 'all', label: t('settings.modular_configurator.smart_modular_configurator_modal.s11', "كافة الموديولات") },
+                    { id: 'pos', label: t('settings.modular_configurator.smart_modular_configurator_modal.s12', "المبيعات ونقاط البيع") },
+                    { id: 'inventory', label: t('settings.modular_configurator.smart_modular_configurator_modal.s13', "المخزون وسلاسل الإمداد") },
+                    { id: 'specialized', label: t('settings.modular_configurator.smart_modular_configurator_modal.s14', "الخدمات والتشغيل") },
+                    { id: 'logistics', label: t('settings.modular_configurator.smart_modular_configurator_modal.s15', "التجارة والتوصيل") },
+                    { id: 'finance', label: t('settings.modular_configurator.smart_modular_configurator_modal.s16', "المالية والمؤسسات") },
                   ].map((cat) => (
                     <button
                       key={cat.id}
@@ -740,7 +742,7 @@ export function SmartModularConfiguratorModal({
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="بحث في الموديولات..."
+                    placeholder={t('settings.modular_configurator.smart_modular_configurator_modal.s17', "بحث في الموديولات...")}
                     style={{
                       width: '100%',
                       padding: '7px 32px 7px 12px',
@@ -806,7 +808,7 @@ export function SmartModularConfiguratorModal({
                                 fontWeight: 800,
                               }}
                             >
-                              موصى به
+                              {t('settings.modular_configurator.smart_modular_configurator_modal.s18', "موصى به")}
                             </span>
                           )}
                           <span
@@ -829,7 +831,7 @@ export function SmartModularConfiguratorModal({
 
                         {mod.dependencies && mod.dependencies.length > 0 && (
                           <span style={{ display: 'block', marginTop: '6px', fontSize: '0.7rem', color: '#94a3b8' }}>
-                            يتطلب: {mod.dependencies.map((d) => SYSTEM_MODULES.find((m) => m.key === d)?.title || d).join(', ')}
+                            {t('settings.modular_configurator.smart_modular_configurator_modal.s19', "يتطلب:")} {mod.dependencies.map((d) => SYSTEM_MODULES.find((m) => m.key === d)?.title || d).join(', ')}
                           </span>
                         )}
                       </div>
@@ -882,7 +884,7 @@ export function SmartModularConfiguratorModal({
                       letterSpacing: '0.5px',
                     }}
                   >
-                    الباقة المطابقة للموديولات المختارة
+                    {t('settings.modular_configurator.smart_modular_configurator_modal.s20', "الباقة المطابقة للموديولات المختارة")}
                   </span>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '4px' }}>
                     <h3 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 900, color: '#0f172a' }}>
@@ -903,11 +905,11 @@ export function SmartModularConfiguratorModal({
                     textAlign: 'center',
                   }}
                 >
-                  <span style={{ fontSize: '0.75rem', color: '#64748b', display: 'block' }}>إجمالي الموديولات المفعلة</span>
+                  <span style={{ fontSize: '0.75rem', color: '#64748b', display: 'block' }}>{t('settings.modular_configurator.smart_modular_configurator_modal.s21', "إجمالي الموديولات المفعلة")}</span>
                   <strong style={{ fontSize: '1.6rem', color: '#170e5e', fontWeight: 900 }}>
                     {activeKeys.length}
                   </strong>
-                  <span style={{ fontSize: '0.72rem', color: '#94a3b8', display: 'block' }}>من أصل {SYSTEM_MODULES.length}</span>
+                  <span style={{ fontSize: '0.72rem', color: '#94a3b8', display: 'block' }}>{t('settings.modular_configurator.smart_modular_configurator_modal.s22', "من أصل")} {SYSTEM_MODULES.length}</span>
                 </div>
               </div>
 
@@ -933,7 +935,7 @@ export function SmartModularConfiguratorModal({
                       <CheckCircleIcon size={18} />
                     </span>
                     <strong style={{ fontSize: '0.9rem', color: '#0f172a' }}>
-                      الموديولات التي سيتم تفعيلها وإظهارها ({activeKeys.length})
+                      {t('settings.modular_configurator.smart_modular_configurator_modal.s23', "الموديولات التي سيتم تفعيلها وإظهارها (")}{activeKeys.length})
                     </strong>
                   </div>
 
@@ -977,7 +979,7 @@ export function SmartModularConfiguratorModal({
                       <XIcon size={18} />
                     </span>
                     <strong style={{ fontSize: '0.9rem', color: '#0f172a' }}>
-                      موديولات غير مستخدمة (ستبقى مخفية لتسريع الواجهة) ({SYSTEM_MODULES.length - activeKeys.length})
+                      {t('settings.modular_configurator.smart_modular_configurator_modal.s24', "موديولات غير مستخدمة (ستبقى مخفية لتسريع الواجهة) (")}{SYSTEM_MODULES.length - activeKeys.length})
                     </strong>
                   </div>
 
@@ -997,7 +999,7 @@ export function SmartModularConfiguratorModal({
                         }}
                       >
                         <span>{mod.title}</span>
-                        <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>مخفي</span>
+                        <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>{t('settings.modular_configurator.smart_modular_configurator_modal.s25', "مخفي")}</span>
                       </div>
                     ))}
                   </div>
@@ -1034,7 +1036,7 @@ export function SmartModularConfiguratorModal({
                   cursor: 'pointer',
                 }}
               >
-                &rarr; الخطوة السابقة
+                {t('settings.modular_configurator.smart_modular_configurator_modal.s26', "→ الخطوة السابقة")}
               </button>
             )}
           </div>
@@ -1054,7 +1056,7 @@ export function SmartModularConfiguratorModal({
                 cursor: 'pointer',
               }}
             >
-              إلغاء
+              {t('settings.modular_configurator.smart_modular_configurator_modal.s27', "إلغاء")}
             </button>
 
             {activeStep < 3 ? (
@@ -1072,7 +1074,7 @@ export function SmartModularConfiguratorModal({
                   cursor: 'pointer',
                 }}
               >
-                متابعة &larr;
+                {t('settings.modular_configurator.smart_modular_configurator_modal.s28', "متابعة ←")}
               </button>
             ) : (
               <button
@@ -1091,7 +1093,7 @@ export function SmartModularConfiguratorModal({
                   boxShadow: '0 2px 8px rgba(23, 14, 94, 0.25)',
                 }}
               >
-                تطبيق وتخصيص المنظومة فورياً
+                {t('settings.modular_configurator.smart_modular_configurator_modal.s29', "تطبيق وتخصيص المنظومة فورياً")}
               </button>
             )}
           </div>

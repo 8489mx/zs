@@ -1,6 +1,8 @@
+import { useTranslation } from 'react-i18next';
 import { useEffect, useState } from 'react';
 
 export function FullScreenToggleButton() {
+  const { t } = useTranslation();
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   useEffect(() => {
@@ -109,9 +111,9 @@ export function FullScreenToggleButton() {
         cursor: 'pointer',
         flexShrink: 0
       }}
-      title={isFullscreen ? 'إلغاء ملء الشاشة وإظهار شريط المهام (F11)' : 'ملء الشاشة وإخفاء شريط المهام (F11)'}
+      title={isFullscreen ? t('shared.full_screen_toggle_button.s0', "إلغاء ملء الشاشة وإظهار شريط المهام (F11)") : t('shared.full_screen_toggle_button.s1', "ملء الشاشة وإخفاء شريط المهام (F11)")}
       onClick={handleToggle}
-      aria-label={isFullscreen ? 'إلغاء ملء الشاشة' : 'ملء الشاشة'}
+      aria-label={isFullscreen ? t('shared.full_screen_toggle_button.s2', "إلغاء ملء الشاشة") : t('shared.full_screen_toggle_button.s3', "ملء الشاشة")}
     >
       {isFullscreen ? (
         // Exit Fullscreen / Restore icon

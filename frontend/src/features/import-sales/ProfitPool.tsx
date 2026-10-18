@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { PageHeader } from '@/shared/components/page-header';
 import { Button } from '@/shared/ui/button';
@@ -19,6 +20,7 @@ function PartnerPayoutModal({
   open: boolean; 
   onClose: () => void;
 }) {
+  const { t } = useTranslation();
   const [amount, setAmount] = useState('');
   const payoutMutation = usePartnerPayoutMutation();
 
@@ -44,7 +46,7 @@ function PartnerPayoutModal({
       open={open}
       onClose={onClose}
       title={`صرف دفعة أرباح: ${partner.name}`}
-      subtitle="تسجيل صرف دفعة نقدية من صافي الأرباح المستحقة للشريك وخصمها من رصيده المتبقي."
+      subtitle={t('import_sales.profit_pool.s0', "تسجيل صرف دفعة نقدية من صافي الأرباح المستحقة للشريك وخصمها من رصيده المتبقي.")}
       width="min(500px, 95vw)"
     >
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }} dir="rtl">
@@ -52,20 +54,20 @@ function PartnerPayoutModal({
         <div style={{ background: '#f8fafc', padding: '14px 16px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', fontSize: '0.8rem' }}>
             <div>
-              <span style={{ color: '#64748b', display: 'block', marginBottom: '2px' }}>إجمالي الربح المستحق</span>
+              <span style={{ color: '#64748b', display: 'block', marginBottom: '2px' }}>{t('import_sales.profit_pool.s1', "إجمالي الربح المستحق")}</span>
               <strong style={{ color: '#0f172a', fontSize: '0.88rem' }}>
                 {formatCurrency(partner.shareAmount)} <CurrencySymbol />
               </strong>
             </div>
             <div>
-              <span style={{ color: '#64748b', display: 'block', marginBottom: '2px' }}>المنصرف سابقاً</span>
+              <span style={{ color: '#64748b', display: 'block', marginBottom: '2px' }}>{t('import_sales.profit_pool.s2', "المنصرف سابقاً")}</span>
               <strong style={{ color: '#64748b', fontSize: '0.88rem' }}>
                 {formatCurrency(partner.withdrawnProfit)} <CurrencySymbol />
               </strong>
             </div>
           </div>
           <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ color: '#0f172a', fontWeight: 700, fontSize: '0.82rem' }}>الرصيد المتبقي المتاح:</span>
+            <span style={{ color: '#0f172a', fontWeight: 700, fontSize: '0.82rem' }}>{t('import_sales.profit_pool.s3', "الرصيد المتبقي المتاح:")}</span>
             <span style={{ fontSize: '1.05rem', fontWeight: 800, color: partner.currentBalance > 0 ? '#170e5e' : '#64748b' }}>
               {formatCurrency(partner.currentBalance)} <CurrencySymbol />
             </span>
@@ -75,7 +77,7 @@ function PartnerPayoutModal({
         <div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
             <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#1e293b' }}>
-              قيمة الدفعة المنصرفة <span style={{ color: '#ef4444' }}>*</span>
+              {t('import_sales.profit_pool.s4', "قيمة الدفعة المنصرفة")} <span style={{ color: '#ef4444' }}>*</span>
             </label>
             {partner.currentBalance > 0 && (
               <button
@@ -92,7 +94,7 @@ function PartnerPayoutModal({
                   textDecoration: 'underline',
                 }}
               >
-                صرف كامل المتبقي ({Number(partner.currentBalance).toLocaleString()} <CurrencySymbol />)
+                {t('import_sales.profit_pool.s5', "صرف كامل المتبقي (")}{Number(partner.currentBalance).toLocaleString()} <CurrencySymbol />)
               </button>
             )}
           </div>
@@ -127,7 +129,7 @@ function PartnerPayoutModal({
             onClick={onClose}
             style={{ height: '36px', padding: '0 16px', fontSize: '0.82rem', fontWeight: 600, borderRadius: '6px' }}
           >
-            إلغاء
+            {t('import_sales.profit_pool.s6', "إلغاء")}
           </Button>
           <Button 
             type="submit" 
@@ -143,7 +145,7 @@ function PartnerPayoutModal({
               border: 'none',
             }}
           >
-            {payoutMutation.isPending ? 'جاري التسجيل...' : 'تأكيد وصرف الدفعة'}
+            {payoutMutation.isPending ? t('import_sales.profit_pool.s7', "جاري التسجيل...") : t('import_sales.profit_pool.s8', "تأكيد وصرف الدفعة")}
           </Button>
         </div>
         <MutationFeedback isError={payoutMutation.isError} isSuccess={payoutMutation.isSuccess} error={payoutMutation.error} />
@@ -153,6 +155,7 @@ function PartnerPayoutModal({
 }
 
 export default function ProfitPool() {
+  const { t } = useTranslation();
   const [startDate, setStartDate] = useState(new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0]);
   const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
   const [isManagePartnersOpen, setIsManagePartnersOpen] = useState(false);
@@ -165,8 +168,8 @@ export default function ProfitPool() {
     <div className="page-stack page-shell import-sales-page" dir="rtl">
       <div style={{ maxWidth: '1280px', margin: '0 auto', width: '100%', padding: '0 16px 80px 16px' }}>
         <PageHeader 
-          title="مجمع أرباح الشركاء وتصفية الحسابات" 
-          description="حساب صافي الأرباح عن فترة محددة وتوزيعها بناءً على المبيعات والتكلفة الفعلية والمصاريف التشغيلية."
+          title={t('import_sales.profit_pool.s9', "مجمع أرباح الشركاء وتصفية الحسابات")} 
+          description={t('import_sales.profit_pool.s10', "حساب صافي الأرباح عن فترة محددة وتوزيعها بناءً على المبيعات والتكلفة الفعلية والمصاريف التشغيلية.")}
           actions={
             <Button 
               variant="primary" 
@@ -186,7 +189,7 @@ export default function ProfitPool() {
               }}
             >
               <UsersIcon size={16} />
-              <span>إدارة الشركاء ورأس المال</span>
+              <span>{t('import_sales.profit_pool.s11', "إدارة الشركاء ورأس المال")}</span>
             </Button>
           }
         />
@@ -195,7 +198,7 @@ export default function ProfitPool() {
         <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px 20px', marginBottom: '20px' }}>
           <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', minWidth: '180px' }}>
-              <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#475569' }}>من تاريخ</label>
+              <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#475569' }}>{t('import_sales.profit_pool.s12', "من تاريخ")}</label>
               <input 
                 type="date" 
                 value={startDate} 
@@ -214,7 +217,7 @@ export default function ProfitPool() {
               />
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', minWidth: '180px' }}>
-              <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#475569' }}>إلى تاريخ</label>
+              <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#475569' }}>{t('import_sales.profit_pool.s13', "إلى تاريخ")}</label>
               <input 
                 type="date" 
                 value={endDate} 
@@ -252,7 +255,7 @@ export default function ProfitPool() {
                 }}
               >
                 <RefreshCwIcon size={14} className={isFetching ? 'animate-spin' : ''} />
-                <span>{isFetching ? 'جاري الحساب...' : 'تحديث التقرير'}</span>
+                <span>{isFetching ? t('import_sales.profit_pool.s14', "جاري الحساب...") : t('import_sales.profit_pool.s15', "تحديث التقرير")}</span>
               </Button>
             </div>
           </div>
@@ -261,7 +264,7 @@ export default function ProfitPool() {
         {isLoading ? (
           <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '48px 24px', textAlign: 'center', color: '#64748b' }}>
             <RefreshCwIcon size={24} style={{ margin: '0 auto 12px auto', display: 'block', animation: 'spin 1s linear infinite' }} />
-            <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#0f172a' }}>جاري احتساب أرباح الشراكة للفترة المحددة...</div>
+            <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#0f172a' }}>{t('import_sales.profit_pool.s16', "جاري احتساب أرباح الشراكة للفترة المحددة...")}</div>
           </div>
         ) : data ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -270,39 +273,39 @@ export default function ProfitPool() {
               {/* Revenue Card */}
               <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px 20px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
                 <div style={{ color: '#64748b', fontSize: '0.78rem', fontWeight: 600, marginBottom: '6px' }}>
-                  إجمالي الإيرادات (المبيعات)
+                  {t('import_sales.profit_pool.s17', "إجمالي الإيرادات (المبيعات)")}
                 </div>
                 <div style={{ fontSize: '1.45rem', fontWeight: 800, color: '#0f172a' }}>
                   {formatCurrency(data.totalRevenue)} <span style={{ fontSize: '0.76rem', fontWeight: 600, color: '#94a3b8' }}><CurrencySymbol /></span>
                 </div>
                 <div style={{ fontSize: '0.74rem', color: '#94a3b8', marginTop: '6px' }}>
-                  إجمالي المبيعات المحققة بالفترة
+                  {t('import_sales.profit_pool.s18', "إجمالي المبيعات المحققة بالفترة")}
                 </div>
               </div>
 
               {/* Total Costs Card */}
               <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px 20px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
                 <div style={{ color: '#64748b', fontSize: '0.78rem', fontWeight: 600, marginBottom: '6px' }}>
-                  إجمالي التكلفة والمصاريف
+                  {t('import_sales.profit_pool.s19', "إجمالي التكلفة والمصاريف")}
                 </div>
                 <div style={{ fontSize: '1.45rem', fontWeight: 800, color: '#0f172a' }}>
                   {formatCurrency(data.totalCost + data.totalExpenses)} <span style={{ fontSize: '0.76rem', fontWeight: 600, color: '#94a3b8' }}><CurrencySymbol /></span>
                 </div>
                 <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '6px' }}>
-                  بضاعة: {formatCurrency(data.totalCost)} <CurrencySymbol /> &bull; مصاريف: {formatCurrency(data.totalExpenses)} <CurrencySymbol />
+                  {t('import_sales.profit_pool.s20', "بضاعة:")} {formatCurrency(data.totalCost)} <CurrencySymbol /> {t('import_sales.profit_pool.s21', "• مصاريف:")} {formatCurrency(data.totalExpenses)} <CurrencySymbol />
                 </div>
               </div>
 
               {/* Net Profit Distributable Card */}
               <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px 20px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
                 <div style={{ color: '#64748b', fontSize: '0.78rem', fontWeight: 600, marginBottom: '6px' }}>
-                  صافي الربح المتاح للتوزيع
+                  {t('import_sales.profit_pool.s22', "صافي الربح المتاح للتوزيع")}
                 </div>
                 <div style={{ fontSize: '1.45rem', fontWeight: 800, color: '#0f172a' }}>
                   {formatCurrency(data.netProfitPool)} <span style={{ fontSize: '0.76rem', fontWeight: 600, color: '#94a3b8' }}><CurrencySymbol /></span>
                 </div>
                 <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '6px' }}>
-                  صافي الوعاء القابل للتوزيع على الشركاء
+                  {t('import_sales.profit_pool.s23', "صافي الوعاء القابل للتوزيع على الشركاء")}
                 </div>
               </div>
             </div>
@@ -312,14 +315,14 @@ export default function ProfitPool() {
               <div style={{ padding: '14px 20px', background: '#f8fafc', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
                 <div>
                   <h4 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 800, color: '#0f172a' }}>
-                    جدول توزيع الأرباح على الشركاء
+                    {t('import_sales.profit_pool.s24', "جدول توزيع الأرباح على الشركاء")}
                   </h4>
                   <span style={{ fontSize: '0.74rem', color: '#64748b' }}>
-                    توزيع صافي الأرباح وفق نسب الشراكة مع تتبع المسحوبات والرصيد المتبقي
+                    {t('import_sales.profit_pool.s25', "توزيع صافي الأرباح وفق نسب الشراكة مع تتبع المسحوبات والرصيد المتبقي")}
                   </span>
                 </div>
                 <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#475569', background: '#f1f5f9', padding: '3px 9px', borderRadius: '12px' }}>
-                  {data.partnerShares.length} شركاء
+                  {data.partnerShares.length} {t('import_sales.profit_pool.s26', "شركاء")}
                 </span>
               </div>
 
@@ -327,12 +330,12 @@ export default function ProfitPool() {
                 <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right', fontSize: '0.825rem' }}>
                   <thead>
                     <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', fontSize: '0.78rem', fontWeight: 700 }}>
-                      <th style={{ padding: '10px 14px' }}>اسم الشريك</th>
-                      <th style={{ padding: '10px 14px', width: '120px' }}>نسبة الشراكة</th>
-                      <th style={{ padding: '10px 14px' }}>إجمالي الربح المستحق</th>
-                      <th style={{ padding: '10px 14px' }}>ما تم سحبه مسبقاً</th>
-                      <th style={{ padding: '10px 14px' }}>الرصيد المتبقي (الحالي)</th>
-                      <th style={{ padding: '10px 14px', width: '190px', textAlign: 'center' }}>إجراءات</th>
+                      <th style={{ padding: '10px 14px' }}>{t('import_sales.profit_pool.s27', "اسم الشريك")}</th>
+                      <th style={{ padding: '10px 14px', width: '120px' }}>{t('import_sales.profit_pool.s28', "نسبة الشراكة")}</th>
+                      <th style={{ padding: '10px 14px' }}>{t('import_sales.profit_pool.s29', "إجمالي الربح المستحق")}</th>
+                      <th style={{ padding: '10px 14px' }}>{t('import_sales.profit_pool.s30', "ما تم سحبه مسبقاً")}</th>
+                      <th style={{ padding: '10px 14px' }}>{t('import_sales.profit_pool.s31', "الرصيد المتبقي (الحالي)")}</th>
+                      <th style={{ padding: '10px 14px', width: '190px', textAlign: 'center' }}>{t('import_sales.profit_pool.s32', "إجراءات")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -367,14 +370,14 @@ export default function ProfitPool() {
                               onClick={() => setPayoutPartner(partner)}
                               style={{ height: '28px', padding: '0 10px', fontSize: '0.74rem', fontWeight: 700, borderRadius: '4px' }}
                             >
-                              تسجيل دفعة
+                              {t('import_sales.profit_pool.s33', "تسجيل دفعة")}
                             </Button>
                             <Button 
                               variant="secondary" 
                               onClick={() => setLedgerPartner({ id: partner.partnerId, name: partner.name, profit_share_percentage: partner.percentage, capital_amount: partner.capital_amount || 0 })}
                               style={{ height: '28px', padding: '0 8px', fontSize: '0.74rem', fontWeight: 600, borderRadius: '4px' }}
                             >
-                              كشف حساب
+                              {t('import_sales.profit_pool.s34', "كشف حساب")}
                             </Button>
                           </div>
                         </td>
@@ -386,8 +389,8 @@ export default function ProfitPool() {
                           <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 10px auto', color: '#94a3b8' }}>
                             <UsersIcon size={22} />
                           </div>
-                          <div style={{ fontWeight: 700, color: '#334155', fontSize: '0.86rem' }}>لا يوجد شركاء مسجلين في النظام</div>
-                          <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '4px' }}>انقر على زر "إدارة الشركاء ورأس المال" بالأعلى لإضافة الشركاء وتحديد نسب الأرباح.</div>
+                          <div style={{ fontWeight: 700, color: '#334155', fontSize: '0.86rem' }}>{t('import_sales.profit_pool.s35', "لا يوجد شركاء مسجلين في النظام")}</div>
+                          <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '4px' }}>{t('import_sales.profit_pool.s36', "انقر على زر \"إدارة الشركاء ورأس المال\" بالأعلى لإضافة الشركاء وتحديد نسب الأرباح.")}</div>
                         </td>
                       </tr>
                     )}

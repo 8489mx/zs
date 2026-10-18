@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { TruckIcon } from '@/shared/components/icons/AppIcons';
@@ -31,6 +32,7 @@ interface DriverPortalLoginProps {
 }
 
 export const DriverPortalLogin: React.FC<DriverPortalLoginProps> = ({ onLoginSuccess }) => {
+  const { t: __t } = useTranslation();
   const [phoneInput, setPhoneInput] = useState('');
   const [pinInput, setPinInput] = useState('');
   const [loginError, setLoginError] = useState('');
@@ -133,10 +135,10 @@ export const DriverPortalLogin: React.FC<DriverPortalLoginProps> = ({ onLoginSuc
             <TruckIcon size={32} color="#2563eb" />
           </div>
           <h1 style={{ margin: 0, fontSize: '22px', fontWeight: 900, color: '#0f172a' }}>
-            بوابة مندوب التوصيل
+            {__t('delivery_reps.driver_portal_login.s0', __t('delivery_reps.driver_portal_login.s0', "بوابة مندوب التوصيل"))}
           </h1>
           <p style={{ margin: '6px 0 0', fontSize: '13px', color: '#64748b' }}>
-            أدخل رقم الهاتف والرمز السري (PIN) لمتابعة شحناتك
+            {__t('delivery_reps.driver_portal_login.s1', __t('delivery_reps.driver_portal_login.s1', "أدخل رقم الهاتف والرمز السري (PIN) لمتابعة شحناتك"))}
           </p>
         </div>
 
@@ -161,11 +163,11 @@ export const DriverPortalLogin: React.FC<DriverPortalLoginProps> = ({ onLoginSuc
         <form onSubmit={handleLoginSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <div>
             <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-              رقم هاتف المندوب
+              {__t('delivery_reps.driver_portal_login.s2', __t('delivery_reps.driver_portal_login.s2', "رقم هاتف المندوب"))}
             </label>
             <input
               type="text"
-              placeholder="مثال: 01012345678"
+              placeholder={__t('delivery_reps.driver_portal_login.s3', __t('delivery_reps.driver_portal_login.s3', "مثال: 01012345678"))}
               value={phoneInput}
               onChange={(e) => setPhoneInput(e.target.value)}
               required
@@ -186,12 +188,12 @@ export const DriverPortalLogin: React.FC<DriverPortalLoginProps> = ({ onLoginSuc
 
           <div>
             <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-              رمز الدخول السريع (PIN Code)
+              {__t('delivery_reps.driver_portal_login.s4', __t('delivery_reps.driver_portal_login.s4', "رمز الدخول السريع (PIN Code)"))}
             </label>
             <input
               type="password"
               maxLength={6}
-              placeholder="مثال: 1234"
+              placeholder={__t('delivery_reps.driver_portal_login.s5', __t('delivery_reps.driver_portal_login.s5', "مثال: 1234"))}
               value={pinInput}
               onChange={(e) => setPinInput(e.target.value)}
               required
@@ -210,7 +212,7 @@ export const DriverPortalLogin: React.FC<DriverPortalLoginProps> = ({ onLoginSuc
               }}
             />
             <span style={{ display: 'block', fontSize: '11px', color: '#94a3b8', marginTop: '4px' }}>
-              * الرمز المسجل لك من قبل إدارة الفرع
+              {__t('delivery_reps.driver_portal_login.s6', __t('delivery_reps.driver_portal_login.s6', "* الرمز المسجل لك من قبل إدارة الفرع"))}
             </span>
           </div>
 
@@ -232,13 +234,13 @@ export const DriverPortalLogin: React.FC<DriverPortalLoginProps> = ({ onLoginSuc
               opacity: isLoggingIn ? 0.7 : 1,
             }}
           >
-            {isLoggingIn ? 'جاري التحقق...' : 'تسجيل الدخول واستلام الشحنات'}
+            {isLoggingIn ? __t('delivery_reps.driver_portal_login.s7', __t('delivery_reps.driver_portal_login.s7', "جاري التحقق...")) : __t('delivery_reps.driver_portal_login.s8', __t('delivery_reps.driver_portal_login.s8', "تسجيل الدخول واستلام الشحنات"))}
           </button>
         </form>
 
         <div style={{ marginTop: '24px', paddingTop: '18px', borderTop: '1px solid #f1f5f9', textAlign: 'center' }}>
           <span style={{ fontSize: '11.5px', color: '#94a3b8' }}>
-            منظومة Z-Systems اللوجستية لإدارة أساطيل الدليفري
+            {__t('delivery_reps.driver_portal_login.s9', __t('delivery_reps.driver_portal_login.s9', "منظومة Z-Systems اللوجستية لإدارة أساطيل الدليفري"))}
           </span>
         </div>
 
@@ -256,7 +258,7 @@ export const DriverPortalLogin: React.FC<DriverPortalLoginProps> = ({ onLoginSuc
               gap: '6px',
             }}
           >
-            <span>الانتقال لبوابة مبيعات سيارات الفان (فان كاشير) ←</span>
+            <span>{__t('delivery_reps.driver_portal_login.s10', __t('delivery_reps.driver_portal_login.s10', "الانتقال لبوابة مبيعات سيارات الفان (فان كاشير) ←"))}</span>
           </Link>
           <Link
             to="/hub"
@@ -271,7 +273,7 @@ export const DriverPortalLogin: React.FC<DriverPortalLoginProps> = ({ onLoginSuc
               gap: '6px',
             }}
           >
-            <span>← العودة لمركز البوابات</span>
+            <span>{__t('delivery_reps.driver_portal_login.s11', __t('delivery_reps.driver_portal_login.s11', "← العودة لمركز البوابات"))}</span>
           </Link>
         </div>
       </div>
@@ -320,15 +322,15 @@ export const DriverPortalLogin: React.FC<DriverPortalLoginProps> = ({ onLoginSuc
                 </div>
                 <div>
                   <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: '#0f172a' }}>
-                    اختر المنشأة لبدء التوصيل
+                    {__t('delivery_reps.driver_portal_login.s12', __t('delivery_reps.driver_portal_login.s12', "اختر المنشأة لبدء التوصيل"))}
                   </h3>
                   <p style={{ margin: 0, fontSize: '13px', color: '#64748b' }}>
-                    رقمك مسجل كمندوب لدى أكثر من منشأة
+                    {__t('delivery_reps.driver_portal_login.s13', __t('delivery_reps.driver_portal_login.s13', "رقمك مسجل كمندوب لدى أكثر من منشأة"))}
                   </p>
                 </div>
               </div>
               <p style={{ fontSize: '13px', color: '#475569', margin: '8px 0 0', lineHeight: 1.5 }}>
-                يرجى تحديد المنشأة التي ترغب في توصيل طلباتها ومتابعة عهدتها الآن:
+                {__t('delivery_reps.driver_portal_login.s14', __t('delivery_reps.driver_portal_login.s14', "يرجى تحديد المنشأة التي ترغب في توصيل طلباتها ومتابعة عهدتها الآن:"))}
               </p>
             </div>
 
@@ -379,7 +381,7 @@ export const DriverPortalLogin: React.FC<DriverPortalLoginProps> = ({ onLoginSuc
                     </div>
                     <div>
                       <div style={{ fontSize: '14px', fontWeight: 700, color: '#0f172a' }}>{t.name}</div>
-                      <div style={{ fontSize: '12px', color: '#64748b' }}>كود المنشأة: {t.slug || t.id}</div>
+                      <div style={{ fontSize: '12px', color: '#64748b' }}>{__t('delivery_reps.driver_portal_login.s15', __t('delivery_reps.driver_portal_login.s15', "كود المنشأة:"))} {t.slug || t.id}</div>
                     </div>
                   </div>
                   <div style={{ color: '#94a3b8' }}>
@@ -405,7 +407,7 @@ export const DriverPortalLogin: React.FC<DriverPortalLoginProps> = ({ onLoginSuc
                   cursor: 'pointer',
                 }}
               >
-                إلغاء
+                {__t('delivery_reps.driver_portal_login.s16', __t('delivery_reps.driver_portal_login.s16', "إلغاء"))}
               </button>
             </div>
           </div>

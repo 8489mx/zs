@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { MaritimeRfq } from '../api/maritime-freight.api';
 import { SlidersIcon, PlusIcon, SendIcon, MailIcon } from '@/shared/components/icons/AppIcons';
 
@@ -25,18 +26,19 @@ export function MaritimeRfqTab({
   onOpenAddBid,
   onDispatchEmails,
 }: MaritimeRfqTabProps) {
+  const { t } = useTranslation();
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'draft':
-        return <span style={{ padding: '3px 8px', borderRadius: '12px', background: '#f1f5f9', color: '#475569', fontSize: '0.72rem', fontWeight: 700 }}>مسودة</span>;
+        return <span style={{ padding: '3px 8px', borderRadius: '12px', background: '#f1f5f9', color: '#475569', fontSize: '0.72rem', fontWeight: 700 }}>{t('maritime_freight.maritime_rfq_tab.s0', "مسودة")}</span>;
       case 'sent':
-        return <span style={{ padding: '3px 8px', borderRadius: '12px', background: '#eff6ff', color: '#1d4ed8', fontSize: '0.72rem', fontWeight: 700 }}>مرسل للخطوط</span>;
+        return <span style={{ padding: '3px 8px', borderRadius: '12px', background: '#eff6ff', color: '#1d4ed8', fontSize: '0.72rem', fontWeight: 700 }}>{t('maritime_freight.maritime_rfq_tab.s1', "مرسل للخطوط")}</span>;
       case 'bids_received':
-        return <span style={{ padding: '3px 8px', borderRadius: '12px', background: '#fef3c7', color: '#b45309', fontSize: '0.72rem', fontWeight: 700 }}>وصلت عروض أسعار</span>;
+        return <span style={{ padding: '3px 8px', borderRadius: '12px', background: '#fef3c7', color: '#b45309', fontSize: '0.72rem', fontWeight: 700 }}>{t('maritime_freight.maritime_rfq_tab.s2', "وصلت عروض أسعار")}</span>;
       case 'awarded':
-        return <span style={{ padding: '3px 8px', borderRadius: '12px', background: '#dcfce7', color: '#15803d', fontSize: '0.72rem', fontWeight: 700 }}>تمت الترسية</span>;
+        return <span style={{ padding: '3px 8px', borderRadius: '12px', background: '#dcfce7', color: '#15803d', fontSize: '0.72rem', fontWeight: 700 }}>{t('maritime_freight.maritime_rfq_tab.s3', "تمت الترسية")}</span>;
       case 'cancelled':
-        return <span style={{ padding: '3px 8px', borderRadius: '12px', background: '#fee2e2', color: '#b91c1c', fontSize: '0.72rem', fontWeight: 700 }}>ملغي</span>;
+        return <span style={{ padding: '3px 8px', borderRadius: '12px', background: '#fee2e2', color: '#b91c1c', fontSize: '0.72rem', fontWeight: 700 }}>{t('maritime_freight.maritime_rfq_tab.s4', "ملغي")}</span>;
       default:
         return <span style={{ padding: '3px 8px', borderRadius: '12px', background: '#f1f5f9', color: '#475569', fontSize: '0.72rem', fontWeight: 700 }}>{status}</span>;
     }
@@ -48,15 +50,15 @@ export function MaritimeRfqTab({
       <div style={{ padding: '16px 20px', borderBottom: '1px solid #e2e8f0', background: '#f8fafc', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
           <h3 style={{ margin: 0, fontSize: '0.94rem', fontWeight: 800, color: '#0f172a' }}>
-            طلبات تسعير الخطوط الملاحية (Carrier RFQs)
+            {t('maritime_freight.maritime_rfq_tab.s5', "طلبات تسعير الخطوط الملاحية (Carrier RFQs)")}
           </h3>
           <p style={{ margin: '3px 0 0 0', fontSize: '0.78rem', color: '#64748b' }}>
-            إرسال طلبات التسعير المجمعة للخطوط الملاحية والوكلاء ومقارنة العروض المستلمة
+            {t('maritime_freight.maritime_rfq_tab.s6', "إرسال طلبات التسعير المجمعة للخطوط الملاحية والوكلاء ومقارنة العروض المستلمة")}
           </p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <span style={{ fontSize: '0.75rem', fontWeight: 700, background: '#ffffff', color: '#475569', border: '1px solid #e2e8f0', padding: '3px 10px', borderRadius: '12px' }}>
-            {rfqs.length} طلب تسعير
+            {rfqs.length} {t('maritime_freight.maritime_rfq_tab.s7', "طلب تسعير")}
           </span>
           {onOpenRateCards && (
             <button
@@ -73,7 +75,7 @@ export function MaritimeRfqTab({
                 cursor: 'pointer',
               }}
             >
-              تعرفات وعقود الأسعار
+              {t('maritime_freight.maritime_rfq_tab.s8', "تعرفات وعقود الأسعار")}
             </button>
           )}
           {onOpenCreate && (
@@ -91,7 +93,7 @@ export function MaritimeRfqTab({
                 cursor: 'pointer',
               }}
             >
-              + إنشاء طلب جديد
+              {t('maritime_freight.maritime_rfq_tab.s9', "+ إنشاء طلب جديد")}
             </button>
           )}
         </div>
@@ -112,27 +114,27 @@ export function MaritimeRfqTab({
           </colgroup>
           <thead>
             <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', fontWeight: 700 }}>
-              <th style={{ padding: '8px 6px', fontSize: '0.76rem', whiteSpace: 'nowrap' }}>كود الطلب</th>
-              <th style={{ padding: '8px 6px', fontSize: '0.76rem', whiteSpace: 'nowrap' }}>مسار الشحنة</th>
-              <th style={{ padding: '8px 6px', fontSize: '0.76rem', whiteSpace: 'nowrap' }}>الحاويات والبضاعة</th>
-              <th style={{ padding: '8px 6px', fontSize: '0.76rem', whiteSpace: 'nowrap', textAlign: 'center' }}>الشرط والسداد</th>
-              <th style={{ padding: '8px 6px', fontSize: '0.76rem', whiteSpace: 'nowrap', textAlign: 'center' }}>العروض المستلمة</th>
-              <th style={{ padding: '8px 6px', fontSize: '0.76rem', whiteSpace: 'nowrap', textAlign: 'center' }}>أفضل عرض</th>
-              <th style={{ padding: '8px 6px', fontSize: '0.76rem', whiteSpace: 'nowrap', textAlign: 'center' }}>الحالة</th>
-              <th style={{ padding: '8px 6px', fontSize: '0.76rem', textAlign: 'center', whiteSpace: 'nowrap' }}>الإجراءات</th>
+              <th style={{ padding: '8px 6px', fontSize: '0.76rem', whiteSpace: 'nowrap' }}>{t('maritime_freight.maritime_rfq_tab.s10', "كود الطلب")}</th>
+              <th style={{ padding: '8px 6px', fontSize: '0.76rem', whiteSpace: 'nowrap' }}>{t('maritime_freight.maritime_rfq_tab.s11', "مسار الشحنة")}</th>
+              <th style={{ padding: '8px 6px', fontSize: '0.76rem', whiteSpace: 'nowrap' }}>{t('maritime_freight.maritime_rfq_tab.s12', "الحاويات والبضاعة")}</th>
+              <th style={{ padding: '8px 6px', fontSize: '0.76rem', whiteSpace: 'nowrap', textAlign: 'center' }}>{t('maritime_freight.maritime_rfq_tab.s13', "الشرط والسداد")}</th>
+              <th style={{ padding: '8px 6px', fontSize: '0.76rem', whiteSpace: 'nowrap', textAlign: 'center' }}>{t('maritime_freight.maritime_rfq_tab.s14', "العروض المستلمة")}</th>
+              <th style={{ padding: '8px 6px', fontSize: '0.76rem', whiteSpace: 'nowrap', textAlign: 'center' }}>{t('maritime_freight.maritime_rfq_tab.s15', "أفضل عرض")}</th>
+              <th style={{ padding: '8px 6px', fontSize: '0.76rem', whiteSpace: 'nowrap', textAlign: 'center' }}>{t('maritime_freight.maritime_rfq_tab.s16', "الحالة")}</th>
+              <th style={{ padding: '8px 6px', fontSize: '0.76rem', textAlign: 'center', whiteSpace: 'nowrap' }}>{t('maritime_freight.maritime_rfq_tab.s17', "الإجراءات")}</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
                 <td colSpan={8} style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
-                  جاري تحميل طلبات التسعير الملاحية...
+                  {t('maritime_freight.maritime_rfq_tab.s18', "جاري تحميل طلبات التسعير الملاحية...")}
                 </td>
               </tr>
             ) : rfqs.length === 0 ? (
               <tr>
                 <td colSpan={8} style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
-                  لا توجد طلبات تسعير مسجلة بعد. انقر على "طلب تسعير جديد" لإرسال أول استفسار للخطوط الملاحية.
+                  {t('maritime_freight.maritime_rfq_tab.s19', "لا توجد طلبات تسعير مسجلة بعد. انقر على \"طلب تسعير جديد\" لإرسال أول استفسار للخطوط الملاحية.")}
                 </td>
               </tr>
             ) : (
@@ -152,7 +154,7 @@ export function MaritimeRfqTab({
                         {rfq.pol_name}
                       </div>
                       <div style={{ color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={`إلى ${rfq.pod_name}`}>
-                        إلى {rfq.pod_name}
+                        {t('maritime_freight.maritime_rfq_tab.s20', "إلى")} {rfq.pod_name}
                       </div>
                     </div>
                   </td>
@@ -161,8 +163,8 @@ export function MaritimeRfqTab({
                       {rfq.container_count}x {rfq.container_type}{' '}
                       <span style={{ fontSize: '0.70rem', fontWeight: 500, color: '#64748b' }}>({rfq.cargo_mode})</span>
                     </div>
-                    <div style={{ fontSize: '0.70rem', color: '#64748b', marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={rfq.commodity_description || 'عام'}>
-                      {rfq.commodity_description || 'عام'}
+                    <div style={{ fontSize: '0.70rem', color: '#64748b', marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={rfq.commodity_description || t('maritime_freight.maritime_rfq_tab.s21', "عام")}>
+                      {rfq.commodity_description || t('maritime_freight.maritime_rfq_tab.s22', "عام")}
                     </div>
                   </td>
                   <td style={{ padding: '8px 8px', verticalAlign: 'middle', textAlign: 'center' }}>
@@ -182,7 +184,7 @@ export function MaritimeRfqTab({
                         display: 'inline-block',
                       }}
                     >
-                      {rfq.bidsCount || 0} عروض
+                      {rfq.bidsCount || 0} {t('maritime_freight.maritime_rfq_tab.s23', "عروض")}
                     </span>
                   </td>
                   <td style={{ padding: '8px 8px', verticalAlign: 'middle', textAlign: 'center' }}>
@@ -211,7 +213,7 @@ export function MaritimeRfqTab({
                         </div>
                       </div>
                     ) : (
-                      <span style={{ color: '#94a3b8', fontSize: '0.74rem', whiteSpace: 'nowrap', display: 'inline-block', textAlign: 'center' }}>بانتظار الرد</span>
+                      <span style={{ color: '#94a3b8', fontSize: '0.74rem', whiteSpace: 'nowrap', display: 'inline-block', textAlign: 'center' }}>{t('maritime_freight.maritime_rfq_tab.s24', "بانتظار الرد")}</span>
                     )}
                   </td>
                   <td style={{ padding: '8px 8px', verticalAlign: 'middle', textAlign: 'center', whiteSpace: 'nowrap' }}>
@@ -223,7 +225,7 @@ export function MaritimeRfqTab({
                       <button
                         type="button"
                         onClick={() => onSelectRfqForMatrix(rfq)}
-                        title="مصفوفة مقارنة عروض الأسعار"
+                        title={t('maritime_freight.maritime_rfq_tab.s25', "مصفوفة مقارنة عروض الأسعار")}
                         style={{
                           height: '26px',
                           padding: '0 8px',
@@ -253,14 +255,14 @@ export function MaritimeRfqTab({
                         }}
                       >
                         <SlidersIcon size={12} strokeWidth={2.2} />
-                        <span>مصفوفة الأسعار</span>
+                        <span>{t('maritime_freight.maritime_rfq_tab.s26', "مصفوفة الأسعار")}</span>
                       </button>
 
                       {/* 2. تسجيل عرض سعر */}
                       <button
                         type="button"
                         onClick={() => onOpenAddBid(rfq)}
-                        title="تسجيل عرض سعر يدوي من الخط"
+                        title={t('maritime_freight.maritime_rfq_tab.s27', "تسجيل عرض سعر يدوي من الخط")}
                         style={{
                           height: '26px',
                           padding: '0 8px',
@@ -290,14 +292,14 @@ export function MaritimeRfqTab({
                         }}
                       >
                         <PlusIcon size={11} strokeWidth={2.5} />
-                        <span>عرض سعر</span>
+                        <span>{t('maritime_freight.maritime_rfq_tab.s28', "عرض سعر")}</span>
                       </button>
 
                       {/* 3. إرسال للخطوط أو مراسلة */}
                       <button
                         type="button"
                         onClick={() => onDispatchEmails(rfq)}
-                        title={rfq.status === 'draft' ? 'تحديد الخطوط وإرسال طلب التسعير' : 'مراسلة الخطوط وتعديل قائمة الإرسال'}
+                        title={rfq.status === 'draft' ? t('maritime_freight.maritime_rfq_tab.s29', "تحديد الخطوط وإرسال طلب التسعير") : t('maritime_freight.maritime_rfq_tab.s30', "مراسلة الخطوط وتعديل قائمة الإرسال")}
                         style={{
                           height: '26px',
                           padding: '0 8px',
@@ -337,12 +339,12 @@ export function MaritimeRfqTab({
                         {rfq.status === 'draft' ? (
                           <>
                             <SendIcon size={11} strokeWidth={2.2} />
-                            <span>إرسال للخطوط</span>
+                            <span>{t('maritime_freight.maritime_rfq_tab.s31', "إرسال للخطوط")}</span>
                           </>
                         ) : (
                           <>
                             <MailIcon size={12} strokeWidth={2} />
-                            <span>مراسلة</span>
+                            <span>{t('maritime_freight.maritime_rfq_tab.s32', "مراسلة")}</span>
                           </>
                         )}
                       </button>

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { toast } from '@/shared/components/system-alert';
 import { maritimeApi, MaritimeJob } from '../../api/maritime-freight.api';
@@ -10,6 +11,7 @@ interface Props {
 }
 
 export function JobEgyptianAciCard({ job, onUpdated }: Props) {
+  const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [formData, setFormData] = useState({
@@ -63,11 +65,11 @@ export function JobEgyptianAciCard({ job, onUpdated }: Props) {
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: job.acid_number ? '#16a34a' : '#ea580c', display: 'inline-block' }} />
           <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#166534' }}>
-            منظومة التسجيل المسبق للشحنات - الجمارك المصرية (Nafeza ACI)
+            {t('maritime_freight.job_details.job_egyptian_aci_card.s0', "منظومة التسجيل المسبق للشحنات - الجمارك المصرية (Nafeza ACI)")}
           </span>
           {job.acid_number && (
             <span style={{ fontSize: '0.72rem', fontWeight: 700, padding: '2px 8px', borderRadius: '4px', background: '#dcfce7', color: '#15803d' }}>
-              معتمد ومسجل
+              {t('maritime_freight.job_details.job_egyptian_aci_card.s1', "معتمد ومسجل")}
             </span>
           )}
         </div>
@@ -95,16 +97,16 @@ export function JobEgyptianAciCard({ job, onUpdated }: Props) {
             cursor: 'pointer',
           }}
         >
-          {job.acid_number ? 'تعديل بيانات ACI' : '+ تسجيل رقم ACID'}
+          {job.acid_number ? t('maritime_freight.job_details.job_egyptian_aci_card.s2', "تعديل بيانات ACI") : t('maritime_freight.job_details.job_egyptian_aci_card.s3', "+ تسجيل رقم ACID")}
         </button>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px', marginTop: '6px' }}>
         <div style={{ background: '#f8fafc', padding: '8px 10px', borderRadius: '6px' }}>
-          <div style={{ fontSize: '0.72rem', color: '#64748b' }}>رقم القيد الجمركي المسبق (ACID):</div>
+          <div style={{ fontSize: '0.72rem', color: '#64748b' }}>{t('maritime_freight.job_details.job_egyptian_aci_card.s4', "رقم القيد الجمركي المسبق (ACID):")}</div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
             <span style={{ fontFamily: 'monospace', fontSize: '0.95rem', fontWeight: 800, color: job.acid_number ? '#170e5e' : '#94a3b8' }}>
-              {job.acid_number || 'غير مسجل'}
+              {job.acid_number || t('maritime_freight.job_details.job_egyptian_aci_card.s5', "غير مسجل")}
             </span>
             {job.acid_number && (
               <button
@@ -112,21 +114,21 @@ export function JobEgyptianAciCard({ job, onUpdated }: Props) {
                 onClick={handleCopyAcid}
                 style={{ padding: '2px 6px', background: copied ? '#16a34a' : '#e2e8f0', color: copied ? '#ffffff' : '#475569', border: 'none', borderRadius: '4px', fontSize: '0.7rem', cursor: 'pointer' }}
               >
-                {copied ? 'تم النسخ' : 'نسخ'}
+                {copied ? t('maritime_freight.job_details.job_egyptian_aci_card.s6', "تم النسخ") : t('maritime_freight.job_details.job_egyptian_aci_card.s7', "نسخ")}
               </button>
             )}
           </div>
         </div>
 
         <div style={{ background: '#f8fafc', padding: '8px 10px', borderRadius: '6px' }}>
-          <div style={{ fontSize: '0.72rem', color: '#64748b' }}>صلاحية القيد الجمركي:</div>
+          <div style={{ fontSize: '0.72rem', color: '#64748b' }}>{t('maritime_freight.job_details.job_egyptian_aci_card.s8', "صلاحية القيد الجمركي:")}</div>
           <div style={{ fontSize: '0.78rem', color: '#0f172a', fontWeight: 700, marginTop: '2px' }}>
-            {job.acid_issue_date ? `${job.acid_issue_date} إلى ${job.acid_expiry_date || '—'}` : 'قيد التسجيل'}
+            {job.acid_issue_date ? `${job.acid_issue_date} إلى ${job.acid_expiry_date || '—'}` : t('maritime_freight.job_details.job_egyptian_aci_card.s9', "قيد التسجيل")}
           </div>
         </div>
 
         <div style={{ background: '#f8fafc', padding: '8px 10px', borderRadius: '6px' }}>
-          <div style={{ fontSize: '0.72rem', color: '#64748b' }}>المصدر الأجنبي / الرقم الضريبي:</div>
+          <div style={{ fontSize: '0.72rem', color: '#64748b' }}>{t('maritime_freight.job_details.job_egyptian_aci_card.s10', "المصدر الأجنبي / الرقم الضريبي:")}</div>
           <div style={{ fontSize: '0.78rem', color: '#0f172a', fontWeight: 700, marginTop: '2px' }}>
             {job.foreign_exporter_id ? `مصدر: ${job.foreign_exporter_id}` : ''} {job.importer_tax_id ? `| ضريبي: ${job.importer_tax_id}` : '—'}
           </div>
@@ -136,15 +138,15 @@ export function JobEgyptianAciCard({ job, onUpdated }: Props) {
       <StandardDialog
         open={showEditModal}
         onClose={() => setShowEditModal(false)}
-        title="تحديث بيانات منظومة نافذة والتسجيل المسبق (ACI)"
-        subtitle="توثيق رقم القيد الجمركي المسبق ACID وتاريخ الصلاحية وبيانات المصدر والمستورد"
+        title={t('maritime_freight.job_details.job_egyptian_aci_card.s11', "تحديث بيانات منظومة نافذة والتسجيل المسبق (ACI)")}
+        subtitle={t('maritime_freight.job_details.job_egyptian_aci_card.s12', "توثيق رقم القيد الجمركي المسبق ACID وتاريخ الصلاحية وبيانات المصدر والمستورد")}
         width="540px"
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          <Field label="رقم القيد الجمركي المسبق (ACID Number - 19 رقماً)">
+          <Field label={t('maritime_freight.job_details.job_egyptian_aci_card.s13', "رقم القيد الجمركي المسبق (ACID Number - 19 رقماً)")}>
             <input
               type="text"
-              placeholder="مثال: 2026100701234567890"
+              placeholder={t('maritime_freight.job_details.job_egyptian_aci_card.s14', "مثال: 2026100701234567890")}
               value={formData.acidNumber}
               onChange={(e) => setFormData({ ...formData, acidNumber: e.target.value })}
               style={{ width: '100%', height: '36px', padding: '0 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.9rem', fontFamily: 'monospace', fontWeight: 700 }}
@@ -152,7 +154,7 @@ export function JobEgyptianAciCard({ job, onUpdated }: Props) {
           </Field>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-            <Field label="تاريخ الإصدار">
+            <Field label={t('maritime_freight.job_details.job_egyptian_aci_card.s15', "تاريخ الإصدار")}>
               <input
                 type="date"
                 value={formData.acidIssueDate}
@@ -161,7 +163,7 @@ export function JobEgyptianAciCard({ job, onUpdated }: Props) {
               />
             </Field>
 
-            <Field label="تاريخ الصلاحية والانتهاء">
+            <Field label={t('maritime_freight.job_details.job_egyptian_aci_card.s16', "تاريخ الصلاحية والانتهاء")}>
               <input
                 type="date"
                 value={formData.acidExpiryDate}
@@ -172,7 +174,7 @@ export function JobEgyptianAciCard({ job, onUpdated }: Props) {
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-            <Field label="كود أو اسم المصدر الأجنبي">
+            <Field label={t('maritime_freight.job_details.job_egyptian_aci_card.s17', "كود أو اسم المصدر الأجنبي")}>
               <input
                 type="text"
                 placeholder="Foreign Exporter ID / Name"
@@ -182,10 +184,10 @@ export function JobEgyptianAciCard({ job, onUpdated }: Props) {
               />
             </Field>
 
-            <Field label="الرقم الضريبي للمستورد المصري">
+            <Field label={t('maritime_freight.job_details.job_egyptian_aci_card.s18', "الرقم الضريبي للمستورد المصري")}>
               <input
                 type="text"
-                placeholder="رقم التسجيل الضريبي 9 أرقام"
+                placeholder={t('maritime_freight.job_details.job_egyptian_aci_card.s19', "رقم التسجيل الضريبي 9 أرقام")}
                 value={formData.importerTaxId}
                 onChange={(e) => setFormData({ ...formData, importerTaxId: e.target.value })}
                 style={{ width: '100%', height: '36px', padding: '0 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
@@ -200,7 +202,7 @@ export function JobEgyptianAciCard({ job, onUpdated }: Props) {
             onClick={() => setShowEditModal(false)}
             style={{ padding: '8px 16px', background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '6px', cursor: 'pointer', fontWeight: 600 }}
           >
-            إلغاء
+            {t('maritime_freight.job_details.job_egyptian_aci_card.s20', "إلغاء")}
           </button>
           <button
             type="button"
@@ -208,7 +210,7 @@ export function JobEgyptianAciCard({ job, onUpdated }: Props) {
             disabled={isSaving}
             style={{ padding: '8px 20px', background: '#166534', color: '#ffffff', border: 'none', borderRadius: '6px', cursor: isSaving ? 'not-allowed' : 'pointer', fontWeight: 700 }}
           >
-            {isSaving ? 'جاري الحفظ...' : 'حفظ بيانات ACI'}
+            {isSaving ? t('maritime_freight.job_details.job_egyptian_aci_card.s21', "جاري الحفظ...") : t('maritime_freight.job_details.job_egyptian_aci_card.s22', "حفظ بيانات ACI")}
           </button>
         </StandardDialogFooter>
       </StandardDialog>

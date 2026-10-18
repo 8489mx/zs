@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -15,6 +16,7 @@ function normalizeReason(search: string) {
 }
 
 export function SystemStatusBanner() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
   const queryClient = useQueryClient();
@@ -94,5 +96,5 @@ export function SystemStatusBanner() {
     return <div className="system-banner system-banner-warning">{loginReason}</div>;
   }
 
-  return <div className="system-banner system-banner-success">تم استعادة الاتصال. يمكنك متابعة العمل بشكل طبيعي.</div>;
+  return <div className="system-banner system-banner-success">{t('shared.system.system_status_banner.s0', "تم استعادة الاتصال. يمكنك متابعة العمل بشكل طبيعي.")}</div>;
 }

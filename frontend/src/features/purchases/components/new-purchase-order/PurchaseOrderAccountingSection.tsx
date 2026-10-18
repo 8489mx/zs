@@ -28,17 +28,18 @@ interface AccountingSectionProps {
 }
 
 export function PurchaseOrderAccountingSection(props: AccountingSectionProps) {
+  const { t: __t } = useTranslation();
   const { t } = useTranslation();
 
   return (
     <>
       <section className="document-prototype-section" style={{ marginTop: '12px' }}>
-        <h3 className="document-prototype-section-title">موديول الشركات والعمليات المتقدمة</h3>
+        <h3 className="document-prototype-section-title">{__t('purchases.new_purchase_order.purchase_order_accounting_section.s0', "موديول الشركات والعمليات المتقدمة")}</h3>
         <div className="document-prototype-grid compact-grid-3" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
           {props.setShippingAddress && (
             <SearchableCombobox
-              label={t('shipping_address') || 'وجهة الاستلام (المخزن أو الفرع)'}
-              placeholder="اختر المخزن أو الفرع..."
+              label={t('shipping_address') || __t('purchases.new_purchase_order.purchase_order_accounting_section.s1', "وجهة الاستلام (المخزن أو الفرع)")}
+              placeholder={__t('purchases.new_purchase_order.purchase_order_accounting_section.s2', "اختر المخزن أو الفرع...")}
               value={props.shippingAddress || ''}
               onChange={(value) => {
                 props.markDocumentDirty();
@@ -112,7 +113,7 @@ export function PurchaseOrderAccountingSection(props: AccountingSectionProps) {
           }}
           options={[
             { id: 'term-1', name: 'Standard PO Template' },
-            { id: 'term-2', name: 'شروط توريد مختصرة' }
+            { id: 'term-2', name: __t('purchases.new_purchase_order.purchase_order_accounting_section.s3', "شروط توريد مختصرة") }
           ]}
           search={(option, query) => (normalizeSearchText(query) ? includesNormalized(option.name, query) : true)}
           getLabel={(option) => option.name}

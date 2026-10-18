@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useMemo } from 'react';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
 import { MaritimeJob } from '../api/maritime-freight.api';
@@ -17,6 +18,7 @@ export function MaritimeJobsTab({
   onSelectJob,
   onOpenCreateJob,
 }: MaritimeJobsTabProps) {
+  const { t } = useTranslation();
   const { pipelineConfig } = useMaritime();
   const enableSeaFreight = pipelineConfig?.enableSeaFreight !== false;
   const enableAirFreight = pipelineConfig?.enableAirFreight !== false;
@@ -87,7 +89,7 @@ export function MaritimeJobsTab({
       return (
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', background: '#f0f9ff', color: '#0369a1', border: '1px solid #bae6fd', padding: '2px 6px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 700 }}>
           <AppIcons.Plane size={11} />
-          <span>شحن جوي</span>
+          <span>{t('maritime_freight.maritime_jobs_tab.s0', "شحن جوي")}</span>
         </span>
       );
     }
@@ -95,14 +97,14 @@ export function MaritimeJobsTab({
       return (
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', background: '#fef3c7', color: '#b45309', border: '1px solid #fde68a', padding: '2px 6px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 700 }}>
           <AppIcons.Truck size={11} />
-          <span>شحن بري</span>
+          <span>{t('maritime_freight.maritime_jobs_tab.s1', "شحن بري")}</span>
         </span>
       );
     }
     return (
       <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', padding: '2px 6px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 700 }}>
         <AppIcons.Ship size={11} />
-        <span>شحن بحري</span>
+        <span>{t('maritime_freight.maritime_jobs_tab.s2', "شحن بحري")}</span>
       </span>
     );
   };
@@ -133,9 +135,9 @@ export function MaritimeJobsTab({
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '12px' }}>
         <div style={{ background: '#ffffff', padding: '16px 20px', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: '88px', boxSizing: 'border-box' }}>
           <div>
-            <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>إجمالي أوامر التشغيل</div>
+            <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>{t('maritime_freight.maritime_jobs_tab.s3', "إجمالي أوامر التشغيل")}</div>
             <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#0f172a', marginTop: '4px' }}>
-              {jobs.length} <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>أمر</span>
+              {jobs.length} <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>{t('maritime_freight.maritime_jobs_tab.s4', "أمر")}</span>
             </div>
           </div>
           <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#eff6ff', border: '1px solid #dbeafe', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#2563eb', flexShrink: 0 }}>
@@ -145,9 +147,9 @@ export function MaritimeJobsTab({
 
         <div style={{ background: '#ffffff', padding: '16px 20px', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: '88px', boxSizing: 'border-box' }}>
           <div>
-            <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>شحنات النقل البحري</div>
+            <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>{t('maritime_freight.maritime_jobs_tab.s5', "شحنات النقل البحري")}</div>
             <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#0f172a', marginTop: '4px' }}>
-              {oceanJobsCount} <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>شحنة</span>
+              {oceanJobsCount} <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>{t('maritime_freight.maritime_jobs_tab.s6', "شحنة")}</span>
             </div>
           </div>
           <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#eef2ff', border: '1px solid #e0e7ff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#4338ca', flexShrink: 0 }}>
@@ -157,9 +159,9 @@ export function MaritimeJobsTab({
 
         <div style={{ background: '#ffffff', padding: '16px 20px', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: '88px', boxSizing: 'border-box' }}>
           <div>
-            <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>شحنات جوية وبرية</div>
+            <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>{t('maritime_freight.maritime_jobs_tab.s7', "شحنات جوية وبرية")}</div>
             <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#0f172a', marginTop: '4px' }}>
-              {airRoadJobsCount} <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>شحنة</span>
+              {airRoadJobsCount} <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>{t('maritime_freight.maritime_jobs_tab.s8', "شحنة")}</span>
             </div>
           </div>
           <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#fffbeb', border: '1px solid #fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#d97706', flexShrink: 0 }}>
@@ -169,9 +171,9 @@ export function MaritimeJobsTab({
 
         <div style={{ background: '#ffffff', padding: '16px 20px', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: '88px', boxSizing: 'border-box' }}>
           <div>
-            <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>مكتملة ومفرجة جمركياً</div>
+            <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>{t('maritime_freight.maritime_jobs_tab.s9', "مكتملة ومفرجة جمركياً")}</div>
             <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#0f172a', marginTop: '4px' }}>
-              {completedCount} <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>شحنة</span>
+              {completedCount} <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>{t('maritime_freight.maritime_jobs_tab.s10', "شحنة")}</span>
             </div>
           </div>
           <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#f0fdf4', border: '1px solid #dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#16a34a', flexShrink: 0 }}>
@@ -185,15 +187,15 @@ export function MaritimeJobsTab({
       <div style={{ padding: '16px 20px', borderBottom: '1px solid #e2e8f0', background: '#f8fafc', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
         <div>
           <h3 style={{ margin: 0, fontSize: '0.94rem', fontWeight: 800, color: '#0f172a' }}>
-            أوامر التشغيل والعمليات اللوجستية (Shipment Jobs)
+            {t('maritime_freight.maritime_jobs_tab.s11', "أوامر التشغيل والعمليات اللوجستية (Shipment Jobs)")}
           </h3>
           <p style={{ margin: '3px 0 0 0', fontSize: '0.78rem', color: '#64748b' }}>
-            ملفات العمليات التشغيلية (بحري / جوي / بري)، تتبع الرحلات والبوالص، وتدقيق الأرباح والخسائر للعملية
+            {t('maritime_freight.maritime_jobs_tab.s12', "ملفات العمليات التشغيلية (بحري / جوي / بري)، تتبع الرحلات والبوالص، وتدقيق الأرباح والخسائر للعملية")}
           </p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <span style={{ fontSize: '0.75rem', fontWeight: 700, background: '#ffffff', color: '#475569', border: '1px solid #e2e8f0', padding: '3px 10px', borderRadius: '12px' }}>
-            {filteredJobs.length} من {jobs.length} أمر تشغيل
+            {filteredJobs.length} {t('maritime_freight.maritime_jobs_tab.s13', "من")} {jobs.length} {t('maritime_freight.maritime_jobs_tab.s14', "أمر تشغيل")}
           </span>
           {onOpenCreateJob && (
             <button
@@ -210,7 +212,7 @@ export function MaritimeJobsTab({
                 cursor: 'pointer',
               }}
             >
-              + إنشاء طلب جديد
+              {t('maritime_freight.maritime_jobs_tab.s15', "+ إنشاء طلب جديد")}
             </button>
           )}
         </div>
@@ -237,7 +239,7 @@ export function MaritimeJobsTab({
             autoComplete="off"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="بحث برقم العملية، العميل، البوليصة..."
+            placeholder={t('maritime_freight.maritime_jobs_tab.s16', "بحث برقم العملية، العميل، البوليصة...")}
             style={{
               width: '100%',
               height: '34px',
@@ -256,7 +258,7 @@ export function MaritimeJobsTab({
 
         {activeModesCount > 1 && (
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>الوسيلة:</span>
+            <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>{t('maritime_freight.maritime_jobs_tab.s17', "الوسيلة:")}</span>
             {availableModes.map((mode) => {
               const Icon = mode.icon;
               const isSelected = modeFilter === mode.id;
@@ -303,27 +305,27 @@ export function MaritimeJobsTab({
           </colgroup>
           <thead>
             <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', fontWeight: 700 }}>
-              <th style={{ padding: '8px 6px', fontSize: '0.76rem', whiteSpace: 'nowrap' }}>كود العملية / الوسيلة</th>
-              <th style={{ padding: '8px 6px', fontSize: '0.76rem', whiteSpace: 'nowrap' }}>العميل والمسار</th>
-              <th style={{ padding: '8px 6px', fontSize: '0.76rem', whiteSpace: 'nowrap' }}>الناقل والرحلة</th>
-              <th style={{ padding: '8px 6px', fontSize: '0.76rem', whiteSpace: 'nowrap' }}>الشحنة والمعدات / الأوزان</th>
-              <th style={{ padding: '8px 6px', fontSize: '0.76rem', whiteSpace: 'nowrap', textAlign: 'center' }}>المرحلة التشغيلية</th>
-              <th style={{ padding: '8px 6px', fontSize: '0.76rem', whiteSpace: 'nowrap', textAlign: 'center' }}>إذن التسليم (D/O)</th>
-              <th style={{ padding: '8px 6px', fontSize: '0.76rem', whiteSpace: 'nowrap', textAlign: 'center' }}>ربحية الشحنة</th>
-              <th style={{ padding: '8px 6px', fontSize: '0.76rem', whiteSpace: 'nowrap', textAlign: 'center' }}>الإجراءات</th>
+              <th style={{ padding: '8px 6px', fontSize: '0.76rem', whiteSpace: 'nowrap' }}>{t('maritime_freight.maritime_jobs_tab.s18', "كود العملية / الوسيلة")}</th>
+              <th style={{ padding: '8px 6px', fontSize: '0.76rem', whiteSpace: 'nowrap' }}>{t('maritime_freight.maritime_jobs_tab.s19', "العميل والمسار")}</th>
+              <th style={{ padding: '8px 6px', fontSize: '0.76rem', whiteSpace: 'nowrap' }}>{t('maritime_freight.maritime_jobs_tab.s20', "الناقل والرحلة")}</th>
+              <th style={{ padding: '8px 6px', fontSize: '0.76rem', whiteSpace: 'nowrap' }}>{t('maritime_freight.maritime_jobs_tab.s21', "الشحنة والمعدات / الأوزان")}</th>
+              <th style={{ padding: '8px 6px', fontSize: '0.76rem', whiteSpace: 'nowrap', textAlign: 'center' }}>{t('maritime_freight.maritime_jobs_tab.s22', "المرحلة التشغيلية")}</th>
+              <th style={{ padding: '8px 6px', fontSize: '0.76rem', whiteSpace: 'nowrap', textAlign: 'center' }}>{t('maritime_freight.maritime_jobs_tab.s23', "إذن التسليم (D/O)")}</th>
+              <th style={{ padding: '8px 6px', fontSize: '0.76rem', whiteSpace: 'nowrap', textAlign: 'center' }}>{t('maritime_freight.maritime_jobs_tab.s24', "ربحية الشحنة")}</th>
+              <th style={{ padding: '8px 6px', fontSize: '0.76rem', whiteSpace: 'nowrap', textAlign: 'center' }}>{t('maritime_freight.maritime_jobs_tab.s25', "الإجراءات")}</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
                 <td colSpan={8} style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
-                  جاري تحميل ملفات العمليات...
+                  {t('maritime_freight.maritime_jobs_tab.s26', "جاري تحميل ملفات العمليات...")}
                 </td>
               </tr>
             ) : filteredJobs.length === 0 ? (
               <tr>
                 <td colSpan={8} style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
-                  لا توجد أوامر تشغيل مطابقة لمعايير البحث. يمكنك تحويل أي عرض سعر معتمد إلى أمر تشغيل بنقرة واحدة.
+                  {t('maritime_freight.maritime_jobs_tab.s27', "لا توجد أوامر تشغيل مطابقة لمعايير البحث. يمكنك تحويل أي عرض سعر معتمد إلى أمر تشغيل بنقرة واحدة.")}
                 </td>
               </tr>
             ) : (
@@ -366,11 +368,11 @@ export function MaritimeJobsTab({
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
                       }}
-                      title={`${job.pol_name || job.pol_code} ➔ ${job.pod_name || job.pod_code} (${job.direction === 'import' ? 'وارد' : job.direction === 'export' ? 'صادر' : 'ترانزيت'})`}
+                      title={`${job.pol_name || job.pol_code} ➔ ${job.pod_name || job.pod_code} (${job.direction === 'import' ? t('maritime_freight.maritime_jobs_tab.s28', "وارد") : job.direction === 'export' ? t('maritime_freight.maritime_jobs_tab.s29', "صادر") : t('maritime_freight.maritime_jobs_tab.s30', "ترانزيت")})`}
                     >
                       {job.pol_code} ➔ {job.pod_code}{' '}
                       <span style={{ fontSize: '0.65rem', color: '#94a3b8' }}>
-                        ({job.direction === 'import' ? 'وارد' : job.direction === 'export' ? 'صادر' : 'ترانزيت'})
+                        ({job.direction === 'import' ? t('maritime_freight.maritime_jobs_tab.s31', "وارد") : job.direction === 'export' ? t('maritime_freight.maritime_jobs_tab.s32', "صادر") : t('maritime_freight.maritime_jobs_tab.s33', "ترانزيت")})
                       </span>
                     </div>
                   </td>
@@ -386,9 +388,9 @@ export function MaritimeJobsTab({
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
                       }}
-                      title={job.shipping_line_name || 'غير محدد'}
+                      title={job.shipping_line_name || t('maritime_freight.maritime_jobs_tab.s34', "غير محدد")}
                     >
-                      {getShortShippingLineName(job.shipping_line_name) || 'غير محدد'}
+                      {getShortShippingLineName(job.shipping_line_name) || t('maritime_freight.maritime_jobs_tab.s35', "غير محدد")}
                     </div>
                     <div
                       style={{
@@ -401,17 +403,17 @@ export function MaritimeJobsTab({
                       }}
                       title={
                         job.transport_mode === 'air'
-                          ? (job.flight_number ? `رحلة: ${job.flight_number}` : job.mawb_number ? `AWB: ${job.mawb_number}` : 'شحن جوي')
+                          ? (job.flight_number ? `رحلة: ${job.flight_number}` : job.mawb_number ? `AWB: ${job.mawb_number}` : t('maritime_freight.maritime_jobs_tab.s36', "شحن جوي"))
                           : job.transport_mode === 'road'
-                          ? (job.booking_number ? `بوليصة: ${job.booking_number}` : 'نقل بري')
-                          : (job.vessel_name ? `${job.vessel_name} / ${job.voyage_number || '-'}` : (job.booking_number ? `حجز: ${job.booking_number}` : 'شحن بحري'))
+                          ? (job.booking_number ? `بوليصة: ${job.booking_number}` : t('maritime_freight.maritime_jobs_tab.s37', "نقل بري"))
+                          : (job.vessel_name ? `${job.vessel_name} / ${job.voyage_number || '-'}` : (job.booking_number ? `حجز: ${job.booking_number}` : t('maritime_freight.maritime_jobs_tab.s38', "شحن بحري")))
                       }
                     >
                       {job.transport_mode === 'air'
-                        ? (job.flight_number ? `رحلة: ${job.flight_number}` : job.mawb_number ? `AWB: ${job.mawb_number}` : 'شحن جوي')
+                        ? (job.flight_number ? `رحلة: ${job.flight_number}` : job.mawb_number ? `AWB: ${job.mawb_number}` : t('maritime_freight.maritime_jobs_tab.s39', "شحن جوي"))
                         : job.transport_mode === 'road'
-                        ? (job.booking_number ? `بوليصة: ${job.booking_number}` : 'نقل بري')
-                        : (job.vessel_name ? `${job.vessel_name} / ${job.voyage_number || '-'}` : (job.booking_number ? `حجز: ${job.booking_number}` : 'شحن بحري'))
+                        ? (job.booking_number ? `بوليصة: ${job.booking_number}` : t('maritime_freight.maritime_jobs_tab.s40', "نقل بري"))
+                        : (job.vessel_name ? `${job.vessel_name} / ${job.voyage_number || '-'}` : (job.booking_number ? `حجز: ${job.booking_number}` : t('maritime_freight.maritime_jobs_tab.s41', "شحن بحري")))
                       }
                     </div>
                   </td>
@@ -437,10 +439,10 @@ export function MaritimeJobsTab({
                             fontSize: '0.70rem',
                           }}
                         >
-                          {Number(job.chargeable_weight_kg || job.gross_weight_kg || 0).toLocaleString()} كجم
+                          {Number(job.chargeable_weight_kg || job.gross_weight_kg || 0).toLocaleString()} {t('maritime_freight.maritime_jobs_tab.s42', "كجم")}
                         </span>
                         <span style={{ fontSize: '0.68rem', color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                          {job.package_count || 0} طرد • {job.total_cbm || 0} CBM
+                          {job.package_count || 0} {t('maritime_freight.maritime_jobs_tab.s43', "طرد •")} {job.total_cbm || 0} CBM
                         </span>
                       </div>
                     ) : job.transport_mode === 'road' ? (
@@ -462,7 +464,7 @@ export function MaritimeJobsTab({
                             fontSize: '0.70rem',
                           }}
                         >
-                          {Number(job.gross_weight_kg || 0).toLocaleString()} كجم
+                          {Number(job.gross_weight_kg || 0).toLocaleString()} {t('maritime_freight.maritime_jobs_tab.s44', "كجم")}
                         </span>
                         <span style={{ fontSize: '0.68rem', color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                           {job.total_cbm || 0} CBM
@@ -482,7 +484,7 @@ export function MaritimeJobsTab({
                           fontSize: '0.71rem',
                         }}
                       >
-                        {job.containersCount || 0} حاويات
+                        {job.containersCount || 0} {t('maritime_freight.maritime_jobs_tab.s45', "حاويات")}
                       </span>
                     )}
                   </td>
@@ -525,12 +527,12 @@ export function MaritimeJobsTab({
                           color: job.payment_status === 'paid' ? '#15803d' : job.payment_status === 'partially_paid' ? '#b45309' : '#64748b',
                         }}
                       >
-                        {job.payment_status === 'paid' ? 'مسدد بالكامل' : job.payment_status === 'partially_paid' ? 'مسدد جزئياً' : 'غير مسدد'}
+                        {job.payment_status === 'paid' ? t('maritime_freight.maritime_jobs_tab.s46', "مسدد بالكامل") : job.payment_status === 'partially_paid' ? t('maritime_freight.maritime_jobs_tab.s47', "مسدد جزئياً") : t('maritime_freight.maritime_jobs_tab.s48', "غير مسدد")}
                       </span>
                       {job.delivery_order_released ? (
-                        <span style={{ color: '#15803d', fontWeight: 600, fontSize: '0.68rem', whiteSpace: 'nowrap' }}>تم التسليم (D/O)</span>
+                        <span style={{ color: '#15803d', fontWeight: 600, fontSize: '0.68rem', whiteSpace: 'nowrap' }}>{t('maritime_freight.maritime_jobs_tab.s49', "تم التسليم (D/O)")}</span>
                       ) : (
-                        <span style={{ color: '#d97706', fontWeight: 600, fontSize: '0.68rem', whiteSpace: 'nowrap' }}>إذن تسليم معلق</span>
+                        <span style={{ color: '#d97706', fontWeight: 600, fontSize: '0.68rem', whiteSpace: 'nowrap' }}>{t('maritime_freight.maritime_jobs_tab.s50', "إذن تسليم معلق")}</span>
                       )}
                     </div>
                   </td>
@@ -547,7 +549,7 @@ export function MaritimeJobsTab({
                     <button
                       type="button"
                       onClick={() => onSelectJob(job)}
-                      title="استعراض وتفاصيل ملف أمر التشغيل"
+                      title={t('maritime_freight.maritime_jobs_tab.s51', "استعراض وتفاصيل ملف أمر التشغيل")}
                       style={{
                         padding: '0 8px',
                         height: '26px',
@@ -577,7 +579,7 @@ export function MaritimeJobsTab({
                       }}
                     >
                       <AppIcons.FileText size={11} />
-                      <span>استعراض الملف</span>
+                      <span>{t('maritime_freight.maritime_jobs_tab.s52', "استعراض الملف")}</span>
                     </button>
                   </td>
                 </tr>

@@ -1,14 +1,16 @@
+import { useTranslation } from 'react-i18next';
 import { PosWorkspace } from '@/features/pos/components/PosWorkspace';
 import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
 import { FeatureGate } from '@/shared/components/feature-gate';
 
 export function PosPage() {
+  const { t } = useTranslation();
   const { data: settings, isLoading } = useSettingsQuery();
 
   if (isLoading) {
     return (
       <div className="screen-center" style={{ minHeight: '60vh' }}>
-        <div className="loading-card">جاري التحقق من إعدادات نقطة البيع...</div>
+        <div className="loading-card">{t('pos.pos_page.s0', "جاري التحقق من إعدادات نقطة البيع...")}</div>
       </div>
     );
   }
@@ -73,14 +75,14 @@ export function PosPage() {
             </svg>
           </div>
           <h3 style={{ fontSize: '18px', fontWeight: 800, color: '#0f172a', marginBottom: '10px' }}>
-            موديول نقطة البيع (الكاشير) غير مفعّل
+            {t('pos.pos_page.s1', "موديول نقطة البيع (الكاشير) غير مفعّل")}
           </h3>
           <p style={{ fontSize: '13px', color: '#64748b', lineHeight: 1.6, marginBottom: '24px' }}>
             {isWholesaleVertical
-              ? 'هذا الحساب مهيأ لنمط تجارة الجملة والتوزيع المؤسسي وأسطول سيارات الفان، حيث تتم المبيعات الميدانية وإصدار الفواتير وأوامر البيع عبر شاشات توزيع الفان وسجل الفواتير بدون كاشير.'
+              ? t('pos.pos_page.s2', "هذا الحساب مهيأ لنمط تجارة الجملة والتوزيع المؤسسي وأسطول سيارات الفان، حيث تتم المبيعات الميدانية وإصدار الفواتير وأوامر البيع عبر شاشات توزيع الفان وسجل الفواتير بدون كاشير.")
               : isNonRetailVertical
-              ? 'هذا الحساب مخصص لقطاع تخصصي (مشاريع مقاولات أو شحن ولوجستيات أو خدمات) لا يعتمد على نقاط البيع المباشرة.'
-              : 'تم تعطيل موديول نقطة البيع والكاشير في إعدادات المنشأة. يمكنك تفعيله من شاشة إعدادات الموديولات.'}
+              ? t('pos.pos_page.s3', "هذا الحساب مخصص لقطاع تخصصي (مشاريع مقاولات أو شحن ولوجستيات أو خدمات) لا يعتمد على نقاط البيع المباشرة.")
+              : t('pos.pos_page.s4', "تم تعطيل موديول نقطة البيع والكاشير في إعدادات المنشأة. يمكنك تفعيله من شاشة إعدادات الموديولات.")}
           </p>
           <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
             {isWholesaleVertical && (
@@ -102,7 +104,7 @@ export function PosPage() {
                   cursor: 'pointer',
                 }}
               >
-                سيارات التوزيع (الفان)
+                {t('pos.pos_page.s5', "سيارات التوزيع (الفان)")}
               </button>
             )}
             <button
@@ -123,7 +125,7 @@ export function PosPage() {
                 cursor: 'pointer',
               }}
             >
-              العودة إلى لوحة التحكم
+              {t('pos.pos_page.s6', "العودة إلى لوحة التحكم")}
             </button>
           </div>
         </div>
@@ -132,7 +134,7 @@ export function PosPage() {
   }
 
   return (
-    <FeatureGate feature="sales" featureName="نقطة البيع والكاشير">
+    <FeatureGate feature="sales" featureName={t('pos.pos_page.s7', "نقطة البيع والكاشير")}>
       <PosWorkspace />
     </FeatureGate>
   );

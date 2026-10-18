@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { PageHeader } from '@/shared/components/page-header';
@@ -11,8 +12,10 @@ import {
   type CashFlowReportData,
   type CashFlowSection,
 } from '@/features/accounting/api/accounting.api';
+import { translateUiText } from '@/lib/auto-translator';
 
 export function CashFlowStatementPage() {
+  const { t } = useTranslation();
   const currentYear = new Date().getFullYear();
   const defaultDateFrom = `${currentYear}-01-01`;
   const defaultDateTo = new Date().toISOString().slice(0, 10);
@@ -85,15 +88,15 @@ export function CashFlowStatementPage() {
   };
 
   return (
-    <div className="page-stack page-shell cash-flow-workspace" dir="rtl">
+    <div className="page-stack page-shell cash-flow-workspace">
       <main className="document-prototype-column" style={{ paddingBottom: '32px' }}>
         <PageHeader
-          title="قائمة التدفقات النقدية المعيارية"
-          description="Statement of Cash Flows (IAS 7) — تصنيف حركة السيولة النقدية ومطابقتها التلقائية مع واقع الخزائن والبنوك."
+          title={t('accounting.cash_flow_statement_page.s0', "قائمة التدفقات النقدية المعيارية")}
+          description={t('accounting.cash_flow_statement_page.s1', "Statement of Cash Flows (IAS 7) — تصنيف حركة السيولة النقدية ومطابقتها التلقائية مع واقع الخزائن والبنوك.")}
           badge={
             report ? (
               <span className="nav-pill">
-                {report.isReconciled ? 'السيولة متطابقة مع البنوك' : 'يوجد فرق تسوية'}
+                {report.isReconciled ? t('accounting.cash_flow_statement_page.s2', "السيولة متطابقة مع البنوك") : t('accounting.cash_flow_statement_page.s3', "يوجد فرق تسوية")}
               </span>
             ) : null
           }
@@ -101,11 +104,11 @@ export function CashFlowStatementPage() {
             <div className="actions compact-actions">
               <Button type="button" variant="secondary" onClick={handleExportCsv} disabled={!report}>
                 <DownloadIcon size={14} style={{ marginInlineEnd: '6px' }} />
-                تصدير CSV
+                {t('accounting.cash_flow_statement_page.s4', "تصدير CSV")}
               </Button>
               <Button type="button" variant="secondary" onClick={handlePrint} disabled={!report}>
                 <PrinterIcon size={14} style={{ marginInlineEnd: '6px' }} />
-                طباعة معتمدة
+                {t('accounting.cash_flow_statement_page.s5', "طباعة معتمدة")}
               </Button>
             </div>
           }
@@ -117,7 +120,7 @@ export function CashFlowStatementPage() {
           <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems: 'flex-end' }}>
             <div>
               <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#475569', marginBottom: '6px' }}>
-                من تاريخ
+                {t('accounting.cash_flow_statement_page.s6', "من تاريخ")}
               </label>
               <input
                 type="date"
@@ -129,7 +132,7 @@ export function CashFlowStatementPage() {
 
             <div>
               <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#475569', marginBottom: '6px' }}>
-                إلى تاريخ
+                {t('accounting.cash_flow_statement_page.s7', "إلى تاريخ")}
               </label>
               <input
                 type="date"
@@ -145,23 +148,23 @@ export function CashFlowStatementPage() {
               onClick={() => void query.refetch()}
               style={{ height: '36px', backgroundColor: '#170e5e', color: '#fff', fontWeight: 700 }}
             >
-              تحديث التقرير
+              {t('accounting.cash_flow_statement_page.s8', "تحديث التقرير")}
             </Button>
           </div>
 
           {/* Quick Period Presets */}
           <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
             <Button type="button" variant="secondary" onClick={() => setPreset('this_month')} style={{ fontSize: '0.8rem', padding: '4px 10px' }}>
-              هذا الشهر
+              {t('accounting.cash_flow_statement_page.s9', "هذا الشهر")}
             </Button>
             <Button type="button" variant="secondary" onClick={() => setPreset('this_quarter')} style={{ fontSize: '0.8rem', padding: '4px 10px' }}>
-              الربع الحالي
+              {t('accounting.cash_flow_statement_page.s10', "الربع الحالي")}
             </Button>
             <Button type="button" variant="secondary" onClick={() => setPreset('this_year')} style={{ fontSize: '0.8rem', padding: '4px 10px' }}>
-              هذا العام
+              {t('accounting.cash_flow_statement_page.s11', "هذا العام")}
             </Button>
             <Button type="button" variant="secondary" onClick={() => setPreset('last_year')} style={{ fontSize: '0.8rem', padding: '4px 10px' }}>
-              العام السابق
+              {t('accounting.cash_flow_statement_page.s12', "العام السابق")}
             </Button>
           </div>
         </div>
@@ -170,13 +173,13 @@ export function CashFlowStatementPage() {
       {/* Loading & Error feedback */}
       {query.isLoading && (
         <Card style={{ padding: '32px', textAlign: 'center', color: '#64748b' }}>
-          جاري احتساب التدفقات النقدية ومطابقة أرصدة الخزائن والبنوك...
+          {t('accounting.cash_flow_statement_page.s13', "جاري احتساب التدفقات النقدية ومطابقة أرصدة الخزائن والبنوك...")}
         </Card>
       )}
 
       {query.isError && (
         <Card style={{ padding: '24px', backgroundColor: '#fef2f2', border: '1px solid #fecaca', color: '#991b1b', borderRadius: '12px' }}>
-          تعذر احتساب قائمة التدفقات النقدية. يرجى التحقق من اتصال الخادم.
+          {t('accounting.cash_flow_statement_page.s14', "تعذر احتساب قائمة التدفقات النقدية. يرجى التحقق من اتصال الخادم.")}
         </Card>
       )}
 
@@ -213,17 +216,17 @@ export function CashFlowStatementPage() {
               <div>
                 <strong style={{ fontSize: '0.95rem', color: report.isReconciled ? '#166534' : '#92400e' }}>
                   {report.isReconciled
-                    ? 'النقدية متطابقة تماماً مع أرصدة الخزائن والحسابات البنكية الفعلية'
-                    : 'يوجد اختلاف طفيف بين التدفقات المحسوبة وأرصدة البنوك'}
+                    ? t('accounting.cash_flow_statement_page.s15', "النقدية متطابقة تماماً مع أرصدة الخزائن والحسابات البنكية الفعلية")
+                    : t('accounting.cash_flow_statement_page.s16', "يوجد اختلاف طفيف بين التدفقات المحسوبة وأرصدة البنوك")}
                 </strong>
                 <div style={{ fontSize: '0.78rem', color: '#475569', marginTop: '2px' }}>
-                  رصيد أول المدة ({formatCurrency(report.beginningCash)}) + صافي التدفق ({formatCurrency(report.netCashFlow)}) = رصيد آخر المدة ({formatCurrency(report.endingCash)})
+                  {t('accounting.cash_flow_statement_page.s17', "رصيد أول المدة (")}{formatCurrency(report.beginningCash)}{t('accounting.cash_flow_statement_page.s18', ") + صافي التدفق (")}{formatCurrency(report.netCashFlow)}{t('accounting.cash_flow_statement_page.s19', ") = رصيد آخر المدة (")}{formatCurrency(report.endingCash)})
                 </div>
               </div>
             </div>
 
             <div style={{ textAlign: 'left' }}>
-              <span style={{ fontSize: '0.75rem', color: '#64748b' }}>الفترة الزمنية:</span>
+              <span style={{ fontSize: '0.75rem', color: '#64748b' }}>{t('accounting.cash_flow_statement_page.s20', "الفترة الزمنية:")}</span>
               <strong style={{ display: 'block', fontSize: '0.85rem', color: '#0f172a' }}>
                 {report.dateFrom} ➔ {report.dateTo}
               </strong>
@@ -233,7 +236,7 @@ export function CashFlowStatementPage() {
           {/* 4 Financial Highlight Cards */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', marginBottom: '20px' }}>
             <Card style={{ padding: '16px', backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px' }}>
-              <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#64748b' }}>التدفقات التشغيلية</span>
+              <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#64748b' }}>{t('accounting.cash_flow_statement_page.s21', "التدفقات التشغيلية")}</span>
               <div
                 style={{
                   fontSize: '1.3rem',
@@ -245,12 +248,12 @@ export function CashFlowStatementPage() {
                 {formatCurrency(report.operatingActivities.total)}
               </div>
               <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '4px' }}>
-                النشاط التجاري والعمليات
+                {t('accounting.cash_flow_statement_page.s22', "النشاط التجاري والعمليات")}
               </div>
             </Card>
 
             <Card style={{ padding: '16px', backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px' }}>
-              <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#64748b' }}>التدفقات الاستثمارية</span>
+              <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#64748b' }}>{t('accounting.cash_flow_statement_page.s23', "التدفقات الاستثمارية")}</span>
               <div
                 style={{
                   fontSize: '1.3rem',
@@ -262,12 +265,12 @@ export function CashFlowStatementPage() {
                 {formatCurrency(report.investingActivities.total)}
               </div>
               <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '4px' }}>
-                شراء وبيع الأصول والمعدات
+                {t('accounting.cash_flow_statement_page.s24', "شراء وبيع الأصول والمعدات")}
               </div>
             </Card>
 
             <Card style={{ padding: '16px', backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px' }}>
-              <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#64748b' }}>التدفقات التمويلية</span>
+              <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#64748b' }}>{t('accounting.cash_flow_statement_page.s25', "التدفقات التمويلية")}</span>
               <div
                 style={{
                   fontSize: '1.3rem',
@@ -279,12 +282,12 @@ export function CashFlowStatementPage() {
                 {formatCurrency(report.financingActivities.total)}
               </div>
               <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '4px' }}>
-                رأس المال والمسحوبات والقروض
+                {t('accounting.cash_flow_statement_page.s26', "رأس المال والمسحوبات والقروض")}
               </div>
             </Card>
 
             <Card style={{ padding: '16px', backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px' }}>
-              <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#64748b' }}>صافي التغير في النقدية</span>
+              <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#64748b' }}>{t('accounting.cash_flow_statement_page.s27', "صافي التغير في النقدية")}</span>
               <div
                 style={{
                   fontSize: '1.3rem',
@@ -296,7 +299,7 @@ export function CashFlowStatementPage() {
                 {formatCurrency(report.netCashFlow)}
               </div>
               <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '4px' }}>
-                إجمالي حركة السيولة بالفترة
+                {t('accounting.cash_flow_statement_page.s28', "إجمالي حركة السيولة بالفترة")}
               </div>
             </Card>
           </div>
@@ -321,19 +324,19 @@ export function CashFlowStatementPage() {
               }}
             >
               <div>
-                <span style={{ fontSize: '0.85rem', color: '#94a3b8' }}>رصيد النقدية في بداية الفترة</span>
+                <span style={{ fontSize: '0.85rem', color: '#94a3b8' }}>{t('accounting.cash_flow_statement_page.s29', "رصيد النقدية في بداية الفترة")}</span>
                 <strong style={{ display: 'block', fontSize: '1.3rem' }}>{formatCurrency(report.beginningCash)}</strong>
               </div>
 
               <div>
-                <span style={{ fontSize: '0.85rem', color: '#94a3b8' }}>صافي التغير في النقدية</span>
+                <span style={{ fontSize: '0.85rem', color: '#94a3b8' }}>{t('accounting.cash_flow_statement_page.s30', "صافي التغير في النقدية")}</span>
                 <strong style={{ display: 'block', fontSize: '1.3rem', color: report.netCashFlow >= 0 ? '#4ade80' : '#f87171' }}>
                   {formatCurrency(report.netCashFlow)}
                 </strong>
               </div>
 
               <div style={{ borderInlineStart: '1px solid #334155', paddingInlineStart: '16px' }}>
-                <span style={{ fontSize: '0.85rem', color: '#94a3b8' }}>رصيد النقدية في نهاية الفترة (الفعلي)</span>
+                <span style={{ fontSize: '0.85rem', color: '#94a3b8' }}>{t('accounting.cash_flow_statement_page.s31', "رصيد النقدية في نهاية الفترة (الفعلي)")}</span>
                 <strong style={{ display: 'block', fontSize: '1.5rem', color: '#38bdf8' }}>{formatCurrency(report.endingCash)}</strong>
               </div>
             </Card>
@@ -346,12 +349,19 @@ export function CashFlowStatementPage() {
 }
 
 function CashFlowSectionCard({ section }: { section: CashFlowSection }) {
+  const { t, i18n } = useTranslation();
+  const isEn = i18n.language === 'en';
+  const title = isEn ? (section.titleEn || translateUiText(section.titleAr) || section.titleAr) : section.titleAr;
+  const subTitle = isEn ? undefined : section.titleEn;
+
   return (
     <Card style={{ padding: '0', backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', overflow: 'hidden' }}>
       <div style={{ padding: '14px 18px', borderBottom: '1px solid #e2e8f0', backgroundColor: '#f8fafc', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-          <strong style={{ fontSize: '0.95rem', color: '#0f172a' }}>{section.titleAr}</strong>
-          <span style={{ fontSize: '0.8rem', color: '#64748b', marginInlineStart: '8px' }}>({section.titleEn})</span>
+          <strong style={{ fontSize: '0.95rem', color: '#0f172a' }}>{title}</strong>
+          {subTitle && (
+            <span style={{ fontSize: '0.8rem', color: '#64748b', marginInlineStart: '8px' }}>({subTitle})</span>
+          )}
         </div>
         <div style={{ fontSize: '1.05rem', fontWeight: 800, color: section.total >= 0 ? '#166534' : '#991b1b' }}>
           {formatCurrency(section.total)}
@@ -361,35 +371,41 @@ function CashFlowSectionCard({ section }: { section: CashFlowSection }) {
       <div style={{ padding: '8px 16px' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
           <tbody>
-            {section.lines.map((line, idx) => (
-              <tr key={idx} style={{ borderBottom: idx !== section.lines.length - 1 ? '1px solid #f1f5f9' : 'none' }}>
-                <td style={{ padding: '10px 4px', fontWeight: 600, color: '#1e293b' }}>
-                  {line.labelAr}
-                  {line.note && (
-                    <div style={{ fontSize: '0.75rem', fontWeight: 400, color: '#64748b', marginTop: '2px' }}>
-                      {line.note}
-                    </div>
-                  )}
-                </td>
-                <td
-                  style={{
-                    padding: '10px 4px',
-                    textAlign: 'left',
-                    fontWeight: 700,
-                    color: line.amount < 0 ? '#dc2626' : line.amount > 0 ? '#16a34a' : '#64748b',
-                    width: '180px',
-                  }}
-                >
-                  {formatCurrency(line.amount)}
-                </td>
-              </tr>
-            ))}
+            {section.lines.map((line, idx) => {
+              const label = isEn ? (line.labelEn || translateUiText(line.labelAr) || line.labelAr) : line.labelAr;
+              const note = line.note ? (isEn ? ((line as any).noteEn || translateUiText(line.note) || line.note) : line.note) : undefined;
+              return (
+                <tr key={idx} style={{ borderBottom: idx !== section.lines.length - 1 ? '1px solid #f1f5f9' : 'none' }}>
+                  <td style={{ padding: '10px 4px', fontWeight: 600, color: '#1e293b' }}>
+                    {label}
+                    {note && (
+                      <div style={{ fontSize: '0.75rem', fontWeight: 400, color: '#64748b', marginTop: '2px' }}>
+                        {note}
+                      </div>
+                    )}
+                  </td>
+                  <td
+                    style={{
+                      padding: '10px 4px',
+                      textAlign: isEn ? 'right' : 'left',
+                      fontWeight: 700,
+                      color: line.amount < 0 ? '#dc2626' : line.amount > 0 ? '#16a34a' : '#64748b',
+                      width: '180px',
+                    }}
+                  >
+                    {formatCurrency(line.amount)}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
 
       <div style={{ padding: '12px 18px', borderTop: '1px solid #e2e8f0', backgroundColor: '#f8fafc', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span style={{ fontWeight: 700, color: '#334155' }}>صافي التدفقات من {section.titleAr}</span>
+        <span style={{ fontWeight: 700, color: '#334155' }}>
+          {isEn ? `Net Cash Flows from ${section.titleEn || title}` : `${t('accounting.cash_flow_statement_page.s32', 'صافي التدفقات من')} ${title}`}
+        </span>
         <strong style={{ fontSize: '1.1rem', color: section.total >= 0 ? '#166534' : '#991b1b' }}>
           {formatCurrency(section.total)}
         </strong>

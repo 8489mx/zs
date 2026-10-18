@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/shared/ui/button';
@@ -12,6 +13,7 @@ import { CompleteWorkOrderModal } from '../components/work-orders/CompleteWorkOr
 import { UnbuildOrdersModal } from '../components/work-orders/UnbuildOrdersModal';
 
 export default function WorkOrdersListPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [workOrders, setWorkOrders] = useState<WorkOrderRecord[]>([]);
   const [workCenters, setWorkCenters] = useState<WorkCenterRecord[]>([]);
@@ -124,10 +126,10 @@ export default function WorkOrdersListPage() {
   return (
     <ManufacturingLayout
       breadcrumbs={[
-        { label: 'التصنيع', to: '/manufacturing/work-orders' },
-        { label: 'أوامر الإنتاج' },
+        { label: t('manufacturing.work_orders_list_page.s0', "التصنيع"), to: '/manufacturing/work-orders' },
+        { label: t('manufacturing.work_orders_list_page.s1', "أوامر الإنتاج") },
       ]}
-      title="أوامر الإنتاج"
+      title={t('manufacturing.work_orders_list_page.s2', "أوامر الإنتاج")}
       actions={
         <div className="actions compact-actions" style={{ display: 'flex', gap: '8px' }}>
           <Button
@@ -138,38 +140,38 @@ export default function WorkOrdersListPage() {
               setIsUnbuildModalOpen(true);
             }}
           >
-            أوامر التفكيك (Unbuild)
+            {t('manufacturing.work_orders_list_page.s3', "أوامر التفكيك (Unbuild)")}
           </Button>
           <Button
             type="button"
             variant="primary"
             onClick={() => navigate('/manufacturing/work-orders/new')}
           >
-            + أمر إنتاج
+            {t('manufacturing.work_orders_list_page.s4', "+ أمر إنتاج")}
           </Button>
         </div>
       }
     >
       <section className="document-prototype-section">
         <div className="section-header-compact-row">
-          <h3 className="document-prototype-section-title">أوامر الشغل</h3>
+          <h3 className="document-prototype-section-title">{t('manufacturing.work_orders_list_page.s5', "أوامر الشغل")}</h3>
         </div>
         <div className="work-orders-filters-row" style={{ padding: '12px 14px', borderBottom: '1px solid #e5e7eb', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '10px' }}>
           <div style={{ margin: 0 }}>
-            <Field label="الفترة الزمنية">
+            <Field label={t('manufacturing.work_orders_list_page.s6', "الفترة الزمنية")}>
               <select className="purchase-prototype-field-input" value={dateFilter} onChange={(e) => setDateFilter(e.target.value as any)}>
-                <option value="all">كل الأوقات</option>
-                <option value="today">اليوم</option>
-                <option value="week">هذا الأسبوع</option>
-                <option value="month">هذا الشهر</option>
+                <option value="all">{t('manufacturing.work_orders_list_page.s7', "كل الأوقات")}</option>
+                <option value="today">{t('manufacturing.work_orders_list_page.s8', "اليوم")}</option>
+                <option value="week">{t('manufacturing.work_orders_list_page.s9', "هذا الأسبوع")}</option>
+                <option value="month">{t('manufacturing.work_orders_list_page.s10', "هذا الشهر")}</option>
               </select>
             </Field>
           </div>
 
           <div style={{ margin: 0 }}>
-            <Field label="المستخدم (المنفذ)">
+            <Field label={t('manufacturing.work_orders_list_page.s11', "المستخدم (المنفذ)")}>
               <select className="purchase-prototype-field-input" value={userFilter} onChange={(e) => setUserFilter(e.target.value)}>
-                <option value="all">كل المستخدمين</option>
+                <option value="all">{t('manufacturing.work_orders_list_page.s12', "كل المستخدمين")}</option>
                 {users.map((u) => (
                   <option key={u.id} value={u.id}>{u.name}</option>
                 ))}
@@ -180,12 +182,12 @@ export default function WorkOrdersListPage() {
 
         <div className="page-stack">
           {isLoading ? (
-            <div style={{ padding: '40px', textAlign: 'center', color: '#6b7280' }}>جاري التحميل...</div>
+            <div style={{ padding: '40px', textAlign: 'center', color: '#6b7280' }}>{t('manufacturing.work_orders_list_page.s13', "جاري التحميل...")}</div>
           ) : workOrders.length === 0 ? (
             <div style={{ padding: '40px', textAlign: 'center', color: '#6b7280' }}>
-              لا توجد أوامر إنتاج مطابقة للبحث.
+              {t('manufacturing.work_orders_list_page.s14', "لا توجد أوامر إنتاج مطابقة للبحث.")}
               <br />
-              <Button variant="secondary" style={{ marginTop: '16px' }} onClick={() => navigate('/manufacturing/work-orders/new')}>إنشاء أول أمر إنتاج</Button>
+              <Button variant="secondary" style={{ marginTop: '16px' }} onClick={() => navigate('/manufacturing/work-orders/new')}>{t('manufacturing.work_orders_list_page.s15', "إنشاء أول أمر إنتاج")}</Button>
             </div>
           ) : (
             <WorkOrdersGroupedList

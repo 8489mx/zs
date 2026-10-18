@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React, { useState } from 'react';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { Button } from '@/shared/ui/button';
@@ -17,6 +18,7 @@ export const VanTradeSurveyModal: React.FC<VanTradeSurveyModalProps> = ({
   onClose,
   onSuccess,
 }) => {
+  const { t } = useTranslation();
   if (!customer) return null;
 
   const [surveyType, setSurveyType] = useState<'cooler_inspection' | 'competitor_survey'>('cooler_inspection');
@@ -70,14 +72,14 @@ export const VanTradeSurveyModal: React.FC<VanTradeSurveyModalProps> = ({
     <StandardDialog
       open={true}
       onClose={onClose}
-      title="استطلاع الميرشندايز وتفتيش الأصول"
+      title={t('delivery_reps.van_trade_survey_modal.s0', "استطلاع الميرشندايز وتفتيش الأصول")}
       subtitle={`العميل: ${customer.customerName}`}
-      badge="الميرشندايز"
+      badge={t('delivery_reps.van_trade_survey_modal.s1', "الميرشندايز")}
       width="min(540px, 96vw)"
       footerActions={
         <StandardDialogFooter
           onClose={onClose}
-          cancelText="إلغاء"
+          cancelText={t('delivery_reps.van_trade_survey_modal.s2', "إلغاء")}
           extraActions={
             <Button
               variant="primary"
@@ -91,7 +93,7 @@ export const VanTradeSurveyModal: React.FC<VanTradeSurveyModalProps> = ({
                 height: '38px',
               }}
             >
-              {isSubmitting ? 'جاري الحفظ...' : 'حفظ وإرسال التفتيش'}
+              {isSubmitting ? t('delivery_reps.van_trade_survey_modal.s3', "جاري الحفظ...") : t('delivery_reps.van_trade_survey_modal.s4', "حفظ وإرسال التفتيش")}
             </Button>
           }
         />
@@ -115,7 +117,7 @@ export const VanTradeSurveyModal: React.FC<VanTradeSurveyModalProps> = ({
               cursor: 'pointer',
             }}
           >
-            تفتيش ثلاجة وأصل الشركة
+            {t('delivery_reps.van_trade_survey_modal.s5', "تفتيش ثلاجة وأصل الشركة")}
           </button>
           <button
             type="button"
@@ -132,7 +134,7 @@ export const VanTradeSurveyModal: React.FC<VanTradeSurveyModalProps> = ({
               cursor: 'pointer',
             }}
           >
-            رصد أسعار وعروض المنافسين
+            {t('delivery_reps.van_trade_survey_modal.s6', "رصد أسعار وعروض المنافسين")}
           </button>
         </div>
 
@@ -142,11 +144,11 @@ export const VanTradeSurveyModal: React.FC<VanTradeSurveyModalProps> = ({
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
               <div>
                 <label style={{ fontSize: '11px', color: '#64748b', display: 'block', marginBottom: '4px' }}>
-                  كود / باركود الثلاجة
+                  {t('delivery_reps.van_trade_survey_modal.s7', "كود / باركود الثلاجة")}
                 </label>
                 <input
                   type="text"
-                  placeholder="مثال: REF-0042"
+                  placeholder={t('delivery_reps.van_trade_survey_modal.s8', "مثال: REF-0042")}
                   value={assetId}
                   onChange={(e) => setAssetId(e.target.value)}
                   style={{
@@ -162,7 +164,7 @@ export const VanTradeSurveyModal: React.FC<VanTradeSurveyModalProps> = ({
               </div>
               <div>
                 <label style={{ fontSize: '11px', color: '#64748b', display: 'block', marginBottom: '4px' }}>
-                  الحالة الفنية للثلاجة
+                  {t('delivery_reps.van_trade_survey_modal.s9', "الحالة الفنية للثلاجة")}
                 </label>
                 <select
                   value={assetCondition}
@@ -177,10 +179,10 @@ export const VanTradeSurveyModal: React.FC<VanTradeSurveyModalProps> = ({
                     backgroundColor: '#ffffff',
                   }}
                 >
-                  <option value="excellent">ممتازة ونظيفة</option>
-                  <option value="good">جيدة وتعمل بكفاءة</option>
-                  <option value="needs_maintenance">تحتاج صيانة / تبريد ضعيف</option>
-                  <option value="damaged">تالفة وبها كسر</option>
+                  <option value="excellent">{t('delivery_reps.van_trade_survey_modal.s10', "ممتازة ونظيفة")}</option>
+                  <option value="good">{t('delivery_reps.van_trade_survey_modal.s11', "جيدة وتعمل بكفاءة")}</option>
+                  <option value="needs_maintenance">{t('delivery_reps.van_trade_survey_modal.s12', "تحتاج صيانة / تبريد ضعيف")}</option>
+                  <option value="damaged">{t('delivery_reps.van_trade_survey_modal.s13', "تالفة وبها كسر")}</option>
                 </select>
               </div>
             </div>
@@ -188,11 +190,11 @@ export const VanTradeSurveyModal: React.FC<VanTradeSurveyModalProps> = ({
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
               <div>
                 <label style={{ fontSize: '11px', color: '#64748b', display: 'block', marginBottom: '4px' }}>
-                  درجة الحرارة التقديرية (°م)
+                  {t('delivery_reps.van_trade_survey_modal.s14', "درجة الحرارة التقديرية (°م)")}
                 </label>
                 <input
                   type="number"
-                  placeholder="مثال: 4"
+                  placeholder={t('delivery_reps.van_trade_survey_modal.s15', "مثال: 4")}
                   value={temperature}
                   onChange={(e) => setTemperature(e.target.value)}
                   style={{
@@ -208,7 +210,7 @@ export const VanTradeSurveyModal: React.FC<VanTradeSurveyModalProps> = ({
               </div>
               <div>
                 <label style={{ fontSize: '11px', color: '#64748b', display: 'block', marginBottom: '4px' }}>
-                  تقييم النظافة (1 إلى 5)
+                  {t('delivery_reps.van_trade_survey_modal.s16', "تقييم النظافة (1 إلى 5)")}
                 </label>
                 <select
                   value={cleanliness}
@@ -223,11 +225,11 @@ export const VanTradeSurveyModal: React.FC<VanTradeSurveyModalProps> = ({
                     backgroundColor: '#ffffff',
                   }}
                 >
-                  <option value={5}>5 نجوم (نظيفة ومرتبة جداً)</option>
-                  <option value={4}>4 نجوم (نظيفة)</option>
-                  <option value={3}>3 نجوم (متوسطة)</option>
-                  <option value={2}>2 نجوم (تحتاج تنظيف)</option>
-                  <option value={1}>1 نجمة (سيئة)</option>
+                  <option value={5}>{t('delivery_reps.van_trade_survey_modal.s17', "5 نجوم (نظيفة ومرتبة جداً)")}</option>
+                  <option value={4}>{t('delivery_reps.van_trade_survey_modal.s18', "4 نجوم (نظيفة)")}</option>
+                  <option value={3}>{t('delivery_reps.van_trade_survey_modal.s19', "3 نجوم (متوسطة)")}</option>
+                  <option value={2}>{t('delivery_reps.van_trade_survey_modal.s20', "2 نجوم (تحتاج تنظيف)")}</option>
+                  <option value={1}>{t('delivery_reps.van_trade_survey_modal.s21', "1 نجمة (سيئة)")}</option>
                 </select>
               </div>
             </div>
@@ -246,10 +248,10 @@ export const VanTradeSurveyModal: React.FC<VanTradeSurveyModalProps> = ({
             >
               <div>
                 <div style={{ fontSize: '12px', fontWeight: 700, color: isPure ? '#166534' : '#991b1b' }}>
-                  {isPure ? 'الثلاجة مقتصرة على منتجاتنا فقط (Pure Cooler)' : 'مخالفة: وضع منتجات منافسة داخل الثلاجة'}
+                  {isPure ? t('delivery_reps.van_trade_survey_modal.s22', "الثلاجة مقتصرة على منتجاتنا فقط (Pure Cooler)") : t('delivery_reps.van_trade_survey_modal.s23', "مخالفة: وضع منتجات منافسة داخل الثلاجة")}
                 </div>
                 <div style={{ fontSize: '10.5px', color: isPure ? '#15803d' : '#b91c1c' }}>
-                  يُمنع التاجر من وضع بضاعة شركات أخرى داخل ثلاجة الشركة
+                  {t('delivery_reps.van_trade_survey_modal.s24', "يُمنع التاجر من وضع بضاعة شركات أخرى داخل ثلاجة الشركة")}
                 </div>
               </div>
               <button
@@ -266,7 +268,7 @@ export const VanTradeSurveyModal: React.FC<VanTradeSurveyModalProps> = ({
                   cursor: 'pointer',
                 }}
               >
-                {isPure ? 'نقية 100%' : 'يوجد منافس'}
+                {isPure ? t('delivery_reps.van_trade_survey_modal.s25', "نقية 100%") : t('delivery_reps.van_trade_survey_modal.s26', "يوجد منافس")}
               </button>
             </div>
           </div>
@@ -278,11 +280,11 @@ export const VanTradeSurveyModal: React.FC<VanTradeSurveyModalProps> = ({
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
               <div>
                 <label style={{ fontSize: '11px', color: '#64748b', display: 'block', marginBottom: '4px' }}>
-                  اسم الشركة / البراند المنافس
+                  {t('delivery_reps.van_trade_survey_modal.s27', "اسم الشركة / البراند المنافس")}
                 </label>
                 <input
                   type="text"
-                  placeholder="مثال: المراعي / كوكاكولا"
+                  placeholder={t('delivery_reps.van_trade_survey_modal.s28', "مثال: المراعي / كوكاكولا")}
                   value={competitorName}
                   onChange={(e) => setCompetitorName(e.target.value)}
                   style={{
@@ -298,11 +300,11 @@ export const VanTradeSurveyModal: React.FC<VanTradeSurveyModalProps> = ({
               </div>
               <div>
                 <label style={{ fontSize: '11px', color: '#64748b', display: 'block', marginBottom: '4px' }}>
-                  اسم صنف المنافس
+                  {t('delivery_reps.van_trade_survey_modal.s29', "اسم صنف المنافس")}
                 </label>
                 <input
                   type="text"
-                  placeholder="مثال: حليب 1 لتر"
+                  placeholder={t('delivery_reps.van_trade_survey_modal.s30', "مثال: حليب 1 لتر")}
                   value={competitorProduct}
                   onChange={(e) => setCompetitorProduct(e.target.value)}
                   style={{
@@ -320,11 +322,11 @@ export const VanTradeSurveyModal: React.FC<VanTradeSurveyModalProps> = ({
 
             <div>
               <label style={{ fontSize: '11px', color: '#64748b', display: 'block', marginBottom: '4px' }}>
-                سعر بيع المنافس للتاجر (ج.م)
+                {t('delivery_reps.van_trade_survey_modal.s31', "سعر بيع المنافس للتاجر (ج.م)")}
               </label>
               <input
                 type="number"
-                placeholder="السعر بالجنيه..."
+                placeholder={t('delivery_reps.van_trade_survey_modal.s32', "السعر بالجنيه...")}
                 value={competitorPrice}
                 onChange={(e) => setCompetitorPrice(e.target.value)}
                 style={{
@@ -341,11 +343,11 @@ export const VanTradeSurveyModal: React.FC<VanTradeSurveyModalProps> = ({
 
             <div>
               <label style={{ fontSize: '11px', color: '#64748b', display: 'block', marginBottom: '4px' }}>
-                تفاصيل عروض وخصومات المنافس بالمنطقة
+                {t('delivery_reps.van_trade_survey_modal.s33', "تفاصيل عروض وخصومات المنافس بالمنطقة")}
               </label>
               <input
                 type="text"
-                placeholder="مثال: بونص 2 كرتونة على كل 10 كراتين..."
+                placeholder={t('delivery_reps.van_trade_survey_modal.s34', "مثال: بونص 2 كرتونة على كل 10 كراتين...")}
                 value={competitorOffers}
                 onChange={(e) => setCompetitorOffers(e.target.value)}
                 style={{
@@ -365,11 +367,11 @@ export const VanTradeSurveyModal: React.FC<VanTradeSurveyModalProps> = ({
         {/* Notes */}
         <div>
           <label style={{ fontSize: '11px', color: '#64748b', display: 'block', marginBottom: '4px' }}>
-            ملاحظات إضافية للمشرف وإدارة التسويق
+            {t('delivery_reps.van_trade_survey_modal.s35', "ملاحظات إضافية للمشرف وإدارة التسويق")}
           </label>
           <textarea
             rows={2}
-            placeholder="اكتب ملاحظاتك الميدانية..."
+            placeholder={t('delivery_reps.van_trade_survey_modal.s36', "اكتب ملاحظاتك الميدانية...")}
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             style={{

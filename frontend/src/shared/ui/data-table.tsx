@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next';
+import { translateUiText } from '@/lib/auto-translator';
 import { ReactNode, type KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { PaginationControls } from '@/shared/components/pagination-controls';
 
@@ -61,8 +63,10 @@ export function DataTable<T>({
   pagination,
   selection,
 }: DataTableProps<T>) {
+  const { t, i18n } = useTranslation();
+  const isEn = i18n.language === 'en';
   if (!rows.length) {
-    return <>{empty || null}</>;
+    return <>{typeof empty === 'string' && isEn ? (translateUiText(empty) || empty) : (empty || null)}</>;
   }
 
   const computedRowKey = rowKey || ((_: T, rowIndex: number) => String(rowIndex));
@@ -98,7 +102,7 @@ export function DataTable<T>({
                 <th className="table-selection-cell">
                   <input
                     type="checkbox"
-                    aria-label="تحديد كل الصفوف الظاهرة"
+                    aria-label={t('shared.ui.data_table.s0', "تحديد كل الصفوف الظاهرة")}
                     checked={allVisibleSelected}
                     ref={(node) => {
                       if (node) node.indeterminate = someVisibleSelected;
@@ -116,7 +120,7 @@ export function DataTable<T>({
                 </th>
               ) : null}
               {columns.map((column) => (
-                <th key={column.key} className={column.className}>{column.header}</th>
+                <th key={column.key} className={column.className}>{typeof column.header === 'string' && isEn ? (translateUiText(column.header) || column.header) : column.header}</th>
               ))}
             </tr>
           </thead>
@@ -154,7 +158,7 @@ export function DataTable<T>({
                     <td className="table-selection-cell" onClick={(event) => event.stopPropagation()}>
                       <input
                         type="checkbox"
-                        aria-label={selection.checkboxLabel?.(row, absoluteRowIndex) || 'تحديد الصف'}
+                        aria-label={selection.checkboxLabel?.(row, absoluteRowIndex) || t('shared.ui.data_table.s1', "تحديد الصف")}
                         checked={selection.selectedKeys.includes(key)}
                         onChange={(event) => {
                           const nextSelected = new Set(selection.selectedKeys);

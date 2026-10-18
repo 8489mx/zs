@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -43,6 +44,7 @@ export function QuickStockAdjustmentDialog({
   locationStocks = [],
   canManageInventory = true,
 }: QuickStockAdjustmentDialogProps) {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<'adjust' | 'damage'>('adjust');
 
   const adjustQtyInputRef = useRef<HTMLInputElement | null>(null);
@@ -214,8 +216,8 @@ export function QuickStockAdjustmentDialog({
     <StandardDialog
       open={open}
       onClose={onClose}
-      title="تسوية وتعديل رصيد المخزون"
-      subtitle={product ? `الصنف: ${product.name} (الرصيد الحالي: ${product.stock})` : 'إجراء حركة تسوية أو تسجيل تالف سريع للمخزون'}
+      title={t('inventory.quick_stock_adjustment_dialog.s0', "تسوية وتعديل رصيد المخزون")}
+      subtitle={product ? `الصنف: ${product.name} (الرصيد الحالي: ${product.stock})` : t('inventory.quick_stock_adjustment_dialog.s1', "إجراء حركة تسوية أو تسجيل تالف سريع للمخزون")}
       width="min(760px, 95vw)"
       minHeight="auto"
       footerActions={
@@ -223,8 +225,8 @@ export function QuickStockAdjustmentDialog({
           onCancel={onClose}
           onSubmit={handleSubmit}
           isSubmitting={isSubmitting}
-          submitText={activeTab === 'adjust' ? 'حفظ حركة المخزون' : 'تسجيل التالف'}
-          cancelText="إلغاء"
+          submitText={activeTab === 'adjust' ? t('inventory.quick_stock_adjustment_dialog.s2', "حفظ حركة المخزون") : t('inventory.quick_stock_adjustment_dialog.s3', "تسجيل التالف")}
+          cancelText={t('inventory.quick_stock_adjustment_dialog.s4', "إلغاء")}
           disabled={!canManageInventory}
         />
       }
@@ -312,19 +314,19 @@ export function QuickStockAdjustmentDialog({
             <div>
               <div style={{ fontSize: '0.92rem', fontWeight: 700, color: '#170e5e' }}>{product.name}</div>
               <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px' }}>
-                كود / باركود: <strong style={{ color: '#334155' }}>{product.barcode || product.styleCode || '—'}</strong>
-                {product.categoryName ? <> • القسم: <strong style={{ color: '#334155' }}>{product.categoryName}</strong></> : null}
+                {t('inventory.quick_stock_adjustment_dialog.s5', "كود / باركود:")} <strong style={{ color: '#334155' }}>{product.barcode || product.styleCode || '—'}</strong>
+                {product.categoryName ? <> {t('inventory.quick_stock_adjustment_dialog.s6', "• القسم:")} <strong style={{ color: '#334155' }}>{product.categoryName}</strong></> : null}
               </div>
             </div>
             <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
               <div style={{ textAlign: 'center', background: '#ffffff', padding: '4px 12px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-                <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 600 }}>الرصيد الحالي</div>
+                <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 600 }}>{t('inventory.quick_stock_adjustment_dialog.s7', "الرصيد الحالي")}</div>
                 <div style={{ fontSize: '1rem', fontWeight: 800, color: Number(product.stock || 0) <= 0 ? '#ef4444' : '#059669' }}>
                   {product.stock} <span style={{ fontSize: '0.72rem', fontWeight: 600, color: '#64748b' }}>{unitName}</span>
                 </div>
               </div>
               <div style={{ textAlign: 'center', background: '#ffffff', padding: '4px 12px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-                <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 600 }}>الحد الأدنى</div>
+                <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 600 }}>{t('inventory.quick_stock_adjustment_dialog.s8', "الحد الأدنى")}</div>
                 <div style={{ fontSize: '1rem', fontWeight: 700, color: '#334155' }}>
                   {product.minStock || 0} <span style={{ fontSize: '0.72rem', fontWeight: 500, color: '#64748b' }}>{unitName}</span>
                 </div>
@@ -341,7 +343,7 @@ export function QuickStockAdjustmentDialog({
             onClick={() => setActiveTab('adjust')}
           >
             <AppIcons.Sliders size={15} />
-            تسوية وتعديل رصيد
+            {t('inventory.quick_stock_adjustment_dialog.s9', "تسوية وتعديل رصيد")}
           </button>
           <button
             type="button"
@@ -349,7 +351,7 @@ export function QuickStockAdjustmentDialog({
             onClick={() => setActiveTab('damage')}
           >
             <AppIcons.AlertCircle size={15} />
-            تسجيل تالف مباشر
+            {t('inventory.quick_stock_adjustment_dialog.s10', "تسجيل تالف مباشر")}
           </button>
         </div>
 
@@ -357,7 +359,7 @@ export function QuickStockAdjustmentDialog({
         {activeTab === 'adjust' ? (
           <div style={{ background: '#f8fafc', padding: '12px 14px', borderRadius: '8px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '10px' }}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px' }}>
-              <Field label="نوع الحركة">
+              <Field label={t('inventory.quick_stock_adjustment_dialog.s11', "نوع الحركة")}>
                 <Controller
                   control={adjustmentForm.control}
                   name="actionType"
@@ -373,7 +375,7 @@ export function QuickStockAdjustmentDialog({
                         }
                       }}
                       options={ACTION_TYPE_OPTIONS}
-                      placeholder="اختر نوع الحركة"
+                      placeholder={t('inventory.quick_stock_adjustment_dialog.s12', "اختر نوع الحركة")}
                       disabled={isSubmitting || !canManageInventory}
                     />
                   )}
@@ -394,10 +396,10 @@ export function QuickStockAdjustmentDialog({
                 />
               </Field>
 
-              <Field label="السبب" error={adjustmentForm.formState.errors.reason?.message}>
+              <Field label={t('inventory.quick_stock_adjustment_dialog.s13', "السبب")} error={adjustmentForm.formState.errors.reason?.message}>
                 <input
                   {...adjustmentForm.register('reason')}
-                  placeholder="مثال: جرد مخزني / تصحيح رصيد"
+                  placeholder={t('inventory.quick_stock_adjustment_dialog.s14', "مثال: جرد مخزني / تصحيح رصيد")}
                   disabled={isSubmitting || !canManageInventory}
                 />
               </Field>
@@ -405,7 +407,7 @@ export function QuickStockAdjustmentDialog({
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px' }}>
               {!SINGLE_STORE_MODE && (
-                <Field label="الفرع">
+                <Field label={t('inventory.quick_stock_adjustment_dialog.s15', "الفرع")}>
                   <Controller
                     control={adjustmentForm.control}
                     name="branchId"
@@ -414,7 +416,7 @@ export function QuickStockAdjustmentDialog({
                         value={field.value || ''}
                         onChange={(val) => field.onChange(val)}
                         options={branchOptions}
-                        placeholder="بدون فرع محدد"
+                        placeholder={t('inventory.quick_stock_adjustment_dialog.s16', "بدون فرع محدد")}
                         disabled={isSubmitting || !canManageInventory}
                       />
                     )}
@@ -423,11 +425,11 @@ export function QuickStockAdjustmentDialog({
               )}
 
               {SINGLE_STORE_MODE ? (
-                <Field label="المخزن">
-                  <input value={locationList[0]?.name || 'المخزن الرئيسي'} disabled readOnly />
+                <Field label={t('inventory.quick_stock_adjustment_dialog.s17', "المخزن")}>
+                  <input value={locationList[0]?.name || t('inventory.quick_stock_adjustment_dialog.s18', "المخزن الرئيسي")} disabled readOnly />
                 </Field>
               ) : (
-                <Field label="المخزن">
+                <Field label={t('inventory.quick_stock_adjustment_dialog.s19', "المخزن")}>
                   <Controller
                     control={adjustmentForm.control}
                     name="locationId"
@@ -440,7 +442,7 @@ export function QuickStockAdjustmentDialog({
                           if (loc?.branchId) adjustmentForm.setValue('branchId', String(loc.branchId));
                         }}
                         options={locationOptions}
-                        placeholder="بدون مخزن محدد"
+                        placeholder={t('inventory.quick_stock_adjustment_dialog.s20', "بدون مخزن محدد")}
                         disabled={isSubmitting || !canManageInventory}
                       />
                     )}
@@ -449,18 +451,18 @@ export function QuickStockAdjustmentDialog({
               )}
             </div>
 
-            <Field label="ملاحظات (اختياري)">
+            <Field label={t('inventory.quick_stock_adjustment_dialog.s21', "ملاحظات (اختياري)")}>
               <textarea
                 rows={2}
                 {...adjustmentForm.register('note')}
-                placeholder="أي ملاحظات توثيقية إضافية حول سبب التسوية..."
+                placeholder={t('inventory.quick_stock_adjustment_dialog.s22', "أي ملاحظات توثيقية إضافية حول سبب التسوية...")}
                 disabled={isSubmitting || !canManageInventory}
               />
             </Field>
 
             {/* شريط معاينة الرصيد الجديد */}
             <div style={{ background: '#ffffff', padding: '8px 12px', borderRadius: '6px', border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '0.8rem', color: '#475569', fontWeight: 600 }}>الرصيد المتوقع بعد حفظ الحركة:</span>
+              <span style={{ fontSize: '0.8rem', color: '#475569', fontWeight: 600 }}>{t('inventory.quick_stock_adjustment_dialog.s23', "الرصيد المتوقع بعد حفظ الحركة:")}</span>
               <strong style={{ fontSize: '0.95rem', color: newStockAfterAdjustment <= 0 ? '#ef4444' : '#170e5e' }}>
                 {newStockAfterAdjustment} {unitName}
               </strong>
@@ -484,10 +486,10 @@ export function QuickStockAdjustmentDialog({
                 />
               </Field>
 
-              <Field label="سبب التلف" error={damagedForm.formState.errors.reason?.message}>
+              <Field label={t('inventory.quick_stock_adjustment_dialog.s24', "سبب التلف")} error={damagedForm.formState.errors.reason?.message}>
                 <input
                   {...damagedForm.register('reason')}
-                  placeholder="مثال: كسر أثناء النقل / انتهاء صلاحية"
+                  placeholder={t('inventory.quick_stock_adjustment_dialog.s25', "مثال: كسر أثناء النقل / انتهاء صلاحية")}
                   disabled={isSubmitting || !canManageInventory}
                 />
               </Field>
@@ -495,7 +497,7 @@ export function QuickStockAdjustmentDialog({
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px' }}>
               {!SINGLE_STORE_MODE && (
-                <Field label="الفرع">
+                <Field label={t('inventory.quick_stock_adjustment_dialog.s26', "الفرع")}>
                   <Controller
                     control={damagedForm.control}
                     name="branchId"
@@ -504,7 +506,7 @@ export function QuickStockAdjustmentDialog({
                         value={field.value || ''}
                         onChange={(val) => field.onChange(val)}
                         options={branchOptions}
-                        placeholder="بدون فرع محدد"
+                        placeholder={t('inventory.quick_stock_adjustment_dialog.s27', "بدون فرع محدد")}
                         disabled={isSubmitting || !canManageInventory}
                       />
                     )}
@@ -513,11 +515,11 @@ export function QuickStockAdjustmentDialog({
               )}
 
               {SINGLE_STORE_MODE ? (
-                <Field label="المخزن">
-                  <input value={locationList[0]?.name || 'المخزن الرئيسي'} disabled readOnly />
+                <Field label={t('inventory.quick_stock_adjustment_dialog.s28', "المخزن")}>
+                  <input value={locationList[0]?.name || t('inventory.quick_stock_adjustment_dialog.s29', "المخزن الرئيسي")} disabled readOnly />
                 </Field>
               ) : (
-                <Field label="المخزن">
+                <Field label={t('inventory.quick_stock_adjustment_dialog.s30', "المخزن")}>
                   <Controller
                     control={damagedForm.control}
                     name="locationId"
@@ -530,7 +532,7 @@ export function QuickStockAdjustmentDialog({
                           if (loc?.branchId) damagedForm.setValue('branchId', String(loc.branchId));
                         }}
                         options={locationOptions}
-                        placeholder="بدون مخزن محدد"
+                        placeholder={t('inventory.quick_stock_adjustment_dialog.s31', "بدون مخزن محدد")}
                         disabled={isSubmitting || !canManageInventory}
                       />
                     )}
@@ -539,11 +541,11 @@ export function QuickStockAdjustmentDialog({
               )}
             </div>
 
-            <Field label="ملاحظات وتفاصيل التلف (8 أحرف على الأقل)" error={damagedForm.formState.errors.note?.message}>
+            <Field label={t('inventory.quick_stock_adjustment_dialog.s32', "ملاحظات وتفاصيل التلف (8 أحرف على الأقل)")} error={damagedForm.formState.errors.note?.message}>
               <textarea
                 rows={2}
                 {...damagedForm.register('note')}
-                placeholder="تفاصيل التلف أو محضر الهالك..."
+                placeholder={t('inventory.quick_stock_adjustment_dialog.s33', "تفاصيل التلف أو محضر الهالك...")}
                 disabled={isSubmitting || !canManageInventory}
               />
             </Field>
@@ -551,15 +553,15 @@ export function QuickStockAdjustmentDialog({
             {/* شبكة إحصائيات التالف الفورية */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginTop: '2px' }}>
               <div style={{ background: '#ffffff', padding: '6px 10px', borderRadius: '6px', border: '1px solid #e2e8f0', textAlign: 'center' }}>
-                <div style={{ fontSize: '0.68rem', color: '#64748b' }}>الرصيد الحالي</div>
+                <div style={{ fontSize: '0.68rem', color: '#64748b' }}>{t('inventory.quick_stock_adjustment_dialog.s34', "الرصيد الحالي")}</div>
                 <strong style={{ fontSize: '0.88rem', color: '#334155' }}>{currentStock} {unitName}</strong>
               </div>
               <div style={{ background: '#ffffff', padding: '6px 10px', borderRadius: '6px', border: '1px solid #fee2e2', textAlign: 'center' }}>
-                <div style={{ fontSize: '0.68rem', color: '#dc2626' }}>الكمية التالفة</div>
+                <div style={{ fontSize: '0.68rem', color: '#dc2626' }}>{t('inventory.quick_stock_adjustment_dialog.s35', "الكمية التالفة")}</div>
                 <strong style={{ fontSize: '0.88rem', color: '#dc2626' }}>{damagedQty || 0} {unitName}</strong>
               </div>
               <div style={{ background: '#ffffff', padding: '6px 10px', borderRadius: '6px', border: '1px solid #e2e8f0', textAlign: 'center' }}>
-                <div style={{ fontSize: '0.68rem', color: '#059669' }}>المتبقي بعد التسجيل</div>
+                <div style={{ fontSize: '0.68rem', color: '#059669' }}>{t('inventory.quick_stock_adjustment_dialog.s36', "المتبقي بعد التسجيل")}</div>
                 <strong style={{ fontSize: '0.88rem', color: remainingAfterDamage <= 0 ? '#ef4444' : '#059669' }}>
                   {remainingAfterDamage} {unitName}
                 </strong>

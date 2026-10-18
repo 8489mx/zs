@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useId } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { storefrontApi } from '../api/storefront.api';
@@ -24,6 +25,7 @@ interface TableBillModalProps {
 }
 
 export function TableBillModal({ open, onClose, slug, tableNumber }: TableBillModalProps) {
+  const { t } = useTranslation();
   const [tipAmount, setTipAmount] = useState<number>(0);
   const [customTip, setCustomTip] = useState<string>('');
   const [guestName, setGuestName] = useState<string>('');
@@ -127,7 +129,7 @@ export function TableBillModal({ open, onClose, slug, tableNumber }: TableBillMo
       open={open}
       onClose={onClose}
       width="min(560px, 95vw)"
-      ariaLabel="فاتورة وسداد حساب الطاولة"
+      ariaLabel={t('storefront.table_bill_modal.s0', "فاتورة وسداد حساب الطاولة")}
     >
       <div style={{ padding: '20px 24px', direction: 'rtl', fontFamily: 'inherit' }}>
         {/* Header */}
@@ -156,10 +158,10 @@ export function TableBillModal({ open, onClose, slug, tableNumber }: TableBillMo
             </div>
             <div>
               <h3 id={titleId} style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: '#0f172a' }}>
-                شيك وحساب طاولة ({tableNumber})
+                {t('storefront.table_bill_modal.s1', "شيك وحساب طاولة (")}{tableNumber})
               </h3>
               <div style={{ fontSize: '11.5px', color: '#64748b', marginTop: '2px' }}>
-                مراجعة تفاصيل الطلبات والسداد الإلكتروني المباشر بالبطاقة
+                {t('storefront.table_bill_modal.s2', "مراجعة تفاصيل الطلبات والسداد الإلكتروني المباشر بالبطاقة")}
               </div>
             </div>
           </div>
@@ -197,7 +199,7 @@ export function TableBillModal({ open, onClose, slug, tableNumber }: TableBillMo
               }}
             >
               <div className="system-loading-spinner" style={{ width: 28, height: 28 }} />
-              <div style={{ fontSize: '13px', fontWeight: 600 }}>جاري استرجاع شيك الطاولة...</div>
+              <div style={{ fontSize: '13px', fontWeight: 600 }}>{t('storefront.table_bill_modal.s3', "جاري استرجاع شيك الطاولة...")}</div>
             </div>
           ) : paymentSuccessData ? (
             /* Success State */
@@ -226,10 +228,10 @@ export function TableBillModal({ open, onClose, slug, tableNumber }: TableBillMo
               </div>
               <div>
                 <h4 style={{ margin: '0 0 6px', fontSize: '17px', fontWeight: 900, color: '#15803d' }}>
-                  تم سداد حساب الطاولة بنجاح!
+                  {t('storefront.table_bill_modal.s4', "تم سداد حساب الطاولة بنجاح!")}
                 </h4>
                 <div style={{ fontSize: '12.5px', color: '#475569', lineHeight: 1.6 }}>
-                  تم تسجيل سداد الطاولة إلكترونياً وتحديث شاشة الكاشير والصالة فورياً.
+                  {t('storefront.table_bill_modal.s5', "تم تسجيل سداد الطاولة إلكترونياً وتحديث شاشة الكاشير والصالة فورياً.")}
                 </div>
               </div>
 
@@ -248,17 +250,17 @@ export function TableBillModal({ open, onClose, slug, tableNumber }: TableBillMo
                 }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ color: '#64748b' }}>رقم الطاولة:</span>
-                  <strong>طاولة ({tableNumber})</strong>
+                  <span style={{ color: '#64748b' }}>{t('storefront.table_bill_modal.s6', "رقم الطاولة:")}</span>
+                  <strong>{t('storefront.table_bill_modal.s7', "طاولة (")}{tableNumber})</strong>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ color: '#64748b' }}>المبلغ المسدد:</span>
+                  <span style={{ color: '#64748b' }}>{t('storefront.table_bill_modal.s8', "المبلغ المسدد:")}</span>
                   <strong style={{ color: '#170e5e', fontSize: '14px' }}>
                     {paymentSuccessData.totalPaid} {currencySymbol}
                   </strong>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ color: '#64748b' }}>مرجع العملية:</span>
+                  <span style={{ color: '#64748b' }}>{t('storefront.table_bill_modal.s9', "مرجع العملية:")}</span>
                   <span style={{ fontFamily: 'monospace', fontWeight: 700 }}>
                     {paymentSuccessData.paymentReference}
                   </span>
@@ -279,7 +281,7 @@ export function TableBillModal({ open, onClose, slug, tableNumber }: TableBillMo
                 {!isRatingSubmitted ? (
                   <>
                     <div style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a', textAlign: 'center', marginBottom: '8px' }}>
-                      كيف تقيم تجربتك معنا اليوم؟
+                      {t('storefront.table_bill_modal.s10', "كيف تقيم تجربتك معنا اليوم؟")}
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginBottom: '10px' }}>
                       {[1, 2, 3, 4, 5].map((num) => (
@@ -313,7 +315,7 @@ export function TableBillModal({ open, onClose, slug, tableNumber }: TableBillMo
                     {selectedRating !== null && selectedRating <= 2 && (
                       <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px dashed #e2e8f0' }}>
                         <div style={{ fontSize: '11.5px', color: '#991b1b', fontWeight: 700, marginBottom: '6px' }}>
-                          نعتذر عن عدم رضاك! ما هو سبب الملاحظة لنقوم بحله فوراً؟
+                          {t('storefront.table_bill_modal.s11', "نعتذر عن عدم رضاك! ما هو سبب الملاحظة لنقوم بحله فوراً؟")}
                         </div>
                         <select
                           value={feedbackCategory}
@@ -329,16 +331,16 @@ export function TableBillModal({ open, onClose, slug, tableNumber }: TableBillMo
                             boxSizing: 'border-box',
                           }}
                         >
-                          <option value="food_quality">جودة وحرارة الطعام</option>
-                          <option value="service_speed">سرعة الخدمة والويتر</option>
-                          <option value="order_accuracy">دقة أصناف الطلب</option>
-                          <option value="cleanliness">النظافة والأجواء</option>
+                          <option value="food_quality">{t('storefront.table_bill_modal.s12', "جودة وحرارة الطعام")}</option>
+                          <option value="service_speed">{t('storefront.table_bill_modal.s13', "سرعة الخدمة والويتر")}</option>
+                          <option value="order_accuracy">{t('storefront.table_bill_modal.s14', "دقة أصناف الطلب")}</option>
+                          <option value="cleanliness">{t('storefront.table_bill_modal.s15', "النظافة والأجواء")}</option>
                         </select>
                         <input
                           type="text"
                           value={feedbackNotes}
                           onChange={(e) => setFeedbackNotes(e.target.value)}
-                          placeholder="ملاحظة سريعة للمدير (اختياري)"
+                          placeholder={t('storefront.table_bill_modal.s16', "ملاحظة سريعة للمدير (اختياري)")}
                           style={{
                             width: '100%',
                             height: '32px',
@@ -363,7 +365,7 @@ export function TableBillModal({ open, onClose, slug, tableNumber }: TableBillMo
                             fontWeight: 800,
                           }}
                         >
-                          {isSubmittingRating ? 'جارٍ إرسال التنبيه...' : 'إرسال التنبيه الفوري لمدير الصالة'}
+                          {isSubmittingRating ? t('storefront.table_bill_modal.s17', "جارٍ إرسال التنبيه...") : t('storefront.table_bill_modal.s18', "إرسال التنبيه الفوري لمدير الصالة")}
                         </Button>
                       </div>
                     )}
@@ -372,19 +374,19 @@ export function TableBillModal({ open, onClose, slug, tableNumber }: TableBillMo
                   <div style={{ textAlign: 'center', color: '#991b1b' }}>
                     <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontWeight: 900, fontSize: '13px', marginBottom: '4px' }}>
                       <AlertTriangleIcon size={16} color="#dc2626" />
-                      <span>تم استدعاء مدير الصالة بنجاح</span>
+                      <span>{t('storefront.table_bill_modal.s19', "تم استدعاء مدير الصالة بنجاح")}</span>
                     </div>
                     <div style={{ fontSize: '11.5px', color: '#64748b' }}>
-                      نعتذر بشدة عن أي إزعاج! مدير الصالة في طريقه لطاولتك الآن لتدارك الأمر شخصياً.
+                      {t('storefront.table_bill_modal.s20', "نعتذر بشدة عن أي إزعاج! مدير الصالة في طريقه لطاولتك الآن لتدارك الأمر شخصياً.")}
                     </div>
                   </div>
                 ) : (
                   <div style={{ textAlign: 'center', color: '#166534' }}>
                     <div style={{ fontWeight: 900, fontSize: '13px', marginBottom: '2px' }}>
-                      شكراً لتقييمك الرائع!
+                      {t('storefront.table_bill_modal.s21', "شكراً لتقييمك الرائع!")}
                     </div>
                     <div style={{ fontSize: '11.5px', color: '#64748b' }}>
-                      سعدنا بخدمتك ونتطلع لزيارتك القادمة دائماً.
+                      {t('storefront.table_bill_modal.s22', "سعدنا بخدمتك ونتطلع لزيارتك القادمة دائماً.")}
                     </div>
                   </div>
                 )}
@@ -401,7 +403,7 @@ export function TableBillModal({ open, onClose, slug, tableNumber }: TableBillMo
                   fontWeight: 800,
                 }}
               >
-                إغلاق والعودة للقائمة
+                {t('storefront.table_bill_modal.s23', "إغلاق والعودة للقائمة")}
               </Button>
             </div>
           ) : !bill?.hasActiveBill ? (
@@ -432,17 +434,17 @@ export function TableBillModal({ open, onClose, slug, tableNumber }: TableBillMo
                 <UtensilsIcon size={24} color="#94a3b8" />
               </div>
               <div style={{ fontSize: '14.5px', fontWeight: 800, color: '#1e293b' }}>
-                لا يوجد شيك مفتوح حالياً لطاولة ({tableNumber})
+                {t('storefront.table_bill_modal.s24', "لا يوجد شيك مفتوح حالياً لطاولة (")}{tableNumber})
               </div>
               <div style={{ fontSize: '12px', color: '#64748b', maxWidth: '320px', lineHeight: 1.6 }}>
-                يمكنك تصفح قائمة الطعام وطلب الوجبات مباشرة من هاتفك، أو استدعاء الويتر لخدمتك.
+                {t('storefront.table_bill_modal.s25', "يمكنك تصفح قائمة الطعام وطلب الوجبات مباشرة من هاتفك، أو استدعاء الويتر لخدمتك.")}
               </div>
               <Button
                 variant="secondary"
                 onClick={onClose}
                 style={{ marginTop: '8px', fontSize: '12px' }}
               >
-                العودة لتصفح المنيو
+                {t('storefront.table_bill_modal.s26', "العودة لتصفح المنيو")}
               </Button>
             </div>
           ) : bill.isPaidOnline ? (
@@ -471,13 +473,13 @@ export function TableBillModal({ open, onClose, slug, tableNumber }: TableBillMo
                 <CheckCircleIcon size={28} color="#15803d" />
               </div>
               <h4 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: '#15803d' }}>
-                تم سداد حساب هذه الطاولة إلكترونياً
+                {t('storefront.table_bill_modal.s27', "تم سداد حساب هذه الطاولة إلكترونياً")}
               </h4>
               <div style={{ fontSize: '12px', color: '#64748b' }}>
-                المبلغ المسدد: {bill.paidOnlineAmount || bill.total} {currencySymbol}
+                {t('storefront.table_bill_modal.s28', "المبلغ المسدد:")} {bill.paidOnlineAmount || bill.total} {currencySymbol}
               </div>
               <Button variant="secondary" onClick={onClose} style={{ marginTop: '12px' }}>
-                إغلاق
+                {t('storefront.table_bill_modal.s29', "إغلاق")}
               </Button>
             </div>
           ) : (
@@ -495,7 +497,7 @@ export function TableBillModal({ open, onClose, slug, tableNumber }: TableBillMo
                 }}
               >
                 <div style={{ fontSize: '12px', fontWeight: 800, color: '#475569', marginBottom: '8px' }}>
-                  الطلبات المسجلة على الطاولة:
+                  {t('storefront.table_bill_modal.s30', "الطلبات المسجلة على الطاولة:")}
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   {bill.items?.map((item, idx) => (
@@ -538,24 +540,24 @@ export function TableBillModal({ open, onClose, slug, tableNumber }: TableBillMo
                 }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', color: '#475569' }}>
-                  <span>المجموع الفرعي:</span>
+                  <span>{t('storefront.table_bill_modal.s31', "المجموع الفرعي:")}</span>
                   <span>{bill.subtotal} {currencySymbol}</span>
                 </div>
                 {Boolean(bill.discount && bill.discount > 0) && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', color: '#15803d' }}>
-                    <span>الخصم:</span>
+                    <span>{t('storefront.table_bill_modal.s32', "الخصم:")}</span>
                     <span>-{bill.discount} {currencySymbol}</span>
                   </div>
                 )}
                 {Boolean(bill.serviceCharge && bill.serviceCharge > 0) && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', color: '#475569' }}>
-                    <span>رسوم الخدمة:</span>
+                    <span>{t('storefront.table_bill_modal.s33', "رسوم الخدمة:")}</span>
                     <span>+{bill.serviceCharge} {currencySymbol}</span>
                   </div>
                 )}
                 {Boolean(bill.tax && bill.tax > 0) && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', color: '#475569' }}>
-                    <span>ضريبة القيمة المضافة:</span>
+                    <span>{t('storefront.table_bill_modal.s34', "ضريبة القيمة المضافة:")}</span>
                     <span>+{bill.tax} {currencySymbol}</span>
                   </div>
                 )}
@@ -571,7 +573,7 @@ export function TableBillModal({ open, onClose, slug, tableNumber }: TableBillMo
                     marginTop: '2px',
                   }}
                 >
-                  <span>إجمالي الحساب:</span>
+                  <span>{t('storefront.table_bill_modal.s35', "إجمالي الحساب:")}</span>
                   <span style={{ color: '#170e5e' }}>{bill.total} {currencySymbol}</span>
                 </div>
               </div>
@@ -579,7 +581,7 @@ export function TableBillModal({ open, onClose, slug, tableNumber }: TableBillMo
               {/* Tip & Gratuity Selector */}
               <div style={{ marginTop: '14px' }}>
                 <div style={{ fontSize: '12px', fontWeight: 800, color: '#334155', marginBottom: '6px' }}>
-                  إكرامية لطاقم الخدمة (اختياري):
+                  {t('storefront.table_bill_modal.s36', "إكرامية لطاقم الخدمة (اختياري):")}
                 </div>
                 <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
                   {[0, 5, 10, 20].map((preset) => (
@@ -598,13 +600,13 @@ export function TableBillModal({ open, onClose, slug, tableNumber }: TableBillMo
                         cursor: 'pointer',
                       }}
                     >
-                      {preset === 0 ? 'بدون' : `+${preset} ${currencySymbol}`}
+                      {preset === 0 ? t('storefront.table_bill_modal.s37', "بدون") : `+${preset} ${currencySymbol}`}
                     </button>
                   ))}
                   <input
                     type="number"
                     min="0"
-                    placeholder="مبلغ مخصص"
+                    placeholder={t('storefront.table_bill_modal.s38', "مبلغ مخصص")}
                     value={customTip}
                     onChange={(e) => handleCustomTipChange(e.target.value)}
                     style={{
@@ -624,11 +626,11 @@ export function TableBillModal({ open, onClose, slug, tableNumber }: TableBillMo
               <div style={{ marginTop: '12px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
                 <div>
                   <label style={{ fontSize: '11px', color: '#64748b', display: 'block', marginBottom: '2px' }}>
-                    اسم الضيف (اختياري)
+                    {t('storefront.table_bill_modal.s39', "اسم الضيف (اختياري)")}
                   </label>
                   <input
                     type="text"
-                    placeholder="الاسم"
+                    placeholder={t('storefront.table_bill_modal.s40', "الاسم")}
                     value={guestName}
                     onChange={(e) => setGuestName(e.target.value)}
                     style={{
@@ -644,7 +646,7 @@ export function TableBillModal({ open, onClose, slug, tableNumber }: TableBillMo
                 </div>
                 <div>
                   <label style={{ fontSize: '11px', color: '#64748b', display: 'block', marginBottom: '2px' }}>
-                    رقم الهاتف للإشعار (اختياري)
+                    {t('storefront.table_bill_modal.s41', "رقم الهاتف للإشعار (اختياري)")}
                   </label>
                   <input
                     type="tel"
@@ -685,7 +687,7 @@ export function TableBillModal({ open, onClose, slug, tableNumber }: TableBillMo
                   <CreditCardIcon size={16} color="#ffffff" />
                   <span>
                     {payMutation.isPending
-                      ? 'جارٍ تأكيد السداد...'
+                      ? t('storefront.table_bill_modal.s42', "جارٍ تأكيد السداد...")
                       : `سداد الحساب الآن بالبطاقة • ${finalTotal} ${currencySymbol}`}
                   </span>
                 </Button>
@@ -701,7 +703,7 @@ export function TableBillModal({ open, onClose, slug, tableNumber }: TableBillMo
                   }}
                 >
                   <CheckShieldIcon size={12} color="#15803d" />
-                  <span>دفع آمن ومشفر 100% متوافق مع الفاتورة الإلكترونية</span>
+                  <span>{t('storefront.table_bill_modal.s43', "دفع آمن ومشفر 100% متوافق مع الفاتورة الإلكترونية")}</span>
                 </div>
               </div>
             </div>

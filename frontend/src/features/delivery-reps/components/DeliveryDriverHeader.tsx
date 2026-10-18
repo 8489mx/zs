@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { Button } from '@/shared/ui/button';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
@@ -48,6 +49,7 @@ export function DeliveryDriverHeader({
   statusFilter,
   setStatusFilter,
 }: DeliveryDriverHeaderProps) {
+  const { t } = useTranslation();
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const handleRefresh = async () => {
@@ -70,7 +72,7 @@ export function DeliveryDriverHeader({
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <TruckIcon size={22} color="#ffffff" />
-            <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 900 }}>بوابة الطيار المتنقلة</h2>
+            <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 900 }}>{t('delivery_reps.delivery_driver_header.s0', "بوابة الطيار المتنقلة")}</h2>
           </div>
           <div style={{ display: 'flex', gap: '8px' }}>
             <button
@@ -90,14 +92,14 @@ export function DeliveryDriverHeader({
                 gap: '4px',
                 fontSize: '12px',
               }}
-              title="تحديث قائمة الطلبات"
+              title={t('delivery_reps.delivery_driver_header.s1', "تحديث قائمة الطلبات")}
             >
               <RefreshCwIcon
                 size={14}
                 className={isRefreshing ? 'spin-animation' : undefined}
                 style={isRefreshing ? { animation: 'spin 0.75s linear infinite' } : undefined}
               />
-              <span>{isRefreshing ? 'جارٍ التحديث...' : 'تحديث'}</span>
+              <span>{isRefreshing ? t('delivery_reps.delivery_driver_header.s2', "جارٍ التحديث...") : t('delivery_reps.delivery_driver_header.s3', "تحديث")}</span>
             </button>
           </div>
         </div>
@@ -105,21 +107,21 @@ export function DeliveryDriverHeader({
         {/* PWA Offline Sync Indicator */}
         {offlineQueueCount > 0 && (
           <div style={{ marginTop: '10px', background: 'rgba(234, 179, 8, 0.2)', border: '1px solid #eab308', borderRadius: '8px', padding: '8px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px' }}>
-            <span>يوجد {offlineQueueCount} عمليات مسجلة بدون إنترنت</span>
+            <span>{t('delivery_reps.delivery_driver_header.s4', "يوجد")} {offlineQueueCount} {t('delivery_reps.delivery_driver_header.s5', "عمليات مسجلة بدون إنترنت")}</span>
             <button
               type="button"
               onClick={syncOfflineQueue}
               disabled={isSyncingOffline}
               style={{ background: '#eab308', color: '#000', border: 'none', padding: '4px 8px', borderRadius: '6px', fontWeight: 800, cursor: 'pointer' }}
             >
-              {isSyncingOffline ? 'جاري المزامنة...' : 'مزامنة الآن'}
+              {isSyncingOffline ? t('delivery_reps.delivery_driver_header.s6', "جاري المزامنة...") : t('delivery_reps.delivery_driver_header.s7', "مزامنة الآن")}
             </button>
           </div>
         )}
 
         {/* Rep Selector */}
         <div style={{ marginTop: '12px' }}>
-          <label style={{ fontSize: '11px', color: '#cbd5e1', display: 'block', marginBottom: '4px' }}>تحديد حساب المندوب:</label>
+          <label style={{ fontSize: '11px', color: '#cbd5e1', display: 'block', marginBottom: '4px' }}>{t('delivery_reps.delivery_driver_header.s8', "تحديد حساب المندوب:")}</label>
           <select
             value={selectedRepId}
             onChange={(e) => setSelectedRepId(Number(e.target.value))}
@@ -142,7 +144,7 @@ export function DeliveryDriverHeader({
           style={{ padding: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '13px', fontWeight: 800, borderRadius: '10px', background: '#ffffff', border: '1px solid #cbd5e1' }}
         >
           <CameraIcon size={18} color="#170e5e" />
-          <span>مسح بوليصة شحن</span>
+          <span>{t('delivery_reps.delivery_driver_header.s9', "مسح بوليصة شحن")}</span>
         </Button>
 
         <Button
@@ -151,7 +153,7 @@ export function DeliveryDriverHeader({
           style={{ padding: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '13px', fontWeight: 800, borderRadius: '10px', background: '#170e5e' }}
         >
           <PlusIcon size={18} color="#ffffff" />
-          <span>فاتورة فان سيلز</span>
+          <span>{t('delivery_reps.delivery_driver_header.s10', "فاتورة فان سيلز")}</span>
         </Button>
       </div>
 
@@ -159,15 +161,15 @@ export function DeliveryDriverHeader({
       {deferredPrompt && (
         <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '10px', padding: '10px 14px', marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <strong style={{ fontSize: '12px', color: '#166534', display: 'block' }}>ثبّت التطبيق على شاشة هاتفك</strong>
-            <span style={{ fontSize: '11px', color: '#15803d' }}>للوصول السريع والعمل في وضع عدم الاتصال</span>
+            <strong style={{ fontSize: '12px', color: '#166534', display: 'block' }}>{t('delivery_reps.delivery_driver_header.s11', "ثبّت التطبيق على شاشة هاتفك")}</strong>
+            <span style={{ fontSize: '11px', color: '#15803d' }}>{t('delivery_reps.delivery_driver_header.s12', "للوصول السريع والعمل في وضع عدم الاتصال")}</span>
           </div>
           <button
             type="button"
             onClick={handleInstallPWA}
             style={{ background: '#16a34a', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: 800, cursor: 'pointer' }}
           >
-            تثبيت التطبيق
+            {t('delivery_reps.delivery_driver_header.s13', "تثبيت التطبيق")}
           </button>
         </div>
       )}
@@ -175,22 +177,22 @@ export function DeliveryDriverHeader({
       {/* Summary KPI Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px', marginBottom: '16px' }}>
         <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '12px' }}>
-          <span style={{ fontSize: '11px', color: '#64748b' }}>شحنات معلقة</span>
+          <span style={{ fontSize: '11px', color: '#64748b' }}>{t('delivery_reps.delivery_driver_header.s14', "شحنات معلقة")}</span>
           <div style={{ fontSize: '18px', fontWeight: 900, color: '#dc2626', marginTop: '2px' }}>
             {pendingCount}
           </div>
           <span style={{ fontSize: '11px', color: '#94a3b8' }}>
-            بمبلغ: {pendingAmount.toLocaleString('ar-EG')} <CurrencySymbol />
+            {t('delivery_reps.delivery_driver_header.s15', "بمبلغ:")} {pendingAmount.toLocaleString('ar-EG')} <CurrencySymbol />
           </span>
         </div>
 
         <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '12px' }}>
-          <span style={{ fontSize: '11px', color: '#64748b' }}>تم تسليمه اليوم</span>
+          <span style={{ fontSize: '11px', color: '#64748b' }}>{t('delivery_reps.delivery_driver_header.s16', "تم تسليمه اليوم")}</span>
           <div style={{ fontSize: '18px', fontWeight: 900, color: '#16a34a', marginTop: '2px' }}>
             {settledCount}
           </div>
           <span style={{ fontSize: '11px', color: '#94a3b8' }}>
-            محصل: {totalCollected.toLocaleString('ar-EG')} <CurrencySymbol />
+            {t('delivery_reps.delivery_driver_header.s17', "محصل:")} {totalCollected.toLocaleString('ar-EG')} <CurrencySymbol />
           </span>
         </div>
       </div>
@@ -202,21 +204,21 @@ export function DeliveryDriverHeader({
           onClick={() => setStatusFilter('pending')}
           style={{ flex: 1, padding: '8px', border: 'none', borderRadius: '6px', fontSize: '12px', fontWeight: 800, cursor: 'pointer', background: statusFilter === 'pending' ? '#ffffff' : 'transparent', color: statusFilter === 'pending' ? '#170e5e' : '#64748b' }}
         >
-          قيد التوصيل ({pendingCount})
+          {t('delivery_reps.delivery_driver_header.s18', "قيد التوصيل (")}{pendingCount})
         </button>
         <button
           type="button"
           onClick={() => setStatusFilter('settled')}
           style={{ flex: 1, padding: '8px', border: 'none', borderRadius: '6px', fontSize: '12px', fontWeight: 800, cursor: 'pointer', background: statusFilter === 'settled' ? '#ffffff' : 'transparent', color: statusFilter === 'settled' ? '#170e5e' : '#64748b' }}
         >
-          تم تسليمها ({settledCount})
+          {t('delivery_reps.delivery_driver_header.s19', "تم تسليمها (")}{settledCount})
         </button>
         <button
           type="button"
           onClick={() => setStatusFilter('all')}
           style={{ flex: 1, padding: '8px', border: 'none', borderRadius: '6px', fontSize: '12px', fontWeight: 800, cursor: 'pointer', background: statusFilter === 'all' ? '#ffffff' : 'transparent', color: statusFilter === 'all' ? '#170e5e' : '#64748b' }}
         >
-          الكل ({pendingCount + settledCount})
+          {t('delivery_reps.delivery_driver_header.s20', "الكل (")}{pendingCount + settledCount})
         </button>
       </div>
     </>

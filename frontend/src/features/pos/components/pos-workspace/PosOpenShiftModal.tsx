@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { DialogShell } from '@/shared/components/dialog-shell';
@@ -26,6 +27,7 @@ interface OpenShiftFormValues {
 }
 
 export function PosOpenShiftModal(props: PosOpenShiftModalProps) {
+  const { t } = useTranslation();
   const { open, onClose, branches, locations, defaultBranchId, defaultLocationId, onShiftOpened } = props;
   const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState<unknown>(null);
@@ -102,9 +104,9 @@ export function PosOpenShiftModal(props: PosOpenShiftModalProps) {
   return (
     <DialogShell open={open} onClose={onClose} width="min(600px, 100%)">
       <div style={{ background: '#fff', padding: '24px', borderRadius: '8px' }}>
-        <h2 style={{ marginTop: 0, marginBottom: '24px' }}>فتح وردية نقطة بيع</h2>
+        <h2 style={{ marginTop: 0, marginBottom: '24px' }}>{t('pos.pos_workspace.pos_open_shift_modal.s0', "فتح وردية نقطة بيع")}</h2>
         <form className="form-grid" onSubmit={handleSubmit(onSubmit)}>
-          <Field label="رصيد الفتح">
+          <Field label={t('pos.pos_workspace.pos_open_shift_modal.s1', "رصيد الفتح")}>
             <input
               type="number"
               step="0.01"
@@ -115,7 +117,7 @@ export function PosOpenShiftModal(props: PosOpenShiftModalProps) {
           </Field>
 
           {!SINGLE_STORE_MODE ? (
-            <Field label="الفرع">
+            <Field label={t('pos.pos_workspace.pos_open_shift_modal.s2', "الفرع")}>
               <select
                 {...register('branchId')}
                 disabled={isPending}
@@ -125,7 +127,7 @@ export function PosOpenShiftModal(props: PosOpenShiftModalProps) {
                   const branchObj = branchList.find(b => String(b.id) === String(nextBranchId));
                   const nextLocs = locationList.filter(l => !l.branchId || String(l.branchId) === String(nextBranchId));
                   const nextDefaultLoc = (branchObj?.defaultStockLocationId && locationList.find(l => String(l.id) === String(branchObj.defaultStockLocationId)))
-                    || nextLocs.find(l => l.name.includes('الرئيسي') || l.name.toLowerCase().includes('main'))
+                    || nextLocs.find(l => l.name.includes(t('pos.pos_workspace.pos_open_shift_modal.s3', "الرئيسي")) || l.name.toLowerCase().includes('main'))
                     || nextLocs[0]
                     || locationList[0];
                   if (nextDefaultLoc?.id) {
@@ -133,7 +135,7 @@ export function PosOpenShiftModal(props: PosOpenShiftModalProps) {
                   }
                 }}
               >
-                <option value="">بدون فرع</option>
+                <option value="">{t('pos.pos_workspace.pos_open_shift_modal.s4', "بدون فرع")}</option>
                 {branchList.map((branch) => (
                   <option key={branch.id} value={branch.id}>{branch.name}</option>
                 ))}
@@ -142,13 +144,13 @@ export function PosOpenShiftModal(props: PosOpenShiftModalProps) {
           ) : null}
 
           {SINGLE_STORE_MODE ? (
-            <Field label="المخزن الأساسي">
-              <input value={locationList[0]?.name || 'سيتم الربط تلقائيًا بالمخزن الأساسي'} disabled readOnly />
+            <Field label={t('pos.pos_workspace.pos_open_shift_modal.s5', "المخزن الأساسي")}>
+              <input value={locationList[0]?.name || t('pos.pos_workspace.pos_open_shift_modal.s6', "سيتم الربط تلقائيًا بالمخزن الأساسي")} disabled readOnly />
             </Field>
           ) : (
-            <Field label="المخزن">
+            <Field label={t('pos.pos_workspace.pos_open_shift_modal.s7', "المخزن")}>
               <select {...register('locationId')} disabled={isPending}>
-                <option value="">بدون مخزن</option>
+                <option value="">{t('pos.pos_workspace.pos_open_shift_modal.s8', "بدون مخزن")}</option>
                 {availableLocations.map((location) => (
                   <option key={location.id} value={location.id}>{location.name}</option>
                 ))}
@@ -156,7 +158,7 @@ export function PosOpenShiftModal(props: PosOpenShiftModalProps) {
             </Field>
           )}
 
-          <Field label="ملاحظة الافتتاح">
+          <Field label={t('pos.pos_workspace.pos_open_shift_modal.s9', "ملاحظة الافتتاح")}>
             <textarea rows={2} {...register('note')} disabled={isPending} />
           </Field>
 
@@ -164,15 +166,15 @@ export function PosOpenShiftModal(props: PosOpenShiftModalProps) {
             isError={Boolean(error)}
             isSuccess={isSuccess}
             error={error}
-            errorFallback="تعذر فتح وردية نقطة البيع"
-            successText="تم فتح وردية نقطة البيع بنجاح."
+            errorFallback={t('pos.pos_workspace.pos_open_shift_modal.s10', "تعذر فتح وردية نقطة البيع")}
+            successText={t('pos.pos_workspace.pos_open_shift_modal.s11', "تم فتح وردية نقطة البيع بنجاح.")}
           />
 
           <SubmitButton
             type="submit"
             isPending={isPending}
-            idleText="فتح وردية نقطة البيع"
-            pendingText="جارٍ الفتح..."
+            idleText={t('pos.pos_workspace.pos_open_shift_modal.s12', "فتح وردية نقطة البيع")}
+            pendingText={t('pos.pos_workspace.pos_open_shift_modal.s13', "جارٍ الفتح...")}
           />
         </form>
       </div>

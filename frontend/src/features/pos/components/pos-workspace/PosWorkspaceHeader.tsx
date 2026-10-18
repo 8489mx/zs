@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
@@ -86,6 +87,8 @@ function PosWorkspaceHeaderComponent({
   onOpenManagerComp,
   onPrintCupLabels,
 }: PosWorkspaceHeaderProps) {
+  const { t, i18n } = useTranslation();
+  const isEn = i18n.language === 'en';
   const { data: settings } = useSettingsQuery();
   const isRestaurantActive = settings?.restaurantModuleEnabled === true;
   const isPhoneOrdersActive = settings?.phoneOrdersModuleEnabled === true || (settings?.phoneOrdersModuleEnabled === undefined && (isRestaurantActive || ['restaurant', 'pharmacy', 'supermarket', 'grocery', 'food_beverage'].includes(settings?.businessIndustry || '')));
@@ -240,7 +243,7 @@ function PosWorkspaceHeaderComponent({
   return (
     <>
       <PageHeader
-      title="نقطة البيع"
+      title={t('pos.pos_workspace.pos_workspace_header.s0', "نقطة البيع")}
       badge={(
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', direction: 'ltr', color: '#0f172a' }} aria-label="Z ERP">
           <span className="pos-header-brand-mark" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
@@ -251,7 +254,7 @@ function PosWorkspaceHeaderComponent({
             <button
               type="button"
               onClick={() => setIsOfflineQueueModalOpen(true)}
-              title="انقر لعرض وإدارة الفواتير المعلقة بدون إنترنت"
+              title={t('pos.pos_workspace.pos_workspace_header.s1', "انقر لعرض وإدارة الفواتير المعلقة بدون إنترنت")}
               style={{
                 background: hasFailedSales ? '#fee2e2' : '#ffedd5',
                 color: hasFailedSales ? '#991b1b' : '#9a3412',
@@ -270,7 +273,7 @@ function PosWorkspaceHeaderComponent({
               }}
             >
               <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: hasFailedSales ? '#dc2626' : '#d97706', display: 'inline-block' }} />
-              <span>{isSyncing ? 'جاري المزامنة...' : `${offlineQueue.length} فواتير معلقة`}</span>
+              <span>{isSyncing ? t('pos.pos_workspace.pos_workspace_header.s2', "جاري المزامنة...") : `${offlineQueue.length} فواتير معلقة`}</span>
             </button>
           )}
         </span>
@@ -281,8 +284,8 @@ function PosWorkspaceHeaderComponent({
           {/* 1. Mode Toggle (Retail only - Restaurants use Touch exclusively) */}
           {!isRestaurantActive && (
             <div className="pos-mode-toggle" role="group" aria-label="POS mode">
-              <Button type="button" variant={posMode === 'scanner' ? 'primary' : 'secondary'} onClick={() => onModeChange('scanner')}>سكانر</Button>
-              <Button type="button" variant={posMode === 'touch' ? 'primary' : 'secondary'} onClick={() => onModeChange('touch')}>تاتش</Button>
+              <Button type="button" variant={posMode === 'scanner' ? 'primary' : 'secondary'} onClick={() => onModeChange('scanner')}>{t('pos.pos_workspace.pos_workspace_header.s3', "سكانر")}</Button>
+              <Button type="button" variant={posMode === 'touch' ? 'primary' : 'secondary'} onClick={() => onModeChange('touch')}>{t('pos.pos_workspace.pos_workspace_header.s4', "تاتش")}</Button>
             </div>
           )}
 
@@ -291,25 +294,25 @@ function PosWorkspaceHeaderComponent({
             <div className="pos-header-branch-info" style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', background: '#f1f5f9', border: '1px solid #e2e8f0', padding: '5px 12px', borderRadius: '8px', fontWeight: 700, color: '#334155' }}>
               <span>{pos.currentBranch.name}</span>
               <span style={{ opacity: 0.4 }}>|</span>
-              <span>{(pos.currentBranch as any).salesStockMode === 'all_operational_locations' ? 'كل المخازن' : 'مخزن أساسي'}</span>
+              <span>{(pos.currentBranch as any).salesStockMode === 'all_operational_locations' ? t('pos.pos_workspace.pos_workspace_header.s5', "كل المخازن") : t('pos.pos_workspace.pos_workspace_header.s6', "مخزن أساسي")}</span>
             </div>
           )}
 
           {/* 3. Fast Actions */}
-          <Button type="button" variant="secondary" onClick={onFocusSearch} title="البحث في الأصناف (F6)">
-            البحث F6
+          <Button type="button" variant="secondary" onClick={onFocusSearch} title={t('pos.pos_workspace.pos_workspace_header.s7', "البحث في الأصناف (F6)")}>
+            {t('pos.pos_workspace.pos_workspace_header.s8', "البحث F6")}
           </Button>
           {isServicesActive && onOpenQuickService && (
-            <Button type="button" variant="secondary" onClick={onOpenQuickService} title="قائمة الخدمات السريعة (F8)">
-              خدمة سريعة F8
+            <Button type="button" variant="secondary" onClick={onOpenQuickService} title={t('pos.pos_workspace.pos_workspace_header.s9', "قائمة الخدمات السريعة (F8)")}>
+              {t('pos.pos_workspace.pos_workspace_header.s10', "خدمة سريعة F8")}
             </Button>
           )}
-          <Button type="button" variant="secondary" onClick={onOpenReprintModal || pos.reprintLastSale} title="إعادة طباعة الفواتير (F9)">
-            F9 إعادة طباعة
+          <Button type="button" variant="secondary" onClick={onOpenReprintModal || pos.reprintLastSale} title={t('pos.pos_workspace.pos_workspace_header.s11', "إعادة طباعة الفواتير (F9)")}>
+            {t('pos.pos_workspace.pos_workspace_header.s12', "F9 إعادة طباعة")}
           </Button>
           {!isRestaurantActive && (
-            <Button type="button" variant="secondary" onClick={() => setIsExchangeOpen(true)} disabled={!pos.ownOpenShift || !pos.cart.length} title="استبدال بضاعة بالفاتورة الأصلية">
-              استبدال فوري
+            <Button type="button" variant="secondary" onClick={() => setIsExchangeOpen(true)} disabled={!pos.ownOpenShift || !pos.cart.length} title={t('pos.pos_workspace.pos_workspace_header.s13', "استبدال بضاعة بالفاتورة الأصلية")}>
+              {t('pos.pos_workspace.pos_workspace_header.s14', "استبدال فوري")}
             </Button>
           )}
 
@@ -328,10 +331,10 @@ function PosWorkspaceHeaderComponent({
                 background: pos.orderType === 'delivery' ? '#170e5e' : undefined,
                 border: pos.orderType === 'delivery' ? '1px solid #170e5e' : undefined,
               }}
-              title="مكتب طلبات الهاتف والتوصيل السريع وكاشف المتصل (F7 أو Alt + P)"
+              title={t('pos.pos_workspace.pos_workspace_header.s15', "مكتب طلبات الهاتف والتوصيل السريع وكاشف المتصل (F7 أو Alt + P)")}
             >
               <PhoneCallIcon size={14} color={pos.orderType === 'delivery' ? '#ffffff' : '#170e5e'} />
-              <span>طلب هاتفي F7</span>
+              <span>{t('pos.pos_workspace.pos_workspace_header.s16', "طلب هاتفي F7")}</span>
             </Button>
           )}
 
@@ -347,9 +350,9 @@ function PosWorkspaceHeaderComponent({
                 background: pos.tableNumber ? '#f1f5f9' : undefined,
                 border: pos.tableNumber ? '1px solid #cbd5e1' : undefined,
               }}
-              title="إدارة طاولات الصالة وجلسات الطعام والطلبات المعلقة (F3)"
+              title={t('pos.pos_workspace.pos_workspace_header.s17', "إدارة طاولات الصالة وجلسات الطعام والطلبات المعلقة (F3)")}
             >
-              {pos.tableNumber ? `طاولة: ${pos.tableNumber}` : 'الطاولات F3'}
+              {pos.tableNumber ? `طاولة: ${pos.tableNumber}` : t('pos.pos_workspace.pos_workspace_header.s18', "الطاولات F3")}
             </Button>
           )}
 
@@ -366,12 +369,12 @@ function PosWorkspaceHeaderComponent({
                 padding: '2px',
                 gap: '2px',
               }}
-              title="تحديد مسار تقديم الوجبة للمطبخ (Courser)"
+              title={t('pos.pos_workspace.pos_workspace_header.s19', "تحديد مسار تقديم الوجبة للمطبخ (Courser)")}
             >
               {[
-                { key: 'appetizer', label: 'مقبلات' },
-                { key: 'main', label: 'رئيسي' },
-                { key: 'dessert', label: 'حلوى' },
+                { key: 'appetizer', label: t('pos.pos_workspace.pos_workspace_header.s20', "مقبلات") },
+                { key: 'main', label: t('pos.pos_workspace.pos_workspace_header.s21', "رئيسي") },
+                { key: 'dessert', label: t('pos.pos_workspace.pos_workspace_header.s22', "حلوى") },
               ].map((c) => {
                 const active = (pos as any).diningCourse === c.key || (!pos.diningCourse && c.key === 'main');
                 return (
@@ -411,7 +414,7 @@ function PosWorkspaceHeaderComponent({
                 gap: '3px',
                 height: '30px',
               }}
-              title="عدد الضيوف على الطاولة ومؤشر متوسط إنفاق الفرد"
+              title={t('pos.pos_workspace.pos_workspace_header.s23', "عدد الضيوف على الطاولة ومؤشر متوسط إنفاق الفرد")}
             >
               <button
                 type="button"
@@ -430,12 +433,12 @@ function PosWorkspaceHeaderComponent({
                   alignItems: 'center',
                   justifyContent: 'center',
                 }}
-                title="زيادة عدد الضيوف"
+                title={t('pos.pos_workspace.pos_workspace_header.s24', "زيادة عدد الضيوف")}
               >
                 +
               </button>
               <span style={{ fontSize: '11px', fontWeight: 800, color: '#170e5e', minWidth: '46px', textAlign: 'center' }}>
-                {(pos as any).guestCount || 1} ضيوف
+                {(pos as any).guestCount || 1} {t('pos.pos_workspace.pos_workspace_header.s25', "ضيوف")}
               </span>
               <button
                 type="button"
@@ -454,7 +457,7 @@ function PosWorkspaceHeaderComponent({
                   alignItems: 'center',
                   justifyContent: 'center',
                 }}
-                title="إنقاص عدد الضيوف"
+                title={t('pos.pos_workspace.pos_workspace_header.s26', "إنقاص عدد الضيوف")}
               >
                 -
               </button>
@@ -470,7 +473,7 @@ function PosWorkspaceHeaderComponent({
                     whiteSpace: 'nowrap',
                   }}
                 >
-                  متوسط الفرد: <strong style={{ color: '#047857' }}>{formatCurrency((pos.totals?.total || 0) / ((pos as any).guestCount || 1))}</strong>
+                  {t('pos.pos_workspace.pos_workspace_header.s27', "متوسط الفرد:")} <strong style={{ color: '#047857' }}>{formatCurrency((pos.totals?.total || 0) / ((pos as any).guestCount || 1))}</strong>
                 </span>
               )}
               {activeZoneMinSpend > 0 && (
@@ -488,7 +491,7 @@ function PosWorkspaceHeaderComponent({
                   }}
                   title={`الحد الأدنى لإنفاق الطاولة في هذه المنطقة: ${formatCurrency(activeZoneMinSpend)}`}
                 >
-                  الحد الأدنى: {formatCurrency(activeZoneMinSpend)} {currentCartTotal < activeZoneMinSpend && `(عجز: ${formatCurrency(activeZoneMinSpend - currentCartTotal)})`}
+                  {t('pos.pos_workspace.pos_workspace_header.s28', "الحد الأدنى:")} {formatCurrency(activeZoneMinSpend)} {currentCartTotal < activeZoneMinSpend && `(عجز: ${formatCurrency(activeZoneMinSpend - currentCartTotal)})`}
                 </span>
               )}
             </div>
@@ -512,10 +515,10 @@ function PosWorkspaceHeaderComponent({
                 alignItems: 'center',
                 gap: '5px',
               }}
-              title="طباعة شيك حساب الطاولة غير المسدد للزبون للمعاينة"
+              title={t('pos.pos_workspace.pos_workspace_header.s29', "طباعة شيك حساب الطاولة غير المسدد للزبون للمعاينة")}
             >
               <PrinterIcon size={14} color="#170e5e" />
-              <span>{(pos as any).guestCheckPrintedAt ? 'تم تسليم الشيك (إعادة طباعة)' : 'طباعة الشيك المبدئي'}</span>
+              <span>{(pos as any).guestCheckPrintedAt ? t('pos.pos_workspace.pos_workspace_header.s30', "تم تسليم الشيك (إعادة طباعة)") : t('pos.pos_workspace.pos_workspace_header.s31', "طباعة الشيك المبدئي")}</span>
             </Button>
           )}
 
@@ -534,9 +537,9 @@ function PosWorkspaceHeaderComponent({
                 alignItems: 'center',
                 gap: '6px',
               }}
-              title="طلبات متجر إلكتروني جديدة معلقة بانتظار الاعتماد"
+              title={t('pos.pos_workspace.pos_workspace_header.s32', "طلبات متجر إلكتروني جديدة معلقة بانتظار الاعتماد")}
             >
-              <span>طلبات أونلاين</span>
+              <span>{t('pos.pos_workspace.pos_workspace_header.s33', "طلبات أونلاين")}</span>
               <span
                 style={{
                   background: '#ef4444',
@@ -567,10 +570,10 @@ function PosWorkspaceHeaderComponent({
               color: '#1e293b',
               border: '1px solid #cbd5e1',
             }}
-            title="مركز شاشات العرض الخارجية والمحطات التفاعلية"
+            title={t('pos.pos_workspace.pos_workspace_header.s34', "مركز شاشات العرض الخارجية والمحطات التفاعلية")}
           >
             <MonitorIcon size={16} color="#170e5e" />
-            <span>شاشات العرض</span>
+            <span>{t('pos.pos_workspace.pos_workspace_header.s35', "شاشات العرض")}</span>
           </Button>
 
           {/* 7. Restaurant Operations Modal Trigger Button */}
@@ -588,10 +591,10 @@ function PosWorkspaceHeaderComponent({
                 color: '#1e293b',
                 border: '1px solid #cbd5e1',
               }}
-              title="مركز عمليات وأدوات المطعم المتقدمة"
+              title={t('pos.pos_workspace.pos_workspace_header.s36', "مركز عمليات وأدوات المطعم المتقدمة")}
             >
               <UtensilsIcon size={16} color="#170e5e" />
-              <span>عمليات المطعم</span>
+              <span>{t('pos.pos_workspace.pos_workspace_header.s37', "عمليات المطعم")}</span>
               {count86 > 0 && (
                 <span
                   style={{
@@ -630,10 +633,10 @@ function PosWorkspaceHeaderComponent({
                     borderBottomLeftRadius: 0,
                     fontWeight: 700,
                   }}
-                  title="تقفيل الوردية الحالية وترحيل النقدية"
+                  title={t('pos.pos_workspace.pos_workspace_header.s38', "تقفيل الوردية الحالية وترحيل النقدية")}
                 >
-                  <span className="pos-close-shift-text-full">تقفيل الوردية</span>
-                  <span className="pos-close-shift-text-short">تقفيل</span>
+                  <span className="pos-close-shift-text-full">{t('pos.pos_workspace.pos_workspace_header.s39', "تقفيل الوردية")}</span>
+                  <span className="pos-close-shift-text-short">{t('pos.pos_workspace.pos_workspace_header.s40', "تقفيل")}</span>
                 </Button>
               </Link>
               <button
@@ -657,8 +660,8 @@ function PosWorkspaceHeaderComponent({
                   color: '#475569',
                   transition: 'background 0.15s',
                 }}
-                title="خيارات الوردية (تقرير X، فتح الدرج، إقفال Z)"
-                aria-label="خيارات الوردية"
+                title={t('pos.pos_workspace.pos_workspace_header.s41', "خيارات الوردية (تقرير X، فتح الدرج، إقفال Z)")}
+                aria-label={t('pos.pos_workspace.pos_workspace_header.s42', "خيارات الوردية")}
                 aria-expanded={isShiftMenuOpen}
               >
                 <ChevronDownIcon size={14} />
@@ -728,8 +731,8 @@ function PosWorkspaceHeaderComponent({
                       <PrinterIcon size={15} color="#170e5e" />
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
-                      <span style={{ fontSize: '12.5px', fontWeight: 800, color: '#0f172a' }}>تقرير الوردية اللحظي (X)</span>
-                      <span style={{ fontSize: '10.5px', color: '#64748b' }}>طباعة مبيعات ونقدية الدرج الحالية دون إغلاق</span>
+                      <span style={{ fontSize: '12.5px', fontWeight: 800, color: '#0f172a' }}>{t('pos.pos_workspace.pos_workspace_header.s43', "تقرير الوردية اللحظي (X)")}</span>
+                      <span style={{ fontSize: '10.5px', color: '#64748b' }}>{t('pos.pos_workspace.pos_workspace_header.s44', "طباعة مبيعات ونقدية الدرج الحالية دون إغلاق")}</span>
                     </div>
                   </button>
 
@@ -771,8 +774,8 @@ function PosWorkspaceHeaderComponent({
                       <SlidersIcon size={15} color="#334155" />
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
-                      <span style={{ fontSize: '12.5px', fontWeight: 800, color: '#0f172a' }}>فتح الدرج يدوياً (No-Sale)</span>
-                      <span style={{ fontSize: '10.5px', color: '#64748b' }}>فتح الدرج للجرد أو الصرف بعد اعتماد المشرف</span>
+                      <span style={{ fontSize: '12.5px', fontWeight: 800, color: '#0f172a' }}>{t('pos.pos_workspace.pos_workspace_header.s45', "فتح الدرج يدوياً (No-Sale)")}</span>
+                      <span style={{ fontSize: '10.5px', color: '#64748b' }}>{t('pos.pos_workspace.pos_workspace_header.s46', "فتح الدرج للجرد أو الصرف بعد اعتماد المشرف")}</span>
                     </div>
                   </button>
 
@@ -815,8 +818,8 @@ function PosWorkspaceHeaderComponent({
                         <LockIcon size={15} color="#dc2626" />
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
-                        <span style={{ fontSize: '12.5px', fontWeight: 800, color: '#991b1b' }}>إغلاق وتصفير الوردية (Z)</span>
-                        <span style={{ fontSize: '10.5px', color: '#b91c1c' }}>جرد العهدة النقدية وإقفال الجلسة</span>
+                        <span style={{ fontSize: '12.5px', fontWeight: 800, color: '#991b1b' }}>{t('pos.pos_workspace.pos_workspace_header.s47', "إغلاق وتصفير الوردية (Z)")}</span>
+                        <span style={{ fontSize: '10.5px', color: '#b91c1c' }}>{t('pos.pos_workspace.pos_workspace_header.s48', "جرد العهدة النقدية وإقفال الجلسة")}</span>
                       </div>
                     </div>
                   </Link>
@@ -825,8 +828,8 @@ function PosWorkspaceHeaderComponent({
             </div>
           ) : (
             <Button type="button" variant="primary" className="pos-close-shift-btn" onClick={onRequestOpenShift}>
-              <span className="pos-close-shift-text-full">فتح وردية</span>
-              <span className="pos-close-shift-text-short">فتح</span>
+              <span className="pos-close-shift-text-full">{t('pos.pos_workspace.pos_workspace_header.s49', "فتح وردية")}</span>
+              <span className="pos-close-shift-text-short">{t('pos.pos_workspace.pos_workspace_header.s50', "فتح")}</span>
             </Button>
           )}
 
@@ -835,7 +838,7 @@ function PosWorkspaceHeaderComponent({
             <button
               type="button"
               onClick={() => dispatchPosChromeToggle()}
-              title="إظهار / إخفاء القائمة الجانبية (F10)"
+              title={t('pos.pos_workspace.pos_workspace_header.s51', "إظهار / إخفاء القائمة الجانبية (F10)")}
               style={{
                 width: '34px',
                 height: '34px',
@@ -857,7 +860,7 @@ function PosWorkspaceHeaderComponent({
             <button
               type="button"
               onClick={() => dispatchPosFullscreenToggle()}
-              title="ملء الشاشة الكاملة (F11)"
+              title={t('pos.pos_workspace.pos_workspace_header.s52', "ملء الشاشة الكاملة (F11)")}
               style={{
                 width: '34px',
                 height: '34px',
@@ -934,14 +937,14 @@ function PosWorkspaceHeaderComponent({
     />
     <DialogShell open={isNoSaleOpen} onClose={() => { if (!isNoSalePending) setIsNoSaleOpen(false); }} width="min(480px, 100%)">
       <div dir="rtl" style={{ padding: 24, background: '#fff' }}>
-        <h2 style={{ marginTop: 0 }}>فتح الدرج بدون بيع</h2>
-        <p>سيُحفظ اسم المستخدم والوردية والسبب في سجل التدقيق قبل إرسال أمر فتح الدرج.</p>
-        <label htmlFor="pos-no-sale-reason">سبب فتح الدرج</label>
+        <h2 style={{ marginTop: 0 }}>{t('pos.pos_workspace.pos_workspace_header.s53', "فتح الدرج بدون بيع")}</h2>
+        <p>{t('pos.pos_workspace.pos_workspace_header.s54', "سيُحفظ اسم المستخدم والوردية والسبب في سجل التدقيق قبل إرسال أمر فتح الدرج.")}</p>
+        <label htmlFor="pos-no-sale-reason">{t('pos.pos_workspace.pos_workspace_header.s55', "سبب فتح الدرج")}</label>
         <textarea id="pos-no-sale-reason" value={noSaleReason} onChange={(event) => setNoSaleReason(event.target.value)} maxLength={500} rows={3} style={{ width: '100%', marginBottom: 12 }} disabled={isNoSalePending} />
-        <label htmlFor="pos-no-sale-pin">رمز اعتماد المشرف</label>
+        <label htmlFor="pos-no-sale-pin">{t('pos.pos_workspace.pos_workspace_header.s56', "رمز اعتماد المشرف")}</label>
         <input id="pos-no-sale-pin" type="password" autoComplete="off" value={noSaleManagerPin} onChange={(event) => setNoSaleManagerPin(event.target.value)} style={{ width: '100%', marginBottom: 18 }} disabled={isNoSalePending} />
         <Button type="button" variant="primary" onClick={() => { void handleNoSaleDrawerKick(); }} disabled={isNoSalePending || noSaleReason.trim().length < 10 || !noSaleManagerPin.trim()}>
-          {isNoSalePending ? 'جاري الاعتماد...' : 'اعتماد وفتح الدرج'}
+          {isNoSalePending ? t('pos.pos_workspace.pos_workspace_header.s57', "جاري الاعتماد...") : t('pos.pos_workspace.pos_workspace_header.s58', "اعتماد وفتح الدرج")}
         </Button>
       </div>
     </DialogShell>
@@ -973,7 +976,7 @@ function PosWorkspaceHeaderComponent({
       open={isTipPoolOpen}
       onClose={() => setIsTipPoolOpen(false)}
       branchId={Number(pos.branchId) || undefined}
-      currency={(pos as any).currency || 'ج.م'}
+      currency={(pos as any).currency || t('pos.pos_workspace.pos_workspace_header.s59', "ج.م")}
       onBack={() => { setIsTipPoolOpen(false); setIsOpsModalOpen(true); }}
     />
     <KitchenDailyPrepSheetModal
@@ -985,14 +988,14 @@ function PosWorkspaceHeaderComponent({
     <PosPlateCostRadarModal
       open={isPlateRadarOpen}
       onClose={() => setIsPlateRadarOpen(false)}
-      currency={(pos as any).currency || 'ج.م'}
+      currency={(pos as any).currency || t('pos.pos_workspace.pos_workspace_header.s60', "ج.م")}
       onBack={() => { setIsPlateRadarOpen(false); setIsOpsModalOpen(true); }}
     />
     <PosCustomerPunchCardModal
       open={isStampCardOpen}
       onClose={() => setIsStampCardOpen(false)}
       customerId={Number(pos.customerId) || 1}
-      customerName={(pos as any).customerName || 'العميل الحالي'}
+      customerName={(pos as any).customerName || t('pos.pos_workspace.pos_workspace_header.s61', "العميل الحالي")}
       onBack={() => { setIsStampCardOpen(false); setIsOpsModalOpen(true); }}
     />
     <PosDriveThruModal
@@ -1058,7 +1061,7 @@ function PosWorkspaceHeaderComponent({
       }}
       currentCartTotal={Number(pos.totals?.total || 0)}
       currentTableNumber={pos.tableNumber || undefined}
-      cartSummary={pos.cart.map((i) => `${i.qty}× ${i.name}`).join('، ')}
+      cartSummary={pos.cart.map((i) => `${i.qty}× ${i.name}`).join(t('pos.pos_workspace.pos_workspace_header.s62', "، "))}
       onApplyComp={async (comp) => {
         pos.setDiscount(comp.amount);
         pos.setNote(`ضيافة إدارة [${comp.compType}] - معتمد: ${comp.managerName}${comp.notes ? ` - ${comp.notes}` : ''}`);

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
 import { StandardDialog } from '@/shared/components/StandardDialog';
 import { Button } from '@/shared/ui/button';
@@ -52,6 +53,7 @@ function getCertValidity(validToString?: string) {
 }
 
 export function EtaTokenSignerModal({ open, onClose, saleId, docNo }: EtaTokenSignerModalProps) {
+  const { t } = useTranslation();
   const [step, setStep] = useState<'prepare' | 'sign' | 'attach' | 'done'>('prepare');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -216,8 +218,8 @@ export function EtaTokenSignerModal({ open, onClose, saleId, docNo }: EtaTokenSi
     <StandardDialog
       open={open}
       onClose={handleClose}
-      title="توقيع الفاتورة المصرية – USB Token CAdES-BES"
-      subtitle={docNo ? `الفاتورة: ${docNo}` : 'الختم الإلكتروني المعتمد لمصلحة الضرائب المصرية (Egypt Trust / Misr Clearing)'}
+      title={t('tax_integration.eta_token_signer_modal.s0', "توقيع الفاتورة المصرية – USB Token CAdES-BES")}
+      subtitle={docNo ? `الفاتورة: ${docNo}` : t('tax_integration.eta_token_signer_modal.s1', "الختم الإلكتروني المعتمد لمصلحة الضرائب المصرية (Egypt Trust / Misr Clearing)")}
       width="min(640px, 96vw)"
       footerActions={
         <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-start' }}>
@@ -230,13 +232,13 @@ export function EtaTokenSignerModal({ open, onClose, saleId, docNo }: EtaTokenSi
                 color: '#fff',
                 cursor: certValidity?.status === 'expired' ? 'not-allowed' : 'pointer',
               }}
-              title={certValidity?.status === 'expired' ? 'شهادة التوكن منتهية الصلاحية لدى مصلحة الضرائب' : undefined}
+              title={certValidity?.status === 'expired' ? t('tax_integration.eta_token_signer_modal.s2', "شهادة التوكن منتهية الصلاحية لدى مصلحة الضرائب") : undefined}
             >
               {loading
-                ? 'جاري التوقيع والختم...'
+                ? t('tax_integration.eta_token_signer_modal.s3', "جاري التوقيع والختم...")
                 : certValidity?.status === 'expired'
-                ? 'الشهادة منتهية الصلاحية'
-                : 'توقيع بالتوكن تلقائياً وإرسال'}
+                ? t('tax_integration.eta_token_signer_modal.s4', "الشهادة منتهية الصلاحية")
+                : t('tax_integration.eta_token_signer_modal.s5', "توقيع بالتوكن تلقائياً وإرسال")}
             </Button>
           )}
 
@@ -246,7 +248,7 @@ export function EtaTokenSignerModal({ open, onClose, saleId, docNo }: EtaTokenSi
               disabled={loading}
               style={{ background: '#170e5e', color: '#fff' }}
             >
-              {loading ? 'جار التحضير...' : 'تحضير الوثيقة للتوقيع اليدوي'}
+              {loading ? t('tax_integration.eta_token_signer_modal.s6', "جار التحضير...") : t('tax_integration.eta_token_signer_modal.s7', "تحضير الوثيقة للتوقيع اليدوي")}
             </Button>
           )}
 
@@ -256,17 +258,17 @@ export function EtaTokenSignerModal({ open, onClose, saleId, docNo }: EtaTokenSi
               disabled={loading}
               style={{ background: '#170e5e', color: '#fff' }}
             >
-              {loading ? 'جار الربط...' : 'ربط التوقيع بالفاتورة'}
+              {loading ? t('tax_integration.eta_token_signer_modal.s8', "جار الربط...") : t('tax_integration.eta_token_signer_modal.s9', "ربط التوقيع بالفاتورة")}
             </Button>
           )}
 
           {step === 'done' && (
             <Button onClick={handleClose} style={{ background: '#170e5e', color: '#fff' }}>
-              إغلاق
+              {t('tax_integration.eta_token_signer_modal.s10', "إغلاق")}
             </Button>
           )}
           <Button variant="secondary" onClick={handleClose}>
-            إلغاء
+            {t('tax_integration.eta_token_signer_modal.s11', "إلغاء")}
           </Button>
         </div>
       }
@@ -316,17 +318,17 @@ export function EtaTokenSignerModal({ open, onClose, saleId, docNo }: EtaTokenSi
                 }}
               >
                 {bridgeStatus === 'connected'
-                  ? 'جهاز التوقيع متصل (ZS Local Signer Active)'
+                  ? t('tax_integration.eta_token_signer_modal.s12', "جهاز التوقيع متصل (ZS Local Signer Active)")
                   : bridgeStatus === 'checking'
-                  ? 'جاري فحص اتصال أداة التوقيع المحلي...'
-                  : 'أداة التوقيع المحلي غير نشطة (منفذ 8585)'}
+                  ? t('tax_integration.eta_token_signer_modal.s13', "جاري فحص اتصال أداة التوقيع المحلي...")
+                  : t('tax_integration.eta_token_signer_modal.s14', "أداة التوقيع المحلي غير نشطة (منفذ 8585)")}
               </div>
               <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: 2 }}>
                 {bridgeStatus === 'connected' && detectedCert
                   ? `الشهادة: ${detectedCert.subject} (${detectedCert.issuer})`
                   : bridgeStatus === 'connected'
-                  ? 'تم الاتصال بالخدمة بنجاح، جاهز لقراءة التوكن'
-                  : 'لتفعيل التوقيع التلقائي بنقرة واحدة، شغّل zs-eta-signer.exe'}
+                  ? t('tax_integration.eta_token_signer_modal.s15', "تم الاتصال بالخدمة بنجاح، جاهز لقراءة التوكن")
+                  : t('tax_integration.eta_token_signer_modal.s16', "لتفعيل التوقيع التلقائي بنقرة واحدة، شغّل zs-eta-signer.exe")}
               </div>
             </div>
           </div>
@@ -345,7 +347,7 @@ export function EtaTokenSignerModal({ open, onClose, saleId, docNo }: EtaTokenSi
               cursor: 'pointer',
             }}
           >
-            {bridgeStatus === 'checking' ? 'فحص...' : 'إعادة فحص'}
+            {bridgeStatus === 'checking' ? t('tax_integration.eta_token_signer_modal.s17', "فحص...") : t('tax_integration.eta_token_signer_modal.s18', "إعادة فحص")}
           </button>
         </div>
 
@@ -398,13 +400,13 @@ export function EtaTokenSignerModal({ open, onClose, saleId, docNo }: EtaTokenSi
                   color: '#1e293b',
                 }}
               >
-                كلمة مرور التوكن (PIN) (اختياري / أو يتم طلبها تلقائياً من نظام Windows)
+                {t('tax_integration.eta_token_signer_modal.s19', "كلمة مرور التوكن (PIN) (اختياري / أو يتم طلبها تلقائياً من نظام Windows)")}
               </label>
               <input
                 type="password"
                 value={tokenPin}
                 onChange={(e) => setTokenPin(e.target.value)}
-                placeholder="أدخل رمز الـ PIN إذا أردت التوقيع الصامت..."
+                placeholder={t('tax_integration.eta_token_signer_modal.s20', "أدخل رمز الـ PIN إذا أردت التوقيع الصامت...")}
                 style={{
                   width: '100%',
                   padding: '8px 12px',
@@ -426,7 +428,7 @@ export function EtaTokenSignerModal({ open, onClose, saleId, docNo }: EtaTokenSi
                 border: '1px solid #f1f5f9',
               }}
             >
-              سيتم سحب بيانات الفاتورة وتوليد التسلسل المعياري وتوقيعها بختم CAdES-BES عبر التوكن الموصول وربطها بالفاتورة بضغطة زر واحدة.
+              {t('tax_integration.eta_token_signer_modal.s21', "سيتم سحب بيانات الفاتورة وتوليد التسلسل المعياري وتوقيعها بختم CAdES-BES عبر التوكن الموصول وربطها بالفاتورة بضغطة زر واحدة.")}
             </div>
           </div>
         )}
@@ -442,10 +444,10 @@ export function EtaTokenSignerModal({ open, onClose, saleId, docNo }: EtaTokenSi
               }}
             >
               <p style={{ margin: 0, fontSize: '0.8125rem', color: '#475569', lineHeight: 1.6 }}>
-                يمكنك التوقيع التلقائي بتشغيل <strong>ZS Local ETA Signer</strong> (من المجلد <code>tools/zs-eta-signer</code>)، أو استخدام مسار التوقيع اليدوي أدناه.
+                {t('tax_integration.eta_token_signer_modal.s22', "يمكنك التوقيع التلقائي بتشغيل")} <strong>ZS Local ETA Signer</strong> {t('tax_integration.eta_token_signer_modal.s23', "(من المجلد")} <code>tools/zs-eta-signer</code>{t('tax_integration.eta_token_signer_modal.s24', ")، أو استخدام مسار التوقيع اليدوي أدناه.")}
               </p>
               <p style={{ margin: '10px 0 0', fontSize: '0.8125rem', color: '#475569', lineHeight: 1.6 }}>
-                الخطوات اليدوية: ① تحضير الوثيقة ➔ ② نسخ الهاش لبرنامج التوقيع المحلي ➔ ③ لصق التوقيع ➔ ④ ربط بالفاتورة.
+                {t('tax_integration.eta_token_signer_modal.s25', "الخطوات اليدوية: ① تحضير الوثيقة ➔ ② نسخ الهاش لبرنامج التوقيع المحلي ➔ ③ لصق التوقيع ➔ ④ ربط بالفاتورة.")}
               </p>
             </div>
           </div>
@@ -463,7 +465,7 @@ export function EtaTokenSignerModal({ open, onClose, saleId, docNo }: EtaTokenSi
                   color: '#1e293b',
                 }}
               >
-                الهاش SHA-256 (انسخه لبرنامج التوقيع المحلي)
+                {t('tax_integration.eta_token_signer_modal.s26', "الهاش SHA-256 (انسخه لبرنامج التوقيع المحلي)")}
               </label>
               <div
                 style={{
@@ -494,7 +496,7 @@ export function EtaTokenSignerModal({ open, onClose, saleId, docNo }: EtaTokenSi
                   color: '#64748b',
                 }}
               >
-                نسخ الهاش
+                {t('tax_integration.eta_token_signer_modal.s27', "نسخ الهاش")}
               </button>
             </div>
 
@@ -508,12 +510,12 @@ export function EtaTokenSignerModal({ open, onClose, saleId, docNo }: EtaTokenSi
                   color: '#1e293b',
                 }}
               >
-                التوقيع الإلكتروني CAdES-BES (Base64 من برنامج التوكن المحلي)
+                {t('tax_integration.eta_token_signer_modal.s28', "التوقيع الإلكتروني CAdES-BES (Base64 من برنامج التوكن المحلي)")}
               </label>
               <textarea
                 value={cadesSignature}
                 onChange={(e) => setCadesSignature(e.target.value)}
-                placeholder="الصق هنا التوقيع الإلكتروني CAdES-BES المُنتج من برنامج Egypt Trust أو Misr Clearing..."
+                placeholder={t('tax_integration.eta_token_signer_modal.s29', "الصق هنا التوقيع الإلكتروني CAdES-BES المُنتج من برنامج Egypt Trust أو Misr Clearing...")}
                 rows={5}
                 style={{
                   width: '100%',
@@ -538,10 +540,10 @@ export function EtaTokenSignerModal({ open, onClose, saleId, docNo }: EtaTokenSi
               <CheckCircleIcon size={48} color="#15803d" />
             </div>
             <p style={{ color: '#15803d', fontSize: '1rem', fontWeight: 700, margin: '0 0 8px' }}>
-              تم ختم الفاتورة بالتوقيع الإلكتروني بنجاح
+              {t('tax_integration.eta_token_signer_modal.s30', "تم ختم الفاتورة بالتوقيع الإلكتروني بنجاح")}
             </p>
             <p style={{ color: '#64748b', fontSize: '0.8125rem', margin: 0 }}>
-              الفاتورة جاهزة للإرسال إلى منظومة الفواتير الإلكترونية المصرية (ETA)
+              {t('tax_integration.eta_token_signer_modal.s31', "الفاتورة جاهزة للإرسال إلى منظومة الفواتير الإلكترونية المصرية (ETA)")}
             </p>
           </div>
         )}

@@ -14,6 +14,7 @@ import { useTranslation } from 'react-i18next';
 import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
 
 export function PurchasesWorkspace() {
+  const { t: __t } = useTranslation();
   const { t } = useTranslation();
   const controller = usePurchasesWorkspaceController();
   const settingsQuery = useSettingsQuery();
@@ -81,7 +82,7 @@ export function PurchasesWorkspace() {
         open={Boolean(controller.purchaseToEdit)}
         purchase={controller.purchaseToEdit || undefined}
         isBusy={controller.updateMutation.isPending}
-        errorMessage={controller.updateMutation.isError ? (controller.updateMutation.error instanceof Error ? controller.updateMutation.error.message : 'تعذر حفظ التعديل') : ''}
+        errorMessage={controller.updateMutation.isError ? (controller.updateMutation.error instanceof Error ? controller.updateMutation.error.message : __t('purchases.purchases_workspace.s0', "تعذر حفظ التعديل")) : ''}
         onCancel={() => { controller.setPurchaseToEdit(null); controller.updateMutation.reset(); }}
         onSave={async (payload) => {
           if (!controller.purchaseToEdit) return;
@@ -97,7 +98,7 @@ export function PurchasesWorkspace() {
         onClose={() => controller.setRepricingInsights(null)}
       />
 
-      <ActionConfirmDialog open={Boolean(controller.purchaseToCancel)} title="تأكيد إلغاء فاتورة الشراء" description={controller.cancelDescription} confirmLabel="نعم، إلغاء الفاتورة" managerPinRequired managerPinHint="هذه العملية تحتاج اعتماد المدير المسجل في الإعدادات." reasonRequired reasonLabel="سبب إلغاء فاتورة الشراء" reasonHint="اكتب سببًا واضحًا حتى يبقى محفوظًا في السجل ويرجع له المدير لاحقًا." reasonPlaceholder="مثال: تم إدخال الفاتورة مرتين أو إلغاء الاستلام" isBusy={controller.cancelMutation.isPending} onCancel={() => controller.setPurchaseToCancel(null)} onConfirm={async ({ managerPin, reason }) => {
+      <ActionConfirmDialog open={Boolean(controller.purchaseToCancel)} title={__t('purchases.purchases_workspace.s1', "تأكيد إلغاء فاتورة الشراء")} description={controller.cancelDescription} confirmLabel={__t('purchases.purchases_workspace.s2', "نعم، إلغاء الفاتورة")} managerPinRequired managerPinHint={__t('purchases.purchases_workspace.s3', "هذه العملية تحتاج اعتماد المدير المسجل في الإعدادات.")} reasonRequired reasonLabel={__t('purchases.purchases_workspace.s4', "سبب إلغاء فاتورة الشراء")} reasonHint={__t('purchases.purchases_workspace.s5', "اكتب سببًا واضحًا حتى يبقى محفوظًا في السجل ويرجع له المدير لاحقًا.")} reasonPlaceholder={__t('purchases.purchases_workspace.s6', "مثال: تم إدخال الفاتورة مرتين أو إلغاء الاستلام")} isBusy={controller.cancelMutation.isPending} onCancel={() => controller.setPurchaseToCancel(null)} onConfirm={async ({ managerPin, reason }) => {
         if (!controller.purchaseToCancel) return;
         await controller.cancelMutation.mutateAsync({ purchaseId: controller.purchaseToCancel.id, reason, managerPin });
         controller.setSelectedPurchaseId(controller.purchaseToCancel.id);

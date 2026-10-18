@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { Field } from '@/shared/ui/field';
@@ -23,6 +24,7 @@ export function CreateSubcontractModal({
   onClose,
   onCreated,
 }: CreateSubcontractModalProps) {
+  const { t } = useTranslation();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [subcontractors, setSubcontractors] = useState<ContractingSubcontractor[]>([]);
@@ -151,15 +153,15 @@ export function CreateSubcontractModal({
     <StandardDialog
       open={open}
       onClose={onClose}
-      title="إسناد أعمال لمقاول باطن (Subcontract Commitment)"
-      subtitle={projectName ? `المشروع: ${projectName}` : 'تسجيل أمر تكليف وعقد مقاولة باطن جديد'}
+      title={t('contracting.create_subcontract_modal.s0', "إسناد أعمال لمقاول باطن (Subcontract Commitment)")}
+      subtitle={projectName ? `المشروع: ${projectName}` : t('contracting.create_subcontract_modal.s1', "تسجيل أمر تكليف وعقد مقاولة باطن جديد")}
       width="min(920px, 95vw)"
       minHeight="auto"
       footerActions={(
         <StandardDialogFooter
           onCancel={onClose}
           onSubmit={() => handleSubmit()}
-          submitText="إصدار وتوثيق عقد المقاولة"
+          submitText={t('contracting.create_subcontract_modal.s2', "إصدار وتوثيق عقد المقاولة")}
           isSubmitting={isSubmitting}
         />
       )}
@@ -226,13 +228,13 @@ export function CreateSubcontractModal({
         <div style={{ background: '#f8fafc', padding: '9px 13px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
             <AppIcons.Users size={15} />
-            <span>1. بيانات مقاول الباطن وأمر الإسناد (Subcontractor & Commitment)</span>
+            <span>{t('contracting.create_subcontract_modal.s3', "1. بيانات مقاول الباطن وأمر الإسناد (Subcontractor & Commitment)")}</span>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '10px', alignItems: 'start' }}>
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                <span style={{ fontSize: 'var(--font-body)', fontWeight: 600, color: '#334155' }}>مقاول الباطن (جهة التنفيذ) *</span>
+                <span style={{ fontSize: 'var(--font-body)', fontWeight: 600, color: '#334155' }}>{t('contracting.create_subcontract_modal.s4', "مقاول الباطن (جهة التنفيذ) *")}</span>
                 <button
                   type="button"
                   onClick={() => setIsCreateSubcontractorOpen(true)}
@@ -250,23 +252,23 @@ export function CreateSubcontractModal({
                   }}
                 >
                   <AppIcons.Plus size={12} />
-                  <span>+ مقاول جديد</span>
+                  <span>{t('contracting.create_subcontract_modal.s5', "+ مقاول جديد")}</span>
                 </button>
               </div>
               <CustomSelect
                 value={formData.subcontractorId}
                 options={subcontractorOptions}
                 onChange={(val) => setFormData({ ...formData, subcontractorId: val })}
-                placeholder={isLoadingSubcontractors ? 'جاري جلب سجل مقاولي الباطن...' : '-- اختر مقاول الباطن --'}
+                placeholder={isLoadingSubcontractors ? t('contracting.create_subcontract_modal.s6', "جاري جلب سجل مقاولي الباطن...") : t('contracting.create_subcontract_modal.s7', "-- اختر مقاول الباطن --")}
               />
             </div>
 
-            <Field label="رقم أمر التكليف / العقد *">
+            <Field label={t('contracting.create_subcontract_modal.s8', "رقم أمر التكليف / العقد *")}>
               <input
                 type="text"
                 value={formData.contractNumber}
                 onChange={(e) => setFormData({ ...formData, contractNumber: e.target.value })}
-                placeholder="مثال: SUB-260914-0001"
+                placeholder={t('contracting.create_subcontract_modal.s9', "مثال: SUB-260914-0001")}
                 required
               />
             </Field>
@@ -277,13 +279,13 @@ export function CreateSubcontractModal({
         <div style={{ background: '#f8fafc', padding: '9px 13px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
             <AppIcons.FileText size={15} />
-            <span>2. شروط التعاقد والتحكم المالي (FIDIC Contract Terms & Safeguards)</span>
+            <span>{t('contracting.create_subcontract_modal.s10', "2. شروط التعاقد والتحكم المالي (FIDIC Contract Terms & Safeguards)")}</span>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1.5fr', gap: '10px', marginBottom: '8px' }}>
             <div>
               <span style={{ fontSize: 'var(--font-body)', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '3px' }}>
-                نوع التعاقد والمسؤولية *
+                {t('contracting.create_subcontract_modal.s11', "نوع التعاقد والمسؤولية *")}
               </span>
               <CustomSelect
                 value={formData.contractType}
@@ -294,7 +296,7 @@ export function CreateSubcontractModal({
 
             <div>
               <span style={{ fontSize: 'var(--font-body)', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '3px' }}>
-                نمط الدفع والربط المالي (Payment Linkage)
+                {t('contracting.create_subcontract_modal.s12', "نمط الدفع والربط المالي (Payment Linkage)")}
               </span>
               <CustomSelect
                 value={formData.paymentLinkageMode}
@@ -306,7 +308,7 @@ export function CreateSubcontractModal({
 
           {/* شروط الدفعة المقدمة ونافذة الاسترداد التعاقدية (Bounded Window) */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '10px', alignItems: 'start', marginTop: '6px' }}>
-            <Field label="الدفعة المقدمة %">
+            <Field label={t('contracting.create_subcontract_modal.s13', "الدفعة المقدمة %")}>
               <input
                 type="number"
                 min="0"
@@ -320,7 +322,7 @@ export function CreateSubcontractModal({
               />
             </Field>
 
-            <Field label="بدء استرداد المقدمة عند %">
+            <Field label={t('contracting.create_subcontract_modal.s14', "بدء استرداد المقدمة عند %")}>
               <input
                 type="number"
                 min="0"
@@ -331,11 +333,11 @@ export function CreateSubcontractModal({
                 onChange={(e) => setFormData({ ...formData, advanceRecoveryStartPct: e.target.value })}
                 placeholder="10"
                 style={{ fontWeight: 600 }}
-                title="نسبة الإنجاز التي يبدأ عندها استقطاع الدفعة المقدمة (افتراضي 10%)"
+                title={t('contracting.create_subcontract_modal.s15', "نسبة الإنجاز التي يبدأ عندها استقطاع الدفعة المقدمة (افتراضي 10%)")}
               />
             </Field>
 
-            <Field label="إتمام استرداد المقدمة عند %">
+            <Field label={t('contracting.create_subcontract_modal.s16', "إتمام استرداد المقدمة عند %")}>
               <input
                 type="number"
                 min="0"
@@ -346,11 +348,11 @@ export function CreateSubcontractModal({
                 onChange={(e) => setFormData({ ...formData, advanceRecoveryEndPct: e.target.value })}
                 placeholder="80"
                 style={{ fontWeight: 600 }}
-                title="نسبة الإنجاز التي ينتهي عندها استرداد كامل الدفعة المقدمة (افتراضي 80%)"
+                title={t('contracting.create_subcontract_modal.s17', "نسبة الإنجاز التي ينتهي عندها استرداد كامل الدفعة المقدمة (افتراضي 80%)")}
               />
             </Field>
 
-            <Field label="غرامة التأخير اليومية (ج.م/يوم)">
+            <Field label={t('contracting.create_subcontract_modal.s18', "غرامة التأخير اليومية (ج.م/يوم)")}>
               <input
                 type="number"
                 min="0"
@@ -366,7 +368,7 @@ export function CreateSubcontractModal({
 
           {/* محددات الضمان والهالك وحجز التسليم النهائي */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '10px', alignItems: 'start', marginTop: '6px' }}>
-            <Field label="احتجاز الذيل والتسليم % (Tail Reserve)">
+            <Field label={t('contracting.create_subcontract_modal.s19', "احتجاز الذيل والتسليم % (Tail Reserve)")}>
               <input
                 type="number"
                 min="0"
@@ -380,7 +382,7 @@ export function CreateSubcontractModal({
               />
             </Field>
 
-            <Field label={formData.contractType === 'labor_only' ? 'نسبة الهالك المسموحة % (إلزامي)' : 'نسبة هالك المواد %'}>
+            <Field label={formData.contractType === 'labor_only' ? t('contracting.create_subcontract_modal.s20', "نسبة الهالك المسموحة % (إلزامي)") : t('contracting.create_subcontract_modal.s21', "نسبة هالك المواد %")}>
               <input
                 type="number"
                 min="0"
@@ -397,7 +399,7 @@ export function CreateSubcontractModal({
               />
             </Field>
 
-            <Field label="سقف حجز الضمان % (Retention Cap)">
+            <Field label={t('contracting.create_subcontract_modal.s22', "سقف حجز الضمان % (Retention Cap)")}>
               <input
                 type="number"
                 min="0"
@@ -411,7 +413,7 @@ export function CreateSubcontractModal({
               />
             </Field>
 
-            <Field label="سقف غرامات التأخير % (LD Cap)">
+            <Field label={t('contracting.create_subcontract_modal.s23', "سقف غرامات التأخير % (LD Cap)")}>
               <input
                 type="number"
                 min="0"
@@ -431,11 +433,11 @@ export function CreateSubcontractModal({
         <div style={{ background: '#f8fafc', padding: '9px 13px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
             <AppIcons.Calculator size={15} />
-            <span>3. القيمة المالية والضمان والمواعيد (Financials & Schedule)</span>
+            <span>{t('contracting.create_subcontract_modal.s24', "3. القيمة المالية والضمان والمواعيد (Financials & Schedule)")}</span>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr 1fr 1fr', gap: '10px', alignItems: 'start' }}>
-            <Field label="إجمالي القيمة التعاقدية *">
+            <Field label={t('contracting.create_subcontract_modal.s25', "إجمالي القيمة التعاقدية *")}>
               <input
                 type="number"
                 min="0"
@@ -453,7 +455,7 @@ export function CreateSubcontractModal({
               />
             </Field>
 
-            <Field label="نسبة ضمان الأعمال %">
+            <Field label={t('contracting.create_subcontract_modal.s26', "نسبة ضمان الأعمال %")}>
               <input
                 type="number"
                 min="0"
@@ -467,7 +469,7 @@ export function CreateSubcontractModal({
               />
             </Field>
 
-            <Field label="تاريخ البدء المخطط">
+            <Field label={t('contracting.create_subcontract_modal.s27', "تاريخ البدء المخطط")}>
               <input
                 type="date"
                 value={formData.startDate}
@@ -475,7 +477,7 @@ export function CreateSubcontractModal({
               />
             </Field>
 
-            <Field label="تاريخ التسليم والنهو">
+            <Field label={t('contracting.create_subcontract_modal.s28', "تاريخ التسليم والنهو")}>
               <input
                 type="date"
                 value={formData.endDate}
@@ -489,26 +491,26 @@ export function CreateSubcontractModal({
         <div style={{ background: '#f8fafc', padding: '9px 13px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
             <AppIcons.FileText size={15} />
-            <span>3. نطاق الأعمال والاشتراطات التعاقدية (Scope of Work & Terms)</span>
+            <span>{t('contracting.create_subcontract_modal.s29', "3. نطاق الأعمال والاشتراطات التعاقدية (Scope of Work & Terms)")}</span>
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <Field label="نطاق وتوصيف الأعمال المسندة (Scope of Work) *">
+            <Field label={t('contracting.create_subcontract_modal.s30', "نطاق وتوصيف الأعمال المسندة (Scope of Work) *")}>
               <input
                 type="text"
                 value={formData.scopeOfWork}
                 onChange={(e) => setFormData({ ...formData, scopeOfWork: e.target.value })}
-                placeholder="مثال: توريد وتركيب مجاري الهواء والتكييف المركزي للدور الأرضي والأول شامل مخارج الهواء والاختبارات..."
+                placeholder={t('contracting.create_subcontract_modal.s31', "مثال: توريد وتركيب مجاري الهواء والتكييف المركزي للدور الأرضي والأول شامل مخارج الهواء والاختبارات...")}
                 required
               />
             </Field>
 
-            <Field label="شروط الدفعات والملاحظات الخاصة (اختياري)">
+            <Field label={t('contracting.create_subcontract_modal.s32', "شروط الدفعات والملاحظات الخاصة (اختياري)")}>
               <input
                 type="text"
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                placeholder="شروط الدفعات، غرامات التأخير، متطلبات الاعتماد..."
+                placeholder={t('contracting.create_subcontract_modal.s33', "شروط الدفعات، غرامات التأخير، متطلبات الاعتماد...")}
               />
             </Field>
           </div>

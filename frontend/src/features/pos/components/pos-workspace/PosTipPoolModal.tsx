@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { RestaurantOperationsDialog } from './RestaurantOperationsDialog';
@@ -33,6 +34,7 @@ export function PosTipPoolModal({
   initialCardTips = 0,
   onBack,
 }: PosTipPoolModalProps) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const todayStr = new Date().toISOString().slice(0, 10);
 
@@ -148,10 +150,10 @@ export function PosTipPoolModal({
       open={open}
       onClose={onClose}
       onBack={onBack}
-      backText="الرجوع لعمليات المطعم"
-      title="مجمع الإكراميات وتوزيع حصص الوردية (Tip Pooling & Distribution Engine)"
-      subtitle="حساب وتوزيع إكراميات الكاشير والبطاقات على طاقم الصالة والمطبخ وفق معايير Toast و Foodics العالمية"
-      footerNote="سيتم ترحيل مستحقات كل موظف وإمكانية طباعة إيصالات الصرف الحرارية فور الاعتماد."
+      backText={t('pos.pos_workspace.pos_tip_pool_modal.s0', "الرجوع لعمليات المطعم")}
+      title={t('pos.pos_workspace.pos_tip_pool_modal.s1', "مجمع الإكراميات وتوزيع حصص الوردية (Tip Pooling & Distribution Engine)")}
+      subtitle={t('pos.pos_workspace.pos_tip_pool_modal.s2', "حساب وتوزيع إكراميات الكاشير والبطاقات على طاقم الصالة والمطبخ وفق معايير Toast و Foodics العالمية")}
+      footerNote={t('pos.pos_workspace.pos_tip_pool_modal.s3', "سيتم ترحيل مستحقات كل موظف وإمكانية طباعة إيصالات الصرف الحرارية فور الاعتماد.")}
       footerActions={
         <button
           type="button"
@@ -172,7 +174,7 @@ export function PosTipPoolModal({
           }}
         >
           <CheckCircleIcon size={14} />
-          <span>اعتماد وصرف الإكراميات</span>
+          <span>{t('pos.pos_workspace.pos_tip_pool_modal.s4', "اعتماد وصرف الإكراميات")}</span>
         </button>
       }
     >
@@ -186,7 +188,7 @@ export function PosTipPoolModal({
           }}
         >
           <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '10px 14px' }}>
-            <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>إكراميات نقدية (Cash Tips)</div>
+            <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>{t('pos.pos_workspace.pos_tip_pool_modal.s5', "إكراميات نقدية (Cash Tips)")}</div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}>
               <input
                 type="number"
@@ -207,7 +209,7 @@ export function PosTipPoolModal({
           </div>
 
           <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '10px 14px' }}>
-            <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>إكراميات البطاقات والـ QR</div>
+            <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>{t('pos.pos_workspace.pos_tip_pool_modal.s6', "إكراميات البطاقات والـ QR")}</div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}>
               <input
                 type="number"
@@ -228,14 +230,14 @@ export function PosTipPoolModal({
           </div>
 
           <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '10px', padding: '10px 14px' }}>
-            <div style={{ fontSize: '11px', color: '#1e40af', fontWeight: 700 }}>إجمالي مجمع الوردية للتقسيم</div>
+            <div style={{ fontSize: '11px', color: '#1e40af', fontWeight: 700 }}>{t('pos.pos_workspace.pos_tip_pool_modal.s7', "إجمالي مجمع الوردية للتقسيم")}</div>
             <div style={{ fontSize: '20px', fontWeight: 900, color: '#170e5e', marginTop: '4px' }}>
               {formatCurrency(totalTips, currency)}
             </div>
           </div>
 
           <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '10px 14px' }}>
-            <div style={{ fontSize: '11px', color: '#475569', fontWeight: 700, marginBottom: '4px' }}>نموذج التوزيع:</div>
+            <div style={{ fontSize: '11px', color: '#475569', fontWeight: 700, marginBottom: '4px' }}>{t('pos.pos_workspace.pos_tip_pool_modal.s8', "نموذج التوزيع:")}</div>
             <select
               value={distributionMethod}
               onChange={(e) => setDistributionMethod(e.target.value as any)}
@@ -249,9 +251,9 @@ export function PosTipPoolModal({
                 outline: 'none',
               }}
             >
-              <option value="roles">أوزان الأدوار الوظيفية (Role-Based Points)</option>
-              <option value="hours">ساعات العمل الفعلية (Hours Worked)</option>
-              <option value="equal">التساوي بين الجميع (Equal Split)</option>
+              <option value="roles">{t('pos.pos_workspace.pos_tip_pool_modal.s9', "أوزان الأدوار الوظيفية (Role-Based Points)")}</option>
+              <option value="hours">{t('pos.pos_workspace.pos_tip_pool_modal.s10', "ساعات العمل الفعلية (Hours Worked)")}</option>
+              <option value="equal">{t('pos.pos_workspace.pos_tip_pool_modal.s11', "التساوي بين الجميع (Equal Split)")}</option>
             </select>
           </div>
         </div>
@@ -269,12 +271,12 @@ export function PosTipPoolModal({
             }}
           >
             <span style={{ fontSize: '12.5px', fontWeight: 800, color: '#1e293b' }}>
-              طاقم الوردية المستحق للإكرامية ({staffList.length} موظف)
+              {t('pos.pos_workspace.pos_tip_pool_modal.s12', "طاقم الوردية المستحق للإكرامية (")}{staffList.length} {t('pos.pos_workspace.pos_tip_pool_modal.s13', "موظف)")}
             </span>
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
               <input
                 type="text"
-                placeholder="اسم الموظف..."
+                placeholder={t('pos.pos_workspace.pos_tip_pool_modal.s14', "اسم الموظف...")}
                 value={newStaffName}
                 onChange={(e) => setNewStaffName(e.target.value)}
                 style={{ padding: '4px 8px', fontSize: '12px', borderRadius: '6px', border: '1px solid #cbd5e1', width: '130px' }}
@@ -284,11 +286,11 @@ export function PosTipPoolModal({
                 onChange={(e) => setNewStaffRole(e.target.value)}
                 style={{ padding: '4px 6px', fontSize: '12px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
               >
-                <option value="waiter">ويتر صالة</option>
-                <option value="captain">كابتن صالة</option>
-                <option value="barista">باريستا</option>
-                <option value="kitchen">طاقم المطبخ</option>
-                <option value="cashier">كاشير</option>
+                <option value="waiter">{t('pos.pos_workspace.pos_tip_pool_modal.s15', "ويتر صالة")}</option>
+                <option value="captain">{t('pos.pos_workspace.pos_tip_pool_modal.s16', "كابتن صالة")}</option>
+                <option value="barista">{t('pos.pos_workspace.pos_tip_pool_modal.s17', "باريستا")}</option>
+                <option value="kitchen">{t('pos.pos_workspace.pos_tip_pool_modal.s18', "طاقم المطبخ")}</option>
+                <option value="cashier">{t('pos.pos_workspace.pos_tip_pool_modal.s19', "كاشير")}</option>
               </select>
               <button
                 type="button"
@@ -308,7 +310,7 @@ export function PosTipPoolModal({
                 }}
               >
                 <PlusCircleIcon size={13} />
-                <span>إضافة</span>
+                <span>{t('pos.pos_workspace.pos_tip_pool_modal.s20', "إضافة")}</span>
               </button>
             </div>
           </div>
@@ -317,12 +319,12 @@ export function PosTipPoolModal({
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', textAlign: 'right' }}>
               <thead>
                 <tr style={{ background: '#f8fafc', color: '#475569', borderBottom: '1px solid #e2e8f0' }}>
-                  <th style={{ padding: '8px 12px' }}>اسم الموظف</th>
-                  <th style={{ padding: '8px 12px' }}>الدور الوظيفي</th>
-                  <th style={{ padding: '8px 12px' }}>ساعات الوردية</th>
-                  <th style={{ padding: '8px 12px' }}>الوزن النسبي</th>
-                  <th style={{ padding: '8px 12px' }}>الحصة المحسوبة</th>
-                  <th style={{ padding: '8px 12px', textAlign: 'center' }}>إجراء</th>
+                  <th style={{ padding: '8px 12px' }}>{t('pos.pos_workspace.pos_tip_pool_modal.s21', "اسم الموظف")}</th>
+                  <th style={{ padding: '8px 12px' }}>{t('pos.pos_workspace.pos_tip_pool_modal.s22', "الدور الوظيفي")}</th>
+                  <th style={{ padding: '8px 12px' }}>{t('pos.pos_workspace.pos_tip_pool_modal.s23', "ساعات الوردية")}</th>
+                  <th style={{ padding: '8px 12px' }}>{t('pos.pos_workspace.pos_tip_pool_modal.s24', "الوزن النسبي")}</th>
+                  <th style={{ padding: '8px 12px' }}>{t('pos.pos_workspace.pos_tip_pool_modal.s25', "الحصة المحسوبة")}</th>
+                  <th style={{ padding: '8px 12px', textAlign: 'center' }}>{t('pos.pos_workspace.pos_tip_pool_modal.s26', "إجراء")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -330,13 +332,13 @@ export function PosTipPoolModal({
                   <tr key={staff.employeeId} style={{ borderBottom: '1px solid #f1f5f9', background: idx % 2 === 0 ? '#fff' : '#fcfcfd' }}>
                     <td style={{ padding: '8px 12px', fontWeight: 700, color: '#0f172a' }}>{staff.employeeName}</td>
                     <td style={{ padding: '8px 12px', color: '#475569' }}>
-                      {staff.roleName === 'captain' && 'كابتن صالة'}
-                      {staff.roleName === 'waiter' && 'ويتر صالة'}
-                      {staff.roleName === 'barista' && 'باريستا'}
-                      {staff.roleName === 'kitchen' && 'شيف / مطبخ'}
-                      {staff.roleName === 'cashier' && 'كاشير'}
+                      {staff.roleName === 'captain' && t('pos.pos_workspace.pos_tip_pool_modal.s27', "كابتن صالة")}
+                      {staff.roleName === 'waiter' && t('pos.pos_workspace.pos_tip_pool_modal.s28', "ويتر صالة")}
+                      {staff.roleName === 'barista' && t('pos.pos_workspace.pos_tip_pool_modal.s29', "باريستا")}
+                      {staff.roleName === 'kitchen' && t('pos.pos_workspace.pos_tip_pool_modal.s30', "شيف / مطبخ")}
+                      {staff.roleName === 'cashier' && t('pos.pos_workspace.pos_tip_pool_modal.s31', "كاشير")}
                     </td>
-                    <td style={{ padding: '8px 12px', color: '#0f172a' }}>{staff.hoursWorked} س</td>
+                    <td style={{ padding: '8px 12px', color: '#0f172a' }}>{staff.hoursWorked} {t('pos.pos_workspace.pos_tip_pool_modal.s32', "س")}</td>
                     <td style={{ padding: '8px 12px', color: '#64748b' }}>{staff.weight}x</td>
                     <td style={{ padding: '8px 12px', fontWeight: 800, color: '#16a34a' }}>
                       {formatCurrency(staff.allocatedAmount, currency)}
@@ -346,7 +348,7 @@ export function PosTipPoolModal({
                         type="button"
                         onClick={() => handleRemoveStaff(staff.employeeId)}
                         style={{ border: 'none', background: 'transparent', color: '#dc2626', cursor: 'pointer', padding: '2px' }}
-                        title="حذف"
+                        title={t('pos.pos_workspace.pos_tip_pool_modal.s33', "حذف")}
                       >
                         <TrashIcon size={14} />
                       </button>

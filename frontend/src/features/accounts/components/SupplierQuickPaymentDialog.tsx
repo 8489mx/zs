@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { queryKeys } from '@/app/query-keys';
@@ -59,6 +60,7 @@ function PhoneIcon({ size = 13, style }: { size?: number; style?: React.CSSPrope
 type QuickPartyTab = 'suppliers' | 'customers';
 
 export function SupplierQuickPaymentDialog() {
+  const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<QuickPartyTab>('suppliers');
   
@@ -260,29 +262,29 @@ export function SupplierQuickPaymentDialog() {
         className="dialog-shell supplier-payment-dialog supplier-quick-payment-dialog"
         role="dialog"
         aria-modal="true"
-        aria-label="التحصيل والدفع السريع"
+        aria-label={t('accounts.supplier_quick_payment_dialog.s0', "التحصيل والدفع السريع")}
       >
         <div className="dialog-card supplier-payment-dialog-card supplier-quick-payment-card">
           <div className="quick-payment-dialog-header">
             <div className="quick-payment-header-content">
-              <h3>نافذة التحصيل والدفع السريع</h3>
+              <h3>{t('accounts.supplier_quick_payment_dialog.s1', "نافذة التحصيل والدفع السريع")}</h3>
               <p className="muted">
                 {activeTab === 'suppliers'
-                  ? 'سداد وجدولة مستحقات الموردين ومتابعة كشف الحساب الفوري.'
-                  : 'استقبال وتحصيل مديونيات العملاء مع إرسال إيصال السداد.'}
+                  ? t('accounts.supplier_quick_payment_dialog.s2', "سداد وجدولة مستحقات الموردين ومتابعة كشف الحساب الفوري.")
+                  : t('accounts.supplier_quick_payment_dialog.s3', "استقبال وتحصيل مديونيات العملاء مع إرسال إيصال السداد.")}
               </p>
             </div>
             <button
               type="button"
               className="supplier-payment-dialog-close"
               onClick={closeDialog}
-              aria-label="إغلاق النافذة"
+              aria-label={t('accounts.supplier_quick_payment_dialog.s4', "إغلاق النافذة")}
             >
               <XIcon size={16} />
             </button>
           </div>
 
-          <div className="quick-party-tabs-segment" role="tablist" aria-label="نوع الطرف">
+          <div className="quick-party-tabs-segment" role="tablist" aria-label={t('accounts.supplier_quick_payment_dialog.s5', "نوع الطرف")}>
             <button
               type="button"
               role="tab"
@@ -293,7 +295,7 @@ export function SupplierQuickPaymentDialog() {
               <span className="quick-party-tab-icon" style={{ display: 'inline-flex', alignItems: 'center' }}>
                 <BuildingOfficeIcon size={18} />
               </span>
-              <span className="quick-party-tab-title">الموردون (سداد وجدولة)</span>
+              <span className="quick-party-tab-title">{t('accounts.supplier_quick_payment_dialog.s6', "الموردون (سداد وجدولة)")}</span>
               <span className="quick-party-tab-kbd">Ctrl+Alt+D</span>
             </button>
             <button
@@ -306,7 +308,7 @@ export function SupplierQuickPaymentDialog() {
               <span className="quick-party-tab-icon" style={{ display: 'inline-flex', alignItems: 'center' }}>
                 <UsersIcon size={18} />
               </span>
-              <span className="quick-party-tab-title">العملاء (استقبال وتحصيل)</span>
+              <span className="quick-party-tab-title">{t('accounts.supplier_quick_payment_dialog.s7', "العملاء (استقبال وتحصيل)")}</span>
               <span className="quick-party-tab-kbd">Ctrl+Alt+C</span>
             </button>
           </div>
@@ -315,7 +317,7 @@ export function SupplierQuickPaymentDialog() {
             <div>
               <div className="quick-selector-card">
                 <div className="supplier-quick-payment-grid">
-                  <Field label="ابحث عن المورد (بالاسم أو برقم الهاتف)">
+                  <Field label={t('accounts.supplier_quick_payment_dialog.s8', "ابحث عن المورد (بالاسم أو برقم الهاتف)")}>
                     <div className="quick-searchable-combobox">
                       <div className="quick-searchable-input-wrapper">
                         <span className="quick-searchable-icon" style={{ display: 'inline-flex', alignItems: 'center' }}>
@@ -357,7 +359,7 @@ export function SupplierQuickPaymentDialog() {
                               setIsSupplierDropdownOpen(false);
                             }
                           }}
-                          placeholder="اكتب اسم المورد أو رقم الهاتف للبحث السريع..."
+                          placeholder={t('accounts.supplier_quick_payment_dialog.s9', "اكتب اسم المورد أو رقم الهاتف للبحث السريع...")}
                         />
                         {supplierSearchText || selectedSupplierId ? (
                           <button
@@ -368,8 +370,8 @@ export function SupplierQuickPaymentDialog() {
                               e.stopPropagation();
                               handleClearSupplier();
                             }}
-                            title="إلغاء اختيار المورد ومسح البحث"
-                            aria-label="مسح البحث"
+                            title={t('accounts.supplier_quick_payment_dialog.s10', "إلغاء اختيار المورد ومسح البحث")}
+                            aria-label={t('accounts.supplier_quick_payment_dialog.s11', "مسح البحث")}
                           >
                             <XIcon size={12} />
                           </button>
@@ -405,7 +407,7 @@ export function SupplierQuickPaymentDialog() {
                             ))
                           ) : (
                             <div className="quick-searchable-empty">
-                              لا يوجد مورد مطابق لـ "{supplierSearchText}"
+                              {t('accounts.supplier_quick_payment_dialog.s12', "لا يوجد مورد مطابق لـ \"")}{supplierSearchText}"
                             </div>
                           )}
                         </div>
@@ -415,7 +417,7 @@ export function SupplierQuickPaymentDialog() {
                   {selectedSupplier ? (
                     <div className="supplier-quick-payment-summary" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
                       <div>
-                        <span>رصيد المورد الحالي ({selectedSupplier.name})</span>
+                        <span>{t('accounts.supplier_quick_payment_dialog.s13', "رصيد المورد الحالي (")}{selectedSupplier.name})</span>
                         <strong>{formatCurrency(Number(selectedSupplier.balance || 0))}</strong>
                       </div>
                       <button
@@ -436,7 +438,7 @@ export function SupplierQuickPaymentDialog() {
                         }}
                       >
                         <XIcon size={12} />
-                        <span>ترك المورد</span>
+                        <span>{t('accounts.supplier_quick_payment_dialog.s14', "ترك المورد")}</span>
                       </button>
                     </div>
                   ) : null}
@@ -445,7 +447,7 @@ export function SupplierQuickPaymentDialog() {
                 {topSuppliers.length > 0 ? (
                   <div className="quick-debtors-preview">
                     <span className="quick-debtors-label" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                      <ClockIcon size={14} style={{ color: '#d97706' }} /> اختيار سريع للموردين الأكثر مديونية:
+                      <ClockIcon size={14} style={{ color: '#d97706' }} /> {t('accounts.supplier_quick_payment_dialog.s15', "اختيار سريع للموردين الأكثر مديونية:")}
                     </span>
                     <div className="quick-debtors-chips">
                       {topSuppliers.map((s: Supplier) => {
@@ -476,9 +478,9 @@ export function SupplierQuickPaymentDialog() {
                   <div className="quick-empty-icon" style={{ width: '56px', height: '56px', borderRadius: '50%', background: 'rgba(23, 12, 92, 0.08)', color: 'var(--primary, #170c5c)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
                     <BuildingOfficeIcon size={28} />
                   </div>
-                  <div className="quick-empty-title">اختر مورداً لبدء المتابعة</div>
+                  <div className="quick-empty-title">{t('accounts.supplier_quick_payment_dialog.s16', "اختر مورداً لبدء المتابعة")}</div>
                   <div className="quick-empty-hint">
-                    يمكنك كتابة اسم المورد أو رقم هاتفه في مربع البحث بالأعلى، أو الضغط على أحد أزرار الاختيار السريع لعرض تفاصيل الجدولة وتسديد الأقساط.
+                    {t('accounts.supplier_quick_payment_dialog.s17', "يمكنك كتابة اسم المورد أو رقم هاتفه في مربع البحث بالأعلى، أو الضغط على أحد أزرار الاختيار السريع لعرض تفاصيل الجدولة وتسديد الأقساط.")}
                   </div>
                 </div>
               )}
@@ -487,7 +489,7 @@ export function SupplierQuickPaymentDialog() {
             <div>
               <div className="quick-selector-card">
                 <div className="supplier-quick-payment-grid">
-                  <Field label="ابحث عن العميل (بالاسم أو برقم الهاتف)">
+                  <Field label={t('accounts.supplier_quick_payment_dialog.s18', "ابحث عن العميل (بالاسم أو برقم الهاتف)")}>
                     <div className="quick-searchable-combobox">
                       <div className="quick-searchable-input-wrapper">
                         <span className="quick-searchable-icon" style={{ display: 'inline-flex', alignItems: 'center' }}>
@@ -529,7 +531,7 @@ export function SupplierQuickPaymentDialog() {
                               setIsCustomerDropdownOpen(false);
                             }
                           }}
-                          placeholder="اكتب اسم العميل أو رقم الهاتف للبحث السريع..."
+                          placeholder={t('accounts.supplier_quick_payment_dialog.s19', "اكتب اسم العميل أو رقم الهاتف للبحث السريع...")}
                           disabled={false}
                         />
                         {customerSearchText || selectedCustomerId ? (
@@ -546,8 +548,8 @@ export function SupplierQuickPaymentDialog() {
                               e.stopPropagation();
                               handleClearCustomer();
                             }}
-                            title="إلغاء اختيار العميل ومسح البحث"
-                            aria-label="مسح البحث"
+                            title={t('accounts.supplier_quick_payment_dialog.s20', "إلغاء اختيار العميل ومسح البحث")}
+                            aria-label={t('accounts.supplier_quick_payment_dialog.s21', "مسح البحث")}
                           >
                             <XIcon size={12} />
                           </button>
@@ -583,7 +585,7 @@ export function SupplierQuickPaymentDialog() {
                             ))
                           ) : (
                             <div className="quick-searchable-empty">
-                              لا يوجد عميل مطابق لـ "{customerSearchText}"
+                              {t('accounts.supplier_quick_payment_dialog.s22', "لا يوجد عميل مطابق لـ \"")}{customerSearchText}"
                             </div>
                           )}
                         </div>
@@ -593,7 +595,7 @@ export function SupplierQuickPaymentDialog() {
                   {selectedCustomer ? (
                     <div className="supplier-quick-payment-summary" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
                       <div>
-                        <span>رصيد العميل المستحق ({selectedCustomer.name})</span>
+                        <span>{t('accounts.supplier_quick_payment_dialog.s23', "رصيد العميل المستحق (")}{selectedCustomer.name})</span>
                         <strong>{formatCurrency(Number(selectedCustomer.balance || 0))}</strong>
                       </div>
                       <button
@@ -614,7 +616,7 @@ export function SupplierQuickPaymentDialog() {
                         }}
                       >
                         <XIcon size={12} />
-                        <span>ترك العميل</span>
+                        <span>{t('accounts.supplier_quick_payment_dialog.s24', "ترك العميل")}</span>
                       </button>
                     </div>
                   ) : null}
@@ -623,7 +625,7 @@ export function SupplierQuickPaymentDialog() {
                 {topCustomers.length > 0 ? (
                   <div className="quick-debtors-preview">
                     <span className="quick-debtors-label" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                      <ClockIcon size={14} style={{ color: '#d97706' }} /> اختيار سريع للعملاء الأكثر مديونية:
+                      <ClockIcon size={14} style={{ color: '#d97706' }} /> {t('accounts.supplier_quick_payment_dialog.s25', "اختيار سريع للعملاء الأكثر مديونية:")}
                     </span>
                     <div className="quick-debtors-chips">
                       {topCustomers.map((c: Customer) => {
@@ -654,9 +656,9 @@ export function SupplierQuickPaymentDialog() {
                   <div className="quick-empty-icon" style={{ width: '56px', height: '56px', borderRadius: '50%', background: 'rgba(23, 12, 92, 0.08)', color: 'var(--primary, #170c5c)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
                     <UsersIcon size={28} />
                   </div>
-                  <div className="quick-empty-title">اختر عميلاً لعرض فواتيره وتسجيل التحصيل</div>
+                  <div className="quick-empty-title">{t('accounts.supplier_quick_payment_dialog.s26', "اختر عميلاً لعرض فواتيره وتسجيل التحصيل")}</div>
                   <div className="quick-empty-hint">
-                    يمكنك اختيار العميل من القائمة بالأعلى أو الضغط على أحد أزرار الاختيار السريع لعرض كشف حسابه وفواتيره السابقة وتفاصيل الأصناف وسداد المديونية.
+                    {t('accounts.supplier_quick_payment_dialog.s27', "يمكنك اختيار العميل من القائمة بالأعلى أو الضغط على أحد أزرار الاختيار السريع لعرض كشف حسابه وفواتيره السابقة وتفاصيل الأصناف وسداد المديونية.")}
                   </div>
                 </div>
               )}
@@ -664,7 +666,7 @@ export function SupplierQuickPaymentDialog() {
           )}
 
           <div className="actions compact-actions supplier-payment-dialog-actions" style={{ justifyContent: 'flex-end', marginTop: 20 }}>
-            <Button type="button" variant="secondary" onClick={closeDialog}>إغلاق النافذة</Button>
+            <Button type="button" variant="secondary" onClick={closeDialog}>{t('accounts.supplier_quick_payment_dialog.s28', "إغلاق النافذة")}</Button>
           </div>
         </div>
       </div>

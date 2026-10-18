@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
 import { getGlobalCurrencySymbol } from '@/lib/currencies';
 import { useParams, useSearchParams } from 'react-router-dom';
@@ -44,6 +45,7 @@ interface PublicRfqData {
 }
 
 export function PublicCarrierQuotePage() {
+  const { t } = useTranslation();
   const { rfqId } = useParams<{ rfqId: string }>();
   const [searchParams] = useSearchParams();
   const carrierCode = searchParams.get('carrier') || '';
@@ -146,8 +148,8 @@ export function PublicCarrierQuotePage() {
     return (
       <div style={{ minHeight: '100vh', background: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'system-ui, sans-serif' }} dir="rtl">
         <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '32px 48px', textAlign: 'center', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
-          <div style={{ fontSize: '1rem', fontWeight: 700, color: '#170e5e', marginBottom: '8px' }}>جاري تحميل تفاصيل طلب التسعير...</div>
-          <div style={{ fontSize: '0.82rem', color: '#64748b' }}>يرجى الانتظار لحظات للاتصال ببوابة الشحن البحري</div>
+          <div style={{ fontSize: '1rem', fontWeight: 700, color: '#170e5e', marginBottom: '8px' }}>{t('maritime_freight.public_carrier_quote_page.s0', "جاري تحميل تفاصيل طلب التسعير...")}</div>
+          <div style={{ fontSize: '0.82rem', color: '#64748b' }}>{t('maritime_freight.public_carrier_quote_page.s1', "يرجى الانتظار لحظات للاتصال ببوابة الشحن البحري")}</div>
         </div>
       </div>
     );
@@ -157,7 +159,7 @@ export function PublicCarrierQuotePage() {
     return (
       <div style={{ minHeight: '100vh', background: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'system-ui, sans-serif' }} dir="rtl">
         <div style={{ background: '#ffffff', border: '1px solid #fee2e2', borderRadius: '12px', padding: '32px 40px', maxWidth: '500px', textAlign: 'center', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.05)' }}>
-          <div style={{ color: '#dc2626', fontWeight: 800, fontSize: '1.1rem', marginBottom: '8px' }}>تعذر فتح طلب التسعير</div>
+          <div style={{ color: '#dc2626', fontWeight: 800, fontSize: '1.1rem', marginBottom: '8px' }}>{t('maritime_freight.public_carrier_quote_page.s2', "تعذر فتح طلب التسعير")}</div>
           <div style={{ color: '#475569', fontSize: '0.86rem', lineHeight: 1.6 }}>{errorMsg}</div>
         </div>
       </div>
@@ -174,27 +176,27 @@ export function PublicCarrierQuotePage() {
             <CheckCircleIcon size={42} />
           </div>
           <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a', margin: '0 0 8px 0' }}>
-            تم استلام عرض السعر بنجاح!
+            {t('maritime_freight.public_carrier_quote_page.s3', "تم استلام عرض السعر بنجاح!")}
           </h2>
           <p style={{ fontSize: '0.88rem', color: '#475569', lineHeight: 1.6, margin: '0 0 20px 0' }}>
-            شكراً لتعاونكم. تم تسجيل عرض السعر الملاحي بنجاح وإدراجه آلياً في مصفوفة مقارنة الأسعار الخاصة بالطلب <strong>{rfq.rfq_number}</strong> لدى <strong>{company.name}</strong>.
+            {t('maritime_freight.public_carrier_quote_page.s4', "شكراً لتعاونكم. تم تسجيل عرض السعر الملاحي بنجاح وإدراجه آلياً في مصفوفة مقارنة الأسعار الخاصة بالطلب")} <strong>{rfq.rfq_number}</strong> {t('maritime_freight.public_carrier_quote_page.s5', "لدى")} <strong>{company.name}</strong>.
           </p>
           <div style={{ background: '#f8fafc', borderRadius: '10px', border: '1px solid #e2e8f0', padding: '16px', textAlign: 'right', fontSize: '0.82rem', marginBottom: '24px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-              <span style={{ color: '#64748b' }}>الجهة المقدمة:</span>
+              <span style={{ color: '#64748b' }}>{t('maritime_freight.public_carrier_quote_page.s6', "الجهة المقدمة:")}</span>
               <span style={{ fontWeight: 700, color: '#0f172a' }}>{carrierName || carrier?.name_en || 'Carrier'}</span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-              <span style={{ color: '#64748b' }}>إجمالي النولون والمصاريف:</span>
+              <span style={{ color: '#64748b' }}>{t('maritime_freight.public_carrier_quote_page.s7', "إجمالي النولون والمصاريف:")}</span>
               <span style={{ fontWeight: 800, color: '#15803d' }}>${totalFreight.toLocaleString()} {currency}</span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ color: '#64748b' }}>فترة السماح (Free Days):</span>
-              <span style={{ fontWeight: 700, color: '#0f172a' }}>{freeDays} يوم بالمقصد</span>
+              <span style={{ color: '#64748b' }}>{t('maritime_freight.public_carrier_quote_page.s8', "فترة السماح (Free Days):")}</span>
+              <span style={{ fontWeight: 700, color: '#0f172a' }}>{freeDays} {t('maritime_freight.public_carrier_quote_page.s9', "يوم بالمقصد")}</span>
             </div>
           </div>
           <div style={{ fontSize: '0.76rem', color: '#94a3b8' }}>
-            يمكنكم إغلاق هذه الصفحة الآن أو التواصل مع مكتب العمليات: {company.email}
+            {t('maritime_freight.public_carrier_quote_page.s10', "يمكنكم إغلاق هذه الصفحة الآن أو التواصل مع مكتب العمليات:")} {company.email}
           </div>
         </div>
       </div>
@@ -212,10 +214,10 @@ export function PublicCarrierQuotePage() {
             </div>
             <div>
               <h1 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#0f172a' }}>
-                بوابة تسعير الشحن البحري (Ocean Freight Spot Quote Portal)
+                {t('maritime_freight.public_carrier_quote_page.s11', "بوابة تسعير الشحن البحري (Ocean Freight Spot Quote Portal)")}
               </h1>
               <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '2px' }}>
-                طلب تسعير صادر من: <strong style={{ color: '#170e5e' }}>{company.name}</strong>
+                {t('maritime_freight.public_carrier_quote_page.s12', "طلب تسعير صادر من:")} <strong style={{ color: '#170e5e' }}>{company.name}</strong>
               </div>
             </div>
           </div>
@@ -232,37 +234,37 @@ export function PublicCarrierQuotePage() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
               <h3 style={{ margin: '0 0 16px 0', fontSize: '0.92rem', fontWeight: 800, color: '#170e5e', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>
-                مواصفات الشحنة والمسار المطلوب
+                {t('maritime_freight.public_carrier_quote_page.s13', "مواصفات الشحنة والمسار المطلوب")}
               </h3>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '0.84rem' }}>
                 <div style={{ background: '#f8fafc', padding: '10px 14px', borderRadius: '8px', border: '1px solid #f1f5f9' }}>
-                  <div style={{ color: '#64748b', fontSize: '0.72rem', fontWeight: 700, marginBottom: '2px' }}>ميناء الشحن (POL)</div>
+                  <div style={{ color: '#64748b', fontSize: '0.72rem', fontWeight: 700, marginBottom: '2px' }}>{t('maritime_freight.public_carrier_quote_page.s14', "ميناء الشحن (POL)")}</div>
                   <div style={{ fontWeight: 800, color: '#0f172a' }}>{rfq.pol_name} <span style={{ color: '#0284c7' }}>({rfq.pol_code})</span></div>
                 </div>
 
                 <div style={{ background: '#f8fafc', padding: '10px 14px', borderRadius: '8px', border: '1px solid #f1f5f9' }}>
-                  <div style={{ color: '#64748b', fontSize: '0.72rem', fontWeight: 700, marginBottom: '2px' }}>ميناء التفريغ (POD)</div>
+                  <div style={{ color: '#64748b', fontSize: '0.72rem', fontWeight: 700, marginBottom: '2px' }}>{t('maritime_freight.public_carrier_quote_page.s15', "ميناء التفريغ (POD)")}</div>
                   <div style={{ fontWeight: 800, color: '#0f172a' }}>{rfq.pod_name} <span style={{ color: '#0284c7' }}>({rfq.pod_code})</span></div>
                 </div>
 
                 <div style={{ background: '#f8fafc', padding: '10px 14px', borderRadius: '8px', border: '1px solid #f1f5f9' }}>
-                  <div style={{ color: '#64748b', fontSize: '0.72rem', fontWeight: 700, marginBottom: '2px' }}>الحاويات ومعدات الشحن</div>
+                  <div style={{ color: '#64748b', fontSize: '0.72rem', fontWeight: 700, marginBottom: '2px' }}>{t('maritime_freight.public_carrier_quote_page.s16', "الحاويات ومعدات الشحن")}</div>
                   <div style={{ fontWeight: 800, color: '#16a34a' }}>{rfq.container_count}x {rfq.container_type} ({rfq.cargo_mode})</div>
                 </div>
 
                 <div style={{ background: '#f8fafc', padding: '10px 14px', borderRadius: '8px', border: '1px solid #f1f5f9' }}>
-                  <div style={{ color: '#64748b', fontSize: '0.72rem', fontWeight: 700, marginBottom: '2px' }}>بيان وتوصيف البضاعة</div>
-                  <div style={{ fontWeight: 700, color: '#0f172a' }}>{rfq.commodity_description || 'بضائع عامة (General Cargo)'}</div>
+                  <div style={{ color: '#64748b', fontSize: '0.72rem', fontWeight: 700, marginBottom: '2px' }}>{t('maritime_freight.public_carrier_quote_page.s17', "بيان وتوصيف البضاعة")}</div>
+                  <div style={{ fontWeight: 700, color: '#0f172a' }}>{rfq.commodity_description || t('maritime_freight.public_carrier_quote_page.s18', "بضائع عامة (General Cargo)")}</div>
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
                   <div style={{ background: '#f8fafc', padding: '10px 12px', borderRadius: '8px', border: '1px solid #f1f5f9' }}>
-                    <div style={{ color: '#64748b', fontSize: '0.72rem', fontWeight: 700 }}>مهلة السماح المطلوبة</div>
-                    <div style={{ fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>{rfq.target_free_days || 14} يوم</div>
+                    <div style={{ color: '#64748b', fontSize: '0.72rem', fontWeight: 700 }}>{t('maritime_freight.public_carrier_quote_page.s19', "مهلة السماح المطلوبة")}</div>
+                    <div style={{ fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>{rfq.target_free_days || 14} {t('maritime_freight.public_carrier_quote_page.s20', "يوم")}</div>
                   </div>
                   <div style={{ background: '#f8fafc', padding: '10px 12px', borderRadius: '8px', border: '1px solid #f1f5f9' }}>
-                    <div style={{ color: '#64748b', fontSize: '0.72rem', fontWeight: 700 }}>شروط التعاقد / الدفع</div>
+                    <div style={{ color: '#64748b', fontSize: '0.72rem', fontWeight: 700 }}>{t('maritime_freight.public_carrier_quote_page.s21', "شروط التعاقد / الدفع")}</div>
                     <div style={{ fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>{rfq.incoterm || 'FOB'} ({rfq.payment_term || 'prepaid'})</div>
                   </div>
                 </div>
@@ -272,10 +274,10 @@ export function PublicCarrierQuotePage() {
             {/* Carrier Greeting Card */}
             <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '12px', padding: '16px', fontSize: '0.82rem', color: '#1e40af' }}>
               <div style={{ fontWeight: 800, marginBottom: '4px' }}>
-                مرحباً {carrier?.name_en || carrier?.name_ar || carrierCode || 'بفريق التسعير'}
+                {t('maritime_freight.public_carrier_quote_page.s22', "مرحباً")} {carrier?.name_en || carrier?.name_ar || carrierCode || t('maritime_freight.public_carrier_quote_page.s23', "بفريق التسعير")}
               </div>
               <div style={{ lineHeight: 1.5 }}>
-                يرجى تقديم أفضل سعر نولون فوري متاح مع توضيح رسوم الموانئ وفترة السماح الممنوحة.
+                {t('maritime_freight.public_carrier_quote_page.s24', "يرجى تقديم أفضل سعر نولون فوري متاح مع توضيح رسوم الموانئ وفترة السماح الممنوحة.")}
               </div>
             </div>
           </div>
@@ -283,13 +285,13 @@ export function PublicCarrierQuotePage() {
           {/* Right Column: Quote Submission Form */}
           <form onSubmit={handleSubmit} style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '24px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
             <h3 style={{ margin: '0 0 16px 0', fontSize: '0.94rem', fontWeight: 800, color: '#0f172a', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>
-              تسجيل بيانات عرض السعر (Submit Rate Offer)
+              {t('maritime_freight.public_carrier_quote_page.s25', "تسجيل بيانات عرض السعر (Submit Rate Offer)")}
             </h3>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
-                  اسم الخط الملاحي أو وكيل الشحن *
+                  {t('maritime_freight.public_carrier_quote_page.s26', "اسم الخط الملاحي أو وكيل الشحن *")}
                 </label>
                 <input
                   type="text"
@@ -297,14 +299,14 @@ export function PublicCarrierQuotePage() {
                   value={carrierName}
                   onChange={(e) => setCarrierName(e.target.value)}
                   style={{ width: '100%', height: '38px', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '0 12px', fontSize: '0.86rem', boxSizing: 'border-box' }}
-                  placeholder="مثال: Maersk / MSC / Ningbo Agent..."
+                  placeholder={t('maritime_freight.public_carrier_quote_page.s27', "مثال: Maersk / MSC / Ningbo Agent...")}
                 />
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '12px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
-                    النولون البحري الأساسي (Ocean Freight) *
+                    {t('maritime_freight.public_carrier_quote_page.s28', "النولون البحري الأساسي (Ocean Freight) *")}
                   </label>
                   <input
                     type="number"
@@ -320,7 +322,7 @@ export function PublicCarrierQuotePage() {
 
                 <div>
                   <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
-                    العملة *
+                    {t('maritime_freight.public_carrier_quote_page.s29', "العملة *")}
                   </label>
                   <CustomSelect
                     value={currency}
@@ -338,7 +340,7 @@ export function PublicCarrierQuotePage() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 600, color: '#64748b', marginBottom: '4px' }}>
-                    رسوم ميناء الشحن (THC Origin)
+                    {t('maritime_freight.public_carrier_quote_page.s30', "رسوم ميناء الشحن (THC Origin)")}
                   </label>
                   <input
                     type="number"
@@ -353,7 +355,7 @@ export function PublicCarrierQuotePage() {
 
                 <div>
                   <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 600, color: '#64748b', marginBottom: '4px' }}>
-                    رسوم ميناء الوصول (THC Dest)
+                    {t('maritime_freight.public_carrier_quote_page.s31', "رسوم ميناء الوصول (THC Dest)")}
                   </label>
                   <input
                     type="number"
@@ -370,7 +372,7 @@ export function PublicCarrierQuotePage() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 600, color: '#64748b', marginBottom: '4px' }}>
-                    رسوم الوقود والمخاطر (BAF / Bunker)
+                    {t('maritime_freight.public_carrier_quote_page.s32', "رسوم الوقود والمخاطر (BAF / Bunker)")}
                   </label>
                   <input
                     type="number"
@@ -385,7 +387,7 @@ export function PublicCarrierQuotePage() {
 
                 <div>
                   <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 600, color: '#64748b', marginBottom: '4px' }}>
-                    رسوم محلية أخرى (Other Charges)
+                    {t('maritime_freight.public_carrier_quote_page.s33', "رسوم محلية أخرى (Other Charges)")}
                   </label>
                   <input
                     type="number"
@@ -402,7 +404,7 @@ export function PublicCarrierQuotePage() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
-                    مدة الإبحار التقديرية (أيام)
+                    {t('maritime_freight.public_carrier_quote_page.s34', "مدة الإبحار التقديرية (أيام)")}
                   </label>
                   <input
                     type="number"
@@ -416,7 +418,7 @@ export function PublicCarrierQuotePage() {
 
                 <div>
                   <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
-                    فترة السماح الممنوحة (Free Days) *
+                    {t('maritime_freight.public_carrier_quote_page.s35', "فترة السماح الممنوحة (Free Days) *")}
                   </label>
                   <input
                     type="number"
@@ -432,7 +434,7 @@ export function PublicCarrierQuotePage() {
 
               <div>
                 <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
-                  تاريخ نهاية صلاحية السعر (Validity)
+                  {t('maritime_freight.public_carrier_quote_page.s36', "تاريخ نهاية صلاحية السعر (Validity)")}
                 </label>
                 <input
                   type="date"
@@ -444,7 +446,7 @@ export function PublicCarrierQuotePage() {
 
               <div>
                 <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
-                  ملاحظات أو شروط إضافية
+                  {t('maritime_freight.public_carrier_quote_page.s37', "ملاحظات أو شروط إضافية")}
                 </label>
                 <textarea
                   rows={2}
@@ -458,14 +460,14 @@ export function PublicCarrierQuotePage() {
               {/* Live Summary Card */}
               <div style={{ background: '#f8fafc', borderRadius: '10px', border: '1px solid #e2e8f0', padding: '14px 18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
-                  <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 600 }}>إجمالي تكلفة الشحن (All-in Freight):</div>
+                  <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 600 }}>{t('maritime_freight.public_carrier_quote_page.s38', "إجمالي تكلفة الشحن (All-in Freight):")}</div>
                   <div style={{ fontSize: '1.2rem', fontWeight: 900, color: '#170e5e', marginTop: '2px' }}>
                     ${totalFreight.toLocaleString()} {currency}
                   </div>
                 </div>
                 <div style={{ textAlign: 'left', fontSize: '0.78rem', color: '#475569' }}>
-                  <div><strong>{freeDays}</strong> يوم سماح</div>
-                  <div><strong>{transitTimeDays}</strong> يوم إبحار</div>
+                  <div><strong>{freeDays}</strong> {t('maritime_freight.public_carrier_quote_page.s39', "يوم سماح")}</div>
+                  <div><strong>{transitTimeDays}</strong> {t('maritime_freight.public_carrier_quote_page.s40', "يوم إبحار")}</div>
                 </div>
               </div>
 
@@ -492,7 +494,7 @@ export function PublicCarrierQuotePage() {
                 }}
               >
                 <CheckCircleIcon size={18} />
-                <span>{isSubmitting ? 'جاري إرسال العرض...' : 'تقديم عرض السعر رسمياً (Submit Ocean Quote)'}</span>
+                <span>{isSubmitting ? t('maritime_freight.public_carrier_quote_page.s41', "جاري إرسال العرض...") : t('maritime_freight.public_carrier_quote_page.s42', "تقديم عرض السعر رسمياً (Submit Ocean Quote)")}</span>
               </button>
             </div>
           </form>

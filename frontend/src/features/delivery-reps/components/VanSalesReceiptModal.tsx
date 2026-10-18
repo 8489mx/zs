@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
@@ -23,6 +24,7 @@ export const VanSalesReceiptModal: React.FC<VanSalesReceiptModalProps> = ({
   onClose,
   storeName,
 }) => {
+  const { t } = useTranslation();
   if (!receipt) return null;
 
   const [targetPhone, setTargetPhone] = React.useState(receipt.customerPhone || '');
@@ -124,14 +126,14 @@ export const VanSalesReceiptModal: React.FC<VanSalesReceiptModalProps> = ({
     <StandardDialog
       open={true}
       onClose={onClose}
-      title="إيصال الفاتورة الميدانية"
+      title={t('delivery_reps.van_sales_receipt_modal.s0', "إيصال الفاتورة الميدانية")}
       subtitle={`رقم الفاتورة: #${receipt.docNo || '—'}`}
-      badge="مبيعات الفان"
+      badge={t('delivery_reps.van_sales_receipt_modal.s1', "مبيعات الفان")}
       width="min(500px, 96vw)"
       footerActions={
         <StandardDialogFooter
           onClose={onClose}
-          cancelText="إغلاق"
+          cancelText={t('delivery_reps.van_sales_receipt_modal.s2', "إغلاق")}
           extraActions={
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
               <Button
@@ -150,7 +152,7 @@ export const VanSalesReceiptModal: React.FC<VanSalesReceiptModalProps> = ({
                 }}
               >
                 <SendIcon size={14} color="#16a34a" />
-                <span>مشاركة واتساب</span>
+                <span>{t('delivery_reps.van_sales_receipt_modal.s3', "مشاركة واتساب")}</span>
               </Button>
               <Button
                 variant="secondary"
@@ -167,10 +169,10 @@ export const VanSalesReceiptModal: React.FC<VanSalesReceiptModalProps> = ({
                   fontWeight: 700,
                   height: '38px',
                 }}
-                title="طباعة مباشرة لطابعة البلوتوث المحمولة على الحزام (ESC/POS)"
+                title={t('delivery_reps.van_sales_receipt_modal.s4', "طباعة مباشرة لطابعة البلوتوث المحمولة على الحزام (ESC/POS)")}
               >
                 <PrinterIcon size={14} color="#0369a1" />
-                <span>{isBluetoothPrinting ? 'جاري الإرسال...' : 'بلوتوث ESC/POS (58mm)'}</span>
+                <span>{isBluetoothPrinting ? t('delivery_reps.van_sales_receipt_modal.s5', "جاري الإرسال...") : t('delivery_reps.van_sales_receipt_modal.s6', "بلوتوث ESC/POS (58mm)")}</span>
               </Button>
               <Button
                 variant="primary"
@@ -187,7 +189,7 @@ export const VanSalesReceiptModal: React.FC<VanSalesReceiptModalProps> = ({
                 }}
               >
                 <PrinterIcon size={15} />
-                <span>طباعة حرارية (80mm)</span>
+                <span>{t('delivery_reps.van_sales_receipt_modal.s7', "طباعة حرارية (80mm)")}</span>
               </Button>
             </div>
           }
@@ -219,10 +221,10 @@ export const VanSalesReceiptModal: React.FC<VanSalesReceiptModalProps> = ({
           <CheckIcon size={24} color="#059669" strokeWidth={2.5} />
         </div>
         <h3 style={{ fontSize: '15.5px', fontWeight: 800, color: '#0f172a', margin: '0 0 4px' }}>
-          تم إصدار الفاتورة الميدانية بنجاح
+          {t('delivery_reps.van_sales_receipt_modal.s8', "تم إصدار الفاتورة الميدانية بنجاح")}
         </h3>
         <p style={{ fontSize: '12px', color: '#64748b', margin: '0 0 14px' }}>
-          تم تسجيل الفاتورة بالسجل الميداني وإرسالها للحسابات ويمكن طباعتها فورياً
+          {t('delivery_reps.van_sales_receipt_modal.s9', "تم تسجيل الفاتورة بالسجل الميداني وإرسالها للحسابات ويمكن طباعتها فورياً")}
         </p>
 
         {/* RECEIPT SUMMARY CARD */}
@@ -240,14 +242,14 @@ export const VanSalesReceiptModal: React.FC<VanSalesReceiptModalProps> = ({
           }}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ color: '#64748b' }}>رقم الفاتورة:</span>
+            <span style={{ color: '#64748b' }}>{t('delivery_reps.van_sales_receipt_modal.s10', "رقم الفاتورة:")}</span>
             <span style={{ fontFamily: 'monospace', fontWeight: 800, color: '#170e5e', fontSize: '13px' }}>
               #{receipt.docNo}
             </span>
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ color: '#64748b' }}>العميل:</span>
+            <span style={{ color: '#64748b' }}>{t('delivery_reps.van_sales_receipt_modal.s11', "العميل:")}</span>
             <span style={{ fontWeight: 700, color: '#0f172a' }}>
               {receipt.customerName}
               {receipt.customerCode ? ` [${receipt.customerCode.replace(/^#/, '')}]` : ''}
@@ -256,7 +258,7 @@ export const VanSalesReceiptModal: React.FC<VanSalesReceiptModalProps> = ({
 
           {receipt.customerPhone && (
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ color: '#64748b' }}>هاتف العميل:</span>
+              <span style={{ color: '#64748b' }}>{t('delivery_reps.van_sales_receipt_modal.s12', "هاتف العميل:")}</span>
               <span style={{ fontWeight: 700, color: '#0f172a', direction: 'ltr' }}>
                 {receipt.customerPhone}
               </span>
@@ -264,15 +266,15 @@ export const VanSalesReceiptModal: React.FC<VanSalesReceiptModalProps> = ({
           )}
 
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ color: '#64748b' }}>المندوب / السيارة:</span>
+            <span style={{ color: '#64748b' }}>{t('delivery_reps.van_sales_receipt_modal.s13', "المندوب / السيارة:")}</span>
             <span style={{ fontWeight: 600, color: '#334155' }}>
-              {receipt.repName || 'مندوب التوزيع'}
+              {receipt.repName || t('delivery_reps.van_sales_receipt_modal.s14', "مندوب التوزيع")}
               {receipt.vehiclePlate ? ` (${receipt.vehiclePlate})` : ''}
             </span>
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ color: '#64748b' }}>طريقة الدفع:</span>
+            <span style={{ color: '#64748b' }}>{t('delivery_reps.van_sales_receipt_modal.s15', "طريقة الدفع:")}</span>
             <span
               style={{
                 fontWeight: 700,
@@ -284,12 +286,12 @@ export const VanSalesReceiptModal: React.FC<VanSalesReceiptModalProps> = ({
               }}
             >
               {receipt.paymentMethod === 'cash'
-                ? 'نقدي (مسلم للمندوب)'
+                ? t('delivery_reps.van_sales_receipt_modal.s16', "نقدي (مسلم للمندوب)")
                 : receipt.paymentMethod === 'card'
-                ? 'شبكة / فيزا'
+                ? t('delivery_reps.van_sales_receipt_modal.s17', "شبكة / فيزا")
                 : receipt.paymentMethod === 'split'
-                ? 'دفع مركب (نقدي + آجل)'
-                : 'آجل (على حساب العميل)'}
+                ? t('delivery_reps.van_sales_receipt_modal.s18', "دفع مركب (نقدي + آجل)")
+                : t('delivery_reps.van_sales_receipt_modal.s19', "آجل (على حساب العميل)")}
             </span>
           </div>
 
@@ -307,10 +309,10 @@ export const VanSalesReceiptModal: React.FC<VanSalesReceiptModalProps> = ({
               }}
             >
               <span>
-                المسدد نقداً: <strong style={{ color: '#059669' }}>{Number(receipt.paidAmount ?? receipt.cashPaid ?? 0).toFixed(2)} <CurrencySymbol /></strong>
+                {t('delivery_reps.van_sales_receipt_modal.s20', "المسدد نقداً:")} <strong style={{ color: '#059669' }}>{Number(receipt.paidAmount ?? receipt.cashPaid ?? 0).toFixed(2)} <CurrencySymbol /></strong>
               </span>
               <span>
-                المتبقي آجل: <strong style={{ color: '#b91c1c' }}>{Number(receipt.remainingCredit ?? receipt.creditOwed ?? Math.max(0, Number(receipt.total) - Number(receipt.paidAmount ?? receipt.cashPaid ?? 0))).toFixed(2)} <CurrencySymbol /></strong>
+                {t('delivery_reps.van_sales_receipt_modal.s21', "المتبقي آجل:")} <strong style={{ color: '#b91c1c' }}>{Number(receipt.remainingCredit ?? receipt.creditOwed ?? Math.max(0, Number(receipt.total) - Number(receipt.paidAmount ?? receipt.cashPaid ?? 0))).toFixed(2)} <CurrencySymbol /></strong>
               </span>
             </div>
           )}
@@ -329,11 +331,11 @@ export const VanSalesReceiptModal: React.FC<VanSalesReceiptModalProps> = ({
                 fontWeight: 700,
               }}
             >
-              <span>تفقيط الطرود:</span>
+              <span>{t('delivery_reps.van_sales_receipt_modal.s22', "تفقيط الطرود:")}</span>
               <span>
                 {receipt.packagingBreakdown.cartonsCount ? `${receipt.packagingBreakdown.cartonsCount} كرتونة | ` : ''}
                 {receipt.packagingBreakdown.piecesCount ? `${receipt.packagingBreakdown.piecesCount} قطعة | ` : ''}
-                {receipt.packagingBreakdown.itemsCount || receipt.items?.length || 1} بنود
+                {receipt.packagingBreakdown.itemsCount || receipt.items?.length || 1} {t('delivery_reps.van_sales_receipt_modal.s23', "بنود")}
               </span>
             </div>
           )}
@@ -342,7 +344,7 @@ export const VanSalesReceiptModal: React.FC<VanSalesReceiptModalProps> = ({
           {receipt.items && receipt.items.length > 0 && (
             <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '8px', marginTop: '2px' }}>
               <div style={{ fontSize: '11.5px', fontWeight: 700, color: '#475569', marginBottom: '5px' }}>
-                بيان الأصناف المباعة ({receipt.items.length}):
+                {t('delivery_reps.van_sales_receipt_modal.s24', "بيان الأصناف المباعة (")}{receipt.items.length}):
               </div>
               <div
                 style={{
@@ -378,13 +380,13 @@ export const VanSalesReceiptModal: React.FC<VanSalesReceiptModalProps> = ({
                       </span>
                       {it.consumerPrice != null && Number(it.consumerPrice) > 0 ? (
                         <span style={{ fontSize: '9.5px', color: '#1d4ed8', fontWeight: 600 }}>
-                          سعر المستهلك: {Number(it.consumerPrice).toFixed(2)} <CurrencySymbol />
+                          {t('delivery_reps.van_sales_receipt_modal.s25', "سعر المستهلك:")} {Number(it.consumerPrice).toFixed(2)} <CurrencySymbol />
                           {Number(it.consumerPrice) > Number(it.unitPrice) ? ` (هامش المحل: ${(Number(it.consumerPrice) - Number(it.unitPrice)).toFixed(2)})` : ''}
                         </span>
                       ) : null}
                       {it.unitOfferSavings != null && Number(it.unitOfferSavings) > 0 ? (
                         <span style={{ fontSize: '9.5px', color: '#15803d', fontWeight: 600 }}>
-                          وفر العرض: {Number(it.unitOfferSavings).toFixed(2)} <CurrencySymbol />
+                          {t('delivery_reps.van_sales_receipt_modal.s26', "وفر العرض:")} {Number(it.unitOfferSavings).toFixed(2)} <CurrencySymbol />
                         </span>
                       ) : null}
                     </div>
@@ -408,7 +410,7 @@ export const VanSalesReceiptModal: React.FC<VanSalesReceiptModalProps> = ({
                 borderTop: '1px solid #e2e8f0',
               }}
             >
-              <span style={{ color: '#64748b' }}>صورة إثبات التسليم:</span>
+              <span style={{ color: '#64748b' }}>{t('delivery_reps.van_sales_receipt_modal.s27', "صورة إثبات التسليم:")}</span>
               <img
                 src={receipt.deliveryProofPhoto}
                 alt="Proof"
@@ -434,7 +436,7 @@ export const VanSalesReceiptModal: React.FC<VanSalesReceiptModalProps> = ({
                 paddingTop: '4px',
               }}
             >
-              <span>المجموع الفرعي (قبل الخصم):</span>
+              <span>{t('delivery_reps.van_sales_receipt_modal.s28', "المجموع الفرعي (قبل الخصم):")}</span>
               <span style={{ fontWeight: 700 }}>
                 {Number(receipt.subtotal).toFixed(2)} <CurrencySymbol />
               </span>
@@ -455,7 +457,7 @@ export const VanSalesReceiptModal: React.FC<VanSalesReceiptModalProps> = ({
               fontWeight: 700,
             }}
           >
-            <span>إجمالي الخصومات والعروض:</span>
+            <span>{t('delivery_reps.van_sales_receipt_modal.s29', "إجمالي الخصومات والعروض:")}</span>
             <span style={{ fontWeight: 800 }}>
               {Number(receipt.discount || 0).toFixed(2)} <CurrencySymbol />
             </span>
@@ -473,7 +475,7 @@ export const VanSalesReceiptModal: React.FC<VanSalesReceiptModalProps> = ({
               fontSize: '14px',
             }}
           >
-            <span>الإجمالي المستحق:</span>
+            <span>{t('delivery_reps.van_sales_receipt_modal.s30', "الإجمالي المستحق:")}</span>
             <span style={{ color: '#166534', fontSize: '15px' }}>
               {Number(receipt.total).toFixed(2)} <CurrencySymbol />
             </span>
@@ -496,7 +498,7 @@ export const VanSalesReceiptModal: React.FC<VanSalesReceiptModalProps> = ({
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               <SendIcon size={16} color="#15803d" />
               <span style={{ fontSize: '13px', fontWeight: 800, color: '#166534' }}>
-                مشاركة الفاتورة للعميل عبر واتساب
+                {t('delivery_reps.van_sales_receipt_modal.s31', "مشاركة الفاتورة للعميل عبر واتساب")}
               </span>
             </div>
             <button
@@ -515,22 +517,22 @@ export const VanSalesReceiptModal: React.FC<VanSalesReceiptModalProps> = ({
                 borderRadius: '6px',
                 cursor: 'pointer',
               }}
-              title="نسخ نص الفاتورة للحافظة لمشاركتها بأي وسيلة"
+              title={t('delivery_reps.van_sales_receipt_modal.s32', "نسخ نص الفاتورة للحافظة لمشاركتها بأي وسيلة")}
             >
               <CopyIcon size={12} color="#15803d" />
-              <span>نسخ النص</span>
+              <span>{t('delivery_reps.van_sales_receipt_modal.s33', "نسخ النص")}</span>
             </button>
           </div>
 
           <p style={{ fontSize: '11px', color: '#166534', margin: '0 0 10px', lineHeight: 1.4 }}>
-            أدخل أو راجع رقم هاتف العميل واضغط إرسال لفتح محادثة واتساب بنص منسق يشمل رقم الفاتورة والأصناف والإجمالي:
+            {t('delivery_reps.van_sales_receipt_modal.s34', "أدخل أو راجع رقم هاتف العميل واضغط إرسال لفتح محادثة واتساب بنص منسق يشمل رقم الفاتورة والأصناف والإجمالي:")}
           </p>
 
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
             <input
               type="tel"
               inputMode="tel"
-              placeholder="رقم هاتف العميل (مثال: 01012345678)..."
+              placeholder={t('delivery_reps.van_sales_receipt_modal.s35', "رقم هاتف العميل (مثال: 01012345678)...")}
               value={targetPhone}
               onChange={(e) => setTargetPhone(e.target.value)}
               style={{
@@ -569,7 +571,7 @@ export const VanSalesReceiptModal: React.FC<VanSalesReceiptModalProps> = ({
               }}
             >
               <SendIcon size={14} color="#ffffff" />
-              <span>إرسال واتساب</span>
+              <span>{t('delivery_reps.van_sales_receipt_modal.s36', "إرسال واتساب")}</span>
             </Button>
           </div>
         </div>

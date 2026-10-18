@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/shared/ui/button';
 import { copyLedgerSummary, exportLedgerCsv, printLedgerSummary } from '@/features/accounts/lib/ledger-actions';
 import type { CustomerLedgerEntry, SupplierLedgerEntry } from '@/types/domain';
@@ -15,6 +16,7 @@ interface AccountsLedgerActionsProps {
 }
 
 export function AccountsLedgerActions({ title, filename, partyName, entries, canPrint, disabled, loadAllEntries }: AccountsLedgerActionsProps) {
+  const { t } = useTranslation();
   return (
     <div className="section-header-actions-group">
       <Button
@@ -26,7 +28,7 @@ export function AccountsLedgerActions({ title, filename, partyName, entries, can
         }}
         disabled={disabled || !canPrint}
       >
-        تصدير
+        {t('accounts.accounts_ledger_actions.s0', "تصدير")}
       </Button>
       <Button
         variant="secondary"
@@ -34,7 +36,7 @@ export function AccountsLedgerActions({ title, filename, partyName, entries, can
         onClick={() => void copyLedgerSummary(title, partyName, entries, async () => (await loadAllEntries()) || [])}
         disabled={disabled || !canPrint}
       >
-        نسخ
+        {t('accounts.accounts_ledger_actions.s1', "نسخ")}
       </Button>
       <Button
         variant="secondary"
@@ -42,7 +44,7 @@ export function AccountsLedgerActions({ title, filename, partyName, entries, can
         onClick={() => void printLedgerSummary(title, partyName, entries, async () => (await loadAllEntries()) || [])}
         disabled={disabled || !canPrint}
       >
-        طباعة
+        {t('accounts.accounts_ledger_actions.s2', "طباعة")}
       </Button>
     </div>
   );

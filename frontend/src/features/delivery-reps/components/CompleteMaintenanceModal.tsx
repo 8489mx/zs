@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { StandardDialog } from '@/shared/components/StandardDialog';
@@ -19,6 +20,7 @@ export function CompleteMaintenanceModal({
   vehicle,
   onSuccess,
 }: CompleteMaintenanceModalProps) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
 
   const [actualCost, setActualCost] = useState<string>('');
@@ -69,7 +71,7 @@ export function CompleteMaintenanceModal({
       open={open}
       onClose={onClose}
       title={`إتمام صيانة المركبة: ${vehicle.plateNumber}`}
-      subtitle={`${vehicle.modelName || 'سيارة توزيع'} • خروج من الورشة وإعادة لأسطول التشغيل`}
+      subtitle={`${vehicle.modelName || t('delivery_reps.complete_maintenance_modal.s0', "سيارة توزيع")} • خروج من الورشة وإعادة لأسطول التشغيل`}
       maxWidth="560px"
     >
       <form
@@ -95,14 +97,14 @@ export function CompleteMaintenanceModal({
         >
           <CheckCircleIcon size={16} color="#059669" />
           <span>
-            سيتم خروج المركبة من الورشة وتحديث حالتها إلى <strong>"جاهزة للتشغيل"</strong> وإتاحتها فوراً لبدء ورديات التوزيع ومبيعات الفان.
+            {t('delivery_reps.complete_maintenance_modal.s1', "سيتم خروج المركبة من الورشة وتحديث حالتها إلى")} <strong>{t('delivery_reps.complete_maintenance_modal.s2', "\"جاهزة للتشغيل\"")}</strong> {t('delivery_reps.complete_maintenance_modal.s3', "وإتاحتها فوراً لبدء ورديات التوزيع ومبيعات الفان.")}
           </span>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
           <div>
             <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-              التكلفة الفعلية للصيانة والإصلاح
+              {t('delivery_reps.complete_maintenance_modal.s4', "التكلفة الفعلية للصيانة والإصلاح")}
             </label>
             <input
               type="number"
@@ -123,13 +125,13 @@ export function CompleteMaintenanceModal({
 
           <div>
             <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-              رقم الفاتورة / إيصال الورشة
+              {t('delivery_reps.complete_maintenance_modal.s5', "رقم الفاتورة / إيصال الورشة")}
             </label>
             <input
               type="text"
               value={invoiceNo}
               onChange={(e) => setInvoiceNo(e.target.value)}
-              placeholder="مثال: INV-9842"
+              placeholder={t('delivery_reps.complete_maintenance_modal.s6', "مثال: INV-9842")}
               style={{
                 width: '100%',
                 padding: '8px 10px',
@@ -145,13 +147,13 @@ export function CompleteMaintenanceModal({
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
           <div>
             <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-              العداد الحالي بعد الصيانة (كم)
+              {t('delivery_reps.complete_maintenance_modal.s7', "العداد الحالي بعد الصيانة (كم)")}
             </label>
             <input
               type="number"
               value={odometer}
               onChange={(e) => setOdometer(e.target.value)}
-              placeholder="مثال: 45050"
+              placeholder={t('delivery_reps.complete_maintenance_modal.s8', "مثال: 45050")}
               style={{
                 width: '100%',
                 padding: '8px 10px',
@@ -165,7 +167,7 @@ export function CompleteMaintenanceModal({
 
           <div>
             <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-              حالة المركبة بعد الخروج
+              {t('delivery_reps.complete_maintenance_modal.s9', "حالة المركبة بعد الخروج")}
             </label>
             <select
               value={targetStatus}
@@ -180,9 +182,9 @@ export function CompleteMaintenanceModal({
                 background: '#ffffff',
               }}
             >
-              <option value="available">متاحة وجاهزة للإسناد (Available)</option>
+              <option value="available">{t('delivery_reps.complete_maintenance_modal.s10', "متاحة وجاهزة للإسناد (Available)")}</option>
               {vehicle.assignedRepId && (
-                <option value="assigned">مسندة مباشرة للسائق ({vehicle.assignedRepName})</option>
+                <option value="assigned">{t('delivery_reps.complete_maintenance_modal.s11', "مسندة مباشرة للسائق (")}{vehicle.assignedRepName})</option>
               )}
             </select>
           </div>
@@ -190,13 +192,13 @@ export function CompleteMaintenanceModal({
 
         <div>
           <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-            تقرير الصيانة وما تم إنجازه
+            {t('delivery_reps.complete_maintenance_modal.s12', "تقرير الصيانة وما تم إنجازه")}
           </label>
           <textarea
             rows={2}
             value={completionNotes}
             onChange={(e) => setCompletionNotes(e.target.value)}
-            placeholder="مثال: تم تغيير تيل الفرامل الأمامي والخلفي، وعمل ضبط زوايا وترصيص..."
+            placeholder={t('delivery_reps.complete_maintenance_modal.s13', "مثال: تم تغيير تيل الفرامل الأمامي والخلفي، وعمل ضبط زوايا وترصيص...")}
             style={{
               width: '100%',
               padding: '8px 10px',
@@ -211,7 +213,7 @@ export function CompleteMaintenanceModal({
 
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '10px' }}>
           <Button variant="secondary" onClick={onClose}>
-            إلغاء
+            {t('delivery_reps.complete_maintenance_modal.s14', "إلغاء")}
           </Button>
           <Button
             variant="primary"
@@ -220,7 +222,7 @@ export function CompleteMaintenanceModal({
             style={{ backgroundColor: '#15803d', color: '#ffffff', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}
           >
             <CheckCircleIcon size={14} />
-            {completeMutation.isPending ? 'جاري الإتمام...' : 'تأكيد إتمام الصيانة وإعادة للخدمة'}
+            {completeMutation.isPending ? t('delivery_reps.complete_maintenance_modal.s15', "جاري الإتمام...") : t('delivery_reps.complete_maintenance_modal.s16', "تأكيد إتمام الصيانة وإعادة للخدمة")}
           </Button>
         </div>
       </form>

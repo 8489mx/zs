@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect, type FC } from 'react';
 import { StandardDialog } from '@/shared/components/StandardDialog';
 import { CustomSelect } from '@/shared/ui/custom-select';
@@ -25,6 +26,7 @@ export const ApplicantDetailsModal: FC<ApplicantDetailsModalProps> = ({
   applicant,
   onUpdated,
 }) => {
+  const { t } = useTranslation();
   const [currentStage, setCurrentStage] = useState<string>(applicant?.stage || 'new');
   const [notes, setNotes] = useState(applicant?.interview_notes || '');
   const [isUpdating, setIsUpdating] = useState(false);
@@ -96,31 +98,31 @@ export const ApplicantDetailsModal: FC<ApplicantDetailsModalProps> = ({
         {/* Quick Profile Banner */}
         <div style={{ background: '#f8fafc', padding: '14px', borderRadius: '10px', border: '1px solid #e2e8f0', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '10px' }}>
           <div>
-            <div style={{ fontSize: '11.5px', color: '#64748b' }}>رقم الهاتف / الواتساب</div>
+            <div style={{ fontSize: '11.5px', color: '#64748b' }}>{t('hr.recruitment.applicant_details_modal.s0', "رقم الهاتف / الواتساب")}</div>
             <div style={{ fontSize: '13.5px', fontWeight: 700, color: '#0f172a' }}>{applicant.phone}</div>
           </div>
           <div>
-            <div style={{ fontSize: '11.5px', color: '#64748b' }}>البريد الإلكتروني</div>
+            <div style={{ fontSize: '11.5px', color: '#64748b' }}>{t('hr.recruitment.applicant_details_modal.s1', "البريد الإلكتروني")}</div>
             <div style={{ fontSize: '13.5px', fontWeight: 600, color: '#0f172a' }}>{applicant.email || '—'}</div>
           </div>
           <div>
-            <div style={{ fontSize: '11.5px', color: '#64748b' }}>الراتب المتوقع</div>
+            <div style={{ fontSize: '11.5px', color: '#64748b' }}>{t('hr.recruitment.applicant_details_modal.s2', "الراتب المتوقع")}</div>
             <div style={{ fontSize: '13.5px', fontWeight: 700, color: '#16a34a' }}>
               {applicant.expected_salary ? formatCurrency(applicant.expected_salary) : '—'}
             </div>
           </div>
           <div>
-            <div style={{ fontSize: '11.5px', color: '#64748b' }}>سنوات الخبرة</div>
-            <div style={{ fontSize: '13.5px', fontWeight: 700, color: '#0f172a' }}>{applicant.experience_years} سنة</div>
+            <div style={{ fontSize: '11.5px', color: '#64748b' }}>{t('hr.recruitment.applicant_details_modal.s3', "سنوات الخبرة")}</div>
+            <div style={{ fontSize: '13.5px', fontWeight: 700, color: '#0f172a' }}>{applicant.experience_years} {t('hr.recruitment.applicant_details_modal.s4', "سنة")}</div>
           </div>
         </div>
 
         {/* Talent Pool & CV info */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
           <div>
-            <span style={{ fontSize: '12px', color: '#64748b' }}>تصنيف الموهبة: </span>
+            <span style={{ fontSize: '12px', color: '#64748b' }}>{t('hr.recruitment.applicant_details_modal.s5', "تصنيف الموهبة:")} </span>
             <span style={{ fontSize: '12.5px', fontWeight: 600, background: '#e0e7ff', color: '#3730a3', padding: '3px 8px', borderRadius: '4px' }}>
-              {applicant.talent_pool_tag || 'عام'}
+              {applicant.talent_pool_tag || t('hr.recruitment.applicant_details_modal.s6', "عام")}
             </span>
           </div>
           {applicant.cv_url && (
@@ -143,7 +145,7 @@ export const ApplicantDetailsModal: FC<ApplicantDetailsModalProps> = ({
               }}
             >
               <FileTextIcon size={14} />
-              معاينة السيرة الذاتية (CV)
+              {t('hr.recruitment.applicant_details_modal.s7', "معاينة السيرة الذاتية (CV)")}
             </a>
           )}
         </div>
@@ -151,7 +153,7 @@ export const ApplicantDetailsModal: FC<ApplicantDetailsModalProps> = ({
         {/* Stage and Pipeline Advancement */}
         <div style={{ border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px', background: '#ffffff' }}>
           <h4 style={{ margin: '0 0 10px 0', fontSize: '13.5px', fontWeight: 700, color: '#1e293b' }}>
-            تحديث مرحلة التوظيف (Pipeline Stage)
+            {t('hr.recruitment.applicant_details_modal.s8', "تحديث مرحلة التوظيف (Pipeline Stage)")}
           </h4>
           <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
             <div style={{ flex: 1 }}>
@@ -175,7 +177,7 @@ export const ApplicantDetailsModal: FC<ApplicantDetailsModalProps> = ({
                 cursor: 'pointer',
               }}
             >
-              {isUpdating ? 'جاري الحفظ...' : 'تحديث المرحلة'}
+              {isUpdating ? t('hr.recruitment.applicant_details_modal.s9', "جاري الحفظ...") : t('hr.recruitment.applicant_details_modal.s10', "تحديث المرحلة")}
             </button>
           </div>
         </div>
@@ -183,13 +185,13 @@ export const ApplicantDetailsModal: FC<ApplicantDetailsModalProps> = ({
         {/* Notes */}
         <div>
           <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 600, color: '#334155' }}>
-            ملاحظات المقابلة والتقييم الداخلي
+            {t('hr.recruitment.applicant_details_modal.s11', "ملاحظات المقابلة والتقييم الداخلي")}
           </label>
           <textarea
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             rows={3}
-            placeholder="ملاحظات لجنة المقابلة، نقاط القوة والضعف..."
+            placeholder={t('hr.recruitment.applicant_details_modal.s12', "ملاحظات لجنة المقابلة، نقاط القوة والضعف...")}
             style={{ width: '100%', padding: '8px', borderRadius: '8px', border: '1px solid #cbd5e1', resize: 'vertical' }}
           />
         </div>
@@ -210,12 +212,12 @@ export const ApplicantDetailsModal: FC<ApplicantDetailsModalProps> = ({
         >
           <div>
             <div style={{ fontWeight: 700, fontSize: '13.5px', color: applicant.stage === 'hired' ? '#15803d' : '#6b21a8' }}>
-              {applicant.stage === 'hired' ? 'تم تعيين المرشح كموظف رسمي في الشركة' : 'اعتماد التعيين وتحويل المرشح إلى موظف'}
+              {applicant.stage === 'hired' ? t('hr.recruitment.applicant_details_modal.s13', "تم تعيين المرشح كموظف رسمي في الشركة") : t('hr.recruitment.applicant_details_modal.s14', "اعتماد التعيين وتحويل المرشح إلى موظف")}
             </div>
             <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>
               {applicant.stage === 'hired'
                 ? `معرف ملف الموظف في النظام: #${applicant.hired_employee_id}`
-                : 'إنشاء ملف موظف رسمي آلياً بنقرة واحدة ونقل بياناته إلى قسم الموارد البشرية'}
+                : t('hr.recruitment.applicant_details_modal.s15', "إنشاء ملف موظف رسمي آلياً بنقرة واحدة ونقل بياناته إلى قسم الموارد البشرية")}
             </div>
           </div>
 
@@ -238,7 +240,7 @@ export const ApplicantDetailsModal: FC<ApplicantDetailsModalProps> = ({
               }}
             >
               <CheckCircleIcon size={16} />
-              {isHiring ? 'جاري التحويل...' : 'تحويل إلى موظف رسمي (Hire)'}
+              {isHiring ? t('hr.recruitment.applicant_details_modal.s16', "جاري التحويل...") : t('hr.recruitment.applicant_details_modal.s17', "تحويل إلى موظف رسمي (Hire)")}
             </button>
           )}
         </div>

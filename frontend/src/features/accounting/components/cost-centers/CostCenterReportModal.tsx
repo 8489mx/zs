@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { Button } from '@/shared/ui/button';
 import { formatCurrency, formatCurrencyWithSymbol, formatDateOnly } from '@/lib/format';
@@ -24,6 +25,7 @@ export function CostCenterReportModal({
   onFromDateChange,
   onToDateChange,
 }: CostCenterReportModalProps) {
+  const { t } = useTranslation();
   if (!centerId) return null;
 
   const centerTitle = `كشف حركات وتقرير مركز التكلفة: ${reportData?.center?.name || '...'} (${reportData?.center?.code || ''})`;
@@ -33,7 +35,7 @@ export function CostCenterReportModal({
       open={true}
       onClose={onClose}
       title={centerTitle}
-      subtitle="بيان كافة القيود والمصروفات والإيرادات المحملة على هذا المركز"
+      subtitle={t('accounting.cost_centers.cost_center_report_modal.s0', "بيان كافة القيود والمصروفات والإيرادات المحملة على هذا المركز")}
       size="lg"
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
@@ -49,12 +51,12 @@ export function CostCenterReportModal({
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', fontWeight: 700, color: '#1e293b' }}>
             <CalendarIcon size={16} style={{ color: '#170e5e' }} />
-            <span>نطاق الفترة المحاسبية:</span>
+            <span>{t('accounting.cost_centers.cost_center_report_modal.s1', "نطاق الفترة المحاسبية:")}</span>
           </div>
 
           <div style={{ display: 'flex', gap: '14px', alignItems: 'center' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span style={{ fontSize: '12px', color: '#64748b' }}>من تاريخ:</span>
+              <span style={{ fontSize: '12px', color: '#64748b' }}>{t('accounting.cost_centers.cost_center_report_modal.s2', "من تاريخ:")}</span>
               <input
                 type="date"
                 value={fromDate}
@@ -63,7 +65,7 @@ export function CostCenterReportModal({
               />
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span style={{ fontSize: '12px', color: '#64748b' }}>إلى تاريخ:</span>
+              <span style={{ fontSize: '12px', color: '#64748b' }}>{t('accounting.cost_centers.cost_center_report_modal.s3', "إلى تاريخ:")}</span>
               <input
                 type="date"
                 value={toDate}
@@ -76,26 +78,26 @@ export function CostCenterReportModal({
 
         {isLoading ? (
           <div style={{ padding: '48px', textAlign: 'center', color: '#64748b', fontSize: '13px' }}>
-            جاري استخراج بيانات التقرير...
+            {t('accounting.cost_centers.cost_center_report_modal.s4', "جاري استخراج بيانات التقرير...")}
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
             {/* Totals Strip */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
               <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 16px' }}>
-                <div style={{ fontSize: '11.5px', color: '#64748b', marginBottom: '4px' }}>إجمالي المدين (المصروفات)</div>
+                <div style={{ fontSize: '11.5px', color: '#64748b', marginBottom: '4px' }}>{t('accounting.cost_centers.cost_center_report_modal.s5', "إجمالي المدين (المصروفات)")}</div>
                 <div style={{ fontSize: '17px', fontWeight: 800, color: '#dc2626' }}>
                   {formatCurrencyWithSymbol(reportData?.summary?.totalDebit || 0)}
                 </div>
               </div>
               <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 16px' }}>
-                <div style={{ fontSize: '11.5px', color: '#64748b', marginBottom: '4px' }}>إجمالي الدائن (الإيرادات)</div>
+                <div style={{ fontSize: '11.5px', color: '#64748b', marginBottom: '4px' }}>{t('accounting.cost_centers.cost_center_report_modal.s6', "إجمالي الدائن (الإيرادات)")}</div>
                 <div style={{ fontSize: '17px', fontWeight: 800, color: '#059669' }}>
                   {formatCurrencyWithSymbol(reportData?.summary?.totalCredit || 0)}
                 </div>
               </div>
               <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 16px' }}>
-                <div style={{ fontSize: '11.5px', color: '#64748b', marginBottom: '4px' }}>صافي الرصيد</div>
+                <div style={{ fontSize: '11.5px', color: '#64748b', marginBottom: '4px' }}>{t('accounting.cost_centers.cost_center_report_modal.s7', "صافي الرصيد")}</div>
                 <div style={{ fontSize: '17px', fontWeight: 800, color: '#170e5e' }}>
                   {formatCurrencyWithSymbol(reportData?.summary?.netBalance || 0)}
                 </div>
@@ -107,19 +109,19 @@ export function CostCenterReportModal({
               <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right', fontSize: '12px' }}>
                 <thead>
                   <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>
-                    <th style={{ padding: '10px 14px' }}>التاريخ</th>
-                    <th style={{ padding: '10px 14px' }}>رقم القيد</th>
-                    <th style={{ padding: '10px 14px' }}>الحساب</th>
-                    <th style={{ padding: '10px 14px' }}>البيان</th>
-                    <th style={{ padding: '10px 14px' }}>مدين</th>
-                    <th style={{ padding: '10px 14px' }}>دائن</th>
+                    <th style={{ padding: '10px 14px' }}>{t('accounting.cost_centers.cost_center_report_modal.s8', "التاريخ")}</th>
+                    <th style={{ padding: '10px 14px' }}>{t('accounting.cost_centers.cost_center_report_modal.s9', "رقم القيد")}</th>
+                    <th style={{ padding: '10px 14px' }}>{t('accounting.cost_centers.cost_center_report_modal.s10', "الحساب")}</th>
+                    <th style={{ padding: '10px 14px' }}>{t('accounting.cost_centers.cost_center_report_modal.s11', "البيان")}</th>
+                    <th style={{ padding: '10px 14px' }}>{t('accounting.cost_centers.cost_center_report_modal.s12', "مدين")}</th>
+                    <th style={{ padding: '10px 14px' }}>{t('accounting.cost_centers.cost_center_report_modal.s13', "دائن")}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {(!reportData?.entries || reportData.entries.length === 0) ? (
                     <tr>
                       <td colSpan={6} style={{ padding: '32px', textAlign: 'center', color: '#94a3b8' }}>
-                        لا توجد قيود مسجلة على هذا المركز في الفترة المحددة.
+                        {t('accounting.cost_centers.cost_center_report_modal.s14', "لا توجد قيود مسجلة على هذا المركز في الفترة المحددة.")}
                       </td>
                     </tr>
                   ) : (
@@ -143,7 +145,7 @@ export function CostCenterReportModal({
 
       <StandardDialogFooter>
         <Button variant="secondary" onClick={onClose} style={{ padding: '8px 18px', fontSize: '13px', borderRadius: '8px' }}>
-          إغلاق
+          {t('accounting.cost_centers.cost_center_report_modal.s15', "إغلاق")}
         </Button>
         <Button
           type="button"
@@ -163,7 +165,7 @@ export function CostCenterReportModal({
           }}
         >
           <PrinterIcon size={14} />
-          <span>طباعة A4</span>
+          <span>{t('accounting.cost_centers.cost_center_report_modal.s16', "طباعة A4")}</span>
         </Button>
       </StandardDialogFooter>
     </StandardDialog>

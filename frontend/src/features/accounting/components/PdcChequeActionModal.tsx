@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
@@ -33,6 +34,7 @@ export function PdcChequeActionModal({
   onClose,
   onSuccess,
 }: PdcChequeActionModalProps) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [actionDate, setActionDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [bouncedReason, setBouncedReason] = useState('عدم كفاية الرصيد');
@@ -97,7 +99,7 @@ export function PdcChequeActionModal({
       open={open}
       onClose={onClose}
       title={getDialogTitle()}
-      subtitle="تنفيذ الحركة المحاسبية وتحديث حالة الشيك في الحافظة"
+      subtitle={t('accounting.pdc_cheque_action_modal.s0', "تنفيذ الحركة المحاسبية وتحديث حالة الشيك في الحافظة")}
       size="md"
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
@@ -113,27 +115,27 @@ export function PdcChequeActionModal({
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px', borderBottom: '1px solid #e2e8f0', paddingBottom: '6px' }}>
             <FileTextIcon size={15} style={{ color: '#170e5e' }} />
-            <span style={{ fontSize: '12px', fontWeight: 700, color: '#1e293b' }}>بيانات الشيك الحالي</span>
+            <span style={{ fontSize: '12px', fontWeight: 700, color: '#1e293b' }}>{t('accounting.pdc_cheque_action_modal.s1', "بيانات الشيك الحالي")}</span>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', fontSize: '12px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 8px', backgroundColor: '#ffffff', borderRadius: '6px', border: '1px solid #f1f5f9' }}>
-              <span style={{ color: '#64748b' }}>رقم الشيك:</span>
+              <span style={{ color: '#64748b' }}>{t('accounting.pdc_cheque_action_modal.s2', "رقم الشيك:")}</span>
               <span style={{ fontFamily: 'monospace', fontWeight: 700, color: '#1e293b' }}>
                 {cheque.cheque_number}
               </span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 8px', backgroundColor: '#ffffff', borderRadius: '6px', border: '1px solid #f1f5f9' }}>
-              <span style={{ color: '#64748b' }}>الطرف:</span>
+              <span style={{ color: '#64748b' }}>{t('accounting.pdc_cheque_action_modal.s3', "الطرف:")}</span>
               <span style={{ fontWeight: 600, color: '#1e293b' }}>{cheque.partner_name}</span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 8px', backgroundColor: '#ffffff', borderRadius: '6px', border: '1px solid #f1f5f9' }}>
-              <span style={{ color: '#64748b' }}>المبلغ:</span>
+              <span style={{ color: '#64748b' }}>{t('accounting.pdc_cheque_action_modal.s4', "المبلغ:")}</span>
               <span style={{ fontWeight: 800, color: '#047857' }}>
                 {formatCurrency(cheque.amount)} {cheque.currency}
               </span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 8px', backgroundColor: '#ffffff', borderRadius: '6px', border: '1px solid #f1f5f9' }}>
-              <span style={{ color: '#64748b' }}>البنك:</span>
+              <span style={{ color: '#64748b' }}>{t('accounting.pdc_cheque_action_modal.s5', "البنك:")}</span>
               <span style={{ fontWeight: 600, color: '#334155' }}>{cheque.bank_name}</span>
             </div>
           </div>
@@ -151,12 +153,12 @@ export function PdcChequeActionModal({
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid #e2e8f0', paddingBottom: '6px' }}>
             <CalendarIcon size={15} style={{ color: '#170e5e' }} />
-            <span style={{ fontSize: '12px', fontWeight: 700, color: '#1e293b' }}>تفاصيل حركة التنفيذ</span>
+            <span style={{ fontSize: '12px', fontWeight: 700, color: '#1e293b' }}>{t('accounting.pdc_cheque_action_modal.s6', "تفاصيل حركة التنفيذ")}</span>
           </div>
 
           <div>
             <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-              تاريخ الإجراء <span style={{ color: '#e11d48' }}>*</span>
+              {t('accounting.pdc_cheque_action_modal.s7', "تاريخ الإجراء")} <span style={{ color: '#e11d48' }}>*</span>
             </label>
             <input
               type="date"
@@ -179,23 +181,23 @@ export function PdcChequeActionModal({
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', padding: '12px', backgroundColor: '#fff1f2', borderRadius: '8px', border: '1px solid #fecdd3' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#be123c', fontWeight: 700, fontSize: '12px' }}>
                 <AlertTriangleIcon size={16} />
-                <span>بيانات الرفض والارتداد البنكي</span>
+                <span>{t('accounting.pdc_cheque_action_modal.s8', "بيانات الرفض والارتداد البنكي")}</span>
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                  سبب الرفض / الارتداد <span style={{ color: '#e11d48' }}>*</span>
+                  {t('accounting.pdc_cheque_action_modal.s9', "سبب الرفض / الارتداد")} <span style={{ color: '#e11d48' }}>*</span>
                 </label>
                 <CustomSelect
                   value={bouncedReason}
                   onChange={(val) => setBouncedReason(val)}
                   options={BOUNCE_REASON_OPTIONS}
-                  placeholder="اختر سبب الارتداد"
+                  placeholder={t('accounting.pdc_cheque_action_modal.s10', "اختر سبب الارتداد")}
                 />
               </div>
 
               <div>
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                  مصاريف الرفض البنكية (إن وجدت)
+                  {t('accounting.pdc_cheque_action_modal.s11', "مصاريف الرفض البنكية (إن وجدت)")}
                 </label>
                 <input
                   type="number"
@@ -220,13 +222,13 @@ export function PdcChequeActionModal({
           {action === 'endorse' && (
             <div>
               <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                اسم المورد المراد تظهير الشيك إليه <span style={{ color: '#e11d48' }}>*</span>
+                {t('accounting.pdc_cheque_action_modal.s12', "اسم المورد المراد تظهير الشيك إليه")} <span style={{ color: '#e11d48' }}>*</span>
               </label>
               <input
                 type="text"
                 value={endorsedSupplier}
                 onChange={(e) => setEndorsedSupplier(e.target.value)}
-                placeholder="اسم المورد المستحق للسداد"
+                placeholder={t('accounting.pdc_cheque_action_modal.s13', "اسم المورد المستحق للسداد")}
                 style={{
                   width: '100%',
                   padding: '8px 12px',
@@ -243,13 +245,13 @@ export function PdcChequeActionModal({
 
           <div>
             <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-              ملاحظات
+              {t('accounting.pdc_cheque_action_modal.s14', "ملاحظات")}
             </label>
             <input
               type="text"
               value={actionNotes}
               onChange={(e) => setActionNotes(e.target.value)}
-              placeholder="ملاحظات حول الإجراء..."
+              placeholder={t('accounting.pdc_cheque_action_modal.s15', "ملاحظات حول الإجراء...")}
               style={{
                 width: '100%',
                 padding: '8px 12px',
@@ -272,7 +274,7 @@ export function PdcChequeActionModal({
           onClick={onClose}
           style={{ padding: '8px 18px', fontSize: '13px', borderRadius: '8px' }}
         >
-          إلغاء
+          {t('accounting.pdc_cheque_action_modal.s16', "إلغاء")}
         </Button>
         <Button
           type="button"
@@ -290,7 +292,7 @@ export function PdcChequeActionModal({
             opacity: updateStatusMutation.isPending ? 0.6 : 1,
           }}
         >
-          {updateStatusMutation.isPending ? 'جاري التنفيذ...' : 'تأكيد الإجراء'}
+          {updateStatusMutation.isPending ? t('accounting.pdc_cheque_action_modal.s17', "جاري التنفيذ...") : t('accounting.pdc_cheque_action_modal.s18', "تأكيد الإجراء")}
         </Button>
       </StandardDialogFooter>
     </StandardDialog>

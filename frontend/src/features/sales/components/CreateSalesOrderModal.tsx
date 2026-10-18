@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React, { useState, useMemo } from 'react';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { formatCurrency } from '@/lib/format';
@@ -37,6 +38,7 @@ export const CreateSalesOrderModal: React.FC<CreateSalesOrderModalProps> = ({
   onSubmit,
   isPending,
 }) => {
+  const { t } = useTranslation();
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerAddress, setCustomerAddress] = useState('');
@@ -215,15 +217,15 @@ export const CreateSalesOrderModal: React.FC<CreateSalesOrderModalProps> = ({
     <StandardDialog
       isOpen={open}
       onClose={onClose}
-      title="إنشاء أمر بيع جديد (Sales Order)"
-      subtitle="حجز المخزون وتثبيت الأسعار والكميات المعتمدة للعميل"
+      title={t('sales.create_sales_order_modal.s0', "إنشاء أمر بيع جديد (Sales Order)")}
+      subtitle={t('sales.create_sales_order_modal.s1', "حجز المخزون وتثبيت الأسعار والكميات المعتمدة للعميل")}
       maxWidth="940px"
       footer={
         <StandardDialogFooter
           onClose={onClose}
-          closeLabel="إلغاء"
+          closeLabel={t('sales.create_sales_order_modal.s2', "إلغاء")}
           primaryButton={{
-            label: isPending ? 'جاري الحفظ...' : 'حفظ أمر البيع وحجز المخزون',
+            label: isPending ? t('sales.create_sales_order_modal.s3', "جاري الحفظ...") : t('sales.create_sales_order_modal.s4', "حفظ أمر البيع وحجز المخزون"),
             onClick: () => handleSubmit(),
             disabled: isPending,
           }}
@@ -239,12 +241,12 @@ export const CreateSalesOrderModal: React.FC<CreateSalesOrderModalProps> = ({
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
             <div className="field">
               <label className="field-label" style={{ fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>
-                اسم العميل <span style={{ color: '#ef4444' }}>*</span>
+                {t('sales.create_sales_order_modal.s5', "اسم العميل")} <span style={{ color: '#ef4444' }}>*</span>
               </label>
               <input
                 type="text"
                 required
-                placeholder="اسم العميل أو المنشأة..."
+                placeholder={t('sales.create_sales_order_modal.s6', "اسم العميل أو المنشأة...")}
                 value={customerName}
                 onChange={(e) => setCustomerName(e.target.value)}
                 style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '12.5px', backgroundColor: '#f8fafc', boxSizing: 'border-box' }}
@@ -253,11 +255,11 @@ export const CreateSalesOrderModal: React.FC<CreateSalesOrderModalProps> = ({
 
             <div className="field">
               <label className="field-label" style={{ fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>
-                هاتف العميل
+                {t('sales.create_sales_order_modal.s7', "هاتف العميل")}
               </label>
               <input
                 type="text"
-                placeholder="رقم الهاتف للتواصل..."
+                placeholder={t('sales.create_sales_order_modal.s8', "رقم الهاتف للتواصل...")}
                 value={customerPhone}
                 onChange={(e) => setCustomerPhone(e.target.value)}
                 style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '12.5px', backgroundColor: '#f8fafc', boxSizing: 'border-box' }}
@@ -266,7 +268,7 @@ export const CreateSalesOrderModal: React.FC<CreateSalesOrderModalProps> = ({
 
             <div className="field">
               <label className="field-label" style={{ fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>
-                تاريخ التسليم المتوقع
+                {t('sales.create_sales_order_modal.s9', "تاريخ التسليم المتوقع")}
               </label>
               <input
                 type="date"
@@ -280,7 +282,7 @@ export const CreateSalesOrderModal: React.FC<CreateSalesOrderModalProps> = ({
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '12px' }}>
             <div className="field">
               <label className="field-label" style={{ fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>
-                صلاحية حجز المخزون حتى
+                {t('sales.create_sales_order_modal.s10', "صلاحية حجز المخزون حتى")}
               </label>
               <input
                 type="date"
@@ -292,11 +294,11 @@ export const CreateSalesOrderModal: React.FC<CreateSalesOrderModalProps> = ({
 
             <div className="field">
               <label className="field-label" style={{ fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>
-                عنوان العميل / موقع التسليم
+                {t('sales.create_sales_order_modal.s11', "عنوان العميل / موقع التسليم")}
               </label>
               <input
                 type="text"
-                placeholder="العنوان التفصيلي..."
+                placeholder={t('sales.create_sales_order_modal.s12', "العنوان التفصيلي...")}
                 value={customerAddress}
                 onChange={(e) => setCustomerAddress(e.target.value)}
                 style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '12.5px', backgroundColor: '#f8fafc', boxSizing: 'border-box' }}
@@ -310,10 +312,10 @@ export const CreateSalesOrderModal: React.FC<CreateSalesOrderModalProps> = ({
               <LockIcon size={16} color="#1d4ed8" />
               <div>
                 <span style={{ fontSize: '12px', fontWeight: 700, color: '#1e3a8a', display: 'block' }}>
-                  تفعيل حجز المخزون المؤقت فور الحفظ (Stock Reservation)
+                  {t('sales.create_sales_order_modal.s13', "تفعيل حجز المخزون المؤقت فور الحفظ (Stock Reservation)")}
                 </span>
                 <span style={{ fontSize: '11px', color: '#1d4ed8' }}>
-                  يتم زيادة الكمية المحجوزة للمنتجات ومنع بيعها في الكاشير أو المتجر الإلكتروني
+                  {t('sales.create_sales_order_modal.s14', "يتم زيادة الكمية المحجوزة للمنتجات ومنع بيعها في الكاشير أو المتجر الإلكتروني")}
                 </span>
               </div>
             </div>
@@ -330,8 +332,8 @@ export const CreateSalesOrderModal: React.FC<CreateSalesOrderModalProps> = ({
             <div style={{ backgroundColor: '#f8fafc', padding: '10px 14px', fontWeight: 700, fontSize: '12px', color: '#334155', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #e2e8f0', borderRadius: '10px 10px 0 0' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <PackageIcon size={15} color="#170e5e" />
-                <span>أصناف وكميات أمر البيع</span>
-                <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 500 }}>({items.length} صنف)</span>
+                <span>{t('sales.create_sales_order_modal.s15', "أصناف وكميات أمر البيع")}</span>
+                <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 500 }}>({items.length} {t('sales.create_sales_order_modal.s16', "صنف)")}</span>
               </div>
               <button
                 type="button"
@@ -339,7 +341,7 @@ export const CreateSalesOrderModal: React.FC<CreateSalesOrderModalProps> = ({
                 style={{ fontSize: '12px', color: '#170e5e', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px', background: 'none', border: 'none', cursor: 'pointer' }}
               >
                 <PlusIcon size={14} />
-                <span>إضافة صنف آخر</span>
+                <span>{t('sales.create_sales_order_modal.s17', "إضافة صنف آخر")}</span>
               </button>
             </div>
 
@@ -358,12 +360,12 @@ export const CreateSalesOrderModal: React.FC<CreateSalesOrderModalProps> = ({
                 color: '#475569',
               }}
             >
-              <div>الصنف / المنتج (بحث فوري)</div>
-              <div style={{ textAlign: 'center' }}>الكمية</div>
-              <div style={{ textAlign: 'center' }}>الوحدة</div>
-              <div style={{ textAlign: 'center' }}>سعر الوحدة</div>
-              <div style={{ textAlign: 'center' }}>الخصم</div>
-              <div style={{ textAlign: 'center' }}>الإجمالي</div>
+              <div>{t('sales.create_sales_order_modal.s18', "الصنف / المنتج (بحث فوري)")}</div>
+              <div style={{ textAlign: 'center' }}>{t('sales.create_sales_order_modal.s19', "الكمية")}</div>
+              <div style={{ textAlign: 'center' }}>{t('sales.create_sales_order_modal.s20', "الوحدة")}</div>
+              <div style={{ textAlign: 'center' }}>{t('sales.create_sales_order_modal.s21', "سعر الوحدة")}</div>
+              <div style={{ textAlign: 'center' }}>{t('sales.create_sales_order_modal.s22', "الخصم")}</div>
+              <div style={{ textAlign: 'center' }}>{t('sales.create_sales_order_modal.s23', "الإجمالي")}</div>
               <div style={{ textAlign: 'center' }} />
             </div>
 
@@ -408,8 +410,8 @@ export const CreateSalesOrderModal: React.FC<CreateSalesOrderModalProps> = ({
                   <div>
                     <input
                       type="text"
-                      placeholder="الوحدة"
-                      value={it.unitName || 'قطعة'}
+                      placeholder={t('sales.create_sales_order_modal.s24', "الوحدة")}
+                      value={it.unitName || t('sales.create_sales_order_modal.s25', "قطعة")}
                       onChange={(e) => handleItemChange(idx, 'unitName', e.target.value)}
                       style={{ width: '100%', padding: '7px 6px', backgroundColor: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '11px', textAlign: 'center', boxSizing: 'border-box', color: '#475569' }}
                     />
@@ -418,7 +420,7 @@ export const CreateSalesOrderModal: React.FC<CreateSalesOrderModalProps> = ({
                     <input
                       type="number"
                       step="0.01"
-                      placeholder="السعر"
+                      placeholder={t('sales.create_sales_order_modal.s26', "السعر")}
                       value={it.unitPrice}
                       onChange={(e) => handleItemChange(idx, 'unitPrice', e.target.value)}
                       style={{ width: '100%', padding: '7px 6px', backgroundColor: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '12px', textAlign: 'center', boxSizing: 'border-box' }}
@@ -455,7 +457,7 @@ export const CreateSalesOrderModal: React.FC<CreateSalesOrderModalProps> = ({
                         cursor: items.length <= 1 ? 'not-allowed' : 'pointer',
                         transition: 'all 0.15s ease',
                       }}
-                      title="حذف هذا الصنف"
+                      title={t('sales.create_sales_order_modal.s27', "حذف هذا الصنف")}
                     >
                       <Trash2Icon size={14} />
                     </button>
@@ -468,15 +470,15 @@ export const CreateSalesOrderModal: React.FC<CreateSalesOrderModalProps> = ({
           {/* Totals Summary */}
           <div style={{ padding: '12px 16px', backgroundColor: '#f8fafc', borderRadius: '10px', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '12.5px' }}>
             <div>
-              <span style={{ color: '#64748b' }}>المجموع قبل الخصم: </span>
+              <span style={{ color: '#64748b' }}>{t('sales.create_sales_order_modal.s28', "المجموع قبل الخصم:")} </span>
               <strong style={{ color: '#1e293b' }}>{formatCurrency(subtotal)}</strong>
             </div>
             <div>
-              <span style={{ color: '#64748b' }}>إجمالي الخصم: </span>
+              <span style={{ color: '#64748b' }}>{t('sales.create_sales_order_modal.s29', "إجمالي الخصم:")} </span>
               <strong style={{ color: '#dc2626' }}>{formatCurrency(totalDiscount)}</strong>
             </div>
             <div style={{ fontSize: '13.5px', fontWeight: 800, color: '#170e5e' }}>
-              <span>الصافي المطلوب: </span>
+              <span>{t('sales.create_sales_order_modal.s30', "الصافي المطلوب:")} </span>
               <span>{formatCurrency(totalAmount)}</span>
             </div>
           </div>

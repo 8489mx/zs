@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useEffect, useMemo, useState } from 'react';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { Button } from '@/shared/ui/button';
@@ -58,6 +59,7 @@ function getFutureDate(months: number) {
 }
 
 export function BarcodePrintDialog({ open, product, unit, items, onClose }: BarcodePrintDialogProps) {
+  const { t } = useTranslation();
   const currentStoreName = useAuthStore((state) => state.storeName || state.tenant?.businessName || 'متجرنا');
 
   const [family, setFamily] = useState<BarcodePrintFamily>('thermal');
@@ -284,11 +286,11 @@ export function BarcodePrintDialog({ open, product, unit, items, onClose }: Barc
     <StandardDialog
       open={open}
       onClose={onClose}
-      title="توليد وطباعة ملصقات الباركود والرف (Barcode & Shelf Labeling)"
+      title={t('products.barcode_print_dialog.s0', "توليد وطباعة ملصقات الباركود والرف (Barcode & Shelf Labeling)")}
       subtitle={
         isBatchMode
           ? `طباعة مجمعة: ${batchItems.length} صنف · إجمالي ${totalCopies} ملصق`
-          : `${activeProduct.name} · ${card.unit?.name || 'قطعة'} · باركود: ${card.barcode || 'بدون باركود'}`
+          : `${activeProduct.name} · ${card.unit?.name || t('products.barcode_print_dialog.s1', "قطعة")} · باركود: ${card.barcode || t('products.barcode_print_dialog.s2', "بدون باركود")}`
       }
       width="min(1160px, 96vw)"
       height="min(650px, 92vh)"
@@ -296,9 +298,9 @@ export function BarcodePrintDialog({ open, product, unit, items, onClose }: Barc
       bodyStyle={{ overflow: 'hidden', padding: '12px 16px' }}
       footerActions={
         <StandardDialogFooter
-          cancelText="إغلاق"
+          cancelText={t('products.barcode_print_dialog.s3', "إغلاق")}
           onCancel={onClose}
-          submitText={`طباعة الآن (${totalCopies} ${family === 'thermal' ? 'ملصق' : 'نسخة'})`}
+          submitText={`طباعة الآن (${totalCopies} ${family === 'thermal' ? t('products.barcode_print_dialog.s4', "ملصق") : t('products.barcode_print_dialog.s5', "نسخة")})`}
           onSubmit={handlePrint}
           submitDisabled={!card.barcode && !isBatchMode}
         />
@@ -333,13 +335,13 @@ export function BarcodePrintDialog({ open, product, unit, items, onClose }: Barc
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
                 <AppIcons.Printer size={15} />
-                <span>1. إعدادات الطابعة والمقاس</span>
+                <span>{t('products.barcode_print_dialog.s6', "1. إعدادات الطابعة والمقاس")}</span>
               </div>
               <span className="nav-pill" style={{ fontSize: '0.72rem' }}>{preset.pageLabel}</span>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-              <Field label="نوع الطباعة">
+              <Field label={t('products.barcode_print_dialog.s7', "نوع الطباعة")}>
                 <CustomSelect
                   value={family}
                   options={FAMILY_OPTIONS}
@@ -357,7 +359,7 @@ export function BarcodePrintDialog({ open, product, unit, items, onClose }: Barc
                 />
               </Field>
 
-              <Field label="Preset المقاس المعتمد">
+              <Field label={t('products.barcode_print_dialog.s8', "Preset المقاس المعتمد")}>
                 <CustomSelect
                   value={presetId}
                   options={presetSelectOptions}
@@ -373,7 +375,7 @@ export function BarcodePrintDialog({ open, product, unit, items, onClose }: Barc
               </Field>
 
               {!isBatchMode && (
-                <Field label={family === 'thermal' ? 'عدد الملصقات المطلوب طباعتها' : 'إجمالي عدد النسخ'}>
+                <Field label={family === 'thermal' ? t('products.barcode_print_dialog.s9', "عدد الملصقات المطلوب طباعتها") : t('products.barcode_print_dialog.s10', "إجمالي عدد النسخ")}>
                   <input
                     type="number"
                     min="1"
@@ -386,7 +388,7 @@ export function BarcodePrintDialog({ open, product, unit, items, onClose }: Barc
               )}
 
               {family === 'sheet' ? (
-                <Field label="البدء من الملصق رقم">
+                <Field label={t('products.barcode_print_dialog.s11', "البدء من الملصق رقم")}>
                   <input
                     type="number"
                     min="1"
@@ -395,14 +397,14 @@ export function BarcodePrintDialog({ open, product, unit, items, onClose }: Barc
                     onChange={(event) =>
                       setStartOffset(Math.max(1, Math.min(preset.maxLabelsPerPage, Number(event.target.value || 1))))
                     }
-                    title="لتفادي إهدار ورق A4 عند استهلاك بعض الملصقات من الورقة سابقاً"
+                    title={t('products.barcode_print_dialog.s12', "لتفادي إهدار ورق A4 عند استهلاك بعض الملصقات من الورقة سابقاً")}
                     style={{ height: '32px', fontSize: '0.82rem' }}
                   />
                 </Field>
               ) : (
-                <Field label="أبعاد الملصق الفعلي">
+                <Field label={t('products.barcode_print_dialog.s13', "أبعاد الملصق الفعلي")}>
                   <input
-                    value={`${preset.labelWidthMm} × ${preset.labelHeightMm} مم ${preset.isShelfLabel ? '(استيكر رف)' : ''}`}
+                    value={`${preset.labelWidthMm} × ${preset.labelHeightMm} مم ${preset.isShelfLabel ? t('products.barcode_print_dialog.s14', "(استيكر رف)") : ''}`}
                     readOnly
                     disabled
                     style={{ height: '32px', fontSize: '0.82rem', background: '#f1f5f9', fontWeight: 600, color: '#170e5e' }}
@@ -411,7 +413,7 @@ export function BarcodePrintDialog({ open, product, unit, items, onClose }: Barc
               )}
 
               {family === 'sheet' && (
-                <Field label="عدد الملصقات بالصفحة">
+                <Field label={t('products.barcode_print_dialog.s15', "عدد الملصقات بالصفحة")}>
                   <input
                     type="number"
                     min="1"
@@ -426,7 +428,7 @@ export function BarcodePrintDialog({ open, product, unit, items, onClose }: Barc
               )}
 
               {family === 'sheet' && (
-                <Field label="نوع التغذية والورق">
+                <Field label={t('products.barcode_print_dialog.s16', "نوع التغذية والورق")}>
                   <input
                     value={`ورق A4 لاصق (${preset.columns} أعمدة)`}
                     readOnly
@@ -442,32 +444,32 @@ export function BarcodePrintDialog({ open, product, unit, items, onClose }: Barc
               <div style={{ marginTop: '10px', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '8px 10px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
                   <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#170e5e' }}>
-                    الأصناف المحددة ({batchItems.length}) · إجمالي الملصقات: <strong>{totalCopies}</strong>
+                    {t('products.barcode_print_dialog.s17', "الأصناف المحددة (")}{batchItems.length}{t('products.barcode_print_dialog.s18', ") · إجمالي الملصقات:")} <strong>{totalCopies}</strong>
                   </span>
                   <div style={{ display: 'flex', gap: '4px' }}>
                     <button
                       type="button"
                       onClick={() => setAllCopies(1)}
                       style={{ fontSize: '0.7rem', padding: '2px 6px', border: '1px solid #cbd5e1', borderRadius: '4px', background: '#f8fafc', cursor: 'pointer' }}
-                      title="نسخة واحدة لكل صنف (ملصقات الرف)"
+                      title={t('products.barcode_print_dialog.s19', "نسخة واحدة لكل صنف (ملصقات الرف)")}
                     >
-                      1 لكل صنف (رف)
+                      {t('products.barcode_print_dialog.s20', "1 لكل صنف (رف)")}
                     </button>
                     <button
                       type="button"
                       onClick={() => adjustAllCopies(1)}
                       style={{ fontSize: '0.7rem', padding: '2px 6px', border: '1px solid #cbd5e1', borderRadius: '4px', background: '#f8fafc', cursor: 'pointer' }}
-                      title="زيادة نسخة لكل الأصناف"
+                      title={t('products.barcode_print_dialog.s21', "زيادة نسخة لكل الأصناف")}
                     >
-                      +1 للكل
+                      {t('products.barcode_print_dialog.s22', "+1 للكل")}
                     </button>
                     <button
                       type="button"
                       onClick={() => adjustAllCopies(-1)}
                       style={{ fontSize: '0.7rem', padding: '2px 6px', border: '1px solid #cbd5e1', borderRadius: '4px', background: '#f8fafc', cursor: 'pointer' }}
-                      title="إنقاص نسخة لكل الأصناف"
+                      title={t('products.barcode_print_dialog.s23', "إنقاص نسخة لكل الأصناف")}
                     >
-                      -1 للكل
+                      {t('products.barcode_print_dialog.s24', "-1 للكل")}
                     </button>
                   </div>
                 </div>
@@ -494,10 +496,10 @@ export function BarcodePrintDialog({ open, product, unit, items, onClose }: Barc
                         <span style={{ fontWeight: activeItemIndex === idx ? 800 : 600, color: '#0f172a', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
                           {item.product.name}
                         </span>
-                        <span style={{ fontSize: '0.68rem', color: '#64748b' }}>({item.unit?.name || 'قطعة'})</span>
+                        <span style={{ fontSize: '0.68rem', color: '#64748b' }}>({item.unit?.name || t('products.barcode_print_dialog.s25', "قطعة")})</span>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }} onClick={(e) => e.stopPropagation()}>
-                        <span style={{ fontSize: '0.7rem', color: '#64748b' }}>الكمية:</span>
+                        <span style={{ fontSize: '0.7rem', color: '#64748b' }}>{t('products.barcode_print_dialog.s26', "الكمية:")}</span>
                         <input
                           type="number"
                           min="1"
@@ -528,7 +530,7 @@ export function BarcodePrintDialog({ open, product, unit, items, onClose }: Barc
               }}
             >
               <span>
-                المقاس: <strong>{preset.labelWidthMm} × {preset.labelHeightMm} مم</strong>
+                {t('products.barcode_print_dialog.s27', "المقاس:")} <strong>{preset.labelWidthMm} × {preset.labelHeightMm} {t('products.barcode_print_dialog.s28', "مم")}</strong>
               </span>
               <span>
                 {family === 'thermal'
@@ -542,7 +544,7 @@ export function BarcodePrintDialog({ open, product, unit, items, onClose }: Barc
           <div style={{ background: '#f8fafc', padding: '12px 14px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem', marginBottom: '8px' }}>
               <AppIcons.Sliders size={15} />
-              <span>2. تخصيص محتويات وبيانات الملصق</span>
+              <span>{t('products.barcode_print_dialog.s29', "2. تخصيص محتويات وبيانات الملصق")}</span>
             </div>
 
             {/* سطر اسم المنشأة */}
@@ -576,14 +578,14 @@ export function BarcodePrintDialog({ open, product, unit, items, onClose }: Barc
                   onChange={(e) => setShowStoreName(e.target.checked)}
                   style={{ accentColor: '#170e5e', width: '15px', height: '15px', cursor: 'pointer' }}
                 />
-                <span>اسم المنشأة:</span>
+                <span>{t('products.barcode_print_dialog.s30', "اسم المنشأة:")}</span>
               </label>
               {showStoreName && (
                 <input
                   type="text"
                   value={storeName}
                   onChange={(e) => setStoreName(e.target.value)}
-                  placeholder="اسم المتجر أو الشركة المطبوع أعلى الملصق"
+                  placeholder={t('products.barcode_print_dialog.s31', "اسم المتجر أو الشركة المطبوع أعلى الملصق")}
                   style={{ flex: 1, height: '28px', fontSize: '0.76rem', padding: '2px 8px' }}
                 />
               )}
@@ -608,7 +610,7 @@ export function BarcodePrintDialog({ open, product, unit, items, onClose }: Barc
                   onChange={(e) => setShowProductName(e.target.checked)}
                   style={{ accentColor: '#170e5e', width: '15px', height: '15px', cursor: 'pointer' }}
                 />
-                <span>اسم المنتج</span>
+                <span>{t('products.barcode_print_dialog.s32', "اسم المنتج")}</span>
               </label>
 
               <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.78rem', color: '#1e293b', cursor: 'pointer' }}>
@@ -618,7 +620,7 @@ export function BarcodePrintDialog({ open, product, unit, items, onClose }: Barc
                   onChange={(e) => setShowPrice(e.target.checked)}
                   style={{ accentColor: '#170e5e', width: '15px', height: '15px', cursor: 'pointer' }}
                 />
-                <span>السعر المالي والعملة</span>
+                <span>{t('products.barcode_print_dialog.s33', "السعر المالي والعملة")}</span>
               </label>
 
               <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.78rem', color: '#1e293b', cursor: 'pointer' }}>
@@ -628,7 +630,7 @@ export function BarcodePrintDialog({ open, product, unit, items, onClose }: Barc
                   onChange={(e) => setShowUnit(e.target.checked)}
                   style={{ accentColor: '#170e5e', width: '15px', height: '15px', cursor: 'pointer' }}
                 />
-                <span>اسم الوحدة ({card.unit?.name || 'قطعة'})</span>
+                <span>{t('products.barcode_print_dialog.s34', "اسم الوحدة (")}{card.unit?.name || t('products.barcode_print_dialog.s35', "قطعة")})</span>
               </label>
 
               <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.78rem', color: '#1e293b', cursor: 'pointer' }}>
@@ -638,7 +640,7 @@ export function BarcodePrintDialog({ open, product, unit, items, onClose }: Barc
                   onChange={(e) => setShowBarcodeText(e.target.checked)}
                   style={{ accentColor: '#170e5e', width: '15px', height: '15px', cursor: 'pointer' }}
                 />
-                <span>رقم الباركود أسفل الخطوط</span>
+                <span>{t('products.barcode_print_dialog.s36', "رقم الباركود أسفل الخطوط")}</span>
               </label>
 
               {activeProduct.styleCode && (
@@ -649,7 +651,7 @@ export function BarcodePrintDialog({ open, product, unit, items, onClose }: Barc
                     onChange={(e) => setShowSku(e.target.checked)}
                     style={{ accentColor: '#170e5e', width: '15px', height: '15px', cursor: 'pointer' }}
                   />
-                  <span>كود الصنف ({activeProduct.styleCode})</span>
+                  <span>{t('products.barcode_print_dialog.s37', "كود الصنف (")}{activeProduct.styleCode})</span>
                 </label>
               )}
             </div>
@@ -683,9 +685,9 @@ export function BarcodePrintDialog({ open, product, unit, items, onClose }: Barc
                     onChange={(e) => setShowFoodStatement(e.target.checked)}
                     style={{ accentColor: '#166534', width: '15px', height: '15px', cursor: 'pointer' }}
                   />
-                  <span>بطاقة بيان السلع المعبأة (تواريخ التعبئة والصلاحية والوزن)</span>
+                  <span>{t('products.barcode_print_dialog.s38', "بطاقة بيان السلع المعبأة (تواريخ التعبئة والصلاحية والوزن)")}</span>
                 </label>
-                <span style={{ fontSize: '0.68rem', color: '#15803d', fontWeight: 600 }}>مطابقة للتموين</span>
+                <span style={{ fontSize: '0.68rem', color: '#15803d', fontWeight: 600 }}>{t('products.barcode_print_dialog.s39', "مطابقة للتموين")}</span>
               </div>
 
               {showFoodStatement && (
@@ -693,7 +695,7 @@ export function BarcodePrintDialog({ open, product, unit, items, onClose }: Barc
                   {/* أ) تواريخ الإنتاج والتعبئة والصلاحية */}
                   <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '8px 10px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                      <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#166534' }}>التواريخ وفترة الصلاحية:</span>
+                      <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#166534' }}>{t('products.barcode_print_dialog.s40', "التواريخ وفترة الصلاحية:")}</span>
                       <label style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', cursor: 'pointer', fontSize: '0.72rem', color: '#334155' }}>
                         <input
                           type="checkbox"
@@ -701,13 +703,13 @@ export function BarcodePrintDialog({ open, product, unit, items, onClose }: Barc
                           onChange={(e) => setShowProductionDate(e.target.checked)}
                           style={{ accentColor: '#166534', width: '13px', height: '13px' }}
                         />
-                        <span>إضافة تاريخ الإنتاج (إنتاج: ...)</span>
+                        <span>{t('products.barcode_print_dialog.s41', "إضافة تاريخ الإنتاج (إنتاج: ...)")}</span>
                       </label>
                     </div>
 
                     <div style={{ display: 'grid', gridTemplateColumns: showProductionDate ? '1fr 1fr 1fr' : '1fr 1fr', gap: '6px' }}>
                       {showProductionDate && (
-                        <Field label="تاريخ الإنتاج">
+                        <Field label={t('products.barcode_print_dialog.s42', "تاريخ الإنتاج")}>
                           <input
                             type="date"
                             value={productionDate}
@@ -717,7 +719,7 @@ export function BarcodePrintDialog({ open, product, unit, items, onClose }: Barc
                         </Field>
                       )}
 
-                      <Field label="تاريخ التعبئة">
+                      <Field label={t('products.barcode_print_dialog.s43', "تاريخ التعبئة")}>
                         <input
                           type="date"
                           value={packagingDate}
@@ -727,7 +729,7 @@ export function BarcodePrintDialog({ open, product, unit, items, onClose }: Barc
                       </Field>
 
                       {expiryType === 'period' ? (
-                        <Field label="فترة الصلاحية">
+                        <Field label={t('products.barcode_print_dialog.s44', "فترة الصلاحية")}>
                           <CustomSelect
                             value={String(expiryPeriodMonths)}
                             options={EXPIRY_PERIOD_OPTIONS}
@@ -739,7 +741,7 @@ export function BarcodePrintDialog({ open, product, unit, items, onClose }: Barc
                           />
                         </Field>
                       ) : (
-                        <Field label="تاريخ الانتهاء">
+                        <Field label={t('products.barcode_print_dialog.s45', "تاريخ الانتهاء")}>
                           <input
                             type="date"
                             value={expiryDate}
@@ -751,7 +753,7 @@ export function BarcodePrintDialog({ open, product, unit, items, onClose }: Barc
                     </div>
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.72rem', color: '#334155', marginTop: '6px' }}>
-                      <span>صيغة الصلاحية:</span>
+                      <span>{t('products.barcode_print_dialog.s46', "صيغة الصلاحية:")}</span>
                       <label style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
                         <input
                           type="radio"
@@ -760,7 +762,7 @@ export function BarcodePrintDialog({ open, product, unit, items, onClose }: Barc
                           onChange={() => setExpiryType('period')}
                           style={{ accentColor: '#166534' }}
                         />
-                        <span>مدة بالشهور (مثال: صالحة 6 أشهر)</span>
+                        <span>{t('products.barcode_print_dialog.s47', "مدة بالشهور (مثال: صالحة 6 أشهر)")}</span>
                       </label>
                       <label style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
                         <input
@@ -770,7 +772,7 @@ export function BarcodePrintDialog({ open, product, unit, items, onClose }: Barc
                           onChange={() => setExpiryType('date')}
                           style={{ accentColor: '#166534' }}
                         />
-                        <span>تاريخ انتهاء صريح</span>
+                        <span>{t('products.barcode_print_dialog.s48', "تاريخ انتهاء صريح")}</span>
                       </label>
                     </div>
                   </div>
@@ -786,14 +788,14 @@ export function BarcodePrintDialog({ open, product, unit, items, onClose }: Barc
                             const checked = e.target.checked;
                             setShowNetWeight(checked);
                             if (checked && !netWeightText) {
-                              setNetWeightText(activeUnit?.name || '1 كجم');
+                              setNetWeightText(activeUnit?.name || t('products.barcode_print_dialog.s49', "1 كجم"));
                             }
                           }}
                           style={{ accentColor: '#166534', width: '14px', height: '14px' }}
                         />
-                        <span>بيان الوزن الصافي المعتمد (صافي: ...)</span>
+                        <span>{t('products.barcode_print_dialog.s50', "بيان الوزن الصافي المعتمد (صافي: ...)")}</span>
                       </label>
-                      <span style={{ fontSize: '0.68rem', color: '#64748b' }}>مواصفة م.ق.م 2613</span>
+                      <span style={{ fontSize: '0.68rem', color: '#64748b' }}>{t('products.barcode_print_dialog.s51', "مواصفة م.ق.م 2613")}</span>
                     </div>
 
                     {showNetWeight && (
@@ -803,7 +805,7 @@ export function BarcodePrintDialog({ open, product, unit, items, onClose }: Barc
                             type="text"
                             value={netWeightText}
                             onChange={(e) => setNetWeightText(e.target.value)}
-                            placeholder="مثال: 1 كجم أو 500 جم أو 250 جم"
+                            placeholder={t('products.barcode_print_dialog.s52', "مثال: 1 كجم أو 500 جم أو 250 جم")}
                             style={{ flex: 1, height: '28px', fontSize: '0.75rem', padding: '2px 8px' }}
                           />
                         </div>
@@ -835,14 +837,14 @@ export function BarcodePrintDialog({ open, product, unit, items, onClose }: Barc
                   {/* ج) تعليمات وشروط التخزين والحفظ (القرار 330/2017) */}
                   <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '8px 10px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                      <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#166534' }}>تعليمات وشروط الحفظ والتخزين:</span>
+                      <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#166534' }}>{t('products.barcode_print_dialog.s53', "تعليمات وشروط الحفظ والتخزين:")}</span>
                       {foodStatementNote && (
                         <button
                           type="button"
                           onClick={() => setFoodStatementNote('')}
                           style={{ border: 'none', background: 'transparent', color: '#b91c1c', fontSize: '0.68rem', cursor: 'pointer', padding: 0 }}
                         >
-                          مسح الملاحظة
+                          {t('products.barcode_print_dialog.s54', "مسح الملاحظة")}
                         </button>
                       )}
                     </div>
@@ -850,7 +852,7 @@ export function BarcodePrintDialog({ open, product, unit, items, onClose }: Barc
                       type="text"
                       value={foodStatementNote}
                       onChange={(e) => setFoodStatementNote(e.target.value)}
-                      placeholder="مثال: يحفظ في مكان جاف وبارد بعيداً عن الرطوبة"
+                      placeholder={t('products.barcode_print_dialog.s55', "مثال: يحفظ في مكان جاف وبارد بعيداً عن الرطوبة")}
                       style={{ width: '100%', height: '28px', fontSize: '0.75rem', padding: '2px 8px', boxSizing: 'border-box' }}
                     />
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '6px' }}>
@@ -881,13 +883,13 @@ export function BarcodePrintDialog({ open, product, unit, items, onClose }: Barc
 
             <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-start', marginTop: '10px' }}>
               <Button type="button" variant="secondary" onClick={handleReset} style={{ fontSize: '0.76rem', padding: '4px 10px' }}>
-                إعادة الضبط الافتراضي
+                {t('products.barcode_print_dialog.s56', "إعادة الضبط الافتراضي")}
               </Button>
             </div>
 
             {!card.barcode && !isBatchMode && (
               <div className="error-box" style={{ marginTop: '10px', padding: '8px 12px', fontSize: '0.78rem' }}>
-                الصنف أو الوحدة الحالية لا تحتوي على باركود صالح للطباعة.
+                {t('products.barcode_print_dialog.s57', "الصنف أو الوحدة الحالية لا تحتوي على باركود صالح للطباعة.")}
               </div>
             )}
           </div>
@@ -910,7 +912,7 @@ export function BarcodePrintDialog({ open, product, unit, items, onClose }: Barc
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
               <AppIcons.Layers size={15} />
-              <span>معاينة الملصق (Label Preview)</span>
+              <span>{t('products.barcode_print_dialog.s58', "معاينة الملصق (Label Preview)")}</span>
             </div>
 
             {family === 'thermal' && (
@@ -929,7 +931,7 @@ export function BarcodePrintDialog({ open, product, unit, items, onClose }: Barc
                     cursor: 'pointer',
                   }}
                 >
-                  شريط الرول
+                  {t('products.barcode_print_dialog.s59', "شريط الرول")}
                 </button>
                 <button
                   type="button"
@@ -945,7 +947,7 @@ export function BarcodePrintDialog({ open, product, unit, items, onClose }: Barc
                     cursor: 'pointer',
                   }}
                 >
-                  ملصق مكبر 1:1
+                  {t('products.barcode_print_dialog.s60', "ملصق مكبر 1:1")}
                 </button>
               </div>
             )}
@@ -953,10 +955,10 @@ export function BarcodePrintDialog({ open, product, unit, items, onClose }: Barc
 
           <p style={{ fontSize: '0.73rem', color: '#64748b', margin: '0 0 8px 0' }}>
             {preset.isShelfLabel
-              ? 'معاينة حية لاستيكر الرف التمويني بأسعار بارزة وخطوط عريضة وفق القرار 330.'
+              ? t('products.barcode_print_dialog.s61', "معاينة حية لاستيكر الرف التمويني بأسعار بارزة وخطوط عريضة وفق القرار 330.")
               : family === 'thermal' && previewMode === 'single'
-              ? 'معاينة حية للملصق الفعلي بنسب متوازنة بالمليمتر كما سيخرج من الطابعة.'
-              : 'معاينة تحاكي توزيع الملصقات ومواضع التخطي على الورقة قبل الإرسال.'}
+              ? t('products.barcode_print_dialog.s62', "معاينة حية للملصق الفعلي بنسب متوازنة بالمليمتر كما سيخرج من الطابعة.")
+              : t('products.barcode_print_dialog.s63', "معاينة تحاكي توزيع الملصقات ومواضع التخطي على الورقة قبل الإرسال.")}
           </p>
 
           <div

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { http } from '@/lib/http';
@@ -33,6 +34,7 @@ interface SystemMetrics {
 }
 
 export function SettingsTelegramAlertsSection() {
+  const { t } = useTranslation();
   const [form, setForm] = useState<TelegramSettings>({
     enabled: false,
     botToken: '',
@@ -88,7 +90,7 @@ export function SettingsTelegramAlertsSection() {
   if (isLoading) {
     return (
       <div style={{ background: '#ffffff', borderRadius: '16px', padding: '32px', textAlign: 'center', color: '#94a3b8' }}>
-        جاري تحميل إعدادات الرصد والتنبيهات...
+        {t('settings.workspace_sections.settings_telegram_alerts_section.s0', "جاري تحميل إعدادات الرصد والتنبيهات...")}
       </div>
     );
   }
@@ -107,24 +109,24 @@ export function SettingsTelegramAlertsSection() {
         {/* حالة السيرفر */}
         <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '14px', padding: '16px 20px', boxShadow: '0 1px 3px rgba(0,0,0,0.03)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-            <span style={{ fontSize: '0.82rem', color: '#64748b', fontWeight: 600 }}>حالة سيرفر أوراكل VPS</span>
+            <span style={{ fontSize: '0.82rem', color: '#64748b', fontWeight: 600 }}>{t('settings.workspace_sections.settings_telegram_alerts_section.s1', "حالة سيرفر أوراكل VPS")}</span>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '2px 8px', fontSize: '0.72rem', borderRadius: '12px', background: '#ecfdf5', color: '#047857', fontWeight: 700 }}>
               <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#10b981' }} />
               Live & Ready
             </span>
           </div>
           <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#0f172a' }}>
-            {metrics?.database === 'up' ? 'قاعدة البيانات متصلة' : 'جاري الفحص...'}
+            {metrics?.database === 'up' ? t('settings.workspace_sections.settings_telegram_alerts_section.s2', "قاعدة البيانات متصلة") : t('settings.workspace_sections.settings_telegram_alerts_section.s3', "جاري الفحص...")}
           </div>
           <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '4px' }}>
-            مدة التشغيل المتواصل: {metrics ? formatUptime(metrics.uptimeSeconds) : '...'}
+            {t('settings.workspace_sections.settings_telegram_alerts_section.s4', "مدة التشغيل المتواصل:")} {metrics ? formatUptime(metrics.uptimeSeconds) : '...'}
           </div>
         </div>
 
         {/* استهلاك الذاكرة (Memory) */}
         <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '14px', padding: '16px 20px', boxShadow: '0 1px 3px rgba(0,0,0,0.03)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-            <span style={{ fontSize: '0.82rem', color: '#64748b', fontWeight: 600 }}>استهلاك ذاكرة الرام (RAM)</span>
+            <span style={{ fontSize: '0.82rem', color: '#64748b', fontWeight: 600 }}>{t('settings.workspace_sections.settings_telegram_alerts_section.s5', "استهلاك ذاكرة الرام (RAM)")}</span>
             <span style={{ padding: '2px 8px', fontSize: '0.72rem', borderRadius: '12px', background: '#eff6ff', color: '#1d4ed8', fontWeight: 700 }}>
               Node.js RSS
             </span>
@@ -133,14 +135,14 @@ export function SettingsTelegramAlertsSection() {
             {metrics?.memory?.rssMb || 0} MB
           </div>
           <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '4px' }}>
-            Heap المستخدم: {metrics?.memory?.heapUsedMb || 0} MB من أصل {metrics?.memory?.heapTotalMb || 0} MB
+            {t('settings.workspace_sections.settings_telegram_alerts_section.s6', "Heap المستخدم:")} {metrics?.memory?.heapUsedMb || 0} {t('settings.workspace_sections.settings_telegram_alerts_section.s7', "MB من أصل")} {metrics?.memory?.heapTotalMb || 0} MB
           </div>
         </div>
 
         {/* بيئة الاستضافة */}
         <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '14px', padding: '16px 20px', boxShadow: '0 1px 3px rgba(0,0,0,0.03)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-            <span style={{ fontSize: '0.82rem', color: '#64748b', fontWeight: 600 }}>بيئة الاستضافة المعتمدة</span>
+            <span style={{ fontSize: '0.82rem', color: '#64748b', fontWeight: 600 }}>{t('settings.workspace_sections.settings_telegram_alerts_section.s8', "بيئة الاستضافة المعتمدة")}</span>
             <span style={{ padding: '2px 8px', fontSize: '0.72rem', borderRadius: '12px', background: '#f8fafc', color: '#475569', fontWeight: 600 }}>
               Oracle VPS
             </span>
@@ -149,7 +151,7 @@ export function SettingsTelegramAlertsSection() {
             {metrics?.environment || 'production'}
           </div>
           <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '4px' }}>
-            إصدار النواة: {metrics?.nodeVersion || 'v20+'}
+            {t('settings.workspace_sections.settings_telegram_alerts_section.s9', "إصدار النواة:")} {metrics?.nodeVersion || 'v20+'}
           </div>
         </div>
       </div>
@@ -186,20 +188,20 @@ export function SettingsTelegramAlertsSection() {
             </div>
             <div>
               <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#0f172a', lineHeight: 1.35 }}>
-                تنبيهات الأعطال الفورية عبر تيليجرام
+                {t('settings.workspace_sections.settings_telegram_alerts_section.s10', "تنبيهات الأعطال الفورية عبر تيليجرام")}
                 <span style={{ display: 'block', fontSize: '0.78rem', color: '#64748b', fontWeight: 600, direction: 'ltr', textAlign: 'right', marginTop: '2px' }}>
                   (Telegram Incident Alerts)
                 </span>
               </h3>
               <p style={{ margin: '4px 0 0', fontSize: '0.82rem', color: '#64748b', lineHeight: 1.5 }}>
-                استقبال إشعارات فورية على هاتفك عند تعطل قاعدة البيانات أو سقوط السيرفر، مع تقارير النشر التلقائي للـ CI/CD.
+                {t('settings.workspace_sections.settings_telegram_alerts_section.s11', "استقبال إشعارات فورية على هاتفك عند تعطل قاعدة البيانات أو سقوط السيرفر، مع تقارير النشر التلقائي للـ CI/CD.")}
               </p>
             </div>
           </div>
 
           <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
             <span style={{ fontSize: '0.84rem', fontWeight: 600, color: form.enabled ? '#059669' : '#64748b' }}>
-              {form.enabled ? 'مفعل' : 'معطل'}
+              {form.enabled ? t('settings.workspace_sections.settings_telegram_alerts_section.s12', "مفعل") : t('settings.workspace_sections.settings_telegram_alerts_section.s13', "معطل")}
             </span>
             <input
               type="checkbox"
@@ -214,7 +216,7 @@ export function SettingsTelegramAlertsSection() {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
           <div>
             <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
-              توكن البوت (Telegram Bot Token)
+              {t('settings.workspace_sections.settings_telegram_alerts_section.s14', "توكن البوت (Telegram Bot Token)")}
             </label>
             <input
               type="password"
@@ -233,13 +235,13 @@ export function SettingsTelegramAlertsSection() {
 
           <div>
             <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
-              معرّف المحادثة أو القناة (Telegram Chat ID)
+              {t('settings.workspace_sections.settings_telegram_alerts_section.s15', "معرّف المحادثة أو القناة (Telegram Chat ID)")}
             </label>
             <input
               type="text"
               value={form.chatId}
               onChange={(e) => setForm({ ...form, chatId: e.target.value })}
-              placeholder="-100XXXXXXXXX أو رقم الشات الخاص..."
+              placeholder={t('settings.workspace_sections.settings_telegram_alerts_section.s16', "-100XXXXXXXXX أو رقم الشات الخاص...")}
               style={{
                 width: '100%',
                 padding: '9px 12px',
@@ -272,7 +274,7 @@ export function SettingsTelegramAlertsSection() {
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', color: '#64748b', minWidth: 0 }}>
             <LightbulbIcon size={15} color="#64748b" style={{ flexShrink: 0 }} />
             <span style={{ lineHeight: 1.5 }}>
-              يمكنك أيضاً ضبط المتغيرات في ملف <code>.env</code> عبر <code>TELEGRAM_BOT_TOKEN</code> و <code>TELEGRAM_CHAT_ID</code>
+              {t('settings.workspace_sections.settings_telegram_alerts_section.s17', "يمكنك أيضاً ضبط المتغيرات في ملف")} <code>.env</code> {t('settings.workspace_sections.settings_telegram_alerts_section.s18', "عبر")} <code>TELEGRAM_BOT_TOKEN</code> {t('settings.workspace_sections.settings_telegram_alerts_section.s19', "و")} <code>TELEGRAM_CHAT_ID</code>
             </span>
           </div>
 
@@ -283,12 +285,12 @@ export function SettingsTelegramAlertsSection() {
               disabled={testMutation.isPending}
               style={{ padding: '9px 16px', borderRadius: '8px', fontWeight: 600 }}
             >
-              {testMutation.isPending ? 'جاري الإرسال...' : 'إرسال تنبيه اختباري'}
+              {testMutation.isPending ? t('settings.workspace_sections.settings_telegram_alerts_section.s20', "جاري الإرسال...") : t('settings.workspace_sections.settings_telegram_alerts_section.s21', "إرسال تنبيه اختباري")}
             </Button>
             <Button
               onClick={async () => {
                 await http('/api/settings/whatsapp', { method: 'POST', body: JSON.stringify(form) }).catch(() => {});
-                toast.success('تم حفظ إعدادات تنبيهات التيليجرام بنجاح!');
+                toast.success(t('settings.workspace_sections.settings_telegram_alerts_section.s22', "تم حفظ إعدادات تنبيهات التيليجرام بنجاح!"));
               }}
               style={{
                 background: '#170e5e',
@@ -298,7 +300,7 @@ export function SettingsTelegramAlertsSection() {
                 borderRadius: '8px',
               }}
             >
-              حفظ إعدادات الرصد
+              {t('settings.workspace_sections.settings_telegram_alerts_section.s23', "حفظ إعدادات الرصد")}
             </Button>
           </div>
         </div>

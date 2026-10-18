@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React, { useState, useRef, useMemo } from 'react';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { AppIcons, XIcon } from '@/shared/components/icons/AppIcons';
@@ -57,6 +58,7 @@ export const CreateBankStatementModal: React.FC<CreateBankStatementModalProps> =
   onSubmit,
   isSubmitting,
 }) => {
+  const { t } = useTranslation();
   const selectedAccount = useMemo(() => {
     return bankAccounts.find((a: any) => Number(a.id) === Number(newStmtAccountId));
   }, [bankAccounts, newStmtAccountId]);
@@ -218,7 +220,7 @@ export const CreateBankStatementModal: React.FC<CreateBankStatementModalProps> =
       onClose={onClose}
       width="min(920px, 96vw)"
       zIndex={95}
-      ariaLabel="إضافة واستيراد كشف حساب بنكي"
+      ariaLabel={t('accounting.bank_reconciliation.create_bank_statement_modal.s0', "إضافة واستيراد كشف حساب بنكي")}
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', padding: '16px 20px' }} dir="rtl">
         {/* Dialog Header */}
@@ -226,10 +228,10 @@ export const CreateBankStatementModal: React.FC<CreateBankStatementModalProps> =
           <div>
             <h2 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: '#170e5e', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <AppIcons.FileSpreadsheet size={20} color="#170e5e" />
-              إضافة واستيراد كشف حساب بنكي (Bank Statement)
+              {t('accounting.bank_reconciliation.create_bank_statement_modal.s1', "إضافة واستيراد كشف حساب بنكي (Bank Statement)")}
             </h2>
             <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: '#64748b' }}>
-              مطابقة كشوف الحسابات الصادرة من البنوك (CIB, الأهلي, مصر, الراجحي, وغيرها) مع حركات الأستاذ العام
+              {t('accounting.bank_reconciliation.create_bank_statement_modal.s2', "مطابقة كشوف الحسابات الصادرة من البنوك (CIB, الأهلي, مصر, الراجحي, وغيرها) مع حركات الأستاذ العام")}
             </p>
           </div>
           <button
@@ -257,13 +259,13 @@ export const CreateBankStatementModal: React.FC<CreateBankStatementModalProps> =
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '12px 16px' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                  الحساب البنكي في شجرة الحسابات *
+                  {t('accounting.bank_reconciliation.create_bank_statement_modal.s3', "الحساب البنكي في شجرة الحسابات *")}
                 </label>
                 <CustomSelect
                   value={newStmtAccountId ? String(newStmtAccountId) : ''}
                   onChange={(val) => setNewStmtAccountId(Number(val))}
                   options={[
-                    { value: '', label: 'اختر الحساب البنكي...' },
+                    { value: '', label: t('accounting.bank_reconciliation.create_bank_statement_modal.s4', "اختر الحساب البنكي...") },
                     ...bankAccounts.map((a: any) => ({
                       value: String(a.id),
                       label: `${a.code} - ${a.nameAr}`,
@@ -274,11 +276,11 @@ export const CreateBankStatementModal: React.FC<CreateBankStatementModalProps> =
 
               <div>
                 <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                  رقم كشف الحساب البنكي *
+                  {t('accounting.bank_reconciliation.create_bank_statement_modal.s5', "رقم كشف الحساب البنكي *")}
                 </label>
                 <input
                   type="text"
-                  placeholder="مثال: STMT-260914-0001"
+                  placeholder={t('accounting.bank_reconciliation.create_bank_statement_modal.s6', "مثال: STMT-260914-0001")}
                   value={newStmtNo}
                   onChange={(e) => setNewStmtNo(e.target.value)}
                   style={{ width: '100%', height: '36px', padding: '0 10px', fontSize: '0.82rem', borderRadius: '8px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }}
@@ -288,7 +290,7 @@ export const CreateBankStatementModal: React.FC<CreateBankStatementModalProps> =
 
               <div>
                 <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                  تاريخ كشف الحساب *
+                  {t('accounting.bank_reconciliation.create_bank_statement_modal.s7', "تاريخ كشف الحساب *")}
                 </label>
                 <input
                   type="date"
@@ -301,7 +303,7 @@ export const CreateBankStatementModal: React.FC<CreateBankStatementModalProps> =
 
               <div>
                 <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                  رصيد بداية الفترة ({currencySymbol}) *
+                  {t('accounting.bank_reconciliation.create_bank_statement_modal.s8', "رصيد بداية الفترة (")}{currencySymbol}) *
                 </label>
                 <input
                   type="number"
@@ -321,7 +323,7 @@ export const CreateBankStatementModal: React.FC<CreateBankStatementModalProps> =
 
               <div>
                 <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                  رصيد نهاية الفترة المطلوب ({currencySymbol}) *
+                  {t('accounting.bank_reconciliation.create_bank_statement_modal.s9', "رصيد نهاية الفترة المطلوب (")}{currencySymbol}) *
                 </label>
                 <input
                   type="number"
@@ -335,11 +337,11 @@ export const CreateBankStatementModal: React.FC<CreateBankStatementModalProps> =
 
               <div>
                 <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                  ملاحظات وبيان إضافي
+                  {t('accounting.bank_reconciliation.create_bank_statement_modal.s10', "ملاحظات وبيان إضافي")}
                 </label>
                 <input
                   type="text"
-                  placeholder="ملاحظات اختيارية..."
+                  placeholder={t('accounting.bank_reconciliation.create_bank_statement_modal.s11', "ملاحظات اختيارية...")}
                   value={newStmtNotes}
                   onChange={(e) => setNewStmtNotes(e.target.value)}
                   style={{ width: '100%', height: '36px', padding: '0 10px', fontSize: '0.82rem', borderRadius: '8px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }}
@@ -369,7 +371,7 @@ export const CreateBankStatementModal: React.FC<CreateBankStatementModalProps> =
                 }}
               >
                 <AppIcons.Upload size={14} />
-                الاستيراد الذكي (Excel / CSV / نسخ نصي)
+                {t('accounting.bank_reconciliation.create_bank_statement_modal.s12', "الاستيراد الذكي (Excel / CSV / نسخ نصي)")}
               </button>
 
               <button
@@ -390,7 +392,7 @@ export const CreateBankStatementModal: React.FC<CreateBankStatementModalProps> =
                 }}
               >
                 <AppIcons.Edit size={14} />
-                مراجعة وإدخال الأسطر يدوياً {newStmtLines.length > 0 ? `(${newStmtLines.length})` : ''}
+                {t('accounting.bank_reconciliation.create_bank_statement_modal.s13', "مراجعة وإدخال الأسطر يدوياً")} {newStmtLines.length > 0 ? `(${newStmtLines.length})` : ''}
               </button>
             </div>
 
@@ -412,7 +414,7 @@ export const CreateBankStatementModal: React.FC<CreateBankStatementModalProps> =
               }}
             >
               <AppIcons.Download size={14} />
-              تحميل قالب إكسيل القياسي (Excel)
+              {t('accounting.bank_reconciliation.create_bank_statement_modal.s14', "تحميل قالب إكسيل القياسي (Excel)")}
             </button>
           </div>
 
@@ -446,10 +448,10 @@ export const CreateBankStatementModal: React.FC<CreateBankStatementModalProps> =
                     <AppIcons.Upload size={24} color="#1e40af" />
                   </div>
                   <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#1e293b' }}>
-                    {isParsingFile ? 'جاري قراءة وتحليل ملف كشف الحساب...' : 'اسحب وأفلت ملف كشف الحساب هنا، أو انقر للاختيار'}
+                    {isParsingFile ? t('accounting.bank_reconciliation.create_bank_statement_modal.s15', "جاري قراءة وتحليل ملف كشف الحساب...") : t('accounting.bank_reconciliation.create_bank_statement_modal.s16', "اسحب وأفلت ملف كشف الحساب هنا، أو انقر للاختيار")}
                   </div>
                   <div style={{ fontSize: '0.76rem', color: '#64748b' }}>
-                    يدعم ملفات Excel (.xlsx, .xls) وملفات القيم المفصولة (.csv) الصادرة من كافة البنوك
+                    {t('accounting.bank_reconciliation.create_bank_statement_modal.s17', "يدعم ملفات Excel (.xlsx, .xls) وملفات القيم المفصولة (.csv) الصادرة من كافة البنوك")}
                   </div>
                 </div>
               </div>
@@ -473,7 +475,7 @@ export const CreateBankStatementModal: React.FC<CreateBankStatementModalProps> =
                   }}
                 >
                   <AppIcons.Copy size={13} />
-                  {showPasteBox ? 'إخفاء مربع اللصق النصي' : 'أو الصق نص الحركات مباشرة من كشف الحساب (PDF / موقع البنك)'}
+                  {showPasteBox ? t('accounting.bank_reconciliation.create_bank_statement_modal.s18', "إخفاء مربع اللصق النصي") : t('accounting.bank_reconciliation.create_bank_statement_modal.s19', "أو الصق نص الحركات مباشرة من كشف الحساب (PDF / موقع البنك)")}
                 </button>
 
                 {parseResult && (
@@ -493,7 +495,7 @@ export const CreateBankStatementModal: React.FC<CreateBankStatementModalProps> =
                     }}
                   >
                     <AppIcons.Settings size={13} />
-                    {showMappingBar ? 'إخفاء مطابقة الأعمدة' : 'تعديل مطابقة الأعمدة المكتشفة'}
+                    {showMappingBar ? t('accounting.bank_reconciliation.create_bank_statement_modal.s20', "إخفاء مطابقة الأعمدة") : t('accounting.bank_reconciliation.create_bank_statement_modal.s21', "تعديل مطابقة الأعمدة المكتشفة")}
                   </button>
                 )}
               </div>
@@ -502,13 +504,13 @@ export const CreateBankStatementModal: React.FC<CreateBankStatementModalProps> =
               {showPasteBox && (
                 <div style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '10px', padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   <label style={{ fontSize: '0.76rem', fontWeight: 700, color: '#334155' }}>
-                    الصق جدول الحركات هنا (مفصول بمسافات أو Tab أو فواصل):
+                    {t('accounting.bank_reconciliation.create_bank_statement_modal.s22', "الصق جدول الحركات هنا (مفصول بمسافات أو Tab أو فواصل):")}
                   </label>
                   <textarea
                     rows={4}
                     value={pastedText}
                     onChange={(e) => setPastedText(e.target.value)}
-                    placeholder="2026-09-01    تحويل بنكي وارد    REF101    50000&#10;2026-09-02    سداد فاتورة مورد    CHQ202    -18500"
+                    placeholder={t('accounting.bank_reconciliation.create_bank_statement_modal.s23', "2026-09-01    تحويل بنكي وارد    REF101    50000\n2026-09-02    سداد فاتورة مورد    CHQ202    -18500")}
                     style={{
                       width: '100%',
                       fontFamily: 'monospace',
@@ -534,7 +536,7 @@ export const CreateBankStatementModal: React.FC<CreateBankStatementModalProps> =
                         cursor: 'pointer',
                       }}
                     >
-                      استخراج الحركات من النص
+                      {t('accounting.bank_reconciliation.create_bank_statement_modal.s24', "استخراج الحركات من النص")}
                     </button>
                   </div>
                 </div>
@@ -544,11 +546,11 @@ export const CreateBankStatementModal: React.FC<CreateBankStatementModalProps> =
               {showMappingBar && parseResult && customMapping && (
                 <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '10px', padding: '12px' }}>
                   <div style={{ fontSize: '0.8rem', fontWeight: 800, color: '#1e40af', marginBottom: '8px' }}>
-                    تخصيص مطابقة أعمدة الملف ({parseResult.headers.length} عمود مكتشف):
+                    {t('accounting.bank_reconciliation.create_bank_statement_modal.s25', "تخصيص مطابقة أعمدة الملف (")}{parseResult.headers.length} {t('accounting.bank_reconciliation.create_bank_statement_modal.s26', "عمود مكتشف):")}
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '10px' }}>
                     <div>
-                      <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: '#334155', marginBottom: '2px' }}>عمود التاريخ</label>
+                      <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: '#334155', marginBottom: '2px' }}>{t('accounting.bank_reconciliation.create_bank_statement_modal.s27', "عمود التاريخ")}</label>
                       <CustomSelect
                         value={String(customMapping.dateCol)}
                         onChange={(val) => handleApplyCustomMapping({ ...customMapping, dateCol: Number(val) })}
@@ -557,7 +559,7 @@ export const CreateBankStatementModal: React.FC<CreateBankStatementModalProps> =
                     </div>
 
                     <div>
-                      <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: '#334155', marginBottom: '2px' }}>عمود البيان / الوصف</label>
+                      <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: '#334155', marginBottom: '2px' }}>{t('accounting.bank_reconciliation.create_bank_statement_modal.s28', "عمود البيان / الوصف")}</label>
                       <CustomSelect
                         value={String(customMapping.descCol)}
                         onChange={(val) => handleApplyCustomMapping({ ...customMapping, descCol: Number(val) })}
@@ -566,32 +568,32 @@ export const CreateBankStatementModal: React.FC<CreateBankStatementModalProps> =
                     </div>
 
                     <div>
-                      <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: '#334155', marginBottom: '2px' }}>عمود المرجع / الشيك</label>
+                      <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: '#334155', marginBottom: '2px' }}>{t('accounting.bank_reconciliation.create_bank_statement_modal.s29', "عمود المرجع / الشيك")}</label>
                       <CustomSelect
                         value={String(customMapping.refCol)}
                         onChange={(val) => handleApplyCustomMapping({ ...customMapping, refCol: Number(val) })}
                         options={[
-                          { value: '-1', label: 'بدون مرجع' },
+                          { value: '-1', label: t('accounting.bank_reconciliation.create_bank_statement_modal.s30', "بدون مرجع") },
                           ...parseResult.headers.map((h, i) => ({ value: String(i), label: `${i + 1}. ${h}` })),
                         ]}
                       />
                     </div>
 
                     <div>
-                      <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: '#334155', marginBottom: '2px' }}>نمط المبالغ في الكشف</label>
+                      <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: '#334155', marginBottom: '2px' }}>{t('accounting.bank_reconciliation.create_bank_statement_modal.s31', "نمط المبالغ في الكشف")}</label>
                       <CustomSelect
                         value={customMapping.amountType}
                         onChange={(val) => handleApplyCustomMapping({ ...customMapping, amountType: val as any })}
                         options={[
-                          { value: 'single', label: 'عمود واحد (+ / -)' },
-                          { value: 'dual', label: 'عمودين منفصلين (سحب / إيداع)' },
+                          { value: 'single', label: t('accounting.bank_reconciliation.create_bank_statement_modal.s32', "عمود واحد (+ / -)") },
+                          { value: 'dual', label: t('accounting.bank_reconciliation.create_bank_statement_modal.s33', "عمودين منفصلين (سحب / إيداع)") },
                         ]}
                       />
                     </div>
 
                     {customMapping.amountType === 'single' ? (
                       <div>
-                        <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: '#334155', marginBottom: '2px' }}>عمود المبلغ</label>
+                        <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: '#334155', marginBottom: '2px' }}>{t('accounting.bank_reconciliation.create_bank_statement_modal.s34', "عمود المبلغ")}</label>
                         <CustomSelect
                           value={String(customMapping.amountCol)}
                           onChange={(val) => handleApplyCustomMapping({ ...customMapping, amountCol: Number(val) })}
@@ -601,7 +603,7 @@ export const CreateBankStatementModal: React.FC<CreateBankStatementModalProps> =
                     ) : (
                       <>
                         <div>
-                          <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: '#334155', marginBottom: '2px' }}>عمود السحب (Debit)</label>
+                          <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: '#334155', marginBottom: '2px' }}>{t('accounting.bank_reconciliation.create_bank_statement_modal.s35', "عمود السحب (Debit)")}</label>
                           <CustomSelect
                             value={String(customMapping.debitCol)}
                             onChange={(val) => handleApplyCustomMapping({ ...customMapping, debitCol: Number(val) })}
@@ -609,7 +611,7 @@ export const CreateBankStatementModal: React.FC<CreateBankStatementModalProps> =
                           />
                         </div>
                         <div>
-                          <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: '#334155', marginBottom: '2px' }}>عمود الإيداع (Credit)</label>
+                          <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: '#334155', marginBottom: '2px' }}>{t('accounting.bank_reconciliation.create_bank_statement_modal.s36', "عمود الإيداع (Credit)")}</label>
                           <CustomSelect
                             value={String(customMapping.creditCol)}
                             onChange={(val) => handleApplyCustomMapping({ ...customMapping, creditCol: Number(val) })}
@@ -629,16 +631,16 @@ export const CreateBankStatementModal: React.FC<CreateBankStatementModalProps> =
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px', marginBottom: '12px', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                       <span style={{ fontSize: '0.86rem', fontWeight: 800, color: '#170e5e' }}>
-                        الحركات المستخرجة: {stagedLines.length} حركة
+                        {t('accounting.bank_reconciliation.create_bank_statement_modal.s37', "الحركات المستخرجة:")} {stagedLines.length} {t('accounting.bank_reconciliation.create_bank_statement_modal.s38', "حركة")}
                       </span>
                       <span style={{ padding: '3px 8px', borderRadius: '6px', background: '#dcfce7', color: '#15803d', fontSize: '0.76rem', fontWeight: 700 }}>
-                        الإيداعات: +{totalStagedDeposits.toLocaleString()} {currencySymbol}
+                        {t('accounting.bank_reconciliation.create_bank_statement_modal.s39', "الإيداعات: +")}{totalStagedDeposits.toLocaleString()} {currencySymbol}
                       </span>
                       <span style={{ padding: '3px 8px', borderRadius: '6px', background: '#fee2e2', color: '#b91c1c', fontSize: '0.76rem', fontWeight: 700 }}>
-                        السحوبات: -{totalStagedWithdrawals.toLocaleString()} {currencySymbol}
+                        {t('accounting.bank_reconciliation.create_bank_statement_modal.s40', "السحوبات: -")}{totalStagedWithdrawals.toLocaleString()} {currencySymbol}
                       </span>
                       <span style={{ padding: '3px 8px', borderRadius: '6px', background: '#eff6ff', color: '#1e40af', fontSize: '0.76rem', fontWeight: 700 }}>
-                        الصافي: {netStaged >= 0 ? `+${netStaged.toLocaleString()}` : netStaged.toLocaleString()} {currencySymbol}
+                        {t('accounting.bank_reconciliation.create_bank_statement_modal.s41', "الصافي:")} {netStaged >= 0 ? `+${netStaged.toLocaleString()}` : netStaged.toLocaleString()} {currencySymbol}
                       </span>
                     </div>
 
@@ -654,7 +656,7 @@ export const CreateBankStatementModal: React.FC<CreateBankStatementModalProps> =
                             }
                           }}
                         />
-                        تحديث رصيد النهاية تلقائياً
+                        {t('accounting.bank_reconciliation.create_bank_statement_modal.s42', "تحديث رصيد النهاية تلقائياً")}
                       </label>
 
                       <button
@@ -675,7 +677,7 @@ export const CreateBankStatementModal: React.FC<CreateBankStatementModalProps> =
                         }}
                       >
                         <AppIcons.CheckCircle size={15} />
-                        اعتماد ونقل الحركات لكشف الحساب ({stagedLines.length})
+                        {t('accounting.bank_reconciliation.create_bank_statement_modal.s43', "اعتماد ونقل الحركات لكشف الحساب (")}{stagedLines.length})
                       </button>
                     </div>
                   </div>
@@ -686,10 +688,10 @@ export const CreateBankStatementModal: React.FC<CreateBankStatementModalProps> =
                       <thead style={{ background: '#f8fafc', position: 'sticky', top: 0, zIndex: 1 }}>
                         <tr style={{ borderBottom: '1px solid #cbd5e1', textAlign: 'right' }}>
                           <th style={{ padding: '8px 10px', color: '#475569' }}>#</th>
-                          <th style={{ padding: '8px 10px', color: '#475569' }}>التاريخ</th>
-                          <th style={{ padding: '8px 10px', color: '#475569' }}>البيان والتفاصيل</th>
-                          <th style={{ padding: '8px 10px', color: '#475569' }}>المرجع</th>
-                          <th style={{ padding: '8px 10px', color: '#475569', textAlign: 'left' }}>المبلغ ({currencySymbol})</th>
+                          <th style={{ padding: '8px 10px', color: '#475569' }}>{t('accounting.bank_reconciliation.create_bank_statement_modal.s44', "التاريخ")}</th>
+                          <th style={{ padding: '8px 10px', color: '#475569' }}>{t('accounting.bank_reconciliation.create_bank_statement_modal.s45', "البيان والتفاصيل")}</th>
+                          <th style={{ padding: '8px 10px', color: '#475569' }}>{t('accounting.bank_reconciliation.create_bank_statement_modal.s46', "المرجع")}</th>
+                          <th style={{ padding: '8px 10px', color: '#475569', textAlign: 'left' }}>{t('accounting.bank_reconciliation.create_bank_statement_modal.s47', "المبلغ (")}{currencySymbol})</th>
                           <th style={{ padding: '8px 10px', width: '40px' }}></th>
                         </tr>
                       </thead>
@@ -716,7 +718,7 @@ export const CreateBankStatementModal: React.FC<CreateBankStatementModalProps> =
                                 type="button"
                                 onClick={() => removeStagedLine(idx)}
                                 style={{ background: 'transparent', border: 'none', color: '#dc2626', cursor: 'pointer', padding: 0 }}
-                                title="حذف هذا السطر"
+                                title={t('accounting.bank_reconciliation.create_bank_statement_modal.s48', "حذف هذا السطر")}
                               >
                                 <XIcon size={14} />
                               </button>
@@ -736,9 +738,9 @@ export const CreateBankStatementModal: React.FC<CreateBankStatementModalProps> =
             <div style={{ border: '1px solid #e2e8f0', borderRadius: '12px', padding: '14px 16px', background: '#ffffff' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
                 <div>
-                  <strong style={{ fontSize: '0.86rem', color: '#0f172a' }}>أسطر الحركات المعتمدة بكشف الحساب:</strong>
+                  <strong style={{ fontSize: '0.86rem', color: '#0f172a' }}>{t('accounting.bank_reconciliation.create_bank_statement_modal.s49', "أسطر الحركات المعتمدة بكشف الحساب:")}</strong>
                   <span style={{ fontSize: '0.76rem', color: '#64748b', marginRight: '8px' }}>
-                    ({newStmtLines.length} حركة مسجلة)
+                    ({newStmtLines.length} {t('accounting.bank_reconciliation.create_bank_statement_modal.s50', "حركة مسجلة)")}
                   </span>
                 </div>
                 <button
@@ -759,13 +761,13 @@ export const CreateBankStatementModal: React.FC<CreateBankStatementModalProps> =
                   }}
                 >
                   <AppIcons.Plus size={13} />
-                  إضافة سطر حركة يدوي
+                  {t('accounting.bank_reconciliation.create_bank_statement_modal.s51', "إضافة سطر حركة يدوي")}
                 </button>
               </div>
 
               {newStmtLines.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '24px', background: '#f8fafc', borderRadius: '8px', color: '#64748b', fontSize: '0.8rem' }}>
-                  لا توجد حركات مسجلة حالياً. يمكنك استخدام تبويب الاستيراد الذكي لرفع ملف إكسيل أو النقر على "إضافة سطر حركة يدوي".
+                  {t('accounting.bank_reconciliation.create_bank_statement_modal.s52', "لا توجد حركات مسجلة حالياً. يمكنك استخدام تبويب الاستيراد الذكي لرفع ملف إكسيل أو النقر على \"إضافة سطر حركة يدوي\".")}
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '240px', overflowY: 'auto' }}>
@@ -782,7 +784,7 @@ export const CreateBankStatementModal: React.FC<CreateBankStatementModalProps> =
                       />
                       <input
                         type="text"
-                        placeholder="البيان (مثال: تحويل عميل / مصاريف بنكية)"
+                        placeholder={t('accounting.bank_reconciliation.create_bank_statement_modal.s53', "البيان (مثال: تحويل عميل / مصاريف بنكية)")}
                         value={line.description}
                         onChange={(e) => {
                           const val = e.target.value;
@@ -792,7 +794,7 @@ export const CreateBankStatementModal: React.FC<CreateBankStatementModalProps> =
                       />
                       <input
                         type="text"
-                        placeholder="رقم المرجع"
+                        placeholder={t('accounting.bank_reconciliation.create_bank_statement_modal.s54', "رقم المرجع")}
                         value={line.reference}
                         onChange={(e) => {
                           const val = e.target.value;
@@ -803,7 +805,7 @@ export const CreateBankStatementModal: React.FC<CreateBankStatementModalProps> =
                       <input
                         type="number"
                         step="0.01"
-                        placeholder="المبلغ (+ أو -)"
+                        placeholder={t('accounting.bank_reconciliation.create_bank_statement_modal.s55', "المبلغ (+ أو -)")}
                         value={line.amount || ''}
                         onChange={(e) => {
                           const val = Number(e.target.value);
@@ -836,7 +838,7 @@ export const CreateBankStatementModal: React.FC<CreateBankStatementModalProps> =
           {/* Footer Actions */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #e2e8f0', paddingTop: '14px' }}>
             <div style={{ fontSize: '0.8rem', color: '#64748b' }}>
-              إجمالي الحركات التي سيتم حفظها: <strong style={{ color: '#170e5e' }}>{newStmtLines.length} حركة</strong>
+              {t('accounting.bank_reconciliation.create_bank_statement_modal.s56', "إجمالي الحركات التي سيتم حفظها:")} <strong style={{ color: '#170e5e' }}>{newStmtLines.length} {t('accounting.bank_reconciliation.create_bank_statement_modal.s57', "حركة")}</strong>
             </div>
 
             <div style={{ display: 'flex', gap: '8px' }}>
@@ -854,7 +856,7 @@ export const CreateBankStatementModal: React.FC<CreateBankStatementModalProps> =
                   cursor: 'pointer',
                 }}
               >
-                إلغاء
+                {t('accounting.bank_reconciliation.create_bank_statement_modal.s58', "إلغاء")}
               </button>
               <button
                 type="submit"
@@ -874,7 +876,7 @@ export const CreateBankStatementModal: React.FC<CreateBankStatementModalProps> =
                 }}
               >
                 <AppIcons.Check size={16} />
-                {isSubmitting ? 'جارٍ الحفظ والترحيل...' : 'حفظ كشف الحساب البنكي'}
+                {isSubmitting ? t('accounting.bank_reconciliation.create_bank_statement_modal.s59', "جارٍ الحفظ والترحيل...") : t('accounting.bank_reconciliation.create_bank_statement_modal.s60', "حفظ كشف الحساب البنكي")}
               </button>
             </div>
           </div>

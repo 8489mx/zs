@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useMemo } from 'react';
 import { MaritimeInquiry } from '../maritime-freight.types';
 import { AppIcons, SearchIcon, ArrowLeftIcon, FileTextIcon, CheckCircleIcon, XIcon } from '@/shared/components/icons/AppIcons';
@@ -18,6 +19,7 @@ export function MaritimeInquiriesTab({
   onConvertToRfq,
   onNavigateToRfq,
 }: MaritimeInquiriesTabProps) {
+  const { t } = useTranslation();
   const { pipelineConfig } = useMaritime();
   const enableSeaFreight = pipelineConfig?.enableSeaFreight !== false;
   const enableAirFreight = pipelineConfig?.enableAirFreight !== false;
@@ -43,14 +45,14 @@ export function MaritimeInquiriesTab({
         return (
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '2px 7px', borderRadius: '4px', background: '#e0f2fe', color: '#0369a1', fontSize: '0.72rem', fontWeight: 700 }}>
             <AppIcons.Plane size={12} />
-            <span>شحن جوي</span>
+            <span>{t('maritime_freight.maritime_inquiries_tab.s0', "شحن جوي")}</span>
           </span>
         );
       case 'road':
         return (
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '2px 7px', borderRadius: '4px', background: '#ffedd5', color: '#c2410c', fontSize: '0.72rem', fontWeight: 700 }}>
             <AppIcons.Truck size={12} />
-            <span>شحن بري</span>
+            <span>{t('maritime_freight.maritime_inquiries_tab.s1', "شحن بري")}</span>
           </span>
         );
       case 'sea':
@@ -58,7 +60,7 @@ export function MaritimeInquiriesTab({
         return (
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '2px 7px', borderRadius: '4px', background: '#eff6ff', color: '#1d4ed8', fontSize: '0.72rem', fontWeight: 700 }}>
             <AppIcons.Ship size={12} />
-            <span>شحن بحري</span>
+            <span>{t('maritime_freight.maritime_inquiries_tab.s2', "شحن بحري")}</span>
           </span>
         );
     }
@@ -69,31 +71,31 @@ export function MaritimeInquiriesTab({
       case 'received':
         return (
           <span style={{ padding: '2px 8px', borderRadius: '12px', background: '#e0e7ff', color: '#3730a3', fontSize: '0.70rem', fontWeight: 700, whiteSpace: 'nowrap' }}>
-            طلب جديد
+            {t('maritime_freight.maritime_inquiries_tab.s3', "طلب جديد")}
           </span>
         );
       case 'rfq_created':
         return (
           <span style={{ padding: '2px 8px', borderRadius: '12px', background: '#fef3c7', color: '#92400e', fontSize: '0.70rem', fontWeight: 700, whiteSpace: 'nowrap' }}>
-            تم إنشاء RFQ
+            {t('maritime_freight.maritime_inquiries_tab.s4', "تم إنشاء RFQ")}
           </span>
         );
       case 'quoted':
         return (
           <span style={{ padding: '2px 8px', borderRadius: '12px', background: '#dbeafe', color: '#1e40af', fontSize: '0.70rem', fontWeight: 700, whiteSpace: 'nowrap' }}>
-            تم التسعير
+            {t('maritime_freight.maritime_inquiries_tab.s5', "تم التسعير")}
           </span>
         );
       case 'converted_to_job':
         return (
           <span style={{ padding: '2px 8px', borderRadius: '12px', background: '#dcfce7', color: '#166534', fontSize: '0.70rem', fontWeight: 700, whiteSpace: 'nowrap' }}>
-            معمد (أمر تشغيل)
+            {t('maritime_freight.maritime_inquiries_tab.s6', "معمد (أمر تشغيل)")}
           </span>
         );
       case 'cancelled':
         return (
           <span style={{ padding: '2px 8px', borderRadius: '12px', background: '#fee2e2', color: '#b91c1c', fontSize: '0.70rem', fontWeight: 700, whiteSpace: 'nowrap' }}>
-            ملغي
+            {t('maritime_freight.maritime_inquiries_tab.s7', "ملغي")}
           </span>
         );
       default:
@@ -108,11 +110,11 @@ export function MaritimeInquiriesTab({
   const getDirectionBadge = (direction: string) => {
     switch (direction) {
       case 'import':
-        return <span style={{ color: '#0369a1', fontWeight: 700, fontSize: '0.70rem' }}>وارد (Import)</span>;
+        return <span style={{ color: '#0369a1', fontWeight: 700, fontSize: '0.70rem' }}>{t('maritime_freight.maritime_inquiries_tab.s8', "وارد (Import)")}</span>;
       case 'export':
-        return <span style={{ color: '#15803d', fontWeight: 700, fontSize: '0.70rem' }}>صادر (Export)</span>;
+        return <span style={{ color: '#15803d', fontWeight: 700, fontSize: '0.70rem' }}>{t('maritime_freight.maritime_inquiries_tab.s9', "صادر (Export)")}</span>;
       case 'cross_trade':
-        return <span style={{ color: '#b45309', fontWeight: 700, fontSize: '0.70rem' }}>ترانزيت</span>;
+        return <span style={{ color: '#b45309', fontWeight: 700, fontSize: '0.70rem' }}>{t('maritime_freight.maritime_inquiries_tab.s10', "ترانزيت")}</span>;
       default:
         return <span style={{ fontSize: '0.70rem' }}>{direction}</span>;
     }
@@ -153,20 +155,20 @@ export function MaritimeInquiriesTab({
       <div style={{ padding: '14px 18px', borderBottom: '1px solid #e2e8f0', background: '#f8fafc', display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
         <div>
           <h3 style={{ margin: 0, fontSize: '0.94rem', fontWeight: 800, color: '#0f172a' }}>
-            <span className="desktop-only-inline">استفسارات وطلبات شحن العملاء (Client Freight Inquiries)</span>
-            <span className="mobile-only-inline">استفسارات وطلبات شحن العملاء</span>
+            <span className="desktop-only-inline">{t('maritime_freight.maritime_inquiries_tab.s11', "استفسارات وطلبات شحن العملاء (Client Freight Inquiries)")}</span>
+            <span className="mobile-only-inline">{t('maritime_freight.maritime_inquiries_tab.s12', "استفسارات وطلبات شحن العملاء")}</span>
           </h3>
           <p className="desktop-only" style={{ margin: '3px 0 0 0', fontSize: '0.78rem', color: '#64748b' }}>
-            نقطة انطلاق دورة الشحن متعدد الوسائط (بحري، جوي، بري) لتسجيل طلبات العملاء وتوليد طلبات تسعير الخطوط فورياً بنقرة زر واحدة
+            {t('maritime_freight.maritime_inquiries_tab.s13', "نقطة انطلاق دورة الشحن متعدد الوسائط (بحري، جوي، بري) لتسجيل طلبات العملاء وتوليد طلبات تسعير الخطوط فورياً بنقرة زر واحدة")}
           </p>
           <p className="mobile-only" style={{ margin: '2px 0 0 0', fontSize: '0.72rem', color: '#64748b' }}>
-            تسجيل طلبات الشحن وتوليد عروض التسعير فورياً
+            {t('maritime_freight.maritime_inquiries_tab.s14', "تسجيل طلبات الشحن وتوليد عروض التسعير فورياً")}
           </p>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <span style={{ fontSize: '0.75rem', fontWeight: 700, background: '#ffffff', color: '#475569', border: '1px solid #e2e8f0', padding: '3px 8px', borderRadius: '8px' }}>
-            {filteredInquiries.length} طلب
+            {filteredInquiries.length} {t('maritime_freight.maritime_inquiries_tab.s15', "طلب")}
           </span>
         </div>
       </div>
@@ -233,7 +235,7 @@ export function MaritimeInquiriesTab({
             data-lpignore="true"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="بحث برقم الطلب، اسم العميل، الميناء، أو البضاعة..."
+            placeholder={t('maritime_freight.maritime_inquiries_tab.s16', "بحث برقم الطلب، اسم العميل، الميناء، أو البضاعة...")}
             style={{
               width: '100%',
               padding: searchTerm ? '7px 32px 7px 28px' : '7px 32px 7px 10px',
@@ -248,7 +250,7 @@ export function MaritimeInquiriesTab({
             <button
               type="button"
               onClick={() => setSearchTerm('')}
-              title="مسح البحث"
+              title={t('maritime_freight.maritime_inquiries_tab.s17', "مسح البحث")}
               style={{
                 position: 'absolute',
                 left: '8px',
@@ -273,7 +275,7 @@ export function MaritimeInquiriesTab({
         <div className="inquiries-dropdowns-group">
           {activeModesCount > 1 && (
             <div className="inquiries-dropdown-item" style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-              <span className="desktop-only-inline" style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>الوسيلة:</span>
+              <span className="desktop-only-inline" style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>{t('maritime_freight.maritime_inquiries_tab.s18', "الوسيلة:")}</span>
               <div style={{ width: 140 }}>
                 <CustomSelect
                   value={modeFilter}
@@ -285,18 +287,18 @@ export function MaritimeInquiriesTab({
           )}
 
           <div className="inquiries-dropdown-item" style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-            <span className="desktop-only-inline" style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>الحالة:</span>
+            <span className="desktop-only-inline" style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>{t('maritime_freight.maritime_inquiries_tab.s19', "الحالة:")}</span>
             <div style={{ width: 170 }}>
               <CustomSelect
                 value={statusFilter}
                 onChange={(val) => setStatusFilter(val || 'all')}
                 options={[
-                  { value: 'all', label: 'كافة الحالات' },
-                  { value: 'received', label: 'طلبات مستلمة جديدة' },
-                  { value: 'rfq_created', label: 'تم تحويلها لـ RFQ' },
-                  { value: 'quoted', label: 'تم تسعيرها للعميل' },
-                  { value: 'converted_to_job', label: 'تم التعميد (أمر تشغيل)' },
-                  { value: 'cancelled', label: 'ملغية' },
+                  { value: 'all', label: t('maritime_freight.maritime_inquiries_tab.s20', "كافة الحالات") },
+                  { value: 'received', label: t('maritime_freight.maritime_inquiries_tab.s21', "طلبات مستلمة جديدة") },
+                  { value: 'rfq_created', label: t('maritime_freight.maritime_inquiries_tab.s22', "تم تحويلها لـ RFQ") },
+                  { value: 'quoted', label: t('maritime_freight.maritime_inquiries_tab.s23', "تم تسعيرها للعميل") },
+                  { value: 'converted_to_job', label: t('maritime_freight.maritime_inquiries_tab.s24', "تم التعميد (أمر تشغيل)") },
+                  { value: 'cancelled', label: t('maritime_freight.maritime_inquiries_tab.s25', "ملغية") },
                 ]}
               />
             </div>
@@ -307,7 +309,7 @@ export function MaritimeInquiriesTab({
       {/* جدول الاستفسارات أو حالة التحميل أو الحالة الفارغة النظيفة */}
       {loading ? (
         <div style={{ padding: '48px 16px', textAlign: 'center', color: '#64748b' }}>
-          جاري تحميل طلبات واستفسارات الشحن...
+          {t('maritime_freight.maritime_inquiries_tab.s26', "جاري تحميل طلبات واستفسارات الشحن...")}
         </div>
       ) : filteredInquiries.length === 0 ? (
         <div style={{ padding: '36px 16px', textAlign: 'center', color: '#64748b', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
@@ -315,10 +317,10 @@ export function MaritimeInquiriesTab({
             <FileTextIcon size={24} />
           </div>
           <div style={{ fontSize: '0.875rem', fontWeight: 700, color: '#1e293b' }}>
-            {inquiries.length === 0 ? 'لا توجد طلبات شحن مسجلة حتى الآن' : 'لا توجد نتائج مطابقة لبحثك الحالي'}
+            {inquiries.length === 0 ? t('maritime_freight.maritime_inquiries_tab.s27', "لا توجد طلبات شحن مسجلة حتى الآن") : t('maritime_freight.maritime_inquiries_tab.s28', "لا توجد نتائج مطابقة لبحثك الحالي")}
           </div>
           <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '4px', maxWidth: '340px' }}>
-            {inquiries.length === 0 ? 'انقر على "طلب شحن عميل" في الأعلى لبدء دورة شحن جديدة.' : 'جرّب تعديل كلمة البحث أو فلترة الحالات.'}
+            {inquiries.length === 0 ? t('maritime_freight.maritime_inquiries_tab.s29', "انقر على \"طلب شحن عميل\" في الأعلى لبدء دورة شحن جديدة.") : t('maritime_freight.maritime_inquiries_tab.s30', "جرّب تعديل كلمة البحث أو فلترة الحالات.")}
           </div>
         </div>
       ) : (
@@ -336,14 +338,14 @@ export function MaritimeInquiriesTab({
             </colgroup>
             <thead>
               <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', fontWeight: 700 }}>
-                <th style={{ padding: '8px 6px', fontSize: '0.76rem', whiteSpace: 'nowrap' }}>رقم الطلب والوسيلة</th>
-                <th style={{ padding: '8px 6px', fontSize: '0.76rem', whiteSpace: 'nowrap' }}>العميل والاتصال</th>
-                <th style={{ padding: '8px 6px', fontSize: '0.76rem', whiteSpace: 'nowrap' }}>مسار الشحنة</th>
-                <th style={{ padding: '8px 6px', fontSize: '0.76rem', whiteSpace: 'nowrap' }}>الشحنة والمعدات / الأوزان</th>
-                <th style={{ padding: '8px 6px', fontSize: '0.76rem', whiteSpace: 'nowrap' }}>الشرط والسداد</th>
-                <th style={{ padding: '8px 6px', fontSize: '0.76rem', whiteSpace: 'nowrap' }}>جاهزية البضاعة</th>
-                <th style={{ padding: '8px 6px', fontSize: '0.76rem', whiteSpace: 'nowrap', textAlign: 'center' }}>الحالة</th>
-                <th style={{ padding: '8px 6px', fontSize: '0.76rem', whiteSpace: 'nowrap', textAlign: 'center' }}>الإجراء المتسلسل</th>
+                <th style={{ padding: '8px 6px', fontSize: '0.76rem', whiteSpace: 'nowrap' }}>{t('maritime_freight.maritime_inquiries_tab.s31', "رقم الطلب والوسيلة")}</th>
+                <th style={{ padding: '8px 6px', fontSize: '0.76rem', whiteSpace: 'nowrap' }}>{t('maritime_freight.maritime_inquiries_tab.s32', "العميل والاتصال")}</th>
+                <th style={{ padding: '8px 6px', fontSize: '0.76rem', whiteSpace: 'nowrap' }}>{t('maritime_freight.maritime_inquiries_tab.s33', "مسار الشحنة")}</th>
+                <th style={{ padding: '8px 6px', fontSize: '0.76rem', whiteSpace: 'nowrap' }}>{t('maritime_freight.maritime_inquiries_tab.s34', "الشحنة والمعدات / الأوزان")}</th>
+                <th style={{ padding: '8px 6px', fontSize: '0.76rem', whiteSpace: 'nowrap' }}>{t('maritime_freight.maritime_inquiries_tab.s35', "الشرط والسداد")}</th>
+                <th style={{ padding: '8px 6px', fontSize: '0.76rem', whiteSpace: 'nowrap' }}>{t('maritime_freight.maritime_inquiries_tab.s36', "جاهزية البضاعة")}</th>
+                <th style={{ padding: '8px 6px', fontSize: '0.76rem', whiteSpace: 'nowrap', textAlign: 'center' }}>{t('maritime_freight.maritime_inquiries_tab.s37', "الحالة")}</th>
+                <th style={{ padding: '8px 6px', fontSize: '0.76rem', whiteSpace: 'nowrap', textAlign: 'center' }}>{t('maritime_freight.maritime_inquiries_tab.s38', "الإجراء المتسلسل")}</th>
               </tr>
             </thead>
             <tbody>
@@ -386,7 +388,7 @@ export function MaritimeInquiriesTab({
                     {inq.transport_mode === 'air' ? (
                       <div>
                         <div style={{ fontWeight: 700, color: '#0369a1', fontSize: '0.78rem' }}>
-                          {Number(inq.chargeable_weight_kg || inq.gross_weight_kg || 0).toLocaleString()} كجم (محاسبي)
+                          {Number(inq.chargeable_weight_kg || inq.gross_weight_kg || 0).toLocaleString()} {t('maritime_freight.maritime_inquiries_tab.s39', "كجم (محاسبي)")}
                         </div>
                         {(inq.cbm || inq.package_count) && (
                           <div style={{ fontSize: '0.70rem', color: '#64748b', marginTop: '1px' }}>
@@ -394,13 +396,13 @@ export function MaritimeInquiriesTab({
                           </div>
                         )}
                         <div style={{ fontSize: '0.70rem', color: '#475569', lineHeight: 1.35, wordBreak: 'break-word', whiteSpace: 'normal', marginTop: '1px' }}>
-                          {inq.commodity_description || 'بضاعة عامة'}
+                          {inq.commodity_description || t('maritime_freight.maritime_inquiries_tab.s40', "بضاعة عامة")}
                         </div>
                       </div>
                     ) : inq.transport_mode === 'road' ? (
                       <div>
                         <div style={{ fontWeight: 700, color: '#c2410c', fontSize: '0.78rem' }}>
-                          {inq.container_type || 'شاحنة'} ({inq.cargo_mode || 'FTL'})
+                          {inq.container_type || t('maritime_freight.maritime_inquiries_tab.s41', "شاحنة")} ({inq.cargo_mode || 'FTL'})
                         </div>
                         {(inq.gross_weight_kg || inq.cbm) && (
                           <div style={{ fontSize: '0.70rem', color: '#64748b', marginTop: '1px' }}>
@@ -408,7 +410,7 @@ export function MaritimeInquiriesTab({
                           </div>
                         )}
                         <div style={{ fontSize: '0.70rem', color: '#475569', lineHeight: 1.35, wordBreak: 'break-word', whiteSpace: 'normal', marginTop: '1px' }}>
-                          {inq.commodity_description || 'بضاعة عامة'}
+                          {inq.commodity_description || t('maritime_freight.maritime_inquiries_tab.s42', "بضاعة عامة")}
                         </div>
                       </div>
                     ) : (
@@ -423,7 +425,7 @@ export function MaritimeInquiriesTab({
                           </div>
                         )}
                         <div style={{ fontSize: '0.70rem', color: '#475569', lineHeight: 1.35, wordBreak: 'break-word', whiteSpace: 'normal', marginTop: '1px' }}>
-                          {inq.commodity_description || 'بضاعة عامة'}
+                          {inq.commodity_description || t('maritime_freight.maritime_inquiries_tab.s43', "بضاعة عامة")}
                         </div>
                       </div>
                     )}
@@ -431,15 +433,15 @@ export function MaritimeInquiriesTab({
                   <td style={{ padding: '8px 6px', verticalAlign: 'middle' }}>
                     <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.78rem' }}>{inq.incoterm}</div>
                     <div style={{ fontSize: '0.70rem', color: '#64748b', marginTop: '2px' }}>
-                      {inq.payment_term === 'prepaid' ? 'مدفوع مقدماً' : 'دفع بالوصول'}
+                      {inq.payment_term === 'prepaid' ? t('maritime_freight.maritime_inquiries_tab.s44', "مدفوع مقدماً") : t('maritime_freight.maritime_inquiries_tab.s45', "دفع بالوصول")}
                     </div>
                   </td>
                   <td style={{ padding: '8px 6px', verticalAlign: 'middle' }}>
                     <div style={{ fontWeight: 600, color: '#334155', fontSize: '0.74rem' }}>
-                      {inq.cargo_ready_date ? new Date(inq.cargo_ready_date).toLocaleDateString('ar-EG') : 'جاهز فوراً'}
+                      {inq.cargo_ready_date ? new Date(inq.cargo_ready_date).toLocaleDateString('ar-EG') : t('maritime_freight.maritime_inquiries_tab.s46', "جاهز فوراً")}
                     </div>
                     <div style={{ fontSize: '0.70rem', color: '#64748b', marginTop: '2px' }}>
-                      سماح: {inq.target_free_days || 14} يوم
+                      {t('maritime_freight.maritime_inquiries_tab.s47', "سماح:")} {inq.target_free_days || 14} {t('maritime_freight.maritime_inquiries_tab.s48', "يوم")}
                     </div>
                   </td>
                   <td style={{ padding: '8px 6px', verticalAlign: 'middle', textAlign: 'center' }}>
@@ -471,7 +473,7 @@ export function MaritimeInquiriesTab({
                         }}
                       >
                         <FileTextIcon size={12} />
-                        <span>{convertingId === inq.id ? 'تحويل...' : 'تحويل لـ RFQ'}</span>
+                        <span>{convertingId === inq.id ? t('maritime_freight.maritime_inquiries_tab.s49', "تحويل...") : t('maritime_freight.maritime_inquiries_tab.s50', "تحويل لـ RFQ")}</span>
                       </button>
                     ) : inq.rfq_id ? (
                       <button
@@ -497,11 +499,11 @@ export function MaritimeInquiriesTab({
                         }}
                       >
                         <CheckCircleIcon size={12} color="#16a34a" />
-                        <span>فتح الـ RFQ</span>
+                        <span>{t('maritime_freight.maritime_inquiries_tab.s51', "فتح الـ RFQ")}</span>
                         <ArrowLeftIcon size={11} />
                       </button>
                     ) : (
-                      <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>مكتمل</span>
+                      <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>{t('maritime_freight.maritime_inquiries_tab.s52', "مكتمل")}</span>
                     )}
                   </td>
                 </tr>

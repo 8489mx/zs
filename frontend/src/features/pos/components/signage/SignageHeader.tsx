@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 import {
   ShoppingCartIcon,
@@ -28,6 +29,7 @@ export const SignageHeader: React.FC<SignageHeaderProps> = ({
   onBack,
   onToggleNavMenu,
 }) => {
+  const { t } = useTranslation();
   return (
     <>
       <header
@@ -94,7 +96,7 @@ export const SignageHeader: React.FC<SignageHeaderProps> = ({
                     display: 'inline-block',
                   }}
                 />
-                <span>بث مباشر بصالة العرض</span>
+                <span>{t('pos.signage.signage_header.s0', "بث مباشر بصالة العرض")}</span>
               </span>
             </div>
             <p
@@ -105,7 +107,7 @@ export const SignageHeader: React.FC<SignageHeaderProps> = ({
                 fontWeight: 600,
               }}
             >
-              شاشة العروض الترويجية والصفقات الحصرية • Digital Showroom Board
+              {t('pos.signage.signage_header.s1', "شاشة العروض الترويجية والصفقات الحصرية • Digital Showroom Board")}
             </p>
           </div>
         </div>
@@ -149,10 +151,10 @@ export const SignageHeader: React.FC<SignageHeaderProps> = ({
                 boxShadow: '0 2px 6px rgba(23, 14, 94, 0.25)',
                 transition: 'all 0.15s ease',
               }}
-              title="العودة للنظام أو لوحة التحكم (Esc)"
+              title={t('pos.signage.signage_header.s2', "العودة للنظام أو لوحة التحكم (Esc)")}
             >
               <ArrowRightIcon size={16} color="#ffffff" strokeWidth={2.5} />
-              <span>العودة للنظام</span>
+              <span>{t('pos.signage.signage_header.s3', "العودة للنظام")}</span>
             </button>
 
             {/* Quick Menu / Sidebar Drawer Button */}
@@ -174,10 +176,10 @@ export const SignageHeader: React.FC<SignageHeaderProps> = ({
                 boxShadow: '0 1px 3px rgba(15, 23, 42, 0.05)',
                 transition: 'all 0.15s ease',
               }}
-              title="فتح القائمة الرئيسية والتنقل السريع بين الأقسام"
+              title={t('pos.signage.signage_header.s4', "فتح القائمة الرئيسية والتنقل السريع بين الأقسام")}
             >
               <MenuIcon size={17} color="#170e5e" strokeWidth={2.2} />
-              <span>القائمة السريعة</span>
+              <span>{t('pos.signage.signage_header.s5', "القائمة السريعة")}</span>
             </button>
 
             <button
@@ -197,7 +199,7 @@ export const SignageHeader: React.FC<SignageHeaderProps> = ({
                 boxShadow: '0 1px 3px rgba(15, 23, 42, 0.05)',
                 transition: 'all 0.15s ease',
               }}
-              title="ملء الشاشة"
+              title={t('pos.signage.signage_header.s6', "ملء الشاشة")}
             >
               <Maximize2Icon size={18} color="#334155" />
             </button>
@@ -219,7 +221,7 @@ export const SignageHeader: React.FC<SignageHeaderProps> = ({
                 boxShadow: '0 1px 3px rgba(15, 23, 42, 0.05)',
                 transition: 'all 0.15s ease',
               }}
-              title="إعدادات الشاشة وسرعة العرض"
+              title={t('pos.signage.signage_header.s7', "إعدادات الشاشة وسرعة العرض")}
             >
               <SettingsIcon size={18} color="#170e5e" />
             </button>

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { QueryCard } from '@/shared/components/query-card';
 import { Button } from '@/shared/ui/button';
@@ -45,6 +46,7 @@ export function SettingsDiagnosticsSection({
   onReconcileSuppliers,
   onReconcileAll
 }: SettingsDiagnosticsSectionProps) {
+  const { t } = useTranslation();
   const [isClearingCache, setIsClearingCache] = useState(false);
   const [isDownloadingBundle, setIsDownloadingBundle] = useState(false);
   const [isSendingBundle, setIsSendingBundle] = useState(false);
@@ -128,37 +130,37 @@ export function SettingsDiagnosticsSection({
   return (
     <>
       <div className="two-column-grid settings-diagnostics-grid">
-        <QueryCard className="settings-admin-card" title="تشخيص النظام" actions={<div className="actions compact-actions"><Button variant="secondary" onClick={() => downloadSummaryCsv('diagnostics-counts.csv', diagnosticsCounts)}>تصدير العدادات</Button><Button variant="secondary" onClick={() => downloadSummaryCsv('diagnostics-finance.csv', diagnosticsFinance)}>تصدير المالي</Button><Button variant="secondary" onClick={() => printSummaryList('تشخيص النظام - العدادات', diagnosticsCounts)}>طباعة العدادات</Button><Button variant="secondary" onClick={() => printSummaryList('تشخيص النظام - الملخص المالي', diagnosticsFinance)}>طباعة المالي</Button></div>} isLoading={diagnosticsQuery.isLoading} isError={diagnosticsQuery.isError} error={diagnosticsQuery.error}>
+        <QueryCard className="settings-admin-card" title={t('settings.workspace_sections.settings_diagnostics_section.s0', "تشخيص النظام")} actions={<div className="actions compact-actions"><Button variant="secondary" onClick={() => downloadSummaryCsv('diagnostics-counts.csv', diagnosticsCounts)}>{t('settings.workspace_sections.settings_diagnostics_section.s1', "تصدير العدادات")}</Button><Button variant="secondary" onClick={() => downloadSummaryCsv('diagnostics-finance.csv', diagnosticsFinance)}>{t('settings.workspace_sections.settings_diagnostics_section.s2', "تصدير المالي")}</Button><Button variant="secondary" onClick={() => printSummaryList(t('settings.workspace_sections.settings_diagnostics_section.s3', "تشخيص النظام - العدادات"), diagnosticsCounts)}>{t('settings.workspace_sections.settings_diagnostics_section.s4', "طباعة العدادات")}</Button><Button variant="secondary" onClick={() => printSummaryList(t('settings.workspace_sections.settings_diagnostics_section.s5', "تشخيص النظام - الملخص المالي"), diagnosticsFinance)}>{t('settings.workspace_sections.settings_diagnostics_section.s6', "طباعة المالي")}</Button></div>} isLoading={diagnosticsQuery.isLoading} isError={diagnosticsQuery.isError} error={diagnosticsQuery.error}>
           <div className="two-column-grid">
             <div>
-              <strong style={{ display: 'block', marginBottom: 12 }}>عدادات أساسية</strong>
+              <strong style={{ display: 'block', marginBottom: 12 }}>{t('settings.workspace_sections.settings_diagnostics_section.s7', "عدادات أساسية")}</strong>
               <SummaryList data={diagnosticsCounts} />
             </div>
             <div>
-              <strong style={{ display: 'block', marginBottom: 12 }}>ملخص مالي</strong>
+              <strong style={{ display: 'block', marginBottom: 12 }}>{t('settings.workspace_sections.settings_diagnostics_section.s8', "ملخص مالي")}</strong>
               <SummaryList data={diagnosticsFinance} />
             </div>
           </div>
         </QueryCard>
 
-        <QueryCard className="settings-admin-card" title="الصيانة والجاهزية" actions={<div className="actions compact-actions"><Button variant="secondary" onClick={() => downloadSummaryCsv('maintenance-summary.csv', maintenanceSummary)}>تصدير الصيانة</Button><Button variant="secondary" onClick={() => downloadSummaryCsv('launch-operational-summary.csv', launchOrOperationalSummary)}>تصدير الجاهزية</Button><Button variant="secondary" onClick={() => printSummaryList('ملخص الصيانة', maintenanceSummary)}>طباعة الصيانة</Button><Button variant="secondary" onClick={() => printSummaryList('جاهزية الإطلاق والتشغيل', launchOrOperationalSummary)}>طباعة الجاهزية</Button></div>} isLoading={maintenanceQuery.isLoading || launchQuery.isLoading || operationalQuery.isLoading} isError={maintenanceQuery.isError || launchQuery.isError || operationalQuery.isError} error={maintenanceQuery.error || launchQuery.error || operationalQuery.error}>
+        <QueryCard className="settings-admin-card" title={t('settings.workspace_sections.settings_diagnostics_section.s9', "الصيانة والجاهزية")} actions={<div className="actions compact-actions"><Button variant="secondary" onClick={() => downloadSummaryCsv('maintenance-summary.csv', maintenanceSummary)}>{t('settings.workspace_sections.settings_diagnostics_section.s10', "تصدير الصيانة")}</Button><Button variant="secondary" onClick={() => downloadSummaryCsv('launch-operational-summary.csv', launchOrOperationalSummary)}>{t('settings.workspace_sections.settings_diagnostics_section.s11', "تصدير الجاهزية")}</Button><Button variant="secondary" onClick={() => printSummaryList(t('settings.workspace_sections.settings_diagnostics_section.s12', "ملخص الصيانة"), maintenanceSummary)}>{t('settings.workspace_sections.settings_diagnostics_section.s13', "طباعة الصيانة")}</Button><Button variant="secondary" onClick={() => printSummaryList(t('settings.workspace_sections.settings_diagnostics_section.s14', "جاهزية الإطلاق والتشغيل"), launchOrOperationalSummary)}>{t('settings.workspace_sections.settings_diagnostics_section.s15', "طباعة الجاهزية")}</Button></div>} isLoading={maintenanceQuery.isLoading || launchQuery.isLoading || operationalQuery.isLoading} isError={maintenanceQuery.isError || launchQuery.isError || operationalQuery.isError} error={maintenanceQuery.error || launchQuery.error || operationalQuery.error}>
           <div className="two-column-grid">
             <div>
-              <strong style={{ display: 'block', marginBottom: 12 }}>ملخص الصيانة</strong>
+              <strong style={{ display: 'block', marginBottom: 12 }}>{t('settings.workspace_sections.settings_diagnostics_section.s16', "ملخص الصيانة")}</strong>
               <SummaryList data={maintenanceSummary} />
             </div>
             <div>
-              <strong style={{ display: 'block', marginBottom: 12 }}>ملخص الجاهزية</strong>
+              <strong style={{ display: 'block', marginBottom: 12 }}>{t('settings.workspace_sections.settings_diagnostics_section.s17', "ملخص الجاهزية")}</strong>
               <SummaryList data={launchOrOperationalSummary} />
             </div>
           </div>
-          {!canManageMaintenance ? <div className="muted small" style={{ marginTop: 16 }}>تنفيذ أوامر الصيانة الإدارية غير متاح لهذا الحساب.</div> : null}<div className="actions" style={{ marginTop: 16, flexWrap: 'wrap' }}>
-            <Button variant="secondary" onClick={onCleanupExpiredSessions} disabled={cleanupPending || !canManageMaintenance}>تنظيف الجلسات المنتهية</Button>
-            <Button variant="secondary" onClick={onReconcileCustomers} disabled={reconcileCustomersPending || !canManageMaintenance}>مطابقة أرصدة العملاء</Button>
-            <Button variant="secondary" onClick={onReconcileSuppliers} disabled={reconcileSuppliersPending || !canManageMaintenance}>مطابقة أرصدة الموردين</Button>
-            <Button onClick={onReconcileAll} disabled={reconcileAllPending || !canManageMaintenance}>مطابقة كل الأرصدة</Button>
+          {!canManageMaintenance ? <div className="muted small" style={{ marginTop: 16 }}>{t('settings.workspace_sections.settings_diagnostics_section.s18', "تنفيذ أوامر الصيانة الإدارية غير متاح لهذا الحساب.")}</div> : null}<div className="actions" style={{ marginTop: 16, flexWrap: 'wrap' }}>
+            <Button variant="secondary" onClick={onCleanupExpiredSessions} disabled={cleanupPending || !canManageMaintenance}>{t('settings.workspace_sections.settings_diagnostics_section.s19', "تنظيف الجلسات المنتهية")}</Button>
+            <Button variant="secondary" onClick={onReconcileCustomers} disabled={reconcileCustomersPending || !canManageMaintenance}>{t('settings.workspace_sections.settings_diagnostics_section.s20', "مطابقة أرصدة العملاء")}</Button>
+            <Button variant="secondary" onClick={onReconcileSuppliers} disabled={reconcileSuppliersPending || !canManageMaintenance}>{t('settings.workspace_sections.settings_diagnostics_section.s21', "مطابقة أرصدة الموردين")}</Button>
+            <Button onClick={onReconcileAll} disabled={reconcileAllPending || !canManageMaintenance}>{t('settings.workspace_sections.settings_diagnostics_section.s22', "مطابقة كل الأرصدة")}</Button>
             <Button variant="primary" onClick={handleDownloadSupportBundle} disabled={!canManageMaintenance || isDownloadingBundle}>
-              {isDownloadingBundle ? 'جاري التنزيل...' : 'تنزيل حزمة الدعم'}
+              {isDownloadingBundle ? t('settings.workspace_sections.settings_diagnostics_section.s23', "جاري التنزيل...") : t('settings.workspace_sections.settings_diagnostics_section.s24', "تنزيل حزمة الدعم")}
             </Button>
             <Button
               variant="secondary"
@@ -166,9 +168,9 @@ export function SettingsDiagnosticsSection({
               disabled={!canManageMaintenance || isSendingBundle}
               style={{ borderColor: 'var(--color-primary, #170e5e)', color: 'var(--color-primary, #170e5e)' }}
             >
-              {isSendingBundle ? 'جاري الإرسال للسيرفر...' : 'إرسال تقرير الدعم الفني للإدارة'}
+              {isSendingBundle ? t('settings.workspace_sections.settings_diagnostics_section.s25', "جاري الإرسال للسيرفر...") : t('settings.workspace_sections.settings_diagnostics_section.s26', "إرسال تقرير الدعم الفني للإدارة")}
             </Button>
-            <Button variant="secondary" onClick={handleClearCache} disabled={isClearingCache || !canManageMaintenance} style={{ borderColor: 'var(--color-danger)', color: 'var(--color-danger)' }}>صيانة وتحسين أداء (مسح الكاش)</Button>
+            <Button variant="secondary" onClick={handleClearCache} disabled={isClearingCache || !canManageMaintenance} style={{ borderColor: 'var(--color-danger)', color: 'var(--color-danger)' }}>{t('settings.workspace_sections.settings_diagnostics_section.s27', "صيانة وتحسين أداء (مسح الكاش)")}</Button>
           </div>
         </QueryCard>
       </div>

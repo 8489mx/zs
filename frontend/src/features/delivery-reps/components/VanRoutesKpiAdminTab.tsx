@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
@@ -47,6 +48,7 @@ const NEGATIVE_REASON_LABELS: Record<string, string> = {
 };
 
 export function VanRoutesKpiAdminTab() {
+  const { t: __t } = useTranslation();
   const queryClient = useQueryClient();
 
   const [dateFrom, setDateFrom] = useState('');
@@ -323,7 +325,7 @@ export function VanRoutesKpiAdminTab() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <CalendarIcon size={14} color="#64748b" />
-            <span style={{ fontSize: '12px', fontWeight: 700, color: '#475569' }}>الفترة:</span>
+            <span style={{ fontSize: '12px', fontWeight: 700, color: '#475569' }}>{__t('delivery_reps.van_routes_kpi_admin_tab.s0', __t('delivery_reps.van_routes_kpi_admin_tab.s0', "الفترة:"))}</span>
           </div>
           <input
             type="date"
@@ -337,7 +339,7 @@ export function VanRoutesKpiAdminTab() {
               color: '#0f172a',
             }}
           />
-          <span style={{ fontSize: '12px', color: '#94a3b8' }}>إلى</span>
+          <span style={{ fontSize: '12px', color: '#94a3b8' }}>{__t('delivery_reps.van_routes_kpi_admin_tab.s1', __t('delivery_reps.van_routes_kpi_admin_tab.s1', "إلى"))}</span>
           <input
             type="date"
             value={dateTo}
@@ -359,7 +361,7 @@ export function VanRoutesKpiAdminTab() {
                 setDateTo('');
               }}
             >
-              إلغاء الفلتر
+              {__t('delivery_reps.van_routes_kpi_admin_tab.s2', __t('delivery_reps.van_routes_kpi_admin_tab.s2', "إلغاء الفلتر"))}
             </Button>
           )}
         </div>
@@ -377,14 +379,14 @@ export function VanRoutesKpiAdminTab() {
               opacity: isRefreshing ? 0.75 : 1,
             }}
             onClick={handleManualRefresh}
-            title="تحديث بيانات خطوط السير والرقابة من السيرفر"
+            title={__t('delivery_reps.van_routes_kpi_admin_tab.s3', __t('delivery_reps.van_routes_kpi_admin_tab.s3', "تحديث بيانات خطوط السير والرقابة من السيرفر"))}
           >
             <RefreshCwIcon
               size={13}
               className={isRefreshing ? 'spin-animation' : undefined}
               style={isRefreshing ? { animation: 'spin 0.75s linear infinite' } : undefined}
             />
-            {isRefreshing ? 'جارٍ التحديث...' : 'تحديث البيانات'}
+            {isRefreshing ? __t('delivery_reps.van_routes_kpi_admin_tab.s4', __t('delivery_reps.van_routes_kpi_admin_tab.s4', "جارٍ التحديث...")) : __t('delivery_reps.van_routes_kpi_admin_tab.s5', __t('delivery_reps.van_routes_kpi_admin_tab.s5', "تحديث البيانات"))}
           </Button>
         </div>
       </div>
@@ -400,12 +402,12 @@ export function VanRoutesKpiAdminTab() {
             boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
           }}
         >
-          <span style={{ fontSize: '11.5px', fontWeight: 700, color: '#64748b', display: 'block' }}>إجمالي الزيارات الميدانية</span>
+          <span style={{ fontSize: '11.5px', fontWeight: 700, color: '#64748b', display: 'block' }}>{__t('delivery_reps.van_routes_kpi_admin_tab.s6', __t('delivery_reps.van_routes_kpi_admin_tab.s6', "إجمالي الزيارات الميدانية"))}</span>
           <span style={{ fontSize: '22px', fontWeight: 900, color: '#0f172a', display: 'block', marginTop: '4px' }}>
             {kpiData?.totalVisits ?? 0}
           </span>
           <div style={{ fontSize: '11px', color: '#16a34a', marginTop: '2px', fontWeight: 600 }}>
-            {kpiData?.positiveVisits ?? 0} ناجحة • {kpiData?.negativeVisits ?? 0} سلبية
+            {kpiData?.positiveVisits ?? 0} {__t('delivery_reps.van_routes_kpi_admin_tab.s7', __t('delivery_reps.van_routes_kpi_admin_tab.s7', "ناجحة •"))} {kpiData?.negativeVisits ?? 0} {__t('delivery_reps.van_routes_kpi_admin_tab.s8', __t('delivery_reps.van_routes_kpi_admin_tab.s8', "سلبية"))}
           </div>
         </div>
 
@@ -418,11 +420,11 @@ export function VanRoutesKpiAdminTab() {
             boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
           }}
         >
-          <span style={{ fontSize: '11.5px', fontWeight: 700, color: '#16a34a', display: 'block' }}>نسبة الضربات الناجحة (Strike Rate)</span>
+          <span style={{ fontSize: '11.5px', fontWeight: 700, color: '#16a34a', display: 'block' }}>{__t('delivery_reps.van_routes_kpi_admin_tab.s9', __t('delivery_reps.van_routes_kpi_admin_tab.s9', "نسبة الضربات الناجحة (Strike Rate)"))}</span>
           <span style={{ fontSize: '22px', fontWeight: 900, color: '#15803d', display: 'block', marginTop: '4px' }}>
             {kpiData?.strikeRate ?? 0}%
           </span>
-          <span style={{ fontSize: '11px', color: '#64748b' }}>نسبة تحويل الزيارة إلى فاتورة بيع فعلية</span>
+          <span style={{ fontSize: '11px', color: '#64748b' }}>{__t('delivery_reps.van_routes_kpi_admin_tab.s10', __t('delivery_reps.van_routes_kpi_admin_tab.s10', "نسبة تحويل الزيارة إلى فاتورة بيع فعلية"))}</span>
         </div>
 
         <div
@@ -434,12 +436,12 @@ export function VanRoutesKpiAdminTab() {
             boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
           }}
         >
-          <span style={{ fontSize: '11.5px', fontWeight: 700, color: '#4338ca', display: 'block' }}>الالتزام بالنطاق الجغرافي (Geofence)</span>
+          <span style={{ fontSize: '11.5px', fontWeight: 700, color: '#4338ca', display: 'block' }}>{__t('delivery_reps.van_routes_kpi_admin_tab.s11', __t('delivery_reps.van_routes_kpi_admin_tab.s11', "الالتزام بالنطاق الجغرافي (Geofence)"))}</span>
           <span style={{ fontSize: '22px', fontWeight: 900, color: '#170e5e', display: 'block', marginTop: '4px' }}>
             {kpiData?.geofenceComplianceRate ?? 100}%
           </span>
           <span style={{ fontSize: '11px', color: '#64748b' }}>
-            ضمن 300م: {kpiData?.withinGeofenceCount ?? 0} • خارج النطاق: {kpiData?.outOfGeofenceCount ?? 0}
+            {__t('delivery_reps.van_routes_kpi_admin_tab.s12', __t('delivery_reps.van_routes_kpi_admin_tab.s12', "ضمن 300م:"))} {kpiData?.withinGeofenceCount ?? 0} {__t('delivery_reps.van_routes_kpi_admin_tab.s13', __t('delivery_reps.van_routes_kpi_admin_tab.s13', "• خارج النطاق:"))} {kpiData?.outOfGeofenceCount ?? 0}
           </span>
         </div>
 
@@ -453,11 +455,11 @@ export function VanRoutesKpiAdminTab() {
             boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
           }}
         >
-          <span style={{ fontSize: '11.5px', fontWeight: 700, color: '#dc2626', display: 'block' }}>محلات سلبية متكررة (3+)</span>
+          <span style={{ fontSize: '11.5px', fontWeight: 700, color: '#dc2626', display: 'block' }}>{__t('delivery_reps.van_routes_kpi_admin_tab.s14', __t('delivery_reps.van_routes_kpi_admin_tab.s14', "محلات سلبية متكررة (3+)"))}</span>
           <span style={{ fontSize: '22px', fontWeight: 900, color: '#b91c1c', display: 'block', marginTop: '4px' }}>
             {kpiData?.repeatedNegativeCustomersCount ?? 0}
           </span>
-          <span style={{ fontSize: '11px', color: '#b91c1c' }}>محلات تتطلب تدخل المشرف فوراً</span>
+          <span style={{ fontSize: '11px', color: '#b91c1c' }}>{__t('delivery_reps.van_routes_kpi_admin_tab.s15', __t('delivery_reps.van_routes_kpi_admin_tab.s15', "محلات تتطلب تدخل المشرف فوراً"))}</span>
         </div>
 
         <div
@@ -469,12 +471,12 @@ export function VanRoutesKpiAdminTab() {
             boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
           }}
         >
-          <span style={{ fontSize: '11.5px', fontWeight: 700, color: '#0284c7', display: 'block' }}>استهلاك ومعدل وقود الأسطول</span>
+          <span style={{ fontSize: '11.5px', fontWeight: 700, color: '#0284c7', display: 'block' }}>{__t('delivery_reps.van_routes_kpi_admin_tab.s16', __t('delivery_reps.van_routes_kpi_admin_tab.s16', "استهلاك ومعدل وقود الأسطول"))}</span>
           <span style={{ fontSize: '22px', fontWeight: 900, color: '#0369a1', display: 'block', marginTop: '4px' }}>
-            {kpiData?.totalFuelLiters ?? 0} <span style={{ fontSize: '13px', fontWeight: 600 }}>لتر</span>
+            {kpiData?.totalFuelLiters ?? 0} <span style={{ fontSize: '13px', fontWeight: 600 }}>{__t('delivery_reps.van_routes_kpi_admin_tab.s17', __t('delivery_reps.van_routes_kpi_admin_tab.s17', "لتر"))}</span>
           </span>
           <span style={{ fontSize: '11px', color: '#64748b' }}>
-            معدل الاستهلاك: {kpiData?.avgConsumptionRate ?? 0} كم/لتر ({kpiData?.totalFuelCost ?? 0} <CurrencySymbol />)
+            {__t('delivery_reps.van_routes_kpi_admin_tab.s18', __t('delivery_reps.van_routes_kpi_admin_tab.s18', "معدل الاستهلاك:"))} {kpiData?.avgConsumptionRate ?? 0} {__t('delivery_reps.van_routes_kpi_admin_tab.s19', __t('delivery_reps.van_routes_kpi_admin_tab.s19', "كم/لتر ("))}{kpiData?.totalFuelCost ?? 0} <CurrencySymbol />)
           </span>
         </div>
       </div>
@@ -492,11 +494,11 @@ export function VanRoutesKpiAdminTab() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
             <AlertTriangleIcon size={18} color="#e11d48" />
             <h4 style={{ margin: 0, fontSize: '13.5px', fontWeight: 800, color: '#9f1239' }}>
-              تنبيه رقابي: محلات ومتاجر تكررت زياراتها السلبية (3 مرات فأكثر) دون شراء
+              {__t('delivery_reps.van_routes_kpi_admin_tab.s20', __t('delivery_reps.van_routes_kpi_admin_tab.s20', "تنبيه رقابي: محلات ومتاجر تكررت زياراتها السلبية (3 مرات فأكثر) دون شراء"))}
             </h4>
           </div>
           <p style={{ margin: '0 0 10px', fontSize: '12px', color: '#be123c', lineHeight: 1.5 }}>
-            وفقاً لسياسة التوزيع المؤسسية، المحل الذي يتم رفض الشراء منه 3 مرات متتالية يتم إخطار المشرف لإعادة دراسة الائتمان، فحص مسار الخط، أو التفاوض مع التاجر.
+            {__t('delivery_reps.van_routes_kpi_admin_tab.s21', __t('delivery_reps.van_routes_kpi_admin_tab.s21', "وفقاً لسياسة التوزيع المؤسسية، المحل الذي يتم رفض الشراء منه 3 مرات متتالية يتم إخطار المشرف لإعادة دراسة الائتمان، فحص مسار الخط، أو التفاوض مع التاجر."))}
           </p>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -516,13 +518,13 @@ export function VanRoutesKpiAdminTab() {
               >
                 <div>
                   <strong style={{ color: '#0f172a' }}>{v.customerName}</strong>
-                  <span style={{ color: '#64748b', marginRight: '8px' }}>({v.customerPhone || 'بدون هاتف'})</span>
-                  <span style={{ color: '#94a3b8', marginRight: '8px' }}>خط: {v.route || 'عام'}</span>
+                  <span style={{ color: '#64748b', marginRight: '8px' }}>({v.customerPhone || __t('delivery_reps.van_routes_kpi_admin_tab.s22', __t('delivery_reps.van_routes_kpi_admin_tab.s22', "بدون هاتف"))})</span>
+                  <span style={{ color: '#94a3b8', marginRight: '8px' }}>{__t('delivery_reps.van_routes_kpi_admin_tab.s23', __t('delivery_reps.van_routes_kpi_admin_tab.s23', "خط:"))} {v.route || __t('delivery_reps.van_routes_kpi_admin_tab.s24', __t('delivery_reps.van_routes_kpi_admin_tab.s24', "عام"))}</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ color: '#e11d48', fontWeight: 700 }}>{v.consecutiveNegativeCount} زيارات سلبية</span>
+                  <span style={{ color: '#e11d48', fontWeight: 700 }}>{v.consecutiveNegativeCount} {__t('delivery_reps.van_routes_kpi_admin_tab.s25', __t('delivery_reps.van_routes_kpi_admin_tab.s25', "زيارات سلبية"))}</span>
                   <span style={{ background: '#fef2f2', color: '#991b1b', padding: '2px 6px', borderRadius: '4px', fontSize: '11px' }}>
-                    آخر سبب: {NEGATIVE_REASON_LABELS[v.negativeReason] || v.negativeReason || 'محل مغلق'}
+                    {__t('delivery_reps.van_routes_kpi_admin_tab.s26', __t('delivery_reps.van_routes_kpi_admin_tab.s26', "آخر سبب:"))} {NEGATIVE_REASON_LABELS[v.negativeReason] || v.negativeReason || __t('delivery_reps.van_routes_kpi_admin_tab.s27', __t('delivery_reps.van_routes_kpi_admin_tab.s27', "محل مغلق"))}
                   </span>
                 </div>
               </div>
@@ -562,7 +564,7 @@ export function VanRoutesKpiAdminTab() {
           }}
         >
           <TruckIcon size={14} />
-          شريط مناقلات سيارات الشارع ({transfers.length})
+          {__t('delivery_reps.van_routes_kpi_admin_tab.s28', __t('delivery_reps.van_routes_kpi_admin_tab.s28', "شريط مناقلات سيارات الشارع ("))}{transfers.length})
         </button>
 
         <button
@@ -585,7 +587,7 @@ export function VanRoutesKpiAdminTab() {
           }}
         >
           <MapPinIcon size={14} />
-          سجل الزيارات وأسباب الرفض ({fieldVisits.length})
+          {__t('delivery_reps.van_routes_kpi_admin_tab.s29', __t('delivery_reps.van_routes_kpi_admin_tab.s29', "سجل الزيارات وأسباب الرفض ("))}{fieldVisits.length})
         </button>
 
         <button
@@ -608,7 +610,7 @@ export function VanRoutesKpiAdminTab() {
           }}
         >
           <SlidersIcon size={14} />
-          تخصيص خطوط السير والمناديب ({customerRoutes.length})
+          {__t('delivery_reps.van_routes_kpi_admin_tab.s30', __t('delivery_reps.van_routes_kpi_admin_tab.s30', "تخصيص خطوط السير والمناديب ("))}{customerRoutes.length})
         </button>
       </div>
 
@@ -634,35 +636,35 @@ export function VanRoutesKpiAdminTab() {
           >
             <div>
               <h3 style={{ margin: 0, fontSize: '14px', fontWeight: 800, color: '#0f172a' }}>
-                شريط الرقابة المباشرة: مناقلات البضاعة بين سيارات التوزيع في الميدان
+                {__t('delivery_reps.van_routes_kpi_admin_tab.s31', __t('delivery_reps.van_routes_kpi_admin_tab.s31', "شريط الرقابة المباشرة: مناقلات البضاعة بين سيارات التوزيع في الميدان"))}
               </h3>
               <p style={{ margin: '3px 0 0', fontSize: '11.5px', color: '#64748b' }}>
-                توثيق فوري لأي عملية إسناد أو مناقلة بضاعة بين سيارتين في الشارع بموافقة الطرفين
+                {__t('delivery_reps.van_routes_kpi_admin_tab.s32', __t('delivery_reps.van_routes_kpi_admin_tab.s32', "توثيق فوري لأي عملية إسناد أو مناقلة بضاعة بين سيارتين في الشارع بموافقة الطرفين"))}
               </p>
             </div>
             <span style={{ fontSize: '12px', fontWeight: 700, color: '#170e5e' }}>
-              إجمالي الحركات: {transfers.length}
+              {__t('delivery_reps.van_routes_kpi_admin_tab.s33', __t('delivery_reps.van_routes_kpi_admin_tab.s33', "إجمالي الحركات:"))} {transfers.length}
             </span>
           </div>
 
           {isTransfersLoading ? (
-            <div style={{ padding: '50px', textAlign: 'center', color: '#94a3b8' }}>جاري تحميل مناقلات الشارع...</div>
+            <div style={{ padding: '50px', textAlign: 'center', color: '#94a3b8' }}>{__t('delivery_reps.van_routes_kpi_admin_tab.s34', __t('delivery_reps.van_routes_kpi_admin_tab.s34', "جاري تحميل مناقلات الشارع..."))}</div>
           ) : transfers.length === 0 ? (
             <div style={{ padding: '50px', textAlign: 'center', color: '#64748b', fontSize: '13px' }}>
-              لا توجد عمليات مناقلة بين السيارات حتى الآن اليوم.
+              {__t('delivery_reps.van_routes_kpi_admin_tab.s35', __t('delivery_reps.van_routes_kpi_admin_tab.s35', "لا توجد عمليات مناقلة بين السيارات حتى الآن اليوم."))}
             </div>
           ) : (
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right', fontSize: '12px' }}>
               <thead>
                 <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>
-                  <th style={{ padding: '10px 14px', fontWeight: 700 }}>رقم المناقلة</th>
-                  <th style={{ padding: '10px 14px', fontWeight: 700 }}>السيارة المصدر (المحوّل)</th>
-                  <th style={{ padding: '10px 14px', fontWeight: 700, textAlign: 'center' }}>اتجاه الحركة</th>
-                  <th style={{ padding: '10px 14px', fontWeight: 700 }}>السيارة المستلمة</th>
-                  <th style={{ padding: '10px 14px', fontWeight: 700 }}>الأصناف المنقولة</th>
-                  <th style={{ padding: '10px 14px', fontWeight: 700, textAlign: 'center' }}>إجمالي القطع</th>
-                  <th style={{ padding: '10px 14px', fontWeight: 700, textAlign: 'center' }}>الحالة</th>
-                  <th style={{ padding: '10px 14px', fontWeight: 700 }}>التاريخ والوقت</th>
+                  <th style={{ padding: '10px 14px', fontWeight: 700 }}>{__t('delivery_reps.van_routes_kpi_admin_tab.s36', __t('delivery_reps.van_routes_kpi_admin_tab.s36', "رقم المناقلة"))}</th>
+                  <th style={{ padding: '10px 14px', fontWeight: 700 }}>{__t('delivery_reps.van_routes_kpi_admin_tab.s37', __t('delivery_reps.van_routes_kpi_admin_tab.s37', "السيارة المصدر (المحوّل)"))}</th>
+                  <th style={{ padding: '10px 14px', fontWeight: 700, textAlign: 'center' }}>{__t('delivery_reps.van_routes_kpi_admin_tab.s38', __t('delivery_reps.van_routes_kpi_admin_tab.s38', "اتجاه الحركة"))}</th>
+                  <th style={{ padding: '10px 14px', fontWeight: 700 }}>{__t('delivery_reps.van_routes_kpi_admin_tab.s39', __t('delivery_reps.van_routes_kpi_admin_tab.s39', "السيارة المستلمة"))}</th>
+                  <th style={{ padding: '10px 14px', fontWeight: 700 }}>{__t('delivery_reps.van_routes_kpi_admin_tab.s40', __t('delivery_reps.van_routes_kpi_admin_tab.s40', "الأصناف المنقولة"))}</th>
+                  <th style={{ padding: '10px 14px', fontWeight: 700, textAlign: 'center' }}>{__t('delivery_reps.van_routes_kpi_admin_tab.s41', __t('delivery_reps.van_routes_kpi_admin_tab.s41', "إجمالي القطع"))}</th>
+                  <th style={{ padding: '10px 14px', fontWeight: 700, textAlign: 'center' }}>{__t('delivery_reps.van_routes_kpi_admin_tab.s42', __t('delivery_reps.van_routes_kpi_admin_tab.s42', "الحالة"))}</th>
+                  <th style={{ padding: '10px 14px', fontWeight: 700 }}>{__t('delivery_reps.van_routes_kpi_admin_tab.s43', __t('delivery_reps.van_routes_kpi_admin_tab.s43', "التاريخ والوقت"))}</th>
                 </tr>
               </thead>
               <tbody>
@@ -688,7 +690,7 @@ export function VanRoutesKpiAdminTab() {
                           fontWeight: 700,
                         }}
                       >
-                        <ArrowLeftIcon size={12} /> مناقلة
+                        <ArrowLeftIcon size={12} /> {__t('delivery_reps.van_routes_kpi_admin_tab.s44', __t('delivery_reps.van_routes_kpi_admin_tab.s44', "مناقلة"))}
                       </span>
                     </td>
                     <td style={{ padding: '10px 14px', fontWeight: 700, color: '#0f172a' }}>
@@ -698,11 +700,11 @@ export function VanRoutesKpiAdminTab() {
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                         {t.items.slice(0, 2).map((it, idx) => (
                           <span key={idx} style={{ color: '#334155' }}>
-                            • {it.productName} ({it.qty} قطعة)
+                            • {it.productName} ({it.qty} {__t('delivery_reps.van_routes_kpi_admin_tab.s45', __t('delivery_reps.van_routes_kpi_admin_tab.s45', "قطعة)"))}
                           </span>
                         ))}
                         {t.items.length > 2 && (
-                          <span style={{ fontSize: '10.5px', color: '#64748b' }}>+{t.items.length - 2} أصناف أخرى</span>
+                          <span style={{ fontSize: '10.5px', color: '#64748b' }}>+{t.items.length - 2} {__t('delivery_reps.van_routes_kpi_admin_tab.s46', __t('delivery_reps.van_routes_kpi_admin_tab.s46', "أصناف أخرى"))}</span>
                         )}
                       </div>
                     </td>
@@ -731,10 +733,10 @@ export function VanRoutesKpiAdminTab() {
                         }}
                       >
                         {t.status === 'accepted'
-                          ? 'تم القبول والاستلام'
+                          ? __t('delivery_reps.van_routes_kpi_admin_tab.s47', __t('delivery_reps.van_routes_kpi_admin_tab.s47', "تم القبول والاستلام"))
                           : t.status === 'rejected'
-                          ? 'مرفوضة من المندوب'
-                          : 'بانتظار موافقة المستلم'}
+                          ? __t('delivery_reps.van_routes_kpi_admin_tab.s48', __t('delivery_reps.van_routes_kpi_admin_tab.s48', "مرفوضة من المندوب"))
+                          : __t('delivery_reps.van_routes_kpi_admin_tab.s49', __t('delivery_reps.van_routes_kpi_admin_tab.s49', "بانتظار موافقة المستلم"))}
                       </span>
                     </td>
                     <td style={{ padding: '10px 14px', fontSize: '11px', color: '#64748b' }}>
@@ -767,7 +769,7 @@ export function VanRoutesKpiAdminTab() {
               }}
             >
               <h4 style={{ margin: '0 0 10px', fontSize: '13px', fontWeight: 800, color: '#0f172a' }}>
-                تحليل أسباب عدم الشراء (أسباب الزيارات السلبية):
+                {__t('delivery_reps.van_routes_kpi_admin_tab.s50', __t('delivery_reps.van_routes_kpi_admin_tab.s50', "تحليل أسباب عدم الشراء (أسباب الزيارات السلبية):"))}
               </h4>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '10px' }}>
                 {Object.entries(kpiData.negativeReasonsBreakdown).map(([reason, count]) => (
@@ -784,7 +786,7 @@ export function VanRoutesKpiAdminTab() {
                       {NEGATIVE_REASON_LABELS[reason] || reason}
                     </span>
                     <span style={{ fontSize: '16px', fontWeight: 800, color: '#0f172a', display: 'block', marginTop: '2px' }}>
-                      {count} <span style={{ fontSize: '11px', color: '#94a3b8' }}>زيارة</span>
+                      {count} <span style={{ fontSize: '11px', color: '#94a3b8' }}>{__t('delivery_reps.van_routes_kpi_admin_tab.s51', __t('delivery_reps.van_routes_kpi_admin_tab.s51', "زيارة"))}</span>
                     </span>
                   </div>
                 ))}
@@ -803,23 +805,23 @@ export function VanRoutesKpiAdminTab() {
             }}
           >
             {isVisitsLoading ? (
-              <div style={{ padding: '50px', textAlign: 'center', color: '#94a3b8' }}>جاري تحميل الزيارات...</div>
+              <div style={{ padding: '50px', textAlign: 'center', color: '#94a3b8' }}>{__t('delivery_reps.van_routes_kpi_admin_tab.s52', __t('delivery_reps.van_routes_kpi_admin_tab.s52', "جاري تحميل الزيارات..."))}</div>
             ) : fieldVisits.length === 0 ? (
               <div style={{ padding: '50px', textAlign: 'center', color: '#64748b', fontSize: '13px' }}>
-                لا توجد زيارات ميدانية مسجلة خلال الفترة المحددة.
+                {__t('delivery_reps.van_routes_kpi_admin_tab.s53', __t('delivery_reps.van_routes_kpi_admin_tab.s53', "لا توجد زيارات ميدانية مسجلة خلال الفترة المحددة."))}
               </div>
             ) : (
               <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right', fontSize: '12px' }}>
                 <thead>
                   <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>
-                    <th style={{ padding: '10px 14px', fontWeight: 700 }}>المحل / العميل</th>
-                    <th style={{ padding: '10px 14px', fontWeight: 700 }}>خط السير</th>
-                    <th style={{ padding: '10px 14px', fontWeight: 700 }}>المندوب</th>
-                    <th style={{ padding: '10px 14px', fontWeight: 700, textAlign: 'center' }}>النتيجة</th>
-                    <th style={{ padding: '10px 14px', fontWeight: 700 }}>السبب / الفاتورة</th>
-                    <th style={{ padding: '10px 14px', fontWeight: 700, textAlign: 'center' }}>النطاق الجغرافي (Geofence)</th>
-                    <th style={{ padding: '10px 14px', fontWeight: 700 }}>تاريخ التأجيل</th>
-                    <th style={{ padding: '10px 14px', fontWeight: 700 }}>توقيت الزيارة</th>
+                    <th style={{ padding: '10px 14px', fontWeight: 700 }}>{__t('delivery_reps.van_routes_kpi_admin_tab.s54', __t('delivery_reps.van_routes_kpi_admin_tab.s54', "المحل / العميل"))}</th>
+                    <th style={{ padding: '10px 14px', fontWeight: 700 }}>{__t('delivery_reps.van_routes_kpi_admin_tab.s55', __t('delivery_reps.van_routes_kpi_admin_tab.s55', "خط السير"))}</th>
+                    <th style={{ padding: '10px 14px', fontWeight: 700 }}>{__t('delivery_reps.van_routes_kpi_admin_tab.s56', __t('delivery_reps.van_routes_kpi_admin_tab.s56', "المندوب"))}</th>
+                    <th style={{ padding: '10px 14px', fontWeight: 700, textAlign: 'center' }}>{__t('delivery_reps.van_routes_kpi_admin_tab.s57', __t('delivery_reps.van_routes_kpi_admin_tab.s57', "النتيجة"))}</th>
+                    <th style={{ padding: '10px 14px', fontWeight: 700 }}>{__t('delivery_reps.van_routes_kpi_admin_tab.s58', __t('delivery_reps.van_routes_kpi_admin_tab.s58', "السبب / الفاتورة"))}</th>
+                    <th style={{ padding: '10px 14px', fontWeight: 700, textAlign: 'center' }}>{__t('delivery_reps.van_routes_kpi_admin_tab.s59', __t('delivery_reps.van_routes_kpi_admin_tab.s59', "النطاق الجغرافي (Geofence)"))}</th>
+                    <th style={{ padding: '10px 14px', fontWeight: 700 }}>{__t('delivery_reps.van_routes_kpi_admin_tab.s60', __t('delivery_reps.van_routes_kpi_admin_tab.s60', "تاريخ التأجيل"))}</th>
+                    <th style={{ padding: '10px 14px', fontWeight: 700 }}>{__t('delivery_reps.van_routes_kpi_admin_tab.s61', __t('delivery_reps.van_routes_kpi_admin_tab.s61', "توقيت الزيارة"))}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -827,10 +829,10 @@ export function VanRoutesKpiAdminTab() {
                     <tr key={v.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                       <td style={{ padding: '10px 14px' }}>
                         <div style={{ fontWeight: 800, color: '#0f172a' }}>{v.customerName}</div>
-                        <div style={{ fontSize: '11px', color: '#64748b' }}>{v.customerPhone || 'بدون هاتف'}</div>
+                        <div style={{ fontSize: '11px', color: '#64748b' }}>{v.customerPhone || __t('delivery_reps.van_routes_kpi_admin_tab.s62', __t('delivery_reps.van_routes_kpi_admin_tab.s62', "بدون هاتف"))}</div>
                       </td>
                       <td style={{ padding: '10px 14px', color: '#334155' }}>
-                        {v.route || 'عام'}
+                        {v.route || __t('delivery_reps.van_routes_kpi_admin_tab.s63', __t('delivery_reps.van_routes_kpi_admin_tab.s63', "عام"))}
                       </td>
                       <td style={{ padding: '10px 14px', fontWeight: 600, color: '#0f172a' }}>
                         {v.repName}
@@ -846,15 +848,15 @@ export function VanRoutesKpiAdminTab() {
                             color: v.visitType === 'positive' ? '#15803d' : '#b91c1c',
                           }}
                         >
-                          {v.visitType === 'positive' ? 'إيجابية (تم البيع)' : 'سلبية (لم يشترِ)'}
+                          {v.visitType === 'positive' ? __t('delivery_reps.van_routes_kpi_admin_tab.s64', __t('delivery_reps.van_routes_kpi_admin_tab.s64', "إيجابية (تم البيع)")) : __t('delivery_reps.van_routes_kpi_admin_tab.s65', __t('delivery_reps.van_routes_kpi_admin_tab.s65', "سلبية (لم يشترِ)"))}
                         </span>
                       </td>
                       <td style={{ padding: '10px 14px' }}>
                         {v.visitType === 'positive' ? (
-                          <span style={{ color: '#15803d', fontWeight: 700 }}>فاتورة #{v.saleDocNo || 'مكتملة'}</span>
+                          <span style={{ color: '#15803d', fontWeight: 700 }}>{__t('delivery_reps.van_routes_kpi_admin_tab.s66', __t('delivery_reps.van_routes_kpi_admin_tab.s66', "فاتورة #"))}{v.saleDocNo || __t('delivery_reps.van_routes_kpi_admin_tab.s67', __t('delivery_reps.van_routes_kpi_admin_tab.s67', "مكتملة"))}</span>
                         ) : (
                           <span style={{ color: '#b91c1c' }}>
-                            {NEGATIVE_REASON_LABELS[v.negativeReason] || v.negativeReason || 'بدون سبب'}
+                            {NEGATIVE_REASON_LABELS[v.negativeReason] || v.negativeReason || __t('delivery_reps.van_routes_kpi_admin_tab.s68', __t('delivery_reps.van_routes_kpi_admin_tab.s68', "بدون سبب"))}
                           </span>
                         )}
                         {v.notes && <div style={{ fontSize: '11px', color: '#64748b' }}>{v.notes}</div>}
@@ -873,7 +875,7 @@ export function VanRoutesKpiAdminTab() {
                                 border: '1px solid #bbf7d0',
                               }}
                             >
-                              ضمن النطاق ({v.distanceMeters}م)
+                              {__t('delivery_reps.van_routes_kpi_admin_tab.s69', __t('delivery_reps.van_routes_kpi_admin_tab.s69', "ضمن النطاق ("))}{v.distanceMeters}{__t('delivery_reps.van_routes_kpi_admin_tab.s70', __t('delivery_reps.van_routes_kpi_admin_tab.s70', "م)"))}
                             </span>
                           ) : v.geofenceStatus === 'out_of_range' ? (
                             <span
@@ -887,10 +889,10 @@ export function VanRoutesKpiAdminTab() {
                                 border: '1px solid #fecaca',
                               }}
                             >
-                              خارج النطاق ({v.distanceMeters}م)
+                              {__t('delivery_reps.van_routes_kpi_admin_tab.s71', __t('delivery_reps.van_routes_kpi_admin_tab.s71', "خارج النطاق ("))}{v.distanceMeters}{__t('delivery_reps.van_routes_kpi_admin_tab.s72', __t('delivery_reps.van_routes_kpi_admin_tab.s72', "م)"))}
                             </span>
                           ) : v.gpsLat && v.gpsLng ? (
-                            <span style={{ fontSize: '10px', color: '#64748b' }}>مسجل GPS (بدون إحداثيات محل)</span>
+                            <span style={{ fontSize: '10px', color: '#64748b' }}>{__t('delivery_reps.van_routes_kpi_admin_tab.s73', __t('delivery_reps.van_routes_kpi_admin_tab.s73', "مسجل GPS (بدون إحداثيات محل)"))}</span>
                           ) : (
                             <span style={{ fontSize: '10.5px', color: '#94a3b8' }}>—</span>
                           )}
@@ -901,7 +903,7 @@ export function VanRoutesKpiAdminTab() {
                               rel="noreferrer"
                               style={{ fontSize: '10.5px', color: '#2563eb', fontWeight: 700, textDecoration: 'none' }}
                             >
-                              فتح موقع المندوب
+                              {__t('delivery_reps.van_routes_kpi_admin_tab.s74', __t('delivery_reps.van_routes_kpi_admin_tab.s74', "فتح موقع المندوب"))}
                             </a>
                           )}
                         </div>
@@ -951,10 +953,10 @@ export function VanRoutesKpiAdminTab() {
           >
             <div>
               <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>
-                تخصيص خطوط السير والمناديب للمتاجر والعملاء
+                {__t('delivery_reps.van_routes_kpi_admin_tab.s75', __t('delivery_reps.van_routes_kpi_admin_tab.s75', "تخصيص خطوط السير والمناديب للمتاجر والعملاء"))}
               </h3>
               <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#64748b' }}>
-                توزيع محلات التوزيع على مناديب الفان، تثبيت مسارات وخطوط السير، تسلسل الزيارة، وأيام التغطية الأسبوعية
+                {__t('delivery_reps.van_routes_kpi_admin_tab.s76', __t('delivery_reps.van_routes_kpi_admin_tab.s76', "توزيع محلات التوزيع على مناديب الفان، تثبيت مسارات وخطوط السير، تسلسل الزيارة، وأيام التغطية الأسبوعية"))}
               </p>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -973,10 +975,10 @@ export function VanRoutesKpiAdminTab() {
                     alignItems: 'center',
                     gap: '6px',
                   }}
-                  title="إعادة الترتيب التلقائي بأقصر مسار جغرافي لتوفير الوقود وحفظ التسلسل الدائم"
+                  title={__t('delivery_reps.van_routes_kpi_admin_tab.s77', __t('delivery_reps.van_routes_kpi_admin_tab.s77', "إعادة الترتيب التلقائي بأقصر مسار جغرافي لتوفير الوقود وحفظ التسلسل الدائم"))}
                 >
                   <MapPinIcon size={14} />
-                  {isOptimizingRoute ? 'جاري التحسين...' : `الترتيب الجغرافي الأمثل لخط «${routeFilter}» (TSP)`}
+                  {isOptimizingRoute ? __t('delivery_reps.van_routes_kpi_admin_tab.s78', __t('delivery_reps.van_routes_kpi_admin_tab.s78', "جاري التحسين...")) : `الترتيب الجغرافي الأمثل لخط «${routeFilter}» (TSP)`}
                 </Button>
               )}
               <span
@@ -989,7 +991,7 @@ export function VanRoutesKpiAdminTab() {
                   fontWeight: 700,
                 }}
               >
-                إجمالي المتاجر: {customerRoutes.length}
+                {__t('delivery_reps.van_routes_kpi_admin_tab.s79', __t('delivery_reps.van_routes_kpi_admin_tab.s79', "إجمالي المتاجر:"))} {customerRoutes.length}
               </span>
             </div>
           </div>
@@ -1010,7 +1012,7 @@ export function VanRoutesKpiAdminTab() {
             <div style={{ flex: '1 1 240px', minWidth: '200px', position: 'relative' }}>
               <input
                 type="text"
-                placeholder="بحث باسم المحل، الكود، الهاتف، أو خط السير..."
+                placeholder={__t('delivery_reps.van_routes_kpi_admin_tab.s80', __t('delivery_reps.van_routes_kpi_admin_tab.s80', "بحث باسم المحل، الكود، الهاتف، أو خط السير..."))}
                 value={customerSearch}
                 onChange={(e) => setCustomerSearch(e.target.value)}
                 style={{
@@ -1043,7 +1045,7 @@ export function VanRoutesKpiAdminTab() {
                 value={repFilter}
                 onChange={(val) => setRepFilter(val as any)}
                 options={repFilterOptions}
-                placeholder="فلترة بالمندوب..."
+                placeholder={__t('delivery_reps.van_routes_kpi_admin_tab.s81', __t('delivery_reps.van_routes_kpi_admin_tab.s81', "فلترة بالمندوب..."))}
               />
             </div>
 
@@ -1053,7 +1055,7 @@ export function VanRoutesKpiAdminTab() {
                 value={routeFilter}
                 onChange={(val) => setRouteFilter(val as any)}
                 options={routeFilterOptions}
-                placeholder="فلترة بالخط..."
+                placeholder={__t('delivery_reps.van_routes_kpi_admin_tab.s82', __t('delivery_reps.van_routes_kpi_admin_tab.s82', "فلترة بالخط..."))}
               />
             </div>
 
@@ -1068,7 +1070,7 @@ export function VanRoutesKpiAdminTab() {
                   setRouteFilter('all');
                 }}
               >
-                إعادة ضبط الفلاتر
+                {__t('delivery_reps.van_routes_kpi_admin_tab.s83', __t('delivery_reps.van_routes_kpi_admin_tab.s83', "إعادة ضبط الفلاتر"))}
               </Button>
             )}
           </div>
@@ -1090,7 +1092,7 @@ export function VanRoutesKpiAdminTab() {
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <CheckCircleIcon size={16} color="#3730a3" />
                 <span style={{ fontSize: '13px', fontWeight: 800, color: '#312e81' }}>
-                  تم تحديد {selectedCustomerIds.length} متجر / عميل
+                  {__t('delivery_reps.van_routes_kpi_admin_tab.s84', __t('delivery_reps.van_routes_kpi_admin_tab.s84', "تم تحديد"))} {selectedCustomerIds.length} {__t('delivery_reps.van_routes_kpi_admin_tab.s85', __t('delivery_reps.van_routes_kpi_admin_tab.s85', "متجر / عميل"))}
                 </span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -1115,14 +1117,14 @@ export function VanRoutesKpiAdminTab() {
                   }}
                 >
                   <SlidersIcon size={13} />
-                  تخصيص جماعي للمندوب والخط ({selectedCustomerIds.length})
+                  {__t('delivery_reps.van_routes_kpi_admin_tab.s86', __t('delivery_reps.van_routes_kpi_admin_tab.s86', "تخصيص جماعي للمندوب والخط ("))}{selectedCustomerIds.length})
                 </Button>
                 <Button
                   variant="secondary"
                   style={{ fontSize: '12px', padding: '6px 12px' }}
                   onClick={() => setSelectedCustomerIds([])}
                 >
-                  إلغاء التحديد
+                  {__t('delivery_reps.van_routes_kpi_admin_tab.s87', __t('delivery_reps.van_routes_kpi_admin_tab.s87', "إلغاء التحديد"))}
                 </Button>
               </div>
             </div>
@@ -1132,11 +1134,11 @@ export function VanRoutesKpiAdminTab() {
           {isRoutesLoading ? (
             <div style={{ padding: '60px', textAlign: 'center', color: '#64748b', fontSize: '13px' }}>
               <RefreshCwIcon size={20} className="spin-animation" style={{ margin: '0 auto 10px', display: 'block' }} />
-              جارٍ تحميل قائمة المحلات وبيانات التخصيص...
+              {__t('delivery_reps.van_routes_kpi_admin_tab.s88', __t('delivery_reps.van_routes_kpi_admin_tab.s88', "جارٍ تحميل قائمة المحلات وبيانات التخصيص..."))}
             </div>
           ) : customerRoutes.length === 0 ? (
             <div style={{ padding: '60px', textAlign: 'center', color: '#64748b', fontSize: '13px' }}>
-              لا توجد متاجر مطابقة لمعايير البحث والفلترة.
+              {__t('delivery_reps.van_routes_kpi_admin_tab.s89', __t('delivery_reps.van_routes_kpi_admin_tab.s89', "لا توجد متاجر مطابقة لمعايير البحث والفلترة."))}
             </div>
           ) : (
             <div style={{ overflowX: 'auto' }}>
@@ -1148,18 +1150,18 @@ export function VanRoutesKpiAdminTab() {
                         type="checkbox"
                         checked={isAllSelected}
                         onChange={toggleSelectAll}
-                        title="تحديد الكل"
+                        title={__t('delivery_reps.van_routes_kpi_admin_tab.s90', __t('delivery_reps.van_routes_kpi_admin_tab.s90', "تحديد الكل"))}
                         style={{ cursor: 'pointer' }}
                       />
                     </th>
-                    <th style={{ padding: '10px 14px', fontWeight: 700, width: '90px' }}>كود المحل</th>
-                    <th style={{ padding: '10px 14px', fontWeight: 700, minWidth: '170px' }}>اسم المحل / العميل</th>
-                    <th style={{ padding: '10px 14px', fontWeight: 700, minWidth: '150px' }}>المندوب المسؤول</th>
-                    <th style={{ padding: '10px 14px', fontWeight: 700, minWidth: '130px' }}>خط السير</th>
-                    <th style={{ padding: '10px 14px', fontWeight: 700, textAlign: 'center', width: '90px' }}>الترتيب</th>
-                    <th style={{ padding: '10px 14px', fontWeight: 700, minWidth: '160px' }}>أيام الزيارة الأسبوعية</th>
-                    <th style={{ padding: '10px 14px', fontWeight: 700, textAlign: 'left', minWidth: '100px' }}>رصيد المديونية</th>
-                    <th style={{ padding: '10px 14px', fontWeight: 700, textAlign: 'center', width: '110px' }}>الإجراءات</th>
+                    <th style={{ padding: '10px 14px', fontWeight: 700, width: '90px' }}>{__t('delivery_reps.van_routes_kpi_admin_tab.s91', __t('delivery_reps.van_routes_kpi_admin_tab.s91', "كود المحل"))}</th>
+                    <th style={{ padding: '10px 14px', fontWeight: 700, minWidth: '170px' }}>{__t('delivery_reps.van_routes_kpi_admin_tab.s92', __t('delivery_reps.van_routes_kpi_admin_tab.s92', "اسم المحل / العميل"))}</th>
+                    <th style={{ padding: '10px 14px', fontWeight: 700, minWidth: '150px' }}>{__t('delivery_reps.van_routes_kpi_admin_tab.s93', __t('delivery_reps.van_routes_kpi_admin_tab.s93', "المندوب المسؤول"))}</th>
+                    <th style={{ padding: '10px 14px', fontWeight: 700, minWidth: '130px' }}>{__t('delivery_reps.van_routes_kpi_admin_tab.s94', __t('delivery_reps.van_routes_kpi_admin_tab.s94', "خط السير"))}</th>
+                    <th style={{ padding: '10px 14px', fontWeight: 700, textAlign: 'center', width: '90px' }}>{__t('delivery_reps.van_routes_kpi_admin_tab.s95', __t('delivery_reps.van_routes_kpi_admin_tab.s95', "الترتيب"))}</th>
+                    <th style={{ padding: '10px 14px', fontWeight: 700, minWidth: '160px' }}>{__t('delivery_reps.van_routes_kpi_admin_tab.s96', __t('delivery_reps.van_routes_kpi_admin_tab.s96', "أيام الزيارة الأسبوعية"))}</th>
+                    <th style={{ padding: '10px 14px', fontWeight: 700, textAlign: 'left', minWidth: '100px' }}>{__t('delivery_reps.van_routes_kpi_admin_tab.s97', __t('delivery_reps.van_routes_kpi_admin_tab.s97', "رصيد المديونية"))}</th>
+                    <th style={{ padding: '10px 14px', fontWeight: 700, textAlign: 'center', width: '110px' }}>{__t('delivery_reps.van_routes_kpi_admin_tab.s98', __t('delivery_reps.van_routes_kpi_admin_tab.s98', "الإجراءات"))}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1248,7 +1250,7 @@ export function VanRoutesKpiAdminTab() {
                                 fontSize: '11px',
                               }}
                             >
-                              غير مخصص لمندوب
+                              {__t('delivery_reps.van_routes_kpi_admin_tab.s99', __t('delivery_reps.van_routes_kpi_admin_tab.s99', "غير مخصص لمندوب"))}
                             </span>
                           )}
                         </td>
@@ -1263,7 +1265,7 @@ export function VanRoutesKpiAdminTab() {
                               fontSize: '11.5px',
                             }}
                           >
-                            {c.route || 'غير محدد'}
+                            {c.route || __t('delivery_reps.van_routes_kpi_admin_tab.s100', __t('delivery_reps.van_routes_kpi_admin_tab.s100', "غير محدد"))}
                           </span>
                         </td>
                         <td style={{ padding: '10px 14px', textAlign: 'center', fontWeight: 800, color: '#170e5e' }}>
@@ -1291,13 +1293,13 @@ export function VanRoutesKpiAdminTab() {
                                 );
                               })
                             ) : (
-                              <span style={{ color: '#94a3b8', fontSize: '11px' }}>يومياً / غير محدد</span>
+                              <span style={{ color: '#94a3b8', fontSize: '11px' }}>{__t('delivery_reps.van_routes_kpi_admin_tab.s101', __t('delivery_reps.van_routes_kpi_admin_tab.s101', "يومياً / غير محدد"))}</span>
                             )}
                           </div>
                         </td>
                         <td style={{ padding: '10px 14px', textAlign: 'left', minWidth: '170px' }}>
                           <div style={{ fontWeight: 800, fontSize: '13px', color: Number(c.balance || 0) > 0 ? '#b91c1c' : '#15803d' }}>
-                            إجمالي: {Number(c.balance || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <CurrencySymbol />
+                            {__t('delivery_reps.van_routes_kpi_admin_tab.s102', __t('delivery_reps.van_routes_kpi_admin_tab.s102', "إجمالي:"))} {Number(c.balance || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <CurrencySymbol />
                           </div>
                           {Array.isArray(c.repBalances) && c.repBalances.filter((rb) => rb.balance !== 0).length > 0 && (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', marginTop: '4px' }}>
@@ -1336,7 +1338,7 @@ export function VanRoutesKpiAdminTab() {
                             onClick={() => openScheduleModal(c)}
                           >
                             <EditIcon size={12} />
-                            تعديل التخصيص
+                            {__t('delivery_reps.van_routes_kpi_admin_tab.s103', __t('delivery_reps.van_routes_kpi_admin_tab.s103', "تعديل التخصيص"))}
                           </Button>
                         </td>
                       </tr>
@@ -1370,7 +1372,7 @@ export function VanRoutesKpiAdminTab() {
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
                 <span style={{ fontSize: '12px', fontWeight: 700, color: '#334155' }}>
-                  إجمالي مديونية العميل للمنشأة:
+                  {__t('delivery_reps.van_routes_kpi_admin_tab.s104', __t('delivery_reps.van_routes_kpi_admin_tab.s104', "إجمالي مديونية العميل للمنشأة:"))}
                 </span>
                 <span style={{ fontSize: '14px', fontWeight: 800, color: Number(editingCustomer.balance || 0) > 0 ? '#b91c1c' : '#15803d' }}>
                   {Number(editingCustomer.balance || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <CurrencySymbol />
@@ -1403,7 +1405,7 @@ export function VanRoutesKpiAdminTab() {
                 </div>
               ) : (
                 <div style={{ fontSize: '11px', color: '#64748b' }}>
-                  لا توجد مديونيات مجزأة حالياً على المناديب لهذا العميل.
+                  {__t('delivery_reps.van_routes_kpi_admin_tab.s105', __t('delivery_reps.van_routes_kpi_admin_tab.s105', "لا توجد مديونيات مجزأة حالياً على المناديب لهذا العميل."))}
                 </div>
               )}
             </div>
@@ -1411,7 +1413,7 @@ export function VanRoutesKpiAdminTab() {
             {/* Assigned Reps Multi-Selector */}
             <div>
               <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-                مناديب الفان المسؤولون عن المحل (يمكن اختيار مندوب أو أكثر مع عزل حساب كل مندوب):
+                {__t('delivery_reps.van_routes_kpi_admin_tab.s106', __t('delivery_reps.van_routes_kpi_admin_tab.s106', "مناديب الفان المسؤولون عن المحل (يمكن اختيار مندوب أو أكثر مع عزل حساب كل مندوب):"))}
               </label>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(165px, 1fr))', gap: '6px' }}>
                 {vanReps.map((r) => {
@@ -1443,7 +1445,7 @@ export function VanRoutesKpiAdminTab() {
                 })}
               </div>
               <small style={{ color: '#64748b', fontSize: '11px', marginTop: '4px', display: 'block' }}>
-                حساب ومديونية وتحصيل كل مندوب مع المحل معزول تماماً عن المناديب الآخرين.
+                {__t('delivery_reps.van_routes_kpi_admin_tab.s107', __t('delivery_reps.van_routes_kpi_admin_tab.s107', "حساب ومديونية وتحصيل كل مندوب مع المحل معزول تماماً عن المناديب الآخرين."))}
               </small>
             </div>
 
@@ -1451,11 +1453,11 @@ export function VanRoutesKpiAdminTab() {
             <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '10px' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-                  اسم خط السير (Route Name) <span style={{ color: '#dc2626' }}>*</span>
+                  {__t('delivery_reps.van_routes_kpi_admin_tab.s108', __t('delivery_reps.van_routes_kpi_admin_tab.s108', "اسم خط السير (Route Name)"))} <span style={{ color: '#dc2626' }}>*</span>
                 </label>
                 <input
                   type="text"
-                  placeholder="مثال: خط الهرم والجيزة، خط فيصل..."
+                  placeholder={__t('delivery_reps.van_routes_kpi_admin_tab.s109', __t('delivery_reps.van_routes_kpi_admin_tab.s109', "مثال: خط الهرم والجيزة، خط فيصل..."))}
                   value={routeInput}
                   onChange={(e) => setRouteInput(e.target.value)}
                   style={{
@@ -1471,7 +1473,7 @@ export function VanRoutesKpiAdminTab() {
 
               <div>
                 <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-                  الترتيب التسلسلي بالخط
+                  {__t('delivery_reps.van_routes_kpi_admin_tab.s110', __t('delivery_reps.van_routes_kpi_admin_tab.s110', "الترتيب التسلسلي بالخط"))}
                 </label>
                 <input
                   type="number"
@@ -1493,7 +1495,7 @@ export function VanRoutesKpiAdminTab() {
             {/* Weekly Visit Days */}
             <div>
               <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-                أيام الزيارة الأسبوعية المحددة:
+                {__t('delivery_reps.van_routes_kpi_admin_tab.s111', __t('delivery_reps.van_routes_kpi_admin_tab.s111', "أيام الزيارة الأسبوعية المحددة:"))}
               </label>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px' }}>
                 {WEEKDAYS.map((w) => {
@@ -1528,7 +1530,7 @@ export function VanRoutesKpiAdminTab() {
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '6px' }}>
               <Button variant="secondary" onClick={() => setEditingCustomer(null)}>
-                إلغاء
+                {__t('delivery_reps.van_routes_kpi_admin_tab.s112', __t('delivery_reps.van_routes_kpi_admin_tab.s112', "إلغاء"))}
               </Button>
               <Button
                 variant="primary"
@@ -1538,11 +1540,11 @@ export function VanRoutesKpiAdminTab() {
                   const repNames = assignedRepIds
                     .map((id) => vanReps.find((r) => r.id === id)?.name)
                     .filter(Boolean)
-                    .join(' ، ');
+                    .join(__t('delivery_reps.van_routes_kpi_admin_tab.s113', __t('delivery_reps.van_routes_kpi_admin_tab.s113', " ، ")));
 
                   scheduleMutation.mutate({
                     customerId: editingCustomer.customerId,
-                    route: routeInput.trim() || 'غير محدد',
+                    route: routeInput.trim() || __t('delivery_reps.van_routes_kpi_admin_tab.s114', __t('delivery_reps.van_routes_kpi_admin_tab.s114', "غير محدد")),
                     routeSequence: parseInt(sequenceInput, 10) || 1,
                     visitDays: selectedDays.map((d) => DAY_KEY_TO_ARABIC[d] || d),
                     assignedRepId: primaryRepId,
@@ -1552,7 +1554,7 @@ export function VanRoutesKpiAdminTab() {
                 }}
                 style={{ backgroundColor: '#170e5e', color: '#ffffff' }}
               >
-                {scheduleMutation.isPending ? 'جاري الحفظ...' : 'حفظ التخصيص'}
+                {scheduleMutation.isPending ? __t('delivery_reps.van_routes_kpi_admin_tab.s115', __t('delivery_reps.van_routes_kpi_admin_tab.s115', "جاري الحفظ...")) : __t('delivery_reps.van_routes_kpi_admin_tab.s116', __t('delivery_reps.van_routes_kpi_admin_tab.s116', "حفظ التخصيص"))}
               </Button>
             </div>
           </div>
@@ -1564,7 +1566,7 @@ export function VanRoutesKpiAdminTab() {
         <StandardDialog
           open={bulkModalOpen}
           onClose={() => setBulkModalOpen(false)}
-          title="تخصيص جماعي لخطوط السير والمناديب"
+          title={__t('delivery_reps.van_routes_kpi_admin_tab.s117', __t('delivery_reps.van_routes_kpi_admin_tab.s117', "تخصيص جماعي لخطوط السير والمناديب"))}
           subtitle={`تعديل موحد لـ (${selectedCustomerIds.length}) متجر تم تحديدهم`}
           maxWidth="540px"
         >
@@ -1580,31 +1582,30 @@ export function VanRoutesKpiAdminTab() {
                 lineHeight: 1.5,
               }}
             >
-              سيتم تطبيق التعديلات المحددة أدناه على كافة المحلات المختارة ({selectedCustomerIds.length} متجر) دفعة واحدة.
-              الحقول التي تترك دون تغيير ستحتفظ بقيمها الحالية في كل محل.
+              {__t('delivery_reps.van_routes_kpi_admin_tab.s118', __t('delivery_reps.van_routes_kpi_admin_tab.s118', "سيتم تطبيق التعديلات المحددة أدناه على كافة المحلات المختارة ("))}{selectedCustomerIds.length} {__t('delivery_reps.van_routes_kpi_admin_tab.s119', __t('delivery_reps.van_routes_kpi_admin_tab.s119', "متجر) دفعة واحدة.\n              الحقول التي تترك دون تغيير ستحتفظ بقيمها الحالية في كل محل."))}
             </div>
 
             {/* Bulk Assigned Rep */}
             <div>
               <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-                تخصيص مندوب الفان المسؤول:
+                {__t('delivery_reps.van_routes_kpi_admin_tab.s120', __t('delivery_reps.van_routes_kpi_admin_tab.s120', "تخصيص مندوب الفان المسؤول:"))}
               </label>
               <CustomSelect
                 value={bulkRepId}
                 onChange={(val) => setBulkRepId(val)}
                 options={bulkRepOptions}
-                placeholder="اختر الإجراء للمندوب..."
+                placeholder={__t('delivery_reps.van_routes_kpi_admin_tab.s121', __t('delivery_reps.van_routes_kpi_admin_tab.s121', "اختر الإجراء للمندوب..."))}
               />
             </div>
 
             {/* Bulk Route Input */}
             <div>
               <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-                توحيد اسم خط السير (اختياري):
+                {__t('delivery_reps.van_routes_kpi_admin_tab.s122', __t('delivery_reps.van_routes_kpi_admin_tab.s122', "توحيد اسم خط السير (اختياري):"))}
               </label>
               <input
                 type="text"
-                placeholder="اترك فارغاً للإبقاء على خط السير الحالي لكل متجر..."
+                placeholder={__t('delivery_reps.van_routes_kpi_admin_tab.s123', __t('delivery_reps.van_routes_kpi_admin_tab.s123', "اترك فارغاً للإبقاء على خط السير الحالي لكل متجر..."))}
                 value={bulkRouteInput}
                 onChange={(e) => setBulkRouteInput(e.target.value)}
                 style={{
@@ -1628,7 +1629,7 @@ export function VanRoutesKpiAdminTab() {
                   style={{ cursor: 'pointer' }}
                 />
                 <span style={{ fontSize: '12.5px', fontWeight: 700, color: '#334155' }}>
-                  تطبيق أيام زيارة موحدة على المحلات المختارة
+                  {__t('delivery_reps.van_routes_kpi_admin_tab.s124', __t('delivery_reps.van_routes_kpi_admin_tab.s124', "تطبيق أيام زيارة موحدة على المحلات المختارة"))}
                 </span>
               </label>
 
@@ -1668,7 +1669,7 @@ export function VanRoutesKpiAdminTab() {
             {/* Modal Footer */}
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '12px' }}>
               <Button variant="secondary" onClick={() => setBulkModalOpen(false)}>
-                إلغاء
+                {__t('delivery_reps.van_routes_kpi_admin_tab.s125', __t('delivery_reps.van_routes_kpi_admin_tab.s125', "إلغاء"))}
               </Button>
               <Button
                 variant="primary"
@@ -1698,7 +1699,7 @@ export function VanRoutesKpiAdminTab() {
                 }}
                 style={{ backgroundColor: '#170e5e', color: '#ffffff' }}
               >
-                {bulkAssignMutation.isPending ? 'جاري التنفيذ...' : `تطبيق على (${selectedCustomerIds.length}) متجر`}
+                {bulkAssignMutation.isPending ? __t('delivery_reps.van_routes_kpi_admin_tab.s126', __t('delivery_reps.van_routes_kpi_admin_tab.s126', "جاري التنفيذ...")) : `تطبيق على (${selectedCustomerIds.length}) متجر`}
               </Button>
             </div>
           </div>

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React, { useState, useMemo, useRef } from 'react';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { getGlobalCurrencySymbol } from '@/lib/currencies';
@@ -64,6 +65,7 @@ export const VanCollectionTab: React.FC<VanCollectionTabProps> = ({
   initialSubMode,
   initialReturnCustomerId,
 }) => {
+  const { t } = useTranslation();
   const [subMode, setSubMode] = useState<'collection' | 'return'>(initialSubMode || 'collection');
 
   // Return form state
@@ -316,7 +318,7 @@ export const VanCollectionTab: React.FC<VanCollectionTabProps> = ({
             justifyContent: 'center',
           }}
         >
-          سند تحصيل نقدية
+          {t('delivery_reps.van_collection_tab.s0', "سند تحصيل نقدية")}
         </button>
         <button
           type="button"
@@ -340,7 +342,7 @@ export const VanCollectionTab: React.FC<VanCollectionTabProps> = ({
             justifyContent: 'center',
           }}
         >
-          إذن مرتجع ميداني
+          {t('delivery_reps.van_collection_tab.s1', "إذن مرتجع ميداني")}
         </button>
       </div>
 
@@ -360,7 +362,7 @@ export const VanCollectionTab: React.FC<VanCollectionTabProps> = ({
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <span style={{ width: '3px', height: '13px', backgroundColor: '#170e5e', borderRadius: '2px', display: 'inline-block' }} />
                 <h3 style={{ margin: 0, fontSize: '12.5px', fontWeight: 800, color: '#0f172a' }}>
-                  تحصيل مديونيات العملاء
+                  {t('delivery_reps.van_collection_tab.s2', "تحصيل مديونيات العملاء")}
                 </h3>
               </div>
             </div>
@@ -380,21 +382,21 @@ export const VanCollectionTab: React.FC<VanCollectionTabProps> = ({
               }}
             >
               <div style={{ flex: '1 1 0', borderInlineEnd: '1px solid #e2e8f0', padding: '1px 4px' }}>
-                <span style={{ fontSize: '9.5px', color: '#64748b', fontWeight: 700, display: 'block' }}>إجمالي المديونيات</span>
+                <span style={{ fontSize: '9.5px', color: '#64748b', fontWeight: 700, display: 'block' }}>{t('delivery_reps.van_collection_tab.s3', "إجمالي المديونيات")}</span>
                 <strong style={{ fontSize: '12px', color: '#0f172a', fontWeight: 900 }}>
                   {totalIndebtedAmount.toFixed(0)} <CurrencySymbol />
                 </strong>
               </div>
               <div style={{ flex: '1 1 0', borderInlineEnd: '1px solid #e2e8f0', padding: '1px 4px' }}>
-                <span style={{ fontSize: '9.5px', color: '#64748b', fontWeight: 700, display: 'block' }}>عملاء مدينين</span>
+                <span style={{ fontSize: '9.5px', color: '#64748b', fontWeight: 700, display: 'block' }}>{t('delivery_reps.van_collection_tab.s4', "عملاء مدينين")}</span>
                 <strong style={{ fontSize: '12px', color: '#170e5e', fontWeight: 900 }}>
-                  {indebtedCustomers.length} {indebtedCustomers.length === 1 ? 'عميل' : indebtedCustomers.length === 2 ? 'عميلان' : indebtedCustomers.length <= 10 ? 'عملاء' : 'عميل'}
+                  {indebtedCustomers.length} {indebtedCustomers.length === 1 ? t('delivery_reps.van_collection_tab.s5', "عميل") : indebtedCustomers.length === 2 ? t('delivery_reps.van_collection_tab.s6', "عميلان") : indebtedCustomers.length <= 10 ? t('delivery_reps.van_collection_tab.s7', "عملاء") : t('delivery_reps.van_collection_tab.s8', "عميل")}
                 </strong>
               </div>
               <div style={{ flex: '1 1 0', padding: '1px 4px' }}>
-                <span style={{ fontSize: '9.5px', color: '#64748b', fontWeight: 700, display: 'block' }}>إجمالي الخط</span>
+                <span style={{ fontSize: '9.5px', color: '#64748b', fontWeight: 700, display: 'block' }}>{t('delivery_reps.van_collection_tab.s9', "إجمالي الخط")}</span>
                 <strong style={{ fontSize: '12px', color: '#0f172a', fontWeight: 900 }}>
-                  {customers.length} {customers.length === 1 ? 'عميل' : customers.length === 2 ? 'عميلان' : customers.length <= 10 ? 'عملاء' : 'عميل'}
+                  {customers.length} {customers.length === 1 ? t('delivery_reps.van_collection_tab.s10', "عميل") : customers.length === 2 ? t('delivery_reps.van_collection_tab.s11', "عميلان") : customers.length <= 10 ? t('delivery_reps.van_collection_tab.s12', "عملاء") : t('delivery_reps.van_collection_tab.s13', "عميل")}
                 </strong>
               </div>
             </div>
@@ -405,7 +407,7 @@ export const VanCollectionTab: React.FC<VanCollectionTabProps> = ({
                 type="text"
                 value={collectionSearch}
                 onChange={(e) => setCollectionSearch(e.target.value)}
-                placeholder="بحث باسم العميل، الكود، الحي، أو الهاتف..."
+                placeholder={t('delivery_reps.van_collection_tab.s14', "بحث باسم العميل، الكود، الحي، أو الهاتف...")}
                 style={{
                   width: '100%',
                   height: '32px',
@@ -475,7 +477,7 @@ export const VanCollectionTab: React.FC<VanCollectionTabProps> = ({
                   gap: '4px',
                 }}
               >
-                <span>المدينين فقط ({indebtedCustomers.length})</span>
+                <span>{t('delivery_reps.van_collection_tab.s15', "المدينين فقط (")}{indebtedCustomers.length})</span>
               </button>
 
               <button
@@ -498,7 +500,7 @@ export const VanCollectionTab: React.FC<VanCollectionTabProps> = ({
                   gap: '4px',
                 }}
               >
-                <span>كل العملاء ({customers.length})</span>
+                <span>{t('delivery_reps.van_collection_tab.s16', "كل العملاء (")}{customers.length})</span>
               </button>
             </div>
           </div>
@@ -531,7 +533,7 @@ export const VanCollectionTab: React.FC<VanCollectionTabProps> = ({
                     </span>
                   </div>
                   <div style={{ fontSize: '11px', color: '#64748b' }}>
-                    {selectedCustomer.district || selectedCustomer.route || 'الخط العام'}
+                    {selectedCustomer.district || selectedCustomer.route || t('delivery_reps.van_collection_tab.s17', "الخط العام")}
                     {selectedCustomer.phone ? ` • ${selectedCustomer.phone}` : ''}
                   </div>
                 </div>
@@ -548,7 +550,7 @@ export const VanCollectionTab: React.FC<VanCollectionTabProps> = ({
                   }}
                 >
                   <div style={{ fontSize: '9px', color: selectedCustomer.balance > 0 ? '#991b1b' : selectedCustomer.balance < 0 ? '#1e40af' : '#166534', fontWeight: 700, marginBottom: '1px' }}>
-                    {selectedCustomer.balance > 0 ? 'المديونية الحالية:' : selectedCustomer.balance < 0 ? 'رصيد دائن:' : 'حساب خالص:'}
+                    {selectedCustomer.balance > 0 ? t('delivery_reps.van_collection_tab.s18', "المديونية الحالية:") : selectedCustomer.balance < 0 ? t('delivery_reps.van_collection_tab.s19', "رصيد دائن:") : t('delivery_reps.van_collection_tab.s20', "حساب خالص:")}
                   </div>
                   <div style={{ fontSize: '13.5px', fontWeight: 900, color: selectedCustomer.balance > 0 ? '#991b1b' : selectedCustomer.balance < 0 ? '#1d4ed8' : '#15803d', whiteSpace: 'nowrap' }}>
                     {selectedCustomer.balance > 0
@@ -589,7 +591,7 @@ export const VanCollectionTab: React.FC<VanCollectionTabProps> = ({
                       transition: 'all 0.15s ease',
                     }}
                   >
-                    <span>سداد كامل</span>
+                    <span>{t('delivery_reps.van_collection_tab.s21', "سداد كامل")}</span>
                     <span style={{ fontSize: '10.5px', color: '#64748b', fontWeight: 600 }}>
                       ({selectedCustomer.balance % 1 === 0 ? selectedCustomer.balance.toFixed(0) : selectedCustomer.balance.toFixed(2)})
                     </span>
@@ -620,7 +622,7 @@ export const VanCollectionTab: React.FC<VanCollectionTabProps> = ({
                       transition: 'all 0.15s ease',
                     }}
                   >
-                    <span>نصف المبلغ</span>
+                    <span>{t('delivery_reps.van_collection_tab.s22', "نصف المبلغ")}</span>
                     <span style={{ fontSize: '10.5px', color: '#64748b', fontWeight: 600 }}>
                       ({(selectedCustomer.balance / 2) % 1 === 0 ? (selectedCustomer.balance / 2).toFixed(0) : (selectedCustomer.balance / 2).toFixed(2)})
                     </span>
@@ -646,7 +648,7 @@ export const VanCollectionTab: React.FC<VanCollectionTabProps> = ({
                         cursor: 'pointer',
                       }}
                     >
-                      {amt} ج.م
+                      {amt} {t('delivery_reps.van_collection_tab.s23', "ج.م")}
                     </button>
                   ))}
                 </div>
@@ -655,7 +657,7 @@ export const VanCollectionTab: React.FC<VanCollectionTabProps> = ({
               {/* Row 3: Collection Input */}
               <div>
                 <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: '#0f172a', marginBottom: '3px' }}>
-                  المبلغ المحصل نقداً الآن ({getGlobalCurrencySymbol()}):
+                  {t('delivery_reps.van_collection_tab.s24', "المبلغ المحصل نقداً الآن (")}{getGlobalCurrencySymbol()}):
                 </label>
                 <input
                   type="number"
@@ -701,7 +703,7 @@ export const VanCollectionTab: React.FC<VanCollectionTabProps> = ({
                     borderRadius: '6px',
                   }}
                 >
-                  {isSubmitting ? 'جاري قيد السند...' : 'إثبات تحصيل النقدية'}
+                  {isSubmitting ? t('delivery_reps.van_collection_tab.s25', "جاري قيد السند...") : t('delivery_reps.van_collection_tab.s26', "إثبات تحصيل النقدية")}
                 </Button>
                 <Button
                   variant="secondary"
@@ -721,7 +723,7 @@ export const VanCollectionTab: React.FC<VanCollectionTabProps> = ({
                     borderRadius: '6px',
                   }}
                 >
-                  إلغاء
+                  {t('delivery_reps.van_collection_tab.s27', "إلغاء")}
                 </Button>
               </div>
             </div>
@@ -733,7 +735,7 @@ export const VanCollectionTab: React.FC<VanCollectionTabProps> = ({
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
                 <span style={{ width: '3px', height: '14px', backgroundColor: '#170e5e', borderRadius: '2px', display: 'inline-block', flexShrink: 0 }} />
                 <span style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a', whiteSpace: 'nowrap' }}>
-                  {activeFilterMode === 'indebted' ? 'العملاء المطلوب تحصيلهم' : 'كافة عملاء خط السير'}
+                  {activeFilterMode === 'indebted' ? t('delivery_reps.van_collection_tab.s28', "العملاء المطلوب تحصيلهم") : t('delivery_reps.van_collection_tab.s29', "كافة عملاء خط السير")}
                 </span>
                 <span
                   style={{
@@ -752,7 +754,7 @@ export const VanCollectionTab: React.FC<VanCollectionTabProps> = ({
                 </span>
               </div>
               <span style={{ fontSize: '10px', color: '#64748b', whiteSpace: 'nowrap', flexShrink: 0 }}>
-                مرتبة بالأعلى مديونية
+                {t('delivery_reps.van_collection_tab.s30', "مرتبة بالأعلى مديونية")}
               </span>
             </div>
 
@@ -771,10 +773,10 @@ export const VanCollectionTab: React.FC<VanCollectionTabProps> = ({
                 </div>
                 <h4 style={{ margin: '0 0 4px', fontSize: '13.5px', fontWeight: 800, color: '#0f172a' }}>
                   {collectionSearch
-                    ? 'لا توجد نتائج مطابقة لبحثك'
+                    ? t('delivery_reps.van_collection_tab.s31', "لا توجد نتائج مطابقة لبحثك")
                     : activeFilterMode === 'indebted'
-                    ? 'لا توجد أي مديونيات مستحقة على عملاء خط السير حالياً'
-                    : 'لا يوجد عملاء مسجلين بالخط'}
+                    ? t('delivery_reps.van_collection_tab.s32', "لا توجد أي مديونيات مستحقة على عملاء خط السير حالياً")
+                    : t('delivery_reps.van_collection_tab.s33', "لا يوجد عملاء مسجلين بالخط")}
                 </h4>
                 <p style={{ margin: 0, fontSize: '11.5px', color: '#64748b' }}>
                   {activeFilterMode === 'indebted' && indebtedCustomers.length === 0 ? (
@@ -793,10 +795,10 @@ export const VanCollectionTab: React.FC<VanCollectionTabProps> = ({
                         cursor: 'pointer',
                       }}
                     >
-                      عرض كل العملاء لتسجيل دفعات نقدية مقدمة
+                      {t('delivery_reps.van_collection_tab.s34', "عرض كل العملاء لتسجيل دفعات نقدية مقدمة")}
                     </button>
                   ) : collectionSearch ? (
-                    'جرب البحث بكلمة أخرى أو اضغط على إلغاء البحث'
+                    t('delivery_reps.van_collection_tab.s35', "جرب البحث بكلمة أخرى أو اضغط على إلغاء البحث")
                   ) : null}
                 </p>
               </div>
@@ -870,7 +872,7 @@ export const VanCollectionTab: React.FC<VanCollectionTabProps> = ({
                         {/* Financial Status on Left */}
                         <div style={{ flexShrink: 0, textAlign: 'left', display: 'flex', alignItems: 'center', gap: '3px' }}>
                           <span style={{ fontSize: '10px', color: '#64748b', fontWeight: 600 }}>
-                            {hasDebt ? 'مطلوب:' : isCredit ? 'دائن:' : 'خالص:'}
+                            {hasDebt ? t('delivery_reps.van_collection_tab.s36', "مطلوب:") : isCredit ? t('delivery_reps.van_collection_tab.s37', "دائن:") : t('delivery_reps.van_collection_tab.s38', "خالص:")}
                           </span>
                           <strong style={{ fontSize: '12.5px', color: hasDebt ? '#991b1b' : isCredit ? '#0369a1' : '#0f172a', fontWeight: 900 }}>
                             {hasDebt
@@ -951,7 +953,7 @@ export const VanCollectionTab: React.FC<VanCollectionTabProps> = ({
                                 borderRadius: '4px',
                               }}
                             >
-                              <span>خريطة ↗</span>
+                              <span>{t('delivery_reps.van_collection_tab.s39', "خريطة ↗")}</span>
                             </a>
                           )}
                         </div>
@@ -980,17 +982,17 @@ export const VanCollectionTab: React.FC<VanCollectionTabProps> = ({
                           {isSelected ? (
                             <>
                               <CheckCircleIcon size={12} color="#170e5e" />
-                              <span>محدد أعلاه</span>
+                              <span>{t('delivery_reps.van_collection_tab.s40', "محدد أعلاه")}</span>
                             </>
                           ) : hasDebt ? (
                             <>
                               <CreditCardIcon size={12} color="#ffffff" />
-                              <span>تحصيل نقدية</span>
+                              <span>{t('delivery_reps.van_collection_tab.s41', "تحصيل نقدية")}</span>
                             </>
                           ) : (
                             <>
                               <CreditCardIcon size={12} color="#170e5e" />
-                              <span>+ دفعة نقدية</span>
+                              <span>{t('delivery_reps.van_collection_tab.s42', "+ دفعة نقدية")}</span>
                             </>
                           )}
                         </button>
@@ -1010,32 +1012,32 @@ export const VanCollectionTab: React.FC<VanCollectionTabProps> = ({
                 <CheckCircleIcon size={28} color="#16a34a" />
               </div>
               <h4 style={{ fontSize: '16px', fontWeight: 800, color: '#15803d', margin: '0 0 6px' }}>
-                تم إرسال إذن المرتجع للإدارة بنجاح!
+                {t('delivery_reps.van_collection_tab.s43', "تم إرسال إذن المرتجع للإدارة بنجاح!")}
               </h4>
               <p style={{ fontSize: '13px', fontWeight: 700, color: '#166534', margin: '0 0 12px' }}>
-                رقم الإذن: #{returnResult.docNo} | إجمالي القيمة: {returnResult.total.toFixed(2)} <CurrencySymbol />
+                {t('delivery_reps.van_collection_tab.s44', "رقم الإذن: #")}{returnResult.docNo} {t('delivery_reps.van_collection_tab.s45', "| إجمالي القيمة:")} {returnResult.total.toFixed(2)} <CurrencySymbol />
               </p>
               <div style={{ fontSize: '11.5px', color: '#65a30d', backgroundColor: '#ffffff', padding: '8px 12px', borderRadius: '8px', border: '1px solid #d9f99d', maxWidth: '420px', margin: '0 auto 16px', lineHeight: 1.5 }}>
-                ملاحظة رقابية: تم تسجيل إذن المرتجع بحالة (قيد مراجعة الإدارة). لن يتم خصم القيمة من حساب العميل أو زيادة رصيد السيارة إلا بعد اعتماد مشرف المستودع.
+                {t('delivery_reps.van_collection_tab.s46', "ملاحظة رقابية: تم تسجيل إذن المرتجع بحالة (قيد مراجعة الإدارة). لن يتم خصم القيمة من حساب العميل أو زيادة رصيد السيارة إلا بعد اعتماد مشرف المستودع.")}
               </div>
               <Button
                 variant="primary"
                 onClick={() => setReturnResult(null)}
                 style={{ backgroundColor: '#170e5e', color: '#ffffff' }}
               >
-                تسجيل إذن مرتجع جديد
+                {t('delivery_reps.van_collection_tab.s47', "تسجيل إذن مرتجع جديد")}
               </Button>
             </div>
           ) : (
             <>
               <h3 style={{ margin: 0, fontSize: '14px', fontWeight: 800, color: '#0f172a', borderBottom: '1px solid #f1f5f9', paddingBottom: '8px' }}>
-                تسجيل مرتجع بضاعة ومطابقة سعر الفاتورة الأصلية
+                {t('delivery_reps.van_collection_tab.s48', "تسجيل مرتجع بضاعة ومطابقة سعر الفاتورة الأصلية")}
               </h3>
 
               {/* 1. Customer Select */}
               <div>
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                  اختيار العميل المسترجع منه:
+                  {t('delivery_reps.van_collection_tab.s49', "اختيار العميل المسترجع منه:")}
                 </label>
                 <CustomSelect
                   value={returnCustomerId ? String(returnCustomerId) : ''}
@@ -1045,14 +1047,14 @@ export const VanCollectionTab: React.FC<VanCollectionTabProps> = ({
                     setReturnCart([]);
                   }}
                   options={[
-                    { value: '', label: '-- اختر العميل --' },
+                    { value: '', label: t('delivery_reps.van_collection_tab.s50', "-- اختر العميل --") },
                     ...customers.map((c) => ({
                       value: String(c.id),
                       label: `${c.name} ${c.phone ? `(${c.phone})` : ''}`,
                       hint: `مديونية: ${c.balance.toFixed(2)} ${getGlobalCurrencySymbol()}`,
                     })),
                   ]}
-                  placeholder="اختر العميل"
+                  placeholder={t('delivery_reps.van_collection_tab.s51', "اختر العميل")}
                 />
               </div>
 
@@ -1060,13 +1062,13 @@ export const VanCollectionTab: React.FC<VanCollectionTabProps> = ({
               {returnCustomerId && (
                 <div>
                   <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                    ربط بالفاتورة الأصلية (لفحص صافي الخصم وسعر البند الفعلي):
+                    {t('delivery_reps.van_collection_tab.s52', "ربط بالفاتورة الأصلية (لفحص صافي الخصم وسعر البند الفعلي):")}
                   </label>
                   {isLoadingSales ? (
-                    <div style={{ fontSize: '12px', color: '#94a3b8' }}>جاري جلب فواتير العميل السابقة...</div>
+                    <div style={{ fontSize: '12px', color: '#94a3b8' }}>{t('delivery_reps.van_collection_tab.s53', "جاري جلب فواتير العميل السابقة...")}</div>
                   ) : eligibleSales.length === 0 ? (
                     <div style={{ fontSize: '12px', color: '#64748b', backgroundColor: '#f8fafc', padding: '8px 12px', borderRadius: '8px' }}>
-                      لا توجد فواتير مرحلة سابقة لهذا العميل.
+                      {t('delivery_reps.van_collection_tab.s54', "لا توجد فواتير مرحلة سابقة لهذا العميل.")}
                     </div>
                   ) : (
                     <CustomSelect
@@ -1076,14 +1078,14 @@ export const VanCollectionTab: React.FC<VanCollectionTabProps> = ({
                         setReturnCart([]);
                       }}
                       options={[
-                        { value: '', label: '-- اختر فاتورة سابقة (موصى به) --' },
+                        { value: '', label: t('delivery_reps.van_collection_tab.s55', "-- اختر فاتورة سابقة (موصى به) --") },
                         ...eligibleSales.map((s) => ({
                           value: String(s.id),
                           label: `فاتورة #${s.docNo} - تاريخ: ${s.createdAt.slice(0, 10)} - إجمالي: ${s.total.toFixed(2)} ${getGlobalCurrencySymbol()}`,
                           hint: s.discount > 0 ? `خصم: ${s.discount}` : undefined,
                         })),
                       ]}
-                      placeholder="اختر الفاتورة الأصلية"
+                      placeholder={t('delivery_reps.van_collection_tab.s56', "اختر الفاتورة الأصلية")}
                     />
                   )}
                 </div>
@@ -1093,7 +1095,7 @@ export const VanCollectionTab: React.FC<VanCollectionTabProps> = ({
               {selectedSale && selectedSale.items.length > 0 && (
                 <div style={{ backgroundColor: '#f8fafc', borderRadius: '10px', padding: '12px', border: '1px solid #e2e8f0' }}>
                   <span style={{ fontSize: '12px', fontWeight: 800, color: '#1e293b', display: 'block', marginBottom: '8px' }}>
-                    بنود الفاتورة الأصلية #{selectedSale.docNo} (الأسعار الصافية بعد الخصم):
+                    {t('delivery_reps.van_collection_tab.s57', "بنود الفاتورة الأصلية #")}{selectedSale.docNo} {t('delivery_reps.van_collection_tab.s58', "(الأسعار الصافية بعد الخصم):")}
                   </span>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                     {selectedSale.items.map((it: CustomerEligibleSaleItem) => (
@@ -1113,12 +1115,12 @@ export const VanCollectionTab: React.FC<VanCollectionTabProps> = ({
                         <div>
                           <span style={{ fontSize: '12.5px', fontWeight: 700, color: '#0f172a', display: 'block' }}>{it.productName}</span>
                           <span style={{ fontSize: '11px', color: '#64748b' }}>
-                            المباع: {it.soldQty} | المرتجع سابقاً: {it.alreadyReturnedQty} | المتاح للإرجاع: {it.remainingReturnableQty}
+                            {t('delivery_reps.van_collection_tab.s59', "المباع:")} {it.soldQty} {t('delivery_reps.van_collection_tab.s60', "| المرتجع سابقاً:")} {it.alreadyReturnedQty} {t('delivery_reps.van_collection_tab.s61', "| المتاح للإرجاع:")} {it.remainingReturnableQty}
                           </span>
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                           <span style={{ fontSize: '12px', fontWeight: 800, color: '#059669' }}>
-                            {it.netUnitPrice.toFixed(2)} <CurrencySymbol /> / ق
+                            {it.netUnitPrice.toFixed(2)} <CurrencySymbol /> {t('delivery_reps.van_collection_tab.s62', "/ ق")}
                           </span>
                           <button
                             type="button"
@@ -1135,7 +1137,7 @@ export const VanCollectionTab: React.FC<VanCollectionTabProps> = ({
                               cursor: it.remainingReturnableQty > 0 ? 'pointer' : 'not-allowed',
                             }}
                           >
-                            + إضافة
+                            {t('delivery_reps.van_collection_tab.s63', "+ إضافة")}
                           </button>
                         </div>
                       </div>
@@ -1148,7 +1150,7 @@ export const VanCollectionTab: React.FC<VanCollectionTabProps> = ({
               {returnCart.length > 0 && (
                 <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '10px' }}>
                   <span style={{ fontSize: '12px', fontWeight: 800, color: '#170e5e', display: 'block', marginBottom: '6px' }}>
-                    أصناف إذن المرتجع المطلوب اعتمادها ({returnCart.length}):
+                    {t('delivery_reps.van_collection_tab.s64', "أصناف إذن المرتجع المطلوب اعتمادها (")}{returnCart.length}):
                   </span>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                     {returnCart.map((item, idx) => (
@@ -1167,7 +1169,7 @@ export const VanCollectionTab: React.FC<VanCollectionTabProps> = ({
                         <div>
                           <span style={{ fontSize: '12.5px', fontWeight: 800, color: '#991b1b', display: 'block' }}>{item.productName}</span>
                           <span style={{ fontSize: '11px', color: '#b91c1c' }}>
-                            سعر الإرجاع: {item.unitPrice.toFixed(2)} {getGlobalCurrencySymbol()} (صافي الفاتورة)
+                            {t('delivery_reps.van_collection_tab.s65', "سعر الإرجاع:")} {item.unitPrice.toFixed(2)} {getGlobalCurrencySymbol()} {t('delivery_reps.van_collection_tab.s66', "(صافي الفاتورة)")}
                           </span>
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -1218,7 +1220,7 @@ export const VanCollectionTab: React.FC<VanCollectionTabProps> = ({
                     ))}
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px', padding: '8px 12px', backgroundColor: '#f1f5f9', borderRadius: '8px' }}>
-                    <span style={{ fontSize: '12px', fontWeight: 800, color: '#334155' }}>إجمالي قيمة المرتجع المطلوب:</span>
+                    <span style={{ fontSize: '12px', fontWeight: 800, color: '#334155' }}>{t('delivery_reps.van_collection_tab.s67', "إجمالي قيمة المرتجع المطلوب:")}</span>
                     <span style={{ fontSize: '15px', fontWeight: 900, color: '#b91c1c' }}>{totalReturnAmount.toFixed(2)} <CurrencySymbol /></span>
                   </div>
                 </div>
@@ -1227,7 +1229,7 @@ export const VanCollectionTab: React.FC<VanCollectionTabProps> = ({
               {/* 5. Method of Refund (Credit vs Cash) */}
               <div>
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-                  طريقة رد وتسوية قيمة المرتجع للعميل (إلزامي):
+                  {t('delivery_reps.van_collection_tab.s68', "طريقة رد وتسوية قيمة المرتجع للعميل (إلزامي):")}
                 </label>
                 <div style={{ display: 'flex', flexDirection: 'row', gap: '8px', marginBottom: '10px', width: '100%', boxSizing: 'border-box' }}>
                   <button
@@ -1245,9 +1247,9 @@ export const VanCollectionTab: React.FC<VanCollectionTabProps> = ({
                       textAlign: 'center',
                     }}
                   >
-                    <div style={{ fontWeight: 800, fontSize: '11.5px', whiteSpace: 'nowrap' }}>خصم من الحساب (آجل)</div>
+                    <div style={{ fontWeight: 800, fontSize: '11.5px', whiteSpace: 'nowrap' }}>{t('delivery_reps.van_collection_tab.s69', "خصم من الحساب (آجل)")}</div>
                     <div style={{ fontSize: '9.5px', color: '#64748b', marginTop: '2px', whiteSpace: 'nowrap' }}>
-                      لا يخصم من كاش السيارة
+                      {t('delivery_reps.van_collection_tab.s70', "لا يخصم من كاش السيارة")}
                     </div>
                   </button>
                   <button
@@ -1265,9 +1267,9 @@ export const VanCollectionTab: React.FC<VanCollectionTabProps> = ({
                       textAlign: 'center',
                     }}
                   >
-                    <div style={{ fontWeight: 800, fontSize: '11.5px', whiteSpace: 'nowrap' }}>دفع كاش من السيارة</div>
+                    <div style={{ fontWeight: 800, fontSize: '11.5px', whiteSpace: 'nowrap' }}>{t('delivery_reps.van_collection_tab.s71', "دفع كاش من السيارة")}</div>
                     <div style={{ fontSize: '9.5px', color: '#dc2626', marginTop: '2px', whiteSpace: 'nowrap' }}>
-                      يخصم من توريد الكاش
+                      {t('delivery_reps.van_collection_tab.s72', "يخصم من توريد الكاش")}
                     </div>
                   </button>
                 </div>
@@ -1276,32 +1278,32 @@ export const VanCollectionTab: React.FC<VanCollectionTabProps> = ({
               {/* 6. Return Reason Selection */}
               <div>
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                  سبب المرتجع (إلزامي):
+                  {t('delivery_reps.van_collection_tab.s73', "سبب المرتجع (إلزامي):")}
                 </label>
                 <CustomSelect
                   value={returnReason}
                   onChange={(val) => setReturnReason(val)}
                   options={RETURN_REASONS}
-                  placeholder="اختر سبب المرتجع"
+                  placeholder={t('delivery_reps.van_collection_tab.s74', "اختر سبب المرتجع")}
                 />
               </div>
 
               {/* 6. Notes */}
               <div>
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                  ملاحظات وتفاصيل إضافية:
+                  {t('delivery_reps.van_collection_tab.s75', "ملاحظات وتفاصيل إضافية:")}
                 </label>
                 <input
                   type="text"
                   value={returnNotes}
                   onChange={(e) => setReturnNotes(e.target.value)}
-                  placeholder="ملاحظات إضافية عن سبب المرتجع..."
+                  placeholder={t('delivery_reps.van_collection_tab.s76', "ملاحظات إضافية عن سبب المرتجع...")}
                   style={{ width: '100%', height: '36px', backgroundColor: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '0 10px', fontSize: '12px', boxSizing: 'border-box' }}
                 />
               </div>
 
               <div style={{ fontSize: '10.5px', color: '#64748b', lineHeight: 1.4, backgroundColor: '#f8fafc', padding: '6px 10px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-                تنبيه رقابي: بمجرد الحفظ، يُقيد المرتجع بحالة (قيد مراجعة المشرف) ولن يتم تسوية الحساب أو إضافة البضاعة للسيارة إلا بعد اعتماد الإدارة.
+                {t('delivery_reps.van_collection_tab.s77', "تنبيه رقابي: بمجرد الحفظ، يُقيد المرتجع بحالة (قيد مراجعة المشرف) ولن يتم تسوية الحساب أو إضافة البضاعة للسيارة إلا بعد اعتماد الإدارة.")}
               </div>
 
               <Button
@@ -1310,7 +1312,7 @@ export const VanCollectionTab: React.FC<VanCollectionTabProps> = ({
                 disabled={isSubmittingReturn || returnCart.length === 0}
                 style={{ backgroundColor: '#dc2626', color: '#ffffff', height: '42px', fontSize: '12.5px', fontWeight: 800 }}
               >
-                {isSubmittingReturn ? 'جاري رفع إذن المرتجع للإدارة...' : `إرسال إذن المرتجع للإدارة (${totalReturnAmount.toFixed(2)} ${getGlobalCurrencySymbol()})`}
+                {isSubmittingReturn ? t('delivery_reps.van_collection_tab.s78', "جاري رفع إذن المرتجع للإدارة...") : `إرسال إذن المرتجع للإدارة (${totalReturnAmount.toFixed(2)} ${getGlobalCurrencySymbol()})`}
               </Button>
             </>
           )}

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useCallback } from 'react';
 import { StandardDialog } from '@/shared/components/StandardDialog';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
@@ -22,6 +23,7 @@ const STATUS_CONFIG: Record<string, { bg: string; color: string; border: string;
 };
 
 export function CustomsDeclarationModal({ open, onClose, jobId, jobNumber }: CustomsDeclarationModalProps) {
+  const { t } = useTranslation();
   const [declarations, setDeclarations] = useState<MaritimeCustomsDeclaration[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -137,12 +139,12 @@ export function CustomsDeclarationModal({ open, onClose, jobId, jobNumber }: Cus
         open={open}
         onClose={onClose}
         title={`البيان الجمركي — عملية ${jobNumber || ''}`}
-        subtitle={detail.declaration.declarationNumber ? `رقم البيان: ${detail.declaration.declarationNumber}` : 'لم يُسجَّل رقم بيان جمركي رسمي بعد'}
+        subtitle={detail.declaration.declarationNumber ? `رقم البيان: ${detail.declaration.declarationNumber}` : t('maritime_freight.customs_declaration_modal.s0', "لم يُسجَّل رقم بيان جمركي رسمي بعد")}
         maxWidth="950px"
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }} dir="rtl">
           <button type="button" onClick={() => setDetail(null)} style={{ alignSelf: 'flex-start', padding: '4px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#fff', color: '#334155', cursor: 'pointer', fontWeight: 600, fontSize: '0.78rem' }}>
-            ← العودة لكل البيانات الجمركية
+            {t('maritime_freight.customs_declaration_modal.s1', "← العودة لكل البيانات الجمركية")}
           </button>
 
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -158,11 +160,11 @@ export function CustomsDeclarationModal({ open, onClose, jobId, jobNumber }: Cus
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
             <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '10px', padding: '12px 16px' }}>
-              <div style={{ fontSize: '0.75rem', color: '#1e40af', fontWeight: 700 }}>إجمالي القيمة الجمركية المصرح بها</div>
+              <div style={{ fontSize: '0.75rem', color: '#1e40af', fontWeight: 700 }}>{t('maritime_freight.customs_declaration_modal.s2', "إجمالي القيمة الجمركية المصرح بها")}</div>
               <div style={{ fontSize: '1.3rem', fontWeight: 800, color: '#1e3a8a' }}>{detail.declaration.totalCustomsValue.toLocaleString()} {detail.declaration.currency}</div>
             </div>
             <div style={{ background: '#fef3c7', border: '1px solid #fde68a', borderRadius: '10px', padding: '12px 16px' }}>
-              <div style={{ fontSize: '0.75rem', color: '#92400e', fontWeight: 700 }}>إجمالي الرسوم الجمركية</div>
+              <div style={{ fontSize: '0.75rem', color: '#92400e', fontWeight: 700 }}>{t('maritime_freight.customs_declaration_modal.s3', "إجمالي الرسوم الجمركية")}</div>
               <div style={{ fontSize: '1.3rem', fontWeight: 800, color: '#78350f' }}>{detail.declaration.totalDutyAmount.toLocaleString()} {detail.declaration.currency}</div>
             </div>
           </div>
@@ -171,17 +173,17 @@ export function CustomsDeclarationModal({ open, onClose, jobId, jobNumber }: Cus
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right', fontSize: '0.8rem' }}>
               <thead style={{ background: '#f8fafc', borderBottom: '1.5px solid #e2e8f0' }}>
                 <tr>
-                  <th style={{ padding: '8px 10px' }}>كود HS</th>
-                  <th style={{ padding: '8px 10px' }}>الوصف</th>
-                  <th style={{ padding: '8px 10px' }}>الكمية</th>
-                  <th style={{ padding: '8px 10px' }}>القيمة الجمركية</th>
-                  <th style={{ padding: '8px 10px' }}>نسبة الرسم</th>
-                  <th style={{ padding: '8px 10px' }}>مبلغ الرسم</th>
+                  <th style={{ padding: '8px 10px' }}>{t('maritime_freight.customs_declaration_modal.s4', "كود HS")}</th>
+                  <th style={{ padding: '8px 10px' }}>{t('maritime_freight.customs_declaration_modal.s5', "الوصف")}</th>
+                  <th style={{ padding: '8px 10px' }}>{t('maritime_freight.customs_declaration_modal.s6', "الكمية")}</th>
+                  <th style={{ padding: '8px 10px' }}>{t('maritime_freight.customs_declaration_modal.s7', "القيمة الجمركية")}</th>
+                  <th style={{ padding: '8px 10px' }}>{t('maritime_freight.customs_declaration_modal.s8', "نسبة الرسم")}</th>
+                  <th style={{ padding: '8px 10px' }}>{t('maritime_freight.customs_declaration_modal.s9', "مبلغ الرسم")}</th>
                 </tr>
               </thead>
               <tbody>
                 {detail.items.length === 0 ? (
-                  <tr><td colSpan={6} style={{ padding: '20px', textAlign: 'center', color: '#94a3b8' }}>لا توجد أصناف مسجلة بعد</td></tr>
+                  <tr><td colSpan={6} style={{ padding: '20px', textAlign: 'center', color: '#94a3b8' }}>{t('maritime_freight.customs_declaration_modal.s10', "لا توجد أصناف مسجلة بعد")}</td></tr>
                 ) : detail.items.map((item) => (
                   <tr key={item.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                     <td style={{ padding: '8px 10px', fontWeight: 700, color: '#170e5e' }}>{item.hsCode}</td>
@@ -197,19 +199,19 @@ export function CustomsDeclarationModal({ open, onClose, jobId, jobNumber }: Cus
           </div>
 
           <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px' }}>
-            <h4 style={{ margin: '0 0 10px', fontSize: '0.85rem', fontWeight: 700, color: '#170e5e' }}>إضافة صنف جمركي</h4>
+            <h4 style={{ margin: '0 0 10px', fontSize: '0.85rem', fontWeight: 700, color: '#170e5e' }}>{t('maritime_freight.customs_declaration_modal.s11', "إضافة صنف جمركي")}</h4>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '8px' }}>
-              <input type="text" placeholder="كود HS" value={hsCode} onChange={(e) => setHsCode(e.target.value)} style={{ height: '32px', padding: '0 10px', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
-              <input type="text" placeholder="وصف الصنف" value={commodityDescription} onChange={(e) => setCommodityDescription(e.target.value)} style={{ height: '32px', padding: '0 10px', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
-              <input type="number" min={0} placeholder="الكمية" value={quantity} onChange={(e) => setQuantity(Number(e.target.value))} style={{ height: '32px', padding: '0 10px', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
-              <input type="text" placeholder="الوحدة" value={unit} onChange={(e) => setUnit(e.target.value)} style={{ height: '32px', padding: '0 10px', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
-              <input type="number" min={0} placeholder="القيمة الجمركية" value={customsValue} onChange={(e) => setCustomsValue(Number(e.target.value))} style={{ height: '32px', padding: '0 10px', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
-              <input type="number" min={0} max={100} placeholder="نسبة الرسم %" value={dutyRatePercent} onChange={(e) => setDutyRatePercent(Number(e.target.value))} style={{ height: '32px', padding: '0 10px', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
+              <input type="text" placeholder={t('maritime_freight.customs_declaration_modal.s12', "كود HS")} value={hsCode} onChange={(e) => setHsCode(e.target.value)} style={{ height: '32px', padding: '0 10px', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
+              <input type="text" placeholder={t('maritime_freight.customs_declaration_modal.s13', "وصف الصنف")} value={commodityDescription} onChange={(e) => setCommodityDescription(e.target.value)} style={{ height: '32px', padding: '0 10px', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
+              <input type="number" min={0} placeholder={t('maritime_freight.customs_declaration_modal.s14', "الكمية")} value={quantity} onChange={(e) => setQuantity(Number(e.target.value))} style={{ height: '32px', padding: '0 10px', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
+              <input type="text" placeholder={t('maritime_freight.customs_declaration_modal.s15', "الوحدة")} value={unit} onChange={(e) => setUnit(e.target.value)} style={{ height: '32px', padding: '0 10px', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
+              <input type="number" min={0} placeholder={t('maritime_freight.customs_declaration_modal.s16', "القيمة الجمركية")} value={customsValue} onChange={(e) => setCustomsValue(Number(e.target.value))} style={{ height: '32px', padding: '0 10px', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
+              <input type="number" min={0} max={100} placeholder={t('maritime_freight.customs_declaration_modal.s17', "نسبة الرسم %")} value={dutyRatePercent} onChange={(e) => setDutyRatePercent(Number(e.target.value))} style={{ height: '32px', padding: '0 10px', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px' }}>
-              <span style={{ fontSize: '0.78rem', color: '#64748b' }}>الرسم المقدَّر: <strong style={{ color: '#170e5e' }}>{estimatedDuty.toLocaleString()}</strong></span>
+              <span style={{ fontSize: '0.78rem', color: '#64748b' }}>{t('maritime_freight.customs_declaration_modal.s18', "الرسم المقدَّر:")} <strong style={{ color: '#170e5e' }}>{estimatedDuty.toLocaleString()}</strong></span>
               <button type="button" onClick={handleAddItem} disabled={isSubmitting} style={{ height: '32px', padding: '0 16px', borderRadius: '6px', border: 'none', background: '#170e5e', color: '#fff', fontWeight: 700, cursor: 'pointer' }}>
-                إضافة الصنف
+                {t('maritime_freight.customs_declaration_modal.s19', "إضافة الصنف")}
               </button>
             </div>
           </div>
@@ -223,36 +225,36 @@ export function CustomsDeclarationModal({ open, onClose, jobId, jobNumber }: Cus
       open={open}
       onClose={onClose}
       title={`البيانات الجمركية — عملية ${jobNumber || ''}`}
-      subtitle="تسجيل أكواد HS والقيمة الجمركية ونسب الرسوم لكل شحنة ومتابعة حالة التخليص"
+      subtitle={t('maritime_freight.customs_declaration_modal.s20', "تسجيل أكواد HS والقيمة الجمركية ونسب الرسوم لكل شحنة ومتابعة حالة التخليص")}
       maxWidth="800px"
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }} dir="rtl">
         <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px' }}>
-          <h4 style={{ margin: '0 0 10px', fontSize: '0.85rem', fontWeight: 700, color: '#170e5e' }}>إنشاء بيان جمركي جديد</h4>
+          <h4 style={{ margin: '0 0 10px', fontSize: '0.85rem', fontWeight: 700, color: '#170e5e' }}>{t('maritime_freight.customs_declaration_modal.s21', "إنشاء بيان جمركي جديد")}</h4>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '10px' }}>
-            <Field label="نوع البيان">
-              <CustomSelect value={declarationType} onChange={(v) => setDeclarationType((v as 'import' | 'export') || 'import')} options={[{ value: 'import', label: 'استيراد' }, { value: 'export', label: 'تصدير' }]} />
+            <Field label={t('maritime_freight.customs_declaration_modal.s22', "نوع البيان")}>
+              <CustomSelect value={declarationType} onChange={(v) => setDeclarationType((v as 'import' | 'export') || 'import')} options={[{ value: 'import', label: t('maritime_freight.customs_declaration_modal.s23', "استيراد") }, { value: 'export', label: t('maritime_freight.customs_declaration_modal.s24', "تصدير") }]} />
             </Field>
-            <Field label="الجهة الجمركية"><input type="text" value={customsAuthority} onChange={(e) => setCustomsAuthority(e.target.value)} style={{ width: '100%', height: '34px', padding: '0 10px', borderRadius: '6px', border: '1px solid #cbd5e1' }} /></Field>
-            <Field label="المخلص الجمركي"><input type="text" value={brokerName} onChange={(e) => setBrokerName(e.target.value)} style={{ width: '100%', height: '34px', padding: '0 10px', borderRadius: '6px', border: '1px solid #cbd5e1' }} /></Field>
-            <Field label="العملة">
+            <Field label={t('maritime_freight.customs_declaration_modal.s25', "الجهة الجمركية")}><input type="text" value={customsAuthority} onChange={(e) => setCustomsAuthority(e.target.value)} style={{ width: '100%', height: '34px', padding: '0 10px', borderRadius: '6px', border: '1px solid #cbd5e1' }} /></Field>
+            <Field label={t('maritime_freight.customs_declaration_modal.s26', "المخلص الجمركي")}><input type="text" value={brokerName} onChange={(e) => setBrokerName(e.target.value)} style={{ width: '100%', height: '34px', padding: '0 10px', borderRadius: '6px', border: '1px solid #cbd5e1' }} /></Field>
+            <Field label={t('maritime_freight.customs_declaration_modal.s27', "العملة")}>
               <CustomSelect value={currency} onChange={(v) => setCurrency(v || 'USD')} options={[{ value: 'USD', label: 'USD' }, { value: 'EGP', label: 'EGP' }]} />
             </Field>
           </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '10px' }}>
             <button type="button" onClick={handleCreateDeclaration} disabled={isSubmitting} style={{ height: '34px', padding: '0 18px', borderRadius: '6px', border: 'none', background: '#170e5e', color: '#fff', fontWeight: 700, cursor: 'pointer' }}>
-              إنشاء بيان جمركي
+              {t('maritime_freight.customs_declaration_modal.s28', "إنشاء بيان جمركي")}
             </button>
           </div>
         </div>
 
         <div style={{ maxHeight: '320px', overflowY: 'auto', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
           {loading ? (
-            <div style={{ padding: '30px', textAlign: 'center', color: '#64748b' }}>جارٍ التحميل...</div>
+            <div style={{ padding: '30px', textAlign: 'center', color: '#64748b' }}>{t('maritime_freight.customs_declaration_modal.s29', "جارٍ التحميل...")}</div>
           ) : declarations.length === 0 ? (
             <div style={{ padding: '30px', textAlign: 'center', color: '#64748b' }}>
               <AppIcons.FileText size={32} style={{ color: '#94a3b8', margin: '0 auto 8px' }} />
-              <div style={{ fontWeight: 700 }}>لا توجد بيانات جمركية مسجلة لهذه العملية بعد</div>
+              <div style={{ fontWeight: 700 }}>{t('maritime_freight.customs_declaration_modal.s30', "لا توجد بيانات جمركية مسجلة لهذه العملية بعد")}</div>
             </div>
           ) : (
             declarations.map((d) => {
@@ -260,8 +262,8 @@ export function CustomsDeclarationModal({ open, onClose, jobId, jobNumber }: Cus
               return (
                 <div key={d.id} onClick={() => openDetail(d.id)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', borderBottom: '1px solid #f1f5f9', cursor: 'pointer' }}>
                   <div>
-                    <div style={{ fontWeight: 700 }}>{d.declarationType === 'import' ? 'استيراد' : 'تصدير'} {d.declarationNumber ? `— ${d.declarationNumber}` : ''}</div>
-                    <div style={{ fontSize: '0.75rem', color: '#64748b' }}>القيمة: {d.totalCustomsValue.toLocaleString()} {d.currency} — الرسوم: {d.totalDutyAmount.toLocaleString()}</div>
+                    <div style={{ fontWeight: 700 }}>{d.declarationType === 'import' ? t('maritime_freight.customs_declaration_modal.s31', "استيراد") : t('maritime_freight.customs_declaration_modal.s32', "تصدير")} {d.declarationNumber ? `— ${d.declarationNumber}` : ''}</div>
+                    <div style={{ fontSize: '0.75rem', color: '#64748b' }}>{t('maritime_freight.customs_declaration_modal.s33', "القيمة:")} {d.totalCustomsValue.toLocaleString()} {d.currency} {t('maritime_freight.customs_declaration_modal.s34', "— الرسوم:")} {d.totalDutyAmount.toLocaleString()}</div>
                   </div>
                   <span style={{ padding: '3px 8px', borderRadius: '6px', fontSize: '0.72rem', fontWeight: 700, background: cfg.bg, color: cfg.color, border: `1px solid ${cfg.border}` }}>{cfg.label}</span>
                 </div>

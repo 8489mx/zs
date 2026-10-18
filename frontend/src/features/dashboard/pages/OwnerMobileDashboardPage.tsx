@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useMemo } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -32,6 +33,7 @@ function getRangeDates(range: TimeRange) {
 }
 
 export function OwnerMobileDashboardPage() {
+  const { t } = useTranslation();
   const user = useAuthStore((s) => s.user);
   const isPlatformAdminUser = isPlatformAdmin(user);
   const hasReportsFeature = useHasFeature('reports') || isPlatformAdminUser;
@@ -115,9 +117,9 @@ export function OwnerMobileDashboardPage() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <SmartphoneIcon size={20} color="#ffffff" />
           <div>
-            <h1 style={{ margin: 0, fontSize: '16px', fontWeight: 800, lineHeight: 1.2 }}>لوحة المالك اللحظية</h1>
+            <h1 style={{ margin: 0, fontSize: '16px', fontWeight: 800, lineHeight: 1.2 }}>{t('dashboard.owner_mobile_dashboard_page.s0', "لوحة المالك اللحظية")}</h1>
             <span style={{ fontSize: '11px', opacity: 0.8 }}>
-              تحديث: {lastRefreshedAt.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+              {t('dashboard.owner_mobile_dashboard_page.s1', "تحديث:")} {lastRefreshedAt.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
             </span>
           </div>
         </div>
@@ -141,7 +143,7 @@ export function OwnerMobileDashboardPage() {
           }}
         >
           <RefreshCwIcon size={14} color="#ffffff" style={{ transform: overviewQuery.isFetching ? 'rotate(360deg)' : 'none', transition: 'transform 0.5s' }} />
-          <span>{overviewQuery.isFetching ? '...' : 'تحديث'}</span>
+          <span>{overviewQuery.isFetching ? '...' : t('dashboard.owner_mobile_dashboard_page.s2', "تحديث")}</span>
         </button>
       </header>
 
@@ -169,7 +171,7 @@ export function OwnerMobileDashboardPage() {
             color: range === 'today' ? '#ffffff' : '#475569',
           }}
         >
-          اليوم
+          {t('dashboard.owner_mobile_dashboard_page.s3', "اليوم")}
         </button>
         <button
           type="button"
@@ -186,7 +188,7 @@ export function OwnerMobileDashboardPage() {
             color: range === 'yesterday' ? '#ffffff' : '#475569',
           }}
         >
-          أمس
+          {t('dashboard.owner_mobile_dashboard_page.s4', "أمس")}
         </button>
         <button
           type="button"
@@ -203,7 +205,7 @@ export function OwnerMobileDashboardPage() {
             color: range === 'week' ? '#ffffff' : '#475569',
           }}
         >
-          7 أيام
+          {t('dashboard.owner_mobile_dashboard_page.s5', "7 أيام")}
         </button>
         <button
           type="button"
@@ -220,7 +222,7 @@ export function OwnerMobileDashboardPage() {
             color: range === 'month' ? '#ffffff' : '#475569',
           }}
         >
-          هذا الشهر
+          {t('dashboard.owner_mobile_dashboard_page.s6', "هذا الشهر")}
         </button>
       </div>
 
@@ -235,10 +237,10 @@ export function OwnerMobileDashboardPage() {
             padding: '14px',
             boxShadow: '0 2px 4px rgba(0,0,0,0.03)',
           }}>
-            <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 600, marginBottom: '4px' }}>المبيعات</div>
+            <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 600, marginBottom: '4px' }}>{t('dashboard.owner_mobile_dashboard_page.s7', "المبيعات")}</div>
             <div style={{ fontSize: '20px', fontWeight: 800, color: '#0f172a' }}>{formatCurrency(netSales)}</div>
             <div style={{ fontSize: '11px', color: '#16a34a', marginTop: '4px', fontWeight: 600 }}>
-              {invoiceCount} فاتورة
+              {invoiceCount} {t('dashboard.owner_mobile_dashboard_page.s8', "فاتورة")}
             </div>
           </div>
 
@@ -250,10 +252,10 @@ export function OwnerMobileDashboardPage() {
             padding: '14px',
             boxShadow: '0 2px 4px rgba(0,0,0,0.03)',
           }}>
-            <div style={{ fontSize: '12px', color: '#166534', fontWeight: 600, marginBottom: '4px' }}>صافي الأرباح</div>
+            <div style={{ fontSize: '12px', color: '#166534', fontWeight: 600, marginBottom: '4px' }}>{t('dashboard.owner_mobile_dashboard_page.s9', "صافي الأرباح")}</div>
             <div style={{ fontSize: '20px', fontWeight: 800, color: '#15803d' }}>{formatCurrency(netProfit)}</div>
             <div style={{ fontSize: '11px', color: '#64748b', marginTop: '4px' }}>
-              متوسط السلة: {formatCurrency(avgBasket)}
+              {t('dashboard.owner_mobile_dashboard_page.s10', "متوسط السلة:")} {formatCurrency(avgBasket)}
             </div>
           </div>
 
@@ -265,12 +267,12 @@ export function OwnerMobileDashboardPage() {
             padding: '14px',
             boxShadow: '0 2px 4px rgba(0,0,0,0.03)',
           }}>
-            <div style={{ fontSize: '12px', color: '#b45309', fontWeight: 600, marginBottom: '4px' }}>نقدية الخزائن الحية</div>
+            <div style={{ fontSize: '12px', color: '#b45309', fontWeight: 600, marginBottom: '4px' }}>{t('dashboard.owner_mobile_dashboard_page.s11', "نقدية الخزائن الحية")}</div>
             <div style={{ fontSize: '18px', fontWeight: 800, color: '#d97706' }}>
               {openShifts.length > 0 ? formatCurrency(totalOpenCash) : '—'}
             </div>
             <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '4px' }}>
-              {openShifts.length} وردية مفتوحة
+              {openShifts.length} {t('dashboard.owner_mobile_dashboard_page.s12', "وردية مفتوحة")}
             </div>
           </div>
 
@@ -282,10 +284,10 @@ export function OwnerMobileDashboardPage() {
             padding: '14px',
             boxShadow: '0 2px 4px rgba(0,0,0,0.03)',
           }}>
-            <div style={{ fontSize: '12px', color: '#1e40af', fontWeight: 600, marginBottom: '4px' }}>عدد الفواتير</div>
+            <div style={{ fontSize: '12px', color: '#1e40af', fontWeight: 600, marginBottom: '4px' }}>{t('dashboard.owner_mobile_dashboard_page.s13', "عدد الفواتير")}</div>
             <div style={{ fontSize: '20px', fontWeight: 800, color: '#1d4ed8' }}>{invoiceCount}</div>
             <div style={{ fontSize: '11px', color: '#64748b', marginTop: '4px' }}>
-              الفترة المحددة
+              {t('dashboard.owner_mobile_dashboard_page.s14', "الفترة المحددة")}
             </div>
           </div>
         </div>
@@ -300,8 +302,8 @@ export function OwnerMobileDashboardPage() {
             boxShadow: '0 2px 4px rgba(0,0,0,0.03)',
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-              <h2 style={{ fontSize: '14px', fontWeight: 700, margin: 0, color: '#1e293b' }}>الأكثر مبيعاً في الفترة</h2>
-              <span style={{ fontSize: '11px', color: '#64748b' }}>أعلى 5 أصناف</span>
+              <h2 style={{ fontSize: '14px', fontWeight: 700, margin: 0, color: '#1e293b' }}>{t('dashboard.owner_mobile_dashboard_page.s15', "الأكثر مبيعاً في الفترة")}</h2>
+              <span style={{ fontSize: '11px', color: '#64748b' }}>{t('dashboard.owner_mobile_dashboard_page.s16', "أعلى 5 أصناف")}</span>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -334,7 +336,7 @@ export function OwnerMobileDashboardPage() {
                   </div>
                   <div style={{ textAlign: 'left' }}>
                     <span style={{ fontWeight: 700, color: '#0f172a' }}>{formatCurrency(p.total)}</span>
-                    <span style={{ fontSize: '11px', color: '#64748b', marginRight: '6px' }}>({p.qty} قطعة)</span>
+                    <span style={{ fontSize: '11px', color: '#64748b', marginRight: '6px' }}>({p.qty} {t('dashboard.owner_mobile_dashboard_page.s17', "قطعة)")}</span>
                   </div>
                 </div>
               ))}
@@ -352,8 +354,8 @@ export function OwnerMobileDashboardPage() {
             boxShadow: '0 2px 4px rgba(0,0,0,0.03)',
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-              <h2 style={{ fontSize: '14px', fontWeight: 700, margin: 0, color: '#1e293b' }}>بث الفواتير المباشرة</h2>
-              <span style={{ fontSize: '11px', color: '#64748b' }}>لحظة بلحظة</span>
+              <h2 style={{ fontSize: '14px', fontWeight: 700, margin: 0, color: '#1e293b' }}>{t('dashboard.owner_mobile_dashboard_page.s18', "بث الفواتير المباشرة")}</h2>
+              <span style={{ fontSize: '11px', color: '#64748b' }}>{t('dashboard.owner_mobile_dashboard_page.s19', "لحظة بلحظة")}</span>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -371,7 +373,7 @@ export function OwnerMobileDashboardPage() {
                     <div>
                       <div style={{ fontWeight: 700, color: '#1e293b' }}>{s.docNo || s.id}</div>
                       <div style={{ fontSize: '11px', color: '#64748b' }}>
-                        {s.customerName || s.customer_name || 'عميل نقدي'} • {s.date ? new Date(s.date).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }) : 'الآن'}
+                        {s.customerName || s.customer_name || t('dashboard.owner_mobile_dashboard_page.s20', "عميل نقدي")} • {s.date ? new Date(s.date).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }) : t('dashboard.owner_mobile_dashboard_page.s21', "الآن")}
                       </div>
                     </div>
                     <div style={{ textAlign: 'left' }}>
@@ -384,7 +386,7 @@ export function OwnerMobileDashboardPage() {
                         color: isPaid ? '#166534' : '#991b1b',
                         fontWeight: 700,
                       }}>
-                        {isPaid ? 'مدفوع' : 'آجل/متبقي'}
+                        {isPaid ? t('dashboard.owner_mobile_dashboard_page.s22', "مدفوع") : t('dashboard.owner_mobile_dashboard_page.s23', "آجل/متبقي")}
                       </span>
                     </div>
                   </div>
@@ -404,7 +406,7 @@ export function OwnerMobileDashboardPage() {
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px', color: '#92400e', fontWeight: 700, fontSize: '13px' }}>
               <AlertTriangleIcon size={16} color="#d97706" />
-              <span>تنبيه أصناف قاربت على النفاد</span>
+              <span>{t('dashboard.owner_mobile_dashboard_page.s24', "تنبيه أصناف قاربت على النفاد")}</span>
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
               {lowStock.map((item: any, idx: number) => (
@@ -416,7 +418,7 @@ export function OwnerMobileDashboardPage() {
                   fontSize: '12px',
                   color: '#78350f',
                 }}>
-                  {item.name} ({item.stock || item.quantity || 0} متبقي)
+                  {item.name} ({item.stock || item.quantity || 0} {t('dashboard.owner_mobile_dashboard_page.s25', "متبقي)")}
                 </span>
               ))}
             </div>
@@ -442,19 +444,19 @@ export function OwnerMobileDashboardPage() {
       }}>
         <Link to="/owner-mobile" style={{ textAlign: 'center', textDecoration: 'none', color: '#170e5e', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
           <SmartphoneIcon size={20} color="#170e5e" strokeWidth={2.2} />
-          <span style={{ fontSize: '11px', fontWeight: 800 }}>المالك</span>
+          <span style={{ fontSize: '11px', fontWeight: 800 }}>{t('dashboard.owner_mobile_dashboard_page.s26', "المالك")}</span>
         </Link>
         <Link to="/pos" style={{ textAlign: 'center', textDecoration: 'none', color: '#64748b', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
           <ShoppingCartIcon size={20} color="#64748b" strokeWidth={2} />
-          <span style={{ fontSize: '11px', fontWeight: 600 }}>الكاشير</span>
+          <span style={{ fontSize: '11px', fontWeight: 600 }}>{t('dashboard.owner_mobile_dashboard_page.s27', "الكاشير")}</span>
         </Link>
         <Link to="/dashboard" style={{ textAlign: 'center', textDecoration: 'none', color: '#64748b', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
           <BarChartIcon size={20} color="#64748b" strokeWidth={2} />
-          <span style={{ fontSize: '11px', fontWeight: 600 }}>اللوحة الكاملة</span>
+          <span style={{ fontSize: '11px', fontWeight: 600 }}>{t('dashboard.owner_mobile_dashboard_page.s28', "اللوحة الكاملة")}</span>
         </Link>
         <Link to="/reports/overview" style={{ textAlign: 'center', textDecoration: 'none', color: '#64748b', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
           <FileTextIcon size={20} color="#64748b" strokeWidth={2} />
-          <span style={{ fontSize: '11px', fontWeight: 600 }}>التقارير</span>
+          <span style={{ fontSize: '11px', fontWeight: 600 }}>{t('dashboard.owner_mobile_dashboard_page.s29', "التقارير")}</span>
         </Link>
       </nav>
     </div>

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { isThreeDecimalCurrency, getGlobalSystemCurrency } from '@/lib/currencies';
 import { CalendarIcon, ChevronDownIcon } from '@/shared/components/icons/AppIcons';
@@ -33,6 +34,7 @@ export function StorefrontOrderDateGroupCard({
   onCancelOrder,
   isCancelling,
 }: StorefrontOrderDateGroupCardProps) {
+  const { t } = useTranslation();
   const currCode = info?.currency || getGlobalSystemCurrency();
   const isThreeDec = isThreeDecimalCurrency(currCode);
   const formattedGroupTotal = isThreeDec
@@ -123,7 +125,7 @@ export function StorefrontOrderDateGroupCard({
                 flexShrink: 0,
               }}
             >
-              اليوم
+              {t('storefront.storefront_order_date_group_card.s0', "اليوم")}
             </span>
           )}
 
@@ -139,7 +141,7 @@ export function StorefrontOrderDateGroupCard({
               flexShrink: 0,
             }}
           >
-            {group.orders.length} {group.orders.length === 1 ? 'طلب' : 'طلبات'}
+            {group.orders.length} {group.orders.length === 1 ? t('storefront.storefront_order_date_group_card.s1', "طلب") : t('storefront.storefront_order_date_group_card.s2', "طلبات")}
           </span>
         </div>
 

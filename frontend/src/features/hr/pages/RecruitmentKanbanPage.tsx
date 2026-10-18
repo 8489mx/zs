@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useMemo, type FC } from 'react';
 import {
   recruitmentAtsApi,
@@ -24,6 +25,7 @@ const KANBAN_STAGES: Array<{ id: ApplicantRecord['stage']; label: string; color:
 ];
 
 export const RecruitmentKanbanPage: FC = () => {
+  const { t } = useTranslation();
   const [metrics, setMetrics] = useState<any>(null);
   const [jobs, setJobs] = useState<JobOpeningRecord[]>([]);
   const [applicants, setApplicants] = useState<ApplicantRecord[]>([]);
@@ -95,10 +97,10 @@ export const RecruitmentKanbanPage: FC = () => {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
         <div>
           <h1 style={{ margin: '0 0 6px 0', fontSize: '1.25rem', fontWeight: 800, color: '#0f172a' }}>
-            منظومة تتبع المتقدمين للوظائف ومجمعات المواهب (Recruitment ATS)
+            {t('hr.recruitment_kanban_page.s0', "منظومة تتبع المتقدمين للوظائف ومجمعات المواهب (Recruitment ATS)")}
           </h1>
           <p style={{ margin: 0, fontSize: '0.8125rem', color: '#64748b' }}>
-            لوحة كانبان لمتابعة خط أنابيب المرشحين، مجمعات المواهب، والتعيين بنقرة واحدة
+            {t('hr.recruitment_kanban_page.s1', "لوحة كانبان لمتابعة خط أنابيب المرشحين، مجمعات المواهب، والتعيين بنقرة واحدة")}
           </p>
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
@@ -119,7 +121,7 @@ export const RecruitmentKanbanPage: FC = () => {
             }}
           >
             <LayersIcon size={15} />
-            وظيفة شاغرة جديدة
+            {t('hr.recruitment_kanban_page.s2', "وظيفة شاغرة جديدة")}
           </button>
           <button
             onClick={() => setIsApplicantModalOpen(true)}
@@ -138,7 +140,7 @@ export const RecruitmentKanbanPage: FC = () => {
             }}
           >
             <PlusIcon size={16} />
-            إضافة متقدم جديد
+            {t('hr.recruitment_kanban_page.s3', "إضافة متقدم جديد")}
           </button>
         </div>
       </div>
@@ -146,31 +148,31 @@ export const RecruitmentKanbanPage: FC = () => {
       {/* KPI Funnel Bar */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px', marginBottom: '20px' }}>
         <div style={{ background: '#ffffff', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-          <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '4px' }}>إجمالي المتقدمين</div>
+          <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '4px' }}>{t('hr.recruitment_kanban_page.s4', "إجمالي المتقدمين")}</div>
           <div style={{ fontSize: '22px', fontWeight: 800, color: '#0f172a' }}>
             {metrics?.funnel?.totalApplicants ?? applicants.length}
           </div>
         </div>
         <div style={{ background: '#ffffff', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-          <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '4px' }}>قيد الفحص والمقابلات</div>
+          <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '4px' }}>{t('hr.recruitment_kanban_page.s5', "قيد الفحص والمقابلات")}</div>
           <div style={{ fontSize: '22px', fontWeight: 800, color: '#0284c7' }}>
             {(metrics?.funnel?.screeningCount || 0) + (metrics?.funnel?.interviewCount || 0)}
           </div>
         </div>
         <div style={{ background: '#ffffff', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-          <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '4px' }}>عروض العمل (Offers)</div>
+          <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '4px' }}>{t('hr.recruitment_kanban_page.s6', "عروض العمل (Offers)")}</div>
           <div style={{ fontSize: '22px', fontWeight: 800, color: '#9333ea' }}>
             {metrics?.funnel?.offerCount ?? 0}
           </div>
         </div>
         <div style={{ background: '#ffffff', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-          <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '4px' }}>تم التعيين (Hired)</div>
+          <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '4px' }}>{t('hr.recruitment_kanban_page.s7', "تم التعيين (Hired)")}</div>
           <div style={{ fontSize: '22px', fontWeight: 800, color: '#16a34a' }}>
             {metrics?.funnel?.hiredCount ?? 0}
           </div>
         </div>
         <div style={{ background: '#ffffff', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-          <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '4px' }}>معدل التوظيف الناجح</div>
+          <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '4px' }}>{t('hr.recruitment_kanban_page.s8', "معدل التوظيف الناجح")}</div>
           <div style={{ fontSize: '22px', fontWeight: 800, color: '#170e5e' }}>
             {metrics?.funnel?.conversionRatePercent ?? 0}%
           </div>
@@ -185,7 +187,7 @@ export const RecruitmentKanbanPage: FC = () => {
             onChange={(e) => setSelectedJobId(e.target.value)}
             style={{ height: '36px', padding: '0 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', background: '#ffffff', cursor: 'pointer' }}
           >
-            <option value="all">كافة الوظائف الشاغرة</option>
+            <option value="all">{t('hr.recruitment_kanban_page.s9', "كافة الوظائف الشاغرة")}</option>
             {jobs.map((j) => (
               <option key={j.id} value={j.id}>
                 {j.title} ({j.job_code})
@@ -198,18 +200,18 @@ export const RecruitmentKanbanPage: FC = () => {
             onChange={(e) => setSelectedPool(e.target.value)}
             style={{ height: '36px', padding: '0 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', background: '#ffffff', cursor: 'pointer' }}
           >
-            <option value="all">كافة مجمعات المواهب (Talent Pools)</option>
-            <option value="sales">مواهب المبيعات والتسويق</option>
-            <option value="engineering">مواهب البرمجيات والهندسة</option>
-            <option value="accounting">مواهب المحاسبة والمالية</option>
-            <option value="operations">مواهب العمليات واللوجستيات</option>
+            <option value="all">{t('hr.recruitment_kanban_page.s10', "كافة مجمعات المواهب (Talent Pools)")}</option>
+            <option value="sales">{t('hr.recruitment_kanban_page.s11', "مواهب المبيعات والتسويق")}</option>
+            <option value="engineering">{t('hr.recruitment_kanban_page.s12', "مواهب البرمجيات والهندسة")}</option>
+            <option value="accounting">{t('hr.recruitment_kanban_page.s13', "مواهب المحاسبة والمالية")}</option>
+            <option value="operations">{t('hr.recruitment_kanban_page.s14', "مواهب العمليات واللوجستيات")}</option>
           </select>
         </div>
 
         <form onSubmit={handleSearchSubmit} style={{ display: 'flex', gap: '8px' }}>
           <input
             type="text"
-            placeholder="بحث باسم المرشح، الهاتف..."
+            placeholder={t('hr.recruitment_kanban_page.s15', "بحث باسم المرشح، الهاتف...")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             style={{ width: '220px', height: '34px', padding: '4px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px' }}
@@ -225,7 +227,7 @@ export const RecruitmentKanbanPage: FC = () => {
 
       {/* Kanban Board */}
       {loading ? (
-        <div style={{ padding: '50px', textAlign: 'center', color: '#64748b' }}>جاري تحميل خط أنابيب التوظيف...</div>
+        <div style={{ padding: '50px', textAlign: 'center', color: '#64748b' }}>{t('hr.recruitment_kanban_page.s16', "جاري تحميل خط أنابيب التوظيف...")}</div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(220px, 1fr))', gap: '14px', alignItems: 'start', overflowX: 'auto', paddingBottom: '16px' }}>
           {KANBAN_STAGES.map((col) => {
@@ -253,7 +255,7 @@ export const RecruitmentKanbanPage: FC = () => {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                   {list.length === 0 ? (
                     <div style={{ padding: '24px 8px', textAlign: 'center', color: '#94a3b8', fontSize: '12px' }}>
-                      لا يوجد مرشحون في هذه المرحلة
+                      {t('hr.recruitment_kanban_page.s17', "لا يوجد مرشحون في هذه المرحلة")}
                     </div>
                   ) : (
                     list.map((candidate) => (
@@ -279,7 +281,7 @@ export const RecruitmentKanbanPage: FC = () => {
                         </div>
 
                         <div style={{ fontSize: '11.5px', color: '#475569', marginBottom: '6px' }}>
-                          {candidate.job_title || 'مجمع مواهب عام'}
+                          {candidate.job_title || t('hr.recruitment_kanban_page.s18', "مجمع مواهب عام")}
                         </div>
 
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11.5px', color: '#64748b' }}>

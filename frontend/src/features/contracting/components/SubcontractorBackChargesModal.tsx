@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useCallback } from 'react';
 import { StandardDialog } from '@/shared/components/StandardDialog';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
@@ -35,6 +36,7 @@ const STATUS_CONFIG: Record<BackchargeStatus, { bg: string; color: string; borde
 };
 
 export function SubcontractorBackChargesModal({ open, onClose, projectId, projectName }: SubcontractorBackChargesModalProps) {
+  const { t } = useTranslation();
   const [backcharges, setBackcharges] = useState<ContractingSubcontractorBackcharge[]>([]);
   const [subcontracts, setSubcontracts] = useState<ContractingSubcontract[]>([]);
   const [loading, setLoading] = useState(true);
@@ -148,8 +150,8 @@ export function SubcontractorBackChargesModal({ open, onClose, projectId, projec
     <StandardDialog
       open={open}
       onClose={onClose}
-      title="سجل خصومات واستقطاعات مقاولي الباطن (Subcontractor Back-Charges)"
-      subtitle={`إدارة المطالبات العكسية وتلفيات الأعمال وخصومات الوقود والمعدات للمشروع: ${projectName || 'المشروع المحدد'}`}
+      title={t('contracting.subcontractor_back_charges_modal.s0', "سجل خصومات واستقطاعات مقاولي الباطن (Subcontractor Back-Charges)")}
+      subtitle={`إدارة المطالبات العكسية وتلفيات الأعمال وخصومات الوقود والمعدات للمشروع: ${projectName || t('contracting.subcontractor_back_charges_modal.s1', "المشروع المحدد")}`}
       width="1180px"
       compact
       minHeight="min(580px, 86vh)"
@@ -175,7 +177,7 @@ export function SubcontractorBackChargesModal({ open, onClose, projectId, projec
             }}
           >
             <AppIcons.Layers size={14} />
-            سجل الخصومات ({backcharges.length})
+            {t('contracting.subcontractor_back_charges_modal.s2', "سجل الخصومات (")}{backcharges.length})
           </button>
           <button
             type="button"
@@ -195,20 +197,20 @@ export function SubcontractorBackChargesModal({ open, onClose, projectId, projec
             }}
           >
             <AppIcons.PlusCircle size={14} />
-            تسجيل إشعار خصم جديد
+            {t('contracting.subcontractor_back_charges_modal.s3', "تسجيل إشعار خصم جديد")}
           </button>
         </div>
 
         {/* Mini KPI summary */}
         <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
           <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', padding: '4px 10px', borderRadius: '8px', fontSize: '11.5px' }}>
-            إجمالي الخصومات: <strong style={{ color: '#0f172a' }}>{formatCurrency(totalAmount)}</strong>
+            {t('contracting.subcontractor_back_charges_modal.s4', "إجمالي الخصومات:")} <strong style={{ color: '#0f172a' }}>{formatCurrency(totalAmount)}</strong>
           </div>
           <div style={{ background: '#dcfce7', border: '1px solid #bbf7d0', padding: '4px 10px', borderRadius: '8px', fontSize: '11.5px', color: '#15803d' }}>
-            تم الخصم بالمستخلص: <strong>{formatCurrency(deductedAmount)}</strong>
+            {t('contracting.subcontractor_back_charges_modal.s5', "تم الخصم بالمستخلص:")} <strong>{formatCurrency(deductedAmount)}</strong>
           </div>
           <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', padding: '4px 10px', borderRadius: '8px', fontSize: '11.5px', color: '#1e40af' }}>
-            قيد المراجعة: <strong>{formatCurrency(pendingAmount)}</strong>
+            {t('contracting.subcontractor_back_charges_modal.s6', "قيد المراجعة:")} <strong>{formatCurrency(pendingAmount)}</strong>
           </div>
         </div>
       </div>
@@ -216,29 +218,29 @@ export function SubcontractorBackChargesModal({ open, onClose, projectId, projec
       {loading ? (
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '300px', gap: '12px' }}>
           <div className="spinner" style={{ width: '32px', height: '32px', border: '3px solid #e2e8f0', borderTopColor: '#170e5e', borderRadius: '50%' }} />
-          <div style={{ color: '#64748b', fontSize: '13px' }}>جاري تحميل سجلات الخصومات...</div>
+          <div style={{ color: '#64748b', fontSize: '13px' }}>{t('contracting.subcontractor_back_charges_modal.s7', "جاري تحميل سجلات الخصومات...")}</div>
         </div>
       ) : activeTab === 'create' ? (
         /* Create Form */
         <form onSubmit={handleCreateBackcharge} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
           <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 16px', fontSize: '12.5px', color: '#475569' }}>
-            يتم تسجيل هذا الإشعار وتوجيهه تلقائياً إلى مستخلص مقاول الباطن القادم ليتم استقطاعه تعاقدياً مع إمكانية إسناد التعويض لمقاول متضرر آخر أو المقاول العام.
+            {t('contracting.subcontractor_back_charges_modal.s8', "يتم تسجيل هذا الإشعار وتوجيهه تلقائياً إلى مستخلص مقاول الباطن القادم ليتم استقطاعه تعاقدياً مع إمكانية إسناد التعويض لمقاول متضرر آخر أو المقاول العام.")}
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
-            <Field label="مقاول الباطن (المستحق عليه الخصم) *">
+            <Field label={t('contracting.subcontractor_back_charges_modal.s9', "مقاول الباطن (المستحق عليه الخصم) *")}>
               <CustomSelect
                 value={subcontractId}
                 onChange={(val) => setSubcontractId(String(val))}
                 options={subcontracts.map((s) => ({
                   value: s.id,
-                  label: `${s.contractNumber} - ${s.subcontractorName || 'مقاول باطن'} (${s.scopeOfWork || 'أعمال'})`,
+                  label: `${s.contractNumber} - ${s.subcontractorName || t('contracting.subcontractor_back_charges_modal.s10', "مقاول باطن")} (${s.scopeOfWork || t('contracting.subcontractor_back_charges_modal.s11', "أعمال")})`,
                 }))}
-                placeholder="-- اختر عقد مقاول الباطن --"
+                placeholder={t('contracting.subcontractor_back_charges_modal.s12', "-- اختر عقد مقاول الباطن --")}
               />
             </Field>
 
-            <Field label="نوع وسبب الاستقطاع / الخصم *">
+            <Field label={t('contracting.subcontractor_back_charges_modal.s13', "نوع وسبب الاستقطاع / الخصم *")}>
               <CustomSelect
                 value={backchargeCategory}
                 onChange={(val) => setBackchargeCategory(val as BackchargeCategory)}
@@ -251,7 +253,7 @@ export function SubcontractorBackChargesModal({ open, onClose, projectId, projec
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '14px' }}>
-            <Field label="قيمة مبلغ الخصم (ج.م) *">
+            <Field label={t('contracting.subcontractor_back_charges_modal.s14', "قيمة مبلغ الخصم (ج.م) *")}>
               <input
                 type="number"
                 step="0.01"
@@ -264,7 +266,7 @@ export function SubcontractorBackChargesModal({ open, onClose, projectId, projec
               />
             </Field>
 
-            <Field label="تاريخ وقوع الحادثة / الخصم *">
+            <Field label={t('contracting.subcontractor_back_charges_modal.s15', "تاريخ وقوع الحادثة / الخصم *")}>
               <input
                 type="date"
                 value={occurrenceDate}
@@ -274,12 +276,12 @@ export function SubcontractorBackChargesModal({ open, onClose, projectId, projec
               />
             </Field>
 
-            <Field label="الطرف المستفيد من التعويض (اختياري)">
+            <Field label={t('contracting.subcontractor_back_charges_modal.s16', "الطرف المستفيد من التعويض (اختياري)")}>
               <CustomSelect
                 value={beneficiarySubcontractId}
                 onChange={(val) => setBeneficiarySubcontractId(String(val))}
                 options={[
-                  { value: '', label: 'المقاول العام مباشرة (General Contractor)' },
+                  { value: '', label: t('contracting.subcontractor_back_charges_modal.s17', "المقاول العام مباشرة (General Contractor)") },
                   ...subcontracts
                     .filter((s) => s.id !== subcontractId)
                     .map((s) => ({
@@ -291,12 +293,12 @@ export function SubcontractorBackChargesModal({ open, onClose, projectId, projec
             </Field>
           </div>
 
-          <Field label="بيان وتفاصيل أسباب الخصم والمستندات المؤيدة *">
+          <Field label={t('contracting.subcontractor_back_charges_modal.s18', "بيان وتفاصيل أسباب الخصم والمستندات المؤيدة *")}>
             <textarea
               rows={3}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="اكتب وصفاً وافياً لواقعة التلفيات أو المخالفة، رقم محضر الموقع، المعدات المستخدمة وساعات التشغيل..."
+              placeholder={t('contracting.subcontractor_back_charges_modal.s19', "اكتب وصفاً وافياً لواقعة التلفيات أو المخالفة، رقم محضر الموقع، المعدات المستخدمة وساعات التشغيل...")}
               style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '13px', resize: 'vertical' }}
               required
             />
@@ -316,7 +318,7 @@ export function SubcontractorBackChargesModal({ open, onClose, projectId, projec
                 cursor: 'pointer',
               }}
             >
-              إلغاء
+              {t('contracting.subcontractor_back_charges_modal.s20', "إلغاء")}
             </button>
             <button
               type="submit"
@@ -335,7 +337,7 @@ export function SubcontractorBackChargesModal({ open, onClose, projectId, projec
                 gap: '6px',
               }}
             >
-              {isSubmitting ? 'جاري الحفظ...' : 'حفظ إشعار الخصم'}
+              {isSubmitting ? t('contracting.subcontractor_back_charges_modal.s21', "جاري الحفظ...") : t('contracting.subcontractor_back_charges_modal.s22', "حفظ إشعار الخصم")}
             </button>
           </div>
         </form>
@@ -344,13 +346,13 @@ export function SubcontractorBackChargesModal({ open, onClose, projectId, projec
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           {/* Filter Bar */}
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-            <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 600 }}>تصنيف الخصم:</span>
+            <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 600 }}>{t('contracting.subcontractor_back_charges_modal.s23', "تصنيف الخصم:")}</span>
             <select
               value={categoryFilter}
               onChange={(e) => setCategoryFilter(e.target.value)}
               style={{ padding: '6px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '12px', background: '#fff' }}
             >
-              <option value="all">كل التصنيفات ({backcharges.length})</option>
+              <option value="all">{t('contracting.subcontractor_back_charges_modal.s24', "كل التصنيفات (")}{backcharges.length})</option>
               {Object.entries(CATEGORY_CONFIG).map(([k, v]) => (
                 <option key={k} value={k}>
                   {v.label}
@@ -361,21 +363,21 @@ export function SubcontractorBackChargesModal({ open, onClose, projectId, projec
 
           {filteredList.length === 0 ? (
             <div style={{ padding: '40px', textAlign: 'center', color: '#64748b', background: '#f8fafc', borderRadius: '10px' }}>
-              لا توجد استقطاعات أو خصومات مسجلة لمقاولي الباطن بهذا التصنيف.
+              {t('contracting.subcontractor_back_charges_modal.s25', "لا توجد استقطاعات أو خصومات مسجلة لمقاولي الباطن بهذا التصنيف.")}
             </div>
           ) : (
             <div style={{ overflowX: 'auto', maxHeight: '340px', border: '1px solid #e2e8f0', borderRadius: '10px' }} className="thin-scrollbar">
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12.5px', textAlign: 'right' }}>
                 <thead style={{ background: '#f8fafc', position: 'sticky', top: 0, zIndex: 1 }}>
                   <tr>
-                    <th style={{ padding: '10px 12px', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>رقم الإشعار</th>
-                    <th style={{ padding: '10px 12px', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>مقاول الباطن</th>
-                    <th style={{ padding: '10px 12px', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>نوع الخصم</th>
-                    <th style={{ padding: '10px 12px', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>البيان والتفاصيل</th>
-                    <th style={{ padding: '10px 12px', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>التاريخ</th>
-                    <th style={{ padding: '10px 12px', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>المبلغ</th>
-                    <th style={{ padding: '10px 12px', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>الحالة</th>
-                    <th style={{ padding: '10px 12px', borderBottom: '1px solid #e2e8f0', color: '#475569', textAlign: 'center' }}>الإجراءات</th>
+                    <th style={{ padding: '10px 12px', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>{t('contracting.subcontractor_back_charges_modal.s26', "رقم الإشعار")}</th>
+                    <th style={{ padding: '10px 12px', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>{t('contracting.subcontractor_back_charges_modal.s27', "مقاول الباطن")}</th>
+                    <th style={{ padding: '10px 12px', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>{t('contracting.subcontractor_back_charges_modal.s28', "نوع الخصم")}</th>
+                    <th style={{ padding: '10px 12px', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>{t('contracting.subcontractor_back_charges_modal.s29', "البيان والتفاصيل")}</th>
+                    <th style={{ padding: '10px 12px', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>{t('contracting.subcontractor_back_charges_modal.s30', "التاريخ")}</th>
+                    <th style={{ padding: '10px 12px', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>{t('contracting.subcontractor_back_charges_modal.s31', "المبلغ")}</th>
+                    <th style={{ padding: '10px 12px', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>{t('contracting.subcontractor_back_charges_modal.s32', "الحالة")}</th>
+                    <th style={{ padding: '10px 12px', borderBottom: '1px solid #e2e8f0', color: '#475569', textAlign: 'center' }}>{t('contracting.subcontractor_back_charges_modal.s33', "الإجراءات")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -385,7 +387,7 @@ export function SubcontractorBackChargesModal({ open, onClose, projectId, projec
                     return (
                       <tr key={item.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                         <td style={{ padding: '10px 12px', fontWeight: 700, color: '#170e5e' }}>{item.voucherNumber}</td>
-                        <td style={{ padding: '10px 12px', fontWeight: 600 }}>{item.subcontractorName || 'مقاول باطن'}</td>
+                        <td style={{ padding: '10px 12px', fontWeight: 600 }}>{item.subcontractorName || t('contracting.subcontractor_back_charges_modal.s34', "مقاول باطن")}</td>
                         <td style={{ padding: '10px 12px', color: '#334155' }}>{catCfg?.label.split('(')[0] || item.backchargeCategory}</td>
                         <td style={{ padding: '10px 12px', maxWidth: '240px', color: '#475569' }}>{item.description}</td>
                         <td style={{ padding: '10px 12px', color: '#64748b' }}>{item.occurrenceDate}</td>
@@ -424,7 +426,7 @@ export function SubcontractorBackChargesModal({ open, onClose, projectId, projec
                                   cursor: 'pointer',
                                 }}
                               >
-                                اعتماد الخصم
+                                {t('contracting.subcontractor_back_charges_modal.s35', "اعتماد الخصم")}
                               </button>
                               <button
                                 type="button"
@@ -440,14 +442,14 @@ export function SubcontractorBackChargesModal({ open, onClose, projectId, projec
                                   cursor: 'pointer',
                                 }}
                               >
-                                إعفاء
+                                {t('contracting.subcontractor_back_charges_modal.s36', "إعفاء")}
                               </button>
                             </div>
                           )}
                           {item.status === 'applied_to_deduction' && (
-                            <span style={{ fontSize: '11px', color: '#15803d', fontWeight: 600 }}>مدرج بالمستخلص</span>
+                            <span style={{ fontSize: '11px', color: '#15803d', fontWeight: 600 }}>{t('contracting.subcontractor_back_charges_modal.s37', "مدرج بالمستخلص")}</span>
                           )}
-                          {item.status === 'waived' && <span style={{ fontSize: '11px', color: '#94a3b8' }}>ملغاة</span>}
+                          {item.status === 'waived' && <span style={{ fontSize: '11px', color: '#94a3b8' }}>{t('contracting.subcontractor_back_charges_modal.s38', "ملغاة")}</span>}
                         </td>
                       </tr>
                     );

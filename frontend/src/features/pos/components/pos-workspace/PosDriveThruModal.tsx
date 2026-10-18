@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
 import { RestaurantOperationsDialog } from './RestaurantOperationsDialog';
 import { Button } from '@/shared/ui/button';
@@ -24,6 +25,7 @@ interface PosDriveThruModalProps {
 }
 
 export function PosDriveThruModal({ open, onClose, branchId: _branchId, onSelectDriveThruOrder, onBack }: PosDriveThruModalProps) {
+  const { t } = useTranslation();
   const [orders, setOrders] = useState<RestaurantDriveThruOrder[]>([]);
   const [activeCount, setActiveCount] = useState(0);
   const [averageSos, setAverageSos] = useState(0);
@@ -112,9 +114,9 @@ export function PosDriveThruModal({ open, onClose, branchId: _branchId, onSelect
       open={open}
       onClose={onClose}
       onBack={onBack}
-      backText="الرجوع لعمليات المطعم"
-      title="مسار طلبات السيارات ومؤشر سرعة الخدمة (Drive-Thru SOS)"
-      subtitle="متابعة طابور سيارات الخدمة ومؤشر سرعة وتوقيت الخدمة SOS"
+      backText={t('pos.pos_workspace.pos_drive_thru_modal.s0', "الرجوع لعمليات المطعم")}
+      title={t('pos.pos_workspace.pos_drive_thru_modal.s1', "مسار طلبات السيارات ومؤشر سرعة الخدمة (Drive-Thru SOS)")}
+      subtitle={t('pos.pos_workspace.pos_drive_thru_modal.s2', "متابعة طابور سيارات الخدمة ومؤشر سرعة وتوقيت الخدمة SOS")}
       badge={
         activeCount > 0 ? (
           <span
@@ -127,11 +129,11 @@ export function PosDriveThruModal({ open, onClose, branchId: _branchId, onSelect
               borderRadius: '999px',
             }}
           >
-            {activeCount} سيارات بالمسار
+            {activeCount} {t('pos.pos_workspace.pos_drive_thru_modal.s3', "سيارات بالمسار")}
           </span>
         ) : undefined
       }
-      footerNote="مسار طلبات السيارات متصل بنظام KDS وشاشات العرض الخارجية"
+      footerNote={t('pos.pos_workspace.pos_drive_thru_modal.s4', "مسار طلبات السيارات متصل بنظام KDS وشاشات العرض الخارجية")}
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
           {/* Header & KPI Summary */}
@@ -169,8 +171,8 @@ export function PosDriveThruModal({ open, onClose, branchId: _branchId, onSelect
                 <TruckIcon size={20} color="#1d4ed8" />
               </div>
               <div>
-                <div style={{ fontSize: '11.5px', color: '#475569', fontWeight: 600 }}>سيارات بالمسار حالياً</div>
-                <div style={{ fontSize: '18px', fontWeight: 900, color: '#1e40af' }}>{activeCount} مركبة</div>
+                <div style={{ fontSize: '11.5px', color: '#475569', fontWeight: 600 }}>{t('pos.pos_workspace.pos_drive_thru_modal.s5', "سيارات بالمسار حالياً")}</div>
+                <div style={{ fontSize: '18px', fontWeight: 900, color: '#1e40af' }}>{activeCount} {t('pos.pos_workspace.pos_drive_thru_modal.s6', "مركبة")}</div>
               </div>
             </div>
 
@@ -199,7 +201,7 @@ export function PosDriveThruModal({ open, onClose, branchId: _branchId, onSelect
                 <ClockIcon size={20} color="#15803d" />
               </div>
               <div>
-                <div style={{ fontSize: '11.5px', color: '#475569', fontWeight: 600 }}>متوسط زمن الخدمة (SOS)</div>
+                <div style={{ fontSize: '11.5px', color: '#475569', fontWeight: 600 }}>{t('pos.pos_workspace.pos_drive_thru_modal.s7', "متوسط زمن الخدمة (SOS)")}</div>
                 <div style={{ fontSize: '18px', fontWeight: 900, color: '#166534' }}>
                   {formatSosTime(averageSos)}
                 </div>
@@ -231,9 +233,9 @@ export function PosDriveThruModal({ open, onClose, branchId: _branchId, onSelect
                 <CheckCircleIcon size={20} color="#170e5e" />
               </div>
               <div>
-                <div style={{ fontSize: '11.5px', color: '#475569', fontWeight: 600 }}>المعيار العالمي للسرعة</div>
+                <div style={{ fontSize: '11.5px', color: '#475569', fontWeight: 600 }}>{t('pos.pos_workspace.pos_drive_thru_modal.s8', "المعيار العالمي للسرعة")}</div>
                 <div style={{ fontSize: '12.5px', fontWeight: 800, color: '#170e5e' }}>
-                  &lt; 90 ثانية (ممتاز) • &lt; 180 ثانية (مقبول)
+                  {t('pos.pos_workspace.pos_drive_thru_modal.s9', "< 90 ثانية (ممتاز) • < 180 ثانية (مقبول)")}
                 </div>
               </div>
             </div>
@@ -255,11 +257,11 @@ export function PosDriveThruModal({ open, onClose, branchId: _branchId, onSelect
           >
             <div>
               <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
-                رقم اللوحة *
+                {t('pos.pos_workspace.pos_drive_thru_modal.s10', "رقم اللوحة *")}
               </label>
               <input
                 type="text"
-                placeholder="مثال: أ ب ج 1234"
+                placeholder={t('pos.pos_workspace.pos_drive_thru_modal.s11', "مثال: أ ب ج 1234")}
                 value={newPlate}
                 onChange={(e) => setNewPlate(e.target.value)}
                 style={{
@@ -275,11 +277,11 @@ export function PosDriveThruModal({ open, onClose, branchId: _branchId, onSelect
 
             <div>
               <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
-                نوع ولون المركبة
+                {t('pos.pos_workspace.pos_drive_thru_modal.s12', "نوع ولون المركبة")}
               </label>
               <input
                 type="text"
-                placeholder="مثال: أبيض - كيا سيراتو"
+                placeholder={t('pos.pos_workspace.pos_drive_thru_modal.s13', "مثال: أبيض - كيا سيراتو")}
                 value={newDesc}
                 onChange={(e) => setNewDesc(e.target.value)}
                 style={{
@@ -295,7 +297,7 @@ export function PosDriveThruModal({ open, onClose, branchId: _branchId, onSelect
 
             <div>
               <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
-                قيمة الطلب
+                {t('pos.pos_workspace.pos_drive_thru_modal.s14', "قيمة الطلب")}
               </label>
               <input
                 type="number"
@@ -317,11 +319,11 @@ export function PosDriveThruModal({ open, onClose, branchId: _branchId, onSelect
 
             <div>
               <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
-                ملاحظات
+                {t('pos.pos_workspace.pos_drive_thru_modal.s15', "ملاحظات")}
               </label>
               <input
                 type="text"
-                placeholder="طلب بدون سكر، استلام سريع..."
+                placeholder={t('pos.pos_workspace.pos_drive_thru_modal.s16', "طلب بدون سكر، استلام سريع...")}
                 value={newNotes}
                 onChange={(e) => setNewNotes(e.target.value)}
                 style={{
@@ -351,7 +353,7 @@ export function PosDriveThruModal({ open, onClose, branchId: _branchId, onSelect
               }}
             >
               <PlusCircleIcon size={15} color="#ffffff" />
-              <span>دخول المسار</span>
+              <span>{t('pos.pos_workspace.pos_drive_thru_modal.s17', "دخول المسار")}</span>
             </Button>
           </form>
 
@@ -360,18 +362,18 @@ export function PosDriveThruModal({ open, onClose, branchId: _branchId, onSelect
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right' }}>
               <thead>
                 <tr style={{ backgroundColor: '#f1f5f9', borderBottom: '1px solid #e2e8f0' }}>
-                  <th style={{ padding: '9px 12px', fontSize: '12px', fontWeight: 800, color: '#475569' }}>رقم اللوحة والمركبة</th>
-                  <th style={{ padding: '9px 12px', fontSize: '12px', fontWeight: 800, color: '#475569' }}>مرحلة المسار</th>
-                  <th style={{ padding: '9px 12px', fontSize: '12px', fontWeight: 800, color: '#475569' }}>مؤشر زمن الخدمة (SOS)</th>
-                  <th style={{ padding: '9px 12px', fontSize: '12px', fontWeight: 800, color: '#475569' }}>قيمة الطلب</th>
-                  <th style={{ padding: '9px 12px', fontSize: '12px', fontWeight: 800, color: '#475569', textAlign: 'center' }}>الإجراءات السريعة</th>
+                  <th style={{ padding: '9px 12px', fontSize: '12px', fontWeight: 800, color: '#475569' }}>{t('pos.pos_workspace.pos_drive_thru_modal.s18', "رقم اللوحة والمركبة")}</th>
+                  <th style={{ padding: '9px 12px', fontSize: '12px', fontWeight: 800, color: '#475569' }}>{t('pos.pos_workspace.pos_drive_thru_modal.s19', "مرحلة المسار")}</th>
+                  <th style={{ padding: '9px 12px', fontSize: '12px', fontWeight: 800, color: '#475569' }}>{t('pos.pos_workspace.pos_drive_thru_modal.s20', "مؤشر زمن الخدمة (SOS)")}</th>
+                  <th style={{ padding: '9px 12px', fontSize: '12px', fontWeight: 800, color: '#475569' }}>{t('pos.pos_workspace.pos_drive_thru_modal.s21', "قيمة الطلب")}</th>
+                  <th style={{ padding: '9px 12px', fontSize: '12px', fontWeight: 800, color: '#475569', textAlign: 'center' }}>{t('pos.pos_workspace.pos_drive_thru_modal.s22', "الإجراءات السريعة")}</th>
                 </tr>
               </thead>
               <tbody>
                 {orders.length === 0 ? (
                   <tr>
                     <td colSpan={5} style={{ padding: '36px', textAlign: 'center', color: '#64748b', fontSize: '13px' }}>
-                      لا توجد سيارات في مسار الطلبات حالياً.
+                      {t('pos.pos_workspace.pos_drive_thru_modal.s23', "لا توجد سيارات في مسار الطلبات حالياً.")}
                     </td>
                   </tr>
                 ) : (
@@ -426,12 +428,12 @@ export function PosDriveThruModal({ open, onClose, branchId: _branchId, onSelect
                             }}
                           >
                             {o.status === 'order_taken'
-                              ? 'عند شباك الطلب'
+                              ? t('pos.pos_workspace.pos_drive_thru_modal.s24', "عند شباك الطلب")
                               : o.status === 'at_window'
-                              ? 'وصلت لشباك الاستلام'
+                              ? t('pos.pos_workspace.pos_drive_thru_modal.s25', "وصلت لشباك الاستلام")
                               : o.status === 'completed'
-                              ? 'تم التسليم وخروج'
-                              : 'ملغي'}
+                              ? t('pos.pos_workspace.pos_drive_thru_modal.s26', "تم التسليم وخروج")
+                              : t('pos.pos_workspace.pos_drive_thru_modal.s27', "ملغي")}
                           </span>
                         </td>
 
@@ -474,9 +476,9 @@ export function PosDriveThruModal({ open, onClose, branchId: _branchId, onSelect
                                     color: '#1d4ed8',
                                     border: '1px solid #bfdbfe',
                                   }}
-                                  title="انتقال السيارة لشباك الاستلام والدفع"
+                                  title={t('pos.pos_workspace.pos_drive_thru_modal.s28', "انتقال السيارة لشباك الاستلام والدفع")}
                                 >
-                                  وصول للشباك
+                                  {t('pos.pos_workspace.pos_drive_thru_modal.s29', "وصول للشباك")}
                                 </Button>
                               )}
 
@@ -489,9 +491,9 @@ export function PosDriveThruModal({ open, onClose, branchId: _branchId, onSelect
                                   padding: '4px 8px',
                                   backgroundColor: '#15803d',
                                 }}
-                                title="إتمام تسليم الوجبة وخروج السيارة من المسار"
+                                title={t('pos.pos_workspace.pos_drive_thru_modal.s30', "إتمام تسليم الوجبة وخروج السيارة من المسار")}
                               >
-                                إتمام وخروج
+                                {t('pos.pos_workspace.pos_drive_thru_modal.s31', "إتمام وخروج")}
                               </Button>
 
                               <button
@@ -504,7 +506,7 @@ export function PosDriveThruModal({ open, onClose, branchId: _branchId, onSelect
                                   cursor: 'pointer',
                                   padding: '4px',
                                 }}
-                                title="إلغاء من المسار"
+                                title={t('pos.pos_workspace.pos_drive_thru_modal.s32', "إلغاء من المسار")}
                               >
                                 <XIcon size={14} />
                               </button>

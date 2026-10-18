@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 import type { ReportType } from './hr-reports.helpers';
 
@@ -24,6 +25,7 @@ export const HrReportsKpiBar: React.FC<HrReportsKpiBarProps> = ({
   assetsReport,
   alertsCount,
 }) => {
+  const { t } = useTranslation();
   const stats = [
     { label: 'إجمالي الموظفين', value: employeesReport.total, onClick: () => setReportType('employees'), isAlert: false, active: reportType === 'employees' },
     { label: 'ملفات ناقصة', value: employeesReport.missingBasics, onClick: () => setReportType('employees'), isAlert: employeesReport.missingBasics > 0, active: reportType === 'employees' },
@@ -38,8 +40,8 @@ export const HrReportsKpiBar: React.FC<HrReportsKpiBarProps> = ({
   return (
     <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 14px', marginBottom: '16px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-        <span style={{ fontSize: '0.825rem', fontWeight: 800, color: '#0f172a' }}>لوحة المؤشرات المختصرة للموارد البشرية</span>
-        <span style={{ fontSize: '0.725rem', color: '#64748b' }}>اضغط على أي مؤشر لتصفية نوع التقرير فوراً</span>
+        <span style={{ fontSize: '0.825rem', fontWeight: 800, color: '#0f172a' }}>{t('hr.reports.hr_reports_kpi_bar.s0', "لوحة المؤشرات المختصرة للموارد البشرية")}</span>
+        <span style={{ fontSize: '0.725rem', color: '#64748b' }}>{t('hr.reports.hr_reports_kpi_bar.s1', "اضغط على أي مؤشر لتصفية نوع التقرير فوراً")}</span>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8, minmax(0, 1fr))', gap: '8px' }}>

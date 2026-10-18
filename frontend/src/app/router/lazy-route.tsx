@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Suspense, lazy, type ComponentType, type ReactNode } from 'react';
 
 function RouteLoadingFallback() {
@@ -44,6 +45,7 @@ function RouteLoadingFallback() {
 export type LazyLoader = () => Promise<{ default: ComponentType<any> }>;
 
 function RouteLoadErrorFallback() {
+  const { t } = useTranslation();
   const isOffline = typeof navigator !== 'undefined' && !navigator.onLine;
 
   const handleReload = () => {
@@ -117,13 +119,13 @@ function RouteLoadErrorFallback() {
         </div>
 
         <h3 style={{ fontSize: '18px', fontWeight: 800, color: '#0f172a', marginBottom: '10px' }}>
-          {isOffline ? 'تعذر الاتصال بالخادم (غير متصل بالإنترنت)' : 'تعذر تحميل محتوى هذه الصفحة'}
+          {isOffline ? t('app.router.lazy_route.s0', "تعذر الاتصال بالخادم (غير متصل بالإنترنت)") : t('app.router.lazy_route.s1', "تعذر تحميل محتوى هذه الصفحة")}
         </h3>
 
         <p style={{ fontSize: '13px', color: '#64748b', lineHeight: 1.6, marginBottom: '24px' }}>
           {isOffline
-            ? 'يبدو أن جهازك غير متصل بالإنترنت حالياً. تتطلب هذه الشاشة اتصالاً بالخادم لتحميل أحدث ملفاتها وبياناتها السحابية.'
-            : 'تعذر تحميل ملفات الصفحة المطلوبة، قد يكون ذلك بسبب تحديثات جديدة للمنظومة أو انقطاع مؤقت في الاتصال. يمكنك إعادة تحميل الصفحة للمحاولة مجدداً.'}
+            ? t('app.router.lazy_route.s2', "يبدو أن جهازك غير متصل بالإنترنت حالياً. تتطلب هذه الشاشة اتصالاً بالخادم لتحميل أحدث ملفاتها وبياناتها السحابية.")
+            : t('app.router.lazy_route.s3', "تعذر تحميل ملفات الصفحة المطلوبة، قد يكون ذلك بسبب تحديثات جديدة للمنظومة أو انقطاع مؤقت في الاتصال. يمكنك إعادة تحميل الصفحة للمحاولة مجدداً.")}
         </p>
 
         <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap' }}>
@@ -144,7 +146,7 @@ function RouteLoadErrorFallback() {
               gap: '6px',
             }}
           >
-            <span>إعادة تحميل الصفحة</span>
+            <span>{t('app.router.lazy_route.s4', "إعادة تحميل الصفحة")}</span>
           </button>
 
           <button
@@ -161,7 +163,7 @@ function RouteLoadErrorFallback() {
               cursor: 'pointer',
             }}
           >
-            <span>العودة إلى لوحة التحكم</span>
+            <span>{t('app.router.lazy_route.s5', "العودة إلى لوحة التحكم")}</span>
           </button>
         </div>
       </div>

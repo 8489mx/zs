@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next';
+import { translateUiText } from '@/lib/auto-translator';
 import { Link } from 'react-router-dom';
 import { LockIcon, CheckIcon } from '@/shared/components/icons/AppIcons';
 import { PLAN_TIERS } from '@/features/settings/components/modular-configurator/modular-presets';
@@ -33,8 +35,14 @@ export function AppCard({
   onToggle,
   onOpenUpgradeModal,
 }: AppCardProps) {
+  const { t, i18n } = useTranslation();
+  const isEn = i18n.language === 'en';
   const planInfo = PLAN_TIERS[app.requiredPlan] || PLAN_TIERS.plan_ultimate;
   const AppIcon = app.icon;
+  const displayTitle = isEn ? (translateUiText(app.title) || app.title) : app.title;
+  const displayDesc = isEn ? (translateUiText(app.shortDesc) || app.shortDesc) : app.shortDesc;
+  const displayCat = isEn ? (translateUiText(app.categoryLabel) || app.categoryLabel) : app.categoryLabel;
+  const displayPlanName = isEn ? (translateUiText(planInfo.name) || planInfo.name) : planInfo.name;
 
   return (
     <div
@@ -88,7 +96,7 @@ export function AppCard({
                 }}
               >
                 <CheckIcon size={12} color="#047857" />
-                <span>{isSuperAdmin ? 'مُثبت ونشط' : 'مُفعّل ضمن باقتك'}</span>
+                <span>{isSuperAdmin ? t('apps_store.app_card.s0', "مُثبت ونشط") : t('apps_store.app_card.s1', "مُفعّل ضمن باقتك")}</span>
               </span>
             ) : isSuperAdmin && isAllowedByPlan ? (
               <span
@@ -102,7 +110,7 @@ export function AppCard({
                   borderRadius: '6px',
                 }}
               >
-                متاح للتثبيت
+                {t('apps_store.app_card.s2', "متاح للتثبيت")}
               </span>
             ) : (
               <span
@@ -120,12 +128,12 @@ export function AppCard({
                 }}
               >
                 <LockIcon size={11} color="#64748b" />
-                <span>{planInfo.name}</span>
+                <span>{displayPlanName}</span>
               </span>
             )}
 
             <span style={{ fontSize: '0.6875rem', color: '#94a3b8', fontWeight: 600 }}>
-              {app.categoryLabel}
+              {displayCat}
             </span>
           </div>
         </div>
@@ -140,7 +148,7 @@ export function AppCard({
             lineHeight: 1.3,
           }}
         >
-          {app.title}
+          {displayTitle}
         </h3>
 
         {/* Short Description */}
@@ -156,7 +164,7 @@ export function AppCard({
             textAlignLast: 'start',
           }}
         >
-          {app.shortDesc}
+          {displayDesc}
         </p>
 
         {/* Feature Pills */}
@@ -174,7 +182,7 @@ export function AppCard({
                 fontWeight: 600,
               }}
             >
-              {feat}
+              {isEn ? (translateUiText(feat) || feat) : feat}
             </span>
           ))}
         </div>
@@ -218,7 +226,7 @@ export function AppCard({
               e.currentTarget.style.borderColor = '#e2e8f0';
             }}
           >
-            <span>فتح التطبيق</span>
+            <span>{t('apps_store.app_card.s3', "فتح التطبيق")}</span>
             <ArrowUpLeftIcon size={13} />
           </Link>
         ) : (
@@ -243,7 +251,7 @@ export function AppCard({
               }}
             >
               <CheckIcon size={12} color="#047857" />
-              <span>أساسي في الباقة الشاملة</span>
+              <span>{t('apps_store.app_card.s4', "أساسي في الباقة الشاملة")}</span>
             </span>
           ) : isActive ? (
             isSuperAdmin ? (
@@ -273,7 +281,7 @@ export function AppCard({
                   e.currentTarget.style.background = '#ffffff';
                 }}
               >
-                إلغاء التثبيت
+                {t('apps_store.app_card.s5', "إلغاء التثبيت")}
               </button>
             ) : (
               <span
@@ -291,7 +299,7 @@ export function AppCard({
                 }}
               >
                 <CheckIcon size={12} color="#047857" />
-                <span>مُدرج بالاشتراك</span>
+                <span>{t('apps_store.app_card.s6', "مُدرج بالاشتراك")}</span>
               </span>
             )
           ) : isSuperAdmin ? (
@@ -318,7 +326,7 @@ export function AppCard({
                 e.currentTarget.style.background = '#170e5e';
               }}
             >
-              تثبيت وتفعيل
+              {t('apps_store.app_card.s7', "تثبيت وتفعيل")}
             </button>
           ) : (
             <button
@@ -348,7 +356,7 @@ export function AppCard({
               }}
             >
               <LockIcon size={12} color="#170e5e" />
-              <span>طلب التفعيل والترقية</span>
+              <span>{t('apps_store.app_card.s8', "طلب التفعيل والترقية")}</span>
             </button>
           )}
         </div>

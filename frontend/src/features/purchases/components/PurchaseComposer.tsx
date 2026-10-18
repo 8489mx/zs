@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useRef, useMemo } from 'react';
 import { Controller } from 'react-hook-form';
 import { FormSection } from '@/shared/components/form-section';
@@ -37,6 +38,7 @@ interface PurchaseComposerProps {
 }
 
 export function PurchaseComposer({ products, suppliers, categories, branches, locations, settings, isCatalogLoading, isCatalogError, catalogError }: PurchaseComposerProps) {
+  const { t } = useTranslation();
   // Key starts null. Generated lazily on first Submit. Reused for retries of the same attempt.
   // Must be reset when user explicitly starts a new invoice or after confirmed committed/failed.
   const idempotencyKeyRef = useRef<string | null>(null);
@@ -65,16 +67,16 @@ export function PurchaseComposer({ products, suppliers, categories, branches, lo
   ], [locations]);
 
   return (
-    <FormSection title="إنشاء فاتورة شراء" actions={<span className="nav-pill">إنشاء مباشر</span>} className="purchase-composer-card">
+    <FormSection title={t('purchases.purchase_composer.s0', "إنشاء فاتورة شراء")} actions={<span className="nav-pill">{t('purchases.purchase_composer.s1', "إنشاء مباشر")}</span>} className="purchase-composer-card">
       <QueryFeedback
         isLoading={isCatalogLoading}
         isError={isCatalogError}
         error={catalogError}
-        loadingText="جاري تجهيز بيانات الموردين والأصناف..."
-        errorTitle="تعذر تحميل بيانات تكوين فاتورة الشراء"
+        loadingText={t('purchases.purchase_composer.s2', "جاري تجهيز بيانات الموردين والأصناف...")}
+        errorTitle={t('purchases.purchase_composer.s3', "تعذر تحميل بيانات تكوين فاتورة الشراء")}
         isEmpty={!products.length || !suppliers.length}
-        emptyTitle="لا يمكن إنشاء فاتورة شراء الآن"
-        emptyHint="تأكد من وجود مورد واحد وصنف واحد على الأقل قبل إنشاء الفاتورة."
+        emptyTitle={t('purchases.purchase_composer.s4', "لا يمكن إنشاء فاتورة شراء الآن")}
+        emptyHint={t('purchases.purchase_composer.s5', "تأكد من وجود مورد واحد وصنف واحد على الأقل قبل إنشاء الفاتورة.")}
       >
         <form className="form-grid purchase-composer-form" onSubmit={headerForm.handleSubmit((values) => {
           // Generate key lazily on first submit attempt, then reuse for retries.
@@ -94,7 +96,7 @@ export function PurchaseComposer({ products, suppliers, categories, branches, lo
             idempotencyKey: idempotencyKeyRef.current,
           });
         })}>
-          <DraftStateNotice visible={hasDraftChanges && !mutation.isPending} title="فاتورة الشراء الحالية تحتوي على مسودة غير محفوظة" hint="احفظ الفاتورة أو أعد ضبطها قبل مغادرة الصفحة حتى لا تفقد البنود أو بيانات التوريد." />
+          <DraftStateNotice visible={hasDraftChanges && !mutation.isPending} title={t('purchases.purchase_composer.s6', "فاتورة الشراء الحالية تحتوي على مسودة غير محفوظة")} hint={t('purchases.purchase_composer.s7', "احفظ الفاتورة أو أعد ضبطها قبل مغادرة الصفحة حتى لا تفقد البنود أو بيانات التوريد.")} />
 
           <VendorDuplicateBillAlert
             checkResult={duplicateCheck.result}
@@ -107,7 +109,7 @@ export function PurchaseComposer({ products, suppliers, categories, branches, lo
             isAdmin={isAdmin}
           />
 
-          <Field label="المورد" error={headerForm.formState.errors.supplierId?.message}>
+          <Field label={t('purchases.purchase_composer.s8', "المورد")} error={headerForm.formState.errors.supplierId?.message}>
             <Controller
               name="supplierId"
               control={headerForm.control}
@@ -122,15 +124,15 @@ export function PurchaseComposer({ products, suppliers, categories, branches, lo
               )}
             />
           </Field>
-          <Field label="رقم فاتورة المورد الدفترية">
+          <Field label={t('purchases.purchase_composer.s9', "رقم فاتورة المورد الدفترية")}>
             <input
               type="text"
-              placeholder="رقم الفاتورة الورقية من المورد (اختياري)"
+              placeholder={t('purchases.purchase_composer.s10', "رقم الفاتورة الورقية من المورد (اختياري)")}
               {...headerForm.register('supplierInvoiceNo')}
               disabled={mutation.isPending}
             />
           </Field>
-          <Field label="نوع السداد">
+          <Field label={t('purchases.purchase_composer.s11', "نوع السداد")}>
             <Controller
               name="paymentType"
               control={headerForm.control}
@@ -146,12 +148,12 @@ export function PurchaseComposer({ products, suppliers, categories, branches, lo
             />
           </Field>
           {SINGLE_STORE_MODE ? (
-            <Field label="المخزن المستلم">
-              <input value={locations[0]?.name || 'سيتم الربط تلقائيًا بالمخزن الأساسي'} disabled readOnly />
+            <Field label={t('purchases.purchase_composer.s12', "المخزن المستلم")}>
+              <input value={locations[0]?.name || t('purchases.purchase_composer.s13', "سيتم الربط تلقائيًا بالمخزن الأساسي")} disabled readOnly />
             </Field>
           ) : (
             <>
-              <Field label="الفرع">
+              <Field label={t('purchases.purchase_composer.s14', "الفرع")}>
                 <Controller
                   name="branchId"
                   control={headerForm.control}
@@ -166,7 +168,7 @@ export function PurchaseComposer({ products, suppliers, categories, branches, lo
                   )}
                 />
               </Field>
-              <Field label="الموقع">
+              <Field label={t('purchases.purchase_composer.s15', "الموقع")}>
                 <Controller
                   name="locationId"
                   control={headerForm.control}
@@ -183,8 +185,8 @@ export function PurchaseComposer({ products, suppliers, categories, branches, lo
               </Field>
             </>
           )}
-          <Field label="خصم الفاتورة" error={headerForm.formState.errors.discount?.message}><input type="number" step="0.01" {...headerForm.register('discount')} disabled={mutation.isPending} /></Field>
-          <Field label="ملاحظات"><textarea rows={3} {...headerForm.register('note')} disabled={mutation.isPending} /></Field>
+          <Field label={t('purchases.purchase_composer.s16', "خصم الفاتورة")} error={headerForm.formState.errors.discount?.message}><input type="number" step="0.01" {...headerForm.register('discount')} disabled={mutation.isPending} /></Field>
+          <Field label={t('purchases.purchase_composer.s17', "ملاحظات")}><textarea rows={3} {...headerForm.register('note')} disabled={mutation.isPending} /></Field>
 
           <div className="divider" style={{ gridColumn: '1 / -1' }} />
 
@@ -211,8 +213,8 @@ export function PurchaseComposer({ products, suppliers, categories, branches, lo
             isError={mutation.isError}
             isSuccess={mutation.isSuccess}
             error={mutation.error}
-            errorFallback="تعذر حفظ فاتورة الشراء. راجع السطور والبيانات ثم أعد المحاولة."
-            successText="تم حفظ فاتورة الشراء وتحديث المخزون بنجاح."
+            errorFallback={t('purchases.purchase_composer.s18', "تعذر حفظ فاتورة الشراء. راجع السطور والبيانات ثم أعد المحاولة.")}
+            successText={t('purchases.purchase_composer.s19', "تم حفظ فاتورة الشراء وتحديث المخزون بنجاح.")}
           />
           <div className="actions sticky-form-actions" style={{ gridColumn: '1 / -1' }}>
             <SubmitButton
@@ -220,10 +222,10 @@ export function PurchaseComposer({ products, suppliers, categories, branches, lo
               variant="success"
               isPending={mutation.isPending}
               disabled={isBlockedByDuplicate}
-              idleText="حفظ فاتورة الشراء"
-              pendingText="جارٍ حفظ الفاتورة..."
+              idleText={t('purchases.purchase_composer.s20', "حفظ فاتورة الشراء")}
+              pendingText={t('purchases.purchase_composer.s21', "جارٍ حفظ الفاتورة...")}
             />
-            <Button type="button" variant="secondary" disabled={mutation.isPending} onClick={() => actions.handleReset()}>إعادة ضبط</Button>
+            <Button type="button" variant="secondary" disabled={mutation.isPending} onClick={() => actions.handleReset()}>{t('purchases.purchase_composer.s22', "إعادة ضبط")}</Button>
           </div>
         </form>
       </QueryFeedback>

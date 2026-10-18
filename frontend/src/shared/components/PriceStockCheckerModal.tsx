@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { XIcon } from '@/shared/components/icons/AppIcons';
 import { useState, useEffect, useCallback, useTransition } from 'react';
@@ -20,6 +21,7 @@ export function PriceStockCheckerModal({
   onClose,
   initialBarcode = '',
 }: PriceStockCheckerModalProps) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { user } = useAuthStore();
   const canSeeCost = isAdminUser(user);
@@ -158,8 +160,8 @@ export function PriceStockCheckerModal({
               </svg>
             </div>
             <div>
-              <h3 className="price-checker-title">فاحص الأسعار والمخزون</h3>
-              <p className="price-checker-subtitle">امسح الباركود بالكاميرا أو ابحث باسم الصنف</p>
+              <h3 className="price-checker-title">{t('shared.price_stock_checker_modal.s0', "فاحص الأسعار والمخزون")}</h3>
+              <p className="price-checker-subtitle">{t('shared.price_stock_checker_modal.s1', "امسح الباركود بالكاميرا أو ابحث باسم الصنف")}</p>
             </div>
           </div>
 
@@ -169,7 +171,7 @@ export function PriceStockCheckerModal({
               <input
                 type="text"
                 className="price-checker-input"
-                placeholder="اكتب الباركود أو اسم الصنف..."
+                placeholder={t('shared.price_stock_checker_modal.s2', "اكتب الباركود أو اسم الصنف...")}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 onKeyDown={(e) => {
@@ -184,7 +186,7 @@ export function PriceStockCheckerModal({
                   type="button"
                   className="price-checker-clear-btn"
                   onClick={() => setQuery('')}
-                  aria-label="مسح"
+                  aria-label={t('shared.price_stock_checker_modal.s3', "مسح")}
                 ><XIcon size={15} /></button>
               )}
             </div>
@@ -198,7 +200,7 @@ export function PriceStockCheckerModal({
               {isLoading ? (
                 <span className="price-checker-spinner-sm" />
               ) : (
-                'بحث'
+                t('shared.price_stock_checker_modal.s4', "بحث")
               )}
             </button>
 
@@ -209,13 +211,13 @@ export function PriceStockCheckerModal({
                 triggerHaptic('medium');
                 setCameraOpen(true);
               }}
-              title="مسح بالكاميرا"
+              title={t('shared.price_stock_checker_modal.s5', "مسح بالكاميرا")}
             >
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
                 <circle cx="12" cy="13" r="4"></circle>
               </svg>
-              <span>كاميرا</span>
+              <span>{t('shared.price_stock_checker_modal.s6', "كاميرا")}</span>
             </button>
           </div>
 
@@ -243,7 +245,7 @@ export function PriceStockCheckerModal({
                       )}
                       {selectedProduct.itemKind && (
                         <span className="price-checker-badge kind">
-                          {selectedProduct.itemKind === 'fashion' ? 'أزياء / مقاسات' : 'صنف قياسي'}
+                          {selectedProduct.itemKind === 'fashion' ? t('shared.price_stock_checker_modal.s7', "أزياء / مقاسات") : t('shared.price_stock_checker_modal.s8', "صنف قياسي")}
                         </span>
                       )}
                     </div>
@@ -262,10 +264,10 @@ export function PriceStockCheckerModal({
                     <strong>{selectedProduct.stock || 0}</strong>
                     <span>
                       {(selectedProduct.stock || 0) <= 0
-                        ? 'نافذ من المخزون'
+                        ? t('shared.price_stock_checker_modal.s9', "نافذ من المخزون")
                         : (selectedProduct.stock || 0) <= (selectedProduct.minStock || 5)
-                        ? 'رصيد منخفض'
-                        : 'متوفر'}
+                        ? t('shared.price_stock_checker_modal.s10', "رصيد منخفض")
+                        : t('shared.price_stock_checker_modal.s11', "متوفر")}
                     </span>
                   </div>
                 </div>
@@ -273,14 +275,14 @@ export function PriceStockCheckerModal({
                 {/* Pricing Grid */}
                 <div className="price-checker-prices-grid">
                   <div className="price-box retail">
-                    <span className="price-box-label">سعر البيع (قطاعي)</span>
+                    <span className="price-box-label">{t('shared.price_stock_checker_modal.s12', "سعر البيع (قطاعي)")}</span>
                     <strong className="price-box-val">
                       {(selectedProduct.retailPrice || 0).toLocaleString()} <small><CurrencySymbol /></small>
                     </strong>
                   </div>
 
                   <div className="price-box wholesale">
-                    <span className="price-box-label">سعر الجملة</span>
+                    <span className="price-box-label">{t('shared.price_stock_checker_modal.s13', "سعر الجملة")}</span>
                     <strong className="price-box-val">
                       {(selectedProduct.wholesalePrice || 0).toLocaleString()} <small><CurrencySymbol /></small>
                     </strong>
@@ -288,7 +290,7 @@ export function PriceStockCheckerModal({
 
                   {canSeeCost && (
                     <div className="price-box cost">
-                      <span className="price-box-label">سعر التكلفة</span>
+                      <span className="price-box-label">{t('shared.price_stock_checker_modal.s14', "سعر التكلفة")}</span>
                       <strong className="price-box-val">
                         {(selectedProduct.costPrice || 0).toLocaleString()} <small><CurrencySymbol /></small>
                       </strong>
@@ -299,13 +301,13 @@ export function PriceStockCheckerModal({
                 {/* Units List if available */}
                 {selectedProduct.units && selectedProduct.units.length > 0 && (
                   <div className="price-checker-section">
-                    <h5 className="price-checker-section-title">الوحدات والعبوات</h5>
+                    <h5 className="price-checker-section-title">{t('shared.price_stock_checker_modal.s15', "الوحدات والعبوات")}</h5>
                     <div className="price-checker-units-list">
                       {selectedProduct.units.map((unit, idx) => {
                         const unitPrice = (selectedProduct.retailPrice || 0) * (unit.multiplier || 1);
                         return (
                           <div key={unit.id || idx} className="price-checker-unit-row">
-                            <span className="unit-name">{unit.name} (معامل {unit.multiplier})</span>
+                            <span className="unit-name">{unit.name} {t('shared.price_stock_checker_modal.s16', "(معامل")} {unit.multiplier})</span>
                             <span className="unit-price">
                               {unitPrice.toLocaleString()} <CurrencySymbol />
                             </span>
@@ -319,7 +321,7 @@ export function PriceStockCheckerModal({
 
                 {/* Warehouse Location Breakdown */}
                 <div className="price-checker-section">
-                  <h5 className="price-checker-section-title">الرصيد في المخازن والفروع</h5>
+                  <h5 className="price-checker-section-title">{t('shared.price_stock_checker_modal.s17', "الرصيد في المخازن والفروع")}</h5>
                   <div className="price-checker-locations-grid">
                     {locations.length > 0 ? (
                       locations.map((loc) => {
@@ -328,15 +330,15 @@ export function PriceStockCheckerModal({
                           <div key={loc.id} className="price-checker-loc-item">
                             <span className="loc-name">{loc.name}</span>
                             <span className={`loc-qty ${qty > 0 ? 'has-stock' : 'zero-stock'}`}>
-                              {qty} قطعة
+                              {qty} {t('shared.price_stock_checker_modal.s18', "قطعة")}
                             </span>
                           </div>
                         );
                       })
                     ) : (
                       <div className="price-checker-loc-item">
-                        <span className="loc-name">المخزن الرئيسي</span>
-                        <span className="loc-qty has-stock">{selectedProduct.stock || 0} قطعة</span>
+                        <span className="loc-name">{t('shared.price_stock_checker_modal.s19', "المخزن الرئيسي")}</span>
+                        <span className="loc-qty has-stock">{selectedProduct.stock || 0} {t('shared.price_stock_checker_modal.s20', "قطعة")}</span>
                       </div>
                     )}
                   </div>
@@ -354,7 +356,7 @@ export function PriceStockCheckerModal({
                       <circle cx="20" cy="21" r="1"></circle>
                       <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
                     </svg>
-                    <span>بيع فوري في الكاشير (POS)</span>
+                    <span>{t('shared.price_stock_checker_modal.s21', "بيع فوري في الكاشير (POS)")}</span>
                   </button>
 
                   <button
@@ -362,7 +364,7 @@ export function PriceStockCheckerModal({
                     className="price-checker-btn-reset"
                     onClick={handleReset}
                   >
-                    فحص صنف آخر
+                    {t('shared.price_stock_checker_modal.s22', "فحص صنف آخر")}
                   </button>
                 </div>
               </div>
@@ -372,7 +374,7 @@ export function PriceStockCheckerModal({
             {!selectedProduct && searchResults.length > 0 && (
               <div className="price-checker-results-list">
                 <p className="price-checker-results-header">
-                  تم العثور على {searchResults.length} أصناف، اضغط على الصنف لعرض تفاصيله:
+                  {t('shared.price_stock_checker_modal.s23', "تم العثور على")} {searchResults.length} {t('shared.price_stock_checker_modal.s24', "أصناف، اضغط على الصنف لعرض تفاصيله:")}
                 </p>
                 <div className="price-checker-results-scroll">
                   {searchResults.map((prod) => (
@@ -393,7 +395,7 @@ export function PriceStockCheckerModal({
                           {(prod.retailPrice || 0).toLocaleString()} <CurrencySymbol />
                         </span>
                         <span className="result-item-stock">
-                          المتاح: {prod.stock || 0}
+                          {t('shared.price_stock_checker_modal.s25', "المتاح:")} {prod.stock || 0}
                         </span>
                       </div>
                     </button>
@@ -411,8 +413,8 @@ export function PriceStockCheckerModal({
                     <line x1="21" y1="21" x2="16.65" y2="16.65"/>
                   </svg>
                 </div>
-                <h4>لم يتم العثور على أي صنف</h4>
-                <p>تأكد من كتابة الاسم أو الباركود بشكل صحيح، أو اضغط على الكاميرا للمسح المباشر.</p>
+                <h4>{t('shared.price_stock_checker_modal.s26', "لم يتم العثور على أي صنف")}</h4>
+                <p>{t('shared.price_stock_checker_modal.s27', "تأكد من كتابة الاسم أو الباركود بشكل صحيح، أو اضغط على الكاميرا للمسح المباشر.")}</p>
               </div>
             )}
 
@@ -426,8 +428,8 @@ export function PriceStockCheckerModal({
                       <circle cx="12" cy="13" r="4"></circle>
                     </svg>
                   </div>
-                  <strong>اضغط لفتح كاميرا الهاتف ومسح الباركود فوراً</strong>
-                  <span>أو اكتب اسم الصنف في مربع البحث أعلاه</span>
+                  <strong>{t('shared.price_stock_checker_modal.s28', "اضغط لفتح كاميرا الهاتف ومسح الباركود فوراً")}</strong>
+                  <span>{t('shared.price_stock_checker_modal.s29', "أو اكتب اسم الصنف في مربع البحث أعلاه")}</span>
                 </div>
               </div>
             )}
@@ -441,7 +443,7 @@ export function PriceStockCheckerModal({
           isOpen={cameraOpen}
           onClose={() => setCameraOpen(false)}
           onScan={handleBarcodeScanned}
-          title="مسح باركود الصنف لفحص السعر والمخزون"
+          title={t('shared.price_stock_checker_modal.s30', "مسح باركود الصنف لفحص السعر والمخزون")}
         />
       )}
     </>

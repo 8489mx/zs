@@ -1,5 +1,7 @@
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/shared/ui/button';
 import { resolveCurrentVertical } from '@/shared/verticals/vertical-scope';
+import { translateUiText } from '@/lib/auto-translator';
 import type { TenantSubscriptionData } from '../../api/tenant-subscription.api';
 
 interface CurrentSubscriptionHeroCardProps {
@@ -19,22 +21,27 @@ export function CurrentSubscriptionHeroCard({
   usage,
   onUpgradeClick,
 }: CurrentSubscriptionHeroCardProps) {
+  const { t, i18n } = useTranslation();
+  const isEn = i18n.language === 'en';
   const vertical = resolveCurrentVertical(tenant, settings);
-  const branchesUsageLabel = vertical === 'maritime' ? 'المكاتب والمقرات: ' : vertical === 'contracting' ? 'المواقع والمقرات: ' : 'الفروع: ';
+  const branchesUsageLabel = isEn
+    ? (vertical === 'maritime' ? 'Offices: ' : vertical === 'contracting' ? 'Sites: ' : 'Branches: ')
+    : (vertical === 'maritime' ? 'المكاتب والمقرات: ' : vertical === 'contracting' ? 'المواقع والمقرات: ' : 'الفروع: ');
   const isTrial = tenant.status === 'trial';
-  const planName = subscription?.planName || (isTrial ? 'الفترة التجريبية المجانية' : 'خطة مخصصة');
+  const rawPlanName = subscription?.planName || (isTrial ? (isEn ? 'Free Trial Period' : 'الفترة التجريبية المجانية') : (isEn ? 'Custom Plan' : 'خطة مخصصة'));
+  const planName = isEn ? translateUiText(rawPlanName) : rawPlanName;
   const daysLeft = statusMeta.daysRemaining ?? 0;
   const statusLabel = isTrial
-    ? 'فترة تجريبية'
+    ? (isEn ? 'Trial Period' : 'فترة تجريبية')
     : statusMeta.isExpired
-      ? 'منتهي'
+      ? (isEn ? 'Expired' : 'منتهي')
       : statusMeta.isExpiringSoon
-        ? 'ينتهي قريباً'
-        : 'نشط';
+        ? (isEn ? 'Expiring Soon' : 'ينتهي قريباً')
+        : (isEn ? 'Active' : 'نشط');
   const expiryFormatted = subscription?.endsAt
-    ? new Date(subscription.endsAt).toLocaleDateString('ar-EG')
+    ? new Date(subscription.endsAt).toLocaleDateString(isEn ? 'en-US' : 'ar-EG')
     : tenant.trialEndsAt
-      ? new Date(tenant.trialEndsAt).toLocaleDateString('ar-EG')
+      ? new Date(tenant.trialEndsAt).toLocaleDateString(isEn ? 'en-US' : 'ar-EG')
       : null;
 
   const usersLimit = usage.users.max;
@@ -45,6 +52,7 @@ export function CurrentSubscriptionHeroCard({
 
   return (
     <div
+      dir={isEn ? 'ltr' : 'rtl'}
       style={{
         background: '#ffffff',
         borderRadius: '10px',
@@ -79,9 +87,9 @@ export function CurrentSubscriptionHeroCard({
             </span>
           </div>
           <div style={{ fontSize: '11.5px', color: '#64748b', marginTop: '2px' }}>
-            المنشأة: <strong style={{ color: '#0f172a' }}>{tenant.businessName}</strong> ({tenant.slug})
+            {isEn ? 'Organization:' : t('settings.subscription.current_subscription_hero_card.s0', "المنشأة:")} <strong style={{ color: '#0f172a' }}>{tenant.businessName}</strong> ({tenant.slug})
             {expiryFormatted && (
-              <span> • ينتهي في: <strong style={{ color: daysLeft <= 5 ? '#dc2626' : '#0f172a' }}>{expiryFormatted}</strong> ({daysLeft} يوم متبقي)</span>
+              <span> {isEn ? '• Expires on:' : t('settings.subscription.current_subscription_hero_card.s1', "• ينتهي في:")} <strong style={{ color: daysLeft <= 5 ? '#dc2626' : '#0f172a' }}>{expiryFormatted}</strong> ({daysLeft} {isEn ? 'days left)' : t('settings.subscription.current_subscription_hero_card.s2', "يوم متبقي)")}</span>
             )}
           </div>
         </div>
@@ -89,14 +97,14 @@ export function CurrentSubscriptionHeroCard({
         {/* Usage limits pills */}
         <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
           <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '4px 10px', fontSize: '11.5px' }}>
-            <span style={{ color: '#64748b' }}>المستخدمين: </span>
-            <strong style={{ color: '#0f172a' }}>{usage.users.current}</strong> / {usersLimit ?? 'غير محدود'}
+            <span style={{ color: '#64748b' }}>{isEn ? 'Users: ' : t('settings.subscription.current_subscription_hero_card.s3', "المستخدمين:")} </span>
+            <strong style={{ color: '#0f172a' }}>{usage.users.current}</strong> / {usersLimit ?? (isEn ? 'Unlimited' : t('settings.subscription.current_subscription_hero_card.s4', "غير محدود"))}
             {usersPercent !== null && <span style={{ color: usersPercent >= 90 ? '#dc2626' : '#64748b', marginInlineStart: '4px' }}>({usersPercent}%)</span>}
           </div>
 
           <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '4px 10px', fontSize: '11.5px' }}>
             <span style={{ color: '#64748b' }}>{branchesUsageLabel}</span>
-            <strong style={{ color: '#0f172a' }}>{usage.branches.current}</strong> / {branchesLimit ?? 'غير محدود'}
+            <strong style={{ color: '#0f172a' }}>{usage.branches.current}</strong> / {branchesLimit ?? (isEn ? 'Unlimited' : t('settings.subscription.current_subscription_hero_card.s5', "غير محدود"))}
             {branchesPercent !== null && <span style={{ color: branchesPercent >= 90 ? '#dc2626' : '#64748b', marginInlineStart: '4px' }}>({branchesPercent}%)</span>}
           </div>
         </div>
@@ -113,7 +121,7 @@ export function CurrentSubscriptionHeroCard({
           borderRadius: '8px',
         }}
       >
-        ترقية أو تجديد الباقة الآن
+        {isEn ? 'Upgrade or Renew Plan Now' : t('settings.subscription.current_subscription_hero_card.s6', "ترقية أو تجديد الباقة الآن")}
       </Button>
     </div>
   );

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { SubmitButton } from '@/shared/components/submit-button';
 import { MutationFeedback } from '@/shared/components/mutation-feedback';
@@ -174,6 +175,7 @@ export const SETTINGS_FIELD_METADATA: Record<
 };
 
 export function SettingsMainForm({ settings, branches, locations, canManageSettings, setupMode = false, onSetupAdvance, onUpdateBranch }: SettingsMainFormProps) {
+  const { t: __t } = useTranslation();
   const navigate = useNavigate();
   const locale = useLocalePreference();
   const setLocaleLanguage = locale.setLanguage;
@@ -335,23 +337,24 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
   const isImportVertical = rawActivity === 'import_export' || rawActivity === 'import';
   const isRestaurantVertical = ['restaurant', 'cafe', 'مطعم', 'كافيه'].includes(rawActivity) || Boolean(form.watch('restaurantModuleEnabled'));
 
+  const isEn = locale.language === 'en';
   const salesInventoryTabLabel = isContractingVertical
-    ? 'ضوابط المقاولات والمشاريع'
+    ? (isEn ? 'Contracting & Projects Controls' : 'ضوابط المقاولات والمشاريع')
     : isMaritimeVertical
-    ? 'ضوابط الشحن والعمليات الملاحية'
+    ? (isEn ? 'Freight & Shipping Controls' : 'ضوابط الشحن والعمليات الملاحية')
     : isManufacturingVertical
-    ? 'ضوابط التصنيع والإنتاج'
+    ? (isEn ? 'Manufacturing & Production Controls' : 'ضوابط التصنيع والإنتاج')
     : isServicesVertical
-    ? 'ضوابط الخدمات وعقود الصيانة'
+    ? (isEn ? 'Services & Maintenance Controls' : 'ضوابط الخدمات وعقود الصيانة')
     : isImportVertical
-    ? 'ضوابط الاستيراد ونقاط البيع'
+    ? (isEn ? 'Import & POS Controls' : 'ضوابط الاستيراد ونقاط البيع')
     : isRestaurantVertical
-    ? 'إعدادات المطاعم والمبيعات والمخزون'
-    : 'إعدادات نقطة البيع والمبيعات والمخزون';
+    ? (isEn ? 'Restaurant, Sales & Inventory' : 'إعدادات المطاعم والمبيعات والمخزون')
+    : (isEn ? 'POS, Sales & Inventory Settings' : 'إعدادات نقطة البيع والمبيعات والمخزون');
 
   const printingTabLabel = isContractingVertical || isMaritimeVertical || isServicesVertical || isManufacturingVertical
-    ? 'نماذج المطبوعات والترويسة'
-    : 'الطباعة والإيصالات';
+    ? (isEn ? 'Print Templates & Letterheads' : 'نماذج المطبوعات والترويسة')
+    : (isEn ? 'Printing & Receipts' : 'الطباعة والإيصالات');
 
   const resolvedBranchId = SINGLE_STORE_MODE ? (currentBranchId || settings?.currentBranchId || branches[0]?.id || '') : currentBranchId;
   const visibleLocations = useMemo(() => locations, [locations]);
@@ -650,8 +653,10 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
   const watchedLanguage = form.watch('uiLanguage');
 
   useEffect(() => {
-    setLocaleLanguage(watchedLanguage === 'en' ? 'en' : 'ar');
-  }, [setLocaleLanguage, watchedLanguage]);
+    if (form.formState.dirtyFields.uiLanguage) {
+      setLocaleLanguage(watchedLanguage === 'en' ? 'en' : 'ar');
+    }
+  }, [setLocaleLanguage, watchedLanguage, form.formState.dirtyFields.uiLanguage]);
 
   const navigateToFieldAndHighlight = (fieldKey: string) => {
     const meta = SETTINGS_FIELD_METADATA[fieldKey];
@@ -886,7 +891,7 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
   }, [form.formState.errors]);
 
   return (
-    <form id="settings-main-form" className="page-stack settings-core-form" dir="rtl" autoComplete="off" onSubmit={submit} noValidate>
+    <form id="settings-main-form" className="page-stack settings-core-form" autoComplete="off" onSubmit={submit} noValidate>
       <style>{`
         @keyframes settingsErrorGlowPulse {
           0% {
@@ -953,7 +958,7 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <strong style={{ fontSize: '0.96rem', color: '#0f172a' }}>
-                    دليل التجهيز السريع — الخطوة 1 من 3: بيانات المنشأة وترويسة الفواتير
+                    {__t('settings.forms.settings_main_form.s0', "دليل التجهيز السريع — الخطوة 1 من 3: بيانات المنشأة وترويسة الفواتير")}
                   </strong>
                   <span
                     style={{
@@ -966,11 +971,11 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
                       borderRadius: '6px',
                     }}
                   >
-                    الخطوة 1 من 3
+                    {__t('settings.forms.settings_main_form.s1', "الخطوة 1 من 3")}
                   </span>
                 </div>
                 <p style={{ margin: '3px 0 0', fontSize: '0.83rem', color: '#64748b' }}>
-                  أدخل اسم المتجر، الهاتف، والعنوان. بعد النقر على "حفظ الإعدادات" سيتم نقلك تلقائياً للخطوة 2 (تجهيز الأصناف والبيانات التجريبية).
+                  {__t('settings.forms.settings_main_form.s2', "أدخل اسم المتجر، الهاتف، والعنوان. بعد النقر على \"حفظ الإعدادات\" سيتم نقلك تلقائياً للخطوة 2 (تجهيز الأصناف والبيانات التجريبية).")}
                 </p>
               </div>
             </div>
@@ -989,7 +994,7 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
                   cursor: 'pointer',
                 }}
               >
-                المتابعة للخطوة 2
+                {__t('settings.forms.settings_main_form.s3', "المتابعة للخطوة 2")}
               </button>
               <button
                 type="button"
@@ -1004,16 +1009,16 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
                   textDecoration: 'underline',
                 }}
               >
-                العودة للرئيسية
+                {__t('settings.forms.settings_main_form.s4', "العودة للرئيسية")}
               </button>
             </div>
           </div>
         )}
 
         {/* الإشعارات والأخطاء */}
-        <DraftStateNotice visible={form.formState.isDirty && !mutation.isPending} title="تغييرات غير محفوظة" hint="احفظ التعديلات أو أعد ضبطها قبل مغادرة الشاشة." />
-        {!canManageSettings ? <div className="muted small" style={{ marginBottom: 16 }}>هذا الحساب يملك صلاحية عرض الإعدادات فقط بدون تعديل.</div> : null}
-        <MutationFeedback isError={mutation.isError} isSuccess={mutation.isSuccess} error={mutation.error} errorFallback="تعذر حفظ الإعدادات" successText="تم حفظ الإعدادات بنجاح." />
+        <DraftStateNotice visible={form.formState.isDirty && !mutation.isPending} title={__t('settings.forms.settings_main_form.s5', "تغييرات غير محفوظة")} hint={__t('settings.forms.settings_main_form.s6', "احفظ التعديلات أو أعد ضبطها قبل مغادرة الشاشة.")} />
+        {!canManageSettings ? <div className="muted small" style={{ marginBottom: 16 }}>{__t('settings.forms.settings_main_form.s7', "هذا الحساب يملك صلاحية عرض الإعدادات فقط بدون تعديل.")}</div> : null}
+        <MutationFeedback isError={mutation.isError} isSuccess={mutation.isSuccess} error={mutation.error} errorFallback={__t('settings.forms.settings_main_form.s8', "تعذر حفظ الإعدادات")} successText={__t('settings.forms.settings_main_form.s9', "تم حفظ الإعدادات بنجاح.")} />
         {form.formState.errors.root?.serverError?.message ? (
           <div className="document-prototype-section" style={{ backgroundColor: '#fee2e2', borderColor: '#ef4444', marginBottom: 16 }}>
             <div style={{ color: '#b91c1c' }}>{form.formState.errors.root.serverError.message}</div>
@@ -1038,11 +1043,11 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
               <div style={{ fontWeight: 800, color: '#991b1b', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.92rem' }}>
                 <AlertTriangleIcon size={18} color="#dc2626" />
-                <span>توجد حقول تتطلب المراجعة أو استكمال البيانات قبل الحفظ ({Object.keys(form.formState.errors).filter(k => k !== 'root').length} حقول):</span>
+                <span>{__t('settings.forms.settings_main_form.s10', "توجد حقول تتطلب المراجعة أو استكمال البيانات قبل الحفظ (")}{Object.keys(form.formState.errors).filter(k => k !== 'root').length} {__t('settings.forms.settings_main_form.s11', "حقول):")}</span>
               </div>
               <span style={{ fontSize: '0.78rem', color: '#b91c1c', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                 <LightbulbIcon size={13} color="#b91c1c" />
-                <span>انقر على أي حقل أدناه للانتقال إليه مباشرة وتمييزه</span>
+                <span>{__t('settings.forms.settings_main_form.s12', "انقر على أي حقل أدناه للانتقال إليه مباشرة وتمييزه")}</span>
               </span>
             </div>
 
@@ -1050,10 +1055,10 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
               {Object.entries(tabErrors).map(([tabId, items]) => {
                 if (!items.length) return null;
                 const tabNames: Record<string, string> = {
-                  general: 'عام',
-                  sales_inventory: 'البيع وقواعد المخزون',
-                  modules: 'موديولات النظام',
-                  printing: 'الطباعة والإيصالات',
+                  general: __t('settings.forms.settings_main_form.s13', "عام"),
+                  sales_inventory: __t('settings.forms.settings_main_form.s14', "البيع وقواعد المخزون"),
+                  modules: __t('settings.forms.settings_main_form.s15', "موديولات النظام"),
+                  printing: __t('settings.forms.settings_main_form.s16', "الطباعة والإيصالات"),
                 };
                 return (
                   <div
@@ -1070,7 +1075,7 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
                   >
                     <div style={{ fontSize: '0.8rem', fontWeight: 800, color: '#7f1d1d', display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <span style={{ display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', background: '#dc2626' }} />
-                      <span>تبويب &quot;{tabNames[tabId] || tabId}&quot;:</span>
+                      <span>{__t('settings.forms.settings_main_form.s17', "تبويب \"")}{tabNames[tabId] || tabId}&quot;:</span>
                     </div>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                       {items.map((item) => (
@@ -1078,7 +1083,7 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
                           key={item.fieldKey}
                           type="button"
                           onClick={() => navigateToFieldAndHighlight(item.fieldKey)}
-                          title="انقر للانتقال للحقل وتمييزه"
+                          title={__t('settings.forms.settings_main_form.s18', "انقر للانتقال للحقل وتمييزه")}
                           style={{
                             display: 'inline-flex',
                             alignItems: 'center',
@@ -1119,9 +1124,9 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
         )}
         <div className="settings-tabs" style={{ display: 'inline-flex', background: '#f1f5f9', padding: '4px', borderRadius: '10px', gap: '4px', marginBottom: '16px', overflowX: 'auto' }}>
           {[
-            { id: 'general', label: 'عام' },
+            { id: 'general', label: __t('settings.forms.settings_main_form.s19', "عام") },
             { id: 'sales_inventory', label: salesInventoryTabLabel },
-            { id: 'modules', label: 'تخصيص المنظومة والنشاط' },
+            { id: 'modules', label: __t('settings.forms.settings_main_form.s20', "تخصيص المنظومة والنشاط") },
             { id: 'printing', label: printingTabLabel },
           ].map(tab => (
             <button
@@ -1215,8 +1220,8 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
         />
       </div>
 
-      {!canManageSettings ? <div className="muted small">هذا الحساب يملك صلاحية عرض الإعدادات فقط بدون تعديل.</div> : null}
-      <MutationFeedback isError={mutation.isError} isSuccess={mutation.isSuccess} error={mutation.error} errorFallback="تعذر حفظ الإعدادات" successText="تم حفظ الإعدادات بنجاح." />
+      {!canManageSettings ? <div className="muted small">{__t('settings.forms.settings_main_form.s21', "هذا الحساب يملك صلاحية عرض الإعدادات فقط بدون تعديل.")}</div> : null}
+      <MutationFeedback isError={mutation.isError} isSuccess={mutation.isSuccess} error={mutation.error} errorFallback={__t('settings.forms.settings_main_form.s22', "تعذر حفظ الإعدادات")} successText={__t('settings.forms.settings_main_form.s23', "تم حفظ الإعدادات بنجاح.")} />
 
       <div
         className="actions compact-actions sticky-form-actions settings-save-actions"
@@ -1226,8 +1231,8 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
           type="submit"
           isPending={mutation.isPending}
           disabled={!canManageSettings}
-          idleText={setupMode ? 'حفظ والانتقال للخطوة التالية' : 'حفظ الإعدادات'}
-          pendingText="جارٍ الحفظ..."
+          idleText={setupMode ? __t('settings.forms.settings_main_form.s24', "حفظ والانتقال للخطوة التالية") : __t('settings.forms.settings_main_form.s25', "حفظ الإعدادات")}
+          pendingText={__t('settings.forms.settings_main_form.s26', "جارٍ الحفظ...")}
           style={{ minWidth: '160px', background: '#170e5e', color: '#ffffff' }}
         />
         <button
@@ -1237,14 +1242,14 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
           disabled={mutation.isPending || !form.formState.isDirty}
           style={{ height: '36px', padding: '0 16px', fontSize: '13px' }}
         >
-          تفريغ التغييرات
+          {__t('settings.forms.settings_main_form.s27', "تفريغ التغييرات")}
         </button>
       </div>
 
       {/* مودال إضافة فرع سريع */}
-      <DialogShell open={!SINGLE_STORE_MODE && showBranchQuickAdd} onClose={() => setShowBranchQuickAdd(false)} width="min(560px, 100%)" ariaLabel="إضافة فرع جديد">
+      <DialogShell open={!SINGLE_STORE_MODE && showBranchQuickAdd} onClose={() => setShowBranchQuickAdd(false)} width="min(560px, 100%)" ariaLabel={__t('settings.forms.settings_main_form.s28', "إضافة فرع جديد")}>
         <div className="page-stack">
-          <div><strong>إضافة فرع جديد</strong></div>
+          <div><strong>{__t('settings.forms.settings_main_form.s29', "إضافة فرع جديد")}</strong></div>
           <BranchForm
             canManageSettings={canManageSettings}
             setupMode={setupMode}
@@ -1267,7 +1272,7 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
             }}
           />
           <div className="actions compact-actions" style={{ justifyContent: 'flex-start' }}>
-            <button type="button" className="btn btn-secondary" onClick={() => setShowBranchQuickAdd(false)}>إلغاء</button>
+            <button type="button" className="btn btn-secondary" onClick={() => setShowBranchQuickAdd(false)}>{__t('settings.forms.settings_main_form.s30', "إلغاء")}</button>
           </div>
         </div>
       </DialogShell>

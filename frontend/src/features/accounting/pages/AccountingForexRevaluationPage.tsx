@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React, { useState } from 'react';
 import { useSystemCurrency } from '@/shared/hooks/use-system-currency';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -13,6 +14,7 @@ import {
 import { CheckIcon, ShieldAlertIcon, ClockIcon } from '@/shared/components/icons/AppIcons';
 
 export const AccountingForexRevaluationPage: React.FC = () => {
+  const { t } = useTranslation();
   const { currencySymbol } = useSystemCurrency();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<'wizard' | 'history'>('wizard');
@@ -116,8 +118,8 @@ export const AccountingForexRevaluationPage: React.FC = () => {
       }}
     >
       <PageHeader
-        title="إعادة تقييم العملات الأجنبية وفروق الصرف (FX Revaluation - IAS 21)"
-        description="حساب أرباح وخسائر فروق أسعار الصرف غير المحققة وإثبات القيود المحاسبية الآلية في نهاية الفترات المالية."
+        title={t('accounting.accounting_forex_revaluation_page.s0', "إعادة تقييم العملات الأجنبية وفروق الصرف (FX Revaluation - IAS 21)")}
+        description={t('accounting.accounting_forex_revaluation_page.s1', "حساب أرباح وخسائر فروق أسعار الصرف غير المحققة وإثبات القيود المحاسبية الآلية في نهاية الفترات المالية.")}
       />
 
       <StatsGrid items={stats} />
@@ -145,7 +147,7 @@ export const AccountingForexRevaluationPage: React.FC = () => {
             cursor: 'pointer',
           }}
         >
-          معالج إعادة التقييم وقيد التسوية
+          {t('accounting.accounting_forex_revaluation_page.s2', "معالج إعادة التقييم وقيد التسوية")}
         </button>
 
         <button
@@ -166,7 +168,7 @@ export const AccountingForexRevaluationPage: React.FC = () => {
           }}
         >
           <ClockIcon size={14} />
-          سجل الحركات السابقة ({pastRuns.length})
+          {t('accounting.accounting_forex_revaluation_page.s3', "سجل الحركات السابقة (")}{pastRuns.length})
         </button>
       </div>
 
@@ -186,10 +188,10 @@ export const AccountingForexRevaluationPage: React.FC = () => {
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ fontWeight: 700, fontSize: 'var(--font-section-title)', color: '#0f172a' }}>
-                أسعار الصرف الحالية المسجلة في النظام:
+                {t('accounting.accounting_forex_revaluation_page.s4', "أسعار الصرف الحالية المسجلة في النظام:")}
               </span>
               <span style={{ fontSize: 'var(--font-micro)', color: '#64748b' }}>
-                سعر الأساس 1.00 {currencySymbol}
+                {t('accounting.accounting_forex_revaluation_page.s5', "سعر الأساس 1.00")} {currencySymbol}
               </span>
             </div>
 
@@ -232,7 +234,7 @@ export const AccountingForexRevaluationPage: React.FC = () => {
             }}
           >
             <h3 style={{ fontSize: 'var(--font-section-title)', fontWeight: 700, margin: 0, color: '#0f172a' }}>
-              معالج إعادة التقييم المالي (IAS 21 Revaluation Routine)
+              {t('accounting.accounting_forex_revaluation_page.s6', "معالج إعادة التقييم المالي (IAS 21 Revaluation Routine)")}
             </h3>
 
             {previewError && (
@@ -257,7 +259,7 @@ export const AccountingForexRevaluationPage: React.FC = () => {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr auto', gap: '12px', alignItems: 'flex-end' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                 <label style={{ fontSize: 'var(--font-body)', fontWeight: 600, color: '#334155' }}>
-                  تاريخ نهاية الفترة المالية:
+                  {t('accounting.accounting_forex_revaluation_page.s7', "تاريخ نهاية الفترة المالية:")}
                 </label>
                 <input
                   type="date"
@@ -275,7 +277,7 @@ export const AccountingForexRevaluationPage: React.FC = () => {
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                 <label style={{ fontSize: 'var(--font-body)', fontWeight: 600, color: '#334155' }}>
-                  العملة المراد تقييمها:
+                  {t('accounting.accounting_forex_revaluation_page.s8', "العملة المراد تقييمها:")}
                 </label>
                 <select
                   value={selectedCurrency}
@@ -304,7 +306,7 @@ export const AccountingForexRevaluationPage: React.FC = () => {
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                 <label style={{ fontSize: 'var(--font-body)', fontWeight: 600, color: '#334155' }}>
-                  سعر الصرف الإقفالي (سعر البنك المركزي):
+                  {t('accounting.accounting_forex_revaluation_page.s9', "سعر الصرف الإقفالي (سعر البنك المركزي):")}
                 </label>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <input
@@ -332,7 +334,7 @@ export const AccountingForexRevaluationPage: React.FC = () => {
                 disabled={previewMutation.isPending}
                 style={{ height: '40px', padding: '0 20px' }}
               >
-                {previewMutation.isPending ? 'جاري الفحص المحاسبي...' : 'معاينة فروق التقييم'}
+                {previewMutation.isPending ? t('accounting.accounting_forex_revaluation_page.s10', "جاري الفحص المحاسبي...") : t('accounting.accounting_forex_revaluation_page.s11', "معاينة فروق التقييم")}
               </Button>
             </div>
 
@@ -351,7 +353,7 @@ export const AccountingForexRevaluationPage: React.FC = () => {
                   }}
                 >
                   <div>
-                    <span style={{ fontSize: 'var(--font-micro)', color: '#64748b' }}>صافي الأثر المالي (قائمة الدخل):</span>
+                    <span style={{ fontSize: 'var(--font-micro)', color: '#64748b' }}>{t('accounting.accounting_forex_revaluation_page.s12', "صافي الأثر المالي (قائمة الدخل):")}</span>
                     <div
                       style={{
                         fontWeight: 800,
@@ -359,13 +361,13 @@ export const AccountingForexRevaluationPage: React.FC = () => {
                         color: previewData.netUnrealizedGainLoss >= 0 ? '#15803d' : '#991b1b',
                       }}
                     >
-                      {previewData.netUnrealizedGainLoss >= 0 ? 'أرباح فروق عملة محققة: +' : 'خسائر فروق عملة: '}
+                      {previewData.netUnrealizedGainLoss >= 0 ? t('accounting.accounting_forex_revaluation_page.s13', "أرباح فروق عملة محققة: +") : t('accounting.accounting_forex_revaluation_page.s14', "خسائر فروق عملة: ")}
                       {Math.abs(previewData.netUnrealizedGainLoss).toLocaleString('ar-EG')} {currencySymbol}
                     </div>
                   </div>
 
                   <div style={{ textAlign: 'left' }}>
-                    <span style={{ fontSize: 'var(--font-micro)', color: '#64748b' }}>إجمالي الرصيد الأجنبي المعني:</span>
+                    <span style={{ fontSize: 'var(--font-micro)', color: '#64748b' }}>{t('accounting.accounting_forex_revaluation_page.s15', "إجمالي الرصيد الأجنبي المعني:")}</span>
                     <div style={{ fontWeight: 700, fontSize: 'var(--font-section-title)', color: '#0f172a' }}>
                       {previewData.totalForeignBalance.toLocaleString('ar-EG')} {previewData.currencyCode}
                     </div>
@@ -383,11 +385,11 @@ export const AccountingForexRevaluationPage: React.FC = () => {
                   <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right' }}>
                     <thead>
                       <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-                        <th style={{ padding: '10px 14px', fontSize: 'var(--font-table-head)', color: '#475569' }}>الحساب / الخزينة</th>
-                        <th style={{ padding: '10px 14px', fontSize: 'var(--font-table-head)', color: '#475569' }}>الرصيد بالعملة الأجنبية</th>
-                        <th style={{ padding: '10px 14px', fontSize: 'var(--font-table-head)', color: '#475569' }}>القيمة الدفترية السابقة</th>
-                        <th style={{ padding: '10px 14px', fontSize: 'var(--font-table-head)', color: '#475569' }}>القيمة المقومة الجديدة</th>
-                        <th style={{ padding: '10px 14px', fontSize: 'var(--font-table-head)', color: '#475569' }}>فارق التقييم (الأرباح/الخسائر)</th>
+                        <th style={{ padding: '10px 14px', fontSize: 'var(--font-table-head)', color: '#475569' }}>{t('accounting.accounting_forex_revaluation_page.s16', "الحساب / الخزينة")}</th>
+                        <th style={{ padding: '10px 14px', fontSize: 'var(--font-table-head)', color: '#475569' }}>{t('accounting.accounting_forex_revaluation_page.s17', "الرصيد بالعملة الأجنبية")}</th>
+                        <th style={{ padding: '10px 14px', fontSize: 'var(--font-table-head)', color: '#475569' }}>{t('accounting.accounting_forex_revaluation_page.s18', "القيمة الدفترية السابقة")}</th>
+                        <th style={{ padding: '10px 14px', fontSize: 'var(--font-table-head)', color: '#475569' }}>{t('accounting.accounting_forex_revaluation_page.s19', "القيمة المقومة الجديدة")}</th>
+                        <th style={{ padding: '10px 14px', fontSize: 'var(--font-table-head)', color: '#475569' }}>{t('accounting.accounting_forex_revaluation_page.s20', "فارق التقييم (الأرباح/الخسائر)")}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -434,7 +436,7 @@ export const AccountingForexRevaluationPage: React.FC = () => {
                 >
                   <input
                     type="text"
-                    placeholder="ملاحظات قيد اليومية (اختياري)..."
+                    placeholder={t('accounting.accounting_forex_revaluation_page.s21', "ملاحظات قيد اليومية (اختياري)...")}
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
                     style={{
@@ -453,7 +455,7 @@ export const AccountingForexRevaluationPage: React.FC = () => {
                     style={{ padding: '0 24px' }}
                   >
                     <CheckIcon size={16} />
-                    {executeMutation.isPending ? 'جاري ترحيل القيد...' : 'اعتماد وترحيل قيد فروق التقييم الآلي'}
+                    {executeMutation.isPending ? t('accounting.accounting_forex_revaluation_page.s22', "جاري ترحيل القيد...") : t('accounting.accounting_forex_revaluation_page.s23', "اعتماد وترحيل قيد فروق التقييم الآلي")}
                   </Button>
                 </div>
               </div>
@@ -474,26 +476,26 @@ export const AccountingForexRevaluationPage: React.FC = () => {
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right' }}>
             <thead>
               <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-                <th style={{ padding: '12px 16px', fontSize: 'var(--font-table-head)', color: '#475569' }}>تاريخ الفترة</th>
-                <th style={{ padding: '12px 16px', fontSize: 'var(--font-table-head)', color: '#475569' }}>العملة</th>
-                <th style={{ padding: '12px 16px', fontSize: 'var(--font-table-head)', color: '#475569' }}>سعر الصرف الإقفالي</th>
-                <th style={{ padding: '12px 16px', fontSize: 'var(--font-table-head)', color: '#475569' }}>إجمالي الرصيد الأجنبي</th>
-                <th style={{ padding: '12px 16px', fontSize: 'var(--font-table-head)', color: '#475569' }}>صافي الأثر المالي</th>
-                <th style={{ padding: '12px 16px', fontSize: 'var(--font-table-head)', color: '#475569' }}>رقم قيد اليومية</th>
-                <th style={{ padding: '12px 16px', fontSize: 'var(--font-table-head)', color: '#475569' }}>الحالة</th>
+                <th style={{ padding: '12px 16px', fontSize: 'var(--font-table-head)', color: '#475569' }}>{t('accounting.accounting_forex_revaluation_page.s24', "تاريخ الفترة")}</th>
+                <th style={{ padding: '12px 16px', fontSize: 'var(--font-table-head)', color: '#475569' }}>{t('accounting.accounting_forex_revaluation_page.s25', "العملة")}</th>
+                <th style={{ padding: '12px 16px', fontSize: 'var(--font-table-head)', color: '#475569' }}>{t('accounting.accounting_forex_revaluation_page.s26', "سعر الصرف الإقفالي")}</th>
+                <th style={{ padding: '12px 16px', fontSize: 'var(--font-table-head)', color: '#475569' }}>{t('accounting.accounting_forex_revaluation_page.s27', "إجمالي الرصيد الأجنبي")}</th>
+                <th style={{ padding: '12px 16px', fontSize: 'var(--font-table-head)', color: '#475569' }}>{t('accounting.accounting_forex_revaluation_page.s28', "صافي الأثر المالي")}</th>
+                <th style={{ padding: '12px 16px', fontSize: 'var(--font-table-head)', color: '#475569' }}>{t('accounting.accounting_forex_revaluation_page.s29', "رقم قيد اليومية")}</th>
+                <th style={{ padding: '12px 16px', fontSize: 'var(--font-table-head)', color: '#475569' }}>{t('accounting.accounting_forex_revaluation_page.s30', "الحالة")}</th>
               </tr>
             </thead>
             <tbody>
               {isRunsLoading ? (
                 <tr>
                   <td colSpan={7} style={{ padding: '32px', textAlign: 'center', color: '#64748b' }}>
-                    جاري تحميل السجل...
+                    {t('accounting.accounting_forex_revaluation_page.s31', "جاري تحميل السجل...")}
                   </td>
                 </tr>
               ) : pastRuns.length === 0 ? (
                 <tr>
                   <td colSpan={7} style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>
-                    لا توجد أي جلسات إعادة تقييم مسجلة بعد.
+                    {t('accounting.accounting_forex_revaluation_page.s32', "لا توجد أي جلسات إعادة تقييم مسجلة بعد.")}
                   </td>
                 </tr>
               ) : (
@@ -537,7 +539,7 @@ export const AccountingForexRevaluationPage: React.FC = () => {
                           fontWeight: 600,
                         }}
                       >
-                        معتمد ومرحل
+                        {t('accounting.accounting_forex_revaluation_page.s33', "معتمد ومرحل")}
                       </span>
                     </td>
                   </tr>

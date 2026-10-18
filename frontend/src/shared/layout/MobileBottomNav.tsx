@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useRef } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useToolbarStore } from '@/stores/toolbar-store';
@@ -119,6 +120,7 @@ function getCurvedNotchPath(W: number, H = 54, R = 20): string {
 }
 
 export function MobileBottomNav() {
+  const { t } = useTranslation();
   const navRef = useRef<HTMLElement>(null);
   const [navDims, setNavDims] = useState({ width: 0, height: 54 });
   const location = useLocation();
@@ -232,7 +234,7 @@ export function MobileBottomNav() {
       <nav 
         ref={navRef}
         className={`mobile-bottom-nav ${isHidden ? 'is-hidden' : ''}`} 
-        aria-label="شريط التنقل السفلي"
+        aria-label={t('shared.layout.mobile_bottom_nav.s0', "شريط التنقل السفلي")}
       >
         {/* Fixed Center Curved Notch Background (SVG Cradle) */}
         <svg 
@@ -304,7 +306,7 @@ export function MobileBottomNav() {
           type="button"
           className={`mobile-bottom-nav-item ${isMobileSidebarOpen ? 'is-active' : ''}`}
           onClick={toggleMobileSidebar}
-          aria-label="القائمة الجانبية"
+          aria-label={t('shared.layout.mobile_bottom_nav.s1', "القائمة الجانبية")}
         >
           <div className="mobile-bottom-nav-icon">
             <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -313,7 +315,7 @@ export function MobileBottomNav() {
               <line x1="3" y1="18" x2="21" y2="18"></line>
             </svg>
           </div>
-          <span className="mobile-bottom-nav-label">القائمة</span>
+          <span className="mobile-bottom-nav-label">{t('shared.layout.mobile_bottom_nav.s2', "القائمة")}</span>
         </button>
       </nav>
 

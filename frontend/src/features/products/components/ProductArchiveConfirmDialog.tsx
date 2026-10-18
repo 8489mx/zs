@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/shared/ui/button';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { AlertTriangleIcon, CheckCircleIcon } from '@/shared/components/icons/AppIcons';
@@ -27,6 +28,7 @@ export function ProductArchiveConfirmDialog({
   onConfirm,
   onCancel,
 }: ProductArchiveConfirmDialogProps) {
+  const { t } = useTranslation();
   if (!open || !product) return null;
 
   const isActivating = product.isActive === false;
@@ -83,7 +85,7 @@ export function ProductArchiveConfirmDialog({
             letterSpacing: '-0.2px',
           }}
         >
-          {isActivating ? 'تأكيد تنشيط الصنف' : 'تأكيد أرشفة وتعطيل الصنف'}
+          {isActivating ? t('products.product_archive_confirm_dialog.s0', "تأكيد تنشيط الصنف") : t('products.product_archive_confirm_dialog.s1', "تأكيد أرشفة وتعطيل الصنف")}
         </h3>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', fontSize: '0.85rem' }}>
@@ -106,7 +108,7 @@ export function ProductArchiveConfirmDialog({
                 fontWeight: 700,
               }}
             >
-              {isActivating ? 'الصنف المراد تنشيطه:' : 'الصنف المراد أرشفته وتجميده:'}
+              {isActivating ? t('products.product_archive_confirm_dialog.s2', "الصنف المراد تنشيطه:") : t('products.product_archive_confirm_dialog.s3', "الصنف المراد أرشفته وتجميده:")}
             </div>
             <div style={{ fontSize: '0.98rem', fontWeight: 800, color: '#0f172a', lineHeight: 1.45 }}>
               {product.name}
@@ -124,13 +126,13 @@ export function ProductArchiveConfirmDialog({
             >
               {product.barcode ? (
                 <span>
-                  الباركود: <strong>{product.barcode}</strong>
+                  {t('products.product_archive_confirm_dialog.s4', "الباركود:")} <strong>{product.barcode}</strong>
                 </span>
               ) : null}
               <span>
-                الرصيد الحالي بالمخزن:{' '}
+                {t('products.product_archive_confirm_dialog.s5', "الرصيد الحالي بالمخزن:")}{' '}
                 <strong style={{ color: hasRemainingStock ? '#b45309' : '#059669' }}>
-                  {currentStock} قطعة
+                  {currentStock} {t('products.product_archive_confirm_dialog.s6', "قطعة")}
                 </strong>
               </span>
             </div>
@@ -149,10 +151,10 @@ export function ProductArchiveConfirmDialog({
               }}
             >
               <div style={{ fontWeight: 800, fontSize: '0.86rem', marginBottom: '4px' }}>
-                تنبيه رصيد مخزني متبقٍ ({currentStock} قطعة)
+                {t('products.product_archive_confirm_dialog.s7', "تنبيه رصيد مخزني متبقٍ (")}{currentStock} {t('products.product_archive_confirm_dialog.s8', "قطعة)")}
               </div>
               <div style={{ fontSize: '0.8rem', color: '#b45309' }}>
-                هذا الصنف يحتوي على كمية مسجلة بالمخزن. أرشفة الصنف ستمنع بيعه أو سحبه في الكاشير ونقاط البيع والفواتير الجديدة، مع بقاء رصيده وقيمته مسجلين دفترياً في تقارير المخزون والميزانية لحين تسويته أو صرفه.
+                {t('products.product_archive_confirm_dialog.s9', "هذا الصنف يحتوي على كمية مسجلة بالمخزن. أرشفة الصنف ستمنع بيعه أو سحبه في الكاشير ونقاط البيع والفواتير الجديدة، مع بقاء رصيده وقيمته مسجلين دفترياً في تقارير المخزون والميزانية لحين تسويته أو صرفه.")}
               </div>
             </div>
           ) : null}
@@ -161,13 +163,13 @@ export function ProductArchiveConfirmDialog({
           <div style={{ color: '#475569', fontSize: '0.8125rem', lineHeight: 1.65 }}>
             {isActivating ? (
               <div>
-                سيتم إعادة الصنف فوراً إلى دليل الأصناف النشطة وإتاحته في شاشات البيع والشراء ونقاط البيع لاستئناف العمل عليه.
+                {t('products.product_archive_confirm_dialog.s10', "سيتم إعادة الصنف فوراً إلى دليل الأصناف النشطة وإتاحته في شاشات البيع والشراء ونقاط البيع لاستئناف العمل عليه.")}
               </div>
             ) : (
               <ul style={{ margin: 0, paddingInlineStart: '18px' }}>
-                <li>يتم إخفاء الصنف فوراً من نقاط البيع (POS) وقوائم البيع والشراء لمنع التعامل عليه بالخطأ.</li>
-                <li>تظل كافة الفواتير والتقارير وحركات كارت الصنف التاريخية محفوظة بنسبة 100%.</li>
-                <li>يمكنك في أي وقت استعراض الصنف وإلغاء أرشفته من تبويب <strong>«المؤرشفة»</strong>.</li>
+                <li>{t('products.product_archive_confirm_dialog.s11', "يتم إخفاء الصنف فوراً من نقاط البيع (POS) وقوائم البيع والشراء لمنع التعامل عليه بالخطأ.")}</li>
+                <li>{t('products.product_archive_confirm_dialog.s12', "تظل كافة الفواتير والتقارير وحركات كارت الصنف التاريخية محفوظة بنسبة 100%.")}</li>
+                <li>{t('products.product_archive_confirm_dialog.s13', "يمكنك في أي وقت استعراض الصنف وإلغاء أرشفته من تبويب")} <strong>{t('products.product_archive_confirm_dialog.s14', "«المؤرشفة»")}</strong>.</li>
               </ul>
             )}
           </div>
@@ -192,7 +194,7 @@ export function ProductArchiveConfirmDialog({
             disabled={isBusy}
             style={{ minWidth: '90px' }}
           >
-            تراجع
+            {t('products.product_archive_confirm_dialog.s15', "تراجع")}
           </Button>
           <Button
             variant="primary"
@@ -207,10 +209,10 @@ export function ProductArchiveConfirmDialog({
             }}
           >
             {isBusy
-              ? 'جارٍ التنفيذ...'
+              ? t('products.product_archive_confirm_dialog.s16', "جارٍ التنفيذ...")
               : isActivating
-              ? 'تأكيد التنشيط'
-              : 'تأكيد الأرشفة والتعطيل'}
+              ? t('products.product_archive_confirm_dialog.s17', "تأكيد التنشيط")
+              : t('products.product_archive_confirm_dialog.s18', "تأكيد الأرشفة والتعطيل")}
           </Button>
         </div>
       </div>

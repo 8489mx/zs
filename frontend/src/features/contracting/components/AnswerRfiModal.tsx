@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
@@ -18,6 +19,7 @@ export function AnswerRfiModal({
   onClose,
   onAnswered,
 }: AnswerRfiModalProps) {
+  const { t } = useTranslation();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [answer, setAnswer] = useState(rfi?.answer || '');
@@ -59,7 +61,7 @@ export function AnswerRfiModal({
         <StandardDialogFooter
           onCancel={onClose}
           onSubmit={() => handleSubmit()}
-          submitText={isSubmitting ? 'جارٍ الاعتماد...' : 'اعتماد وإغلاق الاستفسار (Close RFI)'}
+          submitText={isSubmitting ? t('contracting.answer_rfi_modal.s0', "جارٍ الاعتماد...") : t('contracting.answer_rfi_modal.s1', "اعتماد وإغلاق الاستفسار (Close RFI)")}
           isSubmitting={isSubmitting}
         />
       }
@@ -85,7 +87,7 @@ export function AnswerRfiModal({
         <div style={{ background: '#f8fafc', padding: '9px 13px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
             <AppIcons.HelpCircle size={15} />
-            <span>1. نص الاستفسار الفني الوارد من الموقع</span>
+            <span>{t('contracting.answer_rfi_modal.s2', "1. نص الاستفسار الفني الوارد من الموقع")}</span>
           </div>
           <div style={{ fontSize: '0.8125rem', color: '#1e293b', lineHeight: 1.6, background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '8px 10px', whiteSpace: 'pre-wrap' }}>
             {rfi.question}
@@ -96,14 +98,14 @@ export function AnswerRfiModal({
         <div style={{ background: '#f8fafc', padding: '9px 13px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', color: '#170e5e', fontWeight: 700, fontSize: '0.84rem' }}>
             <AppIcons.FileCheck size={15} />
-            <span>2. رد واعتماد الاستشاري المشرف والحل الهندسي</span>
+            <span>{t('contracting.answer_rfi_modal.s3', "2. رد واعتماد الاستشاري المشرف والحل الهندسي")}</span>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <Field label="نص رد واعتماد الاستشاري المشرف (Consultant Response) *">
+            <Field label={t('contracting.answer_rfi_modal.s4', "نص رد واعتماد الاستشاري المشرف (Consultant Response) *")}>
               <textarea
                 value={answer}
                 onChange={(e) => setAnswer(e.target.value)}
-                placeholder="اكتب رد الاستشاري والحل المعتمد ومسار التنفيذ الهندسي..."
+                placeholder={t('contracting.answer_rfi_modal.s5', "اكتب رد الاستشاري والحل المعتمد ومسار التنفيذ الهندسي...")}
                 className="form-input"
                 rows={4}
                 style={{
@@ -119,12 +121,12 @@ export function AnswerRfiModal({
               />
             </Field>
 
-            <Field label="ملاحظات توثيقية إضافية / رقم خطاب الاعتماد">
+            <Field label={t('contracting.answer_rfi_modal.s6', "ملاحظات توثيقية إضافية / رقم خطاب الاعتماد")}>
               <input
                 type="text"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                placeholder="مثال: تم إرفاق سكتش الحل الهندسي مع خطاب الاعتماد رقم C-89"
+                placeholder={t('contracting.answer_rfi_modal.s7', "مثال: تم إرفاق سكتش الحل الهندسي مع خطاب الاعتماد رقم C-89")}
                 className="form-input"
                 style={{
                   width: '100%',

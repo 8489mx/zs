@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
@@ -23,6 +24,7 @@ import type { HrEmployee } from '@/types/domain';
 // ----------------------------------------------------------------------
 
 export function DeliveryRepsAccessPanel() {
+  const { t: __t } = useTranslation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
@@ -105,7 +107,7 @@ export function DeliveryRepsAccessPanel() {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }} dir="rtl">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
       {/* Header Info Banner */}
       <div
         style={{
@@ -137,10 +139,10 @@ export function DeliveryRepsAccessPanel() {
           </div>
           <div>
             <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 800, color: '#0f172a' }}>
-              إدارة وصول طياري الدليفري وموزعي الفان
+              {__t('settings.user_management.unified_access_directory_panel.s0', "إدارة وصول طياري الدليفري وموزعي الفان")}
             </h4>
             <span style={{ fontSize: '12px', color: '#64748b' }}>
-              تعديل أرقام الهواتف، رموز الدخول السريع (PIN)، وتجميد الحسابات الميدانية فوراً.
+              {__t('settings.user_management.unified_access_directory_panel.s1', "تعديل أرقام الهواتف، رموز الدخول السريع (PIN)، وتجميد الحسابات الميدانية فوراً.")}
             </span>
           </div>
         </div>
@@ -154,14 +156,14 @@ export function DeliveryRepsAccessPanel() {
               setIsUpsertOpen(true);
             }}
           >
-            + إضافة مندوب جديد
+            {__t('settings.user_management.unified_access_directory_panel.s2', "+ إضافة مندوب جديد")}
           </Button>
           <Button
             variant="secondary"
             style={{ fontSize: '12px', padding: '6px 12px' }}
             onClick={() => navigate('/delivery-reps')}
           >
-            فتح إدارة المناديب الكاملة ↗
+            {__t('settings.user_management.unified_access_directory_panel.s3', "فتح إدارة المناديب الكاملة ↗")}
           </Button>
         </div>
       </div>
@@ -182,7 +184,7 @@ export function DeliveryRepsAccessPanel() {
         <div style={{ position: 'relative', flex: '1', minWidth: '220px' }}>
           <input
             type="text"
-            placeholder="بحث باسم المندوب أو رقم الهاتف..."
+            placeholder={__t('settings.user_management.unified_access_directory_panel.s4', "بحث باسم المندوب أو رقم الهاتف...")}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             style={{
@@ -242,26 +244,26 @@ export function DeliveryRepsAccessPanel() {
         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right', fontSize: '12.5px' }}>
           <thead>
             <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>
-              <th style={{ padding: '10px 12px', fontWeight: 700 }}>المندوب</th>
-              <th style={{ padding: '10px 10px', fontWeight: 700 }}>طبيعة العمل</th>
-              <th style={{ padding: '10px 10px', fontWeight: 700 }}>رقم الهاتف</th>
-              <th style={{ padding: '10px 10px', fontWeight: 700 }}>رمز الـ PIN</th>
-              <th style={{ padding: '10px 8px', fontWeight: 700 }}>البوابات</th>
-              <th style={{ padding: '10px 8px', fontWeight: 700 }}>الحالة</th>
-              <th style={{ padding: '10px 12px', fontWeight: 700, textAlign: 'center', whiteSpace: 'nowrap' }}>الإجراءات</th>
+              <th style={{ padding: '10px 12px', fontWeight: 700 }}>{__t('settings.user_management.unified_access_directory_panel.s5', "المندوب")}</th>
+              <th style={{ padding: '10px 10px', fontWeight: 700 }}>{__t('settings.user_management.unified_access_directory_panel.s6', "طبيعة العمل")}</th>
+              <th style={{ padding: '10px 10px', fontWeight: 700 }}>{__t('settings.user_management.unified_access_directory_panel.s7', "رقم الهاتف")}</th>
+              <th style={{ padding: '10px 10px', fontWeight: 700 }}>{__t('settings.user_management.unified_access_directory_panel.s8', "رمز الـ PIN")}</th>
+              <th style={{ padding: '10px 8px', fontWeight: 700 }}>{__t('settings.user_management.unified_access_directory_panel.s9', "البوابات")}</th>
+              <th style={{ padding: '10px 8px', fontWeight: 700 }}>{__t('settings.user_management.unified_access_directory_panel.s10', "الحالة")}</th>
+              <th style={{ padding: '10px 12px', fontWeight: 700, textAlign: 'center', whiteSpace: 'nowrap' }}>{__t('settings.user_management.unified_access_directory_panel.s11', "الإجراءات")}</th>
             </tr>
           </thead>
           <tbody>
             {repsQuery.isLoading ? (
               <tr>
                 <td colSpan={7} style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
-                  جاري تحميل بيانات المناديب...
+                  {__t('settings.user_management.unified_access_directory_panel.s12', "جاري تحميل بيانات المناديب...")}
                 </td>
               </tr>
             ) : filteredReps.length === 0 ? (
               <tr>
                 <td colSpan={7} style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
-                  لا توجد سجلات مناديب مطابقة للفلاتر.
+                  {__t('settings.user_management.unified_access_directory_panel.s13', "لا توجد سجلات مناديب مطابقة للفلاتر.")}
                 </td>
               </tr>
             ) : (
@@ -278,27 +280,27 @@ export function DeliveryRepsAccessPanel() {
                       )}
                       {rep.vehicle_plate && (
                         <div style={{ fontSize: '10px', color: '#475569', marginTop: '2px' }}>
-                          لوحة: {rep.vehicle_plate}
+                          {__t('settings.user_management.unified_access_directory_panel.s14', "لوحة:")} {rep.vehicle_plate}
                         </div>
                       )}
                     </td>
                     <td style={{ padding: '10px 10px' }}>
                       {isBoth ? (
                         <span style={{ fontSize: '11px', color: '#6d28d9', background: '#ede9fe', padding: '2px 8px', borderRadius: '6px', border: '1px solid #ddd6fe', fontWeight: 700, whiteSpace: 'nowrap' }}>
-                          شامل (فان ودليفري)
+                          {__t('settings.user_management.unified_access_directory_panel.s15', "شامل (فان ودليفري)")}
                         </span>
                       ) : isVan ? (
                         <span style={{ fontSize: '11px', color: '#0369a1', background: '#e0f2fe', padding: '2px 8px', borderRadius: '6px', border: '1px solid #bae6fd', fontWeight: 700, whiteSpace: 'nowrap' }}>
-                          توزيع فان
+                          {__t('settings.user_management.unified_access_directory_panel.s16', "توزيع فان")}
                         </span>
                       ) : (
                         <span style={{ fontSize: '11px', color: '#c2410c', background: '#ffedd5', padding: '2px 8px', borderRadius: '6px', border: '1px solid #fed7aa', fontWeight: 700, whiteSpace: 'nowrap' }}>
-                          طيار دليفري
+                          {__t('settings.user_management.unified_access_directory_panel.s17', "طيار دليفري")}
                         </span>
                       )}
                     </td>
                     <td style={{ padding: '10px 10px', direction: 'ltr', textAlign: 'right', fontFamily: 'monospace', fontSize: '12px' }}>
-                      {rep.phone || <span style={{ color: '#dc2626', fontSize: '11px' }}>غير محدد</span>}
+                      {rep.phone || <span style={{ color: '#dc2626', fontSize: '11px' }}>{__t('settings.user_management.unified_access_directory_panel.s18', "غير محدد")}</span>}
                     </td>
                     <td style={{ padding: '10px 10px' }}>
                       {(() => {
@@ -318,7 +320,7 @@ export function DeliveryRepsAccessPanel() {
                               fontSize: '11.5px',
                             }}
                           >
-                            {hasPin ? '•••• مفعل' : 'بدون رمز'}
+                            {hasPin ? __t('settings.user_management.unified_access_directory_panel.s19', "•••• مفعل") : __t('settings.user_management.unified_access_directory_panel.s20', "بدون رمز")}
                           </span>
                         );
                       })()}
@@ -326,8 +328,8 @@ export function DeliveryRepsAccessPanel() {
                     <td style={{ padding: '10px 8px' }}>
                       <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
                         <span
-                          onClick={() => copyUrl('/driver', 'بوابة الدليفري')}
-                          title="انقر لنسخ رابط بوابة الدليفري (/driver)"
+                          onClick={() => copyUrl('/driver', __t('settings.user_management.unified_access_directory_panel.s21', "بوابة الدليفري"))}
+                          title={__t('settings.user_management.unified_access_directory_panel.s22', "انقر لنسخ رابط بوابة الدليفري (/driver)")}
                           style={{
                             fontSize: '10.5px',
                             background: '#fff7ed',
@@ -342,11 +344,11 @@ export function DeliveryRepsAccessPanel() {
                             whiteSpace: 'nowrap',
                           }}
                         >
-                          <CopyIcon size={10} /> دليفري
+                          <CopyIcon size={10} /> {__t('settings.user_management.unified_access_directory_panel.s23', "دليفري")}
                         </span>
                         <span
-                          onClick={() => copyUrl('/van-sales', 'مبيعات الفان')}
-                          title="انقر لنسخ رابط مبيعات الفان (/van-sales)"
+                          onClick={() => copyUrl('/van-sales', __t('settings.user_management.unified_access_directory_panel.s24', "مبيعات الفان"))}
+                          title={__t('settings.user_management.unified_access_directory_panel.s25', "انقر لنسخ رابط مبيعات الفان (/van-sales)")}
                           style={{
                             fontSize: '10.5px',
                             background: '#f0f9ff',
@@ -361,7 +363,7 @@ export function DeliveryRepsAccessPanel() {
                             whiteSpace: 'nowrap',
                           }}
                         >
-                          <CopyIcon size={10} /> فان
+                          <CopyIcon size={10} /> {__t('settings.user_management.unified_access_directory_panel.s26', "فان")}
                         </span>
                       </div>
                     </td>
@@ -382,7 +384,7 @@ export function DeliveryRepsAccessPanel() {
                         }}
                       >
                         {rep.is_active ? <CheckCircleIcon size={11} /> : <XCircleIcon size={11} />}
-                        {rep.is_active ? 'نشط' : 'موقوف'}
+                        {rep.is_active ? __t('settings.user_management.unified_access_directory_panel.s27', "نشط") : __t('settings.user_management.unified_access_directory_panel.s28', "موقوف")}
                       </span>
                     </td>
                     <td style={{ padding: '10px 12px', textAlign: 'center', whiteSpace: 'nowrap' }}>
@@ -395,7 +397,7 @@ export function DeliveryRepsAccessPanel() {
                             setIsUpsertOpen(true);
                           }}
                         >
-                          تعديل البيانات
+                          {__t('settings.user_management.unified_access_directory_panel.s29', "تعديل البيانات")}
                         </Button>
                         <Button
                           variant="secondary"
@@ -406,7 +408,7 @@ export function DeliveryRepsAccessPanel() {
                             setPinInput(rep.pin_code || '');
                           }}
                         >
-                          الـ PIN
+                          {__t('settings.user_management.unified_access_directory_panel.s30', "الـ PIN")}
                         </Button>
                         <Button
                           variant={rep.is_active ? 'danger' : 'secondary'}
@@ -414,7 +416,7 @@ export function DeliveryRepsAccessPanel() {
                           onClick={() => toggleActive(rep)}
                           disabled={updateMutation.isPending}
                         >
-                          {rep.is_active ? 'إيقاف' : 'تفعيل'}
+                          {rep.is_active ? __t('settings.user_management.unified_access_directory_panel.s31', "إيقاف") : __t('settings.user_management.unified_access_directory_panel.s32', "تفعيل")}
                         </Button>
                       </div>
                     </td>
@@ -432,7 +434,7 @@ export function DeliveryRepsAccessPanel() {
           open={Boolean(editingRep)}
           onClose={() => setEditingRep(null)}
           width="min(500px, 95vw)"
-          ariaLabel="تعديل بيانات الدخول للمندوب"
+          ariaLabel={__t('settings.user_management.unified_access_directory_panel.s33', "تعديل بيانات الدخول للمندوب")}
         >
           <div
             className="dialog-card"
@@ -443,7 +445,6 @@ export function DeliveryRepsAccessPanel() {
               padding: '24px 28px',
               boxSizing: 'border-box',
             }}
-            dir="rtl"
           >
             <div
               style={{
@@ -455,7 +456,7 @@ export function DeliveryRepsAccessPanel() {
               }}
             >
               <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: '#0f172a', lineHeight: 1.4 }}>
-                تعديل بيانات الدخول: {editingRep.name}
+                {__t('settings.user_management.unified_access_directory_panel.s34', "تعديل بيانات الدخول:")} {editingRep.name}
               </h3>
               <button
                 type="button"
@@ -469,7 +470,7 @@ export function DeliveryRepsAccessPanel() {
                   lineHeight: 1,
                   padding: '4px',
                 }}
-                title="إغلاق"
+                title={__t('settings.user_management.unified_access_directory_panel.s35', "إغلاق")}
               >
                 ✕
               </button>
@@ -486,18 +487,18 @@ export function DeliveryRepsAccessPanel() {
                 lineHeight: 1.5,
               }}
             >
-              يستخدم المندوب رقم الهاتف والرمز السري (PIN) للدخول إلى تطبيق المندوب أو نقطة بيع الفان.
+              {__t('settings.user_management.unified_access_directory_panel.s36', "يستخدم المندوب رقم الهاتف والرمز السري (PIN) للدخول إلى تطبيق المندوب أو نقطة بيع الفان.")}
             </div>
 
             <div>
               <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-                رقم الهاتف المحمول (معرف تسجيل الدخول)
+                {__t('settings.user_management.unified_access_directory_panel.s37', "رقم الهاتف المحمول (معرف تسجيل الدخول)")}
               </label>
               <input
                 type="text"
                 value={phoneInput}
                 onChange={(e) => setPhoneInput(e.target.value)}
-                placeholder="مثال: 01012345678"
+                placeholder={__t('settings.user_management.unified_access_directory_panel.s38', "مثال: 01012345678")}
                 style={{
                   width: '100%',
                   padding: '9px 12px',
@@ -513,14 +514,14 @@ export function DeliveryRepsAccessPanel() {
 
             <div>
               <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-                رمز الدخول السريع (PIN - من 4 إلى 6 أرقام)
+                {__t('settings.user_management.unified_access_directory_panel.s39', "رمز الدخول السريع (PIN - من 4 إلى 6 أرقام)")}
               </label>
               <input
                 type="text"
                 maxLength={6}
                 value={pinInput}
                 onChange={(e) => setPinInput(e.target.value.replace(/\D/g, ''))}
-                placeholder="مثال: 1234"
+                placeholder={__t('settings.user_management.unified_access_directory_panel.s40', "مثال: 1234")}
                 style={{
                   width: '100%',
                   padding: '9px 12px',
@@ -539,7 +540,7 @@ export function DeliveryRepsAccessPanel() {
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '6px' }}>
               <Button variant="secondary" onClick={() => setEditingRep(null)}>
-                إلغاء
+                {__t('settings.user_management.unified_access_directory_panel.s41', "إلغاء")}
               </Button>
               <Button
                 variant="primary"
@@ -547,7 +548,7 @@ export function DeliveryRepsAccessPanel() {
                 onClick={handleSaveCredentials}
                 disabled={updateMutation.isPending}
               >
-                {updateMutation.isPending ? 'جاري الحفظ...' : 'حفظ التعديلات'}
+                {updateMutation.isPending ? __t('settings.user_management.unified_access_directory_panel.s42', "جاري الحفظ...") : __t('settings.user_management.unified_access_directory_panel.s43', "حفظ التعديلات")}
               </Button>
             </div>
           </div>
@@ -573,6 +574,7 @@ export function DeliveryRepsAccessPanel() {
 // ----------------------------------------------------------------------
 
 export function EmployeeSelfServiceAccessPanel() {
+  const { t: __t } = useTranslation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
@@ -662,7 +664,7 @@ export function EmployeeSelfServiceAccessPanel() {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }} dir="rtl">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
       {/* Header Info Banner */}
       <div
         style={{
@@ -694,10 +696,10 @@ export function EmployeeSelfServiceAccessPanel() {
           </div>
           <div>
             <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 800, color: '#0f172a' }}>
-              إدارة وصول موظفي الخدمة الذاتية وبصمة الموبايل
+              {__t('settings.user_management.unified_access_directory_panel.s44', "إدارة وصول موظفي الخدمة الذاتية وبصمة الموبايل")}
             </h4>
             <span style={{ fontSize: '12px', color: '#64748b' }}>
-              تعيين وتغيير رموز الـ PIN السريعة لبصمة الموبايل الذكية (GPS) وبوابة الموظف الذاتية (ESS).
+              {__t('settings.user_management.unified_access_directory_panel.s45', "تعيين وتغيير رموز الـ PIN السريعة لبصمة الموبايل الذكية (GPS) وبوابة الموظف الذاتية (ESS).")}
             </span>
           </div>
         </div>
@@ -708,7 +710,7 @@ export function EmployeeSelfServiceAccessPanel() {
             style={{ fontSize: '12px', padding: '6px 12px' }}
             onClick={() => navigate('/hr/employees')}
           >
-            سجل الموظفين في الموارد البشرية ↗
+            {__t('settings.user_management.unified_access_directory_panel.s46', "سجل الموظفين في الموارد البشرية ↗")}
           </Button>
         </div>
       </div>
@@ -729,7 +731,7 @@ export function EmployeeSelfServiceAccessPanel() {
         <div style={{ position: 'relative', flex: '1', minWidth: '220px' }}>
           <input
             type="text"
-            placeholder="بحث بالاسم أو كود الموظف أو الموبايل..."
+            placeholder={__t('settings.user_management.unified_access_directory_panel.s47', "بحث بالاسم أو كود الموظف أو الموبايل...")}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             style={{
@@ -789,33 +791,33 @@ export function EmployeeSelfServiceAccessPanel() {
         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right', fontSize: '12.5px' }}>
           <thead>
             <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>
-              <th style={{ padding: '10px 12px', fontWeight: 700 }}>الموظف</th>
-              <th style={{ padding: '10px 10px', fontWeight: 700 }}>القسم والوظيفة</th>
-              <th style={{ padding: '10px 10px', fontWeight: 700 }}>الموبايل</th>
-              <th style={{ padding: '10px 10px', fontWeight: 700 }}>رمز الـ PIN</th>
-              <th style={{ padding: '10px 8px', fontWeight: 700 }}>البوابات</th>
-              <th style={{ padding: '10px 8px', fontWeight: 700 }}>الحالة</th>
-              <th style={{ padding: '10px 12px', fontWeight: 700, textAlign: 'center', whiteSpace: 'nowrap' }}>الإجراءات</th>
+              <th style={{ padding: '10px 12px', fontWeight: 700 }}>{__t('settings.user_management.unified_access_directory_panel.s48', "الموظف")}</th>
+              <th style={{ padding: '10px 10px', fontWeight: 700 }}>{__t('settings.user_management.unified_access_directory_panel.s49', "القسم والوظيفة")}</th>
+              <th style={{ padding: '10px 10px', fontWeight: 700 }}>{__t('settings.user_management.unified_access_directory_panel.s50', "الموبايل")}</th>
+              <th style={{ padding: '10px 10px', fontWeight: 700 }}>{__t('settings.user_management.unified_access_directory_panel.s51', "رمز الـ PIN")}</th>
+              <th style={{ padding: '10px 8px', fontWeight: 700 }}>{__t('settings.user_management.unified_access_directory_panel.s52', "البوابات")}</th>
+              <th style={{ padding: '10px 8px', fontWeight: 700 }}>{__t('settings.user_management.unified_access_directory_panel.s53', "الحالة")}</th>
+              <th style={{ padding: '10px 12px', fontWeight: 700, textAlign: 'center', whiteSpace: 'nowrap' }}>{__t('settings.user_management.unified_access_directory_panel.s54', "الإجراءات")}</th>
             </tr>
           </thead>
           <tbody>
             {employeesQuery.isLoading ? (
               <tr>
                 <td colSpan={7} style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
-                  جاري تحميل بيانات الموظفين...
+                  {__t('settings.user_management.unified_access_directory_panel.s55', "جاري تحميل بيانات الموظفين...")}
                 </td>
               </tr>
             ) : filteredEmployees.length === 0 ? (
               <tr>
                 <td colSpan={7} style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
-                  لا يوجد موظفون مطابقون للفلاتر.
+                  {__t('settings.user_management.unified_access_directory_panel.s56', "لا يوجد موظفون مطابقون للفلاتر.")}
                 </td>
               </tr>
             ) : (
               filteredEmployees.map((emp) => {
                 const isActive = String(emp.status || '') === 'active';
                 const phone = emp.mobile || emp.phone;
-                const empName = emp.displayName || `${emp.firstName || ''} ${emp.lastName || ''}`.trim() || 'موظف';
+                const empName = emp.displayName || `${emp.firstName || ''} ${emp.lastName || ''}`.trim() || __t('settings.user_management.unified_access_directory_panel.s57', "موظف");
 
                 return (
                   <tr key={emp.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
@@ -823,7 +825,7 @@ export function EmployeeSelfServiceAccessPanel() {
                       <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '13px' }}>{empName}</div>
                       {emp.employeeNo && (
                         <div style={{ fontSize: '11px', color: '#64748b', fontFamily: 'monospace' }}>
-                          كود: {emp.employeeNo}
+                          {__t('settings.user_management.unified_access_directory_panel.s58', "كود:")} {emp.employeeNo}
                         </div>
                       )}
                     </td>
@@ -832,7 +834,7 @@ export function EmployeeSelfServiceAccessPanel() {
                       <div style={{ fontSize: '11px', color: '#64748b' }}>{emp.jobTitleName || emp.positionName || '—'}</div>
                     </td>
                     <td style={{ padding: '10px 10px', direction: 'ltr', textAlign: 'right', fontFamily: 'monospace', fontSize: '12px' }}>
-                      {phone || <span style={{ color: '#dc2626', fontSize: '11px' }}>ناقص موبايل</span>}
+                      {phone || <span style={{ color: '#dc2626', fontSize: '11px' }}>{__t('settings.user_management.unified_access_directory_panel.s59', "ناقص موبايل")}</span>}
                     </td>
                     <td style={{ padding: '10px 10px' }}>
                       <span
@@ -849,14 +851,14 @@ export function EmployeeSelfServiceAccessPanel() {
                           fontSize: '11.5px',
                         }}
                       >
-                        {emp.pinCode || emp.pin_code ? `•••• (${emp.pinCode || emp.pin_code})` : 'لم يعين PIN'}
+                        {emp.pinCode || emp.pin_code ? `•••• (${emp.pinCode || emp.pin_code})` : __t('settings.user_management.unified_access_directory_panel.s60', "لم يعين PIN")}
                       </span>
                     </td>
                     <td style={{ padding: '10px 8px' }}>
                       <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
                         <span
-                          onClick={() => copyUrl('/portal', 'بوابة الموظف الذاتية')}
-                          title="انقر لنسخ رابط بوابة الموظف (/portal)"
+                          onClick={() => copyUrl('/portal', __t('settings.user_management.unified_access_directory_panel.s61', "بوابة الموظف الذاتية"))}
+                          title={__t('settings.user_management.unified_access_directory_panel.s62', "انقر لنسخ رابط بوابة الموظف (/portal)")}
                           style={{
                             fontSize: '10.5px',
                             background: '#eff6ff',
@@ -871,11 +873,11 @@ export function EmployeeSelfServiceAccessPanel() {
                             whiteSpace: 'nowrap',
                           }}
                         >
-                          <CopyIcon size={10} /> بوابة
+                          <CopyIcon size={10} /> {__t('settings.user_management.unified_access_directory_panel.s63', "بوابة")}
                         </span>
                         <span
-                          onClick={() => copyUrl('/punch', 'بصمة الموبايل الذكية')}
-                          title="انقر لنسخ رابط بصمة الموبايل (/punch)"
+                          onClick={() => copyUrl('/punch', __t('settings.user_management.unified_access_directory_panel.s64', "بصمة الموبايل الذكية"))}
+                          title={__t('settings.user_management.unified_access_directory_panel.s65', "انقر لنسخ رابط بصمة الموبايل (/punch)")}
                           style={{
                             fontSize: '10.5px',
                             background: '#f0fdf4',
@@ -890,7 +892,7 @@ export function EmployeeSelfServiceAccessPanel() {
                             whiteSpace: 'nowrap',
                           }}
                         >
-                          <CopyIcon size={10} /> بصمة
+                          <CopyIcon size={10} /> {__t('settings.user_management.unified_access_directory_panel.s66', "بصمة")}
                         </span>
                       </div>
                     </td>
@@ -911,7 +913,7 @@ export function EmployeeSelfServiceAccessPanel() {
                         }}
                       >
                         {isActive ? <CheckCircleIcon size={11} /> : <XCircleIcon size={11} />}
-                        {isActive ? 'نشط' : 'موقوف'}
+                        {isActive ? __t('settings.user_management.unified_access_directory_panel.s67', "نشط") : __t('settings.user_management.unified_access_directory_panel.s68', "موقوف")}
                       </span>
                     </td>
                     <td style={{ padding: '10px 12px', textAlign: 'center', whiteSpace: 'nowrap' }}>
@@ -925,22 +927,22 @@ export function EmployeeSelfServiceAccessPanel() {
                             setPinInput(emp.pinCode || emp.pin_code || '');
                           }}
                         >
-                          تعديل الـ PIN والهاتف
+                          {__t('settings.user_management.unified_access_directory_panel.s69', "تعديل الـ PIN والهاتف")}
                         </Button>
                         <Button
                           variant={isActive ? 'danger' : 'secondary'}
                           style={{ fontSize: '11px', padding: '3px 8px', whiteSpace: 'nowrap' }}
                           onClick={() => toggleEmployeeStatus(emp)}
                         >
-                          {isActive ? 'إيقاف' : 'تفعيل'}
+                          {isActive ? __t('settings.user_management.unified_access_directory_panel.s70', "إيقاف") : __t('settings.user_management.unified_access_directory_panel.s71', "تفعيل")}
                         </Button>
                         <Button
                           variant="secondary"
                           style={{ fontSize: '11px', padding: '3px 8px', color: '#170e5e', fontWeight: 700, whiteSpace: 'nowrap' }}
                           onClick={() => navigate(`/hr/employees/${emp.id}`)}
-                          title="فتح ملف الموظف الكامل في الموارد البشرية"
+                          title={__t('settings.user_management.unified_access_directory_panel.s72', "فتح ملف الموظف الكامل في الموارد البشرية")}
                         >
-                          الملف ↗
+                          {__t('settings.user_management.unified_access_directory_panel.s73', "الملف ↗")}
                         </Button>
                       </div>
                     </td>
@@ -958,7 +960,7 @@ export function EmployeeSelfServiceAccessPanel() {
           open={Boolean(editingEmployee)}
           onClose={() => setEditingEmployee(null)}
           width="min(500px, 95vw)"
-          ariaLabel="تعديل بيانات الدخول للموظف"
+          ariaLabel={__t('settings.user_management.unified_access_directory_panel.s74', "تعديل بيانات الدخول للموظف")}
         >
           <div
             className="dialog-card"
@@ -969,7 +971,6 @@ export function EmployeeSelfServiceAccessPanel() {
               padding: '24px 28px',
               boxSizing: 'border-box',
             }}
-            dir="rtl"
           >
             <div
               style={{
@@ -981,7 +982,7 @@ export function EmployeeSelfServiceAccessPanel() {
               }}
             >
               <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: '#0f172a', lineHeight: 1.4 }}>
-                تعديل بيانات الدخول: {editingEmployee.displayName || editingEmployee.firstName}
+                {__t('settings.user_management.unified_access_directory_panel.s75', "تعديل بيانات الدخول:")} {editingEmployee.displayName || editingEmployee.firstName}
               </h3>
               <button
                 type="button"
@@ -995,7 +996,7 @@ export function EmployeeSelfServiceAccessPanel() {
                   lineHeight: 1,
                   padding: '4px',
                 }}
-                title="إغلاق"
+                title={__t('settings.user_management.unified_access_directory_panel.s76', "إغلاق")}
               >
                 ✕
               </button>
@@ -1012,18 +1013,18 @@ export function EmployeeSelfServiceAccessPanel() {
                 lineHeight: 1.5,
               }}
             >
-              يستخدم الموظف رقم الهاتف المحمول والرمز السري (PIN) لتسجيل بصمة الحضور والانصراف الذكية (GPS) وللدخول إلى بوابة الموظف الذاتية (ESS).
+              {__t('settings.user_management.unified_access_directory_panel.s77', "يستخدم الموظف رقم الهاتف المحمول والرمز السري (PIN) لتسجيل بصمة الحضور والانصراف الذكية (GPS) وللدخول إلى بوابة الموظف الذاتية (ESS).")}
             </div>
 
             <div>
               <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-                رقم الهاتف المحمول (معرف تسجيل الدخول للبوابات الذاتية)
+                {__t('settings.user_management.unified_access_directory_panel.s78', "رقم الهاتف المحمول (معرف تسجيل الدخول للبوابات الذاتية)")}
               </label>
               <input
                 type="text"
                 value={phoneInput}
                 onChange={(e) => setPhoneInput(e.target.value)}
-                placeholder="مثال: 01012345678"
+                placeholder={__t('settings.user_management.unified_access_directory_panel.s79', "مثال: 01012345678")}
                 style={{
                   width: '100%',
                   padding: '9px 12px',
@@ -1039,14 +1040,14 @@ export function EmployeeSelfServiceAccessPanel() {
 
             <div>
               <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-                رمز الدخول السريع (PIN - من 4 إلى 6 أرقام)
+                {__t('settings.user_management.unified_access_directory_panel.s80', "رمز الدخول السريع (PIN - من 4 إلى 6 أرقام)")}
               </label>
               <input
                 type="text"
                 maxLength={6}
                 value={pinInput}
                 onChange={(e) => setPinInput(e.target.value.replace(/\D/g, ''))}
-                placeholder="مثال: 1234"
+                placeholder={__t('settings.user_management.unified_access_directory_panel.s81', "مثال: 1234")}
                 style={{
                   width: '100%',
                   padding: '9px 12px',
@@ -1065,7 +1066,7 @@ export function EmployeeSelfServiceAccessPanel() {
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '6px' }}>
               <Button variant="secondary" onClick={() => setEditingEmployee(null)}>
-                إلغاء
+                {__t('settings.user_management.unified_access_directory_panel.s82', "إلغاء")}
               </Button>
               <Button
                 variant="primary"
@@ -1073,7 +1074,7 @@ export function EmployeeSelfServiceAccessPanel() {
                 onClick={handleSaveCredentials}
                 disabled={isSubmitting}
               >
-                {isSubmitting ? 'جاري الحفظ...' : 'حفظ التعديلات'}
+                {isSubmitting ? __t('settings.user_management.unified_access_directory_panel.s83', "جاري الحفظ...") : __t('settings.user_management.unified_access_directory_panel.s84', "حفظ التعديلات")}
               </Button>
             </div>
           </div>

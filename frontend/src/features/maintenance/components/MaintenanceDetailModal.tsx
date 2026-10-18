@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { getGlobalCurrencySymbol } from '@/lib/currencies';
 import { useState, useEffect } from 'react';
@@ -33,6 +34,7 @@ export function MaintenanceDetailModal({
   commissionRate,
   products,
 }: MaintenanceDetailModalProps) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [currentTicket, setCurrentTicket] = useState<MaintenanceTicket | null>(ticket);
 
@@ -120,7 +122,7 @@ export function MaintenanceDetailModal({
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: '#0f172a' }}>
-                بطاقة صيانة الجهاز:{' '}
+                {t('maintenance.maintenance_detail_modal.s0', "بطاقة صيانة الجهاز:")}{' '}
                 <span style={{ fontFamily: 'monospace', color: '#0f172a', background: '#f8fafc', border: '1px solid #e2e8f0', padding: '2px 8px', borderRadius: '5px' }}>
                   {currentTicket.ticketNo}
                 </span>
@@ -140,7 +142,7 @@ export function MaintenanceDetailModal({
               </span>
             </div>
             <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '3px' }}>
-              تاريخ الاستلام: {new Date(currentTicket.receivedAt).toLocaleString('ar-EG', { dateStyle: 'medium', timeStyle: 'short' })}
+              {t('maintenance.maintenance_detail_modal.s1', "تاريخ الاستلام:")} {new Date(currentTicket.receivedAt).toLocaleString('ar-EG', { dateStyle: 'medium', timeStyle: 'short' })}
             </div>
           </div>
 
@@ -151,7 +153,7 @@ export function MaintenanceDetailModal({
               style={{ fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '5px' }}
             >
               <Icons.WhatsApp />
-              <span>إرسال واتساب</span>
+              <span>{t('maintenance.maintenance_detail_modal.s2', "إرسال واتساب")}</span>
             </Button>
             <Button
               variant="secondary"
@@ -159,7 +161,7 @@ export function MaintenanceDetailModal({
               style={{ fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '5px' }}
             >
               <Icons.Printer />
-              <span>طباعة</span>
+              <span>{t('maintenance.maintenance_detail_modal.s3', "طباعة")}</span>
             </Button>
             <button
               type="button"
@@ -174,7 +176,7 @@ export function MaintenanceDetailModal({
         {/* Status Stepper / Switcher */}
         <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
           <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#475569', marginBottom: '8px' }}>
-            مرحلة عمل وصيانة الجهاز:
+            {t('maintenance.maintenance_detail_modal.s4', "مرحلة عمل وصيانة الجهاز:")}
           </div>
           <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
             {(['received', 'inspecting', 'in_progress', 'repaired', 'delivered', 'unrepairable'] as MaintenanceStatus[]).map((st) => {
@@ -223,7 +225,7 @@ export function MaintenanceDetailModal({
           <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 12px' }}>
             <div style={{ color: '#64748b', fontSize: '0.72rem', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '2px' }}>
               <Icons.User />
-              <span>العميل:</span>
+              <span>{t('maintenance.maintenance_detail_modal.s5', "العميل:")}</span>
             </div>
             <strong style={{ color: '#0f172a' }}>{currentTicket.customerName}</strong>
             <div style={{ color: '#64748b', fontSize: '0.75rem', marginTop: '1px' }} dir="ltr">{currentTicket.customerPhone}</div>
@@ -232,7 +234,7 @@ export function MaintenanceDetailModal({
           <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 12px' }}>
             <div style={{ color: '#64748b', fontSize: '0.72rem', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '2px' }}>
               <Icons.Device />
-              <span>الجهاز:</span>
+              <span>{t('maintenance.maintenance_detail_modal.s6', "الجهاز:")}</span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap', marginBottom: '1px' }}>
               {currentTicket.deviceBrand && (
@@ -262,20 +264,20 @@ export function MaintenanceDetailModal({
               <Icons.Lock />
               <span>{maintenanceProfile.passcodeLabel}:</span>
             </div>
-            <strong dir="ltr" style={{ color: '#0f172a', fontFamily: 'monospace' }}>{currentTicket.passcode || 'بدون قفل'}</strong>
+            <strong dir="ltr" style={{ color: '#0f172a', fontFamily: 'monospace' }}>{currentTicket.passcode || t('maintenance.maintenance_detail_modal.s7', "بدون قفل")}</strong>
           </div>
 
           <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 12px' }}>
             <div style={{ color: '#64748b', fontSize: '0.72rem', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '2px' }}>
               <Icons.Shield />
-              <span>فترة الضمان:</span>
+              <span>{t('maintenance.maintenance_detail_modal.s8', "فترة الضمان:")}</span>
             </div>
-            <strong style={{ color: '#0f172a' }}>{currentTicket.warrantyDays || 30} يوماً</strong>
+            <strong style={{ color: '#0f172a' }}>{currentTicket.warrantyDays || 30} {t('maintenance.maintenance_detail_modal.s9', "يوماً")}</strong>
           </div>
         </div>
 
         <div>
-          <div style={{ color: '#475569', fontSize: '0.8rem', fontWeight: 700, marginBottom: '4px' }}>عطل الجهاز المشتكى منه:</div>
+          <div style={{ color: '#475569', fontSize: '0.8rem', fontWeight: 700, marginBottom: '4px' }}>{t('maintenance.maintenance_detail_modal.s10', "عطل الجهاز المشتكى منه:")}</div>
           <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', padding: '10px 14px', borderRadius: '8px', fontSize: '0.85rem', color: '#1e293b', lineHeight: 1.5 }}>
             {currentTicket.problemDescription}
           </div>
@@ -286,16 +288,16 @@ export function MaintenanceDetailModal({
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
             <h4 style={{ margin: 0, fontSize: '0.875rem', fontWeight: 700, color: '#1e293b', display: 'flex', alignItems: 'center', gap: '6px' }}>
               <Icons.Wrench />
-              <span>صرف قطع الغيار من المخزن على الكود ({currentTicket.ticketNo})</span>
+              <span>{t('maintenance.maintenance_detail_modal.s11', "صرف قطع الغيار من المخزن على الكود (")}{currentTicket.ticketNo})</span>
             </h4>
-            <span style={{ fontSize: '0.78rem', color: '#64748b' }}>{(currentTicket.parts || []).length} قطعة مسجلة</span>
+            <span style={{ fontSize: '0.78rem', color: '#64748b' }}>{(currentTicket.parts || []).length} {t('maintenance.maintenance_detail_modal.s12', "قطعة مسجلة")}</span>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 85px 105px auto', gap: '8px', marginBottom: '8px', background: '#f8fafc', padding: '8px', borderRadius: '8px', border: '1px solid #e2e8f0', alignItems: 'center' }}>
             <SearchableCombobox
               inline
               inputClassName="purchase-prototype-field-input"
-              placeholder="ابحث عن قطعة غيار في المخزن بالاسم أو الباركود..."
+              placeholder={t('maintenance.maintenance_detail_modal.s13', "ابحث عن قطعة غيار في المخزن بالاسم أو الباركود...")}
               value={partSearchText}
               onChange={setPartSearchText}
               options={(products || []).map((p: any) => ({
@@ -316,7 +318,7 @@ export function MaintenanceDetailModal({
             <input
               type="number"
               min="1"
-              placeholder="الكمية"
+              placeholder={t('maintenance.maintenance_detail_modal.s14', "الكمية")}
               className="purchase-prototype-field-input"
               value={partQty}
               onChange={(e) => setPartQty(Number(e.target.value))}
@@ -326,7 +328,7 @@ export function MaintenanceDetailModal({
               type="number"
               min="0"
               step="0.01"
-              placeholder="السعر"
+              placeholder={t('maintenance.maintenance_detail_modal.s15', "السعر")}
               className="purchase-prototype-field-input"
               value={partPrice}
               onChange={(e) => setPartPrice(Number(e.target.value))}
@@ -339,7 +341,7 @@ export function MaintenanceDetailModal({
               disabled={!selectedProductId || addPartMutation.isPending}
               style={{ height: '36px', padding: '0 14px', display: 'flex', alignItems: 'center', justifyContent: 'center', whiteSpace: 'nowrap', margin: 0, fontWeight: 700, fontSize: '0.825rem' }}
             >
-              {addPartMutation.isPending ? 'جاري...' : '+ صرف'}
+              {addPartMutation.isPending ? t('maintenance.maintenance_detail_modal.s16', "جاري...") : t('maintenance.maintenance_detail_modal.s17', "+ صرف")}
             </Button>
           </div>
 
@@ -347,11 +349,11 @@ export function MaintenanceDetailModal({
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.825rem', background: '#fff', border: '1px solid #e2e8f0', borderRadius: '6px', overflow: 'hidden' }}>
               <thead>
                 <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', textAlign: 'right', color: '#475569', fontSize: '0.78rem' }}>
-                  <th style={{ padding: '7px 10px' }}>القطعة</th>
-                  <th style={{ padding: '7px 10px' }}>الكمية</th>
-                  <th style={{ padding: '7px 10px' }}>سعر الوحدة</th>
-                  <th style={{ padding: '7px 10px' }}>الإجمالي</th>
-                  <th style={{ padding: '7px 10px', textAlign: 'center' }}>إلغاء الصرف</th>
+                  <th style={{ padding: '7px 10px' }}>{t('maintenance.maintenance_detail_modal.s18', "القطعة")}</th>
+                  <th style={{ padding: '7px 10px' }}>{t('maintenance.maintenance_detail_modal.s19', "الكمية")}</th>
+                  <th style={{ padding: '7px 10px' }}>{t('maintenance.maintenance_detail_modal.s20', "سعر الوحدة")}</th>
+                  <th style={{ padding: '7px 10px' }}>{t('maintenance.maintenance_detail_modal.s21', "الإجمالي")}</th>
+                  <th style={{ padding: '7px 10px', textAlign: 'center' }}>{t('maintenance.maintenance_detail_modal.s22', "إلغاء الصرف")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -366,10 +368,10 @@ export function MaintenanceDetailModal({
                         type="button"
                         style={{ color: '#9f1239', border: 'none', background: 'transparent', cursor: 'pointer', fontWeight: 600, fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '3px' }}
                         onClick={() => removePartMutation.mutate({ ticketId: currentTicket.id, partId: p.id })}
-                        title="إلغاء وإرجاع للمخزن"
+                        title={t('maintenance.maintenance_detail_modal.s23', "إلغاء وإرجاع للمخزن")}
                       >
                         <XIcon size={12} color="#9f1239" />
-                        <span>إرجاع</span>
+                        <span>{t('maintenance.maintenance_detail_modal.s24', "إرجاع")}</span>
                       </button>
                     </td>
                   </tr>
@@ -378,7 +380,7 @@ export function MaintenanceDetailModal({
             </table>
           ) : (
             <div style={{ color: '#94a3b8', fontSize: '0.8rem', textAlign: 'center', padding: '12px', background: '#f8fafc', borderRadius: '6px', border: '1px dashed #e2e8f0' }}>
-              لم يتم صرف أي قطع غيار على هذا الجهاز بعد.
+              {t('maintenance.maintenance_detail_modal.s25', "لم يتم صرف أي قطع غيار على هذا الجهاز بعد.")}
             </div>
           )}
         </div>
@@ -388,10 +390,10 @@ export function MaintenanceDetailModal({
           <div style={{ fontSize: '0.825rem', fontWeight: 700, color: '#1e293b', marginBottom: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               <Icons.Coins />
-              <span>حساب أرباح الصيانة وعمولة الفني:</span>
+              <span>{t('maintenance.maintenance_detail_modal.s26', "حساب أرباح الصيانة وعمولة الفني:")}</span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.78rem' }}>
-              <span style={{ color: '#64748b' }}>تعديل إجمالي الحساب:</span>
+              <span style={{ color: '#64748b' }}>{t('maintenance.maintenance_detail_modal.s27', "تعديل إجمالي الحساب:")}</span>
               <input
                 type="number"
                 min="0"
@@ -413,26 +415,26 @@ export function MaintenanceDetailModal({
                 }}
                 style={{ padding: '3px 10px', fontSize: '0.75rem', fontWeight: 700 }}
               >
-                تحديث الحساب
+                {t('maintenance.maintenance_detail_modal.s28', "تحديث الحساب")}
               </button>
             </div>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px', fontSize: '0.78rem', textAlign: 'center' }}>
             <div style={{ background: '#fff', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-              <div style={{ color: '#64748b', marginBottom: '1px' }}>قطع الغيار (قطاعي)</div>
+              <div style={{ color: '#64748b', marginBottom: '1px' }}>{t('maintenance.maintenance_detail_modal.s29', "قطع الغيار (قطاعي)")}</div>
               <strong style={{ color: '#0f172a', fontSize: '0.875rem' }}>{partsPrice.toFixed(2)} <CurrencySymbol /></strong>
-              {partsProfit > 0 && <div style={{ fontSize: '0.68rem', color: '#16a34a', marginTop: '1px', fontWeight: 600 }}>ربح بضاعة: +{partsProfit.toFixed(0)}</div>}
+              {partsProfit > 0 && <div style={{ fontSize: '0.68rem', color: '#16a34a', marginTop: '1px', fontWeight: 600 }}>{t('maintenance.maintenance_detail_modal.s30', "ربح بضاعة: +")}{partsProfit.toFixed(0)}</div>}
             </div>
             <div style={{ background: '#fff', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-              <div style={{ color: '#64748b', marginBottom: '1px' }}>صافي المصنعية</div>
+              <div style={{ color: '#64748b', marginBottom: '1px' }}>{t('maintenance.maintenance_detail_modal.s31', "صافي المصنعية")}</div>
               <strong style={{ color: '#0f172a', fontSize: '0.875rem' }}>{laborPrice.toFixed(2)} <CurrencySymbol /></strong>
             </div>
             <div style={{ background: '#fff', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-              <div style={{ color: '#64748b', marginBottom: '1px' }}>عمولة الفني ({commissionRate}%)</div>
+              <div style={{ color: '#64748b', marginBottom: '1px' }}>{t('maintenance.maintenance_detail_modal.s32', "عمولة الفني (")}{commissionRate}%)</div>
               <strong style={{ color: '#0f172a', fontSize: '0.875rem' }}>{technicianCommission.toFixed(2)} <CurrencySymbol /></strong>
             </div>
             <div style={{ background: '#fff', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-              <div style={{ color: '#64748b', marginBottom: '1px' }}>صافي ربح المحل</div>
+              <div style={{ color: '#64748b', marginBottom: '1px' }}>{t('maintenance.maintenance_detail_modal.s33', "صافي ربح المحل")}</div>
               <strong style={{ color: '#16a34a', fontSize: '0.875rem' }}>{storeProfit.toFixed(2)} <CurrencySymbol /></strong>
             </div>
           </div>
@@ -448,39 +450,39 @@ export function MaintenanceDetailModal({
           return (
             <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
               <div>
-                <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>إجمالي حساب الصيانة والتسليم:</div>
+                <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>{t('maintenance.maintenance_detail_modal.s34', "إجمالي حساب الصيانة والتسليم:")}</div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                   <strong style={{ fontSize: '1.2rem', color: '#0f172a' }}>
                     {totalCost.toFixed(2)} <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}><CurrencySymbol /></span>
                   </strong>
                   {discountInfo.amount > 0 && (
                     <span style={{ fontSize: '0.75rem', color: '#475569', background: '#f1f5f9', padding: '2px 6px', borderRadius: '4px', fontWeight: 600 }}>
-                      خصم: -{discountInfo.amount.toFixed(2)} <CurrencySymbol /> (الصافي: {netTotal.toFixed(2)} <CurrencySymbol />)
+                      {t('maintenance.maintenance_detail_modal.s35', "خصم: -")}{discountInfo.amount.toFixed(2)} <CurrencySymbol /> {t('maintenance.maintenance_detail_modal.s36', "(الصافي:")} {netTotal.toFixed(2)} <CurrencySymbol />)
                     </span>
                   )}
                 </div>
                 <div style={{ fontSize: '0.75rem', color: '#16a34a', marginTop: '3px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
                   <CheckIcon size={12} color="#16a34a" />
-                  <span>تم السداد والتحصيل في الخزينة بالكامل</span>
+                  <span>{t('maintenance.maintenance_detail_modal.s37', "تم السداد والتحصيل في الخزينة بالكامل")}</span>
                   {advancePaid > 0 ? ` (مقدم: ${advancePaid.toFixed(2)} ${getGlobalCurrencySymbol()} + عند الاستلام: ${collectedAtDelivery.toFixed(2)} ${getGlobalCurrencySymbol()})` : ` (المحصل عند الاستلام: ${collectedAtDelivery.toFixed(2)} ${getGlobalCurrencySymbol()})`}
                 </div>
                 {discountInfo.amount > 0 && (
                   <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '3px' }}>
-                    سبب الخصم: {discountInfo.reason}
+                    {t('maintenance.maintenance_detail_modal.s38', "سبب الخصم:")} {discountInfo.reason}
                   </div>
                 )}
               </div>
 
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <div style={{ textAlign: 'left' }}>
-                  <div style={{ fontSize: '0.75rem', color: '#64748b' }}>الرصيد المتبقي:</div>
+                  <div style={{ fontSize: '0.75rem', color: '#64748b' }}>{t('maintenance.maintenance_detail_modal.s39', "الرصيد المتبقي:")}</div>
                   <strong style={{ fontSize: '1.2rem', color: '#16a34a', fontWeight: 800 }}>
-                    0.00 <span style={{ fontSize: '0.75rem' }}><CurrencySymbol /> (خالص)</span>
+                    0.00 <span style={{ fontSize: '0.75rem' }}><CurrencySymbol /> {t('maintenance.maintenance_detail_modal.s40', "(خالص)")}</span>
                   </strong>
                 </div>
                 <span style={{ padding: '6px 12px', borderRadius: '6px', background: '#f0fdf4', color: '#166534', fontWeight: 700, fontSize: '0.85rem', border: '1px solid #dcfce7', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                   <CheckIcon size={13} color="#166534" />
-                  <span>تم تسليم الجهاز</span>
+                  <span>{t('maintenance.maintenance_detail_modal.s41', "تم تسليم الجهاز")}</span>
                 </span>
               </div>
             </div>
@@ -493,22 +495,22 @@ export function MaintenanceDetailModal({
               <div>
                 <div style={{ fontSize: '0.825rem', color: isUnrep ? '#9f1239' : '#475569', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}>
                   <XIcon size={13} color={isUnrep ? '#9f1239' : '#475569'} />
-                  <span>{isUnrep ? 'تعذر إصلاح الجهاز (تم إلغاء رسوم الصيانة)' : 'تم إلغاء تذكرة الصيانة'}</span>
+                  <span>{isUnrep ? t('maintenance.maintenance_detail_modal.s42', "تعذر إصلاح الجهاز (تم إلغاء رسوم الصيانة)") : t('maintenance.maintenance_detail_modal.s43', "تم إلغاء تذكرة الصيانة")}</span>
                 </div>
                 {advancePaid > 0 ? (
                   <div style={{ fontSize: '0.78rem', color: '#c2410c', marginTop: '3px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
                     <AlertTriangleIcon size={14} color="#c2410c" />
-                    <span>مستحق رد العربون للعميل بالكامل: {advancePaid.toFixed(2)} <CurrencySymbol /> عند تسليم الجهاز</span>
+                    <span>{t('maintenance.maintenance_detail_modal.s44', "مستحق رد العربون للعميل بالكامل:")} {advancePaid.toFixed(2)} <CurrencySymbol /> {t('maintenance.maintenance_detail_modal.s45', "عند تسليم الجهاز")}</span>
                   </div>
                 ) : (
                   <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px' }}>
-                    لا توجد أي مستحقات مالية مطلوبة من العميل.
+                    {t('maintenance.maintenance_detail_modal.s46', "لا توجد أي مستحقات مالية مطلوبة من العميل.")}
                   </div>
                 )}
               </div>
 
               <div style={{ textAlign: 'left' }}>
-                <div style={{ fontSize: '0.75rem', color: '#64748b' }}>المطلوب تحصيله:</div>
+                <div style={{ fontSize: '0.75rem', color: '#64748b' }}>{t('maintenance.maintenance_detail_modal.s47', "المطلوب تحصيله:")}</div>
                 <strong style={{ fontSize: '1.2rem', color: '#64748b', fontWeight: 700 }}>
                   0.00 <span style={{ fontSize: '0.75rem' }}><CurrencySymbol /></span>
                 </strong>
@@ -518,20 +520,20 @@ export function MaintenanceDetailModal({
         })() : (
           <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
             <div>
-              <div style={{ fontSize: '0.78rem', color: '#64748b' }}>إجمالي حساب الصيانة والقطع:</div>
+              <div style={{ fontSize: '0.78rem', color: '#64748b' }}>{t('maintenance.maintenance_detail_modal.s48', "إجمالي حساب الصيانة والقطع:")}</div>
               <strong style={{ fontSize: '1.2rem', color: '#0f172a' }}>
                 {(currentTicket.finalCost || currentTicket.expectedCost || 0).toFixed(2)} <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}><CurrencySymbol /></span>
               </strong>
               {currentTicket.advancePayment > 0 && (
                 <div style={{ fontSize: '0.72rem', color: '#475569', marginTop: '2px', fontWeight: 600 }}>
-                  (المدفوع مقدماً: {currentTicket.advancePayment.toFixed(2)} <CurrencySymbol />)
+                  {t('maintenance.maintenance_detail_modal.s49', "(المدفوع مقدماً:")} {currentTicket.advancePayment.toFixed(2)} <CurrencySymbol />)
                 </div>
               )}
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <div style={{ textAlign: 'left' }}>
-                <div style={{ fontSize: '0.75rem', color: '#475569', fontWeight: 600 }}>المتبقي للتحصيل:</div>
+                <div style={{ fontSize: '0.75rem', color: '#475569', fontWeight: 600 }}>{t('maintenance.maintenance_detail_modal.s50', "المتبقي للتحصيل:")}</div>
                 <strong style={{ fontSize: '1.25rem', color: '#0f172a', fontWeight: 800 }}>
                   {Math.max(0, (currentTicket.finalCost || currentTicket.expectedCost || 0) - (currentTicket.advancePayment || 0)).toFixed(2)} <span style={{ fontSize: '0.75rem', color: '#64748b' }}><CurrencySymbol /></span>
                 </strong>
@@ -543,7 +545,7 @@ export function MaintenanceDetailModal({
                 disabled={updateStatusMutation.isPending}
                 style={{ padding: '7px 18px', fontWeight: 700, fontSize: '0.85rem' }}
               >
-                تسليم الجهاز والتحصيل
+                {t('maintenance.maintenance_detail_modal.s51', "تسليم الجهاز والتحصيل")}
               </Button>
             </div>
           </div>
@@ -551,7 +553,7 @@ export function MaintenanceDetailModal({
 
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
           <Button variant="secondary" onClick={onClose} style={{ fontSize: '0.85rem' }}>
-            إغلاق
+            {t('maintenance.maintenance_detail_modal.s52', "إغلاق")}
           </Button>
         </div>
       </div>

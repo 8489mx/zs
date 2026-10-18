@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DialogShell } from '@/shared/components/dialog-shell';
@@ -206,6 +207,7 @@ function renderQuickActionIcon(iconType: MobileQuickActionItem['iconType']) {
 }
 
 export function MobileQuickActionSheet({ isOpen, onClose }: MobileQuickActionSheetProps) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [quickProductOpen, setQuickProductOpen] = useState(false);
   const [priceCheckerOpen, setPriceCheckerOpen] = useState(false);
@@ -247,8 +249,8 @@ export function MobileQuickActionSheet({ isOpen, onClose }: MobileQuickActionShe
         <div className="mobile-quick-action-sheet" dir="rtl">
           <div className="mobile-quick-action-header">
             <div className="mobile-quick-action-handle" />
-            <h3 className="mobile-quick-action-title no-pseudo-bar">إجراءات سريعة</h3>
-            <p className="mobile-quick-action-sub">اختر الإجراء الذي تريد تنفيذه فوراً</p>
+            <h3 className="mobile-quick-action-title no-pseudo-bar">{t('shared.layout.mobile_quick_action_sheet.s0', "إجراءات سريعة")}</h3>
+            <p className="mobile-quick-action-sub">{t('shared.layout.mobile_quick_action_sheet.s1', "اختر الإجراء الذي تريد تنفيذه فوراً")}</p>
           </div>
 
           <div className="mobile-quick-action-grid">

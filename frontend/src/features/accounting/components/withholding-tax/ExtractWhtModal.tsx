@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { Button } from '@/shared/ui/button';
 import { CustomSelect } from '@/shared/ui/custom-select';
@@ -32,12 +33,13 @@ export function ExtractWhtModal({
   onSubmit,
   isPending,
 }: ExtractWhtModalProps) {
+  const { t } = useTranslation();
   return (
     <StandardDialog
       isOpen={isOpen}
       onClose={onClose}
-      title="استيراد آلي لخصم ضريبة الأرباح التجارية من المشتريات"
-      subtitle="فحص وتجميع الفواتير المستحقة لنموذج 41"
+      title={t('accounting.withholding_tax.extract_wht_modal.s0', "استيراد آلي لخصم ضريبة الأرباح التجارية من المشتريات")}
+      subtitle={t('accounting.withholding_tax.extract_wht_modal.s1', "فحص وتجميع الفواتير المستحقة لنموذج 41")}
       maxWidth="560px"
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -55,7 +57,7 @@ export function ExtractWhtModal({
         }}>
           <RefreshCwIcon size={18} style={{ flexShrink: 0, marginTop: '2px', color: '#059669' }} />
           <span>
-            يقوم هذا المعالج بفحص جميع فواتير الشراء غير الملغاة التي تجاوزت 300 {getGlobalCurrencySymbol()} في الفترة المحددة، ويستخرج بيانات المورد والرقم الضريبي والوعاء تلقائياً لتضمينها في نموذج 41 دون تكرار.
+            {t('accounting.withholding_tax.extract_wht_modal.s2', "يقوم هذا المعالج بفحص جميع فواتير الشراء غير الملغاة التي تجاوزت 300")} {getGlobalCurrencySymbol()} {t('accounting.withholding_tax.extract_wht_modal.s3', "في الفترة المحددة، ويستخرج بيانات المورد والرقم الضريبي والوعاء تلقائياً لتضمينها في نموذج 41 دون تكرار.")}
           </span>
         </div>
 
@@ -70,13 +72,13 @@ export function ExtractWhtModal({
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid #e2e8f0', paddingBottom: '6px' }}>
             <CalendarIcon size={15} style={{ color: '#170e5e' }} />
-            <span style={{ fontSize: '12px', fontWeight: 700, color: '#1e293b' }}>فترة الفحص ونسبة الخصم المطبقة</span>
+            <span style={{ fontSize: '12px', fontWeight: 700, color: '#1e293b' }}>{t('accounting.withholding_tax.extract_wht_modal.s4', "فترة الفحص ونسبة الخصم المطبقة")}</span>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
             <div>
               <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>
-                من تاريخ <span style={{ color: '#e11d48' }}>*</span>
+                {t('accounting.withholding_tax.extract_wht_modal.s5', "من تاريخ")} <span style={{ color: '#e11d48' }}>*</span>
               </label>
               <input
                 type="date"
@@ -88,7 +90,7 @@ export function ExtractWhtModal({
 
             <div>
               <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>
-                إلى تاريخ <span style={{ color: '#e11d48' }}>*</span>
+                {t('accounting.withholding_tax.extract_wht_modal.s6', "إلى تاريخ")} <span style={{ color: '#e11d48' }}>*</span>
               </label>
               <input
                 type="date"
@@ -101,7 +103,7 @@ export function ExtractWhtModal({
 
           <div>
             <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>
-              نسبة الخصم الافتراضية
+              {t('accounting.withholding_tax.extract_wht_modal.s7', "نسبة الخصم الافتراضية")}
             </label>
             <CustomSelect
               value={String(extractDates.defaultWhtRate)}
@@ -121,7 +123,7 @@ export function ExtractWhtModal({
 
       <StandardDialogFooter>
         <Button variant="secondary" onClick={onClose} style={{ padding: '8px 18px', fontSize: '13px', borderRadius: '8px' }}>
-          إلغاء
+          {t('accounting.withholding_tax.extract_wht_modal.s8', "إلغاء")}
         </Button>
         <Button
           onClick={onSubmit}
@@ -138,7 +140,7 @@ export function ExtractWhtModal({
             opacity: isPending ? 0.6 : 1,
           }}
         >
-          {isPending ? 'جاري الفحص والاستيراد...' : 'بدء الاستيراد الآلي'}
+          {isPending ? t('accounting.withholding_tax.extract_wht_modal.s9', "جاري الفحص والاستيراد...") : t('accounting.withholding_tax.extract_wht_modal.s10', "بدء الاستيراد الآلي")}
         </Button>
       </StandardDialogFooter>
     </StandardDialog>

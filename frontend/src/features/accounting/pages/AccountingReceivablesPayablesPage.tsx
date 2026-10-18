@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -23,6 +24,7 @@ function formatDate(value: string) {
 }
 
 export function AccountingReceivablesPayablesPage() {
+  const { t } = useTranslation();
   const [dateTo, setDateTo] = useState('');
   const [appliedDateTo, setAppliedDateTo] = useState('');
 
@@ -53,32 +55,32 @@ export function AccountingReceivablesPayablesPage() {
     <div className="page-stack page-shell" dir="rtl">
       <main className="document-prototype-column" style={{ paddingBottom: '100px', maxWidth: '1280px' }}>
         <PageHeader
-          title="الذمم والمستحقات"
-          description="نظرة مبسطة على المبالغ المستحقة من العملاء والمبالغ المستحقة للموردين."
+          title={t('accounting.accounting_receivables_payables_page.s0', "الذمم والمستحقات")}
+          description={t('accounting.accounting_receivables_payables_page.s1', "نظرة مبسطة على المبالغ المستحقة من العملاء والمبالغ المستحقة للموردين.")}
         />
 
-        <FormSection title="فلاتر التقرير">
+        <FormSection title={t('accounting.accounting_receivables_payables_page.s2', "فلاتر التقرير")}>
         <div className="grid-2" style={{ alignItems: 'end' }}>
           <label className="field stack gap-8">
-            <span>حتى تاريخ</span>
+            <span>{t('accounting.accounting_receivables_payables_page.s3', "حتى تاريخ")}</span>
             <input type="date" value={dateTo} onChange={(event) => setDateTo(event.target.value)} />
           </label>
           <div className="actions" style={{ marginTop: 8 }}>
-            <button type="button" className="button" onClick={() => setAppliedDateTo(dateTo.trim())}>تطبيق</button>
-            <button type="button" className="button button-secondary" onClick={() => { setDateTo(''); setAppliedDateTo(''); }}>إعادة ضبط</button>
+            <button type="button" className="button" onClick={() => setAppliedDateTo(dateTo.trim())}>{t('accounting.accounting_receivables_payables_page.s4', "تطبيق")}</button>
+            <button type="button" className="button button-secondary" onClick={() => { setDateTo(''); setAppliedDateTo(''); }}>{t('accounting.accounting_receivables_payables_page.s5', "إعادة ضبط")}</button>
           </div>
         </div>
         </FormSection>
 
-        <FormSection title="ملخص الذمم والمستحقات">
+        <FormSection title={t('accounting.accounting_receivables_payables_page.s6', "ملخص الذمم والمستحقات")}>
         <QueryFeedback
           isLoading={query.isLoading}
           isError={query.isError}
           error={query.error}
           isEmpty={!totals}
-          loadingText="جاري تحميل تقرير الذمم والمستحقات..."
-          errorTitle="تعذر تحميل تقرير الذمم والمستحقات"
-          emptyTitle="لا توجد بيانات"
+          loadingText={t('accounting.accounting_receivables_payables_page.s7', "جاري تحميل تقرير الذمم والمستحقات...")}
+          errorTitle={t('accounting.accounting_receivables_payables_page.s8', "تعذر تحميل تقرير الذمم والمستحقات")}
+          emptyTitle={t('accounting.accounting_receivables_payables_page.s9', "لا توجد بيانات")}
         >
           {summaryItems.length ? (
             <div className="reports-workspace">
@@ -97,28 +99,28 @@ export function AccountingReceivablesPayablesPage() {
         </QueryFeedback>
         </FormSection>
 
-        <FormSection title="العملاء عليهم مبالغ">
+        <FormSection title={t('accounting.accounting_receivables_payables_page.s10', "العملاء عليهم مبالغ")}>
         <DataTable<ReceivableRow>
           data={customers}
           getRowKey={(row) => row.customerId}
-          emptyMessage="لا يوجد عملاء عليهم مبالغ في النطاق الحالي"
+          emptyMessage={t('accounting.accounting_receivables_payables_page.s11', "لا يوجد عملاء عليهم مبالغ في النطاق الحالي")}
           defaultSort={{ columnId: 'balance', direction: 'desc' }}
           columns={[
             {
               id: 'customer',
-              header: 'العميل',
+              header: t('accounting.accounting_receivables_payables_page.s12', "العميل"),
               sortable: true,
               sortValue: (row) => row.customerName || '',
               render: (row) => row.customerName || '-',
             },
             {
               id: 'phone',
-              header: 'الهاتف',
+              header: t('accounting.accounting_receivables_payables_page.s13', "الهاتف"),
               render: (row) => row.phone || '-',
             },
             {
               id: 'balance',
-              header: 'المبلغ المستحق',
+              header: t('accounting.accounting_receivables_payables_page.s14', "المبلغ المستحق"),
               align: 'end',
               sortable: true,
               sortValue: (row) => Number(row.balance || 0),
@@ -126,17 +128,17 @@ export function AccountingReceivablesPayablesPage() {
             },
             {
               id: 'lastMovement',
-              header: 'آخر حركة',
+              header: t('accounting.accounting_receivables_payables_page.s15', "آخر حركة"),
               sortable: true,
               sortValue: (row) => row.lastMovementDate || '',
               render: (row) => formatDate(row.lastMovementDate),
             },
             {
               id: 'action',
-              header: 'إجراء',
+              header: t('accounting.accounting_receivables_payables_page.s16', "إجراء"),
               render: (row) => (
                 <Link className="button button-secondary" to={`/accounts?customerId=${encodeURIComponent(row.customerId)}`}>
-                  عرض كشف الحساب
+                  {t('accounting.accounting_receivables_payables_page.s17', "عرض كشف الحساب")}
                 </Link>
               ),
             },
@@ -144,28 +146,28 @@ export function AccountingReceivablesPayablesPage() {
         />
         </FormSection>
 
-        <FormSection title="الموردون لهم مستحقات">
+        <FormSection title={t('accounting.accounting_receivables_payables_page.s18', "الموردون لهم مستحقات")}>
         <DataTable<PayableRow>
           data={suppliers}
           getRowKey={(row) => row.supplierId}
-          emptyMessage="لا يوجد موردون لهم مستحقات في النطاق الحالي"
+          emptyMessage={t('accounting.accounting_receivables_payables_page.s19', "لا يوجد موردون لهم مستحقات في النطاق الحالي")}
           defaultSort={{ columnId: 'balance', direction: 'desc' }}
           columns={[
             {
               id: 'supplier',
-              header: 'المورد',
+              header: t('accounting.accounting_receivables_payables_page.s20', "المورد"),
               sortable: true,
               sortValue: (row) => row.supplierName || '',
               render: (row) => row.supplierName || '-',
             },
             {
               id: 'phone',
-              header: 'الهاتف',
+              header: t('accounting.accounting_receivables_payables_page.s21', "الهاتف"),
               render: (row) => row.phone || '-',
             },
             {
               id: 'balance',
-              header: 'المبلغ المستحق',
+              header: t('accounting.accounting_receivables_payables_page.s22', "المبلغ المستحق"),
               align: 'end',
               sortable: true,
               sortValue: (row) => Number(row.balance || 0),
@@ -173,17 +175,17 @@ export function AccountingReceivablesPayablesPage() {
             },
             {
               id: 'lastMovement',
-              header: 'آخر حركة',
+              header: t('accounting.accounting_receivables_payables_page.s23', "آخر حركة"),
               sortable: true,
               sortValue: (row) => row.lastMovementDate || '',
               render: (row) => formatDate(row.lastMovementDate),
             },
             {
               id: 'action',
-              header: 'إجراء',
+              header: t('accounting.accounting_receivables_payables_page.s24', "إجراء"),
               render: (row) => (
                 <Link className="button button-secondary" to={`/accounts?supplierId=${encodeURIComponent(row.supplierId)}`}>
-                  عرض كشف الحساب
+                  {t('accounting.accounting_receivables_payables_page.s25', "عرض كشف الحساب")}
                 </Link>
               ),
             },

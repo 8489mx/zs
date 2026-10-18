@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -17,6 +18,7 @@ import { restaurantAdvancedFnbApi } from '@/features/pos/api/restaurant-advanced
 import { useProductsQuery } from '@/shared/hooks/use-catalog-queries';
 
 export function KitchenDisplayPage() {
+  const { t: __t } = useTranslation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [selectedStation, setSelectedStation] = useState<KdsStation>('all');
@@ -274,10 +276,10 @@ export function KitchenDisplayPage() {
               </span>
               <div>
                 <h4 style={{ margin: 0, fontSize: '13.5px', fontWeight: 800 }}>
-                  محطة منسق التسليم والتجميع المركزي (Kitchen Expediter Pass)
+                  {__t('pos.kitchen_display_page.s0', __t('pos.kitchen_display_page.s0', "محطة منسق التسليم والتجميع المركزي (Kitchen Expediter Pass)"))}
                 </h4>
                 <p style={{ margin: '2px 0 0', fontSize: '11px', color: '#cbd5e1' }}>
-                  مراقبة وتجميع كافة أطباق الوجبة عبر المحطات المتعددة (مشويات، ساخن، بار، حلويات) وتسليم الطلب مكتملاً
+                  {__t('pos.kitchen_display_page.s1', __t('pos.kitchen_display_page.s1', "مراقبة وتجميع كافة أطباق الوجبة عبر المحطات المتعددة (مشويات، ساخن، بار، حلويات) وتسليم الطلب مكتملاً"))}
                 </p>
               </div>
             </div>
@@ -295,7 +297,7 @@ export function KitchenDisplayPage() {
                   gap: '6px',
                 }}
               >
-                <span>مكتمل المحطات وجاهز للتسليم:</span>
+                <span>{__t('pos.kitchen_display_page.s2', __t('pos.kitchen_display_page.s2', "مكتمل المحطات وجاهز للتسليم:"))}</span>
                 <strong style={{ fontSize: '13px' }}>
                   {tickets.filter((t) => t.items.length > 0 && t.items.every((i) => i.status === 'ready')).length}
                 </strong>
@@ -312,7 +314,7 @@ export function KitchenDisplayPage() {
                   gap: '6px',
                 }}
               >
-                <span>قيد التحضير بالمحطات:</span>
+                <span>{__t('pos.kitchen_display_page.s3', __t('pos.kitchen_display_page.s3', "قيد التحضير بالمحطات:"))}</span>
                 <strong style={{ fontSize: '13px' }}>
                   {tickets.filter((t) => !t.items.every((i) => i.status === 'ready')).length}
                 </strong>
@@ -334,7 +336,7 @@ export function KitchenDisplayPage() {
           >
             <ClockIcon size={36} color="#64748b" />
             <div style={{ fontSize: '15px', fontWeight: 700, color: '#64748b' }}>
-              جاري مزامنة تذاكر المطبخ النشطة...
+              {__t('pos.kitchen_display_page.s4', __t('pos.kitchen_display_page.s4', "جاري مزامنة تذاكر المطبخ النشطة..."))}
             </div>
           </div>
         ) : tickets.length === 0 ? (

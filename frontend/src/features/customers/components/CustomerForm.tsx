@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useForm, useWatch, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useQuery } from '@tanstack/react-query';
@@ -20,6 +21,7 @@ import { CustomerVisitDaysPicker } from './CustomerVisitDaysPicker';
 const DEFAULT_VALUES = { name: '', phone: '', address: '', balance: 0, type: 'cash' as const, creditLimit: 0, metadata: { currency: 'EGP' } };
 
 export function CustomerForm({ onSuccess }: { onSuccess?: () => void } = {}) {
+  const { t: __t } = useTranslation();
   const profile = useCustomerProfile();
   const settingsQuery = useSettingsQuery();
   const importModuleEnabled = settingsQuery.data?.importModuleEnabled === true;
@@ -57,7 +59,7 @@ export function CustomerForm({ onSuccess }: { onSuccess?: () => void } = {}) {
 
   return (
     <form className="form-grid customer-form-grid" onSubmit={form.handleSubmit((values) => mutation.mutate(values))}>
-      <DraftStateNotice visible={form.formState.isDirty && !mutation.isPending} title="بيانات السجل الجديدة لم تُحفظ بعد" hint="يمكنك الحفظ الآن أو تفريغ النموذج قبل الانتقال لحساب آخر." />
+      <DraftStateNotice visible={form.formState.isDirty && !mutation.isPending} title={__t('customers.customer_form.s0', "بيانات السجل الجديدة لم تُحفظ بعد")} hint={__t('customers.customer_form.s1', "يمكنك الحفظ الآن أو تفريغ النموذج قبل الانتقال لحساب آخر.")} />
       
       <Field label={profile.nameLabel} error={form.formState.errors.name?.message} className="field-full-span">
         <input 
@@ -130,30 +132,30 @@ export function CustomerForm({ onSuccess }: { onSuccess?: () => void } = {}) {
       
       {profile.id === 'distribution' && (
         <fieldset style={{ padding: '12px 16px', border: '1px solid #bfdbfe', borderRadius: '10px', background: '#eff6ff', gridColumn: 'span 2', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          <legend style={{ padding: '0 8px', fontWeight: 800, color: '#1e40af', fontSize: '0.84rem' }}>بيانات التوزيع وخطوط السير (Distribution & Route)</legend>
+          <legend style={{ padding: '0 8px', fontWeight: 800, color: '#1e40af', fontSize: '0.84rem' }}>{__t('customers.customer_form.s2', "بيانات التوزيع وخطوط السير (Distribution & Route)")}</legend>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
-            <Field label="كود المحل / المنفذ الفريد" hint="رمز تعريفي للمندوب في الشارع">
+            <Field label={__t('customers.customer_form.s3', "كود المحل / المنفذ الفريد")} hint={__t('customers.customer_form.s4', "رمز تعريفي للمندوب في الشارع")}>
               <input
                 {...form.register('metadata.customer_code')}
                 disabled={mutation.isPending}
-                placeholder="مثال: CUST-1042 أو 1042"
+                placeholder={__t('customers.customer_form.s5', "مثال: CUST-1042 أو 1042")}
               />
             </Field>
 
-            <Field label="خط السير / المنطقة" hint="خط التوزيع التابع له المحل">
+            <Field label={__t('customers.customer_form.s6', "خط السير / المنطقة")} hint={__t('customers.customer_form.s7', "خط التوزيع التابع له المحل")}>
               <input
                 {...form.register('metadata.route')}
                 disabled={mutation.isPending}
-                placeholder="مثال: خط فيصل / خط الهرم"
+                placeholder={__t('customers.customer_form.s8', "مثال: خط فيصل / خط الهرم")}
               />
             </Field>
 
-            <Field label="الحي / المربع السكني (District)" hint="لتجميع العملاء وترتيب خط سير المندوب تلقائياً">
+            <Field label={__t('customers.customer_form.s9', "الحي / المربع السكني (District)")} hint={__t('customers.customer_form.s10', "لتجميع العملاء وترتيب خط سير المندوب تلقائياً")}>
               <input
                 list="customer-known-districts"
                 {...form.register('metadata.district')}
                 disabled={mutation.isPending}
-                placeholder="مثال: حي فيصل / العشرين / الطوابق"
+                placeholder={__t('customers.customer_form.s11', "مثال: حي فيصل / العشرين / الطوابق")}
                 onChange={(e) => {
                   form.setValue('metadata.district', e.target.value);
                   const val = e.target.value.trim();
@@ -179,7 +181,7 @@ export function CustomerForm({ onSuccess }: { onSuccess?: () => void } = {}) {
               </datalist>
             </Field>
 
-            <Field label="رابط الموقع (Google Maps)" hint="رابط موقع المحل على الخريطة">
+            <Field label={__t('customers.customer_form.s12', "رابط الموقع (Google Maps)")} hint={__t('customers.customer_form.s13', "رابط موقع المحل على الخريطة")}>
               <input
                 {...form.register('metadata.location_url')}
                 disabled={mutation.isPending}
@@ -187,7 +189,7 @@ export function CustomerForm({ onSuccess }: { onSuccess?: () => void } = {}) {
               />
             </Field>
 
-            <Field label="أيام الزيارة الأسبوعية المجدولة" hint="حدد الأيام التي يظهر فيها هذا المحل في خط سير المندوب" className="field-full-span">
+            <Field label={__t('customers.customer_form.s14', "أيام الزيارة الأسبوعية المجدولة")} hint={__t('customers.customer_form.s15', "حدد الأيام التي يظهر فيها هذا المحل في خط سير المندوب")} className="field-full-span">
               <Controller
                 name="metadata.visit_days"
                 control={form.control}
@@ -205,7 +207,7 @@ export function CustomerForm({ onSuccess }: { onSuccess?: () => void } = {}) {
               />
             </Field>
 
-            <Field label="المندوب المسؤول / المخصص" hint="المندوب الذي يظهر له هذا المحل في خط سيره">
+            <Field label={__t('customers.customer_form.s16', "المندوب المسؤول / المخصص")} hint={__t('customers.customer_form.s17', "المندوب الذي يظهر له هذا المحل في خط سيره")}>
               <Controller
                 name="metadata.assigned_rep_id"
                 control={form.control}
@@ -219,13 +221,13 @@ export function CustomerForm({ onSuccess }: { onSuccess?: () => void } = {}) {
                     }}
                     disabled={mutation.isPending}
                     options={[
-                      { value: '', label: 'بدون تخصيص (مشترك / عام)' },
+                      { value: '', label: __t('customers.customer_form.s18', "بدون تخصيص (مشترك / عام)") },
                       ...(repsQuery.data || []).map((r) => ({
                         value: String(r.id),
                         label: `${r.name} ${r.vehicle_plate ? `(${r.vehicle_plate})` : ''}`,
                       })),
                     ]}
-                    placeholder="اختر المندوب..."
+                    placeholder={__t('customers.customer_form.s19', "اختر المندوب...")}
                   />
                 )}
               />
@@ -236,9 +238,9 @@ export function CustomerForm({ onSuccess }: { onSuccess?: () => void } = {}) {
 
       {importModuleEnabled && (
         <fieldset style={{ padding: '12px 16px', border: '1px solid #e2e8f0', borderRadius: '8px', background: '#f8fafc', gridColumn: 'span 2', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          <legend style={{ padding: '0 8px', fontWeight: 700, color: '#170e5e', fontSize: '0.82rem' }}>إعدادات الاستيراد</legend>
+          <legend style={{ padding: '0 8px', fontWeight: 700, color: '#170e5e', fontSize: '0.82rem' }}>{__t('customers.customer_form.s20', "إعدادات الاستيراد")}</legend>
           <div>
-            <Field label="عملة الحساب">
+            <Field label={__t('customers.customer_form.s21', "عملة الحساب")}>
               <Controller
                 name="metadata.currency"
                 control={form.control}
@@ -248,8 +250,8 @@ export function CustomerForm({ onSuccess }: { onSuccess?: () => void } = {}) {
                     onChange={field.onChange}
                     disabled={mutation.isPending}
                     options={[
-                      { value: 'EGP', label: 'جنيه مصري' },
-                      { value: 'USD', label: 'دولار أمريكي' },
+                      { value: 'EGP', label: __t('customers.customer_form.s22', "جنيه مصري") },
+                      { value: 'USD', label: __t('customers.customer_form.s23', "دولار أمريكي") },
                     ]}
                   />
                 )}
@@ -258,10 +260,10 @@ export function CustomerForm({ onSuccess }: { onSuccess?: () => void } = {}) {
           </div>
         </fieldset>
       )}
-      <MutationFeedback isError={mutation.isError} isSuccess={mutation.isSuccess} error={mutation.error} errorFallback="تعذر حفظ البيانات" successText="تم الحفظ بنجاح." />
+      <MutationFeedback isError={mutation.isError} isSuccess={mutation.isSuccess} error={mutation.error} errorFallback={__t('customers.customer_form.s24', "تعذر حفظ البيانات")} successText={__t('customers.customer_form.s25', "تم الحفظ بنجاح.")} />
       <div className="actions sticky-form-actions">
-        <FormResetButton onReset={handleReset} disabled={mutation.isPending || !form.formState.isDirty}>تفريغ النموذج</FormResetButton>
-        <SubmitButton type="submit" isPending={mutation.isPending} idleText={profile.submitCreateText} pendingText="جارٍ الحفظ..." />
+        <FormResetButton onReset={handleReset} disabled={mutation.isPending || !form.formState.isDirty}>{__t('customers.customer_form.s26', "تفريغ النموذج")}</FormResetButton>
+        <SubmitButton type="submit" isPending={mutation.isPending} idleText={profile.submitCreateText} pendingText={__t('customers.customer_form.s27', "جارٍ الحفظ...")} />
       </div>
     </form>
   );

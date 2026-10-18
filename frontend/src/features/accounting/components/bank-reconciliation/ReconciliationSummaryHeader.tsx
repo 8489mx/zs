@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 import { Card } from '@/shared/ui/card';
 import { Button } from '@/shared/ui/button';
@@ -21,13 +22,14 @@ export const ReconciliationSummaryHeader: React.FC<ReconciliationSummaryHeaderPr
   onAcceptSuggestions,
   isAccepting,
 }) => {
+  const { t } = useTranslation();
   return (
     <Card className="workspace-panel">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <h3 style={{ margin: 0, fontSize: '17px', fontWeight: 900, color: '#0f172a' }}>
-              كشف حساب: {statement?.statementNo} ({statement?.accountNameAr})
+              {t('accounting.bank_reconciliation.reconciliation_summary_header.s0', "كشف حساب:")} {statement?.statementNo} ({statement?.accountNameAr})
             </h3>
             <span
               style={{
@@ -40,11 +42,11 @@ export const ReconciliationSummaryHeader: React.FC<ReconciliationSummaryHeaderPr
                 border: `1px solid ${summary?.isBalanced ? '#bbf7d0' : '#fed7aa'}`,
               }}
             >
-              {summary?.isBalanced ? 'الحساب متطابق 100%' : `فارق غير مطابق: ${formatCurrencyWithSymbol(summary?.difference || 0)}`}
+              {summary?.isBalanced ? t('accounting.bank_reconciliation.reconciliation_summary_header.s1', "الحساب متطابق 100%") : `فارق غير مطابق: ${formatCurrencyWithSymbol(summary?.difference || 0)}`}
             </span>
           </div>
           <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>
-            تاريخ الكشف: {statement?.statementDate} • كود الحساب: {statement?.accountCode}
+            {t('accounting.bank_reconciliation.reconciliation_summary_header.s2', "تاريخ الكشف:")} {statement?.statementDate} {t('accounting.bank_reconciliation.reconciliation_summary_header.s3', "• كود الحساب:")} {statement?.accountCode}
           </div>
         </div>
 
@@ -56,7 +58,7 @@ export const ReconciliationSummaryHeader: React.FC<ReconciliationSummaryHeaderPr
             style={{ fontSize: '12px', fontWeight: 700 }}
           >
             <RefreshCwIcon size={14} style={{ marginInlineEnd: '4px' }} />
-            تحديث
+            {t('accounting.bank_reconciliation.reconciliation_summary_header.s4', "تحديث")}
           </Button>
         </div>
       </div>
@@ -71,25 +73,25 @@ export const ReconciliationSummaryHeader: React.FC<ReconciliationSummaryHeaderPr
         }}
       >
         <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 16px' }}>
-          <span style={{ fontSize: '11.5px', color: '#64748b', fontWeight: 700 }}>رصيد بداية الكشف:</span>
+          <span style={{ fontSize: '11.5px', color: '#64748b', fontWeight: 700 }}>{t('accounting.bank_reconciliation.reconciliation_summary_header.s5', "رصيد بداية الكشف:")}</span>
           <div style={{ fontSize: '18px', fontWeight: 900, color: '#0f172a', marginTop: '2px' }}>
             {formatCurrencyWithSymbol(summary?.startingBalance || 0)}
           </div>
         </div>
 
         <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 16px' }}>
-          <span style={{ fontSize: '11.5px', color: '#64748b', fontWeight: 700 }}>رصيد نهاية الكشف المستهدف:</span>
+          <span style={{ fontSize: '11.5px', color: '#64748b', fontWeight: 700 }}>{t('accounting.bank_reconciliation.reconciliation_summary_header.s6', "رصيد نهاية الكشف المستهدف:")}</span>
           <div style={{ fontSize: '18px', fontWeight: 900, color: '#170e5e', marginTop: '2px' }}>
             {formatCurrencyWithSymbol(summary?.endingBalance || 0)}
           </div>
         </div>
 
         <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '10px', padding: '12px 16px' }}>
-          <span style={{ fontSize: '11.5px', color: '#166534', fontWeight: 700 }}>إجمالي الحركات المطابقة:</span>
+          <span style={{ fontSize: '11.5px', color: '#166534', fontWeight: 700 }}>{t('accounting.bank_reconciliation.reconciliation_summary_header.s7', "إجمالي الحركات المطابقة:")}</span>
           <div style={{ fontSize: '18px', fontWeight: 900, color: '#166534', marginTop: '2px' }}>
             {formatCurrencyWithSymbol(summary?.reconciledAmount || 0)}
             <span style={{ fontSize: '12px', fontWeight: 600, color: '#4ade80', marginInlineStart: '6px' }}>
-              ({summary?.reconciledLinesCount || 0} من {summary?.totalLines || 0} بنود)
+              ({summary?.reconciledLinesCount || 0} {t('accounting.bank_reconciliation.reconciliation_summary_header.s8', "من")} {summary?.totalLines || 0} {t('accounting.bank_reconciliation.reconciliation_summary_header.s9', "بنود)")}
             </span>
           </div>
         </div>
@@ -103,7 +105,7 @@ export const ReconciliationSummaryHeader: React.FC<ReconciliationSummaryHeaderPr
           }}
         >
           <span style={{ fontSize: '11.5px', color: summary?.isBalanced ? '#166534' : '#991b1b', fontWeight: 700 }}>
-            {summary?.isBalanced ? 'حالة التطابق:' : 'الفارق المتبقي (Difference):'}
+            {summary?.isBalanced ? t('accounting.bank_reconciliation.reconciliation_summary_header.s10', "حالة التطابق:") : t('accounting.bank_reconciliation.reconciliation_summary_header.s11', "الفارق المتبقي (Difference):")}
           </span>
           <div style={{ fontSize: '18px', fontWeight: 900, color: summary?.isBalanced ? '#166534' : '#dc2626', marginTop: '2px' }}>
             {summary?.isBalanced ? `${formatCurrencyWithSymbol(0)} (متطابق بالكامل)` : formatCurrencyWithSymbol(summary?.difference || 0)}
@@ -130,7 +132,7 @@ export const ReconciliationSummaryHeader: React.FC<ReconciliationSummaryHeaderPr
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <CheckIcon size={18} color="#1d4ed8" />
             <span style={{ fontSize: '13px', fontWeight: 700, color: '#1e40af' }}>
-              اكتشف النظام الذكي {suggestions.length} مطابقة آلية محتملة ذات ثقة عالية بين كشف الحساب ودفتر الأستاذ.
+              {t('accounting.bank_reconciliation.reconciliation_summary_header.s12', "اكتشف النظام الذكي")} {suggestions.length} {t('accounting.bank_reconciliation.reconciliation_summary_header.s13', "مطابقة آلية محتملة ذات ثقة عالية بين كشف الحساب ودفتر الأستاذ.")}
             </span>
           </div>
           <Button
@@ -140,7 +142,7 @@ export const ReconciliationSummaryHeader: React.FC<ReconciliationSummaryHeaderPr
             disabled={isAccepting}
             style={{ background: '#1d4ed8', borderColor: '#1d4ed8', fontSize: '12px', fontWeight: 800, padding: '4px 14px' }}
           >
-            {isAccepting ? 'جارٍ الاعتماد...' : 'اعتماد جميع المطابقات المقترحة بضغطة زر'}
+            {isAccepting ? t('accounting.bank_reconciliation.reconciliation_summary_header.s14', "جارٍ الاعتماد...") : t('accounting.bank_reconciliation.reconciliation_summary_header.s15', "اعتماد جميع المطابقات المقترحة بضغطة زر")}
           </Button>
         </div>
       )}
