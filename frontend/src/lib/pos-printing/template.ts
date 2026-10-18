@@ -4,6 +4,7 @@ import type { AppSettings, Sale } from '@/types/domain';
 import { getPrintOption, getReceiptNumberLocale, isCompactReceipt, getReceiptTheme, formatDateTime, type PosPrintPageSize } from '@/lib/pos-printing/shared';
 import { buildCode128Svg } from '@/lib/barcode';
 import { formatHijriDate } from '@/lib/hijri';
+import { buildInstaPayQrPayload, buildWalletQrPayload, buildPaymentLinkQrPayload } from '@/lib/payment-qr';
 
 function resolveStoreIdentity(settings?: Partial<AppSettings> | null) {
   const brandName = String(settings?.storeName || 'متجر').trim() || 'متجر';
@@ -270,6 +271,102 @@ function renderInvoiceBarcode(documentNumber?: string | number | null, compact =
     <section class="invoice-card invoice-barcode-card${compact ? ' compact' : ''}">
       <div class="invoice-barcode-svg-wrap">
         ${barcodeSvg}
+      </div>
+    </section>
+  `;
+}
+
+function renderPaymentQrSection(options: {
+  settings?: Partial<AppSettings> | null;
+  total: number;
+  documentNumber?: string | number;
+  paymentText?: string;
+  payments?: Sale['payments'];
+  compact?: boolean;
+  isReturn?: boolean;
+  isPurchase?: boolean;
+}) {
+  if (options.isReturn || options.isPurchase) return '';
+  if (!getPrintOption(options.settings, 'printPaymentQrOnReceipt', false)) return '';
+
+  const total = Number(options.total || 0);
+  if (total <= 0) return '';
+
+  const docNo = String(options.documentNumber || '').trim();
+  const payments = options.payments || [];
+  const isInstapay = payments.some((p) => p.paymentChannel === 'instapay') || options.paymentText?.includes('انستا') || options.paymentText?.includes('InstaPay');
+  const isWallet = payments.some((p) => p.paymentChannel === 'wallet') || options.paymentText?.includes('محفظة') || options.paymentText?.includes('فودافون');
+
+  const qrSize = options.compact ? 100 : 120;
+  let qrSvg = '';
+  let title = '';
+  let detailLabel = '';
+  let detailValue = '';
+
+  if (isInstapay || (!isWallet && options.settings?.instapayAddress)) {
+    const address = String(options.settings?.instapayAddress || '01018017523').trim();
+    const result = buildInstaPayQrPayload({
+      address,
+      amount: total,
+      invoiceRef: docNo || undefined,
+      size: qrSize,
+      color: '#000000',
+      bgColor: '#ffffff',
+    });
+    qrSvg = result.qrSvg;
+    title = 'امسح للدفع عبر انستاباي (InstaPay)';
+    detailLabel = 'حساب / هاتف التحويل';
+    detailValue = address;
+  } else if (isWallet || options.settings?.walletNumber) {
+    const walletNo = String(options.settings?.walletNumber || '01018017523').trim();
+    const provider = String(options.settings?.walletProviderName || 'فودافون كاش').trim();
+    const result = buildWalletQrPayload({
+      walletNumber: walletNo,
+      providerName: provider,
+      amount: total,
+      invoiceRef: docNo || undefined,
+      size: qrSize,
+      color: '#000000',
+      bgColor: '#ffffff',
+    });
+    qrSvg = result.qrSvg;
+    title = `امسح للتحويل عبر محفظة (${provider})`;
+    detailLabel = 'رقم المحفظة';
+    detailValue = walletNo;
+  } else if (options.settings?.paymentLinkBaseUrl) {
+    const result = buildPaymentLinkQrPayload({
+      baseUrl: options.settings.paymentLinkBaseUrl,
+      amount: total,
+      invoiceRef: docNo || undefined,
+      size: qrSize,
+      color: '#000000',
+      bgColor: '#ffffff',
+    });
+    qrSvg = result.qrSvg;
+    title = 'امسح للدفع بالبطاقة / Apple Pay';
+    detailLabel = 'رابط الدفع المباشر';
+    detailValue = docNo ? `فاتورة #${docNo}` : 'دفع إلكتروني';
+  }
+
+  if (!qrSvg) return '';
+
+  const currencySymbol = getCurrencySymbol(options.settings?.currency || getGlobalSystemCurrency());
+
+  return `
+    <section class="invoice-card invoice-payment-qr-card${options.compact ? ' compact' : ''}" style="margin: 4px 0; padding: 5px 6px; border: 1px dashed #000; border-radius: 4px; text-align: center;">
+      <div style="font-weight: 800; font-size: ${options.compact ? '9px' : '10.5px'}; color: #000; margin-bottom: 3px; text-align: center;">
+        *** ${escapeHtml(title)} ***
+      </div>
+      <div class="payment-qr-svg-wrap" style="display: flex; justify-content: center; align-items: center; margin: 3px auto; width: ${qrSize}px; height: ${qrSize}px;">
+        ${qrSvg}
+      </div>
+      <div style="display: flex; justify-content: space-between; font-size: ${options.compact ? '8.5px' : '9.5px'}; color: #000; font-weight: 700; margin-top: 2px; border-top: 1px dotted #000; padding-top: 2px;">
+        <span>${escapeHtml(detailLabel)}:</span>
+        <span style="font-family: monospace; direction: ltr; unicode-bidi: isolate;">${escapeHtml(detailValue)}</span>
+      </div>
+      <div style="display: flex; justify-content: space-between; font-size: ${options.compact ? '8.5px' : '9.5px'}; color: #000; font-weight: 800; margin-top: 1px;">
+        <span>المبلغ المطلوب:</span>
+        <span>${formatReceiptMoney(total, options.settings)} ${escapeHtml(currencySymbol)}</span>
       </div>
     </section>
   `;
@@ -972,6 +1069,16 @@ export function buildReceiptDocument(options: {
           loyaltyPointsBalance: options.loyaltyPointsBalance,
           settings: options.settings,
           compact,
+        })}
+        ${renderPaymentQrSection({
+          settings: options.settings,
+          total: options.total,
+          documentNumber: options.documentNumber,
+          paymentText: options.paymentText,
+          payments: options.payments,
+          compact,
+          isReturn: options.isReturn,
+          isPurchase: options.isPurchase,
         })}
         ${renderInvoiceBarcode(options.documentNumber, compact, options.settings)}
         ${renderFooter(options.settings, compact)}

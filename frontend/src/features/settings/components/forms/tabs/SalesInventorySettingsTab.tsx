@@ -2110,6 +2110,202 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
       </FormSection>
       )}
 
+      {/* ===== منظومة المدفوعات والـ QR الذكي (Z-Pay Smart Payment Hub) ===== */}
+      {showPosSettings && (
+        <FormSection
+          title="منظومة المدفوعات والـ QR الذكي (Z-Pay Smart Payment Hub)"
+          description="إعدادات استقبال المدفوعات الفورية عبر إنستاباي (InstaPay Dynamic QR) والمحافظ الإلكترونية (فودافون كاش وميزة) وروابط البطاقات مباشرة على ماكينات Sunmi وشاشات الكاشير."
+        >
+          <div
+            style={{
+              background: '#ffffff',
+              border: '1px solid #e2e8f0',
+              borderRadius: '12px',
+              padding: '16px 20px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '16px',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+            }}
+          >
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+              <div>
+                <label style={{ fontSize: '0.8rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '4px' }}>
+                  عنوان أو رقم إنستاباي للمحل (InstaPay IPA / Phone)
+                </label>
+                <input
+                  type="text"
+                  dir="ltr"
+                  {...form.register('instapayAddress')}
+                  disabled={disabled}
+                  placeholder="01018017523 أو username@instapay"
+                  style={{
+                    height: '38px',
+                    borderRadius: '8px',
+                    border: '1px solid #cbd5e1',
+                    padding: '0 12px',
+                    fontSize: '0.85rem',
+                    fontWeight: 600,
+                    width: '100%',
+                    boxSizing: 'border-box',
+                    textAlign: 'left',
+                  }}
+                />
+                <small style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '3px', display: 'block' }}>
+                  الرقم أو الحساب الذي يستقبل تحويلات إنستاباي اللحظية عند اختيار دفع InstaPay في الكاشير.
+                </small>
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.8rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '4px' }}>
+                  رقم المحفظة الإلكترونية (Mobile Wallet Number)
+                </label>
+                <input
+                  type="text"
+                  dir="ltr"
+                  {...form.register('walletNumber')}
+                  disabled={disabled}
+                  placeholder="01018017523"
+                  style={{
+                    height: '38px',
+                    borderRadius: '8px',
+                    border: '1px solid #cbd5e1',
+                    padding: '0 12px',
+                    fontSize: '0.85rem',
+                    fontWeight: 600,
+                    width: '100%',
+                    boxSizing: 'border-box',
+                    textAlign: 'left',
+                  }}
+                />
+                <small style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '3px', display: 'block' }}>
+                  رقم المحفظة (فودافون كاش، أورنج، اتصالات، وي، سمارت والت) لاستقبال تحويلات المحافظ.
+                </small>
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.8rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '4px' }}>
+                  اسم مزود خدمة المحفظة الافتراضي
+                </label>
+                <input
+                  type="text"
+                  {...form.register('walletProviderName')}
+                  disabled={disabled}
+                  placeholder="فودافون كاش"
+                  style={{
+                    height: '38px',
+                    borderRadius: '8px',
+                    border: '1px solid #cbd5e1',
+                    padding: '0 12px',
+                    fontSize: '0.84rem',
+                    fontWeight: 600,
+                    width: '100%',
+                    boxSizing: 'border-box',
+                  }}
+                />
+                <small style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '3px', display: 'block' }}>
+                  الاسم التوضيحي الذي يظهر للكاشير والعميل (مثال: فودافون كاش، محفظة البنك الأهلي).
+                </small>
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.8rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '4px' }}>
+                  رابط بوابة الدفع الإلكتروني للبطاقات (Payment Link URL - اختياري)
+                </label>
+                <input
+                  type="url"
+                  dir="ltr"
+                  {...form.register('paymentLinkBaseUrl')}
+                  disabled={disabled}
+                  placeholder="https://accept.paymob.com/..."
+                  style={{
+                    height: '38px',
+                    borderRadius: '8px',
+                    border: '1px solid #cbd5e1',
+                    padding: '0 12px',
+                    fontSize: '0.82rem',
+                    width: '100%',
+                    boxSizing: 'border-box',
+                    textAlign: 'left',
+                  }}
+                />
+                <small style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '3px', display: 'block' }}>
+                  لتوليد كود مسح ودفع بالفيزا والماستركارد وأبل باي أونلاين للعملاء عبر هواتفهم.
+                </small>
+              </div>
+            </div>
+
+            {/* Checkboxes Row */}
+            <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '12px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: disabled ? 'not-allowed' : 'pointer' }}>
+                <input
+                  type="checkbox"
+                  style={premiumCheckboxInputStyle}
+                  {...form.register('enableDynamicPaymentQr')}
+                  disabled={disabled}
+                />
+                <div>
+                  <strong style={{ fontSize: '0.82rem', color: '#0f172a', fontWeight: 700, display: 'block' }}>
+                    تفعيل عرض كود الـ QR الديناميكي للدفع فورياً على شاشة ماكينة Sunmi ونقاط البيع
+                  </strong>
+                  <small style={{ fontSize: '0.74rem', color: '#64748b' }}>
+                    عرض رمز الـ QR بالمبلغ الصافي ورقم المحفظة فورياً للكاشير والعميل لمسحه بالهاتف.
+                  </small>
+                </div>
+              </label>
+
+              <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: disabled ? 'not-allowed' : 'pointer' }}>
+                <input
+                  type="checkbox"
+                  style={premiumCheckboxInputStyle}
+                  {...form.register('printPaymentQrOnReceipt')}
+                  disabled={disabled}
+                />
+                <div>
+                  <strong style={{ fontSize: '0.82rem', color: '#0f172a', fontWeight: 700, display: 'block' }}>
+                    طباعة رمز الـ QR تلقائياً على بون الفاتورة الحرارية (اختياري)
+                  </strong>
+                  <small style={{ fontSize: '0.74rem', color: '#64748b' }}>
+                    إدراج كود الدفع السريع أسفل الفاتورة لتمكين العميل من مسح البون المطبوع والدفع لاحقاً.
+                  </small>
+                </div>
+              </label>
+
+              {/* Tax E-Receipt Toggle (Strictly Optional & Disabled by default) */}
+              <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 14px', marginTop: '4px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+                  <div>
+                    <strong style={{ fontSize: '0.82rem', color: '#334155', fontWeight: 700, display: 'block' }}>
+                      منظومة الإيصال الإلكتروني لمصلحة الضرائب المصرية (ETA E-Receipt)
+                    </strong>
+                    <small style={{ fontSize: '0.74rem', color: '#64748b' }}>
+                      خيار اختياري تماماً للمنشآت الملزمة فقط. يبقى معطلاً للمحلات والأنشطة العادية دون أي قيود ضريبية.
+                    </small>
+                  </div>
+                  <select
+                    {...form.register('taxComplianceMode')}
+                    disabled={disabled}
+                    style={{
+                      height: '34px',
+                      borderRadius: '6px',
+                      border: '1px solid #cbd5e1',
+                      padding: '0 10px',
+                      fontSize: '0.8rem',
+                      fontWeight: 700,
+                      background: '#ffffff',
+                      color: '#0f172a',
+                    }}
+                  >
+                    <option value="disabled">معطل (الافتراضي - بدون أي ربط ضريبي)</option>
+                    <option value="optional_eta">تفعيل تجريبي اختياري لمنظومة مصلحة الضرائب</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+        </FormSection>
+      )}
+
       {/* ===== ماكينات نقاط البيع والدفع البنكي الذكية (Smart POS Terminals) ===== */}
       {showPosSettings && (
         <FormSection

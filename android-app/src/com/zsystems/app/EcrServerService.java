@@ -68,7 +68,9 @@ public class EcrServerService extends Service {
                 if (approved) {
                     PaymentSession.current.authCode = String.format(Locale.US, "%06d", new Random().nextInt(900000) + 100000);
                     PaymentSession.current.rrn = String.format(Locale.US, "%012d", Math.abs(new Random().nextLong() % 900000000000L) + 100000000000L);
-                    PaymentSession.current.cardScheme = "Mada/Visa";
+                    boolean isInsta = PaymentSession.current.provider != null && PaymentSession.current.provider.toLowerCase(Locale.US).contains("insta");
+                    boolean isWal = PaymentSession.current.provider != null && PaymentSession.current.provider.toLowerCase(Locale.US).contains("wallet");
+                    PaymentSession.current.cardScheme = isInsta ? "InstaPay" : isWal ? "Wallet" : "Visa";
 
                     // Trigger Sunmi paper thermal print
                     SunmiPrinterHelper.printReceipt(

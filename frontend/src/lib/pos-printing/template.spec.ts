@@ -4,7 +4,7 @@ vi.mock('@/lib/browser', () => ({
   escapeHtml: (str: string) => str,
 }));
 
-import { formatReceiptQuantity } from './template';
+import { formatReceiptQuantity, buildReceiptDocument } from './template';
 
 describe('Receipt Printing formatReceiptQuantity', () => {
   const englishSettings = { printNumberFormat: 'english' as const };
@@ -32,12 +32,61 @@ describe('Receipt Printing formatReceiptQuantity', () => {
   });
 
   it('should format with Arabic locale when configured', () => {
-    // Test with Arabic settings
     const settings = { printNumberFormat: 'arabic' as const };
     const res = formatReceiptQuantity(1.575, settings);
-    // Intl.NumberFormat in ar-EG locale usually produces ١٫٥٧٥ but let's check for standard digits first.
-    // Actually, getNumberLocale(settings) returns 'ar-EG' when printNumberFormat is 'arabic'.
-    // The exact output depends on Node/browser Intl implementation. We just ensure it runs without throwing.
     expect(res).toBeDefined();
+  });
+});
+
+describe('Receipt Printing Payment QR Section', () => {
+  const baseOptions = {
+    documentLabel: 'فاتورة ضريبية',
+    documentNumber: 'INV-261017-0001',
+    items: [{ name: 'زعفران أصلي', qty: 2, price: 150, total: 300 }],
+    subtotal: 300,
+    discount: 0,
+    taxAmount: 0,
+    total: 300,
+  };
+
+  it('should NOT render payment QR by default when printPaymentQrOnReceipt is false', () => {
+    const doc = buildReceiptDocument({
+      ...baseOptions,
+      settings: {
+        printPaymentQrOnReceipt: false,
+        instapayAddress: '01018017523',
+      },
+    });
+    expect(doc.html).not.toContain('invoice-payment-qr-card');
+  });
+
+  it('should render InstaPay QR on receipt when printPaymentQrOnReceipt is true', () => {
+    const doc = buildReceiptDocument({
+      ...baseOptions,
+      payments: [{ paymentChannel: 'instapay', amount: 300 } as any],
+      settings: {
+        printPaymentQrOnReceipt: true,
+        instapayAddress: '01018017523',
+      },
+    });
+    expect(doc.html).toContain('invoice-payment-qr-card');
+    expect(doc.html).toContain('انستاباي');
+    expect(doc.html).toContain('01018017523');
+    expect(doc.html).toContain('<svg');
+  });
+
+  it('should render Mobile Wallet QR on receipt when wallet payment is selected', () => {
+    const doc = buildReceiptDocument({
+      ...baseOptions,
+      payments: [{ paymentChannel: 'wallet', amount: 300 } as any],
+      settings: {
+        printPaymentQrOnReceipt: true,
+        walletNumber: '01018017523',
+        walletProviderName: 'فودافون كاش',
+      },
+    });
+    expect(doc.html).toContain('invoice-payment-qr-card');
+    expect(doc.html).toContain('فودافون كاش');
+    expect(doc.html).toContain('01018017523');
   });
 });

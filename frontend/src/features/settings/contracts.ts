@@ -362,6 +362,25 @@ export function buildSettingsUpdatePayload(
       : Array.isArray(current?.posTerminals)
       ? current.posTerminals
       : [],
+    instapayAddress: values.instapayAddress !== undefined
+      ? cleanText(values.instapayAddress, '01018017523')
+      : cleanText(current?.instapayAddress, '01018017523'),
+    walletNumber: values.walletNumber !== undefined
+      ? cleanText(values.walletNumber, '01018017523')
+      : cleanText(current?.walletNumber, '01018017523'),
+    walletProviderName: values.walletProviderName !== undefined
+      ? cleanText(values.walletProviderName, 'فودافون كاش')
+      : cleanText(current?.walletProviderName, 'فودافون كاش'),
+    paymentLinkBaseUrl: values.paymentLinkBaseUrl !== undefined
+      ? cleanText(values.paymentLinkBaseUrl, '')
+      : cleanText(current?.paymentLinkBaseUrl, ''),
+    enableDynamicPaymentQr: values.enableDynamicPaymentQr !== undefined
+      ? values.enableDynamicPaymentQr !== false
+      : current?.enableDynamicPaymentQr !== false,
+    printPaymentQrOnReceipt: values.printPaymentQrOnReceipt !== undefined
+      ? values.printPaymentQrOnReceipt === true
+      : current?.printPaymentQrOnReceipt === true,
+    taxComplianceMode: values.taxComplianceMode || current?.taxComplianceMode || 'disabled',
     contractingRetentionPercent: values.contractingRetentionPercent !== undefined
       ? Number(values.contractingRetentionPercent ?? 5)
       : Number(current?.contractingRetentionPercent ?? 5),

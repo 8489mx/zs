@@ -62,14 +62,18 @@ export function PosCartPaymentSection(props: Pick<PosCartPanelProps,
     <div className="pos-payment-shell pos-payment-shell-compact pos-payment-shell-inline">
       <div className="pos-payment-strip" aria-label={t('pos.payment_method', 'طريقة الدفع والمدفوع')}>
         <div className="pos-strip-field pos-strip-field-inline pos-strip-presets">
-          <span>{t('pos.payment_method', 'طريقة السداد')}</span>
-          <div className="actions compact-actions pos-payment-preset-row pos-payment-preset-row-inline" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', gap: '4px' }}>
+          <div className="actions compact-actions pos-payment-preset-row pos-payment-preset-row-inline" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '4px' }}>
             <Button type="button" variant={isPresetActive(props.paymentType, props.paymentChannel, 'cash') ? 'primary' : 'secondary'} onClick={() => selectPaymentPreset('cash')}>{t('pos.cash', 'نقدي')}</Button>
             <Button type="button" variant={isPresetActive(props.paymentType, props.paymentChannel, 'card') ? 'primary' : 'secondary'} onClick={() => selectPaymentPreset('card')}>{t('pos.card', 'فيزا')}</Button>
-            <Button type="button" variant={isPresetActive(props.paymentType, props.paymentChannel, 'instapay') ? 'primary' : 'secondary'} onClick={() => selectPaymentPreset('instapay')}>InstaPay</Button>
-            <Button type="button" variant={isPresetActive(props.paymentType, props.paymentChannel, 'wallet') ? 'primary' : 'secondary'} onClick={() => selectPaymentPreset('wallet')}>محفظة</Button>
+            <Button type="button" variant={transferSelected ? 'primary' : 'secondary'} onClick={() => selectPaymentPreset(props.paymentChannel === 'wallet' ? 'wallet' : 'instapay')}>{t('pos.transfers', 'تحويلات / محافظ')}</Button>
             <Button type="button" variant={isPresetActive(props.paymentType, props.paymentChannel, 'credit') ? 'primary' : 'secondary'} onClick={() => selectPaymentPreset('credit')}>{t('pos.credit', 'آجل')}</Button>
           </div>
+          {transferSelected ? (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px', marginTop: '4px' }}>
+              <Button type="button" variant={props.paymentChannel === 'instapay' ? 'primary' : 'secondary'} onClick={() => selectPaymentPreset('instapay')} style={{ minHeight: '28px', fontSize: '11.5px', fontWeight: 800 }}>InstaPay</Button>
+              <Button type="button" variant={props.paymentChannel === 'wallet' ? 'primary' : 'secondary'} onClick={() => selectPaymentPreset('wallet')} style={{ minHeight: '28px', fontSize: '11px', fontWeight: 700 }}>محافظ إلكترونية</Button>
+            </div>
+          ) : null}
         </div>
 
         <label className="pos-strip-field pos-strip-field-inline pos-strip-field-input pos-strip-field-cash">

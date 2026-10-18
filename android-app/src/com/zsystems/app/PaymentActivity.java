@@ -105,6 +105,9 @@ public class PaymentActivity extends Activity {
         root.setGravity(Gravity.CENTER_HORIZONTAL);
         root.setPadding(dp(20), dp(24), dp(20), dp(24));
 
+        boolean isInstaPay = provider != null && provider.toLowerCase(Locale.US).contains("insta");
+        boolean isWallet = provider != null && provider.toLowerCase(Locale.US).contains("wallet");
+
         // 1. Header Card (Deep Royal Navy #170e5e)
         LinearLayout header = new LinearLayout(this);
         header.setOrientation(LinearLayout.VERTICAL);
@@ -116,7 +119,7 @@ public class PaymentActivity extends Activity {
         header.setBackground(headerBg);
 
         TextView brandText = new TextView(this);
-        brandText.setText("Z-SYSTEMS SMART EDC");
+        brandText.setText(isInstaPay ? "INSTAPAY EGYPT • شبكة المدفوعات اللحظية IPN" : isWallet ? "محافظ إلكترونية • شبكة ميزة الرقمية" : "Z-SYSTEMS SMART EDC");
         brandText.setTextColor(Color.parseColor("#a5b4fc"));
         brandText.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
         brandText.setTypeface(Typeface.DEFAULT_BOLD);
@@ -124,7 +127,7 @@ public class PaymentActivity extends Activity {
         header.addView(brandText);
 
         TextView titleText = new TextView(this);
-        titleText.setText("محطة الدفع الإلكتروني الذكية");
+        titleText.setText(isInstaPay ? "طلب دفع فوري عبر InstaPay" : isWallet ? "طلب دفع عبر المحفظة الإلكترونية" : "محطة الدفع الإلكتروني الذكية");
         titleText.setTextColor(Color.WHITE);
         titleText.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18);
         titleText.setTypeface(Typeface.DEFAULT_BOLD);
@@ -195,7 +198,7 @@ public class PaymentActivity extends Activity {
         nfcBanner.setBackground(nfcBg);
 
         TextView nfcPrompt = new TextView(this);
-        nfcPrompt.setText("يرجى تمرير بطاقة الدفع (NFC) أو إدخال الشريحة");
+        nfcPrompt.setText(isInstaPay ? "يرجى التحويل إلى حساب انستاباي ثم الضغط على تأكيد" : isWallet ? "يرجى التحويل إلى رقم المحفظة ثم الضغط على تأكيد" : "يرجى تمرير بطاقة الدفع (NFC) أو إدخال الشريحة");
         nfcPrompt.setTextColor(Color.parseColor("#312e81"));
         nfcPrompt.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
         nfcPrompt.setTypeface(Typeface.DEFAULT_BOLD);
@@ -203,7 +206,7 @@ public class PaymentActivity extends Activity {
         nfcBanner.addView(nfcPrompt);
 
         TextView nfcSub = new TextView(this);
-        nfcSub.setText("Visa • Mastercard • Mada • Meeza");
+        nfcSub.setText(isInstaPay ? "شبكة المدفوعات اللحظية IPN • البنك المركزي المصري" : isWallet ? "فودافون كاش • أورنج • اتصالات • وي • ميزة" : "Visa • Mastercard • Mada • Meeza");
         nfcSub.setTextColor(Color.parseColor("#4338ca"));
         nfcSub.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
         nfcSub.setGravity(Gravity.CENTER);
@@ -228,7 +231,7 @@ public class PaymentActivity extends Activity {
 
         // 5. Action Buttons (Approve & Cancel)
         Button btnApprove = new Button(this);
-        btnApprove.setText("تأكيد الدفع بالبطاقة (APPROVED)");
+        btnApprove.setText(isInstaPay ? "تأكيد استلام تحويل InstaPay" : isWallet ? "تأكيد استلام تحويل المحفظة" : "تأكيد الدفع بالبطاقة (APPROVED)");
         btnApprove.setTextColor(Color.WHITE);
         btnApprove.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
         btnApprove.setTypeface(Typeface.DEFAULT_BOLD);
@@ -239,7 +242,7 @@ public class PaymentActivity extends Activity {
         btnApprove.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                handleApproval("Card Manual Confirmation");
+                handleApproval("Screen Confirmation");
             }
         });
 
@@ -247,6 +250,7 @@ public class PaymentActivity extends Activity {
             LinearLayout.LayoutParams.MATCH_PARENT,
             dp(52)
         );
+        btnApproveParams.bottomMargin = dp(10);
         btnApproveParams.bottomMargin = dp(10);
         root.addView(btnApprove, btnApproveParams);
 

@@ -157,6 +157,15 @@ export const settingsFormSchema = z.object({
     })
   ).optional().default([]),
 
+  // Z-Pay Smart Payment Hub & QR Settings
+  instapayAddress: z.string().optional().default('01018017523'),
+  walletNumber: z.string().optional().default('01018017523'),
+  walletProviderName: z.string().optional().default('فودافون كاش'),
+  paymentLinkBaseUrl: z.string().optional().default(''),
+  enableDynamicPaymentQr: z.boolean().default(true),
+  printPaymentQrOnReceipt: z.boolean().default(false),
+  taxComplianceMode: z.enum(['disabled', 'optional_eta', 'mandatory']).default('disabled'),
+
   // Contracting & Projects Dedicated Settings
   contractingRetentionPercent: z.coerce.number().min(0).max(100).default(5),
   contractingAdvanceRecoveryMode: z.enum(['proportional', 'fixed']).default('proportional'),

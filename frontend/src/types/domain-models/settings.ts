@@ -132,6 +132,13 @@ export interface AppSettings {
   posTerminalIp?: string;
   posTerminalPort?: number;
   posTerminals?: PosTerminalDeviceConfig[];
+  instapayAddress?: string;
+  walletNumber?: string;
+  walletProviderName?: string;
+  paymentLinkBaseUrl?: string;
+  enableDynamicPaymentQr?: boolean;
+  printPaymentQrOnReceipt?: boolean;
+  taxComplianceMode?: 'disabled' | 'optional_eta' | string;
 }
 
 export interface PosTerminalDeviceConfig {
