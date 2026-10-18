@@ -239,15 +239,45 @@ export function translateUiText(rawText: string): string | null {
     }
   }
 
-  // 3. Coloned labels on raw string: "المستودع المصدر: ", "النسخة:"
+  // 3. Coloned labels or messages: "المستودع المصدر: ", "النسخة:", or "شركة الكينج: الرصيد تجاوز حد الائتمان."
   const colonMatch = raw.match(/^([^:]+)[:：]\s*(.*)$/);
   if (colonMatch) {
     const k = colonMatch[1].trim();
-    const rest = colonMatch[2];
+    const rest = colonMatch[2].trim();
     const transK = dictMap.get(k) || translateUiText(k);
-    if (transK) {
-      const transRest = rest.trim() ? (dictMap.get(rest.trim()) || translateUiText(rest.trim()) || rest) : '';
-      return transK + ': ' + transRest;
+    const transRest = rest ? (dictMap.get(rest) || translateUiText(rest)) : '';
+    if (transK || transRest) {
+      return (transK || k) + ': ' + (transRest || rest);
+    }
+  }
+
+  // 4. Rank / Index prefix: "#1 ", "1. ", "01. "
+  const rankMatch = raw.match(/^(#\d+\s+|\d+\.\s+)(.*)$/);
+  if (rankMatch) {
+    const rankPrefix = rankMatch[1];
+    const subText = rankMatch[2].trim();
+    const transSub = dictMap.get(subText) || translateUiText(subText);
+    if (transSub) {
+      return rankPrefix + transSub;
+    }
+  }
+
+  // 5. Dash separator: "Apple - هواتف ذكية", "إلكترونيات - شاشات"
+  if (raw.includes(' - ') || raw.includes(' – ') || raw.includes(' — ')) {
+    const dashDelim = raw.includes(' - ') ? ' - ' : raw.includes(' – ') ? ' – ' : ' — ';
+    const parts = raw.split(dashDelim);
+    let anyTranslated = false;
+    const translatedParts = parts.map((part) => {
+      const p = part.trim();
+      const tr = dictMap.get(p) || translateUiText(p);
+      if (tr && tr !== p) {
+        anyTranslated = true;
+        return tr;
+      }
+      return p;
+    });
+    if (anyTranslated) {
+      return translatedParts.join(dashDelim);
     }
   }
 
@@ -450,7 +480,12 @@ export function translateUiText(rawText: string): string | null {
   if (searchMatch) {
     const queryTarget = searchMatch[1].trim();
     if (!queryTarget || queryTarget === 'هنا') return prefix + 'Search...' + suffix;
-    if (queryTarget === 'سريع') return prefix + 'Quick Search...' + suffix;
+    if (queryTarget === 'سريع' || queryTarget.startsWith('سريع في') || queryTarget.startsWith('سريع')) {
+      const quickRest = queryTarget.replace(/^سريع\s*(?:في\s*)?/, '').trim();
+      const transRest = quickRest ? (dictMap.get(quickRest) || translateUiText(quickRest)) : '';
+      if (transRest) return prefix + 'Quick search in ' + transRest + '...' + suffix;
+      return prefix + 'Quick search...' + suffix;
+    }
 
     const orParts = queryTarget.split(/\s*،\s*|\s+أو\s+/);
     if (orParts.length > 1) {
@@ -465,7 +500,10 @@ export function translateUiText(rawText: string): string | null {
     if (transTarget) {
       return prefix + 'Search by ' + transTarget + '...' + suffix;
     }
-    return prefix + 'Search ' + queryTarget + '...' + suffix;
+    if (!ARABIC_CHAR_REGEX.test(queryTarget)) {
+      return prefix + 'Search ' + queryTarget + '...' + suffix;
+    }
+    return prefix + 'Search...' + suffix;
   }
 
   // 14. Selection patterns (e.g. "اختر الفرع...", "اختر الحساب...", "اختر طريقة الدفع...")
@@ -557,6 +595,55 @@ export function translateUiText(rawText: string): string | null {
         return prefix + transParts.join(' & ') + suffix;
       }
     }
+  }
+
+  // 21. Dynamic operational and alert patterns
+  // Pattern: "استخدم 95% من حد الائتمان."
+  const usedCreditMatch = core.match(/^استخدم\s+(\d+(?:\.\d+)?%)\s+من\s+حد\s+الائتمان\.?$/);
+  if (usedCreditMatch) {
+    return prefix + 'Used ' + usedCreditMatch[1] + ' of credit limit.' + suffix;
+  }
+
+  // Pattern: "تنتهي صلاحيته خلال 10 يوم" or with date
+  const expiryDaysMatch = core.match(/^تنتهي\s+(?:صلاحيته\s+)?خلال\s+(\d+)\s+يوم(?:\s*\((.*?)\))?\.?$/);
+  if (expiryDaysMatch) {
+    const days = expiryDaysMatch[1];
+    const datePart = expiryDaysMatch[2] ? ` (${expiryDaysMatch[2]})` : '';
+    return prefix + `Expires in ${days} days${datePart}.` + suffix;
+  }
+
+  // Pattern: "انتهت صلاحيته بتاريخ 2026-10-01" or with qty
+  const expiredDateMatch = core.match(/^انتهت\s+(?:صلاحيته\s+)?بتاريخ\s+([^\s(]+)(?:\s*\((.*?)\))?\.?$/);
+  if (expiredDateMatch) {
+    const dt = expiredDateMatch[1];
+    const extra = expiredDateMatch[2] ? ` (${dictMap.get(expiredDateMatch[2]) || translateUiText(expiredDateMatch[2]) || expiredDateMatch[2]})` : '';
+    return prefix + `Expired on ${dt}${extra}.` + suffix;
+  }
+
+  // Pattern: "لا توجد مبيعات منذ 65 يوم (الحد: 30 يوم)."
+  const noSalesMatch = core.match(/^لا توجد مبيعات منذ\s+(\d+)\s+يوم(?:\s*\(الحد:\s*(\d+)\s*يوم\))?\.?$/);
+  if (noSalesMatch) {
+    const days = noSalesMatch[1];
+    const limit = noSalesMatch[2] ? ` (Limit: ${noSalesMatch[2]} days)` : '';
+    return prefix + `No sales for ${days} days${limit}.` + suffix;
+  }
+
+  // Pattern: "الخصم 25% من قيمة الفاتورة."
+  const discountRateMatch = core.match(/^الخصم\s+(\d+(?:\.\d+)?%)\s+من\s+قيمة\s+الفاتورة\.?$/);
+  if (discountRateMatch) {
+    return prefix + `Discount is ${discountRateMatch[1]} of invoice value.` + suffix;
+  }
+
+  // Pattern: "تحتوي على 2 سطر أقل من التكلفة."
+  const belowCostMatch = core.match(/^تحتوي\s+على\s+(\d+)\s+سطر\s+أقل\s+من\s+التكلفة\.?$/);
+  if (belowCostMatch) {
+    return prefix + `Contains ${belowCostMatch[1]} lines below cost.` + suffix;
+  }
+
+  // Pattern: "الكمية 5 والحد الأدنى 10."
+  const qtyMinMatch = core.match(/^الكمية\s+([\d.,]+)\s+والحد\s+الأدنى\s+([\d.,]+)\.?$/);
+  if (qtyMinMatch) {
+    return prefix + `Quantity is ${qtyMinMatch[1]} and minimum is ${qtyMinMatch[2]}.` + suffix;
   }
 
   return null;

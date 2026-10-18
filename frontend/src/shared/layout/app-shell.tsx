@@ -74,7 +74,13 @@ import { SidebarContextMenu, type ContextMenuTarget } from '@/shared/layout/Side
 import { useTabsStore } from '@/stores/tabs-store';
 import { toast } from '@/shared/components/system-alert';
 
-function formatWorkspaceName(name: string) {
+import { translateUiText } from '@/lib/auto-translator';
+
+function formatWorkspaceName(name: string, isEn = false) {
+  if (isEn) {
+    const translated = translateUiText(name);
+    return translated || name;
+  }
   const match = name.match(/^(.*?) (ل\S+.*)$/);
   if (match) {
     return (
@@ -1910,7 +1916,7 @@ export function AppShell({ children }: PropsWithChildren) {
                 />
               </div>
               <div className="brand-copy">
-                <div className="brand-title" title={cleanWorkspaceName}>{formatWorkspaceName(cleanWorkspaceName)}</div>
+                <div className="brand-title" title={isEn ? (translateUiText(cleanWorkspaceName) || cleanWorkspaceName) : cleanWorkspaceName}>{formatWorkspaceName(cleanWorkspaceName, isEn)}</div>
                 <div 
                   className="brand-sub-interactive" 
                   onClick={() => setIsAboutModalOpen(true)}
@@ -1935,8 +1941,8 @@ export function AppShell({ children }: PropsWithChildren) {
               <button 
                 type="button" 
                 className="sidebar-search-icon-btn" 
-                data-tooltip={effectiveSidebarCollapsed ? "البحث السريع (Ctrl + K)" : undefined}
-                title={isSidebarSearchOpen ? 'بحث' : (effectiveSidebarCollapsed ? undefined : 'بحث سريع في القوائم والتابات')}
+                data-tooltip={effectiveSidebarCollapsed ? (isEn ? "Quick search (Ctrl + K)" : "البحث السريع (Ctrl + K)") : undefined}
+                title={isSidebarSearchOpen ? (isEn ? 'Search' : 'بحث') : (effectiveSidebarCollapsed ? undefined : (isEn ? 'Quick search in menus & tabs' : 'بحث سريع في القوائم والتابات'))}
                 onClick={(e) => {
                   if (!isSidebarSearchOpen) {
                     e.stopPropagation();
@@ -1952,7 +1958,7 @@ export function AppShell({ children }: PropsWithChildren) {
                     ref={sidebarSearchInputRef}
                     type="text"
                     className="sidebar-search-input"
-                    placeholder="ابحث في التابات والقوائم..."
+                    placeholder={isEn ? "Search in tabs & menus..." : "ابحث في التابات والقوائم..."}
                     value={sidebarSearchQuery}
                     onChange={(e) => setSidebarSearchQuery(e.target.value)}
                     onKeyDown={(e) => {
@@ -1965,7 +1971,7 @@ export function AppShell({ children }: PropsWithChildren) {
                   <button
                     type="button"
                     className="sidebar-search-close-btn"
-                    title="إغلاق البحث"
+                    title={isEn ? "Close search" : "إغلاق البحث"}
                     onClick={(e) => {
                       e.stopPropagation();
                       if (sidebarSearchQuery) {
@@ -1980,7 +1986,7 @@ export function AppShell({ children }: PropsWithChildren) {
               ) : (
                 !effectiveSidebarCollapsed && (
                   <span className="sidebar-search-placeholder-text">
-                    بحث سريع في القوائم...
+                    {isEn ? "Quick search in menus..." : "بحث سريع في القوائم..."}
                   </span>
                 )
               )}

@@ -84,8 +84,8 @@ function ProductList({ rows, type }: { rows: DashboardStagnantItem[] | Dashboard
               }}
             >
               {type === 'stagnant'
-                ? t('dashboard.stagnant_days_label', 'راكد {{days}} يوم', { days: formatNumber((row as DashboardStagnantItem).daysWithoutSales, numLocale) })
-                : (stockQty <= 0 ? t('dashboard.out_of_stock_label', '0 (نافد)') : t('dashboard.available_unit', '{{qty}} متاح', { qty: formatNumber(stockQty, numLocale) }))}
+                ? t('dashboard.stagnant_days_label', 'راكد {{days}} يوم', { days: formatNumber((row as DashboardStagnantItem).daysWithoutSales, numLocale), count: formatNumber((row as DashboardStagnantItem).daysWithoutSales, numLocale) })
+                : (stockQty <= 0 ? t('dashboard.out_of_stock_label', '0 (نافد)') : t('dashboard.available_unit', '{{count}} متاح', { count: formatNumber(stockQty, numLocale), qty: formatNumber(stockQty, numLocale) }))}
             </span>
           </div>
         );
