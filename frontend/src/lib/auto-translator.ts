@@ -70,6 +70,15 @@ const VERB_PREFIXES = [
   { ar: 'دفع', en: 'Payment' },
   { ar: 'إصدار', en: 'Issue' },
   { ar: 'إدخال', en: 'Enter / Check-in' },
+  { ar: 'أدخل', en: 'Enter' },
+  { ar: 'ادخل', en: 'Enter' },
+  { ar: 'تصفية حسب', en: 'Filter by' },
+  { ar: 'فرز حسب', en: 'Sort by' },
+  { ar: 'ترتيب حسب', en: 'Sort by' },
+  { ar: 'عرض حسب', en: 'View by' },
+  { ar: 'تجميع حسب', en: 'Group by' },
+  { ar: 'العودة إلى', en: 'Back to' },
+  { ar: 'الرجوع إلى', en: 'Back to' },
   { ar: 'تفاصيل', enSuffix: 'Details' },
   { ar: 'قائمة', enSuffix: 'List' },
   { ar: 'سجل', enSuffix: 'Register' },
@@ -117,6 +126,36 @@ const ADJECTIVES: Record<string, string> = {
   'النقدية': 'Cash',
   'الآجل': 'Credit',
   'الآجلة': 'Credit',
+  'المصدر': 'Source',
+  'الوجهة': 'Destination',
+  'المستهدف': 'Target',
+  'المستهدفة': 'Target',
+  'المطلوب': 'Required',
+  'المطلوبة': 'Required',
+  'المتاح': 'Available',
+  'المتاحة': 'Available',
+  'المتبقي': 'Remaining',
+  'المتبقية': 'Remaining',
+  'الإجمالي': 'Total',
+  'الإجمالية': 'Total',
+  'النهائي': 'Final',
+  'النهائية': 'Final',
+  'المبدئي': 'Initial',
+  'المبدئية': 'Initial',
+  'الفردي': 'Individual',
+  'الفردية': 'Individual',
+  'الجماعي': 'Group',
+  'الجماعية': 'Group',
+  'الفعلي': 'Actual',
+  'الفعلية': 'Actual',
+  'المتوقع': 'Expected',
+  'المتوقعة': 'Expected',
+  'التقريبي': 'Approximate',
+  'التقريبية': 'Approximate',
+  'الصحيح': 'Valid',
+  'الصحيحة': 'Valid',
+  'الخاطئ': 'Invalid',
+  'الخاطئة': 'Invalid',
 };
 
 const COMPOUND_PREFIXES = [
@@ -146,6 +185,15 @@ const COMPOUND_PREFIXES = [
   { ar: 'قائمة', enSuffix: 'List' },
   { ar: 'مركز', enSuffix: 'Center' },
   { ar: 'دليل', enSuffix: 'Directory' },
+  { ar: 'فارق', enSuffix: 'Difference' },
+  { ar: 'ملاحظات', enSuffix: 'Notes' },
+  { ar: 'شروط', enSuffix: 'Terms' },
+  { ar: 'نسبة', enSuffix: 'Rate' },
+  { ar: 'حد', enSuffix: 'Limit' },
+  { ar: 'مؤشر', enSuffix: 'Indicator' },
+  { ar: 'مستوى', enSuffix: 'Level' },
+  { ar: 'حجم', enSuffix: 'Size' },
+  { ar: 'وزن', enSuffix: 'Weight' },
 ];
 
 function shouldSkipElement(el: Element): boolean {
@@ -171,32 +219,65 @@ export function translateUiText(rawText: string): string | null {
   const raw = rawText.trim();
   if (raw.length < 1) return null;
 
-  // 1. Separate leading/trailing symbols, brackets, arrows, and punctuation
-  const symMatch = raw.match(/^([\s*+\-•–—([{"'«#%/&;rarr;lt;gt;]*)(.*?)([\s*+\-•–—:)\]}"'».:…!?؟/\\]*)$/);
+  // 1. Direct dictionary match on the raw trimmed string
+  const directRaw = dictMap.get(raw);
+  if (directRaw) return directRaw;
+
+  // 2. Parentheses match on raw string: "إغلاق (Esc)", "مدين (Debit)"
+  const parenMatch = raw.match(/^([^(]+?)\s*\(([^)]+)\)\s*([:!?.:…]*)$/);
+  if (parenMatch) {
+    const mainK = parenMatch[1].trim();
+    const inner = parenMatch[2].trim();
+    const trail = parenMatch[3];
+    const transMain = dictMap.get(mainK) || translateUiText(mainK);
+    const transInner = dictMap.get(inner) || translateUiText(inner) || inner;
+    if (transMain) {
+      if (transMain.trim().toLowerCase() === transInner.trim().toLowerCase()) {
+        return transMain + trail;
+      }
+      return transMain + ' (' + transInner + ')' + trail;
+    }
+  }
+
+  // 3. Coloned labels on raw string: "المستودع المصدر: ", "النسخة:"
+  const colonMatch = raw.match(/^([^:]+)[:：]\s*(.*)$/);
+  if (colonMatch) {
+    const k = colonMatch[1].trim();
+    const rest = colonMatch[2];
+    const transK = dictMap.get(k) || translateUiText(k);
+    if (transK) {
+      const transRest = rest.trim() ? (dictMap.get(rest.trim()) || translateUiText(rest.trim()) || rest) : '';
+      return transK + ': ' + transRest;
+    }
+  }
+
+  // 4. Separate leading/trailing symbols, brackets, arrows, and punctuation
+  // Note: Parentheses are excluded from stripping to protect inner expressions
+  const symMatch = raw.match(/^([\s*+\-•–—[{"'«#%/&;rarr;lt;gt;]*)(.*?)([\s*+\-•–—\]}"'».:…!?؟/\\]*)$/);
   const prefix = symMatch ? symMatch[1] : '';
   const core = symMatch ? symMatch[2].trim() : raw;
   const suffix = symMatch ? symMatch[3] : '';
 
   if (!core) return null;
 
-  // 2. Direct dictionary match
+  // 5. Direct dictionary match on core
   const direct = dictMap.get(core);
   if (direct) {
     return prefix + direct + suffix;
   }
 
-  // 3. Counted entities (e.g. "12 بوليصة" -> "12 Waybills", "58 فاتورة" -> "58 Invoices")
-  const numMatch = core.match(/^(\d+[\d.,]*)\s+([^\d]+)$/);
+  // 6. Counted entities (e.g. "12 بوليصة", "58 فاتورة", "${rangeDays} يوم")
+  const numMatch = core.match(/^(\d+[\d.,]*|\$\{[^}]+\})\s+([^\d]+)$/);
   if (numMatch) {
     const num = numMatch[1];
     const noun = numMatch[2].trim();
-    const transNoun = dictMap.get(noun);
+    const transNoun = dictMap.get(noun) || translateUiText(noun);
     if (transNoun) {
       return prefix + num + ' ' + transNoun + suffix;
     }
   }
 
-  // 3b. Currency amounts: "500 ج.م" -> "500 EGP", "1,200 ريال" -> "1,200 SAR"
+  // 7. Currency amounts: "500 ج.م" -> "500 EGP", "1,200 ريال" -> "1,200 SAR"
   const currMatch = core.match(/^([\d.,]+)\s*(?:ج\.م|جنيه|جم)$/i);
   if (currMatch) return prefix + currMatch[1] + ' EGP' + suffix;
   const sarMatch = core.match(/^([\d.,]+)\s*(?:ر\.س|ريال)$/i);
@@ -206,34 +287,21 @@ export function translateUiText(rawText: string): string | null {
   const usdMatch = core.match(/^([\d.,]+)\s*(?:\$|دولار)$/i);
   if (usdMatch) return prefix + usdMatch[1] + ' USD' + suffix;
 
-  // 4. Coloned labels (e.g. "اسم العميل: " -> "Customer Name: ")
-  const colonMatch = core.match(/^([^:]+)[:：]\s*(.*)$/);
-  if (colonMatch) {
-    const k = colonMatch[1].trim();
-    const rest = colonMatch[2];
-    const transK = dictMap.get(k) || translateUiText(k);
-    if (transK) {
-      const transRest = dictMap.get(rest.trim()) || rest;
-      return prefix + transK + ': ' + transRest + suffix;
-    }
+  // 8. Barcode / Scanner pattern (e.g. "امسح باركود أو اكتب الاسم...")
+  const scanMatch = core.match(/^امسح باركود\s*(.*)$/);
+  if (scanMatch) {
+    const rest = scanMatch[1].trim();
+    if (!rest) return prefix + 'Scan barcode...' + suffix;
+    if (rest.includes('اكتب الاسم')) return prefix + 'Scan barcode or enter name...' + suffix;
+    return prefix + 'Scan barcode ' + rest + '...' + suffix;
   }
 
-  // 5. Parentheses match: "معاينة (سعر آجل)" -> "Preview (Credit Price)"
-  const parenMatch = core.match(/^([^(]+)\(([^)]+)\)$/);
-  if (parenMatch) {
-    const mainK = parenMatch[1].trim();
-    const subK = parenMatch[2].trim();
-    const transMain = dictMap.get(mainK) || translateUiText(mainK);
-    const transSub = dictMap.get(subK) || translateUiText(subK) || subK;
-    if (transMain) {
-      if (transMain.trim().toLowerCase() === transSub.trim().toLowerCase()) {
-        return prefix + transMain + suffix;
-      }
-      return prefix + transMain + ' (' + transSub + ')' + suffix;
-    }
+  // 9. Permission error
+  if (core.startsWith('لا تملك صلاحية')) {
+    return prefix + 'You do not have permission to view this data.' + suffix;
   }
 
-  // 6. Action verb prefixes: "إضافة أصل جديد" -> "Add New Asset"
+  // 10. Action verb prefixes: "إضافة أصل جديد" -> "Add New Asset"
   for (const v of VERB_PREFIXES) {
     if (core.startsWith(v.ar + ' ')) {
       const rest = core.slice(v.ar.length + 1).trim();
@@ -340,6 +408,157 @@ export function translateUiText(rawText: string): string | null {
     return prefix + 'Example: ' + egVal + suffix;
   }
 
+  // 11. Breadcrumbs and slash-separated terms (e.g. "الرئيسية / المبيعات / عروض الأسعار")
+  if (core.includes(' / ')) {
+    const parts = core.split(' / ');
+    let anyTranslated = false;
+    const translatedParts = parts.map((part) => {
+      const p = part.trim();
+      const tr = dictMap.get(p) || translateUiText(p);
+      if (tr && tr !== p) {
+        anyTranslated = true;
+        return tr;
+      }
+      return p;
+    });
+    if (anyTranslated) {
+      return prefix + translatedParts.join(' / ') + suffix;
+    }
+  }
+
+  // 12. Arrow-separated breadcrumbs (e.g. "الرئيسية > المبيعات")
+  if (core.includes(' > ') || core.includes(' ← ') || core.includes(' → ')) {
+    const delim = core.includes(' > ') ? ' > ' : core.includes(' → ') ? ' → ' : ' ← ';
+    const parts = core.split(delim);
+    let anyTranslated = false;
+    const translatedParts = parts.map((part) => {
+      const p = part.trim();
+      const tr = dictMap.get(p) || translateUiText(p);
+      if (tr && tr !== p) {
+        anyTranslated = true;
+        return tr;
+      }
+      return p;
+    });
+    if (anyTranslated) {
+      return prefix + translatedParts.join(' > ') + suffix;
+    }
+  }
+
+  // 13. Search patterns (e.g. "ابحث بالاسم أو الكود...", "بحث برقم الفاتورة، اسم العميل، أو الهاتف...")
+  const searchMatch = core.match(/^(?:بحث|ابحث|البحث)\s+(?:بـ|عن|في|ب)?\s*(.*)$/);
+  if (searchMatch) {
+    const queryTarget = searchMatch[1].trim();
+    if (!queryTarget || queryTarget === 'هنا') return prefix + 'Search...' + suffix;
+    if (queryTarget === 'سريع') return prefix + 'Quick Search...' + suffix;
+
+    const orParts = queryTarget.split(/\s*،\s*|\s+أو\s+/);
+    if (orParts.length > 1) {
+      const translatedItems = orParts.map((item) => {
+        const cleanItem = item.replace(/^بـ|^ب|^في\s+/, '').trim();
+        return dictMap.get(cleanItem) || translateUiText(cleanItem) || cleanItem;
+      });
+      return prefix + 'Search by ' + translatedItems.slice(0, -1).join(', ') + ' or ' + translatedItems.slice(-1)[0] + '...' + suffix;
+    }
+    const cleanSingle = queryTarget.replace(/^بـ|^ب|^في\s+/, '').trim();
+    const transTarget = dictMap.get(cleanSingle) || translateUiText(cleanSingle);
+    if (transTarget) {
+      return prefix + 'Search by ' + transTarget + '...' + suffix;
+    }
+    return prefix + 'Search ' + queryTarget + '...' + suffix;
+  }
+
+  // 14. Selection patterns (e.g. "اختر الفرع...", "اختر الحساب...", "اختر طريقة الدفع...")
+  const selectMatch = core.match(/^(?:اختر|اختيار|حدد)\s+(.*)$/);
+  if (selectMatch) {
+    const target = selectMatch[1].trim();
+    if (!target) return prefix + 'Select...' + suffix;
+    const transTarget = dictMap.get(target) || translateUiText(target);
+    if (transTarget) {
+      return prefix + 'Select ' + transTarget + suffix;
+    }
+  }
+
+  // 15. All entities (e.g. "جميع الأصناف", "جميع الفروع", "كل الحسابات")
+  const allMatch = core.match(/^(?:جميع|كل)\s+(.*)$/);
+  if (allMatch) {
+    const target = allMatch[1].trim();
+    const transTarget = dictMap.get(target) || translateUiText(target);
+    if (transTarget) {
+      return prefix + 'All ' + transTarget + suffix;
+    }
+  }
+
+  // 16. Count of entities (e.g. "عدد العملاء", "عدد الفواتير", "عدد الأصناف")
+  const countMatch = core.match(/^عدد\s+(.*)$/);
+  if (countMatch) {
+    const target = countMatch[1].trim();
+    const transTarget = dictMap.get(target) || translateUiText(target);
+    if (transTarget) {
+      return prefix + transTarget + ' Count' + suffix;
+    }
+  }
+
+  // 17. Without entities (e.g. "بدون مركز", "بدون ضريبة", "بدون عميل")
+  const withoutMatch = core.match(/^بدون\s+(.*)$/);
+  if (withoutMatch) {
+    const target = withoutMatch[1].trim();
+    const transTarget = dictMap.get(target) || translateUiText(target);
+    if (transTarget) {
+      return prefix + 'No ' + transTarget + suffix;
+    }
+  }
+
+  // 18. Broad empty state matcher (e.g. "لا توجد بيانات متاحة", "لا توجد نتائج", "لا توجد فواتير")
+  const broadEmptyMatch = core.match(/^لا (?:توجد|يوجد)\s+(.*)$/);
+  if (broadEmptyMatch) {
+    const rest = broadEmptyMatch[1].trim();
+    if (!rest || rest === 'بيانات' || rest === 'بيانات متاحة') return prefix + 'No data available' + suffix;
+    if (rest === 'نتائج' || rest === 'نتائج مطابقة') return prefix + 'No matching results found' + suffix;
+    if (rest === 'سجلات') return prefix + 'No records found' + suffix;
+    const transRest = dictMap.get(rest) || translateUiText(rest);
+    if (transRest) {
+      return prefix + 'No ' + transRest + ' found' + suffix;
+    }
+    return prefix + 'No ' + rest + ' found' + suffix;
+  }
+
+  // 19. Success confirmations (e.g. "تم الحفظ بنجاح", "تم الحذف بنجاح")
+  const successMatch = core.match(/^تم\s+(.+?)\s+بنجاح$/);
+  if (successMatch) {
+    const action = successMatch[1].trim();
+    const actionMap: Record<string, string> = {
+      'الحفظ': 'Saved',
+      'التحديث': 'Updated',
+      'الحذف': 'Deleted',
+      'الإرسال': 'Sent',
+      'التسجيل': 'Registered',
+      'الترحيل': 'Posted',
+      'الدفع': 'Paid',
+      'الإلغاء': 'Cancelled',
+      'الاعتماد': 'Approved',
+      'الإنشاء': 'Created',
+    };
+    const act = actionMap[action] || dictMap.get(action);
+    if (act) return prefix + act + ' successfully' + suffix;
+  }
+
+  // 20. Conjunction "و" (e.g. "المبيعات والعملاء", "المبيعات ونقاط الخدمة", "الشركات والتوزيع والإنتاج")
+  if (core.includes(' و')) {
+    const parts = core.split(/\s+و\s*|\s*،\s*/);
+    if (parts.length > 1) {
+      let allTranslated = true;
+      const transParts = parts.map((p) => {
+        const tr = dictMap.get(p.trim()) || translateUiText(p.trim());
+        if (!tr) allTranslated = false;
+        return tr || p.trim();
+      });
+      if (allTranslated) {
+        return prefix + transParts.join(' & ') + suffix;
+      }
+    }
+  }
+
   return null;
 }
 
@@ -389,6 +608,41 @@ function processElementAttributes(el: HTMLElement): void {
       }
       if (!saved.title) saved.title = title;
       el.setAttribute('title', translated);
+    }
+  }
+
+  // aria-label
+  const ariaLabel = el.getAttribute('aria-label');
+  if (ariaLabel) {
+    const translated = translateUiText(ariaLabel);
+    if (translated && translated !== ariaLabel) {
+      let saved = originalAttrMap.get(el);
+      if (!saved) {
+        saved = {};
+        originalAttrMap.set(el, saved);
+      }
+      if (!saved.ariaLabel) saved.ariaLabel = ariaLabel;
+      el.setAttribute('aria-label', translated);
+    }
+  }
+
+  // Button value: <input type="button" value="حفظ" /> or <input type="submit" value="..." />
+  if (el.tagName === 'INPUT') {
+    const inputType = el.getAttribute('type');
+    if (inputType === 'button' || inputType === 'submit') {
+      const val = (el as HTMLInputElement).value;
+      if (val) {
+        const translated = translateUiText(val);
+        if (translated && translated !== val) {
+          let saved = originalAttrMap.get(el);
+          if (!saved) {
+            saved = {};
+            originalAttrMap.set(el, saved);
+          }
+          if (!saved.value) saved.value = val;
+          (el as HTMLInputElement).value = translated;
+        }
+      }
     }
   }
 }
@@ -470,6 +724,10 @@ function handleMutations(mutations: MutationRecord[]): void {
       if (mut.target.nodeType === Node.TEXT_NODE) {
         queueNodeForTranslation(mut.target);
       }
+    } else if (mut.type === 'attributes') {
+      if (mut.target.nodeType === Node.ELEMENT_NODE) {
+        processElementAttributes(mut.target as HTMLElement);
+      }
     }
   }
 }
@@ -489,6 +747,8 @@ export function activateAutoTranslator(): void {
       childList: true,
       subtree: true,
       characterData: true,
+      attributes: true,
+      attributeFilter: ['placeholder', 'title', 'aria-label', 'value'],
     });
   }
 }
