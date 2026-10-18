@@ -10,6 +10,7 @@ import { PosWorkspaceDock } from '@/features/pos/components/pos-workspace/PosWor
 import { PosWorkspaceStartupIssues } from '@/features/pos/components/pos-workspace/PosWorkspaceStatusCards';
 import { useSplitter } from '@/shared/hooks/useSplitter';
 import { useAuthStore } from '@/stores/auth-store';
+import { useTranslation } from 'react-i18next';
 import { formatCurrency } from '@/lib/format';
 import type { PosWorkspaceState } from '@/features/pos/components/pos-workspace/posWorkspace.helpers';
 import type { PosSaleMode } from '@/features/pos/lib/pos-sale-mode';
@@ -72,14 +73,22 @@ export function PosWorkspaceMainContent({
   onPriceTypeChange,
 }: PosWorkspaceMainContentProps) {
   const user = useAuthStore((state) => state.user);
+  const { i18n, t } = useTranslation();
+  const isEn = Boolean(i18n.language && i18n.language.startsWith('en'));
+  const isRtl = !isEn;
+
   const [mobileActiveTab, setMobileActiveTab] = useState<'products' | 'cart'>('products');
   const [isFloatingCartExpanded, setIsFloatingCartExpanded] = useState(false);
   const defaultLeft = posMode === 'scanner' ? 75 : 65;
-  const { leftRatio, rightRatio, startDrag } = useSplitter(`pos_split_${posMode}_${user?.id || 'default'}`, defaultLeft);
+  const { leftRatio, rightRatio, handlePositionPct, startDrag } = useSplitter(
+    `pos_split_${posMode}_${user?.id || 'default'}`,
+    defaultLeft,
+    isRtl
+  );
 
-  // CSS grid with direction:rtl renders Col1 on the RIGHT, Col2 on the LEFT.
-  // leftRatio = percentage from the left edge of the grid = width of the LEFT panel (Col2).
-  // rightRatio = width of the RIGHT panel (Col1).
+  // In RTL, CSS grid renders Col1 on the RIGHT, Col2 on the LEFT.
+  // In LTR, CSS grid renders Col1 on the LEFT, Col2 on the RIGHT.
+  // Col1 (Products) width = rightRatio, Col2 (Cart) width = leftRatio.
   const gridStyle = {
     '--pos-grid-cols': `minmax(0, ${rightRatio}fr) minmax(0, ${leftRatio}fr)`,
   } as React.CSSProperties;
@@ -277,7 +286,7 @@ export function PosWorkspaceMainContent({
             position: 'absolute',
             top: 0,
             bottom: 0,
-            left: `calc(${leftRatio}% - 12px)`,
+            left: `calc(${handlePositionPct}% - 12px)`,
             width: '24px',
             cursor: 'col-resize',
             zIndex: 20,
@@ -285,7 +294,7 @@ export function PosWorkspaceMainContent({
             alignItems: 'center',
             justifyContent: 'center',
           }}
-          title="اسحب لتعديل مقاس الشاشة"
+          title={isEn ? "Drag to resize panels" : "اسحب لتعديل مقاس الشاشة"}
         >
           <div style={{ width: '4px', height: '40px', background: 'rgba(15, 23, 42, 0.15)', borderRadius: '8px' }} />
         </div>

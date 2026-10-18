@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 
-export function useSplitter(storageKey: string, defaultLeftRatio: number = 50) {
+export function useSplitter(storageKey: string, defaultLeftRatio: number = 50, isRtl: boolean = true) {
   const [leftRatio, setLeftRatio] = useState<number>(() => {
     try {
       const stored = localStorage.getItem(storageKey);
@@ -15,6 +15,9 @@ export function useSplitter(storageKey: string, defaultLeftRatio: number = 50) {
   const isDragging = useRef(false);
   const latestRatio = useRef(leftRatio);
   latestRatio.current = leftRatio;
+
+  const isRtlRef = useRef(isRtl);
+  isRtlRef.current = isRtl;
 
   const startDrag = useCallback((e: React.PointerEvent) => {
     e.preventDefault();
@@ -39,7 +42,10 @@ export function useSplitter(storageKey: string, defaultLeftRatio: number = 50) {
       if (pct < 20) pct = 20;
       if (pct > 80) pct = 80;
 
-      setLeftRatio(pct);
+      // In RTL, left panel is Cart, so leftRatio (Cart width) = pct.
+      // In LTR, left panel is Products, so products width = pct, meaning leftRatio (Cart width) = 100 - pct.
+      const newLeftRatio = isRtlRef.current ? pct : (100 - pct);
+      setLeftRatio(newLeftRatio);
     };
 
     const handlePointerUp = () => {
@@ -62,9 +68,15 @@ export function useSplitter(storageKey: string, defaultLeftRatio: number = 50) {
     };
   }, [storageKey]);
 
+  // Handle position relative to the left edge of the grid container:
+  // In RTL, left panel is Cart (width = leftRatio), so divider is at leftRatio%.
+  // In LTR, left panel is Products (width = rightRatio = 100 - leftRatio), so divider is at (100 - leftRatio)%.
+  const handlePositionPct = isRtl ? leftRatio : (100 - leftRatio);
+
   return {
     leftRatio,
     rightRatio: 100 - leftRatio,
+    handlePositionPct,
     startDrag,
   };
 }

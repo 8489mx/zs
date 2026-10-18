@@ -14,10 +14,17 @@
     align-items: start;
   }
 
-  .pos-workspace.pos-sale-mode-scanner .pos-grid-premium {
+  [dir="rtl"] .pos-workspace.pos-sale-mode-scanner .pos-grid-premium,
+  .pos-workspace:not([dir="ltr"]).pos-sale-mode-scanner .pos-grid-premium {
     /* Explicit scanner mapping for RTL:
        right column = products (25%), left column = cart (75%). */
     direction: rtl !important;
+    grid-template-columns: var(--pos-grid-cols, minmax(0, 0.25fr) minmax(0, 0.75fr)) !important;
+    grid-template-areas: "products cart" !important;
+  }
+
+  [dir="ltr"] .pos-workspace.pos-sale-mode-scanner .pos-grid-premium {
+    direction: ltr !important;
     grid-template-columns: var(--pos-grid-cols, minmax(0, 0.25fr) minmax(0, 0.75fr)) !important;
     grid-template-areas: "products cart" !important;
   }

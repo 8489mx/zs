@@ -285,15 +285,53 @@ export function translateUiText(rawText: string): string | null {
   // Note: Parentheses are excluded from stripping to protect inner expressions
   const symMatch = raw.match(/^([\s*+\-•–—[{"'«#%/&;rarr;lt;gt;]*)(.*?)([\s*+\-•–—\]}"'».:…!?؟/\\]*)$/);
   const prefix = symMatch ? symMatch[1] : '';
-  const core = symMatch ? symMatch[2].trim() : raw;
+  let core = symMatch ? symMatch[2].trim() : raw;
   const suffix = symMatch ? symMatch[3] : '';
 
   if (!core) return null;
+
+  // Normalize Eastern Arabic numerals: "١ قطعة" -> "1 قطعة"
+  if (/[\u0660-\u0669]/.test(core)) {
+    core = core.replace(/[\u0660-\u0669]/g, (d) => String(d.charCodeAt(0) - 1632));
+  }
 
   // 5. Direct dictionary match on core
   const direct = dictMap.get(core);
   if (direct) {
     return prefix + direct + suffix;
+  }
+
+  // Shortcut key trailing/leading (e.g. "إتمام البيع F2", "F2 إتمام البيع", "إعادة طباعة F9", "تعليق F4")
+  const shortcutMatch = core.match(/^(?:(F\d+)\s+([^\d].*)|([^\d].*?)\s+(F\d+))$/i);
+  if (shortcutMatch) {
+    const fKey = (shortcutMatch[1] || shortcutMatch[4]).toUpperCase();
+    const textPart = (shortcutMatch[2] || shortcutMatch[3]).trim();
+    const transText = dictMap.get(textPart) || translateUiText(textPart);
+    if (transText) {
+      if (shortcutMatch[1]) {
+        return prefix + fKey + ' ' + transText + suffix;
+      } else {
+        return prefix + transText + ' ' + fKey + suffix;
+      }
+    }
+  }
+
+  // Dot-separated compound terms: "نص أول · نص ثانٍ"
+  if (core.includes(' · ')) {
+    const parts = core.split(' · ');
+    let anyTranslated = false;
+    const translatedParts = parts.map((part) => {
+      const p = part.trim();
+      const tr = dictMap.get(p) || translateUiText(p);
+      if (tr && tr !== p) {
+        anyTranslated = true;
+        return tr;
+      }
+      return p;
+    });
+    if (anyTranslated) {
+      return prefix + translatedParts.join(' · ') + suffix;
+    }
   }
 
   // 6. Counted entities (e.g. "12 بوليصة", "58 فاتورة", "${rangeDays} يوم")
