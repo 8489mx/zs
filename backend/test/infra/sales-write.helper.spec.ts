@@ -106,6 +106,7 @@ const prepared = buildPreparedSaleItem(
 assert.deepEqual(prepared, {
   productId: 2,
   productName: 'Tea',
+  productNameEn: null,
   qty: 2,
   unitPrice: 5,
   lineTotal: 10,
@@ -190,6 +191,7 @@ assert.deepEqual(
   {
     productId: 3,
     productName: 'Sugar',
+    productNameEn: null,
     qty: 2,
     unitPrice: 5,
     lineTotal: 10,
