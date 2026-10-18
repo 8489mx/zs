@@ -7,6 +7,7 @@ import { productsApi } from '@/features/products/api/products.api';
 import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
 import { subscribeSignageOffersUpdate } from '@/features/pos/lib/pos-customer-display-bridge';
 import { SignagePromoItem } from '../components/signage/types';
+import { useIsolatedDisplayLanguage } from '@/features/pos/hooks/useIsolatedDisplayLanguage';
 import { SignageHeader } from '../components/signage/SignageHeader';
 import { SignageHeroCard } from '../components/signage/SignageHeroCard';
 import { SignageSideDeck } from '../components/signage/SignageSideDeck';
@@ -15,6 +16,7 @@ import { SignageSettingsDrawer } from '../components/signage/SignageSettingsDraw
 import { SignageNavDrawer } from '../components/signage/SignageNavDrawer';
 
 export function DigitalSignagePage() {
+  const { currentLang, toggleLanguage } = useIsolatedDisplayLanguage('signage_ui_lang');
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const settingsQuery = useSettingsQuery();
@@ -235,6 +237,8 @@ export function DigitalSignagePage() {
     >
       {/* Top Header Bar */}
       <SignageHeader
+        currentLang={currentLang}
+        onToggleLanguage={toggleLanguage}
         storeName={storeName}
         currentTime={currentTime}
         currentDate={currentDate}

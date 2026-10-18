@@ -604,15 +604,15 @@ html[dir="rtl"] .app-layout,
   padding: 24px 20px 16px;
   background: transparent;
 }
-.brand-copy { 
-  flex: 1; 
-  min-width: 0; 
-  display: flex; 
-  flex-direction: column; 
-  align-items: flex-start; 
-  justify-content: center; 
-  gap: 3px; 
-  text-align: start; 
+.brand-copy {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  text-align: center;
 }
 .brand-logo { width: 48px; height: 48px; border-radius: 8px; flex-shrink: 0; }
 .brand-logo .z-mark { font-size: 22px; }
@@ -622,7 +622,7 @@ html[dir="rtl"] .app-layout,
   font-size: 15px;
   font-weight: 800;
   line-height: 1.2;
-  text-align: start;
+  text-align: center;
   white-space: normal;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -632,8 +632,8 @@ html[dir="rtl"] .app-layout,
   line-clamp: 2;
   word-break: break-word;
 }
-.brand-sub { width: 100%; font-size: 10px; color: var(--muted); line-height: 1.25; text-align: start; }
-.brand-sub-interactive { align-items: flex-start !important; }
+.brand-sub { width: 100%; font-size: 10px; color: var(--muted); line-height: 1.25; text-align: center; }
+.brand-sub-interactive { align-items: center !important; text-align: center; }
 
 /* Sidebar Search Component */
 .sidebar-search-wrapper {
@@ -1742,12 +1742,12 @@ html[dir="rtl"] .app-layout,
 }
 
 [dir="ltr"] .brand-copy {
-  align-items: flex-start;
-  text-align: left;
+  align-items: center;
+  text-align: center;
 }
 
 [dir="ltr"] .brand-title {
-  text-align: left;
+  text-align: center;
 }
 
 .sidebar-collapsed .brand-logo { margin: 0; display: flex; justify-content: center; align-items: center; }

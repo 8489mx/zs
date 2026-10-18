@@ -12,6 +12,7 @@ import {
   CreditCardIcon,
   TruckIcon,
 } from '@/shared/components/icons/AppIcons';
+import { useIsolatedDisplayLanguage } from '@/features/pos/hooks/useIsolatedDisplayLanguage';
 import { CfdHeader } from '../components/customer-display/CfdHeader';
 import { CfdIdleView, type PromotionItem } from '../components/customer-display/CfdIdleView';
 import { CfdScanningView } from '../components/customer-display/CfdScanningView';
@@ -49,6 +50,7 @@ const DEFAULT_PROMOTIONS: PromotionItem[] = [
 ];
 
 export function CustomerFacingDisplayPage() {
+  const { currentLang, toggleLanguage } = useIsolatedDisplayLanguage('cfd_ui_lang');
   const navigate = useNavigate();
   const [payload, setPayload] = useState<CustomerDisplayPayload>(() => {
     return (
@@ -183,6 +185,8 @@ export function CustomerFacingDisplayPage() {
   return (
     <div className="cfd-container" dir="rtl">
       <CfdHeader
+        currentLang={currentLang}
+        onToggleLanguage={toggleLanguage}
         storeName={payload.storeName}
         branchName={payload.branchName}
         currentTime={currentTime}

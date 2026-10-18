@@ -1916,15 +1916,16 @@ export function AppShell({ children }: PropsWithChildren) {
                   }}
                 />
               </div>
-              <div className="brand-copy">
-                <div className="brand-title" title={isEn ? (translateUiText(cleanWorkspaceName) || cleanWorkspaceName) : cleanWorkspaceName}>{formatWorkspaceName(cleanWorkspaceName, isEn)}</div>
+              <div className="brand-copy" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', width: '100%', minWidth: 0 }}>
+                <div className="brand-title" style={{ textAlign: 'center', width: '100%' }} title={isEn ? (translateUiText(cleanWorkspaceName) || cleanWorkspaceName) : cleanWorkspaceName}>{formatWorkspaceName(cleanWorkspaceName, isEn)}</div>
                 <div 
                   className="brand-sub-interactive" 
                   onClick={() => setIsAboutModalOpen(true)}
                   title="About Z System's & Tech Support"
+                  style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', margin: '0 auto' }}
                 >
-                  <span className="brand-powered-label">Powered by</span>
-                  <span className="brand-powered-name">
+                  <span className="brand-powered-label" style={{ textAlign: 'center', width: '100%', display: 'block' }}>Powered by</span>
+                  <span className="brand-powered-name" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '100%', textAlign: 'center' }}>
                     Z System's
                   </span>
                 </div>

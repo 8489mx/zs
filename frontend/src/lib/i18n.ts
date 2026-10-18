@@ -41,11 +41,13 @@ i18n.on('languageChanged', (lng) => {
   const meta = getLanguageMeta(lng);
   document.documentElement.lang = meta.code;
   document.documentElement.dir = meta.dir;
-  localStorage.setItem('zsystems_lang', meta.code);
-  localStorage.setItem('zs.uiLanguage', meta.code);
-  try {
-    useAuthStore.getState().updateSessionMeta({ language: meta.code as any });
-  } catch {}
+  if (typeof window !== 'undefined' && !sessionStorage.getItem('zs_isolated_screen_lang')) {
+    localStorage.setItem('zsystems_lang', meta.code);
+    localStorage.setItem('zs.uiLanguage', meta.code);
+    try {
+      useAuthStore.getState().updateSessionMeta({ language: meta.code as any });
+    } catch {}
+  }
 });
 
 if (typeof document !== 'undefined') {

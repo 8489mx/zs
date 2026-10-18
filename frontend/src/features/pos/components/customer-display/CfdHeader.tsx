@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import React from 'react';
+import { DisplayLanguageToggle } from '@/shared/components/DisplayLanguageToggle';
 import {
   ShoppingCartIcon,
   ClockIcon,
@@ -16,6 +17,8 @@ interface CfdHeaderProps {
   isFullscreen: boolean;
   onToggleFullscreen: () => void;
   onBack?: () => void;
+  currentLang?: string;
+  onToggleLanguage?: () => void;
 }
 
 export const CfdHeader: React.FC<CfdHeaderProps> = ({
@@ -26,6 +29,8 @@ export const CfdHeader: React.FC<CfdHeaderProps> = ({
   isFullscreen,
   onToggleFullscreen,
   onBack,
+  currentLang,
+  onToggleLanguage,
 }) => {
   const { t } = useTranslation();
   return (
@@ -77,6 +82,13 @@ export const CfdHeader: React.FC<CfdHeaderProps> = ({
             <ArrowRightIcon size={15} color="#ffffff" strokeWidth={2.5} />
             <span>{t('pos.customer_display.cfd_header.s3', "الشاشات")}</span>
           </button>
+        )}
+
+        {onToggleLanguage && (
+          <DisplayLanguageToggle
+            currentLang={currentLang || 'ar'}
+            onToggle={onToggleLanguage}
+          />
         )}
 
         <button

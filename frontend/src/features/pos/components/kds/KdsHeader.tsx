@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import React from 'react';
+import { DisplayLanguageToggle } from '@/shared/components/DisplayLanguageToggle';
 import { UtensilsIcon, BellIcon, BellOffIcon, Maximize2Icon, ArrowRightIcon, BanIcon } from '@/shared/components/icons/AppIcons';
 
 interface KdsHeaderProps {
@@ -12,6 +13,8 @@ interface KdsHeaderProps {
   onBack?: () => void;
   onOpen86Modal?: () => void;
   active86Count?: number;
+  currentLang?: string;
+  onToggleLanguage?: () => void;
 }
 
 export const KdsHeader: React.FC<KdsHeaderProps> = ({
@@ -24,6 +27,8 @@ export const KdsHeader: React.FC<KdsHeaderProps> = ({
   onBack,
   onOpen86Modal,
   active86Count = 0,
+  currentLang,
+  onToggleLanguage,
 }) => {
   const { t } = useTranslation();
   return (
@@ -216,6 +221,13 @@ export const KdsHeader: React.FC<KdsHeaderProps> = ({
           >
             <span>{t('pos.kds.kds_header.s10', "استرجاع آخر طلب")}</span>
           </button>
+
+          {onToggleLanguage && (
+            <DisplayLanguageToggle
+              currentLang={currentLang || 'ar'}
+              onToggle={onToggleLanguage}
+            />
+          )}
 
           {/* Fullscreen Button */}
           <button

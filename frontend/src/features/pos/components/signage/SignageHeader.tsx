@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import React from 'react';
+import { DisplayLanguageToggle } from '@/shared/components/DisplayLanguageToggle';
 import {
   ShoppingCartIcon,
   Maximize2Icon,
@@ -17,6 +18,8 @@ interface SignageHeaderProps {
   onToggleSettings: () => void;
   onBack: () => void;
   onToggleNavMenu: () => void;
+  currentLang?: string;
+  onToggleLanguage?: () => void;
 }
 
 export const SignageHeader: React.FC<SignageHeaderProps> = ({
@@ -28,6 +31,8 @@ export const SignageHeader: React.FC<SignageHeaderProps> = ({
   onToggleSettings,
   onBack,
   onToggleNavMenu,
+  currentLang,
+  onToggleLanguage,
 }) => {
   const { t } = useTranslation();
   return (
@@ -181,6 +186,13 @@ export const SignageHeader: React.FC<SignageHeaderProps> = ({
               <MenuIcon size={17} color="#170e5e" strokeWidth={2.2} />
               <span>{t('pos.signage.signage_header.s5', "القائمة السريعة")}</span>
             </button>
+
+            {onToggleLanguage && (
+              <DisplayLanguageToggle
+                currentLang={currentLang || 'ar'}
+                onToggle={onToggleLanguage}
+              />
+            )}
 
             <button
               type="button"

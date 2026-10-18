@@ -2,6 +2,8 @@ import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useMemo } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '@/stores/auth-store';
+import { DisplayLanguageToggle } from '@/shared/components/DisplayLanguageToggle';
+import { useIsolatedDisplayLanguage } from '@/features/pos/hooks/useIsolatedDisplayLanguage';
 import { formatCurrency } from '@/lib/format';
 import { toast } from '@/shared/components/system-alert';
 import {
@@ -112,6 +114,7 @@ function getSmartProductImage(product: any): string {
 }
 
 export function SelfOrderingKioskPage() {
+  const { currentLang, toggleLanguage } = useIsolatedDisplayLanguage('kiosk_ui_lang');
   const { t: __t } = useTranslation();
   const { slug: routeSlug } = useParams<{ slug?: string }>();
   const [searchParams] = useSearchParams();
@@ -1142,6 +1145,8 @@ export function SelfOrderingKioskPage() {
 
           {/* الساعة وأزرار التبديل والبدء من جديد */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <DisplayLanguageToggle currentLang={currentLang} onToggle={toggleLanguage} style={{ height: '36px', fontSize: '13px' }} />
+
             {currentTime && (
               <div
                 style={{

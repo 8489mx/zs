@@ -2,9 +2,12 @@ import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useOrderStatusBoard } from '@/features/pos/hooks/useOrderStatusBoard';
+import { DisplayLanguageToggle } from '@/shared/components/DisplayLanguageToggle';
+import { useIsolatedDisplayLanguage } from '@/features/pos/hooks/useIsolatedDisplayLanguage';
 import { ClockIcon, ArrowRightIcon } from '@/shared/components/icons/AppIcons';
 
 export function OrderStatusBoardPage() {
+  const { currentLang, toggleLanguage } = useIsolatedDisplayLanguage('pickup_ui_lang');
   const { t: __t } = useTranslation();
   const navigate = useNavigate();
   const [currentTime, setCurrentTime] = useState<string>('');
@@ -190,6 +193,8 @@ export function OrderStatusBoardPage() {
             <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: soundEnabled ? '#10b981' : '#94a3b8', display: 'inline-block' }} />
             <span>{soundEnabled ? __t('pos.order_status_board_page.s3', __t('pos.order_status_board_page.s3', "التنبيه الصوتي: مفعل")) : __t('pos.order_status_board_page.s4', __t('pos.order_status_board_page.s4', "التنبيه الصوتي: صامت"))}</span>
           </button>
+
+          <DisplayLanguageToggle currentLang={currentLang} onToggle={toggleLanguage} />
 
           {/* Fullscreen Button */}
           <button

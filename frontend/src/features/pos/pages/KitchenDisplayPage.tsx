@@ -9,6 +9,7 @@ import {
 } from '@/features/pos/api/kds.api';
 import { ClockIcon } from '@/shared/components/icons/AppIcons';
 import { KdsHeader } from '../components/kds/KdsHeader';
+import { useIsolatedDisplayLanguage } from '@/features/pos/hooks/useIsolatedDisplayLanguage';
 import { KdsKpiStrip } from '../components/kds/KdsKpiStrip';
 import { KdsFilterBar } from '../components/kds/KdsFilterBar';
 import { KdsStandbyState } from '../components/kds/KdsStandbyState';
@@ -18,6 +19,7 @@ import { restaurantAdvancedFnbApi } from '@/features/pos/api/restaurant-advanced
 import { useProductsQuery } from '@/shared/hooks/use-catalog-queries';
 
 export function KitchenDisplayPage() {
+  const { currentLang, toggleLanguage } = useIsolatedDisplayLanguage('kds_ui_lang');
   const { t: __t } = useTranslation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -196,6 +198,8 @@ export function KitchenDisplayPage() {
     >
       {/* 1. Header Bar */}
       <KdsHeader
+        currentLang={currentLang}
+        onToggleLanguage={toggleLanguage}
         currentTime={currentTime}
         soundEnabled={soundEnabled}
         onToggleSound={() => {

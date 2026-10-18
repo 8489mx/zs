@@ -2,6 +2,8 @@ import { useTranslation } from 'react-i18next';
 import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useWaiterStation, WaiterCartItem } from '@/features/pos/hooks/useWaiterStation';
+import { DisplayLanguageToggle } from '@/shared/components/DisplayLanguageToggle';
+import { useIsolatedDisplayLanguage } from '@/features/pos/hooks/useIsolatedDisplayLanguage';
 import { formatCurrency } from '@/lib/format';
 import { systemConfirm } from '@/shared/components/system-alert';
 import {
@@ -14,6 +16,7 @@ import {
 } from '@/shared/components/icons/AppIcons';
 
 export function WaiterStationPage() {
+  const { currentLang, toggleLanguage } = useIsolatedDisplayLanguage('waiter_ui_lang');
   const { t } = useTranslation();
   const navigate = useNavigate();
 
@@ -269,6 +272,8 @@ export function WaiterStationPage() {
             <span style={{ fontSize: '12px', background: '#eef2ff', color: '#170e5e', border: '1px solid #c7d2fe', padding: '4px 12px', borderRadius: '8px', fontWeight: 800 }}>
               {t('pos.waiter_station_page.s4', "كابتن #")}{waiterPin}
             </span>
+
+            <DisplayLanguageToggle currentLang={currentLang} onToggle={toggleLanguage} />
           </div>
         </header>
 
