@@ -226,7 +226,7 @@ export const PurchaseRfqsPage: FC = () => {
   ], [rfqs]);
 
   return (
-    <div className="page-stack page-shell purchase-rfqs-workspace" dir="rtl">
+    <div className="page-stack page-shell purchase-rfqs-workspace">
       <div className="document-prototype-column" style={{ paddingBottom: '32px' }}>
         <PageHeader
           title="طلبات عروض أسعار الموردين (Vendor RFQs)"

@@ -187,6 +187,9 @@ export function translateUiText(rawText: string): string | null {
     const transMain = dictMap.get(mainK) || translateUiText(mainK);
     const transSub = dictMap.get(subK) || translateUiText(subK) || subK;
     if (transMain) {
+      if (transMain.trim().toLowerCase() === transSub.trim().toLowerCase()) {
+        return prefix + transMain + suffix;
+      }
       return prefix + transMain + ' (' + transSub + ')' + suffix;
     }
   }

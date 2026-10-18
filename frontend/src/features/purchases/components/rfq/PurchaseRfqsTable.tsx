@@ -26,7 +26,7 @@ export function PurchaseRfqsTable({
         boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
       }}
     >
-      <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right' }}>
+      <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'start' }}>
         <thead>
           <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
             <th style={{ padding: '12px 16px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#475569' }}>رقم الطلب</th>

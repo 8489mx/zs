@@ -1713,6 +1713,19 @@ html[dir="rtl"] .login-input-pro.has-toggle, [dir="rtl"] .login-input-pro.has-to
   background: transparent;
 }
 
+[dir="ltr"] .brand-logo {
+  order: -1;
+}
+
+[dir="ltr"] .brand-copy {
+  align-items: flex-start;
+  text-align: left;
+}
+
+[dir="ltr"] .brand-title {
+  text-align: left;
+}
+
 .sidebar-collapsed .brand-logo { margin: 0; display: flex; justify-content: center; align-items: center; }
 .sidebar-collapsed .sidebar-icon, .sidebar-collapsed .sidebar-group-icon { box-shadow: none !important; }
 .sidebar-collapsed .brand-logo .systems-mark { display: none; }
