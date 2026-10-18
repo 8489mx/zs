@@ -157,6 +157,12 @@ export default defineConfig(({ mode }) => {
           ) {
             return 'vendor-runtime';
           }
+          if (
+            normalizedId.includes('/src/locales/') ||
+            normalizedId.includes('/src/lib/ui-dictionary.json')
+          ) {
+            return 'i18n-locales';
+          }
           const match = normalizedId.match(/\/node_modules\/((?:@[^/]+\/)?[^/]+)\//g);
           if (!match) return undefined;
           // Innermost package wins (handles nested node_modules).
