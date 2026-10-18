@@ -228,7 +228,7 @@
   },
   "pos": {
     "title": "POS",
-    "search_placeholder": "Scan barcode or search product...",
+    "search_placeholder": "Scan barcode or type name...",
     "quick_service": "Quick Service",
     "held_drafts": "Held Invoices",
     "tables": "Tables Floor Plan",
@@ -2199,7 +2199,8 @@
     },
     "digital_signage_page": {
       "s0": "Loading showroom offers and products..."
-    }
+    },
+    "operation_completed": "Operation Completed"
   },
   "sales": {
     "122027": "Invoice is cancelled. Print or view log only.",
@@ -3908,7 +3909,8 @@
       "s1": "Practical alerts from your local data without external connection.",
       "s6": "There are no urgent decisions right now",
       "s3": "We review pricing, inventory, sales, and accounts."
-    }
+    },
+    "quick_actions": "Quick Actions"
   },
   "products": {
     "title": "Products",

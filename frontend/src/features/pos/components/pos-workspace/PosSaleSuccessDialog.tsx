@@ -211,7 +211,7 @@ export function PosSaleSuccessDialog({
                 borderRadius: '9999px',
                 display: 'inline-block'
               }}>
-                {t('pos.sale_completed', 'عملية مكتملة')}
+                {t('pos.operation_completed', 'عملية مكتملة')}
               </span>
               <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: '#0f172a' }}>{t('pos.sale_completed', 'تم البيع بنجاح')}</h3>
             </div>

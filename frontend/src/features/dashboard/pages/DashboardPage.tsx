@@ -198,7 +198,7 @@ export function DashboardPage() {
           description={t('dashboard.description', 'مؤشرات الأداء المباشرة، القرارات المطلوبة، وحركة المبيعات والخزينة اليومية.')}
           badge={<span className="nav-pill">{t('dashboard.today_summary', 'ملخص اليوم')}</span>}
           actions={(
-            <div className="actions compact-actions dashboard-header-actions" aria-label={t('common.actions', 'إجراءات سريعة')}>
+            <div className="actions compact-actions dashboard-header-actions" aria-label={t('dashboard.quick_actions', 'إجراءات سريعة')}>
               <button
                 type="button"
                 className="button button-secondary"
