@@ -1692,7 +1692,14 @@ html[dir="rtl"] .login-input-pro.has-toggle, [dir="rtl"] .login-input-pro.has-to
   border: 1px solid var(--icon-border, transparent);
   box-shadow: 0 2px 8px var(--icon-glow, transparent);
 }
-[dir="ltr"] .sidebar-link-chevron-spacer,
+[dir="ltr"] .sidebar-link-chevron-spacer {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 8px;
+  background: transparent !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
 [dir="ltr"] .sidebar-group-chevron {
   width: 24px;
   height: 24px;
@@ -1700,8 +1707,7 @@ html[dir="rtl"] .login-input-pro.has-toggle, [dir="rtl"] .login-input-pro.has-to
   align-items: center;
   justify-content: center;
   flex: 0 0 24px;
-  background: #f1f5f9;
-  border-radius: 8px;
+  background: transparent;
   color: #64748b;
   font-size: 14px;
   font-weight: 800;
