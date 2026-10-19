@@ -1070,6 +1070,13 @@ export function AppShell({ children }: PropsWithChildren) {
     const isPharmacyVertical = currentVertical === 'pharmacy';
     const isElectronicsVertical = currentVertical === 'maintenance';
     const isRetailOrMarketVertical = currentVertical === 'retail_general';
+
+    const isContractingVertical = isDedicatedContractingOnly;
+    const isMaritimeVertical = isDedicatedMaritimeOnly;
+    const isManufacturingVertical = isDedicatedManufacturingOnly;
+    const isImportVertical = isDedicatedImportOnly;
+    const isServicesVertical = isDedicatedServicesOnly;
+
     const isEnterpriseCommerceActive = isDedicatedContractingOnly || isDedicatedMaritimeOnly || isDedicatedManufacturingOnly || settings?.enableEnterpriseFeatures === true;
     const hasAccounting = isPlatformAdminUser || isDedicatedContractingOnly || isDedicatedMaritimeOnly || isDedicatedManufacturingOnly || (isEnterpriseCommerceActive && Boolean(tenant?.features?.includes('accounting')));
     const hasRestaurant = isPlatformAdminUser || Boolean(tenant?.features?.includes('restaurant'));

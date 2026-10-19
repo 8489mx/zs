@@ -18,6 +18,7 @@ export function SalesWorkspaceHeader({ totalItems, description, onCopySummary }:
       actions={(
         <div className="actions compact-actions">
           <Button variant="secondary" onClick={() => void onCopySummary()} disabled={!totalItems}>{t('sales.dd3bfd')}</Button>
+          <Link to="/quotations"><Button variant="secondary">{t('sidebar.quotations', 'عروض الأسعار')}</Button></Link>
           <Link to="/returns"><Button variant="secondary">{t('sidebar.returns', 'مرتجعات المبيعات')}</Button></Link>
           <Link to="/pos"><Button>{t('sales.8f29d0')}</Button></Link>
         </div>

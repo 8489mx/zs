@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { PageHeader } from '@/shared/components/page-header';
 import { Button } from '@/shared/ui/button';
@@ -176,6 +176,9 @@ export function QuotationsPage() {
               >
                 {t('sales.quotations_page.s8', "+ إنشاء عرض سعر جديد")}
               </Button>
+              <Link to="/sales">
+                <Button variant="secondary">{t('sales.invoices_register', 'سجل فواتير المبيعات')}</Button>
+              </Link>
             </div>
           }
         />

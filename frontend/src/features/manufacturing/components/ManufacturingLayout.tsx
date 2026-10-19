@@ -3,6 +3,7 @@ import { type ReactNode } from 'react';
 import { useAppToolbar } from '@/stores/toolbar-store';
 import { PageHeader } from '@/shared/components/page-header';
 import { FeatureGate } from '@/shared/components/feature-gate';
+import { ManufacturingNavTabs } from './ManufacturingNavTabs';
 
 interface BreadcrumbItem {
   label: string;
@@ -49,6 +50,7 @@ export function ManufacturingLayout({
             </>
           } 
         />
+        <ManufacturingNavTabs />
         <FeatureGate feature="manufacturing" featureName={t('manufacturing.manufacturing_layout.s0', "التصنيع")}>
           {children}
         </FeatureGate>

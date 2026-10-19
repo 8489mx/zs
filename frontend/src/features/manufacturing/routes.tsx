@@ -13,9 +13,9 @@ export const manufacturingRouteModule: FeatureRouteModule = {
     { path: 'manufacturing/settings', element: createLazyRoute(() => import('./pages/ManufacturingSettingsPage').then((m) => ({ default: m.default }))) }
   ],
   navigation: [
+    { key: 'manufacturing-work-orders', label: 'أوامر الإنتاج', to: '/manufacturing/work-orders', activePaths: ['/manufacturing/work-orders', '/manufacturing/work-orders/new'] },
+    { key: 'manufacturing-boms', label: 'قائمة المكونات (BOM)', to: '/manufacturing/boms', activePaths: ['/manufacturing/boms', '/manufacturing/boms/new'] },
     { key: 'manufacturing-components', label: 'مكونات التصنيع', to: '/manufacturing/components' },
-    { key: 'manufacturing-boms', label: 'قائمة المكونات (BOM)', to: '/manufacturing/boms' },
-    { key: 'manufacturing-work-orders', label: 'أوامر الإنتاج', to: '/manufacturing/work-orders' },
     { key: 'manufacturing-work-centers', label: 'مراكز العمل والماكينات', to: '/manufacturing/work-centers' },
     { key: 'manufacturing-settings', label: 'إعدادات التصنيع', to: '/manufacturing/settings' },
   ]

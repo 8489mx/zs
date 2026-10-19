@@ -7934,3 +7934,21 @@
 * **الملفات المنفذة والمعدلة:**
   - `frontend/src/features/inventory/pages/WarehousesGridPage.tsx`
   - `frontend/src/styles/partials/features.css`
+
+
+### 116. توحيد مساحات عمل المبيعات والتصنيع (Sales & Manufacturing Workspaces Consolidation)
+* **الحالة:** مكتمل بنسبة 100%
+* **الأثر والمبرر التشغيلي:**
+  1. **المبيعات وعروض الأسعار (Sales & Quotations Interconnection):**
+     - ربط شاشة فواتير المبيعات (`SalesWorkspaceHeader`) بزر مباشر لـ `[عروض الأسعار]` (`/quotations`).
+     - ربط شاشة عروض الأسعار (`QuotationsPage`) بزر مباشر لـ `[سجل فواتير المبيعات]` (`/sales`).
+     - تسهيل تنقل مسؤول المبيعات بنقرة واحدة بين إصدار الفواتير وعروض الأسعار والمرتجعات ونقاط البيع.
+  2. **شريط تبويبات التصنيع الموحد (Manufacturing Nav Tabs):**
+     - إنشاء المكون الموحد `ManufacturingNavTabs` وإدراجه في القالب المشترك لكافة صفحات التصنيع `ManufacturingLayout`.
+     - ربط 5 شاشات تشغيلية في موديول التصنيع بشريط تبويبات علوي فوري: `[أوامر الإنتاج]`، `[قوائم المواد BOM]`، `[المكونات والخامات]`، `[مراكز العمل والماكينات]`، و`[إعدادات التصنيع]`.
+* **الملفات المنفذة والمعدلة:**
+  - `frontend/src/features/sales/components/SalesWorkspaceHeader.tsx`
+  - `frontend/src/features/sales/pages/QuotationsPage.tsx`
+  - `frontend/src/features/manufacturing/components/ManufacturingNavTabs.tsx`
+  - `frontend/src/features/manufacturing/components/ManufacturingLayout.tsx`
+  - `frontend/src/features/manufacturing/routes.tsx`
