@@ -18,6 +18,7 @@ import {
   SmartphoneIcon,
   CheckShieldIcon,
   AlertTriangleIcon,
+  RefreshCwIcon,
 } from '@/shared/components/icons/AppIcons';
 import { formatCurrency, formatDate } from '@/lib/format';
 import { downloadExcelFile, escapeHtml, printHtmlDocument } from '@/lib/browser';
@@ -26,38 +27,84 @@ import type { Product } from '@/types/domain';
 
 const movementLabels: Record<string, string> = {
   opening: 'رصيد افتتاحي',
-  add: 'إضافة مخزنية',
-  deduct: 'خصم مخزني',
-  damaged: 'تالف وهالك',
-  stock_count_gain: 'زيادة جرد',
-  stock_count_loss: 'عجز جرد',
-  transfer_send: 'إذن صرف',
-  transfer_receive: 'استلام بضاعة',
-  transfer_cancel: 'إلغاء صرف',
+  opening_balance: 'رصيد افتتاحي',
   sale: 'فاتورة بيع',
   sale_return: 'مرتجع بيع',
+  sale_edit: 'تعديل بيع',
+  sale_edit_reversal: 'عكس تعديل بيع',
+  sale_cancel: 'إلغاء بيع',
   purchase: 'فاتورة شراء',
   purchase_return: 'مرتجع شراء',
+  van_load_out: 'تحميل سيارة توزيع',
+  van_load_in: 'استلام سيارة توزيع',
+  van_unload_out: 'تفريغ سيارة توزيع',
+  van_unload_in: 'استلام من سيارة توزيع',
+  van_sale: 'بيع سيارة توزيع',
+  van_return: 'مرتجع سيارة توزيع',
+  transfer_send: 'إذن صرف تحويل',
+  transfer_receive: 'استلام تحويل',
+  transfer_cancel: 'إلغاء تحويل',
+  stock_count_gain: 'زيادة جرد',
+  stock_count_loss: 'عجز جرد',
+  damaged: 'تالف وهالك',
+  food_waste: 'هالك أطعمة',
+  manufacturing_consumption: 'استهلاك تصنيع',
+  manufacturing_production: 'إنتاج تام',
+  tradein_in: 'استبدال - استلام',
+  tradein_out: 'استبدال - صرف',
+  add: 'إضافة مخزنية',
+  deduct: 'خصم مخزني',
 };
 
 const movementToneMap: Record<string, string> = {
   damaged: 'negative',
+  food_waste: 'negative',
   deduct: 'negative',
   stock_count_loss: 'negative',
   transfer_send: 'negative',
+  van_load_out: 'negative',
+  van_unload_out: 'negative',
+  van_sale: 'negative',
   sale: 'negative',
+  sale_edit: 'negative',
   purchase_return: 'negative',
+  tradein_out: 'negative',
+  manufacturing_consumption: 'negative',
+
   transfer_cancel: 'positive',
   stock_count_gain: 'positive',
   opening: 'positive',
+  opening_balance: 'positive',
   add: 'positive',
   transfer_receive: 'positive',
+  van_load_in: 'positive',
+  van_unload_in: 'positive',
   purchase: 'positive',
   sale_return: 'positive',
+  sale_cancel: 'positive',
+  sale_edit_reversal: 'positive',
+  van_return: 'positive',
+  tradein_in: 'positive',
+  manufacturing_production: 'positive',
 };
 
 function getMovementLabel(type: string) {
   return movementLabels[type] || type || 'حركة';
+}
+
+function getMovementReasonText(reason?: string, note?: string) {
+  const cleanNote = note?.trim();
+  const cleanReason = reason?.trim();
+
+  if (cleanNote && cleanNote !== cleanReason) {
+    return cleanNote;
+  }
+
+  if (cleanReason && movementLabels[cleanReason]) {
+    return movementLabels[cleanReason];
+  }
+
+  return cleanNote || cleanReason || '—';
 }
 
 function MovementPill({ type }: { type: string }) {
@@ -120,6 +167,8 @@ export function ProductCardModal({
       });
     },
     enabled: Boolean(product?.id),
+    staleTime: 10_000,
+    refetchOnMount: 'always',
     placeholderData: (previous) => previous,
   });
 
@@ -527,7 +576,7 @@ export function ProductCardModal({
             paddingBottom: '8px',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
             <span
               style={{
                 width: '3px',
@@ -552,6 +601,30 @@ export function ProductCardModal({
             >
               {pagination?.totalItems || 0} حركة
             </span>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => movementsQuery.refetch()}
+              disabled={movementsQuery.isFetching}
+              title="تحديث حركات الصنف"
+              style={{
+                padding: '3px 8px',
+                height: '26px',
+                borderRadius: '6px',
+                fontSize: '0.74rem',
+                fontWeight: 600,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                color: '#334155',
+                borderColor: '#cbd5e1',
+                background: '#f8fafc',
+              }}
+            >
+              <RefreshCwIcon size={12} style={{ animation: movementsQuery.isFetching ? 'spin 0.75s linear infinite' : 'none' }} />
+              <span>تحديث</span>
+            </Button>
           </div>
 
           {/* Filter by Type */}
@@ -639,7 +712,7 @@ export function ProductCardModal({
                       </td>
                       <td style={{ textAlign: 'start', whiteSpace: 'normal', wordBreak: 'break-word' }}>
                         <div style={{ fontSize: '0.78rem', color: '#475569', lineHeight: 1.35, wordBreak: 'break-word' }}>
-                          {m.reason || m.note || '—'}
+                          {getMovementReasonText(m.reason, m.note)}
                         </div>
                       </td>
                     </tr>
