@@ -408,3 +408,20 @@
     align-self: flex-start;
   }
 }
+
+/* Inventory Tree stats grid: all 5 cards in a single row on desktop/laptop */
+.inventory-tree-stats-grid,
+.inventory-tree-page .stats-grid.compact-grid {
+  display: grid !important;
+  grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+  gap: 10px !important;
+}
+
+@media (max-width: 900px) {
+  .inventory-tree-stats-grid,
+  .inventory-tree-page .stats-grid.compact-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+  }
+}
+
