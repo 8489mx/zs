@@ -19,7 +19,7 @@ import {
 } from '@/shared/components/icons/AppIcons';
 import { formatCurrency, formatDate } from '@/lib/format';
 import { downloadExcelFile, escapeHtml, printHtmlDocument } from '@/lib/browser';
-import { inventoryApi } from '@/features/inventory/api/inventory.api';
+import { inventoryApi } from '@/shared/api/inventory.api';
 import type { Product, StockMovementRecord } from '@/types/domain';
 
 const movementLabels: Record<string, string> = {

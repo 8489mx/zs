@@ -22,7 +22,7 @@ import { PdcChequeActionModal, type PdcActionType } from '../components/PdcChequ
 import { PdcChequeVoucherModal } from '../components/PdcChequeVoucherModal';
 import { PdcChequesFilterToolbar } from '../components/PdcChequesFilterToolbar';
 import { PdcChequesTable, STATUS_LABELS } from '../components/PdcChequesTable';
-import { TreasuryNavTabs } from '@/features/treasury/components/TreasuryNavTabs';
+import { TreasuryNavTabs } from '@/features/treasury';
 
 export function PdcChequesPage() {
   const { t } = useTranslation();

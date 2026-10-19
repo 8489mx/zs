@@ -465,7 +465,7 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
                   const activeLocationNames = getProductLocationDisplayName(product, props.locationNames);
 
                   return (
-                    <tr key={group.key} className={props.selectedProduct?.id === product.id ? 'table-row-selected' : undefined} onClick={() => setActiveCardProduct(product)} style={{ cursor: 'pointer' }}>
+                    <tr key={group.key} className={props.selectedProduct?.id === product.id ? 'table-row-selected' : undefined} onClick={() => props.onSelectProduct(product)} style={{ cursor: 'pointer' }}>
                       <td className="table-selection-cell" onClick={(event) => event.stopPropagation()}>
                         <input type="checkbox" aria-label={`تحديد الصنف ${product.name}`} checked={props.selectedIds.includes(String(product.id))} onChange={(event) => toggleGroupSelection(group, event.target.checked)} />
                       </td>
@@ -763,7 +763,7 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
                       </tr>
                     ) : null}
                     {isExpanded ? group.children.map((product) => (
-                      <tr key={`child-${product.id}`} className={`products-group-child-row ${props.selectedProduct?.id === product.id ? 'table-row-selected' : ''}`} onClick={() => setActiveCardProduct(product)} style={{ cursor: 'pointer' }}>
+                      <tr key={`child-${product.id}`} className={`products-group-child-row ${props.selectedProduct?.id === product.id ? 'table-row-selected' : ''}`} onClick={() => props.onSelectProduct(product)} style={{ cursor: 'pointer' }}>
                         <td className="table-selection-cell" onClick={(event) => event.stopPropagation()}>
                           <input type="checkbox" aria-label={`تحديد الصنف ${product.name}`} checked={props.selectedIds.includes(String(product.id))} onChange={(event) => {
                             const next = new Set(props.selectedIds);

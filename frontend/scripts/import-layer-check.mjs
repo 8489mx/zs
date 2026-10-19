@@ -7,7 +7,7 @@ const projectRoot = process.cwd();
 const srcRoot = path.join(projectRoot, 'src');
 const featuresDir = path.join(srcRoot, 'features');
 const failures = [];
-const allowedAppImports = new Set(['@/app/store', '@/app/query-keys', '@/app/query-invalidation']);
+const allowedAppImports = new Set(['@/app/store', '@/app/query-keys', '@/app/query-invalidation', '@/app/router/route-prefetch']);
 
 function walkFiles(dir, files = []) {
   if (!fs.existsSync(dir)) return files;
