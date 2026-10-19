@@ -47,6 +47,10 @@ function shouldRetry(failureCount: number, error: unknown) {
     if (error.status === 401 || error.status === 403 || error.status === 404) {
       return false;
     }
+    // Network errors (e.g. backend startup or temporary connection delay)
+    if (error.code === 'network_error' || error.status === 0) {
+      return failureCount < 3;
+    }
   }
 
   return failureCount < 1;
@@ -71,6 +75,15 @@ export const queryClient = new QueryClient({
 });
 
 export function AppProviders({ children }: PropsWithChildren) {
+  useEffect(() => {
+    const runtime = (window as unknown as { electronRuntime?: { onBackendReady?: (cb: () => void) => () => void } }).electronRuntime;
+    if (runtime && typeof runtime.onBackendReady === 'function') {
+      return runtime.onBackendReady(() => {
+        queryClient.invalidateQueries();
+      });
+    }
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>

@@ -44,6 +44,11 @@ contextBridge.exposeInMainWorld('electronRuntime', {
   onShowCustomCloseDialog: (callback) => {
     ipcRenderer.on('show-custom-close-dialog', callback);
     return () => ipcRenderer.removeListener('show-custom-close-dialog', callback);
+  },
+  onBackendReady: (callback) => {
+    const handler = () => callback();
+    ipcRenderer.on('backend-ready', handler);
+    return () => ipcRenderer.removeListener('backend-ready', handler);
   }
 });
 

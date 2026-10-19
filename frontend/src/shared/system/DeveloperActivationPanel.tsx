@@ -134,6 +134,11 @@ export const STANDARD_TIER_FEATURES: Record<string, string[]> = {
   tier_band4_L1: ['sales', 'catalog', 'sessions', 'cashDrawer'],
   tier_band4_L2: ['sales', 'catalog', 'sessions', 'cashDrawer', 'purchases', 'inventory', 'reports', 'loyalty', 'deliveryReps', 'installments'],
   tier_band4_L3: ['sales', 'catalog', 'sessions', 'cashDrawer', 'purchases', 'inventory', 'reports', 'loyalty', 'deliveryReps', 'installments', 'accounting', 'fixed_assets', 'hr', 'taxIntegration', 'vat_declaration'],
+
+  // --- Band 5: Institutional & Maritime Freight Tiers ---
+  tier_band5_L1: ['sales', 'catalog', 'sessions', 'cashDrawer', 'maritime_freight'],
+  tier_band5_L2: ['sales', 'catalog', 'sessions', 'cashDrawer', 'maritime_freight', 'purchases', 'inventory', 'reports', 'loyalty', 'deliveryReps', 'installments'],
+  tier_band5_L3: ['sales', 'catalog', 'sessions', 'cashDrawer', 'maritime_freight', 'purchases', 'inventory', 'reports', 'loyalty', 'deliveryReps', 'installments', 'accounting', 'fixed_assets', 'hr', 'taxIntegration', 'vat_declaration'],
 };
 
 export function DeveloperActivationPanel() {
@@ -182,6 +187,24 @@ export function DeveloperActivationPanel() {
     refetchOnMount: 'always',
   });
   const featurePlans = featurePlansQuery.data || [];
+
+  const CORE_PLAN_KEYS = ['plan_basic', 'plan_pro', 'plan_ultimate', 'plan_omnichannel', 'basic', 'pro', 'ultimate', 'omnichannel', '1', '2', '3', '4'];
+  const baseCorePlans = [
+    { id: 'plan_basic', name: t('shared.system.developer_activation_panel.s9', "الأساسية") },
+    { id: 'plan_pro', name: t('shared.system.developer_activation_panel.s10', "الاحترافية") },
+    { id: 'plan_ultimate', name: t('shared.system.developer_activation_panel.s11', "المتكاملة") },
+    { id: 'plan_omnichannel', name: t('shared.system.developer_activation_panel.s12', "باقة التجارة الشاملة (Omnichannel Enterprise)") },
+  ];
+
+  const resolvedCorePlans = baseCorePlans.map((cp) => {
+    const match = featurePlans.find((fp: any) => String(fp.id).toLowerCase() === cp.id || String(fp.name).includes(cp.name));
+    return match ? { id: String(match.id), name: match.name || cp.name } : cp;
+  });
+
+  const sectorPlans = featurePlans.filter((p: any) => {
+    const pId = String(p.id).toLowerCase();
+    return pId.startsWith('tier_band') || pId.startsWith('band') || (!CORE_PLAN_KEYS.includes(pId) && !resolvedCorePlans.some((rc) => rc.id === p.id));
+  });
 
   const updateMutation = useMutation({
     mutationFn: () => http<{ ok: boolean }>('/api/developer/update-plan', { 
@@ -415,12 +438,7 @@ export function DeveloperActivationPanel() {
                 {t('shared.system.developer_activation_panel.s8', "بدون باقة (مخصص)")}
               </button>
 
-              {(featurePlans.length > 0 ? featurePlans : [
-                { id: 'plan_basic', name: t('shared.system.developer_activation_panel.s9', "الأساسية") },
-                { id: 'plan_pro', name: t('shared.system.developer_activation_panel.s10', "الاحترافية") },
-                { id: 'plan_ultimate', name: t('shared.system.developer_activation_panel.s11', "المتكاملة") },
-                { id: 'plan_omnichannel', name: t('shared.system.developer_activation_panel.s12', "باقة التجارة الشاملة (Omnichannel Enterprise)") },
-              ]).map((p: any) => {
+              {resolvedCorePlans.map((p: any) => {
                 const isActive = String(p.id) === planId;
                 return (
                   <button
@@ -448,6 +466,57 @@ export function DeveloperActivationPanel() {
                 );
               })}
             </div>
+
+            {/* Optional Sector / Industry Template Dropdown */}
+            {sectorPlans.length > 0 && (
+              <div
+                style={{
+                  marginTop: '10px',
+                  padding: '8px 14px',
+                  background: '#f8fafc',
+                  borderRadius: '8px',
+                  border: '1px solid #e2e8f0',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '12px',
+                }}
+              >
+                <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#475569', whiteSpace: 'nowrap' }}>
+                  {t('shared.system.developer_activation_panel.sector_preset_label', "أو اختر قالباً مخصصاً حسب النشاط:")}
+                </span>
+                <select
+                  value={sectorPlans.some((p: any) => String(p.id) === planId) ? planId : ''}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val) {
+                      setPlanId(val);
+                      setExtraFeatures([]);
+                    }
+                  }}
+                  style={{
+                    flex: 1,
+                    maxWidth: '420px',
+                    padding: '6px 12px',
+                    borderRadius: '6px',
+                    border: '1px solid #cbd5e1',
+                    fontSize: '0.82rem',
+                    fontWeight: 600,
+                    color: '#0f172a',
+                    background: '#ffffff',
+                    cursor: 'pointer',
+                    outline: 'none',
+                  }}
+                >
+                  <option value="">{t('shared.system.developer_activation_panel.select_sector_placeholder', "-- اختر قالباً تخصصياً (اختياري) --")}</option>
+                  {sectorPlans.map((p: any) => (
+                    <option key={p.id} value={String(p.id)}>
+                      {p.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
           </div>
 
           {/* Features Module Switchboard */}

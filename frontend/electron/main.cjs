@@ -237,7 +237,21 @@ const tryRevealApp = () => {
   }
 };
 
-const createMainWindow = (customLoadHandler) => {
+function loadAppIntoWindow(win = mainWindow) {
+  if (!win || win.isDestroyed()) return;
+  const isDev = process.env.NODE_ENV === 'development';
+  if (isDev) {
+    win.loadURL('http://localhost:5173');
+  } else {
+    const unpackedDist = path.join(
+      __dirname.includes('app.asar') ? __dirname.replace('app.asar', 'app.asar.unpacked') : __dirname,
+      '../dist/index.html'
+    );
+    win.loadFile(unpackedDist);
+  }
+}
+
+const createMainWindow = (customLoadHandler, autoLoad = true) => {
   if (mainWindow && !mainWindow.isDestroyed()) return mainWindow;
   Menu.setApplicationMenu(null);
 
@@ -348,9 +362,12 @@ const createMainWindow = (customLoadHandler) => {
     tryRevealApp();
   });
 
-  mainWindow.webContents.once('did-finish-load', () => {
+  mainWindow.webContents.on('did-finish-load', () => {
     isMainWindowRendered = true;
     tryRevealApp();
+    if (isBackendReady && mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('backend-ready');
+    }
   });
 
   mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL) => {
@@ -367,18 +384,11 @@ const createMainWindow = (customLoadHandler) => {
     }
   });
 
-  if (customLoadHandler) {
-    customLoadHandler(mainWindow);
-  } else {
-    const isDev = process.env.NODE_ENV === 'development';
-    if (isDev) {
-      mainWindow.loadURL('http://localhost:5173');
+  if (autoLoad) {
+    if (customLoadHandler) {
+      customLoadHandler(mainWindow);
     } else {
-      const unpackedDist = path.join(
-        __dirname.includes('app.asar') ? __dirname.replace('app.asar', 'app.asar.unpacked') : __dirname,
-        '../dist/index.html'
-      );
-      mainWindow.loadFile(unpackedDist);
+      loadAppIntoWindow(mainWindow);
     }
   }
 
@@ -697,8 +707,8 @@ app.whenReady().then(async () => {
   // Show loading window with progress immediately
   createLoadingWindow();
 
-  // Pre-warm React UI silently in memory while PostgreSQL and backend initialize
-  createMainWindow();
+  // Create main window structure silently in advance so Chromium initializes
+  createMainWindow(null, false);
 
   // Start the bundled Postgres Server
   const PostgresManager = require('./postgres-manager.cjs');
@@ -1141,6 +1151,8 @@ app.whenReady().then(async () => {
   }
 
   // Handover to main app once backend is ready
+  isBackendReady = true;
+
   if (currentConfig.runtimeMode === 'invalid') {
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.loadFile(path.join(__dirname, 'config-error.html'));
@@ -1149,10 +1161,22 @@ app.whenReady().then(async () => {
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.loadFile(path.join(__dirname, 'server-offline.html'));
     }
+  } else {
+    // Backend is 100% online, verified and listening! Load React now without race conditions
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      loadAppIntoWindow(mainWindow);
+    }
   }
 
-  isBackendReady = true;
   tryRevealApp();
+
+  // Safety fallback: if app did not signal rendered within 10s of backend ready, reveal anyway
+  setTimeout(() => {
+    if (!hasRevealedApp && isBackendReady) {
+      isMainWindowRendered = true;
+      tryRevealApp();
+    }
+  }, 10000);
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {

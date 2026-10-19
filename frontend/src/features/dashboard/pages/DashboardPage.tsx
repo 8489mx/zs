@@ -177,7 +177,23 @@ export function DashboardPage() {
   if (overview.isError && !overview.data) {
     return (
       <div className="page-stack page-shell">
-        <ErrorState title={t('feedback.error_title', 'تعذر تحميل ملخص اليوم')} error={overview.error} hint={t('common.check_connection', 'تحقق من اتصال النظام ثم أعد المحاولة.')} className="status-surface-block" />
+        <ErrorState
+          title={t('feedback.error_title', 'تعذر تحميل ملخص اليوم')}
+          error={overview.error}
+          hint={t('common.check_connection', 'تحقق من اتصال النظام ثم أعد المحاولة.')}
+          action={(
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={handleManualRefresh}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}
+            >
+              <RefreshCwIcon size={14} className={isRefreshing ? 'spin-animation' : ''} />
+              <span>{t('common.retry', 'إعادة المحاولة')}</span>
+            </button>
+          )}
+          className="status-surface-block"
+        />
       </div>
     );
   }
