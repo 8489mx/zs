@@ -11,11 +11,6 @@ export const treasuryRouteModule: FeatureRouteModule = {
       key: 'treasury',
       label: 'الخزائن والحسابات البنكية',
       to: '/treasury',
-      activePaths: [
-        '/treasury',
-        '/accounting/cheques',
-        '/accounting/bank-reconciliation',
-      ],
     },
     { key: 'expenses', label: 'المصروفات', to: '/expenses' }
   ]

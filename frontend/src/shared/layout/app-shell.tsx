@@ -1716,14 +1716,14 @@ export function AppShell({ children }: PropsWithChildren) {
       }
     }
 
-    // 2. Check visible sidebar navigation items matching current route
+    // 2. Check visible sidebar navigation items matching current route (exact match first, then longest prefix)
     if (!activeLabel) {
-      const match = visibleNavigationItems.find((item) => {
-        if (!item.to || item.to === '/' || item.to === '/dashboard') return false;
-        return location.pathname === item.to || location.pathname.startsWith(`${item.to}/`);
-      });
-      if (match?.label) {
-        activeLabel = match.label;
+      const exactMatch = visibleNavigationItems.find((item) => item.to === location.pathname || item.activePaths?.includes(location.pathname));
+      const prefixMatch = exactMatch || visibleNavigationItems
+        .filter((item) => item.to && item.to !== '/' && item.to !== '/dashboard' && !item.end && location.pathname.startsWith(`${item.to}/`))
+        .sort((a, b) => b.to.length - a.to.length)[0];
+      if (prefixMatch?.label) {
+        activeLabel = prefixMatch.label;
       }
     }
 
@@ -1810,7 +1810,14 @@ export function AppShell({ children }: PropsWithChildren) {
         const currentTab = currentParams.get('tab') || defaultTab;
         return currentTab === targetTab;
       }
-      return item.activePaths?.includes(location.pathname) || isActive;
+      if (item.activePaths?.includes(location.pathname)) return true;
+      if (isActive && item.to !== location.pathname) {
+        const hasMoreSpecificItem = visibleNavigationItems.some(
+          (other) => other.key !== item.key && (other.to === location.pathname || other.activePaths?.includes(location.pathname))
+        );
+        if (hasMoreSpecificItem) return false;
+      }
+      return isActive;
     };
 
     return (

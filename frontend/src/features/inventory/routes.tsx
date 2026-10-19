@@ -66,11 +66,6 @@ export const inventoryRouteModule: FeatureRouteModule = {
       key: 'inventory-warehouses', 
       label: 'المستودعات والفروع', 
       to: '/inventory/warehouses',
-      activePaths: [
-        '/inventory/warehouses',
-        '/inventory/tree',
-        '/inventory/bins'
-      ]
     },
     { key: 'inventory-bins', label: 'أماكن التخزين والأرفف', to: '/inventory/bins' },
     { key: 'inventory-tree', label: 'شجرة المخازن', to: '/inventory/tree' },

@@ -21,14 +21,13 @@ export function resolveRouteMetadata(pathname: string): { title: string; iconKey
     };
   }
 
-  // 1. Direct match in registry navigation items
-  const directMatch = navigationItems.find((item) => {
+  // 1. Direct match in registry navigation items (exact match takes precedence over activePaths fallback)
+  const exactMatch = navigationItems.find((item) => {
     const itemNorm = normalizeAppPath(item.to);
-    return (
-      itemNorm === cleanPath ||
-      itemNorm.split('?')[0] === cleanPath.split('?')[0] ||
-      item.activePaths?.some((p) => normalizeAppPath(p) === cleanPath)
-    );
+    return itemNorm === cleanPath || itemNorm.split('?')[0] === cleanPath.split('?')[0];
+  });
+  const directMatch = exactMatch || navigationItems.find((item) => {
+    return item.activePaths?.some((p) => normalizeAppPath(p) === cleanPath);
   });
 
   if (directMatch) {

@@ -42,7 +42,6 @@ export const hrRouteModule: FeatureRouteModule = {
       end: true,
       activePaths: [
         '/hr',
-        '/hr/recruitment',
         '/hr/employees',
         '/hr/employees/new',
         '/hr/payroll',
@@ -51,7 +50,6 @@ export const hrRouteModule: FeatureRouteModule = {
         '/hr/loans',
         '/hr/documents',
         '/hr/assets',
-        '/hr/settlements',
         '/hr/reports',
         '/hr/settings',
       ],
