@@ -100,6 +100,103 @@ html, body, #root, .app-root, .app-layout {
   background: transparent;
 }
 
+/* ========================================================
+   Universal Horizontal Scroll Tabs & Filter Chips
+   ======================================================== */
+.horizontal-scroll-tabs,
+.filter-chip-row,
+.toolbar-chip-row,
+.settings-tabs,
+.settings-subnav-row,
+.settings-section-tabs,
+.reports-section-tabs,
+.hr-section-nav,
+.audit-workspace-tabs,
+.delivery-rep-tabs,
+.app-browser-tab-bar,
+.storefront-subnav,
+.storefront-sub-tabs,
+.merchant-orders-status-tabs,
+[data-horizontal-scroll="true"] {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.4) transparent;
+  overscroll-behavior-x: contain;
+}
+
+.horizontal-scroll-tabs::-webkit-scrollbar,
+.filter-chip-row::-webkit-scrollbar,
+.toolbar-chip-row::-webkit-scrollbar,
+.settings-tabs::-webkit-scrollbar,
+.settings-subnav-row::-webkit-scrollbar,
+.settings-section-tabs::-webkit-scrollbar,
+.reports-section-tabs::-webkit-scrollbar,
+.hr-section-nav::-webkit-scrollbar,
+.audit-workspace-tabs::-webkit-scrollbar,
+.delivery-rep-tabs::-webkit-scrollbar,
+.app-browser-tab-bar::-webkit-scrollbar,
+.storefront-subnav::-webkit-scrollbar,
+.storefront-sub-tabs::-webkit-scrollbar,
+.merchant-orders-status-tabs::-webkit-scrollbar,
+[data-horizontal-scroll="true"]::-webkit-scrollbar {
+  height: 5px;
+}
+
+.horizontal-scroll-tabs::-webkit-scrollbar-track,
+.filter-chip-row::-webkit-scrollbar-track,
+.toolbar-chip-row::-webkit-scrollbar-track,
+.settings-tabs::-webkit-scrollbar-track,
+.settings-subnav-row::-webkit-scrollbar-track,
+.settings-section-tabs::-webkit-scrollbar-track,
+.reports-section-tabs::-webkit-scrollbar-track,
+.hr-section-nav::-webkit-scrollbar-track,
+.audit-workspace-tabs::-webkit-scrollbar-track,
+.delivery-rep-tabs::-webkit-scrollbar-track,
+.app-browser-tab-bar::-webkit-scrollbar-track,
+.storefront-subnav::-webkit-scrollbar-track,
+.storefront-sub-tabs::-webkit-scrollbar-track,
+.merchant-orders-status-tabs::-webkit-scrollbar-track,
+[data-horizontal-scroll="true"]::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.horizontal-scroll-tabs::-webkit-scrollbar-thumb,
+.filter-chip-row::-webkit-scrollbar-thumb,
+.toolbar-chip-row::-webkit-scrollbar-thumb,
+.settings-tabs::-webkit-scrollbar-thumb,
+.settings-subnav-row::-webkit-scrollbar-thumb,
+.settings-section-tabs::-webkit-scrollbar-thumb,
+.reports-section-tabs::-webkit-scrollbar-thumb,
+.hr-section-nav::-webkit-scrollbar-thumb,
+.audit-workspace-tabs::-webkit-scrollbar-thumb,
+.delivery-rep-tabs::-webkit-scrollbar-thumb,
+.app-browser-tab-bar::-webkit-scrollbar-thumb,
+.storefront-subnav::-webkit-scrollbar-thumb,
+.storefront-sub-tabs::-webkit-scrollbar-thumb,
+.merchant-orders-status-tabs::-webkit-scrollbar-thumb,
+[data-horizontal-scroll="true"]::-webkit-scrollbar-thumb {
+  background-color: rgba(148, 163, 184, 0.4);
+  border-radius: 9999px;
+  transition: background-color 0.2s ease;
+}
+
+.horizontal-scroll-tabs::-webkit-scrollbar-thumb:hover,
+.filter-chip-row::-webkit-scrollbar-thumb:hover,
+.toolbar-chip-row::-webkit-scrollbar-thumb:hover,
+.settings-tabs::-webkit-scrollbar-thumb:hover,
+.settings-subnav-row::-webkit-scrollbar-thumb:hover,
+.settings-section-tabs::-webkit-scrollbar-thumb:hover,
+.reports-section-tabs::-webkit-scrollbar-thumb:hover,
+.hr-section-nav::-webkit-scrollbar-thumb:hover,
+.audit-workspace-tabs::-webkit-scrollbar-thumb:hover,
+.delivery-rep-tabs::-webkit-scrollbar-thumb:hover,
+.app-browser-tab-bar::-webkit-scrollbar-thumb:hover,
+.storefront-subnav::-webkit-scrollbar-thumb:hover,
+.storefront-sub-tabs::-webkit-scrollbar-thumb:hover,
+.merchant-orders-status-tabs::-webkit-scrollbar-thumb:hover,
+[data-horizontal-scroll="true"]::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(100, 116, 139, 0.75);
+}
+
 body {
   margin: 0;
   font-family: 'Cairo', 'Tajawal', system-ui, -apple-system, sans-serif;

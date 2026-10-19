@@ -40,8 +40,10 @@ window.addEventListener('unhandledrejection', (event) => {
 import { ActivationGuard } from '@/shared/components/ActivationGuard';
 import { SilentErrorBoundary } from '@/core/components/SilentErrorBoundary';
 import { initProductIconTheme } from '@/shared/components/icons/product-icon-theme';
+import { initUniversalHorizontalScroll } from '@/shared/utils/horizontal-scroll';
 
 initProductIconTheme();
+initUniversalHorizontalScroll();
 
 // Native Mobile Bridge Initialization (Status bar, hardware back button, splash screen)
 if (typeof window !== 'undefined') {
