@@ -16,6 +16,7 @@ import { SmartReorderFilters } from '../components/smart-reorder/SmartReorderFil
 import { SmartReorderSupplierGroupCard } from '../components/smart-reorder/SmartReorderSupplierGroupCard';
 import { SmartReorderConfirmModal } from '../components/smart-reorder/SmartReorderConfirmModal';
 import { SmartReorderSuccessModal } from '../components/smart-reorder/SmartReorderSuccessModal';
+import { PurchasesNavTabs } from '../components/PurchasesNavTabs';
 
 export function SmartReorderPage() {
   const { t } = useTranslation();
@@ -196,6 +197,8 @@ export function SmartReorderPage() {
             </div>
           }
         />
+
+        <PurchasesNavTabs currentTab="reorder" />
 
         {/* 2. KPI Summary Cards */}
         <SmartReorderStats summary={summary} />

@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { useState, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAppToolbar } from '@/stores/toolbar-store';
 import { PageHeader } from '@/shared/components/page-header';
@@ -120,6 +121,11 @@ export function CrmPipelinePage() {
                 <PlusIcon size={16} />
                 <span>{t('crm.crm_pipeline_page.s3', "إضافة فرصة بيعية")}</span>
               </Button>
+              <Link to="/customers">
+                <Button variant="secondary" style={{ fontWeight: 600 }}>
+                  <span>{t('crm.to_customers', "دليل وسجل العملاء")}</span>
+                </Button>
+              </Link>
             </div>
           }
         />

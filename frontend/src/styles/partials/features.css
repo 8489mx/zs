@@ -2644,6 +2644,71 @@
   border: 1px solid #e2e8f0;
 }
 
+.warehouse-type-badge.badge-van-stock {
+  background-color: #f5f3ff;
+  color: #6d28d9;
+  border: 1px solid #ddd6fe;
+}
+
+.warehouse-filter-nav {
+  display: inline-flex;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 4px;
+  gap: 4px;
+  box-sizing: border-box;
+}
+
+.warehouse-filter-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 14px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  box-sizing: border-box;
+}
+
+.warehouse-filter-btn:hover {
+  color: #0f172a;
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.warehouse-filter-btn--active {
+  background: #ffffff !important;
+  color: #170e5e !important;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+  font-weight: 600 !important;
+  border: 1px solid #cbd5e1 !important;
+}
+
+.warehouse-filter-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1px 7px;
+  border-radius: 9999px;
+  background: #e2e8f0;
+  color: #475569;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.warehouse-filter-btn--active .warehouse-filter-badge {
+  background: #eef2ff;
+  color: #170e5e;
+}
+
 .warehouse-card-actions {
   display: flex;
   align-items: center;

@@ -6,10 +6,13 @@ import { PageHeader } from '@/shared/components/page-header';
 import { FormSection } from '@/shared/components/form-section';
 import { StatsGrid } from '@/shared/components/stats-grid';
 import { Button } from '@/shared/ui/button';
+import { ClipboardIcon, TruckIcon, PlusCircleIcon, LayersIcon } from '@/shared/components/icons/AppIcons';
+import { ProductCardModal } from '@/features/products/components/ProductCardModal';
 import { useInventoryActionCatalog } from '@/features/inventory/hooks/useInventoryActionCatalog';
 import { catalogApi } from '@/shared/api/catalog';
 import { AssignProductsModal } from '../components/AssignProductsModal';
 import { formatCurrency } from '@/lib/format';
+import type { Product } from '@/types/domain';
 
 export function WarehouseDetailsPage() {
   const { t } = useTranslation();
@@ -23,6 +26,7 @@ export function WarehouseDetailsPage() {
   const [showZeroStock, setShowZeroStock] = useState(false);
   const [productSearch, setProductSearch] = useState('');
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
+  const [activeCardProduct, setActiveCardProduct] = useState<Product | null>(null);
 
   const categoriesQuery = useQuery({ queryKey: ['catalogCategories'], queryFn: () => catalogApi.categories() });
 
@@ -117,9 +121,32 @@ export function WarehouseDetailsPage() {
         description={`عرض تفصيلي لأرصدة وأقسام ${location?.name || t('inventory.warehouse_details_page.s0', "المخزن")} وقيمتها المالية`} 
         actions={(
           <div className="actions compact-actions page-header-actions">
-            <Button variant="primary" onClick={() => setIsAssignModalOpen(true)}>
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginInlineEnd: 6 }}><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-              {t('inventory.warehouse_details_page.s1', "إضافة أصناف للمخزن")}
+            <Button 
+              variant="primary" 
+              onClick={() => navigate(`/inventory/counts?locationId=${locationId}`)}
+              style={{ backgroundColor: '#170e5e', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+            >
+              <ClipboardIcon size={15} />
+              {t('inventory.warehouse_details_page.start_count', "بدء جرد المخزن")}
+            </Button>
+            <Button 
+              variant="secondary" 
+              onClick={() => navigate(`/inventory/issue-order/new?fromLocationId=${locationId}`)}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontWeight: 600 }}
+            >
+              <TruckIcon size={15} />
+              {t('inventory.warehouse_details_page.new_transfer', "إذن صرف / تحويل")}
+            </Button>
+            <Button 
+              variant="secondary" 
+              onClick={() => navigate('/products/new')}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+            >
+              <PlusCircleIcon size={15} />
+              {t('inventory.warehouse_details_page.new_product', "تكويد صنف جديد")}
+            </Button>
+            <Button variant="secondary" onClick={() => setIsAssignModalOpen(true)}>
+              {t('inventory.warehouse_details_page.s1', "تعيين أصناف للمخزن")}
             </Button>
             <Button variant="secondary" onClick={() => navigate('/inventory/warehouses')}>
               {t('inventory.warehouse_details_page.s2', "العودة للمخازن")}
@@ -131,13 +158,17 @@ export function WarehouseDetailsPage() {
       <StatsGrid items={stats} className="stats-grid compact-grid grid-cols-4" />
 
       {/* Categories Filter Tabs */}
-      <div style={{
-        display: 'flex',
-        gap: '8px',
-        overflowX: 'auto',
-        padding: '6px 2px 12px 2px',
-        scrollbarWidth: 'thin',
-      }}>
+      <div
+        className="horizontal-scroll-tabs"
+        data-horizontal-scroll="true"
+        style={{
+          display: 'flex',
+          gap: '8px',
+          overflowX: 'auto',
+          padding: '6px 2px 12px 2px',
+          scrollbarWidth: 'thin',
+        }}
+      >
         {categoryList.map((cat) => {
           const isActive = selectedCategoryId === cat.id;
           return (
@@ -243,6 +274,7 @@ export function WarehouseDetailsPage() {
                   <th style={{ padding: '12px 18px', color: '#475569', fontWeight: 700, fontSize: '13px' }}>{t('inventory.warehouse_details_page.s11', "القسم")}</th>
                   <th style={{ padding: '12px 18px', color: '#475569', fontWeight: 700, fontSize: '13px', textAlign: 'center' }}>{t('inventory.warehouse_details_page.s12', "الرصيد في المخزن")}</th>
                   <th style={{ padding: '12px 18px', color: '#475569', fontWeight: 700, fontSize: '13px', textAlign: 'center' }}>{t('inventory.warehouse_details_page.s13', "الرصيد الكلي للنظام")}</th>
+                  <th style={{ padding: '12px 18px', color: '#475569', fontWeight: 700, fontSize: '13px', textAlign: 'center' }}>{t('inventory.warehouse_details_page.actions_col', "الإجراءات")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -281,12 +313,36 @@ export function WarehouseDetailsPage() {
                       <td style={{ padding: '12px 18px', textAlign: 'center', fontWeight: 700, color: '#64748b' }}>
                         {product.globalStockQty ?? '—'}
                       </td>
+                      <td style={{ padding: '12px 18px', textAlign: 'center' }}>
+                        <button
+                          type="button"
+                          onClick={() => setActiveCardProduct(product)}
+                          title={t('inventory.warehouse_details_page.card_history', "كارت حركة ومخزون الصنف")}
+                          style={{
+                            fontSize: '12px',
+                            fontWeight: 700,
+                            color: '#170e5e',
+                            background: '#eef2ff',
+                            border: '1px solid #c7d2fe',
+                            borderRadius: '6px',
+                            padding: '4px 10px',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '5px',
+                            cursor: 'pointer',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          <LayersIcon size={13} color="#170e5e" />
+                          <span>{t('inventory.warehouse_details_page.card_btn', "حركة الصنف")}</span>
+                        </button>
+                      </td>
                     </tr>
                   );
                 })}
                 {visibleProducts.length === 0 && (
                   <tr>
-                    <td colSpan={5} style={{ padding: '36px', textAlign: 'center', color: '#94a3b8' }}>
+                    <td colSpan={6} style={{ padding: '36px', textAlign: 'center', color: '#94a3b8' }}>
                       {showZeroStock ? t('inventory.warehouse_details_page.s15', "لا توجد أصناف مسجلة في هذا المخزن") : t('inventory.warehouse_details_page.s16', "لا توجد أصناف متاحة برصيد إيجابي")}
                     </td>
                   </tr>
@@ -297,6 +353,18 @@ export function WarehouseDetailsPage() {
         )}
       </FormSection>
       </main>
+
+      {activeCardProduct ? (
+        <ProductCardModal
+          product={activeCardProduct}
+          onClose={() => setActiveCardProduct(null)}
+          categoryName={categories.find((c: any) => String(c.id) === String(activeCardProduct.categoryId))?.name}
+          locationName={location?.name}
+          onEditProduct={() => navigate('/products')}
+          onOpenBarcodeDialog={() => {}}
+          onOpenOfferDialog={() => {}}
+        />
+      ) : null}
     </div>
   );
 }

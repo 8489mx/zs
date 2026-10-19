@@ -14,6 +14,7 @@ import { ReconciliationSummaryHeader } from '../components/bank-reconciliation/R
 import { ReconciliationDualLedger } from '../components/bank-reconciliation/ReconciliationDualLedger';
 import { CreateBankStatementModal } from '../components/bank-reconciliation/CreateBankStatementModal';
 import { BankFeeAdjustmentModal } from '../components/bank-reconciliation/BankFeeAdjustmentModal';
+import { TreasuryNavTabs } from '@/features/treasury/components/TreasuryNavTabs';
 
 export function BankReconciliationPage() {
   const { t } = useTranslation();
@@ -227,6 +228,8 @@ export function BankReconciliationPage() {
             )
           }
         />
+
+        <TreasuryNavTabs currentTab="reconciliation" />
 
         {/* Global Status Message */}
         {statusMessage && (

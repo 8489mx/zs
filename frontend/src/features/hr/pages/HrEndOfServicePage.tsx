@@ -9,6 +9,7 @@ import {
   SettlementPreview,
 } from '@/features/hr/api/end-of-service.api';
 import { PlusIcon, SearchIcon } from '@/shared/components/icons/AppIcons';
+import { systemConfirm, toast } from '@/shared/components/system-alert';
 import { EndOfServiceKpiCards } from '../components/end-of-service/EndOfServiceKpiCards';
 import { SettlementsTable } from '../components/end-of-service/SettlementsTable';
 import { CreateSettlementModal } from '../components/end-of-service/CreateSettlementModal';
@@ -139,28 +140,41 @@ export function HrEndOfServicePage() {
   };
 
   const handlePostAccounting = async (settlement: SettlementRecord) => {
-    if (!window.confirm(`هل أنت متأكد من ترحيل القيد المحاسبي للمخالصة رقم ${settlement.settlementNo}؟`)) {
-      return;
-    }
+    const confirmed = await systemConfirm({
+      title: 'ترحيل القيد المحاسبي',
+      message: `هل أنت متأكد من ترحيل القيد المحاسبي للمخالصة رقم ${settlement.settlementNo}؟`,
+      confirmText: 'نعم، ترحيل',
+      cancelText: 'إلغاء',
+      variant: 'primary',
+    });
+    if (!confirmed) return;
     setPostingId(settlement.id);
     try {
       const res = await endOfServiceApi.postAccounting(settlement.id, {});
-      alert(`تم ترحيل القيد المحاسبي بنجاح برقم قيد #${res.entryNo || res.journalEntryId}`);
+      toast.success(`تم ترحيل القيد المحاسبي بنجاح برقم قيد #${res.entryNo || res.journalEntryId}`);
       await loadSettlements();
     } catch (err: any) {
-      alert(err?.message || 'تعذر ترحيل القيد المحاسبي');
+      toast.error(err?.message || 'تعذر ترحيل القيد المحاسبي');
     } finally {
       setPostingId(null);
     }
   };
 
   const handleDelete = async (id: number) => {
-    if (!window.confirm('هل أنت متأكد من حذف مسودة هذه المخالصة؟')) return;
+    const confirmed = await systemConfirm({
+      title: 'حذف مسودة المخالصة',
+      message: 'هل أنت متأكد من حذف مسودة هذه المخالصة نهائياً؟',
+      confirmText: 'نعم، حذف',
+      cancelText: 'إلغاء',
+      variant: 'danger',
+    });
+    if (!confirmed) return;
     try {
       await endOfServiceApi.remove(id);
+      toast.success('تم حذف مسودة المخالصة بنجاح');
       await loadSettlements();
     } catch (err: any) {
-      alert(err?.message || 'تعذر حذف المخالصة');
+      toast.error(err?.message || 'تعذر حذف المخالصة');
     }
   };
 

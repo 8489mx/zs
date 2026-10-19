@@ -51,6 +51,7 @@ export const hrRouteModule: FeatureRouteModule = {
         '/hr/loans',
         '/hr/documents',
         '/hr/assets',
+        '/hr/settlements',
         '/hr/reports',
         '/hr/settings',
       ],

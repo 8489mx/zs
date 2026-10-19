@@ -10,6 +10,7 @@ import { PurchasesRegisterCard } from '@/features/purchases/components/purchases
 import { MarginProtectionModal } from '@/features/purchases/components/MarginProtectionModal';
 import { usePurchasesWorkspaceController } from '@/features/purchases/components/purchases-workspace/usePurchasesWorkspaceController';
 import { printPurchaseDocument } from '@/features/purchases/lib/purchases-workspace.helpers';
+import { PurchasesNavTabs } from '@/features/purchases/components/PurchasesNavTabs';
 import { useTranslation } from 'react-i18next';
 import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
 
@@ -44,6 +45,8 @@ export function PurchasesWorkspace() {
             </div>
           }
         />
+
+        <PurchasesNavTabs currentTab="invoices" />
 
         <PurchasesKpiSection totalItems={controller.totalItems} summary={controller.summary || null} />
 

@@ -563,6 +563,7 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
                             variant="secondary"
                             type="button"
                             onClick={() => setActiveCardProduct(product)}
+                            title={__t('products.products_table_card.card_btn_title', "عرض كارت الصنف وسجل الحركات التاريخية والمخزون")}
                             style={{
                               fontSize: '0.82rem',
                               fontWeight: 700,
@@ -734,6 +735,7 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
                             variant="secondary"
                             type="button"
                             onClick={() => setActiveCardProduct(group.representative)}
+                            title={__t('products.products_table_card.card_btn_title', "عرض كارت الصنف وسجل الحركات التاريخية والمخزون")}
                             style={{
                               fontSize: '0.82rem',
                               fontWeight: 700,
@@ -838,6 +840,7 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
                               variant="secondary"
                               type="button"
                               onClick={() => setActiveCardProduct(product)}
+                              title={__t('products.products_table_card.card_btn_title', "عرض كارت الصنف وسجل الحركات التاريخية والمخزون")}
                               style={{
                                 fontSize: '0.82rem',
                                 fontWeight: 700,

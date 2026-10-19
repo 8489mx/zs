@@ -9,6 +9,7 @@ const HR_SECTIONS = [
   { label: 'الإجازات', shortLabel: 'الإجازات', to: '/hr/leaves', match: (pathname: string) => pathname.startsWith('/hr/leaves') },
   { label: 'السلف', shortLabel: 'السلف', to: '/hr/loans', match: (pathname: string) => pathname.startsWith('/hr/loans') },
   { label: 'المرتبات', shortLabel: 'المرتبات', to: '/hr/payroll', match: (pathname: string) => pathname.startsWith('/hr/payroll') },
+  { label: 'مخالصات نهاية الخدمة', shortLabel: 'نهاية الخدمة', to: '/hr/settlements', match: (pathname: string) => pathname.startsWith('/hr/settlements') },
   { label: 'المستندات', shortLabel: 'المستندات', to: '/hr/documents', match: (pathname: string) => pathname.startsWith('/hr/documents') },
   { label: 'العُهد', shortLabel: 'العُهد', to: '/hr/assets', match: (pathname: string) => pathname.startsWith('/hr/assets') },
   { label: 'التقارير', shortLabel: 'التقارير', to: '/hr/reports', match: (pathname: string) => pathname.startsWith('/hr/reports') },

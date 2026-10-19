@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQueryClient, useQuery } from '@tanstack/react-query';
 import { useInventoryActionCatalog } from '@/features/inventory/hooks/useInventoryActionCatalog';
 import { useAuthStore } from '@/stores/auth-store';
@@ -12,6 +12,8 @@ import { LineItem } from './types';
 
 export function useNewIssueOrderController() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const urlFromLocationId = searchParams.get('fromLocationId');
   const queryClient = useQueryClient();
   const { user } = useAuthStore();
   const { productsQuery, locationsQuery, branchesQuery, locationStocksQuery } = useInventoryActionCatalog();
@@ -89,6 +91,16 @@ export function useNewIssueOrderController() {
       setIssueMode(settingsQuery.data.defaultBranchIssueMode as any);
     }
   }, [settingsQuery.data?.defaultBranchIssueMode]);
+
+  useEffect(() => {
+    if (urlFromLocationId && locations.length > 0) {
+      const loc = locations.find((l: any) => String(l.id) === String(urlFromLocationId));
+      if (loc) {
+        setFromLocationId(String(loc.id));
+        setFromLocationQuery(loc.name);
+      }
+    }
+  }, [urlFromLocationId, locations]);
 
   useEffect(() => {
     if (pendingFocusQtyLineId === null) return;

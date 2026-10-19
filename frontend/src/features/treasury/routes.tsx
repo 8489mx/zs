@@ -7,7 +7,16 @@ export const treasuryRouteModule: FeatureRouteModule = {
     { path: 'expenses', element: createLazyRoute(() => import('@/features/treasury/pages/ExpensesPage').then((module) => ({ default: module.ExpensesPage }))) }
   ],
   navigation: [
-    { key: 'treasury', label: 'الخزينة', to: '/treasury' },
+    {
+      key: 'treasury',
+      label: 'الخزائن والحسابات البنكية',
+      to: '/treasury',
+      activePaths: [
+        '/treasury',
+        '/accounting/cheques',
+        '/accounting/bank-reconciliation',
+      ],
+    },
     { key: 'expenses', label: 'المصروفات', to: '/expenses' }
   ]
 };

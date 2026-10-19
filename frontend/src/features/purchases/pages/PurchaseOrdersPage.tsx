@@ -20,6 +20,7 @@ import { PurchaseOrderDetailsModal } from '../components/PurchaseOrderDetailsMod
 import { GoodsReceiptModal } from '../components/GoodsReceiptModal';
 import { GoodsReceiptsListModal } from '../components/GoodsReceiptsListModal';
 import { toast } from '@/shared/components/system-alert';
+import { PurchasesNavTabs } from '../components/PurchasesNavTabs';
 
 export function PurchaseOrdersPage() {
   const { t } = useTranslation();
@@ -182,6 +183,8 @@ export function PurchaseOrdersPage() {
             </div>
           )}
         />
+
+        <PurchasesNavTabs currentTab="orders" />
 
         <div style={{ marginBottom: '16px' }}>
           <StatsGrid

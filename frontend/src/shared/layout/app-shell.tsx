@@ -1110,13 +1110,13 @@ export function AppShell({ children }: PropsWithChildren) {
         {
           key: 'accounting-group',
           label: 'المالية والمحاسبة',
-          itemKeys: ['accounting-journal-entries', 'accounting-accounts', 'accounting-cost-centers', 'treasury', 'accounting-cheques', 'accounting-bank-reconciliation', 'expenses', 'accounting-balance-sheet', 'accounting-fixed-assets'],
+          itemKeys: ['accounting-journal-entries', 'accounting-accounts', 'accounting-cost-centers', 'treasury', 'expenses', 'accounting-balance-sheet', 'accounting-fixed-assets'],
           iconKey: 'treasury',
         },
         {
           key: 'hr-group',
           label: 'الموارد البشرية',
-          itemKeys: ['hr', 'hr-settlements'],
+          itemKeys: ['hr'],
           iconKey: 'users',
         },
         {
@@ -1184,13 +1184,13 @@ export function AppShell({ children }: PropsWithChildren) {
         {
           key: 'accounting-group',
           label: 'المالية والمحاسبة',
-          itemKeys: ['accounting-journal-entries', 'accounting-accounts', 'accounting-cost-centers', 'treasury', 'accounting-cheques', 'accounting-bank-reconciliation', 'expenses', 'accounting-balance-sheet', 'accounting-fixed-assets'],
+          itemKeys: ['accounting-journal-entries', 'accounting-accounts', 'treasury', 'expenses', 'accounting-balance-sheet', 'accounting-fixed-assets'],
           iconKey: 'treasury',
         },
         {
           key: 'hr-group',
           label: 'الموارد البشرية',
-          itemKeys: ['hr', 'hr-settlements'],
+          itemKeys: ['hr'],
           iconKey: 'users',
         },
         {
@@ -1244,13 +1244,13 @@ export function AppShell({ children }: PropsWithChildren) {
         {
           key: 'accounting-group',
           label: 'المالية ومراكز التكلفة',
-          itemKeys: ['accounting-journal-entries', 'accounting-accounts', 'accounting-cost-centers', 'treasury', 'accounting-cheques', 'accounting-bank-reconciliation', 'expenses', 'accounting-balance-sheet', 'accounting-fixed-assets'],
+          itemKeys: ['accounting-journal-entries', 'accounting-accounts', 'accounting-cost-centers', 'treasury', 'expenses', 'accounting-balance-sheet', 'accounting-fixed-assets'],
           iconKey: 'treasury',
         },
         {
           key: 'hr-group',
           label: 'الموارد البشرية وفريق العمل',
-          itemKeys: ['hr', 'hr-settlements'],
+          itemKeys: ['hr'],
           iconKey: 'users',
         },
         {
@@ -1304,7 +1304,7 @@ export function AppShell({ children }: PropsWithChildren) {
         {
           key: 'accounting-group',
           label: hasAccounting ? 'المالية ومحاسبة الاستيراد' : 'الخزينة والمصروفات',
-          itemKeys: ['accounting-journal-entries', 'accounting-accounts', 'accounting-cost-centers', 'treasury', 'accounting-cheques', 'accounting-bank-reconciliation', 'expenses', 'accounting-balance-sheet', 'accounting-fixed-assets'],
+          itemKeys: ['accounting-journal-entries', 'accounting-accounts', 'accounting-cost-centers', 'treasury', 'expenses', 'accounting-balance-sheet', 'accounting-fixed-assets'],
           iconKey: 'treasury',
         },
         {
@@ -1322,7 +1322,7 @@ export function AppShell({ children }: PropsWithChildren) {
         {
           key: 'admin-group',
           label: t('sidebar.admin-group', 'الإدارة والنظام'),
-          itemKeys: ['hr', 'hr-settlements', 'audit', 'settings'],
+          itemKeys: ['hr', 'audit', 'settings'],
           iconKey: 'admin',
         },
       ];
@@ -1347,13 +1347,13 @@ export function AppShell({ children }: PropsWithChildren) {
         {
           key: 'purchases-group',
           label: 'المصروفات والموردون',
-          itemKeys: ['purchases-orders', 'purchases-rfqs', 'purchases', 'purchases-new', 'suppliers'],
+          itemKeys: ['purchases', 'suppliers'],
           iconKey: 'purchases',
         },
         {
           key: 'accounting-group',
           label: 'المالية والمحاسبة',
-          itemKeys: ['treasury', 'expenses', 'accounts', 'accounting-payment-allocation', 'accounting-bank-reconciliation', 'accounting-cheques', 'accounting-balance-sheet', 'accounting-cash-flow', 'accounting-aged-debts', 'vat-declaration', 'accounting-journal-entries', 'accounting-accounts', 'accounting-cost-centers', 'accounting-settings'],
+          itemKeys: ['accounting-journal-entries', 'accounting-accounts', 'accounting-cost-centers', 'treasury', 'expenses', 'accounting-balance-sheet', 'accounting-fixed-assets'],
           iconKey: 'treasury',
         },
         {
@@ -1371,7 +1371,7 @@ export function AppShell({ children }: PropsWithChildren) {
         {
           key: 'admin-group',
           label: t('sidebar.admin-group', 'الإدارة والنظام'),
-          itemKeys: ['hr', 'hr-settlements', 'audit', 'settings'],
+          itemKeys: ['hr', 'audit', 'settings'],
           iconKey: 'admin',
         },
       ];
@@ -1389,7 +1389,7 @@ export function AppShell({ children }: PropsWithChildren) {
         {
           key: 'purchases-group',
           label: 'المشتريات والتوريد',
-          itemKeys: ['purchases', 'purchases-orders', 'suppliers'],
+          itemKeys: ['purchases', 'suppliers'],
           iconKey: 'purchases',
         },
         {
@@ -1407,7 +1407,7 @@ export function AppShell({ children }: PropsWithChildren) {
         {
           key: 'hr-group',
           label: 'الموارد البشرية وفريق العمل',
-          itemKeys: ['hr', 'hr-settlements'],
+          itemKeys: ['hr'],
           iconKey: 'users',
         },
         {
@@ -1471,7 +1471,7 @@ export function AppShell({ children }: PropsWithChildren) {
       ...((settings?.purchasesModuleEnabled !== false && hasPurchases) ? [{
         key: 'purchases-group',
         label: t('sidebar.purchases-group', 'المشتريات والموردين'),
-        itemKeys: isEnterpriseCommerceActive
+        itemKeys: (isContractingVertical || isMaritimeVertical || isManufacturingVertical || isEnterpriseCommerceActive)
           ? ['purchases', 'purchases-orders', 'suppliers']
           : ['purchases', 'suppliers'],
         iconKey: 'purchases',
@@ -1526,7 +1526,7 @@ export function AppShell({ children }: PropsWithChildren) {
         itemKeys: ['saas-admin-tenants', 'saas-admin-plans'],
         iconKey: 'saas-admin-tenants',
       }] : []),
-      { key: 'admin-group', label: t('sidebar.admin-group', 'الإدارة والنظام'), itemKeys: ['hr', 'hr-settlements', 'audit', 'settings'], iconKey: 'admin' },
+      { key: 'admin-group', label: t('sidebar.admin-group', 'الإدارة والنظام'), itemKeys: ['hr', 'audit', 'settings'], iconKey: 'admin' },
     ];
   }, [t, settings?.businessIndustry, settings?.activityType, settings?.maintenanceProfile, settings?.restaurantModuleEnabled, settings?.enableMobileStoreFeatures, settings?.enablePharmacyModule, settings?.importModuleEnabled, settings?.manufacturingModuleEnabled, settings?.enableEnterpriseFeatures, settings?.maritimeFreightModuleEnabled, settings?.contractingModuleEnabled, settings?.posModuleEnabled, settings?.purchasesModuleEnabled, settings?.inventoryModuleEnabled, settings?.installmentsModuleEnabled, tenant?.features, tenant?.activityType, tenant?.pillar, user]);
 
@@ -1792,9 +1792,7 @@ export function AppShell({ children }: PropsWithChildren) {
   const cleanWorkspaceName = workspaceName.replace(/^\s*["'”“]+|["'”“]+\s*$/g, '').trim() || workspaceName;
 
   function renderNavItem(item: NonNullable<(typeof visibleNavigationItems)[number]>, keyPrefix: string) {
-    const isHrParentConflict = item.key === 'hr' && location.pathname.startsWith('/hr/settlements');
     const computeActive = (isActive: boolean) => {
-      if (isHrParentConflict) return false;
       if (item.to.includes('?')) {
         const [itemBasePath, itemQuery] = item.to.split('?');
         if (location.pathname !== itemBasePath) return false;

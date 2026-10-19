@@ -21,6 +21,7 @@ export function InventoryWorkspace({ currentSection }: { currentSection: Invento
   const [countSubView, setCountSubView] = useState<'create' | 'history'>('create');
   const [searchParams, setSearchParams] = useSearchParams();
   const productId = searchParams.get('productId');
+  const locationId = searchParams.get('locationId');
 
   useEffect(() => {
     if (productId && inventory.products.length > 0) {
@@ -33,6 +34,24 @@ export function InventoryWorkspace({ currentSection }: { currentSection: Invento
       }
     }
   }, [productId, inventory.products, searchParams, setSearchParams]);
+
+  useEffect(() => {
+    if (locationId && inventory.locations.length > 0) {
+      const loc = inventory.locations.find((l: any) => String(l.id) === String(locationId));
+      if (loc) {
+        if (currentSection === 'counts') {
+          inventory.setCountForm((current: any) => ({
+            ...current,
+            locationId: String(loc.id),
+            branchId: loc.branchId ? String(loc.branchId) : current.branchId,
+          }));
+          setCountSubView('create');
+        } else if (currentSection === 'overview' || currentSection === 'movements') {
+          inventory.setLocationFilter(String(loc.id));
+        }
+      }
+    }
+  }, [locationId, inventory.locations, currentSection]);
 
   return (
     <div className="page-stack page-shell inventory-workspace" dir="rtl">

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/shared/ui/button';
 import { PageHeader } from '@/shared/components/page-header';
@@ -41,6 +42,9 @@ export function CustomersPage() {
           actions={
             <div className="actions compact-actions">
               <Button variant="primary" onClick={() => setIsCreateOpen(true)}>{profile.addBtnText}</Button>
+              <Link to="/crm">
+                <Button variant="secondary" style={{ fontWeight: 600 }}>{t('customers.crm_pipeline', 'مسار الصفقات (CRM)')}</Button>
+              </Link>
               {profile.showMarketingCampaign && (
                 <Button variant="secondary" onClick={() => setIsMarketingOpen(true)} style={{ color: '#166534', borderColor: '#bbf7d0', background: '#f0fdf4', fontWeight: 800 }}>{t('customers.whatsapp_campaign', 'حملة واتساب')}</Button>
               )}

@@ -7872,3 +7872,65 @@
 
 
 
+
+
+### 115. معيار مساحات العمل المجمعة وتبسيط القوائم (Unified Workspaces & Sidebar Decluttering Standard)
+* **الحالة:** مكتمل بنسبة 100% ومعتمد في كافة شاشات وموديولات المنظومة.
+* **الأثر والمبرر التشغيلي:**
+  - استجابةً لمقترحات عملاء المنظومة، تم القضاء على تشتت الشاشات وتضخم القائمة الجانبية (Sidebar Clutter) عبر تبني فلسفة مساحات العمل الشاملة (All-in-One Workspaces) التي تتيح تنفيذ كافة الإجراءات من نفس السياق دون تنقل عشوائي.
+* **الموديولات المحدثة والمنفذة:**
+  1. **المخازن والأصناف (Inventory & Warehouses):**
+     - إضافة أزرار الإجراءات الفورية من داخل شاشة تفاصيل المخزن (`WarehouseDetailsPage`): `[بدء جرد المخزن]` وتوليد جلسة جرد مسبقة التحديد، `[إذن صرف / تحويل]` بتعبئة المخزن المصدر تلقائياً عبر بارامترات الرابط، `[تكويد صنف جديد]`، و`[تعيين أصناف للمخزن]`.
+     - توفير زر `[كارت وحركة الصنف]` داخل كل سطر صنف في تفاصيل المخزن وجدول الأصناف العام لفتح `ProductCardModal` مباشرة واستعراض الحركات والأرصدة دون مغادرة الشاشة.
+  2. **الموارد البشرية (HR):**
+     - دمج مخالصات نهاية الخدمة (`/hr/settlements`) في الشريط التبويبي الداخلي للموارد البشرية (`HrSectionNav`).
+     - اختزال عناصر القائمة الجانبية لقسم HR إلى عنصر رئيسي موحد ونظيف `['hr']` يتضمن الوصول لكافة الأقسام والمخالصات والرواتب.
+  3. **الخزينة والمالية المجمعة (Treasury & Cash Hub):**
+     - إنشاء شريط التبويبات القياسي السريع `TreasuryNavTabs` الذي يربط 4 مسارات: الخزينة والنقدية (`/treasury`)، حافظة الشيكات (`/accounting/cheques`)، التسويات البنكية (`/accounting/bank-reconciliation`)، والمصروفات (`/expenses`).
+     - تقليص عناصر مجموعة المحاسبة والمالية في القائمة الجانبية من أكثر من 9 بنود إلى 6 بنود أساسية خفيفة.
+  4. **المشتريات والتوريد (Purchases Hub):**
+     - إنشاء شريط التبويبات السريع الموحد `PurchasesNavTabs` الذي يربط: فواتير المشتريات (`/purchases`)، أوامر الشراء (`/purchases/orders`)، عروض الأسعار RFQ (`/purchases/rfqs`)، ومقترح إعادة الطلب الذكي (`/purchases/reorder`).
+     - اختزال مجموعة المشتريات بالقائمة الجانبية عبر كافة البروفايلات إلى بندين محكمين: `['purchases', 'suppliers']`.
+  5. **العملاء والـ CRM (Customers & CRM Integration):**
+     - ربط شاشة سجل العملاء (`/customers`) بمسار الصفقات والمتابعات البيعية (`/crm`) والعكس بنقرة واحدة مباشرة من ترويسة الصفحة.
+* **الملفات المنفذة والمعدلة:**
+  - `frontend/src/features/inventory/pages/WarehouseDetailsPage.tsx`
+  - `frontend/src/features/inventory/pages/WarehousesGridPage.tsx`
+  - `frontend/src/features/inventory/components/InventoryWorkspace.tsx`
+  - `frontend/src/features/inventory/components/issue-order/useNewIssueOrderController.ts`
+  - `frontend/src/features/products/components/ProductsTableCard.tsx`
+  - `frontend/src/features/hr/components/HrSectionNav.tsx`
+  - `frontend/src/features/hr/pages/HrEndOfServicePage.tsx`
+  - `frontend/src/features/hr/routes.tsx`
+  - `frontend/src/features/treasury/components/TreasuryNavTabs.tsx`
+  - `frontend/src/features/treasury/pages/TreasuryPage.tsx`
+  - `frontend/src/features/treasury/pages/ExpensesPage.tsx`
+  - `frontend/src/features/accounting/pages/PdcChequesPage.tsx`
+  - `frontend/src/features/accounting/pages/BankReconciliationPage.tsx`
+  - `frontend/src/features/accounting/pages/AccountingCostCentersPage.tsx`
+  - `frontend/src/features/treasury/routes.tsx`
+  - `frontend/src/features/purchases/components/PurchasesNavTabs.tsx`
+  - `frontend/src/features/purchases/components/PurchasesWorkspace.tsx`
+  - `frontend/src/features/purchases/pages/PurchaseOrdersPage.tsx`
+  - `frontend/src/features/purchases/pages/PurchaseRfqsPage.tsx`
+  - `frontend/src/features/purchases/pages/SmartReorderPage.tsx`
+  - `frontend/src/features/purchases/routes.tsx`
+  - `frontend/src/features/customers/pages/CustomersPage.tsx`
+  - `frontend/src/features/crm/pages/CrmPipelinePage.tsx`
+  - `frontend/src/shared/layout/app-shell.tsx`
+
+### 115. تقسيم وتبويب أماكن المخزون الذكي وفصل سيارات التوزيع عن المستودعات الثابتة (Warehouse Locations Segmentation & Van Stock Isolation)
+* **الحالة:** 🟢 مكتمل بنسبة 100%
+* **الوصف والمنطق التشغيلي:**
+  1. **الفصل الذكي للمستودعات:** إضافة شريط فلترة وتبويب مقطعي (`warehouse-filter-nav`) في شاشة أماكن المخزون (`/inventory/warehouses`) يتيح التبديل الفوري بين:
+     - **المستودعات والفروع المركزية (الافتراضي):** يعرض حصرياً المستودعات الثابتة والمخازن الرئيسية ومعارض البيع دون إغراق الشاشة بسيارات المناديب.
+     - **سيارات التوزيع والمناديب:** تبويب مستقل مخصص للمخازن المتنقلة (`van_stock`) مع إظهار أعدادها وأرصدتها اللحظية.
+     - **كافة الأماكن:** عرض شامل لجميع المواقع والمستودعات الثابتة والمتنقلة.
+  2. **الهوية البصرية والتعريب المؤسسي:**
+     - تعريب وسم النوع من الرمز البرمجي `van_stock` إلى المسمى المؤسسي الرصين: **"سيارة توزيع (فان)"**.
+     - تمييز كروت سيارات المناديب بأيقونة الشاحنة المؤسسية `TruckIcon` مع وسم بنفسجي ناعم مخصص (`badge-van-stock`) بدلاً من أيقونة المستودع الثابت.
+  3. **حماية التكامل والربط الميداني:**
+     - حظر حذف مستودعات سيارات المناديب من شاشة المخازن العامة عبر اعتراض الحذف وتنبيه المستخدم مؤسسياً بأن المستودع مرتبط تشغيلياً بملف المندوب وأسطول الحركة ومبيعات الفان الميدانية لحماية سلامة قيود ودفاتر المخزون.
+* **الملفات المنفذة والمعدلة:**
+  - `frontend/src/features/inventory/pages/WarehousesGridPage.tsx`
+  - `frontend/src/styles/partials/features.css`

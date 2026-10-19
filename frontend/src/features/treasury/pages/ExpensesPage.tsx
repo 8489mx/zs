@@ -14,6 +14,7 @@ import {
 import { TreasuryExpenseEntryCard } from '@/features/treasury/components/TreasuryExpenseEntryCard';
 import { TreasuryExpenseSummaryCard } from '@/features/treasury/components/TreasuryExpenseSummaryCard';
 import { TreasuryExpensesRegisterCard } from '@/features/treasury/components/TreasuryExpensesRegisterCard';
+import { TreasuryNavTabs } from '@/features/treasury/components/TreasuryNavTabs';
 import { SINGLE_STORE_MODE } from '@/config/product-scope';
 
 export function ExpensesPage() {
@@ -72,6 +73,7 @@ export function ExpensesPage() {
             </div>
           }
         />
+        <TreasuryNavTabs currentTab="expenses" />
         <TreasuryExpenseSummaryCard
           expenseSummary={expenseSummary}
           expenses={expenses}

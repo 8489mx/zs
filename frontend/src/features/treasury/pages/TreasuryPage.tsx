@@ -11,6 +11,7 @@ import {
   type TreasuryTransactionFilter,
 } from '@/features/treasury/lib/treasury-page.helpers';
 import { TreasuryTransactionsCard } from '@/features/treasury/components/TreasuryTransactionsCard';
+import { TreasuryNavTabs } from '@/features/treasury/components/TreasuryNavTabs';
 
 export function TreasuryPage() {
   const { t } = useTranslation();
@@ -45,6 +46,7 @@ export function TreasuryPage() {
         description={t('treasury.description', 'حركات وأرصدة الخزينة.')}
         badge={<span className="nav-pill">{t('treasury.financial_transactions', 'الحركات المالية')}</span>}
       />
+      <TreasuryNavTabs currentTab="treasury" />
       <div className="stats-grid compact-grid treasury-stats-grid">
         <div className="stat-card"><span>{t('treasury.matching_transactions', 'عدد الحركات المطابقة')}</span><strong>{transactionPagination?.totalItems || 0}</strong></div>
         <div className="stat-card"><span>{t('treasury.cash_in', 'داخل الخزينة')}</span><strong>{formatCurrency(transactionSummary.cashIn)}</strong></div>

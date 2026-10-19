@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAppToolbar } from '@/stores/toolbar-store';
 import { PageHeader } from '@/shared/components/page-header';
@@ -14,6 +15,7 @@ import { CostCenterAllocationsTab } from '../components/cost-centers/CostCenterA
 
 export function AccountingCostCentersPage() {
   const { t, i18n } = useTranslation();
+  const navigate = useNavigate();
   const isEn = i18n.language === 'en';
   const queryClient = useQueryClient();
 
@@ -190,6 +192,12 @@ export function AccountingCostCentersPage() {
               >
                 <PlusIcon size={16} />
                 <span>{t('accounting.accounting_cost_centers_page.s3', "إضافة مركز تكلفة جديد")}</span>
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={() => navigate('/accounting/accounts')}
+              >
+                <span>{t('accounting.accounting_cost_centers_page.back_btn', "دليل الحسابات")}</span>
               </Button>
             </div>
           }

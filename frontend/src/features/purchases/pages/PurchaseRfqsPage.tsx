@@ -16,6 +16,7 @@ import { PurchaseRfqsTable } from '../components/rfq/PurchaseRfqsTable';
 import { CreateRfqModal } from '../components/rfq/CreateRfqModal';
 import { RfqComparisonMatrixModal } from '../components/rfq/RfqComparisonMatrixModal';
 import { SubmitSupplierBidModal } from '../components/rfq/SubmitSupplierBidModal';
+import { PurchasesNavTabs } from '../components/PurchasesNavTabs';
 
 export const PurchaseRfqsPage: FC = () => {
   const { t } = useTranslation();
@@ -244,6 +245,8 @@ export const PurchaseRfqsPage: FC = () => {
             </Button>
           }
         />
+
+        <PurchasesNavTabs currentTab="rfqs" />
 
         <StatsGrid items={stats} />
 

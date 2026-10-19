@@ -22,6 +22,7 @@ import { PdcChequeActionModal, type PdcActionType } from '../components/PdcChequ
 import { PdcChequeVoucherModal } from '../components/PdcChequeVoucherModal';
 import { PdcChequesFilterToolbar } from '../components/PdcChequesFilterToolbar';
 import { PdcChequesTable, STATUS_LABELS } from '../components/PdcChequesTable';
+import { TreasuryNavTabs } from '@/features/treasury/components/TreasuryNavTabs';
 
 export function PdcChequesPage() {
   const { t } = useTranslation();
@@ -210,6 +211,8 @@ export function PdcChequesPage() {
             </div>
           )}
         />
+
+        <TreasuryNavTabs currentTab="cheques" />
 
         {/* KPI Metric Summary Cards */}
         <div style={{ marginBottom: '16px' }}>

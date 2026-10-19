@@ -17,10 +17,22 @@ export const purchasesRouteModule: FeatureRouteModule = {
     { path: 'purchases-reorder', element: <Navigate to="/purchases/reorder" replace /> },
   ],
   navigation: [
+    {
+      key: 'purchases',
+      label: 'المشتريات والتوريد',
+      to: '/purchases',
+      activePaths: [
+        '/purchases',
+        '/purchases/orders',
+        '/purchases/orders/new',
+        '/purchases/rfqs',
+        '/purchases/new',
+        '/purchases/reorder',
+      ],
+    },
     { key: 'purchases-orders', label: 'أوامر الشراء (PO)', to: '/purchases/orders' },
     { key: 'purchases-rfqs', label: 'طلبات عروض الأسعار (RFQ)', to: '/purchases/rfqs' },
     { key: 'purchases-new', label: 'إنشاء فاتورة شراء', to: '/purchases/new' },
-    { key: 'purchases', label: 'سجل فواتير المشتريات', to: '/purchases', end: true },
     { key: 'purchases-reorder', label: 'مقترح إعادة الطلب الذكي', to: '/purchases/reorder' },
   ]
 };
