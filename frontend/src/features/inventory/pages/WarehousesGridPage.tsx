@@ -14,6 +14,7 @@ import { useInventoryActionCatalog } from '@/features/inventory/hooks/useInvento
 import { inventoryApi } from '@/features/inventory/api/inventory.api';
 import { useCreateLocationMutation, useUpdateLocationMutation, useDeleteLocationMutation } from '@/shared/hooks/use-location-mutations';
 import { formatCurrency } from '@/lib/format';
+import { WarehousesNavTabs } from '@/features/inventory/components/WarehousesNavTabs';
 import type { Location } from '@/types/domain';
 
 const LOCATION_TYPE_OPTIONS = [
@@ -149,16 +150,11 @@ export function WarehousesGridPage() {
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginInlineEnd: 6 }}><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
               {t('inventory.warehouses_grid_page.s2', "إضافة مخزن جديد")}
             </Button>
-            <Button 
-              variant="secondary"
-              onClick={() => navigate('/inventory/tree')}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
-            >
-              <NetworkIcon size={16} /> {t('inventory.warehouses_grid_page.s3', "شجرة المخازن الشاملة")}
-            </Button>
-          </div>
+            </div>
         )}
       />
+
+      <WarehousesNavTabs currentTab="grid" />
 
       <StatsGrid items={stats} className="stats-grid compact-grid grid-cols-4" />
 

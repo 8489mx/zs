@@ -37,25 +37,43 @@ export const inventoryRouteModule: FeatureRouteModule = {
   ],
   navigation: [
     { 
+      key: 'inventory-issue-orders', 
+      label: 'أذونات الصرف والتحويل', 
+      to: '/inventory/transfers',
+      activePaths: [
+        '/inventory/transfers',
+        '/inventory/issue-orders',
+        '/inventory/issue-order/new'
+      ]
+    },
+    { 
       key: 'inventory', 
-      label: 'المخزون والأصناف', 
-      to: '/inventory', 
+      label: 'جرد وتسويات المخزون', 
+      to: '/inventory/counts', 
       end: true,
       activePaths: [
-        '/inventory/overview',
         '/inventory/counts',
         '/inventory/damaged',
-        '/inventory/movements'
+        '/inventory/movements',
+        '/inventory/overview'
       ]
     },
     { key: 'inventory-reordering', label: 'قواعد إعادة الطلب (Min/Max)', to: '/inventory/reordering' },
     { key: 'inventory-quality', label: 'إدارة الجودة والامتثال (QA / NCR)', to: '/inventory/quality' },
     { key: 'inventory-packages', label: 'الطرود والطبليات (Pack-in-Pack)', to: '/inventory/packages' },
     { key: 'inventory-batches', label: 'التشغيلات والصلاحيات', to: '/inventory/batches' },
-    { key: 'inventory-warehouses', label: 'أماكن المخزون', to: '/inventory/warehouses' },
+    { 
+      key: 'inventory-warehouses', 
+      label: 'المستودعات والفروع', 
+      to: '/inventory/warehouses',
+      activePaths: [
+        '/inventory/warehouses',
+        '/inventory/tree',
+        '/inventory/bins'
+      ]
+    },
     { key: 'inventory-bins', label: 'أماكن التخزين والأرفف', to: '/inventory/bins' },
     { key: 'inventory-tree', label: 'شجرة المخازن', to: '/inventory/tree' },
-    { key: 'inventory-issue-orders', label: 'سجل أذونات الصرف', to: '/inventory/transfers' },
     { key: 'inventory-issue-order-new', label: 'إذن صرف جديد', to: '/inventory/issue-order/new' }
   ]
 };

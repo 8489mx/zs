@@ -4,6 +4,7 @@ import { systemAlert } from '@/shared/components/system-alert';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '@/shared/components/page-header';
+import { WarehousesNavTabs } from '@/features/inventory/components/WarehousesNavTabs';
 import { StatsGrid } from '@/shared/components/stats-grid';
 import { Button } from '@/shared/ui/button';
 import { CustomSelect } from '@/shared/ui/custom-select';
@@ -294,12 +295,11 @@ export function InventoryTreePage() {
               <Button variant="primary" onClick={() => navigate('/inventory/issue-order/new')}>
                 {t('inventory.inventory_tree_page.s2', "+ إذن صرف جديد")}
               </Button>
-              <Button variant="secondary" onClick={() => navigate('/inventory/warehouses')} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                <WarehouseIcon size={16} /> {t('inventory.inventory_tree_page.s3', "أماكن المخزون")}
-              </Button>
             </div>
           )}
         />
+
+      <WarehousesNavTabs currentTab="tree" />
 
       {/* Stats */}
       <StatsGrid items={statsItems} className="stats-grid compact-grid inventory-tree-stats-grid" />

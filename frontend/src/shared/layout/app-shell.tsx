@@ -743,10 +743,10 @@ export function AppShell({ children }: PropsWithChildren) {
       'product-categories': t('sidebar.product-categories', 'أقسام الأصناف'),
       'product-modifiers': t('sidebar.product-modifiers', 'خيارات الأصناف'),
       'pricing-center': t('sidebar.pricing-center', 'مركز التسعير'),
-      'inventory-warehouses': t('sidebar.inventory-warehouses', 'المستودعات والمخازن'),
+      'inventory-warehouses': t('sidebar.inventory-warehouses', 'المستودعات والفروع'),
       'inventory-bins': t('sidebar.inventory-bins', 'الأرفف والتخزين'),
       'inventory-tree': t('sidebar.inventory-tree', 'شجرة المخازن'),
-      inventory: t('sidebar.inventory', 'جرد المخزون'),
+      inventory: t('sidebar.inventory', 'جرد وتسويات المخزون'),
       'inventory-issue-orders': t('sidebar.inventory-issue-orders', 'أذونات الصرف والتحويل'),
       'inventory-issue-order-new': t('sidebar.inventory-issue-order-new', 'إذن صرف جديد'),
       services: t('sidebar.services', 'الخدمات'),
@@ -755,12 +755,12 @@ export function AppShell({ children }: PropsWithChildren) {
       accounts: t('sidebar.accounts', 'أرصدة الحسابات'),
       'accounting-accounts': t('sidebar.accounting-accounts', 'شجرة الحسابات'),
       'accounting-cost-centers': t('sidebar.accounting-cost-centers', 'مراكز التكلفة'),
-      'accounting-journal-entries': t('sidebar.accounting-journal-entries', 'القيود اليومية'),
+      'accounting-journal-entries': t('sidebar.accounting-journal-entries', 'القيود وسندات اليومية'),
       'accounting-payment-allocation': t('sidebar.accounting-payment-allocation', 'تسوية المدفوعات'),
       'accounting-bank-reconciliation': t('sidebar.accounting-bank-reconciliation', 'التسويات البنكية'),
       'accounting-cheques': t('sidebar.accounting-cheques', 'حافظة الشيكات'),
       'accounting-withholding-tax': t('sidebar.accounting-withholding-tax', 'الخصم والإضافة'),
-      'accounting-balance-sheet': t('sidebar.accounting-balance-sheet', 'الميزانية العمومية'),
+      'accounting-balance-sheet': t('sidebar.accounting-balance-sheet', 'التقارير والقوائم المالية'),
       'accounting-cash-flow': t('sidebar.accounting-cash-flow', 'التدفقات النقدية'),
       'accounting-aged-debts': t('sidebar.accounting-aged-debts', 'أعمار الديون'),
       'accounting-fixed-assets': t('sidebar.accounting-fixed-assets', 'الأصول والإهلاك'),
@@ -1098,19 +1098,19 @@ export function AppShell({ children }: PropsWithChildren) {
         {
           key: 'purchases-group',
           label: 'المشتريات والتوريد',
-          itemKeys: ['purchases-rfqs', 'purchases-orders', 'purchases-reorder', 'purchases', 'purchases-new', 'purchase-returns', 'suppliers'],
+          itemKeys: ['purchases', 'purchases-orders', 'suppliers'],
           iconKey: 'purchases',
         },
         {
           key: 'contracting-inventory-group',
           label: 'المخازن والمستودعات',
-          itemKeys: ['products', 'product-new', 'product-categories', 'inventory-warehouses', 'inventory-tree', 'inventory-bins', 'inventory-issue-orders', 'inventory-issue-order-new', 'inventory', 'pricing-center'],
+          itemKeys: ['products', 'product-categories', 'inventory-issue-orders', 'inventory-warehouses', 'inventory'],
           iconKey: 'inventory',
         },
         {
           key: 'accounting-group',
           label: 'المالية والمحاسبة',
-          itemKeys: ['treasury', 'expenses', 'accounts', 'accounting-payment-allocation', 'accounting-bank-reconciliation', 'accounting-cheques', 'accounting-withholding-tax', 'accounting-balance-sheet', 'accounting-cash-flow', 'accounting-aged-debts', 'vat-declaration', 'accounting-journal-entries', 'accounting-accounts', 'accounting-cost-centers', 'accounting-fixed-assets', 'accounting-settings'],
+          itemKeys: ['accounting-journal-entries', 'accounting-accounts', 'accounting-cost-centers', 'treasury', 'accounting-cheques', 'accounting-bank-reconciliation', 'expenses', 'accounting-balance-sheet', 'accounting-fixed-assets'],
           iconKey: 'treasury',
         },
         {
@@ -1178,13 +1178,13 @@ export function AppShell({ children }: PropsWithChildren) {
         ...(settings?.inventoryModuleEnabled ? [{
           key: 'inventory-group',
           label: 'المستودعات والمخازن',
-          itemKeys: ['products', 'product-categories', 'inventory-warehouses', 'inventory-tree', 'inventory-bins', 'inventory-issue-orders', 'inventory-issue-order-new', 'inventory'],
+          itemKeys: ['products', 'product-categories', 'inventory-issue-orders', 'inventory-warehouses', 'inventory'],
           iconKey: 'inventory',
         }] : []),
         {
           key: 'accounting-group',
           label: 'المالية والمحاسبة',
-          itemKeys: ['treasury', 'expenses', 'accounts', 'accounting-payment-allocation', 'accounting-bank-reconciliation', 'accounting-cheques', 'accounting-withholding-tax', 'accounting-balance-sheet', 'accounting-cash-flow', 'accounting-aged-debts', 'vat-declaration', 'accounting-journal-entries', 'accounting-accounts', 'accounting-cost-centers', 'accounting-fixed-assets', 'accounting-settings'],
+          itemKeys: ['accounting-journal-entries', 'accounting-accounts', 'accounting-cost-centers', 'treasury', 'accounting-cheques', 'accounting-bank-reconciliation', 'expenses', 'accounting-balance-sheet', 'accounting-fixed-assets'],
           iconKey: 'treasury',
         },
         {
@@ -1226,25 +1226,25 @@ export function AppShell({ children }: PropsWithChildren) {
         {
           key: 'sales-group',
           label: 'المبيعات وعروض الأسعار',
-          itemKeys: ['crm', 'quotations', 'sales-orders', 'sales', 'returns', 'price-lists', 'customers'],
+          itemKeys: ['quotations', 'sales', 'customers'],
           iconKey: 'sales',
         },
         {
           key: 'purchases-group',
           label: 'المشتريات والتوريد الخام',
-          itemKeys: ['purchases-rfqs', 'purchases-orders', 'purchases-reorder', 'purchases', 'purchases-new', 'purchase-returns', 'suppliers'],
+          itemKeys: ['purchases', 'purchases-orders', 'suppliers'],
           iconKey: 'purchases',
         },
         {
           key: 'manufacturing-inventory-group',
           label: 'المستودعات والمخازن',
-          itemKeys: ['products', 'product-categories', 'inventory-warehouses', 'inventory-tree', 'inventory-bins', 'inventory-issue-orders', 'inventory-issue-order-new', 'inventory', 'pricing-center'],
+          itemKeys: ['products', 'product-categories', 'inventory-issue-orders', 'inventory-warehouses', 'inventory'],
           iconKey: 'inventory',
         },
         {
           key: 'accounting-group',
           label: 'المالية ومراكز التكلفة',
-          itemKeys: ['treasury', 'expenses', 'accounts', 'accounting-payment-allocation', 'accounting-bank-reconciliation', 'accounting-cheques', 'accounting-withholding-tax', 'accounting-balance-sheet', 'accounting-cash-flow', 'accounting-aged-debts', 'accounting-fixed-assets', 'vat-declaration', 'accounting-journal-entries', 'accounting-accounts', 'accounting-cost-centers', 'accounting-settings'],
+          itemKeys: ['accounting-journal-entries', 'accounting-accounts', 'accounting-cost-centers', 'treasury', 'accounting-cheques', 'accounting-bank-reconciliation', 'expenses', 'accounting-balance-sheet', 'accounting-fixed-assets'],
           iconKey: 'treasury',
         },
         {
@@ -1286,25 +1286,25 @@ export function AppShell({ children }: PropsWithChildren) {
         {
           key: 'purchases-group',
           label: 'المشتريات والموردون الدوليون',
-          itemKeys: ['purchases-rfqs', 'purchases-orders', 'purchases', 'purchases-new', 'purchases-reorder', 'purchase-returns', 'suppliers'],
+          itemKeys: ['purchases', 'purchases-orders', 'suppliers'],
           iconKey: 'purchases',
         },
         {
           key: 'inventory-group',
           label: 'المستودعات والرقابة المخزنية',
-          itemKeys: ['products', 'product-categories', 'inventory-warehouses', 'inventory-tree', 'inventory-bins', 'inventory-issue-orders', 'inventory-issue-order-new', 'inventory', 'pricing-center'],
+          itemKeys: ['products', 'product-categories', 'inventory-issue-orders', 'inventory-warehouses', 'inventory'],
           iconKey: 'inventory',
         },
         {
           key: 'sales-group',
           label: 'المبيعات والجملة والعملاء',
-          itemKeys: ['crm', 'quotations', 'sales-orders', 'sales', 'price-lists', 'customers'],
+          itemKeys: ['quotations', 'sales', 'customers'],
           iconKey: 'sales',
         },
         {
           key: 'accounting-group',
           label: hasAccounting ? 'المالية ومحاسبة الاستيراد' : 'الخزينة والمصروفات',
-          itemKeys: ['treasury', 'expenses', 'accounts', 'accounting-payment-allocation', 'accounting-bank-reconciliation', 'accounting-cheques', 'accounting-withholding-tax', 'accounting-balance-sheet', 'accounting-cash-flow', 'accounting-aged-debts', 'accounting-fixed-assets', 'vat-declaration', 'accounting-journal-entries', 'accounting-accounts', 'accounting-cost-centers', 'accounting-settings'],
+          itemKeys: ['accounting-journal-entries', 'accounting-accounts', 'accounting-cost-centers', 'treasury', 'accounting-cheques', 'accounting-bank-reconciliation', 'expenses', 'accounting-balance-sheet', 'accounting-fixed-assets'],
           iconKey: 'treasury',
         },
         {
@@ -1383,25 +1383,25 @@ export function AppShell({ children }: PropsWithChildren) {
         {
           key: 'sales-group',
           label: 'المبيعات وتوزيع الفان',
-          itemKeys: ['van-sales-admin', 'delivery-reps', 'customers', 'sales', 'returns', 'sales-orders', 'quotations', 'price-lists'],
+          itemKeys: ['van-sales-admin', 'delivery-reps', 'customers', 'sales', 'quotations'],
           iconKey: 'delivery-reps',
         },
         {
           key: 'purchases-group',
           label: 'المشتريات والتوريد',
-          itemKeys: ['purchases-orders', 'purchases-rfqs', 'purchases-reorder', 'purchases', 'purchases-new', 'purchase-returns', 'suppliers'],
+          itemKeys: ['purchases', 'purchases-orders', 'suppliers'],
           iconKey: 'purchases',
         },
         {
           key: 'inventory-group',
           label: 'المستودعات وسيارات الفان',
-          itemKeys: ['products', 'product-categories', 'inventory-warehouses', 'inventory-tree', 'inventory-bins', 'inventory-issue-orders', 'inventory-issue-order-new', 'inventory', 'pricing-center'],
+          itemKeys: ['products', 'product-categories', 'inventory-issue-orders', 'inventory-warehouses', 'inventory'],
           iconKey: 'inventory',
         },
         {
           key: 'accounting-group',
           label: 'المالية ومراكز التكلفة',
-          itemKeys: ['treasury', 'expenses', 'accounts', 'accounting-payment-allocation', 'accounting-bank-reconciliation', 'accounting-cheques', 'accounting-withholding-tax', 'accounting-balance-sheet', 'accounting-cash-flow', 'accounting-aged-debts', 'vat-declaration', 'accounting-journal-entries', 'accounting-accounts', 'accounting-cost-centers', 'accounting-settings'],
+          itemKeys: ['accounting-journal-entries', 'accounting-accounts', 'treasury', 'expenses', 'accounting-balance-sheet'],
           iconKey: 'treasury',
         },
         {
@@ -1462,26 +1462,24 @@ export function AppShell({ children }: PropsWithChildren) {
         key: 'sales-group',
         label: isWholesaleVanVertical ? 'المبيعات وتوزيع الفان' : t('sidebar.sales-group', 'المبيعات'),
         itemKeys: isWholesaleVanVertical
-          ? ['van-sales-admin', 'delivery-reps', 'customers', 'sales', 'returns', 'sales-orders', 'quotations', 'price-lists']
+          ? ['van-sales-admin', 'delivery-reps', 'customers', 'sales', 'quotations']
           : isEnterpriseCommerceActive
-          ? ['pos', 'crm', 'quotations', 'sales-orders', 'price-lists', 'sales', 'returns', 'installments', 'customers', 'delivery-reps', 'van-sales-admin', 'tax-dispatcher'].filter(k => k !== 'pos' || settings?.posModuleEnabled !== false)
-          : ['pos', 'sales', 'returns', 'installments', 'customers', 'delivery-reps', 'van-sales-admin', 'tax-dispatcher'].filter(k => k !== 'pos' || settings?.posModuleEnabled !== false),
+          ? ['sales', 'quotations', 'returns', ...(settings?.installmentsModuleEnabled ? ['installments'] : []), 'customers', 'delivery-reps', 'van-sales-admin', 'tax-dispatcher']
+          : ['sales', 'returns', ...(settings?.installmentsModuleEnabled ? ['installments'] : []), 'customers', 'delivery-reps', 'van-sales-admin', 'tax-dispatcher'],
         iconKey: 'sales',
       }] : []),
       ...((settings?.purchasesModuleEnabled !== false && hasPurchases) ? [{
         key: 'purchases-group',
         label: t('sidebar.purchases-group', 'المشتريات والموردين'),
         itemKeys: isEnterpriseCommerceActive
-          ? ['purchases-rfqs', 'purchases-orders', 'purchases-reorder', 'purchases', 'purchases-new', 'purchase-returns', 'suppliers']
-          : ['purchases', 'purchases-new', 'purchase-returns', 'suppliers'],
+          ? ['purchases', 'purchases-orders', 'suppliers']
+          : ['purchases', 'suppliers'],
         iconKey: 'purchases',
       }] : []),
       ...((settings?.inventoryModuleEnabled !== false && hasInventory) ? [{
         key: 'inventory-group',
         label: t('sidebar.inventory-group', 'المخزون والأصناف'),
-        itemKeys: isEnterpriseCommerceActive
-          ? ['products', 'product-new', 'product-categories', 'inventory-warehouses', 'inventory-tree', 'inventory-bins', 'inventory-issue-orders', 'inventory-issue-order-new', 'inventory', 'pricing-center', 'services']
-          : ['products', 'product-new', 'product-categories', 'inventory-warehouses', 'inventory', 'pricing-center', 'services'],
+        itemKeys: ['products', 'product-categories', 'inventory-issue-orders', 'inventory-warehouses', 'inventory', 'services'].filter(k => k !== 'services' || settings?.servicesModuleEnabled === true),
         iconKey: 'inventory',
       }] : (settings?.inventoryModuleEnabled === false && (isRetailOrMarketVertical || isRestaurantVertical || isPharmacyVertical || isElectronicsVertical || (!isDedicatedContractingOnly && !isDedicatedMaritimeOnly && !isDedicatedManufacturingOnly))) ? [{
         key: 'inventory-group',
@@ -1493,7 +1491,7 @@ export function AppShell({ children }: PropsWithChildren) {
         key: 'accounting-group',
         label: isEnterpriseCommerceActive ? t('sidebar.accounting-group', 'المالية والمحاسبة') : 'الخزينة والمصروفات',
         itemKeys: isEnterpriseCommerceActive
-          ? ['treasury', 'expenses', 'accounts', 'accounting-payment-allocation', 'accounting-bank-reconciliation', 'accounting-cheques', 'accounting-withholding-tax', 'accounting-balance-sheet', 'accounting-cash-flow', 'accounting-aged-debts', 'vat-declaration', 'accounting-journal-entries', 'accounting-accounts', 'accounting-cost-centers', 'accounting-fixed-assets', 'accounting-settings']
+          ? ['accounting-journal-entries', 'accounting-accounts', 'accounting-cost-centers', 'treasury', 'accounting-cheques', 'accounting-bank-reconciliation', 'expenses', 'accounting-balance-sheet', 'accounting-fixed-assets']
           : ['treasury', 'expenses'],
         iconKey: 'treasury'
       },
@@ -1916,20 +1914,21 @@ export function AppShell({ children }: PropsWithChildren) {
                   }}
                 />
               </div>
-              <div className="brand-copy" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', width: '100%', minWidth: 0 }}>
+              <div className="brand-copy" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', flex: '1 1 auto', minWidth: 0 }}>
                 <div className="brand-title" style={{ textAlign: 'center', width: '100%' }} title={isEn ? (translateUiText(cleanWorkspaceName) || cleanWorkspaceName) : cleanWorkspaceName}>{formatWorkspaceName(cleanWorkspaceName, isEn)}</div>
                 <div 
                   className="brand-sub-interactive" 
                   onClick={() => setIsAboutModalOpen(true)}
-                  title="About Z System's & Tech Support"
+                  title="About Z-Systems & Tech Support"
                   style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', margin: '0 auto' }}
                 >
                   <span className="brand-powered-label" style={{ textAlign: 'center', width: '100%', display: 'block' }}>Powered by</span>
                   <span className="brand-powered-name" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '100%', textAlign: 'center' }}>
-                    Z System's
+                    Z-Systems
                   </span>
                 </div>
               </div>
+              <div className="brand-logo-spacer" aria-hidden="true" />
             </div>
 
           {/* Centered Expandable Search Micro-Interaction */}

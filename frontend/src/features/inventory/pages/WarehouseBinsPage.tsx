@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { useState, useEffect, type FC } from 'react';
 import { PageHeader } from '@/shared/components/page-header';
+import { WarehousesNavTabs } from '@/features/inventory/components/WarehousesNavTabs';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
 import { inventoryApi } from '@/shared/api/inventory.api';
 import {
@@ -246,6 +247,8 @@ export const WarehouseBinsPage: FC = () => {
             </button>
           }
         />
+
+        <WarehousesNavTabs currentTab="bins" />
 
         {/* KPI Cards */}
         <BinKpiCards

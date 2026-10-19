@@ -60,6 +60,12 @@ export function ProductsWorkspace() {
               <Button onClick={() => navigate('/products/new')}>
                 {defaultProductKind === 'fashion' ? t('products.new_model', '+ موديل جديد') : t('products.new_product', '+ صنف جديد')}
               </Button>
+              <Button variant="secondary" onClick={() => navigate('/products/categories')}>
+                {t('sidebar.product-categories', 'أقسام الأصناف')}
+              </Button>
+              <Button variant="secondary" onClick={() => navigate('/pricing-center')}>
+                {t('sidebar.pricing-center', 'مركز التسعير')}
+              </Button>
               {settingsQuery.data?.enableMobileStoreFeatures === true && (
                 <Button variant="secondary" onClick={() => setSerialLookupOpen(true)}>
                   {t('products.serial_imei', 'سيريال / IMEI')}
