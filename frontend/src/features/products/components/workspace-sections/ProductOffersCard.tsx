@@ -8,6 +8,7 @@ import { normalizeProductUnits } from '@/features/products/components/ProductUni
 import { productsApi } from '@/features/products/api/products.api';
 import type { Product, ProductOffer } from '@/types/domain';
 import { buildUpdatePayload, normalizeCustomerPrices, refetchAndSelectProduct, toProductFormValues } from './product-workspace.utils';
+import { systemConfirm } from '@/shared/components/system-alert';
 
 export function ProductOffersCard({ products, product, onUpdated }: { products: Product[]; product?: Product; onUpdated?: (product: Product) => void }) {
   const { t } = useTranslation();
@@ -55,6 +56,29 @@ export function ProductOffersCard({ products, product, onUpdated }: { products: 
     if (!product) return;
     const nextValue = Number(offerValue || 0);
     if (!(nextValue > 0)) return;
+    const costPrice = Number(product.costPrice || (product as any).cost_price || 0);
+    const retailPrice = Number(product.retailPrice || (product as any).retail_price || 0);
+    let simulatedPrice = retailPrice;
+    if (retailPrice > 0) {
+      if (offerType === 'percent') {
+        simulatedPrice = Math.max(0, retailPrice - ((retailPrice * nextValue) / 100));
+      } else if (offerType === 'fixed') {
+        simulatedPrice = Math.max(0, retailPrice - nextValue);
+      }
+    }
+    if (costPrice > 0 && simulatedPrice < costPrice) {
+      const lossPerUnit = costPrice - simulatedPrice;
+      const lossPercent = ((lossPerUnit / costPrice) * 100).toFixed(1);
+      const confirmed = await systemConfirm({
+        title: 'تنبيه: سعر العرض أقل من سعر التكلفة (بيع بالخسارة)',
+        message: `سعر بيع الصنف بعد هذا العرض (${simulatedPrice.toFixed(2)} ج.م) سيكون أقل من سعر التكلفة (${costPrice.toFixed(2)} ج.م) بنسبة ${lossPercent}% (خسارة ${lossPerUnit.toFixed(2)} ج.م في القطعة).\n\nهل أنت متأكد من رغبتك في اعتماد هذا العرض بالخسارة؟ (سيتم تمرير عمليات البيع في الكاشير مباشرة بهذا السعر دون طلب رمز المدير).`,
+        confirmText: 'نعم، اعتماد العرض بالخسارة',
+        cancelText: 'تراجع وتعديل',
+        variant: 'danger',
+      });
+      if (!confirmed) return;
+    }
+
     const nextOffers = [...activeOffers, {
       id: `${Date.now()}`,
       type: offerType,

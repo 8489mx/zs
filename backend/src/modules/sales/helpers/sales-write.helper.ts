@@ -50,6 +50,7 @@ export type PreparedSaleItem = {
   modifiers: unknown;
   isService?: boolean;
   serials?: any;
+  effectiveAllowedUnitPrice?: number;
 };
 
 export function buildPreparedSaleItem(

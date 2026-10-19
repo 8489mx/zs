@@ -1140,6 +1140,9 @@ export class SalesWriteService {
         if (!isApprovedPrice) {
           await this.assertUnitPriceChangeAllowed(trx, auth, Number(item.price || 0), allowedUnitPrice, item.productId, normalized.managerPin);
         }
+        const effectiveAllowedUnitPrice = isApprovedPrice && approvedUnitPrice !== undefined
+          ? Number(approvedUnitPrice)
+          : allowedUnitPrice;
 
         let availableStockQty = 0;
         const productStockRows = stockRowsByProductId.get(item.productId) || [];
@@ -1213,7 +1216,11 @@ export class SalesWriteService {
         }
 
         subtotal += preparedItem.lineTotal;
-        preparedItems.push({ ...preparedItem, isService: (product as any).item_type === 'service' });
+        preparedItems.push({
+          ...preparedItem,
+          isService: (product as any).item_type === 'service',
+          effectiveAllowedUnitPrice,
+        });
         
         if (hasBOM) {
           autoProduceItems.push({
@@ -1275,7 +1282,12 @@ export class SalesWriteService {
         if (item.isService) return false;
         const product = productMap.get(item.productId);
         const minUnitPrice = Number(product?.min_selling_price || 0) * Number(item.unitMultiplier || 1);
-        const floor = Math.max(Number(item.costPrice || 0), minUnitPrice) * Number(item.qty || 0);
+        const standardFloor = Math.max(Number(item.costPrice || 0), minUnitPrice) * Number(item.qty || 0);
+        // Pre-approved promotion or system-approved price set by management overrides the cost floor
+        const preApprovedFloor = (item.effectiveAllowedUnitPrice != null && item.effectiveAllowedUnitPrice > 0)
+          ? item.effectiveAllowedUnitPrice * Number(item.qty || 0)
+          : standardFloor;
+        const floor = Math.min(standardFloor, preApprovedFloor);
         const allocation = allocationByItem.get(item)!;
         const netLine = allocation.netLineTotal;
         return netLine + 0.001 < floor;

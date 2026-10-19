@@ -12,6 +12,7 @@ import { buildUpdatePayload, normalizeCustomerPrices, toProductFormValues } from
 import { normalizeProductUnits } from '@/features/products/components/ProductUnitsEditor';
 import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
 import { formatCurrency } from '@/lib/format';
+import { systemConfirm } from '@/shared/components/system-alert';
 
 import { todayIsoDate } from './offers/product-offer.utils';
 import { ProductOfferActiveCombosTab } from './offers/ProductOfferActiveCombosTab';
@@ -544,6 +545,19 @@ export function ProductOfferDialog({ open, product: initialProduct, onClose, onS
     const calculatedMinQty = isBogo
       ? Math.max(1, (Number(bogoBuyQty) || 1) + (Number(bogoGetQty) || 1))
       : Math.max(1, Number(minQty || 1));
+
+    if (costPrice > 0 && simulatedEffectivePrice < costPrice) {
+      const lossPerUnit = costPrice - simulatedEffectivePrice;
+      const lossPercent = ((lossPerUnit / costPrice) * 100).toFixed(1);
+      const confirmed = await systemConfirm({
+        title: 'تنبيه: سعر العرض أقل من سعر التكلفة (بيع بالخسارة)',
+        message: `سعر بيع الصنف بعد هذا العرض (${simulatedEffectivePrice.toFixed(2)} ج.م) سيكون أقل من سعر التكلفة (${costPrice.toFixed(2)} ج.م) بنسبة ${lossPercent}% (خسارة ${lossPerUnit.toFixed(2)} ج.م في القطعة).\n\nهل أنت متأكد من رغبتك في اعتماد هذا العرض بالخسارة؟ (سيتم تمرير عمليات البيع في الكاشير مباشرة بهذا السعر دون طلب رمز المدير).`,
+        confirmText: 'نعم، اعتماد العرض بالخسارة',
+        cancelText: 'تراجع وتعديل',
+        variant: 'danger',
+      });
+      if (!confirmed) return;
+    }
 
     const nextOffer: ProductOffer = {
       id: editingIndex != null ? offers[editingIndex]?.id : `${Date.now()}`,
