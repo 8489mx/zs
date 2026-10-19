@@ -19,10 +19,12 @@ function PosCartPanelComponent(props: PosCartPanelProps) {
       className={`workspace-panel pos-checkout-card pos-checkout-card-compact pos-checkout-card-mode-${props.posMode}`.trim()}
     >
       <div className="pos-checkout-static">
-        <div className="pos-checkout-top-strip">
-          {props.showMetaSection === false ? null : <PosCartMetaForm {...props} />}
-          {props.showPaymentSection === false ? null : <PosCartPaymentSection {...props} />}
-        </div>
+        {props.showMetaSection !== false || props.showPaymentSection !== false ? (
+          <div className="pos-checkout-top-strip">
+            {props.showMetaSection === false ? null : <PosCartMetaForm {...props} />}
+            {props.showPaymentSection === false ? null : <PosCartPaymentSection {...props} />}
+          </div>
+        ) : null}
 
         {alertMessages.length ? (
           <div className="pos-inline-alert-bar" role="status" aria-live="polite">

@@ -103,7 +103,7 @@ export const SYSTEM_MODULES: ModuleDefinition[] = [
     categoryLabel: 'المبيعات ونقاط الخدمة',
     shortDesc: 'إظهار حقول العميل ورقم الطاولة أعلى السلة مباشرة لتسريع الخدمة والفوترة.',
     requiredPlan: 'plan_ultimate',
-    dependencies: ['posModuleEnabled'],
+    dependencies: ['posModuleEnabled', 'restaurantModuleEnabled'],
   },
   {
     key: 'restaurantModuleEnabled',

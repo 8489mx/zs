@@ -347,7 +347,7 @@ export const ModulesSettingsTab = memo(function ModulesSettingsTab({ form, disab
   const isImportActive = hasImportFeature && Boolean(form.watch('importModuleEnabled'));
   const isRestaurantActive = hasRestaurantFeature && Boolean(form.watch('restaurantModuleEnabled'));
   const isPhoneOrdersActive = Boolean(form.watch('phoneOrdersModuleEnabled'));
-  const isPosMetaActive = hasPosMetaFeature && Boolean(form.watch('posShowCartMeta'));
+  const isPosMetaActive = hasPosMetaFeature && isRestaurantActive && Boolean(form.watch('posShowCartMeta'));
   const isMaintenanceActive = hasMaintenanceFeature && Boolean(form.watch('enableMobileStoreFeatures'));
   const enableMaintenance = isMaintenanceActive;
   const isPharmacyActive = hasPharmacyFeature && Boolean(form.watch('enablePharmacyModule'));
@@ -1087,7 +1087,7 @@ export const ModulesSettingsTab = memo(function ModulesSettingsTab({ form, disab
           {/* اختيار الطاولة والعميل بالكاشير */}
           {(!isContractingVertical && !isMaritimeVertical) || isSuperAdmin ? (
             <label 
-              style={getCardStyle(Boolean(isPosMetaActive), hasPosMetaFeature)}
+              style={getCardStyle(Boolean(isPosMetaActive), hasPosMetaFeature && isRestaurantActive)}
               onClick={(e) => {
                 if (!hasPosMetaFeature) {
                   e.preventDefault();
@@ -1095,6 +1095,13 @@ export const ModulesSettingsTab = memo(function ModulesSettingsTab({ form, disab
                     t('settings.forms.tabs.modules_settings_tab.s89', "اختيار الطاولة والعميل بالكاشير"),
                     t('settings.forms.tabs.modules_settings_tab.s90', "الباقة المتكاملة (Ultimate ERP)"),
                     t('settings.forms.tabs.modules_settings_tab.s91', "يتيح لك هذا الخيار إظهار حقول العميل ورقم الطاولة أعلى السلة مباشرة لتسريع الفوترة وتوزيع الطلبات والخدمة السريعة.")
+                  );
+                } else if (!isRestaurantActive) {
+                  e.preventDefault();
+                  handleLockedCardClick(
+                    t('settings.forms.tabs.modules_settings_tab.s89', "اختيار الطاولة والعميل بالكاشير"),
+                    t('settings.forms.tabs.modules_settings_tab.s84', "موديول المطاعم والكافيهات"),
+                    t('settings.forms.tabs.modules_settings_tab.s94_req', "هذا الخيار خاص بنظام المطاعم والكافيهات، ويتطلب تفعيل موديول المطاعم أولاً لإظهار الطاولات والعميل بالسلة.")
                   );
                 }
               }}
@@ -1106,16 +1113,20 @@ export const ModulesSettingsTab = memo(function ModulesSettingsTab({ form, disab
                 <div style={premiumCardTextStyle}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>{t('settings.forms.tabs.modules_settings_tab.s92', "اختيار الطاولة والعميل بالكاشير")}</strong>
-                    {!hasPosMetaFeature && (
+                    {!hasPosMetaFeature ? (
                       <span style={{ fontSize: '0.7rem', background: '#f5f3ff', color: '#6d28d9', border: '1px solid #ddd6fe', padding: '1px 6px', borderRadius: '4px', fontWeight: 700, display: 'inline-flex', alignItems: 'center' }}>
                         <LockIcon size={11} /> {t('settings.forms.tabs.modules_settings_tab.s93', "الباقة المتكاملة")}
                       </span>
-                    )}
+                    ) : !isRestaurantActive ? (
+                      <span style={{ fontSize: '0.7rem', background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a', padding: '1px 6px', borderRadius: '4px', fontWeight: 700, display: 'inline-flex', alignItems: 'center' }}>
+                        {t('settings.forms.tabs.modules_settings_tab.requires_restaurant', "يتطلب موديول المطاعم")}
+                      </span>
+                    ) : null}
                   </div>
                   <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>{t('settings.forms.tabs.modules_settings_tab.s94', "يظهر حقول العميل والطاولة أعلى السلة لتسهيل الاختيار قبل الدفع")}</small>
                 </div>
               </div>
-              <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('posShowCartMeta')} checked={Boolean(isPosMetaActive)} disabled={disabled || !hasPosMetaFeature} />
+              <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('posShowCartMeta')} checked={Boolean(isPosMetaActive)} disabled={disabled || !hasPosMetaFeature || !isRestaurantActive} />
             </label>
           ) : null}
 

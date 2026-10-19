@@ -2,7 +2,7 @@ import { useRef, useState, useEffect, useCallback, memo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { formatCurrency } from '@/lib/format';
 import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
-import { FileTextIcon, TagIcon, SmartphoneIcon, ShoppingCartIcon } from '@/shared/components/icons/AppIcons';
+import { FileTextIcon, TagIcon, SmartphoneIcon } from '@/shared/components/icons/AppIcons';
 import type { PosCartPanelProps } from './posCartPanel.types';
 
 const PosCartItemRow = memo(function PosCartItemRow({
@@ -275,24 +275,7 @@ export function PosCartItemsList({ cart, lastAddedLineKey, selectedLineKey, onQt
   const handleChangeLineQtyByDelta = useCallback((lineKey: string, delta: number) => onChangeLineQtyByDelta?.(lineKey, delta), [onChangeLineQtyByDelta]);
   const handleRemoveItem = useCallback((lineKey: string) => onRemoveItem(lineKey), [onRemoveItem]);
 
-  if (!cart.length) {
-    return (
-      <section className="pos-cart-empty-state pos-cart-empty-state-guided" aria-label={t('pos.cart_empty_title', 'السلة فارغة')}>
-        <div className="pos-cart-empty-state-mark" aria-hidden="true">
-          <ShoppingCartIcon size={24} color="#170e5e" />
-        </div>
-        <div className="pos-cart-empty-state-copy">
-          <strong>{t('pos.cart_empty_title', 'السلة جاهزة لأول صنف')}</strong>
-          <span>{t('pos.cart_empty_desc', 'اضرب الباركود أو ابحث عن الصنف من لوحة الأصناف، وسيظهر هنا مباشرة مع الكمية والإجمالي.')}</span>
-        </div>
-        <div className="pos-cart-empty-hints" aria-label={__t('pos.pos_cart_panel.pos_cart_items_list.s2', __t('pos.pos_cart_panel.pos_cart_items_list.s2', "اختصارات سريعة"))}>
-          <span>{t('pos.hint_enter', 'Enter لإضافة أول نتيجة')}</span>
-          <span>{t('pos.hint_f2', 'F2 لإنهاء البيع')}</span>
-          <span>{t('pos.hint_f4', 'F4 لتعليق الفاتورة')}</span>
-        </div>
-      </section>
-    );
-  }
+  if (!cart.length) return null;
 
   let responsiveClass = '';
   if (containerWidth > 0) {

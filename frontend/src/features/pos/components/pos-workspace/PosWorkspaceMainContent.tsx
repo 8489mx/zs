@@ -255,7 +255,7 @@ export function PosWorkspaceMainContent({
             onExportPdfNow={pos.exportPdfNow}
             onExportHeldDrafts={pos.exportHeldDrafts}
             showPaymentSection={false}
-            showMetaSection={pos.settingsQuery.data?.posShowCartMeta === true}
+            showMetaSection={Boolean(pos.settingsQuery.data?.restaurantModuleEnabled && pos.settingsQuery.data?.posShowCartMeta)}
             showHeldDraftsInline={false}
             onSubmit={onRequestCheckout}
           />
