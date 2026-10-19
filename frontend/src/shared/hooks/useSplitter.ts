@@ -6,7 +6,7 @@ export function useSplitter(storageKey: string, defaultLeftRatio: number = 50, i
       const stored = localStorage.getItem(storageKey);
       if (stored) {
         const val = parseFloat(stored);
-        if (!isNaN(val) && val > 10 && val < 90) return val;
+        if (!isNaN(val) && val >= 25 && val <= 75) return val;
       }
     } catch (err) {}
     return defaultLeftRatio;
@@ -38,9 +38,13 @@ export function useSplitter(storageKey: string, defaultLeftRatio: number = 50, i
       // clientX relative to the grid's left edge, as a percentage of the grid width
       let pct = ((e.clientX - rect.left) / rect.width) * 100;
 
-      // Clamp
-      if (pct < 20) pct = 20;
-      if (pct > 80) pct = 80;
+      // Clamp: ensure both cart and products keep at least 25% and at least 340px width
+      const minPctByPx = rect.width > 0 ? (340 / rect.width) * 100 : 25;
+      const minPct = Math.max(25, Math.min(minPctByPx, 38));
+      const maxPct = 100 - minPct;
+
+      if (pct < minPct) pct = minPct;
+      if (pct > maxPct) pct = maxPct;
 
       // In RTL, left panel is Cart, so leftRatio (Cart width) = pct.
       // In LTR, left panel is Products, so products width = pct, meaning leftRatio (Cart width) = 100 - pct.
