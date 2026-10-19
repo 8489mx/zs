@@ -585,8 +585,25 @@ export function printHtmlDocument(titleOrBody: string, bodyOrTitle: string, opti
     return;
   }
 
+  if (typeof window !== 'undefined' && (window as any).SunmiPrinter?.printReceipt) {
+    try {
+      const container = document.createElement('div');
+      container.innerHTML = bodyContent;
+      const text = (container.innerText || container.textContent || '').trim();
+      if (text) {
+        (window as any).SunmiPrinter.printReceipt(text);
+        return;
+      }
+    } catch (e) {
+      console.warn('Sunmi direct bridge fallback failed:', e);
+    }
+  }
+
   const printWindow = window.open('', '_blank', 'width=1120,height=820');
-  if (!printWindow) throw new Error('المتصفح منع نافذة الطباعة');
+  if (!printWindow) {
+    console.warn('Print window was blocked or unsupported on this platform.');
+    return;
+  }
 
   printWindow.document.open();
   printWindow.document.write(html);

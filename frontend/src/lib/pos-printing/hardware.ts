@@ -71,7 +71,7 @@ export function formatSaleForHardwarePrinter(sale: Sale, options?: HardwarePrint
   const branchName = String(sale.branchName || settings?.currentBranchId || '').trim();
   const phone = String(settings?.phone || '').trim();
   const taxNumber = String(settings?.taxNumber || '').trim();
-  const width = settings?.receiptWidthMm === 80 ? 42 : 32;
+  const width = settings?.receiptWidthMm === 80 ? 42 : 30;
   const divider = '-'.repeat(width);
   const doubleDivider = '='.repeat(width);
 
@@ -104,7 +104,11 @@ export function formatSaleForHardwarePrinter(sale: Sale, options?: HardwarePrint
   }
 
   out += `${divider}\n`;
-  out += padLine('الصنف', 'الكمية    السعر', width);
+  if (width >= 40) {
+    out += padLine('الصنف', 'الكمية    السعر', width);
+  } else {
+    out += padLine('الصنف', 'المجموع', width);
+  }
   out += `${divider}\n`;
 
   const items: any[] = (sale as any).cart || sale.items || [];
@@ -165,7 +169,12 @@ export function formatSaleForHardwarePrinter(sale: Sale, options?: HardwarePrint
   out += `${doubleDivider}\n`;
   const footer = defaultInvoiceFooter(settings);
   if (footer) {
-    out += `${footer}\n`;
+    if (width < 40 && footer.includes('الاستبدال والاسترجاع')) {
+      out += 'يرجى الاحتفاظ بالفاتورة\n';
+      out += 'الاستبدال والاسترجاع حسب سياسة المتجر\n';
+    } else {
+      out += `${footer}\n`;
+    }
   }
   out += 'شكراً لتعاملكم معنا\n';
   out += `${doubleDivider}\n\n\n\n`;
@@ -204,10 +213,29 @@ export async function tryPrintViaHardware(
 ): Promise<boolean> {
   const targetUrl = getHardwarePrinterUrl(options);
   const available = await isHardwarePrinterAvailable(targetUrl);
-  if (!available) {
-    return false;
+  if (available) {
+    const result = await printViaHardwarePrinter(sale, options);
+    if (result.success) return true;
   }
 
-  const result = await printViaHardwarePrinter(sale, options);
-  return result.success;
+  // Fallback to local Sunmi / Android ECR service on port 8080
+  if (targetUrl.includes('9100')) {
+    try {
+      const ecrUrl = 'http://127.0.0.1:8080/print';
+      const available8080 = await isHardwarePrinterAvailable(ecrUrl);
+      if (available8080) {
+        const printData = formatSaleForHardwarePrinter(sale, options);
+        const res = await fetch(ecrUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json; charset=utf-8' },
+          body: JSON.stringify({ printData }),
+        });
+        if (res.ok) return true;
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  return false;
 }

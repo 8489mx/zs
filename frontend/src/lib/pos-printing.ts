@@ -8,7 +8,7 @@ import {
   paymentLabel,
   type PosPrintPageSize,
 } from '@/lib/pos-printing/shared';
-import { tryPrintViaHardware } from '@/lib/pos-printing/hardware';
+import { tryPrintViaHardware, formatSaleForHardwarePrinter } from '@/lib/pos-printing/hardware';
 
 export interface PrintReceiptOptions {
   pageSize?: PosPrintPageSize;
@@ -185,6 +185,18 @@ function buildPostedSaleDocument(sale: Sale, options: PrintReceiptOptions) {
 export async function printPostedSaleReceipt(sale: Sale, options: PrintReceiptOptions = {}): Promise<void> {
   const effectiveOptions: PrintReceiptOptions = { pageSize: 'receipt', ...options };
 
+  // 1. Direct Sunmi Native Android App Bridge (Instant hardware print in APK)
+  if (typeof window !== 'undefined' && (window as any).SunmiPrinter?.printReceipt) {
+    try {
+      const printData = formatSaleForHardwarePrinter(sale, effectiveOptions);
+      (window as any).SunmiPrinter.printReceipt(printData);
+      return;
+    } catch (err) {
+      console.warn('Sunmi direct printer bridge failed, falling back:', err);
+    }
+  }
+
+  // 2. Hardware printer via local socket/service (Port 9100 or Port 8080)
   if (effectiveOptions.pageSize === 'receipt') {
     try {
       const printedViaHardware = await tryPrintViaHardware(sale, effectiveOptions);

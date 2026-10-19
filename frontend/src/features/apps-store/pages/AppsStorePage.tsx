@@ -167,13 +167,17 @@ export function AppsStorePage() {
       }
     }
     // Plan tiers hierarchy
-    const tenantPlan = String(tenant?.plan || tenant?.planId || 'pro').toLowerCase();
+    const rawPlan = String(tenant?.plan || tenant?.planId || 'pro').toLowerCase();
     const planHierarchy: Record<string, number> = {
       basic: 1,
+      plan_basic: 1,
       standard: 1,
       pro: 2,
+      plan_pro: 2,
       ultimate: 3,
+      plan_ultimate: 3,
       omnichannel: 4,
+      plan_omnichannel: 4,
     };
     const requiredRankMap: Record<PlanTierKey, number> = {
       plan_basic: 1,
@@ -181,7 +185,7 @@ export function AppsStorePage() {
       plan_ultimate: 3,
       plan_omnichannel: 4,
     };
-    const tenantRank = planHierarchy[tenantPlan] || 2;
+    const tenantRank = planHierarchy[rawPlan] || planHierarchy[rawPlan.replace('plan_', '')] || 2;
     const requiredRank = requiredRankMap[app.requiredPlan] || 3;
     return tenantRank >= requiredRank;
   };

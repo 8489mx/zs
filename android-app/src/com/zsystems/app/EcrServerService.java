@@ -281,7 +281,17 @@ public class EcrServerService extends Service {
                         }
                         PaymentActivity.cancelFromRemote("تم إلغاء المعاملة من نقطة البيع");
                         responseJson = "{\"success\":true,\"status\":\"CANCELLED\",\"responseCode\":\"000099\",\"message\":\"تم إلغاء العملية\"}";
-                    } else if ("POST".equals(method) || path.contains("/charge") || path.contains("/pay") || path.contains("/sale")) {
+                    } else if (path.contains("/print")) {
+                        String textToPrint = "";
+                        try {
+                            org.json.JSONObject jsonObj = new org.json.JSONObject(body.toString());
+                            textToPrint = jsonObj.optString("printData", jsonObj.optString("text", ""));
+                        } catch (Exception ex) {
+                            textToPrint = body.toString();
+                        }
+                        SunmiPrinterHelper.printRawText(textToPrint);
+                        responseJson = "{\"success\":true,\"message\":\"تم استلام أمر الطباعة بنجاح\"}";
+                    } else if (path.contains("/charge") || path.contains("/pay") || path.contains("/sale") || "POST".equals(method)) {
                         // Real Interactive Payment Sale Transaction!
                         double amount = 0.0;
                         String currency = "EGP";

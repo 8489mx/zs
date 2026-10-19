@@ -35,7 +35,7 @@
             android:configChanges="orientation|keyboardHidden|screenSize"
             android:exported="true"
             android:label="Z-Systems ERP"
-            android:windowSoftInputMode="adjustResize">
+            android:windowSoftInputMode="adjustResize|stateHidden">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
