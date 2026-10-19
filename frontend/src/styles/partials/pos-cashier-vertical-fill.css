@@ -3,29 +3,80 @@
    The checkout/cart side stretches, while the payment dock stays aligned with the products panel bottom.
    Internal scroll remains inside the cart items/products results only. */
 
-@media (min-width: 1080px) {
+/* Global POS viewport resets (prevent any reserved scrollbar gutter from eating right margin) */
+html:has(.pos-workspace),
+html:has(.content-wrap-pos),
+body:has(.pos-workspace),
+body:has(.content-wrap-pos) {
+  scrollbar-gutter: auto !important;
+  overflow: hidden !important;
+}
+
+@media (min-width: 901px) {
   .content-wrap:has(.pos-workspace),
-  .content-wrap.content-wrap-pos-focus:has(.pos-workspace),
-  .app-layout.app-layout-pos-focus .content-wrap.content-wrap-pos-focus:has(.pos-workspace) {
+  .content-wrap.content-wrap-pos,
+  .content-wrap.content-wrap-pos-focus,
+  .app-layout.app-layout-pos .content-wrap,
+  .app-layout.app-layout-pos-focus .content-wrap {
     overflow: hidden !important;
     overscroll-behavior: contain !important;
+    scrollbar-gutter: auto !important;
     padding-top: 4px !important;
     padding-bottom: 0 !important;
-    padding-inline-start: 6px !important; /* Separator next to right sidebar */
-    padding-inline-end: 0 !important; /* Flush to left screen edge */
     height: 100dvh !important;
     max-height: 100dvh !important;
     box-sizing: border-box !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  /* LTR (English mode): Sidebar on left, Unified 14px gutters matching Dashboard */
+  [dir="ltr"] .content-wrap:has(.pos-workspace),
+  [dir="ltr"] .content-wrap.content-wrap-pos,
+  html[dir="ltr"] .content-wrap:has(.pos-workspace),
+  html[dir="ltr"] .content-wrap.content-wrap-pos {
+    padding-left: 14px !important;
+    padding-right: 14px !important;
+    padding-inline: 14px !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    margin-inline: 0 !important;
+  }
+
+  /* RTL (Arabic mode): Sidebar on right, Unified 14px gutters matching Dashboard */
+  [dir="rtl"] .content-wrap:has(.pos-workspace),
+  [dir="rtl"] .content-wrap.content-wrap-pos,
+  html[dir="rtl"] .content-wrap:has(.pos-workspace),
+  html[dir="rtl"] .content-wrap.content-wrap-pos {
+    padding-right: 14px !important;
+    padding-left: 14px !important;
+    padding-inline: 14px !important;
+    margin-right: 0 !important;
+    margin-left: 0 !important;
+    margin-inline: 0 !important;
+  }
+
+  /* Fullscreen / Focus Mode: No sidebar, flush to both edges */
+  .app-layout.app-layout-pos-focus .content-wrap,
+  .content-wrap.content-wrap-pos-focus {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    padding-inline: 0 !important;
+    margin-inline: 0 !important;
   }
 
   .content-wrap:has(.pos-workspace) > .page-stack,
-  .content-wrap.content-wrap-pos-focus:has(.pos-workspace) > .page-stack {
+  .content-wrap.content-wrap-pos > .page-stack,
+  .content-wrap.content-wrap-pos-focus > .page-stack,
+  .page-stack.page-stack-pos {
     min-height: 0 !important;
     height: calc(100dvh - 4px) !important;
     max-height: calc(100dvh - 4px) !important;
     width: 100% !important;
+    max-width: 100% !important;
     margin: 0 !important;
     padding: 0 !important;
+    box-sizing: border-box !important;
   }
 
   .pos-workspace {
@@ -39,16 +90,33 @@
     width: 100% !important;
     max-width: 100% !important;
     margin: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    padding-inline: 0 !important;
     padding-bottom: 0 !important;
+    box-sizing: border-box !important;
+  }
+
+  .pos-workspace .pos-page-header {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    box-sizing: border-box !important;
   }
 
   .pos-workspace .pos-grid-premium {
     flex: 1 1 0 !important;
     min-height: 0 !important;
     height: 100% !important;
+    width: 100% !important;
+    max-width: 100% !important;
     align-self: stretch !important;
-    margin-bottom: 0 !important;
+    margin: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    padding-inline: 0 !important;
     padding-bottom: 0 !important;
+    box-sizing: border-box !important;
   }
 
   .pos-workspace .pos-products-card,

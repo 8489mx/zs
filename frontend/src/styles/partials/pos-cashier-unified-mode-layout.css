@@ -4,7 +4,7 @@
      right column = products/scanner, left column = cart/checkout
    This file is imported after pos-step4-cashier-tune.css to override late POS CSS safely. */
 
-@media (min-width: 1080px) {
+@media (min-width: 901px) {
   .pos-workspace.pos-sale-mode-scanner .pos-grid-premium,
   .pos-workspace.pos-sale-mode-touch .pos-grid-premium {
     grid-template-columns: var(--pos-grid-cols, minmax(0, 0.45fr) minmax(0, 0.55fr)) !important;
@@ -321,7 +321,7 @@
   background: #f8fafc !important;
 }
 
-@media (max-width: 1080px) {
+@media (max-width: 900px) {
   .pos-workspace.pos-sale-mode-scanner .pos-grid-premium,
   .pos-workspace.pos-sale-mode-touch .pos-grid-premium {
     grid-template-columns: var(--pos-grid-cols, 1fr) !important;

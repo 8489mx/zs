@@ -87,7 +87,8 @@ function PosWorkspaceHeaderComponent({
   onOpenManagerComp,
   onPrintCupLabels,
 }: PosWorkspaceHeaderProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isEn = Boolean(i18n.language && i18n.language.startsWith('en'));
   const { data: settings } = useSettingsQuery();
   const isRestaurantActive = settings?.restaurantModuleEnabled === true;
   const isPhoneOrdersActive = settings?.phoneOrdersModuleEnabled === true || (settings?.phoneOrdersModuleEnabled === undefined && (isRestaurantActive || ['restaurant', 'pharmacy', 'supermarket', 'grocery', 'food_beverage'].includes(settings?.businessIndustry || '')));
@@ -617,7 +618,6 @@ function PosWorkspaceHeaderComponent({
             <div
               ref={shiftMenuRef}
               className="pos-shift-actions-group"
-              style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', flexShrink: 0 }}
             >
               <Link
                 to={`/cash-drawer?action=close${pos.ownOpenShift?.id ? `&shiftId=${pos.ownOpenShift.id}` : ''}`}
@@ -627,11 +627,6 @@ function PosWorkspaceHeaderComponent({
                   type="button"
                   variant="secondary"
                   className="pos-close-shift-btn"
-                  style={{
-                    borderTopLeftRadius: 0,
-                    borderBottomLeftRadius: 0,
-                    fontWeight: 700,
-                  }}
                   title={t('pos.pos_workspace.pos_workspace_header.s38', "تقفيل الوردية الحالية وترحيل النقدية")}
                 >
                   <span className="pos-close-shift-text-full">{t('pos.pos_workspace.pos_workspace_header.s39', "تقفيل الوردية")}</span>
@@ -641,24 +636,7 @@ function PosWorkspaceHeaderComponent({
               <button
                 type="button"
                 onClick={() => setIsShiftMenuOpen((prev) => !prev)}
-                className="pos-shift-dropdown-trigger"
-                style={{
-                  height: '32px',
-                  padding: '0 6px',
-                  background: isShiftMenuOpen ? '#e2e8f0' : '#f8fafc',
-                  border: '1px solid #cbd5e1',
-                  borderRight: 'none',
-                  borderTopLeftRadius: '6px',
-                  borderBottomLeftRadius: '6px',
-                  borderTopRightRadius: 0,
-                  borderBottomRightRadius: 0,
-                  cursor: 'pointer',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: '#475569',
-                  transition: 'background 0.15s',
-                }}
+                className={`btn btn-secondary pos-shift-dropdown-trigger ${isShiftMenuOpen ? 'is-active' : ''}`}
                 title={t('pos.pos_workspace.pos_workspace_header.s41', "خيارات الوردية (تقرير X، فتح الدرج، إقفال Z)")}
                 aria-label={t('pos.pos_workspace.pos_workspace_header.s42', "خيارات الوردية")}
                 aria-expanded={isShiftMenuOpen}
@@ -710,7 +688,7 @@ function PosWorkspaceHeaderComponent({
                       background: 'transparent',
                       borderRadius: '6px',
                       cursor: 'pointer',
-                      textAlign: 'right',
+                      textAlign: isEn ? 'left' : 'right',
                       color: '#0f172a',
                       transition: 'background 0.12s',
                     }}
@@ -752,7 +730,7 @@ function PosWorkspaceHeaderComponent({
                       background: 'transparent',
                       borderRadius: '6px',
                       cursor: 'pointer',
-                      textAlign: 'right',
+                      textAlign: isEn ? 'left' : 'right',
                       color: '#0f172a',
                       transition: 'background 0.12s',
                     }}
@@ -795,7 +773,7 @@ function PosWorkspaceHeaderComponent({
                         width: '100%',
                         borderRadius: '6px',
                         cursor: 'pointer',
-                        textAlign: 'right',
+                        textAlign: isEn ? 'left' : 'right',
                         color: '#b91c1c',
                         background: 'transparent',
                         transition: 'background 0.12s',

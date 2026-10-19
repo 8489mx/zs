@@ -1890,7 +1890,7 @@ export function AppShell({ children }: PropsWithChildren) {
   return (
     <div 
       dir={isEn ? 'ltr' : 'rtl'}
-      className={`app-layout ${effectiveSidebarCollapsed ? 'sidebar-collapsed' : ''} ${isPosRoute && isPosChromeHidden ? 'app-layout-pos-focus' : ''}`.trim()}
+      className={`app-layout ${effectiveSidebarCollapsed ? 'sidebar-collapsed' : ''} ${isPosRoute ? 'app-layout-pos' : ''} ${isPosRoute && isPosChromeHidden ? 'app-layout-pos-focus' : ''}`.trim()}
     >
       {(!isPosRoute || !isPosChromeHidden || isMobileScreen) ? (
         <>
@@ -2065,7 +2065,7 @@ export function AppShell({ children }: PropsWithChildren) {
       ) : null}
       <div className="main-col">
         {!isPosRoute && <GlobalAppToolbar />}
-        <div className={`content-wrap ${isPosRoute && isPosChromeHidden ? 'content-wrap-pos-focus' : ''}`.trim()}>
+        <div className={`content-wrap ${isPosRoute ? 'content-wrap-pos' : ''} ${isPosRoute && isPosChromeHidden ? 'content-wrap-pos-focus' : ''}`.trim()}>
           {!isPosRoute && (
             <div className="stack gap-12" style={{ padding: '12px 16px 0' }}>
               <ImpersonationBanner />
@@ -2074,7 +2074,7 @@ export function AppShell({ children }: PropsWithChildren) {
               <SystemStatusBanner />
             </div>
           )}
-          <main className={`page-stack ${isPosRoute && isPosChromeHidden ? 'page-stack-pos-focus' : ''}`.trim()}>{children}</main>
+          <main className={`page-stack ${isPosRoute ? 'page-stack-pos' : ''} ${isPosRoute && isPosChromeHidden ? 'page-stack-pos-focus' : ''}`.trim()}>{children}</main>
         </div>
       </div>
       {(isMobileScreen || !isPosChromeHidden) && <MobileBottomNav />}

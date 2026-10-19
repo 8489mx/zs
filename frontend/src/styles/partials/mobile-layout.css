@@ -3732,18 +3732,21 @@
 
   .pos-shift-actions-group {
     display: inline-flex !important;
-    align-items: center !important;
+    align-items: stretch !important;
     flex-shrink: 0 !important;
   }
 
   .pos-shift-dropdown-trigger {
     height: 24px !important;
+    min-height: 24px !important;
     padding: 0 4px !important;
     border-radius: 5px 0 0 5px !important;
+    border-right: 1px solid #cbd5e1 !important;
   }
 
   .pos-shift-actions-group .pos-close-shift-btn {
     border-radius: 0 5px 5px 0 !important;
+    border-left: none !important;
   }
 
   .pos-shift-dropdown-menu {

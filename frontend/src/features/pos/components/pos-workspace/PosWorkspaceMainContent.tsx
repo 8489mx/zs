@@ -80,9 +80,9 @@ export function PosWorkspaceMainContent({
 
   const [mobileActiveTab, setMobileActiveTab] = useState<'products' | 'cart'>('products');
   const [isFloatingCartExpanded, setIsFloatingCartExpanded] = useState(false);
-  const defaultLeft = posMode === 'scanner' ? 75 : 65;
+  const defaultLeft = posMode === 'scanner' ? 70 : 38;
   const { leftRatio, rightRatio, handlePositionPct, startDrag } = useSplitter(
-    `pos_split_${posMode}_${user?.id || 'default'}`,
+    `pos_split_v2_${posMode}_${user?.id || 'default'}`,
     defaultLeft,
     isRtl
   );
@@ -104,7 +104,7 @@ export function PosWorkspaceMainContent({
       errorHint={__t('pos.pos_workspace.pos_workspace_main_content.s2', __t('pos.pos_workspace.pos_workspace_main_content.s2', "تحقق من الاتصال ثم أعد المحاولة."))}
       errorAction={<Button variant="secondary" onClick={() => { void pos.refetchCatalogs(); }}>{__t('pos.pos_workspace.pos_workspace_main_content.s3', __t('pos.pos_workspace.pos_workspace_main_content.s3', "إعادة المحاولة"))}</Button>}
     >
-      <div style={{ position: 'relative', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+      <div style={{ position: 'relative', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', width: '100%', maxWidth: '100%' }}>
         {/* Mobile Tab Switcher (displayed only on small mobile screens via media query) */}
         <div className="pos-mobile-tab-switcher">
           <button
