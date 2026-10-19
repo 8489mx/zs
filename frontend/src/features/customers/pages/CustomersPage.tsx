@@ -17,19 +17,20 @@ import { useCustomerProfile } from '@/features/customers/constants/customer-prof
 import type { Customer } from '@/types/domain';
 
 export function CustomersPage() {
-  const { t: __t } = useTranslation();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const __t = t;
   const profile = useCustomerProfile();
   const controller = useCustomersPageController();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isMarketingOpen, setIsMarketingOpen] = useState(false);
   const [loyaltyCustomer, setLoyaltyCustomer] = useState<Customer | null>(null);
 
+  const isEn = i18n.language?.startsWith('en');
   const stats = [
-    { key: 'customers', label: profile.id === 'maritime' ? 'عدد الشاحنين والمستوردين' : profile.id === 'contracting' ? 'عدد جهات الإسناد والملاك' : t('sidebar.customers', 'عدد العملاء'), value: controller.summary?.totalCustomers || 0 },
+    { key: 'customers', label: profile.id === 'maritime' ? (isEn ? 'Total Shippers & Importers' : 'عدد الشاحنين والمستوردين') : profile.id === 'contracting' ? (isEn ? 'Total Assigning Authorities & Owners' : 'عدد جهات الإسناد والملاك') : t('sidebar.customers', 'عدد العملاء'), value: controller.summary?.totalCustomers || 0 },
     { key: 'balance', label: t('customers.total_balances', 'إجمالي الأرصدة'), value: formatCurrency(controller.totalBalance) },
     { key: 'credit', label: t('customers.total_credit_limits', 'إجمالي حدود الائتمان'), value: formatCurrency(controller.totalCredit) },
-    { key: 'vip', label: profile.id === 'maritime' ? 'شاحنون استراتيجيون' : profile.id === 'contracting' ? 'مطورون VIP' : t('customers.vip_customers', 'عملاء VIP'), value: controller.vipCount },
+    { key: 'vip', label: profile.id === 'maritime' ? (isEn ? 'Strategic Shippers' : 'شاحنون استراتيجيون') : profile.id === 'contracting' ? (isEn ? 'VIP Developers' : 'مطورون VIP') : t('customers.vip_customers', 'عملاء VIP'), value: controller.vipCount },
   ] as const;
 
   return (
@@ -75,7 +76,7 @@ export function CustomersPage() {
         <StandardDialog
           open={Boolean(controller.selectedCustomer)}
           onClose={() => controller.setSelectedCustomer(null)}
-          title={controller.selectedCustomer ? `تعديل: ${controller.selectedCustomer.name}` : ''}
+          title={controller.selectedCustomer ? `${isEn ? 'Edit:' : 'تعديل:'} ${controller.selectedCustomer.name}` : ''}
           subtitle={profile.modalEditSubtitle}
           width="min(900px, 96vw)"
           minHeight="auto"

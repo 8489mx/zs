@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { Button } from '@/shared/ui/button';
@@ -13,14 +13,25 @@ interface WhatsAppMarketingModalProps {
 }
 
 export function WhatsAppMarketingModal({ open, onClose }: WhatsAppMarketingModalProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isEn = i18n.language?.startsWith('en');
   const tenant = useAuthStore((state) => state.tenant);
-  const businessName = tenant?.businessName || 'متجرنا';
+  const businessName = tenant?.businessName || (isEn ? 'our store' : 'متجرنا');
+
+  const getDefaultTemplate = (english?: boolean) =>
+    english
+      ? `Dear {name}, we really miss you at ${businessName}! We'd love to offer you an exclusive 10% discount on your next purchase. Looking forward to welcoming you anytime!`
+      : `أهلاً بحضرتك يا {name}، بنفتقدك جداً في ${businessName}! حبينا نهديك خصم خاص 10% على مشترياتك القادمة، منتظرين تشرفنا في أي وقت!`;
+
   const [days, setDays] = useState(30);
-  const [template, setTemplate] = useState(
-    `أهلاً بحضرتك يا {name}، بنفتقدك جداً في ${businessName}! حبينا نهديك خصم خاص 10% على مشترياتك القادمة، منتظرين تشرفنا في أي وقت!`
-  );
+  const [template, setTemplate] = useState(() => getDefaultTemplate(isEn));
   const [copiedAll, setCopiedAll] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      setTemplate(getDefaultTemplate(isEn));
+    }
+  }, [open, isEn, businessName]);
 
   const { data, isLoading } = useQuery({
     queryKey: ['inactive-customers-marketing', days],
@@ -73,7 +84,7 @@ export function WhatsAppMarketingModal({ open, onClose }: WhatsAppMarketingModal
         </div>
       )}
     >
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }} dir="rtl">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }} dir={isEn ? 'ltr' : 'rtl'}>
         
         {/* Section 1: Days Filter */}
         <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 14px', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
@@ -139,6 +150,7 @@ export function WhatsAppMarketingModal({ open, onClose }: WhatsAppMarketingModal
           <textarea
             rows={2}
             value={template}
+            dir={isEn ? 'ltr' : 'rtl'}
             onChange={(e) => setTemplate(e.target.value)}
             style={{
               width: '100%',
@@ -169,7 +181,7 @@ export function WhatsAppMarketingModal({ open, onClose }: WhatsAppMarketingModal
               </div>
             ) : (
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
-                <thead style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', textAlign: 'right', position: 'sticky', top: 0, zIndex: 1 }}>
+                <thead style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', textAlign: isEn ? 'left' : 'right', position: 'sticky', top: 0, zIndex: 1 }}>
                   <tr>
                     <th style={{ padding: '8px 12px' }}>{t('customers.whats_app_marketing_modal.s18', "اسم العميل")}</th>
                     <th style={{ padding: '8px 12px' }}>{t('customers.whats_app_marketing_modal.s19', "رقم الهاتف")}</th>
@@ -182,9 +194,9 @@ export function WhatsAppMarketingModal({ open, onClose }: WhatsAppMarketingModal
                   {customers.map((c) => (
                     <tr key={c.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                       <td style={{ padding: '8px 12px', fontWeight: 700 }}>{c.name}</td>
-                      <td style={{ padding: '8px 12px', color: '#64748b', direction: 'ltr', textAlign: 'right' }}>{c.phone || t('customers.whats_app_marketing_modal.s23', "بدون هاتف")}</td>
+                      <td style={{ padding: '8px 12px', color: '#64748b', direction: 'ltr', textAlign: isEn ? 'left' : 'right' }}>{c.phone || t('customers.whats_app_marketing_modal.s23', "بدون هاتف")}</td>
                       <td style={{ padding: '8px 12px', color: '#475569' }}>
-                        {c.lastSaleAt ? new Date(c.lastSaleAt).toLocaleDateString('ar-EG') : t('customers.whats_app_marketing_modal.s24', "لم يشترِ بعد")}
+                        {c.lastSaleAt ? new Date(c.lastSaleAt).toLocaleDateString(isEn ? 'en-US' : 'ar-EG') : t('customers.whats_app_marketing_modal.s24', "لم يشترِ بعد")}
                       </td>
                       <td style={{ padding: '8px 12px' }}>
                         <span style={{ background: '#eff6ff', color: '#1d4ed8', fontWeight: 800, padding: '2px 8px', borderRadius: '4px', fontSize: '0.74rem' }}>
