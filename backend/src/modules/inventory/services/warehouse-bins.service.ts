@@ -2,6 +2,7 @@ import { BadRequestException, ForbiddenException, Inject, Injectable, NotFoundEx
 import { Kysely, sql } from '../../../database/kysely';
 import { AuthContext } from '../../../core/auth/interfaces/auth-context.interface';
 import { requireTenantScope } from '../../../core/auth/utils/tenant-boundary';
+import { normalizeArabicSearch } from '../../../common/utils/arabic-search.util';
 import { KYSELY_DB } from '../../../database/database.constants';
 import { Database } from '../../../database/database.types';
 
@@ -333,12 +334,13 @@ export class WarehouseBinsService {
       .selectFrom('products as p')
       .selectAll()
       .where('p.tenant_id', '=', scope.tenantId)
-      .where((eb) =>
-        eb.or([
+      .where((eb) => {
+        const term = `%${normalizeArabicSearch(query)}%`;
+        return eb.or([
           eb('p.barcode', '=', query),
-          eb('p.name', 'ilike', `%${query}%`),
-        ])
-      )
+          sql<boolean>`TRANSLATE(LOWER(COALESCE(p.name, '')), 'أإآٱٲٳؤئىة', 'ااااااويهه') LIKE ${term}`,
+        ]);
+      })
       .executeTakeFirst();
 
     if (product) {

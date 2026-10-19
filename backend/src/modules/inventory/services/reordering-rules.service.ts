@@ -6,6 +6,7 @@ import { AuthContext } from '../../../core/auth/interfaces/auth-context.interfac
 import { requireTenantScope } from '../../../core/auth/utils/tenant-boundary';
 import { AuditService } from '../../../core/audit/audit.service';
 import { formatDailyDocumentNumber, getDailyDocumentPrefix } from '../../../common/utils/document-number.util';
+import { normalizeArabicSearch } from '../../../common/utils/arabic-search.util';
 import {
   evaluateReorderingRule,
   groupReorderItemsBySupplier,
@@ -92,14 +93,12 @@ export class ReorderingRulesService {
     }
 
     if (query.q && query.q.trim()) {
-      const term = `%${query.q.trim()}%`;
-      baseQuery = baseQuery.where((eb: any) =>
-        eb.or([
-          eb('p.name', 'ilike', term),
-          eb('p.barcode', 'ilike', term),
-          eb('s.name', 'ilike', term),
-        ]),
-      );
+      const term = `%${normalizeArabicSearch(query.q.trim())}%`;
+      baseQuery = baseQuery.where(sql<boolean>`(
+        TRANSLATE(LOWER(COALESCE(p.name, '')), 'أإآٱٲٳؤئىة', 'ااااااويهه') LIKE ${term}
+        OR LOWER(COALESCE(p.barcode, '')) LIKE ${term}
+        OR TRANSLATE(LOWER(COALESCE(s.name, '')), 'أإآٱٲٳؤئىة', 'ااااااويهه') LIKE ${term}
+      )`);
     }
 
     const rows: any[] = await baseQuery.orderBy('r.id', 'desc').execute();

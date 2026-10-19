@@ -8,6 +8,8 @@ export interface StockMovementsPageQueryParams {
   pageSize?: number;
   search?: string;
   type?: 'all' | string;
+  productId?: number | string;
+  locationId?: number | string;
 }
 
 export interface InventoryPageQueryParams {

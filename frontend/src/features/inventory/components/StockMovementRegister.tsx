@@ -13,6 +13,7 @@ import { SINGLE_STORE_MODE } from '@/config/product-scope';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { CustomSelect } from '@/shared/ui/custom-select';
 import { useIsMobile } from '@/shared/hooks/use-is-mobile';
+import { useDebouncedValue } from '@/shared/hooks/use-debounced-value';
 
 const movementLabels: Record<string, string> = {
   opening: 'رصيد افتتاحي',
@@ -61,26 +62,27 @@ export function StockMovementRegister() {
   const isMobile = useIsMobile();
   const [selectedMovement, setSelectedMovement] = useState<any | null>(null);
   const [search, setSearch] = useState('');
+  const debouncedSearch = useDebouncedValue(search.trim(), 280);
   const [typeFilter, setTypeFilter] = useState('all');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
-  const paramsKey = makeParamsKey(page, pageSize, search, typeFilter);
+  const paramsKey = makeParamsKey(page, pageSize, debouncedSearch, typeFilter);
   const movementsQuery = useQuery({
     queryKey: queryKeys.stockMovementsPage(paramsKey),
-    queryFn: () => inventoryApi.stockMovementsPage({ page, pageSize, search, type: typeFilter }),
+    queryFn: () => inventoryApi.stockMovementsPage({ page, pageSize, search: debouncedSearch, type: typeFilter }),
     placeholderData: (previous) => previous,
   });
 
   useEffect(() => {
     setPage(1);
-  }, [search, typeFilter]);
+  }, [debouncedSearch, typeFilter]);
 
   const rows = useMemo(() => movementsQuery.data?.rows || [], [movementsQuery.data?.rows]);
   const pagination = movementsQuery.data?.pagination;
   const totals = movementsQuery.data?.summary || { positive: 0, negative: 0, totalItems: 0 };
 
   async function fetchAllMatchingMovements() {
-    const first = await inventoryApi.stockMovementsPage({ page: 1, pageSize: 100, search, type: typeFilter });
+    const first = await inventoryApi.stockMovementsPage({ page: 1, pageSize: 100, search: debouncedSearch, type: typeFilter });
     const totalPages = first.pagination?.totalPages || 1;
     const allRows = [...(first.rows || [])];
     for (let currentPage = 2; currentPage <= totalPages; currentPage += 1) {

@@ -92,11 +92,13 @@ export function InventoryProductPicker({
     return products.some((product) => getProductAliases(product).some((text) => text.toLowerCase().includes(q)));
   }, [products]);
 
-  const filteredProducts = useMemo(() => {
-    if (!normalizedSearch) return [];
+    const filteredProducts = useMemo(() => {
+    if (!normalizedSearch) {
+      return products.slice(0, 30);
+    }
     return products
       .filter((product) => getProductAliases(product).some((text) => text.toLowerCase().includes(normalizedSearch)))
-      .slice(0, 8);
+      .slice(0, 50);
   }, [normalizedSearch, products]);
 
   useEffect(() => {
@@ -126,7 +128,7 @@ export function InventoryProductPicker({
     const nextQuery = nextValue.trim();
     if (!nextQuery) {
       setStatusMessage('');
-      setIsOpen(false);
+      setIsOpen(true);
       return;
     }
 
@@ -146,7 +148,7 @@ export function InventoryProductPicker({
     setStatusMessage('');
   }, [disabled, findExactMatch, hasAnyMatch, selectProduct]);
 
-  const shouldShowDropdown = isOpen && normalizedSearch.length > 0 && !disabled;
+  const shouldShowDropdown = isOpen && !disabled && (!selectedProduct || search !== selectedProduct.name);
   const showBarcodeHint = Boolean(normalizedSearch) && !filteredProducts.length && isBarcodeLike(normalizedSearch);
 
   return (
@@ -158,10 +160,10 @@ export function InventoryProductPicker({
           value={search}
           onChange={(event) => handleSearchChange(event.target.value)}
           onFocus={() => {
-            if (!disabled && search.trim()) setIsOpen(true);
+            if (!disabled && (!selectedProduct || search !== selectedProduct.name)) setIsOpen(true);
           }}
           onBlur={() => {
-            window.setTimeout(() => setIsOpen(false), 120);
+            window.setTimeout(() => setIsOpen(false), 200);
           }}
           placeholder={placeholder}
           disabled={disabled}

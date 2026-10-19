@@ -2,7 +2,7 @@ import { Fragment, useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/shared/ui/button';
-import { FileTextIcon, PrinterIcon, SearchIcon, XIcon } from '@/shared/components/icons/AppIcons';
+import { FileTextIcon, LayersIcon, PrinterIcon, SearchIcon, XIcon } from '@/shared/components/icons/AppIcons';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { systemConfirm } from '@/shared/components/system-alert';
 import { QueryFeedback } from '@/shared/components/query-feedback';
@@ -18,6 +18,7 @@ import { ProductsMatrixView } from './ProductsMatrixView';
 import { ProductIcon } from '@/shared/components/icons/product-svg-catalog';
 import { ProductIconStudioModal } from '@/shared/components/icons/ProductIconStudioModal';
 import { useProductIconSettings } from '@/shared/components/icons/product-icon-theme';
+import { ProductCardModal } from './ProductCardModal';
 
 export interface ProductsTableCardProps {
   search: string;
@@ -103,6 +104,7 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
   const [expandedKeys, setExpandedKeys] = useState<string[]>([]);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>('');
   const [activeNoteModal, setActiveNoteModal] = useState<{ productName: string; note: string } | null>(null);
+  const [activeCardProduct, setActiveCardProduct] = useState<Product | null>(null);
   const [isAutoAssigning, setIsAutoAssigning] = useState(false);
   const [isStudioOpen, setIsStudioOpen] = useState(false);
   const [autoAssignMsg, setAutoAssignMsg] = useState<{ type: 'success' | 'info' | 'error'; text: string } | null>(null);
@@ -411,8 +413,19 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
         emptyTitle={t('products.no_matching_products', 'لا توجد أصناف مطابقة')}
         emptyHint={t('products.no_matching_hint', 'غيّر كلمة البحث أو أضف صنفًا جديدًا من النموذج.')}
       >
-        <div className="table-wrap table-wrap-sticky table-wrap-compact">
-          <table aria-label={__t('products.products_table_card.s9', "قائمة الأصناف")}>
+        <div className="table-wrap table-wrap-sticky table-wrap-compact" style={{ overflowX: 'hidden' }}>
+          <table aria-label={__t('products.products_table_card.s9', "قائمة الأصناف")} style={{ tableLayout: 'fixed', width: '100%', minWidth: '100%' }}>
+            <colgroup>
+              <col style={{ width: '38px' }} />
+              <col style={{ width: '28%' }} />
+              <col style={{ width: '13%' }} />
+              <col style={{ width: '7%' }} />
+              <col style={{ width: '17%' }} />
+              <col style={{ width: '13%' }} />
+              <col style={{ width: '7%' }} />
+              <col style={{ width: '56px' }} />
+              <col style={{ width: '104px' }} />
+            </colgroup>
             <thead>
               <tr>
                 <th className="table-selection-cell">
@@ -429,13 +442,13 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
                     }}
                   />
                 </th>
-                <th>{t('products.product_col', 'الصنف')}</th>
-                <th>{t('products.barcode_col', 'الباركود')}</th>
-                <th>{t('products.variants_col', 'المتغيرات')}</th>
-                <th>{t('products.category_supplier_store_col', 'القسم / المورد / المخزن')}</th>
-                <th>{t('products.prices_col', 'الأسعار')}</th>
-                <th>{t('products.stock_col', 'المخزون')}</th>
-                <th style={{ width: '80px', textAlign: 'center' }}>{t('products.notes_col', 'ملاحظات')}</th>
+                <th style={{ textAlign: 'start' }}>{t('products.product_col', 'الصنف')}</th>
+                <th style={{ textAlign: 'center' }}>{t('products.barcode_col', 'الباركود')}</th>
+                <th style={{ textAlign: 'center' }}>{t('products.variants_col', 'المتغيرات')}</th>
+                <th style={{ textAlign: 'start' }}>{t('products.category_supplier_store_col', 'القسم / المورد / المخزن')}</th>
+                <th style={{ textAlign: 'start' }}>{t('products.prices_col', 'الأسعار')}</th>
+                <th style={{ textAlign: 'center' }}>{t('products.stock_col', 'المخزون')}</th>
+                <th style={{ textAlign: 'center' }}>{t('products.notes_col', 'ملاحظات')}</th>
                 <th style={{ textAlign: 'center' }}>{t('products.actions_col', 'إجراءات')}</th>
               </tr>
             </thead>
@@ -453,12 +466,12 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
                   const activeLocationNames = getProductLocationDisplayName(product, props.locationNames);
 
                   return (
-                    <tr key={group.key} className={props.selectedProduct?.id === product.id ? 'table-row-selected' : undefined} onClick={() => props.onSelectProduct(product)}>
+                    <tr key={group.key} className={props.selectedProduct?.id === product.id ? 'table-row-selected' : undefined} onClick={() => setActiveCardProduct(product)} style={{ cursor: 'pointer' }}>
                       <td className="table-selection-cell" onClick={(event) => event.stopPropagation()}>
                         <input type="checkbox" aria-label={`تحديد الصنف ${product.name}`} checked={props.selectedIds.includes(String(product.id))} onChange={(event) => toggleGroupSelection(group, event.target.checked)} />
                       </td>
-                      <td>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <td style={{ textAlign: 'start', whiteSpace: 'normal', wordBreak: 'break-word' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
                           {iconSettings.showIcons ? (
                             <div style={{
                               width: '28px',
@@ -475,34 +488,42 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
                               <ProductIcon name={product.icon || 'box-package'} size={16} />
                             </div>
                           ) : null}
-                          <div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                              <strong>{product.name}</strong>
+                          <div style={{ minWidth: 0, flex: 1 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                              <strong style={{ color: '#0f172a', fontSize: '0.86rem', lineHeight: 1.35, display: 'block', wordBreak: 'break-word', whiteSpace: 'normal' }}>{product.name}</strong>
                               {product.isActive === false ? (
-                                <span className="status-badge" style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', fontSize: '0.68rem', padding: '1px 5px' }}>{__t('products.products_table_card.s11', "مؤرشف")}</span>
+                                <span className="status-badge" style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', fontSize: '0.68rem', padding: '1px 5px', whiteSpace: 'nowrap' }}>{__t('products.products_table_card.s11', "مؤرشف")}</span>
                               ) : null}
                             </div>
-                            <div className="muted small">{(product.units || []).map((unit) => `${unit.name} × ${unit.multiplier || 1}`).join(' / ') || __t('products.products_table_card.s12', "قطعة")}</div>
+                            <div className="muted small" style={{ fontSize: '0.74rem', marginTop: '2px', color: '#64748b', lineHeight: 1.3, wordBreak: 'break-word' }}>{(product.units || []).map((unit) => `${unit.name} × ${unit.multiplier || 1}`).join(' / ') || __t('products.products_table_card.s12', "قطعة")}</div>
                           </div>
                         </div>
                       </td>
-                      <td>{product.barcode || '—'}</td>
-                      <td>{variantLabel(product)}</td>
-                      <td>
-                        <div style={{ lineHeight: 1.4 }}>
+                      <td style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
+                        {product.barcode ? (
+                          <span style={{ fontFamily: 'monospace', fontSize: '0.78rem', color: '#334155', background: '#f8fafc', padding: '2px 6px', borderRadius: '4px', border: '1px solid #e2e8f0', display: 'inline-block' }}>
+                            {product.barcode}
+                          </span>
+                        ) : (
+                          <span style={{ color: '#94a3b8' }}>—</span>
+                        )}
+                      </td>
+                      <td style={{ textAlign: 'center', whiteSpace: 'normal', wordBreak: 'break-word' }}>{variantLabel(product)}</td>
+                      <td style={{ textAlign: 'start', whiteSpace: 'normal', wordBreak: 'break-word' }}>
+                        <div style={{ lineHeight: 1.35 }}>
                           <div>{props.categoryNames[product.categoryId] || __t('products.products_table_card.s13', "عام")}</div>
                           {activeLocationNames ? <div className="muted small">{activeLocationNames}</div> : null}
                           {props.supplierNames[product.supplierId] ? <div className="muted small">{props.supplierNames[product.supplierId]}</div> : null}
                         </div>
                       </td>
-                      <td>
+                      <td style={{ textAlign: 'start', whiteSpace: 'nowrap' }}>
                         <div style={{ lineHeight: 1.4 }}>
                           <div>{__t('products.products_table_card.s14', "بيع:")} <strong>{formatCurrency(product.retailPrice)}</strong></div>
-                          <div className="muted small">{__t('products.products_table_card.s15', "شراء:")} {formatCurrency(product.costPrice)}</div>
-                          {product.wholesalePrice > 0 ? <div className="muted small">{__t('products.products_table_card.s16', "جملة:")} {formatCurrency(product.wholesalePrice)}</div> : null}
+                          <div className="muted small" style={{ fontSize: '0.75rem' }}>{__t('products.products_table_card.s15', "شراء:")} {formatCurrency(product.costPrice)}</div>
+                          {product.wholesalePrice > 0 ? <div className="muted small" style={{ fontSize: '0.75rem' }}>{__t('products.products_table_card.s16', "جملة:")} {formatCurrency(product.wholesalePrice)}</div> : null}
                         </div>
                       </td>
-                      <td>
+                      <td style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
                         <span className={product.stock <= product.minStock ? 'low-stock-badge' : 'status-badge status-posted'}>
                           {product.stock}
                         </span>
@@ -538,44 +559,27 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
                       </td>
                       <td>
                         <div className="actions compact-actions" onClick={(event) => event.stopPropagation()} style={{ flexWrap: 'nowrap', justifyContent: 'center' }}>
-                          <Button variant="secondary" type="button" onClick={() => props.onSelectProduct(product)}>{__t('products.products_table_card.s18', "تعديل")}</Button>
-                          <Button variant="secondary" type="button" onClick={() => props.onOpenBarcodeDialog(product, 'scan')}>{__t('products.products_table_card.s19', "باركود")}</Button>
-                          <Button variant="secondary" type="button" onClick={() => props.onOpenOfferDialog(product)}>{__t('products.products_table_card.s20', "عروض")}</Button>
-                          {props.mobileStoreEnabled && product.trackSerials && props.onOpenSerialsDialog ? (
-                            <Button variant="secondary" type="button" onClick={() => props.onOpenSerialsDialog?.(product)}>{__t('products.products_table_card.s21', "سيريالات")}</Button>
-                          ) : null}
-                          {product.isActive === false ? (
-                            <Button
-                              variant="secondary"
-                              type="button"
-                              onClick={() => props.onToggleArchiveProduct?.(product)}
-                              style={{ color: '#16a34a', borderColor: '#bbf7d0', background: '#f0fdf4', fontWeight: 700 }}
-                              title={__t('products.products_table_card.s22', "تنشيط الصنف وإعادته للعمل")}
-                            >
-                              {__t('products.products_table_card.s23', "تنشيط")}
-                            </Button>
-                          ) : product.canDelete ? (
-                            <Button
-                              variant="secondary"
-                              type="button"
-                              onClick={() => props.onDeleteProduct(product)}
-                              disabled={!props.canDelete}
-                              style={{ color: '#dc2626' }}
-                              title={__t('products.products_table_card.s24', "حذف نهائي (صنف جديد لا يحتوي على رصيد أو حركات سابقة)")}
-                            >
-                              {__t('products.products_table_card.s25', "حذف")}
-                            </Button>
-                          ) : (
-                            <Button
-                              variant="secondary"
-                              type="button"
-                              onClick={() => props.onToggleArchiveProduct?.(product)}
-                              style={{ color: '#d97706', borderColor: '#fde68a', background: '#fffbeb', fontWeight: 600 }}
-                              title={__t('products.products_table_card.s26', "أرشفة وتعطيل الصنف مع الحفاظ على الفواتير والتقارير التاريخية")}
-                            >
-                              {__t('products.products_table_card.s27', "أرشفة")}
-                            </Button>
-                          )}
+                          <Button
+                            variant="secondary"
+                            type="button"
+                            onClick={() => setActiveCardProduct(product)}
+                            style={{
+                              fontSize: '0.82rem',
+                              fontWeight: 700,
+                              color: '#170e5e',
+                              borderColor: '#c7d2fe',
+                              background: '#eef2ff',
+                              padding: '5px 12px',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              whiteSpace: 'nowrap',
+                              borderRadius: '7px',
+                            }}
+                          >
+                            <LayersIcon size={14} color="#170e5e" />
+                            <span>{__t('products.products_table_card.card_btn', "كارت الصنف")}</span>
+                          </Button>
                         </div>
                       </td>
                     </tr>
@@ -600,7 +604,7 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
                           onChange={(event) => toggleGroupSelection(group, event.target.checked)}
                         />
                       </td>
-                      <td>
+                      <td style={{ whiteSpace: 'normal', wordBreak: 'break-word' }}>
                         <div
                           onClick={() => toggleExpand(group.key)}
                           style={{ cursor: 'pointer', userSelect: 'none', display: 'flex', alignItems: 'center', gap: '8px' }}
@@ -622,9 +626,9 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
                               <ProductIcon name={group.representative.icon || 'box-package'} size={16} />
                             </div>
                           ) : null}
-                          <div>
-                            <strong style={{ color: '#0f172a', fontSize: '0.88rem' }}>{baseName}</strong>
-                            <div className="muted small" style={{ fontSize: '0.74rem', marginTop: '2px', color: '#64748b' }}>
+                          <div style={{ minWidth: 0, flex: 1 }}>
+                            <strong style={{ color: '#0f172a', fontSize: '0.88rem', lineHeight: 1.35 }}>{baseName}</strong>
+                            <div className="muted small" style={{ fontSize: '0.74rem', marginTop: '2px', color: '#64748b', lineHeight: 1.3 }}>
                               {group.children.length} {__t('products.products_table_card.s30', "فرعيات")}{group.representative.styleCode ? ` • كود ${group.representative.styleCode}` : ''}
                             </div>
                           </div>
@@ -726,85 +730,27 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
                       </td>
                       <td>
                         <div className="actions compact-actions" onClick={(event) => event.stopPropagation()} style={{ flexWrap: 'nowrap', justifyContent: 'center' }}>
-                          <Button variant="secondary" type="button" onClick={() => props.onSelectProduct(group.representative)}>{__t('products.products_table_card.s39', "تعديل")}</Button>
-                          <Button variant="secondary" type="button" onClick={() => props.onOpenBarcodeDialog(group.representative, 'scan')}>{__t('products.products_table_card.s40', "باركود")}</Button>
-                          <Button variant="secondary" type="button" onClick={() => props.onOpenOfferDialog(group.representative)}>{__t('products.products_table_card.s41', "عروض")}</Button>
-                          {group.children.every((c) => c.isActive === false) ? (
-                            <Button
-                              variant="secondary"
-                              type="button"
-                              onClick={async () => {
-                                const confirmed = await systemConfirm({
-                                  title: __t('products.products_table_card.s42', "تأكيد تنشيط الموديل"),
-                                  message: `هل أنت متأكد من تنشيط الموديل "${baseName}" وجميع أصنافه الفرعية (${group.children.length} صنف)؟`,
-                                  confirmText: __t('products.products_table_card.s43', "تنشيط الكل"),
-                                  cancelText: __t('products.products_table_card.s44', "إلغاء"),
-                                });
-                                if (confirmed) {
-                                  for (const child of group.children) {
-                                    if (child.isActive === false) {
-                                      await productsApi.toggleArchive(child.id);
-                                    }
-                                  }
-                                  await invalidateCatalogDomain(queryClient, { includeProducts: true });
-                                }
-                              }}
-                              style={{ color: '#16a34a', borderColor: '#bbf7d0', background: '#f0fdf4', fontWeight: 700 }}
-                              title={__t('products.products_table_card.s45', "تنشيط الموديل وجميع أصنافه الفرعية")}
-                            >
-                              {__t('products.products_table_card.s46', "تنشيط")}
-                            </Button>
-                          ) : group.children.every((c) => c.canDelete) ? (
-                            <Button
-                              variant="secondary"
-                              type="button"
-                              onClick={async () => {
-                                const confirmed = await systemConfirm({
-                                  title: __t('products.products_table_card.s47', "تأكيد حذف الموديل"),
-                                  message: `هل أنت متأكد من حذف الموديل "${baseName}" وجميع أصنافه الفرعية بالكامل (${group.children.length} صنف فرعي)؟`,
-                                  confirmText: __t('products.products_table_card.s48', "حذف الكل"),
-                                  cancelText: __t('products.products_table_card.s49', "إلغاء"),
-                                  variant: 'danger',
-                                });
-                                if (confirmed) {
-                                  for (const child of group.children) {
-                                    props.onDeleteProduct(child);
-                                  }
-                                }
-                              }}
-                              disabled={!props.canDelete}
-                              style={{ color: '#dc2626' }}
-                              title={__t('products.products_table_card.s50', "حذف الموديل (لا توجد أي حركات أو أرصدة سابقة)")}
-                            >
-                              {__t('products.products_table_card.s51', "حذف")}
-                            </Button>
-                          ) : (
-                            <Button
-                              variant="secondary"
-                              type="button"
-                              onClick={async () => {
-                                const confirmed = await systemConfirm({
-                                  title: __t('products.products_table_card.s52', "تأكيد أرشفة وتعطيل الموديل"),
-                                  message: `الموديل "${baseName}" يحتوي على حركات سابقة أو أرصدة. هل تريد أرشفة وتعطيل جميع أصنافه (${group.children.length} صنف فرعي) لمنع التعامل عليها مع الحفاظ على سجل التقارير؟`,
-                                  confirmText: __t('products.products_table_card.s53', "أرشفة الكل"),
-                                  cancelText: __t('products.products_table_card.s54', "إلغاء"),
-                                  variant: 'warning',
-                                });
-                                if (confirmed) {
-                                  for (const child of group.children) {
-                                    if (child.isActive !== false) {
-                                      await productsApi.toggleArchive(child.id);
-                                    }
-                                  }
-                                  await invalidateCatalogDomain(queryClient, { includeProducts: true });
-                                }
-                              }}
-                              style={{ color: '#d97706', borderColor: '#fde68a', background: '#fffbeb', fontWeight: 600 }}
-                              title={__t('products.products_table_card.s55', "أرشفة وتعطيل الموديل مع الحفاظ على الفواتير والتقارير التاريخية")}
-                            >
-                              {__t('products.products_table_card.s56', "أرشفة")}
-                            </Button>
-                          )}
+                          <Button
+                            variant="secondary"
+                            type="button"
+                            onClick={() => setActiveCardProduct(group.representative)}
+                            style={{
+                              fontSize: '0.82rem',
+                              fontWeight: 700,
+                              color: '#170e5e',
+                              borderColor: '#c7d2fe',
+                              background: '#eef2ff',
+                              padding: '5px 12px',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              whiteSpace: 'nowrap',
+                              borderRadius: '7px',
+                            }}
+                          >
+                            <LayersIcon size={14} color="#170e5e" />
+                            <span>{__t('products.products_table_card.card_btn', "كارت الصنف")}</span>
+                          </Button>
                         </div>
                       </td>
                     </tr>
@@ -816,7 +762,7 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
                       </tr>
                     ) : null}
                     {isExpanded ? group.children.map((product) => (
-                      <tr key={`child-${product.id}`} className={`products-group-child-row ${props.selectedProduct?.id === product.id ? 'table-row-selected' : ''}`} onClick={() => props.onSelectProduct(product)}>
+                      <tr key={`child-${product.id}`} className={`products-group-child-row ${props.selectedProduct?.id === product.id ? 'table-row-selected' : ''}`} onClick={() => setActiveCardProduct(product)} style={{ cursor: 'pointer' }}>
                         <td className="table-selection-cell" onClick={(event) => event.stopPropagation()}>
                           <input type="checkbox" aria-label={`تحديد الصنف ${product.name}`} checked={props.selectedIds.includes(String(product.id))} onChange={(event) => {
                             const next = new Set(props.selectedIds);
@@ -825,7 +771,7 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
                             props.onSelectedIdsChange(Array.from(next));
                           }} />
                         </td>
-                        <td>
+                        <td style={{ whiteSpace: 'normal', wordBreak: 'break-word' }}>
                           <div style={{ paddingInlineStart: 18 }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                               <strong>{variantLabel(product)}</strong>
@@ -833,16 +779,16 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
                                 <span className="status-badge" style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', fontSize: '0.68rem', padding: '1px 5px' }}>{__t('products.products_table_card.s57', "مؤرشف")}</span>
                               ) : null}
                             </div>
-                            <div className="muted small">{product.name}</div>
+                            <div className="muted small" style={{ lineHeight: 1.3 }}>{product.name}</div>
                           </div>
                         </td>
                         <td>{product.barcode || '—'}</td>
                         <td>{variantLabel(product)}</td>
-                        <td>
-                          <div style={{ lineHeight: 1.4 }}>
-                            <div>{props.categoryNames[product.categoryId] || __t('products.products_table_card.s58', "عام")}</div>
-                            {getProductLocationDisplayName(product, props.locationNames) ? <div className="muted small">{getProductLocationDisplayName(product, props.locationNames)}</div> : null}
-                            {props.supplierNames[product.supplierId] ? <div className="muted small">{props.supplierNames[product.supplierId]}</div> : null}
+                        <td style={{ whiteSpace: 'normal', wordBreak: 'break-word' }}>
+                          <div style={{ lineHeight: 1.35 }}>
+                            <div style={{ fontWeight: 600, color: '#334155', fontSize: '0.8rem' }}>{props.categoryNames[product.categoryId] || __t('products.products_table_card.s58', "عام")}</div>
+                            {getProductLocationDisplayName(product, props.locationNames) ? <div className="muted small" style={{ lineHeight: 1.3 }}>{getProductLocationDisplayName(product, props.locationNames)}</div> : null}
+                            {props.supplierNames[product.supplierId] ? <div className="muted small" style={{ lineHeight: 1.3 }}>{props.supplierNames[product.supplierId]}</div> : null}
                           </div>
                         </td>
                         <td>
@@ -888,40 +834,27 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
                         </td>
                         <td>
                           <div className="actions compact-actions" onClick={(event) => event.stopPropagation()} style={{ flexWrap: 'nowrap', justifyContent: 'center' }}>
-                            <Button variant="secondary" type="button" onClick={() => props.onSelectProduct(product)}>{__t('products.products_table_card.s63', "تعديل")}</Button>
-                            <Button variant="secondary" type="button" onClick={() => props.onOpenBarcodeDialog(product, 'scan')}>{__t('products.products_table_card.s64', "باركود")}</Button>
-                            {product.isActive === false ? (
-                              <Button
-                                variant="secondary"
-                                type="button"
-                                onClick={() => props.onToggleArchiveProduct?.(product)}
-                                style={{ color: '#16a34a', borderColor: '#bbf7d0', background: '#f0fdf4', fontWeight: 700 }}
-                                title={__t('products.products_table_card.s65', "تنشيط الصنف وإعادته للعمل")}
-                              >
-                                {__t('products.products_table_card.s66', "تنشيط")}
-                              </Button>
-                            ) : product.canDelete ? (
-                              <Button
-                                variant="secondary"
-                                type="button"
-                                onClick={() => props.onDeleteProduct(product)}
-                                disabled={!props.canDelete}
-                                style={{ color: '#dc2626' }}
-                                title={__t('products.products_table_card.s67', "حذف نهائي (صنف جديد لا يحتوي على رصيد أو حركات سابقة)")}
-                              >
-                                {__t('products.products_table_card.s68', "حذف")}
-                              </Button>
-                            ) : (
-                              <Button
-                                variant="secondary"
-                                type="button"
-                                onClick={() => props.onToggleArchiveProduct?.(product)}
-                                style={{ color: '#d97706', borderColor: '#fde68a', background: '#fffbeb', fontWeight: 600 }}
-                                title={__t('products.products_table_card.s69', "أرشفة وتعطيل الصنف مع الحفاظ على الفواتير والتقارير التاريخية")}
-                              >
-                                {__t('products.products_table_card.s70', "أرشفة")}
-                              </Button>
-                            )}
+                            <Button
+                              variant="secondary"
+                              type="button"
+                              onClick={() => setActiveCardProduct(product)}
+                              style={{
+                                fontSize: '0.82rem',
+                                fontWeight: 700,
+                                color: '#170e5e',
+                                borderColor: '#c7d2fe',
+                                background: '#eef2ff',
+                                padding: '5px 12px',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                whiteSpace: 'nowrap',
+                                borderRadius: '7px',
+                              }}
+                            >
+                              <LayersIcon size={14} color="#170e5e" />
+                              <span>{__t('products.products_table_card.card_btn', "كارت الصنف")}</span>
+                            </Button>
                           </div>
                         </td>
                       </tr>
@@ -973,6 +906,22 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
           onBulkClearIcons={() => void handleClearAllIcons()}
           isBulkLoading={isAutoAssigning}
         />
+        {activeCardProduct ? (
+          <ProductCardModal
+            product={activeCardProduct}
+            onClose={() => setActiveCardProduct(null)}
+            categoryName={activeCardProduct.categoryId ? props.categoryNames[String(activeCardProduct.categoryId)] : undefined}
+            supplierName={activeCardProduct.supplierId ? props.supplierNames[String(activeCardProduct.supplierId)] : undefined}
+            locationName={props.locationNames ? getProductLocationDisplayName(activeCardProduct, props.locationNames) : undefined}
+            onEditProduct={(p) => props.onSelectProduct(p)}
+            onOpenBarcodeDialog={(p, mode) => props.onOpenBarcodeDialog(p, mode)}
+            onOpenOfferDialog={(p) => props.onOpenOfferDialog(p)}
+            onOpenSerialsDialog={props.onOpenSerialsDialog}
+            onToggleArchiveProduct={props.onToggleArchiveProduct}
+            onDeleteProduct={props.onDeleteProduct}
+            mobileStoreEnabled={props.mobileStoreEnabled}
+          />
+        ) : null}
       </QueryFeedback>
     </section>
   );

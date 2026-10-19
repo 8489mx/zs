@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { Button } from '@/shared/ui/button';
 import { Field } from '@/shared/ui/field';
@@ -68,6 +68,8 @@ export function BarcodePrintDialog({ open, product, unit, items, onClose }: Barc
   const [labelsPerPage, setLabelsPerPage] = useState(24);
   const [startOffset, setStartOffset] = useState(1);
   const [previewMode, setPreviewMode] = useState<'single' | 'sheet'>('sheet');
+  const previewRef = useRef<HTMLDivElement | null>(null);
+  const settingsRef = useRef<HTMLDivElement | null>(null);
 
   // Multi-item batch state
   const [batchItems, setBatchItems] = useState<BarcodePrintItem[]>([]);
@@ -319,6 +321,13 @@ export function BarcodePrintDialog({ open, product, unit, items, onClose }: Barc
       >
         {/* العمود الأيمن: إعدادات الطابعة والورق وتخصيص الملصق */}
         <div
+          ref={settingsRef}
+          onWheel={(e) => {
+            const settingsEl = settingsRef.current;
+            if (settingsEl && settingsEl.scrollHeight > settingsEl.clientHeight) {
+              settingsEl.scrollTop += e.deltaY;
+            }
+          }}
           style={{
             display: 'flex',
             flexDirection: 'column',
@@ -897,6 +906,12 @@ export function BarcodePrintDialog({ open, product, unit, items, onClose }: Barc
 
         {/* العمود الأيسر: المعاينة المباشرة للملصق */}
         <div
+          onWheel={(e) => {
+            const previewEl = previewRef.current;
+            if (previewEl && previewEl.scrollHeight > previewEl.clientHeight) {
+              previewEl.scrollTop += e.deltaY;
+            }
+          }}
           style={{
             background: '#f8fafc',
             padding: '12px 14px',
@@ -962,21 +977,33 @@ export function BarcodePrintDialog({ open, product, unit, items, onClose }: Barc
           </p>
 
           <div
+            ref={previewRef}
             className="barcode-label-preview-shell thin-scrollbar"
             style={{
               flex: 1,
               minHeight: 0,
               overflowY: 'auto',
+              overflowX: 'hidden',
               background: '#ffffff',
               borderRadius: '6px',
               border: '1px solid #e2e8f0',
-              padding: '10px',
+              padding: '12px 10px',
               display: 'flex',
-              alignItems: previewMode === 'sheet' ? 'flex-start' : 'center',
-              justifyContent: 'center',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'flex-start',
             }}
           >
-            <div dangerouslySetInnerHTML={{ __html: previewHtml }} style={{ width: '100%', display: 'flex', justifyContent: 'center' }} />
+            <div
+              dangerouslySetInnerHTML={{ __html: previewHtml }}
+              style={{
+                width: '100%',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'flex-start',
+              }}
+            />
           </div>
         </div>
       </div>

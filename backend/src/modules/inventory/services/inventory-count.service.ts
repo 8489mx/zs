@@ -18,6 +18,7 @@ import { IdempotencyService } from '../../../core/idempotency/idempotency.servic
 import { idempotencyStorage } from '../../../core/idempotency/idempotency.context';
 import { AccountingPostingService } from '../../accounting/accounting-posting.service';
 import { verifyPassword } from '../../../core/auth/utils/password-hasher';
+import { normalizeArabicSearch, matchesArabic } from '../../../common/utils/arabic-search.util';
 
 @Injectable()
 export class InventoryCountService {
@@ -41,6 +42,7 @@ export class InventoryCountService {
     const search = String(query.search || '').trim();
     const type = String(query.type || 'all').toLowerCase();
     const locationId = query.locationId && query.locationId !== 'all' ? Number(query.locationId) : null;
+    const productId = query.productId ? Number(query.productId) : null;
     const branchScope = await this.scope.branchScope(auth);
 
     let qb = this.db
@@ -69,14 +71,27 @@ export class InventoryCountService {
     if (locationId) {
       qb = qb.where('m.location_id', '=', locationId);
     }
+    if (productId && Number.isFinite(productId)) {
+      qb = qb.where('m.product_id', '=', productId);
+    }
     if (search) {
-      qb = qb.where((eb) => eb.or([
-        eb('p.name', 'ilike', `%${search}%`),
-        eb('m.reason', 'ilike', `%${search}%`),
-        eb('m.note', 'ilike', `%${search}%`),
-        eb('l.name', 'ilike', `%${search}%`),
-        eb('b.name', 'ilike', `%${search}%`),
-      ]));
+      const normalizedSearch = normalizeArabicSearch(search);
+      const tokens = normalizedSearch.split(/\s+/).filter(Boolean);
+      if (tokens.length > 0) {
+        for (const token of tokens) {
+          const term = `%${token}%`;
+          qb = qb.where(sql<boolean>`(
+            TRANSLATE(LOWER(COALESCE(p.name, '')), 'أإآٱٲٳؤئىة', 'ااااااويهه') LIKE ${term}
+            OR LOWER(COALESCE(p.name_en, '')) LIKE ${term}
+            OR LOWER(COALESCE(p.barcode, '')) LIKE ${term}
+            OR LOWER(COALESCE(p.style_code, '')) LIKE ${term}
+            OR TRANSLATE(LOWER(COALESCE(m.reason, '')), 'أإآٱٲٳؤئىة', 'ااااااويهه') LIKE ${term}
+            OR TRANSLATE(LOWER(COALESCE(m.note, '')), 'أإآٱٲٳؤئىة', 'ااااااويهه') LIKE ${term}
+            OR TRANSLATE(LOWER(COALESCE(l.name, '')), 'أإآٱٲٳؤئىة', 'ااااااويهه') LIKE ${term}
+            OR TRANSLATE(LOWER(COALESCE(b.name, '')), 'أإآٱٲٳؤئىة', 'ااااااويهه') LIKE ${term}
+          )`);
+        }
+      }
     }
 
     const rows = await qb.orderBy('m.id', 'desc').limit(pageSize).offset(offset).execute();
@@ -112,9 +127,9 @@ export class InventoryCountService {
     mapped = await this.scope.filterByScope(mapped, auth);
 
     if (!query.page && !query.pageSize && !query.search && !query.filter && !query.view) return { stockCountSessions: mapped, damagedStockRecords: (await this.listDamagedStock({}, auth)).damagedStockRecords, scope: this.tenantScope(auth) };
-    const search = String(query.search || query.q || '').toLowerCase();
+    const search = String(query.search || query.q || '').trim();
     const filter = String(query.filter || query.view || 'all').toLowerCase();
-    const filtered = mapped.filter((row) => (filter === 'all' || String(row.status).toLowerCase() === filter) && (!search || [row.docNo, row.note, row.locationName, row.branchName].some((x) => String(x).toLowerCase().includes(search))));
+    const filtered = mapped.filter((row) => (filter === 'all' || String(row.status).toLowerCase() === filter) && (!search || [row.docNo, row.note, row.locationName, row.branchName].some((x) => matchesArabic(x, search))));
     const paged = paginateRows(filtered, query, { defaultSize: 8 });
     return { stockCountSessions: paged.rows, pagination: paged.pagination, summary: buildStockCountSummary(filtered as unknown as Array<{ status: string; items: Array<{ varianceQty: number }> }>), scope: this.tenantScope(auth) };
   }
@@ -382,14 +397,23 @@ export class InventoryCountService {
       .where(this.tenantPredicate(auth, 'd'));
 
     if (search) {
-      const term = `%${search.toLowerCase()}%`;
-      baseQuery = baseQuery.where(sql<boolean>`(
-        lower(coalesce(p.name, '')) like ${term}
-        OR lower(coalesce(d.reason, '')) like ${term}
-        OR lower(coalesce(d.note, '')) like ${term}
-        OR lower(coalesce(b.name, '')) like ${term}
-        OR lower(coalesce(l.name, '')) like ${term}
-      )`);
+      const normalizedSearch = normalizeArabicSearch(search);
+      const tokens = normalizedSearch.split(/\s+/).filter(Boolean);
+      if (tokens.length > 0) {
+        for (const token of tokens) {
+          const term = `%${token}%`;
+          baseQuery = baseQuery.where(sql<boolean>`(
+            TRANSLATE(LOWER(COALESCE(p.name, '')), 'أإآٱٲٳؤئىة', 'ااااااويهه') LIKE ${term}
+            OR LOWER(COALESCE(p.name_en, '')) LIKE ${term}
+            OR LOWER(COALESCE(p.barcode, '')) LIKE ${term}
+            OR LOWER(COALESCE(p.style_code, '')) LIKE ${term}
+            OR TRANSLATE(LOWER(COALESCE(d.reason, '')), 'أإآٱٲٳؤئىة', 'ااااااويهه') LIKE ${term}
+            OR TRANSLATE(LOWER(COALESCE(d.note, '')), 'أإآٱٲٳؤئىة', 'ااااااويهه') LIKE ${term}
+            OR TRANSLATE(LOWER(COALESCE(b.name, '')), 'أإآٱٲٳؤئىة', 'ااااااويهه') LIKE ${term}
+            OR TRANSLATE(LOWER(COALESCE(l.name, '')), 'أإآٱٲٳؤئىة', 'ااااااويهه') LIKE ${term}
+          )`);
+        }
+      }
     }
 
     const countRes = await baseQuery
