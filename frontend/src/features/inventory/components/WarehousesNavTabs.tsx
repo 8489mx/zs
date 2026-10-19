@@ -15,7 +15,7 @@ export function WarehousesNavTabs({ currentTab }: WarehousesNavTabsProps) {
   const { t } = useTranslation();
 
   const settingsQuery = useSettingsQuery();
-  const showBins = settingsQuery.data?.enableWarehouseBins === true;
+  const showBins = (settingsQuery.data as { enableWarehouseBins?: boolean } | undefined)?.enableWarehouseBins === true;
 
   const allTabs: Array<{
     key: WarehouseTabKey;

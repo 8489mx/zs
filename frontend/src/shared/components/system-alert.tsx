@@ -127,15 +127,19 @@ export function systemConfirm(options: ConfirmOptions | string): Promise<boolean
  * Inviolable rule: NEVER calls native browser window.alert under any circumstances.
  */
 export function systemAlert(
-  message: string,
+  messageOrOptions: string | { message: string; title?: string; variant?: AlertState['variant'] },
   title: string = 'تنبيه',
   variant: AlertState['variant'] = 'info'
 ) {
+  const message = typeof messageOrOptions === 'string' ? messageOrOptions : messageOrOptions.message;
+  const finalTitle = typeof messageOrOptions === 'string' ? title : (messageOrOptions.title || 'تنبيه');
+  const finalVariant = typeof messageOrOptions === 'string' ? variant : (messageOrOptions.variant || 'info');
+
   const handler = globalSetAlert || (typeof window !== 'undefined' ? window.__ZS_GLOBAL_SET_ALERT__ : null);
   if (handler) {
-    handler({ isOpen: true, message, title, variant });
+    handler({ isOpen: true, message, title: finalTitle, variant: finalVariant });
   } else {
-    showToast(message, variant === 'error' ? 'error' : variant === 'warning' ? 'warning' : 'info', { title });
+    showToast(message, finalVariant === 'error' ? 'error' : finalVariant === 'warning' ? 'warning' : 'info', { title: finalTitle });
   }
 }
 

@@ -1074,8 +1074,6 @@ export function AppShell({ children }: PropsWithChildren) {
     const isContractingVertical = isDedicatedContractingOnly;
     const isMaritimeVertical = isDedicatedMaritimeOnly;
     const isManufacturingVertical = isDedicatedManufacturingOnly;
-    const isImportVertical = isDedicatedImportOnly;
-    const isServicesVertical = isDedicatedServicesOnly;
 
     const isEnterpriseCommerceActive = isDedicatedContractingOnly || isDedicatedMaritimeOnly || isDedicatedManufacturingOnly || settings?.enableEnterpriseFeatures === true;
     const hasAccounting = isPlatformAdminUser || isDedicatedContractingOnly || isDedicatedMaritimeOnly || isDedicatedManufacturingOnly || (isEnterpriseCommerceActive && Boolean(tenant?.features?.includes('accounting')));

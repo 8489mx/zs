@@ -9,7 +9,6 @@ import { MutationFeedback } from '@/shared/components/mutation-feedback';
 import { SubmitButton } from '@/shared/components/submit-button';
 import { InventoryProductPicker } from '@/features/inventory/components/InventoryProductPicker';
 import { useClientPagination } from '@/shared/hooks/use-client-pagination';
-import { PaginationControls } from '@/shared/components/pagination-controls';
 import { exportStockCountSheetExcel, printStockCountSheet, type StockCountSheetRow } from '@/features/inventory/lib/inventory-documents';
 import { useCategoriesQuery, useSuppliersQuery } from '@/shared/hooks/use-catalog-queries';
 import { getGlobalCurrencySymbol } from '@/lib/currencies';

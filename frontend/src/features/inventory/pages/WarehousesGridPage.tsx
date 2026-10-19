@@ -6,7 +6,7 @@ import { PageHeader } from '@/shared/components/page-header';
 import { StatsGrid } from '@/shared/components/stats-grid';
 import { Button } from '@/shared/ui/button';
 import { Field } from '@/shared/ui/field';
-import { NetworkIcon, PackageIcon, WarehouseIcon, EditIcon, TrashIcon, ArrowLeftIcon, ClipboardIcon, TruckIcon } from '@/shared/components/icons/AppIcons';
+import { PackageIcon, WarehouseIcon, EditIcon, TrashIcon, ArrowLeftIcon, ClipboardIcon, TruckIcon } from '@/shared/components/icons/AppIcons';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { CustomSelect } from '@/shared/ui/custom-select';
 import { systemConfirm, systemAlert } from '@/shared/components/system-alert';

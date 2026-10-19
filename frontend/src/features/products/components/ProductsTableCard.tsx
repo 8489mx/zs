@@ -4,7 +4,6 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/shared/ui/button';
 import { FileTextIcon, LayersIcon, PrinterIcon, SearchIcon, XIcon } from '@/shared/components/icons/AppIcons';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
-import { systemConfirm } from '@/shared/components/system-alert';
 import { QueryFeedback } from '@/shared/components/query-feedback';
 import { PaginationControls } from '@/shared/components/pagination-controls';
 import { formatCurrency } from '@/lib/format';

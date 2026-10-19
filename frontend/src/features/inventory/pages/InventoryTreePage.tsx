@@ -8,7 +8,7 @@ import { WarehousesNavTabs } from '@/features/inventory/components/WarehousesNav
 import { StatsGrid } from '@/shared/components/stats-grid';
 import { Button } from '@/shared/ui/button';
 import { CustomSelect } from '@/shared/ui/custom-select';
-import { WarehouseIcon, AlertTriangleIcon, SearchIcon } from '@/shared/components/icons/AppIcons';
+import { AlertTriangleIcon, SearchIcon } from '@/shared/components/icons/AppIcons';
 import { inventoryApi } from '@/features/inventory/api/inventory.api';
 import { catalogApi } from '@/shared/api/catalog';
 import type { ProductRow, SortMode } from '../components/inventory-tree/inventoryTree.types';

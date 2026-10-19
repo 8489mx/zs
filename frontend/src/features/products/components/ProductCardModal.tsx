@@ -1,5 +1,4 @@
 import { useState, useMemo } from 'react';
-import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { Button } from '@/shared/ui/button';
@@ -7,7 +6,6 @@ import { CustomSelect } from '@/shared/ui/custom-select';
 import { PaginationControls } from '@/shared/components/pagination-controls';
 import { QueryFeedback } from '@/shared/components/query-feedback';
 import {
-  LayersIcon,
   EditIcon,
   BarcodeIcon,
   TagIcon,
@@ -17,13 +15,12 @@ import {
   DownloadIcon,
   SmartphoneIcon,
   CheckShieldIcon,
-  AlertTriangleIcon,
   RefreshCwIcon,
 } from '@/shared/components/icons/AppIcons';
 import { formatCurrency, formatDate } from '@/lib/format';
 import { downloadExcelFile, escapeHtml, printHtmlDocument } from '@/lib/browser';
 import { inventoryApi } from '@/features/inventory/api/inventory.api';
-import type { Product } from '@/types/domain';
+import type { Product, StockMovementRecord } from '@/types/domain';
 
 const movementLabels: Record<string, string> = {
   opening: 'رصيد افتتاحي',
@@ -128,7 +125,7 @@ export interface ProductCardModalProps {
   supplierName?: string;
   locationName?: string;
   onEditProduct: (product: Product) => void;
-  onOpenBarcodeDialog: (product: Product, mode: 'scan' | 'edit') => void;
+  onOpenBarcodeDialog: (product: Product, mode?: 'scan' | 'generate') => void;
   onOpenOfferDialog: (product: Product) => void;
   onOpenSerialsDialog?: (product: Product) => void;
   onToggleArchiveProduct?: (product: Product) => void;
@@ -150,7 +147,6 @@ export function ProductCardModal({
   onDeleteProduct,
   mobileStoreEnabled,
 }: ProductCardModalProps) {
-  const { t } = useTranslation();
   const [typeFilter, setTypeFilter] = useState('all');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(15);
@@ -158,7 +154,20 @@ export function ProductCardModal({
   const movementsQuery = useQuery({
     queryKey: ['product-stock-movements', product?.id, page, pageSize, typeFilter],
     queryFn: () => {
-      if (!product?.id) return { rows: [], pagination: undefined, summary: undefined };
+      if (!product?.id) {
+        return Promise.resolve({
+          rows: [] as StockMovementRecord[],
+          pagination: {
+            page: 1,
+            pageSize,
+            totalItems: 0,
+            totalPages: 1,
+            rangeStart: 0,
+            rangeEnd: 0,
+          },
+          summary: { positive: 0, negative: 0, totalItems: 0 },
+        });
+      }
       return inventoryApi.stockMovementsPage({
         productId: product.id,
         page,
@@ -174,7 +183,6 @@ export function ProductCardModal({
 
   const rows = useMemo(() => movementsQuery.data?.rows || [], [movementsQuery.data?.rows]);
   const pagination = movementsQuery.data?.pagination;
-  const totals = movementsQuery.data?.summary || { positive: 0, negative: 0, totalItems: 0 };
 
   if (!product) return null;
 
@@ -301,7 +309,7 @@ export function ProductCardModal({
       open={Boolean(product)}
       onClose={onClose}
       title={product.name}
-      subtitle={`كود: ${product.id} · باركود: ${product.barcode || '—'} · القسم: ${categoryName || 'غير محدد'}`}
+      subtitle={`كود: ${product.id} · باركود: ${product.barcode || '—'} · القسم: ${categoryName || 'غير محدد'}${supplierName ? ` · المورد: ${supplierName}` : ''}${locationName ? ` · المخزن: ${locationName}` : ''}`}
       size="xl"
       width="min(980px, 96vw)"
       minHeight="min(600px, 85vh)"
@@ -603,7 +611,7 @@ export function ProductCardModal({
             </span>
             <Button
               type="button"
-              variant="outline"
+              variant="secondary"
               size="sm"
               onClick={() => movementsQuery.refetch()}
               disabled={movementsQuery.isFetching}
@@ -671,7 +679,7 @@ export function ProductCardModal({
                   </tr>
                 </thead>
                 <tbody>
-                  {rows.map((m) => (
+                  {rows.map((m: StockMovementRecord) => (
                     <tr key={m.id}>
                       <td style={{ textAlign: 'start', whiteSpace: 'normal', wordBreak: 'break-word' }}>
                         <div>

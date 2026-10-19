@@ -18,12 +18,17 @@ export function getSelectedTransferTotals(selectedTransfer: StockTransfer | null
   };
 }
 
-export function getSelectedSessionTotals(selectedSession: StockCountSession | null) {
+export function getSelectedSessionTotals(selectedSession: StockCountSession | null): {
+  itemsCount: number;
+  expectedQty: number;
+  countedQty: number;
+  varianceQty: number;
+} {
   const items = selectedSession?.items || [];
   return {
     itemsCount: items.length,
     expectedQty: items.reduce((sum: number, item: { expectedQty?: number }) => sum + Number(item.expectedQty || 0), 0),
-    countedQty: items.reduce((sum: number, item: { countedQty?: number }) => sum + Number(item.countedQty || 0), 0),
+    countedQty: items.reduce((sum: number, item: { countedQty?: number | string }) => sum + Number(item.countedQty || 0), 0),
     varianceQty: Number(items.reduce((sum: number, item: { varianceQty?: number }) => sum + Number(item.varianceQty || 0), 0).toFixed(3))
   };
 }

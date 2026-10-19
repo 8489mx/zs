@@ -1,8 +1,7 @@
 import { useTranslation } from 'react-i18next';
-import { useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { FormSection } from '@/shared/components/form-section';
 import { Button } from '@/shared/ui/button';
-import { EmptyState } from '@/shared/ui/empty-state';
 import { DataTable } from '@/shared/ui/data-table';
 import { QueryFeedback } from '@/shared/components/query-feedback';
 import { MutationFeedback } from '@/shared/components/mutation-feedback';
@@ -102,7 +101,6 @@ export function StockCountMonitorCard({
   products = [],
 }: StockCountMonitorCardProps) {
   const { t } = useTranslation();
-  const detailPanelRef = useRef<HTMLDivElement | null>(null);
   const currencySymbol = getGlobalCurrencySymbol();
 
   const [itemSearch, setItemSearch] = useState('');
@@ -119,10 +117,6 @@ export function StockCountMonitorCard({
     setItemsPage(1);
     setActiveView('audit');
   };
-
-  const currentSessionIndex = stockCountSessions.findIndex((s) => String(s.id) === String(selectedSession?.id));
-  const hasPrev = currentSessionIndex > 0;
-  const hasNext = currentSessionIndex >= 0 && currentSessionIndex < stockCountSessions.length - 1;
 
   const selectedSummary = useMemo(
     () => (selectedSession ? summarizeSessionVariance(selectedSession, products) : null),
