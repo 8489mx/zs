@@ -1068,14 +1068,6 @@
   box-sizing: border-box;
 }
 
-.document-prototype-column.dashboard-full-width,
-.dashboard-premium-shell .document-prototype-column,
-.dashboard-premium-shell > main {
-  margin: 0 !important;
-  max-width: 100% !important;
-  width: 100% !important;
-}
-
 .purchase-prototype-sticky-stack.is-scrolled .purchase-prototype-workspace-toolbar {
   border-bottom-color: rgba(203, 213, 225, 0.92);
 }

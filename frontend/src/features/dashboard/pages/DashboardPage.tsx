@@ -30,7 +30,7 @@ function DashboardSkeleton() {
   const { t } = useTranslation();
   return (
     <div className="page-stack page-shell dashboard-premium-shell">
-      <main className="document-prototype-column dashboard-full-width" style={{ width: '100%', maxWidth: '100%', margin: 0, paddingBottom: '100px' }}>
+      <main className="document-prototype-column" style={{ width: '100%', paddingBottom: '100px' }}>
         <PageHeader
           title={t('dashboard.title', 'لوحة التحكم اليومية')}
           description={t('dashboard.description', 'مؤشرات الأداء المباشرة، القرارات المطلوبة، وحركة المبيعات والخزينة اليومية.')}
@@ -208,7 +208,7 @@ export function DashboardPage() {
 
   return (
     <div className="page-stack page-shell dashboard-premium-shell">
-      <main className="document-prototype-column dashboard-full-width" style={{ width: '100%', maxWidth: '100%', margin: 0, paddingBottom: '100px' }}>
+      <main className="document-prototype-column" style={{ width: '100%', paddingBottom: '100px' }}>
         <PageHeader
           title={t('dashboard.title', 'لوحة التحكم اليومية')}
           description={t('dashboard.description', 'مؤشرات الأداء المباشرة، القرارات المطلوبة، وحركة المبيعات والخزينة اليومية.')}
