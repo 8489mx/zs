@@ -92,10 +92,31 @@ const ACTION_PATTERNS: Array<{ pattern: RegExp; label: string; labelEn: string }
   { pattern: /(إضافة صنف|create product)/i, label: 'إضافة صنف', labelEn: 'Create Product' },
   { pattern: /(تعديل صنف|update product)/i, label: 'تعديل صنف', labelEn: 'Update Product' },
   { pattern: /(حذف صنف|delete product)/i, label: 'حذف صنف', labelEn: 'Delete Product' },
-  { pattern: /(جلسة جرد مخزون|inventory session)/i, label: 'جلسة جرد مخزون', labelEn: 'Inventory Session' },
-  { pattern: /(اعتماد جلسة جرد|post inventory)/i, label: 'اعتماد جلسة جرد', labelEn: 'Post Inventory Session' },
+  { pattern: /(ترحيل دفعة جرد|post inventory batch)/i, label: 'ترحيل دفعة جرد', labelEn: 'Post Inventory Batch' },
+  { pattern: /(حذف مسودة جلسة جرد|delete inventory draft)/i, label: 'حذف مسودة جلسة جرد', labelEn: 'Delete Inventory Session Draft' },
+  { pattern: /(اعتماد جلسة جرد|post inventory session)/i, label: 'اعتماد جلسة جرد', labelEn: 'Post Inventory Session' },
+  { pattern: /(جلسة جرد مخزون|جلسة جرد|inventory session)/i, label: 'جلسة جرد مخزون', labelEn: 'Inventory Session' },
   { pattern: /(تسجيل تالف|damaged stock)/i, label: 'تسجيل تالف', labelEn: 'Record Damaged Stock' },
   { pattern: /(نقل قسم|transfer department)/i, label: 'نقل أرصدة قسم', labelEn: 'Transfer Department' },
+
+  // POS & Cashier Security Actions
+  { pattern: /(حدث أمني.*إلغاء.*فاتورة|draft_cancel|draft.*cancelled|إلغاء\/حذف فاتورة)/i, label: 'حدث أمني - إلغاء/حذف فاتورة', labelEn: 'Security Event - Cancel Draft Invoice' },
+  { pattern: /(حدث أمني.*حذف.*عنصر|cart_remove|cart.*item.*removed|حذف عنصر من السلة)/i, label: 'حدث أمني - حذف عنصر من السلة', labelEn: 'Security Event - Remove Item from Cart' },
+  { pattern: /(حدث أمني.*خصم|discount_override|تجاوز الخصم)/i, label: 'حدث أمني - تجاوز الخصم', labelEn: 'Security Event - Discount Override' },
+  { pattern: /(حدث أمني|security event)/i, label: 'حدث أمني', labelEn: 'Security Event' },
+
+  // Sales & Purchases Actions
+  { pattern: /(create sales invoice|إنشاء فاتورة مبيعات|إضافة فاتورة مبيعات)/i, label: 'إنشاء فاتورة مبيعات', labelEn: 'Create Sales Invoice' },
+  { pattern: /(update sales invoice|تعديل فاتورة مبيعات)/i, label: 'تعديل فاتورة مبيعات', labelEn: 'Update Sales Invoice' },
+  { pattern: /(cancel sales invoice|إلغاء فاتورة مبيعات)/i, label: 'إلغاء فاتورة مبيعات', labelEn: 'Cancel Sales Invoice' },
+  { pattern: /(sales return|مرتجع مبيعات)/i, label: 'مرتجع مبيعات', labelEn: 'Sales Return' },
+  { pattern: /(create purchase invoice|إنشاء فاتورة مشتريات|إضافة فاتورة مشتريات)/i, label: 'إنشاء فاتورة مشتريات', labelEn: 'Create Purchase Invoice' },
+  { pattern: /(update purchase invoice|تعديل فاتورة مشتريات)/i, label: 'تعديل فاتورة مشتريات', labelEn: 'Update Purchase Invoice' },
+  { pattern: /(cancel purchase invoice|إلغاء فاتورة مشتريات)/i, label: 'إلغاء فاتورة مشتريات', labelEn: 'Cancel Purchase Invoice' },
+  { pattern: /(purchase return|مرتجع مشتريات)/i, label: 'مرتجع مشتريات', labelEn: 'Purchase Return' },
+  { pattern: /(receipt voucher|سند قبض)/i, label: 'سند قبض', labelEn: 'Receipt Voucher' },
+  { pattern: /(payment voucher|سند صرف)/i, label: 'سند صرف', labelEn: 'Payment Voucher' },
+  { pattern: /(treasury transfer|تحويل بين الخزائن)/i, label: 'تحويل بين الخزائن', labelEn: 'Treasury Transfer' },
 
   // Delivery
   { pattern: /(إضافة مندوب توصيل|create delivery rep)/i, label: 'إضافة مندوب توصيل', labelEn: 'Create Delivery Rep' },
@@ -206,6 +227,45 @@ export function normalizeAuditDetailText(detailText: string, isEn = false): stri
   raw = raw.trim();
 
   if (isEn) {
+    // 0. Entity action by actor: "تم تحديث الصنف #55164 بواسطة zs"
+    const entityActionMatch = raw.match(/^تم\s+(تحديث|تعديل|إضافة|انشاء|إنشاء|حذف|تسجيل|إلغاء|الغاء|ترحيل)\s+(الصنف|المنتج|العميل|المورد|المستخدم|الفرع|المخزن|الفاتورة|السجل|الطلب|العقد|المشروع|دفعة جرد|جلسة جرد|مسودة جلسة جرد)\s*(#?\S+)?(?:\s+بواسطة\s+(.+))?$/);
+    if (entityActionMatch) {
+      const verbMap: Record<string, string> = {
+        'تحديث': 'updated',
+        'تعديل': 'updated',
+        'إضافة': 'created',
+        'إنشاء': 'created',
+        'انشاء': 'created',
+        'حذف': 'deleted',
+        'تسجيل': 'recorded',
+        'إلغاء': 'cancelled',
+        'الغاء': 'cancelled',
+        'ترحيل': 'posted',
+      };
+      const entityMap: Record<string, string> = {
+        'الصنف': 'Product',
+        'المنتج': 'Product',
+        'العميل': 'Customer',
+        'المورد': 'Supplier',
+        'المستخدم': 'User',
+        'الفرع': 'Branch',
+        'المخزن': 'Warehouse',
+        'الفاتورة': 'Invoice',
+        'السجل': 'Record',
+        'الطلب': 'Order',
+        'العقد': 'Contract',
+        'المشروع': 'Project',
+        'دفعة جرد': 'Inventory Batch',
+        'جلسة جرد': 'Inventory Session',
+        'مسودة جلسة جرد': 'Inventory Session Draft',
+      };
+      const verb = verbMap[entityActionMatch[1]] || 'updated';
+      const entity = entityMap[entityActionMatch[2]] || entityActionMatch[2];
+      const id = entityActionMatch[3] ? ` ${entityActionMatch[3]}` : '';
+      const actor = entityActionMatch[4] ? ` by ${entityActionMatch[4]}` : '';
+      return `${entity}${id} ${verb}${actor}`;
+    }
+
     // 1. Maintenance ticket status change
     const ticketStatusMatch = raw.match(/Updated ticket\s+([A-Za-z0-9_-]+)\s+status to\s+([A-Za-z0-9_]+)/i);
     if (ticketStatusMatch) {

@@ -101,7 +101,7 @@ export default function DeliveryRepsPage() {
               }}
             >
               {tab.icon}
-              <div style={{ textAlign: 'right' }}>
+              <div style={{ textAlign: 'start' }}>
                 <span style={{ display: 'block', lineHeight: 1.2 }}>{tab.label}</span>
                 <span
                   style={{

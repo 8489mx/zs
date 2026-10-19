@@ -167,6 +167,103 @@ export const GENERAL_CUSTOMER_PROFILE: CustomerProfile = {
   showMarketingCampaign: true,
 };
 
+
+export const EN_DISTRIBUTION_CUSTOMER_PROFILE: CustomerProfile = {
+  id: 'distribution',
+  pageTitle: 'Customers & Retail Outlets Directory',
+  pageDescription: 'Manage distribution outlets, grocery and wholesale stores, delivery routes, customer codes, locations and credit limits.',
+  badgeUnit: 'Outlets / Stores',
+  addBtnText: '+ New Store / Outlet',
+  modalAddTitle: 'Register New Outlet or Store',
+  modalAddSubtitle: 'Enter store details, address, delivery route, customer code, and driver credit limit.',
+  modalEditSubtitle: 'Update store details, credit limit, or delivery route.',
+  nameLabel: 'Store / Commercial Name *',
+  namePlaceholder: 'e.g. Al-Amana Supermarket',
+  phoneLabel: 'Owner / Receiver Phone',
+  phonePlaceholder: 'e.g. 010xxxxxxxx or +9665xxxxxxxx',
+  addressLabel: 'Address, Route & Area',
+  addressPlaceholder: 'Street, District, Route...',
+  typeLabel: 'Outlet Type & Classification',
+  types: [
+    { value: 'wholesale', label: 'Wholesale / Semi-wholesale (Special wholesale rates)', badgeLabel: 'Wholesale', badgeStyle: { bg: '#dcfce7', color: '#166534' } },
+    { value: 'credit', label: 'Credit Outlet (Settlement with next cycle)', badgeLabel: 'Credit / Cycle', badgeStyle: { bg: '#e0f2fe', color: '#0369a1' } },
+    { value: 'cash', label: 'Retail Outlet / Immediate cash on delivery', badgeLabel: 'Cash', badgeStyle: { bg: '#f1f5f9', color: '#475569' } },
+    { value: 'vip', label: 'Strategic Key Account (VIP)', badgeLabel: 'VIP Strategic', badgeStyle: { bg: '#fef3c7', color: '#92400e' } },
+  ],
+  balanceLabel: 'Opening Balance',
+  balanceHint: 'Prior store debt before starting distribution routes',
+  creditLimitLabel: 'Credit Limit',
+  creditLimitHint: 'Maximum allowable balance before blocking new delivery orders (0 = cash only)',
+  submitCreateText: 'Save Outlet',
+  submitEditText: 'Save Changes',
+  showLoyalty: false,
+  showMarketingCampaign: true,
+};
+
+export const EN_CONTRACTING_CUSTOMER_PROFILE: CustomerProfile = {
+  id: 'contracting',
+  pageTitle: 'Clients & Project Owners Directory',
+  pageDescription: 'Manage project owners, developers, government assigning authorities, and contracting credit lines.',
+  badgeUnit: 'Clients / Owners',
+  addBtnText: '+ New Owner / Client',
+  modalAddTitle: 'Register New Client or Owner',
+  modalAddSubtitle: 'Register project owner or developer details, coordinator, and contractual facilities.',
+  modalEditSubtitle: 'Update client details, contractual facilities, and corporate data.',
+  nameLabel: 'Client / Developer Name *',
+  namePlaceholder: 'e.g. Emaar Development / Eng. Ahmed',
+  phoneLabel: 'Project Coordinator Phone',
+  phonePlaceholder: 'e.g. 010xxxxxxxx or +9665xxxxxxxx',
+  addressLabel: 'Headquarters / Main Project Site',
+  addressPlaceholder: 'City, District, Site address...',
+  typeLabel: 'Contractual Account Classification',
+  types: [
+    { value: 'cash', label: 'Private Sector Owner (Direct progress payments)', badgeLabel: 'Private / Direct', badgeStyle: { bg: '#f1f5f9', color: '#475569' } },
+    { value: 'vip', label: 'Strategic Developer VIP (Major projects & exclusive contracts)', badgeLabel: 'Strategic Developer', badgeStyle: { bg: '#fef3c7', color: '#92400e' } },
+    { value: 'credit', label: 'Government Authority / Deferred Contract (Progress certificates)', badgeLabel: 'Government / Contractual', badgeStyle: { bg: '#e0f2fe', color: '#0369a1' } },
+    { value: 'wholesale', label: 'Main Contractor (Subcontracting / Consortium)', badgeLabel: 'Main Contractor', badgeStyle: { bg: '#dcfce7', color: '#166534' } },
+  ],
+  balanceLabel: 'Opening Contractual Balance',
+  balanceHint: 'Prior receivables from this client (if any)',
+  creditLimitLabel: 'Credit & Financing Limit',
+  creditLimitHint: 'Maximum certificate funding without collection (0 = advance payments only)',
+  submitCreateText: 'Save Client',
+  submitEditText: 'Save Changes',
+  showLoyalty: false,
+  showMarketingCampaign: false,
+};
+
+export const EN_MARITIME_CUSTOMER_PROFILE: CustomerProfile = {
+  id: 'maritime',
+  pageTitle: 'Shippers & Importers Directory',
+  pageDescription: 'Manage shippers, importers, exporters, and freight credit facilities with quick editing.',
+  badgeUnit: 'Shippers / Clients',
+  addBtnText: '+ New Shipper / Importer',
+  modalAddTitle: 'Register New Shipper or Importer',
+  modalAddSubtitle: 'Register shipper or importer details, coordinator, and freight credit facilities.',
+  modalEditSubtitle: 'Update shipper details, credit facilities, and official data.',
+  nameLabel: 'Shipper / Importer Name *',
+  namePlaceholder: 'e.g. Nile Import & Export Co.',
+  phoneLabel: 'Shipping Coordinator Phone',
+  phonePlaceholder: 'e.g. 010xxxxxxxx or +9665xxxxxxxx',
+  addressLabel: 'Headquarters / Port Location',
+  addressPlaceholder: 'City, Industrial Zone, or Port...',
+  typeLabel: 'Freight Account Classification',
+  types: [
+    { value: 'cash', label: 'Cash Shipper (Advance payment per B/L)', badgeLabel: 'Cash Shipper', badgeStyle: { bg: '#f1f5f9', color: '#475569' } },
+    { value: 'vip', label: 'Strategic VIP Client (Priority booking & freight discounts)', badgeLabel: 'Strategic VIP', badgeStyle: { bg: '#fef3c7', color: '#92400e' } },
+    { value: 'credit', label: 'Credit Account (Monthly freight invoicing)', badgeLabel: 'Credit Shipper', badgeStyle: { bg: '#e0f2fe', color: '#0369a1' } },
+    { value: 'wholesale', label: 'Forwarder / Partner Agency', badgeLabel: 'Forwarder Agency', badgeStyle: { bg: '#dcfce7', color: '#166534' } },
+  ],
+  balanceLabel: 'Opening Freight Balance',
+  balanceHint: 'Prior shipper balance before system registration',
+  creditLimitLabel: 'Freight Credit Facility Limit',
+  creditLimitHint: 'Maximum allowable credit limit for freight orders (0 = cash only)',
+  submitCreateText: 'Save Shipper',
+  submitEditText: 'Save Changes',
+  showLoyalty: false,
+  showMarketingCampaign: false,
+};
+
 export const EN_GENERAL_CUSTOMER_PROFILE: CustomerProfile = {
   id: 'general',
   pageTitle: 'Customers',
@@ -263,7 +360,11 @@ export function useCustomerProfile(): CustomerProfile {
   }
 
   const base = getCustomerProfileByRaw(rawActivity, pathname);
-  if (base.id === 'general' && i18n.language !== 'ar') {
+  const isEn = i18n.language?.startsWith('en');
+  if (isEn) {
+    if (base.id === 'distribution') return EN_DISTRIBUTION_CUSTOMER_PROFILE;
+    if (base.id === 'contracting') return EN_CONTRACTING_CUSTOMER_PROFILE;
+    if (base.id === 'maritime') return EN_MARITIME_CUSTOMER_PROFILE;
     return EN_GENERAL_CUSTOMER_PROFILE;
   }
   return base;

@@ -116,7 +116,7 @@ export function CrmDealDetailModal({
               color: currentStage?.color || '#475569',
             }}
           >
-            {currentStage?.label || activeDealDetail.deal.stage}
+            {t(`crm.stage.${activeDealDetail.deal.stage}`, currentStage?.label || activeDealDetail.deal.stage)}
           </span>
         </div>
       }

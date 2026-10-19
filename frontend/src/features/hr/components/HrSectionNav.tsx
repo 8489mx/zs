@@ -88,7 +88,7 @@ export function HrSectionNav() {
   };
 
   return (
-    <div className="hr-nav-wrapper" style={{ position: 'relative', width: '100%', minWidth: 0, display: 'flex', alignItems: 'center' }} dir="rtl">
+    <div className="hr-nav-wrapper" style={{ position: 'relative', width: '100%', minWidth: 0, display: 'flex', alignItems: 'center' }}>
       {/* Scroll Right Button (in RTL: moves toward beginning) */}
       {canScrollRight && (
         <button

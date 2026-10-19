@@ -20,7 +20,7 @@ export function CrmDealTable({ deals, onSelectDeal }: CrmDealTableProps) {
         overflow: 'hidden',
       }}
     >
-      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', textAlign: 'right' }}>
+      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', textAlign: 'start' }}>
         <thead>
           <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>
             <th style={{ padding: '12px 16px', fontWeight: 600 }}>{t('crm.crm_deal_table.s0', "عنوان الفرصة")}</th>
@@ -62,7 +62,7 @@ export function CrmDealTable({ deals, onSelectDeal }: CrmDealTableProps) {
                       color: stageConfig?.color || '#475569',
                     }}
                   >
-                    {stageConfig?.label || deal.stage}
+                    {t(`crm.stage.${deal.stage}`, stageConfig?.label || deal.stage)}
                   </span>
                 </td>
                 <td style={{ padding: '12px 16px', fontWeight: 700, color: '#16a34a' }}>
@@ -80,7 +80,7 @@ export function CrmDealTable({ deals, onSelectDeal }: CrmDealTableProps) {
                       color: priorityConfig.color,
                     }}
                   >
-                    {priorityConfig.label}
+                    {t(`crm.priority.${deal.priority}`, priorityConfig.label)}
                   </span>
                 </td>
                 <td style={{ padding: '12px 16px', color: '#64748b' }}>

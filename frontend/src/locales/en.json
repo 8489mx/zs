@@ -118,7 +118,7 @@
     "reports-employees": "Staff Reports",
     "hr-group": "Human Resources",
     "hr": "Human Resources",
-    "hr-settlements": "End of Service Settlements",
+    "hr-settlements": "End of Service",
     "admin-group": "Administration & System",
     "audit": "System Audit",
     "apps": "App Store",
@@ -192,7 +192,9 @@
     "exporting": "Exporting...",
     "switch_language": "Change System Language",
     "languages": "Available Languages",
-    "languages_count": "Languages"
+    "languages_count": "Languages",
+    "retry": "Retry",
+    "locale": "en-US"
   },
   "firstRun": {
     "title": "Welcome to ZSystems",
@@ -2970,7 +2972,8 @@
     "f8413b": "Invoices List",
     "1b017b": "Add Invoice",
     "38df37": "Total Invoices",
-    "c31e9c": "Search Invoices..."
+    "c31e9c": "Search Invoices...",
+    "invoices_register": "Sales Invoices Register"
   },
   "pagination": {
     "navigation": "Pagination Navigation",
@@ -3196,7 +3199,8 @@
       "s6": "There are no specific clients.",
       "s0": "Remove the charger",
       "s5": "Confirm Deletion of Selected Customers"
-    }
+    },
+    "crm_pipeline": "Deals Pipeline (CRM)"
   },
   "suppliers": {
     "count": "Total Suppliers",
@@ -3429,6 +3433,16 @@
     },
     "expenses_page": {
       "s0": "Record New Expense"
+    },
+    "nav": {
+      "treasury": "Treasury & Cash",
+      "treasury_sub": "Transactions & Balances Log",
+      "cheques": "Post-Dated Cheques (PDC)",
+      "cheques_sub": "Receivable & Payable Notes",
+      "reconciliation": "Bank Reconciliation",
+      "reconciliation_sub": "Statement Matching",
+      "expenses": "Petty Cash & Expenses",
+      "expenses_sub": "Payment Vouchers & Expense Items"
     }
   },
   "expenses": {
@@ -4644,7 +4658,9 @@
       "s69": "Archiving and deactivating the item while preserving invoices and historical reports",
       "s5": "All Departments (",
       "s6": "Clear Department Filter",
-      "s10": "Select All Visible Rows"
+      "s10": "Select All Visible Rows",
+      "card_btn_title": "View product card, historical movement and stock",
+      "card_btn": "Product Card"
     },
     "products_workspace": {
       "s1": "Confirm Delete Item",
@@ -5420,7 +5436,7 @@
       "s87": "Status",
       "s88": "Actions",
       "s98": "Electrician",
-      "s103": "Under Maintenance",
+      "s103": "Available",
       "s108": "Manage Drivers & Shifts",
       "s110": "Edit",
       "s1": "Vehicle",
@@ -5455,9 +5471,9 @@
       "s91": "Freight truck",
       "s93": "Another car",
       "s96": "Diesel",
-      "s102": "Available for operation",
-      "s104": "Excluded",
-      "s105": "Fuel and Maintenance",
+      "s102": "Assigned",
+      "s104": "Center & Maintenance Register",
+      "s105": "in the workshop",
       "s106": "Complete maintenance",
       "s109": "Assign a driver",
       "s3": "In Service",
@@ -5501,7 +5517,7 @@
       "s94": "Fuel:",
       "s95": "Gasoline",
       "s97": "Hybrid",
-      "s101": "Service Assigned",
+      "s101": "All",
       "s107": "Send to Workshop"
     },
     "send_to_maintenance_modal": {
@@ -7736,22 +7752,22 @@
       "s81": "Notes or receipt number"
     },
     "delivery_reps_page": {
-      "s0": "Manage Delegates and Distribution Fleet",
-      "s2": "Delivery Representatives & Couriers",
-      "s3": "Delivery Orders & Settlements",
+      "s0": "Delegates & Fleet Management",
+      "s2": "Couriers & Delivery Reps",
+      "s3": "Orders & Settlements",
       "s4": "Company Fleet",
-      "s5": "Vehicles, Driver Assignment & Shifts",
-      "s6": "Van Sale Trips & Shifts",
+      "s5": "Vehicles, Drivers & Shifts",
+      "s6": "Van Sales & Shifts",
       "s7": "Field Sales, Odometer & Cash",
-      "s8": "List of Reps / Drivers",
-      "s9": "Details of Representative / Driver",
-      "s14": "Orders & Adjustment Account",
-      "s1": "Managing delivery drivers, the company vehicle fleet, van shifts, and tracking orders and financial supplies.",
-      "s10": "Representative requests and account settlement",
+      "s8": "Delivery Reps & Drivers",
+      "s9": "Driver Details",
+      "s14": "Orders & Settlements",
+      "s1": "Managing delivery drivers, vehicle fleet, van sales shifts, order tracking, and financial settlements.",
+      "s10": "Representative Orders & Settlement",
       "s11": "Select a representative from the list",
-      "s15": "Supplies Record",
-      "s13": "Performance dashboard",
-      "s12": "Select a representative to view the performance dashboard, track assigned orders, settle financial advances, and view supply records."
+      "s15": "Settlement Ledger",
+      "s13": "Performance Dashboard",
+      "s12": "Select a representative to view the performance dashboard, track assigned orders, settle advances, and view records."
     },
     "driver_portal_page": {
       "s1": "Target Collection",
@@ -8212,26 +8228,26 @@
         "s33": "Sales Cashier"
       },
       "delivery_reps_list": {
-        "s0": "+ Add New Representative / Driver",
-        "s4": "Copy Link",
+        "s0": "+ Add Representative",
+        "s4": "Copy",
         "s7": "Loading...",
         "s10": "Delivery Driver",
-        "s12": "Van Sales Distribution",
+        "s12": "Van Sales",
         "s13": "Delivery Driver",
-        "s14": "Panel:",
+        "s14": "Plate:",
         "s15": "Active",
         "s16": "Suspended",
         "s17": "Edit Info",
-        "s19": "Activate Representative / Driver",
-        "s2": "Delegate portal link copied to clipboard!",
-        "s5": "Open delegate portal in a new window for trial",
-        "s11": "Inclusive (Van and Delivery)",
-        "s1": "Mobile representative portal:",
-        "s6": "Open the portal ↗",
-        "s3": "Copy the link to share it with the agents on WhatsApp",
+        "s19": "Activate Representative",
+        "s2": "Representative portal link copied to clipboard!\n",
+        "s5": "Open representative portal in a new window for trial",
+        "s11": "Van & Courier",
+        "s1": "Driver Portal:",
+        "s6": "Open ↗",
+        "s3": "Copy the link to share it with reps on WhatsApp",
         "s18": "Stop agent",
-        "s8": "Comprehensive Agent (Delivery and Van)",
-        "s9": "Van Distribution Agent"
+        "s8": "Van & Courier",
+        "s9": "Van Sales Rep"
       },
       "pos_delivery_reps_management_dialog": {
         "s0": "Manage Delivery Representatives",
@@ -8784,7 +8800,9 @@
         "s18": "Activating...",
         "s19": "Activate the license",
         "s3": "Manage subscribers and copies",
-        "s5": "Developer Password (Master Password)"
+        "s5": "Developer Password (Master Password)",
+        "sector_preset_label": "Or select an industry-specific template:",
+        "select_sector_placeholder": "-- Select an industry template (optional) --"
       },
       "first_run_setup_checklist": {
         "s2": "Progress %",
@@ -9896,7 +9914,8 @@
       "s8": "Allocation matrices and templates",
       "s0": "Accounting cost centers (Cost Centers)",
       "s1": "A hierarchical guide for managing and tracking cost centers, branches, and projects, and calculating independent profits and expenses",
-      "s7": "Hierarchical cost centers guide ("
+      "s7": "Hierarchical cost centers guide (",
+      "back_btn": "Chart of Accounts"
     },
     "accounting_financial_summary_page": {
       "s2": "Report Filters",
@@ -11103,25 +11122,25 @@
       "s17": "Monitoring and forensic audit logs (",
       "s18": "Record)",
       "s19": "Updating data...",
-      "s20": "Target schedule",
+      "s20": "Target Table",
       "s23": "Affected fields",
       "s25": "Network IP",
-      "s26": "Digital hash fingerprint",
+      "s26": "Hash Fingerprint",
       "s29": "No audit records match the current search criteria",
       "s30": "All operations on financial tables are subject to automatic saving via Database Triggers",
       "s32": "Create a full record",
       "s33": "Delete Record Permanently",
       "s38": "(Total Records:",
       "s9": "Inspection Time:",
-      "s10": "Controlled schedule",
+      "s10": "Audit Table",
       "s13": "Search by transaction number or user...",
       "s8": "Block",
-      "s21": "Transaction Number (Record ID)",
+      "s21": "Record ID",
       "s2": "Performing cryptographic check...",
       "s4": "The cryptographic chain is documented and 100% intact (Cryptographically Intact & Verified)",
       "s7": "Checked blocks:",
       "s12": "Quick search (user, IP, document number)",
-      "s35": "Show differences"
+      "s35": "View Diff"
     },
     "audit_page": {
       "s0": "Audit & Review Log",
@@ -14494,6 +14513,32 @@
     "crm_stage_row": {
       "s1": "There are no deals at this stage",
       "s0": "Deal"
+    },
+    "to_customers": "Customers Directory & Log",
+    "deal_unit": "Deals",
+    "stage_unit": "Deals",
+    "stage": {
+      "new": "New",
+      "contacted": "Contacted",
+      "qualified": "Qualified",
+      "proposal": "Proposal Sent",
+      "negotiation": "Negotiation",
+      "won": "Closed Won",
+      "lost": "Closed Lost"
+    },
+    "priority": {
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High",
+      "urgent": "Urgent"
+    },
+    "activity": {
+      "call": "Phone Call",
+      "meeting": "Business Meeting",
+      "task": "Follow-up Task",
+      "note": "Note",
+      "stage_change": "Stage Change",
+      "converted": "Converted to Customer"
     }
   },
   "hr": {
@@ -15864,14 +15909,14 @@
       "s0": "Human Resources",
       "s2": "Add Employee",
       "s3": "Open Attendance",
-      "s8": "Total personnel",
+      "s8": "Total Staff",
       "s9": "Active",
-      "s10": "Present Today",
-      "s11": "OFF Orders",
-      "s12": "Attendance Exceptions",
-      "s13": "Custodies for Review",
-      "s14": "Premiums due",
-      "s15": "Payroll for Review",
+      "s10": "Present",
+      "s11": "Leave Requests",
+      "s12": "Exceptions",
+      "s13": "Custodies Review",
+      "s14": "Due Loans",
+      "s15": "Payroll Review",
       "s16": "Add Employee",
       "s17": "Record Attendance",
       "s18": "Leave Request",
@@ -17954,7 +17999,13 @@
       "s7": "Store Items",
       "s1": "Add items to the warehouse",
       "s4": "Show zero balances",
-      "s12": "Balance in the warehouse"
+      "s12": "Balance in the warehouse",
+      "start_count": "Start Stock Count",
+      "new_transfer": "Issue / Stock Transfer",
+      "new_product": "New Product Code",
+      "actions_col": "Actions",
+      "card_history": "Product Movement & Stock Card",
+      "card_btn": "Product History"
     },
     "warehouses_grid_page": {
       "s0": "Inventory Locations",
@@ -17984,13 +18035,33 @@
       "s14": "Edit warehouse data",
       "s21": "Example: Main warehouse",
       "s6": "Total locations:",
-      "s16": "Manage warehouse and its branch data and classification"
+      "s16": "Manage warehouse and its branch data and classification",
+      "filter_fixed": "Warehouses & Branches",
+      "filter_van": "Delivery Vans & Couriers",
+      "filter_all": "All Locations",
+      "van_locations_count": "Delivery Vans:",
+      "fixed_locations_count": "Warehouses & Branches:",
+      "no_vans_found": "No matching delivery vans found",
+      "no_fixed_found": "No matching fixed warehouses found",
+      "van_delete_notice": "Van warehouse linked to couriers and fleet",
+      "count_btn_title": "Start stocktaking for this warehouse",
+      "count_btn": "Count",
+      "transfer_btn_title": "Issue or transfer from this warehouse",
+      "transfer_btn": "Issue & Transfer"
     },
     "inventory_workspace": {
       "s0": "Start a new inventory session",
       "s1": "Smart Counting Processor and Inventory Steps",
       "s2": "Record and review sessions",
       "s3": "Session recorded"
+    },
+    "warehouses_nav": {
+      "grid": "Warehouses & Branches",
+      "grid_sub": "Locations & Stock Directory",
+      "tree": "Comprehensive Warehouse Tree",
+      "tree_sub": "Products Distribution Hierarchy",
+      "bins": "Shelves & Storage Bins",
+      "bins_sub": "Aisles, Bins & Barcodes"
     }
   },
   "maintenance": {
@@ -18472,6 +18543,18 @@
       "s15": "Create the first production order",
       "s5": "Work Orders",
       "s9": "This Week"
+    },
+    "nav": {
+      "work_orders": "Production & Work Orders",
+      "work_orders_sub": "Operations, Assembly & Disassembly",
+      "boms": "Bills of Materials (BOM)",
+      "boms_sub": "Standard Formulas & Compositions",
+      "components": "Components & Raw Materials",
+      "components_sub": "Raw Materials & Scrap Rates",
+      "work_centers": "Work Centers & Machinery",
+      "work_centers_sub": "Production Lines & Hourly Rates",
+      "settings": "Manufacturing Settings",
+      "settings_sub": "Accounts & Consumption Behavior"
     }
   },
   "maritime_freight": {
@@ -23425,7 +23508,13 @@
           "s163": "Preparing designated fields for the stamp and signature of the site engineer, the consultant, and the owning entity.",
           "s166": "It is the standard size for most standalone cash register printers (Epson, Xprinter, Rongta).",
           "s169": "Make sure to set the paper margins in the browser to",
-          "s171": "For the best alignment."
+          "s171": "For the best alignment.",
+          "receipt_item_lang_mode": "Item Names Language Mode on Receipts & Input Screens",
+          "lang_ar_only": "Arabic Only — For local retail (Simplified UI without English fields)",
+          "lang_ar_primary": "Bilingual: Arabic Primary (Large) + English Secondary (Small) — Gulf Standard",
+          "lang_en_primary": "Bilingual: English Primary (Large) + Arabic Secondary (Small) — Brands & Cafes",
+          "lang_en_only": "English Only — Free zones & international enterprises",
+          "lang_help": "When selecting 'Arabic Only', the product creation form is simplified by hiding the English field to speed up data entry for local merchants."
         },
         "sales_inventory_settings_tab": {
           "s0": "Default",
@@ -26226,9 +26315,9 @@
       "s41": "Download in the cart (POS)"
     },
     "merchant_orders_table": {
-      "s3": "Shipping & Delivery",
+      "s3": "Ship & Deliver",
       "s11": "Loading Orders...",
-      "s14": "RFQ Number",
+      "s14": "Order #",
       "s15": "Customer & Phone",
       "s16": "Delivery Address",
       "s17": "Products",
@@ -26248,12 +26337,12 @@
       "s4": "Shipping and delivery instructions:",
       "s7": "Post Express shipping",
       "s10": "International policy for Saudi Arabia and the Gulf",
-      "s24": "Cancelled by the client",
-      "s30": "Deliver the order and invoice to the delivery representative",
+      "s24": "Client Cancelled",
+      "s30": "Handover order to delivery driver",
       "s32": "Confirm the order delivery to the customer successfully",
       "s35": "Post #",
-      "s5": "Internal delivery representative",
-      "s6": "Issue an invoice and assign a representative",
+      "s5": "Internal Delivery Rep",
+      "s6": "Issue invoice & assign driver",
       "s34": "Printing a shipping bill via AWB",
       "s2": "Determining the shipping and delivery route",
       "s8": "Generating an AWB policy Egypt",
@@ -26261,11 +26350,11 @@
       "s12": "No orders in this section",
       "s13": "When any customer requests from your store link, their order will appear here immediately with notification of data and stock.",
       "s26": "Open the Cashier Screen and Download Items and Customer into the Cart to Edit and Complete the Sale",
-      "s31": "Delivery to the courier",
+      "s31": "Hand to Driver",
       "s36": "View tracking and print Gulf shipping waybill",
       "s40": "Contact Customer via WhatsApp",
       "s25": "Invoice #",
-      "s1": "Delivery representative",
+      "s1": "Delivery Rep",
       "s23": "Piece)"
     },
     "storefront_amazon_quad_card": {
@@ -28644,7 +28733,18 @@
       "s7": "Unknown Error",
       "s8": "Inventory is in excellent and stable condition!",
       "s1": "Calculating the reorder point and automatically generating consolidated purchase order drafts according to suppliers based on consumption rate and coverage days.",
-      "s4": "Purchases Record"
+      "s4": "Purchases Record",
+      "s9": "No items are close to running out based on current analysis settings. You can change urgency filter to 'All Products' to preview other items."
+    },
+    "nav": {
+      "invoices": "Purchase Bills",
+      "invoices_sub": "Invoices & Receiving Log",
+      "orders": "Purchase Orders (PO)",
+      "orders_sub": "Approvals & Receiving Tracking",
+      "rfqs": "Requests for Quotation (RFQ)",
+      "rfqs_sub": "Compare Supplier Quotations",
+      "reorder": "Smart Reorder",
+      "reorder_sub": "Shortage Prediction & Safety Stock"
     }
   }
 }

@@ -54,7 +54,7 @@ export function CrmDealCard({ deal, onClick, onStageChange, stageIndex }: CrmDea
             flexShrink: 0,
           }}
         >
-          {priorityConfig.label}
+          {t(`crm.priority.${deal.priority}`, priorityConfig.label)}
         </span>
       </div>
 

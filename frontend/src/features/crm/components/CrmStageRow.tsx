@@ -58,7 +58,7 @@ export function CrmStageRow({
             }}
           />
           <span style={{ fontSize: '12px', fontWeight: 700, color: '#334155', lineHeight: 1.3 }}>
-            {stage.label}
+            {t(`crm.stage.${stage.key}`, stage.label)}
           </span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -72,7 +72,7 @@ export function CrmStageRow({
               borderRadius: '999px',
             }}
           >
-            {stageDeals.length} {t('crm.crm_stage_row.s0', "صفقة")}
+            {stageDeals.length} {t('crm.stage_unit', 'صفقة')}
           </span>
         </div>
         <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '5px', fontWeight: 500 }}>

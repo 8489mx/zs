@@ -13,7 +13,8 @@ interface TamperAuditDiffModalProps {
 }
 
 export function TamperAuditDiffModal({ open, onClose, item }: TamperAuditDiffModalProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isEn = i18n.language?.startsWith('en');
   const [copiedKey, setCopiedKey] = useState<'prev' | 'row' | null>(null);
 
   if (!item) return null;
@@ -48,11 +49,11 @@ export function TamperAuditDiffModal({ open, onClose, item }: TamperAuditDiffMod
   const getOpLabel = () => {
     switch (item.operation) {
       case 'INSERT':
-        return 'إضافة جديدة (INSERT)';
+        return isEn ? 'New Insert (INSERT)' : 'إضافة جديدة (INSERT)';
       case 'UPDATE':
-        return 'تعديل بيانات (UPDATE)';
+        return isEn ? 'Data Update (UPDATE)' : 'تعديل بيانات (UPDATE)';
       case 'DELETE':
-        return 'حذف نهائي (DELETE)';
+        return isEn ? 'Permanent Delete (DELETE)' : 'حذف نهائي (DELETE)';
       default:
         return item.operation;
     }
@@ -63,7 +64,7 @@ export function TamperAuditDiffModal({ open, onClose, item }: TamperAuditDiffMod
       return <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>{t('audit.tamper_audit_diff_modal.s0', "فارغ (null)")}</span>;
     }
     if (typeof val === 'boolean') {
-      return val ? 'نعم (true)' : 'لا (false)';
+      return isEn ? (val ? 'Yes (true)' : 'No (false)') : (val ? 'نعم (true)' : 'لا (false)');
     }
     if (typeof val === 'object') {
       return (
@@ -90,7 +91,7 @@ export function TamperAuditDiffModal({ open, onClose, item }: TamperAuditDiffMod
       open={open}
       onClose={onClose}
       title={t('audit.tamper_audit_diff_modal.s1', "تفاصيل التدقيق الجنائي المشفّر وفوارق الحقول")}
-      subtitle={`سجل #${item.id} — الجدول: ${item.table_name} — السجل رقم: ${item.record_id}`}
+      subtitle={isEn ? `Record #${item.id} — Table: ${item.table_name} — Target ID: #${item.record_id}` : `سجل #${item.id} — الجدول: ${item.table_name} — السجل رقم: ${item.record_id}`}
       width="min(820px, 96vw)"
       footerActions={
         <div style={{ display: 'flex', justifyContent: 'flex-end', width: '100%' }}>
@@ -252,15 +253,15 @@ export function TamperAuditDiffModal({ open, onClose, item }: TamperAuditDiffMod
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12.5px' }}>
                   <thead>
                     <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-                      <th style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 700, color: '#475569', width: '25%' }}>{t('audit.tamper_audit_diff_modal.s17', "اسم الحقل")}</th>
-                      <th style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 700, color: '#991b1b', width: '37.5%', background: '#fef2f2' }}>{t('audit.tamper_audit_diff_modal.s18', "القيمة السابقة (Old Value)")}</th>
-                      <th style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 700, color: '#166534', width: '37.5%', background: '#f0fdf4' }}>{t('audit.tamper_audit_diff_modal.s19', "القيمة الجديدة (New Value)")}</th>
+                      <th style={{ padding: '8px 12px', textAlign: isEn ? 'left' : 'right', fontWeight: 700, color: '#475569', width: '25%' }}>{t('audit.tamper_audit_diff_modal.s17', "اسم الحقل")}</th>
+                      <th style={{ padding: '8px 12px', textAlign: isEn ? 'left' : 'right', fontWeight: 700, color: '#991b1b', width: '37.5%', background: '#fef2f2' }}>{t('audit.tamper_audit_diff_modal.s18', "القيمة السابقة (Old Value)")}</th>
+                      <th style={{ padding: '8px 12px', textAlign: isEn ? 'left' : 'right', fontWeight: 700, color: '#166534', width: '37.5%', background: '#f0fdf4' }}>{t('audit.tamper_audit_diff_modal.s19', "القيمة الجديدة (New Value)")}</th>
                     </tr>
                   </thead>
                   <tbody>
                     {changedFieldEntries.map(([fieldName, diff]) => (
                       <tr key={fieldName} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                        <td style={{ padding: '8px 12px', fontWeight: 600, color: '#1e293b', direction: 'ltr', textAlign: 'right', fontFamily: 'monospace' }}>
+                        <td style={{ padding: '8px 12px', fontWeight: 600, color: '#1e293b', direction: 'ltr', textAlign: isEn ? 'left' : 'right', fontFamily: 'monospace' }}>
                           {fieldName}
                         </td>
                         <td style={{ padding: '8px 12px', background: '#fffcfc', color: '#991b1b', borderInlineEnd: '1px solid #fee2e2' }}>

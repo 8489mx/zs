@@ -4,6 +4,7 @@ import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/shared/ui/button';
 import { formatCurrency, formatDateTimeArabic } from '@/lib/format';
+import { translateUiText } from '@/lib/auto-translator';
 import {
   RefreshCwIcon,
   AlertTriangleIcon,
@@ -17,7 +18,8 @@ import {
 } from '../api/cashier-fraud-radar.api';
 
 export function CashierFraudRadarSection() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isEn = i18n.language?.startsWith('en');
   const [timeframe, setTimeframe] = useState<'today' | '7days' | '30days'>('today');
   const [selectedCashierId, setSelectedCashierId] = useState<number | null>(null);
 
@@ -145,7 +147,7 @@ export function CashierFraudRadarSection() {
   };
 
   return (
-    <div className="cashier-fraud-radar-section" dir="rtl" style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+    <div className="cashier-fraud-radar-section" dir={isEn ? 'ltr' : 'rtl'} style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '16px' }}>
       {/* Control Header */}
       <div
         className="cashier-fraud-radar-header"
@@ -621,8 +623,8 @@ export function CashierFraudRadarSection() {
               </h4>
               <p style={{ margin: '2px 0 0', fontSize: '12px', color: '#64748b' }}>
                 {selectedCashierId
-                  ? `عرض العمليات المشبوهة للكاشير المحدد فقط`
-                  : `تسجيل لحظي لكافة حركات الحذف والإلغاء والتلاعب عبر أجهزة الكاشير`}
+                  ? (isEn ? 'Showing suspicious operations for selected cashier only' : `عرض العمليات المشبوهة للكاشير المحدد فقط`)
+                  : (isEn ? 'Real-time monitoring of all voids, cancellations, and cashier interface activities' : `تسجيل لحظي لكافة حركات الحذف والإلغاء والتلاعب عبر أجهزة الكاشير`)}
               </p>
             </div>
             <span
@@ -635,7 +637,7 @@ export function CashierFraudRadarSection() {
                 borderRadius: '6px',
               }}
             >
-              {filteredEvents.length} {t('audit.cashier_fraud_radar_section.s41', "حدث")}
+              {filteredEvents.length} {isEn ? (filteredEvents.length === 1 ? 'Event' : 'Events') : t('audit.cashier_fraud_radar_section.s41', "حدث")}
             </span>
           </div>
 
@@ -696,12 +698,12 @@ export function CashierFraudRadarSection() {
                       </span>
                     </div>
                     <span style={{ fontSize: '11px', color: '#94a3b8' }}>
-                      {formatDateTimeArabic(evt.createdAt)}
+                      {isEn ? new Date(evt.createdAt).toLocaleString('en-US', { dateStyle: 'short', timeStyle: 'short' }) : formatDateTimeArabic(evt.createdAt)}
                     </span>
                   </div>
 
                   <div style={{ fontSize: '12px', color: '#475569', lineHeight: 1.4 }}>
-                    {evt.details || evt.eventTitle}
+                    {isEn ? (translateUiText(evt.details || evt.eventTitle) || evt.details || evt.eventTitle) : (evt.details || evt.eventTitle)}
                   </div>
 
                   {typeof evt.amount === 'number' && evt.amount > 0 ? (

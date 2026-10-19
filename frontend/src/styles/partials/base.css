@@ -238,6 +238,26 @@ html[dir="ltr"] .page-header-title {
   font-weight: 700 !important;
 }
 
+/* LTR Typography scale optimization (tight & crisp for Latin fonts) */
+html[dir="ltr"] {
+  --font-page-title: 1.1rem;
+  --font-section-title: 0.94rem;
+  --font-body: 0.8rem;
+  --font-subtitle: 0.8rem;
+  --font-table-head: 0.76rem;
+  --font-badge: 0.70rem;
+}
+
+html[dir="ltr"] button,
+html[dir="ltr"] .btn {
+  letter-spacing: -0.01em !important;
+}
+
+html[dir="ltr"] table button,
+html[dir="ltr"] table .btn {
+  white-space: nowrap !important;
+}
+
 /* ========================================================
    Bilingual Infrastructure: Universal Dynamic Direction & Reset
    ======================================================== */

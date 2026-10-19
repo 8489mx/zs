@@ -14,6 +14,93 @@ for (const [ar, en] of Object.entries(UI_DICTIONARY)) {
   dictMap.set(ar.trim(), en.trim());
 }
 
+const SUPPLEMENTAL_DICT: Record<string, string> = {
+  'إلغاء المسودة الحالية من واجهة الكاشير': 'Cancel current draft from cashier interface',
+  'حذف عنصر من سلة الكاشير': 'Remove item from cashier cart',
+  'حذف صنف من سلة البيع': 'Remove item from sales cart',
+  'تعديل سعر يدوي من الكاشير': 'Manual price adjustment from cashier',
+  'تجاوز الخصم المسموح به للكاشير': 'Cashier discount limit exceeded',
+  'تجاوز خصم': 'Discount Override',
+  'حذف من السلة': 'Cart Void',
+  'إلغاء فاتورة': 'Cancel Invoice',
+  'فاتورة ملغاة': 'Cancelled Invoice',
+  'أمني': 'Security',
+  'طبيعي وآمن': 'Normal & Secure',
+  'تحت الملاحظة': 'Under Watch',
+  'عالي الخطورة': 'High Risk',
+  'كافة الجداول المالية والمحاسبية': 'All Financial & Accounting Tables',
+  'قيود اليومية': 'Journal Entries',
+  'أطراف وسطور القيود': 'Journal Entry Lines',
+  'شجرة الحسابات': 'Chart of Accounts',
+  'إعدادات الحسابات وتواريخ القفل': 'Accounting Settings & Lock Dates',
+  'فواتير المبيعات': 'Sales Invoices',
+  'بنود فواتير المبيعات': 'Sales Invoice Items',
+  'فواتير المشتريات': 'Purchase Invoices',
+  'بنود فواتير المشتريات': 'Purchase Invoice Items',
+  'الخزائن والحسابات البنكية': 'Treasuries & Bank Accounts',
+  'سندات القبض والصرف': 'Payment & Receipt Vouchers',
+  'كافة العمليات': 'All Operations',
+  'إضافة (INSERT)': 'Add (INSERT)',
+  'تعديل (UPDATE)': 'Edit (UPDATE)',
+  'حذف (DELETE)': 'Delete (DELETE)',
+  'تحديث عام': 'General Update',
+  'إنشاء سجل كامل': 'Create Full Record',
+  'حذف السجل نهائياً': 'Delete Record Permanently',
+  'نظام / DB': 'System / DB',
+  'بصمة الهاش الرقمية': 'Digital Hash Fingerprint',
+  'الكتل المفحوصة:': 'Checked Blocks:',
+  'توقيت الفحص:': 'Verification Time:',
+  'الجدول المستهدف': 'Target Table',
+  'رقم المعاملة (Record ID)': 'Record ID',
+  'الحقول المتأثرة': 'Affected Fields',
+  'المنفذ': 'Actor',
+  'IP الشبكة': 'Network IP',
+  'التاريخ والوقت': 'Date & Time',
+  'تصفير الفلاتر': 'Reset Filters',
+  'سجلات الرصد والتدقيق الجنائي': 'Forensic Audit & Monitoring Records',
+  'شريط الرصد الحي للعمليات المشبوهة': 'Live Monitoring Bar for Suspicious Operations',
+  'لا توجد عمليات مشبوهة مسجلة': 'No suspicious operations recorded',
+  'كافة عمليات البيع والكاشير تسير بصورة طبيعية ونظامية.': 'All sales and cashier operations are proceeding normally.',
+  'جاري جلب سجل الأحداث الأمنية...': 'Fetching security events log...',
+  'جارٍ تحديث البيانات...': 'Updating data...',
+  'نزاهة السلسلة التشفيرية وسجلات قاعدة البيانات (DB Trigger Audit Engine)': 'Cryptographic Chain Integrity & DB Trigger Audit Engine',
+  'تسجيل جنائي غير قابل للتلاعب يعمل بقوادح آلية في PostgreSQL وسلاسل تجزئة SHA-256 متسلسلة تضمن رصد أي حركة أو تعديل يتم من داخل السيرفر أو التطبيق بدقة فائقة.': 'Tamper-proof forensic logging powered by PostgreSQL DB triggers and chained SHA-256 hashes to guarantee complete traceability of any server or application modifications.',
+  'السلسلة التشفيرية موثقة وسليمة 100% (Cryptographically Intact & Verified)': 'Cryptographic Hash Chain Intact & 100% Verified',
+  'تحذير جنائي: تم اكتشاف انقطاع أو تلاعب في سلسلة التجزئة التشفيرية!': 'Forensic Alert: Tamper or Break Detected in Cryptographic Hash Chain!',
+  'تم التحقق بنجاح من كافة كتل التجزئة المتسلسلة دون أي شبهة حذف أو تعديل يدوي في قاعدة البيانات.': 'All chained blocks successfully verified without any trace of manual tampering or intermediate deletions in the database.',
+  'حدث أمني - إلغاء/حذف فاتورة': 'Security Event - Cancel Draft Invoice',
+  'حدث أمني - حذف عنصر من السلة': 'Security Event - Remove Item from Cart',
+  'حدث أمني - تجاوز الخصم': 'Security Event - Discount Override',
+  'حدث أمني': 'Security Event',
+  'ترحيل دفعة جرد': 'Post Inventory Batch',
+  'حذف مسودة جلسة جرد': 'Delete Inventory Session Draft',
+  'اعتماد جلسة جرد مخزون': 'Post Inventory Session',
+  'جلسة جرد مخزون': 'Inventory Session',
+  'إنشاء جلسة جرد مخزون': 'Create Inventory Session',
+  'تعديل جلسة جرد مخزون': 'Update Inventory Session',
+  'تسوية جرد': 'Inventory Adjustment',
+  'جلسة جرد': 'Inventory Session',
+  'إنشاء فاتورة مبيعات': 'Create Sales Invoice',
+  'تعديل فاتورة مبيعات': 'Update Sales Invoice',
+  'إلغاء فاتورة مبيعات': 'Cancel Sales Invoice',
+  'مرتجع مبيعات': 'Sales Return',
+  'إنشاء فاتورة مشتريات': 'Create Purchase Invoice',
+  'تعديل فاتورة مشتريات': 'Update Purchase Invoice',
+  'إلغاء فاتورة مشتريات': 'Cancel Purchase Invoice',
+  'مرتجع مشتريات': 'Purchase Return',
+  'سند قبض': 'Receipt Voucher',
+  'سند صرف': 'Payment Voucher',
+  'تحويل بين الخزائن': 'Treasury Transfer',
+  'تحويل مخزني': 'Stock Transfer',
+  'إذن إضافة مخزني': 'Stock Inbound Voucher',
+  'إذن صرف مخزني': 'Stock Outbound Voucher',
+  'تسجيل تالف': 'Record Damaged Stock',
+};
+
+for (const [ar, en] of Object.entries(SUPPLEMENTAL_DICT)) {
+  dictMap.set(ar.trim(), en.trim());
+}
+
 // Memory map to store original Arabic text for 100% reversible language switching
 const originalTextMap = new WeakMap<Node, string>();
 const originalAttrMap = new WeakMap<Element, Record<string, string>>();
@@ -208,6 +295,117 @@ const COMPOUND_PREFIXES = [
   { ar: 'مدة', enSuffix: 'Duration' },
 ];
 
+
+const CURRENCY_MAP: Record<string, string> = {
+  'ر.س': 'SAR',
+  'ج.م': 'EGP',
+  'د.إ': 'AED',
+  'د.ك': 'KWD',
+  'د.ب': 'BHD',
+  'ر.ع': 'OMR',
+  'ر.ق': 'QAR',
+  'دولار': 'USD',
+  'يورو': 'EUR',
+};
+
+const ENTITY_COUNTER_MAP: Record<string, { singular: string; plural: string }> = {
+  'فرصة': { singular: 'Opportunity', plural: 'Opportunities' },
+  'فرص': { singular: 'Opportunity', plural: 'Opportunities' },
+  'صفقة': { singular: 'Deal', plural: 'Deals' },
+  'صفقات': { singular: 'Deal', plural: 'Deals' },
+  'عميل': { singular: 'Customer', plural: 'Customers' },
+  'عملاء': { singular: 'Customer', plural: 'Customers' },
+  'طلب': { singular: 'Order', plural: 'Orders' },
+  'طلبات': { singular: 'Order', plural: 'Orders' },
+  'صنف': { singular: 'Item', plural: 'Items' },
+  'أصناف': { singular: 'Item', plural: 'Items' },
+  'عنصر': { singular: 'Item', plural: 'Items' },
+  'عناصر': { singular: 'Item', plural: 'Items' },
+  'منتج': { singular: 'Product', plural: 'Products' },
+  'منتجات': { singular: 'Product', plural: 'Products' },
+  'مورد': { singular: 'Supplier', plural: 'Suppliers' },
+  'موردين': { singular: 'Supplier', plural: 'Suppliers' },
+  'مندوب': { singular: 'Representative', plural: 'Representatives' },
+  'مناديب': { singular: 'Representative', plural: 'Representatives' },
+  'مركبة': { singular: 'Vehicle', plural: 'Vehicles' },
+  'مركبات': { singular: 'Vehicle', plural: 'Vehicles' },
+  'سائق': { singular: 'Driver', plural: 'Drivers' },
+  'سائقين': { singular: 'Driver', plural: 'Drivers' },
+  'فاتورة': { singular: 'Invoice', plural: 'Invoices' },
+  'فواتير': { singular: 'Invoice', plural: 'Invoices' },
+  'مستخدم': { singular: 'User', plural: 'Users' },
+  'مستخدمين': { singular: 'User', plural: 'Users' },
+  'سجل': { singular: 'Record', plural: 'Records' },
+  'سجلات': { singular: 'Record', plural: 'Records' },
+  'كتلة': { singular: 'Block', plural: 'Blocks' },
+  'كتل': { singular: 'Block', plural: 'Blocks' },
+  'حدث': { singular: 'Event', plural: 'Events' },
+  'أحداث': { singular: 'Event', plural: 'Events' },
+  'حقل': { singular: 'Field', plural: 'Fields' },
+  'حقول': { singular: 'Field', plural: 'Fields' },
+  'يوم': { singular: 'Day', plural: 'Days' },
+  'أيام': { singular: 'Day', plural: 'Days' },
+  'شهر': { singular: 'Month', plural: 'Months' },
+  'أشهر': { singular: 'Month', plural: 'Months' },
+  'شهور': { singular: 'Month', plural: 'Months' },
+  'سنة': { singular: 'Year', plural: 'Years' },
+  'سنوات': { singular: 'Year', plural: 'Years' },
+  'ساعة': { singular: 'Hour', plural: 'Hours' },
+  'ساعات': { singular: 'Hour', plural: 'Hours' },
+  'دقيقة': { singular: 'Minute', plural: 'Minutes' },
+  'دقائق': { singular: 'Minute', plural: 'Minutes' },
+  'ثانية': { singular: 'Second', plural: 'Seconds' },
+  'ثواني': { singular: 'Second', plural: 'Seconds' },
+  'قسط': { singular: 'Installment', plural: 'Installments' },
+  'أقساط': { singular: 'Installment', plural: 'Installments' },
+  'حساب': { singular: 'Account', plural: 'Accounts' },
+  'حسابات': { singular: 'Account', plural: 'Accounts' },
+  'حركة': { singular: 'Transaction', plural: 'Transactions' },
+  'حركات': { singular: 'Transaction', plural: 'Transactions' },
+  'تذكرة': { singular: 'Ticket', plural: 'Tickets' },
+  'تذاكر': { singular: 'Ticket', plural: 'Tickets' },
+  'مهمة': { singular: 'Task', plural: 'Tasks' },
+  'مهام': { singular: 'Task', plural: 'Tasks' },
+  'مشروع': { singular: 'Project', plural: 'Projects' },
+  'مشاريع': { singular: 'Project', plural: 'Projects' },
+  'عقد': { singular: 'Contract', plural: 'Contracts' },
+  'عقود': { singular: 'Contract', plural: 'Contracts' },
+  'موقع': { singular: 'Location', plural: 'Locations' },
+  'مواقع': { singular: 'Location', plural: 'Locations' },
+  'مخزن': { singular: 'Warehouse', plural: 'Warehouses' },
+  'مخازن': { singular: 'Warehouse', plural: 'Warehouses' },
+  'فرع': { singular: 'Branch', plural: 'Branches' },
+  'فروع': { singular: 'Branch', plural: 'Branches' },
+  'عرض': { singular: 'Offer', plural: 'Offers' },
+  'عروض': { singular: 'Offer', plural: 'Offers' },
+  'خصم': { singular: 'Discount', plural: 'Discounts' },
+  'خصومات': { singular: 'Discount', plural: 'Discounts' },
+  'بند': { singular: 'Item', plural: 'Items' },
+  'بنود': { singular: 'Item', plural: 'Items' },
+  'قطعة': { singular: 'Piece', plural: 'Pieces' },
+  'قطع': { singular: 'Piece', plural: 'Pieces' },
+  'كم': { singular: 'km', plural: 'km' },
+  'كيلومتر': { singular: 'km', plural: 'km' },
+};
+
+const ARABIC_MONTHS: Record<string, string> = {
+  'يناير': 'January',
+  'فبراير': 'February',
+  'مارس': 'March',
+  'أبريل': 'April',
+  'مايو': 'May',
+  'يونيو': 'June',
+  'يوليو': 'July',
+  'أغسطس': 'August',
+  'سبتمبر': 'September',
+  'أكتوبر': 'October',
+  'نوفمبر': 'November',
+  'ديسمبر': 'December',
+};
+
+const normalizeArabicDigits = (str: string): string =>
+  str.replace(/[٠-٩]/g, (d) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)));
+
 function shouldSkipElement(el: Element): boolean {
   if (IGNORED_TAGS.has(el.tagName)) return true;
   if (el.hasAttribute('data-no-translate') || el.getAttribute('translate') === 'no') return true;
@@ -253,6 +451,162 @@ export function translateUiText(rawText: string): string | null {
     }
   }
 
+  // 2-b. Leading parentheses match: "(0) مسندة", "(5) جديدة"
+  const leadParenMatch = raw.match(/^\(([^)]+)\)\s*(.+?)([:!?.:…]*)$/);
+  if (leadParenMatch) {
+    const inner = leadParenMatch[1].trim();
+    const mainK = leadParenMatch[2].trim();
+    const trail = leadParenMatch[3];
+    const transMain = dictMap.get(mainK) || translateUiText(mainK);
+    if (transMain) {
+      return transMain + ' (' + inner + ')' + trail;
+    }
+  }
+
+  // 2-c. Pipe separator: "الصنف: سكر | الكمية: 2 | الإجمالي: 100"
+  if (raw.includes('|')) {
+    const parts = raw.split(/\s*\|\s*/);
+    let anyTranslated = false;
+    const translatedParts = parts.map((part) => {
+      const p = part.trim();
+      const tr = dictMap.get(p) || translateUiText(p);
+      if (tr && tr !== p) {
+        anyTranslated = true;
+        return tr;
+      }
+      const bcMatch = p.match(/^(\d+)#$/);
+      if (bcMatch) {
+        anyTranslated = true;
+        return `#${bcMatch[1]}`;
+      }
+      return p;
+    });
+    if (anyTranslated) {
+      return translatedParts.join(' | ');
+    }
+  }
+
+  // 2-d. Cryptographic & Forensic Tamper Audit patterns
+  // Break in hash chain:
+  const hashBreakMatch = raw.match(/^انقطاع في تسلسل الهاش التشفيري بين السجل #?(\d+) والسجل #?(\d+)\.?\s*(.*)$/);
+  if (hashBreakMatch) {
+    const prevId = hashBreakMatch[1];
+    const currId = hashBreakMatch[2];
+    return `Cryptographic hash chain break detected between record #${prevId} and record #${currId}. Intermediate record deletion or tampering detected.`;
+  }
+
+  // Genesis block tamper:
+  const genesisTamperMatch = raw.match(/^كتلة البداية \(Genesis Block\) للسجل #?(\d+) تحتوي على هاش سابق غير قياسي \(([^)]+)\)\.?$/);
+  if (genesisTamperMatch) {
+    return `Genesis Block for record #${genesisTamperMatch[1]} contains non-standard previous hash (${genesisTamperMatch[2]}).`;
+  }
+
+  // Cryptographic hash mismatch:
+  const hashConflictMatch = raw.match(/^تضارب تجزئة التشفير في السجل #?(\d+)\s*\(الجدول:\s*([^)]+)\)\.\s*محتوى السجل لا يطابق بصمته الرقمية المسجلة\.?$/);
+  if (hashConflictMatch) {
+    return `Cryptographic hash mismatch in record #${hashConflictMatch[1]} (table: ${hashConflictMatch[2]}). Row contents do not match recorded digital fingerprint.`;
+  }
+
+  // Cashier fraud & audit details:
+  const draftCancelMatch = raw.match(/^(?:ملاحظة:\s*)?تم إلغاء\/حذف فاتورة قبل الإرسال بواسطة\s*(.+)$/);
+  if (draftCancelMatch) {
+    const user = draftCancelMatch[1].trim();
+    const hasNote = raw.startsWith('ملاحظة');
+    return hasNote
+      ? `Note: Draft invoice cancelled/deleted before dispatch by ${user}`
+      : `Draft invoice cancelled/deleted before dispatch by ${user}`;
+  }
+
+  const cartRemoveMatch = raw.match(/^تم حذف (?:عنصر|صنف) من السلة بواسطة\s*(.+)$/);
+  if (cartRemoveMatch) {
+    return `Item removed from cart by ${cartRemoveMatch[1].trim()}`;
+  }
+
+  const cartClearMatch = raw.match(/^تم (?:إفراغ|افراغ) السلة بالكامل بواسطة\s*(.+)$/);
+  if (cartClearMatch) {
+    return `Cart cleared completely by ${cartClearMatch[1].trim()}`;
+  }
+
+  const itemNameMatch = raw.match(/^الصنف:\s*(.+)$/);
+  if (itemNameMatch) {
+    return `Item: ${itemNameMatch[1].trim()}`;
+  }
+
+  const qtyMatch = raw.match(/^الكمية:\s*([\d.]+)$/);
+  if (qtyMatch) {
+    return `Quantity: ${qtyMatch[1].trim()}`;
+  }
+
+  const itemCountMatch = raw.match(/^(?:عدد العناصر|عدد الأصناف):\s*(\d+)$/);
+  if (itemCountMatch) {
+    return `Item Count: ${itemCountMatch[1].trim()}`;
+  }
+
+  const totalVoidMatch = raw.match(/^(?:الإجمالي|الاجمالي) بعد الحذف:\s*([\d,]+(?:\.\d+)?)$/);
+  if (totalVoidMatch) {
+    return `Total after void: ${totalVoidMatch[1].trim()}`;
+  }
+
+  const totalMatch = raw.match(/^(?:الإجمالي|الاجمالي):\s*([\d,]+(?:\.\d+)?)$/);
+  if (totalMatch) {
+    return `Total: ${totalMatch[1].trim()}`;
+  }
+
+  const unitPriceMatch = raw.match(/^(?:سعر الوحدة|سعر الصنف):\s*([\d,]+(?:\.\d+)?)$/);
+  if (unitPriceMatch) {
+    return `Unit Price: ${unitPriceMatch[1].trim()}`;
+  }
+
+  const discountMatch = raw.match(/^الخصم:\s*([\d,]+(?:\.\d+)?)$/);
+  if (discountMatch) {
+    return `Discount: ${discountMatch[1].trim()}`;
+  }
+
+  const changedFieldsMatch = raw.match(/^(\d+)\s+حقول\s+متغيرة$/);
+  if (changedFieldsMatch) {
+    const num = parseInt(changedFieldsMatch[1], 10);
+    return `${num} ${num === 1 ? 'Changed Field' : 'Changed Fields'}`;
+  }
+
+  // Entity action by actor: "تم تحديث الصنف #55164 بواسطة zs", "تم إنشاء الفاتورة #INV-123 بواسطة admin"
+  const entityActionMatch = raw.match(/^تم\s+(تحديث|تعديل|إضافة|انشاء|إنشاء|حذف|تسجيل|إلغاء|الغاء|ترحيل)\s+(الصنف|المنتج|العميل|المورد|المستخدم|الفرع|المخزن|الفاتورة|السجل|الطلب|العقد|المشروع|دفعة جرد|جلسة جرد|مسودة جلسة جرد)\s*(#?\S+)?(?:\s+بواسطة\s+(.+))?$/);
+  if (entityActionMatch) {
+    const verbMap: Record<string, string> = {
+      'تحديث': 'updated',
+      'تعديل': 'updated',
+      'إضافة': 'created',
+      'إنشاء': 'created',
+      'انشاء': 'created',
+      'حذف': 'deleted',
+      'تسجيل': 'recorded',
+      'إلغاء': 'cancelled',
+      'الغاء': 'cancelled',
+      'ترحيل': 'posted',
+    };
+    const entityMap: Record<string, string> = {
+      'الصنف': 'Product',
+      'المنتج': 'Product',
+      'العميل': 'Customer',
+      'المورد': 'Supplier',
+      'المستخدم': 'User',
+      'الفرع': 'Branch',
+      'المخزن': 'Warehouse',
+      'الفاتورة': 'Invoice',
+      'السجل': 'Record',
+      'الطلب': 'Order',
+      'العقد': 'Contract',
+      'المشروع': 'Project',
+      'دفعة جرد': 'Inventory Batch',
+      'جلسة جرد': 'Inventory Session',
+      'مسودة جلسة جرد': 'Inventory Session Draft',
+    };
+    const verb = verbMap[entityActionMatch[1]] || 'updated';
+    const entity = entityMap[entityActionMatch[2]] || entityActionMatch[2];
+    const id = entityActionMatch[3] ? ` ${entityActionMatch[3]}` : '';
+    const actor = entityActionMatch[4] ? ` by ${entityActionMatch[4]}` : '';
+    return `${entity}${id} ${verb}${actor}`;
+  }
+
   // 3. Coloned labels or messages: "المستودع المصدر: ", "النسخة:", or "شركة الكينج: الرصيد تجاوز حد الائتمان."
   const colonMatch = raw.match(/^([^:]+)[:：]\s*(.*)$/);
   if (colonMatch) {
@@ -264,6 +618,69 @@ export function translateUiText(rawText: string): string | null {
       return (transK || k) + ': ' + (transRest || rest);
     }
   }
+
+  // 3-b. Reverse colon labels (RTL numbers/symbols): "-950.00 :الرصيد المكشوف", "100 EGP :الإجمالي"
+  const revColonMatch = raw.match(/^([^\u0600-\u06FF:]+?)\s*[:：]\s*([\u0600-\u06FF\s]+)$/);
+  if (revColonMatch) {
+    const val = revColonMatch[1].trim();
+    const k = revColonMatch[2].trim();
+    const transK = dictMap.get(k) || translateUiText(k);
+    if (transK) {
+      return transK + ': ' + val;
+    }
+  }
+
+
+  // 3-c. Currency amounts: "500 ر.س", "1,200.50 ج.م", "SAR 500"
+  const currSuffixMatch = raw.match(/^([+-]?\s*[\d,]+(?:\.\d+)?)\s*(ر\.س|ج\.م|د\.إ|د\.ك|د\.ب|ر\.ع|ر\.ق|دولار|يورو)$/);
+  if (currSuffixMatch) {
+    const num = currSuffixMatch[1].trim();
+    const cur = CURRENCY_MAP[currSuffixMatch[2].trim()] || currSuffixMatch[2];
+    return `${num} ${cur}`;
+  }
+
+  const currPrefixMatch = raw.match(/^(ر\.س|ج\.م|د\.إ|د\.ك|د\.ب|ر\.ع|ر\.ق|دولار|يورو)\s*([+-]?\s*[\d,]+(?:\.\d+)?)$/);
+  if (currPrefixMatch) {
+    const cur = CURRENCY_MAP[currPrefixMatch[1].trim()] || currPrefixMatch[1];
+    const num = currPrefixMatch[2].trim();
+    return `${cur} ${num}`;
+  }
+
+  // 3-d. Entity counts & pluralization: "0 فرصة", "12 عميل", "5 طلبات", "100 كم"
+  const countEntityMatch = raw.match(/^(\d+)\s+([\u0600-\u06FF]+)$/);
+  if (countEntityMatch) {
+    const count = parseInt(countEntityMatch[1], 10);
+    const entity = countEntityMatch[2].trim();
+    if (ENTITY_COUNTER_MAP[entity]) {
+      const { singular, plural } = ENTITY_COUNTER_MAP[entity];
+      return `${count} ${count === 1 ? singular : plural}`;
+    }
+  }
+
+  // 3-e. Reverse count: "طلب #123"
+  const revCountMatch = raw.match(/^([\u0600-\u06FF]+)\s*#?(\d+)$/);
+  if (revCountMatch) {
+    const entity = revCountMatch[1].trim();
+    const count = revCountMatch[2].trim();
+    if (ENTITY_COUNTER_MAP[entity]) {
+      const { singular } = ENTITY_COUNTER_MAP[entity];
+      return `${singular} #${count}`;
+    }
+  }
+
+  // 3-f. Arabic dates: "19 أكتوبر 2026", "١٩ أكتوبر ٢٠٢٦"
+  const arabicDateMatch = raw.match(/^([٠-٩\d]{1,2})\s+(يناير|فبراير|مارس|أبريل|مايو|يونيو|يوليو|أغسطس|سبتمبر|أكتوبر|نوفمبر|ديسمبر)(?:\s+([٠-٩\d]{4}))?$/);
+  if (arabicDateMatch) {
+    const day = normalizeArabicDigits(arabicDateMatch[1]);
+    const month = ARABIC_MONTHS[arabicDateMatch[2]];
+    const year = arabicDateMatch[3] ? normalizeArabicDigits(arabicDateMatch[3]) : '';
+    return year ? `${day} ${month} ${year}` : `${day} ${month}`;
+  }
+
+  if (raw === 'اليوم') return 'Today';
+  if (raw === 'أمس') return 'Yesterday';
+  if (raw === 'غداً' || raw === 'غدا') return 'Tomorrow';
+  if (raw === 'الآن') return 'Just now';
 
   // 4. Rank / Index prefix: "#1 ", "1. ", "01. "
   const rankMatch = raw.match(/^(#\d+\s+|\d+\.\s+)(.*)$/);
@@ -1003,6 +1420,43 @@ function handleMutations(mutations: MutationRecord[]): void {
   if (isTranslating) return;
 
   syncDocumentTitle();
+  // Universal Date and Number Prototype Interceptor for English UI
+  if (typeof window !== 'undefined' && !(window as any).__zsLocalePatched) {
+    (window as any).__zsLocalePatched = true;
+
+    const origDateToLocaleDateString = Date.prototype.toLocaleDateString;
+    Date.prototype.toLocaleDateString = function (this: Date, locales?: any, options?: any) {
+      if (document.documentElement.lang?.startsWith('en') && (locales === 'ar-EG' || locales === 'ar')) {
+        return origDateToLocaleDateString.call(this, 'en-US', options);
+      }
+      return origDateToLocaleDateString.call(this, locales, options);
+    };
+
+    const origDateToLocaleString = Date.prototype.toLocaleString;
+    Date.prototype.toLocaleString = function (this: Date, locales?: any, options?: any) {
+      if (document.documentElement.lang?.startsWith('en') && (locales === 'ar-EG' || locales === 'ar')) {
+        return origDateToLocaleString.call(this, 'en-US', options);
+      }
+      return origDateToLocaleString.call(this, locales, options);
+    };
+
+    const origDateToLocaleTimeString = Date.prototype.toLocaleTimeString;
+    Date.prototype.toLocaleTimeString = function (this: Date, locales?: any, options?: any) {
+      if (document.documentElement.lang?.startsWith('en') && (locales === 'ar-EG' || locales === 'ar')) {
+        return origDateToLocaleTimeString.call(this, 'en-US', options);
+      }
+      return origDateToLocaleTimeString.call(this, locales, options);
+    };
+
+    const origNumberToLocaleString = Number.prototype.toLocaleString;
+    Number.prototype.toLocaleString = function (this: number, locales?: any, options?: any) {
+      if (document.documentElement.lang?.startsWith('en') && (locales === 'ar-EG' || locales === 'ar')) {
+        return origNumberToLocaleString.call(this, 'en-US', options);
+      }
+      return origNumberToLocaleString.call(this, locales, options);
+    };
+  }
+
 
   for (const mut of mutations) {
     if (mut.type === 'childList') {
@@ -1088,14 +1542,16 @@ export function deactivateAutoTranslator(): void {
 export function initAutoTranslator(i18nInstance: any): void {
   if (typeof window === 'undefined' || !i18nInstance) return;
 
+  const isEnglish = (lang?: string | null) => Boolean(lang && lang.toLowerCase().startsWith('en'));
+
   const currentLang = i18nInstance.language || 'ar';
-  if (currentLang === 'en') {
+  if (isEnglish(currentLang)) {
     // Delay slightly to allow React initial mount to finish
     setTimeout(activateAutoTranslator, 50);
   }
 
   i18nInstance.on('languageChanged', (lng: string) => {
-    if (lng === 'en') {
+    if (isEnglish(lng)) {
       activateAutoTranslator();
     } else {
       deactivateAutoTranslator();

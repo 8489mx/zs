@@ -100,14 +100,14 @@ export function CrmDealCreateModal({ open, onClose, onSuccess }: CrmDealCreateMo
   // Stage options
   const stageOptions = useMemo(() => STAGES.map((s) => ({
     value: s.key,
-    label: `${s.label} (${s.defaultProbability}%)`,
-  })), []);
+    label: `${t(`crm.stage.${s.key}`, s.label)} (${s.defaultProbability}%)`,
+  })), [t]);
 
   // Priority options
   const priorityOptions = useMemo(() => Object.entries(PRIORITIES).map(([key, val]) => ({
     value: key,
-    label: val.label,
-  })), []);
+    label: t(`crm.priority.${key}`, val.label),
+  })), [t]);
 
   // Lead Source options
   const sourceOptions = useMemo(() => [

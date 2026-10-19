@@ -104,7 +104,7 @@ export function CrmPipelinePage() {
   }, [deals, priorityFilter, stageFilter, searchQuery]);
 
   return (
-    <div className="page-stack page-shell crm-pipeline-page" dir="rtl">
+    <div className="page-stack page-shell crm-pipeline-page">
       <main className="document-prototype-column" style={{ paddingBottom: '100px', maxWidth: '1280px', margin: '0 auto', width: '100%' }}>
         {/* Top Header */}
         <PageHeader
@@ -137,7 +137,7 @@ export function CrmPipelinePage() {
               {
                 key: 'active-deals',
                 label: t('crm.crm_pipeline_page.s4', "إجمالي الفرص النشطة"),
-                value: `${summary?.totalActiveCount ?? 0} فرصة`,
+                value: `${summary?.totalActiveCount ?? 0} ${t('crm.deal_unit', 'فرصة')}`,
               },
               {
                 key: 'pipeline-amount',

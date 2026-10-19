@@ -168,7 +168,7 @@ export function HrComingSoonPage() {
   const error = (canViewEmployees ? workspace.employees.error : null) || (canViewAttendance ? attendance.error : null);
 
   return (
-    <div className="page-stack page-shell" dir="rtl">
+    <div className="page-stack page-shell">
       <main className="document-prototype-column" style={{ paddingBottom: '20px' }}>
         <PageHeader
           title={t('hr.hr_coming_soon_page.s0', "الموارد البشرية")}

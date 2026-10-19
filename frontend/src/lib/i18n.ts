@@ -7,7 +7,9 @@ import { initAutoTranslator, translateUiText } from './auto-translator';
 import ar from '../locales/ar.json';
 import en from '../locales/en.json';
 
-const savedLang = typeof window !== 'undefined' ? localStorage.getItem('zsystems_lang') : DEFAULT_LANGUAGE;
+const savedLang = typeof window !== 'undefined' 
+  ? (localStorage.getItem('zsystems_lang') || localStorage.getItem('zs.uiLanguage') || DEFAULT_LANGUAGE) 
+  : DEFAULT_LANGUAGE;
 const activeMeta = getLanguageMeta(savedLang);
 
 i18n
@@ -26,7 +28,7 @@ i18n
       escapeValue: false
     },
     parseMissingKeyHandler: (key: string, defaultValue?: string) => {
-      if (i18n.language === 'en') {
+      if (i18n.language?.startsWith('en')) {
         const textToTranslate = (defaultValue && defaultValue !== key) ? defaultValue : key;
         const translated = translateUiText(textToTranslate);
         if (translated) {

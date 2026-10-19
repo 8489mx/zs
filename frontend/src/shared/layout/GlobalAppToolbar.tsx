@@ -13,6 +13,7 @@ import { ArrowRightIcon } from '@/shared/components/icons/AppIcons';
 import { LanguageSwitcherMenu } from '@/shared/layout/LanguageSwitcherMenu';
 import { useTabsStore } from '@/stores/tabs-store';
 import { AppBrowserTabBar, resolveRouteMetadata } from '@/shared/layout/AppBrowserTabBar';
+import { translateUiText } from '@/lib/auto-translator';
 
 export function isRootLandingRoute(pathname: string): boolean {
   const clean = pathname.replace(/\/+$/, '') || '/';
@@ -94,6 +95,7 @@ export function GlobalAppToolbar() {
 
   const formatBreadcrumbLabel = (rawLabel: string) => {
     if (!rawLabel || i18n.language === 'ar') return rawLabel;
+    const clean = rawLabel.trim();
     const commonCrumbs: Record<string, string> = {
       'الرئيسية': 'sidebar.dashboard',
       'المبيعات': 'sidebar.sales',
@@ -114,13 +116,28 @@ export function GlobalAppToolbar() {
       'قسم الصيانة': 'sidebar.maintenance',
       'عروض الأسعار': 'sidebar.quotations',
       'أوامر البيع وحجز المخزون': 'sidebar.sales_orders',
+      'إدارة علاقات العملاء (CRM)': 'Customer Relationship Management (CRM)',
+      'المركبات والأساطيل': 'Vehicles & Fleet',
+      'المركبات والأسطول': 'Vehicles & Fleet',
+      'المقاولات والمشاريع': 'Contracting & Projects',
+      'الشحن البحري': 'Maritime Freight',
+      'نقاط البيع': 'Point of Sale (POS)',
+      'المتجر الإلكتروني': 'Online Storefront',
     };
-    const key = commonCrumbs[rawLabel.trim()];
-    if (key) {
-      const translated = t(key);
-      if (translated && translated !== key) return translated;
+    if (commonCrumbs[clean]) {
+      const val = commonCrumbs[clean];
+      if (val.startsWith('sidebar.')) {
+        const tr = t(val);
+        if (tr && tr !== val) return tr;
+      } else {
+        return val;
+      }
     }
-    return t(rawLabel.trim(), rawLabel);
+    const fromDict = translateUiText(clean);
+    if (fromDict && fromDict !== clean) return fromDict;
+    const fromI18n = t(clean);
+    if (fromI18n && fromI18n !== clean) return fromI18n;
+    return clean;
   };
 
   return (

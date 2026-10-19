@@ -734,7 +734,7 @@ export function MerchantOnlineOrdersPage() {
                       return (
                         <tr key={cart.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                           <td style={{ padding: '10px 12px', color: '#64748b', fontSize: '11.5px', whiteSpace: 'nowrap' }}>
-                            {new Date(cart.createdAt).toLocaleString('ar-EG', { dateStyle: 'short', timeStyle: 'short' })}
+                            {new Date(cart.createdAt).toLocaleString(t('common.locale', 'en-US') === 'en-US' ? 'en-US' : 'ar-EG', { dateStyle: 'short', timeStyle: 'short' })}
                           </td>
                           <td style={{ padding: '10px 12px' }}>
                             <div style={{ fontWeight: 800, color: '#0f172a' }}>{cart.customerName || t('storefront.merchant_online_orders_page.s52', "عميل المتجر")}</div>

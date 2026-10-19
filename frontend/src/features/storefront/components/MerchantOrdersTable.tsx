@@ -431,7 +431,7 @@ export function MerchantOrdersTable({
             <th style={{ padding: '12px 14px', fontWeight: 700, textAlign: 'center' }}>{t('storefront.merchant_orders_table.s17', "الأصناف")}</th>
             <th style={{ padding: '12px 14px', fontWeight: 700, textAlign: 'center' }}>{t('storefront.merchant_orders_table.s18', "الإجمالي")}</th>
             <th style={{ padding: '12px 14px', fontWeight: 700, textAlign: 'center' }}>{t('storefront.merchant_orders_table.s19', "الحالة")}</th>
-            <th style={{ padding: '12px 14px', fontWeight: 700, textAlign: 'center', minWidth: '344px' }}>{t('storefront.merchant_orders_table.s20', "الإجراءات")}</th>
+            <th style={{ padding: '12px 14px', fontWeight: 700, textAlign: 'center', minWidth: isEn ? '364px' : '344px' }}>{t('storefront.merchant_orders_table.s20', "الإجراءات")}</th>
           </tr>
         </thead>
         <tbody>
@@ -455,7 +455,7 @@ export function MerchantOrdersTable({
                     #{order.orderNumber}
                   </div>
                   <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px', textAlign: 'center' }}>
-                    {new Date(order.createdAt).toLocaleDateString('ar-EG', {
+                    {new Date(order.createdAt).toLocaleDateString(isEn ? 'en-US' : 'ar-EG', {
                       month: 'short',
                       day: 'numeric',
                       hour: '2-digit',
@@ -478,9 +478,9 @@ export function MerchantOrdersTable({
                       fontSize: '12.5px',
                       textAlign: 'center',
                     }}
-                    title={order.customerAddress || ''}
+                    title={order.customerAddress === 'استلام ذاتي من الفرع' ? (isEn ? 'Self-pickup from branch' : 'استلام ذاتي من الفرع') : (order.customerAddress || '')}
                   >
-                    {order.customerAddress || t('storefront.merchant_orders_table.s21', "غير محدد")}
+                    {order.customerAddress === 'استلام ذاتي من الفرع' ? (isEn ? 'Self-pickup from branch' : 'استلام ذاتي من الفرع') : (order.customerAddress || t('storefront.merchant_orders_table.s21', "غير محدد"))}
                   </div>
                   {order.deliveryZoneName && (
                     <div
@@ -535,7 +535,7 @@ export function MerchantOrdersTable({
                   <div
                     style={{
                       display: 'grid',
-                      gridTemplateColumns: '102px 124px 58px 32px',
+                      gridTemplateColumns: isEn ? '112px 132px 64px 32px' : '102px 124px 58px 32px',
                       gap: '6px',
                       alignItems: 'center',
                       margin: '0 auto',

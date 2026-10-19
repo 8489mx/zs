@@ -4,6 +4,7 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { Button } from '@/shared/ui/button';
 import { Field } from '@/shared/ui/field';
 import { formatDate } from '@/lib/format';
+import { translateUiText } from '@/lib/auto-translator';
 import {
   CheckCircleIcon,
   EyeIcon,
@@ -40,7 +41,8 @@ const OP_OPTIONS = [
 ];
 
 export function TamperAuditTrailTab() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isEn = i18n.language?.startsWith('en');
   const [page, setPage] = useState(1);
   const [pageSize] = useState(50);
   const [tableName, setTableName] = useState('');
@@ -119,7 +121,7 @@ export function TamperAuditTrailTab() {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }} dir="rtl">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }} dir={isEn ? 'ltr' : 'rtl'}>
       {/* ── 1. Cryptographic Integrity Status Card ────────────────────────── */}
       <div
         style={{
@@ -198,7 +200,7 @@ export function TamperAuditTrailTab() {
                 </span>
                 {verificationResult.violationReason ? (
                   <p style={{ margin: '4px 0 0', fontSize: '12.5px', color: '#b91c1c', fontWeight: 600 }}>
-                    {verificationResult.violationReason}
+                    {isEn ? (translateUiText(verificationResult.violationReason) || verificationResult.violationReason) : verificationResult.violationReason}
                   </p>
                 ) : (
                   <p style={{ margin: '2px 0 0', fontSize: '12px', color: '#15803d' }}>
@@ -211,7 +213,7 @@ export function TamperAuditTrailTab() {
             <div style={{ display: 'flex', alignItems: 'center', gap: '16px', fontSize: '12px', color: '#475569' }}>
               <div>
                 <span style={{ color: '#64748b' }}>{t('audit.tamper_audit_trail_tab.s7', "الكتل المفحوصة:")} </span>
-                <strong style={{ color: '#0f172a' }}>{verificationResult.totalRecords} {t('audit.tamper_audit_trail_tab.s8', "كتلة")}</strong>
+                <strong style={{ color: '#0f172a' }}>{verificationResult.totalRecords} {isEn ? (verificationResult.totalRecords === 1 ? 'Block' : 'Blocks') : t('audit.tamper_audit_trail_tab.s8', "كتلة")}</strong>
               </div>
               <div>
                 <span style={{ color: '#64748b' }}>{t('audit.tamper_audit_trail_tab.s9', "توقيت الفحص:")} </span>
@@ -253,7 +255,7 @@ export function TamperAuditTrailTab() {
             >
               {TABLE_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>
-                  {opt.label}
+                  {isEn ? (translateUiText(opt.label) || opt.label) : opt.label}
                 </option>
               ))}
             </select>
@@ -279,7 +281,7 @@ export function TamperAuditTrailTab() {
             >
               {OP_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>
-                  {opt.label}
+                  {isEn ? (translateUiText(opt.label) || opt.label) : opt.label}
                 </option>
               ))}
             </select>
@@ -397,7 +399,7 @@ export function TamperAuditTrailTab() {
                 <th style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 600, color: '#475569' }}>{t('audit.tamper_audit_trail_tab.s25', "IP الشبكة")}</th>
                 <th style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 600, color: '#475569' }}>{t('audit.tamper_audit_trail_tab.s26', "بصمة الهاش الرقمية")}</th>
                 <th style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 600, color: '#475569' }}>{t('audit.tamper_audit_trail_tab.s27', "التاريخ والوقت")}</th>
-                <th style={{ padding: '10px 14px', textAlign: 'center', fontWeight: 600, color: '#475569' }}>{t('audit.tamper_audit_trail_tab.s28', "الإجراءات")}</th>
+                <th style={{ padding: '10px 14px', textAlign: 'center', fontWeight: 600, color: '#475569', whiteSpace: 'nowrap', width: '90px' }}>{t('audit.tamper_audit_trail_tab.s28', "الإجراءات")}</th>
               </tr>
             </thead>
             <tbody>
@@ -435,7 +437,7 @@ export function TamperAuditTrailTab() {
                       <td style={{ padding: '10px 14px' }}>
                         {item.operation === 'UPDATE' ? (
                           <span style={{ fontSize: '11.5px', color: '#475569' }}>
-                            {changedCount > 0 ? `${changedCount} حقول متغيرة` : t('audit.tamper_audit_trail_tab.s31', "تحديث عام")}
+                            {changedCount > 0 ? (isEn ? `${changedCount} ${changedCount === 1 ? 'Changed Field' : 'Changed Fields'}` : `${changedCount} حقول متغيرة`) : t('audit.tamper_audit_trail_tab.s31', "تحديث عام")}
                           </span>
                         ) : item.operation === 'INSERT' ? (
                           <span style={{ fontSize: '11.5px', color: '#166534' }}>{t('audit.tamper_audit_trail_tab.s32', "إنشاء سجل كامل")}</span>
@@ -444,7 +446,7 @@ export function TamperAuditTrailTab() {
                         )}
                       </td>
                       <td style={{ padding: '10px 14px', color: '#334155' }}>
-                        {item.user_username || item.db_user || t('audit.tamper_audit_trail_tab.s34', "نظام / DB")}
+                        {item.user_username || item.db_user || (isEn ? 'System / DB' : t('audit.tamper_audit_trail_tab.s34', "نظام / DB"))}
                       </td>
                       <td style={{ padding: '10px 14px', color: '#64748b', direction: 'ltr', textAlign: 'right' }}>
                         {item.client_ip || '127.0.0.1'}
@@ -455,18 +457,19 @@ export function TamperAuditTrailTab() {
                         </span>
                       </td>
                       <td style={{ padding: '10px 14px', color: '#475569', fontSize: '12px' }}>
-                        {formatDate(item.created_at)}
+                        {isEn ? new Date(item.created_at).toLocaleString('en-US', { dateStyle: 'short', timeStyle: 'short' }) : formatDate(item.created_at)}
                       </td>
-                      <td style={{ padding: '10px 14px', textAlign: 'center' }}>
+                      <td style={{ padding: '10px 14px', textAlign: 'center', whiteSpace: 'nowrap', width: '90px' }}>
                         <Button
                           variant="secondary"
                           onClick={() => setSelectedItem(item)}
                           style={{
-                            padding: '4px 10px',
+                            padding: '4px 8px',
                             fontSize: '11.5px',
                             display: 'inline-flex',
                             alignItems: 'center',
                             gap: '4px',
+                            whiteSpace: 'nowrap',
                           }}
                         >
                           <EyeIcon size={13} />

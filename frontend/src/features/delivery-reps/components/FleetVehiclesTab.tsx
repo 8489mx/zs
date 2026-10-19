@@ -139,7 +139,7 @@ export function FleetVehiclesTab() {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }} dir="rtl">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
       {/* KPI Metrics */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '14px' }}>
         <div

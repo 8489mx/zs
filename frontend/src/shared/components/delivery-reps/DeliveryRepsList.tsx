@@ -106,10 +106,10 @@ export function DeliveryRepsList({ selectedRepId, onSelectRep }: { selectedRepId
               <code style={{ fontSize: '11px', color: '#0369a1', direction: 'ltr', display: 'inline-block' }}>/driver</code>
             </div>
           </div>
-          <div style={{ display: 'flex', gap: '4px' }}>
+          <div style={{ display: 'flex', gap: '4px', flexShrink: 0 }}>
             <Button
               variant="secondary"
-              style={{ fontSize: '11px', padding: '4px 8px' }}
+              style={{ fontSize: '11px', padding: '4px 8px', whiteSpace: 'nowrap' }}
               onClick={() => {
                 const url = window.location.origin + '/driver';
                 navigator.clipboard.writeText(url);
@@ -121,7 +121,7 @@ export function DeliveryRepsList({ selectedRepId, onSelectRep }: { selectedRepId
             </Button>
             <Button
               variant="secondary"
-              style={{ fontSize: '11px', padding: '4px 8px', background: '#170e5e', color: '#ffffff', borderColor: '#170e5e' }}
+              style={{ fontSize: '11px', padding: '4px 8px', background: '#170e5e', color: '#ffffff', borderColor: '#170e5e', whiteSpace: 'nowrap' }}
               onClick={() => window.open('/driver', '_blank')}
               title={t('shared.delivery_reps.delivery_reps_list.s5', "فتح بوابة المندوب في نافذة جديدة للتجربة")}
             >
@@ -192,7 +192,7 @@ export function DeliveryRepsList({ selectedRepId, onSelectRep }: { selectedRepId
                     )}
                   </div>
                   <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
                       <span style={{ fontWeight: 800, fontSize: '14px', color: '#0f172a', display: 'block' }}>{rep.name}</span>
                       {isBoth ? (
                         <span style={{ fontSize: '10px', color: '#6d28d9', background: '#ede9fe', padding: '1px 6px', borderRadius: '4px', border: '1px solid #ddd6fe', fontWeight: 700 }}>

@@ -1893,6 +1893,10 @@
   align-items: start;
 }
 
+html[dir="ltr"] .two-column-layout {
+  grid-template-columns: 320px minmax(0, 1fr);
+}
+
 /* Responsive label visibility default (Desktop: full label visible, short label hidden) */
 .settings-tab-short-label,
 .subnav-short-label,
