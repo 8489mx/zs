@@ -1066,6 +1066,7 @@ html[dir="rtl"] .app-layout,
 .sidebar-collapsed .sidebar-group-chevron,
 .sidebar-collapsed .sidebar-link-chevron-spacer,
 .sidebar-collapsed .brand-copy,
+.sidebar-collapsed .brand-logo-spacer,
 .sidebar-collapsed .sidebar-footer-info,
 .sidebar-collapsed .sidebar-logout-btn .btn-label { display: none; }
 
@@ -1739,6 +1740,10 @@ html[dir="rtl"] .app-layout,
 
 [dir="ltr"] .brand-logo {
   order: -1;
+}
+
+[dir="ltr"] .brand-logo-spacer {
+  order: 1;
 }
 
 [dir="ltr"] .brand-copy {
