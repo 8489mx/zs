@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { ActionConfirmDialog } from '@/shared/components/action-confirm-dialog';
 import type { StockCountSession, StockTransfer } from '@/types/domain';
+import { useAuthStore, isAdminUser } from '@/stores/auth-store';
 
 export function InventoryTransferActionDialog({
   action,
@@ -46,9 +47,12 @@ export function InventoryPostSessionDialog({
   sessions: StockCountSession[];
   isBusy: boolean;
   onCancel: () => void;
-  onConfirm: (context: { managerPin: string }) => void;
+  onConfirm: (context: { managerPin?: string }) => void;
 }) {
   const { t } = useTranslation();
+  const user = useAuthStore((state) => state.user);
+  const isAdmin = isAdminUser(user);
+
   return (
     <ActionConfirmDialog
       open={Boolean(sessions.length)}
@@ -56,9 +60,11 @@ export function InventoryPostSessionDialog({
       description={sessions.length ? (sessions.length === 1 ? <>{t('inventory.inventory_workspace_dialogs.s13', "سيتم اعتماد الجلسة")} <strong>{sessions[0].docNo || sessions[0].id}</strong> {t('inventory.inventory_workspace_dialogs.s14', "وتسجيل فروقاتها على المخزون بشكل نهائي.")}</> : <>{t('inventory.inventory_workspace_dialogs.s15', "سيتم اعتماد")} <strong>{sessions.length}</strong> {t('inventory.inventory_workspace_dialogs.s16', "جلسات جرد محددة وتسجيل فروقاتها على المخزون بشكل نهائي.")}</>) : ''}
       confirmLabel={t('inventory.inventory_workspace_dialogs.s17', "اعتماد الجلسة")}
       confirmVariant="primary"
-      managerPinRequired={true}
-      managerPinLabel={t('inventory.inventory_workspace_dialogs.s18', "كود اعتماد المشرف")}
-      managerPinHint={t('inventory.inventory_workspace_dialogs.s19', "أدخل الرقم السري للمشرف لاعتماد الجلسة وتسوية الأرصدة.")}
+      managerPinRequired={!isAdmin}
+      managerPinLabel="كلمة مرور مدير النظام (الأدمن)"
+      managerPinHint="أدخل كلمة مرور حساب الأدمن لاعتماد الجلسة وتسوية الفروقات المخزنية."
+      managerPinPlaceholder="أدخل كلمة مرور الأدمن"
+      managerPinInputType="password"
       isBusy={isBusy}
       onCancel={onCancel}
       onConfirm={({ managerPin }) => onConfirm({ managerPin })}

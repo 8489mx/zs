@@ -187,6 +187,7 @@ export const inventoryApi = {
   },
   createStockCountSession: (payload: unknown) => http('/api/stock-count-sessions', { method: 'POST', body: JSON.stringify(payload) }),
   postStockCountSession: (sessionId: string, payload: unknown) => http(`/api/stock-count-sessions/${sessionId}/post`, { method: 'POST', body: JSON.stringify(payload) }),
+  deleteStockCountSession: (sessionId: string) => http(`/api/stock-count-sessions/${sessionId}`, { method: 'DELETE' }),
   transferCategory: (payload: { categoryId: number; fromLocationId: number; toLocationId: number; notes?: string }) => http('/api/transfer-category', { method: 'POST', body: JSON.stringify(payload) }),
   advancedOverview: () => http<any>('/api/inventory/advanced-overview')
 };

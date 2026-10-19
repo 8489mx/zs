@@ -17,6 +17,7 @@ import { InventoryScopeService } from './inventory-scope.service';
 import { IdempotencyService } from '../../../core/idempotency/idempotency.service';
 import { idempotencyStorage } from '../../../core/idempotency/idempotency.context';
 import { AccountingPostingService } from '../../accounting/accounting-posting.service';
+import { verifyPassword } from '../../../core/auth/utils/password-hasher';
 
 @Injectable()
 export class InventoryCountService {
@@ -199,7 +200,72 @@ export class InventoryCountService {
     });
   }
 
-  async postStockCountSession(sessionId: number, auth: AuthContext): Promise<Record<string, unknown>> {
+  async deleteStockCountSession(sessionId: number, auth: AuthContext): Promise<Record<string, unknown>> {
+    return this.tx.runInTransaction(this.db, async (trx) => {
+      const session = await trx.selectFrom('stock_count_sessions').selectAll()
+        .where('id', '=', sessionId).where(this.tenantPredicate(auth)).forUpdate().executeTakeFirst();
+      if (!session) {
+        throw new AppError('جلسة الجرد غير موجودة', 'SESSION_NOT_FOUND', 404);
+      }
+      if (session.status === 'posted') {
+        throw new AppError('لا يمكن حذف أو إلغاء جلسة جرد معتمدة ومرحلة إلى المخازن والحسابات', 'SESSION_ALREADY_POSTED', 400);
+      }
+      // Delete associated items first
+      await trx.deleteFrom('stock_count_items')
+        .where('session_id', '=', sessionId)
+        .where(this.tenantPredicate(auth))
+        .execute();
+
+      // Delete the session record
+      await trx.deleteFrom('stock_count_sessions')
+        .where('id', '=', sessionId)
+        .where(this.tenantPredicate(auth))
+        .execute();
+
+      await this.audit.logWithExecutor(trx, 'حذف مسودة جلسة جرد', JSON.stringify({
+        sessionId,
+        docNo: session.doc_no,
+        branchId: session.branch_id,
+        locationId: session.location_id,
+        status: session.status,
+      }), auth);
+
+      return { ok: true, deletedSessionId: sessionId };
+    });
+  }
+
+  async postStockCountSession(sessionId: number, auth: AuthContext, adminPassword?: string): Promise<Record<string, unknown>> {
+    const isManager = auth.role === 'admin' || auth.role === 'super_admin';
+    if (!isManager) {
+      const normalizedPassword = String(adminPassword || '').trim();
+      if (!normalizedPassword) {
+        throw new AppError('كلمة مرور مدير النظام (الأدمن) مطلوبة لاعتماد وترحيل جلسة الجرد', 'ADMIN_PASSWORD_REQUIRED', 403);
+      }
+      const managerUsers = await this.db
+        .selectFrom('users')
+        .select(['id', 'username', 'role', 'password_hash', 'password_salt'])
+        .where('is_active', '=', true)
+        .where(this.tenantPredicate(auth))
+        .where((eb) => eb.or([eb('role', '=', 'admin'), eb('role', '=', 'super_admin')]))
+        .execute();
+
+      let passwordValid = false;
+      for (const managerUser of managerUsers) {
+        const check = await verifyPassword(
+          normalizedPassword,
+          String(managerUser.password_hash || ''),
+          String(managerUser.password_salt || ''),
+        );
+        if (check.valid) {
+          passwordValid = true;
+          break;
+        }
+      }
+      if (!passwordValid) {
+        throw new AppError('كلمة مرور مدير النظام (الأدمن) غير صحيحة', 'ADMIN_PASSWORD_INVALID', 403);
+      }
+    }
+
     const tenantScope = this.tenantScope(auth);
     const idemCtx = idempotencyStorage.getStore();
     if (idemCtx?.idempotencyKey) {

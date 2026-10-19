@@ -17,6 +17,7 @@ import {
 import type { InventorySectionKey } from '@/features/inventory/pages/inventory.page-config';
 import { useHasAnyPermission } from '@/shared/hooks/use-permission';
 import { useSettingsQuery, useCategoriesQuery, useSuppliersQuery } from '@/shared/hooks/use-catalog-queries';
+import { toast, systemConfirm } from '@/shared/components/system-alert';
 
 export function useInventoryWorkspaceController(currentSection: InventorySectionKey) {
   const queryClient = useQueryClient();
@@ -88,6 +89,7 @@ export function useInventoryWorkspaceController(currentSection: InventorySection
       expectedQty,
       countedQty,
       varianceQty: Number((countedQty - expectedQty).toFixed(3)),
+      isCounted: true,
       reason: state.countForm.reason,
       note: state.countForm.itemNote,
     }]);
@@ -187,7 +189,11 @@ export function useInventoryWorkspaceController(currentSection: InventorySection
     try {
       await mutations.postCountMutation.mutateAsync({ sessionIds: state.postSessionConfirm.sessionIds, managerPin: pin });
       state.setPostSessionConfirm(null);
-    } catch {}
+      toast.success('تم اعتماد وترحيل جلسة الجرد وتسوية الفروقات بنجاح.');
+    } catch (err: any) {
+      toast.error(err?.message || 'تعذر اعتماد وترحيل جلسة الجرد.');
+      throw err;
+    }
   }
 
   const receiveSelectedTransfers = canAdjustInventory && state.selectedTransferIds.length
@@ -206,6 +212,38 @@ export function useInventoryWorkspaceController(currentSection: InventorySection
     ? () => {
       const selected = stockCountSessions.filter((session) => state.selectedSessionIds.includes(String(session.id)) && session.status === 'draft');
       if (selected.length) state.setPostSessionConfirm({ sessionIds: selected.map((session) => String(session.id)) });
+    }
+    : undefined;
+
+  const deleteStockCountHandler = canAdjustInventory
+    ? async (sessionId: string, docNo?: string) => {
+      const session = stockCountSessions.find((s) => String(s.id) === String(sessionId));
+      if (session && session.status !== 'draft') {
+        toast.error('لا يمكن حذف أو إلغاء جلسة جرد معتمدة ومرحلة إلى المخازن والحسابات.');
+        return;
+      }
+
+      const code = docNo || session?.docNo || sessionId;
+      const confirmed = await systemConfirm({
+        title: 'تأكيد إلغاء / حذف مسودة جلسة الجرد',
+        message: `هل أنت متأكد من حذف مسودة جلسة الجرد (${code}) نهائياً؟ لن يتم تطبيق أي تعديلات على المخزون أو القيود المحاسبية.`,
+        confirmText: 'نعم، حذف المسودة',
+        cancelText: 'تراجع',
+        variant: 'danger',
+      });
+
+      if (!confirmed) return;
+
+      try {
+        await mutations.deleteCountMutation.mutateAsync(sessionId);
+        if (String(state.selectedSessionId) === String(sessionId)) {
+          state.setSelectedSessionId('');
+        }
+        state.setSelectedSessionIds((prev) => prev.filter((id) => String(id) !== String(sessionId)));
+        toast.success('تم حذف مسودة جلسة الجرد بنجاح.');
+      } catch (err: any) {
+        toast.error(err?.message || 'تعذر حذف مسودة جلسة الجرد.');
+      }
     }
     : undefined;
 
@@ -250,6 +288,8 @@ export function useInventoryWorkspaceController(currentSection: InventorySection
     transferActionMutation: mutations.transferActionMutation,
     createCountMutation: mutations.createCountMutation,
     postCountMutation: mutations.postCountMutation,
+    deleteCountMutation: mutations.deleteCountMutation,
+    deleteStockCountHandler,
     addTransferItem,
     addCountItem,
     visibleTransfers,

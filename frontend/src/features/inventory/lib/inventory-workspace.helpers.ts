@@ -67,11 +67,18 @@ export function buildInventorySectionSpotlightCards(params: {
     ];
   }
   if (currentSection === 'counts') {
+    const rawVariance = Number(stockCountSummary.totalVariance || 0);
+    const varianceDisplay = rawVariance === 0
+      ? '0 قطعة'
+      : rawVariance < 0
+      ? `عجز: ${Math.abs(rawVariance).toLocaleString('ar-EG')} قطعة`
+      : `فائض: ${rawVariance.toLocaleString('ar-EG')} قطعة`;
+
     return [
-      { key: 'total', label: 'إجمالي الجلسات', value: `${stockCountSummary.totalItems || 0}` },
-      { key: 'draft', label: 'جلسات مسودة', value: `${stockCountSummary.draft || 0}` },
-      { key: 'posted', label: 'جلسات معتمدة', value: `${stockCountSummary.posted || 0}` },
-      { key: 'variance', label: 'إجمالي الفروقات', value: `${stockCountSummary.totalVariance || 0}` },
+      { key: 'total', label: 'إجمالي الجلسات', value: `${(stockCountSummary.totalItems || 0).toLocaleString('ar-EG')} جلسة` },
+      { key: 'draft', label: 'جلسات مسودة', value: `${(stockCountSummary.draft || 0).toLocaleString('ar-EG')} مسودة` },
+      { key: 'posted', label: 'جلسات معتمدة', value: `${(stockCountSummary.posted || 0).toLocaleString('ar-EG')} معتمدة` },
+      { key: 'variance', label: 'إجمالي الفروقات', value: varianceDisplay },
     ];
   }
   if (currentSection === 'damaged') {

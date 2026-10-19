@@ -44,7 +44,15 @@ export class CreateStockCountSessionDto {
   items!: StockCountItemDto[];
 }
 
-export class PostStockCountSessionDto {}
+export class PostStockCountSessionDto {
+  @IsOptional()
+  @IsString()
+  adminPassword?: string;
+
+  @IsOptional()
+  @IsString()
+  managerPin?: string;
+}
 
 export class RecountStockCountItemDto {
   @Type(() => Number)

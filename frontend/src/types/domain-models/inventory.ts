@@ -69,8 +69,9 @@ export interface StockCountItem {
   productId: string;
   productName: string;
   expectedQty: number;
-  countedQty: number;
+  countedQty: number | string;
   varianceQty: number;
+  isCounted?: boolean;
   reason?: string;
   note?: string;
 }

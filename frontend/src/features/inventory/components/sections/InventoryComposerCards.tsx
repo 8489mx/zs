@@ -8,6 +8,8 @@ import { CustomSelect } from '@/shared/ui/custom-select';
 import { MutationFeedback } from '@/shared/components/mutation-feedback';
 import { SubmitButton } from '@/shared/components/submit-button';
 import { InventoryProductPicker } from '@/features/inventory/components/InventoryProductPicker';
+import { useClientPagination } from '@/shared/hooks/use-client-pagination';
+import { PaginationControls } from '@/shared/components/pagination-controls';
 import { exportStockCountSheetExcel, printStockCountSheet, type StockCountSheetRow } from '@/features/inventory/lib/inventory-documents';
 import { useCategoriesQuery, useSuppliersQuery } from '@/shared/hooks/use-catalog-queries';
 import { getGlobalCurrencySymbol } from '@/lib/currencies';
@@ -19,6 +21,8 @@ import {
   CheckCircleIcon,
   SearchIcon,
   PlusIcon,
+  RefreshCwIcon,
+  SlidersIcon,
 } from '@/shared/components/icons/AppIcons';
 import type { Branch, Location, Product, StockCountItem, StockTransferItem } from '@/types/domain';
 import { SINGLE_STORE_MODE } from '@/config/product-scope';
@@ -264,16 +268,19 @@ export function StockCountComposerCard({
   const barcodeInputRef = useRef<HTMLInputElement>(null);
 
   const selectedProduct = products.find((product) => String(product.id) === String(form.productId));
-  const totalCounted = items.reduce((sum, item) => sum + Number(item.countedQty || 0), 0);
-  const totalVariance = Number(items.reduce((sum, item) => sum + Number(item.varianceQty || 0), 0).toFixed(3));
-  const varianceItems = items.filter((item) => Number(item.varianceQty || 0) !== 0).length;
+  const countedItemsList = useMemo(() => items.filter((item) => item.isCounted !== false && item.countedQty !== '' && item.countedQty != null), [items]);
+  const totalCounted = countedItemsList.reduce((sum, item) => sum + Number(item.countedQty || 0), 0);
+  const totalVariance = Number(countedItemsList.reduce((sum, item) => sum + Number(item.varianceQty || 0), 0).toFixed(3));
+  const varianceItems = countedItemsList.filter((item) => Number(item.varianceQty || 0) !== 0).length;
+  const countedCount = countedItemsList.length;
+  const uncountedCount = items.length - countedCount;
   const selectedCountType = countTypeOptions.find((entry) => entry.key === countType) || countTypeOptions[0];
   const canShowExpectedCount = canReviewStock && showExpectedInElectronicCount;
 
   const financialSummary = useMemo(() => {
     let deficitCost = 0;
     let surplusCost = 0;
-    items.forEach((item) => {
+    countedItemsList.forEach((item) => {
       const prod = products.find((p) => String(p.id) === String(item.productId));
       const cost = Number(prod?.costPrice || 0);
       const variance = Number(item.varianceQty || 0);
@@ -285,7 +292,7 @@ export function StockCountComposerCard({
       surplusCost,
       netCost: surplusCost - deficitCost,
     };
-  }, [items, products]);
+  }, [countedItemsList, products]);
 
   useEffect(() => {
     if (!form.locationId) {
@@ -399,12 +406,34 @@ export function StockCountComposerCard({
         productId: p.id,
         productName: p.name,
         expectedQty,
-        countedQty: 0,
-        varianceQty: Number((0 - expectedQty).toFixed(3)),
+        countedQty: '',
+        varianceQty: 0,
+        isCounted: false,
         reason: '',
         note: '',
       };
     }));
+  }
+
+  function handleResetAllToExpected() {
+    onItemsChange((current) => current.map((item) => {
+      const expectedQty = Number(item.expectedQty || 0);
+      return {
+        ...item,
+        countedQty: expectedQty,
+        varianceQty: 0,
+        isCounted: true,
+      };
+    }));
+  }
+
+  function handleClearAllCounts() {
+    onItemsChange((current) => current.map((item) => ({
+      ...item,
+      countedQty: '',
+      varianceQty: 0,
+      isCounted: false,
+    })));
   }
 
   function handlePrintSheet() {
@@ -437,6 +466,9 @@ export function StockCountComposerCard({
     }
     setStartCountMessage('');
     setIsCountStarted(true);
+    if (countType === 'full' || countType === 'category' || countType === 'supplier') {
+      handlePopulateScopeItems();
+    }
   }
 
   function handleBackToSetup() {
@@ -459,7 +491,7 @@ export function StockCountComposerCard({
   }
 
   const [tableSearchQuery, setTableSearchQuery] = useState('');
-  const [tableFilterTab, setTableFilterTab] = useState<'all' | 'variance' | 'matched'>('all');
+  const [tableFilterTab, setTableFilterTab] = useState<'all' | 'counted' | 'variance' | 'uncounted'>('all');
 
   const filteredItems = useMemo(() => {
     let result = items;
@@ -474,25 +506,37 @@ export function StockCountComposerCard({
       });
     }
 
-    if (tableFilterTab === 'variance') {
-      result = result.filter((item) => Number(item.varianceQty || 0) !== 0);
-    } else if (tableFilterTab === 'matched') {
-      result = result.filter((item) => Number(item.varianceQty || 0) === 0);
+    if (tableFilterTab === 'counted') {
+      result = result.filter((item) => item.isCounted !== false && item.countedQty !== '' && item.countedQty != null);
+    } else if (tableFilterTab === 'variance') {
+      result = result.filter((item) => item.isCounted !== false && item.countedQty !== '' && item.countedQty != null && Number(item.varianceQty || 0) !== 0);
+    } else if (tableFilterTab === 'uncounted') {
+      result = result.filter((item) => item.isCounted === false || item.countedQty === '' || item.countedQty == null);
     }
 
     return result;
   }, [items, products, tableSearchQuery, tableFilterTab]);
 
+  const pagination = useClientPagination(filteredItems, {
+    initialPageSize: 50,
+    pageSizeOptions: [25, 50, 100, 200],
+  });
+
   function updateCountItemById(id: string, patch: Partial<StockCountItem>) {
     onItemsChange((current) => current.map((item) => {
       if (item.id !== id) return item;
-      const countedQty = patch.countedQty == null ? Number(item.countedQty || 0) : Number(patch.countedQty || 0);
+      const rawCount = patch.countedQty !== undefined ? patch.countedQty : item.countedQty;
+      const isEmpty = rawCount === '' || rawCount === null || rawCount === undefined;
+      const isCounted = patch.isCounted !== undefined ? patch.isCounted : !isEmpty;
+      const countedQty = isEmpty ? '' : Number(rawCount);
       const expectedQty = Number(item.expectedQty || 0);
+      const varianceQty = isEmpty ? 0 : Number((Number(countedQty) - expectedQty).toFixed(3));
       return {
         ...item,
         ...patch,
         countedQty,
-        varianceQty: Number((countedQty - expectedQty).toFixed(3)),
+        isCounted,
+        varianceQty,
       };
     }));
   }
@@ -517,8 +561,9 @@ export function StockCountComposerCard({
     setStartCountMessage('');
     const existingItem = items.find((item) => String(item.productId) === String(matchedProduct.id));
     if (existingItem) {
-      const nextQty = Number(existingItem.countedQty || 0) + 1;
-      updateCountItemById(existingItem.id, { countedQty: nextQty });
+      const currentQty = existingItem.countedQty === '' || existingItem.countedQty == null ? 0 : Number(existingItem.countedQty);
+      const nextQty = currentQty + 1;
+      updateCountItemById(existingItem.id, { countedQty: nextQty, isCounted: true });
       setLastScannedItem({ name: existingItem.productName, qty: nextQty });
     } else {
       const expectedQty = Number(matchedProduct.stock || 0);
@@ -667,7 +712,10 @@ export function StockCountComposerCard({
 
               <div className="stock-count-stat-pills">
                 <span className="stat-pill">{t('inventory.sections.inventory_composer_cards.s47', "الأصناف:")} <strong>{items.length}</strong></span>
-                <span className="stat-pill">{t('inventory.sections.inventory_composer_cards.s48', "المعدود:")} <strong>{totalCounted}</strong></span>
+                <span className="stat-pill" style={{ color: countedCount > 0 ? '#15803d' : undefined, background: countedCount > 0 ? '#f0fdf4' : undefined, border: countedCount > 0 ? '1px solid #bbf7d0' : undefined }}>
+                  تم عدها: <strong>{countedCount}</strong> من {items.length}
+                </span>
+                <span className="stat-pill">{t('inventory.sections.inventory_composer_cards.s48', "إجمالي المعدود:")} <strong>{totalCounted}</strong></span>
                 <span className="stat-pill">{t('inventory.sections.inventory_composer_cards.s49', "الفروقات:")} <strong>{totalVariance}</strong></span>
                 {canShowExpectedCount && financialSummary.deficitCost > 0 ? (
                   <span className="stat-pill stat-pill--deficit">{t('inventory.sections.inventory_composer_cards.s50', "قيمة العجز:")} <strong>{financialSummary.deficitCost.toLocaleString('ar-EG')} {getGlobalCurrencySymbol()}</strong></span>
@@ -677,7 +725,13 @@ export function StockCountComposerCard({
 
             <div className="actions compact-actions">
               <Button type="button" variant="secondary" onClick={handleBackToSetup} disabled={isPending}>{t('inventory.sections.inventory_composer_cards.s51', "تعديل الإعدادات")}</Button>
-              <SubmitButton type="button" onClick={() => onSubmit({ noteOverride: buildSessionNoteWithType(form.note) })} disabled={isPending || !items.length || !form.locationId} idleText={t('inventory.sections.inventory_composer_cards.s52', "إنشاء وحفظ الجلسة")} pendingText={t('inventory.sections.inventory_composer_cards.s53', "جارٍ الإنشاء...")} />
+              <SubmitButton
+                type="button"
+                onClick={() => onSubmit({ noteOverride: buildSessionNoteWithType(form.note) })}
+                disabled={isPending || !countedCount || !form.locationId}
+                idleText={`إنشاء وحفظ الجلسة (${countedCount} صنف)`}
+                pendingText={t('inventory.sections.inventory_composer_cards.s53', "جارٍ الإنشاء...")}
+              />
             </div>
           </div>
 
@@ -717,6 +771,18 @@ export function StockCountComposerCard({
                   <span>{t('inventory.sections.inventory_composer_cards.s59', "إدخال إلكتروني (")}{scopeProducts.length} {t('inventory.sections.inventory_composer_cards.s60', "صنف)")}</span>
                 </Button>
               ) : null}
+              {items.length > 0 ? (
+                <>
+                  <Button type="button" variant="secondary" onClick={handleClearAllCounts} title="إفراغ كافة خانات العد للبدء في الجرد الأعمى (الأصناف الفارغة لا يتم إدراجها في الجلسة)">
+                    <SlidersIcon size={14} />
+                    <span>إفراغ الخانات (أعمى)</span>
+                  </Button>
+                  <Button type="button" variant="secondary" onClick={handleResetAllToExpected} title="إعادة تعيين كافة الكميات المعدودة لتطابق رصيد النظام (تصفير الفروقات)">
+                    <RefreshCwIcon size={14} />
+                    <span>ملء برصيد النظام</span>
+                  </Button>
+                </>
+              ) : null}
               <Button type="button" variant="secondary" onClick={handlePrintSheet} disabled={!sheetRows.length}>
                 <PrinterIcon size={15} />
                 <span>{t('inventory.sections.inventory_composer_cards.s61', "طباعة الشيت")}</span>
@@ -737,9 +803,9 @@ export function StockCountComposerCard({
 
           {/* Quick Manual Add Row */}
           <div className="stock-count-quick-entry-row">
-            <span className="entry-row-title">{t('inventory.sections.inventory_composer_cards.s64', "إضافة صنف:")}</span>
+            <span className="entry-row-title">{t('inventory.sections.inventory_composer_cards.s64', "إدراج صنف في الجرد:")}</span>
             <div className="entry-row-picker">
-              <InventoryProductPicker products={products} value={form.productId} onChange={(productId) => onFormChange({ productId })} showStock showPrice={false} hideHint={true} />
+              <InventoryProductPicker products={scopeProducts.length > 0 ? scopeProducts : products} value={form.productId} onChange={(productId) => onFormChange({ productId })} showStock showPrice={false} hideHint={true} />
             </div>
             <input
               type="number"
@@ -759,7 +825,7 @@ export function StockCountComposerCard({
             />
             <Button type="button" variant="secondary" onClick={onAddItem}>
               <PlusIcon size={15} />
-              <span>{t('inventory.sections.inventory_composer_cards.s67', "إضافة صنف")}</span>
+              <span>{t('inventory.sections.inventory_composer_cards.s67', "إدراج في الجرد")}</span>
             </Button>
           </div>
 
@@ -789,22 +855,71 @@ export function StockCountComposerCard({
                   className={`filter-pill-btn ${tableFilterTab === 'all' ? 'filter-pill-btn--active' : ''}`}
                   onClick={() => setTableFilterTab('all')}
                 >
-                  {t('inventory.sections.inventory_composer_cards.s71', "الكل (")}{items.length})
+                  الكل ({items.length})
+                </button>
+                <button
+                  type="button"
+                  className={`filter-pill-btn ${tableFilterTab === 'counted' ? 'filter-pill-btn--active' : ''}`}
+                  onClick={() => setTableFilterTab('counted')}
+                >
+                  تم عدها ({countedCount})
                 </button>
                 <button
                   type="button"
                   className={`filter-pill-btn ${tableFilterTab === 'variance' ? 'filter-pill-btn--active' : ''}`}
                   onClick={() => setTableFilterTab('variance')}
                 >
-                  {t('inventory.sections.inventory_composer_cards.s72', "فروقات (")}{varianceItems})
+                  فروقات ({varianceItems})
                 </button>
                 <button
                   type="button"
-                  className={`filter-pill-btn ${tableFilterTab === 'matched' ? 'filter-pill-btn--active' : ''}`}
-                  onClick={() => setTableFilterTab('matched')}
+                  className={`filter-pill-btn ${tableFilterTab === 'uncounted' ? 'filter-pill-btn--active' : ''}`}
+                  onClick={() => setTableFilterTab('uncounted')}
                 >
-                  {t('inventory.sections.inventory_composer_cards.s73', "مطابق (")}{items.length - varianceItems})
+                  لم تُعد ({uncountedCount})
                 </button>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginRight: 'auto', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <span style={{ fontSize: '11px', color: '#64748b' }}>لكل صفحة:</span>
+                  {[25, 50, 100].map((size) => (
+                    <button
+                      key={size}
+                      type="button"
+                      onClick={() => pagination.setPageSize(size)}
+                      style={{
+                        padding: '2px 7px',
+                        fontSize: '11px',
+                        fontWeight: '700',
+                        borderRadius: '4px',
+                        border: pagination.pageSize === size ? '1.5px solid #2563eb' : '1px solid #cbd5e1',
+                        background: pagination.pageSize === size ? '#eff6ff' : '#ffffff',
+                        color: pagination.pageSize === size ? '#1d4ed8' : '#64748b',
+                        cursor: 'pointer',
+                        transition: 'all 120ms ease',
+                      }}
+                    >
+                      {size}
+                    </button>
+                  ))}
+                </div>
+
+                {pagination.totalPages > 1 ? (
+                  <div className="stock-count-quick-pager" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ fontSize: '12px', fontWeight: '600', color: '#64748b' }}>
+                      {t('pagination.page_of', 'صفحة {{page}} من {{totalPages}}', { page: pagination.page, totalPages: pagination.totalPages })}
+                    </span>
+                    <div style={{ display: 'flex', gap: '4px' }}>
+                      <Button variant="secondary" type="button" onClick={() => pagination.goToPage(pagination.page - 1)} disabled={!pagination.hasPreviousPage} style={{ padding: '3px 8px', fontSize: '11px', height: '28px', minHeight: '28px' }}>
+                        {t('pagination.prev', 'السابق')}
+                      </Button>
+                      <Button variant="secondary" type="button" onClick={() => pagination.goToPage(pagination.page + 1)} disabled={!pagination.hasNextPage} style={{ padding: '3px 8px', fontSize: '11px', height: '28px', minHeight: '28px' }}>
+                        {t('pagination.next', 'التالي')}
+                      </Button>
+                    </div>
+                  </div>
+                ) : null}
               </div>
             </div>
           ) : null}
@@ -812,6 +927,7 @@ export function StockCountComposerCard({
           {/* High Density Items Table */}
           <div className="table-wrap stock-count-items-table-wrap">
             {filteredItems.length ? (
+              <>
               <table className="stock-count-items-table">
                 <thead>
                   <tr>
@@ -825,9 +941,9 @@ export function StockCountComposerCard({
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredItems.map((item, index) => (
+                  {pagination.rows.map((item, index) => (
                     <tr key={item.id}>
-                      <td style={{ textAlign: 'center', color: '#94a3b8', fontSize: '12px' }}>{index + 1}</td>
+                      <td style={{ textAlign: 'center', color: '#94a3b8', fontSize: '12px' }}>{pagination.rangeStart + index}</td>
                       <td><strong>{item.productName}</strong></td>
                       {canShowExpectedCount ? <td style={{ textAlign: 'center' }} className="muted">{item.expectedQty || 0}</td> : null}
                       <td style={{ textAlign: 'center' }}>
@@ -835,14 +951,29 @@ export function StockCountComposerCard({
                           type="number"
                           min="0"
                           step="0.001"
-                          style={{ textAlign: 'center', fontWeight: 'bold' }}
-                          value={String(item.countedQty ?? 0)}
-                          onChange={(event) => updateCountItemById(item.id, { countedQty: Number(event.target.value || 0) })}
+                          placeholder="—"
+                          style={{
+                            textAlign: 'center',
+                            fontWeight: 'bold',
+                            backgroundColor: (item.countedQty === '' || item.countedQty == null) ? '#fafafa' : '#ffffff',
+                            color: (item.countedQty === '' || item.countedQty == null) ? '#94a3b8' : '#0f172a',
+                          }}
+                          value={item.countedQty === '' || item.countedQty == null ? '' : String(item.countedQty)}
+                          onChange={(event) => {
+                            const val = event.target.value;
+                            if (val === '') {
+                              updateCountItemById(item.id, { countedQty: '', isCounted: false });
+                            } else {
+                              updateCountItemById(item.id, { countedQty: Number(val), isCounted: true });
+                            }
+                          }}
                         />
                       </td>
                       {canShowExpectedCount ? (
                         <td style={{ textAlign: 'center' }}>
-                          {Number(item.varianceQty || 0) === 0 ? (
+                          {item.isCounted === false || item.countedQty === '' || item.countedQty == null ? (
+                            <span className="muted" style={{ fontSize: '12px' }}>—</span>
+                          ) : Number(item.varianceQty || 0) === 0 ? (
                             <span className="stock-count-variance stock-count-variance--zero">{t('inventory.sections.inventory_composer_cards.s80', "مطابق (0)")}</span>
                           ) : Number(item.varianceQty || 0) < 0 ? (
                             <span className="stock-count-variance stock-count-variance--deficit">{t('inventory.sections.inventory_composer_cards.s81', "عجز")} {item.varianceQty}</span>
@@ -861,6 +992,91 @@ export function StockCountComposerCard({
                   ))}
                 </tbody>
               </table>
+                            {/* Slim Bottom Footer Bar */}
+              <div
+                className="stock-count-table-footer-bar"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '12px',
+                  padding: '8px 14px',
+                  background: '#f8fafc',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '8px',
+                  marginTop: '10px',
+                  flexWrap: 'wrap',
+                }}
+              >
+                {/* Right side: Range info and Page Size selector */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: '12px', color: '#475569', fontWeight: '600' }}>
+                    {t('pagination.range', 'عرض {{rangeStart}}-{{rangeEnd}} من أصل {{totalItems}} {{itemLabel}}', {
+                      rangeStart: pagination.rangeStart,
+                      rangeEnd: pagination.rangeEnd,
+                      totalItems: pagination.totalItems,
+                      itemLabel: t('inventory.sections.inventory_composer_cards.s60', 'صنف'),
+                    })}
+                  </span>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ fontSize: '11.5px', color: '#64748b' }}>{t('pagination.per_page', 'لكل صفحة:')}</span>
+                    <div style={{ display: 'flex', gap: '4px' }}>
+                      {[25, 50, 100].map((size) => (
+                        <button
+                          key={size}
+                          type="button"
+                          onClick={() => pagination.setPageSize(size)}
+                          style={{
+                            padding: '3px 9px',
+                            fontSize: '11.5px',
+                            fontWeight: '700',
+                            borderRadius: '5px',
+                            border: pagination.pageSize === size ? '1.5px solid #2563eb' : '1px solid #cbd5e1',
+                            background: pagination.pageSize === size ? '#eff6ff' : '#ffffff',
+                            color: pagination.pageSize === size ? '#1d4ed8' : '#475569',
+                            cursor: 'pointer',
+                            transition: 'all 120ms ease',
+                          }}
+                        >
+                          {size}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Left side: Navigation buttons */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '12px', fontWeight: '700', color: '#334155' }}>
+                    {t('pagination.page_of', 'صفحة {{page}} من {{totalPages}}', {
+                      page: pagination.page,
+                      totalPages: pagination.totalPages,
+                    })}
+                  </span>
+                  <div style={{ display: 'flex', gap: '4px' }}>
+                    <Button
+                      variant="secondary"
+                      type="button"
+                      onClick={() => pagination.goToPage(pagination.page - 1)}
+                      disabled={!pagination.hasPreviousPage}
+                      style={{ padding: '3px 10px', fontSize: '12px', height: '28px', minHeight: '28px' }}
+                    >
+                      {t('pagination.prev', 'السابق')}
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      type="button"
+                      onClick={() => pagination.goToPage(pagination.page + 1)}
+                      disabled={!pagination.hasNextPage}
+                      style={{ padding: '3px 10px', fontSize: '12px', height: '28px', minHeight: '28px' }}
+                    >
+                      {t('pagination.next', 'التالي')}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+              </>
             ) : items.length ? (
               <EmptyState
                 title={t('inventory.sections.inventory_composer_cards.s85', "لا توجد نتائج مطابقة للبحث")}

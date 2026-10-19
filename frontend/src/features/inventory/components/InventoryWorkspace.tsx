@@ -10,6 +10,7 @@ import { InventoryMovementCard, InventoryStatusCard, StockCountComposerCard, Sto
 import { InventoryPostSessionDialog, InventoryTransferActionDialog } from '@/features/inventory/components/InventoryWorkspaceDialogs';
 import { QuickStockAdjustmentDialog } from '@/features/inventory/components/QuickStockAdjustmentDialog';
 import { useInventoryWorkspaceController } from '@/features/inventory/hooks/useInventoryWorkspaceController';
+import { PlusCircleIcon, LayersIcon } from '@/shared/components/icons/AppIcons';
 import type { InventorySectionKey } from '@/features/inventory/pages/inventory.page-config';
 import type { Product } from '@/types/domain';
 
@@ -51,15 +52,17 @@ export function InventoryWorkspace({ currentSection }: { currentSection: Invento
 
       <InventorySectionTabs currentSection={currentSection} />
 
-      <div style={{ marginBottom: '16px' }}>
-        <StatsGrid
-          items={inventory.sectionSpotlightCards.map((card: { key: string; label: string; value: string | number }) => ({
-            key: card.key,
-            label: card.label,
-            value: card.value,
-          }))}
-        />
-      </div>
+      {currentSection !== 'counts' ? (
+        <div style={{ marginBottom: '16px' }}>
+          <StatsGrid
+            items={inventory.sectionSpotlightCards.map((card: { key: string; label: string; value: string | number }) => ({
+              key: card.key,
+              label: card.label,
+              value: card.value,
+            }))}
+          />
+        </div>
+      ) : null}
 
       {inventory.copyFeedback ? <div className={inventory.copyFeedback.kind === 'error' ? 'warning-box' : 'success-box'}>{inventory.copyFeedback.text}</div> : null}
 
@@ -153,22 +156,25 @@ export function InventoryWorkspace({ currentSection }: { currentSection: Invento
 
       {currentSection === 'counts' ? (
         <div className="stock-count-view-container">
-          <div className="stock-count-subnav">
+          <div className="stock-count-segmented-nav">
             <button
               type="button"
-              className={`stock-count-subnav-btn ${countSubView === 'create' ? 'stock-count-subnav-btn--active' : ''}`}
+              className={`stock-count-segmented-btn ${countSubView === 'create' ? 'stock-count-segmented-btn--active' : ''}`}
               onClick={() => setCountSubView('create')}
             >
-              <span className="stock-count-subnav-title">{t('inventory.inventory_workspace.s0', "بدء جلسة جرد جديدة")}</span>
-              <span className="stock-count-subnav-desc">{t('inventory.inventory_workspace.s1', "معالج العد الذكي وخطوات الجرد")}</span>
+              <PlusCircleIcon size={16} />
+              <span>{t('inventory.inventory_workspace.s0', "بدء جلسة جرد جديدة")}</span>
             </button>
             <button
               type="button"
-              className={`stock-count-subnav-btn ${countSubView === 'history' ? 'stock-count-subnav-btn--active' : ''}`}
+              className={`stock-count-segmented-btn ${countSubView === 'history' ? 'stock-count-segmented-btn--active' : ''}`}
               onClick={() => setCountSubView('history')}
             >
-              <span className="stock-count-subnav-title">{t('inventory.inventory_workspace.s2', "سجل ومراجعة الجلسات")}</span>
-              <span className="stock-count-subnav-desc">{inventory.stockCountSummary.totalItems} {t('inventory.inventory_workspace.s3', "جلسة مسجلة")}</span>
+              <LayersIcon size={16} />
+              <span>{t('inventory.inventory_workspace.s2', "سجل ومراجعة الجلسات")}</span>
+              <span className="stock-count-segmented-badge">
+                {inventory.stockCountSummary.totalItems}
+              </span>
             </button>
           </div>
 
@@ -218,6 +224,8 @@ export function InventoryWorkspace({ currentSection }: { currentSection: Invento
               onPostingPinChange={inventory.setPostingPin}
               onSelectSession={inventory.setSelectedSessionId}
               onPostSession={inventory.canAdjustInventory ? (sessionId) => inventory.setPostSessionConfirm({ sessionIds: [sessionId] }) : undefined}
+              onDeleteSession={inventory.deleteStockCountHandler}
+              deletePending={inventory.deleteCountMutation?.isPending}
               onCopySessionDetails={() => void inventory.copySessionDetails()}
               onPrintCountSessions={inventory.printCountSessionsHandler}
               onPrintDamagedRecords={inventory.printDamagedRecordsHandler}
@@ -227,6 +235,7 @@ export function InventoryWorkspace({ currentSection }: { currentSection: Invento
               onSelectedSessionIdsChange={inventory.setSelectedSessionIds}
               onPostSelectedSessions={inventory.postSelectedSessions}
               onStartNewCount={() => setCountSubView('create')}
+              products={inventory.products}
             />
           )}
         </div>

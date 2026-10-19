@@ -76,12 +76,20 @@ export function useInventoryWorkspaceMutations({
 
   const createCountMutation = useMutation({
     mutationFn: ({ noteOverride }: { noteOverride?: string } = {}) => {
+      const countedOnly = countItems.filter(
+        (item) => item.isCounted !== false && item.countedQty !== '' && item.countedQty !== null && item.countedQty !== undefined
+      );
+
+      if (!countedOnly.length) {
+        throw new Error('يرجى إدخال كميات معدودة لصنف واحد على الأقل قبل حفظ جلسة الجرد.');
+      }
+
       const payload: Record<string, unknown> = {
         locationId: Number(countForm.locationId),
-        items: countItems.map((item) => {
+        items: countedOnly.map((item) => {
           const countItem: Record<string, unknown> = {
             productId: item.productId,
-            countedQty: item.countedQty,
+            countedQty: Number(item.countedQty),
           };
 
           if (String(item.reason || '').trim()) countItem.reason = item.reason;
@@ -105,9 +113,9 @@ export function useInventoryWorkspaceMutations({
   });
 
   const postCountMutation = useMutation({
-    mutationFn: async ({ sessionIds, managerPin }: { sessionIds: string[]; managerPin: string }) => {
+    mutationFn: async ({ sessionIds, managerPin }: { sessionIds: string[]; managerPin?: string }) => {
       for (const sessionId of sessionIds) {
-        await inventoryApi.postStockCountSession(sessionId, { managerPin });
+        await inventoryApi.postStockCountSession(sessionId, { adminPassword: managerPin, managerPin });
       }
     },
     onSuccess: async () => {
@@ -117,11 +125,21 @@ export function useInventoryWorkspaceMutations({
     },
   });
 
+  const deleteCountMutation = useMutation({
+    mutationFn: async (sessionId: string) => {
+      return inventoryApi.deleteStockCountSession(sessionId);
+    },
+    onSuccess: async () => {
+      await refreshInventoryQueries();
+    },
+  });
+
   return {
     refreshInventoryQueries,
     createTransferMutation,
     transferActionMutation,
     createCountMutation,
     postCountMutation,
+    deleteCountMutation,
   };
 }

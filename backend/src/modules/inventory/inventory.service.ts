@@ -86,8 +86,12 @@ export class InventoryService {
     return this.countService.createStockCountSession(payload, auth);
   }
 
-  postStockCountSession(sessionId: number, auth: AuthContext): Promise<Record<string, unknown>> {
-    return this.countService.postStockCountSession(sessionId, auth);
+  postStockCountSession(sessionId: number, auth: AuthContext, adminPassword?: string): Promise<Record<string, unknown>> {
+    return this.countService.postStockCountSession(sessionId, auth, adminPassword);
+  }
+
+  deleteStockCountSession(sessionId: number, auth: AuthContext): Promise<Record<string, unknown>> {
+    return this.countService.deleteStockCountSession(sessionId, auth);
   }
 
   recountPendingStockCountItem(sessionId: number, itemId: number, payload: RecountStockCountItemDto, auth: AuthContext): Promise<Record<string, unknown>> {

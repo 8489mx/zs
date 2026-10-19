@@ -148,7 +148,17 @@ export class InventoryController {
     @Body() payload: PostStockCountSessionDto,
     @Req() req: RequestWithAuth,
   ): Promise<Record<string, unknown>> {
-    return this.inventoryService.postStockCountSession(id, req.authContext!);
+    const adminPassword = String(payload?.adminPassword || payload?.managerPin || '').trim();
+    return this.inventoryService.postStockCountSession(id, req.authContext!, adminPassword);
+  }
+
+  @Delete('stock-count-sessions/:id')
+  @RequirePermissions('canAdjustInventory')
+  deleteStockCountSession(
+    @Param('id', ParseIntPipe) id: number,
+    @Req() req: RequestWithAuth,
+  ): Promise<Record<string, unknown>> {
+    return this.inventoryService.deleteStockCountSession(id, req.authContext!);
   }
 
   @Post('stock-count-sessions/:id/items/:itemId/recount')
