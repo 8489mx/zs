@@ -83,4 +83,6 @@ scratch/
 scripts/i18n/output/
 scripts/i18n/translation_cache.json
 scripts/i18n/auto-translator-bundle.cjs
+**/__pycache__/
+*.pyc
 

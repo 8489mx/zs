@@ -1,0 +1,33 @@
+{
+  "missingKeys": [],
+  "missingFromUiDict": [
+    {
+      "text": "مرحباً ${successReceipt.customer.name}،\\nتم تسجيل استلام دفعة نقدية بقيمة: *${formatCurrency(successReceipt.amountPaid)} ${getGlobalCurrencySymbol()}*${noteLine}\\n• التاريخ والوقت: ${formatDateTimeArabic()}\\n• إجمالي الرصيد المتبقي عليكم: *${formatCurrency(remaining)} ${getGlobalCurrencySymbol()}*\\nشكراً لتعاملكم معنا.",
+      "count": 1
+    },
+    {
+      "text": "مرحباً ${supplierName}،\\nتم سداد دفعة نقدية لكم بقيمة: *${formatCurrency(successReceipt.amountPaid)} ${getGlobalCurrencySymbol()}*\\n• البيان: *تسوية القسط رقم (${successReceipt.row.installmentNo}) من جدول المستحقات*${noteSuffix}\\n• التاريخ والوقت: ${formatDateTimeArabic()}\\n• إجمالي الرصيد المتبقي لكم: *${formatCurrency(remaining)} ${getGlobalCurrencySymbol()}*\\nشكراً لتعاملكم معنا.",
+      "count": 1
+    },
+    {
+      "text": "مرحباً ${supplierName}،\\nتم تسجيل صرف دفعة نقدية لكم بقيمة: *${formatCurrency(directSuccessReceipt.amountPaid)} ${getGlobalCurrencySymbol()}*${noteLine}\\n• التاريخ والوقت: ${formatDateTimeArabic()}\\n• إجمالي الرصيد المتبقي لكم: *${formatCurrency(remaining)} ${getGlobalCurrencySymbol()}*\\nشكراً لتعاملكم معنا.",
+      "count": 1
+    },
+    {
+      "text": "سعر بيع الصنف بعد هذا العرض (${simulatedEffectivePrice.toFixed(2)} ج.م) سيكون أقل من سعر التكلفة (${costPrice.toFixed(2)} ج.م) بنسبة ${lossPercent}% (خسارة ${lossPerUnit.toFixed(2)} ج.م في القطعة).\\n\\nهل أنت متأكد من رغبتك في اعتماد هذا العرض بالخسارة؟ (سيتم تمرير عمليات البيع في الكاشير مباشرة بهذا السعر دون طلب رمز المدير).",
+      "count": 1
+    },
+    {
+      "text": "سعر بيع الصنف بعد هذا العرض (${simulatedPrice.toFixed(2)} ج.م) سيكون أقل من سعر التكلفة (${costPrice.toFixed(2)} ج.م) بنسبة ${lossPercent}% (خسارة ${lossPerUnit.toFixed(2)} ج.م في القطعة).\\n\\nهل أنت متأكد من رغبتك في اعتماد هذا العرض بالخسارة؟ (سيتم تمرير عمليات البيع في الكاشير مباشرة بهذا السعر دون طلب رمز المدير).",
+      "count": 1
+    },
+    {
+      "text": "مرحباً أستاذ/ة *${receiptData.customer_name}*،\\nتم استلام دفعة قسطكم بنجاح!\\n• رقم الإيصال: *#${receiptData.receipt_no}*\\n• المبلغ المسدد: *${Number(receiptData.paid_amount).toLocaleString()} ${getGlobalCurrencySymbol()}*\\n• القسط: *#${receiptData.installment_number}*\\n• طريقة الدفع: ${receiptData.payment_method}\\n• التاريخ: ${formattedDate}\\n\\nشكراً لتعاملكم معنا!",
+      "count": 1
+    },
+    {
+      "text": "يجب أن يبدأ الرابط بـ http://",
+      "count": 1
+    }
+  ]
+}

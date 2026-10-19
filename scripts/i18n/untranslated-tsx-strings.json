@@ -1,0 +1,226 @@
+[
+  {
+    "text": "ملف تحصيل متكامل: ${c?.customer_name || }",
+    "count": 1,
+    "files": [
+      "features\\accounting\\components\\collections\\ArCaseDetailsModal.tsx"
+    ]
+  },
+  {
+    "text": "عن ${qObj?.label || } سنة ${selectedYear}",
+    "count": 1,
+    "files": [
+      "features\\accounting\\components\\withholding-tax\\PrintWhtModal.tsx"
+    ]
+  },
+  {
+    "text": "مرحباً ${successReceipt.customer.name}،\\nتم تسجيل استلام دفعة نقدية بقيمة: *${formatCurrency(successReceipt.amountPaid)} ${getGlobalCurrencySymbol()}*${noteLine}\\n• التاريخ والوقت: ${formatDateTimeArabic()}\\n• إجمالي الرصيد المتبقي عليكم: *${formatCurrency(remaining)} ${getGlobalCurrencySymbol()}*\\nشكراً لتعاملكم معنا.",
+    "count": 1,
+    "files": [
+      "features\\accounts\\components\\CustomerBalanceInvoicesCard.tsx"
+    ]
+  },
+  {
+    "text": "مرحباً ${supplierName}،\\nتم سداد دفعة نقدية لكم بقيمة: *${formatCurrency(successReceipt.amountPaid)} ${getGlobalCurrencySymbol()}*\\n• البيان: *تسوية القسط رقم (${successReceipt.row.installmentNo}) من جدول المستحقات*${noteSuffix}\\n• التاريخ والوقت: ${formatDateTimeArabic()}\\n• إجمالي الرصيد المتبقي لكم: *${formatCurrency(remaining)} ${getGlobalCurrencySymbol()}*\\nشكراً لتعاملكم معنا.",
+    "count": 1,
+    "files": [
+      "features\\accounts\\components\\SupplierBalanceScheduleCard.tsx"
+    ]
+  },
+  {
+    "text": "مرحباً ${supplierName}،\\nتم تسجيل صرف دفعة نقدية لكم بقيمة: *${formatCurrency(directSuccessReceipt.amountPaid)} ${getGlobalCurrencySymbol()}*${noteLine}\\n• التاريخ والوقت: ${formatDateTimeArabic()}\\n• إجمالي الرصيد المتبقي لكم: *${formatCurrency(remaining)} ${getGlobalCurrencySymbol()}*\\nشكراً لتعاملكم معنا.",
+    "count": 1,
+    "files": [
+      "features\\accounts\\components\\SupplierBalanceScheduleCard.tsx"
+    ]
+  },
+  {
+    "text": "متابعة عدادات الديزل وساعات تشغيل الآليات الثقيلة لمشروع: ${projectName || }",
+    "count": 1,
+    "files": [
+      "features\\contracting\\components\\EquipmentFuelLogsModal.tsx"
+    ]
+  },
+  {
+    "text": "تحليل المعايير العالمية (Primavera / Oracle Unifier) لمشروع: ${projectName || metrics?.projectName || }",
+    "count": 1,
+    "files": [
+      "features\\contracting\\components\\ProjectEvmMetricsModal.tsx"
+    ]
+  },
+  {
+    "text": "قائمة الملاحظات وعيوب المصنعية والتسليم (Punch List) - ${projectName || }",
+    "count": 1,
+    "files": [
+      "features\\contracting\\components\\SnagListModal.tsx"
+    ]
+  },
+  {
+    "text": "إدارة المطالبات العكسية وتلفيات الأعمال وخصومات الوقود والمعدات للمشروع: ${projectName || }",
+    "count": 1,
+    "files": [
+      "features\\contracting\\components\\SubcontractorBackChargesModal.tsx"
+    ]
+  },
+  {
+    "text": "طلبات استلام الأعمال وضبط الجودة (WIR) - ${projectName || }",
+    "count": 1,
+    "files": [
+      "features\\contracting\\components\\WorkInspectionModal.tsx"
+    ]
+  },
+  {
+    "text": "محدد للمندوب في: ${assignedDays.join()}",
+    "count": 1,
+    "files": [
+      "features\\customers\\components\\CustomerEditorCard.tsx"
+    ]
+  },
+  {
+    "text": "${vehicle.modelName || } • المستودع: ${vehicle.vanLocationName}",
+    "count": 1,
+    "files": [
+      "features\\delivery-reps\\components\\AssignDriverModal.tsx"
+    ]
+  },
+  {
+    "text": "${vehicle.modelName || } • خروج من الورشة وإعادة لأسطول التشغيل",
+    "count": 1,
+    "files": [
+      "features\\delivery-reps\\components\\CompleteMaintenanceModal.tsx"
+    ]
+  },
+  {
+    "text": "زيادة ${it.packagingUnit?.name || }",
+    "count": 1,
+    "files": [
+      "features\\delivery-reps\\components\\VanLoadRequisitionsAdminTab.tsx"
+    ]
+  },
+  {
+    "text": "إنقاص ${it.packagingUnit?.name || }",
+    "count": 1,
+    "files": [
+      "features\\delivery-reps\\components\\VanLoadRequisitionsAdminTab.tsx"
+    ]
+  },
+  {
+    "text": "زيادة ${it.unit || }",
+    "count": 1,
+    "files": [
+      "features\\delivery-reps\\components\\VanLoadRequisitionsAdminTab.tsx"
+    ]
+  },
+  {
+    "text": "إنقاص ${it.unit || }",
+    "count": 1,
+    "files": [
+      "features\\delivery-reps\\components\\VanLoadRequisitionsAdminTab.tsx"
+    ]
+  },
+  {
+    "text": "شراء ${cond?.minQty || 1} قطعة فأكثر من ${cond?.productName || }",
+    "count": 1,
+    "files": [
+      "features\\delivery-reps\\components\\VanPromotionsAdminTab.tsx"
+    ]
+  },
+  {
+    "text": "${vehicle.modelName || } • العداد الحالي: ${Number(vehicle.currentOdometer || 0).toLocaleString()} كم",
+    "count": 1,
+    "files": [
+      "features\\delivery-reps\\components\\VehicleMaintenanceModal.tsx"
+    ]
+  },
+  {
+    "text": "عرض تفصيلي لأرصدة وأقسام ${location?.name || } وقيمتها المالية",
+    "count": 1,
+    "files": [
+      "features\\inventory\\pages\\WarehouseDetailsPage.tsx"
+    ]
+  },
+  {
+    "text": "اقتراحات موصى بها تناسب طبق: ${triggerItemName || }",
+    "count": 1,
+    "files": [
+      "features\\pos\\components\\pos-workspace\\PosSmartUpsellModal.tsx"
+    ]
+  },
+  {
+    "text": "${activeProduct.name} · ${card.unit?.name || } · باركود: ${card.barcode || }",
+    "count": 1,
+    "files": [
+      "features\\products\\components\\BarcodePrintDialog.tsx"
+    ]
+  },
+  {
+    "text": "تعديل العرض المجمع: ${comboName || }",
+    "count": 1,
+    "files": [
+      "features\\products\\components\\offers\\ProductOfferComboCreatorTab.tsx"
+    ]
+  },
+  {
+    "text": "معاينة عرض BOGO (${bogoBuyQty + bogoGetQty} قطع: اشترِ ${bogoBuyQty} واحصل على ${bogoGetQty} ${bogoDiscountPercent === 100 ? :",
+    "count": 1,
+    "files": [
+      "features\\products\\components\\offers\\ProductOfferItemEditorTab.tsx"
+    ]
+  },
+  {
+    "text": "اشترِ ${offer.bogoBuyQty || 1} واحصل على ${offer.bogoGetQty || 1} ${Number(offer.bogoDiscountPercent ?? 100) === 100 ? :",
+    "count": 1,
+    "files": [
+      "features\\products\\components\\offers\\ProductOfferItemEditorTab.tsx"
+    ]
+  },
+  {
+    "text": "${currentProduct.name} · وحدة: ${selectedUnit?.name || } · الباركود الحالي: ${currentBarcode || }",
+    "count": 1,
+    "files": [
+      "features\\products\\components\\ProductBarcodeDialog.tsx"
+    ]
+  },
+  {
+    "text": "سعر بيع الصنف بعد هذا العرض (${simulatedEffectivePrice.toFixed(2)} ج.م) سيكون أقل من سعر التكلفة (${costPrice.toFixed(2)} ج.م) بنسبة ${lossPercent}% (خسارة ${lossPerUnit.toFixed(2)} ج.م في القطعة).\\n\\nهل أنت متأكد من رغبتك في اعتماد هذا العرض بالخسارة؟ (سيتم تمرير عمليات البيع في الكاشير مباشرة بهذا السعر دون طلب رمز المدير).",
+    "count": 1,
+    "files": [
+      "features\\products\\components\\ProductOfferDialog.tsx"
+    ]
+  },
+  {
+    "text": "سعر بيع الصنف بعد هذا العرض (${simulatedPrice.toFixed(2)} ج.م) سيكون أقل من سعر التكلفة (${costPrice.toFixed(2)} ج.م) بنسبة ${lossPercent}% (خسارة ${lossPerUnit.toFixed(2)} ج.م في القطعة).\\n\\nهل أنت متأكد من رغبتك في اعتماد هذا العرض بالخسارة؟ (سيتم تمرير عمليات البيع في الكاشير مباشرة بهذا السعر دون طلب رمز المدير).",
+    "count": 1,
+    "files": [
+      "features\\products\\components\\workspace-sections\\ProductOffersCard.tsx"
+    ]
+  },
+  {
+    "text": "مرحباً أستاذ/ة *${receiptData.customer_name}*،\\nتم استلام دفعة قسطكم بنجاح!\\n• رقم الإيصال: *#${receiptData.receipt_no}*\\n• المبلغ المسدد: *${Number(receiptData.paid_amount).toLocaleString()} ${getGlobalCurrencySymbol()}*\\n• القسط: *#${receiptData.installment_number}*\\n• طريقة الدفع: ${receiptData.payment_method}\\n• التاريخ: ${formattedDate}\\n\\nشكراً لتعاملكم معنا!",
+    "count": 1,
+    "files": [
+      "features\\sales\\pages\\InstallmentsPage.tsx"
+    ]
+  },
+  {
+    "text": "يجب أن يبدأ الرابط بـ http://",
+    "count": 1,
+    "files": [
+      "features\\settings\\components\\workspace-sections\\SettingsLanModesSection.tsx"
+    ]
+  },
+  {
+    "text": "مرحباً ${cart.customerName || }، لاحظنا اهتمامك بطلب الأصناف التالية من متجرنا: (${itemsText}). هل تود إتمام طلبك الآن وتأكيده؟ يسعدنا مساعدتك وتوصيل طلبك في أسرع وقت!",
+    "count": 1,
+    "files": [
+      "features\\storefront\\pages\\MerchantOnlineOrdersPage.tsx"
+    ]
+  },
+  {
+    "text": "أضفنا ${added} صنف للسلة. غير متاح حالياً: ${skipped.join()}",
+    "count": 1,
+    "files": [
+      "features\\storefront\\pages\\PublicStorefrontPage.tsx"
+    ]
+  }
+]
