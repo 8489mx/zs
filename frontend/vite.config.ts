@@ -195,6 +195,7 @@ export default defineConfig(({ mode }) => {
             'browser-image-compression': 'vendor-image-compression',
           };
           if (pkgName.startsWith('@sentry/') || pkgName.startsWith('@sentry-internal/')) return 'vendor-sentry';
+          if (pkgName.startsWith('@capacitor/')) return 'vendor-capacitor';
           return chunkByPackage[pkgName];
         },
         chunkFileNames: 'assets/chunks/[name]-[hash].js',

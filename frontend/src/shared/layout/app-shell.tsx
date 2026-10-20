@@ -1,4 +1,4 @@
-import { CSSProperties, PropsWithChildren, useEffect, useMemo, useRef, useState } from 'react';
+import { CSSProperties, PropsWithChildren, useEffect, useMemo, useRef, useState, lazy, Suspense } from 'react';
 import { useQueryClient, useQuery } from '@tanstack/react-query';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -18,7 +18,6 @@ import { TrialStatusBanner } from '@/shared/system/trial-status-banner';
 import { ImpersonationBanner } from '@/shared/system/impersonation-banner';
 import { LiveOrderNotificationBanner } from '@/features/storefront/components/LiveOrderNotificationBanner';
 import { PwaInstallBanner } from '@/shared/components/PwaInstallBanner';
-import { DeveloperActivationPanel } from '@/shared/system/DeveloperActivationPanel';
 import { useOfflineUpdateCheck } from '@/features/updates/hooks/useOfflineUpdateCheck';
 import {
   POS_SHELL_VISIBILITY_KEY,
@@ -31,12 +30,14 @@ import { GlobalAppToolbar } from '@/shared/layout/GlobalAppToolbar';
 import { MobileBottomNav } from '@/shared/layout/MobileBottomNav';
 import { resolveCurrentVertical } from '@/shared/verticals/vertical-scope';
 import { useToolbarStore } from '@/stores/toolbar-store';
-import { GlobalSearchModal } from '@/shared/components/GlobalSearchModal';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { SearchIcon, CheckCircleIcon , XIcon } from '@/shared/components/icons/AppIcons';
 import { getMaintenanceProfile } from '@/features/maintenance/constants/maintenance-profiles';
 import { prefetchRouteData } from '@/app/router/route-prefetch';
 import { resolveAutoBreadcrumbs } from '@/shared/layout/breadcrumbs.helper';
+
+const GlobalSearchModal = lazy(() => import('@/shared/components/GlobalSearchModal').then((m) => ({ default: m.GlobalSearchModal })));
+const DeveloperActivationPanel = lazy(() => import('@/shared/system/DeveloperActivationPanel').then((m) => ({ default: m.DeveloperActivationPanel })));
 
 
 type SidebarGroupDefinition = {
@@ -2286,8 +2287,10 @@ export function AppShell({ children }: PropsWithChildren) {
       <LiveOrderNotificationBanner />
       <PwaInstallBanner />
       <QuickAttendanceShortcut open={quickAttendanceOpen} onClose={() => setQuickAttendanceOpen(false)} />
-      <GlobalSearchModal />
-      <DeveloperActivationPanel />
+      <Suspense fallback={null}>
+        <GlobalSearchModal />
+        <DeveloperActivationPanel />
+      </Suspense>
       {isAboutModalOpen && (
         <DialogShell
           open={true}
