@@ -37,7 +37,8 @@ const AVAILABLE_FEATURES = [
   { id: 'inventory', name: 'المخزون المتقدم والجرد' },
   { id: 'reports', name: 'التقارير المتقدمة وسجل النشاط' },
   { id: 'hr', name: 'الموارد البشرية والرواتب' },
-  { id: 'deliveryReps', name: 'مناديب التوصيل وسيارات الفان' },
+  { id: 'deliveryReps', name: 'مناديب التوصيل والدليفري' },
+  { id: 'vanSales', name: 'مبيعات وتوزيع الفان' },
   { id: 'loyalty', name: 'محرك نقاط وولاء العملاء' },
   { id: 'maintenance', name: 'إدارة الصيانة وتتبع السيريال (IMEI)' },
   { id: 'clothing', name: 'المتغيرات والمقاسات والألوان' },
@@ -59,6 +60,10 @@ export function UpdateTenantPlanModal({ tenant, onClose, onSuccess }: UpdateTena
   const [planId, setPlanId] = useState<string>('');
   const [activityType, setActivityType] = useState<string>('retail');
   const [extraFeatures, setExtraFeatures] = useState<string[]>([]);
+  const [renewSubscription, setRenewSubscription] = useState(false);
+  const [durationMonths, setDurationMonths] = useState(12);
+  const [paymentAmount, setPaymentAmount] = useState<number | ''>('');
+  const [paymentMethod, setPaymentMethod] = useState('cash');
   const [error, setError] = useState('');
 
   const featurePlansQuery = useQuery({
@@ -78,18 +83,34 @@ export function UpdateTenantPlanModal({ tenant, onClose, onSuccess }: UpdateTena
       }
       setActivityType(norm);
       setExtraFeatures(tenant.extraFeatures || []);
+      setRenewSubscription(false);
+      setDurationMonths(12);
+      setPaymentAmount('');
+      setPaymentMethod('cash');
       setError('');
     }
   }, [tenant]);
 
   const updateMutation = useMutation({
-    mutationFn: () => saasAdminApi.updateTenantPlan(tenant!.id, {
-      planId: planId || undefined,
-      extraFeatures,
-      activityType,
-    }),
+    mutationFn: async () => {
+      await saasAdminApi.updateTenantPlan(tenant!.id, {
+        planId: planId || undefined,
+        extraFeatures,
+        activityType,
+      });
+
+      if (renewSubscription) {
+        await saasAdminApi.activateTenant(tenant!.id, {
+          durationMonths,
+          paymentAmount: paymentAmount ? Number(paymentAmount) : undefined,
+          paymentMethod,
+        });
+      }
+    },
     onSuccess: async () => {
-      onSuccess('تم تحديث نمط المنشأة والباقة والميزات بنجاح.');
+      onSuccess(renewSubscription
+        ? 'تم تحديث نمط المنشأة، باقة الميزات، وتمديد فترة الاشتراك بنجاح.'
+        : 'تم تحديث نمط المنشأة والباقة والميزات بنجاح.');
       await queryClient.invalidateQueries({ queryKey: ['saas-admin-tenants'] });
       await queryClient.invalidateQueries({ queryKey: ['saas-tenants'] });
       onClose();
@@ -232,6 +253,92 @@ export function UpdateTenantPlanModal({ tenant, onClose, onSuccess }: UpdateTena
                 style={{ height: '38px', fontWeight: 700, color: '#170e5e' }}
               />
             </Field>
+          </div>
+
+          {/* قسم تمديد الاشتراك والفوترة */}
+          <div
+            style={{
+              background: renewSubscription ? '#f0fdf4' : '#f8fafc',
+              border: `1px solid ${renewSubscription ? '#86efac' : '#e2e8f0'}`,
+              borderRadius: '10px',
+              padding: '12px 14px',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            <label
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                cursor: 'pointer',
+                userSelect: 'none',
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={renewSubscription}
+                onChange={(e) => setRenewSubscription(e.target.checked)}
+                style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+              />
+              <div>
+                <strong style={{ fontSize: '13px', color: '#0f172a' }}>
+                  {t('saas_admin.update_tenant_plan_modal.renew_toggle', "تفعيل أو تمديد صلاحية الاشتراك المالي وتسجيل دفعة الآن")}
+                </strong>
+                <p style={{ margin: '1px 0 0', fontSize: '11.5px', color: '#64748b' }}>
+                  {t('saas_admin.update_tenant_plan_modal.renew_sub', "تحديث تاريخ انتهاء صلاحية النسخة تلقائياً مع تسجيل إيصال سداد مالي في سجل المشترك")}
+                </p>
+              </div>
+            </label>
+
+            {renewSubscription && (
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 1fr 1fr',
+                  gap: '12px',
+                  marginTop: '12px',
+                  paddingTop: '10px',
+                  borderTop: '1px solid #dcfce7',
+                }}
+              >
+                <Field label={t('saas_admin.update_tenant_plan_modal.duration', "مدة الاشتراك المستهدفة")}>
+                  <select
+                    value={durationMonths}
+                    onChange={(e) => setDurationMonths(Number(e.target.value))}
+                    style={{ height: '36px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 8px', fontSize: '12.5px', fontWeight: 600, width: '100%', background: '#ffffff' }}
+                  >
+                    <option value={1}>{t('saas_admin.update_tenant_plan_modal.m1', "شهر واحد")}</option>
+                    <option value={3}>{t('saas_admin.update_tenant_plan_modal.m3', "3 أشهر")}</option>
+                    <option value={6}>{t('saas_admin.update_tenant_plan_modal.m6', "6 أشهر")}</option>
+                    <option value={12}>{t('saas_admin.update_tenant_plan_modal.m12', "سنة واحدة (12 شهراً)")}</option>
+                    <option value={60}>{t('saas_admin.update_tenant_plan_modal.m60', "5 سنوات (شامل / مدى الحياة)")}</option>
+                  </select>
+                </Field>
+
+                <Field label={t('saas_admin.update_tenant_plan_modal.amount', "المبلغ المحصل (اختياري)")}>
+                  <input
+                    type="number"
+                    min="0"
+                    value={paymentAmount}
+                    onChange={(e) => setPaymentAmount(e.target.value === '' ? '' : Number(e.target.value))}
+                    placeholder="0.00"
+                    style={{ height: '36px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 8px', fontSize: '12.5px', width: '100%', boxSizing: 'border-box' }}
+                  />
+                </Field>
+
+                <Field label={t('saas_admin.update_tenant_plan_modal.method', "طريقة الدفع")}>
+                  <select
+                    value={paymentMethod}
+                    onChange={(e) => setPaymentMethod(e.target.value)}
+                    style={{ height: '36px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 8px', fontSize: '12.5px', fontWeight: 600, width: '100%', background: '#ffffff' }}
+                  >
+                    <option value="cash">{t('saas_admin.update_tenant_plan_modal.cash', "نقدي (Cash)")}</option>
+                    <option value="transfer">{t('saas_admin.update_tenant_plan_modal.transfer', "تحويل بنكي / فودافون كاش")}</option>
+                    <option value="card">{t('saas_admin.update_tenant_plan_modal.card', "بطاقة دفع (Card)")}</option>
+                  </select>
+                </Field>
+              </div>
+            )}
           </div>
 
           {/* 3. الميزات الإضافية */}

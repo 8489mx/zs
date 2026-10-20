@@ -74,9 +74,13 @@ export function UpgradeTenantModal({
           <Field label={t('saas_admin.upgrade_tenant_modal.s3', "الخطة / الباقة المستهدفة *")}>
             <select value={planId} onChange={(e) => onChangePlanId(e.target.value ? Number(e.target.value) : '')}>
               <option value="">{t('saas_admin.upgrade_tenant_modal.s4', "-- اختر الباقة --")}</option>
-              {plans.map((p) => (
-                <option key={p.id} value={p.id}>{p.name}</option>
-              ))}
+              {plans
+                .filter((p) => p.is_active !== false)
+                .map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name} {p.price ? `(${Number(p.price).toLocaleString()} ${p.currency || 'EGP'})` : ''}
+                  </option>
+                ))}
             </select>
           </Field>
           <Field label={t('saas_admin.upgrade_tenant_modal.s5', "مدة الاشتراك")}>

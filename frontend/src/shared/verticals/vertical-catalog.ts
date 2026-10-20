@@ -41,13 +41,23 @@ export const SYSTEM_VERTICAL_OPTIONS: SystemVertical[] = [
 
   // --- النطاق 4: التجارة المؤسسية والجملة والتصنيع والخدمات (Corporate & Distribution) ---
   {
-    key: 'wholesale',
-    label: 'تجارة وتوزيع الجملة وأسطول سيارات الفان',
-    badge: 'موزعون وفان ومخازن',
+    key: 'warehousing',
+    label: 'إدارة المخازن والمستودعات والتحويلات',
+    badge: 'مستودعات وتحويلات وجرد',
     band: 4,
     group: 'commerce_wholesale',
     groupLabel: 'الشركات والتوزيع والإنتاج',
-    description: 'أسطول سيارات الفان، المخازن المتنقلة، خطوط السير، المبيعات الآجلة وكشوف الحسابات [بدون كاشير تجزئة].',
+    description: 'المستودعات المركزية والفرعية، التحويلات بين الفروع وتتبع بضاعة الطريق، أذونات الصرف والإضافة، الجرد ونواقص المخزون [بدون كاشير تجزئة].',
+    recommendedPlanId: 'tier_band4_L2',
+  },
+  {
+    key: 'wholesale',
+    label: 'تجارة وتوزيع الجملة وأسطول سيارات الفان',
+    badge: 'موزعون وفان ومبيعات آجلة',
+    band: 4,
+    group: 'commerce_wholesale',
+    groupLabel: 'الشركات والتوزيع والإنتاج',
+    description: 'أسطول سيارات الفان، خطوط السير، المخازن المتنقلة، المبيعات الآجلة وكشوف الحسابات [بدون كاشير تجزئة].',
     recommendedPlanId: 'tier_band4_L2',
   },
   {
@@ -137,6 +147,16 @@ export const SYSTEM_VERTICAL_OPTIONS: SystemVertical[] = [
 
   // --- النطاق 1: التجزئة العامة والمتاجر (General Retail & Consumer Goods) ---
   {
+    key: 'auto_parts',
+    label: 'قطع غيار السيارات والآليات والمعدات',
+    badge: 'أرقام OEM وتوافق السيارات',
+    band: 1,
+    group: 'retail',
+    groupLabel: 'التجزئة العامة والمتاجر',
+    description: 'دليل قطع الغيار، أرقام القطع الأصلية (OEM)، توافق الموديلات والماركات وسنوات الصنع.',
+    recommendedPlanId: 'tier_band1_L1',
+  },
+  {
     key: 'supermarket',
     label: 'السوبرماركت والبقالة والمواد الغذائية',
     badge: 'ميزان إلكتروني وباركود وزني',
@@ -201,6 +221,20 @@ export function normalizeVerticalKey(raw?: string | null): string {
   if (trimmed.includes('contracting') || trimmed.includes('مقاول') || trimmed.includes('إنشاءات') || trimmed.includes('مشاريع')) {
     return 'contracting';
   }
+  if (
+    trimmed === 'warehousing' ||
+    trimmed === 'warehouse' ||
+    trimmed === 'wms' ||
+    trimmed.includes('مخازن') ||
+    trimmed.includes('مستودع') ||
+    trimmed.includes('تخزين') ||
+    trimmed.includes('تحويلات')
+  ) {
+    if (trimmed.includes('فان') || trimmed.includes('van') || trimmed.includes('مناديب')) {
+      return 'wholesale';
+    }
+    return 'warehousing';
+  }
   if (trimmed.includes('wholesale') || trimmed.includes('توزيع') || trimmed.includes('فان') || trimmed.includes('مناديب') || trimmed.includes('جملة') || trimmed.includes('وكلاء')) {
     return 'wholesale';
   }
@@ -239,6 +273,9 @@ export function normalizeVerticalKey(raw?: string | null): string {
   }
   if (trimmed.includes('perfume') || trimmed.includes('عطور') || trimmed.includes('تجميل')) {
     return 'perfumes';
+  }
+  if (trimmed.includes('auto') || trimmed.includes('spare') || trimmed.includes('قطع غيار') || trimmed.includes('سيارات') || trimmed.includes('مركبات')) {
+    return 'auto_parts';
   }
 
   return 'retail';

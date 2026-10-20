@@ -215,27 +215,28 @@ export function TenantSubscriptionsModal({
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <div style={{
-              width: '42px',
-              height: '42px',
+              width: '40px',
+              height: '40px',
               borderRadius: '10px',
-              background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 100%)',
-              color: '#ffffff',
+              background: '#f8fafc',
+              border: '1px solid #e2e8f0',
+              color: '#170e5e',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              boxShadow: '0 4px 10px rgba(30, 27, 75, 0.2)',
+              flexShrink: 0,
             }}>
-              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                 <rect x="2" y="5" width="20" height="14" rx="2"/>
                 <line x1="2" y1="10" x2="22" y2="10"/>
               </svg>
             </div>
             <div>
-              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: '#0f172a' }}>
+              <h3 style={{ margin: 0, fontSize: '17px', fontWeight: 800, color: '#0f172a' }}>
                 {t('saas_admin.tenant_subscriptions_modal.s1', "سجل الاشتراكات والمدفوعات")}
               </h3>
               <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>
-                {t('saas_admin.tenant_subscriptions_modal.s2', "المنشأة:")} <strong style={{ color: '#0f172a' }}>{tenant.businessName || tenant.slug}</strong> {t('saas_admin.tenant_subscriptions_modal.s3', "• المعرف:")} <span className="tenant-slug-badge" style={{ margin: 0 }}>{tenant.slug}</span>
+                {t('saas_admin.tenant_subscriptions_modal.s2', "المنشأة:")} <strong style={{ color: '#0f172a' }}>{tenant.businessName || tenant.slug}</strong> {t('saas_admin.tenant_subscriptions_modal.s3', "• المعرف:")} <span style={{ color: '#170e5e', fontWeight: 700, fontFamily: 'monospace' }}>{tenant.slug}</span>
               </div>
             </div>
           </div>
@@ -257,7 +258,7 @@ export function TenantSubscriptionsModal({
               type="button"
               className="button"
               onClick={() => onRenew(tenant)}
-              style={{ fontSize: '12px', padding: '6px 14px', background: '#0f172a', color: '#ffffff', display: 'inline-flex', alignItems: 'center', gap: '5px', fontWeight: 800 }}
+              style={{ fontSize: '12px', padding: '6px 14px', background: '#170e5e', color: '#ffffff', border: 'none', display: 'inline-flex', alignItems: 'center', gap: '5px', fontWeight: 800, borderRadius: '7px' }}
             >
               <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M21 2v6h-6M3 12a9 9 0 0 1 15-6.7L21 8M3 22v-6h6M21 12a9 9 0 0 1-15 6.7L3 16"/>
@@ -269,7 +270,7 @@ export function TenantSubscriptionsModal({
               className="dialog-shell-close-btn"
               onClick={onClose}
               title={t('saas_admin.tenant_subscriptions_modal.s6', "إغلاق")}
-              style={{ width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '8px', border: 'none', background: '#f1f5f9', cursor: 'pointer', color: '#64748b', fontSize: '16px' }}
+              style={{ width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '8px', border: 'none', background: '#f8fafc', cursor: 'pointer', color: '#64748b', fontSize: '16px' }}
             ><XIcon size={15} /></button>
           </div>
         </div>
@@ -532,8 +533,8 @@ export function TenantSubscriptionsModal({
           </button>
           <button
             type="button"
-            className="button"
-            style={{ background: '#0f172a', color: '#ffffff', padding: '6px 18px', fontWeight: 700, borderRadius: '7px' }}
+            className="button button-secondary"
+            style={{ padding: '6px 18px', fontWeight: 700, borderRadius: '7px' }}
             onClick={onClose}
           >
             {t('saas_admin.tenant_subscriptions_modal.s38', "إغلاق")}

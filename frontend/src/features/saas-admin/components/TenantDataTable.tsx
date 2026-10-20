@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { DataTable } from '@/shared/components/data-table';
 import { formatDate } from '@/lib/format';
 import type { SaasTenantRow, SaasTenantStatus } from '@/features/saas-admin/api/saas-admin.api';
+import { getSystemVertical } from '@/shared/verticals/vertical-catalog';
 import { TenantActionsMenu, isPlatformTenantRow } from './TenantActionsMenu';
 
 export function statusLabel(status: SaasTenantStatus): string {
@@ -78,26 +79,108 @@ export function TenantDataTable({
           sortValue: (row) => row.businessName || row.slug,
           render: (row) => {
             const isPlatform = isPlatformTenantRow(row, platformTenantId, currentTenantId);
+            const vertical = getSystemVertical(row.activityType);
+            const displayName = row.businessName || row.slug;
+            const initialChar = (row.businessName || row.slug || '?').trim().charAt(0).toUpperCase();
+
             return (
-              <div className="tenant-name-cell">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <button
-                    type="button"
-                    onClick={() => onShowDetails(row.id)}
-                    className="tenant-name-link"
-                    title={t('saas_admin.tenant_data_table.s1', "عرض بطاقة تفاصيل المنشأة")}
-                  >
-                    {row.businessName || row.slug}
-                  </button>
-                  {isPlatform && (
-                    <span style={{ fontSize: '10px', background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a', padding: '1px 5px', borderRadius: '4px', fontWeight: 800, whiteSpace: 'nowrap' }}>
-                      {t('saas_admin.tenant_data_table.s2', "المنصة")}
-                    </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                {/* 1. الأيقونة / الأفاتار المؤسسي لتثبيت المحاذاة */}
+                <div
+                  style={{
+                    width: '34px',
+                    height: '34px',
+                    borderRadius: '8px',
+                    background: isPlatform ? '#170e5e' : '#f8fafc',
+                    border: `1px solid ${isPlatform ? '#170e5e' : '#e2e8f0'}`,
+                    color: isPlatform ? '#ffffff' : '#170e5e',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '13.5px',
+                    fontWeight: 800,
+                    flexShrink: 0,
+                    boxShadow: isPlatform ? '0 1px 3px rgba(23, 14, 94, 0.25)' : 'none',
+                    userSelect: 'none',
+                  }}
+                  title={displayName}
+                >
+                  {isPlatform ? (
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+                    </svg>
+                  ) : (
+                    initialChar
                   )}
                 </div>
-                <div className="tenant-slug-badge" style={{ marginTop: '2px' }}>
-                  <span>slug:</span>
-                  <strong>{row.slug}</strong>
+
+                {/* 2. اسم المنشأة والشارة والمعرّف */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '7px', flexWrap: 'wrap' }}>
+                    <button
+                      type="button"
+                      onClick={() => onShowDetails(row.id)}
+                      className="tenant-name-link"
+                      title={t('saas_admin.tenant_data_table.s1', "عرض بطاقة تفاصيل المنشأة")}
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        boxShadow: 'none',
+                        padding: 0,
+                        margin: 0,
+                        fontSize: '13.5px',
+                        fontWeight: 800,
+                        color: '#0f172a',
+                        cursor: 'pointer',
+                        textAlign: 'start',
+                        display: 'inline-block',
+                        lineHeight: 1.3,
+                        outline: 'none',
+                      }}
+                    >
+                      {displayName}
+                    </button>
+
+                    {isPlatform ? (
+                      <span
+                        style={{
+                          fontSize: '10px',
+                          background: '#fef3c7',
+                          color: '#92400e',
+                          border: '1px solid #fde68a',
+                          padding: '1px 6px',
+                          borderRadius: '4px',
+                          fontWeight: 800,
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {t('saas_admin.tenant_data_table.s2', "المنصة المركزية")}
+                      </span>
+                    ) : (
+                      <span
+                        style={{
+                          fontSize: '10.5px',
+                          background: '#eef2ff',
+                          color: '#3730a3',
+                          border: '1px solid #c7d2fe',
+                          padding: '1px 6px',
+                          borderRadius: '4px',
+                          fontWeight: 700,
+                          whiteSpace: 'nowrap',
+                        }}
+                        title={vertical.label + (vertical.description ? ` — ${vertical.description}` : '')}
+                      >
+                        {vertical.badge || vertical.label}
+                      </span>
+                    )}
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: '#64748b' }}>
+                    <span style={{ color: '#94a3b8' }}>المعرّف:</span>
+                    <span style={{ fontFamily: 'monospace', color: '#475569', direction: 'ltr' }}>
+                      {row.slug}
+                    </span>
+                  </div>
                 </div>
               </div>
             );
@@ -124,22 +207,17 @@ export function TenantDataTable({
               {row.ownerUsername ? (
                 <div
                   style={{
-                    marginTop: '3px',
+                    marginTop: '2px',
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: '3px',
-                    background: '#f8fafc',
-                    border: '1px solid #e2e8f0',
-                    borderRadius: '4px',
-                    padding: '1px 6px',
                     fontSize: '11px',
-                    color: '#170e5e',
-                    fontWeight: 700,
+                    color: '#64748b',
                   }}
                   title={t('saas_admin.tenant_data_table.s5', "اسم المستخدم لتسجيل الدخول")}
                 >
-                  <span style={{ color: '#64748b', fontSize: '10px' }}>{t('saas_admin.tenant_data_table.s6', "يوزر:")}</span>
-                  <code style={{ fontFamily: 'monospace', direction: 'ltr' }}>{row.ownerUsername}</code>
+                  <span style={{ color: '#94a3b8', fontSize: '10px' }}>{t('saas_admin.tenant_data_table.s6', "يوزر:")}</span>
+                  <code style={{ fontFamily: 'monospace', color: '#475569', direction: 'ltr', background: 'transparent', border: 'none', padding: 0 }}>{row.ownerUsername}</code>
                 </div>
               ) : null}
             </div>
@@ -154,7 +232,7 @@ export function TenantDataTable({
             if (isPlatform) {
               return (
                 <div style={{ display: 'flex', justifyContent: 'center' }}>
-                  <span className="tenant-plan-badge" style={{ background: '#f5f3ff', color: '#6b21a8', border: '1px solid #ddd6fe', fontWeight: 800, fontSize: '11px' }}>
+                  <span className="tenant-plan-badge" style={{ background: '#f8fafc', color: '#170e5e', border: '1px solid #e2e8f0', fontWeight: 700, fontSize: '11px' }}>
                     {t('saas_admin.tenant_data_table.s8', "حساب المؤسس")}
                   </span>
                 </div>
@@ -162,7 +240,7 @@ export function TenantDataTable({
             }
             return (
               <div style={{ display: 'flex', justifyContent: 'center' }}>
-                <span className="tenant-plan-badge">
+                <span className="tenant-plan-badge" style={{ background: '#f8fafc', color: '#475569', border: '1px solid #e2e8f0', fontSize: '11px', fontWeight: 600 }}>
                   {row.planName || t('saas_admin.tenant_data_table.s9', "بدون باقة")}
                 </span>
               </div>

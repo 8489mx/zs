@@ -49,7 +49,7 @@ export function TenantActionsMenu({
   }
 
   return (
-    <div className="tenant-actions-cell" style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+    <div className="tenant-actions-cell" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
       {/* 1. تصفح النسخة كمالك */}
       <button
         type="button"
@@ -57,6 +57,35 @@ export function TenantActionsMenu({
         onClick={() => onImpersonate(row.id, row.businessName || row.slug)}
         disabled={isImpersonating}
         title={t('saas_admin.tenant_actions_menu.s1', "تسجيل الدخول وتصفح النسخة كمالك")}
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '5px',
+          padding: '5px 11px',
+          background: '#f8fafc',
+          color: '#170e5e',
+          borderRadius: '7px',
+          border: '1px solid #c7d2fe',
+          fontSize: '12px',
+          fontWeight: 700,
+          cursor: isImpersonating ? 'not-allowed' : 'pointer',
+          boxShadow: '0 1px 2px rgba(0, 0, 0, 0.02)',
+          transition: 'all 0.12s ease',
+        }}
+        onMouseEnter={(e) => {
+          if (!isImpersonating) {
+            e.currentTarget.style.background = '#170e5e';
+            e.currentTarget.style.color = '#ffffff';
+            e.currentTarget.style.borderColor = '#170e5e';
+          }
+        }}
+        onMouseLeave={(e) => {
+          if (!isImpersonating) {
+            e.currentTarget.style.background = '#f8fafc';
+            e.currentTarget.style.color = '#170e5e';
+            e.currentTarget.style.borderColor = '#c7d2fe';
+          }
+        }}
       >
         <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M15 3h6v6M10 14L21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
@@ -64,48 +93,50 @@ export function TenantActionsMenu({
         <span>{isImpersonating ? t('saas_admin.tenant_actions_menu.s2', "جاري الدخول...") : t('saas_admin.tenant_actions_menu.s3', "تصفح")}</span>
       </button>
 
-      {/* 2. تجديد الاشتراك السريع */}
+      {/* 2. فتح مركز إجراءات المشترك */}
       <button
         type="button"
-        className="tenant-renew-btn"
-        onClick={() => onRenew(row)}
-        title={t('saas_admin.tenant_actions_menu.s4', "تجديد أو ترقية اشتراك النسخة")}
-      >
-        <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M21 2v6h-6M3 12a9 9 0 0 1 15-6.7L21 8M3 22v-6h6M21 12a9 9 0 0 1-15 6.7L3 16"/>
-        </svg>
-        <span>{t('saas_admin.tenant_actions_menu.s5', "تجديد")}</span>
-      </button>
-
-      {/* 3. سجل الاشتراكات والمدفوعات */}
-      <button
-        type="button"
-        className="tenant-subscriptions-btn"
-        onClick={() => onShowSubscriptions(row)}
-        title={t('saas_admin.tenant_actions_menu.s6', "عرض سجل فترات الاشتراك وطباعة الإيصالات")}
-      >
-        <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-          <polyline points="14 2 14 8 20 8"/>
-          <line x1="16" y1="13" x2="8" y2="13"/>
-          <line x1="16" y1="17" x2="8" y2="17"/>
-        </svg>
-        <span>{t('saas_admin.tenant_actions_menu.s7', "الاشتراكات")}</span>
-      </button>
-
-      {/* 4. فتح مركز الإجراءات الكامل */}
-      <button
-        type="button"
-        className="tenant-more-btn"
+        className="tenant-action-hub-btn"
         onClick={() => onOpenActionHub(row)}
         title={t('saas_admin.tenant_actions_menu.s8', "فتح مركز الإجراءات والخيارات الكاملة")}
-        aria-label={t('saas_admin.tenant_actions_menu.s9', "خيارات إضافية")}
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '5px',
+          padding: '5px 11px',
+          background: '#ffffff',
+          color: '#475569',
+          borderRadius: '7px',
+          border: '1px solid #e2e8f0',
+          fontSize: '12px',
+          fontWeight: 700,
+          cursor: 'pointer',
+          boxShadow: '0 1px 2px rgba(0, 0, 0, 0.02)',
+          transition: 'all 0.12s ease',
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.background = '#f8fafc';
+          e.currentTarget.style.color = '#0f172a';
+          e.currentTarget.style.borderColor = '#cbd5e1';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.background = '#ffffff';
+          e.currentTarget.style.color = '#475569';
+          e.currentTarget.style.borderColor = '#e2e8f0';
+        }}
       >
-        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="12" cy="12" r="1"></circle>
-          <circle cx="19" cy="12" r="1"></circle>
-          <circle cx="5" cy="12" r="1"></circle>
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="4" y1="21" x2="4" y2="14"/>
+          <line x1="4" y1="10" x2="4" y2="3"/>
+          <line x1="12" y1="21" x2="12" y2="12"/>
+          <line x1="12" y1="8" x2="12" y2="3"/>
+          <line x1="20" y1="21" x2="20" y2="16"/>
+          <line x1="20" y1="12" x2="20" y2="3"/>
+          <line x1="1" y1="14" x2="7" y2="14"/>
+          <line x1="9" y1="8" x2="15" y2="8"/>
+          <line x1="17" y1="16" x2="23" y2="16"/>
         </svg>
+        <span>إجراءات المشترك</span>
       </button>
     </div>
   );

@@ -74,9 +74,13 @@ export function RenewTenantModal({
           <Field label={t('saas_admin.renew_tenant_modal.s3', "الخطة / الباقة *")}>
             <select value={planId} onChange={(e) => onChangePlanId(e.target.value ? Number(e.target.value) : '')}>
               <option value="">{t('saas_admin.renew_tenant_modal.s4', "-- اختر الباقة للتجديد --")}</option>
-              {plans.map((p) => (
-                <option key={p.id} value={p.id}>{p.name}</option>
-              ))}
+              {plans
+                .filter((p) => p.is_active !== false)
+                .map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name} {p.price ? `(${Number(p.price).toLocaleString()} ${p.currency || 'EGP'})` : ''}
+                  </option>
+                ))}
             </select>
           </Field>
           <Field label={t('saas_admin.renew_tenant_modal.s5', "مدة التجديد (أشهر)")}>

@@ -59,73 +59,103 @@ export function SaasTenantsPage() {
           <SearchToolbar
             search={vm.search}
             onSearchChange={vm.setSearch}
-            searchPlaceholder={t('saas_admin.saas_tenants_page.s5', "ابحث بالاسم أو slug أو المالك أو رقم الهاتف...")}
+            searchPlaceholder={t('saas_admin.saas_tenants_page.s5', "ابحث بالاسم أو المعرّف (slug) أو المالك أو رقم الهاتف...")}
+          />
+
+          {/* بطاقات التصفية الإحصائية التفاعلية (Monochrome Executive Metric Cards) */}
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(175px, 1fr))',
+              gap: '10px',
+              margin: '12px 0 16px',
+            }}
           >
-            <Field label={t('saas_admin.saas_tenants_page.s6', "فلترة حسب الحالة")}>
-              <select value={vm.status} onChange={(event) => vm.setStatus(event.target.value as any)}>
-                <option value="all">{t('saas_admin.saas_tenants_page.s7', "جميع الحالات (الكل)")}</option>
-                <option value="trial">{t('saas_admin.saas_tenants_page.s8', "تجريبية (Trial)")}</option>
-                <option value="active">{t('saas_admin.saas_tenants_page.s9', "مفعلة (Active)")}</option>
-                <option value="expired">{t('saas_admin.saas_tenants_page.s10', "منتهية (Expired)")}</option>
-                <option value="suspended">{t('saas_admin.saas_tenants_page.s11', "موقوفة (Suspended)")}</option>
-              </select>
-            </Field>
-          </SearchToolbar>
-
-          <StatsGrid items={vm.stats} className="stats-grid compact-grid saas-stats-grid-5" />
-
-          {/* Quick Filter Tabs */}
-          <div className="saas-filter-tabs">
-            <button
-              type="button"
-              className={`saas-filter-tab-btn ${vm.tabFilter === 'all' ? 'is-active' : ''}`}
-              onClick={() => vm.setTabFilter('all')}
-            >
-              <span>{t('saas_admin.saas_tenants_page.s12', "جميع النسخ")}</span>
-              <span className="saas-filter-badge">{vm.allTenants.length}</span>
-            </button>
-            <button
-              type="button"
-              className={`saas-filter-tab-btn ${vm.tabFilter === 'active' ? 'is-active' : ''}`}
-              onClick={() => vm.setTabFilter('active')}
-            >
-              <span>{t('saas_admin.saas_tenants_page.s13', "مفعلة (نشطة)")}</span>
-              <span className="saas-filter-badge">{vm.allTenants.filter((r) => r.status === 'active').length}</span>
-            </button>
-            <button
-              type="button"
-              className={`saas-filter-tab-btn ${vm.tabFilter === 'trial' ? 'is-active' : ''}`}
-              onClick={() => vm.setTabFilter('trial')}
-            >
-              <span>{t('saas_admin.saas_tenants_page.s14', "تجريبية")}</span>
-              <span className="saas-filter-badge">{vm.allTenants.filter((r) => r.status === 'trial').length}</span>
-            </button>
-            <button
-              type="button"
-              className={`saas-filter-tab-btn ${vm.tabFilter === 'expiring_soon' ? 'is-active' : ''}`}
-              onClick={() => vm.setTabFilter('expiring_soon')}
-              style={vm.tabFilter !== 'expiring_soon' ? { borderColor: '#fed7aa', color: '#c2410c' } : {}}
-            >
-              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-                <line x1="12" y1="9" x2="12" y2="13"/>
-                <line x1="12" y1="17" x2="12.01" y2="17"/>
-              </svg>
-              <span>{t('saas_admin.saas_tenants_page.s15', "تنتهي قريباً (≤ 7 أيام)")}</span>
-              <span className="saas-filter-badge" style={{ background: '#ffedd5', color: '#9a3412' }}>
-                {vm.allTenants.filter((r) => vm.isExpiringSoon(r)).length}
-              </span>
-            </button>
-            <button
-              type="button"
-              className={`saas-filter-tab-btn ${vm.tabFilter === 'blocked' ? 'is-active' : ''}`}
-              onClick={() => vm.setTabFilter('blocked')}
-            >
-              <span>{t('saas_admin.saas_tenants_page.s16', "منتهية / موقوفة")}</span>
-              <span className="saas-filter-badge">
-                {vm.allTenants.filter((r) => r.status === 'expired' || r.status === 'suspended' || vm.isExpiringSoon(r) === false && r.subscriptionEndDate && new Date(r.subscriptionEndDate).getTime() < Date.now()).length}
-              </span>
-            </button>
+            {[
+              {
+                key: 'all' as const,
+                label: t('saas_admin.saas_tenants_page.s12', "جميع النسخ"),
+                count: vm.allTenants.length,
+                pill: 'الكل',
+                pillColor: '#475569',
+                pillBg: '#f1f5f9',
+              },
+              {
+                key: 'active' as const,
+                label: t('saas_admin.saas_tenants_page.s13', "مفعلة (نشطة)"),
+                count: vm.allTenants.filter((r) => r.status === 'active').length,
+                pill: 'نشطة',
+                pillColor: '#166534',
+                pillBg: '#f0fdf4',
+              },
+              {
+                key: 'trial' as const,
+                label: t('saas_admin.saas_tenants_page.s14', "تجريبية"),
+                count: vm.allTenants.filter((r) => r.status === 'trial').length,
+                pill: 'Trial',
+                pillColor: '#1e40af',
+                pillBg: '#eff6ff',
+              },
+              {
+                key: 'expiring_soon' as const,
+                label: t('saas_admin.saas_tenants_page.s15', "تنتهي قريباً (≤ 7 أيام)"),
+                count: vm.allTenants.filter((r) => vm.isExpiringSoon(r)).length,
+                pill: 'تنبيه',
+                pillColor: '#9a3412',
+                pillBg: '#fff7ed',
+              },
+              {
+                key: 'blocked' as const,
+                label: t('saas_admin.saas_tenants_page.s16', "منتهية / موقوفة"),
+                count: vm.allTenants.filter((r) => r.status === 'expired' || r.status === 'suspended' || (vm.isExpiringSoon(r) === false && r.subscriptionEndDate && new Date(r.subscriptionEndDate).getTime() < Date.now())).length,
+                pill: 'متوقفة',
+                pillColor: '#64748b',
+                pillBg: '#f1f5f9',
+              },
+            ].map((tab) => {
+              const isSelected = vm.tabFilter === tab.key;
+              return (
+                <button
+                  key={tab.key}
+                  type="button"
+                  onClick={() => vm.setTabFilter(tab.key)}
+                  style={{
+                    background: '#ffffff',
+                    color: '#0f172a',
+                    border: isSelected ? '1.5px solid #170e5e' : '1px solid #e2e8f0',
+                    boxShadow: isSelected ? '0 2px 8px rgba(23, 14, 94, 0.08), inset 0 2px 0 #170e5e' : '0 1px 2px rgba(0,0,0,0.02)',
+                    borderRadius: '10px',
+                    padding: '10px 14px',
+                    textAlign: 'start',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    transition: 'all 0.12s ease',
+                  }}
+                >
+                  <div>
+                    <div style={{ fontSize: '11.5px', fontWeight: isSelected ? 800 : 600, color: isSelected ? '#170e5e' : '#64748b' }}>
+                      {tab.label}
+                    </div>
+                    <div style={{ fontSize: '20px', fontWeight: 900, marginTop: '2px', color: '#0f172a' }}>
+                      {tab.count}
+                    </div>
+                  </div>
+                  <span style={{
+                    background: tab.pillBg,
+                    color: tab.pillColor,
+                    borderRadius: '6px',
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    padding: '2px 8px',
+                    border: `1px solid ${isSelected ? '#cbd5e1' : 'transparent'}`,
+                  }}>
+                    {tab.pill}
+                  </span>
+                </button>
+              );
+            })}
           </div>
 
           <QueryFeedback
