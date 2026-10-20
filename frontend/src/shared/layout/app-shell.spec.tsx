@@ -265,5 +265,42 @@ describe('AppShell', () => {
     expect(l2Keys).not.toContain('hr');
     unmountL2();
   });
+
+  it('strictly isolates warehousing mode: hides POS, cash drawer, and online orders even if slug is almhnds', () => {
+    useAuthStore.setState({
+      user: { ...buildUser(), id: '1', username: 'admin', role: 'admin', permissions: ['*'], displayName: 'Admin' },
+      tenant: {
+        id: 'default',
+        accountId: 'a-1',
+        slug: 'almhnds',
+        businessName: 'مستودعات المهندس',
+        activityType: 'warehousing',
+        status: 'active',
+        isTrial: false,
+        trialEndsAt: null,
+        trialDaysRemaining: null,
+        features: ['catalog', 'products', 'sales', 'sessions', 'cashDrawer', 'reports', 'purchases', 'inventory', 'accounting', 'pos', 'storefront'],
+      },
+      storeName: 'مستودعات المهندس',
+      theme: 'light',
+      initialized: true,
+    });
+
+    settingsMock.mockResolvedValue({
+      activityType: 'warehousing',
+      businessIndustry: 'warehousing',
+      posModuleEnabled: false,
+      storefrontModuleEnabled: false,
+    });
+
+    const { unmount } = renderShell('/dashboard');
+    const keys = Array.from(document.querySelectorAll('.sidebar-nav a[data-key]')).map((el) => el.getAttribute('data-key'));
+    expect(keys).not.toContain('pos');
+    expect(keys).not.toContain('cash-drawer');
+    expect(keys).not.toContain('online-orders');
+    expect(keys).toContain('inventory-warehouses');
+    expect(keys).toContain('purchases');
+    unmount();
+  });
 });
 

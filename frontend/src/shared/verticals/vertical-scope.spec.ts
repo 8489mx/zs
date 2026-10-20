@@ -169,6 +169,26 @@ describe('Vertical Scope & Enterprise Isolation Constitution', () => {
     expect(isRouteAllowedInVertical(vertical, '/pos')).toBe(true);
   });
 
+  it('resolves warehousing for tenant almhnds when activityType is warehousing and hides POS', () => {
+    const tenant = {
+      id: 'default',
+      slug: 'almhnds',
+      businessName: 'مستودعات المهندس للخدمات اللوجستية',
+      activityType: 'warehousing',
+    };
+    const settings = {
+      businessIndustry: 'warehousing',
+      activityType: 'warehousing',
+      posModuleEnabled: false,
+    };
+    const vertical = resolveCurrentVertical(tenant, settings);
+    expect(vertical).toBe('warehousing');
+    expect(isRouteAllowedInVertical(vertical, '/pos')).toBe(false);
+    expect(isRouteAllowedInVertical(vertical, '/cash-drawer')).toBe(false);
+    expect(isRouteAllowedInVertical(vertical, '/online-orders')).toBe(false);
+    expect(isRouteAllowedInVertical(vertical, '/inventory-warehouses')).toBe(true);
+  });
+
   it('guarantees any tenant with POS feature never resolves to services', () => {
     const tenant = {
       id: 'retail-shop-1',

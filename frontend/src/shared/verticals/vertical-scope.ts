@@ -68,11 +68,6 @@ export function resolveCurrentVertical(tenant?: any, settings?: any): BusinessVe
   if (isFlagActive(settings?.contractingModuleEnabled)) return 'contracting';
   if (isFlagActive(settings?.manufacturingModuleEnabled)) return 'manufacturing';
 
-  // Strict tenant protection for 'almhnds' ("المهندس"): retail_general with POS & cashier
-  if (tenant?.slug === 'almhnds' || tenant?.id === 'almhnds') {
-    return 'retail_general';
-  }
-
   const hasPosEntitlement = Boolean(
     tenant?.features?.includes('pos') ||
     tenant?.features?.includes('cashDrawer') ||
@@ -190,7 +185,7 @@ export function resolveCurrentVertical(tenant?: any, settings?: any): BusinessVe
       explicit.includes('خدمات') ||
       explicit.includes('استشار')
     ) {
-      if (hasPosEntitlement) {
+      if (hasPosEntitlement || tenant?.slug === 'almhnds' || tenant?.id === 'almhnds') {
         return 'retail_general';
       }
       return 'services';

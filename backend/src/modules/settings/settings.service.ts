@@ -888,6 +888,7 @@ export class SettingsService {
       modulePatch.autoPartsModuleEnabled = false;
       modulePatch.clothingModuleEnabled = false;
       modulePatch.requireCashierShiftForSales = false;
+      modulePatch.storefrontModuleEnabled = false;
     } else if (profile.pillar === 'maritime_freight') {
       modulePatch.maritimeFreightModuleEnabled = true;
       modulePatch.crmModuleEnabled = true;
@@ -908,6 +909,7 @@ export class SettingsService {
       modulePatch.autoPartsModuleEnabled = false;
       modulePatch.clothingModuleEnabled = false;
       modulePatch.requireCashierShiftForSales = false;
+      modulePatch.storefrontModuleEnabled = false;
     } else if (profile.pillar === 'manufacturing') {
       modulePatch.manufacturingModuleEnabled = true;
       modulePatch.crmModuleEnabled = true;
@@ -928,6 +930,7 @@ export class SettingsService {
       modulePatch.autoPartsModuleEnabled = false;
       modulePatch.clothingModuleEnabled = false;
       modulePatch.requireCashierShiftForSales = false;
+      modulePatch.storefrontModuleEnabled = false;
     } else {
       // commerce pillar
       modulePatch.contractingModuleEnabled = false;
@@ -959,6 +962,7 @@ export class SettingsService {
         modulePatch.deliveryFleetModuleEnabled = true;
         modulePatch.requireCashierShiftForSales = false;
         modulePatch.enableEnterpriseFeatures = true;
+        modulePatch.storefrontModuleEnabled = false;
       }
       if (normalizedKey === 'warehousing') {
         modulePatch.posModuleEnabled = false;
@@ -966,6 +970,7 @@ export class SettingsService {
         modulePatch.inventoryModuleEnabled = true;
         modulePatch.purchasesModuleEnabled = true;
         modulePatch.enableEnterpriseFeatures = true;
+        modulePatch.storefrontModuleEnabled = false;
       }
     }
 
