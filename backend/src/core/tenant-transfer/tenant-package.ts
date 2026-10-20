@@ -1,5 +1,6 @@
 import * as zlib from 'zlib';
 import { sql, type Kysely } from 'kysely';
+import { isPlatformTenantId } from '../auth/utils/tenant-boundary';
 
 // Tenant package (.zsbak): every row of one tenant, moved between the cloud and a desktop install
 // (both directions) with every row keeping its ORIGINAL id. Because nothing is renumbered, foreign
@@ -351,6 +352,10 @@ export async function findOrphanedReferences(
 export async function importTenantPackage(db: Kysely<any>, buffer: Buffer, target: ImportTarget): Promise<ImportReport> {
   const { manifest, chunks } = readPackage(buffer);
   const warnings: string[] = [];
+
+  if (isPlatformTenantId(target.tenantId)) {
+    throw new TenantPackageError('TENANT_MISMATCH', 'Cannot import tenant package into platform root tenant');
+  }
 
   return db.transaction().execute(async (trx) => {
     // 1. The package must not come from a newer schema than this install.

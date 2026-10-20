@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
 import * as ZXingModule from 'html5-qrcode/third_party/zxing-js.umd.js';
 import { triggerHaptic } from '@/shared/utils/haptics';
+import { listenToHardwareBarcode } from '@/shared/utils/hardware-scanner';
 import { Button } from '@/shared/ui/button';
 
 const ZXing: any = (ZXingModule as any).default || ZXingModule;
@@ -175,6 +176,9 @@ export function CameraBarcodeScannerView({
   const lastScanTimeRef = useRef<number>(0);
   const nativeDetectorTimerRef = useRef<any>(null);
 
+  
+
+
   const handleScanSuccess = useCallback((decodedText: string) => {
     const raw = String(decodedText || '').trim();
     if (!raw) return;
@@ -195,6 +199,13 @@ export function CameraBarcodeScannerView({
       }, 300);
     }
   }, [isContinuousMode, lastScanned, onClose, onScan]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    return listenToHardwareBarcode((scannedCode) => {
+      handleScanSuccess(scannedCode);
+    });
+  }, [isOpen, handleScanSuccess]);
 
   const stopCurrentScanner = useCallback(async () => {
     if (nativeDetectorTimerRef.current) {
@@ -272,23 +283,6 @@ export function CameraBarcodeScannerView({
         console.warn('getCameras warning:', camErr);
       }
 
-      const scanConfig: any = {
-        fps: 15,
-        videoConstraints: {
-          facingMode: { ideal: 'environment' },
-          width: { min: 1280, ideal: 1920, max: 1920 },
-          height: { min: 720, ideal: 1080, max: 1080 },
-          focusMode: { ideal: 'continuous' },
-          advanced: [
-            { focusMode: 'continuous' },
-            { exposureMode: 'continuous' },
-            { whiteBalanceMode: 'continuous' },
-          ],
-        },
-        aspectRatio: 1.333333,
-        disableFlip: true,
-      };
-
       // Always default to REAR/BACK camera
       let cameraToUse: any = { facingMode: 'environment' };
 
@@ -308,16 +302,72 @@ export function CameraBarcodeScannerView({
         }
       }
 
-      await html5QrCode.start(
-        cameraToUse,
-        scanConfig,
-        (decodedText) => {
-          handleScanSuccess(decodedText);
+      // Progressive video constraints:
+      // Candidate 0: High Definition (ideal 1920x1080) for modern smartphones without hard 'min' constraints
+      // Candidate 1: Standard 720p (ideal 1280x720) for budget mobile phones & POS machines
+      // Candidate 2: Native device default stream (zero constraints) as ultimate failsafe against OverconstrainedError
+      const candidateConfigs: any[] = [
+        {
+          fps: 15,
+          videoConstraints: {
+            facingMode: { ideal: 'environment' },
+            width: { ideal: 1920 },
+            height: { ideal: 1080 },
+            focusMode: { ideal: 'continuous' },
+          },
+          disableFlip: true,
         },
-        () => {
-          // Frame scan error - ignore normal stream noise
+        {
+          fps: 15,
+          videoConstraints: {
+            facingMode: { ideal: 'environment' },
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+          },
+          disableFlip: true,
+        },
+        {
+          fps: 15,
+          videoConstraints: {
+            facingMode: 'environment',
+          },
+          disableFlip: true,
+        },
+      ];
+
+      let started = false;
+      let lastStartError: any = null;
+
+      for (let i = 0; i < candidateConfigs.length; i++) {
+        try {
+          await html5QrCode.start(
+            cameraToUse,
+            candidateConfigs[i],
+            (decodedText) => {
+              handleScanSuccess(decodedText);
+            },
+            () => {
+              // Frame scan error - ignore normal stream noise
+            }
+          );
+          started = true;
+          break;
+        } catch (startErr: any) {
+          lastStartError = startErr;
+          console.warn(`Camera scanner candidate ${i} failed:`, startErr);
+          const isConstraintErr = startErr?.name === 'OverconstrainedError' ||
+            String(startErr?.message || startErr).includes('Overconstrained') ||
+            String(startErr?.message || startErr).includes('setParameters failed') ||
+            String(startErr?.message || startErr).includes('Invalid picture size');
+          if (!isConstraintErr) {
+            break;
+          }
         }
-      );
+      }
+
+      if (!started && lastStartError) {
+        throw lastStartError;
+      }
 
       // Fast multi-scale background loop with Auto-Contrast Booster
       const offscreenCanvas = document.createElement('canvas');

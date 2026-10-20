@@ -13,6 +13,7 @@ import { TenantActionHubModal } from './TenantActionHubModal';
 import { EditTenantSlugModal } from './EditTenantSlugModal';
 import { SeedTenantDemoModal } from './SeedTenantDemoModal';
 import { WipeTenantDataModal } from './WipeTenantDataModal';
+import { DeleteTenantModal } from './DeleteTenantModal';
 import { systemConfirm } from '@/shared/components/system-alert';
 import { useSaasTenants } from '../hooks/useSaasTenants';
 
@@ -266,18 +267,9 @@ export const TenantModalsManager: React.FC<TenantModalsManagerProps> = ({ vm }) 
             vm.setActionHubTenant(null);
             vm.setEditingSlugTenant(r);
           }}
-          onDelete={async (id, name) => {
+          onDelete={(r) => {
             vm.setActionHubTenant(null);
-            const confirmed = await systemConfirm({
-              title: t('saas_admin.tenant_modals_manager.s7', "تأكيد حذف النسخة نهائياً"),
-              message: `هل أنت متأكد تماماً من حذف نسخة (${name}) بجميع قواعد بياناتها وسجلاتها؟\nلا يمكن التراجع عن هذا الإجراء!`,
-              variant: 'danger',
-              confirmText: t('saas_admin.tenant_modals_manager.s8', "تأكيد الحذف النهائي"),
-              cancelText: t('saas_admin.tenant_modals_manager.s9', "تراجع"),
-            });
-            if (confirmed) {
-              vm.tenantActionMutation.mutate({ action: 'delete', tenantId: id });
-            }
+            vm.setDeleteTenant(r);
           }}
           onSeedDemo={(r) => {
             vm.setActionHubTenant(null);
@@ -312,6 +304,17 @@ export const TenantModalsManager: React.FC<TenantModalsManagerProps> = ({ vm }) 
         />
       )}
 
+      
+      {vm.deleteTenant && (
+        <DeleteTenantModal
+          tenant={vm.deleteTenant}
+          onClose={() => vm.setDeleteTenant(null)}
+          onSuccess={(msg) => {
+            vm.setFeedback(msg);
+            vm.setDeleteTenant(null);
+          }}
+        />
+      )}
       {vm.wipeDataTenant && (
         <WipeTenantDataModal
           tenant={vm.wipeDataTenant}

@@ -56,6 +56,7 @@ export function useSaasTenants() {
   const [actionHubTenant, setActionHubTenant] = useState<SaasTenantRow | null>(null);
   const [seedDemoTenant, setSeedDemoTenant] = useState<SaasTenantRow | null>(null);
   const [wipeDataTenant, setWipeDataTenant] = useState<SaasTenantRow | null>(null);
+  const [deleteTenant, setDeleteTenant] = useState<SaasTenantRow | null>(null);
 
   // Queries
   const plansQuery = useQuery({
@@ -141,7 +142,7 @@ export function useSaasTenants() {
       });
       if (input.action === 'suspend') return saasAdminApi.suspendTenant(input.tenantId);
       if (input.action === 'unlockOwner') return saasAdminApi.unlockOwner(input.tenantId);
-      if (input.action === 'delete') return saasAdminApi.deleteTenant(input.tenantId);
+      if (input.action === 'delete') return saasAdminApi.deleteTenant(input.tenantId, { superAdminPassword: (input as any).superAdminPassword || '' });
       return saasAdminApi.expireTenant(input.tenantId);
     },
     onSuccess: async () => {
@@ -306,5 +307,7 @@ export function useSaasTenants() {
     setSeedDemoTenant,
     wipeDataTenant,
     setWipeDataTenant,
+    deleteTenant,
+    setDeleteTenant,
   };
 }

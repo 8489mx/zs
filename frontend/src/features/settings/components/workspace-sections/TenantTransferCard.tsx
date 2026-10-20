@@ -9,6 +9,8 @@ import { CustomSelect } from '@/shared/ui/custom-select';
 import { ApiError } from '@/lib/http';
 import { triggerDownload } from '@/lib/browser';
 import { settingsApi, type TenantImportReport, type TenantPickOption } from '@/features/settings/api/settings.api';
+import { useAuthStore } from '@/stores/auth-store';
+import { isPlatformAdmin } from '@/app/router/access';
 
 // Moves this business between the cloud and the desktop app (backend: src/core/tenant-transfer).
 // Export downloads a .zsbak of this business; import replaces ALL of this business's data with a
@@ -42,6 +44,8 @@ export function TenantTransferCard({ canManage }: { canManage: boolean }) {
   const { t: __t } = useTranslation();
   const infoQuery = useQuery({ queryKey: ['tenant-transfer-info'], queryFn: settingsApi.tenantTransferInfo, enabled: canManage, staleTime: Infinity });
   const isDesktop = infoQuery.data?.mode === 'desktop';
+  const user = useAuthStore((s) => s.user);
+  const isPlatform = !isDesktop && (isPlatformAdmin(user) || user?.tenantId === 'zs');
   const fileInput = useRef<HTMLInputElement>(null);
 
   const [file, setFile] = useState<File | null>(null);
@@ -124,6 +128,14 @@ export function TenantTransferCard({ canManage }: { canManage: boolean }) {
               </Button>
             </div>
 
+            {isPlatform ? (
+              <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <strong style={{ fontSize: '0.9rem', color: '#170e5e', fontWeight: 800 }}>المنصة المركزية محصنة</strong>
+                <span style={{ fontSize: '0.78rem', color: '#64748b', lineHeight: 1.5 }}>
+                  منشأة المنصة المركزية السحابية محصنة ضد استيراد حزم المتاجر للحفاظ على نقاء وعزل نظام الساس.
+                </span>
+              </div>
+            ) : (
             <div style={{ background: '#ffffff', border: '1px solid #fecdd3', borderRadius: '10px', padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
               <strong style={{ fontSize: '0.9rem', color: '#991b1b', fontWeight: 800 }}>{__t('settings.workspace_sections.tenant_transfer_card.s9', "استيراد بيانات منشأة")}</strong>
               <span style={{ fontSize: '0.78rem', color: '#64748b', lineHeight: 1.5 }}>
@@ -137,6 +149,7 @@ export function TenantTransferCard({ canManage }: { canManage: boolean }) {
                 {__t('settings.workspace_sections.tenant_transfer_card.s12', "اختيار ملف للاستيراد")}
               </Button>
             </div>
+            )}
           </div>
 
           {feedback && (

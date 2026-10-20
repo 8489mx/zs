@@ -17,10 +17,46 @@ import android.widget.ProgressBar;
 import android.widget.FrameLayout;
 import android.graphics.Color;
 import android.content.Context;
+import android.content.BroadcastReceiver;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.webkit.PermissionRequest;
 import android.view.MotionEvent;
 import android.view.inputmethod.InputMethodManager;
 
 public class MainActivity extends Activity {
+    private BroadcastReceiver scannerReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if (intent == null) return;
+            String code = intent.getStringExtra("data");
+            if (code == null) {
+                Bundle bundle = intent.getExtras();
+                if (bundle != null) {
+                    code = bundle.getString("data");
+                }
+            }
+            if (code != null && !code.trim().isEmpty()) {
+                final String safeCode = code.trim().replace("\\", "\\\\").replace("'", "\\'");
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (webView != null) {
+                            String js = "if (typeof window.onHardwareBarcodeScanned === 'function') { window.onHardwareBarcodeScanned('" + safeCode + "'); }" +
+                                        "else if (typeof window.onBarcodeScanned === 'function') { window.onBarcodeScanned('" + safeCode + "'); }" +
+                                        "else { window.dispatchEvent(new CustomEvent('hardware-barcode-scan', { detail: { barcode: '" + safeCode + "' } })); }";
+                            if (Build.VERSION.SDK_INT >= 19) {
+                                webView.evaluateJavascript(js, null);
+                            } else {
+                                webView.loadUrl("javascript:" + js);
+                            }
+                        }
+                    }
+                });
+            }
+        }
+    };
+
     private WebView webView;
     private ProgressBar progressBar;
     private static final String APP_URL = "https://app.zsystemai.com/pos";
@@ -113,6 +149,12 @@ public class MainActivity extends Activity {
         // Initialize Sunmi hardware service
         SunmiPrinterHelper.init(this);
 
+        try {
+            IntentFilter filter = new IntentFilter();
+            filter.addAction("com.sunmi.scanner.ACTION_DATA_CODE_RECEIVED");
+            registerReceiver(scannerReceiver, filter);
+        } catch (Exception ignored) {}
+
         // 7. Inject JavascriptInterface for Direct Sunmi Thermal Hardware Printing
         webView.addJavascriptInterface(new Object() {
             @android.webkit.JavascriptInterface
@@ -131,6 +173,24 @@ public class MainActivity extends Activity {
             }
 
             @android.webkit.JavascriptInterface
+            public void scan() {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        try {
+                            Intent intent = new Intent("com.sunmi.scan");
+                            intent.setPackage("com.sunmi.sunmiqrcodescanner");
+                            startActivityForResult(intent, 1001);
+                        } catch (Exception e) {
+                            try {
+                                Intent intent2 = new Intent("com.google.zxing.client.android.SCAN");
+                                startActivityForResult(intent2, 1001);
+                            } catch (Exception ignored) {}
+                        }
+                    }
+                });
+            }
+
             public void printHtmlInvoice(String html) {
                 SunmiPrinterHelper.printHtmlInvoice(html);
             }
@@ -212,6 +272,19 @@ public class MainActivity extends Activity {
             }
 
             @Override
+            public void onPermissionRequest(final PermissionRequest request) {
+                if (request != null && Build.VERSION.SDK_INT >= 21) {
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            try {
+                                request.grant(request.getResources());
+                            } catch (Exception ignored) {}
+                        }
+                    });
+                }
+            }
+
             public boolean onConsoleMessage(ConsoleMessage consoleMessage) {
                 android.util.Log.d("WebConsole", consoleMessage.message() + " -- Line " + consoleMessage.lineNumber());
                 return true;
@@ -391,6 +464,41 @@ public class MainActivity extends Activity {
                 }
             }
         }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == 1001 && resultCode == RESULT_OK && data != null) {
+            Bundle bundle = data.getExtras();
+            if (bundle != null) {
+                String result = bundle.getString("result");
+                if (result != null && !result.trim().isEmpty()) {
+                    final String safeResult = result.trim().replace("\\", "\\\\").replace("'", "\\'");
+                    if (webView != null) {
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                String js = "if (typeof window.onHardwareBarcodeScanned === 'function') { window.onHardwareBarcodeScanned('" + safeResult + "'); }";
+                                if (Build.VERSION.SDK_INT >= 19) {
+                                    webView.evaluateJavascript(js, null);
+                                } else {
+                                    webView.loadUrl("javascript:" + js);
+                                }
+                            }
+                        });
+                    }
+                }
+            }
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        try {
+            unregisterReceiver(scannerReceiver);
+        } catch (Exception ignored) {}
+        super.onDestroy();
     }
 
     @Override

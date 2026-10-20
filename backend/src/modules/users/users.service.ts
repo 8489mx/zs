@@ -302,6 +302,10 @@ export class UsersService {
     const isPlatformTenant = isPlatformTenantId(scope.tenantId);
     const isPlatformAdmin = actor.role === 'super_admin' && isPlatformTenant;
 
+    if (!isPlatformTenant && payload.username.trim().toLowerCase() === 'zs') {
+      throw new AppError('اسم المستخدم "zs" محجوز حصرياً لإدارة المنصة المركزية ولا يمكن استخدامه داخل الشركات المستضافة.', 'RESERVED_PLATFORM_USERNAME', 400);
+    }
+
     if (!isPlatformAdmin) {
       const activeUsers = await this.db.selectFrom('users').select(['id']).where(this.tenantPredicate(actor)).where('is_active', '=', true).execute();
       const planLimit = await this.getPlanLimitForTenant(scope.tenantId, actor, activeUsers.length);
@@ -377,6 +381,23 @@ export class UsersService {
 
     const scope = this.scope(actor);
     const isPlatformTenant = isPlatformTenantId(scope.tenantId);
+
+    if (!isPlatformTenant && payload.username.trim().toLowerCase() === 'zs') {
+      throw new AppError('اسم المستخدم "zs" محجوز حصرياً لإدارة المنصة المركزية ولا يمكن استخدامه داخل الشركات المستضافة.', 'RESERVED_PLATFORM_USERNAME', 400);
+    }
+
+    if (existing.username.toLowerCase() === 'zs' && isPlatformTenant) {
+      if (payload.username.trim().toLowerCase() !== 'zs') {
+        throw new AppError('لا يمكن تغيير اسم مستخدم السوبر أدمن الرئيسي للمنظومة.', 'CANNOT_RENAME_PLATFORM_SUPER_ADMIN', 400);
+      }
+      if (payload.role && payload.role !== 'super_admin') {
+        throw new AppError('لا يمكن تخفيض رتبة السوبر أدمن الرئيسي للمنظومة.', 'CANNOT_DEMOTE_PLATFORM_SUPER_ADMIN', 400);
+      }
+      if (payload.isActive === false) {
+        throw new AppError('لا يمكن تعطيل حساب السوبر أدمن الرئيسي للمنظومة.', 'CANNOT_DEACTIVATE_PLATFORM_SUPER_ADMIN', 400);
+      }
+    }
+
     let effectiveRole = payload.role;
     if (effectiveRole === 'super_admin' && !isPlatformTenant) {
       effectiveRole = 'admin';
@@ -530,6 +551,9 @@ export class UsersService {
     const existing = await this.db.selectFrom('users').selectAll().where('id', '=', id).where(this.tenantPredicate(actor)).executeTakeFirst();
     if (!existing) {
       throw new AppError('User not found', 'USER_NOT_FOUND', 404);
+    }
+    if (existing.username.toLowerCase() === 'zs' || (existing.role === 'super_admin' && isPlatformTenantId(existing.tenant_id))) {
+      throw new AppError('لا يمكن حذف حساب السوبر أدمن الرئيسي للمنظومة.', 'CANNOT_DELETE_PLATFORM_SUPER_ADMIN', 400);
     }
     if (Number(existing.id) === Number(actor.userId)) {
       throw new AppError('Cannot delete current user', 'CURRENT_USER_DELETE_FORBIDDEN', 400);

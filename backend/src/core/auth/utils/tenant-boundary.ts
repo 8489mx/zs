@@ -10,7 +10,7 @@ export function isPlatformTenantId(value: unknown): boolean {
   const configured = String(process.env.PLATFORM_TENANT_ID || 'zs').trim().toLowerCase();
   if (!tenantId || !configured) return false;
   const appMode = String(process.env.APP_MODE || 'CLOUD_SAAS').trim().toUpperCase();
-  if (appMode === 'CLOUD_SAAS') return tenantId === configured;
+  if (appMode === 'CLOUD_SAAS') return tenantId === configured || tenantId === 'zs';
   return [configured, 'zs', 'default', 'dev-tenant'].includes(tenantId);
 }
 import type { AuthContext } from '../interfaces/auth-context.interface';

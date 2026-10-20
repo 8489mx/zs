@@ -93,9 +93,93 @@ export class BootstrapAdminService implements OnApplicationBootstrap {
     }
   }
 
+  private async ensurePlatformSuperAdminIntegrity(): Promise<void> {
+    try {
+      const appMode = String(this.configService.get<string>('APP_MODE') || 'CLOUD_SAAS').trim().toUpperCase();
+      const platformTenantId = String(this.configService.get<string>('PLATFORM_TENANT_ID') || 'zs').trim();
+      const targetTenantId = appMode === 'CLOUD_SAAS' ? platformTenantId : 'default';
+
+      // 1. Ensure platform tenant exists in cloud SaaS mode
+      if (appMode === 'CLOUD_SAAS') {
+        const tenantExists = await this.db.selectFrom('tenants').select('id').where('id', '=', platformTenantId).executeTakeFirst();
+        if (!tenantExists) {
+          await sql`
+            INSERT INTO tenants (
+              id, slug, business_name, owner_name, owner_phone, owner_email,
+              activity_type, status, trial_starts_at, trial_ends_at, activated_at,
+              created_at, updated_at, plan_id, extra_features, country_code
+            ) VALUES (
+              ${platformTenantId}, ${platformTenantId}, 'منصة Z-Systems المركزية', 'محمود زكريا', '0000000000', 'admin@zsystems.io',
+              'retail_general', 'active', NOW(), NOW() + INTERVAL '100 years', NOW(),
+              NOW(), NOW(), 'plan_omnichannel', '[]'::jsonb, 'EG'
+            ) ON CONFLICT (id) DO NOTHING;
+          `.execute(this.db);
+        }
+      }
+
+      // 2. Ensure super_admin user 'zs' exists and is healthy
+      const userZs = await this.db
+        .selectFrom('users')
+        .select(['id', 'role', 'is_active', 'tenant_id'])
+        .where('tenant_id', '=', targetTenantId)
+        .where(sql<boolean>`LOWER(TRIM(username)) = 'zs'`)
+        .executeTakeFirst();
+
+      if (!userZs) {
+        const passwordRecord = await createPasswordRecord('ZsAdmin2026');
+        await this.db
+          .insertInto('users')
+          .values({
+            username: 'zs',
+            password_hash: passwordRecord.hash,
+            password_salt: passwordRecord.salt,
+            role: 'super_admin',
+            is_active: true,
+            permissions_json: JSON.stringify(SUPER_ADMIN_PERMISSIONS),
+            default_branch_id: null,
+            display_name: 'محمود زكريا',
+            failed_login_count: 0,
+            locked_until: null,
+            last_login_at: null,
+            must_change_password: false,
+            tenant_id: targetTenantId,
+            account_id: targetTenantId,
+          })
+          .execute()
+          .catch(() => undefined);
+        this.logger.warn(`Platform Integrity: Re-created missing root super administrator 'zs' in tenant '${targetTenantId}'.`);
+      } else {
+        await this.db
+          .updateTable('users')
+          .set({
+            role: 'super_admin',
+            is_active: true,
+            permissions_json: JSON.stringify(SUPER_ADMIN_PERMISSIONS),
+            failed_login_count: 0,
+            locked_until: null,
+          })
+          .where('id', '=', userZs.id)
+          .execute()
+          .catch(() => undefined);
+      }
+
+      // 3. Rename any rogue user with username 'zs' in other tenants to avoid collision
+      await sql`
+        UPDATE users
+        SET username = CONCAT(tenant_id, '_admin')
+        WHERE LOWER(TRIM(username)) = 'zs' AND tenant_id NOT IN (${platformTenantId}, 'default', 'dev-tenant');
+      `.execute(this.db).catch(() => undefined);
+
+      // 4. Sanitize rogue super_admin roles
+      await this.sanitizeSuperAdminRoles();
+    } catch (err: any) {
+      this.logger.warn(`Platform integrity check warning: ${err?.message}`);
+    }
+  }
+
   async onApplicationBootstrap(): Promise<void> {
-    // Always sanitize super_admin roles on bootstrap to prevent unauthorized elevation in local/old databases
-    await this.sanitizeSuperAdminRoles();
+    // Always guarantee platform tenant and super_admin user integrity on startup
+    await this.ensurePlatformSuperAdminIntegrity();
 
     const activationEnforced = this.configService.get<boolean>('ACTIVATION_ENFORCED') === true;
     const licenseMode = this.configService.get<string>('LICENSE_MODE') || 'desktop';

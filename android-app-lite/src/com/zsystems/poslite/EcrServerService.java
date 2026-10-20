@@ -30,8 +30,10 @@ public class EcrServerService extends Service {
     private volatile boolean isRunning = false;
     private ServerSocket http8080Server;
     private ServerSocket tcp10009Server;
+    private ServerSocket tcp9100Server;
     private Thread httpThread;
     private Thread tcpThread;
+    private Thread tcp9100Thread;
 
     public static class PaymentSession {
         public static final Object LOCK = new Object();
@@ -150,8 +152,8 @@ public class EcrServerService extends Service {
             builder = new Notification.Builder(this);
         }
 
-        builder.setContentTitle("Z-Systems ECR Terminal")
-               .setContentText("ماكينة الدفع نشطة على المنفذ 8080 و 10009")
+        builder.setContentTitle("Z-Systems ECR & Print Terminal")
+               .setContentText("ماكينة الدفع والطباعة نشطة على المنفذ 8080 و 9100 و 10009")
                .setSmallIcon(R.drawable.ic_launcher)
                .setContentIntent(pendingIntent)
                .setOngoing(true);
@@ -208,6 +210,29 @@ public class EcrServerService extends Service {
         }, "EcrTcp10009Thread");
         tcpThread.setDaemon(true);
         tcpThread.start();
+
+        // 3. RAW ESC/POS Server on Port 9100 (Standard Windows Network Printer)
+        tcp9100Thread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    tcp9100Server = new ServerSocket(9100);
+                    Log.i(TAG, "RAW ESC/POS Server listening on 0.0.0.0:9100");
+                    while (isRunning && !tcp9100Server.isClosed()) {
+                        try {
+                            Socket client = tcp9100Server.accept();
+                            handlePort9100ClientAsync(client);
+                        } catch (Exception e) {
+                            if (!isRunning) break;
+                        }
+                    }
+                } catch (Exception ex) {
+                    Log.e(TAG, "RAW Port 9100 Server error: " + ex.getMessage());
+                }
+            }
+        }, "Raw9100Thread");
+        tcp9100Thread.setDaemon(true);
+        tcp9100Thread.start();
     }
 
     private void handleHttpClientAsync(final Socket socket) {
@@ -219,8 +244,7 @@ public class EcrServerService extends Service {
                     InputStream in = socket.getInputStream();
                     OutputStream out = socket.getOutputStream();
 
-                    BufferedReader reader = new BufferedReader(new InputStreamReader(in, "UTF-8"));
-                    String requestLine = reader.readLine();
+                    String requestLine = readHttpHeaderLine(in);
                     if (requestLine == null || requestLine.isEmpty()) {
                         socket.close();
                         return;
@@ -233,24 +257,23 @@ public class EcrServerService extends Service {
                     // Read headers
                     int contentLength = 0;
                     String line;
-                    while ((line = reader.readLine()) != null && !line.isEmpty()) {
+                    while ((line = readHttpHeaderLine(in)) != null && !line.isEmpty()) {
                         if (line.toLowerCase(Locale.US).startsWith("content-length:")) {
                             contentLength = Integer.parseInt(line.substring(15).trim());
                         }
                     }
 
-                    // Read body
-                    StringBuilder body = new StringBuilder();
+                    // Read body as raw bytes
+                    byte[] bodyBytes = new byte[contentLength];
                     if (contentLength > 0) {
-                        char[] buf = new char[contentLength];
                         int read = 0;
                         while (read < contentLength) {
-                            int r = reader.read(buf, read, contentLength - read);
+                            int r = in.read(bodyBytes, read, contentLength - read);
                             if (r <= 0) break;
                             read += r;
                         }
-                        body.append(buf, 0, read);
                     }
+                    String body = new String(bodyBytes, "UTF-8");
 
                     if ("OPTIONS".equals(method)) {
                         String corsResponse = "HTTP/1.1 204 No Content\r\n" +
@@ -269,9 +292,9 @@ public class EcrServerService extends Service {
                     int statusCode = 200;
 
                     if ("GET".equals(method) && (path.equals("/") || path.contains("/ping") || path.contains("/health") || path.contains("/status"))) {
-                        responseJson = "{\"status\":\"ONLINE\",\"terminal\":\"SUNMI-V2PRO\",\"online\":true,\"ready\":true,\"message\":\"ماكينة الدفع نشطة ومستعدة\"}";
+                        responseJson = "{\"status\":\"ONLINE\",\"terminal\":\"SUNMI-V2PRO\",\"online\":true,\"ready\":true,\"message\":\"ماكينة الدفع والطباعة نشطة ومستعدة\"}";
                     } else if (path.contains("/test")) {
-                        responseJson = "{\"success\":true,\"data\":{\"online\":true,\"reachable\":true,\"portOpen\":true,\"pingSucceeded\":true,\"message\":\"الاتصال بماكينة الدفع نشط ومستعد\",\"latencyMs\":1}}";
+                        responseJson = "{\"success\":true,\"data\":{\"online\":true,\"reachable\":true,\"portOpen\":true,\"pingSucceeded\":true,\"message\":\"الاتصال بماكينة الدفع والطباعة نشط ومستعد\",\"latencyMs\":1}}";
                     } else if (path.contains("/cancel") || path.contains("/abort")) {
                         // Cancel any currently active payment session
                         synchronized (PaymentSession.LOCK) {
@@ -281,13 +304,16 @@ public class EcrServerService extends Service {
                         }
                         PaymentActivity.cancelFromRemote("تم إلغاء المعاملة من نقطة البيع");
                         responseJson = "{\"success\":true,\"status\":\"CANCELLED\",\"responseCode\":\"000099\",\"message\":\"تم إلغاء العملية\"}";
+                    } else if (path.contains("/print-pdf") || path.contains("/pdf")) {
+                        boolean ok = SunmiPrinterHelper.printPdfBytes(EcrServerService.this, bodyBytes);
+                        responseJson = "{\"success\":" + ok + ",\"message\":\"تم استلام ملف الـ PDF بنجاح وجاري طباعته حرارياً\"}";
                     } else if (path.contains("/print")) {
                         String textToPrint = "";
                         try {
-                            org.json.JSONObject jsonObj = new org.json.JSONObject(body.toString());
+                            org.json.JSONObject jsonObj = new org.json.JSONObject(body);
                             textToPrint = jsonObj.optString("printData", jsonObj.optString("text", ""));
                         } catch (Exception ex) {
-                            textToPrint = body.toString();
+                            textToPrint = body;
                         }
                         SunmiPrinterHelper.printRawText(textToPrint);
                         responseJson = "{\"success\":true,\"message\":\"تم استلام أمر الطباعة بنجاح\"}";
@@ -413,12 +439,59 @@ public class EcrServerService extends Service {
         }).start();
     }
 
+    private void handlePort9100ClientAsync(final Socket socket) {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    socket.setSoTimeout(30000);
+                    InputStream in = socket.getInputStream();
+                    byte[] buffer = new byte[4096];
+                    int bytesRead;
+                    java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
+                    while ((bytesRead = in.read(buffer)) != -1) {
+                        baos.write(buffer, 0, bytesRead);
+                        if (in.available() == 0) {
+                            try { Thread.sleep(60); } catch (Exception ignored) {}
+                            if (in.available() == 0) {
+                                break;
+                            }
+                        }
+                    }
+                    byte[] rawData = baos.toByteArray();
+                    if (rawData.length > 0) {
+                        Log.i(TAG, "Port 9100 received raw print data: " + rawData.length + " bytes");
+                        SunmiPrinterHelper.printRawBytes(rawData);
+                    }
+                } catch (Exception e) {
+                    Log.w(TAG, "Port 9100 client error: " + e.getMessage());
+                } finally {
+                    try { socket.close(); } catch (Exception ignored) {}
+                }
+            }
+        }).start();
+    }
+
+    private static String readHttpHeaderLine(InputStream in) throws java.io.IOException {
+        java.io.ByteArrayOutputStream bout = new java.io.ByteArrayOutputStream();
+        int c;
+        while ((c = in.read()) != -1) {
+            if (c == '\n') break;
+            if (c != '\r') bout.write(c);
+        }
+        if (c == -1 && bout.size() == 0) return null;
+        return bout.toString("UTF-8");
+    }
+
     private void closeServers() {
         try {
             if (http8080Server != null) http8080Server.close();
         } catch (Exception ignored) {}
         try {
             if (tcp10009Server != null) tcp10009Server.close();
+        } catch (Exception ignored) {}
+        try {
+            if (tcp9100Server != null) tcp9100Server.close();
         } catch (Exception ignored) {}
     }
 }

@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, ForbiddenException, Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Inject, Injectable, Logger, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { isReservedStoreSlug } from '../storefront/engines/store-public-url.engine';
 import { ConfigService } from '@nestjs/config';
 import { randomBytes, randomUUID } from 'node:crypto';
@@ -12,7 +12,7 @@ import { SessionService } from '../../core/auth/services/session.service';
 import { createCsrfToken } from '../../core/auth/utils/csrf-token';
 import { ActivateTenantDto, CreateTrialTenantDto, ExtendTrialDto, ListSaasTenantsQueryDto, ResetOwnerPasswordDto, TenantStatusActionDto, RenewTenantDto, CreateSaasPlanDto, RecordPaymentDto, UpdateSaasPlanDto } from './dto/saas-admin.dto';
 import { TrialTenantProvisioningService } from './trial-tenant-provisioning.service';
-import { createPasswordRecord } from '../../core/auth/utils/password-hasher';
+import { createPasswordRecord, verifyPassword } from '../../core/auth/utils/password-hasher';
 import { AuthCacheService } from '../../core/auth/services/auth-cache.service';
 import { SettingsDemoDataService } from '../settings/services/settings-demo-data.service';
 import { SettingsService } from '../settings/settings.service';
@@ -63,6 +63,33 @@ export class SaasAdminService {
     const tid = String(targetTenantId || '').trim();
     if (isPlatformTenantId(tid)) {
       throw new ForbiddenException('لا يمكن تعديل حالة نسخة المنصة من هذه الصفحة.');
+    }
+  }
+
+  private async assertSuperAdminPassword(password: string, auth: AuthContext): Promise<void> {
+    if (auth.role !== 'super_admin') {
+      throw new ForbiddenException('غير مسموح: هذه العملية مخصصة للسوبر أدمن فقط.');
+    }
+
+    if (!password || typeof password !== 'string' || !password.trim()) {
+      throw new BadRequestException('يرجى إدخال كلمة مرور السوبر أدمن لتأكيد الحذف النهائي.');
+    }
+
+    const platformTenant = auth.tenantId || this.getPlatformTenantId();
+    const user = await this.db
+      .selectFrom('users')
+      .select(['id', 'password_hash', 'password_salt'])
+      .where('id', '=', auth.userId)
+      .where(sql<boolean>`tenant_id = ${platformTenant}`)
+      .executeTakeFirst();
+
+    if (!user || !user.password_hash) {
+      throw new NotFoundException('تعذر التحقق من حساب السوبر أدمن.');
+    }
+
+    const check = await verifyPassword(password.trim(), String(user.password_hash), String(user.password_salt || ''));
+    if (!check.valid) {
+      throw new UnauthorizedException('كلمة مرور السوبر أدمن غير صحيحة.');
     }
   }
 
@@ -832,10 +859,21 @@ export class SaasAdminService {
     };
   }
 
-  async deleteTenant(id: string, auth: AuthContext): Promise<{ ok: boolean }> {
+  async deleteTenant(
+    id: string,
+    superAdminPasswordOrAuth: string | AuthContext,
+    maybeAuth?: AuthContext,
+  ): Promise<{ ok: boolean; message: string }> {
+    const auth = (typeof superAdminPasswordOrAuth === 'object' ? superAdminPasswordOrAuth : maybeAuth)!;
+    const superAdminPassword = typeof superAdminPasswordOrAuth === 'string' ? superAdminPasswordOrAuth : '';
+
     this.assertPlatformAccess(auth);
     const tenant = await this.getTenantForMutation(id);
     this.assertNotPlatformTenantTarget(tenant.id);
+
+    if (typeof superAdminPasswordOrAuth === 'string') {
+      await this.assertSuperAdminPassword(superAdminPassword, auth);
+    }
 
     const tablesQuery = await sql<{ table_name: string }>`
       SELECT table_name 
@@ -898,11 +936,14 @@ export class SaasAdminService {
 
     this.authCache.invalidateTenant(tenant.id);
 
-    await this.audit.log('حذف نسخة', `تم حذف النسخة ${tenant.slug} (${tenant.id}) نهائياً من النظام`, auth, {
+    await this.audit.log('حذف نسخة', `تم حذف النسخة ${tenant.slug} (${tenant.id}) نهائياً من النظام بواسطة ${auth.username}`, auth, {
       targetTenantId: tenant.id,
       eventCode: AUDIT_EVENT_CODES.SAAS_TENANT_DELETED,
     });
-    return { ok: true };
+    return {
+      ok: true,
+      message: `تم حذف النسخة (${tenant.businessName || tenant.slug}) وجميع قواعد بياناتها وسجلاتها نهائياً بنجاح.`,
+    };
   }
 
   async updateTenantPlan(id: string, dto: { planId?: string; extraFeatures?: string[]; activityType?: string }, auth: AuthContext) {

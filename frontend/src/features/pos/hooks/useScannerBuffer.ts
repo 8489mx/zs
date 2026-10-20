@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef } from 'react';
 import type { RefObject } from 'react';
+import { listenToHardwareBarcode } from '@/shared/utils/hardware-scanner';
 
 /**
  * Scanner Input Buffer — Zero-Render Edition
@@ -159,6 +160,25 @@ export function useScannerBuffer(opts: {
         return;
       }
 
+      // If a hardware scanner sends Enter at the end of a rapid scan sequence
+      if (e.key === 'Enter' && windowBuffer.trim() && windowRapidCount >= 2) {
+        e.preventDefault();
+        if (windowFlushTimer) window.clearTimeout(windowFlushTimer);
+        const finalValue = sanitize ? sanitize(windowBuffer) : windowBuffer;
+        if (onAutoSubmitRef.current && finalValue.trim()) {
+          const autoHandled = onAutoSubmitRef.current(finalValue);
+          if (autoHandled) {
+            windowBuffer = '';
+            windowRapidCount = 0;
+            return;
+          }
+        }
+        onFlush(finalValue);
+        windowBuffer = '';
+        windowRapidCount = 0;
+        return;
+      }
+
       if (e.key.length !== 1 || e.ctrlKey || e.altKey || e.metaKey) return;
 
       const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
@@ -196,8 +216,18 @@ export function useScannerBuffer(opts: {
       }
     };
 
+    const unlistenHardware = listenToHardwareBarcode((scannedCode) => {
+      const finalValue = sanitize ? sanitize(scannedCode) : scannedCode;
+      if (onAutoSubmitRef.current && finalValue.trim()) {
+        const autoHandled = onAutoSubmitRef.current(finalValue);
+        if (autoHandled) return;
+      }
+      onFlush(finalValue);
+    });
+
     window.addEventListener('keydown', handleWindowKeyDown);
     return () => {
+      unlistenHardware();
       window.removeEventListener('keydown', handleWindowKeyDown);
       if (windowFlushTimer) window.clearTimeout(windowFlushTimer);
     };

@@ -6,7 +6,7 @@ import { Database } from '../../../database/database.types';
 import { AuditService } from '../../../core/audit/audit.service';
 import { AuthCacheService } from '../../../core/auth/services/auth-cache.service';
 import { AuthContext } from '../../../core/auth/interfaces/auth-context.interface';
-import { requireTenantScope } from '../../../core/auth/utils/tenant-boundary';
+import { isPlatformTenantId, requireTenantScope } from '../../../core/auth/utils/tenant-boundary';
 import { AppError } from '../../../common/errors/app-error';
 import { resolveTenantPackage } from '../../../core/tenant-transfer/backup-bundle';
 import { exportTenantPackage, importTenantPackage, TenantPackageError } from '../../../core/tenant-transfer/tenant-package';
@@ -74,6 +74,9 @@ export class TenantTransferService {
   ): Promise<Record<string, unknown>> {
     this.assertCanTransfer(auth);
     const scope = requireTenantScope(auth);
+    if (isPlatformTenantId(scope.tenantId)) {
+      throw new ForbiddenException('ممنوع منعاً باتاً استيراد حزم بيانات فوق منشأة المنصة المركزية السحابية (zs). المنصة مخصصة لإدارة المشتركين فقط.');
+    }
     if (String(options.confirmation || '').trim() !== TENANT_IMPORT_CONFIRMATION) {
       throw new AppError(`اكتب ${TENANT_IMPORT_CONFIRMATION} لتأكيد استبدال كل بيانات المنشأة`, 'TENANT_IMPORT_CONFIRMATION_REQUIRED', 400);
     }

@@ -99,8 +99,12 @@ export class SaasAdminController {
   }
 
   @Post('tenants/:id/delete')
-  deleteTenant(@Param('id') id: string, @Req() req: RequestWithAuth) {
-    return this.service.deleteTenant(id, req.authContext!);
+  deleteTenant(
+    @Param('id') id: string,
+    @Body() body: { superAdminPassword?: string },
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.service.deleteTenant(id, body?.superAdminPassword || '', req.authContext!);
   }
 
   @Post('tenants/:id/plan')

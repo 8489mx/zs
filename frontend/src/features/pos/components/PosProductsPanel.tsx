@@ -531,7 +531,7 @@ function PosProductsPanelComponent({
                   type="button"
                   className="pos-camera-scan-btn"
                   onClick={() => setIsCameraScannerOpen(true)}
-                  title={t('pos.scan_camera', 'مسح باركود بكاميرا الموبايل')}
+                  title={t('pos.scan_camera', 'مسح باركود بالكاميرا')}
                   style={{
                     position: 'absolute',
                     left: '8px',

@@ -9,6 +9,13 @@ import android.util.Log;
 
 import woyou.aidlservice.jiuiv5.IWoyouService;
 
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.pdf.PdfRenderer;
+import android.os.ParcelFileDescriptor;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.OutputStream;
 import java.net.Socket;
 import java.text.SimpleDateFormat;
@@ -273,6 +280,102 @@ public class SunmiPrinterHelper {
                 } catch (Exception ignored) {}
             }
         }).start();
+    }
+
+    public static void printRawBytes(final byte[] data) {
+        if (data == null || data.length == 0) return;
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                long waitStart = System.currentTimeMillis();
+                while (woyouService == null && (System.currentTimeMillis() - waitStart) < 2500) {
+                    try {
+                        Thread.sleep(100);
+                    } catch (InterruptedException ignored) {}
+                }
+                if (woyouService != null) {
+                    try {
+                        woyouService.sendRAWData(data, null);
+                        return;
+                    } catch (Exception e) {
+                        Log.w(TAG, "sendRAWData error: " + e.getMessage());
+                    }
+                }
+            }
+        }).start();
+    }
+
+    public static boolean printPdfBytes(final Context context, final byte[] pdfBytes) {
+        if (pdfBytes == null || pdfBytes.length == 0) return false;
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                File tempFile = null;
+                ParcelFileDescriptor pfd = null;
+                PdfRenderer renderer = null;
+                try {
+                    long waitStart = System.currentTimeMillis();
+                    while (woyouService == null && (System.currentTimeMillis() - waitStart) < 2500) {
+                        try {
+                            Thread.sleep(100);
+                        } catch (InterruptedException ignored) {}
+                    }
+
+                    if (woyouService == null) {
+                        Log.e(TAG, "Cannot print PDF: woyouService is not bound");
+                        return;
+                    }
+
+                    tempFile = File.createTempFile("print_", ".pdf", context.getCacheDir());
+                    FileOutputStream fos = new FileOutputStream(tempFile);
+                    fos.write(pdfBytes);
+                    fos.flush();
+                    fos.close();
+
+                    pfd = ParcelFileDescriptor.open(tempFile, ParcelFileDescriptor.MODE_READ_ONLY);
+                    renderer = new PdfRenderer(pfd);
+                    int pageCount = renderer.getPageCount();
+                    Log.i(TAG, "Rendering PDF pages: " + pageCount);
+
+                    woyouService.printerInit(null);
+
+                    for (int i = 0; i < pageCount; i++) {
+                        PdfRenderer.Page page = renderer.openPage(i);
+                        int targetWidth = 384; // 58mm printable width in pixels
+                        int targetHeight = (int) ((float) targetWidth / page.getWidth() * page.getHeight());
+
+                        Bitmap bitmap = Bitmap.createBitmap(targetWidth, targetHeight, Bitmap.Config.ARGB_8888);
+                        Canvas canvas = new Canvas(bitmap);
+                        canvas.drawColor(Color.WHITE);
+                        page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_PRINT);
+                        page.close();
+
+                        woyouService.printBitmap(bitmap, null);
+                        woyouService.lineWrap(1, null);
+                    }
+
+                    woyouService.lineWrap(3, null);
+                    try {
+                        woyouService.cutPaper(null);
+                    } catch (Exception ignored) {}
+                    Log.i(TAG, "PDF print completed successfully: " + pageCount + " pages");
+
+                } catch (Exception e) {
+                    Log.e(TAG, "printPdfBytes error: " + e.getMessage(), e);
+                } finally {
+                    try {
+                        if (renderer != null) renderer.close();
+                    } catch (Exception ignored) {}
+                    try {
+                        if (pfd != null) pfd.close();
+                    } catch (Exception ignored) {}
+                    if (tempFile != null && tempFile.exists()) {
+                        try { tempFile.delete(); } catch (Exception ignored) {}
+                    }
+                }
+            }
+        }).start();
+        return true;
     }
 
     private static String formatTwoColumns(String rightText, String leftText, int targetWidth) {

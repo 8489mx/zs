@@ -1221,7 +1221,8 @@ export function SettingsBackupImportSection({
   const isContracting = currentVertical === 'contracting';
   const isPlatformSuperAdmin = isPlatformAdmin(user);
   const isDesktopOffline = isDesktopOfflineApp();
-  const canRestore = isPlatformSuperAdmin || isDesktopOffline || user?.role === 'super_admin' || (user?.role === 'admin' && canManageBackups) || user?.username?.trim().toLowerCase() === 'zs';
+  const isPlatformTenant = !isDesktopOffline && (isPlatformSuperAdmin || user?.tenantId === 'zs');
+  const canRestore = !isPlatformTenant && (isDesktopOffline || user?.role === 'super_admin' || (user?.role === 'admin' && canManageBackups) || user?.username?.trim().toLowerCase() === 'zs');
   const [isSnapshotsOpen, setIsSnapshotsOpen] = useState(false);
   const summaryPairs = formatSummaryPairs(backupResult);
   const resolvedFolder = backupFolderPathDraft || backupConfigQuery.data?.folderPath || backupConfigQuery.data?.defaultFolderPath || 'D:\\ZS Backups';
@@ -1455,6 +1456,11 @@ export function SettingsBackupImportSection({
                       onChange={(e) => { const file = e.target.files?.[0]; if (file) onRequestRestoreFile(file); e.currentTarget.value = ''; }}
                     />
                   </label>
+                ) : isPlatformTenant ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '10px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', textAlign: 'center' }}>
+                    <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#170e5e' }}>المنصة المركزية محصنة</span>
+                    <span style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '2px' }}>محمية ضد استرجاع بيانات المتاجر</span>
+                  </div>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '10px', background: '#f8fafc', border: '1px dashed #cbd5e1', borderRadius: '8px', textAlign: 'center', opacity: 0.8, cursor: 'not-allowed' }}>
                     <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#64748b' }}>{t('settings.workspace_sections.settings_backup_import_section.s123', "استعادة من ملف")}</span>

@@ -143,7 +143,11 @@ export const saasAdminApi = {
       `/api/saas-admin/tenants/${encodeURIComponent(id)}/reset-owner-password`,
       { method: 'POST', body: JSON.stringify({ newPassword }) },
     ),
-  deleteTenant: (id: string) => http<{ ok: boolean }>(`/api/saas-admin/tenants/${encodeURIComponent(id)}/delete`, { method: 'POST', body: JSON.stringify({}) }),
+  deleteTenant: (id: string, payload: { superAdminPassword: string }) =>
+    http<{ ok: boolean; message?: string }>(`/api/saas-admin/tenants/${encodeURIComponent(id)}/delete`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
   updateTenantSlug: (id: string, slug: string) =>
     http<{ success: boolean; oldSlug: string; newSlug: string; message: string }>(
       `/api/saas-admin/tenants/${encodeURIComponent(id)}/slug`,

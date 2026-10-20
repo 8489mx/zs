@@ -4,7 +4,7 @@ import * as path from 'path';
 import { Kysely, sql } from '../../../database/kysely';
 import { AuditService } from '../../../core/audit/audit.service';
 import { AuthContext } from '../../../core/auth/interfaces/auth-context.interface';
-import { requireTenantScope } from '../../../core/auth/utils/tenant-boundary';
+import { isPlatformTenantId, requireTenantScope } from '../../../core/auth/utils/tenant-boundary';
 import { AppError } from '../../../common/errors/app-error';
 import { KYSELY_DB } from '../../../database/database.constants';
 import { Database } from '../../../database/database.types';
@@ -456,14 +456,26 @@ export class SettingsBackupService {
 
 
   async restoreBackup(payload: unknown, actor: AuthContext, dryRun = false): Promise<Record<string, unknown>> {
+    const scope = this.scope(actor);
+    if (isPlatformTenantId(scope.tenantId)) {
+      throw new ForbiddenException(
+        'ممنوع منعاً باتاً استرجاع أي نسخة احتياطية على منشأة المنصة المركزية السحابية (zs). المنصة المركزية مخصصة للإدارة فقط ولا تقبل استرجاع بيانات تجارية.',
+      );
+    }
     if (!dryRun) {
       this.assertCanRestoreBackup(actor);
       this.assertRestoreConfirmation(payload);
     } else {
       this.assertAdmin(actor);
     }
-    const scope = this.scope(actor);
     const { envelope, manifest } = await this.parseAndVerifyPayload(payload);
+    if (envelope.meta?.tenantId && envelope.meta.tenantId !== scope.tenantId) {
+      throw new AppError(
+        `النسخة الاحتياطية مأخوذة من منشأة أخرى (${envelope.meta.tenantId})، ولا يمكن استرجاعها فوق هذه المنشأة (${scope.tenantId}). لمنع تداخل البيانات`,
+        'TENANT_MISMATCH',
+        400,
+      );
+    }
     const verification = await this.verifyBackup(payload);
     if (dryRun) return { ok: true, dryRun: true, summary: verification.summary, manifest, scope };
 
@@ -508,7 +520,7 @@ export class SettingsBackupService {
         const pendingBranchDefaultLocations = new Map<string, string>();
 
         for (const table of BACKUP_TABLES) {
-          if (String(table) === 'sessions') continue;
+          if (String(table) === 'sessions' || String(table) === 'tenants') continue;
           const tableName = String(table);
           if (!(await this.tableExists(tableName))) continue;
           const colMeta = await this.getTableColumns(trx as unknown as Kysely<Database>, tableName);
@@ -550,6 +562,11 @@ export class SettingsBackupService {
           for (const rawRow of rows) {
             if (!isObjectRecord(rawRow)) continue;
             const row: Record<string, unknown> = { ...rawRow };
+
+            if (tableName === 'users') {
+              if (String(row.username || '').trim().toLowerCase() === 'zs') continue;
+              if (row.role === 'super_admin') row.role = 'admin';
+            }
 
             if (!keepOriginalIds) {
               remapForeignKeys(row, fkMap, idMap);
