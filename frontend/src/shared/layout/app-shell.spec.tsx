@@ -198,4 +198,72 @@ describe('AppShell', () => {
     expect(queryClient.getQueryData(['stale-session'])).toBeUndefined();
     expect(logoutMock).toHaveBeenCalledTimes(1);
   });
+
+  it('guarantees zero duplicate navigation links in the sidebar across primary shortcuts and groups', () => {
+    seedUser();
+    renderShell('/dashboard');
+
+    const navLinks = Array.from(document.querySelectorAll('.sidebar-nav a[data-key]'));
+    const renderedKeys = navLinks.map((el) => el.getAttribute('data-key'));
+    const uniqueKeys = new Set(renderedKeys);
+
+    expect(renderedKeys.length).toBe(uniqueKeys.size);
+  });
+
+  it('enforces strict tier-gating: L1 hides purchases, multi-warehouses, and accounting; L2 shows operations', () => {
+    // 1. Level 1 Tenant (محل / أساسي): No purchases, no inventory, no accounting
+    useAuthStore.setState({
+      user: { id: 1, username: 'admin', role: 'admin', permissions: ['*'], displayName: 'Admin' },
+      tenant: {
+        id: 't-l1',
+        accountId: 'a-1',
+        slug: 'shop-l1',
+        businessName: 'محل تجزئة L1',
+        activityType: 'retail_general',
+        status: 'active',
+        isTrial: false,
+        trialEndsAt: null,
+        trialDaysRemaining: null,
+        features: ['catalog', 'products', 'sales', 'sessions', 'cashDrawer', 'reports'],
+      },
+      storeName: 'محل تجزئة L1',
+      theme: 'light',
+      initialized: true,
+    });
+
+    const { unmount: unmountL1 } = renderShell('/dashboard');
+    const l1Keys = Array.from(document.querySelectorAll('.sidebar-nav a[data-key]')).map((el) => el.getAttribute('data-key'));
+    expect(l1Keys).toContain('pos');
+    expect(l1Keys).toContain('products');
+    expect(l1Keys).not.toContain('purchases');
+    expect(l1Keys).not.toContain('inventory-warehouses');
+    expect(l1Keys).not.toContain('accounting-journal-entries');
+    expect(l1Keys).not.toContain('hr');
+    unmountL1();
+
+    // 2. Level 2 Tenant (متعدد الفروع): Gains operations (purchases + inventory) but NOT accounting
+    useAuthStore.setState({
+      tenant: {
+        id: 't-l2',
+        accountId: 'a-1',
+        slug: 'shop-l2',
+        businessName: 'متعدد الفروع L2',
+        activityType: 'retail_general',
+        status: 'active',
+        isTrial: false,
+        trialEndsAt: null,
+        trialDaysRemaining: null,
+        features: ['catalog', 'products', 'sales', 'sessions', 'cashDrawer', 'reports', 'purchases', 'inventory'],
+      },
+    });
+
+    const { unmount: unmountL2 } = renderShell('/dashboard');
+    const l2Keys = Array.from(document.querySelectorAll('.sidebar-nav a[data-key]')).map((el) => el.getAttribute('data-key'));
+    expect(l2Keys).toContain('purchases');
+    expect(l2Keys).toContain('inventory');
+    expect(l2Keys).not.toContain('accounting-journal-entries');
+    expect(l2Keys).not.toContain('hr');
+    unmountL2();
+  });
 });
+

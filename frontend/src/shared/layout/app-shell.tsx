@@ -267,8 +267,56 @@ export function AppShell({ children }: PropsWithChildren) {
     const isElectronicsVertical = currentVertical === 'maintenance';
     const isServicesVertical = currentVertical === 'services';
     const isWholesaleVanVertical = currentVertical === 'wholesale_van';
+    const isWarehousingVertical = currentVertical === 'warehousing';
     const isImportVertical = currentVertical === 'import_export';
     const isRetailOrMarketVertical = currentVertical === 'retail_general';
+
+    const warehousingOrder = [
+      'dashboard',
+      'inventory-warehouses',
+      'inventory-issue-orders',
+      'inventory',
+      'inventory-tree',
+      'inventory-bins',
+      'products',
+      'product-categories',
+      'purchases-orders',
+      'purchases',
+      'purchases-new',
+      'purchases-reorder',
+      'purchase-returns',
+      'suppliers',
+      'sales-orders',
+      'sales',
+      'quotations',
+      'customers',
+      'returns',
+      'treasury',
+      'expenses',
+      'accounts',
+      'accounting-payment-allocation',
+      'accounting-bank-reconciliation',
+      'accounting-cheques',
+      'accounting-aged-debts',
+      'vat-declaration',
+      'accounting-journal-entries',
+      'accounting-accounts',
+      'accounting-cost-centers',
+      'accounting-fixed-assets',
+      'reports-overview',
+      'reports-inventory',
+      'reports-purchases',
+      'reports-sales',
+      'reports-treasury',
+      'reports-balances',
+      'reports-employees',
+      'hr',
+      'audit',
+      'apps',
+      'settings',
+      'saas-admin-tenants',
+      'saas-admin-plans',
+    ];
 
     const wholesaleVanOrder = [
       'dashboard',
@@ -709,6 +757,8 @@ export function AppShell({ children }: PropsWithChildren) {
       ? servicesOrder
       : isWholesaleVanVertical
       ? wholesaleVanOrder
+      : isWarehousingVertical
+      ? warehousingOrder
       : standardOrder;
 
     const maintenanceProfile = getMaintenanceProfile(settings?.maintenanceProfile);
@@ -724,8 +774,8 @@ export function AppShell({ children }: PropsWithChildren) {
       'online-orders': t('sidebar.online-orders', 'طلبات الأونلاين'),
       returns: t('sidebar.returns', 'مرتجعات المبيعات'),
       customers: t('sidebar.customers', 'العملاء'),
-      'delivery-reps': t('sidebar.delivery-reps', 'إدارة المناديب'),
-      'van-sales-admin': t('sidebar.van-sales-admin', 'سيارات التوزيع (الفان)'),
+      'delivery-reps': t('sidebar.delivery-reps', 'مناديب التوصيل والدليفري'),
+      'van-sales-admin': t('sidebar.van-sales-admin', 'مبيعات وتوزيع الفان'),
       'tax-dispatcher': t('sidebar.tax-dispatcher', 'الفاتورة الإلكترونية'),
       installments: t('sidebar.installments', 'مبيعات التقسيط'),
       'vat-declaration': t('sidebar.vat-declaration', 'الإقرار الضريبي'),
@@ -826,8 +876,8 @@ export function AppShell({ children }: PropsWithChildren) {
       labelOverrides['suppliers'] = t('sidebar.maritime-suppliers', 'النواقل ومقدمو الخدمات');
     }
     if (isWholesaleVanVertical) {
-      labelOverrides['delivery-reps'] = t('sidebar.van-reps', 'مناديب التوزيع والسيارات');
-      labelOverrides['van-sales-admin'] = t('sidebar.van-fleet', 'إدارة أسطول الفان');
+      labelOverrides['delivery-reps'] = t('sidebar.delivery-reps', 'مناديب التوصيل والدليفري');
+      labelOverrides['van-sales-admin'] = t('sidebar.van-fleet', 'مبيعات وتوزيع الفان');
       labelOverrides['sales'] = t('sidebar.van-sales', 'فواتير المبيعات والتوزيع');
       labelOverrides['returns'] = t('sidebar.van-returns', 'مرتجعات التوزيع');
       labelOverrides['inventory-warehouses'] = t('sidebar.van-warehouses', 'المستودعات وسيارات الفان');
@@ -838,6 +888,16 @@ export function AppShell({ children }: PropsWithChildren) {
 
     const hasFeature = (feat: string) => {
       if (isPlatformAdminUser) return true;
+
+      // 1. Strict Plan-Tier Entitlement: if tenant has an explicit features payload from the active plan
+      if (Array.isArray(tenant?.features) && tenant.features.length > 0) {
+        if (['catalog', 'products', 'sales'].includes(feat)) {
+          return true;
+        }
+        return tenant.features.includes(feat);
+      }
+
+      // 2. Fallback when features array is unseeded (offline desktop dev / unseeded tests):
       if (isContractingVertical) {
         const contractingSuiteFeatures = ['contracting', 'crm', 'purchases', 'inventory', 'products', 'suppliers', 'customers', 'accounting', 'hr', 'fixed_assets', 'vat_declaration', 'reports', 'approvals', 'treasury'];
         if (contractingSuiteFeatures.includes(feat)) return true;
@@ -851,10 +911,14 @@ export function AppShell({ children }: PropsWithChildren) {
         if (manufacturingSuiteFeatures.includes(feat)) return true;
       }
       if (isWholesaleVanVertical) {
-        const wholesaleVanSuiteFeatures = ['deliveryReps', 'sales', 'inventory', 'products', 'catalog', 'purchases', 'suppliers', 'customers', 'treasury', 'expenses', 'reports', 'pricing', 'installments', 'accounting'];
+        const wholesaleVanSuiteFeatures = ['deliveryReps', 'sales', 'inventory', 'products', 'catalog', 'purchases', 'suppliers', 'customers', 'treasury', 'expenses', 'reports', 'pricing', 'installments'];
         if (wholesaleVanSuiteFeatures.includes(feat)) return true;
       }
-      if (isRetailOrMarketVertical || isRestaurantVertical || isPharmacyVertical || isElectronicsVertical || (!isContractingVertical && !isMaritimeVertical && !isManufacturingVertical && !isServicesVertical)) {
+      if (isWarehousingVertical) {
+        const warehousingSuiteFeatures = ['inventory', 'products', 'catalog', 'purchases', 'suppliers', 'sales', 'customers', 'treasury', 'expenses', 'reports', 'pricing'];
+        if (warehousingSuiteFeatures.includes(feat)) return true;
+      }
+      if (isRetailOrMarketVertical || isRestaurantVertical || isPharmacyVertical || isElectronicsVertical || (!isContractingVertical && !isMaritimeVertical && !isManufacturingVertical && !isServicesVertical && !isWarehousingVertical)) {
         const commerceRetailSuiteFeatures = ['pos', 'sales', 'inventory', 'products', 'catalog', 'purchases', 'suppliers', 'customers', 'treasury', 'expenses', 'reports', 'pricing', 'installments'];
         if (isEnterpriseCommerceActive) {
           commerceRetailSuiteFeatures.push('accounting', 'crm');
@@ -947,6 +1011,11 @@ export function AppShell({ children }: PropsWithChildren) {
           if (item.key?.startsWith('contracting-') || item.key === 'contracting' || item.key?.startsWith('maritime-') || item.key === 'maritime' || item.key?.startsWith('pharmacy-') || item.key?.startsWith('manufacturing-') || (item.key?.startsWith('import-') && settings?.importModuleEnabled !== true)) return false;
         }
 
+        if (isWarehousingVertical) {
+          if (['pos', 'cash-drawer', 'online-orders', 'kds', 'displays', 'signage', 'product-modifiers', 'trade-in', 'imei-history', 'maintenance', 'clothing', 'delivery-reps', 'van-sales-admin'].includes(item.key)) return false;
+          if (item.key?.startsWith('contracting-') || item.key === 'contracting' || item.key?.startsWith('maritime-') || item.key === 'maritime' || item.key?.startsWith('pharmacy-') || item.key?.startsWith('manufacturing-') || (item.key?.startsWith('import-') && settings?.importModuleEnabled !== true)) return false;
+        }
+
         // Feature & Setting gating:
         if (item.key?.startsWith('import-') && (settings?.importModuleEnabled !== true || !hasFeature('import'))) return false;
         if ((item.key === 'maintenance' || item.key === 'trade-in' || item.key === 'imei-history') && (settings?.enableMobileStoreFeatures !== true || !hasFeature('maintenance'))) return false;
@@ -956,8 +1025,20 @@ export function AppShell({ children }: PropsWithChildren) {
         if (item.key === 'online-orders' && (settings?.storefrontModuleEnabled !== true || !hasFeature('storefront'))) return false;
         if (item.key === 'installments' && (settings?.installmentsModuleEnabled !== true || !hasFeature('installments'))) return false;
         if (item.key === 'vat-declaration' && !isContractingVertical && !isMaritimeVertical && !isManufacturingVertical && (settings?.taxDeclarationModuleEnabled !== true || !hasFeature('vat_declaration') || !isEnterpriseCommerceActive)) return false;
-        if (item.key === 'accounting-fixed-assets' && !isContractingVertical && !isManufacturingVertical && (settings?.fixedAssetsModuleEnabled !== true || !hasFeature('fixed_assets') || !isEnterpriseCommerceActive)) return false;
-        if ((item.key === 'delivery-reps' || item.key === 'van-sales-admin') && (settings?.deliveryFleetModuleEnabled !== true || !hasFeature('deliveryReps')) && !isWholesaleVanVertical) return false;
+        // Delivery Reps (Retail / Stores / Last-Mile Courier):
+        const isDeliveryRepsEnabled = Boolean(
+          settings?.deliveryRepsModuleEnabled === true ||
+          (settings?.deliveryFleetModuleEnabled === true && !isWholesaleVanVertical && !isWarehousingVertical)
+        );
+        if (item.key === 'delivery-reps' && (!isDeliveryRepsEnabled || !hasFeature('deliveryReps'))) return false;
+
+        // Van Sales & Field Fleet (Wholesale / FMCG Distribution):
+        const isVanSalesEnabled = Boolean(
+          settings?.vanSalesModuleEnabled === true ||
+          isWholesaleVanVertical ||
+          (settings?.deliveryFleetModuleEnabled === true && isWholesaleVanVertical)
+        );
+        if (item.key === 'van-sales-admin' && (!isVanSalesEnabled || (!hasFeature('deliveryReps') && !isWholesaleVanVertical))) return false;
         if (item.key === 'kds' && (settings?.restaurantModuleEnabled !== true || !hasFeature('restaurant'))) return false;
         if (item.key === 'product-modifiers' && (settings?.restaurantModuleEnabled !== true || !hasFeature('restaurant'))) return false;
         // kds and signage are accessed via /displays portal - hide them as direct sidebar items
@@ -965,24 +1046,24 @@ export function AppShell({ children }: PropsWithChildren) {
         // displays portal: only visible when restaurant module is enabled and plan includes restaurant
         if (item.key === 'displays' && (settings?.restaurantModuleEnabled !== true || !hasFeature('restaurant'))) return false;
         // POS & Retail Sales gating:
-        if ((item.key === 'pos' || item.key === 'cash-drawer') && (settings?.posModuleEnabled === false || isWholesaleVanVertical)) return false;
-        if ((item.key === 'sales' || item.key === 'returns') && settings?.posModuleEnabled === false && !isWholesaleVanVertical && !isEnterpriseCommerceActive) return false;
-        if (item.key === 'customers' && settings?.posModuleEnabled === false && !isEnterpriseCommerceActive && settings?.installmentsModuleEnabled !== true && !isContractingVertical && !isMaritimeVertical && !isManufacturingVertical && !isWholesaleVanVertical) return false;
+        if ((item.key === 'pos' || item.key === 'cash-drawer') && (settings?.posModuleEnabled === false || isWholesaleVanVertical || isWarehousingVertical)) return false;
+        if ((item.key === 'sales' || item.key === 'returns') && settings?.posModuleEnabled === false && !isWholesaleVanVertical && !isWarehousingVertical && !isEnterpriseCommerceActive) return false;
+        if (item.key === 'customers' && settings?.posModuleEnabled === false && !isEnterpriseCommerceActive && settings?.installmentsModuleEnabled !== true && !isContractingVertical && !isMaritimeVertical && !isManufacturingVertical && !isWholesaleVanVertical && !isWarehousingVertical) return false;
 
         // Enterprise Sales gating (CRM, Sales Orders, Price Lists, Quotations):
         if (item.key === 'crm' && !isMaritimeVertical && !isContractingVertical && !isImportVertical && !isManufacturingVertical && !isServicesVertical && (!isEnterpriseCommerceActive || settings?.crmModuleEnabled !== true)) return false;
-        if ((item.key === 'sales-orders' || item.key === 'price-lists' || item.key === 'quotations') && !isMaritimeVertical && !isContractingVertical && !isManufacturingVertical && !isEnterpriseCommerceActive) return false;
+        if ((item.key === 'sales-orders' || item.key === 'price-lists' || item.key === 'quotations') && !isMaritimeVertical && !isContractingVertical && !isManufacturingVertical && !isWarehousingVertical && !isEnterpriseCommerceActive) return false;
 
         // Purchases gating:
-        if ((item.key === 'purchases-orders' || item.key === 'purchases-rfqs' || item.key === 'purchases-reorder') && !isContractingVertical && !isMaritimeVertical && !isManufacturingVertical && (!isEnterpriseCommerceActive || settings?.purchasesModuleEnabled === false || (!hasFeature('purchases') && settings?.purchasesModuleEnabled !== true))) return false;
-        if ((item.key === 'purchases-new' || item.key === 'purchases' || item.key === 'purchase-returns' || item.key === 'suppliers' || item.key === 'reports-purchases') && !isContractingVertical && !isMaritimeVertical && !isManufacturingVertical && (settings?.purchasesModuleEnabled === false || (settings?.purchasesModuleEnabled !== true && !hasFeature('purchases')))) return false;
+        if ((item.key === 'purchases-orders' || item.key === 'purchases-rfqs' || item.key === 'purchases-reorder') && !isContractingVertical && !isMaritimeVertical && !isManufacturingVertical && !isWarehousingVertical && (!isEnterpriseCommerceActive || settings?.purchasesModuleEnabled === false || (!hasFeature('purchases') && settings?.purchasesModuleEnabled !== true))) return false;
+        if ((item.key === 'purchases-new' || item.key === 'purchases' || item.key === 'purchase-returns' || item.key === 'suppliers' || item.key === 'reports-purchases') && !isContractingVertical && !isMaritimeVertical && !isManufacturingVertical && !isWarehousingVertical && (settings?.purchasesModuleEnabled === false || (settings?.purchasesModuleEnabled !== true && !hasFeature('purchases')))) return false;
 
         // Inventory warehouse-specific gating:
-        if ((item.key === 'inventory-tree' || item.key === 'inventory-bins' || item.key === 'inventory-issue-orders' || item.key === 'inventory-issue-order-new') && !isContractingVertical && !isManufacturingVertical && !isEnterpriseCommerceActive) return false;
-        if ((item.key === 'inventory' || item.key === 'inventory-warehouses' || item.key === 'reports-inventory') && !isContractingVertical && !isManufacturingVertical && (settings?.inventoryModuleEnabled === false || (!hasFeature('inventory') && settings?.inventoryModuleEnabled !== true))) return false;
+        if ((item.key === 'inventory-tree' || item.key === 'inventory-bins' || item.key === 'inventory-issue-orders' || item.key === 'inventory-issue-order-new') && !isContractingVertical && !isManufacturingVertical && !isWarehousingVertical && !isEnterpriseCommerceActive) return false;
+        if ((item.key === 'inventory' || item.key === 'inventory-warehouses' || item.key === 'reports-inventory') && !isContractingVertical && !isManufacturingVertical && !isWarehousingVertical && (settings?.inventoryModuleEnabled === false || (!hasFeature('inventory') && settings?.inventoryModuleEnabled !== true))) return false;
 
         // Products catalog gating (products, product-new, product-categories, pricing-center):
-        if ((item.key === 'products' || item.key === 'product-new' || item.key === 'product-categories' || item.key === 'pricing-center') && !isContractingVertical && !isManufacturingVertical && !isRetailOrMarketVertical && !isRestaurantVertical && !isPharmacyVertical && !isElectronicsVertical && !hasFeature('catalog') && !hasFeature('products') && !hasFeature('inventory')) return false;
+        if ((item.key === 'products' || item.key === 'product-new' || item.key === 'product-categories' || item.key === 'pricing-center') && !isContractingVertical && !isManufacturingVertical && !isRetailOrMarketVertical && !isRestaurantVertical && !isPharmacyVertical && !isElectronicsVertical && !isWarehousingVertical && !hasFeature('catalog') && !hasFeature('products') && !hasFeature('inventory')) return false;
 
         // Reports & Dashboard gating:
         if ((item.key?.startsWith('reports-') || item.key === 'audit' || item.key === 'dashboard' || item.key === 'owner-companion' || item.key === 'owner-mobile') && !hasFeature('reports')) return false;
@@ -1008,7 +1089,7 @@ export function AppShell({ children }: PropsWithChildren) {
         const bIndex = preferredOrder.indexOf(b.key);
         return (aIndex === -1 ? 999 : aIndex) - (bIndex === -1 ? 999 : bIndex);
       });
-  }, [user, tenant?.features, tenant?.activityType, tenant?.pillar, t, isEtaActive, settings?.activityType, settings?.businessIndustry, settings?.posModuleEnabled, settings?.importModuleEnabled, settings?.enableMobileStoreFeatures, settings?.maintenanceProfile, settings?.enablePharmacyModule, settings?.manufacturingModuleEnabled, settings?.servicesModuleEnabled, settings?.storefrontModuleEnabled, settings?.installmentsModuleEnabled, settings?.fixedAssetsModuleEnabled, settings?.taxDeclarationModuleEnabled, settings?.deliveryFleetModuleEnabled, settings?.purchasesModuleEnabled, settings?.inventoryModuleEnabled, settings?.hrModuleEnabled, settings?.enableEnterpriseFeatures, settings?.restaurantModuleEnabled, settings?.maritimeFreightModuleEnabled, settings?.contractingModuleEnabled]);
+  }, [user, tenant?.features, tenant?.activityType, tenant?.pillar, t, isEtaActive, settings?.activityType, settings?.businessIndustry, settings?.posModuleEnabled, settings?.importModuleEnabled, settings?.enableMobileStoreFeatures, settings?.maintenanceProfile, settings?.enablePharmacyModule, settings?.manufacturingModuleEnabled, settings?.servicesModuleEnabled, settings?.storefrontModuleEnabled, settings?.installmentsModuleEnabled, settings?.fixedAssetsModuleEnabled, settings?.taxDeclarationModuleEnabled, settings?.deliveryFleetModuleEnabled, settings?.deliveryRepsModuleEnabled, settings?.vanSalesModuleEnabled, settings?.purchasesModuleEnabled, settings?.inventoryModuleEnabled, settings?.hrModuleEnabled, settings?.enableEnterpriseFeatures, settings?.restaurantModuleEnabled, settings?.maritimeFreightModuleEnabled, settings?.contractingModuleEnabled]);
 
   const navigationMap = useMemo(() => new Map(visibleNavigationItems.map((item) => [item.key, item])), [visibleNavigationItems]);
   const primaryNavigationKeys = useMemo(() => {
@@ -1019,6 +1100,7 @@ export function AppShell({ children }: PropsWithChildren) {
     const dashKeys = hasReports ? ['dashboard'] : [];
 
     const currentVertical = resolveCurrentVertical(tenant, settings);
+    const isWholesaleVanVertical = currentVertical === 'wholesale_van';
 
     if (currentVertical === 'contracting') {
       return [...dashKeys, 'contracting-projects', 'contracting-boq'];
@@ -1033,16 +1115,20 @@ export function AppShell({ children }: PropsWithChildren) {
     }
 
     if (currentVertical === 'import_export') {
-      return [...dashKeys, 'import-shipments', 'purchases', 'inventory-warehouses'];
+      return [...dashKeys, 'import-shipments'];
     }
 
-    if (currentVertical === 'wholesale_van') {
-      return [...dashKeys, 'van-sales-admin', 'delivery-reps', 'customers', 'sales'];
+    if (isWholesaleVanVertical) {
+      return [...dashKeys, 'van-sales-admin'];
+    }
+
+    if (currentVertical === 'warehousing') {
+      return [...dashKeys, 'inventory', 'inventory-warehouses', 'purchases'];
     }
 
     if (currentVertical === 'services') {
-      const hasPos = settings?.posModuleEnabled !== false || Boolean(tenant?.features?.includes('pos'));
-      return [...dashKeys, 'services', ...(hasPos ? ['pos', 'cash-drawer'] : []), 'sales', 'customers'];
+      const hasPos = Boolean(tenant?.features?.includes('pos'));
+      return [...dashKeys, 'services', ...(hasPos ? ['pos', 'cash-drawer'] : [])];
     }
 
     if (settings?.posModuleEnabled === false) {
@@ -1053,7 +1139,7 @@ export function AppShell({ children }: PropsWithChildren) {
       ];
     }
     return [...dashKeys, 'pos', ...(storefrontActive ? ['online-orders'] : []), 'cash-drawer'];
-  }, [settings?.businessIndustry, settings?.activityType, settings?.contractingModuleEnabled, settings?.maritimeFreightModuleEnabled, settings?.importModuleEnabled, settings?.posModuleEnabled, settings?.purchasesModuleEnabled, settings?.storefrontModuleEnabled, tenant?.features, tenant?.activityType, tenant?.pillar, tenant?.businessName, user]);
+  }, [settings?.businessIndustry, settings?.activityType, settings?.contractingModuleEnabled, settings?.maritimeFreightModuleEnabled, settings?.importModuleEnabled, settings?.posModuleEnabled, settings?.purchasesModuleEnabled, settings?.storefrontModuleEnabled, settings?.deliveryRepsModuleEnabled, settings?.vanSalesModuleEnabled, settings?.deliveryFleetModuleEnabled, tenant?.features, tenant?.activityType, tenant?.pillar, tenant?.businessName, user]);
 
   const sidebarGroups = useMemo<SidebarGroupDefinition[]>(() => {
     const isPlatformAdminUser = isPlatformAdmin(user);
@@ -1065,6 +1151,7 @@ export function AppShell({ children }: PropsWithChildren) {
     const isDedicatedManufacturingOnly = currentVertical === 'manufacturing';
     const isDedicatedImportOnly = currentVertical === 'import_export';
     const isDedicatedServicesOnly = currentVertical === 'services';
+    const isDedicatedWarehousingOnly = currentVertical === 'warehousing';
     const isWholesaleVanVertical = currentVertical === 'wholesale_van';
     const isRestaurantVertical = currentVertical === 'restaurant';
     const isPharmacyVertical = currentVertical === 'pharmacy';
@@ -1384,12 +1471,16 @@ export function AppShell({ children }: PropsWithChildren) {
 
     // 5. Dedicated Wholesale Van & Fleet Distribution Workspace
     if (isWholesaleVanVertical) {
+      const isDeliveryRepsEnabled = Boolean(
+        settings?.deliveryRepsModuleEnabled === true ||
+        (settings?.deliveryFleetModuleEnabled === true && !isWholesaleVanVertical)
+      );
       return [
         {
           key: 'sales-group',
           label: 'المبيعات وتوزيع الفان',
-          itemKeys: ['van-sales-admin', 'delivery-reps', 'customers', 'sales', 'quotations'],
-          iconKey: 'delivery-reps',
+          itemKeys: ['sales', 'returns', ...(isDeliveryRepsEnabled ? ['delivery-reps'] : []), 'customers', 'quotations'],
+          iconKey: 'van-sales-admin',
         },
         {
           key: 'purchases-group',
@@ -1436,7 +1527,88 @@ export function AppShell({ children }: PropsWithChildren) {
       ];
     }
 
-    // 6. Multi-Modular & Enterprise Standard Workspace (Supports all modules simultaneously)
+    // 6. Dedicated Warehousing & Multi-Branch Inventory Workspace
+    if (isDedicatedWarehousingOnly) {
+      return [
+        {
+          key: 'warehousing-inventory-group',
+          label: 'المستودعات والتحويلات',
+          itemKeys: [
+            'inventory',
+            'inventory-warehouses',
+            'inventory-issue-orders',
+            'inventory-tree',
+            'inventory-bins',
+          ],
+          iconKey: 'inventory',
+        },
+        {
+          key: 'products-group',
+          label: 'الأصناف والباركود',
+          itemKeys: ['products', 'product-categories'],
+          iconKey: 'products',
+        },
+        {
+          key: 'purchases-group',
+          label: 'المشتريات والتوريد',
+          itemKeys: ['purchases', 'purchases-orders', 'purchases-reorder', 'purchase-returns', 'suppliers'],
+          iconKey: 'purchases',
+        },
+        {
+          key: 'sales-group',
+          label: 'المبيعات وصرف البضاعة',
+          itemKeys: ['sales-orders', 'sales', 'quotations', 'customers', 'returns'],
+          iconKey: 'sales',
+        },
+        {
+          key: 'accounting-group',
+          label: hasAccounting ? 'المالية والمحاسبة' : 'الخزينة والمصروفات',
+          itemKeys: [
+            'accounting-journal-entries',
+            'accounting-accounts',
+            'accounting-cost-centers',
+            'treasury',
+            'expenses',
+            'accounting-balance-sheet',
+          ],
+          iconKey: 'treasury',
+        },
+        {
+          key: 'hr-group',
+          label: 'الموارد البشرية وفريق العمل',
+          itemKeys: ['hr'],
+          iconKey: 'users',
+        },
+        {
+          key: 'reports-group',
+          label: 'تقارير المخزون والأداء',
+          itemKeys: [
+            'reports-overview',
+            'reports-inventory',
+            'reports-purchases',
+            'reports-sales',
+            'reports-treasury',
+            'reports-balances',
+            'reports-employees',
+          ],
+          iconKey: 'reports',
+        },
+        ...(isPlatformAdminUser ? [{
+          key: 'saas-group',
+          label: 'إدارة المنصة والساس',
+          itemKeys: ['saas-admin-tenants', 'saas-admin-plans'],
+          iconKey: 'saas-admin-tenants',
+        }] : []),
+        {
+          key: 'admin-group',
+          label: t('sidebar.admin-group', 'الإدارة والنظام'),
+          itemKeys: ['audit', 'settings'],
+          iconKey: 'admin',
+        },
+      ];
+    }
+
+    // 7. Multi-Modular & Enterprise Standard Workspace (Supports all modules simultaneously)
     return [
       ...(!isDedicatedMaritimeOnly && settings?.contractingModuleEnabled && hasContracting ? [{
         key: 'contracting-group',
@@ -1467,7 +1639,7 @@ export function AppShell({ children }: PropsWithChildren) {
         key: 'sales-group',
         label: isWholesaleVanVertical ? 'المبيعات وتوزيع الفان' : t('sidebar.sales-group', 'المبيعات'),
         itemKeys: isWholesaleVanVertical
-          ? ['van-sales-admin', 'delivery-reps', 'customers', 'sales', 'quotations']
+          ? ['sales', 'returns', ...(settings?.deliveryRepsModuleEnabled ? ['delivery-reps'] : []), 'customers', 'quotations']
           : isEnterpriseCommerceActive
           ? ['sales', 'quotations', 'returns', ...(settings?.installmentsModuleEnabled ? ['installments'] : []), 'customers', 'delivery-reps', 'van-sales-admin', 'tax-dispatcher']
           : ['sales', 'returns', ...(settings?.installmentsModuleEnabled ? ['installments'] : []), 'customers', 'delivery-reps', 'van-sales-admin', 'tax-dispatcher'],
@@ -1536,14 +1708,36 @@ export function AppShell({ children }: PropsWithChildren) {
   }, [t, settings?.businessIndustry, settings?.activityType, settings?.maintenanceProfile, settings?.restaurantModuleEnabled, settings?.enableMobileStoreFeatures, settings?.enablePharmacyModule, settings?.importModuleEnabled, settings?.manufacturingModuleEnabled, settings?.enableEnterpriseFeatures, settings?.maritimeFreightModuleEnabled, settings?.contractingModuleEnabled, settings?.posModuleEnabled, settings?.purchasesModuleEnabled, settings?.inventoryModuleEnabled, settings?.installmentsModuleEnabled, tenant?.features, tenant?.activityType, tenant?.pillar, user]);
 
   const visiblePrimaryNavigationItems = useMemo(() => primaryNavigationKeys.map((key) => navigationMap.get(key)).filter((item): item is NonNullable<typeof item> => Boolean(item)), [navigationMap, primaryNavigationKeys]);
-  const activeSidebarGroupKey = useMemo(() => sidebarGroups.find((group) => group.itemKeys.some((itemKey) => {
+
+  // Constitutional Zero-Duplication Invariant (دستور منع التكرار الصارم في القوائم الجانبية):
+  // 1. Any item already displayed in primary navigation (top shortcuts) is strictly excluded from all collapsible sidebar groups.
+  // 2. Each item key can appear at most once across the entire sidebar (inter-group deduplication).
+  // 3. Groups with 0 items remaining after deduplication are cleanly omitted.
+  const deduplicatedSidebarGroups = useMemo(() => {
+    const claimedKeys = new Set<string>(visiblePrimaryNavigationItems.map((item) => item.key));
+    return sidebarGroups
+      .map((group) => {
+        const uniqueItemKeys = group.itemKeys.filter((key) => {
+          if (claimedKeys.has(key)) return false;
+          claimedKeys.add(key);
+          return true;
+        });
+        return {
+          ...group,
+          itemKeys: uniqueItemKeys,
+        };
+      })
+      .filter((group) => group.itemKeys.length > 0);
+  }, [sidebarGroups, visiblePrimaryNavigationItems]);
+
+  const activeSidebarGroupKey = useMemo(() => deduplicatedSidebarGroups.find((group) => group.itemKeys.some((itemKey) => {
     const navItem = navigationMap.get(itemKey);
     if (!navItem) return false;
     if (navItem.activePaths?.includes(location.pathname)) return true;
     const navBasePath = navItem.to.split('?')[0];
     if (navItem.end) return location.pathname === navBasePath;
     return location.pathname === navBasePath || location.pathname.startsWith(`${navBasePath}/`);
-  }))?.key ?? null, [location.pathname, navigationMap, sidebarGroups]);
+  }))?.key ?? null, [deduplicatedSidebarGroups, location.pathname, navigationMap]);
 
   const normalizedSidebarQuery = useMemo(() => normalizeArabicSearchKey(sidebarSearchQuery), [sidebarSearchQuery]);
   const isSearchingSidebar = normalizedSidebarQuery.length > 0;
@@ -1556,7 +1750,7 @@ export function AppShell({ children }: PropsWithChildren) {
   }, [isSearchingSidebar, normalizedSidebarQuery, visiblePrimaryNavigationItems]);
 
   const filteredSidebarGroups = useMemo(() => {
-    return sidebarGroups.map((group) => {
+    return deduplicatedSidebarGroups.map((group) => {
       const groupItems = group.itemKeys.map((key) => navigationMap.get(key)).filter((item): item is NonNullable<typeof item> => Boolean(item));
       if (!groupItems.length) return null;
 
@@ -1583,7 +1777,7 @@ export function AppShell({ children }: PropsWithChildren) {
         isOpen: true,
       };
     }).filter((g): g is NonNullable<typeof g> => Boolean(g));
-  }, [activeSidebarGroupKey, isSearchingSidebar, effectiveSidebarCollapsed, navigationMap, normalizedSidebarQuery, sidebarGroups]);
+  }, [activeSidebarGroupKey, deduplicatedSidebarGroups, effectiveSidebarCollapsed, isSearchingSidebar, navigationMap, normalizedSidebarQuery]);
 
   const totalMatchingItemsCount = filteredPrimaryNavigationItems.length + filteredSidebarGroups.reduce((acc, g) => acc + g.groupItems.length, 0);
 
