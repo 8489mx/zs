@@ -74,6 +74,8 @@ backend/runtime/
 *.aab
 android-app/bin/
 android-app/*.keystore
+android-app-lite/bin/
+android-app-lite/*.keystore
 *.idsig
 screen*.png
 tools/z-systems-bridge/dist/

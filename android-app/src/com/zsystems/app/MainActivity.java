@@ -11,6 +11,8 @@ import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.webkit.WebResourceRequest;
+import android.webkit.ConsoleMessage;
 import android.widget.ProgressBar;
 import android.widget.FrameLayout;
 import android.graphics.Color;
@@ -26,6 +28,10 @@ public class MainActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        if (Build.VERSION.SDK_INT >= 19) {
+            WebView.setWebContentsDebuggingEnabled(true);
+        }
 
         // Start Persistent ECR Server Service on Ports 8080 & 10009
         try {
@@ -131,16 +137,23 @@ public class MainActivity extends Activity {
                     public void run() {
                         try {
                             InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
-                            if (imm != null) {
-                                View currentFocus = getCurrentFocus();
-                                if (currentFocus != null) {
-                                    imm.hideSoftInputFromWindow(currentFocus.getWindowToken(), 0);
-                                    currentFocus.clearFocus();
-                                }
-                                if (webView != null) {
-                                    imm.hideSoftInputFromWindow(webView.getWindowToken(), 0);
-                                    webView.clearFocus();
-                                }
+                            if (imm != null && webView != null) {
+                                imm.hideSoftInputFromWindow(webView.getWindowToken(), 0);
+                            }
+                        } catch (Exception ignored) {}
+                    }
+                });
+            }
+
+            @android.webkit.JavascriptInterface
+            public void showKeyboard() {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        try {
+                            InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+                            if (imm != null && webView != null) {
+                                imm.showSoftInput(webView, InputMethodManager.SHOW_IMPLICIT);
                             }
                         } catch (Exception ignored) {}
                     }
@@ -148,31 +161,28 @@ public class MainActivity extends Activity {
             }
         }, "SunmiPrinter");
 
-        webView.setOnTouchListener(new View.OnTouchListener() {
-            private float startY = 0;
-            @Override
-            public boolean onTouch(View v, MotionEvent event) {
-                if (event.getAction() == MotionEvent.ACTION_DOWN) {
-                    startY = event.getY();
-                } else if (event.getAction() == MotionEvent.ACTION_MOVE) {
-                    if (Math.abs(event.getY() - startY) > 24) {
-                        try {
-                            InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
-                            if (imm != null) {
-                                imm.hideSoftInputFromWindow(v.getWindowToken(), 0);
-                            }
-                        } catch (Exception ignored) {}
-                    }
-                }
-                return false;
-            }
-        });
-
         webView.setWebViewClient(new WebViewClient() {
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, String url) {
-                if (url != null && (url.startsWith("about:blank") || url.startsWith("javascript:"))) {
+                if (url == null || url.startsWith("about:blank") || url.startsWith("javascript:")) {
                     return true;
+                }
+                if (url.startsWith("https://app.zsystemai.com") || url.startsWith(APP_URL)) {
+                    return false;
+                }
+                view.loadUrl(url);
+                return true;
+            }
+
+            @Override
+            public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
+                if (request == null || request.getUrl() == null) return false;
+                String url = request.getUrl().toString();
+                if (url.startsWith("about:blank") || url.startsWith("javascript:")) {
+                    return true;
+                }
+                if (url.startsWith("https://app.zsystemai.com") || url.startsWith(APP_URL)) {
+                    return false;
                 }
                 view.loadUrl(url);
                 return true;
@@ -188,16 +198,18 @@ public class MainActivity extends Activity {
         webView.setWebChromeClient(new WebChromeClient() {
             @Override
             public void onProgressChanged(WebView view, int newProgress) {
-                if (newProgress > 50) {
-                    injectSunmiHook(view);
-                }
                 if (newProgress < 100) {
                     progressBar.setVisibility(View.VISIBLE);
                     progressBar.setProgress(newProgress);
                 } else {
                     progressBar.setVisibility(View.GONE);
-                    injectSunmiHook(view);
                 }
+            }
+
+            @Override
+            public boolean onConsoleMessage(ConsoleMessage consoleMessage) {
+                android.util.Log.d("WebConsole", consoleMessage.message() + " -- Line " + consoleMessage.lineNumber());
+                return true;
             }
 
             @Override
@@ -208,6 +220,7 @@ public class MainActivity extends Activity {
 
         webView.loadUrl(APP_URL);
         checkTestPrint(getIntent());
+        checkEvalJs(getIntent());
     }
 
     private void injectSunmiHook(WebView view) {
@@ -229,38 +242,78 @@ public class MainActivity extends Activity {
             "    close: function() {}" +
             "  };" +
             "};" +
-            "var origFetch = window.fetch;" +
-            "window.fetch = function(url, opts) {" +
-            "  var u = (typeof url === 'string') ? url : (url && url.url) ? url.url : '';" +
-            "  if (u && (u.indexOf('9100') !== -1 || u.indexOf('8080/print') !== -1)) {" +
-            "    if (opts && opts.body && window.SunmiPrinter) {" +
-            "      try {" +
-            "        var b = JSON.parse(opts.body);" +
-            "        if (b && b.printData) {" +
-            "          window.SunmiPrinter.printReceipt(b.printData);" +
-            "          return Promise.resolve(new Response(JSON.stringify({success:true}), {status:200, headers:{'Content-Type':'application/json'}}));" +
+            "var origFetch = window.fetch ? window.fetch.bind(window) : null;" +
+            "if (origFetch) {" +
+            "  window.fetch = function(url, opts) {" +
+            "    try {" +
+            "      var u = (typeof url === 'string') ? url : (url && url.url) ? url.url : '';" +
+            "      if (u && (u.indexOf('9100') !== -1 || u.indexOf('8080/print') !== -1)) {" +
+            "        if (opts && opts.body && window.SunmiPrinter) {" +
+            "          try {" +
+            "            var b = JSON.parse(opts.body);" +
+            "            if (b && b.printData) {" +
+            "              window.SunmiPrinter.printReceipt(b.printData);" +
+            "              return Promise.resolve(new Response(JSON.stringify({success:true}), {status:200, headers:{'Content-Type':'application/json'}}));" +
+            "            }" +
+            "          } catch(e) {}" +
             "        }" +
-            "      } catch(e) {}" +
-            "    }" +
-            "    return Promise.resolve(new Response(JSON.stringify({success:true}), {status:200, headers:{'Content-Type':'application/json'}}));" +
-            "  }" +
-            "  return origFetch.apply(this, arguments);" +
-            "};" +
-            "document.addEventListener('focusout', function(e) {" +
-            "  if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) {" +
-            "    setTimeout(function() {" +
-            "      var active = document.activeElement;" +
-            "      if (!active || (active.tagName !== 'INPUT' && active.tagName !== 'TEXTAREA')) {" +
-            "        if (window.SunmiPrinter && window.SunmiPrinter.hideKeyboard) window.SunmiPrinter.hideKeyboard();" +
+            "        return Promise.resolve(new Response(JSON.stringify({success:true}), {status:200, headers:{'Content-Type':'application/json'}}));" +
             "      }" +
-            "    }, 100);" +
+            "    } catch(e) {}" +
+            "    return origFetch.apply(window, arguments);" +
+            "  };" +
+            "}" +
+            "document.addEventListener('focusin', function(e) {" +
+            "  var el = e.target;" +
+            "  if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA')) {" +
+            "    if (!el.dataset.kbUnlocked) {" +
+            "      el.setAttribute('inputmode', 'none');" +
+            "    }" +
+            "  }" +
+            "}, true);" +
+            "document.addEventListener('dblclick', function(e) {" +
+            "  var el = e.target;" +
+            "  if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA')) {" +
+            "    el.dataset.kbUnlocked = 'true';" +
+            "    el.setAttribute('inputmode', 'text');" +
+            "    el.focus();" +
+            "    if (window.SunmiPrinter && window.SunmiPrinter.showKeyboard) window.SunmiPrinter.showKeyboard();" +
+            "  }" +
+            "}, true);" +
+            "var __lastTap = 0, __lastEl = null;" +
+            "document.addEventListener('touchend', function(e) {" +
+            "  var el = e.target;" +
+            "  if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA')) {" +
+            "    var now = Date.now();" +
+            "    if (__lastEl === el && (now - __lastTap) < 350 && (now - __lastTap) > 50) {" +
+            "      el.dataset.kbUnlocked = 'true';" +
+            "      el.setAttribute('inputmode', 'text');" +
+            "      el.focus();" +
+            "      if (window.SunmiPrinter && window.SunmiPrinter.showKeyboard) window.SunmiPrinter.showKeyboard();" +
+            "      __lastTap = 0; __lastEl = null;" +
+            "      return;" +
+            "    }" +
+            "    __lastTap = now; __lastEl = el;" +
+            "  } else {" +
+            "    __lastTap = 0; __lastEl = null;" +
+            "  }" +
+            "}, true);" +
+            "document.addEventListener('focusout', function(e) {" +
+            "  var el = e.target;" +
+            "  if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA')) {" +
+            "    delete el.dataset.kbUnlocked;" +
+            "    el.setAttribute('inputmode', 'none');" +
+            "    if (window.SunmiPrinter && window.SunmiPrinter.hideKeyboard) window.SunmiPrinter.hideKeyboard();" +
             "  }" +
             "}, true);" +
             "document.addEventListener('click', function(e) {" +
-            "  var tag = e.target ? e.target.tagName : '';" +
-            "  if (tag !== 'INPUT' && tag !== 'TEXTAREA' && !e.target.isContentEditable) {" +
+            "  var el = e.target;" +
+            "  var isInput = el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA');" +
+            "  if (!isInput) {" +
             "    var active = document.activeElement;" +
             "    if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')) {" +
+            "      delete active.dataset.kbUnlocked;" +
+            "      active.setAttribute('inputmode', 'none');" +
             "      active.blur();" +
             "      if (window.SunmiPrinter && window.SunmiPrinter.hideKeyboard) window.SunmiPrinter.hideKeyboard();" +
             "    }" +
@@ -268,12 +321,13 @@ public class MainActivity extends Activity {
             "}, true);" +
             "document.addEventListener('keydown', function(e) {" +
             "  if (e.key === 'Enter') {" +
-            "    setTimeout(function() {" +
-            "      var active = document.activeElement;" +
-            "      if (!active || (active.tagName !== 'INPUT' && active.tagName !== 'TEXTAREA')) {" +
-            "        if (window.SunmiPrinter && window.SunmiPrinter.hideKeyboard) window.SunmiPrinter.hideKeyboard();" +
-            "      }" +
-            "    }, 80);" +
+            "    var active = document.activeElement;" +
+            "    if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')) {" +
+            "      delete active.dataset.kbUnlocked;" +
+            "      active.setAttribute('inputmode', 'none');" +
+            "      active.blur();" +
+            "      if (window.SunmiPrinter && window.SunmiPrinter.hideKeyboard) window.SunmiPrinter.hideKeyboard();" +
+            "    }" +
             "  }" +
             "}, true);" +
             "})();";
@@ -289,12 +343,44 @@ public class MainActivity extends Activity {
         super.onNewIntent(intent);
         setIntent(intent);
         checkTestPrint(intent);
+        checkEvalJs(intent);
     }
 
     private void checkTestPrint(android.content.Intent intent) {
         if (intent != null && intent.hasExtra("test_print")) {
             String test = intent.getStringExtra("test_print");
             SunmiPrinterHelper.printRawText(test != null ? test : "اختبار طباعة زد سيستمز");
+        }
+    }
+
+    private void checkEvalJs(android.content.Intent intent) {
+        if (intent == null) return;
+        if (intent.hasExtra("eval_b64")) {
+            try {
+                String b64 = intent.getStringExtra("eval_b64");
+                if (b64 != null) {
+                    byte[] data = android.util.Base64.decode(b64, android.util.Base64.DEFAULT);
+                    String script = new String(data, "UTF-8");
+                    if (webView != null) {
+                        if (Build.VERSION.SDK_INT >= 19) {
+                            webView.evaluateJavascript(script, null);
+                        } else {
+                            webView.loadUrl("javascript:" + script);
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                android.util.Log.e("WebConsole", "eval_b64 error", e);
+            }
+        } else if (intent.hasExtra("eval_js")) {
+            String script = intent.getStringExtra("eval_js");
+            if (webView != null && script != null) {
+                if (Build.VERSION.SDK_INT >= 19) {
+                    webView.evaluateJavascript(script, null);
+                } else {
+                    webView.loadUrl("javascript:" + script);
+                }
+            }
         }
     }
 
