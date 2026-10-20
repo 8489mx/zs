@@ -185,4 +185,61 @@ describe('Vertical Scope & Enterprise Isolation Constitution', () => {
     expect(vertical).toBe('retail_general');
     expect(isRouteAllowedInVertical(vertical, '/pos')).toBe(true);
   });
+
+  it('resolves warehousing and strictly isolates inventory/transfers while hiding POS and retail routes', () => {
+    const tenant = {
+      id: 'logistics-hub',
+      slug: 'logistics-hub',
+      businessName: 'مستودعات الإمداد السريع للتخزين والتحويلات',
+      activityType: 'warehousing',
+      features: ['inventory', 'purchases', 'sales', 'accounting'],
+    };
+    const settings = {
+      businessIndustry: 'warehousing',
+      activityType: 'warehousing',
+      posModuleEnabled: false,
+      inventoryModuleEnabled: true,
+      purchasesModuleEnabled: true,
+    };
+    const vertical = resolveCurrentVertical(tenant, settings);
+    expect(vertical).toBe('warehousing');
+    expect(isRouteAllowedInVertical(vertical, '/pos')).toBe(false);
+    expect(isRouteAllowedInVertical(vertical, 'pos')).toBe(false);
+    expect(isRouteAllowedInVertical(vertical, '/cash-drawer')).toBe(false);
+    expect(isRouteAllowedInVertical(vertical, '/online-orders')).toBe(false);
+    expect(isRouteAllowedInVertical(vertical, '/kds')).toBe(false);
+    expect(isRouteAllowedInVertical(vertical, '/displays')).toBe(false);
+    expect(isRouteAllowedInVertical(vertical, '/inventory')).toBe(true);
+    expect(isRouteAllowedInVertical(vertical, '/inventory-warehouses')).toBe(true);
+    expect(isRouteAllowedInVertical(vertical, '/inventory-issue-orders')).toBe(true);
+    expect(isRouteAllowedInVertical(vertical, '/products')).toBe(true);
+    expect(isRouteAllowedInVertical(vertical, '/purchases')).toBe(true);
+    expect(isRouteAllowedInVertical(vertical, '/sales')).toBe(true);
+    expect(isRouteAllowedInVertical(vertical, '/customers')).toBe(true);
+    expect(isRouteAllowedInVertical(vertical, '/suppliers')).toBe(true);
+    expect(isRouteAllowedInVertical(vertical, '/accounting/journal-entries')).toBe(true);
+  });
+
+  it('resolves services and strictly hides physical inventory, warehouses, and POS', () => {
+    const tenant = {
+      id: 'consulting-office',
+      slug: 'consulting-office',
+      businessName: 'مكتب الخبراء للاستشارات',
+      activityType: 'services',
+      features: ['sales', 'customers', 'treasury', 'accounting'],
+    };
+    const settings = {
+      businessIndustry: 'services',
+      activityType: 'services',
+      posModuleEnabled: false,
+    };
+    const vertical = resolveCurrentVertical(tenant, settings);
+    expect(vertical).toBe('services');
+    expect(isRouteAllowedInVertical(vertical, '/pos')).toBe(false);
+    expect(isRouteAllowedInVertical(vertical, '/inventory')).toBe(false);
+    expect(isRouteAllowedInVertical(vertical, '/products')).toBe(false);
+    expect(isRouteAllowedInVertical(vertical, '/sales')).toBe(true);
+    expect(isRouteAllowedInVertical(vertical, '/customers')).toBe(true);
+  });
 });
+

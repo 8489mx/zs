@@ -2,6 +2,7 @@ export type BusinessVertical =
   | 'maritime'
   | 'contracting'
   | 'wholesale_van'
+  | 'warehousing'
   | 'manufacturing'
   | 'restaurant'
   | 'pharmacy'
@@ -130,6 +131,19 @@ export function resolveCurrentVertical(tenant?: any, settings?: any): BusinessVe
     }
 
     if (
+      explicit === 'warehousing' ||
+      explicit === 'warehouse' ||
+      explicit === 'inventory' ||
+      explicit === 'wms' ||
+      explicit.includes('مخازن') ||
+      explicit.includes('مستودع') ||
+      explicit.includes('تخزين') ||
+      explicit.includes('لوجستيات المستودعات')
+    ) {
+      return 'warehousing';
+    }
+
+    if (
       explicit === 'manufacturing' ||
       explicit === 'production' ||
       explicit.includes('تصنيع') ||
@@ -214,7 +228,7 @@ export function resolveCurrentVertical(tenant?: any, settings?: any): BusinessVe
       if (isFlagActive(settings?.enablePharmacyModule)) return 'pharmacy';
       if (isFlagActive(settings?.enableMobileStoreFeatures)) return 'maintenance';
       if (isFlagActive(settings?.importModuleEnabled)) return 'import_export';
-      if (isFlagActive(settings?.deliveryFleetModuleEnabled) && isFlagActive(settings?.enableEnterpriseFeatures) && settings?.posModuleEnabled === false) return 'wholesale_van';
+      if ((isFlagActive(settings?.vanSalesModuleEnabled) || isFlagActive(settings?.deliveryFleetModuleEnabled)) && isFlagActive(settings?.enableEnterpriseFeatures) && settings?.posModuleEnabled === false) return 'wholesale_van';
 
       return 'retail_general';
     }
@@ -229,7 +243,7 @@ export function resolveCurrentVertical(tenant?: any, settings?: any): BusinessVe
   if (isFlagActive(settings?.enableMobileStoreFeatures)) return 'maintenance';
   if (isFlagActive(settings?.servicesModuleEnabled) && settings?.posModuleEnabled === false && settings?.inventoryModuleEnabled === false) return 'services';
   if (isFlagActive(settings?.importModuleEnabled)) return 'import_export';
-  if (isFlagActive(settings?.deliveryFleetModuleEnabled) && isFlagActive(settings?.enableEnterpriseFeatures) && settings?.posModuleEnabled === false) return 'wholesale_van';
+  if ((isFlagActive(settings?.vanSalesModuleEnabled) || isFlagActive(settings?.deliveryFleetModuleEnabled)) && isFlagActive(settings?.enableEnterpriseFeatures) && settings?.posModuleEnabled === false) return 'wholesale_van';
 
   // 3. Store name / Business name heuristic fallback
   const nameFallback = String(
@@ -449,6 +463,42 @@ export function isRouteAllowedInVertical(vertical: BusinessVertical, target: str
       return true;
     }
 
+    case 'warehousing': {
+      const blockedKeys = [
+        'pos',
+        'cash-drawer',
+        'storefront',
+        'marketplaces',
+        'online-orders',
+        'kds',
+        'displays',
+        'signage',
+        'product-modifiers',
+        'trade-in',
+        'imei-history',
+        'maintenance',
+        'clothing',
+        'maritime',
+        'contracting',
+        'pharmacy',
+        'manufacturing',
+        'delivery-reps',
+        'van-sales-admin',
+        'van-sales',
+      ];
+
+      if (blockedKeys.some((b) => key === b || key.startsWith(`${b}/`))) {
+        return false;
+      }
+      if (key.startsWith('maritime-') || key.startsWith('maritime/')) return false;
+      if (key.startsWith('contracting-') || key.startsWith('contracting/')) return false;
+      if (key.startsWith('pharmacy-') || key.startsWith('pharmacy/')) return false;
+      if (key.startsWith('manufacturing-') || key.startsWith('manufacturing/')) return false;
+      if (key.startsWith('van-sales') || key.startsWith('driver-mobile')) return false;
+
+      return true;
+    }
+
     case 'manufacturing': {
       const blockedKeys = [
         'pos',
@@ -530,10 +580,19 @@ export function isRouteAllowedInVertical(vertical: BusinessVertical, target: str
         'pharmacy',
         'manufacturing',
         'pricing-center',
-        'inventory-tree',
+        'products',
+        'products/new',
+        'product-categories',
+        'products/categories',
+        'inventory',
+        'inventory-warehouses',
+        'inventory/warehouses',
         'inventory-bins',
+        'inventory-tree',
         'inventory-issue-orders',
         'inventory-issue-order-new',
+        'reports-inventory',
+        'purchases-reorder',
       ];
 
       if (blockedKeys.some((b) => key === b || key.startsWith(`${b}/`))) {
@@ -640,6 +699,29 @@ export function getMobileBottomNavConfig(vertical: BusinessVertical, settings?: 
           label: 'المناديب والتوزيع',
           iconType: 'van-sales',
           activeMatchPrefixes: ['/van-sales', '/delivery-reps', '/inventory/van-sales'],
+        },
+      };
+
+    case 'warehousing':
+      return {
+        home: {
+          to: '/',
+          label: 'الرئيسية',
+          iconType: 'home',
+          activeMatchPrefixes: ['/'],
+        },
+        secondary: {
+          to: '/inventory',
+          label: 'المستودعات والتحويلات',
+          iconType: 'inventory',
+          activeMatchPrefixes: ['/inventory'],
+        },
+        centerActionLabel: 'إجراء مخزني',
+        primary: {
+          to: '/purchases',
+          label: 'المشتريات والتوريد',
+          iconType: 'sales',
+          activeMatchPrefixes: ['/purchases'],
         },
       };
 
@@ -924,6 +1006,64 @@ export function getMobileQuickActionsConfig(vertical: BusinessVertical, settings
           bg: '#e0f2fe',
           color: '#0369a1',
           iconType: 'reps',
+        },
+      ];
+
+    case 'warehousing':
+      return [
+        {
+          id: 'warehouse-transfer',
+          title: 'تحويل بين المستودعات',
+          subtitle: 'نقل بضاعة بين مستودعين',
+          to: '/inventory?tab=transfers',
+          bg: '#eef2ff',
+          color: '#170e5e',
+          iconType: 'inventory',
+        },
+        {
+          id: 'warehouse-issue-order',
+          title: 'إذن صرف / إضافة',
+          subtitle: 'تسجيل حركة مخزنية جديدة',
+          to: '/inventory/issue-orders/new',
+          bg: '#dcfce7',
+          color: '#15803d',
+          iconType: 'invoice',
+        },
+        {
+          id: 'warehouse-item',
+          title: 'إضافة صنف جديد',
+          subtitle: 'تسجيل باركود وتوصيف صنف',
+          to: '/products/new',
+          bg: '#fef3c7',
+          color: '#b45309',
+          iconType: 'product',
+        },
+        {
+          id: 'warehouse-audit',
+          title: 'جلسة جرد مخزني',
+          subtitle: 'مطابقة الأرصدة والباركود',
+          to: '/inventory?tab=counts',
+          bg: '#f3e8ff',
+          color: '#7e22ce',
+          iconType: 'checker',
+        },
+        {
+          id: 'warehouse-purchase',
+          title: 'فاتورة توريد وشراء',
+          subtitle: 'استلام بضاعة من مورد',
+          to: '/purchases/new',
+          bg: '#ffedd5',
+          color: '#c2410c',
+          iconType: 'purchase',
+        },
+        {
+          id: 'warehouse-dispatches',
+          title: 'صرف بضاعة لعميل',
+          subtitle: 'فاتورة بيع وصرف مستودع',
+          to: '/sales?action=new',
+          bg: '#e0f2fe',
+          color: '#0369a1',
+          iconType: 'customer',
         },
       ];
 
