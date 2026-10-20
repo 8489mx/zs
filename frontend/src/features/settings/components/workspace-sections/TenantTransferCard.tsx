@@ -9,8 +9,8 @@ import { CustomSelect } from '@/shared/ui/custom-select';
 import { ApiError } from '@/lib/http';
 import { triggerDownload } from '@/lib/browser';
 import { settingsApi, type TenantImportReport, type TenantPickOption } from '@/features/settings/api/settings.api';
-import { useAuthStore } from '@/stores/auth-store';
-import { isPlatformAdmin } from '@/app/router/access';
+import { isPlatformAdmin } from '@/shared/system/runtime-environment';
+
 
 // Moves this business between the cloud and the desktop app (backend: src/core/tenant-transfer).
 // Export downloads a .zsbak of this business; import replaces ALL of this business's data with a

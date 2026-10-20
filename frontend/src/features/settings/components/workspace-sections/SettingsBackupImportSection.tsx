@@ -8,7 +8,8 @@ import { ImportWorkbench } from '@/features/settings/components/ImportWorkbench'
 import { SnapshotList, type BackupSnapshotRecord } from '@/features/settings/components/SettingsWorkspacePrimitives';
 import { settingsApi, type BackupConfigResponse } from '@/features/settings/api/settings.api';
 import { useAuthStore } from '@/stores/auth-store';
-import { isPlatformAdmin, isDesktopOfflineApp } from '@/app/router/access';
+import { isPlatformAdmin, isDesktopOfflineApp } from '@/shared/system/runtime-environment';
+
 import { resolveCurrentVertical } from '@/shared/verticals/vertical-scope';
 import { TenantTransferCard } from './TenantTransferCard';
 

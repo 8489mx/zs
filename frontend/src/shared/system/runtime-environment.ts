@@ -17,3 +17,20 @@ export function isDesktopOfflineApp(): boolean {
     import.meta.env.MODE === 'portable'
   );
 }
+
+export function isPlatformAdmin(user: { role?: string; tenantId?: string; accountId?: string } | null | undefined): boolean {
+  if (isDesktopOfflineApp()) return false;
+  if (!user) return false;
+  if (user.role !== 'super_admin') return false;
+
+  const configuredPlatformTenantId = String(import.meta.env?.VITE_PLATFORM_TENANT_ID || 'zs').trim();
+  const tenantId = String(user?.tenantId || '').trim();
+  const accountId = String(user?.accountId || '').trim();
+  const hasExplicitTenant = tenantId.length > 0;
+
+  const isPlatformTenant = tenantId === configuredPlatformTenantId || tenantId === 'zs' || tenantId === 'default' || tenantId === 'dev-tenant';
+  const canUseAccountFallback = !hasExplicitTenant && (accountId === 'zs' || accountId === 'default' || accountId === configuredPlatformTenantId);
+
+  return Boolean(isPlatformTenant || canUseAccountFallback);
+}
+
