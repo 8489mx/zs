@@ -1193,7 +1193,7 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
 
         
 
-      <div className="settings-tab-content-wrapper" style={{ minHeight: '480px' }}>
+      <div className="settings-tab-content-wrapper">
         <GeneralSettingsTab
           form={form}
           branches={branches}
