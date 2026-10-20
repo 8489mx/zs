@@ -16,11 +16,17 @@ import {
   CreateQcInspectionDto,
   UpsertAciComplianceDto,
   CreateSourcingTripDto,
+  ProcessLateExpenseDto,
+  CalculateCustomsTaxDto,
 } from './dto/import-sales.dto';
 import { applyStockDelta, lockStockProducts } from '../../common/utils/location-stock-ledger';
 import { formatDailyDocumentNumber } from '../../common/utils/document-number.util';
 import { calculateImportFeasibility, FeasibilityCalculationResult } from './engines/import-feasibility.engine';
-import { calculateLandedCostBreakdown, calculateDemurrageRisk } from './engines/import-landed-cost.engine';
+import {
+  calculateLandedCostBreakdown,
+  calculateDemurrageRisk,
+  calculateLateExpenseAllocation,
+} from './engines/import-landed-cost.engine';
 
 @Injectable()
 export class ImportSalesService {
@@ -374,7 +380,6 @@ export class ImportSalesService {
         'suppliers.id',
         'suppliers.name',
         'suppliers.phone',
-        'suppliers.email',
         'suppliers.balance',
         'import_suppliers_meta.chinese_name',
         'import_suppliers_meta.city',
@@ -386,6 +391,9 @@ export class ImportSalesService {
         'import_suppliers_meta.qc_rating',
         'import_suppliers_meta.quality_certifications',
         'import_suppliers_meta.audit_status',
+        'import_suppliers_meta.verified_at',
+        'import_suppliers_meta.verified_by',
+        'import_suppliers_meta.verification_notes',
         'import_suppliers_meta.notes as import_notes',
       ])
       .where('suppliers.tenant_id', '=', tenantId)
@@ -396,12 +404,28 @@ export class ImportSalesService {
   async upsertSupplierImportMeta(tenantId: string, supplierId: string, dto: UpsertSupplierMetaDto) {
     const sId = Number(supplierId);
     return await this.db.transaction().execute(async (trx) => {
+      const supplier = await trx
+        .selectFrom('suppliers')
+        .select('id')
+        .where('id', '=', sId)
+        .where('tenant_id', '=', tenantId)
+        .executeTakeFirst();
+
+      if (!supplier) {
+        throw new NotFoundException('المورد غير موجود بالمنشأة.');
+      }
+
       const existing = await trx
         .selectFrom('import_suppliers_meta')
-        .select('id')
+        .select(['id', 'audit_status'])
         .where('tenant_id', '=', tenantId)
         .where('supplier_id', '=', sId)
         .executeTakeFirst();
+
+      // Newly added bank accounts must be 'unverified' by default until formally audited
+      const auditStatus = dto.auditStatus && existing?.audit_status === 'verified'
+        ? dto.auditStatus
+        : 'unverified';
 
       const payload: any = {
         chinese_name: dto.chineseName,
@@ -410,10 +434,10 @@ export class ImportSalesService {
         moq_description: dto.moqDescription,
         production_lead_time_days: dto.productionLeadTimeDays ?? 30,
         verified_bank_details: dto.verifiedBankDetails ? JSON.stringify(dto.verifiedBankDetails) : '{}',
-        incoterms_accepted: dto.incotermsAccepted ? JSON.stringify(dto.incotermsAccepted) : '["FOB", "EXW", "CIF"]',
+        incoterms_accepted: dto.incotermsAccepted ? JSON.stringify(dto.incotermsAccepted) : JSON.stringify(['FOB', 'EXW', 'CIF']),
         qc_rating: dto.qcRating ?? 5.0,
         quality_certifications: dto.qualityCertifications ? JSON.stringify(dto.qualityCertifications) : '[]',
-        audit_status: dto.auditStatus || 'verified',
+        audit_status: auditStatus,
         notes: dto.notes,
         updated_at: sql`NOW()`,
       };
@@ -437,6 +461,42 @@ export class ImportSalesService {
           .returningAll()
           .executeTakeFirstOrThrow();
       }
+    });
+  }
+
+  async verifySupplierBankDetails(
+    tenantId: string,
+    userId: number,
+    supplierId: string,
+    verificationNotes?: string
+  ) {
+    const sId = Number(supplierId);
+    return await this.db.transaction().execute(async (trx) => {
+      const existing = await trx
+        .selectFrom('import_suppliers_meta')
+        .selectAll()
+        .where('supplier_id', '=', sId)
+        .where('tenant_id', '=', tenantId)
+        .executeTakeFirst();
+
+      if (!existing) {
+        throw new NotFoundException('بيانات المورد غير مسجلة.');
+      }
+
+      await trx
+        .updateTable('import_suppliers_meta')
+        .set({
+          audit_status: 'verified',
+          verified_at: new Date(),
+          verified_by: userId,
+          verification_notes: verificationNotes || 'تم التحقق والاعتماد رسمياً للحساب البنكي للمورد.',
+          updated_at: sql`NOW()`,
+        })
+        .where('supplier_id', '=', sId)
+        .where('tenant_id', '=', tenantId)
+        .execute();
+
+      return { success: true, message: 'تم اعتماد وتوثيق الحساب البنكي للمورد بنجاح.' };
     });
   }
 
@@ -637,7 +697,12 @@ export class ImportSalesService {
       .execute();
   }
 
-  async calculateCustomsTax(tenantId: string, hsCode: string, cifValueEgp: number) {
+  async calculateCustomsTax(
+    tenantId: string,
+    hsCode: string,
+    cifValueEgp: number,
+    overrides?: { overrideDutyRatePercent?: number; overrideVatRatePercent?: number }
+  ) {
     const tariff = await this.db
       .selectFrom('import_customs_tariffs')
       .selectAll()
@@ -645,9 +710,39 @@ export class ImportSalesService {
       .where('hs_code', '=', hsCode)
       .executeTakeFirst();
 
-    const dutyRate = Number(tariff?.duty_rate_percent ?? 5) / 100;
-    const vatRate = Number(tariff?.vat_rate_percent ?? 14) / 100;
-    const inspRate = Number(tariff?.inspection_fees_percent ?? 1) / 100;
+    const isDocumented = Boolean(tariff);
+    let dutyRate = 0;
+    let vatRate = 0;
+    let inspRate = 0;
+    let source = '';
+
+    if (tariff) {
+      dutyRate = Number(tariff.duty_rate_percent) / 100;
+      vatRate = Number(tariff.vat_rate_percent) / 100;
+      inspRate = Number(tariff.inspection_fees_percent || 0) / 100;
+      source = tariff.official_source || 'مصلحة الجمارك المصرية';
+    } else if (
+      overrides &&
+      (overrides.overrideDutyRatePercent !== undefined || overrides.overrideVatRatePercent !== undefined)
+    ) {
+      dutyRate = Math.max(0, Number(overrides.overrideDutyRatePercent || 0)) / 100;
+      vatRate = Math.max(0, Number(overrides.overrideVatRatePercent || 0)) / 100;
+      inspRate = 0;
+      source = 'تقدير يدوي معتمد من المستخدم (غير رسمي)';
+    } else {
+      return {
+        hsCode,
+        isDocumentedTariff: false,
+        message: 'البند الجمركي غير مسجل بالتعريفة المعتمدة. يلزم إدخال النسبة المعتمدة يدوياً.',
+        cifValueEgp: Number(cifValueEgp || 0),
+        customsDuty: 0,
+        inspectionFees: 0,
+        vatAmount: 0,
+        totalCustomsDues: 0,
+        dutyRatePercent: 0,
+        vatRatePercent: 0,
+      };
+    }
 
     const cif = Math.max(0, Number(cifValueEgp) || 0);
     const customsDuty = cif * dutyRate;
@@ -658,8 +753,10 @@ export class ImportSalesService {
 
     return {
       hsCode,
-      description: tariff?.description_ar || 'بند جمركي قياسي',
-      regulatoryBody: tariff?.regulatory_body || 'GOEIC',
+      isDocumentedTariff: isDocumented,
+      source,
+      description: tariff?.description_ar || 'بند جمركي غير مسجل بالتعريفة',
+      regulatoryBody: tariff?.regulatory_body || 'غير محدد',
       cifValueEgp: Number(cif.toFixed(2)),
       customsDuty: Number(customsDuty.toFixed(2)),
       inspectionFees: Number(inspectionFees.toFixed(2)),
@@ -669,7 +766,6 @@ export class ImportSalesService {
       vatRatePercent: Number((vatRate * 100).toFixed(2)),
     };
   }
-
 
   // ==========================================
   // 5. SHIPMENTS & INVENTORY ATOMIC RECEIPTS
@@ -963,18 +1059,172 @@ export class ImportSalesService {
     });
   }
 
-  private async calculateLandedCostInTransaction(trx: Transaction<Database>, shipment: Selectable<ImportShipmentTable>) {
-    const items = await trx.selectFrom('import_shipment_items').selectAll()
-      .where('tenant_id', '=', shipment.tenant_id).where('shipment_id', '=', shipment.id).execute();
-    const lines = calculateImportLandedCosts(items.map((item) => this.costLine(item)), {
-      exchangeRate: requireImportNumber(shipment.exchange_rate_at_arrival, 'سعر الصرف', Number.MIN_VALUE), shippingUsd: Number(shipment.shipping_cost_usd ?? 0),
-      customsEgp: Number(shipment.customs_cost_egp ?? 0), transportEgp: Number(shipment.internal_transport_cost_egp ?? 0),
-    });
-    for (const line of lines) {
-      await trx.updateTable('import_shipment_items').set({ allocated_overhead_egp: line.allocatedOverhead, landed_cost_egp: line.landedCost })
-        .where('tenant_id', '=', shipment.tenant_id).where('shipment_id', '=', shipment.id).where('id', '=', line.id).execute();
+  private async calculateLandedCostInTransaction(
+    trx: Transaction<Database>,
+    shipment: Selectable<ImportShipmentTable>
+  ) {
+    const items = await trx
+      .selectFrom('import_shipment_items')
+      .selectAll()
+      .where('tenant_id', '=', shipment.tenant_id)
+      .where('shipment_id', '=', shipment.id)
+      .execute();
+
+    if (!items.length) {
+      return { success: true, message: 'لا توجد أصناف بالشحنة' };
     }
-    return { success: true, message: 'Landed cost recalculated successfully' };
+
+    const rate = requireImportNumber(shipment.exchange_rate_at_arrival, 'سعر الصرف', Number.MIN_VALUE);
+    const method = (shipment.cost_allocation_method as 'value' | 'weight' | 'cbm') || 'value';
+
+    const breakdown = calculateLandedCostBreakdown({
+      items: items.map((item) => ({
+        id: item.id,
+        productId: Number(item.product_id),
+        quantity: Number(item.quantity),
+        receivedQuantity: item.received_quantity !== null && item.received_quantity !== undefined ? Number(item.received_quantity) : Number(item.quantity),
+        factoryUnitPriceUsd: Number(item.factory_unit_price_usd),
+        shortageHandlingMethod: (item.shortage_handling_method as any) || 'capitalize',
+      })),
+      exchangeRate: rate,
+      shippingCostUsd: Number(shipment.shipping_cost_usd ?? 0),
+      customsCostEgp: Number(shipment.customs_cost_egp ?? 0),
+      internalTransportCostEgp: Number(shipment.internal_transport_cost_egp ?? 0),
+      demurrageFeesEgp: Number(shipment.actual_demurrage_fees ?? 0),
+      vatRefundableEgp: Number(shipment.vat_refundable_egp ?? 0),
+      vatIsRefundable: true,
+      allocationMethod: method,
+    });
+
+    for (const line of breakdown.items) {
+      await trx
+        .updateTable('import_shipment_items')
+        .set({
+          allocated_overhead_egp: line.unitOverheadEgp,
+          landed_cost_egp: line.landedCostEgp,
+        })
+        .where('tenant_id', '=', shipment.tenant_id)
+        .where('shipment_id', '=', shipment.id)
+        .where('id', '=', line.id)
+        .execute();
+    }
+
+    return {
+      success: true,
+      message: 'تم إعادة احتساب التكلفة الفعلية وتوزيع الأعباء بنجاح وفق محرك Landed Cost المعتمد',
+      breakdown,
+    };
+  }
+
+  async processLateShipmentExpense(
+    tenantId: string,
+    userId: number,
+    shipmentId: string,
+    dto: ProcessLateExpenseDto
+  ) {
+    return await this.inventoryDb.transaction().execute(async (trx) => {
+      const state = await this.lockShipment(trx, tenantId, shipmentId);
+      const { shipment, receipt } = state;
+      if (!receipt || receipt.state !== 'posted') {
+        throw new BadRequestException('لا يمكن تسجيل مصروفات متأخرة إلا بعد استلام الشحنة وترحيل المخزون.');
+      }
+
+      const items = await trx
+        .selectFrom('import_shipment_items')
+        .selectAll()
+        .where('tenant_id', '=', tenantId)
+        .where('shipment_id', '=', shipmentId)
+        .execute();
+
+      if (!items.length) {
+        throw new BadRequestException('الشحنة لا تحتوي على أصناف.');
+      }
+
+      let totalReceivedQty = 0;
+      for (const item of items) {
+        totalReceivedQty += Number(item.received_quantity ?? item.quantity);
+      }
+
+      const productIds = items.map((i) => Number(i.product_id));
+      const products = await trx
+        .selectFrom('products')
+        .select(['id', 'cost_price', 'account_id'])
+        .where('tenant_id', '=', tenantId)
+        .where('id', 'in', productIds)
+        .execute();
+
+      for (const p of products.sort((a, b) => Number(a.id) - Number(b.id))) {
+        await lockStockProducts(trx, { tenantId, accountId: p.account_id, productIds: [Number(p.id)] });
+      }
+
+      let totalOnHandQty = 0;
+      for (const p of products) {
+        const stockRow = await trx
+          .selectFrom('product_location_stock')
+          .select([sql<number>`coalesce(sum(qty_on_hand), 0)`.as('total_qty')])
+          .where('tenant_id', '=', tenantId)
+          .where('product_id', '=', Number(p.id))
+          .executeTakeFirst();
+        totalOnHandQty += Math.max(0, Number(stockRow?.total_qty || 0));
+      }
+
+      const lateAlloc = calculateLateExpenseAllocation(
+        dto.lateExpenseAmount,
+        totalReceivedQty,
+        totalOnHandQty
+      );
+
+      let expenseId: number | null = null;
+      if (lateAlloc.lateCogsAdjustmentEgp > 0) {
+        const exp = await trx
+          .insertInto('expenses')
+          .values({
+            tenant_id: tenantId,
+            account_id: dto.accountId ? String(dto.accountId) : '5101',
+            title: `${dto.title} (تسوية تكلفة متأخرة على مبيعات سابقة) - حاوية ${shipment.container_number}`,
+            amount: lateAlloc.lateCogsAdjustmentEgp,
+            expense_date: new Date().toISOString().slice(0, 10),
+            created_by: userId,
+            note: dto.note || `تم تحميل ${lateAlloc.soldQuantity} وحدة مباعة بقيمة ${lateAlloc.lateCogsAdjustmentEgp} ج.م`,
+            branch_id: null,
+            location_id: null,
+          })
+          .returning('id')
+          .executeTakeFirstOrThrow();
+        expenseId = exp.id;
+      }
+
+      if (lateAlloc.lateInventoryAdjustmentEgp > 0 && lateAlloc.onHandQuantity > 0) {
+        for (const p of products) {
+          const currentCost = Number(p.cost_price || 0);
+          const newCost = Number((currentCost + lateAlloc.unitCostIncreaseEgp).toFixed(6));
+          await trx
+            .updateTable('products')
+            .set({ cost_price: newCost, updated_at: sql`NOW()` })
+            .where('tenant_id', '=', tenantId)
+            .where('id', '=', Number(p.id))
+            .execute();
+        }
+      }
+
+      await trx
+        .updateTable('import_shipments')
+        .set((eb) => ({
+          late_expenses_total_egp: sql`coalesce(late_expenses_total_egp, 0) + ${dto.lateExpenseAmount}`,
+          late_cogs_adjustment_egp: sql`coalesce(late_cogs_adjustment_egp, 0) + ${lateAlloc.lateCogsAdjustmentEgp}`,
+          late_inventory_adjustment_egp: sql`coalesce(late_inventory_adjustment_egp, 0) + ${lateAlloc.lateInventoryAdjustmentEgp}`,
+        }))
+        .where('tenant_id', '=', tenantId)
+        .where('id', '=', shipmentId)
+        .execute();
+
+      return {
+        success: true,
+        message: 'تمت معالجة المصروف المتأخر وتوزيعه محاسبياً بين تكلفة البضاعة المباعة والمخزون المتبقي بنجاح.',
+        allocation: lateAlloc,
+        cogsExpenseId: expenseId,
+      };
+    });
   }
 
   async generatePeriodProfitReport(
@@ -989,61 +1239,143 @@ export class ImportSalesService {
       end.setHours(23, 59, 59, 999);
     }
 
-    // 1. Get total revenue and cost from sales
-    const salesData = await this.db
-      .selectFrom('sales')
-      .innerJoin('sale_items', 'sale_items.sale_id', 'sales.id')
-      .select([
-        sql<number>`coalesce(sum(sale_items.line_total), 0)`.as('total_revenue'),
-        sql<number>`coalesce(sum(sale_items.qty * sale_items.cost_price), 0)`.as('total_cost')
-      ])
-      .where('sales.tenant_id', '=', tenantId)
-      .where('sales.status', '!=', 'cancelled')
-      .where('sales.created_at', '>=', start)
-      .where('sales.created_at', '<=', end)
-      .executeTakeFirst();
+    let projectProductIds: number[] = [];
+    let projectShipmentIds: string[] = [];
 
-    const totalRevenue = Number(salesData?.total_revenue || 0);
-    const totalCost = Number(salesData?.total_cost || 0);
-    const grossProfit = totalRevenue - totalCost;
+    if (projectId) {
+      const shipments = await this.db
+        .selectFrom('import_shipments')
+        .select(['id', 'shipping_expense_id', 'customs_expense_id', 'transport_expense_id'])
+        .where('tenant_id', '=', tenantId)
+        .where('project_id', '=', projectId)
+        .execute();
 
-    // 2. Get operational expenses EXCLUDING:
-    // a) Capitalized shipment expenses (already in COGS via landed cost)
-    // b) Foreign transfers (supplier debt settlements)
-    // c) Partner profit payouts (equity dividend settlements)
-    const shipmentExpenseIds = await this.db
-      .selectFrom('import_shipments')
-      .select(['shipping_expense_id', 'customs_expense_id', 'transport_expense_id'])
-      .where('tenant_id', '=', tenantId)
-      .execute();
+      projectShipmentIds = shipments.map((s) => s.id);
 
-    const excludedExpenseIds = new Set<number>();
-    for (const s of shipmentExpenseIds) {
-      if (s.shipping_expense_id) excludedExpenseIds.add(Number(s.shipping_expense_id));
-      if (s.customs_expense_id) excludedExpenseIds.add(Number(s.customs_expense_id));
-      if (s.transport_expense_id) excludedExpenseIds.add(Number(s.transport_expense_id));
+      if (projectShipmentIds.length > 0) {
+        const items = await this.db
+          .selectFrom('import_shipment_items')
+          .select('product_id')
+          .where('tenant_id', '=', tenantId)
+          .where('shipment_id', 'in', projectShipmentIds)
+          .execute();
+
+        projectProductIds = [...new Set(items.map((i) => Number(i.product_id)))];
+      }
     }
 
-    let expensesQuery = this.db
-      .selectFrom('expenses')
-      .select([sql<number>`coalesce(sum(amount), 0)`.as('total_expenses')])
-      .where('tenant_id', '=', tenantId)
-      .where('expense_date', '>=', start)
-      .where('expense_date', '<=', end)
-      .where((eb) => eb.and([
-        eb('title', 'not like', 'حوالة خارجية%'),
-        eb('title', 'not like', 'صرف أرباح الشريك%')
-      ]));
+    let totalRevenue = 0;
+    let totalCost = 0;
+    let totalDiscounts = 0;
 
-    if (excludedExpenseIds.size > 0) {
-      expensesQuery = expensesQuery.where('id', 'not in', Array.from(excludedExpenseIds));
+    if (!projectId || projectProductIds.length > 0) {
+      let salesQuery = this.db
+        .selectFrom('sales')
+        .innerJoin('sale_items', 'sale_items.sale_id', 'sales.id')
+        .select([
+          sql<number>`coalesce(sum(sale_items.line_total), 0)`.as('total_revenue'),
+          sql<number>`coalesce(sum(sale_items.qty * sale_items.cost_price), 0)`.as('total_cost'),
+          sql<number>`coalesce(sum(sale_items.allocated_discount), 0)`.as('total_discount'),
+        ])
+        .where('sales.tenant_id', '=', tenantId)
+        .where('sales.status', '!=', 'cancelled')
+        .where('sales.created_at', '>=', start)
+        .where('sales.created_at', '<=', end);
+
+      if (projectId && projectProductIds.length > 0) {
+        salesQuery = salesQuery.where('sale_items.product_id', 'in', projectProductIds);
+      }
+
+      const salesData = await salesQuery.executeTakeFirst();
+      totalRevenue = Number(salesData?.total_revenue || 0);
+      totalCost = Number(salesData?.total_cost || 0);
+      totalDiscounts = Number(salesData?.total_discount || 0);
     }
 
-    const expensesData = await expensesQuery.executeTakeFirst();
-    const totalExpenses = Number(expensesData?.total_expenses || 0);
+    let returnRevenue = 0;
+    let returnCost = 0;
+
+    if (!projectId || projectProductIds.length > 0) {
+      let returnsQuery = this.db
+        .selectFrom('return_documents')
+        .innerJoin('return_items', 'return_items.return_document_id', 'return_documents.id')
+        .select([
+          sql<number>`coalesce(sum(return_items.line_total), 0)`.as('return_revenue'),
+          sql<number>`coalesce(sum(return_items.qty * return_items.cost_price), 0)`.as('return_cost'),
+        ])
+        .where('return_documents.tenant_id', '=', tenantId)
+        .where('return_documents.return_type', '=', 'sale')
+        .where('return_documents.created_at', '>=', start)
+        .where('return_documents.created_at', '<=', end);
+
+      if (projectId && projectProductIds.length > 0) {
+        returnsQuery = returnsQuery.where('return_items.product_id', 'in', projectProductIds);
+      }
+
+      const returnData = await returnsQuery.executeTakeFirst();
+      returnRevenue = Number(returnData?.return_revenue || 0);
+      returnCost = Number(returnData?.return_cost || 0);
+    }
+
+    const netSalesRevenue = totalRevenue - totalDiscounts - returnRevenue;
+    const netCogs = totalCost - returnCost;
+    const grossProfit = netSalesRevenue - netCogs;
+
+    let totalExpenses = 0;
+
+    if (projectId) {
+      const sourcingExpenses = await this.db
+        .selectFrom('import_sourcing_trips')
+        .select([sql<number>`coalesce(sum(actual_cost_egp), 0)`.as('total_sourcing')])
+        .where('tenant_id', '=', tenantId)
+        .where('project_id', '=', projectId)
+        .executeTakeFirst();
+
+      const lateCogsExp = await this.db
+        .selectFrom('import_shipments')
+        .select([sql<number>`coalesce(sum(late_cogs_adjustment_egp), 0)`.as('total_late_cogs')])
+        .where('tenant_id', '=', tenantId)
+        .where('project_id', '=', projectId)
+        .executeTakeFirst();
+
+      totalExpenses = Number(sourcingExpenses?.total_sourcing || 0) + Number(lateCogsExp?.total_late_cogs || 0);
+    } else {
+      const shipmentExpenseIds = await this.db
+        .selectFrom('import_shipments')
+        .select(['shipping_expense_id', 'customs_expense_id', 'transport_expense_id'])
+        .where('tenant_id', '=', tenantId)
+        .execute();
+
+      const excludedExpenseIds = new Set<number>();
+      for (const s of shipmentExpenseIds) {
+        if (s.shipping_expense_id) excludedExpenseIds.add(Number(s.shipping_expense_id));
+        if (s.customs_expense_id) excludedExpenseIds.add(Number(s.customs_expense_id));
+        if (s.transport_expense_id) excludedExpenseIds.add(Number(s.transport_expense_id));
+      }
+
+      let expensesQuery = this.db
+        .selectFrom('expenses')
+        .select([sql<number>`coalesce(sum(amount), 0)`.as('total_expenses')])
+        .where('tenant_id', '=', tenantId)
+        .where('expense_date', '>=', start)
+        .where('expense_date', '<=', end)
+        .where((eb) =>
+          eb.and([
+            eb('title', 'not like', 'حوالة خارجية%'),
+            eb('title', 'not like', 'صرف أرباح الشريك%'),
+          ])
+        );
+
+      if (excludedExpenseIds.size > 0) {
+        expensesQuery = expensesQuery.where('id', 'not in', Array.from(excludedExpenseIds));
+      }
+
+      const expensesData = await expensesQuery.executeTakeFirst();
+      totalExpenses = Number(expensesData?.total_expenses || 0);
+    }
+
     const netProfitPool = grossProfit - totalExpenses;
 
-    // 3. Get partners and calculate their share of the net pool
     let partners: any[] = [];
     if (projectId) {
       partners = await this.db
@@ -1057,6 +1389,7 @@ export class ImportSalesService {
         ])
         .where('import_project_partners.tenant_id', '=', tenantId)
         .where('import_project_partners.project_id', '=', projectId)
+        .where('import_project_partners.is_active', '=', true)
         .execute();
     }
 
@@ -1067,9 +1400,10 @@ export class ImportSalesService {
         .where('tenant_id', '=', tenantId)
         .execute();
     }
-    const partnerShares = partners.map(p => {
+
+    const partnerShares = partners.map((p) => {
       const percentage = Number(p.profit_share_percentage) || 0;
-      const shareAmount = (netProfitPool * percentage) / 100;
+      const shareAmount = netProfitPool > 0 ? (netProfitPool * percentage) / 100 : 0;
       const withdrawn = Number(p.withdrawn_profit) || 0;
       return {
         partnerId: p.id,
@@ -1077,49 +1411,62 @@ export class ImportSalesService {
         percentage,
         shareAmount: Number(shareAmount.toFixed(2)),
         withdrawnProfit: Number(withdrawn.toFixed(2)),
-        currentBalance: Number((shareAmount - withdrawn).toFixed(2))
+        currentBalance: Number((shareAmount - withdrawn).toFixed(2)),
       };
     });
 
-    return { 
-      success: true, 
-      message: 'تم تجميع أرباح الشراكة بنجاح', 
+    return {
+      success: true,
+      message: projectId ? 'تم تجميع أرباح مشروع الاستيراد بنجاح' : 'تم تجميع أرباح الشراكة العامة بنجاح',
       data: {
-        totalRevenue: Number(totalRevenue.toFixed(2)),
-        totalCost: Number(totalCost.toFixed(2)),
+        projectId: projectId || null,
+        grossSalesRevenue: Number(totalRevenue.toFixed(2)),
+        salesDiscounts: Number(totalDiscounts.toFixed(2)),
+        salesReturnsRevenue: Number(returnRevenue.toFixed(2)),
+        netSalesRevenue: Number(netSalesRevenue.toFixed(2)),
+        totalRevenue: Number(netSalesRevenue.toFixed(2)),
+        grossCogs: Number(totalCost.toFixed(2)),
+        returnsCogs: Number(returnCost.toFixed(2)),
+        netCogs: Number(netCogs.toFixed(2)),
+        totalCost: Number(netCogs.toFixed(2)),
         grossProfit: Number(grossProfit.toFixed(2)),
+        operatingExpenses: Number(totalExpenses.toFixed(2)),
         totalExpenses: Number(totalExpenses.toFixed(2)),
         netProfitPool: Number(netProfitPool.toFixed(2)),
-        partnerShares
-      } 
+        partnerShares,
+      },
     };
   }
 
   async listForeignTransfers(tenantId: string) {
-    return await this.db
+    const rows = await this.db
       .selectFrom('supplier_payments')
       .innerJoin('suppliers', 'suppliers.id', 'supplier_payments.supplier_id')
       .select([
         'supplier_payments.id',
-        'supplier_payments.amount',
-        'supplier_payments.payment_date',
-        'supplier_payments.note',
         'supplier_payments.doc_no',
-        'suppliers.name as supplier_name'
+        'supplier_payments.amount',
+        'supplier_payments.note',
+        'supplier_payments.created_at',
+        'suppliers.name as supplier_name',
       ])
       .where('supplier_payments.tenant_id', '=', tenantId)
-      .where((eb) => eb.or([
-        eb('supplier_payments.doc_no', '=', 'FOREIGN_TRANSFER'),
-        eb('supplier_payments.doc_no', 'like', 'FT-%'),
-        eb('supplier_payments.note', 'like', '%حوالة%')
-      ]))
-      .orderBy('supplier_payments.payment_date', 'desc')
-      .limit(50)
+      .where('supplier_payments.doc_no', 'like', 'FT-%')
+      .orderBy('supplier_payments.created_at', 'desc')
       .execute();
+
+    return rows.map((r) => ({
+      id: r.id,
+      docNo: r.doc_no,
+      amountForeign: Number(r.amount),
+      supplierName: r.supplier_name,
+      notes: r.note,
+      createdAt: r.created_at,
+    }));
   }
 
   async recordForeignTransfer(tenantId: string, userId: number, dto: RecordForeignTransferDto) {
-    const { supplierId, amountEgp, amountForeign, notes } = dto;
+    const { supplierId, amountEgp, amountForeign, currency, exchangeRateContract, proformaInvoiceId, notes } = dto;
     const sId = Number(supplierId);
 
     const cleanEgp = Number(amountEgp);
@@ -1135,61 +1482,108 @@ export class ImportSalesService {
         .select(['id', 'name', 'account_id', 'balance'])
         .where('id', '=', sId)
         .where('tenant_id', '=', tenantId)
+        .forUpdate()
         .executeTakeFirstOrThrow();
 
-      // 1. Create Supplier Payment in supplier_payments
-      const paymentInsert = await trx.insertInto('supplier_payments').values({
-        tenant_id: tenantId,
-        account_id: supplier.account_id,
-        supplier_id: supplier.id,
-        amount: cleanForeign,
-        note: `حوالة استيراد خارجية${notes ? ' - ' + notes : ''} [تدبير عملة: ${cleanEgp} ج.م]`,
-        created_by: userId
-      }).returning('id').executeTakeFirstOrThrow();
-      
+      let forexVarianceEgp = 0;
+      if (exchangeRateContract && exchangeRateContract > 0) {
+        const contractEgp = cleanForeign * exchangeRateContract;
+        forexVarianceEgp = cleanEgp - contractEgp;
+      }
+
+      if (proformaInvoiceId) {
+        const pi = await trx
+          .selectFrom('import_proforma_invoices')
+          .selectAll()
+          .where('id', '=', proformaInvoiceId)
+          .where('tenant_id', '=', tenantId)
+          .forUpdate()
+          .executeTakeFirst();
+
+        if (pi) {
+          const newPaid = Number(pi.paid_amount_foreign || 0) + cleanForeign;
+          const totalPI = Number(pi.total_amount_foreign || 0);
+          const newStatus = newPaid >= totalPI ? 'paid' : 'partially_paid';
+
+          await trx
+            .updateTable('import_proforma_invoices')
+            .set({ paid_amount_foreign: newPaid, payment_status: newStatus })
+            .where('id', '=', proformaInvoiceId)
+            .where('tenant_id', '=', tenantId)
+            .execute();
+        }
+      }
+
+      const paymentInsert = await trx
+        .insertInto('supplier_payments')
+        .values({
+          tenant_id: tenantId,
+          account_id: supplier.account_id,
+          supplier_id: supplier.id,
+          amount: cleanForeign,
+          note: `حوالة استيراد خارجية${notes ? ' - ' + notes : ''} [تدبير عملة: ${cleanEgp} ج.م]`,
+          created_by: userId,
+          currency: currency || 'USD',
+          exchange_rate: cleanEgp / cleanForeign,
+          forex_variance_egp: forexVarianceEgp,
+          proforma_invoice_id: proformaInvoiceId || null,
+        } as any)
+        .returning('id')
+        .executeTakeFirstOrThrow();
+
       const paymentId = paymentInsert.id;
 
-      await trx.updateTable('supplier_payments')
+      await trx
+        .updateTable('supplier_payments')
         .set({ doc_no: `FT-${paymentId}` })
         .where('id', '=', paymentId)
         .where('tenant_id', '=', tenantId)
         .execute();
 
-      // 2. Create Treasury Transaction for cash/bank outflow (Settlement of liability, NOT an operational expense)
-      await trx.insertInto('treasury_transactions').values({
-        tenant_id: tenantId,
-        account_id: supplier.account_id,
-        txn_type: 'supplier_payment',
-        amount: -cleanEgp,
-        note: `تدبير عملة: حوالة خارجية إلى ${supplier.name} (${cleanForeign} عملة أجنبية)`,
-        reference_type: 'supplier_payment',
-        reference_id: paymentId,
-        created_by: userId
-      }).execute();
+      await trx
+        .insertInto('treasury_transactions')
+        .values({
+          tenant_id: tenantId,
+          account_id: supplier.account_id,
+          txn_type: 'supplier_payment',
+          amount: -cleanEgp,
+          note: `تدبير عملة: حوالة خارجية إلى ${supplier.name} (${cleanForeign} ${currency || 'USD'})` +
+            (forexVarianceEgp !== 0 ? ` [فروق صرف: ${forexVarianceEgp.toFixed(2)} ج.م]` : ''),
+          reference_type: 'supplier_payment',
+          reference_id: paymentId,
+          created_by: userId,
+        })
+        .execute();
 
-      // 3. Update Supplier Ledger
-      const newBalance = Number(supplier.balance || 0) - cleanForeign;
-      await trx.insertInto('supplier_ledger').values({
-        tenant_id: tenantId,
-        account_id: supplier.account_id,
-        supplier_id: supplier.id,
-        entry_type: 'supplier_payment',
-        amount: -cleanForeign,
-        balance_after: newBalance,
-        note: `حوالة خارجية: ${notes || ''}`,
-        reference_type: 'supplier_payment',
-        reference_id: paymentId,
-        created_by: userId
-      }).execute();
+      await trx
+        .insertInto('supplier_ledger')
+        .values({
+          tenant_id: tenantId,
+          account_id: supplier.account_id,
+          supplier_id: supplier.id,
+          transaction_type: 'payment',
+          amount: cleanForeign,
+          transaction_date: new Date(),
+          description: `حوالة خارجية FT-${paymentId} (${cleanForeign} ${currency || 'USD'})`,
+          reference_id: paymentId,
+        })
+        .execute();
 
-      // 4. Update Supplier Balance
-      await trx.updateTable('suppliers')
-        .set({ balance: newBalance })
-        .where('id', '=', supplier.id)
+      await trx
+        .updateTable('suppliers')
+        .set((eb) => ({
+          balance: sql`${eb.ref('balance')} - ${cleanForeign}`,
+        }))
+        .where('id', '=', sId)
         .where('tenant_id', '=', tenantId)
         .execute();
 
-      return { success: true, paymentId, docNo: `FT-${paymentId}` };
+      return {
+        success: true,
+        paymentId,
+        docNo: `FT-${paymentId}`,
+        forexVarianceEgp,
+      };
     });
   }
 
@@ -1205,39 +1599,57 @@ export class ImportSalesService {
         .selectAll()
         .where('id', '=', partnerId)
         .where('tenant_id', '=', tenantId)
+        .forUpdate()
         .executeTakeFirstOrThrow();
 
-      // Record in treasury_transactions as partner_payout (Dividend/Equity withdrawal, NOT operating expense)
-      await trx.insertInto('treasury_transactions').values({
-        tenant_id: tenantId,
-        txn_type: 'partner_payout',
-        amount: -cleanAmount,
-        note: `صرف أرباح الشريك: ${partner.name}`,
-        reference_type: 'partner_payout',
-        reference_id: null,
-        created_by: userId
-      }).execute();
+      const profitReport = await this.generatePeriodProfitReport(tenantId, new Date('2020-01-01'), new Date());
+      const partnerShare = profitReport.data.partnerShares.find((p: any) => p.partnerId === partnerId);
+      const totalEntitled = Number(partnerShare?.shareAmount || 0);
+      const withdrawn = Number(partner.withdrawn_profit || 0);
+      const maxAvailable = Math.max(0, totalEntitled - withdrawn);
 
-      // Update partner withdrawn profit
-      await trx.updateTable('import_partners')
+      if (cleanAmount > maxAvailable) {
+        throw new BadRequestException(
+          `لا يمكن صرف أرباح تتجاوز المستحق المعتمد للشريك. المتاح للصرف حالياً: ${maxAvailable.toFixed(2)} ج.م (المطلوب: ${cleanAmount.toFixed(2)} ج.م).`
+        );
+      }
+
+      await trx
+        .insertInto('treasury_transactions')
+        .values({
+          tenant_id: tenantId,
+          txn_type: 'partner_payout',
+          amount: -cleanAmount,
+          note: `صرف أرباح الشريك: ${partner.name}`,
+          reference_type: 'partner_payout',
+          reference_id: null,
+          created_by: userId,
+        })
+        .execute();
+
+      await trx
+        .updateTable('import_partners')
         .set((eb) => ({
-          withdrawn_profit: sql`${eb.ref('withdrawn_profit')} + ${cleanAmount}`
+          withdrawn_profit: sql`${eb.ref('withdrawn_profit')} + ${cleanAmount}`,
         }))
         .where('id', '=', partnerId)
         .where('tenant_id', '=', tenantId)
         .execute();
-        
-      // Insert into partner ledger
-      const ledgerInsert = await trx.insertInto('import_partner_ledger').values({
-        tenant_id: tenantId,
-        partner_id: partnerId,
-        type: 'PROFIT_PAYOUT',
-        amount: cleanAmount,
-        transaction_date: new Date(),
-        note: `صرف أرباح الشريك: ${partner.name}`,
-        created_by: userId
-      }).returning('id').executeTakeFirstOrThrow();
-        
+
+      const ledgerInsert = await trx
+        .insertInto('import_partner_ledger')
+        .values({
+          tenant_id: tenantId,
+          partner_id: partnerId,
+          type: 'PROFIT_PAYOUT',
+          amount: cleanAmount,
+          transaction_date: new Date(),
+          note: `صرف أرباح الشريك: ${partner.name}`,
+          created_by: userId,
+        })
+        .returning('id')
+        .executeTakeFirstOrThrow();
+
       return { success: true, ledgerId: ledgerInsert.id };
     });
   }
@@ -1388,34 +1800,58 @@ export class ImportSalesService {
   }
 
 
-  // ==========================================
-  // 7. IMPORT COMMAND CENTER (DASHBOARD METRICS)
-  // ==========================================
 
   async getImportCommandCenterMetrics(tenantId: string) {
-    // 1. Capital metrics
-    const partners = await this.db
-      .selectFrom('import_partners')
+    const partnerCapital = await this.db
+      .selectFrom('import_partner_ledger')
       .select([
-        sql<number>`coalesce(sum(capital_amount), 0)`.as('total_capital'),
-        sql<number>`coalesce(sum(withdrawn_profit), 0)`.as('total_withdrawn'),
+        sql<number>`coalesce(sum(case when type = 'DEPOSIT' then amount else 0 end), 0)`.as('total_deposits'),
+        sql<number>`coalesce(sum(case when type = 'WITHDRAWAL' then amount else 0 end), 0)`.as('total_withdrawals'),
       ])
       .where('tenant_id', '=', tenantId)
       .executeTakeFirst();
 
-    const totalCapital = Number(partners?.total_capital || 0);
+    const netPaidInCapital = Math.max(
+      0,
+      Number(partnerCapital?.total_deposits || 0) - Number(partnerCapital?.total_withdrawals || 0)
+    );
 
-    const activeProjects = await this.db
-      .selectFrom('import_projects')
-      .select([sql<number>`coalesce(sum(allocated_capital), 0)`.as('deployed_capital')])
-      .where('tenant_id', '=', tenantId)
-      .where('status', 'not in', ['closed', 'draft'])
+    const shipmentExpenses = await this.db
+      .selectFrom('import_shipments')
+      .innerJoin('expenses', (join) =>
+        join.on((eb) =>
+          eb.or([
+            eb('expenses.id', '=', eb.ref('import_shipments.shipping_expense_id')),
+            eb('expenses.id', '=', eb.ref('import_shipments.customs_expense_id')),
+            eb('expenses.id', '=', eb.ref('import_shipments.transport_expense_id')),
+          ])
+        )
+      )
+      .select([sql<number>`coalesce(sum(expenses.amount), 0)`.as('total_shipment_costs')])
+      .where('import_shipments.tenant_id', '=', tenantId)
       .executeTakeFirst();
 
-    const deployedCapital = Number(activeProjects?.deployed_capital || 0);
-    const availableCapital = Math.max(0, totalCapital - deployedCapital);
+    const transferOutflows = await this.db
+      .selectFrom('treasury_transactions')
+      .select([sql<number>`coalesce(sum(abs(amount)), 0)`.as('total_transfers')])
+      .where('tenant_id', '=', tenantId)
+      .where('txn_type', '=', 'supplier_payment')
+      .where('reference_type', '=', 'supplier_payment')
+      .executeTakeFirst();
 
-    // 2. Project counts by status
+    const sourcingTripCosts = await this.db
+      .selectFrom('import_sourcing_trips')
+      .select([sql<number>`coalesce(sum(actual_cost_egp), 0)`.as('total_trips')])
+      .where('tenant_id', '=', tenantId)
+      .executeTakeFirst();
+
+    const deployedCapital =
+      Number(shipmentExpenses?.total_shipment_costs || 0) +
+      Number(transferOutflows?.total_transfers || 0) +
+      Number(sourcingTripCosts?.total_trips || 0);
+
+    const availableCapital = Math.max(0, netPaidInCapital - deployedCapital);
+
     const projectRows = await this.db
       .selectFrom('import_projects')
       .select(['status', sql<number>`count(*)`.as('count')])
@@ -1428,7 +1864,6 @@ export class ImportSalesService {
       projectCounts[r.status || 'unknown'] = Number(r.count || 0);
     }
 
-    // 3. Shipments counts and values
     const shipmentRows = await this.db
       .selectFrom('import_shipments')
       .selectAll()
@@ -1445,17 +1880,29 @@ export class ImportSalesService {
       else inTransitCount++;
     }
 
-    // 4. Supplier foreign liabilities
-    const debts = await this.db
+    const foreignDebts = await this.db
       .selectFrom('suppliers')
-      .select([sql<number>`coalesce(sum(balance), 0)`.as('total_debt_foreign')])
-      .where('tenant_id', '=', tenantId)
-      .where('balance', '>', 0)
-      .executeTakeFirst();
+      .leftJoin('import_suppliers_meta', 'import_suppliers_meta.supplier_id', 'suppliers.id')
+      .select([
+        'suppliers.id',
+        'suppliers.name',
+        'suppliers.balance',
+        'import_suppliers_meta.audit_status',
+      ])
+      .where('suppliers.tenant_id', '=', tenantId)
+      .where('suppliers.balance', '>', 0)
+      .execute();
 
-    const totalDebtForeign = Number(debts?.total_debt_foreign || 0);
+    const supplierLiabilities = foreignDebts.map((s) => ({
+      supplierId: s.id,
+      supplierName: s.name,
+      balance: Number(s.balance || 0),
+      currency: 'USD',
+      isBankVerified: s.audit_status === 'verified',
+    }));
 
-    // 5. Demurrage Risks & Warnings
+    const totalDebtForeign = foreignDebts.reduce((sum, s) => sum + Number(s.balance || 0), 0);
+
     const demurrageAlerts: any[] = [];
     for (const s of shipmentRows.filter((r) => r.status !== 'Arrived')) {
       const risk = calculateDemurrageRisk({
@@ -1463,7 +1910,7 @@ export class ImportSalesService {
         demurrageStartDate: s.demurrage_start_date,
         freeDays: Number(s.free_demurrage_days || 14),
         ratePerDayUsd: Number(s.demurrage_rate_per_day || 50),
-        exchangeRate: Number(s.exchange_rate_at_arrival || 50),
+        exchangeRate: Number(s.exchange_rate_at_arrival || 1),
         status: s.status || 'Pending',
       });
       if (risk.isOverdue || (risk.daysRemaining !== null && risk.daysRemaining <= 3)) {
@@ -1476,7 +1923,6 @@ export class ImportSalesService {
       }
     }
 
-    // 6. ACI Expirations
     const aciExpiring = await this.db
       .selectFrom('import_aci_compliance')
       .selectAll()
@@ -1486,17 +1932,15 @@ export class ImportSalesService {
       .where('acid_expiry_date', '<=', sql`CURRENT_DATE + INTERVAL '14 days'`)
       .execute();
 
-    // 7. Recent Profit Snapshot (Current Month)
     const monthStart = new Date();
     monthStart.setDate(1);
     const profitReport = await this.generatePeriodProfitReport(tenantId, monthStart, new Date());
 
     return {
       capital: {
-        totalCapital,
-        deployedCapital,
-        availableCapital,
-        totalWithdrawn: Number(partners?.total_withdrawn || 0),
+        totalCapital: Number(netPaidInCapital.toFixed(2)),
+        deployedCapital: Number(deployedCapital.toFixed(2)),
+        availableCapital: Number(availableCapital.toFixed(2)),
       },
       pipeline: {
         projects: projectCounts,
@@ -1504,10 +1948,12 @@ export class ImportSalesService {
           inTransit: inTransitCount,
           inCustoms: inCustomsCount,
           arrived: arrivedCount,
+          total: shipmentRows.length,
         },
       },
       liabilities: {
         totalDebtForeign,
+        supplierLiabilities,
       },
       alerts: {
         demurrageAlerts,
@@ -1526,30 +1972,61 @@ export class ImportSalesService {
       .selectFrom('import_project_partners')
       .innerJoin('import_partners', 'import_partners.id', 'import_project_partners.partner_id')
       .select([
-        'import_project_partners.id',
+        'import_project_partners.id as allocation_id',
         'import_project_partners.partner_id',
+        'import_partners.name as partner_name',
         'import_project_partners.capital_share_amount',
         'import_project_partners.profit_percentage',
-        'import_partners.name as partner_name',
+        'import_project_partners.effective_from',
+        'import_project_partners.is_active',
       ])
       .where('import_project_partners.tenant_id', '=', tenantId)
       .where('import_project_partners.project_id', '=', projectId)
+      .where('import_project_partners.is_active', '=', true)
       .execute();
   }
 
   async setProjectPartners(
     tenantId: string,
     projectId: string,
-    partners: Array<{ partnerId: string; capitalShare: number; profitPercentage: number }>
+    partners: Array<{ partnerId: string; capitalShare?: number; profitPercentage: number }>
   ) {
-    const totalPercentage = partners.reduce((sum, p) => sum + Number(p.profitPercentage || 0), 0);
-    if (totalPercentage > 100.001) {
-      throw new BadRequestException(`مجموع نسب الشركاء للمشروع (${totalPercentage}%) يتجاوز 100%.`);
-    }
-
     return await this.db.transaction().execute(async (trx) => {
+      const project = await trx
+        .selectFrom('import_projects')
+        .selectAll()
+        .where('id', '=', projectId)
+        .where('tenant_id', '=', tenantId)
+        .forUpdate()
+        .executeTakeFirst();
+
+      if (!project) throw new NotFoundException('مشروع الاستيراد غير موجود.');
+      if (project.status === 'closed') {
+        throw new BadRequestException('لا يمكن تعديل نسب الشركاء لمشروع مقفل ومسوى مالياً.');
+      }
+
+      const totalPercentage = partners.reduce((sum, p) => sum + Number(p.profitPercentage || 0), 0);
+      if (totalPercentage > 100.001) {
+        throw new BadRequestException(`مجموع نسب الشركاء للمشروع (${totalPercentage}%) يتجاوز 100%.`);
+      }
+
+      const partnerIds = partners.map((p) => p.partnerId);
+      if (partnerIds.length > 0) {
+        const validPartners = await trx
+          .selectFrom('import_partners')
+          .select('id')
+          .where('tenant_id', '=', tenantId)
+          .where('id', 'in', partnerIds)
+          .execute();
+
+        if (validPartners.length !== partnerIds.length) {
+          throw new BadRequestException('أحد الشركاء المحددين غير مسجل أو ينتمي لمنشأة أخرى.');
+        }
+      }
+
       await trx
-        .deleteFrom('import_project_partners')
+        .updateTable('import_project_partners')
+        .set({ is_active: false })
         .where('project_id', '=', projectId)
         .where('tenant_id', '=', tenantId)
         .execute();
@@ -1563,6 +2040,8 @@ export class ImportSalesService {
             partner_id: p.partnerId,
             capital_share_amount: Number(p.capitalShare || 0),
             profit_percentage: Number(p.profitPercentage || 0),
+            is_active: true,
+            effective_from: new Date().toISOString().slice(0, 10),
           })
           .execute();
       }
@@ -1578,20 +2057,91 @@ export class ImportSalesService {
         .selectAll()
         .where('id', '=', projectId)
         .where('tenant_id', '=', tenantId)
+        .forUpdate()
         .executeTakeFirstOrThrow();
 
       if (project.status === 'closed') {
         throw new BadRequestException('المشروع مقفل بالفعل.');
       }
 
+      const shipments = await trx
+        .selectFrom('import_shipments')
+        .selectAll()
+        .where('project_id', '=', projectId)
+        .where('tenant_id', '=', tenantId)
+        .execute();
+
+      for (const s of shipments) {
+        if (s.status !== 'Arrived') {
+          throw new BadRequestException(`لا يمكن إقفال المشروع: الحاوية ${s.container_number} ما زالت بالحالة (${s.status}) ولم تصل بعد.`);
+        }
+        const receipt = await trx
+          .selectFrom('import_inventory_receipts')
+          .select('state')
+          .where('shipment_id', '=', s.id)
+          .where('tenant_id', '=', tenantId)
+          .executeTakeFirst();
+        if (!receipt || receipt.state !== 'posted') {
+          throw new BadRequestException(`لا يمكن إقفال المشروع: الحاوية ${s.container_number} لم يتم ترحيل استلامها المخزني بالكامل.`);
+        }
+      }
+
+      const proformas = await trx
+        .selectFrom('import_proforma_invoices')
+        .selectAll()
+        .where('project_id', '=', projectId)
+        .where('tenant_id', '=', tenantId)
+        .execute();
+
+      for (const pi of proformas) {
+        if (pi.payment_status === 'unpaid') {
+          throw new BadRequestException(`لا يمكن إقفال المشروع: الفاتورة المبدئية رقم ${pi.pi_number} للمورد غير مسددة.`);
+        }
+      }
+
+      const startDate = project.created_at || new Date('2020-01-01');
+      const profitReport = await this.generatePeriodProfitReport(tenantId, startDate, new Date(), projectId);
+
+      const projectItems = shipments.length > 0
+        ? await trx
+            .selectFrom('import_shipment_items')
+            .select(['product_id', 'quantity', 'received_quantity'])
+            .where('tenant_id', '=', tenantId)
+            .where('shipment_id', 'in', shipments.map((s) => s.id))
+            .execute()
+        : [];
+
+      let totalReceived = 0;
+      for (const it of projectItems) {
+        totalReceived += Number(it.received_quantity ?? it.quantity);
+      }
+
+      const closureData = {
+        closedAt: new Date().toISOString(),
+        closedBy: userId,
+        shipmentsCount: shipments.length,
+        totalReceivedUnits: totalReceived,
+        financialReconciliation: profitReport.data,
+      };
+
       await trx
         .updateTable('import_projects')
-        .set({ status: 'closed', updated_at: sql`NOW()` })
+        .set({
+          status: 'closed',
+          closure_data: closureData as any,
+          closure_date: new Date(),
+          closed_by: userId,
+          updated_at: sql`NOW()`,
+        })
         .where('id', '=', projectId)
         .where('tenant_id', '=', tenantId)
         .execute();
 
-      return { success: true, message: `تم إقفال مشروع الاستيراد #${project.project_no} بنجاح.` };
+      return {
+        success: true,
+        message: `تمت تسوية وإقفال مشروع الاستيراد #${project.project_no} بنجاح وحفظ السجل المالي النهائي.`,
+        closureData,
+      };
     });
   }
 }

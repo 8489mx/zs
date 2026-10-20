@@ -13,6 +13,9 @@ import {
   CreateQcInspectionDto,
   UpsertAciComplianceDto,
   CreateSourcingTripDto,
+  ProcessLateExpenseDto,
+  CalculateCustomsTaxDto,
+  VerifyBankDetailsDto,
 } from './dto/import-sales.dto';
 import { SessionAuthGuard } from '../../core/auth/guards/session-auth.guard';
 import { PermissionsGuard } from '../../core/auth/guards/permissions.guard';
@@ -111,6 +114,21 @@ export class ImportSalesController {
     return this.importSalesService.upsertSupplierImportMeta(req.authContext!.tenantId!, supplierId, dto);
   }
 
+  @RequireAnyPermission('accounting')
+  @Post('suppliers/:supplierId/verify-bank')
+  async verifySupplierBankDetails(
+    @Req() req: RequestWithAuth,
+    @Param('supplierId') supplierId: string,
+    @Body() dto: VerifyBankDetailsDto
+  ) {
+    return this.importSalesService.verifySupplierBankDetails(
+      req.authContext!.tenantId!,
+      Number(req.authContext!.userId!),
+      supplierId,
+      dto.verificationNotes
+    );
+  }
+
   @Get('sourcing-trips')
   async listSourcingTrips(@Req() req: RequestWithAuth, @Query('projectId') projectId?: string) {
     return this.importSalesService.listSourcingTrips(req.authContext!.tenantId!, projectId);
@@ -170,9 +188,17 @@ export class ImportSalesController {
   @Post('calculate-customs')
   async calculateCustomsTax(
     @Req() req: RequestWithAuth,
-    @Body() body: { hsCode: string; cifValueEgp: number }
+    @Body() body: CalculateCustomsTaxDto
   ) {
-    return this.importSalesService.calculateCustomsTax(req.authContext!.tenantId!, body.hsCode, body.cifValueEgp);
+    return this.importSalesService.calculateCustomsTax(
+      req.authContext!.tenantId!,
+      body.hsCode,
+      body.cifValueEgp,
+      {
+        overrideDutyRatePercent: body.overrideDutyRatePercent,
+        overrideVatRatePercent: body.overrideVatRatePercent,
+      }
+    );
   }
 
   // ==========================================
@@ -268,6 +294,7 @@ export class ImportSalesController {
     return this.importSalesService.listShipments(req.authContext!.tenantId!);
   }
 
+  @RequireAnyPermission('purchases', 'accounting')
   @Post('shipments')
   async createShipment(@Req() req: RequestWithAuth, @Body() dto: CreateShipmentDto) {
     return this.importSalesService.createShipment(req.authContext!.tenantId!, dto);
@@ -293,6 +320,7 @@ export class ImportSalesController {
     );
   }
 
+  @RequireAnyPermission('purchases', 'accounting', 'inventory')
   @Post('shipments/:id/items')
   async addShipmentItem(
     @Req() req: RequestWithAuth,
@@ -306,6 +334,21 @@ export class ImportSalesController {
   @Post('calculate-landed-cost/:shipmentId')
   async calculateLandedCost(@Req() req: RequestWithAuth, @Param('shipmentId') shipmentId: string) {
     return this.importSalesService.calculateLandedCost(req.authContext!.tenantId!, shipmentId);
+  }
+
+  @RequireAnyPermission('purchases', 'accounting')
+  @Post('shipments/:shipmentId/late-expense')
+  async processLateShipmentExpense(
+    @Req() req: RequestWithAuth,
+    @Param('shipmentId') shipmentId: string,
+    @Body() dto: ProcessLateExpenseDto
+  ) {
+    return this.importSalesService.processLateShipmentExpense(
+      req.authContext!.tenantId!,
+      Number(req.authContext!.userId!),
+      shipmentId,
+      dto
+    );
   }
 
   @RequireAnyPermission('canViewProfit', 'reports', 'accounting')
@@ -341,6 +384,7 @@ export class ImportSalesController {
     );
   }
 
+  @RequireAnyPermission('purchases', 'accounting', 'inventory')
   @Patch('shipment-items/:itemId')
   async updateShipmentItem(
     @Req() req: RequestWithAuth,
