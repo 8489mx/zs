@@ -11,6 +11,7 @@
     "release:generate": "ts-node scripts/generate-release-package.ts",
     "typecheck": "tsc --noEmit",
     "test:smoke": "ts-node test/smoke.ts",
+    "test:logistics:chaos": "ts-node test/chaos-logistics-adversarial-sabotage.ts",
     "migration:run": "ts-node src/database/migrate.ts up",
     "migration:revert": "ts-node src/database/migrate.ts down",
     "migration:list": "ts-node src/database/migrate.ts list",

@@ -922,6 +922,10 @@ export class MaritimeFreightService {
     const { tenantId } = requireTenantScope(auth);
     const inquiry = await this.getInquiryById(auth, inquiryId);
 
+    if (inquiry.rfq_id || (inquiry.status as string) === 'rfq_created' || inquiry.status === 'converted_to_job') {
+      throw new BadRequestException('تم تحويل هذا الاستفسار إلى طلب تسعير (RFQ) مسبقاً');
+    }
+
     const rfq = await this.createRfq(auth, {
       polCode: inquiry.pol_code,
       polName: inquiry.pol_name,
@@ -1407,6 +1411,11 @@ export class MaritimeFreightService {
     const thcDestination = Number(dto.thcDestination || 0);
     const bafCharges = Number(dto.bafCharges || 0);
     const otherCharges = Number(dto.otherCharges || 0);
+
+    if (oceanFreight < 0 || thcOrigin < 0 || thcDestination < 0 || bafCharges < 0 || otherCharges < 0) {
+      throw new BadRequestException('مبالغ عروض أسعار الناقل لا يمكن أن تكون سالبة');
+    }
+
     const totalFreightCost = oceanFreight + thcOrigin + thcDestination + bafCharges + otherCharges;
 
     const [bid] = await this.db
@@ -2149,80 +2158,101 @@ export class MaritimeFreightService {
   async autoConvertQuotationToJob(auth: AuthContext, quotationId: string) {
     const { tenantId } = requireTenantScope(auth);
     const quote = await this.db
-      .selectFrom('maritime_quotations')
-      .selectAll()
+      .updateTable('maritime_quotations')
+      .set({ status: 'converted_to_job', updated_at: sql`NOW()` })
       .where('tenant_id', '=', tenantId)
       .where('id', '=', quotationId as any)
+      .where('status', '!=', 'converted_to_job')
+      .returningAll()
       .executeTakeFirst();
 
-    if (!quote) throw new NotFoundException('Quotation not found');
-
-    let rfq: any = null;
-    let bid: any = null;
-    if (quote.rfq_id) {
-      rfq = await this.db
-        .selectFrom('maritime_rfqs')
-        .selectAll()
+    if (!quote) {
+      const existing = await this.db
+        .selectFrom('maritime_quotations')
+        .select('id')
         .where('tenant_id', '=', tenantId)
-        .where('id', '=', quote.rfq_id as any)
+        .where('id', '=', quotationId as any)
         .executeTakeFirst();
-    }
-    if (quote.bid_id) {
-      bid = await this.db
-        .selectFrom('maritime_rfq_bids')
-        .selectAll()
-        .where('tenant_id', '=', tenantId)
-        .where('id', '=', quote.bid_id as any)
-        .executeTakeFirst();
+      if (!existing) throw new NotFoundException('Quotation not found');
+      throw new BadRequestException('تم تحويل عرض السعر هذا إلى أمر تشغيل بالفعل');
     }
 
-    const transportMode = quote.transport_mode || rfq?.transport_mode || 'sea';
-    const containerCount = rfq?.container_count || 1;
-    const containerType = rfq?.container_type || '40HC';
-    const freeDays = bid?.free_days ?? rfq?.target_free_days ?? 14;
-
-    const containersPayload: any[] = [];
-    if (transportMode === 'sea') {
-      for (let i = 1; i <= containerCount; i++) {
-        containersPayload.push({
-          containerNumber: `MSKU${Math.floor(1000000 + Math.random() * 9000000)}`,
-          containerType,
-          freeDays,
-          depositAmount: 0,
-          depositCurrency: 'EGP',
-        });
+    try {
+      let rfq: any = null;
+      let bid: any = null;
+      if (quote.rfq_id) {
+        rfq = await this.db
+          .selectFrom('maritime_rfqs')
+          .selectAll()
+          .where('tenant_id', '=', tenantId)
+          .where('id', '=', quote.rfq_id as any)
+          .executeTakeFirst();
       }
-    }
+      if (quote.bid_id) {
+        bid = await this.db
+          .selectFrom('maritime_rfq_bids')
+          .selectAll()
+          .where('tenant_id', '=', tenantId)
+          .where('id', '=', quote.bid_id as any)
+          .executeTakeFirst();
+      }
 
-    return await this.createJob(auth, {
-      quotationId: String(quote.id),
-      rfqId: quote.rfq_id ? String(quote.rfq_id) : undefined,
-      inquiryId: quote.inquiry_id ? String(quote.inquiry_id) : undefined,
-      customerId: quote.customer_id,
-      customerName: quote.customer_name,
-      direction: (rfq?.direction as any) || 'import',
-      transportMode: quote.transport_mode || rfq?.transport_mode || 'sea',
-      airCargoType: quote.air_cargo_type || rfq?.air_cargo_type || null,
-      grossWeightKg: Number(quote.gross_weight_kg || rfq?.gross_weight_kg || 0),
-      volumetricWeightKg: Number(quote.volumetric_weight_kg || rfq?.volumetric_weight_kg || 0),
-      chargeableWeightKg: Number(quote.chargeable_weight_kg || rfq?.chargeable_weight_kg || 0),
-      totalCbm: Number(quote.total_cbm || rfq?.total_cbm || 0),
-      packageCount: quote.package_count || rfq?.package_count || 0,
-      flightNumber: quote.flight_number || rfq?.flight_number || null,
-      flightDate: quote.flight_date || rfq?.flight_date || null,
-      mawbNumber: quote.mawb_number || rfq?.mawb_number || null,
-      hawbNumber: quote.hawb_number || rfq?.hawb_number || null,
-      paymentTerm: quote.payment_term,
-      shippingLineId: bid?.shipping_line_id || null,
-      shippingLineName: bid?.shipping_line_name || (quote.transport_mode === 'air' ? 'شركة طيران معتمدة' : quote.transport_mode === 'road' ? 'شركة نقل بري معتمدة' : 'خط ملاحي معتمد'),
-      polCode: rfq?.pol_code || (quote.transport_mode === 'road' ? 'EGSOC' : quote.transport_mode === 'air' ? 'CAI' : 'CNSHA'),
-      polName: rfq?.pol_name || (quote.transport_mode === 'air' ? 'مطار الشحن' : quote.transport_mode === 'road' ? 'الميناء الجاف / موقع الشحن' : 'ميناء الشحن'),
-      podCode: rfq?.pod_code || (quote.transport_mode === 'road' ? 'EGTRD' : quote.transport_mode === 'air' ? 'DXB' : 'EGALY'),
-      podName: rfq?.pod_name || (quote.transport_mode === 'air' ? 'مطار الوصول' : quote.transport_mode === 'road' ? 'الميناء الجاف / موقع الوصول' : 'ميناء الوصول'),
-      bookingNumber: `BKG-${Math.floor(100000 + Math.random() * 900000)}`,
-      containers: containersPayload,
-      notes: `أمر تشغيل تم تحويله وتفعيله آلياً من عرض السعر ${quote.quotation_number}`,
-    });
+      const transportMode = quote.transport_mode || rfq?.transport_mode || 'sea';
+      const containerCount = rfq?.container_count || 1;
+      const containerType = rfq?.container_type || '40HC';
+      const freeDays = bid?.free_days ?? rfq?.target_free_days ?? 14;
+
+      const containersPayload: any[] = [];
+      if (transportMode === 'sea') {
+        for (let i = 1; i <= containerCount; i++) {
+          containersPayload.push({
+            containerNumber: `MSKU${Math.floor(1000000 + Math.random() * 9000000)}`,
+            containerType,
+            freeDays,
+            depositAmount: 0,
+            depositCurrency: 'EGP',
+          });
+        }
+      }
+
+      return await this.createJob(auth, {
+        quotationId: String(quote.id),
+        rfqId: quote.rfq_id ? String(quote.rfq_id) : undefined,
+        inquiryId: quote.inquiry_id ? String(quote.inquiry_id) : undefined,
+        customerId: quote.customer_id,
+        customerName: quote.customer_name,
+        direction: (rfq?.direction as any) || 'import',
+        transportMode: quote.transport_mode || rfq?.transport_mode || 'sea',
+        airCargoType: quote.air_cargo_type || rfq?.air_cargo_type || null,
+        grossWeightKg: Number(quote.gross_weight_kg || rfq?.gross_weight_kg || 0),
+        volumetricWeightKg: Number(quote.volumetric_weight_kg || rfq?.volumetric_weight_kg || 0),
+        chargeableWeightKg: Number(quote.chargeable_weight_kg || rfq?.chargeable_weight_kg || 0),
+        totalCbm: Number(quote.total_cbm || rfq?.total_cbm || 0),
+        packageCount: quote.package_count || rfq?.package_count || 0,
+        flightNumber: quote.flight_number || rfq?.flight_number || null,
+        flightDate: quote.flight_date || rfq?.flight_date || null,
+        mawbNumber: quote.mawb_number || rfq?.mawb_number || null,
+        hawbNumber: quote.hawb_number || rfq?.hawb_number || null,
+        paymentTerm: quote.payment_term,
+        shippingLineId: bid?.shipping_line_id || null,
+        shippingLineName: bid?.shipping_line_name || (quote.transport_mode === 'air' ? 'شركة طيران معتمدة' : quote.transport_mode === 'road' ? 'شركة نقل بري معتمدة' : 'خط ملاحي معتمد'),
+        polCode: rfq?.pol_code || (quote.transport_mode === 'road' ? 'EGSOC' : quote.transport_mode === 'air' ? 'CAI' : 'CNSHA'),
+        polName: rfq?.pol_name || (quote.transport_mode === 'air' ? 'مطار الشحن' : quote.transport_mode === 'road' ? 'الميناء الجاف / موقع الشحن' : 'ميناء الشحن'),
+        podCode: rfq?.pod_code || (quote.transport_mode === 'road' ? 'EGTRD' : quote.transport_mode === 'air' ? 'DXB' : 'EGALY'),
+        podName: rfq?.pod_name || (quote.transport_mode === 'air' ? 'مطار الوصول' : quote.transport_mode === 'road' ? 'الميناء الجاف / موقع الوصول' : 'ميناء الوصول'),
+        bookingNumber: `BKG-${Math.floor(100000 + Math.random() * 900000)}`,
+        containers: containersPayload,
+        notes: `أمر تشغيل تم تحويله وتفعيله آلياً من عرض السعر ${quote.quotation_number}`,
+      });
+    } catch (err) {
+      await this.db
+        .updateTable('maritime_quotations')
+        .set({ status: 'approved', updated_at: sql`NOW()` })
+        .where('tenant_id', '=', tenantId)
+        .where('id', '=', quote.id as any)
+        .execute();
+      throw err;
+    }
   }
 
   async getJobs(auth: AuthContext, filters?: { status?: string; search?: string; milestone?: string }) {
