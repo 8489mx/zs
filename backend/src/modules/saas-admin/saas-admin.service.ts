@@ -942,7 +942,8 @@ export class SaasAdminService {
     });
     return {
       ok: true,
-      message: `تم حذف النسخة (${tenant.businessName || tenant.slug}) وجميع قواعد بياناتها وسجلاتها نهائياً بنجاح.`,
+      message: `تم حذف النسخة (${tenant.business_name || tenant.slug}) وجميع قواعد بياناتها وسجلاتها نهائياً بنجاح.`,
+
     };
   }
 
