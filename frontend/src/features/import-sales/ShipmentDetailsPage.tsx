@@ -1,3 +1,4 @@
+import { toast, systemConfirm } from '@/shared/components/system-alert';
 import { useTranslation } from 'react-i18next';
 import { useParams, useNavigate } from 'react-router-dom';
 import { PageHeader } from '@/shared/components/page-header';
@@ -201,14 +202,14 @@ export default function ShipmentDetailsPage() {
     await Promise.all(promises);
     await queryClient.invalidateQueries({ queryKey: ['import-shipments', id] });
     setTimeout(() => {
-      alert('تم تطبيق الهوامش على جميع الأصناف بنجاح (تحتاج إلى تطبيق واعتماد الأسعار للمخزن لتفعيلها)');
+      toast.success('تم تطبيق الهوامش على جميع الأصناف بنجاح (تحتاج إلى تطبيق واعتماد الأسعار للمخزن لتفعيلها)');
     }, 100);
   };
 
   const handleApplyPrices = async () => {
-    if (confirm('هل أنت متأكد من تطبيق الأسعار المقترحة على المنتجات في المخزن؟')) {
+    const confirmed = await systemConfirm({ title: 'اعتماد الأسعار', message: 'هل أنت متأكد من تطبيق الأسعار المقترحة على المنتجات في المخزن؟' }); if (confirmed) {
       const res = await applyPricesMutation.mutateAsync();
-      alert(`تم تحديث أسعار ${res.updatedCount} صنف بنجاح.`);
+      toast.success(`تم تحديث أسعار ${res.updatedCount} صنف بنجاح.`);
     }
   };
 
@@ -222,6 +223,15 @@ export default function ShipmentDetailsPage() {
               <span>{t('import_sales.shipment_details_page.s5', "الحالة:")} <strong>{data.status}</strong></span>
               <span>{t('import_sales.shipment_details_page.s6', "المصنع:")} <strong>{data.supplier_name || t('import_sales.shipment_details_page.s7', "غير محدد")}</strong></span>
               <span>{t('import_sales.shipment_details_page.s8', "بوليصة الشحن (B/L):")} <strong>{data.bill_of_lading || t('import_sales.shipment_details_page.s9', "غير محدد")}</strong></span>
+              {(data as any).project_title && (
+                <span>مشروع الاستيراد: <strong>{(data as any).project_no} - {(data as any).project_title}</strong></span>
+              )}
+              {(data as any).freight_type && (
+                <span>الشحن: <strong>{(data as any).freight_type} ({(data as any).container_size || '40HQ'})</strong></span>
+              )}
+              {(data as any).port_of_loading && (
+                <span>المسار: <strong>{(data as any).port_of_loading} &larr; {(data as any).port_of_discharge || 'Alexandria'}</strong></span>
+              )}
             </div>
           }
           actions={
@@ -231,6 +241,16 @@ export default function ShipmentDetailsPage() {
           } 
         />
 
+        {(data as any).demurrageRisk?.isOverdue && (
+          <div style={{ backgroundColor: '#fee2e2', border: '1px solid #fca5a5', padding: '10px 16px', borderRadius: 10, color: '#b91c1c', fontWeight: 700, fontSize: '12.5px', marginBottom: 14 }}>
+            تحذير تشغيلي: تجاوزت الحاوية فترة السماح للأرضيات بـ {(data as any).demurrageRisk.overdueDays} يوم! غرامات تأخير تقديرية: {(data as any).demurrageRisk.estimatedFeesEgp?.toLocaleString()} ج.م
+          </div>
+        )}
+        {!(data as any).demurrageRisk?.isOverdue && (data as any).demurrageRisk?.daysRemaining !== null && (
+          <div style={{ backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', padding: '10px 16px', borderRadius: 10, color: '#166534', fontWeight: 600, fontSize: '12.5px', marginBottom: 14 }}>
+            فترة سماح الأرضيات: متبقي {(data as any).demurrageRisk.daysRemaining} يوم قبل بدء احتساب غرامات التأخير اليومية
+          </div>
+        )}
         <FormSection title={t('import_sales.shipment_details_page.s11', "تفاصيل وتكاليف الحاوية (مؤثرة على سعر المنتج)")}>
           <form onSubmit={handleUpdateCosts} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', padding: '1rem' }}>
             

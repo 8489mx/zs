@@ -358,3 +358,268 @@ export const usePartnerPayoutMutation = () => {
     },
   });
 };
+
+
+// ==========================================
+// IMPORT ENTERPRISE HOOKS & TYPES
+// ==========================================
+
+export interface ImportCommandCenterMetrics {
+  capital: {
+    totalCapital: number;
+    deployedCapital: number;
+    availableCapital: number;
+    totalWithdrawn: number;
+  };
+  pipeline: {
+    projects: Record<string, number>;
+    shipments: {
+      inTransit: number;
+      inCustoms: number;
+      arrived: number;
+    };
+  };
+  liabilities: {
+    totalDebtForeign: number;
+  };
+  alerts: {
+    demurrageAlerts: Array<{
+      shipmentId: string;
+      containerNumber: string;
+      status: string;
+      isOverdue: boolean;
+      overdueDays: number;
+      estimatedFeesEgp: number;
+      daysRemaining: number | null;
+    }>;
+    aciExpiring: Array<{
+      id: string;
+      acid_number: string;
+      acid_expiry_date: string;
+      status: string;
+    }>;
+  };
+  performance: ProfitReport;
+}
+
+export const useImportCommandCenterQuery = () => {
+  return useQuery({
+    queryKey: ['import-command-center'],
+    queryFn: async () => {
+      return await http<ImportCommandCenterMetrics>('/api/import-sales/command-center');
+    },
+  });
+};
+
+export interface ImportProject {
+  id: string;
+  project_no: string;
+  title: string;
+  target_market: string;
+  country_origin: string;
+  country_destination: string;
+  budget_currency: string;
+  allocated_capital: number;
+  target_roi_percentage: number;
+  status: string;
+  feasibility_data?: any;
+  notes?: string;
+  created_at: string;
+  shipmentCount?: number;
+}
+
+export const useImportProjectsQuery = (status?: string) => {
+  return useQuery({
+    queryKey: ['import-projects', status],
+    queryFn: async () => {
+      const url = status ? `/api/import-sales/projects?status=${status}` : '/api/import-sales/projects';
+      return await http<ImportProject[]>(url);
+    },
+  });
+};
+
+export const useImportProjectDetailsQuery = (id: string) => {
+  return useQuery({
+    queryKey: ['import-projects', id],
+    queryFn: async () => {
+      return await http<any>(`/api/import-sales/projects/${id}`);
+    },
+    enabled: !!id,
+  });
+};
+
+export const useCreateImportProjectMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (dto: any) => {
+      return await http<ImportProject>('/api/import-sales/projects', {
+        method: 'POST',
+        body: JSON.stringify(dto),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['import-projects'] });
+      queryClient.invalidateQueries({ queryKey: ['import-command-center'] });
+    },
+  });
+};
+
+export const useUpdateImportProjectMutation = (id: string) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (dto: any) => {
+      return await http<ImportProject>(`/api/import-sales/projects/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(dto),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['import-projects', id] });
+      queryClient.invalidateQueries({ queryKey: ['import-projects'] });
+      queryClient.invalidateQueries({ queryKey: ['import-command-center'] });
+    },
+  });
+};
+
+export const useCalculateFeasibilityMutation = () => {
+  return useMutation({
+    mutationFn: async (dto: any) => {
+      return await http<any>('/api/import-sales/calculate-feasibility', {
+        method: 'POST',
+        body: JSON.stringify(dto),
+      });
+    },
+  });
+};
+
+export interface ChinaSupplier {
+  id: string;
+  name: string;
+  phone?: string;
+  email?: string;
+  balance: number;
+  chinese_name?: string;
+  city?: string;
+  province?: string;
+  moq_description?: string;
+  production_lead_time_days?: number;
+  verified_bank_details?: any;
+  incoterms_accepted?: string[];
+  qc_rating?: number;
+  quality_certifications?: string[];
+  audit_status?: string;
+  import_notes?: string;
+}
+
+export const useChinaSuppliersQuery = () => {
+  return useQuery({
+    queryKey: ['china-suppliers'],
+    queryFn: async () => {
+      return await http<ChinaSupplier[]>('/api/import-sales/china-suppliers');
+    },
+  });
+};
+
+export const useUpsertSupplierMetaMutation = (supplierId: string) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (dto: any) => {
+      return await http(`/api/import-sales/suppliers/${supplierId}/meta`, {
+        method: 'POST',
+        body: JSON.stringify(dto),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['china-suppliers'] });
+      queryClient.invalidateQueries({ queryKey: ['suppliers'] });
+    },
+  });
+};
+
+export const useQcInspectionsQuery = (projectId?: string, shipmentId?: string) => {
+  return useQuery({
+    queryKey: ['qc-inspections', projectId, shipmentId],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (projectId) params.set('projectId', projectId);
+      if (shipmentId) params.set('shipmentId', shipmentId);
+      return await http<any[]>(`/api/import-sales/qc-inspections?${params.toString()}`);
+    },
+  });
+};
+
+export const useCreateQcInspectionMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (dto: any) => {
+      return await http('/api/import-sales/qc-inspections', {
+        method: 'POST',
+        body: JSON.stringify(dto),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['qc-inspections'] });
+    },
+  });
+};
+
+export const useAciComplianceQuery = (id: string) => {
+  return useQuery({
+    queryKey: ['aci-compliance', id],
+    queryFn: async () => {
+      return await http<any>(`/api/import-sales/aci-compliance/${id}`);
+    },
+    enabled: !!id,
+  });
+};
+
+export const useUpsertAciComplianceMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (dto: any) => {
+      return await http('/api/import-sales/aci-compliance', {
+        method: 'POST',
+        body: JSON.stringify(dto),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['aci-compliance'] });
+      queryClient.invalidateQueries({ queryKey: ['import-command-center'] });
+    },
+  });
+};
+
+export const useCustomsTariffsQuery = (search?: string) => {
+  return useQuery({
+    queryKey: ['customs-tariffs', search],
+    queryFn: async () => {
+      const url = search ? `/api/import-sales/customs-tariffs?search=${encodeURIComponent(search)}` : '/api/import-sales/customs-tariffs';
+      return await http<any[]>(url);
+    },
+  });
+};
+
+export const useCalculateCustomsMutation = () => {
+  return useMutation({
+    mutationFn: async (dto: { hsCode: string; cifValueEgp: number }) => {
+      return await http<any>('/api/import-sales/calculate-customs', {
+        method: 'POST',
+        body: JSON.stringify(dto),
+      });
+    },
+  });
+};
+
+export const useCloseProjectMutation = (projectId: string) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      return await http(`/api/import-sales/projects/${projectId}/close`, { method: 'POST' });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['import-projects'] });
+      queryClient.invalidateQueries({ queryKey: ['import-projects', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['import-command-center'] });
+    },
+  });
+};

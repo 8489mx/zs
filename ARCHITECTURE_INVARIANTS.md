@@ -1972,3 +1972,20 @@ The authenticated master endpoints use private conditional caching and weak ETag
 - Deployment: stop old import writers while applying both migrations and installing the new code. Do not allow old and new posting implementations to run together.
 - Follow-up: an authorized, audited settlement/reversal flow, including reconciliation of each legacy hold and sold-versus-on-hand cost allocation. No release/repost endpoint is introduced here.
 - Validation: static review only. Tests, build and typecheck were not run at the user's explicit request; migrations were not executed on any database.
+
+## 2.23 دستور منظومة التجارة الدولية وعمليات الاستيراد الشاملة (International Trade & Import Operations Invariants)
+
+- **IMPORT-OPS-FEASIBILITY-1 (محرك دراسة الجدوى والسيناريوهات الثلاثة):**
+  - حساب تكلفة الاستيراد التقديرية يخضع لمحرك نقي (`calculateImportFeasibility`) يفصل بين التكاليف المباشرة القابلة للرسملة (CIF + جمارك + أرضيات + نقل داخلي) والمصروفات التشغيلية للمشروع (سفر واستكشاف + تمويل بنكي).
+  - توفير ثلاثة سيناريوهات محاسبية مؤكدة: الأساسي (Base)، المتفائل (+10% مبيعات، -5% شحن)، والمتحفظ (-10% مبيعات، +15% شحن وأرضيات) مع حساب نقطة التعادل بدقة.
+- **IMPORT-OPS-ALLOCATION-1 (توزيع التكلفة الفعلية متعدد المعايير):**
+  - يدعم محرك `calculateLandedCostBreakdown` التوزيع بالقيمة ($ Value)، أو بالوزن (Total Weight Kg)، أو بالحجم المكعب (Total CBM)، بما يضمن عدالة تحميل المصاريف على الأصناف الخفيفة غالية الثمن مقابل الثقيلة رخيصة الثمن.
+- **IMPORT-OPS-DEMURRAGE-1 (مراقبة مخاطر الأرضيات وغرامات الحاويات):**
+  - تتبع فترات السماح للأرضيات (`free_demurrage_days`) وتاريخ بدء الاحتساب (`demurrage_start_date`) مع إطلاق تنبيهات حية قبل 3 أيام من الاستحقاق واحتساب الغرامات اليومية بالجنيه فور التجاوز.
+- **IMPORT-OPS-ACI-COMPLIANCE-1 (الامتثال الجمركي المصري ومنظومة نافذة):**
+  - توثيق رقم ACID المسبق (19 رقماً)، وتاريخ الانتهاء، وربط مستندات CargoX، ومنع جاهزية الشحن قبل استيفاء الفاتورة وقائمة التعبئة وبوليصة الشحن المطابقة.
+- **IMPORT-OPS-PROJECT-SETTLEMENT-1 (شراكة المشاريع وإقفال الحسابات):**
+  - دعم الشراكة المخصصة على مستوى كل مشروع استيراد (`import_project_partners`) بنسب وأسهم مستقلة مع الحفاظ على سقف 100%.
+  - إقفال المشروع (`status = 'closed'`) يمنع التعديلات العشوائية اللاحقة ويقيد تسوية الأرباح النهائية.
+- **الحارس:** `backend/test/critical/import-operations-master.spec.ts`.
+

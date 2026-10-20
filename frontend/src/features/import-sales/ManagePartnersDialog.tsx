@@ -1,3 +1,4 @@
+import { toast, systemConfirm } from '@/shared/components/system-alert';
 import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
 import { StandardDialog } from '@/shared/components/StandardDialog';
@@ -47,7 +48,7 @@ export function ManagePartnersDialog({ open, onClose }: { open: boolean, onClose
     const percNum = Number(percentage) || 0;
     const capNum = Number(capitalAmount) || 0;
     if (capNum > 0 && !accountId) {
-      return alert('الرجاء اختيار الخزينة لإيداع رأس المال الافتتاحي');
+      { toast.error('الرجاء اختيار الخزينة لإيداع رأس المال الافتتاحي'); return; }
     }
     await createMutation.mutateAsync({ name: name.trim(), percentage: percNum, capitalAmount: capNum, accountId: accountId || undefined } as any);
     setName('');
@@ -57,7 +58,7 @@ export function ManagePartnersDialog({ open, onClose }: { open: boolean, onClose
   };
 
   const handleDelete = async (id: string) => {
-    if (confirm('هل أنت متأكد من حذف هذا الشريك؟ (لا يمكن التراجع، وسيؤثر على الحسابات السابقة إذا لم تكن مقفلة)')) {
+    const confirmed = await systemConfirm({ title: 'تأكيد الحذف', message: 'هل أنت متأكد من حذف هذا الشريك؟ (لا يمكن التراجع، وسيؤثر على الحسابات السابقة إذا لم تكن مقفلة)' }); if (confirmed) {
       await deleteMutation.mutateAsync(id);
       setLocalPartners(prev => prev.filter(p => p.id !== id));
     }
@@ -69,7 +70,7 @@ export function ManagePartnersDialog({ open, onClose }: { open: boolean, onClose
 
   const recalculateFromCapital = () => {
     const totalCap = localPartners.reduce((sum, p) => sum + (Number(p.capital_amount) || 0), 0);
-    if (totalCap <= 0) return alert('إجمالي رأس المال صفر، لا يمكن حساب النسب.');
+    { if (totalCap <= 0) { toast.error('إجمالي رأس المال صفر، لا يمكن حساب النسب.'); return; } }
     
     setLocalPartners(prev => prev.map(p => ({
       ...p,
@@ -87,7 +88,7 @@ export function ManagePartnersDialog({ open, onClose }: { open: boolean, onClose
         });
       }
     }
-    alert('تم حفظ تعديلات النسب بنجاح');
+    toast.success('تم حفظ تعديلات النسب بنجاح');
   };
 
   return (

@@ -1,3 +1,4 @@
+import { toast } from '@/shared/components/system-alert';
 import { useTranslation } from 'react-i18next';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { useState } from 'react';
@@ -38,9 +39,9 @@ export default function SupplierCredit() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedSupplier) return alert('يرجى اختيار المصنع أو المورد الأجنبي');
-    if (egpNum <= 0) return alert('المبلغ المسحوب من الخزينة يجب أن يكون أكبر من صفر');
-    if (foreignNum <= 0) return alert('المبلغ المحول للمصنع يجب أن يكون أكبر من صفر');
+    { if (!selectedSupplier) { toast.error('يرجى اختيار المصنع أو المورد الأجنبي'); return; } }
+    { if (egpNum <= 0) { toast.error('المبلغ المسحوب من الخزينة يجب أن يكون أكبر من صفر'); return; } }
+    { if (foreignNum <= 0) { toast.error('المبلغ المحول للمصنع يجب أن يكون أكبر من صفر'); return; } }
 
     transferMutation.mutate({
       supplierId: selectedSupplier,
@@ -49,7 +50,7 @@ export default function SupplierCredit() {
       notes
     }, {
       onSuccess: () => {
-        alert('تم تسجيل الحوالة البنكية وتحديث مديونية المصنع والخزينة بنجاح');
+        toast.success('تم تسجيل الحوالة البنكية وتحديث مديونية المصنع والخزينة بنجاح');
         setAmountEgp('');
         setAmountForeign('');
         setNotes('');

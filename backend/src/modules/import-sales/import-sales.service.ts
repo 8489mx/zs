@@ -1,15 +1,29 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Inject } from '@nestjs/common';
 import { Kysely, sql, Transaction, Selectable, Updateable } from 'kysely';
 import { Database, ImportShipmentTable, ImportShipmentItemTable } from '../../database/database.types';
 import { calculateImportLandedCosts, groupImportReceipts, importWeightedAverageCost, requireImportNumber } from './import-inventory-cost.engine';
-import { Inject } from '@nestjs/common';
 import { KYSELY_DB } from '../../database/database.constants';
-import { CreateShipmentDto, UpdateShipmentCostsDto, AddShipmentItemDto, RecordForeignTransferDto, UpdateShipmentItemDto } from './dto/import-sales.dto';
+import {
+  CreateShipmentDto,
+  UpdateShipmentCostsDto,
+  AddShipmentItemDto,
+  RecordForeignTransferDto,
+  UpdateShipmentItemDto,
+  CreateImportProjectDto,
+  UpdateImportProjectDto,
+  CalculateFeasibilityDto,
+  UpsertSupplierMetaDto,
+  CreateQcInspectionDto,
+  UpsertAciComplianceDto,
+  CreateSourcingTripDto,
+} from './dto/import-sales.dto';
 import { applyStockDelta, lockStockProducts } from '../../common/utils/location-stock-ledger';
+import { formatDailyDocumentNumber } from '../../common/utils/document-number.util';
+import { calculateImportFeasibility, FeasibilityCalculationResult } from './engines/import-feasibility.engine';
+import { calculateLandedCostBreakdown, calculateDemurrageRisk } from './engines/import-landed-cost.engine';
 
 @Injectable()
 export class ImportSalesService {
-  // Keep unrelated partner/transfer paths untouched; all inventory queries use the real schema.
   private readonly inventoryDb: Kysely<Database>;
   constructor(@Inject(KYSELY_DB) private readonly db: Kysely<any>) {
     this.inventoryDb = db;
@@ -185,6 +199,482 @@ export class ImportSalesService {
     }
   }
 
+  // ==========================================
+  // 2. IMPORT PROJECTS & FEASIBILITY ENGINE
+  // ==========================================
+
+  async listProjects(tenantId: string, status?: string) {
+    let query = this.db
+      .selectFrom('import_projects')
+      .selectAll()
+      .where('tenant_id', '=', tenantId)
+      .orderBy('created_at', 'desc');
+
+    if (status) {
+      query = query.where('status', '=', status);
+    }
+
+    const projects = await query.execute();
+
+    const shipmentCounts = await this.db
+      .selectFrom('import_shipments')
+      .select(['project_id', sql<number>`count(*)`.as('shipment_count')])
+      .where('tenant_id', '=', tenantId)
+      .where('project_id', 'is not', null)
+      .groupBy('project_id')
+      .execute();
+
+    const countByProject = new Map<string, number>(
+      shipmentCounts.map((sc) => [String(sc.project_id), Number(sc.shipment_count)])
+    );
+
+    return projects.map((p) => ({
+      ...p,
+      shipmentCount: countByProject.get(String(p.id)) || 0,
+    }));
+  }
+
+  async getProjectById(tenantId: string, id: string) {
+    const project = await this.db
+      .selectFrom('import_projects')
+      .selectAll()
+      .where('tenant_id', '=', tenantId)
+      .where('id', '=', id)
+      .executeTakeFirst();
+
+    if (!project) throw new NotFoundException('مشروع الاستيراد غير موجود.');
+
+    const shipments = await this.db
+      .selectFrom('import_shipments')
+      .selectAll()
+      .where('tenant_id', '=', tenantId)
+      .where('project_id', '=', id)
+      .orderBy('created_at', 'desc')
+      .execute();
+
+    const qcInspections = await this.db
+      .selectFrom('import_qc_inspections')
+      .selectAll()
+      .where('tenant_id', '=', tenantId)
+      .where('project_id', '=', id)
+      .orderBy('inspection_date', 'desc')
+      .execute();
+
+    const sourcingTrips = await this.db
+      .selectFrom('import_sourcing_trips')
+      .selectAll()
+      .where('tenant_id', '=', tenantId)
+      .where('project_id', '=', id)
+      .orderBy('start_date', 'desc')
+      .execute();
+
+    const aciRecords = await this.db
+      .selectFrom('import_aci_compliance')
+      .selectAll()
+      .where('tenant_id', '=', tenantId)
+      .where('project_id', '=', id)
+      .execute();
+
+    const partners = await this.db
+      .selectFrom('import_project_partners')
+      .innerJoin('import_partners', 'import_partners.id', 'import_project_partners.partner_id')
+      .select([
+        'import_project_partners.id',
+        'import_project_partners.partner_id',
+        'import_project_partners.capital_share_amount',
+        'import_project_partners.profit_percentage',
+        'import_partners.name as partner_name',
+      ])
+      .where('import_project_partners.tenant_id', '=', tenantId)
+      .where('import_project_partners.project_id', '=', id)
+      .execute();
+
+    return {
+      ...project,
+      shipments,
+      qcInspections,
+      sourcingTrips,
+      aciRecords,
+      partners,
+    };
+  }
+
+  async createProject(tenantId: string, dto: CreateImportProjectDto) {
+    return await this.db.transaction().execute(async (trx) => {
+      const todayCount = await trx
+        .selectFrom('import_projects')
+        .select(sql<number>`count(*)`.as('count'))
+        .where('tenant_id', '=', tenantId)
+        .where('created_at', '>=', sql`CURRENT_DATE`)
+        .executeTakeFirst();
+
+      const seq = Number(todayCount?.count || 0) + 1;
+      const projectNo = dto.projectNo || formatDailyDocumentNumber('IMP', seq);
+
+      return await trx
+        .insertInto('import_projects')
+        .values({
+          tenant_id: tenantId,
+          project_no: projectNo,
+          title: dto.title.trim(),
+          target_market: dto.targetMarket || 'Egypt',
+          country_origin: dto.countryOrigin || 'China',
+          country_destination: dto.countryDestination || 'Egypt',
+          budget_currency: dto.budgetCurrency || 'USD',
+          allocated_capital: dto.allocatedCapital || 0,
+          target_roi_percentage: dto.targetRoiPercentage || 25,
+          status: dto.status || 'feasibility',
+          feasibility_data: dto.feasibilityData ? JSON.stringify(dto.feasibilityData) : '{}',
+          notes: dto.notes,
+        })
+        .returningAll()
+        .executeTakeFirstOrThrow();
+    });
+  }
+
+  async updateProject(tenantId: string, projectId: string, dto: UpdateImportProjectDto) {
+    const payload: any = { updated_at: sql`NOW()` };
+    if (dto.title !== undefined) payload.title = dto.title.trim();
+    if (dto.targetMarket !== undefined) payload.target_market = dto.targetMarket;
+    if (dto.countryOrigin !== undefined) payload.country_origin = dto.countryOrigin;
+    if (dto.countryDestination !== undefined) payload.country_destination = dto.countryDestination;
+    if (dto.budgetCurrency !== undefined) payload.budget_currency = dto.budgetCurrency;
+    if (dto.allocatedCapital !== undefined) payload.allocated_capital = dto.allocatedCapital;
+    if (dto.targetRoiPercentage !== undefined) payload.target_roi_percentage = dto.targetRoiPercentage;
+    if (dto.status !== undefined) payload.status = dto.status;
+    if (dto.feasibilityData !== undefined) payload.feasibility_data = JSON.stringify(dto.feasibilityData);
+    if (dto.notes !== undefined) payload.notes = dto.notes;
+
+    return await this.db
+      .updateTable('import_projects')
+      .set(payload)
+      .where('id', '=', projectId)
+      .where('tenant_id', '=', tenantId)
+      .returningAll()
+      .executeTakeFirstOrThrow();
+  }
+
+  calculateFeasibility(dto: CalculateFeasibilityDto): FeasibilityCalculationResult {
+    return calculateImportFeasibility(dto);
+  }
+
+  // ==========================================
+  // 3. CHINA SOURCING & QC INSPECTIONS
+  // ==========================================
+
+  async listChinaSuppliers(tenantId: string) {
+    return await this.db
+      .selectFrom('suppliers')
+      .leftJoin('import_suppliers_meta', (join) =>
+        join
+          .onRef('import_suppliers_meta.supplier_id', '=', 'suppliers.id')
+          .onRef('import_suppliers_meta.tenant_id', '=', 'suppliers.tenant_id')
+      )
+      .select([
+        'suppliers.id',
+        'suppliers.name',
+        'suppliers.phone',
+        'suppliers.email',
+        'suppliers.balance',
+        'import_suppliers_meta.chinese_name',
+        'import_suppliers_meta.city',
+        'import_suppliers_meta.province',
+        'import_suppliers_meta.moq_description',
+        'import_suppliers_meta.production_lead_time_days',
+        'import_suppliers_meta.verified_bank_details',
+        'import_suppliers_meta.incoterms_accepted',
+        'import_suppliers_meta.qc_rating',
+        'import_suppliers_meta.quality_certifications',
+        'import_suppliers_meta.audit_status',
+        'import_suppliers_meta.notes as import_notes',
+      ])
+      .where('suppliers.tenant_id', '=', tenantId)
+      .orderBy('suppliers.name', 'asc')
+      .execute();
+  }
+
+  async upsertSupplierImportMeta(tenantId: string, supplierId: string, dto: UpsertSupplierMetaDto) {
+    const sId = Number(supplierId);
+    return await this.db.transaction().execute(async (trx) => {
+      const existing = await trx
+        .selectFrom('import_suppliers_meta')
+        .select('id')
+        .where('tenant_id', '=', tenantId)
+        .where('supplier_id', '=', sId)
+        .executeTakeFirst();
+
+      const payload: any = {
+        chinese_name: dto.chineseName,
+        city: dto.city,
+        province: dto.province,
+        moq_description: dto.moqDescription,
+        production_lead_time_days: dto.productionLeadTimeDays ?? 30,
+        verified_bank_details: dto.verifiedBankDetails ? JSON.stringify(dto.verifiedBankDetails) : '{}',
+        incoterms_accepted: dto.incotermsAccepted ? JSON.stringify(dto.incotermsAccepted) : '["FOB", "EXW", "CIF"]',
+        qc_rating: dto.qcRating ?? 5.0,
+        quality_certifications: dto.qualityCertifications ? JSON.stringify(dto.qualityCertifications) : '[]',
+        audit_status: dto.auditStatus || 'verified',
+        notes: dto.notes,
+        updated_at: sql`NOW()`,
+      };
+
+      if (existing) {
+        return await trx
+          .updateTable('import_suppliers_meta')
+          .set(payload)
+          .where('id', '=', existing.id)
+          .where('tenant_id', '=', tenantId)
+          .returningAll()
+          .executeTakeFirstOrThrow();
+      } else {
+        return await trx
+          .insertInto('import_suppliers_meta')
+          .values({
+            tenant_id: tenantId,
+            supplier_id: sId,
+            ...payload,
+          })
+          .returningAll()
+          .executeTakeFirstOrThrow();
+      }
+    });
+  }
+
+  async listSourcingTrips(tenantId: string, projectId?: string) {
+    let query = this.db
+      .selectFrom('import_sourcing_trips')
+      .selectAll()
+      .where('tenant_id', '=', tenantId)
+      .orderBy('start_date', 'desc');
+
+    if (projectId) {
+      query = query.where('project_id', '=', projectId);
+    }
+
+    return await query.execute();
+  }
+
+  async createSourcingTrip(tenantId: string, dto: CreateSourcingTripDto) {
+    return await this.db
+      .insertInto('import_sourcing_trips')
+      .values({
+        tenant_id: tenantId,
+        project_id: dto.projectId,
+        trip_title: dto.tripTitle.trim(),
+        destination_city: dto.destinationCity.trim(),
+        start_date: dto.startDate,
+        end_date: dto.endDate,
+        budget_egp: dto.budgetEgp || 0,
+        actual_cost_egp: dto.actualCostEgp || 0,
+        notes: dto.notes,
+        findings: dto.findings ? JSON.stringify(dto.findings) : '{}',
+      })
+      .returningAll()
+      .executeTakeFirstOrThrow();
+  }
+
+  async listQcInspections(tenantId: string, projectId?: string, shipmentId?: string) {
+    let query = this.db
+      .selectFrom('import_qc_inspections')
+      .selectAll()
+      .where('tenant_id', '=', tenantId)
+      .orderBy('inspection_date', 'desc');
+
+    if (projectId) query = query.where('project_id', '=', projectId);
+    if (shipmentId) query = query.where('shipment_id', '=', shipmentId);
+
+    return await query.execute();
+  }
+
+  async createQcInspection(tenantId: string, dto: CreateQcInspectionDto) {
+    return await this.db
+      .insertInto('import_qc_inspections')
+      .values({
+        tenant_id: tenantId,
+        project_id: dto.projectId,
+        shipment_id: dto.shipmentId,
+        stage: dto.stage,
+        inspection_date: dto.inspectionDate,
+        inspector_name: dto.inspectorName,
+        sample_size: dto.sampleSize || 0,
+        passed_quantity: dto.passedQuantity || 0,
+        failed_quantity: dto.failedQuantity || 0,
+        defect_notes: dto.defectNotes,
+        status: dto.status || 'passed',
+        report_file_url: dto.reportFileUrl,
+      })
+      .returningAll()
+      .executeTakeFirstOrThrow();
+  }
+
+  async updateQcInspection(tenantId: string, id: string, dto: Partial<CreateQcInspectionDto>) {
+    const payload: any = {};
+    if (dto.stage !== undefined) payload.stage = dto.stage;
+    if (dto.inspectionDate !== undefined) payload.inspection_date = dto.inspectionDate;
+    if (dto.inspectorName !== undefined) payload.inspector_name = dto.inspectorName;
+    if (dto.sampleSize !== undefined) payload.sample_size = dto.sampleSize;
+    if (dto.passedQuantity !== undefined) payload.passed_quantity = dto.passedQuantity;
+    if (dto.failedQuantity !== undefined) payload.failed_quantity = dto.failedQuantity;
+    if (dto.defectNotes !== undefined) payload.defect_notes = dto.defectNotes;
+    if (dto.status !== undefined) payload.status = dto.status;
+    if (dto.reportFileUrl !== undefined) payload.report_file_url = dto.reportFileUrl;
+
+    return await this.db
+      .updateTable('import_qc_inspections')
+      .set(payload)
+      .where('id', '=', id)
+      .where('tenant_id', '=', tenantId)
+      .returningAll()
+      .executeTakeFirstOrThrow();
+  }
+
+  // ==========================================
+  // 4. EGYPT COMPLIANCE & ACI / CUSTOMS TARIFFS
+  // ==========================================
+
+  async getAciCompliance(tenantId: string, targetId: string) {
+    return await this.db
+      .selectFrom('import_aci_compliance')
+      .selectAll()
+      .where('tenant_id', '=', tenantId)
+      .where((eb) => eb.or([eb('id', '=', targetId), eb('shipment_id', '=', targetId), eb('project_id', '=', targetId)]))
+      .executeTakeFirst();
+  }
+
+  async upsertAciCompliance(tenantId: string, dto: UpsertAciComplianceDto) {
+    return await this.db.transaction().execute(async (trx) => {
+      const existing = await trx
+        .selectFrom('import_aci_compliance')
+        .select('id')
+        .where('tenant_id', '=', tenantId)
+        .where((eb) =>
+          eb.or([
+            eb('acid_number', '=', dto.acidNumber),
+            ...(dto.shipmentId ? [eb('shipment_id', '=', dto.shipmentId)] : []),
+          ])
+        )
+        .executeTakeFirst();
+
+      const payload: any = {
+        project_id: dto.projectId,
+        shipment_id: dto.shipmentId,
+        acid_number: dto.acidNumber.trim(),
+        acid_issue_date: dto.acidIssueDate,
+        acid_expiry_date: dto.acidExpiryDate,
+        cargox_document_id: dto.cargoxDocumentId,
+        importer_tax_number: dto.importerTaxNumber,
+        exporter_id: dto.exporterId,
+        status: dto.status || 'pending',
+        compliance_checklist: dto.complianceChecklist ? JSON.stringify(dto.complianceChecklist) : '{}',
+        notes: dto.notes,
+      };
+
+      if (existing) {
+        return await trx
+          .updateTable('import_aci_compliance')
+          .set(payload)
+          .where('id', '=', existing.id)
+          .where('tenant_id', '=', tenantId)
+          .returningAll()
+          .executeTakeFirstOrThrow();
+      } else {
+        return await trx
+          .insertInto('import_aci_compliance')
+          .values({
+            tenant_id: tenantId,
+            ...payload,
+          })
+          .returningAll()
+          .executeTakeFirstOrThrow();
+      }
+    });
+  }
+
+  async listCustomsTariffs(tenantId: string, search?: string) {
+    let query = this.db
+      .selectFrom('import_customs_tariffs')
+      .selectAll()
+      .where('tenant_id', '=', tenantId)
+      .orderBy('hs_code', 'asc');
+
+    if (search && search.trim()) {
+      const s = `%${search.trim()}%`;
+      query = query.where((eb) =>
+        eb.or([eb('hs_code', 'like', s), eb('description_ar', 'like', s), eb('description_en', 'like', s)])
+      );
+    }
+
+    const rows = await query.execute();
+    if (rows.length > 0) return rows;
+
+    // Default Seed Tariffs if table is currently empty for tenant
+    const defaultTariffs = [
+      { hs_code: '8471.30', description_ar: 'أجهزة حاسب آلي محمولة ومكتبية', duty_rate_percent: 0, vat_rate_percent: 14, regulatory_body: 'GOEIC' },
+      { hs_code: '8517.13', description_ar: 'هواتف ذكية ومحطات اتصال لاسلكية', duty_rate_percent: 0, vat_rate_percent: 14, regulatory_body: 'NTRA' },
+      { hs_code: '9403.60', description_ar: 'أثاث خشبي متنوع ومنزلي', duty_rate_percent: 20, vat_rate_percent: 14, regulatory_body: 'GOEIC' },
+      { hs_code: '6109.10', description_ar: 'ملابس قطنية وتيشيرتات ومنسوجات', duty_rate_percent: 40, vat_rate_percent: 14, regulatory_body: 'GOEIC' },
+      { hs_code: '3926.90', description_ar: 'مصنوعات لدائن وبلاستيك أدوات منزلية', duty_rate_percent: 10, vat_rate_percent: 14, regulatory_body: 'GOEIC' },
+      { hs_code: '8504.40', description_ar: 'محولات شحن وشواحن أجهزة كهربائية', duty_rate_percent: 5, vat_rate_percent: 14, regulatory_body: 'GOEIC' },
+    ];
+
+    for (const item of defaultTariffs) {
+      await this.db
+        .insertInto('import_customs_tariffs')
+        .values({
+          tenant_id: tenantId,
+          ...item,
+          inspection_fees_percent: 1,
+        })
+        .onConflict((oc) => oc.columns(['tenant_id', 'hs_code']).doNothing())
+        .execute();
+    }
+
+    return await this.db
+      .selectFrom('import_customs_tariffs')
+      .selectAll()
+      .where('tenant_id', '=', tenantId)
+      .orderBy('hs_code', 'asc')
+      .execute();
+  }
+
+  async calculateCustomsTax(tenantId: string, hsCode: string, cifValueEgp: number) {
+    const tariff = await this.db
+      .selectFrom('import_customs_tariffs')
+      .selectAll()
+      .where('tenant_id', '=', tenantId)
+      .where('hs_code', '=', hsCode)
+      .executeTakeFirst();
+
+    const dutyRate = Number(tariff?.duty_rate_percent ?? 5) / 100;
+    const vatRate = Number(tariff?.vat_rate_percent ?? 14) / 100;
+    const inspRate = Number(tariff?.inspection_fees_percent ?? 1) / 100;
+
+    const cif = Math.max(0, Number(cifValueEgp) || 0);
+    const customsDuty = cif * dutyRate;
+    const inspectionFees = cif * inspRate;
+    const vatBase = cif + customsDuty + inspectionFees;
+    const vatAmount = vatBase * vatRate;
+    const totalCustomsDues = customsDuty + inspectionFees + vatAmount;
+
+    return {
+      hsCode,
+      description: tariff?.description_ar || 'بند جمركي قياسي',
+      regulatoryBody: tariff?.regulatory_body || 'GOEIC',
+      cifValueEgp: Number(cif.toFixed(2)),
+      customsDuty: Number(customsDuty.toFixed(2)),
+      inspectionFees: Number(inspectionFees.toFixed(2)),
+      vatAmount: Number(vatAmount.toFixed(2)),
+      totalCustomsDues: Number(totalCustomsDues.toFixed(2)),
+      dutyRatePercent: Number((dutyRate * 100).toFixed(2)),
+      vatRatePercent: Number((vatRate * 100).toFixed(2)),
+    };
+  }
+
+
+  // ==========================================
+  // 5. SHIPMENTS & INVENTORY ATOMIC RECEIPTS
+  // ==========================================
+
   async listShipments(tenantId: string) {
     const rows = await this.db
       .selectFrom('import_shipments')
@@ -212,6 +702,21 @@ export class ImportSalesService {
         shipped_date: dto.shippingDate,
         supplier_id: dto.supplierId,
         bill_of_lading: dto.billOfLading,
+        project_id: dto.projectId,
+        freight_type: dto.freightType,
+        container_size: dto.containerSize,
+        port_of_loading: dto.portOfLoading,
+        port_of_discharge: dto.portOfDischarge,
+        cbm_volume: dto.cbmVolume,
+        gross_weight_kg: dto.grossWeightKg,
+        carrier_name: dto.carrierName,
+        free_demurrage_days: dto.freeDemurrageDays,
+        demurrage_start_date: dto.demurrageStartDate,
+        demurrage_rate_per_day: dto.demurrageRatePerDay,
+        customs_declaration_no: dto.customsDeclarationNo,
+        vat_refundable_egp: dto.vatRefundableEgp,
+        is_consolidated: dto.isConsolidated,
+        cost_allocation_method: dto.costAllocationMethod,
       })
       .returningAll()
       .executeTakeFirstOrThrow();
@@ -253,7 +758,17 @@ export class ImportSalesService {
     const receipt = await this.inventoryDb.selectFrom('import_inventory_receipts')
       .select(['id', 'state', 'posted_at', 'review_reason'])
       .where('tenant_id', '=', tenantId).where('shipment_id', '=', id).executeTakeFirst();
-    return { ...shipment, items, inventory_receipt: receipt ?? null };
+
+    const demurrageRisk = calculateDemurrageRisk({
+      arrivalDate: shipment.arrival_date,
+      demurrageStartDate: shipment.demurrage_start_date,
+      freeDays: Number(shipment.free_demurrage_days || 14),
+      ratePerDayUsd: Number(shipment.demurrage_rate_per_day || 50),
+      exchangeRate: Number(shipment.exchange_rate_at_arrival || 1),
+      status: shipment.status || 'Pending',
+    });
+
+    return { ...shipment, items, inventory_receipt: receipt ?? null, demurrageRisk };
   }
 
   async addShipmentItem(tenantId: string, shipmentId: string, dto: AddShipmentItemDto) {
@@ -306,6 +821,22 @@ export class ImportSalesService {
       if (dto.shippedDate !== undefined) payload.shipped_date = dto.shippedDate;
       if (dto.etaDate !== undefined) payload.eta_date = dto.etaDate;
       if (dto.clearanceDate !== undefined) payload.clearance_date = dto.clearanceDate;
+      if (dto.projectId !== undefined) payload.project_id = dto.projectId;
+      if (dto.freightType !== undefined) payload.freight_type = dto.freightType;
+      if (dto.containerSize !== undefined) payload.container_size = dto.containerSize;
+      if (dto.portOfLoading !== undefined) payload.port_of_loading = dto.portOfLoading;
+      if (dto.portOfDischarge !== undefined) payload.port_of_discharge = dto.portOfDischarge;
+      if (dto.cbmVolume !== undefined) payload.cbm_volume = dto.cbmVolume;
+      if (dto.grossWeightKg !== undefined) payload.gross_weight_kg = dto.grossWeightKg;
+      if (dto.carrierName !== undefined) payload.carrier_name = dto.carrierName;
+      if (dto.freeDemurrageDays !== undefined) payload.free_demurrage_days = dto.freeDemurrageDays;
+      if (dto.demurrageStartDate !== undefined) payload.demurrage_start_date = dto.demurrageStartDate;
+      if (dto.demurrageRatePerDay !== undefined) payload.demurrage_rate_per_day = dto.demurrageRatePerDay;
+      if (dto.actualDemurrageFees !== undefined) payload.actual_demurrage_fees = dto.actualDemurrageFees;
+      if (dto.customsDeclarationNo !== undefined) payload.customs_declaration_no = dto.customsDeclarationNo;
+      if (dto.vatRefundableEgp !== undefined) payload.vat_refundable_egp = dto.vatRefundableEgp;
+      if (dto.isConsolidated !== undefined) payload.is_consolidated = dto.isConsolidated;
+      if (dto.costAllocationMethod !== undefined) payload.cost_allocation_method = dto.costAllocationMethod;
 
       const expenseInputs = [
         [dto.shippingAccountId, shipment.shipping_expense_id, shipment.shipping_cost_usd],
@@ -446,7 +977,12 @@ export class ImportSalesService {
     return { success: true, message: 'Landed cost recalculated successfully' };
   }
 
-  async generatePeriodProfitReport(tenantId: string, startDate: string | Date, endDate: string | Date) {
+  async generatePeriodProfitReport(
+    tenantId: string,
+    startDate: string | Date,
+    endDate: string | Date,
+    projectId?: string
+  ) {
     const start = new Date(startDate);
     const end = new Date(endDate);
     if (typeof endDate === 'string' && !endDate.includes('T')) {
@@ -508,12 +1044,29 @@ export class ImportSalesService {
     const netProfitPool = grossProfit - totalExpenses;
 
     // 3. Get partners and calculate their share of the net pool
-    const partners = await this.db
-      .selectFrom('import_partners')
-      .selectAll()
-      .where('tenant_id', '=', tenantId)
-      .execute();
+    let partners: any[] = [];
+    if (projectId) {
+      partners = await this.db
+        .selectFrom('import_project_partners')
+        .innerJoin('import_partners', 'import_partners.id', 'import_project_partners.partner_id')
+        .select([
+          'import_partners.id',
+          'import_partners.name',
+          'import_project_partners.profit_percentage as profit_share_percentage',
+          'import_partners.withdrawn_profit',
+        ])
+        .where('import_project_partners.tenant_id', '=', tenantId)
+        .where('import_project_partners.project_id', '=', projectId)
+        .execute();
+    }
 
+    if (partners.length === 0) {
+      partners = await this.db
+        .selectFrom('import_partners')
+        .selectAll()
+        .where('tenant_id', '=', tenantId)
+        .execute();
+    }
     const partnerShares = partners.map(p => {
       const percentage = Number(p.profit_share_percentage) || 0;
       const shareAmount = (netProfitPool * percentage) / 100;
@@ -831,6 +1384,214 @@ export class ImportSalesService {
         }
       }
       return { success: true, updatedCount };
+    });
+  }
+
+
+  // ==========================================
+  // 7. IMPORT COMMAND CENTER (DASHBOARD METRICS)
+  // ==========================================
+
+  async getImportCommandCenterMetrics(tenantId: string) {
+    // 1. Capital metrics
+    const partners = await this.db
+      .selectFrom('import_partners')
+      .select([
+        sql<number>`coalesce(sum(capital_amount), 0)`.as('total_capital'),
+        sql<number>`coalesce(sum(withdrawn_profit), 0)`.as('total_withdrawn'),
+      ])
+      .where('tenant_id', '=', tenantId)
+      .executeTakeFirst();
+
+    const totalCapital = Number(partners?.total_capital || 0);
+
+    const activeProjects = await this.db
+      .selectFrom('import_projects')
+      .select([sql<number>`coalesce(sum(allocated_capital), 0)`.as('deployed_capital')])
+      .where('tenant_id', '=', tenantId)
+      .where('status', 'not in', ['closed', 'draft'])
+      .executeTakeFirst();
+
+    const deployedCapital = Number(activeProjects?.deployed_capital || 0);
+    const availableCapital = Math.max(0, totalCapital - deployedCapital);
+
+    // 2. Project counts by status
+    const projectRows = await this.db
+      .selectFrom('import_projects')
+      .select(['status', sql<number>`count(*)`.as('count')])
+      .where('tenant_id', '=', tenantId)
+      .groupBy('status')
+      .execute();
+
+    const projectCounts: Record<string, number> = {};
+    for (const r of projectRows) {
+      projectCounts[r.status || 'unknown'] = Number(r.count || 0);
+    }
+
+    // 3. Shipments counts and values
+    const shipmentRows = await this.db
+      .selectFrom('import_shipments')
+      .selectAll()
+      .where('tenant_id', '=', tenantId)
+      .execute();
+
+    let inTransitCount = 0;
+    let inCustomsCount = 0;
+    let arrivedCount = 0;
+
+    for (const s of shipmentRows) {
+      if (s.status === 'Arrived') arrivedCount++;
+      else if (s.status === 'In Customs') inCustomsCount++;
+      else inTransitCount++;
+    }
+
+    // 4. Supplier foreign liabilities
+    const debts = await this.db
+      .selectFrom('suppliers')
+      .select([sql<number>`coalesce(sum(balance), 0)`.as('total_debt_foreign')])
+      .where('tenant_id', '=', tenantId)
+      .where('balance', '>', 0)
+      .executeTakeFirst();
+
+    const totalDebtForeign = Number(debts?.total_debt_foreign || 0);
+
+    // 5. Demurrage Risks & Warnings
+    const demurrageAlerts: any[] = [];
+    for (const s of shipmentRows.filter((r) => r.status !== 'Arrived')) {
+      const risk = calculateDemurrageRisk({
+        arrivalDate: s.arrival_date,
+        demurrageStartDate: s.demurrage_start_date,
+        freeDays: Number(s.free_demurrage_days || 14),
+        ratePerDayUsd: Number(s.demurrage_rate_per_day || 50),
+        exchangeRate: Number(s.exchange_rate_at_arrival || 50),
+        status: s.status || 'Pending',
+      });
+      if (risk.isOverdue || (risk.daysRemaining !== null && risk.daysRemaining <= 3)) {
+        demurrageAlerts.push({
+          shipmentId: s.id,
+          containerNumber: s.container_number,
+          status: s.status,
+          ...risk,
+        });
+      }
+    }
+
+    // 6. ACI Expirations
+    const aciExpiring = await this.db
+      .selectFrom('import_aci_compliance')
+      .selectAll()
+      .where('tenant_id', '=', tenantId)
+      .where('status', 'not in', ['approved', 'expired'])
+      .where('acid_expiry_date', 'is not', null)
+      .where('acid_expiry_date', '<=', sql`CURRENT_DATE + INTERVAL '14 days'`)
+      .execute();
+
+    // 7. Recent Profit Snapshot (Current Month)
+    const monthStart = new Date();
+    monthStart.setDate(1);
+    const profitReport = await this.generatePeriodProfitReport(tenantId, monthStart, new Date());
+
+    return {
+      capital: {
+        totalCapital,
+        deployedCapital,
+        availableCapital,
+        totalWithdrawn: Number(partners?.total_withdrawn || 0),
+      },
+      pipeline: {
+        projects: projectCounts,
+        shipments: {
+          inTransit: inTransitCount,
+          inCustoms: inCustomsCount,
+          arrived: arrivedCount,
+        },
+      },
+      liabilities: {
+        totalDebtForeign,
+      },
+      alerts: {
+        demurrageAlerts,
+        aciExpiring,
+      },
+      performance: profitReport.data,
+    };
+  }
+
+  // ==========================================
+  // 8. PROJECT PARTNER DISTRIBUTION & CLOSURE
+  // ==========================================
+
+  async getProjectPartners(tenantId: string, projectId: string) {
+    return await this.db
+      .selectFrom('import_project_partners')
+      .innerJoin('import_partners', 'import_partners.id', 'import_project_partners.partner_id')
+      .select([
+        'import_project_partners.id',
+        'import_project_partners.partner_id',
+        'import_project_partners.capital_share_amount',
+        'import_project_partners.profit_percentage',
+        'import_partners.name as partner_name',
+      ])
+      .where('import_project_partners.tenant_id', '=', tenantId)
+      .where('import_project_partners.project_id', '=', projectId)
+      .execute();
+  }
+
+  async setProjectPartners(
+    tenantId: string,
+    projectId: string,
+    partners: Array<{ partnerId: string; capitalShare: number; profitPercentage: number }>
+  ) {
+    const totalPercentage = partners.reduce((sum, p) => sum + Number(p.profitPercentage || 0), 0);
+    if (totalPercentage > 100.001) {
+      throw new BadRequestException(`مجموع نسب الشركاء للمشروع (${totalPercentage}%) يتجاوز 100%.`);
+    }
+
+    return await this.db.transaction().execute(async (trx) => {
+      await trx
+        .deleteFrom('import_project_partners')
+        .where('project_id', '=', projectId)
+        .where('tenant_id', '=', tenantId)
+        .execute();
+
+      for (const p of partners) {
+        await trx
+          .insertInto('import_project_partners')
+          .values({
+            tenant_id: tenantId,
+            project_id: projectId,
+            partner_id: p.partnerId,
+            capital_share_amount: Number(p.capitalShare || 0),
+            profit_percentage: Number(p.profitPercentage || 0),
+          })
+          .execute();
+      }
+
+      return { success: true, count: partners.length };
+    });
+  }
+
+  async closeProject(tenantId: string, userId: number, projectId: string) {
+    return await this.db.transaction().execute(async (trx) => {
+      const project = await trx
+        .selectFrom('import_projects')
+        .selectAll()
+        .where('id', '=', projectId)
+        .where('tenant_id', '=', tenantId)
+        .executeTakeFirstOrThrow();
+
+      if (project.status === 'closed') {
+        throw new BadRequestException('المشروع مقفل بالفعل.');
+      }
+
+      await trx
+        .updateTable('import_projects')
+        .set({ status: 'closed', updated_at: sql`NOW()` })
+        .where('id', '=', projectId)
+        .where('tenant_id', '=', tenantId)
+        .execute();
+
+      return { success: true, message: `تم إقفال مشروع الاستيراد #${project.project_no} بنجاح.` };
     });
   }
 }

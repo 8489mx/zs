@@ -1,4 +1,4 @@
-import { IsString, IsNumber, IsOptional, Min, IsIn, IsInt, IsPositive } from 'class-validator';
+import { IsString, IsNumber, IsOptional, Min, IsIn, IsInt, IsPositive, IsArray, ValidateNested, IsBoolean } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class CreateShipmentDto {
@@ -8,6 +8,10 @@ export class CreateShipmentDto {
   @IsOptional()
   @IsString()
   supplierId?: string;
+
+  @IsOptional()
+  @IsString()
+  projectId?: string;
 
   @IsOptional()
   @IsString()
@@ -31,6 +35,66 @@ export class CreateShipmentDto {
   @IsNumber()
   pricingExchangeRate?: number;
 
+  @IsOptional()
+  @IsString()
+  freightType?: string;
+
+  @IsOptional()
+  @IsString()
+  containerSize?: string;
+
+  @IsOptional()
+  @IsString()
+  portOfLoading?: string;
+
+  @IsOptional()
+  @IsString()
+  portOfDischarge?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  cbmVolume?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  grossWeightKg?: number;
+
+  @IsOptional()
+  @IsString()
+  carrierName?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  freeDemurrageDays?: number;
+
+  @IsOptional()
+  @IsString()
+  demurrageStartDate?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  demurrageRatePerDay?: number;
+
+  @IsOptional()
+  @IsString()
+  customsDeclarationNo?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  vatRefundableEgp?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  isConsolidated?: boolean;
+
+  @IsOptional()
+  @IsIn(['value', 'weight', 'cbm'])
+  costAllocationMethod?: 'value' | 'weight' | 'cbm';
 }
 
 export class UpdateShipmentCostsDto {
@@ -90,6 +154,76 @@ export class UpdateShipmentCostsDto {
   @IsOptional()
   @IsString()
   clearanceDate?: string;
+
+  @IsOptional()
+  @IsString()
+  projectId?: string;
+
+  @IsOptional()
+  @IsString()
+  freightType?: string;
+
+  @IsOptional()
+  @IsString()
+  containerSize?: string;
+
+  @IsOptional()
+  @IsString()
+  portOfLoading?: string;
+
+  @IsOptional()
+  @IsString()
+  portOfDischarge?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  cbmVolume?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  grossWeightKg?: number;
+
+  @IsOptional()
+  @IsString()
+  carrierName?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  freeDemurrageDays?: number;
+
+  @IsOptional()
+  @IsString()
+  demurrageStartDate?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  demurrageRatePerDay?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  actualDemurrageFees?: number;
+
+  @IsOptional()
+  @IsString()
+  customsDeclarationNo?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  vatRefundableEgp?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  isConsolidated?: boolean;
+
+  @IsOptional()
+  @IsIn(['value', 'weight', 'cbm'])
+  costAllocationMethod?: 'value' | 'weight' | 'cbm';
 }
 
 export class AddShipmentItemDto {
@@ -105,6 +239,20 @@ export class AddShipmentItemDto {
   @IsNumber()
   @Min(0)
   factoryUnitPriceUsd!: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  unitWeightKg?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  unitCbm?: number;
+
+  @IsOptional()
+  @IsString()
+  hsCode?: string;
 }
 
 export class UpdateShipmentItemDto {
@@ -127,6 +275,20 @@ export class UpdateShipmentItemDto {
   @IsOptional()
   @IsIn(['capitalize', 'expense'])
   shortageHandlingMethod?: 'capitalize' | 'expense';
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  unitWeightKg?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  unitCbm?: number;
+
+  @IsOptional()
+  @IsString()
+  hsCode?: string;
 }
 
 export class RecordForeignTransferDto {
@@ -146,4 +308,342 @@ export class RecordForeignTransferDto {
   @IsOptional()
   @IsString()
   notes?: string;
+
+  @IsOptional()
+  @IsString()
+  projectId?: string;
+}
+
+export class CreateImportProjectDto {
+  @IsOptional()
+  @IsString()
+  projectNo?: string;
+
+  @IsString()
+  title!: string;
+
+  @IsOptional()
+  @IsString()
+  targetMarket?: string;
+
+  @IsOptional()
+  @IsString()
+  countryOrigin?: string;
+
+  @IsOptional()
+  @IsString()
+  countryDestination?: string;
+
+  @IsOptional()
+  @IsString()
+  budgetCurrency?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  allocatedCapital?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  targetRoiPercentage?: number;
+
+  @IsOptional()
+  @IsString()
+  status?: string;
+
+  @IsOptional()
+  feasibilityData?: any;
+
+  @IsOptional()
+  @IsString()
+  notes?: string;
+}
+
+export class UpdateImportProjectDto {
+  @IsOptional()
+  @IsString()
+  title?: string;
+
+  @IsOptional()
+  @IsString()
+  targetMarket?: string;
+
+  @IsOptional()
+  @IsString()
+  countryOrigin?: string;
+
+  @IsOptional()
+  @IsString()
+  countryDestination?: string;
+
+  @IsOptional()
+  @IsString()
+  budgetCurrency?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  allocatedCapital?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  targetRoiPercentage?: number;
+
+  @IsOptional()
+  @IsString()
+  status?: string;
+
+  @IsOptional()
+  feasibilityData?: any;
+
+  @IsOptional()
+  @IsString()
+  notes?: string;
+}
+
+export class CalculateFeasibilityDto {
+  @IsArray()
+  items!: Array<{
+    name: string;
+    hsCode?: string;
+    qty: number;
+    factoryPriceUsd: number;
+    unitWeightKg?: number;
+    unitCbm?: number;
+  }>;
+
+  @IsOptional()
+  @IsString()
+  currency?: string;
+
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0.01)
+  exchangeRateCommercial!: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  exchangeRateCustoms?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  travelAndSourcingCostEgp?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  internationalShippingUsd?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  insuranceUsd?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  customsDutyRatePercent?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  vatRatePercent?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  clearanceAndPortFeesEgp?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  internalTransportEgp?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  bankCommissionAndFinancingEgp?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  targetMarkupPercent?: number;
+}
+
+export class UpsertSupplierMetaDto {
+  @IsOptional()
+  @IsString()
+  chineseName?: string;
+
+  @IsOptional()
+  @IsString()
+  city?: string;
+
+  @IsOptional()
+  @IsString()
+  province?: string;
+
+  @IsOptional()
+  @IsString()
+  moqDescription?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  productionLeadTimeDays?: number;
+
+  @IsOptional()
+  verifiedBankDetails?: any;
+
+  @IsOptional()
+  @IsArray()
+  incotermsAccepted?: string[];
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  qcRating?: number;
+
+  @IsOptional()
+  @IsArray()
+  qualityCertifications?: string[];
+
+  @IsOptional()
+  @IsString()
+  auditStatus?: string;
+
+  @IsOptional()
+  @IsString()
+  notes?: string;
+}
+
+export class CreateQcInspectionDto {
+  @IsOptional()
+  @IsString()
+  projectId?: string;
+
+  @IsOptional()
+  @IsString()
+  shipmentId?: string;
+
+  @IsString()
+  stage!: string;
+
+  @IsString()
+  inspectionDate!: string;
+
+  @IsOptional()
+  @IsString()
+  inspectorName?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  sampleSize?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  passedQuantity?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  failedQuantity?: number;
+
+  @IsOptional()
+  @IsString()
+  defectNotes?: string;
+
+  @IsOptional()
+  @IsString()
+  status?: string;
+
+  @IsOptional()
+  @IsString()
+  reportFileUrl?: string;
+}
+
+export class UpsertAciComplianceDto {
+  @IsOptional()
+  @IsString()
+  projectId?: string;
+
+  @IsOptional()
+  @IsString()
+  shipmentId?: string;
+
+  @IsString()
+  acidNumber!: string;
+
+  @IsOptional()
+  @IsString()
+  acidIssueDate?: string;
+
+  @IsOptional()
+  @IsString()
+  acidExpiryDate?: string;
+
+  @IsOptional()
+  @IsString()
+  cargoxDocumentId?: string;
+
+  @IsOptional()
+  @IsString()
+  importerTaxNumber?: string;
+
+  @IsOptional()
+  @IsString()
+  exporterId?: string;
+
+  @IsOptional()
+  @IsString()
+  status?: string;
+
+  @IsOptional()
+  complianceChecklist?: any;
+
+  @IsOptional()
+  @IsString()
+  notes?: string;
+}
+
+export class CreateSourcingTripDto {
+  @IsOptional()
+  @IsString()
+  projectId?: string;
+
+  @IsString()
+  tripTitle!: string;
+
+  @IsString()
+  destinationCity!: string;
+
+  @IsString()
+  startDate!: string;
+
+  @IsOptional()
+  @IsString()
+  endDate?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  budgetEgp?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  actualCostEgp?: number;
+
+  @IsOptional()
+  @IsString()
+  notes?: string;
+
+  @IsOptional()
+  findings?: any;
 }

@@ -5497,6 +5497,22 @@ export interface ImportShipmentTable {
   shipping_expense_id: number | null;
   customs_expense_id: number | null;
   transport_expense_id: number | null;
+  project_id?: string | null;
+  freight_type?: string | null;
+  container_size?: string | null;
+  port_of_loading?: string | null;
+  port_of_discharge?: string | null;
+  cbm_volume?: ImportNumeric;
+  gross_weight_kg?: ImportNumeric;
+  carrier_name?: string | null;
+  free_demurrage_days?: number | null;
+  demurrage_start_date?: ImportDate;
+  demurrage_rate_per_day?: ImportNumeric;
+  actual_demurrage_fees?: ImportNumeric;
+  customs_declaration_no?: string | null;
+  vat_refundable_egp?: ImportNumeric;
+  is_consolidated?: boolean | null;
+  cost_allocation_method?: string | null;
   created_at: Generated<Date>;
 }
 export interface ImportShipmentItemTable {
