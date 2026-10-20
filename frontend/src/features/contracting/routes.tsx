@@ -4,23 +4,26 @@ import { createLazyRoute } from '@/app/router/lazy-route';
 import type { FeatureRouteModule } from '@/app/router/types';
 import { FeatureGate } from '@/shared/components/feature-gate';
 
-const wrapContractingIndependent = (Component: React.ComponentType) => (
-  <FeatureGate feature="contracting" featureName="المقاولات وإدارة المشاريع الإنشائية">
-    <Component />
-  </FeatureGate>
-);
+function ContractingIndependentGated({ Component }: { Component: React.ComponentType }) {
+  const { t } = useTranslation();
+  return (
+    <FeatureGate feature="contracting" featureName={t('contracting.routes.s0', "المقاولات وإدارة المشاريع الإنشائية")}>
+      <Component />
+    </FeatureGate>
+  );
+}
 
 const ContractingWorkspaceLazy = createLazyRoute(() =>
-  {
-  const { t } = useTranslation();
-  return import('./pages/ContractingLayout').then((m) => ({
-    default: () => (
-      <FeatureGate feature="contracting" featureName={t('contracting.routes.s0', "المقاولات وإدارة المشاريع الإنشائية")}>
-        <m.ContractingLayout />
-      </FeatureGate>
-    ),
-  }));
-},
+  import('./pages/ContractingLayout').then((m) => ({
+    default: function ContractingWorkspaceGated() {
+      const { t } = useTranslation();
+      return (
+        <FeatureGate feature="contracting" featureName={t('contracting.routes.s0', "المقاولات وإدارة المشاريع الإنشائية")}>
+          <m.ContractingLayout />
+        </FeatureGate>
+      );
+    },
+  })),
 );
 
 export const contractingRouteModule: FeatureRouteModule = {
@@ -29,7 +32,7 @@ export const contractingRouteModule: FeatureRouteModule = {
       path: 'contracting/master-boq',
       element: createLazyRoute(() =>
         import('./pages/ContractingMasterBoqPage').then((m) => ({
-          default: () => wrapContractingIndependent(m.ContractingMasterBoqPage),
+          default: () => <ContractingIndependentGated Component={m.ContractingMasterBoqPage} />,
         })),
       ),
     },

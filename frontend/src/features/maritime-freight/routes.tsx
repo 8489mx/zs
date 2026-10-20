@@ -4,16 +4,16 @@ import type { FeatureRouteModule } from '@/app/router/types';
 import { FeatureGate } from '@/shared/components/feature-gate';
 
 const MaritimeWorkspaceLazy = createLazyRoute(() =>
-  {
-  const { t } = useTranslation();
-  return import('./pages/MaritimeLayout').then((m) => ({
-    default: () => (
-      <FeatureGate feature="maritime_freight" featureName={t('maritime_freight.routes.s0', "الشحن واللوجستيات")}>
-        <m.MaritimeLayout />
-      </FeatureGate>
-    ),
-  }));
-},
+  import('./pages/MaritimeLayout').then((m) => ({
+    default: function MaritimeFreightWorkspaceGated() {
+      const { t } = useTranslation();
+      return (
+        <FeatureGate feature="maritime_freight" featureName={t('maritime_freight.routes.s0', "الشحن واللوجستيات")}>
+          <m.MaritimeLayout />
+        </FeatureGate>
+      );
+    },
+  })),
 );
 
 export const maritimeFreightRouteModule: FeatureRouteModule = {
