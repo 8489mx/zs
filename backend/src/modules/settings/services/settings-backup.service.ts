@@ -457,11 +457,13 @@ export class SettingsBackupService {
 
   async restoreBackup(payload: unknown, actor: AuthContext, dryRun = false): Promise<Record<string, unknown>> {
     const scope = this.scope(actor);
-    if (isPlatformTenantId(scope.tenantId)) {
+    if (scope.tenantId === 'zs' || (process.env.APP_MODE === 'CLOUD_SAAS' && scope.tenantId === String(process.env.PLATFORM_TENANT_ID || 'zs').trim() && scope.tenantId !== 'default')) {
+
       throw new ForbiddenException(
         'ممنوع منعاً باتاً استرجاع أي نسخة احتياطية على منشأة المنصة المركزية السحابية (zs). المنصة المركزية مخصصة للإدارة فقط ولا تقبل استرجاع بيانات تجارية.',
       );
     }
+
     if (!dryRun) {
       this.assertCanRestoreBackup(actor);
       this.assertRestoreConfirmation(payload);

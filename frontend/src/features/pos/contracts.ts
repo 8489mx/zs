@@ -73,6 +73,8 @@ function normalizeCart(items: PosItem[]) {
   return items.map((item) => ({
     productId: item.productId,
     name: item.name,
+    nameEn: item.nameEn || (item as any).name_en || undefined,
+    name_en: (item as any).name_en || item.nameEn || undefined,
     qty: normalizeCartQty(item),
     unitName: item.unitName,
     unitMultiplier: Math.max(1, Number(item.unitMultiplier || 1)),

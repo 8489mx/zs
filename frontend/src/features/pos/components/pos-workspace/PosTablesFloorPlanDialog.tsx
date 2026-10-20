@@ -245,6 +245,24 @@ export function PosTablesFloorPlanDialog({
   // Dynamic table array based on configured count
   const defaultTables = Array.from({ length: tablesCount }, (_, i) => String(i + 1));
 
+  const getZoneDisplayName = (z: { zone_code?: string; name: string }) => {
+    const code = (z.zone_code || '').toLowerCase().trim();
+    const rawName = (z.name || '').trim();
+    if (code === 'main' || rawName === 'الصالة الرئيسية') {
+      return __t('pos.zones.main', 'الصالة الرئيسية');
+    }
+    if (code === 'patio' || rawName === 'التراس الخارجي') {
+      return __t('pos.zones.patio', 'التراس الخارجي');
+    }
+    if (code === 'family' || rawName === 'قسم العائلات') {
+      return __t('pos.zones.family', 'قسم العائلات');
+    }
+    if (code === 'vip' || rawName === 'جناح الـ VIP' || rawName === 'جناح VIP') {
+      return __t('pos.zones.vip', 'جناح الـ VIP');
+    }
+    return z.name;
+  };
+
   const activeZone = zones.find((z) => z.zone_code === selectedZone);
   const zoneTableSet = activeZone && activeZone.table_numbers
     ? new Set(
@@ -788,7 +806,7 @@ export function PosTablesFloorPlanDialog({
               <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '8px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 700, color: '#334155' }}>
                   <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#3b82f6' }} />
-                  <span>{__t('pos.pos_workspace.pos_tables_floor_plan_dialog.s30', __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s30', "طلبات تيك أواي / معلقة بدون طاولة ("))}{nonTableDrafts.length}):</span>
+                  <span>{__t('pos.pos_workspace.pos_tables_floor_plan_dialog.s30', 'طلبات تيك أواي / معلقة بدون طاولة')} ({nonTableDrafts.length}):</span>
                 </div>
                 <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                   {nonTableDrafts.map((d) => (
@@ -843,7 +861,7 @@ export function PosTablesFloorPlanDialog({
                     cursor: 'pointer',
                   }}
                 >
-                  {__t('pos.pos_workspace.pos_tables_floor_plan_dialog.s37', __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s37', "كافة الطاولات ("))}{defaultTables.length})
+                  {__t('pos.pos_workspace.pos_tables_floor_plan_dialog.s37', 'كافة الطاولات')} ({defaultTables.length})
                 </button>
                 {zones.map((z) => (
                   <button
@@ -861,7 +879,7 @@ export function PosTablesFloorPlanDialog({
                       cursor: 'pointer',
                     }}
                   >
-                    {z.name}
+                    {getZoneDisplayName(z)}
                   </button>
                 ))}
               </div>
@@ -1104,7 +1122,7 @@ export function PosTablesFloorPlanDialog({
                     ) : confirmedReservationsMap.has(tableNum) ? (
                       <div style={{ textAlign: 'center', width: '100%' }}>
                         <div style={{ fontSize: '11px', color: '#1d4ed8', fontWeight: 800 }}>
-                          {__t('pos.pos_workspace.pos_tables_floor_plan_dialog.s49', __t('pos.pos_workspace.pos_tables_floor_plan_dialog.s49', "محجوزة ("))}{new Date(confirmedReservationsMap.get(tableNum)!.reservation_time).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })})
+                          {__t('pos.pos_workspace.pos_tables_floor_plan_dialog.s49', 'محجوزة')} ({new Date(confirmedReservationsMap.get(tableNum)!.reservation_time).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })})
                         </div>
                         <div style={{ fontSize: '10px', color: '#64748b', marginTop: '1px' }}>
                           {confirmedReservationsMap.get(tableNum)!.guest_name}

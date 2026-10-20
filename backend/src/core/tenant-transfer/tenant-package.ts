@@ -353,9 +353,10 @@ export async function importTenantPackage(db: Kysely<any>, buffer: Buffer, targe
   const { manifest, chunks } = readPackage(buffer);
   const warnings: string[] = [];
 
-  if (isPlatformTenantId(target.tenantId)) {
+  if (target.tenantId === 'zs' || (process.env.APP_MODE === 'CLOUD_SAAS' && target.tenantId === String(process.env.PLATFORM_TENANT_ID || 'zs').trim() && target.tenantId !== 'default')) {
     throw new TenantPackageError('TENANT_MISMATCH', 'Cannot import tenant package into platform root tenant');
   }
+
 
   return db.transaction().execute(async (trx) => {
     // 1. The package must not come from a newer schema than this install.

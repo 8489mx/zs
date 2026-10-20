@@ -39,7 +39,8 @@ function testPlatformRestoreShield(): void {
 
   // 1. Guard against restoring backup on platform tenant
   assert.ok(
-    service.includes('if (isPlatformTenantId(scope.tenantId))'),
+    service.includes("scope.tenantId === 'zs'"),
+
     'restoreBackup must explicitly check and reject platform tenant restore'
   );
   assert.ok(
@@ -69,13 +70,14 @@ function testTenantTransferShield(): void {
   const pkgService = readFileSync(join(__dirname, '../../src/core/tenant-transfer/tenant-package.ts'), 'utf8');
 
   assert.ok(
-    transferService.includes('if (isPlatformTenantId(scope.tenantId))'),
+    transferService.includes("scope.tenantId === 'zs'"),
     'TenantTransferService.importForActor must reject platform tenant'
   );
   assert.ok(
-    pkgService.includes('if (isPlatformTenantId(target.tenantId))'),
+    pkgService.includes("target.tenantId === 'zs'"),
     'tenant-package.importTenantPackage must reject platform tenant'
   );
+
 }
 
 function testUsersServiceImmunity(): void {

@@ -1325,7 +1325,7 @@
         "s5": "Close",
         "s16": "Save",
         "s17": "Cancel",
-        "s20": "Table",
+        "s20": "Tables",
         "s34": "Opening...",
         "s35": "Restore",
         "s40": "Table",
@@ -1388,9 +1388,9 @@
         "s12": "Pending takeaway:",
         "s19": "Allocate the hall:",
         "s28": "Transfer mode is active: now click on the new table where you want to transfer the table order (",
-        "s30": "Takeaway Orders / Pending without Table (",
+        "s30": "Takeaway Orders / Pending without Table",
         "s47": "Transfer items",
-        "s49": "Reserved (",
+        "s49": "Reserved",
         "s51": "Vacant (available)",
         "s55": "Call waiter!",
         "s56": "Confirm call fulfillment and response",
@@ -1494,7 +1494,7 @@
         "s10": "Table #",
         "s13": "Rectangular",
         "s14": "Sofa",
-        "s18": "M)",
+        "s18": " Seats",
         "s0": "Interactive visual floor plan of the hall (Visual Floor Canvas)",
         "s3": "Automatically redistribute tables evenly",
         "s9": "Edit and design the plan",
@@ -2075,7 +2075,25 @@
     "digital_signage_page": {
       "s0": "Loading showroom offers and products..."
     },
-    "operation_completed": "Operation Completed"
+    "operation_completed": "Operation Completed",
+    "zones": {
+      "main": "Main Dining",
+      "patio": "Outdoor Terrace",
+      "family": "Family Section",
+      "vip": "VIP Lounge"
+    },
+    "kitchen_printers": {
+      "station_kitchen": "Hot & Main Kitchen (Kitchen)",
+      "station_bar": "Bar & Beverages (Bar)",
+      "station_grill": "Grill Station (Grill)",
+      "station_fryer": "Fryer Station (Fryer)",
+      "station_cold": "Salads & Cold Prep (Cold)",
+      "station_dessert": "Dessert Station (Dessert)",
+      "station_expo": "Order Coordinator (Expo)",
+      "load_failed": "Failed to load kitchen and bar printers",
+      "enter_name": "Please enter printer name",
+      "updated_success": "Printer settings updated successfully"
+    }
   },
   "sales": {
     "122027": "Invoice is cancelled. Print or view log only.",

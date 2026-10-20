@@ -680,7 +680,7 @@ export function PosVisualFloorCanvas({
                     fontWeight: 600,
                   }}
                 >
-                  ({tbl.seats || 4}{__t('pos.pos_workspace.pos_visual_floor_canvas.s18', __t('pos.pos_workspace.pos_visual_floor_canvas.s18', "م)"))}
+                  ({tbl.seats || 4}{__t('pos.pos_workspace.pos_visual_floor_canvas.s18', "م")})
                 </span>
               </div>
 

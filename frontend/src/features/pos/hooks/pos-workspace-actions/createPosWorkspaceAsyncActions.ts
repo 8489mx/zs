@@ -363,6 +363,8 @@ export function createPosWorkspaceAsyncActions(
         qty: Number(item.qty || 0),
         price: Number(item.price || 0),
         name: String(item.name || '').trim(),
+        nameEn: (item as any).nameEn || (item as any).name_en || undefined,
+        name_en: (item as any).name_en || (item as any).nameEn || undefined,
         unitName: String(item.unitName || '').trim(),
         unitMultiplier: Number(item.unitMultiplier || 1),
         priceType: item.priceType === 'wholesale' ? 'wholesale' : 'retail',

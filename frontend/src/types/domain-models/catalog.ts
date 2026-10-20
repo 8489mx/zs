@@ -41,6 +41,8 @@ export interface ProductCustomerPrice {
 export interface Product {
   id: string;
   name: string;
+  nameEn?: string;
+  name_en?: string;
   barcode: string;
   categoryId: string;
   supplierId: string;

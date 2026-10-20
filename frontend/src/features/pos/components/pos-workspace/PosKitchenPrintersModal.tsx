@@ -13,22 +13,22 @@ interface PosKitchenPrintersModalProps {
   branchId?: number;
 }
 
-const stationOptions = [
-  { label: 'المطبخ الساخن والرئيسي (Kitchen)', value: 'kitchen' },
-  { label: 'البار والمشروبات (Bar)', value: 'bar' },
-  { label: 'محطة الشواية (Grill)', value: 'grill' },
-  { label: 'محطة المقليات (Fryer)', value: 'fryer' },
-  { label: 'محطة التجهيز البارد والسلطات (Cold)', value: 'cold' },
-  { label: 'محطة الحلويات (Dessert)', value: 'dessert' },
-  { label: 'منسق تسليم الطلبات (Expo)', value: 'expo' },
-];
-
 export const PosKitchenPrintersModal: React.FC<PosKitchenPrintersModalProps> = ({
   open,
   onClose,
   branchId,
 }) => {
   const { t } = useTranslation();
+
+  const stationOptions = React.useMemo(() => [
+    { label: t('pos.kitchen_printers.station_kitchen', 'المطبخ الساخن والرئيسي (Kitchen)'), value: 'kitchen' },
+    { label: t('pos.kitchen_printers.station_bar', 'البار والمشروبات (Bar)'), value: 'bar' },
+    { label: t('pos.kitchen_printers.station_grill', 'محطة الشواية (Grill)'), value: 'grill' },
+    { label: t('pos.kitchen_printers.station_fryer', 'محطة المقليات (Fryer)'), value: 'fryer' },
+    { label: t('pos.kitchen_printers.station_cold', 'محطة التجهيز البارد والسلطات (Cold)'), value: 'cold' },
+    { label: t('pos.kitchen_printers.station_dessert', 'محطة الحلويات (Dessert)'), value: 'dessert' },
+    { label: t('pos.kitchen_printers.station_expo', 'منسق تسليم الطلبات (Expo)'), value: 'expo' },
+  ], [t]);
   const [printers, setPrinters] = useState<KitchenPrinter[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -48,7 +48,7 @@ export const PosKitchenPrintersModal: React.FC<PosKitchenPrintersModalProps> = (
       const list = await kitchenPrintersApi.listPrinters(branchId);
       setPrinters(list);
     } catch {
-      toast.error('تعذر تحميل طابعات المطبخ والبار');
+      toast.error(t('pos.kitchen_printers.load_failed', 'تعذر تحميل طابعات المطبخ والبار'));
     } finally {
       setLoading(false);
     }
@@ -83,7 +83,7 @@ export const PosKitchenPrintersModal: React.FC<PosKitchenPrintersModalProps> = (
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) {
-      toast.error('يرجى إدخال اسم الطابعة');
+      toast.error(t('pos.kitchen_printers.enter_name', 'يرجى إدخال اسم الطابعة'));
       return;
     }
 
@@ -99,7 +99,7 @@ export const PosKitchenPrintersModal: React.FC<PosKitchenPrintersModalProps> = (
           isActive,
           branchId,
         });
-        toast.success('تم تحديث إعدادات الطابعة بنجاح');
+        toast.success(t('pos.kitchen_printers.updated_success', 'تم تحديث إعدادات الطابعة بنجاح'));
       } else {
         await kitchenPrintersApi.createPrinter({
           name,

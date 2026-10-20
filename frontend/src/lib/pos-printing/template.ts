@@ -5,6 +5,7 @@ import { getPrintOption, getReceiptNumberLocale, isCompactReceipt, getReceiptThe
 import { buildCode128Svg } from '@/lib/barcode';
 import { formatHijriDate } from '@/lib/hijri';
 import { buildInstaPayQrPayload, buildWalletQrPayload, buildPaymentLinkQrPayload } from '@/lib/payment-qr';
+import { resolveItemEnglishName } from '@/features/pos/utils/kitchen-notes.util';
 
 function resolveStoreIdentity(settings?: Partial<AppSettings> | null) {
   const brandName = String(settings?.storeName || 'متجر').trim() || 'متجر';
@@ -144,10 +145,15 @@ function renderItemsTable(items: Array<{ name?: string; unitName?: string; qty?:
           <div style="font-weight: 600; color: #000;">${formatReceiptMoney(Number(item.price || 0), settings)}</div>
          </div>`
       : formatReceiptMoney(Number(item.price || 0), settings);
+    const englishName = resolveItemEnglishName(item);
+    const showBilingualName = getPrintOption(settings, 'printBilingualItemNames', false) || Boolean(settings?.currency === 'KWD' && englishName);
+    const englishNameHtml = (englishName && showBilingualName && englishName !== item.name)
+      ? `<div class="item-name-en" style="font-size: 0.85em; font-weight: 500; color: #444; direction: ltr; text-align: left; font-family: system-ui, sans-serif;">${escapeHtml(englishName)}</div>`
+      : '';
     return `
     <tr>
       ${compact ? '' : `<td class="index-cell">${formatReceiptNumber(index + 1, settings)}</td>`}
-      <td class="name-cell">${escapeHtml(item.name || '—')}${inlineOfferBadge}${componentsHtml}${modifiersHtml}${serialsHtml}</td>
+      <td class="name-cell">${escapeHtml(item.name || '—')}${englishNameHtml}${inlineOfferBadge}${componentsHtml}${modifiersHtml}${serialsHtml}</td>
       ${compact ? '' : `<td class="unit-cell">${escapeHtml(item.unitName || 'قطعة')}</td>`}
       <td class="qty-cell">${formatReceiptQuantity(Number(item.qty || 0), settings)}</td>
       <td class="price-cell">${priceCellContent}</td>

@@ -1,6 +1,7 @@
 import { escapeHtml, printHtmlDocument } from '@/lib/browser';
 import type { Sale, AppSettings } from '@/types/domain';
 import { formatDateTime } from '@/lib/pos-printing/shared';
+import { resolveItemEnglishName, formatKitchenNote } from '@/features/pos/utils/kitchen-notes.util';
 
 export function getKitchenTicketStyles() {
   return `
@@ -24,7 +25,10 @@ export function getKitchenTicketStyles() {
     .course-badge { font-size: 10.5px; font-weight: 800; background: #eee; border: 1px solid #666; border-radius: 3px; padding: 1px 4px; }
     .seat-badge { font-size: 10.5px; font-weight: 800; border: 1px dashed #000; border-radius: 3px; padding: 1px 4px; }
     .modifier-line { font-size: 12px; font-weight: 700; margin-top: 2px; padding-right: 10px; color: #222; }
-    .note-line { font-size: 12px; font-weight: 800; font-style: italic; color: #b91c1c; margin-top: 2px; padding-right: 6px; }
+    .note-line { font-size: 12px; font-weight: 800; color: #b91c1c; margin-top: 2px; padding-right: 6px; }
+    .kitchen-item-en { font-size: 14.5px; font-weight: 900; line-height: 1.25; direction: ltr; text-align: left; font-family: system-ui, -apple-system, sans-serif; letter-spacing: 0.3px; }
+    .kitchen-item-ar { font-size: 11.5px; font-weight: 700; color: #334155; margin-top: 1px; }
+    .kitchen-tag-pill { display: inline-block; background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; font-size: 11px; font-weight: 800; border-radius: 3px; padding: 1px 5px; margin-top: 2px; }
     
     /* Mini Mode Styles */
     .mini-ticket { text-align: center; padding: 2px 0; }
@@ -77,38 +81,61 @@ export function buildKitchenTicketDocument(
   const orderTypeLabel = sale.orderTypeLabel || orderTypeMap[orderTypeKey] || (sale.tableNumber ? 'محلي' : 'سفري');
   const staffName = sale.waiterName || sale.createdBy || sale.cashierName || '';
   const items = sale.items || [];
-  const note = sale.note || '';
+  const kitchenLang = String((settings as any)?.posKitchenLanguage || 'dual').toLowerCase();
+  const rawNote = sale.note || '';
+  const formattedOrderNote = formatKitchenNote(rawNote, kitchenLang as any);
 
   const itemsHtml = items.map((item: any) => {
+    const englishName = resolveItemEnglishName(item);
+    const hasEnglish = Boolean(englishName && englishName !== item.name);
+
     let modifiersHtml = '';
     if (item.modifiers && Array.isArray(item.modifiers) && item.modifiers.length > 0) {
-      modifiersHtml = item.modifiers.map((mod: any) => 
-        `<div class="modifier-line">+ ${escapeHtml(mod.name || '')} ${mod.qty > 1 ? `(x${mod.qty})` : ''}</div>`
-      ).join('');
+      modifiersHtml = item.modifiers.map((mod: any) => {
+        const modEn = resolveItemEnglishName(mod);
+        const modFormatted = kitchenLang === 'en' && modEn ? modEn : (kitchenLang === 'dual' && modEn ? `${mod.name} [${modEn}]` : mod.name);
+        return `<div class="modifier-line">+ ${escapeHtml(modFormatted || '')} ${mod.qty > 1 ? `(x${mod.qty})` : ''}</div>`;
+      }).join('');
     }
 
     let itemNoteHtml = '';
     if (item.notes) {
-      itemNoteHtml = `<div class="note-line">ملاحظة: ${escapeHtml(item.notes)}</div>`;
+      const formattedItemNote = formatKitchenNote(item.notes, kitchenLang as any);
+      itemNoteHtml = `<div class="note-line kitchen-tag-pill">ملاحظة: ${escapeHtml(formattedItemNote)}</div>`;
     }
 
     const courseName = item.course ? (courseMap[item.course] || item.course) : '';
     const seatLabel = item.seatNumber ? `مقعد ${item.seatNumber}` : '';
 
+    let nameContent = `<span>${escapeHtml(item.name || '')}</span>`;
+    if (kitchenLang === 'en' && hasEnglish) {
+      nameContent = `
+        <div class="kitchen-item-en">${escapeHtml(englishName!)}</div>
+        <div class="kitchen-item-ar" style="font-size:10px; color:#64748b;">${escapeHtml(item.name || '')}</div>
+      `;
+    } else if (kitchenLang === 'dual' && hasEnglish) {
+      nameContent = `
+        <div class="kitchen-item-en">${escapeHtml(englishName!)}</div>
+        <div class="kitchen-item-ar">${escapeHtml(item.name || '')}</div>
+      `;
+    }
+
     return `
       <tr>
         <td>
-          <div style="display: flex; align-items: baseline; flex-wrap: wrap;">
-            <span>${escapeHtml(item.name || '')}</span>
-            ${courseName || seatLabel ? `
-              <span class="item-meta-badges">
-                ${courseName ? `<span class="course-badge">${escapeHtml(courseName)}</span>` : ''}
-                ${seatLabel ? `<span class="seat-badge">${escapeHtml(seatLabel)}</span>` : ''}
-              </span>
-            ` : ''}
+          <div style="display: flex; flex-direction: column; align-items: flex-start; justify-content: center;">
+            <div style="display: flex; align-items: baseline; flex-wrap: wrap; width: 100%;">
+              ${nameContent}
+              ${courseName || seatLabel ? `
+                <span class="item-meta-badges">
+                  ${courseName ? `<span class="course-badge">${escapeHtml(courseName)}</span>` : ''}
+                  ${seatLabel ? `<span class="seat-badge">${escapeHtml(seatLabel)}</span>` : ''}
+                </span>
+              ` : ''}
+            </div>
+            ${modifiersHtml}
+            ${itemNoteHtml}
           </div>
-          ${modifiersHtml}
-          ${itemNoteHtml}
         </td>
         <td class="qty">${Number(item.qty || 0)}</td>
       </tr>
@@ -129,7 +156,7 @@ export function buildKitchenTicketDocument(
       ${staffName ? `<div class="kitchen-meta-line"><span>المسؤول:</span> <span>${escapeHtml(staffName)}</span></div>` : ''}
       ${sale.guestCount && Number(sale.guestCount) > 1 ? `<div class="kitchen-meta-line"><span>عدد الضيوف:</span> <span>${escapeHtml(String(sale.guestCount))}</span></div>` : ''}
       <div class="kitchen-meta-line"><span>التاريخ والوقت:</span> <span>${escapeHtml(dateText)}</span></div>
-      ${note ? `<div class="kitchen-meta-line"><span>ملاحظات الطلب:</span> <span>${escapeHtml(note)}</span></div>` : ''}
+      ${formattedOrderNote ? `<div class="kitchen-meta-line"><span style="color:#b91c1c; font-weight:800;">ملاحظات الطلب:</span> <span class="kitchen-tag-pill" style="font-size:12px;">${escapeHtml(formattedOrderNote)}</span></div>` : ''}
     </div>
     <table class="kitchen-items" dir="rtl">
       <thead>

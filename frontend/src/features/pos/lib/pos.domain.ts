@@ -341,6 +341,8 @@ export function addPosItem(cart: PosItem[], product: Product, options: AddPosIte
     lineKey,
     productId: product.id,
     name: product.name,
+    nameEn: (product as any).nameEn || (product as any).name_en || undefined,
+    name_en: (product as any).name_en || (product as any).nameEn || undefined,
     itemCode: getProductItemCode(product, unit),
     unitId: unit.id,
     unitName: unit.name,

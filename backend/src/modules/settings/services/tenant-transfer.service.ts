@@ -74,9 +74,11 @@ export class TenantTransferService {
   ): Promise<Record<string, unknown>> {
     this.assertCanTransfer(auth);
     const scope = requireTenantScope(auth);
-    if (isPlatformTenantId(scope.tenantId)) {
+    if (scope.tenantId === 'zs' || (process.env.APP_MODE === 'CLOUD_SAAS' && scope.tenantId === String(process.env.PLATFORM_TENANT_ID || 'zs').trim() && scope.tenantId !== 'default')) {
+
       throw new ForbiddenException('ممنوع منعاً باتاً استيراد حزم بيانات فوق منشأة المنصة المركزية السحابية (zs). المنصة مخصصة لإدارة المشتركين فقط.');
     }
+
     if (String(options.confirmation || '').trim() !== TENANT_IMPORT_CONFIRMATION) {
       throw new AppError(`اكتب ${TENANT_IMPORT_CONFIRMATION} لتأكيد استبدال كل بيانات المنشأة`, 'TENANT_IMPORT_CONFIRMATION_REQUIRED', 400);
     }

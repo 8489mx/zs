@@ -2,6 +2,8 @@ export interface SaleItem {
   id: string;
   productId: string;
   name: string;
+  nameEn?: string;
+  name_en?: string;
   qty: number;
   price: number;
   originalPrice?: number;

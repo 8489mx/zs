@@ -9,7 +9,9 @@ import { CustomSelect } from '@/shared/ui/custom-select';
 import { ApiError } from '@/lib/http';
 import { triggerDownload } from '@/lib/browser';
 import { settingsApi, type TenantImportReport, type TenantPickOption } from '@/features/settings/api/settings.api';
+import { useAuthStore } from '@/stores/auth-store';
 import { isPlatformAdmin } from '@/shared/system/runtime-environment';
+
 
 
 // Moves this business between the cloud and the desktop app (backend: src/core/tenant-transfer).
