@@ -16,6 +16,7 @@ import { Database } from '../../database/database.types';
 import { UpsertDeliveryRepDto } from './dto/upsert-delivery-rep.dto';
 import { LoginAttemptLimiter } from '../../common/utils/login-attempt-limiter';
 import { createPasswordRecord, verifyPassword } from '../../core/auth/utils/password-hasher';
+import { assertSecurePasscode } from '../../core/auth/utils/password-policy';
 
 import { AccountingPostingService } from '../accounting/accounting-posting.service';
 import { SalesFinanceService } from '../sales/services/sales-finance.service';
@@ -136,6 +137,9 @@ export class DeliveryRepsService {
     if (!name) throw new AppError('Name is required', 'NAME_REQUIRED', 400);
 
     // الرمز يُجزَّأ قبل الكتابة — لا يُخزَّن نصاً صريحاً (البند O20)
+    if (payload.pinCode) {
+      assertSecurePasscode(String(payload.pinCode), { phone: payload.phone });
+    }
     const createPinRecord = payload.pinCode ? await createPasswordRecord(String(payload.pinCode)) : null;
 
     const isVanRep = payload.isVanRep !== undefined
@@ -185,12 +189,15 @@ export class DeliveryRepsService {
 
     const existing = await this.db
       .selectFrom('delivery_representatives')
-      .select(['id', 'permissions'])
+      .select(['id', 'permissions', 'phone'])
       .where('id', '=', id)
       .where(this.tenantPredicate(actor))
       .executeTakeFirst();
     if (!existing) throw new AppError('Delivery representative not found', 'NOT_FOUND', 404);
 
+    if (payload.pinCode) {
+      assertSecurePasscode(String(payload.pinCode), { phone: payload.phone || existing.phone || undefined });
+    }
     const updatePinRecord = payload.pinCode ? await createPasswordRecord(String(payload.pinCode)) : null;
 
     const isVanRep = payload.isVanRep !== undefined

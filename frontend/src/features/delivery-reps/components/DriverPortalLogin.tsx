@@ -188,12 +188,12 @@ export const DriverPortalLogin: React.FC<DriverPortalLoginProps> = ({ onLoginSuc
 
           <div>
             <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-              {__t('delivery_reps.driver_portal_login.s4', __t('delivery_reps.driver_portal_login.s4', "رمز الدخول السريع (PIN Code)"))}
+              {__t('delivery_reps.driver_portal_login.s4', __t('delivery_reps.driver_portal_login.s4', "كلمة المرور أو الرمز السري (Password / PIN)"))}
             </label>
             <input
               type="password"
-              maxLength={6}
-              placeholder={__t('delivery_reps.driver_portal_login.s5', __t('delivery_reps.driver_portal_login.s5', "مثال: 1234"))}
+              maxLength={64}
+              placeholder={__t('delivery_reps.driver_portal_login.s5', __t('delivery_reps.driver_portal_login.s5', "كلمة المرور أو الرمز السري"))}
               value={pinInput}
               onChange={(e) => setPinInput(e.target.value)}
               required
@@ -206,13 +206,13 @@ export const DriverPortalLogin: React.FC<DriverPortalLoginProps> = ({ onLoginSuc
                 boxSizing: 'border-box',
                 background: '#ffffff',
                 direction: 'ltr',
-                textAlign: 'center',
+                textAlign: 'left',
                 letterSpacing: '4px',
                 outline: 'none',
               }}
             />
             <span style={{ display: 'block', fontSize: '11px', color: '#94a3b8', marginTop: '4px' }}>
-              {__t('delivery_reps.driver_portal_login.s6', __t('delivery_reps.driver_portal_login.s6', "* الرمز المسجل لك من قبل إدارة الفرع"))}
+              {__t('delivery_reps.driver_portal_login.s6', __t('delivery_reps.driver_portal_login.s6', "* كلمة المرور أو الرمز السري المسجل لك من قبل إدارة الفرع"))}
             </span>
           </div>
 

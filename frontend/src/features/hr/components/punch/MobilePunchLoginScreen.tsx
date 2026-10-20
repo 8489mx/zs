@@ -167,23 +167,24 @@ export function MobilePunchLoginScreen({
 
           <div>
             <label style={{ fontSize: '13px', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '6px' }}>
-              {__t('hr.punch.mobile_punch_login_screen.s3', "رمز الدخول السريع (PIN Code) *")}
+              {__t('hr.punch.mobile_punch_login_screen.s3', "كلمة المرور أو رمز الدخول السريع (PIN / Password) *")}
             </label>
             <input
               type="password"
               required
-              maxLength={8}
+              maxLength={64}
               value={pinCode}
               onChange={(e) => onPinCodeChange(e.target.value)}
-              placeholder="••••"
+              placeholder="كلمة المرور أو الرمز السري"
               style={{
                 width: '100%',
                 padding: '12px 14px',
                 borderRadius: '10px',
                 border: '1px solid #cbd5e1',
                 fontSize: '18px',
-                textAlign: 'center',
-                letterSpacing: '6px',
+                textAlign: 'left',
+                direction: 'ltr',
+
                 outline: 'none',
                 boxSizing: 'border-box',
               }}

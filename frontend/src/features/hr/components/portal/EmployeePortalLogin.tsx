@@ -206,14 +206,14 @@ export function EmployeePortalLogin({ onLoginSuccess }: EmployeePortalLoginProps
 
             <div>
               <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-                {__t('hr.portal.employee_portal_login.s3', "رمز الدخول السري (PIN):")}
+                {__t('hr.portal.employee_portal_login.s3', "كلمة المرور أو رمز الدخول السري (Password / PIN):")}
               </label>
               <input
                 type="password"
-                maxLength={8}
+                maxLength={64}
                 value={pinCode}
                 onChange={(e) => setPinCode(e.target.value)}
-                placeholder={__t('hr.portal.employee_portal_login.s4', "الرمز السري المكون من 4 إلى 6 أرقام")}
+                placeholder={__t('hr.portal.employee_portal_login.s4', "كلمة المرور أو الرمز السري الخاص بك")}
                 required
                 style={{
                   width: '100%',
@@ -222,7 +222,7 @@ export function EmployeePortalLogin({ onLoginSuccess }: EmployeePortalLoginProps
                   border: '1px solid #cbd5e1',
                   backgroundColor: '#f8fafc',
                   fontSize: '16px',
-                  letterSpacing: '2px',
+
                   boxSizing: 'border-box',
                   outline: 'none',
                 }}

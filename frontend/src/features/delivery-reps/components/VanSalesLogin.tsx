@@ -212,14 +212,14 @@ export const VanSalesLogin: React.FC<VanSalesLoginProps> = ({ onLoginSuccess }) 
 
           <div>
             <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-              {__t('delivery_reps.van_sales_login.s7', __t('delivery_reps.van_sales_login.s7', "رمز الدخول السريع (PIN Code)"))}
+              {__t('delivery_reps.van_sales_login.s7', __t('delivery_reps.van_sales_login.s7', "كلمة المرور أو الرمز السري (Password / PIN)"))}
             </label>
             <input
               type="password"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              maxLength={6}
-              placeholder="••••"
+              maxLength={64}
+              placeholder="••••••••"
+
+
               value={pinInput}
               onChange={(e) => setPinInput(e.target.value)}
               required
@@ -233,8 +233,8 @@ export const VanSalesLogin: React.FC<VanSalesLoginProps> = ({ onLoginSuccess }) 
                 boxSizing: 'border-box',
                 background: '#ffffff',
                 direction: 'ltr',
-                textAlign: 'center',
-                letterSpacing: '6px',
+                textAlign: 'left',
+
                 outline: 'none',
               }}
             />

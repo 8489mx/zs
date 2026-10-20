@@ -49,6 +49,7 @@ import {
 import { allocateLoanDeduction } from './payroll-loan-allocation.engine';
 import { calculateEmployeePayrollLine } from './engines/payroll-calculation.engine';
 import { createPasswordRecord } from '../../core/auth/utils/password-hasher';
+import { assertSecurePasscode } from '../../core/auth/utils/password-policy';
 import { formatDailyDocumentNumber } from '../../common/utils/document-number.util';
 
 type MasterKind = 'departments' | 'job-titles' | 'positions';
@@ -848,6 +849,9 @@ export class HrService {
 
     const cleanPhone = String(payload.mobile || payload.phone || '').trim();
     const cleanPin = String(payload.pinCode || '').trim();
+    if (cleanPin) {
+      assertSecurePasscode(cleanPin, { phone: cleanPhone });
+    }
     // الرمز يُجزَّأ قبل أي كتابة — لا يُخزَّن نصاً صريحاً إطلاقاً (البند O20)
     const pinRecord = cleanPin ? await createPasswordRecord(cleanPin) : null;
     let savedEmployeeId = id ? String(id) : '';
@@ -940,9 +944,7 @@ export class HrService {
     const cleanPhone = String(payload.phone || '').trim();
 
     if (cleanPin) {
-      if (cleanPin.length < 4) {
-        throw new AppError('رمز الدخول (PIN) يجب ألا يقل عن 4 أرقام', 'INVALID_PIN', 400);
-      }
+      assertSecurePasscode(cleanPin, { phone: cleanPhone });
       const pinRecord = await createPasswordRecord(cleanPin);
       await sql`UPDATE hr_employees SET pin_hash = ${pinRecord.hash}, pin_salt = ${pinRecord.salt}, mobile_punch_enabled = true, updated_by = ${auth.userId}, updated_at = NOW() WHERE id = ${employeeId} AND tenant_id = ${auth.tenantId}`.execute(this.db);
     }

@@ -15,7 +15,10 @@ import {
   CheckCircleIcon,
   XCircleIcon,
   CopyIcon,
+  EyeIcon,
+  EyeOffIcon,
 } from '@/shared/components/icons/AppIcons';
+import { validatePasscode } from '@/shared/utils/passcode-validator';
 import { UpsertDeliveryRepModal } from '@/shared/components/delivery-reps/UpsertDeliveryRepModal';
 import type { HrEmployee } from '@/types/domain';
 
@@ -34,6 +37,7 @@ export function DeliveryRepsAccessPanel() {
   const [editingRep, setEditingRep] = useState<DeliveryRep | null>(null);
   const [phoneInput, setPhoneInput] = useState('');
   const [pinInput, setPinInput] = useState('');
+  const [showRepPassword, setShowRepPassword] = useState(false);
 
   // Full Upsert Modal
   const [isUpsertOpen, setIsUpsertOpen] = useState(false);
@@ -90,12 +94,21 @@ export function DeliveryRepsAccessPanel() {
 
   const handleSaveCredentials = () => {
     if (!editingRep) return;
+    const cleanPin = pinInput.trim();
+    const cleanPhone = phoneInput.trim();
+    if (cleanPin) {
+      const check = validatePasscode(cleanPin, { phone: cleanPhone });
+      if (!check.valid) {
+        systemAlert(check.error || 'رمز الدخول غير صالح');
+        return;
+      }
+    }
     updateMutation.mutate({
       id: editingRep.id,
       payload: {
         name: editingRep.name,
-        phone: phoneInput.trim() || undefined,
-        pinCode: pinInput.trim() || undefined,
+        phone: cleanPhone || undefined,
+        pinCode: cleanPin || undefined,
       },
     });
   };
@@ -405,10 +418,11 @@ export function DeliveryRepsAccessPanel() {
                           onClick={() => {
                             setEditingRep(rep);
                             setPhoneInput(rep.phone || '');
-                            setPinInput(rep.pin_code || '');
+                            setPinInput('');
+                            setShowRepPassword(false);
                           }}
                         >
-                          {__t('settings.user_management.unified_access_directory_panel.s30', "الـ PIN")}
+                          {__t('settings.user_management.unified_access_directory_panel.s30', "كلمة المرور / PIN")}
                         </Button>
                         <Button
                           variant={rep.is_active ? 'danger' : 'secondary'}
@@ -513,29 +527,49 @@ export function DeliveryRepsAccessPanel() {
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-                {__t('settings.user_management.unified_access_directory_panel.s39', "رمز الدخول السريع (PIN - من 4 إلى 6 أرقام)")}
-              </label>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                <label style={{ fontSize: '12.5px', fontWeight: 700, color: '#334155' }}>
+                  {__t('settings.user_management.unified_access_directory_panel.s39', "كلمة المرور / الرمز السري (Password / Passcode)")}
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setShowRepPassword((prev) => !prev)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#64748b',
+                    fontSize: '11.5px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: 0,
+                  }}
+                >
+                  {showRepPassword ? <EyeOffIcon size={14} /> : <EyeIcon size={14} />}
+                  <span>{showRepPassword ? 'إخفاء' : 'إظهار'}</span>
+                </button>
+              </div>
               <input
-                type="text"
-                maxLength={6}
+                type={showRepPassword ? 'text' : 'password'}
+                maxLength={64}
                 value={pinInput}
-                onChange={(e) => setPinInput(e.target.value.replace(/\D/g, ''))}
-                placeholder={__t('settings.user_management.unified_access_directory_panel.s40', "مثال: 1234")}
+                onChange={(e) => setPinInput(e.target.value)}
+                placeholder="أدخل كلمة مرور قوية أو رمز أرقام (4 خانات فأكثر)"
                 style={{
                   width: '100%',
                   padding: '9px 12px',
                   borderRadius: '7px',
                   border: '1px solid #cbd5e1',
-                  fontSize: '16px',
+                  fontSize: '14px',
                   direction: 'ltr',
-                  textAlign: 'center',
-                  fontFamily: 'monospace',
-                  letterSpacing: '3px',
-                  fontWeight: 800,
+                  textAlign: 'left',
                   boxSizing: 'border-box',
                 }}
               />
+              <span style={{ display: 'block', fontSize: '11px', color: '#64748b', marginTop: '4px' }}>
+                يمكنك تعيين كلمة مرور بأحرف وأرقام أو رمز PIN قوي. يُحظر استخدام الرموز البديهية مثل 0000 أو 1234 أو نهاية رقم الهاتف.
+              </span>
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '6px' }}>
@@ -584,6 +618,7 @@ export function EmployeeSelfServiceAccessPanel() {
   const [editingEmployee, setEditingEmployee] = useState<HrEmployee | null>(null);
   const [phoneInput, setPhoneInput] = useState('');
   const [pinInput, setPinInput] = useState('');
+  const [showEmployeePassword, setShowEmployeePassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Primary Source Query (Shares cache key with HR module)
@@ -618,13 +653,16 @@ export function EmployeeSelfServiceAccessPanel() {
     const cleanPin = pinInput.trim();
     const cleanPhone = phoneInput.trim();
 
-    if (cleanPin && cleanPin.length < 4) {
-      systemAlert('يرجى إدخال رمز PIN لا يقل عن 4 أرقام');
-      return;
+    if (cleanPin) {
+      const check = validatePasscode(cleanPin, { phone: cleanPhone, identifier: editingEmployee.employeeNo });
+      if (!check.valid) {
+        systemAlert(check.error || 'رمز الدخول غير صالح');
+        return;
+      }
     }
 
     if (!cleanPhone && !cleanPin) {
-      systemAlert('يرجى إدخال رقم الهاتف أو رمز الـ PIN على الأقل');
+      systemAlert('يرجى إدخال رقم الهاتف أو رمز كلمة المرور على الأقل');
       return;
     }
 
@@ -924,10 +962,11 @@ export function EmployeeSelfServiceAccessPanel() {
                           onClick={() => {
                             setEditingEmployee(emp);
                             setPhoneInput(emp.phone || emp.mobile || '');
-                            setPinInput(emp.pinCode || emp.pin_code || '');
+                            setPinInput('');
+                            setShowEmployeePassword(false);
                           }}
                         >
-                          {__t('settings.user_management.unified_access_directory_panel.s69', "تعديل الـ PIN والهاتف")}
+                          {__t('settings.user_management.unified_access_directory_panel.s69', "تعديل كلمة المرور / PIN")}
                         </Button>
                         <Button
                           variant={isActive ? 'danger' : 'secondary'}
@@ -1039,29 +1078,49 @@ export function EmployeeSelfServiceAccessPanel() {
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-                {__t('settings.user_management.unified_access_directory_panel.s80', "رمز الدخول السريع (PIN - من 4 إلى 6 أرقام)")}
-              </label>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                <label style={{ fontSize: '12.5px', fontWeight: 700, color: '#334155' }}>
+                  {__t('settings.user_management.unified_access_directory_panel.s80', "كلمة المرور / الرمز السري (Password / Passcode)")}
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setShowEmployeePassword((prev) => !prev)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#64748b',
+                    fontSize: '11.5px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: 0,
+                  }}
+                >
+                  {showEmployeePassword ? <EyeOffIcon size={14} /> : <EyeIcon size={14} />}
+                  <span>{showEmployeePassword ? 'إخفاء' : 'إظهار'}</span>
+                </button>
+              </div>
               <input
-                type="text"
-                maxLength={6}
+                type={showEmployeePassword ? 'text' : 'password'}
+                maxLength={64}
                 value={pinInput}
-                onChange={(e) => setPinInput(e.target.value.replace(/\D/g, ''))}
-                placeholder={__t('settings.user_management.unified_access_directory_panel.s81', "مثال: 1234")}
+                onChange={(e) => setPinInput(e.target.value)}
+                placeholder="أدخل كلمة مرور قوية أو رمز أرقام (4 خانات فأكثر)"
                 style={{
                   width: '100%',
                   padding: '9px 12px',
                   borderRadius: '7px',
                   border: '1px solid #cbd5e1',
-                  fontSize: '16px',
+                  fontSize: '14px',
                   direction: 'ltr',
-                  textAlign: 'center',
-                  fontFamily: 'monospace',
-                  letterSpacing: '3px',
-                  fontWeight: 800,
+                  textAlign: 'left',
                   boxSizing: 'border-box',
                 }}
               />
+              <span style={{ display: 'block', fontSize: '11px', color: '#64748b', marginTop: '4px' }}>
+                يمكنك تعيين كلمة مرور بأحرف وأرقام أو رمز PIN قوي. يُحظر استخدام الرموز البديهية مثل 0000 أو 1234 أو نهاية رقم الهاتف.
+              </span>
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '6px' }}>

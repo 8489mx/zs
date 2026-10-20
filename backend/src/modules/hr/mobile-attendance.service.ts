@@ -5,6 +5,7 @@ import { Database } from '../../database/database.types';
 import { AppError } from '../../common/errors/app-error';
 import { LoginAttemptLimiter } from '../../common/utils/login-attempt-limiter';
 import { createPasswordRecord, verifyPassword } from '../../core/auth/utils/password-hasher';
+import { assertSecurePasscode } from '../../core/auth/utils/password-policy';
 import { getTenantTimezone, todayTenantDate, formatTimeInTimezone } from '../../common/utils/tenant-timezone.util';
 import {
   PORTAL_TOKEN_TTL_MS,
@@ -571,9 +572,7 @@ export class MobileAttendanceService {
    */
   async setEmployeePin(employeeId: number, tenantId: string, pinCode: string) {
     const cleanPin = String(pinCode || '').trim();
-    if (!cleanPin || cleanPin.length < 4) {
-      throw new AppError('رمز الـ PIN يجب أن يتكون من 4 أرقام على الأقل', 'INVALID_PIN', 400);
-    }
+    assertSecurePasscode(cleanPin);
 
     const pinRecord = await createPasswordRecord(cleanPin);
 
