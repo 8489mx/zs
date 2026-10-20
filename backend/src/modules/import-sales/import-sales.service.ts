@@ -53,6 +53,118 @@ export class ImportSalesService {
     }
   }
 
+  /**
+   * Resolves a real tenant account from Chart of Accounts / Accounting Settings.
+   * Eliminates hardcoded account IDs (2110, 1110, 5201, 1130, 5101).
+   * Follows the "No Silent Skips" architectural invariant.
+   */
+  private async resolveTenantAccount(
+    trx: any,
+    tenantId: string,
+    role: 'cogs' | 'inventory' | 'payable' | 'bank' | 'forex_loss' | 'forex_gain',
+    preferredAccountId?: number | null
+  ): Promise<number> {
+    if (preferredAccountId && Number(preferredAccountId) > 0) {
+      const existing = await trx
+        .selectFrom('accounting_accounts')
+        .select(['id', 'is_active'])
+        .where('tenant_id', '=', tenantId)
+        .where('id', '=', Number(preferredAccountId))
+        .executeTakeFirst();
+      if (existing) {
+        if (!existing.is_active) {
+          throw new BadRequestException(`الحساب المحاسبي (${preferredAccountId}) معطل؛ يلزم تفعيله قبل إجراء الحركة.`);
+        }
+        return Number(existing.id);
+      }
+    }
+
+    const settings = await trx
+      .selectFrom('accounting_settings')
+      .selectAll()
+      .where('tenant_id', '=', tenantId)
+      .executeTakeFirst();
+
+    let settingsAccountId: number | null = null;
+    if (settings) {
+      if (role === 'cogs') settingsAccountId = settings.cogs_account_id;
+      else if (role === 'inventory') settingsAccountId = settings.inventory_account_id;
+      else if (role === 'payable') settingsAccountId = settings.supplier_payable_account_id;
+      else if (role === 'bank') settingsAccountId = settings.bank_account_id || settings.cash_account_id;
+    }
+
+    if (settingsAccountId && Number(settingsAccountId) > 0) {
+      const fromSettings = await trx
+        .selectFrom('accounting_accounts')
+        .select(['id', 'is_active'])
+        .where('tenant_id', '=', tenantId)
+        .where('id', '=', Number(settingsAccountId))
+        .executeTakeFirst();
+      if (fromSettings && fromSettings.is_active) {
+        return Number(fromSettings.id);
+      }
+    }
+
+    const candidateCodes: Record<string, string[]> = {
+      cogs: ['5110', '5101', '5100'],
+      inventory: ['1140', '1130', '1100'],
+      payable: ['2110', '2100'],
+      bank: ['1120', '1110'],
+      forex_loss: ['5201', '5190'],
+      forex_gain: ['4201', '4190'],
+    };
+
+    const codes = candidateCodes[role] || [];
+    if (codes.length > 0) {
+      const byCode = await trx
+        .selectFrom('accounting_accounts')
+        .select(['id', 'is_active'])
+        .where('tenant_id', '=', tenantId)
+        .where('code', 'in', codes)
+        .where('is_active', '=', true)
+        .executeTakeFirst();
+      if (byCode) return Number(byCode.id);
+    }
+
+    const specs: Record<string, { code: string; ar: string; en: string; type: string; group: string; balance: 'debit' | 'credit' }> = {
+      cogs: { code: '5110', ar: 'تكلفة البضاعة المباعة', en: 'Cost of Goods Sold', type: 'expense', group: 'expenses', balance: 'debit' },
+      inventory: { code: '1140', ar: 'مخزون بضاعة ومواد خام', en: 'Inventory Asset', type: 'asset', group: 'current_assets', balance: 'debit' },
+      payable: { code: '2110', ar: 'حسابات الموردين والدائنين', en: 'Accounts Payable', type: 'liability', group: 'current_liabilities', balance: 'credit' },
+      bank: { code: '1120', ar: 'حساب البنك الرئيسي', en: 'Main Bank Account', type: 'asset', group: 'current_assets', balance: 'debit' },
+      forex_loss: { code: '5201', ar: 'خسائر فروق أسعار صرف محققة', en: 'Realized Forex Loss', type: 'expense', group: 'expenses', balance: 'debit' },
+      forex_gain: { code: '4201', ar: 'أرباح فروق أسعار صرف محققة', en: 'Realized Forex Gain', type: 'revenue', group: 'revenues', balance: 'credit' },
+    };
+
+    const spec = specs[role];
+    if (!spec) {
+      throw new BadRequestException(`تعذر تحديد حساب محاسبي مناسب لدور ${role}.`);
+    }
+
+    const [created] = await trx
+      .insertInto('accounting_accounts')
+      .values({
+        tenant_id: tenantId,
+        account_id: tenantId,
+        code: spec.code,
+        name_ar: spec.ar,
+        name_en: spec.en,
+        account_type: spec.type,
+        account_group: spec.group,
+        normal_balance: spec.balance,
+        is_active: true,
+        is_system: true,
+        created_at: new Date(),
+        updated_at: new Date(),
+      })
+      .returning('id')
+      .execute();
+
+    if (!created) {
+      throw new BadRequestException(`فشل إنشاء الحساب المحاسبي التلقائي لدور ${role}.`);
+    }
+    return Number(created.id);
+  }
+
   private costLine(item: Selectable<ImportShipmentItemTable>) {
     return {
       id: item.id, productId: Number(item.product_id), quantity: Number(item.quantity),
@@ -1236,13 +1348,18 @@ export class ImportSalesService {
       totalLateCogs = Number(totalLateCogs.toFixed(2));
       totalLateInventory = Number(totalLateInventory.toFixed(2));
 
+      // Resolve accounts dynamically from COA / Accounting Settings
+      const cogsAccountId = await this.resolveTenantAccount(trx, tenantId, 'cogs', dto.accountId ? Number(dto.accountId) : null);
+      const inventoryAccountId = await this.resolveTenantAccount(trx, tenantId, 'inventory');
+      const payableAccountId = await this.resolveTenantAccount(trx, tenantId, 'payable', shipment.supplier_id ? Number(shipment.supplier_id) : null);
+
       let expenseId: number | null = null;
       if (totalLateCogs > 0) {
         const exp = await trx
           .insertInto('expenses')
           .values({
             tenant_id: tenantId,
-            account_id: dto.accountId ? String(dto.accountId) : '5101',
+            account_id: String(cogsAccountId),
             title: `${dto.title} (تسوية تكلفة متأخرة على مبيعات سابقة) - حاوية ${shipment.container_number}`,
             amount: totalLateCogs,
             expense_date: new Date().toISOString().slice(0, 10),
@@ -1263,7 +1380,7 @@ export class ImportSalesService {
         .values({
           entry_no: tempJeNo,
           tenant_id: tenantId,
-          account_id: products[0]?.account_id ? String(products[0].account_id) : '1',
+          account_id: tenantId,
           entry_date: new Date().toISOString().slice(0, 10),
           description: `تسوية مصروف استيراد متأخر - حاوية ${shipment.container_number} (${dto.title})`,
           source_type: 'import_late_expense',
@@ -1292,7 +1409,7 @@ export class ImportSalesService {
         await trx.insertInto('journal_entry_lines').values({
           tenant_id: tenantId,
           journal_entry_id: journalEntryId,
-          account_id: 5101, // COGS Account
+          account_id: cogsAccountId,
           description: `تسوية تكلفة مبيعات سابقة لمصروف متأخر - حاوية ${shipment.container_number}`,
           debit: totalLateCogs,
           credit: 0,
@@ -1307,7 +1424,7 @@ export class ImportSalesService {
         await trx.insertInto('journal_entry_lines').values({
           tenant_id: tenantId,
           journal_entry_id: journalEntryId,
-          account_id: 1130, // Inventory Asset
+          account_id: inventoryAccountId,
           description: `رسملة مصروف متأخر على المخزون المتبقي - حاوية ${shipment.container_number}`,
           debit: totalLateInventory,
           credit: 0,
@@ -1321,7 +1438,7 @@ export class ImportSalesService {
       await trx.insertInto('journal_entry_lines').values({
         tenant_id: tenantId,
         journal_entry_id: journalEntryId,
-        account_id: 2110, // Accounts Payable
+        account_id: payableAccountId,
         description: `استحقاق مصروف متأخر - حاوية ${shipment.container_number}`,
         debit: 0,
         credit: Number(dto.lateExpenseAmount.toFixed(2)),
@@ -1675,7 +1792,7 @@ export class ImportSalesService {
   }
 
   async recordForeignTransfer(tenantId: string, userId: number, dto: RecordForeignTransferDto) {
-    const { supplierId, amountEgp, amountForeign, currency, exchangeRateContract, proformaInvoiceId, notes } = dto;
+    const { supplierId, amountEgp, amountForeign, currency, exchangeRateContract, proformaInvoiceId, notes, projectId, bankAccountId: reqBankAccountId } = dto;
     const sId = Number(supplierId);
 
     const cleanEgp = Number(amountEgp);
@@ -1694,12 +1811,7 @@ export class ImportSalesService {
         .forUpdate()
         .executeTakeFirstOrThrow();
 
-      let forexVarianceEgp = 0;
-      if (exchangeRateContract && exchangeRateContract > 0) {
-        const contractEgp = cleanForeign * exchangeRateContract;
-        forexVarianceEgp = cleanEgp - contractEgp;
-      }
-
+      // 1. Proforma Invoice Integrity Checks (Supplier, Project, Currency, Overpayment, Duplicate)
       if (proformaInvoiceId) {
         const pi = await trx
           .selectFrom('import_proforma_invoices')
@@ -1709,31 +1821,97 @@ export class ImportSalesService {
           .forUpdate()
           .executeTakeFirst();
 
-        if (pi) {
-          const newPaid = Number(pi.paid_amount_foreign || 0) + cleanForeign;
-          const totalPI = Number(pi.total_amount_foreign || 0);
-          const newStatus = newPaid >= totalPI ? 'paid' : 'partially_paid';
-
-          await trx
-            .updateTable('import_proforma_invoices')
-            .set({ paid_amount_foreign: newPaid, payment_status: newStatus })
-            .where('id', '=', proformaInvoiceId)
-            .where('tenant_id', '=', tenantId)
-            .execute();
+        if (!pi) {
+          throw new BadRequestException('الفاتورة المبدئية المحددة غير موجودة أو لا تنتمي لهذه المنشأة.');
         }
+
+        if (Number(pi.supplier_id) !== sId) {
+          throw new BadRequestException(
+            `الفاتورة المبدئية (${pi.pi_number}) تخص مورداً آخر وليست للمورد المحدد.`
+          );
+        }
+
+        if (projectId && pi.project_id && projectId !== pi.project_id) {
+          throw new BadRequestException(
+            `الفاتورة المبدئية (${pi.pi_number}) مرتبطة بمشروع استيراد آخر.`
+          );
+        }
+
+        const piCurrency = (pi.currency || 'USD').toUpperCase();
+        const transferCurrency = (currency || 'USD').toUpperCase();
+        if (piCurrency !== transferCurrency) {
+          throw new BadRequestException(
+            `عملة الحوالة (${transferCurrency}) لا تطابق عملة الفاتورة المبدئية (${piCurrency}).`
+          );
+        }
+
+        if (pi.payment_status === 'paid' && Number(pi.paid_amount_foreign || 0) >= Number(pi.total_amount_foreign || 0)) {
+          throw new BadRequestException(
+            `الفاتورة المبدئية (${pi.pi_number}) مسددة بالكامل بالفعل ولا يمكن سداد دفعات إضافية عليها.`
+          );
+        }
+
+        const totalForeign = Number(pi.total_amount_foreign || 0);
+        const alreadyPaidForeign = Number(pi.paid_amount_foreign || 0);
+        const remainingForeign = Math.max(0, totalForeign - alreadyPaidForeign);
+        if (cleanForeign > remainingForeign + 0.0001) {
+          throw new BadRequestException(
+            `مبلغ الحوالة (${cleanForeign.toFixed(2)} ${transferCurrency}) يتجاوز المتبقي غير المسدد للفاتورة المبدئية (${remainingForeign.toFixed(2)} ${transferCurrency}).`
+          );
+        }
+
+        const newPaid = alreadyPaidForeign + cleanForeign;
+        const newStatus = newPaid >= totalForeign - 0.0001 ? 'paid' : 'partially_paid';
+
+        await trx
+          .updateTable('import_proforma_invoices')
+          .set({ paid_amount_foreign: newPaid, payment_status: newStatus })
+          .where('id', '=', proformaInvoiceId)
+          .where('tenant_id', '=', tenantId)
+          .execute();
       }
+
+      // 2. Replay Protection / Duplicate Prevention (same supplier & amount within 30 seconds)
+      const recentDuplicate = await trx
+        .selectFrom('supplier_payments')
+        .select(['id', 'doc_no', 'created_at'])
+        .where('tenant_id', '=', tenantId)
+        .where('supplier_id', '=', sId)
+        .where('amount', '=', cleanForeign)
+        .where(sql<boolean>`created_at >= NOW() - INTERVAL '30 seconds'`)
+        .executeTakeFirst();
+
+      if (recentDuplicate) {
+        throw new BadRequestException(
+          `تم تسجيل حوالة مطابقة مؤخراً (${recentDuplicate.doc_no})؛ يرجى الانتظار لتفادي التكرار المزدوج غير المقصود.`
+        );
+      }
+
+      // 3. Resolve Real Accounts from Chart of Accounts / Accounting Settings
+      const supplierApAccountId = await this.resolveTenantAccount(trx, tenantId, 'payable');
+      const bankAccountId = await this.resolveTenantAccount(trx, tenantId, 'bank', reqBankAccountId);
+      const forexLossAccountId = await this.resolveTenantAccount(trx, tenantId, 'forex_loss');
+      const forexGainAccountId = await this.resolveTenantAccount(trx, tenantId, 'forex_gain');
+
+      // 4. Exact Base Currency (EGP) Accounting Entries without mixing foreign units
+      const effectiveRateContract = exchangeRateContract && exchangeRateContract > 0
+        ? exchangeRateContract
+        : (cleanEgp / cleanForeign);
+      const contractValue = Number((cleanForeign * effectiveRateContract).toFixed(2));
+      const actualEgp = Number(cleanEgp.toFixed(2));
+      const forexVarianceEgp = Number((actualEgp - contractValue).toFixed(2));
 
       const paymentInsert = await trx
         .insertInto('supplier_payments')
         .values({
           tenant_id: tenantId,
-          account_id: supplier.account_id,
+          account_id: supplier.account_id || tenantId,
           supplier_id: supplier.id,
           amount: cleanForeign,
-          note: `حوالة استيراد خارجية${notes ? ' - ' + notes : ''} [تدبير عملة: ${cleanEgp} ج.م]`,
+          note: `حوالة استيراد خارجية${notes ? ' - ' + notes : ''} [تدبير عملة: ${actualEgp} ج.م]`,
           created_by: userId,
           currency: currency || 'USD',
-          exchange_rate: cleanEgp / cleanForeign,
+          exchange_rate: actualEgp / cleanForeign,
           forex_variance_egp: forexVarianceEgp,
           proforma_invoice_id: proformaInvoiceId || null,
         } as any)
@@ -1753,9 +1931,9 @@ export class ImportSalesService {
         .insertInto('treasury_transactions')
         .values({
           tenant_id: tenantId,
-          account_id: supplier.account_id,
+          account_id: String(bankAccountId),
           txn_type: 'supplier_payment',
-          amount: -cleanEgp,
+          amount: -actualEgp,
           note: `تدبير عملة: حوالة خارجية إلى ${supplier.name} (${cleanForeign} ${currency || 'USD'})` +
             (forexVarianceEgp !== 0 ? ` [فروق صرف: ${forexVarianceEgp.toFixed(2)} ج.م]` : ''),
           reference_type: 'supplier_payment',
@@ -1771,7 +1949,7 @@ export class ImportSalesService {
         .insertInto('supplier_ledger')
         .values({
           tenant_id: tenantId,
-          account_id: supplier.account_id ? String(supplier.account_id) : '2110',
+          account_id: supplier.account_id ? String(supplier.account_id) : tenantId,
           supplier_id: supplier.id,
           entry_type: 'payment',
           amount: cleanForeign,
@@ -1796,14 +1974,14 @@ export class ImportSalesService {
         .where('tenant_id', '=', tenantId)
         .execute();
 
-      // Balanced double-entry accounting journal for foreign transfer and realized FX variance
+      // Balanced double-entry accounting journal
       const tempJeNo = `JE-FT-TEMP-${paymentId}`;
       const je = await trx
         .insertInto('journal_entries')
         .values({
           entry_no: tempJeNo,
           tenant_id: tenantId,
-          account_id: supplier.account_id ? String(supplier.account_id) : '1',
+          account_id: tenantId,
           entry_date: new Date().toISOString().slice(0, 10),
           description: `سداد مورد خارجي وحوالة أجنبية FT-${paymentId} - ${supplier.name} (${cleanForeign} ${currency || 'USD'})`,
           source_type: 'supplier_payment',
@@ -1827,17 +2005,13 @@ export class ImportSalesService {
         .where('tenant_id', '=', tenantId)
         .execute();
 
-      const contractValue = exchangeRateContract && exchangeRateContract > 0
-        ? cleanForeign * exchangeRateContract
-        : cleanEgp;
-
-      // Line 1: Debit Supplier Accounts Payable (relieve foreign supplier debt in EGP)
+      // Line 1: Debit Supplier Accounts Payable in EGP (relieve debt at contract rate)
       await trx.insertInto('journal_entry_lines').values({
         tenant_id: tenantId,
         journal_entry_id: jeId,
-        account_id: 2110,
+        account_id: supplierApAccountId,
         description: `سداد مديونية مورد خارجي - ${supplier.name} (${cleanForeign} ${currency || 'USD'})`,
-        debit: Number(contractValue.toFixed(2)),
+        debit: contractValue,
         credit: 0,
         partner_type: 'supplier',
         partner_id: supplier.id,
@@ -1845,14 +2019,14 @@ export class ImportSalesService {
         location_id: null,
       }).execute();
 
-      // Line 2: Realized Forex Variance (Debit 5201 if Loss, Credit 4201 if Gain)
+      // Line 2: Realized Forex Variance in EGP (Debit if Loss, Credit if Gain)
       if (forexVarianceEgp > 0.001) {
         await trx.insertInto('journal_entry_lines').values({
           tenant_id: tenantId,
           journal_entry_id: jeId,
-          account_id: 5201,
+          account_id: forexLossAccountId,
           description: `فروق سعر صرف محققة (خسارة) على حوالة FT-${paymentId}`,
-          debit: Number(forexVarianceEgp.toFixed(2)),
+          debit: forexVarianceEgp,
           credit: 0,
           partner_type: 'none',
           partner_id: null,
@@ -1863,10 +2037,10 @@ export class ImportSalesService {
         await trx.insertInto('journal_entry_lines').values({
           tenant_id: tenantId,
           journal_entry_id: jeId,
-          account_id: 4201,
+          account_id: forexGainAccountId,
           description: `فروق سعر صرف محققة (أرباح) على حوالة FT-${paymentId}`,
           debit: 0,
-          credit: Number(Math.abs(forexVarianceEgp).toFixed(2)),
+          credit: Math.abs(forexVarianceEgp),
           partner_type: 'none',
           partner_id: null,
           branch_id: null,
@@ -1874,14 +2048,14 @@ export class ImportSalesService {
         }).execute();
       }
 
-      // Line 3: Credit Bank/Cash account for actual cash paid
+      // Line 3: Credit Bank account for actual cash paid in base currency (EGP)
       await trx.insertInto('journal_entry_lines').values({
         tenant_id: tenantId,
         journal_entry_id: jeId,
-        account_id: 1110,
-        description: `تدبير عملة وخروج نقدية لحوالة FT-${paymentId}`,
+        account_id: bankAccountId,
+        description: `تدبير عملة وخروج نقدية بنكية لحوالة FT-${paymentId}`,
         debit: 0,
-        credit: Number(cleanEgp.toFixed(2)),
+        credit: actualEgp,
         partner_type: 'none',
         partner_id: null,
         branch_id: null,
@@ -1894,6 +2068,8 @@ export class ImportSalesService {
         docNo: `FT-${paymentId}`,
         forexVarianceEgp,
         journalEntryId: jeId,
+        bankAccountId,
+        supplierApAccountId,
       };
     });
   }
@@ -2431,19 +2607,21 @@ export class ImportSalesService {
         }
       }
 
-      // Ensure no unsettled purchase invoices linked to this project
+      // Ensure no unsettled purchase invoices linked to this project architecturally
       const projectPurchases = await trx
         .selectFrom('purchases')
         .select(['id', 'doc_no', 'total', 'paid_amount', 'status'])
         .where('tenant_id', '=', tenantId)
-        .where('project_id', '=', projectId as any)
+        .where('import_project_id', '=', projectId)
         .where('status', '!=', 'cancelled')
         .execute();
 
       for (const pur of projectPurchases) {
-        if (Number(pur.paid_amount || 0) < Number(pur.total || 0)) {
+        const paid = Number(pur.paid_amount || 0);
+        const total = Number(pur.total || 0);
+        if (paid < total - 0.001) {
           throw new BadRequestException(
-            `لا يمكن إقفال المشروع: فاتورة الشراء رقم ${pur.doc_no || pur.id} غير مسددة بالكامل للمورد (المتبقي: ${Number(pur.total) - Number(pur.paid_amount)}).`
+            `لا يمكن إقفال المشروع: فاتورة الشراء رقم ${pur.doc_no || pur.id} غير مسددة بالكامل للمورد (المتبقي: ${(total - paid).toFixed(2)} ج.م).`
           );
         }
       }

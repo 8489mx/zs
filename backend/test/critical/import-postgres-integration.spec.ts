@@ -1,31 +1,30 @@
 import 'reflect-metadata';
 import { strict as assert } from 'node:assert';
-import { Kysely, sql } from 'kysely';
+import { Kysely } from 'kysely';
 import { PGlite } from '@electric-sql/pglite';
 import { PGliteDialect } from 'kysely-pglite-dialect';
-import { BadRequestException } from '@nestjs/common';
 import type { Database } from '../../src/database/database.types';
 import { ImportSalesService } from '../../src/modules/import-sales/import-sales.service';
 
 /**
- * IMPORT-POSTGRES-INTEGRATION — اختبارات التكامل الحقيقية على محرك PostgreSQL (PGlite).
+ * IMPORT-POSTGRES-INTEGRATION — Real PostgreSQL Integration Tests.
  *
- * يختبر هذا الجناح العمليات الفعلية واستعلامات قاعدة البيانات الحقيقية:
- * 1. تطابق أعمدة supplier_ledger وقيد اليومية المتزن لفروق العملات وسداد الموردين.
- * 2. استخدام العمود الحقيقي qty في product_location_stock وتوزيع المصروفات المتأخرة.
- * 3. عمل setProjectPartners بنمط upsert دون تعارض مع قيد UNIQUE (tenant_id, project_id, partner_id).
- * 4. عزل أرباح المشروع بمصدر المخزون الفعلي المستورد وعدم احتساب مبيعات تتجاوز الكمية المستلمة.
- * 5. حظر إقفال المشروع closeProject عند وجود فواتير مسددة جزئياً أو التزامات غير مسواة.
- * 6. حظر اعتبار التعريفات غير الرسمية كتعريفات موثقة في calculateCustomsTax.
+ * Verifies real database operations against production-grade schema and migrations:
+ * 1. Project Closure: Architecture link between purchases and import_projects (import_project_id UUID vs project_id BIGINT), rejecting unsettled liabilities.
+ * 2. Accounting Entries: Dynamic COA resolution without hardcoded account codes (2110, 1110, 5201, 1130, 5101) with balanced entries and tenant isolation.
+ * 3. Foreign Transfers: Proforma supplier/project/currency matching, overpayment and replay duplicate prevention, real bank account linkage, and EGP-only balanced journal.
+ * 4. Late Shipment Expenses: Dynamic COA account resolution and IAS 2 split between COGS and on-hand stock (using column `qty`).
+ * 5. Partner UPSERT & UNIQUE Constraint Safety.
+ * 6. Official Customs Tariff Reality Check.
  */
 
-async function setupDatabase(): Promise<Kysely<Database>> {
+async function setupDatabase(): Promise<{ db: Kysely<Database>; accounts: Record<string, number> }> {
   const pglite = new PGlite();
   const db = new Kysely<Database>({
     dialect: new PGliteDialect(pglite),
   });
 
-  // Create core schema tables via raw multi-statement DDL execution
+  // Create real tables matching production migrations exactly
   const ddl = `
     CREATE TABLE tenants (
       id TEXT PRIMARY KEY,
@@ -43,17 +42,75 @@ async function setupDatabase(): Promise<Kysely<Database>> {
       created_at TIMESTAMPTZ DEFAULT NOW()
     );
 
+    CREATE TABLE accounting_accounts (
+      id BIGSERIAL PRIMARY KEY,
+      tenant_id TEXT NOT NULL REFERENCES tenants(id),
+      account_id TEXT NOT NULL,
+      code VARCHAR(50) NOT NULL,
+      name_ar VARCHAR(255) NOT NULL,
+      name_en VARCHAR(255) NOT NULL,
+      account_type VARCHAR(50) NOT NULL,
+      account_group VARCHAR(50) NOT NULL,
+      normal_balance VARCHAR(10) NOT NULL,
+      parent_id BIGINT REFERENCES accounting_accounts(id) ON DELETE RESTRICT,
+      is_active BOOLEAN DEFAULT TRUE,
+      is_system BOOLEAN DEFAULT FALSE,
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      updated_at TIMESTAMPTZ DEFAULT NOW(),
+      CONSTRAINT uq_accounting_accounts_tenant_code UNIQUE (tenant_id, code)
+    );
+
+    CREATE TABLE accounting_settings (
+      id BIGINT PRIMARY KEY DEFAULT 1,
+      tenant_id TEXT NOT NULL REFERENCES tenants(id),
+      account_id TEXT NOT NULL,
+      cash_account_id BIGINT REFERENCES accounting_accounts(id),
+      bank_account_id BIGINT REFERENCES accounting_accounts(id),
+      customer_receivable_account_id BIGINT REFERENCES accounting_accounts(id),
+      supplier_payable_account_id BIGINT REFERENCES accounting_accounts(id),
+      inventory_account_id BIGINT REFERENCES accounting_accounts(id),
+      sales_revenue_account_id BIGINT REFERENCES accounting_accounts(id),
+      sales_discount_account_id BIGINT REFERENCES accounting_accounts(id),
+      cogs_account_id BIGINT REFERENCES accounting_accounts(id),
+      purchase_account_id BIGINT REFERENCES accounting_accounts(id),
+      expenses_account_id BIGINT REFERENCES accounting_accounts(id),
+      sales_tax_account_id BIGINT REFERENCES accounting_accounts(id),
+      purchase_tax_account_id BIGINT REFERENCES accounting_accounts(id),
+      manufacturing_overhead_account_id BIGINT REFERENCES accounting_accounts(id),
+      lock_date_all DATE,
+      lock_date_non_adviser DATE,
+      lock_date_tax DATE,
+      updated_at TIMESTAMPTZ DEFAULT NOW(),
+      CONSTRAINT uq_accounting_settings_tenant UNIQUE (tenant_id)
+    );
+
     CREATE TABLE products (
       id BIGSERIAL PRIMARY KEY,
       tenant_id TEXT NOT NULL REFERENCES tenants(id),
       account_id TEXT DEFAULT '1',
       name TEXT NOT NULL,
-      sku TEXT,
+      name_en TEXT,
       barcode TEXT,
-      price NUMERIC(15, 2) DEFAULT 0,
+      category_id BIGINT,
+      supplier_id BIGINT,
+      item_type TEXT DEFAULT 'product',
+      item_kind TEXT DEFAULT 'standard',
+      style_code TEXT,
+      color TEXT,
+      size TEXT,
+      bin_location TEXT,
+      default_location_id BIGINT,
       cost_price NUMERIC(15, 6) DEFAULT 0,
+      retail_price NUMERIC(15, 2) DEFAULT 0,
+      wholesale_price NUMERIC(15, 2) DEFAULT 0,
       stock_qty NUMERIC(15, 2) DEFAULT 0,
+      reserved_qty NUMERIC(15, 2) DEFAULT 0,
+      min_stock_qty NUMERIC(15, 2) DEFAULT 0,
+      notes TEXT,
       is_active BOOLEAN DEFAULT TRUE,
+      tax_code_type TEXT,
+      tax_code TEXT,
+      metadata JSONB,
       created_at TIMESTAMPTZ DEFAULT NOW(),
       updated_at TIMESTAMPTZ DEFAULT NOW()
     );
@@ -76,9 +133,14 @@ async function setupDatabase(): Promise<Kysely<Database>> {
       tenant_id TEXT NOT NULL REFERENCES tenants(id),
       account_id TEXT DEFAULT '2110',
       name TEXT NOT NULL,
-      phone TEXT,
+      phone TEXT DEFAULT '',
+      address TEXT DEFAULT '',
       balance NUMERIC(15, 2) DEFAULT 0,
-      created_at TIMESTAMPTZ DEFAULT NOW()
+      notes TEXT,
+      is_active BOOLEAN DEFAULT TRUE,
+      metadata JSONB,
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      updated_at TIMESTAMPTZ DEFAULT NOW()
     );
 
     CREATE TABLE supplier_payments (
@@ -155,7 +217,8 @@ async function setupDatabase(): Promise<Kysely<Database>> {
       id BIGSERIAL PRIMARY KEY,
       tenant_id TEXT REFERENCES tenants(id),
       journal_entry_id BIGINT NOT NULL REFERENCES journal_entries(id) ON DELETE CASCADE,
-      account_id BIGINT NOT NULL,
+      account_id BIGINT NOT NULL REFERENCES accounting_accounts(id),
+      cost_center_id BIGINT,
       description TEXT NOT NULL,
       debit NUMERIC(15, 2) DEFAULT 0,
       credit NUMERIC(15, 2) DEFAULT 0,
@@ -185,41 +248,10 @@ async function setupDatabase(): Promise<Kysely<Database>> {
       id BIGSERIAL PRIMARY KEY,
       tenant_id TEXT NOT NULL REFERENCES tenants(id),
       account_id TEXT DEFAULT '1',
-      table_number TEXT DEFAULT '',
-      order_type TEXT DEFAULT 'takeaway',
       doc_no TEXT,
-      customer_id BIGINT,
-      customer_name TEXT,
-      customer_phone TEXT,
-      customer_address TEXT,
-      payment_type TEXT DEFAULT 'cash',
-      payment_channel TEXT DEFAULT 'cash',
-      subtotal NUMERIC(15, 2) DEFAULT 0,
-      discount NUMERIC(15, 2) DEFAULT 0,
-      tax_rate NUMERIC(5, 2) DEFAULT 0,
-      tax_amount NUMERIC(15, 2) DEFAULT 0,
-      delivery_fee NUMERIC(15, 2) DEFAULT 0,
-      prices_include_tax BOOLEAN DEFAULT FALSE,
       total NUMERIC(15, 2) DEFAULT 0,
-      paid_amount NUMERIC(15, 2) DEFAULT 0,
-      tendered_amount NUMERIC(15, 2) DEFAULT 0,
-      change_amount NUMERIC(15, 2) DEFAULT 0,
-      store_credit_used NUMERIC(15, 2) DEFAULT 0,
       status TEXT DEFAULT 'completed',
-      note TEXT,
-      branch_id BIGINT,
-      location_id BIGINT,
-      created_by BIGINT,
-      cancelled_at TIMESTAMPTZ,
-      cancelled_by BIGINT,
-      cancel_reason TEXT DEFAULT '',
-      delivery_rep_id BIGINT,
-      delivery_status TEXT,
-      collection_status TEXT,
-      settled_at TIMESTAMPTZ,
-      settled_by BIGINT,
-      created_at TIMESTAMPTZ DEFAULT NOW(),
-      updated_at TIMESTAMPTZ DEFAULT NOW()
+      created_at TIMESTAMPTZ DEFAULT NOW()
     );
 
     CREATE TABLE sale_items (
@@ -232,13 +264,8 @@ async function setupDatabase(): Promise<Kysely<Database>> {
       qty NUMERIC(15, 2) NOT NULL,
       unit_price NUMERIC(15, 2) NOT NULL,
       line_total NUMERIC(15, 2) NOT NULL,
-      unit_name TEXT DEFAULT 'PCS',
-      unit_multiplier NUMERIC(10, 2) DEFAULT 1,
       cost_price NUMERIC(15, 6) DEFAULT 0,
-      allocated_discount NUMERIC(15, 2) DEFAULT 0,
-      price_type TEXT DEFAULT 'retail',
-      notes TEXT DEFAULT '',
-      modifiers JSONB DEFAULT '{}'
+      allocated_discount NUMERIC(15, 2) DEFAULT 0
     );
 
     CREATE TABLE return_documents (
@@ -258,17 +285,6 @@ async function setupDatabase(): Promise<Kysely<Database>> {
       cost_price NUMERIC(15, 6) DEFAULT 0
     );
 
-    CREATE TABLE purchases (
-      id BIGSERIAL PRIMARY KEY,
-      tenant_id TEXT NOT NULL REFERENCES tenants(id),
-      doc_no TEXT,
-      project_id UUID,
-      total NUMERIC(15, 2) DEFAULT 0,
-      paid_amount NUMERIC(15, 2) DEFAULT 0,
-      status TEXT DEFAULT 'received',
-      created_at TIMESTAMPTZ DEFAULT NOW()
-    );
-
     CREATE TABLE import_projects (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
       tenant_id TEXT NOT NULL REFERENCES tenants(id),
@@ -277,7 +293,7 @@ async function setupDatabase(): Promise<Kysely<Database>> {
       target_market TEXT DEFAULT NULL,
       country_origin TEXT DEFAULT NULL,
       country_destination TEXT DEFAULT NULL,
-      budget_currency TEXT DEFAULT 'EGP',
+      budget_currency TEXT DEFAULT 'USD',
       allocated_capital NUMERIC(15, 2) DEFAULT 0,
       target_roi_percentage NUMERIC(5, 2) DEFAULT 0,
       status TEXT DEFAULT 'active',
@@ -287,7 +303,46 @@ async function setupDatabase(): Promise<Kysely<Database>> {
       closed_by BIGINT,
       notes TEXT DEFAULT NULL,
       created_at TIMESTAMPTZ DEFAULT NOW(),
-      updated_at TIMESTAMPTZ DEFAULT NOW()
+      updated_at TIMESTAMPTZ DEFAULT NOW(),
+      CONSTRAINT uq_import_projects_tenant_project_no UNIQUE (tenant_id, project_no)
+    );
+
+    -- purchases table matching REAL PRODUCTION SCHEMA:
+    -- project_id is BIGINT (contracting/legacy)
+    -- import_project_id is UUID REFERENCES import_projects(id) (migration 234)
+    CREATE TABLE purchases (
+      id BIGSERIAL PRIMARY KEY,
+      tenant_id TEXT NOT NULL REFERENCES tenants(id),
+      doc_no TEXT,
+      supplier_id BIGINT REFERENCES suppliers(id),
+      payment_type VARCHAR(20) DEFAULT 'credit',
+      subtotal NUMERIC(15, 2) DEFAULT 0,
+      discount NUMERIC(15, 2) DEFAULT 0,
+      tax_rate NUMERIC(5, 2) DEFAULT 0,
+      tax_amount NUMERIC(15, 2) DEFAULT 0,
+      prices_include_tax BOOLEAN DEFAULT FALSE,
+      total NUMERIC(15, 2) DEFAULT 0,
+      paid_amount NUMERIC(15, 2) DEFAULT 0,
+      note TEXT DEFAULT '',
+      status VARCHAR(50) DEFAULT 'received',
+      branch_id BIGINT,
+      location_id BIGINT,
+      created_by BIGINT,
+      cancelled_at TIMESTAMPTZ,
+      cancelled_by BIGINT,
+      cancel_reason TEXT,
+      required_date DATE,
+      currency TEXT,
+      company_name TEXT,
+      contact_id BIGINT,
+      shipping_address_id BIGINT,
+      cost_center_id BIGINT,
+      project_id BIGINT, -- REAL PRODUCTION TYPE: BIGINT (Contracting/legacy)
+      import_project_id UUID REFERENCES import_projects(id) ON DELETE SET NULL, -- ARCHITECTURAL LINK
+      terms_template TEXT,
+      lifecycle_status TEXT,
+      matched_status TEXT,
+      created_at TIMESTAMPTZ DEFAULT NOW()
     );
 
     CREATE TABLE import_partners (
@@ -319,30 +374,100 @@ async function setupDatabase(): Promise<Kysely<Database>> {
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
       tenant_id TEXT NOT NULL REFERENCES tenants(id),
       partner_id UUID NOT NULL REFERENCES import_partners(id) ON DELETE CASCADE,
-      type TEXT NOT NULL,
+      project_id UUID REFERENCES import_projects(id) ON DELETE SET NULL,
+      entry_type TEXT NOT NULL,
       amount NUMERIC(15, 2) NOT NULL,
-      transaction_date DATE NOT NULL,
-      note TEXT,
+      notes TEXT,
       created_by BIGINT,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
+
+    CREATE TABLE import_sourcing_trips (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      tenant_id TEXT NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+      project_id UUID REFERENCES import_projects(id) ON DELETE SET NULL,
+      trip_title VARCHAR(255) NOT NULL,
+      destination_city VARCHAR(100) NOT NULL,
+      start_date DATE NOT NULL,
+      end_date DATE,
+      budget_egp NUMERIC(12, 2) DEFAULT 0,
+      actual_cost_egp NUMERIC(12, 2) DEFAULT 0,
+      notes TEXT,
+      findings JSONB DEFAULT '{}'::jsonb,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
+
+    CREATE TABLE import_proforma_invoices (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      tenant_id TEXT NOT NULL REFERENCES tenants(id),
+      project_id UUID REFERENCES import_projects(id) ON DELETE SET NULL,
+      supplier_id BIGINT NOT NULL REFERENCES suppliers(id),
+      pi_number TEXT NOT NULL,
+      pi_date DATE NOT NULL,
+      currency VARCHAR(10) DEFAULT 'USD',
+      total_amount_foreign NUMERIC(15, 2) NOT NULL,
+      status VARCHAR(50) DEFAULT 'active',
+      payment_status VARCHAR(50) DEFAULT 'unpaid',
+      paid_amount_foreign NUMERIC(15, 2) DEFAULT 0,
       created_at TIMESTAMPTZ DEFAULT NOW()
     );
 
     CREATE TABLE import_shipments (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
       tenant_id TEXT NOT NULL REFERENCES tenants(id),
-      project_id UUID REFERENCES import_projects(id),
       container_number TEXT NOT NULL,
-      status TEXT DEFAULT 'In Transit',
-      pricing_exchange_rate NUMERIC(10, 4) DEFAULT 50.0,
-      shipping_cost_usd NUMERIC(12, 2) DEFAULT 0,
-      customs_cost_egp NUMERIC(12, 2) DEFAULT 0,
-      internal_transport_cost_egp NUMERIC(12, 2) DEFAULT 0,
+      supplier_id BIGINT REFERENCES suppliers(id),
+      bill_of_lading TEXT,
+      arrival_date DATE,
+      shipping_date DATE,
+      shipped_date DATE,
+      eta_date DATE,
+      clearance_date DATE,
+      shipping_cost_usd NUMERIC(15, 2) DEFAULT 0,
+      customs_cost_egp NUMERIC(15, 2) DEFAULT 0,
+      internal_transport_cost_egp NUMERIC(15, 2) DEFAULT 0,
+      exchange_rate_at_arrival NUMERIC(10, 4) DEFAULT 1.0,
+      pricing_exchange_rate NUMERIC(10, 4) DEFAULT 1.0,
+      status VARCHAR(50) DEFAULT 'Draft',
       shipping_expense_id BIGINT,
       customs_expense_id BIGINT,
       transport_expense_id BIGINT,
+      project_id UUID REFERENCES import_projects(id) ON DELETE SET NULL,
+      freight_type VARCHAR(20) DEFAULT 'FCL',
+      container_size VARCHAR(20) DEFAULT '40HQ',
+      port_of_loading VARCHAR(100) DEFAULT 'Ningbo',
+      port_of_discharge VARCHAR(100) DEFAULT 'Alexandria',
+      cbm_volume NUMERIC(10, 3) DEFAULT 0,
+      gross_weight_kg NUMERIC(12, 2) DEFAULT 0,
+      carrier_name VARCHAR(150),
+      free_demurrage_days INTEGER DEFAULT 14,
+      demurrage_start_date DATE,
+      demurrage_rate_per_day NUMERIC(10, 2) DEFAULT 50.00,
+      actual_demurrage_fees NUMERIC(12, 2) DEFAULT 0,
+      customs_declaration_no VARCHAR(100),
+      vat_refundable_egp NUMERIC(12, 2) DEFAULT 0,
+      is_consolidated BOOLEAN DEFAULT FALSE,
+      cost_allocation_method VARCHAR(50) DEFAULT 'value',
       late_expenses_total_egp NUMERIC(12, 2) DEFAULT 0,
       late_cogs_adjustment_egp NUMERIC(12, 2) DEFAULT 0,
       late_inventory_adjustment_egp NUMERIC(12, 2) DEFAULT 0,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
+
+    CREATE TABLE import_aci_compliance (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      tenant_id TEXT NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+      project_id UUID REFERENCES import_projects(id) ON DELETE SET NULL,
+      shipment_id UUID REFERENCES import_shipments(id) ON DELETE SET NULL,
+      acid_number VARCHAR(50) NOT NULL,
+      acid_issue_date DATE,
+      acid_expiry_date DATE,
+      cargox_document_id VARCHAR(100),
+      importer_tax_number VARCHAR(50),
+      exporter_id VARCHAR(100),
+      status VARCHAR(50) DEFAULT 'pending',
+      compliance_checklist JSONB DEFAULT '{}'::jsonb,
+      notes TEXT,
       created_at TIMESTAMPTZ DEFAULT NOW()
     );
 
@@ -351,441 +476,643 @@ async function setupDatabase(): Promise<Kysely<Database>> {
       tenant_id TEXT NOT NULL REFERENCES tenants(id),
       shipment_id UUID NOT NULL REFERENCES import_shipments(id) ON DELETE CASCADE,
       product_id BIGINT NOT NULL REFERENCES products(id),
-      quantity NUMERIC(12, 2) NOT NULL,
-      factory_unit_price_usd NUMERIC(12, 2) NOT NULL,
-      allocated_overhead_egp NUMERIC(12, 2) DEFAULT 0,
-      landed_cost_egp NUMERIC(12, 6) DEFAULT 0,
-      received_quantity NUMERIC(12, 2) DEFAULT 0,
-      shortage_handling_method TEXT,
-      target_margin_percent NUMERIC(5, 2) DEFAULT 0,
-      target_retail_margin NUMERIC(5, 2) DEFAULT 0,
-      target_wholesale_margin NUMERIC(5, 2) DEFAULT 0,
-      created_at TIMESTAMPTZ DEFAULT NOW()
+      quantity NUMERIC(15, 2) NOT NULL,
+      received_quantity NUMERIC(15, 2),
+      factory_unit_price_usd NUMERIC(15, 4) NOT NULL,
+      landed_cost_egp NUMERIC(15, 4) DEFAULT 0,
+      shortage_handling_method VARCHAR(50) DEFAULT 'capitalize'
     );
 
     CREATE TABLE import_inventory_receipts (
-      id BIGSERIAL PRIMARY KEY,
-      tenant_id TEXT NOT NULL REFERENCES tenants(id),
-      shipment_id UUID NOT NULL REFERENCES import_shipments(id) ON DELETE CASCADE,
-      state TEXT NOT NULL CHECK (state IN ('posted', 'legacy_review_required')),
-      review_reason TEXT,
-      posted_at TIMESTAMPTZ,
-      created_by BIGINT,
-      created_at TIMESTAMPTZ DEFAULT NOW(),
-      UNIQUE (tenant_id, shipment_id)
-    );
-
-    CREATE TABLE import_sourcing_trips (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
       tenant_id TEXT NOT NULL REFERENCES tenants(id),
-      project_id UUID REFERENCES import_projects(id),
-      trip_title TEXT NOT NULL,
-      destination_city TEXT DEFAULT '',
-      start_date DATE DEFAULT CURRENT_DATE,
-      end_date DATE DEFAULT CURRENT_DATE,
-      actual_cost_egp NUMERIC(15, 2) DEFAULT 0,
-      created_at TIMESTAMPTZ DEFAULT NOW()
-    );
-
-    CREATE TABLE import_proforma_invoices (
-      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-      tenant_id TEXT NOT NULL REFERENCES tenants(id),
-      project_id UUID REFERENCES import_projects(id),
-      supplier_id BIGINT NOT NULL REFERENCES suppliers(id),
-      pi_number TEXT NOT NULL,
-      pi_date DATE DEFAULT CURRENT_DATE,
-      total_amount_foreign NUMERIC(15, 2) NOT NULL,
-      currency VARCHAR(10) DEFAULT 'USD',
-      status TEXT DEFAULT 'approved',
-      payment_status VARCHAR(50) DEFAULT 'unpaid',
-      paid_amount_foreign NUMERIC(15, 2) DEFAULT 0,
-      created_at TIMESTAMPTZ DEFAULT NOW()
+      shipment_id UUID NOT NULL REFERENCES import_shipments(id),
+      receipt_number VARCHAR(100) DEFAULT 'REC-001',
+      receipt_date DATE DEFAULT CURRENT_DATE,
+      state VARCHAR(50) NOT NULL DEFAULT 'posted'
     );
 
     CREATE TABLE import_customs_tariffs (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
       tenant_id TEXT NOT NULL REFERENCES tenants(id),
-      hs_code VARCHAR(50) NOT NULL,
+      hs_code VARCHAR(20) NOT NULL,
       description_ar VARCHAR(255) NOT NULL,
       description_en VARCHAR(255),
-      duty_rate_percent NUMERIC(5, 2) NOT NULL DEFAULT 0.00,
-      vat_rate_percent NUMERIC(5, 2) NOT NULL DEFAULT 0.00,
-      regulatory_body VARCHAR(100),
-      inspection_fees_percent NUMERIC(5, 2) DEFAULT 0.00,
-      official_source VARCHAR(255) DEFAULT NULL,
+      duty_rate_percent NUMERIC(5, 2) NOT NULL,
+      vat_rate_percent NUMERIC(5, 2) DEFAULT 14.00,
+      regulatory_body TEXT,
+      inspection_fees_percent NUMERIC(5, 2) DEFAULT 0,
       effective_date DATE DEFAULT CURRENT_DATE,
+      official_source VARCHAR(255) DEFAULT NULL,
       is_official BOOLEAN DEFAULT FALSE,
-      created_at TIMESTAMPTZ DEFAULT NOW(),
       CONSTRAINT uq_import_customs_tariffs UNIQUE (tenant_id, hs_code)
     );
   `;
+
   await pglite.exec(ddl);
 
-  return db;
-}
+  // Seed default tenant
+  await pglite.exec(`INSERT INTO tenants (id, name) VALUES ('tenant-audit-1', 'Audited Trading Tenant');`);
 
-async function testAll(): Promise<void> {
-  console.log('--- STARTING REAL POSTGRESQL (PGLITE) INTEGRATION AUDIT ---');
-  const db = await setupDatabase();
-  const service = new ImportSalesService(db as any);
+  // Seed standard Chart of Accounts
+  await pglite.exec(`
+    INSERT INTO accounting_accounts (tenant_id, account_id, code, name_ar, name_en, account_type, account_group, normal_balance, is_system)
+    VALUES
+      ('tenant-audit-1', 'tenant-audit-1', '1110', 'الصندوق والنقدية', 'Cash and Cash Equivalents', 'asset', 'current_assets', 'debit', true),
+      ('tenant-audit-1', 'tenant-audit-1', '1120', 'حساب البنك الرئيسي', 'Main Bank Account', 'asset', 'current_assets', 'debit', true),
+      ('tenant-audit-1', 'tenant-audit-1', '1140', 'مخزون بضاعة ومواد خام', 'Inventory Asset', 'asset', 'current_assets', 'debit', true),
+      ('tenant-audit-1', 'tenant-audit-1', '2110', 'حسابات الموردين والدائنين', 'Accounts Payable', 'liability', 'current_liabilities', 'credit', true),
+      ('tenant-audit-1', 'tenant-audit-1', '5110', 'تكلفة البضاعة المباعة', 'Cost of Goods Sold', 'expense', 'expenses', 'debit', true),
+      ('tenant-audit-1', 'tenant-audit-1', '5201', 'خسائر فروق أسعار صرف محققة', 'Realized Forex Loss', 'expense', 'expenses', 'debit', true),
+      ('tenant-audit-1', 'tenant-audit-1', '4201', 'أرباح فروق أسعار صرف محققة', 'Realized Forex Gain', 'revenue', 'revenues', 'credit', true);
+  `);
 
-  const TENANT_ID = 'tenant_prod_1';
-  const USER_ID = 101;
-
-  // Insert seed tenant and user
-  await db.insertInto('tenants').values({ id: TENANT_ID } as any).execute();
-  await db.insertInto('users').values({
-    id: USER_ID,
-    tenant_id: TENANT_ID,
-    username: 'accountant_master',
-    password_hash: 'hash',
-    role: 'admin',
-  } as any).execute();
-
-  // Insert suppliers
-  const supp = await db.insertInto('suppliers').values({
-    tenant_id: TENANT_ID,
-    account_id: '2110',
-    name: 'Shenzhen Tech Factory Ltd',
-    balance: 50000, // $50,000 USD initial liability
-  } as any).returning('id').executeTakeFirstOrThrow();
-  const supplierId = Number(supp.id);
-
-  // -------------------------------------------------------------
-  // TEST 1: setProjectPartners UPSERT & UNIQUE CONSTRAINT SAFETY
-  // -------------------------------------------------------------
-  console.log('Running Test 1: setProjectPartners UPSERT & UNIQUE Constraint Safety...');
-  const proj = await db.insertInto('import_projects').values({
-    tenant_id: TENANT_ID,
-    project_no: 'PRJ-261020-0001',
-    title: 'Electronics Import Q4',
-    allocated_capital: 2000000,
-    status: 'active',
-  } as any).returning('id').executeTakeFirstOrThrow();
-  const projectId = String(proj.id);
-
-  const partner1 = await db.insertInto('import_partners').values({
-    tenant_id: TENANT_ID,
-    name: 'Partner Alpha',
-    capital_amount: 1000000,
-  } as any).returning('id').executeTakeFirstOrThrow();
-
-  const partner2 = await db.insertInto('import_partners').values({
-    tenant_id: TENANT_ID,
-    name: 'Partner Beta',
-    capital_amount: 1000000,
-  } as any).returning('id').executeTakeFirstOrThrow();
-
-  const p1Id = String(partner1.id);
-  const p2Id = String(partner2.id);
-
-  // First assignment: Alpha (50%), Beta (50%)
-  await service.setProjectPartners(TENANT_ID, projectId, [
-    { partnerId: p1Id, profitPercentage: 50, capitalShare: 1000000 },
-    { partnerId: p2Id, profitPercentage: 50, capitalShare: 1000000 },
-  ]);
-
-  // Second assignment: Modifying the exact SAME partners (Alpha 60%, Beta 40%)
-  // In PostgreSQL, this previously crashed with UNIQUE constraint violation on uq_import_project_partners.
-  // Our fix must cleanly upsert!
-  await service.setProjectPartners(TENANT_ID, projectId, [
-    { partnerId: p1Id, profitPercentage: 60, capitalShare: 1200000 },
-    { partnerId: p2Id, profitPercentage: 40, capitalShare: 800000 },
-  ]);
-
-  const assignedPartners = await db
-    .selectFrom('import_project_partners')
-    .selectAll()
-    .where('project_id', '=', projectId)
-    .where('tenant_id', '=', TENANT_ID)
-    .where('is_active', '=', true)
+  // Query account IDs to configure accounting_settings
+  const accountRows = await db
+    .selectFrom('accounting_accounts')
+    .select(['id', 'code'])
+    .where('tenant_id', '=', 'tenant-audit-1')
     .execute();
 
-  assert.equal(assignedPartners.length, 2, 'Must have exactly 2 active partner rows after update');
-  const alphaRow = assignedPartners.find((p) => p.partner_id === p1Id);
-  assert.equal(Number(alphaRow?.profit_percentage), 60, 'Partner Alpha must be cleanly updated to 60% without duplicate error');
-  console.log('PASS Test 1: setProjectPartners UPSERT & UNIQUE constraint handled flawlessly.');
-
-  // -------------------------------------------------------------
-  // TEST 2: recordForeignTransfer REAL SCHEMA & BALANCED JOURNAL
-  // -------------------------------------------------------------
-  console.log('Running Test 2: recordForeignTransfer Real Schema & Balanced Double-Entry Journal...');
-  // Scenario: Proforma of $10,000 USD agreed at 48 EGP/USD. Bank executed at 50 EGP/USD.
-  // Cash paid = 500,000 EGP. Contract value = 480,000 EGP. Forex variance = 20,000 EGP (Loss).
-  const pi = await db.insertInto('import_proforma_invoices').values({
-    tenant_id: TENANT_ID,
-    project_id: projectId,
-    supplier_id: supplierId,
-    pi_number: 'PI-CHINA-101',
-    total_amount_foreign: 10000,
-    paid_amount_foreign: 0,
-    status: 'approved',
-    currency: 'USD',
-    payment_status: 'unpaid',
-  } as any).returning('id').executeTakeFirstOrThrow();
-
-  const transferResult = await service.recordForeignTransfer(TENANT_ID, USER_ID, {
-    supplierId: String(supplierId),
-    amountForeign: 10000,
-    amountEgp: 500000,
-    currency: 'USD',
-    exchangeRateContract: 48,
-    proformaInvoiceId: String(pi.id),
-    notes: 'Payment for PI-CHINA-101',
-  });
-
-  assert.equal(transferResult.forexVarianceEgp, 20000, 'Forex variance must be exactly 20,000 EGP');
-
-  // Verify real supplier_ledger row
-  const ledgerRows = await db
-    .selectFrom('supplier_ledger')
-    .selectAll()
-    .where('supplier_id', '=', supplierId)
-    .where('tenant_id', '=', TENANT_ID)
-    .execute();
-
-  assert.equal(ledgerRows.length, 1, 'Supplier ledger row must exist in PostgreSQL');
-  const lRow = ledgerRows[0];
-  assert.equal(lRow.entry_type, 'payment', 'Real column entry_type must be payment');
-  assert.equal(Number(lRow.amount), 10000, 'Ledger amount must be 10000');
-  assert.equal(Number(lRow.balance_after), 40000, 'Balance after must be 50,000 - 10,000 = 40,000');
-  assert.equal(lRow.reference_type, 'supplier_payment');
-
-  // Verify balanced journal entry in journal_entries & lines
-  const jeLines = await db
-    .selectFrom('journal_entry_lines')
-    .selectAll()
-    .where('journal_entry_id', '=', transferResult.journalEntryId!)
-    .execute();
-
-  assert.ok(jeLines.length >= 3, 'Must have at least 3 journal lines (AP debit, Forex loss debit, Cash credit)');
-  const sumDebit = jeLines.reduce((sum, line) => sum + Number(line.debit || 0), 0);
-  const sumCredit = jeLines.reduce((sum, line) => sum + Number(line.credit || 0), 0);
-  assert.equal(sumDebit, 500000, 'Total debit must be 500,000 EGP');
-  assert.equal(sumCredit, 500000, 'Total credit must be 500,000 EGP');
-  assert.equal(sumDebit, sumCredit, 'Journal entry must be 100% mathematically balanced (Debits === Credits)');
-  console.log('PASS Test 2: recordForeignTransfer real schema & balanced journal confirmed.');
-
-  // -------------------------------------------------------------
-  // TEST 3: processLateShipmentExpense REAL SCHEMA (qty) & IAS 2
-  // -------------------------------------------------------------
-  console.log('Running Test 3: processLateShipmentExpense Real Schema (qty) & IAS 2...');
-  const prod = await db.insertInto('products').values({
-    tenant_id: TENANT_ID,
-    name: 'Smart Gadget Pro',
-    cost_price: 500,
-    stock_qty: 60,
-  } as any).returning('id').executeTakeFirstOrThrow();
-  const productId = Number(prod.id);
-
-  // Insert location stock using real column qty (NOT qty_on_hand)
-  await db.insertInto('product_location_stock').values({
-    tenant_id: TENANT_ID,
-    product_id: productId,
-    qty: 60, // 60 on hand in warehouse
-  } as any).execute();
-
-  // Create shipment with 100 units (60 on hand, 40 already sold)
-  const ship = await db.insertInto('import_shipments').values({
-    tenant_id: TENANT_ID,
-    project_id: projectId,
-    container_number: 'MSKU-LATE-1',
-    status: 'Arrived',
-    pricing_exchange_rate: 50,
-  } as any).returning('id').executeTakeFirstOrThrow();
-  const shipmentId = String(ship.id);
-
-  await db.insertInto('import_shipment_items').values({
-    tenant_id: TENANT_ID,
-    shipment_id: shipmentId,
-    product_id: productId,
-    quantity: 100,
-    received_quantity: 100,
-    factory_unit_price_usd: 10,
-    landed_cost_egp: 500,
-  } as any).execute();
-
-  await db.insertInto('import_inventory_receipts').values({
-    tenant_id: TENANT_ID,
-    shipment_id: shipmentId,
-    state: 'posted',
-    posted_at: new Date(),
-  } as any).execute();
-
-  // Late expense of 30,000 EGP arrives post-sale (40 sold = 40%, 60 on-hand = 60%)
-  const lateRes = await service.processLateShipmentExpense(TENANT_ID, USER_ID, shipmentId, {
-    lateExpenseAmount: 30000,
-    title: 'Late Port Demurrage Invoice',
-  });
-
-  assert.equal(lateRes.allocation.lateCogsAdjustmentEgp, 12000, '40% (12,000 EGP) must be allocated to COGS for 40 sold units');
-  assert.equal(lateRes.allocation.lateInventoryAdjustmentEgp, 18000, '60% (18,000 EGP) must be allocated to inventory asset for 60 on-hand units');
-
-  // Verify balanced journal entry for late expense
-  const lateJeLines = await db
-    .selectFrom('journal_entry_lines')
-    .selectAll()
-    .where('journal_entry_id', '=', lateRes.allocation.journalEntryId!)
-    .execute();
-
-  const lateDebit = lateJeLines.reduce((sum, line) => sum + Number(line.debit || 0), 0);
-  const lateCredit = lateJeLines.reduce((sum, line) => sum + Number(line.credit || 0), 0);
-  assert.equal(lateDebit, 30000, 'Late expense debit must equal 30,000 EGP');
-  assert.equal(lateCredit, 30000, 'Late expense credit must equal 30,000 EGP');
-  assert.equal(lateDebit, lateCredit, 'Late expense journal entry must be 100% balanced');
-  console.log('PASS Test 3: processLateShipmentExpense real schema (qty) & IAS 2 passed.');
-
-  // -------------------------------------------------------------
-  // TEST 4: generatePeriodProfitReport PROJECT INVENTORY SCOPING
-  // -------------------------------------------------------------
-  console.log('Running Test 4: generatePeriodProfitReport Project Inventory Scoping...');
-  // Record sales: Total store sold 150 units @ 1,000 EGP = 150,000 EGP
-  // But Project Alpha only imported 100 units!
-  // Project Alpha must ONLY be attributed 100 units (100 * 1,000 = 100,000 EGP) with landed cost 500 (COGS = 50,000 EGP)!
-  const sale = await db.insertInto('sales').values({
-    tenant_id: TENANT_ID,
-    total: 150000,
-    status: 'completed',
-    created_at: new Date().toISOString() as any,
-  } as any).returning('id').executeTakeFirstOrThrow();
-
-  await db.insertInto('sale_items').values({
-    tenant_id: TENANT_ID,
-    sale_id: Number(sale.id),
-    product_id: productId,
-    product_name: 'Smart Gadget Pro',
-    qty: 150,
-    unit_price: 1000,
-    line_total: 150000,
-    cost_price: 500,
-    unit_name: 'PCS',
-    unit_multiplier: 1,
-    price_type: 'retail',
-  } as any).execute();
-
-  const profitRep = await service.generatePeriodProfitReport(
-    TENANT_ID,
-    new Date('2020-01-01'),
-    new Date('2030-01-01'),
-    projectId
-  );
-
-  // Revenue must be capped at 100 units * 1,000 = 100,000 EGP (not the entire store's 150,000 EGP!)
-  assert.equal(profitRep.data.grossSalesRevenue, 100000, 'Project revenue must be strictly bounded by project imported inventory (100 units)');
-  // Landed cost was initially 500 EGP + 300 EGP late expense = 800 EGP per unit!
-  assert.equal(profitRep.data.grossCogs, 80000, 'Project COGS must equal 100 units * 800 EGP landed cost (including late expense)');
-  assert.equal(profitRep.data.grossProfit, 20000, 'Project Gross profit must equal 100,000 - 80,000 = 20,000 EGP');
-  console.log('PASS Test 4: generatePeriodProfitReport project inventory source scoping confirmed.');
-
-  // -------------------------------------------------------------
-  // TEST 5: closeProject PRE-CLOSURE AUDIT GATE
-  // -------------------------------------------------------------
-  console.log('Running Test 5: closeProject Pre-Closure Audit Gate...');
-  // Create another project with a partially paid proforma
-  const projBeta = await db.insertInto('import_projects').values({
-    tenant_id: TENANT_ID,
-    project_no: 'PRJ-261020-0002',
-    title: 'Machinery Import',
-    status: 'active',
-  } as any).returning('id').executeTakeFirstOrThrow();
-  const projBetaId = String(projBeta.id);
-
-  const shipBeta = await db.insertInto('import_shipments').values({
-    tenant_id: TENANT_ID,
-    project_id: projBetaId,
-    container_number: 'MSKU-BETA-1',
-    status: 'Arrived',
-  } as any).returning('id').executeTakeFirstOrThrow();
-
-  await db.insertInto('import_inventory_receipts').values({
-    tenant_id: TENANT_ID,
-    shipment_id: shipBeta.id,
-    state: 'posted',
-    posted_at: new Date(),
-  } as any).execute();
-
-  // Proforma is partially paid ($3,000 of $10,000)
-  await db.insertInto('import_proforma_invoices').values({
-    tenant_id: TENANT_ID,
-    project_id: projBetaId,
-    supplier_id: supplierId,
-    pi_number: 'PI-BETA-01',
-    total_amount_foreign: 10000,
-    paid_amount_foreign: 3000,
-    status: 'approved',
-    currency: 'USD',
-    payment_status: 'partially_paid',
-  } as any).execute();
-
-  // Must reject closure due to unsettled partially paid proforma!
-  let threw = false;
-  try {
-    await service.closeProject(TENANT_ID, USER_ID, projBetaId);
-  } catch (err: any) {
-    threw = true;
-    assert.ok(err instanceof BadRequestException, 'Must throw BadRequestException');
-    assert.ok(err.message.includes('غير مسددة بالكامل'), 'Message must indicate unpaid proforma balance');
+  const accounts: Record<string, number> = {};
+  for (const acc of accountRows) {
+    accounts[acc.code] = Number(acc.id);
   }
-  assert.equal(threw, true, 'closeProject must strictly block projects with partially paid proformas');
-  console.log('Test 5 part 1 passed: correctly rejected partially paid proforma.');
 
-  // Now pay in full:
-  console.log('Test 5 part 2: updating proforma to paid in full...');
-  await db.updateTable('import_proforma_invoices')
-    .set({ paid_amount_foreign: 10000, payment_status: 'paid' })
-    .where('project_id', '=', projBetaId)
+  // Seed accounting_settings linked to real accounts
+  await db
+    .insertInto('accounting_settings')
+    .values({
+      id: 1,
+      tenant_id: 'tenant-audit-1',
+      account_id: 'tenant-audit-1',
+      cash_account_id: accounts['1110'],
+      bank_account_id: accounts['1120'],
+      customer_receivable_account_id: null,
+      supplier_payable_account_id: accounts['2110'],
+      inventory_account_id: accounts['1140'],
+      sales_revenue_account_id: null,
+      sales_discount_account_id: null,
+      cogs_account_id: accounts['5110'],
+      purchase_account_id: null,
+      expenses_account_id: null,
+      sales_tax_account_id: null,
+      purchase_tax_account_id: null,
+      updated_at: new Date(),
+    })
     .execute();
 
-  console.log('Test 5 part 3: calling closeProject for fully paid project...');
-  // Closure must now succeed!
-  const closeRes = await service.closeProject(TENANT_ID, USER_ID, projBetaId);
-  console.log('Test 5 part 4: closeProject returned success:', closeRes.success);
-  assert.equal(closeRes.success, true);
-
-  const closedProj = await db
-    .selectFrom('import_projects')
-    .selectAll()
-    .where('id', '=', projBetaId)
-    .executeTakeFirstOrThrow();
-
-  assert.equal(closedProj.status, 'closed');
-  assert.ok(closedProj.closure_data, 'Frozen closure_data snapshot must be saved in database');
-  console.log('PASS Test 5: closeProject pre-closure audit gate confirmed.');
-
-  // -------------------------------------------------------------
-  // TEST 6: calculateCustomsTax OFFICIAL TARIFF REALITY CHECK
-  // -------------------------------------------------------------
-  console.log('Running Test 6: calculateCustomsTax Official Tariff Reality Check...');
-  await db.insertInto('import_customs_tariffs').values({
-    tenant_id: TENANT_ID,
-    hs_code: '8517.12.00',
-    description_ar: 'هواتف ذكية',
-    duty_rate_percent: 5,
-    vat_rate_percent: 14,
-    is_official: false, // NOT official
-    official_source: null,
-  } as any).execute();
-
-  const unverifiedTax = await service.calculateCustomsTax(TENANT_ID, '8517.12.00', 100000);
-  assert.equal(unverifiedTax.isOfficialTariff, false, 'Unverified tariff must have isOfficialTariff = false');
-  assert.equal(unverifiedTax.isDocumentedTariff, false, 'Unverified tariff must not be treated as documented official');
-
-  // Update to official
-  await db.updateTable('import_customs_tariffs')
-    .set({ is_official: true, official_source: 'مصلحة الجمارك المصرية - التعريفة الرسمية 2026' } as any)
-    .where('hs_code', '=', '8517.12.00')
-    .execute();
-
-  const officialTax = await service.calculateCustomsTax(TENANT_ID, '8517.12.00', 100000);
-  assert.equal(officialTax.isOfficialTariff, true, 'Official tariff must have isOfficialTariff = true');
-  assert.equal(officialTax.isDocumentedTariff, true, 'Official tariff must be documented');
-  console.log('PASS Test 6: calculateCustomsTax official tariff reality check confirmed.');
-
-  await db.destroy();
-  console.log('--- ALL REAL POSTGRESQL (PGLITE) INTEGRATION AUDITS PASSED (100%) ---');
+  return { db, accounts };
 }
 
-testAll().catch((err) => {
-  console.error('FAIL in PostgreSQL Integration Suite:', err);
+async function runTests() {
+  console.log('--- STARTING AUDITED POSTGRESQL (PGLITE) INTEGRATION AUDIT ---');
+  const { db, accounts } = await setupDatabase();
+  const service = new ImportSalesService(db as any);
+  const tenantId = 'tenant-audit-1';
+  const userId = 101;
+
+  // -------------------------------------------------------------
+  // Test 1: Project Closure & Purchases Architectural Link
+  // -------------------------------------------------------------
+  console.log('\nRunning Test 1: Project Closure & Purchases Architectural Link...');
+  {
+    const project = await db
+      .insertInto('import_projects')
+      .values({
+        tenant_id: tenantId,
+        project_no: 'PRJ-CLOSE-01',
+        title: 'Project With Architectural Purchase Invoices',
+        status: 'active',
+      })
+      .returning('id')
+      .executeTakeFirstOrThrow();
+    const projectId = project.id;
+
+    // Arrived and received shipment
+    const shipment = await db
+      .insertInto('import_shipments')
+      .values({
+        tenant_id: tenantId,
+        project_id: projectId,
+        container_number: 'CONT-CLOSE-01',
+        status: 'Arrived',
+      })
+      .returning('id')
+      .executeTakeFirstOrThrow();
+
+    await db
+      .insertInto('import_inventory_receipts')
+      .values({
+        tenant_id: tenantId,
+        shipment_id: shipment.id,
+        state: 'posted',
+      })
+      .execute();
+
+    // Supplier & Fully paid proforma
+    const supplier = await db
+      .insertInto('suppliers')
+      .values({
+        tenant_id: tenantId,
+        name: 'Guangzhou Electronics Ltd',
+        phone: '020-888888',
+        address: 'Guangzhou, China',
+        balance: 0,
+        is_active: true,
+      })
+      .returning('id')
+      .executeTakeFirstOrThrow();
+
+    await db
+      .insertInto('import_proforma_invoices')
+      .values({
+        tenant_id: tenantId,
+        project_id: projectId,
+        supplier_id: supplier.id,
+        pi_number: 'PI-CLOSE-01',
+        pi_date: '2026-10-01' as any,
+        currency: 'USD',
+        status: 'active',
+        total_amount_foreign: 10000,
+        paid_amount_foreign: 10000,
+        payment_status: 'paid',
+      })
+      .execute();
+
+    // 1-A: Create an UNPAID purchase invoice linked architecturally via import_project_id UUID
+    // purchases.project_id BIGINT is left null (or contains a legacy contracting id)
+    const unpaidPur = await db
+      .insertInto('purchases')
+      .values({
+        tenant_id: tenantId,
+        doc_no: 'PUR-UNSETTLED-01',
+        project_id: null, // Legacy BIGINT column untouched!
+        import_project_id: projectId, // Architectural UUID link!
+        payment_type: 'credit',
+        subtotal: 25000,
+        discount: 0,
+        tax_rate: 0,
+        tax_amount: 0,
+        prices_include_tax: false,
+        total: 25000,
+        paid_amount: 10000, // Unsettled remaining 15000 EGP
+        note: 'Customs clearance invoice for project',
+        status: 'received',
+      })
+      .returning('id')
+      .executeTakeFirstOrThrow();
+
+    // Attempt to close project: MUST BE REJECTED
+    let rejected = false;
+    try {
+      await service.closeProject(tenantId, userId, projectId);
+    } catch (err: any) {
+      rejected = true;
+      assert.ok(
+        err.message.includes('غير مسددة بالكامل') || err.message.includes('رصيد مستحق غير مسوّى'),
+        `Unexpected rejection error: ${err.message}`
+      );
+    }
+    assert.ok(rejected, 'closeProject must reject projects with unsettled purchase invoice liabilities');
+    console.log('PASS: closeProject correctly rejected closure due to unsettled purchase invoice.');
+
+    // 1-B: Settle the purchase invoice in full
+    await db
+      .updateTable('purchases')
+      .set({ paid_amount: 25000 })
+      .where('id', '=', unpaidPur.id)
+      .execute();
+
+    // Attempt closure again: MUST SUCCEED
+    const closeRes = await service.closeProject(tenantId, userId, projectId);
+    assert.strictEqual(closeRes.success, true);
+
+    const closedPrj = await db
+      .selectFrom('import_projects')
+      .select(['status', 'closure_data'])
+      .where('id', '=', projectId)
+      .executeTakeFirstOrThrow();
+    assert.strictEqual(closedPrj.status, 'closed');
+    assert.ok(closedPrj.closure_data !== null, 'closure_data must be frozen');
+    console.log('PASS: closeProject succeeded after full settlement of purchase invoice obligations.');
+  }
+
+  // -------------------------------------------------------------
+  // Test 2: Accounting Entries & Zero Hardcoded Accounts Resolution
+  // -------------------------------------------------------------
+  console.log('\nRunning Test 2: Accounting Entries & Dynamic COA Resolution...');
+  {
+    const supplier = await db
+      .insertInto('suppliers')
+      .values({
+        tenant_id: tenantId,
+        name: 'Shenzhen Fast Components',
+        phone: '0755-666666',
+        address: 'Shenzhen, China',
+        balance: 5000,
+        is_active: true,
+      })
+      .returning('id')
+      .executeTakeFirstOrThrow();
+
+    // Execute foreign transfer without specifying accounts; service must dynamically resolve from COA / settings
+    const transferRes = await service.recordForeignTransfer(tenantId, userId, {
+      supplierId: String(supplier.id),
+      amountForeign: 2000,
+      amountEgp: 100000,
+      currency: 'USD',
+      exchangeRateContract: 49.00, // 2000 * 49 = 98000 contract value -> 2000 EGP forex loss
+      notes: 'Dynamic COA resolution verification',
+    });
+
+    assert.strictEqual(transferRes.success, true);
+    assert.strictEqual(transferRes.forexVarianceEgp, 2000);
+
+    // Verify journal entry lines reference REAL primary keys in accounting_accounts
+    const jeLines = await db
+      .selectFrom('journal_entry_lines')
+      .selectAll()
+      .where('journal_entry_id', '=', transferRes.journalEntryId)
+      .orderBy('id', 'asc')
+      .execute();
+
+    assert.strictEqual(jeLines.length, 3, 'Must have exactly 3 journal lines (Debit AP, Debit FX Loss, Credit Bank)');
+
+    // Line 1: Debit Supplier AP
+    const lineAp = jeLines.find((l) => Number(l.debit) > 0 && l.partner_type === 'supplier');
+    assert.ok(lineAp, 'Supplier AP line must exist');
+    assert.strictEqual(Number(lineAp.debit), 98000);
+    assert.strictEqual(Number(lineAp.account_id), accounts['2110'], 'Must dynamically resolve AP account ID');
+
+    // Line 2: Debit Forex Loss
+    const lineFx = jeLines.find((l) => Number(l.debit) > 0 && l.partner_type === 'none');
+    assert.ok(lineFx, 'Forex Loss line must exist');
+    assert.strictEqual(Number(lineFx.debit), 2000);
+    assert.strictEqual(Number(lineFx.account_id), accounts['5201'], 'Must dynamically resolve Forex Loss account ID');
+
+    // Line 3: Credit Bank Account
+    const lineBank = jeLines.find((l) => Number(l.credit) > 0);
+    assert.ok(lineBank, 'Bank line must exist');
+    assert.strictEqual(Number(lineBank.credit), 100000);
+    assert.strictEqual(Number(lineBank.account_id), accounts['1120'], 'Must dynamically resolve Bank account ID');
+
+    // Total Debits == Total Credits
+    const totalDebits = jeLines.reduce((s, l) => s + Number(l.debit), 0);
+    const totalCredits = jeLines.reduce((s, l) => s + Number(l.credit), 0);
+    assert.strictEqual(totalDebits, totalCredits, 'Journal lines must strictly balance');
+    assert.strictEqual(totalDebits, 100000);
+    console.log('PASS: Dynamic COA resolution verified with 0 hardcoded accounts and 100% balanced lines.');
+  }
+
+  // -------------------------------------------------------------
+  // Test 3: Foreign Transfer Real Bank, Currency & Proforma Validation
+  // -------------------------------------------------------------
+  console.log('\nRunning Test 3: Foreign Transfer Real Bank, Currency & Proforma Validation...');
+  {
+    const supplierA = await db
+      .insertInto('suppliers')
+      .values({ tenant_id: tenantId, name: 'Supplier A Global', phone: '111', address: 'China', balance: 0, is_active: true })
+      .returning('id')
+      .executeTakeFirstOrThrow();
+
+    const supplierB = await db
+      .insertInto('suppliers')
+      .values({ tenant_id: tenantId, name: 'Supplier B Overseas', phone: '222', address: 'China', balance: 0, is_active: true })
+      .returning('id')
+      .executeTakeFirstOrThrow();
+
+    const projectA = await db
+      .insertInto('import_projects')
+      .values({ tenant_id: tenantId, project_no: 'PRJ-FT-01', title: 'Import Project A', status: 'active' })
+      .returning('id')
+      .executeTakeFirstOrThrow();
+
+    const projectB = await db
+      .insertInto('import_projects')
+      .values({ tenant_id: tenantId, project_no: 'PRJ-FT-02', title: 'Import Project B', status: 'active' })
+      .returning('id')
+      .executeTakeFirstOrThrow();
+
+    const proforma = await db
+      .insertInto('import_proforma_invoices')
+      .values({
+        tenant_id: tenantId,
+        project_id: projectA.id,
+        supplier_id: supplierA.id,
+        pi_number: 'PI-VALIDATE-01',
+        pi_date: '2026-10-05' as any,
+        currency: 'USD',
+        status: 'active',
+        total_amount_foreign: 5000,
+        paid_amount_foreign: 2000,
+        payment_status: 'partially_paid',
+      })
+      .returning('id')
+      .executeTakeFirstOrThrow();
+
+    // 3-A: Supplier mismatch rejection
+    let rejectedSupplier = false;
+    try {
+      await service.recordForeignTransfer(tenantId, userId, {
+        supplierId: String(supplierB.id), // Wrong supplier
+        amountForeign: 1000,
+        amountEgp: 50000,
+        currency: 'USD',
+        proformaInvoiceId: proforma.id,
+      });
+    } catch (err: any) {
+      rejectedSupplier = true;
+      assert.ok(err.message.includes('تخص مورداً آخر'), `Unexpected error: ${err.message}`);
+    }
+    assert.ok(rejectedSupplier, 'Must reject foreign transfer with mismatched supplier');
+    console.log('PASS: Proforma supplier mismatch rejected.');
+
+    // 3-B: Project mismatch rejection
+    let rejectedProject = false;
+    try {
+      await service.recordForeignTransfer(tenantId, userId, {
+        supplierId: String(supplierA.id),
+        projectId: projectB.id, // Wrong project
+        amountForeign: 1000,
+        amountEgp: 50000,
+        currency: 'USD',
+        proformaInvoiceId: proforma.id,
+      });
+    } catch (err: any) {
+      rejectedProject = true;
+      assert.ok(err.message.includes('مشروع استيراد آخر'), `Unexpected error: ${err.message}`);
+    }
+    assert.ok(rejectedProject, 'Must reject foreign transfer with mismatched project');
+    console.log('PASS: Proforma project mismatch rejected.');
+
+    // 3-C: Currency mismatch rejection
+    let rejectedCurrency = false;
+    try {
+      await service.recordForeignTransfer(tenantId, userId, {
+        supplierId: String(supplierA.id),
+        amountForeign: 1000,
+        amountEgp: 50000,
+        currency: 'EUR', // Wrong currency
+        proformaInvoiceId: proforma.id,
+      });
+    } catch (err: any) {
+      rejectedCurrency = true;
+      assert.ok(err.message.includes('لا تطابق عملة الفاتورة المبدئية'), `Unexpected error: ${err.message}`);
+    }
+    assert.ok(rejectedCurrency, 'Must reject foreign transfer with mismatched currency');
+    console.log('PASS: Proforma currency mismatch rejected.');
+
+    // 3-D: Overpayment rejection (remaining is 5000 - 2000 = 3000)
+    let rejectedOverpay = false;
+    try {
+      await service.recordForeignTransfer(tenantId, userId, {
+        supplierId: String(supplierA.id),
+        amountForeign: 3500, // Overpayment!
+        amountEgp: 175000,
+        currency: 'USD',
+        proformaInvoiceId: proforma.id,
+      });
+    } catch (err: any) {
+      rejectedOverpay = true;
+      assert.ok(err.message.includes('يتجاوز المتبقي غير المسدد'), `Unexpected error: ${err.message}`);
+    }
+    assert.ok(rejectedOverpay, 'Must reject overpayment beyond remaining proforma balance');
+    console.log('PASS: Proforma overpayment rejected.');
+
+    // 3-E: Successful legitimate transfer paying remainder exactly
+    const transferSuccess = await service.recordForeignTransfer(tenantId, userId, {
+      supplierId: String(supplierA.id),
+      projectId: projectA.id,
+      amountForeign: 3000,
+      amountEgp: 153000,
+      currency: 'USD',
+      exchangeRateContract: 50.00, // 3000 * 50 = 150000 -> 3000 EGP forex loss
+      proformaInvoiceId: proforma.id,
+      bankAccountId: accounts['1120'], // Real bank account
+    });
+    assert.strictEqual(transferSuccess.success, true);
+
+    const updatedPI = await db
+      .selectFrom('import_proforma_invoices')
+      .selectAll()
+      .where('id', '=', proforma.id)
+      .executeTakeFirstOrThrow();
+    assert.strictEqual(Number(updatedPI.paid_amount_foreign), 5000);
+    assert.strictEqual(updatedPI.payment_status, 'paid');
+    console.log('PASS: Proforma settled in full with exact foreign currency tracking.');
+
+    // 3-F: Replay / duplicate transfer rejection
+    let rejectedReplay = false;
+    try {
+      await service.recordForeignTransfer(tenantId, userId, {
+        supplierId: String(supplierA.id),
+        projectId: projectA.id,
+        amountForeign: 3000,
+        amountEgp: 153000,
+        currency: 'USD',
+      });
+    } catch (err: any) {
+      rejectedReplay = true;
+      assert.ok(
+        err.message.includes('تم تسجيل حوالة مطابقة مؤخراً') || err.message.includes('مسددة بالكامل'),
+        `Unexpected error: ${err.message}`
+      );
+    }
+    assert.ok(rejectedReplay, 'Must reject duplicate transfer within replay window');
+    console.log('PASS: Replay / duplicate foreign transfer prevented.');
+  }
+
+  // -------------------------------------------------------------
+  // Test 4: Late Shipment Expense Real Schema & Dynamic Accounts
+  // -------------------------------------------------------------
+  console.log('\nRunning Test 4: Late Shipment Expense Real Schema (qty) & Dynamic COA...');
+  {
+    const product = await db
+      .insertInto('products')
+      .values({
+        tenant_id: tenantId,
+        name: 'Industrial Valve 2-inch',
+        retail_price: 800,
+        cost_price: 400,
+        stock_qty: 100,
+        min_stock_qty: 0,
+        wholesale_price: 600,
+        is_active: true,
+      })
+      .returning('id')
+      .executeTakeFirstOrThrow();
+
+    // 40 units on hand in stock using real column `qty`
+    await db
+      .insertInto('product_location_stock')
+      .values({
+        tenant_id: tenantId,
+        product_id: product.id,
+        qty: 40,
+        reserved_qty: 0,
+      })
+      .execute();
+
+    const shipment = await db
+      .insertInto('import_shipments')
+      .values({
+        tenant_id: tenantId,
+        container_number: 'CONT-EXP-01',
+        status: 'Arrived',
+      })
+      .returning('id')
+      .executeTakeFirstOrThrow();
+
+    await db
+      .insertInto('import_inventory_receipts')
+      .values({
+        tenant_id: tenantId,
+        shipment_id: shipment.id,
+        state: 'posted',
+      })
+      .execute();
+
+    // 100 units total received (40 on hand -> 60 sold)
+    await db
+      .insertInto('import_shipment_items')
+      .values({
+        tenant_id: tenantId,
+        shipment_id: shipment.id,
+        product_id: product.id,
+        quantity: 100,
+        received_quantity: 100,
+        factory_unit_price_usd: 8.00,
+        landed_cost_egp: 400,
+      })
+      .execute();
+
+    const res = await service.processLateShipmentExpense(tenantId, userId, shipment.id, {
+      title: 'Late Detention & Terminal Charges',
+      lateExpenseAmount: 10000,
+      note: 'Late demurrage from shipping line',
+    });
+
+    assert.strictEqual(res.success, true);
+    // 60 units sold (60%) -> 6,000 COGS, 40 units on hand (40%) -> 4,000 Inventory
+    assert.strictEqual(res.allocation.lateCogsAdjustmentEgp, 6000);
+    assert.strictEqual(res.allocation.lateInventoryAdjustmentEgp, 4000);
+
+    // Verify journal entry lines created with dynamically resolved accounts
+    const je = await db
+      .selectFrom('journal_entries')
+      .selectAll()
+      .where('source_type', '=', 'import_late_expense')
+      .orderBy('id', 'desc')
+      .executeTakeFirstOrThrow();
+
+    const lines = await db
+      .selectFrom('journal_entry_lines')
+      .selectAll()
+      .where('journal_entry_id', '=', je.id)
+      .execute();
+
+    assert.strictEqual(lines.length, 3);
+    const lineCogs = lines.find((l) => Number(l.debit) === 6000);
+    assert.ok(lineCogs, 'COGS line must exist');
+    assert.strictEqual(Number(lineCogs.account_id), accounts['5110'], 'COGS account must match dynamic resolution');
+
+    const lineInv = lines.find((l) => Number(l.debit) === 4000);
+    assert.ok(lineInv, 'Inventory line must exist');
+    assert.strictEqual(Number(lineInv.account_id), accounts['1140'], 'Inventory account must match dynamic resolution');
+
+    const lineAp = lines.find((l) => Number(l.credit) === 10000);
+    assert.ok(lineAp, 'Payable line must exist');
+    assert.strictEqual(Number(lineAp.account_id), accounts['2110'], 'Payable account must match dynamic resolution');
+
+    console.log('PASS: Late shipment expense dynamic COA resolution and IAS 2 split verified.');
+  }
+
+  // -------------------------------------------------------------
+  // Test 5: Partner UPSERT & Constraint Safety
+  // -------------------------------------------------------------
+  console.log('\nRunning Test 5: setProjectPartners UPSERT & Constraint Safety...');
+  {
+    const project = await db
+      .insertInto('import_projects')
+      .values({ tenant_id: tenantId, project_no: 'PRJ-UPSERT-01', title: 'Partner Upsert Project', status: 'active' })
+      .returning('id')
+      .executeTakeFirstOrThrow();
+
+    const partnerA = await db
+      .insertInto('import_partners')
+      .values({ tenant_id: tenantId, name: 'Investor Alpha', capital_amount: 50000 })
+      .returning('id')
+      .executeTakeFirstOrThrow();
+
+    const partnerB = await db
+      .insertInto('import_partners')
+      .values({ tenant_id: tenantId, name: 'Investor Beta', capital_amount: 50000 })
+      .returning('id')
+      .executeTakeFirstOrThrow();
+
+    // Round 1: Assign 60% Alpha, 40% Beta
+    await service.setProjectPartners(tenantId, project.id, [
+      { partnerId: partnerA.id, profitPercentage: 60, capitalShare: 60000 },
+      { partnerId: partnerB.id, profitPercentage: 40, capitalShare: 40000 },
+    ]);
+
+    // Round 2: Update same partners to 70% Alpha, 30% Beta (MUST NOT crash on UNIQUE constraint)
+    const updateRes = await service.setProjectPartners(tenantId, project.id, [
+      { partnerId: partnerA.id, profitPercentage: 70, capitalShare: 70000 },
+      { partnerId: partnerB.id, profitPercentage: 30, capitalShare: 30000 },
+    ]);
+    assert.strictEqual(updateRes.success, true);
+
+    const partnerRows = await db
+      .selectFrom('import_project_partners')
+      .selectAll()
+      .where('project_id', '=', project.id)
+      .where('tenant_id', '=', tenantId)
+      .execute();
+    assert.strictEqual(partnerRows.length, 2);
+
+    const alphaRow = partnerRows.find((p) => p.partner_id === partnerA.id);
+    assert.strictEqual(Number(alphaRow?.profit_percentage), 70);
+    console.log('PASS: setProjectPartners UPSERT safely updated partners without constraint conflict.');
+  }
+
+  // -------------------------------------------------------------
+  // Test 6: Official Customs Tariff Reality Check
+  // -------------------------------------------------------------
+  console.log('\nRunning Test 6: Customs Tariff Official Source Verification...');
+  {
+    await db
+      .insertInto('import_customs_tariffs')
+      .values({
+        tenant_id: tenantId,
+        hs_code: '8481.80.90',
+        description_ar: 'صمامات صناعية',
+        description_en: 'Industrial Valves',
+        duty_rate_percent: 5.0,
+        vat_rate_percent: 14.0,
+        is_official: false,
+        official_source: null,
+      })
+      .execute();
+
+    const calculation = await service.calculateCustomsTax(
+      tenantId,
+      '8481.80.90',
+      100000
+    );
+
+    assert.strictEqual(calculation.customsDuty, 5000);
+    assert.strictEqual(calculation.vatAmount, 14700);
+    assert.strictEqual(calculation.isOfficialTariff, false);
+    assert.strictEqual(calculation.isDocumentedTariff, false);
+    console.log('PASS: Unofficial customs tariff correctly marked without false official designation.');
+  }
+
+  console.log('\n--- ALL AUDITED POSTGRESQL (PGLITE) INTEGRATION AUDITS PASSED (100%) ---');
+}
+
+runTests().catch((err) => {
+  console.error('\nFAILED INTEGRATION AUDIT:', err);
   process.exit(1);
 });

@@ -326,6 +326,11 @@ export class RecordForeignTransferDto {
   @IsOptional()
   @IsString()
   projectId?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  bankAccountId?: number;
 }
 
 export class CreateImportProjectDto {

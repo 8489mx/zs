@@ -1524,6 +1524,8 @@ export interface PurchaseTable {
   shipping_address_id: number | null;
   cost_center_id: number | null;
   project_id: number | null;
+  /** Explicit architectural foreign key to import_projects(id) UUID; leaves project_id for legacy/contracting. */
+  import_project_id?: string | null;
   terms_template: ColumnType<string, string | undefined, string | undefined>;
   lifecycle_status?: ColumnType<string, string | undefined, string | undefined>;
   matched_status?: ColumnType<string, string | undefined, string | undefined>;
