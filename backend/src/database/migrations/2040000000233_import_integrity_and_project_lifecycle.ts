@@ -26,12 +26,12 @@ export async function up(db: Kysely<any>): Promise<void> {
       ADD COLUMN IF NOT EXISTS verification_notes TEXT DEFAULT NULL;
   `.execute(db);
 
-  // 4. Enhance import_customs_tariffs with official audit metadata
+  // 4. Enhance import_customs_tariffs with official audit metadata (default is_official = FALSE)
   await sql`
     ALTER TABLE import_customs_tariffs
-      ADD COLUMN IF NOT EXISTS official_source VARCHAR(255) DEFAULT 'Egyptian Customs Authority (مصلحة الجمارك المصرية)',
+      ADD COLUMN IF NOT EXISTS official_source VARCHAR(255) DEFAULT NULL,
       ADD COLUMN IF NOT EXISTS effective_date DATE DEFAULT CURRENT_DATE,
-      ADD COLUMN IF NOT EXISTS is_official BOOLEAN DEFAULT TRUE;
+      ADD COLUMN IF NOT EXISTS is_official BOOLEAN DEFAULT FALSE;
   `.execute(db);
 
   // 5. Enhance import_shipments with late expenses tracking

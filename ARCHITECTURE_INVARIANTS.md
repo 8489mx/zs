@@ -1994,7 +1994,19 @@ The authenticated master endpoints use private conditional caching and weak ETag
 - **IMPORT-OPS-PARTNER-CEILING-1 (سقف صرف أرباح الشركاء وحظر السحب على المكشوف):**
   - تقييد صرف أرباح الشركاء بسقف صافي الربح المحقق والمستحق للشريك ناقصاً المسحوبات السابقة للمشروع، ورفض أي صرف يتجاوز هذا السقف بحظر استثنائي `BadRequestException`، مع الفصل الصارم بين المسحوبات الرأسمالية وأرباح الفترة.
 - **IMPORT-OPS-CLOSE-GATE-1 (بوابة التدقيق قبل إقفال المشروع وتجميد اللقطة المالية):**
-  - حظر إقفال مشروع الاستيراد (`closeProject`) إذا كانت هناك شحنات ما زالت في البحر أو لم تُستلم بالمخازن، أو فواتير مبدئية غير مسددة بالكامل للمورد، مع حفظ لقطة مالية كاملة مجمدة في `closure_data JSONB` تتضمن الإيرادات والتكاليف وتوزيعات الشركاء وتاريخ ومسؤول الإقفال.
+  - حظر إقفال مشروع الاستيراد (closeProject) إذا كانت هناك شحنات ما زالت في البحر أو لم تُستلم بالمخازن، أو فواتير مبدئية غير مسددة بالكامل للمورد (Partial Payments / Unsettled Liabilities)، مع حفظ لقطة مالية كاملة مجمدة في closure_data JSONB تتضمن الإيرادات والتكاليف وتوزيعات الشركاء وتاريخ ومسؤول الإقفال.
 - **IMPORT-OPS-FX-VARIANCE-1 (فروق العملة المحققة وأمان الحسابات البنكية):**
-  - احتساب فروق سعر الصرف المحققة بين تاريخ الاتفاق التعاقدي (Proforma Invoice) وسعر الصرف البنكي الفعلي عند التنفيذ وقيدها كفرق عملة (`forex_variance_egp`)، مع تأمين بيانات الحساب البنكي للمورد الخارجي بحالة `unverified` افتراضياً حتى الاعتماد البشري الصريح.
-- **الحراس:** `backend/test/critical/import-sales-financial-integrity.spec.ts` و `backend/test/critical/import-operations-master.spec.ts` و `backend/test/critical/import-lifecycle-integration.spec.ts`.
+  - احتساب فروق سعر الصرف المحققة بين تاريخ الاتفاق التعاقدي (Proforma Invoice) وسعر الصرف البنكي الفعلي عند التنفيذ وقيدها كفرق عملة (orex_variance_egp)، وإثبات قيود محاسبية متزنة ومكتملة في دفتر اليومية، مع تأمين بيانات الحساب البنكي للمورد الخارجي بحالة unverified افتراضياً حتى الاعتماد البشري الصريح.
+- **IMPORT-OPS-PARTNER-UPSERT-1 (تحديث شركاء المشروع الذري ومنع تعارض الفهرس الفريد):**
+  - تحديث شركاء المشروع في setProjectPartners يتم حصرياً عبر onConflict((oc) => oc.columns(['tenant_id', 'project_id', 'partner_id']).doUpdateSet(...)) لمنع تعارض الفهرس الفريد uq_import_project_partners عند تعديل نسب أو أدوار الشركاء الحاليين، مع تنظيف أي شريك مُستبعد ضمن نفس المعاملة الذرية.
+- **IMPORT-OPS-SCHEMA-ALIGNMENT-1 (التطابق التام مع مخططات الجداول والقيود المحاسبية المتزنة):**
+  - يحظر استخدام أسماء أعمدة غير موجودة في المخطط الحقيقي؛ استخدام qty حصرياً في product_location_stock بدلاً من qty_on_hand، والتزام بنية supplier_ledger (entry_type = 'payment', mount, alance_after, 
+ote, 
+eference_type = 'supplier_payment', 
+eference_id).
+  - أي عملية تؤثر على رصيد المورد الخارجي أو المصروفات المتأخرة للمخزون يجب أن تنشئ قيوداً محاسبية مزدوجة متزنة 100% في journal_entries وjournal_entry_lines.
+- **IMPORT-OPS-PROFIT-SOURCE-1 (عزل أرباح المشروع بمصدر المخزون المستورد والتكلفة الفعلية):**
+  - عزل أرباح مشروع الاستيراد لا يعتمد على تطابق product_id العام، بل يُقيد بحصر بنود شحنات المشروع، ومطابقة تكلفة الوحدة الفعلية (True Landed Cost)، وحصر المبيعات المنسوبة للمشروع بسقف الكميات المستلمة فعلياً منه، مع حساب تكلفة البضاعة المباعة (COGS) حصرياً من التكلفة الفعلية للمشروع.
+- **IMPORT-OPS-TARIFF-VERIFICATION-1 (التعريفات الجمركية الافتراضية تقديرية غير رسمية):**
+  - أي تعريفة جمركية افتراضية يتم إدراجها في النظام تحمل صفة is_official: false وofficial_source: null، ولا يجوز إسناد الصبغة الرسمية أو الموثقة لأي بند تعريفة إلا عند التحقق البشري الصريح ووجود سند تشريعي موثق.
+- **الحراس:** ackend/test/critical/import-sales-financial-integrity.spec.ts و ackend/test/critical/import-operations-master.spec.ts و ackend/test/critical/import-lifecycle-integration.spec.ts و ackend/test/critical/import-postgres-integration.spec.ts.

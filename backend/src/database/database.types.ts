@@ -2187,6 +2187,29 @@ export interface ImportProjectTable {
   updated_at: Generated<Date>;
 }
 
+export interface ImportPartnerTable {
+  id: Generated<string>;
+  tenant_id: string;
+  name: string;
+  phone?: string | null;
+  capital_amount: ImportNumeric;
+  profit_share_percentage: ImportNumeric;
+  withdrawn_profit: ImportNumeric;
+  created_at: Generated<Date>;
+}
+
+export interface ImportPartnerLedgerTable {
+  id: Generated<string>;
+  tenant_id: string;
+  partner_id: string;
+  type: string;
+  amount: ImportNumeric;
+  transaction_date: ImportDate;
+  note?: string | null;
+  created_by?: number | null;
+  created_at: Generated<Date>;
+}
+
 export interface ImportProjectPartnerTable {
   id: Generated<string>;
   tenant_id: string;
@@ -5690,6 +5713,8 @@ export interface Database {
   import_shipments: ImportShipmentTable;
   import_shipment_items: ImportShipmentItemTable;
   import_inventory_receipts: ImportInventoryReceiptTable;
+  import_partners: ImportPartnerTable;
+  import_partner_ledger: ImportPartnerLedgerTable;
   import_projects: ImportProjectTable;
   import_project_partners: ImportProjectPartnerTable;
   import_suppliers_meta: ImportSupplierMetaTable;
