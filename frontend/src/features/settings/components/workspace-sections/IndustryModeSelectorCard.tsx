@@ -157,6 +157,16 @@ const PRIMARY_COMMERCE_SUB_VERTICALS: SubVerticalConfig[] = [
     icon: TruckIcon,
   },
   {
+    key: 'import_export',
+    labelAr: 'الاستيراد والتجارة الدولية',
+    labelEn: 'Import & International Trade',
+    tag: 'شحنات وجمارك وشركاء',
+    tagEn: 'Shipments & Customs',
+    descriptionAr: 'إدارة الشحنات والحاويات الجمركية، مديونية المصانع والموردين الخارجيين، وأرباح الشركاء الممولين.',
+    descriptionEn: 'Customs shipments, overseas factory & vendor payables, and investor/financier profit shares.',
+    icon: GlobeIcon,
+  },
+  {
     key: 'pharmacy',
     labelAr: 'الصيدليات والمستلزمات الطبية',
     labelEn: 'Pharmacies & Medical Supplies',
@@ -189,16 +199,6 @@ const PRIMARY_COMMERCE_SUB_VERTICALS: SubVerticalConfig[] = [
 ];
 
 const EXTENDED_COMMERCE_SUB_VERTICALS: SubVerticalConfig[] = [
-  {
-    key: 'import_export',
-    labelAr: 'الاستيراد والتجارة الدولية',
-    labelEn: 'Import & International Trade',
-    tag: 'شحنات وجمارك وشركاء',
-    tagEn: 'Shipments & Customs',
-    descriptionAr: 'إدارة الشحنات والحاويات الجمركية، مديونية المصانع والموردين الخارجيين، وأرباح الشركاء الممولين.',
-    descriptionEn: 'Customs shipments, overseas factory & vendor payables, and investor/financier profit shares.',
-    icon: GlobeIcon,
-  },
   {
     key: 'auto_parts',
     labelAr: 'قطع غيار السيارات والمعدات',
@@ -243,7 +243,7 @@ export function IndustryModeSelectorCard({ settings, canManageSettings }: Indust
     tenant?.activityType || settings?.activityType || settings?.businessIndustry || 'retail_general',
   ).trim().toLowerCase();
 
-  const isCurrentSubExtended = ['import_export', 'import', 'auto_parts', 'autoparts', 'clothing', 'fashion'].includes(currentActivityType);
+  const isCurrentSubExtended = ['auto_parts', 'autoparts', 'clothing', 'fashion'].includes(currentActivityType);
   const [showAllSubVerticals, setShowAllSubVerticals] = useState(() => isCurrentSubExtended);
 
   const currentPillar: PillarKey =
@@ -584,7 +584,7 @@ export function IndustryModeSelectorCard({ settings, canManageSettings }: Indust
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
             <div>
               <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>
-                {t('settings.workspace_sections.industry_mode_selector_card.s7', "التخصص الفرعي لقطاع التجارة (")}{showAllSubVerticals ? t('settings.workspace_sections.industry_mode_selector_card.s8', "7 تخصصات متاحة") : t('settings.workspace_sections.industry_mode_selector_card.s9', "4 تخصصات رئيسية")})
+                {t('settings.workspace_sections.industry_mode_selector_card.s7', "التخصص الفرعي لقطاع التجارة")} ({showAllSubVerticals ? `${ALL_COMMERCE_SUB_VERTICALS.length} ${t('settings.workspace_sections.industry_mode_selector_card.s8', "تخصصات متاحة")}` : `${PRIMARY_COMMERCE_SUB_VERTICALS.length} ${t('settings.workspace_sections.industry_mode_selector_card.s9', "تخصصات رئيسية")}`})
               </strong>
               <span style={{ fontSize: '0.74rem', color: '#64748b', display: 'block', marginTop: '2px' }}>
                 {t('settings.workspace_sections.industry_mode_selector_card.s10', "حدد التخصص الدقيق لنشاطك لتفعيل الأدوات المتخصصة دون تداخل مع الأنشطة الأخرى:")}
@@ -610,7 +610,7 @@ export function IndustryModeSelectorCard({ settings, canManageSettings }: Indust
               }}
             >
               <SlidersIcon size={14} color={showAllSubVerticals ? '#170e5e' : '#475569'} />
-              <span>{showAllSubVerticals ? t('settings.workspace_sections.industry_mode_selector_card.s11', "إخفاء الأنشطة الإضافية") : t('settings.workspace_sections.industry_mode_selector_card.s12', "عرض باقي التخصصات والأنشطة (3)")}</span>
+              <span>{showAllSubVerticals ? t('settings.workspace_sections.industry_mode_selector_card.s11', "إخفاء الأنشطة الإضافية") : `${t('settings.workspace_sections.industry_mode_selector_card.s12', "عرض باقي التخصصات والأنشطة")} (${EXTENDED_COMMERCE_SUB_VERTICALS.length})`}</span>
             </button>
           </div>
 

@@ -14,55 +14,126 @@ export class ImportSalesService {
       .selectFrom('import_partners')
       .selectAll()
       .where('tenant_id', '=', tenantId)
+      .orderBy('name', 'asc')
       .execute();
   }
 
   async createPartner(tenantId: string, userId: number, name: string, percentage: number, capitalAmount: number = 0, accountId?: string) {
-    const partner = await this.db
-      .insertInto('import_partners')
-      .values({
-        tenant_id: tenantId,
-        name,
-        profit_share_percentage: percentage,
-        capital_amount: 0 // Will be added via transaction if > 0
-      })
-      .returningAll()
-      .executeTakeFirstOrThrow();
-
-    if (capitalAmount > 0) {
-      await this.recordCapitalTransaction(tenantId, userId, partner.id, {
-        type: 'DEPOSIT',
-        amount: capitalAmount,
-        date: new Date().toISOString().split('T')[0],
-        note: 'رأس مال افتتاحي',
-        accountId
-      });
-      // Fetch updated partner
-      return await this.db
-        .selectFrom('import_partners')
-        .selectAll()
-        .where('id', '=', partner.id)
-        .executeTakeFirstOrThrow();
+    if (!name || !name.trim()) {
+      throw new BadRequestException('اسم الشريك مطلوب.');
+    }
+    const cleanPercentage = Number(percentage);
+    if (!Number.isFinite(cleanPercentage) || cleanPercentage < 0 || cleanPercentage > 100) {
+      throw new BadRequestException('نسبة الشراكة يجب أن تكون بين 0% و 100%.');
+    }
+    const cleanCapital = Number(capitalAmount) || 0;
+    if (cleanCapital < 0) {
+      throw new BadRequestException('رأس المال لا يمكن أن يكون سالباً.');
     }
 
-    return partner;
+    return await this.db.transaction().execute(async (trx) => {
+      // Check total percentage across all partners
+      const existing = await trx.selectFrom('import_partners')
+        .select(sql<number>`coalesce(sum(profit_share_percentage), 0)`.as('total_percentage'))
+        .where('tenant_id', '=', tenantId)
+        .executeTakeFirst();
+      const currentTotal = Number(existing?.total_percentage || 0);
+      if (currentTotal + cleanPercentage > 100.001) {
+        throw new BadRequestException(`مجموع نسب الشركاء سيتجاوز 100% (المجموع الحالي: ${currentTotal}%).`);
+      }
+
+      const partner = await trx
+        .insertInto('import_partners')
+        .values({
+          tenant_id: tenantId,
+          name: name.trim(),
+          profit_share_percentage: cleanPercentage,
+          capital_amount: 0,
+          withdrawn_profit: 0
+        })
+        .returningAll()
+        .executeTakeFirstOrThrow();
+
+      if (cleanCapital > 0) {
+        await trx.insertInto('import_partner_ledger').values({
+          tenant_id: tenantId,
+          partner_id: partner.id,
+          type: 'DEPOSIT',
+          amount: cleanCapital,
+          transaction_date: new Date(),
+          note: 'رأس مال افتتاحي',
+          created_by: userId
+        }).execute();
+
+        await trx.updateTable('import_partners')
+          .set({ capital_amount: cleanCapital })
+          .where('id', '=', partner.id)
+          .where('tenant_id', '=', tenantId)
+          .execute();
+
+        if (accountId) {
+          await trx.insertInto('treasury_transactions').values({
+            tenant_id: tenantId,
+            txn_type: 'revenue',
+            amount: cleanCapital,
+            note: `إيداع رأس مال افتتاحي للشريك: ${partner.name}`,
+            reference_type: 'partner_capital',
+            reference_id: null,
+            created_by: userId,
+            account_id: accountId
+          }).execute();
+        }
+
+        return await trx
+          .selectFrom('import_partners')
+          .selectAll()
+          .where('id', '=', partner.id)
+          .executeTakeFirstOrThrow();
+      }
+
+      return partner;
+    });
   }
 
   async updatePartner(tenantId: string, id: string, name?: string, percentage?: number, capitalAmount?: number) {
-    let updateData: any = {};
-    if (name !== undefined) updateData.name = name;
-    if (percentage !== undefined) updateData.profit_share_percentage = percentage;
-    if (capitalAmount !== undefined) updateData.capital_amount = capitalAmount;
+    if (capitalAmount !== undefined) {
+      throw new BadRequestException('لا يمكن تعديل رأس مال الشريك مباشرة بدون حركة إيداع أو سحب دفترية مسجلة.');
+    }
 
-    if (Object.keys(updateData).length === 0) return null;
+    if (percentage !== undefined) {
+      const cleanPercentage = Number(percentage);
+      if (!Number.isFinite(cleanPercentage) || cleanPercentage < 0 || cleanPercentage > 100) {
+        throw new BadRequestException('نسبة الشراكة يجب أن تكون بين 0% و 100%.');
+      }
+    }
 
-    return await this.db
-      .updateTable('import_partners')
-      .set(updateData)
-      .where('tenant_id', '=', tenantId)
-      .where('id', '=', id)
-      .returningAll()
-      .executeTakeFirstOrThrow();
+    return await this.db.transaction().execute(async (trx) => {
+      if (percentage !== undefined) {
+        const existing = await trx.selectFrom('import_partners')
+          .select(sql<number>`coalesce(sum(profit_share_percentage), 0)`.as('total_percentage'))
+          .where('tenant_id', '=', tenantId)
+          .where('id', '!=', id)
+          .executeTakeFirst();
+        const otherTotal = Number(existing?.total_percentage || 0);
+        if (otherTotal + Number(percentage) > 100.001) {
+          throw new BadRequestException(`مجموع نسب الشركاء سيتجاوز 100% (باقي الشركاء: ${otherTotal}%).`);
+        }
+      }
+
+      let updateData: any = {};
+      if (name !== undefined) updateData.name = name.trim();
+      if (percentage !== undefined) updateData.profit_share_percentage = Number(percentage);
+
+      if (Object.keys(updateData).length === 0) return null;
+
+      return await trx
+        .updateTable('import_partners')
+        .set(updateData)
+        .where('tenant_id', '=', tenantId)
+        .where('id', '=', id)
+        .returningAll()
+        .executeTakeFirstOrThrow();
+    });
   }
 
   async deletePartner(tenantId: string, id: string) {
@@ -181,7 +252,6 @@ export class ImportSalesService {
     return await this.db.transaction().execute(async (trx) => {
       const shipment = await trx.selectFrom('import_shipments').selectAll().where('id', '=', shipmentId).where('tenant_id', '=', tenantId).executeTakeFirstOrThrow();
       
-      // Helper to handle expenses
       const handleExpense = async (
         costAmount: number | undefined, 
         accountId: string | undefined, 
@@ -189,9 +259,7 @@ export class ImportSalesService {
         title: string
       ): Promise<number | null> => {
         if (costAmount === undefined && accountId === undefined) return existingExpenseId;
-        
-        const finalCost = costAmount !== undefined ? costAmount : 0; // If not provided, it might mean we just want to update something else, but let's assume we update expense if we provide cost OR account. Actually, if they pass cost, they must pass accountId if they want to pay.
-        // If cost is 0, we can delete the expense, but let's just set it to 0 for simplicity.
+        const finalCost = costAmount !== undefined ? costAmount : 0;
         
         if (accountId && finalCost > 0) {
           if (existingExpenseId) {
@@ -218,8 +286,9 @@ export class ImportSalesService {
       };
 
       if (dto.shippingCostUsd !== undefined || dto.shippingAccountId !== undefined) {
+        const rate = dto.exchangeRateAtArrival || shipment.exchange_rate_at_arrival || 1;
         updatePayload.shipping_expense_id = await handleExpense(
-          (dto.shippingCostUsd || 0) * (dto.exchangeRateAtArrival || shipment.exchange_rate_at_arrival || 1), // Need EGP for expense!
+          (dto.shippingCostUsd || 0) * rate,
           dto.shippingAccountId, 
           shipment.shipping_expense_id, 
           'مصاريف شحن'
@@ -245,7 +314,7 @@ export class ImportSalesService {
     }).then(async () => {
       await this.calculateLandedCost(tenantId, shipmentId);
       
-      // If status changed to Arrived, update inventory and cost
+      // If status changed to Arrived, update inventory and cost using weighted average
       if (dto.status === 'Arrived') {
         await this.postShipmentToInventory(tenantId, shipmentId);
       }
@@ -259,19 +328,30 @@ export class ImportSalesService {
       await trx.selectFrom('import_shipments').select('id')
         .where('id', '=', shipmentId).where('tenant_id', '=', tenantId)
         .forUpdate().executeTakeFirstOrThrow();
+
+      // Robust idempotency check by reference_type and reference_id (with backwards-compat fallback)
       const posted = await trx.selectFrom('stock_movements').select('id')
-        .where('tenant_id', '=', tenantId).where('reference_type', '=', 'import_shipment')
-        .where('note', 'like', `شحنة استيراد #${shipmentId} -%`).executeTakeFirst();
+        .where('tenant_id', '=', tenantId)
+        .where('reference_type', '=', 'import_shipment')
+        .where((eb) => eb.or([
+          eb('reference_id', '=', shipmentId as any),
+          eb('note', 'like', `شحنة استيراد #${shipmentId} -%`)
+        ]))
+        .executeTakeFirst();
       if (posted) return;
 
       const items = await trx.selectFrom('import_shipment_items').selectAll()
         .where('tenant_id', '=', tenantId).where('shipment_id', '=', shipmentId)
         .orderBy('product_id', 'asc').execute();
-      const products = await trx.selectFrom('products').select(['id', 'account_id'])
+      if (items.length === 0) return;
+
+      const products = await trx.selectFrom('products').select(['id', 'account_id', 'cost_price'])
         .where('tenant_id', '=', tenantId)
         .where('id', 'in', items.map((item) => Number(item.product_id)))
         .execute();
       const accountByProduct = new Map<number, string>(products.map((product) => [Number(product.id), String(product.account_id)]));
+      const costByProduct = new Map<number, number>(products.map((product) => [Number(product.id), Number(product.cost_price || 0)]));
+
       for (const product of products.sort((a, b) => Number(a.id) - Number(b.id))) {
         await lockStockProducts(trx as any, { tenantId, accountId: String(product.account_id), productIds: [Number(product.id)] });
       }
@@ -284,12 +364,24 @@ export class ImportSalesService {
         const accountId = accountByProduct.get(Number(item.product_id));
         if (!accountId) throw new NotFoundException(`Product #${item.product_id} not found`);
         const landedCost = Number(item.landed_cost_egp) || 0;
+
         const stockChange = await applyStockDelta(trx as any, {
           tenantId, accountId, productId: Number(item.product_id), delta: finalQty,
         });
-        await trx.updateTable('products').set({ cost_price: landedCost, updated_at: sql`NOW()` })
+
+        // Compute Weighted Average Cost: ((oldQty * oldCost) + (finalQty * landedCost)) / totalQty
+        const oldQty = Math.max(0, stockChange.globalBefore ?? stockChange.scopeBefore);
+        const oldCost = costByProduct.get(Number(item.product_id)) ?? 0;
+        const totalQty = oldQty + finalQty;
+        const newWeightedCost = (finalQty > 0 && totalQty > 0.00001)
+          ? ((oldQty * oldCost) + (finalQty * landedCost)) / totalQty
+          : (landedCost > 0 ? landedCost : oldCost);
+
+        await trx.updateTable('products')
+          .set({ cost_price: Number(newWeightedCost.toFixed(6)), updated_at: sql`NOW()` })
           .where('tenant_id', '=', tenantId).where('account_id', '=', accountId)
           .where('id', '=', Number(item.product_id)).execute();
+
         await trx.insertInto('stock_movements').values({
           product_id: Number(item.product_id),
           movement_type: 'import_receipt',
@@ -299,7 +391,7 @@ export class ImportSalesService {
           reason: 'استلام شحنة استيراد',
           note: `شحنة استيراد #${shipmentId} - تكلفة محملة للقطعة: ${landedCost} ج.م`,
           reference_type: 'import_shipment',
-          reference_id: null,
+          reference_id: shipmentId as any,
           tenant_id: tenantId,
           account_id: accountId,
         } as any).execute();
@@ -311,6 +403,7 @@ export class ImportSalesService {
 
           await trx.insertInto('expenses').values({
             tenant_id: tenantId,
+            account_id: accountId,
             title: `خسائر نواقص حاوية (تسوية عجز) - صنف ${item.product_id}`,
             amount: lossAmount,
             expense_date: new Date(),
@@ -331,6 +424,11 @@ export class ImportSalesService {
       
     if (!shipment) return { success: false, message: 'Not found' };
 
+    const rate = Number(shipment.exchange_rate_at_arrival);
+    if (!rate || rate <= 0) {
+      throw new BadRequestException('يجب تحديد سعر الصرف الفعلي للعملة الأجنبية للشحنة لحساب التكلفة الفعلية بدقة.');
+    }
+
     const items = await this.db
       .selectFrom('import_shipment_items')
       .selectAll()
@@ -340,7 +438,6 @@ export class ImportSalesService {
 
     if (items.length === 0) return { success: true };
 
-    const rate = Number(shipment.exchange_rate_at_arrival) || 1;
     const shippingUsd = Number(shipment.shipping_cost_usd) || 0;
     const customsEgp = Number(shipment.customs_cost_egp) || 0;
     const transportEgp = Number(shipment.internal_transport_cost_egp) || 0;
@@ -374,8 +471,8 @@ export class ImportSalesService {
 
       await this.db.updateTable('import_shipment_items')
         .set({
-          allocated_overhead_egp: unitOverheadEgp,
-          landed_cost_egp: unitLandedEgp
+          allocated_overhead_egp: Number(unitOverheadEgp.toFixed(4)),
+          landed_cost_egp: Number(unitLandedEgp.toFixed(4))
         })
         .where('id', '=', item.id)
         .where('tenant_id', '=', tenantId)
@@ -386,37 +483,67 @@ export class ImportSalesService {
   }
 
   async generatePeriodProfitReport(tenantId: string, startDate: string | Date, endDate: string | Date) {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    if (typeof endDate === 'string' && !endDate.includes('T')) {
+      end.setHours(23, 59, 59, 999);
+    }
+
     // 1. Get total revenue and cost from sales
     const salesData = await this.db
       .selectFrom('sales')
       .innerJoin('sale_items', 'sale_items.sale_id', 'sales.id')
       .select([
-        sql<number>`sum(sale_items.line_total)`.as('total_revenue'),
-        sql<number>`sum(sale_items.qty * sale_items.cost_price)`.as('total_cost')
+        sql<number>`coalesce(sum(sale_items.line_total), 0)`.as('total_revenue'),
+        sql<number>`coalesce(sum(sale_items.qty * sale_items.cost_price), 0)`.as('total_cost')
       ])
       .where('sales.tenant_id', '=', tenantId)
       .where('sales.status', '!=', 'cancelled')
-      .where('sales.created_at', '>=', new Date(startDate))
-      .where('sales.created_at', '<=', new Date(endDate))
+      .where('sales.created_at', '>=', start)
+      .where('sales.created_at', '<=', end)
       .executeTakeFirst();
 
     const totalRevenue = Number(salesData?.total_revenue || 0);
     const totalCost = Number(salesData?.total_cost || 0);
     const grossProfit = totalRevenue - totalCost;
 
-    // 2. Get operational expenses
-    const expensesData = await this.db
-      .selectFrom('expenses')
-      .select([sql<number>`sum(amount)`.as('total_expenses')])
+    // 2. Get operational expenses EXCLUDING:
+    // a) Capitalized shipment expenses (already in COGS via landed cost)
+    // b) Foreign transfers (supplier debt settlements)
+    // c) Partner profit payouts (equity dividend settlements)
+    const shipmentExpenseIds = await this.db
+      .selectFrom('import_shipments')
+      .select(['shipping_expense_id', 'customs_expense_id', 'transport_expense_id'])
       .where('tenant_id', '=', tenantId)
-      .where('expense_date', '>=', new Date(startDate))
-      .where('expense_date', '<=', new Date(endDate))
-      .executeTakeFirst();
+      .execute();
 
+    const excludedExpenseIds = new Set<number>();
+    for (const s of shipmentExpenseIds) {
+      if (s.shipping_expense_id) excludedExpenseIds.add(Number(s.shipping_expense_id));
+      if (s.customs_expense_id) excludedExpenseIds.add(Number(s.customs_expense_id));
+      if (s.transport_expense_id) excludedExpenseIds.add(Number(s.transport_expense_id));
+    }
+
+    let expensesQuery = this.db
+      .selectFrom('expenses')
+      .select([sql<number>`coalesce(sum(amount), 0)`.as('total_expenses')])
+      .where('tenant_id', '=', tenantId)
+      .where('expense_date', '>=', start)
+      .where('expense_date', '<=', end)
+      .where((eb) => eb.and([
+        eb('title', 'not like', 'حوالة خارجية%'),
+        eb('title', 'not like', 'صرف أرباح الشريك%')
+      ]));
+
+    if (excludedExpenseIds.size > 0) {
+      expensesQuery = expensesQuery.where('id', 'not in', Array.from(excludedExpenseIds));
+    }
+
+    const expensesData = await expensesQuery.executeTakeFirst();
     const totalExpenses = Number(expensesData?.total_expenses || 0);
     const netProfitPool = grossProfit - totalExpenses;
 
-    // 3. Get partners and distribute
+    // 3. Get partners and calculate their share of the net pool
     const partners = await this.db
       .selectFrom('import_partners')
       .selectAll()
@@ -431,9 +558,9 @@ export class ImportSalesService {
         partnerId: p.id,
         name: p.name,
         percentage,
-        shareAmount,
-        withdrawnProfit: withdrawn,
-        currentBalance: shareAmount - withdrawn
+        shareAmount: Number(shareAmount.toFixed(2)),
+        withdrawnProfit: Number(withdrawn.toFixed(2)),
+        currentBalance: Number((shareAmount - withdrawn).toFixed(2))
       };
     });
 
@@ -441,11 +568,11 @@ export class ImportSalesService {
       success: true, 
       message: 'تم تجميع أرباح الشراكة بنجاح', 
       data: {
-        totalRevenue,
-        totalCost,
-        grossProfit,
-        totalExpenses,
-        netProfitPool,
+        totalRevenue: Number(totalRevenue.toFixed(2)),
+        totalCost: Number(totalCost.toFixed(2)),
+        grossProfit: Number(grossProfit.toFixed(2)),
+        totalExpenses: Number(totalExpenses.toFixed(2)),
+        netProfitPool: Number(netProfitPool.toFixed(2)),
         partnerShares
       } 
     };
@@ -460,10 +587,15 @@ export class ImportSalesService {
         'supplier_payments.amount',
         'supplier_payments.payment_date',
         'supplier_payments.note',
+        'supplier_payments.doc_no',
         'suppliers.name as supplier_name'
       ])
       .where('supplier_payments.tenant_id', '=', tenantId)
-      .where('supplier_payments.doc_no', '=', 'FOREIGN_TRANSFER')
+      .where((eb) => eb.or([
+        eb('supplier_payments.doc_no', '=', 'FOREIGN_TRANSFER'),
+        eb('supplier_payments.doc_no', 'like', 'FT-%'),
+        eb('supplier_payments.note', 'like', '%حوالة%')
+      ]))
       .orderBy('supplier_payments.payment_date', 'desc')
       .limit(50)
       .execute();
@@ -473,6 +605,13 @@ export class ImportSalesService {
     const { supplierId, amountEgp, amountForeign, notes } = dto;
     const sId = Number(supplierId);
 
+    const cleanEgp = Number(amountEgp);
+    const cleanForeign = Number(amountForeign);
+
+    if (!Number.isFinite(cleanEgp) || cleanEgp <= 0 || !Number.isFinite(cleanForeign) || cleanForeign <= 0) {
+      throw new BadRequestException('مبالغ الحوالة بالجنيه والعملة الأجنبية يجب أن تكون أكبر من الصفر.');
+    }
+
     return await this.db.transaction().execute(async (trx) => {
       const supplier = await trx
         .selectFrom('suppliers')
@@ -481,37 +620,13 @@ export class ImportSalesService {
         .where('tenant_id', '=', tenantId)
         .executeTakeFirstOrThrow();
 
-      // 1. Create Treasury Expense (amountEgp)
-      const expenseInsert = await trx.insertInto('expenses').values({
-        tenant_id: tenantId,
-        account_id: supplier.account_id,
-        title: `حوالة خارجية إلى ${supplier.name}`,
-        amount: amountEgp,
-        note: notes || '',
-        expense_date: new Date(),
-        created_by: userId
-      }).returning('id').executeTakeFirstOrThrow();
-      
-      const expenseId = expenseInsert.id;
-
-      await trx.insertInto('treasury_transactions').values({
-        tenant_id: tenantId,
-        account_id: supplier.account_id,
-        txn_type: 'expense',
-        amount: -amountEgp,
-        note: `تدبير عملة: حوالة خارجية إلى ${supplier.name}`,
-        reference_type: 'expense',
-        reference_id: expenseId,
-        created_by: userId
-      }).execute();
-
-      // 2. Create Supplier Payment (amountForeign)
+      // 1. Create Supplier Payment in supplier_payments
       const paymentInsert = await trx.insertInto('supplier_payments').values({
         tenant_id: tenantId,
         account_id: supplier.account_id,
         supplier_id: supplier.id,
-        amount: amountForeign,
-        note: `حوالة استيراد خارجية${notes ? ' - ' + notes : ''}`,
+        amount: cleanForeign,
+        note: `حوالة استيراد خارجية${notes ? ' - ' + notes : ''} [تدبير عملة: ${cleanEgp} ج.م]`,
         created_by: userId
       }).returning('id').executeTakeFirstOrThrow();
       
@@ -523,14 +638,26 @@ export class ImportSalesService {
         .where('tenant_id', '=', tenantId)
         .execute();
 
+      // 2. Create Treasury Transaction for cash/bank outflow (Settlement of liability, NOT an operational expense)
+      await trx.insertInto('treasury_transactions').values({
+        tenant_id: tenantId,
+        account_id: supplier.account_id,
+        txn_type: 'supplier_payment',
+        amount: -cleanEgp,
+        note: `تدبير عملة: حوالة خارجية إلى ${supplier.name} (${cleanForeign} عملة أجنبية)`,
+        reference_type: 'supplier_payment',
+        reference_id: paymentId,
+        created_by: userId
+      }).execute();
+
       // 3. Update Supplier Ledger
-      const newBalance = Number(supplier.balance || 0) - amountForeign;
+      const newBalance = Number(supplier.balance || 0) - cleanForeign;
       await trx.insertInto('supplier_ledger').values({
         tenant_id: tenantId,
         account_id: supplier.account_id,
         supplier_id: supplier.id,
         entry_type: 'supplier_payment',
-        amount: -amountForeign,
+        amount: -cleanForeign,
         balance_after: newBalance,
         note: `حوالة خارجية: ${notes || ''}`,
         reference_type: 'supplier_payment',
@@ -545,13 +672,17 @@ export class ImportSalesService {
         .where('tenant_id', '=', tenantId)
         .execute();
 
-      return { success: true, paymentId, expenseId, newBalance };
+      return { success: true, paymentId, docNo: `FT-${paymentId}` };
     });
   }
 
   async recordPartnerPayout(tenantId: string, userId: number, partnerId: string, amount: number) {
+    const cleanAmount = Number(amount);
+    if (!Number.isFinite(cleanAmount) || cleanAmount <= 0) {
+      throw new BadRequestException('مبلغ صرف الأرباح يجب أن يكون أكبر من الصفر.');
+    }
+
     return await this.db.transaction().execute(async (trx) => {
-      // 1. Get partner
       const partner = await trx
         .selectFrom('import_partners')
         .selectAll()
@@ -559,47 +690,38 @@ export class ImportSalesService {
         .where('tenant_id', '=', tenantId)
         .executeTakeFirstOrThrow();
 
-      // 2. Insert into treasury
-      await trx.insertInto('expenses').values({
-        tenant_id: tenantId,
-        account_id: 'default',
-        title: `صرف أرباح الشريك: ${partner.name}`,
-        amount: amount,
-        note: 'تسوية أرباح شريك',
-        expense_date: new Date(),
-        created_by: userId
-      }).execute();
-
+      // Record in treasury_transactions as partner_payout (Dividend/Equity withdrawal, NOT operating expense)
       await trx.insertInto('treasury_transactions').values({
         tenant_id: tenantId,
-        txn_type: 'expense',
-        amount: -amount,
+        txn_type: 'partner_payout',
+        amount: -cleanAmount,
         note: `صرف أرباح الشريك: ${partner.name}`,
         reference_type: 'partner_payout',
+        reference_id: null,
         created_by: userId
       }).execute();
 
-      // 3. Update partner withdrawn profit
+      // Update partner withdrawn profit
       await trx.updateTable('import_partners')
         .set((eb) => ({
-          withdrawn_profit: sql`${eb.ref('withdrawn_profit')} + ${amount}`
+          withdrawn_profit: sql`${eb.ref('withdrawn_profit')} + ${cleanAmount}`
         }))
         .where('id', '=', partnerId)
         .where('tenant_id', '=', tenantId)
         .execute();
         
-      // 4. Insert into partner ledger
-      await trx.insertInto('import_partner_ledger').values({
+      // Insert into partner ledger
+      const ledgerInsert = await trx.insertInto('import_partner_ledger').values({
         tenant_id: tenantId,
         partner_id: partnerId,
         type: 'PROFIT_PAYOUT',
-        amount: amount,
+        amount: cleanAmount,
         transaction_date: new Date(),
         note: `صرف أرباح الشريك: ${partner.name}`,
         created_by: userId
-      }).execute();
+      }).returning('id').executeTakeFirstOrThrow();
         
-      return { success: true };
+      return { success: true, ledgerId: ledgerInsert.id };
     });
   }
 
@@ -615,21 +737,36 @@ export class ImportSalesService {
   }
 
   async recordCapitalTransaction(tenantId: string, userId: number, partnerId: string, dto: { type: 'DEPOSIT' | 'WITHDRAWAL', amount: number, date: string, note?: string, accountId?: string }) {
+    const cleanAmount = Number(dto.amount);
+    if (!Number.isFinite(cleanAmount) || cleanAmount <= 0) {
+      throw new BadRequestException('مبلغ حركة رأس المال يجب أن يكون أكبر من الصفر.');
+    }
+
     return await this.db.transaction().execute(async (trx) => {
-      await trx.insertInto('import_partner_ledger').values({
+      const partner = await trx.selectFrom('import_partners')
+        .selectAll()
+        .where('id', '=', partnerId)
+        .where('tenant_id', '=', tenantId)
+        .executeTakeFirstOrThrow();
+
+      if (dto.type === 'WITHDRAWAL' && Number(partner.capital_amount || 0) < cleanAmount) {
+        throw new BadRequestException(`رصيد رأس المال الحالي (${partner.capital_amount}) لا يكفي لسحب مبلغ ${cleanAmount}.`);
+      }
+
+      const ledgerInsert = await trx.insertInto('import_partner_ledger').values({
         tenant_id: tenantId,
         partner_id: partnerId,
         type: dto.type,
-        amount: dto.amount,
+        amount: cleanAmount,
         transaction_date: dto.date,
         note: dto.note || '',
         created_by: userId
-      }).execute();
+      }).returning('id').executeTakeFirstOrThrow();
 
       const sign = dto.type === 'DEPOSIT' ? '+' : '-';
       await trx.updateTable('import_partners')
         .set((eb) => ({
-          capital_amount: sql`${eb.ref('capital_amount')} ${sql.raw(sign)} ${dto.amount}`
+          capital_amount: sql`${eb.ref('capital_amount')} ${sql.raw(sign)} ${cleanAmount}`
         }))
         .where('id', '=', partnerId)
         .where('tenant_id', '=', tenantId)
@@ -639,15 +776,15 @@ export class ImportSalesService {
         await trx.insertInto('treasury_transactions').values({
           tenant_id: tenantId,
           txn_type: dto.type === 'DEPOSIT' ? 'revenue' : 'expense',
-          amount: dto.type === 'DEPOSIT' ? dto.amount : -dto.amount,
-          note: (dto.type === 'DEPOSIT' ? 'إيداع رأس مال شريك: ' : 'سحب رأس مال شريك: ') + dto.note,
+          amount: dto.type === 'DEPOSIT' ? cleanAmount : -cleanAmount,
+          note: (dto.type === 'DEPOSIT' ? 'إيداع رأس مال شريك: ' : 'سحب رأس مال شريك: ') + (partner.name || '') + (dto.note ? ` - ${dto.note}` : ''),
           reference_type: 'partner_capital',
           created_by: userId,
           account_id: dto.accountId
         }).execute();
       }
 
-      return { success: true };
+      return { success: true, ledgerId: ledgerInsert.id };
     });
   }
 
@@ -713,12 +850,12 @@ export class ImportSalesService {
 
         if (item.target_retail_margin !== null && Number(item.target_retail_margin) > 0) {
           const rMargin = Number(item.target_retail_margin) / 100;
-          updateData.retail_price = pricingCostEgp * (1 + rMargin);
+          updateData.retail_price = Number((pricingCostEgp * (1 + rMargin)).toFixed(2));
         }
         
         if (item.target_wholesale_margin !== null && Number(item.target_wholesale_margin) > 0) {
           const wMargin = Number(item.target_wholesale_margin) / 100;
-          updateData.wholesale_price = pricingCostEgp * (1 + wMargin);
+          updateData.wholesale_price = Number((pricingCostEgp * (1 + wMargin)).toFixed(2));
         }
 
         if (Object.keys(updateData).length > 0) {

@@ -317,10 +317,11 @@ export const ModulesSettingsTab = memo(function ModulesSettingsTab({ form, disab
   const isManufacturingVertical = rawActivity === 'manufacturing' || rawActivity === 'production' || rawActivity === 'تصنيع' || rawActivity === 'مصنع';
   const isWholesaleVanVertical = rawActivity === 'wholesale_van' || rawActivity === 'wholesale' || rawActivity === 'distribution' || rawActivity.includes('توزيع') || rawActivity.includes('فان') || rawActivity.includes('جمل');
   const isWarehousingVertical = rawActivity === 'warehousing' || rawActivity === 'warehouse' || rawActivity === 'wms' || rawActivity.includes('مخازن') || rawActivity.includes('مستودع');
+  const isImportVertical = rawActivity === 'import_export' || rawActivity === 'import' || rawActivity.includes('استيراد');
   const isCommerceVertical = !isContractingVertical && !isMaritimeVertical && !isManufacturingVertical && !isWholesaleVanVertical && !isWarehousingVertical;
 
   const hasManufacturingFeature = useHasFeature('manufacturing') || isManufacturingVertical || isSuperAdmin;
-  const hasImportFeature = useHasFeature('import') || isSuperAdmin;
+  const hasImportFeature = useHasFeature('import') || isImportVertical || isSuperAdmin;
   const hasRestaurantFeature = useHasFeature('restaurant') || isSuperAdmin;
   const hasMaintenanceFeature = useHasFeature('maintenance') || isSuperAdmin;
   const hasPharmacyFeature = useHasFeature('pharmacy') || isSuperAdmin;
@@ -341,7 +342,7 @@ export const ModulesSettingsTab = memo(function ModulesSettingsTab({ form, disab
   const hasServicesFeature = hasPurchasesFeature || hasInventoryFeature;
   const hasPosMetaFeature = hasRestaurantFeature;
 
-  const isPosActive = isContractingVertical || isMaritimeVertical || isManufacturingVertical || isWholesaleVanVertical || isWarehousingVertical ? false : Boolean(form.watch('posModuleEnabled'));
+  const isPosActive = isContractingVertical || isMaritimeVertical || isManufacturingVertical || isWholesaleVanVertical || isWarehousingVertical || isImportVertical ? false : Boolean(form.watch('posModuleEnabled'));
   const isPurchasesActive = isContractingVertical || isMaritimeVertical || isManufacturingVertical ? true : (hasPurchasesFeature && Boolean(form.watch('purchasesModuleEnabled')));
   const isInventoryActive = isContractingVertical || isManufacturingVertical || isWarehousingVertical ? true : (isMaritimeVertical ? false : (hasInventoryFeature && Boolean(form.watch('inventoryModuleEnabled'))));
   const isHrActive = isContractingVertical || isMaritimeVertical || isManufacturingVertical ? true : (hasHrFeature && Boolean(form.watch('hrModuleEnabled')));

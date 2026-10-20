@@ -8,15 +8,19 @@ import { RequestWithAuth } from '../../core/auth/interfaces/request-with-auth.in
 
 @Controller('api/import-sales')
 @UseGuards(SessionAuthGuard, PermissionsGuard)
-@RequireAnyPermission('purchases', 'inventory', 'accounting', 'sales')
+@RequireAnyPermission('purchases', 'inventory', 'accounting')
 export class ImportSalesController {
   constructor(private readonly importSalesService: ImportSalesService) {}
 
+  // --- Partners & Capital Endpoints (Protected by Accounting) ---
+
+  @RequireAnyPermission('accounting')
   @Get('partners')
   async getPartners(@Req() req: RequestWithAuth) {
     return this.importSalesService.getPartners(req.authContext!.tenantId!);
   }
 
+  @RequireAnyPermission('accounting')
   @Post('partners')
   async createPartner(
     @Req() req: RequestWithAuth,
@@ -25,6 +29,7 @@ export class ImportSalesController {
     return this.importSalesService.createPartner(req.authContext!.tenantId!, req.authContext!.userId!, dto.name, dto.percentage, dto.capitalAmount, dto.accountId);
   }
 
+  @RequireAnyPermission('accounting')
   @Patch('partners/:id')
   async updatePartner(
     @Req() req: RequestWithAuth,
@@ -34,6 +39,7 @@ export class ImportSalesController {
     return this.importSalesService.updatePartner(req.authContext!.tenantId!, id, dto.name, dto.percentage, dto.capitalAmount);
   }
 
+  @RequireAnyPermission('accounting')
   @Delete('partners/:id')
   async deletePartner(
     @Req() req: RequestWithAuth,
@@ -42,6 +48,7 @@ export class ImportSalesController {
     return this.importSalesService.deletePartner(req.authContext!.tenantId!, id);
   }
 
+  @RequireAnyPermission('accounting')
   @Get('partners/:id/ledger')
   async getPartnerLedger(
     @Req() req: RequestWithAuth,
@@ -50,6 +57,7 @@ export class ImportSalesController {
     return this.importSalesService.getPartnerLedger(req.authContext!.tenantId!, id);
   }
 
+  @RequireAnyPermission('accounting')
   @Post('partners/:id/capital-transaction')
   async recordCapitalTransaction(
     @Req() req: RequestWithAuth,
@@ -64,6 +72,7 @@ export class ImportSalesController {
     );
   }
 
+  @RequireAnyPermission('accounting')
   @Post('partners/:id/payout')
   async recordPartnerPayout(
     @Req() req: RequestWithAuth,
@@ -101,6 +110,7 @@ export class ImportSalesController {
     return this.importSalesService.getShipmentById(req.authContext!.tenantId!, shipmentId);
   }
 
+  @RequireAnyPermission('purchases', 'accounting', 'inventory')
   @Patch('shipments/:id/costs')
   async updateShipmentCosts(
     @Req() req: RequestWithAuth,
@@ -119,6 +129,7 @@ export class ImportSalesController {
     return this.importSalesService.addShipmentItem(req.authContext!.tenantId!, shipmentId, dto);
   }
 
+  @RequireAnyPermission('purchases', 'accounting')
   @Post('calculate-landed-cost/:shipmentId')
   async calculateLandedCost(
     @Req() req: RequestWithAuth,
@@ -128,9 +139,7 @@ export class ImportSalesController {
   }
 
   /**
-   * الربح رقمٌ محروس بصلاحيته الخاصة `canViewProfit` — وهي مُحترمة في
-   * `sales-query.service.ts` ولم تكن مُحترمة هنا. كان المسار يُفتح بـ`sales`، وهي في قالب
-   * كل كاشير، فيقرأ الكاشير أرباح المحل رغم أن المنظومة صنعت صلاحية لمنعه.
+   * تقرير الأرباح محمي بصلاحيات استعراض الربحية والتقارير المالية.
    */
   @RequireAnyPermission('canViewProfit', 'reports', 'accounting')
   @Get('profit-report')
@@ -147,11 +156,13 @@ export class ImportSalesController {
     return this.importSalesService.generatePeriodProfitReport(req.authContext!.tenantId!, startDate, endDate);
   }
 
+  @RequireAnyPermission('purchases', 'accounting')
   @Get('foreign-transfers')
   async listForeignTransfers(@Req() req: RequestWithAuth) {
     return this.importSalesService.listForeignTransfers(req.authContext!.tenantId!);
   }
 
+  @RequireAnyPermission('purchases', 'accounting')
   @Post('foreign-transfer')
   async recordForeignTransfer(
     @Req() req: RequestWithAuth,
@@ -173,6 +184,7 @@ export class ImportSalesController {
     return this.importSalesService.updateShipmentItem(req.authContext!.tenantId!, itemId, dto);
   }
 
+  @RequireAnyPermission('purchases', 'pricing', 'canManageSettings')
   @Post('shipments/:id/apply-prices')
   async applySuggestedPrices(
     @Req() req: RequestWithAuth,

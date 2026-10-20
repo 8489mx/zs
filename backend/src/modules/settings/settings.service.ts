@@ -972,6 +972,15 @@ export class SettingsService {
         modulePatch.enableEnterpriseFeatures = true;
         modulePatch.storefrontModuleEnabled = false;
       }
+      if (normalizedKey === 'import_export') {
+        modulePatch.posModuleEnabled = false;
+        modulePatch.requireCashierShiftForSales = false;
+        modulePatch.inventoryModuleEnabled = true;
+        modulePatch.purchasesModuleEnabled = true;
+        modulePatch.importModuleEnabled = true;
+        modulePatch.enableEnterpriseFeatures = true;
+        modulePatch.storefrontModuleEnabled = false;
+      }
     }
 
     const settingsEntries: Array<[string, any]> = [

@@ -1939,3 +1939,24 @@ The authenticated master endpoints use private conditional caching and weak ETag
 
 
 
+
+## 2.22 دستور الرقابة المالية والمحاسبية لموديول الاستيراد والشراكة (Import & Partners Financial Invariants)
+
+- **IMPORT-FIN-DOUBLE-COUNT-1 (حظر ازدواج تحميل تكاليف الاستيراد في وعاء الأرباح):**
+  - مصاريف الشحن والجمارك والنقل المحملة على تكلفة البضاعة (Landed Cost) والمقيدة كـ COGS تُستبعد إلزامياً من استعلام المصروفات التشغيلية (`expenses`) عند حساب وعاء أرباح الفترة (`generatePeriodProfitReport`).
+  - يُمنع خصم نفس المصروف مرتين (مرة داخل تكلفة البضاعة المباعة ومرة أخرى كمصروف تشغيلي).
+- **IMPORT-FIN-FOREIGN-TRANSFER-1 (حظر تسجيل سداد مديونية المورد كمصروف تشغيلي):**
+  - سداد مديونية المورد الخارجي هو تسوية التزام ميزانية عمومية (Accounts Payable Settlement) وليس مصروفاً تشغيلياً في قائمة الدخل.
+  - يُمنع منعاً باتاً عمل `insertInto('expenses')` عند سداد الحوالات الخارجية للموردين (`recordForeignTransfer`). الأثر يقتصر على مدفوعات الموردين، كشف حساب المورد، والخزينة/البنك (`treasury_transactions.txn_type = 'supplier_payment'`).
+  - رقم مستند الحوالة `doc_no = FT-${id}` يطابقه استعلام العرض (`listForeignTransfers`) دون أي إخفاء للحوالات.
+- **IMPORT-FIN-PARTNER-EQUITY-1 (حظر التعديل اليدوي الصامت لرأس المال وحظر قيد صرف الأرباح كمصروف):**
+  - يُمنع تعديل رأس مال الشريك مباشرة (`capitalAmount` في `updatePartner` مرفوض بحظر استثنائي `BadRequestException`)؛ التعديل يتم حصراً عبر حركة دفترية مسجلة `import_partner_ledger` وأثر خزينة نقي.
+  - صرف أرباح الشريك (Dividend Payout) هو توزيع حقوق ملكية، ويُحظر تسجيله في جدول `expenses` منعاً لتخفيض أرباح الفترات القادمة دون وجه حق.
+  - مجموع نسب أرباح الشركاء محكوم بسقف رقابي لا يتجاوز 100%.
+- **IMPORT-FIN-INVENTORY-WAC-1 (تطبيق المتوسط المرجح لتكلفة المخزون عند استلام الحاويات):**
+  - عند استلام الشحنة وتغيير حالتها إلى `Arrived`، تُحدث تكلفة الصنف بالمتوسط المرجح الدقيق `((oldQty * oldCost) + (newQty * landedCost)) / totalQty` بدلاً من مسح التكلفة القديمة عشوائياً.
+  - فحص الترحيل المسبق يعتمد على `reference_id = shipmentId` وقيود الداتابيز الصارمة لمنع تكرار الترحيل عند الطلبات المتزامنة.
+- **IMPORT-FIN-ACCESS-1 (حظر وصول صلاحية المبيعات/الكاشير إلى عمليات الاستيراد والشراكة):**
+  - متحكم الاستيراد `ImportSalesController` محمي بالصلاحيات الرقابية (`accounting`, `purchases`, `inventory`) ومجرد تماماً من صلاحية `sales` العامة.
+  - عمليات الشركاء وصرف الأرباح ورأس المال محصورة حصراً بالمدير المالي (`accounting`).
+- **الحارس:** `backend/test/critical/import-sales-financial-integrity.spec.ts`.

@@ -40,8 +40,8 @@ function ItemRowInputs({ item, shipmentId, arrivalRate, pricingRate }: { item: S
   const landedCost = Number(item.landed_cost_egp) || 0;
   const pricingCostEgp = landedCost + (unitUsd * (pricingRate - arrivalRate));
   
-  const suggestedWholesale = pricingCostEgp * (1 + (Number(wholesaleMargin) || 0) / 100);
-  const suggestedRetail = pricingCostEgp * (1 + (Number(retailMargin) || 0) / 100);
+  const suggestedWholesale = Math.round((pricingCostEgp * (1 + (Number(wholesaleMargin) || 0) / 100)) * 100) / 100;
+  const suggestedRetail = Math.round((pricingCostEgp * (1 + (Number(retailMargin) || 0) / 100)) * 100) / 100;
   
   return (
     <div style={{ display: 'contents' }}>
