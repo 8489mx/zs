@@ -59,6 +59,8 @@ export const settingsFormSchema = z.object({
   fixedAssetsModuleEnabled: z.boolean().default(false),
   taxDeclarationModuleEnabled: z.boolean().default(false),
   deliveryFleetModuleEnabled: z.boolean().default(false),
+  deliveryRepsModuleEnabled: z.boolean().default(false),
+  vanSalesModuleEnabled: z.boolean().default(false),
   maintenanceProfile: z.string().optional().default('mobile'),
   enableEnterpriseFeatures: z.boolean().default(false),
   technicianCommissionRate: z.coerce.number().min(0).max(100).default(30),

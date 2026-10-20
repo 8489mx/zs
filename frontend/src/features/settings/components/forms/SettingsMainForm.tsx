@@ -105,6 +105,8 @@ export const SETTINGS_FIELD_METADATA: Record<
   fixedAssetsModuleEnabled: { tab: 'modules', label: 'موديول الأصول الثابتة والإهلاك' },
   taxDeclarationModuleEnabled: { tab: 'modules', label: 'موديول الإقرار الضريبي' },
   deliveryFleetModuleEnabled: { tab: 'modules', label: 'موديول أسطول التوصيل والمناديب' },
+  deliveryRepsModuleEnabled: { tab: 'modules', label: 'موديول مناديب التوصيل والدليفري' },
+  vanSalesModuleEnabled: { tab: 'modules', label: 'موديول مبيعات وتوزيع الفان' },
   enableEnterpriseFeatures: { tab: 'modules', label: 'الميزات المتقدمة للمؤسسات' },
   technicianCommissionRate: { tab: 'modules', label: 'نسبة عمولة فنيي الصيانة' },
 
@@ -224,6 +226,8 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
       fixedAssetsModuleEnabled: false,
       taxDeclarationModuleEnabled: false,
       deliveryFleetModuleEnabled: false,
+      deliveryRepsModuleEnabled: false,
+      vanSalesModuleEnabled: false,
       clothingModuleEnabled: false,
       enableMobileStoreFeatures: false,
       enablePharmacyModule: false,
@@ -441,6 +445,7 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
     const isContractingVertical = rawActivity === 'contracting' || rawActivity === 'construction' || rawActivity === 'مقاولات';
     const isMaritimeVertical = rawActivity === 'maritime_freight' || rawActivity === 'maritime' || rawActivity === 'freight' || rawActivity === 'shipping' || rawActivity === 'شحن';
     const isWholesaleVertical = rawActivity === 'wholesale_van' || rawActivity === 'wholesale' || rawActivity === 'distribution' || rawActivity.includes('توزيع') || rawActivity.includes('فان') || rawActivity.includes('جمل');
+    const isWarehousingVertical = rawActivity === 'warehousing' || rawActivity === 'warehouse' || rawActivity === 'wms' || rawActivity.includes('مخازن') || rawActivity.includes('مستودع');
 
     form.reset({
       storeName: settings.storeName || 'Z Systems',
@@ -492,6 +497,14 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
       fixedAssetsModuleEnabled: isContractingVertical || isMaritimeVertical ? true : (settings.fixedAssetsModuleEnabled === true),
       taxDeclarationModuleEnabled: isContractingVertical || isMaritimeVertical ? true : (settings.taxDeclarationModuleEnabled === true),
       deliveryFleetModuleEnabled: isWholesaleVertical ? true : (settings.deliveryFleetModuleEnabled === true),
+      deliveryRepsModuleEnabled: settings.deliveryRepsModuleEnabled !== undefined
+        ? settings.deliveryRepsModuleEnabled === true
+        : (!isWholesaleVertical && settings.deliveryFleetModuleEnabled === true),
+      vanSalesModuleEnabled: isWholesaleVertical
+        ? true
+        : (settings.vanSalesModuleEnabled !== undefined
+          ? settings.vanSalesModuleEnabled === true
+          : (isWholesaleVertical && settings.deliveryFleetModuleEnabled === true)),
       allowNegativeStockSales: settings.allowNegativeStockSales === true || settings.allowSellingBelowStock === true,
       allowZeroPurchaseCost: settings.allowZeroPurchaseCost === true,
       requireCashierShiftForSales: isWholesaleVertical ? false : (settings.requireCashierShiftForSales !== false),
@@ -756,6 +769,7 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
       const isManufacturingVertical = rawActivity === 'manufacturing' || rawActivity === 'production' || rawActivity === 'تصنيع' || rawActivity === 'مصنع';
       const isServicesVertical = rawActivity === 'services' || rawActivity === 'consulting' || rawActivity === 'استشارات';
       const isWholesaleVertical = rawActivity === 'wholesale_van' || rawActivity === 'wholesale' || rawActivity === 'distribution' || rawActivity.includes('توزيع') || rawActivity.includes('فان') || rawActivity.includes('جمل');
+      const isWarehousingVertical = rawActivity === 'warehousing' || rawActivity === 'warehouse' || rawActivity === 'wms' || rawActivity.includes('مخازن') || rawActivity.includes('مستودع');
 
       values.currentBranchId = branchIdToUse;
       values.currentLocationId = locationIdToUse;
@@ -832,13 +846,30 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
       } else if (isWholesaleVertical) {
         values.posModuleEnabled = false;
         values.requireCashierShiftForSales = false;
+        values.vanSalesModuleEnabled = true;
         values.deliveryFleetModuleEnabled = true;
+        values.deliveryRepsModuleEnabled = false;
         values.enableEnterpriseFeatures = true;
         values.installmentsModuleEnabled = true;
         values.contractingModuleEnabled = false;
         values.maritimeFreightModuleEnabled = false;
         values.manufacturingModuleEnabled = false;
         values.servicesModuleEnabled = false;
+      } else if (isWarehousingVertical) {
+        values.posModuleEnabled = false;
+        values.requireCashierShiftForSales = false;
+        values.inventoryModuleEnabled = true;
+        values.purchasesModuleEnabled = true;
+        values.enableEnterpriseFeatures = true;
+        values.contractingModuleEnabled = false;
+        values.maritimeFreightModuleEnabled = false;
+        values.manufacturingModuleEnabled = false;
+        values.servicesModuleEnabled = false;
+        values.deliveryRepsModuleEnabled = false;
+        values.deliveryFleetModuleEnabled = false;
+        values.vanSalesModuleEnabled = false;
+        values.weightedBarcodeEnabled = false;
+        values.storefrontModuleEnabled = false;
       } else {
         values.contractingModuleEnabled = false;
         values.maritimeFreightModuleEnabled = false;

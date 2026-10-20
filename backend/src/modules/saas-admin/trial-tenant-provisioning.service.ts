@@ -92,6 +92,8 @@ export class TrialTenantProvisioningService {
       servicesModuleEnabled: false,
       storefrontModuleEnabled: false,
       deliveryFleetModuleEnabled: false,
+      deliveryRepsModuleEnabled: false,
+      vanSalesModuleEnabled: false,
       purchasesModuleEnabled: true,
       inventoryModuleEnabled: true,
       enableEnterpriseFeatures: false,
@@ -123,6 +125,7 @@ export class TrialTenantProvisioningService {
       case 'storefront':
       case 'ecommerce':
         base.storefrontModuleEnabled = true;
+        base.deliveryRepsModuleEnabled = true;
         base.deliveryFleetModuleEnabled = true;
         base.enableEnterpriseFeatures = true;
         break;
@@ -141,6 +144,7 @@ export class TrialTenantProvisioningService {
 
       case 'pharmacy':
         base.enablePharmacyModule = true;
+        base.deliveryRepsModuleEnabled = true;
         base.deliveryFleetModuleEnabled = true;
         break;
 
@@ -172,11 +176,21 @@ export class TrialTenantProvisioningService {
         base.enableEnterpriseFeatures = true;
         break;
 
+      case 'warehousing':
+        base.posModuleEnabled = false;
+        base.requireCashierShiftForSales = false;
+        base.inventoryModuleEnabled = true;
+        base.purchasesModuleEnabled = true;
+        base.enableEnterpriseFeatures = true;
+        break;
+
       case 'wholesale_van':
       case 'wholesale':
         base.posModuleEnabled = false;
         base.requireCashierShiftForSales = false;
+        base.vanSalesModuleEnabled = true;
         base.deliveryFleetModuleEnabled = true;
+        base.deliveryRepsModuleEnabled = false;
         base.enableEnterpriseFeatures = true;
         base.installmentsModuleEnabled = true;
         base.taxDeclarationModuleEnabled = true;

@@ -4,6 +4,7 @@ import { useSearchParams } from 'react-router-dom';
 import { PageHeader } from '@/shared/components/page-header';
 import { FormSection } from '@/shared/components/form-section';
 import { UsersIcon, TruckIcon, SlidersIcon } from '@/shared/components/icons/AppIcons';
+import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
 import { DeliveryRepsList } from '../components/DeliveryRepsList';
 import { DeliveryRepOrders } from '../components/DeliveryRepOrders';
 import { DeliveryRepSettlements } from '../components/DeliveryRepSettlements';
@@ -14,7 +15,17 @@ import { VanTripsTab } from '../components/VanTripsTab';
 export default function DeliveryRepsPage() {
   const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
-  const mainTab = (searchParams.get('tab') as 'couriers' | 'fleet' | 'trips') || 'couriers';
+  const { data: settings } = useSettingsQuery();
+
+  const isVanSalesActive = Boolean(
+    settings?.vanSalesModuleEnabled === true ||
+    (settings?.deliveryFleetModuleEnabled === true && (settings?.activityType === 'wholesale_van' || settings?.businessIndustry === 'wholesale_van'))
+  );
+
+  const rawTab = searchParams.get('tab');
+  const mainTab = (rawTab === 'trips' && !isVanSalesActive)
+    ? 'couriers'
+    : ((rawTab as 'couriers' | 'fleet' | 'trips') || 'couriers');
 
   const [selectedRepId, setSelectedRepId] = useState<number | null>(null);
   const [activeSubTab, setActiveSubTab] = useState<'orders' | 'settlements' | 'performance'>('performance');
@@ -26,6 +37,29 @@ export default function DeliveryRepsPage() {
       return p;
     });
   };
+
+  const availableTabs = [
+    {
+      key: 'couriers' as const,
+      label: t('delivery_reps.delivery_reps_page.s2', "مناديب التوصيل والدليفري"),
+      subtitle: t('delivery_reps.delivery_reps_page.s3', "طلبات الدليفري والتسويات"),
+      icon: <UsersIcon size={16} />,
+    },
+    {
+      key: 'fleet' as const,
+      label: t('delivery_reps.delivery_reps_page.s4', "مركبات وأسطول التوصيل"),
+      subtitle: t('delivery_reps.delivery_reps_page.s5', "السيارات والدراجات وتعيين السائقين"),
+      icon: <TruckIcon size={16} />,
+    },
+    ...(isVanSalesActive ? [
+      {
+        key: 'trips' as const,
+        label: t('delivery_reps.delivery_reps_page.s6', "رحلات وورديات مبيعات الفان"),
+        subtitle: t('delivery_reps.delivery_reps_page.s7', "المبيعات الميدانية، العداد، والكاش"),
+        icon: <SlidersIcon size={16} />,
+      }
+    ] : []),
+  ];
 
   return (
     <main
@@ -42,8 +76,8 @@ export default function DeliveryRepsPage() {
       }}
     >
       <PageHeader 
-        title={t('delivery_reps.delivery_reps_page.s0', "إدارة المناديب وأسطول التوزيع")} 
-        description={t('delivery_reps.delivery_reps_page.s1', "إدارة طياري الدليفري، أسطول سيارات الشركة، ورديات الفان، ومتابعة الطلبات والتوريدات المالية.")} 
+        title={isVanSalesActive ? t('delivery_reps.delivery_reps_page.s0', "إدارة المناديب وأسطول التوزيع") : t('delivery_reps.delivery_reps_page.s0_retail', "إدارة مناديب التوصيل والدليفري")} 
+        description={isVanSalesActive ? t('delivery_reps.delivery_reps_page.s1', "إدارة طياري الدليفري، أسطول سيارات الشركة، ورديات الفان، ومتابعة الطلبات والتوريدات المالية.") : t('delivery_reps.delivery_reps_page.s1_retail', "إدارة كباتن التوصيل، متابعة طلبات الدليفري المسندة، تسوية العهد النقدية، واحتساب العمولات.")} 
       />
 
       {/* Master Tabs Switcher (Zero Tab-Flicker Standard: uniform font-weight 600, 0ms transition) */}
@@ -58,26 +92,7 @@ export default function DeliveryRepsPage() {
           boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
         }}
       >
-        {[
-          {
-            key: 'couriers' as const,
-            label: t('delivery_reps.delivery_reps_page.s2', "مناديب التوصيل والدليفري"),
-            subtitle: t('delivery_reps.delivery_reps_page.s3', "طلبات الدليفري والتسويات"),
-            icon: <UsersIcon size={16} />,
-          },
-          {
-            key: 'fleet' as const,
-            label: t('delivery_reps.delivery_reps_page.s4', "أسطول سيارات الشركة"),
-            subtitle: t('delivery_reps.delivery_reps_page.s5', "السيارات وتعيين السائقين والورديات"),
-            icon: <TruckIcon size={16} />,
-          },
-          {
-            key: 'trips' as const,
-            label: t('delivery_reps.delivery_reps_page.s6', "رحلات وورديات مبيعات الفان"),
-            subtitle: t('delivery_reps.delivery_reps_page.s7', "المبيعات الميدانية، العداد، والكاش"),
-            icon: <SlidersIcon size={16} />,
-          },
-        ].map((tab) => {
+        {availableTabs.map((tab) => {
           const isActive = mainTab === tab.key;
           return (
             <button
@@ -234,7 +249,7 @@ export default function DeliveryRepsPage() {
       {mainTab === 'fleet' && <FleetVehiclesTab />}
 
       {/* Tab 3: Van Sales Trips & Field Operations */}
-      {mainTab === 'trips' && <VanTripsTab />}
+      {mainTab === 'trips' && isVanSalesActive && <VanTripsTab />}
     </main>
   );
 }

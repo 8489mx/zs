@@ -192,6 +192,12 @@ export function buildSettingsUpdatePayload(
     deliveryFleetModuleEnabled: values.deliveryFleetModuleEnabled !== undefined
       ? values.deliveryFleetModuleEnabled === true
       : current?.deliveryFleetModuleEnabled === true,
+    deliveryRepsModuleEnabled: values.deliveryRepsModuleEnabled !== undefined
+      ? values.deliveryRepsModuleEnabled === true
+      : current?.deliveryRepsModuleEnabled === true,
+    vanSalesModuleEnabled: values.vanSalesModuleEnabled !== undefined
+      ? values.vanSalesModuleEnabled === true
+      : current?.vanSalesModuleEnabled === true,
     loyaltyEnabled: values.loyaltyEnabled !== undefined
       ? values.loyaltyEnabled !== false
       : current?.loyaltyEnabled !== false,

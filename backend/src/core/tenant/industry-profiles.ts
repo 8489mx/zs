@@ -10,6 +10,7 @@ export type CommerceSubVertical =
   | 'clothing'
   | 'manufacturing'
   | 'wholesale_van'
+  | 'warehousing'
   | 'services'
   | 'ecommerce'
   | 'supermarket'
@@ -231,10 +232,33 @@ export const INDUSTRY_PROFILES: Record<IndustryProfileKey, IndustryProfile> = {
       'vanSales',
       'pricing',
       'treasury',
-      'accounting',
       'reports',
     ],
     allowedExtraFeatures: ['storefront', 'installments', 'crm'],
+    pricingBand: 3,
+  },
+
+  warehousing: {
+    key: 'warehousing',
+    pillar: 'commerce',
+    subVertical: 'warehousing',
+    labelAr: 'إدارة المخازن والمستودعات والتحويلات',
+    labelEn: 'Warehouse & Inventory Management',
+    descriptionAr: 'منظومة المستودعات المركزية والفرعية: التحويلات بين الفروع وتتبع البضاعة بالطريق، أذونات الصرف والإضافة، الجرد ونواقص المخزون بدون نقاط بيع أو كاشير.',
+    defaultRoute: '/inventory',
+    defaultFeatures: [
+      'catalog',
+      'products',
+      'inventory',
+      'purchases',
+      'suppliers',
+      'customers',
+      'sales',
+      'pricing',
+      'treasury',
+      'reports',
+    ],
+    allowedExtraFeatures: ['installments', 'crm', 'fixed_assets'],
     pricingBand: 3,
   },
 
@@ -344,6 +368,22 @@ export function normalizeIndustryProfileKey(raw?: string | null): IndustryProfil
     trimmed.includes('distribution')
   ) {
     return 'wholesale_van';
+  }
+
+  if (
+    trimmed === 'warehousing' ||
+    trimmed === 'warehouse' ||
+    trimmed === 'inventory' ||
+    trimmed === 'wms' ||
+    trimmed === 'مخازن' ||
+    trimmed === 'مستودع' ||
+    trimmed === 'مستودعات' ||
+    trimmed.includes('مخازن') ||
+    trimmed.includes('مستودع') ||
+    trimmed.includes('تخزين') ||
+    trimmed.includes('لوجستيات المستودعات')
+  ) {
+    return 'warehousing';
   }
 
   if (
@@ -616,8 +656,31 @@ export function resolvePillarScopedFeatures(
     if (profile.subVertical !== 'clothing' && !explicitPlus.includes('clothing')) {
       candidates.delete('clothing');
     }
-    if (profile.subVertical === 'services' && !explicitPlus.includes('pos')) {
-      candidates.delete('pos');
+    if (profile.subVertical === 'services') {
+      if (!explicitPlus.includes('pos')) candidates.delete('pos');
+      if (!explicitPlus.includes('inventory')) candidates.delete('inventory');
+      candidates.delete('storefront');
+      candidates.delete('kds');
+      candidates.delete('displays');
+      candidates.delete('signage');
+      candidates.delete('deliveryReps');
+      candidates.delete('cashDrawer');
+    }
+    if (profile.subVertical === 'wholesale_van') {
+      if (!explicitPlus.includes('pos')) candidates.delete('pos');
+      candidates.delete('kds');
+      candidates.delete('displays');
+      candidates.delete('signage');
+      candidates.delete('cashDrawer');
+    }
+    if (profile.subVertical === 'warehousing') {
+      if (!explicitPlus.includes('pos')) candidates.delete('pos');
+      candidates.delete('storefront');
+      candidates.delete('kds');
+      candidates.delete('displays');
+      candidates.delete('signage');
+      candidates.delete('deliveryReps');
+      candidates.delete('cashDrawer');
     }
   }
 

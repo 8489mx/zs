@@ -76,8 +76,17 @@ export class PlanFeatureService implements OnModuleInit {
     // module on top of ANY other activity (a restaurant making chocolate, a pharmacy compounding)
     // via the literal extraFeatures check above.
 
-    if (pillar === 'commerce' || !pillar || ['retail_general', 'pharmacy', 'restaurant', 'maintenance'].includes(activityType || '')) {
+    if (pillar === 'commerce' || !pillar || ['retail_general', 'pharmacy', 'restaurant', 'maintenance', 'warehousing'].includes(activityType || '')) {
       const profile = getIndustryProfile(activityType);
+      if (profile.subVertical === 'warehousing' && ['pos', 'cashDrawer', 'storefront', 'kds', 'displays', 'signage', 'deliveryReps'].includes(requiredFeature)) {
+        return false;
+      }
+      if (profile.subVertical === 'services' && ['pos', 'cashDrawer', 'inventory', 'storefront', 'kds', 'displays', 'signage', 'deliveryReps'].includes(requiredFeature)) {
+        return false;
+      }
+      if (profile.subVertical === 'wholesale_van' && ['pos', 'cashDrawer', 'kds', 'displays', 'signage'].includes(requiredFeature)) {
+        return false;
+      }
       if (profile.defaultFeatures.includes(requiredFeature)) {
         return true;
       }

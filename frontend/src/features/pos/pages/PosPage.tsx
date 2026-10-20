@@ -26,7 +26,13 @@ export function PosPage() {
     rawIndustry.includes('توزيع') ||
     rawIndustry.includes('فان') ||
     rawIndustry.includes('wholesale');
-  const isNonRetailVertical = isWholesaleVertical || rawIndustry === 'contracting' || rawIndustry === 'maritime' || rawIndustry === 'services';
+  const isWarehousingVertical =
+    rawIndustry === 'warehousing' ||
+    rawIndustry === 'warehouse' ||
+    rawIndustry === 'wms' ||
+    rawIndustry.includes('مخازن') ||
+    rawIndustry.includes('مستودع');
+  const isNonRetailVertical = isWholesaleVertical || isWarehousingVertical || rawIndustry === 'contracting' || rawIndustry === 'maritime' || rawIndustry === 'services';
   const isPosDisabled = settings?.posModuleEnabled === false || isNonRetailVertical;
 
   if (isPosDisabled) {
@@ -80,11 +86,35 @@ export function PosPage() {
           <p style={{ fontSize: '13px', color: '#64748b', lineHeight: 1.6, marginBottom: '24px' }}>
             {isWholesaleVertical
               ? t('pos.pos_page.s2', "هذا الحساب مهيأ لنمط تجارة الجملة والتوزيع المؤسسي وأسطول سيارات الفان، حيث تتم المبيعات الميدانية وإصدار الفواتير وأوامر البيع عبر شاشات توزيع الفان وسجل الفواتير بدون كاشير.")
+              : isWarehousingVertical
+              ? t('pos.pos_page.s2_wh', "هذا الحساب مهيأ لإدارة المخازن والمستودعات والتحويلات، حيث تعتمد الحركات على أذونات الصرف والإضافة والتحويلات بين الفروع ومحاضر الجرد بدون كاشير أو نقاط بيع.")
               : isNonRetailVertical
               ? t('pos.pos_page.s3', "هذا الحساب مخصص لقطاع تخصصي (مشاريع مقاولات أو شحن ولوجستيات أو خدمات) لا يعتمد على نقاط البيع المباشرة.")
               : t('pos.pos_page.s4', "تم تعطيل موديول نقطة البيع والكاشير في إعدادات المنشأة. يمكنك تفعيله من شاشة إعدادات الموديولات.")}
           </p>
           <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
+            {isWarehousingVertical && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (typeof window !== 'undefined') {
+                    window.location.href = '/inventory';
+                  }
+                }}
+                style={{
+                  background: '#170e5e',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: '8px',
+                  padding: '10px 22px',
+                  fontSize: '14px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                }}
+              >
+                {t('pos.pos_page.s5_wh', "المستودعات والتحويلات")}
+              </button>
+            )}
             {isWholesaleVertical && (
               <button
                 type="button"
@@ -115,9 +145,9 @@ export function PosPage() {
                 }
               }}
               style={{
-                background: isWholesaleVertical ? '#f1f5f9' : '#170e5e',
-                color: isWholesaleVertical ? '#334155' : '#ffffff',
-                border: isWholesaleVertical ? '1px solid #cbd5e1' : 'none',
+                background: isWholesaleVertical || isWarehousingVertical ? '#f1f5f9' : '#170e5e',
+                color: isWholesaleVertical || isWarehousingVertical ? '#334155' : '#ffffff',
+                border: isWholesaleVertical || isWarehousingVertical ? '1px solid #cbd5e1' : 'none',
                 borderRadius: '8px',
                 padding: '10px 22px',
                 fontSize: '14px',

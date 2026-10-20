@@ -27,6 +27,9 @@ function pickOperationalLandingRoute(user: AuthUser, tenant?: AuthTenant | null)
   if (rawActivity === 'manufacturing' || rawActivity === 'production' || rawActivity === 'تصنيع' || rawActivity === 'مصنع') {
     if (canAccessPath(user, '/manufacturing/work-orders')) return '/manufacturing/work-orders';
   }
+  if (rawActivity === 'warehousing' || rawActivity === 'warehouse' || rawActivity === 'مخازن' || rawActivity === 'مستودعات' || rawActivity === 'مستودع') {
+    if (canAccessPath(user, '/inventory')) return '/inventory';
+  }
 
   // Native Mobile Device Landing: Direct native app users to mobile suite
   const isNative = typeof window !== 'undefined' && Boolean((window as any).Capacitor?.isNativePlatform?.());

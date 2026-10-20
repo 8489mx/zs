@@ -82,6 +82,8 @@ export interface AppSettings {
   fixedAssetsModuleEnabled?: boolean;
   taxDeclarationModuleEnabled?: boolean;
   deliveryFleetModuleEnabled?: boolean;
+  deliveryRepsModuleEnabled?: boolean;
+  vanSalesModuleEnabled?: boolean;
   maintenanceProfile?: string;
   enableEnterpriseFeatures?: boolean;
   technicianCommissionRate?: number;

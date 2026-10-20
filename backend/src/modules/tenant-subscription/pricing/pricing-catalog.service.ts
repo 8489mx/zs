@@ -92,6 +92,8 @@ export class PricingCatalogService {
       wanted = 'electronics';
     } else if (wanted === 'import_export' || wanted.includes('استيراد') || wanted.includes('تصدير') || wanted.includes('جمارك')) {
       wanted = 'import_export';
+    } else if (wanted === 'warehousing' || wanted === 'warehouse' || wanted === 'wms' || wanted.includes('مخازن') || wanted.includes('مستودع') || wanted.includes('تخزين')) {
+      wanted = 'warehousing';
     }
 
     return (

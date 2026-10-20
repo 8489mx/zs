@@ -1,5 +1,6 @@
 export type IndustryPresetId =
   | 'retail'
+  | 'warehousing'
   | 'wholesale'
   | 'contracting'
   | 'maritime'
@@ -219,6 +220,22 @@ export const SYSTEM_MODULES: ModuleDefinition[] = [
 
   // 4. اللوجستيات والتجارة الرقمية
   {
+    key: 'deliveryRepsModuleEnabled',
+    title: 'إدارة مناديب التوصيل والدليفري',
+    category: 'logistics',
+    categoryLabel: 'العمليات والتوصيل',
+    shortDesc: 'إسناد الطلبات للكباتن، تتبع الشحنات، تصفية العهد النقدية، وعمولات التوصيل.',
+    requiredPlan: 'plan_ultimate',
+  },
+  {
+    key: 'vanSalesModuleEnabled',
+    title: 'مبيعات وتوزيع الفان (الأسطول الميداني)',
+    category: 'logistics',
+    categoryLabel: 'العمليات والتوزيع',
+    shortDesc: 'مخازن السيارات المتنقلة، أذونات التحميل والتفريغ، البيع الميداني، وتسوية الفان اليومية.',
+    requiredPlan: 'plan_ultimate',
+  },
+  {
     key: 'deliveryFleetModuleEnabled',
     title: 'أسطول التوصيل ومناديب الدليفري',
     category: 'logistics',
@@ -319,6 +336,44 @@ export const INDUSTRY_PRESETS: Record<IndustryPresetId, IndustryPreset> = {
     highlights: ['نقاط البيع السريعة والباركود', 'فواتير المشتريات وتكلفة البضاعة', 'جرد المخازن والأرصدة ونواقص الرف'],
   },
 
+  warehousing: {
+    id: 'warehousing',
+    name: 'إدارة المستودعات والمخازن والتحويلات',
+    subtitle: 'المستودعات المركزية، التوزيع بين الفروع، وسلاسل الإمداد',
+    description: 'يركز على تعدد المخازن، أذون الصرف والإضافة، التحويلات بين الفروع وتتبع بضاعة الطريق، الجرد ونواقص المخزون بدون نقاط بيع أو كاشير.',
+    badge: 'مستودعات وسلاسل إمداد',
+    recommendedModules: [
+      'inventoryModuleEnabled',
+      'purchasesModuleEnabled',
+      'enableEnterpriseFeatures',
+      'taxDeclarationModuleEnabled',
+    ],
+    disabledModules: [
+      'posModuleEnabled',
+      'weightedBarcodeEnabled',
+      'comboModuleEnabled',
+      'posShowCartMeta',
+      'restaurantModuleEnabled',
+      'enablePharmacyModule',
+      'enableMobileStoreFeatures',
+      'clothingModuleEnabled',
+      'contractingModuleEnabled',
+      'maritimeFreightModuleEnabled',
+      'storefrontModuleEnabled',
+      'deliveryFleetModuleEnabled',
+      'deliveryRepsModuleEnabled',
+      'vanSalesModuleEnabled',
+    ],
+    recommendedPlan: 'plan_pro',
+    defaultPosMode: 'scanner',
+    defaultProductKind: 'standard',
+    highlights: [
+      'المخازن المركزية والفرعية والأماكن التخزينية (Bins)',
+      'التحويلات بين الفروع وتتبع بضاعة في الطريق وتأكيد الاستلام',
+      'أذونات الصرف والإضافة وجرد المخازن بدون كاشير أو نقاط بيع',
+    ],
+  },
+
   wholesale: {
     id: 'wholesale',
     name: 'مبيعات وتوزيع الجملة وأسطول الفان',
@@ -328,6 +383,7 @@ export const INDUSTRY_PRESETS: Record<IndustryPresetId, IndustryPreset> = {
     recommendedModules: [
       'purchasesModuleEnabled',
       'inventoryModuleEnabled',
+      'vanSalesModuleEnabled',
       'deliveryFleetModuleEnabled',
       'installmentsModuleEnabled',
       'taxDeclarationModuleEnabled',
@@ -335,6 +391,7 @@ export const INDUSTRY_PRESETS: Record<IndustryPresetId, IndustryPreset> = {
     ],
     disabledModules: [
       'posModuleEnabled',
+      'deliveryRepsModuleEnabled',
       'weightedBarcodeEnabled',
       'restaurantModuleEnabled',
       'enablePharmacyModule',
@@ -857,6 +914,8 @@ export function calculateRecommendedPlan(selectedKeys: string[]): PlanTierInfo {
     'installmentsModuleEnabled',
     'taxDeclarationModuleEnabled',
     'deliveryFleetModuleEnabled',
+    'deliveryRepsModuleEnabled',
+    'vanSalesModuleEnabled',
     'hrModuleEnabled',
   ];
 

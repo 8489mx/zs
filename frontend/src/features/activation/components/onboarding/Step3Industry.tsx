@@ -31,6 +31,7 @@ type CommerceSubVertical =
   | 'auto_parts'
   | 'maintenance'
   | 'manufacturing'
+  | 'warehousing'
   | 'import_export';
 
 interface PillarConfig {
@@ -97,6 +98,13 @@ const COMMERCE_SUB_VERTICALS: SubVerticalConfig[] = [
     tag: 'كاشير ومخازن قياسية',
     descriptionAr: 'محلات التجزئة، الجملة، والسوبرماركت بمخزون وباركود وجرد فوري.',
     icon: PackageIcon,
+  },
+  {
+    key: 'warehousing',
+    labelAr: 'إدارة المخازن والمستودعات والتحويلات',
+    tag: 'مستودعات وتحويلات وجرد',
+    descriptionAr: 'المستودعات المركزية والفرعية، التحويلات بين الفروع، أذونات الصرف والإضافة، والجرد الدوري بدون كاشير.',
+    icon: LayersIcon,
   },
   {
     key: 'pharmacy',

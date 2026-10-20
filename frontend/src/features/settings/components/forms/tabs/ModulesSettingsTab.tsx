@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import type { UseFormReturn } from 'react-hook-form';
 import type { SettingsFormInput, SettingsFormOutput } from '@/features/settings/schemas/settings.schema';
 import { FormSection } from '@/shared/components/form-section';
-import { LightbulbIcon, XIcon, CheckIcon, StarIcon, ChevronDownIcon, MonitorIcon, PackageIcon, ReceiptIcon, UsersIcon, PhoneCallIcon } from '@/shared/components/icons/AppIcons';
+import { LightbulbIcon, XIcon, CheckIcon, StarIcon, ChevronDownIcon, MonitorIcon, PackageIcon, ReceiptIcon, UsersIcon, PhoneCallIcon, TruckIcon } from '@/shared/components/icons/AppIcons';
 import { useHasFeature } from '@/shared/hooks/use-permission';
 import { useAuthStore } from '@/stores/auth-store';
 import { isPlatformAdmin, isDesktopOfflineApp } from '@/app/router/access';
@@ -315,7 +315,9 @@ export const ModulesSettingsTab = memo(function ModulesSettingsTab({ form, disab
   const isContractingVertical = rawActivity === 'contracting' || rawActivity === 'construction' || rawActivity === 'مقاولات';
   const isMaritimeVertical = rawActivity === 'maritime_freight' || rawActivity === 'maritime' || rawActivity === 'freight' || rawActivity === 'shipping' || rawActivity === 'شحن';
   const isManufacturingVertical = rawActivity === 'manufacturing' || rawActivity === 'production' || rawActivity === 'تصنيع' || rawActivity === 'مصنع';
-  const isCommerceVertical = !isContractingVertical && !isMaritimeVertical && !isManufacturingVertical;
+  const isWholesaleVanVertical = rawActivity === 'wholesale_van' || rawActivity === 'wholesale' || rawActivity === 'distribution' || rawActivity.includes('توزيع') || rawActivity.includes('فان') || rawActivity.includes('جمل');
+  const isWarehousingVertical = rawActivity === 'warehousing' || rawActivity === 'warehouse' || rawActivity === 'wms' || rawActivity.includes('مخازن') || rawActivity.includes('مستودع');
+  const isCommerceVertical = !isContractingVertical && !isMaritimeVertical && !isManufacturingVertical && !isWholesaleVanVertical && !isWarehousingVertical;
 
   const hasManufacturingFeature = useHasFeature('manufacturing') || isManufacturingVertical || isSuperAdmin;
   const hasImportFeature = useHasFeature('import') || isSuperAdmin;
@@ -327,9 +329,11 @@ export const ModulesSettingsTab = memo(function ModulesSettingsTab({ form, disab
   const hasInstallmentsFeature = useHasFeature('installments') || isSuperAdmin;
   const hasFixedAssetsFeature = useHasFeature('fixed_assets') || isContractingVertical || isMaritimeVertical || isManufacturingVertical || isSuperAdmin;
   const hasTaxDeclarationFeature = useHasFeature('vat_declaration') || isContractingVertical || isMaritimeVertical || isManufacturingVertical || isSuperAdmin;
-  const hasDeliveryFleetFeature = useHasFeature('deliveryReps') || isSuperAdmin;
-  const hasPurchasesFeature = useHasFeature('purchases') || isContractingVertical || isMaritimeVertical || isManufacturingVertical || isCommerceVertical || isSuperAdmin;
-  const hasInventoryFeature = useHasFeature('inventory') || isContractingVertical || isManufacturingVertical || isCommerceVertical || isSuperAdmin;
+  const hasDeliveryRepsFeature = useHasFeature('deliveryReps') || isSuperAdmin;
+  const hasVanSalesFeature = useHasFeature('deliveryReps') || isWholesaleVanVertical || isSuperAdmin;
+  const hasDeliveryFleetFeature = hasDeliveryRepsFeature || hasVanSalesFeature;
+  const hasPurchasesFeature = useHasFeature('purchases') || isContractingVertical || isMaritimeVertical || isManufacturingVertical || isCommerceVertical || isWarehousingVertical || isSuperAdmin;
+  const hasInventoryFeature = useHasFeature('inventory') || isContractingVertical || isManufacturingVertical || isCommerceVertical || isWarehousingVertical || isSuperAdmin;
   const hasHrFeature = useHasFeature('hr') || isContractingVertical || isMaritimeVertical || isManufacturingVertical || isSuperAdmin;
   const hasClothingFeature = useHasFeature('clothing') || isSuperAdmin;
   const hasMaritimeFreightFeature = useHasFeature('maritime_freight') || isMaritimeVertical || isSuperAdmin;
@@ -338,9 +342,9 @@ export const ModulesSettingsTab = memo(function ModulesSettingsTab({ form, disab
   const hasServicesFeature = hasPurchasesFeature || hasInventoryFeature;
   const hasPosMetaFeature = hasRestaurantFeature;
 
-  const isPosActive = isContractingVertical || isMaritimeVertical || isManufacturingVertical ? false : Boolean(form.watch('posModuleEnabled'));
+  const isPosActive = isContractingVertical || isMaritimeVertical || isManufacturingVertical || isWholesaleVanVertical || isWarehousingVertical ? false : Boolean(form.watch('posModuleEnabled'));
   const isPurchasesActive = isContractingVertical || isMaritimeVertical || isManufacturingVertical ? true : (hasPurchasesFeature && Boolean(form.watch('purchasesModuleEnabled')));
-  const isInventoryActive = isContractingVertical || isManufacturingVertical ? true : (isMaritimeVertical ? false : (hasInventoryFeature && Boolean(form.watch('inventoryModuleEnabled'))));
+  const isInventoryActive = isContractingVertical || isManufacturingVertical || isWarehousingVertical ? true : (isMaritimeVertical ? false : (hasInventoryFeature && Boolean(form.watch('inventoryModuleEnabled'))));
   const isHrActive = isContractingVertical || isMaritimeVertical || isManufacturingVertical ? true : (hasHrFeature && Boolean(form.watch('hrModuleEnabled')));
   const isManufacturingActive = isManufacturingVertical ? true : (hasManufacturingFeature && Boolean(form.watch('manufacturingModuleEnabled')));
   const isComboActive = hasPurchasesFeature && Boolean(form.watch('comboModuleEnabled'));
@@ -361,7 +365,19 @@ export const ModulesSettingsTab = memo(function ModulesSettingsTab({ form, disab
   const isInstallmentsActive = hasInstallmentsFeature && Boolean(form.watch('installmentsModuleEnabled'));
   const isFixedAssetsActive = isContractingVertical || isMaritimeVertical || isManufacturingVertical ? true : (hasFixedAssetsFeature && Boolean(form.watch('fixedAssetsModuleEnabled')));
   const isTaxDeclarationActive = isContractingVertical || isMaritimeVertical || isManufacturingVertical ? true : (hasTaxDeclarationFeature && Boolean(form.watch('taxDeclarationModuleEnabled')));
-  const isDeliveryFleetActive = hasDeliveryFleetFeature && Boolean(form.watch('deliveryFleetModuleEnabled'));
+  const isDeliveryRepsActive = hasDeliveryRepsFeature && Boolean(
+    form.watch('deliveryRepsModuleEnabled') !== undefined
+      ? form.watch('deliveryRepsModuleEnabled')
+      : (!isWholesaleVanVertical && form.watch('deliveryFleetModuleEnabled'))
+  );
+  const isVanSalesActive = isWholesaleVanVertical
+    ? true
+    : (hasVanSalesFeature && Boolean(
+        form.watch('vanSalesModuleEnabled') !== undefined
+          ? form.watch('vanSalesModuleEnabled')
+          : (isWholesaleVanVertical && form.watch('deliveryFleetModuleEnabled'))
+      ));
+  const isDeliveryFleetActive = isDeliveryRepsActive || isVanSalesActive;
   const isMaritimeFreightActive = isMaritimeVertical ? true : (hasMaritimeFreightFeature && Boolean(form.watch('maritimeFreightModuleEnabled')));
   const isContractingActive = isContractingVertical ? true : (hasContractingFeature && Boolean(form.watch('contractingModuleEnabled')));
 
@@ -1493,38 +1509,96 @@ export const ModulesSettingsTab = memo(function ModulesSettingsTab({ form, disab
             <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('taxDeclarationModuleEnabled')} checked={Boolean(isTaxDeclarationActive)} disabled={disabled || isContractingVertical || isMaritimeVertical || !hasTaxDeclarationFeature} />
           </label>
 
-          {/* أسطول وتتبع المناديب */}
+          {/* موديول مناديب التوصيل والدليفري */}
           {(!isContractingVertical && !isMaritimeVertical) || isSuperAdmin ? (
             <label 
-              style={getCardStyle(Boolean(isDeliveryFleetActive), hasDeliveryFleetFeature)}
+              style={getCardStyle(Boolean(isDeliveryRepsActive), hasDeliveryRepsFeature)}
               onClick={(e) => {
-                if (!hasDeliveryFleetFeature) {
+                if (!hasDeliveryRepsFeature) {
                   e.preventDefault();
                   handleLockedCardClick(
-                    t('settings.forms.tabs.modules_settings_tab.s156', "أسطول وتتبع المناديب"),
+                    t('settings.forms.tabs.modules_settings_tab.s156_reps', "إدارة مناديب التوصيل والدليفري"),
                     t('settings.forms.tabs.modules_settings_tab.s157', "الباقة المتكاملة (Ultimate ERP)"),
-                    t('settings.forms.tabs.modules_settings_tab.s158', "يتيح لك هذا الموديول إدارة مناديب التوصيل، توزيع خطوط السير، تسوية العهد النقدية، وتتبع المناديب مباشرة.")
+                    t('settings.forms.tabs.modules_settings_tab.s158_reps', "خاص بالمحلات والمتاجر والمطاعم: إسناد الفواتير والطلبات لطياري التوصيل، متابعة الشحنات، تصفية العهد النقدية، واحتساب العمولات.")
                   );
                 }
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <div style={getIconBadgeStyle(Boolean(isDeliveryFleetActive))}>
+                <div style={getIconBadgeStyle(Boolean(isDeliveryRepsActive))}>
                   <DeliveryFleetIcon size={20} />
                 </div>
                 <div style={premiumCardTextStyle}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>{t('settings.forms.tabs.modules_settings_tab.s159', "أسطول وتتبع المناديب")}</strong>
-                    {!hasDeliveryFleetFeature && (
+                    <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>{t('settings.forms.tabs.modules_settings_tab.s159_reps', "إدارة مناديب التوصيل والدليفري")}</strong>
+                    {!hasDeliveryRepsFeature && (
                       <span style={{ fontSize: '0.7rem', background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a', padding: '1px 6px', borderRadius: '4px', fontWeight: 700, display: 'inline-flex', alignItems: 'center' }}>
                         <LockIcon size={11} /> {t('settings.forms.tabs.modules_settings_tab.s160', "الباقة المتكاملة")}
                       </span>
                     )}
                   </div>
-                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>{t('settings.forms.tabs.modules_settings_tab.s161', "إسناد الطلبات للمناديب، تتبع تسليم الشحنات، وعمولات مناديب التوصيل")}</small>
+                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>{t('settings.forms.tabs.modules_settings_tab.s161_reps', "إسناد الطلبات للكباتن، تتبع التسليم، تصفية عهدة النقدية، وعمولات التوصيل للمحلات")}</small>
                 </div>
               </div>
-              <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('deliveryFleetModuleEnabled')} checked={Boolean(isDeliveryFleetActive)} disabled={disabled || !hasDeliveryFleetFeature} />
+              <input 
+                type="checkbox" 
+                style={premiumCheckboxInputStyle} 
+                {...form.register('deliveryRepsModuleEnabled')} 
+                checked={Boolean(isDeliveryRepsActive)} 
+                onChange={(e) => {
+                  form.setValue('deliveryRepsModuleEnabled', e.target.checked, { shouldDirty: true });
+                }}
+                disabled={disabled || !hasDeliveryRepsFeature} 
+              />
+            </label>
+          ) : null}
+
+          {/* موديول مبيعات وتوزيع الفان */}
+          {(!isContractingVertical && !isMaritimeVertical) || isSuperAdmin ? (
+            <label 
+              style={getCardStyle(Boolean(isVanSalesActive), hasVanSalesFeature)}
+              onClick={(e) => {
+                if (!hasVanSalesFeature) {
+                  e.preventDefault();
+                  handleLockedCardClick(
+                    t('settings.forms.tabs.modules_settings_tab.s156_van', "مبيعات وتوزيع الفان والأسطول الميداني"),
+                    t('settings.forms.tabs.modules_settings_tab.s157', "الباقة المتكاملة (Ultimate ERP)"),
+                    t('settings.forms.tabs.modules_settings_tab.s158_van', "خاص بشركات التوزيع والجملة: مخازن السيارات المتنقلة، أذونات تحميل وتفريغ الفان، البيع المباشر من السيارة، وجرد مبيعات الفان الميدانية.")
+                  );
+                }
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={getIconBadgeStyle(Boolean(isVanSalesActive))}>
+                  <TruckIcon size={20} />
+                </div>
+                <div style={premiumCardTextStyle}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>{t('settings.forms.tabs.modules_settings_tab.s159_van', "مبيعات وتوزيع الفان (الأسطول الميداني)")}</strong>
+                    {isWholesaleVanVertical && (
+                      <span style={{ fontSize: '0.7rem', background: '#e0e7ff', color: '#3730a3', border: '1px solid #c7d2fe', padding: '1px 6px', borderRadius: '4px', fontWeight: 700, display: 'inline-flex', alignItems: 'center' }}>
+                        {t('settings.forms.tabs.modules_settings_tab.vertical_locked', "أساسي لنشاط الجملة")}
+                      </span>
+                    )}
+                    {!hasVanSalesFeature && !isWholesaleVanVertical && (
+                      <span style={{ fontSize: '0.7rem', background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a', padding: '1px 6px', borderRadius: '4px', fontWeight: 700, display: 'inline-flex', alignItems: 'center' }}>
+                        <LockIcon size={11} /> {t('settings.forms.tabs.modules_settings_tab.s160', "الباقة المتكاملة")}
+                      </span>
+                    )}
+                  </div>
+                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>{t('settings.forms.tabs.modules_settings_tab.s161_van', "مخازن السيارات المتنقلة، أذونات التحميل والتفريغ، البيع الميداني، وتسوية الفان اليومية")}</small>
+                </div>
+              </div>
+              <input 
+                type="checkbox" 
+                style={premiumCheckboxInputStyle} 
+                {...form.register('vanSalesModuleEnabled')} 
+                checked={Boolean(isVanSalesActive)} 
+                onChange={(e) => {
+                  form.setValue('vanSalesModuleEnabled', e.target.checked, { shouldDirty: true });
+                }}
+                disabled={disabled || isWholesaleVanVertical || !hasVanSalesFeature} 
+              />
             </label>
           ) : null}
         </div>

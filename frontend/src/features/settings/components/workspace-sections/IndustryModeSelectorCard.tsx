@@ -37,6 +37,7 @@ type CommerceSubVertical =
   | 'import_export'
   | 'auto_parts'
   | 'clothing'
+  | 'warehousing'
   | 'wholesale_van';
 
 interface PillarConfig {
@@ -134,6 +135,16 @@ const PRIMARY_COMMERCE_SUB_VERTICALS: SubVerticalConfig[] = [
     descriptionAr: 'محلات التجزئة، الجملة، السوبرماركت، والأنشطة التجارية المتنوعة بمخزون وباركود قياسي.',
     descriptionEn: 'Retail shops, wholesale, supermarkets, and diverse commercial activities with standard stock & barcodes.',
     icon: PackageIcon,
+  },
+  {
+    key: 'warehousing',
+    labelAr: 'إدارة المخازن والمستودعات والتحويلات',
+    labelEn: 'Warehouse & Inventory Management',
+    tag: 'مستودعات وتحويلات وجرد',
+    tagEn: 'Warehouses & Transfers',
+    descriptionAr: 'المستودعات المركزية والفرعية، التحويلات بين الفروع وتتبع بضاعة الطريق، أذونات الصرف والإضافة، الجرد ونواقص المخزون بدون كاشير.',
+    descriptionEn: 'Central and branch warehouses, inter-branch transfers, issue/receipt vouchers, audits and safety stock without POS.',
+    icon: LayersIcon,
   },
   {
     key: 'wholesale_van',
@@ -245,7 +256,9 @@ export function IndustryModeSelectorCard({ settings, canManageSettings }: Indust
       : 'commerce';
 
   const currentSubVertical: CommerceSubVertical =
-    currentActivityType === 'wholesale_van' || currentActivityType === 'wholesale' || currentActivityType === 'distribution' || currentActivityType === 'توزيع' || currentActivityType === 'فان'
+    currentActivityType === 'warehousing' || currentActivityType === 'warehouse' || currentActivityType === 'مخازن' || currentActivityType === 'مستودع' || currentActivityType === 'wms'
+      ? 'warehousing'
+      : currentActivityType === 'wholesale_van' || currentActivityType === 'wholesale' || currentActivityType === 'distribution' || currentActivityType === 'توزيع' || currentActivityType === 'فان'
       ? 'wholesale_van'
       : currentActivityType === 'pharmacy'
       ? 'pharmacy'

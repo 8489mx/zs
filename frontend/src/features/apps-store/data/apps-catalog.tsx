@@ -146,6 +146,16 @@ function DeliveryIcon({ size = 22, color = '#170e5e', style }: { size?: number; 
   );
 }
 
+function VanSalesIcon({ size = 22, color = '#170e5e', style }: { size?: number; color?: string; style?: CSSProperties }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={style}>
+      <path d="M1 3h15v13H1V3zm15 5h4l3 3v5h-7V8z" />
+      <circle cx="5.5" cy="18.5" r="2.5" />
+      <circle cx="18.5" cy="18.5" r="2.5" />
+    </svg>
+  );
+}
+
 function StorefrontIcon({ size = 22, color = '#170e5e', style }: { size?: number; color?: string; style?: CSSProperties }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={style}>
@@ -543,17 +553,31 @@ export const APPS_CATALOG: AppItemDefinition[] = [
 
   // 7. اللوجستيات والتجارة السحابية
   {
-    key: 'deliveryFleetModuleEnabled',
-    title: 'أسطول التوصيل ومناديب الدليفري',
+    key: 'deliveryRepsModuleEnabled',
+    title: 'إدارة مناديب التوصيل والدليفري',
     category: 'logistics',
     categoryLabel: 'اللوجستيات والتجارة السحابية',
-    shortDesc: 'تسليم الفواتير للمناديب، تصفية العهد النقدية، وبوابة السائق وتطبيق PWA.',
-    features: ['بوابة السائقين PWA', 'تتبع خطوط السير', 'تصفية العهد النقدية'],
+    shortDesc: 'إسناد الطلبات للكباتن، تتبع الشحنات، تصفية العهد النقدية، وبوابة السائق PWA.',
+    features: ['بوابة السائقين PWA', 'إسناد الطلبات للكباتن', 'تصفية العهد النقدية'],
     requiredPlan: 'plan_ultimate',
     icon: DeliveryIcon,
     accentColor: '#ca8a04',
     accentBg: '#fefce8',
     routePath: '/delivery-reps',
+    featureFlag: 'deliveryReps',
+  },
+  {
+    key: 'vanSalesModuleEnabled',
+    title: 'مبيعات وتوزيع الفان (الأسطول الميداني)',
+    category: 'logistics',
+    categoryLabel: 'اللوجستيات والتجارة السحابية',
+    shortDesc: 'مخازن السيارات المتنقلة، أذونات التحميل والتفريغ، البيع الميداني، وجرد الفان.',
+    features: ['مخازن السيارات المتنقلة', 'أذونات التحميل والتفريغ', 'البيع المباشر وجرد الفان'],
+    requiredPlan: 'plan_ultimate',
+    icon: VanSalesIcon,
+    accentColor: '#0369a1',
+    accentBg: '#f0f9ff',
+    routePath: '/inventory/van-sales',
     featureFlag: 'deliveryReps',
   },
   {

@@ -1262,7 +1262,7 @@ export class SaasAdminService {
         purchases: ['purchasesModuleEnabled'],
         inventory: ['inventoryModuleEnabled'],
         hr: ['hrModuleEnabled'],
-        deliveryReps: ['deliveryFleetModuleEnabled'],
+        deliveryReps: ['deliveryRepsModuleEnabled', 'deliveryFleetModuleEnabled'],
         loyalty: ['loyaltyEnabled'],
         maintenance: ['enableMobileStoreFeatures'],
         services: ['servicesModuleEnabled'],
@@ -1292,7 +1292,7 @@ export class SaasAdminService {
 
       // Check tenant vertical to prevent retail POS or weighing scale leakage into contracting/maritime/services
       // (tenantRow and verticalKey already fetched above when building effectiveFeatures)
-      const isNonRetailVertical = ['maritime_freight', 'contracting', 'wholesale_van', 'services'].includes(verticalKey);
+      const isNonRetailVertical = ['maritime_freight', 'contracting', 'wholesale_van', 'services', 'warehousing'].includes(verticalKey);
 
       // Strict vertical module isolation: do not let fallback plan features or previous settings leak across boundaries
       if (verticalKey !== 'maritime_freight') {
@@ -1322,8 +1322,15 @@ export class SaasAdminService {
         modulesToSet['servicesModuleEnabled'] = true;
       }
       if (verticalKey === 'wholesale_van') {
+        modulesToSet['vanSalesModuleEnabled'] = true;
         modulesToSet['deliveryFleetModuleEnabled'] = true;
         modulesToSet['posModuleEnabled'] = false;
+        modulesToSet['enableEnterpriseFeatures'] = true;
+      }
+      if (verticalKey === 'warehousing') {
+        modulesToSet['posModuleEnabled'] = false;
+        modulesToSet['inventoryModuleEnabled'] = true;
+        modulesToSet['purchasesModuleEnabled'] = true;
         modulesToSet['enableEnterpriseFeatures'] = true;
       }
 

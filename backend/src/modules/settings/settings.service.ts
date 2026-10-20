@@ -251,9 +251,13 @@ export class SettingsService {
       const profileDefaults: string[] = (settings.industryProfile as any)?.defaultFeatures || [];
       const isWholesaleVan = profileKey === 'wholesale_van';
       const isServiceVertical = profileKey === 'services';
+      const isWarehousing = profileKey === 'warehousing';
 
-      // POS: enabled for all retail/hospitality/specialized verticals, disabled for wholesale_van and services
-      if (isWholesaleVan || isServiceVertical) {
+      // POS: enabled for all retail/hospitality/specialized verticals, disabled for wholesale_van, services, and warehousing
+      if (isWarehousing) {
+        settings.posModuleEnabled = false;
+        settings.requireCashierShiftForSales = false;
+      } else if (isWholesaleVan || isServiceVertical) {
         if (isAlmhnds || isRetailCommercePlan || hasPosEntitlement) {
           settings.posModuleEnabled = true;
           settings.requireCashierShiftForSales = true;
@@ -273,9 +277,16 @@ export class SettingsService {
         settings.servicesModuleEnabled = false;
       }
 
-      // Wholesale van: force delivery fleet and enterprise features
+      // Wholesale van: force van sales, delivery fleet (compat), and enterprise features
       if (isWholesaleVan) {
         settings.deliveryFleetModuleEnabled = true;
+        settings.vanSalesModuleEnabled = true;
+        settings.enableEnterpriseFeatures = true;
+      }
+
+      if (isWarehousing) {
+        settings.inventoryModuleEnabled = true;
+        settings.purchasesModuleEnabled = true;
         settings.enableEnterpriseFeatures = true;
       }
 
@@ -318,9 +329,24 @@ export class SettingsService {
         settings.clothingModuleEnabled = (settings.industryProfile as any)?.subVertical === 'clothing';
       }
 
-      // Delivery fleet: if the profile includes deliveryReps, ensure it's enabled (self-heal)
-      if (profileDefaults.includes('deliveryReps') && settings.deliveryFleetModuleEnabled !== true) {
-        settings.deliveryFleetModuleEnabled = true;
+      // Delivery reps (retail / standard): if profile includes deliveryReps, ensure it's enabled (self-heal)
+      if (profileDefaults.includes('deliveryReps')) {
+        if (settings.deliveryRepsModuleEnabled === undefined) {
+          settings.deliveryRepsModuleEnabled = true;
+        }
+        if (settings.deliveryFleetModuleEnabled !== true) {
+          settings.deliveryFleetModuleEnabled = true;
+        }
+      }
+
+      // Backward compatibility normalization between legacy deliveryFleetModuleEnabled and split flags
+      if (settings.deliveryFleetModuleEnabled === true) {
+        if (settings.vanSalesModuleEnabled === undefined && isWholesaleVan) {
+          settings.vanSalesModuleEnabled = true;
+        }
+        if (settings.deliveryRepsModuleEnabled === undefined && !isWholesaleVan) {
+          settings.deliveryRepsModuleEnabled = true;
+        }
       }
 
       // Enterprise features: if the profile includes accounting, ensure enterprise mode (self-heal)
@@ -543,6 +569,8 @@ export class SettingsService {
         'fixedAssetsModuleEnabled',
         'taxDeclarationModuleEnabled',
         'deliveryFleetModuleEnabled',
+        'deliveryRepsModuleEnabled',
+        'vanSalesModuleEnabled',
         'weightedBarcodeEnabled',
         'posShowCartMeta',
         'phoneOrdersModuleEnabled',
@@ -601,29 +629,49 @@ export class SettingsService {
       }
     }
 
-    const inserted = await this.db.transaction().execute(async (trx) => {
-      // 1. Insert Branch
-      const newBranch = await trx.insertInto('branches').values({ name, code, is_active: true, tenant_id: scope.tenantId, account_id: scope.accountId, sales_stock_mode: 'single_location', allow_external_sales_stock: false }).returning(['id', 'name', 'code']).executeTakeFirstOrThrow();
+    const existingBranch = await this.db
+      .selectFrom('branches')
+      .select(['id', 'name'])
+      .where(this.tenantPredicate(actor))
+      .where(sql`lower(name)`, '=', name.toLowerCase())
+      .where('is_active', '=', true)
+      .executeTakeFirst();
+    if (existingBranch) {
+      throw new AppError(`يوجد فرع نشط بهذا الاسم بالفعل ("${name}"). يرجى اختيار اسم فرع مختلف.`, 'DUPLICATE_BRANCH_NAME', 400);
+    }
 
-      // 2. Generate location name using standard helper (e.g. "رصيد فرع التعاونيات")
-      const locationName = formatBranchStockLocationName(newBranch.name);
+    let inserted;
+    try {
+      inserted = await this.db.transaction().execute(async (trx) => {
+        // 1. Insert Branch
+        const newBranch = await trx.insertInto('branches').values({ name, code, is_active: true, tenant_id: scope.tenantId, account_id: scope.accountId, sales_stock_mode: 'single_location', allow_external_sales_stock: false }).returning(['id', 'name', 'code']).executeTakeFirstOrThrow();
 
-      // 3. Create default stock location
-      const newLocation = await trx.insertInto('stock_locations').values({
-        name: locationName,
-        code: '',
-        branch_id: newBranch.id,
-        location_type: 'branch_stock',
-        is_active: true,
-        tenant_id: scope.tenantId,
-        account_id: scope.accountId
-      }).returning('id').executeTakeFirstOrThrow();
+        // 2. Generate location name using standard helper (e.g. "رصيد فرع التعاونيات")
+        const locationName = formatBranchStockLocationName(newBranch.name);
 
-      // 4. Update branch with default stock location id
-      await trx.updateTable('branches').set({ default_stock_location_id: newLocation.id }).where('id', '=', newBranch.id).where('tenant_id', '=', scope.tenantId).execute();
+        // 3. Create default stock location
+        const newLocation = await trx.insertInto('stock_locations').values({
+          name: locationName,
+          code: '',
+          branch_id: newBranch.id,
+          location_type: 'branch_stock',
+          is_active: true,
+          tenant_id: scope.tenantId,
+          account_id: scope.accountId
+        }).returning('id').executeTakeFirstOrThrow();
 
-      return newBranch;
-    });
+        // 4. Update branch with default stock location id
+        await trx.updateTable('branches').set({ default_stock_location_id: newLocation.id }).where('id', '=', newBranch.id).where('tenant_id', '=', scope.tenantId).execute();
+
+        return newBranch;
+      });
+    } catch (err: any) {
+      if (err instanceof AppError) throw err;
+      if (err?.code === '23505' && (err?.constraint?.includes('branches_tenant_name_uidx') || err?.detail?.includes('already exists') || err?.message?.includes('branches_tenant_name_uidx'))) {
+        throw new AppError(`يوجد فرع مسجل بهذا الاسم بالفعل ("${name}"). يرجى اختيار اسم فرع مختلف.`, 'DUPLICATE_BRANCH_NAME', 400);
+      }
+      throw err;
+    }
 
     this.invalidateBranchesCache(scope.tenantId);
     this.invalidateLocationsCache(scope.tenantId);
@@ -680,23 +728,43 @@ export class SettingsService {
     const code = String(payload.code || '').trim();
     if (!name) throw new AppError('Branch name is required', 'BRANCH_NAME_REQUIRED', 400);
 
+    const duplicate = await this.db
+      .selectFrom('branches')
+      .select(['id'])
+      .where(this.tenantPredicate(actor))
+      .where(sql`lower(name)`, '=', name.toLowerCase())
+      .where('id', '!=', id)
+      .where('is_active', '=', true)
+      .executeTakeFirst();
+    if (duplicate) {
+      throw new AppError(`يوجد فرع آخر مسجل بهذا الاسم بالفعل ("${name}"). يرجى اختيار اسم فرع مختلف.`, 'DUPLICATE_BRANCH_NAME', 400);
+    }
+
     const updates: any = { name, code };
     if (payload.defaultStockLocationId !== undefined) updates.default_stock_location_id = payload.defaultStockLocationId ? Number(payload.defaultStockLocationId) : null;
     if (payload.salesStockMode !== undefined) updates.sales_stock_mode = payload.salesStockMode;
     if (payload.allowExternalSalesStock !== undefined) updates.allow_external_sales_stock = payload.allowExternalSalesStock;
 
-    await this.db.transaction().execute(async (trx) => {
-      await trx.updateTable('branches').set(updates).where('id', '=', id).where(this.tenantPredicate(actor)).execute();
+    try {
+      await this.db.transaction().execute(async (trx) => {
+        await trx.updateTable('branches').set(updates).where('id', '=', id).where(this.tenantPredicate(actor)).execute();
 
-      // Check if we need to auto-rename the default location
-      if (branch.default_stock_location_id && name !== branch.name) {
-        const defaultLocation = await trx.selectFrom('stock_locations').select(['id', 'name', 'location_type']).where('id', '=', branch.default_stock_location_id).where(this.tenantPredicate(actor)).executeTakeFirst();
-        if (defaultLocation) {
-          const expectedNewName = formatBranchStockLocationName(name);
-          await trx.updateTable('stock_locations').set({ name: expectedNewName }).where('id', '=', defaultLocation.id).where('tenant_id', '=', scope.tenantId).execute();
+        // Check if we need to auto-rename the default location
+        if (branch.default_stock_location_id && name !== branch.name) {
+          const defaultLocation = await trx.selectFrom('stock_locations').select(['id', 'name', 'location_type']).where('id', '=', branch.default_stock_location_id).where(this.tenantPredicate(actor)).executeTakeFirst();
+          if (defaultLocation) {
+            const expectedNewName = formatBranchStockLocationName(name);
+            await trx.updateTable('stock_locations').set({ name: expectedNewName }).where('id', '=', defaultLocation.id).where('tenant_id', '=', scope.tenantId).execute();
+          }
         }
+      });
+    } catch (err: any) {
+      if (err instanceof AppError) throw err;
+      if (err?.code === '23505' && (err?.constraint?.includes('branches_tenant_name_uidx') || err?.detail?.includes('already exists') || err?.message?.includes('branches_tenant_name_uidx'))) {
+        throw new AppError(`يوجد فرع آخر مسجل بهذا الاسم بالفعل ("${name}"). يرجى اختيار اسم فرع مختلف.`, 'DUPLICATE_BRANCH_NAME', 400);
       }
-    });
+      throw err;
+    }
 
     this.invalidateBranchesCache(scope.tenantId);
     this.invalidateLocationsCache(scope.tenantId);
@@ -890,6 +958,13 @@ export class SettingsService {
         modulePatch.posModuleEnabled = false;
         modulePatch.deliveryFleetModuleEnabled = true;
         modulePatch.requireCashierShiftForSales = false;
+        modulePatch.enableEnterpriseFeatures = true;
+      }
+      if (normalizedKey === 'warehousing') {
+        modulePatch.posModuleEnabled = false;
+        modulePatch.requireCashierShiftForSales = false;
+        modulePatch.inventoryModuleEnabled = true;
+        modulePatch.purchasesModuleEnabled = true;
         modulePatch.enableEnterpriseFeatures = true;
       }
     }
