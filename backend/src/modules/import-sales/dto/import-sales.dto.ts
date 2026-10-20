@@ -307,6 +307,20 @@ export class RecordForeignTransferDto {
 
   @IsOptional()
   @IsString()
+  currency?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0.0001)
+  exchangeRateContract?: number;
+
+  @IsOptional()
+  @IsString()
+  proformaInvoiceId?: string;
+
+  @IsOptional()
+  @IsString()
   notes?: string;
 
   @IsOptional()
@@ -472,6 +486,10 @@ export class CalculateFeasibilityDto {
   @Type(() => Number)
   @IsNumber()
   targetMarkupPercent?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  vatIsRefundable?: boolean;
 }
 
 export class UpsertSupplierMetaDto {
@@ -646,4 +664,50 @@ export class CreateSourcingTripDto {
 
   @IsOptional()
   findings?: any;
+}
+
+export class ProcessLateExpenseDto {
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0.01)
+  lateExpenseAmount!: number;
+
+  @IsString()
+  title!: string;
+
+  @IsOptional()
+  @IsString()
+  accountId?: string;
+
+  @IsOptional()
+  @IsString()
+  note?: string;
+}
+
+export class CalculateCustomsTaxDto {
+  @IsString()
+  hsCode!: string;
+
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  cifValueEgp!: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  overrideDutyRatePercent?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  overrideVatRatePercent?: number;
+}
+
+export class VerifyBankDetailsDto {
+  @IsOptional()
+  @IsString()
+  verificationNotes?: string;
 }
