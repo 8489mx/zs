@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Param, Get, Patch, Req, UseGuards, Query, Delete } from '@nestjs/common';
+import { Controller, Post, Body, Param, Get, Patch, Req, UseGuards, Query, Delete, Headers } from '@nestjs/common';
 import { ImportSalesService } from './import-sales.service';
 import {
   CreateShipmentDto,
@@ -376,7 +376,14 @@ export class ImportSalesController {
 
   @RequireAnyPermission('purchases', 'accounting')
   @Post('foreign-transfer')
-  async recordForeignTransfer(@Req() req: RequestWithAuth, @Body() dto: RecordForeignTransferDto) {
+  async recordForeignTransfer(
+    @Req() req: RequestWithAuth,
+    @Body() dto: RecordForeignTransferDto,
+    @Headers('x-idempotency-key') headerIdempotencyKey?: string,
+  ) {
+    if (!dto.idempotencyKey && headerIdempotencyKey) {
+      dto.idempotencyKey = headerIdempotencyKey;
+    }
     return this.importSalesService.recordForeignTransfer(
       req.authContext!.tenantId!,
       req.authContext!.userId!,

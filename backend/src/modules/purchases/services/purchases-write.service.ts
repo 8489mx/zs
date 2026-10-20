@@ -351,6 +351,18 @@ export class PurchasesWriteService {
         );
       }
 
+      if (payload.importProjectId) {
+        const imp = await trx
+          .selectFrom('import_projects')
+          .select('id')
+          .where('id', '=', payload.importProjectId)
+          .where('tenant_id', '=', scope.tenantId)
+          .executeTakeFirst();
+        if (!imp) {
+          throw new AppError('مشروع الاستيراد المحدد غير موجود أو لا ينتمي لهذه المنشأة.', 'IMPORT_PROJECT_NOT_FOUND', 400);
+        }
+      }
+
       const insert = await trx
         .insertInto('purchases')
         .values({
@@ -380,6 +392,7 @@ export class PurchasesWriteService {
           shipping_address_id: payload.shippingAddressId || null,
           cost_center_id: payload.costCenterId || null,
           project_id: payload.projectId || null,
+          import_project_id: payload.importProjectId || null,
           terms_template: payload.termsTemplate || '',
           tenant_id: scope.tenantId,
           account_id: scope.accountId,
@@ -918,6 +931,18 @@ export class PurchasesWriteService {
         );
       }
 
+      if (payload.importProjectId) {
+        const imp = await trx
+          .selectFrom('import_projects')
+          .select('id')
+          .where('id', '=', payload.importProjectId)
+          .where('tenant_id', '=', scope.tenantId)
+          .executeTakeFirst();
+        if (!imp) {
+          throw new AppError('مشروع الاستيراد المحدد غير موجود أو لا ينتمي لهذه المنشأة.', 'IMPORT_PROJECT_NOT_FOUND', 400);
+        }
+      }
+
       await trx.updateTable('purchases').set({
         supplier_id: supplier.id,
         payment_type: paymentType,
@@ -940,6 +965,7 @@ export class PurchasesWriteService {
         shipping_address_id: payload.shippingAddressId || null,
         cost_center_id: payload.costCenterId || null,
         project_id: payload.projectId || null,
+        import_project_id: payload.importProjectId !== undefined ? (payload.importProjectId || null) : undefined,
         terms_template: payload.termsTemplate || '',
         updated_at: sql`NOW()`,
       }).where('id', '=', purchaseId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();

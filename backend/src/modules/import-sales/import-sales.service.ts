@@ -1,4 +1,6 @@
-import { Injectable, NotFoundException, BadRequestException, Inject } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ConflictException, UnprocessableEntityException, Inject, Optional } from '@nestjs/common';
+import { AccountingPostingService } from '../accounting/accounting-posting.service';
+import { AccountingTenantFoundationService } from '../accounting/accounting-tenant-foundation.service';
 import { Kysely, sql, Transaction, Selectable, Updateable } from 'kysely';
 import { Database, ImportShipmentTable, ImportShipmentItemTable } from '../../database/database.types';
 import { calculateImportLandedCosts, groupImportReceipts, importWeightedAverageCost, requireImportNumber } from './import-inventory-cost.engine';
@@ -31,7 +33,10 @@ import {
 @Injectable()
 export class ImportSalesService {
   private readonly inventoryDb: Kysely<Database>;
-  constructor(@Inject(KYSELY_DB) private readonly db: Kysely<any>) {
+  constructor(
+    @Inject(KYSELY_DB) private readonly db: Kysely<any>,
+    @Optional() @Inject(AccountingPostingService) private readonly accountingPosting?: AccountingPostingService,
+  ) {
     this.inventoryDb = db;
   }
 
@@ -64,21 +69,47 @@ export class ImportSalesService {
     role: 'cogs' | 'inventory' | 'payable' | 'bank' | 'forex_loss' | 'forex_gain',
     preferredAccountId?: number | null
   ): Promise<number> {
+    const roleExpectedTypes: Record<string, { type: string; label: string }> = {
+      bank: { type: 'asset', label: 'الأصول/النقدية' },
+      payable: { type: 'liability', label: 'الخصوم/الالتزامات' },
+      inventory: { type: 'asset', label: 'الأصول' },
+      cogs: { type: 'expense', label: 'المصروفات' },
+      forex_loss: { type: 'expense', label: 'المصروفات' },
+      forex_gain: { type: 'revenue', label: 'الإيرادات' },
+    };
+
+    const roleInfo = roleExpectedTypes[role];
+
     if (preferredAccountId && Number(preferredAccountId) > 0) {
       const existing = await trx
         .selectFrom('accounting_accounts')
-        .select(['id', 'is_active'])
+        .select(['id', 'is_active', 'account_type'])
         .where('tenant_id', '=', tenantId)
         .where('id', '=', Number(preferredAccountId))
         .executeTakeFirst();
-      if (existing) {
-        if (!existing.is_active) {
-          throw new BadRequestException(`الحساب المحاسبي (${preferredAccountId}) معطل؛ يلزم تفعيله قبل إجراء الحركة.`);
-        }
-        return Number(existing.id);
+
+      if (!existing) {
+        throw new BadRequestException(
+          `الحساب المحاسبي المحدد (${preferredAccountId}) غير موجود في دليل حسابات المنشأة.`
+        );
       }
+
+      if (!existing.is_active) {
+        throw new BadRequestException(
+          `الحساب المحاسبي (${preferredAccountId}) معطل؛ يلزم تفعيله قبل إجراء الحركة.`
+        );
+      }
+
+      if (roleInfo && existing.account_type !== roleInfo.type) {
+        throw new BadRequestException(
+          `الحساب المحاسبي المحدد (${preferredAccountId}) لدور ${role} غير صالح، نوعه (${existing.account_type}) بينما المطلوب (${roleInfo.label}).`
+        );
+      }
+
+      return Number(existing.id);
     }
 
+    // Fallback: Check accounting_settings
     const settings = await trx
       .selectFrom('accounting_settings')
       .selectAll()
@@ -96,15 +127,16 @@ export class ImportSalesService {
     if (settingsAccountId && Number(settingsAccountId) > 0) {
       const fromSettings = await trx
         .selectFrom('accounting_accounts')
-        .select(['id', 'is_active'])
+        .select(['id', 'is_active', 'account_type'])
         .where('tenant_id', '=', tenantId)
         .where('id', '=', Number(settingsAccountId))
         .executeTakeFirst();
-      if (fromSettings && fromSettings.is_active) {
+      if (fromSettings && fromSettings.is_active && (!roleInfo || fromSettings.account_type === roleInfo.type)) {
         return Number(fromSettings.id);
       }
     }
 
+    // Fallback: Check candidate COA codes matching the required type
     const candidateCodes: Record<string, string[]> = {
       cogs: ['5110', '5101', '5100'],
       inventory: ['1140', '1130', '1100'],
@@ -118,51 +150,33 @@ export class ImportSalesService {
     if (codes.length > 0) {
       const byCode = await trx
         .selectFrom('accounting_accounts')
-        .select(['id', 'is_active'])
+        .select(['id', 'is_active', 'account_type'])
         .where('tenant_id', '=', tenantId)
         .where('code', 'in', codes)
         .where('is_active', '=', true)
         .executeTakeFirst();
-      if (byCode) return Number(byCode.id);
+      if (byCode && (!roleInfo || byCode.account_type === roleInfo.type)) {
+        return Number(byCode.id);
+      }
     }
 
-    const specs: Record<string, { code: string; ar: string; en: string; type: string; group: string; balance: 'debit' | 'credit' }> = {
-      cogs: { code: '5110', ar: 'تكلفة البضاعة المباعة', en: 'Cost of Goods Sold', type: 'expense', group: 'expenses', balance: 'debit' },
-      inventory: { code: '1140', ar: 'مخزون بضاعة ومواد خام', en: 'Inventory Asset', type: 'asset', group: 'current_assets', balance: 'debit' },
-      payable: { code: '2110', ar: 'حسابات الموردين والدائنين', en: 'Accounts Payable', type: 'liability', group: 'current_liabilities', balance: 'credit' },
-      bank: { code: '1120', ar: 'حساب البنك الرئيسي', en: 'Main Bank Account', type: 'asset', group: 'current_assets', balance: 'debit' },
-      forex_loss: { code: '5201', ar: 'خسائر فروق أسعار صرف محققة', en: 'Realized Forex Loss', type: 'expense', group: 'expenses', balance: 'debit' },
-      forex_gain: { code: '4201', ar: 'أرباح فروق أسعار صرف محققة', en: 'Realized Forex Gain', type: 'revenue', group: 'revenues', balance: 'credit' },
-    };
-
-    const spec = specs[role];
-    if (!spec) {
-      throw new BadRequestException(`تعذر تحديد حساب محاسبي مناسب لدور ${role}.`);
+    // Fallback: Check any active account with matching account_type
+    if (roleInfo) {
+      const byType = await trx
+        .selectFrom('accounting_accounts')
+        .select(['id', 'is_active'])
+        .where('tenant_id', '=', tenantId)
+        .where('account_type', '=', roleInfo.type)
+        .where('is_active', '=', true)
+        .orderBy('id', 'asc')
+        .executeTakeFirst();
+      if (byType) return Number(byType.id);
     }
 
-    const [created] = await trx
-      .insertInto('accounting_accounts')
-      .values({
-        tenant_id: tenantId,
-        account_id: tenantId,
-        code: spec.code,
-        name_ar: spec.ar,
-        name_en: spec.en,
-        account_type: spec.type,
-        account_group: spec.group,
-        normal_balance: spec.balance,
-        is_active: true,
-        is_system: true,
-        created_at: new Date(),
-        updated_at: new Date(),
-      })
-      .returning('id')
-      .execute();
-
-    if (!created) {
-      throw new BadRequestException(`فشل إنشاء الحساب المحاسبي التلقائي لدور ${role}.`);
-    }
-    return Number(created.id);
+    // Strict Architectural Policy: No silent auto-creation of accounts during normal operational transactions
+    throw new UnprocessableEntityException(
+      `تعذر تحديد حساب محاسبي نشط لدور (${role}) في دليل الحسابات. يرجى تهيئة وتفعيل الحساب المناسب في شجرة الحسابات أو إعدادات المحاسبة أولاً.`
+    );
   }
 
   private costLine(item: Selectable<ImportShipmentItemTable>) {
@@ -1351,7 +1365,7 @@ export class ImportSalesService {
       // Resolve accounts dynamically from COA / Accounting Settings
       const cogsAccountId = await this.resolveTenantAccount(trx, tenantId, 'cogs', dto.accountId ? Number(dto.accountId) : null);
       const inventoryAccountId = await this.resolveTenantAccount(trx, tenantId, 'inventory');
-      const payableAccountId = await this.resolveTenantAccount(trx, tenantId, 'payable', shipment.supplier_id ? Number(shipment.supplier_id) : null);
+      const payableAccountId = await this.resolveTenantAccount(trx, tenantId, 'payable', dto.payableAccountId ? Number(dto.payableAccountId) : null);
 
       let expenseId: number | null = null;
       if (totalLateCogs > 0) {
@@ -1373,80 +1387,56 @@ export class ImportSalesService {
         expenseId = exp.id;
       }
 
-      // Create balanced double-entry accounting journal for late expense
-      const tempJeNo = `JE-LATE-TEMP-${Date.now()}`;
-      const je = await trx
-        .insertInto('journal_entries')
-        .values({
-          entry_no: tempJeNo,
-          tenant_id: tenantId,
-          account_id: tenantId,
-          entry_date: new Date().toISOString().slice(0, 10),
-          description: `تسوية مصروف استيراد متأخر - حاوية ${shipment.container_number} (${dto.title})`,
-          source_type: 'import_late_expense',
-          source_id: expenseId || 0,
-          status: 'posted',
-          branch_id: null,
-          location_id: null,
-          created_by: userId,
-          posted_by: userId,
-          posted_at: new Date(),
-          cancel_reason: '',
-        })
-        .returning('id')
-        .executeTakeFirstOrThrow();
-
-      const journalEntryId = Number(je.id);
-      await trx
-        .updateTable('journal_entries')
-        .set({ entry_no: `JE-${journalEntryId}` })
-        .where('id', '=', journalEntryId)
-        .where('tenant_id', '=', tenantId)
-        .execute();
-
-      // Balanced Lines: Debits = Credits
+      const postingService = this.accountingPosting ?? new AccountingPostingService(new AccountingTenantFoundationService());
+      const lines: any[] = [];
       if (totalLateCogs > 0) {
-        await trx.insertInto('journal_entry_lines').values({
-          tenant_id: tenantId,
-          journal_entry_id: journalEntryId,
-          account_id: cogsAccountId,
+        lines.push({
+          accountId: cogsAccountId,
           description: `تسوية تكلفة مبيعات سابقة لمصروف متأخر - حاوية ${shipment.container_number}`,
           debit: totalLateCogs,
           credit: 0,
-          partner_type: 'none',
-          partner_id: null,
-          branch_id: null,
-          location_id: null,
-        }).execute();
+          partnerType: 'none',
+          partnerId: null,
+          branchId: null,
+          locationId: null,
+        });
       }
-
       if (totalLateInventory > 0) {
-        await trx.insertInto('journal_entry_lines').values({
-          tenant_id: tenantId,
-          journal_entry_id: journalEntryId,
-          account_id: inventoryAccountId,
+        lines.push({
+          accountId: inventoryAccountId,
           description: `رسملة مصروف متأخر على المخزون المتبقي - حاوية ${shipment.container_number}`,
           debit: totalLateInventory,
           credit: 0,
-          partner_type: 'none',
-          partner_id: null,
-          branch_id: null,
-          location_id: null,
-        }).execute();
+          partnerType: 'none',
+          partnerId: null,
+          branchId: null,
+          locationId: null,
+        });
       }
-
-      await trx.insertInto('journal_entry_lines').values({
-        tenant_id: tenantId,
-        journal_entry_id: journalEntryId,
-        account_id: payableAccountId,
+      lines.push({
+        accountId: payableAccountId,
         description: `استحقاق مصروف متأخر - حاوية ${shipment.container_number}`,
         debit: 0,
         credit: Number(dto.lateExpenseAmount.toFixed(2)),
-        partner_type: 'none',
-        partner_id: null,
-        branch_id: null,
-        location_id: null,
-      }).execute();
+        partnerType: shipment.supplier_id ? 'supplier' : 'none',
+        partnerId: shipment.supplier_id ? Number(shipment.supplier_id) : null,
+        branchId: null,
+        locationId: null,
+      });
+
+      const journalEntryId = await postingService.postDomainJournal(trx, {
+        sourceType: 'import_late_expense',
+        sourceId: expenseId || 0,
+        tenantId,
+        accountId: tenantId,
+        entryDate: new Date(),
+        description: `تسوية مصروف استيراد متأخر - حاوية ${shipment.container_number} (${dto.title})`,
+        branchId: null,
+        locationId: null,
+        createdBy: userId,
+        postedBy: userId,
+        lines,
+      });
 
       await trx
         .updateTable('import_shipments')
@@ -1871,20 +1861,20 @@ export class ImportSalesService {
           .execute();
       }
 
-      // 2. Replay Protection / Duplicate Prevention (same supplier & amount within 30 seconds)
-      const recentDuplicate = await trx
-        .selectFrom('supplier_payments')
-        .select(['id', 'doc_no', 'created_at'])
-        .where('tenant_id', '=', tenantId)
-        .where('supplier_id', '=', sId)
-        .where('amount', '=', cleanForeign)
-        .where(sql<boolean>`created_at >= NOW() - INTERVAL '30 seconds'`)
-        .executeTakeFirst();
+      // 2. Database-Backed Idempotency Protection
+      if (dto.idempotencyKey) {
+        const existingPayment = await trx
+          .selectFrom('supplier_payments')
+          .select(['id', 'doc_no', 'created_at'])
+          .where('tenant_id', '=', tenantId)
+          .where('idempotency_key', '=', dto.idempotencyKey)
+          .executeTakeFirst();
 
-      if (recentDuplicate) {
-        throw new BadRequestException(
-          `تم تسجيل حوالة مطابقة مؤخراً (${recentDuplicate.doc_no})؛ يرجى الانتظار لتفادي التكرار المزدوج غير المقصود.`
-        );
+        if (existingPayment) {
+          throw new ConflictException(
+            `تم تنفيذ هذا الطلب مسبقاً برقم (${existingPayment.doc_no})؛ تم منع إعادة التنفيذ بواسطة مفتاح عدم التكرار (Idempotency Key).`
+          );
+        }
       }
 
       // 3. Resolve Real Accounts from Chart of Accounts / Accounting Settings
@@ -1901,22 +1891,33 @@ export class ImportSalesService {
       const actualEgp = Number(cleanEgp.toFixed(2));
       const forexVarianceEgp = Number((actualEgp - contractValue).toFixed(2));
 
-      const paymentInsert = await trx
-        .insertInto('supplier_payments')
-        .values({
-          tenant_id: tenantId,
-          account_id: supplier.account_id || tenantId,
-          supplier_id: supplier.id,
-          amount: cleanForeign,
-          note: `حوالة استيراد خارجية${notes ? ' - ' + notes : ''} [تدبير عملة: ${actualEgp} ج.م]`,
-          created_by: userId,
-          currency: currency || 'USD',
-          exchange_rate: actualEgp / cleanForeign,
-          forex_variance_egp: forexVarianceEgp,
-          proforma_invoice_id: proformaInvoiceId || null,
-        } as any)
-        .returning('id')
-        .executeTakeFirstOrThrow();
+      let paymentInsert;
+      try {
+        paymentInsert = await trx
+          .insertInto('supplier_payments')
+          .values({
+            tenant_id: tenantId,
+            account_id: supplier.account_id || tenantId,
+            supplier_id: supplier.id,
+            amount: cleanForeign,
+            note: `حوالة استيراد خارجية${notes ? ' - ' + notes : ''} [تدبير عملة: ${actualEgp} ج.م]`,
+            created_by: userId,
+            currency: currency || 'USD',
+            exchange_rate: actualEgp / cleanForeign,
+            forex_variance_egp: forexVarianceEgp,
+            proforma_invoice_id: proformaInvoiceId || null,
+            idempotency_key: dto.idempotencyKey || null,
+          } as any)
+          .returning('id')
+          .executeTakeFirstOrThrow();
+      } catch (err: any) {
+        if (err?.code === '23505' || String(err?.message || '').includes('idx_supplier_payments_tenant_idempotency')) {
+          throw new ConflictException(
+            'تم تنفيذ حوالة متزامنة بنفس مفتاح عدم التكرار (Idempotency Key).'
+          );
+        }
+        throw err;
+      }
 
       const paymentId = paymentInsert.id;
 
@@ -1974,93 +1975,71 @@ export class ImportSalesService {
         .where('tenant_id', '=', tenantId)
         .execute();
 
-      // Balanced double-entry accounting journal
-      const tempJeNo = `JE-FT-TEMP-${paymentId}`;
-      const je = await trx
-        .insertInto('journal_entries')
-        .values({
-          entry_no: tempJeNo,
-          tenant_id: tenantId,
-          account_id: tenantId,
-          entry_date: new Date().toISOString().slice(0, 10),
-          description: `سداد مورد خارجي وحوالة أجنبية FT-${paymentId} - ${supplier.name} (${cleanForeign} ${currency || 'USD'})`,
-          source_type: 'supplier_payment',
-          source_id: paymentId,
-          status: 'posted',
-          branch_id: null,
-          location_id: null,
-          created_by: userId,
-          posted_by: userId,
-          posted_at: new Date(),
-          cancel_reason: '',
-        })
-        .returning('id')
-        .executeTakeFirstOrThrow();
-
-      const jeId = Number(je.id);
-      await trx
-        .updateTable('journal_entries')
-        .set({ entry_no: `JE-${jeId}` })
-        .where('id', '=', jeId)
-        .where('tenant_id', '=', tenantId)
-        .execute();
-
-      // Line 1: Debit Supplier Accounts Payable in EGP (relieve debt at contract rate)
-      await trx.insertInto('journal_entry_lines').values({
-        tenant_id: tenantId,
-        journal_entry_id: jeId,
-        account_id: supplierApAccountId,
-        description: `سداد مديونية مورد خارجي - ${supplier.name} (${cleanForeign} ${currency || 'USD'})`,
-        debit: contractValue,
-        credit: 0,
-        partner_type: 'supplier',
-        partner_id: supplier.id,
-        branch_id: null,
-        location_id: null,
-      }).execute();
+      const postingService = this.accountingPosting ?? new AccountingPostingService(new AccountingTenantFoundationService());
+      const lines: any[] = [
+        // Line 1: Debit Supplier Accounts Payable in EGP (relieve debt at contract rate)
+        {
+          accountId: supplierApAccountId,
+          description: `سداد مديونية مورد خارجي - ${supplier.name} (${cleanForeign} ${currency || 'USD'})`,
+          debit: contractValue,
+          credit: 0,
+          partnerType: 'supplier',
+          partnerId: supplier.id,
+          branchId: null,
+          locationId: null,
+        },
+      ];
 
       // Line 2: Realized Forex Variance in EGP (Debit if Loss, Credit if Gain)
       if (forexVarianceEgp > 0.001) {
-        await trx.insertInto('journal_entry_lines').values({
-          tenant_id: tenantId,
-          journal_entry_id: jeId,
-          account_id: forexLossAccountId,
+        lines.push({
+          accountId: forexLossAccountId,
           description: `فروق سعر صرف محققة (خسارة) على حوالة FT-${paymentId}`,
           debit: forexVarianceEgp,
           credit: 0,
-          partner_type: 'none',
-          partner_id: null,
-          branch_id: null,
-          location_id: null,
-        }).execute();
+          partnerType: 'none',
+          partnerId: null,
+          branchId: null,
+          locationId: null,
+        });
       } else if (forexVarianceEgp < -0.001) {
-        await trx.insertInto('journal_entry_lines').values({
-          tenant_id: tenantId,
-          journal_entry_id: jeId,
-          account_id: forexGainAccountId,
+        lines.push({
+          accountId: forexGainAccountId,
           description: `فروق سعر صرف محققة (أرباح) على حوالة FT-${paymentId}`,
           debit: 0,
           credit: Math.abs(forexVarianceEgp),
-          partner_type: 'none',
-          partner_id: null,
-          branch_id: null,
-          location_id: null,
-        }).execute();
+          partnerType: 'none',
+          partnerId: null,
+          branchId: null,
+          locationId: null,
+        });
       }
 
       // Line 3: Credit Bank account for actual cash paid in base currency (EGP)
-      await trx.insertInto('journal_entry_lines').values({
-        tenant_id: tenantId,
-        journal_entry_id: jeId,
-        account_id: bankAccountId,
+      lines.push({
+        accountId: bankAccountId,
         description: `تدبير عملة وخروج نقدية بنكية لحوالة FT-${paymentId}`,
         debit: 0,
         credit: actualEgp,
-        partner_type: 'none',
-        partner_id: null,
-        branch_id: null,
-        location_id: null,
-      }).execute();
+        partnerType: 'none',
+        partnerId: null,
+        branchId: null,
+        locationId: null,
+      });
+
+      const jeId = await postingService.postDomainJournal(trx, {
+        sourceType: 'supplier_payment',
+        sourceId: paymentId,
+        tenantId,
+        accountId: supplier.account_id || tenantId,
+        entryDate: new Date(),
+        description: `سداد مورد خارجي وحوالة أجنبية FT-${paymentId} - ${supplier.name} (${cleanForeign} ${currency || 'USD'})`,
+        branchId: null,
+        locationId: null,
+        createdBy: userId,
+        postedBy: userId,
+        lines,
+      });
 
       return {
         success: true,

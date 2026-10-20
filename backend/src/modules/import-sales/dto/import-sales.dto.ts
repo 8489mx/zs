@@ -331,6 +331,10 @@ export class RecordForeignTransferDto {
   @Type(() => Number)
   @IsNumber()
   bankAccountId?: number;
+
+  @IsOptional()
+  @IsString()
+  idempotencyKey?: string;
 }
 
 export class CreateImportProjectDto {
@@ -687,6 +691,11 @@ export class ProcessLateExpenseDto {
   @IsOptional()
   @IsString()
   note?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  payableAccountId?: number;
 }
 
 export class CalculateCustomsTaxDto {

@@ -2019,3 +2019,30 @@ esolveTenantAccount، مع التحقق من تفعيل الحسابات وعز�
   - التحقق الإلزامي من تطابق الفاتورة المبدئية مع نفس المورد والمشروع والعملة، وحظر السداد الزائد عن الرصيد المتبقي للفاتورة، وحظر تكرار التحويلات المتطابقة لنفس المورد خلال 30 ثانية (Replay Protection).
   - إثبات القيود المحاسبية للتحويل وفروق العملة بالعملة المحلية (EGP) حصرياً في سطور اليومية دون خلط المبالغ الأجنبية في خانات المدين والدائن مع اتزان كامل Debit == Credit ورسملة المورد دائن والبنك مدين.
 - **الحراس:** ackend/test/critical/import-sales-financial-integrity.spec.ts و ackend/test/critical/import-operations-master.spec.ts و ackend/test/critical/import-lifecycle-integration.spec.ts و ackend/test/critical/import-postgres-integration.spec.ts.
+
+## 2.24 ميثاق التكامل المحاسبي والرقابي لموديول الاستيراد (Import Operations Integrity & Financial Hardening Invariants)
+
+- **IMPORT-AUDIT-COA-STRICT-RESOLVE (التحقق الصارم من دليل الحسابات وحظر التوليد التلقائي الصامت):**
+  - تتحقق دالة `resolveTenantAccount` من نوع الحساب وطبيعته المالية بدقة (الأصول للنقدية والبنك والمخزون، الخصوم لحسابات الموردين والدائنين، والمصروفات لتكلفة البضاعة وخسائر الصرف، والإيرادات لأرباح الصرف).
+  - عند تمرير معرف حساب غير صالح أو غير متطابق نوعياً يُرفض الطلب فوراً بـ `BadRequestException` دون أي Fallback صامت.
+  - يُحظر تماماً التوليد التلقائي لحسابات دفتر الأستاذ أثناء الحركات التشغيلية والمالية العادية دون مسار تأسيس معتمد؛ وتُرفع استثناءات `UnprocessableEntityException` لتوجيه المسؤول لتهيئة الحساب أولاً.
+- **IMPORT-AUDIT-CENTRAL-POSTING (الترحيل المحاسبي المركزي عبر postDomainJournal):**
+  - كافة القيود المحاسبية للحوالات الأجنبية والمصروفات المتأخرة تُرحل حصرياً عبر محرك الترحيل المركزي `AccountingPostingService.postDomainJournal`.
+  - يضمن المحرك: اتزان القيد المزدوج، ترتيب حجز الحسابات تصاعدياً (`id ASC`) لمنع التعليق المتزامن (Deadlocks)، احترام فترات الإقفال المحاسبي (`lock_date_all`, `lock_date_non_adviser`, `accounting_fiscal_periods`)، ومنع التكرار.
+- **IMPORT-AUDIT-SUPPLIER-PAYABLE-DECOUPLING (الفصل التام بين معرف المورد وحساب الدائنين):**
+  - يُمنع منعاً باتاً تمرير `shipment.supplier_id` أو أي معرف مورد تشغيلي كمعرف حساب أستاذ.
+  - يُسجل معرف المورد حصرياً في أعمدة الشريك (`partner_type = 'supplier'`, `partner_id = supplier_id`) على سطر القيد، بينما يذهب حساب الأستاذ حصرياً للحساب المحاسبي المعتمد (`accounts_payable`).
+- **IMPORT-AUDIT-PURCHASES-IMPORT-PROJECT-WIRING (ربط فواتير المشتريات الحقيقية بمشاريع الاستيراد):**
+  - تم ربط `purchases.import_project_id UUID` بدورة حياة فواتير المشتريات (إنشاء وتعديل واستعلام) عبر `UpsertPurchaseDto` و`PurchasesWriteService` و`PurchasesQueryService`.
+  - يحافظ هذا الربط على عمود `purchases.project_id BIGINT` للمقاولات والأنظمة القديمة دون أي تعارض أنماط، ويفعل الرقابة الفعلية على التزامات الفواتير غير المسددة عند فحص إقفال المشروع (`closeProject`).
+- **IMPORT-AUDIT-TRANSFER-IDEMPOTENCY (مفتاح عدم التكرار على مستوى قاعدة البيانات):**
+  - استبدال نافذة الـ 30 ثانية الزمنية المؤقتة بمفتاح `idempotency_key` حقيقي في جدول `supplier_payments` مدعوم بفهرس فريد جزئي `idx_supplier_payments_tenant_idempotency (tenant_id, idempotency_key) WHERE idempotency_key IS NOT NULL`.
+  - يسمح بتسجيل حوالتين مشروعتين بنفس القيمة للمورد، ويمنع بشكل قاطع إعادة تنفيذ نفس الطلب أو التكرار المتزامن مع رفع `ConflictException`.
+- **سجل الهجرات (Migration Ledger):**
+  - `2040000000234_purchases_import_project_link.ts`: إضافة الربط المعماري `purchases.import_project_id UUID REFERENCES import_projects(id)`.
+  - `2040000000235_supplier_payments_idempotency_key.ts`: إضافة عمود `idempotency_key` وقيد عدم التكرار الفريد على `supplier_payments`.
+- **الحراس:**
+  - `backend/test/critical/import-sales-financial-integrity.spec.ts`
+  - `backend/test/critical/import-operations-master.spec.ts`
+  - `backend/test/critical/import-lifecycle-integration.spec.ts`
+  - `backend/test/critical/import-postgres-integration.spec.ts`

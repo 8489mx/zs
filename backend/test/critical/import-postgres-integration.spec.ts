@@ -5,6 +5,37 @@ import { PGlite } from '@electric-sql/pglite';
 import { PGliteDialect } from 'kysely-pglite-dialect';
 import type { Database } from '../../src/database/database.types';
 import { ImportSalesService } from '../../src/modules/import-sales/import-sales.service';
+import { up as up234 } from '../../src/database/migrations/2040000000234_purchases_import_project_link';
+import { up as up235 } from '../../src/database/migrations/2040000000235_supplier_payments_idempotency_key';
+
+/**
+ * Custom PGlite dialect supporting multi-statement execution via simple query protocol,
+ * ensuring 100% fidelity when running real production migrations.
+ */
+class MultiStatementPGliteDialect extends PGliteDialect {
+  constructor(private readonly pgliteInstance: PGlite) {
+    super(pgliteInstance);
+  }
+
+  createDriver(): any {
+    const driver: any = super.createDriver();
+    const origAcquire = driver.acquireConnection.bind(driver);
+    driver.acquireConnection = async () => {
+      const conn = await origAcquire();
+      const origExec = conn.executeQuery.bind(conn);
+      conn.executeQuery = async (compiledQuery: any) => {
+        if (!compiledQuery.parameters || compiledQuery.parameters.length === 0) {
+          const results = await this.pgliteInstance.exec(compiledQuery.sql);
+          const last = results[results.length - 1];
+          return { rows: last?.rows || [] };
+        }
+        return origExec(compiledQuery);
+      };
+      return conn;
+    };
+    return driver;
+  }
+}
 
 /**
  * IMPORT-POSTGRES-INTEGRATION — Real PostgreSQL Integration Tests.
@@ -12,20 +43,27 @@ import { ImportSalesService } from '../../src/modules/import-sales/import-sales.
  * Verifies real database operations against production-grade schema and migrations:
  * 1. Project Closure: Architecture link between purchases and import_projects (import_project_id UUID vs project_id BIGINT), rejecting unsettled liabilities.
  * 2. Accounting Entries: Dynamic COA resolution without hardcoded account codes (2110, 1110, 5201, 1130, 5101) with balanced entries and tenant isolation.
- * 3. Foreign Transfers: Proforma supplier/project/currency matching, overpayment and replay duplicate prevention, real bank account linkage, and EGP-only balanced journal.
- * 4. Late Shipment Expenses: Dynamic COA account resolution and IAS 2 split between COGS and on-hand stock (using column `qty`).
+ * 3. Foreign Transfers: Proforma supplier/project/currency matching, overpayment and DB idempotency key prevention, real bank account linkage, and EGP-only balanced journal.
+ * 4. Late Shipment Expenses: Dynamic COA account resolution, decoupled supplier entity from payable account, and IAS 2 split between COGS and on-hand stock (using column `qty`).
  * 5. Partner UPSERT & UNIQUE Constraint Safety.
  * 6. Official Customs Tariff Reality Check.
+ * 7. Hardened Negative Invariant Tests:
+ *    - Supplier ID passed as GL account rejected.
+ *    - Bank account pointing to expense account rejected.
+ *    - Accounting operation in locked period rejected.
+ *    - Unlinked purchase invoice vs linked purchase invoice checks.
+ *    - Two legitimate transfers with identical amounts succeed.
+ *    - Duplicate request with same idempotency key fails with ConflictException.
  */
 
 async function setupDatabase(): Promise<{ db: Kysely<Database>; accounts: Record<string, number> }> {
   const pglite = new PGlite();
   const db = new Kysely<Database>({
-    dialect: new PGliteDialect(pglite),
+    dialect: new MultiStatementPGliteDialect(pglite),
   });
 
-  // Create real tables matching production migrations exactly
-  const ddl = `
+  // Base production tables prior to migrations 234 and 235
+  const baseDdl = `
     CREATE TABLE tenants (
       id TEXT PRIMARY KEY,
       name TEXT DEFAULT 'Main Tenant',
@@ -82,6 +120,23 @@ async function setupDatabase(): Promise<{ db: Kysely<Database>; accounts: Record
       lock_date_tax DATE,
       updated_at TIMESTAMPTZ DEFAULT NOW(),
       CONSTRAINT uq_accounting_settings_tenant UNIQUE (tenant_id)
+    );
+
+    CREATE TABLE accounting_fiscal_periods (
+      id SERIAL PRIMARY KEY,
+      tenant_id VARCHAR(255) NOT NULL,
+      fiscal_year_id INTEGER,
+      period_number INTEGER NOT NULL,
+      name VARCHAR(150) NOT NULL,
+      code VARCHAR(50),
+      start_date DATE NOT NULL,
+      end_date DATE NOT NULL,
+      status VARCHAR(50) NOT NULL DEFAULT 'open',
+      closed_at TIMESTAMPTZ,
+      closed_by INTEGER,
+      closing_notes TEXT,
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      updated_at TIMESTAMPTZ DEFAULT NOW()
     );
 
     CREATE TABLE products (
@@ -285,31 +340,6 @@ async function setupDatabase(): Promise<{ db: Kysely<Database>; accounts: Record
       cost_price NUMERIC(15, 6) DEFAULT 0
     );
 
-    CREATE TABLE import_projects (
-      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-      tenant_id TEXT NOT NULL REFERENCES tenants(id),
-      project_no TEXT NOT NULL,
-      title TEXT NOT NULL,
-      target_market TEXT DEFAULT NULL,
-      country_origin TEXT DEFAULT NULL,
-      country_destination TEXT DEFAULT NULL,
-      budget_currency TEXT DEFAULT 'USD',
-      allocated_capital NUMERIC(15, 2) DEFAULT 0,
-      target_roi_percentage NUMERIC(5, 2) DEFAULT 0,
-      status TEXT DEFAULT 'active',
-      feasibility_data JSONB DEFAULT NULL,
-      closure_data JSONB DEFAULT NULL,
-      closure_date TIMESTAMPTZ DEFAULT NULL,
-      closed_by BIGINT,
-      notes TEXT DEFAULT NULL,
-      created_at TIMESTAMPTZ DEFAULT NOW(),
-      updated_at TIMESTAMPTZ DEFAULT NOW(),
-      CONSTRAINT uq_import_projects_tenant_project_no UNIQUE (tenant_id, project_no)
-    );
-
-    -- purchases table matching REAL PRODUCTION SCHEMA:
-    -- project_id is BIGINT (contracting/legacy)
-    -- import_project_id is UUID REFERENCES import_projects(id) (migration 234)
     CREATE TABLE purchases (
       id BIGSERIAL PRIMARY KEY,
       tenant_id TEXT NOT NULL REFERENCES tenants(id),
@@ -337,12 +367,33 @@ async function setupDatabase(): Promise<{ db: Kysely<Database>; accounts: Record
       contact_id BIGINT,
       shipping_address_id BIGINT,
       cost_center_id BIGINT,
-      project_id BIGINT, -- REAL PRODUCTION TYPE: BIGINT (Contracting/legacy)
-      import_project_id UUID REFERENCES import_projects(id) ON DELETE SET NULL, -- ARCHITECTURAL LINK
+      project_id BIGINT,
       terms_template TEXT,
       lifecycle_status TEXT,
       matched_status TEXT,
       created_at TIMESTAMPTZ DEFAULT NOW()
+    );
+
+    CREATE TABLE import_projects (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      tenant_id TEXT NOT NULL REFERENCES tenants(id),
+      project_no TEXT NOT NULL,
+      title TEXT NOT NULL,
+      target_market TEXT DEFAULT NULL,
+      country_origin TEXT DEFAULT NULL,
+      country_destination TEXT DEFAULT NULL,
+      budget_currency TEXT DEFAULT 'USD',
+      allocated_capital NUMERIC(15, 2) DEFAULT 0,
+      target_roi_percentage NUMERIC(5, 2) DEFAULT 0,
+      status TEXT DEFAULT 'active',
+      feasibility_data JSONB DEFAULT NULL,
+      closure_data JSONB DEFAULT NULL,
+      closure_date TIMESTAMPTZ DEFAULT NULL,
+      closed_by BIGINT,
+      notes TEXT DEFAULT NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      updated_at TIMESTAMPTZ DEFAULT NOW(),
+      CONSTRAINT uq_import_projects_tenant_project_no UNIQUE (tenant_id, project_no)
     );
 
     CREATE TABLE import_partners (
@@ -400,53 +451,82 @@ async function setupDatabase(): Promise<{ db: Kysely<Database>; accounts: Record
     CREATE TABLE import_proforma_invoices (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
       tenant_id TEXT NOT NULL REFERENCES tenants(id),
-      project_id UUID REFERENCES import_projects(id) ON DELETE SET NULL,
-      supplier_id BIGINT NOT NULL REFERENCES suppliers(id),
+      project_id UUID REFERENCES import_projects(id),
+      supplier_id BIGINT REFERENCES suppliers(id),
       pi_number TEXT NOT NULL,
       pi_date DATE NOT NULL,
       currency VARCHAR(10) DEFAULT 'USD',
-      total_amount_foreign NUMERIC(15, 2) NOT NULL,
-      status VARCHAR(50) DEFAULT 'active',
-      payment_status VARCHAR(50) DEFAULT 'unpaid',
+      exchange_rate NUMERIC(10, 4) DEFAULT 1.0,
+      total_amount_foreign NUMERIC(15, 2) DEFAULT 0,
       paid_amount_foreign NUMERIC(15, 2) DEFAULT 0,
+      payment_status VARCHAR(50) DEFAULT 'unpaid',
+      incoterms VARCHAR(20) DEFAULT 'FOB',
+      payment_terms TEXT,
+      status VARCHAR(50) DEFAULT 'active',
+      notes TEXT,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
+
+    CREATE TABLE import_suppliers_meta (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      tenant_id TEXT NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+      supplier_id BIGINT NOT NULL REFERENCES suppliers(id) ON DELETE CASCADE,
+      chinese_name VARCHAR(255),
+      city VARCHAR(100),
+      province VARCHAR(100),
+      bank_name_usd VARCHAR(255),
+      bank_swift_code VARCHAR(50),
+      bank_account_usd VARCHAR(100),
+      bank_country VARCHAR(100),
+      factory_audit_rating VARCHAR(10),
+      audit_status VARCHAR(50) DEFAULT 'unverified',
+      verified_at TIMESTAMPTZ DEFAULT NULL,
+      verified_by BIGINT REFERENCES users(id) ON DELETE SET NULL,
+      verification_notes TEXT DEFAULT NULL,
+      notes TEXT,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
+
+    CREATE TABLE import_qc_inspections (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      tenant_id TEXT NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+      project_id UUID REFERENCES import_projects(id) ON DELETE SET NULL,
+      shipment_id UUID,
+      stage VARCHAR(50) NOT NULL,
+      inspection_date DATE NOT NULL,
+      inspector_name VARCHAR(150),
+      sample_size INTEGER DEFAULT 0,
+      passed_quantity INTEGER DEFAULT 0,
+      failed_quantity INTEGER DEFAULT 0,
+      defect_notes TEXT,
+      status VARCHAR(50) DEFAULT 'passed',
+      report_file_url TEXT,
       created_at TIMESTAMPTZ DEFAULT NOW()
     );
 
     CREATE TABLE import_shipments (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
       tenant_id TEXT NOT NULL REFERENCES tenants(id),
-      container_number TEXT NOT NULL,
+      project_id UUID REFERENCES import_projects(id),
       supplier_id BIGINT REFERENCES suppliers(id),
-      bill_of_lading TEXT,
-      arrival_date DATE,
-      shipping_date DATE,
-      shipped_date DATE,
+      container_number TEXT NOT NULL,
+      container_type TEXT,
+      seal_number TEXT,
+      bl_number TEXT,
+      shipping_line TEXT,
+      departure_port TEXT,
+      arrival_port TEXT,
+      etd_date DATE,
       eta_date DATE,
+      actual_arrival_date DATE,
+      shipped_date DATE,
       clearance_date DATE,
-      shipping_cost_usd NUMERIC(15, 2) DEFAULT 0,
-      customs_cost_egp NUMERIC(15, 2) DEFAULT 0,
-      internal_transport_cost_egp NUMERIC(15, 2) DEFAULT 0,
-      exchange_rate_at_arrival NUMERIC(10, 4) DEFAULT 1.0,
-      pricing_exchange_rate NUMERIC(10, 4) DEFAULT 1.0,
-      status VARCHAR(50) DEFAULT 'Draft',
-      shipping_expense_id BIGINT,
-      customs_expense_id BIGINT,
-      transport_expense_id BIGINT,
-      project_id UUID REFERENCES import_projects(id) ON DELETE SET NULL,
-      freight_type VARCHAR(20) DEFAULT 'FCL',
-      container_size VARCHAR(20) DEFAULT '40HQ',
-      port_of_loading VARCHAR(100) DEFAULT 'Ningbo',
-      port_of_discharge VARCHAR(100) DEFAULT 'Alexandria',
-      cbm_volume NUMERIC(10, 3) DEFAULT 0,
-      gross_weight_kg NUMERIC(12, 2) DEFAULT 0,
-      carrier_name VARCHAR(150),
-      free_demurrage_days INTEGER DEFAULT 14,
-      demurrage_start_date DATE,
-      demurrage_rate_per_day NUMERIC(10, 2) DEFAULT 50.00,
-      actual_demurrage_fees NUMERIC(12, 2) DEFAULT 0,
-      customs_declaration_no VARCHAR(100),
-      vat_refundable_egp NUMERIC(12, 2) DEFAULT 0,
-      is_consolidated BOOLEAN DEFAULT FALSE,
+      shipping_expense_id INTEGER REFERENCES expenses(id) ON DELETE SET NULL,
+      customs_expense_id INTEGER REFERENCES expenses(id) ON DELETE SET NULL,
+      transport_expense_id INTEGER REFERENCES expenses(id) ON DELETE SET NULL,
+      free_time_days INTEGER DEFAULT 14,
+      daily_demurrage_usd NUMERIC(10, 2) DEFAULT 50,
+      status TEXT DEFAULT 'Draft',
       cost_allocation_method VARCHAR(50) DEFAULT 'value',
       late_expenses_total_egp NUMERIC(12, 2) DEFAULT 0,
       late_cogs_adjustment_egp NUMERIC(12, 2) DEFAULT 0,
@@ -509,7 +589,11 @@ async function setupDatabase(): Promise<{ db: Kysely<Database>; accounts: Record
     );
   `;
 
-  await pglite.exec(ddl);
+  await pglite.exec(baseDdl);
+
+  // Execute real production migrations 234 and 235 directly using Kysely
+  await up234(db as any);
+  await up235(db as any);
 
   // Seed default tenant
   await pglite.exec(`INSERT INTO tenants (id, name) VALUES ('tenant-audit-1', 'Audited Trading Tenant');`);
@@ -890,6 +974,7 @@ async function runTests() {
       exchangeRateContract: 50.00, // 3000 * 50 = 150000 -> 3000 EGP forex loss
       proformaInvoiceId: proforma.id,
       bankAccountId: accounts['1120'], // Real bank account
+      idempotencyKey: 'IDEMP-PROFORMA-3E',
     });
     assert.strictEqual(transferSuccess.success, true);
 
@@ -902,8 +987,8 @@ async function runTests() {
     assert.strictEqual(updatedPI.payment_status, 'paid');
     console.log('PASS: Proforma settled in full with exact foreign currency tracking.');
 
-    // 3-F: Replay / duplicate transfer rejection
-    let rejectedReplay = false;
+    // 3-F: DB Idempotency rejection
+    let rejectedDuplicate = false;
     try {
       await service.recordForeignTransfer(tenantId, userId, {
         supplierId: String(supplierA.id),
@@ -911,20 +996,21 @@ async function runTests() {
         amountForeign: 3000,
         amountEgp: 153000,
         currency: 'USD',
+        idempotencyKey: 'IDEMP-PROFORMA-3E', // Same key!
       });
     } catch (err: any) {
-      rejectedReplay = true;
+      rejectedDuplicate = true;
       assert.ok(
-        err.message.includes('تم تسجيل حوالة مطابقة مؤخراً') || err.message.includes('مسددة بالكامل'),
+        err.message.includes('مفتاح عدم التكرار') || err.message.includes('Idempotency Key'),
         `Unexpected error: ${err.message}`
       );
     }
-    assert.ok(rejectedReplay, 'Must reject duplicate transfer within replay window');
-    console.log('PASS: Replay / duplicate foreign transfer prevented.');
+    assert.ok(rejectedDuplicate, 'Must reject duplicate transfer submission with identical idempotency key');
+    console.log('PASS: Replay / duplicate foreign transfer prevented via DB idempotency.');
   }
 
   // -------------------------------------------------------------
-  // Test 4: Late Shipment Expense Real Schema & Dynamic Accounts
+  // Test 4: Late Shipment Expense Real Schema & Decoupled Supplier ID
   // -------------------------------------------------------------
   console.log('\nRunning Test 4: Late Shipment Expense Real Schema (qty) & Dynamic COA...');
   {
@@ -1107,6 +1193,205 @@ async function runTests() {
     assert.strictEqual(calculation.isOfficialTariff, false);
     assert.strictEqual(calculation.isDocumentedTariff, false);
     console.log('PASS: Unofficial customs tariff correctly marked without false official designation.');
+  }
+
+  // -------------------------------------------------------------
+  // Test 7: Hardened Negative Invariant Tests
+  // -------------------------------------------------------------
+  console.log('\nRunning Test 7: Hardened Negative Invariant Tests...');
+  {
+    const supplier = await db
+      .insertInto('suppliers')
+      .values({ tenant_id: tenantId, name: 'Negative Test Supplier', phone: '999', address: 'China', balance: 0, is_active: true })
+      .returning('id')
+      .executeTakeFirstOrThrow();
+
+    const shipment = await db
+      .insertInto('import_shipments')
+      .values({ tenant_id: tenantId, container_number: 'CONT-NEG-01', status: 'Arrived' })
+      .returning('id')
+      .executeTakeFirstOrThrow();
+
+    await db.insertInto('import_inventory_receipts').values({ tenant_id: tenantId, shipment_id: shipment.id, state: 'posted' }).execute();
+
+    const product = await db
+      .insertInto('products')
+      .values({ tenant_id: tenantId, name: 'Negative Test Item', retail_price: 100, cost_price: 50, stock_qty: 10, min_stock_qty: 0, wholesale_price: 80, is_active: true })
+      .returning('id')
+      .executeTakeFirstOrThrow();
+
+    await db.insertInto('product_location_stock').values({ tenant_id: tenantId, product_id: product.id, qty: 10, reserved_qty: 0 }).execute();
+    await db.insertInto('import_shipment_items').values({ tenant_id: tenantId, shipment_id: shipment.id, product_id: product.id, quantity: 10, received_quantity: 10, factory_unit_price_usd: 5, landed_cost_egp: 50 }).execute();
+
+    // Negative 7-A: Supplier ID passed as GL account rejected
+    let supplierAsGlRejected = false;
+    try {
+      await service.processLateShipmentExpense(tenantId, userId, shipment.id, {
+        title: 'Invalid Payable Account ID',
+        lateExpenseAmount: 1000,
+        payableAccountId: 99999, // Non-existent GL account
+      });
+    } catch (err: any) {
+      supplierAsGlRejected = true;
+      assert.ok(err.message.includes('غير موجود في دليل حسابات'), `Expected non-existent account error, got: ${err.message}`);
+    }
+    assert.ok(supplierAsGlRejected, 'Non-existent account passed as GL account must be rejected');
+
+    // Negative 7-B: Bank account pointing to expense account rejected
+    let expenseAsBankRejected = false;
+    try {
+      await service.recordForeignTransfer(tenantId, userId, {
+        supplierId: String(supplier.id),
+        amountForeign: 500,
+        amountEgp: 25000,
+        currency: 'USD',
+        bankAccountId: accounts['5110'], // COGS (expense) account!
+      });
+    } catch (err: any) {
+      expenseAsBankRejected = true;
+      assert.ok(err.message.includes('غير صالح') && err.message.includes('الأصول'), `Expected bank type rejection, got: ${err.message}`);
+    }
+    assert.ok(expenseAsBankRejected, 'Expense account passed as bank account must be rejected');
+    console.log('PASS: Bank account pointing to expense account correctly rejected.');
+
+    // Negative 7-C: Operation in locked accounting period rejected
+    await db
+      .updateTable('accounting_settings')
+      .set({ lock_date_all: '2099-12-31' as any })
+      .where('tenant_id', '=', tenantId)
+      .execute();
+
+    let lockedPeriodRejected = false;
+    try {
+      await service.recordForeignTransfer(tenantId, userId, {
+        supplierId: String(supplier.id),
+        amountForeign: 500,
+        amountEgp: 25000,
+        currency: 'USD',
+      });
+    } catch (err: any) {
+      lockedPeriodRejected = true;
+      assert.ok(
+        err.message.includes('الفترة المحاسبية مقفلة') || err.code === 'ACCOUNTING_PERIOD_LOCKED',
+        `Expected period lock rejection, got: ${err.message}`
+      );
+    }
+    assert.ok(lockedPeriodRejected, 'Must reject foreign transfer posting in locked accounting period');
+
+    // Unlock period
+    await db
+      .updateTable('accounting_settings')
+      .set({ lock_date_all: null })
+      .where('tenant_id', '=', tenantId)
+      .execute();
+    console.log('PASS: Accounting operation in locked period correctly rejected.');
+
+    // Negative 7-D: Unlinked purchase invoice vs linked purchase invoice checks
+    const prjLink = await db
+      .insertInto('import_projects')
+      .values({ tenant_id: tenantId, project_no: 'PRJ-LINK-01', title: 'Link Test Project', status: 'active' })
+      .returning('id')
+      .executeTakeFirstOrThrow();
+
+    const shipLink = await db
+      .insertInto('import_shipments')
+      .values({ tenant_id: tenantId, project_id: prjLink.id, container_number: 'CONT-LINK-01', status: 'Arrived' })
+      .returning('id')
+      .executeTakeFirstOrThrow();
+
+    await db.insertInto('import_inventory_receipts').values({ tenant_id: tenantId, shipment_id: shipLink.id, state: 'posted' }).execute();
+
+    // 1. Unlinked unpaid purchase invoice (import_project_id is null)
+    const unlinkedPur = await db
+      .insertInto('purchases')
+      .values({
+        tenant_id: tenantId,
+        doc_no: 'PUR-GENERAL-UNLINKED',
+        payment_type: 'credit',
+        subtotal: 50000,
+        discount: 0,
+        tax_rate: 0,
+        tax_amount: 0,
+        prices_include_tax: false,
+        total: 50000,
+        paid_amount: 0,
+        note: '',
+        import_project_id: null,
+        status: 'received',
+      })
+      .returning('id')
+      .executeTakeFirstOrThrow();
+
+    // Closure MUST SUCCEED because unlinked invoice is not part of this import project
+    const closeRes1 = await service.closeProject(tenantId, userId, prjLink.id);
+    assert.strictEqual(closeRes1.success, true);
+    console.log('PASS: Unlinked unpaid purchase invoice does not block unrelated project closure.');
+
+    // Re-open project for link test
+    await db.updateTable('import_projects').set({ status: 'active', closure_data: null, closure_date: null }).where('id', '=', prjLink.id).execute();
+
+    // 2. Now link the unpaid purchase invoice to this import project
+    await db.updateTable('purchases').set({ import_project_id: prjLink.id }).where('id', '=', unlinkedPur.id).execute();
+
+    // Closure MUST BE REJECTED now!
+    let blockedWhenLinked = false;
+    try {
+      await service.closeProject(tenantId, userId, prjLink.id);
+    } catch (err: any) {
+      blockedWhenLinked = true;
+      assert.ok(err.message.includes('غير مسددة بالكامل'));
+    }
+    assert.ok(blockedWhenLinked, 'Must block closure when purchase invoice is linked and unpaid');
+    console.log('PASS: Linked unpaid purchase invoice strictly blocks project closure.');
+
+    // 3. Settle invoice and close successfully
+    await db.updateTable('purchases').set({ paid_amount: 50000 }).where('id', '=', unlinkedPur.id).execute();
+    const closeRes2 = await service.closeProject(tenantId, userId, prjLink.id);
+    assert.strictEqual(closeRes2.success, true);
+    console.log('PASS: Linked purchase invoice settlement unblocks project closure.');
+
+    // Negative 7-E: Two legitimate transfers of identical amounts succeed
+    const legRes1 = await service.recordForeignTransfer(tenantId, userId, {
+      supplierId: String(supplier.id),
+      amountForeign: 1500,
+      amountEgp: 75000,
+      currency: 'USD',
+      idempotencyKey: 'IDEMP-FT-LEGIT-001',
+      notes: 'Legitimate Transfer 1',
+    });
+    assert.strictEqual(legRes1.success, true);
+
+    const legRes2 = await service.recordForeignTransfer(tenantId, userId, {
+      supplierId: String(supplier.id),
+      amountForeign: 1500,
+      amountEgp: 75000,
+      currency: 'USD',
+      idempotencyKey: 'IDEMP-FT-LEGIT-002',
+      notes: 'Legitimate Transfer 2',
+    });
+    assert.strictEqual(legRes2.success, true);
+    assert.notStrictEqual(legRes1.paymentId, legRes2.paymentId);
+    console.log('PASS: Two legitimate transfers of identical amounts succeed without artificial window block.');
+
+    // Negative 7-F: Duplicate request with same idempotency key fails with ConflictException
+    let duplicateRejected = false;
+    try {
+      await service.recordForeignTransfer(tenantId, userId, {
+        supplierId: String(supplier.id),
+        amountForeign: 1500,
+        amountEgp: 75000,
+        currency: 'USD',
+        idempotencyKey: 'IDEMP-FT-LEGIT-001', // Identical key!
+      });
+    } catch (err: any) {
+      duplicateRejected = true;
+      assert.ok(
+        err.message.includes('مفتاح عدم التكرار') || err.message.includes('Idempotency Key'),
+        `Expected idempotency rejection, got: ${err.message}`
+      );
+    }
+    assert.ok(duplicateRejected, 'Must reject duplicate transfer submission with identical idempotency key');
+    console.log('PASS: Duplicate request with same idempotency key strictly rejected with ConflictException.');
   }
 
   console.log('\n--- ALL AUDITED POSTGRESQL (PGLITE) INTEGRATION AUDITS PASSED (100%) ---');

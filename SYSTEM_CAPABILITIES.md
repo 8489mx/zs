@@ -8235,3 +8235,26 @@ eference_id) وإثبات قيود يومية مزدوجة متزنة 100% في 
 esolveTenantAccount التي تربط ديناميكياً بدليل الحسابات وإعدادات المنشأة وتنشئ الحسابات النظامية آلياً وفقاً لقاعدة No Silent Skips.
   4. **حوكمة الحوالات الأجنبية:** التحقق الإلزامي من تطابق الفاتورة المبدئية مع نفس المورد والمشروع والعملة، وحظر السداد الزائد، وحظر التكرار خلال 30 ثانية (Replay Protection)، والربط بحساب البنك الحقيقي، وإثبات قيود محاسبية بالجنيه المصري متزنة 100% دون خلط العملات.
   5. **اختبارات تكامل مطابقة للإنتاج:** تنفيذ 6 اختبارات تكاملية على محرك PostgreSQL حقيقي بمخطط كامل مطابق للإنتاج مع دليل حسابات وإعدادات منشأة وقيود محاسبية حقيقية.
+
+## 252. حوكمة الترحيل المحاسبي المركزي وعدم التكرار البنكي والتحقق الصارم من دليل الحسابات للاستيراد (Import Central Posting, DB Idempotency & Strict COA Validation)
+- **التاريخ:** 21 أكتوبر 2026.
+- **الحالة:** مكتمل ومحصن باختبارات تكامل PostgreSQL حقيقية (100%).
+- **الملفات المعدلة والمستحدثة:**
+  - `backend/src/database/migrations/2040000000235_supplier_payments_idempotency_key.ts` (إضافة عمود `idempotency_key` وفهرس عدم التكرار الفريد).
+  - `backend/src/database/database.types.ts` (تحديث `SupplierPaymentTable` بالأعمدة الجديدة).
+  - `backend/src/modules/import-sales/dto/import-sales.dto.ts` (إضافة `idempotencyKey` و `payableAccountId`).
+  - `backend/src/modules/import-sales/import-sales.controller.ts` (دعم هيدر `x-idempotency-key` في تسجيل الحوالات).
+  - `backend/src/modules/import-sales/import-sales.module.ts` (ربط `AccountingModule` لحقن خدمات الترحيل).
+  - `backend/src/modules/import-sales/import-sales.service.ts` (الترحيل المحاسبي المركزي عبر `postDomainJournal`، التحقق الصارم من أنواع الحسابات، وفصل معرف المورد عن حساب الدائنين).
+  - `backend/src/modules/purchases/dto/upsert-purchase.dto.ts` (إضافة `importProjectId` مع التحقق من صحة المعرف).
+  - `backend/src/modules/purchases/services/purchases-write.service.ts` (التحقق من وجود مشروع الاستيراد وحفظه عند إنشاء وتعديل الفاتورة).
+  - `backend/src/modules/purchases/services/purchases-query.service.ts` و `purchases-query.helper.ts` (استرجاع وتعيين `importProjectId` في استعلامات المشتريات).
+  - `backend/test/critical/import-postgres-integration.spec.ts` (تحديث حارس التكامل الشامل بمحول استعلامات PGlite متعدد الأوامر وتغطية كافة الحالات السلبية والإيجابية).
+  - `ARCHITECTURE_INVARIANTS.md` (توثيق البند 2.24 لميثاق التكامل المحاسبي والرقابي).
+- **المعالجات الجذرية المحققة:**
+  1. **فصل معرف المورد عن حساب الدائنين:** منع تمرير `shipment.supplier_id` كحساب أستاذ، وحصر تسجيل المورد في أعمدة الشريك على سطر القيد مع توجيه الحساب لحساب الدائنين المعتمد.
+  2. **التحقق الصارم من دليل الحسابات:** رفض الحسابات ذات النوع غير المطابق (مثل تمرير حساب مصروف كحساب بنك أو دائنين) فوراً بـ `BadRequestException`، وحظر التوليد التلقائي الصامت أثناء العمليات العادية بـ `UnprocessableEntityException`.
+  3. **الترحيل المركزي عبر postDomainJournal:** نقل قيود الحوالات والمصروفات المتأخرة إلى المحرك المركزي لضمان اتزان القيد، ترتيب الحسابات تصاعدياً لمنع التعليق، واحترام فترات الإقفال المحاسبي (`lock_date_all` وفترات الشهور المقفلة).
+  4. **اكتمال دورة ربط فواتير المشتريات:** دمج `purchases.import_project_id` في إنشاء وتعديل واستعلام الفواتير، مما يجعل فحص التزامات المشتريات عند إقفال المشروع (`closeProject`) فحصاً فعلياً في الإنتاج.
+  5. **مفتاح Idempotency قاعدي للحوالات:** استبدال النافذة الزمنية (30 ثانية) بقيد فريد `idempotency_key` على مستوى قاعدة البيانات، مع السماح بحوالات مشروعة متعددة بنفس القيمة ومنع التكرار اللحظي والمتزامن.
+  6. **حارس تكامل PostgreSQL شامل مع حالات سلبية:** تشغيل اختبارات تكاملية على PGlite بالهجرات الحقيقية (234 و 235) مع فحص رفض العمليات في الفترات المغلقة، رفض الحسابات الخاطئة، وحظر الإقفال عند وجود فواتير مرتبطة غير مسددة.

@@ -1656,6 +1656,11 @@ export interface SupplierPaymentTable {
   payment_date: ColumnType<Date, string | undefined, string | undefined>;
   created_by: number | null;
   created_at: ColumnType<Date, string | undefined, never>;
+  currency?: ColumnType<string, string | undefined, string | undefined>;
+  exchange_rate?: ColumnType<number, number | undefined, number | undefined>;
+  forex_variance_egp?: ColumnType<number, number | undefined, number | undefined>;
+  proforma_invoice_id?: ColumnType<string | null, string | null | undefined, string | null | undefined>;
+  idempotency_key?: ColumnType<string | null, string | null | undefined, string | null | undefined>;
 }
 
 export interface SupplierPaymentScheduleTable {
