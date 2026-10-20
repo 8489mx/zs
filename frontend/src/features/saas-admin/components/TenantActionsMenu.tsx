@@ -31,8 +31,8 @@ export function TenantActionsMenu({
   currentTenantId,
   onImpersonate,
   isImpersonating,
-  onShowSubscriptions,
-  onRenew,
+  onShowSubscriptions: _onShowSubscriptions,
+  onRenew: _onRenew,
   onOpenActionHub,
 }: TenantActionsMenuProps) {
   const { t } = useTranslation();

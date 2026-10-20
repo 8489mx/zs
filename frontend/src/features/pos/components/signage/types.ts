@@ -10,3 +10,5 @@ export interface SignagePromoItem {
   barcode?: string;
   imageUrl?: string;
 }
+
+export type SignageTheme = 'dark' | 'light';

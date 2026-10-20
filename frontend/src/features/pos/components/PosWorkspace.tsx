@@ -743,7 +743,7 @@ export function PosWorkspace() {
             }
           }}
           onSelectTable={async (tableNum) => {
-            if (pos.cart.length > 0) {
+            if (pos.cart.length > 0 && pos.tableNumber && pos.tableNumber !== tableNum) {
               await pos.holdDraft();
             }
             pos.setOrderType('dine_in');
@@ -754,7 +754,7 @@ export function PosWorkspace() {
             pos.setQuickCustomerAddress('');
           }}
           onSeatReservation={async (tableNum, guestCount, guestName) => {
-            if (pos.cart.length > 0) {
+            if (pos.cart.length > 0 && pos.tableNumber && pos.tableNumber !== tableNum) {
               await pos.holdDraft();
             }
             pos.setOrderType('dine_in');

@@ -60,15 +60,6 @@ export function TenantDetailsModal({ tenantId, onClose, onOpenActionHub }: Tenan
     }
   };
 
-  const getEventBadge = (action: string) => {
-    const act = action.toLowerCase();
-    if (act.includes('دخول') || act.includes('login')) return { bg: '#ecfdf5', color: '#047857', border: '#a7f3d0' };
-    if (act.includes('اشتراك') || act.includes('تجديد') || act.includes('renew') || act.includes('دفع') || act.includes('payment')) return { bg: '#eff6ff', color: '#1d4ed8', border: '#bfdbfe' };
-    if (act.includes('ترقية') || act.includes('plan')) return { bg: '#fef3c7', color: '#b45309', border: '#fde68a' };
-    if (act.includes('ايقاف') || act.includes('تعطيل') || act.includes('suspend') || act.includes('قفل')) return { bg: '#fef2f2', color: '#b91c1c', border: '#fecaca' };
-    return { bg: '#f8fafc', color: '#475569', border: '#e2e8f0' };
-  };
-
   return (
     <DialogShell open={Boolean(tenantId)} onClose={onClose} width="780px" ariaLabel={t('saas_admin.tenant_details_modal.s0', "تفاصيل النسخة وسجل النشاط")}>
       <div className="dialog-card" dir="rtl" style={{ padding: '22px' }}>

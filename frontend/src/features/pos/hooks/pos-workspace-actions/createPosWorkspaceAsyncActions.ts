@@ -8,6 +8,7 @@ import type { createPosWorkspaceBaseActions } from '@/features/pos/hooks/pos-wor
 import { extractCreatedEntityId } from '@/lib/api/extract-created-entity-id';
 import { storefrontApi } from '@/features/storefront/api/storefront.api';
 import { queryClient } from '@/app/providers';
+import { getFriendlyApiErrorMessage } from '@/lib/api-error-message';
 
 function getSaleKey(sale: Sale | null) {
   if (!sale) return '';
@@ -419,7 +420,7 @@ export function createPosWorkspaceAsyncActions(
       params.setSubmitMessage(successMessage);
       params.requestBarcodeFocus();
     } catch (error) {
-      params.setSubmitMessage(error instanceof Error ? error.message : 'تعذر حفظ الفاتورة المعلقة');
+      params.setSubmitMessage(getFriendlyApiErrorMessage(error, 'تعذر حفظ الفاتورة المعلقة'));
       params.requestBarcodeFocus();
     }
   }

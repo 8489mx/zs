@@ -922,7 +922,7 @@ export function buildReceiptDocument(options: {
   isReturn?: boolean;
   isPurchase?: boolean;
   note?: string;
-  items: Array<{ name?: string; unitName?: string; qty?: number; price?: number; total?: number; modifiers?: any[] }>;
+  items: Array<{ name?: string; nameEn?: string; notes?: string; unitName?: string; qty?: number; price?: number; total?: number; modifiers?: any[] }>;
   subtotal: number;
   discount: number;
   deliveryFee?: number;

@@ -68,7 +68,7 @@ export function usePosCatalogWarmup({ branchId, locationId, enabled = true }: Po
         locationId,
       });
 
-      if (Array.isArray(products) && products.length > 0) {
+      if (Array.isArray(products)) {
         await saveCatalogToStorage(products, remote.version, activeTenantId);
         setCatalogVersion(remote.version);
         setTotalCached(products.length);

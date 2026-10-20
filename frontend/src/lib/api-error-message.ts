@@ -197,11 +197,102 @@ function mapByTechnicalMessage(error: unknown, message: string): string {
   return MSG_OPERATION_FAILED;
 }
 
-export function getFriendlyApiErrorMessage(error: unknown, fallback = MSG_OPERATION_FAILED): string {
-  if (!error) return fallback;
+function isEnglishMode(): boolean {
+  if (typeof document !== 'undefined') {
+    if (document.documentElement.lang?.startsWith('en')) return true;
+    if (document.documentElement.dir === 'ltr') return true;
+  }
+  if (typeof window !== 'undefined') {
+    const lng = window.localStorage.getItem('i18nextLng') || '';
+    if (lng.startsWith('en')) return true;
+  }
+  return false;
+}
+
+const ENGLISH_CODE_MESSAGES: Record<string, string> = {
+  PRODUCT_NOT_FOUND: 'Product not found.',
+  CUSTOMER_NOT_FOUND: 'Customer not found.',
+  SUPPLIER_NOT_FOUND: 'Supplier not found.',
+  CATEGORY_NOT_FOUND: 'Category not found.',
+  USER_NOT_FOUND: 'User not found.',
+  SHIFT_NOT_FOUND: 'Shift not found.',
+  CASHIER_SHIFT_NOT_FOUND: 'Cashier shift not found.',
+  OPEN_SHIFT_REQUIRED: 'A cashier shift must be opened first.',
+  SALE_ITEMS_REQUIRED: 'Cannot save an invoice with no items.',
+  HELD_DRAFT_ITEMS_REQUIRED: 'Draft must include at least one item.',
+  CUSTOMER_REQUIRED_FOR_CREDIT: 'Credit sale requires selecting a customer.',
+  AMOUNT_INVALID: 'Amount must be greater than zero.',
+  INTERNAL_ERROR: 'Internal server error occurred.',
+  VALIDATION_ERROR: 'The submitted data is invalid.',
+  FORBIDDEN: 'You are not allowed to perform this operation.',
+  UNAUTHORIZED: 'You are unauthorized to access this resource.',
+  SESSION_NOT_FOUND: 'Session not found.',
+  MANAGER_PIN_INVALID: 'Invalid manager PIN.',
+  MANAGER_PASSWORD_INVALID: 'Invalid manager password.',
+  SHIFT_ALREADY_OPEN: 'A shift is already open for this user.',
+  SHIFT_ALREADY_CLOSED: 'Shift is already closed.',
+  SHIFT_CLOSED: 'Cannot perform operation on a closed shift.',
+  DAMAGE_NOTE_REQUIRED: 'A reason must be entered in the notes field.',
+  LOCATION_BRANCH_MISMATCH: 'Selected location does not belong to the specified branch.',
+  CUSTOMER_EXISTS: 'A customer with this name already exists.',
+  SUPPLIER_EXISTS: 'A supplier with this name already exists.',
+  CATEGORY_EXISTS: 'A category with this name already exists.',
+  PRODUCT_EXISTS: 'A product with this name or barcode already exists.',
+  PRODUCT_HAS_STOCK: 'Cannot delete product because it has active stock.',
+  PRODUCT_HAS_HISTORY: 'Cannot delete product because it has historical transactions.',
+  PRICE_CHANGE_FORBIDDEN: 'Price modification requires price edit permissions.',
+  DISCOUNT_CHANGE_FORBIDDEN: 'Discount modification requires discount permissions.',
+};
+
+const ARABIC_TO_ENGLISH_ERRORS: Record<string, string> = {
+  'الصنف غير موجود': 'Product not found.',
+  'العميل غير موجود': 'Customer not found.',
+  'المورد غير موجود': 'Supplier not found.',
+  'القسم غير موجود': 'Category not found.',
+  'المستخدم غير موجود': 'User not found.',
+  'الوردية غير موجودة': 'Shift not found.',
+  'يجب فتح وردية كاشير أولاً': 'A cashier shift must be opened first.',
+  'لا يمكن حفظ فاتورة بدون أصناف': 'Invoice must include at least one item.',
+  'لا يمكن تعليق فاتورة بدون أصناف': 'Draft must include at least one item.',
+  'البيع الآجل يتطلب تحديد عميل': 'Credit sale requires selecting a customer.',
+  'المبلغ يجب أن يكون أكبر من صفر': 'Amount must be greater than zero.',
+  'حدث خطأ داخلي في الخادم': 'Internal server error.',
+  'البيانات المرسلة غير صحيحة': 'The submitted data is invalid.',
+  'غير مصرح لك بالوصول': 'Unauthorized access.',
+  'غير مسموح بتنفيذ هذه العملية': 'Operation not permitted.',
+  'تعذر تنفيذ العملية المطلوبة': 'Unable to complete the requested operation.',
+  'المخزون غير متاح لهذا الصنف': 'Stock is unavailable for this item.',
+  'لا يمكن تعليق فاتورة فارغة': 'Cannot hold an empty invoice.',
+  'تعذر حفظ الفاتورة المعلقة': 'Failed to save held invoice.',
+  'تم تعليق الفاتورة الحالية ويمكن استرجاعها لاحقًا': 'Current invoice held successfully.',
+  'يوجد حقل مطلوب لم يتم إدخاله': 'A required field is missing.',
+  'هذه البيانات مستخدمة بالفعل': 'This record already exists.',
+  'لا يمكن تنفيذ العملية لأن هناك بيانات مرتبطة بها': 'Cannot execute operation because related records exist.',
+  'قيمة غير صحيحة في أحد الحقول': 'Invalid value in one of the fields.',
+  'جدول مطلوب غير موجود. راجع تحديثات قاعدة البيانات': 'Required table not found.',
+  'يوجد عدم توافق في قاعدة البيانات. راجع تحديثات النظام': 'Database schema mismatch.',
+  'النص المدخل أطول من المسموح': 'Entered text exceeds allowed length.',
+};
+
+export function getFriendlyApiErrorMessage(error: unknown, fallback?: string): string {
+  const isEn = isEnglishMode();
+  const defaultFallback = isEn ? 'Unable to complete the requested operation.' : MSG_OPERATION_FAILED;
+  const effectiveFallback = fallback || defaultFallback;
+
+  if (!error) return effectiveFallback;
 
   const message = extractPreferredMessage(error);
   const code = extractErrorCode(error);
+
+  if (isEn) {
+    if (code && ENGLISH_CODE_MESSAGES[code.toUpperCase()]) {
+      return ENGLISH_CODE_MESSAGES[code.toUpperCase()];
+    }
+    const trimmed = (message || '').trim().replace(/[.،]+$/, '');
+    if (trimmed && ARABIC_TO_ENGLISH_ERRORS[trimmed]) {
+      return ARABIC_TO_ENGLISH_ERRORS[trimmed];
+    }
+  }
 
   const fromCode = mapByCode(code, error, message);
   if (fromCode) return fromCode;
@@ -213,5 +304,5 @@ export function getFriendlyApiErrorMessage(error: unknown, fallback = MSG_OPERAT
     return message;
   }
 
-  return fallback;
+  return effectiveFallback;
 }

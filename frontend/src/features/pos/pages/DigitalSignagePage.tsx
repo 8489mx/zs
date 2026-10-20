@@ -6,7 +6,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { productsApi } from '@/features/products/api/products.api';
 import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
 import { subscribeSignageOffersUpdate } from '@/features/pos/lib/pos-customer-display-bridge';
-import { SignagePromoItem } from '../components/signage/types';
+import { SignagePromoItem, SignageTheme } from '../components/signage/types';
 import { useIsolatedDisplayLanguage } from '@/features/pos/hooks/useIsolatedDisplayLanguage';
 import { SignageHeader } from '../components/signage/SignageHeader';
 import { SignageHeroCard } from '../components/signage/SignageHeroCard';
@@ -14,6 +14,7 @@ import { SignageSideDeck } from '../components/signage/SignageSideDeck';
 import { SignageMarqueeFooter } from '../components/signage/SignageMarqueeFooter';
 import { SignageSettingsDrawer } from '../components/signage/SignageSettingsDrawer';
 import { SignageNavDrawer } from '../components/signage/SignageNavDrawer';
+import { SignageShowroomWelcome } from '../components/signage/SignageShowroomWelcome';
 
 export function DigitalSignagePage() {
   const { currentLang, toggleLanguage } = useIsolatedDisplayLanguage('signage_ui_lang');
@@ -23,6 +24,23 @@ export function DigitalSignagePage() {
   const settings = settingsQuery.data;
 
   const navigate = useNavigate();
+  const [theme, setTheme] = useState<SignageTheme>(() => {
+    return (localStorage.getItem('signage_theme') as SignageTheme) || 'dark';
+  });
+
+  const handleToggleTheme = () => {
+    setTheme((prev) => {
+      const nextTheme = prev === 'dark' ? 'light' : 'dark';
+      localStorage.setItem('signage_theme', nextTheme);
+      return nextTheme;
+    });
+  };
+
+  const handleThemeChange = (newTheme: SignageTheme) => {
+    setTheme(newTheme);
+    localStorage.setItem('signage_theme', newTheme);
+  };
+
   const [currentIndex, setCurrentIndex] = useState<number>(0);
   const [isPaused, setIsPaused] = useState<boolean>(false);
   const [slideIntervalSec, setSlideIntervalSec] = useState<number>(8);
@@ -87,15 +105,26 @@ export function DigitalSignagePage() {
     return () => clearInterval(timer);
   }, []);
 
-  // Fetch products (background polling every 25s for standalone TV screens)
+  // Fetch products with Smart Fallback (background polling every 25s for standalone TV screens)
   const productsQuery = useQuery({
     queryKey: ['signage-products', viewFilter],
     queryFn: async () => {
-      const res = await productsApi.listPage({
+      let res = await productsApi.listPage({
         page: 1,
         pageSize: 40,
         view: viewFilter === 'offers' ? 'offers' : 'all',
       });
+      // Smart Fallback: If 'offers' filter returns empty, fallback to 'all' so the showroom screen is never dead!
+      if (viewFilter === 'offers' && (!res.products || res.products.length === 0)) {
+        const fallbackRes = await productsApi.listPage({
+          page: 1,
+          pageSize: 40,
+          view: 'all',
+        });
+        if (fallbackRes.products && fallbackRes.products.length > 0) {
+          return fallbackRes.products;
+        }
+      }
       return res.products || [];
     },
     refetchInterval: 25000,
@@ -216,9 +245,11 @@ export function DigitalSignagePage() {
   const currencyCode = settings?.currency || getGlobalSystemCurrency();
   const storefrontUrl = typeof window !== 'undefined' ? `${window.location.origin}/storefront` : '';
 
-  const qrSvgUrl = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(
+  const isDark = theme === 'dark';
+
+  const qrSvgUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(
     storefrontUrl
-  )}&bgcolor=ffffff&color=170e5e&margin=2`;
+  )}&bgcolor=ffffff&color=${isDark ? '0f172a' : '170e5e'}&margin=2`;
 
   return (
     <div
@@ -226,13 +257,17 @@ export function DigitalSignagePage() {
       style={{
         width: '100vw',
         height: '100vh',
-        backgroundColor: '#f8fafc',
-        color: '#0f172a',
+        backgroundColor: isDark ? '#080c16' : '#f8fafc',
+        backgroundImage: isDark
+          ? 'radial-gradient(ellipse at 80% 10%, rgba(37, 99, 235, 0.12) 0%, transparent 60%), radial-gradient(ellipse at 20% 90%, rgba(99, 102, 241, 0.08) 0%, transparent 60%)'
+          : 'none',
+        color: isDark ? '#f8fafc' : '#0f172a',
         fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
         position: 'relative',
+        transition: 'background-color 0.2s ease',
       }}
     >
       {/* Top Header Bar */}
@@ -247,6 +282,8 @@ export function DigitalSignagePage() {
         onToggleSettings={() => setShowSettingsDrawer((prev) => !prev)}
         onBack={handleGoBack}
         onToggleNavMenu={() => setShowNavDrawer((prev) => !prev)}
+        theme={theme}
+        onToggleTheme={handleToggleTheme}
       />
 
       {/* Main Promo Stage */}
@@ -268,24 +305,46 @@ export function DigitalSignagePage() {
             currentIndex={currentIndex}
             totalItems={promoItems.length}
             currencyCode={currencyCode}
+            theme={theme}
           />
-        ) : (
+        ) : productsQuery.isLoading ? (
           <div
             style={{
               display: 'flex',
+              flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
               height: '100%',
               fontSize: '18px',
-              fontWeight: 700,
-              color: '#64748b',
-              backgroundColor: '#ffffff',
-              border: '1px solid #e2e8f0',
-              borderRadius: '20px',
+              fontWeight: 800,
+              color: isDark ? '#38bdf8' : '#170e5e',
+              backgroundColor: isDark ? 'rgba(15, 23, 42, 0.6)' : '#ffffff',
+              border: isDark ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid #e2e8f0',
+              borderRadius: '24px',
+              gap: '14px',
             }}
           >
-            {t('pos.digital_signage_page.s0', "جاري تحميل عروض ومنتجات صالة العرض...")}
+            <div
+              style={{
+                width: '40px',
+                height: '40px',
+                borderRadius: '50%',
+                border: `3px solid ${isDark ? 'rgba(56, 189, 248, 0.2)' : 'rgba(23, 14, 94, 0.15)'}`,
+                borderTopColor: isDark ? '#38bdf8' : '#170e5e',
+                animation: 'spin 0.8s linear infinite',
+              }}
+            />
+            <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
+            <span>{t('pos.digital_signage_page.loading', 'جاري تجهيز وبث عروض صالة العرض...')}</span>
           </div>
+        ) : (
+          <SignageShowroomWelcome
+            storeName={storeName}
+            qrSvgUrl={qrSvgUrl}
+            theme={theme}
+            hasFilterOffers={viewFilter === 'offers'}
+            onSwitchToAllProducts={() => setViewFilter('all')}
+          />
         )}
 
         <SignageSideDeck
@@ -294,6 +353,7 @@ export function DigitalSignagePage() {
           onSelectItem={(idx) => setCurrentIndex(idx)}
           currencyCode={currencyCode}
           qrSvgUrl={qrSvgUrl}
+          theme={theme}
         />
       </main>
 
@@ -304,6 +364,7 @@ export function DigitalSignagePage() {
         onTogglePause={() => setIsPaused((prev) => !prev)}
         currentIndex={currentIndex}
         totalItems={promoItems.length}
+        theme={theme}
       />
 
       {/* Settings Modal Drawer */}
@@ -316,6 +377,8 @@ export function DigitalSignagePage() {
           onViewFilterChange={setViewFilter}
           customTickerText={customTickerText}
           onCustomTickerTextChange={setCustomTickerText}
+          theme={theme}
+          onThemeChange={handleThemeChange}
         />
       )}
 

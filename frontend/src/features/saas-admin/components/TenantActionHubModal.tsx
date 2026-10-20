@@ -36,7 +36,7 @@ export function TenantActionHubModal({
   onShowDetails,
   onShowSubscriptions,
   onShareWelcome,
-  onUpgrade,
+  onUpgrade: _onUpgrade,
   onUpdatePlan,
   onRenew,
   onRecordPayment,

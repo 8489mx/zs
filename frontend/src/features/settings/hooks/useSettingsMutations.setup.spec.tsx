@@ -112,6 +112,8 @@ const baseSettingsMutationValues = {
   posKitchenPrinterEnabled: false,
   posKitchenPrinterAuto: false,
   posKitchenPrinterMode: 'detailed' as const,
+  posKitchenLanguage: 'ar' as const,
+  printBilingualItemNames: false,
   weightedBarcodeEnabled: false,
   weightedBarcodePrefix: '21',
   weightedBarcodeProductCodeLength: 5,

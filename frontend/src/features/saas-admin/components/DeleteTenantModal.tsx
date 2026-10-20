@@ -311,10 +311,10 @@ export function DeleteTenantModal({ tenant, onClose, onSuccess }: DeleteTenantMo
           <input
             id={`sec_admin_pw_${uniqueFieldId}`}
             name={`admin_manual_confirm_${uniqueFieldId}`}
-            type="text"
+            type={showPassword ? 'text' : 'password'}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            autoComplete="off"
+            autoComplete="new-password"
             autoCorrect="off"
             autoCapitalize="off"
             spellCheck={false}
@@ -333,10 +333,8 @@ export function DeleteTenantModal({ tenant, onClose, onSuccess }: DeleteTenantMo
               boxSizing: 'border-box',
               outline: 'none',
               textAlign: 'right',
-              WebkitTextSecurity: showPassword ? 'none' : 'disc',
-              textSecurity: (showPassword ? 'none' : 'disc') as any,
-              letterSpacing: showPassword ? 'normal' : '2px',
             }}
+
           />
           <button
             type="button"

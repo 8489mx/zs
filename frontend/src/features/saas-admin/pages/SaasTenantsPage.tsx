@@ -1,11 +1,9 @@
 import { useTranslation } from 'react-i18next';
 import { Navigate } from 'react-router-dom';
 import { FormSection } from '@/shared/components/form-section';
-import { Field } from '@/shared/ui/field';
 import { PageHeader } from '@/shared/components/page-header';
 import { QueryFeedback } from '@/shared/components/query-feedback';
 import { SearchToolbar } from '@/shared/components/search-toolbar';
-import { StatsGrid } from '@/shared/components/stats-grid';
 import { TenantDataTable } from '../components/TenantDataTable';
 import { TenantCredentialsHero } from '../components/TenantCredentialsHero';
 import { TenantModalsManager } from '../components/TenantModalsManager';

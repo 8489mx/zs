@@ -5,7 +5,7 @@ import { getAvailableSaleProducts } from '@/features/pos/lib/pos.domain';
 import { POS_PRODUCT_CACHE_LIMIT, POS_PRODUCT_LOOKUP_LIMIT, createProductBarcodeMap, isLikelyBarcodeQuery, mergeLookupProducts } from '@/features/pos/lib/pos-product-lookup';
 import { parseQuantityPrefixQuery } from '@/features/pos/lib/pos-quantity-prefix';
 import { useDebouncedValue } from '@/shared/hooks/use-debounced-value';
-import { searchCatalogFromStorage, getAllCatalogFromStorage } from '@/features/pos/lib/pos-catalog-storage';
+import { searchCatalogFromStorage, getAllCatalogFromStorage, getStoredTenantIdFromStorage, clearCatalogStorage } from '@/features/pos/lib/pos-catalog-storage';
 import { useAuthStore } from '@/stores/auth-store';
 import type { Product } from '@/types/domain';
 
@@ -78,6 +78,12 @@ export function usePosCatalog(search: string, branchId: string, locationId: stri
         return res;
       } catch {
         // High-performance offline fallback from IndexedDB persistent storage
+        const activeTenantId = getActiveTenantId();
+        const storedTenantId = await getStoredTenantIdFromStorage();
+        if (activeTenantId && storedTenantId && activeTenantId !== storedTenantId) {
+          await clearCatalogStorage();
+          return [];
+        }
         const idbStored = await searchCatalogFromStorage(lookupTerm, POS_PRODUCT_LOOKUP_LIMIT);
         if (idbStored && idbStored.length > 0) {
           return idbStored;
@@ -102,11 +108,19 @@ export function usePosCatalog(search: string, branchId: string, locationId: stri
 
   useEffect(() => {
     let active = true;
-    getAllCatalogFromStorage(POS_PRODUCT_CACHE_LIMIT).then((stored) => {
-      if (active && stored && stored.length > 0) {
-        setProductCache((current) => mergeLookupProducts(stored, current).slice(0, POS_PRODUCT_CACHE_LIMIT));
+    (async () => {
+      const activeTenantId = getActiveTenantId();
+      const storedTenantId = await getStoredTenantIdFromStorage();
+      if (activeTenantId && storedTenantId && activeTenantId !== storedTenantId) {
+        await clearCatalogStorage();
+        if (active) setProductCache([]);
+        return;
       }
-    });
+      const stored = await getAllCatalogFromStorage(POS_PRODUCT_CACHE_LIMIT);
+      if (active) {
+        setProductCache(stored || []);
+      }
+    })();
     return () => {
       active = false;
     };
