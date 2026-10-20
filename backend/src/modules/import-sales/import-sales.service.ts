@@ -1,13 +1,46 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
-import { Kysely, sql } from 'kysely';
+import { Kysely, sql, Transaction, Selectable, Updateable } from 'kysely';
+import { Database, ImportShipmentTable, ImportShipmentItemTable } from '../../database/database.types';
+import { calculateImportLandedCosts, groupImportReceipts, importWeightedAverageCost, requireImportNumber } from './import-inventory-cost.engine';
 import { Inject } from '@nestjs/common';
 import { KYSELY_DB } from '../../database/database.constants';
-import { CreateShipmentDto, UpdateShipmentCostsDto, AddShipmentItemDto, RecordForeignTransferDto } from './dto/import-sales.dto';
+import { CreateShipmentDto, UpdateShipmentCostsDto, AddShipmentItemDto, RecordForeignTransferDto, UpdateShipmentItemDto } from './dto/import-sales.dto';
 import { applyStockDelta, lockStockProducts } from '../../common/utils/location-stock-ledger';
 
 @Injectable()
 export class ImportSalesService {
-  constructor(@Inject(KYSELY_DB) private readonly db: Kysely<any>) {}
+  // Keep unrelated partner/transfer paths untouched; all inventory queries use the real schema.
+  private readonly inventoryDb: Kysely<Database>;
+  constructor(@Inject(KYSELY_DB) private readonly db: Kysely<any>) {
+    this.inventoryDb = db;
+  }
+
+  private async lockShipment(trx: Transaction<Database>, tenantId: string, shipmentId: string) {
+    const shipment = await trx.selectFrom('import_shipments').selectAll()
+      .where('tenant_id', '=', tenantId).where('id', '=', shipmentId).forUpdate().executeTakeFirst();
+    if (!shipment) throw new NotFoundException('الشحنة غير موجودة');
+    const receipt = await trx.selectFrom('import_inventory_receipts').selectAll()
+      .where('tenant_id', '=', tenantId).where('shipment_id', '=', shipmentId).executeTakeFirst();
+    return { shipment, receipt };
+  }
+
+  private assertShipmentEditable(state: Awaited<ReturnType<ImportSalesService['lockShipment']>>) {
+    if (state.receipt?.state === 'legacy_review_required' || (!state.receipt && state.shipment.status === 'Arrived')) {
+      throw new BadRequestException('الشحنة القديمة تحتاج مراجعة الاستلام وتسوية معتمدة قبل أي تعديل أو إعادة ترحيل');
+    }
+    if (state.receipt) {
+      throw new BadRequestException('تم ترحيل الشحنة للمخزون؛ لا يمكن تعديل الكميات أو التكاليف إلا عبر تسوية معتمدة');
+    }
+  }
+
+  private costLine(item: Selectable<ImportShipmentItemTable>) {
+    return {
+      id: item.id, productId: Number(item.product_id), quantity: Number(item.quantity),
+      receivedQuantity: Number(item.received_quantity ?? item.quantity),
+      factoryUnitPriceUsd: Number(item.factory_unit_price_usd),
+      shortageHandlingMethod: item.shortage_handling_method ?? 'capitalize',
+    };
+  }
 
   async getPartners(tenantId: string) {
     return await this.db
@@ -217,268 +250,199 @@ export class ImportSalesService {
       .orderBy('import_shipment_items.created_at', 'asc')
       .execute();
 
-    return { ...shipment, items };
+    const receipt = await this.inventoryDb.selectFrom('import_inventory_receipts')
+      .select(['id', 'state', 'posted_at', 'review_reason'])
+      .where('tenant_id', '=', tenantId).where('shipment_id', '=', id).executeTakeFirst();
+    return { ...shipment, items, inventory_receipt: receipt ?? null };
   }
 
   async addShipmentItem(tenantId: string, shipmentId: string, dto: AddShipmentItemDto) {
-    const result = await this.db
-      .insertInto('import_shipment_items')
-      .values({
-        tenant_id: tenantId,
-        shipment_id: shipmentId,
-        product_id: dto.productId,
-        quantity: dto.quantity,
-        factory_unit_price_usd: dto.factoryUnitPriceUsd,
-      })
-      .returningAll()
-      .executeTakeFirstOrThrow();
-
-    await this.calculateLandedCost(tenantId, shipmentId);
-    return result;
-  }
-
-  async updateShipmentCosts(tenantId: string, userId: number, shipmentId: string, dto: UpdateShipmentCostsDto) {
-    let updatePayload: any = {};
-    if (dto.shippingCostUsd !== undefined) updatePayload.shipping_cost_usd = dto.shippingCostUsd;
-    if (dto.customsCostEgp !== undefined) updatePayload.customs_cost_egp = dto.customsCostEgp;
-    if (dto.internalTransportCostEgp !== undefined) updatePayload.internal_transport_cost_egp = dto.internalTransportCostEgp;
-    if (dto.exchangeRateAtArrival !== undefined) updatePayload.exchange_rate_at_arrival = dto.exchangeRateAtArrival;
-    if (dto.pricingExchangeRate !== undefined) updatePayload.pricing_exchange_rate = dto.pricingExchangeRate;
-    if (dto.status !== undefined) updatePayload.status = dto.status;
-    if (dto.shippedDate !== undefined) updatePayload.shipped_date = dto.shippedDate;
-    if (dto.etaDate !== undefined) updatePayload.eta_date = dto.etaDate;
-    if (dto.clearanceDate !== undefined) updatePayload.clearance_date = dto.clearanceDate;
-
-    return await this.db.transaction().execute(async (trx) => {
-      const shipment = await trx.selectFrom('import_shipments').selectAll().where('id', '=', shipmentId).where('tenant_id', '=', tenantId).executeTakeFirstOrThrow();
-      
-      const handleExpense = async (
-        costAmount: number | undefined, 
-        accountId: string | undefined, 
-        existingExpenseId: number | null, 
-        title: string
-      ): Promise<number | null> => {
-        if (costAmount === undefined && accountId === undefined) return existingExpenseId;
-        const finalCost = costAmount !== undefined ? costAmount : 0;
-        
-        if (accountId && finalCost > 0) {
-          if (existingExpenseId) {
-            await trx
-              .updateTable('expenses')
-              .set({ amount: finalCost, account_id: accountId })
-              .where('id', '=', existingExpenseId)
-              .where('tenant_id', '=', tenantId)
-              .execute();
-            return existingExpenseId;
-          } else {
-            const expense = await trx.insertInto('expenses').values({
-              tenant_id: tenantId,
-              account_id: accountId,
-              title: `${title} للحاوية ${shipment.container_number}`,
-              amount: finalCost,
-              expense_date: new Date(),
-              created_by: userId
-            }).returning('id').executeTakeFirstOrThrow();
-            return expense.id;
-          }
-        }
-        return existingExpenseId;
-      };
-
-      if (dto.shippingCostUsd !== undefined || dto.shippingAccountId !== undefined) {
-        const rate = dto.exchangeRateAtArrival || shipment.exchange_rate_at_arrival || 1;
-        updatePayload.shipping_expense_id = await handleExpense(
-          (dto.shippingCostUsd || 0) * rate,
-          dto.shippingAccountId, 
-          shipment.shipping_expense_id, 
-          'مصاريف شحن'
-        );
-      }
-      
-      if (dto.customsCostEgp !== undefined || dto.customsAccountId !== undefined) {
-        updatePayload.customs_expense_id = await handleExpense(dto.customsCostEgp, dto.customsAccountId, shipment.customs_expense_id, 'مصاريف جمارك');
-      }
-
-      if (dto.internalTransportCostEgp !== undefined || dto.transportAccountId !== undefined) {
-        updatePayload.transport_expense_id = await handleExpense(dto.internalTransportCostEgp, dto.transportAccountId, shipment.transport_expense_id, 'مصاريف نقل داخلي');
-      }
-
-      if (Object.keys(updatePayload).length > 0) {
-        await trx
-          .updateTable('import_shipments')
-          .set(updatePayload)
-          .where('tenant_id', '=', tenantId)
-          .where('id', '=', shipmentId)
-          .execute();
-      }
-    }).then(async () => {
-      await this.calculateLandedCost(tenantId, shipmentId);
-      
-      // If status changed to Arrived, update inventory and cost using weighted average
-      if (dto.status === 'Arrived') {
-        await this.postShipmentToInventory(tenantId, shipmentId);
-      }
-      
-      return await this.getShipmentById(tenantId, shipmentId);
-    });      
-  }
-
-  private async postShipmentToInventory(tenantId: string, shipmentId: string) {
-    await this.db.transaction().execute(async (trx) => {
-      await trx.selectFrom('import_shipments').select('id')
-        .where('id', '=', shipmentId).where('tenant_id', '=', tenantId)
-        .forUpdate().executeTakeFirstOrThrow();
-
-      // Robust idempotency check by reference_type and reference_id (with backwards-compat fallback)
-      const posted = await trx.selectFrom('stock_movements').select('id')
-        .where('tenant_id', '=', tenantId)
-        .where('reference_type', '=', 'import_shipment')
-        .where((eb) => eb.or([
-          eb('reference_id', '=', shipmentId as any),
-          eb('note', 'like', `شحنة استيراد #${shipmentId} -%`)
-        ]))
-        .executeTakeFirst();
-      if (posted) return;
-
-      const items = await trx.selectFrom('import_shipment_items').selectAll()
-        .where('tenant_id', '=', tenantId).where('shipment_id', '=', shipmentId)
-        .orderBy('product_id', 'asc').execute();
-      if (items.length === 0) return;
-
-      const products = await trx.selectFrom('products').select(['id', 'account_id', 'cost_price'])
-        .where('tenant_id', '=', tenantId)
-        .where('id', 'in', items.map((item) => Number(item.product_id)))
-        .execute();
-      const accountByProduct = new Map<number, string>(products.map((product) => [Number(product.id), String(product.account_id)]));
-      const costByProduct = new Map<number, number>(products.map((product) => [Number(product.id), Number(product.cost_price || 0)]));
-
-      for (const product of products.sort((a, b) => Number(a.id) - Number(b.id))) {
-        await lockStockProducts(trx as any, { tenantId, accountId: String(product.account_id), productIds: [Number(product.id)] });
-      }
-
-      for (const item of items) {
-        const finalQty = item.received_quantity !== null && item.received_quantity !== undefined
-          ? Number(item.received_quantity)
-          : Number(item.quantity);
-        if (!Number.isFinite(finalQty) || finalQty < 0) throw new BadRequestException('Invalid received quantity');
-        const accountId = accountByProduct.get(Number(item.product_id));
-        if (!accountId) throw new NotFoundException(`Product #${item.product_id} not found`);
-        const landedCost = Number(item.landed_cost_egp) || 0;
-
-        const stockChange = await applyStockDelta(trx as any, {
-          tenantId, accountId, productId: Number(item.product_id), delta: finalQty,
-        });
-
-        // Compute Weighted Average Cost: ((oldQty * oldCost) + (finalQty * landedCost)) / totalQty
-        const oldQty = Math.max(0, stockChange.globalBefore ?? stockChange.scopeBefore);
-        const oldCost = costByProduct.get(Number(item.product_id)) ?? 0;
-        const totalQty = oldQty + finalQty;
-        const newWeightedCost = (finalQty > 0 && totalQty > 0.00001)
-          ? ((oldQty * oldCost) + (finalQty * landedCost)) / totalQty
-          : (landedCost > 0 ? landedCost : oldCost);
-
-        await trx.updateTable('products')
-          .set({ cost_price: Number(newWeightedCost.toFixed(6)), updated_at: sql`NOW()` })
-          .where('tenant_id', '=', tenantId).where('account_id', '=', accountId)
-          .where('id', '=', Number(item.product_id)).execute();
-
-        await trx.insertInto('stock_movements').values({
-          product_id: Number(item.product_id),
-          movement_type: 'import_receipt',
-          qty: finalQty,
-          before_qty: stockChange.scopeBefore,
-          after_qty: stockChange.scopeAfter,
-          reason: 'استلام شحنة استيراد',
-          note: `شحنة استيراد #${shipmentId} - تكلفة محملة للقطعة: ${landedCost} ج.م`,
-          reference_type: 'import_shipment',
-          reference_id: shipmentId as any,
-          tenant_id: tenantId,
-          account_id: accountId,
-        } as any).execute();
-
-        const qty = Number(item.quantity);
-        if (item.shortage_handling_method === 'expense' && finalQty < qty) {
-          const missingQty = qty - finalQty;
-          const lossAmount = missingQty * landedCost;
-
-          await trx.insertInto('expenses').values({
-            tenant_id: tenantId,
-            account_id: accountId,
-            title: `خسائر نواقص حاوية (تسوية عجز) - صنف ${item.product_id}`,
-            amount: lossAmount,
-            expense_date: new Date(),
-            note: `نقص عدد ${missingQty} قطعة من البوليصة. تم معالجتها كخسارة.`
-          }).execute();
-        }
-      }
+    return this.inventoryDb.transaction().execute(async (trx) => {
+      const state = await this.lockShipment(trx, tenantId, shipmentId);
+      this.assertShipmentEditable(state);
+      const productId = requireImportNumber(dto.productId, 'الصنف', 1);
+      if (!Number.isSafeInteger(productId)) throw new BadRequestException('معرف الصنف غير صالح');
+      const product = await trx.selectFrom('products').select('id')
+        .where('tenant_id', '=', tenantId).where('id', '=', productId).executeTakeFirst();
+      if (!product) throw new NotFoundException('الصنف غير موجود في المنشأة');
+      requireImportNumber(dto.quantity, 'الكمية', 1);
+      requireImportNumber(dto.factoryUnitPriceUsd, 'سعر المصنع');
+      if (!Number.isInteger(dto.quantity)) throw new BadRequestException('الكمية يجب أن تكون عددًا صحيحًا');
+      const item = await trx.insertInto('import_shipment_items').values({
+        tenant_id: tenantId, shipment_id: shipmentId, product_id: productId,
+        quantity: dto.quantity, factory_unit_price_usd: dto.factoryUnitPriceUsd,
+      }).returningAll().executeTakeFirstOrThrow();
+      await this.calculateLandedCostInTransaction(trx, state.shipment);
+      return trx.selectFrom('import_shipment_items').selectAll()
+        .where('tenant_id', '=', tenantId).where('id', '=', item.id).executeTakeFirstOrThrow();
     });
   }
 
+  async updateShipmentCosts(tenantId: string, userId: number, shipmentId: string, dto: UpdateShipmentCostsDto) {
+    await this.inventoryDb.transaction().execute(async (trx) => {
+      const state = await this.lockShipment(trx, tenantId, shipmentId);
+      const { shipment, receipt } = state;
+      const numericFields = [
+        ['shippingCostUsd', 'shipping_cost_usd'], ['customsCostEgp', 'customs_cost_egp'],
+        ['internalTransportCostEgp', 'internal_transport_cost_egp'],
+        ['exchangeRateAtArrival', 'exchange_rate_at_arrival'],
+      ] as const;
+      const payload: Updateable<ImportShipmentTable> = {};
+      let financialChange = false;
+      for (const [input, column] of numericFields) {
+        if (dto[input] !== undefined) {
+          const value = requireImportNumber(dto[input], input, input === 'exchangeRateAtArrival' ? Number.MIN_VALUE : 0);
+          const scale = input === 'exchangeRateAtArrival' ? 4 : 2;
+          if (value !== Number(value.toFixed(scale))) throw new BadRequestException(`دقة غير صالحة: ${input}`);
+          payload[column] = value;
+          if (value !== Number(shipment[column])) financialChange = true;
+        }
+      }
+      if (dto.status !== undefined) {
+        if (!['Pending', 'In Customs', 'Arrived'].includes(dto.status)) throw new BadRequestException('حالة الشحنة غير صالحة');
+        payload.status = dto.status;
+      }
+      if (dto.pricingExchangeRate !== undefined) payload.pricing_exchange_rate = requireImportNumber(dto.pricingExchangeRate, 'سعر صرف التسعير', Number.MIN_VALUE);
+      if (dto.shippedDate !== undefined) payload.shipped_date = dto.shippedDate;
+      if (dto.etaDate !== undefined) payload.eta_date = dto.etaDate;
+      if (dto.clearanceDate !== undefined) payload.clearance_date = dto.clearanceDate;
+
+      const expenseInputs = [
+        [dto.shippingAccountId, shipment.shipping_expense_id, shipment.shipping_cost_usd],
+        [dto.customsAccountId, shipment.customs_expense_id, shipment.customs_cost_egp],
+        [dto.transportAccountId, shipment.transport_expense_id, shipment.internal_transport_cost_egp],
+      ] as const;
+      // Replaying an identical posted request is a no-op, including its expense selections.
+      if (receipt?.state === 'posted') {
+        for (const [accountId, expenseId, cost] of expenseInputs) {
+          if (accountId === undefined) continue;
+          if (expenseId === null && Number(cost) === 0) continue;
+          const expense = expenseId === null ? undefined : await trx.selectFrom('expenses').select('account_id')
+            .where('tenant_id', '=', tenantId).where('id', '=', expenseId).executeTakeFirst();
+          if (accountId !== expense?.account_id) financialChange = true;
+        }
+        if (financialChange || (dto.status !== undefined && dto.status !== 'Arrived')) {
+          this.assertShipmentEditable(state);
+        }
+        // Only tracking dates and sales-pricing inputs can change after receipt.
+        delete payload.shipping_cost_usd;
+        delete payload.customs_cost_egp;
+        delete payload.internal_transport_cost_egp;
+        delete payload.exchange_rate_at_arrival;
+        delete payload.status;
+      } else {
+        this.assertShipmentEditable(state);
+        const handleExpense = async (cost: number, accountId: string | undefined, existingId: number | null, title: string) => {
+          if (!accountId || cost <= 0) return existingId;
+          if (existingId !== null) {
+            await trx.updateTable('expenses').set({ amount: cost, account_id: accountId })
+              .where('tenant_id', '=', tenantId).where('id', '=', existingId).execute();
+            return existingId;
+          }
+          const expense = await trx.insertInto('expenses').values({
+            tenant_id: tenantId, account_id: accountId, title: `${title} للحاوية ${shipment.container_number}`,
+            amount: cost, expense_date: new Date().toISOString().slice(0, 10), created_by: userId,
+            note: '', branch_id: null, location_id: null,
+          }).returning('id').executeTakeFirstOrThrow();
+          return expense.id;
+        };
+        if (dto.shippingCostUsd !== undefined || dto.shippingAccountId !== undefined) {
+          payload.shipping_expense_id = await handleExpense(
+            Number(dto.shippingCostUsd ?? shipment.shipping_cost_usd ?? 0) * requireImportNumber(dto.exchangeRateAtArrival ?? shipment.exchange_rate_at_arrival, 'سعر الصرف', Number.MIN_VALUE),
+            dto.shippingAccountId, shipment.shipping_expense_id, 'مصاريف شحن');
+        }
+        if (dto.customsCostEgp !== undefined || dto.customsAccountId !== undefined) {
+          payload.customs_expense_id = await handleExpense(Number(dto.customsCostEgp ?? shipment.customs_cost_egp ?? 0), dto.customsAccountId, shipment.customs_expense_id, 'مصاريف جمارك');
+        }
+        if (dto.internalTransportCostEgp !== undefined || dto.transportAccountId !== undefined) {
+          payload.transport_expense_id = await handleExpense(Number(dto.internalTransportCostEgp ?? shipment.internal_transport_cost_egp ?? 0), dto.transportAccountId, shipment.transport_expense_id, 'مصاريف نقل داخلي');
+        }
+      }
+      const updated = Object.keys(payload).length ? await trx.updateTable('import_shipments').set(payload)
+        .where('tenant_id', '=', tenantId).where('id', '=', shipmentId).returningAll().executeTakeFirstOrThrow() : shipment;
+      if (!receipt) {
+        await this.calculateLandedCostInTransaction(trx, updated);
+        if (dto.status === 'Arrived') await this.postShipmentToInventory(trx, tenantId, shipmentId, userId);
+      }
+    });
+    return this.getShipmentById(tenantId, shipmentId);
+  }
+
+  /** Caller holds the shipment lock; status, costs, receipt and stock commit together. */
+  private async postShipmentToInventory(trx: Transaction<Database>, tenantId: string, shipmentId: string, userId: number) {
+    const items = await trx.selectFrom('import_shipment_items').selectAll()
+      .where('tenant_id', '=', tenantId).where('shipment_id', '=', shipmentId).execute();
+    if (!items.length) throw new BadRequestException('لا يمكن استلام شحنة بدون أصناف');
+    const groups = groupImportReceipts(items.map((item) => ({ ...this.costLine(item), landedCost: Number(item.landed_cost_egp) })));
+    const products = await trx.selectFrom('products').select(['id', 'account_id'])
+      .where('tenant_id', '=', tenantId).where('id', 'in', groups.map((group) => group.productId))
+      .orderBy('id', 'asc').execute();
+    if (products.length !== groups.length) throw new NotFoundException('أحد أصناف الشحنة غير موجود في المنشأة');
+    const accountByProduct = new Map(products.map((product) => [Number(product.id), product.account_id]));
+    // Lock ALL products, across accounts, in global ID order before touching any location.
+    for (const product of products) {
+      await lockStockProducts(trx, { tenantId, accountId: product.account_id, productIds: [Number(product.id)] });
+    }
+    const receipt = await trx.insertInto('import_inventory_receipts').values({
+      tenant_id: tenantId, shipment_id: shipmentId, state: 'posted', review_reason: null,
+      posted_at: new Date(), created_by: userId,
+    }).returning('id').executeTakeFirstOrThrow();
+    for (const group of groups) {
+      const accountId = accountByProduct.get(group.productId);
+      if (!accountId) throw new BadRequestException('حساب الصنف غير صالح');
+      if (group.quantity > 0) {
+        const product = await trx.selectFrom('products').select('cost_price')
+          .where('tenant_id', '=', tenantId).where('account_id', '=', accountId)
+          .where('id', '=', group.productId).executeTakeFirstOrThrow();
+        const stock = await applyStockDelta(trx, {
+          tenantId, accountId, productId: group.productId, delta: group.quantity, allowNegative: true,
+        });
+        // globalBefore is a cached product counter. globalAfter is reconciled by the ledger
+        // from locked location balances (including its legacy unassigned-stock policy).
+        const oldQty = Number((stock.globalAfter - group.quantity).toFixed(3));
+        const cost = importWeightedAverageCost(oldQty, Number(product.cost_price ?? 0), group.quantity, group.value);
+        await trx.updateTable('products').set({ cost_price: cost, updated_at: sql`NOW()` })
+          .where('tenant_id', '=', tenantId).where('account_id', '=', accountId).where('id', '=', group.productId).execute();
+        await trx.insertInto('stock_movements').values({
+          tenant_id: tenantId, account_id: accountId, product_id: group.productId,
+          movement_type: 'import_receipt', qty: group.quantity, before_qty: stock.scopeBefore, after_qty: stock.scopeAfter,
+          unit_cost: Number((group.value / group.quantity).toFixed(6)), total_cost: Number(group.value.toFixed(4)),
+          reason: 'استلام شحنة استيراد', note: `شحنة استيراد #${shipmentId}`,
+          reference_type: 'import_inventory_receipt', reference_id: receipt.id, import_receipt_id: receipt.id,
+          created_by: userId, branch_id: null, location_id: null,
+        }).execute();
+      }
+      if (group.shortageExpense > 0) {
+        await trx.insertInto('expenses').values({
+          tenant_id: tenantId, account_id: accountId,
+          title: `خسائر نواقص حاوية (تسوية عجز) - صنف ${group.productId}`,
+          amount: Number(group.shortageExpense.toFixed(2)), expense_date: new Date().toISOString().slice(0, 10),
+          note: `شحنة استيراد #${shipmentId} - سند استلام ${receipt.id}`,
+          created_by: userId, branch_id: null, location_id: null,
+        }).execute();
+      }
+    }
+  }
+
   async calculateLandedCost(tenantId: string, shipmentId: string) {
-    const shipment = await this.db
-      .selectFrom('import_shipments')
-      .selectAll()
-      .where('tenant_id', '=', tenantId)
-      .where('id', '=', shipmentId)
-      .executeTakeFirst();
-      
-    if (!shipment) return { success: false, message: 'Not found' };
+    return this.inventoryDb.transaction().execute(async (trx) => {
+      const state = await this.lockShipment(trx, tenantId, shipmentId);
+      this.assertShipmentEditable(state);
+      return this.calculateLandedCostInTransaction(trx, state.shipment);
+    });
+  }
 
-    const rate = Number(shipment.exchange_rate_at_arrival);
-    if (!rate || rate <= 0) {
-      throw new BadRequestException('يجب تحديد سعر الصرف الفعلي للعملة الأجنبية للشحنة لحساب التكلفة الفعلية بدقة.');
+  private async calculateLandedCostInTransaction(trx: Transaction<Database>, shipment: Selectable<ImportShipmentTable>) {
+    const items = await trx.selectFrom('import_shipment_items').selectAll()
+      .where('tenant_id', '=', shipment.tenant_id).where('shipment_id', '=', shipment.id).execute();
+    const lines = calculateImportLandedCosts(items.map((item) => this.costLine(item)), {
+      exchangeRate: requireImportNumber(shipment.exchange_rate_at_arrival, 'سعر الصرف', Number.MIN_VALUE), shippingUsd: Number(shipment.shipping_cost_usd ?? 0),
+      customsEgp: Number(shipment.customs_cost_egp ?? 0), transportEgp: Number(shipment.internal_transport_cost_egp ?? 0),
+    });
+    for (const line of lines) {
+      await trx.updateTable('import_shipment_items').set({ allocated_overhead_egp: line.allocatedOverhead, landed_cost_egp: line.landedCost })
+        .where('tenant_id', '=', shipment.tenant_id).where('shipment_id', '=', shipment.id).where('id', '=', line.id).execute();
     }
-
-    const items = await this.db
-      .selectFrom('import_shipment_items')
-      .selectAll()
-      .where('tenant_id', '=', tenantId)
-      .where('shipment_id', '=', shipmentId)
-      .execute();
-
-    if (items.length === 0) return { success: true };
-
-    const shippingUsd = Number(shipment.shipping_cost_usd) || 0;
-    const customsEgp = Number(shipment.customs_cost_egp) || 0;
-    const transportEgp = Number(shipment.internal_transport_cost_egp) || 0;
-
-    const shippingEgp = shippingUsd * rate;
-    const totalOverheadEgp = shippingEgp + customsEgp + transportEgp;
-
-    const totalUsdValue = items.reduce((sum, item) => sum + (Number(item.quantity) * Number(item.factory_unit_price_usd)), 0);
-
-    for (const item of items) {
-      const qty = Number(item.quantity);
-      const unitUsd = Number(item.factory_unit_price_usd);
-      const itemTotalUsd = qty * unitUsd;
-      
-      const ratio = totalUsdValue > 0 ? (itemTotalUsd / totalUsdValue) : (1 / items.length);
-      const itemOverheadEgp = totalOverheadEgp * ratio;
-      
-      const unitBaseEgp = unitUsd * rate;
-      const totalItemCostEgp = (qty * unitBaseEgp) + itemOverheadEgp;
-      
-      // Handle shortage
-      const handlingMethod = item.shortage_handling_method || 'capitalize';
-      const receivedQty = item.received_quantity !== null && item.received_quantity !== undefined 
-        ? Number(item.received_quantity) 
-        : qty;
-        
-      const effectiveQty = handlingMethod === 'capitalize' && receivedQty > 0 ? receivedQty : qty;
-
-      const unitLandedEgp = effectiveQty > 0 ? totalItemCostEgp / effectiveQty : 0;
-      const unitOverheadEgp = effectiveQty > 0 ? itemOverheadEgp / effectiveQty : 0;
-
-      await this.db.updateTable('import_shipment_items')
-        .set({
-          allocated_overhead_egp: Number(unitOverheadEgp.toFixed(4)),
-          landed_cost_egp: Number(unitLandedEgp.toFixed(4))
-        })
-        .where('id', '=', item.id)
-        .where('tenant_id', '=', tenantId)
-        .execute();
-    }
-    
     return { success: true, message: 'Landed cost recalculated successfully' };
   }
 
@@ -788,35 +752,32 @@ export class ImportSalesService {
     });
   }
 
-  async updateShipmentItem(tenantId: string, itemId: string, dto: { receivedQuantity?: number, targetRetailMargin?: number, targetWholesaleMargin?: number, shortageHandlingMethod?: 'capitalize' | 'expense' }) {
-    const setPayload: any = {};
-    if (dto.receivedQuantity !== undefined) setPayload.received_quantity = dto.receivedQuantity;
-    if (dto.targetRetailMargin !== undefined) setPayload.target_retail_margin = dto.targetRetailMargin;
-    if (dto.targetWholesaleMargin !== undefined) setPayload.target_wholesale_margin = dto.targetWholesaleMargin;
-    if (dto.shortageHandlingMethod !== undefined) setPayload.shortage_handling_method = dto.shortageHandlingMethod;
-
-    if (Object.keys(setPayload).length > 0) {
-      await this.db
-        .updateTable('import_shipment_items')
-        .set(setPayload)
-        .where('id', '=', itemId)
-        .where('tenant_id', '=', tenantId)
-        .execute();
-        
-      if (dto.receivedQuantity !== undefined || dto.shortageHandlingMethod !== undefined) {
-        const item = await this.db.selectFrom('import_shipment_items')
-          .select('shipment_id')
-          .where('id', '=', itemId)
-          .where('tenant_id', '=', tenantId)
-          .executeTakeFirst();
-          
-        if (item) {
-          await this.calculateLandedCost(tenantId, item.shipment_id);
-        }
+  async updateShipmentItem(tenantId: string, itemId: string, dto: UpdateShipmentItemDto) {
+    return this.inventoryDb.transaction().execute(async (trx) => {
+      const parent = await trx.selectFrom('import_shipment_items').select('shipment_id')
+        .where('tenant_id', '=', tenantId).where('id', '=', itemId).executeTakeFirst();
+      if (!parent) throw new NotFoundException('بند الشحنة غير موجود');
+      // Do not lock an item before its parent; every edit/post uses the same ordering.
+      const state = await this.lockShipment(trx, tenantId, parent.shipment_id);
+      const item = await trx.selectFrom('import_shipment_items').selectAll()
+        .where('tenant_id', '=', tenantId).where('shipment_id', '=', parent.shipment_id)
+        .where('id', '=', itemId).executeTakeFirstOrThrow();
+      const payload: Updateable<ImportShipmentItemTable> = {};
+      const stockEdit = dto.receivedQuantity !== undefined || dto.shortageHandlingMethod !== undefined;
+      if (stockEdit) {
+        this.assertShipmentEditable(state);
+        if (dto.receivedQuantity !== undefined) payload.received_quantity = requireImportNumber(dto.receivedQuantity, 'الكمية المستلمة');
+        if (dto.shortageHandlingMethod !== undefined) payload.shortage_handling_method = dto.shortageHandlingMethod;
       }
-    }
-    
-    return { success: true };
+      if (dto.targetRetailMargin !== undefined) payload.target_retail_margin = requireImportNumber(dto.targetRetailMargin, 'هامش التجزئة');
+      if (dto.targetWholesaleMargin !== undefined) payload.target_wholesale_margin = requireImportNumber(dto.targetWholesaleMargin, 'هامش الجملة');
+      if (Object.keys(payload).length) {
+        await trx.updateTable('import_shipment_items').set(payload)
+          .where('tenant_id', '=', tenantId).where('shipment_id', '=', item.shipment_id).where('id', '=', itemId).execute();
+        if (stockEdit) await this.calculateLandedCostInTransaction(trx, state.shipment);
+      }
+      return { success: true };
+    });
   }
 
   async applySuggestedPrices(tenantId: string, shipmentId: string) {

@@ -620,6 +620,7 @@ export interface ProductLocationStockTable {
 }
 
 export interface StockMovementTable {
+  import_receipt_id: ColumnType<number | null, number | null | undefined, number | null>;
   tenant_id: ColumnType<string, string | undefined, string | undefined>;
   account_id: ColumnType<string, string | undefined, string | undefined>;
   id: Generated<number>;
@@ -5472,3 +5473,60 @@ export interface Database {
 
 
 
+
+// Import inventory tables are explicitly typed; shipment UUIDs never enter numeric references.
+type ImportNumeric = ColumnType<number | string | null, number | string | null | undefined, number | string | null>;
+type ImportDate = ColumnType<Date | string | null, Date | string | null | undefined, Date | string | null>;
+export interface ImportShipmentTable {
+  id: Generated<string>;
+  tenant_id: string;
+  container_number: string;
+  supplier_id: ColumnType<number | null, number | null | undefined, number | null>;
+  bill_of_lading: string | null;
+  arrival_date: ImportDate;
+  shipping_date: ImportDate;
+  shipped_date: ImportDate;
+  eta_date: ImportDate;
+  clearance_date: ImportDate;
+  shipping_cost_usd: ImportNumeric;
+  customs_cost_egp: ImportNumeric;
+  internal_transport_cost_egp: ImportNumeric;
+  exchange_rate_at_arrival: ImportNumeric;
+  pricing_exchange_rate: ImportNumeric;
+  status: ColumnType<string | null, string | undefined, string>;
+  shipping_expense_id: number | null;
+  customs_expense_id: number | null;
+  transport_expense_id: number | null;
+  created_at: Generated<Date>;
+}
+export interface ImportShipmentItemTable {
+  id: Generated<string>;
+  tenant_id: string;
+  shipment_id: string;
+  product_id: number;
+  quantity: number;
+  factory_unit_price_usd: ImportNumeric;
+  allocated_overhead_egp: ImportNumeric;
+  landed_cost_egp: ImportNumeric;
+  received_quantity: ImportNumeric;
+  shortage_handling_method: ColumnType<string | null, string | undefined, string>;
+  target_margin_percent: ImportNumeric;
+  target_retail_margin: ImportNumeric;
+  target_wholesale_margin: ImportNumeric;
+  created_at: Generated<Date>;
+}
+export interface ImportInventoryReceiptTable {
+  id: Generated<number>;
+  tenant_id: string;
+  shipment_id: string;
+  state: 'posted' | 'legacy_review_required';
+  review_reason: string | null;
+  posted_at: Date | null;
+  created_by: number | null;
+  created_at: Generated<Date>;
+}
+export interface Database {
+  import_shipments: ImportShipmentTable;
+  import_shipment_items: ImportShipmentItemTable;
+  import_inventory_receipts: ImportInventoryReceiptTable;
+}

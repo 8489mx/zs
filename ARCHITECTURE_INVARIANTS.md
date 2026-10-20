@@ -1955,8 +1955,20 @@ The authenticated master endpoints use private conditional caching and weak ETag
   - مجموع نسب أرباح الشركاء محكوم بسقف رقابي لا يتجاوز 100%.
 - **IMPORT-FIN-INVENTORY-WAC-1 (تطبيق المتوسط المرجح لتكلفة المخزون عند استلام الحاويات):**
   - عند استلام الشحنة وتغيير حالتها إلى `Arrived`، تُحدث تكلفة الصنف بالمتوسط المرجح الدقيق `((oldQty * oldCost) + (newQty * landedCost)) / totalQty` بدلاً من مسح التكلفة القديمة عشوائياً.
-  - فحص الترحيل المسبق يعتمد على `reference_id = shipmentId` وقيود الداتابيز الصارمة لمنع تكرار الترحيل عند الطلبات المتزامنة.
+  - مرجع حركات الاستلام هو معرف BIGINT من `import_inventory_receipts` مرتبط بالشحنة UUID بمفتاح أجنبي مع `tenant_id`. يُحظر تمرير UUID إلى `stock_movements.reference_id` أو الاعتماد على الملاحظات لمنع التكرار.
 - **IMPORT-FIN-ACCESS-1 (حظر وصول صلاحية المبيعات/الكاشير إلى عمليات الاستيراد والشراكة):**
   - متحكم الاستيراد `ImportSalesController` محمي بالصلاحيات الرقابية (`accounting`, `purchases`, `inventory`) ومجرد تماماً من صلاحية `sales` العامة.
   - عمليات الشركاء وصرف الأرباح ورأس المال محصورة حصراً بالمدير المالي (`accounting`).
 - **الحارس:** `backend/test/critical/import-sales-financial-integrity.spec.ts`.
+
+## Import inventory integrity — 20 October 2026
+
+- `updateShipmentCosts`, adding/editing stock-bearing shipment lines, and landed-cost recalculation lock the tenant-scoped shipment first. Arrival, expense links, calculated line costs, the unique receipt, movements and product WAC commit in one transaction. Failure rolls them all back. An identical arrival retry does not post again.
+- Receipt movements use `reference_type = import_inventory_receipt`, numeric `reference_id = import_receipt_id`, a tenant-qualified FK, and one aggregated movement per receipt/product. The shared BIGINT column and every legacy reference remain unchanged.
+- Aggregate incoming quantity/value by product before WAC. Lock all products ascending before location balances; mutate stock only through `applyStockDelta`. Use its reconciled `globalAfter - receivedQty`, not cached `globalBefore`, for prior quantity, retaining the ledger's legacy unassigned-stock policy. Non-positive prior quantity takes incoming cost; positive prior quantity uses moving average. Source overhead is allocated once. Existing exclusion of capitalized shipment expenses from the profit pool is preserved.
+- Posted quantities, shortage handling, cost-bearing fields and state reversal are blocked with an explicit settlement-required error. Identical cost inputs are no-ops; sales margins, pricing FX and tracking dates remain editable. Direct landed-cost recalculation after posting is blocked.
+- Migrations `2040000000230`/`2040000000231` add receipt/FK/check/unique constraints, then insert legacy review holds and validate constraints. Existing Arrived shipments or legacy movement evidence require review, not automatic reposting. Unmatchable legacy movements conservatively hold existing shipments of that tenant. Note parsing is used only to identify historical review candidates in the migration, never as runtime posting proof. No historical quantity, cost, movement reference, expense or status is rewritten; ledger counts/quantity/value/reference checks guard reconciliation per tenant. Rollback deliberately refuses to delete receipt evidence.
+- Numbering continues Kysely's actual lexical tail `2040000000229`; historical 14-digit `2026...` names have a higher numerical value but execute earlier. No migration is inserted before an executed name.
+- Deployment: stop old import writers while applying both migrations and installing the new code. Do not allow old and new posting implementations to run together.
+- Follow-up: an authorized, audited settlement/reversal flow, including reconciliation of each legacy hold and sold-versus-on-hand cost allocation. No release/repost endpoint is introduced here.
+- Validation: static review only. Tests, build and typecheck were not run at the user's explicit request; migrations were not executed on any database.
