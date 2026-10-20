@@ -76,6 +76,8 @@ const ERROR_CODE_MESSAGES: Record<string, string> = {
   BRANCH_NAME_REQUIRED: 'اسم الفرع مطلوب.',
   INVENTORY_ADJUSTMENT_INVALID: 'بيانات حركة المخزون غير صحيحة.',
   NO_STOCK: 'لا يوجد مخزون كافي لنقله في الموقع المصدر.',
+  INVENTORY_COST_MISSING: 'الصنف ليس له سعر تكلفة مسجل لتوليد القيد المالي.',
+  LEDGER_POSTING_MISSING: 'تعذر إنشاء قيد اليومية المالي للعملية.',
 };
 
 function looksArabic(value: string): boolean {

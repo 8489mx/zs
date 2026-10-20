@@ -58,10 +58,8 @@ export class InventoryAdjustmentService {
         .forUpdate()
         .executeTakeFirst();
       if (!product) throw new AppError('Product not found', 'PRODUCT_NOT_FOUND', 404);
-      const unitCost = Number(product.cost_price);
-      if (!Number.isFinite(unitCost) || unitCost <= 0) {
-        throw new AppError('A positive product cost is required for inventory journal posting', 'INVENTORY_COST_MISSING', 400);
-      }
+      const rawCost = Number(product.cost_price || 0);
+      const unitCost = Number.isFinite(rawCost) && rawCost > 0 ? rawCost : 0;
       const stockScope = { tenantId: scope.tenantId, accountId: scope.accountId, productId: payload.productId, branchId: payload.branchId, locationId: payload.locationId };
       const beforeQty = payload.locationId
         ? await previewAssignedLocationStockQty(trx, stockScope)
@@ -105,7 +103,6 @@ export class InventoryAdjustmentService {
       movementQty = Math.abs(signedDelta);
       if (movementQty < 0.001) throw new AppError('Adjustment did not change stock', 'STOCK_ADJUSTMENT_NO_CHANGE', 400);
       const totalCost = Number((movementQty * unitCost).toFixed(2));
-      if (totalCost <= 0) throw new AppError('Inventory adjustment has no financial value', 'INVENTORY_COST_MISSING', 400);
 
       const insertedMovement = await trx
         .insertInto('stock_movements')
@@ -135,7 +132,7 @@ export class InventoryAdjustmentService {
       }
 
       const posting = await this.accountingPosting.postInventoryAdjustment(trx, insertedMovement.id, auth);
-      if (Math.abs(stockChange.scopeAfter - stockChange.scopeBefore) >= 0.001 && !posting.journalEntryId) {
+      if (posting.hasFinancialImpact && !posting.journalEntryId) {
         throw new AppError(`Inventory adjustment ${insertedMovement.id} has no journal entry`, 'LEDGER_POSTING_MISSING', 500);
       }
       result = { productId: payload.productId, locationId: payload.locationId, beforeQty: stockChange.scopeBefore, afterQty: stockChange.scopeAfter, scopeBefore: stockChange.scopeBefore, scopeAfter: stockChange.scopeAfter, globalBefore: stockChange.globalBefore, globalAfter: stockChange.globalAfter };

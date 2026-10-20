@@ -325,11 +325,9 @@ export class InventoryCountService {
           if (Math.abs(variance) >= 0.001) {
             const product = await trx.selectFrom('products').select('cost_price')
               .where('id', '=', item.product_id).where(this.tenantPredicate(auth)).executeTakeFirstOrThrow();
-            const unitCost = Number(product.cost_price || 0);
-            const totalCost = Math.abs(variance) * unitCost;
-            if (!Number.isFinite(totalCost) || Number(totalCost.toFixed(2)) <= 0) {
-              throw new AppError(`Stock count item ${item.id} has no valid financial cost`, 'INVENTORY_COST_MISSING', 400);
-            }
+            const rawCost = Number(product.cost_price || 0);
+            const unitCost = Number.isFinite(rawCost) && rawCost > 0 ? rawCost : 0;
+            const totalCost = Number((Math.abs(variance) * unitCost).toFixed(2));
             const stockChange = await setScopedStockQty(trx, {
               productId: Number(item.product_id), nextQty: Number(item.counted_qty || 0),
               branchId: session.branch_id, locationId: session.location_id,
@@ -357,7 +355,7 @@ export class InventoryCountService {
           updated_at: sql`NOW()`,
         }).where('id', '=', sessionId).where(this.tenantPredicate(auth)).execute();
         const posting = await this.accountingPosting.postStockCount(trx, sessionId, auth, items.map((item) => Number(item.id)));
-        if (items.some((item) => Math.abs(Number(item.variance_qty || 0)) >= 0.001) && !posting.journalEntryId) {
+        if (posting.hasFinancialImpact && !posting.journalEntryId) {
           throw new AppError(`Stock count ${sessionId} chunk has no journal entry`, 'LEDGER_POSTING_MISSING', 500);
         }
         await trx.updateTable('stock_count_items').set({ posted_at: sql`NOW()` })
@@ -460,15 +458,13 @@ export class InventoryCountService {
         .where(this.tenantPredicate(auth)).where('account_id', '=', tenantScope.accountId)
         .forUpdate().executeTakeFirst();
       if (!product) throw new AppError('Product not found', 'PRODUCT_NOT_FOUND', 404);
-      const unitCost = Number(product.cost_price);
+      const rawCost = Number(product.cost_price || 0);
+      const unitCost = Number.isFinite(rawCost) && rawCost > 0 ? rawCost : 0;
       const damageQty = Number(payload.qty);
       const totalCost = Number((damageQty * unitCost).toFixed(2));
       if (!Number.isFinite(damageQty) || damageQty <= 0
         || Math.abs(damageQty * 1000 - Math.round(damageQty * 1000)) > 0.000001) {
         throw new AppError('Damage quantity must be positive with at most three decimal places', 'INVALID_QTY', 400);
-      }
-      if (!Number.isFinite(unitCost) || unitCost <= 0 || !Number.isFinite(totalCost) || totalCost <= 0) {
-        throw new AppError('A positive cost is required to post damaged stock', 'INVENTORY_COST_MISSING', 400);
       }
 
       const availableQty = await previewConsumableStockQty(trx, { productId: payload.productId, branchId: location.branchId, locationId: location.id, tenantId: tenantScope.tenantId, accountId: tenantScope.accountId });
@@ -497,7 +493,7 @@ export class InventoryCountService {
       }).execute();
 
       const posting = await this.accountingPosting.postDamagedStock(trx, Number(insertedDamage.id), auth);
-      if (!posting.journalEntryId) throw new AppError(`Damaged stock ${insertedDamage.id} has no journal entry`, 'LEDGER_POSTING_MISSING', 500);
+      if (posting.hasFinancialImpact && !posting.journalEntryId) throw new AppError(`Damaged stock ${insertedDamage.id} has no journal entry`, 'LEDGER_POSTING_MISSING', 500);
     });
     await this.audit.log('تسجيل تالف', JSON.stringify({ actorUserId: auth.userId, productId: payload.productId, qty: payload.qty }), auth);
     const responsePayload = { ok: true, products: (await this.db.selectFrom('products').select(['id', 'name']).where('is_active', '=', true).where(this.tenantPredicate(auth)).execute()).map((p) => ({ id: String(p.id), name: p.name })), damagedStockRecords: (await this.listDamagedStock({}, auth)).damagedStockRecords, stockMovements: (await this.listStockMovements({}, auth)).stockMovements };
