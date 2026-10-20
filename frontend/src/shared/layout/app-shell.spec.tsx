@@ -213,7 +213,7 @@ describe('AppShell', () => {
   it('enforces strict tier-gating: L1 hides purchases, multi-warehouses, and accounting; L2 shows operations', () => {
     // 1. Level 1 Tenant (محل / أساسي): No purchases, no inventory, no accounting
     useAuthStore.setState({
-      user: { id: 1, username: 'admin', role: 'admin', permissions: ['*'], displayName: 'Admin' },
+      user: { ...buildUser(), id: '1', username: 'admin', role: 'admin', permissions: ['*'], displayName: 'Admin' },
       tenant: {
         id: 't-l1',
         accountId: 'a-1',

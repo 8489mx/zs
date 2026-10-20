@@ -331,7 +331,6 @@ export const ModulesSettingsTab = memo(function ModulesSettingsTab({ form, disab
   const hasTaxDeclarationFeature = useHasFeature('vat_declaration') || isContractingVertical || isMaritimeVertical || isManufacturingVertical || isSuperAdmin;
   const hasDeliveryRepsFeature = useHasFeature('deliveryReps') || isSuperAdmin;
   const hasVanSalesFeature = useHasFeature('deliveryReps') || isWholesaleVanVertical || isSuperAdmin;
-  const hasDeliveryFleetFeature = hasDeliveryRepsFeature || hasVanSalesFeature;
   const hasPurchasesFeature = useHasFeature('purchases') || isContractingVertical || isMaritimeVertical || isManufacturingVertical || isCommerceVertical || isWarehousingVertical || isSuperAdmin;
   const hasInventoryFeature = useHasFeature('inventory') || isContractingVertical || isManufacturingVertical || isCommerceVertical || isWarehousingVertical || isSuperAdmin;
   const hasHrFeature = useHasFeature('hr') || isContractingVertical || isMaritimeVertical || isManufacturingVertical || isSuperAdmin;
@@ -377,7 +376,6 @@ export const ModulesSettingsTab = memo(function ModulesSettingsTab({ form, disab
           ? form.watch('vanSalesModuleEnabled')
           : (isWholesaleVanVertical && form.watch('deliveryFleetModuleEnabled'))
       ));
-  const isDeliveryFleetActive = isDeliveryRepsActive || isVanSalesActive;
   const isMaritimeFreightActive = isMaritimeVertical ? true : (hasMaritimeFreightFeature && Boolean(form.watch('maritimeFreightModuleEnabled')));
   const isContractingActive = isContractingVertical ? true : (hasContractingFeature && Boolean(form.watch('contractingModuleEnabled')));
 
