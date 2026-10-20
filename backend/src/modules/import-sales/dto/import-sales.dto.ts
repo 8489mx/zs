@@ -1,4 +1,4 @@
-import { IsString, IsNumber, IsOptional, Min, IsIn } from 'class-validator';
+import { IsString, IsNumber, IsOptional, Min, IsIn, IsInt, IsPositive } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class CreateShipmentDto {
@@ -67,7 +67,7 @@ export class UpdateShipmentCostsDto {
   @IsOptional()
   @Type(() => Number)
   @IsNumber()
-  @Min(0)
+  @IsPositive()
   exchangeRateAtArrival?: number;
   
   @IsOptional()
@@ -97,7 +97,7 @@ export class AddShipmentItemDto {
   productId!: string;
 
   @Type(() => Number)
-  @IsNumber()
+  @IsInt()
   @Min(1)
   quantity!: number;
 
@@ -110,7 +110,8 @@ export class AddShipmentItemDto {
 export class UpdateShipmentItemDto {
   @IsOptional()
   @Type(() => Number)
-  @IsNumber()
+  @IsNumber({ maxDecimalPlaces: 3 })
+  @Min(0)
   receivedQuantity?: number;
 
   @IsOptional()
