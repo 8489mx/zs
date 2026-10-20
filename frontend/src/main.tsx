@@ -79,31 +79,15 @@ if (typeof window !== 'undefined' && 'serviceWorker' in navigator && !window.loc
         const swUrl = `/sw.js?v=${typeof __APP_BUILD_ID__ !== 'undefined' ? __APP_BUILD_ID__ : Date.now()}`;
         const wb = new Workbox(swUrl, { scope: '/' });
 
-        let isRefreshing = false;
-        const safeReload = () => {
-          if (isRefreshing) return;
-          const lastReloadTs = parseInt(sessionStorage.getItem('zerp_pwa_last_reload') || '0', 10);
-          const now = Date.now();
-          // Anti-loop shield: Never auto-reload more than once every 12 seconds
-          if (now - lastReloadTs < 12000) {
-            return;
-          }
-          isRefreshing = true;
-          sessionStorage.setItem('zerp_pwa_last_reload', String(now));
-          window.location.reload();
-        };
-
-        // When a previous controller exists, a 'controlling' event means a new service worker took over (an update)
-        const hadPreviousController = Boolean(navigator.serviceWorker.controller);
-
+        // Zero forced reloads: Never interrupt active cashier, invoices, forms or storefront carts.
+        // The service worker downloads new assets quietly in the background without forcing a refresh.
         wb.addEventListener('waiting', () => {
           wb.messageSkipWaiting();
         });
 
         wb.addEventListener('controlling', () => {
-          if (hadPreviousController) {
-            safeReload();
-          }
+          // Broadcast update event silently without refreshing the window
+          window.dispatchEvent(new CustomEvent('pwa-updated'));
         });
 
         wb.addEventListener('installed', (event) => {
@@ -112,17 +96,22 @@ if (typeof window !== 'undefined' && 'serviceWorker' in navigator && !window.loc
           }
         });
 
-        // Check for updates when app gains focus or is resumed from background
-        window.addEventListener('focus', () => {
+        // Throttle background update checks (at most once every 15 minutes) on tab focus/visibility
+        let lastUpdateCheck = 0;
+        const throttledUpdate = () => {
+          const now = Date.now();
+          if (now - lastUpdateCheck < 15 * 60 * 1000) return;
+          lastUpdateCheck = now;
           wb.update().catch(() => {});
-        });
+        };
+
+        window.addEventListener('focus', throttledUpdate);
 
         wb.register({ immediate: true }).catch(() => {});
 
-        // Proactively check for updates when returning to foreground
         document.addEventListener('visibilitychange', () => {
           if (document.visibilityState === 'visible' && navigator.onLine) {
-            wb.update().catch(() => {});
+            throttledUpdate();
           }
         });
       })
