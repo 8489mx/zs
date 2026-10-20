@@ -1,4 +1,5 @@
-import { isDesktopOfflineApp } from '@/shared/system/runtime-environment';
+import { isDesktopOfflineApp, isPlatformAdmin } from '@/shared/system/runtime-environment';
+
 import type { NavigationItemDefinition } from '@/app/router/types';
 import type { AuthUser } from '@/types/auth';
 
@@ -564,7 +565,8 @@ export function hasAnyPermission(user: AuthUser | null | undefined, required: Ro
 
 // التعريف انتقل إلى الطبقة المشتركة كي تستطيع مكوّنات الميزات استخدامه بلا اختراق
 // طبقة الـapp (حارس frontend-import-layers). يُعاد تصديره هنا لتبقى الاستيرادات القائمة.
-export { isDesktopOfflineApp, isPlatformAdmin } from '@/shared/system/runtime-environment';
+export { isDesktopOfflineApp, isPlatformAdmin };
+
 
 
 export function getRoutePermissionRequirement(target: string) {
