@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next';
 import React from 'react';
 import { KdsTicket, KdsItemStatus } from '@/features/pos/api/kds.api';
 import { CheckIcon, ClockIcon, AlertTriangleIcon } from '@/shared/components/icons/AppIcons';
+import { formatKitchenNote } from '@/features/pos/utils/kitchen-notes.util';
 
 interface KdsTicketCardProps {
   ticket: KdsTicket;
@@ -442,7 +443,7 @@ export const KdsTicketCard: React.FC<KdsTicketCardProps> = ({
                     }}
                   >
                     <AlertTriangleIcon size={11} color="#dc2626" strokeWidth={2} />
-                    <span>{item.notes}</span>
+                    <span>{formatKitchenNote(item.notes, 'dual')}</span>
                   </div>
                 )}
               </div>
@@ -469,7 +470,7 @@ export const KdsTicketCard: React.FC<KdsTicketCardProps> = ({
             }}
           >
             <AlertTriangleIcon size={12} color="#92400e" strokeWidth={2} />
-            <span>{t('pos.kds.kds_ticket_card.s17', "ملاحظة عامة:")} {ticket.notes}</span>
+            <span>{t('pos.kds.kds_ticket_card.s17', "ملاحظة عامة:")} {formatKitchenNote(ticket.notes, 'dual')}</span>
           </div>
         )}
       </div>

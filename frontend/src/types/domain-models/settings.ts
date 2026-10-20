@@ -104,6 +104,9 @@ export interface AppSettings {
   posKitchenPrinterEnabled?: boolean;
   posKitchenPrinterAuto?: boolean;
   posAutoPrintKitchenReceipt?: boolean;
+  posKitchenPrinterMode?: 'detailed' | 'mini';
+  posKitchenLanguage?: 'dual' | 'en' | 'ar' | string;
+  printBilingualItemNames?: boolean;
   weightedBarcodeEnabled?: boolean;
   weightedBarcodePrefix?: string;
   weightedBarcodeProductCodeLength?: number;

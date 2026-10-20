@@ -250,6 +250,8 @@ export interface AppSettings {
   posKitchenPrinterAuto?: boolean;
   posAutoPrintKitchenReceipt?: boolean;
   posKitchenPrinterMode?: 'detailed' | 'mini';
+  posKitchenLanguage?: 'dual' | 'en' | 'ar' | string;
+  printBilingualItemNames?: boolean;
   posElectronCashierPrinter?: string;
   posElectronKitchenPrinter?: string;
   weightedBarcodeEnabled?: boolean;

@@ -255,6 +255,12 @@ export function buildSettingsUpdatePayload(
     posKitchenPrinterMode: values.posKitchenPrinterMode !== undefined
       ? (values.posKitchenPrinterMode === 'mini' ? 'mini' : 'detailed')
       : (current?.posKitchenPrinterMode === 'mini' ? 'mini' : 'detailed'),
+    posKitchenLanguage: values.posKitchenLanguage !== undefined
+      ? values.posKitchenLanguage
+      : (current?.posKitchenLanguage || 'dual'),
+    printBilingualItemNames: values.printBilingualItemNames !== undefined
+      ? values.printBilingualItemNames === true
+      : current?.printBilingualItemNames === true,
     posElectronCashierPrinter: values.posElectronCashierPrinter !== undefined
       ? cleanText(values.posElectronCashierPrinter)
       : cleanText(current?.posElectronCashierPrinter),

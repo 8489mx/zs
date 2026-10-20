@@ -371,6 +371,10 @@ export const PrintingSettingsTab = memo(function PrintingSettingsTab({
                     <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowSavingsBanner')} disabled={disabled} />
                     {t('settings.forms.tabs.printing_settings_tab.s48', "إظهار شريط إجمالي التوفير بالفاتورة")}
                   </label>
+                  <label className="settings-print-option" style={{ ...checkboxStyle, gridColumn: '1 / -1' }}>
+                    <input type="checkbox" style={checkboxInputStyle} {...form.register('printBilingualItemNames')} disabled={disabled} />
+                    {t('settings.forms.tabs.printing_settings_tab.print_bilingual_names', "طباعة الاسم الثنائي للأصناف (عربي + إنجليزي)")}
+                  </label>
                 </div>
               </div>
             )}
@@ -458,6 +462,20 @@ export const PrintingSettingsTab = memo(function PrintingSettingsTab({
                 options={[
                   { value: 'detailed', label: t('settings.forms.tabs.printing_settings_tab.s65', "إيصال مطبخ مفصل (شامل قائمة الأصناف والإضافات)") },
                   { value: 'mini', label: t('settings.forms.tabs.printing_settings_tab.s66', "إيصال مصغر لتوفير الورق (رقم الطلب فقط لمناداة العميل)") },
+                ]}
+                disabled={disabled || !posKitchenPrinterEnabled}
+              />
+            </div>
+
+            <div className="field" style={{ gridColumn: '1 / -1' }}>
+              <label>{t('settings.forms.tabs.printing_settings_tab.kitchen_language', "لغة طباعة بون المطبخ (Kitchen Language)")}</label>
+              <CustomSelect
+                value={form.watch('posKitchenLanguage') || 'dual'}
+                onChange={(val) => form.setValue('posKitchenLanguage', val as any, { shouldDirty: true, shouldValidate: true })}
+                options={[
+                  { value: 'dual', label: t('settings.forms.tabs.printing_settings_tab.kitchen_lang_dual', "ثنائي (عربي + إنجليزي) - الخيار الموصى به لكافة أطقم المطبخ") },
+                  { value: 'en', label: t('settings.forms.tabs.printing_settings_tab.kitchen_lang_en', "الإنجليزية فقط (English Only) - للعمالة الآسيوية والأجنبية") },
+                  { value: 'ar', label: t('settings.forms.tabs.printing_settings_tab.kitchen_lang_ar', "العربية فقط (Arabic Only)") },
                 ]}
                 disabled={disabled || !posKitchenPrinterEnabled}
               />

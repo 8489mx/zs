@@ -89,4 +89,19 @@ describe('Receipt Printing Payment QR Section', () => {
     expect(doc.html).toContain('فودافون كاش');
     expect(doc.html).toContain('01018017523');
   });
+
+  it('should render bilingual English item name when printBilingualItemNames is true', () => {
+    const doc = buildReceiptDocument({
+      ...baseOptions,
+      items: [
+        { name: 'برجر دجاج', nameEn: 'Chicken Burger', qty: 1, price: 100, total: 100 },
+      ],
+      settings: {
+        printBilingualItemNames: true,
+      },
+    });
+    expect(doc.html).toContain('برجر دجاج');
+    expect(doc.html).toContain('Chicken Burger');
+    expect(doc.html).toContain('item-name-en');
+  });
 });

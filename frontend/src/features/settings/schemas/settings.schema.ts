@@ -92,6 +92,8 @@ export const settingsFormSchema = z.object({
   posKitchenPrinterEnabled: z.boolean().default(false),
   posKitchenPrinterAuto: z.boolean().default(false),
   posKitchenPrinterMode: z.enum(['detailed', 'mini']).optional().default('detailed'),
+  posKitchenLanguage: z.enum(['dual', 'en', 'ar']).optional().default('dual'),
+  printBilingualItemNames: z.boolean().default(false),
   posElectronCashierPrinter: z.string().optional(),
   posElectronKitchenPrinter: z.string().optional(),
   weightedBarcodeEnabled: z.boolean().default(false),

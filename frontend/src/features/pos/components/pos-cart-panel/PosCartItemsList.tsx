@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { formatCurrency } from '@/lib/format';
 import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
 import { FileTextIcon, TagIcon, SmartphoneIcon } from '@/shared/components/icons/AppIcons';
+import { PosItemNotesDialog } from './PosItemNotesDialog';
 import type { PosCartPanelProps } from './posCartPanel.types';
 
 const PosCartItemRow = memo(function PosCartItemRow({
@@ -14,7 +15,9 @@ const PosCartItemRow = memo(function PosCartItemRow({
   allowItemModifiers,
   onSelectLine,
   onEditProduct,
-  onItemNoteChange,
+  _onItemNoteChange: _unusedNoteChange,
+  onOpenItemNotes,
+
   onItemSeatChange,
   onItemModifiersClick,
   onQtyChange,
@@ -54,32 +57,35 @@ const PosCartItemRow = memo(function PosCartItemRow({
         <div className="pos-cart-product-inline">
           <strong className="pos-cart-product-name">{item.name}</strong>
           {itemCode ? <span className="pos-cart-product-code">#{itemCode}</span> : null}
-          {!item.notes && allowItemNotes && (
+          {allowItemNotes && (
             <button
               type="button"
-              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 2px', display: 'flex', alignItems: 'center', color: '#6b7280' }}
-              title={t('pos.add_item_note', 'إضافة ملاحظة على الصنف')}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 2px', display: 'flex', alignItems: 'center', color: item.notes ? '#dc2626' : '#6b7280' }}
+              title={item.notes ? t('pos.edit_item_note', 'تعديل ملاحظة الصنف') : t('pos.add_item_note', 'إضافة ملاحظة على الصنف')}
               onClick={(e) => {
                 e.stopPropagation();
-                const newNotes = window.prompt(t('pos.item_notes', 'ملاحظات الصنف:'), '');
-                if (newNotes !== null) {
-                  onItemNoteChange(item.lineKey, newNotes);
-                }
+                onOpenItemNotes?.(item);
               }}
             >
-              <FileTextIcon size={14} />
+              <FileTextIcon size={14} color={item.notes ? '#dc2626' : '#6b7280'} />
             </button>
           )}
         </div>
+        {item.nameEn && item.nameEn !== item.name && (
+          <div dir="ltr" style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600, textAlign: 'right', marginTop: '1px', fontFamily: 'system-ui, sans-serif' }}>
+            {item.nameEn}
+          </div>
+        )}
         {item.notes && allowItemNotes && (
-          <div style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '2px', cursor: 'pointer' }} onClick={(e) => {
-            e.stopPropagation();
-            const newNotes = window.prompt(t('pos.item_notes', 'ملاحظات الصنف:'), item.notes || '');
-            if (newNotes !== null) {
-              onItemNoteChange(item.lineKey, newNotes);
-            }
-          }}>
-            {item.notes}
+          <div
+            style={{ fontSize: '0.75rem', color: '#dc2626', background: '#fef2f2', border: '1px solid #fecaca', padding: '1px 6px', borderRadius: '4px', marginTop: '2px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '3px', fontWeight: 600 }}
+            onClick={(e) => {
+              e.stopPropagation();
+              onOpenItemNotes?.(item);
+            }}
+            title={t('pos.click_to_edit_note', 'انقر لتعديل الملاحظة')}
+          >
+            <span>{item.notes}</span>
           </div>
         )}
         {item.modifiers && item.modifiers.length > 0 && (
@@ -251,9 +257,10 @@ export function PosCartItemsList({ cart, lastAddedLineKey, selectedLineKey, onQt
   const { t: __t } = useTranslation();
   const { t } = useTranslation();
   const settingsQuery = useSettingsQuery();
-  const allowItemNotes = settingsQuery.data?.manufacturingModuleEnabled === true;
+  const allowItemNotes = settingsQuery.data?.manufacturingModuleEnabled === true || settingsQuery.data?.restaurantModuleEnabled === true;
   const allowItemModifiers = settingsQuery.data?.restaurantModuleEnabled === true;
 
+  const [notesDialogItem, setNotesDialogItem] = useState<{ lineKey: string; name: string; nameEn?: string; notes: string } | null>(null);
   const containerRef = useRef<HTMLElement>(null);
   const [containerWidth, setContainerWidth] = useState(0);
 
@@ -274,6 +281,14 @@ export function PosCartItemsList({ cart, lastAddedLineKey, selectedLineKey, onQt
   const handleQtyChange = useCallback((lineKey: string, qty: number) => onQtyChange(lineKey, qty), [onQtyChange]);
   const handleChangeLineQtyByDelta = useCallback((lineKey: string, delta: number) => onChangeLineQtyByDelta?.(lineKey, delta), [onChangeLineQtyByDelta]);
   const handleRemoveItem = useCallback((lineKey: string) => onRemoveItem(lineKey), [onRemoveItem]);
+  const handleOpenItemNotes = useCallback((it: any) => {
+    setNotesDialogItem({
+      lineKey: it.lineKey,
+      name: it.name,
+      nameEn: it.nameEn,
+      notes: it.notes || '',
+    });
+  }, []);
 
   if (!cart.length) return null;
 
@@ -313,6 +328,7 @@ export function PosCartItemsList({ cart, lastAddedLineKey, selectedLineKey, onQt
               onSelectLine={handleSelectLine}
               onEditProduct={handleEditProduct}
               onItemNoteChange={handleItemNoteChange}
+              onOpenItemNotes={handleOpenItemNotes}
               onItemModifiersClick={handleItemModifiersClick}
               onItemSeatChange={handleItemSeatChange}
               onQtyChange={handleQtyChange}
@@ -322,6 +338,20 @@ export function PosCartItemsList({ cart, lastAddedLineKey, selectedLineKey, onQt
           );
         })}
       </div>
+
+      {notesDialogItem && (
+        <PosItemNotesDialog
+          open={Boolean(notesDialogItem)}
+          onClose={() => setNotesDialogItem(null)}
+          itemName={notesDialogItem.name}
+          itemEnName={notesDialogItem.nameEn}
+          initialNotes={notesDialogItem.notes}
+          onSave={(newNotes) => {
+            onItemNoteChange(notesDialogItem.lineKey, newNotes);
+            setNotesDialogItem(null);
+          }}
+        />
+      )}
     </section>
   );
 }
