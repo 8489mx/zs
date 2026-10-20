@@ -2165,6 +2165,148 @@ export interface DailyFinancialSummariesTable {
   updated_at: ColumnType<Date, string | undefined, Date | string>;
 }
 
+
+export interface ImportProjectTable {
+  id: Generated<string>;
+  tenant_id: string;
+  project_no: string;
+  title: string;
+  target_market: string | null;
+  country_origin: string | null;
+  country_destination: string | null;
+  budget_currency: string | null;
+  allocated_capital: ImportNumeric;
+  target_roi_percentage: ImportNumeric;
+  status: string;
+  feasibility_data: any | null;
+  closure_data?: any | null;
+  closure_date?: Date | null;
+  closed_by?: number | null;
+  notes: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface ImportProjectPartnerTable {
+  id: Generated<string>;
+  tenant_id: string;
+  project_id: string;
+  partner_id: string;
+  capital_share_amount: ImportNumeric;
+  profit_percentage: ImportNumeric;
+  effective_from?: ImportDate;
+  is_active?: boolean;
+  notes?: string | null;
+  created_at: Generated<Date>;
+}
+
+export interface ImportSupplierMetaTable {
+  id: Generated<string>;
+  tenant_id: string;
+  supplier_id: number;
+  chinese_name: string | null;
+  city: string | null;
+  province: string | null;
+  moq_description: string | null;
+  production_lead_time_days: number | null;
+  verified_bank_details: any | null;
+  incoterms_accepted: any | null;
+  qc_rating: ImportNumeric;
+  quality_certifications: any | null;
+  audit_status: string;
+  verified_at?: Date | null;
+  verified_by?: number | null;
+  verification_notes?: string | null;
+  notes: string | null;
+  updated_at: Generated<Date>;
+}
+
+export interface ImportSourcingTripTable {
+  id: Generated<string>;
+  tenant_id: string;
+  project_id: string | null;
+  trip_title: string;
+  destination_city: string;
+  start_date: ImportDate;
+  end_date: ImportDate;
+  budget_egp: ImportNumeric;
+  actual_cost_egp: ImportNumeric;
+  notes: string | null;
+  findings: any | null;
+  created_at: Generated<Date>;
+}
+
+export interface ImportProformaInvoiceTable {
+  id: Generated<string>;
+  tenant_id: string;
+  project_id: string | null;
+  supplier_id: number;
+  pi_number: string;
+  pi_date: ImportDate;
+  currency: string;
+  total_amount_foreign: ImportNumeric;
+  incoterm: string | null;
+  delivery_port: string | null;
+  payment_terms: string | null;
+  exchange_rate_contract: ImportNumeric;
+  status: string;
+  payment_status?: string;
+  paid_amount_foreign?: ImportNumeric;
+  notes: string | null;
+  items: any | null;
+  created_at: Generated<Date>;
+}
+
+export interface ImportQcInspectionTable {
+  id: Generated<string>;
+  tenant_id: string;
+  project_id: string | null;
+  shipment_id: string | null;
+  stage: string;
+  inspection_date: ImportDate;
+  inspector_name: string | null;
+  sample_size: number | null;
+  passed_quantity: number | null;
+  failed_quantity: number | null;
+  defect_notes: string | null;
+  status: string;
+  report_file_url: string | null;
+  created_at: Generated<Date>;
+}
+
+export interface ImportAciComplianceTable {
+  id: Generated<string>;
+  tenant_id: string;
+  project_id: string | null;
+  shipment_id: string | null;
+  acid_number: string;
+  acid_issue_date: ImportDate;
+  acid_expiry_date: ImportDate;
+  cargox_document_id: string | null;
+  importer_tax_number: string | null;
+  exporter_id: string | null;
+  status: string;
+  compliance_checklist: any | null;
+  notes: string | null;
+  created_at: Generated<Date>;
+}
+
+export interface ImportCustomsTariffTable {
+  id: Generated<string>;
+  tenant_id: string;
+  hs_code: string;
+  description_ar: string;
+  description_en: string | null;
+  duty_rate_percent: ImportNumeric;
+  vat_rate_percent: ImportNumeric;
+  regulatory_body: string | null;
+  inspection_fees_percent: ImportNumeric;
+  official_source?: string | null;
+  effective_date?: ImportDate;
+  is_official?: boolean;
+  created_at: Generated<Date>;
+}
+
 export interface Database {
   daily_financial_summaries: DailyFinancialSummariesTable;
   saas_plans: SaasPlanTable;
@@ -5513,6 +5655,9 @@ export interface ImportShipmentTable {
   vat_refundable_egp?: ImportNumeric;
   is_consolidated?: boolean | null;
   cost_allocation_method?: string | null;
+  late_expenses_total_egp?: ImportNumeric;
+  late_cogs_adjustment_egp?: ImportNumeric;
+  late_inventory_adjustment_egp?: ImportNumeric;
   created_at: Generated<Date>;
 }
 export interface ImportShipmentItemTable {
@@ -5545,4 +5690,12 @@ export interface Database {
   import_shipments: ImportShipmentTable;
   import_shipment_items: ImportShipmentItemTable;
   import_inventory_receipts: ImportInventoryReceiptTable;
+  import_projects: ImportProjectTable;
+  import_project_partners: ImportProjectPartnerTable;
+  import_suppliers_meta: ImportSupplierMetaTable;
+  import_sourcing_trips: ImportSourcingTripTable;
+  import_proforma_invoices: ImportProformaInvoiceTable;
+  import_qc_inspections: ImportQcInspectionTable;
+  import_aci_compliance: ImportAciComplianceTable;
+  import_customs_tariffs: ImportCustomsTariffTable;
 }
