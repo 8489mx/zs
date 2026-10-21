@@ -14,6 +14,7 @@ export function QuickCashAdvanceModal() {
   const [employeeId, setEmployeeId] = useState('');
   const [amount, setAmount] = useState('');
   const [notes, setNotes] = useState('');
+  const [selectedShiftId, setSelectedShiftId] = useState('');
   const [formError, setFormError] = useState('');
   
   const queryClient = useQueryClient();
@@ -43,12 +44,13 @@ export function QuickCashAdvanceModal() {
   // always recorded without a shift. The real endpoint lists shifts and takes a status filter.
   const { data: shiftData } = useQuery({
     queryKey: ['pos.shifts.current'],
-    queryFn: () => http<{ cashierShifts?: Array<Record<string, unknown>> }>('/api/cashier-shifts?status=open&pageSize=1'),
+    queryFn: () => http<{ cashierShifts?: Array<Record<string, unknown>> }>('/api/cashier-shifts?status=open&pageSize=100'),
     enabled: isOpen && canManageLoans,
   });
 
   const employees = employeesData?.employees || [];
-  const activeShift = (shiftData?.cashierShifts || [])[0];
+  const shifts = shiftData?.cashierShifts || [];
+  const activeShift = shifts.find(shift => String(shift.id) === selectedShiftId);
 
   const mutation = useMutation({
     mutationFn: async (payload: any) => {
@@ -63,6 +65,7 @@ export function QuickCashAdvanceModal() {
       setEmployeeId('');
       setAmount('');
       setNotes('');
+      setSelectedShiftId('');
       setFormError('');
     },
     onError: (error) => {
@@ -82,12 +85,14 @@ export function QuickCashAdvanceModal() {
       setFormError('يرجى إدخال مبلغ صحيح.');
       return;
     }
+    if (!notes.trim()) { setFormError('يجب كتابة سبب السلفة وتفاصيلها.'); return; }
+    if (!activeShift) { setFormError('اختر وردية كاشير مفتوحة لصرف السلفة.'); return; }
 
     mutation.mutate({
       employeeId: Number(employeeId),
       amount: Number(amount),
-      notes: notes,
-      shiftId: activeShift ? Number(activeShift.id) : undefined,
+      notes: notes.trim(),
+      shiftId: Number(activeShift.id),
     });
   };
 
@@ -121,20 +126,28 @@ export function QuickCashAdvanceModal() {
 
             <label className="field field-wide">
               <span>{t('hr.quick_cash_advance_modal.s5', "ملاحظات")}</span>
-              <input value={notes} onChange={e => setNotes(e.target.value)} placeholder={t('hr.quick_cash_advance_modal.s6', "سلفة سريعة من الكاشير")} />
+              <input required value={notes} onChange={e => setNotes(e.target.value)} placeholder="سبب صرف السلفة أو المسحوب (مطلوب)" />
             </label>
 
-            {activeShift ? (
-              <p className="muted" style={{ margin: 0, fontSize: 13 }}>{t('hr.quick_cash_advance_modal.s7', "سيتم الخصم من عهدة الكاشير (الوردية الحالية).")}</p>
-            ) : (
-              <p className="muted" style={{ margin: 0, fontSize: 13 }}>{t('hr.quick_cash_advance_modal.s8', "سيتم الخصم من الخزينة الرئيسية.")}</p>
-            )}
+            <div className="field field-wide">
+              <span>الوردية التي سيتم صرف المسحوب منها *</span>
+              <CustomSelect value={selectedShiftId} onChange={setSelectedShiftId}
+                options={[
+                  { value: '', label: shifts.length ? 'اختر وردية الكاشير' : 'لا توجد وردية كاشير مفتوحة' },
+                  ...shifts.map((shift: Record<string, unknown>) => ({
+                    value: String(shift.id),
+                    label: `وردية #${shift.id} - ${String(shift.openedByName || shift.opened_by_name || 'الكاشير')}`,
+                  })),
+                ]}
+              />
+              <small className="muted">سيتم حفظ المستخدم الذي صرف السلفة وتوقيت الصرف وربطها برقم الوردية.</small>
+            </div>
 
             {formError && <div className="error-box">{formError}</div>}
 
             <div className="actions compact-actions field-wide" style={{ marginTop: 16 }}>
               <Button type="button" variant="secondary" onClick={() => setIsOpen(false)}>{t('hr.quick_cash_advance_modal.s9', "إلغاء")}</Button>
-              <Button type="submit" disabled={mutation.isPending}>
+              <Button type="submit" disabled={mutation.isPending || !activeShift}>
                 {mutation.isPending ? t('hr.quick_cash_advance_modal.s10', "جاري الحفظ...") : t('hr.quick_cash_advance_modal.s11', "تسجيل السلفة")}
               </Button>
             </div>

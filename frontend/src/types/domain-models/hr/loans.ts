@@ -69,6 +69,7 @@ export interface HrWithdrawalRow {
   status: string;
   remainingAmount: number;
   note?: string;
+  recordedByName?: string;
 }
 
 export interface HrWithdrawalSummary {

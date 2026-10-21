@@ -4452,7 +4452,9 @@ export class HrService {
     if (!employeeId || employeeId <= 0) throw new AppError('Employee ID is required', 'HR_EMPLOYEE_ID_REQUIRED', 400);
     if (!amount || amount <= 0) throw new AppError('Amount must be positive', 'HR_AMOUNT_INVALID', 400);
 
-    const notes = clean(payload.notes) || 'Quick cash advance from cashier';
+    const reason = clean(payload.notes);
+    if (!reason) throw new AppError('تفاصيل المسحوب وسبب الصرف مطلوبة', 'HR_ADVANCE_REASON_REQUIRED', 400);
+    const notes = payload.shiftId ? `${reason} [وردية كاشير #${Number(payload.shiftId)}]` : reason;
     let createdLoanId = 0;
     
     await this.tx.runInTransaction(this.db, async (trx) => {
@@ -4497,12 +4499,12 @@ export class HrService {
         INSERT INTO hr_employee_loans (
           tenant_id, account_id, employee_id, loan_no, loan_type, principal_amount, remaining_amount, 
           installment_count, installment_amount, repayment_mode,
-          issue_date, status, notes, created_by, updated_by
+          issue_date, disbursed_at, status, notes, created_by, updated_by
         )
         VALUES (
           ${tenantId}, ${accountId}, ${employeeId}, ${tempNo}, 'advance', ${amount}, ${amount}, 
           1, ${amount}, 'deduct_next_salary',
-          CURRENT_DATE, 'paid', ${notes}, ${auth.userId}, ${auth.userId}
+          CURRENT_DATE, NOW(), 'paid', ${notes}, ${auth.userId}, ${auth.userId}
         )
         RETURNING id
       `.execute(trx);
