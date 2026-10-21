@@ -96,6 +96,7 @@ async function setupDatabase(): Promise<{ db: Kysely<Database>; accounts: Record
       is_cash_bank BOOLEAN NOT NULL DEFAULT FALSE,
       is_inventory BOOLEAN NOT NULL DEFAULT FALSE,
       is_payable BOOLEAN NOT NULL DEFAULT FALSE,
+      allow_manual_entries BOOLEAN NOT NULL DEFAULT TRUE,
       created_at TIMESTAMPTZ DEFAULT NOW(),
       updated_at TIMESTAMPTZ DEFAULT NOW(),
       CONSTRAINT uq_accounting_accounts_tenant_code UNIQUE (tenant_id, code)
@@ -611,7 +612,8 @@ async function setupDatabase(): Promise<{ db: Kysely<Database>; accounts: Record
       ('tenant-audit-1', 'tenant-audit-1', '2110', 'حسابات الموردين والدائنين', 'Accounts Payable', 'liability', 'current_liabilities', 'credit', true, false, false, true),
       ('tenant-audit-1', 'tenant-audit-1', '5110', 'تكلفة البضاعة المباعة', 'Cost of Goods Sold', 'expense', 'expenses', 'debit', true, false, false, false),
       ('tenant-audit-1', 'tenant-audit-1', '5201', 'خسائر فروق أسعار صرف محققة', 'Realized Forex Loss', 'expense', 'expenses', 'debit', true, false, false, false),
-      ('tenant-audit-1', 'tenant-audit-1', '4201', 'أرباح فروق أسعار صرف محققة', 'Realized Forex Gain', 'revenue', 'revenues', 'credit', true, false, false, false);
+      ('tenant-audit-1', 'tenant-audit-1', '4201', 'أرباح فروق أسعار صرف محققة', 'Realized Forex Gain', 'revenue', 'revenues', 'credit', true, false, false, false),
+      ('tenant-audit-1', 'tenant-audit-1', '3100', 'رأس المال', 'Partner Capital', 'equity', 'equity', 'credit', true, false, false, false);
   `);
 
   // Query account IDs to configure accounting_settings
@@ -1453,6 +1455,61 @@ async function runTests() {
     }
     assert.ok(duplicateRejected, 'Must reject duplicate transfer submission with identical idempotency key');
     console.log('PASS: Duplicate request with same idempotency key strictly rejected with ConflictException.');
+  }
+
+  // Independent audit: partner capital must post to equity, NEVER P&L revenue/expense.
+  {
+    const startingPartner = await service.createPartner(
+      tenantId, userId, 'Independent Capital Audit', 0, 800, String(accounts['1120'])
+    );
+    assert.strictEqual(Number(startingPartner.capital_amount), 800);
+
+    const capitalDeposit = await db.selectFrom('treasury_transactions')
+      .selectAll()
+      .where('tenant_id', '=', tenantId)
+      .where('reference_type', '=', 'partner_capital')
+      .where('txn_type', '=', 'partner_capital_deposit')
+      .orderBy('id', 'desc').executeTakeFirstOrThrow();
+    assert.strictEqual(Number(capitalDeposit.amount), 800);
+    const depositJournal = await db.selectFrom('journal_entries').select('id')
+      .where('tenant_id', '=', tenantId)
+      .where('source_type', '=', 'import_partner_capital')
+      .where('source_id', '=', Number(capitalDeposit.id)).executeTakeFirstOrThrow();
+    const depositLines = await db.selectFrom('journal_entry_lines').selectAll()
+      .where('journal_entry_id', '=', depositJournal.id).execute();
+    assert.strictEqual(depositLines.reduce((n, line) => n + Number(line.debit), 0), 800);
+    assert.strictEqual(depositLines.reduce((n, line) => n + Number(line.credit), 0), 800);
+    assert.ok(depositLines.some((line) => Number(line.account_id) === accounts['3100'] && Number(line.credit) === 800));
+
+    const withdrawal = await service.recordCapitalTransaction(
+      tenantId, userId, String(startingPartner.id),
+      { type: 'WITHDRAWAL', amount: 200, date: new Date().toISOString().slice(0, 10), accountId: String(accounts['1120']) }
+    );
+    assert.strictEqual(withdrawal.success, true);
+    const afterWithdrawal = await db.selectFrom('import_partners').select('capital_amount')
+      .where('id', '=', String(startingPartner.id)).executeTakeFirstOrThrow();
+    assert.strictEqual(Number(afterWithdrawal.capital_amount), 600);
+
+    const withdrawnCash = await db.selectFrom('treasury_transactions')
+      .selectAll().where('id', '=', withdrawal.treasuryTransactionId).executeTakeFirstOrThrow();
+    assert.strictEqual(withdrawnCash.txn_type, 'partner_capital_withdrawal');
+    assert.strictEqual(Number(withdrawnCash.amount), -200);
+    const withdrawalJournal = await db.selectFrom('journal_entries').select('id')
+      .where('source_type', '=', 'import_partner_capital')
+      .where('source_id', '=', withdrawal.treasuryTransactionId).executeTakeFirstOrThrow();
+    const withdrawalLines = await db.selectFrom('journal_entry_lines').selectAll()
+      .where('journal_entry_id', '=', withdrawalJournal.id).execute();
+    assert.ok(withdrawalLines.some((line) => Number(line.account_id) === accounts['3100'] && Number(line.debit) === 200));
+    assert.ok(withdrawalLines.some((line) => Number(line.account_id) === accounts['1120'] && Number(line.credit) === 200));
+
+    let nonCashRejected = false;
+    try {
+      await service.createPartner(tenantId, userId, 'Incorrect Bank Account Partner', 0, 300, String(accounts['1140']));
+    } catch (err: any) {
+      nonCashRejected = true;
+      assert.ok(err.message.includes('غير صالح'));
+    }
+    assert.ok(nonCashRejected, 'Capital deposit to a non-cash asset must roll back atomically');
   }
 
   console.log('\n--- ALL AUDITED POSTGRESQL (PGLITE) INTEGRATION AUDITS PASSED (100%) ---');

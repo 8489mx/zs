@@ -161,6 +161,85 @@ export class ImportSalesService {
     );
   }
 
+  /**
+   * Partner contributions / returns are EQUITY movements, never sales revenue
+   * or operating expenses. Cash, partner ledger and GL all commit atomically.
+   */
+  private async postPartnerCapitalMovement(
+    trx: Transaction<Database>,
+    tenantId: string,
+    userId: number,
+    partnerName: string,
+    partnerId: string,
+    type: 'DEPOSIT' | 'WITHDRAWAL',
+    amount: number,
+    movementDate: Date,
+    requestedCashAccountId: string,
+    note: string
+  ): Promise<number> {
+    const cashAccountId = await this.resolveTenantAccount(trx, tenantId, 'bank', Number(requestedCashAccountId));
+    const cashAccount = await trx.selectFrom('accounting_accounts')
+      .select(['id', 'account_id'])
+      .where('tenant_id', '=', tenantId)
+      .where('id', '=', cashAccountId)
+      .executeTakeFirstOrThrow();
+    const capitalAccount = await trx.selectFrom('accounting_accounts')
+      .select(['id', 'is_active', 'account_type', 'allow_manual_entries'])
+      .where('tenant_id', '=', tenantId)
+      .where('account_id', '=', cashAccount.account_id)
+      .where('code', '=', '3100')
+      .executeTakeFirst();
+    if (!capitalAccount || !capitalAccount.is_active || capitalAccount.account_type !== 'equity' || !capitalAccount.allow_manual_entries) {
+      throw new UnprocessableEntityException('حساب رأس المال 3100 غير معتمد بدليل حسابات المنشأة؛ لا يمكن تسجيل الحركة بدون قيد حقوق ملكية.');
+    }
+    const cashIsDebit = type === 'DEPOSIT';
+    const posted = await trx.insertInto('treasury_transactions').values({
+      tenant_id: tenantId,
+      account_id: cashAccount.account_id,
+      txn_type: cashIsDebit ? 'partner_capital_deposit' : 'partner_capital_withdrawal',
+      amount: cashIsDebit ? amount : -amount,
+      note: `${cashIsDebit ? 'إيداع' : 'سحب'} رأس مال الشريك: ${partnerName}${note ? ' - ' + note : ''} (سجل ${partnerId})`,
+      reference_type: 'partner_capital',
+      reference_id: null,
+      created_by: userId,
+    }).returning('id').executeTakeFirstOrThrow();
+
+    const postingService = this.accountingPosting ?? new AccountingPostingService(new AccountingTenantFoundationService());
+    await postingService.postDomainJournal(trx, {
+      sourceType: 'import_partner_capital',
+      sourceId: Number(posted.id),
+      tenantId,
+      accountId: cashAccount.account_id,
+      entryDate: movementDate,
+      description: `${cashIsDebit ? 'مساهمة' : 'رد'} رأس مال الشريك ${partnerName} (حركة خزينة #${posted.id})`,
+      createdBy: userId,
+      postedBy: userId,
+      lines: [
+        {
+          accountId: cashAccountId,
+          description: 'حركة نقدية متعلقة برأس مال شريك',
+          debit: cashIsDebit ? amount : 0,
+          credit: cashIsDebit ? 0 : amount,
+          partnerType: 'none',
+          partnerId: null,
+          branchId: null,
+          locationId: null,
+        },
+        {
+          accountId: Number(capitalAccount.id),
+          description: 'حركة حقوق ملكية ورأس مال شريك',
+          debit: cashIsDebit ? 0 : amount,
+          credit: cashIsDebit ? amount : 0,
+          partnerType: 'none',
+          partnerId: null,
+          branchId: null,
+          locationId: null,
+        },
+      ],
+    });
+    return Number(posted.id);
+  }
+
   private costLine(item: Selectable<ImportShipmentItemTable>) {
     return {
       id: item.id, productId: Number(item.product_id), quantity: Number(item.quantity),
@@ -180,78 +259,45 @@ export class ImportSalesService {
   }
 
   async createPartner(tenantId: string, userId: number, name: string, percentage: number, capitalAmount: number = 0, accountId?: string) {
-    if (!name || !name.trim()) {
-      throw new BadRequestException('اسم الشريك مطلوب.');
-    }
+    if (!name?.trim()) throw new BadRequestException('اسم الشريك مطلوب.');
     const cleanPercentage = Number(percentage);
+    const cleanCapital = Number(capitalAmount);
     if (!Number.isFinite(cleanPercentage) || cleanPercentage < 0 || cleanPercentage > 100) {
-      throw new BadRequestException('نسبة الشراكة يجب أن تكون بين 0% و 100%.');
+      throw new BadRequestException('نسبة الشراكة يجب أن تكون بين 0% و100%.');
     }
-    const cleanCapital = Number(capitalAmount) || 0;
-    if (cleanCapital < 0) {
-      throw new BadRequestException('رأس المال لا يمكن أن يكون سالباً.');
+    if (!Number.isFinite(cleanCapital) || cleanCapital < 0) {
+      throw new BadRequestException('رأس المال يجب أن يكون مبلغًا موجبًا أو صفرًا.');
+    }
+    if (cleanCapital > 0 && !accountId) {
+      throw new BadRequestException('يلزم تحديد حساب بنك أو خزينة معتمد لإثبات إيداع رأس مال الشريك.');
     }
 
     return await this.db.transaction().execute(async (trx) => {
-      // Check total percentage across all partners
       const existing = await trx.selectFrom('import_partners')
         .select(sql<number>`coalesce(sum(profit_share_percentage), 0)`.as('total_percentage'))
         .where('tenant_id', '=', tenantId)
         .executeTakeFirst();
-      const currentTotal = Number(existing?.total_percentage || 0);
-      if (currentTotal + cleanPercentage > 100.001) {
-        throw new BadRequestException(`مجموع نسب الشركاء سيتجاوز 100% (المجموع الحالي: ${currentTotal}%).`);
+      if (Number(existing?.total_percentage || 0) + cleanPercentage > 100.001) {
+        throw new BadRequestException('مجموع نسب الشركاء سيتجاوز 100%.');
       }
-
-      const partner = await trx
-        .insertInto('import_partners')
-        .values({
-          tenant_id: tenantId,
-          name: name.trim(),
-          profit_share_percentage: cleanPercentage,
-          capital_amount: 0,
-          withdrawn_profit: 0
-        })
-        .returningAll()
-        .executeTakeFirstOrThrow();
-
+      const partner = await trx.insertInto('import_partners').values({
+        tenant_id: tenantId,
+        name: name.trim(),
+        profit_share_percentage: cleanPercentage,
+        capital_amount: cleanCapital,
+        withdrawn_profit: 0,
+      }).returningAll().executeTakeFirstOrThrow();
       if (cleanCapital > 0) {
-        await trx.insertInto('import_partner_ledger').values({
-          tenant_id: tenantId,
-          partner_id: partner.id,
-          type: 'DEPOSIT',
-          amount: cleanCapital,
-          transaction_date: new Date(),
-          note: 'رأس مال افتتاحي',
-          created_by: userId
-        }).execute();
-
-        await trx.updateTable('import_partners')
-          .set({ capital_amount: cleanCapital })
-          .where('id', '=', partner.id)
-          .where('tenant_id', '=', tenantId)
-          .execute();
-
-        if (accountId) {
-          await trx.insertInto('treasury_transactions').values({
-            tenant_id: tenantId,
-            txn_type: 'revenue',
-            amount: cleanCapital,
-            note: `إيداع رأس مال افتتاحي للشريك: ${partner.name}`,
-            reference_type: 'partner_capital',
-            reference_id: null,
-            created_by: userId,
-            account_id: accountId
-          }).execute();
-        }
-
-        return await trx
-          .selectFrom('import_partners')
-          .selectAll()
-          .where('id', '=', partner.id)
-          .executeTakeFirstOrThrow();
+        const ledger = await trx.insertInto('import_partner_ledger').values({
+          tenant_id: tenantId, partner_id: partner.id, type: 'DEPOSIT',
+          amount: cleanCapital, transaction_date: new Date(),
+          note: 'إيداع رأس مال افتتاحي', created_by: userId,
+        }).returning('id').executeTakeFirstOrThrow();
+        await this.postPartnerCapitalMovement(
+          trx, tenantId, userId, partner.name, partner.id,
+          'DEPOSIT', cleanCapital, new Date(), accountId!, String(ledger.id)
+        );
       }
-
       return partner;
     });
   }
@@ -2117,55 +2163,50 @@ export class ImportSalesService {
       .execute();
   }
 
-  async recordCapitalTransaction(tenantId: string, userId: number, partnerId: string, dto: { type: 'DEPOSIT' | 'WITHDRAWAL', amount: number, date: string, note?: string, accountId?: string }) {
+  async recordCapitalTransaction(tenantId: string, userId: number, partnerId: string, dto: { type: 'DEPOSIT' | 'WITHDRAWAL'; amount: number; date: string; note?: string; accountId?: string }) {
     const cleanAmount = Number(dto.amount);
+    const movementDate = new Date(dto.date);
+    if (dto.type !== 'DEPOSIT' && dto.type !== 'WITHDRAWAL') {
+      throw new BadRequestException('نوع حركة رأس المال غير صالح.');
+    }
     if (!Number.isFinite(cleanAmount) || cleanAmount <= 0) {
       throw new BadRequestException('مبلغ حركة رأس المال يجب أن يكون أكبر من الصفر.');
     }
+    if (!dto.accountId) {
+      throw new BadRequestException('تحديد حساب البنك أو الخزينة إلزامي لكل حركة رأس مال فعلية.');
+    }
+    if (Number.isNaN(movementDate.getTime())) throw new BadRequestException('تاريخ حركة رأس المال غير صالح.');
 
     return await this.db.transaction().execute(async (trx) => {
       const partner = await trx.selectFrom('import_partners')
         .selectAll()
         .where('id', '=', partnerId)
         .where('tenant_id', '=', tenantId)
+        .forUpdate()
         .executeTakeFirstOrThrow();
-
       if (dto.type === 'WITHDRAWAL' && Number(partner.capital_amount || 0) < cleanAmount) {
         throw new BadRequestException(`رصيد رأس المال الحالي (${partner.capital_amount}) لا يكفي لسحب مبلغ ${cleanAmount}.`);
       }
-
-      const ledgerInsert = await trx.insertInto('import_partner_ledger').values({
+      const ledger = await trx.insertInto('import_partner_ledger').values({
         tenant_id: tenantId,
         partner_id: partnerId,
         type: dto.type,
         amount: cleanAmount,
         transaction_date: dto.date,
         note: dto.note || '',
-        created_by: userId
+        created_by: userId,
       }).returning('id').executeTakeFirstOrThrow();
-
       const sign = dto.type === 'DEPOSIT' ? '+' : '-';
       await trx.updateTable('import_partners')
-        .set((eb) => ({
-          capital_amount: sql`${eb.ref('capital_amount')} ${sql.raw(sign)} ${cleanAmount}`
-        }))
+        .set((eb) => ({ capital_amount: sql`${eb.ref('capital_amount')} ${sql.raw(sign)} ${cleanAmount}` }))
         .where('id', '=', partnerId)
         .where('tenant_id', '=', tenantId)
         .execute();
-
-      if (dto.accountId) {
-        await trx.insertInto('treasury_transactions').values({
-          tenant_id: tenantId,
-          txn_type: dto.type === 'DEPOSIT' ? 'revenue' : 'expense',
-          amount: dto.type === 'DEPOSIT' ? cleanAmount : -cleanAmount,
-          note: (dto.type === 'DEPOSIT' ? 'إيداع رأس مال شريك: ' : 'سحب رأس مال شريك: ') + (partner.name || '') + (dto.note ? ` - ${dto.note}` : ''),
-          reference_type: 'partner_capital',
-          created_by: userId,
-          account_id: dto.accountId
-        }).execute();
-      }
-
-      return { success: true, ledgerId: ledgerInsert.id };
+      const treasuryTransactionId = await this.postPartnerCapitalMovement(
+        trx, tenantId, userId, partner.name, partner.id,
+        dto.type, cleanAmount, movementDate, dto.accountId, dto.note || ''
+      );
+      return { success: true, ledgerId: ledger.id, treasuryTransactionId };
     });
   }
 

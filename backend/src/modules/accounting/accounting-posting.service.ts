@@ -541,7 +541,7 @@ export class AccountingPostingService {
       if (settings.lock_date_non_adviser) {
         const lockNonAdvStr = String(settings.lock_date_non_adviser).slice(0, 10);
         if (dateStr <= lockNonAdvStr) {
-          const operationalSources = ['sale', 'sale_edit', 'sale_cancel', 'sale_reversal', 'sales_return', 'return', 'purchase', 'purchase_cancel', 'purchase_reversal', 'supplier_payment', 'customer_payment', 'expense', 'treasury_expense', 'import_late_expense'];
+          const operationalSources = ['sale', 'sale_edit', 'sale_cancel', 'sale_reversal', 'sales_return', 'return', 'purchase', 'purchase_cancel', 'purchase_reversal', 'supplier_payment', 'customer_payment', 'expense', 'treasury_expense', 'import_late_expense', 'import_partner_capital'];
           if (operationalSources.includes(params.sourceType)) {
             throw new AppError(
               `الفترة المحاسبية مقفلة للعمليات التشغيلية حتى تاريخ ${lockNonAdvStr}. يرجى مراجعة الإدارة المالية.`,
