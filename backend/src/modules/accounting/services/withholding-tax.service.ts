@@ -422,6 +422,15 @@ export class WithholdingTaxService {
         throw new NotFoundException('معاملة الخصم والإضافة غير موجودة');
       }
 
+      // A remittance creates immutable posted ledger entries. Reopening the tax record
+      // as a draft would allow deleting its evidence while leaving those entries behind.
+      if (existing.status === 'paid' && dto.status !== 'paid') {
+        throw new BadRequestException('لا يمكن إعادة معاملة ضريبية مسددة إلى مسودة دون إجراء عكسي معتمد');
+      }
+      if (existing.status === 'paid' && dto.payment_reference && dto.payment_reference !== existing.payment_reference) {
+        throw new BadRequestException('لا يمكن تعديل مرجع سداد معاملة ضريبية مرحلة');
+      }
+
       let paymentRef = dto.payment_reference || existing.payment_reference;
 
       // When transitioning to 'paid', post remittance journal entry
@@ -498,8 +507,15 @@ export class WithholdingTaxService {
         throw new NotFoundException('المعاملة غير موجودة');
       }
 
-      if (existing.status === 'paid') {
-        throw new BadRequestException('لا يمكن حذف معاملة تم سدادها وتوريدها للضرائب بالفعل');
+      const remittance = await trx
+        .selectFrom('journal_entries')
+        .select('id')
+        .where('tenant_id', '=', tenantId)
+        .where('source_type', '=', 'withholding_tax_remittance')
+        .where('source_id', '=', id)
+        .executeTakeFirst();
+      if (existing.status === 'paid' || remittance) {
+        throw new BadRequestException('لا يمكن حذف معاملة ضريبية لها قيد سداد مرحل؛ يلزم إجراء عكسي معتمد');
       }
 
       await trx
