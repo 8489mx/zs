@@ -58,6 +58,7 @@ export interface CreateShipmentDto {
 }
 
 export interface UpdateShipmentCostsDto {
+  receiptLocationId?: number;
   shippingCostUsd?: number;
   shippingAccountId?: string;
   customsCostEgp?: number;

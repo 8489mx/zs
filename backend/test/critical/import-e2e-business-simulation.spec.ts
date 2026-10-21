@@ -14,6 +14,7 @@ import { up as up237 } from '../../src/database/migrations/2040000000237_interna
 import { up as up238 } from '../../src/database/migrations/2040000000238_customs_broker_advances_and_container_deposits';
 import { up as up239 } from '../../src/database/migrations/2040000000239_container_preorders_and_inventory_traceability';
 import { up as up240 } from '../../src/database/migrations/2040000000240_import_governance_approvals_and_reconciliation';
+import { up as up241 } from '../../src/database/migrations/2040000000241_import_financial_source_documents_and_warehouse_receipts';
 import {
   allocateSaleFromImportLots,
   restoreImportLotsFromCancelledSale,
@@ -317,6 +318,9 @@ async function setupDatabase(): Promise<{ db: Kysely<Database>; accounts: Record
       tenant_id TEXT NOT NULL REFERENCES tenants(id),
       account_id TEXT NOT NULL,
       name TEXT NOT NULL,
+      branch_id BIGINT,
+      location_type TEXT NOT NULL DEFAULT 'internal_warehouse',
+      is_active BOOLEAN NOT NULL DEFAULT TRUE,
       is_default BOOLEAN DEFAULT TRUE,
       created_at TIMESTAMPTZ DEFAULT NOW()
     );
@@ -702,6 +706,7 @@ async function setupDatabase(): Promise<{ db: Kysely<Database>; accounts: Record
   await up238(db as any);
   await up239(db as any);
   await up240(db as any);
+  await up241(db as any);
 
   // Seed default tenant
   await pglite.exec(`INSERT INTO tenants (id, name) VALUES ('tenant-e2e', 'Global Import & Trade Ltd');`);
@@ -1176,6 +1181,7 @@ async function runBusinessSimulation() {
   console.log('Step 14: Marking Container Arrived & Posting Atomic Warehouse Receipt...');
   await importService.updateShipmentCosts(tenantId, userId, shipment.id, {
     status: 'Arrived',
+    receiptLocationId: 1,
     customsCostEgp: 140000,
     internalTransportCostEgp: 15000,
     exchangeRateAtArrival: 50.0,
@@ -1205,6 +1211,7 @@ async function runBusinessSimulation() {
   // -------------------------------------------------------------
   console.log('Step 15: Processing Late Port Expense with IAS 2 Split...');
   const lateExp = await importService.processLateShipmentExpense(tenantId, userId, shipment.id, {
+      idempotencyKey: 'AUDIT-LATE-1-1',
     title: 'فاتورة أرضيات إضافية متأخرة من هيئة ميناء الإسكندرية',
     lateExpenseAmount: 15000,
     payableAccountId: accounts['2110'],
@@ -1217,6 +1224,7 @@ async function runBusinessSimulation() {
   // -------------------------------------------------------------
   console.log('Step 16: Returning Empty Container to Shipping Line Depot & Refund Deposit...');
   const refundedDeposit = await importService.recordContainerReturnAndRefund(tenantId, userId, deposit.id, {
+      idempotencyKey: 'AUDIT-REFUND-1-1',
     actualReturnDate: '2026-04-08',
     refundedAmountEgp: 38000,
     deductionsAmountEgp: 2000,
@@ -1247,8 +1255,8 @@ async function runBusinessSimulation() {
   console.log('Step 18: Testing Maker-Checker Governance Approval Workflow...');
   const approval = await importService.createApprovalRequest(tenantId, userId, {
     actionType: 'partner_distribution',
-    referenceId: project.id,
-    requestPayload: { amount: 50000, partner: p1.name },
+    referenceId: p1.id,
+    requestPayload: { partnerId: p1.id, projectId: project.id, amount: 50000 },
   });
 
   // Negative test: creator cannot approve their own request!
@@ -1292,10 +1300,14 @@ async function runBusinessSimulation() {
   // STEP 20: AUDITED PRE-CLOSURE AUDIT GATES (REJECTIONS WITH EXACT ASSERT.MATCH)
   // -------------------------------------------------------------
   console.log('Step 20: Testing Audited Pre-Closure Audit Gates...');
+  const preCloseApproval = await importService.createApprovalRequest(tenantId, userId, {
+    actionType: 'project_closure', referenceId: project.id,
+  });
+  await importService.decideApprovalRequest(tenantId, Number(auditor.id), preCloseApproval.id, { decision: 'approved' });
   // Gate 1: Project cannot close while customs broker has unliquidated advance (10,000 EGP remaining)
   let brokerGateTriggered = false;
   try {
-    await importService.closeProject(tenantId, userId, project.id);
+    await importService.closeProject(tenantId, userId, project.id, preCloseApproval.id);
   } catch (err: any) {
     brokerGateTriggered = true;
     assert.match(
@@ -1332,7 +1344,7 @@ async function runBusinessSimulation() {
 
   let depositGateTriggered = false;
   try {
-    await importService.closeProject(tenantId, userId, project.id);
+    await importService.closeProject(tenantId, userId, project.id, preCloseApproval.id);
   } catch (err: any) {
     depositGateTriggered = true;
     assert.match(
@@ -1346,6 +1358,7 @@ async function runBusinessSimulation() {
 
   // Refund the temporary deposit to clear Gate 2
   await importService.recordContainerReturnAndRefund(tenantId, userId, tempDeposit.id, {
+      idempotencyKey: 'AUDIT-REFUND-1-2',
     actualReturnDate: '2026-04-15',
     refundedAmountEgp: 20000,
     deductionsAmountEgp: 0,
@@ -1355,7 +1368,7 @@ async function runBusinessSimulation() {
   // Gate 3: Project closure blocked by unsold inventory remaining in lots
   let unsoldLotsGateTriggered = false;
   try {
-    await importService.closeProject(tenantId, userId, project.id);
+    await importService.closeProject(tenantId, userId, project.id, preCloseApproval.id);
   } catch (err: any) {
     unsoldLotsGateTriggered = true;
     assert.match(
@@ -1404,6 +1417,7 @@ async function runBusinessSimulation() {
   await db.transaction().execute(async (trx) => {
     await allocateSaleFromImportLots(trx, {
       tenantId,
+      locationId: 1,
       saleId: Number(posSale.id),
       items: [
         {
@@ -1479,6 +1493,7 @@ async function runBusinessSimulation() {
   await db.transaction().execute(async (trx) => {
     await allocateSaleFromImportLots(trx, {
       tenantId,
+      locationId: 1,
       saleId: Number(wsSale.id),
       items: [
         {
@@ -1637,6 +1652,7 @@ async function runBusinessSimulation() {
   await db.transaction().execute(async (trx) => {
     await allocateSaleFromImportLots(trx, {
       tenantId,
+      locationId: 1,
       saleId: Number(erroneousSale.id),
       items: [{ productId: Number(productA.id), qty: 60, netUnitPrice: 1850 }],
     });
@@ -1692,6 +1708,7 @@ async function runBusinessSimulation() {
   // Product A: 1000 total received, 560 on hand, 440 net sold
   // Product B: 500 total received, 500 on hand, 0 sold
   const latePostSaleExp = await importService.processLateShipmentExpense(tenantId, userId, shipment.id, {
+      idempotencyKey: 'AUDIT-LATE-1-2',
     title: 'مطالبة متأخرة لغرامات تأخير أرضيات ميناء الإسكندرية',
     lateExpenseAmount: 20000,
     payableAccountId: accounts['2110'],
@@ -1734,6 +1751,7 @@ async function runBusinessSimulation() {
 
   await importService.updateShipmentCosts(tenantId, userId, shipment2.id, {
     status: 'Arrived',
+    receiptLocationId: 1,
     customsCostEgp: 70000,
     internalTransportCostEgp: 8000,
     exchangeRateAtArrival: 50.0,
@@ -1765,6 +1783,7 @@ async function runBusinessSimulation() {
   await db.transaction().execute(async (trx) => {
     await allocateSaleFromImportLots(trx, {
       tenantId,
+      locationId: 1,
       saleId: Number(p1Sale.id),
       items: [{ productId: Number(productA.id), qty: 100, netUnitPrice: 1850 }],
     });
@@ -1853,6 +1872,7 @@ async function runBusinessSimulation() {
   await db.transaction().execute(async (trx) => {
     await allocateSaleFromImportLots(trx, {
       tenantId,
+      locationId: 1,
       saleId: Number(bulkClearanceSale.id),
       items: [
         { productId: Number(productA.id), qty: 460, netUnitPrice: 1850 },
@@ -1905,7 +1925,7 @@ async function runBusinessSimulation() {
   const overpayApproval = await importService.createApprovalRequest(tenantId, userId, {
     actionType: 'partner_distribution',
     referenceId: p1.id,
-    requestPayload: { partnerId: p1.id, amount: p1ExpectedShare + 500000 },
+    requestPayload: { partnerId: p1.id, projectId: project.id, amount: p1ExpectedShare + 500000 },
   });
   await importService.decideApprovalRequest(tenantId, Number(auditor.id), overpayApproval.id, {
     decision: 'approved',
@@ -1929,7 +1949,7 @@ async function runBusinessSimulation() {
   const payoutApproval = await importService.createApprovalRequest(tenantId, userId, {
     actionType: 'partner_distribution',
     referenceId: p1.id,
-    requestPayload: { partnerId: p1.id, amount: 100000 },
+    requestPayload: { partnerId: p1.id, projectId: project.id, amount: 100000 },
   });
 
   await importService.decideApprovalRequest(tenantId, Number(auditor.id), payoutApproval.id, {
@@ -2017,7 +2037,7 @@ async function runBusinessSimulation() {
   // A. Cannot re-close already closed project
   let recloseBlocked = false;
   try {
-    await importService.closeProject(tenantId, userId, project.id);
+    await importService.closeProject(tenantId, userId, project.id, preCloseApproval.id);
   } catch (err: any) {
     recloseBlocked = true;
     assert.match(err.message, /مقفل/, `Expected already closed error, got: ${err.message}`);

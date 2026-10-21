@@ -43,14 +43,12 @@ export async function allocateSaleFromImportLots(
       .where('remaining_quantity', '>', 0);
 
     const targetLocId = item.locationId !== undefined ? item.locationId : params.locationId;
-    if (targetLocId !== undefined && targetLocId !== null) {
-      lotQuery = lotQuery.where((eb) =>
-        eb.or([
-          eb('location_id', '=', targetLocId),
-          eb('location_id', 'is', null),
-        ])
-      );
+    // Never ascribe stock of unknown provenance to a concrete warehouse.
+    // Legacy lots with NULL location require a documented physical reconciliation.
+    if (targetLocId === undefined || targetLocId === null || !Number.isSafeInteger(Number(targetLocId)) || Number(targetLocId) <= 0) {
+      continue;
     }
+    lotQuery = lotQuery.where('location_id', '=', Number(targetLocId));
 
     const lots = await lotQuery
       .orderBy('receipt_date', 'asc')

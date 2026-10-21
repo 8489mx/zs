@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   useContainerDepositsQuery,
   useRecordContainerDepositMutation,
@@ -36,6 +36,7 @@ export function ContainerDepositsManager() {
   const [deductionsAmountEgp, setDeductionsAmountEgp] = useState<number>(0);
   const [deductionReason, setDeductionReason] = useState('');
   const [refundTreasuryAccountId, setRefundTreasuryAccountId] = useState('');
+  const refundAttemptRef = useRef<{ fingerprint: string; key: string } | null>(null);
 
   const { data: shipments = [] } = useQuery({
     queryKey: ['import-shipments'],
@@ -90,9 +91,17 @@ export function ContainerDepositsManager() {
     if (!selectedDepositForRefund) return;
 
     try {
+      const fingerprint = JSON.stringify({
+        depositId: selectedDepositForRefund.id, actualReturnDate, refundedAmountEgp,
+        deductionsAmountEgp, deductionReason, refundTreasuryAccountId,
+      });
+      if (!refundAttemptRef.current || refundAttemptRef.current.fingerprint !== fingerprint) {
+        refundAttemptRef.current = { fingerprint, key: crypto.randomUUID() };
+      }
       await refundDepositMutation.mutateAsync({
         depositId: selectedDepositForRefund.id,
         dto: {
+          idempotencyKey: refundAttemptRef.current.key,
           actualReturnDate,
           refundedAmountEgp: Number(refundedAmountEgp),
           deductionsAmountEgp: Number(deductionsAmountEgp),
@@ -100,6 +109,7 @@ export function ContainerDepositsManager() {
           treasuryAccountId: refundTreasuryAccountId || undefined,
         },
       });
+      refundAttemptRef.current = null;
       toast.success('تمت تسوية استرداد التأمين وتحديث حالة الحاوية إلى تم تسليم الفارغ');
       setSelectedDepositForRefund(null);
       refetch();

@@ -1231,6 +1231,20 @@ export class ImportSalesService {
         if (!['Pending', 'In Customs', 'Arrived'].includes(dto.status)) throw new BadRequestException('حالة الشحنة غير صالحة');
         payload.status = dto.status;
       }
+      if (dto.receiptLocationId !== undefined) {
+        if (receipt?.state === 'posted' && Number(shipment.receipt_location_id || 0) !== Number(dto.receiptLocationId)) {
+          throw new BadRequestException('لا يمكن تغيير مخزن استلام الحاوية بعد الترحيل؛ استخدم مستند تحويل مخزني.');
+        }
+        const dest = await trx.selectFrom('stock_locations').select(['id', 'account_id', 'branch_id', 'location_type', 'is_active'])
+          .where('tenant_id', '=', tenantId).where('id', '=', dto.receiptLocationId).executeTakeFirst();
+        if (!dest || !dest.is_active || ['damaged', 'in_transit'].includes(dest.location_type)) {
+          throw new BadRequestException('مخزن الاستلام المحدد غير موجود أو غير مؤهل لاستلام بضاعة متاحة للبيع.');
+        }
+        payload.receipt_location_id = Number(dest.id);
+      }
+      if (!receipt && dto.status === 'Arrived' && !(dto.receiptLocationId || shipment.receipt_location_id)) {
+        throw new BadRequestException('اختيار مخزن الاستلام الفعلي إلزامي قبل ترحيل حاوية الاستيراد.');
+      }
       if (dto.pricingExchangeRate !== undefined) payload.pricing_exchange_rate = requireImportNumber(dto.pricingExchangeRate, 'سعر صرف التسعير', Number.MIN_VALUE);
       if (dto.shippedDate !== undefined) payload.shipped_date = dto.shippedDate;
       if (dto.etaDate !== undefined) payload.eta_date = dto.etaDate;
@@ -1320,11 +1334,23 @@ export class ImportSalesService {
       .where('tenant_id', '=', tenantId).where('shipment_id', '=', shipmentId).execute();
     if (!items.length) throw new BadRequestException('لا يمكن استلام شحنة بدون أصناف');
     const groups = groupImportReceipts(items.map((item) => ({ ...this.costLine(item), landedCost: Number(item.landed_cost_egp) })));
+    const locationId = Number(shipment.receipt_location_id || 0);
+    if (!locationId) throw new BadRequestException('يجب تحديد موقع استلام حقيقي قبل ترحيل المخزون وباتشات الاستيراد.');
+    const receiptLocation = await trx.selectFrom('stock_locations')
+      .select(['id', 'branch_id', 'account_id', 'location_type', 'is_active'])
+      .where('tenant_id', '=', tenantId).where('id', '=', locationId)
+      .executeTakeFirst();
+    if (!receiptLocation?.is_active || ['damaged', 'in_transit'].includes(receiptLocation.location_type)) {
+      throw new BadRequestException('موقع الاستلام غير موجود أو غير مفعل.');
+    }
     const products = await trx.selectFrom('products').select(['id', 'account_id'])
       .where('tenant_id', '=', tenantId).where('id', 'in', groups.map((group) => group.productId))
       .orderBy('id', 'asc').execute();
     if (products.length !== groups.length) throw new NotFoundException('أحد أصناف الشحنة غير موجود في المنشأة');
     const accountByProduct = new Map(products.map((product) => [Number(product.id), product.account_id]));
+    if (products.some((product) => product.account_id !== receiptLocation.account_id)) {
+      throw new BadRequestException('مخزن الاستلام لا يتبع نفس الحساب التشغيلي للأصناف المستلمة؛ يجب تحديد مخزن متوافق.');
+    }
     // Lock ALL products, across accounts, in global ID order before touching any location.
     for (const product of products) {
       await lockStockProducts(trx, { tenantId, accountId: product.account_id, productIds: [Number(product.id)] });
@@ -1342,6 +1368,7 @@ export class ImportSalesService {
           .where('id', '=', group.productId).executeTakeFirstOrThrow();
         const stock = await applyStockDelta(trx, {
           tenantId, accountId, productId: group.productId, delta: group.quantity, allowNegative: true,
+          locationId, branchId: receiptLocation.branch_id, disableAutoDrain: true,
         });
         // globalBefore is a cached product counter. globalAfter is reconciled by the ledger
         // from locked location balances (including its legacy unassigned-stock policy).
@@ -1355,7 +1382,7 @@ export class ImportSalesService {
           unit_cost: Number((group.value / group.quantity).toFixed(6)), total_cost: Number(group.value.toFixed(4)),
           reason: 'استلام شحنة استيراد', note: `شحنة استيراد #${shipmentId}`,
           reference_type: 'import_inventory_receipt', reference_id: receipt.id, import_receipt_id: receipt.id,
-          created_by: userId, branch_id: null, location_id: null,
+          created_by: userId, branch_id: receiptLocation.branch_id, location_id: locationId,
         }).execute();
       }
       if (group.shortageExpense > 0) {
@@ -1384,7 +1411,7 @@ export class ImportSalesService {
           shipment_id: shipmentId,
           shipment_item_id: item.id,
           product_id: Number(item.product_id),
-          location_id: null,
+          location_id: locationId,
           initial_quantity: receivedQty,
           remaining_quantity: receivedQty,
           unit_landed_cost_egp: unitLandedCost,

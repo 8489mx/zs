@@ -128,6 +128,7 @@ export default function ShipmentDetailsPage() {
   const [exchangeRate, setExchangeRate] = useState('');
   const [pricingExchangeRate, setPricingExchangeRate] = useState('');
   const [status, setStatus] = useState<string>('');
+  const [receiptLocationId, setReceiptLocationId] = useState<string>('');
   
   // Dates
   const [shippedDate, setShippedDate] = useState('');
@@ -160,6 +161,12 @@ export default function ShipmentDetailsPage() {
     queryFn: () => http<any>('/api/accounting/accounts').catch(() => ({ accounts: [] })),
   });
   const treasuryAccounts = (accountsData?.accounts || (Array.isArray(accountsData) ? accountsData : [])).filter((a: any) => a.accountGroup === 'current_assets' || a.isCashBank);
+  const { data: locationsData } = useQuery({
+    queryKey: ['import-receipt-stock-locations'],
+    queryFn: () => http<any>('/api/locations'),
+  });
+  const receiptLocations: any[] = Array.isArray(locationsData) ? locationsData :
+    (locationsData?.rows || locationsData?.locations || locationsData?.data || []);
 
   if (isLoading) return <div style={{ padding: '2rem' }}>{t('import_sales.shipment_details_page.s3', "جاري التحميل...")}</div>;
   if (!data) return <div style={{ padding: '2rem' }}>{t('import_sales.shipment_details_page.s4', "الحاوية غير موجودة")}</div>;
@@ -176,6 +183,7 @@ export default function ShipmentDetailsPage() {
       exchangeRateAtArrival: exchangeRate ? Number(exchangeRate) : undefined,
       pricingExchangeRate: pricingExchangeRate ? Number(pricingExchangeRate) : undefined,
       status: status ? status : undefined,
+      receiptLocationId: receiptLocationId ? Number(receiptLocationId) : undefined,
       shippedDate: shippedDate || undefined,
       etaDate: etaDate || undefined,
       clearanceDate: clearanceDate || undefined,
@@ -329,6 +337,16 @@ export default function ShipmentDetailsPage() {
               </select>
             </div>
 
+            <div className="form-group">
+              <label>مخزن استلام الحاوية الفعلي (إلزامي عند الوصول)</label>
+              <select className="input" value={receiptLocationId || String(data.receipt_location_id || '')}
+                onChange={e => setReceiptLocationId(e.target.value)}
+                disabled={data.status === 'Arrived'}>
+                <option value="">اختر مخزن الاستلام</option>
+                {receiptLocations.filter((loc: any) => loc.is_active !== false && !['damaged', 'in_transit'].includes(loc.location_type))
+                  .map((loc: any) => <option key={loc.id} value={loc.id}>{loc.name}</option>)}
+              </select>
+            </div>
             <div className="actions" style={{ gridColumn: 'span 2' }}>
               <Button type="submit" variant="primary" disabled={updateCostsMutation.isPending}>{t('import_sales.shipment_details_page.s28', "تحديث البيانات والتكاليف وإعادة الحساب")}</Button>
             </div>

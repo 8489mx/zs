@@ -100,6 +100,12 @@ export class CreateShipmentDto {
 export class UpdateShipmentCostsDto {
   @IsOptional()
   @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  receiptLocationId?: number;
+
+  @IsOptional()
+  @Type(() => Number)
   @IsNumber()
   @Min(0)
   shippingCostUsd?: number;
