@@ -102,7 +102,7 @@ export interface PayrollLineItemOutput {
 }
 
 export interface PayrollJournalTotals {
-  grossSalariesExpense: number; // Dr 6200
+  grossSalariesExpense: number; // Dr 6200 NET of attendance/leave/other wage reductions (legacy field name)
   employerInsuranceExpense: number; // Dr 6210
   netPayable: number; // Cr 2140
   socialInsurancePayable: number; // Cr 2145 (employee + employer)
@@ -255,6 +255,9 @@ export function calculateEmployeePayrollLine(input: PayrollLineItemInput): Payro
 
   // 1. Statutory deductions
   const statutoryTotal = toMoney(employeeSocialInsurance + incomeTax);
+  if (!Number.isFinite(grossPay) || !Number.isFinite(statutoryTotal) || statutoryTotal > grossPay) {
+    throw new RangeError(`Payroll employee #${input.employeeId}: statutory deductions exceed gross earnings; fix insurance/tax configuration`);
+  }
 
   // 2. Deduction ceiling rule (Labor Law 50% cap or policy cap)
   const maxDeductionCapPct = input.maxDeductionPct && input.maxDeductionPct > 0 ? input.maxDeductionPct : 0.50;
@@ -338,14 +341,14 @@ export function calculateEmployeePayrollLine(input: PayrollLineItemInput): Payro
  *
  * Invariant Formula:
  * Debit side:
- *   - Account 6200 (Salaries & Wages Expense) = Σ Gross Pay
+ *   - Account 6200 = Σ (Gross Pay - attendance / leave / other wage reductions)
  *   - Account 6210 (Employer Social Insurance Expense) = Σ Employer GOSI
  * Credit side:
  *   - Account 2140 (Payroll Payable) = Σ Net Pay
  *   - Account 2145 (Social Insurance Authority Payable) = Σ (Employee GOSI + Employer GOSI)
  *   - Account 2146 (Income Tax Payable) = Σ Income Tax
  *   - Account 1160 (Employee Advances / Loans) = Σ Applied Loan Deductions
- *   - Account 7100 (Other Income / Attendance & Custody Penalties) = Σ (Attendance + Leave + Asset + Other Deductions)
+ *   - Account 7100 = Σ Asset Recovery Deductions only (NOT attendance penalties)
  *
  * Assert: Total Debit == Total Credit (down to 0.01 precision).
  */
@@ -359,17 +362,15 @@ export function reconcilePayrollRunJournalTotals(items: PayrollLineItemOutput[])
   let otherIncomePenaltiesCredit = 0;
 
   for (const item of items) {
-    grossSalariesExpense = toMoney(grossSalariesExpense + item.grossPay);
+    grossSalariesExpense = toMoney(grossSalariesExpense + item.grossPay - item.attendanceDeduction - item.leaveDeduction - item.otherDeductions);
     employerInsuranceExpense = toMoney(employerInsuranceExpense + item.employerSocialInsurance);
     netPayable = toMoney(netPayable + item.netPay);
     employeeInsuranceTotal = toMoney(employeeInsuranceTotal + item.employeeSocialInsurance);
     incomeTaxPayable = toMoney(incomeTaxPayable + item.incomeTax);
     loanAdvancesCredit = toMoney(loanAdvancesCredit + item.appliedLoanDeduction);
 
-    const operationalDeductions = toMoney(
-      item.attendanceDeduction + item.leaveDeduction + item.assetRecoveryDeduction + item.otherDeductions
-    );
-    otherIncomePenaltiesCredit = toMoney(otherIncomePenaltiesCredit + operationalDeductions);
+    // Recoveries remain separate; attendance/leave wage reductions offset salary expense.
+    otherIncomePenaltiesCredit = toMoney(otherIncomePenaltiesCredit + item.assetRecoveryDeduction);
   }
 
   const socialInsurancePayable = toMoney(employeeInsuranceTotal + employerInsuranceExpense);

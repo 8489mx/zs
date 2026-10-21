@@ -17,6 +17,7 @@ import { mobilePunchApi } from '@/features/hr/api/mobile-punch.api';
 import { systemAlert } from '@/shared/components/system-alert';
 import { EmployeePinModal } from '../components/employee-profile/EmployeePinModal';
 import { EmployeeOverviewTab } from '../components/employee-profile/EmployeeOverviewTab';
+import { EmployeePeriodStatement } from '../components/employee-profile/EmployeePeriodStatement';
 import { EmployeeDetailsTab } from '../components/employee-profile/EmployeeDetailsTab';
 import {
   employeeName,
@@ -215,6 +216,11 @@ export function EmployeeProfilePage() {
               {canViewSalary ? <Button type="button" variant="secondary" onClick={() => navigate('/hr/payroll')} style={{ padding: '3px 8px', fontSize: '0.75rem' }}>{t('hr.employee_profile_page.s11', "المرتبات")}</Button> : null}
             </div>
           </div>
+
+          {shouldShowProfileSection(activeSection, 'overview') && id && employee ? (
+            <EmployeePeriodStatement employeeId={id} employee={employee}
+              canViewSalary={canViewSalary} canViewLoans={canViewLoans} />
+          ) : null}
 
           {shouldShowProfileSection(activeSection, 'overview') ? (
             <EmployeeOverviewTab

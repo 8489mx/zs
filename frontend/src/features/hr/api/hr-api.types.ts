@@ -39,6 +39,7 @@ export interface LoansResponse {
 
 export interface WithdrawalsResponse {
   rows?: HrWithdrawalRow[];
+  pagination?: { page: number; pageSize: number; totalItems: number; totalPages: number };
   summary?: HrWithdrawalSummary;
 }
 
@@ -53,7 +54,10 @@ export interface PayrollRunResponse {
 
 export interface AttendanceResponse {
   rows?: HrAttendanceRecord[];
+  pagination?: { page: number; pageSize: number; totalItems: number; totalPages: number };
   summary?: {
+    workedMinutes?: number;
+    payableMinutes?: number;
     totalItems?: number;
     presentCount?: number;
     absentCount?: number;
