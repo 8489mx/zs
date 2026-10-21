@@ -4324,6 +4324,15 @@ export class ImportSalesService {
       if (preorder.status === 'invoiced') {
         throw new BadRequestException('لا يمكن إلغاء حجز تم إصدار فاتورة بيع فعلية له.');
       }
+      if (preorder.status === 'cancelled') {
+        throw new BadRequestException('تم إلغاء هذا الحجز مسبقًا.');
+      }
+      // The deposit is a customer liability and a real bank receipt. Cancelling a
+      // reservation alone must not erase that liability without a refund or an
+      // approved transfer of the credit to the customer account.
+      if (Number(preorder.deposit_amount_egp || 0) > 0) {
+        throw new UnprocessableEntityException('لا يمكن إلغاء حجز عليه عربون قبل تسوية المبلغ وردّه أو تحويله برصيد عميل بمستند محاسبي معتمد.');
+      }
 
       return await trx
         .updateTable('import_container_preorders')

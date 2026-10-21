@@ -1,4 +1,5 @@
 import { Kysely, Transaction, sql } from 'kysely';
+import { BadRequestException, UnprocessableEntityException } from '@nestjs/common';
 import { Database } from '../../../database/database.types';
 
 /**
@@ -247,6 +248,15 @@ export async function restoreImportLotsFromSalesReturn(
 
     remainingReturnQty = Number((remainingReturnQty - restoreAmount).toFixed(4));
   }
+
+  // A sale return cannot restore more imported units than the original sale allocated.
+  // Reject the transaction rather than silently crediting unrelated stock/provenance.
+  if (remainingReturnQty > 0.0001) {
+    const hasImportedAllocations = allocations.length > 0;
+    if (hasImportedAllocations) {
+      throw new UnprocessableEntityException('كمية المرتجع تتجاوز الرصيد القابل للرد من باتش الاستيراد الأصلي.');
+    }
+  }
 }
 
 export async function adjustImportLotQuantity(
@@ -267,7 +277,14 @@ export async function adjustImportLotQuantity(
     .executeTakeFirstOrThrow();
 
   const current = Number(lot.remaining_quantity);
-  const newQty = Math.max(0, Number((current + params.adjustmentQty).toFixed(4)));
+  const delta = Number(params.adjustmentQty);
+  if (!Number.isFinite(delta) || Math.abs(delta) < 0.0001) {
+    throw new BadRequestException('كمية تسوية باتش الاستيراد يجب أن تكون رقمًا غير صفري.');
+  }
+  const newQty = Number((current + delta).toFixed(4));
+  if (newQty < 0 || newQty > Number(lot.initial_quantity) + 0.0001) {
+    throw new UnprocessableEntityException('تسوية باتش الاستيراد تتجاوز الكمية المتاحة أو الكمية الأصلية؛ يمنع قص الرصيد تلقائيًا.');
+  }
 
   await trx
     .updateTable('import_inventory_lots')
@@ -299,7 +316,14 @@ export async function transferImportLotLocation(
     .executeTakeFirstOrThrow();
 
   const current = Number(lot.remaining_quantity);
-  const transferQty = params.qty ? Math.min(current, Number(params.qty)) : current;
+  const requested = params.qty === undefined ? current : Number(params.qty);
+  if (!Number.isSafeInteger(Number(params.toLocationId)) || Number(params.toLocationId) <= 0) {
+    throw new BadRequestException('المخزن المستهدف غير صالح.');
+  }
+  if (!Number.isFinite(requested) || requested <= 0 || requested > current + 0.0001) {
+    throw new UnprocessableEntityException('كمية التحويل غير صالحة أو تتجاوز رصيد باتش الاستيراد؛ يمنع التحويل الجزئي الصامت.');
+  }
+  const transferQty = requested;
 
   if (transferQty >= current - 0.0001) {
     await trx
@@ -327,7 +351,7 @@ export async function transferImportLotLocation(
       .insertInto('import_inventory_lots')
       .values({
         tenant_id: params.tenantId,
-        lot_number: `${lot.lot_number}-TR${params.toLocationId}`,
+        lot_number: `${lot.lot_number}-TR${params.toLocationId}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
         project_id: lot.project_id,
         shipment_id: lot.shipment_id,
         shipment_item_id: lot.shipment_item_id,
