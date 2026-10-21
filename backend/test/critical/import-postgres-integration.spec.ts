@@ -1648,6 +1648,21 @@ async function runTests() {
 
     const depRow1 = await db.selectFrom('import_container_deposits').selectAll().where('id', '=', depositId).executeTakeFirstOrThrow();
     assert.strictEqual(Number(depRow1.refunded_amount_egp), 20000);
+    const event1 = await db.selectFrom('import_container_refund_events').selectAll()
+      .where('tenant_id', '=', tenantId).where('deposit_id', '=', depositId)
+      .where('idempotency_key', '=', 'refund-a').executeTakeFirstOrThrow();
+    assert.ok(event1.journal_entry_id, 'Refund event must link to its own posted journal');
+    const treasuryRefund1 = await db.selectFrom('treasury_transactions').selectAll()
+      .where('tenant_id', '=', tenantId).where('reference_type', '=', 'import_container_refund')
+      .where('reference_id', '=', Number(event1.serial_id)).executeTakeFirstOrThrow();
+    assert.strictEqual(Number(treasuryRefund1.amount), 20000, 'Actual refunded cash must be traceable in treasury');
+    let repeatedKeyBlocked = false;
+    try {
+      await service.recordContainerReturnAndRefund(tenantId, userId, depositId, {
+        idempotencyKey: 'refund-a', actualReturnDate: '2026-03-10', refundedAmountEgp: 20000,
+      });
+    } catch (err: any) { repeatedKeyBlocked = true; assert.match(err.message, /المفتاح|مسبق/); }
+    assert.ok(repeatedKeyBlocked, 'Retry with the same refund request key must not credit cash twice');
     assert.strictEqual(Number(depRow1.deductions_amount_egp), 5000);
     const remaining1 = Number(depRow1.deposit_amount_egp) - Number(depRow1.refunded_amount_egp) - Number(depRow1.deductions_amount_egp);
     assert.strictEqual(remaining1, 15000);

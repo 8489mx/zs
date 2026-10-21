@@ -1379,7 +1379,7 @@ export class ImportSalesService {
           .where('id', '=', group.productId).executeTakeFirstOrThrow();
         const stock = await applyStockDelta(trx, {
           tenantId, accountId, productId: group.productId, delta: group.quantity, allowNegative: true,
-          locationId: Number(receiptLocationId),
+          locationId: Number(receiptLocationId), disableAutoDrain: true,
         });
         // globalBefore is a cached product counter. globalAfter is reconciled by the ledger
         // from locked location balances (including its legacy unassigned-stock policy).
@@ -4094,6 +4094,18 @@ export class ImportSalesService {
         dto.treasuryAccountId ? Number(dto.treasuryAccountId) : null
       );
       const expenseAccId = await this.resolveTenantAccount(trx, tenantId, 'cogs');
+
+      if (currentRefund > 0) {
+        // Record actual receipt in treasury as well as the balanced GL journal; never create cash for penalties alone.
+        const cashScope = await trx.selectFrom('accounting_accounts').select('account_id')
+          .where('tenant_id', '=', tenantId).where('id', '=', bankAccId).executeTakeFirstOrThrow();
+        await trx.insertInto('treasury_transactions').values({
+          tenant_id: tenantId, account_id: cashScope.account_id, txn_type: 'import_container_refund',
+          amount: currentRefund, note: `استرداد تأمين حاوية #${deposit.container_no}`,
+          reference_type: 'import_container_refund', reference_id: Number(refundEvent.serial_id),
+          return_document_id: null, branch_id: null, location_id: null, created_by: userId,
+        }).execute();
+      }
 
       const lines: any[] = [];
       if (currentRefund > 0) {
