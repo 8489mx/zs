@@ -1,4 +1,4 @@
-import { IsString, IsNumber, IsOptional, Min, IsIn, IsInt, IsPositive, IsArray, ValidateNested, IsBoolean } from 'class-validator';
+import { IsString, IsNumber, IsOptional, Min, IsIn, IsInt, IsPositive, IsArray, ValidateNested, IsBoolean, IsNotEmpty } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class CreateShipmentDto {
@@ -1271,4 +1271,23 @@ export class DecideApprovalRequestDto {
 export class ResolveExceptionDto {
   @IsString()
   resolutionNotes!: string;
+}
+
+export class RecordPartnerPayoutDto {
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0.01, { message: 'مبلغ صرف الأرباح يجب أن يكون أكبر من الصفر.' })
+  amount!: number;
+
+  @IsString()
+  @IsNotEmpty({ message: 'معرّف طلب الاعتماد (approvalRequestId) إلزامي لصرف أرباح الشركاء وفق سياسة Maker-Checker.' })
+  approvalRequestId!: string;
+
+  @IsOptional()
+  @IsString()
+  projectId?: string;
+
+  @IsOptional()
+  @IsString()
+  treasuryAccountId?: string;
 }

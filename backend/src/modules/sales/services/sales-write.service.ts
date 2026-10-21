@@ -1668,16 +1668,20 @@ export class SalesWriteService {
         }
 
         await this.deductPharmacyBatchesFefo(trx, item.productId, allocations, scope, id, saleLineId);
-        await allocateSaleFromImportLots(trx, {
-          tenantId: scope.tenantId,
-          saleId: id,
-          items: [{
-            itemId: saleLineId,
-            productId: item.productId,
-            qty: item.qty,
-            netUnitPrice: allocationByItem.get(item)!.netUnitPrice,
-          }],
-        });
+        for (const alloc of allocations) {
+          await allocateSaleFromImportLots(trx, {
+            tenantId: scope.tenantId,
+            saleId: id,
+            locationId: alloc.locationId ?? normalized.locationId,
+            items: [{
+              itemId: saleLineId,
+              productId: item.productId,
+              qty: alloc.qty,
+              netUnitPrice: allocationByItem.get(item)!.netUnitPrice,
+              locationId: alloc.locationId ?? normalized.locationId,
+            }],
+          });
+        }
 
         if (item.modifiers && Array.isArray(item.modifiers) && this.planFeatureService.hasFeature(auth.planId, auth.extraFeatures, 'restaurant')) {
           for (const mod of item.modifiers) {
@@ -2571,16 +2575,20 @@ export class SalesWriteService {
         }
 
         await this.deductPharmacyBatchesFefo(trx, item.productId, allocations, scope, saleId, saleLineId);
-        await allocateSaleFromImportLots(trx, {
-          tenantId: scope.tenantId,
-          saleId: saleId,
-          items: [{
-            itemId: saleLineId,
-            productId: item.productId,
-            qty: item.qty,
-            netUnitPrice: allocationByItem.get(item)!.netUnitPrice,
-          }],
-        });
+        for (const alloc of allocations) {
+          await allocateSaleFromImportLots(trx, {
+            tenantId: scope.tenantId,
+            saleId: saleId,
+            locationId: alloc.locationId ?? normalized.locationId,
+            items: [{
+              itemId: saleLineId,
+              productId: item.productId,
+              qty: alloc.qty,
+              netUnitPrice: allocationByItem.get(item)!.netUnitPrice,
+              locationId: alloc.locationId ?? normalized.locationId,
+            }],
+          });
+        }
 
         if (item.modifiers && Array.isArray(item.modifiers) && this.planFeatureService.hasFeature(auth.planId, auth.extraFeatures, 'restaurant')) {
           for (const mod of item.modifiers) {

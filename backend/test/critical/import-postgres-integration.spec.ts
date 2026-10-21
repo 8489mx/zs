@@ -12,6 +12,11 @@ import { up as up237 } from '../../src/database/migrations/2040000000237_interna
 import { up as up238 } from '../../src/database/migrations/2040000000238_customs_broker_advances_and_container_deposits';
 import { up as up239 } from '../../src/database/migrations/2040000000239_container_preorders_and_inventory_traceability';
 import { up as up240 } from '../../src/database/migrations/2040000000240_import_governance_approvals_and_reconciliation';
+import {
+  allocateSaleFromImportLots,
+  restoreImportLotsFromCancelledSale,
+  restoreImportLotsFromSalesReturn,
+} from '../../src/modules/import-sales/helpers/import-lot-allocation.helper';
 
 /**
  * Custom PGlite dialect supporting multi-statement execution via simple query protocol,
@@ -157,6 +162,7 @@ async function setupDatabase(): Promise<{ db: Kysely<Database>; accounts: Record
       account_id TEXT DEFAULT '1',
       name TEXT NOT NULL,
       name_en TEXT,
+      sku TEXT,
       barcode TEXT,
       category_id BIGINT,
       supplier_id BIGINT,
@@ -668,7 +674,11 @@ async function setupDatabase(): Promise<{ db: Kysely<Database>; accounts: Record
       ('tenant-audit-1', 'tenant-audit-1', '2110', 'حسابات الموردين والدائنين', 'Accounts Payable', 'liability', 'current_liabilities', 'credit', true, false, false, true),
       ('tenant-audit-1', 'tenant-audit-1', '5110', 'تكلفة البضاعة المباعة', 'Cost of Goods Sold', 'expense', 'expenses', 'debit', true, false, false, false),
       ('tenant-audit-1', 'tenant-audit-1', '5201', 'خسائر فروق أسعار صرف محققة', 'Realized Forex Loss', 'expense', 'expenses', 'debit', true, false, false, false),
-      ('tenant-audit-1', 'tenant-audit-1', '4201', 'أرباح فروق أسعار صرف محققة', 'Realized Forex Gain', 'revenue', 'revenues', 'credit', true, false, false, false);
+      ('tenant-audit-1', 'tenant-audit-1', '4201', 'أرباح فروق أسعار صرف محققة', 'Realized Forex Gain', 'revenue', 'revenues', 'credit', true, false, false, false),
+      ('tenant-audit-1', 'tenant-audit-1', '1130', 'عهد المخلصين الجمركيين', 'Customs Broker Advances', 'asset', 'current_assets', 'debit', true, false, false, false),
+      ('tenant-audit-1', 'tenant-audit-1', '1180', 'تأمينات حاويات مستردة لدى التوكيلات', 'Container Security Deposits', 'asset', 'current_assets', 'debit', true, false, false, false),
+      ('tenant-audit-1', 'tenant-audit-1', '2130', 'عربونات وحجوزات العملاء (إيرادات مقدمة)', 'Customer Advance Deposits', 'liability', 'current_liabilities', 'credit', true, false, false, false),
+      ('tenant-audit-1', 'tenant-audit-1', '3100', 'رأس مال الشركاء والمساهمين', 'Partners Equity Capital', 'equity', 'equity', 'credit', true, false, false, false);
   `);
 
   // Query account IDs to configure accounting_settings
@@ -1462,6 +1472,359 @@ async function runTests() {
     }
     assert.ok(duplicateRejected, 'Must reject duplicate transfer submission with identical idempotency key');
     console.log('PASS: Duplicate request with same idempotency key strictly rejected with ConflictException.');
+
+    // =========================================================================
+    // Test 8: Sales Return Profit Calculation Scenario (P0-1)
+    // 50 sold @ 1850 cost 1250, then 10 returned. Correct gross profit = 24,000 (NOT 36,000).
+    // =========================================================================
+    console.log('\nRunning Test 8: Sales Return Profit Calculation Scenario (P0-1)...');
+    const prjP01 = await db
+      .insertInto('import_projects')
+      .values({
+        tenant_id: tenantId,
+        project_no: 'PRJ-P01-RET',
+        title: 'P01 Return Profit Scenario Project',
+        status: 'active',
+      })
+      .returning('id')
+      .executeTakeFirstOrThrow();
+
+    const prodP01 = await db
+      .insertInto('products')
+      .values({
+        tenant_id: tenantId,
+        name: 'Product P01 High Margin',
+        retail_price: 1850,
+        cost_price: 1250,
+        stock_qty: 100,
+        min_stock_qty: 0,
+        wholesale_price: 1850,
+        is_active: true,
+      })
+      .returning('id')
+      .executeTakeFirstOrThrow();
+
+    const shpP01 = await db
+      .insertInto('import_shipments')
+      .values({
+        tenant_id: tenantId,
+        project_id: prjP01.id,
+        container_number: 'CONT-P01-RETURN',
+        status: 'Arrived',
+      })
+      .returning('id')
+      .executeTakeFirstOrThrow();
+
+    await db
+      .insertInto('import_shipment_items')
+      .values({
+        tenant_id: tenantId,
+        shipment_id: shpP01.id,
+        product_id: Number(prodP01.id),
+        quantity: 100,
+        received_quantity: 100,
+        factory_unit_price_usd: 25,
+        landed_cost_egp: 1250,
+      })
+      .execute();
+
+    await db
+      .insertInto('import_inventory_lots')
+      .values({
+        tenant_id: tenantId,
+        project_id: prjP01.id,
+        shipment_id: shpP01.id,
+        product_id: Number(prodP01.id),
+        lot_number: 'LOT-P01-001',
+        initial_quantity: 100,
+        remaining_quantity: 100,
+        unit_landed_cost_egp: 1250,
+        location_id: 1,
+        status: 'active',
+      })
+      .execute();
+
+    // Sale of 50 units @ 1850 EGP
+    await allocateSaleFromImportLots(db, {
+      tenantId,
+      saleId: 7001,
+      locationId: 1,
+      items: [
+        {
+          itemId: 101,
+          productId: Number(prodP01.id),
+          qty: 50,
+          netUnitPrice: 1850,
+          locationId: 1,
+        },
+      ],
+    });
+
+    const lotAfterSale = await db
+      .selectFrom('import_inventory_lots')
+      .selectAll()
+      .where('tenant_id', '=', tenantId)
+      .where('product_id', '=', Number(prodP01.id))
+      .executeTakeFirstOrThrow();
+    assert.strictEqual(Number(lotAfterSale.remaining_quantity), 50);
+
+    // Sales return of 10 units
+    await restoreImportLotsFromSalesReturn(db, {
+      tenantId,
+      saleId: 7001,
+      saleItemId: 101,
+      productId: Number(prodP01.id),
+      returnQty: 10,
+    });
+
+    const lotAfterReturn = await db
+      .selectFrom('import_inventory_lots')
+      .selectAll()
+      .where('tenant_id', '=', tenantId)
+      .where('product_id', '=', Number(prodP01.id))
+      .executeTakeFirstOrThrow();
+    assert.strictEqual(Number(lotAfterReturn.remaining_quantity), 60);
+
+    const profitRepP01 = await service.generatePeriodProfitReport(
+      tenantId,
+      new Date('2026-01-01'),
+      new Date('2026-12-31'),
+      prjP01.id
+    );
+
+    assert.strictEqual(profitRepP01.data.grossSalesRevenue, 92500);
+    assert.strictEqual(profitRepP01.data.salesReturnsRevenue, 18500);
+    assert.strictEqual(profitRepP01.data.netSalesRevenue, 74000);
+    assert.strictEqual(profitRepP01.data.grossCogs, 62500);
+    assert.strictEqual(profitRepP01.data.returnsCogs, 12500);
+    assert.strictEqual(profitRepP01.data.netCogs, 50000);
+    assert.strictEqual(profitRepP01.data.grossProfit, 24000);
+    assert.notStrictEqual(profitRepP01.data.grossProfit, 36000);
+    console.log('PASS: Period profit report correctly calculated 24,000 gross profit (50 sold @ 1850, 10 returned, cost 1250).');
+
+    const autopsyP01 = await service.getContainerAutopsySheet(tenantId, shpP01.id);
+    assert.strictEqual(autopsyP01.salesAndInventory.invoicedSalesEgp, 74000);
+    assert.strictEqual(autopsyP01.profitability.cogsSoldUnitsEgp, 50000);
+    assert.strictEqual(autopsyP01.profitability.realizedNetProfitEgp, 24000);
+    console.log('PASS: Container Autopsy Sheet reflects net profit of 24,000 EGP.');
+
+    // =========================================================================
+    // Test 9: Cumulative Container Deposit Partial Refunds & Zero-Balance Guard (P0-4)
+    // =========================================================================
+    console.log('\nRunning Test 9: Cumulative Container Deposit Partial Refunds (P0-4)...');
+    const depRes = await service.recordContainerDeposit(tenantId, userId, {
+      projectId: prjP01.id,
+      shipmentId: shpP01.id,
+      containerNo: 'CONT-P01-RETURN',
+      shippingLine: 'Maersk Line Deposit',
+      depositAmountEgp: 40000,
+      expectedReturnDate: '2026-04-01',
+      paymentDate: '2026-03-05',
+    });
+    assert.ok(depRes.id);
+    const depositId = depRes.id;
+
+    // Partial refund 1: 20,000 refund, 5,000 detention fee (total settled: 25,000, remaining: 15,000)
+    const ref1 = await service.recordContainerReturnAndRefund(tenantId, userId, depositId, {
+      actualReturnDate: '2026-03-10',
+      refundedAmountEgp: 20000,
+      deductionsAmountEgp: 5000,
+      deductionReason: 'First partial return with demurrage deduction',
+    });
+    assert.ok(ref1.id);
+
+    const depRow1 = await db.selectFrom('import_container_deposits').selectAll().where('id', '=', depositId).executeTakeFirstOrThrow();
+    assert.strictEqual(Number(depRow1.refunded_amount_egp), 20000);
+    assert.strictEqual(Number(depRow1.deductions_amount_egp), 5000);
+    const remaining1 = Number(depRow1.deposit_amount_egp) - Number(depRow1.refunded_amount_egp) - Number(depRow1.deductions_amount_egp);
+    assert.strictEqual(remaining1, 15000);
+    assert.strictEqual(depRow1.refund_status, 'partially_refunded');
+
+    // Negative: attempting to refund 20,000 when remaining is 15,000
+    let overRefundBlocked = false;
+    try {
+      await service.recordContainerReturnAndRefund(tenantId, userId, depositId, {
+        actualReturnDate: '2026-03-12',
+        refundedAmountEgp: 20000,
+      });
+    } catch (err: any) {
+      overRefundBlocked = true;
+      assert.ok(err.message.includes('يتجاوز الرصيد المتبقي'));
+    }
+    assert.ok(overRefundBlocked, 'Must block refund exceeding remaining deposit balance');
+
+    // Partial refund 2: 15,000 refund, 0 deduction (remaining becomes 0)
+    const ref2 = await service.recordContainerReturnAndRefund(tenantId, userId, depositId, {
+      actualReturnDate: '2026-03-15',
+      refundedAmountEgp: 15000,
+    });
+    assert.ok(ref2.id);
+
+    const depRow2 = await db.selectFrom('import_container_deposits').selectAll().where('id', '=', depositId).executeTakeFirstOrThrow();
+    assert.strictEqual(Number(depRow2.refunded_amount_egp), 35000);
+    assert.strictEqual(Number(depRow2.deductions_amount_egp), 5000);
+    const remaining2 = Number(depRow2.deposit_amount_egp) - Number(depRow2.refunded_amount_egp) - Number(depRow2.deductions_amount_egp);
+    assert.strictEqual(remaining2, 0);
+    assert.strictEqual(depRow2.refund_status, 'refunded');
+
+    // Negative: attempting to refund on fully refunded deposit
+    let duplicateRefundBlocked = false;
+    try {
+      await service.recordContainerReturnAndRefund(tenantId, userId, depositId, {
+        actualReturnDate: '2026-03-16',
+        refundedAmountEgp: 1000,
+      });
+    } catch (err: any) {
+      duplicateRefundBlocked = true;
+      console.log('ACTUAL DUPLICATE REFUND ERROR:', err?.message || err);
+      assert.ok(
+        err.message.includes('تمت تسويته واسترداده بالكامل مسبقاً') || err.message.includes('مسبقاً') || err.message.includes('تكرار'),
+        `Unexpected error: ${err.message}`
+      );
+    }
+    assert.ok(duplicateRefundBlocked, 'Must block subsequent refunds when container deposit is fully settled');
+    console.log('PASS: Cumulative container deposit partial refunds and zero-balance guards strictly verified.');
+
+    // =========================================================================
+    // Test 10: Strict COA Qualification & Anti-Contamination (P0-5)
+    // =========================================================================
+    console.log('\nRunning Test 10: Strict COA Qualification & Anti-Contamination (P0-5)...');
+    let invalidCustomerAdvanceBlocked = false;
+    try {
+      await (service as any).resolveTenantAccount(db, tenantId, 'customer_advance', accounts['2110']);
+    } catch (err: any) {
+      invalidCustomerAdvanceBlocked = true;
+      assert.ok(err.message.includes('غير صالح لدور (customer_advance)'));
+    }
+    assert.ok(invalidCustomerAdvanceBlocked, 'Must reject supplier payable account as customer advance');
+
+    let invalidBrokerAdvanceBlocked = false;
+    try {
+      await (service as any).resolveTenantAccount(db, tenantId, 'broker_advance', accounts['1110']);
+    } catch (err: any) {
+      invalidBrokerAdvanceBlocked = true;
+      assert.ok(err.message.includes('غير صالح لدور (broker_advance)'));
+    }
+    assert.ok(invalidBrokerAdvanceBlocked, 'Must reject cash/bank account as broker advance');
+    console.log('PASS: Strict COA role qualification and anti-contamination verified.');
+
+    // =========================================================================
+    // Test 11: Multi-Location Lot Matching & Multiple Partial Returns (P1-6)
+    // =========================================================================
+    console.log('\nRunning Test 11: Multi-Location Lot Matching & Multiple Partial Returns (P1-6)...');
+    await (db as any)
+      .insertInto('stock_locations')
+      .values({
+        id: 2,
+        tenant_id: tenantId,
+        account_id: tenantId,
+        name: 'فرع القاهرة - مخزن التجمع',
+      })
+      .execute();
+
+    const prodP16 = await db
+      .insertInto('products')
+      .values({
+        tenant_id: tenantId,
+        name: 'Product Multi-Warehouse Lot',
+        retail_price: 2000,
+        cost_price: 1000,
+        stock_qty: 50,
+        min_stock_qty: 0,
+        wholesale_price: 2000,
+        is_active: true,
+      })
+      .returning('id')
+      .executeTakeFirstOrThrow();
+
+    const lot1 = await db
+      .insertInto('import_inventory_lots')
+      .values({
+        tenant_id: tenantId,
+        project_id: prjP01.id,
+        shipment_id: shpP01.id,
+        product_id: Number(prodP16.id),
+        lot_number: 'LOT-P16-001',
+        initial_quantity: 20,
+        remaining_quantity: 20,
+        unit_landed_cost_egp: 1000,
+        location_id: 1,
+        status: 'active',
+      })
+      .returning('id')
+      .executeTakeFirstOrThrow();
+
+    const lot2 = await db
+      .insertInto('import_inventory_lots')
+      .values({
+        tenant_id: tenantId,
+        project_id: prjP01.id,
+        shipment_id: shpP01.id,
+        product_id: Number(prodP16.id),
+        lot_number: 'LOT-P16-002',
+        initial_quantity: 30,
+        remaining_quantity: 30,
+        unit_landed_cost_egp: 1100,
+        location_id: 2,
+        status: 'active',
+      })
+      .returning('id')
+      .executeTakeFirstOrThrow();
+
+    // Sale in Warehouse 2 for 15 units
+    await allocateSaleFromImportLots(db, {
+      tenantId,
+      saleId: 8001,
+      locationId: 2,
+      items: [
+        {
+          itemId: 201,
+          productId: Number(prodP16.id),
+          qty: 15,
+          netUnitPrice: 2000,
+          locationId: 2,
+        },
+      ],
+    });
+
+    const checkLot1 = await db.selectFrom('import_inventory_lots').selectAll().where('id', '=', lot1.id).executeTakeFirstOrThrow();
+    const checkLot2 = await db.selectFrom('import_inventory_lots').selectAll().where('id', '=', lot2.id).executeTakeFirstOrThrow();
+    assert.strictEqual(Number(checkLot1.remaining_quantity), 20, 'Lot 1 in Warehouse 1 must remain untouched');
+    assert.strictEqual(Number(checkLot2.remaining_quantity), 15, 'Lot 2 in Warehouse 2 must be deducted to 15');
+
+    // First partial return: 5 units
+    await restoreImportLotsFromSalesReturn(db, {
+      tenantId,
+      saleId: 8001,
+      saleItemId: 201,
+      productId: Number(prodP16.id),
+      returnQty: 5,
+    });
+    const checkLot2R1 = await db.selectFrom('import_inventory_lots').selectAll().where('id', '=', lot2.id).executeTakeFirstOrThrow();
+    assert.strictEqual(Number(checkLot2R1.remaining_quantity), 20, 'Lot 2 must be restored to 20');
+
+    // Second partial return: 5 units
+    await restoreImportLotsFromSalesReturn(db, {
+      tenantId,
+      saleId: 8001,
+      saleItemId: 201,
+      productId: Number(prodP16.id),
+      returnQty: 5,
+    });
+    const checkLot2R2 = await db.selectFrom('import_inventory_lots').selectAll().where('id', '=', lot2.id).executeTakeFirstOrThrow();
+    assert.strictEqual(Number(checkLot2R2.remaining_quantity), 25, 'Lot 2 must be restored to 25');
+
+    // Third partial return: requesting 10 units (only 5 units remaining unreturned from the 15 sold)
+    await restoreImportLotsFromSalesReturn(db, {
+      tenantId,
+      saleId: 8001,
+      saleItemId: 201,
+      productId: Number(prodP16.id),
+      returnQty: 10,
+    });
+    const checkLot2R3 = await db.selectFrom('import_inventory_lots').selectAll().where('id', '=', lot2.id).executeTakeFirstOrThrow();
+    assert.strictEqual(Number(checkLot2R3.remaining_quantity), 30, 'Lot 2 must only be restored up to initial 30 units (no over-restoration)');
+    console.log('PASS: Multi-location lot matching and multiple partial returns with alreadyRestored tracking verified.');
   }
 
   console.log('\n--- ALL AUDITED POSTGRESQL (PGLITE) INTEGRATION AUDITS PASSED (100%) ---');

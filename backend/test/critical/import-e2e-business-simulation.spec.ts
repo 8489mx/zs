@@ -1890,10 +1890,30 @@ async function runBusinessSimulation() {
 
   const p1ExpectedShare = Number((netPool * 0.60).toFixed(2));
 
-  // Negative test: Overpaying beyond partner share must be rejected
+  // Negative test 1: Missing Maker-Checker approval must be strictly rejected
+  let missingApprovalBlocked = false;
+  try {
+    await importService.recordPartnerPayout(tenantId, userId, p1.id, 50000);
+  } catch (err: any) {
+    missingApprovalBlocked = true;
+    assert.match(err.message, /Maker-Checker|approvalRequestId/, `Expected missing approval rejection, got: ${err.message}`);
+  }
+  assert.ok(missingApprovalBlocked, 'Payout without Maker-Checker approval must be strictly rejected!');
+  console.log('PASS: Payout without Maker-Checker approval strictly blocked by governance gate.');
+
+  // Negative test 2: Overpaying beyond partner share must be rejected by profit ceiling gate
+  const overpayApproval = await importService.createApprovalRequest(tenantId, userId, {
+    actionType: 'partner_distribution',
+    referenceId: p1.id,
+    requestPayload: { partnerId: p1.id, amount: p1ExpectedShare + 500000 },
+  });
+  await importService.decideApprovalRequest(tenantId, Number(auditor.id), overpayApproval.id, {
+    decision: 'approved',
+  });
+
   let overpayBlocked = false;
   try {
-    await importService.recordPartnerPayout(tenantId, userId, p1.id, p1ExpectedShare + 500000);
+    await importService.recordPartnerPayout(tenantId, userId, p1.id, p1ExpectedShare + 500000, overpayApproval.id);
   } catch (err: any) {
     overpayBlocked = true;
     assert.match(
@@ -1940,7 +1960,7 @@ async function runBusinessSimulation() {
     reuseBlocked = true;
     assert.match(
       err.message,
-      /تم تنفيذها مسبقاً|executed/,
+      /تم استهلاكه|تم تنفيذها مسبقاً|executed/,
       `Expected single-use approval rejection, got: ${err.message}`
     );
   }

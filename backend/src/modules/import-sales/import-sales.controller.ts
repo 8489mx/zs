@@ -33,6 +33,7 @@ import {
   CreateApprovalRequestDto,
   DecideApprovalRequestDto,
   ResolveExceptionDto,
+  RecordPartnerPayoutDto,
 } from './dto/import-sales.dto';
 import { SessionAuthGuard } from '../../core/auth/guards/session-auth.guard';
 import { PermissionsGuard } from '../../core/auth/guards/permissions.guard';
@@ -292,13 +293,16 @@ export class ImportSalesController {
   async recordPartnerPayout(
     @Req() req: RequestWithAuth,
     @Param('id') id: string,
-    @Body() dto: { amount: number }
+    @Body() dto: RecordPartnerPayoutDto
   ) {
     return this.importSalesService.recordPartnerPayout(
       req.authContext!.tenantId!,
       req.authContext!.userId!,
       id,
-      dto.amount
+      dto.amount,
+      dto.approvalRequestId,
+      dto.projectId,
+      dto.treasuryAccountId
     );
   }
 

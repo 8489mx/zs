@@ -361,10 +361,22 @@ export const usePartnerPayoutMutation = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async ({ partnerId, amount }: { partnerId: string, amount: number }) => {
+    mutationFn: async ({
+      partnerId,
+      amount,
+      approvalRequestId,
+      projectId,
+      treasuryAccountId,
+    }: {
+      partnerId: string;
+      amount: number;
+      approvalRequestId: string;
+      projectId?: string;
+      treasuryAccountId?: string;
+    }) => {
       return await http<{ success: boolean }>(`/api/import-sales/partners/${partnerId}/payout`, {
         method: 'POST',
-        body: JSON.stringify({ amount }),
+        body: JSON.stringify({ amount, approvalRequestId, projectId, treasuryAccountId }),
       });
     },
     onSuccess: () => {

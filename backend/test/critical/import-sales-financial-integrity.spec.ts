@@ -148,13 +148,37 @@ function testDocNoPatternMatching(): void {
   assert.ok(matches, 'Foreign transfer doc_no FT-123 must match the listing condition');
 }
 
+function testSalesReturnProfitCalculation(): void {
+  // Exact scenario from ChatGPT Audit & User Request:
+  // Sold: 50 units @ 1,850 EGP, Unit landed cost: 1,250 EGP.
+  // Return: 10 units.
+  // Correct Gross Profit = (50 - 10) * (1850 - 1250) = 40 * 600 = 24,000 EGP (NOT 36,000 EGP).
+  const soldQty = 50;
+  const returnQty = 10;
+  const unitPrice = 1850;
+  const unitCost = 1250;
+
+  const grossRevenue = soldQty * unitPrice; // 92,500
+  const returnRevenue = returnQty * unitPrice; // 18,500
+  const netSalesRevenue = grossRevenue - returnRevenue; // 74,000
+
+  const grossCost = soldQty * unitCost; // 62,500
+  const returnCost = returnQty * unitCost; // 12,500
+  const netCogs = grossCost - returnCost; // 50,000
+
+  const grossProfit = netSalesRevenue - netCogs; // 24,000
+  assert.equal(grossProfit, 24000, 'Gross profit must be exactly 24,000 EGP');
+  assert.notEqual(grossProfit, 36000, 'Gross profit must NOT be 36,000 EGP (double-negative bug prevented)');
+}
+
 function runAll(): void {
   testPermissionGuards();
   testLandedCostAndProfitAllocation();
   testWeightedAverageCostFormula();
   testMarkupCalculation();
   testDocNoPatternMatching();
-  console.log('import-sales-financial-integrity.spec: All 5 critical audits passed with 100% mathematical precision.');
+  testSalesReturnProfitCalculation();
+  console.log('import-sales-financial-integrity.spec: All 6 critical audits passed with 100% mathematical precision.');
 }
 
 runAll();

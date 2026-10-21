@@ -6,8 +6,9 @@ import { Database } from '../../../database/database.types';
  *
  * Provides operational lot traceability between sales (POS, Wholesale),
  * sales returns, cancellations, and inventory movements:
- * - Allocates sales from active container lots using FIFO.
- * - Restores lot balances upon sale cancellation or returns.
+ * - Allocates sales from active container lots using FIFO with warehouse matching.
+ * - Restores lot balances upon sale cancellation or returns, accounting for already-returned quantities.
+ * - Handles multiple partial returns and prevents duplicate cancellations.
  * - Tracks exact landed costs, invoiced sales, and gross margins per project and shipment.
  * - Preserves General Ledger Weighted Average Cost (WAC) intact.
  */
@@ -17,11 +18,13 @@ export async function allocateSaleFromImportLots(
   params: {
     tenantId: string;
     saleId: number;
+    locationId?: number | null;
     items: Array<{
       itemId?: number | null;
       productId: number;
       qty: number;
       netUnitPrice: number;
+      locationId?: number | null;
     }>;
   }
 ): Promise<void> {
@@ -31,13 +34,25 @@ export async function allocateSaleFromImportLots(
     if (!Number.isFinite(neededQty) || neededQty <= 0) continue;
 
     // Check if any active import lots exist for this product and tenant
-    const lots = await trx
+    let lotQuery = trx
       .selectFrom('import_inventory_lots')
       .selectAll()
       .where('tenant_id', '=', params.tenantId)
       .where('product_id', '=', pId)
       .where('status', '=', 'active')
-      .where('remaining_quantity', '>', 0)
+      .where('remaining_quantity', '>', 0);
+
+    const targetLocId = item.locationId !== undefined ? item.locationId : params.locationId;
+    if (targetLocId !== undefined && targetLocId !== null) {
+      lotQuery = lotQuery.where((eb) =>
+        eb.or([
+          eb('location_id', '=', targetLocId),
+          eb('location_id', 'is', null),
+        ])
+      );
+    }
+
+    const lots = await lotQuery
       .orderBy('receipt_date', 'asc')
       .orderBy('created_at', 'asc')
       .forUpdate()
@@ -109,8 +124,16 @@ export async function restoreImportLotsFromCancelledSale(
     .execute();
 
   for (const alloc of allocations) {
-    const qtyToRestore = Number(alloc.quantity);
-    if (qtyToRestore <= 0) continue;
+    const previousRestorations = await trx
+      .selectFrom('import_sale_allocations')
+      .select([sql<number>`coalesce(sum(abs(quantity)), 0)`.as('restored_qty')])
+      .where('tenant_id', '=', params.tenantId)
+      .where('reversal_of_allocation_id', '=', alloc.id)
+      .executeTakeFirst();
+
+    const alreadyRestored = Number(previousRestorations?.restored_qty || 0);
+    const qtyToRestore = Number((Number(alloc.quantity) - alreadyRestored).toFixed(4));
+    if (qtyToRestore <= 0.0001) continue;
 
     await trx
       .updateTable('import_inventory_lots')
@@ -123,6 +146,10 @@ export async function restoreImportLotsFromCancelledSale(
       .where('tenant_id', '=', params.tenantId)
       .execute();
 
+    const unitSalePrice = Number(alloc.unit_sale_price_egp);
+    const unitCost = Number(alloc.unit_cost_egp);
+    const grossMarginReversed = Number(((unitSalePrice - unitCost) * qtyToRestore).toFixed(2));
+
     await trx
       .insertInto('import_sale_allocations')
       .values({
@@ -134,9 +161,9 @@ export async function restoreImportLotsFromCancelledSale(
         shipment_id: alloc.shipment_id,
         product_id: alloc.product_id,
         quantity: -qtyToRestore,
-        unit_sale_price_egp: Number(alloc.unit_sale_price_egp),
-        unit_cost_egp: Number(alloc.unit_cost_egp),
-        gross_margin_egp: -Number(alloc.gross_margin_egp),
+        unit_sale_price_egp: unitSalePrice,
+        unit_cost_egp: unitCost,
+        gross_margin_egp: -grossMarginReversed,
         allocation_type: 'cancellation',
         reversal_of_allocation_id: alloc.id,
         created_at: new Date(),
@@ -175,8 +202,18 @@ export async function restoreImportLotsFromSalesReturn(
   for (const alloc of allocations) {
     if (remainingReturnQty <= 0.0001) break;
 
-    const allocQty = Number(alloc.quantity);
-    const restoreAmount = Math.min(allocQty, remainingReturnQty);
+    const previousRestorations = await trx
+      .selectFrom('import_sale_allocations')
+      .select([sql<number>`coalesce(sum(abs(quantity)), 0)`.as('restored_qty')])
+      .where('tenant_id', '=', params.tenantId)
+      .where('reversal_of_allocation_id', '=', alloc.id)
+      .executeTakeFirst();
+
+    const alreadyRestored = Number(previousRestorations?.restored_qty || 0);
+    const allocAvailable = Number((Number(alloc.quantity) - alreadyRestored).toFixed(4));
+    if (allocAvailable <= 0.0001) continue;
+
+    const restoreAmount = Math.min(allocAvailable, remainingReturnQty);
 
     await trx
       .updateTable('import_inventory_lots')
@@ -214,5 +251,101 @@ export async function restoreImportLotsFromSalesReturn(
       .execute();
 
     remainingReturnQty = Number((remainingReturnQty - restoreAmount).toFixed(4));
+  }
+}
+
+export async function adjustImportLotQuantity(
+  trx: Kysely<Database> | Transaction<Database>,
+  params: {
+    tenantId: string;
+    lotId: string;
+    adjustmentQty: number;
+    reason?: string;
+  }
+): Promise<void> {
+  const lot = await trx
+    .selectFrom('import_inventory_lots')
+    .selectAll()
+    .where('id', '=', params.lotId)
+    .where('tenant_id', '=', params.tenantId)
+    .forUpdate()
+    .executeTakeFirstOrThrow();
+
+  const current = Number(lot.remaining_quantity);
+  const newQty = Math.max(0, Number((current + params.adjustmentQty).toFixed(4)));
+
+  await trx
+    .updateTable('import_inventory_lots')
+    .set({
+      remaining_quantity: newQty,
+      status: newQty <= 0.0001 ? 'depleted' : 'active',
+      updated_at: new Date(),
+    })
+    .where('id', '=', params.lotId)
+    .where('tenant_id', '=', params.tenantId)
+    .execute();
+}
+
+export async function transferImportLotLocation(
+  trx: Kysely<Database> | Transaction<Database>,
+  params: {
+    tenantId: string;
+    lotId: string;
+    toLocationId: number;
+    qty?: number;
+  }
+): Promise<void> {
+  const lot = await trx
+    .selectFrom('import_inventory_lots')
+    .selectAll()
+    .where('id', '=', params.lotId)
+    .where('tenant_id', '=', params.tenantId)
+    .forUpdate()
+    .executeTakeFirstOrThrow();
+
+  const current = Number(lot.remaining_quantity);
+  const transferQty = params.qty ? Math.min(current, Number(params.qty)) : current;
+
+  if (transferQty >= current - 0.0001) {
+    await trx
+      .updateTable('import_inventory_lots')
+      .set({
+        location_id: params.toLocationId,
+        updated_at: new Date(),
+      })
+      .where('id', '=', params.lotId)
+      .where('tenant_id', '=', params.tenantId)
+      .execute();
+  } else {
+    const remainingAtSource = Number((current - transferQty).toFixed(4));
+    await trx
+      .updateTable('import_inventory_lots')
+      .set({
+        remaining_quantity: remainingAtSource,
+        updated_at: new Date(),
+      })
+      .where('id', '=', params.lotId)
+      .where('tenant_id', '=', params.tenantId)
+      .execute();
+
+    await trx
+      .insertInto('import_inventory_lots')
+      .values({
+        tenant_id: params.tenantId,
+        lot_number: `${lot.lot_number}-TR${params.toLocationId}`,
+        project_id: lot.project_id,
+        shipment_id: lot.shipment_id,
+        shipment_item_id: lot.shipment_item_id,
+        product_id: lot.product_id,
+        location_id: params.toLocationId,
+        initial_quantity: transferQty,
+        remaining_quantity: transferQty,
+        unit_landed_cost_egp: lot.unit_landed_cost_egp,
+        status: 'active',
+        receipt_date: lot.receipt_date,
+        created_at: new Date(),
+        updated_at: new Date(),
+      } as any)
+      .execute();
   }
 }

@@ -119,6 +119,22 @@ export class ImportSalesService {
       if (role === 'bank' && account.is_cash_bank === false) return false;
       if (role === 'inventory' && account.is_inventory === false) return false;
       if (role === 'payable' && account.is_payable === false) return false;
+      
+      // Strict Architectural Isolation:
+      // customer_advance MUST NOT be a supplier payable account (AP 2110)
+      if (role === 'customer_advance') {
+        if (account.is_payable === true || account.code === '2110') return false;
+      }
+      // broker_advance MUST NOT be cash/bank, inventory, or generic current assets
+      if (role === 'broker_advance') {
+        if (account.is_cash_bank || account.is_inventory || account.is_payable) return false;
+        if (['1110', '1120', '1140', '1100'].includes(account.code)) return false;
+      }
+      // container_deposit MUST NOT be cash/bank, inventory, or generic current assets
+      if (role === 'container_deposit') {
+        if (account.is_cash_bank || account.is_inventory || account.is_payable) return false;
+        if (['1110', '1120', '1140', '1100'].includes(account.code)) return false;
+      }
       return true;
     };
 
@@ -148,7 +164,7 @@ export class ImportSalesService {
       return Number(preferred.id);
     }
 
-    // Fallback: Check accounting_settings
+    // Fallback 1: Check accounting_settings
     const settings = await trx
       .selectFrom('accounting_settings')
       .selectAll()
@@ -170,19 +186,19 @@ export class ImportSalesService {
       }
     }
 
-    // Fallback: Check candidate COA codes matching the required type
+    // Fallback 2: Check candidate COA codes matching the required specific role
     const candidateCodes: Record<string, string[]> = {
       cogs: ['5110', '5101', '5100'],
-      inventory: ['1140', '1130', '1100'],
-      payable: ['2110', '2100'],
+      inventory: ['1140', '1141', '1200'],
+      payable: ['2110'],
       bank: ['1120', '1110'],
       forex_loss: ['5201', '5190'],
       forex_gain: ['4201', '4190'],
-      broker_advance: ['1181', '1180', '1230', '1100'],
-      container_deposit: ['1182', '1180', '1240', '1100'],
-      customer_advance: ['2130', '2120', '2110', '2100'],
-      vat_receivable: ['1160', '1150', '1180'],
-      equity: ['3100', '3101', '3000'],
+      broker_advance: ['1130', '1181', '1230'],
+      container_deposit: ['1180', '1182', '1240'],
+      customer_advance: ['2130', '2120'],
+      vat_receivable: ['1160', '1150'],
+      equity: ['3100', '3101', '3200', '3000'],
     };
 
     const codes = candidateCodes[role] || [];
@@ -198,22 +214,8 @@ export class ImportSalesService {
       }
     }
 
-    // Fallback: Check any active account with matching account_type and flags
-    if (roleInfo) {
-      const byType = await trx
-        .selectFrom('accounting_accounts')
-        .select(['id', 'account_id', 'code', 'account_type', 'is_active', 'is_cash_bank', 'is_inventory', 'is_payable'])
-        .where('tenant_id', '=', tenantId)
-        .where('account_type', '=', roleInfo.type)
-        .where('is_active', '=', true)
-        .orderBy('id', 'asc')
-        .execute();
-      for (const cand of byType) {
-        if (accountIsEligible(cand)) return Number(cand.id);
-      }
-    }
-
-    // Strict Architectural Policy: No silent auto-creation of accounts during normal operational transactions
+    // Strict Architectural Policy: Zero arbitrary fallbacks by account_type to prevent account contamination.
+    // If no explicit matching account exists in settings or candidate codes, fail loudly.
     throw new UnprocessableEntityException(
       `تعذر تحديد حساب محاسبي نشط ومصنف لدور (${role}) في دليل الحسابات. يرجى تهيئة وتفعيل الحساب المناسب في شجرة الحسابات أو إعدادات المحاسبة أولاً.`
     );
@@ -227,7 +229,8 @@ export class ImportSalesService {
     tenantId: string,
     actionType: string,
     referenceId: string,
-    approvalRequestId?: string
+    approvalRequestId?: string,
+    expectedDetails?: { amount?: number; projectId?: string; partnerId?: string }
   ): Promise<void> {
     if (!approvalRequestId) return;
 
@@ -249,6 +252,10 @@ export class ImportSalesService {
       );
     }
 
+    if (req.status === 'executed') {
+      throw new BadRequestException('طلب الاعتماد تم استهلاكه وتنفيذه مسبقاً ولا يمكن استخدامه مجدداً (Single-Use Token).');
+    }
+
     if (req.status !== 'approved') {
       throw new BadRequestException(
         `طلب الاعتماد غير مؤهل للتنفيذ، حالته الحالية (${req.status}) وليست معتمدة (approved).`
@@ -259,6 +266,33 @@ export class ImportSalesService {
       throw new BadRequestException(
         `طلب الاعتماد مرتبط بمرجع (${req.reference_id}) يختلف عن المعرف المطلوب (${referenceId}).`
       );
+    }
+
+    if (req.request_payload) {
+      const payload = typeof req.request_payload === 'string'
+        ? JSON.parse(req.request_payload || '{}')
+        : req.request_payload;
+
+      if (expectedDetails?.partnerId && payload.partnerId && payload.partnerId !== expectedDetails.partnerId) {
+        throw new BadRequestException(
+          `طلب الاعتماد مخصص للشريك (${payload.partnerId}) ولا يطابق الشريك المطلوب (${expectedDetails.partnerId}).`
+        );
+      }
+
+      if (expectedDetails?.projectId && payload.projectId && payload.projectId !== expectedDetails.projectId) {
+        throw new BadRequestException(
+          `طلب الاعتماد مخصص للمشروع (${payload.projectId}) ولا يطابق المشروع (${expectedDetails.projectId}).`
+        );
+      }
+
+      if (expectedDetails?.amount !== undefined && payload.amount !== undefined && payload.amount !== null) {
+        const approvedAmount = Number(payload.amount);
+        if (expectedDetails.amount > approvedAmount + 0.01) {
+          throw new BadRequestException(
+            `مبلغ الصرف المطلوب (${expectedDetails.amount.toFixed(2)}) يتجاوز سقف المبلغ المعتمد في طلب الموافقة (${approvedAmount.toFixed(2)}).`
+          );
+        }
+      }
     }
 
     // Mark as executed so it cannot be replayed or reused
@@ -1561,26 +1595,41 @@ export class ImportSalesService {
 
         const itemCogsAdj = (itemSoldQty / itemReceivedQty) * itemLateExpense;
         const itemInventoryAdj = (itemOnHandQty / itemReceivedQty) * itemLateExpense;
-        const itemUnitCostIncrease = itemOnHandQty > 0 ? itemInventoryAdj / itemOnHandQty : 0;
 
         totalLateCogs += itemCogsAdj;
         totalLateInventory += itemInventoryAdj;
 
-        if (itemUnitCostIncrease > 0) {
+        // Lot-specific landed cost increase for this shipment's container lot
+        const lotUnitCostIncrease = itemOnHandQty > 0 ? itemInventoryAdj / itemOnHandQty : 0;
+
+        // Query total company-wide on-hand stock for this product across all locations
+        // to maintain exact Weighted Average Cost (WAC) and General Ledger inventory reconciliation (IAS 2)
+        const totalCompanyStockRow = await trx
+          .selectFrom('product_location_stock')
+          .select([sql<number>`coalesce(sum(qty), 0)`.as('total_qty')])
+          .where('tenant_id', '=', tenantId)
+          .where('product_id', '=', pId)
+          .executeTakeFirst();
+        const totalCompanyStock = Math.max(itemOnHandQty, Number(totalCompanyStockRow?.total_qty || 0));
+        const wacUnitCostIncrease = totalCompanyStock > 0 ? itemInventoryAdj / totalCompanyStock : 0;
+
+        if (wacUnitCostIncrease > 0) {
           await trx
             .updateTable('products')
             .set((eb) => ({
-              cost_price: sql`${eb.ref('cost_price')} + ${Number(itemUnitCostIncrease.toFixed(6))}`,
+              cost_price: sql`${eb.ref('cost_price')} + ${Number(wacUnitCostIncrease.toFixed(6))}`,
               updated_at: sql`NOW()`,
             }))
             .where('tenant_id', '=', tenantId)
             .where('id', '=', pId)
             .execute();
+        }
 
+        if (lotUnitCostIncrease > 0) {
           await trx
             .updateTable('import_inventory_lots')
             .set((eb) => ({
-              unit_landed_cost_egp: sql`${eb.ref('unit_landed_cost_egp')} + ${Number(itemUnitCostIncrease.toFixed(6))}`,
+              unit_landed_cost_egp: sql`${eb.ref('unit_landed_cost_egp')} + ${Number(lotUnitCostIncrease.toFixed(6))}`,
               updated_at: sql`NOW()`,
             }))
             .where('tenant_id', '=', tenantId)
@@ -1773,24 +1822,30 @@ export class ImportSalesService {
       const hasLots = Number(projectLotsCount?.c || 0) > 0;
 
       if (lotAllocations.length > 0) {
+        let grossRevenue = 0;
+        let grossCost = 0;
+        let cancelledRevenue = 0;
+        let cancelledCost = 0;
+
         for (const alloc of lotAllocations) {
           const q = Number(alloc.quantity);
-          const isReversal = alloc.allocation_type === 'reversal';
-          const isReturn = alloc.allocation_type === 'return';
           const price = Number(alloc.unit_sale_price_egp || 0);
           const cost = Number(alloc.unit_cost_egp || 0);
+          const absQty = Math.abs(q);
 
-          if (isReturn) {
-            returnRevenue += q * price;
-            returnCost += q * cost;
-          } else if (isReversal) {
-            totalRevenue -= q * price;
-            totalCost -= q * cost;
+          if (alloc.allocation_type === 'return') {
+            returnRevenue += absQty * price;
+            returnCost += absQty * cost;
+          } else if (alloc.allocation_type === 'cancellation' || alloc.allocation_type === 'reversal') {
+            cancelledRevenue += absQty * price;
+            cancelledCost += absQty * cost;
           } else {
-            totalRevenue += q * price;
-            totalCost += q * cost;
+            grossRevenue += absQty * price;
+            grossCost += absQty * cost;
           }
         }
+        totalRevenue = grossRevenue - cancelledRevenue;
+        totalCost = grossCost - cancelledCost;
         profitAttributionVerified = true;
         attributionStatus = 'VERIFIED_LOT_ALLOCATIONS';
       } else if (hasLots) {
@@ -2406,24 +2461,19 @@ export class ImportSalesService {
     partnerId: string,
     amount: number,
     approvalRequestId?: string,
-    projectId?: string
+    projectId?: string,
+    treasuryAccountId?: string
   ) {
     const cleanAmount = Number(amount);
     if (!Number.isFinite(cleanAmount) || cleanAmount <= 0) {
       throw new BadRequestException('مبلغ صرف الأرباح يجب أن يكون أكبر من الصفر.');
     }
 
-    return await this.db.transaction().execute(async (trx) => {
-      if (approvalRequestId) {
-        await this.verifyAndConsumeApprovalRequest(
-          trx,
-          tenantId,
-          'partner_distribution',
-          partnerId,
-          approvalRequestId
-        );
-      }
+    if (!approvalRequestId) {
+      throw new BadRequestException('صرف أرباح الشركاء يخضع لحوكمة Maker-Checker الإلزامية ويتطلب معرّف موافقة معتمد (approvalRequestId).');
+    }
 
+    return await this.db.transaction().execute(async (trx) => {
       const partner = await trx
         .selectFrom('import_partners')
         .selectAll()
@@ -2445,6 +2495,15 @@ export class ImportSalesService {
           targetProjectId = String(linkedProject.project_id);
         }
       }
+
+      await this.verifyAndConsumeApprovalRequest(
+        trx,
+        tenantId,
+        'partner_distribution',
+        partnerId,
+        approvalRequestId,
+        { amount: cleanAmount, projectId: targetProjectId, partnerId }
+      );
 
       const profitReport = await this.generatePeriodProfitReport(
         tenantId,
@@ -2469,16 +2528,23 @@ export class ImportSalesService {
         );
       }
 
-      const bankAccountId = await this.resolveTenantAccount(trx, tenantId, 'bank');
+      const bankAccountId = await this.resolveTenantAccount(
+        trx,
+        tenantId,
+        'bank',
+        treasuryAccountId ? Number(treasuryAccountId) : null
+      );
       const bankScope = await trx
         .selectFrom('accounting_accounts')
-        .select('account_id')
+        .select(['id', 'account_id', 'code'])
         .where('tenant_id', '=', tenantId)
         .where('id', '=', bankAccountId)
         .executeTakeFirst();
       const scopeAccountId = bankScope?.account_id || tenantId;
 
-      await trx
+      const equityAccountId = await this.resolveTenantAccount(trx, tenantId, 'equity');
+
+      const postedTreasury = await trx
         .insertInto('treasury_transactions')
         .values({
           tenant_id: tenantId,
@@ -2490,7 +2556,8 @@ export class ImportSalesService {
           reference_id: null,
           created_by: userId,
         })
-        .execute();
+        .returning('id')
+        .executeTakeFirstOrThrow();
 
       await trx
         .updateTable('import_partners')
@@ -2509,13 +2576,54 @@ export class ImportSalesService {
           type: 'PROFIT_PAYOUT',
           amount: cleanAmount,
           transaction_date: new Date(),
-          note: `صرف أرباح الشريك: ${partner.name}`,
+          note: `صرف أرباح الشريك: ${partner.name} (طلب موافقة: ${approvalRequestId})`,
           created_by: userId,
         })
         .returning('id')
         .executeTakeFirstOrThrow();
 
-      return { success: true, ledgerId: ledgerInsert.id };
+      const postingService = this.accountingPosting ?? new AccountingPostingService(new AccountingTenantFoundationService());
+      const journalEntryId = await postingService.postDomainJournal(trx, {
+        sourceType: 'import_partner_payout',
+        sourceId: Number(postedTreasury.id),
+        tenantId,
+        accountId: scopeAccountId,
+        entryDate: new Date(),
+        description: `صرف أرباح الشريك ${partner.name} - مشروع ${targetProjectId || 'عام'} (حركة خزينة #${postedTreasury.id})`,
+        branchId: null,
+        locationId: null,
+        createdBy: userId,
+        postedBy: userId,
+        lines: [
+          {
+            accountId: equityAccountId,
+            description: `توزيعات أرباح الشريك ${partner.name} - تخفيض حقوق الملكية/الأرباح المستحقة`,
+            debit: cleanAmount,
+            credit: 0,
+            partnerType: 'none',
+            partnerId: null,
+            branchId: null,
+            locationId: null,
+          },
+          {
+            accountId: bankAccountId,
+            description: `صرف بنكي/نقدي لأرباح الشريك ${partner.name}`,
+            debit: 0,
+            credit: cleanAmount,
+            partnerType: 'none',
+            partnerId: null,
+            branchId: null,
+            locationId: null,
+          },
+        ],
+      });
+
+      return {
+        success: true,
+        ledgerId: ledgerInsert.id,
+        journalEntryId,
+        treasuryTransactionId: postedTreasury.id,
+      };
     });
   }
 
@@ -3899,15 +4007,36 @@ export class ImportSalesService {
         .forUpdate()
         .executeTakeFirstOrThrow();
 
-      const refundAmount = Number(dto.refundedAmountEgp);
-      const deductions = Number(dto.deductionsAmountEgp || 0);
+      const prevRefunded = Number(deposit.refunded_amount_egp || 0);
+      const prevDeductions = Number(deposit.deductions_amount_egp || 0);
       const totalDeposit = Number(deposit.deposit_amount_egp);
+      const remainingDeposit = Number((totalDeposit - prevRefunded - prevDeductions).toFixed(2));
 
-      let newStatus = 'refunded';
-      if (refundAmount + deductions < totalDeposit - 0.01) {
-        newStatus = 'partially_refunded';
-      } else if (refundAmount === 0 && deductions >= totalDeposit - 0.01) {
-        newStatus = 'forfeited';
+      if (deposit.refund_status === 'refunded' || deposit.refund_status === 'forfeited' || remainingDeposit <= 0.001) {
+        throw new BadRequestException('تمت تسوية واسترداد تأمين هذه الحاوية بالكامل مسبقاً، ولا يمكن تكرار الاسترداد.');
+      }
+
+      const currentRefund = Number(dto.refundedAmountEgp);
+      const currentDeductions = Number(dto.deductionsAmountEgp || 0);
+      const callSettled = Number((currentRefund + currentDeductions).toFixed(2));
+
+      if (callSettled <= 0) {
+        throw new BadRequestException('يجب تحديد مبلغ استرداد أو خصم أكبر من الصفر لتسوية التأمين.');
+      }
+
+      if (callSettled > remainingDeposit + 0.01) {
+        throw new BadRequestException(
+          `مجموع الاسترداد والخصومات (${callSettled.toFixed(2)}) يتجاوز الرصيد المتبقي من التأمين الأصلي (${remainingDeposit.toFixed(2)}).`
+        );
+      }
+
+      const newTotalRefunded = Number((prevRefunded + currentRefund).toFixed(2));
+      const newTotalDeductions = Number((prevDeductions + currentDeductions).toFixed(2));
+      const newRemaining = Number((totalDeposit - newTotalRefunded - newTotalDeductions).toFixed(2));
+
+      let newStatus = 'partially_refunded';
+      if (newRemaining <= 0.01) {
+        newStatus = newTotalRefunded > 0 ? 'refunded' : 'forfeited';
       }
 
       const updated = await trx
@@ -3915,9 +4044,9 @@ export class ImportSalesService {
         .set({
           actual_return_date: dto.actualReturnDate,
           refund_status: newStatus,
-          refunded_amount_egp: refundAmount,
-          deductions_amount_egp: deductions,
-          deduction_reason: dto.deductionReason || null,
+          refunded_amount_egp: newTotalRefunded,
+          deductions_amount_egp: newTotalDeductions,
+          deduction_reason: dto.deductionReason || deposit.deduction_reason || null,
           updated_at: sql`NOW()`,
         })
         .where('id', '=', depositId)
@@ -3935,69 +4064,67 @@ export class ImportSalesService {
         .where('tenant_id', '=', tenantId)
         .execute();
 
-      if (this.accountingPosting) {
-        const depositAssetAccId = await this.resolveTenantAccount(trx, tenantId, 'container_deposit');
-        const bankAccId = await this.resolveTenantAccount(
-          trx,
-          tenantId,
-          'bank',
-          dto.treasuryAccountId ? Number(dto.treasuryAccountId) : null
-        );
-        const expenseAccId = await this.resolveTenantAccount(trx, tenantId, 'cogs');
+      const depositAssetAccId = await this.resolveTenantAccount(trx, tenantId, 'container_deposit');
+      const bankAccId = await this.resolveTenantAccount(
+        trx,
+        tenantId,
+        'bank',
+        dto.treasuryAccountId ? Number(dto.treasuryAccountId) : null
+      );
+      const expenseAccId = await this.resolveTenantAccount(trx, tenantId, 'cogs');
 
-        const lines: any[] = [];
-        if (refundAmount > 0) {
-          lines.push({
-            accountId: bankAccId,
-            debit: refundAmount,
-            credit: 0,
-            description: `استرداد تأمين حاوية #${deposit.container_no}`,
-            partnerType: 'none',
-            partnerId: null,
-            branchId: null,
-            locationId: null,
-          });
-        }
-        if (deductions > 0) {
-          lines.push({
-            accountId: expenseAccId,
-            debit: deductions,
-            credit: 0,
-            description: `غرامات تأخير/أضرار حاوية #${deposit.container_no} مخصومة من التأمين`,
-            partnerType: 'none',
-            partnerId: null,
-            branchId: null,
-            locationId: null,
-          });
-        }
-        const settledAmount = Number((refundAmount + deductions).toFixed(2));
-        if (settledAmount > 0) {
-          lines.push({
-            accountId: depositAssetAccId,
-            debit: 0,
-            credit: settledAmount,
-            description: `تسوية وإقفال تأمين حاوية مستردة #${deposit.container_no}`,
-            partnerType: 'none',
-            partnerId: null,
-            branchId: null,
-            locationId: null,
-          });
-        }
-
-        await this.accountingPosting.postDomainJournal(trx, {
-          sourceType: 'import_container_deposit',
-          sourceId: Number(deposit.serial_id),
-          tenantId,
-          accountId: tenantId,
-          entryDate: new Date(dto.actualReturnDate as any),
-          description: `تسوية واسترداد تأمين حاوية #${deposit.container_no} من الخط الملاحي`,
+      const lines: any[] = [];
+      if (currentRefund > 0) {
+        lines.push({
+          accountId: bankAccId,
+          debit: currentRefund,
+          credit: 0,
+          description: `استرداد نقدي/بنكي لتأمين حاوية #${deposit.container_no}`,
+          partnerType: 'none',
+          partnerId: null,
           branchId: null,
           locationId: null,
-          createdBy: userId,
-          postedBy: userId,
-          lines,
         });
       }
+      if (currentDeductions > 0) {
+        lines.push({
+          accountId: expenseAccId,
+          debit: currentDeductions,
+          credit: 0,
+          description: `غرامات تأخير/أضرار حاوية #${deposit.container_no} مخصومة من التأمين`,
+          partnerType: 'none',
+          partnerId: null,
+          branchId: null,
+          locationId: null,
+        });
+      }
+      if (callSettled > 0) {
+        lines.push({
+          accountId: depositAssetAccId,
+          debit: 0,
+          credit: callSettled,
+          description: `تسوية وإقفال تأمين حاوية مستردة #${deposit.container_no}`,
+          partnerType: 'none',
+          partnerId: null,
+          branchId: null,
+          locationId: null,
+        });
+      }
+
+      const postingService = this.accountingPosting ?? new AccountingPostingService(new AccountingTenantFoundationService());
+      await postingService.postDomainJournal(trx, {
+        sourceType: 'import_container_deposit',
+        sourceId: Number(deposit.serial_id),
+        tenantId,
+        accountId: tenantId,
+        entryDate: new Date(dto.actualReturnDate as any),
+        description: `تسوية واسترداد تأمين حاوية #${deposit.container_no} من الخط الملاحي (مبلغ مسوى: ${callSettled})`,
+        branchId: null,
+        locationId: null,
+        createdBy: userId,
+        postedBy: userId,
+        lines,
+      });
 
       return updated;
     });
@@ -4248,9 +4375,9 @@ export class ImportSalesService {
 
     for (const alloc of allocations) {
       const q = Number(alloc.quantity);
-      const isReversal = alloc.allocation_type === 'reversal' || alloc.allocation_type === 'return';
-      const sign = isReversal ? -1 : 1;
-      const effectiveQty = q * sign;
+      const isNegative = alloc.allocation_type === 'reversal' || alloc.allocation_type === 'return' || alloc.allocation_type === 'cancellation';
+      const absQty = Math.abs(q);
+      const effectiveQty = isNegative ? -absQty : absQty;
       const unitSalePrice = Number(alloc.unit_sale_price_egp || 0);
       const unitCost = Number(alloc.unit_cost_egp || 0);
 

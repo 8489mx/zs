@@ -22,6 +22,7 @@ function PartnerPayoutModal({
 }) {
   const { t } = useTranslation();
   const [amount, setAmount] = useState('');
+  const [approvalRequestId, setApprovalRequestId] = useState('');
   const payoutMutation = usePartnerPayoutMutation();
 
   if (!partner) return null;
@@ -30,8 +31,14 @@ function PartnerPayoutModal({
     e.preventDefault();
     const val = Number(amount);
     if (!val || val <= 0) return;
-    await payoutMutation.mutateAsync({ partnerId: partner.partnerId, amount: val });
+    if (!approvalRequestId.trim()) return;
+    await payoutMutation.mutateAsync({
+      partnerId: partner.partnerId,
+      amount: val,
+      approvalRequestId: approvalRequestId.trim(),
+    });
     setAmount('');
+    setApprovalRequestId('');
     onClose();
   };
 
@@ -120,6 +127,35 @@ function PartnerPayoutModal({
               outline: 'none',
             }}
           />
+        </div>
+
+        <div>
+          <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', display: 'block', marginBottom: '6px' }}>
+            رقم طلب الموافقة المعتمد (Maker-Checker) <span style={{ color: '#ef4444' }}>*</span>
+          </label>
+          <input 
+            type="text" 
+            value={approvalRequestId} 
+            onChange={e => setApprovalRequestId(e.target.value)} 
+            required 
+            placeholder="مثال: REQ-260914-0001"
+            style={{
+              width: '100%',
+              height: '38px',
+              borderRadius: '6px',
+              border: '1px solid #cbd5e1',
+              padding: '0 12px',
+              fontSize: '0.88rem',
+              fontWeight: 600,
+              background: '#ffffff',
+              color: '#0f172a',
+              boxSizing: 'border-box',
+              outline: 'none',
+            }}
+          />
+          <span style={{ fontSize: '0.72rem', color: '#64748b', display: 'block', marginTop: '4px' }}>
+            يجب أن يكون طلب الاعتماد معتمداً من الإدارة مسبقاً ومخصصاً لهذا الشريك وصرف الأرباح.
+          </span>
         </div>
 
         <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '8px', paddingTop: '14px', borderTop: '1px solid #e2e8f0' }}>
