@@ -165,8 +165,9 @@ export default function ShipmentDetailsPage() {
     queryKey: ['import-receipt-stock-locations'],
     queryFn: () => http<any>('/api/locations'),
   });
-  const receiptLocations: any[] = Array.isArray(locationsData) ? locationsData :
+  const rawReceiptLocations = Array.isArray(locationsData) ? locationsData :
     (locationsData?.rows || locationsData?.locations || locationsData?.data || []);
+  const receiptLocations: any[] = Array.isArray(rawReceiptLocations) ? rawReceiptLocations : [];
 
   if (isLoading) return <div style={{ padding: '2rem' }}>{t('import_sales.shipment_details_page.s3', "جاري التحميل...")}</div>;
   if (!data) return <div style={{ padding: '2rem' }}>{t('import_sales.shipment_details_page.s4', "الحاوية غير موجودة")}</div>;
@@ -343,7 +344,7 @@ export default function ShipmentDetailsPage() {
                 onChange={e => setReceiptLocationId(e.target.value)}
                 disabled={data.status === 'Arrived'}>
                 <option value="">اختر مخزن الاستلام</option>
-                {receiptLocations.filter((loc: any) => loc.is_active !== false && !['damaged', 'in_transit'].includes(loc.location_type))
+                {receiptLocations.filter((loc: any) => loc.isActive !== false && !['damaged', 'in_transit'].includes(loc.locationType || loc.location_type))
                   .map((loc: any) => <option key={loc.id} value={loc.id}>{loc.name}</option>)}
               </select>
             </div>

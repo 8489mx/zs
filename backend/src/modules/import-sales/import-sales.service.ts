@@ -3761,7 +3761,7 @@ export class ImportSalesService {
         .returningAll()
         .executeTakeFirstOrThrow();
 
-      if (this.accountingPosting) {
+      { const postingService = this.accountingPosting ?? new AccountingPostingService(new AccountingTenantFoundationService());
         const assetAccId = await this.resolveTenantAccount(trx, tenantId, 'broker_advance');
         const bankAccId = await this.resolveTenantAccount(
           trx,
@@ -3770,7 +3770,7 @@ export class ImportSalesService {
           dto.treasuryAccountId ? Number(dto.treasuryAccountId) : null
         );
 
-        await this.accountingPosting.postDomainJournal(trx, {
+        await postingService.postDomainJournal(trx, {
           sourceType: 'import_broker_advance',
           sourceId: Number(advance.serial_id),
           tenantId,
@@ -3805,6 +3805,16 @@ export class ImportSalesService {
           ],
         });
       }
+
+      const advanceBankId = await this.resolveTenantAccount(trx, tenantId, 'bank', dto.treasuryAccountId ? Number(dto.treasuryAccountId) : null);
+      const advanceBank = await trx.selectFrom('accounting_accounts').select('account_id')
+        .where('tenant_id', '=', tenantId).where('id', '=', advanceBankId).executeTakeFirstOrThrow();
+      await trx.insertInto('treasury_transactions').values({
+        tenant_id: tenantId, account_id: advanceBank.account_id,
+        txn_type: 'import_broker_advance_paid', amount: -Number(dto.amountEgp),
+        reference_type: 'import_broker_advance', reference_id: Number(advance.serial_id),
+        note: `صرف عهدة مخلص #${dto.advanceNo}`, created_by: userId,
+      }).execute();
 
       return advance;
     });
@@ -3845,6 +3855,9 @@ export class ImportSalesService {
           .executeTakeFirstOrThrow();
 
         const newSettled = Number(adv.settled_amount_egp || 0) + Number(dto.amountEgp);
+        if (!Number.isFinite(newSettled) || newSettled > Number(adv.amount_egp) + 0.001) {
+          throw new BadRequestException('إجمالي إيصالات تصفية عهدة المخلص لا يجوز أن يتجاوز أصل العهدة.');
+        }
         const newRemaining = Math.max(0, Number(adv.amount_egp) - newSettled);
         const newStatus = newRemaining <= 0.01 ? 'settled' : 'partially_settled';
 
@@ -3861,14 +3874,14 @@ export class ImportSalesService {
           .execute();
       }
 
-      if (this.accountingPosting) {
+      { const postingService = this.accountingPosting ?? new AccountingPostingService(new AccountingTenantFoundationService());
         const creditAccId = await this.resolveTenantAccount(trx, tenantId, 'broker_advance');
         let debitRole: 'vat_receivable' | 'inventory' | 'cogs' = 'cogs';
         if (dto.isRefundableVat) debitRole = 'vat_receivable';
         else if (dto.isCapitalized) debitRole = 'inventory';
         const debitAccId = await this.resolveTenantAccount(trx, tenantId, debitRole);
 
-        await this.accountingPosting.postDomainJournal(trx, {
+        await postingService.postDomainJournal(trx, {
           sourceType: 'import_broker_expense',
           sourceId: Number(expense.serial_id),
           tenantId,
@@ -3971,7 +3984,7 @@ export class ImportSalesService {
         .returningAll()
         .executeTakeFirstOrThrow();
 
-      if (this.accountingPosting) {
+      { const postingService = this.accountingPosting ?? new AccountingPostingService(new AccountingTenantFoundationService());
         const depositAssetAccId = await this.resolveTenantAccount(trx, tenantId, 'container_deposit');
         const bankAccId = await this.resolveTenantAccount(
           trx,
@@ -3980,7 +3993,7 @@ export class ImportSalesService {
           dto.treasuryAccountId ? Number(dto.treasuryAccountId) : null
         );
 
-        await this.accountingPosting.postDomainJournal(trx, {
+        await postingService.postDomainJournal(trx, {
           sourceType: 'import_container_deposit',
           sourceId: Number(deposit.serial_id),
           tenantId,
@@ -4015,6 +4028,16 @@ export class ImportSalesService {
           ],
         });
       }
+
+      const initialBankId = await this.resolveTenantAccount(trx, tenantId, 'bank', dto.treasuryAccountId ? Number(dto.treasuryAccountId) : null);
+      const initialBank = await trx.selectFrom('accounting_accounts').select('account_id')
+        .where('tenant_id', '=', tenantId).where('id', '=', initialBankId).executeTakeFirstOrThrow();
+      await trx.insertInto('treasury_transactions').values({
+        tenant_id: tenantId, account_id: initialBank.account_id,
+        txn_type: 'import_container_deposit_paid', amount: -Number(dto.depositAmountEgp),
+        reference_type: 'import_container_deposit', reference_id: Number(deposit.serial_id),
+        note: `دفع تأمين حاوية #${deposit.container_no}`, created_by: userId,
+      }).execute();
 
       return deposit;
     });
@@ -4284,7 +4307,7 @@ export class ImportSalesService {
         .returningAll()
         .executeTakeFirstOrThrow();
 
-      if (depositAmount > 0 && this.accountingPosting) {
+      if (depositAmount > 0) { const postingService = this.accountingPosting ?? new AccountingPostingService(new AccountingTenantFoundationService());
         const bankAccId = await this.resolveTenantAccount(
           trx,
           tenantId,
@@ -4293,7 +4316,7 @@ export class ImportSalesService {
         );
         const unearnedRevAccId = await this.resolveTenantAccount(trx, tenantId, 'customer_advance');
 
-        await this.accountingPosting.postDomainJournal(trx, {
+        await postingService.postDomainJournal(trx, {
           sourceType: 'import_container_preorder',
           sourceId: Number(preorder.serial_id),
           tenantId,
@@ -4329,6 +4352,19 @@ export class ImportSalesService {
         });
       }
 
+      if (depositAmount > 0) {
+        const prepaidBankId = await this.resolveTenantAccount(trx, tenantId, 'bank',
+          dto.depositTreasuryAccountId ? Number(dto.depositTreasuryAccountId) : null);
+        const prepaidBank = await trx.selectFrom('accounting_accounts').select('account_id')
+          .where('tenant_id', '=', tenantId).where('id', '=', prepaidBankId).executeTakeFirstOrThrow();
+        await trx.insertInto('treasury_transactions').values({
+          tenant_id: tenantId, account_id: prepaidBank.account_id,
+          txn_type: 'import_preorder_customer_advance', amount: depositAmount,
+          reference_type: 'import_container_preorder', reference_id: Number(preorder.serial_id),
+          note: `عربون عميل على حجز #${preorder.preorder_no}`, created_by: userId,
+        }).execute();
+      }
+
       return preorder;
     });
   }
@@ -4358,6 +4394,9 @@ export class ImportSalesService {
 
       if (preorder.status === 'invoiced') {
         throw new BadRequestException('لا يمكن إلغاء حجز تم إصدار فاتورة بيع فعلية له.');
+      }
+      if (Number(preorder.deposit_amount_egp || 0) > 0) {
+        throw new BadRequestException('لا يمكن إلغاء حجز محصل عنه عربون قبل إصدار مستند رد عربون وتسوية التزام العميل.');
       }
 
       return await trx

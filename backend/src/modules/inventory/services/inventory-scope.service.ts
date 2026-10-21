@@ -106,7 +106,7 @@ export class InventoryScopeService {
     // if (scope.length) query = query.where('l.branch_id', 'in', scope);
     const rows = await query.execute();
     return {
-      locations: rows.map((row) => ({ id: String(row.id), name: row.name + (!row.is_active ? ' (محذوف)' : ''), code: row.code || '', branchId: row.branch_id ? String(row.branch_id) : '', branchName: row.branch_name || '', locationType: row.location_type })),
+      locations: rows.map((row) => ({ id: String(row.id), name: row.name + (!row.is_active ? ' (محذوف)' : ''), code: row.code || '', branchId: row.branch_id ? String(row.branch_id) : '', branchName: row.branch_name || '', locationType: row.location_type, isActive: row.is_active })),
     };
   }
   async getAllLocationStocks(auth: AuthContext): Promise<Record<string, unknown>> {
