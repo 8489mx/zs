@@ -43,6 +43,16 @@ export interface ProposedClosingLine {
   description: string;
 }
 
+/** Shared classification for preview and the locked, live closing check. */
+export function fiscalProfitAndLossCategory(account: { code: string; account_type: string }): 'revenue' | 'expense' | null {
+  const code = String(account.code || '');
+  const type = String(account.account_type || '').toLowerCase();
+  if (type === 'revenue' || type === 'contra_revenue' || code.startsWith('4') || code.startsWith('71')) return 'revenue';
+  if (type === 'expense' || type === 'operating_expenses' || type === 'cogs' ||
+      code.startsWith('5') || code.startsWith('6') || code.startsWith('72')) return 'expense';
+  return null;
+}
+
 /** Retain the P&L accounts and redirect only the retained-earnings line. */
 export function resolveClosingJournalAccounts(
   proposed: ProposedClosingLine[],
@@ -358,27 +368,10 @@ export class FiscalYearService {
     let totalExpense = 0;
 
     for (const acc of accounts) {
-      const code = String(acc.code || '');
-      const type = String(acc.account_type || '').toLowerCase();
+      const category = fiscalProfitAndLossCategory(acc);
       const b = balanceMap.get(Number(acc.id)) || { debit: 0, credit: 0 };
 
-      // Revenue classification (4xxx or 71xx or account_type = 'revenue' or 'contra_revenue')
-      const isRevenue =
-        type === 'revenue' ||
-        type === 'contra_revenue' ||
-        code.startsWith('4') ||
-        code.startsWith('71');
-
-      // Expense classification (5xxx or 6xxx or 72xx or account_type = 'expense' or 'operating_expenses' or 'cogs')
-      const isExpense =
-        type === 'expense' ||
-        type === 'operating_expenses' ||
-        type === 'cogs' ||
-        code.startsWith('5') ||
-        code.startsWith('6') ||
-        code.startsWith('72');
-
-      if (isRevenue) {
+      if (category === 'revenue') {
         // Normal balance for Revenue is Credit: net = credit - debit
         const net = this.toMoney(b.credit - b.debit);
         if (net !== 0) {
@@ -395,7 +388,7 @@ export class FiscalYearService {
             closingCredit: net < 0 ? Math.abs(net) : 0,
           });
         }
-      } else if (isExpense) {
+      } else if (category === 'expense') {
         // Normal balance for Expense is Debit: net = debit - credit
         const net = this.toMoney(b.debit - b.credit);
         if (net !== 0) {
@@ -572,30 +565,46 @@ export class FiscalYearService {
       if (lockedFy.status === 'closed') throw new BadRequestException('هذه السنة المالية مقفلة بالفعل.');
 
       const startDateStr = this.formatDate(fy.start_date);
-      const verify = await (trx as any)
+      // Compare balances for EACH profit/loss account, not just the aggregate;
+      // the same account classifier is used for preview and final posting.
+      const liveRows = await (trx as any)
         .selectFrom('journal_entry_lines as jel')
         .innerJoin('journal_entries as je', 'je.id', 'jel.journal_entry_id')
         .innerJoin('accounting_accounts as a', 'a.id', 'jel.account_id')
         .select([
-          sql<number>`COALESCE(SUM(CASE WHEN a.account_type = 'revenue' THEN jel.credit - jel.debit ELSE 0 END), 0)`.as('revenue'),
-          sql<number>`COALESCE(SUM(CASE WHEN a.account_type = 'expense' THEN jel.debit - jel.credit ELSE 0 END), 0)`.as('expense'),
+          'jel.account_id', 'a.account_type', 'a.code',
+          sql<number>`COALESCE(SUM(jel.debit), 0)`.as('total_debit'),
+          sql<number>`COALESCE(SUM(jel.credit), 0)`.as('total_credit'),
         ])
         .where('je.tenant_id', '=', tenantId)
+        .where('jel.tenant_id', '=', tenantId)
+        .where('a.tenant_id', '=', tenantId)
+        .where('a.is_active', '=', true)
         .where('je.status', '=', 'posted')
         .where('je.source_type', '!=', 'fiscal_year_closing')
         .where('je.entry_date', '>=', startDateStr as any)
         .where('je.entry_date', '<=', endDate as any)
-        .executeTakeFirst();
+        .groupBy(['jel.account_id', 'a.account_type', 'a.code'])
+        .execute();
 
-      const liveRevenue = this.toMoney(verify?.revenue || 0);
-      const liveExpense = this.toMoney(verify?.expense || 0);
-
-      if (
-        Math.abs(liveRevenue - this.toMoney(preview.totalRevenue)) > 0.01 ||
-        Math.abs(liveExpense - this.toMoney(preview.totalExpense)) > 0.01
-      ) {
+      const expectedBalances = new Map<number, number>();
+      for (const account of preview.revenueAccounts) expectedBalances.set(account.id, account.balance);
+      for (const account of preview.expenseAccounts) expectedBalances.set(account.id, account.balance);
+      const actualBalances = new Map<number, number>();
+      for (const row of liveRows) {
+        const category = fiscalProfitAndLossCategory(row);
+        if (!category) continue;
+        const debit = this.toMoney(row.total_debit);
+        const credit = this.toMoney(row.total_credit);
+        const net = this.toMoney(category === 'revenue' ? credit - debit : debit - credit);
+        if (net !== 0) actualBalances.set(Number(row.account_id), net);
+      }
+      if (expectedBalances.size !== actualBalances.size ||
+          [...expectedBalances].some(([accountId, balance]) =>
+            !actualBalances.has(accountId) ||
+            Math.abs(balance - (actualBalances.get(accountId) || 0)) > 0.009)) {
         throw new BadRequestException(
-          'تم ترحيل حركات مالية داخل هذه السنة بعد إعداد المعاينة، فأصبحت أرقام الإقفال غير محدّثة. يرجى إعادة المعاينة ثم الإقفال.',
+          'تغير رصيد واحد أو أكثر من حسابات الأرباح والخسائر بعد المعاينة؛ يجب تحديث المعاينة قبل الإقفال.',
         );
       }
 
