@@ -15,9 +15,13 @@ export class InventoryScopeService {
     return requireTenantScope(auth).tenantId;
   }
 
+  private canAccessEveryBranch(auth: AuthContext): boolean {
+    return ['owner', 'admin', 'super_admin'].includes(auth.role);
+  }
+
   async branchScope(auth: AuthContext, executor: Kysely<Database> = this.db): Promise<number[]> {
     const tenantId = this.tenantId(auth);
-    if (auth.role === 'super_admin') return [];
+    if (this.canAccessEveryBranch(auth)) return [];
     const user = await executor
       .selectFrom('users')
       .select(['default_branch_id'])
@@ -75,23 +79,29 @@ export class InventoryScopeService {
     }
 
     const scope = await this.branchScope(auth);
+    if (!this.canAccessEveryBranch(auth) &&
+        (scope.length === 0 || (location.branch_id != null && !scope.includes(Number(location.branch_id))))) {
+      throw new AppError('Location is outside assigned branches', 'LOCATION_SCOPE_FORBIDDEN', 403);
+    }
 
     return { id: location.id, name: location.name || '', branchId: location.branch_id || null };
   }
 
   async filterByScope<T extends { branchId?: string; fromBranchId?: string; toBranchId?: string }>(rows: T[], auth: AuthContext, executor: Kysely<Database> = this.db): Promise<T[]> {
     const scope = await this.branchScope(auth, executor);
-    if (!scope.length) return rows;
+    if (this.canAccessEveryBranch(auth)) return rows;
+    if (!scope.length) return [];
     return rows.filter((row) => {
       const ids = [Number(row.branchId || 0), Number(row.fromBranchId || 0), Number(row.toBranchId || 0)].filter((id) => id > 0);
       if (!ids.length) return true;
-      return ids.some((id) => scope.includes(id));
+      return ids.every((id) => scope.includes(id));
     });
   }
 
   async listLocations(auth: AuthContext, includeInactive?: boolean): Promise<Record<string, unknown>> {
     const tenantId = this.tenantId(auth);
     const scope = await this.branchScope(auth);
+    if (!this.canAccessEveryBranch(auth) && !scope.length) return { locations: [] };
     let query = this.db
       .selectFrom('stock_locations as l')
       .leftJoin('branches as b', (join) => join.onRef('b.id', '=', 'l.branch_id').on(sql<boolean>`b.tenant_id = ${tenantId}`))
@@ -114,7 +124,9 @@ export class InventoryScopeService {
         )
       ]));
     }
-    // if (scope.length) query = query.where('l.branch_id', 'in', scope);
+    if (!this.canAccessEveryBranch(auth)) {
+      query = query.where((eb) => eb.or([eb('l.branch_id', 'in', scope), eb('l.branch_id', 'is', null)]));
+    }
     const rows = await query.execute();
     return {
       locations: rows.map((row) => ({ id: String(row.id), name: row.name + (!row.is_active ? ' (محذوف)' : ''), code: row.code || '', branchId: row.branch_id ? String(row.branch_id) : '', branchName: row.branch_name || '', locationType: row.location_type })),
@@ -123,6 +135,7 @@ export class InventoryScopeService {
   async getAllLocationStocks(auth: AuthContext): Promise<Record<string, unknown>> {
     const { tenantId, accountId } = requireTenantScope(auth);
     const scope = await this.branchScope(auth);
+    if (!this.canAccessEveryBranch(auth) && !scope.length) return { stocks: [] };
     let query = this.db
       .selectFrom('product_location_stock as s')
       .leftJoin('products as p', 'p.id', 's.product_id')
@@ -140,7 +153,7 @@ export class InventoryScopeService {
       query = query.where('l.location_type', '!=', 'branch_stock');
     }
 
-    if (scope.length) {
+    if (!this.canAccessEveryBranch(auth)) {
       query = query.where((eb) => eb.or([
         eb('s.branch_id', 'in', scope),
         eb('s.branch_id', 'is', null)
@@ -158,6 +171,7 @@ export class InventoryScopeService {
   }
 
   async getLocationCategories(locationId: number, auth: AuthContext): Promise<Record<string, unknown>> {
+    await this.assertLocationScope(locationId, auth);
     const { tenantId, accountId } = requireTenantScope(auth);
     const rows = await this.db
       .selectFrom('product_categories as c')
@@ -187,6 +201,7 @@ export class InventoryScopeService {
   }
 
   async getLocationCategoryProducts(locationId: number, categoryId: number | 'all', auth: AuthContext): Promise<Record<string, unknown>> {
+    await this.assertLocationScope(locationId, auth);
     const { tenantId, accountId } = requireTenantScope(auth);
     let query = this.db
       .selectFrom('products as p')
@@ -215,6 +230,8 @@ export class InventoryScopeService {
 
   async getAdvancedOverview(auth: AuthContext): Promise<Record<string, unknown>> {
     const { tenantId, accountId } = requireTenantScope(auth);
+    const branchScope = await this.branchScope(auth);
+    if (!this.canAccessEveryBranch(auth) && !branchScope.length) return { locations: [], totalGlobalValue: 0 };
     
     const locationsRaw = await this.db.selectFrom('stock_locations as l')
       .select(['l.id', 'l.name', 'l.is_active'])
@@ -231,7 +248,11 @@ export class InventoryScopeService {
       .where('l.account_id', '=', accountId)
       .execute();
       
-    const locations = locationsRaw.map(l => ({
+    const allowedLocationIds = locationsRaw
+      .filter((l) => this.canAccessEveryBranch(auth) || l.branch_id == null || branchScope.includes(Number(l.branch_id)))
+      .map((l) => Number(l.id));
+    if (allowedLocationIds.length === 0) return { locations: [], totalGlobalValue: 0 };
+    const locations = locationsRaw.filter((l) => allowedLocationIds.includes(Number(l.id))).map(l => ({
       id: l.id,
       name: l.name + (!l.is_active ? ' (محذوف)' : '')
     }));
@@ -251,6 +272,7 @@ export class InventoryScopeService {
         sql<number>`sum(pls.qty * p.cost_price)`.as('inventoryValue')
       ])
       .where('pls.qty', '>', 0)
+      .where('pls.location_id', 'in', allowedLocationIds)
       .where('pls.tenant_id', '=', tenantId)
       .where('p.tenant_id', '=', tenantId)
       .where('p.account_id', '=', accountId)
@@ -297,6 +319,7 @@ export class InventoryScopeService {
     return { locations: overview, totalGlobalValue };
   }
   async assignProductsToLocation(locationId: number, productIds: number[], auth: AuthContext): Promise<{ success: boolean }> {
+    await this.assertLocationScope(locationId, auth, false, 'write');
     if (!productIds || productIds.length === 0) return { success: true };
 
     await this.db.transaction().execute(async trx => {
@@ -318,6 +341,7 @@ export class InventoryScopeService {
   }
 
   async removeProductFromLocation(locationId: number, productId: number, auth: AuthContext): Promise<{ success: boolean }> {
+    await this.assertLocationScope(locationId, auth, false, 'write');
     await this.db.transaction().execute(async trx => {
       const { tenantId, accountId } = requireTenantScope(auth);
       await lockStockProducts(trx, { tenantId, accountId, productIds: [productId] });
