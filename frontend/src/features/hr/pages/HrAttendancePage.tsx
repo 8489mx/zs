@@ -15,6 +15,7 @@ import {
   normalizeArabicDigits,
   normalizeTime,
   toDateTime,
+  toCheckOutDateTime,
   isOvertimeException,
   isDeductionException,
   isActionableException,
@@ -23,6 +24,7 @@ import {
 import { AttendanceKpiSummary } from '../components/attendance/AttendanceKpiSummary';
 import { AttendanceExceptionsTable } from '../components/attendance/AttendanceExceptionsTable';
 import { DailyAttendanceTable } from '../components/attendance/DailyAttendanceTable';
+import { AttendanceRangeTable } from '../components/attendance/AttendanceRangeTable';
 import { ManualAttendanceModal } from '../components/attendance/ManualAttendanceModal';
 
 export function HrAttendancePage() {
@@ -30,6 +32,26 @@ export function HrAttendancePage() {
   const navigate = useNavigate();
   const mutations = useHrMutations();
   const [date, setDate] = useState(todayDate());
+  const [viewMode, setViewMode] = useState<'day' | 'week' | 'month' | 'custom'>('day');
+  const [rangeFrom, setRangeFrom] = useState(todayDate().slice(0, 7) + '-01');
+  const [rangeTo, setRangeTo] = useState(todayDate());
+  const [rangePage, setRangePage] = useState(1);
+  const isRange = viewMode !== 'day';
+  const selectPeriod = (mode: 'day' | 'week' | 'month' | 'custom') => {
+    setViewMode(mode);
+    setRangePage(1);
+    const local = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    if (mode === 'week') {
+      const start = new Date(date + 'T12:00:00');
+      start.setDate(start.getDate() - (start.getDay() + 6) % 7);
+      const end = new Date(start); end.setDate(start.getDate() + 6);
+      setRangeFrom(local(start)); setRangeTo(local(end));
+    } else if (mode === 'month') {
+      const month = date.slice(0, 7);
+      setRangeFrom(month + '-01');
+      setRangeTo(local(new Date(Number(month.slice(0, 4)), Number(month.slice(5, 7)), 0)));
+    }
+  };
   const [exceptionMonth, setExceptionMonth] = useState(todayDate().slice(0, 7));
   const [search, setSearch] = useState('');
   const [exceptionFilter, setExceptionFilter] = useState<ExceptionFilter>('needs_action');
@@ -40,23 +62,26 @@ export function HrAttendancePage() {
   const [manualPrompt, setManualPrompt] = useState<ManualAttendancePrompt>(null);
   const [manualTimeInput, setManualTimeInput] = useState('');
 
-  const attendance = useHrAttendance({ date, search, page: 1, pageSize: 200 });
+  const attendance = useHrAttendance(isRange
+    ? { from: rangeFrom, to: rangeTo, search, page: rangePage, pageSize: 100 }
+    : { date, search, page: 1, pageSize: 200 });
   const exceptions = useHrAttendanceExceptions({ month: exceptionMonth, search, page: 1, pageSize: 200 });
   const rows = useMemo(() => (attendance.data?.rows || []) as HrAttendanceRecord[], [attendance.data?.rows]);
   const allExceptionRows = useMemo(() => (exceptions.data?.rows || []) as HrAttendanceException[], [exceptions.data?.rows]);
   const exceptionRows = useMemo(() => filterExceptions(allExceptionRows, exceptionFilter), [allExceptionRows, exceptionFilter]);
 
   const filteredAttendanceRows = useMemo(() => {
-    if (attendanceFilter === 'all') return rows;
+    if (isRange || attendanceFilter === 'all') return rows;
     return rows.filter((row) => {
       const status = String(draftByEmployeeId[String(row.employeeId)]?.status || row.status || '');
       if (attendanceFilter === 'unmarked') return !status;
       return !!status;
     });
-  }, [rows, draftByEmployeeId, attendanceFilter]);
+  }, [rows, draftByEmployeeId, attendanceFilter, isRange]);
 
   useEffect(() => {
     const next: Record<string, DraftRow> = {};
+    if (isRange) return;
     for (const row of rows) {
       const employeeId = String(row.employeeId || '');
       if (!employeeId) continue;
@@ -69,7 +94,7 @@ export function HrAttendancePage() {
       };
     }
     setDraftByEmployeeId(next);
-  }, [rows]);
+  }, [rows, isRange]);
 
   const summary = useMemo(() => {
     let present = 0;
@@ -86,8 +111,15 @@ export function HrAttendancePage() {
     const needsAction = allExceptionRows.filter(isActionableException).length;
     const overtime = allExceptionRows.filter((row) => isOvertimeException(row.exceptionType)).length;
     const deduction = allExceptionRows.filter((row) => isDeductionException(row.exceptionType)).length;
-    return { total: rows.length, present, absent, late, unmarked, needsAction, overtime, deduction };
-  }, [rows, draftByEmployeeId, allExceptionRows]);
+    const data = attendance.data?.summary;
+    return {
+      total: isRange ? Number(data?.totalItems || 0) : rows.length,
+      present: isRange ? Number(data?.presentCount || 0) : present,
+      absent: isRange ? Number(data?.absentCount || 0) : absent,
+      late: isRange ? Number(data?.lateCount || 0) : late,
+      unmarked: isRange ? 0 : unmarked, needsAction, overtime, deduction,
+    };
+  }, [rows, draftByEmployeeId, allExceptionRows, isRange, attendance.data?.summary]);
 
   const updateDraft = (employeeId: string, patch: Partial<DraftRow>) => {
     setDraftByEmployeeId((current) => ({
@@ -111,7 +143,7 @@ export function HrAttendancePage() {
         workDate: date,
         status: draft.status || 'present',
         checkInAt: toDateTime(date, draft.checkInAt),
-        checkOutAt: toDateTime(date, draft.checkOutAt),
+        checkOutAt: toCheckOutDateTime(date, draft.checkInAt, draft.checkOutAt),
         notes: draft.notes || undefined,
         source: 'manual',
       };
@@ -197,6 +229,23 @@ export function HrAttendancePage() {
             </div>
           )}
 
+          {activeTab === 'attendance' ? (
+            <div className="actions compact-actions" style={{ marginBottom: 10, gap: 6, flexWrap: 'wrap' }}>
+              {(['day', 'week', 'month', 'custom'] as const).map(mode => (
+                <Button key={mode} type="button" variant={viewMode === mode ? 'primary' : 'secondary'}
+                  onClick={() => selectPeriod(mode)}>
+                  {{ day: 'يوم', week: 'أسبوع', month: 'شهر', custom: 'من / إلى' }[mode]}
+                </Button>
+              ))}
+              {isRange ? (
+                <>
+                  <label>من <input type="date" value={rangeFrom} max={rangeTo} onChange={e => { setRangeFrom(e.target.value); setRangePage(1); }} /></label>
+                  <label>إلى <input type="date" value={rangeTo} min={rangeFrom} onChange={e => { setRangeTo(e.target.value); setRangePage(1); }} /></label>
+                  <strong>إجمالي ساعات التشغيل: {(Number(attendance.data?.summary?.workedMinutes || 0) / 60).toFixed(2)} ساعة</strong>
+                </>
+              ) : null}
+            </div>
+          ) : null}
           {/* KPI Summary */}
           <AttendanceKpiSummary
             summary={summary}
@@ -296,12 +345,19 @@ export function HrAttendancePage() {
               errorTitle={t('hr.hr_attendance_page.s32', "تعذر تحميل سجلات الحضور.")}
               emptyTitle={t('hr.hr_attendance_page.s33', "لا توجد سجلات مطابقة للفلتر الحالي.")}
             >
-              <DailyAttendanceTable
-                rows={filteredAttendanceRows}
-                draftByEmployeeId={draftByEmployeeId}
-                onUpdateDraft={updateDraft}
-                onSaveRow={saveRow}
-              />
+              {isRange ? (
+                <>
+                  <AttendanceRangeTable rows={filteredAttendanceRows} />
+                  {Number(attendance.data?.pagination?.totalPages || 1) > 1 ? (
+                    <div className="actions compact-actions" style={{ marginTop: 12 }}>
+                      <Button type="button" variant="secondary" disabled={rangePage <= 1} onClick={() => setRangePage(n => Math.max(1, n - 1))}>السابق</Button>
+                      <span>صفحة {rangePage} من {attendance.data?.pagination?.totalPages}</span>
+                      <Button type="button" variant="secondary" disabled={rangePage >= Number(attendance.data?.pagination?.totalPages || 1)} onClick={() => setRangePage(n => n + 1)}>التالي</Button>
+                    </div>
+                  ) : null}
+                </>
+              ) : <DailyAttendanceTable rows={filteredAttendanceRows}
+                draftByEmployeeId={draftByEmployeeId} onUpdateDraft={updateDraft} onSaveRow={saveRow} />}
             </QueryFeedback>
           ) : (
             <QueryFeedback

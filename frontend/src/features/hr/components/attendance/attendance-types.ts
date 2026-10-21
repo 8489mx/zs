@@ -19,7 +19,8 @@ export type ManualAttendancePrompt = {
 } | null;
 
 export function todayDate() {
-  return new Date().toISOString().slice(0, 10);
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 }
 
 export function normalizeArabicDigits(value: string) {
@@ -43,6 +44,16 @@ export function toDateTime(workDate: string, timeValue: string) {
   if (!safeTime) return undefined;
   const localDate = new Date(`${workDate}T${safeTime}:00`);
   return !isNaN(localDate.getTime()) ? localDate.toISOString() : `${workDate}T${safeTime}:00`;
+}
+
+export function toCheckOutDateTime(workDate: string, checkIn: string, checkOut: string) {
+  if (!checkOut) return undefined;
+  const start = normalizeTime(checkIn), end = normalizeTime(checkOut);
+  if (!start || !end || end > start) return toDateTime(workDate, checkOut);
+  const date = new Date(workDate + 'T12:00:00');
+  date.setDate(date.getDate() + 1);
+  const nextDay = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+  return toDateTime(nextDay, checkOut);
 }
 
 export function exceptionTypeLabel(value: string) {

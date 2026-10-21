@@ -53,7 +53,9 @@ export interface PayrollRunResponse {
 
 export interface AttendanceResponse {
   rows?: HrAttendanceRecord[];
+  pagination?: { page: number; pageSize: number; totalItems: number; totalPages: number };
   summary?: {
+    workedMinutes?: number;
     totalItems?: number;
     presentCount?: number;
     absentCount?: number;
