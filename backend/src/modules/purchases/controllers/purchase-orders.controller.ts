@@ -1,11 +1,14 @@
 import { Body, Controller, Delete, Get, Param, ParseIntPipe, Post, Put, Query, Req, UseGuards } from '@nestjs/common';
+import { PermissionsGuard } from '../../../core/auth/guards/permissions.guard';
+import { RequirePermissions } from '../../../core/auth/decorators/permissions.decorator';
 import { SessionAuthGuard } from '../../../core/auth/guards/session-auth.guard';
 import { RequestWithAuth } from '../../../core/auth/interfaces/request-with-auth.interface';
 import { PurchaseOrdersService } from '../services/purchase-orders.service';
 import { CreatePurchaseOrderDto, UpdatePurchaseOrderDto } from '../dto/purchase-order.dto';
 
 @Controller('api/purchase-orders')
-@UseGuards(SessionAuthGuard)
+@UseGuards(SessionAuthGuard, PermissionsGuard)
+@RequirePermissions('purchases')
 export class PurchaseOrdersController {
   constructor(private readonly purchaseOrdersService: PurchaseOrdersService) {}
 
