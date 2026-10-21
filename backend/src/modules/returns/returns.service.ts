@@ -22,6 +22,7 @@ import { WhatsAppGatewayService } from '../settings/services/whatsapp-gateway.se
 import { allocateRefundTenders, type RefundTender } from './engines/refund-tender.engine';
 import { allocateInvoiceDiscount } from '../sales/engines/invoice-discount.engine';
 import { settlePosExchange } from '../sales/engines/pos-exchange.engine';
+import { selectPurchaseReturnSerials, selectPurchaseReturnBatch } from './helpers/purchase-return-traceability.helper';
 
 export interface ExchangeReturnContext {
   returnId: number;
@@ -32,7 +33,7 @@ export interface ExchangeReturnContext {
   refundBase: Omit<Parameters<typeof allocateRefundTenders>[0], 'amount' | 'requested'>;
 }
 
-type ReturnInputItem = { productId: number; productName: string; qty: number; saleItemId?: number; purchaseItemId?: number; serials?: string[] };
+type ReturnInputItem = { productId: number; productName: string; qty: number; saleItemId?: number; purchaseItemId?: number; batchId?: number; serials?: string[] };
 type ReturnDocumentInput = { returnType: 'sale' | 'purchase'; invoiceId: number; settlementMode: string; refundMethod: string; total: number; note: string; branchId: number | null; locationId: number | null; refundAllocations?: Array<{ tender: RefundTender; amount: number }> };
 
 @Injectable()
@@ -847,9 +848,49 @@ export class ReturnsService {
       pendingQtyByLine.set(purchaseLineId, (pendingQtyByLine.get(purchaseLineId) || 0) + requestItem.qty);
 
       const availableQty = await previewConsumableStockQty(trx, { productId: requestItem.productId, branchId: purchase.branch_id, locationId: purchase.location_id, tenantId: scope.tenantId, accountId: scope.accountId });
-      const product = await trx.selectFrom('products').select(['id', 'stock_qty']).where('id', '=', requestItem.productId).where(this.tenantPredicate(auth)).executeTakeFirst();
+      const product = await trx.selectFrom('products').select(['id', 'stock_qty', 'track_serials'])
+        .where('id', '=', requestItem.productId).where(this.tenantPredicate(auth)).executeTakeFirst();
       if (!product) throw new AppError('Product not found', 'PRODUCT_NOT_FOUND', 404);
       const preparedLine = buildPurchaseReturnLine(purchaseItem, { ...product, stock_qty: availableQty }, requestItem);
+
+      // The serial ledger and general stock ledger must leave the warehouse together.
+      const purchaseSerials = await trx.selectFrom('product_serials')
+        .select(['id', 'serial_number', 'imei_2', 'status'])
+        .where('tenant_id', '=', scope.tenantId).where('product_id', '=', requestItem.productId)
+        .where('purchase_id', '=', Number(purchase.id)).where('purchase_item_id', '=', purchaseLineId)
+        .where('status', '=', 'in_stock')
+        .orderBy('id', 'asc').forUpdate().execute();
+      if (product.track_serials === true || purchaseSerials.length > 0) {
+        const chosen = selectPurchaseReturnSerials(purchaseSerials, requestItem.serials, preparedLine.stockDelta);
+        await trx.updateTable('product_serials')
+          .set({ status: 'returned', updated_at: sql`NOW()` })
+          .where('tenant_id', '=', scope.tenantId)
+          .where('id', 'in', chosen.map(row => row.id)).execute();
+      } else if (requestItem.serials?.length) {
+        throw new AppError('لا توجد سيريالات مرتبطة بسطر فاتورة الشراء', 'PURCHASE_RETURN_SERIAL_NOT_AVAILABLE', 400);
+      }
+
+      // Drug lots are a separate quantity ledger. Never deduct product stock without
+      // deducting the corresponding unexpired/held lot from the same location.
+      const drug = await trx.selectFrom('pharmacy_drugs').select('id')
+        .where('tenant_id', '=', scope.tenantId)
+        .where('product_id', '=', requestItem.productId).executeTakeFirst();
+      if (drug) {
+        const itemLocationId = purchaseItem.location_id ?? purchase.location_id;
+        let batchQuery = trx.selectFrom('pharmacy_batches').select(['id', 'quantity'])
+          .where('tenant_id', '=', scope.tenantId)
+          .where('product_id', '=', requestItem.productId);
+        batchQuery = itemLocationId == null ? batchQuery.where('location_id', 'is', null)
+          : batchQuery.where('location_id', '=', itemLocationId);
+        const batches = await batchQuery.orderBy('id', 'asc').forUpdate().execute();
+        const batch = selectPurchaseReturnBatch(batches, requestItem.batchId, preparedLine.stockDelta);
+        await trx.updateTable('pharmacy_batches')
+          .set({ quantity: Number((Number(batch.quantity) - preparedLine.stockDelta).toFixed(3)), updated_at: sql`NOW()` })
+          .where('tenant_id', '=', scope.tenantId).where('id', '=', batch.id).execute();
+      } else if (requestItem.batchId) {
+        throw new AppError('الصنف ليس دواءً مسجلاً بتشغيلة', 'PURCHASE_RETURN_BATCH_NOT_APPLICABLE', 400);
+      }
+
       const stockChange = await applyStockDelta(trx, { productId: requestItem.productId, delta: -preparedLine.stockDelta, branchId: purchase.branch_id, locationId: purchase.location_id, tenantId: scope.tenantId, accountId: scope.accountId, errorCode: 'PURCHASE_RETURN_STOCK_INVALID', errorMessage: 'Invalid stock for purchase return' });
       await trx.insertInto('stock_movements').values({ product_id: requestItem.productId, movement_type: 'purchase_return', qty: -preparedLine.stockDelta, before_qty: stockChange.scopeBefore, after_qty: stockChange.scopeAfter, reason: 'purchase_return', note: 'purchase return PUR-' + String(purchase.id), reference_type: 'purchase_return', reference_id: Number(payload.invoiceId), branch_id: purchase.branch_id, location_id: purchase.location_id, created_by: auth.userId, ...this.tenantFields(auth) }).execute();
       normalizedLines.push({ productId: preparedLine.productId, productName: preparedLine.productName, qty: preparedLine.qty, unitTotal: preparedLine.unitTotal, lineTotal: preparedLine.lineTotal, purchaseItemId: purchaseLineId });
