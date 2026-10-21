@@ -12,6 +12,7 @@ import { up as up237 } from '../../src/database/migrations/2040000000237_interna
 import { up as up238 } from '../../src/database/migrations/2040000000238_customs_broker_advances_and_container_deposits';
 import { up as up239 } from '../../src/database/migrations/2040000000239_container_preorders_and_inventory_traceability';
 import { up as up240 } from '../../src/database/migrations/2040000000240_import_governance_approvals_and_reconciliation';
+import { up as up241 } from '../../src/database/migrations/2040000000241_import_container_refund_events';
 import {
   allocateSaleFromImportLots,
   restoreImportLotsFromCancelledSale,
@@ -660,6 +661,7 @@ async function setupDatabase(): Promise<{ db: Kysely<Database>; accounts: Record
   await up238(db as any);
   await up239(db as any);
   await up240(db as any);
+  await up241(db as any);
 
   // Seed default tenant
   await pglite.exec(`INSERT INTO tenants (id, name) VALUES ('tenant-audit-1', 'Audited Trading Tenant');`);
@@ -725,6 +727,16 @@ async function runTests() {
   const service = new ImportSalesService(db as any);
   const tenantId = 'tenant-audit-1';
   const userId = 101;
+
+  // Fixture-only approval arrangement for unrelated close-project guard tests.
+  const approvedClosure = async (projectId: string) => {
+    const request = await service.createApprovalRequest(tenantId, userId, {
+      actionType: 'project_closure', referenceId: projectId,
+    });
+    await db.updateTable('import_approval_requests').set({ status: 'approved', approved_by: userId, decided_at: new Date() })
+      .where('id', '=', request.id).execute();
+    return request.id;
+  };
 
   // -------------------------------------------------------------
   // Test 1: Project Closure & Purchases Architectural Link
@@ -820,7 +832,7 @@ async function runTests() {
     // Attempt to close project: MUST BE REJECTED
     let rejected = false;
     try {
-      await service.closeProject(tenantId, userId, projectId);
+      await service.closeProject(tenantId, userId, projectId, await approvedClosure(projectId));
     } catch (err: any) {
       rejected = true;
       assert.ok(
@@ -839,7 +851,7 @@ async function runTests() {
       .execute();
 
     // Attempt closure again: MUST SUCCEED
-    const closeRes = await service.closeProject(tenantId, userId, projectId);
+    const closeRes = await service.closeProject(tenantId, userId, projectId, await approvedClosure(projectId));
     assert.strictEqual(closeRes.success, true);
 
     const closedPrj = await db
@@ -1403,7 +1415,7 @@ async function runTests() {
       .executeTakeFirstOrThrow();
 
     // Closure MUST SUCCEED because unlinked invoice is not part of this import project
-    const closeRes1 = await service.closeProject(tenantId, userId, prjLink.id);
+    const closeRes1 = await service.closeProject(tenantId, userId, prjLink.id, await approvedClosure(prjLink.id));
     assert.strictEqual(closeRes1.success, true);
     console.log('PASS: Unlinked unpaid purchase invoice does not block unrelated project closure.');
 
@@ -1416,7 +1428,7 @@ async function runTests() {
     // Closure MUST BE REJECTED now!
     let blockedWhenLinked = false;
     try {
-      await service.closeProject(tenantId, userId, prjLink.id);
+      await service.closeProject(tenantId, userId, prjLink.id, await approvedClosure(prjLink.id));
     } catch (err: any) {
       blockedWhenLinked = true;
       assert.ok(err.message.includes('غير مسددة بالكامل'));
@@ -1426,7 +1438,7 @@ async function runTests() {
 
     // 3. Settle invoice and close successfully
     await db.updateTable('purchases').set({ paid_amount: 50000 }).where('id', '=', unlinkedPur.id).execute();
-    const closeRes2 = await service.closeProject(tenantId, userId, prjLink.id);
+    const closeRes2 = await service.closeProject(tenantId, userId, prjLink.id, await approvedClosure(prjLink.id));
     assert.strictEqual(closeRes2.success, true);
     console.log('PASS: Linked purchase invoice settlement unblocks project closure.');
 
@@ -1626,6 +1638,7 @@ async function runTests() {
 
     // Partial refund 1: 20,000 refund, 5,000 detention fee (total settled: 25,000, remaining: 15,000)
     const ref1 = await service.recordContainerReturnAndRefund(tenantId, userId, depositId, {
+      idempotencyKey: 'refund-a',
       actualReturnDate: '2026-03-10',
       refundedAmountEgp: 20000,
       deductionsAmountEgp: 5000,
@@ -1644,7 +1657,8 @@ async function runTests() {
     let overRefundBlocked = false;
     try {
       await service.recordContainerReturnAndRefund(tenantId, userId, depositId, {
-        actualReturnDate: '2026-03-12',
+        idempotencyKey: 'refund-over',
+      actualReturnDate: '2026-03-12',
         refundedAmountEgp: 20000,
       });
     } catch (err: any) {
@@ -1655,6 +1669,7 @@ async function runTests() {
 
     // Partial refund 2: 15,000 refund, 0 deduction (remaining becomes 0)
     const ref2 = await service.recordContainerReturnAndRefund(tenantId, userId, depositId, {
+      idempotencyKey: 'refund-b',
       actualReturnDate: '2026-03-15',
       refundedAmountEgp: 15000,
     });
@@ -1671,7 +1686,8 @@ async function runTests() {
     let duplicateRefundBlocked = false;
     try {
       await service.recordContainerReturnAndRefund(tenantId, userId, depositId, {
-        actualReturnDate: '2026-03-16',
+        idempotencyKey: 'refund-duplicate',
+      actualReturnDate: '2026-03-16',
         refundedAmountEgp: 1000,
       });
     } catch (err: any) {
