@@ -305,6 +305,9 @@ async function setupDatabase(): Promise<{ db: Kysely<Database>; accounts: Record
       note TEXT,
       reference_type TEXT,
       reference_id BIGINT,
+      return_document_id BIGINT,
+      branch_id BIGINT,
+      location_id BIGINT,
       created_by BIGINT,
       created_at TIMESTAMPTZ DEFAULT NOW()
     );
@@ -665,8 +668,12 @@ async function setupDatabase(): Promise<{ db: Kysely<Database>; accounts: Record
   await up241(db as any);
   await up242(db as any);
 
-  // Seed default tenant
+  // Seed default tenant and users
   await pglite.exec(`INSERT INTO tenants (id, name) VALUES ('tenant-audit-1', 'Audited Trading Tenant');`);
+  await pglite.exec(`
+    INSERT INTO users (id, tenant_id, username, password_hash, role)
+    VALUES (101, 'tenant-audit-1', 'admin', 'hash', 'admin'), (102, 'tenant-audit-1', 'checker', 'hash', 'admin');
+  `);
 
   // Seed standard Chart of Accounts
   await pglite.exec(`
