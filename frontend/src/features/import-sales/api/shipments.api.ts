@@ -76,6 +76,7 @@ export interface RecordForeignTransferDto {
   amountEgp: number;
   amountForeign: number;
   notes?: string;
+  idempotencyKey: string;
 }
 
 export const useShipmentsQuery = () => {

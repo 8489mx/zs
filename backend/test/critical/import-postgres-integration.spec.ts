@@ -62,7 +62,7 @@ async function setupDatabase(): Promise<{ db: Kysely<Database>; accounts: Record
     dialect: new MultiStatementPGliteDialect(pglite),
   });
 
-  // Base production tables prior to migrations 234 and 235
+  // Test-local fixture DDL, NOT a full production migration replay. Real migration modules 234 and 235 run below.
   const baseDdl = `
     CREATE TABLE tenants (
       id TEXT PRIMARY KEY,
@@ -93,6 +93,9 @@ async function setupDatabase(): Promise<{ db: Kysely<Database>; accounts: Record
       parent_id BIGINT REFERENCES accounting_accounts(id) ON DELETE RESTRICT,
       is_active BOOLEAN DEFAULT TRUE,
       is_system BOOLEAN DEFAULT FALSE,
+      is_cash_bank BOOLEAN NOT NULL DEFAULT FALSE,
+      is_inventory BOOLEAN NOT NULL DEFAULT FALSE,
+      is_payable BOOLEAN NOT NULL DEFAULT FALSE,
       created_at TIMESTAMPTZ DEFAULT NOW(),
       updated_at TIMESTAMPTZ DEFAULT NOW(),
       CONSTRAINT uq_accounting_accounts_tenant_code UNIQUE (tenant_id, code)
@@ -600,15 +603,15 @@ async function setupDatabase(): Promise<{ db: Kysely<Database>; accounts: Record
 
   // Seed standard Chart of Accounts
   await pglite.exec(`
-    INSERT INTO accounting_accounts (tenant_id, account_id, code, name_ar, name_en, account_type, account_group, normal_balance, is_system)
+    INSERT INTO accounting_accounts (tenant_id, account_id, code, name_ar, name_en, account_type, account_group, normal_balance, is_system, is_cash_bank, is_inventory, is_payable)
     VALUES
-      ('tenant-audit-1', 'tenant-audit-1', '1110', 'الصندوق والنقدية', 'Cash and Cash Equivalents', 'asset', 'current_assets', 'debit', true),
-      ('tenant-audit-1', 'tenant-audit-1', '1120', 'حساب البنك الرئيسي', 'Main Bank Account', 'asset', 'current_assets', 'debit', true),
-      ('tenant-audit-1', 'tenant-audit-1', '1140', 'مخزون بضاعة ومواد خام', 'Inventory Asset', 'asset', 'current_assets', 'debit', true),
-      ('tenant-audit-1', 'tenant-audit-1', '2110', 'حسابات الموردين والدائنين', 'Accounts Payable', 'liability', 'current_liabilities', 'credit', true),
-      ('tenant-audit-1', 'tenant-audit-1', '5110', 'تكلفة البضاعة المباعة', 'Cost of Goods Sold', 'expense', 'expenses', 'debit', true),
-      ('tenant-audit-1', 'tenant-audit-1', '5201', 'خسائر فروق أسعار صرف محققة', 'Realized Forex Loss', 'expense', 'expenses', 'debit', true),
-      ('tenant-audit-1', 'tenant-audit-1', '4201', 'أرباح فروق أسعار صرف محققة', 'Realized Forex Gain', 'revenue', 'revenues', 'credit', true);
+      ('tenant-audit-1', 'tenant-audit-1', '1110', 'الصندوق والنقدية', 'Cash and Cash Equivalents', 'asset', 'current_assets', 'debit', true, true, false, false),
+      ('tenant-audit-1', 'tenant-audit-1', '1120', 'حساب البنك الرئيسي', 'Main Bank Account', 'asset', 'current_assets', 'debit', true, true, false, false),
+      ('tenant-audit-1', 'tenant-audit-1', '1140', 'مخزون بضاعة ومواد خام', 'Inventory Asset', 'asset', 'current_assets', 'debit', true, false, true, false),
+      ('tenant-audit-1', 'tenant-audit-1', '2110', 'حسابات الموردين والدائنين', 'Accounts Payable', 'liability', 'current_liabilities', 'credit', true, false, false, true),
+      ('tenant-audit-1', 'tenant-audit-1', '5110', 'تكلفة البضاعة المباعة', 'Cost of Goods Sold', 'expense', 'expenses', 'debit', true, false, false, false),
+      ('tenant-audit-1', 'tenant-audit-1', '5201', 'خسائر فروق أسعار صرف محققة', 'Realized Forex Loss', 'expense', 'expenses', 'debit', true, false, false, false),
+      ('tenant-audit-1', 'tenant-audit-1', '4201', 'أرباح فروق أسعار صرف محققة', 'Realized Forex Gain', 'revenue', 'revenues', 'credit', true, false, false, false);
   `);
 
   // Query account IDs to configure accounting_settings
@@ -802,6 +805,7 @@ async function runTests() {
 
     // Execute foreign transfer without specifying accounts; service must dynamically resolve from COA / settings
     const transferRes = await service.recordForeignTransfer(tenantId, userId, {
+        idempotencyKey: 'INDEPENDENT-AUDIT-TEST-001',
       supplierId: String(supplier.id),
       amountForeign: 2000,
       amountEgp: 100000,
@@ -899,6 +903,7 @@ async function runTests() {
     let rejectedSupplier = false;
     try {
       await service.recordForeignTransfer(tenantId, userId, {
+        idempotencyKey: 'INDEPENDENT-AUDIT-TEST-002',
         supplierId: String(supplierB.id), // Wrong supplier
         amountForeign: 1000,
         amountEgp: 50000,
@@ -916,6 +921,7 @@ async function runTests() {
     let rejectedProject = false;
     try {
       await service.recordForeignTransfer(tenantId, userId, {
+        idempotencyKey: 'INDEPENDENT-AUDIT-TEST-003',
         supplierId: String(supplierA.id),
         projectId: projectB.id, // Wrong project
         amountForeign: 1000,
@@ -934,6 +940,7 @@ async function runTests() {
     let rejectedCurrency = false;
     try {
       await service.recordForeignTransfer(tenantId, userId, {
+        idempotencyKey: 'INDEPENDENT-AUDIT-TEST-004',
         supplierId: String(supplierA.id),
         amountForeign: 1000,
         amountEgp: 50000,
@@ -951,6 +958,7 @@ async function runTests() {
     let rejectedOverpay = false;
     try {
       await service.recordForeignTransfer(tenantId, userId, {
+        idempotencyKey: 'INDEPENDENT-AUDIT-TEST-005',
         supplierId: String(supplierA.id),
         amountForeign: 3500, // Overpayment!
         amountEgp: 175000,
@@ -1241,6 +1249,7 @@ async function runTests() {
     let expenseAsBankRejected = false;
     try {
       await service.recordForeignTransfer(tenantId, userId, {
+        idempotencyKey: 'INDEPENDENT-AUDIT-TEST-006',
         supplierId: String(supplier.id),
         amountForeign: 500,
         amountEgp: 25000,
@@ -1249,10 +1258,41 @@ async function runTests() {
       });
     } catch (err: any) {
       expenseAsBankRejected = true;
-      assert.ok(err.message.includes('غير صالح') && err.message.includes('الأصول'), `Expected bank type rejection, got: ${err.message}`);
+      assert.ok(err.message.includes('غير صالح') && err.message.includes('وظيفته'), `Expected bank type rejection, got: ${err.message}`);
     }
     assert.ok(expenseAsBankRejected, 'Expense account passed as bank account must be rejected');
     console.log('PASS: Bank account pointing to expense account correctly rejected.');
+
+    // Even another ASSET (inventory) is not an eligible bank account.
+    let inventoryAsBankRejected = false;
+    try {
+      await service.recordForeignTransfer(tenantId, userId, {
+        supplierId: String(supplier.id),
+        amountForeign: 500,
+        amountEgp: 25000,
+        currency: 'USD',
+        bankAccountId: accounts['1140'],
+        idempotencyKey: 'INDEPENDENT-AUDIT-BANK-ASSET',
+      });
+    } catch (err: any) {
+      inventoryAsBankRejected = true;
+      assert.ok(err.message.includes('غير صالح'), `Expected bank role rejection; got: ${err.message}`);
+    }
+    assert.ok(inventoryAsBankRejected, 'An inventory asset cannot be used as a bank account');
+
+    let missingKeyRejected = false;
+    try {
+      await service.recordForeignTransfer(tenantId, userId, {
+        supplierId: String(supplier.id),
+        amountForeign: 500,
+        amountEgp: 25000,
+        currency: 'USD',
+      });
+    } catch (err: any) {
+      missingKeyRejected = true;
+      assert.ok(err.message.includes('إلزامي'), `Expected missing idempotency key rejection; got: ${err.message}`);
+    }
+    assert.ok(missingKeyRejected, 'Foreign transfer must require idempotency key');
 
     // Negative 7-C: Operation in locked accounting period rejected
     await db
@@ -1264,6 +1304,7 @@ async function runTests() {
     let lockedPeriodRejected = false;
     try {
       await service.recordForeignTransfer(tenantId, userId, {
+        idempotencyKey: 'INDEPENDENT-AUDIT-TEST-007',
         supplierId: String(supplier.id),
         amountForeign: 500,
         amountEgp: 25000,
@@ -1285,6 +1326,26 @@ async function runTests() {
       .where('tenant_id', '=', tenantId)
       .execute();
     console.log('PASS: Accounting operation in locked period correctly rejected.');
+
+    // Non-adviser operational lock must also block late import expenses.
+    await db.updateTable('accounting_settings')
+      .set({ lock_date_non_adviser: '2099-12-31' as any })
+      .where('tenant_id', '=', tenantId).execute();
+    let lateExpensePeriodRejected = false;
+    try {
+      await service.processLateShipmentExpense(tenantId, userId, shipment.id, {
+        title: 'Operational lock negative test',
+        lateExpenseAmount: 100,
+      });
+    } catch (err: any) {
+      lateExpensePeriodRejected = true;
+      assert.ok(err.message.includes('الفترة المحاسبية مقفلة') || err.code === 'ACCOUNTING_PERIOD_LOCKED_OPERATIONAL',
+        `Expected late expense operational period lock; got: ${err.message}`);
+    }
+    assert.ok(lateExpensePeriodRejected, 'Closed operational period must reject late import expense');
+    await db.updateTable('accounting_settings')
+      .set({ lock_date_non_adviser: null })
+      .where('tenant_id', '=', tenantId).execute();
 
     // Negative 7-D: Unlinked purchase invoice vs linked purchase invoice checks
     const prjLink = await db

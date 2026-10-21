@@ -332,7 +332,7 @@ export class RecordForeignTransferDto {
   @IsNumber()
   bankAccountId?: number;
 
-  @IsOptional()
+  @IsOptional() // Header fallback is populated by controller; service requires a nonempty key.
   @IsString()
   idempotencyKey?: string;
 }

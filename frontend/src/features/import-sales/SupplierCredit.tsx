@@ -1,7 +1,7 @@
 import { toast } from '@/shared/components/system-alert';
 import { useTranslation } from 'react-i18next';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { PageHeader } from '@/shared/components/page-header';
 import { Button } from '@/shared/ui/button';
 import { formatCurrency } from '@/lib/format';
@@ -28,6 +28,8 @@ export default function SupplierCredit() {
   const [amountEgp, setAmountEgp] = useState('');
   const [amountForeign, setAmountForeign] = useState('');
   const [notes, setNotes] = useState('');
+  // Preserve the key across network retries of the *same* request.
+  const transferAttempt = useRef<{ fingerprint: string; key: string } | null>(null);
 
   const factories = suppliersQuery.data?.filter(s => s.metadata?.supplierType === 'factory') || [];
   const totalDebtForeign = factories.reduce((sum, s) => sum + Number(s.balance || 0), 0);
@@ -43,13 +45,17 @@ export default function SupplierCredit() {
     { if (egpNum <= 0) { toast.error('المبلغ المسحوب من الخزينة يجب أن يكون أكبر من صفر'); return; } }
     { if (foreignNum <= 0) { toast.error('المبلغ المحول للمصنع يجب أن يكون أكبر من صفر'); return; } }
 
+    const payload = { supplierId: selectedSupplier, amountEgp: egpNum, amountForeign: foreignNum, notes };
+    const fingerprint = JSON.stringify(payload);
+    if (!transferAttempt.current || transferAttempt.current.fingerprint !== fingerprint) {
+      transferAttempt.current = { fingerprint, key: crypto.randomUUID() };
+    }
     transferMutation.mutate({
-      supplierId: selectedSupplier,
-      amountEgp: egpNum,
-      amountForeign: foreignNum,
-      notes
+      ...payload,
+      idempotencyKey: transferAttempt.current.key,
     }, {
       onSuccess: () => {
+        transferAttempt.current = null;
         toast.success('تم تسجيل الحوالة البنكية وتحديث مديونية المصنع والخزينة بنجاح');
         setAmountEgp('');
         setAmountForeign('');

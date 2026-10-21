@@ -63,119 +63,101 @@ export class ImportSalesService {
    * Eliminates hardcoded account IDs (2110, 1110, 5201, 1130, 5101).
    * Follows the "No Silent Skips" architectural invariant.
    */
+  /**
+   * Validate posting roles against the tenant's actual chart-of-accounts flags.
+   * Merely being an asset/liability is NOT sufficient to be a bank/inventory/AP account.
+   * Never silently post to an unrelated account.
+   */
   private async resolveTenantAccount(
-    trx: any,
+    trx: Transaction<Database>,
     tenantId: string,
     role: 'cogs' | 'inventory' | 'payable' | 'bank' | 'forex_loss' | 'forex_gain',
     preferredAccountId?: number | null
   ): Promise<number> {
-    const roleExpectedTypes: Record<string, { type: string; label: string }> = {
-      bank: { type: 'asset', label: 'الأصول/النقدية' },
-      payable: { type: 'liability', label: 'الخصوم/الالتزامات' },
-      inventory: { type: 'asset', label: 'الأصول' },
-      cogs: { type: 'expense', label: 'المصروفات' },
-      forex_loss: { type: 'expense', label: 'المصروفات' },
-      forex_gain: { type: 'revenue', label: 'الإيرادات' },
+    const expectedType: Record<string, string> = {
+      cogs: 'expense', inventory: 'asset', payable: 'liability',
+      bank: 'asset', forex_loss: 'expense', forex_gain: 'revenue',
     };
-
-    const roleInfo = roleExpectedTypes[role];
-
-    if (preferredAccountId && Number(preferredAccountId) > 0) {
-      const existing = await trx
-        .selectFrom('accounting_accounts')
-        .select(['id', 'is_active', 'account_type'])
-        .where('tenant_id', '=', tenantId)
-        .where('id', '=', Number(preferredAccountId))
-        .executeTakeFirst();
-
-      if (!existing) {
-        throw new BadRequestException(
-          `الحساب المحاسبي المحدد (${preferredAccountId}) غير موجود في دليل حسابات المنشأة.`
-        );
-      }
-
-      if (!existing.is_active) {
-        throw new BadRequestException(
-          `الحساب المحاسبي (${preferredAccountId}) معطل؛ يلزم تفعيله قبل إجراء الحركة.`
-        );
-      }
-
-      if (roleInfo && existing.account_type !== roleInfo.type) {
-        throw new BadRequestException(
-          `الحساب المحاسبي المحدد (${preferredAccountId}) لدور ${role} غير صالح، نوعه (${existing.account_type}) بينما المطلوب (${roleInfo.label}).`
-        );
-      }
-
-      return Number(existing.id);
-    }
-
-    // Fallback: Check accounting_settings
-    const settings = await trx
-      .selectFrom('accounting_settings')
-      .selectAll()
+    const accountIsEligible = (account: {
+      account_type: string;
+      is_active: boolean;
+      is_cash_bank: boolean;
+      is_inventory: boolean;
+      is_payable: boolean;
+      code: string;
+    }): boolean => {
+      if (!account.is_active || account.account_type !== expectedType[role]) return false;
+      if (role === 'bank') return account.is_cash_bank === true;
+      if (role === 'inventory') return account.is_inventory === true;
+      if (role === 'payable') return account.is_payable === true;
+      // FX accounts have no dedicated classification flag; require dedicated
+      // configured codes rather than selecting an arbitrary revenue/expense account.
+      if (role === 'forex_loss') return ['5201', '5190'].includes(account.code);
+      if (role === 'forex_gain') return ['4201', '4190'].includes(account.code);
+      return true;
+    };
+    const accountById = (id: number) => trx
+      .selectFrom('accounting_accounts')
+      .select(['id', 'code', 'account_type', 'is_active', 'is_cash_bank', 'is_inventory', 'is_payable'])
       .where('tenant_id', '=', tenantId)
+      .where('id', '=', id)
       .executeTakeFirst();
 
-    let settingsAccountId: number | null = null;
-    if (settings) {
-      if (role === 'cogs') settingsAccountId = settings.cogs_account_id;
-      else if (role === 'inventory') settingsAccountId = settings.inventory_account_id;
-      else if (role === 'payable') settingsAccountId = settings.supplier_payable_account_id;
-      else if (role === 'bank') settingsAccountId = settings.bank_account_id || settings.cash_account_id;
-    }
-
-    if (settingsAccountId && Number(settingsAccountId) > 0) {
-      const fromSettings = await trx
-        .selectFrom('accounting_accounts')
-        .select(['id', 'is_active', 'account_type'])
-        .where('tenant_id', '=', tenantId)
-        .where('id', '=', Number(settingsAccountId))
-        .executeTakeFirst();
-      if (fromSettings && fromSettings.is_active && (!roleInfo || fromSettings.account_type === roleInfo.type)) {
-        return Number(fromSettings.id);
+    if (preferredAccountId !== undefined && preferredAccountId !== null) {
+      const id = Number(preferredAccountId);
+      if (!Number.isSafeInteger(id) || id <= 0) {
+        throw new BadRequestException('معرف الحساب المحاسبي يجب أن يكون رقمًا صحيحًا موجبًا.');
       }
+      const preferred = await accountById(id);
+      if (!preferred) {
+        throw new BadRequestException(`الحساب المحاسبي المحدد (${id}) غير موجود في دليل حسابات المنشأة.`);
+      }
+      if (!accountIsEligible(preferred)) {
+        throw new BadRequestException(`الحساب المحاسبي المحدد (${id}) غير صالح لدور (${role}) أو معطل. راجع نوع الحساب وعلامة وظيفته المحاسبية.`);
+      }
+      return Number(preferred.id);
     }
 
-    // Fallback: Check candidate COA codes matching the required type
-    const candidateCodes: Record<string, string[]> = {
-      cogs: ['5110', '5101', '5100'],
-      inventory: ['1140', '1130', '1100'],
-      payable: ['2110', '2100'],
-      bank: ['1120', '1110'],
-      forex_loss: ['5201', '5190'],
-      forex_gain: ['4201', '4190'],
+    const settings = await trx
+      .selectFrom('accounting_settings')
+      .select(['cogs_account_id', 'inventory_account_id', 'supplier_payable_account_id', 'bank_account_id'])
+      .where('tenant_id', '=', tenantId)
+      .where('id', '=', 1)
+      .executeTakeFirst();
+    const configured: Record<string, number | null> = {
+      cogs: settings?.cogs_account_id ?? null,
+      inventory: settings?.inventory_account_id ?? null,
+      payable: settings?.supplier_payable_account_id ?? null,
+      bank: settings?.bank_account_id ?? null,
+      forex_loss: null,
+      forex_gain: null,
     };
-
-    const codes = candidateCodes[role] || [];
-    if (codes.length > 0) {
-      const byCode = await trx
-        .selectFrom('accounting_accounts')
-        .select(['id', 'is_active', 'account_type'])
-        .where('tenant_id', '=', tenantId)
-        .where('code', 'in', codes)
-        .where('is_active', '=', true)
-        .executeTakeFirst();
-      if (byCode && (!roleInfo || byCode.account_type === roleInfo.type)) {
-        return Number(byCode.id);
+    const configuredId = configured[role];
+    if (configuredId != null) {
+      const account = await accountById(Number(configuredId));
+      if (!account || !accountIsEligible(account)) {
+        throw new UnprocessableEntityException(`حساب (${role}) في إعدادات المحاسبة غير صالح. يجب تصحيح الإعدادات قبل الترحيل.`);
       }
+      return Number(account.id);
     }
 
-    // Fallback: Check any active account with matching account_type
-    if (roleInfo) {
-      const byType = await trx
+    const candidateCodes: Record<string, string[]> = {
+      cogs: ['5110', '5101', '5100'], inventory: ['1140', '1130'],
+      payable: ['2110', '2100'], bank: ['1120'],
+      forex_loss: ['5201', '5190'], forex_gain: ['4201', '4190'],
+    };
+    // Ordered, role-aware lookup; never fall back to the first asset/expense/liability.
+    for (const code of candidateCodes[role]) {
+      const account = await trx
         .selectFrom('accounting_accounts')
-        .select(['id', 'is_active'])
+        .select(['id', 'code', 'account_type', 'is_active', 'is_cash_bank', 'is_inventory', 'is_payable'])
         .where('tenant_id', '=', tenantId)
-        .where('account_type', '=', roleInfo.type)
-        .where('is_active', '=', true)
-        .orderBy('id', 'asc')
+        .where('code', '=', code)
         .executeTakeFirst();
-      if (byType) return Number(byType.id);
+      if (account && accountIsEligible(account)) return Number(account.id);
     }
-
-    // Strict Architectural Policy: No silent auto-creation of accounts during normal operational transactions
     throw new UnprocessableEntityException(
-      `تعذر تحديد حساب محاسبي نشط لدور (${role}) في دليل الحسابات. يرجى تهيئة وتفعيل الحساب المناسب في شجرة الحسابات أو إعدادات المحاسبة أولاً.`
+      `لا يوجد حساب محاسبي معتمد ومصنف لدور (${role}). يجب إعداد دليل الحسابات قبل تنفيذ الحركة المالية.`
     );
   }
 
@@ -1787,6 +1769,10 @@ export class ImportSalesService {
 
     const cleanEgp = Number(amountEgp);
     const cleanForeign = Number(amountForeign);
+    const requestKey = (dto.idempotencyKey || '').trim();
+    if (!requestKey || requestKey.length > 128) {
+      throw new BadRequestException('مفتاح عدم تكرار الحوالة (Idempotency Key) إلزامي ويجب ألا يتجاوز 128 حرفًا.');
+    }
 
     if (!Number.isFinite(cleanEgp) || cleanEgp <= 0 || !Number.isFinite(cleanForeign) || cleanForeign <= 0) {
       throw new BadRequestException('مبالغ الحوالة بالجنيه والعملة الأجنبية يجب أن تكون أكبر من الصفر.');
@@ -1862,12 +1848,12 @@ export class ImportSalesService {
       }
 
       // 2. Database-Backed Idempotency Protection
-      if (dto.idempotencyKey) {
+      {
         const existingPayment = await trx
           .selectFrom('supplier_payments')
           .select(['id', 'doc_no', 'created_at'])
           .where('tenant_id', '=', tenantId)
-          .where('idempotency_key', '=', dto.idempotencyKey)
+          .where('idempotency_key', '=', requestKey)
           .executeTakeFirst();
 
         if (existingPayment) {
@@ -1906,7 +1892,7 @@ export class ImportSalesService {
             exchange_rate: actualEgp / cleanForeign,
             forex_variance_egp: forexVarianceEgp,
             proforma_invoice_id: proformaInvoiceId || null,
-            idempotency_key: dto.idempotencyKey || null,
+            idempotency_key: requestKey,
           } as any)
           .returning('id')
           .executeTakeFirstOrThrow();
