@@ -48,6 +48,7 @@ import {
 } from './attendance-punch.engine';
 import { allocateLoanDeduction } from './payroll-loan-allocation.engine';
 import { calculateEmployeePayrollLine } from './engines/payroll-calculation.engine';
+import { summarizeHourlyAttendance, prorateMonthlyWage } from './engines/hourly-attendance-pay.engine';
 import { createPasswordRecord } from '../../core/auth/utils/password-hasher';
 import { assertSecurePasscode } from '../../core/auth/utils/password-policy';
 import { formatDailyDocumentNumber } from '../../common/utils/document-number.util';
@@ -1731,13 +1732,35 @@ export class HrService {
     `.execute(db);
 
     const empIds = employees.rows.map(e => Number(e.employee_id)).filter(id => id > 0);
+    // The previous hourly formula credited 30 theoretical days, regardless of actual punches.
+    // Read all punches for the run once, then share the exact same totals with payroll review.
+    const hourlyWorkByEmployee = new Map<number, ReturnType<typeof summarizeHourlyAttendance>>();
+    const punches = empIds.length ? await sql<Record<string, unknown>>`
+      SELECT employee_id, status, check_in_at, check_out_at
+      FROM hr_attendance_records
+      WHERE tenant_id = ${tenantId}
+        AND employee_id IN (${sql.join(empIds)})
+        AND work_date >= ${range.from}::date
+        AND work_date <= ${range.to}::date
+    `.execute(db) : { rows: [] as Record<string, unknown>[] };
+    const punchesByEmployee = new Map<number, Record<string, unknown>[]>();
+    for (const punch of punches.rows) {
+      const employeeId = Number(punch.employee_id);
+      if (!punchesByEmployee.has(employeeId)) punchesByEmployee.set(employeeId, []);
+      punchesByEmployee.get(employeeId)!.push(punch);
+    }
     const baseSalMap = new Map<number, number>();
     for (const e of employees.rows) {
-      let bs = Number(e.base_salary || 0);
+      const employeeId = Number(e.employee_id);
       if (e.compensation_type === 'hourly') {
-        bs = Number(e.hourly_rate || 0) * Number(e.expected_daily_hours || 0) * 30;
+        const work = summarizeHourlyAttendance(punchesByEmployee.get(employeeId) || [], Number(e.hourly_rate || 0));
+        hourlyWorkByEmployee.set(employeeId, work);
+        baseSalMap.set(employeeId, work.baseWage);
+      } else {
+        baseSalMap.set(employeeId, payFreq === 'monthly'
+          ? Number(e.base_salary || 0)
+          : prorateMonthlyWage(Number(e.base_salary || 0), range.from, range.to));
       }
-      baseSalMap.set(Number(e.employee_id), bs);
     }
     const autoReviews = await this.calculatePayrollOperationalReview(db, range, empIds, baseSalMap, tenantId);
 
@@ -1758,11 +1781,9 @@ export class HrService {
       let baseSalary = money(employee.base_salary);
       
       if (isHourly) {
-        const expectedHours = Number(employee.expected_daily_hours || 0);
-        const hourlyRate = money(employee.hourly_rate || 0);
-        baseSalary = Number((hourlyRate * expectedHours * 30).toFixed(2)); // Max theoretical base for the month to allow daily rate calc, deductions will handle actuals
-        // Or actually, for hourly we could calculate base based on actual attendance. 
-        // For now, let's just populate the theoretical full-month base salary so the daily rate deduction math works the same way it does for monthly.
+        baseSalary = hourlyWorkByEmployee.get(employeeId)?.baseWage || 0;
+      } else if (payFreq !== 'monthly') {
+        baseSalary = prorateMonthlyWage(baseSalary, range.from, range.to);
       }
       
       const compensationAllowance = money(employee.allowance_amount);
@@ -1784,7 +1805,11 @@ export class HrService {
         let val = Number(adj.amount || 0);
         // If amount_type is days, convert to money based on baseSalary
         if (clean(adj.amount_type) === 'days') val = (baseSalary / 30) * val;
-        // (If hours, we could divide by 240 or use an hourly rate, but keeping it simple for now)
+        if (clean(adj.amount_type) === 'hours') {
+          const referenceHours = Number(employee.expected_daily_hours || 8) || 8;
+          const rate = isHourly ? Number(employee.hourly_rate || 0) : (Number(employee.base_salary || 0) / 30 / referenceHours);
+          val = rate * val;
+        }
 
         if (clean(adj.adjustment_type) === 'allowance') {
           empAdjAllowance += val;
@@ -1808,9 +1833,14 @@ export class HrService {
       }
 
       const review = autoReviews.get(employeeId);
-      const attendanceDeduction = Number(review?.suggestedAttendanceDeductionAmount || 0);
-      const leaveDeduction = Number(review?.suggestedLeaveDeductionAmount || 0);
-      const overtimeAllowance = Number(review?.suggestedOvertimeAllowanceAmount || 0);
+      // Hourly base already includes only minutes actually worked. Deducting missing
+      // hours again would double-charge employees; 1.5x overtime becomes a 0.5x
+      // premium because the normal 1.0x is already included in the hourly base.
+      const attendanceDeduction = isHourly ? 0 : Number(review?.suggestedAttendanceDeductionAmount || 0);
+      const leaveDeduction = isHourly ? 0 : Number(review?.suggestedLeaveDeductionAmount || 0);
+      const overtimeAllowance = isHourly
+        ? Number((Number(review?.suggestedOvertimeAllowanceAmount || 0) / 3).toFixed(2))
+        : Number(review?.suggestedOvertimeAllowanceAmount || 0);
       const commissionAllowance = Number(review?.suggestedCommissionAllowanceAmount || 0);
       const employeeSocialInsurance = Number(review?.suggestedSocialInsuranceDeductionAmount || 0);
       const employerSocialInsurance = Number(review?.suggestedEmployerInsuranceAmount || 0);
@@ -1838,7 +1868,11 @@ export class HrService {
       const operationalDeduction = Number((lineOutput.totalDeductions - lineOutput.appliedLoanDeduction - lineOutput.assetRecoveryDeduction).toFixed(2));
 
       const generatedNotes = [
-        baseSalary > 0 ? '' : 'Missing salary data',
+        baseSalary > 0 ? '' : (isHourly ? 'لم تُسجل ساعات حضور مكتملة في الفترة أو أجر الساعة غير محدد' : 'Missing salary data'),
+        isHourly && (hourlyWorkByEmployee.get(employeeId)?.incompleteCount || 0) > 0
+          ? `هناك ${hourlyWorkByEmployee.get(employeeId)!.incompleteCount} يوم حضور بدون انصراف/حضور مكتمل، لم تُحسب أجرته` : '',
+        isHourly && (hourlyWorkByEmployee.get(employeeId)?.invalidCount || 0) > 0
+          ? `هناك ${hourlyWorkByEmployee.get(employeeId)!.invalidCount} حركة حضور غير صحيحة تحتاج تصحيحًا` : '',
         ...loanDeduction.notes,
         ...lineOutput.notes,
       ].filter(Boolean);
@@ -2866,6 +2900,68 @@ export class HrService {
     const workDate = normalizeDateOnly(query.date) || normalizeDateOnly(query.workDate) || todayTenantDate(tenantTimezone);
     if (!workDate) throw new AppError('Attendance date is required', 'HR_ATTENDANCE_DATE_REQUIRED', 400);
     const search = clean(query.search).toLowerCase();
+    const rangeFrom = normalizeDateOnly(query.from);
+    const rangeTo = normalizeDateOnly(query.to);
+    if (rangeFrom || rangeTo) {
+      if (!rangeFrom || !rangeTo || rangeFrom > rangeTo) throw new AppError('اختر تاريخ بداية ونهاية صحيحين', 'HR_ATTENDANCE_RANGE_INVALID', 400);
+      const rangeDays = Math.round((Date.parse(rangeTo + 'T00:00:00Z') - Date.parse(rangeFrom + 'T00:00:00Z')) / 86400000);
+      if (rangeDays > 92) throw new AppError('الحد الأقصى لفترة الحضور 93 يومًا', 'HR_ATTENDANCE_RANGE_TOO_LARGE', 400);
+      const pageSize = Math.min(200, Math.max(1, Math.floor(Number(query.pageSize || 50)) || 50));
+      const page = Math.max(1, Math.floor(Number(query.page || 1)) || 1);
+      const match = `%${search}%`;
+      const count = await sql<{ total: string; minutes: string; present: string; absent: string; late: string }>`
+        SELECT COUNT(*)::text AS total,
+          COALESCE(SUM(CASE WHEN a.check_in_at IS NOT NULL AND a.check_out_at IS NOT NULL
+              AND a.check_out_at > a.check_in_at AND a.check_out_at <= a.check_in_at + INTERVAL '24 hours'
+              AND a.status NOT IN ('absent', 'leave')
+              THEN FLOOR(EXTRACT(EPOCH FROM (a.check_out_at - a.check_in_at)) / 60) ELSE 0 END), 0)::text AS minutes,
+          COUNT(*) FILTER (WHERE a.status = 'present')::text AS present,
+          COUNT(*) FILTER (WHERE a.status = 'absent')::text AS absent,
+          COUNT(*) FILTER (WHERE a.status = 'late')::text AS late
+        FROM hr_attendance_records a
+        JOIN hr_employees e ON e.id = a.employee_id AND e.tenant_id = a.tenant_id
+        LEFT JOIN hr_departments d ON d.id = e.department_id AND d.tenant_id = e.tenant_id
+        WHERE a.tenant_id = ${auth.tenantId}
+          AND a.work_date BETWEEN ${rangeFrom}::date AND ${rangeTo}::date
+          AND (${search} = '' OR LOWER(e.display_name) LIKE ${match} OR LOWER(e.employee_no) LIKE ${match} OR LOWER(COALESCE(d.name, '')) LIKE ${match})
+      `.execute(this.db);
+      const totalItems = Number(count.rows[0]?.total || 0);
+      const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+      const safePage = Math.min(page, totalPages);
+      const result = await sql<Record<string, unknown>>`
+        SELECT a.id AS attendance_id, e.id AS employee_id, e.employee_no, e.display_name AS employee_name,
+          d.name AS department_name, j.name AS job_title_name,
+          to_char(a.work_date, 'YYYY-MM-DD') AS work_date_text, a.status,
+          to_char(a.check_in_at AT TIME ZONE ${tenantTimezone}, 'YYYY-MM-DD"T"HH24:MI:SS') AS check_in_at_text,
+          to_char(a.check_out_at AT TIME ZONE ${tenantTimezone}, 'YYYY-MM-DD"T"HH24:MI:SS') AS check_out_at_text,
+          a.source, a.notes
+        FROM hr_attendance_records a
+        JOIN hr_employees e ON e.id = a.employee_id AND e.tenant_id = a.tenant_id
+        LEFT JOIN hr_departments d ON d.id = e.department_id AND d.tenant_id = e.tenant_id
+        LEFT JOIN hr_job_titles j ON j.id = e.job_title_id AND j.tenant_id = e.tenant_id
+        WHERE a.tenant_id = ${auth.tenantId}
+          AND a.work_date BETWEEN ${rangeFrom}::date AND ${rangeTo}::date
+          AND (${search} = '' OR LOWER(e.display_name) LIKE ${match} OR LOWER(e.employee_no) LIKE ${match} OR LOWER(COALESCE(d.name, '')) LIKE ${match})
+        ORDER BY a.work_date DESC, e.display_name ASC, a.id DESC
+        LIMIT ${pageSize} OFFSET ${(safePage - 1) * pageSize}
+      `.execute(this.db);
+      return {
+        rows: result.rows.map(row => ({
+          id: String(row.attendance_id), employeeId: String(row.employee_id),
+          employeeNo: clean(row.employee_no), employeeName: clean(row.employee_name),
+          departmentName: clean(row.department_name), jobTitleName: clean(row.job_title_name),
+          workDate: clean(row.work_date_text), status: clean(row.status),
+          checkInAt: clean(row.check_in_at_text), checkOutAt: clean(row.check_out_at_text),
+          source: normalizeAttendanceSource(row.source), notes: clean(row.notes),
+        })),
+        pagination: { page: safePage, pageSize, totalItems, totalPages },
+        summary: { totalItems, presentCount: Number(count.rows[0]?.present || 0),
+          absentCount: Number(count.rows[0]?.absent || 0), lateCount: Number(count.rows[0]?.late || 0),
+          workedMinutes: Number(count.rows[0]?.minutes || 0) },
+        serverTime: new Date().toISOString(), serverTimezone: tenantTimezone,
+        from: rangeFrom, to: rangeTo,
+      };
+    }
 
     const result = await sql<Record<string, unknown>>`
       SELECT
