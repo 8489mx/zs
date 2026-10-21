@@ -1,11 +1,14 @@
 import { Body, Controller, Get, Param, ParseIntPipe, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { PermissionsGuard } from '../../../core/auth/guards/permissions.guard';
+import { RequirePermissions } from '../../../core/auth/decorators/permissions.decorator';
 import { SessionAuthGuard } from '../../../core/auth/guards/session-auth.guard';
 import { RequestWithAuth } from '../../../core/auth/interfaces/request-with-auth.interface';
 import { GoodsReceiptService } from '../services/goods-receipt.service';
 import { CreateGoodsReceiptDto, CreateGrnBillDto, VerifyThreeWayMatchDto } from '../dto/goods-receipt.dto';
 
 @Controller('api/goods-receipts')
-@UseGuards(SessionAuthGuard)
+@UseGuards(SessionAuthGuard, PermissionsGuard)
+@RequirePermissions('purchases')
 export class GoodsReceiptController {
   constructor(private readonly goodsReceiptService: GoodsReceiptService) {}
 
