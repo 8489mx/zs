@@ -1918,6 +1918,16 @@ async function runBusinessSimulation() {
   assert.ok(missingApprovalBlocked, 'Payout without Maker-Checker approval must be strictly rejected!');
   console.log('PASS: Payout without Maker-Checker approval strictly blocked by governance gate.');
 
+  // Negative: no project may be omitted from a payout approval request.
+  let projectFreeApprovalBlocked = false;
+  try {
+    await importService.createApprovalRequest(tenantId, userId, {
+      actionType: 'partner_distribution', referenceId: p1.id,
+      requestPayload: { partnerId: p1.id, amount: 100000 },
+    });
+  } catch (err: any) { projectFreeApprovalBlocked = true; assert.match(err.message, /المشروع|يتطلب/); }
+  assert.ok(projectFreeApprovalBlocked, 'Payout approvals must be project-specific');
+
   // Negative test 2: Overpaying beyond partner share must be rejected by profit ceiling gate
   const overpayApproval = await importService.createApprovalRequest(tenantId, userId, {
     actionType: 'partner_distribution',
@@ -2011,6 +2021,12 @@ async function runBusinessSimulation() {
   await importService.decideApprovalRequest(tenantId, Number(auditor.id), closeApproval.id, {
     decision: 'approved',
   });
+
+  // Project closure must never bypass an independent Maker-Checker approval.
+  let unauthorizedClosureBlocked = false;
+  try { await importService.closeProject(tenantId, userId, project.id); }
+  catch (err: any) { unauthorizedClosureBlocked = true; assert.match(err.message, /Maker-Checker|موافقة/); }
+  assert.ok(unauthorizedClosureBlocked, 'Project closure without approval must be rejected');
 
   // 4. Execute final closure
   const finalClosure = await importService.closeProject(

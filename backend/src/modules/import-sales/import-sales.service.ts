@@ -2502,19 +2502,22 @@ export class ImportSalesService {
         .forUpdate()
         .executeTakeFirstOrThrow();
 
-      let targetProjectId = projectId;
-      if (!targetProjectId) {
-        const linkedProject = await trx
-          .selectFrom('import_project_partners')
-          .select('project_id')
-          .where('tenant_id', '=', tenantId)
-          .where('partner_id', '=', partnerId)
-          .where('is_active', '=', true)
-          .executeTakeFirst();
-        if (linkedProject?.project_id) {
-          targetProjectId = String(linkedProject.project_id);
-        }
+      // Bind payout to its approved project; never silently choose the first project linked to a partner.
+      const approved = await trx.selectFrom('import_approval_requests').select('request_payload')
+        .where('tenant_id', '=', tenantId).where('id', '=', approvalRequestId).executeTakeFirstOrThrow();
+      let approvalDetails: any;
+      try {
+        approvalDetails = typeof approved.request_payload === 'string'
+          ? JSON.parse(approved.request_payload || '{}') : approved.request_payload;
+      } catch {
+        throw new BadRequestException('تفاصيل الموافقة غير صالحة.');
       }
+      const targetProjectId = projectId || String(approvalDetails?.projectId || '');
+      if (!targetProjectId) throw new BadRequestException('يجب تحديد مشروع أرباح معتمد.');
+      const projectPartner = await trx.selectFrom('import_project_partners').select('project_id')
+        .where('tenant_id', '=', tenantId).where('project_id', '=', targetProjectId)
+        .where('partner_id', '=', partnerId).where('is_active', '=', true).executeTakeFirst();
+      if (!projectPartner) throw new BadRequestException('الشريك غير مرتبط بمشروع الأرباح المعتمد.');
 
       await this.verifyAndConsumeApprovalRequest(
         trx,
