@@ -241,8 +241,8 @@ export function HrAttendancePage() {
               ))}
               {isRange ? (
                 <>
-                  <label>من <input type="date" value={rangeFrom} max={rangeTo} onChange={e => { setRangeFrom(e.target.value); setRangePage(1); }} /></label>
-                  <label>إلى <input type="date" value={rangeTo} min={rangeFrom} onChange={e => { setRangeTo(e.target.value); setRangePage(1); }} /></label>
+                  <label>من <input type="date" value={rangeFrom} max={rangeTo} onChange={e => { setRangeFrom(e.target.value); setRangePage(1); setViewMode('custom'); }} /></label>
+                  <label>إلى <input type="date" value={rangeTo} min={rangeFrom} onChange={e => { setRangeTo(e.target.value); setRangePage(1); setViewMode('custom'); }} /></label>
                   <strong>إجمالي ساعات التشغيل: {(Number(attendance.data?.summary?.workedMinutes || 0) / 60).toFixed(2)} ساعة</strong>
                   <span>ساعات مرتب بالساعة: {(Number(attendance.data?.summary?.payableMinutes || 0) / 60).toFixed(2)} ساعة</span>
                 </>
@@ -305,7 +305,7 @@ export function HrAttendancePage() {
               style={{ width: '190px', minWidth: '150px', padding: '5px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.825rem', background: '#fff', boxSizing: 'border-box' }}
             />
 
-            {activeTab === 'attendance' ? (
+            {activeTab === 'attendance' && !isRange ? (
               <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                   <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#475569', whiteSpace: 'nowrap' }}>{t('hr.hr_attendance_page.s22', "التاريخ:")}</span>
@@ -322,7 +322,7 @@ export function HrAttendancePage() {
                   <Button type="button" variant={attendanceFilter === 'recorded' ? 'primary' : 'secondary'} onClick={() => setAttendanceFilter('recorded')} style={{ padding: '4px 10px', fontSize: '0.8rem' }}>{t('hr.hr_attendance_page.s25', "مسجل")}</Button>
                 </div>
               </div>
-            ) : (
+            ) : activeTab === 'exceptions' ? (
               <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                   <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#475569', whiteSpace: 'nowrap' }}>{t('hr.hr_attendance_page.s26', "الشهر:")}</span>
@@ -340,7 +340,7 @@ export function HrAttendancePage() {
                   <Button type="button" variant={exceptionFilter === 'all' ? 'primary' : 'secondary'} onClick={() => setExceptionFilter('all')} style={{ padding: '4px 10px', fontSize: '0.8rem' }}>{t('hr.hr_attendance_page.s30', "الكل")}</Button>
                 </div>
               </div>
-            )}
+            ) : <span className="muted">السجلات للفترة المحددة بالأعلى</span>}
           </div>
 
           {/* Active View Content */}

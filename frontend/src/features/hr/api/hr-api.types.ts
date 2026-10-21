@@ -39,6 +39,7 @@ export interface LoansResponse {
 
 export interface WithdrawalsResponse {
   rows?: HrWithdrawalRow[];
+  pagination?: { page: number; pageSize: number; totalItems: number; totalPages: number };
   summary?: HrWithdrawalSummary;
 }
 

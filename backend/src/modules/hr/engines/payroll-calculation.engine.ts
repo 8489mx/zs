@@ -102,7 +102,7 @@ export interface PayrollLineItemOutput {
 }
 
 export interface PayrollJournalTotals {
-  grossSalariesExpense: number; // Dr 6200
+  grossSalariesExpense: number; // Dr 6200 NET of attendance/leave/other wage reductions (legacy field name)
   employerInsuranceExpense: number; // Dr 6210
   netPayable: number; // Cr 2140
   socialInsurancePayable: number; // Cr 2145 (employee + employer)
@@ -341,14 +341,14 @@ export function calculateEmployeePayrollLine(input: PayrollLineItemInput): Payro
  *
  * Invariant Formula:
  * Debit side:
- *   - Account 6200 (Salaries & Wages Expense) = Σ Gross Pay
+ *   - Account 6200 = Σ (Gross Pay - attendance / leave / other wage reductions)
  *   - Account 6210 (Employer Social Insurance Expense) = Σ Employer GOSI
  * Credit side:
  *   - Account 2140 (Payroll Payable) = Σ Net Pay
  *   - Account 2145 (Social Insurance Authority Payable) = Σ (Employee GOSI + Employer GOSI)
  *   - Account 2146 (Income Tax Payable) = Σ Income Tax
  *   - Account 1160 (Employee Advances / Loans) = Σ Applied Loan Deductions
- *   - Account 7100 (Other Income / Attendance & Custody Penalties) = Σ (Attendance + Leave + Asset + Other Deductions)
+ *   - Account 7100 = Σ Asset Recovery Deductions only (NOT attendance penalties)
  *
  * Assert: Total Debit == Total Credit (down to 0.01 precision).
  */
