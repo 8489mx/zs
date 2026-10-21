@@ -2651,6 +2651,18 @@ export class HrService {
       const status = await this.getPayrollRunStatusForUpdate(trx, id, auth.tenantId || '');
       if (status !== 'reviewed') throw new AppError('Only reviewed payroll runs can be approved', 'HR_PAYROLL_APPROVE_LOCKED', 400);
 
+      // Never post/settle a payroll that silently contains only zero wages.
+      // A zero-wage employee with no punches can be legitimate; a completely
+      // empty payable run must be corrected or deliberately excluded first.
+      const wageSummary = await sql<{ count: string; total: string }>`
+        SELECT COUNT(*)::text AS count,
+          COALESCE(SUM(gross_pay), 0)::text AS total
+        FROM hr_payroll_run_items
+        WHERE run_id = ${id} AND tenant_id = ${auth.tenantId} AND status = 'reviewed'
+      `.execute(trx);
+      if (Number(wageSummary.rows[0]?.count || 0) === 0 || Number(wageSummary.rows[0]?.total || 0) <= 0) {
+        throw new AppError('لا يمكن اعتماد كشف مرتبات فارغ أو جميع أجوره صفر. راجع الأجر والعقود والحضور أولًا.', 'HR_PAYROLL_ZERO_WAGES', 400);
+      }
       await this.settlePayrollLoanDeductions(trx, id, auth);
 
       const { posted } = await this.accountingPosting.postPayrollAccrual(trx, id, auth);
@@ -2900,6 +2912,7 @@ export class HrService {
     const workDate = normalizeDateOnly(query.date) || normalizeDateOnly(query.workDate) || todayTenantDate(tenantTimezone);
     if (!workDate) throw new AppError('Attendance date is required', 'HR_ATTENDANCE_DATE_REQUIRED', 400);
     const search = clean(query.search).toLowerCase();
+    const requestedEmployeeId = toId(query.employeeId);
     const rangeFrom = normalizeDateOnly(query.from);
     const rangeTo = normalizeDateOnly(query.to);
     if (rangeFrom || rangeTo) {
@@ -2923,6 +2936,7 @@ export class HrService {
         LEFT JOIN hr_departments d ON d.id = e.department_id AND d.tenant_id = e.tenant_id
         WHERE a.tenant_id = ${auth.tenantId}
           AND a.work_date BETWEEN ${rangeFrom}::date AND ${rangeTo}::date
+          AND (${requestedEmployeeId}::BIGINT IS NULL OR a.employee_id = ${requestedEmployeeId})
           AND (${search} = '' OR LOWER(e.display_name) LIKE ${match} OR LOWER(e.employee_no) LIKE ${match} OR LOWER(COALESCE(d.name, '')) LIKE ${match})
       `.execute(this.db);
       const totalItems = Number(count.rows[0]?.total || 0);
@@ -2941,6 +2955,7 @@ export class HrService {
         LEFT JOIN hr_job_titles j ON j.id = e.job_title_id AND j.tenant_id = e.tenant_id
         WHERE a.tenant_id = ${auth.tenantId}
           AND a.work_date BETWEEN ${rangeFrom}::date AND ${rangeTo}::date
+          AND (${requestedEmployeeId}::BIGINT IS NULL OR a.employee_id = ${requestedEmployeeId})
           AND (${search} = '' OR LOWER(e.display_name) LIKE ${match} OR LOWER(e.employee_no) LIKE ${match} OR LOWER(COALESCE(d.name, '')) LIKE ${match})
         ORDER BY a.work_date DESC, e.display_name ASC, a.id DESC
         LIMIT ${pageSize} OFFSET ${(safePage - 1) * pageSize}
@@ -4127,6 +4142,7 @@ export class HrService {
       SELECT
         l.*,
         e.display_name AS employee_name,
+        actor.username AS recorded_by_name,
         latest_paid.latest_paid_at,
         to_char(l.issue_date, 'YYYY-MM-DD') AS issue_date_text,
         to_char(l.created_at, 'YYYY-MM-DD HH24:MI') AS created_at_text,
@@ -4134,6 +4150,7 @@ export class HrService {
         to_char(latest_paid.latest_paid_at, 'YYYY-MM-DD HH24:MI') AS paid_at_text
       FROM hr_employee_loans l
       JOIN hr_employees e ON e.id = l.employee_id AND e.tenant_id = l.tenant_id
+      LEFT JOIN users actor ON actor.id = l.created_by AND actor.tenant_id = l.tenant_id
       LEFT JOIN (
         SELECT loan_id, MAX(paid_at) AS latest_paid_at
         FROM hr_employee_loan_installments
@@ -4197,6 +4214,7 @@ export class HrService {
         status: clean(row.status) || 'draft',
         remainingAmount: Number(row.remaining_amount || 0),
         note: clean(row.notes),
+        recordedByName: clean(row.recorded_by_name),
       };
     });
 
@@ -4221,7 +4239,7 @@ export class HrService {
       };
     });
 
-    const rows = [...allLoanRows, ...repaymentRows]
+    const rows = [...allLoanRows.filter(row => ['paid', 'disbursed', 'partially_repaid', 'repaid'].includes(row.status)), ...repaymentRows]
       .filter((row) => isInsideRequestedPeriod(row.movementAt))
       .sort((a, b) => {
         const byDate = String(b.movementAt || '').localeCompare(String(a.movementAt || ''));
@@ -4524,10 +4542,17 @@ export class HrService {
       // 4. Handle shift cash deduction if shift ID is provided
       if (payload.shiftId) {
         const shiftId = Number(payload.shiftId);
+        const eligibleShift = await sql<{ id: number }>`
+          SELECT id FROM cashier_shifts
+          WHERE id = ${shiftId} AND tenant_id = ${tenantId} AND status = 'open'
+            AND (opened_by = ${auth.userId} OR ${auth.role === 'super_admin'})
+          FOR UPDATE
+        `.execute(trx);
+        if (!eligibleShift.rows.length) throw new AppError('وردية الكاشير غير مفتوحة أو لا تخص المستخدم الحالي', 'HR_CASHIER_SHIFT_INVALID', 400);
         await sql`
-          UPDATE cashier_shifts 
+          UPDATE cashier_shifts
           SET expected_cash = COALESCE(expected_cash, 0) - ${amount}
-          WHERE id = ${shiftId} AND tenant_id = ${tenantId}
+          WHERE id = ${shiftId} AND tenant_id = ${tenantId} AND status = 'open'
         `.execute(trx);
       } else if (payload.treasuryId) {
         const treasuryId = Number(payload.treasuryId);
@@ -4535,6 +4560,8 @@ export class HrService {
           INSERT INTO treasury_transactions (tenant_id, account_id, txn_type, amount, note, reference_type, reference_id, created_by)
           VALUES (${tenantId}, ${accountId}, 'withdrawal', ${amount}, ${notes}, 'hr_loan', ${loanId}, ${auth.userId})
         `.execute(trx);
+      } else {
+        throw new AppError('حدد وردية كاشير مفتوحة أو خزينة لصرف السلفة', 'HR_ADVANCE_CASH_SOURCE_REQUIRED', 400);
       }
 
       // 5. Record GL journal: Dr. 1160 (Advances) / Cr. 1110 (Cash)
