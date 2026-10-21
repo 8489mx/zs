@@ -1,6 +1,6 @@
 import 'reflect-metadata';
 import { strict as assert } from 'node:assert';
-import { Kysely } from 'kysely';
+import { Kysely, sql } from 'kysely';
 import { PGlite } from '@electric-sql/pglite';
 import { PGliteDialect } from 'kysely-pglite-dialect';
 import type { Database } from '../../src/database/database.types';

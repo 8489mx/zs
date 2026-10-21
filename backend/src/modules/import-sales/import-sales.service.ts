@@ -202,6 +202,10 @@ export class ImportSalesService {
       reference_type: 'partner_capital',
       reference_id: null,
       created_by: userId,
+      reference_id: null,
+      return_document_id: null,
+      branch_id: null,
+      location_id: null,
     }).returning('id').executeTakeFirstOrThrow();
 
     const postingService = this.accountingPosting ?? new AccountingPostingService(new AccountingTenantFoundationService());
@@ -212,6 +216,8 @@ export class ImportSalesService {
       accountId: cashAccount.account_id,
       entryDate: movementDate,
       description: `${cashIsDebit ? 'مساهمة' : 'رد'} رأس مال الشريك ${partnerName} (حركة خزينة #${posted.id})`,
+      branchId: null,
+      locationId: null,
       createdBy: userId,
       postedBy: userId,
       lines: [
@@ -2215,7 +2221,8 @@ export class ImportSalesService {
     if (!Number.isFinite(cleanAmount) || cleanAmount <= 0) {
       throw new BadRequestException('مبلغ حركة رأس المال يجب أن يكون أكبر من الصفر.');
     }
-    if (!dto.accountId) {
+    const requiredCashAccountId = dto.accountId;
+    if (!requiredCashAccountId) {
       throw new BadRequestException('تحديد حساب البنك أو الخزينة إلزامي لكل حركة رأس مال فعلية.');
     }
     if (Number.isNaN(movementDate.getTime())) throw new BadRequestException('تاريخ حركة رأس المال غير صالح.');
@@ -2247,7 +2254,7 @@ export class ImportSalesService {
         .execute();
       const treasuryTransactionId = await this.postPartnerCapitalMovement(
         trx, tenantId, userId, partner.name, partner.id,
-        dto.type, cleanAmount, movementDate, dto.accountId, dto.note || ''
+        dto.type, cleanAmount, movementDate, requiredCashAccountId, dto.note || ''
       );
       return { success: true, ledgerId: ledger.id, treasuryTransactionId };
     });
