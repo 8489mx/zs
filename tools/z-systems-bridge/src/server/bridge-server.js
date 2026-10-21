@@ -31,10 +31,22 @@ function broadcastEvent(type, data = {}) {
   }
 }
 
+// Strict browser-origin allowlist; native clients without Origin are handled separately.
+const trustedOrigins = new Set([
+  'https://app.zsystemai.com',
+  ...String(process.env.ZS_BRIDGE_ALLOWED_ORIGINS || '').split(',').map(s => s.trim()).filter(Boolean),
+]);
+function isTrustedBrowserOrigin(origin) {
+  return !origin || trustedOrigins.has(origin);
+}
 function setCorsHeaders(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Private-Network', 'true');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, DELETE');
+  const origin = req.headers.origin;
+  if (origin && trustedOrigins.has(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Vary', 'Origin');
+    res.setHeader('Access-Control-Allow-Private-Network', 'true');
+  }
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-pairing-key, X-Requested-With');
 }
 
@@ -54,6 +66,11 @@ function parseJsonBody(req) {
 
 const server = http.createServer(async (req, res) => {
   setCorsHeaders(req, res);
+  if (!isTrustedBrowserOrigin(req.headers.origin)) {
+    res.writeHead(403, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ success: false, error: 'Untrusted browser origin' }));
+    return;
+  }
 
   if (req.method === 'OPTIONS') {
     res.writeHead(204);
