@@ -8263,10 +8263,11 @@ esolveTenantAccount التي تربط ديناميكياً بدليل الحسا
 - **التاريخ:** 21 أكتوبر 2026.
 - **الحالة:** مكتمل ومحصن بنسبة 100% باختبار محاكاة دورة العمل الشاملة على محرك PostgreSQL حقيقي (`import-e2e-business-simulation.spec.ts` بـ 30 خطوة متتالية ناجحة)، واجتياز كافة حراس سلامة الاستيراد (`npm run test:import-safety`).
 - **الملفات المعدلة والمستحدثة:**
-  - `backend/src/database/migrations/2040000000236_international_trade_procurement_and_sourcing.ts` (جداول عروض الأسعار RFQs، عينات المصانع، الفواتير المبدئية، أوامر الشراء الدولية، وجدول التدفقات النقدية المتوقعة).
-  - `backend/src/database/migrations/2040000000237_customs_broker_advances_and_container_deposits.ts` (سجل المخلصين الجمركيين، عهد التخليص، إيصالات المصروفات التفصيلية، وتأمينات الحاويات للخطوط الملاحية).
-  - `backend/src/database/migrations/2040000000238_container_preorders_and_inventory_traceability.ts` (حجوزات بضاعة الطريق B/L، تتبع باتشات المخزون LOT، ومحفظة حيازة النقد الأجنبي FX).
-  - `backend/src/database/migrations/2040000000239_import_governance_approvals_and_reconciliation.ts` (مركز وثائق الشحنات المشفرة، حوكمة الصانع والمدقق Maker-Checker، ومسح استثناءات التدقيق المحاسبي).
+  - `backend/src/database/migrations/2040000000236_supplier_payments_foreign_amount.ts` (فصل وحدات العملة الأجنبية للمورد مع بقاء دفتر الأستاذ بالعملة الأساسية EGP).
+  - `backend/src/database/migrations/2040000000237_international_trade_procurement_and_sourcing.ts` (جداول عروض الأسعار RFQs، عينات المصانع، الفواتير المبدئية، أوامر الشراء الدولية، وجدول التدفقات النقدية المتوقعة).
+  - `backend/src/database/migrations/2040000000238_customs_broker_advances_and_container_deposits.ts` (سجل المخلصين الجمركيين، عهد التخليص، إيصالات المصروفات التفصيلية، وتأمينات الحاويات للخطوط الملاحية مع تسلسل عددي دائم).
+  - `backend/src/database/migrations/2040000000239_container_preorders_and_inventory_traceability.ts` (حجوزات بضاعة الطريق B/L، تتبع باتشات المخزون LOT، ومحفظة حيازة النقد الأجنبي FX، وتخصيص مبيعات الاستيراد).
+  - `backend/src/database/migrations/2040000000240_import_governance_approvals_and_reconciliation.ts` (مركز وثائق الشحنات المشفرة، حوكمة الصانع والمدقق Maker-Checker، ومسح استثناءات التدقيق المحاسبي).
   - `backend/src/database/database.types.ts` (تعريف وتوثيق 13 جدولاً جديداً في البنية النموذجية لكيسلي).
   - `backend/src/modules/import-sales/dto/import-sales.dto.ts` (النماذج البرمجية DTOs لكافة العمليات مع التحقق الصارم من الحقول).
   - `backend/src/modules/import-sales/import-sales.service.ts` (تطبيق المنطق التشغيلي والمحاسبي المتكامل لكافة دورات الاستيراد والتسعير والعهد والباتشات والإقفال).

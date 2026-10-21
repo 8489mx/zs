@@ -7,6 +7,11 @@ import type { Database } from '../../src/database/database.types';
 import { ImportSalesService } from '../../src/modules/import-sales/import-sales.service';
 import { up as up234 } from '../../src/database/migrations/2040000000234_purchases_import_project_link';
 import { up as up235 } from '../../src/database/migrations/2040000000235_supplier_payments_idempotency_key';
+import { up as up236 } from '../../src/database/migrations/2040000000236_supplier_payments_foreign_amount';
+import { up as up237 } from '../../src/database/migrations/2040000000237_international_trade_procurement_and_sourcing';
+import { up as up238 } from '../../src/database/migrations/2040000000238_customs_broker_advances_and_container_deposits';
+import { up as up239 } from '../../src/database/migrations/2040000000239_container_preorders_and_inventory_traceability';
+import { up as up240 } from '../../src/database/migrations/2040000000240_import_governance_approvals_and_reconciliation';
 
 /**
  * Custom PGlite dialect supporting multi-statement execution via simple query protocol,
@@ -93,6 +98,13 @@ async function setupDatabase(): Promise<{ db: Kysely<Database>; accounts: Record
       parent_id BIGINT REFERENCES accounting_accounts(id) ON DELETE RESTRICT,
       is_active BOOLEAN DEFAULT TRUE,
       is_system BOOLEAN DEFAULT FALSE,
+      allow_manual_entries BOOLEAN DEFAULT TRUE,
+      is_control_account BOOLEAN DEFAULT FALSE,
+      is_cash_bank BOOLEAN DEFAULT FALSE,
+      is_receivable BOOLEAN DEFAULT FALSE,
+      is_payable BOOLEAN DEFAULT FALSE,
+      is_inventory BOOLEAN DEFAULT FALSE,
+      is_tax BOOLEAN DEFAULT FALSE,
       created_at TIMESTAMPTZ DEFAULT NOW(),
       updated_at TIMESTAMPTZ DEFAULT NOW(),
       CONSTRAINT uq_accounting_accounts_tenant_code UNIQUE (tenant_id, code)
@@ -196,6 +208,49 @@ async function setupDatabase(): Promise<{ db: Kysely<Database>; accounts: Record
       metadata JSONB,
       created_at TIMESTAMPTZ DEFAULT NOW(),
       updated_at TIMESTAMPTZ DEFAULT NOW()
+    );
+
+    CREATE TABLE customers (
+      id BIGSERIAL PRIMARY KEY,
+      tenant_id TEXT NOT NULL REFERENCES tenants(id),
+      name TEXT NOT NULL,
+      phone TEXT,
+      email TEXT,
+      balance NUMERIC(15, 2) DEFAULT 0,
+      credit_limit NUMERIC(15, 2) DEFAULT 0,
+      is_active BOOLEAN DEFAULT TRUE,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
+
+    CREATE TABLE stock_locations (
+      id BIGSERIAL PRIMARY KEY,
+      tenant_id TEXT NOT NULL REFERENCES tenants(id),
+      account_id TEXT NOT NULL,
+      name TEXT NOT NULL,
+      is_default BOOLEAN DEFAULT TRUE,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
+
+    CREATE TABLE stock_movements (
+      id BIGSERIAL PRIMARY KEY,
+      tenant_id TEXT NOT NULL REFERENCES tenants(id),
+      account_id TEXT NOT NULL,
+      product_id BIGINT NOT NULL REFERENCES products(id),
+      movement_type VARCHAR(50) NOT NULL,
+      qty NUMERIC(15, 3) NOT NULL,
+      before_qty NUMERIC(15, 3) NOT NULL,
+      after_qty NUMERIC(15, 3) NOT NULL,
+      unit_cost NUMERIC(15, 6) NOT NULL,
+      total_cost NUMERIC(15, 4) NOT NULL,
+      reason TEXT,
+      note TEXT,
+      reference_type VARCHAR(50),
+      reference_id BIGINT,
+      import_receipt_id BIGINT,
+      branch_id BIGINT,
+      location_id BIGINT,
+      created_by BIGINT,
+      created_at TIMESTAMPTZ DEFAULT NOW()
     );
 
     CREATE TABLE supplier_payments (
@@ -591,24 +646,29 @@ async function setupDatabase(): Promise<{ db: Kysely<Database>; accounts: Record
 
   await pglite.exec(baseDdl);
 
-  // Execute real production migrations 234 and 235 directly using Kysely
+  // Execute real production migrations 234 to 240 directly using Kysely
   await up234(db as any);
   await up235(db as any);
+  await up236(db as any);
+  await up237(db as any);
+  await up238(db as any);
+  await up239(db as any);
+  await up240(db as any);
 
   // Seed default tenant
   await pglite.exec(`INSERT INTO tenants (id, name) VALUES ('tenant-audit-1', 'Audited Trading Tenant');`);
 
   // Seed standard Chart of Accounts
   await pglite.exec(`
-    INSERT INTO accounting_accounts (tenant_id, account_id, code, name_ar, name_en, account_type, account_group, normal_balance, is_system)
+    INSERT INTO accounting_accounts (tenant_id, account_id, code, name_ar, name_en, account_type, account_group, normal_balance, is_system, is_cash_bank, is_inventory, is_payable)
     VALUES
-      ('tenant-audit-1', 'tenant-audit-1', '1110', 'الصندوق والنقدية', 'Cash and Cash Equivalents', 'asset', 'current_assets', 'debit', true),
-      ('tenant-audit-1', 'tenant-audit-1', '1120', 'حساب البنك الرئيسي', 'Main Bank Account', 'asset', 'current_assets', 'debit', true),
-      ('tenant-audit-1', 'tenant-audit-1', '1140', 'مخزون بضاعة ومواد خام', 'Inventory Asset', 'asset', 'current_assets', 'debit', true),
-      ('tenant-audit-1', 'tenant-audit-1', '2110', 'حسابات الموردين والدائنين', 'Accounts Payable', 'liability', 'current_liabilities', 'credit', true),
-      ('tenant-audit-1', 'tenant-audit-1', '5110', 'تكلفة البضاعة المباعة', 'Cost of Goods Sold', 'expense', 'expenses', 'debit', true),
-      ('tenant-audit-1', 'tenant-audit-1', '5201', 'خسائر فروق أسعار صرف محققة', 'Realized Forex Loss', 'expense', 'expenses', 'debit', true),
-      ('tenant-audit-1', 'tenant-audit-1', '4201', 'أرباح فروق أسعار صرف محققة', 'Realized Forex Gain', 'revenue', 'revenues', 'credit', true);
+      ('tenant-audit-1', 'tenant-audit-1', '1110', 'الصندوق والنقدية', 'Cash and Cash Equivalents', 'asset', 'current_assets', 'debit', true, true, false, false),
+      ('tenant-audit-1', 'tenant-audit-1', '1120', 'حساب البنك الرئيسي', 'Main Bank Account', 'asset', 'current_assets', 'debit', true, true, false, false),
+      ('tenant-audit-1', 'tenant-audit-1', '1140', 'مخزون بضاعة ومواد خام', 'Inventory Asset', 'asset', 'current_assets', 'debit', true, false, true, false),
+      ('tenant-audit-1', 'tenant-audit-1', '2110', 'حسابات الموردين والدائنين', 'Accounts Payable', 'liability', 'current_liabilities', 'credit', true, false, false, true),
+      ('tenant-audit-1', 'tenant-audit-1', '5110', 'تكلفة البضاعة المباعة', 'Cost of Goods Sold', 'expense', 'expenses', 'debit', true, false, false, false),
+      ('tenant-audit-1', 'tenant-audit-1', '5201', 'خسائر فروق أسعار صرف محققة', 'Realized Forex Loss', 'expense', 'expenses', 'debit', true, false, false, false),
+      ('tenant-audit-1', 'tenant-audit-1', '4201', 'أرباح فروق أسعار صرف محققة', 'Realized Forex Gain', 'revenue', 'revenues', 'credit', true, false, false, false);
   `);
 
   // Query account IDs to configure accounting_settings
@@ -808,6 +868,7 @@ async function runTests() {
       currency: 'USD',
       exchangeRateContract: 49.00, // 2000 * 49 = 98000 contract value -> 2000 EGP forex loss
       notes: 'Dynamic COA resolution verification',
+      idempotencyKey: 'IDEMP-TEST-2',
     });
 
     assert.strictEqual(transferRes.success, true);
@@ -904,6 +965,7 @@ async function runTests() {
         amountEgp: 50000,
         currency: 'USD',
         proformaInvoiceId: proforma.id,
+        idempotencyKey: 'IDEMP-TEST-3A',
       });
     } catch (err: any) {
       rejectedSupplier = true;
@@ -922,6 +984,7 @@ async function runTests() {
         amountEgp: 50000,
         currency: 'USD',
         proformaInvoiceId: proforma.id,
+        idempotencyKey: 'IDEMP-TEST-3B',
       });
     } catch (err: any) {
       rejectedProject = true;
@@ -939,6 +1002,7 @@ async function runTests() {
         amountEgp: 50000,
         currency: 'EUR', // Wrong currency
         proformaInvoiceId: proforma.id,
+        idempotencyKey: 'IDEMP-TEST-3C',
       });
     } catch (err: any) {
       rejectedCurrency = true;
@@ -956,6 +1020,7 @@ async function runTests() {
         amountEgp: 175000,
         currency: 'USD',
         proformaInvoiceId: proforma.id,
+        idempotencyKey: 'IDEMP-TEST-3D',
       });
     } catch (err: any) {
       rejectedOverpay = true;
@@ -1246,10 +1311,14 @@ async function runTests() {
         amountEgp: 25000,
         currency: 'USD',
         bankAccountId: accounts['5110'], // COGS (expense) account!
+        idempotencyKey: 'IDEMP-TEST-7B',
       });
     } catch (err: any) {
       expenseAsBankRejected = true;
-      assert.ok(err.message.includes('غير صالح') && err.message.includes('الأصول'), `Expected bank type rejection, got: ${err.message}`);
+      assert.ok(
+        err.message.includes('غير صالح') && (err.message.includes('الأصول') || err.message.includes('bank') || err.message.includes('البنك')),
+        `Expected bank type rejection, got: ${err.message}`
+      );
     }
     assert.ok(expenseAsBankRejected, 'Expense account passed as bank account must be rejected');
     console.log('PASS: Bank account pointing to expense account correctly rejected.');
@@ -1268,6 +1337,7 @@ async function runTests() {
         amountForeign: 500,
         amountEgp: 25000,
         currency: 'USD',
+        idempotencyKey: 'IDEMP-TEST-7C',
       });
     } catch (err: any) {
       lockedPeriodRejected = true;

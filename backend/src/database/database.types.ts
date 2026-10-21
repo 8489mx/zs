@@ -1661,6 +1661,8 @@ export interface SupplierPaymentTable {
   forex_variance_egp?: ColumnType<number, number | undefined, number | undefined>;
   proforma_invoice_id?: ColumnType<string | null, string | null | undefined, string | null | undefined>;
   idempotency_key?: ColumnType<string | null, string | null | undefined, string | null | undefined>;
+  /** Original currency amount; amount is always base currency EGP. */
+  amount_foreign?: ColumnType<number | null, number | null | undefined, number | null | undefined>;
 }
 
 export interface SupplierPaymentScheduleTable {
@@ -5813,6 +5815,7 @@ export interface ImportCustomsBrokerTable {
 
 export interface ImportBrokerAdvanceTable {
   id: Generated<string>;
+  serial_id: Generated<number>;
   tenant_id: string;
   broker_id: string;
   project_id: string | null;
@@ -5833,6 +5836,7 @@ export interface ImportBrokerAdvanceTable {
 
 export interface ImportBrokerExpenseTable {
   id: Generated<string>;
+  serial_id: Generated<number>;
   tenant_id: string;
   broker_id: string;
   advance_id: string | null;
@@ -5854,6 +5858,7 @@ export interface ImportBrokerExpenseTable {
 
 export interface ImportContainerDepositTable {
   id: Generated<string>;
+  serial_id: Generated<number>;
   tenant_id: string;
   project_id: string | null;
   shipment_id: string;
@@ -5875,6 +5880,7 @@ export interface ImportContainerDepositTable {
 
 export interface ImportContainerPreorderTable {
   id: Generated<string>;
+  serial_id: Generated<number>;
   tenant_id: string;
   preorder_no: string;
   project_id: string | null;
@@ -5926,6 +5932,8 @@ export interface ImportSaleAllocationTable {
   unit_sale_price_egp: ImportNumeric;
   unit_cost_egp: ImportNumeric;
   gross_margin_egp: ImportNumeric;
+  allocation_type?: string;
+  reversal_of_allocation_id?: string | null;
   created_at: Generated<Date>;
 }
 

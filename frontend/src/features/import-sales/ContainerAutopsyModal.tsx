@@ -1,12 +1,8 @@
-import React from 'react';
 import { StandardDialog } from '@/shared/components/StandardDialog';
 import { useContainerAutopsyQuery } from './api/shipments.api';
 import { formatCurrency } from '@/lib/format';
 import {
-  FileTextIcon,
   DownloadIcon,
-  CheckShieldIcon,
-  SlidersIcon,
   RefreshCwIcon,
   AlertTriangleIcon,
 } from '@/shared/components/icons/AppIcons';
@@ -228,7 +224,7 @@ export function ContainerAutopsyModal({ isOpen, onClose, shipmentId }: Container
                     </td>
                     <td style={{ padding: '8px 10px' }}>${Number(item.factory_unit_price_usd).toFixed(2)}</td>
                     <td style={{ padding: '8px 10px', fontWeight: 700, color: '#170e5e' }}>
-                      {formatCurrency(Number(item.landed_cost_egp) / Number(item.received_quantity ?? item.quantity || 1))}
+                      {formatCurrency(Number(item.landed_cost_egp) / Number((item.received_quantity ?? item.quantity) || 1))}
                     </td>
                     <td style={{ padding: '8px 10px', fontWeight: 700, color: '#0f172a' }}>{formatCurrency(Number(item.landed_cost_egp))}</td>
                   </tr>

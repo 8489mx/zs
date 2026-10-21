@@ -194,6 +194,13 @@ export default function ProfitPool() {
           }
         />
 
+        {data && !data.profitAttributionVerified && (
+          <div role="alert" style={{ padding: '12px 16px', marginBottom: '16px', border: '1px solid #f59e0b', borderRadius: '8px', color: '#92400e', background: '#fffbeb', fontSize: '0.8125rem' }}>
+            تنبيه محاسبي: تقرير أرباح الاستيراد الحالي تقديري لعدم وجود ربط بين المبيعات والشحنات في الفترة المحددة.
+            يتم تفعيل صرف أرباح الشركاء آلياً عند بيع كميات مخصصة من باتشات المشروع.
+          </div>
+        )}
+
         {/* Date Filter Card */}
         <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px 20px', marginBottom: '20px' }}>
           <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
@@ -368,6 +375,7 @@ export default function ProfitPool() {
                             <Button 
                               variant="secondary" 
                               onClick={() => setPayoutPartner(partner)}
+                              disabled={!data?.profitAttributionVerified}
                               style={{ height: '28px', padding: '0 10px', fontSize: '0.74rem', fontWeight: 700, borderRadius: '4px' }}
                             >
                               {t('import_sales.profit_pool.s33', "تسجيل دفعة")}

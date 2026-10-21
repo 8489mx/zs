@@ -128,7 +128,7 @@ export function StockCountMonitorCard({
     let draft = 0;
     let posted = 0;
     for (const session of stockCountSessions) {
-      if (session.status === 'draft') draft++;
+      if (session.status === 'draft' || session.status === 'posting') draft++;
       if (session.status === 'posted') posted++;
     }
     return { total, draft, posted };
@@ -207,16 +207,16 @@ export function StockCountMonitorCard({
           description="مطابقة الأرصدة الدفترية مع الجرد الفعلي، فحص الفروقات تفصيلياً، واعتماد التسوية المخزنية والمحاسبية."
           actions={(
             <div className="actions compact-actions" style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'nowrap' }}>
-              {canReviewStock && selectedSession.status === 'draft' && onPostSession ? (
+              {canReviewStock && (selectedSession.status === 'draft' || selectedSession.status === 'posting') && onPostSession ? (
                 <SubmitButton
                   type="button"
                   onClick={() => onPostSession(selectedSession.id)}
                   disabled={postPending || deletePending}
-                  idleText="اعتماد الجلسة"
+                  idleText={selectedSession.status === 'posting' ? "استئناف الاعتماد" : "اعتماد الجلسة"}
                   pendingText="جارٍ الاعتماد..."
                 />
               ) : null}
-              {canReviewStock && selectedSession.status === 'draft' && onDeleteSession ? (
+              {canReviewStock && (selectedSession.status === 'draft' || selectedSession.status === 'posting') && onDeleteSession ? (
                 <Button
                   type="button"
                   variant="secondary"
@@ -495,16 +495,16 @@ export function StockCountMonitorCard({
                   <PrinterIcon size={15} />
                   <span>طباعة المحضر</span>
                 </Button>
-                {canReviewStock && selectedSession.status === 'draft' && onPostSession ? (
+                {canReviewStock && (selectedSession.status === 'draft' || selectedSession.status === 'posting') && onPostSession ? (
                   <SubmitButton
                     type="button"
                     onClick={() => onPostSession(selectedSession.id)}
                     disabled={postPending || deletePending}
-                    idleText="اعتماد الجلسة"
+                    idleText={selectedSession.status === 'posting' ? "استئناف الاعتماد" : "اعتماد الجلسة"}
                     pendingText="جارٍ الاعتماد..."
                   />
                 ) : null}
-                {canReviewStock && selectedSession.status === 'draft' && onDeleteSession ? (
+                {canReviewStock && (selectedSession.status === 'draft' || selectedSession.status === 'posting') && onDeleteSession ? (
                   <Button
                     type="button"
                     variant="secondary"
@@ -741,7 +741,7 @@ export function StockCountMonitorCard({
                         >
                           <PrinterIcon size={14} />
                         </Button>
-                        {canReviewStock && session.status === 'draft' && onDeleteSession ? (
+                        {canReviewStock && (session.status === 'draft' || session.status === 'posting') && onDeleteSession ? (
                           <Button
                             type="button"
                             variant="secondary"

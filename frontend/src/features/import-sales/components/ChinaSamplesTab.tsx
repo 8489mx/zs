@@ -6,13 +6,8 @@ import {
   useChinaSuppliersQuery,
 } from '../api/shipments.api';
 import { StandardDialog } from '@/shared/components/StandardDialog';
-import { formatCurrency } from '@/lib/format';
 import {
   PlusCircleIcon,
-  CheckCircleIcon,
-  RefreshCwIcon,
-  AlertTriangleIcon,
-  SlidersIcon,
   CheckShieldIcon,
 } from '@/shared/components/icons/AppIcons';
 import { toast } from '@/shared/components/system-alert';
@@ -20,10 +15,10 @@ import { useQuery } from '@tanstack/react-query';
 import { http } from '@/lib/http';
 
 export function ChinaSamplesTab() {
-  const { data: samples = [], isLoading, refetch } = useSampleOrdersQuery();
+  const { data: samples = [], refetch } = useSampleOrdersQuery();
   const { data: suppliers = [] } = useChinaSuppliersQuery();
   const createSampleMutation = useCreateSampleOrderMutation();
-  const updateInspectionMutation = useUpdateSampleInspectionMutation('');
+  const updateInspectionMutation = useUpdateSampleInspectionMutation();
 
   const [isRequestOpen, setIsRequestOpen] = useState(false);
   const [selectedSampleForInspection, setSelectedSampleForInspection] = useState<any | null>(null);
@@ -83,10 +78,13 @@ export function ChinaSamplesTab() {
     if (!selectedSampleForInspection) return;
     try {
       await updateInspectionMutation.mutateAsync({
-        inspectionScore: Number(inspectionScore),
-        inspectionNotes: inspectionNotes || undefined,
-        referenceSampleApproved: approveAsReference,
-        status: approveAsReference ? 'approved' : 'tested',
+        sampleId: selectedSampleForInspection.id,
+        dto: {
+          inspectionScore: Number(inspectionScore),
+          inspectionNotes: inspectionNotes || undefined,
+          referenceSampleApproved: approveAsReference,
+          status: approveAsReference ? 'approved' : 'tested',
+        },
       });
       toast.success(
         approveAsReference
@@ -158,7 +156,7 @@ export function ChinaSamplesTab() {
                 </td>
               </tr>
             ) : (
-              samples.map((s) => (
+              samples.map((s: any) => (
                 <tr key={s.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                   <td style={{ padding: '10px 14px', fontWeight: 700, color: '#0f172a' }}>{s.product_name}</td>
                   <td style={{ padding: '10px 14px' }}>{s.supplier_name || `مصنع #${s.supplier_id}`}</td>

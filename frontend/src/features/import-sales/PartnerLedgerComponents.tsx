@@ -33,7 +33,7 @@ export function CapitalTransactionDialog({
     queryKey: ['accounts-list'],
     queryFn: () => http<{ accounts: any[] }>('/api/accounting/accounts').catch(() => ({ accounts: [] })),
   });
-  const treasuryAccounts = (accountsData?.accounts || []).filter((a: any) => a.accountGroup === 'current_assets' || a.flags?.isCashBank);
+  const treasuryAccounts = (accountsData?.accounts || []).filter((a: any) => a.flags?.isCashBank === true);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

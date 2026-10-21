@@ -129,7 +129,7 @@ export class InventoryCountService {
     if (!query.page && !query.pageSize && !query.search && !query.filter && !query.view) return { stockCountSessions: mapped, damagedStockRecords: (await this.listDamagedStock({}, auth)).damagedStockRecords, scope: this.tenantScope(auth) };
     const search = String(query.search || query.q || '').trim();
     const filter = String(query.filter || query.view || 'all').toLowerCase();
-    const filtered = mapped.filter((row) => (filter === 'all' || String(row.status).toLowerCase() === filter) && (!search || [row.docNo, row.note, row.locationName, row.branchName].some((x) => matchesArabic(x, search))));
+    const filtered = mapped.filter((row) => (filter === 'all' || String(row.status).toLowerCase() === filter || (filter === 'draft' && String(row.status).toLowerCase() === 'posting')) && (!search || [row.docNo, row.note, row.locationName, row.branchName].some((x) => matchesArabic(x, search))));
     const paged = paginateRows(filtered, query, { defaultSize: 8 });
     return { stockCountSessions: paged.rows, pagination: paged.pagination, summary: buildStockCountSummary(filtered as unknown as Array<{ status: string; items: Array<{ varianceQty: number }> }>), scope: this.tenantScope(auth) };
   }

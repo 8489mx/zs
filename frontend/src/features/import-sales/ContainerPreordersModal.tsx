@@ -6,14 +6,6 @@ import {
   ShipmentDetails,
 } from './api/shipments.api';
 import { formatCurrency } from '@/lib/format';
-import {
-  PlusCircleIcon,
-  CheckCircleIcon,
-  RefreshCwIcon,
-  AlertTriangleIcon,
-  SlidersIcon,
-  UsersIcon,
-} from '@/shared/components/icons/AppIcons';
 import { toast } from '@/shared/components/system-alert';
 import { useQuery } from '@tanstack/react-query';
 import { http } from '@/lib/http';
@@ -25,7 +17,7 @@ interface ContainerPreordersModalProps {
 }
 
 export function ContainerPreordersModal({ isOpen, onClose, shipment }: ContainerPreordersModalProps) {
-  const { data: preorders = [], isLoading, refetch } = useContainerPreordersQuery(shipment.id);
+  const { data: preorders = [], refetch } = useContainerPreordersQuery(shipment.id);
   const createPreorderMutation = useCreateContainerPreorderMutation();
 
   const [customerId, setCustomerId] = useState('');
@@ -34,7 +26,7 @@ export function ContainerPreordersModal({ isOpen, onClose, shipment }: Container
   const [unitPrice, setUnitPrice] = useState<number>(1500);
   const [depositAmount, setDepositAmount] = useState<number>(20000);
   const [treasuryAccountId, setTreasuryAccountId] = useState('');
-  const [expectedDate, setExpectedDate] = useState('');
+  const [expectedDate] = useState('');
   const [notes, setNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -62,8 +54,8 @@ export function ContainerPreordersModal({ isOpen, onClose, shipment }: Container
   const selectedItem = shipment.items.find((i) => String(i.product_id) === String(productId));
   const blCapacity = selectedItem ? Number(selectedItem.quantity) : 0;
   const bookedForProduct = preorders
-    .filter((p) => String(p.product_id) === String(productId) && p.status !== 'cancelled')
-    .reduce((sum, p) => sum + Number(p.reserved_quantity), 0);
+    .filter((p: any) => String(p.product_id) === String(productId) && p.status !== 'cancelled')
+    .reduce((sum: number, p: any) => sum + Number(p.reserved_quantity), 0);
   const remainingCapacity = Math.max(0, blCapacity - bookedForProduct);
   const capacityPercent = blCapacity > 0 ? Math.min(100, (bookedForProduct / blCapacity) * 100) : 0;
 

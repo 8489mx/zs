@@ -1,6 +1,9 @@
 import { useTranslation } from 'react-i18next';
 import React, { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
+import { CustomSelect } from '@/shared/ui/custom-select';
+import { referenceDataApi } from '@/services/reference-data.api';
 import { goodsReceiptsApi } from '../api/goods-receipts.api';
 import { toast } from '@/shared/components/system-alert';
 
@@ -21,7 +24,7 @@ interface GoodsReceiptModalProps {
   poDocNo?: string | null;
   supplierId: number;
   supplierName: string;
-  locationId: number;
+  locationId?: number;
   initialItems: GoodsReceiptInitialItem[];
   onSuccess?: () => void;
 }
@@ -58,6 +61,31 @@ export const GoodsReceiptModal: React.FC<GoodsReceiptModalProps> = ({
   const [autoPost, setAutoPost] = useState(true);
   const [lines, setLines] = useState<LineState[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const { data: locations = [] } = useQuery({
+    queryKey: ['reference-data', 'locations'],
+    queryFn: referenceDataApi.locations,
+    staleTime: 60_000,
+    enabled: open,
+  });
+
+  const [selectedLocationId, setSelectedLocationId] = useState<number | undefined>(locationId);
+
+  useEffect(() => {
+    if (open) {
+      if (locationId && locations.some((l) => Number(l.id) === Number(locationId))) {
+        setSelectedLocationId(Number(locationId));
+      } else if (locations.length > 0) {
+        const currentValid = locations.some((l) => Number(l.id) === Number(selectedLocationId));
+        if (!currentValid) {
+          const activeLoc = locations.find((l: any) => l.isActive !== false) || locations[0];
+          if (activeLoc) {
+            setSelectedLocationId(Number(activeLoc.id));
+          }
+        }
+      }
+    }
+  }, [open, locationId, locations]);
 
   useEffect(() => {
     if (open && initialItems.length > 0) {
@@ -133,10 +161,17 @@ export const GoodsReceiptModal: React.FC<GoodsReceiptModalProps> = ({
         }
       }
 
+      const finalLocationId = selectedLocationId || (locations.length > 0 ? Number(locations[0].id) : locationId);
+      if (!finalLocationId) {
+        toast.warning(t('purchases.goods_receipt_modal.select_location', 'يرجى تحديد مخزن الاستلام.'));
+        setIsSubmitting(false);
+        return;
+      }
+
       const payload = {
         purchaseOrderId: purchaseOrderId || null,
         supplierId,
-        locationId,
+        locationId: finalLocationId,
         supplierDeliveryNoteRef: deliveryRef.trim() || null,
         notes: notes.trim() || null,
         lines: validLines.map((l) => ({
@@ -201,7 +236,7 @@ export const GoodsReceiptModal: React.FC<GoodsReceiptModalProps> = ({
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
             gap: '10px',
             backgroundColor: '#f8fafc',
             padding: '12px 14px',
@@ -220,6 +255,19 @@ export const GoodsReceiptModal: React.FC<GoodsReceiptModalProps> = ({
               <strong style={{ color: '#0284c7' }}>#{poDocNo}</strong>
             </div>
           )}
+          <div>
+            <span style={{ color: '#64748b', display: 'block', fontSize: '11px', marginBottom: '3px' }}>{t('purchases.goods_receipt_modal.location', "مخزن الاستلام")} *</span>
+            <CustomSelect
+              value={selectedLocationId ? String(selectedLocationId) : ''}
+              onChange={(val) => setSelectedLocationId(val ? Number(val) : undefined)}
+              options={locations.map((loc: any) => ({
+                value: String(loc.id),
+                label: loc.name || `مخزن #${loc.id}`,
+              }))}
+              placeholder={t('purchases.goods_receipt_modal.select_location_ph', "اختر مخزن الاستلام...")}
+              searchable={locations.length > 5}
+            />
+          </div>
           <div>
             <span style={{ color: '#64748b', display: 'block', fontSize: '11px' }}>{t('purchases.goods_receipt_modal.s8', "رقم إذن تسليم المورد (DN Ref)")}</span>
             <input

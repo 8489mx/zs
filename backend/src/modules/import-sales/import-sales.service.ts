@@ -83,47 +83,69 @@ export class ImportSalesService {
   private async resolveTenantAccount(
     trx: any,
     tenantId: string,
-    role: 'cogs' | 'inventory' | 'payable' | 'bank' | 'forex_loss' | 'forex_gain',
+    role:
+      | 'cogs'
+      | 'inventory'
+      | 'payable'
+      | 'bank'
+      | 'forex_loss'
+      | 'forex_gain'
+      | 'broker_advance'
+      | 'container_deposit'
+      | 'customer_advance'
+      | 'vat_receivable'
+      | 'equity',
     preferredAccountId?: number | null
   ): Promise<number> {
     const roleExpectedTypes: Record<string, { type: string; label: string }> = {
-      bank: { type: 'asset', label: 'الأصول/النقدية' },
-      payable: { type: 'liability', label: 'الخصوم/الالتزامات' },
-      inventory: { type: 'asset', label: 'الأصول' },
-      cogs: { type: 'expense', label: 'المصروفات' },
-      forex_loss: { type: 'expense', label: 'المصروفات' },
-      forex_gain: { type: 'revenue', label: 'الإيرادات' },
+      bank: { type: 'asset', label: 'الأصول/النقدية والبنك' },
+      payable: { type: 'liability', label: 'الخصوم/الموردين' },
+      inventory: { type: 'asset', label: 'الأصول/المخزون' },
+      cogs: { type: 'expense', label: 'المصروفات/تكلفة المبيعات' },
+      forex_loss: { type: 'expense', label: 'المصروفات/خسائر فروق العملة' },
+      forex_gain: { type: 'revenue', label: 'الإيرادات/أرباح فروق العملة' },
+      broker_advance: { type: 'asset', label: 'الأصول المتداولة/عهد المخلصين الجمركيين' },
+      container_deposit: { type: 'asset', label: 'الأصول المتداولة/تأمينات الحاويات المستردة' },
+      customer_advance: { type: 'liability', label: 'الخصوم المتداولة/دفعات العملاء المقدمة والعربونات' },
+      vat_receivable: { type: 'asset', label: 'الأصول المتداولة/ضريبة القيمة المضافة المستردة' },
+      equity: { type: 'equity', label: 'حقوق الملكية/رأس مال الشركاء' },
     };
 
     const roleInfo = roleExpectedTypes[role];
 
-    if (preferredAccountId && Number(preferredAccountId) > 0) {
-      const existing = await trx
+    const accountIsEligible = (account: any): boolean => {
+      if (!account || !account.is_active) return false;
+      if (roleInfo && account.account_type !== roleInfo.type) return false;
+      if (role === 'bank' && account.is_cash_bank === false) return false;
+      if (role === 'inventory' && account.is_inventory === false) return false;
+      if (role === 'payable' && account.is_payable === false) return false;
+      return true;
+    };
+
+    const accountById = async (id: number) => {
+      return await trx
         .selectFrom('accounting_accounts')
-        .select(['id', 'is_active', 'account_type'])
+        .select(['id', 'account_id', 'code', 'account_type', 'is_active', 'is_cash_bank', 'is_inventory', 'is_payable'])
         .where('tenant_id', '=', tenantId)
-        .where('id', '=', Number(preferredAccountId))
+        .where('id', '=', id)
         .executeTakeFirst();
+    };
 
-      if (!existing) {
+    if (preferredAccountId !== undefined && preferredAccountId !== null) {
+      const id = Number(preferredAccountId);
+      if (!Number.isSafeInteger(id) || id <= 0) {
+        throw new BadRequestException('معرف الحساب المحاسبي يجب أن يكون رقمًا صحيحًا موجبًا.');
+      }
+      const preferred = await accountById(id);
+      if (!preferred) {
+        throw new BadRequestException(`الحساب المحاسبي المحدد (${id}) غير موجود في دليل حسابات المنشأة.`);
+      }
+      if (!accountIsEligible(preferred)) {
         throw new BadRequestException(
-          `الحساب المحاسبي المحدد (${preferredAccountId}) غير موجود في دليل حسابات المنشأة.`
+          `الحساب المحاسبي المحدد (${id}) غير صالح لدور (${role}) أو معطل. راجع نوع الحساب وعلامة وظيفته المحاسبية.`
         );
       }
-
-      if (!existing.is_active) {
-        throw new BadRequestException(
-          `الحساب المحاسبي (${preferredAccountId}) معطل؛ يلزم تفعيله قبل إجراء الحركة.`
-        );
-      }
-
-      if (roleInfo && existing.account_type !== roleInfo.type) {
-        throw new BadRequestException(
-          `الحساب المحاسبي المحدد (${preferredAccountId}) لدور ${role} غير صالح، نوعه (${existing.account_type}) بينما المطلوب (${roleInfo.label}).`
-        );
-      }
-
-      return Number(existing.id);
+      return Number(preferred.id);
     }
 
     // Fallback: Check accounting_settings
@@ -142,13 +164,8 @@ export class ImportSalesService {
     }
 
     if (settingsAccountId && Number(settingsAccountId) > 0) {
-      const fromSettings = await trx
-        .selectFrom('accounting_accounts')
-        .select(['id', 'is_active', 'account_type'])
-        .where('tenant_id', '=', tenantId)
-        .where('id', '=', Number(settingsAccountId))
-        .executeTakeFirst();
-      if (fromSettings && fromSettings.is_active && (!roleInfo || fromSettings.account_type === roleInfo.type)) {
+      const fromSettings = await accountById(Number(settingsAccountId));
+      if (fromSettings && accountIsEligible(fromSettings)) {
         return Number(fromSettings.id);
       }
     }
@@ -161,39 +178,99 @@ export class ImportSalesService {
       bank: ['1120', '1110'],
       forex_loss: ['5201', '5190'],
       forex_gain: ['4201', '4190'],
+      broker_advance: ['1181', '1180', '1230', '1100'],
+      container_deposit: ['1182', '1180', '1240', '1100'],
+      customer_advance: ['2130', '2120', '2110', '2100'],
+      vat_receivable: ['1160', '1150', '1180'],
+      equity: ['3100', '3101', '3000'],
     };
 
     const codes = candidateCodes[role] || [];
-    if (codes.length > 0) {
+    for (const code of codes) {
       const byCode = await trx
         .selectFrom('accounting_accounts')
-        .select(['id', 'is_active', 'account_type'])
+        .select(['id', 'account_id', 'code', 'account_type', 'is_active', 'is_cash_bank', 'is_inventory', 'is_payable'])
         .where('tenant_id', '=', tenantId)
-        .where('code', 'in', codes)
-        .where('is_active', '=', true)
+        .where('code', '=', code)
         .executeTakeFirst();
-      if (byCode && (!roleInfo || byCode.account_type === roleInfo.type)) {
+      if (byCode && accountIsEligible(byCode)) {
         return Number(byCode.id);
       }
     }
 
-    // Fallback: Check any active account with matching account_type
+    // Fallback: Check any active account with matching account_type and flags
     if (roleInfo) {
       const byType = await trx
         .selectFrom('accounting_accounts')
-        .select(['id', 'is_active'])
+        .select(['id', 'account_id', 'code', 'account_type', 'is_active', 'is_cash_bank', 'is_inventory', 'is_payable'])
         .where('tenant_id', '=', tenantId)
         .where('account_type', '=', roleInfo.type)
         .where('is_active', '=', true)
         .orderBy('id', 'asc')
-        .executeTakeFirst();
-      if (byType) return Number(byType.id);
+        .execute();
+      for (const cand of byType) {
+        if (accountIsEligible(cand)) return Number(cand.id);
+      }
     }
 
     // Strict Architectural Policy: No silent auto-creation of accounts during normal operational transactions
     throw new UnprocessableEntityException(
-      `تعذر تحديد حساب محاسبي نشط لدور (${role}) في دليل الحسابات. يرجى تهيئة وتفعيل الحساب المناسب في شجرة الحسابات أو إعدادات المحاسبة أولاً.`
+      `تعذر تحديد حساب محاسبي نشط ومصنف لدور (${role}) في دليل الحسابات. يرجى تهيئة وتفعيل الحساب المناسب في شجرة الحسابات أو إعدادات المحاسبة أولاً.`
     );
+  }
+
+  /**
+   * Helper to verify and consume a Maker-Checker approval request for sensitive actions
+   */
+  private async verifyAndConsumeApprovalRequest(
+    trx: any,
+    tenantId: string,
+    actionType: string,
+    referenceId: string,
+    approvalRequestId?: string
+  ): Promise<void> {
+    if (!approvalRequestId) return;
+
+    const req = await trx
+      .selectFrom('import_approval_requests')
+      .selectAll()
+      .where('id', '=', approvalRequestId)
+      .where('tenant_id', '=', tenantId)
+      .forUpdate()
+      .executeTakeFirst();
+
+    if (!req) {
+      throw new BadRequestException('طلب الاعتماد (Maker-Checker) المحدد غير موجود.');
+    }
+
+    if (req.action_type !== actionType) {
+      throw new BadRequestException(
+        `نوع طلب الاعتماد (${req.action_type}) لا يطابق الإجراء المطلوب (${actionType}).`
+      );
+    }
+
+    if (req.status !== 'approved') {
+      throw new BadRequestException(
+        `طلب الاعتماد غير مؤهل للتنفيذ، حالته الحالية (${req.status}) وليست معتمدة (approved).`
+      );
+    }
+
+    if (referenceId && req.reference_id && req.reference_id !== referenceId) {
+      throw new BadRequestException(
+        `طلب الاعتماد مرتبط بمرجع (${req.reference_id}) يختلف عن المعرف المطلوب (${referenceId}).`
+      );
+    }
+
+    // Mark as executed so it cannot be replayed or reused
+    await trx
+      .updateTable('import_approval_requests')
+      .set({
+        status: 'executed',
+        decided_at: new Date(),
+      })
+      .where('id', '=', approvalRequestId)
+      .where('tenant_id', '=', tenantId)
+      .execute();
   }
 
   private costLine(item: Selectable<ImportShipmentItemTable>) {
@@ -203,6 +280,81 @@ export class ImportSalesService {
       factoryUnitPriceUsd: Number(item.factory_unit_price_usd),
       shortageHandlingMethod: item.shortage_handling_method ?? 'capitalize',
     };
+  }
+
+  private async postPartnerCapitalMovement(
+    trx: any,
+    tenantId: string,
+    userId: number,
+    partnerName: string,
+    partnerId: string,
+    type: 'DEPOSIT' | 'WITHDRAWAL',
+    amount: number,
+    movementDate: Date,
+    requestedCashAccountId: string,
+    note: string
+  ): Promise<number> {
+    const cashAccountId = await this.resolveTenantAccount(trx, tenantId, 'bank', Number(requestedCashAccountId));
+    const cashAccount = await trx.selectFrom('accounting_accounts')
+      .select(['id', 'account_id'])
+      .where('tenant_id', '=', tenantId)
+      .where('id', '=', cashAccountId)
+      .executeTakeFirstOrThrow();
+
+    const equityAccountId = await this.resolveTenantAccount(trx, tenantId, 'equity');
+    const cashIsDebit = type === 'DEPOSIT';
+
+    const posted = await trx.insertInto('treasury_transactions').values({
+      tenant_id: tenantId,
+      account_id: cashAccount.account_id,
+      txn_type: cashIsDebit ? 'partner_capital_deposit' : 'partner_capital_withdrawal',
+      amount: cashIsDebit ? amount : -amount,
+      note: `${cashIsDebit ? 'إيداع' : 'سحب'} رأس مال الشريك: ${partnerName}${note ? ' - ' + note : ''} (سجل ${partnerId})`,
+      reference_type: 'partner_capital',
+      reference_id: null,
+      return_document_id: null,
+      branch_id: null,
+      location_id: null,
+      created_by: userId,
+    }).returning('id').executeTakeFirstOrThrow();
+
+    const postingService = this.accountingPosting ?? new AccountingPostingService(new AccountingTenantFoundationService());
+    await postingService.postDomainJournal(trx, {
+      sourceType: 'import_partner_capital',
+      sourceId: Number(posted.id),
+      tenantId,
+      accountId: cashAccount.account_id,
+      entryDate: movementDate,
+      description: `${cashIsDebit ? 'مساهمة' : 'رد'} رأس مال الشريك ${partnerName} (حركة خزينة #${posted.id})`,
+      branchId: null,
+      locationId: null,
+      createdBy: userId,
+      postedBy: userId,
+      lines: [
+        {
+          accountId: cashAccountId,
+          description: `${cashIsDebit ? 'إيداع نقدي' : 'سحب نقدي'} - رأس مال الشريك ${partnerName}`,
+          debit: cashIsDebit ? amount : 0,
+          credit: cashIsDebit ? 0 : amount,
+          partnerType: 'none',
+          partnerId: null,
+          branchId: null,
+          locationId: null,
+        },
+        {
+          accountId: equityAccountId,
+          description: `حساب حقوق الملكية / رأس مال الشريك ${partnerName}`,
+          debit: cashIsDebit ? 0 : amount,
+          credit: cashIsDebit ? amount : 0,
+          partnerType: 'none',
+          partnerId: null,
+          branchId: null,
+          locationId: null,
+        },
+      ],
+    });
+
+    return Number(posted.id);
   }
 
   async getPartners(tenantId: string) {
@@ -215,76 +367,63 @@ export class ImportSalesService {
   }
 
   async createPartner(tenantId: string, userId: number, name: string, percentage: number, capitalAmount: number = 0, accountId?: string) {
-    if (!name || !name.trim()) {
-      throw new BadRequestException('اسم الشريك مطلوب.');
-    }
+    if (!name?.trim()) throw new BadRequestException('اسم الشريك مطلوب.');
     const cleanPercentage = Number(percentage);
+    const cleanCapital = Number(capitalAmount);
     if (!Number.isFinite(cleanPercentage) || cleanPercentage < 0 || cleanPercentage > 100) {
-      throw new BadRequestException('نسبة الشراكة يجب أن تكون بين 0% و 100%.');
+      throw new BadRequestException('نسبة الشراكة يجب أن تكون بين 0% و100%.');
     }
-    const cleanCapital = Number(capitalAmount) || 0;
-    if (cleanCapital < 0) {
-      throw new BadRequestException('رأس المال لا يمكن أن يكون سالباً.');
+    if (!Number.isFinite(cleanCapital) || cleanCapital < 0) {
+      throw new BadRequestException('رأس المال يجب أن يكون مبلغًا موجبًا أو صفرًا.');
+    }
+    if (cleanCapital > 0 && !accountId) {
+      throw new BadRequestException('يلزم تحديد حساب بنك أو خزينة معتمد لإثبات إيداع رأس مال الشريك.');
     }
 
     return await this.db.transaction().execute(async (trx) => {
-      // Check total percentage across all partners
+      // Serialize creation / percentage edits across all partners of this tenant.
+      await trx.selectFrom('tenants').select('id')
+        .where('id', '=', tenantId).forUpdate().executeTakeFirstOrThrow();
+
       const existing = await trx.selectFrom('import_partners')
         .select(sql<number>`coalesce(sum(profit_share_percentage), 0)`.as('total_percentage'))
         .where('tenant_id', '=', tenantId)
         .executeTakeFirst();
-      const currentTotal = Number(existing?.total_percentage || 0);
-      if (currentTotal + cleanPercentage > 100.001) {
-        throw new BadRequestException(`مجموع نسب الشركاء سيتجاوز 100% (المجموع الحالي: ${currentTotal}%).`);
+      if (Number(existing?.total_percentage || 0) + cleanPercentage > 100.001) {
+        throw new BadRequestException('مجموع نسب الشركاء سيتجاوز 100%.');
       }
 
-      const partner = await trx
-        .insertInto('import_partners')
-        .values({
-          tenant_id: tenantId,
-          name: name.trim(),
-          profit_share_percentage: cleanPercentage,
-          capital_amount: 0,
-          withdrawn_profit: 0
-        })
-        .returningAll()
-        .executeTakeFirstOrThrow();
+      const partner = await trx.insertInto('import_partners').values({
+        tenant_id: tenantId,
+        name: name.trim(),
+        profit_share_percentage: cleanPercentage,
+        capital_amount: cleanCapital,
+        withdrawn_profit: 0,
+      }).returningAll().executeTakeFirstOrThrow();
 
       if (cleanCapital > 0) {
-        await trx.insertInto('import_partner_ledger').values({
+        const ledger = await trx.insertInto('import_partner_ledger').values({
           tenant_id: tenantId,
           partner_id: partner.id,
           type: 'DEPOSIT',
           amount: cleanCapital,
           transaction_date: new Date(),
-          note: 'رأس مال افتتاحي',
-          created_by: userId
-        }).execute();
+          note: 'إيداع رأس مال افتتاحي',
+          created_by: userId,
+        }).returning('id').executeTakeFirstOrThrow();
 
-        await trx.updateTable('import_partners')
-          .set({ capital_amount: cleanCapital })
-          .where('id', '=', partner.id)
-          .where('tenant_id', '=', tenantId)
-          .execute();
-
-        if (accountId) {
-          await trx.insertInto('treasury_transactions').values({
-            tenant_id: tenantId,
-            txn_type: 'revenue',
-            amount: cleanCapital,
-            note: `إيداع رأس مال افتتاحي للشريك: ${partner.name}`,
-            reference_type: 'partner_capital',
-            reference_id: null,
-            created_by: userId,
-            account_id: accountId
-          }).execute();
-        }
-
-        return await trx
-          .selectFrom('import_partners')
-          .selectAll()
-          .where('id', '=', partner.id)
-          .executeTakeFirstOrThrow();
+        await this.postPartnerCapitalMovement(
+          trx,
+          tenantId,
+          userId,
+          partner.name,
+          partner.id,
+          'DEPOSIT',
+          cleanCapital,
+          new Date(),
+          accountId!,
+          String(ledger.id)
+        );
       }
 
       return partner;
@@ -305,6 +444,18 @@ export class ImportSalesService {
 
     return await this.db.transaction().execute(async (trx) => {
       if (percentage !== undefined) {
+        await trx.selectFrom('tenants').select('id')
+          .where('id', '=', tenantId).forUpdate().executeTakeFirstOrThrow();
+        const payout = await trx.selectFrom('import_partner_ledger')
+          .select('id')
+          .where('tenant_id', '=', tenantId)
+          .where('partner_id', '=', id)
+          .where('type', '=', 'PROFIT_PAYOUT')
+          .executeTakeFirst();
+        if (payout) {
+          throw new BadRequestException('لا يمكن تعديل نسبة شريك بعد توزيع أرباح فعلية دون نظام نسب تاريخية معتمد.');
+        }
+
         const existing = await trx.selectFrom('import_partners')
           .select(sql<number>`coalesce(sum(profit_share_percentage), 0)`.as('total_percentage'))
           .where('tenant_id', '=', tenantId)
@@ -333,19 +484,29 @@ export class ImportSalesService {
   }
 
   async deletePartner(tenantId: string, id: string) {
-    try {
-      await this.db
-        .deleteFrom('import_partners')
-        .where('tenant_id', '=', tenantId)
-        .where('id', '=', id)
-        .execute();
-      return { success: true };
-    } catch (error: any) {
-      if (error.code === '23503') { // PostgreSQL foreign_key_violation
-        throw new BadRequestException('لا يمكن حذف الشريك لوجود عمليات مالية أو أرباح مسجلة باسمه.');
+    return await this.db.transaction().execute(async (trx) => {
+      // The ledger and project associations are ON DELETE CASCADE in the schema.
+      // Relying on an FK violation would silently ERASE financial history.
+      const partner = await trx.selectFrom('import_partners').select('id')
+        .where('tenant_id', '=', tenantId).where('id', '=', id)
+        .forUpdate().executeTakeFirst();
+      if (!partner) throw new NotFoundException('الشريك غير موجود.');
+
+      const [ledger, projectLink] = await Promise.all([
+        trx.selectFrom('import_partner_ledger').select('id')
+          .where('tenant_id', '=', tenantId).where('partner_id', '=', id).executeTakeFirst(),
+        trx.selectFrom('import_project_partners').select('id')
+          .where('tenant_id', '=', tenantId).where('partner_id', '=', id).executeTakeFirst(),
+      ]);
+      if (ledger || projectLink) {
+        throw new BadRequestException(
+          'لا يمكن حذف شريك له سجل رأس مال أو أرباح أو ارتباط بمشروع؛ احتفظ بالتاريخ واستخدم حالة عدم النشاط عند إتاحتها.'
+        );
       }
-      throw error;
-    }
+      await trx.deleteFrom('import_partners')
+        .where('tenant_id', '=', tenantId).where('id', '=', id).execute();
+      return { success: true };
+    });
   }
 
   // ==========================================
@@ -1204,8 +1365,7 @@ export class ImportSalesService {
 
     for (const item of items) {
       const receivedQty = Number(item.received_quantity ?? item.quantity);
-      const landedCostTotal = Number(item.landed_cost_egp || 0);
-      const unitLandedCost = receivedQty > 0 ? Number((landedCostTotal / receivedQty).toFixed(4)) : 0;
+      const unitLandedCost = Number(Number(item.landed_cost_egp || 0).toFixed(4));
       const cleanContainer = (shipment.container_number || 'CONT').replace(/[^a-zA-Z0-9]/g, '');
       const lotNumber = 'LOT-' + cleanContainer + '-' + item.product_id;
 
@@ -1361,16 +1521,33 @@ export class ImportSalesService {
         const pId = Number(item.product_id);
         const itemReceivedQty = Math.max(1, Number(item.received_quantity ?? item.quantity));
 
-        // Check on-hand stock for this product in product_location_stock using real column 'qty'
-        const stockRow = await trx
-          .selectFrom('product_location_stock')
-          .select([sql<number>`coalesce(sum(qty), 0)`.as('total_qty')])
+        // Query remaining stock specifically for this shipment's lots (IAS 2 compliance)
+        const lotRow = await trx
+          .selectFrom('import_inventory_lots')
+          .select([
+            sql<number>`count(*)`.as('lot_count'),
+            sql<number>`coalesce(sum(remaining_quantity), 0)`.as('total_remaining'),
+          ])
           .where('tenant_id', '=', tenantId)
+          .where('shipment_id', '=', shipmentId)
           .where('product_id', '=', pId)
           .executeTakeFirst();
-        const currentStock = Math.max(0, Number(stockRow?.total_qty || 0));
 
-        const itemOnHandQty = Math.min(itemReceivedQty, currentStock);
+        let itemOnHandQty = 0;
+        if (lotRow && Number(lotRow.lot_count) > 0) {
+          itemOnHandQty = Math.min(itemReceivedQty, Math.max(0, Number(lotRow.total_remaining)));
+        } else {
+          // Fallback to location stock if no lots exist for this shipment
+          const stockRow = await trx
+            .selectFrom('product_location_stock')
+            .select([sql<number>`coalesce(sum(qty), 0)`.as('total_qty')])
+            .where('tenant_id', '=', tenantId)
+            .where('product_id', '=', pId)
+            .executeTakeFirst();
+          const currentStock = Math.max(0, Number(stockRow?.total_qty || 0));
+          itemOnHandQty = Math.min(itemReceivedQty, currentStock);
+        }
+
         const itemSoldQty = Math.max(0, itemReceivedQty - itemOnHandQty);
 
         totalOnHandUnits += itemOnHandQty;
@@ -1398,6 +1575,17 @@ export class ImportSalesService {
             }))
             .where('tenant_id', '=', tenantId)
             .where('id', '=', pId)
+            .execute();
+
+          await trx
+            .updateTable('import_inventory_lots')
+            .set((eb) => ({
+              unit_landed_cost_egp: sql`${eb.ref('unit_landed_cost_egp')} + ${Number(itemUnitCostIncrease.toFixed(6))}`,
+              updated_at: sql`NOW()`,
+            }))
+            .where('tenant_id', '=', tenantId)
+            .where('shipment_id', '=', shipmentId)
+            .where('product_id', '=', pId)
             .execute();
         }
 
@@ -1561,94 +1749,157 @@ export class ImportSalesService {
     let totalDiscounts = 0;
     let returnRevenue = 0;
     let returnCost = 0;
+    let profitAttributionVerified = false;
+    let attributionStatus = 'UNVERIFIED_SOURCE';
 
     if (projectId) {
-      // Precise inventory source scoping: Map each product's received quantity and landed cost in this project
-      const projectItems = projectShipmentIds.length > 0
-        ? await qb
-            .selectFrom('import_shipment_items')
-            .select(['product_id', 'received_quantity', 'quantity', 'landed_cost_egp'])
-            .where('tenant_id', '=', tenantId)
-            .where('shipment_id', 'in', projectShipmentIds)
-            .execute()
-        : [];
+      // 1. Query exact lot allocations for this project
+      const lotAllocations = await qb
+        .selectFrom('import_sale_allocations')
+        .selectAll()
+        .where('tenant_id', '=', tenantId)
+        .where('project_id', '=', projectId)
+        .where('created_at', '>=', start)
+        .where('created_at', '<=', end)
+        .execute();
 
-      const productSources = new Map<number, { receivedQty: number; unitCost: number }>();
-      for (const item of projectItems) {
-        const pId = Number(item.product_id);
-        const qty = Number(item.received_quantity ?? item.quantity ?? 0);
-        const cost = Number(item.landed_cost_egp || 0);
-        const existing = productSources.get(pId);
-        if (existing) {
-          const totalQ = existing.receivedQty + qty;
-          const weightedCost = totalQ > 0 ? (existing.receivedQty * existing.unitCost + qty * cost) / totalQ : cost;
-          productSources.set(pId, { receivedQty: totalQ, unitCost: weightedCost });
+      // Check if this project has traceable inventory lots
+      const projectLotsCount = await qb
+        .selectFrom('import_inventory_lots')
+        .select(sql<number>`count(*)`.as('c'))
+        .where('tenant_id', '=', tenantId)
+        .where('project_id', '=', projectId)
+        .executeTakeFirst();
+      const hasLots = Number(projectLotsCount?.c || 0) > 0;
+
+      if (lotAllocations.length > 0) {
+        for (const alloc of lotAllocations) {
+          const q = Number(alloc.quantity);
+          const isReversal = alloc.allocation_type === 'reversal';
+          const isReturn = alloc.allocation_type === 'return';
+          const price = Number(alloc.unit_sale_price_egp || 0);
+          const cost = Number(alloc.unit_cost_egp || 0);
+
+          if (isReturn) {
+            returnRevenue += q * price;
+            returnCost += q * cost;
+          } else if (isReversal) {
+            totalRevenue -= q * price;
+            totalCost -= q * cost;
+          } else {
+            totalRevenue += q * price;
+            totalCost += q * cost;
+          }
+        }
+        profitAttributionVerified = true;
+        attributionStatus = 'VERIFIED_LOT_ALLOCATIONS';
+      } else if (hasLots) {
+        // Project uses lot tracking and has 0 sales allocations; sales are strictly 0.
+        // Never steal sales belonging to other projects sharing the same product catalog item!
+        totalRevenue = 0;
+        totalCost = 0;
+        returnRevenue = 0;
+        returnCost = 0;
+        profitAttributionVerified = true;
+        attributionStatus = 'NO_SALES_RECORDED';
+      } else {
+        // Fallback: Check if project items have any provisional sales (legacy non-lotted projects only)
+        const projectItems = projectShipmentIds.length > 0
+          ? await qb
+              .selectFrom('import_shipment_items')
+              .select(['product_id', 'received_quantity', 'quantity', 'landed_cost_egp'])
+              .where('tenant_id', '=', tenantId)
+              .where('shipment_id', 'in', projectShipmentIds)
+              .execute()
+          : [];
+
+        const productSources = new Map<number, { receivedQty: number; unitCost: number }>();
+        for (const item of projectItems) {
+          const pId = Number(item.product_id);
+          const qty = Number(item.received_quantity ?? item.quantity ?? 0);
+          const cost = Number(item.landed_cost_egp || 0);
+          const existing = productSources.get(pId);
+          if (existing) {
+            const totalQ = existing.receivedQty + qty;
+            const weightedCost = totalQ > 0 ? (existing.receivedQty * existing.unitCost + qty * cost) / totalQ : cost;
+            productSources.set(pId, { receivedQty: totalQ, unitCost: weightedCost });
+          } else {
+            productSources.set(pId, { receivedQty: qty, unitCost: cost });
+          }
+        }
+
+        if (projectProductIds.length > 0) {
+          const salesRows = await qb
+            .selectFrom('sales')
+            .innerJoin('sale_items', 'sale_items.sale_id', 'sales.id')
+            .select([
+              'sale_items.product_id',
+              'sale_items.qty',
+              'sale_items.line_total',
+              'sale_items.allocated_discount',
+            ])
+            .where('sales.tenant_id', '=', tenantId)
+            .where('sales.status', '!=', 'cancelled')
+            .where('sales.created_at', '>=', start)
+            .where('sales.created_at', '<=', end)
+            .where('sale_items.product_id', 'in', projectProductIds)
+            .orderBy('sales.created_at', 'asc')
+            .execute();
+
+          const remainingSource = new Map<number, number>();
+          for (const [pId, src] of productSources.entries()) {
+            remainingSource.set(pId, src.receivedQty);
+          }
+
+          for (const row of salesRows) {
+            const pId = Number(row.product_id);
+            const avail = remainingSource.get(pId) || 0;
+            if (avail > 0) {
+              const soldFromProject = Math.min(Number(row.qty), avail);
+              const ratio = Number(row.qty) > 0 ? soldFromProject / Number(row.qty) : 1;
+              totalRevenue += Number(row.line_total) * ratio;
+              totalDiscounts += Number(row.allocated_discount || 0) * ratio;
+              totalCost += soldFromProject * (productSources.get(pId)?.unitCost || 0);
+              remainingSource.set(pId, avail - soldFromProject);
+            }
+          }
+
+          const returnRows = await qb
+            .selectFrom('return_documents')
+            .innerJoin('return_items', 'return_items.return_document_id', 'return_documents.id')
+            .select([
+              'return_items.product_id',
+              'return_items.qty',
+              'return_items.line_total',
+            ])
+            .where('return_documents.tenant_id', '=', tenantId)
+            .where('return_documents.return_type', '=', 'sale')
+            .where('return_documents.created_at', '>=', start)
+            .where('return_documents.created_at', '<=', end)
+            .where('return_items.product_id', 'in', projectProductIds)
+            .execute();
+
+          for (const rRow of returnRows) {
+            const pId = Number(rRow.product_id);
+            const src = productSources.get(pId);
+            if (src) {
+              returnRevenue += Number(rRow.line_total);
+              returnCost += Number(rRow.qty) * src.unitCost;
+            }
+          }
+        }
+
+        if (totalRevenue === 0 && returnRevenue === 0) {
+          profitAttributionVerified = true;
+          attributionStatus = 'NO_SALES_RECORDED';
         } else {
-          productSources.set(pId, { receivedQty: qty, unitCost: cost });
-        }
-      }
-
-      if (projectProductIds.length > 0) {
-        const salesRows = await qb
-          .selectFrom('sales')
-          .innerJoin('sale_items', 'sale_items.sale_id', 'sales.id')
-          .select([
-            'sale_items.product_id',
-            'sale_items.qty',
-            'sale_items.line_total',
-            'sale_items.allocated_discount',
-          ])
-          .where('sales.tenant_id', '=', tenantId)
-          .where('sales.status', '!=', 'cancelled')
-          .where('sales.created_at', '>=', start)
-          .where('sales.created_at', '<=', end)
-          .where('sale_items.product_id', 'in', projectProductIds)
-          .orderBy('sales.created_at', 'asc')
-          .execute();
-
-        const remainingSource = new Map<number, number>();
-        for (const [pId, src] of productSources.entries()) {
-          remainingSource.set(pId, src.receivedQty);
-        }
-
-        for (const row of salesRows) {
-          const pId = Number(row.product_id);
-          const avail = remainingSource.get(pId) || 0;
-          if (avail > 0) {
-            const soldFromProject = Math.min(Number(row.qty), avail);
-            const ratio = Number(row.qty) > 0 ? soldFromProject / Number(row.qty) : 1;
-            totalRevenue += Number(row.line_total) * ratio;
-            totalDiscounts += Number(row.allocated_discount || 0) * ratio;
-            totalCost += soldFromProject * (productSources.get(pId)?.unitCost || 0);
-            remainingSource.set(pId, avail - soldFromProject);
-          }
-        }
-
-        const returnRows = await qb
-          .selectFrom('return_documents')
-          .innerJoin('return_items', 'return_items.return_document_id', 'return_documents.id')
-          .select([
-            'return_items.product_id',
-            'return_items.qty',
-            'return_items.line_total',
-          ])
-          .where('return_documents.tenant_id', '=', tenantId)
-          .where('return_documents.return_type', '=', 'sale')
-          .where('return_documents.created_at', '>=', start)
-          .where('return_documents.created_at', '<=', end)
-          .where('return_items.product_id', 'in', projectProductIds)
-          .execute();
-
-        for (const rRow of returnRows) {
-          const pId = Number(rRow.product_id);
-          const src = productSources.get(pId);
-          if (src) {
-            returnRevenue += Number(rRow.line_total);
-            returnCost += Number(rRow.qty) * src.unitCost;
-          }
+          profitAttributionVerified = false;
+          attributionStatus = 'UNVERIFIED_SOURCE';
         }
       }
     } else {
+      profitAttributionVerified = true;
+      attributionStatus = 'COMPANY_WIDE';
       // General company-wide period report
       const salesData = await qb
         .selectFrom('sales')
@@ -1788,6 +2039,8 @@ export class ImportSalesService {
       message: projectId ? 'تم تجميع أرباح مشروع الاستيراد بنجاح' : 'تم تجميع أرباح الشراكة العامة بنجاح',
       data: {
         projectId: projectId || null,
+        profitAttributionVerified,
+        attributionStatus,
         grossSalesRevenue: Number(totalRevenue.toFixed(2)),
         salesDiscounts: Number(totalDiscounts.toFixed(2)),
         salesReturnsRevenue: Number(returnRevenue.toFixed(2)),
@@ -1814,6 +2067,8 @@ export class ImportSalesService {
         'supplier_payments.id',
         'supplier_payments.doc_no',
         'supplier_payments.amount',
+        'supplier_payments.amount_foreign',
+        'supplier_payments.currency',
         'supplier_payments.note',
         'supplier_payments.created_at',
         'suppliers.name as supplier_name',
@@ -1826,7 +2081,10 @@ export class ImportSalesService {
     return rows.map((r) => ({
       id: r.id,
       docNo: r.doc_no,
-      amountForeign: Number(r.amount),
+      amountForeign: r.amount_foreign == null ? null : Number(r.amount_foreign),
+      amountEgp: Number(r.amount),
+      currency: r.currency,
+      requiresLegacyReconciliation: r.amount_foreign == null,
       supplierName: r.supplier_name,
       notes: r.note,
       createdAt: r.created_at,
@@ -1834,17 +2092,47 @@ export class ImportSalesService {
   }
 
   async recordForeignTransfer(tenantId: string, userId: number, dto: RecordForeignTransferDto) {
-    const { supplierId, amountEgp, amountForeign, currency, exchangeRateContract, proformaInvoiceId, notes, projectId, bankAccountId: reqBankAccountId } = dto;
+    const {
+      supplierId,
+      amountEgp,
+      amountForeign,
+      currency,
+      exchangeRateContract,
+      proformaInvoiceId,
+      notes,
+      projectId,
+      bankAccountId: reqBankAccountId,
+      approvalRequestId,
+    } = dto;
     const sId = Number(supplierId);
 
     const cleanEgp = Number(amountEgp);
     const cleanForeign = Number(amountForeign);
+    const requestKey = (dto.idempotencyKey || '').trim();
+
+    if (!requestKey || requestKey.length > 128) {
+      throw new BadRequestException('مفتاح عدم تكرار الحوالة (Idempotency Key) إلزامي ويجب ألا يتجاوز 128 حرفًا.');
+    }
 
     if (!Number.isFinite(cleanEgp) || cleanEgp <= 0 || !Number.isFinite(cleanForeign) || cleanForeign <= 0) {
       throw new BadRequestException('مبالغ الحوالة بالجنيه والعملة الأجنبية يجب أن تكون أكبر من الصفر.');
     }
 
     return await this.db.transaction().execute(async (trx) => {
+      // Maker-Checker approval check
+      if (approvalRequestId || cleanForeign >= 100000) {
+        if (!approvalRequestId && cleanForeign >= 100000) {
+          throw new BadRequestException('الحوالات الكبرى (100,000 فأكثر) تتطلب اعتماداً ثنائياً مسبقاً (Maker-Checker).');
+        }
+        await this.verifyAndConsumeApprovalRequest(
+          trx,
+          tenantId,
+          'large_transfer',
+          String(sId),
+          approvalRequestId
+        );
+      }
+
       const supplier = await trx
         .selectFrom('suppliers')
         .select(['id', 'name', 'account_id', 'balance'])
@@ -1914,26 +2202,28 @@ export class ImportSalesService {
       }
 
       // 2. Database-Backed Idempotency Protection
-      if (dto.idempotencyKey) {
-        const existingPayment = await trx
-          .selectFrom('supplier_payments')
-          .select(['id', 'doc_no', 'created_at'])
-          .where('tenant_id', '=', tenantId)
-          .where('idempotency_key', '=', dto.idempotencyKey)
-          .executeTakeFirst();
+      const existingPayment = await trx
+        .selectFrom('supplier_payments')
+        .select(['id', 'doc_no', 'created_at'])
+        .where('tenant_id', '=', tenantId)
+        .where('idempotency_key', '=', requestKey)
+        .executeTakeFirst();
 
-        if (existingPayment) {
-          throw new ConflictException(
-            `تم تنفيذ هذا الطلب مسبقاً برقم (${existingPayment.doc_no})؛ تم منع إعادة التنفيذ بواسطة مفتاح عدم التكرار (Idempotency Key).`
-          );
-        }
+      if (existingPayment) {
+        throw new ConflictException(
+          `تم تنفيذ هذا الطلب مسبقاً برقم (${existingPayment.doc_no})؛ تم منع إعادة التنفيذ بواسطة مفتاح عدم التكرار (Idempotency Key).`
+        );
       }
 
       // 3. Resolve Real Accounts from Chart of Accounts / Accounting Settings
       const supplierApAccountId = await this.resolveTenantAccount(trx, tenantId, 'payable');
       const bankAccountId = await this.resolveTenantAccount(trx, tenantId, 'bank', reqBankAccountId);
-      const forexLossAccountId = await this.resolveTenantAccount(trx, tenantId, 'forex_loss');
-      const forexGainAccountId = await this.resolveTenantAccount(trx, tenantId, 'forex_gain');
+      const bankScope = await trx
+        .selectFrom('accounting_accounts')
+        .select('account_id')
+        .where('tenant_id', '=', tenantId)
+        .where('id', '=', bankAccountId)
+        .executeTakeFirstOrThrow();
 
       // 4. Exact Base Currency (EGP) Accounting Entries without mixing foreign units
       const effectiveRateContract = exchangeRateContract && exchangeRateContract > 0
@@ -1951,7 +2241,8 @@ export class ImportSalesService {
             tenant_id: tenantId,
             account_id: supplier.account_id || tenantId,
             supplier_id: supplier.id,
-            amount: cleanForeign,
+            amount: contractValue,
+            amount_foreign: cleanForeign,
             note: `حوالة استيراد خارجية${notes ? ' - ' + notes : ''} [تدبير عملة: ${actualEgp} ج.م]`,
             created_by: userId,
             payment_date: (dto as any).transferDate || new Date().toISOString().slice(0, 10),
@@ -1959,7 +2250,7 @@ export class ImportSalesService {
             exchange_rate: actualEgp / cleanForeign,
             forex_variance_egp: forexVarianceEgp,
             proforma_invoice_id: proformaInvoiceId || null,
-            idempotency_key: dto.idempotencyKey || null,
+            idempotency_key: requestKey,
           } as any)
           .returning('id')
           .executeTakeFirstOrThrow();
@@ -1985,7 +2276,7 @@ export class ImportSalesService {
         .insertInto('treasury_transactions')
         .values({
           tenant_id: tenantId,
-          account_id: String(bankAccountId),
+          account_id: bankScope.account_id,
           txn_type: 'supplier_payment',
           amount: -actualEgp,
           note: `تدبير عملة: حوالة خارجية إلى ${supplier.name} (${cleanForeign} ${currency || 'USD'})` +
@@ -1996,8 +2287,10 @@ export class ImportSalesService {
         })
         .execute();
 
+      // The shared supplier ledger and suppliers.balance are BASE-CURRENCY EGP.
+      // The original foreign-currency units belong only in amount_foreign / Proforma.
       const currentSupplierBalance = Number(supplier.balance || 0);
-      const newSupplierBalance = currentSupplierBalance - cleanForeign;
+      const newSupplierBalance = currentSupplierBalance - contractValue;
 
       await trx
         .insertInto('supplier_ledger')
@@ -2006,7 +2299,7 @@ export class ImportSalesService {
           account_id: supplier.account_id ? String(supplier.account_id) : tenantId,
           supplier_id: supplier.id,
           entry_type: 'payment',
-          amount: cleanForeign,
+          amount: contractValue,
           balance_after: newSupplierBalance,
           note: `حوالة خارجية FT-${paymentId} (${cleanForeign} ${currency || 'USD'})` +
             (forexVarianceEgp !== 0 ? ` [فروق صرف: ${forexVarianceEgp.toFixed(2)} ج.م]` : ''),
@@ -2022,7 +2315,7 @@ export class ImportSalesService {
       await trx
         .updateTable('suppliers')
         .set((eb) => ({
-          balance: sql`${eb.ref('balance')} - ${cleanForeign}`,
+          balance: sql`${eb.ref('balance')} - ${contractValue}`,
         }))
         .where('id', '=', sId)
         .where('tenant_id', '=', tenantId)
@@ -2044,9 +2337,10 @@ export class ImportSalesService {
       ];
 
       // Line 2: Realized Forex Variance in EGP (Debit if Loss, Credit if Gain)
+      // Resolved dynamically only if variance actually exists
       if (forexVarianceEgp > 0.001) {
         lines.push({
-          accountId: forexLossAccountId,
+          accountId: await this.resolveTenantAccount(trx, tenantId, 'forex_loss'),
           description: `فروق سعر صرف محققة (خسارة) على حوالة FT-${paymentId}`,
           debit: forexVarianceEgp,
           credit: 0,
@@ -2057,7 +2351,7 @@ export class ImportSalesService {
         });
       } else if (forexVarianceEgp < -0.001) {
         lines.push({
-          accountId: forexGainAccountId,
+          accountId: await this.resolveTenantAccount(trx, tenantId, 'forex_gain'),
           description: `فروق سعر صرف محققة (أرباح) على حوالة FT-${paymentId}`,
           debit: 0,
           credit: Math.abs(forexVarianceEgp),
@@ -2106,13 +2400,30 @@ export class ImportSalesService {
     });
   }
 
-  async recordPartnerPayout(tenantId: string, userId: number, partnerId: string, amount: number) {
+  async recordPartnerPayout(
+    tenantId: string,
+    userId: number,
+    partnerId: string,
+    amount: number,
+    approvalRequestId?: string,
+    projectId?: string
+  ) {
     const cleanAmount = Number(amount);
     if (!Number.isFinite(cleanAmount) || cleanAmount <= 0) {
       throw new BadRequestException('مبلغ صرف الأرباح يجب أن يكون أكبر من الصفر.');
     }
 
     return await this.db.transaction().execute(async (trx) => {
+      if (approvalRequestId) {
+        await this.verifyAndConsumeApprovalRequest(
+          trx,
+          tenantId,
+          'partner_distribution',
+          partnerId,
+          approvalRequestId
+        );
+      }
+
       const partner = await trx
         .selectFrom('import_partners')
         .selectAll()
@@ -2121,7 +2432,32 @@ export class ImportSalesService {
         .forUpdate()
         .executeTakeFirstOrThrow();
 
-      const profitReport = await this.generatePeriodProfitReport(tenantId, new Date('2020-01-01'), new Date());
+      let targetProjectId = projectId;
+      if (!targetProjectId) {
+        const linkedProject = await trx
+          .selectFrom('import_project_partners')
+          .select('project_id')
+          .where('tenant_id', '=', tenantId)
+          .where('partner_id', '=', partnerId)
+          .where('is_active', '=', true)
+          .executeTakeFirst();
+        if (linkedProject?.project_id) {
+          targetProjectId = String(linkedProject.project_id);
+        }
+      }
+
+      const profitReport = await this.generatePeriodProfitReport(
+        tenantId,
+        new Date('2020-01-01'),
+        new Date(),
+        targetProjectId,
+        trx
+      );
+      if (!profitReport.data.profitAttributionVerified) {
+        throw new UnprocessableEntityException(
+          'صرف الأرباح موقوف لحين إتمام تتبع مصدر البضاعة واعتماد أرباح كل مشروع؛ التقرير الحالي تقديري وغير صالح للتوزيع.'
+        );
+      }
       const partnerShare = profitReport.data.partnerShares.find((p: any) => p.partnerId === partnerId);
       const totalEntitled = Number(partnerShare?.shareAmount || 0);
       const withdrawn = Number(partner.withdrawn_profit || 0);
@@ -2133,10 +2469,20 @@ export class ImportSalesService {
         );
       }
 
+      const bankAccountId = await this.resolveTenantAccount(trx, tenantId, 'bank');
+      const bankScope = await trx
+        .selectFrom('accounting_accounts')
+        .select('account_id')
+        .where('tenant_id', '=', tenantId)
+        .where('id', '=', bankAccountId)
+        .executeTakeFirst();
+      const scopeAccountId = bankScope?.account_id || tenantId;
+
       await trx
         .insertInto('treasury_transactions')
         .values({
           tenant_id: tenantId,
+          account_id: scopeAccountId,
           txn_type: 'partner_payout',
           amount: -cleanAmount,
           note: `صرف أرباح الشريك: ${partner.name}`,
@@ -2184,55 +2530,81 @@ export class ImportSalesService {
       .execute();
   }
 
-  async recordCapitalTransaction(tenantId: string, userId: number, partnerId: string, dto: { type: 'DEPOSIT' | 'WITHDRAWAL', amount: number, date: string, note?: string, accountId?: string }) {
+  async recordCapitalTransaction(
+    tenantId: string,
+    userId: number,
+    partnerId: string,
+    dto: { type: 'DEPOSIT' | 'WITHDRAWAL'; amount: number; date: string; note?: string; accountId?: string }
+  ) {
     const cleanAmount = Number(dto.amount);
+    const movementDate = new Date(dto.date);
+    if (dto.type !== 'DEPOSIT' && dto.type !== 'WITHDRAWAL') {
+      throw new BadRequestException('نوع حركة رأس المال غير صالح.');
+    }
     if (!Number.isFinite(cleanAmount) || cleanAmount <= 0) {
       throw new BadRequestException('مبلغ حركة رأس المال يجب أن يكون أكبر من الصفر.');
     }
+    const requiredCashAccountId = dto.accountId;
+    if (!requiredCashAccountId) {
+      throw new BadRequestException('تحديد حساب البنك أو الخزينة إلزامي لكل حركة رأس مال فعلية.');
+    }
+    if (Number.isNaN(movementDate.getTime())) {
+      throw new BadRequestException('تاريخ حركة رأس المال غير صالح.');
+    }
 
     return await this.db.transaction().execute(async (trx) => {
-      const partner = await trx.selectFrom('import_partners')
+      const partner = await trx
+        .selectFrom('import_partners')
         .selectAll()
         .where('id', '=', partnerId)
         .where('tenant_id', '=', tenantId)
+        .forUpdate()
         .executeTakeFirstOrThrow();
 
       if (dto.type === 'WITHDRAWAL' && Number(partner.capital_amount || 0) < cleanAmount) {
-        throw new BadRequestException(`رصيد رأس المال الحالي (${partner.capital_amount}) لا يكفي لسحب مبلغ ${cleanAmount}.`);
+        throw new BadRequestException(
+          `رصيد رأس المال الحالي (${partner.capital_amount}) لا يكفي لسحب مبلغ ${cleanAmount}.`
+        );
       }
 
-      const ledgerInsert = await trx.insertInto('import_partner_ledger').values({
-        tenant_id: tenantId,
-        partner_id: partnerId,
-        type: dto.type,
-        amount: cleanAmount,
-        transaction_date: dto.date,
-        note: dto.note || '',
-        created_by: userId
-      }).returning('id').executeTakeFirstOrThrow();
+      const ledgerInsert = await trx
+        .insertInto('import_partner_ledger')
+        .values({
+          tenant_id: tenantId,
+          partner_id: partnerId,
+          type: dto.type,
+          amount: cleanAmount,
+          transaction_date: dto.date,
+          note: dto.note || '',
+          created_by: userId,
+        })
+        .returning('id')
+        .executeTakeFirstOrThrow();
 
       const sign = dto.type === 'DEPOSIT' ? '+' : '-';
-      await trx.updateTable('import_partners')
+      await trx
+        .updateTable('import_partners')
         .set((eb) => ({
-          capital_amount: sql`${eb.ref('capital_amount')} ${sql.raw(sign)} ${cleanAmount}`
+          capital_amount: sql`${eb.ref('capital_amount')} ${sql.raw(sign)} ${cleanAmount}`,
         }))
         .where('id', '=', partnerId)
         .where('tenant_id', '=', tenantId)
         .execute();
 
-      if (dto.accountId) {
-        await trx.insertInto('treasury_transactions').values({
-          tenant_id: tenantId,
-          txn_type: dto.type === 'DEPOSIT' ? 'revenue' : 'expense',
-          amount: dto.type === 'DEPOSIT' ? cleanAmount : -cleanAmount,
-          note: (dto.type === 'DEPOSIT' ? 'إيداع رأس مال شريك: ' : 'سحب رأس مال شريك: ') + (partner.name || '') + (dto.note ? ` - ${dto.note}` : ''),
-          reference_type: 'partner_capital',
-          created_by: userId,
-          account_id: dto.accountId
-        }).execute();
-      }
+      const treasuryTransactionId = await this.postPartnerCapitalMovement(
+        trx,
+        tenantId,
+        userId,
+        partner.name,
+        partner.id,
+        dto.type,
+        cleanAmount,
+        movementDate,
+        requiredCashAccountId,
+        dto.note || ''
+      );
 
-      return { success: true, ledgerId: ledgerInsert.id };
+      return { success: true, ledgerId: ledgerInsert.id, treasuryTransactionId };
     });
   }
 
@@ -2524,6 +2896,28 @@ export class ImportSalesService {
         throw new BadRequestException('لا يمكن تعديل نسب الشركاء لمشروع مقفل ومسوى مالياً.');
       }
 
+      // Existing single-row partner allocations are not effective-dated history.
+      // Freeze edits when financial execution has started to protect prior earnings.
+      const postedReceipt = await trx.selectFrom('import_shipments as shipment')
+        .innerJoin('import_inventory_receipts as receipt', 'receipt.shipment_id', 'shipment.id')
+        .select('shipment.id')
+        .where('shipment.project_id', '=', projectId)
+        .where('shipment.tenant_id', '=', tenantId)
+        .where('receipt.tenant_id', '=', tenantId)
+        .where('receipt.state', '=', 'posted')
+        .executeTakeFirst();
+      const paidProforma = await trx.selectFrom('import_proforma_invoices')
+        .select('id')
+        .where('tenant_id', '=', tenantId)
+        .where('project_id', '=', projectId)
+        .where('paid_amount_foreign', '>', 0)
+        .executeTakeFirst();
+      if (postedReceipt || paidProforma) {
+        throw new BadRequestException(
+          'لا يجوز تعديل نسب المشروع بعد بدء السداد أو الاستلام دون سجل تاريخي لنسب الشراكة.'
+        );
+      }
+
       const totalPercentage = partners.reduce((sum, p) => sum + Number(p.profitPercentage || 0), 0);
       if (totalPercentage > 100.001) {
         throw new BadRequestException(`مجموع نسب الشركاء للمشروع (${totalPercentage}%) يتجاوز 100%.`);
@@ -2587,8 +2981,18 @@ export class ImportSalesService {
     });
   }
 
-  async closeProject(tenantId: string, userId: number, projectId: string) {
+  async closeProject(tenantId: string, userId: number, projectId: string, approvalRequestId?: string) {
     return await this.db.transaction().execute(async (trx) => {
+      if (approvalRequestId) {
+        await this.verifyAndConsumeApprovalRequest(
+          trx,
+          tenantId,
+          'project_closure',
+          projectId,
+          approvalRequestId
+        );
+      }
+
       const project = await trx
         .selectFrom('import_projects')
         .selectAll()
@@ -2658,8 +3062,75 @@ export class ImportSalesService {
         }
       }
 
+      // Guard: No unliquidated customs broker advances
+      const activeAdvances = await trx
+        .selectFrom('import_broker_advances')
+        .select(['advance_no', 'remaining_amount_egp'])
+        .where('tenant_id', '=', tenantId)
+        .where('project_id', '=', projectId)
+        .where('remaining_amount_egp', '>', 0)
+        .execute();
+
+      if (activeAdvances.length > 0) {
+        const first = activeAdvances[0];
+        throw new BadRequestException(
+          `لا يمكن إقفال المشروع: توجد عهدة مخلص معلقة (إذن رقم ${first.advance_no}) بمبلغ متبقٍ ${Number(first.remaining_amount_egp).toFixed(2)} ج.م يلزم تسويتها أولاً.`
+        );
+      }
+
+      // Guard: No pending container security deposits
+      const pendingDeposits = await trx
+        .selectFrom('import_container_deposits')
+        .select(['container_no', 'refund_status'])
+        .where('tenant_id', '=', tenantId)
+        .where((eb) =>
+          eb.or([
+            eb('project_id', '=', projectId),
+            shipments.length > 0 ? eb('shipment_id', 'in', shipments.map((s) => s.id)) : sql`1=0`,
+          ])
+        )
+        .where('refund_status', 'in', ['pending', 'partially_refunded'])
+        .execute();
+
+      if (pendingDeposits.length > 0) {
+        const first = pendingDeposits[0];
+        throw new BadRequestException(
+          `لا يمكن إقفال المشروع: يوجد تأمين حاوية معلق (#${first.container_no}) بحالة (${first.refund_status}) يلزم استرداده وتسويته أولاً.`
+        );
+      }
+
       const startDate = project.created_at || new Date('2020-01-01');
       const profitReport = await this.generatePeriodProfitReport(tenantId, startDate, new Date(), projectId, trx);
+
+      if (
+        !profitReport.data.profitAttributionVerified &&
+        (profitReport.data.grossSalesRevenue > 0 || profitReport.data.salesReturnsRevenue > 0)
+      ) {
+        throw new UnprocessableEntityException(
+          'لا يمكن اعتماد إقفال مالي نهائي لمشروع لديه مبيعات قبل إثبات مصدر الكميات المباعة وتسوية ربحية الشحنة.'
+        );
+      }
+
+      // Guard: No unsold remaining inventory in lots
+      const remainingLots = await trx
+        .selectFrom('import_inventory_lots')
+        .select(['lot_number', 'remaining_quantity'])
+        .where('tenant_id', '=', tenantId)
+        .where((eb) =>
+          eb.or([
+            eb('project_id', '=', projectId),
+            shipments.length > 0 ? eb('shipment_id', 'in', shipments.map((s) => s.id)) : sql`1=0`,
+          ])
+        )
+        .where('remaining_quantity', '>', 0)
+        .execute();
+
+      if (remainingLots.length > 0) {
+        const first = remainingLots[0];
+        throw new BadRequestException(
+          `لا يمكن إقفال المشروع: يوجد رصيد مخزني غير مباع بالباتش (${first.lot_number}) متبقٍ به ${first.remaining_quantity} وحدة يلزم بيعه أو تسويته مخزنيًا قبل الإقفال النهائي.`
+        );
+      }
 
       const projectItems = shipments.length > 0
         ? await trx
@@ -2681,6 +3152,7 @@ export class ImportSalesService {
         shipmentsCount: shipments.length,
         totalReceivedUnits: totalReceived,
         financialReconciliation: profitReport.data,
+        reconciliationStatus: profitReport.data.profitAttributionVerified ? 'verified' : 'pending_source_attribution',
       };
 
       await trx
@@ -3154,7 +3626,7 @@ export class ImportSalesService {
         .executeTakeFirstOrThrow();
 
       if (this.accountingPosting) {
-        const assetAccId = await this.resolveTenantAccount(trx, tenantId, 'payable');
+        const assetAccId = await this.resolveTenantAccount(trx, tenantId, 'broker_advance');
         const bankAccId = await this.resolveTenantAccount(
           trx,
           tenantId,
@@ -3164,7 +3636,7 @@ export class ImportSalesService {
 
         await this.accountingPosting.postDomainJournal(trx, {
           sourceType: 'import_broker_advance',
-          sourceId: 0,
+          sourceId: Number(advance.serial_id),
           tenantId,
           accountId: tenantId,
           entryDate: advance.disbursement_date ? new Date(advance.disbursement_date as any) : new Date(),
@@ -3254,16 +3726,15 @@ export class ImportSalesService {
       }
 
       if (this.accountingPosting) {
-        const creditAccId = await this.resolveTenantAccount(trx, tenantId, 'payable');
-        const debitAccId = await this.resolveTenantAccount(
-          trx,
-          tenantId,
-          dto.isCapitalized ? 'inventory' : 'cogs'
-        );
+        const creditAccId = await this.resolveTenantAccount(trx, tenantId, 'broker_advance');
+        let debitRole: 'vat_receivable' | 'inventory' | 'cogs' = 'cogs';
+        if (dto.isRefundableVat) debitRole = 'vat_receivable';
+        else if (dto.isCapitalized) debitRole = 'inventory';
+        const debitAccId = await this.resolveTenantAccount(trx, tenantId, debitRole);
 
         await this.accountingPosting.postDomainJournal(trx, {
           sourceType: 'import_broker_expense',
-          sourceId: 0,
+          sourceId: Number(expense.serial_id),
           tenantId,
           accountId: tenantId,
           entryDate: expense.expense_date ? new Date(expense.expense_date as any) : new Date(),
@@ -3365,7 +3836,7 @@ export class ImportSalesService {
         .executeTakeFirstOrThrow();
 
       if (this.accountingPosting) {
-        const depositAssetAccId = await this.resolveTenantAccount(trx, tenantId, 'payable');
+        const depositAssetAccId = await this.resolveTenantAccount(trx, tenantId, 'container_deposit');
         const bankAccId = await this.resolveTenantAccount(
           trx,
           tenantId,
@@ -3375,7 +3846,7 @@ export class ImportSalesService {
 
         await this.accountingPosting.postDomainJournal(trx, {
           sourceType: 'import_container_deposit',
-          sourceId: 0,
+          sourceId: Number(deposit.serial_id),
           tenantId,
           accountId: tenantId,
           entryDate: deposit.payment_date ? new Date(deposit.payment_date as any) : new Date(),
@@ -3465,7 +3936,7 @@ export class ImportSalesService {
         .execute();
 
       if (this.accountingPosting) {
-        const depositAssetAccId = await this.resolveTenantAccount(trx, tenantId, 'payable');
+        const depositAssetAccId = await this.resolveTenantAccount(trx, tenantId, 'container_deposit');
         const bankAccId = await this.resolveTenantAccount(
           trx,
           tenantId,
@@ -3499,20 +3970,23 @@ export class ImportSalesService {
             locationId: null,
           });
         }
-        lines.push({
-          accountId: depositAssetAccId,
-          debit: 0,
-          credit: totalDeposit,
-          description: `إقفال تأمين حاوية مستردة #${deposit.container_no}`,
-          partnerType: 'none',
-          partnerId: null,
-          branchId: null,
-          locationId: null,
-        });
+        const settledAmount = Number((refundAmount + deductions).toFixed(2));
+        if (settledAmount > 0) {
+          lines.push({
+            accountId: depositAssetAccId,
+            debit: 0,
+            credit: settledAmount,
+            description: `تسوية وإقفال تأمين حاوية مستردة #${deposit.container_no}`,
+            partnerType: 'none',
+            partnerId: null,
+            branchId: null,
+            locationId: null,
+          });
+        }
 
         await this.accountingPosting.postDomainJournal(trx, {
           sourceType: 'import_container_deposit',
-          sourceId: 0,
+          sourceId: Number(deposit.serial_id),
           tenantId,
           accountId: tenantId,
           entryDate: new Date(dto.actualReturnDate as any),
@@ -3613,11 +4087,11 @@ export class ImportSalesService {
           'bank',
           dto.depositTreasuryAccountId ? Number(dto.depositTreasuryAccountId) : null
         );
-        const unearnedRevAccId = await this.resolveTenantAccount(trx, tenantId, 'payable');
+        const unearnedRevAccId = await this.resolveTenantAccount(trx, tenantId, 'customer_advance');
 
         await this.accountingPosting.postDomainJournal(trx, {
           sourceType: 'import_container_preorder',
-          sourceId: 0,
+          sourceId: Number(preorder.serial_id),
           tenantId,
           accountId: tenantId,
           entryDate: new Date(),
@@ -3761,6 +4235,30 @@ export class ImportSalesService {
     const totalLandedCostEgp =
       factoryTotalEgp + shippingEgp + customsEgp + transportEgp + demurrageEgp + lateExpensesEgp;
 
+    const allocations = await this.db
+      .selectFrom('import_sale_allocations')
+      .selectAll()
+      .where('tenant_id', '=', tenantId)
+      .where('shipment_id', '=', shipmentId)
+      .execute();
+
+    let actualInvoicedSalesEgp = 0;
+    let actualAllocatedCogsEgp = 0;
+    let actualAllocatedUnits = 0;
+
+    for (const alloc of allocations) {
+      const q = Number(alloc.quantity);
+      const isReversal = alloc.allocation_type === 'reversal' || alloc.allocation_type === 'return';
+      const sign = isReversal ? -1 : 1;
+      const effectiveQty = q * sign;
+      const unitSalePrice = Number(alloc.unit_sale_price_egp || 0);
+      const unitCost = Number(alloc.unit_cost_egp || 0);
+
+      actualAllocatedUnits += effectiveQty;
+      actualInvoicedSalesEgp += effectiveQty * unitSalePrice;
+      actualAllocatedCogsEgp += effectiveQty * unitCost;
+    }
+
     const preordersTotalRevenue = preorders
       .filter((p) => p.status !== 'cancelled')
       .reduce((acc, p) => acc + Number(p.total_price_egp), 0);
@@ -3776,7 +4274,7 @@ export class ImportSalesService {
     }
 
     const totalRemainingUnits = lots.reduce((acc, l) => acc + Number(l.remaining_quantity), 0);
-    const totalSoldUnits = totalUnitsReceived - totalRemainingUnits;
+    const totalSoldUnits = actualAllocatedUnits > 0 ? actualAllocatedUnits : Math.max(0, totalUnitsReceived - totalRemainingUnits);
 
     const unsoldStockLandedValueEgp = lots.reduce(
       (acc, l) => acc + Number(l.remaining_quantity) * Number(l.unit_landed_cost_egp),
@@ -3784,8 +4282,8 @@ export class ImportSalesService {
     );
 
     const avgCostPerUnit = totalUnitsReceived > 0 ? totalLandedCostEgp / totalUnitsReceived : 0;
-    const cogsSoldUnitsEgp = totalSoldUnits * avgCostPerUnit;
-    const realizedNetProfitEgp = preordersTotalRevenue - cogsSoldUnitsEgp;
+    const cogsSoldUnitsEgp = actualAllocatedCogsEgp > 0 ? actualAllocatedCogsEgp : totalSoldUnits * avgCostPerUnit;
+    const realizedNetProfitEgp = actualInvoicedSalesEgp > 0 ? actualInvoicedSalesEgp - cogsSoldUnitsEgp : 0;
     const roiPercentage = totalLandedCostEgp > 0 ? (realizedNetProfitEgp / totalLandedCostEgp) * 100 : 0;
 
     const pendingDeposits = deposits.filter((d) => d.refund_status === 'pending');
@@ -3826,9 +4324,11 @@ export class ImportSalesService {
         avgCostPerUnitEgp: Number(avgCostPerUnit.toFixed(4)),
       },
       salesAndInventory: {
-        grossSalesEgp: Number(preordersTotalRevenue.toFixed(2)),
+        invoicedSalesEgp: Number(actualInvoicedSalesEgp.toFixed(2)),
+        grossSalesEgp: Number(actualInvoicedSalesEgp.toFixed(2)),
+        inTransitPreordersRevenue: Number(preordersTotalRevenue.toFixed(2)),
         depositsCollectedEgp: Number(preordersDepositsCollected.toFixed(2)),
-        receivablesDueEgp: Number((preordersTotalRevenue - preordersDepositsCollected).toFixed(2)),
+        unearnedPreorderLiabilityEgp: Number(preordersDepositsCollected.toFixed(2)),
         unsoldStockLandedValueEgp: Number(unsoldStockLandedValueEgp.toFixed(2)),
         lotsCount: lots.length,
       },
@@ -3836,6 +4336,12 @@ export class ImportSalesService {
         cogsSoldUnitsEgp: Number(cogsSoldUnitsEgp.toFixed(2)),
         realizedNetProfitEgp: Number(realizedNetProfitEgp.toFixed(2)),
         roiPercentage: Number(roiPercentage.toFixed(2)),
+      },
+      inTransitPreorders: {
+        totalBookingsEgp: Number(preordersTotalRevenue.toFixed(2)),
+        depositsCollectedEgp: Number(preordersDepositsCollected.toFixed(2)),
+        unearnedLiabilityEgp: Number(preordersDepositsCollected.toFixed(2)),
+        preordersCount: preorders.length,
       },
       liabilities: {
         pendingContainerDepositsCount: pendingDeposits.length,

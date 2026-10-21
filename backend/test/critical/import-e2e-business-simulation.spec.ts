@@ -9,10 +9,16 @@ import { AccountingPostingService } from '../../src/modules/accounting/accountin
 import { up as up233 } from '../../src/database/migrations/2040000000233_import_integrity_and_project_lifecycle';
 import { up as up234 } from '../../src/database/migrations/2040000000234_purchases_import_project_link';
 import { up as up235 } from '../../src/database/migrations/2040000000235_supplier_payments_idempotency_key';
-import { up as up236 } from '../../src/database/migrations/2040000000236_international_trade_procurement_and_sourcing';
-import { up as up237 } from '../../src/database/migrations/2040000000237_customs_broker_advances_and_container_deposits';
-import { up as up238 } from '../../src/database/migrations/2040000000238_container_preorders_and_inventory_traceability';
-import { up as up239 } from '../../src/database/migrations/2040000000239_import_governance_approvals_and_reconciliation';
+import { up as up236 } from '../../src/database/migrations/2040000000236_supplier_payments_foreign_amount';
+import { up as up237 } from '../../src/database/migrations/2040000000237_international_trade_procurement_and_sourcing';
+import { up as up238 } from '../../src/database/migrations/2040000000238_customs_broker_advances_and_container_deposits';
+import { up as up239 } from '../../src/database/migrations/2040000000239_container_preorders_and_inventory_traceability';
+import { up as up240 } from '../../src/database/migrations/2040000000240_import_governance_approvals_and_reconciliation';
+import {
+  allocateSaleFromImportLots,
+  restoreImportLotsFromCancelledSale,
+  restoreImportLotsFromSalesReturn,
+} from '../../src/modules/import-sales/helpers/import-lot-allocation.helper';
 
 class MultiStatementPGliteDialect extends PGliteDialect {
   constructor(private readonly pgliteInstance: PGlite) {
@@ -75,6 +81,13 @@ async function setupDatabase(): Promise<{ db: Kysely<Database>; accounts: Record
       parent_id BIGINT,
       is_active BOOLEAN DEFAULT TRUE,
       is_system BOOLEAN DEFAULT FALSE,
+      allow_manual_entries BOOLEAN DEFAULT TRUE,
+      is_control_account BOOLEAN DEFAULT FALSE,
+      is_cash_bank BOOLEAN DEFAULT FALSE,
+      is_receivable BOOLEAN DEFAULT FALSE,
+      is_payable BOOLEAN DEFAULT FALSE,
+      is_inventory BOOLEAN DEFAULT FALSE,
+      is_tax BOOLEAN DEFAULT FALSE,
       created_at TIMESTAMPTZ DEFAULT NOW(),
       updated_at TIMESTAMPTZ DEFAULT NOW(),
       CONSTRAINT uq_accounting_accounts_tenant_code UNIQUE (tenant_id, code)
@@ -381,6 +394,7 @@ async function setupDatabase(): Promise<{ db: Kysely<Database>; accounts: Record
     CREATE TABLE sales (
       id BIGSERIAL PRIMARY KEY,
       tenant_id TEXT NOT NULL REFERENCES tenants(id),
+      doc_no VARCHAR(100),
       customer_id BIGINT REFERENCES customers(id),
       total NUMERIC(15, 2) NOT NULL DEFAULT 0,
       paid_amount NUMERIC(15, 2) NOT NULL DEFAULT 0,
@@ -679,7 +693,7 @@ async function setupDatabase(): Promise<{ db: Kysely<Database>; accounts: Record
 
   await pglite.exec(baseDdl);
 
-  // Apply all real migrations from 233 up to 239
+  // Apply all real migrations from 233 up to 240
   await up233(db as any);
   await up234(db as any);
   await up235(db as any);
@@ -687,6 +701,7 @@ async function setupDatabase(): Promise<{ db: Kysely<Database>; accounts: Record
   await up237(db as any);
   await up238(db as any);
   await up239(db as any);
+  await up240(db as any);
 
   // Seed default tenant
   await pglite.exec(`INSERT INTO tenants (id, name) VALUES ('tenant-e2e', 'Global Import & Trade Ltd');`);
@@ -699,19 +714,20 @@ async function setupDatabase(): Promise<{ db: Kysely<Database>; accounts: Record
 
   // Seed standard Chart of Accounts
   await pglite.exec(`
-    INSERT INTO accounting_accounts (tenant_id, account_id, code, name_ar, name_en, account_type, account_group, normal_balance, is_system)
+    INSERT INTO accounting_accounts (tenant_id, account_id, code, name_ar, name_en, account_type, account_group, normal_balance, is_system, is_cash_bank, is_inventory, is_payable, is_receivable, is_tax)
     VALUES
-      ('tenant-e2e', 'tenant-e2e', '1110', 'الصندوق والنقدية', 'Cash', 'asset', 'current_assets', 'debit', true),
-      ('tenant-e2e', 'tenant-e2e', '1120', 'بنك مصر - حساب العملات الأجنبية', 'Foreign Currency Bank', 'asset', 'current_assets', 'debit', true),
-      ('tenant-e2e', 'tenant-e2e', '1130', 'عهد المخلصين الجمركيين', 'Customs Broker Advances', 'asset', 'current_assets', 'debit', true),
-      ('tenant-e2e', 'tenant-e2e', '1140', 'مخزون بضاعة بالطريق والمستودعات', 'Inventory Asset', 'asset', 'current_assets', 'debit', true),
-      ('tenant-e2e', 'tenant-e2e', '1150', 'ضريبة القيمة المضافة القابلة للاسترداد', 'Refundable VAT Asset', 'asset', 'current_assets', 'debit', true),
-      ('tenant-e2e', 'tenant-e2e', '1180', 'تأمينات حاويات مستردة لدى التوكيلات', 'Container Security Deposits', 'asset', 'current_assets', 'debit', true),
-      ('tenant-e2e', 'tenant-e2e', '2110', 'الموردين التجاريين والدائنين', 'Accounts Payable', 'liability', 'current_liabilities', 'credit', true),
-      ('tenant-e2e', 'tenant-e2e', '2130', 'عربونات وحجوزات العملاء (إيرادات مقدمة)', 'Customer Advance Deposits', 'liability', 'current_liabilities', 'credit', true),
-      ('tenant-e2e', 'tenant-e2e', '5110', 'تكلفة البضاعة المباعة', 'Cost of Goods Sold', 'expense', 'expenses', 'debit', true),
-      ('tenant-e2e', 'tenant-e2e', '5201', 'رسوم ومصاريف جمركية وتشغيلية', 'Customs & Demurrage Expense', 'expense', 'expenses', 'debit', true),
-      ('tenant-e2e', 'tenant-e2e', '4110', 'إيرادات المبيعات المحققة', 'Sales Revenue', 'revenue', 'revenues', 'credit', true);
+      ('tenant-e2e', 'tenant-e2e', '1110', 'الصندوق والنقدية', 'Cash', 'asset', 'current_assets', 'debit', true, true, false, false, false, false),
+      ('tenant-e2e', 'tenant-e2e', '1120', 'بنك مصر - حساب العملات الأجنبية', 'Foreign Currency Bank', 'asset', 'current_assets', 'debit', true, true, false, false, false, false),
+      ('tenant-e2e', 'tenant-e2e', '1130', 'عهد المخلصين الجمركيين', 'Customs Broker Advances', 'asset', 'current_assets', 'debit', true, false, false, false, false, false),
+      ('tenant-e2e', 'tenant-e2e', '1140', 'مخزون بضاعة بالطريق والمستودعات', 'Inventory Asset', 'asset', 'current_assets', 'debit', true, false, true, false, false, false),
+      ('tenant-e2e', 'tenant-e2e', '1150', 'ضريبة القيمة المضافة القابلة للاسترداد', 'Refundable VAT Asset', 'asset', 'current_assets', 'debit', true, false, false, false, false, true),
+      ('tenant-e2e', 'tenant-e2e', '1180', 'تأمينات حاويات مستردة لدى التوكيلات', 'Container Security Deposits', 'asset', 'current_assets', 'debit', true, false, false, false, false, false),
+      ('tenant-e2e', 'tenant-e2e', '2110', 'الموردين التجاريين والدائنين', 'Accounts Payable', 'liability', 'current_liabilities', 'credit', true, false, false, true, false, false),
+      ('tenant-e2e', 'tenant-e2e', '2130', 'عربونات وحجوزات العملاء (إيرادات مقدمة)', 'Customer Advance Deposits', 'liability', 'current_liabilities', 'credit', true, false, false, false, true, false),
+      ('tenant-e2e', 'tenant-e2e', '3100', 'رأس مال الشركاء والمساهمين', 'Partners Equity Capital', 'equity', 'equity', 'credit', true, false, false, false, false, false),
+      ('tenant-e2e', 'tenant-e2e', '5110', 'تكلفة البضاعة المباعة', 'Cost of Goods Sold', 'expense', 'expenses', 'debit', true, false, false, false, false, false),
+      ('tenant-e2e', 'tenant-e2e', '5201', 'رسوم ومصاريف جمركية وتشغيلية', 'Customs & Demurrage Expense', 'expense', 'expenses', 'debit', true, false, false, false, false, false),
+      ('tenant-e2e', 'tenant-e2e', '4110', 'إيرادات المبيعات المحققة', 'Sales Revenue', 'revenue', 'revenues', 'credit', true, false, false, false, false, false);
   `);
 
   const accountRows = await db
@@ -803,8 +819,8 @@ async function runBusinessSimulation() {
   // STEP 2: ADD 2 PARTNERS WITH CAPITAL & PROFIT SHARES
   // -------------------------------------------------------------
   console.log('Step 2: Adding Partners & Equity Shares...');
-  const p1 = await importService.createPartner(tenantId, userId, 'م. طارق العشري (شريك ممول)', 60, 1500000);
-  const p2 = await importService.createPartner(tenantId, userId, 'أ. حسام فؤاد (شريك إداري وتشغيلي)', 40, 500000);
+  const p1 = await importService.createPartner(tenantId, userId, 'م. طارق العشري (شريك ممول)', 60, 1500000, String(accounts['1120']));
+  const p2 = await importService.createPartner(tenantId, userId, 'أ. حسام فؤاد (شريك إداري وتشغيلي)', 40, 500000, String(accounts['1110']));
 
   await importService.setProjectPartners(tenantId, project.id, [
     { partnerId: p1.id, capitalShare: 1500000, profitPercentage: 60 },
@@ -950,6 +966,22 @@ async function runBusinessSimulation() {
   });
   assert.equal(qc.status, 'passed');
   console.log('PASS: QC Pre-shipment passed 100% of tested units.');
+
+  // Final Wire Transfer to release Bill of Lading (70% balance = $31,500)
+  const finalWireTransfer = await importService.recordForeignTransfer(tenantId, userId, {
+    supplierId: String(supplier.id),
+    projectId: project.id,
+    proformaInvoiceId: conversionResult.proformaId!,
+    amountForeign: 31500,
+    amountEgp: 1575000,
+    currency: 'USD',
+    exchangeRateContract: 50.0,
+    bankAccountId: accounts['1120'],
+    idempotencyKey: 'IDEMP-WIRE-BALANCE-002',
+    notes: 'سداد باقي قيمة الفاتورة المبدئية 70% بعد اجتياز فحص الجودة واستلام بوليصة الشحن',
+  });
+  assert.ok(finalWireTransfer.success);
+  console.log('PASS: Final proforma invoice balance settled (100% fully paid).');
 
   // -------------------------------------------------------------
   // STEP 9: CREATE MARITIME SHIPMENT & CONTAINER
@@ -1257,32 +1289,673 @@ async function runBusinessSimulation() {
   console.log(`PASS: Reconciliation scan completed (${scanResult.exceptionsFoundCount} items flagged).`);
 
   // -------------------------------------------------------------
-  // STEP 20: AUDITED PRE-CLOSURE GATE
+  // STEP 20: AUDITED PRE-CLOSURE AUDIT GATES (REJECTIONS WITH EXACT ASSERT.MATCH)
   // -------------------------------------------------------------
-  console.log('Step 20: Testing Project Pre-Closure Audit Gate...');
-  // Negative test: Project cannot close while customs broker has unliquidated advance!
-  let prematureClosureBlocked = false;
+  console.log('Step 20: Testing Audited Pre-Closure Audit Gates...');
+  // Gate 1: Project cannot close while customs broker has unliquidated advance (10,000 EGP remaining)
+  let brokerGateTriggered = false;
   try {
     await importService.closeProject(tenantId, userId, project.id);
   } catch (err: any) {
-    prematureClosureBlocked = true;
+    brokerGateTriggered = true;
+    assert.match(
+      err.message,
+      /عهدة مخلص معلقة/,
+      `Expected unliquidated broker advance error message, got: ${err.message}`
+    );
   }
-  assert.ok(prematureClosureBlocked, 'Pre-closure audit must strictly reject closure with active broker advance!');
-  console.log('PASS: Project closure correctly blocked by unliquidated broker advance.');
+  assert.ok(brokerGateTriggered, 'Pre-closure audit must strictly reject closure with active broker advance!');
+  console.log('PASS: Gate 1 blocked closure: Unliquidated broker advance detected.');
 
-  // Liquidate remaining 10,000 EGP of broker advance
+  // Liquidate remaining 10,000 EGP broker advance to clear Gate 1
   await importService.liquidateBrokerExpenses(tenantId, userId, {
     brokerId: broker.id,
     advanceId: brokerAdvance.id,
     projectId: project.id,
     shipmentId: shipment.id,
-    receiptNo: 'RCP-INLAND-TRANSPORT-03',
-    category: 'transport',
+    receiptNo: 'RCPT-FINAL-SETTLEMENT-001',
+    category: 'port_fees',
     amountEgp: 10000,
     isCapitalized: true,
   });
 
-  // Settle remaining proforma balance
+  // Gate 2: Project closure blocked by pending container security deposit
+  const tempDeposit = await importService.recordContainerDeposit(tenantId, userId, {
+    projectId: project.id,
+    shipmentId: shipment.id,
+    containerNo: 'TEMPORARY-CONT-01',
+    shippingLine: 'Maersk Line',
+    depositAmountEgp: 20000,
+    expectedReturnDate: '2026-05-01',
+    treasuryAccountId: String(accounts['1120']),
+  });
+
+  let depositGateTriggered = false;
+  try {
+    await importService.closeProject(tenantId, userId, project.id);
+  } catch (err: any) {
+    depositGateTriggered = true;
+    assert.match(
+      err.message,
+      /تأمين حاوية معلق/,
+      `Expected pending container deposit error message, got: ${err.message}`
+    );
+  }
+  assert.ok(depositGateTriggered, 'Pre-closure audit must strictly reject closure with pending container deposit!');
+  console.log('PASS: Gate 2 blocked closure: Pending container deposit detected.');
+
+  // Refund the temporary deposit to clear Gate 2
+  await importService.recordContainerReturnAndRefund(tenantId, userId, tempDeposit.id, {
+    actualReturnDate: '2026-04-15',
+    refundedAmountEgp: 20000,
+    deductionsAmountEgp: 0,
+    treasuryAccountId: String(accounts['1120']),
+  });
+
+  // Gate 3: Project closure blocked by unsold inventory remaining in lots
+  let unsoldLotsGateTriggered = false;
+  try {
+    await importService.closeProject(tenantId, userId, project.id);
+  } catch (err: any) {
+    unsoldLotsGateTriggered = true;
+    assert.match(
+      err.message,
+      /رصيد مخزني غير مباع بالباتش/,
+      `Expected unsold lots error message, got: ${err.message}`
+    );
+  }
+  assert.ok(unsoldLotsGateTriggered, 'Pre-closure audit must strictly reject closure with unsold inventory lots!');
+  console.log('PASS: Gate 3 blocked closure: Unsold inventory remaining in lots detected.');
+
+  // -------------------------------------------------------------
+  // STEP 21: RETAIL POINT OF SALE (POS) SALE & FIFO LOT ALLOCATION
+  // -------------------------------------------------------------
+  console.log('Step 21: Processing Retail POS Cash Sale & FIFO Lot Allocation...');
+  // Customer purchases 50 units of Product A (BLD-1000W) in cash @ 1,850 EGP
+  const posSale = await (db as any)
+    .insertInto('sales')
+    .values({
+      tenant_id: tenantId,
+      doc_no: 'INV-POS-2026-001',
+      total: 92500,
+      paid_amount: 92500,
+      status: 'completed',
+    })
+    .returningAll()
+    .executeTakeFirstOrThrow();
+
+  const posItem = await (db as any)
+    .insertInto('sale_items')
+    .values({
+      tenant_id: tenantId,
+      account_id: 'tenant-e2e',
+      sale_id: Number(posSale.id),
+      product_id: Number(productA.id),
+      product_name: productA.name,
+      qty: 50,
+      unit_price: 1850,
+      line_total: 92500,
+      cost_price: 1250,
+    })
+    .returningAll()
+    .executeTakeFirstOrThrow();
+
+  // Execute operational lot allocation via engine transaction
+  await db.transaction().execute(async (trx) => {
+    await allocateSaleFromImportLots(trx, {
+      tenantId,
+      saleId: Number(posSale.id),
+      items: [
+        {
+          itemId: Number(posItem.id),
+          productId: Number(productA.id),
+          qty: 50,
+          netUnitPrice: 1850,
+        },
+      ],
+    });
+  });
+
+  // Verify lot allocation record created
+  const posAllocations = await db
+    .selectFrom('import_sale_allocations')
+    .selectAll()
+    .where('tenant_id', '=', tenantId)
+    .where('sale_id', '=', Number(posSale.id))
+    .execute();
+
+  assert.equal(posAllocations.length, 1, 'Exactly 1 lot allocation row must be created');
+  assert.equal(Number(posAllocations[0].quantity), 50);
+  assert.equal(posAllocations[0].allocation_type, 'sale');
+  assert.equal(Number(posAllocations[0].unit_sale_price_egp), 1850);
+  assert.ok(Number(posAllocations[0].gross_margin_egp) > 0, 'Gross margin must be positive');
+
+  // Verify lot remaining quantity decremented from 1,000 to 950
+  const lotAfterPos = await db
+    .selectFrom('import_inventory_lots')
+    .selectAll()
+    .where('tenant_id', '=', tenantId)
+    .where('shipment_id', '=', shipment.id)
+    .where('product_id', '=', Number(productA.id))
+    .executeTakeFirstOrThrow();
+  assert.equal(Number(lotAfterPos.remaining_quantity), 950);
+  console.log(`PASS: Retail POS sale allocated from lot (remaining: ${lotAfterPos.remaining_quantity}, margin: ${posAllocations[0].gross_margin_egp} EGP).`);
+
+  // -------------------------------------------------------------
+  // STEP 22: WHOLESALE CREDIT SALE (FULFILLING IN-TRANSIT PRE-ORDER)
+  // -------------------------------------------------------------
+  console.log('Step 22: Processing Wholesale Credit Sale & Invoicing Pre-order...');
+  // Fulfill customer pre-order of 400 units @ 1,800 EGP = 720,000 EGP
+  // Deposit of 100,000 was paid during shipping; remaining credit balance = 620,000 EGP
+  const wsSale = await (db as any)
+    .insertInto('sales')
+    .values({
+      tenant_id: tenantId,
+      customer_id: Number(customer.id),
+      doc_no: 'INV-WS-2026-001',
+      total: 720000,
+      paid_amount: 100000, // 100,000 applied from preorder deposit
+      status: 'completed',
+    })
+    .returningAll()
+    .executeTakeFirstOrThrow();
+
+  const wsItem = await (db as any)
+    .insertInto('sale_items')
+    .values({
+      tenant_id: tenantId,
+      account_id: 'tenant-e2e',
+      sale_id: Number(wsSale.id),
+      product_id: Number(productA.id),
+      product_name: productA.name,
+      qty: 400,
+      unit_price: 1800,
+      line_total: 720000,
+      cost_price: 1250,
+    })
+    .returningAll()
+    .executeTakeFirstOrThrow();
+
+  await db.transaction().execute(async (trx) => {
+    await allocateSaleFromImportLots(trx, {
+      tenantId,
+      saleId: Number(wsSale.id),
+      items: [
+        {
+          itemId: Number(wsItem.id),
+          productId: Number(productA.id),
+          qty: 400,
+          netUnitPrice: 1800,
+        },
+      ],
+    });
+  });
+
+  // Update preorder status to 'invoiced'
+  await db
+    .updateTable('import_container_preorders')
+    .set({
+      status: 'invoiced',
+      sale_invoice_id: Number(wsSale.id),
+      updated_at: new Date(),
+    })
+    .where('id', '=', preorder.id)
+    .execute();
+
+  const updatedPreorderStatus = await db
+    .selectFrom('import_container_preorders')
+    .select(['status', 'sale_invoice_id'])
+    .where('id', '=', preorder.id)
+    .executeTakeFirstOrThrow();
+  assert.equal(updatedPreorderStatus.status, 'invoiced');
+  assert.equal(Number(updatedPreorderStatus.sale_invoice_id), Number(wsSale.id));
+
+  const lotAfterWs = await db
+    .selectFrom('import_inventory_lots')
+    .selectAll()
+    .where('tenant_id', '=', tenantId)
+    .where('shipment_id', '=', shipment.id)
+    .where('product_id', '=', Number(productA.id))
+    .executeTakeFirstOrThrow();
+  assert.equal(Number(lotAfterWs.remaining_quantity), 550); // 950 - 400 = 550
+  console.log(`PASS: Wholesale credit sale invoiced and allocated (lot remaining: ${lotAfterWs.remaining_quantity}).`);
+
+  // -------------------------------------------------------------
+  // STEP 23: WHOLESALE DEBT COLLECTION & TREASURY SETTLEMENT
+  // -------------------------------------------------------------
+  console.log('Step 23: Collecting Customer Remaining Receivables (620,000 EGP)...');
+  // Customer pays remaining 620,000 EGP via bank transfer
+  await db
+    .insertInto('treasury_transactions')
+    .values({
+      tenant_id: tenantId,
+      account_id: String(accounts['1120']),
+      txn_type: 'customer_payment',
+      amount: 620000,
+      note: 'تحصيل مديونية فاتورة الجملة INV-WS-2026-001',
+      reference_type: 'sale',
+      reference_id: Number(wsSale.id),
+      created_by: userId,
+    })
+    .execute();
+
+  await db
+    .updateTable('sales')
+    .set({ paid_amount: 720000 })
+    .where('id', '=', Number(wsSale.id))
+    .execute();
+
+  const finalSaleRecord = await db
+    .selectFrom('sales')
+    .select(['total', 'paid_amount'])
+    .where('id', '=', Number(wsSale.id))
+    .executeTakeFirstOrThrow();
+  assert.equal(Number(finalSaleRecord.paid_amount), Number(finalSaleRecord.total));
+  console.log('PASS: Wholesale customer debt collected in full (720,000 / 720,000 EGP).');
+
+  // -------------------------------------------------------------
+  // STEP 24: SALES RETURN WORKFLOW & FIFO LOT RESTORATION
+  // -------------------------------------------------------------
+  console.log('Step 24: Processing Customer Sales Return & Lot Restoration...');
+  // Retail customer returns 10 units of Product A
+  const retDoc = await (db as any)
+    .insertInto('return_documents')
+    .values({
+      tenant_id: tenantId,
+      account_id: 'tenant-e2e',
+      doc_no: 'RET-2026-001',
+      return_type: 'sale',
+      invoice_id: Number(posSale.id),
+      total: 18500, // 10 * 1850
+      settlement_mode: 'cash',
+      refund_method: 'cash',
+      note: 'مرتجع مبيعات تجزئة',
+      created_by: userId,
+    })
+    .returningAll()
+    .executeTakeFirstOrThrow();
+
+  await (db as any)
+    .insertInto('return_items')
+    .values({
+      tenant_id: tenantId,
+      account_id: 'tenant-e2e',
+      return_document_id: Number(retDoc.id),
+      product_id: Number(productA.id),
+      product_name: productA.name,
+      qty: 10,
+      unit_total: 1850,
+      line_total: 18500,
+    })
+    .execute();
+
+  await db.transaction().execute(async (trx) => {
+    await restoreImportLotsFromSalesReturn(trx, {
+      tenantId,
+      saleId: Number(posSale.id),
+      productId: Number(productA.id),
+      returnQty: 10,
+    });
+  });
+
+  // Verify lot quantity restored from 550 to 560
+  const lotAfterReturn = await db
+    .selectFrom('import_inventory_lots')
+    .selectAll()
+    .where('tenant_id', '=', tenantId)
+    .where('shipment_id', '=', shipment.id)
+    .where('product_id', '=', Number(productA.id))
+    .executeTakeFirstOrThrow();
+  assert.equal(Number(lotAfterReturn.remaining_quantity), 560); // 550 + 10 = 560
+
+  const returnAlloc = await db
+    .selectFrom('import_sale_allocations')
+    .selectAll()
+    .where('tenant_id', '=', tenantId)
+    .where('allocation_type', '=', 'return')
+    .executeTakeFirstOrThrow();
+  assert.equal(Number(returnAlloc.quantity), -10);
+  console.log(`PASS: Sales return restored 10 units to lot (remaining: ${lotAfterReturn.remaining_quantity}).`);
+
+  // -------------------------------------------------------------
+  // STEP 25: INVOICE CANCELLATION WORKFLOW & LOT ALLOCATION REVERSAL
+  // -------------------------------------------------------------
+  console.log('Step 25: Processing Invoice Cancellation & Lot Allocation Reversal...');
+  // An erroneous sale of 60 units is created
+  const erroneousSale = await (db as any)
+    .insertInto('sales')
+    .values({
+      tenant_id: tenantId,
+      doc_no: 'INV-ERR-2026-001',
+      total: 111000, // 60 * 1850
+      paid_amount: 111000,
+      status: 'completed',
+    })
+    .returningAll()
+    .executeTakeFirstOrThrow();
+
+  await db.transaction().execute(async (trx) => {
+    await allocateSaleFromImportLots(trx, {
+      tenantId,
+      saleId: Number(erroneousSale.id),
+      items: [{ productId: Number(productA.id), qty: 60, netUnitPrice: 1850 }],
+    });
+  });
+
+  const lotDuringErr = await db
+    .selectFrom('import_inventory_lots')
+    .select('remaining_quantity')
+    .where('tenant_id', '=', tenantId)
+    .where('shipment_id', '=', shipment.id)
+    .where('product_id', '=', Number(productA.id))
+    .executeTakeFirstOrThrow();
+  assert.equal(Number(lotDuringErr.remaining_quantity), 500); // 560 - 60 = 500
+
+  // Now cancel the sale invoice
+  await db
+    .updateTable('sales')
+    .set({ status: 'cancelled' })
+    .where('id', '=', Number(erroneousSale.id))
+    .execute();
+
+  await db.transaction().execute(async (trx) => {
+    await restoreImportLotsFromCancelledSale(trx, {
+      tenantId,
+      saleId: Number(erroneousSale.id),
+    });
+  });
+
+  // Verify lot restored back to 560
+  const lotAfterCancel = await db
+    .selectFrom('import_inventory_lots')
+    .select('remaining_quantity')
+    .where('tenant_id', '=', tenantId)
+    .where('shipment_id', '=', shipment.id)
+    .where('product_id', '=', Number(productA.id))
+    .executeTakeFirstOrThrow();
+  assert.equal(Number(lotAfterCancel.remaining_quantity), 560);
+
+  const reversalAlloc = await db
+    .selectFrom('import_sale_allocations')
+    .selectAll()
+    .where('tenant_id', '=', tenantId)
+    .where('allocation_type', '=', 'cancellation')
+    .executeTakeFirstOrThrow();
+  assert.equal(Number(reversalAlloc.quantity), -60);
+  console.log(`PASS: Sale cancellation reversed 60 units back to lot (remaining: ${lotAfterCancel.remaining_quantity}).`);
+
+  // -------------------------------------------------------------
+  // STEP 26: POST-SALES LATE SHIPMENT EXPENSE ALLOCATION (IAS 2 SPLIT)
+  // -------------------------------------------------------------
+  console.log('Step 26: Processing Post-Sales Late Port Expense with IAS 2 Split...');
+  // Delayed detention bill of 20,000 EGP arrives after units have been sold
+  // Product A: 1000 total received, 560 on hand, 440 net sold
+  // Product B: 500 total received, 500 on hand, 0 sold
+  const latePostSaleExp = await importService.processLateShipmentExpense(tenantId, userId, shipment.id, {
+    title: 'مطالبة متأخرة لغرامات تأخير أرضيات ميناء الإسكندرية',
+    lateExpenseAmount: 20000,
+    payableAccountId: accounts['2110'],
+    note: 'توزيع متأخر بموجب IAS 2 بين البضاعة المباعة والمتبقية',
+  });
+
+  assert.ok(latePostSaleExp.success);
+  assert.ok(latePostSaleExp.allocation.lateCogsAdjustmentEgp > 0, 'Must allocate portion to COGS for sold units');
+  assert.ok(latePostSaleExp.allocation.lateInventoryAdjustmentEgp > 0, 'Must allocate portion to Inventory for on-hand units');
+  const sumSplit = Number((latePostSaleExp.allocation.lateCogsAdjustmentEgp + latePostSaleExp.allocation.lateInventoryAdjustmentEgp).toFixed(2));
+  assert.equal(sumSplit, 20000, 'Sum of COGS and Inventory adjustments must equal total late expense');
+  console.log(`PASS: IAS 2 late expense split mathematically exact: COGS = ${latePostSaleExp.allocation.lateCogsAdjustmentEgp} EGP, Inventory = ${latePostSaleExp.allocation.lateInventoryAdjustmentEgp} EGP.`);
+
+  // -------------------------------------------------------------
+  // STEP 27: MULTI-PROJECT SHARED PRODUCT PROFIT ISOLATION
+  // -------------------------------------------------------------
+  console.log('Step 27: Testing Multi-Project Shared Product Profit Isolation...');
+  // Create a second parallel project that imports the EXACT SAME Product A
+  const project2 = await importService.createProject(tenantId, {
+    projectNo: 'IMP-2026-002',
+    title: 'مشروع استيراد موازٍ - الدفعة الثانية من نفس الصنف',
+    budgetCurrency: 'USD',
+    allocatedCapital: 30000,
+  });
+
+  const shipment2 = await importService.createShipment(tenantId, {
+    containerNumber: 'CMAU-8492018',
+    billOfLading: 'CMANB84920',
+    projectId: project2.id,
+    supplierId: String(supplier.id),
+  });
+
+  await importService.addShipmentItem(tenantId, shipment2.id, {
+    productId: String(productA.id), // Same product!
+    quantity: 500,
+    factoryUnitPriceUsd: 26.0,
+    unitWeightKg: 2.5,
+    unitCbm: 0.025,
+  });
+
+  await importService.updateShipmentCosts(tenantId, userId, shipment2.id, {
+    status: 'Arrived',
+    customsCostEgp: 70000,
+    internalTransportCostEgp: 8000,
+    exchangeRateAtArrival: 50.0,
+  });
+
+  // Verify Lot 2 created for Project 2
+  const lotProject2 = await db
+    .selectFrom('import_inventory_lots')
+    .selectAll()
+    .where('tenant_id', '=', tenantId)
+    .where('project_id', '=', project2.id)
+    .where('product_id', '=', Number(productA.id))
+    .executeTakeFirstOrThrow();
+  assert.equal(Number(lotProject2.remaining_quantity), 500);
+
+  // Sell 100 units of Product A
+  const p1Sale = await (db as any)
+    .insertInto('sales')
+    .values({
+      tenant_id: tenantId,
+      doc_no: 'INV-SHARED-001',
+      total: 185000,
+      paid_amount: 185000,
+      status: 'completed',
+    })
+    .returningAll()
+    .executeTakeFirstOrThrow();
+
+  await db.transaction().execute(async (trx) => {
+    await allocateSaleFromImportLots(trx, {
+      tenantId,
+      saleId: Number(p1Sale.id),
+      items: [{ productId: Number(productA.id), qty: 100, netUnitPrice: 1850 }],
+    });
+  });
+
+  // Under FIFO, this sale came from Lot 1 (Project 1). Lot 1 remaining drops from 560 to 460.
+  const lotP1Check = await db
+    .selectFrom('import_inventory_lots')
+    .select('remaining_quantity')
+    .where('id', '=', lotAfterReturn.id)
+    .executeTakeFirstOrThrow();
+  assert.equal(Number(lotP1Check.remaining_quantity), 460);
+
+  // Lot 2 (Project 2) remains completely untouched at 500
+  const lotP2Check = await db
+    .selectFrom('import_inventory_lots')
+    .select('remaining_quantity')
+    .where('id', '=', lotProject2.id)
+    .executeTakeFirstOrThrow();
+  assert.equal(Number(lotP2Check.remaining_quantity), 500);
+
+  // Generate profit reports and verify complete isolation
+  const p1Profit = await importService.generatePeriodProfitReport(
+    tenantId,
+    new Date('2026-01-01'),
+    new Date('2026-12-31'),
+    project.id
+  );
+  const p2Profit = await importService.generatePeriodProfitReport(
+    tenantId,
+    new Date('2026-01-01'),
+    new Date('2026-12-31'),
+    project2.id
+  );
+
+  assert.equal(p1Profit.data.profitAttributionVerified, true);
+  assert.ok(p1Profit.data.grossSalesRevenue > 0, 'Project 1 must reflect its allocated sales');
+  assert.equal(p2Profit.data.grossSalesRevenue, 0, 'Project 2 must have 0 sales despite sharing the same product catalog ID');
+  console.log('PASS: Shared product profit strictly isolated across multiple import projects via lot allocation tracking.');
+
+  // -------------------------------------------------------------
+  // STEP 28: LIQUIDATE ALL REMAINING PROJECT 1 LOTS TO ZERO
+  // -------------------------------------------------------------
+  console.log('Step 28: Depleting All Remaining Project 1 Inventory Lots to Zero...');
+  // Sell remaining 460 units of Product A and 500 units of Product B from Project 1
+  const bulkClearanceSale = await (db as any)
+    .insertInto('sales')
+    .values({
+      tenant_id: tenantId,
+      doc_no: 'INV-BULK-CLEAR-001',
+      total: 460 * 1850 + 500 * 2950,
+      paid_amount: 460 * 1850 + 500 * 2950,
+      status: 'completed',
+    })
+    .returningAll()
+    .executeTakeFirstOrThrow();
+
+  await (db as any)
+    .insertInto('sale_items')
+    .values([
+      {
+        tenant_id: tenantId,
+        account_id: 'tenant-e2e',
+        sale_id: Number(bulkClearanceSale.id),
+        product_id: Number(productA.id),
+        product_name: productA.name,
+        qty: 460,
+        unit_price: 1850,
+        line_total: 460 * 1850,
+        cost_price: 1250,
+      },
+      {
+        tenant_id: tenantId,
+        account_id: 'tenant-e2e',
+        sale_id: Number(bulkClearanceSale.id),
+        product_id: Number(productB.id),
+        product_name: productB.name,
+        qty: 500,
+        unit_price: 2950,
+        line_total: 500 * 2950,
+        cost_price: 2000,
+      },
+    ])
+    .execute();
+
+  await db.transaction().execute(async (trx) => {
+    await allocateSaleFromImportLots(trx, {
+      tenantId,
+      saleId: Number(bulkClearanceSale.id),
+      items: [
+        { productId: Number(productA.id), qty: 460, netUnitPrice: 1850 },
+        { productId: Number(productB.id), qty: 500, netUnitPrice: 2950 },
+      ],
+    });
+  });
+
+  const p1RemainingLots = await db
+    .selectFrom('import_inventory_lots')
+    .selectAll()
+    .where('tenant_id', '=', tenantId)
+    .where('project_id', '=', project.id)
+    .execute();
+
+  for (const l of p1RemainingLots) {
+    assert.equal(Number(l.remaining_quantity), 0, `Lot ${l.lot_number} must be completely depleted`);
+    assert.equal(l.status, 'depleted');
+  }
+  console.log('PASS: All Project 1 lots depleted to 0 units remaining.');
+
+  // -------------------------------------------------------------
+  // STEP 29: PARTNER SETTLEMENT & VERIFIED PROFIT DISTRIBUTION
+  // -------------------------------------------------------------
+  console.log('Step 29: Partner Settlement & Verified Profit Payout (Maker-Checker)...');
+  const finalProfitReport = await importService.generatePeriodProfitReport(
+    tenantId,
+    new Date('2026-01-01'),
+    new Date('2026-12-31'),
+    project.id
+  );
+  assert.equal(finalProfitReport.data.profitAttributionVerified, true);
+  const netPool = finalProfitReport.data.netProfitPool;
+  assert.ok(netPool > 0, 'Net profit pool must be positive');
+
+  const p1ExpectedShare = Number((netPool * 0.60).toFixed(2));
+
+  // Negative test: Overpaying beyond partner share must be rejected
+  let overpayBlocked = false;
+  try {
+    await importService.recordPartnerPayout(tenantId, userId, p1.id, p1ExpectedShare + 500000);
+  } catch (err: any) {
+    overpayBlocked = true;
+    assert.match(
+      err.message,
+      /تتجاوز المستحق المعتمد للشريك|تتجاوز صافي أرباح الشريك|الحد الأقصى|لا يكفي/,
+      `Expected profit share cap rejection, got: ${err.message}`
+    );
+  }
+  assert.ok(overpayBlocked, 'Payout exceeding partner allocated profit share must be strictly rejected!');
+  console.log('PASS: Over-payout attempt rejected by profit ceiling gate.');
+
+  // Legitimate payout with Maker-Checker approval
+  const payoutApproval = await importService.createApprovalRequest(tenantId, userId, {
+    actionType: 'partner_distribution',
+    referenceId: p1.id,
+    requestPayload: { partnerId: p1.id, amount: 100000 },
+  });
+
+  await importService.decideApprovalRequest(tenantId, Number(auditor.id), payoutApproval.id, {
+    decision: 'approved',
+  });
+
+  const payoutResult = await importService.recordPartnerPayout(
+    tenantId,
+    userId,
+    p1.id,
+    100000,
+    payoutApproval.id
+  );
+  assert.ok(payoutResult.success);
+
+  const updatedP1 = await db
+    .selectFrom('import_partners')
+    .selectAll()
+    .where('id', '=', p1.id)
+    .executeTakeFirstOrThrow();
+  assert.equal(Number(updatedP1.withdrawn_profit), 100000);
+
+  // Negative test: Re-using the same approval request must be rejected (single-use token)
+  let reuseBlocked = false;
+  try {
+    await importService.recordPartnerPayout(tenantId, userId, p1.id, 10000, payoutApproval.id);
+  } catch (err: any) {
+    reuseBlocked = true;
+    assert.match(
+      err.message,
+      /تم تنفيذها مسبقاً|executed/,
+      `Expected single-use approval rejection, got: ${err.message}`
+    );
+  }
+  assert.ok(reuseBlocked, 'Re-using already executed Maker-Checker approval must be strictly rejected!');
+  console.log('PASS: Maker-Checker approval single-use verified; partner profit disbursed.');
+
+  // -------------------------------------------------------------
+  // STEP 30: FINAL CLEAN AUDITED PROJECT CLOSURE & CONCURRENCY GUARDS
+  // -------------------------------------------------------------
+  console.log('Step 30: Final Clean Audited Project Closure & Immutability Gates...');
+  // 1. Verify customs broker advance is 100% liquidated
+  const finalBrokerStatement = await importService.getCustomsBrokerStatement(tenantId, broker.id);
+  assert.equal(finalBrokerStatement.netBalanceDue, 0, 'Broker balance must be 100% liquidated');
+
+  // 2. Settle remaining proforma balance in full
   await db
     .updateTable('import_proforma_invoices')
     .set({
@@ -1292,12 +1965,61 @@ async function runBusinessSimulation() {
     .where('id', '=', conversionResult.proformaId!)
     .execute();
 
-  const closedProject = await importService.closeProject(tenantId, userId, project.id);
-  assert.ok(closedProject.success);
-  assert.ok(closedProject.closureData);
-  console.log('PASS: Project successfully closed after 100% audited settlement of all liabilities!');
+  // 3. Create and approve closure governance request
+  const closeApproval = await importService.createApprovalRequest(tenantId, userId, {
+    actionType: 'project_closure',
+    referenceId: project.id,
+  });
 
-  console.log('=== ALL 30 END-TO-END STEPS PASSED WITH 100% OPERATIONAL & MATHEMATICAL INTEGRITY ===');
+  await importService.decideApprovalRequest(tenantId, Number(auditor.id), closeApproval.id, {
+    decision: 'approved',
+  });
+
+  // 4. Execute final closure
+  const finalClosure = await importService.closeProject(
+    tenantId,
+    userId,
+    project.id,
+    closeApproval.id
+  );
+  assert.ok(finalClosure.success);
+  assert.ok(finalClosure.closureData);
+
+  const closedProjectRecord = await db
+    .selectFrom('import_projects')
+    .selectAll()
+    .where('id', '=', project.id)
+    .executeTakeFirstOrThrow();
+  assert.equal(closedProjectRecord.status, 'closed');
+  assert.ok(closedProjectRecord.closure_date !== null);
+
+  // 5. Invariant Guards on Closed Project:
+  // A. Cannot re-close already closed project
+  let recloseBlocked = false;
+  try {
+    await importService.closeProject(tenantId, userId, project.id);
+  } catch (err: any) {
+    recloseBlocked = true;
+    assert.match(err.message, /مقفل/, `Expected already closed error, got: ${err.message}`);
+  }
+  assert.ok(recloseBlocked, 'Re-closing an already closed project must be rejected');
+
+  // B. Cannot edit partner ratios on closed project
+  let partnerEditBlocked = false;
+  try {
+    await importService.setProjectPartners(tenantId, project.id, [
+      { partnerId: p1.id, profitPercentage: 50 },
+      { partnerId: p2.id, profitPercentage: 50 },
+    ]);
+  } catch (err: any) {
+    partnerEditBlocked = true;
+    assert.match(err.message, /مقفل ومسوى مالياً/, `Expected closed partner edit rejection, got: ${err.message}`);
+  }
+  assert.ok(partnerEditBlocked, 'Modifying partners on closed project must be rejected');
+
+  console.log('PASS: Final project closure verified with 100% audited settlement, frozen autopsy and post-closure immunity.');
+
+  console.log('\n=== ALL 30 END-TO-END STEPS PASSED WITH 100% OPERATIONAL & MATHEMATICAL INTEGRITY ===');
 }
 
 runBusinessSimulation()

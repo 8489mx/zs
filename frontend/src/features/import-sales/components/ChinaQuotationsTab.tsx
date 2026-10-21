@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
   useQuotationsQuery,
   useCreateQuotationMutation,
@@ -7,23 +7,16 @@ import {
 } from '../api/shipments.api';
 import { StandardDialog } from '@/shared/components/StandardDialog';
 import { formatCurrency } from '@/lib/format';
-import {
-  PlusCircleIcon,
-  CheckCircleIcon,
-  RefreshCwIcon,
-  AlertTriangleIcon,
-  SlidersIcon,
-  FileTextIcon,
-} from '@/shared/components/icons/AppIcons';
+import { PlusCircleIcon } from '@/shared/components/icons/AppIcons';
 import { toast } from '@/shared/components/system-alert';
 import { useQuery } from '@tanstack/react-query';
 import { http } from '@/lib/http';
 
 export function ChinaQuotationsTab() {
-  const { data: quotations = [], isLoading, refetch } = useQuotationsQuery();
+  const { data: quotations = [], refetch } = useQuotationsQuery();
   const { data: suppliers = [] } = useChinaSuppliersQuery();
   const createQuotationMutation = useCreateQuotationMutation();
-  const selectQuotationMutation = useSelectQuotationMutation('');
+  const selectQuotationMutation = useSelectQuotationMutation();
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [selectedQuoteForApproval, setSelectedQuoteForApproval] = useState<any | null>(null);
@@ -34,12 +27,12 @@ export function ChinaQuotationsTab() {
   const [supplierId, setSupplierId] = useState<number | ''>('');
   const [quotationNo, setQuotationNo] = useState('');
   const [incoterm, setIncoterm] = useState('FOB');
-  const [currency, setCurrency] = useState('USD');
+  const currency = 'USD';
   const [totalForeign, setTotalForeign] = useState<number>(45000);
   const [exchangeRate, setExchangeRate] = useState<number>(50);
   const [shippingCostUsd, setShippingCostUsd] = useState<number>(2800);
   const [customsDutyEgp, setCustomsDutyEgp] = useState<number>(140000);
-  const [estimatedUnitCostEgp, setEstimatedUnitCostEgp] = useState<number>(1613);
+  const [estimatedUnitCostEgp] = useState<number>(1613);
   const [leadTimeDays, setLeadTimeDays] = useState<number>(30);
   const [validUntil, setValidUntil] = useState('');
 
@@ -85,7 +78,10 @@ export function ChinaQuotationsTab() {
     e.preventDefault();
     if (!selectedQuoteForApproval) return;
     try {
-      await selectQuotationMutation.mutateAsync(selectionReason);
+      await selectQuotationMutation.mutateAsync({
+        quotationId: selectedQuoteForApproval.id,
+        reason: selectionReason,
+      });
       toast.success('تم اعتماد واختيار العرض الفائز وتحديث دراسة الجدوى');
       setSelectedQuoteForApproval(null);
       refetch();
@@ -152,7 +148,7 @@ export function ChinaQuotationsTab() {
                 </td>
               </tr>
             ) : (
-              quotations.map((q) => (
+              quotations.map((q: any) => (
                 <tr key={q.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                   <td style={{ padding: '10px 14px', fontWeight: 700, color: '#0f172a' }}>
                     {q.supplier_name || `مورد #${q.supplier_id}`}

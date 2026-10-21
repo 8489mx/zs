@@ -1,7 +1,7 @@
 import { toast } from '@/shared/components/system-alert';
 import { useTranslation } from 'react-i18next';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { PageHeader } from '@/shared/components/page-header';
 import { Button } from '@/shared/ui/button';
 import { formatCurrency } from '@/lib/format';
@@ -28,9 +28,12 @@ export default function SupplierCredit() {
   const [amountEgp, setAmountEgp] = useState('');
   const [amountForeign, setAmountForeign] = useState('');
   const [notes, setNotes] = useState('');
+  // Preserve the key across network retries of the *same* request.
+  const transferAttempt = useRef<{ fingerprint: string; key: string } | null>(null);
 
   const factories = suppliersQuery.data?.filter(s => s.metadata?.supplierType === 'factory') || [];
-  const totalDebtForeign = factories.reduce((sum, s) => sum + Number(s.balance || 0), 0);
+  // suppliers.balance is a base-currency EGP balance, NOT outstanding USD.
+  const totalDebtEgp = factories.reduce((sum, s) => sum + Number(s.balance || 0), 0);
   const availableEgp = treasuryQuery.data?.summary?.net || 0;
 
   const egpNum = Number(amountEgp) || 0;
@@ -43,13 +46,18 @@ export default function SupplierCredit() {
     { if (egpNum <= 0) { toast.error('المبلغ المسحوب من الخزينة يجب أن يكون أكبر من صفر'); return; } }
     { if (foreignNum <= 0) { toast.error('المبلغ المحول للمصنع يجب أن يكون أكبر من صفر'); return; } }
 
+    const payload = { supplierId: selectedSupplier, amountEgp: egpNum, amountForeign: foreignNum, notes };
+    const fingerprint = JSON.stringify(payload);
+    if (!transferAttempt.current || transferAttempt.current.fingerprint !== fingerprint) {
+      transferAttempt.current = { fingerprint, key: crypto.randomUUID() };
+    }
+
     transferMutation.mutate({
-      supplierId: selectedSupplier,
-      amountEgp: egpNum,
-      amountForeign: foreignNum,
-      notes
+      ...payload,
+      idempotencyKey: transferAttempt.current.key,
     }, {
       onSuccess: () => {
+        transferAttempt.current = null;
         toast.success('تم تسجيل الحوالة البنكية وتحديث مديونية المصنع والخزينة بنجاح');
         setAmountEgp('');
         setAmountForeign('');
@@ -92,9 +100,9 @@ export default function SupplierCredit() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '14px', marginBottom: '8px' }}>
           <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
             <div>
-              <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>{t('import_sales.supplier_credit.s3', "إجمالي مديونية المصانع الأجنبية")}</div>
+              <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>{t('import_sales.supplier_credit.s3', "إجمالي مديونية المصانع الأجنبية")} (بالجنيه الدفتري)</div>
               <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#0f172a', marginTop: '4px' }}>
-                {totalDebtForeign.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>$</span>
+                {totalDebtEgp.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}><CurrencySymbol /></span>
               </div>
             </div>
             <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#eff6ff', border: '1px solid #dbeafe', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1e40af' }}>
@@ -134,7 +142,7 @@ export default function SupplierCredit() {
               <span>{t('import_sales.supplier_credit.s7', "تسجيل حوالة بنكية جديدة (تدبير عملة)")}</span>
             </h3>
             <p style={{ margin: '4px 0 0 0', fontSize: '0.8125rem', color: '#64748b' }}>
-              {t('import_sales.supplier_credit.s8', "هذه العملية ستقوم بخصم المبلغ بالجنيه من الخزينة، وتخفيض مديونية المصنع بالعملة الأجنبية تلقائياً في حسابات الموردين.")}
+              {t('import_sales.supplier_credit.s8', "هذه العملية تسجل النقدية بالجنيه ورصيد المورد الدفتري بالجنيه، مع الاحتفاظ بقيمة التحويل الأجنبية بشكل مستقل. راجع التزام الـProforma بالعملة الأصلية قبل السداد.")}
             </p>
           </div>
 

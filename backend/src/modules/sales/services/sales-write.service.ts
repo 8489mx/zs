@@ -31,6 +31,7 @@ import { WhatsAppGatewayService } from '../../settings/services/whatsapp-gateway
 import { CashierFraudRadarService } from './cashier-fraud-radar.service';
 import { PlanFeatureService } from '../../../core/auth/services/plan-feature.service';
 import { ReturnsService, type ExchangeReturnContext } from '../../returns/returns.service';
+import { allocateSaleFromImportLots, restoreImportLotsFromCancelledSale } from '../../import-sales/helpers/import-lot-allocation.helper';
 
 /**
  * Pre-approved commercial terms for a sale created by the system on behalf of a merchant user
@@ -1667,6 +1668,16 @@ export class SalesWriteService {
         }
 
         await this.deductPharmacyBatchesFefo(trx, item.productId, allocations, scope, id, saleLineId);
+        await allocateSaleFromImportLots(trx, {
+          tenantId: scope.tenantId,
+          saleId: id,
+          items: [{
+            itemId: saleLineId,
+            productId: item.productId,
+            qty: item.qty,
+            netUnitPrice: allocationByItem.get(item)!.netUnitPrice,
+          }],
+        });
 
         if (item.modifiers && Array.isArray(item.modifiers) && this.planFeatureService.hasFeature(auth.planId, auth.extraFeatures, 'restaurant')) {
           for (const mod of item.modifiers) {
@@ -2275,6 +2286,7 @@ export class SalesWriteService {
 
       await trx.deleteFrom('sale_payments').where('sale_id', '=', saleId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
       await this.releaseSaleSerials(trx, saleId, scope.tenantId);
+      await restoreImportLotsFromCancelledSale(trx, { tenantId: scope.tenantId, saleId });
       await trx.deleteFrom('sale_items').where('sale_id', '=', saleId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
 
       const customer = normalized.customerId
@@ -2559,6 +2571,16 @@ export class SalesWriteService {
         }
 
         await this.deductPharmacyBatchesFefo(trx, item.productId, allocations, scope, saleId, saleLineId);
+        await allocateSaleFromImportLots(trx, {
+          tenantId: scope.tenantId,
+          saleId: saleId,
+          items: [{
+            itemId: saleLineId,
+            productId: item.productId,
+            qty: item.qty,
+            netUnitPrice: allocationByItem.get(item)!.netUnitPrice,
+          }],
+        });
 
         if (item.modifiers && Array.isArray(item.modifiers) && this.planFeatureService.hasFeature(auth.planId, auth.extraFeatures, 'restaurant')) {
           for (const mod of item.modifiers) {
@@ -2700,6 +2722,7 @@ export class SalesWriteService {
       const items = await trx.selectFrom('sale_items').selectAll().where('sale_id', '=', saleId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
       await this.lockSaleStockRows(trx, scope, items);
       await this.restoreSalePharmacyBatches(trx, saleId, items, scope, false);
+      await restoreImportLotsFromCancelledSale(trx, { tenantId: scope.tenantId, saleId });
       for (const item of [...items].sort((a, b) => Number(a.product_id || 0) - Number(b.product_id || 0))) {
         if (!item.product_id) continue;
         const product = await trx.selectFrom('products').select(['stock_qty']).where('id', '=', item.product_id).where(sql<boolean>`tenant_id = ${scope.tenantId}`).executeTakeFirst();

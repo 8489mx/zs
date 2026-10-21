@@ -92,9 +92,47 @@ export class GoodsReceiptService {
       throw new NotFoundException('المورد المحدد غير موجود.');
     }
 
-    const location = await this.db.selectFrom('stock_locations').select('id')
-      .where('id', '=', dto.locationId).where('tenant_id', '=', scope.tenantId).executeTakeFirst();
-    if (!location) throw new NotFoundException('مكان الاستلام غير موجود في المنشأة.');
+    let locationId = Number(dto.locationId || 0);
+
+    // Verify location exists in tenant or resolve fallback
+    let location = locationId > 0
+      ? await this.db.selectFrom('stock_locations').select(['id', 'name'])
+          .where('id', '=', locationId).where('tenant_id', '=', scope.tenantId).executeTakeFirst()
+      : null;
+
+    if (!location) {
+      // 1. If PO is specified, check if the PO has a warehouse_id that belongs to tenant
+      if (dto.purchaseOrderId) {
+        const po = await this.db.selectFrom('purchase_orders').select(['warehouse_id'])
+          .where('id', '=', dto.purchaseOrderId).where('tenant_id', '=', scope.tenantId).executeTakeFirst();
+        if (po?.warehouse_id) {
+          const poLoc = await this.db.selectFrom('stock_locations').select(['id', 'name'])
+            .where('id', '=', Number(po.warehouse_id)).where('tenant_id', '=', scope.tenantId).executeTakeFirst();
+          if (poLoc) {
+            location = poLoc;
+            locationId = Number(poLoc.id);
+          }
+        }
+      }
+
+      // 2. If still not found (or legacy fallback 1 was sent but doesn't exist in this tenant),
+      // auto-resolve tenant's default active location
+      if (!location) {
+        const defaultLoc = await this.db
+          .selectFrom('stock_locations')
+          .select(['id', 'name'])
+          .where('tenant_id', '=', scope.tenantId)
+          .where('is_active', '=', true)
+          .orderBy('id', 'asc')
+          .executeTakeFirst();
+
+        if (!defaultLoc) {
+          throw new NotFoundException('مكان الاستلام غير موجود في المنشأة ولا يوجد أي مخزن نشط.');
+        }
+        location = defaultLoc;
+        locationId = Number(defaultLoc.id);
+      }
+    }
     const productIds = [...new Set(dto.lines.map((line) => Number(line.productId)))];
     if (productIds.some((id) => !Number.isInteger(id) || id <= 0)) {
       throw new BadRequestException('أحد أصناف إذن الاستلام غير صالح.');
@@ -141,7 +179,7 @@ export class GoodsReceiptService {
           doc_no: `GRN-TMP-${randomUUID()}`,
           purchase_order_id: dto.purchaseOrderId || null,
           supplier_id: dto.supplierId,
-          location_id: dto.locationId,
+          location_id: locationId,
           received_at: dto.receivedAt ? new Date(dto.receivedAt) : new Date(),
           received_by: auth.userId,
           supplier_delivery_note_ref: dto.supplierDeliveryNoteRef || null,

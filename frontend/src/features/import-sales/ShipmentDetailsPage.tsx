@@ -240,8 +240,8 @@ export default function ShipmentDetailsPage() {
           }
           actions={
             <div className="actions compact-actions">
-              <Button variant="outline" onClick={() => setIsPreordersOpen(true)} style={{ borderColor: '#0284c7', color: '#0369a1', fontWeight: 600 }}>حجوزات البضاعة العايمة</Button>
-              <Button variant="outline" onClick={() => setIsAutopsyOpen(true)} style={{ borderColor: '#170e5e', color: '#170e5e', fontWeight: 700 }}>تشريح أرباح الحاوية (P&L)</Button>
+              <Button variant="secondary" onClick={() => setIsPreordersOpen(true)} style={{ borderColor: '#0284c7', color: '#0369a1', fontWeight: 600 }}>حجوزات البضاعة العايمة</Button>
+              <Button variant="secondary" onClick={() => setIsAutopsyOpen(true)} style={{ borderColor: '#170e5e', color: '#170e5e', fontWeight: 700 }}>تشريح أرباح الحاوية (P&L)</Button>
               <Button variant="secondary" onClick={() => navigate('/import-sales/shipments')}>{t('import_sales.shipment_details_page.s10', "عودة للقائمة")}</Button>
             </div>
           } 
@@ -404,9 +404,13 @@ export default function ShipmentDetailsPage() {
         </FormSection>
       </main>
 
-      {isAddItemOpen && (
+      {isAutopsyOpen && (
         <ContainerAutopsyModal isOpen={isAutopsyOpen} onClose={() => setIsAutopsyOpen(false)} shipmentId={id!} />
+      )}
+      {isPreordersOpen && (
         <ContainerPreordersModal isOpen={isPreordersOpen} onClose={() => setIsPreordersOpen(false)} shipment={data} />
+      )}
+      {isAddItemOpen && (
         <AddShipmentItemDialog 
           open={isAddItemOpen} 
           onClose={() => setIsAddItemOpen(false)} 

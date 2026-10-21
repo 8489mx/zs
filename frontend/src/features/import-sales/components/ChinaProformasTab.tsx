@@ -1,28 +1,21 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
   useProformaInvoicesQuery,
   useGenerateInternationalPoMutation,
 } from '../api/shipments.api';
 import { StandardDialog } from '@/shared/components/StandardDialog';
-import { formatCurrency } from '@/lib/format';
-import {
-  FileTextIcon,
-  CheckCircleIcon,
-  RefreshCwIcon,
-  DownloadIcon,
-  SlidersIcon,
-} from '@/shared/components/icons/AppIcons';
+import { CheckCircleIcon } from '@/shared/components/icons/AppIcons';
 import { toast } from '@/shared/components/system-alert';
 
 export function ChinaProformasTab() {
-  const { data: proformas = [], isLoading, refetch } = useProformaInvoicesQuery();
+  const { data: proformas = [], refetch } = useProformaInvoicesQuery();
   const generatePoMutation = useGenerateInternationalPoMutation('');
 
   const [generatedPoResult, setGeneratedPoResult] = useState<any | null>(null);
 
   const handleGeneratePo = async (piId: string) => {
     try {
-      const res = await generatePoMutation.mutateAsync();
+      const res = await generatePoMutation.mutateAsync(piId);
       setGeneratedPoResult(res);
       toast.success('تم توليد أمر الشراء الدولي (IPO) وتثبيت المواصفات الفنية والشروط التعاقدية');
       refetch();

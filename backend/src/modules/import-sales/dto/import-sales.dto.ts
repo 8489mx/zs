@@ -339,6 +339,10 @@ export class RecordForeignTransferDto {
   @IsOptional()
   @IsString()
   transferDate?: string;
+
+  @IsOptional()
+  @IsString()
+  approvalRequestId?: string;
 }
 
 export class CreateImportProjectDto {

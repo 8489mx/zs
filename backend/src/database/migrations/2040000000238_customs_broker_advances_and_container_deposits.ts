@@ -28,6 +28,7 @@ export async function up(db: Kysely<any>): Promise<void> {
   await sql`
     CREATE TABLE IF NOT EXISTS import_broker_advances (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      serial_id BIGSERIAL UNIQUE,
       tenant_id TEXT NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
       broker_id UUID NOT NULL REFERENCES import_customs_brokers(id) ON DELETE RESTRICT,
       project_id UUID REFERENCES import_projects(id) ON DELETE SET NULL,
@@ -55,6 +56,7 @@ export async function up(db: Kysely<any>): Promise<void> {
   await sql`
     CREATE TABLE IF NOT EXISTS import_broker_expenses (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      serial_id BIGSERIAL UNIQUE,
       tenant_id TEXT NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
       broker_id UUID NOT NULL REFERENCES import_customs_brokers(id) ON DELETE RESTRICT,
       advance_id UUID REFERENCES import_broker_advances(id) ON DELETE SET NULL,
@@ -83,6 +85,7 @@ export async function up(db: Kysely<any>): Promise<void> {
   await sql`
     CREATE TABLE IF NOT EXISTS import_container_deposits (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      serial_id BIGSERIAL UNIQUE,
       tenant_id TEXT NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
       project_id UUID REFERENCES import_projects(id) ON DELETE SET NULL,
       shipment_id UUID REFERENCES import_shipments(id) ON DELETE CASCADE,

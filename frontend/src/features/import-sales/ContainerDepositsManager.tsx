@@ -8,26 +8,20 @@ import { StandardDialog } from '@/shared/components/StandardDialog';
 import { formatCurrency } from '@/lib/format';
 import {
   PlusCircleIcon,
-  CheckCircleIcon,
-  RefreshCwIcon,
-  AlertTriangleIcon,
-  SlidersIcon,
-  DownloadIcon,
 } from '@/shared/components/icons/AppIcons';
 import { toast } from '@/shared/components/system-alert';
 import { useQuery } from '@tanstack/react-query';
 import { http } from '@/lib/http';
 
 export function ContainerDepositsManager() {
-  const { data: deposits = [], isLoading, refetch } = useContainerDepositsQuery();
+  const { data: deposits = [], refetch } = useContainerDepositsQuery();
   const recordDepositMutation = useRecordContainerDepositMutation();
-  const refundDepositMutation = useRefundContainerDepositMutation('');
+  const refundDepositMutation = useRefundContainerDepositMutation();
 
   const [isRecordOpen, setIsRecordOpen] = useState(false);
   const [selectedDepositForRefund, setSelectedDepositForRefund] = useState<any | null>(null);
 
   // Record Deposit Form State
-  const [projectId, setProjectId] = useState('');
   const [shipmentId, setShipmentId] = useState('');
   const [containerNo, setContainerNo] = useState('');
   const [shippingLine, setShippingLine] = useState('MSC Mediterranean Shipping Company');
@@ -42,15 +36,6 @@ export function ContainerDepositsManager() {
   const [deductionsAmountEgp, setDeductionsAmountEgp] = useState<number>(0);
   const [deductionReason, setDeductionReason] = useState('');
   const [refundTreasuryAccountId, setRefundTreasuryAccountId] = useState('');
-
-  // Fetch Projects and Shipments
-  const { data: projects = [] } = useQuery({
-    queryKey: ['import-projects'],
-    queryFn: async () => {
-      const res = await http<any[]>('/api/import-sales/projects');
-      return Array.isArray(res) ? res : (res as any)?.items || [];
-    },
-  });
 
   const { data: shipments = [] } = useQuery({
     queryKey: ['import-shipments'],
@@ -82,7 +67,7 @@ export function ContainerDepositsManager() {
 
     try {
       await recordDepositMutation.mutateAsync({
-        projectId: projectId || undefined,
+        projectId: undefined,
         shipmentId: shipmentId || undefined,
         containerNo: containerNo.trim(),
         shippingLine,
@@ -106,11 +91,14 @@ export function ContainerDepositsManager() {
 
     try {
       await refundDepositMutation.mutateAsync({
-        actualReturnDate,
-        refundedAmountEgp: Number(refundedAmountEgp),
-        deductionsAmountEgp: Number(deductionsAmountEgp),
-        deductionReason: deductionReason || undefined,
-        treasuryAccountId: refundTreasuryAccountId || undefined,
+        depositId: selectedDepositForRefund.id,
+        dto: {
+          actualReturnDate,
+          refundedAmountEgp: Number(refundedAmountEgp),
+          deductionsAmountEgp: Number(deductionsAmountEgp),
+          deductionReason: deductionReason || undefined,
+          treasuryAccountId: refundTreasuryAccountId || undefined,
+        },
       });
       toast.success('تمت تسوية استرداد التأمين وتحديث حالة الحاوية إلى تم تسليم الفارغ');
       setSelectedDepositForRefund(null);

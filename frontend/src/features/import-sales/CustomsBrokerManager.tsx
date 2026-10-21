@@ -13,17 +13,13 @@ import {
   PlusCircleIcon,
   CheckCircleIcon,
   RefreshCwIcon,
-  AlertTriangleIcon,
-  SlidersIcon,
-  UsersIcon,
-  FileTextIcon,
 } from '@/shared/components/icons/AppIcons';
 import { toast } from '@/shared/components/system-alert';
 import { useQuery } from '@tanstack/react-query';
 import { http } from '@/lib/http';
 
 export function CustomsBrokerManager() {
-  const { data: brokers = [], isLoading, refetch } = useCustomsBrokersQuery();
+  const { data: brokers = [], refetch } = useCustomsBrokersQuery();
   const createBrokerMutation = useCreateCustomsBrokerMutation();
   const disburseAdvanceMutation = useDisburseBrokerAdvanceMutation();
   const liquidateExpenseMutation = useLiquidateBrokerExpenseMutation();
@@ -174,7 +170,7 @@ export function CustomsBrokerManager() {
     }
   };
 
-  const totalUnliquidatedAll = brokers.reduce((sum, b) => sum + Number(b.unliquidated_balance_egp || 0), 0);
+  const totalUnliquidatedAll = brokers.reduce((sum: number, b: any) => sum + Number(b.unliquidated_balance_egp || 0), 0);
 
   return (
     <div dir="rtl" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -282,7 +278,7 @@ export function CustomsBrokerManager() {
                 </td>
               </tr>
             ) : (
-              brokers.map((broker) => (
+              brokers.map((broker: any) => (
                 <tr key={broker.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                   <td style={{ padding: '10px 14px', fontWeight: 700, color: '#0f172a' }}>{broker.name}</td>
                   <td style={{ padding: '10px 14px', fontFamily: 'monospace' }}>{broker.license_number || '—'}</td>
@@ -455,7 +451,7 @@ export function CustomsBrokerManager() {
               required
             >
               <option value="">-- اختر المخلص --</option>
-              {brokers.map((b) => (
+              {brokers.map((b: any) => (
                 <option key={b.id} value={b.id}>
                   {b.name} ({b.port_name}) - رصيد معلق: {formatCurrency(b.unliquidated_balance_egp)}
                 </option>
@@ -606,7 +602,7 @@ export function CustomsBrokerManager() {
               required
             >
               <option value="">-- اختر المخلص --</option>
-              {brokers.map((b) => (
+              {brokers.map((b: any) => (
                 <option key={b.id} value={b.id}>
                   {b.name} (الرصيد المعلق: {formatCurrency(b.unliquidated_balance_egp)})
                 </option>

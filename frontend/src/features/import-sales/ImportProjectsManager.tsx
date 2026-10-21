@@ -3,24 +3,18 @@ import {
   useImportProjectsQuery,
   useCreateImportProjectMutation,
   useCalculateFeasibilityMutation,
-  ImportProject,
 } from './api/shipments.api';
 import { StandardDialog } from '@/shared/components/StandardDialog';
 import {
   PlusCircleIcon,
   RefreshCwIcon,
-  TrendingUpIcon,
-  DollarSignIcon,
-  FileTextIcon,
-  CheckCircleIcon,
   XIcon,
-  ChevronRightIcon,
   SlidersIcon,
 } from '@/shared/components/icons/AppIcons';
 import { toast } from '@/shared/components/system-alert';
 
 export default function ImportProjectsManager() {
-  const { data: projects = [], isLoading, refetch } = useImportProjectsQuery();
+  const { data: projects = [], refetch } = useImportProjectsQuery();
   const createProjectMutation = useCreateImportProjectMutation();
   const calculateFeasibilityMutation = useCalculateFeasibilityMutation();
 
@@ -210,7 +204,6 @@ export default function ImportProjectsManager() {
                   <th style={{ padding: '10px 14px', fontSize: '12px', fontWeight: 700, color: '#475569' }}>العائد المستهدف (ROI)</th>
                   <th style={{ padding: '10px 14px', fontSize: '12px', fontWeight: 700, color: '#475569' }}>الحاويات المرتبطة</th>
                   <th style={{ padding: '10px 14px', fontSize: '12px', fontWeight: 700, color: '#475569' }}>حالة المشروع</th>
-                  <th style={{ padding: '10px 14px', fontSize: '12px', fontWeight: 700, color: '#475569', textAlign: 'center' }}>الإجراءات</th>
                 </tr>
               </thead>
               <tbody>
@@ -305,6 +298,15 @@ export default function ImportProjectsManager() {
               />
             </div>
             <div>
+              <label style={{ fontSize: '11.5px', fontWeight: 700, color: '#475569', display: 'block', marginBottom: 4 }}>التأمين البحري ($)</label>
+              <input
+                type="number"
+                value={insuranceUsd}
+                onChange={(e) => setInsuranceUsd(Number(e.target.value))}
+                style={{ width: '100%', height: 34, padding: '4px 8px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: '12.5px' }}
+              />
+            </div>
+            <div>
               <label style={{ fontSize: '11.5px', fontWeight: 700, color: '#475569', display: 'block', marginBottom: 4 }}>الرسوم الجمركية (%)</label>
               <input
                 type="number"
@@ -337,6 +339,15 @@ export default function ImportProjectsManager() {
                 type="number"
                 value={transportEgp}
                 onChange={(e) => setTransportEgp(Number(e.target.value))}
+                style={{ width: '100%', height: 34, padding: '4px 8px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: '12.5px' }}
+              />
+            </div>
+            <div>
+              <label style={{ fontSize: '11.5px', fontWeight: 700, color: '#475569', display: 'block', marginBottom: 4 }}>مصاريف سفر ومعاينات (ج.م)</label>
+              <input
+                type="number"
+                value={travelEgp}
+                onChange={(e) => setTravelEgp(Number(e.target.value))}
                 style={{ width: '100%', height: 34, padding: '4px 8px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: '12.5px' }}
               />
             </div>

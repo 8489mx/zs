@@ -5,6 +5,7 @@ export async function up(db: Kysely<any>): Promise<void> {
   await sql`
     CREATE TABLE IF NOT EXISTS import_container_preorders (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      serial_id BIGSERIAL UNIQUE,
       tenant_id TEXT NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
       preorder_no VARCHAR(50) NOT NULL,
       project_id UUID REFERENCES import_projects(id) ON DELETE SET NULL,
@@ -75,6 +76,8 @@ export async function up(db: Kysely<any>): Promise<void> {
       unit_sale_price_egp NUMERIC(15, 2) NOT NULL,
       unit_cost_egp NUMERIC(15, 4) NOT NULL,
       gross_margin_egp NUMERIC(15, 2) NOT NULL,
+      allocation_type VARCHAR(50) DEFAULT 'sale', -- sale, return, cancellation, scrap, transfer
+      reversal_of_allocation_id UUID REFERENCES import_sale_allocations(id) ON DELETE SET NULL,
       created_at TIMESTAMPTZ DEFAULT NOW()
     );
 

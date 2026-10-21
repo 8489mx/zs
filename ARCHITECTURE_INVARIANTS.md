@@ -2076,10 +2076,11 @@ esolveTenantAccount، مع التحقق من تفعيل الحسابات وعز�
   - مسح رقابي دوري وتلقائي يكتشف أي شذوذ حسابي (حوالات غير مربوطة، شحنات بدون بوالص، عهد مخلصين مفتوحة بعد وصول البضاعة، شحنات ذات تكلفة صفرية) مع توليد تنبيهات حوكمة فورية في لوحة قيادة الاستيراد.
 
 - **سجل الهجرات (Migration Ledger):**
-  - `2040000000236_international_trade_procurement_and_sourcing.ts`: جداول طلبات التسعير والعينات وأوامر الشراء الدولية وجدول التدفقات النقدية.
-  - `2040000000237_customs_broker_advances_and_container_deposits.ts`: سجل المخلصين الجمركيين وعهد التخليص والإيصالات وتأمينات الخطوط الملاحية.
-  - `2040000000238_container_preorders_and_inventory_traceability.ts`: حجوزات بضاعة الطريق وباتشات الحاويات وسجل حيازة النقد الأجنبي.
-  - `2040000000239_import_governance_approvals_and_reconciliation.ts`: مستودع الوثائق المشفرة، حوكمة الصانع والمدقق، وجدول استثناءات التدقيق المحاسبي.
+  - `2040000000236_supplier_payments_foreign_amount.ts`: فصل وحدات العملة الأجنبية للمورد مع بقاء دفتر الأستاذ بالعملة الأساسية (الجنيه EGP).
+  - `2040000000237_international_trade_procurement_and_sourcing.ts`: جداول طلبات التسعير والعينات وأوامر الشراء الدولية وجدول التدفقات النقدية.
+  - `2040000000238_customs_broker_advances_and_container_deposits.ts`: سجل المخلصين الجمركيين وعهد التخليص والإيصالات وتأمينات الخطوط الملاحية مع تسلسل عددي دائم للقيود.
+  - `2040000000239_container_preorders_and_inventory_traceability.ts`: حجوزات بضاعة الطريق وباتشات الحاويات وربط تخصيص المبيعات وسجل حيازة النقد الأجنبي.
+  - `2040000000240_import_governance_approvals_and_reconciliation.ts`: مستودع الوثائق المشفرة، حوكمة الصانع والمدقق، وجدول استثناءات التدقيق المحاسبي.
 
 - **الحراس:**
   - `backend/test/critical/import-e2e-business-simulation.spec.ts`
