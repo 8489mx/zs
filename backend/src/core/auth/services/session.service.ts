@@ -792,7 +792,14 @@ export class SessionService {
     if (!currentPasswordCheck.valid) throw new Error('Current password is incorrect');
     assertStrongPassword(newPassword);
     const nextPassword = await createPasswordRecord(newPassword);
-    await this.db.updateTable('users').set({ password_hash: nextPassword.hash, password_salt: nextPassword.salt, must_change_password: false, failed_login_count: 0, locked_until: null }).where('id', '=', auth.userId).where(sql<boolean>`tenant_id = ${tenantId}`).execute();
+    await this.db.transaction().execute(async (trx) => {
+      await trx.updateTable('users').set({ password_hash: nextPassword.hash, password_salt: nextPassword.salt, must_change_password: false, failed_login_count: 0, locked_until: null }).where('id', '=', auth.userId).where(sql<boolean>`tenant_id = ${tenantId}`).execute();
+      let sessionCleanup = trx.deleteFrom('sessions').where('user_id', '=', auth.userId).where(sql<boolean>`tenant_id = ${tenantId}`);
+      if (auth.sessionId) {
+        sessionCleanup = sessionCleanup.where('id', '!=', auth.sessionId);
+      }
+      await sessionCleanup.execute();
+    });
     this.authCache.invalidateUserSessions(auth.userId);
   }
 
