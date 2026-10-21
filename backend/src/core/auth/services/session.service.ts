@@ -61,6 +61,17 @@ export function isMfaChallenge(result: AuthenticateResult | null): result is Mfa
   return Boolean(result && (result as MfaChallengeResult).mfaRequired === true);
 }
 
+/** An enabled mandatory platform MFA policy cannot be bypassed by unenrolled accounts. */
+export function requiresPlatformMfaEnrolment(
+  tenantId: string, role: string, enrolled: boolean, env: NodeJS.ProcessEnv = process.env,
+): boolean {
+  return String(env.MFA_REQUIRED_FOR_PLATFORM || '').trim().toLowerCase() === 'true'
+    && isPlatformTenantId(tenantId)
+    && ['super_admin', 'admin'].includes(role)
+    && !enrolled;
+}
+
+
 @Injectable()
 export class SessionService {
   constructor(
@@ -552,6 +563,11 @@ export class SessionService {
     // هنا إطلاقاً** — يُعاد تحدٍّ موقَّع قصير العمر، والجلسة تُنشأ في `completeMfaLogin` بعد
     // التحقق من الرمز. أي مسار يُنشئ جلسة قبل العامل الثاني يُلغي الميزة كلها.
     const mfaEnabled = await this.hasConfirmedMfa(user.id, tenantContext.tenantId);
+    if (requiresPlatformMfaEnrolment(tenantContext.tenantId, String(user.role || ''), mfaEnabled)) {
+      // Fail closed: an operator must enrol the owner *before* enabling MFA_REQUIRED_FOR_PLATFORM.
+      // Never issue a password-only session while an explicit mandatory MFA policy is active.
+      throw new UnauthorizedException('MFA_ENROLLMENT_REQUIRED: المصادقة الثنائية مطلوبة لهذا الحساب ولم تُفعّل بعد. تواصل مع إدارة المنصة لتفعيلها بشكل آمن.');
+    }
     if (mfaEnabled) {
       await this.db
         .updateTable('users')
