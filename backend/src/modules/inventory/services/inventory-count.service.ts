@@ -143,7 +143,7 @@ export class InventoryCountService {
 
     const idemCtx = idempotencyStorage.getStore();
     if (idemCtx?.idempotencyKey) {
-      const cached = await this.idempotency.check(idemCtx.idempotencyKey, tenantScope);
+      const cached = await this.idempotency.check(idemCtx.idempotencyKey, tenantScope, idemCtx.operationType);
       if (cached) return cached.response;
     }
 
@@ -157,17 +157,21 @@ export class InventoryCountService {
         const expectedQty = await previewAssignedLocationStockQty(trx, { productId: item.productId, branchId: location.branchId, locationId: location.id, tenantId: tenantScope.tenantId, accountId: tenantScope.accountId });
         await trx.insertInto('stock_count_items').values({ ...buildStockCountItemValues({ ...product, stock_qty: expectedQty }, item, id), ...this.tenantFields(auth) }).execute();
       }
+
+      // Idempotency: commit inside the EXACT SAME business transaction (CORE-004)
+      if (idemCtx && idemCtx.idempotencyKey && idemCtx.operationType) {
+        await this.idempotency.commitOperation(
+          trx,
+          { tenantId: tenantScope.tenantId, accountId: idemCtx.accountId || tenantScope.accountId, idempotencyKey: idemCtx.idempotencyKey, operationType: idemCtx.operationType },
+          { ok: true, sessionId: String(id) },
+          String(id)
+        );
+      }
+
       return id;
     });
     await this.audit.log('جلسة جرد مخزون', JSON.stringify({ actorUserId: auth.userId, after: { sessionId: finalResponse, branchId: location.branchId, locationId: location.id, status: 'draft' } }), auth);
     const responsePayload = { ok: true, sessionId: String(finalResponse), stockCountSessions: (await this.listStockCountSessions({}, auth)).stockCountSessions, damagedStockRecords: (await this.listDamagedStock({}, auth)).damagedStockRecords };
-    if (idemCtx && idemCtx.idempotencyKey && idemCtx.operationType) {
-      const idKey = idemCtx.idempotencyKey;
-      const opType = idemCtx.operationType;
-      await this.tx.runInTransaction(this.db, async (trx) => {
-        await this.idempotency.commitOperation(trx, { tenantId: tenantScope.tenantId, accountId: tenantScope.accountId, idempotencyKey: idKey, operationType: opType }, responsePayload);
-      });
-    }
     return responsePayload;
   }
 
