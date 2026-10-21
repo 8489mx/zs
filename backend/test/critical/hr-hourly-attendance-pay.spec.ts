@@ -13,5 +13,6 @@ assert.equal(unfinished.baseWage, 0);
 assert.equal(summarizeHourlyAttendance([punch('2026-10-01T17:00:00Z', '2026-10-01T09:00:00Z')], 50).invalidCount, 1);
 assert.equal(summarizeHourlyAttendance([{ ...punch('2026-10-01T09:00:00Z', '2026-10-01T17:00:00Z'), status: 'absent' }], 50).baseWage, 0);
 assert.equal(prorateMonthlyWage(3100, '2026-10-01', '2026-10-07'), 700);
+assert.equal(prorateMonthlyWage(3100, '2026-10-15', '2026-10-21'), 700);
 assert.equal(prorateMonthlyWage(3000, '2026-10-01', '2026-10-31'), 3000);
 console.log('HR hourly attendance/pay tests passed');

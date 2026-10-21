@@ -1750,6 +1750,7 @@ export class HrService {
       punchesByEmployee.get(employeeId)!.push(punch);
     }
     const baseSalMap = new Map<number, number>();
+    const contractualMonthlySalary = new Map<number, number>();
     for (const e of employees.rows) {
       const employeeId = Number(e.employee_id);
       if (e.compensation_type === 'hourly') {
@@ -1757,10 +1758,12 @@ export class HrService {
         hourlyWorkByEmployee.set(employeeId, work);
         baseSalMap.set(employeeId, work.baseWage);
       } else {
-        baseSalMap.set(employeeId, prorateMonthlyWage(Number(e.base_salary || 0), range.from, range.to));
+        const monthlySalary = Number(e.base_salary || 0);
+        contractualMonthlySalary.set(employeeId, monthlySalary);
+        baseSalMap.set(employeeId, prorateMonthlyWage(monthlySalary, range.from, range.to));
       }
     }
-    const autoReviews = await this.calculatePayrollOperationalReview(db, range, empIds, baseSalMap, tenantId);
+    const autoReviews = await this.calculatePayrollOperationalReview(db, range, empIds, baseSalMap, tenantId, contractualMonthlySalary);
 
     for (const employee of employees.rows) {
       const employeeId = Number(employee.employee_id || 0);
@@ -1932,6 +1935,7 @@ export class HrService {
     employeeIds: number[],
     baseSalaryByEmployeeId: Map<number, number>,
     tenantId: string,
+    contractualMonthlySalary?: Map<number, number>,
   ): Promise<Map<number, any>> {
     const reviewByEmployeeId = new Map<number, any>();
     if (!employeeIds.length) return reviewByEmployeeId;
@@ -2106,7 +2110,8 @@ export class HrService {
       const expectedHours = Number(emp.expected_daily_hours || 8) || 8;
       
       const baseSalary = Number(baseSalaryByEmployeeId.get(employeeId) || 0);
-      const dailyRate = isHourly ? (hourlyRate * expectedHours) : (baseSalary > 0 ? Number((baseSalary / 30).toFixed(2)) : 0);
+      const contractedBase = Number(contractualMonthlySalary?.get(employeeId) ?? baseSalary);
+      const dailyRate = isHourly ? (hourlyRate * expectedHours) : (contractedBase > 0 ? Number((contractedBase / 30).toFixed(2)) : 0);
       const calculatedHourlyRate = isHourly ? hourlyRate : (dailyRate / expectedHours);
 
       // Determine Delay Policy Deduction
@@ -2166,7 +2171,11 @@ export class HrService {
       let suggestedSocialInsuranceDeductionAmount = 0;
       let suggestedEmployerInsuranceAmount = 0;
       if (hrSocialInsuranceEnabled && emp.has_social_insurance) {
-        const insSalary = Number(emp.insurance_salary) || baseSalary;
+        const fullMonthlyBase = Number(contractualMonthlySalary?.get(employeeId) || 0);
+        const periodRatio = !isHourly && fullMonthlyBase > 0 ? Math.max(0, baseSalary / fullMonthlyBase) : 1;
+        const configuredInsuranceSalary = Number(emp.insurance_salary || 0);
+        const insSalary = configuredInsuranceSalary > 0
+          ? configuredInsuranceSalary * periodRatio : baseSalary;
         suggestedSocialInsuranceDeductionAmount = Number((insSalary * (hrSocialInsuranceEmployeePct / 100)).toFixed(2));
         suggestedEmployerInsuranceAmount = Number((insSalary * (hrSocialInsuranceEmployerPct / 100)).toFixed(2));
       }
@@ -2688,6 +2697,24 @@ export class HrService {
       if (missingRates.rows.length) {
         const names = missingRates.rows.map(row => String(row.display_name)).join('، ');
         throw new AppError(`يوجد موظفون بدون أجر ساعة أو عقد براتب نشط وصحيح: ${names}`, 'HR_PAYROLL_MISSING_EMPLOYEE_RATES', 400);
+      }
+      // A reviewed payroll still cannot be approved with disputed attendance.
+      const pendingAttendance = await sql<{ pending: string }>`
+        SELECT COUNT(*)::text AS pending
+        FROM hr_attendance_exceptions ex
+        JOIN hr_payroll_run_items item
+          ON item.employee_id = ex.employee_id AND item.tenant_id = ex.tenant_id
+          AND item.run_id = ${id} AND item.status = 'reviewed'
+        JOIN hr_payroll_runs run ON run.id = item.run_id AND run.tenant_id = item.tenant_id
+        WHERE ex.tenant_id = ${auth.tenantId}
+          AND ex.status IN ('pending', 'needs_review')
+          AND ex.work_date BETWEEN run.start_date AND run.end_date
+      `.execute(trx);
+      if (Number(pendingAttendance.rows[0]?.pending || 0) > 0) {
+        throw new AppError(
+          `يوجد ${pendingAttendance.rows[0].pending} استثناء حضور أو تأخير يحتاج مراجعة قبل اعتماد المرتبات`,
+          'HR_PAYROLL_ATTENDANCE_PENDING', 400,
+        );
       }
       await this.settlePayrollLoanDeductions(trx, id, auth);
 

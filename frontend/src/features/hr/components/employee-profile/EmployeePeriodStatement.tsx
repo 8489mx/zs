@@ -13,9 +13,11 @@ const egyptMoney = (amount: number) => new Intl.NumberFormat('ar-EG', { maximumF
 export function EmployeePeriodStatement({ employeeId, employee, canViewLoans, canViewSalary }: Props) {
   const [from, setFrom] = useState(todayDate().slice(0, 7) + '-01');
   const [to, setTo] = useState(todayDate());
-  const validRange = Boolean(from && to && from <= to);
+  const [attendancePage, setAttendancePage] = useState(1);
+  const days = Math.floor((Date.parse(to + 'T00:00:00Z') - Date.parse(from + 'T00:00:00Z')) / 86400000);
+  const validRange = Boolean(from && to && days >= 0 && days <= 92);
   const canViewAttendance = useHasAnyPermission('hrAttendance');
-  const attendance = useHrAttendance({ employeeId, from, to, page: 1, pageSize: 100 }, { enabled: validRange && canViewAttendance });
+  const attendance = useHrAttendance({ employeeId, from, to, page: attendancePage, pageSize: 100 }, { enabled: validRange && canViewAttendance });
   const withdrawals = useQuery({
     queryKey: ['hr', 'period-statement-withdrawals', employeeId, from, to],
     queryFn: () => hrApi.withdrawals({ employeeId, period: 'custom', from, to, page: 1, pageSize: 100 }),
@@ -33,10 +35,10 @@ export function EmployeePeriodStatement({ employeeId, employee, canViewLoans, ca
     <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 10, padding: 14, marginBottom: 14 }}>
       <strong style={{ fontSize: 15 }}>كشف تشغيل ومستحقات الموظف حسب الفترة</strong>
       <div className="actions compact-actions" style={{ margin: '10px 0', flexWrap: 'wrap' }}>
-        <label>من <input type="date" value={from} onChange={e => setFrom(e.target.value)} /></label>
-        <label>إلى <input type="date" value={to} onChange={e => setTo(e.target.value)} /></label>
+        <label>من <input type="date" value={from} onChange={e => { setFrom(e.target.value); setAttendancePage(1); }} /></label>
+        <label>إلى <input type="date" value={to} onChange={e => { setTo(e.target.value); setAttendancePage(1); }} /></label>
       </div>
-      {!validRange ? <p className="error-box">تاريخ النهاية لازم يكون بعد البداية.</p> : null}
+      {!validRange ? <p className="error-box">الفترة يجب أن تكون صحيحة ولا تزيد عن 93 يومًا.</p> : null}
       {attendance.isError && canViewAttendance ? <p className="error-box">تعذر تحميل سجلات الحضور.</p> : null}
       {!canViewAttendance ? <p className="muted">ليس لديك صلاحية عرض الحضور والانصراف.</p> : null}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 18, marginBottom: 12 }}>
@@ -61,6 +63,13 @@ export function EmployeePeriodStatement({ employeeId, employee, canViewLoans, ca
           { key: 'out', header: 'الانصراف', cell: row => row.checkOutAt?.slice(11, 16) || '—' },
           { key: 'state', header: 'الحالة', cell: row => row.status || '—' },
         ]} />
+      {canViewAttendance && Number(attendance.data?.pagination?.totalPages || 1) > 1 ? (
+        <div className="actions compact-actions" style={{ marginTop: 8 }}>
+          <button type="button" disabled={attendancePage <= 1} onClick={() => setAttendancePage(n => Math.max(1, n - 1))}>السابق</button>
+          <span>صفحة {attendancePage} من {attendance.data?.pagination?.totalPages}</span>
+          <button type="button" disabled={attendancePage >= Number(attendance.data?.pagination?.totalPages || 1)} onClick={() => setAttendancePage(n => n + 1)}>التالي</button>
+        </div>
+      ) : null}
       {canViewLoans ? (
         <>
           <strong style={{ display: 'block', margin: '12px 0 6px' }}>المسحوبات وحركات السداد</strong>

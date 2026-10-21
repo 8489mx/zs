@@ -60,7 +60,7 @@ export function useHrAttendance(params: HrListParams & { date?: string; workDate
     queryKey: ['hr', 'attendance', dateKey, key],
     queryFn: () => hrApi.attendance(params),
     placeholderData: (previous) => previous,
-    enabled: options?.enabled !== undefined ? options.enabled : canViewAttendance,
+    enabled: canViewAttendance && (options?.enabled ?? true),
   });
 }
 
@@ -72,7 +72,7 @@ export function useHrAttendanceExceptions(params: HrListParams & { date?: string
     queryKey: ['hr', 'attendance-exceptions', dateKey, key],
     queryFn: () => hrApi.attendanceExceptions(params),
     placeholderData: (previous) => previous,
-    enabled: options?.enabled !== undefined ? options.enabled : canViewAttendance,
+    enabled: canViewAttendance && (options?.enabled ?? true),
   });
 }
 
