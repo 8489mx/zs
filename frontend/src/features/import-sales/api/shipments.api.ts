@@ -642,8 +642,11 @@ export const useCalculateCustomsMutation = () => {
 export const useCloseProjectMutation = (projectId: string) => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async () => {
-      return await http(`/api/import-sales/projects/${projectId}/close`, { method: 'POST' });
+    mutationFn: async (approvalRequestId: string) => {
+      if (!approvalRequestId?.trim()) throw new Error('موافقة إقفال المشروع إلزامية.');
+      return await http(`/api/import-sales/projects/${projectId}/close`, {
+        method: 'POST', body: JSON.stringify({ approvalRequestId }),
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['import-projects'] });

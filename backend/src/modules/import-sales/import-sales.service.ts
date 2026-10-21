@@ -232,79 +232,51 @@ export class ImportSalesService {
     approvalRequestId?: string,
     expectedDetails?: { amount?: number; projectId?: string; partnerId?: string }
   ): Promise<void> {
-    if (!approvalRequestId) return;
-
-    const req = await trx
-      .selectFrom('import_approval_requests')
-      .selectAll()
-      .where('id', '=', approvalRequestId)
-      .where('tenant_id', '=', tenantId)
-      .forUpdate()
-      .executeTakeFirst();
-
-    if (!req) {
-      throw new BadRequestException('طلب الاعتماد (Maker-Checker) المحدد غير موجود.');
+    const mandatory = actionType === 'partner_distribution' || actionType === 'project_closure';
+    if (!approvalRequestId) {
+      if (mandatory) throw new BadRequestException('هذا الإجراء يتطلب موافقة Maker-Checker معتمدة ومرتبطة بمستند العملية.');
+      return;
     }
 
-    if (req.action_type !== actionType) {
-      throw new BadRequestException(
-        `نوع طلب الاعتماد (${req.action_type}) لا يطابق الإجراء المطلوب (${actionType}).`
-      );
+    const req = await trx.selectFrom('import_approval_requests')
+      .selectAll().where('id', '=', approvalRequestId)
+      .where('tenant_id', '=', tenantId).forUpdate().executeTakeFirst();
+    if (!req) throw new BadRequestException('طلب الموافقة غير موجود في هذه المنشأة.');
+    if (req.action_type !== actionType || req.reference_id !== referenceId) {
+      throw new BadRequestException('الموافقة لا تطابق نوع العملية أو مرجعها الفعلي.');
+    }
+    if (req.status !== 'approved' || !req.approved_by || req.approved_by === req.requested_by) {
+      throw new BadRequestException('الموافقة غير معتمدة بشكل مستقل أو تم استهلاكها سابقاً.');
     }
 
-    if (req.status === 'executed') {
-      throw new BadRequestException('طلب الاعتماد تم استهلاكه وتنفيذه مسبقاً ولا يمكن استخدامه مجدداً (Single-Use Token).');
+    const raw = req.request_payload;
+    let payload: Record<string, unknown> = {};
+    try {
+      payload = typeof raw === 'string' ? JSON.parse(raw) : (raw || {});
+    } catch {
+      throw new BadRequestException('بيانات طلب الموافقة غير صالحة.');
     }
-
-    if (req.status !== 'approved') {
-      throw new BadRequestException(
-        `طلب الاعتماد غير مؤهل للتنفيذ، حالته الحالية (${req.status}) وليست معتمدة (approved).`
-      );
+    if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+      throw new BadRequestException('يجب أن يحتوي طلب الموافقة على بيانات العملية.');
     }
-
-    if (referenceId && req.reference_id && req.reference_id !== referenceId) {
-      throw new BadRequestException(
-        `طلب الاعتماد مرتبط بمرجع (${req.reference_id}) يختلف عن المعرف المطلوب (${referenceId}).`
-      );
-    }
-
-    if (req.request_payload) {
-      const payload = typeof req.request_payload === 'string'
-        ? JSON.parse(req.request_payload || '{}')
-        : req.request_payload;
-
-      if (expectedDetails?.partnerId && payload.partnerId && payload.partnerId !== expectedDetails.partnerId) {
-        throw new BadRequestException(
-          `طلب الاعتماد مخصص للشريك (${payload.partnerId}) ولا يطابق الشريك المطلوب (${expectedDetails.partnerId}).`
-        );
-      }
-
-      if (expectedDetails?.projectId && payload.projectId && payload.projectId !== expectedDetails.projectId) {
-        throw new BadRequestException(
-          `طلب الاعتماد مخصص للمشروع (${payload.projectId}) ولا يطابق المشروع (${expectedDetails.projectId}).`
-        );
-      }
-
-      if (expectedDetails?.amount !== undefined && payload.amount !== undefined && payload.amount !== null) {
-        const approvedAmount = Number(payload.amount);
-        if (expectedDetails.amount > approvedAmount + 0.01) {
-          throw new BadRequestException(
-            `مبلغ الصرف المطلوب (${expectedDetails.amount.toFixed(2)}) يتجاوز سقف المبلغ المعتمد في طلب الموافقة (${approvedAmount.toFixed(2)}).`
-          );
-        }
+    if (actionType === 'partner_distribution') {
+      const approvedAmount = Number(payload.amount);
+      if (!expectedDetails?.partnerId || !expectedDetails.projectId ||
+          payload.partnerId !== expectedDetails.partnerId ||
+          payload.projectId !== expectedDetails.projectId ||
+          !Number.isFinite(approvedAmount) || approvedAmount <= 0 ||
+          expectedDetails.amount === undefined || expectedDetails.amount > approvedAmount + 0.001) {
+        throw new BadRequestException('طلب موافقة صرف الأرباح يجب أن يطابق الشريك والمشروع وسقف المبلغ المعتمد دون أي بيانات ناقصة.');
       }
     }
+    if (actionType === 'project_closure' && payload.projectId !== referenceId) {
+      throw new BadRequestException('موافقة إقفال المشروع لا تحتوي على مرجع المشروع المعتمد.');
+    }
 
-    // Mark as executed so it cannot be replayed or reused
-    await trx
-      .updateTable('import_approval_requests')
-      .set({
-        status: 'executed',
-        decided_at: new Date(),
-      })
-      .where('id', '=', approvalRequestId)
-      .where('tenant_id', '=', tenantId)
-      .execute();
+    await trx.updateTable('import_approval_requests')
+      .set({ status: 'executed', decided_at: new Date() })
+      .where('id', '=', approvalRequestId).where('tenant_id', '=', tenantId)
+      .where('status', '=', 'approved').execute();
   }
 
   private costLine(item: Selectable<ImportShipmentItemTable>) {
@@ -3090,16 +3062,13 @@ export class ImportSalesService {
   }
 
   async closeProject(tenantId: string, userId: number, projectId: string, approvalRequestId?: string) {
+    if (!approvalRequestId) {
+      throw new BadRequestException('إقفال مشروع الاستيراد يتطلب موافقة Maker-Checker معتمدة.');
+    }
     return await this.db.transaction().execute(async (trx) => {
-      if (approvalRequestId) {
-        await this.verifyAndConsumeApprovalRequest(
-          trx,
-          tenantId,
-          'project_closure',
-          projectId,
-          approvalRequestId
-        );
-      }
+      await this.verifyAndConsumeApprovalRequest(
+        trx, tenantId, 'project_closure', projectId, approvalRequestId
+      );
 
       const project = await trx
         .selectFrom('import_projects')
@@ -4567,6 +4536,19 @@ export class ImportSalesService {
   // MAKER-CHECKER GOVERNANCE WORKFLOW
   // -------------------------------------------------------------
   async createApprovalRequest(tenantId: string, userId: number, dto: CreateApprovalRequestDto) {
+    if (dto.actionType === 'partner_distribution') {
+      const p = dto.requestPayload;
+      if (!p || p.partnerId !== dto.referenceId || !p.projectId ||
+          !Number.isFinite(Number(p.amount)) || Number(p.amount) <= 0) {
+        throw new BadRequestException('طلب توزيع أرباح الشركاء يتطلب partnerId وprojectId ومبلغًا موجبًا معتمدًا.');
+      }
+    }
+    if (dto.actionType === 'project_closure' && (!dto.referenceId || (dto.requestPayload?.projectId && dto.requestPayload.projectId !== dto.referenceId))) {
+      throw new BadRequestException('مرجع إقفال المشروع غير متطابق.');
+    }
+    const approvedPayload = dto.actionType === 'project_closure'
+      ? { ...(dto.requestPayload || {}), projectId: dto.referenceId }
+      : dto.requestPayload;
     return await this.db
       .insertInto('import_approval_requests')
       .values({
@@ -4576,7 +4558,7 @@ export class ImportSalesService {
         reference_id: dto.referenceId,
         requested_by: userId,
         status: 'pending',
-        request_payload: dto.requestPayload ? JSON.stringify(dto.requestPayload) : '{}',
+        request_payload: approvedPayload ? JSON.stringify(approvedPayload) : '{}',
       })
       .returningAll()
       .executeTakeFirstOrThrow();

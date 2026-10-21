@@ -109,8 +109,14 @@ export class ImportSalesController {
 
   @RequireAnyPermission('accounting')
   @Post('projects/:id/close')
-  async closeProject(@Req() req: RequestWithAuth, @Param('id') projectId: string) {
-    return this.importSalesService.closeProject(req.authContext!.tenantId!, req.authContext!.userId!, projectId);
+  async closeProject(
+    @Req() req: RequestWithAuth,
+    @Param('id') projectId: string,
+    @Body() dto: { approvalRequestId: string }
+  ) {
+    return this.importSalesService.closeProject(
+      req.authContext!.tenantId!, req.authContext!.userId!, projectId, dto?.approvalRequestId
+    );
   }
 
   // ==========================================
