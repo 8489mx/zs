@@ -1530,6 +1530,27 @@ async function runTests() {
       assert.ok(err.message.includes('غير صالح'));
     }
     assert.ok(nonCashRejected, 'Capital deposit to a non-cash asset must roll back atomically');
+
+    // No partner payout may be posted from an unverified, company-wide estimate.
+    const partnerPayoutsBefore = await db.selectFrom('treasury_transactions')
+      .select(sql<number>`count(*)`.as('count'))
+      .where('tenant_id', '=', tenantId)
+      .where('txn_type', '=', 'partner_payout').executeTakeFirstOrThrow();
+    let payoutRejected = false;
+    try {
+      await service.recordPartnerPayout(tenantId, userId, String(startingPartner.id), 100);
+    } catch (err: any) {
+      payoutRejected = true;
+      assert.ok(err.message.includes('موقوف'), `Expected unverified profit payout rejection: ${err.message}`);
+    }
+    assert.ok(payoutRejected, 'Payout must fail closed until shipment source attribution exists');
+    const partnerPayoutsAfter = await db.selectFrom('treasury_transactions')
+      .select(sql<number>`count(*)`.as('count'))
+      .where('tenant_id', '=', tenantId)
+      .where('txn_type', '=', 'partner_payout').executeTakeFirstOrThrow();
+    assert.strictEqual(Number(partnerPayoutsAfter.count), Number(partnerPayoutsBefore.count),
+      'Blocked payout must not create a cash movement');
+
   }
 
   console.log('\n--- ALL AUDITED POSTGRESQL (PGLITE) INTEGRATION AUDITS PASSED (100%) ---');

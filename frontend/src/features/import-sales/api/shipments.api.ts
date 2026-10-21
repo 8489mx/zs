@@ -201,6 +201,8 @@ export interface ProfitReport {
   grossProfit: number;
   totalExpenses: number;
   netProfitPool: number;
+  profitAttributionVerified?: boolean;
+  attributionStatus?: string;
   partnerShares: {
     partnerId: string;
     name: string;

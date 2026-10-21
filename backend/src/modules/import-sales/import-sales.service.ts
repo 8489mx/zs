@@ -1764,6 +1764,10 @@ export class ImportSalesService {
       message: projectId ? 'تم تجميع أرباح مشروع الاستيراد بنجاح' : 'تم تجميع أرباح الشراكة العامة بنجاح',
       data: {
         projectId: projectId || null,
+        // Quantity-capped SKU sales are not evidence of the actual source shipment.
+        // Never treat the provisional report as approved distributable earnings.
+        profitAttributionVerified: false,
+        attributionStatus: 'UNVERIFIED_SOURCE',
         grossSalesRevenue: Number(totalRevenue.toFixed(2)),
         salesDiscounts: Number(totalDiscounts.toFixed(2)),
         salesReturnsRevenue: Number(returnRevenue.toFixed(2)),
@@ -2112,6 +2116,11 @@ export class ImportSalesService {
         .executeTakeFirstOrThrow();
 
       const profitReport = await this.generatePeriodProfitReport(tenantId, new Date('2020-01-01'), new Date());
+      if (!profitReport.data.profitAttributionVerified) {
+        throw new UnprocessableEntityException(
+          'صرف الأرباح موقوف لحين إتمام تتبع مصدر البضاعة واعتماد أرباح كل مشروع؛ التقرير الحالي تقديري وغير صالح للتوزيع.'
+        );
+      }
       const partnerShare = profitReport.data.partnerShares.find((p: any) => p.partnerId === partnerId);
       const totalEntitled = Number(partnerShare?.shareAmount || 0);
       const withdrawn = Number(partner.withdrawn_profit || 0);
@@ -2645,6 +2654,12 @@ export class ImportSalesService {
 
       const startDate = project.created_at || new Date('2020-01-01');
       const profitReport = await this.generatePeriodProfitReport(tenantId, startDate, new Date(), projectId, trx);
+      if (!profitReport.data.profitAttributionVerified &&
+          (profitReport.data.grossSalesRevenue > 0 || profitReport.data.salesReturnsRevenue > 0)) {
+        throw new UnprocessableEntityException(
+          'لا يمكن اعتماد إقفال مالي نهائي لمشروع لديه مبيعات قبل إثبات مصدر الكميات المباعة وتسوية ربحية الشحنة.'
+        );
+      }
 
       const projectItems = shipments.length > 0
         ? await trx
@@ -2666,6 +2681,7 @@ export class ImportSalesService {
         shipmentsCount: shipments.length,
         totalReceivedUnits: totalReceived,
         financialReconciliation: profitReport.data,
+        reconciliationStatus: profitReport.data.profitAttributionVerified ? 'verified' : 'pending_source_attribution',
       };
 
       await trx

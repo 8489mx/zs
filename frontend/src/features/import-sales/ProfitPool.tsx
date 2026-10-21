@@ -167,7 +167,7 @@ export default function ProfitPool() {
   return (
     <div className="page-stack page-shell import-sales-page" dir="rtl">
       <div style={{ maxWidth: '1280px', margin: '0 auto', width: '100%', padding: '0 16px 80px 16px' }}>
-        <PageHeader 
+        <PageHeader
           title={t('import_sales.profit_pool.s9', "مجمع أرباح الشركاء وتصفية الحسابات")} 
           description={t('import_sales.profit_pool.s10', "حساب صافي الأرباح عن فترة محددة وتوزيعها بناءً على المبيعات والتكلفة الفعلية والمصاريف التشغيلية.")}
           actions={
@@ -194,6 +194,12 @@ export default function ProfitPool() {
           }
         />
 
+        {data && !data.profitAttributionVerified && (
+          <div role="alert" style={{ padding: 12, marginBottom: 16, border: '1px solid #f59e0b', borderRadius: 8, color: '#92400e', background: '#fffbeb', fontSize: 13 }}>
+            تنبيه محاسبي: تقرير أرباح الاستيراد الحالي تقديري ولا يثبت مصدر كل وحدة مباعة.
+            تم تعطيل صرف أرباح الشركاء لحين اعتماد تسوية موثوقة للأرباح وربطها بالشحنات.
+          </div>
+        )}
         {/* Date Filter Card */}
         <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px 20px', marginBottom: '20px' }}>
           <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
@@ -368,6 +374,7 @@ export default function ProfitPool() {
                             <Button 
                               variant="secondary" 
                               onClick={() => setPayoutPartner(partner)}
+                              disabled={!data.profitAttributionVerified}
                               style={{ height: '28px', padding: '0 10px', fontSize: '0.74rem', fontWeight: 700, borderRadius: '4px' }}
                             >
                               {t('import_sales.profit_pool.s33', "تسجيل دفعة")}
