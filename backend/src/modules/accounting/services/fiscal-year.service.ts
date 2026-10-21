@@ -783,64 +783,44 @@ export class FiscalYearService {
     }
 
     await this.db.transaction().execute(async (trx) => {
-      // 1. Remove closing journal entry if exists
-      if (fy.closing_entry_id) {
-        await trx
-          .deleteFrom('journal_entry_lines')
-          .where('journal_entry_id', '=', fy.closing_entry_id)
-          .where('tenant_id', '=', tenantId)
-          .execute();
-
-        await trx
-          .deleteFrom('journal_entries')
-          .where('id', '=', fy.closing_entry_id)
-          .where('tenant_id', '=', tenantId)
-          .execute();
+      const lockedFy = await trx.selectFrom('accounting_fiscal_years')
+        .select(['id', 'status', 'closing_entry_id', 'start_date'])
+        .where('id', '=', id).where('tenant_id', '=', tenantId)
+        .forUpdate().executeTakeFirst();
+      if (!lockedFy || lockedFy.status !== 'closed') {
+        throw new BadRequestException('السنة المالية تغيرت حالتها؛ يرجى إعادة التحميل.');
       }
 
-      // 2. Update fiscal year status back to open
+      // Never delete posted closing journals or their lines. A compliant reopening needs
+      // a formal reversing journal in a permitted accounting period and review of locks.
+      // Until that workflow exists, fail closed rather than corrupt immutable history.
+      if (lockedFy.closing_entry_id != null) {
+        throw new BadRequestException('لا يمكن إعادة فتح سنة لها قيد إقفال مرحل دون قيد عكسي موثق. لم يتم حذف أي قيد.');
+      }
+
+      const later = await trx.selectFrom('accounting_fiscal_years')
+        .select('id').where('tenant_id', '=', tenantId)
+        .where('status', '=', 'closed')
+        .where('start_date', '>', lockedFy.start_date)
+        .executeTakeFirst();
+      if (later) throw new BadRequestException('يجب إعادة فتح السنوات المالية بالترتيب الزمني العكسي.');
+
       const reopenLog = `\n[أعيد فتحها بتاريخ ${new Date().toISOString().substring(0, 10)} بواسطة مستخدم #${auth.userId} - السبب: ${reason}]`;
-      await trx
-        .updateTable('accounting_fiscal_years')
+      await trx.updateTable('accounting_fiscal_years')
         .set({
-          status: 'open',
-          closing_entry_id: null,
-          closed_at: null,
-          closed_by: null,
+          status: 'open', closing_entry_id: null, closed_at: null, closed_by: null,
           closing_notes: sql`CONCAT(COALESCE(closing_notes, ''), ${reopenLog})` as any,
           updated_at: sql`NOW()` as any,
         })
-        .where('id', '=', fy.id)
-        .where('tenant_id', '=', tenantId)
-        .execute();
-
-      // 3. Adjust lock date in accounting_settings
-      // Find the latest remaining closed fiscal year (if any)
-      const prevClosed = await trx
-        .selectFrom('accounting_fiscal_years')
-        .select(['end_date'])
-        .where('tenant_id', '=', tenantId)
-        .where('status', '=', 'closed')
-        .where('id', '!=', fy.id)
-        .orderBy('end_date', 'desc')
-        .executeTakeFirst();
-
-      const newLockDate = prevClosed ? this.formatDate(prevClosed.end_date) : null;
-
-      await trx
-        .updateTable('accounting_settings')
-        .set({
-          lock_date_all: newLockDate as any,
-          updated_at: sql`NOW()` as any,
-        })
-        .where('tenant_id', '=', tenantId)
-        .where('id', '=', 1)
-        .execute();
+        .where('id', '=', id).where('tenant_id', '=', tenantId).execute();
+      // Do not alter accounting_settings.lock_date_all. It may contain a manual
+      // administrative lock stricter than fiscal close; release requires a separate
+      // explicit authorized workflow.
     });
 
     return {
       success: true,
-      message: `تم إعادة فتح السنة المالية [${fy.name}] بنجاح وإلغاء قيد الإقفال وتعديل تاريخ القفل.`,
+      message: `تم إعادة فتح السنة المالية [${fy.name}] دون حذف قيود أو تغيير الأقفال الإدارية؛ يمكن تعديل القفل عبر الإعدادات المخولة.`,
     };
   }
 
