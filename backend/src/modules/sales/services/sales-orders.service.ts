@@ -6,7 +6,8 @@ import { AuthContext } from '../../../core/auth/interfaces/auth-context.interfac
 import { requireTenantScope } from '../../../core/auth/utils/tenant-boundary';
 import { CreateSalesOrderDto, UpdateSalesOrderDto } from '../dto/sales-order.dto';
 import { SalesWriteService } from './sales-write.service';
-import { getDailyDocumentPrefix } from '../../../common/utils/document-number.util';
+import { formatDailyDocumentNumber } from '../../../common/utils/document-number.util';
+import { randomUUID } from 'node:crypto';
 import { reserveLocationStock, releaseLocationStock } from '../../../common/utils/location-stock-ledger';
 
 @Injectable()
@@ -121,31 +122,38 @@ export class SalesOrdersService {
 
   async createOrder(dto: CreateSalesOrderDto, auth: AuthContext): Promise<Record<string, unknown>> {
     const scope = requireTenantScope(auth);
-    const prefix = getDailyDocumentPrefix('SO');
-    const countResult = await this.db
-      .selectFrom('sales_orders')
-      .select([sql<number>`count(*)::int`.as('count')])
-      .where('tenant_id', '=', scope.tenantId)
-      .where('order_number', 'like', `${prefix}%`)
-      .executeTakeFirst();
-    const seq = (countResult?.count || 0) + 1;
-    const orderNumber = `${prefix}${String(seq).padStart(4, '0')}`;
     const now = new Date();
     const shouldReserve = dto.autoReserve !== false;
+    if (!Array.isArray(dto.items) || dto.items.length === 0 || dto.items.some(item =>
+      !Number.isFinite(item.quantity) || item.quantity <= 0 || !Number.isFinite(item.unitPrice) || item.unitPrice < 0)) {
+      throw new BadRequestException('أمر البيع يحتاج بنوداً بكميات وأسعار صالحة');
+    }
     const initialStatus = shouldReserve ? 'confirmed' : 'draft';
 
     const result = await this.db.transaction().execute(async (trx) => {
+      let resolvedBranchId = dto.branchId || null;
+      let resolvedLocationId: number | null = null;
+      if (shouldReserve) {
+        const branch = await trx.selectFrom('branches').select(['id', 'default_stock_location_id'])
+          .where('tenant_id', '=', scope.tenantId)
+          .where('account_id', '=', scope.accountId)
+          .$if(resolvedBranchId !== null, qb => qb.where('id', '=', resolvedBranchId!))
+          .orderBy('id', 'asc').executeTakeFirst();
+        if (!branch) throw new BadRequestException('لا يوجد فرع مسموح لحجز البضاعة');
+        resolvedBranchId = Number(branch.id);
+        resolvedLocationId = branch.default_stock_location_id ? Number(branch.default_stock_location_id) : null;
+      }
       const order = await trx
         .insertInto('sales_orders')
         .values({
           tenant_id: scope.tenantId,
           account_id: scope.accountId,
-          order_number: orderNumber,
+          order_number: `SO-TMP-${randomUUID()}`,
           customer_id: dto.customerId || null,
           customer_name: dto.customerName.trim(),
           customer_phone: dto.customerPhone?.trim() || null,
           customer_address: dto.customerAddress?.trim() || null,
-          branch_id: dto.branchId || null,
+          branch_id: resolvedBranchId,
           subtotal: dto.subtotal,
           discount_amount: dto.discountAmount || 0,
           tax_amount: dto.taxAmount || 0,
@@ -162,6 +170,9 @@ export class SalesOrdersService {
         })
         .returningAll()
         .executeTakeFirstOrThrow();
+      await trx.updateTable('sales_orders')
+        .set({ order_number: formatDailyDocumentNumber('SO', Number(order.id)) })
+        .where('id', '=', order.id).where('tenant_id', '=', scope.tenantId).execute();
 
       if (dto.items && dto.items.length > 0) {
         for (const item of dto.items) {
@@ -188,18 +199,18 @@ export class SalesOrdersService {
             })
             .execute();
 
-          // If reserving, increment reserved_qty on product
-          if (shouldReserve && qty > 0) {
-            await trx
-              .updateTable('products')
-              .set((eb) => ({
-                reserved_qty: eb('reserved_qty', '+', qty),
-              }))
-              .where('id', '=', item.productId)
-              .where('tenant_id', '=', scope.tenantId)
-              .execute();
-          }
+
         }
+      }
+
+      if (shouldReserve) {
+        await reserveLocationStock(trx, {
+          branchId: resolvedBranchId,
+          locationId: resolvedLocationId,
+          tenantId: scope.tenantId,
+          accountId: scope.accountId,
+          items: dto.items.map(item => ({ productId: item.productId, qty: Number(item.quantity) })),
+        });
       }
 
       return order;
