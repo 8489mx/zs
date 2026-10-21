@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   useContainerDepositsQuery,
   useRecordContainerDepositMutation,
@@ -20,6 +20,7 @@ export function ContainerDepositsManager() {
 
   const [isRecordOpen, setIsRecordOpen] = useState(false);
   const [selectedDepositForRefund, setSelectedDepositForRefund] = useState<any | null>(null);
+  const refundRequestKey = useRef<string | null>(null);
 
   // Record Deposit Form State
   const [shipmentId, setShipmentId] = useState('');
@@ -88,11 +89,13 @@ export function ContainerDepositsManager() {
   const handleRefundDeposit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedDepositForRefund) return;
+    if (!refundRequestKey.current) refundRequestKey.current = crypto.randomUUID();
 
     try {
       await refundDepositMutation.mutateAsync({
         depositId: selectedDepositForRefund.id,
         dto: {
+          idempotencyKey: refundRequestKey.current,
           actualReturnDate,
           refundedAmountEgp: Number(refundedAmountEgp),
           deductionsAmountEgp: Number(deductionsAmountEgp),
@@ -102,6 +105,7 @@ export function ContainerDepositsManager() {
       });
       toast.success('تمت تسوية استرداد التأمين وتحديث حالة الحاوية إلى تم تسليم الفارغ');
       setSelectedDepositForRefund(null);
+      refundRequestKey.current = null;
       refetch();
     } catch (err: any) {
       toast.error('فشل تسوية التأمين: ' + (err.message || 'خطأ'));

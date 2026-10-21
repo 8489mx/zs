@@ -4017,6 +4017,12 @@ export class ImportSalesService {
         .forUpdate()
         .executeTakeFirstOrThrow();
 
+      const requestKey = String(dto.idempotencyKey || '').trim();
+      if (!requestKey || requestKey.length > 128) throw new BadRequestException('مفتاح عدم التكرار للاسترداد إلزامي.');
+      const previousEvent = await trx.selectFrom('import_container_refund_events').select('id')
+        .where('tenant_id', '=', tenantId).where('deposit_id', '=', depositId)
+        .where('idempotency_key', '=', requestKey).executeTakeFirst();
+      if (previousEvent) throw new ConflictException('طلب استرداد التأمين بنفس المفتاح تم تسجيله مسبقًا.');
       const prevRefunded = Number(deposit.refunded_amount_egp || 0);
       const prevDeductions = Number(deposit.deductions_amount_egp || 0);
       const totalDeposit = Number(deposit.deposit_amount_egp);
@@ -4048,6 +4054,13 @@ export class ImportSalesService {
       if (newRemaining <= 0.01) {
         newStatus = newTotalRefunded > 0 ? 'refunded' : 'forfeited';
       }
+
+      const refundEvent = await trx.insertInto('import_container_refund_events').values({
+        tenant_id: tenantId, deposit_id: depositId, idempotency_key: requestKey,
+        refunded_amount_egp: currentRefund, deductions_amount_egp: currentDeductions,
+        treasury_account_id: dto.treasuryAccountId ? Number(dto.treasuryAccountId) : null,
+        created_by: userId, journal_entry_id: null,
+      }).returning(['id', 'serial_id']).executeTakeFirstOrThrow();
 
       const updated = await trx
         .updateTable('import_container_deposits')
@@ -4122,9 +4135,9 @@ export class ImportSalesService {
       }
 
       const postingService = this.accountingPosting ?? new AccountingPostingService(new AccountingTenantFoundationService());
-      await postingService.postDomainJournal(trx, {
-        sourceType: 'import_container_deposit',
-        sourceId: Number(deposit.serial_id),
+      const refundJournalEntryId = await postingService.postDomainJournal(trx, {
+        sourceType: 'import_container_refund',
+        sourceId: Number(refundEvent.serial_id),
         tenantId,
         accountId: tenantId,
         entryDate: new Date(dto.actualReturnDate as any),
@@ -4135,6 +4148,8 @@ export class ImportSalesService {
         postedBy: userId,
         lines,
       });
+      await trx.updateTable('import_container_refund_events').set({ journal_entry_id: refundJournalEntryId })
+        .where('id', '=', refundEvent.id).where('tenant_id', '=', tenantId).execute();
 
       return updated;
     });

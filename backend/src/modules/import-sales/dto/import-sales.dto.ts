@@ -1114,6 +1114,10 @@ export class RecordContainerDepositDto {
 
 export class RecordContainerReturnRefundDto {
   @IsString()
+  @IsNotEmpty()
+  idempotencyKey!: string;
+
+  @IsString()
   actualReturnDate!: string;
 
   @Type(() => Number)

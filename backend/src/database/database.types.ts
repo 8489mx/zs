@@ -5856,6 +5856,20 @@ export interface ImportBrokerExpenseTable {
   created_at: Generated<Date>;
 }
 
+export interface ImportContainerRefundEventTable {
+  id: Generated<string>;
+  serial_id: Generated<number>;
+  tenant_id: string;
+  deposit_id: string;
+  idempotency_key: string;
+  refunded_amount_egp: ImportNumeric;
+  deductions_amount_egp: ImportNumeric;
+  treasury_account_id: number | null;
+  journal_entry_id: number | null;
+  created_by: number | null;
+  created_at: Generated<Date>;
+}
+
 export interface ImportContainerDepositTable {
   id: Generated<string>;
   serial_id: Generated<number>;
@@ -6023,6 +6037,7 @@ export interface Database {
   import_broker_advances: ImportBrokerAdvanceTable;
   import_broker_expenses: ImportBrokerExpenseTable;
   import_container_deposits: ImportContainerDepositTable;
+  import_container_refund_events: ImportContainerRefundEventTable;
   import_container_preorders: ImportContainerPreorderTable;
   import_inventory_lots: ImportInventoryLotTable;
   import_sale_allocations: ImportSaleAllocationTable;
