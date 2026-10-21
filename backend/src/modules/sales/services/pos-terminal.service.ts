@@ -1,5 +1,5 @@
-import { Inject, Injectable, Logger, BadRequestException, Optional } from '@nestjs/common';
-import { randomUUID } from 'node:crypto';
+import { Inject, Injectable, Logger, BadRequestException, Optional, UnauthorizedException } from '@nestjs/common';
+import { createHmac, randomUUID, timingSafeEqual } from 'node:crypto';
 import * as net from 'node:net';
 import { exec } from 'node:child_process';
 import { promisify } from 'node:util';
@@ -8,6 +8,15 @@ import { KYSELY_DB } from '../../../database/database.constants';
 import { Database } from '../../../database/database.types';
 
 const execAsync = promisify(exec);
+
+/**
+ * One different bridge credential per tenant. Provision the derived credential to the
+ * trusted Windows bridge; NEVER disclose the master secret to clients.
+ */
+export function derivePosBridgeKey(masterSecret: string, tenantId: string): string {
+  if (masterSecret.length < 32 || !tenantId.trim()) throw new Error('POS bridge master secret/tenant not provisioned');
+  return createHmac('sha256', masterSecret).update('zs-pos-bridge:v1:' + tenantId.trim()).digest('hex');
+}
 
 export interface PosTerminalInfo {
   id: string;
@@ -180,6 +189,19 @@ export class PosTerminalService {
 
   constructor(@Optional() @Inject(KYSELY_DB) private readonly db?: Kysely<Database>) {}
 
+  /** The external bridge API intentionally has no user session; authenticate the device instead. */
+  assertBridgeAuthenticated(tenantId: string, suppliedKey?: string): void {
+    const master = process.env.POS_BRIDGE_MASTER_SECRET || '';
+    if (master.length < 32 || !tenantId?.trim() || typeof suppliedKey !== 'string' || !/^[0-9a-f]{64}$/i.test(suppliedKey)) {
+      throw new UnauthorizedException('POS bridge credentials are missing or invalid');
+    }
+    const expected = Buffer.from(derivePosBridgeKey(master, tenantId), 'hex');
+    const provided = Buffer.from(suppliedKey, 'hex');
+    if (!timingSafeEqual(expected, provided)) {
+      throw new UnauthorizedException('POS bridge credentials are missing or invalid');
+    }
+  }
+
   /**
    * Hardware Bridge long-poll endpoint.
    * Holds request up to 25s waiting for a payment job for the given tenant.
@@ -234,14 +256,18 @@ export class PosTerminalService {
     this.pruneExpiredSessions();
 
     const session = this.activeSessions.get(payload.jobId);
-    if (!session) {
-      this.logger.warn(`Bridge callback for unknown or expired session ${payload.jobId}`);
+    if (!session || session.tenantId !== cleanTenant || !['pending', 'processing'].includes(session.status)) {
+      this.logger.warn('Bridge callback rejected: session not pending or tenant mismatch');
       return false;
     }
 
     const isApproved = payload.status === 'approved' || payload.status === 'APPROVED';
+    if (isApproved && (!payload.authCode?.trim() || !payload.rrn?.trim())) {
+      this.logger.warn('Bridge approval rejected: missing bank authorization or RRN');
+      return false;
+    }
     session.status = isApproved ? 'approved' : (payload.status === 'cancelled' ? 'cancelled' : 'declined');
-    session.approvalCode = payload.authCode || (isApproved ? `AUTH-${Math.floor(100000 + Math.random() * 900000)}` : undefined);
+    session.approvalCode = isApproved ? payload.authCode : undefined;
     session.rrn = payload.rrn || session.transactionId;
     session.cardScheme = payload.cardScheme || 'Visa';
     session.cardLastFour = payload.cardLastFour || '';
