@@ -15,24 +15,35 @@ export class InventoryScopeService {
     return requireTenantScope(auth).tenantId;
   }
 
-  async branchScope(auth: AuthContext): Promise<number[]> {
+  async branchScope(auth: AuthContext, executor: Kysely<Database> = this.db): Promise<number[]> {
     const tenantId = this.tenantId(auth);
     if (auth.role === 'super_admin') return [];
-    const user = await this.db
+    const user = await executor
       .selectFrom('users')
       .select(['default_branch_id'])
       .where('id', '=', auth.userId)
       .where(sql<boolean>`tenant_id = ${tenantId}`)
       .executeTakeFirst();
     if (!user) return [];
-    const rows = await this.db
+    const rows = await executor
       .selectFrom('user_branches')
       .select(['branch_id'])
       .where('user_id', '=', auth.userId)
       .where(sql<boolean>`tenant_id = ${tenantId}`)
       .execute();
     const ids = rows.map((entry) => Number(entry.branch_id)).filter((entry) => Number.isInteger(entry) && entry > 0);
-    if (user.default_branch_id && !ids.includes(user.default_branch_id)) ids.push(user.default_branch_id);
+    if (user.default_branch_id && !ids.includes(user.default_branch_id)) {
+      // Validate that default_branch_id belongs to the actor's tenant before trusting it (CORE-007)
+      const branchBelongsToTenant = await executor
+        .selectFrom('branches')
+        .select('id')
+        .where('id', '=', user.default_branch_id)
+        .where(sql<boolean>`tenant_id = ${tenantId}`)
+        .executeTakeFirst();
+      if (branchBelongsToTenant) {
+        ids.push(user.default_branch_id);
+      }
+    }
     return Array.from(new Set(ids));
   }
 
@@ -68,8 +79,8 @@ export class InventoryScopeService {
     return { id: location.id, name: location.name || '', branchId: location.branch_id || null };
   }
 
-  async filterByScope<T extends { branchId?: string; fromBranchId?: string; toBranchId?: string }>(rows: T[], auth: AuthContext): Promise<T[]> {
-    const scope = await this.branchScope(auth);
+  async filterByScope<T extends { branchId?: string; fromBranchId?: string; toBranchId?: string }>(rows: T[], auth: AuthContext, executor: Kysely<Database> = this.db): Promise<T[]> {
+    const scope = await this.branchScope(auth, executor);
     if (!scope.length) return rows;
     return rows.filter((row) => {
       const ids = [Number(row.branchId || 0), Number(row.fromBranchId || 0), Number(row.toBranchId || 0)].filter((id) => id > 0);
