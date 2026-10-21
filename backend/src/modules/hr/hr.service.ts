@@ -2436,7 +2436,7 @@ export class HrService {
           RETURNING id
         `.execute(trx);
         runId = Number(inserted.rows[0]?.id || 0);
-        await this.rebuildPayrollRunItems(trx, runId, 'draft', tenantId);
+        await this.rebuildPayrollRunItems(trx, runId, 'draft', auth.tenantId || '');
       }
     });
     await this.audit.log('Create HR payroll run', `Payroll ${periodMonth} [${startDate}..${endDate}] prepared by ${auth.username}`, auth);
