@@ -532,8 +532,8 @@ export class FiscalYearService {
       .where('id', '=', retainedEarningsAccountId)
       .executeTakeFirst();
 
-    if (!retainedAccount || !retainedAccount.is_active) {
-      throw new BadRequestException('حساب الأرباح المحتجزة غير صالح أو غير نشط.');
+    if (!retainedAccount || !retainedAccount.is_active || retainedAccount.account_type !== 'equity') {
+      throw new BadRequestException('حساب الأرباح المحتجزة يجب أن يكون حساب حقوق ملكية نشطاً.');
     }
 
     // 2. Execute within transaction
@@ -606,7 +606,13 @@ export class FiscalYearService {
           accountId: auth.accountId || tenantId, entryDate: new Date(endDate),
           description, createdBy: userId,
           lines: preview.proposedClosingLines.map((line) => ({
-            accountId: line.accountId, description: line.description,
+            // Only the retained-earnings closing line is redirected; P&L account
+            // lines must remain at their original accounts.
+            accountId: line.accountId === preview.retainedEarningsAccount?.id
+              && line.description.includes('الأرباح المحتجزة')
+              ? retainedEarningsAccountId
+              : line.accountId,
+            description: line.description,
             debit: line.debit, credit: line.credit,
             partnerType: 'none' as const, partnerId: null, branchId: null, locationId: null,
           })),
