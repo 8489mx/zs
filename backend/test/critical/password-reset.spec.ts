@@ -87,10 +87,16 @@ function runResetUrl(): void {
   assert.ok(!String(url).includes('?token='), 'الرمز يجب ألّا يظهر في الـquery string');
 
   assert.equal(
-    buildPasswordResetUrl('https://host.example.com', token, {} as any),
-    `https://host.example.com/reset-password#token=${encodeURIComponent(token)}`,
-    'بلا APP_PUBLIC_URL يُستخدم أصل الطلب',
+    buildPasswordResetUrl('https://attacker.example.com', token, {} as any),
+    null,
+    'بلا APP_PUBLIC_URL لا يجوز إرسال رابط إعادة تعيين إلى عنوان يحدده الطلب',
   );
+  assert.equal(
+    buildPasswordResetUrl('http://127.0.0.1:5173', token, { APP_MODE: 'SELF_CONTAINED' } as any),
+    `http://127.0.0.1:5173/reset-password#token=${encodeURIComponent(token)}`,
+    'نسخة الديسكتوب المحلية تسمح فقط بعنوان loopback',
+  );
+  assert.equal(buildPasswordResetUrl('https://attacker.example.com', token, { APP_MODE: 'SELF_CONTAINED' } as any), null);
 
   assert.equal(
     buildPasswordResetUrl('https://app.example.com/', token, { APP_PUBLIC_URL: 'https://app.example.com/' } as any),
