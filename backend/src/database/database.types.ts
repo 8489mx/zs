@@ -1659,6 +1659,8 @@ export interface SupplierPaymentTable {
   currency?: ColumnType<string, string | undefined, string | undefined>;
   exchange_rate?: ColumnType<number, number | undefined, number | undefined>;
   forex_variance_egp?: ColumnType<number, number | undefined, number | undefined>;
+  /** Original currency amount; amount is always base currency EGP. */
+  amount_foreign?: ColumnType<number | null, number | null | undefined, number | null | undefined>;
   proforma_invoice_id?: ColumnType<string | null, string | null | undefined, string | null | undefined>;
   idempotency_key?: ColumnType<string | null, string | null | undefined, string | null | undefined>;
 }

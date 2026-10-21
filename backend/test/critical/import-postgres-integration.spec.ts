@@ -7,6 +7,7 @@ import type { Database } from '../../src/database/database.types';
 import { ImportSalesService } from '../../src/modules/import-sales/import-sales.service';
 import { up as up234 } from '../../src/database/migrations/2040000000234_purchases_import_project_link';
 import { up as up235 } from '../../src/database/migrations/2040000000235_supplier_payments_idempotency_key';
+import { up as up236 } from '../../src/database/migrations/2040000000236_supplier_payments_foreign_amount';
 
 /**
  * Custom PGlite dialect supporting multi-statement execution via simple query protocol,
@@ -598,6 +599,7 @@ async function setupDatabase(): Promise<{ db: Kysely<Database>; accounts: Record
   // Execute real production migrations 234 and 235 directly using Kysely
   await up234(db as any);
   await up235(db as any);
+  await up236(db as any);
 
   // Seed default tenant
   await pglite.exec(`INSERT INTO tenants (id, name) VALUES ('tenant-audit-1', 'Audited Trading Tenant');`);
@@ -818,6 +820,24 @@ async function runTests() {
 
     assert.strictEqual(transferRes.success, true);
     assert.strictEqual(transferRes.forexVarianceEgp, 2000);
+
+    const supplierPayment = await db.selectFrom('supplier_payments').selectAll()
+      .where('id', '=', transferRes.paymentId).executeTakeFirstOrThrow();
+    assert.strictEqual(Number(supplierPayment.amount), 98000, 'Supplier payment base currency must be EGP at AP settlement rate');
+    assert.strictEqual(Number(supplierPayment.amount_foreign), 2000, 'Foreign units stored separately');
+    const supplierLedgerPayment = await db.selectFrom('supplier_ledger').selectAll()
+      .where('reference_type', '=', 'supplier_payment')
+      .where('reference_id', '=', transferRes.paymentId).executeTakeFirstOrThrow();
+    assert.strictEqual(Number(supplierLedgerPayment.amount), 98000, 'Supplier ledger is EGP, not USD');
+    assert.strictEqual(Number(supplierLedgerPayment.balance_after), -93000);
+    const supplierBalance = await db.selectFrom('suppliers').select('balance')
+      .where('id', '=', supplier.id).executeTakeFirstOrThrow();
+    assert.strictEqual(Number(supplierBalance.balance), -93000);
+    const treasuryPayment = await db.selectFrom('treasury_transactions').selectAll()
+      .where('reference_type', '=', 'supplier_payment')
+      .where('reference_id', '=', transferRes.paymentId).executeTakeFirstOrThrow();
+    assert.strictEqual(treasuryPayment.account_id, tenantId, 'Treasury account_id is a tenant scope, not a GL primary key');
+    assert.strictEqual(Number(treasuryPayment.amount), -100000);
 
     // Verify journal entry lines reference REAL primary keys in accounting_accounts
     const jeLines = await db

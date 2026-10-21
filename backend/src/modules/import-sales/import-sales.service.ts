@@ -1790,6 +1790,8 @@ export class ImportSalesService {
         'supplier_payments.id',
         'supplier_payments.doc_no',
         'supplier_payments.amount',
+        'supplier_payments.amount_foreign',
+        'supplier_payments.currency',
         'supplier_payments.note',
         'supplier_payments.created_at',
         'suppliers.name as supplier_name',
@@ -1802,7 +1804,10 @@ export class ImportSalesService {
     return rows.map((r) => ({
       id: r.id,
       docNo: r.doc_no,
-      amountForeign: Number(r.amount),
+      amountForeign: r.amount_foreign == null ? null : Number(r.amount_foreign),
+      amountEgp: Number(r.amount),
+      currency: r.currency,
+      requiresLegacyReconciliation: r.amount_foreign == null,
       supplierName: r.supplier_name,
       notes: r.note,
       createdAt: r.created_at,
@@ -1912,6 +1917,9 @@ export class ImportSalesService {
       // 3. Resolve Real Accounts from Chart of Accounts / Accounting Settings
       const supplierApAccountId = await this.resolveTenantAccount(trx, tenantId, 'payable');
       const bankAccountId = await this.resolveTenantAccount(trx, tenantId, 'bank', reqBankAccountId);
+      const bankScope = await trx.selectFrom('accounting_accounts')
+        .select('account_id').where('tenant_id', '=', tenantId).where('id', '=', bankAccountId)
+        .executeTakeFirstOrThrow();
       const forexLossAccountId = await this.resolveTenantAccount(trx, tenantId, 'forex_loss');
       const forexGainAccountId = await this.resolveTenantAccount(trx, tenantId, 'forex_gain');
 
@@ -1931,7 +1939,8 @@ export class ImportSalesService {
             tenant_id: tenantId,
             account_id: supplier.account_id || tenantId,
             supplier_id: supplier.id,
-            amount: cleanForeign,
+            amount: contractValue,
+            amount_foreign: cleanForeign,
             note: `حوالة استيراد خارجية${notes ? ' - ' + notes : ''} [تدبير عملة: ${actualEgp} ج.م]`,
             created_by: userId,
             currency: currency || 'USD',
@@ -1964,7 +1973,7 @@ export class ImportSalesService {
         .insertInto('treasury_transactions')
         .values({
           tenant_id: tenantId,
-          account_id: String(bankAccountId),
+          account_id: bankScope.account_id,
           txn_type: 'supplier_payment',
           amount: -actualEgp,
           note: `تدبير عملة: حوالة خارجية إلى ${supplier.name} (${cleanForeign} ${currency || 'USD'})` +
@@ -1975,8 +1984,10 @@ export class ImportSalesService {
         })
         .execute();
 
+      // The shared supplier ledger and suppliers.balance are BASE-CURRENCY EGP.
+      // The original foreign-currency units belong only in amount_foreign / Proforma.
       const currentSupplierBalance = Number(supplier.balance || 0);
-      const newSupplierBalance = currentSupplierBalance - cleanForeign;
+      const newSupplierBalance = currentSupplierBalance - contractValue;
 
       await trx
         .insertInto('supplier_ledger')
@@ -1985,7 +1996,7 @@ export class ImportSalesService {
           account_id: supplier.account_id ? String(supplier.account_id) : tenantId,
           supplier_id: supplier.id,
           entry_type: 'payment',
-          amount: cleanForeign,
+          amount: contractValue,
           balance_after: newSupplierBalance,
           note: `حوالة خارجية FT-${paymentId} (${cleanForeign} ${currency || 'USD'})` +
             (forexVarianceEgp !== 0 ? ` [فروق صرف: ${forexVarianceEgp.toFixed(2)} ج.م]` : ''),
@@ -2001,7 +2012,7 @@ export class ImportSalesService {
       await trx
         .updateTable('suppliers')
         .set((eb) => ({
-          balance: sql`${eb.ref('balance')} - ${cleanForeign}`,
+          balance: sql`${eb.ref('balance')} - ${contractValue}`,
         }))
         .where('id', '=', sId)
         .where('tenant_id', '=', tenantId)
