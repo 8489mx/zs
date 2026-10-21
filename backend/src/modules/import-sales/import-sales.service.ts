@@ -273,6 +273,9 @@ export class ImportSalesService {
     }
 
     return await this.db.transaction().execute(async (trx) => {
+      // Serialize creation / percentage edits across all partners of this tenant.
+      await trx.selectFrom('tenants').select('id')
+        .where('id', '=', tenantId).forUpdate().executeTakeFirstOrThrow();
       const existing = await trx.selectFrom('import_partners')
         .select(sql<number>`coalesce(sum(profit_share_percentage), 0)`.as('total_percentage'))
         .where('tenant_id', '=', tenantId)
@@ -316,6 +319,17 @@ export class ImportSalesService {
 
     return await this.db.transaction().execute(async (trx) => {
       if (percentage !== undefined) {
+        await trx.selectFrom('tenants').select('id')
+          .where('id', '=', tenantId).forUpdate().executeTakeFirstOrThrow();
+        const payout = await trx.selectFrom('import_partner_ledger')
+          .select('id')
+          .where('tenant_id', '=', tenantId)
+          .where('partner_id', '=', id)
+          .where('type', '=', 'PROFIT_PAYOUT')
+          .executeTakeFirst();
+        if (payout) {
+          throw new BadRequestException('لا يمكن تعديل نسبة شريك بعد توزيع أرباح فعلية دون نظام نسب تاريخية معتمد.');
+        }
         const existing = await trx.selectFrom('import_partners')
           .select(sql<number>`coalesce(sum(profit_share_percentage), 0)`.as('total_percentage'))
           .where('tenant_id', '=', tenantId)
@@ -344,19 +358,27 @@ export class ImportSalesService {
   }
 
   async deletePartner(tenantId: string, id: string) {
-    try {
-      await this.db
-        .deleteFrom('import_partners')
-        .where('tenant_id', '=', tenantId)
-        .where('id', '=', id)
-        .execute();
-      return { success: true };
-    } catch (error: any) {
-      if (error.code === '23503') { // PostgreSQL foreign_key_violation
-        throw new BadRequestException('لا يمكن حذف الشريك لوجود عمليات مالية أو أرباح مسجلة باسمه.');
+    return await this.db.transaction().execute(async (trx) => {
+      // The ledger and project associations are ON DELETE CASCADE in the schema.
+      // Relying on an FK violation would silently ERASE financial history.
+      const partner = await trx.selectFrom('import_partners').select('id')
+        .where('tenant_id', '=', tenantId).where('id', '=', id)
+        .forUpdate().executeTakeFirst();
+      if (!partner) throw new NotFoundException('الشريك غير موجود.');
+
+      const [ledger, projectLink] = await Promise.all([
+        trx.selectFrom('import_partner_ledger').select('id')
+          .where('tenant_id', '=', tenantId).where('partner_id', '=', id).executeTakeFirst(),
+        trx.selectFrom('import_project_partners').select('id')
+          .where('tenant_id', '=', tenantId).where('partner_id', '=', id).executeTakeFirst(),
+      ]);
+      if (ledger || projectLink) {
+        throw new BadRequestException('لا يمكن حذف شريك له سجل رأس مال أو أرباح أو ارتباط بمشروع؛ احتفظ بالتاريخ واستخدم حالة عدم النشاط عند إتاحتها.');
       }
-      throw error;
-    }
+      await trx.deleteFrom('import_partners')
+        .where('tenant_id', '=', tenantId).where('id', '=', id).execute();
+      return { success: true };
+    });
   }
 
   // ==========================================
@@ -2516,6 +2538,27 @@ export class ImportSalesService {
       if (!project) throw new NotFoundException('مشروع الاستيراد غير موجود.');
       if (project.status === 'closed') {
         throw new BadRequestException('لا يمكن تعديل نسب الشركاء لمشروع مقفل ومسوى مالياً.');
+      }
+      // Existing single-row partner allocations are not effective-dated history.
+      // Freeze edits when financial execution has started to protect prior earnings.
+      const postedReceipt = await trx.selectFrom('import_shipments as shipment')
+        .innerJoin('import_inventory_receipts as receipt', 'receipt.shipment_id', 'shipment.id')
+        .select('shipment.id')
+        .where('shipment.project_id', '=', projectId)
+        .where('shipment.tenant_id', '=', tenantId)
+        .where('receipt.tenant_id', '=', tenantId)
+        .where('receipt.state', '=', 'posted')
+        .executeTakeFirst();
+      const paidProforma = await trx.selectFrom('import_proforma_invoices')
+        .select('id')
+        .where('tenant_id', '=', tenantId)
+        .where('project_id', '=', projectId)
+        .where('paid_amount_foreign', '>', 0)
+        .executeTakeFirst();
+      if (postedReceipt || paidProforma) {
+        throw new BadRequestException(
+          'لا يجوز تعديل نسب المشروع بعد بدء السداد أو الاستلام دون سجل تاريخي لنسب الشراكة.'
+        );
       }
 
       const totalPercentage = partners.reduce((sum, p) => sum + Number(p.profitPercentage || 0), 0);

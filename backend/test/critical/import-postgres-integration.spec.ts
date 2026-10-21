@@ -1531,6 +1531,18 @@ async function runTests() {
     }
     assert.ok(nonCashRejected, 'Capital deposit to a non-cash asset must roll back atomically');
 
+    let historyDeleteBlocked = false;
+    try {
+      await service.deletePartner(tenantId, String(startingPartner.id));
+    } catch (err: any) {
+      historyDeleteBlocked = true;
+      assert.ok(err.message.includes('لا يمكن حذف شريك'));
+    }
+    assert.ok(historyDeleteBlocked, 'Never CASCADE-delete partner financial history');
+    const partnerCapitalHistory = await db.selectFrom('import_partner_ledger').select('id')
+      .where('partner_id', '=', String(startingPartner.id)).execute();
+    assert.ok(partnerCapitalHistory.length > 0, 'Historical capital entries must survive rejected deletion');
+
     // No partner payout may be posted from an unverified, company-wide estimate.
     const partnerPayoutsBefore = await db.selectFrom('treasury_transactions')
       .select(sql<number>`count(*)`.as('count'))
