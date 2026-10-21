@@ -43,6 +43,24 @@ export interface ProposedClosingLine {
   description: string;
 }
 
+/** Retain the P&L accounts and redirect only the retained-earnings line. */
+export function resolveClosingJournalAccounts(
+  proposed: ProposedClosingLine[],
+  defaultRetainedId: number | null,
+  selectedRetainedId: number,
+): ProposedClosingLine[] {
+  if (!Number.isSafeInteger(selectedRetainedId) || selectedRetainedId <= 0) {
+    throw new BadRequestException('حساب الأرباح المحتجزة غير صالح.');
+  }
+  return proposed.map((line) => (
+    defaultRetainedId != null &&
+    line.accountId === defaultRetainedId &&
+    line.description.includes('الأرباح المحتجزة')
+      ? { ...line, accountId: selectedRetainedId }
+      : line
+  ));
+}
+
 export interface FiscalYearPreviewResult {
   fiscalYear: any;
   unpostedEntriesCount: number;
@@ -605,14 +623,10 @@ export class FiscalYearService {
           sourceType: 'fiscal_year_closing', sourceId: fy.id, tenantId,
           accountId: auth.accountId || tenantId, entryDate: new Date(endDate),
           description, createdBy: userId,
-          lines: preview.proposedClosingLines.map((line) => ({
-            // Only the retained-earnings closing line is redirected; P&L account
-            // lines must remain at their original accounts.
-            accountId: line.accountId === preview.retainedEarningsAccount?.id
-              && line.description.includes('الأرباح المحتجزة')
-              ? retainedEarningsAccountId
-              : line.accountId,
-            description: line.description,
+          lines: resolveClosingJournalAccounts(
+            preview.proposedClosingLines, preview.retainedEarningsAccount?.id ?? null, retainedEarningsAccountId,
+          ).map((line) => ({
+            accountId: line.accountId, description: line.description,
             debit: line.debit, credit: line.credit,
             partnerType: 'none' as const, partnerId: null, branchId: null, locationId: null,
           })),
