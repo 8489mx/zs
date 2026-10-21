@@ -620,24 +620,39 @@ export class PosTerminalService {
     if (!session || session.tenantId !== tenantId) {
       throw new BadRequestException('معاملة الدفع غير موجودة');
     }
+    if (session.status === 'approved') {
+      throw new BadRequestException('لا يمكن إلغاء تحصيل بنكي معتمد محلياً؛ يلزم إجراء Void/Refund موثق من البنك');
+    }
+    if (session.status === 'declined' || session.status === 'cancelled') return session;
 
-    session.status = 'cancelled';
-    session.message = 'تم إلغاء عملية الدفع بواسطة الكاشير';
-    session.updatedAt = Date.now();
-
-    // If real device, dispatch remote cancel best-effort
-    if (!session.isSimulated) {
-      const terminals = await this.getTerminals(tenantId).catch(() => []);
-      const term = terminals.find(t => t.id === session.terminalId);
-      if (term?.ipAddress) {
-        const { host: cleanIp, port } = parseTerminalHostAndPort(term.ipAddress, 8080);
-        const prov = (term.provider || '').toLowerCase();
-        if (cleanIp) {
-          this.dispatchTerminalCancel(cleanIp, port, prov, transactionId).catch(() => {});
-        }
-      }
+    // A simulated/unsent job may be cancelled locally without a bank operation.
+    if (session.isSimulated) {
+      session.status = 'cancelled';
+      session.message = 'تم إلغاء العملية التجريبية';
+      session.updatedAt = Date.now();
+      return session;
+    }
+    const pending = this.pendingBridgeJobs.get(tenantId) || [];
+    if (pending.some(job => job.jobId === transactionId)) {
+      this.pendingBridgeJobs.set(tenantId, pending.filter(job => job.jobId !== transactionId));
+      session.status = 'cancelled';
+      session.message = 'أُلغي الطلب قبل إرساله إلى ماكينة البنك';
+      session.updatedAt = Date.now();
+      return session;
     }
 
+    // The bank may already have debited the card. Never report "cancelled" based on
+    // a best-effort network request; keep status unsettled until reliable confirmation.
+    const terminals = await this.getTerminals(tenantId).catch(() => []);
+    const term = terminals.find(t => t.id === session.terminalId);
+    if (term?.ipAddress) {
+      const { host, port } = parseTerminalHostAndPort(term.ipAddress, 8080);
+      if (host) {
+        await this.dispatchTerminalCancel(host, port, (term.provider || '').toLowerCase(), transactionId);
+      }
+    }
+    session.message = 'تمت محاولة إرسال طلب الإلغاء؛ راجع حالة البنك قبل إعادة التحصيل';
+    session.updatedAt = Date.now();
     return session;
   }
 
