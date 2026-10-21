@@ -37,7 +37,8 @@ export function EmployeePeriodStatement({ employeeId, employee, canViewLoans, ca
         <label>إلى <input type="date" value={to} onChange={e => setTo(e.target.value)} /></label>
       </div>
       {!validRange ? <p className="error-box">تاريخ النهاية لازم يكون بعد البداية.</p> : null}
-      {attendance.isError ? <p className="error-box">تعذر تحميل سجلات الحضور.</p> : null}
+      {attendance.isError && canViewAttendance ? <p className="error-box">تعذر تحميل سجلات الحضور.</p> : null}
+      {!canViewAttendance ? <p className="muted">ليس لديك صلاحية عرض الحضور والانصراف.</p> : null}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 18, marginBottom: 12 }}>
         <span>إجمالي ساعات العمل المكتملة: <strong>{attendance.isLoading ? '—' : completedHours} ساعة</strong></span>
         {hourly ? <span>ساعات الأجر: <strong>{attendance.isLoading ? '—' : payableHours} ساعة</strong></span> : null}

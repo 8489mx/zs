@@ -2663,6 +2663,28 @@ export class HrService {
       if (Number(wageSummary.rows[0]?.count || 0) === 0 || Number(wageSummary.rows[0]?.total || 0) <= 0) {
         throw new AppError('لا يمكن اعتماد كشف مرتبات فارغ أو جميع أجوره صفر. راجع الأجر والعقود والحضور أولًا.', 'HR_PAYROLL_ZERO_WAGES', 400);
       }
+      // A single employee must never be silently included with an undefined
+      // rate/contract while another employee makes the overall run non-zero.
+      const missingRates = await sql<{ display_name: string }>`
+        SELECT e.display_name
+        FROM hr_payroll_run_items i
+        JOIN hr_employees e ON e.id = i.employee_id AND e.tenant_id = i.tenant_id
+        WHERE i.run_id = ${id} AND i.tenant_id = ${auth.tenantId}
+          AND i.status = 'reviewed'
+          AND (
+            (e.compensation_type = 'hourly' AND COALESCE(e.hourly_rate, 0) <= 0)
+            OR (e.compensation_type <> 'hourly' AND NOT EXISTS (
+              SELECT 1 FROM hr_employment_contracts c
+              WHERE c.employee_id = e.id AND c.tenant_id = e.tenant_id
+                AND c.status = 'active' AND c.base_salary > 0
+            ))
+          )
+        LIMIT 5
+      `.execute(trx);
+      if (missingRates.rows.length) {
+        const names = missingRates.rows.map(row => String(row.display_name)).join('، ');
+        throw new AppError(`يوجد موظفون بدون أجر ساعة أو عقد براتب نشط وصحيح: ${names}`, 'HR_PAYROLL_MISSING_EMPLOYEE_RATES', 400);
+      }
       await this.settlePayrollLoanDeductions(trx, id, auth);
 
       const { posted } = await this.accountingPosting.postPayrollAccrual(trx, id, auth);
