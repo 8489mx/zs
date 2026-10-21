@@ -213,7 +213,7 @@ export class SalesOrdersService {
         });
       }
 
-      return order;
+      return { ...order, order_number: formatDailyDocumentNumber('SO', Number(order.id)) };
     });
 
     return {
