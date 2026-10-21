@@ -56,6 +56,7 @@ export interface AttendanceResponse {
   pagination?: { page: number; pageSize: number; totalItems: number; totalPages: number };
   summary?: {
     workedMinutes?: number;
+    payableMinutes?: number;
     totalItems?: number;
     presentCount?: number;
     absentCount?: number;

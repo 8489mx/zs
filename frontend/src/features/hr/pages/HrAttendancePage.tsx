@@ -242,8 +242,15 @@ export function HrAttendancePage() {
                   <label>من <input type="date" value={rangeFrom} max={rangeTo} onChange={e => { setRangeFrom(e.target.value); setRangePage(1); }} /></label>
                   <label>إلى <input type="date" value={rangeTo} min={rangeFrom} onChange={e => { setRangeTo(e.target.value); setRangePage(1); }} /></label>
                   <strong>إجمالي ساعات التشغيل: {(Number(attendance.data?.summary?.workedMinutes || 0) / 60).toFixed(2)} ساعة</strong>
+                  <span>ساعات مرتب بالساعة: {(Number(attendance.data?.summary?.payableMinutes || 0) / 60).toFixed(2)} ساعة</span>
                 </>
               ) : null}
+            </div>
+          ) : null}
+          {activeTab === 'attendance' && !isRange ? (
+            <div style={{ padding: '8px 12px', background: '#fff', border: '1px solid #e2e8f0', marginBottom: 10, borderRadius: 8 }}>
+              إجمالي ساعات التشغيل اليوم: <strong>{(Number(attendance.data?.summary?.workedMinutes || 0) / 60).toFixed(2)} ساعة</strong>
+              <span style={{ marginRight: 14 }}>ساعات مرتب بالساعة: <strong>{(Number(attendance.data?.summary?.payableMinutes || 0) / 60).toFixed(2)} ساعة</strong></span>
             </div>
           ) : null}
           {/* KPI Summary */}

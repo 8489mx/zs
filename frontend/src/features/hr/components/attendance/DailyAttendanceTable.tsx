@@ -56,6 +56,28 @@ export const DailyAttendanceTable: React.FC<DailyAttendanceTableProps> = ({
           ),
         },
         {
+          key: 'duration',
+          header: 'ساعات التشغيل',
+          className: 'col-fit',
+          cell: row => {
+            const draft = draftByEmployeeId[String(row.employeeId)];
+            const checkIn = draft?.checkInAt || row.checkInAt?.slice(11, 16) || '';
+            const checkOut = draft?.checkOutAt || row.checkOutAt?.slice(11, 16) || '';
+            if (!checkIn || !checkOut) return '—';
+            const [ih, im] = checkIn.split(':').map(Number);
+            const [oh, om] = checkOut.split(':').map(Number);
+            const start = ih * 60 + im, end = oh * 60 + om;
+            const minutes = end <= start ? end + 1440 - start : end - start;
+            return `${Math.floor(minutes / 60)} س ${minutes % 60} د`;
+          },
+        },
+        {
+          key: 'paidHours',
+          header: 'ساعات الأجر',
+          className: 'col-fit',
+          cell: row => row.compensationType === 'hourly' ? 'حسب ساعات الحضور' : 'مرتب ثابت',
+        },
+        {
           key: 'status',
           header: t('hr.attendance.daily_attendance_table.s5', "الحالة"),
           className: 'col-fit',

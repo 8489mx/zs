@@ -2922,12 +2922,17 @@ export class HrService {
       const pageSize = Math.min(200, Math.max(1, Math.floor(Number(query.pageSize || 50)) || 50));
       const page = Math.max(1, Math.floor(Number(query.page || 1)) || 1);
       const match = `%${search}%`;
-      const count = await sql<{ total: string; minutes: string; present: string; absent: string; late: string }>`
+      const count = await sql<{ total: string; minutes: string; payable_minutes: string; present: string; absent: string; late: string }>`
         SELECT COUNT(*)::text AS total,
           COALESCE(SUM(CASE WHEN a.check_in_at IS NOT NULL AND a.check_out_at IS NOT NULL
               AND a.check_out_at > a.check_in_at AND a.check_out_at <= a.check_in_at + INTERVAL '24 hours'
               AND a.status NOT IN ('absent', 'leave')
               THEN FLOOR(EXTRACT(EPOCH FROM (a.check_out_at - a.check_in_at)) / 60) ELSE 0 END), 0)::text AS minutes,
+          COALESCE(SUM(CASE WHEN e.compensation_type = 'hourly'
+              AND a.check_in_at IS NOT NULL AND a.check_out_at IS NOT NULL
+              AND a.check_out_at > a.check_in_at AND a.check_out_at <= a.check_in_at + INTERVAL '24 hours'
+              AND a.status NOT IN ('absent', 'leave')
+              THEN FLOOR(EXTRACT(EPOCH FROM (a.check_out_at - a.check_in_at)) / 60) ELSE 0 END), 0)::text AS payable_minutes,
           COUNT(*) FILTER (WHERE a.status = 'present')::text AS present,
           COUNT(*) FILTER (WHERE a.status = 'absent')::text AS absent,
           COUNT(*) FILTER (WHERE a.status = 'late')::text AS late
@@ -2945,6 +2950,7 @@ export class HrService {
       const result = await sql<Record<string, unknown>>`
         SELECT a.id AS attendance_id, e.id AS employee_id, e.employee_no, e.display_name AS employee_name,
           d.name AS department_name, j.name AS job_title_name,
+          e.compensation_type, e.hourly_rate,
           to_char(a.work_date, 'YYYY-MM-DD') AS work_date_text, a.status,
           to_char(a.check_in_at AT TIME ZONE ${tenantTimezone}, 'YYYY-MM-DD"T"HH24:MI:SS') AS check_in_at_text,
           to_char(a.check_out_at AT TIME ZONE ${tenantTimezone}, 'YYYY-MM-DD"T"HH24:MI:SS') AS check_out_at_text,
@@ -2965,6 +2971,7 @@ export class HrService {
           id: String(row.attendance_id), employeeId: String(row.employee_id),
           employeeNo: clean(row.employee_no), employeeName: clean(row.employee_name),
           departmentName: clean(row.department_name), jobTitleName: clean(row.job_title_name),
+          compensationType: clean(row.compensation_type), hourlyRate: Number(row.hourly_rate || 0),
           workDate: clean(row.work_date_text), status: clean(row.status),
           checkInAt: clean(row.check_in_at_text), checkOutAt: clean(row.check_out_at_text),
           source: normalizeAttendanceSource(row.source), notes: clean(row.notes),
@@ -2972,7 +2979,8 @@ export class HrService {
         pagination: { page: safePage, pageSize, totalItems, totalPages },
         summary: { totalItems, presentCount: Number(count.rows[0]?.present || 0),
           absentCount: Number(count.rows[0]?.absent || 0), lateCount: Number(count.rows[0]?.late || 0),
-          workedMinutes: Number(count.rows[0]?.minutes || 0) },
+          workedMinutes: Number(count.rows[0]?.minutes || 0),
+          payableMinutes: Number(count.rows[0]?.payable_minutes || 0) },
         serverTime: new Date().toISOString(), serverTimezone: tenantTimezone,
         from: rangeFrom, to: rangeTo,
       };
@@ -2982,6 +2990,7 @@ export class HrService {
       SELECT
         e.id AS employee_id,
         e.employee_no,
+        e.compensation_type, e.hourly_rate,
         e.display_name AS employee_name,
         d.name AS department_name,
         j.name AS job_title_name,
@@ -3010,6 +3019,7 @@ export class HrService {
         employeeName: clean(row.employee_name),
         departmentName: clean(row.department_name),
         jobTitleName: clean(row.job_title_name),
+        compensationType: clean(row.compensation_type), hourlyRate: Number(row.hourly_rate || 0),
         workDate,
         status: status === 'unmarked' ? '' : status,
         checkInAt: clean(row.check_in_at_text),
@@ -3037,11 +3047,21 @@ export class HrService {
       { totalItems: 0, presentCount: 0, absentCount: 0, lateCount: 0, leaveCount: 0, unmarkedCount: 0 },
     );
 
+    const workedMinutes = rows.reduce((total, row) => {
+      if (!row.checkInAt || !row.checkOutAt || ['absent', 'leave'].includes(row.status)) return total;
+      const elapsed = Math.floor((new Date(row.checkOutAt).getTime() - new Date(row.checkInAt).getTime()) / 60000);
+      return total + (Number.isFinite(elapsed) && elapsed > 0 && elapsed <= 1440 ? elapsed : 0);
+    }, 0);
+    const payableMinutes = rows.reduce((total, row) => {
+      if (row.compensationType !== 'hourly' || !row.checkInAt || !row.checkOutAt || ['absent', 'leave'].includes(row.status)) return total;
+      const elapsed = Math.floor((new Date(row.checkOutAt).getTime() - new Date(row.checkInAt).getTime()) / 60000);
+      return total + (Number.isFinite(elapsed) && elapsed > 0 && elapsed <= 1440 ? elapsed : 0);
+    }, 0);
     const paged = paginateRows(rows, query, { defaultSize: 50 });
     return {
       rows: paged.rows,
       pagination: paged.pagination,
-      summary,
+      summary: { ...summary, workedMinutes, payableMinutes },
       serverTime: new Date().toISOString(),
       serverTimezone: tenantTimezone,
       workDate,
@@ -4544,23 +4564,30 @@ export class HrService {
       // 4. Handle shift cash deduction if shift ID is provided
       if (payload.shiftId) {
         const shiftId = Number(payload.shiftId);
-        const eligibleShift = await sql<{ id: number }>`
-          SELECT id FROM cashier_shifts
+        const eligibleShift = await sql<{ id: number; branch_id: number | null; location_id: number | null }>`
+          SELECT id, branch_id, location_id FROM cashier_shifts
           WHERE id = ${shiftId} AND tenant_id = ${tenantId} AND status = 'open'
             AND (opened_by = ${auth.userId} OR ${auth.role === 'super_admin'})
           FOR UPDATE
         `.execute(trx);
         if (!eligibleShift.rows.length) throw new AppError('وردية الكاشير غير مفتوحة أو لا تخص المستخدم الحالي', 'HR_CASHIER_SHIFT_INVALID', 400);
+        // The drawer recalculates expected cash from treasury_transactions;
+        // updating expected_cash alone loses the deduction on its next refresh.
+        const shift = eligibleShift.rows[0];
+        await sql`
+          INSERT INTO treasury_transactions (
+            tenant_id, account_id, txn_type, amount, note, reference_type,
+            reference_id, branch_id, location_id, created_by
+          ) VALUES (
+            ${tenantId}, ${accountId}, 'cash_out', ${-amount},
+            ${'سلفة موظف #' + employeeId + '، حركة #' + loanId + ': ' + notes},
+            'cashier_shift', ${shiftId}, ${shift.branch_id}, ${shift.location_id}, ${auth.userId}
+          )
+        `.execute(trx);
         await sql`
           UPDATE cashier_shifts
           SET expected_cash = COALESCE(expected_cash, 0) - ${amount}
           WHERE id = ${shiftId} AND tenant_id = ${tenantId} AND status = 'open'
-        `.execute(trx);
-      } else if (payload.treasuryId) {
-        const treasuryId = Number(payload.treasuryId);
-        await sql`
-          INSERT INTO treasury_transactions (tenant_id, account_id, txn_type, amount, note, reference_type, reference_id, created_by)
-          VALUES (${tenantId}, ${accountId}, 'withdrawal', ${amount}, ${notes}, 'hr_loan', ${loanId}, ${auth.userId})
         `.execute(trx);
       } else {
         throw new AppError('حدد وردية كاشير مفتوحة أو خزينة لصرف السلفة', 'HR_ADVANCE_CASH_SOURCE_REQUIRED', 400);

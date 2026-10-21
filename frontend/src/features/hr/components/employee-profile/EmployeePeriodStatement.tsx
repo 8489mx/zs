@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useHrAttendance } from '@/features/hr/hooks/useHr';
+import { useHasAnyPermission } from '@/shared/hooks/use-permission';
 import { hrApi } from '@/features/hr/api/hr.api';
 import { DataTable } from '@/shared/ui/data-table';
 import type { HrEmployee, HrWithdrawalRow } from '@/types/domain';
@@ -13,7 +14,8 @@ export function EmployeePeriodStatement({ employeeId, employee, canViewLoans, ca
   const [from, setFrom] = useState(todayDate().slice(0, 7) + '-01');
   const [to, setTo] = useState(todayDate());
   const validRange = Boolean(from && to && from <= to);
-  const attendance = useHrAttendance({ employeeId, from, to, page: 1, pageSize: 100 }, { enabled: validRange });
+  const canViewAttendance = useHasAnyPermission('hrAttendance');
+  const attendance = useHrAttendance({ employeeId, from, to, page: 1, pageSize: 100 }, { enabled: validRange && canViewAttendance });
   const withdrawals = useQuery({
     queryKey: ['hr', 'period-statement-withdrawals', employeeId, from, to],
     queryFn: () => hrApi.withdrawals({ employeeId, period: 'custom', from, to, page: 1, pageSize: 100 }),
@@ -21,6 +23,7 @@ export function EmployeePeriodStatement({ employeeId, employee, canViewLoans, ca
   });
   const minutes = Number(attendance.data?.summary?.workedMinutes || 0);
   const completedHours = (minutes / 60).toFixed(2);
+  const payableHours = (Number(attendance.data?.summary?.payableMinutes || 0) / 60).toFixed(2);
   const hourly = employee.compensationType === 'hourly';
   const rate = Number(employee.hourlyRate || 0);
   const indicativePay = Number(((minutes / 60) * rate).toFixed(2));
@@ -37,6 +40,7 @@ export function EmployeePeriodStatement({ employeeId, employee, canViewLoans, ca
       {attendance.isError ? <p className="error-box">تعذر تحميل سجلات الحضور.</p> : null}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 18, marginBottom: 12 }}>
         <span>إجمالي ساعات العمل المكتملة: <strong>{attendance.isLoading ? '—' : completedHours} ساعة</strong></span>
+        {hourly ? <span>ساعات الأجر: <strong>{attendance.isLoading ? '—' : payableHours} ساعة</strong></span> : null}
         {hourly && canViewSalary ? (
           <span>الأجر قبل الخصومات والتسويات: <strong>{attendance.isLoading ? '—' : egyptMoney(indicativePay)} جنيه</strong></span>
         ) : null}

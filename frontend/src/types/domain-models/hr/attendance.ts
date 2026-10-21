@@ -5,6 +5,8 @@ export interface HrAttendanceRecord {
   employeeName?: string;
   departmentName?: string;
   jobTitleName?: string;
+  compensationType?: string;
+  hourlyRate?: number;
   workDate: string;
   status?: string;
   checkInAt?: string;
