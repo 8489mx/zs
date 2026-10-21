@@ -18,15 +18,15 @@ function fakeDatabase(foundCount = 3) {
         where() { return builder; },
         forUpdate() { return builder; },
         async execute() {
-          if (table === 'cost_centers') return splits.slice(0, foundCount).map(x => ({ id: x.costCenterId }));
-          if (table === 'cost_center_allocation_splits') return splits.map(x => ({
+          if (table.startsWith('cost_centers')) return splits.slice(0, foundCount).map(x => ({ id: x.costCenterId }));
+          if (table.startsWith('cost_center_allocation_splits')) return splits.map(x => ({
             cost_center_id: x.costCenterId, percentage: x.percentage,
             cost_center_name: String(x.costCenterId), cost_center_code: String(x.costCenterId),
           }));
           return [];
         },
         async executeTakeFirst() {
-          if (table === 'cost_center_allocations') return { id: '100', name: 'Test' };
+          if (table.startsWith('cost_center_allocations')) return { id: '100', name: 'Test' };
           return undefined;
         },
         async executeTakeFirstOrThrow() { return { id: '100' }; },
