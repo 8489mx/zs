@@ -45,6 +45,8 @@ export class OfflineUpdatesPublicController {
    * Developer Sandbox simulation mode to test and verify updates in real-time.
    */
   @Post('simulate')
+  @UseGuards(SessionAuthGuard, PermissionsGuard)
+  @RequirePermissions('canManageSettings')
   async simulateUpdate(@Body() body: { fromVersion?: string; targetVersion?: string; passcode?: string }) {
     return this.releasesService.simulateUpdate(body);
   }
@@ -53,7 +55,9 @@ export class OfflineUpdatesPublicController {
    * POST /api/updates/apply-local-zip (Legacy alias)
    */
   @Post('apply-local-zip')
-  @UseInterceptors(FileInterceptor('file'))
+  @UseGuards(SessionAuthGuard, PermissionsGuard)
+  @RequirePermissions('canManageSettings')
+  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 128 * 1024 * 1024 } }))
   async applyLocalZipUpdateLegacy(
     @UploadedFile() file: Express.Multer.File,
     @Body('passcode') passcode?: string,
@@ -65,6 +69,8 @@ export class OfflineUpdatesPublicController {
    * POST /api/updates/apply (Legacy alias)
    */
   @Post('apply')
+  @UseGuards(SessionAuthGuard, PermissionsGuard)
+  @RequirePermissions('canManageSettings')
   async applyUpdateLegacy(@Body() body: { version: string; patchUrl: string; changelog: string; passcode?: string }) {
     return this.releasesService.applyLocalUpdate(body);
   }
@@ -92,7 +98,7 @@ export class OfflineUpdatesProtectedController {
    */
   @Post('apply-local-zip')
   @RequirePermissions('canManageSettings')
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 128 * 1024 * 1024 } }))
   async applyLocalZipUpdate(
     @UploadedFile() file: Express.Multer.File,
     @Body('passcode') passcode?: string,
