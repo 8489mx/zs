@@ -3798,6 +3798,12 @@ export class ImportSalesService {
   }
 
   async liquidateBrokerExpenses(tenantId: string, userId: number, dto: LiquidateBrokerExpenseDto) {
+    if (!dto.advanceId) {
+      throw new BadRequestException('تسوية عهدة المخلص تتطلب تحديد العهدة الأصلية؛ لا يجوز تخفيض أصل عهده غير محددة.');
+    }
+    if (!Number.isFinite(Number(dto.amountEgp)) || Number(dto.amountEgp) <= 0) {
+      throw new BadRequestException('مبلغ إيصال تصفية العهدة يجب أن يكون موجبًا.');
+    }
     return await this.db.transaction().execute(async (trx) => {
       const expense = await trx
         .insertInto('import_broker_expenses')
@@ -3831,8 +3837,16 @@ export class ImportSalesService {
           .forUpdate()
           .executeTakeFirstOrThrow();
 
+        if (adv.broker_id !== dto.brokerId ||
+            (dto.projectId && adv.project_id && adv.project_id !== dto.projectId) ||
+            (dto.shipmentId && adv.shipment_id && adv.shipment_id !== dto.shipmentId)) {
+          throw new BadRequestException('إيصال التسوية لا يطابق المخلص أو المشروع أو الشحنة الخاصة بالعهدة.');
+        }
         const newSettled = Number(adv.settled_amount_egp || 0) + Number(dto.amountEgp);
-        const newRemaining = Math.max(0, Number(adv.amount_egp) - newSettled);
+        if (newSettled > Number(adv.amount_egp) + 0.001) {
+          throw new UnprocessableEntityException('قيمة إيصالات التسوية تجاوزت إجمالي عهدة المخلص.');
+        }
+        const newRemaining = Number((Number(adv.amount_egp) - newSettled).toFixed(2));
         const newStatus = newRemaining <= 0.01 ? 'settled' : 'partially_settled';
 
         await trx
