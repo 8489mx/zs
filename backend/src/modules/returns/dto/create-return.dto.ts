@@ -42,11 +42,6 @@ class ReturnItemDto {
   @IsOptional()
   @IsString()
   batchNumber?: string;
-
-  @IsOptional()
-  @Type(() => Number)
-  @IsNumber()
-  batchId?: number;
 }
 
 export class CreateReturnDto {

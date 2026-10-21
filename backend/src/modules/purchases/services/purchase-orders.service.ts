@@ -377,29 +377,38 @@ export class PurchaseOrdersService {
     const createdPurchaseId = Number((res as any)?.purchaseId || (res as any)?.purchase?.id || 0);
     if (!createdPurchaseId) throw new BadRequestException('لم يتم إنشاء فاتورة مشتريات صالحة');
 
-    await this.db.transaction().execute(async (trx) => {
-      const linked = await trx.updateTable('purchases').set({ po_id: id })
-        .where('id', '=', createdPurchaseId).where('tenant_id', '=', scope.tenantId)
-        .where('account_id', '=', scope.accountId).execute();
-      if (Number(linked[0]?.numUpdatedRows || 0) !== 1) throw new BadRequestException('فاتورة المشتريات غير موجودة للربط');
-      const billItems = await trx.selectFrom('purchase_items').select(['id', 'product_id'])
-        .where('purchase_id', '=', createdPurchaseId).where('tenant_id', '=', scope.tenantId)
-        .orderBy('id', 'asc').execute();
-      if (billItems.length !== items.length) throw new BadRequestException('تعذر ربط بنود الفاتورة بأمر الشراء');
-      for (const [index, billItem] of billItems.entries()) {
-        const source = items[index];
-        if (!source || Number(source.product_id) !== Number(billItem.product_id)) {
-          throw new BadRequestException('تعذر ربط بنود الفاتورة بأمر الشراء');
+    try {
+      await this.db.transaction().execute(async (trx) => {
+        const linked = await trx.updateTable('purchases').set({ po_id: id })
+          .where('id', '=', createdPurchaseId).where('tenant_id', '=', scope.tenantId)
+          .where('account_id', '=', scope.accountId).execute();
+        if (Number(linked[0]?.numUpdatedRows || 0) !== 1) throw new BadRequestException('فاتورة المشتريات غير موجودة للربط');
+        const billItems = await trx.selectFrom('purchase_items').select(['id', 'product_id'])
+          .where('purchase_id', '=', createdPurchaseId).where('tenant_id', '=', scope.tenantId)
+          .orderBy('id', 'asc').execute();
+        if (billItems.length !== items.length) throw new BadRequestException('تعذر ربط بنود الفاتورة بأمر الشراء');
+        for (const [index, billItem] of billItems.entries()) {
+          const source = items[index];
+          if (!source || Number(source.product_id) !== Number(billItem.product_id)) {
+            throw new BadRequestException('تعذر ربط بنود الفاتورة بأمر الشراء');
+          }
+          await trx.updateTable('purchase_items').set({ po_item_id: source.id })
+            .where('id', '=', billItem.id).where('tenant_id', '=', scope.tenantId).execute();
         }
-        await trx.updateTable('purchase_items').set({ po_item_id: source.id })
-          .where('id', '=', billItem.id).where('tenant_id', '=', scope.tenantId).execute();
-      }
-      const converted = await trx.updateTable('purchase_orders').set({
-        status: 'converted_to_bill', converted_purchase_id: createdPurchaseId, updated_at: new Date(),
-      }).where('id', '=', id).where('tenant_id', '=', scope.tenantId)
-        .where('account_id', '=', scope.accountId).where('status', '=', order.status).execute();
-      if (Number(converted[0]?.numUpdatedRows || 0) !== 1) throw new BadRequestException('تغيرت حالة أمر الشراء أثناء التحويل');
-    });
+        const converted = await trx.updateTable('purchase_orders').set({
+          status: 'converted_to_bill', converted_purchase_id: createdPurchaseId, updated_at: new Date(),
+        }).where('id', '=', id).where('tenant_id', '=', scope.tenantId)
+          .where('account_id', '=', scope.accountId).where('status', '=', order.status).execute();
+        if (Number(converted[0]?.numUpdatedRows || 0) !== 1) throw new BadRequestException('تغيرت حالة أمر الشراء أثناء التحويل');
+      });
+    } catch (error) {
+      // Clean up orphaned draft purchase if linking failed (ZS-062)
+      await this.db.transaction().execute(async (trx) => {
+        await trx.deleteFrom('purchase_items').where('purchase_id', '=', createdPurchaseId).where('tenant_id', '=', scope.tenantId).execute();
+        await trx.deleteFrom('purchases').where('id', '=', createdPurchaseId).where('tenant_id', '=', scope.tenantId).execute();
+      }).catch(() => undefined);
+      throw error;
+    }
 
     return {
       success: true,

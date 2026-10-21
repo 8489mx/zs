@@ -800,11 +800,69 @@ export class FiscalYearService {
         throw new BadRequestException('السنة المالية تغيرت حالتها؛ يرجى إعادة التحميل.');
       }
 
-      // Never delete posted closing journals or their lines. A compliant reopening needs
-      // a formal reversing journal in a permitted accounting period and review of locks.
-      // Until that workflow exists, fail closed rather than corrupt immutable history.
+      // 1. Post immutable reversal of closing journal entry if exists (ZS-042)
       if (lockedFy.closing_entry_id != null) {
-        throw new BadRequestException('لا يمكن إعادة فتح سنة لها قيد إقفال مرحل دون قيد عكسي موثق. لم يتم حذف أي قيد.');
+        const closingEntry = await trx
+          .selectFrom('journal_entries')
+          .select(['id', 'entry_no', 'entry_date', 'description'])
+          .where('id', '=', lockedFy.closing_entry_id)
+          .where('tenant_id', '=', tenantId)
+          .executeTakeFirst();
+
+        if (closingEntry) {
+          const originalLines = await trx
+            .selectFrom('journal_entry_lines')
+            .selectAll()
+            .where('journal_entry_id', '=', closingEntry.id)
+            .where('tenant_id', '=', tenantId)
+            .execute();
+
+          if (originalLines.length > 0) {
+            const reversalLines = originalLines.map((l) => ({
+              accountId: Number(l.account_id),
+              description: `عكس قيد إقفال السنة المالية: ${fy.name} - [${l.description || ''}]`,
+              debit: Number(l.credit) || 0,
+              credit: Number(l.debit) || 0,
+              partnerType: 'none' as const,
+              partnerId: null,
+              branchId: null,
+              locationId: null,
+            }));
+
+            const reversalEntryId = await this.accountingPosting.postDomainJournal(trx, {
+              sourceType: 'fiscal_year_reopen',
+              sourceId: fy.id,
+              tenantId,
+              accountId: auth.accountId || tenantId,
+              entryDate: new Date(),
+              description: `عكس قيد إقفال السنة المالية [${fy.name}] بسبب إعادة الفتح: ${reason}`,
+              createdBy: auth.userId,
+              lines: reversalLines,
+            });
+
+            const reversalEntryNo = `REV-CLOSE-${fy.code || new Date().getFullYear()}-${String(reversalEntryId).padStart(6, '0')}`;
+            await trx
+              .updateTable('journal_entries')
+              .set({
+                entry_no: reversalEntryNo,
+                updated_at: sql`NOW()` as any,
+              } as any)
+              .where('id', '=', reversalEntryId)
+              .where('tenant_id', '=', tenantId)
+              .execute();
+          }
+
+          // Mark closing entry as cancelled while preserving immutable ledger record
+          await trx
+            .updateTable('journal_entries')
+            .set({
+              status: 'cancelled',
+              updated_at: sql`NOW()` as any,
+            } as any)
+            .where('id', '=', closingEntry.id)
+            .where('tenant_id', '=', tenantId)
+            .execute();
+        }
       }
 
       const later = await trx.selectFrom('accounting_fiscal_years')

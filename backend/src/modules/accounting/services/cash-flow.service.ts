@@ -47,11 +47,41 @@ export class CashFlowService {
   ): Promise<CashFlowReportData> {
     const tenantId = auth.tenantId;
 
-    const fromDate = params.dateFrom ? new Date(params.dateFrom) : new Date(new Date().getFullYear(), 0, 1);
-    fromDate.setHours(0, 0, 0, 0);
+    // ZS-036: Prevent timezone day shift by parsing calendar dates as explicit UTC boundaries
+    const parseReportBoundary = (d?: string, isEnd = false): { date: Date; dateStr: string } => {
+      if (d && /^\d{4}-\d{2}-\d{2}/.test(d)) {
+        const dateStr = d.slice(0, 10);
+        const [y, m, day] = dateStr.split('-').map(Number);
+        return {
+          date: isEnd
+            ? new Date(Date.UTC(y, m - 1, day, 23, 59, 59, 999))
+            : new Date(Date.UTC(y, m - 1, day, 0, 0, 0, 0)),
+          dateStr,
+        };
+      }
+      const now = new Date();
+      if (!isEnd) {
+        const y = now.getFullYear();
+        return {
+          date: new Date(Date.UTC(y, 0, 1, 0, 0, 0, 0)),
+          dateStr: `${y}-01-01`,
+        };
+      }
+      const y = now.getFullYear();
+      const m = String(now.getMonth() + 1).padStart(2, '0');
+      const day = String(now.getDate()).padStart(2, '0');
+      return {
+        date: new Date(Date.UTC(y, now.getMonth(), now.getDate(), 23, 59, 59, 999)),
+        dateStr: `${y}-${m}-${day}`,
+      };
+    };
 
-    const toDate = params.dateTo ? new Date(params.dateTo) : new Date();
-    toDate.setHours(23, 59, 59, 999);
+    const fromBoundary = parseReportBoundary(params.dateFrom, false);
+    const toBoundary = parseReportBoundary(params.dateTo, true);
+    const fromDate = fromBoundary.date;
+    const toDate = toBoundary.date;
+    const fromDateStr = fromBoundary.dateStr;
+    const toDateStr = toBoundary.dateStr;
 
     // 1. Fetch cash & bank accounts (Cash & Cash Equivalents)
     const cashAccounts = await (this.db as any)
@@ -120,7 +150,7 @@ export class CashFlowService {
     const endingCash = this.toMoney(Number(endRow?.debit_sum || 0) - Number(endRow?.credit_sum || 0));
 
     // 4. Calculate Net Operating Income during the period
-    const pnlRows = await (this.db as any)
+    let pnlQuery = (this.db as any)
       .selectFrom('journal_entry_lines as jel')
       .innerJoin('journal_entries as je', 'je.id', 'jel.journal_entry_id')
       .innerJoin('accounting_accounts as acc', 'acc.id', 'jel.account_id')
@@ -134,9 +164,12 @@ export class CashFlowService {
       .where('jel.tenant_id', '=', tenantId)
       .where('je.status', '=', 'posted')
       .where('je.entry_date', '>=', fromDate)
-      .where('je.entry_date', '<=', toDate)
-      .groupBy(['acc.account_type', 'acc.code'])
-      .execute();
+      .where('je.entry_date', '<=', toDate);
+
+    if (params.branchId) {
+      pnlQuery = pnlQuery.where('jel.branch_id', '=', params.branchId);
+    }
+    const pnlRows = await pnlQuery.groupBy(['acc.account_type', 'acc.code']).execute();
 
     let netProfit = 0;
     let depreciationExpense = 0;
@@ -163,7 +196,7 @@ export class CashFlowService {
 
     // 5. Working capital changes during the period
     // Working Capital Accounts: Receivables (113), Inventory (114), Payables (211), Taxes (213)
-    const wcRows = await (this.db as any)
+    let wcQuery = (this.db as any)
       .selectFrom('journal_entry_lines as jel')
       .innerJoin('journal_entries as je', 'je.id', 'jel.journal_entry_id')
       .innerJoin('accounting_accounts as acc', 'acc.id', 'jel.account_id')
@@ -181,9 +214,12 @@ export class CashFlowService {
       .where('jel.tenant_id', '=', tenantId)
       .where('je.status', '=', 'posted')
       .where('je.entry_date', '>=', fromDate)
-      .where('je.entry_date', '<=', toDate)
-      .groupBy(['acc.account_type', 'acc.code', 'acc.is_receivable', 'acc.is_payable', 'acc.is_inventory', 'acc.is_tax'])
-      .execute();
+      .where('je.entry_date', '<=', toDate);
+
+    if (params.branchId) {
+      wcQuery = wcQuery.where('jel.branch_id', '=', params.branchId);
+    }
+    const wcRows = await wcQuery.groupBy(['acc.account_type', 'acc.code', 'acc.is_receivable', 'acc.is_payable', 'acc.is_inventory', 'acc.is_tax']).execute();
 
     let changeInReceivables = 0; // Increase is cash outflow (-)
     let changeInInventory = 0;   // Increase is cash outflow (-)
@@ -220,7 +256,7 @@ export class CashFlowService {
     const totalOperating = this.toMoney(operatingLines.reduce((s, l) => s + l.amount, 0));
 
     // 6. Investing activities (Fixed assets purchases / disposals)
-    const fixedAssetRows = await (this.db as any)
+    let fixedAssetQuery = (this.db as any)
       .selectFrom('journal_entry_lines as jel')
       .innerJoin('journal_entries as je', 'je.id', 'jel.journal_entry_id')
       .innerJoin('accounting_accounts as acc', 'acc.id', 'jel.account_id')
@@ -243,8 +279,12 @@ export class CashFlowService {
             eb('acc.code', 'like', '123%'),
           ]),
         ]),
-      )
-      .executeTakeFirst();
+      );
+
+    if (params.branchId) {
+      fixedAssetQuery = fixedAssetQuery.where('jel.branch_id', '=', params.branchId);
+    }
+    const fixedAssetRows = await fixedAssetQuery.executeTakeFirst();
 
     const faDebit = Number(fixedAssetRows?.fa_debit || 0);
     const faCredit = Number(fixedAssetRows?.fa_credit || 0);
@@ -259,7 +299,7 @@ export class CashFlowService {
     const totalInvesting = this.toMoney(investingLines.reduce((s, l) => s + l.amount, 0));
 
     // 7. Financing activities (Capital, Loans, Owner Drawings)
-    const financingAccounts = await (this.db as any)
+    let financingQuery = (this.db as any)
       .selectFrom('journal_entry_lines as jel')
       .innerJoin('journal_entries as je', 'je.id', 'jel.journal_entry_id')
       .innerJoin('accounting_accounts as acc', 'acc.id', 'jel.account_id')
@@ -279,9 +319,12 @@ export class CashFlowService {
           eb('acc.account_type', '=', 'equity'),
           eb('acc.code', 'like', '22%'), // Long term debt
         ]),
-      )
-      .groupBy(['acc.code', 'acc.account_group'])
-      .execute();
+      );
+
+    if (params.branchId) {
+      financingQuery = financingQuery.where('jel.branch_id', '=', params.branchId);
+    }
+    const financingAccounts = await financingQuery.groupBy(['acc.code', 'acc.account_group']).execute();
 
     let capitalContributions = 0;
     let ownerDrawings = 0;
@@ -322,8 +365,8 @@ export class CashFlowService {
     const isReconciled = diff <= 1.0; // Allow micro rounding diff
 
     return {
-      dateFrom: fromDate.toISOString().slice(0, 10),
-      dateTo: toDate.toISOString().slice(0, 10),
+      dateFrom: fromDateStr,
+      dateTo: toDateStr,
       operatingActivities: {
         titleAr: 'التدفقات النقدية من الأنشطة التشغيلية',
         titleEn: 'Cash Flow from Operating Activities',
