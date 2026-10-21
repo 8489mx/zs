@@ -103,7 +103,7 @@ export class TamperAuditService {
     const scope = requireTenantScope(auth);
     const verifiedAt = new Date().toISOString();
 
-    // Query all records for this tenant with DB-level recomputed hash
+    // Query all records for this tenant with DB-level recomputed hash (both UTF8 and bytea)
     const rows = await sql<{
       id: string;
       tenant_id: string;
@@ -113,7 +113,8 @@ export class TamperAuditService {
       prev_hash: string | null;
       row_hash: string;
       created_at: Date;
-      computed_hash: string;
+      computed_hash_utf8: string;
+      computed_hash_bytea: string;
     }>`
       SELECT 
         id,
@@ -124,7 +125,8 @@ export class TamperAuditService {
         prev_hash,
         row_hash,
         created_at,
-        encode(sha256((prev_hash || '|' || tenant_id || '|' || table_name || '|' || record_id || '|' || operation || '|' || COALESCE(changed_fields::text, '') || '|' || COALESCE(new_values::text, ''))::bytea), 'hex') AS computed_hash
+        encode(sha256(convert_to(prev_hash || '|' || tenant_id || '|' || table_name || '|' || record_id || '|' || operation || '|' || COALESCE(changed_fields::text, '') || '|' || COALESCE(new_values::text, ''), 'UTF8')), 'hex') AS computed_hash_utf8,
+        encode(sha256((prev_hash || '|' || tenant_id || '|' || table_name || '|' || record_id || '|' || operation || '|' || COALESCE(changed_fields::text, '') || '|' || COALESCE(new_values::text, ''))::bytea), 'hex') AS computed_hash_bytea
       FROM tamper_audit_logs
       WHERE tenant_id = ${scope.tenantId}
       ORDER BY id ASC
@@ -149,12 +151,54 @@ export class TamperAuditService {
     const firstRecord = rows.rows[0];
     const lastRecord = rows.rows[totalRecords - 1];
 
-    for (let i = 0; i < totalRecords; i += 1) {
-      const current = rows.rows[i];
+    // Partition rows by table_name since the DB trigger partitions hash chains by (tenant_id, table_name) (ZS-019)
+    const tablePartitions = new Map<string, typeof rows.rows>();
+    for (const row of rows.rows) {
+      const list = tablePartitions.get(row.table_name) || [];
+      list.push(row);
+      tablePartitions.set(row.table_name, list);
+    }
 
-      // 1. Genesis check for the very first record
-      if (i === 0) {
-        if (current.prev_hash !== TamperAuditService.GENESIS_PREV_HASH) {
+    for (const [tableName, tableRows] of tablePartitions) {
+      for (let i = 0; i < tableRows.length; i += 1) {
+        const current = tableRows[i];
+
+        // 1. Genesis check for the very first record of this table
+        if (i === 0) {
+          if (current.prev_hash !== TamperAuditService.GENESIS_PREV_HASH) {
+            return {
+              isValid: false,
+              totalRecords,
+              verifiedAt,
+              firstRecordAt: firstRecord.created_at.toISOString(),
+              lastRecordAt: lastRecord.created_at.toISOString(),
+              genesisHash: firstRecord.row_hash,
+              latestHash: lastRecord.row_hash,
+              compromisedRecordId: current.id,
+              violationReason: `كتلة البداية (Genesis Block) للسجل #${current.id} في جدول [${tableName}] تحتوي على هاش سابق غير قياسي (${current.prev_hash}).`,
+            };
+          }
+        } else {
+          // 2. Chain continuity check: current prev_hash MUST equal previous row_hash within this table
+          const previous = tableRows[i - 1];
+          if (current.prev_hash !== previous.row_hash) {
+            return {
+              isValid: false,
+              totalRecords,
+              verifiedAt,
+              firstRecordAt: firstRecord.created_at.toISOString(),
+              lastRecordAt: lastRecord.created_at.toISOString(),
+              genesisHash: firstRecord.row_hash,
+              latestHash: lastRecord.row_hash,
+              compromisedRecordId: current.id,
+              violationReason: `انقطاع في تسلسل الهاش التشفيري في جدول [${tableName}] بين السجل #${previous.id} والسجل #${current.id}. تم اكتشاف حذف أو تعديل لسجل وسيط.`,
+            };
+          }
+        }
+
+        // 3. Cryptographic row hash verification (supporting UTF8 and bytea - ZS-020)
+        const matchesHash = current.row_hash === current.computed_hash_utf8 || current.row_hash === current.computed_hash_bytea;
+        if (!matchesHash) {
           return {
             isValid: false,
             totalRecords,
@@ -164,40 +208,9 @@ export class TamperAuditService {
             genesisHash: firstRecord.row_hash,
             latestHash: lastRecord.row_hash,
             compromisedRecordId: current.id,
-            violationReason: `كتلة البداية (Genesis Block) للسجل #${current.id} تحتوي على هاش سابق غير قياسي (${current.prev_hash}).`,
+            violationReason: `تضارب تجزئة التشفير في السجل #${current.id} (الجدول: ${current.table_name}). محتوى السجل لا يطابق بصمته الرقمية المسجلة.`,
           };
         }
-      } else {
-        // 2. Chain continuity check: current prev_hash MUST equal previous row_hash
-        const previous = rows.rows[i - 1];
-        if (current.prev_hash !== previous.row_hash) {
-          return {
-            isValid: false,
-            totalRecords,
-            verifiedAt,
-            firstRecordAt: firstRecord.created_at.toISOString(),
-            lastRecordAt: lastRecord.created_at.toISOString(),
-            genesisHash: firstRecord.row_hash,
-            latestHash: lastRecord.row_hash,
-            compromisedRecordId: current.id,
-            violationReason: `انقطاع في تسلسل الهاش التشفيري بين السجل #${previous.id} والسجل #${current.id}. تم اكتشاف حذف أو تعديل لسجل وسيط.`,
-          };
-        }
-      }
-
-      // 3. Cryptographic row hash verification
-      if (current.row_hash !== current.computed_hash) {
-        return {
-          isValid: false,
-          totalRecords,
-          verifiedAt,
-          firstRecordAt: firstRecord.created_at.toISOString(),
-          lastRecordAt: lastRecord.created_at.toISOString(),
-          genesisHash: firstRecord.row_hash,
-          latestHash: lastRecord.row_hash,
-          compromisedRecordId: current.id,
-          violationReason: `تضارب تجزئة التشفير في السجل #${current.id} (الجدول: ${current.table_name}). محتوى السجل لا يطابق بصمته الرقمية المسجلة.`,
-        };
       }
     }
 

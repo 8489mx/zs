@@ -20,6 +20,7 @@ export interface ExecuteForexRevaluationDto {
   currencyCode: string;
   closingRate: number;
   notes?: string;
+  items?: Array<{ accountId: number; foreignBalance?: number }>;
 }
 
 @Injectable()
@@ -116,12 +117,16 @@ export class ForexRevaluationService {
     const lines: any[] = [];
     let totalForeign = 0;
     let totalUnrealizedGainLoss = 0;
+    const userItemMap = new Map((dto.items || []).map((it) => [Number(it.accountId), Number(it.foreignBalance)]));
 
     for (const acc of accounts) {
       const localBalance = balanceByAccount.get(Number(acc.id)) || 0;
       if (Math.abs(localBalance) > 0.01) {
-        // Approximate foreign balance based on bookRate
-        const foreignBalance = Math.round((localBalance / bookRate) * 100) / 100;
+        // Use explicitly supplied foreign currency balance if present, otherwise derive from bookRate (ZS-039)
+        const userForeign = userItemMap.get(Number(acc.id));
+        const foreignBalance = userForeign !== undefined && Number.isFinite(userForeign) && userForeign !== 0
+          ? Math.round(userForeign * 100) / 100
+          : Math.round((localBalance / bookRate) * 100) / 100;
         const revaluedLocal = Math.round(foreignBalance * closingRate * 100) / 100;
         const diff = Math.round((revaluedLocal - localBalance) * 100) / 100;
 

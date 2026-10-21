@@ -677,10 +677,20 @@ export class ReturnsService {
       else if (allocation.tender === 'card') await this.addTreasuryTransaction(trx, 'sale_return_refund', -allocation.amount, 'sale return (card) ' + returnDocNo, returnDocumentId, auth, sale.branch_id, sale.location_id);
     }
 
-    // Reconcile Customer Loyalty Points on Return
+    // Reconcile Customer Loyalty Points on Return (ZS-070)
     if (customerId) {
       const originalSaleTotal = Number(sale.total) || 1;
-      const returnRatio = Math.min(1, Math.max(0, total / originalSaleTotal));
+
+      // Cumulative returns calculation so repeated partial returns never over-reconcile
+      const previousReturns = await trx
+        .selectFrom('sales_returns')
+        .select(sql<number>`COALESCE(SUM(total), 0)`.as('returned_sum'))
+        .where('sale_id', '=', Number(sale.id))
+        .where('status', '=', 'completed')
+        .where(this.tenantPredicate(auth))
+        .executeTakeFirst();
+      const cumulativeReturned = Number(previousReturns?.returned_sum || 0) + total;
+      const cumulativeRatio = Math.min(1, Math.max(0, cumulativeReturned / originalSaleTotal));
 
       // 1. Clawback earned loyalty points proportionally
       const earnLog = await trx
@@ -693,7 +703,18 @@ export class ReturnsService {
 
       if (earnLog && Number(earnLog.points_change) > 0) {
         const earnedPoints = Number(earnLog.points_change);
-        const clawbackPoints = Math.min(earnedPoints, Math.round(earnedPoints * returnRatio));
+        const previousClawbacks = await trx
+          .selectFrom('customer_loyalty_logs')
+          .select(sql<number>`COALESCE(SUM(ABS(points_change)), 0)`.as('total_clawed'))
+          .where('sale_id', '=', Number(sale.id))
+          .where('action_type', '=', 'return_clawback')
+          .where(this.tenantPredicate(auth))
+          .executeTakeFirst();
+        const alreadyClawed = Number(previousClawbacks?.total_clawed || 0);
+
+        const targetClawback = Math.min(earnedPoints, Math.round(earnedPoints * cumulativeRatio));
+        const clawbackPoints = Math.max(0, Math.min(targetClawback - alreadyClawed, earnedPoints - alreadyClawed));
+
         if (clawbackPoints > 0) {
           const cust = await trx.selectFrom('customers').select(['loyalty_points']).where('id', '=', customerId).where(this.tenantPredicate(auth)).executeTakeFirst();
           const currentBal = Number(cust?.loyalty_points || 0);
@@ -734,7 +755,18 @@ export class ReturnsService {
 
       if (redeemLog && Number(redeemLog.points_change) < 0) {
         const totalRedeemed = Math.abs(Number(redeemLog.points_change));
-        const refundPoints = Math.min(totalRedeemed, Math.round(totalRedeemed * returnRatio));
+        const previousRefunds = await trx
+          .selectFrom('customer_loyalty_logs')
+          .select(sql<number>`COALESCE(SUM(points_change), 0)`.as('total_refunded'))
+          .where('sale_id', '=', Number(sale.id))
+          .where('action_type', '=', 'return_refund')
+          .where(this.tenantPredicate(auth))
+          .executeTakeFirst();
+        const alreadyRefunded = Number(previousRefunds?.total_refunded || 0);
+
+        const targetRefund = Math.min(totalRedeemed, Math.round(totalRedeemed * cumulativeRatio));
+        const refundPoints = Math.max(0, Math.min(targetRefund - alreadyRefunded, totalRedeemed - alreadyRefunded));
+
         if (refundPoints > 0) {
           const cust = await trx.selectFrom('customers').select(['loyalty_points']).where('id', '=', customerId).where(this.tenantPredicate(auth)).executeTakeFirst();
           const currentBal = Number(cust?.loyalty_points || 0);

@@ -1,4 +1,4 @@
-import { BadRequestException, ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Inject, Injectable, NotFoundException, Optional } from '@nestjs/common';
 import { Kysely, sql } from '../../database/kysely';
 import { AuthContext } from '../../core/auth/interfaces/auth-context.interface';
 import { KYSELY_DB } from '../../database/database.constants';
@@ -22,6 +22,7 @@ import {
   CreateBankFeeAdjustmentDto,
 } from './dto/accounting.dto';
 import { AccountingTenantFoundationService } from './accounting-tenant-foundation.service';
+import { AccountingPostingService } from './accounting-posting.service';
 
 type PartnerType = 'none' | 'customer' | 'supplier';
 
@@ -70,6 +71,7 @@ export class AccountingService {
   constructor(
     @Inject(KYSELY_DB) private readonly db: Kysely<Database>,
     private readonly accountingTenantFoundation: AccountingTenantFoundationService,
+    @Optional() private readonly accountingPosting?: AccountingPostingService,
   ) {}
 
   private assertAccountingAccess(auth: AuthContext): void {
@@ -2272,72 +2274,124 @@ export class AccountingService {
       // 1. Resolve Accounts
       const accounts = await this.ensureDepreciationAccounts(trx, scope.tenantId, scope.accountId);
 
-      // 2. Insert Balanced Journal Entry
+      // Check if already depreciated in the same month to prevent duplicate posting (ZS-056)
       const entryDate = new Date();
-      const tempEntryNo = `JE-TMP-depr-${scope.tenantId}-${Date.now()}`;
+      const startOfMonth = new Date(entryDate.getFullYear(), entryDate.getMonth(), 1);
+      const existingInMonth = await trx
+        .selectFrom('asset_depreciation_logs')
+        .select(['id', 'period_date', 'depreciation_amount'])
+        .where('tenant_id', '=', scope.tenantId)
+        .where('asset_id', '=', id)
+        .where('period_date', '>=', startOfMonth)
+        .executeTakeFirst();
+
+      if (existingInMonth && (body as any)?.allowDuplicateInSameMonth !== true && months <= 1) {
+        throw new BadRequestException(`تم بالفعل إهلاك هذا الأصل خلال هذا الشهر (${entryDate.getFullYear()}-${String(entryDate.getMonth() + 1).padStart(2, '0')}).`);
+      }
+
+      // 2. Insert Balanced Journal Entry (ZS-055)
       const entryDesc = body.note
         ? `إهلاك الأصل ${asset.name} (${asset.code}): ${body.note}`
         : `إهلاك الأصل ${asset.name} (${asset.code}) - ${method === 'declining_balance' ? 'قسط متناقص' : 'قسط ثابت'}`;
 
-      const insertedJe = await trx
-        .insertInto('journal_entries')
-        .values({
-          entry_no: tempEntryNo,
-          tenant_id: scope.tenantId,
-          account_id: scope.accountId,
-          entry_date: entryDate,
+      let journalEntryId: number;
+      let finalEntryNo: string;
+
+      if (this.accountingPosting) {
+        journalEntryId = await this.accountingPosting.postDomainJournal(trx, {
+          sourceType: 'depreciation',
+          sourceId: id,
+          tenantId: scope.tenantId,
+          accountId: scope.accountId,
+          entryDate,
           description: entryDesc,
-          source_type: 'depreciation',
-          source_id: id,
-          status: 'posted',
-          branch_id: null,
-          location_id: null,
-          created_by: actor.userId,
-          posted_by: actor.userId,
-          posted_at: sql`NOW()`,
-        } as any)
-        .returning('id')
-        .executeTakeFirstOrThrow();
-
-      const journalEntryId = Number(insertedJe.id);
-      const finalEntryNo = `JE-${String(journalEntryId).padStart(8, '0')}`;
-      await trx
-        .updateTable('journal_entries')
-        .set({ entry_no: finalEntryNo, updated_at: sql`NOW()` } as any)
-        .where('id', '=', journalEntryId)
-        .where('tenant_id', '=', scope.tenantId)
-        .execute();
-
-      // 3. Insert Journal Lines (Debit Expense, Credit Accumulated)
-      await trx
-        .insertInto('journal_entry_lines')
-        .values([
-          {
-            journal_entry_id: journalEntryId,
+          createdBy: actor.userId,
+          lines: [
+            {
+              accountId: accounts.deprExpenseAccountId,
+              description: `مصروف إهلاك الأصل - ${asset.name}`,
+              debit: depreciationAmount,
+              credit: 0,
+              partnerType: 'none',
+              partnerId: null,
+              branchId: null,
+              locationId: null,
+            },
+            {
+              accountId: accounts.accumDeprAccountId,
+              description: `مجمع إهلاك الأصل - ${asset.name}`,
+              debit: 0,
+              credit: depreciationAmount,
+              partnerType: 'none',
+              partnerId: null,
+              branchId: null,
+              locationId: null,
+            },
+          ],
+        });
+        finalEntryNo = `JE-${String(journalEntryId).padStart(8, '0')}`;
+      } else {
+        const tempEntryNo = `JE-TMP-depr-${scope.tenantId}-${Date.now()}`;
+        const insertedJe = await trx
+          .insertInto('journal_entries')
+          .values({
+            entry_no: tempEntryNo,
             tenant_id: scope.tenantId,
-            account_id: accounts.deprExpenseAccountId,
-            description: `مصروف إهلاك الأصل - ${asset.name}`,
-            debit: depreciationAmount,
-            credit: 0,
-            partner_type: 'none',
-            partner_id: null,
+            account_id: scope.accountId,
+            entry_date: entryDate,
+            description: entryDesc,
+            source_type: 'depreciation',
+            source_id: id,
+            status: 'posted',
             branch_id: null,
             location_id: null,
-          } as any,
-          {
-            journal_entry_id: journalEntryId,
-            tenant_id: scope.tenantId,
-            account_id: accounts.accumDeprAccountId,
-            description: `مجمع إهلاك الأصل - ${asset.name}`,
-            debit: 0,
-            credit: depreciationAmount,
-            partner_type: 'none',
-            partner_id: null,
-            branch_id: null,
-            location_id: null,
-          } as any,
-        ])
-        .execute();
+            created_by: actor.userId,
+            posted_by: actor.userId,
+            posted_at: sql`NOW()`,
+          } as any)
+          .returning('id')
+          .executeTakeFirstOrThrow();
+
+        journalEntryId = Number(insertedJe.id);
+        finalEntryNo = `JE-${String(journalEntryId).padStart(8, '0')}`;
+        await trx
+          .updateTable('journal_entries')
+          .set({ entry_no: finalEntryNo, updated_at: sql`NOW()` } as any)
+          .where('id', '=', journalEntryId)
+          .where('tenant_id', '=', scope.tenantId)
+          .execute();
+
+        // 3. Insert Journal Lines (Debit Expense, Credit Accumulated)
+        await trx
+          .insertInto('journal_entry_lines')
+          .values([
+            {
+              journal_entry_id: journalEntryId,
+              tenant_id: scope.tenantId,
+              account_id: accounts.deprExpenseAccountId,
+              description: `مصروف إهلاك الأصل - ${asset.name}`,
+              debit: depreciationAmount,
+              credit: 0,
+              partner_type: 'none',
+              partner_id: null,
+              branch_id: null,
+              location_id: null,
+            } as any,
+            {
+              journal_entry_id: journalEntryId,
+              tenant_id: scope.tenantId,
+              account_id: accounts.accumDeprAccountId,
+              description: `مجمع إهلاك الأصل - ${asset.name}`,
+              debit: 0,
+              credit: depreciationAmount,
+              partner_type: 'none',
+              partner_id: null,
+              branch_id: null,
+              location_id: null,
+            } as any,
+          ])
+          .execute();
+      }
 
       // 4. Update Fixed Asset Record
       await trx

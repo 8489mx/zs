@@ -104,20 +104,26 @@ export class FixedAssetsSchedulerService implements OnApplicationBootstrap, OnMo
         mockActor
       );
 
-      // Save last run month
-      await this.db
-        .insertInto('settings')
-        .values({
-          tenant_id: tenantId,
-          key: 'fixed_assets_last_auto_depreciate_month',
-          value: yearMonth,
-        } as any)
-        .onConflict((oc) =>
-          oc.columns(['tenant_id', 'key'] as never).doUpdateSet({
+      const hasFailures = Array.isArray((res as any)?.results) && (res as any).results.some((r: any) => r.error);
+
+      // Save last run month ONLY when all assets succeeded without failure (ZS-056)
+      if (!hasFailures) {
+        await this.db
+          .insertInto('settings')
+          .values({
+            tenant_id: tenantId,
+            key: 'fixed_assets_last_auto_depreciate_month',
             value: yearMonth,
           } as any)
-        )
-        .execute();
+          .onConflict((oc) =>
+            oc.columns(['tenant_id', 'key'] as never).doUpdateSet({
+              value: yearMonth,
+            } as any)
+          )
+          .execute();
+      } else {
+        this.logger.warn(`Fixed assets auto-depreciation for tenant ${tenantId} had partial failures, not marking month ${yearMonth} as complete`);
+      }
 
       return res;
     } catch (err: any) {

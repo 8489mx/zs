@@ -544,6 +544,17 @@ namespace ZSystems.HardwareBridge
                     return;
                 }
 
+                string origin = context.Request.Headers["Origin"];
+                if (!string.IsNullOrEmpty(origin) && !IsTrustedBrowserOrigin(origin))
+                {
+                    SendJson(context, 403, new Dictionary<string, object>
+                    {
+                        { "success", false },
+                        { "error", "Cross-origin access from untrusted domain is forbidden" }
+                    });
+                    return;
+                }
+
                 string path = context.Request.Url.AbsolutePath.ToLowerInvariant();
 
                 // 1. Health & Ping
