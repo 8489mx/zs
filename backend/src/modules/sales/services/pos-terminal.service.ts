@@ -483,6 +483,10 @@ export class PosTerminalService {
 
     // Determine if session should run in simulation / sandbox mode
     const isMock = prov.includes('mock') || prov.includes('sandbox');
+    // Simulated bank approvals are strictly a development-only feature.
+    if (isMock && (process.env.APP_MODE === 'CLOUD_SAAS' || process.env.NODE_ENV === 'production')) {
+      throw new BadRequestException('Mock POS terminal provider is forbidden in production');
+    }
 
     const tenantCurrency = request.currency
       ? String(request.currency).trim().toUpperCase()
@@ -564,6 +568,13 @@ export class PosTerminalService {
     const session = this.activeSessions.get(transactionId);
     if (!session || session.tenantId !== tenantId) {
       throw new BadRequestException('معاملة الدفع غير موجودة أو منتهية الصلاحية');
+    }
+
+    if (session.isSimulated && (process.env.APP_MODE === 'CLOUD_SAAS' || process.env.NODE_ENV === 'production')) {
+      session.status = 'declined';
+      session.message = 'المحاكاة البنكية غير متاحة في الإنتاج';
+      session.updatedAt = Date.now();
+      return session;
     }
 
     // Only apply timer simulation if the session was explicitly marked as simulated
