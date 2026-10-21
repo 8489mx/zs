@@ -223,6 +223,7 @@ export class PurchaseOrdersService {
           quantity: Number(item.quantity), unitCost: Number(item.unit_cost),
           taxRate: Number(item.tax_rate || 0),
         })));
+      if (!itemsForTotals) throw new BadRequestException('أمر الشراء يحتاج بنداً واحداً على الأقل.');
       const totals = calculatePurchaseOrderTotals(itemsForTotals, payload.discountAmount ?? Number(order.discount_amount || 0));
 
       const updated = await trx
