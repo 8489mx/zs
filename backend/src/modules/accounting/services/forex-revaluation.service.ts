@@ -7,6 +7,14 @@ import { requireTenantScope } from '../../../core/auth/utils/tenant-boundary';
 import { formatDailyDocumentNumber } from '../../../common/utils/document-number.util';
 import { AccountingPostingService } from '../accounting-posting.service';
 
+/** A string DTO body is not runtime validation; PostgreSQL numeric accepts 'NaN'. */
+export function validateForexClosingRate(raw: unknown): number {
+  if (typeof raw !== 'number' || !Number.isFinite(raw) || raw <= 0) {
+    throw new BadRequestException('A finite, positive closing FX rate is required');
+  }
+  return raw;
+}
+
 export interface ExecuteForexRevaluationDto {
   periodDate: string;
   currencyCode: string;
@@ -58,10 +66,10 @@ export class ForexRevaluationService {
   async previewRevaluation(dto: { periodDate: string; currencyCode: string; closingRate: number }, auth: AuthContext) {
     const { tenantId } = requireTenantScope(auth);
     const currencyCode = String(dto.currencyCode || '').trim().toUpperCase();
-    const closingRate = Number(dto.closingRate || 0);
+    const closingRate = validateForexClosingRate(dto.closingRate);
 
     if (!currencyCode) throw new BadRequestException('رمز العملة مطلوب.');
-    if (closingRate <= 0) throw new BadRequestException('سعر الإقفال للعملة يجب أن يكون أكبر من الصفر.');
+    // The validated rate is shared by preview and actual execution.
 
     // Fetch current book rate
     const currentRateRow = await this.db
@@ -72,6 +80,7 @@ export class ForexRevaluationService {
       .executeTakeFirst();
 
     const bookRate = Number(currentRateRow?.exchange_rate || closingRate);
+    if (!Number.isFinite(bookRate) || bookRate <= 0) throw new BadRequestException('Stored FX book rate is invalid; correct it before revaluation');
 
     // IAS 21 §23: retranslate MONETARY items only, and only those denominated in this currency.
     // The previous selection matched on a `name` column and a `type` column that do not exist on
