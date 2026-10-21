@@ -1,5 +1,5 @@
 import { Type } from 'class-transformer';
-import { ArrayMinSize, IsArray, IsBoolean, IsIn, IsNumber, IsOptional, IsString, Min, ValidateNested } from 'class-validator';
+import { ArrayMinSize, IsArray, IsBoolean, IsIn, IsNumber, IsOptional, IsString, IsUUID, Min, ValidateNested } from 'class-validator';
 
 class PurchaseItemDto {
   @Type(() => Number)
@@ -156,6 +156,10 @@ export class UpsertPurchaseDto {
   @Type(() => Number)
   @IsNumber()
   projectId?: number;
+
+  @IsOptional()
+  @IsUUID()
+  importProjectId?: string;
 
   @IsOptional()
   @IsString()

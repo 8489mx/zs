@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Param, Get, Patch, Req, UseGuards, Query, Delete } from '@nestjs/common';
+import { Controller, Post, Body, Param, Get, Patch, Req, UseGuards, Query, Delete, Headers } from '@nestjs/common';
 import { ImportSalesService } from './import-sales.service';
 import {
   CreateShipmentDto,
@@ -13,6 +13,28 @@ import {
   CreateQcInspectionDto,
   UpsertAciComplianceDto,
   CreateSourcingTripDto,
+  ProcessLateExpenseDto,
+  CalculateCustomsTaxDto,
+  VerifyBankDetailsDto,
+  CreateQuotationDto,
+  SelectQuotationDto,
+  CreateSampleOrderDto,
+  UpdateSampleOrderInspectionDto,
+  ConvertFeasibilityToProjectDto,
+  CreateProformaInvoiceDto,
+  CreateCustomsBrokerDto,
+  DisburseBrokerAdvanceDto,
+  LiquidateBrokerExpenseDto,
+  RecordContainerDepositDto,
+  RecordContainerReturnRefundDto,
+  CreateContainerPreorderDto,
+  RecordFxAcquisitionDto,
+  CreateImportDocumentDto,
+  CreateApprovalRequestDto,
+  DecideApprovalRequestDto,
+  ResolveExceptionDto,
+  RecordPartnerPayoutDto,
+  CloseImportProjectDto,
 } from './dto/import-sales.dto';
 import { SessionAuthGuard } from '../../core/auth/guards/session-auth.guard';
 import { PermissionsGuard } from '../../core/auth/guards/permissions.guard';
@@ -88,8 +110,8 @@ export class ImportSalesController {
 
   @RequireAnyPermission('accounting')
   @Post('projects/:id/close')
-  async closeProject(@Req() req: RequestWithAuth, @Param('id') projectId: string) {
-    return this.importSalesService.closeProject(req.authContext!.tenantId!, req.authContext!.userId!, projectId);
+  async closeProject(@Req() req: RequestWithAuth, @Param('id') projectId: string, @Body() dto: CloseImportProjectDto) {
+    return this.importSalesService.closeProject(req.authContext!.tenantId!, req.authContext!.userId!, projectId, dto?.approvalRequestId);
   }
 
   // ==========================================
@@ -109,6 +131,21 @@ export class ImportSalesController {
     @Body() dto: UpsertSupplierMetaDto
   ) {
     return this.importSalesService.upsertSupplierImportMeta(req.authContext!.tenantId!, supplierId, dto);
+  }
+
+  @RequireAnyPermission('accounting')
+  @Post('suppliers/:supplierId/verify-bank')
+  async verifySupplierBankDetails(
+    @Req() req: RequestWithAuth,
+    @Param('supplierId') supplierId: string,
+    @Body() dto: VerifyBankDetailsDto
+  ) {
+    return this.importSalesService.verifySupplierBankDetails(
+      req.authContext!.tenantId!,
+      Number(req.authContext!.userId!),
+      supplierId,
+      dto.verificationNotes
+    );
   }
 
   @Get('sourcing-trips')
@@ -170,9 +207,17 @@ export class ImportSalesController {
   @Post('calculate-customs')
   async calculateCustomsTax(
     @Req() req: RequestWithAuth,
-    @Body() body: { hsCode: string; cifValueEgp: number }
+    @Body() body: CalculateCustomsTaxDto
   ) {
-    return this.importSalesService.calculateCustomsTax(req.authContext!.tenantId!, body.hsCode, body.cifValueEgp);
+    return this.importSalesService.calculateCustomsTax(
+      req.authContext!.tenantId!,
+      body.hsCode,
+      body.cifValueEgp,
+      {
+        overrideDutyRatePercent: body.overrideDutyRatePercent,
+        overrideVatRatePercent: body.overrideVatRatePercent,
+      }
+    );
   }
 
   // ==========================================
@@ -249,13 +294,16 @@ export class ImportSalesController {
   async recordPartnerPayout(
     @Req() req: RequestWithAuth,
     @Param('id') id: string,
-    @Body() dto: { amount: number }
+    @Body() dto: RecordPartnerPayoutDto
   ) {
     return this.importSalesService.recordPartnerPayout(
       req.authContext!.tenantId!,
       req.authContext!.userId!,
       id,
-      dto.amount
+      dto.amount,
+      dto.approvalRequestId,
+      dto.projectId,
+      dto.treasuryAccountId
     );
   }
 
@@ -268,6 +316,7 @@ export class ImportSalesController {
     return this.importSalesService.listShipments(req.authContext!.tenantId!);
   }
 
+  @RequireAnyPermission('purchases', 'accounting')
   @Post('shipments')
   async createShipment(@Req() req: RequestWithAuth, @Body() dto: CreateShipmentDto) {
     return this.importSalesService.createShipment(req.authContext!.tenantId!, dto);
@@ -293,6 +342,7 @@ export class ImportSalesController {
     );
   }
 
+  @RequireAnyPermission('purchases', 'accounting', 'inventory')
   @Post('shipments/:id/items')
   async addShipmentItem(
     @Req() req: RequestWithAuth,
@@ -306,6 +356,21 @@ export class ImportSalesController {
   @Post('calculate-landed-cost/:shipmentId')
   async calculateLandedCost(@Req() req: RequestWithAuth, @Param('shipmentId') shipmentId: string) {
     return this.importSalesService.calculateLandedCost(req.authContext!.tenantId!, shipmentId);
+  }
+
+  @RequireAnyPermission('purchases', 'accounting')
+  @Post('shipments/:shipmentId/late-expense')
+  async processLateShipmentExpense(
+    @Req() req: RequestWithAuth,
+    @Param('shipmentId') shipmentId: string,
+    @Body() dto: ProcessLateExpenseDto
+  ) {
+    return this.importSalesService.processLateShipmentExpense(
+      req.authContext!.tenantId!,
+      Number(req.authContext!.userId!),
+      shipmentId,
+      dto
+    );
   }
 
   @RequireAnyPermission('canViewProfit', 'reports', 'accounting')
@@ -333,7 +398,14 @@ export class ImportSalesController {
 
   @RequireAnyPermission('purchases', 'accounting')
   @Post('foreign-transfer')
-  async recordForeignTransfer(@Req() req: RequestWithAuth, @Body() dto: RecordForeignTransferDto) {
+  async recordForeignTransfer(
+    @Req() req: RequestWithAuth,
+    @Body() dto: RecordForeignTransferDto,
+    @Headers('x-idempotency-key') headerIdempotencyKey?: string,
+  ) {
+    if (!dto.idempotencyKey && headerIdempotencyKey) {
+      dto.idempotencyKey = headerIdempotencyKey;
+    }
     return this.importSalesService.recordForeignTransfer(
       req.authContext!.tenantId!,
       req.authContext!.userId!,
@@ -341,6 +413,7 @@ export class ImportSalesController {
     );
   }
 
+  @RequireAnyPermission('purchases', 'accounting', 'inventory')
   @Patch('shipment-items/:itemId')
   async updateShipmentItem(
     @Req() req: RequestWithAuth,
@@ -354,5 +427,327 @@ export class ImportSalesController {
   @Post('shipments/:id/apply-prices')
   async applySuggestedPrices(@Req() req: RequestWithAuth, @Param('id') shipmentId: string) {
     return this.importSalesService.applySuggestedPrices(req.authContext!.tenantId!, shipmentId);
+  }
+
+  // ==========================================
+  // FEASIBILITY CONVERSION & LIQUIDITY
+  // ==========================================
+
+  @RequireAnyPermission('purchases', 'accounting')
+  @Post('projects/:id/convert-feasibility')
+  async convertFeasibilityToProject(
+    @Req() req: RequestWithAuth,
+    @Param('id') projectId: string,
+    @Body() dto: ConvertFeasibilityToProjectDto
+  ) {
+    return this.importSalesService.convertFeasibilityToProject(req.authContext!.tenantId!, projectId, dto);
+  }
+
+  // ==========================================
+  // RFQS & FACTORY QUOTATIONS
+  // ==========================================
+
+  @RequireAnyPermission('purchases', 'accounting')
+  @Post('quotations')
+  async createQuotation(@Req() req: RequestWithAuth, @Body() dto: CreateQuotationDto) {
+    return this.importSalesService.createQuotation(req.authContext!.tenantId!, dto);
+  }
+
+  @Get('quotations')
+  async listQuotations(
+    @Req() req: RequestWithAuth,
+    @Query('projectId') projectId?: string,
+    @Query('supplierId') supplierId?: string
+  ) {
+    return this.importSalesService.listQuotations(req.authContext!.tenantId!, projectId, supplierId);
+  }
+
+  @RequireAnyPermission('purchases', 'accounting')
+  @Post('quotations/:id/select')
+  async selectQuotation(
+    @Req() req: RequestWithAuth,
+    @Param('id') quotationId: string,
+    @Body() dto: SelectQuotationDto
+  ) {
+    return this.importSalesService.selectQuotation(req.authContext!.tenantId!, quotationId, dto);
+  }
+
+  // ==========================================
+  // PRODUCT SAMPLES & REFERENCE APPROVAL
+  // ==========================================
+
+  @RequireAnyPermission('purchases', 'inventory')
+  @Post('samples')
+  async createSampleOrder(@Req() req: RequestWithAuth, @Body() dto: CreateSampleOrderDto) {
+    return this.importSalesService.createSampleOrder(req.authContext!.tenantId!, dto);
+  }
+
+  @Get('samples')
+  async listSampleOrders(@Req() req: RequestWithAuth, @Query('projectId') projectId?: string) {
+    return this.importSalesService.listSampleOrders(req.authContext!.tenantId!, projectId);
+  }
+
+  @RequireAnyPermission('purchases', 'inventory')
+  @Patch('samples/:id/inspection')
+  async updateSampleOrderInspection(
+    @Req() req: RequestWithAuth,
+    @Param('id') sampleId: string,
+    @Body() dto: UpdateSampleOrderInspectionDto
+  ) {
+    return this.importSalesService.updateSampleOrderInspection(req.authContext!.tenantId!, sampleId, dto);
+  }
+
+  // ==========================================
+  // PROFORMA INVOICES & PURCHASE ORDERS
+  // ==========================================
+
+  @Get('proforma-invoices')
+  async getProformaInvoices(
+    @Req() req: RequestWithAuth,
+    @Query('projectId') projectId?: string,
+    @Query('supplierId') supplierId?: string
+  ) {
+    return this.importSalesService.getProformaInvoices(req.authContext!.tenantId!, projectId, supplierId);
+  }
+
+  @Get('proforma-invoices/:id')
+  async getProformaById(@Req() req: RequestWithAuth, @Param('id') id: string) {
+    return this.importSalesService.getProformaById(req.authContext!.tenantId!, id);
+  }
+
+  @RequireAnyPermission('purchases', 'accounting')
+  @Post('proforma-invoices')
+  async createProformaInvoice(@Req() req: RequestWithAuth, @Body() dto: CreateProformaInvoiceDto) {
+    return this.importSalesService.createProformaInvoice(req.authContext!.tenantId!, dto);
+  }
+
+  @RequireAnyPermission('purchases', 'accounting')
+  @Patch('proforma-invoices/:id')
+  async updateProformaInvoice(
+    @Req() req: RequestWithAuth,
+    @Param('id') id: string,
+    @Body() dto: Partial<CreateProformaInvoiceDto>
+  ) {
+    return this.importSalesService.updateProformaInvoice(req.authContext!.tenantId!, id, dto);
+  }
+
+  @RequireAnyPermission('purchases', 'accounting')
+  @Post('proforma-invoices/:id/approve')
+  async approveProformaInvoice(@Req() req: RequestWithAuth, @Param('id') id: string) {
+    return this.importSalesService.approveProformaInvoice(req.authContext!.tenantId!, req.authContext!.userId!, id);
+  }
+
+  @RequireAnyPermission('purchases', 'accounting')
+  @Post('proforma-invoices/:id/generate-po')
+  async generatePoFromProforma(@Req() req: RequestWithAuth, @Param('id') id: string) {
+    return this.importSalesService.generatePoFromProforma(req.authContext!.tenantId!, req.authContext!.userId!, id);
+  }
+
+  // ==========================================
+  // CUSTOMS BROKER REGISTRY & ADVANCE LIQUIDATION
+  // ==========================================
+
+  @Get('customs-brokers')
+  async listCustomsBrokers(@Req() req: RequestWithAuth) {
+    return this.importSalesService.listCustomsBrokers(req.authContext!.tenantId!);
+  }
+
+  @RequireAnyPermission('purchases', 'accounting')
+  @Post('customs-brokers')
+  async createCustomsBroker(@Req() req: RequestWithAuth, @Body() dto: CreateCustomsBrokerDto) {
+    return this.importSalesService.createCustomsBroker(req.authContext!.tenantId!, dto);
+  }
+
+  @RequireAnyPermission('purchases', 'accounting')
+  @Patch('customs-brokers/:id')
+  async updateCustomsBroker(
+    @Req() req: RequestWithAuth,
+    @Param('id') id: string,
+    @Body() dto: Partial<CreateCustomsBrokerDto>
+  ) {
+    return this.importSalesService.updateCustomsBroker(req.authContext!.tenantId!, id, dto);
+  }
+
+  @Get('customs-brokers/:id/statement')
+  async getCustomsBrokerStatement(@Req() req: RequestWithAuth, @Param('id') id: string) {
+    return this.importSalesService.getCustomsBrokerStatement(req.authContext!.tenantId!, id);
+  }
+
+  @RequireAnyPermission('accounting', 'treasury')
+  @Post('customs-brokers/advances')
+  async disburseBrokerAdvance(@Req() req: RequestWithAuth, @Body() dto: DisburseBrokerAdvanceDto) {
+    return this.importSalesService.disburseBrokerAdvance(req.authContext!.tenantId!, req.authContext!.userId!, dto);
+  }
+
+  @RequireAnyPermission('accounting', 'purchases')
+  @Post('customs-brokers/liquidate')
+  async liquidateBrokerExpenses(@Req() req: RequestWithAuth, @Body() dto: LiquidateBrokerExpenseDto) {
+    return this.importSalesService.liquidateBrokerExpenses(req.authContext!.tenantId!, req.authContext!.userId!, dto);
+  }
+
+  // ==========================================
+  // CONTAINER SECURITY DEPOSITS
+  // ==========================================
+
+  @RequireAnyPermission('accounting', 'purchases')
+  @Post('container-deposits')
+  async recordContainerDeposit(@Req() req: RequestWithAuth, @Body() dto: RecordContainerDepositDto) {
+    return this.importSalesService.recordContainerDeposit(req.authContext!.tenantId!, req.authContext!.userId!, dto);
+  }
+
+  @RequireAnyPermission('accounting', 'purchases')
+  @Post('container-deposits/:id/return-refund')
+  async recordContainerReturnAndRefund(
+    @Req() req: RequestWithAuth,
+    @Param('id') depositId: string,
+    @Body() dto: RecordContainerReturnRefundDto
+  ) {
+    return this.importSalesService.recordContainerReturnAndRefund(
+      req.authContext!.tenantId!,
+      req.authContext!.userId!,
+      depositId,
+      dto
+    );
+  }
+
+  @Get('container-deposits')
+  async listContainerDeposits(@Req() req: RequestWithAuth, @Query('shipmentId') shipmentId?: string) {
+    return this.importSalesService.listContainerDeposits(req.authContext!.tenantId!, shipmentId);
+  }
+
+  // ==========================================
+  // IN-TRANSIT CONTAINER PRE-ORDERS
+  // ==========================================
+
+  @RequireAnyPermission('sales', 'purchases')
+  @Post('preorders')
+  async createContainerPreorder(@Req() req: RequestWithAuth, @Body() dto: CreateContainerPreorderDto) {
+    return this.importSalesService.createContainerPreorder(req.authContext!.tenantId!, req.authContext!.userId!, dto);
+  }
+
+  @Get('preorders')
+  async listContainerPreorders(
+    @Req() req: RequestWithAuth,
+    @Query('shipmentId') shipmentId?: string,
+    @Query('customerId') customerId?: string
+  ) {
+    return this.importSalesService.listContainerPreorders(req.authContext!.tenantId!, shipmentId, customerId);
+  }
+
+  @RequireAnyPermission('sales', 'purchases')
+  @Post('preorders/:id/cancel')
+  async cancelContainerPreorder(
+    @Req() req: RequestWithAuth,
+    @Param('id') preorderId: string,
+    @Body('reason') reason?: string
+  ) {
+    return this.importSalesService.cancelContainerPreorder(req.authContext!.tenantId!, preorderId, reason);
+  }
+
+  // ==========================================
+  // SINGLE-CONTAINER EXECUTIVE AUTOPSY SHEET
+  // ==========================================
+
+  @RequireAnyPermission('reports', 'accounting', 'purchases')
+  @Get('shipments/:id/autopsy')
+  async getContainerAutopsySheet(@Req() req: RequestWithAuth, @Param('id') shipmentId: string) {
+    return this.importSalesService.getContainerAutopsySheet(req.authContext!.tenantId!, shipmentId);
+  }
+
+  // ==========================================
+  // FX TREASURY DESK
+  // ==========================================
+
+  @RequireAnyPermission('accounting', 'treasury')
+  @Post('fx-acquisitions')
+  async recordFxAcquisition(@Req() req: RequestWithAuth, @Body() dto: RecordFxAcquisitionDto) {
+    return this.importSalesService.recordFxAcquisition(req.authContext!.tenantId!, req.authContext!.userId!, dto);
+  }
+
+  @RequireAnyPermission('accounting', 'treasury')
+  @Get('fx-portfolio')
+  async getFxPortfolio(@Req() req: RequestWithAuth) {
+    return this.importSalesService.getFxPortfolio(req.authContext!.tenantId!);
+  }
+
+  // ==========================================
+  // UNIFIED DOCUMENT CENTER
+  // ==========================================
+
+  @RequireAnyPermission('purchases', 'inventory', 'accounting')
+  @Post('documents')
+  async createImportDocument(@Req() req: RequestWithAuth, @Body() dto: CreateImportDocumentDto) {
+    return this.importSalesService.createImportDocument(req.authContext!.tenantId!, req.authContext!.userId!, dto);
+  }
+
+  @Get('documents')
+  async listImportDocuments(
+    @Req() req: RequestWithAuth,
+    @Query('projectId') projectId?: string,
+    @Query('shipmentId') shipmentId?: string
+  ) {
+    return this.importSalesService.listImportDocuments(req.authContext!.tenantId!, projectId, shipmentId);
+  }
+
+  // ==========================================
+  // MAKER-CHECKER GOVERNANCE WORKFLOW
+  // ==========================================
+
+  @RequireAnyPermission('purchases', 'accounting')
+  @Post('approvals')
+  async createApprovalRequest(@Req() req: RequestWithAuth, @Body() dto: CreateApprovalRequestDto) {
+    return this.importSalesService.createApprovalRequest(req.authContext!.tenantId!, req.authContext!.userId!, dto);
+  }
+
+  @RequireAnyPermission('purchases', 'accounting')
+  @Get('approvals')
+  async listApprovalRequests(@Req() req: RequestWithAuth, @Query('status') status?: string) {
+    return this.importSalesService.listApprovalRequests(req.authContext!.tenantId!, status);
+  }
+
+  @RequireAnyPermission('accounting')
+  @Post('approvals/:id/decide')
+  async decideApprovalRequest(
+    @Req() req: RequestWithAuth,
+    @Param('id') requestId: string,
+    @Body() dto: DecideApprovalRequestDto
+  ) {
+    return this.importSalesService.decideApprovalRequest(
+      req.authContext!.tenantId!,
+      req.authContext!.userId!,
+      requestId,
+      dto
+    );
+  }
+
+  // ==========================================
+  // RECONCILIATION ENGINE & EXCEPTIONS CENTER
+  // ==========================================
+
+  @RequireAnyPermission('accounting', 'reports')
+  @Post('reconciliation/scan')
+  async runImportReconciliationScan(@Req() req: RequestWithAuth) {
+    return this.importSalesService.runImportReconciliationScan(req.authContext!.tenantId!);
+  }
+
+  @RequireAnyPermission('accounting', 'reports')
+  @Get('reconciliation/exceptions')
+  async listReconciliationExceptions(@Req() req: RequestWithAuth, @Query('status') status?: string) {
+    return this.importSalesService.listReconciliationExceptions(req.authContext!.tenantId!, status);
+  }
+
+  @RequireAnyPermission('accounting')
+  @Post('reconciliation/exceptions/:id/resolve')
+  async resolveReconciliationException(
+    @Req() req: RequestWithAuth,
+    @Param('id') exceptionId: string,
+    @Body() dto: ResolveExceptionDto
+  ) {
+    return this.importSalesService.resolveReconciliationException(
+      req.authContext!.tenantId!,
+      req.authContext!.userId!,
+      exceptionId,
+      dto
+    );
   }
 }

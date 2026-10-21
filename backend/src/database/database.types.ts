@@ -1524,6 +1524,8 @@ export interface PurchaseTable {
   shipping_address_id: number | null;
   cost_center_id: number | null;
   project_id: number | null;
+  /** Explicit architectural foreign key to import_projects(id) UUID; leaves project_id for legacy/contracting. */
+  import_project_id?: string | null;
   terms_template: ColumnType<string, string | undefined, string | undefined>;
   lifecycle_status?: ColumnType<string, string | undefined, string | undefined>;
   matched_status?: ColumnType<string, string | undefined, string | undefined>;
@@ -1654,6 +1656,13 @@ export interface SupplierPaymentTable {
   payment_date: ColumnType<Date, string | undefined, string | undefined>;
   created_by: number | null;
   created_at: ColumnType<Date, string | undefined, never>;
+  currency?: ColumnType<string, string | undefined, string | undefined>;
+  exchange_rate?: ColumnType<number, number | undefined, number | undefined>;
+  forex_variance_egp?: ColumnType<number, number | undefined, number | undefined>;
+  proforma_invoice_id?: ColumnType<string | null, string | null | undefined, string | null | undefined>;
+  idempotency_key?: ColumnType<string | null, string | null | undefined, string | null | undefined>;
+  /** Original currency amount; amount is always base currency EGP. */
+  amount_foreign?: ColumnType<number | null, number | null | undefined, number | null | undefined>;
 }
 
 export interface SupplierPaymentScheduleTable {
@@ -2163,6 +2172,187 @@ export interface DailyFinancialSummariesTable {
   net_profit: number;
   created_at: ColumnType<Date, string | undefined, never>;
   updated_at: ColumnType<Date, string | undefined, Date | string>;
+}
+
+
+export interface ImportProjectTable {
+  id: Generated<string>;
+  tenant_id: string;
+  project_no: string;
+  title: string;
+  target_market: string | null;
+  country_origin: string | null;
+  country_destination: string | null;
+  budget_currency: string | null;
+  allocated_capital: ImportNumeric;
+  target_roi_percentage: ImportNumeric;
+  status: string;
+  feasibility_data: any | null;
+  closure_data?: any | null;
+  closure_date?: Date | null;
+  closed_by?: number | null;
+  feasibility_converted_at?: Date | null;
+  cash_flow_schedule?: any | null;
+  initial_po_id?: string | null;
+  notes: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface ImportPartnerTable {
+  id: Generated<string>;
+  tenant_id: string;
+  name: string;
+  phone?: string | null;
+  capital_amount: ImportNumeric;
+  profit_share_percentage: ImportNumeric;
+  withdrawn_profit: ImportNumeric;
+  partner_role?: string | null;
+  total_contributed_capital?: ImportNumeric;
+  total_withdrawn_capital?: ImportNumeric;
+  total_approved_profits?: ImportNumeric;
+  total_disbursed_profits?: ImportNumeric;
+  created_at: Generated<Date>;
+}
+
+export interface ImportPartnerLedgerTable {
+  id: Generated<string>;
+  tenant_id: string;
+  partner_id: string;
+  type: string;
+  amount: ImportNumeric;
+  transaction_date: ImportDate;
+  note?: string | null;
+  created_by?: number | null;
+  created_at: Generated<Date>;
+}
+
+export interface ImportProjectPartnerTable {
+  id: Generated<string>;
+  tenant_id: string;
+  project_id: string;
+  partner_id: string;
+  capital_share_amount: ImportNumeric;
+  profit_percentage: ImportNumeric;
+  effective_from?: ImportDate;
+  is_active?: boolean;
+  notes?: string | null;
+  created_at: Generated<Date>;
+}
+
+export interface ImportSupplierMetaTable {
+  id: Generated<string>;
+  tenant_id: string;
+  supplier_id: number;
+  chinese_name: string | null;
+  city: string | null;
+  province: string | null;
+  moq_description: string | null;
+  production_lead_time_days: number | null;
+  verified_bank_details: any | null;
+  incoterms_accepted: any | null;
+  qc_rating: ImportNumeric;
+  quality_certifications: any | null;
+  audit_status: string;
+  verified_at?: Date | null;
+  verified_by?: number | null;
+  verification_notes?: string | null;
+  notes: string | null;
+  updated_at: Generated<Date>;
+}
+
+export interface ImportSourcingTripTable {
+  id: Generated<string>;
+  tenant_id: string;
+  project_id: string | null;
+  trip_title: string;
+  destination_city: string;
+  start_date: ImportDate;
+  end_date: ImportDate;
+  budget_egp: ImportNumeric;
+  actual_cost_egp: ImportNumeric;
+  notes: string | null;
+  findings: any | null;
+  created_at: Generated<Date>;
+}
+
+export interface ImportProformaInvoiceTable {
+  id: Generated<string>;
+  tenant_id: string;
+  project_id: string | null;
+  supplier_id: number;
+  pi_number: string;
+  pi_date: ImportDate;
+  currency: string;
+  total_amount_foreign: ImportNumeric;
+  incoterm: string | null;
+  delivery_port: string | null;
+  payment_terms: string | null;
+  exchange_rate_contract: ImportNumeric;
+  status: string;
+  payment_status?: string;
+  paid_amount_foreign?: ImportNumeric;
+  po_number?: string | null;
+  po_date?: ImportDate;
+  po_status?: string | null;
+  advance_percentage?: ImportNumeric;
+  balance_percentage?: ImportNumeric;
+  payment_milestones?: any | null;
+  approved_by?: number | null;
+  approved_at?: Date | null;
+  notes: string | null;
+  items: any | null;
+  created_at: Generated<Date>;
+}
+
+export interface ImportQcInspectionTable {
+  id: Generated<string>;
+  tenant_id: string;
+  project_id: string | null;
+  shipment_id: string | null;
+  stage: string;
+  inspection_date: ImportDate;
+  inspector_name: string | null;
+  sample_size: number | null;
+  passed_quantity: number | null;
+  failed_quantity: number | null;
+  defect_notes: string | null;
+  status: string;
+  report_file_url: string | null;
+  created_at: Generated<Date>;
+}
+
+export interface ImportAciComplianceTable {
+  id: Generated<string>;
+  tenant_id: string;
+  project_id: string | null;
+  shipment_id: string | null;
+  acid_number: string;
+  acid_issue_date: ImportDate;
+  acid_expiry_date: ImportDate;
+  cargox_document_id: string | null;
+  importer_tax_number: string | null;
+  exporter_id: string | null;
+  status: string;
+  compliance_checklist: any | null;
+  notes: string | null;
+  created_at: Generated<Date>;
+}
+
+export interface ImportCustomsTariffTable {
+  id: Generated<string>;
+  tenant_id: string;
+  hs_code: string;
+  description_ar: string;
+  description_en: string | null;
+  duty_rate_percent: ImportNumeric;
+  vat_rate_percent: ImportNumeric;
+  regulatory_body: string | null;
+  inspection_fees_percent: ImportNumeric;
+  official_source?: string | null;
+  effective_date?: ImportDate;
+  is_official?: boolean;
+  created_at: Generated<Date>;
 }
 
 export interface Database {
@@ -5513,6 +5703,15 @@ export interface ImportShipmentTable {
   vat_refundable_egp?: ImportNumeric;
   is_consolidated?: boolean | null;
   cost_allocation_method?: string | null;
+  late_expenses_total_egp?: ImportNumeric;
+  late_cogs_adjustment_egp?: ImportNumeric;
+  late_inventory_adjustment_egp?: ImportNumeric;
+  freight_job_id?: string | null;
+  broker_id?: string | null;
+  container_status?: string | null;
+  gate_out_date?: ImportDate;
+  unstuffing_date?: ImportDate;
+  empty_returned_date?: ImportDate;
   created_at: Generated<Date>;
 }
 export interface ImportShipmentItemTable {
@@ -5529,6 +5728,13 @@ export interface ImportShipmentItemTable {
   target_margin_percent: ImportNumeric;
   target_retail_margin: ImportNumeric;
   target_wholesale_margin: ImportNumeric;
+  gross_weight_kg_unit?: ImportNumeric;
+  cbm_unit?: ImportNumeric;
+  total_weight_kg?: ImportNumeric;
+  total_cbm?: ImportNumeric;
+  allocated_duty_egp?: ImportNumeric;
+  allocated_freight_egp?: ImportNumeric;
+  allocated_other_expenses_egp?: ImportNumeric;
   created_at: Generated<Date>;
 }
 export interface ImportInventoryReceiptTable {
@@ -5541,8 +5747,316 @@ export interface ImportInventoryReceiptTable {
   created_by: number | null;
   created_at: Generated<Date>;
 }
+
+export interface ImportQuotationTable {
+  id: Generated<string>;
+  tenant_id: string;
+  project_id: string | null;
+  supplier_id: number;
+  quotation_no: string;
+  inquiry_date: ImportDate;
+  expiry_date: ImportDate;
+  incoterm: string | null;
+  currency: string;
+  item_name: string;
+  product_id: number | null;
+  unit_price_foreign: ImportNumeric;
+  moq: number | null;
+  production_lead_days: number | null;
+  port_of_loading: string | null;
+  estimated_freight_usd: ImportNumeric;
+  estimated_customs_rate_percent: ImportNumeric;
+  estimated_landed_cost_egp: ImportNumeric;
+  status: string;
+  selection_reason: string | null;
+  notes: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface ImportSampleOrderTable {
+  id: Generated<string>;
+  tenant_id: string;
+  project_id: string | null;
+  supplier_id: number;
+  sample_code: string;
+  item_name: string;
+  sample_cost_foreign: ImportNumeric;
+  freight_cost_foreign: ImportNumeric;
+  currency: string;
+  request_date: ImportDate;
+  received_date: ImportDate;
+  courier_tracking_no: string | null;
+  quality_score: ImportNumeric;
+  decision: string;
+  reference_sample_approved: boolean;
+  defect_analysis: string | null;
+  photo_urls: any | null;
+  notes: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface ImportCustomsBrokerTable {
+  id: Generated<string>;
+  tenant_id: string;
+  name: string;
+  license_no: string | null;
+  phone: string | null;
+  email: string | null;
+  customs_ports: any | null;
+  tax_number: string | null;
+  commercial_registry: string | null;
+  is_active: boolean;
+  notes: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface ImportBrokerAdvanceTable {
+  id: Generated<string>;
+  serial_id: Generated<number>;
+  tenant_id: string;
+  broker_id: string;
+  project_id: string | null;
+  shipment_id: string | null;
+  advance_no: string;
+  amount_egp: ImportNumeric;
+  disbursement_date: ImportDate;
+  payment_method: string | null;
+  treasury_account_id: number | null;
+  status: string;
+  settled_amount_egp: ImportNumeric;
+  remaining_amount_egp: ImportNumeric;
+  notes: string | null;
+  created_by: number | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface ImportBrokerExpenseTable {
+  id: Generated<string>;
+  serial_id: Generated<number>;
+  tenant_id: string;
+  broker_id: string;
+  advance_id: string | null;
+  project_id: string | null;
+  shipment_id: string | null;
+  receipt_no: string;
+  expense_date: ImportDate;
+  category: string;
+  amount_egp: ImportNumeric;
+  is_capitalized: boolean;
+  is_refundable_vat: boolean;
+  attachment_url: string | null;
+  is_verified: boolean;
+  verified_by: number | null;
+  verified_at: Date | null;
+  notes: string | null;
+  created_at: Generated<Date>;
+}
+
+export interface ImportLateExpenseEventTable {
+  id: Generated<number>;
+  tenant_id: string;
+  shipment_id: string;
+  title: string;
+  total_amount_egp: ImportNumeric;
+  inventory_amount_egp: ImportNumeric;
+  cogs_amount_egp: ImportNumeric;
+  journal_entry_id: number | null;
+  created_by: number | null;
+  created_at: Generated<Date>;
+}
+
+export interface ImportContainerRefundEventTable {
+  id: Generated<string>;
+  serial_id: Generated<number>;
+  tenant_id: string;
+  deposit_id: string;
+  idempotency_key: string;
+  refunded_amount_egp: ImportNumeric;
+  deductions_amount_egp: ImportNumeric;
+  treasury_account_id: number | null;
+  journal_entry_id: number | null;
+  created_by: number | null;
+  created_at: Generated<Date>;
+}
+
+export interface ImportContainerDepositTable {
+  id: Generated<string>;
+  serial_id: Generated<number>;
+  tenant_id: string;
+  project_id: string | null;
+  shipment_id: string;
+  container_no: string;
+  shipping_line: string;
+  deposit_amount_egp: ImportNumeric;
+  payment_date: ImportDate;
+  expected_return_date: ImportDate;
+  actual_return_date: ImportDate;
+  refund_status: string;
+  refunded_amount_egp: ImportNumeric;
+  deductions_amount_egp: ImportNumeric;
+  deduction_reason: string | null;
+  treasury_account_id: number | null;
+  notes: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface ImportContainerPreorderTable {
+  id: Generated<string>;
+  serial_id: Generated<number>;
+  tenant_id: string;
+  preorder_no: string;
+  project_id: string | null;
+  shipment_id: string;
+  customer_id: number;
+  product_id: number;
+  reserved_quantity: ImportNumeric;
+  unit_price_egp: ImportNumeric;
+  total_price_egp: ImportNumeric;
+  deposit_amount_egp: ImportNumeric;
+  deposit_treasury_account_id: number | null;
+  status: string;
+  sale_invoice_id: number | null;
+  expected_delivery_date: ImportDate;
+  notes: string | null;
+  created_by: number | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface ImportInventoryLotTable {
+  id: Generated<string>;
+  tenant_id: string;
+  lot_number: string;
+  project_id: string | null;
+  shipment_id: string;
+  shipment_item_id: string | null;
+  product_id: number;
+  location_id: number | null;
+  initial_quantity: ImportNumeric;
+  remaining_quantity: ImportNumeric;
+  unit_landed_cost_egp: ImportNumeric;
+  status: string;
+  receipt_date: ImportDate;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface ImportSaleAllocationTable {
+  id: Generated<string>;
+  tenant_id: string;
+  sale_id: number;
+  sale_item_id: number | null;
+  lot_id: string;
+  project_id: string | null;
+  shipment_id: string | null;
+  product_id: number;
+  quantity: ImportNumeric;
+  unit_sale_price_egp: ImportNumeric;
+  unit_cost_egp: ImportNumeric;
+  gross_margin_egp: ImportNumeric;
+  allocation_type?: string;
+  reversal_of_allocation_id?: string | null;
+  created_at: Generated<Date>;
+}
+
+export interface ImportFxAcquisitionTable {
+  id: Generated<string>;
+  tenant_id: string;
+  currency: string;
+  foreign_amount: ImportNumeric;
+  egp_cost: ImportNumeric;
+  effective_exchange_rate: ImportNumeric;
+  acquisition_date: ImportDate;
+  source: string;
+  bank_account_id: number | null;
+  notes: string | null;
+  created_at: Generated<Date>;
+}
+
+export interface ImportDocumentTable {
+  id: Generated<string>;
+  tenant_id: string;
+  project_id: string | null;
+  shipment_id: string | null;
+  document_type: string;
+  file_name: string;
+  file_url: string;
+  file_size_bytes: number | null;
+  mime_type: string | null;
+  issue_date: ImportDate;
+  expiry_date: ImportDate;
+  is_verified: boolean;
+  verified_by: number | null;
+  verified_at: Date | null;
+  notes: string | null;
+  created_by: number | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface ImportApprovalRequestTable {
+  id: Generated<string>;
+  tenant_id: string;
+  module: string;
+  action_type: string;
+  reference_id: string;
+  requested_by: number;
+  approved_by: number | null;
+  status: string;
+  request_payload: any | null;
+  rejection_reason: string | null;
+  created_at: Generated<Date>;
+  decided_at: Date | null;
+}
+
+export interface ImportReconciliationExceptionTable {
+  id: Generated<string>;
+  tenant_id: string;
+  exception_type: string;
+  severity: string;
+  project_id: string | null;
+  shipment_id: string | null;
+  discrepancy_amount_egp: ImportNumeric;
+  details: any | null;
+  status: string;
+  resolved_by: number | null;
+  resolution_notes: string | null;
+  resolved_at: Date | null;
+  created_at: Generated<Date>;
+}
+
 export interface Database {
   import_shipments: ImportShipmentTable;
   import_shipment_items: ImportShipmentItemTable;
   import_inventory_receipts: ImportInventoryReceiptTable;
+  import_partners: ImportPartnerTable;
+  import_partner_ledger: ImportPartnerLedgerTable;
+  import_projects: ImportProjectTable;
+  import_project_partners: ImportProjectPartnerTable;
+  import_suppliers_meta: ImportSupplierMetaTable;
+  import_sourcing_trips: ImportSourcingTripTable;
+  import_proforma_invoices: ImportProformaInvoiceTable;
+  import_qc_inspections: ImportQcInspectionTable;
+  import_aci_compliance: ImportAciComplianceTable;
+  import_customs_tariffs: ImportCustomsTariffTable;
+  import_quotations: ImportQuotationTable;
+  import_sample_orders: ImportSampleOrderTable;
+  import_customs_brokers: ImportCustomsBrokerTable;
+  import_broker_advances: ImportBrokerAdvanceTable;
+  import_broker_expenses: ImportBrokerExpenseTable;
+  import_container_deposits: ImportContainerDepositTable;
+  import_container_refund_events: ImportContainerRefundEventTable;
+  import_late_expense_events: ImportLateExpenseEventTable;
+  import_container_preorders: ImportContainerPreorderTable;
+  import_inventory_lots: ImportInventoryLotTable;
+  import_sale_allocations: ImportSaleAllocationTable;
+  import_fx_acquisitions: ImportFxAcquisitionTable;
+  import_documents: ImportDocumentTable;
+  import_approval_requests: ImportApprovalRequestTable;
+  import_reconciliation_exceptions: ImportReconciliationExceptionTable;
 }

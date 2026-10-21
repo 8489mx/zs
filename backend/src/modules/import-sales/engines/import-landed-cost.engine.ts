@@ -22,6 +22,8 @@ export interface LandedCostCalculationInput {
   internalTransportCostEgp: number;
   demurrageFeesEgp?: number;
   portClearanceCostEgp?: number;
+  vatRefundableEgp?: number;
+  vatIsRefundable?: boolean;
   allocationMethod?: 'value' | 'weight' | 'cbm';
 }
 
@@ -43,6 +45,7 @@ export interface LandedCostCalculationResult {
   totalWeightKg: number;
   totalCbm: number;
   totalOverheadEgp: number;
+  vatRefundableEgp: number;
   allocationMethod: 'value' | 'weight' | 'cbm';
   items: LandedCostItemResult[];
 }
@@ -57,14 +60,20 @@ export function calculateLandedCostBreakdown(input: LandedCostCalculationInput):
   const demurrageEgp = Number(input.demurrageFeesEgp) || 0;
   const clearanceEgp = Number(input.portClearanceCostEgp) || 0;
 
-  const totalOverheadEgp = shippingEgp + customsEgp + transportEgp + demurrageEgp + clearanceEgp;
+  // Distinguish refundable VAT: If refundable, it is a Tax Asset (claimable), NOT capitalized to inventory cost!
+  // If non-refundable, it is capitalized into overhead.
+  const vatRefundableEgp = Number(input.vatRefundableEgp) || 0;
+  const vatIsRefundable = input.vatIsRefundable ?? true;
+  const nonRefundableVatEgp = vatIsRefundable ? 0 : vatRefundableEgp;
+
+  const totalOverheadEgp = shippingEgp + customsEgp + transportEgp + demurrageEgp + clearanceEgp + nonRefundableVatEgp;
 
   // Aggregate bases
   let totalUsdValue = 0;
   let totalWeightKg = 0;
   let totalCbm = 0;
 
-  for (const item of input.items) {
+  for (const item of input.items || []) {
     const qty = Math.max(0, Number(item.quantity) || 0);
     const unitPrice = Math.max(0, Number(item.factoryUnitPriceUsd) || 0);
     const weight = Math.max(0, Number(item.unitWeightKg) || 0);
@@ -75,7 +84,7 @@ export function calculateLandedCostBreakdown(input: LandedCostCalculationInput):
     totalCbm += qty * cbm;
   }
 
-  const itemsResult: LandedCostItemResult[] = input.items.map((item) => {
+  const itemsResult: LandedCostItemResult[] = (input.items || []).map((item) => {
     const qty = Math.max(0, Number(item.quantity) || 0);
     const receivedQty = item.receivedQuantity !== null && item.receivedQuantity !== undefined
       ? Number(item.receivedQuantity)
@@ -95,7 +104,7 @@ export function calculateLandedCostBreakdown(input: LandedCostCalculationInput):
       ratio = itemCbm / totalCbm;
     } else {
       // Default to value allocation
-      ratio = totalUsdValue > 0 ? itemTotalUsd / totalUsdValue : (input.items.length > 0 ? 1 / input.items.length : 0);
+      ratio = totalUsdValue > 0 ? itemTotalUsd / totalUsdValue : ((input.items?.length || 1) > 0 ? 1 / (input.items.length || 1) : 0);
     }
 
     const itemAllocatedOverheadEgp = totalOverheadEgp * ratio;
@@ -130,50 +139,132 @@ export function calculateLandedCostBreakdown(input: LandedCostCalculationInput):
     totalWeightKg: Number(totalWeightKg.toFixed(3)),
     totalCbm: Number(totalCbm.toFixed(3)),
     totalOverheadEgp: Number(totalOverheadEgp.toFixed(2)),
+    vatRefundableEgp: Number(vatRefundableEgp.toFixed(2)),
     allocationMethod: method,
     items: itemsResult,
+  };
+}
+
+export interface LateExpenseAllocationResult {
+  totalLateExpenseEgp: number;
+  receivedQuantity: number;
+  onHandQuantity: number;
+  soldQuantity: number;
+  soldRatio: number;
+  onHandRatio: number;
+  lateCogsAdjustmentEgp: number;
+  lateInventoryAdjustmentEgp: number;
+  unitCostIncreaseEgp: number;
+}
+
+/**
+ * Late Expense Allocation (معالجة المصروفات المتأخرة للشحنات بعد بيع جزء من البضاعة)
+ * IFRS / GAAP IAS 2 compliant:
+ * - Units already sold were expensed as COGS; their portion of late cost is charged to COGS / operational adjustment.
+ * - Units still on-hand have their inventory cost and WAC adjusted by their portion of the late cost.
+ */
+export function calculateLateExpenseAllocation(
+  totalLateExpenseEgp: number,
+  receivedQuantity: number,
+  onHandQuantity: number
+): LateExpenseAllocationResult {
+  const safeLateExpense = Math.max(0, Number(totalLateExpenseEgp) || 0);
+  const safeReceived = Math.max(0, Number(receivedQuantity) || 0);
+  const safeOnHand = Math.max(0, Math.min(safeReceived, Number(onHandQuantity) || 0));
+  const soldQuantity = Math.max(0, safeReceived - safeOnHand);
+
+  const soldRatio = safeReceived > 0 ? soldQuantity / safeReceived : 0;
+  const onHandRatio = safeReceived > 0 ? safeOnHand / safeReceived : 1;
+
+  const lateCogsAdjustmentEgp = Number((safeLateExpense * soldRatio).toFixed(2));
+  const lateInventoryAdjustmentEgp = Number((safeLateExpense - lateCogsAdjustmentEgp).toFixed(2));
+  const unitCostIncreaseEgp = safeOnHand > 0 ? Number((lateInventoryAdjustmentEgp / safeOnHand).toFixed(4)) : 0;
+
+  return {
+    totalLateExpenseEgp: safeLateExpense,
+    receivedQuantity: safeReceived,
+    onHandQuantity: safeOnHand,
+    soldQuantity,
+    soldRatio: Number(soldRatio.toFixed(4)),
+    onHandRatio: Number(onHandRatio.toFixed(4)),
+    lateCogsAdjustmentEgp,
+    lateInventoryAdjustmentEgp,
+    unitCostIncreaseEgp,
   };
 }
 
 export function calculateDemurrageRisk(input: {
   arrivalDate?: string | Date | null;
   demurrageStartDate?: string | Date | null;
-  freeDays: number;
-  ratePerDayUsd: number;
-  exchangeRate: number;
-  status: string;
-}) {
-  if (input.status === 'Arrived') {
-    return { isOverdue: false, overdueDays: 0, estimatedFeesEgp: 0, daysRemaining: null };
-  }
+  freeDays?: number;
+  ratePerDayUsd?: number;
+  exchangeRate?: number;
+  status?: string;
+}): {
+  isOverdue: boolean;
+  isUrgent: boolean;
+  daysRemaining: number;
+  overdueDays: number;
+  totalEstimatedDemurrageFeesEgp: number;
+  estimatedFeesEgp: number;
+} {
+  const freeDays = Math.max(0, Number(input.freeDays) || 14);
+  const rateUsd = Math.max(0, Number(input.ratePerDayUsd) || 50);
+  const exchangeRate = Math.max(0.0001, Number(input.exchangeRate) || 1);
 
-  const baseDate = input.demurrageStartDate ? new Date(input.demurrageStartDate) : (input.arrivalDate ? new Date(input.arrivalDate) : null);
-  if (!baseDate || isNaN(baseDate.getTime())) {
-    return { isOverdue: false, overdueDays: 0, estimatedFeesEgp: 0, daysRemaining: null };
-  }
-
-  const freeDeadline = new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate());
-  freeDeadline.setDate(freeDeadline.getDate() + Math.max(0, input.freeDays));
-
-  const today = new Date();
-  const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-  const diffDays = Math.round((todayMidnight.getTime() - freeDeadline.getTime()) / (1000 * 60 * 60 * 24));
-
-  if (diffDays > 0) {
-    const estimatedFeesUsd = diffDays * input.ratePerDayUsd;
-    const estimatedFeesEgp = estimatedFeesUsd * input.exchangeRate;
-    return {
-      isOverdue: true,
-      overdueDays: diffDays,
-      estimatedFeesEgp: Number(estimatedFeesEgp.toFixed(2)),
-      daysRemaining: 0,
-    };
-  } else {
+  const status = (input.status || '').trim().toLowerCase();
+  if (status === 'arrived' || status === 'cleared' || status === 'closed' || status === 'delivered') {
     return {
       isOverdue: false,
+      isUrgent: false,
+      daysRemaining: 0,
       overdueDays: 0,
+      totalEstimatedDemurrageFeesEgp: 0,
       estimatedFeesEgp: 0,
-      daysRemaining: Math.abs(diffDays),
+    };
+  }
+
+  if (!input.arrivalDate && !input.demurrageStartDate) {
+    return {
+      isOverdue: false,
+      isUrgent: false,
+      daysRemaining: freeDays,
+      overdueDays: 0,
+      totalEstimatedDemurrageFeesEgp: 0,
+      estimatedFeesEgp: 0,
+    };
+  }
+
+  const baseDate = new Date(input.demurrageStartDate || input.arrivalDate!);
+  const baseMidnight = new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate());
+
+  const deadlineMidnight = new Date(baseMidnight.getTime() + freeDays * 24 * 60 * 60 * 1000);
+
+  const now = new Date();
+  const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+  const diffMs = deadlineMidnight.getTime() - todayMidnight.getTime();
+  const diffDays = Math.round(diffMs / (24 * 60 * 60 * 1000));
+
+  if (diffDays >= 0) {
+    return {
+      isOverdue: false,
+      isUrgent: diffDays <= 3,
+      daysRemaining: diffDays,
+      overdueDays: 0,
+      totalEstimatedDemurrageFeesEgp: 0,
+      estimatedFeesEgp: 0,
+    };
+  } else {
+    const overdueDays = Math.abs(diffDays);
+    const feesEgp = Number((overdueDays * rateUsd * exchangeRate).toFixed(2));
+    return {
+      isOverdue: true,
+      isUrgent: true,
+      daysRemaining: 0,
+      overdueDays,
+      totalEstimatedDemurrageFeesEgp: feesEgp,
+      estimatedFeesEgp: feesEgp,
     };
   }
 }

@@ -23,6 +23,7 @@ import { allocateRefundTenders, type RefundTender } from './engines/refund-tende
 import { allocateInvoiceDiscount } from '../sales/engines/invoice-discount.engine';
 import { settlePosExchange } from '../sales/engines/pos-exchange.engine';
 import { selectPurchaseReturnSerials, selectPurchaseReturnBatch } from './helpers/purchase-return-traceability.helper';
+import { restoreImportLotsFromSalesReturn } from '../import-sales/helpers/import-lot-allocation.helper';
 
 export interface ExchangeReturnContext {
   returnId: number;
@@ -560,6 +561,13 @@ export class ReturnsService {
       ) * Number(saleItem.unit_multiplier || 1));
       await this.restoreReturnedPharmacyBatches(trx, Number(sale.id), saleLineId, requestItem.productId,
         previouslyReturnedBaseQty, preparedLine.stockDelta, auth);
+      await restoreImportLotsFromSalesReturn(trx as any, {
+        tenantId: scope.tenantId,
+        saleId: Number(sale.id),
+        saleItemId: saleLineId,
+        productId: requestItem.productId,
+        returnQty: preparedLine.stockDelta,
+      });
 
       const originalSerials = typeof saleItem.serials === 'string'
         ? JSON.parse(saleItem.serials || '[]') as unknown : saleItem.serials;
