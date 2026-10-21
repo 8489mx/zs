@@ -483,6 +483,9 @@ export class PosTerminalService {
 
     // Determine if session should run in simulation / sandbox mode
     const isMock = prov.includes('mock') || prov.includes('sandbox');
+    if (isMock && (process.env.APP_MODE === 'CLOUD_SAAS' || process.env.NODE_ENV === 'production')) {
+      throw new BadRequestException('محاكي الدفع غير مسموح به في بيئة الإنتاج');
+    }
     // Simulated bank approvals are strictly a development-only feature.
     if (isMock && (process.env.APP_MODE === 'CLOUD_SAAS' || process.env.NODE_ENV === 'production')) {
       throw new BadRequestException('Mock POS terminal provider is forbidden in production');
