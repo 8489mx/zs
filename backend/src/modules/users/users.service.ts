@@ -16,6 +16,7 @@ import { ChangePasswordDto } from './dto/change-password.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { generatePhoneSearchVariants, validateAndNormalizePhone } from '../../core/utils/phone-utils';
 import { resolveUserLimit, isUserLimitReached } from './engines/user-plan-limit.engine';
+import { AuthCacheService } from '../../core/auth/services/auth-cache.service';
 
 @Injectable()
 export class UsersService {
@@ -23,6 +24,7 @@ export class UsersService {
     @Inject(KYSELY_DB) private readonly db: Kysely<Database>,
     private readonly tx: TransactionHelper,
     private readonly audit: AuditService,
+    private readonly authCache: AuthCacheService = new AuthCacheService(),
   ) {}
 
   private scope(actor: AuthContext) { return requireTenantScope(actor); }
@@ -101,16 +103,28 @@ export class UsersService {
     return map;
   }
 
-  private async replaceUserBranches(userId: number, branchIds: string[] | undefined, actor: AuthContext): Promise<void> {
+  private async replaceUserBranches(
+    userId: number,
+    branchIds: string[] | undefined,
+    actor: AuthContext,
+    trx: Kysely<Database> = this.db
+  ): Promise<void> {
+    // If branchIds is undefined (omitted in request), preserve existing associations! (CORE-006)
+    if (branchIds === undefined) {
+      return;
+    }
+
     const normalized = normalizeBranchIds(branchIds);
     const { tenantId, accountId } = this.scope(actor);
-    await sql`delete from user_branches where tenant_id = ${tenantId} and user_id = ${userId}`.execute(this.db);
 
-    if (!normalized.length) return;
+    // Explicit empty array clears associations
+    if (!normalized.length) {
+      await sql`delete from user_branches where tenant_id = ${tenantId} and user_id = ${userId}`.execute(trx);
+      return;
+    }
 
-    // Graceful skip: filter out any branch IDs that don't actually exist for this tenant
-    // to avoid FK constraint violations when client data is corrupted or outdated
-    const existingBranches = await this.db
+    // Validate ALL target branches belong to this tenant before deleting existing associations (CORE-006)
+    const existingBranches = await trx
       .selectFrom('branches')
       .select('id')
       .where('id', 'in', normalized)
@@ -118,24 +132,51 @@ export class UsersService {
       .execute();
 
     const validBranchIds = new Set(existingBranches.map((b) => Number(b.id)));
-    const safeNormalized = normalized.filter((id) => validBranchIds.has(id));
+    const invalidBranches = normalized.filter((id) => !validBranchIds.has(id));
 
-    if (!safeNormalized.length) {
-      console.warn(`[replaceUserBranches] All branch IDs were invalid for tenant=${tenantId}, user=${userId}. Requested: [${normalized.join(', ')}]`);
-      return;
+    if (invalidBranches.length > 0) {
+      throw new AppError(
+        `الفرع المحدد غير موجود أو لا يتبع لهذه المنشأة: [${invalidBranches.join(', ')}]`,
+        'INVALID_BRANCH_ASSIGNMENT',
+        400
+      );
     }
 
-    const skipped = normalized.filter((id) => !validBranchIds.has(id));
-    if (skipped.length) {
-      console.warn(`[replaceUserBranches] Skipped non-existent branch IDs for tenant=${tenantId}, user=${userId}: [${skipped.join(', ')}]`);
-    }
+    await sql`delete from user_branches where tenant_id = ${tenantId} and user_id = ${userId}`.execute(trx);
 
-    const values = safeNormalized.map((branchId) => sql`(${userId}, ${branchId}, ${tenantId}, ${accountId})`);
+    const values = normalized.map((branchId) => sql`(${userId}, ${branchId}, ${tenantId}, ${accountId})`);
     await sql`
       insert into user_branches (user_id, branch_id, tenant_id, account_id)
       values ${sql.join(values)}
       on conflict (user_id, branch_id) do nothing
-    `.execute(this.db);
+    `.execute(trx);
+  }
+
+  private async assertValidDefaultBranch(
+    branchId: number | string | null | undefined,
+    tenantId: string,
+    trx: Kysely<Database> = this.db
+  ): Promise<number | null> {
+    if (branchId === null || branchId === undefined || branchId === '') {
+      return null;
+    }
+    const numId = Number(branchId);
+    if (!Number.isInteger(numId) || numId <= 0) {
+      return null;
+    }
+
+    const branch = await trx
+      .selectFrom('branches')
+      .select('id')
+      .where('id', '=', numId)
+      .where('tenant_id', '=', tenantId)
+      .executeTakeFirst();
+
+    if (!branch) {
+      throw new AppError('الفرع الافتراضي المحدد غير موجود أو لا يتبع لهذه المنشأة', 'CROSS_TENANT_BRANCH_FORBIDDEN', 400);
+    }
+
+    return numId;
   }
 
   async getPlanLimitForTenant(tenantId: string, actor: AuthContext, activeUsersCount: number): Promise<{
@@ -285,7 +326,7 @@ export class UsersService {
     };
   }
 
-  async createUser(payload: UpsertUserDto, actor: AuthContext): Promise<Record<string, unknown>> {
+  private async executeUserCreate(trx: Kysely<Database>, payload: UpsertUserDto, actor: AuthContext): Promise<number> {
     const scope = this.scope(actor);
     if (!payload.password) {
       throw new AppError('Password is required', 'PASSWORD_REQUIRED', 400);
@@ -307,7 +348,7 @@ export class UsersService {
     }
 
     if (!isPlatformAdmin) {
-      const activeUsers = await this.db.selectFrom('users').select(['id']).where(this.tenantPredicate(actor)).where('is_active', '=', true).execute();
+      const activeUsers = await trx.selectFrom('users').select(['id']).where(this.tenantPredicate(actor)).where('is_active', '=', true).execute();
       const planLimit = await this.getPlanLimitForTenant(scope.tenantId, actor, activeUsers.length);
 
       if (planLimit.isLimitReached) {
@@ -320,8 +361,11 @@ export class UsersService {
       effectiveRole = 'admin';
     }
 
+    // Validate foreign-tenant defaultBranchId (CORE-007)
+    const validatedDefaultBranchId = await this.assertValidDefaultBranch(payload.defaultBranchId, scope.tenantId, trx);
     const passwordRecord = await createPasswordRecord(payload.password);
-    const result = await this.db
+
+    const result = await trx
       .insertInto('users')
       .values(({
         username: payload.username.trim(),
@@ -332,7 +376,7 @@ export class UsersService {
         is_active: payload.isActive !== false,
         permissions_json: JSON.stringify(payload.permissions ?? []),
         display_name: payload.name?.trim() || payload.username.trim(),
-        default_branch_id: payload.defaultBranchId ? Number(payload.defaultBranchId) : null,
+        default_branch_id: validatedDefaultBranchId,
         must_change_password: payload.mustChangePassword === true,
         failed_login_count: 0,
         locked_until: null,
@@ -343,22 +387,31 @@ export class UsersService {
       .returning(['id'])
       .executeTakeFirstOrThrow();
 
-    await this.replaceUserBranches(Number(result.id), payload.branchIds, actor);
+    const newId = Number(result.id);
+    await this.replaceUserBranches(newId, payload.branchIds, actor, trx);
+    return newId;
+  }
 
-    const created = await this.db.selectFrom('users').selectAll().where('id', '=', Number(result.id)).where(this.tenantPredicate(actor)).executeTakeFirstOrThrow();
+  async createUser(payload: UpsertUserDto, actor: AuthContext): Promise<Record<string, unknown>> {
+    // Atomic user creation in transaction (CORE-006)
+    const newId = await this.tx.runInTransaction(this.db, async (trx) => {
+      return this.executeUserCreate(trx, payload, actor);
+    });
+
+    const created = await this.db.selectFrom('users').selectAll().where('id', '=', newId).where(this.tenantPredicate(actor)).executeTakeFirstOrThrow();
     await this.audit.log('إضافة مستخدم', `تمت إضافة المستخدم ${created.username} بواسطة ${actor.username}`, actor);
 
     const usersState = await this.listUsers({ includeInactive: true, page: 1, pageSize: 1000 }, actor);
-    const branchMap = await this.loadBranchMap([Number(result.id)], actor);
+    const branchMap = await this.loadBranchMap([newId], actor);
     return {
       ok: true,
-      user: mapUserRow(created, branchMap.get(Number(result.id)) ?? []),
+      user: mapUserRow(created, branchMap.get(newId) ?? []),
       users: usersState.users,
     };
   }
 
-  async updateUser(id: number, payload: UpsertUserDto, actor: AuthContext, keepSessionId?: string): Promise<Record<string, unknown>> {
-    const existing = await this.db
+  private async executeUserUpdate(trx: Kysely<Database>, id: number, payload: UpsertUserDto, actor: AuthContext, keepSessionId?: string): Promise<any> {
+    const existing = await trx
       .selectFrom('users')
       .selectAll()
       .where('id', '=', id)
@@ -409,9 +462,12 @@ export class UsersService {
       is_active: payload.isActive !== false,
       permissions_json: JSON.stringify(payload.permissions ?? []),
       display_name: payload.name?.trim() || payload.username.trim(),
-      default_branch_id: payload.defaultBranchId ? Number(payload.defaultBranchId) : null,
       must_change_password: payload.mustChangePassword === true,
     };
+
+    if (payload.defaultBranchId !== undefined) {
+      updates.default_branch_id = await this.assertValidDefaultBranch(payload.defaultBranchId, scope.tenantId, trx);
+    }
 
     if (updatedPhone !== undefined) {
       updates.phone = updatedPhone;
@@ -427,20 +483,38 @@ export class UsersService {
       updates.locked_until = null;
     }
 
-    await this.db.updateTable('users').set(updates).where('id', '=', id).where(this.tenantPredicate(actor)).execute();
-    await this.replaceUserBranches(id, payload.branchIds, actor);
+    await trx.updateTable('users').set(updates).where('id', '=', id).where(this.tenantPredicate(actor)).execute();
+    await this.replaceUserBranches(id, payload.branchIds, actor, trx);
 
-    const { tenantId } = this.scope(actor);
-    let sessionCleanup = this.db
+    // Guaranteed Session Revocation (CORE-005):
+    // Demoted, disabled, or password-reset users must lose unauthorized sessions immediately
+    const isDemoted = existing.role !== effectiveRole && (existing.role === 'super_admin' || existing.role === 'admin') && effectiveRole !== existing.role;
+    const isDisabled = payload.isActive === false;
+    const isPasswordReset = Boolean(payload.password);
+    const shouldRevokeAll = isDisabled || isDemoted || (isPasswordReset && !keepSessionId);
+
+    let sessionCleanup = trx
       .deleteFrom('sessions')
       .where('user_id', '=', id)
-      .where(sql<boolean>`tenant_id = ${tenantId}`);
-    if (keepSessionId) {
+      .where(sql<boolean>`tenant_id = ${scope.tenantId}`);
+
+    if (keepSessionId && !shouldRevokeAll) {
       sessionCleanup = sessionCleanup.where('id', '!=', keepSessionId);
     }
     await sessionCleanup.execute();
 
-    const updated = await this.db.selectFrom('users').selectAll().where('id', '=', id).where(this.tenantPredicate(actor)).executeTakeFirstOrThrow();
+    return await trx.selectFrom('users').selectAll().where('id', '=', id).where(this.tenantPredicate(actor)).executeTakeFirstOrThrow();
+  }
+
+  async updateUser(id: number, payload: UpsertUserDto, actor: AuthContext, keepSessionId?: string): Promise<Record<string, unknown>> {
+    // Atomic user update in transaction (CORE-006)
+    const updated = await this.tx.runInTransaction(this.db, async (trx) => {
+      return this.executeUserUpdate(trx, id, payload, actor, keepSessionId);
+    });
+
+    // Invalidate cached authorization immediately on commit (CORE-005)
+    this.authCache.invalidateUserSessions(id);
+
     await this.audit.log('تعديل مستخدم', `تم تحديث المستخدم ${updated.username} بواسطة ${actor.username}`, actor);
 
     const usersState = await this.listUsers({ includeInactive: true, page: 1, pageSize: 1000 }, actor);
@@ -454,6 +528,7 @@ export class UsersService {
 
   async changePassword(payload: ChangePasswordDto, actor: AuthContext): Promise<Record<string, unknown>> {
     const id = Number(actor.userId);
+    const scope = this.scope(actor);
     const existing = await this.db.selectFrom('users').selectAll().where('id', '=', id).where(this.tenantPredicate(actor)).executeTakeFirst();
     
     if (!existing) {
@@ -468,17 +543,32 @@ export class UsersService {
     assertStrongPassword(payload.newPassword);
     const passwordRecord = await createPasswordRecord(payload.newPassword);
 
-    await this.db.updateTable('users')
-      .set({
-        password_hash: passwordRecord.hash,
-        password_salt: passwordRecord.salt,
-        must_change_password: false,
-        failed_login_count: 0,
-        locked_until: null,
-      } as any)
-      .where('id', '=', id)
-      .where(this.tenantPredicate(actor))
-      .execute();
+    await this.tx.runInTransaction(this.db, async (trx) => {
+      await trx.updateTable('users')
+        .set({
+          password_hash: passwordRecord.hash,
+          password_salt: passwordRecord.salt,
+          must_change_password: false,
+          failed_login_count: 0,
+          locked_until: null,
+        } as any)
+        .where('id', '=', id)
+        .where(this.tenantPredicate(actor))
+        .execute();
+
+      // Revoke all other sessions in DB (CORE-005)
+      let sessionCleanup = trx
+        .deleteFrom('sessions')
+        .where('user_id', '=', id)
+        .where(sql<boolean>`tenant_id = ${scope.tenantId}`);
+      if (actor.sessionId) {
+        sessionCleanup = sessionCleanup.where('id', '!=', actor.sessionId);
+      }
+      await sessionCleanup.execute();
+    });
+
+    // Invalidate cached authorization immediately! (CORE-005)
+    this.authCache.invalidateUserSessions(id);
 
     await this.audit.log('تغيير كلمة المرور', `المستخدم ${existing.username} قام بتغيير كلمة المرور الخاصة به`, actor);
 
@@ -527,13 +617,25 @@ export class UsersService {
   async syncUsers(usersPayload: UpsertUserDto[], actor: AuthContext, actorSessionId?: string): Promise<Record<string, unknown>> {
     ensureUsersPayload(usersPayload);
 
-    for (const entry of usersPayload) {
-      const id = normalizeUserId((entry as unknown as { id?: string | number }).id);
-      if (id > 0) {
-        await this.updateUser(id, entry, actor, Number(id) === actor.userId ? actorSessionId : undefined);
-      } else {
-        await this.createUser(entry, actor);
+    // All-or-nothing transactional bulk sync (CORE-006)
+    const affectedUserIds = await this.tx.runInTransaction(this.db, async (trx) => {
+      const ids: number[] = [];
+      for (const entry of usersPayload) {
+        const id = normalizeUserId((entry as unknown as { id?: string | number }).id);
+        if (id > 0) {
+          await this.executeUserUpdate(trx, id, entry, actor, Number(id) === actor.userId ? actorSessionId : undefined);
+          ids.push(id);
+        } else {
+          const newId = await this.executeUserCreate(trx, entry, actor);
+          ids.push(newId);
+        }
       }
+      return ids;
+    });
+
+    // Guaranteed cache invalidation for all affected users (CORE-005)
+    for (const uid of affectedUserIds) {
+      this.authCache.invalidateUserSessions(uid);
     }
 
     await this.audit.log('تعديل المستخدمين', `تم تحديث ${usersPayload.length} مستخدم/صلاحية بواسطة ${actor.username}`, actor);
@@ -570,6 +672,9 @@ export class UsersService {
 
         await trx.deleteFrom('users').where('id', '=', id).where(this.tenantPredicate(actor)).execute();
       });
+
+      // Invalidate cached authorization immediately! (CORE-005)
+      this.authCache.invalidateUserSessions(id);
     } catch (err: any) {
       if (err?.code === '23503' || String(err?.message || '').includes('violates foreign key constraint')) {
         throw new AppError(
@@ -700,21 +805,28 @@ if (row.is_active !== false && (rowRole === 'admin' || rowRole === 'super_admin'
 
     if (allowedIds.length) {
       const { tenantId } = this.scope(actor);
-      await this.db
-        .updateTable('users')
-        .set({ is_active: false } as any)
-        .where('id', 'in', allowedIds)
-        .where(this.tenantPredicate(actor))
-        .execute();
+      await this.tx.runInTransaction(this.db, async (trx) => {
+        await trx
+          .updateTable('users')
+          .set({ is_active: false } as any)
+          .where('id', 'in', allowedIds)
+          .where(this.tenantPredicate(actor))
+          .execute();
 
-      let sessionCleanup = this.db
-        .deleteFrom('sessions')
-        .where('user_id', 'in', allowedIds)
-        .where(sql<boolean>`tenant_id = ${tenantId}`);
-      if (actorSessionId && allowedIds.includes(Number(actor.userId))) {
-        sessionCleanup = sessionCleanup.where('id', '!=', actorSessionId);
+        let sessionCleanup = trx
+          .deleteFrom('sessions')
+          .where('user_id', 'in', allowedIds)
+          .where(sql<boolean>`tenant_id = ${tenantId}`);
+        if (actorSessionId && allowedIds.includes(Number(actor.userId))) {
+          sessionCleanup = sessionCleanup.where('id', '!=', actorSessionId);
+        }
+        await sessionCleanup.execute();
+      });
+
+      // Invalidate cached authorization immediately! (CORE-005)
+      for (const uid of allowedIds) {
+        this.authCache.invalidateUserSessions(uid);
       }
-      await sessionCleanup.execute();
     }
 
     const disabledUsers = selectedRows.filter((row) => allowedIds.includes(Number(row.id)));
